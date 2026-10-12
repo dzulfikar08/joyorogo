@@ -1,0 +1,35 @@
+{
+  "name": "@joyorogo/api",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "types": "./dist/src/*.d.ts",
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "check-types": "tsc -b",
+    "test": "bun test src/lib",
+    "dev": "tsc -b --watch"
+  },
+  "dependencies": {
+    "@joyorogo/auth": "workspace:*",
+    "@joyorogo/db": "workspace:*",
+    "@orpc/client": "catalog:",
+    "@orpc/openapi": "catalog:",
+    "@orpc/server": "catalog:",
+    "@orpc/zod": "catalog:",
+    "drizzle-orm": "^0.45.2",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@joyorogo/config": "workspace:*",
+    "@types/bun": "^1.4.2",
+    "typescript": "^6.0.3"
+  }
+}

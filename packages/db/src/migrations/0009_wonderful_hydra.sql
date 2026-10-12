@@ -1,0 +1,1 @@
+ALTER TABLE `profile` ADD `ramadan_mode` text DEFAULT 'auto' NOT NULL;

@@ -1,0 +1,1 @@
+ALTER TABLE `food_log` ADD `fiber` real;

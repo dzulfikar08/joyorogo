@@ -1,0 +1,156 @@
+@import "@fontsource-variable/plus-jakarta-sans/wght.css";
+@import "@joyorogo/ui/globals.css";
+
+/*
+ * App-level additions only. Design tokens live in @joyorogo/ui/globals.css.
+ */
+
+/* Progress rings fill once from empty when a screen first shows real data. */
+@media (prefers-reduced-motion: no-preference) {
+  .ring-fill {
+    animation: ring-fill 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+@keyframes ring-fill {
+  from {
+    stroke-dashoffset: var(--ring-circumference);
+  }
+}
+
+/* Press feedback for tappable surfaces: quick, small, only on press. */
+.pressable {
+  transition:
+    transform 120ms ease-out,
+    background-color 150ms ease-out;
+}
+.pressable:active {
+  transform: scale(0.97);
+}
+
+/* Hide scrollbars on horizontal chip rails; they still scroll by touch/trackpad. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes milestone-pop {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.animate-milestone-pop {
+  animation: milestone-pop 0.3s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+/* Staggered entrance for dashboard sections (infrequent view load). */
+@media (prefers-reduced-motion: no-preference) {
+  .stagger-enter > * {
+    animation: enter-up 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+  .stagger-enter > *:nth-child(2) {
+    animation-delay: 60ms;
+  }
+  .stagger-enter > *:nth-child(3) {
+    animation-delay: 120ms;
+  }
+  .stagger-enter > *:nth-child(4) {
+    animation-delay: 180ms;
+  }
+  .stagger-enter > *:nth-child(5) {
+    animation-delay: 240ms;
+  }
+  .stagger-enter > *:nth-child(6) {
+    animation-delay: 300ms;
+  }
+  .stagger-enter > *:nth-child(7) {
+    animation-delay: 360ms;
+  }
+  .stagger-enter > *:nth-child(n + 8) {
+    animation-delay: 420ms;
+  }
+}
+
+@keyframes enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Photo-dissolves-into-sticker reveal at scan confirm time. The photo fades
+ * out with a slight blur-push while the cutout settles in with a growing
+ * shadow — same pixels, background gone. Chips pop in per item afterwards. */
+@media (prefers-reduced-motion: no-preference) {
+  .sticker-photo-out {
+    opacity: 0;
+    filter: blur(6px);
+    transform: scale(1.03);
+  }
+  .sticker-morph-in {
+    animation: sticker-settle 500ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+  .chip-pop {
+    animation: chip-pop 220ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+}
+
+@keyframes sticker-settle {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+    filter: drop-shadow(0 0 0 rgb(0 0 0 / 0));
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.28));
+  }
+}
+
+@keyframes chip-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Indeterminate progress sweep while the landing demo waits on the scan. */
+@keyframes scan-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-milestone-pop,
+  .sticker-morph-in,
+  .chip-pop {
+    animation: none;
+  }
+  .pressable:active {
+    transform: none;
+  }
+  .sticker-photo-out {
+    opacity: 0;
+    filter: none;
+    transform: none;
+  }
+}

@@ -1,0 +1,20 @@
+# Every v* tag publishes apps/selfhost to the CloudAgni marketplace listing
+# "joyorogo" (first tag: draft; later tags: a new version awaiting review).
+# Needs the AGNI_API_KEY repository secret (ca_... key from CloudAgni).
+name: Publish ke CloudAgni
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dzulfikar08/cloudagni/.github/actions/marketplace-publish@master
+        with:
+          slug: joyorogo
+          name: JoyoRogo
+          price: "0"
+          description: "Pencatat kalori, olahraga, berat, dan tidur dengan foto AI untuk makanan Indonesia. Open source, AGPL-3.0."
+          demo-url: https://joyorogo.dzulfikar.com
+          project-dir: apps/selfhost
+          api-key: ${{ secrets.AGNI_API_KEY }}

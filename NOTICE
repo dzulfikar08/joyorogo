@@ -1,0 +1,25 @@
+JoyoRogo
+Copyright (C) 2026 Dzulfikar Ats Tsauri / JoyoDigitama
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License version 3 (see LICENSE).
+If you run a modified version as a network service, the AGPL requires you to
+offer its users the corresponding source code.
+
+Trademarks
+  "JoyoRogo" and the JoyoRogo ring-and-grain logo identify the official app
+  and the hosted JoyoRogo Cloud. The AGPL covers the code, not the name or
+  logo: a public fork or hosted copy must not present itself as the official
+  JoyoRogo. Self-hosting for yourself, your family, or your clients is fine.
+
+Third-party data
+  Food composition data: Tabel Komposisi Pangan Indonesia (TKPI) 2019,
+  Kementerian Kesehatan Republik Indonesia (https://panganku.org,
+  https://repository.kemkes.go.id). Values were collected from the public
+  TKPI listing; see scripts/scrape-tkpi2019.py.
+
+  Exercise energy values: MET values adapted (rounded) from the Compendium of
+  Physical Activities, Ainsworth BE et al. (https://pacompendium.com).
+
+Third-party code and fonts (Plus Jakarta Sans, SIL Open Font License) are
+used under the licenses listed in each package's metadata.

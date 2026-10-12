@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>JoyoRogo: Diet yang Paham Porsi Warteg</title>
+    <meta
+      name="description"
+      content="Foto piringmu, kalorinya terhitung dalam beberapa detik. JoyoRogo bilang berapa lagi yang boleh kamu makan, perlu dibakar, dan butuh tidur hari ini. Foto tidak disimpan."
+    />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f5f0" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141311" />
+    <link rel="canonical" href="https://joyorogo.dzulfikar.com/" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/brand/logo-mark.svg" />
+    <link rel="icon" href="/favicon.png" sizes="32x32" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="JoyoRogo" />
+    <meta property="og:title" content="JoyoRogo: Diet yang Paham Porsi Warteg" />
+    <meta
+      property="og:description"
+      content="Foto makanan → kalori terhitung. Tahu tiap hari berapa boleh makan, berapa harus dibakar, dan butuh tidur berapa jam."
+    />
+    <meta property="og:url" content="https://joyorogo.dzulfikar.com/" />
+    <meta name="twitter:card" content="summary" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "JoyoRogo",
+        "url": "https://joyorogo.dzulfikar.com",
+        "applicationCategory": "HealthApplication",
+        "operatingSystem": "Web, Android",
+        "inLanguage": "id",
+        "description": "Pendamping diet berbasis AI untuk pengguna Indonesia: foto makanan dikenali AI dan dihitung kalorinya, sinkron olahraga dari Strava, dan rekomendasi harian tiga angka (kalori makan, kalori bakar, jam tidur).",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "IDR" },
+        "featureList": [
+          "Foto makanan dianalisis AI dan dihitung kalorinya",
+          "Tiga angka harian: boleh makan, harus bakar, butuh tidur",
+          "Impor olahraga dari Strava",
+          "Timbangan berat badan dan progres",
+          "Foto hanya untuk analisis dan tidak disimpan"
+        ]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Apa itu JoyoRogo?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "JoyoRogo adalah pendamping diet berbasis AI. Setiap hari ia menjawab tiga pertanyaan: berapa kalori boleh dimakan, berapa kalori harus dibakar, dan butuh tidur berapa jam."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Bagaimana JoyoRogo menghitung kalori dari foto makanan?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Ambil foto piringmu, model visi AI mengenali masakan Indonesia (nasi goreng, ayam geprek, soto, dan lainnya) lalu memperkirakan porsi dan kalori tiap item. Kamu bisa mengoreksi hasilnya sebelum disimpan."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Apakah foto makanan saya disimpan?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Tidak. Foto hanya dipakai untuk analisis di server lalu dibuang. Yang disimpan hanya angka dan catatan yang kamu konfirmasi."
+            }
+          }
+        ]
+      }
+    </script>
+    <!-- Theme before first paint; matches packages/ui use-theme (class + colorScheme). -->
+    <script>
+      try {
+        var t = localStorage.getItem("vite-ui-theme") || "system";
+        var dark =
+          t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+        // The static landing below is for crawlers and first-time visitors on
+        // "/". Anyone deep-linking into the app or already signed in would
+        // only see it flash before React mounts, so hide it for them.
+        if (location.pathname !== "/" || localStorage.getItem("jrg-user")) {
+          document.documentElement.classList.add("app-boot");
+        }
+      } catch (e) {}
+    </script>
+    <style>
+      .app-boot #seo-fallback {
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app">
+      <main
+        id="seo-fallback"
+        style="
+          max-width: 40rem;
+          margin: 0 auto;
+          padding: 3rem 1.25rem;
+          font-family: Inter, system-ui, sans-serif;
+          color: #1a2b1e;
+          line-height: 1.6;
+        "
+      >
+        <p
+          style="
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #1e7a4c;
+            margin: 0;
+          "
+        >
+          Pendamping diet berbasis AI
+        </p>
+        <h1 style="font-size: 2rem; margin: 0.5rem 0 1rem">
+          Turunkan berat badan dengan 3 angka yang jelas setiap hari
+        </h1>
+        <p>
+          Tidak perlu hitung kalori. Cukup ikuti <strong>target makan</strong>,
+          <strong>target bakar</strong>, dan <strong>jam tidur</strong> yang dihitung khusus untukmu
+          tiap hari. Foto makananmu, AI yang menghitung kalorinya, kamu tinggal konfirmasi.
+        </p>
+        <h2 style="font-size: 1.25rem; margin-top: 2rem">Yang bisa dilakukan</h2>
+        <ul>
+          <li>
+            <strong>Foto makanan → kalori terhitung.</strong> AI mengenali masakan Indonesia (nasi
+            goreng, ayam geprek, soto, dan lainnya); kamu bisa koreksi sebelum disimpan.
+          </li>
+          <li>
+            <strong>Tiga angka harian.</strong> Target makan, bakar, dan tidur dihitung dari usia,
+            tinggi, berat, dan tingkat aktivitasmu (rumus Mifflin-St Jeor).
+          </li>
+          <li><strong>Olahraga.</strong> Impor otomatis dari Strava, atau catat manual.</li>
+          <li>
+            <strong>Timbangan &amp; tidur.</strong> Catat berat tiap hari, lihat tren menuju berat
+            sehat.
+          </li>
+        </ul>
+        <h2 style="font-size: 1.25rem; margin-top: 2rem">Privasi</h2>
+        <p>
+          Foto makanan hanya dipakai untuk analisis lalu dibuang, tidak disimpan. Yang tersimpan
+          hanya angka dan catatan yang kamu konfirmasi. Login pakai akun Google.
+        </p>
+        <p style="margin-top: 2rem">
+          <a
+            href="/login"
+            style="
+              display: inline-block;
+              background: #2e7d46;
+              color: #fff;
+              padding: 0.75rem 1.5rem;
+              border-radius: 9999px;
+              text-decoration: none;
+              font-weight: 600;
+            "
+            >Masuk dengan Google</a
+          >
+        </p>
+        <p style="margin-top: 2rem; font-size: 0.8rem; color: #5b6b5e">
+          JoyoRogo · dibuat di Malang, Indonesia · bahasa antarmuka: Indonesia
+        </p>
+      </main>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

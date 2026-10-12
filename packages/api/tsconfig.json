@@ -1,0 +1,13 @@
+{
+  "extends": "@joyorogo/config/tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "@cloudflare/workers-types", "bun"],
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../db" }, { "path": "../auth" }]
+}

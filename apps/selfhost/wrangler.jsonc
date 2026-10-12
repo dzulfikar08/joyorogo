@@ -1,0 +1,109 @@
+// JoyoRogo as ONE worker: the Hono API (apps/server) serves the API paths,
+// the web build (apps/web, built with VITE_SERVER_URL=/) serves everything
+// else. Used two ways:
+//   - CloudAgni: `agni publish apps/selfhost` packs this config; CloudAgni
+//     fills BETTER_AUTH_URL/APP_URL, generates BETTER_AUTH_SECRET, creates
+//     the D1 + R2, and asks the deployer for `cloudagni_inputs`.
+//   - Your own Cloudflare account: see the README section "Self-host".
+// The hosted JoyoRogo Cloud runs from apps/server + apps/web instead.
+{
+  "$schema": "../server/node_modules/wrangler/config-schema.json",
+  "name": "joyorogo",
+  "main": "../server/src/index.ts",
+  "compatibility_date": "2026-08-31",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": [
+      "/api/*",
+      "/rpc/*",
+      "/api-reference/*",
+      "/ai/*",
+      "/u/*",
+      "/sticker/*",
+      "/downloads/*",
+    ],
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "joyorogo",
+      // Self-host: `bunx wrangler d1 create joyorogo`, then paste the id here.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "../../packages/db/migrations-deploy",
+    },
+  ],
+  "ai": { "binding": "AI" },
+  "images": { "binding": "IMAGES" },
+  "r2_buckets": [{ "binding": "STICKERS", "bucket_name": "joyorogo-stickers" }],
+  "vars": {
+    // Your public origin, e.g. https://joyorogo.example.com (CloudAgni fills both).
+    "BETTER_AUTH_URL": "https://joyorogo.example.com",
+    "APP_URL": "https://joyorogo.example.com",
+    // Same origin: no cross-origin callers to allow.
+    "CORS_ORIGIN": "",
+    "AI_VISION_MODEL": "@cf/google/gemma-4-26b-a4b-it",
+    "DEV_LOGIN": "",
+  },
+  // CloudAgni generates these per instance (self-host: `wrangler secret put`).
+  "cloudagni_secrets": ["BETTER_AUTH_SECRET"],
+  // CloudAgni deploy form. {origin} renders as the instance URL.
+  "cloudagni_inputs": [
+    {
+      "name": "GOOGLE_CLIENT_ID",
+      "label": "Google OAuth Client ID",
+      "description": "Buat OAuth client (Web application) di Google Cloud Console. Authorized JavaScript origin: {origin}. Authorized redirect URI: {origin}/api/auth/callback/google",
+      "required": true,
+      "placeholder": "123456789-xxxx.apps.googleusercontent.com",
+      "docs_url": "https://console.cloud.google.com/apis/credentials",
+    },
+    {
+      "name": "GOOGLE_CLIENT_SECRET",
+      "label": "Google OAuth Client Secret",
+      "secret": true,
+      "required": true,
+      "placeholder": "GOCSPX-...",
+    },
+    {
+      "name": "STRAVA_CLIENT_ID",
+      "label": "Strava Client ID",
+      "description": "Opsional, untuk impor olahraga dari Strava. Authorization Callback Domain: domain dari {origin}",
+      "docs_url": "https://www.strava.com/settings/api",
+    },
+    { "name": "STRAVA_CLIENT_SECRET", "label": "Strava Client Secret", "secret": true },
+    {
+      "name": "FREE_DAILY_SCANS",
+      "label": "Batas scan AI gratis per hari",
+      "description": "Kosongkan untuk tanpa batas (tanpa paywall). Isi angka, misalnya 3, untuk membatasi pengguna gratis.",
+    },
+    {
+      "name": "FOUNDER_DAILY_CAP",
+      "label": "Batas scan AI Founder per hari",
+      "description": "Kosongkan untuk tanpa batas.",
+    },
+    {
+      "name": "ANON_SCANS",
+      "label": "Coba scan tanpa daftar per perangkat",
+      "description": "Kosong = 2. Isi 0 untuk mematikan demo di halaman depan.",
+    },
+    {
+      "name": "FOUNDER_PRICE_IDR",
+      "label": "Harga Founder per bulan (Rp)",
+      "description": "Kosong = 15000. Dipakai hanya kalau paywall dan DOKU diisi.",
+    },
+    {
+      "name": "DOKU_CLIENT_ID",
+      "label": "DOKU Client ID",
+      "description": "Opsional, untuk menjual paket Founder lewat DOKU Checkout. Pembayaran aktif hanya kalau batas scan gratis juga diisi.",
+      "docs_url": "https://dashboard.doku.com",
+    },
+    { "name": "DOKU_SECRET_KEY", "label": "DOKU Secret Key", "secret": true },
+    {
+      "name": "DOKU_BASE_URL",
+      "label": "DOKU API URL",
+      "description": "Kosong = produksi (https://api.doku.com). Sandbox: https://api-sandbox.doku.com",
+    },
+  ],
+}

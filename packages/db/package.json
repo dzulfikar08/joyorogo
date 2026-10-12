@@ -1,0 +1,32 @@
+{
+  "name": "@joyorogo/db",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "types": "./dist/src/*.d.ts",
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "check-types": "tsc -b",
+    "db:generate": "drizzle-kit generate && cp -f src/migrations/*.sql migrations-deploy/",
+    "db:migrate:deploy": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@libsql/client": "0.18.0",
+    "drizzle-orm": "^0.45.2",
+    "libsql": "0.5.29",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@joyorogo/config": "workspace:*",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^6.0.3",
+    "varlock": "catalog:"
+  }
+}

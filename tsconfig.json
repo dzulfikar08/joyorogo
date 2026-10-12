@@ -1,0 +1,3 @@
+{
+  "extends": "@joyorogo/config/tsconfig.base.json"
+}

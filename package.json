@@ -1,0 +1,67 @@
+{
+  "name": "joyorogo",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
+    "catalog": {
+      "zod": "^4.5.4",
+      "@types/node": "^26.4.1",
+      "varlock": "1.18.0",
+      "@cloudflare/workers-types": "^5.20260906.1",
+      "@orpc/server": "^1.15.0",
+      "@orpc/openapi": "^1.15.0",
+      "@orpc/zod": "^1.15.0",
+      "better-auth": "1.7.3",
+      "lucide-react": "^1.41.0",
+      "next-themes": "^0.4.6",
+      "sonner": "^2.0.8",
+      "@orpc/tanstack-query": "^1.15.0",
+      "@orpc/client": "^1.15.0",
+      "@tanstack/react-query": "^5.102.8",
+      "@tanstack/react-form": "^1.33.5",
+      "@types/react-dom": "^19.2.7",
+      "tailwindcss": "^4.3.3",
+      "@better-auth/expo": "1.7.3"
+    }
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "check-types": "turbo run check-types",
+    "test": "turbo run test",
+    "postinstall": "tsc -b packages/api && varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./apps/native/ && varlock codegen --path ./packages/db/",
+    "dev:types": "tsc -b packages/api --watch",
+    "dev:native": "turbo run dev -F native --",
+    "dev:web": "turbo run dev:bare -F web --",
+    "dev:server": "turbo run dev:bare -F hono --",
+    "db:generate": "turbo run db:generate -F @joyorogo/db --",
+    "deploy": "turbo run deploy -F @joyorogo/infra --",
+    "destroy": "turbo run destroy -F @joyorogo/infra --",
+    "env:generate": "varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./apps/native/ && varlock codegen --path ./packages/db/",
+    "check": "oxlint && oxfmt --write"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:",
+    "@joyorogo/config": "workspace:*",
+    "@types/node": "catalog:",
+    "oxfmt": "^0.66.0",
+    "oxlint": "^1.81.0",
+    "turbo": "^2.10.12",
+    "typescript": "^6.0.3",
+    "varlock": "catalog:"
+  },
+  "overrides": {
+    "@effect/platform-node-shared": "4.0.0-rc.112",
+    "@effect/sql-d1": "4.0.0-rc.112",
+    "@effect/sql-sqlite-do": "4.0.0-rc.112",
+    "@effect/vitest": "4.0.0-rc.112"
+  },
+  "packageManager": "bun@1.4.2"
+}

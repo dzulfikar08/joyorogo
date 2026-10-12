@@ -1,0 +1,10 @@
+{
+  "name": "@joyorogo/selfhost",
+  "private": true,
+  "description": "Single-worker JoyoRogo (API + web on one origin) for CloudAgni and self-hosting.",
+  "scripts": {
+    "build": "cd ../web && VITE_SERVER_URL=/ bunx vite build --outDir ../selfhost/dist --emptyOutDir",
+    "dev": "bunx wrangler dev",
+    "deploy": "bunx wrangler d1 migrations apply joyorogo --remote && bunx wrangler deploy"
+  }
+}

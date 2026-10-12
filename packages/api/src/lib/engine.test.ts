@@ -1,0 +1,460 @@
+import { describe, expect, test } from "bun:test";
+
+import {
+  ACTIVITY_LABELS,
+  MEAL_LABELS,
+  adaptiveTdee,
+  bmrMifflin,
+  computeBurn,
+  computeDeficit,
+  computeTargets,
+  daysBetween,
+  effectiveRamadan,
+  idealWeightRange,
+  isRamadanDate,
+  jakartaToday,
+  proteinTargetG,
+  ramadanSplit,
+  shiftDate,
+  slotsFor,
+  streakFromDates,
+  suggestMealNow,
+  weightTrend,
+} from "./engine";
+
+const TODAY = "2026-09-13";
+
+const baseProfile = {
+  birthYear: 1996, // age 30 at TODAY
+  gender: "male" as const,
+  heightCm: 170,
+  weightKg: 90,
+  targetWeightKg: 70,
+  targetDate: "2026-12-12", // 90 days out
+  activityLevel: "low" as const,
+};
+
+describe("bmrMifflin", () => {
+  test("known male value", () => {
+    expect(bmrMifflin(70, 170, 30, "male")).toBe(1617.5);
+  });
+
+  test("female offset", () => {
+    expect(bmrMifflin(60, 160, 28, "female")).toBe(1299);
+  });
+});
+
+describe("jakartaToday", () => {
+  test("17:30 UTC is already the next WIB day", () => {
+    expect(jakartaToday(new Date("2026-09-13T17:30:00Z"))).toBe("2026-09-14");
+  });
+
+  test("16:59 UTC is still the same WIB day", () => {
+    expect(jakartaToday(new Date("2026-09-13T16:59:59Z"))).toBe("2026-09-13");
+  });
+});
+
+describe("streakFromDates", () => {
+  test("no logs, no streak", () => {
+    expect(streakFromDates([], TODAY)).toBe(0);
+  });
+
+  test("counts back from a logged today", () => {
+    expect(streakFromDates(["2026-09-13", "2026-09-12", "2026-09-11"], TODAY)).toBe(3);
+  });
+
+  test("today not logged yet still keeps the streak via yesterday", () => {
+    expect(streakFromDates(["2026-09-12", "2026-09-11"], TODAY)).toBe(2);
+  });
+
+  test("a gap breaks the streak", () => {
+    expect(streakFromDates(["2026-09-13", "2026-09-11", "2026-09-10"], TODAY)).toBe(1);
+  });
+
+  test("input order does not matter", () => {
+    expect(streakFromDates(["2026-09-11", "2026-09-13", "2026-09-12"], TODAY)).toBe(3);
+  });
+});
+
+describe("daysBetween", () => {
+  test("counts calendar days", () => {
+    expect(daysBetween("2026-09-13", "2026-12-12")).toBe(90);
+    expect(daysBetween("2026-09-13", "2026-09-13")).toBe(0);
+  });
+});
+
+describe("idealWeightRange", () => {
+  test("BMI 18.5-24.9 bounds for 170 cm", () => {
+    expect(idealWeightRange(170)).toEqual({ minKg: 53, maxKg: 72 });
+  });
+});
+
+describe("computeTargets", () => {
+  test("aggressive plan is clamped: deficit capped", () => {
+    const t = computeTargets(baseProfile, { today: TODAY });
+    // bmr 1817.5 (at 90kg), tdee 2271.875, needed deficit 1711 -> 1000
+    expect(t.bmr).toBe(1818);
+    expect(t.rawDeficitKcal).toBe(1711);
+    expect(t.deficitKcal).toBe(1000);
+    // burn = round5(3.3*90) = 295
+    expect(t.burnKcal).toBe(295);
+    // eat = round5(2271.875 - 705) = 1565
+    expect(t.eatKcal).toBe(1565);
+    expect(t.notes).toContain("PLAN_CLAMPED");
+    expect(t.notes).not.toContain("BELOW_HEALTHY_RANGE");
+    expect(t.sleepHours).toBe(8);
+  });
+
+  test("below-healthy-range target is flagged, not blocked", () => {
+    const t = computeTargets({ ...baseProfile, targetWeightKg: 45 }, { today: TODAY });
+    expect(t.notes).toContain("BELOW_HEALTHY_RANGE");
+  });
+
+  test("at or below target weight switches to maintenance", () => {
+    const t = computeTargets(
+      { ...baseProfile, weightKg: 68, targetWeightKg: 70 },
+      { today: TODAY },
+    );
+    expect(t.deficitKcal).toBe(0);
+    expect(t.notes).toContain("MAINTENANCE");
+    // eat = round5(tdee) with no deficit
+    expect(t.eatKcal).toBe(t.tdee - (t.tdee % 5) || t.tdee);
+  });
+
+  test("female eat never drops below 1200", () => {
+    const t = computeTargets(
+      {
+        birthYear: 2000, // age 26
+        gender: "female",
+        heightCm: 150,
+        weightKg: 45,
+        targetWeightKg: 42,
+        targetDate: "2026-09-20", // 7 days: needed ~3300 -> capped
+        activityLevel: "low",
+      },
+      { today: TODAY },
+    );
+    expect(t.eatKcal).toBe(1200);
+    expect(t.notes).toContain("PLAN_CLAMPED");
+  });
+
+  test("burn target stays inside 200..400", () => {
+    const small = computeTargets({ ...baseProfile, weightKg: 50 }, { today: TODAY });
+    expect(small.burnKcal).toBe(200);
+    const large = computeTargets({ ...baseProfile, weightKg: 130 }, { today: TODAY });
+    expect(large.burnKcal).toBe(400);
+  });
+
+  test("uses latest known weight when provided", () => {
+    const t = computeTargets(baseProfile, { today: TODAY, weightNow: 80 });
+    // bmr at 80kg = 1717.5, tdee 2146.875
+    expect(t.bmr).toBe(1718);
+    expect(t.burnKcal).toBe(265); // round5(3.3*80) = 264 -> 265
+    // needed deficit (80-70)*7700/90 = 856, inside clamp window
+    expect(t.deficitKcal).toBe(856);
+    expect(t.notes).not.toContain("PLAN_CLAMPED");
+    expect(t.eatKcal).toBe(1555);
+  });
+
+  test("past target date clamps to 1-day plan, not a crash", () => {
+    const t = computeTargets({ ...baseProfile, targetDate: "2026-09-01" }, { today: TODAY });
+    expect(t.deficitKcal).toBe(1000);
+    expect(t.notes).toContain("PLAN_CLAMPED");
+  });
+});
+
+describe("labels", () => {
+  test("meal and activity labels are Bahasa Indonesia", () => {
+    expect(MEAL_LABELS.makan_siang).toBe("Makan Siang");
+    expect(ACTIVITY_LABELS.low).toBe("Jarang gerak");
+  });
+});
+
+describe("computeBurn", () => {
+  // bmr 1817.5 at 90 kg, low multiplier 1.25
+  const NOON_WIB = new Date("2026-09-13T05:00:00Z"); // half the WIB day elapsed
+  const logs = [
+    { kcal: 200, source: "manual" },
+    { kcal: 95, source: "strava" },
+    { kcal: 50, source: "rest" },
+  ];
+
+  test("prorates BMR x activity by elapsed WIB day and adds exercise", () => {
+    const burn = computeBurn({ profile: baseProfile, exerciseLogs: logs, now: NOON_WIB });
+    // 1817.5 * 1.25 * 0.5
+    expect(burn.bmrKcal).toBe(1817.5);
+    expect(burn.activityKcal).toBeCloseTo(1135.9375);
+    expect(burn.exerciseKcal).toBe(295);
+    expect(burn.burnKcal).toBeCloseTo(1430.9375);
+  });
+
+  test("rest rows never count toward exercise burn", () => {
+    const burn = computeBurn({
+      profile: baseProfile,
+      exerciseLogs: [{ kcal: 50, source: "rest" }],
+      now: NOON_WIB,
+    });
+    expect(burn.exerciseKcal).toBe(0);
+  });
+
+  test("weightNowKg overrides profile weight for BMR", () => {
+    const burn = computeBurn({
+      profile: baseProfile,
+      weightNowKg: 80,
+      exerciseLogs: [],
+      now: NOON_WIB,
+    });
+    // 1717.5 * 1.25 * 0.5
+    expect(burn.activityKcal).toBeCloseTo(1073.4375);
+  });
+
+  test("midnight WIB has no activity burn yet", () => {
+    const burn = computeBurn({
+      profile: baseProfile,
+      exerciseLogs: [{ kcal: 100 }],
+      now: new Date("2026-09-12T17:00:00Z"), // 00:00 WIB
+    });
+    expect(burn.activityKcal).toBe(0);
+    expect(burn.burnKcal).toBe(100);
+  });
+
+  test("dayFraction 1 counts a full day (past summaries)", () => {
+    const burn = computeBurn({
+      profile: baseProfile,
+      exerciseLogs: [],
+      dayFraction: 1,
+      now: NOON_WIB,
+    });
+    expect(burn.activityKcal).toBeCloseTo(2271.875);
+    expect(burn.burnKcal).toBeCloseTo(2271.875);
+  });
+});
+
+describe("computeDeficit", () => {
+  const NOON_WIB = new Date("2026-09-13T05:00:00Z");
+
+  test("positive deficit when burn beats eaten; gap counts from eat budget", () => {
+    const burn = computeBurn({
+      profile: baseProfile,
+      exerciseLogs: [
+        { kcal: 200, source: "manual" },
+        { kcal: 95, source: "strava" },
+      ],
+      now: NOON_WIB,
+    });
+    const d = computeDeficit(1200, burn, 1565);
+    expect(d.eatenKcal).toBe(1200);
+    expect(d.burnKcal).toBeCloseTo(1430.9375);
+    expect(d.deficitKcal).toBe(231); // 1430.9375 - 1200
+    // 1565 - (1200 - 1430.9375)
+    expect(d.targetGap).toBe(1796);
+  });
+
+  test("negative deficit marks surplus", () => {
+    const burn = computeBurn({ profile: baseProfile, exerciseLogs: [], now: NOON_WIB });
+    const d = computeDeficit(2000, burn, 1565);
+    // 1135.9375 - 2000
+    expect(d.deficitKcal).toBe(-864);
+    // 1565 - (2000 - 1135.9375)
+    expect(d.targetGap).toBe(701);
+  });
+});
+
+describe("Ramadan schedule (US-022)", () => {
+  test("isRamadanDate detects Ramadan 1447 H via Umm al-Qura", () => {
+    // Ramadan 1447 H ≈ 19 Feb – 20 Mar 2026.
+    expect(isRamadanDate(new Date("2026-03-01T12:00:00Z"))).toBe(true);
+    expect(isRamadanDate(new Date("2026-04-05T12:00:00Z"))).toBe(false);
+  });
+
+  test("effectiveRamadan honors manual overrides", () => {
+    expect(effectiveRamadan("on", new Date("2026-04-05T12:00:00Z"))).toBe(true);
+    expect(effectiveRamadan("off", new Date("2026-03-01T12:00:00Z"))).toBe(false);
+    expect(effectiveRamadan("auto", new Date("2026-03-01T12:00:00Z"))).toBe(true);
+    expect(effectiveRamadan(undefined, new Date("2026-04-05T12:00:00Z"))).toBe(false);
+  });
+
+  test("budget split covers the eating window and sums to 1", () => {
+    const split = ramadanSplit();
+    expect(split.sahur + split.berbuka + split.snack).toBe(1);
+    expect(split.makan_siang).toBe(0);
+    expect(slotsFor(true)).toEqual(["berbuka", "snack", "sahur"]);
+    expect(slotsFor(false)).toEqual(["sarapan", "makan_siang", "makan_malam", "snack"]);
+  });
+
+  test("suggestMealNow routes to eating-window slots in Ramadan", () => {
+    const at = (h: number) => new Date(`2026-03-01T${String(h).padStart(2, "0")}:00:00+07:00`);
+    expect(suggestMealNow(at(4), true)).toBe("sahur");
+    expect(suggestMealNow(at(12), true)).toBe("berbuka"); // fasting hours → upcoming meal
+    expect(suggestMealNow(at(19), true)).toBe("berbuka");
+    expect(suggestMealNow(at(23), true)).toBe("snack");
+    expect(suggestMealNow(at(12), false)).toBe("makan_siang");
+  });
+});
+
+/** One weigh-in per day for `days` days ending the day before `end`. */
+function series(end: string, days: number, kgAt: (i: number) => number) {
+  return Array.from({ length: days }, (_, i) => ({
+    date: shiftDate(end, i - days),
+    weightKg: kgAt(i),
+  }));
+}
+
+describe("weightTrend", () => {
+  test("needs two weigh-ins", () => {
+    expect(weightTrend([{ date: TODAY, weightKg: 80 }], 70, TODAY)).toBeNull();
+  });
+
+  test("steady 0.1 kg/day loss: rate, lagging trend, and projection agree", () => {
+    const weighIns = series(TODAY, 28, (i) => 90 - 0.1 * i);
+    const trend = weightTrend(weighIns, 80, TODAY)!;
+    expect(trend.weeklyRateKg).toBeCloseTo(-0.7, 2);
+    // EMA lags a falling scale, so the trend sits above the last reading.
+    expect(trend.weightKg).toBeGreaterThan(weighIns.at(-1)!.weightKg);
+    const daysOut = daysBetween(TODAY, trend.projectedDate!);
+    // ceil adds ≤1 day; weightKg is rounded to 0.1 kg (≤0.5 day at 0.1 kg/day)
+    expect(Math.abs(daysOut - (trend.weightKg - 80) / 0.1)).toBeLessThanOrEqual(1.5);
+  });
+
+  test("±1 kg daily water noise on a flat weight is not a trend", () => {
+    const trend = weightTrend(
+      series(TODAY, 28, (i) => (i % 2 === 0 ? 81 : 79)),
+      70,
+      TODAY,
+    )!;
+    expect(Math.abs(trend.weeklyRateKg!)).toBeLessThan(0.1);
+    expect(Math.abs(trend.weightKg - 80)).toBeLessThan(0.6);
+  });
+
+  test("gaining or already at target never projects a date", () => {
+    expect(
+      weightTrend(
+        series(TODAY, 20, (i) => 80 + 0.05 * i),
+        70,
+        TODAY,
+      )!.projectedDate,
+    ).toBeNull();
+    expect(
+      weightTrend(
+        series(TODAY, 20, (i) => 69 - 0.05 * i),
+        70,
+        TODAY,
+      )!.projectedDate,
+    ).toBeNull();
+  });
+
+  test("rate waits for 10 days of span", () => {
+    expect(
+      weightTrend(
+        series(TODAY, 7, (i) => 80 - 0.2 * i),
+        70,
+        TODAY,
+      )!.weeklyRateKg,
+    ).toBeNull();
+  });
+});
+
+describe("adaptiveTdee", () => {
+  const intake = (kcal: number, days = 28) =>
+    Array.from({ length: days }, (_, i) => ({ date: shiftDate(TODAY, -1 - i), kcal }));
+  const losing = series(TODAY, 28, (i) => 85 - 0.05 * i);
+
+  test("energy balance: intake plus the energy the weight slope released", () => {
+    // 2000 kcal/day while losing 0.05 kg/day → 2000 + 0.05 * 7700 = 2385
+    expect(
+      adaptiveTdee({
+        date: TODAY,
+        weighIns: losing,
+        intake: intake(2000),
+        exercise: [],
+        minDayKcal: 900,
+      }),
+    ).toBe(2385);
+  });
+
+  test("logged exercise is carved out so Burn does not double count", () => {
+    const exercise = intake(280);
+    expect(
+      adaptiveTdee({
+        date: TODAY,
+        weighIns: losing,
+        intake: intake(2000),
+        exercise,
+        minDayKcal: 900,
+      }),
+    ).toBe(2385 - 280);
+  });
+
+  test("half-logged days are ignored, not read as fasting", () => {
+    // every 4th day only breakfast got logged
+    const withForgotten = intake(2000).map((d, i) => (i % 4 === 0 ? { ...d, kcal: 300 } : d));
+    expect(
+      adaptiveTdee({
+        date: TODAY,
+        weighIns: losing,
+        intake: withForgotten,
+        exercise: [],
+        minDayKcal: 900,
+      }),
+    ).toBe(2385);
+  });
+
+  test("today's partial intake never enters the window", () => {
+    const withToday = [...intake(2000), { date: TODAY, kcal: 150 }];
+    expect(
+      adaptiveTdee({
+        date: TODAY,
+        weighIns: losing,
+        intake: withToday,
+        exercise: [],
+        minDayKcal: 900,
+      }),
+    ).toBe(2385);
+  });
+
+  test("too little data stays on the formula", () => {
+    expect(
+      adaptiveTdee({
+        date: TODAY,
+        weighIns: losing,
+        intake: intake(2000, 10),
+        exercise: [],
+        minDayKcal: 900,
+      }),
+    ).toBeNull();
+    expect(
+      adaptiveTdee({
+        date: TODAY,
+        weighIns: losing.slice(-4),
+        intake: intake(2000),
+        exercise: [],
+        minDayKcal: 900,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("computeTargets with measured TDEE", () => {
+  test("measured TDEE moves the plan at most 15% from the formula", () => {
+    const t = computeTargets(baseProfile, { today: TODAY, adaptiveTdee: 4000 });
+    expect(t.formulaTdee).toBe(2272); // 1817.5 * 1.25
+    expect(t.tdee).toBe(Math.round(2271.875 * 1.15));
+    expect(t.notes).toContain("ADAPTIVE");
+    const low = computeTargets(baseProfile, { today: TODAY, adaptiveTdee: 1000 });
+    expect(low.tdee).toBe(Math.round(2271.875 * 0.85));
+  });
+
+  test("formula plan carries no ADAPTIVE note and tdee equals formulaTdee", () => {
+    const t = computeTargets(baseProfile, { today: TODAY });
+    expect(t.notes).not.toContain("ADAPTIVE");
+    expect(t.tdee).toBe(t.formulaTdee);
+  });
+});
+
+describe("proteinTargetG", () => {
+  test("scales with weight up to the top of the healthy range", () => {
+    expect(proteinTargetG(60, 170)).toBe(90);
+    // 170 cm healthy max is 72 kg: 130 kg asks for 108 g, not 195 g
+    expect(proteinTargetG(130, 170)).toBe(108);
+  });
+});

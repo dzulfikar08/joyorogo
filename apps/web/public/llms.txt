@@ -1,0 +1,9 @@
+# JoyoRogo
+
+> JoyoRogo (https://joyorogo.dzulfikar.com) adalah pendamping diet berbasis AI untuk pengguna Indonesia. Setiap hari aplikasi menjawab tiga pertanyaan: berapa kalori boleh dimakan, berapa kalori harus dibakar, dan butuh tidur berapa jam.
+
+Foto makanan dianalisis model visi AI (gemma-4-26b-a4b-it di Cloudflare Workers AI) untuk mengenali masakan Indonesia dan memperkirakan porsi serta kalori tiap item; pengguna dapat mengoreksi hasil sebelum disimpan. Target harian dihitung dengan rumus Mifflin-St Jeor dari profil usia, jenis kelamin, tinggi, berat, dan tingkat aktivitas. Olahraga dapat diimpor otomatis dari Strava. Foto makanan hanya dipakai untuk analisis dan tidak pernah disimpan; yang tersimpan hanya angka dan catatan yang dikonfirmasi pengguna.
+
+- Berjalan di web (https://joyorogo.dzulfikar.com) dan Android; antarmuka dalam Bahasa Indonesia.
+- Login menggunakan akun Google.
+- Dibuat di Malang, Indonesia oleh Dzulfikar.

@@ -1,0 +1,97 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1789303578784,
+      "tag": "0000_gray_bloodstrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789385220856,
+      "tag": "0001_silent_luckman",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789391331446,
+      "tag": "0002_overconfident_madrox",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1789393996192,
+      "tag": "0003_flimsy_silvermane",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1789398717201,
+      "tag": "0004_blue_william_stryker",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789401407351,
+      "tag": "0005_romantic_skullbuster",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789434520298,
+      "tag": "0006_drop_legacy_ai_usage",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1789434532327,
+      "tag": "0007_tiers_and_usage",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1789450277568,
+      "tag": "0008_clear_electro",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1789451569587,
+      "tag": "0009_wonderful_hydra",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1789452332101,
+      "tag": "0010_modern_silver_surfer",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1789752023699,
+      "tag": "0012_health_connect_activity",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1792000000000,
+      "tag": "0013_founder_billing",
+      "breakpoints": true
+    }
+  ]
+}

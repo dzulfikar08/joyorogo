@@ -1,0 +1,55 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "joyorogo-server-live-dzul-btifrf7qulj3wn55",
+  "account_id": "b7e6f8457bd39fa37a7eea5249799754",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-31",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "routes": [
+    {
+      "pattern": "api.joyorogo.dzulfikar.com",
+      "custom_domain": true
+    }
+  ],
+  "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "joyorogo-database-live-dzul-unqpixpckdt72ct3",
+      "database_id": "9c08fc88-df8e-4160-99fd-740bd3072843",
+      "migrations_dir": "../../packages/db/src/migrations"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
+  "images": {
+    "binding": "IMAGES"
+  },
+  "r2_buckets": [
+    {
+      "binding": "DOWNLOADS",
+      "bucket_name": "joyorogo-downloads"
+    },
+    {
+      "binding": "STICKERS",
+      "bucket_name": "joyorogo-scans"
+    }
+  ],
+  "vars": {
+    "CORS_ORIGIN": "http://localhost:3001,https://joyorogo-web-live-dzul-fqqmlyfh7l3bif2g.dzulfikar-at.workers.dev,https://joyorogo.dzulfikar.com",
+    "BETTER_AUTH_URL": "https://api.joyorogo.dzulfikar.com",
+    "GOOGLE_CLIENT_ID": "915036968874-0ne1edkq0laljg6cdlnksor1hqpj9gfr.apps.googleusercontent.com",
+    "DEV_LOGIN": "",
+    "AI_VISION_MODEL": "@cf/google/gemma-4-26b-a4b-it",
+    "APP_URL": "https://joyorogo.dzulfikar.com",
+    "FREE_DAILY_SCANS": "3",
+    "FOUNDER_DAILY_CAP": "100",
+    "ANON_SCANS": "2",
+    "FOUNDER_PRICE_IDR": "15000",
+    "DOKU_CLIENT_ID": "BRN-0111-1789543571783",
+    "DOKU_BASE_URL": "https://api.doku.com"
+  }
+}
