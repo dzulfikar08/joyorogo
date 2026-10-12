@@ -19,7 +19,15 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.joyorogo"
+      "package": "com.anonymous.joyorogo",
+      "permissions": [
+        "android.permission.health.READ_EXERCISE",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_DISTANCE",
+        "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
+        "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
+      ]
     },
     "web": {
       "output": "static",
@@ -33,18 +41,7 @@
           "cameraPermission": "Izinkan kamera untuk memotret makananmu dan menghitung kalorinya."
         }
       ],
-      [
-        "react-native-health-connect",
-        {
-          "permissions": [
-            "android.permission.health.READ_EXERCISE_SESSION",
-            "android.permission.health.READ_SLEEP_SESSION",
-            "android.permission.health.READ_STEPS",
-            "android.permission.health.READ_DISTANCE",
-            "android.permission.health.READ_ACTIVE_CALORIES_BURNED"
-          ]
-        }
-      ],
+      "react-native-health-connect",
       [
         "expo-splash-screen",
         {

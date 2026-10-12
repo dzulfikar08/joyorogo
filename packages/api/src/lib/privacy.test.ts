@@ -35,6 +35,8 @@ async function seedUserData(userId: string, tag: string) {
      INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES
        ('w1-${userId}', '${userId}', '2026-09-01', 79.5),
        ('w2-${userId}', '${userId}', '2026-09-02', 79.2);
+     INSERT INTO waist_log (id, user_id, date, waist_cm)
+       VALUES ('wc1-${userId}', '${userId}', '2026-09-01', 92);
      INSERT INTO food_log (id, user_id, date, meal, name, kcal)
        VALUES ('f1-${userId}', '${userId}', '2026-09-01', 'sarapan', 'nasi goreng', 500);
      INSERT INTO exercise_log (id, user_id, date, name, kcal)
@@ -56,6 +58,7 @@ async function seedUserData(userId: string, tag: string) {
 const FITNESS_TABLES = [
   "profile",
   "weight_log",
+  "waist_log",
   "food_log",
   "exercise_log",
   "sleep_log",

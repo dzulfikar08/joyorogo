@@ -1,6 +1,5 @@
 import "@/unistyles";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { View } from "react-native";
@@ -11,8 +10,12 @@ import { Button, Card, Text } from "@/components/ui";
 import { errorMessage } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 
-// Strava OAuth in the in-app browser. The redirect comes back to the app via
-// the joyorogo:// scheme, then the code is exchanged server-side.
+// Strava OAuth in the in-app browser. Strava only accepts a redirect whose
+// host matches the app's Authorization Callback Domain (joyorogo.com, shared
+// with the web callback), so the custom scheme carries that host. The code is
+// exchanged server-side; app/+native-intent.tsx keeps the router off this URL.
+export const STRAVA_REDIRECT_URI = "joyorogo://joyorogo.com/strava";
+
 export function StravaCard() {
   const statusQuery = useQuery(orpc.strava.status.queryOptions());
   const sync = useMutation(
@@ -27,7 +30,7 @@ export function StravaCard() {
     setActionError(null);
     setBusy(true);
     try {
-      const redirectUri = Linking.createURL("strava");
+      const redirectUri = STRAVA_REDIRECT_URI;
       const { url } = await client.strava.authorizeUrl({ redirectUri });
       const result = await WebBrowser.openAuthSessionAsync(url, redirectUri);
       if (result.type === "success") {

@@ -30,6 +30,9 @@ Pencatat diet untuk makanan Indonesia:
 - **Target harian yang jujur.** Dari usia, tinggi, berat, aktivitas, dan
   target beratmu (Mifflin-St Jeor), lalu menyesuaikan dengan data makan dan
   timbanganmu sendiri.
+- **Lingkar perut.** Catat di halaman Berat, lengkap dengan ilustrasi cara
+  mengukur. Dibandingkan dengan batas obesitas sentral Asia (pria 90 cm,
+  wanita 80 cm) dan rasio lingkar perut terhadap tinggi badan (di bawah 0,5).
 - **Olahraga dan tidur.** Catat manual, impor dari Strava, atau baca langkah,
   olahraga, dan tidur dari Health Connect di Android.
 - **Data gizi lokal.** Database Tabel Komposisi Pangan Indonesia (TKPI) 2019.

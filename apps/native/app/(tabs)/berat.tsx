@@ -24,6 +24,7 @@ import {
 import { daysBetween, jakartaToday } from "@joyorogo/api/lib/engine";
 
 import { WeighInSheet } from "@/components/weigh-in-sheet";
+import { WaistSection } from "@/components/waist-section";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtDateId, fmtKg } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
@@ -472,6 +473,8 @@ export default function Berat() {
           ) : null}
         </Card>
       ) : null}
+
+      <WaistSection gender={profileQuery.data?.profile?.gender ?? null} heightCm={heightCm} />
 
       <WeighInSheet
         visible={sheetOpen}

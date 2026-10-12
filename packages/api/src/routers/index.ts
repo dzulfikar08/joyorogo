@@ -11,6 +11,7 @@ import { privacyRouter } from "./privacy";
 import { sleepRouter } from "./sleep";
 import { stravaRouter } from "./strava";
 import { waterRouter } from "./water";
+import { waistRouter } from "./waist";
 import { weightRouter } from "./weight";
 
 export const appRouter = {
@@ -25,6 +26,7 @@ export const appRouter = {
   }),
   profile: profileRouter,
   weight: weightRouter,
+  waist: waistRouter,
   food: foodRouter,
   exercise: exerciseRouter,
   activity: activityRouter,

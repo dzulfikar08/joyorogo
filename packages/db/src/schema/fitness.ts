@@ -59,6 +59,23 @@ export const weightLog = sqliteTable(
   (table) => [uniqueIndex("weight_log_user_date_uidx").on(table.userId, table.date)],
 );
 
+/** Waist circumference (lingkar perut), cm; WIB calendar day, one row per user-day. */
+export const waistLog = sqliteTable(
+  "waist_log",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    date: text("date").notNull(),
+    waistCm: real("waist_cm").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [uniqueIndex("waist_log_user_date_uidx").on(table.userId, table.date)],
+);
+
 export const foodLog = sqliteTable(
   "food_log",
   {

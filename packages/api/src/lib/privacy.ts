@@ -10,6 +10,7 @@ import {
   scanCorrection,
   sleepLog,
   stravaAccount,
+  waistLog,
   waterLog,
   weightLog,
 } from "@joyorogo/db/schema/fitness";
@@ -57,6 +58,7 @@ export function deleteAllUserData(db: Database, userId: string) {
   return db.batch([
     db.delete(profile).where(eq(profile.userId, userId)),
     db.delete(weightLog).where(eq(weightLog.userId, userId)),
+    db.delete(waistLog).where(eq(waistLog.userId, userId)),
     db.delete(foodLog).where(eq(foodLog.userId, userId)),
     db.delete(exerciseLog).where(eq(exerciseLog.userId, userId)),
     db.delete(sleepLog).where(eq(sleepLog.userId, userId)),

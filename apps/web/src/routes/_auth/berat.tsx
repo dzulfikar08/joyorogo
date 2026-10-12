@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { daysBetween, jakartaToday } from "@joyorogo/api/lib/engine";
 
 import { ScreenError } from "@/components/screen-state";
+import { WaistSection } from "@/components/waist-section";
 import {
   Card,
   ListGroup,
@@ -513,6 +514,8 @@ function BeratScreen({ history }: { history: WeightHistory }) {
           </div>
         </div>
       )}
+
+      <WaistSection />
 
       <Sheet
         open={weighOpen}
