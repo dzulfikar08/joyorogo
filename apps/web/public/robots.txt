@@ -17,4 +17,4 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://joyorogo.dzulfikar.com/sitemap.xml
+Sitemap: https://joyorogo.com/sitemap.xml

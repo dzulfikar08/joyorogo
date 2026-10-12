@@ -14,6 +14,8 @@ export type BlogConfig = {
   /** Hashed app stylesheet, e.g. /assets/index-abc.css. */
   cssHref: string;
   apkUrl: string;
+  /** Revklik site id; no tag when unset (self-hosted builds). */
+  analyticsSiteId?: string;
 };
 
 export type Post = {
@@ -173,6 +175,11 @@ export function loadPosts(): Post[] {
 
 const THEME_SCRIPT = `try{var t=localStorage.getItem("vite-ui-theme")||"system";document.documentElement.classList.toggle("dark",t==="dark"||(t==="system"&&matchMedia("(prefers-color-scheme: dark)").matches))}catch(e){}`;
 
+/** Revklik pageview script (tracks SPA navigation itself). */
+export function analyticsTag(siteId: string): string {
+  return `<script defer data-site-id="${esc(siteId)}" src="https://app.revklik.com/klikapa.js"></script>`;
+}
+
 const FOCUS = "focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none";
 
 function shell(opts: {
@@ -209,7 +216,7 @@ function shell(opts: {
     <meta property="og:url" content="${url}" />
     <meta name="twitter:card" content="summary" />${opts.extraHead ?? ""}
     <link rel="stylesheet" href="${cfg.cssHref}" />
-    <script>${THEME_SCRIPT}</script>
+    <script>${THEME_SCRIPT}</script>${cfg.analyticsSiteId ? `\n    ${analyticsTag(cfg.analyticsSiteId)}` : ""}
 ${opts.jsonLd.map((data) => `    <script type="application/ld+json">${JSON.stringify(data)}</script>`).join("\n")}
   </head>
   <body class="min-h-dvh bg-background text-foreground antialiased">

@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  Tidak mau mengurus server? <a href="https://joyorogo.dzulfikar.com">Pakai JoyoRogo Cloud</a>.
+  Tidak mau mengurus server? <a href="https://joyorogo.com">Pakai JoyoRogo Cloud</a>.
 </p>
 
 ## Apa itu JoyoRogo
@@ -40,7 +40,7 @@ Web untuk HP dan laptop, plus aplikasi Android.
 
 |                                                             | Untuk siapa                                                         | Biaya                                                                 |
 | ----------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| [JoyoRogo Cloud](https://joyorogo.dzulfikar.com)            | Kebanyakan orang. Langsung pakai, tanpa setup.                      | Gratis 3 scan AI/hari. Founder Rp15.000/bulan untuk scan tanpa batas. |
+| [JoyoRogo Cloud](https://joyorogo.com)                      | Kebanyakan orang. Langsung pakai, tanpa setup.                      | Gratis 3 scan AI/hari. Founder Rp15.000/bulan untuk scan tanpa batas. |
 | [Deploy di CloudAgni](https://cloudagni.id/deploy/joyorogo) | Klinik, gym, ahli gizi, atau keluarga yang ingin servernya sendiri. | Paket CloudAgni, kuota AI sudah termasuk.                             |
 | Cloudflare sendiri                                          | Developer yang ingin mengurus semuanya sendiri.                     | Akun Cloudflare-mu, termasuk tagihan Workers AI.                      |
 
@@ -155,7 +155,7 @@ Artikel blog ada di `apps/web/blog/posts/*.md` (frontmatter `title`,
 `::tkpi AP001 FP062` membuat tabel per 100 g dari TKPI 2019, `::porsi AP001 150
 Nasi putih | FP062 70` membuat contoh porsi beserta totalnya, `::contoh` sama
 tanpa total. Build menulis `/blog/`, RSS, dan `sitemap.xml`; `VITE_SITE_URL`
-mengganti domain kanonik (bawaan `https://joyorogo.dzulfikar.com`).
+mengganti domain kanonik (bawaan `https://joyorogo.com`).
 
 ## Lisensi
 

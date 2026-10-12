@@ -1,0 +1,13 @@
+{
+  // 301s old/alternate web hosts to joyorogo.com. Deployed by scripts/deploy.sh.
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "joyorogo-redirect",
+  "account_id": "b7e6f8457bd39fa37a7eea5249799754",
+  "main": "index.ts",
+  "compatibility_date": "2026-08-31",
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "joyorogo.dzulfikar.com", "custom_domain": true },
+    { "pattern": "www.joyorogo.com/*", "zone_name": "joyorogo.com" },
+  ],
+}

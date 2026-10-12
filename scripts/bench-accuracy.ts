@@ -1,6 +1,6 @@
 // Blind accuracy benchmark runner. Hits POST /ai/bench on the deployed API
 // with curated Wikimedia Commons photos of real Indonesian dishes.
-// Usage: BENCH_URL=https://api.joyorogo.dzulfikar.com AI_BENCH_KEY=... bun run scripts/bench-accuracy.ts
+// Usage: BENCH_URL=https://api.joyorogo.com AI_BENCH_KEY=... bun run scripts/bench-accuracy.ts
 // Dry run: BENCH_DRY=1 bun run scripts/bench-accuracy.ts
 
 type Case = {
@@ -63,7 +63,7 @@ const CASES: Case[] = [
   },
 ];
 
-const url = process.env.BENCH_URL ?? "https://api.joyorogo.dzulfikar.com";
+const url = process.env.BENCH_URL ?? "https://api.joyorogo.com";
 const key = process.env.AI_BENCH_KEY ?? "";
 
 if (process.env.BENCH_DRY) {

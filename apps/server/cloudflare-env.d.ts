@@ -19,6 +19,7 @@ declare module "cloudflare:workers" {
       IMAGES: ImagesBinding;
       // Wrangler-deployed vars/secrets (see .env.schema); unset = feature off.
       APP_URL?: string;
+      BETTER_AUTH_ALT_URLS?: string;
       FREE_DAILY_SCANS?: string;
       FOUNDER_DAILY_CAP?: string;
       ANON_SCANS?: string;

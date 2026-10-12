@@ -15,6 +15,6 @@ jobs:
           name: JoyoRogo
           price: "0"
           description: "Pencatat kalori, olahraga, berat, dan tidur dengan foto AI untuk makanan Indonesia. Open source, AGPL-3.0."
-          demo-url: https://joyorogo.dzulfikar.com
+          demo-url: https://joyorogo.com
           project-dir: apps/selfhost
           api-key: ${{ secrets.AGNI_API_KEY }}

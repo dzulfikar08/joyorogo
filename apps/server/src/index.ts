@@ -142,6 +142,12 @@ registerPrivacyRoutes(app, {
   stickers: () => ("STICKERS" in env ? env.STICKERS : undefined),
 });
 
+// The Android app only knows the API origin; send its "Kebijakan privasi"
+// link on to the web page.
+app.get("/privasi", (c) =>
+  c.redirect(`${(env.APP_URL || env.BETTER_AUTH_URL).replace(/\/$/, "")}/privasi`),
+);
+
 // Opt-in public progress page — the shareable link (/u/<code>).
 // Renders BEFORE the auth/rpc middleware; read-only, no session needed.
 app.get("/u/:code", async (c) => {
@@ -223,7 +229,9 @@ app.get("/u/:code", async (c) => {
   );
 });
 
-app.on(["POST", "GET"], "/api/auth/*", async (c) => (await createAuth()).handler(c.req.raw));
+app.on(["POST", "GET"], "/api/auth/*", async (c) =>
+  (await createAuth(c.req.url)).handler(c.req.raw),
+);
 
 export const apiHandler = new OpenAPIHandler(appRouter, {
   plugins: [

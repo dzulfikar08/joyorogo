@@ -1,9 +1,9 @@
 import type { Plugin } from "vite";
 import { loadEnv } from "vite";
 
-import { renderBlog, type BlogConfig } from "./render.ts";
+import { analyticsTag, renderBlog, type BlogConfig } from "./render.ts";
 
-const DEFAULT_SITE_URL = "https://joyorogo.dzulfikar.com";
+const DEFAULT_SITE_URL = "https://joyorogo.com";
 
 function trimSlash(url: string): string {
   return url.endsWith("/") ? url.slice(0, -1) : url;
@@ -25,7 +25,9 @@ function fileFor(url: string): string | undefined {
  * the same pages on request so posts can be previewed while writing.
  *
  * VITE_SITE_URL sets the canonical origin (defaults to the hosted site);
- * VITE_SERVER_URL locates the APK download, like the app does.
+ * VITE_SERVER_URL locates the APK download, like the app does. When
+ * VITE_REVKLIK_SITE_ID is set, the Revklik tag goes into the app's
+ * index.html and every blog page; self-hosted builds leave it unset.
  */
 export function blogPlugin(): Plugin {
   let cfg: Omit<BlogConfig, "cssHref">;
@@ -38,7 +40,13 @@ export function blogPlugin(): Plugin {
       cfg = {
         siteUrl: trimSlash(env.VITE_SITE_URL || DEFAULT_SITE_URL),
         apkUrl: `${trimSlash(env.VITE_SERVER_URL ?? "")}/downloads/latest-apk`,
+        analyticsSiteId: env.VITE_REVKLIK_SITE_ID || undefined,
       };
+    },
+    transformIndexHtml(html) {
+      return cfg.analyticsSiteId
+        ? html.replace("</head>", `    ${analyticsTag(cfg.analyticsSiteId)}\n  </head>`)
+        : html;
     },
     configureServer(server) {
       server.middlewares.use((req, res, next) => {

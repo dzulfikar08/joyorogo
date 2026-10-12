@@ -9,6 +9,10 @@
   ],
   "routes": [
     {
+      "pattern": "api.joyorogo.com",
+      "custom_domain": true
+    },
+    {
       "pattern": "api.joyorogo.dzulfikar.com",
       "custom_domain": true
     }
@@ -39,12 +43,13 @@
     }
   ],
   "vars": {
-    "CORS_ORIGIN": "http://localhost:3001,https://joyorogo-web-live-dzul-fqqmlyfh7l3bif2g.dzulfikar-at.workers.dev,https://joyorogo.dzulfikar.com",
-    "BETTER_AUTH_URL": "https://api.joyorogo.dzulfikar.com",
+    "CORS_ORIGIN": "http://localhost:3001,https://joyorogo-web-live-dzul-fqqmlyfh7l3bif2g.dzulfikar-at.workers.dev,https://joyorogo.com,https://joyorogo.dzulfikar.com",
+    "BETTER_AUTH_URL": "https://api.joyorogo.com",
+    "BETTER_AUTH_ALT_URLS": "https://api.joyorogo.dzulfikar.com",
     "GOOGLE_CLIENT_ID": "915036968874-0ne1edkq0laljg6cdlnksor1hqpj9gfr.apps.googleusercontent.com",
     "DEV_LOGIN": "",
     "AI_VISION_MODEL": "@cf/google/gemma-4-26b-a4b-it",
-    "APP_URL": "https://joyorogo.dzulfikar.com",
+    "APP_URL": "https://joyorogo.com",
     "FREE_DAILY_SCANS": "3",
     "FOUNDER_DAILY_CAP": "100",
     "ANON_SCANS": "2",

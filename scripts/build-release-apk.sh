@@ -18,7 +18,7 @@ export ANDROID_HOME="${ANDROID_HOME:-$HOME/android-sdk}"
 export NODE_ENV=production
 # The app talks to this API, baked in at build time. Self-hosting? Point it at
 # your own server (and change the Android package id in apps/native/app.json).
-export EXPO_PUBLIC_SERVER_URL="https://api.joyorogo.dzulfikar.com"
+export EXPO_PUBLIC_SERVER_URL="https://api.joyorogo.com"
 export EXPO_PUBLIC_DEV_LOGIN=0
 
 # 1. Keystore — generated once, reused forever. The password lives only in
@@ -93,8 +93,12 @@ props = pathlib.Path("android/gradle.properties")
 p = props.read_text()
 # ARCHS=x86_64 builds an emulator-testable APK; ship arm64-v8a only.
 p = re.sub(r"reactNativeArchitectures=.*", "reactNativeArchitectures=" + os.environ.get("ARCHS", "arm64-v8a"), p)
-p = re.sub(r"enableProGuardInReleaseBuilds=.*", "enableProGuardInReleaseBuilds=true", p)
-p = re.sub(r"enableShrinkResourcesInReleaseBuilds=.*", "enableShrinkResourcesInReleaseBuilds=true", p)
+# app/build.gradle reads android.enableMinifyInReleaseBuilds and
+# android.enableShrinkResourcesInReleaseBuilds; the template has neither line,
+# so set them explicitly (a sub on a missing key silently leaves R8 off).
+for key in ("android.enableMinifyInReleaseBuilds", "android.enableShrinkResourcesInReleaseBuilds"):
+    p = re.sub(rf"^{re.escape(key)}=.*\n?", "", p, flags=re.M)
+    p = p.rstrip("\n") + f"\n{key}=true\n"
 props.write_text(p)
 print("gradle.properties patched")
 PY

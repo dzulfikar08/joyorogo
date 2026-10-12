@@ -98,8 +98,7 @@ async function fetchImage(url: string): Promise<Response> {
   for (let hop = 0; hop < 5; hop++) {
     const res = await fetch(current, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; JoyorogoBench/1.0; +https://joyorogo.dzulfikar.com)",
+        "User-Agent": "Mozilla/5.0 (compatible; JoyorogoBench/1.0; +https://joyorogo.com)",
       },
       redirect: "manual",
     });

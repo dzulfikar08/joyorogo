@@ -51,8 +51,12 @@ echo "== 3/4 deploy server =="
 echo "== 4/4 build + deploy web =="
 (
   cd "$WEB_DIR"
-  VITE_SERVER_URL="https://api.joyorogo.dzulfikar.com" bunx vite build
+  VITE_SERVER_URL="https://api.joyorogo.com" VITE_REVKLIK_SITE_ID="88069ee9-6eac-4dc9-a23b-f5757a4b948e" \
+    bunx vite build
   bunx wrangler deploy
+  # Old/www hosts 301 to joyorogo.com; deployed after the web worker so the
+  # canonical host is already serving when the redirect goes live.
+  bunx wrangler deploy --config redirect/wrangler.jsonc
 )
 
-echo "DONE: https://joyorogo.dzulfikar.com"
+echo "DONE: https://joyorogo.com"

@@ -15,7 +15,7 @@ export const server = Cloudflare.Worker("server", {
   main: "../../apps/server/src/index.ts",
   // Same registrable domain as the web app so the OAuth state cookie is
   // first-party; workers.dev is cross-site and browsers drop it.
-  domain: "api.joyorogo.dzulfikar.com",
+  domain: "api.joyorogo.com",
   compatibility: {
     flags: ["nodejs_compat"],
   },
@@ -52,7 +52,7 @@ export default Alchemy.Stack(
     const serverWorker = yield* server;
     const webWorker = yield* Cloudflare.Website.Vite("web", {
       rootDir: "../../apps/web",
-      domain: "joyorogo.dzulfikar.com",
+      domain: "joyorogo.com",
       assets: {
         htmlHandling: "auto-trailing-slash",
         notFoundHandling: "single-page-application",
