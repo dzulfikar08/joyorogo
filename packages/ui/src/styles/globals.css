@@ -14,7 +14,8 @@
  * - makan / bakar / tidur are DATA colors: they only tell the three daily
  *   numbers apart (rings, icon chips, tinted tiles). Each has a -soft tint
  *   for backgrounds and an -ink shade that passes AA as text on that tint.
- * - Over budget is never alarm red; red is for destructive actions/errors.
+ * - Red is for destructive actions/errors, plus one exception: the Makan
+ *   eat ring turns amber from 90% of the budget and red once over it.
  * - Type: Plus Jakarta Sans (Indonesian foundry), loaded by apps/web.
  */
 :root {

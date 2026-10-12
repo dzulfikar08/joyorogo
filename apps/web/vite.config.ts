@@ -3,6 +3,8 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+import { blogPlugin } from "./blog/plugin.ts";
+
 export default defineConfig({
   server: {
     port: 3001,
@@ -17,5 +19,6 @@ export default defineConfig({
       autoCodeSplitting: true,
     }),
     react(),
+    blogPlugin(),
   ],
 });

@@ -140,6 +140,7 @@ cd packages/api && bun test src/lib
 | --------------- | ---------------------------------------------------------- |
 | `apps/server`   | API Hono di Cloudflare Workers (D1, R2, Workers AI)        |
 | `apps/web`      | Aplikasi web (Vite, React, TanStack Router)                |
+| `apps/web/blog` | Blog statis: artikel Markdown, dirender saat build         |
 | `apps/native`   | Aplikasi Android (Expo)                                    |
 | `apps/selfhost` | API + web dalam satu worker, untuk CloudAgni dan self-host |
 | `packages/api`  | Router oRPC dan logika (target, TKPI, paywall, DOKU)       |
@@ -148,6 +149,13 @@ cd packages/api && bun test src/lib
 
 `scripts/deploy.sh` dan `apps/server/wrangler.jsonc` adalah konfigurasi
 JoyoRogo Cloud (akun pemilik); untuk server sendiri pakai `apps/selfhost`.
+
+Artikel blog ada di `apps/web/blog/posts/*.md` (frontmatter `title`,
+`description`, `date`, opsional `updated` dan `featured`). Baris
+`::tkpi AP001 FP062` membuat tabel per 100 g dari TKPI 2019, `::porsi AP001 150
+Nasi putih | FP062 70` membuat contoh porsi beserta totalnya, `::contoh` sama
+tanpa total. Build menulis `/blog/`, RSS, dan `sitemap.xml`; `VITE_SITE_URL`
+mengganti domain kanonik (bawaan `https://joyorogo.dzulfikar.com`).
 
 ## Lisensi
 

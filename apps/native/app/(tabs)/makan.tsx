@@ -8,6 +8,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import {
   MEAL_LABELS,
+  eatTone,
   effectiveRamadan,
   jakartaToday,
   relativeDayLabel,
@@ -43,6 +44,9 @@ import {
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtDateId, fmtKcal, parseNum } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
+
+/** Ring arc from 90% of the eat budget (yellow); red once over it. */
+const EAT_NEAR_COLOR = "#E5A50A";
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
 
@@ -308,7 +312,13 @@ export default function Makan() {
           stroke={9}
           value={eatenKcal}
           max={targets?.eatKcal ?? eatenKcal}
-          color={theme.colors.makan}
+          color={
+            {
+              ok: theme.colors.makan,
+              near: EAT_NEAR_COLOR,
+              over: theme.colors.destructive,
+            }[eatTone(eatenKcal, targets?.eatKcal ?? 0)]
+          }
           track={theme.colors.makanSoft}
         >
           <Num style={styles.summaryPct} adjustsFontSizeToFit numberOfLines={1}>

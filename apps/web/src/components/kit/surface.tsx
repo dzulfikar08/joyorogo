@@ -145,6 +145,23 @@ export function ListLinkRow({
   );
 }
 
+/** A row that leaves the app: a plain link (file download, external page). */
+export function ListAnchorRow({ href, ...content }: RowContent & { href: string }) {
+  return (
+    <li className="relative">
+      <a
+        href={href}
+        className={cn(
+          ROW,
+          "transition-colors hover:bg-muted/60 active:bg-muted focus-visible:bg-muted focus-visible:outline-none",
+        )}
+      >
+        <RowInner {...content} chevron />
+      </a>
+    </li>
+  );
+}
+
 /** A row that runs an action (opens a sheet, toggles something). */
 export function ListButtonRow({
   onClick,

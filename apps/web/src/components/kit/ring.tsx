@@ -13,11 +13,14 @@ const TRACK: Record<Metric, string> = {
   bakar: "stroke-bakar-soft",
   tidur: "stroke-tidur-soft",
 };
+/** Arc color override for the eat budget: near limit, then over it. */
+const TONE_STROKE = { near: "stroke-amber-400", over: "stroke-destructive" } as const;
 
 /**
  * Circular progress for the three daily numbers. `value / max` is clamped to
  * a full circle; going over budget is shown by the caller's copy, not by a
- * second lap. Fills once from empty on mount (off under reduced motion).
+ * second lap. `tone` recolors the arc near/over budget. Fills once from
+ * empty on mount (off under reduced motion).
  */
 export function Ring({
   value,
@@ -28,6 +31,7 @@ export function Ring({
   label,
   children,
   className,
+  tone = "ok",
 }: {
   value: number;
   max: number;
@@ -38,6 +42,7 @@ export function Ring({
   label: string;
   children?: ReactNode;
   className?: string;
+  tone?: "ok" | keyof typeof TONE_STROKE;
 }) {
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -78,7 +83,7 @@ export function Ring({
             strokeDashoffset={circumference * (1 - fraction)}
             className={cn(
               "ring-fill transition-[stroke-dashoffset] duration-500 ease-out",
-              STROKE[metric],
+              tone === "ok" ? STROKE[metric] : TONE_STROKE[tone],
             )}
             style={{ "--ring-circumference": circumference } as CSSProperties}
           />

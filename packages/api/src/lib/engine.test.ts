@@ -9,6 +9,7 @@ import {
   computeDeficit,
   computeTargets,
   daysBetween,
+  eatTone,
   effectiveRamadan,
   idealWeightRange,
   isRamadanDate,
@@ -456,5 +457,17 @@ describe("proteinTargetG", () => {
     expect(proteinTargetG(60, 170)).toBe(90);
     // 170 cm healthy max is 72 kg: 130 kg asks for 108 g, not 195 g
     expect(proteinTargetG(130, 170)).toBe(108);
+  });
+});
+
+describe("eatTone", () => {
+  test("amber from exactly 90%, red only past 100%", () => {
+    expect(eatTone(1799, 2000)).toBe("ok");
+    expect(eatTone(1800, 2000)).toBe("near");
+    expect(eatTone(2000, 2000)).toBe("near");
+    expect(eatTone(2001, 2000)).toBe("over");
+  });
+  test("no target yet stays neutral", () => {
+    expect(eatTone(500, 0)).toBe("ok");
   });
 });

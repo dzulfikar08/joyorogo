@@ -4,7 +4,8 @@ import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { View } from "react-native";
-import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { StyleSheet } from "react-native-unistyles";
+import Svg, { Path } from "react-native-svg";
 
 import { Button, Card, Text } from "@/components/ui";
 import { errorMessage } from "@/utils/format";
@@ -13,7 +14,6 @@ import { client, orpc, queryClient } from "@/utils/orpc";
 // Strava OAuth in the in-app browser. The redirect comes back to the app via
 // the joyorogo:// scheme, then the code is exchanged server-side.
 export function StravaCard() {
-  const { theme } = useUnistyles();
   const statusQuery = useQuery(orpc.strava.status.queryOptions());
   const sync = useMutation(
     orpc.strava.sync.mutationOptions({
@@ -112,8 +112,14 @@ export function StravaCard() {
   return (
     <Card>
       <View style={styles.headRow}>
-        <View style={[styles.iconChip, { backgroundColor: theme.colors.bakarSoft }]}>
-          <Text style={[styles.iconGlyph, { color: theme.colors.bakarText }]}>S</Text>
+        {/* Strava's app-icon mark: white glyph on Strava orange, per their brand guide. */}
+        <View style={styles.logo}>
+          <Svg width={20} height={20} viewBox="0 0 24 24">
+            <Path
+              fill="#FFFFFF"
+              d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"
+            />
+          </Svg>
         </View>
         <View style={styles.headText}>
           <Text style={styles.title}>Strava</Text>
@@ -133,16 +139,13 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     gap: theme.spacing.md,
   },
-  iconChip: {
+  logo: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 8,
+    backgroundColor: "#FC4C02",
     alignItems: "center",
     justifyContent: "center",
-  },
-  iconGlyph: {
-    fontSize: 15,
-    fontWeight: "800",
   },
   headText: {
     flex: 1,

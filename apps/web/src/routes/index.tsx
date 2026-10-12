@@ -15,11 +15,10 @@ import { Ring, type Metric } from "@/components/kit/ring";
 import { ScanDemo } from "@/components/landing/scan-demo";
 import { HeroPhone, WeightTrendDemo } from "@/components/landing/visuals";
 import { PublicHeader } from "@/components/public-header";
-import { fmtRupiah, useAppConfig } from "@/lib/app-config";
+import { APK_URL, fmtRupiah, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { sessionQuery } from "@/lib/auth-client";
-import { CACHE_OWNER_KEY, getServerUrl } from "@/utils/orpc";
-import { env } from "../env.public";
+import { CACHE_OWNER_KEY } from "@/utils/orpc";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -37,8 +36,6 @@ export const Route = createFileRoute("/")({
     }
   },
 });
-
-const APK_URL = `${getServerUrl(env.VITE_SERVER_URL)}/downloads/latest-apk`;
 
 /** Facts the product can back up; no user counts or ratings we don't have. */
 const FACTS = [
@@ -503,7 +500,7 @@ function Landing() {
             </p>
             <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
               <ShieldCheck className="size-4" aria-hidden />
-              Dibuat di Malang oleh Dzulfikar. Foto makanan tidak pernah disimpan.
+              Dibuat di Malang oleh Dzulfikar. Foto asli tidak disimpan, kecuali kamu memintanya.
             </p>
           </div>
           <nav aria-label="Tautan" className="flex flex-wrap gap-x-6 gap-y-1 text-sm font-semibold">
@@ -515,6 +512,9 @@ function Landing() {
             <Link to="/privasi" className="inline-flex min-h-11 items-center hover:text-primary">
               Privasi
             </Link>
+            <a href="/blog/" className="inline-flex min-h-11 items-center hover:text-primary">
+              Blog
+            </a>
             <a href={APK_URL} className="inline-flex min-h-11 items-center hover:text-primary">
               Unduh Android
             </a>

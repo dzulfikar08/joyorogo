@@ -3,6 +3,7 @@ import { Link, Navigate, createFileRoute, useNavigate } from "@tanstack/react-ro
 import {
   CalendarDays,
   CircleAlert,
+  Download,
   Flag,
   Footprints,
   Globe,
@@ -32,6 +33,7 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import {
   Card,
+  ListAnchorRow,
   ListButtonRow,
   ListGroup,
   ListLinkRow,
@@ -47,13 +49,18 @@ import { ScreenError } from "@/components/screen-state";
 import { useStrava } from "@/components/strava-card";
 import { env } from "@/env.public";
 import type { ProfileRow } from "@/lib/api-types";
-import { useAppConfig } from "@/lib/app-config";
+import { APK_URL, useAppConfig } from "@/lib/app-config";
 import { fmtFounderDate, useFounderCheckout } from "@/lib/billing";
 import { signOut } from "@/lib/auth-client";
 import { fmtDateIndo, fmtInt, fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
 import { getServerUrl, orpc } from "@/utils/orpc";
 
 const profileOptions = orpc.profile.myProfile.queryOptions();
+
+/** The APK is useless on iPhone/iPad; iPadOS reports as Mac with touch. */
+const IS_IOS =
+  /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 export const Route = createFileRoute("/_auth/profil")({
   loader: ({ context }) => context.queryClient.ensureQueryData(profileOptions),
@@ -338,6 +345,24 @@ function ProfilContent({
       <SectionTitle className="mt-7">Mode Ramadan</SectionTitle>
       <RamadanSection mode={row.ramadanMode} />
 
+      {!IS_IOS && (
+        <>
+          <SectionTitle className="mt-7">Aplikasi Android</SectionTitle>
+          <ListGroup>
+            <ListAnchorRow
+              href={APK_URL}
+              icon={<Download className="size-5 text-makan" aria-hidden />}
+              title="Unduh aplikasi Android"
+              subtitle="Versi terbaru, pakai akun yang sama."
+            />
+          </ListGroup>
+          <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">
+            Berupa file APK. Saat memasang, Android mungkin meminta izin memasang dari sumber ini.
+            Sudah terpasang? Unduh lagi untuk memperbarui.
+          </p>
+        </>
+      )}
+
       <SectionTitle className="mt-7">Privasi</SectionTitle>
       <ShareSection enabled={row.shareEnabled} code={row.shareCode} />
       <KeepPhotosSection keep={row.keepPhotos} />
@@ -614,11 +639,14 @@ function ShareSection({ enabled, code }: { enabled: boolean; code: string | null
   );
 }
 
-function StravaMark({ className }: { className?: string }) {
+/** Strava's app-icon mark: white glyph on Strava orange (#FC4C02), per their brand guide. */
+function StravaLogo() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={cn("size-5", className)} aria-hidden>
-      <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
-    </svg>
+    <span className="grid size-8 place-items-center rounded-lg bg-[#FC4C02]">
+      <svg viewBox="0 0 24 24" fill="#fff" className="size-5" aria-hidden>
+        <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
+      </svg>
+    </span>
   );
 }
 
@@ -640,11 +668,7 @@ function StravaSection() {
   if (isChecking) {
     return (
       <ListGroup>
-        <ListRow
-          icon={<StravaMark className="text-muted-foreground" />}
-          title="Strava"
-          subtitle="Memeriksa status..."
-        />
+        <ListRow icon={<StravaLogo />} title="Strava" subtitle="Memeriksa status..." />
       </ListGroup>
     );
   }
@@ -652,7 +676,7 @@ function StravaSection() {
     return (
       <ListGroup>
         <ListRow
-          icon={<StravaMark className="text-destructive" />}
+          icon={<StravaLogo />}
           title="Strava"
           subtitle={`Gagal memeriksa status: ${statusError}`}
           trailing={
@@ -668,7 +692,7 @@ function StravaSection() {
     return (
       <ListGroup>
         <ListRow
-          icon={<StravaMark className="text-muted-foreground" />}
+          icon={<StravaLogo />}
           title="Strava"
           subtitle="Sambungan aktif setelah kredensial Strava disetel di server."
         />
@@ -679,7 +703,7 @@ function StravaSection() {
     return (
       <ListGroup>
         <ListRow
-          icon={<StravaMark className="text-bakar" />}
+          icon={<StravaLogo />}
           title="Strava"
           subtitle={`Terhubung${athleteId ? ` · ID atlet ${athleteId}` : ""}`}
           trailing={
@@ -690,7 +714,7 @@ function StravaSection() {
         />
         <ListButtonRow
           destructive
-          icon={<StravaMark />}
+          icon={<StravaLogo />}
           title={isDisconnecting ? "Memutuskan..." : "Putuskan Strava"}
           onClick={() => disconnect()}
         />
@@ -700,7 +724,7 @@ function StravaSection() {
   return (
     <ListGroup>
       <ListButtonRow
-        icon={<StravaMark className="text-bakar" />}
+        icon={<StravaLogo />}
         title="Strava"
         subtitle="Aktivitas Strava otomatis masuk ke Burn."
         onClick={() => authorize()}

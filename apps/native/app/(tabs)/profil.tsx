@@ -1,6 +1,6 @@
 import "@/unistyles";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Alert, Switch, View } from "react-native";
+import { Alert, Image, Switch, View } from "react-native";
 import { useEffect, useState } from "react";
 import { Redirect, router } from "expo-router";
 import { StyleSheet, UnistylesRuntime, useUnistyles } from "react-native-unistyles";
@@ -305,7 +305,15 @@ export default function Profil() {
       <StravaCard />
       {isHealthConnectSupported() ? (
         <Card>
-          <Text style={styles.cardTitle}>Health Connect</Text>
+          <View style={styles.hcHead}>
+            {/* Official logo from developer.android.com Health Connect UI guidelines. */}
+            <Image
+              source={require("@/assets/images/health-connect.png")}
+              style={styles.hcLogo}
+              accessibilityIgnoresInvertColors
+            />
+            <Text style={styles.cardTitle}>Health Connect</Text>
+          </View>
           <Text style={styles.note}>
             Sumber utama aktivitasmu: latihan, langkah, jarak, kalori aktif, dan tidur 7 hari
             terakhir. Setelah izin diberikan, sinkron berjalan otomatis tiap kali kamu buka
@@ -627,6 +635,15 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.md,
     fontWeight: "700",
     color: theme.colors.foreground,
+  },
+  hcHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+  },
+  hcLogo: {
+    width: 32,
+    height: 32,
   },
   sectionLabel: {
     fontSize: theme.fontSize.md,

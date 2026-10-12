@@ -36,6 +36,10 @@ export function PublicHeader() {
               Harga
             </Link>
           )}
+          {/* Static pages outside the SPA router: a full page load, not <Link>. */}
+          <a href="/blog/" className={NAV_LINK}>
+            Blog
+          </a>
         </nav>
         <Button render={<Link to="/login" />}>Masuk</Button>
       </div>

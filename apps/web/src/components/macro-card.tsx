@@ -1,4 +1,4 @@
-import { macroTargets } from "@joyorogo/api/lib/engine";
+import { eatTone, macroTargets } from "@joyorogo/api/lib/engine";
 import { cn } from "@joyorogo/ui/lib/utils";
 
 import { Ring } from "@/components/kit/ring";
@@ -78,6 +78,7 @@ export function MakanSummaryCard({
           max={eatKcal}
           size={124}
           stroke={12}
+          tone={eatTone(eatenKcal, eatKcal)}
           label={`Dimakan ${fmtInt(eatenKcal)} dari ${fmtInt(eatKcal)} kcal`}
         >
           <div>

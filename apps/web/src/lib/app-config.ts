@@ -19,6 +19,9 @@ export function apiUrl(path: string): string {
   return `${getServerUrl(env.VITE_SERVER_URL)}${path}`;
 }
 
+/** Latest signed release APK, served by the API worker from R2. */
+export const APK_URL = apiUrl("/downloads/latest-apk");
+
 /**
  * Read at runtime, not build time: the same web build serves the hosted
  * cloud and self-hosted copies. While loading, callers render no pricing

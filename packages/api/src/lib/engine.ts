@@ -38,6 +38,14 @@ const ACTIVITY_MULTIPLIER: Record<ActivityLevel, number> = {
   high: 1.45,
 };
 
+/** Eat-ring state: yellow from 90% of the budget, red once over it. */
+export type EatTone = "ok" | "near" | "over";
+export function eatTone(eatenKcal: number, targetKcal: number): EatTone {
+  if (targetKcal <= 0) return "ok";
+  if (eatenKcal > targetKcal) return "over";
+  return eatenKcal >= targetKcal * 0.9 ? "near" : "ok";
+}
+
 export const KCAL_PER_KG_FAT = 7700;
 const EAT_FLOOR: Record<Gender, number> = { male: 1500, female: 1200 };
 export const SLEEP_NEED_HOURS = 8;
