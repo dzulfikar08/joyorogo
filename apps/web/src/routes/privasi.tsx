@@ -114,10 +114,10 @@ function PrivasiPage() {
             <p className="mt-3 text-sm leading-relaxed">
               Ada pertanyaan soal datamu? Kirim email ke{" "}
               <a
-                href="mailto:dzul@joyorogo.dzulfikar.com"
+                href="mailto:dzulfikar@joyorogo.com"
                 className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
               >
-                dzul@joyorogo.dzulfikar.com
+                dzulfikar@joyorogo.com
               </a>
               .
             </p>
