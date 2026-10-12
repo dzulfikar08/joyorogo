@@ -1,6 +1,5 @@
-// Old and alternate web hosts (joyorogo.dzulfikar.com, www.joyorogo.com) answer
-// with a permanent redirect to the canonical host, keeping path and query, so
-// links and search rankings move over to joyorogo.com.
+// www.joyorogo.com answers with a permanent redirect to the canonical host,
+// keeping path and query.
 const CANONICAL = "joyorogo.com";
 
 export default {

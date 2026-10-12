@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#137D41",
+        "backgroundColor": "#F9F6F1",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -72,7 +72,8 @@
           "microphonePermission": "Izinkan mikrofon untuk merekam cerita makananmu dan menghitung kalorinya.",
           "recordAudioAndroid": true
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

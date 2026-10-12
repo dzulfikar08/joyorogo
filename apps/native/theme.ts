@@ -10,6 +10,8 @@ const sharedColors = {
   destructive: "#B42318",
   destructiveForeground: "#FFFFFF",
   warning: "#B45309",
+  /** Eat ring from 90% of the budget (engine eatTone "near"); over uses destructive. */
+  eatNear: "#E5A50A",
 } as const;
 
 export const lightTheme = {

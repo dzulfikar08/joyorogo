@@ -2,7 +2,7 @@ import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Pressable, ScrollView, View } from "react-native";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Redirect, router } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -11,6 +11,7 @@ import {
   eatTone,
   effectiveRamadan,
   jakartaToday,
+  macroTargets,
   relativeDayLabel,
   slotsFor,
   suggestMealNow,
@@ -31,6 +32,7 @@ import {
   Field,
   Input,
   ListGroup,
+  MacroBar,
   ListRow,
   Num,
   PageHeader,
@@ -44,9 +46,6 @@ import {
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtDateId, fmtKcal, parseNum } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
-
-/** Ring arc from 90% of the eat budget (yellow); red once over it. */
-const EAT_NEAR_COLOR = "#E5A50A";
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
 
@@ -64,6 +63,21 @@ function shiftDate(date: string, days: number): string {
   day.setUTCDate(day.getUTCDate() + days);
   return day.toISOString().slice(0, 10);
 }
+
+/** Fields needed to re-add a deleted row verbatim via food.add. */
+type UndoItem = {
+  id: string;
+  date: string;
+  meal: string;
+  name: string;
+  kcal: number;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+  fiber: number | null;
+  source: string;
+  itemsJson: string | null;
+};
 
 export default function Makan() {
   const { theme } = useUnistyles();
@@ -99,7 +113,15 @@ export default function Makan() {
   const [macrosOpen, setMacrosOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [viewer, setViewer] = useState<StickerViewerTarget | null>(null);
+  const [undoItem, setUndoItem] = useState<UndoItem | null>(null);
   const quickAddRef = useRef(false);
+
+  // Undo window: 6 s after a delete, same as the web toast.
+  useEffect(() => {
+    if (undoItem === null) return;
+    const timer = setTimeout(() => setUndoItem(null), 6000);
+    return () => clearTimeout(timer);
+  }, [undoItem]);
 
   const addFood = useMutation(
     orpc.food.add.mutationOptions({
@@ -125,6 +147,30 @@ export default function Makan() {
       onSuccess: () => queryClient.invalidateQueries(),
     }),
   );
+
+  /** Capture the row before removal so "Urungkan" can re-add it verbatim. */
+  const handleDelete = (item: UndoItem) => {
+    setUndoItem(item);
+    removeFood.mutate({ id: item.id });
+  };
+
+  const undoDelete = () => {
+    const item = undoItem;
+    if (item === null) return;
+    setUndoItem(null);
+    addFood.mutate({
+      date: item.date,
+      meal: item.meal as Meal,
+      name: item.name,
+      kcal: item.kcal,
+      protein: item.protein ?? undefined,
+      carbs: item.carbs ?? undefined,
+      fat: item.fat ?? undefined,
+      fiber: item.fiber ?? undefined,
+      source: item.source === "ai" ? "ai" : "manual",
+      itemsJson: item.itemsJson ?? undefined,
+    });
+  };
 
   if (gate === "loading") {
     return <BootLoader />;
@@ -156,6 +202,8 @@ export default function Makan() {
   const totals = listQuery.data.totals;
   const targets = summaryQuery.data?.targets ?? null;
   const eatenKcal = summaryQuery.data?.eatenKcal ?? totals.kcal;
+  // Carb/fat/fiber floors from the engine; same reference as the web card.
+  const macroBudgets = targets ? macroTargets(targets.eatKcal, 70) : null;
 
   const submit = () => {
     const meal = sheetMeal;
@@ -226,7 +274,9 @@ export default function Makan() {
           </View>
         </View>
         {slotItems.length === 0 ? (
-          <Text style={styles.slotEmpty}>Belum ada catatan.</Text>
+          <Text style={styles.slotEmpty}>
+            Belum ada catatan. Tekan tambah di atas, atau pindai fotonya.
+          </Text>
         ) : (
           <ListGroup>
             {slotItems.map((item) => (
@@ -236,7 +286,9 @@ export default function Makan() {
                 subtitle={
                   item.protein !== null || item.carbs !== null || item.fat !== null
                     ? `P ${fmtKcal(item.protein ?? 0)} · K ${fmtKcal(item.carbs ?? 0)} · L ${fmtKcal(item.fat ?? 0)} g`
-                    : undefined
+                    : item.source === "ai"
+                      ? "Dari pindai AI"
+                      : undefined
                 }
                 value={`${fmtKcal(item.kcal)}`}
                 thumb={
@@ -261,7 +313,7 @@ export default function Makan() {
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={`Hapus ${item.name}`}
-                    onPress={() => removeFood.mutate({ id: item.id })}
+                    onPress={() => handleDelete(item)}
                     style={({ pressed }) => [styles.deleteButton, pressed && styles.pressedSoft]}
                   >
                     <Ionicons name="trash-outline" size={18} color={theme.colors.destructive} />
@@ -289,7 +341,9 @@ export default function Makan() {
         >
           <Ionicons name="chevron-back" size={20} color={theme.colors.foreground} />
         </Pressable>
-        <Text style={styles.dayLabel}>{isToday ? "Hari ini" : fmtDateId(date)}</Text>
+        <Text style={styles.dayLabel}>
+          {isToday ? "Hari ini" : date === shiftDate(today, -1) ? "Kemarin" : fmtDateId(date)}
+        </Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Hari berikutnya"
@@ -305,52 +359,50 @@ export default function Makan() {
         </Pressable>
       </View>
 
-      {/* Summary strip: ring + P/K/L pills */}
+      {/* Summary strip: ring + per-macro progress bars (same budgets as web) */}
       <Card style={styles.summaryCard}>
         <Ring
-          size={72}
-          stroke={9}
+          size={110}
+          stroke={12}
           value={eatenKcal}
-          max={targets?.eatKcal ?? eatenKcal}
+          max={targets !== null && targets.eatKcal > 0 ? targets.eatKcal : Math.max(eatenKcal, 1)}
           color={
             {
               ok: theme.colors.makan,
-              near: EAT_NEAR_COLOR,
+              near: theme.colors.eatNear,
               over: theme.colors.destructive,
             }[eatTone(eatenKcal, targets?.eatKcal ?? 0)]
           }
           track={theme.colors.makanSoft}
         >
-          <Num style={styles.summaryPct} adjustsFontSizeToFit numberOfLines={1}>
-            {targets && targets.eatKcal > 0
-              ? `${Math.round((eatenKcal / targets.eatKcal) * 100)}%`
-              : "–"}
-          </Num>
+          <View style={styles.ringCenter}>
+            <Num style={styles.ringKcal} adjustsFontSizeToFit numberOfLines={1}>
+              {fmtKcal(eatenKcal)}
+            </Num>
+            <Text style={styles.ringUnit}>kcal</Text>
+            {targets !== null && targets.eatKcal > 0 ? (
+              <Text
+                style={[
+                  styles.ringTarget,
+                  eatenKcal > targets.eatKcal && { color: theme.colors.bakarText },
+                ]}
+              >
+                {eatenKcal > targets.eatKcal
+                  ? `+${fmtKcal(eatenKcal - targets.eatKcal)} lebih`
+                  : `dari ${fmtKcal(targets.eatKcal)}`}
+              </Text>
+            ) : null}
+          </View>
         </Ring>
         <View style={styles.summaryInfo}>
-          <View style={styles.summaryLine}>
-            <Num style={styles.summaryKcal}>{fmtKcal(eatenKcal)}</Num>
-            <Text style={styles.summaryTarget}>
-              / {targets ? fmtKcal(targets.eatKcal) : "?"} kcal
-            </Text>
-          </View>
-          <View style={styles.pillRow}>
-            <View style={[styles.macroPill, { backgroundColor: theme.colors.makanSoft }]}>
-              <Text style={[styles.macroPillText, { color: theme.colors.makanText }]}>
-                P {fmtKcal(totals.protein)}g
-              </Text>
-            </View>
-            <View style={[styles.macroPill, { backgroundColor: theme.colors.tidurSoft }]}>
-              <Text style={[styles.macroPillText, { color: theme.colors.tidurText }]}>
-                K {fmtKcal(totals.carbs)}g
-              </Text>
-            </View>
-            <View style={[styles.macroPill, { backgroundColor: theme.colors.bakarSoft }]}>
-              <Text style={[styles.macroPillText, { color: theme.colors.bakarText }]}>
-                L {fmtKcal(totals.fat)}g
-              </Text>
-            </View>
-          </View>
+          <MacroBar
+            label="Protein"
+            eaten={totals.protein}
+            budget={summaryQuery.data?.protein?.targetG ?? null}
+          />
+          <MacroBar label="Karbo" eaten={totals.carbs} budget={macroBudgets?.carbsG ?? null} />
+          <MacroBar label="Lemak" eaten={totals.fat} budget={macroBudgets?.fatG ?? null} />
+          <MacroBar label="Serat" eaten={totals.fiber} budget={macroBudgets?.fiberG ?? null} />
         </View>
       </Card>
 
@@ -385,6 +437,22 @@ export default function Makan() {
             style={({ pressed }) => [styles.feedbackClose, pressed && styles.pressedSoft]}
           >
             <Ionicons name="close" size={18} color={theme.colors.makanText} />
+          </Pressable>
+        </View>
+      ) : null}
+
+      {undoItem ? (
+        <View style={styles.undoBar}>
+          <Text style={styles.undoText} numberOfLines={1}>
+            {undoItem.name} dihapus.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Urungkan hapus"
+            onPress={undoDelete}
+            style={({ pressed }) => [styles.undoAction, pressed && styles.pressedSoft]}
+          >
+            <Text style={styles.undoActionText}>Urungkan</Text>
           </Pressable>
         </View>
       ) : null}
@@ -600,42 +668,29 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     gap: theme.spacing.lg,
   },
-  summaryPct: {
-    fontSize: theme.fontSize.base,
-    fontWeight: "700",
-    color: theme.colors.foreground,
+  ringCenter: {
+    alignItems: "center",
+    gap: 1,
+    maxWidth: 76,
   },
-  summaryInfo: {
-    flex: 1,
-    gap: theme.spacing.sm,
-  },
-  summaryLine: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 4,
-  },
-  summaryKcal: {
-    fontSize: theme.fontSize["2xl"],
+  ringKcal: {
+    fontSize: theme.fontSize.xl,
     fontWeight: "800",
     color: theme.colors.foreground,
   },
-  summaryTarget: {
-    fontSize: theme.fontSize.sm,
+  ringUnit: {
+    fontSize: 10,
+    fontWeight: "600",
     color: theme.colors.mutedForeground,
   },
-  pillRow: {
-    flexDirection: "row",
-    gap: theme.spacing.sm,
-    flexWrap: "wrap",
+  ringTarget: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
   },
-  macroPill: {
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  macroPillText: {
-    fontSize: theme.fontSize.xs,
-    fontWeight: "700",
+  summaryInfo: {
+    flex: 1,
+    gap: theme.spacing.md,
   },
   slotHeader: {
     flexDirection: "row",
@@ -779,5 +834,30 @@ const styles = StyleSheet.create((theme) => ({
   error: {
     fontSize: theme.fontSize.sm,
     color: theme.colors.destructive,
+  },
+  undoBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.muted,
+    borderRadius: theme.radius.card,
+    paddingLeft: theme.spacing.lg,
+    paddingRight: theme.spacing.xs,
+    paddingVertical: theme.spacing.xs,
+  },
+  undoText: {
+    flex: 1,
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.foreground,
+  },
+  undoAction: {
+    minHeight: 44,
+    paddingHorizontal: theme.spacing.md,
+    justifyContent: "center",
+  },
+  undoActionText: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.primary,
   },
 }));

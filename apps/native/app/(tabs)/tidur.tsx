@@ -189,7 +189,11 @@ export default function Tidur() {
           </Num>
         </Ring>
         <Text style={styles.ringNote}>
-          Kebutuhan tidurmu {SLEEP_NEED_HOURS} jam agar pemulihan terjaga.
+          {logged === null
+            ? `Kebutuhan tidurmu ${SLEEP_NEED_HOURS} jam agar pemulihan terjaga.`
+            : logged < SLEEP_NEED_HOURS
+              ? `Kurang ${fmtKg(SLEEP_NEED_HOURS - logged)} jam dari kebutuhan ${SLEEP_NEED_HOURS} jam.`
+              : "Kebutuhan terpenuhi, mantap."}
         </Text>
       </Card>
 

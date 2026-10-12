@@ -1,11 +1,14 @@
 import "@/unistyles";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import * as Clipboard from "expo-clipboard";
 import { Alert, Image, Switch, View } from "react-native";
 import { useEffect, useState } from "react";
 import { Redirect, router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { StyleSheet, UnistylesRuntime, useUnistyles } from "react-native-unistyles";
 
-import { ACTIVITY_LABELS, jakartaToday, idealWeightRange } from "@joyorogo/api/lib/engine";
+import { ACTIVITY_LABELS, idealWeightRange } from "@joyorogo/api/lib/engine";
+import type { Gender } from "@joyorogo/api/lib/engine";
 
 import {
   Avatar,
@@ -13,18 +16,17 @@ import {
   Button,
   Card,
   ErrorState,
-  Field,
-  Input,
   ListGroup,
   ListRow,
-  Num,
   PageHeader,
   Screen,
   Segmented,
-  Sheet,
   Skeleton,
+  StatTile,
   Text,
 } from "@/components/ui";
+import { FounderCards, serverUrl, useAppConfig } from "@/components/billing";
+import { TargetDateSheet, TargetWeightSheet } from "@/components/target-sheets";
 import { StravaCard } from "@/components/strava-card";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
@@ -36,7 +38,7 @@ import {
   teardownReminders,
 } from "@/src/lib/notifications";
 import { saveThemePref } from "@/src/lib/theme-pref";
-import { errorMessage, fmtDateId, fmtKcal, fmtKg, parseNum } from "@/utils/format";
+import { errorMessage, fmtDateId, fmtKcal, fmtKg } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
 const NOTE_EXPLANATIONS: Record<string, string> = {
@@ -46,23 +48,27 @@ const NOTE_EXPLANATIONS: Record<string, string> = {
   ADAPTIVE: "Disesuaikan dari data makan + timbanganmu 3 minggu terakhir.",
 };
 
+const GENDER_LABELS: Record<Gender, string> = {
+  male: "Pria",
+  female: "Wanita",
+};
+
 export default function Profil() {
   const gate = useSessionGate();
   const { data: session } = authClient.useSession();
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
+  const config = useAppConfig();
   const updateTargets = useMutation(
     orpc.profile.updateTargets.mutationOptions({
       onSuccess: () => {
-        setSheetOpen(false);
+        setSheet(null);
         queryClient.invalidateQueries();
       },
     }),
   );
 
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [targetWeightKg, setTargetWeightKg] = useState("");
-  const [targetDate, setTargetDate] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
+  // Two focused editors, like web: "weight" and "date" open separately.
+  const [sheet, setSheet] = useState<null | "weight" | "date">(null);
 
   const [hcBusy, setHcBusy] = useState(false);
   const [hcMessage, setHcMessage] = useState<string | null>(null);
@@ -70,14 +76,6 @@ export default function Profil() {
 
   const prof = profileQuery.data?.profile ?? null;
   const targets = profileQuery.data?.targets ?? null;
-
-  // Prefill the target editor from the live profile when it opens.
-  useEffect(() => {
-    if (sheetOpen && prof) {
-      if (targetWeightKg === "") setTargetWeightKg(String(prof.targetWeightKg));
-      if (targetDate === "") setTargetDate(prof.targetDate);
-    }
-  }, [sheetOpen, prof, targetWeightKg, targetDate]);
 
   if (gate === "loading") {
     return <BootLoader />;
@@ -106,27 +104,6 @@ export default function Profil() {
       </Screen>
     );
   }
-
-  const saveTarget = async () => {
-    if (!prof) return;
-    const target = parseNum(targetWeightKg);
-    if (target === null || target < 25 || target > 400) {
-      setFormError("Target berat harus antara 25 dan 400 kg.");
-      return;
-    }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate) || targetDate < jakartaToday()) {
-      setFormError("Tanggal target harus format TAHUN-BULAN-TANGGAL dan belum lewat.");
-      return;
-    }
-    setFormError(null);
-    try {
-      await updateTargets.mutateAsync({ targetWeightKg: target, targetDate });
-      setTargetWeightKg("");
-      setTargetDate("");
-    } catch (e) {
-      setFormError(errorMessage(e));
-    }
-  };
 
   const deleteData = useMutation(
     orpc.privacy.deleteMyData.mutationOptions({
@@ -194,50 +171,46 @@ export default function Profil() {
             <View style={styles.founderBadge}>
               <Text style={styles.founderText}>Founder</Text>
             </View>
+          ) : config.data?.paywall ? (
+            <View style={styles.freeBadge}>
+              <Text style={styles.freeText}>Gratis</Text>
+            </View>
           ) : null}
         </View>
       </View>
 
+      {/* Kuota scan gratis + langganan Founder (web profil banners) */}
+      <FounderCards
+        tier={profileQuery.data?.tier ?? "free"}
+        founderUntil={profileQuery.data?.founderUntil ?? null}
+      />
+
       {prof && targets ? (
         <>
-          {/* Rencana saat ini */}
-          <Card>
-            <Text style={styles.cardTitle}>Rencana harian</Text>
-            <View style={styles.planRow}>
-              <View style={styles.planCell}>
-                <Text style={styles.planLabel}>Makan</Text>
-                <Num style={styles.planValue}>{fmtKcal(targets.eatKcal)}</Num>
-                <Text style={styles.planUnit}>kcal/hari</Text>
-              </View>
-              <View style={styles.planCell}>
-                <Text style={styles.planLabel}>Bakar</Text>
-                <Num style={styles.planValue}>{fmtKcal(targets.burnKcal)}</Num>
-                <Text style={styles.planUnit}>kcal/hari</Text>
-              </View>
-              <View style={styles.planCell}>
-                <Text style={styles.planLabel}>Tidur</Text>
-                <Num style={styles.planValue}>{fmtKg(targets.sleepHours)}</Num>
-                <Text style={styles.planUnit}>jam/malam</Text>
-              </View>
-            </View>
-            {targets.notes.map((note) => (
-              <Text key={note} style={styles.note}>
-                {NOTE_EXPLANATIONS[note] ?? note}
-              </Text>
-            ))}
-            {targets.notes.includes("ADAPTIVE") && targets.formulaTdee ? (
-              <Text style={styles.note}>
-                Estimasi rumus {fmtKcal(targets.formulaTdee)} kcal/hari; rencana memakai{" "}
-                {fmtKcal(targets.tdee)} kcal karena lebih cocok dengan datamu.
-              </Text>
-            ) : null}
-            <Text style={styles.note}>
-              Target berat {fmtKg(prof.targetWeightKg)} kg pada {fmtDateId(prof.targetDate)}.
-              {heightIdeal
-                ? ` Rentang sehat untuk tinggimu: ${fmtKg(heightIdeal.minKg)}–${fmtKg(heightIdeal.maxKg)} kg.`
-                : ""}
-            </Text>
-          </Card>
+          {/* Tiga angka harian sebagai tile, seperti PlanNumbers web */}
+          <View style={styles.planTiles}>
+            <StatTile
+              icon="restaurant"
+              tint="makan"
+              label="Makan"
+              value={fmtKcal(targets.eatKcal)}
+              sub="kcal/hari"
+            />
+            <StatTile
+              icon="flame"
+              tint="bakar"
+              label="Bakar"
+              value={fmtKcal(targets.burnKcal)}
+              sub="kcal/hari"
+            />
+            <StatTile
+              icon="moon"
+              tint="tidur"
+              label="Tidur"
+              value={fmtKg(targets.sleepHours)}
+              sub="jam/malam"
+            />
+          </View>
 
           {/* Rencana rows → sheet editors */}
           <ListGroup>
@@ -248,10 +221,7 @@ export default function Profil() {
               subtitle="Ubah angka targetmu"
               value={`${fmtKg(prof.targetWeightKg)} kg`}
               chevron
-              onPress={() => {
-                setFormError(null);
-                setSheetOpen(true);
-              }}
+              onPress={() => setSheet("weight")}
             />
             <ListRow
               icon="calendar"
@@ -260,10 +230,7 @@ export default function Profil() {
               subtitle="Kapan kamu ingin sampai"
               value={fmtDateId(prof.targetDate)}
               chevron
-              onPress={() => {
-                setFormError(null);
-                setSheetOpen(true);
-              }}
+              onPress={() => setSheet("date")}
             />
             <ListRow
               icon="walk"
@@ -273,6 +240,47 @@ export default function Profil() {
               value={ACTIVITY_LABELS[prof.activityLevel as "low" | "mid" | "high"]}
             />
           </ListGroup>
+
+          {targets.notes.map((note) => (
+            <Text key={note} style={styles.note}>
+              {NOTE_EXPLANATIONS[note] ?? note}
+            </Text>
+          ))}
+          {targets.notes.includes("ADAPTIVE") && targets.formulaTdee ? (
+            <Text style={styles.note}>
+              Estimasi rumus {fmtKcal(targets.formulaTdee)} kcal/hari; rencana memakai{" "}
+              {fmtKcal(targets.tdee)} kcal karena lebih cocok dengan datamu.
+            </Text>
+          ) : null}
+          <Text style={styles.note}>
+            Target berat {fmtKg(prof.targetWeightKg)} kg pada {fmtDateId(prof.targetDate)}.
+            {heightIdeal
+              ? ` Rentang sehat untuk tinggimu: ${fmtKg(heightIdeal.minKg)}–${fmtKg(heightIdeal.maxKg)} kg.`
+              : ""}
+          </Text>
+          <Text style={styles.caption}>Ubah target dan angka harian dihitung ulang otomatis.</Text>
+
+          {/* Data diri (hanya baca) */}
+          <ListGroup>
+            <ListRow
+              title="Jenis kelamin"
+              value={GENDER_LABELS[prof.gender as Gender] ?? prof.gender}
+            />
+            <ListRow title="Tahun lahir" value={String(prof.birthYear)} />
+            <ListRow title="Tinggi" value={`${Math.round(prof.heightCm)} cm`} />
+            <ListRow title="Berat awal" value={`${fmtKg(prof.startWeightKg)} kg`} />
+            <ListRow
+              title="Berat terkini"
+              value={
+                profileQuery.data?.latestWeightKg != null
+                  ? `${fmtKg(profileQuery.data.latestWeightKg)} kg`
+                  : "belum ada"
+              }
+            />
+          </ListGroup>
+          <Text style={styles.caption}>
+            Data diri diatur waktu onboarding. Berat terkini mengikuti timbangmu di halaman Berat.
+          </Text>
         </>
       ) : (
         <Card>
@@ -334,6 +342,13 @@ export default function Profil() {
       {prof ? <ShareRow /> : null}
       <ListGroup>
         <ListRow
+          icon="shield-checkmark"
+          iconTint="makan"
+          title="Kebijakan privasi"
+          chevron
+          onPress={() => void WebBrowser.openBrowserAsync(`${serverUrl()}/privasi`)}
+        />
+        <ListRow
           icon="trash"
           iconTint="muted"
           title="Hapus semua data saya"
@@ -351,44 +366,43 @@ export default function Profil() {
         />
       </ListGroup>
 
-      {/* Target editor sheet */}
-      <Sheet
-        visible={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        title="Ubah target"
-        footer={
-          <Button
-            label="Simpan Perubahan"
-            onPress={() => void saveTarget()}
-            loading={updateTargets.isPending}
+      {/* Target editors: dua sheet terpisah, seperti web */}
+      {prof ? (
+        <>
+          <TargetWeightSheet
+            visible={sheet === "weight"}
+            onClose={() => setSheet(null)}
+            heightCm={prof.heightCm}
+            targetWeightKg={prof.targetWeightKg}
+            pending={updateTargets.isPending}
+            onSave={async (kg) => {
+              await updateTargets.mutateAsync({
+                targetWeightKg: kg,
+                targetDate: prof.targetDate,
+              });
+            }}
           />
-        }
-      >
-        <Field
-          label="Target berat (kg)"
-          hint={
-            heightIdeal
-              ? `Berat sehat untuk tinggimu: ${fmtKg(heightIdeal.minKg)}–${fmtKg(heightIdeal.maxKg)} kg`
-              : undefined
-          }
-        >
-          <Input
-            value={targetWeightKg}
-            onChangeText={setTargetWeightKg}
-            keyboardType="decimal-pad"
+          <TargetDateSheet
+            visible={sheet === "date"}
+            onClose={() => setSheet(null)}
+            targetDate={prof.targetDate}
+            weightNowKg={profileQuery.data?.latestWeightKg ?? prof.startWeightKg}
+            targetWeightKg={prof.targetWeightKg}
+            pending={updateTargets.isPending}
+            onSave={async (date) => {
+              await updateTargets.mutateAsync({
+                targetWeightKg: prof.targetWeightKg,
+                targetDate: date,
+              });
+            }}
           />
-        </Field>
-        <Field label="Tanggal target" hint="Format TAHUN-BULAN-TANGGAL">
-          <Input value={targetDate} onChangeText={setTargetDate} placeholder="2026-12-15" />
-        </Field>
-        {formError ? <Text style={styles.error}>{formError}</Text> : null}
-        <Text style={styles.note}>Mengubah target akan menghitung ulang tiga angka harianmu.</Text>
-      </Sheet>
+        </>
+      ) : null}
     </Screen>
   );
 }
 
-/** Share-progress public page toggle (profile.shareToggle). */
+/** Share-progress public page toggle + copy link (profile.shareToggle). */
 function ShareRow() {
   const { theme } = useUnistyles();
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
@@ -397,27 +411,65 @@ function ShareRow() {
       onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.profile.key() }),
     }),
   );
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 5000);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
   const enabled = profileQuery.data?.profile?.shareEnabled ?? false;
+  const code = profileQuery.data?.profile?.shareCode ?? null;
   if (profileQuery.data?.profile == null) return null;
+
+  const copyLink = async () => {
+    if (!code) return;
+    // Web builds the same URL: server origin + /u/<shareCode>.
+    await Clipboard.setStringAsync(`${serverUrl()}/u/${code}`);
+    setCopied(true);
+  };
+
   return (
-    <Card>
-      <View style={styles.switchRow}>
-        <View style={styles.switchText}>
-          <Text style={styles.rowTitle}>Bagikan progres</Text>
-          <Text style={styles.note}>
-            Halaman publik ringan berisi tren beratmu; tanpa nama maupun email.
-          </Text>
+    <View>
+      <Card>
+        <View style={styles.switchRow}>
+          <View style={styles.switchText}>
+            <Text style={styles.rowTitle}>Bagikan progres</Text>
+            <Text style={styles.note}>
+              Halaman publik ringan berisi tren beratmu; tanpa nama maupun email.
+            </Text>
+          </View>
+          <Switch
+            value={enabled}
+            onValueChange={(value) => {
+              setCopied(false);
+              toggle.mutate({ enabled: value });
+            }}
+            trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+            thumbColor={theme.colors.background}
+            accessibilityLabel="Bagikan progres"
+          />
         </View>
-        <Switch
-          value={enabled}
-          onValueChange={(value) => toggle.mutate({ enabled: value })}
-          trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
-          thumbColor={theme.colors.background}
-          accessibilityLabel="Bagikan progres"
-        />
-      </View>
-      {toggle.isError ? <Text style={styles.error}>{errorMessage(toggle.error)}</Text> : null}
-    </Card>
+        {toggle.isError ? <Text style={styles.error}>{errorMessage(toggle.error)}</Text> : null}
+      </Card>
+      {enabled && code ? (
+        <>
+          <ListGroup style={styles.shareLinkGroup}>
+            <ListRow
+              icon="link"
+              iconTint="muted"
+              title="Salin tautan"
+              value={`/u/${code}`}
+              chevron
+              onPress={() => void copyLink()}
+            />
+          </ListGroup>
+          {copied ? (
+            <Text style={styles.copiedNote}>Tautan disalin, tinggal tempel di Threads.</Text>
+          ) : null}
+        </>
+      ) : null}
+    </View>
   );
 }
 
@@ -651,27 +703,37 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.foreground,
     marginTop: theme.spacing.sm,
   },
-  planRow: {
+  planTiles: {
     flexDirection: "row",
     gap: theme.spacing.md,
   },
-  planCell: {
-    flex: 1,
-    gap: 2,
-  },
-  planLabel: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: "600",
-    color: theme.colors.mutedForeground,
-  },
-  planValue: {
-    fontSize: theme.fontSize["2xl"],
-    fontWeight: "800",
-    color: theme.colors.foreground,
-  },
-  planUnit: {
+  caption: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
+    lineHeight: 18,
+    marginTop: -theme.spacing.sm,
+  },
+  freeBadge: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.muted,
+  },
+  freeText: {
+    color: theme.colors.mutedForeground,
+    fontSize: theme.fontSize.xs,
+    fontWeight: "700",
+  },
+  shareLinkGroup: {
+    marginTop: -theme.spacing.sm,
+  },
+  copiedNote: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.makanText,
+    marginTop: -theme.spacing.sm,
   },
   note: {
     fontSize: theme.fontSize.sm,

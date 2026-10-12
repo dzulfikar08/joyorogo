@@ -7,6 +7,7 @@ import { ActivityIndicator, Image, Pressable, ScrollView, View } from "react-nat
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
 import ConfettiCannon from "react-native-confetti-cannon";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
@@ -35,6 +36,7 @@ type AnalyzedItem = {
   protein?: number;
   carbs?: number;
   fat?: number;
+  fiber?: number;
   confidence?: number;
   /** [ymin, xmin, ymax, xmax] on 0-1000 relative to the image we sent. */
   box?: number[];
@@ -52,6 +54,9 @@ const MEAL_SHORT: Record<Meal, string> = {
 };
 
 const MAX_SIDE = 1024;
+
+/** Fun portion stat, same as the web confirm card: 600 kcal = one geprek. */
+const GEPREK_KCAL = 600;
 
 /**
  * Cuts one item crop on device from the image we sent. Boxes are on a
@@ -96,7 +101,7 @@ const ANALYZE_STAGES = [
 ] as const;
 const STAGE_MS = 2500;
 
-function AnalyzingOverlay({ previewUri }: { previewUri: string }) {
+function AnalyzingOverlay({ previewUri, onCancel }: { previewUri: string; onCancel: () => void }) {
   const [stage, setStage] = useState(0);
   useEffect(() => {
     const timer = setInterval(
@@ -111,6 +116,14 @@ function AnalyzingOverlay({ previewUri }: { previewUri: string }) {
       <View style={styles.analyzingShade}>
         <ActivityIndicator size="large" color="#FFFFFF" />
         <Text style={styles.analyzingText}>{ANALYZE_STAGES[stage]}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Batalkan analisis"
+          onPress={onCancel}
+          style={({ pressed }) => [styles.analyzingCancel, pressed && styles.shutterPressed]}
+        >
+          <Text style={styles.analyzingCancelText}>Batalkan</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -166,23 +179,19 @@ export default function MakanAi() {
     setPhase("camera");
   };
 
-  const capture = async () => {
+  /** Resize to MAX_SIDE, analyze, then enter confirm with drafts and crops. */
+  const processImage = async (photoUri: string, photoWidth: number, photoHeight: number) => {
     setFlowError(null);
     let previewSet = false;
     try {
-      const photo = await cameraRef.current?.takePictureAsync({ quality: 1 });
-      if (!photo?.uri) {
-        setFlowError("Gagal mengambil foto. Coba lagi.");
-        return;
-      }
       // Show the shot immediately while the upload + AI run (~10 s total).
-      setPreviewUri(photo.uri);
+      setPreviewUri(photoUri);
       previewSet = true;
       // One resize + one JPEG encode: longest side to 1024 px, base64 once.
-      let context = ImageManipulator.manipulate(photo.uri);
-      if (Math.max(photo.width, photo.height) > MAX_SIDE) {
+      let context = ImageManipulator.manipulate(photoUri);
+      if (Math.max(photoWidth, photoHeight) > MAX_SIDE) {
         context =
-          photo.height >= photo.width
+          photoHeight >= photoWidth
             ? context.resize({ height: MAX_SIDE })
             : context.resize({ width: MAX_SIDE });
       }
@@ -194,6 +203,7 @@ export default function MakanAi() {
       });
       if (!saved.base64) {
         setFlowError("Gagal memproses foto. Coba lagi.");
+        if (previewSet) setPreviewUri(null);
         return;
       }
       const result = await analyze.mutateAsync({
@@ -229,6 +239,35 @@ export default function MakanAi() {
     }
   };
 
+  const capture = async () => {
+    try {
+      const photo = await cameraRef.current?.takePictureAsync({ quality: 1 });
+      if (!photo?.uri) {
+        setFlowError("Gagal mengambil foto. Coba lagi.");
+        return;
+      }
+      await processImage(photo.uri, photo.width, photo.height);
+    } catch (e) {
+      setFlowError(errorMessage(e));
+    }
+  };
+
+  const pickFromGallery = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        quality: 1,
+        exif: false,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      if (!asset) return;
+      await processImage(asset.uri, asset.width, asset.height);
+    } catch (e) {
+      setFlowError(errorMessage(e));
+    }
+  };
+
   const saveIncluded = async () => {
     setFlowError(null);
     const chosen = items
@@ -258,6 +297,7 @@ export default function MakanAi() {
           protein: item.protein,
           carbs: item.carbs,
           fat: item.fat,
+          fiber: item.fiber,
           box: item.box,
         })),
         itemsJson: JSON.stringify(items),
@@ -302,6 +342,12 @@ export default function MakanAi() {
             </Text>
             <View style={styles.permissionAction}>
               <Button label="Beri Izin Kamera" onPress={() => void requestPermission()} />
+              <Button
+                variant="secondary"
+                label="Pilih dari Galeri"
+                icon="images-outline"
+                onPress={() => void pickFromGallery()}
+              />
             </View>
           </View>
         </SafeAreaView>
@@ -319,22 +365,37 @@ export default function MakanAi() {
           <Ionicons name="close" size={24} color="#FFFFFF" />
         </Pressable>
         {analyze.isPending && previewUri ? (
-          <AnalyzingOverlay previewUri={previewUri} />
+          <AnalyzingOverlay previewUri={previewUri} onCancel={resetToCamera} />
         ) : (
           <>
             <View style={styles.shutterRow}>
               <Text style={styles.shutterHint}>Potret piringmu, AI hitung kalorinya</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Potret makanan"
-                disabled={analyze.isPending}
-                onPress={() => void capture()}
-                style={({ pressed }) => [styles.shutterOuter, pressed && styles.shutterPressed]}
-              >
-                <View style={styles.shutter}>
-                  <View style={styles.shutterInner} />
-                </View>
-              </Pressable>
+              <View style={styles.shutterActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Pilih dari galeri"
+                  disabled={analyze.isPending}
+                  onPress={() => void pickFromGallery()}
+                  style={({ pressed }) => [
+                    styles.galleryButton,
+                    analyze.isPending && styles.disabled,
+                    pressed && styles.shutterPressed,
+                  ]}
+                >
+                  <Ionicons name="images-outline" size={26} color="#FFFFFF" />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Potret makanan"
+                  disabled={analyze.isPending}
+                  onPress={() => void capture()}
+                  style={({ pressed }) => [styles.shutterOuter, pressed && styles.shutterPressed]}
+                >
+                  <View style={styles.shutter}>
+                    <View style={styles.shutterInner} />
+                  </View>
+                </Pressable>
+              </View>
             </View>
             {flowError ? (
               <View style={styles.cameraError}>
@@ -397,6 +458,11 @@ export default function MakanAi() {
             </Num>
             <Text style={styles.totalUnit}>kcal</Text>
             {totalKcal > 0 ? <Text style={styles.totalReaction}>{reaction(totalKcal)}</Text> : null}
+            {totalKcal > 0 ? (
+              <Text style={styles.totalGeprek}>
+                Setara {Math.round(totalKcal / GEPREK_KCAL)} porsi geprek
+              </Text>
+            ) : null}
           </View>
 
           {/* Original photo + per-item crops cut on device */}
@@ -466,8 +532,11 @@ export default function MakanAi() {
                   title={item.name}
                   subtitle={[
                     meta,
-                    item.protein !== undefined || item.carbs !== undefined || item.fat !== undefined
-                      ? `P ${Math.round(item.protein ?? 0)} · K ${Math.round(item.carbs ?? 0)} · L ${Math.round(item.fat ?? 0)} g`
+                    item.protein !== undefined ||
+                    item.carbs !== undefined ||
+                    item.fat !== undefined ||
+                    item.fiber !== undefined
+                      ? `P ${Math.round(item.protein ?? 0)} · K ${Math.round(item.carbs ?? 0)} · L ${Math.round(item.fat ?? 0)} · S ${Math.round(item.fiber ?? 0)} g`
                       : null,
                   ]
                     .filter(Boolean)
@@ -634,6 +703,35 @@ const styles = StyleSheet.create((theme) => ({
   shutterPressed: {
     opacity: 0.7,
   },
+  disabled: {
+    opacity: 0.35,
+  },
+  shutterActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 28,
+  },
+  galleryButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  analyzingCancel: {
+    minHeight: 44,
+    paddingHorizontal: theme.spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: theme.radius.pill,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  analyzingCancelText: {
+    color: "#FFFFFF",
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+  },
   analyzingOverlay: {
     position: "absolute",
     top: 0,
@@ -742,6 +840,11 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.makanText,
     marginTop: 6,
     textAlign: "center",
+  },
+  totalGeprek: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+    marginTop: 2,
   },
   reviewPhotoBlock: {
     gap: theme.spacing.sm,

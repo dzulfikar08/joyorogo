@@ -7,8 +7,18 @@ import { useState } from "react";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { Circle, Polyline, Svg } from "react-native-svg";
 
-import { effectiveRamadan, jakartaToday, MEAL_LABELS, slotsFor } from "@joyorogo/api/lib/engine";
+import {
+  eatTone,
+  effectiveRamadan,
+  jakartaToday,
+  MEAL_LABELS,
+  slotsFor,
+} from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import { pickFact } from "@joyorogo/api/lib/facts";
+
+import { FoodSticker, StickerViewer, stickerUrl } from "@/components/sticker";
+import type { StickerViewerTarget } from "@/components/sticker";
 
 import {
   Avatar,
@@ -22,6 +32,7 @@ import {
   Ring,
   Screen,
   SectionTitle,
+  Sheet,
   Skeleton,
   StatTile,
   Text,
@@ -35,6 +46,14 @@ import { errorMessage, fmtDateId, fmtKcal, fmtKg, weeklyRateLabel } from "@/util
 import { orpc } from "@/utils/orpc";
 
 type TrendPoint = { date: string; weightKg: number; trendKg: number };
+
+type PlateItem = {
+  id: string;
+  name: string;
+  kcal: number;
+  scanId: string | null;
+  photoId?: string | null;
+};
 
 function greetingId(date: Date): string {
   const h = Number(
@@ -90,22 +109,16 @@ function TrendSpark({ points }: { points: TrendPoint[] }) {
   );
 }
 
-function LegendDot({ color, label, value }: { color: string; label: string; value: string }) {
-  return (
-    <View style={styles.legendItem}>
-      <View style={[styles.legendDot, { backgroundColor: color }]} />
-      <Text style={styles.legendLabel}>{label}</Text>
-      <Num style={styles.legendValue}>{value}</Num>
-    </View>
-  );
-}
-
 export default function Dashboard() {
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const summary = useQuery(orpc.day.summary.queryOptions({ input: {} }));
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   const { data: sessionData } = authClient.useSession();
+  // Diari piring: today's scanned items with their sticker cutouts.
+  const foods = useQuery(
+    orpc.food.listByDate.queryOptions({ input: { date: summary.data?.date ?? jakartaToday() } }),
+  );
 
   // US-013: Health Connect is the primary activity source — once its reads
   // are granted (first import from Profil), every app open syncs silently.
@@ -116,6 +129,8 @@ export default function Dashboard() {
 
   const [weighOpen, setWeighOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [adaptiveOpen, setAdaptiveOpen] = useState(false);
+  const [viewer, setViewer] = useState<StickerViewerTarget | null>(null);
 
   if (gate === "loading") {
     return <BootLoader />;
@@ -151,7 +166,18 @@ export default function Dashboard() {
   }
 
   const over = data.eatenKcal > data.targets.eatKcal;
-  const remaining = Math.max(0, data.targets.eatKcal - data.eatenKcal);
+  const tone = eatTone(data.eatenKcal, data.targets.eatKcal);
+  const ringColor = {
+    ok: theme.colors.makan,
+    near: theme.colors.eatNear,
+    over: theme.colors.destructive,
+  }[tone];
+  const deficitKcal = data.deficit?.deficitKcal ?? null;
+  const adaptive = data.targets.notes?.includes("ADAPTIVE") ?? false;
+  const plates = (foods.data?.items ?? []).filter((item) => item.scanId != null) as Array<
+    PlateItem & { scanId: string }
+  >;
+  const fact = pickFact(data.date);
   const displayName = sessionData?.user.name ?? "Kamu";
   const firstName = displayName.split(" ")[0];
   const slots = slotsFor(effectiveRamadan(profileQuery.data?.profile?.ramadanMode)) as Meal[];
@@ -185,6 +211,15 @@ export default function Dashboard() {
           </Text>
           <Text style={styles.greetCaption}>{fmtDateId(jakartaToday())}</Text>
         </View>
+        {data.streakDays > 0 ? (
+          <View
+            style={styles.streakChip}
+            accessibilityLabel={`Streak catat ${data.streakDays} hari beruntun`}
+          >
+            <Ionicons name="flame" size={14} color={theme.colors.bakarText} />
+            <Num style={styles.streakChipText}>{data.streakDays}</Num>
+          </View>
+        ) : null}
         <Link href="/profil" asChild>
           <Pressable
             accessibilityRole="button"
@@ -201,28 +236,53 @@ export default function Dashboard() {
         <Ring
           size={224}
           stroke={14}
-          value={over ? data.targets.eatKcal : data.eatenKcal}
+          value={data.eatenKcal}
           max={data.targets.eatKcal}
-          color={over ? theme.colors.bakar : theme.colors.makan}
-          track={over ? theme.colors.bakarSoft : theme.colors.makanSoft}
+          color={ringColor}
+          track={theme.colors.makanSoft}
         >
-          <Text style={styles.heroLabel}>{over ? "Budget habis" : "Sisa makan"}</Text>
-          <Num style={styles.heroNumber} adjustsFontSizeToFit numberOfLines={1}>
-            {fmtKcal(remaining)}
+          <Text style={styles.heroLabel}>{over ? "Kelebihan" : "Masih boleh"}</Text>
+          <Num
+            style={[styles.heroNumber, over && { color: theme.colors.bakarText }]}
+            adjustsFontSizeToFit
+            numberOfLines={1}
+          >
+            {fmtKcal(Math.abs(data.targets.eatKcal - data.eatenKcal))}
           </Num>
+          <Text style={styles.heroLabel}>kcal</Text>
         </Ring>
-        <View style={styles.heroLegend}>
-          <LegendDot
-            color={theme.colors.makan}
-            label="Dimakan"
-            value={`${fmtKcal(data.eatenKcal)} kcal`}
-          />
-          <LegendDot
-            color={theme.colors.bakar}
-            label="Budget"
-            value={`${fmtKcal(data.targets.eatKcal)} kcal`}
-          />
+        <View style={styles.heroStats}>
+          <View style={styles.heroStat}>
+            <Text style={styles.heroStatLabel}>Target</Text>
+            <Num style={styles.heroStatValue}>{fmtKcal(data.targets.eatKcal)}</Num>
+          </View>
+          <View style={[styles.heroStat, styles.heroStatMid]}>
+            <Text style={styles.heroStatLabel}>Dimakan</Text>
+            <Num style={styles.heroStatValue}>{fmtKcal(data.eatenKcal)}</Num>
+          </View>
+          <View style={styles.heroStat}>
+            <Text style={styles.heroStatLabel}>Defisit</Text>
+            <Num
+              style={[
+                styles.heroStatValue,
+                deficitKcal !== null && deficitKcal >= 0 && { color: theme.colors.makanText },
+              ]}
+            >
+              {deficitKcal !== null ? fmtKcal(deficitKcal) : "–"}
+            </Num>
+          </View>
         </View>
+        {adaptive ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Info target adaptif"
+            onPress={() => setAdaptiveOpen(true)}
+            style={({ pressed }) => [styles.adaptiveRow, pressed && styles.pressedSoft]}
+          >
+            <Ionicons name="information-circle" size={14} color={theme.colors.mutedForeground} />
+            <Text style={styles.adaptiveText}>Target menyesuaikan datamu</Text>
+          </Pressable>
+        ) : null}
         {over ? (
           <Text style={styles.heroNote}>
             Lewat {fmtKcal(data.eatenKcal - data.targets.eatKcal)} kcal dari budget. Ringan saja
@@ -270,8 +330,11 @@ export default function Dashboard() {
           >
             {data.ideas.map((idea) => (
               <View key={idea.name} style={styles.ideaChip}>
-                <Text style={styles.ideaChipText} numberOfLines={1}>
-                  {idea.name} · {fmtKcal(idea.kcal)} kcal
+                <Text style={styles.ideaChipName} numberOfLines={2}>
+                  {idea.name}
+                </Text>
+                <Text style={styles.ideaChipMeta}>
+                  {fmtKcal(idea.kcal)} kcal · {fmtKcal(idea.proteinG)} g protein
                 </Text>
               </View>
             ))}
@@ -299,6 +362,39 @@ export default function Dashboard() {
           );
         })}
       </ListGroup>
+
+      {/* Diari piring: stiker hasil pindai hari ini */}
+      {plates.length > 0 ? (
+        <View style={styles.platesWrap}>
+          <Text style={styles.ideasTitle}>Diari piring</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.platesRow}
+          >
+            {plates.map((item) => (
+              <View key={item.id} style={styles.plateCard}>
+                <FoodSticker
+                  scanId={item.scanId}
+                  name={item.name}
+                  onPress={() =>
+                    setViewer({
+                      uri: stickerUrl(item.scanId),
+                      name: item.name,
+                      kcal: item.kcal,
+                      photoId: item.photoId,
+                    })
+                  }
+                />
+                <Text style={styles.plateName} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <Text style={styles.plateKcal}>{fmtKcal(item.kcal)} kcal</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
 
       {/* Tren berat + timbang inline */}
       {data.trend ? (
@@ -360,12 +456,12 @@ export default function Dashboard() {
         <>
           <WaterCard />
           <ListGroup>
-            <ListRow
-              icon="flame"
-              iconTint="bakar"
-              title="Streak catat"
-              value={`${data.streakDays} hari`}
-            />
+            <View style={styles.factBox}>
+              <Text style={styles.factLabel}>Fakta kalori hari ini</Text>
+              <Text style={styles.factText}>
+                {fact.text} = {fmtKcal(fact.kcal)} kcal, setara {fact.move}
+              </Text>
+            </View>
             <ListRow
               icon="share-social"
               iconTint="makan"
@@ -393,6 +489,28 @@ export default function Dashboard() {
       )}
 
       <WeighInSheet visible={weighOpen} onClose={() => setWeighOpen(false)} />
+
+      {/* Info target adaptif */}
+      <Sheet visible={adaptiveOpen} onClose={() => setAdaptiveOpen(false)} title="Target adaptif">
+        <View style={styles.adaptiveBody}>
+          <Text style={styles.adaptivePara}>
+            Rumus standar memperkirakan tubuhmu membakar{" "}
+            <Num style={styles.adaptiveStrong}>{fmtKcal(data.targets.formulaTdee)} kcal</Num>{" "}
+            sehari.
+          </Text>
+          <Text style={styles.adaptivePara}>
+            Dari catatan makan dan timbanganmu 4 minggu terakhir, pembakaran nyatamu sekitar{" "}
+            <Num style={styles.adaptiveStrong}>{fmtKcal(data.targets.tdee)} kcal</Num>. Target makan
+            memakai angka ini supaya pas dengan tubuhmu, bukan rata-rata orang.
+          </Text>
+          <Text style={styles.adaptiveMuted}>
+            Penyesuaian dibatasi 15% dari rumus, dan hari yang lupa dicatat tidak ikut dihitung.
+          </Text>
+        </View>
+      </Sheet>
+
+      {/* Stiker penuh dari Diari piring */}
+      <StickerViewer viewer={viewer} onClose={() => setViewer(null)} />
     </Screen>
   );
 }
@@ -436,28 +554,56 @@ const styles = StyleSheet.create((theme) => ({
     letterSpacing: -1,
     color: theme.colors.foreground,
   },
-  heroLegend: {
+  heroStats: {
     flexDirection: "row",
-    gap: theme.spacing.xl,
+    width: "100%",
   },
-  legendItem: {
-    flexDirection: "row",
+  heroStat: {
+    flex: 1,
     alignItems: "center",
-    gap: 6,
+    gap: 2,
   },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  heroStatMid: {
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.muted,
   },
-  legendLabel: {
-    fontSize: theme.fontSize.sm,
+  heroStatLabel: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "600",
     color: theme.colors.mutedForeground,
   },
-  legendValue: {
+  heroStatValue: {
+    fontSize: theme.fontSize.title,
+    fontWeight: "800",
+    color: theme.colors.foreground,
+  },
+  adaptiveRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    minHeight: 44,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.pill,
+  },
+  adaptiveText: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  streakChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: theme.colors.bakarSoft,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 12,
+    height: 40,
+  },
+  streakChipText: {
     fontSize: theme.fontSize.sm,
     fontWeight: "700",
-    color: theme.colors.foreground,
+    color: theme.colors.bakarText,
   },
   heroNote: {
     fontSize: theme.fontSize.sm,
@@ -484,15 +630,82 @@ const styles = StyleSheet.create((theme) => ({
   },
   ideaChip: {
     backgroundColor: theme.colors.makanSoft,
-    borderRadius: theme.radius.pill,
+    borderRadius: theme.radius.tile,
     paddingHorizontal: 14,
-    minHeight: 40,
+    paddingVertical: 10,
+    width: 176,
     justifyContent: "center",
   },
-  ideaChipText: {
+  ideaChipName: {
     fontSize: theme.fontSize.sm,
     fontWeight: "600",
+    lineHeight: 18,
+    color: theme.colors.foreground,
+  },
+  ideaChipMeta: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "600",
+    marginTop: 4,
     color: theme.colors.makanText,
+  },
+  platesWrap: {
+    gap: theme.spacing.sm,
+  },
+  platesRow: {
+    gap: theme.spacing.md,
+    paddingRight: theme.spacing.lg,
+  },
+  plateCard: {
+    width: 112,
+    alignItems: "center",
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.tile,
+    padding: theme.spacing.sm,
+    gap: 4,
+  },
+  plateName: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "600",
+    color: theme.colors.foreground,
+    maxWidth: "100%",
+  },
+  plateKcal: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.mutedForeground,
+  },
+  factBox: {
+    backgroundColor: theme.colors.muted,
+    borderRadius: theme.radius.tile,
+    padding: theme.spacing.md,
+    gap: 4,
+  },
+  factLabel: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  factText: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    lineHeight: 20,
+    color: theme.colors.foreground,
+  },
+  adaptiveBody: {
+    gap: theme.spacing.md,
+  },
+  adaptivePara: {
+    fontSize: theme.fontSize.base,
+    lineHeight: 24,
+    color: theme.colors.foreground,
+  },
+  adaptiveStrong: {
+    fontWeight: "800",
+    color: theme.colors.foreground,
+  },
+  adaptiveMuted: {
+    fontSize: theme.fontSize.sm,
+    lineHeight: 20,
+    color: theme.colors.mutedForeground,
   },
   trendHead: {
     flexDirection: "row",

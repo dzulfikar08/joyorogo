@@ -229,9 +229,7 @@ app.get("/u/:code", async (c) => {
   );
 });
 
-app.on(["POST", "GET"], "/api/auth/*", async (c) =>
-  (await createAuth(c.req.url)).handler(c.req.raw),
-);
+app.on(["POST", "GET"], "/api/auth/*", async (c) => (await createAuth()).handler(c.req.raw));
 
 export const apiHandler = new OpenAPIHandler(appRouter, {
   plugins: [

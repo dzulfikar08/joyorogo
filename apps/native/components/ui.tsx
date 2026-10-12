@@ -246,6 +246,60 @@ export function Ring({
   );
 }
 
+// --- MacroBar --------------------------------------------------------------
+
+/**
+ * One nutrient against its daily budget: label, thin track/fill, "eaten/budget g".
+ * Over budget turns terracotta (bakar), mirroring the web MacroBar.
+ */
+export function MacroBar({
+  label,
+  eaten,
+  budget,
+  unit = "g",
+}: {
+  label: string;
+  eaten: number;
+  /** null while the target is unknown (no profile yet): bar stays empty, shows "?". */
+  budget: number | null;
+  unit?: string;
+}) {
+  const { theme } = useUnistyles();
+  const over = budget !== null && eaten > budget;
+  const pct =
+    budget !== null && budget > 0 ? Math.min(100, Math.max(0, (eaten / budget) * 100)) : 0;
+  const fmt = (n: number) => Math.round(n).toLocaleString("id-ID");
+  const budgetText = budget !== null ? fmt(budget) : "?";
+  return (
+    <View
+      style={styles.macroRow}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={`${label}: ${fmt(eaten)} dari ${budgetText} ${unit}`}
+      accessibilityValue={{
+        min: 0,
+        max: Math.round(budget ?? 0),
+        now: Math.round(Math.min(eaten, budget ?? eaten)),
+      }}
+    >
+      <Text style={styles.macroLabel}>{label}</Text>
+      <View style={styles.macroTrack}>
+        <View
+          style={[
+            styles.macroFill,
+            { width: `${pct}%`, backgroundColor: over ? theme.colors.bakar : theme.colors.makan },
+          ]}
+        />
+      </View>
+      <Num
+        style={[styles.macroValue, over && { color: theme.colors.bakarText, fontWeight: "700" }]}
+      >
+        {fmt(eaten)}/{budgetText} {unit}
+      </Num>
+    </View>
+  );
+}
+
 // --- StatTile --------------------------------------------------------------
 
 const TINT_COLORS = {
@@ -832,6 +886,36 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     justifyContent: "center",
     gap: 2,
+  },
+
+  macroRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  macroLabel: {
+    width: 52,
+    fontSize: theme.fontSize.xs,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  macroTrack: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    overflow: "hidden",
+    backgroundColor: theme.colors.muted,
+  },
+  macroFill: {
+    height: "100%",
+    borderRadius: 3,
+  },
+  macroValue: {
+    minWidth: 76,
+    textAlign: "right",
+    fontSize: theme.fontSize.xs,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
   },
 
   statTile: {
