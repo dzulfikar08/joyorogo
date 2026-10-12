@@ -297,6 +297,9 @@ export default function Profil() {
       {/* Ramadan */}
       {prof ? <RamadanList mode={prof.ramadanMode} /> : null}
 
+      {/* Privasi */}
+      {prof ? <PrivacyList keepPhotos={prof.keepPhotos} /> : null}
+
       {/* Integrasi */}
       <Text style={styles.sectionLabel}>Integrasi</Text>
       <StravaCard />
@@ -475,6 +478,63 @@ function RamadanList({ mode }: { mode: "auto" | "on" | "off" }) {
       <Text style={styles.note}>
         Slot makan ganti jadi sahur & berbuka; angka harian dibagi ke jendela makan.
       </Text>
+    </Card>
+  );
+}
+
+/** "Simpan foto asli" (profile.setKeepPhotos); turning it off deletes stored originals. */
+function PrivacyList({ keepPhotos }: { keepPhotos: boolean }) {
+  const { theme } = useUnistyles();
+  const setKeep = useMutation(
+    orpc.profile.setKeepPhotos.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
+        queryClient.invalidateQueries({ queryKey: orpc.food.key() });
+      },
+    }),
+  );
+
+  const change = (value: boolean) => {
+    if (!value) {
+      Alert.alert(
+        "Matikan simpan foto asli?",
+        "Foto asli yang sudah tersimpan ikut dihapus permanen. Catatan makan dan stiker tiap makanan tetap ada.",
+        [
+          { text: "Batal", style: "cancel" },
+          {
+            text: "Ya, matikan dan hapus",
+            style: "destructive",
+            onPress: () => setKeep.mutate({ keep: false }),
+          },
+        ],
+      );
+      return;
+    }
+    setKeep.mutate({ keep: true });
+  };
+
+  return (
+    <Card>
+      <Text style={styles.cardTitle}>Privasi</Text>
+      <View style={styles.switchRow}>
+        <View style={styles.switchText}>
+          <Text style={styles.rowTitle}>Simpan foto asli</Text>
+        </View>
+        <Switch
+          value={keepPhotos}
+          onValueChange={change}
+          disabled={setKeep.isPending}
+          trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+          thumbColor={theme.colors.background}
+          accessibilityLabel="Simpan foto asli"
+        />
+      </View>
+      <Text style={styles.note}>
+        {keepPhotos
+          ? "Foto asli tiap scan yang kamu simpan bisa dilihat lagi di diari. Hanya kamu yang bisa membukanya. Mematikan ini menghapus semua foto asli yang tersimpan."
+          : "Hanya potongan tiap makanan yang disimpan sebagai stiker. Foto aslinya dibuang setelah dianalisis."}
+      </Text>
+      {setKeep.isError ? <Text style={styles.error}>{errorMessage(setKeep.error)}</Text> : null}
     </Card>
   );
 }

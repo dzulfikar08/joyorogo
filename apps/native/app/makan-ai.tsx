@@ -36,6 +36,8 @@ type AnalyzedItem = {
   carbs?: number;
   fat?: number;
   confidence?: number;
+  /** [ymin, xmin, ymax, xmax] on 0-1000 relative to the image we sent. */
+  box?: number[];
 };
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
@@ -50,6 +52,30 @@ const MEAL_SHORT: Record<Meal, string> = {
 };
 
 const MAX_SIDE = 1024;
+
+/**
+ * Cuts one item crop on device from the image we sent. Boxes are on a
+ * 0-1000 grid, so they map straight onto the sent image's pixel size.
+ * Returns null when the box is missing or collapses to nothing usable.
+ */
+async function cropFromBox(
+  uri: string,
+  width: number,
+  height: number,
+  box: number[],
+): Promise<string | null> {
+  const [ymin, xmin, ymax, xmax] = box;
+  const left = Math.min(width - 1, Math.max(0, Math.round((xmin / 1000) * width)));
+  const top = Math.min(height - 1, Math.max(0, Math.round((ymin / 1000) * height)));
+  const cropWidth = Math.min(width - left, Math.round(((xmax - xmin) / 1000) * width));
+  const cropHeight = Math.min(height - top, Math.round(((ymax - ymin) / 1000) * height));
+  if (cropWidth < 8 || cropHeight < 8) return null;
+  const rendered = await ImageManipulator.manipulate(uri)
+    .crop({ originX: left, originY: top, width: cropWidth, height: cropHeight })
+    .renderAsync();
+  const saved = await rendered.saveAsync({ compress: 0.8, format: SaveFormat.JPEG });
+  return saved.uri;
+}
 
 /** The signature reaction line — same thresholds as the web app. */
 function reaction(totalKcal: number): string {
@@ -99,7 +125,15 @@ export default function MakanAi() {
   const [phase, setPhase] = useState<Phase>("camera");
   const [items, setItems] = useState<AnalyzedItem[]>([]);
   const [drafts, setDrafts] = useState<{ kcal: string; include: boolean }[]>([]);
-  const [scanId, setScanId] = useState<string | null>(null);
+  // Exact bytes we sent to the model: reused for the one-shot save.
+  const [sentImage, setSentImage] = useState<{
+    base64: string;
+    uri: string;
+    width: number;
+    height: number;
+  } | null>(null);
+  // Per-item crops cut on device from the sent image, parallel to items.
+  const [crops, setCrops] = useState<Array<string | null>>([]);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
   const ramadan = effectiveRamadan(profile.data?.profile?.ramadanMode);
@@ -108,7 +142,7 @@ export default function MakanAi() {
   const [flowError, setFlowError] = useState<string | null>(null);
 
   const analyze = useMutation(orpc.ai.analyzeFood.mutationOptions());
-  const addFood = useMutation(orpc.food.add.mutationOptions());
+  const addScan = useMutation(orpc.food.addScan.mutationOptions());
   const logCorrections = useMutation(orpc.ai.logCorrections.mutationOptions());
 
   if (gate === "loading") {
@@ -125,7 +159,8 @@ export default function MakanAi() {
     setFlowError(null);
     setItems([]);
     setDrafts([]);
-    setScanId(null);
+    setSentImage(null);
+    setCrops([]);
     setPreviewUri(null);
     analyze.reset();
     setPhase("camera");
@@ -164,13 +199,30 @@ export default function MakanAi() {
       const result = await analyze.mutateAsync({
         imageBase64: saved.base64,
         mimeType: "image/jpeg",
+        crops: true,
       });
       setItems(result.items);
-      setScanId(result.scanId ?? null);
+      // Keep exactly what we sent so the save reuses the same bytes.
+      setSentImage({
+        base64: saved.base64,
+        uri: saved.uri,
+        width: rendered.width,
+        height: rendered.height,
+      });
       setDrafts(
         result.items.map((item) => ({ kcal: String(Math.round(item.kcal)), include: true })),
       );
       setPhase("confirm");
+      // Cut the per-item tiles in the background; rows update as they land.
+      void Promise.all(
+        result.items.map(async (item) =>
+          item.box
+            ? cropFromBox(saved.uri, rendered.width, rendered.height, item.box).catch(() => null)
+            : null,
+        ),
+      ).then((uris) => {
+        setCrops(uris);
+      });
     } catch (e) {
       if (previewSet) setPreviewUri(null);
       setFlowError(errorMessage(e));
@@ -192,20 +244,24 @@ export default function MakanAi() {
       return;
     }
     try {
-      for (const [chosenIndex, { item, draft }] of chosen.entries()) {
-        await addFood.mutateAsync({
-          meal,
+      if (!sentImage) {
+        setFlowError("Foto pemindaian hilang. Foto ulang dulu.");
+        return;
+      }
+      await addScan.mutateAsync({
+        meal,
+        imageBase64: sentImage.base64,
+        mimeType: "image/jpeg",
+        items: chosen.map(({ item, draft }) => ({
           name: item.name,
           kcal: parseNum(draft.kcal) ?? 0,
           protein: item.protein,
           carbs: item.carbs,
           fat: item.fat,
-          source: "ai",
-          itemsJson: JSON.stringify(items),
-          // sticker belongs to the primary (first) chosen dish only
-          scanId: chosenIndex === 0 ? (scanId ?? undefined) : undefined,
-        });
-      }
+          box: item.box,
+        })),
+        itemsJson: JSON.stringify(items),
+      });
       // Miss log: AI estimate vs what the user kept. Never blocks the save.
       void logCorrections
         .mutateAsync({
@@ -238,8 +294,11 @@ export default function MakanAi() {
             </View>
             <Text style={styles.permissionTitle}>Kamera dibutuhkan</Text>
             <Text style={styles.permissionText}>
-              JoyoRogo butuh izin kamera untuk memotret makananmu dan menghitung kalorinya dengan
-              AI. Foto tidak disimpan.
+              {`JoyoRogo butuh izin kamera untuk memotret makananmu dan menghitung kalorinya dengan AI. ${
+                profile.data?.profile?.keepPhotos
+                  ? "Foto asli disimpan untukmu sendiri. Atur di Profil."
+                  : "Foto tidak disimpan."
+              }`}
             </Text>
             <View style={styles.permissionAction}>
               <Button label="Beri Izin Kamera" onPress={() => void requestPermission()} />
@@ -340,6 +399,42 @@ export default function MakanAi() {
             {totalKcal > 0 ? <Text style={styles.totalReaction}>{reaction(totalKcal)}</Text> : null}
           </View>
 
+          {/* Original photo + per-item crops cut on device */}
+          {previewUri ? (
+            <View style={styles.reviewPhotoBlock}>
+              <Image
+                source={{ uri: previewUri }}
+                style={styles.reviewPhoto}
+                resizeMode="cover"
+                accessibilityLabel="Foto makanan yang dipindai"
+              />
+              {crops.some(Boolean) ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.cropRow}>
+                    {items.map((item, index) => (
+                      <View key={`crop-${item.name}-${index}`} style={styles.cropTile}>
+                        {crops[index] ? (
+                          <Image
+                            source={{ uri: crops[index] as string }}
+                            style={styles.cropImage}
+                            accessibilityLabel={`Potongan ${item.name}`}
+                          />
+                        ) : (
+                          <View style={[styles.cropImage, styles.cropPending]}>
+                            <ActivityIndicator size="small" color={theme.colors.mutedForeground} />
+                          </View>
+                        )}
+                        <Text style={styles.cropLabel} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              ) : null}
+            </View>
+          ) : null}
+
           {/* Editable item rows */}
           <ListGroup>
             {items.map((item, index) => {
@@ -359,6 +454,15 @@ export default function MakanAi() {
                   key={`${item.name}-${index}`}
                   icon={draft.include ? "checkmark-circle" : "ellipse-outline"}
                   iconTint={draft.include ? "makan" : "muted"}
+                  thumb={
+                    crops[index] ? (
+                      <Image
+                        source={{ uri: crops[index] as string }}
+                        style={styles.cropThumb}
+                        accessibilityLabel={`Potongan ${item.name}`}
+                      />
+                    ) : undefined
+                  }
                   title={item.name}
                   subtitle={[
                     meta,
@@ -407,7 +511,7 @@ export default function MakanAi() {
             label={includedCount > 0 ? `Simpan ${includedCount} item` : "Pilih minimal satu item"}
             disabled={includedCount === 0}
             onPress={() => void saveIncluded()}
-            loading={addFood.isPending}
+            loading={addScan.isPending}
           />
           <Button variant="secondary" label="Foto Ulang" onPress={resetToCamera} />
         </ScrollView>
@@ -638,6 +742,46 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.makanText,
     marginTop: 6,
     textAlign: "center",
+  },
+  reviewPhotoBlock: {
+    gap: theme.spacing.sm,
+  },
+  reviewPhoto: {
+    width: "100%",
+    height: 200,
+    borderRadius: theme.radius.card,
+    backgroundColor: theme.colors.muted,
+  },
+  cropRow: {
+    flexDirection: "row",
+    gap: theme.spacing.md,
+    paddingHorizontal: 2,
+    paddingVertical: 2,
+  },
+  cropTile: {
+    width: 96,
+    gap: 4,
+  },
+  cropImage: {
+    width: 96,
+    height: 96,
+    borderRadius: theme.radius.card,
+    backgroundColor: theme.colors.muted,
+  },
+  cropPending: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cropLabel: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.mutedForeground,
+    textAlign: "center",
+  },
+  cropThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.muted,
   },
   kcalEdit: {
     flexDirection: "row",

@@ -20,7 +20,13 @@
 Pencatat diet untuk makanan Indonesia:
 
 - **Foto makanan, kalori keluar.** AI mengenali menu warteg sampai nasi padang
-  dan mengisi kalori, protein, karbo, lemak. Foto tidak disimpan.
+  dan mengisi kalori, protein, karbo, lemak. Tiap makanan di piring dipotong
+  jadi stiker sendiri. Foto asli tidak disimpan, kecuali kamu menyalakan
+  "Simpan foto asli" di Profil (hanya bisa kamu buka sendiri).
+- **Lupa foto? Ceritakan.** Ketik atau ucapkan "kemarin pagi nasi kuning pakai
+  telur dadar, siang nasi padang lauk rendang". AI menghitung kalorinya dan
+  menaruh tiap item di waktu makan dan hari yang tepat; kamu cek dulu sebelum
+  disimpan. Suara diubah jadi teks lewat Whisper di Workers AI dan tidak disimpan.
 - **Target harian yang jujur.** Dari usia, tinggi, berat, aktivitas, dan
   target beratmu (Mifflin-St Jeor), lalu menyesuaikan dengan data makan dan
   timbanganmu sendiri.
@@ -32,11 +38,11 @@ Web untuk HP dan laptop, plus aplikasi Android.
 
 ## Tiga cara memakai
 
-| | Untuk siapa | Biaya |
-|---|---|---|
-| [JoyoRogo Cloud](https://joyorogo.dzulfikar.com) | Kebanyakan orang. Langsung pakai, tanpa setup. | Gratis 3 scan AI/hari. Founder Rp15.000/bulan untuk scan tanpa batas. |
-| [Deploy di CloudAgni](https://cloudagni.id/deploy/joyorogo) | Klinik, gym, ahli gizi, atau keluarga yang ingin servernya sendiri. | Paket CloudAgni, kuota AI sudah termasuk. |
-| Cloudflare sendiri | Developer yang ingin mengurus semuanya sendiri. | Akun Cloudflare-mu, termasuk tagihan Workers AI. |
+|                                                             | Untuk siapa                                                         | Biaya                                                                 |
+| ----------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [JoyoRogo Cloud](https://joyorogo.dzulfikar.com)            | Kebanyakan orang. Langsung pakai, tanpa setup.                      | Gratis 3 scan AI/hari. Founder Rp15.000/bulan untuk scan tanpa batas. |
+| [Deploy di CloudAgni](https://cloudagni.id/deploy/joyorogo) | Klinik, gym, ahli gizi, atau keluarga yang ingin servernya sendiri. | Paket CloudAgni, kuota AI sudah termasuk.                             |
+| Cloudflare sendiri                                          | Developer yang ingin mengurus semuanya sendiri.                     | Akun Cloudflare-mu, termasuk tagihan Workers AI.                      |
 
 Langganan Founder di JoyoRogo Cloud membiayai pengembangan proyek ini.
 
@@ -45,9 +51,9 @@ Langganan Founder di JoyoRogo Cloud membiayai pengembangan proyek ini.
 <a href="https://cloudagni.id/deploy/joyorogo"><img src="https://cloudagni.id/button.svg" alt="Deploy di CloudAgni" height="40"></a>
 
 1. Klik tombol di atas, masuk, pilih slug.
-2. Siapkan OAuth client Google (jenis *Web application*) di
+2. Siapkan OAuth client Google (jenis _Web application_) di
    [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
-   Form deploy menampilkan *authorized redirect URI* yang harus kamu daftarkan,
+   Form deploy menampilkan _authorized redirect URI_ yang harus kamu daftarkan,
    bentuknya `https://app.<slug>.cloudagni.id/api/auth/callback/google`.
 3. Isi Client ID dan Client Secret, lalu deploy. Database, penyimpanan,
    HTTPS, dan secret aplikasi disiapkan otomatis.
@@ -86,14 +92,14 @@ Redirect URI Google: `<alamatmu>/api/auth/callback/google`. Variabel opsional
 
 Pemilik server yang menentukan. Tanpa konfigurasi, semua fitur gratis tanpa batas.
 
-| Variabel | Arti | Bawaan |
-|---|---|---|
-| `FREE_DAILY_SCANS` | Batas scan AI per hari untuk pengguna gratis. Kosong = tanpa paywall. | kosong |
-| `FOUNDER_DAILY_CAP` | Batas pengaman scan Founder per hari. Kosong = tanpa batas. | kosong |
-| `ANON_SCANS` | Coba scan tanpa daftar per perangkat. `0` mematikan demo. | 2 |
-| `FOUNDER_PRICE_IDR` | Harga Founder per bulan. | 15000 |
+| Variabel                                             | Arti                                                                                            | Bawaan |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------ |
+| `FREE_DAILY_SCANS`                                   | Batas scan AI per hari untuk pengguna gratis. Kosong = tanpa paywall.                           | kosong |
+| `FOUNDER_DAILY_CAP`                                  | Batas pengaman scan Founder per hari. Kosong = tanpa batas.                                     | kosong |
+| `ANON_SCANS`                                         | Coba scan tanpa daftar per perangkat. `0` mematikan demo.                                       | 2      |
+| `FOUNDER_PRICE_IDR`                                  | Harga Founder per bulan.                                                                        | 15000  |
 | `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL` | DOKU Checkout (QRIS, VA, e-wallet). Pembayaran aktif hanya kalau `FREE_DAILY_SCANS` juga diisi. | kosong |
-| `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET` | Impor olahraga dari Strava. | kosong |
+| `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`           | Impor olahraga dari Strava.                                                                     | kosong |
 
 Founder dibayar per bulan (tanpa perpanjangan otomatis). Notifikasi DOKU
 masuk ke `/api/billing/webhook`.
@@ -130,15 +136,15 @@ bunx turbo run check-types
 cd packages/api && bun test src/lib
 ```
 
-| Folder | Isi |
-|---|---|
-| `apps/server` | API Hono di Cloudflare Workers (D1, R2, Workers AI) |
-| `apps/web` | Aplikasi web (Vite, React, TanStack Router) |
-| `apps/native` | Aplikasi Android (Expo) |
+| Folder          | Isi                                                        |
+| --------------- | ---------------------------------------------------------- |
+| `apps/server`   | API Hono di Cloudflare Workers (D1, R2, Workers AI)        |
+| `apps/web`      | Aplikasi web (Vite, React, TanStack Router)                |
+| `apps/native`   | Aplikasi Android (Expo)                                    |
 | `apps/selfhost` | API + web dalam satu worker, untuk CloudAgni dan self-host |
-| `packages/api` | Router oRPC dan logika (target, TKPI, paywall, DOKU) |
-| `packages/db` | Skema Drizzle dan migrasi D1 |
-| `packages/auth` | Better Auth (Google) |
+| `packages/api`  | Router oRPC dan logika (target, TKPI, paywall, DOKU)       |
+| `packages/db`   | Skema Drizzle dan migrasi D1                               |
+| `packages/auth` | Better Auth (Google)                                       |
 
 `scripts/deploy.sh` dan `apps/server/wrangler.jsonc` adalah konfigurasi
 JoyoRogo Cloud (akun pemilik); untuk server sendiri pakai `apps/selfhost`.

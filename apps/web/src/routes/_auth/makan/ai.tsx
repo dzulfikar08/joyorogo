@@ -3,6 +3,7 @@ import {
   Check,
   Drumstick,
   Images,
+  Mic,
   ShieldCheck,
   ThumbsUp,
   TriangleAlert,
@@ -27,7 +28,7 @@ import {
   SectionTitle,
   Segmented,
 } from "@/components/kit/surface";
-import { StickerMorph } from "@/components/sticker";
+import { cropItems } from "@/lib/crop";
 import type { AiFoodItem } from "@/lib/api-types";
 import { fmtInt, parseNum } from "@/lib/format";
 import { client, orpc } from "@/utils/orpc";
@@ -65,8 +66,8 @@ const MAX_EDGE = 1024;
 /**
  * Client-side resize to <= 1024 px; WebP when the browser can encode it
  * (smaller upload on 4G), JPEG fallback elsewhere. Inference cost is driven
- * by pixel count, so the edge cap is what keeps it cheap. The photo itself is
- * never stored — only the analyzed numbers are.
+ * by pixel count, so the edge cap is what keeps it cheap. The original is
+ * only kept when the user turned on "Simpan foto asli".
  */
 async function fileToImageBase64(
   file: File,
@@ -104,7 +105,12 @@ function AiFoodPage() {
   const [phase, setPhase] = useState<"idle" | "preparing" | "analyzing" | "confirm">("idle");
   const [items, setItems] = useState<AiFoodItem[]>([]);
   const [kcals, setKcals] = useState<Record<number, string>>({});
-  const [scanId, setScanId] = useState<string | null>(null);
+  // The exact pixels the AI saw: boxes map onto this, and it is what gets saved.
+  const [image, setImage] = useState<{
+    base64: string;
+    mimeType: "image/jpeg" | "image/webp";
+  } | null>(null);
+  const [crops, setCrops] = useState<Array<string | null>>([]);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
   const ramadan = effectiveRamadan(profile.data?.profile?.ramadanMode);
@@ -171,12 +177,18 @@ function AiFoodPage() {
       if (runRef.current !== run) return;
       setPhase("analyzing");
       const result = await client.ai.analyzeFood(
-        { imageBase64: image.base64, mimeType: image.mimeType },
+        { imageBase64: image.base64, mimeType: image.mimeType, crops: true },
         { signal: controller.signal },
       );
       if (runRef.current !== run) return;
+      const itemCrops = await cropItems(
+        `data:${image.mimeType};base64,${image.base64}`,
+        result.items.map((item) => item.box),
+      ).catch(() => result.items.map(() => null));
+      if (runRef.current !== run) return;
+      setImage(image);
       setItems(result.items);
-      setScanId(result.scanId ?? null);
+      setCrops(itemCrops);
       setKcals(Object.fromEntries(result.items.map((item, index) => [index, String(item.kcal)])));
       setPhase("confirm");
     } catch (err) {
@@ -194,7 +206,8 @@ function AiFoodPage() {
     setPhase("idle");
     setItems([]);
     setKcals({});
-    setScanId(null);
+    setImage(null);
+    setCrops([]);
     setPhotoUrl(null);
     setError(null);
     if (cameraInputRef.current) cameraInputRef.current.value = "";
@@ -202,30 +215,31 @@ function AiFoodPage() {
   };
 
   const saveAll = async () => {
+    if (!image) return;
+    const values = items.map((item, index) => parseNum(kcals[index] ?? String(item.kcal)));
+    const invalid = values.findIndex((kcal) => kcal === null || kcal < 0);
+    if (invalid !== -1) {
+      toast.error(`Kalori untuk "${items[invalid]?.name}" belum valid.`);
+      return;
+    }
     setSaving(true);
-    const itemsJson = JSON.stringify(items);
-    let savedCount = 0;
     try {
-      for (const [index, item] of items.entries()) {
-        const kcal = parseNum(kcals[index] ?? String(item.kcal));
-        if (kcal === null || kcal < 0) {
-          throw new Error(`Kalori untuk "${item.name}" belum valid.`);
-        }
-        await client.food.add({
-          meal,
+      // One call: photo stored once, one row and one sticker per item.
+      const saved = await client.food.addScan({
+        meal,
+        imageBase64: image.base64,
+        mimeType: image.mimeType,
+        itemsJson: JSON.stringify(items),
+        items: items.map((item, index) => ({
           name: item.name,
-          kcal,
+          kcal: values[index]!,
           protein: item.protein,
           carbs: item.carbs,
           fat: item.fat,
           fiber: item.fiber,
-          source: "ai",
-          itemsJson,
-          // the sticker belongs to the primary (first) dish only
-          scanId: index === 0 ? (scanId ?? undefined) : undefined,
-        });
-        savedCount += 1;
-      }
+          box: item.box,
+        })),
+      });
       // Miss log: AI estimate vs what the user kept. Never blocks the save.
       void client.ai
         .logCorrections({
@@ -234,22 +248,18 @@ function AiFoodPage() {
             meal,
             dishName: item.name,
             aiKcal: Math.round(item.kcal),
-            savedKcal: parseNum(kcals[index] ?? String(item.kcal)) ?? 0,
+            savedKcal: values[index] ?? 0,
             aiGrams: item.grams ?? null,
             aiConfidence: item.confidence ?? null,
           })),
         })
         .catch(() => {});
-      toast.success(`${savedCount} makanan dicatat.`);
+      toast.success(`${saved.items.length} makanan dicatat.`);
       queryClient.invalidateQueries({ queryKey: orpc.food.key() });
       queryClient.invalidateQueries({ queryKey: orpc.day.key() });
       navigate({ to: "/makan" });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Gagal menyimpan. Coba lagi.";
-      toast.error(message);
-      const remaining = items.slice(savedCount);
-      setItems(remaining);
-      setKcals(Object.fromEntries(remaining.map((item, index) => [index, String(item.kcal)])));
+      toast.error(err instanceof Error ? err.message : "Gagal menyimpan. Coba lagi.");
     } finally {
       setSaving(false);
     }
@@ -331,12 +341,40 @@ function AiFoodPage() {
         />
 
         {photoUrl && (
-          <Card className="p-6">
-            <StickerMorph
-              photoUrl={photoUrl}
-              scanId={scanId}
-              items={items.map((item) => ({ name: item.name, kcal: Math.round(item.kcal) }))}
-            />
+          <Card className="p-4">
+            <figure className="text-center">
+              <img
+                src={photoUrl}
+                alt="Foto asli makananmu"
+                className="mx-auto max-h-72 max-w-full rounded-2xl object-contain"
+              />
+              <figcaption className="sr-only">Foto asli dan potongan tiap makanan</figcaption>
+            </figure>
+            {crops.some(Boolean) && (
+              <ul
+                className="mt-4 flex flex-wrap justify-center gap-3"
+                aria-label="Potongan tiap makanan"
+              >
+                {items.map((item, index) =>
+                  crops[index] ? (
+                    <li
+                      key={`${item.name}-${index}`}
+                      className="chip-pop flex w-24 flex-col items-center gap-1 motion-reduce:animate-none"
+                      style={{ animationDelay: `${200 + index * 70}ms` }}
+                    >
+                      <img
+                        src={crops[index]!}
+                        alt={item.name}
+                        className="size-20 rounded-2xl object-cover shadow-sm"
+                      />
+                      <span className="w-full truncate text-center text-xs font-semibold">
+                        {item.name}
+                      </span>
+                    </li>
+                  ) : null,
+                )}
+              </ul>
+            )}
           </Card>
         )}
 
@@ -384,6 +422,14 @@ function AiFoodPage() {
                 key={`${item.name}-${index}`}
                 className="relative flex min-h-14 items-center gap-3 px-5 py-3"
               >
+                {crops[index] ? (
+                  <img
+                    src={crops[index]!}
+                    alt=""
+                    aria-hidden
+                    className="size-11 shrink-0 rounded-xl object-cover"
+                  />
+                ) : null}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[0.9375rem] font-semibold">{item.name}</span>
                   <span className="mt-0.5 block truncate text-[0.8125rem] text-muted-foreground">
@@ -544,9 +590,25 @@ function AiFoodPage() {
         </div>
         <p className="mt-5 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
           <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
-          Foto hanya dipakai untuk analisis dan tidak disimpan.
+          {profile.data?.profile?.keepPhotos
+            ? "Foto asli disimpan untukmu sendiri. Atur di Profil."
+            : "Foto hanya dipakai untuk analisis dan tidak disimpan."}
         </p>
       </Card>
+
+      <Link
+        to="/makan"
+        search={{ cerita: true }}
+        className="mt-3 flex min-h-14 items-center gap-3 rounded-3xl bg-card px-5 py-3 transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-bold">Lupa foto?</span>
+          <span className="block text-sm text-muted-foreground">
+            Ceritakan saja makananmu, ketik atau pakai suara.
+          </span>
+        </span>
+        <Mic className="size-5 shrink-0 text-primary" aria-hidden />
+      </Link>
     </Page>
   );
 }

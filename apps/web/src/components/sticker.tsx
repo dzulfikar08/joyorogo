@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 import { env } from "@/env.public";
@@ -9,22 +10,38 @@ export function stickerUrl(scanId: string): string {
   return `${getServerUrl(env.VITE_SERVER_URL)}/sticker/${scanId}`;
 }
 
+/** Original scan photo; the server only serves it to its owner's session. */
+export function photoUrl(photoId: string): string {
+  return `${getServerUrl(env.VITE_SERVER_URL)}/photo/${photoId}`;
+}
+
 const DROP_SHADOW = { filter: "drop-shadow(0 3px 4px rgb(0 0 0 / 0.28))" } as const;
+
+/** Cutouts are made in the background after saving: retry briefly, then give up. */
+const RETRY_DELAYS_MS = [3000, 6000, 12000];
 
 type StickerProps = {
   scanId: string;
+  photoId?: string | null;
   name: string;
   kcal?: number;
   className?: string;
+  /** Shown while the cutout is not ready, or if it never arrives. */
+  fallback?: ReactNode;
 };
 
 /**
  * Clickable sticker thumbnail with a full-size lightbox. Used in the diary
  * strip and the meal list — anywhere a sticker appears, tapping opens the
- * cutout at full size with its calorie caption.
+ * cutout at full size with its calorie caption, and the original photo of
+ * the scan when it was kept.
  */
-export function Sticker({ scanId, name, kcal, className }: StickerProps) {
+export function Sticker({ scanId, photoId, name, kcal, className, fallback }: StickerProps) {
   const [open, setOpen] = useState(false);
+  const [showPhoto, setShowPhoto] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -35,19 +52,42 @@ export function Sticker({ scanId, name, kcal, className }: StickerProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  const onError = () => {
+    const delay = RETRY_DELAYS_MS[attempt];
+    if (delay === undefined) {
+      setFailed(true);
+      return;
+    }
+    setTimeout(() => setAttempt((n) => n + 1), delay);
+  };
+
+  const src = `${stickerUrl(scanId)}${attempt > 0 ? `?r=${attempt}` : ""}`;
+
+  if (failed) return <>{fallback ?? null}</>;
+
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setShowPhoto(false);
+          setOpen(true);
+        }}
+        disabled={!loaded}
         aria-label={`Lihat stiker ${name}`}
-        className={`cursor-zoom-in ${className ?? ""}`}
+        className={`relative cursor-zoom-in disabled:cursor-default ${className ?? ""}`}
       >
+        {!loaded && fallback ? (
+          <span className="absolute inset-0 grid place-items-center">{fallback}</span>
+        ) : null}
         <img
-          src={stickerUrl(scanId)}
+          key={src}
+          src={src}
           alt={name}
           loading="lazy"
-          className="size-full object-contain"
+          onLoad={() => setLoaded(true)}
+          onError={onError}
+          className={`size-full object-contain ${loaded ? "" : "opacity-0"}`}
           style={DROP_SHADOW}
         />
       </button>
@@ -55,7 +95,7 @@ export function Sticker({ scanId, name, kcal, className }: StickerProps) {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={`Stiker ${name}`}
+          aria-label={showPhoto ? `Foto asli ${name}` : `Stiker ${name}`}
           className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-6"
           onClick={() => setOpen(false)}
         >
@@ -63,16 +103,35 @@ export function Sticker({ scanId, name, kcal, className }: StickerProps) {
             className="relative flex max-h-[85vh] max-w-[90vw] flex-col items-center"
             onClick={(event) => event.stopPropagation()}
           >
-            <img
-              src={stickerUrl(scanId)}
-              alt={name}
-              className="max-h-[70vh] max-w-full object-contain"
-              style={{ filter: "drop-shadow(0 12px 28px rgb(0 0 0 / 0.45))" }}
-            />
-            <figcaption className="mt-3 rounded-full bg-card px-4 py-2 text-sm font-semibold shadow-float">
-              {name}
-              {kcal != null && (
-                <span className="text-muted-foreground tabular-nums"> · {fmtInt(kcal)} kcal</span>
+            {showPhoto && photoId ? (
+              <img
+                src={photoUrl(photoId)}
+                alt={`Foto asli ${name}`}
+                className="max-h-[70vh] max-w-full rounded-2xl object-contain"
+              />
+            ) : (
+              <img
+                src={src}
+                alt={name}
+                className="max-h-[70vh] max-w-full object-contain"
+                style={{ filter: "drop-shadow(0 12px 28px rgb(0 0 0 / 0.45))" }}
+              />
+            )}
+            <figcaption className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <span className="rounded-full bg-card px-4 py-2 text-sm font-semibold shadow-float">
+                {name}
+                {kcal != null && (
+                  <span className="text-muted-foreground tabular-nums"> · {fmtInt(kcal)} kcal</span>
+                )}
+              </span>
+              {photoId && (
+                <button
+                  type="button"
+                  onClick={() => setShowPhoto((v) => !v)}
+                  className="min-h-11 rounded-full bg-card px-4 text-sm font-semibold text-primary shadow-float focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+                >
+                  {showPhoto ? "Lihat stiker" : "Lihat foto asli"}
+                </button>
               )}
             </figcaption>
             <button
@@ -87,77 +146,5 @@ export function Sticker({ scanId, name, kcal, className }: StickerProps) {
         </div>
       )}
     </>
-  );
-}
-
-type MorphItem = { name: string; kcal: number };
-
-/**
- * The scan-reveal moment: the original photo dissolves into its cutout
- * sticker, then per-item calorie chips pop in one by one. The sticker layer
- * activates only after it finishes loading so the crossfade is seamless; a
- * failed cutout keeps the plain photo (feature degrades silently).
- */
-export function StickerMorph({
-  photoUrl,
-  scanId,
-  items,
-}: {
-  photoUrl: string;
-  scanId: string | null;
-  items: MorphItem[];
-}) {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    setReady(false);
-    if (!scanId) return;
-    const img = new Image();
-    img.onload = () => setReady(true);
-    img.onerror = () => setReady(false);
-    img.src = stickerUrl(scanId);
-  }, [scanId]);
-
-  const morphed = ready && scanId !== null;
-
-  return (
-    <figure className="mx-auto w-full max-w-md text-center" aria-label="Foto berubah jadi stiker">
-      <div className="relative mx-auto flex max-h-72 items-center justify-center">
-        <img
-          src={photoUrl}
-          alt="Foto makanan"
-          className={`max-h-72 max-w-full object-contain transition-[opacity,filter,transform] duration-500 ease-out ${
-            morphed ? "sticker-photo-out" : ""
-          }`}
-        />
-        {scanId && (
-          <img
-            src={stickerUrl(scanId)}
-            alt=""
-            aria-hidden
-            className={`absolute inset-0 m-auto max-h-72 max-w-full object-contain ${
-              morphed ? "sticker-morph-in" : "opacity-0"
-            }`}
-          />
-        )}
-      </div>
-      <figcaption className="sr-only">Stiker potongan makananmu siap</figcaption>
-      <ul
-        className="mt-3 flex flex-wrap justify-center gap-2"
-        aria-label="Rincian kalori per makanan"
-      >
-        {items.map((item, index) => (
-          <li
-            key={`${item.name}-${index}`}
-            className={`rounded-full border bg-background px-3 py-1 text-xs tabular-nums ${
-              morphed ? "chip-pop" : ""
-            }`}
-            style={morphed ? { animationDelay: `${850 + index * 70}ms` } : undefined}
-          >
-            {item.name} · <span className="font-medium">{item.kcal} kcal</span>
-          </li>
-        ))}
-      </ul>
-    </figure>
   );
 }

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { calibrateItems } from "./tkpi";
+import type { CalibratedItem } from "./tkpi";
 
 export const DEFAULT_VISION_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 
@@ -11,12 +12,13 @@ export const DEFAULT_VISION_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 // into whitespace loops until max_tokens on busy plates.
 export const VISION_PROMPT = `Anda adalah ahli gizi. Identifikasi makanan pada foto ini (fokus masakan Indonesia), maksimal 8 item terbesar/terpenting.
 Jawab HANYA JSON valid satu baris (tanpa indentasi, tanpa \`\`\`) tanpa teks lain, dengan bentuk persis:
-{"items":[{"name":"nama masakan","portion":"perkiraan porsi","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":number}]}
-Satu hidangan = satu item: kuah, bumbu/saus, sayur, dan lontong/mi/bihun yang sudah bagian dari hidangan itu (mis. gado-gado, bakso, soto) TERMASUK di kcal hidangan, jangan dipisah. Pisahkan hanya yang berdiri sendiri: nasi, lauk terpisah, telur, kerupuk, gorengan, minuman.
+{"items":[{"name":"nama masakan","portion":"perkiraan porsi","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":number,"box":[ymin,xmin,ymax,xmax]}]}
+box = kotak pembatas item itu di foto, skala 0-1000 relatif tinggi dan lebar foto.
+Satu hidangan = satu item: kuah, bumbu/saus, sayur, dan lontong/mi/bihun yang sudah bagian dari hidangan itu (mis. gado-gado, bakso, soto) TERMASUK di kcal hidangan, jangan dipisah. Pisahkan hanya yang berdiri sendiri: nasi, lauk terpisah, telur, kerupuk, gorengan, sambal, minuman.
 Aturan: ini bukan percakapan — jangan menjawab dengan tabel markdown. name dalam Bahasa Indonesia tanpa terjemahan. grams = perkiraan berat (1-5000); kcal, protein/carbs/fat (gram), fiber (gram) = estimasi realistis porsi umum; confidence 0-1.`;
 
-/** Fits 8 single-line items with room to spare; measured answers are 110-660. */
-const MAX_COMPLETION_TOKENS = 1200;
+/** 8 single-line items incl. boxes; measured answers are 110-660 (+~20/item for box). */
+const MAX_COMPLETION_TOKENS = 1500;
 const MAX_ITEMS = 8;
 
 export const visionItemSchema = z.object({
@@ -29,7 +31,27 @@ export const visionItemSchema = z.object({
   fat: z.number().optional(),
   fiber: z.number().optional(),
   confidence: z.number().min(0).max(1).optional(),
+  // Bounding box [ymin, xmin, ymax, xmax] on a 0-1000 grid; validated by normalizeBox.
+  box: z.unknown().optional(),
 });
+
+export type ItemBox = [number, number, number, number];
+
+/**
+ * A usable box or undefined. A malformed box never drops the item: it only
+ * means that item gets no per-item crop.
+ */
+export function normalizeBox(raw: unknown): ItemBox | undefined {
+  if (!Array.isArray(raw) || raw.length !== 4) return undefined;
+  const v = raw.map((n) =>
+    typeof n === "number" && Number.isFinite(n) ? Math.round(Math.min(1000, Math.max(0, n))) : NaN,
+  );
+  if (v.some(Number.isNaN)) return undefined;
+  const [y0, x0, y1, x1] = v as ItemBox;
+  // Under 2% of the photo on either side is a dot, not a dish.
+  if (y1 - y0 < 20 || x1 - x0 < 20) return undefined;
+  return [y0, x0, y1, x1];
+}
 
 export const visionResultSchema = z.object({
   // Loose upper bound for parsing — the 8-item cap is enforced by slicing.
@@ -39,7 +61,7 @@ export const visionResultSchema = z.object({
 export type AiRunner = { run(model: string, input: unknown): Promise<unknown> };
 
 /** Models answer with prose, fences, or wrapper keys — cut the JSON out. */
-function extractJson(text: string): unknown {
+export function extractJson(text: string): unknown {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start === -1 || end <= start) {
@@ -49,7 +71,7 @@ function extractJson(text: string): unknown {
 }
 
 /** Token accounting from the AI binding when the model surfaces it; null otherwise. */
-function extractUsage(result: unknown): Record<string, unknown> | null {
+export function extractUsage(result: unknown): Record<string, unknown> | null {
   const r = result as { usage?: unknown; result?: { usage?: unknown } };
   if (r?.usage && typeof r.usage === "object") {
     return r.usage as Record<string, unknown>;
@@ -61,14 +83,14 @@ function extractUsage(result: unknown): Record<string, unknown> | null {
 }
 
 export type VisionAnalysis = {
-  items: Array<z.infer<typeof visionItemSchema> & { kcal: number }>;
+  items: Array<CalibratedItem & { box?: ItemBox }>;
   /** Model actually used — callers pass `model` through unresolved. */
   model: string;
   usage: Record<string, unknown> | null;
 };
 
 /** Handles every Workers AI response shape: text, {response}, {result}, chat. */
-function responseText(result: unknown): string | null {
+export function responseText(result: unknown): string | null {
   if (typeof result === "string") return result;
   const r = result as {
     response?: unknown;
@@ -103,14 +125,14 @@ export const FAST_FAILURE_BUDGET_MS = 12_000;
 /** Healthy answers land in 2-14 s; the retry gets a shorter leash. */
 const ATTEMPT_DEADLINES_MS: [number, number] = [25_000, 20_000];
 
-function finishReasonOf(result: unknown): string | null {
+export function finishReasonOf(result: unknown): string | null {
   const r = result as { choices?: Array<{ finish_reason?: unknown }> };
   return typeof r?.choices?.[0]?.finish_reason === "string" ? r.choices[0].finish_reason : null;
 }
 
 export type ScheduleTimeout = (fn: () => void, ms: number) => () => void;
 
-const defaultSchedule: ScheduleTimeout = (fn, ms) => {
+export const defaultSchedule: ScheduleTimeout = (fn, ms) => {
   const timer = setTimeout(fn, ms);
   return () => clearTimeout(timer);
 };
@@ -179,26 +201,25 @@ function dedupeItems<T extends { name: string }>(items: T[]): T[] {
 function itemsFromText(text: string): VisionAnalysis["items"] {
   const raw = visionResultSchema
     .parse(extractJson(text.replace(/```(?:json)?/g, "")))
-    .items.slice(0, MAX_ITEMS);
-  return dedupeItems(
-    calibrateItems(
-      raw
-        .map((item) => ({
-          ...item,
-          kcal: clamp(item.kcal, 0, 5000),
-          grams: clamp(item.grams, 1, 5000),
-          protein: clamp(item.protein, 0, 500),
-          carbs: clamp(item.carbs, 0, 500),
-          fat: clamp(item.fat, 0, 500),
-          fiber: clamp(item.fiber, 0, 200),
-          confidence: clamp(item.confidence, 0, 1),
-        }))
-        .filter(
-          (item): item is typeof item & { kcal: number } =>
-            item.kcal !== undefined && item.kcal > 0 && item.name.length > 0,
-        ),
-    ),
-  );
+    .items.slice(0, MAX_ITEMS)
+    .map(({ box, ...item }) => ({
+      ...item,
+      box: normalizeBox(box),
+      kcal: clamp(item.kcal, 0, 5000),
+      grams: clamp(item.grams, 1, 5000),
+      protein: clamp(item.protein, 0, 500),
+      carbs: clamp(item.carbs, 0, 500),
+      fat: clamp(item.fat, 0, 500),
+      fiber: clamp(item.fiber, 0, 200),
+      confidence: clamp(item.confidence, 0, 1),
+    }))
+    .filter(
+      (item): item is typeof item & { kcal: number } =>
+        item.kcal !== undefined && item.kcal > 0 && item.name.length > 0,
+    );
+  // calibrateItems maps 1:1, so boxes re-attach by index.
+  const calibrated = calibrateItems(raw.map(({ box: _box, ...item }) => item));
+  return dedupeItems(calibrated.map((item, index) => ({ ...item, box: raw[index]!.box })));
 }
 
 /**

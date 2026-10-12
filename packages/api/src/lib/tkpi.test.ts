@@ -46,6 +46,15 @@ describe("calibrateItems", () => {
     expect(clamped?.kcal).toBe(4000);
   });
 
+  test("a plate naming two library dishes is not clamped into either one's band", () => {
+    // Longest key used to win: "telur ceplok" clamped the whole plate to 220.
+    const [combo] = calibrateItems([{ name: "Nasi goreng telur ceplok", kcal: 620, grams: 330 }]);
+    expect(combo?.kcal).toBe(620);
+    expect(combo?.matched).toBe(false);
+    const [single] = calibrateItems([{ name: "Telur ceplok", kcal: 620, grams: 330 }]);
+    expect(single?.kcal).toBeLessThan(620);
+  });
+
   test("library covers at least 40 dishes", () => {
     expect(TKPI_DISHES.length).toBeGreaterThanOrEqual(40);
   });

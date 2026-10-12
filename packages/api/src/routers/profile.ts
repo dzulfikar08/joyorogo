@@ -1,9 +1,11 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { user } from "@joyorogo/db/schema/auth";
-import { profile, weightLog } from "@joyorogo/db/schema/fitness";
+import { foodLog, profile, weightLog } from "@joyorogo/db/schema/fitness";
+
+import { deleteUserMedia } from "../lib/privacy";
 
 import type { Database } from "@joyorogo/db";
 import type { Targets } from "../lib/engine";
@@ -144,5 +146,29 @@ export const profileRouter = {
         .set({ ramadanMode: input.mode })
         .where(eq(profile.userId, userId));
       return { ramadanMode: input.mode };
+    }),
+  // "Simpan foto asli" (opt-in). Turning it off also deletes the originals
+  // already kept, so off always means no photos on the server.
+  setKeepPhotos: protectedProcedure
+    .input(z.object({ keep: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const updated = await context.db
+        .update(profile)
+        .set({ keepPhotos: input.keep })
+        .where(eq(profile.userId, userId))
+        .returning({ userId: profile.userId });
+      if (updated.length === 0) {
+        throw new ORPCError("NOT_FOUND", { message: "Lengkapi onboarding dulu." });
+      }
+      if (!input.keep) {
+        await context.db
+          .update(foodLog)
+          .set({ photoId: null })
+          .where(and(eq(foodLog.userId, userId), isNotNull(foodLog.photoId)));
+        const bucket = context.env.STICKERS;
+        if (bucket) await deleteUserMedia(bucket, userId, []);
+      }
+      return { keepPhotos: input.keep };
     }),
 };

@@ -5,7 +5,7 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { ChevronDown, Beef, Flame, Info, Moon, Plus, Sparkles, Trophy } from "lucide-react";
+import { ChevronDown, Beef, Flame, Info, Mic, Moon, Plus, Sparkles, Trophy } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -166,6 +166,7 @@ function Dashboard({ summary }: { summary: Summary }) {
               <figure key={item.id} className="w-28 shrink-0 rounded-2xl bg-card p-3 text-center">
                 <Sticker
                   scanId={item.scanId}
+                  photoId={item.photoId}
                   name={item.name}
                   kcal={item.kcal}
                   className="mx-auto block size-20"
@@ -310,12 +311,22 @@ function TodayMeals({ summary }: { summary: Summary }) {
     <section aria-label="Makan hari ini">
       <SectionTitle
         action={
-          <Link
-            to="/makan"
-            className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-primary hover:underline"
-          >
-            Lihat semua
-          </Link>
+          <span className="flex items-center gap-3">
+            <Link
+              to="/makan"
+              search={{ cerita: true }}
+              className="inline-flex min-h-11 items-center gap-1 px-1 text-sm font-semibold text-primary hover:underline"
+            >
+              <Mic className="size-4" aria-hidden />
+              Ceritakan
+            </Link>
+            <Link
+              to="/makan"
+              className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-muted-foreground hover:underline"
+            >
+              Lihat semua
+            </Link>
+          </span>
         }
       >
         Makan hari ini

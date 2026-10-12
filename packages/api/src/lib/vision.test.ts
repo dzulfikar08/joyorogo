@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   analyzeFoodPhoto,
   FRIENDLY_ERROR,
+  normalizeBox,
   runVisionOnce,
   visionResultSchema,
   type AiRunner,
@@ -116,5 +117,38 @@ describe("analyzeFoodPhoto deadlines", () => {
     expect(() => visionResultSchema.parse(many)).not.toThrow();
     const result = await analyzeFoodPhoto(jsonRunner(many), OPTS);
     expect(result.items.length).toBe(8);
+  });
+});
+
+describe("item boxes", () => {
+  test("each item keeps its own box through calibration", async () => {
+    const plate = {
+      items: [
+        { name: "Nasi kuning", kcal: 300, grams: 150, box: [186, 3, 605, 545] },
+        { name: "Ayam goreng", kcal: 250, grams: 100, box: [223, 679, 727, 1000] },
+      ],
+    };
+    const result = await analyzeFoodPhoto(jsonRunner(plate), OPTS);
+    expect(result.items.map((item) => item.box)).toEqual([
+      [186, 3, 605, 545],
+      [223, 679, 727, 1000],
+    ]);
+  });
+
+  test("a malformed box drops only the box, never the item", async () => {
+    const plate = {
+      items: [
+        { name: "Sambal", kcal: 30, box: [10, 10, 12, 12] },
+        { name: "Kerupuk", kcal: 60, box: "kiri atas" },
+        { name: "Teh", kcal: 80, box: [900, 100, 300, 400] },
+      ],
+    };
+    const result = await analyzeFoodPhoto(jsonRunner(plate), OPTS);
+    expect(result.items).toHaveLength(3);
+    expect(result.items.every((item) => item.box === undefined)).toBe(true);
+  });
+
+  test("out-of-range coordinates clamp onto the 0-1000 grid", () => {
+    expect(normalizeBox([-20, 50, 1200, 600.4])).toEqual([0, 50, 1000, 600]);
   });
 });

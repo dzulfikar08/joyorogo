@@ -65,6 +65,13 @@
             "minSdkVersion": 26
           }
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Izinkan mikrofon untuk merekam cerita makananmu dan menghitung kalorinya.",
+          "recordAudioAndroid": true
+        }
       ]
     ],
     "experiments": {

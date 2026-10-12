@@ -272,6 +272,11 @@ function Landing() {
                   </li>
                 ))}
               </ol>
+              <p className="mt-8 rounded-2xl bg-muted p-4 text-[0.9375rem] leading-relaxed text-muted-foreground">
+                <span className="font-bold text-foreground">Lupa foto?</span> Ceritakan saja. Ketik
+                atau ucapkan "kemarin pagi nasi kuning pakai telur dadar, siang nasi padang", AI
+                yang menghitung dan menaruhnya di waktu makan dan hari yang tepat.
+              </p>
             </div>
             <div>
               <p className="mb-3 text-sm font-bold text-primary">Coba sekarang, tanpa daftar</p>

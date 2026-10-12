@@ -1,20 +1,25 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Image, Modal, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { useRef, useState } from "react";
-import { Redirect } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import {
   MEAL_LABELS,
   effectiveRamadan,
   jakartaToday,
+  relativeDayLabel,
   slotsFor,
   suggestMealNow,
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 
+import { Cerita } from "@/components/cerita";
+import type { CeritaPhase } from "@/components/cerita";
+import { FoodSticker, StickerViewer, stickerUrl } from "@/components/sticker";
+import type { StickerViewerTarget } from "@/components/sticker";
 import {
   BootLoader,
   Button,
@@ -36,9 +41,6 @@ import {
   Text,
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
-// Must stay named `ENV`: varlock's babel plugin only inlines `ENV.X` reads;
-// anything else hits the runtime proxy, which throws in release builds.
-import { ENV } from "../../src/env";
 import { errorMessage, fmtDateId, fmtKcal, parseNum } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
@@ -81,6 +83,10 @@ export default function Makan() {
   const recentQuery = useQuery(orpc.food.recent.queryOptions());
 
   const [sheetMeal, setSheetMeal] = useState<Meal | null>(null);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [ceritaPhase, setCeritaPhase] = useState<CeritaPhase>("input");
+  const [ceritaOpen, setCeritaOpen] = useState(false);
+  const [ceritaFeedback, setCeritaFeedback] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [kcal, setKcal] = useState("");
   const [protein, setProtein] = useState("");
@@ -88,7 +94,7 @@ export default function Makan() {
   const [fat, setFat] = useState("");
   const [macrosOpen, setMacrosOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [viewer, setViewer] = useState<{ uri: string; name: string; kcal: number } | null>(null);
+  const [viewer, setViewer] = useState<StickerViewerTarget | null>(null);
   const quickAddRef = useRef(false);
 
   const addFood = useMutation(
@@ -173,6 +179,12 @@ export default function Makan() {
     });
   };
 
+  /** Day-named feedback after a story save, e.g. "2 makanan dicatat ke Hari ini dan Kemarin." */
+  const showFeedback = (result: { count: number; dates: string[] }) => {
+    const labels = result.dates.map((d) => relativeDayLabel(d, today));
+    setCeritaFeedback(`${result.count} makanan dicatat ke ${labels.join(" dan ")}.`);
+  };
+
   const closeSheet = () => {
     setSheetMeal(null);
     setFormError(null);
@@ -182,6 +194,8 @@ export default function Makan() {
     setCarbs("");
     setFat("");
     setMacrosOpen(false);
+    setManualOpen(false);
+    setCeritaPhase("input");
     quickAddRef.current = false;
   };
 
@@ -223,25 +237,20 @@ export default function Makan() {
                 value={`${fmtKcal(item.kcal)}`}
                 thumb={
                   item.scanId ? (
-                    <Pressable
-                      accessibilityRole="imagebutton"
-                      accessibilityLabel={`Lihat stiker ${item.name}`}
-                      onPress={() =>
+                    <FoodSticker
+                      scanId={item.scanId}
+                      name={item.name}
+                      onPress={() => {
+                        const scanId = item.scanId;
+                        if (!scanId) return;
                         setViewer({
-                          uri: `${ENV.EXPO_PUBLIC_SERVER_URL}/sticker/${item.scanId}`,
+                          uri: stickerUrl(scanId),
                           name: item.name,
                           kcal: item.kcal,
-                        })
-                      }
-                    >
-                      <Image
-                        source={{
-                          uri: `${ENV.EXPO_PUBLIC_SERVER_URL}/sticker/${item.scanId}`,
-                        }}
-                        style={styles.itemSticker}
-                        accessibilityLabel={item.name}
-                      />
-                    </Pressable>
+                          photoId: item.photoId,
+                        });
+                      }}
+                    />
                   ) : undefined
                 }
                 right={
@@ -335,6 +344,41 @@ export default function Makan() {
         </View>
       </Card>
 
+      {/* Global story entry: several meals, even another day, in one go */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Ceritakan makananmu"
+        onPress={() => {
+          setCeritaFeedback(null);
+          setCeritaOpen(true);
+        }}
+        style={({ pressed }) => [styles.ceritaBar, pressed && styles.pressedSoft]}
+      >
+        <View style={styles.ceritaMic}>
+          <Ionicons name="mic" size={20} color={theme.colors.primaryForeground} />
+        </View>
+        <View style={styles.ceritaTexts}>
+          <Text style={styles.ceritaTitle}>Ceritakan makananmu</Text>
+          <Text style={styles.ceritaSub}>Ketik atau ucapkan, AI yang hitung kalorinya.</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={theme.colors.mutedForeground} />
+      </Pressable>
+
+      {ceritaFeedback ? (
+        <View style={styles.feedbackBox}>
+          <Ionicons name="checkmark-circle" size={20} color={theme.colors.makanText} />
+          <Text style={styles.feedbackText}>{ceritaFeedback}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Tutup pemberitahuan"
+            onPress={() => setCeritaFeedback(null)}
+            style={({ pressed }) => [styles.feedbackClose, pressed && styles.pressedSoft]}
+          >
+            <Ionicons name="close" size={18} color={theme.colors.makanText} />
+          </Pressable>
+        </View>
+      ) : null}
+
       {items.length === 0 ? (
         <EmptyState
           icon="restaurant-outline"
@@ -352,28 +396,42 @@ export default function Makan() {
         MEAL_KEYS.map(renderSlot)
       )}
 
-      {/* Add form lives in a bottom sheet */}
+      {/* Add form lives in a bottom sheet; Ceritakan leads, manual hides behind a toggle */}
       <Sheet
         visible={sheetMeal !== null}
         onClose={closeSheet}
         title="Tambah Makanan"
         footer={
-          <Button
-            label="Tambah"
-            onPress={submit}
-            loading={addFood.isPending}
-            disabled={sheetMeal === null}
-          />
+          manualOpen ? (
+            <Button
+              label="Tambah"
+              onPress={submit}
+              loading={addFood.isPending}
+              disabled={sheetMeal === null}
+            />
+          ) : undefined
         }
       >
-        {sheetMeal !== null && MEAL_KEYS.length > 1 ? (
+        {sheetMeal !== null ? (
+          <Cerita
+            meal={sheetMeal}
+            date={date}
+            slots={MEAL_KEYS}
+            onPhaseChange={setCeritaPhase}
+            onSaved={(result) => {
+              closeSheet();
+              showFeedback(result);
+            }}
+          />
+        ) : null}
+        {sheetMeal !== null && ceritaPhase === "input" && MEAL_KEYS.length > 1 ? (
           <Segmented
             options={MEAL_KEYS.map((key) => ({ value: key, label: MEAL_SHORT[key] }))}
             value={sheetMeal}
             onChange={(value) => setSheetMeal(value)}
           />
         ) : null}
-        {recentQuery.data && recentQuery.data.items.length > 0 ? (
+        {ceritaPhase === "input" && recentQuery.data && recentQuery.data.items.length > 0 ? (
           <View style={styles.recentBox}>
             <Text style={styles.recentLabel}>Catat cepat</Text>
             <ScrollView
@@ -399,65 +457,102 @@ export default function Makan() {
             </ScrollView>
           </View>
         ) : null}
-        <Field label="Nama makanan">
-          <Input value={name} onChangeText={setName} placeholder="Nasi goreng" />
-        </Field>
-        <Field label="Kalori (kcal)">
-          <Input value={kcal} onChangeText={setKcal} keyboardType="number-pad" placeholder="350" />
-        </Field>
-        {macrosOpen ? (
-          <View style={styles.macroRow}>
-            <Input
-              value={protein}
-              onChangeText={setProtein}
-              keyboardType="decimal-pad"
-              placeholder="Protein"
-              style={styles.macroInput}
-            />
-            <Input
-              value={carbs}
-              onChangeText={setCarbs}
-              keyboardType="decimal-pad"
-              placeholder="Karbo"
-              style={styles.macroInput}
-            />
-            <Input
-              value={fat}
-              onChangeText={setFat}
-              keyboardType="decimal-pad"
-              placeholder="Lemak"
-              style={styles.macroInput}
-            />
-          </View>
-        ) : (
+        {ceritaPhase === "input" ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Pindai pakai foto"
+            onPress={() => {
+              closeSheet();
+              router.push("/makan-ai");
+            }}
+            style={({ pressed }) => [styles.photoLink, pressed && styles.pressedSoft]}
+          >
+            <View style={styles.photoIcon}>
+              <Ionicons name="camera-outline" size={20} color={theme.colors.makanText} />
+            </View>
+            <View style={styles.ceritaTexts}>
+              <Text style={styles.photoTitle}>Pindai pakai foto</Text>
+              <Text style={styles.ceritaSub}>AI hitung kalorinya, kamu cek dulu.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.mutedForeground} />
+          </Pressable>
+        ) : null}
+        {ceritaPhase === "input" && !manualOpen ? (
           <Button
             variant="ghost"
             size="sm"
-            label="Tambah detail makro (opsional)"
-            onPress={() => setMacrosOpen(true)}
+            label="Isi kalori sendiri"
+            onPress={() => setManualOpen(true)}
+            style={styles.manualToggle}
           />
-        )}
-        {formError ? <Text style={styles.error}>{formError}</Text> : null}
-        {addFood.isError ? <Text style={styles.error}>{errorMessage(addFood.error)}</Text> : null}
+        ) : null}
+        {ceritaPhase === "input" && manualOpen ? (
+          <View style={styles.manualBox}>
+            <Field label="Nama makanan">
+              <Input value={name} onChangeText={setName} placeholder="Nasi goreng" />
+            </Field>
+            <Field label="Kalori (kcal)">
+              <Input
+                value={kcal}
+                onChangeText={setKcal}
+                keyboardType="number-pad"
+                placeholder="350"
+              />
+            </Field>
+            {macrosOpen ? (
+              <View style={styles.macroRow}>
+                <Input
+                  value={protein}
+                  onChangeText={setProtein}
+                  keyboardType="decimal-pad"
+                  placeholder="Protein"
+                  style={styles.macroInput}
+                />
+                <Input
+                  value={carbs}
+                  onChangeText={setCarbs}
+                  keyboardType="decimal-pad"
+                  placeholder="Karbo"
+                  style={styles.macroInput}
+                />
+                <Input
+                  value={fat}
+                  onChangeText={setFat}
+                  keyboardType="decimal-pad"
+                  placeholder="Lemak"
+                  style={styles.macroInput}
+                />
+              </View>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                label="Tambah detail makro (opsional)"
+                onPress={() => setMacrosOpen(true)}
+              />
+            )}
+            {formError ? <Text style={styles.error}>{formError}</Text> : null}
+            {addFood.isError ? (
+              <Text style={styles.error}>{errorMessage(addFood.error)}</Text>
+            ) : null}
+          </View>
+        ) : null}
+      </Sheet>
+
+      {/* Global Ceritakan: cerita bebas, bisa beberapa waktu makan sekaligus */}
+      <Sheet visible={ceritaOpen} onClose={() => setCeritaOpen(false)} title="Ceritakan makananmu">
+        <Cerita
+          date={date}
+          slots={MEAL_KEYS}
+          onSaved={(result) => {
+            setCeritaOpen(false);
+            showFeedback(result);
+          }}
+        />
       </Sheet>
 
       {/* Sticker viewer */}
-      <Modal
-        visible={viewer !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setViewer(null)}
-        accessibilityViewIsModal
-      >
-        <Pressable style={styles.viewerBackdrop} onPress={() => setViewer(null)}>
-          <View style={styles.viewerBody}>
-            <Image source={{ uri: viewer?.uri }} style={styles.viewerImage} resizeMode="contain" />
-            <Text style={styles.viewerCaption}>
-              {viewer?.name} · {fmtKcal(viewer?.kcal ?? 0)} kcal
-            </Text>
-          </View>
-        </Pressable>
-      </Modal>
+      <StickerViewer viewer={viewer} onClose={() => setViewer(null)} />
     </Screen>
   );
 }
@@ -566,11 +661,6 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.mutedForeground,
     paddingHorizontal: theme.spacing.xs,
   },
-  itemSticker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
   deleteButton: {
     width: 44,
     height: 44,
@@ -598,30 +688,86 @@ const styles = StyleSheet.create((theme) => ({
     flex: 1,
     minHeight: 44,
   },
+  manualToggle: {
+    alignSelf: "flex-start",
+  },
+  manualBox: {
+    gap: theme.spacing.md,
+  },
+  photoLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+    backgroundColor: theme.colors.muted,
+    borderRadius: theme.radius.card,
+    padding: theme.spacing.lg,
+  },
+  photoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.card,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoTitle: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  ceritaBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.card,
+    padding: theme.spacing.lg,
+  },
+  ceritaMic: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ceritaTexts: {
+    flex: 1,
+    gap: 2,
+  },
+  ceritaTitle: {
+    fontSize: theme.fontSize.base,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  ceritaSub: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+  },
+  feedbackBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.makanSoft,
+    borderRadius: theme.radius.card,
+    paddingLeft: theme.spacing.lg,
+    paddingRight: theme.spacing.xs,
+    paddingVertical: theme.spacing.sm,
+  },
+  feedbackText: {
+    flex: 1,
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.makanText,
+  },
+  feedbackClose: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   error: {
     fontSize: theme.fontSize.sm,
     color: theme.colors.destructive,
-  },
-  viewerBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.85)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: theme.spacing.lg,
-  },
-  viewerBody: {
-    alignItems: "center",
-    gap: theme.spacing.md,
-    width: "100%",
-  },
-  viewerImage: {
-    width: "100%",
-    height: 360,
-    borderRadius: theme.radius.card,
-  },
-  viewerCaption: {
-    color: "#FFFFFF",
-    fontSize: theme.fontSize.base,
-    fontWeight: "600",
   },
 }));

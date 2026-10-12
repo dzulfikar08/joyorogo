@@ -88,33 +88,10 @@
   }
 }
 
-/* Photo-dissolves-into-sticker reveal at scan confirm time. The photo fades
- * out with a slight blur-push while the cutout settles in with a growing
- * shadow — same pixels, background gone. Chips pop in per item afterwards. */
+/* Per-item crop tiles pop in one by one on the scan confirm screen. */
 @media (prefers-reduced-motion: no-preference) {
-  .sticker-photo-out {
-    opacity: 0;
-    filter: blur(6px);
-    transform: scale(1.03);
-  }
-  .sticker-morph-in {
-    animation: sticker-settle 500ms cubic-bezier(0.23, 1, 0.32, 1) both;
-  }
   .chip-pop {
     animation: chip-pop 220ms cubic-bezier(0.23, 1, 0.32, 1) both;
-  }
-}
-
-@keyframes sticker-settle {
-  from {
-    opacity: 0;
-    transform: scale(0.94);
-    filter: drop-shadow(0 0 0 rgb(0 0 0 / 0));
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-    filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.28));
   }
 }
 
@@ -141,16 +118,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-milestone-pop,
-  .sticker-morph-in,
   .chip-pop {
     animation: none;
   }
   .pressable:active {
-    transform: none;
-  }
-  .sticker-photo-out {
-    opacity: 0;
-    filter: none;
     transform: none;
   }
 }

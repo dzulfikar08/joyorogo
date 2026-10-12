@@ -12,10 +12,12 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Camera, ChevronLeft, ChevronRight, Plus, Trash2, Utensils } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, Mic, Plus, Trash2, Utensils } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Cerita } from "@/components/cerita";
+import type { CeritaPhase } from "@/components/cerita";
 import { Chip } from "@/components/chip";
 import {
   FieldLabel,
@@ -38,10 +40,13 @@ const listOptions = (date: string) => orpc.food.listByDate.queryOptions({ input:
 const summaryOptions = (date: string) => orpc.day.summary.queryOptions({ input: { date } });
 
 export const Route = createFileRoute("/_auth/makan/")({
-  validateSearch: (search: Record<string, unknown>): { date?: string } => {
-    const date = typeof search.date === "string" ? search.date : undefined;
-    if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return {};
-    return { date };
+  validateSearch: (search: Record<string, unknown>): { date?: string; cerita?: boolean } => {
+    const raw = typeof search.date === "string" ? search.date : undefined;
+    const date = raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : undefined;
+    // ?cerita=1 opens the story sheet (deep link from Beranda and the camera page).
+    const cerita =
+      search.cerita === true || search.cerita === 1 || search.cerita === "1" || undefined;
+    return { date, cerita };
   },
   loaderDeps: ({ search }) => ({ date: search.date }),
   loader: ({ context, deps }) => {
@@ -71,7 +76,7 @@ function dayLabel(date: string): string {
 
 function MakanPage() {
   const queryClient = useQueryClient();
-  const { date: paramDate } = Route.useSearch();
+  const { date: paramDate, cerita: ceritaOpen } = Route.useSearch();
   const navigate = Route.useNavigate();
   const date = paramDate ?? jakartaToday();
   const isToday = date === jakartaToday();
@@ -83,9 +88,14 @@ function MakanPage() {
   const MEALS = (Object.entries(MEAL_LABELS) as Array<[Meal, string]>).filter(([meal]) =>
     slotsFor(ramadan).includes(meal),
   );
+  const slots = slotsFor(ramadan);
   const quickMeal = suggestMealNow(new Date(), ramadan);
   // One shared add sheet; the meal slot is the only thing that changes.
   const [sheetMeal, setSheetMeal] = useState<Meal | null>(null);
+  const setCeritaOpen = (open: boolean) =>
+    navigate({ search: (prev) => ({ ...prev, cerita: open || undefined }), replace: true });
+  const showDate = (target: string) =>
+    navigate({ search: { date: target === jakartaToday() ? undefined : target } });
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: orpc.food.key() });
@@ -193,13 +203,33 @@ function MakanPage() {
         </div>
       )}
 
+      <button
+        type="button"
+        onClick={() => setCeritaOpen(true)}
+        className="mt-3 flex min-h-16 w-full items-center gap-3 rounded-3xl bg-card px-5 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+      >
+        <span
+          aria-hidden
+          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+        >
+          <Mic className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[0.9375rem] font-bold">Ceritakan makananmu</span>
+          <span className="block text-sm text-muted-foreground">
+            Ketik atau ucapkan, AI yang hitung kalorinya.
+          </span>
+        </span>
+        <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+      </button>
+
       {items.length === 0 && (
         <div className="mt-3 rounded-3xl bg-card p-6 text-center">
           <p className="text-base font-bold">
             Belum ada catatan {isToday ? "hari ini" : "di hari ini"}
           </p>
           <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
-            Tulis manual, atau pindai foto piringmu biar AI yang hitung.
+            Ceritakan apa yang kamu makan, atau pindai foto piringmu biar AI yang hitung.
           </p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <Button onClick={() => setSheetMeal(quickMeal)}>
@@ -272,11 +302,31 @@ function MakanPage() {
           meal={sheetMeal}
           date={date}
           isToday={isToday}
+          slots={slots}
           recent={recent.data?.items ?? []}
           addPending={add.isPending}
           onAdd={(input) => add.mutateAsync(input)}
+          onShowDate={showDate}
           onClose={() => setSheetMeal(null)}
         />
+      )}
+
+      {ceritaOpen && (
+        <Sheet
+          open
+          onOpenChange={(open) => {
+            if (!open) setCeritaOpen(false);
+          }}
+          title="Ceritakan makananmu"
+          description="Bisa beberapa waktu makan sekaligus, bahkan kemarin. Kamu cek dulu sebelum disimpan."
+        >
+          <Cerita
+            date={date}
+            slots={slots}
+            onSaved={() => setCeritaOpen(false)}
+            onShowDate={showDate}
+          />
+        </Sheet>
       )}
     </Page>
   );
@@ -289,23 +339,28 @@ function FoodRow({ item, onDelete }: { item: FoodItem; onDelete: () => void }) {
     : item.source === "ai"
       ? "Dari pindai AI"
       : undefined;
+  const utensil = (
+    <span
+      className="flex size-9 items-center justify-center rounded-full bg-makan-soft"
+      aria-hidden
+    >
+      <Utensils className="size-4 text-makan-ink" />
+    </span>
+  );
   return (
     <ListRow
       icon={
         item.scanId ? (
           <Sticker
             scanId={item.scanId}
+            photoId={item.photoId}
             name={item.name}
             kcal={item.kcal}
             className="block size-10"
+            fallback={utensil}
           />
         ) : (
-          <span
-            className="flex size-9 items-center justify-center rounded-full bg-makan-soft"
-            aria-hidden
-          >
-            <Utensils className="size-4 text-makan-ink" />
-          </span>
+          utensil
         )
       }
       title={item.name}
@@ -335,19 +390,25 @@ function AddFoodSheet({
   meal,
   date,
   isToday,
+  slots,
   recent,
   addPending,
   onAdd,
+  onShowDate,
   onClose,
 }: {
   meal: Meal;
   date: string;
   isToday: boolean;
+  slots: Meal[];
   recent: FoodRecentItem[];
   addPending: boolean;
   onAdd: (input: FoodAddInput) => Promise<unknown>;
+  onShowDate: (date: string) => void;
   onClose: () => void;
 }) {
+  const [ceritaPhase, setCeritaPhase] = useState<CeritaPhase>("input");
+  const [showManual, setShowManual] = useState(false);
   const [name, setName] = useState("");
   const [kcal, setKcal] = useState("");
   const [showMacros, setShowMacros] = useState(false);
@@ -405,7 +466,16 @@ function AddFoodSheet({
       }
     >
       <div className="space-y-5">
-        {recent.length > 0 && (
+        <Cerita
+          meal={meal}
+          date={date}
+          slots={slots}
+          onPhaseChange={setCeritaPhase}
+          onSaved={onClose}
+          onShowDate={onShowDate}
+        />
+
+        {ceritaPhase === "input" && recent.length > 0 && (
           <div>
             <p className="text-sm font-bold">Terakhir dicatat</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -426,109 +496,123 @@ function AddFoodSheet({
           </div>
         )}
 
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void submit();
-          }}
-          className="space-y-4"
-        >
-          <div className="flex items-end gap-3">
-            <div className="min-w-0 flex-1">
-              <FieldLabel htmlFor={`${meal}-name`}>Nama makanan</FieldLabel>
-              <Input
-                id={`${meal}-name`}
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Nasi goreng"
-                autoComplete="off"
-              />
-            </div>
-            <div className="w-28">
-              <FieldLabel htmlFor={`${meal}-kcal`}>kcal</FieldLabel>
-              <Input
-                id={`${meal}-kcal`}
-                type="number"
-                min="0"
-                inputMode="numeric"
-                value={kcal}
-                onChange={(event) => setKcal(event.target.value)}
-                placeholder="500"
-              />
-            </div>
-          </div>
-
-          {showMacros ? (
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <FieldLabel htmlFor={`${meal}-protein`}>Protein (g)</FieldLabel>
-                <Input
-                  id={`${meal}-protein`}
-                  type="number"
-                  min="0"
-                  inputMode="decimal"
-                  value={protein}
-                  onChange={(event) => setProtein(event.target.value)}
-                />
-              </div>
-              <div>
-                <FieldLabel htmlFor={`${meal}-carbs`}>Karbo (g)</FieldLabel>
-                <Input
-                  id={`${meal}-carbs`}
-                  type="number"
-                  min="0"
-                  inputMode="decimal"
-                  value={carbs}
-                  onChange={(event) => setCarbs(event.target.value)}
-                />
-              </div>
-              <div>
-                <FieldLabel htmlFor={`${meal}-fat`}>Lemak (g)</FieldLabel>
-                <Input
-                  id={`${meal}-fat`}
-                  type="number"
-                  min="0"
-                  inputMode="decimal"
-                  value={fat}
-                  onChange={(event) => setFat(event.target.value)}
-                />
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowMacros(true)}
-              className="px-1 text-sm font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-            >
-              + Protein / karbo / lemak (opsional)
-            </button>
-          )}
-
-          {error && <p className="px-1 text-sm text-destructive">{error}</p>}
-
-          <Button type="submit" className="w-full" disabled={addPending}>
-            {addPending ? "Menyimpan..." : `Tambah ke ${label}`}
-          </Button>
-        </form>
-
-        <Link
-          to="/makan/ai"
-          className="flex items-center gap-3 rounded-2xl bg-muted p-4 transition-colors hover:bg-border focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-        >
-          <span
-            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-card"
-            aria-hidden
+        {ceritaPhase === "input" && !showManual && (
+          <button
+            type="button"
+            onClick={() => setShowManual(true)}
+            className="min-h-11 px-1 text-sm font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
           >
-            <Camera className="size-5 text-makan-ink" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-bold">Pindai pakai foto</span>
-            <span className="block text-xs text-muted-foreground">
-              AI hitung kalorinya, kamu cek dulu.
+            Sudah tahu kalorinya? Isi sendiri
+          </button>
+        )}
+
+        {ceritaPhase === "input" && showManual && (
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void submit();
+            }}
+            className="space-y-4"
+          >
+            <div className="flex items-end gap-3">
+              <div className="min-w-0 flex-1">
+                <FieldLabel htmlFor={`${meal}-name`}>Nama makanan</FieldLabel>
+                <Input
+                  id={`${meal}-name`}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Nasi goreng"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="w-28">
+                <FieldLabel htmlFor={`${meal}-kcal`}>kcal</FieldLabel>
+                <Input
+                  id={`${meal}-kcal`}
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={kcal}
+                  onChange={(event) => setKcal(event.target.value)}
+                  placeholder="500"
+                />
+              </div>
+            </div>
+
+            {showMacros ? (
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <FieldLabel htmlFor={`${meal}-protein`}>Protein (g)</FieldLabel>
+                  <Input
+                    id={`${meal}-protein`}
+                    type="number"
+                    min="0"
+                    inputMode="decimal"
+                    value={protein}
+                    onChange={(event) => setProtein(event.target.value)}
+                  />
+                </div>
+                <div>
+                  <FieldLabel htmlFor={`${meal}-carbs`}>Karbo (g)</FieldLabel>
+                  <Input
+                    id={`${meal}-carbs`}
+                    type="number"
+                    min="0"
+                    inputMode="decimal"
+                    value={carbs}
+                    onChange={(event) => setCarbs(event.target.value)}
+                  />
+                </div>
+                <div>
+                  <FieldLabel htmlFor={`${meal}-fat`}>Lemak (g)</FieldLabel>
+                  <Input
+                    id={`${meal}-fat`}
+                    type="number"
+                    min="0"
+                    inputMode="decimal"
+                    value={fat}
+                    onChange={(event) => setFat(event.target.value)}
+                  />
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowMacros(true)}
+                className="px-1 text-sm font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+              >
+                + Protein / karbo / lemak (opsional)
+              </button>
+            )}
+
+            {error && <p className="px-1 text-sm text-destructive">{error}</p>}
+
+            <Button type="submit" className="w-full" disabled={addPending}>
+              {addPending ? "Menyimpan..." : `Tambah ke ${label}`}
+            </Button>
+          </form>
+        )}
+
+        {ceritaPhase === "input" && (
+          <Link
+            to="/makan/ai"
+            className="flex items-center gap-3 rounded-2xl bg-muted p-4 transition-colors hover:bg-border focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+          >
+            <span
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-card"
+              aria-hidden
+            >
+              <Camera className="size-5 text-makan-ink" />
             </span>
-          </span>
-          <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-        </Link>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold">Pindai pakai foto</span>
+              <span className="block text-xs text-muted-foreground">
+                AI hitung kalorinya, kamu cek dulu.
+              </span>
+            </span>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+          </Link>
+        )}
       </div>
     </Sheet>
   );

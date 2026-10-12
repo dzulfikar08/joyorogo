@@ -22,6 +22,7 @@ export async function createContext({ context }: CreateContextOptions): Promise<
     auth: null,
     session,
     env: workerEnv as unknown as ApiEnv,
+    waitUntil: (promise) => context.executionCtx.waitUntil(promise),
   };
 }
 export type Context = ApiContext;

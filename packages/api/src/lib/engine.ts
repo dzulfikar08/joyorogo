@@ -104,6 +104,23 @@ export function shiftDate(date: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** "Hari ini", "Kemarin", otherwise "Sabtu, 10 Okt". */
+export function relativeDayLabel(date: string, today: string): string {
+  if (date === today) return "Hari ini";
+  if (date === shiftDate(today, -1)) return "Kemarin";
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
+/** Review-screen group header: "Kemarin · Sarapan". */
+export function storySlotLabel(date: string, meal: Meal, today: string): string {
+  return `${relativeDayLabel(date, today)} · ${MEAL_LABELS[meal]}`;
+}
+
 /** Consecutive logged days ending today — or yesterday when today is not logged yet. */
 export function streakFromDates(dates: string[], today: string): number {
   const logged = new Set(dates);

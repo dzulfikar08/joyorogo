@@ -31,6 +31,9 @@ export const profile = sqliteTable("profile", {
   ramadanMode: text("ramadan_mode", { enum: ["auto", "on", "off"] })
     .notNull()
     .default("auto"),
+  // Opt-in: keep the original photo of saved scans (viewable in the diary).
+  // Off by default; turning it off deletes the originals already kept.
+  keepPhotos: integer("keep_photos", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
@@ -74,10 +77,12 @@ export const foodLog = sqliteTable(
     fiber: real("fiber"),
     // 'manual' | 'ai'
     source: text("source").notNull().default("manual"),
-    // raw AI breakdown kept for reference; photos themselves are never stored
-    // scan_id keys the background-removed dish sticker in R2 (scans/<id>.png);
-    // the original photo is transformed in-memory and never persisted
+    // scan_id keys this item's background-removed sticker in R2
+    // (scans/<id>.png); photo_id keys the original photo shared by every item
+    // of one scan, stored privately at photos/<user_id>/<photo_id>.jpg
     scanId: text("scan_id"),
+    photoId: text("photo_id"),
+    // raw AI breakdown kept for reference
     itemsJson: text("items_json"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)

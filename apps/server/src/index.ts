@@ -107,8 +107,40 @@ app.get("/sticker/:scanId", async (c) => {
   });
 });
 
+// Original scan photos (photos/<userId>/<id>.jpg). Unlike stickers these are
+// private: the session picks the prefix, so an id from someone else's diary
+// resolves to nothing.
+app.get("/photo/:photoId", async (c) => {
+  const photoId = c.req.param("photoId");
+  if (!/^[a-f0-9]{32}$/.test(photoId)) {
+    return c.json({ error: "ID tidak valid." }, 400);
+  }
+  const session = await (await createAuth()).api.getSession({ headers: c.req.raw.headers });
+  if (!session?.user) {
+    return c.json({ error: "Kamu harus masuk dulu." }, 401);
+  }
+  if (!("STICKERS" in env) || !env.STICKERS) {
+    return c.json({ error: "Foto belum tersedia." }, 404);
+  }
+  const obj = await env.STICKERS.get(`photos/${session.user.id}/${photoId}.jpg`);
+  if (!obj) {
+    return c.json({ error: "Foto tidak ditemukan." }, 404);
+  }
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": obj.httpMetadata?.contentType ?? "image/jpeg",
+      "Content-Length": String(obj.size),
+      "Cache-Control": "private, max-age=86400",
+    },
+  });
+});
+
 // Personal-data wipe (profil + /privasi). After CORS so web can read errors.
-registerPrivacyRoutes(app, { getDb, createAuth });
+registerPrivacyRoutes(app, {
+  getDb,
+  createAuth,
+  stickers: () => ("STICKERS" in env ? env.STICKERS : undefined),
+});
 
 // Opt-in public progress page — the shareable link (/u/<code>).
 // Renders BEFORE the auth/rpc middleware; read-only, no session needed.

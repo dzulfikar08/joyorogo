@@ -322,12 +322,15 @@ const styles = StyleSheet.create((theme) => ({
     gap: theme.spacing.sm,
   },
   chartTitle: {
+    flexShrink: 1,
     fontSize: theme.fontSize.md,
     fontWeight: "700",
     color: theme.colors.foreground,
   },
+  // Segmented options are flex: 1 (basis 0); inside an auto-width box they
+  // collapse to nothing on React Native, so the switcher needs a real width.
   rangeBox: {
-    flexShrink: 1,
+    width: 184,
   },
   legendRow: {
     flexDirection: "row",

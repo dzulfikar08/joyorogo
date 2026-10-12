@@ -25,4 +25,6 @@ export type Context = {
   session: AuthSession;
   db: Database;
   env: ApiEnv;
+  /** Keeps background work (sticker cutouts) alive after the response. */
+  waitUntil: (promise: Promise<unknown>) => void;
 };

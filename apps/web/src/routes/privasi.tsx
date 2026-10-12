@@ -53,11 +53,27 @@ function PrivasiPage() {
           <section className="rounded-3xl bg-card p-5">
             <h2 className="text-base font-bold tracking-tight">Foto makanan</h2>
             <p className="mt-3 text-sm leading-relaxed">
-              Foto yang kamu kirim diteruskan ke AI (Cloudflare Workers AI) hanya untuk menghitung
-              kalori dan kadar gizinya. Foto asli tidak disimpan di server kami dan tidak dipakai
-              untuk melatih model. Yang kami simpan hanya potongan makanannya (tanpa latar) sebagai
-              stiker diari, lewat alamat acak yang tidak bisa ditebak; hapus catatan makanannya, dan
-              kamu bisa minta stikernya ikut terhapus.
+              Foto yang kamu kirim diteruskan ke AI (Cloudflare Workers AI) untuk menghitung kalori
+              dan kadar gizinya, dan tidak dipakai untuk melatih model. Foto asli tidak disimpan di
+              server kami. Yang kami simpan hanya potongan tiap makanannya (tanpa latar) sebagai
+              stiker diari, lewat alamat acak yang tidak bisa ditebak; hapus catatan makanannya,
+              stikernya ikut terhapus.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Kalau kamu menyalakan "Simpan foto asli" di Profil, foto asli (versi kecil) dari scan
+              yang kamu simpan ikut disimpan supaya bisa dilihat lagi di diari. Foto itu hanya bisa
+              dibuka lewat akunmu. Mematikan pengaturan itu, atau menghapus semua data, menghapus
+              semua foto asli yang tersimpan.
+            </p>
+          </section>
+
+          <section className="rounded-3xl bg-card p-5">
+            <h2 className="text-base font-bold tracking-tight">Cerita dan rekaman suara</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Saat kamu menceritakan makananmu, teks atau rekaman suaramu diteruskan ke AI
+              (Cloudflare Workers AI) untuk diubah jadi teks dan dihitung kalorinya. Rekaman suara
+              tidak disimpan dan tidak dipakai untuk melatih model. Yang tersimpan hanya makanan
+              yang kamu pilih untuk dicatat.
             </p>
           </section>
 

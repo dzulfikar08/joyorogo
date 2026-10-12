@@ -389,6 +389,23 @@ function matchDish(name: string): TdpiDish | undefined {
   return best?.dish;
 }
 
+/**
+ * "Nasi goreng telur ceplok" names two library dishes side by side. Matching
+ * it to either one (longest key wins: "telur ceplok") would clamp a whole
+ * plate into an egg's kcal band, so combinations skip both lookup stages.
+ */
+function isCombination(name: string): boolean {
+  const q = normalize(name);
+  const hits: Array<{ start: number; end: number; dish: TdpiDish }> = [];
+  for (const entry of INDEX) {
+    const start = q.indexOf(entry.key);
+    if (start !== -1) hits.push({ start, end: start + entry.key.length, dish: entry.dish });
+  }
+  return hits.some((a) =>
+    hits.some((b) => a.dish !== b.dish && (a.end <= b.start || b.end <= a.start)),
+  );
+}
+
 function round1(v: number): number {
   return Math.round(v * 10) / 10;
 }
@@ -459,11 +476,12 @@ export type CalibratableItem = {
 /** Pure post-parse calibration against the TKPI library. */
 export function calibrateItems(items: CalibratableItem[]): CalibratedItem[] {
   return items.map((item) => {
-    const dish = matchDish(item.name);
+    const combination = isCombination(item.name);
+    const dish = combination ? undefined : matchDish(item.name);
     if (!dish) {
       // Second stage: the full TKPI 2019 table (~1.1k bahan) — official
       // per-100 g numbers from Kemenkes, recomputed for the estimated portion.
-      const raw = lookupTkpi2019(item.name);
+      const raw = combination ? undefined : lookupTkpi2019(item.name);
       if (raw && raw.kcalPer100g > 0) {
         const grams = item.grams && item.grams > 0 ? item.grams : 100;
         const portion = portionFromTkpi2019(raw, grams);

@@ -23,6 +23,7 @@
       "/ai/*",
       "/u/*",
       "/sticker/*",
+      "/photo/*",
       "/downloads/*",
     ],
   },

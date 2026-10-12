@@ -31,6 +31,11 @@ type AiAnalyzeOutput = Awaited<ReturnType<AppRouterClient["ai"]["analyzeFood"]>>
 /** One dish recognized by the vision AI. */
 export type AiFoodItem = AiAnalyzeOutput["items"][number];
 
+type AiDescribeOutput = Awaited<ReturnType<AppRouterClient["ai"]["describeFood"]>>;
+
+/** One item from a typed/spoken story, already placed on a meal slot and date. */
+export type StoryFoodItem = AiDescribeOutput["items"][number];
+
 type ProfileOutput = Awaited<ReturnType<AppRouterClient["profile"]["myProfile"]>>;
 
 /** The user's profile row, or null before onboarding. */

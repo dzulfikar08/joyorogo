@@ -7,6 +7,7 @@ import {
   Footprints,
   Globe,
   Link2,
+  Image as ImageIcon,
   LogOut,
   ShieldCheck,
   Trash2,
@@ -339,6 +340,7 @@ function ProfilContent({
 
       <SectionTitle className="mt-7">Privasi</SectionTitle>
       <ShareSection enabled={row.shareEnabled} code={row.shareCode} />
+      <KeepPhotosSection keep={row.keepPhotos} />
       <ListGroup className="mt-3">
         <ListLinkRow
           to="/privasi"
@@ -756,6 +758,82 @@ function RamadanSection({ mode }: { mode: "auto" | "on" | "off" }) {
       />
       <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">{hint[mode]}</p>
     </Card>
+  );
+}
+
+function KeepPhotosSection({ keep }: { keep: boolean }) {
+  const queryClient = useQueryClient();
+  const setKeep = useMutation(
+    orpc.profile.setKeepPhotos.mutationOptions({
+      onSuccess: ({ keepPhotos }) => {
+        toast.success(
+          keepPhotos
+            ? "Foto asli akan disimpan mulai scan berikutnya."
+            : "Foto asli tidak disimpan lagi, dan yang tersimpan sudah dihapus.",
+        );
+        queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
+        queryClient.invalidateQueries({ queryKey: orpc.food.key() });
+      },
+      onError: (error) => toast.error(error.message),
+    }),
+  );
+  const [confirmOff, setConfirmOff] = useState(false);
+  return (
+    <>
+      <ListGroup className="mt-3">
+        <ListRow
+          icon={<ImageIcon className="size-5 text-makan-ink" aria-hidden />}
+          title="Simpan foto asli"
+          subtitle={
+            keep
+              ? "Bisa dilihat lagi di diari, hanya oleh kamu."
+              : "Mati: hanya potongan tiap makanan yang disimpan."
+          }
+          trailing={
+            <Switch
+              label="Simpan foto asli"
+              checked={keep}
+              disabled={setKeep.isPending}
+              onCheckedChange={(next) =>
+                next ? setKeep.mutate({ keep: true }) : setConfirmOff(true)
+              }
+            />
+          }
+        />
+      </ListGroup>
+      <Sheet
+        open={confirmOff}
+        onOpenChange={setConfirmOff}
+        title="Matikan simpan foto asli?"
+        description="Foto asli yang sudah tersimpan ikut dihapus permanen."
+      >
+        <div className="space-y-4">
+          <p className="text-[0.9375rem] leading-relaxed">
+            Catatan makan dan stiker tiap makanan tetap ada. Hanya foto aslinya yang dihapus.
+          </p>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="destructive"
+              className="w-full"
+              disabled={setKeep.isPending}
+              onClick={() =>
+                setKeep.mutate({ keep: false }, { onSettled: () => setConfirmOff(false) })
+              }
+            >
+              {setKeep.isPending ? "Menghapus..." : "Ya, matikan dan hapus foto asli"}
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              disabled={setKeep.isPending}
+              onClick={() => setConfirmOff(false)}
+            >
+              Batal
+            </Button>
+          </div>
+        </div>
+      </Sheet>
+    </>
   );
 }
 
