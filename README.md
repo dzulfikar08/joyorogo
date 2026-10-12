@@ -8,8 +8,11 @@
 </p>
 
 <p align="center">
-  <a href="https://joyorogo.dzulfikar.com">Pakai JoyoRogo Cloud</a> ·
-  <a href="https://cloudagni.id/deploy/joyorogo"><img src="https://cloudagni.id/button.svg" alt="Deploy di CloudAgni" height="24" align="center"></a>
+  <a href="https://cloudagni.id/deploy/joyorogo"><img src="https://cloudagni.id/button.svg" alt="Deploy di CloudAgni" height="40"></a>
+</p>
+
+<p align="center">
+  Tidak mau mengurus server? <a href="https://joyorogo.dzulfikar.com">Pakai JoyoRogo Cloud</a>.
 </p>
 
 ## Apa itu JoyoRogo
@@ -39,7 +42,9 @@ Langganan Founder di JoyoRogo Cloud membiayai pengembangan proyek ini.
 
 ## Deploy di CloudAgni
 
-1. Buka [cloudagni.id/deploy/joyorogo](https://cloudagni.id/deploy/joyorogo), masuk, pilih slug.
+<a href="https://cloudagni.id/deploy/joyorogo"><img src="https://cloudagni.id/button.svg" alt="Deploy di CloudAgni" height="40"></a>
+
+1. Klik tombol di atas, masuk, pilih slug.
 2. Siapkan OAuth client Google (jenis *Web application*) di
    [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
    Form deploy menampilkan *authorized redirect URI* yang harus kamu daftarkan,
