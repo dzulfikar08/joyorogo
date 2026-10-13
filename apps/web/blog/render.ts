@@ -8,6 +8,9 @@ import { join } from "node:path";
 import { TKPI_2019, type Tkpi2019Row } from "@joyorogo/api/lib/tkpi2019-data";
 import { Marked } from "marked";
 
+import { OG_IMAGE, PAGES } from "../src/lib/seo.ts";
+import { ogImageTags, PUBLIC_PATHS } from "./pages.ts";
+
 export type BlogConfig = {
   /** Canonical origin, no trailing slash. */
   siteUrl: string;
@@ -214,7 +217,7 @@ function shell(opts: {
     <meta property="og:title" content="${esc(opts.title)}" />
     <meta property="og:description" content="${esc(opts.description)}" />
     <meta property="og:url" content="${url}" />
-    <meta name="twitter:card" content="summary" />${opts.extraHead ?? ""}
+    ${ogImageTags(cfg.siteUrl).join("\n    ")}${opts.extraHead ?? ""}
     <link rel="stylesheet" href="${cfg.cssHref}" />
     <script>${THEME_SCRIPT}</script>${cfg.analyticsSiteId ? `\n    ${analyticsTag(cfg.analyticsSiteId)}` : ""}
 ${opts.jsonLd.map((data) => `    <script type="application/ld+json">${JSON.stringify(data)}</script>`).join("\n")}
@@ -264,8 +267,8 @@ function ctaCard(cfg: BlogConfig): string {
         <h2 id="cta-title" class="text-lg font-bold tracking-tight text-makan-ink">Malas menghitung sendiri?</h2>
         <p class="mt-2 leading-relaxed">Foto piringmu atau ceritakan apa yang kamu makan. JoyoRogo menghitung kalorinya dan bilang berapa lagi yang boleh kamu makan hari ini.</p>
         <div class="mt-4 flex flex-wrap gap-2">
-          <a href="/login" class="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 ${FOCUS}">Coba gratis</a>
-          <a href="${esc(cfg.apkUrl)}" class="inline-flex min-h-11 items-center rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">Unduh untuk Android</a>
+          <a href="/login" data-revklik-goal="signup_click" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 ${FOCUS}">Coba gratis</a>
+          <a href="${esc(cfg.apkUrl)}" data-revklik-goal="apk_download" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">Unduh untuk Android</a>
         </div>
       </aside>`;
 }
@@ -321,6 +324,7 @@ ${ctaCard(cfg)}
         dateModified: post.updated,
         inLanguage: "id",
         mainEntityOfPage: `${cfg.siteUrl}${path}`,
+        image: `${cfg.siteUrl}${OG_IMAGE.path}`,
         author: { "@type": "Person", name: "Dzulfikar" },
         publisher: PUBLISHER(cfg),
       },
@@ -404,9 +408,7 @@ ${items}
 export function renderSitemap(posts: Post[], cfg: BlogConfig): string {
   const newest = posts.reduce((max, p) => (p.updated > max ? p.updated : max), "");
   const urls = [
-    { loc: "/", lastmod: "" },
-    { loc: "/privasi", lastmod: "" },
-    { loc: "/login", lastmod: "" },
+    ...PUBLIC_PATHS.filter((p) => !PAGES[p].noindex).map((loc) => ({ loc, lastmod: "" })),
     { loc: "/blog/", lastmod: newest },
     ...posts.map((p) => ({ loc: `/blog/${p.slug}/`, lastmod: p.updated })),
   ];

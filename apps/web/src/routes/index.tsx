@@ -18,10 +18,12 @@ import { PublicHeader } from "@/components/public-header";
 import { APK_URL, fmtRupiah, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { sessionQuery } from "@/lib/auth-client";
+import { FAQ, pageHead } from "@/lib/seo";
 import { CACHE_OWNER_KEY } from "@/utils/orpc";
 
 export const Route = createFileRoute("/")({
   component: Landing,
+  head: () => pageHead("/"),
   beforeLoad: async ({ context }) => {
     // Someone signed in on this device before: confirm the session (usually
     // straight from the persisted cache) and skip the landing. New visitors
@@ -83,29 +85,6 @@ const NUMBERS: Array<{
   },
 ];
 
-const FAQ = [
-  {
-    q: "Seberapa akurat kalori dari foto?",
-    a: "AI mengenali tiap makanan di piring lalu memperkirakan porsi dan kalorinya. Hasilnya perkiraan, jadi sebelum disimpan kamu bisa mengubah porsi, menghapus, atau menambah item.",
-  },
-  {
-    q: "Apakah fotoku disimpan?",
-    a: "Tidak. Foto hanya dipakai untuk analisis lalu dibuang. Yang tersimpan cuma nama makanan dan angka yang kamu konfirmasi, dan semuanya bisa kamu hapus dari halaman Profil.",
-  },
-  {
-    q: "Bagaimana target kalori dihitung?",
-    a: "Dari usia, jenis kelamin, tinggi, berat, dan tingkat aktivitasmu (rumus Mifflin-St Jeor), lalu dikurangi defisit sesuai target berat dan tanggal yang kamu pilih. Kalau catatan makan dan timbanganmu cukup, target menyesuaikan pembakaran nyatamu, dibatasi 15% dari rumus.",
-  },
-  {
-    q: "Bisa dipakai di iPhone?",
-    a: "Bisa lewat browser. JoyoRogo jalan di web untuk HP dan laptop. Aplikasi Android tersedia sebagai APK dan bisa membaca langkah, olahraga, dan tidur dari Health Connect.",
-  },
-  {
-    q: "Apakah JoyoRogo open source?",
-    a: "Ya. Kodenya terbuka di GitHub dengan lisensi AGPL-3.0. Mau server sendiri untuk keluarga, klinik, atau gym? Deploy lewat CloudAgni, atau jalankan di akun Cloudflare-mu.",
-  },
-] as const;
-
 const SOURCE_URL = "https://github.com/dzulfikar08/joyorogo";
 
 /** Pricing answer follows the server's paywall; omitted until config loads. */
@@ -140,7 +119,10 @@ function Landing() {
 
       <main>
         {/* Hero */}
-        <section className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 pt-8 pb-14 md:grid-cols-[1.05fr_1fr] md:gap-8 md:px-6 md:pt-14 md:pb-20">
+        <section
+          data-section="hero"
+          className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 pt-8 pb-14 md:grid-cols-[1.05fr_1fr] md:gap-8 md:px-6 md:pt-14 md:pb-20"
+        >
           <div>
             <h1 className="max-w-xl text-[2.625rem] leading-[1.04] font-extrabold tracking-tight text-balance md:text-[4rem]">
               Diet yang paham porsi warteg
@@ -151,10 +133,29 @@ function Landing() {
               jam.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button size="lg" render={<a href="#coba" />}>
+              <Button
+                size="lg"
+                render={
+                  <a
+                    href="#coba"
+                    data-revklik-goal="try_scan_click"
+                    data-revklik-goal-location="hero"
+                  />
+                }
+              >
                 Coba foto gratis
               </Button>
-              <Button size="lg" variant="secondary" render={<Link to="/login" />}>
+              <Button
+                size="lg"
+                variant="secondary"
+                render={
+                  <Link
+                    to="/login"
+                    data-revklik-goal="signup_click"
+                    data-revklik-goal-location="hero"
+                  />
+                }
+              >
                 Daftar dengan Google
               </Button>
             </div>
@@ -189,6 +190,7 @@ function Landing() {
         {/* The three numbers */}
         <section
           id="fitur"
+          data-section="numbers"
           className="mx-auto w-full max-w-6xl scroll-mt-20 px-4 py-20 md:px-6 md:py-28"
         >
           <div className="max-w-2xl">
@@ -234,7 +236,7 @@ function Landing() {
         </section>
 
         {/* Scan: copy + the live demo */}
-        <section id="coba" className="scroll-mt-16 bg-card py-20 md:py-28">
+        <section id="coba" data-section="scan" className="scroll-mt-16 bg-card py-20 md:py-28">
           <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 md:grid-cols-[1fr_1.05fr] md:gap-16 md:px-6">
             <div>
               <h2 className="text-3xl font-extrabold tracking-tight text-balance md:text-[2.75rem] md:leading-[1.1]">
@@ -283,7 +285,10 @@ function Landing() {
         </section>
 
         {/* Weight trend */}
-        <section className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-20 md:grid-cols-[1.05fr_1fr] md:gap-16 md:px-6 md:py-28">
+        <section
+          data-section="trend"
+          className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-20 md:grid-cols-[1.05fr_1fr] md:gap-16 md:px-6 md:py-28"
+        >
           <div className="md:order-2">
             <h2 className="text-3xl font-extrabold tracking-tight text-balance md:text-[2.75rem] md:leading-[1.1]">
               Timbangan naik? Lihat trennya dulu.
@@ -312,7 +317,10 @@ function Landing() {
         </section>
 
         {/* Two supporting features, sized by weight */}
-        <section className="mx-auto grid w-full max-w-6xl gap-4 px-4 pb-20 md:grid-cols-[1.4fr_1fr] md:px-6 md:pb-28">
+        <section
+          data-section="features"
+          className="mx-auto grid w-full max-w-6xl gap-4 px-4 pb-20 md:grid-cols-[1.4fr_1fr] md:px-6 md:pb-28"
+        >
           <article className="rounded-[1.75rem] bg-makan-soft p-6 md:p-8">
             <h3 className="text-2xl font-extrabold tracking-tight text-makan-ink">
               Sisa 430 kcal. Makan apa?
@@ -382,7 +390,7 @@ function Landing() {
 
         {/* Pricing, short; the full page has checkout. Hidden without a paywall. */}
         {config.data?.paywall && (
-          <section className="border-t border-border/70 py-20 md:py-24">
+          <section data-section="pricing" className="border-t border-border/70 py-20 md:py-24">
             <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 md:grid-cols-[1fr_1.3fr] md:gap-16 md:px-6">
               <div>
                 <h2 className="text-3xl font-extrabold tracking-tight md:text-[2.75rem] md:leading-[1.1]">
@@ -393,6 +401,8 @@ function Landing() {
                 </p>
                 <Link
                   to="/harga"
+                  data-revklik-goal="pricing_click"
+                  data-revklik-goal-location="landing"
                   className="mt-6 inline-flex min-h-11 items-center text-[0.9375rem] font-bold text-primary hover:underline"
                 >
                   Lihat detail harga
@@ -437,7 +447,10 @@ function Landing() {
         )}
 
         {/* FAQ */}
-        <section className="mx-auto w-full max-w-3xl px-4 pt-4 pb-20 md:px-6 md:pb-28">
+        <section
+          data-section="faq"
+          className="mx-auto w-full max-w-3xl px-4 pt-4 pb-20 md:px-6 md:pb-28"
+        >
           <h2 className="text-3xl font-extrabold tracking-tight md:text-[2.75rem] md:leading-[1.1]">
             Pertanyaan yang sering muncul
           </h2>
@@ -460,7 +473,7 @@ function Landing() {
         </section>
 
         {/* Closing CTA */}
-        <section className="mx-auto w-full max-w-6xl px-4 pb-16 md:px-6">
+        <section data-section="signup" className="mx-auto w-full max-w-6xl px-4 pb-16 md:px-6">
           <div className="rounded-[2rem] bg-primary px-6 py-12 text-center text-primary-foreground md:px-14 md:py-16">
             <h2 className="mx-auto max-w-xl text-3xl font-extrabold tracking-tight text-balance md:text-[2.75rem] md:leading-[1.1]">
               Rencana harianmu siap dalam satu menit
@@ -473,7 +486,13 @@ function Landing() {
               <Button
                 size="lg"
                 className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 focus-visible:ring-primary-foreground/50"
-                render={<Link to="/login" />}
+                render={
+                  <Link
+                    to="/login"
+                    data-revklik-goal="signup_click"
+                    data-revklik-goal-location="closing"
+                  />
+                }
               >
                 Daftar dengan Google
               </Button>
@@ -481,7 +500,13 @@ function Landing() {
                 size="lg"
                 variant="ghost"
                 className="border-primary-foreground/35 text-primary-foreground hover:bg-primary-foreground/10 focus-visible:ring-primary-foreground/50"
-                render={<a href={APK_URL} />}
+                render={
+                  <a
+                    href={APK_URL}
+                    data-revklik-goal="apk_download"
+                    data-revklik-goal-location="closing"
+                  />
+                }
               >
                 <Download aria-hidden />
                 Unduh untuk Android
@@ -515,7 +540,12 @@ function Landing() {
             <a href="/blog/" className="inline-flex min-h-11 items-center hover:text-primary">
               Blog
             </a>
-            <a href={APK_URL} className="inline-flex min-h-11 items-center hover:text-primary">
+            <a
+              href={APK_URL}
+              data-revklik-goal="apk_download"
+              data-revklik-goal-location="footer"
+              className="inline-flex min-h-11 items-center hover:text-primary"
+            >
               Unduh Android
             </a>
             <a href={SOURCE_URL} className="inline-flex min-h-11 items-center hover:text-primary">

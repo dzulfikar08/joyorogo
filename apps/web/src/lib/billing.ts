@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
+import { trackEvent } from "./analytics";
 import { apiUrl } from "./app-config";
 
 /** Start a DOKU Checkout for one month of Founder, then leave for DOKU's page. */
@@ -23,6 +24,7 @@ export function useFounderCheckout() {
       if (!res.ok || !body?.paymentUrl) {
         throw new Error(body?.error ?? "Pembayaran belum bisa diproses. Coba lagi nanti.");
       }
+      trackEvent("checkout_start");
       window.location.assign(body.paymentUrl);
       return body.paymentUrl;
     },

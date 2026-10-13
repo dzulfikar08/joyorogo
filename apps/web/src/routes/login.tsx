@@ -1,10 +1,12 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { createFileRoute, isRedirect, Link, redirect } from "@tanstack/react-router";
 import { authClient, sessionQuery } from "@/lib/auth-client";
+import { pageHead } from "@/lib/seo";
 import { env } from "@/env.public";
 
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
+  head: () => pageHead("/login"),
   beforeLoad: async ({ context }) => {
     // The login page must render even when the server is unreachable —
     // it is the pre-auth surface, not somewhere an error boundary helps.
@@ -58,6 +60,7 @@ function RouteComponent() {
           size="lg"
           className="mt-8 w-full max-w-xs"
           onClick={signInGoogle}
+          data-revklik-goal="google_signin"
           disabled={isPending}
         >
           {/* Google brand mark; the one icon users look for on a sign-in button. */}

@@ -20,6 +20,7 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Page } from "@/components/kit/surface";
 import { PlanNumbers, TargetNotesList } from "@/components/plan-numbers";
+import { trackConversion } from "@/lib/analytics";
 import { fmtDateIndo, fmtInt, fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 
@@ -155,6 +156,7 @@ function OnboardingPage() {
         // Everything (summary, weigh-in, plan) derives from the profile.
         queryClient.invalidateQueries();
         setDone(true);
+        trackConversion("onboarding_complete");
       },
       onError: (err) => toast.error(err.message),
     }),

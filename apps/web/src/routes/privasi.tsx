@@ -2,12 +2,11 @@ import { Check } from "lucide-react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 
 import { PublicHeader } from "@/components/public-header";
+import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/privasi")({
   component: PrivasiPage,
-  head: () => ({
-    meta: [{ title: "Privasi — JoyoRogo" }],
-  }),
+  head: () => pageHead("/privasi"),
 });
 
 function CheckList({ items }: { items: readonly string[] }) {
@@ -90,6 +89,11 @@ function PrivasiPage() {
               Satu-satunya data yang bisa dilihat orang lain adalah halaman progres publik, dan itu
               hanya aktif kalau kamu menyalakannya sendiri di Profil. Isinya berat awal ke berat
               sekarang saja, tanpa email dan tanpa catatan makanan.
+            </p>
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Untuk tahu halaman dan tombol mana yang dipakai, kami memakai analitik tanpa cookie
+              (Revklik): halaman yang dibuka, sumber kunjungan, jenis perangkat, dan langkah seperti
+              daftar atau pembayaran Founder. Tanpa nama, email, atau catatan kesehatanmu.
             </p>
           </section>
 

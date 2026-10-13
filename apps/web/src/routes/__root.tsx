@@ -16,19 +16,9 @@ export interface RouterAppContext {
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,
-  head: () => ({
-    meta: [
-      {
-        title: "JoyoRogo",
-      },
-      {
-        name: "description",
-        content:
-          "Turunkan berat badan dengan 3 angka yang jelas tiap hari: target makan, bakar, dan tidur. Foto makananmu, AI menghitung kalorinya, foto tidak disimpan.",
-      },
-    ],
-    links: [{ rel: "icon", href: "/favicon.png" }],
-  }),
+  // Public pages set their own title (src/lib/seo.ts); descriptions, icons,
+  // and share tags live in each page's static HTML (blog/pages.ts).
+  head: () => ({ meta: [{ title: "JoyoRogo" }] }),
 });
 
 // Each layout owns its chrome: the signed-in shell (_auth) has the tab bar

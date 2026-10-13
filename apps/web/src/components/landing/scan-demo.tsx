@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@joyorogo/ui/components/button";
 import { ListGroup, ListRow } from "@/components/kit/surface";
 import { useAppConfig } from "@/lib/app-config";
+import { trackEvent } from "@/lib/analytics";
 import { fmtInt } from "@/lib/format";
 import { env } from "../../env.public";
 
@@ -92,10 +93,15 @@ export function ScanDemo() {
       }
       return body as ScanResult;
     },
-    onSuccess: (data) => setResult(data),
+    onSuccess: (data) => {
+      setResult(data);
+      trackEvent("demo_scan");
+    },
     onError: (err) => {
-      if ((err as Error & { paywall?: boolean }).paywall) setPaywall(true);
-      else setError(err.message);
+      if ((err as Error & { paywall?: boolean }).paywall) {
+        setPaywall(true);
+        trackEvent("demo_scan_limit");
+      } else setError(err.message);
     },
   });
 

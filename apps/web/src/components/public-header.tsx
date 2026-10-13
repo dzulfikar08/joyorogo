@@ -41,7 +41,13 @@ export function PublicHeader() {
             Blog
           </a>
         </nav>
-        <Button render={<Link to="/login" />}>Masuk</Button>
+        <Button
+          render={
+            <Link to="/login" data-revklik-goal="login_click" data-revklik-goal-location="header" />
+          }
+        >
+          Masuk
+        </Button>
       </div>
     </header>
   );

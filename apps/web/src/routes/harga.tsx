@@ -7,9 +7,11 @@ import { PublicHeader } from "@/components/public-header";
 import { fmtRupiah, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { useFounderCheckout } from "@/lib/billing";
+import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/harga")({
   component: HargaPage,
+  head: () => pageHead("/harga"),
 });
 
 const FOUNDER_FEATURES = [

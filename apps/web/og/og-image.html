@@ -1,0 +1,161 @@
+<!doctype html>
+<!-- Source of public/og.png (1200×630). Regenerate with `bun run og` in apps/web. -->
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      @font-face {
+        font-family: "Plus Jakarta Sans";
+        font-weight: 200 800;
+        src: url("../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2")
+          format("woff2");
+      }
+      :root {
+        --background: oklch(0.975 0.008 85);
+        --foreground: oklch(0.22 0.012 85);
+        --muted: oklch(0.5 0.014 85);
+        --card: oklch(1 0 0);
+        --makan: oklch(0.52 0.13 152);
+        --bakar: oklch(0.64 0.17 40);
+        --tidur: oklch(0.55 0.13 275);
+        --track: oklch(0.93 0.01 85);
+      }
+      * {
+        margin: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+      body {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 56px;
+        align-items: center;
+        padding: 0 80px;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: "Plus Jakarta Sans", sans-serif;
+      }
+      .logo {
+        height: 52px;
+      }
+      h1 {
+        margin-top: 44px;
+        font-size: 76px;
+        line-height: 1.02;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+      }
+      p {
+        margin-top: 24px;
+        font-size: 28px;
+        line-height: 1.4;
+        color: var(--muted);
+        max-width: 620px;
+      }
+      .url {
+        margin-top: 40px;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--makan);
+      }
+      .rings {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .ring {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 18px 22px;
+        border-radius: 28px;
+        background: var(--card);
+      }
+      .ring svg {
+        width: 104px;
+        height: 104px;
+        flex-shrink: 0;
+        transform: rotate(-90deg);
+      }
+      .ring b {
+        display: block;
+        font-size: 34px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+      }
+      .ring span {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <img class="logo" src="../public/brand/logo.svg" alt="" />
+      <h1>Diet yang paham porsi warteg</h1>
+      <p>
+        Foto piringmu, kalorinya terhitung. Tiap hari tahu berapa boleh makan, harus bakar, dan
+        butuh tidur.
+      </p>
+      <div class="url">joyorogo.com</div>
+    </div>
+    <div class="rings">
+      <!-- Circumference of r=42 is 263.9; dash = share filled, as on the landing. -->
+      <div class="ring">
+        <svg viewBox="0 0 104 104">
+          <circle cx="52" cy="52" r="42" fill="none" stroke="var(--track)" stroke-width="12" />
+          <circle
+            cx="52"
+            cy="52"
+            r="42"
+            fill="none"
+            stroke="var(--makan)"
+            stroke-width="12"
+            stroke-linecap="round"
+            stroke-dasharray="196 264"
+          />
+        </svg>
+        <div><b>1.650 kcal</b><span>Boleh makan</span></div>
+      </div>
+      <div class="ring">
+        <svg viewBox="0 0 104 104">
+          <circle cx="52" cy="52" r="42" fill="none" stroke="var(--track)" stroke-width="12" />
+          <circle
+            cx="52"
+            cy="52"
+            r="42"
+            fill="none"
+            stroke="var(--bakar)"
+            stroke-width="12"
+            stroke-linecap="round"
+            stroke-dasharray="106 264"
+          />
+        </svg>
+        <div><b>300 kcal</b><span>Harus bakar</span></div>
+      </div>
+      <div class="ring">
+        <svg viewBox="0 0 104 104">
+          <circle cx="52" cy="52" r="42" fill="none" stroke="var(--track)" stroke-width="12" />
+          <circle
+            cx="52"
+            cy="52"
+            r="42"
+            fill="none"
+            stroke="var(--tidur)"
+            stroke-width="12"
+            stroke-linecap="round"
+            stroke-dasharray="247 264"
+          />
+        </svg>
+        <div><b>8 jam</b><span>Butuh tidur</span></div>
+      </div>
+    </div>
+  </body>
+</html>

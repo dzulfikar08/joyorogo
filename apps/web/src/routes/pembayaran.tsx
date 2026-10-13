@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 import { Button } from "@joyorogo/ui/components/button";
 
 import { PublicHeader } from "@/components/public-header";
+import { trackConversion } from "@/lib/analytics";
 import { fetchOrder, fmtFounderDate, useFounderCheckout } from "@/lib/billing";
+import { pageHead } from "@/lib/seo";
 import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/pembayaran")({
@@ -14,7 +16,7 @@ export const Route = createFileRoute("/pembayaran")({
   validateSearch: (search: Record<string, unknown>): { order?: string } => ({
     order: typeof search.order === "string" ? search.order : undefined,
   }),
-  head: () => ({ meta: [{ title: "Pembayaran | JoyoRogo" }] }),
+  head: () => pageHead("/pembayaran"),
 });
 
 // DOKU usually notifies within seconds; stop polling after 3 minutes.
@@ -39,9 +41,16 @@ function PembayaranPage() {
   });
 
   const paid = status.data?.status === "paid";
+  const amountIdr = status.data?.amountIdr;
   useEffect(() => {
-    if (paid) queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
-  }, [paid, queryClient]);
+    if (!paid || !order) return;
+    queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
+    // Revenue counts once per order, not on every reload of this page.
+    const key = `jrg-kp-paid-${order}`;
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, "1");
+    trackConversion("founder_purchase", amountIdr, { order });
+  }, [paid, order, amountIdr, queryClient]);
 
   let body: React.ReactNode;
   if (!order) {

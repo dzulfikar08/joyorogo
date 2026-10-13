@@ -95,17 +95,20 @@ Redirect URI Google: `<alamatmu>/api/auth/callback/google`. Variabel opsional
 
 Pemilik server yang menentukan. Tanpa konfigurasi, semua fitur gratis tanpa batas.
 
-| Variabel                                             | Arti                                                                                            | Bawaan |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------ |
-| `FREE_DAILY_SCANS`                                   | Batas scan AI per hari untuk pengguna gratis. Kosong = tanpa paywall.                           | kosong |
-| `FOUNDER_DAILY_CAP`                                  | Batas pengaman scan Founder per hari. Kosong = tanpa batas.                                     | kosong |
-| `ANON_SCANS`                                         | Coba scan tanpa daftar per perangkat. `0` mematikan demo.                                       | 2      |
-| `FOUNDER_PRICE_IDR`                                  | Harga Founder per bulan.                                                                        | 15000  |
-| `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL` | DOKU Checkout (QRIS, VA, e-wallet). Pembayaran aktif hanya kalau `FREE_DAILY_SCANS` juga diisi. | kosong |
-| `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`           | Impor olahraga dari Strava.                                                                     | kosong |
+| Variabel                                             | Arti                                                                                                                                                                        | Bawaan |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| `FREE_DAILY_SCANS`                                   | Batas scan AI per hari untuk pengguna gratis. Kosong = tanpa paywall.                                                                                                       | kosong |
+| `FOUNDER_DAILY_CAP`                                  | Batas pengaman scan Founder per hari. Kosong = tanpa batas.                                                                                                                 | kosong |
+| `ANON_SCANS`                                         | Coba scan tanpa daftar per perangkat. `0` mematikan demo.                                                                                                                   | 2      |
+| `FOUNDER_PRICE_IDR`                                  | Harga Founder per bulan.                                                                                                                                                    | 15000  |
+| `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL` | DOKU Checkout (QRIS, VA, e-wallet). Pembayaran aktif hanya kalau `FREE_DAILY_SCANS` juga diisi.                                                                             | kosong |
+| `APPLE_BUNDLE_ID`, `APPLE_FOUNDER_PRODUCT_ID`        | Apple in-app purchase untuk Founder di iOS. Kosong = `com.joyodigitama.joyorogo` dan `com.joyodigitama.joyorogo.founder.1m`; harus sama dengan produk di App Store Connect. | kosong |
+| `APPLE_SANDBOX_EMAILS`                               | Email (pisah koma) yang boleh memakai pembelian sandbox/TestFlight: akunmu dan akun demo App Review. Production selalu diterima.                                            | kosong |
+| `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`           | Impor olahraga dari Strava.                                                                                                                                                 | kosong |
 
 Founder dibayar per bulan (tanpa perpanjangan otomatis). Notifikasi DOKU
-masuk ke `/api/billing/webhook`.
+masuk ke `/api/billing/webhook`. Di iOS, Founder dibayar lewat Apple
+in-app purchase (`/api/billing/apple`) tanpa kredensial tambahan.
 
 ## Aplikasi Android
 
@@ -114,6 +117,21 @@ server sendiri, build dari source: ganti `EXPO_PUBLIC_SERVER_URL` di
 `scripts/build-release-apk.sh` dan package id di `apps/native/app.json`, lalu
 jalankan skrip itu (butuh Android SDK, JDK, dan Bun). Tanpa APK, aplikasi
 web tetap bisa dipasang ke layar utama HP.
+
+Setiap build memberi `versionCode` otomatis dari waktu UTC (YYMMDDHHmm), jadi
+selalu naik tanpa diubah manual, dan menulis `joyorogo-latest.json` di root
+repo: manifest berisi `versionCode`, `versionName`, `size`, `sha256`, dan
+`publishedAt`. Aplikasi Android memakai manifest itu untuk pembaruan dalam
+aplikasi: kartu "Versi baru tersedia" muncul di Profil, APK diunduh ke cache,
+diverifikasi sha256-nya, lalu dibuka lewat installer sistem. Tambahkan flag
+`--publish` untuk mengunggah keduanya ke R2 (APK dulu, manifest terakhir):
+
+```bash
+scripts/build-release-apk.sh --publish
+```
+
+APK pertama yang mendukung pembaruan dalam aplikasi harus dipasang manual satu
+kali; setelah itu pembaruan berikutnya bisa dari dalam aplikasi.
 
 ## Pengembangan
 
@@ -159,6 +177,12 @@ Artikel blog ada di `apps/web/blog/posts/*.md` (frontmatter `title`,
 Nasi putih | FP062 70` membuat contoh porsi beserta totalnya, `::contoh` sama
 tanpa total. Build menulis `/blog/`, RSS, dan `sitemap.xml`; `VITE_SITE_URL`
 mengganti domain kanonik (bawaan `https://joyorogo.com`).
+
+Judul, deskripsi, dan kartu share tiap halaman publik (`/`, `/harga`,
+`/privasi`, `/login`) ada di `apps/web/src/lib/seo.ts`; build menulisnya ke
+HTML statis masing-masing (`harga.html`, dst.) beserta JSON-LD halaman utama.
+Gambar share `public/og.png` (1200×630) dibuat dari `apps/web/og/og-image.html`
+dengan `bun run og` di `apps/web` (butuh Chromium).
 
 ## Lisensi
 
