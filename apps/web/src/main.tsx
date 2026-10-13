@@ -4,9 +4,12 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 
 import Loader from "./components/loader";
+import { limitRevklikToPublicPages } from "./lib/analytics";
 import { sessionQuery } from "./lib/auth-client";
 import { routeTree } from "./routeTree.gen";
 import { cacheBuster, orpc, persister, queryClient } from "./utils/orpc";
+
+limitRevklikToPublicPages();
 
 const router = createRouter({
   routeTree,

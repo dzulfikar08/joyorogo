@@ -22,3 +22,37 @@ export function trackEvent(name: string, props?: Props) {
 export function trackConversion(name: string, revenueIdr?: number, props?: Props) {
   window.klikapa?.conversion(name, revenueIdr ?? null, props);
 }
+
+// Revklik only measures the marketing funnel: landing, blog, pricing, sign-up
+// and payment pages. In-app screens (Beranda, Makan, …) are not tracked.
+// Conversions (`t: "c"`: onboarding_complete, founder_purchase) always pass,
+// wherever they fire.
+const TRACKED_PATHS = /^\/(?:$|harga|login|pembayaran|privasi|blog|u\/)/;
+
+type TrackItem = { t?: string; p?: string };
+
+/**
+ * The Revklik tag has no route exclusion, so filter its batches at the one
+ * place they leave the page: its fetch to `/api/track`. Install before the
+ * tag's first flush (it batches for 1 s after load).
+ */
+export function limitRevklikToPublicPages() {
+  const original = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (!url.endsWith("revklik.com/api/track") || typeof init?.body !== "string") {
+      return original(input, init);
+    }
+    let batch: TrackItem[];
+    try {
+      batch = JSON.parse(init.body) as TrackItem[];
+    } catch {
+      return original(input, init);
+    }
+    const kept = batch.filter((item) => item.t === "c" || TRACKED_PATHS.test(item.p ?? ""));
+    if (kept.length === 0) {
+      return Promise.resolve(new Response("{}", { headers: { "Content-Type": "application/json" } }));
+    }
+    return original(input, { ...init, body: JSON.stringify(kept) });
+  };
+}

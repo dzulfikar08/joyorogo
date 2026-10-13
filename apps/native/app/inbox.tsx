@@ -12,18 +12,22 @@ import {
   Screen,
   Skeleton,
 } from "@/components/ui";
+import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { timeAgoId } from "@/src/lib/group";
+import { errorMessage } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
 /** Kotak Masuk: pokes and notes from groupmates; opening a row marks it read. */
 export default function Inbox() {
   const gate = useSessionGate();
+  const toast = useToast();
   const inbox = useQuery(orpc.group.inbox.queryOptions({ input: { limit: 50 } }));
 
   const markRead = useMutation(
     orpc.group.markRead.mutationOptions({
       onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.group.key() }),
+      onError: (e) => toast.error("Gagal menandai dibaca", errorMessage(e)),
     }),
   );
 

@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
-import { Alert, Image, Platform, Switch, View } from "react-native";
+import { Image, Platform, Switch, View } from "react-native";
 import { useEffect, useState } from "react";
 import { Redirect, Stack, router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -26,6 +26,8 @@ import {
   Text,
 } from "@/components/ui";
 import { FounderCards, serverUrl, useAppConfig } from "@/components/billing";
+import { ConfirmSheet } from "@/components/confirm-sheet";
+import { useToast } from "@/components/toast";
 import { BudgetSetting } from "@/components/plate/budget-setting";
 import { TargetDateSheet, TargetWeightSheet } from "@/components/target-sheets";
 import { StravaCard } from "@/components/strava-card";
@@ -58,6 +60,7 @@ const GENDER_LABELS: Record<Gender, string> = {
 
 export default function Profil() {
   const gate = useSessionGate();
+  const toast = useToast();
   const { data: session } = authClient.useSession();
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   const config = useAppConfig();
@@ -76,6 +79,7 @@ export default function Profil() {
   const [hcBusy, setHcBusy] = useState(false);
   const [hcMessage, setHcMessage] = useState<string | null>(null);
   const [hcError, setHcError] = useState<string | null>(null);
+  const [wipeOpen, setWipeOpen] = useState(false);
 
   // Android only: Profil bypasses the throttle so the card reflects the server
   // right now. The app-start check stays silent and throttled.
@@ -138,20 +142,11 @@ export default function Profil() {
         await teardownReminders();
         router.replace("/onboarding");
       },
-      onError: (e) => Alert.alert("Gagal menghapus", errorMessage(e)),
+      onError: (e) => toast.error("Gagal menghapus", errorMessage(e)),
     }),
   );
 
-  const confirmWipe = () => {
-    Alert.alert(
-      "Hapus semua data?",
-      "Profil, berat, makanan, olahraga, dan tidur dihapus permanen. Akunmu tetap bisa dipakai.",
-      [
-        { text: "Batal", style: "cancel" },
-        { text: "Hapus", style: "destructive", onPress: () => deleteData.mutate() },
-      ],
-    );
-  };
+  const confirmWipe = () => setWipeOpen(true);
 
   const importHealthData = async () => {
     setHcBusy(true);
@@ -465,6 +460,19 @@ export default function Profil() {
         </>
       ) : null}
       </Screen>
+
+      <ConfirmSheet
+        visible={wipeOpen}
+        onClose={() => setWipeOpen(false)}
+        title="Hapus semua data?"
+        message="Profil, berat, makanan, olahraga, dan tidur dihapus permanen. Akunmu tetap bisa dipakai."
+        confirmLabel="Hapus"
+        loading={deleteData.isPending}
+        onConfirm={() => {
+          setWipeOpen(false);
+          deleteData.mutate();
+        }}
+      />
     </>
   );
 }
@@ -612,6 +620,7 @@ function RamadanList({ mode }: { mode: "auto" | "on" | "off" }) {
 /** "Simpan foto asli" (profile.setKeepPhotos); turning it off deletes stored originals. */
 function PrivacyList({ keepPhotos }: { keepPhotos: boolean }) {
   const { theme } = useUnistyles();
+  const [keepConfirm, setKeepConfirm] = useState(false);
   const setKeep = useMutation(
     orpc.profile.setKeepPhotos.mutationOptions({
       onSuccess: () => {
@@ -623,18 +632,7 @@ function PrivacyList({ keepPhotos }: { keepPhotos: boolean }) {
 
   const change = (value: boolean) => {
     if (!value) {
-      Alert.alert(
-        "Matikan simpan foto asli?",
-        "Foto asli yang sudah tersimpan ikut dihapus permanen. Catatan makan dan stiker tiap makanan tetap ada.",
-        [
-          { text: "Batal", style: "cancel" },
-          {
-            text: "Ya, matikan dan hapus",
-            style: "destructive",
-            onPress: () => setKeep.mutate({ keep: false }),
-          },
-        ],
-      );
+      setKeepConfirm(true);
       return;
     }
     setKeep.mutate({ keep: true });
@@ -662,6 +660,19 @@ function PrivacyList({ keepPhotos }: { keepPhotos: boolean }) {
           : "Hanya potongan tiap makanan yang disimpan sebagai stiker. Foto aslinya dibuang setelah dianalisis."}
       </Text>
       {setKeep.isError ? <Text style={styles.error}>{errorMessage(setKeep.error)}</Text> : null}
+
+      <ConfirmSheet
+        visible={keepConfirm}
+        onClose={() => setKeepConfirm(false)}
+        title="Matikan simpan foto asli?"
+        message="Foto asli yang sudah tersimpan ikut dihapus permanen. Catatan makan dan stiker tiap makanan tetap ada."
+        confirmLabel="Ya, matikan dan hapus"
+        loading={setKeep.isPending}
+        onConfirm={() => {
+          setKeepConfirm(false);
+          setKeep.mutate({ keep: false });
+        }}
+      />
     </Card>
   );
 }

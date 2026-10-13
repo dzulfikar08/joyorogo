@@ -24,6 +24,7 @@ import {
   Sheet,
   Text,
 } from "@/components/ui";
+import { ConfirmSheet } from "@/components/confirm-sheet";
 import { useSessionGate } from "@/lib/use-session-gate";
 import {
   completedSetCount,
@@ -79,6 +80,8 @@ export default function LatihanAktif() {
   const [menu, setMenu] = useState<MenuTarget>(null);
   const [noteFor, setNoteFor] = useState<number | null>(null);
   const [restFor, setRestFor] = useState<number | null>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [finishUnchecked, setFinishUnchecked] = useState<number | null>(null);
   const now = useNow(true);
   const scheduledForEnd = useRef<number | null>(null);
 
@@ -255,33 +258,13 @@ export default function LatihanAktif() {
       router.push("/latihan/ringkasan");
     };
     if (unchecked > 0) {
-      Alert.alert(
-        "Ada set belum dicentang",
-        `${unchecked} set belum ditandai selesai. Set yang tidak dicentang tidak akan disimpan.`,
-        [
-          { text: "Periksa lagi", style: "cancel" },
-          { text: "Tetap selesaikan", style: "destructive", onPress: go },
-        ],
-      );
+      setFinishUnchecked(unchecked);
       return;
     }
     go();
   };
 
-  const discard = () => {
-    Alert.alert("Buang latihan?", "Semua set yang sudah dicatat akan hilang.", [
-      { text: "Batal", style: "cancel" },
-      {
-        text: "Buang",
-        style: "destructive",
-        onPress: () => {
-          setActiveWorkout(null);
-          void cancelRestEndNotification();
-          router.back();
-        },
-      },
-    ]);
-  };
+  const discard = () => setConfirmDiscard(true);
 
   const menuExercise = menu;
 
@@ -602,6 +585,35 @@ export default function LatihanAktif() {
             ))}
           </View>
         </Sheet>
+
+        <ConfirmSheet
+          visible={confirmDiscard}
+          onClose={() => setConfirmDiscard(false)}
+          title="Buang latihan?"
+          message="Semua set yang sudah dicatat akan hilang."
+          confirmLabel="Buang"
+          onConfirm={() => {
+            setConfirmDiscard(false);
+            setActiveWorkout(null);
+            void cancelRestEndNotification();
+            router.back();
+          }}
+        />
+
+        <ConfirmSheet
+          visible={finishUnchecked !== null}
+          onClose={() => setFinishUnchecked(null)}
+          title="Ada set belum dicentang"
+          message={`${finishUnchecked ?? 0} set belum ditandai selesai. Set yang tidak dicentang tidak akan disimpan.`}
+          confirmLabel="Simpan tanpa set itu"
+          cancelLabel="Kembali"
+          onConfirm={() => {
+            setFinishUnchecked(null);
+            setRestEndsAt(null);
+            void cancelRestEndNotification();
+            router.push("/latihan/ringkasan");
+          }}
+        />
       </View>
     </>
   );

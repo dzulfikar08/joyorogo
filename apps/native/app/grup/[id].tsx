@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Share, Switch, View } from "react-native";
+import { Share, Switch, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
@@ -31,6 +31,8 @@ import {
 } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
+import { ConfirmSheet } from "@/components/confirm-sheet";
+import { useToast } from "@/components/toast";
 import type { GroupActivityEvent, GroupMember } from "@/src/lib/group";
 import { inviteLink, timeAgoId } from "@/src/lib/group";
 import { errorMessage, fmtKcal, fmtKg } from "@/utils/format";
@@ -156,13 +158,17 @@ export default function GroupDetail() {
   const [newName, setNewName] = useState("");
   const [noteTarget, setNoteTarget] = useState<GroupMember | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [confirm, setConfirm] = useState<
+    { kind: "leave" } | { kind: "remove"; member: GroupMember } | null
+  >(null);
+  const toast = useToast();
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: orpc.group.key() });
 
   const nudge = useMutation(
     orpc.group.nudge.mutationOptions({
       onSuccess: invalidate,
-      onError: (e) => Alert.alert("Gagal mengirim", errorMessage(e)),
+      onError: (e) => toast.error("Gagal mengirim", errorMessage(e)),
     }),
   );
   const setShareFood = useMutation(orpc.group.setShareFood.mutationOptions({ onSuccess: invalidate }));
@@ -172,19 +178,22 @@ export default function GroupDetail() {
         setRenameOpen(false);
         await invalidate();
       },
-      onError: (e) => Alert.alert("Gagal mengubah nama", errorMessage(e)),
+      onError: (e) => toast.error("Gagal mengubah nama", errorMessage(e)),
     }),
   );
   const rotateInvite = useMutation(
     orpc.group.rotateInvite.mutationOptions({
       onSuccess: invalidate,
-      onError: (e) => Alert.alert("Gagal ganti kode", errorMessage(e)),
+      onError: (e) => toast.error("Gagal ganti kode", errorMessage(e)),
     }),
   );
   const removeMember = useMutation(
     orpc.group.removeMember.mutationOptions({
-      onSuccess: invalidate,
-      onError: (e) => Alert.alert("Gagal mengeluarkan", errorMessage(e)),
+      onSuccess: async () => {
+        setConfirm(null);
+        await invalidate();
+      },
+      onError: (e) => toast.error("Gagal mengeluarkan", errorMessage(e)),
     }),
   );
   const leave = useMutation(
@@ -193,7 +202,7 @@ export default function GroupDetail() {
         await invalidate();
         router.replace("/grup");
       },
-      onError: (e) => Alert.alert("Gagal keluar", errorMessage(e)),
+      onError: (e) => toast.error("Gagal keluar", errorMessage(e)),
     }),
   );
 
@@ -254,29 +263,15 @@ export default function GroupDetail() {
       {
         onSuccess: () => {
           setNoteTarget(null);
-          Alert.alert("Catatan terkirim", `Catatan untuk ${noteTarget.name} sudah dikirim.`);
+          toast.success("Catatan terkirim", `Catatan untuk ${noteTarget.name} sudah dikirim.`);
         },
       },
     );
   };
 
-  const confirmLeave = () => {
-    Alert.alert("Keluar dari grup?", `${group.name} akan hilang dari daftar grupmu.`, [
-      { text: "Batal", style: "cancel" },
-      { text: "Keluar", style: "destructive", onPress: () => leave.mutate({ groupId }) },
-    ]);
-  };
+  const confirmLeave = () => setConfirm({ kind: "leave" });
 
-  const confirmRemove = (member: GroupMember) => {
-    Alert.alert("Keluarkan anggota?", `${member.name} tidak bisa lihat grup ini lagi.`, [
-      { text: "Batal", style: "cancel" },
-      {
-        text: "Keluarkan",
-        style: "destructive",
-        onPress: () => removeMember.mutate({ groupId, userId: member.userId }),
-      },
-    ]);
-  };
+  const confirmRemove = (member: GroupMember) => setConfirm({ kind: "remove", member });
 
   // Sorted by activity: most recently active first, never-active last.
   const sortedMembers = [...members].sort(
@@ -426,6 +421,27 @@ export default function GroupDetail() {
             />
           </ListGroup>
         </Sheet>
+
+        <ConfirmSheet
+          visible={confirm !== null}
+          onClose={() => setConfirm(null)}
+          title={confirm?.kind === "remove" ? "Keluarkan anggota?" : "Keluar dari grup?"}
+          message={
+            confirm?.kind === "remove"
+              ? `${confirm.member.name} tidak bisa lihat grup ini lagi.`
+              : `${group.name} akan hilang dari daftar grupmu.`
+          }
+          confirmLabel={confirm?.kind === "remove" ? "Keluarkan" : "Keluar"}
+          loading={removeMember.isPending || leave.isPending}
+          onConfirm={() => {
+            if (confirm?.kind === "remove") {
+              removeMember.mutate({ groupId, userId: confirm.member.userId });
+            } else if (confirm?.kind === "leave") {
+              setConfirm(null);
+              leave.mutate({ groupId });
+            }
+          }}
+        />
 
         <Sheet
           visible={renameOpen}

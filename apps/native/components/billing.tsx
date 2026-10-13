@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Alert, Platform, View } from "react-native";
+import { Platform, View } from "react-native";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { StyleSheet } from "react-native-unistyles";
@@ -8,6 +8,7 @@ import { StyleSheet } from "react-native-unistyles";
 import { appleIap } from "@/modules/apple-iap";
 import { authClient } from "@/lib/auth-client";
 import { Button, Card, Text } from "@/components/ui";
+import { useToast } from "@/components/toast";
 import { errorMessage } from "@/utils/format";
 import { ENV } from "@/src/env";
 import { queryClient } from "@/utils/orpc";
@@ -313,6 +314,7 @@ export function FounderCards({
   const price = useAppleFounderPrice(ios && appleBilling);
   useUnfinishedReplay(ios && appleBilling);
   const pendingOrder = usePendingOrder(tier === "free" && billing).data ?? null;
+  const toast = useToast();
   const [checking, setChecking] = useState(false);
 
   const checkPending = async () => {
@@ -322,12 +324,12 @@ export function FounderCards({
       const order = await checkOrderPaid(pendingOrder);
       if (order.status === "paid") {
         queryClient.invalidateQueries();
-        Alert.alert("Pembayaran diterima", "Founder aktif. Terima kasih!");
+        toast.success("Pembayaran diterima", "Founder aktif. Terima kasih!");
       } else {
-        Alert.alert("Belum ada pembayaran masuk", "Coba lagi sebentar.");
+        toast.info("Belum ada pembayaran masuk", "Coba lagi sebentar.");
       }
     } catch (e) {
-      Alert.alert("Cek pembayaran gagal", errorMessage(e));
+      toast.error("Cek pembayaran gagal", errorMessage(e));
     } finally {
       setChecking(false);
     }

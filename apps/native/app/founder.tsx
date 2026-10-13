@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import type { Href } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, AppState, Platform, View } from "react-native";
+import { AppState, Platform, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import {
@@ -24,6 +24,7 @@ import {
   useFounderCheckout,
   type CheckoutPlan,
 } from "@/components/billing";
+import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
@@ -34,6 +35,7 @@ type PaywallFrom = "onboarding" | "quota" | "banner" | "profile";
 export default function FounderPaywall() {
   const { theme } = useUnistyles();
   const gate = useSessionGate();
+  const toast = useToast();
   const { next, from } = useLocalSearchParams<{ next?: string; from?: PaywallFrom }>();
   // Callers only pass internal routes here ("/", "/makan", "/profil").
   const destination = (
@@ -87,7 +89,7 @@ export default function FounderPaywall() {
       if (ios) await purchase.mutateAsync();
       else await checkout.mutateAsync();
     } catch (e) {
-      Alert.alert("Pembayaran gagal", errorMessage(e));
+      toast.error("Pembayaran gagal", errorMessage(e));
     }
   };
   const buying = ios ? purchase.isPending : checkout.isPending;

@@ -20,6 +20,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { UnistylesRuntime, useUnistyles } from "react-native-unistyles";
 
 import { authClient } from "@/lib/auth-client";
+import { ToastProvider } from "@/components/toast";
 import { useApkUpdate } from "@/src/lib/apk-update";
 import { loadThemePref } from "@/src/lib/theme-pref";
 import { orpc, queryClient } from "@/utils/orpc";
@@ -97,6 +98,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={navTheme}>
         <GestureHandlerRootView style={{ flex: 1 }}>
+          <ToastProvider>
           {/* Follows the app theme (which can override the OS), not the OS. */}
           <StatusBar style={navTheme.dark ? "light" : "dark"} />
           <Stack
@@ -128,6 +130,7 @@ export default function RootLayout() {
             <Stack.Screen name="inbox" options={{ title: "Kotak Masuk" }} />
             <Stack.Screen name="gabung" options={{ headerShown: false }} />
           </Stack>
+          </ToastProvider>
         </GestureHandlerRootView>
       </ThemeProvider>
     </QueryClientProvider>

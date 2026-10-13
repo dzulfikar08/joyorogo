@@ -7,7 +7,6 @@ import { StatusBar } from "expo-status-bar";
 import { ComponentProps, useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
-  Alert,
   Animated,
   Easing,
   Image,
@@ -20,6 +19,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { stickerUrl } from "@/components/sticker";
 import { BootLoader, Button, Text } from "@/components/ui";
+import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
 import type { VarScan } from "@/src/lib/group";
 import { errorMessage, fmtKcal } from "@/utils/format";
@@ -153,6 +153,7 @@ export default function VarPerut() {
   const [stage, setStage] = useState(0);
   const [poked, setPoked] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const toast = useToast();
 
   const sweep = useRef(new Animated.Value(0)).current;
   const progress = useRef(new Animated.Value(0)).current;
@@ -197,8 +198,11 @@ export default function VarPerut() {
 
   const poke = useMutation(
     orpc.group.nudge.mutationOptions({
-      onSuccess: () => setPoked(true),
-      onError: (e) => Alert.alert("Gagal mencolek", errorMessage(e)),
+      onSuccess: () => {
+        setPoked(true);
+        toast.success("Colek terkirim", `${firstName} dapat notifikasi sekarang.`);
+      },
+      onError: (e) => toast.error("Gagal mencolek", errorMessage(e)),
     }),
   );
 
@@ -233,7 +237,7 @@ export default function VarPerut() {
         setPhase("reveal");
       } catch (e) {
         setPhase("aim");
-        Alert.alert("VAR gagal", errorMessage(e));
+        toast.error("VAR gagal", errorMessage(e));
       }
     })();
   };

@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 
 import { trackEvent } from "./analytics";
 import { apiUrl } from "./app-config";
@@ -22,6 +22,7 @@ export type CheckoutPlan = "monthly" | "yearly";
 /** Start a Founder checkout (DOKU or Pakasir, server's choice), then leave for its page. */
 export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
   const navigate = useNavigate();
+  const location = useLocation();
   return useMutation({
     mutationFn: async () => {
       const res = await fetch(apiUrl("/api/billing/checkout"), {
@@ -31,7 +32,9 @@ export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
         body: JSON.stringify({ plan }),
       });
       if (res.status === 401) {
-        navigate({ to: "/login" });
+        // Signed out (e.g. the /harga visitor): let them sign in first, then
+        // bring them straight back to where they clicked.
+        navigate({ to: "/login", search: { redirect: location.pathname } });
         return null;
       }
       const body = (await res.json().catch(() => null)) as {

@@ -35,6 +35,69 @@ const SCAN_ITEMS = [
   { name: "Sambal bawang", portion: "1 sdm", kcal: 40 },
 ] as const;
 
+/* Real cutouts from the developer's own scans (R2 sticker crops), served
+ * locally from /food/*.webp. Numbers are what his diary actually saved. */
+const REAL_DISHES = [
+  {
+    name: "Bakso",
+    img: "/food/bakso.webp",
+    w: 320,
+    h: 275,
+    alt: "Foto bakso: pentol, bakso goreng, tahu, dan lontong",
+    portion: "1 mangkok",
+    kcal: 380,
+  },
+  {
+    name: "Nasi putih",
+    img: "/food/nasi.webp",
+    w: 320,
+    h: 308,
+    alt: "Foto nasi putih bungkus daun dengan sambal",
+    portion: "150 g",
+    kcal: 195,
+  },
+  {
+    name: "Ayam bumbu kuning",
+    img: "/food/ayam-bumbu-kuning.webp",
+    w: 320,
+    h: 300,
+    alt: "Foto ayam bumbu kuning dengan potongan wortel",
+    portion: "1 potong",
+    kcal: 250,
+  },
+] as const;
+
+/** Real scan results with the numbers the diary actually saved. */
+export function ScanExample() {
+  return (
+    <figure className="mt-4">
+      <div className="grid grid-cols-3 gap-3">
+        {REAL_DISHES.map((dish) => (
+          <div key={dish.name} className="rounded-2xl bg-card p-2.5 shadow-float">
+            <img
+              src={dish.img}
+              alt={dish.alt}
+              width={dish.w}
+              height={dish.h}
+              loading="lazy"
+              decoding="async"
+              className="h-auto w-full"
+            />
+            <p className="mt-1.5 truncate text-xs font-bold">{dish.name}</p>
+            <p className="text-[0.6875rem] text-muted-foreground">{dish.portion}</p>
+            <p className="mt-1.5 inline-flex rounded-full bg-makan-soft px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-makan-ink">
+              ±{dish.kcal} kkal
+            </p>
+          </div>
+        ))}
+      </div>
+      <figcaption className="mt-2 text-center text-xs text-muted-foreground">
+        Foto asli dari diary pengembangnya, lengkap dengan angkanya.
+      </figcaption>
+    </figure>
+  );
+}
+
 function MiniTile({
   tone,
   icon,
@@ -71,10 +134,27 @@ export function HeroPhone() {
   const lunch = SCAN_ITEMS.reduce((sum, item) => sum + item.kcal, 0);
   return (
     <figure className="relative mx-auto w-full max-w-[22rem] md:max-w-[26rem]">
-      {/* Solid stage behind the device: grounds it without a glow. */}
+      {/* Solid stage behind the device: grounds it without a glow. Real
+          food cutouts peek from its corners; decorative, so no alt text. */}
       <div
         aria-hidden
         className="absolute inset-x-4 top-10 bottom-6 rounded-[2.5rem] bg-makan-soft md:inset-x-0"
+      />
+      <img
+        src="/food/nasi.webp"
+        alt=""
+        width={320}
+        height={308}
+        decoding="async"
+        className="absolute -top-5 right-1 w-20 rotate-6 md:-right-4 md:top-6 md:w-28"
+      />
+      <img
+        src="/food/ayam-bumbu-kuning.webp"
+        alt=""
+        width={320}
+        height={300}
+        decoding="async"
+        className="absolute -right-2 bottom-16 hidden w-24 -rotate-6 md:-right-14 md:bottom-24 md:block md:w-32 md:animate-drift"
       />
 
       <div className="relative mx-auto w-[16.5rem] rounded-[2.6rem] bg-[oklch(0.22_0.01_85)] p-[7px] shadow-float md:w-[17.5rem]">

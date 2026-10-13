@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
-import { Alert, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import {
@@ -14,6 +14,7 @@ import {
   SectionTitle,
   Text,
 } from "@/components/ui";
+import { ConfirmSheet } from "@/components/confirm-sheet";
 import { useSessionGate } from "@/lib/use-session-gate";
 import {
   completedSetCount,
@@ -54,7 +55,28 @@ function prBullet(pr: SavePr, nameOf: (id: string) => string): string {
 }
 
 /** One set ready for the API, or null when it fails the contract rules. */
-function toApiSet(exercise: ActiveExercise, set: ActiveSet) {
+type ApiSet =
+  | {
+      exerciseId: string;
+      reps: null;
+      weightKg: null;
+      rpe: null;
+      setType: ActiveSet["type"];
+      durationSec: number;
+      note: string | undefined;
+      supersetGroup: ActiveExercise["supersetGroup"];
+    }
+  | {
+      exerciseId: string;
+      reps: number;
+      weightKg: number | null;
+      rpe: null;
+      setType: ActiveSet["type"];
+      note: string | undefined;
+      supersetGroup: ActiveExercise["supersetGroup"];
+    };
+
+function toApiSet(exercise: ActiveExercise, set: ActiveSet): ApiSet | null {
   const setType = set.type;
   const note = exercise.note.trim().length > 0 ? exercise.note.trim() : undefined;
   const supersetGroup = exercise.supersetGroup;
@@ -93,6 +115,19 @@ export default function LatihanRingkasan() {
   const [note, setNote] = useState(workout?.note ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ id: string; prs: SavePr[] } | null>(null);
+  const [pending, setPending] = useState<
+    null | {
+      kind: "dropped" | "unchecked";
+      count: number;
+      payload: {
+        name: string;
+        note: string | undefined;
+        startedAt: string;
+        durationMin: number;
+        sets: ApiSet[];
+      };
+    }
+  >(null);
 
   const catalog = useQuery(orpc.workout.catalog.queryOptions());
   const nameOf = (id: string) =>
@@ -148,39 +183,26 @@ export default function LatihanRingkasan() {
       setError("Set yang dicentang belum lengkap. Isi repetisi atau durasinya.");
       return;
     }
-    const go = () => {
-      setError(null);
-      save.mutate({
-        name: name.trim(),
-        note: note.trim().length > 0 ? note.trim() : undefined,
-        startedAt: new Date(draft.startedAt).toISOString(),
-        durationMin: elapsedMin,
-        sets: valid,
-      });
+    const payload = {
+      name: name.trim(),
+      note: note.trim().length > 0 ? note.trim() : undefined,
+      startedAt: new Date(draft.startedAt).toISOString(),
+      durationMin: elapsedMin,
+      sets: valid,
     };
-    const proceed = () => {
-      if (dropped > 0) {
-        Alert.alert(
-          "Sebagian set dilewati",
-          `${dropped} set dicentang tapi datanya kurang (tanpa repetisi/durasi), jadi tidak ikut disimpan.`,
-          [{ text: "Lanjutkan", style: "default", onPress: go }],
-        );
-      } else {
-        go();
-      }
+    const doSave = () => {
+      setError(null);
+      save.mutate(payload);
     };
     if (unchecked > 0) {
-      Alert.alert(
-        "Ada set belum dicentang",
-        `${unchecked} set tidak ikut tersimpan. Lanjutkan?`,
-        [
-          { text: "Periksa lagi", style: "cancel" },
-          { text: "Simpan", style: "default", onPress: proceed },
-        ],
-      );
+      setPending({ kind: "unchecked", count: unchecked, payload });
       return;
     }
-    proceed();
+    if (dropped > 0) {
+      setPending({ kind: "dropped", count: dropped, payload });
+      return;
+    }
+    doSave();
   };
 
   const newPrs = saved
@@ -250,6 +272,34 @@ export default function LatihanRingkasan() {
           </>
         )}
       </ScrollView>
+
+      <ConfirmSheet
+        visible={pending?.kind === "unchecked"}
+        onClose={() => setPending(null)}
+        title="Ada set belum dicentang"
+        message={`${pending?.count ?? 0} set tidak ikut tersimpan. Lanjutkan?`}
+        confirmLabel="Simpan"
+        cancelLabel="Periksa lagi"
+        onConfirm={() => {
+          const payload = pending?.payload;
+          setPending(null);
+          if (payload) save.mutate(payload);
+        }}
+      />
+
+      <ConfirmSheet
+        visible={pending?.kind === "dropped"}
+        onClose={() => setPending(null)}
+        title="Sebagian set dilewati"
+        message={`${pending?.count ?? 0} set dicentang tapi datanya kurang (tanpa repetisi/durasi), jadi tidak ikut disimpan.`}
+        confirmLabel="Lanjutkan"
+        destructive={false}
+        onConfirm={() => {
+          const payload = pending?.payload;
+          setPending(null);
+          if (payload) save.mutate(payload);
+        }}
+      />
     </>
   );
 }

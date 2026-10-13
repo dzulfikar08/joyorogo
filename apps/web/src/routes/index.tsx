@@ -13,15 +13,15 @@ import {
   NotebookPen,
   PencilLine,
   Radar,
-  ShieldCheck,
   Trash2,
 } from "lucide-react";
 
 import { Button } from "@joyorogo/ui/components/button";
 import { Ring, type Metric } from "@/components/kit/ring";
 import { ScanDemo } from "@/components/landing/scan-demo";
-import { GroupPeek, HeroPhone, WeightTrendDemo } from "@/components/landing/visuals";
+import { GroupPeek, HeroPhone, ScanExample, WeightTrendDemo } from "@/components/landing/visuals";
 import { PublicHeader } from "@/components/public-header";
+import { PublicFooter } from "@/components/public-footer";
 import { FounderPromo } from "@/components/founder-promo";
 import { APK_URL, fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
@@ -93,8 +93,6 @@ const NUMBERS: Array<{
   },
 ];
 
-const SOURCE_URL = "https://github.com/dzulfikar08/joyorogo";
-
 /** Grup features in the order the app's Grup screen lists them. */
 const GROUP_FEATURES = [
   {
@@ -158,7 +156,6 @@ function Landing() {
   // Background check for visitors the beforeLoad gate let through.
   const { data: session } = useQuery(sessionQuery);
   if (session) return <Navigate to="/beranda" replace />;
-  const paywall = config.data?.paywall === true;
 
   return (
     <div className="min-h-svh">
@@ -359,6 +356,7 @@ function Landing() {
             <div>
               <p className="mb-3 text-sm font-bold text-primary">Coba sekarang, tanpa daftar</p>
               <ScanDemo />
+              <ScanExample />
             </div>
           </div>
         </section>
@@ -682,47 +680,7 @@ function Landing() {
         </section>
       </main>
 
-      <footer className="border-t border-border/70">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 md:flex-row md:items-center md:justify-between md:px-6">
-          <div>
-            <p className="flex items-center gap-2 text-base font-extrabold tracking-tight">
-              <img src="/brand/logo-mark.svg" alt="" className="h-6 w-auto" />
-              JoyoRogo
-            </p>
-            <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
-              <ShieldCheck className="size-4" aria-hidden />
-              Dibuat di Malang oleh Dzulfikar. Foto asli tidak disimpan, kecuali kamu memintanya.
-            </p>
-          </div>
-          <nav aria-label="Tautan" className="flex flex-wrap gap-x-6 gap-y-1 text-sm font-semibold">
-            {paywall && (
-              <Link to="/harga" className="inline-flex min-h-11 items-center hover:text-primary">
-                Harga
-              </Link>
-            )}
-            <Link to="/privasi" className="inline-flex min-h-11 items-center hover:text-primary">
-              Privasi
-            </Link>
-            <a href="/blog/" className="inline-flex min-h-11 items-center hover:text-primary">
-              Blog
-            </a>
-            <a
-              href={APK_URL}
-              data-revklik-goal="apk_download"
-              data-revklik-goal-location="footer"
-              className="inline-flex min-h-11 items-center hover:text-primary"
-            >
-              Unduh Android
-            </a>
-            <a href={SOURCE_URL} className="inline-flex min-h-11 items-center hover:text-primary">
-              Kode sumber
-            </a>
-            <Link to="/login" className="inline-flex min-h-11 items-center hover:text-primary">
-              Masuk
-            </Link>
-          </nav>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

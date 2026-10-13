@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Button, ErrorState, Skeleton, Text } from "@/components/ui";
+import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { extractInviteCode } from "@/src/lib/group";
 import { errorMessage } from "@/utils/format";
@@ -20,6 +21,7 @@ import { orpc, queryClient } from "@/utils/orpc";
 export default function GabungInvite() {
   const { theme } = useUnistyles();
   const gate = useSessionGate();
+  const toast = useToast();
   const { code: rawCode } = useLocalSearchParams<{ code?: string }>();
   const code = extractInviteCode(Array.isArray(rawCode) ? (rawCode[0] ?? "") : (rawCode ?? ""));
 
@@ -35,6 +37,7 @@ export default function GabungInvite() {
         await queryClient.invalidateQueries({ queryKey: orpc.group.key() });
         router.replace(`/grup/${res.groupId}`);
       },
+      onError: (e) => toast.error("Gagal gabung", errorMessage(e)),
     }),
   );
 

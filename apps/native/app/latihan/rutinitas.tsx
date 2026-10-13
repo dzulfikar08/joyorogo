@@ -2,10 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams, Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { ExercisePickerList } from "@/components/workout/exercise-picker-list";
+import { ConfirmSheet } from "@/components/confirm-sheet";
 import {
   Button,
   Card,
@@ -162,12 +163,11 @@ export default function LatihanRutinitas() {
     });
   };
 
-  const confirmDelete = () => {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const askDelete = () => {
     if (params.id === undefined) return;
-    Alert.alert("Hapus rutinitas?", "Rutinitas ini hilang dari daftar.", [
-      { text: "Batal", style: "cancel" },
-      { text: "Hapus", style: "destructive", onPress: () => remove.mutate({ id: params.id! }) },
-    ]);
+    setConfirmDelete(true);
   };
 
   return (
@@ -300,7 +300,7 @@ export default function LatihanRutinitas() {
             variant="secondary"
             destructive
             label="Hapus rutinitas"
-            onPress={confirmDelete}
+            onPress={askDelete}
             disabled={remove.isPending}
           />
         ) : null}
@@ -329,6 +329,19 @@ export default function LatihanRutinitas() {
           }
         />
       </Sheet>
+
+      <ConfirmSheet
+        visible={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        title="Hapus rutinitas?"
+        message="Rutinitas ini hilang dari daftar."
+        confirmLabel="Hapus"
+        loading={remove.isPending}
+        onConfirm={() => {
+          setConfirmDelete(false);
+          if (params.id !== undefined) remove.mutate({ id: params.id });
+        }}
+      />
     </>
   );
 }
