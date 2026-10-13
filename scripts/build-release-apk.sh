@@ -25,10 +25,13 @@ export EXPO_PUBLIC_DEV_LOGIN=0
 
 # --publish uploads the APK + update manifest to the R2 bucket after a
 # successful build. Without it the build only writes them to the repo root.
+# --clean forces a fresh prebuild and a cold native build.
 PUBLISH=0
+CLEAN=0
 for arg in "$@"; do
   case "$arg" in
     --publish) PUBLISH=1 ;;
+    --clean) CLEAN=1 ;;
     *) echo "unknown option: $arg" >&2; exit 1 ;;
   esac
 done
@@ -61,10 +64,24 @@ EOF
   echo "keystore created: $KEYSTORE"
 fi
 
-# 2. Fresh prebuild.
+# 2. Prebuild, only when native inputs changed. Wiping android/ also wipes
+#    app/build and the .cxx CMake caches, so every release recompiled all
+#    native code from scratch. Inputs: app config, deps, local native modules
+#    and the assets prebuild copies (icons, splash).
 cd "$NATIVE"
-rm -rf android
-bunx expo prebuild -p android --no-install 2>&1 | tail -1
+STAMP=android/.prebuild-hash
+PREBUILD_HASH="$(
+  { sha256sum app.json package.json "$ROOT/bun.lock"
+    find modules assets -type f -print0 | sort -z | xargs -0 sha256sum
+  } | sha256sum | cut -d' ' -f1
+)"
+if [ "$CLEAN" = 1 ] || [ ! -f "$STAMP" ] || [ "$(cat "$STAMP")" != "$PREBUILD_HASH" ]; then
+  rm -rf android
+  bunx expo prebuild -p android --no-install 2>&1 | tail -1
+  echo "$PREBUILD_HASH" > "$STAMP"
+else
+  echo "native inputs unchanged; reusing android/"
+fi
 
 # 3. Release signing + shrinking patches.
 python3 - <<'PY'
@@ -106,10 +123,14 @@ android {""",
             signingConfig signingConfigs.release""",
         1,
     )
-    # versionCode from UTC time (see VERSION_CODE above); template hardcodes 1.
-    s = re.sub(r"versionCode 1\b", "versionCode " + os.environ["VERSION_CODE"], s, 1)
     app.write_text(s)
     print("build.gradle patched")
+
+# versionCode from UTC time (see VERSION_CODE above); runs every build since
+# android/ is now reused across builds.
+s = app.read_text()
+s = re.sub(r"versionCode \d+", "versionCode " + os.environ["VERSION_CODE"], s, 1)
+app.write_text(s)
 
 props = pathlib.Path("android/gradle.properties")
 p = props.read_text()
@@ -127,7 +148,7 @@ PY
 
 # 4. Build.
 cd android
-./gradlew assembleRelease --no-daemon
+./gradlew assembleRelease
 APK=app/build/outputs/apk/release/app-release.apk
 
 # 5. Bundle sanity. Every ENV.X read must be inlined at build time: a leftover
