@@ -113,10 +113,10 @@ function receiptDraft(info: ReceiptInfo): Draft {
       ? "scan AI tanpa batas harian"
       : `hingga ${info.founderDailyCap} scan AI per hari`;
   const html = shell(
-    "Terima kasih sudah jadi Founder! 🎉",
+    "Terima kasih sudah jadi Founder!",
     p(`Halo ${info.name}, pembayaran <b>${formatIdr(info.amountIdr)}</b> untuk langganan Founder <b>${planLabel}</b> sudah kami terima.`) +
       p(`Status Founder kamu aktif sampai <b>${formatWibDate(info.founderUntil)}</b> (WIB).`) +
-      p(`Selama jadi Founder kamu bisa scan makanan ${cap}, plus rekap gizi harian untuk seluruh keluarga.`) +
+      p(`Selama jadi Founder kamu bisa scan makanan ${cap}.`) +
       button("https://joyorogo.com/beranda", "Mulai scan"),
   );
   const text = [

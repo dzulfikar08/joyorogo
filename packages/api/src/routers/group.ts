@@ -697,8 +697,8 @@ export const groupRouter = {
       const senderName = sender?.name ?? "Teman";
       const title =
         input.kind === "poke"
-          ? `👉 ${senderName} mencolekmu`
-          : `📝 Catatan dari ${senderName}`;
+          ? `${senderName} mencolekmu`
+          : `Catatan dari ${senderName}`;
       const body = input.message ?? "Semangat catat kalorinya hari ini!";
       pushNudge(context, input.toUserId, { title, body });
       return { ok: true };

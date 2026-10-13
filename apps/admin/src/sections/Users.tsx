@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import { Check, Search, TriangleAlert } from "lucide-react";
 import { Checkbox } from "@joyorogo/ui/components/checkbox";
 import { Input } from "@joyorogo/ui/components/input";
 import { cn } from "@joyorogo/ui/lib/utils";
@@ -135,11 +135,12 @@ export function UsersSection() {
                           </div>
                         )}
                       </td>
-                      <td>{u.onboarded ? "✓" : "—"}</td>
+                      <td>{u.onboarded ? <Check aria-label="Onboarded" className="size-4 text-primary" /> : "—"}</td>
                       <td className="tabular-nums">
                         {u.scansToday >= 50 || u.scans7d >= 300 ? (
                           <Badge tone="red" className="tabular-nums">
-                            {u.scansToday} ⚠
+                            <TriangleAlert className="size-3" />
+                            {u.scansToday}
                           </Badge>
                         ) : (
                           u.scansToday
@@ -148,7 +149,8 @@ export function UsersSection() {
                       <td className="tabular-nums">
                         {u.scans7d >= 300 ? (
                           <Badge tone="red" className="tabular-nums">
-                            {u.scans7d} ⚠
+                            <TriangleAlert className="size-3" />
+                            {u.scans7d}
                           </Badge>
                         ) : (
                           u.scans7d

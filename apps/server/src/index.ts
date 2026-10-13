@@ -78,7 +78,7 @@ registerAdminRoutes(app, {
     sendEmail(env, {
       to,
       subject: "Tes email JoyoRogo",
-      html: "<p>Email dari JoyoRogo berhasil terkirim. ✅</p>",
+      html: "<p>Email dari JoyoRogo berhasil terkirim.</p>",
       text: "Email dari JoyoRogo berhasil terkirim.",
     }),
 });
@@ -251,8 +251,8 @@ app.get("/u/:code", async (c) => {
   const lost = Math.round((row.startWeightKg - (weighed?.latest ?? row.startWeightKg)) * 10) / 10;
   const title =
     lost > 0
-      ? `Aku sudah turun ${lost.toLocaleString("id-ID")} kg dengan JoyoRogo 💪`
-      : "Aku lagi diet bareng JoyoRogo 🥗";
+      ? `Aku sudah turun ${lost.toLocaleString("id-ID")} kg dengan JoyoRogo`
+      : "Aku lagi diet bareng JoyoRogo";
   const description = `Tiga angka tiap hari: boleh makan, harus bakar, butuh tidur. Foto makanan, AI yang hitung.`;
   return c.html(
     `<!doctype html><html lang="id"><head><meta charset="utf-8">` +
@@ -266,8 +266,8 @@ app.get("/u/:code", async (c) => {
       (lost > 0
         ? `<p>Berat awal ${row.startWeightKg.toLocaleString("id-ID")} kg → sekarang ${(weighed?.latest ?? row.startWeightKg).toLocaleString("id-ID")} kg</p>`
         : `<p>Baru mulai perjalanan dietnya.</p>`) +
-      `<p>🔥 Streak ${streakDays} hari</p>` +
-      `<p>🍗 ≈ ${geprek} geprek dibakar minggu ini</p>` +
+      `<p>Streak ${streakDays} hari</p>` +
+      `<p>≈ ${geprek} geprek dibakar minggu ini</p>` +
       `<p>Tiga angka tiap hari: boleh makan, harus bakar, butuh tidur.</p>` +
       `<a href="${(env.APP_URL || env.BETTER_AUTH_URL).replace(/\/$/, "")}/login">Coba JoyoRogo</a></main></body></html>`,
   );
