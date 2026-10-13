@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 import { Ring } from "@/components/kit/ring";
 import { Card, Page, SectionTitle, StatTile } from "@/components/kit/surface";
+import { Avatar } from "@/components/avatar";
 import { FastingScheduleCard } from "@/components/fasting/schedule-card";
 import MovementCard from "@/components/movement-card";
 import { BelanjaCard } from "@/components/plate/belanja";
@@ -104,7 +105,6 @@ function Dashboard({ summary }: { summary: Summary }) {
   const { session } = Route.useRouteContext();
   const targets = summary.targets;
   const firstName = session.user.name?.split(" ")[0];
-  const initial = (firstName ?? session.user.email ?? "?").charAt(0).toUpperCase();
 
   const foods = useQuery(orpc.food.listByDate.queryOptions({ input: { date: summary.date } }));
   const stickers = (foods.data?.items ?? []).filter(
@@ -137,9 +137,12 @@ function Dashboard({ summary }: { summary: Summary }) {
           <Link
             to="/profil"
             aria-label="Profil"
-            className="flex size-11 items-center justify-center rounded-full bg-card text-base font-bold focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none md:hidden"
+            className="rounded-full focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none md:hidden"
           >
-            {initial}
+            <Avatar
+              name={firstName ?? session.user.email ?? "?"}
+              image={session.user.image ?? null}
+            />
           </Link>
         </div>
       </header>

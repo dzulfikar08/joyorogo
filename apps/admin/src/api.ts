@@ -96,6 +96,8 @@ export interface AdminUser {
   id: string;
   name: string | null;
   email: string;
+  /** Profile photo: /avatar/... (custom upload, prefix with SERVER_URL) or an absolute Google URL. */
+  image?: string | null;
   /** Effective tier: "founder" while any paid period is active. */
   tier: "free" | "founder";
   /** Raw comp column; "founder" here means manually granted. */

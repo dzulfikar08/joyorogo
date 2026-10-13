@@ -109,6 +109,7 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
           id: user.id,
           name: user.name,
           email: user.email,
+          image: user.image,
           // Effective tier (paid period counts); manualTier is the raw comp column.
           tier: sql<"free" | "founder">`case when ${founderExpr} then 'founder' else 'free' end`,
           manualTier: user.tier,

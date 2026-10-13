@@ -1,5 +1,8 @@
 import { cn } from "@joyorogo/ui/lib/utils";
 
+import { env } from "@/env.public";
+import { getServerUrl } from "@/utils/orpc";
+
 /** User avatar: Google photo when present, else the initial on a muted disc. */
 export function Avatar({
   name,
@@ -14,10 +17,11 @@ export function Avatar({
   if (image) {
     return (
       <img
-        src={image}
+        src={image.startsWith("/") ? `${getServerUrl(env.VITE_SERVER_URL)}${image}` : image}
         alt=""
         className={cn("size-11 shrink-0 rounded-full bg-muted object-cover", className)}
         loading="lazy"
+        referrerPolicy="no-referrer"
       />
     );
   }

@@ -6,6 +6,7 @@ import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import {
+  Avatar,
   Button,
   Card,
   EmptyState,
@@ -17,7 +18,7 @@ import {
   Text,
 } from "@/components/ui";
 import { ConfirmSheet } from "@/components/confirm-sheet";
-import { AuthorAvatar, PostCard, openAuthor } from "@/components/feed/post-card";
+import { PostCard, openAuthor } from "@/components/feed/post-card";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
 import { client, orpc } from "@/utils/orpc";
@@ -119,7 +120,7 @@ export default function ProfilPublik() {
       {data.publicProfile === false ? (
         <Card>
           <View style={styles.limitedRow}>
-            <AuthorAvatar name={data.name} image={null} size={44} />
+            <Avatar name={data.name} image={null} size={44} />
             <View style={styles.limitedText}>
               <Text style={styles.name}>{data.name}</Text>
               <Text style={styles.muted}>
@@ -132,7 +133,7 @@ export default function ProfilPublik() {
         <>
           <Card style={styles.headerCard}>
             <View style={styles.headerRow}>
-              <AuthorAvatar name={data.name} image={data.image} size={56} />
+              <Avatar name={data.name} image={data.image} size={56} />
               <View style={styles.headerText}>
                 <Text style={styles.name}>{data.name}</Text>
                 {data.handle ? <Text style={styles.muted}>@{data.handle}</Text> : null}
@@ -270,7 +271,7 @@ function PeopleListSheet({
               }}
               style={({ pressed }) => [styles.personRow, pressed && styles.pressed]}
             >
-              <AuthorAvatar name={person.name} image={person.image} size={32} />
+              <Avatar name={person.name} image={person.image} size={32} />
               <View style={styles.personText}>
                 <Text style={styles.personName}>{person.name}</Text>
                 {person.handle ? <Text style={styles.muted}>@{person.handle}</Text> : null}

@@ -90,7 +90,7 @@ function MemberCard({
   return (
     <Card>
       <View style={styles.memberHead}>
-        <Avatar name={member.name} size={44} />
+        <Avatar name={member.name} image={member.image ?? null} size={44} />
         <View style={styles.memberName}>
           <Text style={styles.memberTitle}>
             {member.name}

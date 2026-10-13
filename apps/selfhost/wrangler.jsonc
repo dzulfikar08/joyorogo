@@ -27,6 +27,7 @@
       "/u/*",
       "/sticker/*",
       "/photo/*",
+      "/avatar/*",
       "/downloads/*",
     ],
   },

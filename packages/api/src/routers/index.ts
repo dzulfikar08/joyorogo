@@ -3,6 +3,7 @@ import type { RouterClient } from "@orpc/server";
 import { protectedProcedure, publicProcedure } from "../index";
 import { activityRouter } from "./activity";
 import { aiRouter } from "./ai";
+import { avatarRouter } from "./avatar";
 import { dayRouter } from "./day";
 import { exerciseRouter } from "./exercise";
 import { fastingRouter } from "./fasting";
@@ -30,6 +31,7 @@ export const appRouter = {
     };
   }),
   profile: profileRouter,
+  avatar: avatarRouter,
   weight: weightRouter,
   waist: waistRouter,
   food: foodRouter,

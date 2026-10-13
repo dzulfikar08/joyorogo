@@ -1,6 +1,8 @@
 import "@/unistyles";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import * as ImagePicker from "expo-image-picker";
 import { Image, Platform, Switch, View } from "react-native";
 import { useEffect, useState } from "react";
 import { Redirect, Stack, router } from "expo-router";
@@ -66,7 +68,8 @@ const GENDER_LABELS: Record<Gender, string> = {
 export default function Profil() {
   const gate = useSessionGate();
   const toast = useToast();
-  const { data: session } = authClient.useSession();
+  // refetch keeps every screen's avatar in sync right after ganti/hapus foto.
+  const session = authClient.useSession();
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   const config = useAppConfig();
   const updateTargets = useMutation(
@@ -85,6 +88,7 @@ export default function Profil() {
   const [hcMessage, setHcMessage] = useState<string | null>(null);
   const [hcError, setHcError] = useState<string | null>(null);
   const [wipeOpen, setWipeOpen] = useState(false);
+  const [avatarRemoveOpen, setAvatarRemoveOpen] = useState(false);
 
   // Android only: Profil forces a check on mount so the section reflects the
   // server right now. The app-start check stays silent and throttled.
@@ -193,7 +197,68 @@ export default function Profil() {
   };
 
   const heightIdeal = prof ? idealWeightRange(prof.heightCm) : null;
-  const displayName = session?.user.name ?? "Pengguna JoyoRogo";
+  const displayName = session.data?.user.name ?? "Pengguna JoyoRogo";
+  const avatarImage = session.data?.user.image ?? null;
+
+  // Foto profil: galeri atau kamera (potong persegi di picker), lalu
+  // dipampatkan ke persegi 512px JPEG sebelum diunggah.
+  const uploadAvatar = useMutation(
+    orpc.avatar.upload.mutationOptions({
+      onSuccess: async () => {
+        await session.refetch();
+        queryClient.invalidateQueries();
+        toast.success("Foto profil diperbarui");
+      },
+      onError: (e) => toast.error("Ganti foto gagal", errorMessage(e)),
+    }),
+  );
+  const removeAvatar = useMutation(
+    orpc.avatar.remove.mutationOptions({
+      onSuccess: async () => {
+        await session.refetch();
+        queryClient.invalidateQueries();
+        toast.success("Foto profil dihapus");
+      },
+      onError: (e) => toast.error("Hapus foto gagal", errorMessage(e)),
+    }),
+  );
+  const pickAvatar = async (source: "gallery" | "camera") => {
+    const options: ImagePicker.ImagePickerOptions = {
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+      exif: false,
+    };
+    const result =
+      source === "camera"
+        ? await ImagePicker.launchCameraAsync(options)
+        : await ImagePicker.launchImageLibraryAsync(options);
+    const asset = result.canceled ? null : result.assets[0];
+    if (!asset) return;
+    try {
+      // Center-crop ke persegi lalu kecilkan ke 512px: satu bentuk untuk semua.
+      const side = Math.min(asset.width, asset.height);
+      const rendered = await ImageManipulator.manipulate(asset.uri)
+        .crop({
+          originX: Math.floor((asset.width - side) / 2),
+          originY: Math.floor((asset.height - side) / 2),
+          width: side,
+          height: side,
+        })
+        .resize({ width: 512, height: 512 })
+        .renderAsync();
+      const out = await rendered.saveAsync({
+        base64: true,
+        compress: 0.85,
+        format: SaveFormat.JPEG,
+      });
+      if (!out.base64) throw new Error("Foto kosong");
+      uploadAvatar.mutate({ imageBase64: out.base64, mimeType: "image/jpeg" });
+    } catch (e) {
+      toast.error("Foto tidak bisa diproses", errorMessage(e));
+    }
+  };
 
   return (
     <>
@@ -203,10 +268,10 @@ export default function Profil() {
 
       {/* Account header */}
       <View style={styles.accountRow}>
-        <Avatar name={displayName} size={56} />
+        <Avatar name={displayName} image={avatarImage} size={56} />
         <View style={styles.accountText}>
           <Text style={styles.accountName}>{displayName}</Text>
-          <Text style={styles.accountEmail}>{session?.user.email ?? "-"}</Text>
+          <Text style={styles.accountEmail}>{session.data?.user.email ?? "-"}</Text>
           {profileQuery.data?.tier === "founder" ? (
             <View style={styles.founderBadge}>
               <Text style={styles.founderText}>Founder</Text>
@@ -217,6 +282,36 @@ export default function Profil() {
             </View>
           ) : null}
         </View>
+      </View>
+
+      {/* Foto profil: ganti (galeri/kamera) dan hapus (kembali ke foto Google). */}
+      <View style={styles.avatarActions}>
+        <Button
+          variant="secondary"
+          size="sm"
+          label="Kamera"
+          loading={uploadAvatar.isPending}
+          disabled={removeAvatar.isPending}
+          onPress={() => void pickAvatar("camera")}
+        />
+        <Button
+          variant="secondary"
+          size="sm"
+          label="Galeri"
+          loading={uploadAvatar.isPending}
+          disabled={removeAvatar.isPending}
+          onPress={() => void pickAvatar("gallery")}
+        />
+        {avatarImage ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            label="Hapus foto"
+            loading={removeAvatar.isPending}
+            disabled={uploadAvatar.isPending}
+            onPress={() => setAvatarRemoveOpen(true)}
+          />
+        ) : null}
       </View>
 
       {/* Kuota scan gratis + langganan Founder (web profil banners) */}
@@ -506,6 +601,19 @@ export default function Profil() {
           deleteData.mutate();
         }}
       />
+
+      <ConfirmSheet
+        visible={avatarRemoveOpen}
+        onClose={() => setAvatarRemoveOpen(false)}
+        title="Hapus foto profil?"
+        message="Foto unggahanmu dihapus. Kalau akun Google-mu punya foto, foto itu yang dipakai lagi."
+        confirmLabel="Hapus"
+        loading={removeAvatar.isPending}
+        onConfirm={() => {
+          setAvatarRemoveOpen(false);
+          removeAvatar.mutate();
+        }}
+      />
     </>
   );
 }
@@ -766,6 +874,12 @@ const styles = StyleSheet.create((theme) => ({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.md,
+    marginTop: theme.spacing.sm,
+  },
+  avatarActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
     marginTop: theme.spacing.sm,
   },
   accountText: {

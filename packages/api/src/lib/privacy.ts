@@ -18,6 +18,7 @@ import { plate, pushSubscription, workoutCustomExercise, workoutRoutine, workout
 import { emailLog } from "@joyorogo/db/schema/billing";
 import { team, teamMember, teamNudge } from "@joyorogo/db/schema/social";
 
+import { avatarPrefix } from "./avatar";
 import { photoPrefix, stickerKey } from "./sticker";
 import type { StickersBucket } from "./sticker";
 
@@ -31,9 +32,9 @@ export async function userStickerKeys(db: Database, userId: string): Promise<str
 }
 
 /**
- * Deletes the user's stickers and every original photo under their prefix
- * (listing catches photos whose rows are already gone). R2 deletes take at
- * most 1000 keys per call.
+ * Deletes the user's stickers, every original photo under their prefix, and
+ * their avatar(s) (listing catches objects whose rows are already gone).
+ * R2 deletes take at most 1000 keys per call.
  */
 export async function deleteUserMedia(
   bucket: StickersBucket,
@@ -41,12 +42,14 @@ export async function deleteUserMedia(
   stickerKeys: string[],
 ): Promise<void> {
   const keys = [...stickerKeys];
-  let cursor: string | undefined;
-  do {
-    const page = await bucket.list({ prefix: photoPrefix(userId), cursor });
-    keys.push(...page.objects.map((object) => object.key));
-    cursor = page.truncated ? page.cursor : undefined;
-  } while (cursor);
+  for (const prefix of [photoPrefix(userId), avatarPrefix(userId)]) {
+    let cursor: string | undefined;
+    do {
+      const page = await bucket.list({ prefix, cursor });
+      keys.push(...page.objects.map((object) => object.key));
+      cursor = page.truncated ? page.cursor : undefined;
+    } while (cursor);
+  }
   for (let i = 0; i < keys.length; i += 1000) {
     await bucket.delete(keys.slice(i, i + 1000));
   }

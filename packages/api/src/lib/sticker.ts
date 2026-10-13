@@ -63,9 +63,17 @@ export type StickersBucket = {
   put(
     key: string,
     value: ArrayBuffer | ReadableStream | string,
-    options?: { httpMetadata?: { contentType?: string } },
+    options?: {
+      httpMetadata?: { contentType?: string };
+      customMetadata?: Record<string, string>;
+    },
   ): Promise<unknown>;
-  get(key: string): Promise<{ body: ReadableStream; size: number } | null>;
+  get(key: string): Promise<{
+    body: ReadableStream;
+    size: number;
+    httpMetadata?: { contentType?: string };
+    customMetadata?: Record<string, string>;
+  } | null>;
   delete(keys: string | string[]): Promise<void>;
   list(options: {
     prefix: string;

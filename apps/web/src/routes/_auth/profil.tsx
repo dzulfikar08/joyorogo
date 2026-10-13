@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Navigate, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   CalendarDays,
+  Camera,
   CircleAlert,
   Download,
   Flag,
@@ -13,7 +14,7 @@ import {
   ShieldCheck,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -47,13 +48,15 @@ import { PlanNumbers, TargetNotesList } from "@/components/plan-numbers";
 import { BudgetSetting } from "@/components/plate/budget-setting";
 import { FastingSettingsSection } from "@/components/fasting/settings-section";
 import { useTheme } from "@/components/theme-provider";
+import { Avatar } from "@/components/avatar";
 import { ScreenError } from "@/components/screen-state";
 import { useStrava } from "@/components/strava-card";
 import { env } from "@/env.public";
 import type { ProfileRow } from "@/lib/api-types";
 import { APK_URL, founderScans, useAppConfig } from "@/lib/app-config";
 import { checkOrder, fetchPendingOrder, fmtFounderDate, useFounderCheckout } from "@/lib/billing";
-import { signOut } from "@/lib/auth-client";
+import { sessionQuery, signOut } from "@/lib/auth-client";
+import type { Session } from "@/lib/auth-client";
 import { fmtDateIndo, fmtInt, fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
 import { getServerUrl, orpc } from "@/utils/orpc";
 
@@ -63,6 +66,29 @@ const profileOptions = orpc.profile.myProfile.queryOptions();
 const IS_IOS =
   /iPhone|iPad|iPod/.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+/** Center-crops the pick into a 512px square JPEG; one shape for every upload. */
+async function fileToAvatarBase64(file: File): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const side = Math.min(bitmap.width, bitmap.height);
+  const sx = Math.floor((bitmap.width - side) / 2);
+  const sy = Math.floor((bitmap.height - side) / 2);
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    throw new Error("Browser ini tidak mendukung pengolahan gambar.");
+  }
+  // Flatten alpha onto white — JPEG has no transparency anyway.
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, 512, 512);
+  ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, 512, 512);
+  bitmap.close();
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+  return dataUrl.slice(dataUrl.indexOf(",") + 1);
+}
 
 export const Route = createFileRoute("/_auth/profil")({
   loader: ({ context }) => context.queryClient.ensureQueryData(profileOptions),
@@ -98,6 +124,7 @@ function ProfilPage() {
       founderUntil={founderUntil}
       name={session.user.name ?? null}
       email={session.user.email ?? null}
+      image={session.user.image ?? null}
     />
   );
 }
@@ -110,6 +137,7 @@ function ProfilContent({
   founderUntil,
   name,
   email,
+  image,
 }: {
   row: ProfileRow;
   targets: Targets;
@@ -118,13 +146,54 @@ function ProfilContent({
   founderUntil: Date | null;
   name: string | null;
   email: string | null;
+  image: string | null;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const config = useAppConfig();
   const checkout = useFounderCheckout();
   const billing = config.data?.billing === true;
-  const initial = (name ?? email ?? "?").charAt(0).toUpperCase();
+
+  // Foto profil: unggahan dipotong jadi persegi 512px di kanvas dulu, lalu
+  // disimpan server-side; sesi diperbarui langsung supaya semua layar ikut.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadAvatar = useMutation(
+    orpc.avatar.upload.mutationOptions({
+      onSuccess: (data) => {
+        queryClient.setQueryData(sessionQuery.queryKey, (old: Session | null | undefined) =>
+          old ? { ...old, user: { ...old.user, image: data.image } } : old,
+        );
+        queryClient.invalidateQueries({ queryKey: orpc.social.key() });
+        queryClient.invalidateQueries({ queryKey: orpc.group.key() });
+        toast.success("Foto profil diperbarui.");
+      },
+      onError: (error) => toast.error(error.message),
+    }),
+  );
+  const removeAvatar = useMutation(
+    orpc.avatar.remove.mutationOptions({
+      onSuccess: (data) => {
+        queryClient.setQueryData(sessionQuery.queryKey, (old: Session | null | undefined) =>
+          old ? { ...old, user: { ...old.user, image: data.image } } : old,
+        );
+        toast.success(data.image ? "Kembali ke foto Google." : "Foto profil dihapus.");
+      },
+      onError: (error) => toast.error(error.message),
+    }),
+  );
+  const pickAvatar = async (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > 5_000_000) {
+      toast.error("Fotonya terlalu besar, maksimal 5 MB.");
+      return;
+    }
+    try {
+      const imageBase64 = await fileToAvatarBase64(file);
+      uploadAvatar.mutate({ imageBase64, mimeType: "image/jpeg" });
+    } catch {
+      toast.error("Foto tidak bisa dibaca, coba yang lain.");
+    }
+  };
 
   // A checkout the user abandoned at the gateway can still be settled: the
   // check endpoint asks DOKU/Pakasir directly and flips Founder on if paid.
@@ -203,12 +272,7 @@ function ProfilContent({
   return (
     <Page className="max-w-xl">
       <header className="flex items-center gap-4 px-1 pt-2 pb-6">
-        <div
-          aria-hidden
-          className="flex size-16 shrink-0 items-center justify-center rounded-full bg-card text-xl font-extrabold"
-        >
-          {initial}
-        </div>
+        <Avatar name={name ?? email ?? "?"} image={image} className="size-16 text-xl" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="truncate text-[1.375rem] leading-tight font-extrabold tracking-tight">
@@ -230,7 +294,40 @@ function ProfilContent({
           <p className="mt-0.5 truncate text-sm text-muted-foreground">
             {email ?? "Masuk lewat Google"}
           </p>
+          <div className="mt-1.5 flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="xs"
+              className="text-muted-foreground"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadAvatar.isPending || removeAvatar.isPending}
+            >
+              <Camera />
+              Ganti foto
+            </Button>
+            {image && (
+              <Button
+                variant="ghost"
+                size="xs"
+                className="text-muted-foreground"
+                onClick={() => removeAvatar.mutate()}
+                disabled={uploadAvatar.isPending || removeAvatar.isPending}
+              >
+                Hapus foto
+              </Button>
+            )}
+          </div>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={(e) => {
+            void pickAvatar(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
       </header>
 
       {tier === "free" && billing && (

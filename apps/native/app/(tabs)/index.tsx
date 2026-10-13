@@ -259,7 +259,7 @@ export default function Dashboard() {
             accessibilityLabel={`Buka profil ${displayName}`}
             style={({ pressed }) => [pressed && styles.pressedSoft]}
           >
-            <Avatar name={displayName} />
+            <Avatar name={displayName} image={sessionData?.user.image ?? null} />
           </Pressable>
         </Link>
       </View>

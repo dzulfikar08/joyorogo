@@ -4,6 +4,7 @@ import { Redirect, router } from "expo-router";
 import { useEffect } from "react";
 
 import {
+  Avatar,
   EmptyState,
   ErrorState,
   ListGroup,
@@ -12,7 +13,7 @@ import {
   Screen,
   Skeleton,
 } from "@/components/ui";
-import { AuthorAvatar, openAuthor } from "@/components/feed/post-card";
+import { openAuthor } from "@/components/feed/post-card";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { client, orpc } from "@/utils/orpc";
 import { errorMessage } from "@/utils/format";
@@ -100,7 +101,7 @@ export default function Notifikasi() {
             return (
               <ListRow
                 key={item.id}
-                thumb={<AuthorAvatar name={item.actorName} image={item.actorImage} size={32} />}
+                thumb={<Avatar name={item.actorName} image={item.actorImage} size={32} />}
                 icon={copy.icon}
                 iconTint={item.readAt === null ? "bakar" : undefined}
                 title={rowTitle(item)}

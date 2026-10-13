@@ -79,28 +79,6 @@ export function PostPhoto({ postId, style }: { postId: string; style?: object })
   return <Image source={{ uri }} style={[styles.photo, style]} accessibilityLabel="Foto makanan" />;
 }
 
-/** Author avatar: remote image when present, initial-letter circle otherwise. */
-export function AuthorAvatar({
-  name,
-  image,
-  size = 40,
-}: {
-  name: string;
-  image: string | null;
-  size?: number;
-}) {
-  if (image) {
-    return (
-      <Image
-        source={{ uri: image }}
-        style={{ width: size, height: size, borderRadius: size / 2 }}
-        accessibilityLabel={name}
-      />
-    );
-  }
-  return <Avatar name={name} size={size} />;
-}
-
 /** Opens any author's profile by handle; no-op when the handle is null. */
 export function openAuthor(handle: string | null | undefined) {
   if (!handle) return;
@@ -201,7 +179,7 @@ export function PostCard({
           onPress={() => onPressAuthor?.(post.author.handle)}
           style={({ pressed }) => [styles.authorRow, pressed && styles.pressed]}
         >
-          <AuthorAvatar name={post.author.name} image={post.author.image} />
+          <Avatar name={post.author.name} image={post.author.image} />
           <View style={styles.authorText}>
             <Text style={styles.authorName} numberOfLines={1}>
               {post.author.name}

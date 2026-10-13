@@ -47,7 +47,7 @@ export default function Lainnya() {
       <PageHeader title="Lainnya" caption="Akun, grup, dan notifikasi." />
       <ListGroup>
         <ListRow
-          thumb={<Avatar name={displayName} size={32} />}
+          thumb={<Avatar name={displayName} image={session?.user.image ?? null} size={32} />}
           title={displayName}
           subtitle={session?.user.email ?? "-"}
           chevron

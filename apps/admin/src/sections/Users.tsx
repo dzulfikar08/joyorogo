@@ -6,6 +6,7 @@ import { Input } from "@joyorogo/ui/components/input";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { fmtDate, fmtDateTime, get, type AdminUser, type PagedUsers } from "../api";
 import { useHashQuery } from "../hash";
+import { SERVER_URL } from "../auth-client";
 import { Badge, Pagination, Select } from "../ui";
 import { UserDetail } from "./UserDetail";
 
@@ -126,8 +127,24 @@ export function UsersSection() {
                   {rows.map((u) => (
                     <tr key={u.id} className="cursor-pointer" onClick={() => setOpenId(u.id)}>
                       <td>
-                        <div className="font-medium">{u.name ?? "—"}</div>
-                        <div className="text-muted-foreground">{u.email}</div>
+                        <div className="flex items-center gap-2">
+                          {u.image ? (
+                            <img
+                              src={u.image.startsWith("/") ? `${SERVER_URL}${u.image}` : u.image}
+                              alt=""
+                              className="size-6 shrink-0 rounded-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-muted text-[0.625rem] text-muted-foreground">
+                              {(u.name ?? "?").charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                          <div className="min-w-0">
+                            <div className="font-medium">{u.name ?? "—"}</div>
+                            <div className="text-muted-foreground">{u.email}</div>
+                          </div>
+                        </div>
                       </td>
                       <td>
                         <TierBadge user={u} />

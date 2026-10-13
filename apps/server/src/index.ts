@@ -243,6 +243,32 @@ app.get("/post-photo/:postId", async (c) => {
   });
 });
 
+// Public profile avatars (avatars/<userId>/<id>.<ext>). No session on purpose:
+// the 32-hex id is the unguessable capability, and the URL rides in public
+// feeds and profiles. Immutable — every upload mints a new id, so responses
+// can cache forever.
+app.get("/avatar/:userId/:file", async (c) => {
+  const userId = c.req.param("userId");
+  const file = c.req.param("file");
+  if (!/^[A-Za-z0-9_-]{8,64}$/.test(userId) || !/^[0-9a-f]{32}\.(jpg|png|webp)$/.test(file)) {
+    return c.json({ error: "URL tidak valid." }, 400);
+  }
+  if (!("STICKERS" in env) || !env.STICKERS) {
+    return c.json({ error: "Foto belum tersedia." }, 404);
+  }
+  const obj = await env.STICKERS.get(`avatars/${userId}/${file}`);
+  if (!obj) {
+    return c.json({ error: "Foto tidak ditemukan." }, 404);
+  }
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": obj.httpMetadata?.contentType ?? "image/jpeg",
+      "Content-Length": String(obj.size),
+      "Cache-Control": "public, max-age=31536000, immutable",
+    },
+  });
+});
+
 // Personal-data wipe (profil + /privasi). After CORS so web can read errors.
 registerPrivacyRoutes(app, {
   getDb,

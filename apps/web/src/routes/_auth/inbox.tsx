@@ -13,6 +13,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import type { InboxItem } from "@/lib/api-types";
+import { Avatar } from "@/components/avatar";
 import { EmptyHint, ScreenError } from "@/components/screen-state";
 import { ListGroup, ListRow, Page, PageHeader } from "@/components/kit/surface";
 import { timeAgo } from "@/lib/format";
@@ -124,13 +125,7 @@ function InboxPage() {
               key={item.id}
               className={item.readAt === null ? "bg-makan-soft/60" : undefined}
               onClick={item.readAt === null ? () => markRead.mutate({ ids: [item.id] }) : undefined}
-              icon={
-                item.kind === "poke" ? (
-                  <Hand className="size-5 text-bakar-ink" aria-hidden />
-                ) : (
-                  <MessageSquareText className="size-5 text-makan-ink" aria-hidden />
-                )
-              }
+              icon={<Avatar name={item.senderName} image={item.senderImage ?? null} className="size-10" />}
               title={
                 item.kind === "poke"
                   ? `${item.senderName} mencolek kamu`

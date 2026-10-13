@@ -4,6 +4,7 @@ import { Pressable, Switch, View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
 import {
+  Avatar,
   Button,
   Card,
   Chip,
@@ -16,7 +17,7 @@ import {
   Text,
 } from "@/components/ui";
 import { useToast } from "@/components/toast";
-import { AuthorAvatar, openAuthor } from "@/components/feed/post-card";
+import { openAuthor } from "@/components/feed/post-card";
 import { HANDLE_REGEX, type Visibility } from "@/src/lib/social";
 import { client, orpc } from "@/utils/orpc";
 import { errorMessage } from "@/utils/format";
@@ -136,7 +137,7 @@ export function FeedSettingsCard() {
                   }}
                   style={({ pressed }) => [styles.personMain, pressed && styles.pressed]}
                 >
-                  <AuthorAvatar name={person.name} image={person.image} size={32} />
+                  <Avatar name={person.name} image={person.image} size={32} />
                   <View style={styles.personText}>
                     <Text style={styles.personName}>{person.name}</Text>
                     {person.handle ? <Text style={styles.muted}>@{person.handle}</Text> : null}

@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Image,
   Modal,
   Pressable,
   TextInput,
@@ -22,6 +23,8 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { darkTheme, lightTheme } from "@/theme";
+
+import { ENV } from "@/src/env";
 
 import { Container } from "@/components/container";
 
@@ -150,10 +153,37 @@ export function Card({
   return <View style={[styles.card, style]}>{children}</View>;
 }
 
-/** Initial-letter circle (Beranda greeting → /profil). */
-export function Avatar({ name, size = 44 }: { name: string; size?: number }) {
+/** Initial-letter circle (Beranda greeting → /profil), or the profile photo
+ * when present — a custom upload (/avatar/... on the API origin) or an
+ * absolute Google URL — falling back to the initial when missing or broken. */
+export function Avatar({
+  name,
+  image,
+  size = 44,
+}: {
+  name: string;
+  image?: string | null;
+  size?: number;
+}) {
   const { theme } = useUnistyles();
+  const [broken, setBroken] = useState(false);
+  const uri = image
+    ? image.startsWith("/")
+      ? `${ENV.EXPO_PUBLIC_SERVER_URL}${image}`
+      : image
+    : null;
+  useEffect(() => setBroken(false), [uri]);
   const initial = (name.trim()[0] ?? "?").toUpperCase();
+  if (uri && !broken) {
+    return (
+      <Image
+        accessibilityLabel={`Avatar ${name}`}
+        source={{ uri }}
+        onError={() => setBroken(true)}
+        style={{ width: size, height: size, borderRadius: size / 2 }}
+      />
+    );
+  }
   return (
     <View
       accessibilityLabel={`Avatar ${name}`}

@@ -6,6 +6,7 @@ import { Pressable, ScrollView, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import {
+  Avatar,
   Button,
   Card,
   Chip,
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui";
 import { ConfirmSheet } from "@/components/confirm-sheet";
 import { useToast } from "@/components/toast";
-import { AuthorAvatar, PostCard, openAuthor } from "@/components/feed/post-card";
+import { PostCard, openAuthor } from "@/components/feed/post-card";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
 import { REPORT_REASONS, type FeedComment } from "@/src/lib/social";
@@ -171,7 +172,7 @@ export default function DetailPost() {
               onPress={() => openAuthor(person.handle)}
               style={({ pressed }) => [styles.personRow, pressed && styles.pressed]}
             >
-              <AuthorAvatar name={person.name} image={person.image} size={28} />
+              <Avatar name={person.name} image={person.image} size={28} />
               <Text style={styles.personName}>{person.name}</Text>
               <Ionicons name="heart" size={14} color={theme.colors.bakar} />
             </Pressable>
@@ -199,7 +200,7 @@ export default function DetailPost() {
                     onPress={() => openAuthor(comment.author.handle)}
                     style={({ pressed }) => [styles.commentAuthor, pressed && styles.pressed]}
                   >
-                    <AuthorAvatar name={comment.author.name} image={comment.author.image} size={24} />
+                    <Avatar name={comment.author.name} image={comment.author.image} size={24} />
                     <Text style={styles.personName}>{comment.author.name}</Text>
                     <Text style={styles.muted}>{timeAgoId(comment.createdAt)}</Text>
                   </Pressable>

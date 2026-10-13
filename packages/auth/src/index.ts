@@ -103,6 +103,34 @@ export function createAuth(
       google: {
         clientId: env.GOOGLE_CLIENT_ID,
         clientSecret: env.GOOGLE_CLIENT_SECRET,
+        // Refresh name + picture on every Google sign-in, so profile photos
+        // keep following the Google account and users who signed up before
+        // photos were stored get theirs backfilled on the next sign-in.
+        overrideUserInfoOnSignIn: true,
+      },
+    },
+    databaseHooks: {
+      user: {
+        update: {
+          // A custom upload always wins over the provider picture: when the
+          // stored image is our own /avatar/ URL, keep it even though the
+          // OAuth refresh just delivered Google's latest photo.
+          before: async (data, context) => {
+            if (
+              !context ||
+              !data.id ||
+              typeof data.image !== "string" ||
+              data.image.startsWith("/avatar/")
+            ) {
+              return;
+            }
+            const current = await context.context.internalAdapter.findUserById(data.id);
+            if (!current || typeof current.image !== "string" || !current.image.startsWith("/avatar/")) {
+              return;
+            }
+            return { data: { ...data, image: current.image } };
+          },
+        },
       },
     },
     secret: env.BETTER_AUTH_SECRET,
