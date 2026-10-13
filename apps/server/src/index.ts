@@ -1,6 +1,14 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { appRouter } from "@joyorogo/api/routers/index";
-import { jakartaToday, shiftDate, streakFromDates } from "@joyorogo/api/lib/engine";
+import {
+  effectiveRamadan,
+  jakartaToday,
+  shiftDate,
+  streakFromDates,
+} from "@joyorogo/api/lib/engine";
+import { dueReminders, isFastingPattern, wibDateKey, wibMinutes } from "@joyorogo/api/lib/fasting";
+import { buildPlan, planQueries } from "@joyorogo/api/lib/plan";
+import { sendPush, vapidConfigured } from "@joyorogo/api/lib/webpush";
 import { paywallConfig } from "@joyorogo/api/lib/tiers";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
@@ -17,6 +25,7 @@ import {
   profile as profileTable,
   weightLog as weightLogTable,
 } from "@joyorogo/db/schema/fitness";
+import { pushSubscription as pushSubscriptionTable } from "@joyorogo/db/schema/plans";
 
 import { registerAnonScanRoutes } from "./anon";
 import { registerBillingRoutes } from "./billing";
@@ -298,4 +307,87 @@ app.get("/", (c) => {
   return c.text("OK");
 });
 
-export default app;
+// --- Puasa intermiten: Web Push reminders ------------------------------------
+// Cron (*/5 * * * *): every subscribed device with fastingNotify on gets the
+// window-open / next-meal / 30-minutes-to-close nudge exactly once, deduped
+// through lastSentKey. Dead endpoints (404/410) are deleted on the spot.
+
+async function runFastingReminders(): Promise<void> {
+  if (!vapidConfigured(env)) return;
+  const db = getDb();
+  const now = new Date();
+  const dateKey = wibDateKey(now);
+  const today = jakartaToday();
+  const rows = await db
+    .select({
+      id: pushSubscriptionTable.id,
+      userId: pushSubscriptionTable.userId,
+      endpoint: pushSubscriptionTable.endpoint,
+      p256dh: pushSubscriptionTable.p256dh,
+      auth: pushSubscriptionTable.auth,
+      lastSentKey: pushSubscriptionTable.lastSentKey,
+      pattern: profileTable.fastingPattern,
+      windowStart: profileTable.fastingWindowStart,
+      ramadanMode: profileTable.ramadanMode,
+    })
+    .from(pushSubscriptionTable)
+    .innerJoin(profileTable, eq(profileTable.userId, pushSubscriptionTable.userId))
+    .where(and(eq(profileTable.fastingNotify, true), ne(profileTable.fastingPattern, "off")));
+
+  for (const row of rows) {
+    if (!isFastingPattern(row.pattern)) continue;
+    // Ramadan owns the schedule while it lasts — its flow has no Web Push.
+    if (effectiveRamadan(row.ramadanMode, now)) continue;
+
+    // Same eat budget the day summary shows (formula → measured TDEE).
+    const [profRows, latest, weighIns, intake, exercise] = await db.batch(
+      planQueries(db, row.userId, today),
+    );
+    const profRow = profRows[0];
+    if (!profRow) continue;
+    const plan = buildPlan(
+      profRow,
+      { latestWeightKg: latest[0]?.weightKg ?? null, weighIns, intake, exercise },
+      today,
+    );
+    const [eatenRow] = await db
+      .select({ kcal: sql<number | null>`sum(${foodLogTable.kcal})` })
+      .from(foodLogTable)
+      .where(and(eq(foodLogTable.userId, row.userId), eq(foodLogTable.date, today)));
+
+    const due = dueReminders({
+      pattern: row.pattern,
+      windowStart: row.windowStart,
+      dateKey,
+      remainingKcal: Math.max(0, plan.targets.eatKcal - (eatenRow?.kcal ?? 0)),
+      nowMin: wibMinutes(now),
+    });
+    for (const draft of due) {
+      if (row.lastSentKey === draft.key) continue;
+      const result = await sendPush(
+        env,
+        { endpoint: row.endpoint, p256dh: row.p256dh, auth: row.auth },
+        { title: draft.title, body: draft.body },
+      );
+      if (result.status === 404 || result.status === 410) {
+        await db.delete(pushSubscriptionTable).where(eq(pushSubscriptionTable.id, row.id));
+        break;
+      }
+      if (result.ok) {
+        await db
+          .update(pushSubscriptionTable)
+          .set({ lastSentKey: draft.key })
+          .where(eq(pushSubscriptionTable.id, row.id));
+      }
+    }
+  }
+}
+
+// Same Hono app as fetch; the scheduled handler runs beside it. `app.fetch`
+// is an arrow property, so detaching it stays bound to this app instance.
+export default {
+  fetch: app.fetch,
+  scheduled: (_controller: ScheduledController, _env2: unknown, ctx: ExecutionContext) => {
+    ctx.waitUntil(runFastingReminders());
+  },
+};

@@ -17,6 +17,7 @@ import {
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { pickFact } from "@joyorogo/api/lib/facts";
 
+import { BelanjaCompact } from "@/components/plate/belanja";
 import { FoodSticker, StickerViewer, stickerUrl } from "@/components/sticker";
 import type { StickerViewerTarget } from "@/components/sticker";
 
@@ -38,7 +39,9 @@ import {
   Text,
 } from "@/components/ui";
 import { WaterCard } from "@/components/water-card";
+import { FastingScheduleCard } from "@/components/fasting/schedule-card";
 import { WeighInSheet } from "@/components/weigh-in-sheet";
+import { WorkoutCard } from "@/components/workout/workout-card";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { useHealthAutoSync } from "@/src/lib/use-health-sync";
@@ -320,6 +323,12 @@ export default function Dashboard() {
         />
       </View>
 
+      {/* Latihan beban: peringatan otot terlewat + pintu ke /latihan */}
+      <WorkoutCard />
+
+      {/* Belanja makan hari ini, satu baris */}
+      <BelanjaCompact />
+
       {/* Masih muat: ide menu yang masih muat di sisa budget */}
       {data.ideas.length > 0 ? (
         <View style={styles.ideasWrap}>
@@ -444,6 +453,9 @@ export default function Dashboard() {
           )}
         </Card>
       ) : null}
+
+      {/* Puasa intermiten: panduan jadwal makan */}
+      <FastingScheduleCard />
 
       {/* Lainnya: air, streak, lencana, share — collapsed by default */}
       <SectionTitle

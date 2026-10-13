@@ -8,6 +8,7 @@ import {
   sleepLog,
   weightLog,
 } from "@joyorogo/db/schema/fitness";
+import { workoutSession } from "@joyorogo/db/schema/plans";
 
 import type { Meal } from "../lib/engine";
 
@@ -23,6 +24,7 @@ import {
   suggestMealNow,
 } from "../lib/engine";
 import { dateSchema } from "../lib/schemas";
+import { loadIdeaValues } from "./plate";
 import { mealIdeas } from "../lib/ideas";
 import { buildPlan, planQueries } from "../lib/plan";
 
@@ -71,6 +73,7 @@ export const dayRouter = {
         foodDates,
         weightDates,
         activityRows,
+        workoutRows,
       ] = await context.db.batch([
         ...planQueries(context.db, userId, date),
         context.db
@@ -126,6 +129,12 @@ export const dayRouter = {
           })
           .from(dailyActivity)
           .where(and(eq(dailyActivity.userId, userId), eq(dailyActivity.date, date)))
+          .limit(1),
+        // Strength session on this day bumps the protein target (1.6 g/kg).
+        context.db
+          .select({ id: workoutSession.id })
+          .from(workoutSession)
+          .where(and(eq(workoutSession.userId, userId), eq(workoutSession.date, date)))
           .limit(1),
       ]);
 
@@ -211,13 +220,15 @@ export const dayRouter = {
         trend: plan.trend,
         protein: {
           eatenG: Math.round(eatenProteinG),
-          targetG: proteinTargetG(plan.weightNowKg, prof.heightCm),
+          targetG: proteinTargetG(plan.weightNowKg, prof.heightCm, workoutRows.length > 0),
         },
         ideas:
           date === today
             ? mealIdeas(
                 targets.eatKcal - eatenKcal,
                 suggestMealNow(new Date(), effectiveRamadan(prof.ramadanMode)),
+                3,
+                (await loadIdeaValues(context.db, userId)) ?? undefined,
               )
             : [],
         date,

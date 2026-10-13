@@ -18,6 +18,10 @@ export type ApiEnv = PaywallEnv & {
   IMAGES?: ImagesBinding;
   /** R2 bucket storing the generated cutout PNGs. */
   STICKERS?: StickersBucket;
+  /** Web Push (puasa intermiten): reminders stay off until all three are set. */
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+  VAPID_SUBJECT?: string;
 };
 
 export type Context = {

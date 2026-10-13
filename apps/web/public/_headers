@@ -8,3 +8,8 @@
 
 /icons/*
   Cache-Control: public, max-age=86400
+
+# Service worker harus selalu divalidasi: versi lama jangan mengganggu
+# pendaftaran push yang baru.
+/sw.js
+  Cache-Control: no-cache

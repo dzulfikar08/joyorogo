@@ -3,6 +3,11 @@ import * as SecureStore from "expo-secure-store";
 
 const MEALS_KEY = "joyorogo.remind.meals";
 const WEIGH_IN_KEY = "joyorogo.remind.weighin";
+const FASTING_KEY = "joyorogo.remind.fasting";
+const FASTING_SCHEDULE_KEY = "joyorogo.remind.fasting.schedule";
+
+/** One IF reminder of the day; hours/minutes are WIB wall-clock. */
+export type FastingReminder = { hour: number; minute: number; title: string; body: string };
 
 // WIB assumption: calendar triggers run on the device's wall clock. iOS honors
 // the `timezone` field, but Android ignores it and uses the device-local time
@@ -49,10 +54,14 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export type ReminderPrefs = { meals: boolean; weighIn: boolean };
+export type ReminderPrefs = { meals: boolean; weighIn: boolean; fasting: boolean };
 
 export async function loadReminderPrefs(): Promise<ReminderPrefs> {
-  return { meals: await readFlag(MEALS_KEY), weighIn: await readFlag(WEIGH_IN_KEY) };
+  return {
+    meals: await readFlag(MEALS_KEY),
+    weighIn: await readFlag(WEIGH_IN_KEY),
+    fasting: await readFlag(FASTING_KEY),
+  };
 }
 
 // Returns the effective state: true only when the reminder is on AND the
@@ -70,6 +79,44 @@ export async function setWeighInReminder(enabled: boolean): Promise<boolean> {
   await writeFlag(WEIGH_IN_KEY, enabled);
   await rescheduleAll();
   return enabled;
+}
+
+/**
+ * IF mode replaces the fixed 09:00/13:00/19:00 meal reminders with the
+ * fasting schedule (window open, meals, 30-minutes-to-close). `reminders`
+ * comes from lib/fasting dayReminders; null disables the mode. Returns the
+ * effective state like the other toggles: false when permission was denied.
+ */
+export async function setFastingReminders(
+  enabled: boolean,
+  reminders: FastingReminder[] | null,
+): Promise<boolean> {
+  if (enabled && !(await ensureNotificationPermission())) return false;
+  await writeFlag(FASTING_KEY, enabled);
+  if (reminders !== null) {
+    await writeJson(FASTING_SCHEDULE_KEY, reminders);
+  }
+  await rescheduleAll();
+  return enabled;
+}
+
+async function readFastingReminders(): Promise<FastingReminder[]> {
+  try {
+    const raw = await SecureStore.getItemAsync(FASTING_SCHEDULE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is FastingReminder =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof (item as FastingReminder).hour === "number" &&
+        typeof (item as FastingReminder).minute === "number" &&
+        typeof (item as FastingReminder).title === "string" &&
+        typeof (item as FastingReminder).body === "string",
+    );
+  } catch {
+    return [];
+  }
 }
 
 // Cancels every notification this app scheduled, THROUGH the same queue as
@@ -147,7 +194,17 @@ async function doReschedule(): Promise<void> {
   await cancelAllAppReminders();
   const prefs = await loadReminderPrefs();
   try {
-    if (prefs.meals) await scheduleMeals();
+    // IF mode on → its schedule REPLACES the fixed meal reminders.
+    if (prefs.fasting) {
+      for (const reminder of await readFastingReminders()) {
+        await Notifications.scheduleNotificationAsync({
+          content: { title: reminder.title, body: reminder.body },
+          trigger: calendarTrigger(reminder.hour, reminder.minute),
+        });
+      }
+    } else if (prefs.meals) {
+      await scheduleMeals();
+    }
     if (prefs.weighIn) {
       await Notifications.scheduleNotificationAsync({
         content: { title: WEIGH_IN_REMINDER.title, body: WEIGH_IN_REMINDER.body },
@@ -170,6 +227,14 @@ async function readFlag(key: string): Promise<boolean> {
 async function writeFlag(key: string, value: boolean): Promise<void> {
   try {
     await SecureStore.setItemAsync(key, value ? "1" : "0");
+  } catch {
+    // Persistence is best-effort.
+  }
+}
+
+async function writeJson(key: string, value: unknown): Promise<void> {
+  try {
+    await SecureStore.setItemAsync(key, JSON.stringify(value));
   } catch {
     // Persistence is best-effort.
   }

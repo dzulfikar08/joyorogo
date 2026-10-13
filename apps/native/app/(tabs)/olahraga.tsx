@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Platform, Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
-import { Redirect } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { estimateKcal } from "@joyorogo/api/lib/met";
@@ -283,6 +283,18 @@ export default function Olahraga() {
           ? "Estimasi kalori per 30 menit dengan berat badan terakhirmu."
           : "Catat berat badanmu di halaman Berat agar estimasi kalori tampil."}
       </Text>
+
+      {/* Strength training: dedicated session logger */}
+      <ListGroup>
+        <ListRow
+          icon="barbell"
+          iconTint="bakar"
+          title="Latihan beban"
+          subtitle="Catat gerakan, set, reps, dan beban. Jaga otot saat defisit."
+          chevron
+          onPress={() => router.push("/latihan")}
+        />
+      </ListGroup>
 
       {/* Activity list */}
       <Text style={styles.sectionLabel}>Hari ini</Text>

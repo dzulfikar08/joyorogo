@@ -15,6 +15,8 @@ import { MEALS, jakartaToday, storySlotLabel } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 
 import { Button, Input, ListGroup, ListRow, Text } from "@/components/ui";
+import { PlateFields } from "@/components/plate/plate-fields";
+import type { PlateValues } from "@/components/plate/plate-fields";
 import { errorMessage, fmtKcal, parseNum } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
@@ -81,6 +83,8 @@ export function Cerita({
   const [transcript, setTranscript] = useState("");
   const [items, setItems] = useState<StoryItem[]>([]);
   const [kcals, setKcals] = useState<string[]>([]);
+  // Per-group plate fields, keyed by `${date}-${meal}` like the review groups.
+  const [plates, setPlates] = useState<Record<string, PlateValues>>({});
   const [saving, setSaving] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   // The working phase shows a different line for a voice note vs typed text.
@@ -193,6 +197,7 @@ export function Cerita({
       setText(result.transcript);
       setItems(result.items);
       setKcals(result.items.map((item) => String(Math.round(item.kcal))));
+      setPlates({});
       setPhase("review");
     } catch (err) {
       if (run !== runRef.current) return;
@@ -253,6 +258,7 @@ export function Cerita({
   const backToInput = () => {
     setItems([]);
     setKcals([]);
+    setPlates({});
     setPhase("input");
   };
 
@@ -273,9 +279,35 @@ export function Cerita({
     setSaving(true);
     setError(null);
     let saved = 0;
+    // First row of each date+meal group creates the plate; the rest follow it.
+    const plateIds: Record<string, string | undefined> = {};
+    const groupKey = (item: StoryItem) => `${item.date}-${MEALS.indexOf(item.meal)}`;
     try {
       for (const [index, item] of items.entries()) {
-        await addFood.mutateAsync({
+        const key = groupKey(item);
+        const existing = plateIds[key];
+        let plate: { name?: string; place?: string; priceIdr?: number } | undefined;
+        if (!existing) {
+          const plateVals = plates[key];
+          if (plateVals) {
+            const name = plateVals.name.trim();
+            const place = plateVals.place.trim();
+            const priceNum = parseNum(plateVals.price);
+            const priceIdr =
+              plateVals.price.trim() !== "" && priceNum !== null && priceNum >= 0
+                ? Math.round(priceNum)
+                : null;
+            // Pass a plate only when the price is filled or the name was edited.
+            if (priceIdr !== null || (name !== "" && name !== item.name)) {
+              plate = {
+                ...(name !== "" ? { name } : {}),
+                ...(place !== "" ? { place } : {}),
+                ...(priceIdr !== null ? { priceIdr } : {}),
+              };
+            }
+          }
+        }
+        const savedRow = await addFood.mutateAsync({
           date: item.date,
           meal: item.meal,
           name: item.name,
@@ -285,7 +317,9 @@ export function Cerita({
           fat: item.fat,
           fiber: item.fiber,
           source: "ai",
+          ...(existing ? { plateId: existing } : plate ? { plate } : {}),
         });
+        if (!existing && savedRow?.plateId) plateIds[key] = savedRow.plateId;
         saved += 1;
       }
       // Miss log: AI estimate vs what the user kept. Never blocks the save.
@@ -310,6 +344,7 @@ export function Cerita({
       dates.sort();
       setItems([]);
       setKcals([]);
+      setPlates({});
       setPhase("input");
       onSaved({ count: saved, dates });
     } catch (err) {
@@ -368,10 +403,11 @@ export function Cerita({
           </Pressable>
         </View>
 
-        {groups.map((group) => {
+        {groups.map((group, groupIndex) => {
           const first = group[0]?.item;
           if (!first) return null;
           const label = storySlotLabel(first.date, first.meal, today);
+          const key = keys[groupIndex];
           return (
             <View key={label} style={styles.groupGap}>
               <Text style={styles.groupLabel}>{label}</Text>
@@ -412,6 +448,18 @@ export function Cerita({
                   />
                 ))}
               </ListGroup>
+              <PlateFields
+                title={`Piring: ${label}`}
+                priceLabel="Harga piring ini (Rp)"
+                values={
+                  plates[key] ?? {
+                    name: group[0]?.item.name ?? "",
+                    place: "",
+                    price: "",
+                  }
+                }
+                onChange={(next) => setPlates((current) => ({ ...current, [key]: next }))}
+              />
             </View>
           );
         })}

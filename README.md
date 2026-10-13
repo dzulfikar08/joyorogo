@@ -95,16 +95,17 @@ Redirect URI Google: `<alamatmu>/api/auth/callback/google`. Variabel opsional
 
 Pemilik server yang menentukan. Tanpa konfigurasi, semua fitur gratis tanpa batas.
 
-| Variabel                                             | Arti                                                                                                                                                                        | Bawaan |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| `FREE_DAILY_SCANS`                                   | Batas scan AI per hari untuk pengguna gratis. Kosong = tanpa paywall.                                                                                                       | kosong |
-| `FOUNDER_DAILY_CAP`                                  | Batas pengaman scan Founder per hari. Kosong = tanpa batas.                                                                                                                 | kosong |
-| `ANON_SCANS`                                         | Coba scan tanpa daftar per perangkat. `0` mematikan demo.                                                                                                                   | 2      |
-| `FOUNDER_PRICE_IDR`                                  | Harga Founder per bulan.                                                                                                                                                    | 15000  |
-| `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL` | DOKU Checkout (QRIS, VA, e-wallet). Pembayaran aktif hanya kalau `FREE_DAILY_SCANS` juga diisi.                                                                             | kosong |
-| `APPLE_BUNDLE_ID`, `APPLE_FOUNDER_PRODUCT_ID`        | Apple in-app purchase untuk Founder di iOS. Kosong = `com.joyodigitama.joyorogo` dan `com.joyodigitama.joyorogo.founder.1m`; harus sama dengan produk di App Store Connect. | kosong |
-| `APPLE_SANDBOX_EMAILS`                               | Email (pisah koma) yang boleh memakai pembelian sandbox/TestFlight: akunmu dan akun demo App Review. Production selalu diterima.                                            | kosong |
-| `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`           | Impor olahraga dari Strava.                                                                                                                                                 | kosong |
+| Variabel                                                 | Arti                                                                                                                                                                        | Bawaan |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| `FREE_DAILY_SCANS`                                       | Batas scan AI per hari untuk pengguna gratis. Kosong = tanpa paywall.                                                                                                       | kosong |
+| `FOUNDER_DAILY_CAP`                                      | Batas pengaman scan Founder per hari. Kosong = tanpa batas.                                                                                                                 | kosong |
+| `ANON_SCANS`                                             | Coba scan tanpa daftar per perangkat. `0` mematikan demo.                                                                                                                   | 2      |
+| `FOUNDER_PRICE_IDR`                                      | Harga Founder per bulan.                                                                                                                                                    | 15000  |
+| `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL`     | DOKU Checkout (QRIS, VA, e-wallet). Pembayaran aktif hanya kalau `FREE_DAILY_SCANS` juga diisi.                                                                             | kosong |
+| `APPLE_BUNDLE_ID`, `APPLE_FOUNDER_PRODUCT_ID`            | Apple in-app purchase untuk Founder di iOS. Kosong = `com.joyodigitama.joyorogo` dan `com.joyodigitama.joyorogo.founder.1m`; harus sama dengan produk di App Store Connect. | kosong |
+| `APPLE_SANDBOX_EMAILS`                                   | Email (pisah koma) yang boleh memakai pembelian sandbox/TestFlight: akunmu dan akun demo App Review. Production selalu diterima.                                            | kosong |
+| `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`               | Impor olahraga dari Strava.                                                                                                                                                 | kosong |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push untuk pengingat puasa intermiten di web (cron tiap 5 menit). Kosong = pengingat web mati.                                                                          | kosong |
 
 Founder dibayar per bulan (tanpa perpanjangan otomatis). Notifikasi DOKU
 masuk ke `/api/billing/webhook`. Di iOS, Founder dibayar lewat Apple
@@ -133,9 +134,9 @@ scripts/build-release-apk.sh --publish
 APK pertama yang mendukung pembaruan dalam aplikasi harus dipasang manual satu
 kali; setelah itu pembaruan berikutnya bisa dari dalam aplikasi.
 
-## Roadmap
+## Latihan beban, puasa intermiten, dan harga makanan
 
-Rencana, belum dibangun. Urutan bisa berubah.
+Tiga fitur ini ada di web dan Android. Catatan desainnya:
 
 ### Latihan beban: turun berat tanpa kehilangan otot
 
@@ -201,9 +202,7 @@ makanan yang paling hemat sekaligus bergizi.
   diberi harga sendiri, karena harga lauk di warung jarang diketahui.
 - **Anggaran**: batas belanja makan harian atau bulanan, dengan sisa anggaran
   ditampilkan di samping sisa kalori.
-- **Data**: sekarang baris dari satu scan tidak punya kunci kelompok yang
-  pasti (`photo_id` hanya terisi kalau "Simpan foto asli" menyala). Rencananya
-  tabel baru `plate` (`id`, `user_id`, `date`, `meal`, `name`, `place`,
+- **Data**: tabel `plate` (`id`, `user_id`, `date`, `meal`, `name`, `place`,
   `price_idr`) dan kolom `plate_id` di `food_log`, diisi oleh `addScan`, cerita,
   dan catatan manual. Baris lama tanpa `plate_id` tetap tampil, hanya tanpa
   harga. Menghapus semua komponen satu piring ikut menghapus piringnya.

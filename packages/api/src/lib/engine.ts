@@ -192,11 +192,15 @@ export function macroTargets(
 
 /**
  * Daily protein for a cut: 1.5 g/kg of the lesser of current weight and the
- * top of the healthy range. Scaling by total mass would ask a 120 kg body for
- * 180 g/day — nobody eats that, and fat mass does not need it.
+ * top of the healthy range (1.6 g/kg on strength-training days — muscle needs
+ * the extra building material when it is being broken down and rebuilt).
+ * Scaling by total mass would ask a 120 kg body for 180 g/day — nobody eats
+ * that, and fat mass does not need it.
  */
-export function proteinTargetG(weightKg: number, heightCm: number): number {
-  return Math.round(1.5 * Math.min(weightKg, idealWeightRange(heightCm).maxKg));
+export function proteinTargetG(weightKg: number, heightCm: number, trainingDay = false): number {
+  return Math.round(
+    (trainingDay ? 1.6 : 1.5) * Math.min(weightKg, idealWeightRange(heightCm).maxKg),
+  );
 }
 
 export type WeighIn = { date: string; weightKg: number };

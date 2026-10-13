@@ -24,6 +24,8 @@ import {
   Segmented,
   Text,
 } from "@/components/ui";
+import { PlateFields, plateInput } from "@/components/plate/plate-fields";
+import type { PlateValues } from "@/components/plate/plate-fields";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, parseNum } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
@@ -157,6 +159,13 @@ export default function MakanAi() {
   const analyze = useMutation(orpc.ai.analyzeFood.mutationOptions());
   const addScan = useMutation(orpc.food.addScan.mutationOptions());
   const logCorrections = useMutation(orpc.ai.logCorrections.mutationOptions());
+  // Plate price autofill: one lookup per parse, prefill name/place/price.
+  const lastPrice = useMutation(orpc.plate.lastPrice.mutationOptions());
+  const [plateValues, setPlateValues] = useState<PlateValues>({
+    name: "",
+    place: "",
+    price: "",
+  });
 
   if (gate === "loading") {
     return <BootLoader />;
@@ -175,6 +184,7 @@ export default function MakanAi() {
     setSentImage(null);
     setCrops([]);
     setPreviewUri(null);
+    setPlateValues({ name: "", place: "", price: "" });
     analyze.reset();
     setPhase("camera");
   };
@@ -212,6 +222,22 @@ export default function MakanAi() {
         crops: true,
       });
       setItems(result.items);
+      // Plate fields: default name = first item, then autofill the last price.
+      const firstName = result.items[0]?.name;
+      setPlateValues({ name: firstName ?? "", place: "", price: "" });
+      if (firstName) {
+        void lastPrice
+          .mutateAsync({ name: firstName })
+          .then((found) => {
+            if (!found) return;
+            setPlateValues((prev) => ({
+              name: found.name || prev.name,
+              place: found.place ?? prev.place,
+              price: found.priceIdr > 0 ? String(found.priceIdr) : prev.price,
+            }));
+          })
+          .catch(() => {});
+      }
       // Keep exactly what we sent so the save reuses the same bytes.
       setSentImage({
         base64: saved.base64,
@@ -270,6 +296,7 @@ export default function MakanAi() {
 
   const saveIncluded = async () => {
     setFlowError(null);
+    const plate = plateInput(plateValues, items[0]?.name);
     const chosen = items
       .map((item, index) => ({ item, draft: drafts[index] }))
       .filter((entry) => entry.draft?.include);
@@ -301,6 +328,7 @@ export default function MakanAi() {
           box: item.box,
         })),
         itemsJson: JSON.stringify(items),
+        ...(plate ? { plate } : {}),
       });
       // Miss log: AI estimate vs what the user kept. Never blocks the save.
       void logCorrections
@@ -575,6 +603,8 @@ export default function MakanAi() {
               onChange={(value) => setMeal(value)}
             />
           </View>
+
+          <PlateFields values={plateValues} onChange={setPlateValues} />
 
           {flowError ? <Text style={styles.errorText}>{flowError}</Text> : null}
           <Button

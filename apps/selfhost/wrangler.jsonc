@@ -12,6 +12,9 @@
   "main": "../server/src/index.ts",
   "compatibility_date": "2026-08-31",
   "compatibility_flags": ["nodejs_compat"],
+  // Puasa intermiten: Web Push reminders every 5 minutes (no-op unless
+  // VAPID_* secrets are set and users subscribe).
+  "triggers": { "crons": ["*/5 * * * *"] },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

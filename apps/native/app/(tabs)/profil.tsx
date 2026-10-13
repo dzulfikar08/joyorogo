@@ -26,8 +26,10 @@ import {
   Text,
 } from "@/components/ui";
 import { FounderCards, serverUrl, useAppConfig } from "@/components/billing";
+import { BudgetSetting } from "@/components/plate/budget-setting";
 import { TargetDateSheet, TargetWeightSheet } from "@/components/target-sheets";
 import { StravaCard } from "@/components/strava-card";
+import { FastingSettingsCard } from "@/components/fasting/settings-card";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { downloadAndInstallApk, useApkUpdate } from "@/src/lib/apk-update";
@@ -354,6 +356,12 @@ export default function Profil() {
 
       {/* Ramadan */}
       {prof ? <RamadanList mode={prof.ramadanMode} /> : null}
+
+      {/* Puasa intermiten */}
+      {prof ? <FastingSettingsCard /> : null}
+
+      {/* Anggaran belanja makan */}
+      <BudgetSetting />
 
       {/* Privasi */}
       {prof ? <PrivacyList keepPhotos={prof.keepPhotos} /> : null}

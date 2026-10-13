@@ -16,6 +16,9 @@ export const server = Cloudflare.Worker("server", {
   // Same registrable domain as the web app so the OAuth state cookie is
   // first-party; workers.dev is cross-site and browsers drop it.
   domain: "api.joyorogo.com",
+  // Puasa intermiten Web Push reminders; the scheduled handler no-ops while
+  // VAPID_* is unset.
+  crons: ["*/5 * * * *"],
   compatibility: {
     flags: ["nodejs_compat"],
   },

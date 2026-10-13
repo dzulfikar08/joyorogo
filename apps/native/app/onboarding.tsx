@@ -1,6 +1,6 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Redirect, router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { useState } from "react";
@@ -96,6 +96,7 @@ export default function Onboarding() {
   const gate = useSessionGate();
   const { theme } = useUnistyles();
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
+  const queryClient = useQueryClient();
 
   const [saving, setSaving] = useState(false);
   const [savedTargets, setSavedTargets] = useState<Targets | null>(null);
@@ -261,7 +262,17 @@ export default function Onboarding() {
               Beratmu sudah di target. Rencana sekarang menjaga berat, bukan menurunkan.
             </Text>
           ) : null}
-          <Button label="Mulai di Beranda" onPress={() => router.replace("/")} />
+          <Button
+            label="Mulai di Beranda"
+            onPress={() => {
+              // Beranda's cached "no profile yet" summary would redirect
+              // straight back here; drop it so Beranda loads the new plan.
+              queryClient.removeQueries({ queryKey: orpc.profile.key() });
+              queryClient.removeQueries({ queryKey: orpc.day.key() });
+              queryClient.invalidateQueries();
+              router.replace("/");
+            }}
+          />
         </>
       ) : (
         <>

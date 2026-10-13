@@ -21,9 +21,10 @@ import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
 import type { ExerciseItem, ExerciseType } from "@/lib/api-types";
 import { orpc } from "@/utils/orpc";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Bike,
+  ChevronRight,
   Droplets,
   Dumbbell,
   Flame,
@@ -353,6 +354,24 @@ function OlahragaScreen({ list }: { list: { items: ExerciseItem[]; totalKcal: nu
           <StravaCard />
         </div>
       </div>
+
+      <section aria-label="Latihan beban" className="mt-3 lg:mt-5">
+        <Link
+          to="/latihan"
+          className="pressable flex items-center gap-3 rounded-3xl bg-card p-5 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-bakar-soft text-bakar">
+            <Dumbbell className="size-5" aria-hidden />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-extrabold">Latihan beban</span>
+            <span className="block text-sm text-muted-foreground">
+              Catat gerakan, set, reps, dan beban. Jaga otot saat defisit.
+            </span>
+          </span>
+          <ChevronRight className="ml-auto size-5 shrink-0 text-muted-foreground" aria-hidden />
+        </Link>
+      </section>
 
       <Sheet
         open={sheetOpen}

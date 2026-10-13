@@ -1,7 +1,10 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
+import type { Database } from "@joyorogo/db";
+
 import { foodLog, profile } from "@joyorogo/db/schema/fitness";
+import { plate } from "@joyorogo/db/schema/plans";
 
 import { protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
@@ -28,6 +31,45 @@ const scanItemSchema = z.object({
   box: z.array(z.number()).length(4).optional(),
 });
 
+// Price attaches to the plate, never to components: one scan, one Cerita meal,
+// or one manual entry is one plate row that its food_log rows point at.
+const plateInput = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  place: z.string().trim().min(1).max(200).optional(),
+  priceIdr: z.number().int().min(0).max(100_000_000).optional(),
+});
+
+/**
+ * Creates the plate row a save is anchored to. `name` falls back to the first
+ * component's name ("Nasi padang" from the AI's own item list) so a plate
+ * always has a label, priced or not.
+ */
+async function createPlate(
+  db: Database,
+  userId: string,
+  values: {
+    date: string;
+    meal: string;
+    fallbackName: string;
+    plate?: { name?: string; place?: string; priceIdr?: number };
+  },
+): Promise<string | null> {
+  if (!values.plate) return null;
+  const [row] = await db
+    .insert(plate)
+    .values({
+      id: crypto.randomUUID(),
+      userId,
+      date: values.date,
+      meal: values.meal,
+      name: values.plate.name?.trim() || values.fallbackName,
+      place: values.plate.place ?? null,
+      priceIdr: values.plate.priceIdr ?? null,
+    })
+    .returning({ id: plate.id });
+  return row?.id ?? null;
+}
+
 export const foodRouter = {
   // Saves a reviewed photo scan in one call: the original photo is stored
   // privately once, every kept item becomes its own row, and each boxed item
@@ -41,6 +83,7 @@ export const foodRouter = {
         mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
         items: z.array(scanItemSchema).min(1).max(15),
         itemsJson: z.string().max(10_000).optional(),
+        plate: plateInput.optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -79,6 +122,13 @@ export const foodRouter = {
         return !anyBox && index === 0 ? { scanId: newScanId() } : null;
       });
       const date = input.date ?? jakartaToday();
+      // One scan = one plate; every kept item is a component of it.
+      const plateId = await createPlate(context.db, userId, {
+        date,
+        meal: input.meal,
+        fallbackName: input.items[0]?.name ?? "Piring",
+        plate: input.plate,
+      });
       const rows = await context.db
         .insert(foodLog)
         .values(
@@ -97,6 +147,7 @@ export const foodRouter = {
             itemsJson: input.itemsJson,
             scanId: jobs[index]?.scanId,
             photoId,
+            plateId,
           })),
         )
         .returning();
@@ -122,15 +173,37 @@ export const foodRouter = {
         itemsJson: z.string().max(10_000).optional(),
         // capability id of the dish sticker generated at scan time
         scanId: z.string().regex(SCAN_ID_RE).optional(),
+        plate: plateInput.optional(),
+        // attach to a plate created by an earlier item of the same Cerita group
+        plateId: z.string().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
+      // An explicit plateId must belong to this user; unknown ids are ignored.
+      let attachId = input.plateId ?? null;
+      if (attachId) {
+        const [owned] = await context.db
+          .select({ id: plate.id })
+          .from(plate)
+          .where(and(eq(plate.id, attachId), eq(plate.userId, context.session.user.id)))
+          .limit(1);
+        if (!owned) attachId = null;
+      }
+      const date = input.date ?? jakartaToday();
+      const plateId =
+        attachId ??
+        (await createPlate(context.db, context.session.user.id, {
+          date,
+          meal: input.meal,
+          fallbackName: input.name,
+          plate: input.plate,
+        }));
       const [row] = await context.db
         .insert(foodLog)
         .values({
           id: crypto.randomUUID(),
           userId: context.session.user.id,
-          date: input.date ?? jakartaToday(),
+          date,
           meal: input.meal,
           name: input.name,
           kcal: input.kcal,
@@ -141,6 +214,7 @@ export const foodRouter = {
           source: input.source,
           itemsJson: input.itemsJson,
           scanId: input.scanId,
+          plateId,
         })
         .returning();
       return row;
@@ -152,7 +226,18 @@ export const foodRouter = {
       const [row] = await context.db
         .delete(foodLog)
         .where(and(eq(foodLog.id, input.id), eq(foodLog.userId, context.session.user.id)))
-        .returning({ scanId: foodLog.scanId, photoId: foodLog.photoId });
+        .returning({ scanId: foodLog.scanId, photoId: foodLog.photoId, plateId: foodLog.plateId });
+      // A plate with no components left is deleted with its last item.
+      if (row?.plateId) {
+        const [remaining] = await context.db
+          .select({ id: foodLog.id })
+          .from(foodLog)
+          .where(and(eq(foodLog.userId, context.session.user.id), eq(foodLog.plateId, row.plateId)))
+          .limit(1);
+        if (!remaining) {
+          await context.db.delete(plate).where(eq(plate.id, row.plateId));
+        }
+      }
       const stickers = context.env.STICKERS;
       if (row && stickers) {
         try {

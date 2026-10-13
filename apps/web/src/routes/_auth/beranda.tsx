@@ -11,11 +11,14 @@ import { toast } from "sonner";
 
 import { Ring } from "@/components/kit/ring";
 import { Card, Page, SectionTitle, StatTile } from "@/components/kit/surface";
+import { FastingScheduleCard } from "@/components/fasting/schedule-card";
 import MovementCard from "@/components/movement-card";
+import { BelanjaCard } from "@/components/plate/belanja";
 import { ScreenError } from "@/components/screen-state";
 import ShareCardButton from "@/components/share-card";
 import { Sticker } from "@/components/sticker";
 import { WaterCard } from "@/components/water-card";
+import { WorkoutCard } from "@/components/workout/workout-card";
 import { pickFact } from "@/lib/facts";
 import { fmtDateIndo, fmtInt, fmtKg, parseNum } from "@/lib/format";
 import type { DaySummary } from "@/lib/api-types";
@@ -154,7 +157,9 @@ function Dashboard({ summary }: { summary: Summary }) {
 
         <div className="min-w-0 space-y-3 lg:space-y-5">
           <TodayMeals summary={summary} />
+          <FastingScheduleCard />
           <WeightCard summary={summary} />
+          <WorkoutCard />
         </div>
       </div>
 
@@ -539,6 +544,7 @@ function MoreSection({ summary }: { summary: Summary }) {
         />
       </summary>
       <div className="space-y-5 px-5 pb-5">
+        <BelanjaCard variant="line" />
         <WaterCard />
         <MovementCard />
         {fact && (

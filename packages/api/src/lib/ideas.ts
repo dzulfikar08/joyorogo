@@ -1,4 +1,5 @@
 import type { Meal } from "./engine";
+import { plateKey } from "./plates";
 
 export type MealIdea = { name: string; kcal: number; proteinG: number };
 
@@ -50,16 +51,29 @@ const MIN_REMAINING_KCAL = 80;
  * first — protein is what keeps a deficit bearable. Main-meal ideas must be a
  * real meal (≥ 35% of what's left, capped at 250 kcal) so a big remaining
  * budget doesn't get answered with a single egg; when no meal fits, snacks do.
+ * `valueByName` (plateKey(name) → protein per Rp1.000, from the user's priced
+ * plates) re-sorts the best-value plates to the front without changing which
+ * ideas fit.
  */
-export function mealIdeas(remainingKcal: number, slot: Meal, limit = 3): MealIdea[] {
+export function mealIdeas(
+  remainingKcal: number,
+  slot: Meal,
+  limit = 3,
+  valueByName?: Map<string, number>,
+): MealIdea[] {
   if (remainingKcal < MIN_REMAINING_KCAL) return [];
   const floor = slot === "snack" ? 0 : Math.min(250, remainingKcal * 0.35);
   const fitting = CATALOG.filter(
     (idea) => idea.slots.includes(slot) && idea.kcal <= remainingKcal && idea.kcal >= floor,
   );
   if (fitting.length === 0 && slot !== "snack") return mealIdeas(remainingKcal, "snack", limit);
-  return fitting
-    .toSorted((a, b) => b.proteinG / b.kcal - a.proteinG / a.kcal)
-    .slice(0, limit)
-    .map(({ name, kcal, proteinG }) => ({ name, kcal, proteinG }));
+  const byProteinDensity = (a: CatalogIdea, b: CatalogIdea) =>
+    b.proteinG / b.kcal - a.proteinG / a.kcal;
+  const valueOf = (idea: CatalogIdea) => valueByName?.get(plateKey(idea.name)) ?? -1;
+  const ranked =
+    valueByName && valueByName.size > 0
+      ? // best value first; protein density keeps the order among unpriced ideas
+        fitting.toSorted((a, b) => valueOf(b) - valueOf(a) || byProteinDensity(a, b))
+      : fitting.toSorted(byProteinDensity);
+  return ranked.slice(0, limit).map(({ name, kcal, proteinG }) => ({ name, kcal, proteinG }));
 }

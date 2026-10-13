@@ -153,7 +153,12 @@ function OnboardingPage() {
   const save = useMutation(
     orpc.profile.upsert.mutationOptions({
       onSuccess: () => {
-        // Everything (summary, weigh-in, plan) derives from the profile.
+        // Everything (summary, weigh-in, plan) derives from the profile. The
+        // cached "no profile yet" answers must go, not just turn stale: route
+        // loaders (ensureQueryData) would serve them again and bounce
+        // Beranda straight back here until a manual refresh.
+        queryClient.removeQueries({ queryKey: orpc.profile.key() });
+        queryClient.removeQueries({ queryKey: orpc.day.key() });
         queryClient.invalidateQueries();
         setDone(true);
         trackConversion("onboarding_complete");

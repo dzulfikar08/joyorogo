@@ -18,6 +18,8 @@ import {
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 
+import { BelanjaSection } from "@/components/plate/belanja";
+import { PlateHeader } from "@/components/plate/plate-header";
 import { Cerita } from "@/components/cerita";
 import type { CeritaPhase } from "@/components/cerita";
 import { FoodSticker, StickerViewer, stickerUrl } from "@/components/sticker";
@@ -99,6 +101,19 @@ export default function Makan() {
     placeholderData: (prev) => prev,
   });
   const recentQuery = useQuery(orpc.food.recent.queryOptions());
+  // Plate prices for the diary's plate grouping (plate.byDate) and inline edit.
+  const plateDayQuery = useQuery({
+    ...orpc.plate.byDate.queryOptions({ input: { date } }),
+    placeholderData: (prev) => prev,
+  });
+  const updatePlate = useMutation(
+    orpc.plate.update.mutationOptions({
+      onSuccess: () => {
+        setPlateEdit(null);
+        queryClient.invalidateQueries();
+      },
+    }),
+  );
 
   const [sheetMeal, setSheetMeal] = useState<Meal | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
@@ -111,6 +126,11 @@ export default function Makan() {
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
   const [macrosOpen, setMacrosOpen] = useState(false);
+  // Manual form's optional plate price, and the diary's inline plate editor.
+  const [platePriceManual, setPlatePriceManual] = useState("");
+  const [plateEdit, setPlateEdit] = useState<{ id: string; name: string; price: string } | null>(
+    null,
+  );
   const [formError, setFormError] = useState<string | null>(null);
   const [viewer, setViewer] = useState<StickerViewerTarget | null>(null);
   const [undoItem, setUndoItem] = useState<UndoItem | null>(null);
@@ -134,6 +154,7 @@ export default function Makan() {
           setProtein("");
           setCarbs("");
           setFat("");
+          setPlatePriceManual("");
           setMacrosOpen(false);
         }
         quickAddRef.current = false;
@@ -220,6 +241,13 @@ export default function Makan() {
     const proteinNum = parseNum(protein);
     const carbsNum = parseNum(carbs);
     const fatNum = parseNum(fat);
+    const priceNum = platePriceManual.trim() === "" ? null : parseNum(platePriceManual);
+    if (priceNum !== null && (priceNum < 0 || !Number.isInteger(priceNum))) {
+      setFormError("Harga piringnya angka rupiah bulat, contoh: 28000.");
+      return;
+    }
+    const plate =
+      priceNum !== null ? { name: name.trim(), priceIdr: Math.round(priceNum) } : undefined;
     setFormError(null);
     addFood.mutate({
       meal,
@@ -228,6 +256,7 @@ export default function Makan() {
       protein: proteinNum ?? undefined,
       carbs: carbsNum ?? undefined,
       fat: fatNum ?? undefined,
+      ...(plate ? { plate } : {}),
     });
   };
 
@@ -245,6 +274,7 @@ export default function Makan() {
     setProtein("");
     setCarbs("");
     setFat("");
+    setPlatePriceManual("");
     setMacrosOpen(false);
     setManualOpen(false);
     setCeritaPhase("input");
@@ -279,48 +309,102 @@ export default function Makan() {
           </Text>
         ) : (
           <ListGroup>
-            {slotItems.map((item) => (
-              <ListRow
-                key={item.id}
-                title={item.name}
-                subtitle={
-                  item.protein !== null || item.carbs !== null || item.fat !== null
-                    ? `P ${fmtKcal(item.protein ?? 0)} · K ${fmtKcal(item.carbs ?? 0)} · L ${fmtKcal(item.fat ?? 0)} g`
-                    : item.source === "ai"
-                      ? "Dari pindai AI"
-                      : undefined
-                }
-                value={`${fmtKcal(item.kcal)}`}
-                thumb={
-                  item.scanId ? (
-                    <FoodSticker
-                      scanId={item.scanId}
-                      name={item.name}
-                      onPress={() => {
-                        const scanId = item.scanId;
-                        if (!scanId) return;
-                        setViewer({
-                          uri: stickerUrl(scanId),
-                          name: item.name,
-                          kcal: item.kcal,
-                          photoId: item.photoId,
-                        });
-                      }}
-                    />
-                  ) : undefined
-                }
-                right={
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Hapus ${item.name}`}
-                    onPress={() => handleDelete(item)}
-                    style={({ pressed }) => [styles.deleteButton, pressed && styles.pressedSoft]}
-                  >
-                    <Ionicons name="trash-outline" size={18} color={theme.colors.destructive} />
-                  </Pressable>
-                }
-              />
-            ))}
+            {slotItems
+              .reduce<Array<{ plateId: string | null; rows: typeof slotItems }>>(
+                (segments, item) => {
+                  const last = segments[segments.length - 1];
+                  if (item.plateId !== null && last?.plateId === item.plateId) {
+                    last.rows.push(item);
+                  } else {
+                    segments.push({ plateId: item.plateId, rows: [item] });
+                  }
+                  return segments;
+                },
+                [],
+              )
+              .map((segment, segmentIndex) => {
+                const plateRow =
+                  segment.plateId !== null
+                    ? ((plateDayQuery.data ?? []).find((row) => row.id === segment.plateId) ?? null)
+                    : null;
+                return (
+                  <View key={segment.plateId ?? `plain-${segmentIndex}`}>
+                    {plateRow ? (
+                      <PlateHeader
+                        plate={{
+                          id: plateRow.id,
+                          name: plateRow.name,
+                          priceIdr: plateRow.priceIdr,
+                        }}
+                        edit={plateEdit}
+                        onEdit={setPlateEdit}
+                        onSave={(id, editName, price) => {
+                          const priceNum = parseNum(price);
+                          updatePlate.mutate({
+                            id,
+                            ...(editName.trim() !== "" ? { name: editName.trim() } : {}),
+                            ...(price.trim() === ""
+                              ? { priceIdr: null }
+                              : priceNum !== null && priceNum >= 0
+                                ? { priceIdr: Math.round(priceNum) }
+                                : {}),
+                          });
+                        }}
+                        saving={updatePlate.isPending}
+                      />
+                    ) : null}
+                    {segment.rows.map((item) => (
+                      <ListRow
+                        key={item.id}
+                        title={item.name}
+                        subtitle={
+                          item.protein !== null || item.carbs !== null || item.fat !== null
+                            ? `P ${fmtKcal(item.protein ?? 0)} · K ${fmtKcal(item.carbs ?? 0)} · L ${fmtKcal(item.fat ?? 0)} g`
+                            : item.source === "ai"
+                              ? "Dari pindai AI"
+                              : undefined
+                        }
+                        value={`${fmtKcal(item.kcal)}`}
+                        thumb={
+                          item.scanId ? (
+                            <FoodSticker
+                              scanId={item.scanId}
+                              name={item.name}
+                              onPress={() => {
+                                const scanId = item.scanId;
+                                if (!scanId) return;
+                                setViewer({
+                                  uri: stickerUrl(scanId),
+                                  name: item.name,
+                                  kcal: item.kcal,
+                                  photoId: item.photoId,
+                                });
+                              }}
+                            />
+                          ) : undefined
+                        }
+                        right={
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`Hapus ${item.name}`}
+                            onPress={() => handleDelete(item)}
+                            style={({ pressed }) => [
+                              styles.deleteButton,
+                              pressed && styles.pressedSoft,
+                            ]}
+                          >
+                            <Ionicons
+                              name="trash-outline"
+                              size={18}
+                              color={theme.colors.destructive}
+                            />
+                          </Pressable>
+                        }
+                      />
+                    ))}
+                  </View>
+                );
+              })}
           </ListGroup>
         )}
       </View>
@@ -405,6 +489,9 @@ export default function Makan() {
           <MacroBar label="Serat" eaten={totals.fiber} budget={macroBudgets?.fiberG ?? null} />
         </View>
       </Card>
+
+      {/* Belanja makan: pengeluaran + anggaran + nilai terbaik */}
+      <BelanjaSection />
 
       {/* Global story entry: several meals, even another day, in one go */}
       <Pressable
@@ -575,6 +662,16 @@ export default function Makan() {
                 onChangeText={setKcal}
                 keyboardType="number-pad"
                 placeholder="350"
+              />
+            </Field>
+            <Field label="Harga piring ini (Rp, opsional)">
+              <Input
+                value={platePriceManual}
+                onChangeText={setPlatePriceManual}
+                keyboardType="number-pad"
+                maxLength={9}
+                placeholder="28000"
+                accessibilityLabel="Harga piring ini dalam rupiah"
               />
             </Field>
             {macrosOpen ? (

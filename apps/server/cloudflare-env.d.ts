@@ -29,6 +29,9 @@ declare module "cloudflare:workers" {
       APPLE_BUNDLE_ID?: string;
       APPLE_FOUNDER_PRODUCT_ID?: string;
       APPLE_SANDBOX_EMAILS?: string;
+      VAPID_PUBLIC_KEY?: string;
+      VAPID_PRIVATE_KEY?: string;
+      VAPID_SUBJECT?: string;
     }
   }
 }

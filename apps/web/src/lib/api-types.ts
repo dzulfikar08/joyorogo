@@ -58,3 +58,21 @@ type SleepGetOutput = Awaited<ReturnType<AppRouterClient["sleep"]["getForDate"]>
 
 /** One sleep_log row as returned by sleep.getForDate, or null before logging. */
 export type SleepLog = SleepGetOutput;
+
+type WorkoutCatalogOutput = Awaited<ReturnType<AppRouterClient["workout"]["catalog"]>>;
+
+/** workout.catalog: movement catalog plus muscle/equipment label lists. */
+export type WorkoutCatalog = WorkoutCatalogOutput;
+
+/** One catalog movement ({ id, name, equipment, primary, secondary }). */
+export type CatalogExercise = WorkoutCatalogOutput["exercises"][number];
+
+type WorkoutListOutput = Awaited<ReturnType<AppRouterClient["workout"]["listSessions"]>>;
+
+/** One session with its sets, as returned by workout.listSessions/getSession/saveSession. */
+export type WorkoutSessionItem = WorkoutListOutput["items"][number];
+
+type WorkoutStatusOutput = Awaited<ReturnType<AppRouterClient["workout"]["status"]>>;
+
+/** workout.status: weekly muscle volume, warnings, PRs, strength-trend hint. */
+export type WorkoutStatus = WorkoutStatusOutput;

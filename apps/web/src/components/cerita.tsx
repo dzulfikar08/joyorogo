@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import type { StoryFoodItem } from "@/lib/api-types";
+import { FieldLabel } from "@/components/kit/surface";
 import { fmtInt, parseNum } from "@/lib/format";
 import { client, orpc } from "@/utils/orpc";
 
@@ -76,6 +77,11 @@ export function Cerita({
   const [items, setItems] = useState<StoryFoodItem[]>([]);
   const [kcals, setKcals] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  // Optional price per plate group ("Nasi padang" / "RM Sederhana" / "28000"),
+  // prefilled from the last known price when the review screen opens.
+  const [plates, setPlates] = useState<
+    Record<string, { name: string; place: string; price: string }>
+  >({});
   const [elapsed, setElapsed] = useState(0);
   const [mime] = useState(recorderMime);
 
@@ -126,6 +132,29 @@ export function Cerita({
       setText(result.transcript);
       setItems(result.items);
       setKcals(result.items.map((item) => String(Math.round(item.kcal))));
+      // Autofill each group's plate from the last price paid for that name.
+      const groupsByKey = [...new Set(result.items.map(groupKey))];
+      setPlates(
+        Object.fromEntries(groupsByKey.map((key) => [key, { name: "", place: "", price: "" }])),
+      );
+      for (const key of groupsByKey) {
+        const sample = result.items.find((item) => groupKey(item) === key);
+        if (!sample) continue;
+        client.plate
+          .lastPrice({ name: sample.name })
+          .then((hit) => {
+            if (!hit) return;
+            setPlates((current) =>
+              current[key]?.price
+                ? current
+                : {
+                    ...current,
+                    [key]: { name: hit.name, place: hit.place ?? "", price: String(hit.priceIdr) },
+                  },
+            );
+          })
+          .catch(() => {});
+      }
       setPhase("review");
     } catch (err) {
       if (controller.signal.aborted) return;
@@ -194,6 +223,19 @@ export function Cerita({
 
   const total = kcals.reduce((sum, value) => sum + (parseNum(value) ?? 0), 0);
 
+  // Cerita group key: one plate per distinct date+meal — each gets its own
+  // optional price, like separate plates at different warungs.
+  const groupKey = (item: StoryFoodItem) => `${item.date}-${item.meal}`;
+
+  const updatePlate = (
+    key: string,
+    patch: Partial<{ name: string; place: string; price: string }>,
+  ) =>
+    setPlates((current) => {
+      const prev = current[key] ?? { name: "", place: "", price: "" };
+      return { ...current, [key]: { ...prev, ...patch } };
+    });
+
   const saveAll = async () => {
     const values = kcals.map((value) => parseNum(value));
     const invalid = values.findIndex((value) => value === null || value < 0);
@@ -204,8 +246,18 @@ export function Cerita({
     setSaving(true);
     let saved = 0;
     try {
+      let plateId: string | null = null;
+      let plateGroup: string | null = null;
       for (const [index, item] of items.entries()) {
-        await client.food.add({
+        const group = groupKey(item);
+        const plateForm = plates[group];
+        // First item of a group creates the plate; the rest join it.
+        const startsGroup = group !== plateGroup;
+        const priceNum = plateForm ? parseNum(plateForm.price) : null;
+        if (priceNum !== null && priceNum < 0) {
+          throw new Error("Harga piring belum valid (angka rupiah).");
+        }
+        const row = await client.food.add({
           date: item.date,
           meal: item.meal,
           name: item.name,
@@ -215,7 +267,22 @@ export function Cerita({
           fat: item.fat,
           fiber: item.fiber,
           source: "ai",
+          ...(startsGroup
+            ? {
+                plate: {
+                  name: plateForm?.name.trim() || undefined,
+                  place: plateForm?.place.trim() || undefined,
+                  ...(priceNum != null ? { priceIdr: Math.round(priceNum) } : {}),
+                },
+              }
+            : plateId
+              ? { plateId }
+              : {}),
         });
+        if (startsGroup) {
+          plateGroup = group;
+          plateId = row?.plateId ?? null;
+        }
         saved += 1;
       }
       void client.ai
@@ -283,7 +350,7 @@ export function Cerita({
 
   if (phase === "review") {
     const today = jakartaToday();
-    const order = (item: StoryFoodItem) => `${item.date}-${MEALS.indexOf(item.meal)}`;
+    const order = groupKey;
     const indexed = items.map((item, index) => ({ item, index }));
     const groups = [...new Set(indexed.map(({ item }) => order(item)))]
       .sort()
@@ -352,6 +419,32 @@ export function Cerita({
                   </li>
                 ))}
               </ul>
+              <div className="mt-2 flex items-end gap-2 rounded-2xl bg-card px-4 py-2">
+                <div className="min-w-0 flex-1">
+                  <FieldLabel htmlFor={`plate-${label}`}>Nama piring</FieldLabel>
+                  <Input
+                    id={`plate-${label}`}
+                    value={plates[order(first)]?.name ?? ""}
+                    onChange={(event) => updatePlate(order(first), { name: event.target.value })}
+                    placeholder={first.name}
+                    autoComplete="off"
+                    className="h-11 bg-muted"
+                  />
+                </div>
+                <div className="w-32">
+                  <FieldLabel htmlFor={`plate-price-${label}`}>Harga (Rp)</FieldLabel>
+                  <Input
+                    id={`plate-price-${label}`}
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    value={plates[order(first)]?.price ?? ""}
+                    onChange={(event) => updatePlate(order(first), { price: event.target.value })}
+                    placeholder="28000"
+                    className="h-11 bg-muted text-right font-bold"
+                  />
+                </div>
+              </div>
             </section>
           );
         })}

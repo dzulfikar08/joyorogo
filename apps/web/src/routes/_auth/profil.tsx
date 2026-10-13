@@ -44,6 +44,8 @@ import {
 } from "@/components/kit/surface";
 import { Switch } from "@/components/kit/switch";
 import { PlanNumbers, TargetNotesList } from "@/components/plan-numbers";
+import { BudgetSetting } from "@/components/plate/budget-setting";
+import { FastingSettingsSection } from "@/components/fasting/settings-section";
 import { useTheme } from "@/components/theme-provider";
 import { ScreenError } from "@/components/screen-state";
 import { useStrava } from "@/components/strava-card";
@@ -344,6 +346,12 @@ function ProfilContent({
 
       <SectionTitle className="mt-7">Mode Ramadan</SectionTitle>
       <RamadanSection mode={row.ramadanMode} />
+
+      <SectionTitle className="mt-7">Puasa Intermiten</SectionTitle>
+      <FastingSettingsSection />
+
+      <SectionTitle className="mt-7">Belanja makan</SectionTitle>
+      <BudgetSetting />
 
       {!IS_IOS && (
         <>

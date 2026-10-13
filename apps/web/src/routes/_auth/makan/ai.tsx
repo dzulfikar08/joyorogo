@@ -22,6 +22,7 @@ import { Input } from "@joyorogo/ui/components/input";
 import { cn } from "@joyorogo/ui/lib/utils";
 import {
   Card,
+  FieldLabel,
   ListGroup,
   Page,
   PageHeader,
@@ -121,6 +122,10 @@ function AiFoodPage() {
   const [error, setError] = useState<string | null>(null);
   const [fact] = useState(() => randomFact());
   const [saving, setSaving] = useState(false);
+  // Price attaches to the whole plate, not per item: one number per photo.
+  const [plateName, setPlateName] = useState("");
+  const [platePlace, setPlatePlace] = useState("");
+  const [platePrice, setPlatePrice] = useState("");
 
   // Live total of the (editable) per-item kcal — drives the big number
   // and the reaction line on the confirm screen.
@@ -190,6 +195,22 @@ function AiFoodPage() {
       setItems(result.items);
       setCrops(itemCrops);
       setKcals(Object.fromEntries(result.items.map((item, index) => [index, String(item.kcal)])));
+      // Prefill the price form from the last time this plate was bought.
+      const defaultName = result.items[0]?.name ?? "";
+      setPlateName(defaultName);
+      setPlatePlace("");
+      setPlatePrice("");
+      if (defaultName) {
+        client.plate
+          .lastPrice({ name: defaultName })
+          .then((hit) => {
+            if (runRef.current !== run || !hit) return;
+            setPlateName(hit.name);
+            setPlatePlace(hit.place ?? "");
+            setPlatePrice(String(hit.priceIdr));
+          })
+          .catch(() => {});
+      }
       setPhase("confirm");
     } catch (err) {
       // Aborted runs bump runRef before aborting, so this only reports real
@@ -209,6 +230,9 @@ function AiFoodPage() {
     setImage(null);
     setCrops([]);
     setPhotoUrl(null);
+    setPlateName("");
+    setPlatePlace("");
+    setPlatePrice("");
     setError(null);
     if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (galleryInputRef.current) galleryInputRef.current.value = "";
@@ -223,6 +247,17 @@ function AiFoodPage() {
       return;
     }
     setSaving(true);
+    const priceNum = platePrice.trim() === "" ? null : parseNum(platePrice);
+    if (platePrice.trim() !== "" && (priceNum === null || priceNum < 0)) {
+      toast.error("Harga sepiring belum valid (angka rupiah).");
+      setSaving(false);
+      return;
+    }
+    const plate = {
+      name: plateName.trim() || undefined,
+      place: platePlace.trim() || undefined,
+      ...(priceNum != null ? { priceIdr: Math.round(priceNum) } : {}),
+    };
     try {
       // One call: photo stored once, one row and one sticker per item.
       const saved = await client.food.addScan({
@@ -230,6 +265,7 @@ function AiFoodPage() {
         imageBase64: image.base64,
         mimeType: image.mimeType,
         itemsJson: JSON.stringify(items),
+        ...(plate.name || plate.place || plate.priceIdr != null ? { plate } : {}),
         items: items.map((item, index) => ({
           name: item.name,
           kcal: values[index]!,
@@ -477,6 +513,54 @@ function AiFoodPage() {
             onChange={setMeal}
             options={MEALS.map(([key, mealLabel]) => ({ value: key, label: mealLabel }))}
           />
+        </section>
+
+        <section className="mt-7" aria-label="Harga piring">
+          <SectionTitle
+            action={
+              <span className="text-xs font-semibold text-muted-foreground">
+                Opsional, sekali per piring
+              </span>
+            }
+          >
+            Harga sepiring
+          </SectionTitle>
+          <Card className="space-y-3 px-5 py-4">
+            <div className="flex items-end gap-3">
+              <div className="w-36">
+                <FieldLabel htmlFor="plate-price">Harga (Rp)</FieldLabel>
+                <Input
+                  id="plate-price"
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={platePrice}
+                  onChange={(event) => setPlatePrice(event.target.value)}
+                  placeholder="28000"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <FieldLabel htmlFor="plate-name">Nama piring</FieldLabel>
+                <Input
+                  id="plate-name"
+                  value={plateName}
+                  onChange={(event) => setPlateName(event.target.value)}
+                  placeholder="Nasi padang"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            <div>
+              <FieldLabel htmlFor="plate-place">Tempat (opsional)</FieldLabel>
+              <Input
+                id="plate-place"
+                value={platePlace}
+                onChange={(event) => setPlatePlace(event.target.value)}
+                placeholder="RM Sederhana"
+                autoComplete="off"
+              />
+            </div>
+          </Card>
         </section>
 
         {/* Mobile: the primary pill floats above the tab bar; desktop: inline. */}

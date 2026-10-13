@@ -19,15 +19,10 @@ import { toast } from "sonner";
 import { Cerita } from "@/components/cerita";
 import type { CeritaPhase } from "@/components/cerita";
 import { Chip } from "@/components/chip";
-import {
-  FieldLabel,
-  ListGroup,
-  ListRow,
-  Page,
-  PageHeader,
-  SectionTitle,
-} from "@/components/kit/surface";
+import { FieldLabel, ListRow, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
 import { MakanSummaryCard } from "@/components/macro-card";
+import { BelanjaCard } from "@/components/plate/belanja";
+import { PlateDiary } from "@/components/plate/plate-group";
 import { ScreenError } from "@/components/screen-state";
 import { Sticker } from "@/components/sticker";
 import type { FoodAddInput, FoodItem, FoodRecentItem } from "@/lib/api-types";
@@ -203,6 +198,8 @@ function MakanPage() {
         </div>
       )}
 
+      <BelanjaCard />
+
       <button
         type="button"
         onClick={() => setCeritaOpen(true)}
@@ -278,15 +275,17 @@ function MakanPage() {
             </SectionTitle>
 
             {sectionItems.length > 0 ? (
-              <ListGroup>
-                {sectionItems.map((item) => (
+              <PlateDiary
+                items={sectionItems}
+                date={date}
+                renderRow={(item) => (
                   <FoodRow
                     key={item.id}
                     item={item}
                     onDelete={() => remove.mutate({ id: item.id })}
                   />
-                ))}
-              </ListGroup>
+                )}
+              />
             ) : (
               <div className="rounded-3xl bg-card px-5 py-4 text-sm text-muted-foreground">
                 Belum ada catatan. Tekan Tambah di atas, atau pindai fotonya.
@@ -415,6 +414,8 @@ function AddFoodSheet({
   const [protein, setProtein] = useState("");
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
+  // Optional price for the whole plate; the dish name becomes the plate name.
+  const [price, setPrice] = useState("");
   const [error, setError] = useState<string | null>(null);
   const label = MEAL_LABELS[meal];
 
@@ -432,6 +433,11 @@ function AddFoodSheet({
     const proteinNum = showMacros ? parseNum(protein) : null;
     const carbsNum = showMacros ? parseNum(carbs) : null;
     const fatNum = showMacros ? parseNum(fat) : null;
+    const priceNum = price.trim() === "" ? null : parseNum(price);
+    if (price.trim() !== "" && (priceNum === null || priceNum < 0)) {
+      setError("Harga belum valid (angka rupiah).");
+      return;
+    }
     setError(null);
     try {
       await onAdd({
@@ -442,12 +448,14 @@ function AddFoodSheet({
         protein: proteinNum ?? undefined,
         carbs: carbsNum ?? undefined,
         fat: fatNum ?? undefined,
+        ...(priceNum != null ? { plate: { priceIdr: Math.round(priceNum) } } : {}),
       });
       setName("");
       setKcal("");
       setProtein("");
       setCarbs("");
       setFat("");
+      setPrice("");
       setShowMacros(false);
     } catch {
       // the mutation already toasts the server message
@@ -584,6 +592,19 @@ function AddFoodSheet({
                 + Protein / karbo / lemak (opsional)
               </button>
             )}
+
+            <div className="w-44">
+              <FieldLabel htmlFor={`${meal}-price`}>Harga sepiring (Rp, opsional)</FieldLabel>
+              <Input
+                id={`${meal}-price`}
+                type="number"
+                min="0"
+                inputMode="numeric"
+                value={price}
+                onChange={(event) => setPrice(event.target.value)}
+                placeholder="12000"
+              />
+            </div>
 
             {error && <p className="px-1 text-sm text-destructive">{error}</p>}
 
