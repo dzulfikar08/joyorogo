@@ -46,6 +46,7 @@ import {
   Text,
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
+import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { errorMessage, fmtDateId, fmtKcal, parseNum } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
@@ -133,6 +134,9 @@ export default function Makan() {
   );
   const [formError, setFormError] = useState<string | null>(null);
   const [viewer, setViewer] = useState<StickerViewerTarget | null>(null);
+  const [shareTarget, setShareTarget] = useState<
+    null | { kind: "makan"; refId: string; title: string; preview: string }
+  >(null);
   const [undoItem, setUndoItem] = useState<UndoItem | null>(null);
   const quickAddRef = useRef(false);
 
@@ -378,27 +382,54 @@ export default function Makan() {
                                   name: item.name,
                                   kcal: item.kcal,
                                   photoId: item.photoId,
+                                  protein: item.protein,
+                                  carbs: item.carbs,
+                                  fat: item.fat,
                                 });
                               }}
                             />
                           ) : undefined
                         }
                         right={
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={`Hapus ${item.name}`}
-                            onPress={() => handleDelete(item)}
-                            style={({ pressed }) => [
-                              styles.deleteButton,
-                              pressed && styles.pressedSoft,
-                            ]}
-                          >
-                            <Ionicons
-                              name="trash-outline"
-                              size={18}
-                              color={theme.colors.destructive}
-                            />
-                          </Pressable>
+                          <View style={styles.rowActions}>
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel={`Bagikan ${item.name} ke feed`}
+                              onPress={() =>
+                                setShareTarget({
+                                  kind: "makan",
+                                  refId: item.id,
+                                  title: item.name,
+                                  preview: `${fmtKcal(item.kcal)} kcal${
+                                    item.protein !== null
+                                      ? ` · P ${fmtKcal(item.protein ?? 0)}g`
+                                      : ""
+                                  }`,
+                                })
+                              }
+                              style={({ pressed }) => [
+                                styles.deleteButton,
+                                pressed && styles.pressedSoft,
+                              ]}
+                            >
+                              <Ionicons name="share-social-outline" size={18} />
+                            </Pressable>
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel={`Hapus ${item.name}`}
+                              onPress={() => handleDelete(item)}
+                              style={({ pressed }) => [
+                                styles.deleteButton,
+                                pressed && styles.pressedSoft,
+                              ]}
+                            >
+                              <Ionicons
+                                name="trash-outline"
+                                size={18}
+                                color={theme.colors.destructive}
+                              />
+                            </Pressable>
+                          </View>
                         }
                       />
                     ))}
@@ -728,11 +759,24 @@ export default function Makan() {
 
       {/* Sticker viewer */}
       <StickerViewer viewer={viewer} onClose={() => setViewer(null)} />
+      <ShareToFeedSheet
+        visible={shareTarget !== null}
+        onClose={() => setShareTarget(null)}
+        title={shareTarget?.title ?? ""}
+        preview={shareTarget?.preview ?? ""}
+        kind={shareTarget?.kind ?? "makan"}
+        refId={shareTarget?.refId ?? ""}
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
+  rowActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
   pressedSoft: {
     opacity: 0.7,
   },

@@ -32,9 +32,14 @@ import { BudgetSetting } from "@/components/plate/budget-setting";
 import { TargetDateSheet, TargetWeightSheet } from "@/components/target-sheets";
 import { StravaCard } from "@/components/strava-card";
 import { FastingSettingsCard } from "@/components/fasting/settings-card";
+import { FeedSettingsCard } from "@/components/feed/settings";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { downloadAndInstallApk, useApkUpdate } from "@/src/lib/apk-update";
+import {
+  downloadAndInstallApk,
+  installedAppVersion,
+  useApkUpdate,
+} from "@/src/lib/apk-update";
 import { isHealthSyncSupported, syncHealthData } from "@/src/lib/health-sync";
 import {
   loadReminderPrefs,
@@ -43,7 +48,7 @@ import {
   teardownReminders,
 } from "@/src/lib/notifications";
 import { saveThemePref } from "@/src/lib/theme-pref";
-import { errorMessage, fmtDateId, fmtKcal, fmtKg } from "@/utils/format";
+import { errorMessage, fmtDateId, fmtKcal, fmtKg, fmtMb } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
 const NOTE_EXPLANATIONS: Record<string, string> = {
@@ -81,9 +86,12 @@ export default function Profil() {
   const [hcError, setHcError] = useState<string | null>(null);
   const [wipeOpen, setWipeOpen] = useState(false);
 
-  // Android only: Profil bypasses the throttle so the card reflects the server
-  // right now. The app-start check stays silent and throttled.
-  const update = useApkUpdate(true);
+  // Android only: Profil forces a check on mount so the section reflects the
+  // server right now. The app-start check stays silent and throttled.
+  const updateState = useApkUpdate(true);
+  const updateResult = updateState?.result ?? null;
+  const update = updateResult?.state === "available" ? updateResult.update : null;
+  const installed = updateState ? installedAppVersion() : null;
   const [installing, setInstalling] = useState(false);
   const [installProgress, setInstallProgress] = useState(0);
   const [installError, setInstallError] = useState<string | null>(null);
@@ -217,20 +225,42 @@ export default function Profil() {
         founderUntil={profileQuery.data?.founderUntil ?? null}
       />
 
-      {/* Android only: in-app update. useApkUpdate is a no-op on iOS and web. */}
-      {update ? (
+      {/* Android only: update section. useApkUpdate is null on iOS and web. */}
+      {updateState && installed ? (
         <Card>
-          <Text style={styles.cardTitle}>Versi baru tersedia</Text>
+          <Text style={styles.cardTitle}>Pembaruan aplikasi</Text>
           <Text style={styles.note}>
-            Versi {update.versionName} ({update.versionCode}) siap dipasang.
+            Versi terpasang: {installed.versionName} ({installed.versionCode})
           </Text>
+          {/* Empat kondisi: memeriksa / terbaru / tersedia / gagal. */}
+          {updateState.refreshing || updateResult === null ? (
+            <Text style={styles.note}>Memeriksa pembaruan…</Text>
+          ) : updateResult.state === "up-to-date" ? (
+            <Text style={styles.note}>Sudah versi terbaru.</Text>
+          ) : updateResult.state === "error" ? (
+            <Text style={styles.error}>{updateResult.message}</Text>
+          ) : (
+            <>
+              <Text style={styles.note}>
+                Versi {updateResult.update.versionName} ({updateResult.update.versionCode}) ·{" "}
+                {fmtMb(updateResult.update.size)} siap dipasang.
+              </Text>
+              <Button
+                label={installing ? `Mengunduh ${installProgress}%` : "Perbarui"}
+                onPress={() => void installUpdate()}
+                loading={installing}
+              />
+              {installError ? <Text style={styles.error}>{installError}</Text> : null}
+            </>
+          )}
           <Button
-            label={installing ? `Mengunduh ${installProgress}%` : "Perbarui"}
-            onPress={() => void installUpdate()}
-            loading={installing}
+            variant="secondary"
+            size="sm"
+            label={updateState.refreshing ? "Memeriksa…" : "Cek pembaruan"}
+            onPress={() => void updateState.refresh()}
+            loading={updateState.refreshing}
             disabled={installing}
           />
-          {installError ? <Text style={styles.note}>{installError}</Text> : null}
         </Card>
       ) : null}
 
@@ -362,6 +392,9 @@ export default function Profil() {
 
       {/* Privasi */}
       {prof ? <PrivacyList keepPhotos={prof.keepPhotos} /> : null}
+
+      {/* Feed komunitas */}
+      <FeedSettingsCard />
 
       {/* Integrasi */}
       <Text style={styles.sectionLabel}>Integrasi</Text>

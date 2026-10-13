@@ -1,5 +1,6 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { Tabs, router } from "expo-router";
 import type { ComponentProps } from "react";
 import { Pressable, View, type ColorValue } from "react-native";
@@ -7,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUnistyles } from "react-native-unistyles";
 
 import { useUnreadCount } from "@/src/lib/group";
+import { orpc } from "@/utils/orpc";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -30,6 +32,10 @@ export default function TabLayout() {
   const { theme } = useUnistyles();
   const unread = useUnreadCount();
   const unreadBadge = (unread.data?.count ?? 0) > 0 ? unread.data!.count : undefined;
+  // Feed tab badge: social notifications (kudos/comment/follow), separate
+  // from the group inbox badge on Lainnya.
+  const social = useQuery(orpc.social.notificationsUnreadCount.queryOptions());
+  const socialBadge = (social.data?.count ?? 0) > 0 ? social.data!.count : undefined;
   // Labels need clear space above the bottom edge, with or without a home
   // indicator: bar = 6 padding + icon + label + 8 clearance + safe inset.
   const insets = useSafeAreaInsets();
@@ -137,6 +143,22 @@ export default function TabLayout() {
               focused={focused}
               name="scale"
               outline="scale-outline"
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="feed"
+        options={{
+          tabBarLabel: "Feed",
+          tabBarBadge: socialBadge,
+          tabBarIcon: ({ focused, size, color }) => (
+            <TabIcon
+              focused={focused}
+              name="newspaper"
+              outline="newspaper-outline"
               size={size}
               color={color}
             />

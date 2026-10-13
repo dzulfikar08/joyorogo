@@ -163,6 +163,36 @@ export interface UserDetail {
 
 export const get = <T>(path: string) => api<T>(path);
 
+export interface AdminReport {
+  id: string;
+  reason: "spam" | "kasar" | "salah_info" | "lainnya";
+  note: string | null;
+  createdAt: string | number;
+  resolvedAt: string | number | null;
+  postId: string | null;
+  commentId: string | null;
+  postTitle: string | null;
+  postCaption: string | null;
+  postVisibility: "publik" | "grup" | null;
+  postAuthorName: string | null;
+  postAuthorHandle: string | null;
+  commentBody: string | null;
+  commentAuthorName: string | null;
+  commentAuthorHandle: string | null;
+  reporterName: string;
+  reporterEmail: string;
+}
+
+export interface PagedReports {
+  reports: AdminReport[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export const del = <T>(path: string) => api<T>(path, { method: "DELETE" });
+export const post = <T>(path: string) => api<T>(path, { method: "POST" });
+
 export interface PagedUsers {
   users: AdminUser[];
   total: number;

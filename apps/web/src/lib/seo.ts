@@ -12,7 +12,15 @@ export const OG_IMAGE = {
   alt: "JoyoRogo: diet yang paham porsi warteg. Tiga angka harian: boleh makan, harus bakar, butuh tidur.",
 } as const;
 
-export type PublicPath = "/" | "/harga" | "/privasi" | "/login" | "/pembayaran" | "/gabung";
+export type PublicPath =
+  | "/"
+  | "/harga"
+  | "/privasi"
+  | "/login"
+  | "/pembayaran"
+  | "/gabung"
+  | "/u"
+  | "/p";
 
 export type PageMeta = {
   title: string;
@@ -56,6 +64,18 @@ export const PAGES: Record<PublicPath, PageMeta> = {
     description:
       "Kamu diundang ke grup JoyoRogo. Pantau kalori bareng, colek yang malas catat, dan intip perut lewat VAR.",
     noindex: true,
+  },
+  // Profil publik /u/<handle> dan postingan publik /p/<id>; detail dinamis
+  // mengganti judulnya lewat meta di rutenya.
+  "/u": {
+    title: "Profil JoyoRogo",
+    description:
+      "Perjalanan menurunkan berat badan pengguna JoyoRogo: progres berat, makanan, dan latihan yang dibagikan.",
+  },
+  "/p": {
+    title: "Postingan JoyoRogo",
+    description:
+      "Satu momen sehat dari pengguna JoyoRogo: makanan, latihan, atau progres berat yang dibagikan ke feed.",
   },
 };
 

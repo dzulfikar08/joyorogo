@@ -26,6 +26,7 @@ import {
   weightLog as weightLogTable,
 } from "@joyorogo/db/schema/fitness";
 import { pushSubscription as pushSubscriptionTable } from "@joyorogo/db/schema/plans";
+import { post as postTable } from "@joyorogo/db/schema/social";
 
 import { registerAnonScanRoutes } from "./anon";
 import { registerBillingRoutes } from "./billing";
@@ -175,6 +176,69 @@ app.get("/photo/:photoId", async (c) => {
       "Content-Type": obj.httpMetadata?.contentType ?? "image/jpeg",
       "Content-Length": String(obj.size),
       "Cache-Control": "private, max-age=86400",
+    },
+  });
+});
+
+// Photo of a shared feed post (photos/<authorId>/<id>.jpg). Access follows the
+// post's visibility, not the viewer's own prefix: 'publik' posts on a public
+// profile serve without login (cacheable), 'grup' posts need a teammate
+// session (private). Deleted/hidden posts stop resolving within an hour.
+app.get("/post-photo/:postId", async (c) => {
+  const postId = c.req.param("postId");
+  if (!/^[a-f0-9-]{36}$/.test(postId)) {
+    return c.json({ error: "ID tidak valid." }, 400);
+  }
+  if (!("STICKERS" in env) || !env.STICKERS) {
+    return c.json({ error: "Foto belum tersedia." }, 404);
+  }
+  const [row] = await getDb()
+    .select({
+      userId: postTable.userId,
+      photoId: postTable.photoId,
+      visibility: postTable.visibility,
+      authorPublic: profileTable.publicProfile,
+    })
+    .from(postTable)
+    .innerJoin(profileTable, eq(profileTable.userId, postTable.userId))
+    .where(eq(postTable.id, postId))
+    .limit(1);
+  if (!row || !row.photoId) {
+    return c.json({ error: "Foto tidak ditemukan." }, 404);
+  }
+  const isPublic = row.visibility === "publik" && row.authorPublic;
+  if (!isPublic) {
+    const session = await (await createAuth()).api.getSession({ headers: c.req.raw.headers });
+    if (!session?.user) return c.json({ error: "Kamu harus masuk dulu." }, 401);
+    if (session.user.id !== row.userId) {
+      const db = getDb();
+      const notFound = c.json({ error: "Foto tidak ditemukan." }, 404);
+      const [blocked] = await db
+        .select({ total: sql<number>`count(*)` })
+        .from(sql`social_block b`)
+        .where(
+          sql`(b.blocker_id = ${session.user.id} AND b.blocked_id = ${row.userId})
+            OR (b.blocker_id = ${row.userId} AND b.blocked_id = ${session.user.id})`,
+        );
+      if ((blocked?.total ?? 0) > 0) return notFound;
+      if (row.visibility !== "grup") return notFound;
+      const [mate] = await db
+        .select({ total: sql<number>`count(*)` })
+        .from(sql`team_member tm1`)
+        .innerJoin(sql`team_member tm2`, sql`tm1.team_id = tm2.team_id`)
+        .where(sql`tm1.user_id = ${session.user.id} AND tm2.user_id = ${row.userId}`);
+      if ((mate?.total ?? 0) === 0) return notFound;
+    }
+  }
+  const obj = await env.STICKERS.get(`photos/${row.userId}/${row.photoId}.jpg`);
+  if (!obj) {
+    return c.json({ error: "Foto tidak ditemukan." }, 404);
+  }
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": obj.httpMetadata?.contentType ?? "image/jpeg",
+      "Content-Length": String(obj.size),
+      "Cache-Control": isPublic ? "public, max-age=3600" : "private, max-age=3600",
     },
   });
 });

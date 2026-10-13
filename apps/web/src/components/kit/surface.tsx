@@ -105,15 +105,37 @@ function RowInner({ icon, title, subtitle, value, chevron }: RowContent & { chev
 
 const ROW = "flex min-h-[3.5rem] w-full items-center gap-3 px-5 py-3 text-left";
 
-/** A static row; pass `trailing` for an inline control (switch, delete button). */
+/** A static row; pass `trailing` for an inline control (switch, delete button).
+ * Pass `onClick` to make the whole row clickable (controls in `trailing` must stop propagation). */
 export function ListRow({
   trailing,
   className,
+  onClick,
   ...content
-}: RowContent & { trailing?: ReactNode; className?: string }) {
+}: RowContent & { trailing?: ReactNode; className?: string; onClick?: () => void }) {
+  const interactive = onClick !== undefined;
   return (
     <li className={cn("relative", className)}>
-      <div className={ROW}>
+      <div
+        onClick={onClick}
+        role={interactive ? "button" : undefined}
+        tabIndex={interactive ? 0 : undefined}
+        onKeyDown={
+          interactive
+            ? (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onClick();
+                }
+              }
+            : undefined
+        }
+        className={cn(
+          ROW,
+          interactive &&
+            "cursor-pointer transition-colors hover:bg-muted/60 active:bg-muted focus-visible:bg-muted focus-visible:outline-none",
+        )}
+      >
         <RowInner {...content} />
         {trailing}
       </div>

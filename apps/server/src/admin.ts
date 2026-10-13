@@ -1,4 +1,5 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import type { JoyoAuth } from "@joyorogo/auth";
 import type { Hono } from "hono";
 import { z } from "zod";
@@ -7,7 +8,8 @@ import { jakartaToday } from "@joyorogo/api/lib/engine";
 import { effectiveTier, wibDayBounds } from "@joyorogo/api/lib/tiers";
 import { session, user } from "@joyorogo/db/schema/auth";
 import { payment } from "@joyorogo/db/schema/billing";
-import { aiUsage, foodLog } from "@joyorogo/db/schema/fitness";
+import { aiUsage, foodLog, profile } from "@joyorogo/db/schema/fitness";
+import { post as postTable, postComment, socialReport } from "@joyorogo/db/schema/social";
 import type { Database } from "@joyorogo/db";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -335,5 +337,83 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
   app.post("/api/admin/test-email", async (c) => {
     const session = await (await deps.createAuth()).api.getSession({ headers: c.req.raw.headers });
     return c.json({ outcome: await deps.sendTestEmail(session!.user.email) });
+  });
+
+  // --- Feed komunitas: laporan konten -----------------------------------------
+
+  const reporter = alias(user, "reporter");
+  const postAuthor = alias(user, "post_author");
+  const commentAuthor = alias(user, "comment_author");
+  const commentAuthorProfile = alias(profile, "comment_author_profile");
+  const postAuthorProfile = alias(profile, "post_author_profile");
+
+  app.get("/api/admin/reports", async (c) => {
+    const { page, pageSize, offset } = paging(c.req.query("page"), c.req.query("pageSize"));
+    const status = c.req.query("status") ?? "pending";
+    const filters =
+      status === "all"
+        ? undefined
+        : status === "resolved"
+          ? isNotNull(socialReport.resolvedAt)
+          : isNull(socialReport.resolvedAt);
+    const db = deps.getDb();
+    const [rows, [count]] = await Promise.all([
+      db
+        .select({
+          id: socialReport.id,
+          reason: socialReport.reason,
+          note: socialReport.note,
+          createdAt: socialReport.createdAt,
+          resolvedAt: socialReport.resolvedAt,
+          postId: socialReport.postId,
+          commentId: socialReport.commentId,
+          postTitle: postTable.title,
+          postCaption: postTable.caption,
+          postVisibility: postTable.visibility,
+          postAuthorName: postAuthor.name,
+          postAuthorHandle: postAuthorProfile.handle,
+          commentBody: postComment.body,
+          commentAuthorName: commentAuthor.name,
+          commentAuthorHandle: commentAuthorProfile.handle,
+          reporterName: reporter.name,
+          reporterEmail: reporter.email,
+        })
+        .from(socialReport)
+        .innerJoin(reporter, eq(reporter.id, socialReport.reporterId))
+        .leftJoin(postTable, eq(postTable.id, socialReport.postId))
+        .leftJoin(postAuthor, eq(postAuthor.id, postTable.userId))
+        .leftJoin(postAuthorProfile, eq(postAuthorProfile.userId, postTable.userId))
+        .leftJoin(postComment, eq(postComment.id, socialReport.commentId))
+        .leftJoin(commentAuthor, eq(commentAuthor.id, postComment.userId))
+        .leftJoin(commentAuthorProfile, eq(commentAuthorProfile.userId, postComment.userId))
+        .where(filters)
+        .orderBy(desc(socialReport.createdAt))
+        .limit(pageSize)
+        .offset(offset),
+      db.select({ total: sql<number>`count(*)` }).from(socialReport).where(filters),
+    ]);
+    return c.json({ reports: rows, total: count?.total ?? 0, page, pageSize });
+  });
+
+  // Menutup laporan tanpa menghapus konten (salah laporan / sudah beres).
+  app.post("/api/admin/reports/:id/resolve", async (c) => {
+    await deps
+      .getDb()
+      .update(socialReport)
+      .set({ resolvedAt: new Date() })
+      .where(eq(socialReport.id, c.req.param("id")));
+    return c.json({ ok: true });
+  });
+
+  // Hapus konten yang dilaporkan; kudos/komentar/notifikasi/laporan ikut
+  // terhapus lewat ON DELETE CASCADE.
+  app.delete("/api/admin/posts/:id", async (c) => {
+    await deps.getDb().delete(postTable).where(eq(postTable.id, c.req.param("id")));
+    return c.json({ ok: true });
+  });
+
+  app.delete("/api/admin/comments/:id", async (c) => {
+    await deps.getDb().delete(postComment).where(eq(postComment.id, c.req.param("id")));
+    return c.json({ ok: true });
   });
 }

@@ -10,6 +10,7 @@ import { Badge } from "./ui";
 import { useTheme } from "./theme";
 import { OrdersSection } from "./sections/Orders";
 import { OverviewSection, SendTestEmailButton } from "./sections/Overview";
+import { ReportsSection } from "./sections/Reports";
 import { UsersSection } from "./sections/Users";
 
 /** Sun/Moon header toggle: switches light/dark; system default until first pick. */
@@ -29,7 +30,7 @@ function ThemeToggle() {
   );
 }
 
-const TABS = ["overview", "users", "orders"] as const;
+const TABS = ["overview", "users", "orders", "reports"] as const;
 type Tab = (typeof TABS)[number];
 
 function currentTab(): Tab {
@@ -159,6 +160,7 @@ export default function App() {
           {tab === "overview" && <OverviewSection />}
           {tab === "users" && <UsersSection />}
           {tab === "orders" && <OrdersSection />}
+          {tab === "reports" && <ReportsSection />}
         </main>
       </div>
       <Toaster />

@@ -20,6 +20,16 @@ export const profile = sqliteTable("profile", {
     .references(() => user.id, { onDelete: "cascade" }),
   shareCode: text("share_code"),
   shareEnabled: integer("share_enabled", { mode: "boolean" }).notNull().default(false),
+  // Feed identity: unique handle for /u/<handle> (null = belum dipilih; diisi
+  // otomatis saat pertama dibutuhkan). bio maks 160 karakter.
+  handle: text("handle"),
+  bio: text("bio"),
+  // Off: halaman publik cuma menampilkan nama dan postingan tidak bisa 'publik'.
+  publicProfile: integer("public_profile", { mode: "boolean" }).notNull().default(true),
+  // Visibility default saat membagikan ke feed: 'grup' | 'publik'.
+  defaultVisibility: text("default_visibility", { enum: ["grup", "publik"] })
+    .notNull()
+    .default("grup"),
   birthYear: integer("birth_year").notNull(),
   gender: text("gender").notNull(),
   heightCm: real("height_cm").notNull(),
@@ -54,7 +64,7 @@ export const profile = sqliteTable("profile", {
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
-});
+}, (table) => [uniqueIndex("profile_handle_uidx").on(table.handle)]);
 
 export const weightLog = sqliteTable(
   "weight_log",

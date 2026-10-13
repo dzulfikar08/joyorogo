@@ -29,6 +29,7 @@ import {
   SectionTitle,
   Segmented,
 } from "@/components/kit/surface";
+import { ShareStoryButton } from "@/components/story/share-story-button";
 import { cropItems } from "@/lib/crop";
 import type { AiFoodItem } from "@/lib/api-types";
 import { isPaywallError } from "@/lib/billing";
@@ -457,6 +458,23 @@ function AiFoodPage() {
               />
               {fmtInt(Math.round(totalKcal / GEPREK_KCAL))} porsi geprek
             </p>
+          )}
+          {items.length > 0 && (
+            <ShareStoryButton
+              variant="secondary"
+              className="mt-4 w-full md:w-auto"
+              story={{
+                kind: "meal",
+                name:
+                  items.length > 1 ? `${items[0]!.name} +${items.length - 1} lainnya` : items[0]!.name,
+                kcal: totalKcal,
+                protein: items.reduce((sum, item) => sum + (item.protein ?? 0), 0),
+                carbs: items.reduce((sum, item) => sum + (item.carbs ?? 0), 0),
+                fat: items.reduce((sum, item) => sum + (item.fat ?? 0), 0),
+                reaction: totalKcal > 0 ? reaction(totalKcal) : undefined,
+                photoSrc: photoUrl,
+              }}
+            />
           )}
         </Card>
 

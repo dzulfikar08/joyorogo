@@ -12,13 +12,14 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Camera, ChevronLeft, ChevronRight, Mic, Plus, Trash2, Utensils } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, Mic, Plus, Share2, Trash2, Utensils } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { Cerita } from "@/components/cerita";
 import type { CeritaPhase } from "@/components/cerita";
 import { Chip } from "@/components/chip";
+import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { FieldLabel, ListRow, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
 import { MakanSummaryCard } from "@/components/macro-card";
 import { BelanjaCard } from "@/components/plate/belanja";
@@ -27,7 +28,7 @@ import { ScreenError } from "@/components/screen-state";
 import { Sticker } from "@/components/sticker";
 import type { FoodAddInput, FoodItem, FoodRecentItem } from "@/lib/api-types";
 import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
-import { orpc } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
 
 // One options object per query, reused by the loader and the component so the
 // cache keys match and navigation preloads land in the exact bucket read here.
@@ -87,6 +88,8 @@ function MakanPage() {
   const quickMeal = suggestMealNow(new Date(), ramadan);
   // One shared add sheet; the meal slot is the only thing that changes.
   const [sheetMeal, setSheetMeal] = useState<Meal | null>(null);
+  // Bagikan ke feed: item makanan yang sedang dibagikan (sheet di bawah).
+  const [shareItem, setShareItem] = useState<FoodItem | null>(null);
   const setCeritaOpen = (open: boolean) =>
     navigate({ search: (prev) => ({ ...prev, cerita: open || undefined }), replace: true });
   const showDate = (target: string) =>
@@ -283,6 +286,7 @@ function MakanPage() {
                     key={item.id}
                     item={item}
                     onDelete={() => remove.mutate({ id: item.id })}
+                    onShare={() => setShareItem(item)}
                   />
                 )}
               />
@@ -327,11 +331,38 @@ function MakanPage() {
           />
         </Sheet>
       )}
+
+      {shareItem && (
+        <ShareToFeedSheet
+          open
+          onOpenChange={(open) => {
+            if (!open) setShareItem(null);
+          }}
+          title="Bagikan makanan ini"
+          preview={`${shareItem.name} · ${fmtInt(shareItem.kcal)} kcal`}
+          share={(input) =>
+            client.social.createPost({
+              kind: "makan",
+              refId: shareItem.id,
+              caption: input.caption || undefined,
+              visibility: input.visibility,
+            })
+          }
+        />
+      )}
     </Page>
   );
 }
 
-function FoodRow({ item, onDelete }: { item: FoodItem; onDelete: () => void }) {
+function FoodRow({
+  item,
+  onDelete,
+  onShare,
+}: {
+  item: FoodItem;
+  onDelete: () => void;
+  onShare: () => void;
+}) {
   const hasMacros = item.protein != null || item.carbs != null || item.fat != null;
   const subtitle = hasMacros
     ? `P ${fmtInt(item.protein ?? 0)} · K ${fmtInt(item.carbs ?? 0)} · L ${fmtInt(item.fat ?? 0)} g`
@@ -355,6 +386,9 @@ function FoodRow({ item, onDelete }: { item: FoodItem; onDelete: () => void }) {
             photoId={item.photoId}
             name={item.name}
             kcal={item.kcal}
+            protein={item.protein}
+            carbs={item.carbs}
+            fat={item.fat}
             className="block size-10"
             fallback={utensil}
           />
@@ -371,15 +405,26 @@ function FoodRow({ item, onDelete }: { item: FoodItem; onDelete: () => void }) {
         </span>
       }
       trailing={
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={`Hapus ${item.name}`}
-          onClick={onDelete}
-          className="text-muted-foreground hover:text-destructive"
-        >
-          <Trash2 />
-        </Button>
+        <>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Bagikan ${item.name} ke feed`}
+            onClick={onShare}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Share2 />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Hapus ${item.name}`}
+            onClick={onDelete}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 />
+          </Button>
+        </>
       }
     />
   );

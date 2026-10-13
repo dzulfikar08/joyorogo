@@ -3,6 +3,7 @@ import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
+import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { Chip } from "@/components/chip";
 import { Ring } from "@/components/kit/ring";
 import { ErrorNote } from "@/components/kit/error-note";
@@ -19,7 +20,7 @@ import {
 import { StravaCard } from "@/components/strava-card";
 import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
 import type { ExerciseItem, ExerciseType } from "@/lib/api-types";
-import { orpc } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -33,6 +34,7 @@ import {
   Goal,
   PersonStanding,
   Rabbit,
+  Share2,
   Target,
   Trash2,
   Zap,
@@ -92,6 +94,8 @@ function OlahragaScreen({ list }: { list: { items: ExerciseItem[]; totalKcal: nu
   const profile = useQuery(profileOptions);
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  // Bagikan ke feed: aktivitas yang sedang dibagikan.
+  const [shareItem, setShareItem] = useState<ExerciseItem | null>(null);
   const [typeKey, setTypeKey] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [durationMin, setDurationMin] = useState("");
@@ -286,16 +290,27 @@ function OlahragaScreen({ list }: { list: { items: ExerciseItem[]; totalKcal: nu
                     }
                     subtitle={`${item.durationMin != null ? `${fmtInt(item.durationMin)} menit · ` : ""}${fmtInt(item.kcal)} kcal`}
                     trailing={
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Hapus ${item.name}`}
-                        className="text-muted-foreground hover:text-destructive"
-                        disabled={remove.isPending}
-                        onClick={() => remove.mutate({ id: item.id })}
-                      >
-                        <Trash2 aria-hidden />
-                      </Button>
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Bagikan ${item.name} ke feed`}
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => setShareItem(item)}
+                        >
+                          <Share2 aria-hidden />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Hapus ${item.name}`}
+                          className="text-muted-foreground hover:text-destructive"
+                          disabled={remove.isPending}
+                          onClick={() => remove.mutate({ id: item.id })}
+                        >
+                          <Trash2 aria-hidden />
+                        </Button>
+                      </>
                     }
                   />
                 );
@@ -467,6 +482,25 @@ function OlahragaScreen({ list }: { list: { items: ExerciseItem[]; totalKcal: nu
           </p>
         </form>
       </Sheet>
+
+      {shareItem && (
+        <ShareToFeedSheet
+          open
+          onOpenChange={(open) => {
+            if (!open) setShareItem(null);
+          }}
+          title="Bagikan aktivitas ini"
+          preview={`${shareItem.name} · ${fmtInt(shareItem.kcal)} kcal`}
+          share={(input) =>
+            client.social.createPost({
+              kind: "latihan",
+              refId: shareItem.id,
+              caption: input.caption || undefined,
+              visibility: input.visibility,
+            })
+          }
+        />
+      )}
     </Page>
   );
 }

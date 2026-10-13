@@ -12,10 +12,13 @@ const LIGHT = "#6CBF45";
  * JoyoRogo mark: J and R (Plus Jakarta Sans ExtraBold, outlined) sharing one
  * stem, a leaf sprouting from the J. Same geometry as
  * apps/web/public/brand/logo-mark.svg.
+ *
+ * Colors follow the app theme unless `onDark` pins the light-on-dark variant
+ * (share cards keep a dark background regardless of the app theme).
  */
-export function LogoMark({ size = 64 }: { size?: number }) {
+export function LogoMark({ size = 64, onDark }: { size?: number; onDark?: boolean }) {
   const { theme } = useUnistyles();
-  const dark = theme.colors.background !== "#F9F6F1";
+  const dark = onDark ?? theme.colors.background !== "#F9F6F1";
   const jColor = dark ? "#E6F2DF" : "#14693A";
   return (
     <Svg width={size} height={size} viewBox="20 12 88 98" accessibilityElementsHidden>

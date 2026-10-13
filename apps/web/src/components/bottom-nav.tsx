@@ -1,7 +1,7 @@
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Camera, Ellipsis, House, Scale, Utensils } from "lucide-react";
+import { Camera, Ellipsis, House, Newspaper, Scale, Utensils } from "lucide-react";
 
 import { orpc } from "@/utils/orpc";
 
@@ -9,6 +9,7 @@ const TABS = [
   { to: "/beranda", label: "Beranda", Icon: House },
   { to: "/makan", label: "Makan", Icon: Utensils },
   { to: "/berat", label: "Berat", Icon: Scale },
+  { to: "/feed", label: "Feed", Icon: Newspaper },
   { to: "/lainnya", label: "Lainnya", Icon: Ellipsis },
 ] as const;
 
@@ -53,18 +54,21 @@ function Tab({ to, label, Icon, badge }: (typeof TABS)[number] & { badge?: numbe
 
 /**
  * Mobile tab bar. The camera is the center FAB: logging a plate is the habit
- * the whole app exists for, so it is always one tap away. Profil, Grup, and
- * the inbox live behind the Lainnya tab, which carries the unread nudge badge.
+ * the whole app exists for, so it is always one tap away. Feed is a primary
+ * tab (its badge counts feed notifications); Profil, Grup, and the group
+ * inbox live behind the Lainnya tab, which carries the group unread badge.
  */
 export default function BottomNav() {
   const unread = useQuery(orpc.group.unreadCount.queryOptions());
+  const socialUnread = useQuery(orpc.social.notificationsUnreadCount.queryOptions());
   const count = unread.data?.count ?? 0;
+  const feedCount = socialUnread.data?.count ?? 0;
   return (
     <nav
       aria-label="Navigasi utama"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-card pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-12px_oklch(0.3_0.02_85/18%)] md:hidden"
     >
-      <ul className="mx-auto grid max-w-xl grid-cols-5 items-end px-2">
+      <ul className="mx-auto grid max-w-xl grid-cols-6 items-end px-2">
         {TABS.slice(0, 2).map((tab) => (
           <li key={tab.to}>
             <Tab {...tab} />
@@ -81,7 +85,11 @@ export default function BottomNav() {
         </li>
         {TABS.slice(2).map((tab) => (
           <li key={tab.to}>
-            <Tab {...tab} {...(tab.to === "/lainnya" && count > 0 ? { badge: count } : {})} />
+            <Tab
+              {...tab}
+              {...(tab.to === "/lainnya" && count > 0 ? { badge: count } : {})}
+              {...(tab.to === "/feed" && feedCount > 0 ? { badge: feedCount } : {})}
+            />
           </li>
         ))}
       </ul>
@@ -94,6 +102,7 @@ const DESKTOP_LINKS = [
   { to: "/makan", label: "Makan" },
   { to: "/olahraga", label: "Olahraga" },
   { to: "/berat", label: "Berat" },
+  { to: "/feed", label: "Feed" },
   { to: "/tidur", label: "Tidur" },
   { to: "/lainnya", label: "Lainnya" },
 ] as const;
@@ -101,7 +110,9 @@ const DESKTOP_LINKS = [
 /** Desktop top bar (md+). Mobile uses page headers + the tab bar instead. */
 export function DesktopBar() {
   const unread = useQuery(orpc.group.unreadCount.queryOptions());
+  const socialUnread = useQuery(orpc.social.notificationsUnreadCount.queryOptions());
   const count = unread.data?.count ?? 0;
+  const feedCount = socialUnread.data?.count ?? 0;
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   return (
     <header className="sticky top-0 z-40 hidden border-b border-border/70 bg-background/90 backdrop-blur-sm md:block">
@@ -130,6 +141,11 @@ export function DesktopBar() {
                     {to === "/lainnya" && count > 0 && (
                       <span className="ml-1.5 grid min-w-[1.15rem] place-items-center rounded-full bg-destructive px-1 text-[0.625rem] leading-4 font-bold text-white">
                         {count > 9 ? "9+" : count}
+                      </span>
+                    )}
+                    {to === "/feed" && feedCount > 0 && (
+                      <span className="ml-1.5 grid min-w-[1.15rem] place-items-center rounded-full bg-destructive px-1 text-[0.625rem] leading-4 font-bold text-white">
+                        {feedCount > 9 ? "9+" : feedCount}
                       </span>
                     )}
                   </Link>

@@ -86,7 +86,70 @@
           "recordAudioAndroid": true
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "react-native-android-widget",
+        {
+          "fonts": [
+            "./assets/widget/fonts/PlusJakartaSans_500Medium.ttf",
+            "./assets/widget/fonts/PlusJakartaSans_700Bold.ttf",
+            "./assets/widget/fonts/PlusJakartaSans_800ExtraBold.ttf"
+          ],
+          "widgets": [
+            {
+              "name": "ProgresHariIni",
+              "label": "Progres Hari Ini",
+              "description": "Kalori makan hari ini dibanding target, plus protein.",
+              "minWidth": "110dp",
+              "minHeight": "140dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "maxResizeWidth": "250dp",
+              "maxResizeHeight": "250dp",
+              "resizeMode": "horizontal|vertical",
+              "previewImage": "./assets/widget-preview/progres-hari-ini.png",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "KotakMasukGrup",
+              "label": "Kotak Masuk Grup",
+              "description": "Colek dan catatan terbaru dari teman grupmu.",
+              "minWidth": "110dp",
+              "minHeight": "140dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "maxResizeWidth": "250dp",
+              "maxResizeHeight": "250dp",
+              "resizeMode": "horizontal|vertical",
+              "previewImage": "./assets/widget-preview/kotak-masuk-grup.png",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Ringkasan",
+              "label": "Ringkasan JoyoRogo",
+              "description": "Progres kalori hari ini dan kabar terbaru dari grupmu dalam satu kotak.",
+              "minWidth": "250dp",
+              "minHeight": "140dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "maxResizeWidth": "500dp",
+              "maxResizeHeight": "250dp",
+              "resizeMode": "horizontal|vertical",
+              "previewImage": "./assets/widget-preview/ringkasan.png",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
+      // Empty props: the plugin reads props.android and crashes prebuild
+      // when mounted bare with undefined props.
+      [
+        "react-native-share",
+        {
+          "android": ["com.instagram.android"],
+          "ios": ["instagram", "instagram-stories"]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

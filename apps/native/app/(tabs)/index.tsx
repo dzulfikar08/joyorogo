@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Link, Redirect, router } from "expo-router";
 import { Dimensions, Platform, Pressable, Share, ScrollView, View } from "react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { Circle, Polyline, Svg } from "react-native-svg";
 
@@ -21,6 +21,7 @@ import { BelanjaCompact } from "@/components/plate/belanja";
 import { useAppConfig } from "@/components/billing";
 import { FoodSticker, StickerViewer, stickerUrl } from "@/components/sticker";
 import type { StickerViewerTarget } from "@/components/sticker";
+import { ShareStoryButton } from "@/components/story/share-story-button";
 
 import {
   Avatar,
@@ -45,6 +46,7 @@ import { WeighInSheet } from "@/components/weigh-in-sheet";
 import { WorkoutCard } from "@/components/workout/workout-card";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
+import { pushDaySnapshot } from "@/src/lib/widgets/push";
 import { useHealthAutoSync } from "@/src/lib/use-health-sync";
 import { errorMessage, fmtDateId, fmtKcal, fmtKg, weeklyRateLabel } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
@@ -132,6 +134,21 @@ export default function Dashboard() {
     profileQuery.data?.latestWeightKg ?? null,
     gate === "authed" && summary.data?.hasProfile === true,
   );
+
+  // Home-screen widgets render from a stored snapshot; feed it every time
+  // the day summary query resolves (load, refetch, log mutations invalidate).
+  const summaryData = summary.data;
+  useEffect(() => {
+    if (gate !== "authed" || !summaryData?.hasProfile || !summaryData.targets) return;
+    void pushDaySnapshot({
+      date: summaryData.date,
+      eatenKcal: summaryData.eatenKcal,
+      eatKcal: summaryData.targets.eatKcal,
+      proteinEatenG: summaryData.protein?.eatenG ?? null,
+      proteinTargetG: summaryData.protein?.targetG ?? null,
+      streakDays: summaryData.streakDays,
+    });
+  }, [gate, summaryData]);
 
   const [weighOpen, setWeighOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -324,6 +341,19 @@ export default function Dashboard() {
             hari ini, besok jalan lagi.
           </Text>
         ) : null}
+        <ShareStoryButton
+          variant="secondary"
+          style={styles.heroShare}
+          story={{
+            kind: "progress",
+            eatenKcal: data.eatenKcal,
+            targetKcal: data.targets.eatKcal,
+            proteinG: data.protein?.eatenG ?? null,
+            proteinTargetG: data.protein?.targetG ?? null,
+            streakDays: data.streakDays,
+            weightLostKg: data.weightLostKg,
+          }}
+        />
       </Card>
 
       {/* Tiga angka harian */}
@@ -601,6 +631,7 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     paddingVertical: theme.spacing.xl,
   },
+  heroShare: { alignSelf: "stretch", marginTop: theme.spacing.lg },
   heroLabel: {
     fontSize: theme.fontSize.sm,
     fontWeight: "600",

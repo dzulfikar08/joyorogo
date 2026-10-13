@@ -3,6 +3,7 @@ import {
   index,
   integer,
   primaryKey,
+  real,
   sqliteTable,
   text,
   uniqueIndex,
@@ -81,4 +82,188 @@ export const teamRelations = relations(team, ({ many, one }) => ({
 export const teamMemberRelations = relations(teamMember, ({ one }) => ({
   team: one(team, { fields: [teamMember.teamId], references: [team.id] }),
   user: one(user, { fields: [teamMember.userId], references: [user.id] }),
+}));
+
+// --- Feed komunitas (Strava-style) ------------------------------------------
+// Postingan opt-in: pengguna membagikan satu log (makan/latihan/berat) dengan
+// snapshot data saat dibagikan, jadi edit/hapus log sumber tidak merusak feed.
+
+export const post = sqliteTable(
+  "post",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    // 'makan' | 'latihan' | 'berat' — jenis log yang dibagikan
+    kind: text("kind", { enum: ["makan", "latihan", "berat"] }).notNull(),
+    // Log sumber (informasional; yang dirender adalah snapshot di bawah).
+    // Tanpa FK cascade: menghapus log sumber tidak boleh menghapus postingan.
+    foodLogId: text("food_log_id"),
+    exerciseLogId: text("exercise_log_id"),
+    workoutSessionId: text("workout_session_id"),
+    weightLogId: text("weight_log_id"),
+    // Snapshot saat dibagikan
+    title: text("title").notNull(),
+    kcal: real("kcal"),
+    durationMin: real("duration_min"),
+    // foto asli milik penulis (photos/<userId>/<id>.jpg) — hanya bisa diakses
+    // lewat /post-photo/:postId yang mengecek visibility postingan
+    photoId: text("photo_id"),
+    // stiker hasil scan (public capability URL)
+    scanId: text("scan_id"),
+    // JSON { protein, carbs, fat, fiber } untuk makanan
+    macroJson: text("macro_json"),
+    // JSON latihan: { sets, reps, volumeKg } · berat: { weightKg, deltaKg }
+    statsJson: text("stats_json"),
+    caption: text("caption"),
+    // 'publik' (Jelajah + profil publik) | 'grup' (rekan satu tim saja)
+    visibility: text("visibility", { enum: ["publik", "grup"] }).notNull().default("grup"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [
+    index("post_user_created_idx").on(table.userId, table.createdAt),
+    index("post_visibility_created_idx").on(table.visibility, table.createdAt),
+  ],
+);
+
+export const postKudos = sqliteTable(
+  "post_kudos",
+  {
+    postId: text("post_id")
+      .notNull()
+      .references(() => post.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.postId, table.userId] }),
+    index("post_kudos_user_idx").on(table.userId),
+  ],
+);
+
+export const postComment = sqliteTable(
+  "post_comment",
+  {
+    id: text("id").primaryKey(),
+    postId: text("post_id")
+      .notNull()
+      .references(() => post.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [index("post_comment_post_created_idx").on(table.postId, table.createdAt)],
+);
+
+// Follow satu arah, tanpa persetujuan.
+export const socialFollow = sqliteTable(
+  "social_follow",
+  {
+    followerId: text("follower_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    followingId: text("following_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.followerId, table.followingId] }),
+    index("social_follow_following_idx").on(table.followingId),
+  ],
+);
+
+// Blokir: menyembunyikan postingan/komentar dua arah dan menghapus follow.
+export const socialBlock = sqliteTable(
+  "social_block",
+  {
+    blockerId: text("blocker_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    blockedId: text("blocked_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.blockerId, table.blockedId] })],
+);
+
+// Notifikasi feed (kudos/komentar/pengikut) — list terpisah dari kotak masuk
+// grup; dirender di halaman Feed.
+export const socialNotification = sqliteTable(
+  "social_notification",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    actorId: text("actor_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    // 'kudos' | 'comment' | 'follow'
+    kind: text("kind", { enum: ["kudos", "comment", "follow"] }).notNull(),
+    postId: text("post_id").references(() => post.id, { onDelete: "cascade" }),
+    // cuplikan komentar (untuk kind 'comment')
+    excerpt: text("excerpt"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    readAt: integer("read_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("social_notification_user_created_idx").on(table.userId, table.createdAt),
+    index("social_notification_user_read_idx").on(table.userId, table.readAt),
+  ],
+);
+
+// Laporan konten untuk konsol admin; menghapus konten meng-cascade laporannya.
+export const socialReport = sqliteTable(
+  "social_report",
+  {
+    id: text("id").primaryKey(),
+    reporterId: text("reporter_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    postId: text("post_id").references(() => post.id, { onDelete: "cascade" }),
+    commentId: text("comment_id").references(() => postComment.id, { onDelete: "cascade" }),
+    // 'spam' | 'kasar' | 'salah_info' | 'lainnya'
+    reason: text("reason", { enum: ["spam", "kasar", "salah_info", "lainnya"] }).notNull(),
+    note: text("note"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    resolvedAt: integer("resolved_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [index("social_report_resolved_idx").on(table.resolvedAt, table.createdAt)],
+);
+
+export const postRelations = relations(post, ({ one, many }) => ({
+  author: one(user, { fields: [post.userId], references: [user.id] }),
+  kudos: many(postKudos),
+  comments: many(postComment),
+}));
+
+export const postKudosRelations = relations(postKudos, ({ one }) => ({
+  post: one(post, { fields: [postKudos.postId], references: [post.id] }),
+  user: one(user, { fields: [postKudos.userId], references: [user.id] }),
+}));
+
+export const postCommentRelations = relations(postComment, ({ one }) => ({
+  post: one(post, { fields: [postComment.postId], references: [post.id] }),
+  user: one(user, { fields: [postComment.userId], references: [user.id] }),
 }));

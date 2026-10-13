@@ -24,10 +24,11 @@ export function trackConversion(name: string, revenueIdr?: number, props?: Props
 }
 
 // Revklik only measures the marketing funnel: landing, blog, pricing, sign-up
-// and payment pages. In-app screens (Beranda, Makan, …) are not tracked.
+// and payment pages — plus public community pages (/u/<handle> profiles,
+// /p/<id> posts). In-app screens (Beranda, Makan, …) are not tracked.
 // Conversions (`t: "c"`: onboarding_complete, founder_purchase) always pass,
 // wherever they fire.
-const TRACKED_PATHS = /^\/(?:$|harga|login|pembayaran|privasi|blog|u\/)/;
+const TRACKED_PATHS = /^\/(?:$|harga|login|pembayaran|privasi|blog|u\/|p\/)/;
 
 type TrackItem = { t?: string; p?: string };
 

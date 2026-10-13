@@ -26,6 +26,8 @@ import {
 } from "@/components/ui";
 import { PlateFields, plateInput } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
+import { ShareStoryButton } from "@/components/story/share-story-button";
+import type { MealStory } from "@/components/story/story-card";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, parseNum } from "@/utils/format";
 import { isPaywallError, orpc, queryClient } from "@/utils/orpc";
@@ -635,6 +637,26 @@ export default function MakanAi() {
   }
 
   // ---- Done phase ----
+  const included = items
+    .map((item, index) => ({ item, kcal: parseNum(drafts[index]?.kcal) ?? 0 }))
+    .filter((_, index) => drafts[index]?.include);
+  const savedKcal = included.reduce((sum, entry) => sum + entry.kcal, 0);
+  const mealStory: MealStory | null =
+    included.length > 0
+      ? {
+          kind: "meal",
+          name:
+            included.length > 1
+              ? `${included[0]!.item.name} +${included.length - 1} lainnya`
+              : included[0]!.item.name,
+          kcal: savedKcal,
+          protein: included.reduce((sum, entry) => sum + (entry.item.protein ?? 0), 0),
+          carbs: included.reduce((sum, entry) => sum + (entry.item.carbs ?? 0), 0),
+          fat: included.reduce((sum, entry) => sum + (entry.item.fat ?? 0), 0),
+          reaction: savedKcal > 0 ? reaction(savedKcal) : undefined,
+          photoUri: previewUri,
+        }
+      : null;
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.doneBody}>
@@ -645,6 +667,9 @@ export default function MakanAi() {
         <Text style={styles.doneText}>Makanan dari foto sudah masuk ke catatan hari ini.</Text>
         <View style={styles.doneActions}>
           <Button label="Lihat Daftar Makanan" onPress={() => router.replace("/makan")} />
+          {mealStory ? (
+            <ShareStoryButton story={mealStory} variant="secondary" />
+          ) : null}
           <Button variant="secondary" label="Foto Lagi" onPress={resetToCamera} />
         </View>
       </View>

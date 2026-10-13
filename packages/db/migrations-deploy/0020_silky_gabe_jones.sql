@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `profile_handle_uidx` ON `profile` (`handle`);

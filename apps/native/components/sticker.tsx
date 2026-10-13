@@ -6,6 +6,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { File, Paths } from "expo-file-system";
 
 import { Text } from "@/components/ui";
+import { ShareStoryButton } from "@/components/story/share-story-button";
 import { authClient } from "@/lib/auth-client";
 // Must stay named `ENV`: varlock's babel plugin only inlines `ENV.X` reads;
 // anything else hits the runtime proxy, which throws in release builds.
@@ -97,6 +98,9 @@ export type StickerViewerTarget = {
   name: string;
   kcal: number;
   photoId?: string | null;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
 };
 
 /**
@@ -148,6 +152,21 @@ export function StickerViewer({
               </Pressable>
             ) : null}
           </View>
+          {viewer ? (
+            <ShareStoryButton
+              story={{
+                kind: "meal",
+                name: viewer.name,
+                kcal: viewer.kcal,
+                protein: viewer.protein,
+                carbs: viewer.carbs,
+                fat: viewer.fat,
+                photoUri: viewer.uri,
+              }}
+              variant="secondary"
+              style={styles.viewerShare}
+            />
+          ) : null}
         </View>
       </Pressable>
     </Modal>
@@ -262,6 +281,7 @@ const styles = StyleSheet.create((theme) => ({
     flexWrap: "wrap",
     justifyContent: "center",
   },
+  viewerShare: { alignSelf: "stretch" },
   viewerCaption: {
     color: "#FFFFFF",
     fontSize: theme.fontSize.base,

@@ -1,6 +1,7 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { Card, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
 import { ScreenError } from "@/components/screen-state";
+import { ShareStoryButton } from "@/components/story/share-story-button";
 import { MuscleMap } from "@/components/workout/muscle-map";
 import { ProgressCard } from "@/components/workout/progress-card";
 import {
@@ -221,6 +222,26 @@ function LatihanScreen() {
                           {` · ${item.sets.length} set`}
                         </p>
                       </div>
+                      <ShareStoryButton
+                        label=""
+                        aria-label={`Bagikan sesi ${item.session.name} ke Story`}
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-muted-foreground"
+                        story={{
+                          kind: "workout",
+                          name: item.session.name,
+                          durationMin: item.session.durationMin,
+                          volumeKg: item.sets.reduce(
+                            (sum, set) =>
+                              set.setType === "warmup" || set.weightKg == null || set.reps == null
+                                ? sum
+                                : sum + set.weightKg * set.reps,
+                            0,
+                          ),
+                          setsDone: item.sets.filter((set) => set.setType !== "warmup").length,
+                        }}
+                      />
                     </div>
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
                       {[...new Set(item.sets.map((set) => set.exerciseId))].map((exerciseId) => (

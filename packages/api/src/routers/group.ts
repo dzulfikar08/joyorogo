@@ -719,14 +719,22 @@ export const groupRouter = {
           senderId: teamNudge.fromUserId,
           senderName: user.name,
           senderImage: user.image,
+          senderJoinedAt: teamMember.joinedAt,
         })
         .from(teamNudge)
         .innerJoin(user, eq(teamNudge.fromUserId, user.id))
         .innerJoin(team, eq(teamNudge.teamId, team.id))
+        .leftJoin(
+          teamMember,
+          and(eq(teamMember.teamId, teamNudge.teamId), eq(teamMember.userId, teamNudge.fromUserId)),
+        )
         .where(eq(teamNudge.toUserId, context.session.user.id))
         .orderBy(desc(teamNudge.createdAt))
         .limit(input.limit);
-      return rows;
+      return rows.map(({ senderJoinedAt, ...row }) => ({
+        ...row,
+        senderInGroup: senderJoinedAt !== null,
+      }));
     }),
 
   unreadCount: protectedProcedure.handler(async ({ context }) => {

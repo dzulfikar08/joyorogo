@@ -15,6 +15,8 @@ import {
   Text,
 } from "@/components/ui";
 import { ConfirmSheet } from "@/components/confirm-sheet";
+import { ShareStoryButton } from "@/components/story/share-story-button";
+import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { useSessionGate } from "@/lib/use-session-gate";
 import {
   completedSetCount,
@@ -43,15 +45,14 @@ const PR_LABEL: Record<string, string> = {
 
 type SavePr = { exerciseId: string; kind: string; value: number; previous: number | null };
 
+/** Formatted right-hand side of a PR bullet: kg for load PRs, reps for reps. */
+function prValueText(pr: SavePr): string {
+  return pr.kind === "reps" ? `${fmtKcal(pr.value)} reps` : `${fmtKcal(pr.value)} kg`;
+}
+
 /** Collapse per-kind PR rows into one bullet per exercise for the recap. */
 function prBullet(pr: SavePr, nameOf: (id: string) => string): string {
-  const value =
-    pr.kind === "weight" || pr.kind === "one_rm"
-      ? `${fmtKcal(pr.value)} kg`
-      : pr.kind === "set_volume"
-        ? `${fmtKcal(pr.value)} kg`
-        : `${fmtKcal(pr.value)} reps`;
-  return `${nameOf(pr.exerciseId)} — ${PR_LABEL[pr.kind] ?? pr.kind}: ${value}`;
+  return `${nameOf(pr.exerciseId)} — ${PR_LABEL[pr.kind] ?? pr.kind}: ${prValueText(pr)}`;
 }
 
 /** One set ready for the API, or null when it fails the contract rules. */
@@ -115,6 +116,7 @@ export default function LatihanRingkasan() {
   const [note, setNote] = useState(workout?.note ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ id: string; prs: SavePr[] } | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const [pending, setPending] = useState<
     null | {
       kind: "dropped" | "unchecked";
@@ -247,6 +249,26 @@ export default function LatihanRingkasan() {
                 </View>
               )}
             </Card>
+            <ShareStoryButton
+              variant="secondary"
+              story={{
+                kind: "workout",
+                name: name.trim().length > 0 ? name.trim() : "Latihan bebas",
+                durationMin: elapsedMin,
+                volumeKg: volume,
+                setsDone,
+                prs: newPrs.map((pr) => ({
+                  exercise: nameOf(pr.exerciseId),
+                  label: PR_LABEL[pr.kind] ?? pr.kind,
+                  value: prValueText(pr),
+                })),
+              }}
+            />
+            <Button
+              variant="secondary"
+              label="Bagikan ke feed"
+              onPress={() => setShareOpen(true)}
+            />
             <Button label="Selesai" onPress={() => router.replace("/latihan")} />
           </>
         ) : (
@@ -272,6 +294,15 @@ export default function LatihanRingkasan() {
           </>
         )}
       </ScrollView>
+
+      <ShareToFeedSheet
+        visible={shareOpen && saved !== null}
+        onClose={() => setShareOpen(false)}
+        title={saved !== null && name.trim().length > 0 ? name.trim() : "Latihan beban"}
+        preview={`${fmtKcal(volume)} kg volume · ${setsDone} set · ${fmtKcal(elapsedMin)} menit`}
+        kind="latihan"
+        refId={saved?.id ?? ""}
+      />
 
       <ConfirmSheet
         visible={pending?.kind === "unchecked"}

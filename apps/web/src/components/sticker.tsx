@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
+import { ShareStoryButton } from "@/components/story/share-story-button";
 import { env } from "@/env.public";
 import { fmtInt } from "@/lib/format";
 import { getServerUrl } from "@/utils/orpc";
@@ -15,6 +16,11 @@ export function photoUrl(photoId: string): string {
   return `${getServerUrl(env.VITE_SERVER_URL)}/photo/${photoId}`;
 }
 
+/** Photo of a shared feed post; the server checks the post's visibility. */
+export function postPhotoUrl(postId: string): string {
+  return `${getServerUrl(env.VITE_SERVER_URL)}/post-photo/${postId}`;
+}
+
 const DROP_SHADOW = { filter: "drop-shadow(0 3px 4px rgb(0 0 0 / 0.28))" } as const;
 
 /** Cutouts are made in the background after saving: retry briefly, then give up. */
@@ -25,6 +31,9 @@ type StickerProps = {
   photoId?: string | null;
   name: string;
   kcal?: number;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
   className?: string;
   /** Shown while the cutout is not ready, or if it never arrives. */
   fallback?: ReactNode;
@@ -34,9 +43,20 @@ type StickerProps = {
  * Clickable sticker thumbnail with a full-size lightbox. Used in the diary
  * strip and the meal list — anywhere a sticker appears, tapping opens the
  * cutout at full size with its calorie caption, and the original photo of
- * the scan when it was kept.
+ * the scan when it was kept. With macros passed, the lightbox also offers
+ * the story share for that meal.
  */
-export function Sticker({ scanId, photoId, name, kcal, className, fallback }: StickerProps) {
+export function Sticker({
+  scanId,
+  photoId,
+  name,
+  kcal,
+  protein,
+  carbs,
+  fat,
+  className,
+  fallback,
+}: StickerProps) {
   const [open, setOpen] = useState(false);
   const [showPhoto, setShowPhoto] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -132,6 +152,21 @@ export function Sticker({ scanId, photoId, name, kcal, className, fallback }: St
                 >
                   {showPhoto ? "Lihat stiker" : "Lihat foto asli"}
                 </button>
+              )}
+              {kcal != null && (
+                <ShareStoryButton
+                  size="sm"
+                  story={{
+                    kind: "meal",
+                    name,
+                    kcal,
+                    protein,
+                    carbs,
+                    fat,
+                    scanId,
+                    photoId,
+                  }}
+                />
               )}
             </figcaption>
             <button

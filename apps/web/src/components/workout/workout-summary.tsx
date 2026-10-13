@@ -1,6 +1,8 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
+import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { Card, FieldLabel } from "@/components/kit/surface";
+import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { ActiveExercise, ActiveWorkout } from "@/components/workout/active-store";
 import {
   type PreviousEntry,
@@ -10,9 +12,11 @@ import {
 import { fmtInt, parseNum } from "@/lib/format";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Trophy } from "lucide-react";
+import { Share2, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+
+import { client } from "@/utils/orpc";
 
 export type FinishedSet = {
   exerciseId: string;
@@ -128,6 +132,8 @@ export function WorkoutSummary({
   const [error, setError] = useState<string | null>(null);
   const [saveRoutineOpen, setSaveRoutineOpen] = useState(false);
   const [routineName, setRoutineName] = useState(workout.name || "Latihan bebas");
+  // Sheet bagikan-ke-feed: menyimpan sesi dulu, lalu membuat postingan.
+  const [shareOpen, setShareOpen] = useState(false);
 
   const exerciseIds = useMemo(
     () => [...new Set(workout.exercises.map((exercise) => exercise.exerciseId))],
@@ -137,6 +143,32 @@ export function WorkoutSummary({
     queryKey: [...workoutQueryPrefix, "previous", exerciseIds],
     queryFn: () => workoutApi.previous({ exerciseIds }),
   });
+
+  /** Satu sumber payload sesi: dipakai simpan biasa dan simpan-+-bagikan. */
+  const sessionPayload = () => ({
+    date: new Date().toISOString().slice(0, 10),
+    name: name.trim(),
+    note: note.trim().length > 0 ? note.trim() : undefined,
+    startedAt: workout.startedAt,
+    durationMin: Math.max(1, Math.round(totals.durationMs / 60000)),
+    sets: finished.flatMap((sets, index) =>
+      (sets ?? []).map((set) => ({
+        exerciseId: workout.exercises[index]?.exerciseId ?? "",
+        setType: set.setType,
+        reps: set.reps,
+        weightKg: set.weightKg,
+        durationSec: set.durationSec,
+        note: workout.exercises[index]?.note.trim() || undefined,
+        supersetGroup: workout.exercises[index]?.supersetGroup,
+      })),
+    ),
+  });
+
+  const invalidateWorkout = () => {
+    void queryClient.invalidateQueries({ queryKey: [...workoutQueryPrefix] });
+    void queryClient.invalidateQueries({ queryKey: ["day"] });
+    void queryClient.invalidateQueries({ queryKey: ["exercise"] });
+  };
 
   const localPrs = useMemo(() => {
     if (!previous.data) return [];
@@ -151,29 +183,9 @@ export function WorkoutSummary({
   }, [previous.data, workout.exercises, finished, nameOf]);
 
   const save = useMutation({
-    mutationFn: () =>
-      workoutApi.saveSession({
-        date: new Date().toISOString().slice(0, 10),
-        name: name.trim(),
-        note: note.trim().length > 0 ? note.trim() : undefined,
-        startedAt: workout.startedAt,
-        durationMin: Math.max(1, Math.round(totals.durationMs / 60000)),
-        sets: finished.flatMap((sets, index) =>
-          (sets ?? []).map((set) => ({
-            exerciseId: workout.exercises[index]?.exerciseId ?? "",
-            setType: set.setType,
-            reps: set.reps,
-            weightKg: set.weightKg,
-            durationSec: set.durationSec,
-            note: workout.exercises[index]?.note.trim() || undefined,
-            supersetGroup: workout.exercises[index]?.supersetGroup,
-          })),
-        ),
-      }),
+    mutationFn: () => workoutApi.saveSession(sessionPayload()),
     onSuccess: (result) => {
-      void queryClient.invalidateQueries({ queryKey: [...workoutQueryPrefix] });
-      void queryClient.invalidateQueries({ queryKey: ["day"] });
-      void queryClient.invalidateQueries({ queryKey: ["exercise"] });
+      invalidateWorkout();
       const prCount = result.prs.length;
       toast.success(
         prCount > 0 ? `Tersimpan. ${prCount} rekor baru, mantap!` : "Sesi latihan tersimpan.",
@@ -182,6 +194,18 @@ export function WorkoutSummary({
     },
     onError: (err) => setError(err.message),
   });
+
+  /** Simpan sesi dulu, lalu bagikan snapshotnya ke feed. */
+  const saveAndShare = async (input: { caption: string; visibility: "publik" | "grup" }) => {
+    const saved = await workoutApi.saveSession(sessionPayload());
+    invalidateWorkout();
+    await client.social.createPost({
+      kind: "latihan",
+      refId: saved.id,
+      caption: input.caption || undefined,
+      visibility: input.visibility,
+    });
+  };
 
   const saveRoutine = useMutation({
     mutationFn: () =>
@@ -228,6 +252,22 @@ export function WorkoutSummary({
             <p className="text-xs text-muted-foreground">set selesai</p>
           </div>
         </div>
+        <ShareStoryButton
+          variant="secondary"
+          className="w-full"
+          story={{
+            kind: "workout",
+            name,
+            durationMin: minutes,
+            volumeKg: totals.volumeKg,
+            setsDone: totals.setsDone,
+            prs: localPrs.map((pr) => ({
+              exercise: pr.exerciseName,
+              label: pr.label,
+              value: pr.value,
+            })),
+          }}
+        />
       </Card>
 
       {localPrs.length > 0 && (
@@ -298,12 +338,12 @@ export function WorkoutSummary({
         </Card>
       ) : (
         <div className="space-y-2">
-          <Button
-            className="w-full"
-            disabled={save.isPending}
-            onClick={() => save.mutate()}
-          >
+          <Button className="w-full" disabled={save.isPending} onClick={() => save.mutate()}>
             {save.isPending ? "Menyimpan…" : "Simpan latihan"}
+          </Button>
+          <Button variant="secondary" className="w-full" onClick={() => setShareOpen(true)}>
+            <Share2 className="size-4" aria-hidden />
+            Simpan & bagikan ke feed
           </Button>
           <Button
             variant="secondary"
@@ -321,6 +361,15 @@ export function WorkoutSummary({
           </Link>
         </div>
       )}
+
+      <ShareToFeedSheet
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        title="Bagikan sesi ini"
+        preview={`${name.trim() || "Latihan bebas"} · ${fmtInt(minutes)} menit · ${fmtInt(totals.volumeKg)} kg volume`}
+        share={saveAndShare}
+        onShared={onClose}
+      />
     </div>
   );
 }

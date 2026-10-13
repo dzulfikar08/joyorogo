@@ -12,6 +12,14 @@ export function fmtKg(n: number): string {
   }).format(n);
 }
 
+/** "24,3 MB" — APK download size on the update card. */
+export function fmtMb(bytes: number): string {
+  return `${new Intl.NumberFormat("id-ID", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(bytes / (1024 * 1024))} MB`;
+}
+
 export function fmtDateId(date: string): string {
   return new Intl.DateTimeFormat("id-ID", {
     day: "numeric",

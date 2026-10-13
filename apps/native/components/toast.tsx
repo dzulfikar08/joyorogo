@@ -14,17 +14,20 @@ import { Text } from "@/components/ui";
 
 type ToastKind = "success" | "error" | "info";
 
+type ToastAction = { label: string; onPress: () => void };
+
 type ToastState = {
   id: number;
   kind: ToastKind;
   title: string;
   message?: string;
+  action?: ToastAction;
 };
 
 type ToastApi = {
-  success: (title: string, message?: string) => void;
-  error: (title: string, message?: string) => void;
-  info: (title: string, message?: string) => void;
+  success: (title: string, message?: string, action?: ToastAction) => void;
+  error: (title: string, message?: string, action?: ToastAction) => void;
+  info: (title: string, message?: string, action?: ToastAction) => void;
 };
 
 const ToastContext = createContext<ToastApi | null>(null);
@@ -52,10 +55,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insets = useSafeAreaInsets();
 
-  const show = useCallback((kind: ToastKind, title: string, message?: string) => {
+  const show = useCallback((kind: ToastKind, title: string, message?: string, action?: ToastAction) => {
     clearTimeout(timer.current);
     Vibration.vibrate(8);
-    setToast({ id: Date.now(), kind, title, message });
+    setToast({ id: Date.now(), kind, title, message, action });
     timer.current = setTimeout(() => setToast(null), AUTO_DISMISS_MS);
   }, []);
 
@@ -66,9 +69,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const api = useMemo<ToastApi>(
     () => ({
-      success: (title, message) => show("success", title, message),
-      error: (title, message) => show("error", title, message),
-      info: (title, message) => show("info", title, message),
+      success: (title, message, action) => show("success", title, message, action),
+      error: (title, message, action) => show("error", title, message, action),
+      info: (title, message, action) => show("info", title, message, action),
     }),
     [show],
   );
@@ -138,6 +141,19 @@ function ToastView({
               </Text>
             ) : null}
           </View>
+          {toast.action ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={toast.action.label}
+              onPress={() => {
+                onDismiss();
+                toast.action?.onPress();
+              }}
+              style={({ pressed }) => [styles.actionButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.actionLabel}>{toast.action.label}</Text>
+            </Pressable>
+          ) : null}
         </Pressable>
       </Animated.View>
     </View>
@@ -192,5 +208,16 @@ const styles = StyleSheet.create((theme) => ({
   message: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
+  },
+  actionButton: {
+    backgroundColor: theme.colors.makanSoft,
+    borderRadius: 999,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 8,
+  },
+  actionLabel: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "700",
+    color: theme.colors.makanText,
   },
 }));

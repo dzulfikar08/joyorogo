@@ -12,6 +12,7 @@ import { plateRouter } from "./plate";
 import { profileRouter } from "./profile";
 import { privacyRouter } from "./privacy";
 import { sleepRouter } from "./sleep";
+import { socialRouter } from "./social";
 import { stravaRouter } from "./strava";
 import { waterRouter } from "./water";
 import { waistRouter } from "./waist";
@@ -44,6 +45,7 @@ export const appRouter = {
   fasting: fastingRouter,
   plate: plateRouter,
   group: groupRouter,
+  social: socialRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

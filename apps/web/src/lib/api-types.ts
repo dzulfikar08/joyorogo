@@ -104,3 +104,20 @@ type VarScanOutput = Awaited<ReturnType<AppRouterClient["group"]["varScan"]>>;
 
 /** varScan output: verdict, totals, and the member's shared foods. */
 export type VarScan = VarScanOutput;
+
+type SocialProfileOutput = Awaited<ReturnType<AppRouterClient["social"]["myProfile"]>>;
+type FeedOutput = Awaited<ReturnType<AppRouterClient["social"]["feed"]>>;
+type PublicProfileOutput = Awaited<ReturnType<AppRouterClient["social"]["publicProfile"]>>;
+type SocialNotificationsOutput = Awaited<
+  ReturnType<AppRouterClient["social"]["notifications"]>
+>;
+type SocialCommentsOutput = Awaited<ReturnType<AppRouterClient["social"]["comments"]>>;
+
+/** Feed identity + counters of the signed-in user. */
+export type SocialProfile = SocialProfileOutput;
+
+/** One post card in the feed. */
+export type FeedPost = FeedOutput["items"][number];
+export type SocialNotificationItem = SocialNotificationsOutput["items"][number];
+export type PostCommentItem = SocialCommentsOutput["items"][number];
+export type PublicProfileData = PublicProfileOutput;

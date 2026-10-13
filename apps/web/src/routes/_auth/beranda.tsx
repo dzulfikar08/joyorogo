@@ -15,7 +15,7 @@ import { FastingScheduleCard } from "@/components/fasting/schedule-card";
 import MovementCard from "@/components/movement-card";
 import { BelanjaCard } from "@/components/plate/belanja";
 import { ScreenError } from "@/components/screen-state";
-import ShareCardButton from "@/components/share-card";
+import { ShareStoryButton } from "@/components/story/share-story-button";
 import { Sticker } from "@/components/sticker";
 import { WaterCard } from "@/components/water-card";
 import { WorkoutCard } from "@/components/workout/workout-card";
@@ -754,10 +754,22 @@ function MoreSection({ summary }: { summary: Summary }) {
           <div>
             <p className="text-sm font-bold">Bagikan progres</p>
             <p className="text-xs text-muted-foreground">
-              Kartu siap posting dari angka minggu ini.
+              Kartu siap posting dari angka hari ini.
             </p>
           </div>
-          <ShareCardButton />
+          <ShareStoryButton
+            size="sm"
+            story={{
+              kind: "progress",
+              eatenKcal: summary.eatenKcal,
+              targetKcal: summary.targets.eatKcal,
+              proteinG: summary.protein.eatenG,
+              proteinTargetG: summary.protein.targetG,
+              streakDays: summary.streakDays,
+              weightLostKg: summary.weightLostKg,
+              weekTrend: summary.weekTrend,
+            }}
+          />
         </div>
       </div>
     </details>

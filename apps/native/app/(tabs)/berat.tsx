@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { useQuery } from "@tanstack/react-query";
-import { Dimensions, View } from "react-native";
 import { useState } from "react";
+import { Dimensions, View } from "react-native";
 import { Redirect } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { Circle, Line, Polyline, Svg, Text as SvgText } from "react-native-svg";
@@ -24,6 +24,7 @@ import {
 import { daysBetween, jakartaToday } from "@joyorogo/api/lib/engine";
 
 import { WeighInSheet } from "@/components/weigh-in-sheet";
+import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { WaistSection } from "@/components/waist-section";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtDateId, fmtKg } from "@/utils/format";
@@ -202,6 +203,7 @@ export default function Berat() {
   const gate = useSessionGate();
   const [range, setRange] = useState<Range>("30");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [showAllHistory, setShowAllHistory] = useState(false);
 
   // Fetch the full 90-day window once and filter locally per range, so
@@ -444,6 +446,11 @@ export default function Berat() {
       {entries.length > 0 ? (
         <Card style={styles.historyCard}>
           <Text style={styles.historyTitle}>Riwayat</Text>
+          <Button
+            variant="secondary"
+            label="Bagikan progres"
+            onPress={() => setShareOpen(true)}
+          />
           <ListGroup style={styles.historyGroup}>
             {(showAllHistory ? newestEntries : newestEntries.slice(0, 10)).map((entry, index) => {
               const newer = index > 0 ? newestEntries[index - 1] : null;
@@ -481,6 +488,21 @@ export default function Berat() {
         onClose={() => setSheetOpen(false)}
         latestKg={summary.latestKg}
       />
+
+      {newestEntries[0] ? (
+        <ShareToFeedSheet
+          visible={shareOpen}
+          onClose={() => setShareOpen(false)}
+          title="Check-in berat badan"
+          preview={`${fmtKg(newestEntries[0].weightKg)} kg${
+            trendKg !== null && summary.latestKg !== null
+              ? ` · tren ${fmtKg(trendKg)} kg`
+              : ""
+          }`}
+          kind="berat"
+          refId={newestEntries[0].id}
+        />
+      ) : null}
     </Screen>
   );
 }

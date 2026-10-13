@@ -28,6 +28,7 @@ import {
   draftFromTemplate,
 } from "@/components/workout/session-editor";
 import { useSessionGate } from "@/lib/use-session-gate";
+import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import {
   emptySet,
   loadActiveWorkout,
@@ -148,6 +149,9 @@ export default function Latihan() {
 
   // Saved-session editing keeps the lightweight draft editor.
   const [draft, setDraft] = useState<SessionDraft | null>(null);
+  const [shareTarget, setShareTarget] = useState<
+    null | { refId: string; title: string; preview: string }
+  >(null);
   const typeOf = (id: string): ExerciseType =>
     (catalog.data?.exercises.find((e) => e.id === id)?.type ?? "weight_reps") as ExerciseType;
   const nameOf = (id: string) => catalog.data?.exercises.find((e) => e.id === id)?.name ?? id;
@@ -381,14 +385,13 @@ export default function Latihan() {
         ) : (
           <Card style={styles.historyCard}>
             {history.data!.items.map((item) => (
-              <Pressable
-                key={item.session.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Edit sesi ${item.session.name}`}
-                onPress={() => setDraft(draftFromSession(item, nameOf))}
-                style={({ pressed }) => [styles.historyRow, pressed && styles.pressed]}
-              >
-                <View style={styles.prText}>
+              <View key={item.session.id} style={styles.historyRowWrap}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Edit sesi ${item.session.name}`}
+                  onPress={() => setDraft(draftFromSession(item, nameOf))}
+                  style={({ pressed }) => [styles.prText, styles.pressed]}
+                >
                   <Text style={styles.prName} numberOfLines={1}>
                     {item.session.name}
                   </Text>
@@ -399,9 +402,27 @@ export default function Latihan() {
                       : ""}
                     {` · ${item.sets.length} set`}
                   </Text>
-                </View>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Bagikan sesi ${item.session.name} ke feed`}
+                  onPress={() =>
+                    setShareTarget({
+                      refId: item.session.id,
+                      title: item.session.name,
+                      preview: `${fmtDateId(item.session.date)} · ${item.sets.length} set${
+                        item.session.durationMin != null
+                          ? ` · ${fmtKcal(item.session.durationMin)} menit`
+                          : ""
+                      }`,
+                    })
+                  }
+                  style={({ pressed }) => [styles.shareButton, pressed && styles.pressed]}
+                >
+                  <Ionicons name="share-social-outline" size={16} color={theme.colors.foreground} />
+                </Pressable>
                 <Ionicons name="pencil" size={15} color={theme.colors.mutedForeground} />
-              </Pressable>
+              </View>
             ))}
           </Card>
         )}
@@ -410,6 +431,15 @@ export default function Latihan() {
       {draft !== null ? (
         <SessionEditor draft={draft} onClose={() => setDraft(null)} />
       ) : null}
+
+      <ShareToFeedSheet
+        visible={shareTarget !== null}
+        onClose={() => setShareTarget(null)}
+        title={shareTarget?.title ?? ""}
+        preview={shareTarget?.preview ?? ""}
+        kind="latihan"
+        refId={shareTarget?.refId ?? ""}
+      />
     </>
   );
 }
@@ -499,10 +529,16 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.makanSoft,
   },
   historyCard: { gap: 0 },
-  historyRow: {
+  historyRowWrap: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.md,
     paddingVertical: theme.spacing.md,
+  },
+  shareButton: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
   },
 }));
