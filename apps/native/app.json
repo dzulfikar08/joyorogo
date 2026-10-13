@@ -31,7 +31,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.joyorogo",
+      "package": "com.joyodigitama.joyorogo",
       "permissions": [
         "android.permission.health.READ_EXERCISE",
         "android.permission.health.READ_SLEEP",
