@@ -4,7 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { trackEvent } from "./analytics";
 import { apiUrl } from "./app-config";
 
-/** Start a DOKU Checkout for one month of Founder, then leave for DOKU's page. */
+/** Start a Founder checkout (DOKU or Pakasir, server's choice), then leave for its page. */
 export function useFounderCheckout() {
   const navigate = useNavigate();
   return useMutation({

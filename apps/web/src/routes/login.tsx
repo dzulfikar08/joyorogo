@@ -84,7 +84,8 @@ function RouteComponent() {
           </svg>
           Masuk dengan Google
         </Button>
-        {env.VITE_DEV_LOGIN === "1" && (
+        {/* Vite dev server only: production builds drop this even if .env sets the flag. */}
+        {import.meta.env.DEV && env.VITE_DEV_LOGIN === "1" && (
           <Button variant="ghost" size="sm" className="mt-3" onClick={signInDev}>
             Masuk (dev)
           </Button>

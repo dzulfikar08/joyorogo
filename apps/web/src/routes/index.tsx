@@ -15,7 +15,7 @@ import { Ring, type Metric } from "@/components/kit/ring";
 import { ScanDemo } from "@/components/landing/scan-demo";
 import { HeroPhone, WeightTrendDemo } from "@/components/landing/visuals";
 import { PublicHeader } from "@/components/public-header";
-import { APK_URL, fmtRupiah, useAppConfig } from "@/lib/app-config";
+import { APK_URL, fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { sessionQuery } from "@/lib/auth-client";
 import { FAQ, pageHead } from "@/lib/seo";
@@ -101,7 +101,7 @@ function pricingFaq(config: AppConfig | undefined): Array<{ q: string; a: string
   return [
     {
       q: "Gratisnya sampai kapan?",
-      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Founder ${fmtRupiah(config.founderPriceIdr)} per bulan membuka foto AI tanpa batas.`,
+      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Founder ${fmtRupiah(config.founderPriceIdr)} per bulan: ${founderScans(config).toLowerCase()}.`,
     },
   ];
 }
@@ -433,7 +433,7 @@ function Landing() {
                   <ul className="mt-5 space-y-2 text-sm">
                     <li className="flex gap-2">
                       <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                      Foto AI tanpa batas
+                      {founderScans(config.data)}
                     </li>
                     <li className="flex gap-2">
                       <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />

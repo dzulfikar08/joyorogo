@@ -33,7 +33,7 @@ export const PAGES: Record<PublicPath, PageMeta> = {
   "/harga": {
     title: "Harga | JoyoRogo",
     description:
-      "Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan jatah foto AI harian. Founder membuka foto AI tanpa batas dan mendukung JoyoRogo.",
+      "Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan jatah foto AI harian. Founder menambah jatah foto AI harian dan mendukung JoyoRogo.",
   },
   "/privasi": {
     title: "Privasi | JoyoRogo",

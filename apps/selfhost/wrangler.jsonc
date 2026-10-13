@@ -95,7 +95,12 @@
     {
       "name": "FOUNDER_PRICE_IDR",
       "label": "Harga Founder per bulan (Rp)",
-      "description": "Kosong = 15000. Dipakai hanya kalau paywall dan DOKU diisi.",
+      "description": "Kosong = 15000. Dipakai hanya kalau paywall dan gateway pembayaran diisi.",
+    },
+    {
+      "name": "BILLING_PROVIDER",
+      "label": "Gateway pembayaran",
+      "description": "doku atau pakasir. Kosong = DOKU kalau diisi, kalau tidak Pakasir.",
     },
     {
       "name": "DOKU_CLIENT_ID",
@@ -108,6 +113,19 @@
       "name": "DOKU_BASE_URL",
       "label": "DOKU API URL",
       "description": "Kosong = produksi (https://api.doku.com). Sandbox: https://api-sandbox.doku.com",
+    },
+    {
+      "name": "PAKASIR_SLUG",
+      "label": "Pakasir slug proyek",
+      "description": "Opsional, alternatif DOKU. Webhook proyek: <alamatmu>/api/billing/pakasir/webhook",
+      "docs_url": "https://pakasir.com/p/get-started",
+    },
+    { "name": "PAKASIR_API_KEY", "label": "Pakasir API key", "secret": true },
+    { "name": "PAKASIR_WEBHOOK_SECRET", "label": "Pakasir webhook secret", "secret": true },
+    {
+      "name": "PAKASIR_SANDBOX",
+      "label": "Terima pembayaran sandbox Pakasir",
+      "description": "Isi 1 hanya untuk uji coba: pembayaran sandbox ikut mengaktifkan Founder.",
     },
     {
       "name": "APPLE_BUNDLE_ID",

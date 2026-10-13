@@ -47,7 +47,11 @@ async function requireAiQuota(db: Database, env: ApiEnv, userId: string): Promis
       message:
         tier === "founder"
           ? `Batas pengaman Founder tercapai (${quota} scan/hari). Coba lagi besok ya.`
-          : `Kuota AI hari ini habis (${quota}/hari). Founder buka AI tanpa batas.`,
+          : `Kuota AI hari ini habis (${quota}/hari). ${
+              config.founderDailyCap === null
+                ? "Founder buka AI tanpa batas."
+                : `Founder dapat ${config.founderDailyCap}/hari.`
+            }`,
       data: { paywall: true, tier },
     });
   }

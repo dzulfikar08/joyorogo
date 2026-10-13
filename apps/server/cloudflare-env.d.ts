@@ -23,9 +23,14 @@ declare module "cloudflare:workers" {
       FOUNDER_DAILY_CAP?: string;
       ANON_SCANS?: string;
       FOUNDER_PRICE_IDR?: string;
+      BILLING_PROVIDER?: string;
       DOKU_CLIENT_ID?: string;
       DOKU_SECRET_KEY?: string;
       DOKU_BASE_URL?: string;
+      PAKASIR_SLUG?: string;
+      PAKASIR_API_KEY?: string;
+      PAKASIR_WEBHOOK_SECRET?: string;
+      PAKASIR_SANDBOX?: string;
       APPLE_BUNDLE_ID?: string;
       APPLE_FOUNDER_PRODUCT_ID?: string;
       APPLE_SANDBOX_EMAILS?: string;

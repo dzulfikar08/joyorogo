@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import { Button } from "@joyorogo/ui/components/button";
 
 import { PublicHeader } from "@/components/public-header";
-import { fmtRupiah, useAppConfig } from "@/lib/app-config";
+import { fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { useFounderCheckout } from "@/lib/billing";
 import { pageHead } from "@/lib/seo";
@@ -14,11 +14,9 @@ export const Route = createFileRoute("/harga")({
   head: () => pageHead("/harga"),
 });
 
-const FOUNDER_FEATURES = [
-  "Scan AI tanpa batas",
-  "Badge founder di profilmu",
-  "Dukung pengembangan JoyoRogo",
-] as const;
+function founderFeatures(config: AppConfig): string[] {
+  return [founderScans(config), "Badge founder di profilmu", "Dukung pengembangan JoyoRogo"];
+}
 
 function freeFeatures(config: AppConfig): string[] {
   return [
@@ -137,7 +135,7 @@ function HargaPage() {
               price={fmtRupiah(config.data.founderPriceIdr)}
               per="per bulan"
               badge="Terbatas"
-              features={FOUNDER_FEATURES}
+              features={founderFeatures(config.data)}
               cta={
                 config.data.billing ? (
                   <Button disabled={checkout.isPending} onClick={() => checkout.mutate()}>
@@ -164,7 +162,7 @@ function HargaPage() {
 
         {config.data?.billing && (
           <p className="mt-10 text-center text-xs leading-relaxed text-muted-foreground">
-            Bayar lewat QRIS, transfer bank, atau e-wallet di halaman DOKU. Tidak diperpanjang
+            Bayar lewat QRIS atau transfer bank di halaman pembayaran. Tidak diperpanjang
             otomatis: perpanjang sendiri kapan saja dari profil.
           </p>
         )}

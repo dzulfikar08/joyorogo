@@ -61,7 +61,7 @@ Langganan Founder di JoyoRogo Cloud membiayai pengembangan proyek ini.
 3. Isi Client ID dan Client Secret, lalu deploy. Database, penyimpanan,
    HTTPS, dan secret aplikasi disiapkan otomatis.
 
-Paywall, Strava, dan DOKU bisa diisi di form yang sama atau diubah nanti dari
+Paywall, Strava, dan pembayaran (DOKU atau Pakasir) bisa diisi di form yang sama atau diubah nanti dari
 halaman **Instans**. Biarkan kosong untuk JoyoRogo tanpa batas scan dan tanpa
 halaman harga.
 
@@ -88,7 +88,7 @@ bun run build && bun run deploy           # migrasi D1 + deploy worker
 ```
 
 Redirect URI Google: `<alamatmu>/api/auth/callback/google`. Variabel opsional
-(paywall, Strava, DOKU) ada di bawah; set dengan `wrangler secret put` atau di
+(paywall, Strava, DOKU, Pakasir) ada di bawah; set dengan `wrangler secret put` atau di
 `vars`.
 
 ## Paywall dan pembayaran
@@ -101,14 +101,19 @@ Pemilik server yang menentukan. Tanpa konfigurasi, semua fitur gratis tanpa bata
 | `FOUNDER_DAILY_CAP`                                      | Batas pengaman scan Founder per hari. Kosong = tanpa batas.                                                                                                                 | kosong |
 | `ANON_SCANS`                                             | Coba scan tanpa daftar per perangkat. `0` mematikan demo.                                                                                                                   | 2      |
 | `FOUNDER_PRICE_IDR`                                      | Harga Founder per bulan.                                                                                                                                                    | 15000  |
+| `BILLING_PROVIDER`                                       | Gateway untuk checkout baru: `doku` atau `pakasir`. Kosong = DOKU kalau diisi, kalau tidak Pakasir.                                                                         | kosong |
 | `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL`     | DOKU Checkout (QRIS, VA, e-wallet). Pembayaran aktif hanya kalau `FREE_DAILY_SCANS` juga diisi.                                                                             | kosong |
+| `PAKASIR_SLUG`, `PAKASIR_API_KEY`, `PAKASIR_WEBHOOK_SECRET` | Pakasir payment link (QRIS, VA). Webhook proyek: `/api/billing/pakasir/webhook`.                                                                                         | kosong |
+| `PAKASIR_SANDBOX`                                        | `1` = pembayaran sandbox Pakasir ikut mengaktifkan Founder (uji coba saja).                                                                                                 | kosong |
 | `APPLE_BUNDLE_ID`, `APPLE_FOUNDER_PRODUCT_ID`            | Apple in-app purchase untuk Founder di iOS. Kosong = `com.joyodigitama.joyorogo` dan `com.joyodigitama.joyorogo.founder.1m`; harus sama dengan produk di App Store Connect. | kosong |
 | `APPLE_SANDBOX_EMAILS`                                   | Email (pisah koma) yang boleh memakai pembelian sandbox/TestFlight: akunmu dan akun demo App Review. Production selalu diterima.                                            | kosong |
 | `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`               | Impor olahraga dari Strava.                                                                                                                                                 | kosong |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push untuk pengingat puasa intermiten di web (cron tiap 5 menit). Kosong = pengingat web mati.                                                                          | kosong |
 
 Founder dibayar per bulan (tanpa perpanjangan otomatis). Notifikasi DOKU
-masuk ke `/api/billing/webhook`. Di iOS, Founder dibayar lewat Apple
+masuk ke `/api/billing/webhook`, Pakasir ke `/api/billing/pakasir/webhook`;
+keduanya tetap aktif selama kredensialnya diisi, jadi ganti `BILLING_PROVIDER`
+tidak memutus pesanan yang masih terbuka. Di iOS, Founder dibayar lewat Apple
 in-app purchase (`/api/billing/apple`) tanpa kredensial tambahan.
 
 ## Aplikasi Android

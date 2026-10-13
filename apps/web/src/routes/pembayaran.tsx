@@ -19,7 +19,7 @@ export const Route = createFileRoute("/pembayaran")({
   head: () => pageHead("/pembayaran"),
 });
 
-// DOKU usually notifies within seconds; stop polling after 3 minutes.
+// Gateways usually notify within seconds; stop polling after 3 minutes.
 const POLL_MS = 3000;
 const POLL_WINDOW_MS = 3 * 60 * 1000;
 

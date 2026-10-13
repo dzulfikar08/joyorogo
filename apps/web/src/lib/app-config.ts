@@ -7,7 +7,7 @@ import { getServerUrl } from "@/utils/orpc";
 export type AppConfig = {
   /** Free users have a daily scan limit. */
   paywall: boolean;
-  /** Founder checkout is available (paywall + DOKU configured). */
+  /** Founder checkout is available (paywall + a payment gateway configured). */
   billing: boolean;
   freeDailyScans: number | null;
   founderDailyCap: number | null;
@@ -44,4 +44,11 @@ export function useAppConfig() {
 
 export function fmtRupiah(amount: number): string {
   return `Rp${amount.toLocaleString("id-ID")}`;
+}
+
+/** Founder scan allowance as sold: the daily cap when the server sets one. */
+export function founderScans(config: Pick<AppConfig, "founderDailyCap">): string {
+  return config.founderDailyCap === null
+    ? "Scan AI tanpa batas"
+    : `${config.founderDailyCap} scan AI per hari`;
 }

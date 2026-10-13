@@ -14,7 +14,7 @@ import { queryClient } from "@/utils/orpc";
 export type AppConfig = {
   /** Free users have a daily scan limit. */
   paywall: boolean;
-  /** Founder checkout is available (paywall + DOKU configured). */
+  /** Founder checkout is available (paywall + a payment gateway configured). */
   billing: boolean;
   /** Apple in-app purchase is available on iOS (paywall configured). */
   appleBilling: boolean;
@@ -67,7 +67,7 @@ async function checkoutHeaders(): Promise<Record<string, string>> {
   return cookies ? { Cookie: cookies } : {};
 }
 
-/** Start a DOKU Checkout for one month of Founder, opened in the browser. */
+/** Start a Founder checkout (DOKU or Pakasir), opened in the browser. */
 function useFounderCheckout() {
   return useMutation({
     mutationFn: async (): Promise<string> => {
@@ -230,7 +230,11 @@ export function FounderCards({
             <Text style={styles.upgradeTitle}>
               Scan AI {config.data.freeDailyScans} kali sehari
             </Text>
-            <Text style={styles.cardNote}>Founder buka scan tanpa batas.</Text>
+            <Text style={styles.cardNote}>
+              {config.data.founderDailyCap === null
+                ? "Founder buka scan tanpa batas."
+                : `Founder: ${config.data.founderDailyCap} scan AI per hari.`}
+            </Text>
             {ios && price.data?.displayPrice ? (
               <Text style={styles.cardNote}>{price.data.displayPrice} lewat App Store.</Text>
             ) : null}

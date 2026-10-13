@@ -51,7 +51,7 @@ import { ScreenError } from "@/components/screen-state";
 import { useStrava } from "@/components/strava-card";
 import { env } from "@/env.public";
 import type { ProfileRow } from "@/lib/api-types";
-import { APK_URL, useAppConfig } from "@/lib/app-config";
+import { APK_URL, founderScans, useAppConfig } from "@/lib/app-config";
 import { fmtFounderDate, useFounderCheckout } from "@/lib/billing";
 import { signOut } from "@/lib/auth-client";
 import { fmtDateIndo, fmtInt, fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
@@ -215,7 +215,7 @@ function ProfilContent({
               Scan AI {config.data?.freeDailyScans} kali sehari
             </p>
             <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
-              Founder buka scan tanpa batas.
+              Founder: {config.data ? founderScans(config.data).toLowerCase() : ""}.
             </p>
           </div>
           <Button size="sm" className="shrink-0" render={<Link to="/harga" />}>
