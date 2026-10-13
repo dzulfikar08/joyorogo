@@ -1,5 +1,6 @@
 import { Image, PixelRatio, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Circle } from "react-native-svg";
 
 import { LogoMark } from "@/components/logo-mark";
 import { lightTheme as brandTheme } from "@/theme";
@@ -7,13 +8,17 @@ import { lightTheme as brandTheme } from "@/theme";
 /**
  * 1080x1920 story cards rendered as plain views, captured offscreen by
  * react-native-view-shot and handed to the share sheet — the native twin of
- * apps/web/src/components/story/story-card.ts. Same brand style: dark leaf
- * gradient, Plus Jakarta Sans, white numbers, soft-green accents. Fixed
- * colors on purpose: the card is a share asset that must look identical in
- * the light and dark app themes.
+ * apps/web/src/components/story/story-card.ts. Three Strava-style templates:
  *
- * The view is laid out at 1080/PixelRatio dp so a 1:1 capture yields exactly
- * 1080x1920 px on every device.
+ * - "photo": user photo full-bleed, minimal bold white stats in the lower
+ *   Instagram safe zone, small brand mark on top.
+ * - "sticker": the same stats on a fully transparent view, captured as a
+ *   transparent PNG the user can place over their own story.
+ * - "brand": the JoyoRogo dark-leaf gradient card, self-contained.
+ *
+ * Fixed colors on purpose: the card is a share asset that must look identical
+ * in the light and dark app themes. The view is laid out at 1080/PixelRatio dp
+ * so a 1:1 capture yields exactly 1080x1920 px on every device.
  */
 
 const BG_TOP = "#0d1f12";
@@ -24,6 +29,13 @@ const WHITE = "#ffffff";
 const AMBER = "#f59e0b";
 const CHIP_BG = "rgba(255, 255, 255, 0.08)";
 const TRACK_BG = "rgba(255, 255, 255, 0.12)";
+const TEXT_SHADOW = {
+  textShadowColor: "rgba(0, 0, 0, 0.55)",
+  textShadowRadius: 14,
+  textShadowOffset: { width: 0, height: 4 },
+};
+
+export type StoryTemplate = "photo" | "sticker" | "brand";
 
 export type MealStory = {
   kind: "meal";
@@ -61,6 +73,37 @@ export type ProgressStory = {
 
 export type StorySpec = MealStory | WorkoutStory | ProgressStory;
 
+export const STORY_TEMPLATES: Array<{
+  id: StoryTemplate;
+  label: string;
+  hint: string;
+  needsPhoto: boolean;
+}> = [
+  {
+    id: "photo",
+    label: "Foto + statistik",
+    hint: "Foto pilihanmu jadi latar, angka di bawah.",
+    needsPhoto: true,
+  },
+  {
+    id: "sticker",
+    label: "Statistik saja",
+    hint: "PNG transparan, pasang sendiri di story.",
+    needsPhoto: false,
+  },
+  {
+    id: "brand",
+    label: "Kartu brand",
+    hint: "Kartu JoyoRogo utuh, tinggal posting.",
+    needsPhoto: false,
+  },
+];
+
+/** Default photo for the story; null when the story carries no photo. */
+export function storyPhotoUri(story: StorySpec): string | null {
+  return story.kind === "meal" ? (story.photoUri ?? null) : null;
+}
+
 const EYEBROWS = {
   meal: "MAKAN HARI INI",
   workout: "SESI LATIHAN",
@@ -80,26 +123,44 @@ const scale = 1 / PixelRatio.get();
 const px = (value: number) => Math.round(value * scale * 100) / 100;
 export const CARD_W = px(1080);
 export const CARD_H = px(1920);
+// Instagram story UI safe zones (design px).
+const SAFE_TOP = px(250);
+const SAFE_BOTTOM = px(1580);
 
 const styles = StyleSheet.create({
   card: {
     width: CARD_W,
     height: CARD_H,
     overflow: "hidden",
-    backgroundColor: BG_BOTTOM,
+  },
+  cardOpaque: { backgroundColor: BG_BOTTOM },
+  photoBg: { position: "absolute", width: CARD_W, height: CARD_H },
+  scrimBottom: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: CARD_H * 0.55,
+  },
+  scrimTop: { position: "absolute", left: 0, right: 0, top: 0, height: CARD_H * 0.22 },
+  content: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: SAFE_TOP,
+    height: SAFE_BOTTOM - SAFE_TOP,
+    paddingHorizontal: px(84),
   },
   glow: {
     position: "absolute",
     borderRadius: 999,
     backgroundColor: "rgba(127, 216, 155, 0.08)",
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: px(90),
-    paddingTop: px(88),
-    paddingBottom: px(68),
+  brandHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: px(88),
   },
-  headerRow: { flexDirection: "row", alignItems: "center" },
   wordmark: {
     fontFamily: brandTheme.fonts.heavy,
     fontSize: px(52),
@@ -113,44 +174,85 @@ const styles = StyleSheet.create({
     color: ACCENT,
     marginTop: px(72),
   },
-  date: {
+  brandDate: {
     fontFamily: brandTheme.fonts.regular,
     fontSize: px(34),
     color: ACCENT_SOFT,
     marginTop: px(16),
   },
-  footerWrap: { flex: 1, justifyContent: "flex-end" },
+  brandBody: { paddingHorizontal: px(6) },
+  footerWrap: { flex: 1, justifyContent: "flex-end", paddingBottom: px(56) },
   footer: {
     fontFamily: brandTheme.fonts.medium,
     fontSize: px(32),
     color: ACCENT,
     textAlign: "center",
   },
+  statsBlock: { position: "absolute", left: px(84), right: px(84), bottom: 0 },
+  topTag: { position: "absolute", left: px(84), top: 0 },
+  contentCentered: { alignItems: "flex-start", justifyContent: "center" },
+  stickerStack: { gap: px(48) },
+  brandTagRow: { flexDirection: "row", alignItems: "center" },
+  brandTagText: { fontFamily: brandTheme.fonts.heavy, fontSize: px(40), color: WHITE, marginLeft: px(20) },
+  title: { fontFamily: brandTheme.fonts.heavy, fontSize: px(76), color: WHITE, ...TEXT_SHADOW },
+  kcalRow: { flexDirection: "row", alignItems: "flex-end", marginTop: px(8), gap: px(24) },
+  kcal: { fontFamily: brandTheme.fonts.heavy, fontSize: px(168), color: WHITE, ...TEXT_SHADOW },
+  kcalUnit: {
+    fontFamily: brandTheme.fonts.medium,
+    fontSize: px(44),
+    color: "rgba(255, 255, 255, 0.85)",
+    paddingBottom: px(30),
+    ...TEXT_SHADOW,
+  },
+  macros: {
+    fontFamily: brandTheme.fonts.bold,
+    fontSize: px(46),
+    color: "rgba(255, 255, 255, 0.92)",
+    marginTop: px(24),
+    ...TEXT_SHADOW,
+  },
+  reaction: {
+    fontFamily: brandTheme.fonts.bold,
+    fontSize: px(46),
+    color: ACCENT,
+    marginTop: px(16),
+    ...TEXT_SHADOW,
+  },
+  statRow: { flexDirection: "row", marginTop: px(30) },
+  statValue: {
+    fontFamily: brandTheme.fonts.heavy,
+    fontSize: px(76),
+    color: WHITE,
+    ...TEXT_SHADOW,
+  },
+  statLabel: {
+    fontFamily: brandTheme.fonts.medium,
+    fontSize: px(30),
+    letterSpacing: px(4),
+    color: "rgba(255, 255, 255, 0.78)",
+    marginTop: px(6),
+    ...TEXT_SHADOW,
+  },
+  prRow: { flexDirection: "row", alignItems: "center", gap: px(20), marginTop: px(26) },
+  prText: { fontFamily: brandTheme.fonts.heavy, fontSize: px(46), color: AMBER, ...TEXT_SHADOW },
+  proteinRow: { flexDirection: "row", alignItems: "center", gap: px(20), marginTop: px(22) },
+  proteinText: { fontFamily: brandTheme.fonts.bold, fontSize: px(46), color: WHITE, ...TEXT_SHADOW },
+  streakRow: { flexDirection: "row", alignItems: "center", gap: px(20), marginTop: px(18) },
+  streakText: { fontFamily: brandTheme.fonts.bold, fontSize: px(46), color: WHITE, ...TEXT_SHADOW },
+  lostRow: { flexDirection: "row", alignItems: "center", marginTop: px(18) },
+  lostText: {
+    fontFamily: brandTheme.fonts.medium,
+    fontSize: px(46),
+    color: WHITE,
+    ...TEXT_SHADOW,
+  },
+  ring: { position: "absolute", top: px(90), right: 0 },
   mealPhoto: {
     width: px(760),
     height: px(760),
     borderRadius: px(48),
     alignSelf: "center",
     marginTop: px(58),
-  },
-  title: {
-    fontFamily: brandTheme.fonts.heavy,
-    color: WHITE,
-    marginTop: px(56),
-  },
-  kcalRow: { flexDirection: "row", alignItems: "flex-end", gap: px(28), marginTop: px(24) },
-  kcal: { fontFamily: brandTheme.fonts.heavy, color: WHITE },
-  kcalUnit: {
-    fontFamily: brandTheme.fonts.bold,
-    fontSize: px(44),
-    color: ACCENT_SOFT,
-    paddingBottom: px(26),
-  },
-  reaction: {
-    fontFamily: brandTheme.fonts.bold,
-    fontSize: px(46),
-    color: ACCENT,
-    marginTop: px(20),
   },
   chipRow: { flexDirection: "row", gap: px(24), marginTop: px(36) },
   chip: {
@@ -164,24 +266,28 @@ const styles = StyleSheet.create({
   },
   chipLabel: { fontFamily: brandTheme.fonts.bold, fontSize: px(40), color: ACCENT },
   chipValue: { fontFamily: brandTheme.fonts.bold, fontSize: px(40), color: WHITE },
-  statRow: { flexDirection: "row", marginTop: px(64) },
-  statValue: { fontFamily: brandTheme.fonts.heavy, fontSize: px(96), color: WHITE },
-  statLabel: {
+  brandTitle: { fontFamily: brandTheme.fonts.heavy, color: WHITE, marginTop: px(56) },
+  brandKcalRow: { flexDirection: "row", alignItems: "flex-end", gap: px(28), marginTop: px(24) },
+  brandKcal: { fontFamily: brandTheme.fonts.heavy, color: WHITE },
+  brandKcalUnit: {
+    fontFamily: brandTheme.fonts.bold,
+    fontSize: px(44),
+    color: ACCENT_SOFT,
+    paddingBottom: px(26),
+  },
+  brandStatRow: { flexDirection: "row", marginTop: px(64) },
+  brandStatValue: { fontFamily: brandTheme.fonts.heavy, fontSize: px(96), color: WHITE },
+  brandStatLabel: {
     fontFamily: brandTheme.fonts.regular,
     fontSize: px(38),
     color: ACCENT_SOFT,
     marginTop: px(6),
   },
-  prHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: px(24),
-    marginTop: px(88),
-  },
-  prHeaderText: { fontFamily: brandTheme.fonts.heavy, fontSize: px(56), color: AMBER },
-  prRow: { flexDirection: "row", alignItems: "center", gap: px(20), marginTop: px(36) },
-  prExercise: { fontFamily: brandTheme.fonts.bold, fontSize: px(42), color: WHITE },
-  prValue: { fontFamily: brandTheme.fonts.regular, fontSize: px(42), color: ACCENT_SOFT, flex: 1 },
+  brandPrHeader: { flexDirection: "row", alignItems: "center", gap: px(24), marginTop: px(88) },
+  brandPrHeaderText: { fontFamily: brandTheme.fonts.heavy, fontSize: px(56), color: AMBER },
+  brandPrRow: { flexDirection: "row", alignItems: "center", gap: px(20), marginTop: px(36) },
+  brandPrExercise: { fontFamily: brandTheme.fonts.bold, fontSize: px(42), color: WHITE },
+  brandPrValue: { fontFamily: brandTheme.fonts.regular, fontSize: px(42), color: ACCENT_SOFT, flex: 1 },
   bigKcal: { fontFamily: brandTheme.fonts.heavy, fontSize: px(170), color: WHITE },
   kcalTarget: {
     fontFamily: brandTheme.fonts.bold,
@@ -191,196 +297,375 @@ const styles = StyleSheet.create({
   },
   track: { height: px(28), borderRadius: px(14), backgroundColor: TRACK_BG, marginTop: px(28) },
   fill: { height: px(28), borderRadius: px(14), backgroundColor: ACCENT },
-  proteinRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: px(24),
-    marginTop: px(64),
-  },
-  proteinText: { fontFamily: brandTheme.fonts.bold, fontSize: px(48), color: WHITE },
-  streakRow: { flexDirection: "row", alignItems: "center", gap: px(24), marginTop: px(72) },
-  streakText: { fontFamily: brandTheme.fonts.heavy, fontSize: px(56), color: AMBER },
 });
 
-function StoryHeader({ eyebrow }: { eyebrow: string }) {
+function macroLine(story: MealStory): string {
   return (
-    <>
-      <View style={styles.headerRow}>
-        <LogoMark size={px(84)} onDark />
-        <Text style={styles.wordmark}>JoyoRogo</Text>
-      </View>
-      <Text style={styles.eyebrow}>{eyebrow}</Text>
-      <Text style={styles.date}>{dateFmt.format(new Date())}</Text>
-    </>
+    (
+      [
+        ["P", story.protein],
+        ["K", story.carbs],
+        ["L", story.fat],
+      ] as const
+    )
+      .flatMap(([label, value]) =>
+        value == null ? [] : [`${label} ${idFmt.format(Math.round(value))} g`],
+      )
+      .join("   ·   ")
   );
 }
 
-function MealStoryCard({ story }: { story: MealStory }) {
-  const macros = [
-    ["P", story.protein],
-    ["K", story.carbs],
-    ["L", story.fat],
-  ] as const;
+function BrandTag() {
   return (
-    <>
-      {story.photoUri ? (
-        <Image source={{ uri: story.photoUri }} style={styles.mealPhoto} resizeMode="cover" />
-      ) : null}
-      <Text style={[styles.title, { fontSize: px(60) }]} numberOfLines={2}>
-        {story.name}
-      </Text>
-      <View style={styles.kcalRow}>
-        <Text style={[styles.kcal, { fontSize: px(140) }]}>{idFmt.format(Math.round(story.kcal))}</Text>
-        <Text style={styles.kcalUnit}>kcal</Text>
-      </View>
-      {story.reaction ? <Text style={styles.reaction} numberOfLines={1}>{story.reaction}</Text> : null}
-      <View style={styles.chipRow}>
-        {macros.map(
-          ([label, value]) =>
-            value == null ? null : (
-              <View key={label} style={styles.chip}>
-                <Text style={styles.chipLabel}>{label}</Text>
-                <Text style={styles.chipValue}>{idFmt.format(Math.round(value))} g</Text>
-              </View>
-            ),
-        )}
-      </View>
-    </>
+    <View style={styles.brandTagRow}>
+      <LogoMark size={px(56)} onDark />
+      <Text style={styles.brandTagText}>JoyoRogo</Text>
+    </View>
   );
 }
 
-function WorkoutStoryCard({ story }: { story: WorkoutStory }) {
-  const stats = [
-    { value: story.durationMin != null ? `${Math.round(story.durationMin)}` : null, label: "menit" },
-    {
-      value: story.volumeKg ? idFmt.format(Math.round(story.volumeKg)) : null,
-      label: "kg volume",
-    },
-    { value: story.setsDone != null ? `${Math.round(story.setsDone)}` : null, label: "set selesai" },
-  ].filter((stat) => stat.value != null);
-  return (
-    <>
-      <Text style={[styles.title, { fontSize: px(84) }]} numberOfLines={2}>
-        {story.name}
-      </Text>
-      <View style={styles.statRow}>
-        {stats.map((stat) => (
-          <View key={stat.label} style={{ flex: 1 }}>
-            <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
-              {stat.value}
-            </Text>
-            <Text style={styles.statLabel}>{stat.label}</Text>
-          </View>
-        ))}
-      </View>
-      {story.prs && story.prs.length > 0 ? (
-        <>
-          <View style={styles.prHeader}>
-            <Text style={styles.prHeaderText}>Rekor baru</Text>
-          </View>
-          {story.prs.slice(0, 4).map((pr, index) => (
-            <View key={index} style={styles.prRow}>
-              <Text style={styles.prExercise} numberOfLines={1}>
-                {pr.exercise}
-              </Text>
-              <Text style={styles.prValue} numberOfLines={1}>
-                — {pr.label}: {pr.value}
-              </Text>
-            </View>
-          ))}
-        </>
-      ) : null}
-    </>
-  );
-}
-
-function ProgressStoryCard({ story }: { story: ProgressStory }) {
+/** Ring showing kcal vs target; placed top-right inside the safe area. */
+function TargetRing({ story }: { story: ProgressStory }) {
+  const size = px(280);
+  const stroke = px(18);
+  const r = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * r;
   const pct = story.targetKcal > 0 ? Math.min(story.eatenKcal / story.targetKcal, 1) : 0;
   return (
-    <>
-      <View style={styles.kcalRow}>
-        <Text style={styles.bigKcal}>{idFmt.format(story.eatenKcal)}</Text>
-        <Text style={styles.kcalUnit}>dari {idFmt.format(story.targetKcal)} kcal</Text>
-      </View>
-      <View style={styles.track}>
-        <View
-          style={[
-            styles.fill,
-            {
-              width: `${Math.max(pct * 100, 3)}%`,
-              backgroundColor:
-                story.eatenKcal > story.targetKcal
-                  ? "#ef4444"
-                  : pct >= 0.9
-                    ? AMBER
-                    : ACCENT,
-            },
-          ]}
+    <View style={styles.ring}>
+      <Svg width={size} height={size}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="rgba(255, 255, 255, 0.3)"
+          strokeWidth={stroke}
+          fill="none"
         />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={pct >= 1 ? "#ef4444" : pct >= 0.9 ? AMBER : ACCENT}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={circumference * (1 - pct)}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <View style={{ position: "absolute", width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+        <Text style={[styles.statValue, { fontSize: px(60) }]}>{Math.round(pct * 100)}%</Text>
       </View>
-      {story.proteinG != null && story.proteinTargetG ? (
+    </View>
+  );
+}
+
+/** Minimal bold white stats block, anchored inside the safe area. */
+function StatsBlock({ story }: { story: StorySpec }) {
+  return (
+    <>
+      {story.kind === "meal" || story.kind === "workout" ? (
+        <Text style={styles.title} numberOfLines={2}>
+          {story.name}
+        </Text>
+      ) : null}
+
+      {story.kind === "progress" ? (
         <>
-          <View style={styles.proteinRow}>
-            <Text style={styles.proteinText}>
-              Protein {idFmt.format(story.proteinG)} / {idFmt.format(story.proteinTargetG)} g
-            </Text>
+          <View style={styles.kcalRow}>
+            <Text style={styles.kcal}>{idFmt.format(story.eatenKcal)}</Text>
+            <Text style={styles.kcalUnit}>dari {idFmt.format(story.targetKcal)} kcal</Text>
           </View>
-          <View style={[styles.track, { height: px(16), borderRadius: px(8), marginTop: px(24) }]}>
-            <View
-              style={[
-                styles.fill,
-                {
-                  height: px(16),
-                  borderRadius: px(8),
-                  marginTop: 0,
-                  width: `${Math.min((story.proteinG / story.proteinTargetG) * 100, 100)}%`,
-                },
-              ]}
-            />
-          </View>
+          {story.proteinG != null && story.proteinTargetG ? (
+            <View style={styles.proteinRow}>
+              <Text style={styles.proteinText}>
+                Protein {idFmt.format(story.proteinG)} / {idFmt.format(story.proteinTargetG)} g
+              </Text>
+            </View>
+          ) : null}
+          {(story.streakDays ?? 0) > 0 ? (
+            <View style={styles.streakRow}>
+              <Text style={[styles.streakText, { color: AMBER }]}>{story.streakDays}</Text>
+              <Text style={styles.streakText}>hari berturut-turut</Text>
+            </View>
+          ) : null}
+          {(story.weightLostKg ?? 0) > 0 ? (
+            <View style={styles.lostRow}>
+              <Text style={styles.lostText}>
+                Turun {idFmt.format(story.weightLostKg!)} kg dari berat awal
+              </Text>
+            </View>
+          ) : null}
         </>
       ) : null}
-      {(story.streakDays ?? 0) > 0 ? (
-        <View style={styles.streakRow}>
-          <Text style={styles.streakText}>{story.streakDays} hari berturut-turut</Text>
-        </View>
+
+      {story.kind === "meal" ? (
+        <>
+          <View style={styles.kcalRow}>
+            <Text style={styles.kcal}>{idFmt.format(Math.round(story.kcal))}</Text>
+            <Text style={styles.kcalUnit}>kkal</Text>
+          </View>
+          {macroLine(story) ? <Text style={styles.macros}>{macroLine(story)}</Text> : null}
+          {story.reaction ? (
+            <Text style={styles.reaction} numberOfLines={1}>
+              {story.reaction}
+            </Text>
+          ) : null}
+        </>
       ) : null}
-      {(story.weightLostKg ?? 0) > 0 ? (
-        <View style={styles.streakRow}>
-          <Text style={[styles.proteinText, { color: WHITE }]}>
-            Turun {idFmt.format(story.weightLostKg!)} kg dari berat awal
-          </Text>
-        </View>
+
+      {story.kind === "workout" ? (
+        <>
+          <View style={styles.statRow}>
+            {[
+              { value: story.durationMin != null ? `${Math.round(story.durationMin)}` : null, label: "MENIT" },
+              {
+                value: story.volumeKg ? idFmt.format(Math.round(story.volumeKg)) : null,
+                label: "KG VOLUME",
+              },
+              { value: story.setsDone != null ? `${Math.round(story.setsDone)}` : null, label: "SET" },
+            ]
+              .filter((stat) => stat.value != null)
+              .map((stat) => (
+                <View key={stat.label} style={{ flex: 1 }}>
+                  <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
+                    {stat.value}
+                  </Text>
+                  <Text style={styles.statLabel}>{stat.label}</Text>
+                </View>
+              ))}
+          </View>
+          {(story.prs?.length ?? 0) > 0 ? (
+            <View style={styles.prRow}>
+              <Text style={styles.prText}>{story.prs!.length} rekor baru</Text>
+            </View>
+          ) : null}
+        </>
       ) : null}
     </>
   );
 }
 
-/** The full 1080x1920 story card; render offscreen and capture with view-shot. */
-export function StoryCard({ story }: { story: StorySpec }) {
+/** The photo + minimal stats template (also the sticker when transparent). */
+function OverlayStoryCard({ story, template }: { story: StorySpec; template: "photo" | "sticker" }) {
+  const photoUri = template === "photo" ? storyPhotoUri(story) : null;
+  const sticker = template === "sticker";
   return (
-    <View style={styles.card}>
-      <LinearGradient
-        colors={[BG_TOP, BG_BOTTOM]}
-        style={StyleSheet.absoluteFill}
-      />
+    <View style={[styles.card, sticker ? null : styles.cardOpaque]}>
+      {photoUri ? (
+        <>
+          <Image source={{ uri: photoUri }} style={styles.photoBg} resizeMode="cover" />
+          <LinearGradient
+            colors={["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0.72)"]}
+            style={styles.scrimBottom}
+          />
+          <LinearGradient
+            colors={["rgba(0, 0, 0, 0.4)", "rgba(0, 0, 0, 0)"]}
+            style={styles.scrimTop}
+          />
+        </>
+      ) : null}
+      <View style={[styles.content, sticker ? styles.contentCentered : null]}>
+        {sticker ? (
+          <View style={styles.stickerStack}>
+            <BrandTag />
+            {story.kind === "progress" ? <TargetRing story={story} /> : null}
+            <StatsBlock story={story} />
+          </View>
+        ) : (
+          <>
+            <View style={styles.topTag}>
+              <BrandTag />
+            </View>
+            {story.kind === "progress" ? <TargetRing story={story} /> : null}
+            <View style={styles.statsBlock}>
+              <StatsBlock story={story} />
+            </View>
+          </>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function BrandStoryCard({ story }: { story: StorySpec }) {
+  const photoUri = storyPhotoUri(story);
+  return (
+    <View style={[styles.card, styles.cardOpaque]}>
+      <LinearGradient colors={[BG_TOP, BG_BOTTOM]} style={StyleSheet.absoluteFill} />
       <View
         pointerEvents="none"
         style={[styles.glow, { width: px(560), height: px(560), top: px(-120), right: px(-120) }]}
       />
-      <View style={styles.content}>
-        <StoryHeader eyebrow={EYEBROWS[story.kind]} />
+      <View style={[styles.content, styles.brandBody]}>
+        <View style={styles.brandHeader}>
+          <LogoMark size={px(84)} onDark />
+          <Text style={styles.wordmark}>JoyoRogo</Text>
+        </View>
+        <Text style={styles.eyebrow}>{EYEBROWS[story.kind]}</Text>
+        <Text style={styles.brandDate}>{dateFmt.format(new Date())}</Text>
+
         {story.kind === "meal" ? (
-          <MealStoryCard story={story} />
-        ) : story.kind === "workout" ? (
-          <WorkoutStoryCard story={story} />
-        ) : (
-          <ProgressStoryCard story={story} />
-        )}
+          <>
+            {photoUri ? (
+              <Image source={{ uri: photoUri }} style={styles.mealPhoto} resizeMode="cover" />
+            ) : null}
+            <Text style={[styles.brandTitle, { fontSize: px(60) }]} numberOfLines={2}>
+              {story.name}
+            </Text>
+            <View style={styles.brandKcalRow}>
+              <Text style={[styles.brandKcal, { fontSize: px(140) }]}>
+                {idFmt.format(Math.round(story.kcal))}
+              </Text>
+              <Text style={styles.brandKcalUnit}>kcal</Text>
+            </View>
+            {story.reaction ? (
+              <Text style={styles.reaction} numberOfLines={1}>
+                {story.reaction}
+              </Text>
+            ) : null}
+            <View style={styles.chipRow}>
+              {(
+                [
+                  ["P", story.protein],
+                  ["K", story.carbs],
+                  ["L", story.fat],
+                ] as const
+              ).map(
+                ([label, value]) =>
+                  value == null ? null : (
+                    <View key={label} style={styles.chip}>
+                      <Text style={styles.chipLabel}>{label}</Text>
+                      <Text style={styles.chipValue}>{idFmt.format(Math.round(value))} g</Text>
+                    </View>
+                  ),
+              )}
+            </View>
+          </>
+        ) : null}
+
+        {story.kind === "workout" ? (
+          <>
+            <Text style={[styles.brandTitle, { fontSize: px(84) }]} numberOfLines={2}>
+              {story.name}
+            </Text>
+            <View style={styles.brandStatRow}>
+              {[
+                {
+                  value: story.durationMin != null ? `${Math.round(story.durationMin)}` : null,
+                  label: "menit",
+                },
+                {
+                  value: story.volumeKg ? idFmt.format(Math.round(story.volumeKg)) : null,
+                  label: "kg volume",
+                },
+                {
+                  value: story.setsDone != null ? `${Math.round(story.setsDone)}` : null,
+                  label: "set selesai",
+                },
+              ]
+                .filter((stat) => stat.value != null)
+                .map((stat) => (
+                  <View key={stat.label} style={{ flex: 1 }}>
+                    <Text style={styles.brandStatValue} numberOfLines={1} adjustsFontSizeToFit>
+                      {stat.value}
+                    </Text>
+                    <Text style={styles.brandStatLabel}>{stat.label}</Text>
+                  </View>
+                ))}
+            </View>
+            {(story.prs?.length ?? 0) > 0 ? (
+              <>
+                <View style={styles.brandPrHeader}>
+                  <Text style={styles.brandPrHeaderText}>Rekor baru</Text>
+                </View>
+                {story.prs!.slice(0, 4).map((pr, index) => (
+                  <View key={index} style={styles.brandPrRow}>
+                    <Text style={styles.brandPrExercise} numberOfLines={1}>
+                      {pr.exercise}
+                    </Text>
+                    <Text style={styles.brandPrValue} numberOfLines={1}>
+                      — {pr.label}: {pr.value}
+                    </Text>
+                  </View>
+                ))}
+              </>
+            ) : null}
+          </>
+        ) : null}
+
+        {story.kind === "progress" ? (
+          <>
+            <View style={styles.brandKcalRow}>
+              <Text style={styles.bigKcal}>{idFmt.format(story.eatenKcal)}</Text>
+              <Text style={styles.kcalTarget}>dari {idFmt.format(story.targetKcal)} kcal</Text>
+            </View>
+            <View style={styles.track}>
+              <View
+                style={[
+                  styles.fill,
+                  {
+                    width: `${Math.max(
+                      (story.targetKcal > 0
+                        ? Math.min(story.eatenKcal / story.targetKcal, 1)
+                        : 0) * 100,
+                      3,
+                    )}%`,
+                  },
+                ]}
+              />
+            </View>
+            {story.proteinG != null && story.proteinTargetG ? (
+              <>
+                <View style={styles.proteinRow}>
+                  <Text style={styles.proteinText}>
+                    Protein {idFmt.format(story.proteinG)} / {idFmt.format(story.proteinTargetG)} g
+                  </Text>
+                </View>
+                <View style={[styles.track, { height: px(16), borderRadius: px(8), marginTop: px(24) }]}>
+                  <View
+                    style={[
+                      styles.fill,
+                      {
+                        height: px(16),
+                        borderRadius: px(8),
+                        marginTop: 0,
+                        width: `${Math.min((story.proteinG / story.proteinTargetG) * 100, 100)}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              </>
+            ) : null}
+            {(story.streakDays ?? 0) > 0 ? (
+              <View style={styles.streakRow}>
+                <Text style={[styles.streakText, { color: AMBER }]}>
+                  {story.streakDays} hari berturut-turut
+                </Text>
+              </View>
+            ) : null}
+            {(story.weightLostKg ?? 0) > 0 ? (
+              <View style={styles.lostRow}>
+                <Text style={styles.lostText}>
+                  Turun {idFmt.format(story.weightLostKg!)} kg dari berat awal
+                </Text>
+              </View>
+            ) : null}
+          </>
+        ) : null}
+
         <View style={styles.footerWrap}>
           <Text style={styles.footer}>joyorogo.com</Text>
         </View>
       </View>
     </View>
   );
+}
+
+/** The full 1080x1920 story card; render offscreen and capture with view-shot. */
+export function StoryCard({ story, template = "brand" }: { story: StorySpec; template?: StoryTemplate }) {
+  if (template === "brand") return <BrandStoryCard story={story} />;
+  return <OverlayStoryCard story={story} template={template} />;
 }

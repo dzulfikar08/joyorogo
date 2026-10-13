@@ -1,27 +1,63 @@
 import { photoUrl, stickerUrl } from "@/components/sticker";
 
 /**
- * Painters for the 1080x1920 Instagram/Twitter/WhatsApp story card. One canvas
- * per share, drawn in the JoyoRogo share style (dark leaf gradient, Plus
- * Jakarta Sans) that the old progress card established. Everything is plain
- * data in, PNG canvas out — the social feed can reuse the same painters.
+ * Painters for the 1080x1920 story share. Three templates, Strava-style:
+ *
+ * - "photo": the user's photo full-bleed (the meal photo by default), minimal
+ *   bold white stats overlaid in the lower safe zone, small brand mark.
+ * - "sticker": the same stats on a fully transparent PNG, so Instagram (or
+ *   any editor) lets the user place them over their own story.
+ * - "brand": the JoyoRogo dark-leaf gradient card, self-contained.
+ *
+ * All content stays inside the Instagram UI safe zones (top 250 px, bottom
+ * 340 px kept clear). Plain data in, PNG canvas out — the social feed can
+ * reuse the same painters.
  */
 
 export const STORY_W = 1080;
 export const STORY_H = 1920;
+/** Instagram story UI safe zones: keep all content inside these bounds. */
+const SAFE_TOP = 250;
+const SAFE_BOTTOM = 1580;
 
-const BG_TOP = "#0d1f12";
-const BG_BOTTOM = "#16402a";
-const ACCENT = "#7fd89b";
-const ACCENT_SOFT = "#c9dccf";
 const WHITE = "#ffffff";
 const AMBER = "#f59e0b";
-const RED = "#ef4444";
-// Logo colors on the dark card; same geometry as public/brand/logo-mark.svg.
+const ACCENT = "#7fd89b";
+const ACCENT_SOFT = "#c9dccf";
 const MARK_LIGHT = "#6cbf45";
-const MARK_DARK_BG = "#e6f2df";
+const MARK_ON_DARK = "#e6f2df";
+const BG_TOP = "#0d1f12";
+const BG_BOTTOM = "#16402a";
 
 const FONT = '"Plus Jakarta Sans Variable", Inter, system-ui, sans-serif';
+
+export type StoryTemplate = "photo" | "sticker" | "brand";
+
+export const STORY_TEMPLATES: Array<{
+  id: StoryTemplate;
+  label: string;
+  hint: string;
+  needsPhoto: boolean;
+}> = [
+  {
+    id: "photo",
+    label: "Foto + statistik",
+    hint: "Foto pilihanmu jadi latar, angka di bawah.",
+    needsPhoto: true,
+  },
+  {
+    id: "sticker",
+    label: "Statistik saja",
+    hint: "PNG transparan, pasang sendiri di story.",
+    needsPhoto: false,
+  },
+  {
+    id: "brand",
+    label: "Kartu brand",
+    hint: "Kartu JoyoRogo utuh, tinggal posting.",
+    needsPhoto: false,
+  },
+];
 
 export type MealStory = {
   kind: "meal";
@@ -69,6 +105,18 @@ export type ProgressStory = {
 };
 
 export type StorySpec = MealStory | WorkoutStory | ProgressStory;
+
+/** Default photo source for the story, or null when it has none. */
+export function storyPhotoSrc(story: StorySpec): string | null {
+  if (story.kind === "meal") {
+    return (
+      story.photoSrc ??
+      (story.scanId ? stickerUrl(story.scanId) : null) ??
+      (story.photoId ? photoUrl(story.photoId) : null)
+    );
+  }
+  return null;
+}
 
 type IconNode = readonly [
   tag: string,
@@ -165,7 +213,7 @@ function drawLogoMark(ctx: CanvasRenderingContext2D, x: number, top: number, hei
   ctx.scale(scale, scale);
   ctx.fillStyle = MARK_LIGHT;
   ctx.fill(new Path2D(MARK_R));
-  ctx.fillStyle = MARK_DARK_BG;
+  ctx.fillStyle = MARK_ON_DARK;
   ctx.fill(new Path2D(MARK_J));
   ctx.translate(49.66, 31.73);
   ctx.rotate((-10 * Math.PI) / 180);
@@ -178,6 +226,16 @@ function drawLogoMark(ctx: CanvasRenderingContext2D, x: number, top: number, hei
   ctx.stroke(new Path2D("M2 -1 C12 -7 22 -12 32 -17"));
   ctx.restore();
   return 88 * scale;
+}
+
+/** Small brand mark + wordmark for the photo/sticker overlays. Returns bottom y. */
+function drawBrandTag(ctx: CanvasRenderingContext2D, x: number, top: number): number {
+  const markH = 56;
+  const markW = drawLogoMark(ctx, x, top, markH);
+  ctx.fillStyle = WHITE;
+  ctx.font = `800 40px ${FONT}`;
+  ctx.fillText("JoyoRogo", x + markW + 20, top + markH * 0.8);
+  return top + markH;
 }
 
 function roundRectPath(
@@ -219,12 +277,6 @@ function wrapTwoLines(
   return [first, fitText(ctx, rest, maxWidth)];
 }
 
-const EYEBROWS = {
-  meal: "Makan hari ini",
-  workout: "Sesi latihan",
-  progress: "Progres hari ini",
-} as const;
-
 const idFmt = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
 const dateFmt = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
@@ -257,10 +309,8 @@ async function loadBitmap(src: string): Promise<ImageBitmap | null> {
   }
 }
 
-/** Resolves the meal photo: explicit src first, then sticker, then original. */
-async function loadMealPhoto(story: MealStory): Promise<ImageBitmap | null> {
-  const src = story.photoSrc ?? (story.scanId ? stickerUrl(story.scanId) : null) ??
-    (story.photoId ? photoUrl(story.photoId) : null);
+async function loadStoryPhoto(story: StorySpec, overrideSrc?: string | null) {
+  const src = overrideSrc ?? storyPhotoSrc(story);
   return src ? loadBitmap(src) : null;
 }
 
@@ -274,12 +324,9 @@ function drawCover(
   r: number,
 ) {
   ctx.save();
-  ctx.beginPath();
-  ctx.arc(x + r, y + r, r, Math.PI, Math.PI * 1.5);
-  ctx.arc(x + w - r, y + r, r, Math.PI * 1.5, Math.PI * 2);
-  ctx.arc(x + w - r, y + h - r, r, 0, Math.PI * 0.5);
-  ctx.arc(x + r, y + h - r, r, Math.PI * 0.5, Math.PI);
-  ctx.clip();
+  const path = new Path2D();
+  path.roundRect(x, y, w, h, r);
+  ctx.clip(path);
   const scale = Math.max(w / bitmap.width, h / bitmap.height);
   const dw = bitmap.width * scale;
   const dh = bitmap.height * scale;
@@ -287,18 +334,267 @@ function drawCover(
   ctx.restore();
 }
 
-function drawChrome(
-  ctx: CanvasRenderingContext2D,
-  eyebrow: string,
-  date?: Date,
-) {
+// ---------------------------------------------------------------------------
+// Minimal stats overlay, shared by the photo and sticker templates.
+// ---------------------------------------------------------------------------
+
+const NAME_SIZE = 76;
+const NAME_LINE = 92;
+const KCAL_SIZE = 168;
+const LABEL_SIZE = 46;
+
+function macroLine(story: MealStory): string {
+  return (
+    (
+      [
+        ["P", story.protein],
+        ["K", story.carbs],
+        ["L", story.fat],
+      ] as const
+    )
+      .flatMap(([label, value]) =>
+        value == null ? [] : [`${label} ${idFmt.format(Math.round(value))} g`],
+      )
+      .join("   ·   ")
+  );
+}
+
+/** Height of the stats block for the story kind, so callers can position it. */
+function statsBlockHeight(ctx: CanvasRenderingContext2D, story: StorySpec): number {
+  let height = 0;
+  if (story.kind === "meal") {
+    ctx.font = `800 ${NAME_SIZE}px ${FONT}`;
+    height += wrapTwoLines(ctx, story.name, 912).length * NAME_LINE;
+    height += KCAL_SIZE;
+    if (macroLine(story)) height += 24 + LABEL_SIZE;
+    if (story.reaction) height += 16 + LABEL_SIZE;
+  } else if (story.kind === "workout") {
+    ctx.font = `800 ${NAME_SIZE}px ${FONT}`;
+    height += wrapTwoLines(ctx, story.name, 912).length * NAME_LINE;
+    height += 30 + 128;
+    if ((story.prs?.length ?? 0) > 0) height += 26 + LABEL_SIZE;
+  } else {
+    height += KCAL_SIZE;
+    if (story.proteinG != null && story.proteinTargetG) height += 22 + LABEL_SIZE;
+    if ((story.streakDays ?? 0) > 0) height += 18 + LABEL_SIZE;
+    if ((story.weightLostKg ?? 0) > 0 && (story.weekTrend?.length ?? 0) === 0)
+      height += 18 + LABEL_SIZE;
+  }
+  return height;
+}
+
+/** Draws the bold white stats block with its top edge at `top`. */
+function drawStatsBlock(ctx: CanvasRenderingContext2D, story: StorySpec, x: number, top: number) {
+  let cursor = top;
+  ctx.textBaseline = "alphabetic";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.55)";
+  ctx.shadowBlur = 20;
+  ctx.shadowOffsetY = 5;
+
+  if (story.kind === "meal" || story.kind === "workout") {
+    ctx.fillStyle = WHITE;
+    ctx.font = `800 ${NAME_SIZE}px ${FONT}`;
+    for (const line of wrapTwoLines(ctx, story.name, 912)) {
+      ctx.fillText(line, x, cursor + NAME_SIZE);
+      cursor += NAME_LINE;
+    }
+  }
+
+  if (story.kind === "progress") {
+    ctx.fillStyle = WHITE;
+    ctx.font = `800 ${KCAL_SIZE}px ${FONT}`;
+    ctx.fillText(idFmt.format(story.eatenKcal), x, cursor + KCAL_SIZE * 0.9);
+    const eatenW = ctx.measureText(idFmt.format(story.eatenKcal)).width;
+    ctx.font = `600 44px ${FONT}`;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.fillText(
+      `dari ${idFmt.format(story.targetKcal)} kcal`,
+      x + eatenW + 24,
+      cursor + KCAL_SIZE * 0.9,
+    );
+    cursor += KCAL_SIZE;
+  } else if (story.kind === "meal") {
+    ctx.fillStyle = WHITE;
+    ctx.font = `800 ${KCAL_SIZE}px ${FONT}`;
+    ctx.fillText(idFmt.format(Math.round(story.kcal)), x, cursor + KCAL_SIZE * 0.9);
+    const kcalW = ctx.measureText(idFmt.format(Math.round(story.kcal))).width;
+    ctx.font = `600 44px ${FONT}`;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.fillText("kkal", x + kcalW + 24, cursor + KCAL_SIZE * 0.9);
+    cursor += KCAL_SIZE;
+  }
+
+  if (story.kind === "meal") {
+    const macros = macroLine(story);
+    if (macros) {
+      cursor += 24;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+      ctx.font = `700 ${LABEL_SIZE}px ${FONT}`;
+      ctx.fillText(macros, x, cursor + LABEL_SIZE);
+      cursor += LABEL_SIZE;
+    }
+    if (story.reaction) {
+      cursor += 16;
+      ctx.fillStyle = ACCENT;
+      ctx.font = `700 ${LABEL_SIZE}px ${FONT}`;
+      ctx.fillText(fitText(ctx, story.reaction, 912), x, cursor + LABEL_SIZE);
+      cursor += LABEL_SIZE;
+    }
+  }
+
+  if (story.kind === "workout") {
+    cursor += 30;
+    const stats = [
+      { value: story.durationMin != null ? `${Math.round(story.durationMin)}` : null, label: "MENIT" },
+      { value: story.volumeKg ? idFmt.format(Math.round(story.volumeKg)) : null, label: "KG VOLUME" },
+      { value: story.setsDone != null ? `${Math.round(story.setsDone)}` : null, label: "SET" },
+    ].filter((stat) => stat.value != null);
+    const colW = 912 / Math.max(stats.length, 1);
+    for (const [index, stat] of stats.entries()) {
+      const cx = x + index * colW;
+      ctx.font = `800 76px ${FONT}`;
+      ctx.fillStyle = WHITE;
+      ctx.fillText(fitText(ctx, stat.value!, colW - 32), cx, cursor + 76);
+      ctx.font = `600 30px ${FONT}`;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.78)";
+      letterspaced(ctx, stat.label, cx, cursor + 120, 4);
+    }
+    cursor += 128;
+    if ((story.prs?.length ?? 0) > 0) {
+      cursor += 26;
+      iconText(
+        ctx,
+        "trophy",
+        `${story.prs!.length} rekor baru`,
+        x,
+        cursor + LABEL_SIZE,
+        AMBER,
+        44,
+        `800 ${LABEL_SIZE}px ${FONT}`,
+      );
+      cursor += LABEL_SIZE;
+    }
+  }
+
+  if (story.kind === "progress") {
+    if (story.proteinG != null && story.proteinTargetG) {
+      cursor += 22;
+      iconText(
+        ctx,
+        "drumstick",
+        `Protein ${idFmt.format(story.proteinG)} / ${idFmt.format(story.proteinTargetG)} g`,
+        x,
+        cursor + LABEL_SIZE,
+        WHITE,
+        42,
+        `700 ${LABEL_SIZE}px ${FONT}`,
+      );
+      cursor += LABEL_SIZE;
+    }
+    if ((story.streakDays ?? 0) > 0) {
+      cursor += 18;
+      drawLucideIcon(ctx, CANVAS_ICONS.flame, x, cursor + LABEL_SIZE - 42 * 0.78, 42, AMBER);
+      ctx.fillStyle = WHITE;
+      ctx.font = `700 ${LABEL_SIZE}px ${FONT}`;
+      ctx.fillText(`${story.streakDays} hari berturut-turut`, x + 42 + 24, cursor + LABEL_SIZE);
+      cursor += LABEL_SIZE;
+    }
+    if ((story.weightLostKg ?? 0) > 0 && (story.weekTrend?.length ?? 0) === 0) {
+      cursor += 18;
+      iconText(
+        ctx,
+        "trending-down",
+        `Turun ${idFmt.format(story.weightLostKg!)} kg dari berat awal`,
+        x,
+        cursor + LABEL_SIZE,
+        WHITE,
+        42,
+        `600 ${LABEL_SIZE}px ${FONT}`,
+      );
+      cursor += LABEL_SIZE;
+    }
+  }
+
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+}
+
+/** Ring showing kcal vs target, top-right of the safe area. */
+function drawTargetRing(ctx: CanvasRenderingContext2D, story: ProgressStory) {
+  const cx = 880;
+  const cy = 460;
+  const r = 118;
+  const pct = story.targetKcal > 0 ? Math.min(story.eatenKcal / story.targetKcal, 1) : 0;
+  ctx.lineCap = "round";
+  ctx.lineWidth = 18;
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = pct >= 1 ? "#ef4444" : pct >= 0.9 ? AMBER : ACCENT;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = WHITE;
+  ctx.font = `800 60px ${FONT}`;
+  ctx.textAlign = "center";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.55)";
+  ctx.shadowBlur = 16;
+  ctx.fillText(`${Math.round(pct * 100)}%`, cx, cy + 20);
+  ctx.textAlign = "left";
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+}
+
+// ---------------------------------------------------------------------------
+// Template painters
+// ---------------------------------------------------------------------------
+
+function drawPhotoTemplate(ctx: CanvasRenderingContext2D, story: StorySpec, photo: ImageBitmap) {
+  drawCover(ctx, photo, 0, 0, STORY_W, STORY_H, 0);
+  const scrim = ctx.createLinearGradient(0, STORY_H * 0.45, 0, STORY_H);
+  scrim.addColorStop(0, "rgba(0, 0, 0, 0)");
+  scrim.addColorStop(1, "rgba(0, 0, 0, 0.72)");
+  ctx.fillStyle = scrim;
+  ctx.fillRect(0, STORY_H * 0.45, STORY_W, STORY_H * 0.55);
+  const topScrim = ctx.createLinearGradient(0, 0, 0, 420);
+  topScrim.addColorStop(0, "rgba(0, 0, 0, 0.4)");
+  topScrim.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = topScrim;
+  ctx.fillRect(0, 0, STORY_W, 420);
+
+  ctx.shadowColor = "rgba(0, 0, 0, 0.55)";
+  ctx.shadowBlur = 16;
+  ctx.shadowOffsetY = 4;
+  drawBrandTag(ctx, 84, SAFE_TOP + 40);
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+
+  const blockH = statsBlockHeight(ctx, story);
+  drawStatsBlock(ctx, story, 84, SAFE_BOTTOM - blockH);
+  if (story.kind === "progress") drawTargetRing(ctx, story);
+}
+
+function drawStickerTemplate(ctx: CanvasRenderingContext2D, story: StorySpec) {
+  // Transparent background: only the mark and the stats block, so the PNG can
+  // be dropped over any story.
+  const blockH = statsBlockHeight(ctx, story);
+  const tagH = 96;
+  const top = SAFE_TOP + (SAFE_BOTTOM - SAFE_TOP - blockH - tagH) / 2;
+  drawBrandTag(ctx, 84, top);
+  drawStatsBlock(ctx, story, 84, top + tagH);
+  if (story.kind === "progress") drawTargetRing(ctx, story);
+}
+
+function drawBrandChrome(ctx: CanvasRenderingContext2D, eyebrow: string, date?: Date) {
   const grad = ctx.createLinearGradient(0, 0, STORY_W, STORY_H);
   grad.addColorStop(0, BG_TOP);
   grad.addColorStop(1, BG_BOTTOM);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, STORY_W, STORY_H);
 
-  // Soft leaf glows so the flat gradient does not read as a void.
   for (const [cx, cy, radius] of [
     [980, 120, 420],
     [60, 1180, 380],
@@ -312,7 +608,7 @@ function drawChrome(
 
   const markH = 84;
   const markW = drawLogoMark(ctx, 84, 96, markH);
-  ctx.fillStyle = MARK_DARK_BG;
+  ctx.fillStyle = MARK_ON_DARK;
   ctx.font = `800 52px ${FONT}`;
   ctx.fillText("JoyoRogo", 84 + markW + 24, 96 + markH * 0.78);
 
@@ -349,7 +645,7 @@ function drawBar(
   ctx.fill(roundRectPath(ctx, x, y, fillW, h, h / 2));
 }
 
-function drawMeal(ctx: CanvasRenderingContext2D, story: MealStory, photo: ImageBitmap | null) {
+function drawBrandMeal(ctx: CanvasRenderingContext2D, story: MealStory, photo: ImageBitmap | null) {
   const photoBox = { x: 160, y: photo ? 400 : 0, w: 760, h: photo ? 760 : 0 };
   let cursor = photo ? photoBox.y + photoBox.h + 70 : 560;
 
@@ -391,20 +687,24 @@ function drawMeal(ctx: CanvasRenderingContext2D, story: MealStory, photo: ImageB
   let chipX = 90;
   for (const [label, value] of macros) {
     if (value == null) continue;
-    const text = `${label} ${idFmt.format(Math.round(value))} g`;
     ctx.font = `700 40px ${FONT}`;
+    const text = `${label} ${idFmt.format(Math.round(value))} g`;
     const chipW = ctx.measureText(text).width + 72;
     ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
     ctx.fill(roundRectPath(ctx, chipX, cursor, chipW, chipH, chipH / 2));
     ctx.fillStyle = ACCENT;
     ctx.fillText(label, chipX + 36, cursor + chipH * 0.66);
     ctx.fillStyle = WHITE;
-    ctx.fillText(`${idFmt.format(Math.round(value))} g`, chipX + 36 + ctx.measureText(`${label} `).width + 14, cursor + chipH * 0.66);
+    ctx.fillText(
+      `${idFmt.format(Math.round(value))} g`,
+      chipX + 36 + ctx.measureText(`${label} `).width + 14,
+      cursor + chipH * 0.66,
+    );
     chipX += chipW + 24;
   }
 }
 
-function drawWorkout(ctx: CanvasRenderingContext2D, story: WorkoutStory) {
+function drawBrandWorkout(ctx: CanvasRenderingContext2D, story: WorkoutStory) {
   let cursor = 500;
 
   ctx.fillStyle = WHITE;
@@ -451,7 +751,7 @@ function drawWorkout(ctx: CanvasRenderingContext2D, story: WorkoutStory) {
   }
 }
 
-function drawProgress(ctx: CanvasRenderingContext2D, story: ProgressStory) {
+function drawBrandProgress(ctx: CanvasRenderingContext2D, story: ProgressStory) {
   let cursor = 480;
 
   ctx.fillStyle = WHITE;
@@ -464,7 +764,7 @@ function drawProgress(ctx: CanvasRenderingContext2D, story: ProgressStory) {
   cursor += 220;
 
   const pct = story.targetKcal > 0 ? story.eatenKcal / story.targetKcal : 0;
-  drawBar(ctx, 90, cursor, 900, 28, pct, pct > 1 ? RED : pct >= 0.9 ? AMBER : ACCENT);
+  drawBar(ctx, 90, cursor, 900, 28, pct, pct > 1 ? "#ef4444" : pct >= 0.9 ? AMBER : ACCENT);
   cursor += 130;
 
   if (story.proteinG != null && story.proteinTargetG) {
@@ -498,7 +798,6 @@ function drawProgress(ctx: CanvasRenderingContext2D, story: ProgressStory) {
   }
 
   const trend = [...(story.weekTrend ?? [])].sort((a, b) => a.date.localeCompare(b.date));
-  const lost = story.weightLostKg ?? 0;
   if (trend.length >= 2) {
     const weights = trend.map((point) => point.weightKg);
     const min = Math.min(...weights);
@@ -547,11 +846,11 @@ function drawProgress(ctx: CanvasRenderingContext2D, story: ProgressStory) {
       ctx.font = `700 52px ${FONT}`;
       ctx.fillText(`+${idFmt.format(delta)} kg minggu ini`, 90, cursor);
     }
-  } else if (lost > 0) {
+  } else if ((story.weightLostKg ?? 0) > 0) {
     iconText(
       ctx,
       "trending-down",
-      `Turun ${idFmt.format(lost)} kg dari berat awal`,
+      `Turun ${idFmt.format(story.weightLostKg!)} kg dari berat awal`,
       90,
       cursor,
       WHITE,
@@ -563,30 +862,55 @@ function drawProgress(ctx: CanvasRenderingContext2D, story: ProgressStory) {
 
 async function ensureFonts() {
   await Promise.all(
-    [400, 500, 700, 800].map((weight) =>
+    [400, 500, 600, 700, 800].map((weight) =>
       document.fonts.load(`${weight} 40px "Plus Jakarta Sans Variable"`).catch(() => {}),
     ),
   );
 }
 
-/** Renders `story` onto `canvas` (resized to 1080x1920) and resolves when done. */
-export async function drawStoryCard(canvas: HTMLCanvasElement, story: StorySpec): Promise<void> {
+/**
+ * Renders `story` onto `canvas` (resized to 1080x1920) with the given
+ * template and resolves when done. Defaults to the brand card.
+ */
+export async function drawStoryCard(
+  canvas: HTMLCanvasElement,
+  story: StorySpec,
+  template: StoryTemplate = "brand",
+  photoOverrideSrc?: string | null,
+): Promise<void> {
   canvas.width = STORY_W;
   canvas.height = STORY_H;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Browser tidak mendukung canvas.");
+  ctx.clearRect(0, 0, STORY_W, STORY_H);
   await ensureFonts();
 
-  const date = story.date ?? new Date();
-  drawChrome(ctx, story.eyebrow ?? EYEBROWS[story.kind], date);
+  if (template === "sticker") {
+    drawStickerTemplate(ctx, story);
+    return;
+  }
+
+  const photo = await loadStoryPhoto(story, photoOverrideSrc);
+  if (template === "photo" && photo) {
+    drawPhotoTemplate(ctx, story, photo);
+    return;
+  }
+
+  drawBrandChrome(ctx, story.eyebrow ?? EYEBROWS[story.kind], story.date ?? new Date());
   if (story.kind === "meal") {
-    drawMeal(ctx, story, await loadMealPhoto(story));
+    drawBrandMeal(ctx, story, photo);
   } else if (story.kind === "workout") {
-    drawWorkout(ctx, story);
+    drawBrandWorkout(ctx, story);
   } else {
-    drawProgress(ctx, story);
+    drawBrandProgress(ctx, story);
   }
 }
+
+const EYEBROWS = {
+  meal: "Makan hari ini",
+  workout: "Sesi latihan",
+  progress: "Progres hari ini",
+} as const;
 
 /** Default share copy per card, matching the app's casual voice. */
 export function defaultShareText(story: StorySpec): string {

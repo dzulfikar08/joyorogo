@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Wallet } from "lucide-react";
+import { ChevronDown, Wallet } from "lucide-react";
 
-import { Card, SectionTitle } from "@/components/kit/surface";
+import { Card } from "@/components/kit/surface";
 import { fmtRupiah } from "@/lib/app-config";
 import { fmtInt } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
@@ -18,6 +19,8 @@ const bestValueOptions = orpc.plate.bestValue.queryOptions();
 export function BelanjaCard({ variant = "full" }: { variant?: "full" | "line" }) {
   const spending = useQuery(spendingOptions);
   const bestValue = useQuery(bestValueOptions);
+  // Full section is a long list; collapsed by default, header keeps today's total.
+  const [open, setOpen] = useState(false);
 
   if (spending.isPending || bestValue.isPending) return null;
   if (spending.error || bestValue.error) return null;
@@ -47,64 +50,91 @@ export function BelanjaCard({ variant = "full" }: { variant?: "full" | "line" })
 
   return (
     <section className="mt-7" aria-label="Belanja makan">
-      <SectionTitle>Belanja makan</SectionTitle>
       <Card className="px-5 py-4">
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground">Hari ini</p>
-            <p className="text-base font-extrabold tabular-nums">{fmtRupiah(today)}</p>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls="belanja-detail"
+          onClick={() => setOpen((v) => !v)}
+          className="-mx-2 -my-1 flex w-[calc(100%+1rem)] items-center gap-3 rounded-2xl px-2 py-1 text-left focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+        >
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-makan-soft">
+            <Wallet className="size-4 text-makan-ink" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[0.9375rem] font-bold">Belanja makan</span>
+            <span className="block text-xs text-muted-foreground tabular-nums">
+              Hari ini {fmtRupiah(today)}
+              {budget
+                ? ` · Sisa ${budget.period === "day" ? "harian" : "bulanan"} ${fmtRupiah(budget.remaining ?? 0)}`
+                : ` · Minggu ini ${fmtRupiah(week)}`}
+            </span>
+          </span>
+          <ChevronDown
+            className={`size-5 shrink-0 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            aria-hidden
+          />
+        </button>
+        {open && (
+          <div id="belanja-detail" className="mt-4">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground">Hari ini</p>
+                <p className="text-base font-extrabold tabular-nums">{fmtRupiah(today)}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground">Minggu ini</p>
+                <p className="text-base font-extrabold tabular-nums">{fmtRupiah(week)}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground">Bulan ini</p>
+                <p className="text-base font-extrabold tabular-nums">{fmtRupiah(month)}</p>
+              </div>
+            </div>
+            {budget && (
+              <p
+                className={`mt-3 rounded-2xl px-4 py-2 text-sm font-semibold ${
+                  budget.remaining != null && budget.remaining < 0
+                    ? "bg-destructive/10 text-destructive"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                Sisa anggaran {budget.period === "day" ? "harian" : "bulanan"}:{" "}
+                {fmtRupiah(budget.remaining ?? 0)}
+              </p>
+            )}
+            {priced && (
+              <div className="mt-4">
+                <p className="text-sm font-bold">Nilai terbaik</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Protein tiap Rp1.000, dari piring yang pernah kamu catat harganya.
+                </p>
+                <ul className="mt-2 space-y-1.5">
+                  {bestValue.data.slice(0, 3).map((entry) => (
+                    <li
+                      key={entry.key}
+                      className="flex items-baseline justify-between gap-3 rounded-2xl bg-muted px-4 py-2 text-sm"
+                    >
+                      <span className="min-w-0 flex-1 truncate font-semibold">{entry.name}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                        {fmtRupiah(entry.priceIdr)} · {fmtInt(entry.nutrients.proteinG)} g protein ·{" "}
+                        {entry.proteinPer1000.toLocaleString("id-ID", {
+                          maximumFractionDigits: 1,
+                        })}{" "}
+                        g per Rp1.000
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {!priced && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Catat harga piringmu saat memindai atau menulis makanan, nanti muncul di sini menu
+                paling hemat.
+              </p>
+            )}
           </div>
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground">Minggu ini</p>
-            <p className="text-base font-extrabold tabular-nums">{fmtRupiah(week)}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground">Bulan ini</p>
-            <p className="text-base font-extrabold tabular-nums">{fmtRupiah(month)}</p>
-          </div>
-        </div>
-        {budget && (
-          <p
-            className={`mt-3 rounded-2xl px-4 py-2 text-sm font-semibold ${
-              budget.remaining != null && budget.remaining < 0
-                ? "bg-destructive/10 text-destructive"
-                : "bg-muted text-muted-foreground"
-            }`}
-          >
-            Sisa anggaran {budget.period === "day" ? "harian" : "bulanan"}:{" "}
-            {fmtRupiah(budget.remaining ?? 0)}
-          </p>
-        )}
-        {priced && (
-          <div className="mt-4">
-            <p className="text-sm font-bold">Nilai terbaik</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Protein tiap Rp1.000, dari piring yang pernah kamu catat harganya.
-            </p>
-            <ul className="mt-2 space-y-1.5">
-              {bestValue.data.slice(0, 3).map((entry) => (
-                <li
-                  key={entry.key}
-                  className="flex items-baseline justify-between gap-3 rounded-2xl bg-muted px-4 py-2 text-sm"
-                >
-                  <span className="min-w-0 flex-1 truncate font-semibold">{entry.name}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                    {fmtRupiah(entry.priceIdr)} · {fmtInt(entry.nutrients.proteinG)} g protein ·{" "}
-                    {entry.proteinPer1000.toLocaleString("id-ID", {
-                      maximumFractionDigits: 1,
-                    })}{" "}
-                    g per Rp1.000
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {!priced && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            Catat harga piringmu saat memindai atau menulis makanan, nanti muncul di sini menu
-            paling hemat.
-          </p>
         )}
       </Card>
     </section>

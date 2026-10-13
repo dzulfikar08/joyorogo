@@ -1,6 +1,8 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { View } from "react-native";
-import { StyleSheet } from "react-native-unistyles";
+import { useState } from "react";
+import { Pressable, View } from "react-native";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
@@ -28,6 +30,9 @@ function fmtProteinPer(n: number): string {
 export function BelanjaSection() {
   const spending = useQuery(orpc.plate.spending.queryOptions());
   const best = useQuery(orpc.plate.bestValue.queryOptions());
+  const { theme } = useUnistyles();
+  // Long list: collapsed by default; the header still shows today's total.
+  const [open, setOpen] = useState(false);
 
   if (spending.isPending) {
     return (
@@ -47,59 +52,84 @@ export function BelanjaSection() {
 
   return (
     <Card style={styles.gap}>
-      <Text style={styles.title}>Belanja makan</Text>
-      <View style={styles.totalsRow}>
-        <View style={styles.total}>
-          <Text style={styles.totalLabel}>Hari ini</Text>
-          <Num style={styles.totalValue}>{fmtIdr(s.today)}</Num>
+      <Pressable
+        onPress={() => setOpen((v) => !v)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel="Belanja makan"
+        style={styles.header}
+      >
+        <View style={styles.headerText}>
+          <Text style={styles.title}>Belanja makan</Text>
+          <Text style={styles.empty} numberOfLines={1}>
+            {`Hari ini ${fmtIdr(s.today)}`}
+            {s.budget?.remaining != null
+              ? ` · Sisa ${fmtIdr(s.budget.remaining)}`
+              : ` · Minggu ini ${fmtIdr(s.week)}`}
+          </Text>
         </View>
-        <View style={styles.total}>
-          <Text style={styles.totalLabel}>Minggu ini</Text>
-          <Num style={styles.totalValue}>{fmtIdr(s.week)}</Num>
-        </View>
-        <View style={styles.total}>
-          <Text style={styles.totalLabel}>Bulan ini</Text>
-          <Num style={styles.totalValue}>{fmtIdr(s.month)}</Num>
-        </View>
-      </View>
-      {s.budget ? (
-        <Text style={styles.budgetNote}>
-          {s.budget.remaining !== null && s.budget.remaining < 0
-            ? `Lewat ${fmtIdr(Math.abs(s.budget.remaining))} dari anggaran ${s.budget.period === "day" ? "harian" : "bulanan"}`
-            : `Sisa anggaran: ${s.budget.remaining !== null ? fmtIdr(s.budget.remaining) : "–"} (${s.budget.period === "day" ? "per hari" : "per bulan"})`}
-        </Text>
-      ) : null}
-      {avgRows.length > 0 ? (
-        <ListGroup>
-          {avgRows.map(([slot, value]) => (
-            <ListRow
-              key={slot}
-              title={MEAL_LABELS[slot]}
-              subtitle="Rata-rata 30 hari terakhir"
-              value={fmtIdr(value)}
-            />
-          ))}
-        </ListGroup>
-      ) : null}
-      {bestRows.length > 0 ? (
-        <View style={styles.gap}>
-          <Text style={styles.subtitle}>Nilai terbaik</Text>
-          <ListGroup>
-            {bestRows.map((row) => (
-              <ListRow
-                key={row.key}
-                title={row.name}
-                subtitle={row.place ?? undefined}
-                value={`${fmtIdr(row.priceIdr)} · ${fmtProteinPer(row.proteinPer1000)} protein`}
-              />
-            ))}
-          </ListGroup>
-        </View>
-      ) : null}
-      {s.today === 0 && s.month === 0 && bestRows.length === 0 ? (
-        <Text style={styles.empty}>
-          Belum ada harga dicatat. Isi "Harga sepiring" saat memindai atau mencatat makanan.
-        </Text>
+        <Ionicons
+          name={open ? "chevron-up" : "chevron-down"}
+          size={20}
+          color={theme.colors.mutedForeground}
+        />
+      </Pressable>
+      {open ? (
+        <>
+          <View style={styles.totalsRow}>
+            <View style={styles.total}>
+              <Text style={styles.totalLabel}>Hari ini</Text>
+              <Num style={styles.totalValue}>{fmtIdr(s.today)}</Num>
+            </View>
+            <View style={styles.total}>
+              <Text style={styles.totalLabel}>Minggu ini</Text>
+              <Num style={styles.totalValue}>{fmtIdr(s.week)}</Num>
+            </View>
+            <View style={styles.total}>
+              <Text style={styles.totalLabel}>Bulan ini</Text>
+              <Num style={styles.totalValue}>{fmtIdr(s.month)}</Num>
+            </View>
+          </View>
+          {s.budget ? (
+            <Text style={styles.budgetNote}>
+              {s.budget.remaining !== null && s.budget.remaining < 0
+                ? `Lewat ${fmtIdr(Math.abs(s.budget.remaining))} dari anggaran ${s.budget.period === "day" ? "harian" : "bulanan"}`
+                : `Sisa anggaran: ${s.budget.remaining !== null ? fmtIdr(s.budget.remaining) : "–"} (${s.budget.period === "day" ? "per hari" : "per bulan"})`}
+            </Text>
+          ) : null}
+          {avgRows.length > 0 ? (
+            <ListGroup>
+              {avgRows.map(([slot, value]) => (
+                <ListRow
+                  key={slot}
+                  title={MEAL_LABELS[slot]}
+                  subtitle="Rata-rata 30 hari terakhir"
+                  value={fmtIdr(value)}
+                />
+              ))}
+            </ListGroup>
+          ) : null}
+          {bestRows.length > 0 ? (
+            <View style={styles.gap}>
+              <Text style={styles.subtitle}>Nilai terbaik</Text>
+              <ListGroup>
+                {bestRows.map((row) => (
+                  <ListRow
+                    key={row.key}
+                    title={row.name}
+                    subtitle={row.place ?? undefined}
+                    value={`${fmtIdr(row.priceIdr)} · ${fmtProteinPer(row.proteinPer1000)} protein`}
+                  />
+                ))}
+              </ListGroup>
+            </View>
+          ) : null}
+          {s.today === 0 && s.month === 0 && bestRows.length === 0 ? (
+            <Text style={styles.empty}>
+              Belum ada harga dicatat. Isi "Harga sepiring" saat memindai atau mencatat makanan.
+            </Text>
+          ) : null}
+        </>
       ) : null}
     </Card>
   );
@@ -129,6 +159,15 @@ export function BelanjaCompact() {
 const styles = StyleSheet.create((theme) => ({
   gap: {
     gap: theme.spacing.md,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+  },
+  headerText: {
+    flex: 1,
+    gap: 2,
   },
   title: {
     fontSize: theme.fontSize.md,
