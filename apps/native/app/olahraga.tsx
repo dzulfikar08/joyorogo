@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Platform, Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
-import { Redirect, router } from "expo-router";
+import { Redirect, Stack, router } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { estimateKcal } from "@joyorogo/api/lib/met";
@@ -183,7 +183,9 @@ export default function Olahraga() {
   };
 
   return (
-    <Screen>
+    <>
+      <Stack.Screen options={{ title: "Olahraga" }} />
+      <Screen>
       <PageHeader
         title="Olahraga"
         caption={`Semua sumber dihitung: manual, Strava, ${healthSourceName}`}
@@ -413,6 +415,7 @@ export default function Olahraga() {
         refId={shareTarget?.refId ?? ""}
       />
     </Screen>
+    </>
   );
 }
 

@@ -36,8 +36,9 @@ export default function TabLayout() {
   // from the group inbox badge on Lainnya.
   const social = useQuery(orpc.social.notificationsUnreadCount.queryOptions());
   const socialBadge = (social.data?.count ?? 0) > 0 ? social.data!.count : undefined;
-  // Labels need clear space above the bottom edge, with or without a home
-  // indicator: bar = 6 padding + icon + label + 8 clearance + safe inset.
+  // Labels need clear space above the bottom edge. The bar must be exactly
+  // content (6 padding + icon + label + slack) + the bottom inset — any extra
+  // height just shows as dead space below the labels on gesture nav.
   const insets = useSafeAreaInsets();
 
   return (
@@ -49,9 +50,9 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: theme.colors.card,
           borderTopColor: theme.colors.hairline,
-          height: 66 + insets.bottom,
+          height: 54 + insets.bottom,
           paddingTop: 6,
-          paddingBottom: 8 + insets.bottom,
+          paddingBottom: insets.bottom,
           shadowColor: "#1D1A15",
           shadowOpacity: 0.06,
           shadowRadius: 12,
@@ -166,11 +167,6 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* Reached from the Beranda tiles, not from the tab bar. href must not
-          be combined with a custom tabBarButton (earlier crash). */}
-      <Tabs.Screen name="olahraga" options={{ href: null }} />
-      <Tabs.Screen name="berat" options={{ href: null }} />
-      <Tabs.Screen name="tidur" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -2,7 +2,7 @@ import "@/unistyles";
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { Dimensions, Platform, Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
-import { Redirect } from "expo-router";
+import { Redirect, Stack } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { SLEEP_NEED_HOURS, jakartaToday } from "@joyorogo/api/lib/engine";
@@ -170,7 +170,9 @@ export default function Tidur() {
   };
 
   return (
-    <Screen>
+    <>
+      <Stack.Screen options={{ title: "Tidur" }} />
+      <Screen>
       <PageHeader title="Tidur" caption="Jam tidur semalam (WIB)" />
 
       {/* Last night ring */}
@@ -269,6 +271,7 @@ export default function Tidur() {
         {formError ? <Text style={styles.error}>{formError}</Text> : null}
       </Sheet>
     </Screen>
+    </>
   );
 }
 

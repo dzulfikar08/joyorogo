@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { useQuery } from "@tanstack/react-query";
 import { Animated, PanResponder, useWindowDimensions, View } from "react-native";
-import { Redirect } from "expo-router";
+import { Redirect, Stack } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { Circle, Line, Polyline, Svg, Text as SvgText } from "react-native-svg";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -533,7 +533,9 @@ export default function Berat() {
   const newestEntries = entries.slice().toReversed();
 
   return (
-    <Screen>
+    <>
+      <Stack.Screen options={{ title: "Berat" }} />
+      <Screen>
       <PageHeader
         title="Berat"
         caption="Angka tren lebih bisa dipercaya daripada timbangan harian"
@@ -832,6 +834,7 @@ export default function Berat() {
         />
       ) : null}
     </Screen>
+    </>
   );
 }
 
