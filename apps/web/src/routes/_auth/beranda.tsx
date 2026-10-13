@@ -18,6 +18,7 @@ import { ScreenError } from "@/components/screen-state";
 import ShareCardButton from "@/components/share-card";
 import { Sticker } from "@/components/sticker";
 import { WaterCard } from "@/components/water-card";
+import { WaistSection } from "@/components/waist-section";
 import { WorkoutCard } from "@/components/workout/workout-card";
 import { pickFact } from "@/lib/facts";
 import { fmtDateIndo, fmtInt, fmtKg, parseNum } from "@/lib/format";
@@ -147,9 +148,11 @@ function Dashboard({ summary }: { summary: Summary }) {
       <FounderBanner />
 
       {/* minmax(0, …) tracks: the scrollable ideas row inside EatHero must
-          scroll, not widen its column past the phone screen. */}
+          scroll, not widen its column past the phone screen. Rows are pinned
+          per column on lg so Lingkar perut fills the empty slot next to the
+          Berat badan cards; on phones the DOM order keeps Berat first. */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-5">
-        <div className="min-w-0 space-y-3">
+        <div className="min-w-0 space-y-3 lg:col-start-1 lg:row-start-1">
           <EatHero summary={summary} />
           <div className="grid grid-cols-3 gap-3">
             <StatTile
@@ -187,11 +190,18 @@ function Dashboard({ summary }: { summary: Summary }) {
           </div>
         </div>
 
-        <div className="min-w-0 space-y-3 lg:space-y-5">
+        <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-1">
           <TodayMeals summary={summary} />
           <FastingScheduleCard />
+        </div>
+
+        <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-2 lg:space-y-5">
           <WeightCard summary={summary} />
           <WorkoutCard />
+        </div>
+
+        <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+          <WaistSection />
         </div>
       </div>
 

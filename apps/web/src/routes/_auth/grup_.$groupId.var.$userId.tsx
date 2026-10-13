@@ -2,7 +2,7 @@ import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronLeft, RotateCcw, ScanLine, X } from "lucide-react";
+import { Activity, ChevronLeft, CircleCheck, CircleDashed, EyeOff, Flag, Hand, RotateCcw, ScanLine, Utensils, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -123,7 +123,7 @@ function VarPage() {
 
   const nudge = useMutation(
     orpc.group.nudge.mutationOptions({
-      onSuccess: () => toast.success("Colek terkirim 👉"),
+      onSuccess: () => toast.success("Colek terkirim"),
       onError: (error) => toast.error(error.message),
     }),
   );
@@ -214,8 +214,8 @@ function VarPage() {
                         className="size-16 rounded-full border-2 border-emerald-200/70 object-cover shadow-float"
                       />
                     ) : (
-                      <span className="grid size-14 place-items-center rounded-full border-2 border-emerald-200/70 bg-black/60 text-xl">
-                        🍽
+                      <span className="grid size-14 place-items-center rounded-full border-2 border-emerald-200/70 bg-black/60">
+                        <Utensils className="size-6 text-emerald-200" aria-hidden />
                       </span>
                     )}
                     <span className="mt-1 block max-w-28 truncate rounded-full bg-black/65 px-2 py-0.5 text-center text-[0.625rem] font-bold">
@@ -259,8 +259,9 @@ function VarPage() {
         {phase === "scan" && (
           <div className="pointer-events-none absolute inset-x-0 bottom-6 text-center" role="status">
             <p className="text-sm font-black tracking-[0.25em] text-emerald-200">MEMINDAI…</p>
-            <p className="mt-1 font-mono text-[0.6875rem] text-emerald-100/80">
-              ▁▃▅▇ beeping… {Math.round(progress)}%
+            <p className="mt-1 flex items-center justify-center gap-1.5 font-mono text-[0.6875rem] text-emerald-100/80">
+              <Activity className="size-3.5" aria-hidden />
+              beeping… {Math.round(progress)}%
             </p>
           </div>
         )}
@@ -286,7 +287,8 @@ function VarPage() {
                   disabled={nudge.isPending}
                   onClick={() => nudge.mutate({ groupId, toUserId: userId, kind: "poke" })}
                 >
-                  Colek 👉
+                  <Hand className="size-4" aria-hidden />
+                  Colek
                 </Button>
               )}
             </>
@@ -323,17 +325,25 @@ function VerdictCard({ scan }: { scan: VarScan }) {
   return (
     <div className="mx-auto mb-3 max-w-lg rounded-3xl bg-card p-4 text-card-foreground shadow-float">
       {scan.hidden ? (
-        <p className="text-center text-[0.9375rem] font-bold">
-          🙈 {scan.name ?? "Teman"} menyembunyikan isi perutnya
+        <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold">
+          <EyeOff className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+          {scan.name ?? "Teman"} menyembunyikan isi perutnya
         </p>
       ) : scan.verdict === "aman" ? (
-        <p className="text-center text-[0.9375rem] font-bold text-primary">✅ AMAN, lanjutkan!</p>
+        <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold text-primary">
+          <CircleCheck className="size-5 shrink-0" aria-hidden />
+          AMAN, lanjutkan!
+        </p>
       ) : scan.verdict === "offside" ? (
-        <p className="text-center text-[0.9375rem] font-bold text-destructive">
-          🚩 OFFSIDE! +{fmtInt(over ?? 0)} kcal
+        <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold text-destructive">
+          <Flag className="size-5 shrink-0" aria-hidden />
+          OFFSIDE! +{fmtInt(over ?? 0)} kcal
         </p>
       ) : (
-        <p className="text-center text-[0.9375rem] font-bold">🫥 Perut kosong… belum makan?</p>
+        <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold">
+          <CircleDashed className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+          Perut kosong… belum makan?
+        </p>
       )}
       <p className="mt-1 text-center text-sm text-muted-foreground">
         Total hari ini {fmtInt(scan.eatenKcal)}

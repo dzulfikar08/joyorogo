@@ -8,14 +8,17 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   Copy,
   Dumbbell,
+  Flame,
   Hand,
   LogOut,
-  MessageSquareText,
   Pencil,
+  PenLine,
   RefreshCw,
   Scale,
   Settings2,
   Share2,
+  TrendingDown,
+  TrendingUp,
   Tv,
   UserMinus,
   Utensils,
@@ -24,6 +27,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { ProgressBar } from "@/components/progress-bar";
+import { Avatar } from "@/components/avatar";
 import { EmptyHint, ScreenError } from "@/components/screen-state";
 import {
   Card,
@@ -69,28 +73,6 @@ function DetailSkeleton() {
   );
 }
 
-function Avatar({ name, image }: { name: string; image: string | null }) {
-  const initial = name.trim().charAt(0).toUpperCase() || "?";
-  if (image) {
-    return (
-      <img
-        src={image}
-        alt=""
-        className="size-11 shrink-0 rounded-full bg-muted object-cover"
-        loading="lazy"
-      />
-    );
-  }
-  return (
-    <span
-      aria-hidden
-      className="grid size-11 shrink-0 place-items-center rounded-full bg-muted text-sm font-extrabold text-muted-foreground"
-    >
-      {initial}
-    </span>
-  );
-}
-
 /** Invite link shared by the web route; the code is case-insensitive server-side. */
 function inviteLink(code: string): string {
   return `https://joyorogo.com/gabung/${code}`;
@@ -130,7 +112,7 @@ function GrupDetailPage() {
   const nudge = useMutation(
     orpc.group.nudge.mutationOptions({
       onSuccess: (_data, input) => {
-        toast.success(input.kind === "poke" ? "Colek terkirim 👉" : "Catatan terkirim ✍️");
+        toast.success(input.kind === "poke" ? "Colek terkirim" : "Catatan terkirim");
         if (input.kind === "note") {
           setNoteTarget(null);
           setNoteMessage("");
@@ -286,7 +268,7 @@ function GrupDetailPage() {
                     void shareOrCopy(
                       `Gabung grup ${group.name} di JoyoRogo!`,
                       link,
-                    ).then(() => toast.success("Tautan disalin 👌"));
+                    ).then(() => toast.success("Tautan disalin"));
                   }}
                 >
                   <Share2 className="size-4" aria-hidden />
@@ -298,7 +280,7 @@ function GrupDetailPage() {
                   onClick={() => {
                     void navigator.clipboard
                       .writeText(link)
-                      .then(() => toast.success("Tautan disalin 👌"));
+                      .then(() => toast.success("Tautan disalin"));
                   }}
                 >
                   <Copy className="size-4" aria-hidden />
@@ -447,7 +429,7 @@ function GrupDetailPage() {
           className="space-y-3"
         >
           <div className="flex flex-wrap gap-2">
-            {["Ayo jalan 10 menit!", "Jangan lupa minum air 💧", "Catat sarapannya 👀", "Semangat, hampir sampai!"].map(
+            {["Ayo jalan 10 menit!", "Jangan lupa minum air", "Catat sarapannya", "Semangat, hampir sampai!"].map(
               (suggestion) => (
                 <button
                   key={suggestion}
@@ -524,10 +506,11 @@ function MemberCard({
         </div>
         {member.streakDays > 0 && (
           <span
-            className="shrink-0 rounded-full bg-bakar-soft px-2.5 py-1 text-xs font-bold text-bakar-ink"
+            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-bakar-soft px-2.5 py-1 text-xs font-bold text-bakar-ink tabular-nums"
             title={`${member.streakDays} hari beruntun`}
           >
-            🔥 {member.streakDays}
+            <Flame className="size-3.5" aria-hidden />
+            {member.streakDays}
           </span>
         )}
       </div>
@@ -547,7 +530,10 @@ function MemberCard({
             {fmtInt(today.eatenKcal)}
             {today.eatTargetKcal !== null && ` / ${fmtInt(today.eatTargetKcal)}`} kcal
           </span>
-          <span>🔥 {fmtInt(today.burnedKcal)} dibakar</span>
+          <span className="inline-flex items-center gap-1">
+            <Flame className="size-3.5" aria-hidden />
+            {fmtInt(today.burnedKcal)} dibakar
+          </span>
           <span>{today.mealsLogged}x catat makan</span>
           {today.weightKg !== null && (
             <span>
@@ -555,11 +541,16 @@ function MemberCard({
               {delta !== null && delta !== 0 && (
                 <span
                   className={cn(
-                    "ml-1 font-bold",
+                    "ml-1 inline-flex items-center gap-0.5 align-middle font-bold",
                     delta < 0 ? "text-primary" : "text-amber-600 dark:text-amber-400",
                   )}
                 >
-                  {delta < 0 ? "▼" : "▲"} {fmtKg(Math.abs(delta))}
+                  {delta < 0 ? (
+                    <TrendingDown className="size-3.5" aria-hidden />
+                  ) : (
+                    <TrendingUp className="size-3.5" aria-hidden />
+                  )}
+                  {fmtKg(Math.abs(delta))}
                 </span>
               )}
             </span>
@@ -575,21 +566,24 @@ function MemberCard({
             disabled={pokePending}
             className={cn(CARD_ACTION, "bg-muted hover:bg-accent")}
           >
-            Colek 👉
+            <Hand className="size-4" aria-hidden />
+            Colek
           </button>
           <button
             type="button"
             onClick={onNote}
             className={cn(CARD_ACTION, "bg-muted hover:bg-accent")}
           >
-            Catatan ✍️
+            <PenLine className="size-4" aria-hidden />
+            Catatan
           </button>
           <Link
             to="/grup/$groupId/var/$userId"
             params={{ groupId, userId: member.userId }}
             className={cn(CARD_ACTION, "bg-primary text-primary-foreground")}
           >
-            VAR 📺
+            <Tv className="size-4" aria-hidden />
+            VAR
           </Link>
         </div>
       )}
