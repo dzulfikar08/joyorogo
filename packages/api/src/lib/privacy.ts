@@ -14,7 +14,7 @@ import {
   waterLog,
   weightLog,
 } from "@joyorogo/db/schema/fitness";
-import { plate, pushSubscription, workoutSession, workoutSet } from "@joyorogo/db/schema/plans";
+import { plate, pushSubscription, workoutCustomExercise, workoutRoutine, workoutSession, workoutSet } from "@joyorogo/db/schema/plans";
 import { emailLog } from "@joyorogo/db/schema/billing";
 import { team, teamMember, teamNudge } from "@joyorogo/db/schema/social";
 
@@ -61,6 +61,8 @@ export function deleteAllUserData(db: Database, userId: string) {
   return db.batch([
     db.delete(workoutSet).where(eq(workoutSet.userId, userId)),
     db.delete(workoutSession).where(eq(workoutSession.userId, userId)),
+    db.delete(workoutCustomExercise).where(eq(workoutCustomExercise.userId, userId)),
+    db.delete(workoutRoutine).where(eq(workoutRoutine.userId, userId)),
     db.delete(plate).where(eq(plate.userId, userId)),
     db.delete(pushSubscription).where(eq(pushSubscription.userId, userId)),
     db.delete(profile).where(eq(profile.userId, userId)),

@@ -17,6 +17,8 @@ export const workoutSession = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     date: text("date").notNull(),
     name: text("name").notNull(),
+    // when the stopwatch started; null for sessions logged by older clients
+    startedAt: integer("started_at", { mode: "timestamp_ms" }),
     durationMin: real("duration_min"),
     note: text("note"),
     // exercise_log row carrying this session's kcal; deleted with the session
@@ -41,13 +43,23 @@ export const workoutSet = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    // catalog id, or the id of a workout_custom_exercise row
     exerciseId: text("exercise_id").notNull(),
     // order within the session
     position: integer("position").notNull(),
-    reps: integer("reps").notNull(),
+    // null for timed sets (plank, dead hang); older clients always sent reps
+    reps: integer("reps"),
     // null for bodyweight sets
     weightKg: real("weight_kg"),
+    // timed sets only
+    durationSec: integer("duration_sec"),
     rpe: real("rpe"),
+    // warmup sets never count toward personal records
+    setType: text("set_type").default("normal").notNull(),
+    // per-exercise note, repeated on every set row of that exercise
+    note: text("note"),
+    // letter-tag grouping for supersets, null when not in one
+    supersetGroup: integer("superset_group"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),
@@ -57,6 +69,63 @@ export const workoutSet = sqliteTable(
     index("workout_set_user_exercise_idx").on(table.userId, table.exerciseId),
   ],
 );
+
+/** User-invented movement, merged into the catalog for its owner only. */
+export const workoutCustomExercise = sqliteTable(
+  "workout_custom_exercise",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    // ids of the fixed muscle/equipment lists in lib/exercises
+    muscle: text("muscle").notNull(),
+    equipment: text("equipment").notNull(),
+    type: text("type").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [index("workout_custom_exercise_user_idx").on(table.userId)],
+);
+
+/** Saved routine: reusable exercise plan, stored as one JSON document. */
+export const workoutRoutine = sqliteTable(
+  "workout_routine",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    note: text("note"),
+    exercises: text("exercises", { mode: "json" })
+      .$type<WorkoutRoutineExercise[]>()
+      .notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [index("workout_routine_user_idx").on(table.userId, table.updatedAt)],
+);
+
+export type WorkoutRoutineSet = {
+  setType: "normal" | "warmup" | "drop" | "failure";
+  reps: number | null;
+  weightKg: number | null;
+  durationSec: number | null;
+};
+
+export type WorkoutRoutineExercise = {
+  exerciseId: string;
+  restSec: number | null;
+  note: string | null;
+  sets: WorkoutRoutineSet[];
+};
 
 /**
  * What was paid for: one scan, one Cerita meal, or one manual entry. Its

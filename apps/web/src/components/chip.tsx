@@ -3,13 +3,13 @@ import type { ReactNode } from "react";
 
 /** Selection chip for pickers (meal slots, recent foods, sleep presets). */
 export function Chip({
-  active,
+  active = false,
   onClick,
   children,
   className,
   disabled,
 }: {
-  active: boolean;
+  active?: boolean;
   onClick: () => void;
   children: ReactNode;
   className?: string;

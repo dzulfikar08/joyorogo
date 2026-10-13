@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   EQUIPMENT,
   EXERCISE_CATALOG,
+  EXERCISE_TYPES,
   MUSCLES,
   exerciseById,
   exercisesForMuscle,
@@ -51,6 +52,23 @@ describe("exerciseById", () => {
   test("resolves a stable id and returns undefined for unknown", () => {
     expect(exerciseById("bench_press")?.name).toBe("Bench press");
     expect(exerciseById("nope_404")).toBeUndefined();
+  });
+});
+
+describe("catalog metadata", () => {
+  test("every entry carries its primary muscle and logging type", () => {
+    for (const exercise of EXERCISE_CATALOG) {
+      expect(exercise.muscle).toBe(exercise.primary[0]!);
+      expect(EXERCISE_TYPES).toContain(exercise.type);
+    }
+  });
+
+  test("weighted equipment logs weight_reps, bodyweight reps, holds log duration", () => {
+    expect(exerciseById("bench_press")?.type).toBe("weight_reps");
+    expect(exerciseById("push_up")?.type).toBe("bodyweight_reps");
+    for (const id of ["plank", "side_plank", "wall_sit", "dead_hang"]) {
+      expect(exerciseById(id)?.type).toBe("duration");
+    }
   });
 });
 

@@ -2,18 +2,25 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, isRedirect, Link, Navigate, redirect } from "@tanstack/react-router";
 import {
   Activity,
+  CameraOff,
   Check,
   ChevronDown,
   Download,
   Footprints,
+  Hand,
+  ListChecks,
+  MegaphoneOff,
+  NotebookPen,
   PencilLine,
+  Radar,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 
 import { Button } from "@joyorogo/ui/components/button";
 import { Ring, type Metric } from "@/components/kit/ring";
 import { ScanDemo } from "@/components/landing/scan-demo";
-import { HeroPhone, WeightTrendDemo } from "@/components/landing/visuals";
+import { GroupPeek, HeroPhone, WeightTrendDemo } from "@/components/landing/visuals";
 import { PublicHeader } from "@/components/public-header";
 import { FounderPromo } from "@/components/founder-promo";
 import { APK_URL, fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
@@ -44,8 +51,8 @@ export const Route = createFileRoute("/")({
 const FACTS = [
   { value: "3-9 detik", label: "untuk menghitung satu foto" },
   { value: "Rp0", label: "diary lengkap, selamanya" },
-  { value: "0 foto", label: "yang kami simpan" },
-  { value: "Web + Android", label: "satu akun Google" },
+  { value: "0 foto", label: "disimpan tanpa seizinmu" },
+  { value: "TKPI 2019", label: "data kalori dari Kemenkes" },
 ] as const;
 
 const NUMBERS: Array<{
@@ -88,6 +95,45 @@ const NUMBERS: Array<{
 
 const SOURCE_URL = "https://github.com/dzulfikar08/joyorogo";
 
+/** Grup features in the order the app's Grup screen lists them. */
+const GROUP_FEATURES = [
+  {
+    icon: Hand,
+    title: "Colek",
+    body: "Ada yang dua hari nggak catat? Sekali ketuk, dia dapat pemberitahuan di aplikasinya. Berfungsi dua arah, jadi siap-siap dicolek balik.",
+  },
+  {
+    icon: NotebookPen,
+    title: "Catatan",
+    body: "Tinggalkan pesan di grup: jangan lupa sarapan, atau gym nanti sore jangan batal.",
+  },
+  {
+    icon: Radar,
+    title: "VAR perut",
+    body: "Arahkan kamera ke temanmu, dan makanan yang ia catat hari ini muncul melayang di layar, kayak hasil USG.",
+  },
+] as const;
+
+/** Only promises the code actually keeps (see apps/server/src/anon.ts,
+ * db keepPhotos default, Profil delete-all, and the absence of any ad SDK). */
+const PROMISES = [
+  {
+    icon: CameraOff,
+    title: "Foto tidak disimpan",
+    body: "Foto dianalisis lalu dibuang. Tersimpan hanya kalau kamu yang memilihnya.",
+  },
+  {
+    icon: MegaphoneOff,
+    title: "Tanpa iklan",
+    body: "Tidak ada iklan dan tidak ada feed tanpa akhir. Catat, tutup, hidupmu lanjut.",
+  },
+  {
+    icon: Trash2,
+    title: "Hapus kapan saja",
+    body: "Satu tombol di halaman Profil menghapus semua datamu, permanen.",
+  },
+] as const;
+
 /** Pricing answer follows the server's paywall; omitted until config loads. */
 function pricingFaq(config: AppConfig | undefined): Array<{ q: string; a: string }> {
   if (!config) return [];
@@ -119,9 +165,6 @@ function Landing() {
       <PublicHeader />
 
       <main>
-        {/* Founder intro price, while slots last. */}
-        <FounderPromo className="mx-auto w-full max-w-6xl px-4 pt-6 md:px-6 md:pt-10" />
-
         {/* Hero */}
         <section
           data-section="hero"
@@ -132,9 +175,9 @@ function Landing() {
               Diet yang paham porsi warteg
             </h1>
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground md:text-xl">
-              Foto piringmu, kalorinya terhitung dalam beberapa detik. JoyoRogo lalu bilang berapa
-              lagi yang boleh kamu makan hari ini, berapa yang perlu dibakar, dan butuh tidur berapa
-              jam.
+              Foto piringmu, kalorinya terhitung dalam beberapa detik. Tiap pagi JoyoRogo kasih
+              tiga angka: berapa lagi yang boleh kamu makan, berapa yang perlu dibakar, dan butuh
+              tidur berapa jam.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button
@@ -147,29 +190,34 @@ function Landing() {
                   />
                 }
               >
-                Coba foto gratis
+                Coba gratis
               </Button>
               <Button
                 size="lg"
                 variant="secondary"
                 render={
-                  <Link
-                    to="/login"
-                    data-revklik-goal="signup_click"
+                  <a
+                    href={APK_URL}
+                    data-revklik-goal="apk_download"
                     data-revklik-goal-location="hero"
                   />
                 }
               >
-                Daftar dengan Google
+                <Download aria-hidden />
+                Unduh APK
               </Button>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
               {config.data?.anonScans ? `${config.data.anonScans} foto pertama tanpa daftar. ` : ""}
-              Tanpa kartu kredit.
+              Foto tidak disimpan.
             </p>
           </div>
           <HeroPhone />
         </section>
+
+        {/* Founder intro price, while slots last — after the hero so the
+            promise leads and the price tag follows. */}
+        <FounderPromo className="mx-auto w-full max-w-6xl px-4 pb-8 md:px-6 md:pb-10" />
 
         {/* Facts strip */}
         <section aria-label="Fakta singkat" className="border-y border-border/70 bg-card">
@@ -229,7 +277,12 @@ function Landing() {
                   </div>
                 </Ring>
                 <div>
-                  <h3 className="text-xl font-extrabold tracking-tight md:mt-6">{n.title}</h3>
+                  <h3 className="flex flex-wrap items-center gap-2 text-xl font-extrabold tracking-tight md:mt-6">
+                    {n.title}
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                      Contoh
+                    </span>
+                  </h3>
                   <p className="mt-2 text-[0.9375rem] leading-relaxed text-muted-foreground">
                     {n.body}
                   </p>
@@ -275,7 +328,29 @@ function Landing() {
                   </li>
                 ))}
               </ol>
-              <p className="mt-8 rounded-2xl bg-muted p-4 text-[0.9375rem] leading-relaxed text-muted-foreground">
+              <div className="mt-8 rounded-2xl border border-border/70 bg-background p-5">
+                <p className="flex items-center gap-2 font-bold">
+                  <ListChecks className="size-5 text-primary" aria-hidden />
+                  Angka yang jujur, bukan angka ajaib
+                </p>
+                <ul className="mt-3 space-y-2 text-[0.9375rem] leading-relaxed text-muted-foreground">
+                  <li className="flex gap-2.5">
+                    <span aria-hidden className="mt-[0.55em] size-1.5 shrink-0 rounded-full bg-muted-foreground/60" />
+                    Hasil foto selalu perkiraan. Sebelum disimpan, ubah porsinya, hapus yang salah,
+                    atau tambah yang terlewat.
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span aria-hidden className="mt-[0.55em] size-1.5 shrink-0 rounded-full bg-muted-foreground/60" />
+                    Kalorinya dikalibrasi dengan TKPI 2019, tabel komposisi pangan Indonesia dari
+                    Kementerian Kesehatan.
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span aria-hidden className="mt-[0.55em] size-1.5 shrink-0 rounded-full bg-muted-foreground/60" />
+                    Foto demo di samping dibuang begitu analisisnya selesai.
+                  </li>
+                </ul>
+              </div>
+              <p className="mt-4 rounded-2xl bg-muted p-4 text-[0.9375rem] leading-relaxed text-muted-foreground">
                 <span className="font-bold text-foreground">Lupa foto?</span> Ceritakan saja. Ketik
                 atau ucapkan "kemarin pagi nasi kuning pakai telur dadar, siang nasi padang", AI
                 yang menghitung dan menaruhnya di waktu makan dan hari yang tepat.
@@ -392,6 +467,71 @@ function Landing() {
           </article>
         </section>
 
+        {/* Together: groups, colek, VAR perut. The playful section. */}
+        <section data-section="grup" className="scroll-mt-16 bg-tidur-soft py-20 md:py-28">
+          <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 md:grid-cols-[1.05fr_1fr] md:gap-16 md:px-6">
+            <div>
+              <h2 className="text-3xl font-extrabold tracking-tight text-balance md:text-[2.75rem] md:leading-[1.1]">
+                Yang malas catat, colek saja.
+              </h2>
+              <p className="mt-4 text-lg leading-relaxed text-tidur-ink/90">
+                Bikin grup bareng teman, pasangan, atau keluarga. Semangatnya jadi urusan bersama,
+                bukan cuma niat di minggu pertama.
+              </p>
+              <ul className="mt-8 space-y-5">
+                {GROUP_FEATURES.map((feature) => (
+                  <li key={feature.title} className="flex gap-4">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-card text-tidur-ink">
+                      <feature.icon className="size-5" aria-hidden />
+                    </span>
+                    <div>
+                      <p className="font-bold">{feature.title}</p>
+                      <p className="mt-0.5 text-[0.9375rem] leading-relaxed text-tidur-ink/80">
+                        {feature.body}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-8 text-sm text-tidur-ink/70">
+                Grup dibuat dari dalam aplikasi; undangannya lewat tautan.
+              </p>
+            </div>
+            <GroupPeek />
+          </div>
+        </section>
+
+        {/* Privacy promises: only what the code actually does. */}
+        <section aria-label="Janji privasi" className="border-y border-border/70 bg-card">
+          <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:grid-cols-3 md:px-6 md:py-12">
+            {PROMISES.map((promise) => (
+              <div key={promise.title} className="flex items-start gap-3.5">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-makan-soft text-makan-ink">
+                  <promise.icon className="size-5" aria-hidden />
+                </span>
+                <div>
+                  <p className="font-bold">{promise.title}</p>
+                  <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+                    {promise.body}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mx-auto -mt-2 w-full max-w-6xl px-4 pb-8 text-sm text-muted-foreground md:px-6">
+            Rinciannya di halaman{" "}
+            <Link
+              to="/privasi"
+              className="font-semibold text-primary hover:underline"
+              data-revklik-goal="privacy_click"
+              data-revklik-goal-location="landing"
+            >
+              Privasi
+            </Link>
+            .
+          </p>
+        </section>
+
         {/* Pricing, short; the full page has checkout. Hidden without a paywall. */}
         {config.data?.paywall && (
           <section data-section="pricing" className="border-t border-border/70 py-20 md:py-24">
@@ -403,17 +543,9 @@ function Landing() {
                 <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
                   Tanpa iklan. Founder membantu JoyoRogo tetap independen.
                 </p>
-                <Link
-                  to="/harga"
-                  data-revklik-goal="pricing_click"
-                  data-revklik-goal-location="landing"
-                  className="mt-6 inline-flex min-h-11 items-center text-[0.9375rem] font-bold text-primary hover:underline"
-                >
-                  Lihat detail harga
-                </Link>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-[1.75rem] bg-card p-6">
+                <div className="flex flex-col rounded-[1.75rem] bg-card p-6">
                   <p className="font-bold">Gratis</p>
                   <p className="mt-2 text-4xl font-extrabold tracking-tight">Rp0</p>
                   <p className="text-sm text-muted-foreground">selamanya</p>
@@ -427,28 +559,53 @@ function Landing() {
                       Diary makan, olahraga, berat, tidur
                     </li>
                   </ul>
+                  <Button
+                    variant="secondary"
+                    className="mt-6 w-full"
+                    render={
+                      <Link
+                        to="/login"
+                        data-revklik-goal="signup_click"
+                        data-revklik-goal-location="pricing"
+                      />
+                    }
+                  >
+                    Mulai gratis
+                  </Button>
                 </div>
-                <div className="rounded-[1.75rem] bg-card p-6">
-                  <p className="font-bold">Founder</p>
+                <div className="flex flex-col rounded-[1.75rem] bg-makan-soft p-6">
+                  <p className="font-bold text-makan-ink">Founder</p>
                   <p className="mt-2 text-4xl font-extrabold tracking-tight">
                     {fmtRupiah(config.data.founderPriceIdr)}
                   </p>
                   <p className="text-sm text-muted-foreground">per bulan</p>
                   <ul className="mt-5 space-y-2 text-sm">
                     <li className="flex gap-2">
-                      <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                      <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
                       {founderScans(config.data)}
                     </li>
                     <li className="flex gap-2">
-                      <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                      <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
                       Badge founder di profilmu
                     </li>
                     <li className="flex gap-2">
-                      <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                      <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
                       Paket tahunan {fmtRupiah(config.data.founderYearlyPriceIdr)}/tahun — hemat 2
                       bulan
                     </li>
                   </ul>
+                  <Button
+                    className="mt-6 w-full"
+                    render={
+                      <Link
+                        to="/harga"
+                        data-revklik-goal="pricing_click"
+                        data-revklik-goal-location="pricing"
+                      />
+                    }
+                  >
+                    Pilih Founder
+                  </Button>
                 </div>
               </div>
             </div>

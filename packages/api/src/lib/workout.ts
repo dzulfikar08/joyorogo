@@ -10,7 +10,7 @@ import { shiftDate } from "./engine";
 
 export type WorkoutSetLike = {
   exerciseId: string;
-  reps: number;
+  reps: number | null;
   weightKg: number | null;
 };
 
@@ -18,6 +18,30 @@ export type WorkoutSessionLike = {
   date: string;
   sets: readonly WorkoutSetLike[];
 };
+
+/** How a set was logged; anything but warmup counts toward records. */
+export const SET_TYPES = ["normal", "warmup", "drop", "failure"] as const;
+
+export type SetType = (typeof SET_TYPES)[number];
+
+/** Minimal set shape for record math — satisfied by workout_set rows and saveSession input. */
+export type RecordSetLike = {
+  setType?: string | null;
+  reps: number | null;
+  weightKg: number | null;
+  durationSec?: number | null;
+};
+
+export type RecordSessionLike = {
+  sets: readonly (RecordSetLike & { exerciseId: string })[];
+};
+
+/** Warmups are practise, timed holds carry no reps — neither earns a record. */
+export function isCountedSet(
+  set: RecordSetLike,
+): set is RecordSetLike & { reps: number } {
+  return set.setType !== "warmup" && set.reps !== null && set.reps >= 1;
+}
 
 // Roadmap: primary muscle earns 1 effective set, secondary 0.5.
 export const PRIMARY_SET = 1;
@@ -57,7 +81,7 @@ export function weeklySetsPerMuscle(
   for (const session of sessions) {
     if (!inRange(session.date, from, to)) continue;
     for (const set of session.sets) {
-      if (set.reps < 1) continue;
+      if (!isCountedSet(set)) continue;
       const exercise = exerciseById(set.exerciseId);
       if (!exercise) continue;
       for (const muscle of exercise.primary) totals[muscle] += PRIMARY_SET;
@@ -160,6 +184,110 @@ export function estimate1RM(weightKg: number, reps: number): number {
   return Math.round(weightKg * (1 + reps / 30) * 10) / 10;
 }
 
+export type PRKind = "weight" | "one_rm" | "reps" | "set_volume";
+
+export type WorkoutPR = {
+  exerciseId: string;
+  kind: PRKind;
+  value: number;
+  /** best before this set; null when the exercise had no prior set of this kind */
+  previous: number | null;
+};
+
+export type SetMetrics = {
+  /** heaviest weight lifted (weighted sets only) */
+  weightKg: number | null;
+  /** best Epley estimate (weighted sets only) */
+  oneRm: number | null;
+  /** most reps in one set (weighted or bodyweight) */
+  reps: number | null;
+  /** heaviest single-set volume, weight x reps (weighted sets only) */
+  setVolume: number | null;
+};
+
+/** Best of every record kind across counted sets; null means never done. */
+export function bestSetMetrics(sets: readonly RecordSetLike[]): SetMetrics {
+  let weightKg: number | null = null;
+  let oneRm: number | null = null;
+  let reps: number | null = null;
+  let setVolume: number | null = null;
+  for (const set of sets) {
+    if (!isCountedSet(set)) continue;
+    const weight = set.weightKg;
+    if (weight !== null && weight > 0) {
+      if (weightKg === null || weight > weightKg) weightKg = weight;
+      const oneRmValue = estimate1RM(weight, set.reps);
+      if (oneRm === null || oneRmValue > oneRm) oneRm = oneRmValue;
+      const volume = Math.round(weight * set.reps * 10) / 10;
+      if (setVolume === null || volume > setVolume) setVolume = volume;
+    }
+    if (reps === null || set.reps > reps) reps = set.reps;
+  }
+  return { weightKg, oneRm, reps, setVolume };
+}
+
+const PR_KIND_ORDER: [PRKind, (m: SetMetrics) => number | null][] = [
+  ["weight", (m) => m.weightKg],
+  ["one_rm", (m) => m.oneRm],
+  ["reps", (m) => m.reps],
+  ["set_volume", (m) => m.setVolume],
+];
+
+/**
+ * Records earned by `currentSets` of one exercise versus every counted set
+ * done before. An exercise attempted for the very first time earns nothing —
+ * there is nothing to beat. A tie never beats the old record; the first
+ * weighted set after a bodyweight-only history is still a new record with
+ * previous null.
+ */
+export function exercisePRs(
+  exerciseId: string,
+  priorSets: readonly RecordSetLike[],
+  currentSets: readonly RecordSetLike[],
+): WorkoutPR[] {
+  const prior = bestSetMetrics(priorSets);
+  if (prior.weightKg === null && prior.oneRm === null && prior.reps === null && prior.setVolume === null) {
+    return [];
+  }
+  const current = bestSetMetrics(currentSets);
+  const prs: WorkoutPR[] = [];
+  for (const [kind, pick] of PR_KIND_ORDER) {
+    const value = pick(current);
+    if (value === null) continue;
+    const previous = pick(prior);
+    if (previous !== null && value <= previous) continue;
+    prs.push({ exerciseId, kind, value, previous });
+  }
+  return prs;
+}
+
+/**
+ * Records across a whole saved session, grouped per exercise in stable
+ * exerciseId order. `priorSessions` must NOT include the session being saved.
+ */
+export function sessionPRs(
+  priorSessions: readonly RecordSessionLike[],
+  currentSets: readonly (RecordSetLike & { exerciseId: string })[],
+): WorkoutPR[] {
+  const prior = new Map<string, RecordSetLike[]>();
+  for (const session of priorSessions) {
+    for (const set of session.sets) {
+      const list = prior.get(set.exerciseId);
+      if (list) list.push(set);
+      else prior.set(set.exerciseId, [set]);
+    }
+  }
+  const grouped = new Map<string, RecordSetLike[]>();
+  for (const set of currentSets) {
+    const list = grouped.get(set.exerciseId);
+    if (list) list.push(set);
+    else grouped.set(set.exerciseId, [set]);
+  }
+  return [...grouped.keys()]
+    .sort((a, b) => a.localeCompare(b))
+    .flatMap((exerciseId) => exercisePRs(exerciseId, prior.get(exerciseId) ?? [], grouped.get(exerciseId) ?? []));
+}
+
 export type BestSet = {
   date: string;
   reps: number;
@@ -203,7 +331,7 @@ export function personalRecords(sessions: readonly WorkoutSessionLike[]): Exerci
   sessions.forEach((session, index) => {
     const counted = new Set<string>();
     for (const set of session.sets) {
-      if (set.reps < 1) continue;
+      if (!isCountedSet(set)) continue;
       const exercise = exerciseById(set.exerciseId);
       if (!exercise) continue;
       let entry = entries.get(set.exerciseId);
@@ -276,7 +404,7 @@ function bestE1rmIn(
   for (const session of sessions) {
     if (!inRange(session.date, from, to)) continue;
     for (const set of session.sets) {
-      if (set.exerciseId !== exerciseId || set.reps < 1) continue;
+      if (set.exerciseId !== exerciseId || !isCountedSet(set)) continue;
       if (set.weightKg === null || set.weightKg <= 0) continue;
       best = Math.max(best, estimate1RM(set.weightKg, set.reps));
     }

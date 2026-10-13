@@ -4,10 +4,12 @@ import { exerciseById } from "./exercises";
 import { proteinTargetG, shiftDate } from "./engine";
 import {
   WORKOUT_TEMPLATES,
+  bestSetMetrics,
   estimate1RM,
   missedMuscleWarnings,
   personalRecords,
   sessionKcal,
+  sessionPRs,
   strengthTrendHint,
   weeklySetsPerMuscle,
   type WorkoutSessionLike,
@@ -298,5 +300,110 @@ describe("protein bump on training days", () => {
   test("the cap still applies on training days", () => {
     expect(proteinTargetG(130, 170, false)).toBe(108);
     expect(proteinTargetG(130, 170, true)).toBe(115); // 1.6 x 72
+  });
+});
+
+describe("sessionPRs", () => {
+  test("a first-ever exercise earns no PRs", () => {
+    expect(sessionPRs([], [set("bench_press", 10, 60)])).toEqual([]);
+  });
+
+  test("warmup sets never count, on either side", () => {
+    // history of warmups only = never really attempted
+    const warmupHistory = [{ sets: [{ ...set("bench_press", 8, 100), setType: "warmup" }] }];
+    expect(sessionPRs(warmupHistory, [set("bench_press", 5, 60)])).toEqual([]);
+    // a warmup beating an old real record still earns nothing
+    const history = [{ sets: [set("bench_press", 5, 60)] }];
+    expect(
+      sessionPRs(history, [{ ...set("bench_press", 8, 100), setType: "warmup" }]),
+    ).toEqual([]);
+  });
+
+  test("ties do not beat a record, only strict improvements", () => {
+    const prior = [{ sets: [set("bench_press", 5, 100)] }];
+    expect(sessionPRs(prior, [set("bench_press", 5, 100)])).toEqual([]);
+
+    const prs = sessionPRs(prior, [set("bench_press", 6, 100)]);
+    // same weight: no weight PR; heavier e1RM, more reps, more volume win
+    expect(prs.find((pr) => pr.kind === "weight")).toBeUndefined();
+    expect(prs).toContainEqual({ exerciseId: "bench_press", kind: "reps", value: 6, previous: 5 });
+    expect(prs).toContainEqual({
+      exerciseId: "bench_press",
+      kind: "one_rm",
+      value: 120,
+      previous: 116.7,
+    });
+    expect(prs).toContainEqual({
+      exerciseId: "bench_press",
+      kind: "set_volume",
+      value: 600,
+      previous: 500,
+    });
+  });
+
+  test("each record kind is detected against prior history", () => {
+    const prior = [{ sets: [set("bench_press", 8, 80)] }]; // e1RM 101.3, volume 640
+    const prs = sessionPRs(prior, [set("bench_press", 3, 95)]);
+    expect(prs).toContainEqual({ exerciseId: "bench_press", kind: "weight", value: 95, previous: 80 });
+    expect(prs).toContainEqual({
+      exerciseId: "bench_press",
+      kind: "one_rm",
+      value: 104.5,
+      previous: 101.3,
+    });
+    // 3 reps < 8 and 285 kg < 640 kg: those records stand
+    expect(prs.find((pr) => pr.kind === "reps")).toBeUndefined();
+    expect(prs.find((pr) => pr.kind === "set_volume")).toBeUndefined();
+  });
+
+  test("bodyweight exercises track a reps record; first weighted set wins with previous null", () => {
+    const prior = [{ sets: [set("push_up", 30, null)] }];
+    expect(sessionPRs(prior, [set("push_up", 35, null)])).toEqual([
+      { exerciseId: "push_up", kind: "reps", value: 35, previous: 30 },
+    ]);
+    const weighted = sessionPRs(prior, [set("push_up", 10, 20)]);
+    expect(weighted).toContainEqual({ exerciseId: "push_up", kind: "weight", value: 20, previous: null });
+  });
+
+  test("timed sets carry no reps and earn nothing", () => {
+    const prior = [{ sets: [{ exerciseId: "plank", reps: null, weightKg: null }] }];
+    expect(
+      sessionPRs(prior, [{ exerciseId: "plank", reps: null, weightKg: null, durationSec: 90 }]),
+    ).toEqual([]);
+  });
+
+  test("drop and failure sets count like normal sets", () => {
+    const prior = [{ sets: [set("squat", 5, 100)] }];
+    const prs = sessionPRs(prior, [{ ...set("squat", 5, 110), setType: "failure" }]);
+    expect(prs.find((pr) => pr.kind === "weight")?.value).toBe(110);
+  });
+
+  test("exercises are grouped in stable id order", () => {
+    const prior = [
+      { sets: [set("squat", 5, 100)] },
+      { sets: [set("bench_press", 5, 60)] },
+    ];
+    const prs = sessionPRs(prior, [set("squat", 5, 110), set("bench_press", 5, 70)]);
+    expect([...new Set(prs.map((pr) => pr.exerciseId))]).toEqual(["bench_press", "squat"]);
+  });
+});
+
+describe("bestSetMetrics", () => {
+  test("best of each kind across counted sets, warmups and timed holds excluded", () => {
+    const metrics = bestSetMetrics([
+      { setType: "warmup", reps: 10, weightKg: 200 },
+      { setType: "normal", reps: 5, weightKg: 100 },
+      { setType: "normal", reps: 12, weightKg: 60 },
+      { setType: "normal", reps: null, weightKg: null },
+    ]);
+    expect(metrics.weightKg).toBe(100);
+    expect(metrics.reps).toBe(12);
+    expect(metrics.setVolume).toBe(720);
+    expect(metrics.oneRm).toBe(estimate1RM(100, 5));
+  });
+
+  test("all nulls for an empty or warmup-only history", () => {
+    expect(bestSetMetrics([]).weightKg).toBeNull();
+    expect(bestSetMetrics([{ setType: "warmup", reps: 10, weightKg: 100 }]).reps).toBeNull();
   });
 });

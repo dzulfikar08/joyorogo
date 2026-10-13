@@ -36,12 +36,37 @@ export const EQUIPMENT = [
 
 export type EquipmentKey = (typeof EQUIPMENT)[number]["key"];
 
+/** How a set is logged: weights+reps, reps only, or a timed hold. */
+export const EXERCISE_TYPES = [
+  "weight_reps",
+  "bodyweight_reps",
+  "assisted",
+  "duration",
+  "distance_duration",
+] as const;
+
+export type ExerciseType = (typeof EXERCISE_TYPES)[number];
+
 export type Exercise = {
   id: string;
   name: string;
   equipment: EquipmentKey;
+  /** primary muscle group — the picker's filter id */
+  muscle: MuscleKey;
+  /** how sets of this movement are logged */
+  type: ExerciseType;
   primary: MuscleKey[];
   secondary: MuscleKey[];
+  /** true for rows from workout_custom_exercise, absent for catalog entries */
+  custom?: boolean;
+};
+
+/** Catalog holds that are logged in seconds, not reps. */
+const DURATION_IDS: Record<string, true> = {
+  plank: true,
+  side_plank: true,
+  wall_sit: true,
+  dead_hang: true,
 };
 
 function ex(
@@ -51,7 +76,19 @@ function ex(
   primary: MuscleKey[],
   secondary: MuscleKey[] = [],
 ): Exercise {
-  return { id, name, equipment, primary, secondary };
+  return {
+    id,
+    name,
+    equipment,
+    muscle: primary[0]!,
+    type: DURATION_IDS[id]
+      ? "duration"
+      : equipment === "bodyweight"
+        ? "bodyweight_reps"
+        : "weight_reps",
+    primary,
+    secondary,
+  };
 }
 
 export const EXERCISE_CATALOG: Exercise[] = [

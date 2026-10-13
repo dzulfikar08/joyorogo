@@ -116,6 +116,23 @@
   }
 }
 
+/* Gentle bob for the scan card floating beside the hero phone (md+ only). */
+@media (prefers-reduced-motion: no-preference) {
+  .animate-drift {
+    animation: drift-y 7s ease-in-out infinite;
+  }
+}
+
+@keyframes drift-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
 /* VAR perut: ultrasound sweep line drifts down the cone, food stickers bob. */
 @media (prefers-reduced-motion: no-preference) {
   .var-sweep {

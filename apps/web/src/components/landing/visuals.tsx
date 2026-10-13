@@ -1,4 +1,16 @@
-import { Camera, Flame, House, Moon, Scale, User, Utensils } from "lucide-react";
+import {
+  Camera,
+  Check,
+  Flame,
+  Hand,
+  House,
+  Moon,
+  NotebookPen,
+  Ruler,
+  Scale,
+  User,
+  Utensils,
+} from "lucide-react";
 
 import { Ring } from "@/components/kit/ring";
 import { fmtInt, fmtKg } from "@/lib/format";
@@ -156,9 +168,11 @@ export function HeroPhone() {
         </div>
       </div>
 
-      {/* The scan result that would come next: lunch, one photo. */}
+      {/* The scan result that would come next: lunch, one photo. Static
+          below the phone on small screens (absolute would cover the mock),
+          floating beside it with a gentle bob from md up. */}
       <div
-        className="absolute bottom-6 -left-1 w-[13.5rem] rounded-[1.25rem] bg-card p-3.5 shadow-float md:-left-20 md:w-60"
+        className="relative z-10 mx-auto -mt-4 w-[13.5rem] rounded-[1.25rem] bg-card p-3.5 shadow-float md:absolute md:bottom-6 md:-left-20 md:mx-0 md:mt-0 md:w-60 md:animate-drift"
         role="img"
         aria-label={`Contoh hasil foto makan siang: ${fmtInt(lunch)} kcal.`}
       >
@@ -279,10 +293,126 @@ export function WeightTrendDemo() {
           Berat tren
         </span>
       </div>
+
+      {/* Lingkar perut rides along in the same figure: the second progress
+          number, with the cutoffs the app actually uses. */}
+      <div className="mt-3 flex items-start gap-3 border-t border-border/70 pt-3">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-tidur-soft text-tidur-ink">
+          <Ruler className="size-4" aria-hidden />
+        </span>
+        <div>
+          <p className="text-sm font-bold">
+            Lingkar perut 82 cm
+            <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[0.625rem] font-semibold text-muted-foreground">
+              Contoh
+            </span>
+          </p>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+            Rasio perut terhadap tinggi 0,49 — di bawah batas 0,5. Batas aman: pria 90 cm, wanita
+            80 cm.
+          </p>
+        </div>
+      </div>
+
       <figcaption className="mt-3 border-t border-border/70 pt-3 text-sm text-muted-foreground">
         Dengan ritme ini, target {GOAL_KG} kg tercapai sekitar{" "}
         <strong className="font-semibold text-foreground">{weeksLeft} minggu lagi</strong>. Contoh
         data.
+      </figcaption>
+    </figure>
+  );
+}
+
+/* Example group the same way the app renders one: rows, not tiles. */
+const GROUP_FEED = [
+  {
+    initial: "R",
+    name: "Rani",
+    note: "Soto ayam, dicatat 08.12",
+    chip: "Rapi",
+    chipIcon: Check,
+    chipClass: "bg-makan-soft text-makan-ink",
+    ringClass: "bg-makan-soft text-makan-ink",
+  },
+  {
+    initial: "B",
+    name: "Bagus",
+    note: "2 hari belum catat apa-apa",
+    chip: "Colek",
+    chipIcon: Hand,
+    chipClass: "bg-bakar-soft text-bakar-ink",
+    ringClass: "bg-bakar-soft text-bakar-ink",
+  },
+  {
+    initial: "W",
+    name: "Wulan",
+    note: "Gym bareng nanti sore, jangan batal",
+    chip: "Catatan",
+    chipIcon: NotebookPen,
+    chipClass: "bg-tidur-soft text-tidur-ink",
+    ringClass: "bg-tidur-soft text-tidur-ink",
+  },
+] as const;
+
+/** Example group feed: member rows, a colek chip, and the VAR teaser card. */
+export function GroupPeek() {
+  return (
+    <figure className="relative mx-auto w-full max-w-[24rem] md:max-w-[26rem]">
+      {/* Solid stage behind the card, same trick as the hero phone. */}
+      <div
+        aria-hidden
+        className="absolute inset-x-4 top-8 bottom-10 rounded-[2.5rem] bg-tidur-soft md:inset-x-0"
+      />
+
+      <div className="relative rounded-[1.75rem] bg-card p-4 shadow-float md:p-5">
+        <p className="flex items-center justify-between gap-3 text-sm font-extrabold tracking-tight">
+          Grup Pemalas Sejagat
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[0.6875rem] font-semibold text-muted-foreground">
+            3 anggota
+          </span>
+        </p>
+        <ul className="mt-2 divide-y divide-border/70">
+          {GROUP_FEED.map((member) => (
+            <li key={member.name} className="flex items-center gap-3 py-3">
+              <span
+                className={`flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${member.ringClass}`}
+                aria-hidden
+              >
+                {member.initial}
+              </span>
+              <span className="min-w-0 max-w-[10.5rem]">
+                <span className="block truncate text-[0.9375rem] font-bold">{member.name}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {member.note}
+                </span>
+              </span>
+              <span
+                className={`ml-auto flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${member.chipClass}`}
+              >
+                <member.chipIcon className="size-3" aria-hidden />
+                {member.chip}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* The VAR reveal: what VAR Check surfaces about a friend's day. */}
+      <div
+        className="relative z-10 mx-auto mt-4 ml-auto mr-2 w-48 rounded-[1.25rem] bg-card p-3.5 shadow-float md:absolute md:-right-8 md:-bottom-14 md:mx-0 md:mt-0 md:w-52 md:animate-drift"
+        role="img"
+        aria-label="Contoh kartu VAR: catatan makanan Bagus hari ini terlihat lewat VAR."
+      >
+        <p className="inline-block rounded-md border-2 border-bakar-ink px-1.5 py-0.5 text-[0.5625rem] font-black uppercase italic tracking-[0.18em] text-bakar-ink">
+          VAR Check
+        </p>
+        <p className="mt-1.5 text-xs leading-snug font-semibold">
+          Isi perut Bagus hari ini: nasi padang + es teh. Colek balik?
+        </p>
+      </div>
+
+      <figcaption className="relative mt-4 text-center text-xs text-muted-foreground md:pr-44">
+        Contoh tampilan grup.
       </figcaption>
     </figure>
   );

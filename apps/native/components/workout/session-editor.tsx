@@ -58,7 +58,7 @@ export function draftFromTemplate(
 /** "Ulangi sesi terakhir" — same movements and sets, new session. */
 export function draftFromSession(item: {
   session: { name: string; durationMin: number | null; note: string | null };
-  sets: { exerciseId: string; reps: number; weightKg: number | null; rpe: number | null }[];
+  sets: { exerciseId: string; reps: number | null; weightKg: number | null; rpe: number | null }[];
 }, nameOf: (exerciseId: string) => string): SessionDraft {
   const grouped = new Map<string, EditorExercise>();
   for (const set of item.sets) {
@@ -68,7 +68,7 @@ export function draftFromSession(item: {
       grouped.set(set.exerciseId, exercise);
     }
     exercise.sets.push({
-      reps: String(set.reps),
+      reps: set.reps != null ? String(set.reps) : "",
       weightKg: set.weightKg != null ? String(set.weightKg) : "",
       rpe: set.rpe != null ? String(set.rpe) : "",
     });
