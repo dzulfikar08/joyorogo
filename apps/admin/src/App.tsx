@@ -1,10 +1,14 @@
+import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
+import { RotateCw } from "lucide-react";
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
+import { api } from "./api";
 import { useAdminGate, useSignIn, useSignOut } from "./auth";
+import { Badge } from "./ui";
 import { OrdersSection } from "./sections/Orders";
-import { OverviewSection } from "./sections/Overview";
+import { OverviewSection, SendTestEmailButton } from "./sections/Overview";
 import { UsersSection } from "./sections/Users";
 
 const TABS = ["overview", "users", "orders"] as const;
@@ -48,13 +52,25 @@ function SignInScreen({ notAdmin, email }: { notAdmin: boolean; email: string | 
 export default function App() {
   const gate = useAdminGate();
   const signOut = useSignOut();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>(currentTab);
+  const fetching = useIsFetching();
+  const [updated, setUpdated] = useState(() => new Date());
 
   useEffect(() => {
     const onHash = () => setTab(currentTab());
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
+
+  // "Updated" stamp refreshes whenever a fetch cycle completes.
+  useEffect(() => {
+    if (fetching === 0) setUpdated(new Date());
+  }, [fetching]);
+
+  const updatedTime = [updated.getHours(), updated.getMinutes(), updated.getSeconds()]
+    .map((n) => String(n).padStart(2, "0"))
+    .join(":");
 
   if (gate.isPending) {
     return <div className="min-h-dvh" />;
@@ -72,8 +88,25 @@ export default function App() {
     <>
       <div className="mx-auto flex min-h-dvh max-w-7xl flex-col gap-4 p-4 sm:p-6">
         <header className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-lg font-bold">JoyoRogo Admin</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <img src="/brand/logo-mark.svg" alt="JoyoRogo" className="size-8" />
+            <h1 className="text-lg font-bold">JoyoRogo Admin</h1>
+            <Badge tone="green">Admin</Badge>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs tabular-nums text-muted-foreground">
+              Diperbarui {updatedTime}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              aria-label="Refresh data"
+              onClick={() => void queryClient.invalidateQueries()}
+            >
+              <RotateCw className={cn("size-4", fetching > 0 && "animate-spin")} />
+              Refresh
+            </Button>
+            <SendTestEmailButton />
             <span className="text-xs text-muted-foreground">{gate.data?.email ?? ""}</span>
             <Button
               size="xs"

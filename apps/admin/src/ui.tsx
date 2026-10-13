@@ -1,6 +1,82 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
-import type { ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
+import type { ComponentProps, ReactNode } from "react";
+
+/** Styled native select matching the filled Input field look, with chevron. */
+export function Select({ className, children, ...props }: ComponentProps<"select">) {
+  return (
+    <div className={cn("relative", className)}>
+      <select
+        data-slot="select"
+        className="h-12 w-full cursor-pointer appearance-none rounded-xl border border-transparent bg-muted px-3 pr-9 text-base text-foreground transition-[border-color,box-shadow,background-color] outline-none focus-visible:border-ring/60 focus-visible:bg-card focus-visible:ring-[3px] focus-visible:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-50"
+        {...props}
+      >
+        {children}
+      </select>
+      <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+    </div>
+  );
+}
+
+/** Vertical bar chart, pure CSS. Continuous x-axis; tooltips via title. */
+export function BarChart({
+  rows,
+  height = 130,
+  formatValue = (v: number) => String(v),
+}: {
+  rows: { key: string; label: string; value: number }[];
+  height?: number;
+  formatValue?: (v: number) => string;
+}) {
+  const max = Math.max(1, ...rows.map((r) => r.value));
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="grid grid-cols-[3rem_1fr] gap-2">
+        <div
+          className="flex flex-col items-end justify-between text-right text-[0.625rem] leading-none tabular-nums text-muted-foreground"
+          style={{ height }}
+        >
+          <span>{formatValue(max)}</span>
+          <span>{formatValue(Math.round(max / 2))}</span>
+          <span>0</span>
+        </div>
+        <div className="relative min-w-0" style={{ height }}>
+          <div className="absolute inset-0 flex flex-col justify-between">
+            <div className="border-t border-border" />
+            <div className="border-t border-border/40" />
+            <div className="border-t border-border" />
+          </div>
+          <div className="absolute inset-0 flex items-end gap-[2px]">
+            {rows.map((r) => (
+              <div
+                key={r.key}
+                title={`${r.label}: ${formatValue(r.value)}`}
+                className="min-w-[3px] flex-1 rounded-t-[3px] bg-primary"
+                style={{
+                  height: r.value > 0 ? `${Math.max(2, (r.value / max) * 100)}%` : undefined,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-[3rem_1fr] gap-2">
+        <div />
+        <div className="flex gap-[2px]">
+          {rows.map((r, i) => (
+            <span
+              key={r.key}
+              className="flex-1 overflow-visible text-center text-[0.5625rem] whitespace-nowrap text-muted-foreground"
+            >
+              {i % 5 === 0 || i === rows.length - 1 ? r.label : ""}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /** Small pill label reusing the shared theme tokens. */
 export function Badge({
@@ -114,17 +190,18 @@ export function Pagination({
         {total} data · halaman {page} dari {totalPages}
       </span>
       <div className="flex items-center gap-2">
-        <select
+        <Select
           value={pageSize}
           onChange={(e) => onPageSize(Number(e.target.value))}
-          className="h-8 rounded-lg border border-border bg-card px-2 text-xs text-foreground"
+          aria-label="Baris per halaman"
+          className="[&_[data-slot=select]]:h-8 [&_[data-slot=select]]:rounded-lg [&_[data-slot=select]]:px-2 [&_[data-slot=select]]:pr-7 [&_[data-slot=select]]:text-xs"
         >
           {sizes.map((s) => (
             <option key={s} value={s}>
               {s}/hal
             </option>
           ))}
-        </select>
+        </Select>
         <Button
           size="xs"
           variant="outline"

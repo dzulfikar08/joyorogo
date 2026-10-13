@@ -1,11 +1,12 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
+import { Checkbox } from "@joyorogo/ui/components/checkbox";
 import { Input } from "@joyorogo/ui/components/input";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { fmtDate, fmtDateTime, get, type AdminUser, type PagedUsers } from "../api";
 import { useHashQuery } from "../hash";
-import { Badge, Pagination } from "../ui";
+import { Badge, Pagination, Select } from "../ui";
 import { UserDetail } from "./UserDetail";
 
 function TierBadge({ user }: { user: AdminUser }) {
@@ -21,7 +22,6 @@ function TierBadge({ user }: { user: AdminUser }) {
 }
 
 type SortKey = "newest" | "lastSeen" | "scansToday" | "scans7d" | "scansTotal";
-const SELECT_CLS = "h-12 rounded-xl border border-border bg-card px-3 text-sm text-foreground";
 
 export function UsersSection() {
   const { params, set } = useHashQuery("users");
@@ -68,35 +68,33 @@ export function UsersSection() {
             className="pl-10"
           />
         </div>
-        <select
+        <Select
           value={tier}
           onChange={(e) => setFilter({ tier: e.target.value || null })}
-          className={SELECT_CLS}
+          aria-label="Filter tier"
         >
           <option value="">Tier: semua</option>
           <option value="free">Tier: free</option>
           <option value="founder">Tier: founder</option>
-        </select>
-        <label className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-xl border border-border bg-card px-3 text-sm text-foreground">
-          <input
-            type="checkbox"
+        </Select>
+        <label className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-xl bg-muted px-3 text-base text-foreground">
+          <Checkbox
             checked={abuse}
-            onChange={(e) => setFilter({ abuse: e.target.checked ? "1" : null })}
-            className="size-4 accent-primary"
+            onCheckedChange={(checked) => setFilter({ abuse: checked ? "1" : null })}
           />
           Dugaan abuse
         </label>
-        <select
+        <Select
           value={sort}
           onChange={(e) => setFilter({ sort: e.target.value })}
-          className={SELECT_CLS}
+          aria-label="Urutkan"
         >
           <option value="scans7d">Sort: scans 7d</option>
           <option value="scansToday">Sort: scans today</option>
           <option value="scansTotal">Sort: scans total</option>
           <option value="lastSeen">Sort: last seen</option>
           <option value="newest">Sort: newest</option>
-        </select>
+        </Select>
       </div>
 
       <div className={cn("rounded-xl border border-border bg-card", users.isPlaceholderData && "opacity-60")}>

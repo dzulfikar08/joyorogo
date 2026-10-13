@@ -2,10 +2,11 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@joyorogo/ui/components/button";
+import { Input } from "@joyorogo/ui/components/input";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { api, fmtDateTime, fmtIdr, get, type AdminOrder, type PagedOrders } from "../api";
 import { useHashQuery } from "../hash";
-import { Badge, Pagination } from "../ui";
+import { Badge, Pagination, Select } from "../ui";
 
 function CheckButton({
   orderId,
@@ -41,8 +42,6 @@ function CheckButton({
     </Button>
   );
 }
-
-const SELECT_CLS = "h-12 rounded-xl border border-border bg-card px-3 text-sm text-foreground";
 
 export function OrdersSection() {
   const { params, set } = useHashQuery("orders");
@@ -107,23 +106,22 @@ export function OrdersSection() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-60 flex-1">
-          <input
+          <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari nama, email, atau order id…"
-            className="h-12 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground"
           />
         </div>
-        <select
+        <Select
           value={status}
           onChange={(e) => setFilter({ status: e.target.value || null })}
-          className={SELECT_CLS}
+          aria-label="Filter status"
         >
           <option value="">Status: semua</option>
           <option value="pending">Status: pending</option>
           <option value="paid">Status: paid</option>
           <option value="failed">Status: failed</option>
-        </select>
+        </Select>
         <Button
           size="sm"
           disabled={checkingAll > 0}

@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@joyorogo/ui/components/button";
 import { api, fmtIdr, get, type Overview, type UsageDay } from "../api";
-import { DayBars, SectionCard, StatCard } from "../ui";
+import { BarChart, SectionCard, StatCard } from "../ui";
 
-function SendTestEmailButton() {
+export function SendTestEmailButton() {
   const [sending, setSending] = useState(false);
   return (
     <Button
@@ -30,6 +30,24 @@ function SendTestEmailButton() {
   );
 }
 
+/** Local-time YYYY-MM-DD keys for the last `n` days, oldest first. */
+function lastDays(n: number): string[] {
+  const keys: string[] = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    keys.push(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+    );
+  }
+  return keys;
+}
+
+const dayLabel = (day: string) => `${day.slice(8)}/${day.slice(5, 7)}`;
+const compactIdr = (v: number) =>
+  new Intl.NumberFormat("id-ID", { notation: "compact", maximumFractionDigits: 1 }).format(v);
+
 export function OverviewSection() {
   const overview = useQuery({
     queryKey: ["overview"],
@@ -41,13 +59,27 @@ export function OverviewSection() {
   });
 
   const o = overview.data;
-  const days = usage.data?.days ?? [];
+
+  // Continuous 30-day x-axis: server days may have gaps; missing days count 0.
+  const days = useMemo(() => {
+    const byDay: Record<string, UsageDay> = {};
+    for (const d of usage.data?.days ?? []) byDay[d.day] = d;
+    return lastDays(30).map(
+      (day) => byDay[day] ?? { day, scans: 0, scanUsers: 0, signups: 0, paid: 0, revenueIdr: 0 },
+    );
+  }, [usage.data]);
+
+  // Table: newest first, only days with any activity.
+  const activeDays = useMemo(
+    () =>
+      [...days]
+        .reverse()
+        .filter((d) => d.scans > 0 || d.signups > 0 || d.paid > 0 || d.revenueIdr > 0),
+    [days],
+  );
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex justify-end">
-        <SendTestEmailButton />
-      </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard
           label="Users"
@@ -74,16 +106,44 @@ export function OverviewSection() {
       </div>
 
       <SectionCard title="Last 30 days — scans per day">
-        <DayBars
-          rows={[...days].reverse().map((d) => ({
-            key: d.day,
-            label: d.day.slice(5),
-            value: d.scans,
-          }))}
-        />
+        <div className="overflow-x-auto">
+          <div className="min-w-[480px]">
+            <BarChart
+              rows={days.map((d) => ({ key: d.day, label: dayLabel(d.day), value: d.scans }))}
+            />
+          </div>
+        </div>
       </SectionCard>
 
-      <SectionCard title="Last 30 days — daily usage">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SectionCard title="Last 30 days — signups per day">
+          <div className="overflow-x-auto">
+            <div className="min-w-[380px]">
+              <BarChart
+                height={100}
+                rows={days.map((d) => ({ key: d.day, label: dayLabel(d.day), value: d.signups }))}
+              />
+            </div>
+          </div>
+        </SectionCard>
+        <SectionCard title="Last 30 days — revenue per day">
+          <div className="overflow-x-auto">
+            <div className="min-w-[380px]">
+              <BarChart
+                height={100}
+                formatValue={compactIdr}
+                rows={days.map((d) => ({
+                  key: d.day,
+                  label: dayLabel(d.day),
+                  value: d.revenueIdr,
+                }))}
+              />
+            </div>
+          </div>
+        </SectionCard>
+      </div>
+
+      <SectionCard title="Daily usage">
         <div className="table-wrap">
           <table>
             <thead>
@@ -97,7 +157,7 @@ export function OverviewSection() {
               </tr>
             </thead>
             <tbody>
-              {[...days].reverse().map((d) => (
+              {activeDays.map((d) => (
                 <tr key={d.day}>
                   <td className="font-medium">{d.day}</td>
                   <td>{d.scans}</td>
@@ -107,6 +167,13 @@ export function OverviewSection() {
                   <td>{fmtIdr(d.revenueIdr)}</td>
                 </tr>
               ))}
+              {activeDays.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-muted-foreground">
+                    No activity in the last 30 days.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
