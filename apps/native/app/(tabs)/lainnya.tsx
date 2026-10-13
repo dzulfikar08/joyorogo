@@ -54,6 +54,14 @@ export default function Lainnya() {
           onPress={() => router.push("/profil")}
         />
         <ListRow
+          icon="scale"
+          iconTint="tidur"
+          title="Berat"
+          subtitle="Berat badan, lingkar perut, dan tren"
+          chevron
+          onPress={() => router.push("/berat")}
+        />
+        <ListRow
           icon="people"
           iconTint="makan"
           title="Grup"

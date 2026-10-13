@@ -1,20 +1,19 @@
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Camera, Ellipsis, House, Newspaper, Scale, Utensils } from "lucide-react";
+import { Camera, Ellipsis, House, Newspaper, Utensils } from "lucide-react";
 
 import { orpc } from "@/utils/orpc";
 
 const TABS = [
   { to: "/beranda", label: "Beranda", Icon: House },
   { to: "/makan", label: "Makan", Icon: Utensils },
-  { to: "/berat", label: "Berat", Icon: Scale },
   { to: "/feed", label: "Feed", Icon: Newspaper },
   { to: "/lainnya", label: "Lainnya", Icon: Ellipsis },
 ] as const;
 
 /** Routes the Lainnya tab/desktop link stands in for. */
-const LAINNYA_GROUP = ["/lainnya", "/profil", "/grup", "/inbox"] as const;
+const LAINNYA_GROUP = ["/lainnya", "/profil", "/grup", "/inbox", "/berat"] as const;
 
 function inLainnyaGroup(pathname: string, to: string): boolean {
   return to === "/lainnya" && LAINNYA_GROUP.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -68,7 +67,7 @@ export default function BottomNav() {
       aria-label="Navigasi utama"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-card pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-12px_oklch(0.3_0.02_85/18%)] md:hidden"
     >
-      <ul className="mx-auto grid max-w-xl grid-cols-6 items-end px-2">
+      <ul className="mx-auto grid max-w-xl grid-cols-5 items-end px-2">
         {TABS.slice(0, 2).map((tab) => (
           <li key={tab.to}>
             <Tab {...tab} />

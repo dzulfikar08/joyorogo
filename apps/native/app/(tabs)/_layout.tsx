@@ -135,21 +135,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="berat"
-        options={{
-          tabBarLabel: "Berat",
-          tabBarIcon: ({ focused, size, color }) => (
-            <TabIcon
-              focused={focused}
-              name="scale"
-              outline="scale-outline"
-              size={size}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="feed"
         options={{
           tabBarLabel: "Feed",
@@ -184,6 +169,7 @@ export default function TabLayout() {
       {/* Reached from the Beranda tiles, not from the tab bar. href must not
           be combined with a custom tabBarButton (earlier crash). */}
       <Tabs.Screen name="olahraga" options={{ href: null }} />
+      <Tabs.Screen name="berat" options={{ href: null }} />
       <Tabs.Screen name="tidur" options={{ href: null }} />
     </Tabs>
   );

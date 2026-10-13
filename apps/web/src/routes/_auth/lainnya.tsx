@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Bell, Sparkles, Tag, Users } from "lucide-react";
+import { Bell, Scale, Sparkles, Tag, Users } from "lucide-react";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 
 import { Avatar } from "@/components/avatar";
@@ -65,6 +65,16 @@ function LainnyaPage() {
           icon={<Avatar name={name} image={session.data?.user.image ?? null} />}
           title={name}
           subtitle={session.data?.user.email ?? undefined}
+        />
+        <ListLinkRow
+          to="/berat"
+          icon={
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-tidur-soft">
+              <Scale className="size-5 text-tidur-ink" aria-hidden />
+            </span>
+          }
+          title="Berat"
+          subtitle="Berat badan, lingkar perut, dan tren"
         />
         <ListLinkRow
           to="/grup"
