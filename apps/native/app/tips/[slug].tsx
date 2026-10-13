@@ -7,7 +7,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { TIPS } from "@joyorogo/api/lib/tips";
 
-import { Card, ErrorState, PageHeader, Screen, Text } from "@/components/ui";
+import { Card, ErrorState, Screen, Text } from "@/components/ui";
 import { TipIconGlyph } from "@/components/tips/tip-icon";
 import { tipImageUrl } from "@/src/lib/tips-img";
 
@@ -28,7 +28,6 @@ export default function TipArticle() {
   if (!tip) {
     return (
       <Screen>
-        <PageHeader title="Tips" />
         <ErrorState
           message="Tips tidak ditemukan."
           onRetry={() => {
@@ -42,8 +41,6 @@ export default function TipArticle() {
 
   return (
     <Screen>
-      <PageHeader title="Tips" />
-
       {tip.image && !heroFailed ? (
         <Image
           source={{ uri: tipImageUrl(`${tip.slug}.webp`) }}

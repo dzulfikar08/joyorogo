@@ -90,6 +90,7 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: 15,
     fontWeight: "700",
     lineHeight: 21,
+    color: theme.colors.foreground,
   },
   summary: {
     fontSize: 13,
@@ -107,5 +108,6 @@ const styles = StyleSheet.create((theme) => ({
   readLabel: {
     fontSize: 13,
     fontWeight: "600",
+    color: theme.colors.foreground,
   },
 }));

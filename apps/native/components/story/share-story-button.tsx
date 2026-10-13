@@ -1,5 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Image, ScrollView, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -53,18 +53,36 @@ export function ShareStoryButton({
 
   const defaultPhoto = storyPhotoUri(story);
   const effectivePhoto = photoUri ?? defaultPhoto;
-  const templates = STORY_TEMPLATES.filter(
-    (candidate) => !candidate.needsPhoto || effectivePhoto != null,
+  const templates = useMemo(
+    () => STORY_TEMPLATES.filter((candidate) => !candidate.needsPhoto || effectivePhoto != null),
+    [effectivePhoto],
   );
 
-  const capturePreviews = useCallback(async () => {
+  // The offscreen cards mount in the same commit that opens the sheet, so the
+  // first capture can run before Android has laid them out (or the photo has
+  // decoded) and view-shot throws. Wait a few frames, retry with backoff, and
+  // only fail the templates that still can't be drawn.
+  const capturePreviews = useCallback(async (isCancelled: () => boolean) => {
     const uris: string[] = [];
-    for (const [index, candidate] of templates.entries()) {
-      const view = cardRefs.current[index];
-      if (!view) continue;
-      uris.push(await captureRef(view, { format: "png", quality: 1 }));
+    for (const index of templates.keys()) {
+      let uri: string | null = null;
+      for (let attempt = 0; attempt < 4 && uri == null; attempt++) {
+        const { promise: settled, resolve } = Promise.withResolvers<void>();
+        setTimeout(resolve, 250 * (attempt + 1));
+        await settled;
+        if (isCancelled()) return;
+        const view = cardRefs.current[index];
+        if (!view) continue;
+        try {
+          uri = await captureRef(view, { format: "png", quality: 1 });
+        } catch (error) {
+          console.warn("story preview capture failed", templates[index]?.id, attempt, error);
+        }
+      }
+      if (uri == null) throw new Error(`capture failed: ${templates[index]?.id}`);
+      uris.push(uri);
     }
-    setPreviews(uris);
+    if (!isCancelled()) setPreviews(uris);
   }, [templates]);
 
   useEffect(() => {
@@ -72,9 +90,15 @@ export function ShareStoryButton({
       setPreviews(null);
       return;
     }
-    void capturePreviews().catch(() => {
-      toast.error("Gagal menyiapkan pratinjau", "Coba lagi sebentar ya.");
+    let cancelled = false;
+    capturePreviews(() => cancelled).catch(() => {
+      if (!cancelled) toast.error("Gagal menyiapkan pratinjau", "Coba lagi sebentar ya.");
     });
+    return () => {
+      cancelled = true;
+    };
+    // toast is stable per provider; capture reruns only when templates/photo change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, capturePreviews]);
 
   const pickPhoto = async () => {

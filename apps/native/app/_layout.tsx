@@ -132,6 +132,10 @@ export default function RootLayout() {
               options={{ title: "Founder", presentation: "modal", headerShown: false }}
             />
             <Stack.Screen name="inbox" options={{ title: "Kotak Masuk" }} />
+            <Stack.Screen name="tips/[slug]" options={{ title: "Tips" }} />
+            <Stack.Screen name="feed/[postId]" options={{ title: "Post" }} />
+            <Stack.Screen name="feed/notifikasi" options={{ title: "Notifikasi" }} />
+            <Stack.Screen name="u/[handle]" options={{ title: "Profil" }} />
             <Stack.Screen name="gabung" options={{ headerShown: false }} />
           </Stack>
           </ToastProvider>
