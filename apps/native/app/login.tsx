@@ -1,6 +1,7 @@
 import "@/unistyles";
 import * as Linking from "expo-linking";
-import { Redirect, Stack } from "expo-router";
+import { Redirect, Stack, useLocalSearchParams } from "expo-router";
+import type { Href } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
@@ -17,10 +18,16 @@ import { ENV } from "../src/env";
 
 export default function Login() {
   const { data: session, isPending } = authClient.useSession();
+  const { next } = useLocalSearchParams<{ next?: string }>();
+  // Protected screens (e.g. a gabung invite link opened while signed out)
+  // pass their route here so the user lands back after signing in.
+  const destination = (
+    typeof next === "string" && next !== "" ? next : "/"
+  ) as Href;
   const [signInError, setSignInError] = useState<string | null>(null);
 
   if (!isPending && session) {
-    return <Redirect href="/" />;
+    return <Redirect href={destination} />;
   }
 
   const handleGoogleSignIn = () => {

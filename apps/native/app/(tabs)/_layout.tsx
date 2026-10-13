@@ -6,6 +6,8 @@ import { Pressable, View, type ColorValue } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUnistyles } from "react-native-unistyles";
 
+import { useUnreadCount } from "@/src/lib/group";
+
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
 function TabIcon({
@@ -26,6 +28,8 @@ function TabIcon({
 
 export default function TabLayout() {
   const { theme } = useUnistyles();
+  const unread = useUnreadCount();
+  const unreadBadge = (unread.data?.count ?? 0) > 0 ? unread.data!.count : undefined;
   // Labels need clear space above the bottom edge, with or without a home
   // indicator: bar = 6 padding + icon + label + 8 clearance + safe inset.
   const insets = useSafeAreaInsets();
@@ -133,6 +137,22 @@ export default function TabLayout() {
               focused={focused}
               name="scale"
               outline="scale-outline"
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="grup"
+        options={{
+          tabBarLabel: "Grup",
+          tabBarBadge: unreadBadge,
+          tabBarIcon: ({ focused, size, color }) => (
+            <TabIcon
+              focused={focused}
+              name="people"
+              outline="people-outline"
               size={size}
               color={color}
             />

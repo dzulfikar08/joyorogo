@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import type { Href } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Alert, AppState, Platform, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -13,13 +13,16 @@ import {
   Card,
   PageHeader,
   Screen,
+  Segmented,
   Text,
 } from "@/components/ui";
 import {
+  FounderPromoCard,
   useAppleFounderPrice,
   useAppleFounderPurchase,
   useAppConfig,
   useFounderCheckout,
+  type CheckoutPlan,
 } from "@/components/billing";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage } from "@/utils/format";
@@ -40,7 +43,9 @@ export default function FounderPaywall() {
   const config = useAppConfig();
   const ios = Platform.OS === "ios";
   const purchase = useAppleFounderPurchase();
-  const checkout = useFounderCheckout();
+  // Yearly is DOKU-only: Apple IAP stays monthly.
+  const [plan, setPlan] = useState<CheckoutPlan>("monthly");
+  const checkout = useFounderCheckout(ios ? "monthly" : plan);
   const appleBilling = config.data?.appleBilling === true;
   const billing = ios ? appleBilling : config.data?.billing === true;
   const price = useAppleFounderPrice(ios && appleBilling);
@@ -91,10 +96,13 @@ export default function FounderPaywall() {
     config.data.founderDailyCap === null
       ? "Scan AI tanpa batas"
       : `${config.data.founderDailyCap} scan AI per hari`;
+  const yearly = !ios && plan === "yearly";
   const priceLabel =
     ios && price.data?.displayPrice
       ? price.data.displayPrice
-      : `Rp${config.data.founderPriceIdr.toLocaleString("id-ID")}`;
+      : `Rp${(
+          yearly ? config.data.founderYearlyPriceIdr : config.data.founderPriceIdr
+        ).toLocaleString("id-ID")}`;
   const subhead =
     from === "onboarding"
       ? "Rencana harianmu sudah siap. Founder buka scan AI lebih banyak setiap hari."
@@ -118,11 +126,33 @@ export default function FounderPaywall() {
     <Screen>
       <PageHeader title="Jadi Founder" caption={subhead} />
 
+      {!ios && <FounderPromoCard />}
+
       <Card style={styles.priceCard}>
+        {!ios && (
+          <>
+            <Segmented
+              options={[
+                { value: "monthly", label: "Bulanan" },
+                { value: "yearly", label: "Tahunan" },
+              ]}
+              value={plan}
+              onChange={setPlan}
+            />
+            {yearly ? (
+              <Text style={styles.priceNote}>Setara 10 bulan — hemat 2 bulan.</Text>
+            ) : null}
+          </>
+        )}
         <View style={styles.priceRow}>
           <Text style={styles.price}>{priceLabel}</Text>
-          <Text style={styles.pricePer}>/bulan</Text>
+          <Text style={styles.pricePer}>{yearly ? "/tahun" : "/bulan"}</Text>
         </View>
+        {yearly ? (
+          <Text style={styles.priceNote}>
+            12 bulan aktif. Menumpuk di sisa masa Founder-mu.
+          </Text>
+        ) : null}
         <Text style={styles.priceNote}>Tidak diperpanjang otomatis.</Text>
       </Card>
 

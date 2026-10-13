@@ -23,6 +23,14 @@ export type AppConfig = {
   freeDailyScans: number | null;
   founderDailyCap: number | null;
   founderPriceIdr: number;
+  /** Yearly founder bundle: 12 months for the price of 10. */
+  founderYearlyPriceIdr: number;
+  /**
+   * Founder intro-price ladder; null when the promo is off. `slots` = buyers
+   * allowed at the current step, `taken` = buyers so far, `nextPriceIdr` =
+   * monthly price after this step fills (null/undefined = no further increase).
+   */
+  promo: { slots: number; taken: number; nextPriceIdr?: number | null } | null;
   anonScans: number;
 };
 
@@ -94,13 +102,17 @@ export async function checkOrderPaid(orderId: string): Promise<BillingOrder> {
   return body;
 }
 
+/** Founder billing period; yearly stacks 12 months on the remaining period. */
+export type CheckoutPlan = "monthly" | "yearly";
+
 /** Start a Founder checkout (DOKU or Pakasir), opened in the browser. */
-export function useFounderCheckout() {
+export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
   return useMutation({
     mutationFn: async (): Promise<{ orderId: string; paymentUrl: string }> => {
       const res = await fetch(`${serverUrl()}/api/billing/checkout`, {
         method: "POST",
-        headers: await checkoutHeaders(),
+        headers: { "Content-Type": "application/json", ...(await checkoutHeaders()) },
+        body: JSON.stringify({ plan }),
       });
       const body = (await res.json().catch(() => null)) as {
         orderId?: string;
@@ -147,6 +159,39 @@ export function usePendingOrder(enabled: boolean) {
     staleTime: 30 * 1000,
     retry: 1,
   });
+}
+
+/**
+ * Founder intro-price banner with slot progress. Render it on Android only:
+ * Apple charges its own App Store price, so the DOKU promo copy would
+ * mismatch on iOS.
+ */
+export function FounderPromoCard() {
+  const config = useAppConfig();
+  const promo = config.data?.promo;
+  if (!config.data || !promo || promo.slots - promo.taken <= 0) return null;
+  const left = promo.slots - promo.taken;
+  const nextPriceIdr = promo.nextPriceIdr ?? null;
+  return (
+    <Card style={styles.promoCard}>
+      <Text style={styles.promoText}>
+        Harga perkenalan Rp{config.data.founderPriceIdr.toLocaleString("id-ID")}
+        /bulan cuma untuk {promo.slots} Founder pertama — sisa {left} slot
+        {nextPriceIdr !== null ? `. Setelah itu Rp${nextPriceIdr.toLocaleString("id-ID")}` : ""}.
+      </Text>
+      <View style={styles.promoTrack}>
+        <View
+          style={[
+            styles.promoFill,
+            { width: `${Math.min(100, Math.max(0, (promo.taken / promo.slots) * 100))}%` },
+          ]}
+        />
+      </View>
+      <Text style={styles.promoNote}>
+        Harga terkunci: Founder awal tetap bayar harga ini saat perpanjang.
+      </Text>
+    </Card>
+  );
 }
 
 /** App Store Connect product for one month of Founder; server verifies the id. */
@@ -392,6 +437,30 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
     lineHeight: 19,
+  },
+  promoCard: {
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.makanSoft,
+  },
+  promoText: {
+    fontSize: theme.fontSize.sm,
+    lineHeight: 19,
+    color: theme.colors.makanText,
+  },
+  promoTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.colors.muted,
+    overflow: "hidden",
+  },
+  promoFill: {
+    height: "100%",
+    borderRadius: 3,
+    backgroundColor: theme.colors.primary,
+  },
+  promoNote: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.makanText,
   },
   error: {
     fontSize: theme.fontSize.sm,
