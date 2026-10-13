@@ -4,12 +4,14 @@
   "account_id": "b7e6f8457bd39fa37a7eea5249799754",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-31",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "routes": [
     {
       "pattern": "api.joyorogo.com",
-      "custom_domain": true,
-    },
+      "custom_domain": true
+    }
   ],
   "workers_dev": true,
   "d1_databases": [
@@ -17,24 +19,24 @@
       "binding": "DB",
       "database_name": "joyorogo-database-live-dzul-unqpixpckdt72ct3",
       "database_id": "9c08fc88-df8e-4160-99fd-740bd3072843",
-      "migrations_dir": "../../packages/db/src/migrations",
-    },
+      "migrations_dir": "../../packages/db/src/migrations"
+    }
   ],
   "ai": {
-    "binding": "AI",
+    "binding": "AI"
   },
   "images": {
-    "binding": "IMAGES",
+    "binding": "IMAGES"
   },
   "r2_buckets": [
     {
       "binding": "DOWNLOADS",
-      "bucket_name": "joyorogo-downloads",
+      "bucket_name": "joyorogo-downloads"
     },
     {
       "binding": "STICKERS",
-      "bucket_name": "joyorogo-scans",
-    },
+      "bucket_name": "joyorogo-scans"
+    }
   ],
   "vars": {
     "CORS_ORIGIN": "http://localhost:3001,https://joyorogo-web-live-dzul-fqqmlyfh7l3bif2g.dzulfikar-at.workers.dev,https://joyorogo.com",
@@ -51,6 +53,6 @@
     "DOKU_BASE_URL": "https://api.doku.com",
     "APPLE_BUNDLE_ID": "com.joyodigitama.joyorogo",
     "APPLE_FOUNDER_PRODUCT_ID": "com.joyodigitama.joyorogo.founder.1m",
-    "APPLE_SANDBOX_EMAILS": "",
-  },
+    "APPLE_SANDBOX_EMAILS": ""
+  }
 }

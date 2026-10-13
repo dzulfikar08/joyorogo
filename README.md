@@ -183,18 +183,30 @@ OMAD.
 Tidak cuma mencatat kalori, tapi juga biaya makan, supaya pengguna bisa memilih
 makanan yang paling hemat sekaligus bergizi.
 
-- **Catat harga**: kolom harga (Rp) opsional di tiap catatan makan, terisi
-  otomatis dari harga terakhir untuk makanan yang sama.
+- **Harga per piring, bukan per komponen**: satu foto nasi padang tersimpan
+  sebagai beberapa baris `food_log` (nasi, rendang, sayur), padahal yang dibayar
+  satu harga untuk sepiring. Karena itu harga menempel ke **piring**: satu scan,
+  satu cerita, atau satu catatan manual. Layar konfirmasi scan meminta satu
+  angka "Harga sepiring (Rp)", bukan harga tiap item.
+- **Catat harga**: opsional, dengan nama piring ("Nasi padang") dan tempat
+  ("RM Sederhana"), terisi otomatis dari harga terakhir untuk nama dan tempat
+  yang sama. Kalau satu cerita berisi beberapa piring di waktu makan berbeda,
+  tiap piring punya harganya sendiri.
 - **Ringkasan belanja makan**: total per hari, minggu, dan bulan, serta rata-rata
   per waktu makan.
-- **Nilai terbaik**: urutan makanan berdasarkan protein per Rp1.000 dan kalori
-  per rupiah, misalnya "telur + tempe: 9 g protein per Rp1.000, ayam geprek:
-  4 g". Saran menu "masih muat di sisa kalori" juga bisa diurutkan dari yang
-  paling hemat.
+- **Nilai terbaik**: dihitung per piring dari jumlah gizi semua komponennya,
+  misalnya "nasi padang rendang Rp28.000: 31 g protein, 1,1 g per Rp1.000" lawan
+  "pecel + tempe Rp12.000: 18 g, 1,5 g per Rp1.000". Saran menu "masih muat di
+  sisa kalori" juga bisa diurutkan dari yang paling hemat. Komponen tidak
+  diberi harga sendiri, karena harga lauk di warung jarang diketahui.
 - **Anggaran**: batas belanja makan harian atau bulanan, dengan sisa anggaran
   ditampilkan di samping sisa kalori.
-- **Data**: `food_log` mendapat kolom `price_idr`; ringkasan dihitung dari
-  catatan yang sudah ada, tanpa tabel baru.
+- **Data**: sekarang baris dari satu scan tidak punya kunci kelompok yang
+  pasti (`photo_id` hanya terisi kalau "Simpan foto asli" menyala). Rencananya
+  tabel baru `plate` (`id`, `user_id`, `date`, `meal`, `name`, `place`,
+  `price_idr`) dan kolom `plate_id` di `food_log`, diisi oleh `addScan`, cerita,
+  dan catatan manual. Baris lama tanpa `plate_id` tetap tampil, hanya tanpa
+  harga. Menghapus semua komponen satu piring ikut menghapus piringnya.
 
 ## Pengembangan
 
