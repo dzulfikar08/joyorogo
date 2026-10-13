@@ -1,13 +1,14 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CircleCheck, Clock, CircleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@joyorogo/ui/components/button";
 
 import { PublicHeader } from "@/components/public-header";
 import { trackConversion } from "@/lib/analytics";
-import { fetchOrder, fmtFounderDate, useFounderCheckout } from "@/lib/billing";
+import { checkOrder, fetchOrder, fmtFounderDate, useFounderCheckout } from "@/lib/billing";
 import { pageHead } from "@/lib/seo";
 import { orpc } from "@/utils/orpc";
 
@@ -42,6 +43,20 @@ function PembayaranPage() {
 
   const paid = status.data?.status === "paid";
   const amountIdr = status.data?.amountIdr;
+  // Ask the gateway directly (and settle) instead of waiting for its webhook.
+  const check = useMutation({
+    mutationFn: async () => {
+      if (!order) throw new Error("Pesanan tidak ditemukan.");
+      return checkOrder(order);
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["billing-order", order], updated);
+      if (updated.status !== "paid") {
+        toast.error("Belum ada pembayaran masuk. Coba lagi sebentar.");
+      }
+    },
+    onError: (error) => toast.error(error.message),
+  });
   useEffect(() => {
     if (!paid || !order) return;
     queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
@@ -124,9 +139,18 @@ function PembayaranPage() {
             : "Konfirmasi belum masuk. Kalau kamu sudah membayar, cek lagi sebentar lagi."
         }
         action={
-          <Button variant="secondary" disabled={status.isFetching} onClick={() => status.refetch()}>
-            {status.isFetching ? "Memeriksa..." : "Cek lagi"}
-          </Button>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button disabled={check.isPending} onClick={() => check.mutate()}>
+              {check.isPending ? "Memeriksa..." : "Cek pembayaran"}
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={status.isFetching}
+              onClick={() => status.refetch()}
+            >
+              {status.isFetching ? "Memeriksa..." : "Segarkan halaman"}
+            </Button>
+          </div>
         }
       />
     );

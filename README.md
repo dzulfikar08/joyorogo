@@ -214,6 +214,17 @@ makanan yang paling hemat sekaligus bergizi.
 
 ## Pengembangan
 
+### Admin console (admin.joyorogo.com)
+
+Konsol operator internal di `apps/admin`, dilindungi server lewat variabel
+`ADMIN_EMAILS` (daftar email di apps/server; selain itu API membalas 403).
+
+```bash
+cd apps/admin && VITE_SERVER_URL=http://localhost:3000 bun run dev  # http://localhost:3002
+```
+
+Deploy: `scripts/deploy.sh` build + deploy ke `admin.joyorogo.com` setelah web.
+
 ```bash
 bun install
 

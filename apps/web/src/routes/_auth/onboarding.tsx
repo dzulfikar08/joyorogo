@@ -276,7 +276,12 @@ function OnboardingPage() {
             <TargetNotesList notes={save.data.targets.notes} />
           </div>
         )}
-        <Button className="mt-6 w-full" onClick={() => navigate({ to: "/" })}>
+        <Button
+          className="mt-6 w-full"
+          onClick={() =>
+            navigate({ to: "/founder", search: { from: "onboarding", next: "/beranda" } })
+          }
+        >
           Buka Beranda
         </Button>
       </Page>

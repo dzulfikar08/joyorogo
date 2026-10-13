@@ -59,4 +59,11 @@ echo "== 4/4 build + deploy web =="
   bunx wrangler deploy --config redirect/wrangler.jsonc
 )
 
+echo "== 5/5 build + deploy admin =="
+(
+  cd apps/admin
+  VITE_SERVER_URL="https://api.joyorogo.com" bunx vite build
+  bunx wrangler deploy
+)
+
 echo "DONE: https://joyorogo.com"

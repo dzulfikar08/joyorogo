@@ -270,7 +270,8 @@ export default function Onboarding() {
               queryClient.removeQueries({ queryKey: orpc.profile.key() });
               queryClient.removeQueries({ queryKey: orpc.day.key() });
               queryClient.invalidateQueries();
-              router.replace("/");
+              // Skippable Founder paywall; "Nanti saja" lands on Beranda.
+              router.replace({ pathname: "/founder", params: { from: "onboarding" } });
             }}
           />
         </>

@@ -4,7 +4,7 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Beef, Flame, Info, Mic, Moon, Plus, Sparkles, Trophy } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -21,10 +21,12 @@ import { WaterCard } from "@/components/water-card";
 import { WorkoutCard } from "@/components/workout/workout-card";
 import { pickFact } from "@/lib/facts";
 import { fmtDateIndo, fmtInt, fmtKg, parseNum } from "@/lib/format";
+import { useAppConfig } from "@/lib/app-config";
 import type { DaySummary } from "@/lib/api-types";
 import { orpc } from "@/utils/orpc";
 
 const summaryOptions = orpc.day.summary.queryOptions({ input: {} });
+const profileOptions = orpc.profile.myProfile.queryOptions();
 
 export const Route = createFileRoute("/_auth/beranda")({
   loader: ({ context }) => context.queryClient.ensureQueryData(summaryOptions),
@@ -44,6 +46,34 @@ function BerandaPage() {
     return <Navigate to="/onboarding" replace />;
   }
   return <Dashboard summary={summary.data} />;
+}
+
+/** Always-visible nudge for free users while billing is on. Not dismissible:
+ * the whole point is that free scans run out every day. */
+function FounderBanner() {
+  const navigate = useNavigate();
+  const config = useAppConfig();
+  const profile = useQuery(profileOptions);
+  if (config.data?.billing !== true || profile.data?.tier !== "free") return null;
+  const cap = config.data.founderDailyCap;
+  return (
+    <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-makan-soft px-4 py-2.5">
+      <p className="min-w-0 text-[0.8125rem] font-semibold text-makan-ink tabular-nums">
+        Scan AI {config.data.freeDailyScans}x/hari
+        <span aria-hidden className="mx-1 text-muted-foreground">
+          ·
+        </span>
+        <span className="font-normal">Founder {cap === null ? "tanpa batas" : `${cap}/hari`}</span>
+      </p>
+      <Button
+        size="sm"
+        className="shrink-0"
+        onClick={() => navigate({ to: "/founder", search: { from: "banner", next: "/beranda" } })}
+      >
+        Upgrade
+      </Button>
+    </div>
+  );
 }
 
 function greeting(): string {
@@ -113,6 +143,8 @@ function Dashboard({ summary }: { summary: Summary }) {
           </Link>
         </div>
       </header>
+
+      <FounderBanner />
 
       {/* minmax(0, …) tracks: the scrollable ideas row inside EatHero must
           scroll, not widen its column past the phone screen. */}

@@ -2,7 +2,7 @@ import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Link, Redirect, router } from "expo-router";
-import { Dimensions, Pressable, Share, ScrollView, View } from "react-native";
+import { Dimensions, Platform, Pressable, Share, ScrollView, View } from "react-native";
 import { useState } from "react";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { Circle, Polyline, Svg } from "react-native-svg";
@@ -18,6 +18,7 @@ import type { Meal } from "@joyorogo/api/lib/engine";
 import { pickFact } from "@joyorogo/api/lib/facts";
 
 import { BelanjaCompact } from "@/components/plate/belanja";
+import { useAppConfig } from "@/components/billing";
 import { FoodSticker, StickerViewer, stickerUrl } from "@/components/sticker";
 import type { StickerViewerTarget } from "@/components/sticker";
 
@@ -117,6 +118,7 @@ export default function Dashboard() {
   const gate = useSessionGate();
   const summary = useQuery(orpc.day.summary.queryOptions({ input: {} }));
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
+  const config = useAppConfig();
   const { data: sessionData } = authClient.useSession();
   // Diari piring: today's scanned items with their sticker cutouts.
   const foods = useQuery(
@@ -187,6 +189,16 @@ export default function Dashboard() {
   const slots = slotsFor(effectiveRamadan(profileQuery.data?.profile?.ramadanMode)) as Meal[];
   const trendPoints = data.trend?.points ?? [];
 
+  // Compact always-on Founder banner: free tier with billing on, shown only
+  // once the profile query confirms tier (founders never see a flash).
+  const ios = Platform.OS === "ios";
+  const configData = config.data;
+  const showFounderBanner =
+    configData !== undefined &&
+    (ios ? configData.appleBilling === true : configData.billing === true) &&
+    profileQuery.data?.tier === "free" &&
+    configData.freeDailyScans !== null;
+
   const shareRecap = () => {
     const pts = (data.weekTrend ?? []).filter((t) => t.weightKg != null) as Array<{
       date: string;
@@ -234,6 +246,25 @@ export default function Dashboard() {
           </Pressable>
         </Link>
       </View>
+
+      {/* Founder banner: kuota gratis vs Founder, ketuk Upgrade → paywall */}
+      {showFounderBanner && configData ? (
+        <Card style={styles.founderBanner}>
+          <Text style={styles.founderBannerText} numberOfLines={1}>
+            Scan AI {configData.freeDailyScans}x/hari ·{" "}
+            {configData.founderDailyCap === null
+              ? "Founder tanpa batas"
+              : `Founder ${configData.founderDailyCap}/hari`}
+          </Text>
+          <Button
+            size="sm"
+            label="Upgrade"
+            onPress={() =>
+              router.push({ pathname: "/founder", params: { from: "banner", next: "/" } })
+            }
+          />
+        </Card>
+      ) : null}
 
       {/* Hero: sisa makan di ring */}
       <Card style={styles.heroCard}>
@@ -537,6 +568,20 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     gap: theme.spacing.md,
     marginTop: theme.spacing.sm,
+  },
+  founderBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: theme.colors.makanSoft,
+  },
+  founderBannerText: {
+    flex: 1,
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.makanText,
   },
   greetText: {
     flex: 1,

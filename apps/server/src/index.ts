@@ -29,6 +29,7 @@ import { pushSubscription as pushSubscriptionTable } from "@joyorogo/db/schema/p
 
 import { registerAnonScanRoutes } from "./anon";
 import { registerBillingRoutes } from "./billing";
+import { registerAdminRoutes } from "./admin";
 import { createContext } from "./context";
 import { registerBenchRoutes } from "./bench";
 import { registerPrivacyRoutes } from "./privacy";
@@ -62,9 +63,17 @@ registerAnonScanRoutes(app, {
   anonScans: paywallConfig(env).anonScans,
 });
 
-// Public config, Founder checkout (DOKU) + webhook, personal AI usage.
+// Public config, Founder checkout (DOKU/Pakasir) + webhooks, personal AI usage.
 // After CORS so web can read errors.
-registerBillingRoutes(app, { env, getDb, createAuth });
+const billing = registerBillingRoutes(app, { env, getDb, createAuth });
+
+// Operator console API for admin.joyorogo.com (ADMIN_EMAILS allowlist).
+registerAdminRoutes(app, {
+  adminEmails: env.ADMIN_EMAILS,
+  getDb,
+  createAuth,
+  reconcileById: billing.reconcileById,
+});
 
 // Blind accuracy benchmark — gated by the AI_BENCH_KEY secret.
 registerBenchRoutes(app, {
@@ -389,5 +398,6 @@ export default {
   fetch: app.fetch,
   scheduled: (_controller: ScheduledController, _env2: unknown, ctx: ExecutionContext) => {
     ctx.waitUntil(runFastingReminders());
+    ctx.waitUntil(billing.reconcilePending());
   },
 };

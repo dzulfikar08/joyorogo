@@ -1,4 +1,4 @@
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, like, lte, sql } from "drizzle-orm";
 import type { JoyoAuth } from "@joyorogo/auth";
 import type { Context, Hono } from "hono";
 
@@ -12,6 +12,7 @@ import { summarize } from "@joyorogo/api/lib/cost";
 import {
   WEBHOOK_TARGET as DOKU_WEBHOOK_PATH,
   buildOrderId,
+  checkStatus as checkDokuStatus,
   createCheckout,
   isFailed as dokuFailed,
   isOrderId,
@@ -430,11 +431,62 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     return c.json({ error: "Pembayaran masih diproses. Coba lagi sebentar." }, 409);
   });
 
-  // Return page polls this until the webhook lands.
-  app.get("/api/billing/orders/:orderId", async (c) => {
-    const me = await sessionUser(c.req.raw.headers);
-    if (!me) return c.json({ error: "Masuk dulu." }, 401);
-    const [order] = await deps
+  /**
+   * Ask the gateway directly whether a pending order was paid and settle it
+   * if so. Covers a webhook that is missing or misconfigured. Pakasir orders
+   * are recognised by their payment link (which carries the txn id).
+   * Returns a short outcome for the admin page and logs.
+   */
+  const reconcileOrder = async (
+    db: Database,
+    order: {
+      orderId: string;
+      userId: string;
+      amountIdr: number;
+      status: string;
+      paymentUrl: string | null;
+    },
+  ): Promise<string> => {
+    if (order.status !== "pending") return `already ${order.status}`;
+    const pakasirTxn = order.paymentUrl?.match(/app\.pakasir\.com\/pay-v2\/([^/?#]+)/)?.[1];
+    let paidAmount: number;
+    try {
+      if (pakasirTxn) {
+        if (!pakasir) return "pakasir not configured";
+        const txn = await fetchTransaction(pakasir, pakasirTxn);
+        if (txn.orderId !== order.orderId) return "pakasir order mismatch";
+        if (pakasirFailed(txn)) {
+          await markFailed(db, order.orderId);
+          return "pakasir canceled -> failed";
+        }
+        if (txn.isSandbox && !pakasir.allowSandbox) return "pakasir sandbox ignored";
+        if (!pakasirPaid(txn)) return `pakasir ${txn.status}`;
+        paidAmount = txn.amount;
+      } else {
+        if (!doku) return "doku not configured";
+        const n = await checkDokuStatus(doku, order.orderId);
+        // EXPIRED is final; FAILED is not (the buyer may retry on the same order).
+        if (n.status === "EXPIRED") {
+          await markFailed(db, order.orderId);
+          return "doku EXPIRED -> failed";
+        }
+        if (!dokuPaid(n)) return `doku ${n.status}`;
+        paidAmount = n.amount;
+      }
+    } catch (error) {
+      // DOKU answers Not Found until the buyer picks a payment channel.
+      console.error(`reconcile ${order.orderId}:`, error);
+      return `error: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    if (Math.round(paidAmount) !== order.amountIdr) {
+      console.error(`reconcile ${order.orderId}: amount mismatch ${paidAmount}`);
+      return `amount mismatch (${paidAmount})`;
+    }
+    return `paid: ${await activateOrder(db, order)}`;
+  };
+
+  const ownOrder = (orderId: string, userId: string) =>
+    deps
       .getDb()
       .select({
         orderId: payment.orderId,
@@ -443,10 +495,42 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
         founderUntil: payment.founderUntil,
       })
       .from(payment)
-      .where(and(eq(payment.orderId, c.req.param("orderId")), eq(payment.userId, me.id)))
-      .limit(1);
+      .where(and(eq(payment.orderId, orderId), eq(payment.userId, userId)))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+  // Return page polls this until the webhook lands.
+  app.get("/api/billing/orders/:orderId", async (c) => {
+    const me = await sessionUser(c.req.raw.headers);
+    if (!me) return c.json({ error: "Masuk dulu." }, 401);
+    const order = await ownOrder(c.req.param("orderId"), me.id);
     if (!order) return c.json({ error: "Pesanan tidak ditemukan." }, 404);
     return c.json(order);
+  });
+
+  // "Cek pembayaran": the buyer asks us to verify with the gateway now.
+  app.post("/api/billing/orders/:orderId/check", async (c) => {
+    const me = await sessionUser(c.req.raw.headers);
+    if (!me) return c.json({ error: "Masuk dulu." }, 401);
+    const db = deps.getDb();
+    const order = await findOrder(db, c.req.param("orderId"));
+    if (!order || order.userId !== me.id) return c.json({ error: "Pesanan tidak ditemukan." }, 404);
+    await reconcileOrder(db, order);
+    return c.json(await ownOrder(order.orderId, me.id));
+  });
+
+  // Latest pending order of the caller, so profile can offer "Cek pembayaran".
+  app.get("/api/billing/orders", async (c) => {
+    const me = await sessionUser(c.req.raw.headers);
+    if (!me) return c.json({ error: "Masuk dulu." }, 401);
+    const [latest] = await deps
+      .getDb()
+      .select({ orderId: payment.orderId, status: payment.status, createdAt: payment.createdAt })
+      .from(payment)
+      .where(and(eq(payment.userId, me.id), eq(payment.status, "pending")))
+      .orderBy(desc(payment.createdAt))
+      .limit(1);
+    return c.json({ pending: latest ?? null });
   });
 
   // Caller's own AI cost summary; no admin surface on purpose.
@@ -463,4 +547,35 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       .where(and(eq(aiUsage.userId, me.id), gte(aiUsage.createdAt, since)));
     return c.json(summarize(rows));
   });
+
+  /** Cron: settle pending orders from the last 2 days whose webhook never came. */
+  const reconcilePending = async (): Promise<void> => {
+    const db = deps.getDb();
+    const now = Date.now();
+    const rows = await db
+      .select()
+      .from(payment)
+      .where(
+        and(
+          eq(payment.status, "pending"),
+          gte(payment.createdAt, new Date(now - 2 * 24 * 60 * 60 * 1000)),
+          // DOKU asks for check-status calls at least 60 s after payment.
+          lte(payment.createdAt, new Date(now - 60 * 1000)),
+          like(payment.orderId, "JRG-%"),
+        ),
+      )
+      .orderBy(desc(payment.createdAt))
+      .limit(25);
+    for (const order of rows) {
+      console.log(`reconcile ${order.orderId}: ${await reconcileOrder(db, order)}`);
+    }
+  };
+
+  /** Admin: verify one order with its gateway now. */
+  const reconcileById = async (orderId: string): Promise<string> => {
+    const db = deps.getDb();
+    const order = await findOrder(db, orderId);
+    return order ? reconcileOrder(db, order) : "order not found";
+  };
+  return { reconcilePending, reconcileById };
 }

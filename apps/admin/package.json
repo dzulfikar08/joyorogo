@@ -1,0 +1,32 @@
+{
+  "name": "admin",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:bare": "vite dev",
+    "build": "vite build",
+    "check-types": "tsc --noEmit",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
+    "@joyorogo/ui": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "catalog:",
+    "better-auth": "catalog:",
+    "lucide-react": "catalog:",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "sonner": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "^6.1.1",
+    "tailwindcss": "catalog:",
+    "typescript": "^6.0.3",
+    "vite": "^8.2.2"
+  }
+}

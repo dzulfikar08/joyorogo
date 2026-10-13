@@ -1,12 +1,14 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { Platform, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, Platform, View } from "react-native";
+import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { StyleSheet } from "react-native-unistyles";
 
 import { appleIap } from "@/modules/apple-iap";
 import { authClient } from "@/lib/auth-client";
 import { Button, Card, Text } from "@/components/ui";
+import { errorMessage } from "@/utils/format";
 import { ENV } from "@/src/env";
 import { queryClient } from "@/utils/orpc";
 
@@ -67,15 +69,41 @@ async function checkoutHeaders(): Promise<Record<string, string>> {
   return cookies ? { Cookie: cookies } : {};
 }
 
+/** One Founder order as the order endpoints answer it. */
+export type BillingOrder = {
+  orderId: string;
+  status: string;
+  amountIdr: number;
+  founderUntil: string | null;
+};
+
+/**
+ * "Cek pembayaran": the server asks DOKU/Pakasir right now and settles the
+ * order when it is already paid (covers a webhook that never arrived).
+ */
+export async function checkOrderPaid(orderId: string): Promise<BillingOrder> {
+  const res = await fetch(
+    `${serverUrl()}/api/billing/orders/${encodeURIComponent(orderId)}/check`,
+    { method: "POST", headers: await checkoutHeaders() },
+  );
+  const body = (await res.json().catch(() => null)) as BillingOrder | { error?: string } | null;
+  if (res.status === 401) throw new Error("Masuk dulu untuk berlangganan.");
+  if (!res.ok || !body || !("status" in body)) {
+    throw new Error("Pembayaran belum bisa dicek. Coba lagi nanti.");
+  }
+  return body;
+}
+
 /** Start a Founder checkout (DOKU or Pakasir), opened in the browser. */
-function useFounderCheckout() {
+export function useFounderCheckout() {
   return useMutation({
-    mutationFn: async (): Promise<string> => {
+    mutationFn: async (): Promise<{ orderId: string; paymentUrl: string }> => {
       const res = await fetch(`${serverUrl()}/api/billing/checkout`, {
         method: "POST",
         headers: await checkoutHeaders(),
       });
       const body = (await res.json().catch(() => null)) as {
+        orderId?: string;
         paymentUrl?: string;
         error?: string;
       } | null;
@@ -83,12 +111,41 @@ function useFounderCheckout() {
       if (!res.ok || !body?.paymentUrl) {
         throw new Error(body?.error ?? "Pembayaran belum bisa diproses. Coba lagi nanti.");
       }
-      return body.paymentUrl;
+      return { orderId: body.orderId ?? "", paymentUrl: body.paymentUrl };
     },
-    onSuccess: async (url) => {
-      await WebBrowser.openBrowserAsync(url);
+    onSuccess: async ({ orderId, paymentUrl }) => {
+      await WebBrowser.openBrowserAsync(paymentUrl);
       queryClient.invalidateQueries();
+      // Back from the gateway: settle a webhook-less payment right away.
+      try {
+        if (orderId && (await checkOrderPaid(orderId)).status === "paid") {
+          queryClient.invalidateQueries();
+        }
+      } catch {
+        // Profil's "Sudah bayar?" button and the server cron still cover this.
+      }
     },
+  });
+}
+
+/** Latest pending order of the caller (null when none); drives "Sudah bayar?". */
+export function usePendingOrder(enabled: boolean) {
+  return useQuery({
+    queryKey: ["billing-pending-order"],
+    queryFn: async (): Promise<string | null> => {
+      const res = await fetch(`${serverUrl()}/api/billing/orders`, {
+        headers: await checkoutHeaders(),
+      });
+      if (res.status === 401) return null;
+      if (!res.ok) throw new Error(`orders ${res.status}`);
+      const body = (await res
+        .json()
+        .catch(() => null)) as { pending?: { orderId?: string } | null } | null;
+      return body?.pending?.orderId ?? null;
+    },
+    enabled,
+    staleTime: 30 * 1000,
+    retry: 1,
   });
 }
 
@@ -122,7 +179,7 @@ async function postAppleJws(signedTransaction: string): Promise<void> {
  * confirms leaves the transaction unfinished, so the next mount replays it;
  * a definitive rejection finishes it immediately.
  */
-function useAppleFounderPurchase() {
+export function useAppleFounderPurchase() {
   return useMutation({
     mutationFn: async () => {
       if (!appleIap) throw new Error("Pembelian lewat App Store tidak tersedia.");
@@ -147,7 +204,7 @@ function useAppleFounderPurchase() {
 }
 
 /** StoreKit price for the card copy; null while the product is unavailable. */
-function useAppleFounderPrice(enabled: boolean) {
+export function useAppleFounderPrice(enabled: boolean) {
   return useQuery({
     queryKey: ["apple-founder-product"],
     queryFn: async () => (await appleIap?.getProduct(FOUNDER_PRODUCT_ID)) ?? null,
@@ -189,8 +246,10 @@ function useUnfinishedReplay(enabled: boolean) {
 
 /**
  * The web profil banners (profil.tsx): free-tier scan quota + Upgrade when
- * billing is on, and founder expiry + Perpanjang. Android/web start a DOKU
- * checkout; iOS buys through Apple in-app purchase instead.
+ * billing is on, and founder expiry + Perpanjang. Upgrade opens the paywall
+ * screen (/founder) so users see the "Cara bayar" steps first; Perpanjang
+ * starts checkout directly because founders never see that screen. Android
+ * starts a DOKU checkout; iOS buys through Apple in-app purchase instead.
  */
 export function FounderCards({
   tier,
@@ -208,6 +267,26 @@ export function FounderCards({
   const billing = ios ? appleBilling : dokuBilling;
   const price = useAppleFounderPrice(ios && appleBilling);
   useUnfinishedReplay(ios && appleBilling);
+  const pendingOrder = usePendingOrder(tier === "free" && billing).data ?? null;
+  const [checking, setChecking] = useState(false);
+
+  const checkPending = async () => {
+    if (!pendingOrder || checking) return;
+    setChecking(true);
+    try {
+      const order = await checkOrderPaid(pendingOrder);
+      if (order.status === "paid") {
+        queryClient.invalidateQueries();
+        Alert.alert("Pembayaran diterima", "Founder aktif. Terima kasih!");
+      } else {
+        Alert.alert("Belum ada pembayaran masuk", "Coba lagi sebentar.");
+      }
+    } catch (e) {
+      Alert.alert("Cek pembayaran gagal", errorMessage(e));
+    } finally {
+      setChecking(false);
+    }
+  };
 
   // While the config loads, render no pricing at all rather than guessing.
   if (!config.data) return null;
@@ -225,22 +304,39 @@ export function FounderCards({
   return (
     <>
       {tier === "free" && billing ? (
-        <Card style={styles.upgradeCard}>
-          <View style={styles.cardText}>
-            <Text style={styles.upgradeTitle}>
-              Scan AI {config.data.freeDailyScans} kali sehari
-            </Text>
-            <Text style={styles.cardNote}>
-              {config.data.founderDailyCap === null
-                ? "Founder buka scan tanpa batas."
-                : `Founder: ${config.data.founderDailyCap} scan AI per hari.`}
-            </Text>
-            {ios && price.data?.displayPrice ? (
-              <Text style={styles.cardNote}>{price.data.displayPrice} lewat App Store.</Text>
-            ) : null}
-          </View>
-          <Button size="sm" label="Upgrade" onPress={buy} loading={buying} />
-        </Card>
+        <>
+          <Card style={styles.upgradeCard}>
+            <View style={styles.cardText}>
+              <Text style={styles.upgradeTitle}>
+                Scan AI {config.data.freeDailyScans} kali sehari
+              </Text>
+              <Text style={styles.cardNote}>
+                {config.data.founderDailyCap === null
+                  ? "Founder buka scan tanpa batas."
+                  : `Founder: ${config.data.founderDailyCap} scan AI per hari.`}
+              </Text>
+              {ios && price.data?.displayPrice ? (
+                <Text style={styles.cardNote}>{price.data.displayPrice} lewat App Store.</Text>
+              ) : null}
+            </View>
+            <Button
+              size="sm"
+              label="Upgrade"
+              onPress={() =>
+                router.push({ pathname: "/founder", params: { from: "profile", next: "/profil" } })
+              }
+            />
+          </Card>
+          {pendingOrder ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              label="Sudah bayar? Cek pembayaran"
+              loading={checking}
+              onPress={() => void checkPending()}
+            />
+          ) : null}
+        </>
       ) : null}
       {tier === "founder" && founderUntil ? (
         <Card style={styles.founderCard}>

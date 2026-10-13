@@ -31,6 +31,7 @@ import {
 } from "@/components/kit/surface";
 import { cropItems } from "@/lib/crop";
 import type { AiFoodItem } from "@/lib/api-types";
+import { isPaywallError } from "@/lib/billing";
 import { fmtInt, parseNum } from "@/lib/format";
 import { client, orpc } from "@/utils/orpc";
 
@@ -122,6 +123,9 @@ function AiFoodPage() {
   const [error, setError] = useState<string | null>(null);
   const [fact] = useState(() => randomFact());
   const [saving, setSaving] = useState(false);
+  // This scan used the free user's last quota of today: show the (skippable)
+  // Founder offer once the results are saved.
+  const [quotaReached, setQuotaReached] = useState(false);
   // Price attaches to the whole plate, not per item: one number per photo.
   const [plateName, setPlateName] = useState("");
   const [platePlace, setPlatePlace] = useState("");
@@ -193,6 +197,7 @@ function AiFoodPage() {
       if (runRef.current !== run) return;
       setImage(image);
       setItems(result.items);
+      setQuotaReached(result.quotaReached);
       setCrops(itemCrops);
       setKcals(Object.fromEntries(result.items.map((item, index) => [index, String(item.kcal)])));
       // Prefill the price form from the last time this plate was bought.
@@ -216,6 +221,12 @@ function AiFoodPage() {
       // Aborted runs bump runRef before aborting, so this only reports real
       // failures of the current run.
       if (runRef.current !== run) return;
+      // Scan rejected because the free quota ran out: the paywall explains
+      // itself better than an error line.
+      if (isPaywallError(err)) {
+        navigate({ to: "/founder", search: { from: "quota", next: "/makan/ai" } });
+        return;
+      }
       setError(err instanceof Error ? err.message : "Gagal menganalisis foto. Coba lagi.");
       setPhase("idle");
     }
@@ -229,6 +240,7 @@ function AiFoodPage() {
     setKcals({});
     setImage(null);
     setCrops([]);
+    setQuotaReached(false);
     setPhotoUrl(null);
     setPlateName("");
     setPlatePlace("");
@@ -293,7 +305,13 @@ function AiFoodPage() {
       toast.success(`${saved.items.length} makanan dicatat.`);
       queryClient.invalidateQueries({ queryKey: orpc.food.key() });
       queryClient.invalidateQueries({ queryKey: orpc.day.key() });
-      navigate({ to: "/makan" });
+      // The save already landed: results are safe in the diary. Only then
+      // offer Founder to the user who just spent their last free scan.
+      navigate(
+        quotaReached
+          ? { to: "/founder", search: { from: "quota", next: "/makan" } }
+          : { to: "/makan" },
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Gagal menyimpan. Coba lagi.");
     } finally {

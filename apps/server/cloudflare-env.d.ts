@@ -23,6 +23,7 @@ declare module "cloudflare:workers" {
       FOUNDER_DAILY_CAP?: string;
       ANON_SCANS?: string;
       FOUNDER_PRICE_IDR?: string;
+      ADMIN_EMAILS?: string;
       BILLING_PROVIDER?: string;
       DOKU_CLIENT_ID?: string;
       DOKU_SECRET_KEY?: string;

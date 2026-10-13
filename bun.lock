@@ -18,6 +18,29 @@
         "varlock": "catalog:",
       },
     },
+    "apps/admin": {
+      "name": "admin",
+      "version": "0.0.0",
+      "dependencies": {
+        "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
+        "@joyorogo/ui": "workspace:*",
+        "@tailwindcss/vite": "^4.3.3",
+        "@tanstack/react-query": "catalog:",
+        "better-auth": "catalog:",
+        "lucide-react": "catalog:",
+        "react": "^19.2.8",
+        "react-dom": "^19.2.8",
+        "sonner": "catalog:",
+      },
+      "devDependencies": {
+        "@types/react": "^19.2.18",
+        "@types/react-dom": "catalog:",
+        "@vitejs/plugin-react": "^6.1.1",
+        "tailwindcss": "catalog:",
+        "typescript": "^6.0.3",
+        "vite": "^8.2.2",
+      },
+    },
     "apps/native": {
       "name": "native",
       "version": "1.0.0",
@@ -1366,6 +1389,8 @@
     "accepts": ["accepts@1.3.8", "", { "dependencies": { "mime-types": "~2.1.34", "negotiator": "0.6.3" } }, "sha512-PYAthTa2m2VKxuvSD3DPC/Gy+U+sOA1LAuT8mkmRuvw+NACSaeXEQ+NHcVF7rONl6qcaxV3Uuemwawk+7+SJLw=="],
 
     "acorn": ["acorn@8.18.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-lGq+9yr1/GuAWaVYIHRjvvySG5/4VfKIvC8EWxStPdcDh/Ka7FG3twP6v4d5BkravUilhIAsG4Qj83t02LWUPQ=="],
+
+    "admin": ["admin@workspace:apps/admin"],
 
     "agent-base": ["agent-base@7.1.4", "", {}, "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="],
 

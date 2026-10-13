@@ -121,6 +121,10 @@ export default function RootLayout() {
               name="makan-ai"
               options={{ title: "Foto Makanan", presentation: "modal", headerShown: false }}
             />
+            <Stack.Screen
+              name="founder"
+              options={{ title: "Founder", presentation: "modal", headerShown: false }}
+            />
           </Stack>
         </GestureHandlerRootView>
       </ThemeProvider>

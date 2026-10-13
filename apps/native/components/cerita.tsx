@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import {
   RecordingPresets,
   requestRecordingPermissionsAsync,
@@ -18,7 +19,7 @@ import { Button, Input, ListGroup, ListRow, Text } from "@/components/ui";
 import { PlateFields } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
 import { errorMessage, fmtKcal, parseNum } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { isPaywallError, orpc, queryClient } from "@/utils/orpc";
 
 /** One parsed story item as describeFood answers it: pinned to slot and day. */
 type StoryItem = {
@@ -77,7 +78,10 @@ export function Cerita({
   onSaved: (result: { count: number; dates: string[] }) => void;
 }) {
   const { theme } = useUnistyles();
+  const router = useRouter();
   const [phase, setPhaseState] = useState<CeritaPhase>("input");
+  // This story used the last free scan of today → paywall after the save.
+  const [quotaReached, setQuotaReached] = useState(false);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState("");
@@ -198,9 +202,16 @@ export function Cerita({
       setItems(result.items);
       setKcals(result.items.map((item) => String(Math.round(item.kcal))));
       setPlates({});
+      setQuotaReached(result.quotaReached);
       setPhase("review");
     } catch (err) {
       if (run !== runRef.current) return;
+      // Out of free scans: paywall on top of the sheet, not an error line.
+      if (isPaywallError(err)) {
+        router.push({ pathname: "/founder", params: { from: "quota", next: "/makan" } });
+        setPhase("input");
+        return;
+      }
       const parts = errorParts(err);
       // What Whisper heard lands in the box so the user can fix it.
       if (parts.transcript) setText(parts.transcript);
@@ -347,6 +358,11 @@ export function Cerita({
       setPlates({});
       setPhase("input");
       onSaved({ count: saved, dates });
+      // The saved story stays in the diary; paywall follows the sheet close
+      // when this story used the last free scan of today.
+      if (quotaReached) {
+        router.push({ pathname: "/founder", params: { from: "quota", next: "/makan" } });
+      }
     } catch (err) {
       setError(errorMessage(err));
       // Keep only what did not make it, so a retry never double-logs.

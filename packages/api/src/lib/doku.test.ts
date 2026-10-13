@@ -50,6 +50,25 @@ describe("DOKU signature", () => {
     expect(await signRequest(INPUT, SECRET)).toBe(`HMACSHA256=${mac}`);
   });
 
+  test("GET (check status) signs without a Digest line", async () => {
+    const enc = new TextEncoder();
+    const get = { ...INPUT, target: "/orders/v1/status/JRG-261012050000-abcdef12", body: undefined };
+    const components = `Client-Id:${get.clientId}\nRequest-Id:${get.requestId}\nRequest-Timestamp:${get.timestamp}\nRequest-Target:${get.target}`;
+    const key = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(SECRET),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const mac = btoa(
+      String.fromCharCode(
+        ...new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(components))),
+      ),
+    );
+    expect(await signRequest(get, SECRET)).toBe(`HMACSHA256=${mac}`);
+  });
+
   test("verifies its own signature", async () => {
     const sig = await signRequest(INPUT, SECRET);
     expect(await verifySignature(INPUT, sig, SECRET)).toBe(true);

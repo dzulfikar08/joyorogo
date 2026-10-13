@@ -52,7 +52,7 @@ import { useStrava } from "@/components/strava-card";
 import { env } from "@/env.public";
 import type { ProfileRow } from "@/lib/api-types";
 import { APK_URL, founderScans, useAppConfig } from "@/lib/app-config";
-import { fmtFounderDate, useFounderCheckout } from "@/lib/billing";
+import { checkOrder, fetchPendingOrder, fmtFounderDate, useFounderCheckout } from "@/lib/billing";
 import { signOut } from "@/lib/auth-client";
 import { fmtDateIndo, fmtInt, fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
 import { getServerUrl, orpc } from "@/utils/orpc";
@@ -125,6 +125,31 @@ function ProfilContent({
   const checkout = useFounderCheckout();
   const billing = config.data?.billing === true;
   const initial = (name ?? email ?? "?").charAt(0).toUpperCase();
+
+  // A checkout the user abandoned at the gateway can still be settled: the
+  // check endpoint asks DOKU/Pakasir directly and flips Founder on if paid.
+  const pendingOrder = useQuery({
+    queryKey: ["billing", "pending-order"],
+    queryFn: fetchPendingOrder,
+    enabled: tier === "free" && billing,
+  });
+  const checkPending = useMutation({
+    mutationFn: () => {
+      const orderId = pendingOrder.data?.orderId;
+      if (!orderId) throw new Error("Tidak ada pembayaran yang menunggu.");
+      return checkOrder(orderId);
+    },
+    onSuccess: (order) => {
+      if (order.status !== "paid") {
+        toast.error("Belum ada pembayaran masuk. Coba lagi sebentar.");
+        return;
+      }
+      toast.success("Pembayaran masuk. Founder aktif!");
+      queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
+      queryClient.invalidateQueries({ queryKey: ["billing", "pending-order"] });
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   const edit = useMutation(
     orpc.profile.updateTargets.mutationOptions({
@@ -209,25 +234,42 @@ function ProfilContent({
       </header>
 
       {tier === "free" && billing && (
-        <div className="mb-3 flex items-center justify-between gap-3 rounded-3xl bg-makan-soft p-5">
-          <div className="min-w-0">
-            <p className="text-[0.9375rem] font-bold text-makan-ink">
-              Scan AI {config.data?.freeDailyScans} kali sehari
-            </p>
-            <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
-              Founder: {config.data ? founderScans(config.data).toLowerCase() : ""}.
-            </p>
+        <div className="mb-3 rounded-3xl bg-makan-soft p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[0.9375rem] font-bold text-makan-ink">
+                Scan AI {config.data?.freeDailyScans} kali sehari
+              </p>
+              <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
+                Founder: {config.data ? founderScans(config.data).toLowerCase() : ""}.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              className="shrink-0"
+              onClick={() =>
+                navigate({ to: "/founder", search: { from: "profile", next: "/profil" } })
+              }
+            >
+              Upgrade
+            </Button>
           </div>
-          <Button
-            size="sm"
-            className="shrink-0"
-            disabled={checkout.isPending}
-            onClick={() =>
-              checkout.mutate(undefined, { onError: (error) => toast.error(error.message) })
-            }
-          >
-            {checkout.isPending ? "Membuka..." : "Upgrade"}
-          </Button>
+          {pendingOrder.data && (
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <p className="min-w-0 text-sm leading-snug text-muted-foreground">
+                Ada pembayaran Founder yang belum selesai.
+              </p>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="shrink-0"
+                disabled={checkPending.isPending}
+                onClick={() => checkPending.mutate()}
+              >
+                {checkPending.isPending ? "Memeriksa..." : "Sudah bayar? Cek pembayaran"}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

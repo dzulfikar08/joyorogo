@@ -77,3 +77,14 @@ export const link = new RPCLink({
 export const client: AppRouterClient = createORPCClient(link);
 
 export const orpc = createTanstackQueryUtils(client);
+
+/**
+ * Quota FORBIDDEN from the ai routers carries `data.paywall`; the caller
+ * opens the paywall screen instead of showing a plain error. Duck-typed on
+ * purpose: ORPCError is reconstructed from JSON, and `instanceof` breaks
+ * across dependency graphs (same reason orpc ships Symbol.hasInstance).
+ */
+export function isPaywallError(error: unknown): boolean {
+  const err = error as { code?: unknown; data?: { paywall?: unknown } } | null;
+  return err?.code === "FORBIDDEN" && err?.data?.paywall === true;
+}

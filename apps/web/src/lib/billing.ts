@@ -1,8 +1,20 @@
+import { ORPCError } from "@orpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
 import { trackEvent } from "./analytics";
 import { apiUrl } from "./app-config";
+
+/** Where the Founder paywall screen was opened from; picks its subhead. */
+export type PaywallFrom = "onboarding" | "quota" | "banner" | "profile";
+
+/**
+ * Quota-exhausted AI call: the server throws FORBIDDEN carrying
+ * `data.paywall` instead of a generic denial.
+ */
+export function isPaywallError(err: unknown): boolean {
+  return err instanceof ORPCError && err.code === "FORBIDDEN" && err.data?.paywall === true;
+}
 
 /** Start a Founder checkout (DOKU or Pakasir, server's choice), then leave for its page. */
 export function useFounderCheckout() {
@@ -44,6 +56,29 @@ export async function fetchOrder(orderId: string): Promise<OrderStatus> {
   });
   const body = (await res.json().catch(() => null)) as (OrderStatus & { error?: string }) | null;
   if (!res.ok || !body) throw new Error(body?.error ?? "Status pembayaran belum bisa dimuat.");
+  return body;
+}
+
+export type PendingOrder = { orderId: string; status: "pending"; createdAt: string };
+
+/** The caller's latest unpaid order, if any. */
+export async function fetchPendingOrder(): Promise<PendingOrder | null> {
+  const res = await fetch(apiUrl("/api/billing/orders"), { credentials: "include" });
+  const body = (await res.json().catch(() => null)) as
+    | ({ pending?: PendingOrder | null } & Partial<OrderStatus> & { error?: string })
+    | null;
+  if (!res.ok || !body) throw new Error(body?.error ?? "Status pembayaran belum bisa dimuat.");
+  return body.pending ?? null;
+}
+
+/** Ask the gateway directly (and settle) instead of waiting for the webhook. */
+export async function checkOrder(orderId: string): Promise<OrderStatus> {
+  const res = await fetch(apiUrl(`/api/billing/orders/${encodeURIComponent(orderId)}/check`), {
+    method: "POST",
+    credentials: "include",
+  });
+  const body = (await res.json().catch(() => null)) as (OrderStatus & { error?: string }) | null;
+  if (!res.ok || !body) throw new Error(body?.error ?? "Pembayaran belum bisa diperiksa.");
   return body;
 }
 

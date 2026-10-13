@@ -4,11 +4,13 @@ import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Textarea } from "@joyorogo/ui/components/textarea";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { Mic, Square, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import type { StoryFoodItem } from "@/lib/api-types";
+import { isPaywallError } from "@/lib/billing";
 import { FieldLabel } from "@/components/kit/surface";
 import { fmtInt, parseNum } from "@/lib/format";
 import { client, orpc } from "@/utils/orpc";
@@ -70,6 +72,7 @@ export function Cerita({
   onShowDate?: (date: string) => void;
 }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [phase, setPhaseState] = useState<CeritaPhase>("input");
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +80,9 @@ export function Cerita({
   const [items, setItems] = useState<StoryFoodItem[]>([]);
   const [kcals, setKcals] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  // This story used the free user's last quota of today: offer Founder once
+  // the items are saved.
+  const [quotaReached, setQuotaReached] = useState(false);
   // Optional price per plate group ("Nasi padang" / "RM Sederhana" / "28000"),
   // prefilled from the last known price when the review screen opens.
   const [plates, setPlates] = useState<
@@ -131,6 +137,7 @@ export function Cerita({
       setTranscript(result.transcript);
       setText(result.transcript);
       setItems(result.items);
+      setQuotaReached(result.quotaReached);
       setKcals(result.items.map((item) => String(Math.round(item.kcal))));
       // Autofill each group's plate from the last price paid for that name.
       const groupsByKey = [...new Set(result.items.map(groupKey))];
@@ -158,6 +165,12 @@ export function Cerita({
       setPhase("review");
     } catch (err) {
       if (controller.signal.aborted) return;
+      // Story rejected because the free quota ran out: paywall instead of an
+      // error line.
+      if (isPaywallError(err)) {
+        navigate({ to: "/founder", search: { from: "quota", next: "/makan" } });
+        return;
+      }
       const parts = errorParts(err);
       if (parts.transcript) setText(parts.transcript);
       setError(parts.message);
@@ -310,6 +323,11 @@ export function Cerita({
       queryClient.invalidateQueries({ queryKey: orpc.food.key() });
       queryClient.invalidateQueries({ queryKey: orpc.day.key() });
       onSaved(dates);
+      // The save landed first, so nothing is lost: now offer Founder to the
+      // user who just spent their last free story scan.
+      if (quotaReached) {
+        navigate({ to: "/founder", search: { from: "quota", next: "/makan" } });
+      }
     } catch (err) {
       toast.error(errorParts(err).message);
       // Keep only what did not make it, so a retry never double-logs.

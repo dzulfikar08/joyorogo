@@ -28,7 +28,7 @@ import { PlateFields, plateInput } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, parseNum } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { isPaywallError, orpc, queryClient } from "@/utils/orpc";
 
 type AnalyzedItem = {
   name: string;
@@ -138,6 +138,8 @@ export default function MakanAi() {
   const cameraRef = useRef<CameraView>(null);
 
   const [phase, setPhase] = useState<Phase>("camera");
+  // This scan used the last free scan of today → paywall after the save.
+  const [quotaReached, setQuotaReached] = useState(false);
   const [items, setItems] = useState<AnalyzedItem[]>([]);
   const [drafts, setDrafts] = useState<{ kcal: string; include: boolean }[]>([]);
   // Exact bytes we sent to the model: reused for the one-shot save.
@@ -179,6 +181,7 @@ export default function MakanAi() {
 
   const resetToCamera = () => {
     setFlowError(null);
+    setQuotaReached(false);
     setItems([]);
     setDrafts([]);
     setSentImage(null);
@@ -221,6 +224,7 @@ export default function MakanAi() {
         mimeType: "image/jpeg",
         crops: true,
       });
+      setQuotaReached(result.quotaReached);
       setItems(result.items);
       // Plate fields: default name = first item, then autofill the last price.
       const firstName = result.items[0]?.name;
@@ -260,6 +264,11 @@ export default function MakanAi() {
         setCrops(uris);
       });
     } catch (e) {
+      // Out of free scans: paywall now, not just an error line.
+      if (isPaywallError(e)) {
+        router.replace({ pathname: "/founder", params: { from: "quota" } });
+        return;
+      }
       if (previewSet) setPreviewUri(null);
       setFlowError(errorMessage(e));
     }
@@ -345,7 +354,13 @@ export default function MakanAi() {
         })
         .catch(() => {});
       queryClient.invalidateQueries();
-      setPhase("done");
+      // The saved result stays in the diary; the paywall picks up from the
+      // list ("Nanti saja" → /makan) when this was the last free scan.
+      if (quotaReached) {
+        router.replace({ pathname: "/founder", params: { from: "quota", next: "/makan" } });
+      } else {
+        setPhase("done");
+      }
     } catch (e) {
       setFlowError(errorMessage(e));
     }

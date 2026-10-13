@@ -66,8 +66,8 @@ export type SignatureInput = {
   timestamp: string;
   /** Path of the endpoint called or notified, e.g. "/checkout/v1/payment". */
   target: string;
-  /** Raw body, byte-for-byte as sent or received. */
-  body: string;
+  /** Raw body, byte-for-byte as sent or received; omitted for GET (no Digest line). */
+  body?: string;
 };
 
 function b64(buf: ArrayBuffer): string {
@@ -79,13 +79,15 @@ function b64(buf: ArrayBuffer): string {
 const encoder = new TextEncoder();
 
 export async function signRequest(input: SignatureInput, secretKey: string): Promise<string> {
-  const digest = b64(await crypto.subtle.digest("SHA-256", encoder.encode(input.body)));
-  const components =
+  let components =
     `Client-Id:${input.clientId}\n` +
     `Request-Id:${input.requestId}\n` +
     `Request-Timestamp:${input.timestamp}\n` +
-    `Request-Target:${input.target}\n` +
-    `Digest:${digest}`;
+    `Request-Target:${input.target}`;
+  if (input.body !== undefined) {
+    const digest = b64(await crypto.subtle.digest("SHA-256", encoder.encode(input.body)));
+    components += `\nDigest:${digest}`;
+  }
   const key = await crypto.subtle.importKey(
     "raw",
     encoder.encode(secretKey),
@@ -170,4 +172,38 @@ export async function createCheckout(
     throw new Error(`doku checkout failed: HTTP ${res.status}`);
   }
   return { paymentUrl: url };
+}
+
+/**
+ * Ask DOKU for an order's state (Checkout Check Status API). Same
+ * order/transaction shape as the notification, so parseNotification reads it.
+ * Lets the server settle orders whose webhook never arrived.
+ */
+export async function checkStatus(config: DokuConfig, orderId: string): Promise<DokuNotification> {
+  const target = `/orders/v1/status/${encodeURIComponent(orderId)}`;
+  const requestId = crypto.randomUUID();
+  const timestamp = requestTimestamp();
+  const signature = await signRequest(
+    { clientId: config.clientId, requestId, timestamp, target },
+    config.secretKey,
+  );
+  const res = await fetch(`${config.baseUrl}${target}`, {
+    headers: {
+      "Client-Id": config.clientId,
+      "Request-Id": requestId,
+      "Request-Timestamp": timestamp,
+      Signature: signature,
+    },
+  });
+  const text = await res.text();
+  let parsed: DokuNotification | null = null;
+  try {
+    parsed = parseNotification(JSON.parse(text));
+  } catch {
+    // Non-JSON error page; reported below.
+  }
+  if (!res.ok || !parsed || parsed.invoiceNumber !== orderId) {
+    throw new Error(`doku check status failed: HTTP ${res.status} ${text.slice(0, 200)}`);
+  }
+  return parsed;
 }

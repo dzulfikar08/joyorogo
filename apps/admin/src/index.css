@@ -1,0 +1,51 @@
+@import "@fontsource-variable/plus-jakarta-sans/wght.css";
+@import "@joyorogo/ui/globals.css";
+
+/* Admin console additions on top of the shared design tokens. */
+
+/* Scrollable data tables keep the shared card look while allowing overflow. */
+.table-wrap {
+  overflow-x: auto;
+}
+.table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+.table-wrap th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.table-wrap td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 50%, transparent);
+  vertical-align: top;
+}
+.table-wrap tbody tr:hover {
+  background: var(--muted);
+}
+
+/* Simple CSS usage bars (no chart library). */
+.bar-row {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.bar-track {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--muted);
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary);
+}

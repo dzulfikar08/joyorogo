@@ -19,8 +19,14 @@ import { FRIENDLY_ERROR, analyzeFoodPhoto } from "../lib/vision";
 /**
  * Every AI food call (photo or story) spends one scan of the daily quota.
  * Runs BEFORE inference so a rejected call never costs Neurons.
+ * `quotaReached`: a free user's successful call now would use the last scan
+ * of today — clients show the (skippable) Founder paywall after it.
  */
-async function requireAiQuota(db: Database, env: ApiEnv, userId: string): Promise<AiBinding> {
+async function requireAiQuota(
+  db: Database,
+  env: ApiEnv,
+  userId: string,
+): Promise<{ ai: AiBinding; quotaReached: boolean }> {
   const ai = env.AI;
   if (!ai) {
     throw new ORPCError("SERVICE_UNAVAILABLE", {
@@ -55,7 +61,7 @@ async function requireAiQuota(db: Database, env: ApiEnv, userId: string): Promis
       data: { paywall: true, tier },
     });
   }
-  return ai;
+  return { ai, quotaReached: tier === "free" && quota !== null && usedToday + 1 >= quota };
 }
 
 export const aiRouter = {
@@ -72,7 +78,7 @@ export const aiRouter = {
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
-      const ai = await requireAiQuota(context.db, context.env, userId);
+      const { ai, quotaReached } = await requireAiQuota(context.db, context.env, userId);
 
       const startedAt = Date.now();
       const stickers = context.env.STICKERS as StickersBucket | undefined;
@@ -123,7 +129,7 @@ export const aiRouter = {
           usageJson: analysis.usage ? JSON.stringify(analysis.usage) : null,
         }),
       ]);
-      return { items: analysis.items, scanId };
+      return { items: analysis.items, scanId, quotaReached };
     }),
   // "Ceritakan": a typed or spoken story of what was eaten → items with meal
   // slot and date, for the client's review screen. Nothing is logged here.
@@ -147,7 +153,7 @@ export const aiRouter = {
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
-      const ai = await requireAiQuota(context.db, context.env, userId);
+      const { ai, quotaReached } = await requireAiQuota(context.db, context.env, userId);
       const startedAt = Date.now();
       let transcript = input.text ?? "";
       let transcribeUsage: Record<string, unknown> | null = null;
@@ -187,7 +193,7 @@ export const aiRouter = {
             : {}),
         }),
       });
-      return { transcript, items: analysis.items };
+      return { transcript, items: analysis.items, quotaReached };
     }),
   // Miss log (JRG-32): the client posts what the AI estimated vs what the user
   // actually kept, per item, at save time. Fire-and-forget from the clients —
