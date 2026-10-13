@@ -5,7 +5,9 @@ import { activityRouter } from "./activity";
 import { aiRouter } from "./ai";
 import { dayRouter } from "./day";
 import { exerciseRouter } from "./exercise";
+import { fastingRouter } from "./fasting";
 import { foodRouter } from "./food";
+import { plateRouter } from "./plate";
 import { profileRouter } from "./profile";
 import { privacyRouter } from "./privacy";
 import { sleepRouter } from "./sleep";
@@ -13,6 +15,7 @@ import { stravaRouter } from "./strava";
 import { waterRouter } from "./water";
 import { waistRouter } from "./waist";
 import { weightRouter } from "./weight";
+import { workoutRouter } from "./workout";
 
 export const appRouter = {
   healthCheck: publicProcedure.handler(() => {
@@ -36,6 +39,9 @@ export const appRouter = {
   strava: stravaRouter,
   privacy: privacyRouter,
   water: waterRouter,
+  workout: workoutRouter,
+  fasting: fastingRouter,
+  plate: plateRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

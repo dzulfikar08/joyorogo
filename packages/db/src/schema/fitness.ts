@@ -34,6 +34,19 @@ export const profile = sqliteTable("profile", {
   // Opt-in: keep the original photo of saved scans (viewable in the diary).
   // Off by default; turning it off deletes the originals already kept.
   keepPhotos: integer("keep_photos", { mode: "boolean" }).notNull().default(false),
+  // Intermittent fasting: 'off' | '16:8' | '18:6' | '20:4' | 'omad'. The eating
+  // window opens at fastingWindowStart ('HH:MM' WIB). Ramadan, when in effect,
+  // takes precedence over this schedule.
+  fastingPattern: text("fasting_pattern", { enum: ["off", "16:8", "18:6", "20:4", "omad"] })
+    .notNull()
+    .default("off"),
+  fastingWindowStart: text("fasting_window_start").notNull().default("12:00"),
+  fastingNotify: integer("fasting_notify", { mode: "boolean" }).notNull().default(false),
+  // Optional food spending limit in IDR per foodBudgetPeriod ('day' | 'month').
+  foodBudgetIdr: integer("food_budget_idr"),
+  foodBudgetPeriod: text("food_budget_period", { enum: ["day", "month"] })
+    .notNull()
+    .default("month"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
@@ -99,13 +112,19 @@ export const foodLog = sqliteTable(
     // of one scan, stored privately at photos/<user_id>/<photo_id>.jpg
     scanId: text("scan_id"),
     photoId: text("photo_id"),
+    // plate.id this component was paid as part of (plans.ts); null for rows
+    // logged before plates existed
+    plateId: text("plate_id"),
     // raw AI breakdown kept for reference
     itemsJson: text("items_json"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),
   },
-  (table) => [index("food_log_user_date_idx").on(table.userId, table.date)],
+  (table) => [
+    index("food_log_user_date_idx").on(table.userId, table.date),
+    index("food_log_plate_idx").on(table.plateId),
+  ],
 );
 
 export const exerciseLog = sqliteTable(
