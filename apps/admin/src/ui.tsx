@@ -1,4 +1,5 @@
 import { Select as SelectPrimitive } from "@base-ui/react/select";
+import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Check, ChevronDown } from "lucide-react";
@@ -56,6 +57,68 @@ export function Select({
         </SelectPrimitive.Positioner>
       </SelectPrimitive.Portal>
     </SelectPrimitive.Root>
+  );
+}
+
+/** Confirm dialog for destructive actions: trigger button + Batal/Ya popup. */
+export function ConfirmAction({
+  trigger,
+  triggerVariant = "outline",
+  triggerSize = "sm",
+  title,
+  description,
+  destructive = false,
+  confirmLabel = "Ya",
+  disabled,
+  onConfirm,
+}: {
+  trigger: ReactNode;
+  triggerVariant?: ComponentProps<typeof Button>["variant"];
+  triggerSize?: ComponentProps<typeof Button>["size"];
+  title: string;
+  description: ReactNode;
+  destructive?: boolean;
+  confirmLabel?: string;
+  disabled?: boolean;
+  onConfirm: () => void;
+}) {
+  return (
+    <AlertDialogPrimitive.Root>
+      <AlertDialogPrimitive.Trigger
+        render={
+          <Button size={triggerSize} variant={triggerVariant} disabled={disabled}>
+            {trigger}
+          </Button>
+        }
+      />
+      <AlertDialogPrimitive.Portal>
+        <AlertDialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/50" />
+        <AlertDialogPrimitive.Popup className="fixed top-1/2 left-1/2 z-50 w-[min(26rem,calc(100dvw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-5 text-foreground shadow-lg outline-none">
+          <AlertDialogPrimitive.Title className="text-base font-semibold">
+            {title}
+          </AlertDialogPrimitive.Title>
+          <AlertDialogPrimitive.Description className="mt-1 text-sm text-muted-foreground">
+            {description}
+          </AlertDialogPrimitive.Description>
+          <div className="mt-5 flex justify-end gap-2">
+            <AlertDialogPrimitive.Close
+              render={<Button size="sm" variant="ghost">Batal</Button>}
+            />
+            <AlertDialogPrimitive.Close
+              render={
+                <Button
+                  size="sm"
+                  variant={destructive ? "destructive" : "default"}
+                  onClick={onConfirm}
+                >
+                  {confirmLabel}
+                </Button>
+              }
+            />
+          </div>
+        </AlertDialogPrimitive.Popup>
+      </AlertDialogPrimitive.Portal>
+    </AlertDialogPrimitive.Root>
   );
 }
 

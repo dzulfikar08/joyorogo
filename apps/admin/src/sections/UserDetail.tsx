@@ -12,7 +12,7 @@ import {
   type AdminUser,
   type UserDetail,
 } from "../api";
-import { Badge, DayBars, SectionCard } from "../ui";
+import { Badge, ConfirmAction, DayBars, SectionCard } from "../ui";
 
 const MONTH = 30 * 24 * 60 * 60 * 1000;
 
@@ -21,47 +21,35 @@ function extendedFounderUntil(user: AdminUser): string {
   return new Date(Math.max(Date.now(), current) + MONTH).toISOString();
 }
 
-/** Every tier mutation confirms first, applies via PATCH, toasts the result. */
+/** Every tier mutation applies via PATCH, toasts the result. */
 function useTierMutation(
   userId: string,
   patch: { tier?: "free" | "founder"; founderUntil?: string | null; aiUnlimited?: boolean },
-  confirmText: string,
 ) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
-      if (!window.confirm(confirmText)) throw new Error("cancelled");
-      return api<{ id: string }>(`/api/admin/users/${userId}`, {
+    mutationFn: () =>
+      api<{ id: string }>(`/api/admin/users/${userId}`, {
         method: "PATCH",
         json: patch,
-      });
-    },
+      }),
     onSuccess: () => {
       toast.success("Tersimpan.");
       void qc.invalidateQueries({ queryKey: ["user", userId] });
       void qc.invalidateQueries({ queryKey: ["users"] });
     },
-    onError: (err) => {
-      if ((err as Error).message !== "cancelled") toast.error(String(err));
-    },
+    onError: (err) => toast.error(String(err)),
   });
 }
 
 function TierControls({ user }: { user: AdminUser }) {
-  const m = (patch: Parameters<typeof useTierMutation>[1], text: string) =>
-    useTierMutation(user.id, patch, text);
+  const m = (patch: Parameters<typeof useTierMutation>[1]) => useTierMutation(user.id, patch);
 
-  const setFree = m({ tier: "free" }, "Jadikan user ini Free?");
-  const setFounder = m({ tier: "founder" }, "Jadikan Founder permanen (comp)?");
-  const giveMonth = m(
-    { tier: "founder", founderUntil: extendedFounderUntil(user) },
-    "Beri / perpanjang Founder berbayar +1 bulan?",
-  );
-  const clearUntil = m({ founderUntil: null }, "Hapus tanggal habis Founder? (tier tetap)");
-  const toggleUnlimited = m(
-    { aiUnlimited: !user.aiUnlimited },
-    `Ubah AI unlimited menjadi ${!user.aiUnlimited}?`,
-  );
+  const setFree = m({ tier: "free" });
+  const setFounder = m({ tier: "founder" });
+  const giveMonth = m({ tier: "founder", founderUntil: extendedFounderUntil(user) });
+  const clearUntil = m({ founderUntil: null });
+  const toggleUnlimited = m({ aiUnlimited: !user.aiUnlimited });
 
   const busy =
     setFree.isPending ||
@@ -72,21 +60,50 @@ function TierControls({ user }: { user: AdminUser }) {
 
   return (
     <div className="flex flex-wrap gap-2">
-      <Button size="sm" variant="outline" disabled={busy} onClick={() => setFree.mutate()}>
-        Set Free
-      </Button>
-      <Button size="sm" variant="outline" disabled={busy} onClick={() => setFounder.mutate()}>
-        Set Founder (comp)
-      </Button>
-      <Button size="sm" disabled={busy} onClick={() => giveMonth.mutate()}>
-        Founder +1 bulan
-      </Button>
-      <Button size="sm" variant="ghost" disabled={busy} onClick={() => clearUntil.mutate()}>
-        Clear founderUntil
-      </Button>
-      <Button size="sm" variant="ghost" disabled={busy} onClick={() => toggleUnlimited.mutate()}>
-        {user.aiUnlimited ? "Disable" : "Enable"} AI unlimited
-      </Button>
+      <ConfirmAction
+        trigger="Set Free"
+        disabled={busy}
+        destructive
+        title="Jadikan user ini Free?"
+        description="Tier diubah menjadi Free — akses Founder langsung hilang."
+        onConfirm={() => setFree.mutate()}
+      />
+      <ConfirmAction
+        trigger="Set Founder (comp)"
+        disabled={busy}
+        title="Jadikan Founder permanen (comp)?"
+        description="User mendapat Founder tanpa batas waktu, tanpa pembayaran."
+        onConfirm={() => setFounder.mutate()}
+      />
+      <ConfirmAction
+        trigger="Founder +1 bulan"
+        triggerVariant="default"
+        disabled={busy}
+        title="Beri / perpanjang Founder +1 bulan?"
+        description={`Founder berbayar sampai ${fmtDate(extendedFounderUntil(user))} (dari ${fmtDate(user.founderUntil)}).`}
+        onConfirm={() => giveMonth.mutate()}
+      />
+      <ConfirmAction
+        trigger="Clear founderUntil"
+        triggerVariant="ghost"
+        disabled={busy}
+        destructive
+        title="Hapus tanggal habis Founder?"
+        description="Tanggal habis dihapus; tier tetap seperti sekarang."
+        onConfirm={() => clearUntil.mutate()}
+      />
+      <ConfirmAction
+        trigger={`${user.aiUnlimited ? "Disable" : "Enable"} AI unlimited`}
+        triggerVariant="ghost"
+        disabled={busy}
+        title={`Ubah AI unlimited menjadi ${user.aiUnlimited ? "nonaktif" : "aktif"}?`}
+        description={
+          user.aiUnlimited
+            ? "Batas scan harian berlaku lagi untuk user ini."
+            : "User bisa scan tanpa batas harian."
+        }
+        onConfirm={() => toggleUnlimited.mutate()}
+      />
     </div>
   );
 }
