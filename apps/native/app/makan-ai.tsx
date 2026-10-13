@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Redirect, router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, Pressable, ScrollView, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -484,10 +485,9 @@ export default function MakanAi() {
     );
     return (
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView
+        <KeyboardAwareScrollView
           contentContainerStyle={styles.confirmContent}
           keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets={true}
         >
           {totalKcal > 0 && (
             <ConfettiCannon
@@ -631,7 +631,7 @@ export default function MakanAi() {
             loading={addScan.isPending}
           />
           <Button variant="secondary" label="Foto Ulang" onPress={resetToCamera} />
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </SafeAreaView>
     );
   }

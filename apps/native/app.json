@@ -149,7 +149,8 @@
           "android": ["com.instagram.android"],
           "ios": ["instagram", "instagram-stories"]
         }
-      ]
+      ],
+      "./plugins/with-widget-headless-fix"
     ],
     "experiments": {
       "typedRoutes": true,

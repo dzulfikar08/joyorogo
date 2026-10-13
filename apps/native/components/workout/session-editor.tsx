@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Pressable, ScrollView, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useState } from "react";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -118,7 +119,7 @@ function ExercisePicker({
 
   return (
     <Sheet visible={visible} onClose={onClose} title="Tambah gerakan">
-      <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 480 }}>
+      <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 480 }}>
         <Field label="Cari gerakan">
           <Input
             value={query}
@@ -166,7 +167,7 @@ function ExercisePicker({
             <Text style={pickerStyles.empty}>Tidak ketemu. Coba kata kunci lain.</Text>
           ) : null}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </Sheet>
   );
 }

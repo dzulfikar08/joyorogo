@@ -17,6 +17,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { UnistylesRuntime, useUnistyles } from "react-native-unistyles";
 
 import { authClient } from "@/lib/auth-client";
@@ -98,6 +99,9 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={navTheme}>
         <GestureHandlerRootView style={{ flex: 1 }}>
+          {/* Feeds every KeyboardAwareScrollView / KeyboardAvoidingView the
+              keyboard position, Android edge-to-edge included. */}
+          <KeyboardProvider>
           <ToastProvider>
           {/* Follows the app theme (which can override the OS), not the OS. */}
           <StatusBar style={navTheme.dark ? "light" : "dark"} />
@@ -131,6 +135,7 @@ export default function RootLayout() {
             <Stack.Screen name="gabung" options={{ headerShown: false }} />
           </Stack>
           </ToastProvider>
+          </KeyboardProvider>
         </GestureHandlerRootView>
       </ThemeProvider>
     </QueryClientProvider>

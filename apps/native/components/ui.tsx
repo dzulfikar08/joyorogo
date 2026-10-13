@@ -5,11 +5,8 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
-  ScrollView,
   TextInput,
   View,
   Text as RNText,
@@ -18,6 +15,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import type { ComponentProps } from "react";
 import { Circle, Svg } from "react-native-svg";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -81,15 +79,15 @@ export function Num({ style, ...rest }: TextProps) {
 export function Screen({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
   return (
     <Container>
-      <ScrollView
+      {/* Keyboard-aware on both platforms: the focused input always scrolls
+          above the keyboard (Android edge-to-edge never resizes the window). */}
+      <KeyboardAwareScrollView
         contentContainerStyle={[styles.screenContent, style]}
         keyboardShouldPersistTaps="handled"
-        // iOS-only: pads the content up to the keyboard; Android's adjustResize already resizes the window.
-        automaticallyAdjustKeyboardInsets={true}
         showsVerticalScrollIndicator={false}
       >
         {children}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </Container>
   );
 }
@@ -491,10 +489,11 @@ export function Sheet({
         >
           <View style={styles.sheetBackdrop} />
         </Pressable>
-        {/* Android's adjustResize shifts the Modal window; iOS needs explicit padding.
-            box-none lets taps on the empty area above the panel reach the backdrop. */}
+        {/* keyboard-controller's KAV pads on both platforms, including Android
+            edge-to-edge and inside this Modal. box-none lets taps on the empty
+            area above the panel reach the backdrop. */}
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior="padding"
           pointerEvents="box-none"
           style={styles.sheetAvoid}
         >
@@ -511,13 +510,13 @@ export function Sheet({
                 <Ionicons name="close" size={22} color={theme.colors.mutedForeground} />
               </Pressable>
             </View>
-            <ScrollView
+            <KeyboardAwareScrollView
               style={styles.sheetScroll}
               contentContainerStyle={styles.sheetContent}
               keyboardShouldPersistTaps="handled"
             >
               {children}
-            </ScrollView>
+            </KeyboardAwareScrollView>
             {footer ? <View style={styles.sheetFooter}>{footer}</View> : null}
           </View>
         </KeyboardAvoidingView>

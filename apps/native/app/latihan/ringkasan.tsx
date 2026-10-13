@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import {
@@ -214,7 +215,7 @@ export default function LatihanRingkasan() {
   return (
     <>
       <Stack.Screen options={{ title: "Ringkasan" }} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content}>
         <View style={styles.statRow}>
           <View style={styles.stat}>
             <Text style={styles.statValue}>{formatClock(elapsedMs)}</Text>
@@ -293,7 +294,7 @@ export default function LatihanRingkasan() {
             />
           </>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <ShareToFeedSheet
         visible={shareOpen && saved !== null}

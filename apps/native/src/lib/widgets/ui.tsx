@@ -1,3 +1,8 @@
+// "use no memo" — the widget task renderer walks these components outside
+// React (react-native-android-widget buildWidgetTree), so react-compiler's
+// useMemoCache hook has no dispatcher and crashes. Keep this first.
+"use no memo";
+
 import type { ReactNode } from "react";
 
 import { FlexWidget, TextWidget } from "react-native-android-widget";

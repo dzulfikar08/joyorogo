@@ -6,10 +6,10 @@ import {
   Alert,
   AppState,
   Pressable,
-  ScrollView,
   Vibration,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { Swipeable } from "react-native-gesture-handler";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -272,7 +272,7 @@ export default function LatihanAktif() {
     <>
       <Stack.Screen options={{ title: "Latihan", headerBackVisible: false }} />
       <View style={styles.root}>
-        <ScrollView
+        <KeyboardAwareScrollView
           style={styles.scroll}
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 96 }]}
           keyboardShouldPersistTaps="handled"
@@ -446,7 +446,7 @@ export default function LatihanAktif() {
               />
             </Card>
           ))}
-        </ScrollView>
+        </KeyboardAwareScrollView>
 
         <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           {restEndsAt !== null ? (

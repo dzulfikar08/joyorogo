@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams, Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { ExercisePickerList } from "@/components/workout/exercise-picker-list";
@@ -173,7 +174,7 @@ export default function LatihanRutinitas() {
   return (
     <>
       <Stack.Screen options={{ title: params.id ? "Edit rutinitas" : "Rutinitas baru" }} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content}>
         <Field label="Nama rutinitas">
           <Input value={name} onChangeText={setName} placeholder="mis. Push Senin" />
         </Field>
@@ -304,7 +305,7 @@ export default function LatihanRutinitas() {
             disabled={remove.isPending}
           />
         ) : null}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <Sheet
         visible={pickerOpen}
