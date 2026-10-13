@@ -106,5 +106,20 @@
       "label": "DOKU API URL",
       "description": "Kosong = produksi (https://api.doku.com). Sandbox: https://api-sandbox.doku.com",
     },
+    {
+      "name": "APPLE_BUNDLE_ID",
+      "label": "Apple Bundle ID",
+      "description": "Kosong = com.joyodigitama.joyorogo. Harus sama dengan produk di App Store Connect.",
+    },
+    {
+      "name": "APPLE_FOUNDER_PRODUCT_ID",
+      "label": "Apple Product ID Founder",
+      "description": "Kosong = com.joyodigitama.joyorogo.founder.1m. Harus sama dengan produk di App Store Connect.",
+    },
+    {
+      "name": "APPLE_SANDBOX_EMAILS",
+      "label": "Email Pembelian Sandbox Apple",
+      "description": "Email (pisahkan dengan koma) yang boleh memakai pembelian sandbox/TestFlight: akunmu dan akun demo App Review.",
+    },
   ],
 }

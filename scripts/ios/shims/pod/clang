@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# pod install only: ExpoModulesJSI's prepare_command builds a placeholder
+# "-dynamiclib" stub with the host clang. Emit an ELF .so instead; the real
+# framework is compiled later by the iOS build.
+args=(); skip=0
+for a in "$@"; do
+  if [ $skip = 1 ]; then skip=0; continue; fi
+  case "$a" in
+    -dynamiclib) args+=(-shared -fPIC) ;;
+    -install_name) skip=1 ;;
+    *) args+=("$a") ;;
+  esac
+done
+exec /usr/bin/clang "${args[@]}"

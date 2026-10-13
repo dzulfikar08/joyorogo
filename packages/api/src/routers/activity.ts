@@ -19,7 +19,9 @@ export const activityRouter = {
         distanceMeters: z.number().min(0).max(500_000),
         activeCalories: z.number().min(0).max(20_000),
         exerciseMinutes: z.number().min(0).max(1440),
-        source: z.enum(["health_connect"]).default("health_connect"),
+        // health_connect (Android) and apple_health (iOS) rows come from
+        // on-device imports; the default keeps older clients working.
+        source: z.enum(["health_connect", "apple_health"]).default("health_connect"),
       }),
     )
     .handler(async ({ context, input }) => {

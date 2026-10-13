@@ -84,6 +84,24 @@ app.get("/downloads/latest-apk", async (c) => {
   });
 });
 
+// Update manifest for the Android in-app updater: versionCode + checksum of
+// joyorogo-latest.apk. Short cache so an update shows up within minutes.
+app.get("/downloads/latest-apk.json", async (c) => {
+  if (!("DOWNLOADS" in env) || !env.DOWNLOADS) {
+    return c.json({ error: "Download belum tersedia." }, 404);
+  }
+  const obj = await env.DOWNLOADS.get("joyorogo-latest.json");
+  if (!obj) {
+    return c.json({ error: "Download belum tersedia." }, 404);
+  }
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "public, max-age=300",
+    },
+  });
+});
+
 // Dish sticker cutouts (scans/<id>.png). The 32-hex scan id is the capability:
 // unguessable, immutable, safe to cache — no session needed for <img> sources.
 app.get("/sticker/:scanId", async (c) => {

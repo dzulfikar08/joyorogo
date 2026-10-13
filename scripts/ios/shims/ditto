@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Linux stand-in for macOS ditto as the CocoaPods script phases use it:
+# copy one file or directory to a path, creating parent directories.
+set -euo pipefail
+src=$1
+dst=$2
+mkdir -p "$(dirname "$dst")"
+if [ -d "$src" ]; then
+  mkdir -p "$dst"
+  cp -R "$src"/. "$dst"/
+elif [ -d "$dst" ]; then
+  cp "$src" "$dst"/
+else
+  cp "$src" "$dst"
+fi

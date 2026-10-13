@@ -26,6 +26,9 @@ declare module "cloudflare:workers" {
       DOKU_CLIENT_ID?: string;
       DOKU_SECRET_KEY?: string;
       DOKU_BASE_URL?: string;
+      APPLE_BUNDLE_ID?: string;
+      APPLE_FOUNDER_PRODUCT_ID?: string;
+      APPLE_SANDBOX_EMAILS?: string;
     }
   }
 }

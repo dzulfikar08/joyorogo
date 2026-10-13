@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Pressable, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
 import { Redirect } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -36,7 +36,11 @@ const SOURCE_LABELS: Record<string, string> = {
   manual: "Manual",
   strava: "Strava",
   health_connect: "Health Connect",
+  apple_health: "Apple Health",
 };
+
+// Captions name the on-device store this install actually reads.
+const healthSourceName = Platform.OS === "ios" ? "Apple Health" : "Health Connect";
 
 const TYPE_ICONS: Record<string, React.ComponentProps<typeof Ionicons>["name"]> = {
   jalan: "footsteps",
@@ -178,7 +182,7 @@ export default function Olahraga() {
     <Screen>
       <PageHeader
         title="Olahraga"
-        caption="Semua sumber dihitung: manual, Strava, Health Connect"
+        caption={`Semua sumber dihitung: manual, Strava, ${healthSourceName}`}
         right={
           <Button
             variant="secondary"
@@ -286,7 +290,7 @@ export default function Olahraga() {
         <EmptyState
           icon="barbell-outline"
           title="Belum ada olahraga hari ini"
-          description="Pilih aktivitas di atas, sinkronkan Strava, atau impor dari Health Connect."
+          description={`Pilih aktivitas di atas, sinkronkan Strava, atau impor dari ${healthSourceName}.`}
         />
       ) : (
         <ListGroup>

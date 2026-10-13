@@ -1,11 +1,11 @@
 // US-009 + US-013: Health Connect is the PRIMARY activity source on Android.
 // react-native-health-connect ships Android native code only — it needs a dev
-// build (not Expo Go), so callers hide this section behind
-// isHealthConnectSupported().
+// build (not Expo Go), and its TurboModule lookup throws outside Android, so
+// this file is require()d lazily from src/lib/health-sync.ts and must never
+// be imported at module scope by shared screens.
 //
-// Priority order (owner decision 2026-09-14): 1) Health Connect (Android),
-// 2) HealthKit (iOS, separate issue), 3) manual fallback, 4) Strava direct
-// only if demand appears.
+// The iOS equivalent lives in src/lib/apple-health.ts (local AppleHealth
+// module); the platform pick happens in health-sync.ts.
 //
 // Data rules:
 // - Cumulative metrics (steps, distance, active calories) come from
@@ -19,6 +19,7 @@
 import { Platform } from "react-native";
 import {
   aggregateRecord,
+  getGrantedPermissions,
   initialize,
   readRecords,
   requestPermission,
@@ -37,7 +38,7 @@ import { client } from "@/utils/orpc";
 // units (energy in kcal variants) — that's the shape we consume.
 type HealthSessionRecord = RecordResult<"ExerciseSession">;
 
-export function isHealthConnectSupported(): boolean {
+function isHealthConnectSupported(): boolean {
   return Platform.OS === "android";
 }
 
@@ -156,6 +157,26 @@ async function requestReadPermissions(): Promise<{
     canReadDailyMetrics: has("Steps") && has("Distance") && has("ActiveCaloriesBurned"),
     canReadSleep: has("SleepSession"),
   };
+}
+
+const READ_RECORD_TYPES = [
+  "ExerciseSession",
+  "SleepSession",
+  "Steps",
+  "Distance",
+  "ActiveCaloriesBurned",
+];
+
+/**
+ * Auto-sync gate: true when all five read permissions are already granted.
+ * Reads Health Connect state without prompting anything.
+ */
+export async function hasReadPermissions(): Promise<boolean> {
+  const granted = await getGrantedPermissions();
+  const have = new Set<string>(
+    granted.filter((p) => p.accessType === "read").map((p) => p.recordType),
+  );
+  return READ_RECORD_TYPES.every((t) => have.has(t));
 }
 
 function externalIdOf(record: HealthSessionRecord): string {

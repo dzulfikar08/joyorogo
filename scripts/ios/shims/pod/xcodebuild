@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Linux stand-in: pod install only asks for the Xcode version.
+echo "Xcode 27.0"; echo "Build version 27A266a"

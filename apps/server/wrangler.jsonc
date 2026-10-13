@@ -49,5 +49,8 @@
     "FOUNDER_PRICE_IDR": "15000",
     "DOKU_CLIENT_ID": "BRN-0111-1789543571783",
     "DOKU_BASE_URL": "https://api.doku.com",
+    "APPLE_BUNDLE_ID": "com.joyodigitama.joyorogo",
+    "APPLE_FOUNDER_PRODUCT_ID": "com.joyodigitama.joyorogo.founder.1m",
+    "APPLE_SANDBOX_EMAILS": "",
   },
 }

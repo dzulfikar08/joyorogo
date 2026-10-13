@@ -1,6 +1,6 @@
 import "@/unistyles";
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
-import { Dimensions, Pressable, View } from "react-native";
+import { Dimensions, Platform, Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
 import { Redirect } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -235,7 +235,8 @@ export default function Tidur() {
           <SleepBars nights={nights} />
         )}
         <Text style={styles.note}>
-          Satu catatan per malam. Hasil Health Connect ikut dihitung di sini.
+          Satu catatan per malam. Hasil {Platform.OS === "ios" ? "Apple Health" : "Health Connect"}{" "}
+          ikut dihitung di sini.
         </Text>
       </Card>
 

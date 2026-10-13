@@ -13,9 +13,9 @@ export const sleepRouter = {
       z.object({
         date: dateSchema.optional(),
         hours: z.number().min(0).max(24),
-        // US-013: Health Connect fills gaps and refreshes its own rows; a
-        // manual entry is explicit user intent and is never auto-overwritten.
-        source: z.enum(["manual", "health_connect"]).default("manual"),
+        // US-013: imports fill gaps and refresh their own rows; a manual
+        // entry is explicit user intent and is never auto-overwritten.
+        source: z.enum(["manual", "health_connect", "apple_health"]).default("manual"),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -33,13 +33,12 @@ export const sleepRouter = {
         .onConflictDoUpdate({
           target: [sleepLog.userId, sleepLog.date],
           set: { hours: input.hours, source: input.source },
-          // Manual rows are only ever replaced by the user's own manual edit.
-          ...(input.source === "health_connect"
-            ? { setWhere: eq(sleepLog.source, "health_connect") }
-            : {}),
+          // Manual rows are only ever replaced by the user's own manual
+          // edit; an import sync may refresh rows of its own source.
+          ...(input.source === "manual" ? {} : { setWhere: eq(sleepLog.source, input.source) }),
         })
         .returning();
-      // Empty when the conflict target was a manual row that HC must not clobber.
+      // Empty when the conflict target was a manual row that imports must not clobber.
       return row ?? null;
     }),
 

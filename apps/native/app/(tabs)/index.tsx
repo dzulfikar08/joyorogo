@@ -41,7 +41,7 @@ import { WaterCard } from "@/components/water-card";
 import { WeighInSheet } from "@/components/weigh-in-sheet";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { useHealthConnectAutoSync } from "@/src/lib/use-health-connect-sync";
+import { useHealthAutoSync } from "@/src/lib/use-health-sync";
 import { errorMessage, fmtDateId, fmtKcal, fmtKg, weeklyRateLabel } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
@@ -120,9 +120,10 @@ export default function Dashboard() {
     orpc.food.listByDate.queryOptions({ input: { date: summary.data?.date ?? jakartaToday() } }),
   );
 
-  // US-013: Health Connect is the primary activity source — once its reads
-  // are granted (first import from Profil), every app open syncs silently.
-  useHealthConnectAutoSync(
+  // US-013: health data is the primary activity source (Health Connect on
+  // Android, Apple Health on iOS) — once reads are granted (first import
+  // from Profil), every app open syncs silently.
+  useHealthAutoSync(
     profileQuery.data?.latestWeightKg ?? null,
     gate === "authed" && summary.data?.hasProfile === true,
   );

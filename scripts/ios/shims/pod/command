@@ -1,0 +1,3 @@
+#!/bin/sh
+# Ruby backticks exec `command -v x` directly; macOS ships /usr/bin/command.
+command "$@"

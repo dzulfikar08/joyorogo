@@ -17,8 +17,9 @@ export const exerciseRouter = {
         name: z.string().min(1).max(200),
         durationMin: z.number().min(1).max(1440).optional(),
         kcal: z.number().min(0).max(10000),
-        // health_connect rows come from on-device imports; manual is the default
-        source: z.enum(["manual", "health_connect"]).default("manual"),
+        // Import rows (health_connect, apple_health) come from on-device
+        // syncs; manual is the default
+        source: z.enum(["manual", "health_connect", "apple_health"]).default("manual"),
         externalId: z.string().max(200).optional(),
       }),
     )

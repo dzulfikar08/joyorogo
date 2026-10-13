@@ -120,7 +120,7 @@ export const exerciseLog = sqliteTable(
     name: text("name").notNull(),
     durationMin: real("duration_min"),
     kcal: real("kcal").notNull(),
-    // 'manual' | 'strava' | 'health_connect'
+    // 'manual' | 'strava' | 'health_connect' | 'apple_health'
     source: text("source").notNull().default("manual"),
     externalId: text("external_id"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
@@ -147,8 +147,8 @@ export const sleepLog = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     date: text("date").notNull(),
     hours: real("hours").notNull(),
-    // 'manual' | 'health_connect' — a manual entry is user intent and is
-    // never auto-overwritten by a later Health Connect sync
+    // 'manual' | 'health_connect' | 'apple_health' — a manual entry is user
+    // intent and is never auto-overwritten by an import sync
     source: text("source").notNull().default("manual"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
@@ -268,10 +268,11 @@ export const waterLog = sqliteTable(
 );
 
 /**
- * Health Connect daily rollup (US-013): cumulative metrics aggregated by
- * Health Connect itself, so multiple writing apps (phone + watch) cannot
- * double count. Workouts stay in exercise_log; these numbers are displayed
- * as-is and never added on top of workout kcal in Burn.
+ * On-device health store daily rollup (US-013): cumulative metrics aggregated
+ * by the platform store itself (Health Connect on Android, HealthKit on iOS),
+ * so multiple writing apps (phone + watch) cannot double count. Workouts stay
+ * in exercise_log; these numbers are displayed as-is and never added on top
+ * of workout kcal in Burn.
  */
 export const dailyActivity = sqliteTable(
   "daily_activity",
@@ -285,7 +286,7 @@ export const dailyActivity = sqliteTable(
     distanceMeters: real("distance_meters").notNull().default(0),
     activeCalories: real("active_calories").notNull().default(0),
     exerciseMinutes: real("exercise_minutes").notNull().default(0),
-    // 'health_connect' (HealthKit comes later, see US-013 priority order)
+    // 'health_connect' | 'apple_health'
     source: text("source").notNull().default("health_connect"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)

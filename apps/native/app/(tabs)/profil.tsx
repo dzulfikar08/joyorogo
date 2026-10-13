@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
-import { Alert, Image, Switch, View } from "react-native";
+import { Alert, Image, Platform, Switch, View } from "react-native";
 import { useEffect, useState } from "react";
 import { Redirect, router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -30,7 +30,8 @@ import { TargetDateSheet, TargetWeightSheet } from "@/components/target-sheets";
 import { StravaCard } from "@/components/strava-card";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { syncHealthConnect, isHealthConnectSupported } from "@/src/lib/health-connect";
+import { downloadAndInstallApk, useApkUpdate } from "@/src/lib/apk-update";
+import { isHealthSyncSupported, syncHealthData } from "@/src/lib/health-sync";
 import {
   loadReminderPrefs,
   setMealReminders,
@@ -73,6 +74,29 @@ export default function Profil() {
   const [hcBusy, setHcBusy] = useState(false);
   const [hcMessage, setHcMessage] = useState<string | null>(null);
   const [hcError, setHcError] = useState<string | null>(null);
+
+  // Android only: Profil bypasses the throttle so the card reflects the server
+  // right now. The app-start check stays silent and throttled.
+  const update = useApkUpdate(true);
+  const [installing, setInstalling] = useState(false);
+  const [installProgress, setInstallProgress] = useState(0);
+  const [installError, setInstallError] = useState<string | null>(null);
+
+  const installUpdate = async () => {
+    if (!update || installing) return;
+    setInstalling(true);
+    setInstallError(null);
+    setInstallProgress(0);
+    try {
+      await downloadAndInstallApk(update, setInstallProgress);
+      // The system installer takes over; if installs from this app are not
+      // allowed, Android shows its own prompt before returning here.
+    } catch (e) {
+      setInstallError(errorMessage(e));
+    } finally {
+      setInstalling(false);
+    }
+  };
 
   const prof = profileQuery.data?.profile ?? null;
   const targets = profileQuery.data?.targets ?? null;
@@ -127,18 +151,27 @@ export default function Profil() {
     );
   };
 
-  const importHealthConnect = async () => {
+  const importHealthData = async () => {
     setHcBusy(true);
     setHcError(null);
     setHcMessage(null);
     try {
-      const result = await syncHealthConnect(profileQuery.data?.latestWeightKg ?? null);
+      const result = await syncHealthData(profileQuery.data?.latestWeightKg ?? null);
       const parts = [
         `${result.workoutsImported} latihan diimpor`,
         `${result.activityDays} hari aktivitas`,
         `${result.sleepNights} malam tidur`,
       ];
-      setHcMessage(`${parts.join(", ")}, ${result.workoutsSkipped} duplikat dilewati.`);
+      let summary = `${parts.join(", ")}, ${result.workoutsSkipped} duplikat dilewati.`;
+      const empty =
+        result.workoutsImported === 0 && result.activityDays === 0 && result.sleepNights === 0;
+      // HealthKit menolak izin secara diam: kueri hanya kembali kosong, jadi
+      // arahkan ke Setelan tanpa mengklaim tahu penyebabnya.
+      if (Platform.OS === "ios" && empty) {
+        summary +=
+          " Tidak ada data terbaca. Cek izin di Pengaturan > Health > Akses Data & Perangkat, lalu coba lagi.";
+      }
+      setHcMessage(summary);
       queryClient.invalidateQueries();
     } catch (e) {
       setHcError(errorMessage(e));
@@ -184,6 +217,23 @@ export default function Profil() {
         tier={profileQuery.data?.tier ?? "free"}
         founderUntil={profileQuery.data?.founderUntil ?? null}
       />
+
+      {/* Android only: in-app update. useApkUpdate is a no-op on iOS and web. */}
+      {update ? (
+        <Card>
+          <Text style={styles.cardTitle}>Versi baru tersedia</Text>
+          <Text style={styles.note}>
+            Versi {update.versionName} ({update.versionCode}) siap dipasang.
+          </Text>
+          <Button
+            label={installing ? `Mengunduh ${installProgress}%` : "Perbarui"}
+            onPress={() => void installUpdate()}
+            loading={installing}
+            disabled={installing}
+          />
+          {installError ? <Text style={styles.note}>{installError}</Text> : null}
+        </Card>
+      ) : null}
 
       {prof && targets ? (
         <>
@@ -311,26 +361,32 @@ export default function Profil() {
       {/* Integrasi */}
       <Text style={styles.sectionLabel}>Integrasi</Text>
       <StravaCard />
-      {isHealthConnectSupported() ? (
+      {isHealthSyncSupported() ? (
         <Card>
-          <View style={styles.hcHead}>
-            {/* Official logo from developer.android.com Health Connect UI guidelines. */}
-            <Image
-              source={require("@/assets/images/health-connect.png")}
-              style={styles.hcLogo}
-              accessibilityIgnoresInvertColors
-            />
-            <Text style={styles.cardTitle}>Health Connect</Text>
-          </View>
+          {Platform.OS === "ios" ? (
+            // No logo: do not invent Apple artwork; the title alone identifies
+            // the source on iOS.
+            <Text style={styles.cardTitle}>Apple Health</Text>
+          ) : (
+            <View style={styles.hcHead}>
+              {/* Official logo from developer.android.com Health Connect UI guidelines. */}
+              <Image
+                source={require("@/assets/images/health-connect.png")}
+                style={styles.hcLogo}
+                accessibilityIgnoresInvertColors
+              />
+              <Text style={styles.cardTitle}>Health Connect</Text>
+            </View>
+          )}
           <Text style={styles.note}>
-            Sumber utama aktivitasmu: latihan, langkah, jarak, kalori aktif, dan tidur 7 hari
-            terakhir. Setelah izin diberikan, sinkron berjalan otomatis tiap kali kamu buka
-            aplikasi.
+            {Platform.OS === "ios"
+              ? "Sumber utama aktivitasmu: latihan, langkah, jarak, kalori aktif, dan tidur 7 hari terakhir dari aplikasi Health. Setelah izin diberikan lewat tombol di bawah, sinkron berjalan otomatis tiap kali kamu buka aplikasi."
+              : "Sumber utama aktivitasmu: latihan, langkah, jarak, kalori aktif, dan tidur 7 hari terakhir. Setelah izin diberikan, sinkron berjalan otomatis tiap kali kamu buka aplikasi."}
           </Text>
           <Button
             variant="secondary"
             label="Izinkan & Sinkronkan 7 Hari"
-            onPress={() => void importHealthConnect()}
+            onPress={() => void importHealthData()}
             loading={hcBusy}
           />
           {hcMessage ? <Text style={styles.note}>{hcMessage}</Text> : null}

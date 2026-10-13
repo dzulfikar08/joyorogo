@@ -442,6 +442,7 @@ export default function MakanAi() {
         <ScrollView
           contentContainerStyle={styles.confirmContent}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={true}
         >
           {totalKcal > 0 && (
             <ConfettiCannon

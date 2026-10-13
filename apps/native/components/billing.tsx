@@ -1,8 +1,10 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Platform, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { StyleSheet } from "react-native-unistyles";
 
+import { appleIap } from "@/modules/apple-iap";
 import { authClient } from "@/lib/auth-client";
 import { Button, Card, Text } from "@/components/ui";
 import { ENV } from "@/src/env";
@@ -14,6 +16,8 @@ export type AppConfig = {
   paywall: boolean;
   /** Founder checkout is available (paywall + DOKU configured). */
   billing: boolean;
+  /** Apple in-app purchase is available on iOS (paywall configured). */
+  appleBilling: boolean;
   freeDailyScans: number | null;
   founderDailyCap: number | null;
   founderPriceIdr: number;
@@ -88,10 +92,105 @@ function useFounderCheckout() {
   });
 }
 
+/** App Store Connect product for one month of Founder; server verifies the id. */
+const FOUNDER_PRODUCT_ID = "com.joyodigitama.joyorogo.founder.1m";
+
+/**
+ * The server will never credit this transaction (bad JWS or sandbox account
+ * not allowlisted), so the caller must finish it instead of replaying forever.
+ */
+class AppleRejectedError extends Error {}
+
+/** Sends the StoreKit JWS for crediting; the server is idempotent per transaction. */
+async function postAppleJws(signedTransaction: string): Promise<void> {
+  const res = await fetch(`${serverUrl()}/api/billing/apple`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(await checkoutHeaders()) },
+    body: JSON.stringify({ signedTransaction }),
+  });
+  const body = (await res.json().catch(() => null)) as { error?: string } | null;
+  if (res.status === 401) throw new Error("Masuk dulu untuk berlangganan.");
+  if (res.status === 400) {
+    throw new AppleRejectedError(body?.error ?? "Bukti pembelian tidak valid.");
+  }
+  if (!res.ok) throw new Error(body?.error ?? "Pembelian belum bisa diproses. Coba lagi nanti.");
+}
+
+/**
+ * Buys the Founder month through StoreKit, credits it on the server, and only
+ * then finishes the transaction. A transient failure before the server
+ * confirms leaves the transaction unfinished, so the next mount replays it;
+ * a definitive rejection finishes it immediately.
+ */
+function useAppleFounderPurchase() {
+  return useMutation({
+    mutationFn: async () => {
+      if (!appleIap) throw new Error("Pembelian lewat App Store tidak tersedia.");
+      const result = await appleIap.purchase(FOUNDER_PRODUCT_ID);
+      if (result.status === "cancelled") return "cancelled";
+      if (result.status === "pending") {
+        throw new Error(
+          "Pembelian menunggu persetujuan App Store. Buka lagi nanti setelah disetujui.",
+        );
+      }
+      try {
+        await postAppleJws(result.signedTransaction);
+      } catch (error) {
+        if (error instanceof AppleRejectedError) await appleIap.finish(result.transactionId);
+        throw error;
+      }
+      await appleIap.finish(result.transactionId);
+      return "bought";
+    },
+    onSuccess: () => queryClient.invalidateQueries(),
+  });
+}
+
+/** StoreKit price for the card copy; null while the product is unavailable. */
+function useAppleFounderPrice(enabled: boolean) {
+  return useQuery({
+    queryKey: ["apple-founder-product"],
+    queryFn: async () => (await appleIap?.getProduct(FOUNDER_PRODUCT_ID)) ?? null,
+    enabled,
+    staleTime: 24 * 60 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+/**
+ * Purchases interrupted before the server confirmed are still unfinished in
+ * StoreKit; replaying them on mount credits the user and finishes them.
+ * Definitive rejections are finished too; other failures stay unfinished and
+ * retry on the next mount. Already-credited transactions are skipped by the
+ * server (once per id).
+ */
+function useUnfinishedReplay(enabled: boolean) {
+  useEffect(() => {
+    if (!enabled || !appleIap) return;
+    let cancelled = false;
+    void (async () => {
+      const items = await appleIap.unfinished();
+      for (const item of items) {
+        if (cancelled) return;
+        try {
+          await postAppleJws(item.signedTransaction);
+          queryClient.invalidateQueries();
+        } catch (error) {
+          if (!(error instanceof AppleRejectedError)) return;
+        }
+        await appleIap.finish(item.transactionId);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+}
+
 /**
  * The web profil banners (profil.tsx): free-tier scan quota + Upgrade when
- * billing is on, and founder expiry + Perpanjang. Both start the same
- * checkout the web's useFounderCheckout runs.
+ * billing is on, and founder expiry + Perpanjang. Android/web start a DOKU
+ * checkout; iOS buys through Apple in-app purchase instead.
  */
 export function FounderCards({
   tier,
@@ -101,11 +200,27 @@ export function FounderCards({
   founderUntil: string | Date | null;
 }) {
   const config = useAppConfig();
+  const ios = Platform.OS === "ios";
   const checkout = useFounderCheckout();
-  const billing = config.data?.billing === true;
+  const purchase = useAppleFounderPurchase();
+  const dokuBilling = config.data?.billing === true;
+  const appleBilling = config.data?.appleBilling === true;
+  const billing = ios ? appleBilling : dokuBilling;
+  const price = useAppleFounderPrice(ios && appleBilling);
+  useUnfinishedReplay(ios && appleBilling);
 
   // While the config loads, render no pricing at all rather than guessing.
   if (!config.data) return null;
+
+  const buy = () => (ios ? purchase.mutate() : checkout.mutate());
+  const buying = ios ? purchase.isPending : checkout.isPending;
+  const failure = ios
+    ? purchase.isError
+      ? purchase.error.message
+      : null
+    : checkout.isError
+      ? checkout.error.message
+      : null;
 
   return (
     <>
@@ -116,13 +231,11 @@ export function FounderCards({
               Scan AI {config.data.freeDailyScans} kali sehari
             </Text>
             <Text style={styles.cardNote}>Founder buka scan tanpa batas.</Text>
+            {ios && price.data?.displayPrice ? (
+              <Text style={styles.cardNote}>{price.data.displayPrice} lewat App Store.</Text>
+            ) : null}
           </View>
-          <Button
-            size="sm"
-            label="Upgrade"
-            onPress={() => checkout.mutate()}
-            loading={checkout.isPending}
-          />
+          <Button size="sm" label="Upgrade" onPress={buy} loading={buying} />
         </Card>
       ) : null}
       {tier === "founder" && founderUntil ? (
@@ -138,13 +251,13 @@ export function FounderCards({
               size="sm"
               variant="secondary"
               label="Perpanjang"
-              onPress={() => checkout.mutate()}
-              loading={checkout.isPending}
+              onPress={buy}
+              loading={buying}
             />
           ) : null}
         </Card>
       ) : null}
-      {checkout.isError ? <Text style={styles.error}>{checkout.error.message}</Text> : null}
+      {failure ? <Text style={styles.error}>{failure}</Text> : null}
     </>
   );
 }

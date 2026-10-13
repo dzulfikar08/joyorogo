@@ -5,7 +5,9 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   TextInput,
@@ -82,6 +84,8 @@ export function Screen({ children, style }: { children: React.ReactNode; style?:
       <ScrollView
         contentContainerStyle={[styles.screenContent, style]}
         keyboardShouldPersistTaps="handled"
+        // iOS-only: pads the content up to the keyboard; Android's adjustResize already resizes the window.
+        automaticallyAdjustKeyboardInsets={true}
         showsVerticalScrollIndicator={false}
       >
         {children}
@@ -487,28 +491,36 @@ export function Sheet({
         >
           <View style={styles.sheetBackdrop} />
         </Pressable>
-        <View style={[styles.sheetPanel, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>{title}</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Tutup"
-              onPress={onClose}
-              hitSlop={8}
-              style={({ pressed }) => [styles.sheetClose, pressed && styles.pressedSoft]}
+        {/* Android's adjustResize shifts the Modal window; iOS needs explicit padding.
+            box-none lets taps on the empty area above the panel reach the backdrop. */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          pointerEvents="box-none"
+          style={styles.sheetAvoid}
+        >
+          <View style={[styles.sheetPanel, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>{title}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Tutup"
+                onPress={onClose}
+                hitSlop={8}
+                style={({ pressed }) => [styles.sheetClose, pressed && styles.pressedSoft]}
+              >
+                <Ionicons name="close" size={22} color={theme.colors.mutedForeground} />
+              </Pressable>
+            </View>
+            <ScrollView
+              style={styles.sheetScroll}
+              contentContainerStyle={styles.sheetContent}
+              keyboardShouldPersistTaps="handled"
             >
-              <Ionicons name="close" size={22} color={theme.colors.mutedForeground} />
-            </Pressable>
+              {children}
+            </ScrollView>
+            {footer ? <View style={styles.sheetFooter}>{footer}</View> : null}
           </View>
-          <ScrollView
-            style={styles.sheetScroll}
-            contentContainerStyle={styles.sheetContent}
-            keyboardShouldPersistTaps="handled"
-          >
-            {children}
-          </ScrollView>
-          {footer ? <View style={styles.sheetFooter}>{footer}</View> : null}
-        </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -991,6 +1003,10 @@ const styles = StyleSheet.create((theme) => ({
   },
 
   sheetRoot: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  sheetAvoid: {
     flex: 1,
     justifyContent: "flex-end",
   },

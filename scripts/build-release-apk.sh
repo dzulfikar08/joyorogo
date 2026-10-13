@@ -21,6 +21,21 @@ export NODE_ENV=production
 export EXPO_PUBLIC_SERVER_URL="https://api.joyorogo.com"
 export EXPO_PUBLIC_DEV_LOGIN=0
 
+# --publish uploads the APK + update manifest to the R2 bucket after a
+# successful build. Without it the build only writes them to the repo root.
+PUBLISH=0
+for arg in "$@"; do
+  case "$arg" in
+    --publish) PUBLISH=1 ;;
+    *) echo "unknown option: $arg" >&2; exit 1 ;;
+  esac
+done
+
+# Android versionCode from UTC time, YYMMDDHHmm: strictly increases per build,
+# fits int32 until 2121, and needs no manual bump in app.json. The in-app
+# updater compares this number against the installed build.
+export VERSION_CODE="$(date -u +%y%m%d%H%M)"
+
 # 1. Keystore — generated once, reused forever. The password lives only in
 #    the gitignored keystore.properties next to it; keep both backed up, an
 #    APK signed with a different key can't update existing installs.
@@ -86,6 +101,8 @@ android {""",
             signingConfig signingConfigs.release""",
         1,
     )
+    # versionCode from UTC time (see VERSION_CODE above); template hardcodes 1.
+    s = re.sub(r"versionCode 1\b", "versionCode " + os.environ["VERSION_CODE"], s, 1)
     app.write_text(s)
     print("build.gradle patched")
 
@@ -122,5 +139,26 @@ if ! grep -qF "$EXPO_PUBLIC_SERVER_URL" <<<"$BUNDLE_STRINGS"; then
 fi
 
 cp "$APK" "$OLDPWD/../../.."/joyorogo-release.apk
-ls -la "$OLDPWD/../../.."/joyorogo-release.apk
+
+# 6. Update manifest: what the in-app updater fetches as latest-apk.json.
+ROOT="$OLDPWD/../../.."
+VERSION_NAME="$(grep -o '"version": "[^"]*"' "$NATIVE/app.json" | head -1 | cut -d'"' -f4)"
+SIZE="$(stat -c %s "$ROOT/joyorogo-release.apk")"
+SHA="$(sha256sum "$ROOT/joyorogo-release.apk" | cut -d' ' -f1)"
+cat > "$ROOT/joyorogo-latest.json" <<EOF
+{ "versionCode": $VERSION_CODE, "versionName": "$VERSION_NAME", "size": $SIZE, "sha256": "$SHA", "publishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)" }
+EOF
+ls -la "$ROOT/joyorogo-release.apk" "$ROOT/joyorogo-latest.json"
+
+# 7. Optional publish. APK first, manifest last: the manifest must never point
+#    at a missing APK. Run from apps/server so wrangler reads its config.
+if [ "$PUBLISH" = 1 ]; then
+  cd "$ROOT/apps/server"
+  bunx wrangler r2 object put "joyorogo-downloads/joyorogo-latest.apk" \
+    --file "$ROOT/joyorogo-release.apk" \
+    --content-type "application/vnd.android.package-archive" --remote
+  bunx wrangler r2 object put "joyorogo-downloads/joyorogo-latest.json" \
+    --file "$ROOT/joyorogo-latest.json" \
+    --content-type "application/json" --remote
+fi
 echo RELEASE-APK-DONE

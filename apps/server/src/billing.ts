@@ -2,6 +2,12 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import type { JoyoAuth } from "@joyorogo/auth";
 import type { Hono } from "hono";
 
+import {
+  APPLE_ROOT_CA_G3_SHA256,
+  DEFAULT_APPLE_BUNDLE_ID,
+  DEFAULT_APPLE_FOUNDER_PRODUCT_ID,
+  verifyAppleTransactionJws,
+} from "@joyorogo/api/lib/apple";
 import { summarize } from "@joyorogo/api/lib/cost";
 import {
   WEBHOOK_TARGET,
@@ -28,6 +34,9 @@ export type BillingEnv = PaywallEnv & {
   DOKU_CLIENT_ID?: string;
   DOKU_SECRET_KEY?: string;
   DOKU_BASE_URL?: string;
+  APPLE_BUNDLE_ID?: string;
+  APPLE_FOUNDER_PRODUCT_ID?: string;
+  APPLE_SANDBOX_EMAILS?: string;
 };
 
 type Deps = {
@@ -68,6 +77,8 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     c.json({
       paywall: paywallEnabled(config),
       billing: doku !== null,
+      // iOS pays through Apple in-app purchase; DOKU credentials irrelevant.
+      appleBilling: paywallEnabled(config),
       freeDailyScans: config.freeDailyScans,
       founderDailyCap: config.founderDailyCap,
       founderPriceIdr: config.founderPriceIdr,
@@ -197,6 +208,113 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       .limit(1);
     if (again?.status === "paid") return c.json({ received: true, activated: false });
     return c.json({ error: "concurrent update, retry" }, 409);
+  });
+
+  // StoreKit 2 purchase from the iOS app. Trust comes from the JWS chain
+  // (pinned Apple Root CA - G3); no DOKU credentials involved, so the gate is
+  // the paywall alone and an iOS-only self-host works.
+  app.post("/api/billing/apple", async (c) => {
+    if (!paywallEnabled(config)) {
+      return c.json({ error: "Pembayaran tidak tersedia di server ini." }, 404);
+    }
+    const me = await sessionUser(c.req.raw.headers);
+    if (!me) return c.json({ error: "Masuk dulu untuk berlangganan." }, 401);
+    const body = (await c.req.json().catch(() => null)) as { signedTransaction?: string } | null;
+    if (typeof body?.signedTransaction !== "string" || !body.signedTransaction) {
+      return c.json({ error: "Bukti pembelian tidak ada." }, 400);
+    }
+
+    const verification = await verifyAppleTransactionJws(body.signedTransaction, {
+      rootSha256: APPLE_ROOT_CA_G3_SHA256,
+      bundleId: env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID,
+      productId: env.APPLE_FOUNDER_PRODUCT_ID || DEFAULT_APPLE_FOUNDER_PRODUCT_ID,
+    });
+    if (!verification.ok) {
+      console.error(`apple billing rejected: ${verification.reason}`);
+      return c.json({ error: "Bukti pembelian tidak valid." }, 400);
+    }
+    const transaction = verification.transaction;
+
+    // TestFlight and App Review purchases are Sandbox; only allowlisted
+    // accounts (owner, review demo) may credit them, or a production server
+    // would hand out free Founder months.
+    const sandboxEmails = (env.APPLE_SANDBOX_EMAILS ?? "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean);
+    if (transaction.environment === "Sandbox" && !sandboxEmails.includes(me.email.toLowerCase())) {
+      console.error("apple billing rejected: sandbox buyer not allowlisted");
+      return c.json({ error: "Akun ini tidak bisa memakai pembelian sandbox." }, 400);
+    }
+
+    const orderId = `apple:${transaction.transactionId}`;
+    const amountIdr = transaction.priceIdr ?? config.founderPriceIdr;
+
+    const db = deps.getDb();
+    const [owner] = await db
+      .select({ founderUntil: user.founderUntil })
+      .from(user)
+      .where(eq(user.id, me.id))
+      .limit(1);
+    if (!owner) return c.json({ error: "Pengguna tidak ditemukan." }, 404);
+    const [existing] = await db
+      .select({ status: payment.status })
+      .from(payment)
+      .where(eq(payment.orderId, orderId))
+      .limit(1);
+    if (existing?.status === "paid") {
+      return c.json({ activated: false, founderUntil: owner.founderUntil });
+    }
+
+    const now = new Date();
+    const previousMs = owner.founderUntil?.getTime() ?? null;
+    const until = nextFounderUntil(owner.founderUntil, now);
+
+    // One D1 batch. The pending row records the order; the paid flip only
+    // lands while founder_until still holds the value we extended from, so a
+    // replayed JWS or two concurrent purchases extend exactly once. The user
+    // update rides on the flip (a paid row stamped with this batch's time).
+    await db.insert(payment).values({ orderId, userId: me.id, amountIdr }).onConflictDoNothing();
+    const [flipped] = await db.batch([
+      db
+        .update(payment)
+        .set({ status: "paid", paidAt: now, founderUntil: until })
+        .where(
+          and(
+            eq(payment.orderId, orderId),
+            eq(payment.status, "pending"),
+            sql`(select ${user.founderUntil} from ${user} where ${user.id} = ${me.id}) is ${previousMs}`,
+          ),
+        )
+        .returning({ orderId: payment.orderId }),
+      db
+        .update(user)
+        .set({ founderUntil: until })
+        .where(
+          and(
+            eq(user.id, me.id),
+            sql`exists (select 1 from ${payment} where ${payment.orderId} = ${orderId} and ${payment.status} = 'paid' and ${payment.paidAt} = ${now.getTime()})`,
+          ),
+        ),
+    ]);
+    if (flipped.length === 1) return c.json({ activated: true, founderUntil: until });
+
+    // Lost a race: either this transaction already paid (replay) or another
+    // purchase flipped founder_until first; the client retries the replay.
+    const [again] = await db
+      .select({ status: payment.status })
+      .from(payment)
+      .where(eq(payment.orderId, orderId))
+      .limit(1);
+    if (again?.status === "paid") {
+      const [current] = await db
+        .select({ founderUntil: user.founderUntil })
+        .from(user)
+        .where(eq(user.id, me.id))
+        .limit(1);
+      return c.json({ activated: false, founderUntil: current?.founderUntil ?? null });
+    }
+    return c.json({ error: "Pembayaran masih diproses. Coba lagi sebentar." }, 409);
   });
 
   // Return page polls this until the webhook lands.

@@ -8,8 +8,20 @@
     "scheme": "joyorogo",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.joyorogo"
+      "supportsTablet": false,
+      "bundleIdentifier": "com.joyodigitama.joyorogo",
+      "buildNumber": "1",
+      "appleTeamId": "F6Q6UFUK69",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "Izinkan JoyoRogo membaca langkah, jarak, kalori aktif, olahraga, dan tidur dari Apple Health untuk menghitung kalori yang kamu bakar."
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.access": []
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,7 +38,8 @@
         "android.permission.health.READ_STEPS",
         "android.permission.health.READ_DISTANCE",
         "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
-        "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
+        "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND",
+        "android.permission.REQUEST_INSTALL_PACKAGES"
       ]
     },
     "web": {
@@ -60,6 +73,9 @@
         {
           "android": {
             "minSdkVersion": 26
+          },
+          "ios": {
+            "deploymentTarget": "16.4"
           }
         }
       ],
