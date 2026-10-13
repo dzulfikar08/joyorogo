@@ -170,8 +170,9 @@ cp "$APK" "$ROOT/joyorogo-release.apk"
 VERSION_NAME="$(grep -o '"version": "[^"]*"' "$ROOT/$NATIVE/app.json" | head -1 | cut -d'"' -f4)"
 SIZE="$(stat -c %s "$ROOT/joyorogo-release.apk")"
 SHA="$(sha256sum "$ROOT/joyorogo-release.apk" | cut -d' ' -f1)"
+MD5="$(md5sum "$ROOT/joyorogo-release.apk" | cut -d' ' -f1)"
 cat > "$ROOT/joyorogo-latest.json" <<EOF
-{ "versionCode": $VERSION_CODE, "versionName": "$VERSION_NAME", "size": $SIZE, "sha256": "$SHA", "publishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)" }
+{ "versionCode": $VERSION_CODE, "versionName": "$VERSION_NAME", "size": $SIZE, "sha256": "$SHA", "md5": "$MD5", "publishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)" }
 EOF
 ls -la "$ROOT/joyorogo-release.apk" "$ROOT/joyorogo-latest.json"
 

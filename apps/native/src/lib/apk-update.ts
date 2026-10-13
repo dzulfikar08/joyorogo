@@ -14,6 +14,8 @@ export type ApkUpdate = {
   versionName: string;
   size: number;
   sha256: string;
+  /** Checked natively (streamed) when present; hashing a ~50 MB APK in JS failed on device. */
+  md5?: string;
 };
 
 /**
@@ -198,17 +200,25 @@ export async function downloadAndInstallApk(
   }
   if (!file) throw new Error("Unduhan gagal. Periksa koneksi internetmu lalu coba lagi.");
 
-  let digestHex = "";
+  // Native streamed MD5: hashing the whole APK as a JS ArrayBuffer (sha256 via
+  // expo-crypto) failed on device. HTTPS already covers tampering; this check
+  // only catches truncated/corrupt downloads.
+  let ok = false;
   try {
-    const digest = await Crypto.digest(
-      Crypto.CryptoDigestAlgorithm.SHA256,
-      await file.arrayBuffer(),
-    );
-    digestHex = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+    if (update.md5) {
+      ok = file.info({ md5: true }).md5?.toLowerCase() === update.md5.toLowerCase();
+    } else {
+      const digest = await Crypto.digest(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        await file.arrayBuffer(),
+      );
+      const hex = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+      ok = hex === update.sha256;
+    }
   } catch {
     throw new Error("Gagal memeriksa berkas yang diunduh. Coba lagi.");
   }
-  if (digestHex !== update.sha256) {
+  if (!ok) {
     file.delete();
     throw new Error("Berkas yang diunduh tidak valid. Coba lagi.");
   }
