@@ -144,30 +144,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="grup"
+        name="lainnya"
         options={{
-          tabBarLabel: "Grup",
+          tabBarLabel: "Lainnya",
           tabBarBadge: unreadBadge,
           tabBarIcon: ({ focused, size, color }) => (
             <TabIcon
               focused={focused}
-              name="people"
-              outline="people-outline"
-              size={size}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profil"
-        options={{
-          tabBarLabel: "Profil",
-          tabBarIcon: ({ focused, size, color }) => (
-            <TabIcon
-              focused={focused}
-              name="person"
-              outline="person-outline"
+              name="ellipsis-horizontal"
+              outline="ellipsis-horizontal-outline"
               size={size}
               color={color}
             />

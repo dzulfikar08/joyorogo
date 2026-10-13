@@ -1,10 +1,9 @@
 import "@/unistyles";
-import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Redirect, router } from "expo-router";
+import { Redirect, Stack, router } from "expo-router";
 import { useState } from "react";
-import { Pressable, View } from "react-native";
-import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { View } from "react-native";
+import { StyleSheet } from "react-native-unistyles";
 
 import {
   Button,
@@ -21,17 +20,14 @@ import {
   Text,
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { extractInviteCode, useUnreadCount } from "@/src/lib/group";
+import { extractInviteCode } from "@/src/lib/group";
 import { errorMessage } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
-/** Grup tab: list of my groups + create / join by invite code. */
+/** Grup list screen: my groups + create / join by invite code. */
 export default function GrupList() {
-  const { theme } = useUnistyles();
   const gate = useSessionGate();
   const listQuery = useQuery(orpc.group.list.queryOptions());
-  const unread = useUnreadCount();
-  const unreadCount = unread.data?.count ?? 0;
 
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
@@ -89,25 +85,12 @@ export default function GrupList() {
   const groups = listQuery.data ?? [];
 
   return (
-    <Screen>
+    <>
+      <Stack.Screen options={{ title: "Grup" }} />
+      <Screen>
       <PageHeader
         title="Grup"
-        caption="Semangat bareng teman — colek yang kemakan terus 😄"
-        right={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Kotak masuk"
-            onPress={() => router.push("/inbox")}
-            style={({ pressed }) => [styles.bell, pressed && styles.pressed]}
-          >
-            <Ionicons name="notifications-outline" size={22} color={theme.colors.foreground} />
-            {unreadCount > 0 ? (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
-              </View>
-            ) : null}
-          </Pressable>
-        }
+        caption="Semangat bareng teman — colek yang kemakan terus"
       />
 
       {listQuery.isError ? (
@@ -202,38 +185,12 @@ export default function GrupList() {
         </Field>
         {formError ? <Text style={styles.formError}>{formError}</Text> : null}
       </Sheet>
-    </Screen>
+      </Screen>
+    </>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
-  bell: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  badge: {
-    position: "absolute",
-    top: 2,
-    right: 0,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 4,
-    backgroundColor: theme.colors.destructive,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: theme.colors.destructiveForeground,
-  },
   actions: {
     gap: theme.spacing.sm,
     marginTop: theme.spacing.md,

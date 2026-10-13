@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Alert, Image, Platform, Switch, View } from "react-native";
 import { useEffect, useState } from "react";
-import { Redirect, router } from "expo-router";
+import { Redirect, Stack, router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { StyleSheet, UnistylesRuntime, useUnistyles } from "react-native-unistyles";
 
@@ -193,7 +193,9 @@ export default function Profil() {
   const displayName = session?.user.name ?? "Pengguna JoyoRogo";
 
   return (
-    <Screen>
+    <>
+      <Stack.Screen options={{ title: "Profil" }} />
+      <Screen>
       <PageHeader title="Profil" />
 
       {/* Account header */}
@@ -462,7 +464,8 @@ export default function Profil() {
           />
         </>
       ) : null}
-    </Screen>
+      </Screen>
+    </>
   );
 }
 

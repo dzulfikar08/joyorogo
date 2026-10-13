@@ -53,7 +53,7 @@ export default function Inbox() {
         <EmptyState
           icon="notifications-off-outline"
           title="Belum ada apa-apa"
-          description="Colek 👉 dan catatan ✍️ dari teman grup akan muncul di sini."
+          description="Colek dan catatan dari teman grup akan muncul di sini."
         />
       ) : (
         <ListGroup>
@@ -65,7 +65,7 @@ export default function Inbox() {
                 icon={item.kind === "poke" ? "hand-left" : "pencil"}
                 iconTint={item.kind === "poke" ? "bakar" : "tidur"}
                 title={item.senderName}
-                subtitle={`${item.kind === "poke" ? "mencolek kamu 👉" : (item.message ?? "mengirim catatan")} • ${item.groupName}`}
+                subtitle={`${item.kind === "poke" ? "mencolek kamu" : (item.message ?? "mengirim catatan")} • ${item.groupName}`}
                 value={timeAgoId(item.createdAt)}
                 onPress={unread ? () => markRead.mutate({ ids: [item.id] }) : undefined}
                 right={

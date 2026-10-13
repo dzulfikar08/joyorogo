@@ -1,4 +1,5 @@
 import "@/unistyles";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -19,6 +20,7 @@ import {
   ListGroup,
   ListRow,
   MacroBar,
+  Num,
   PageHeader,
   Screen,
   SectionTitle,
@@ -35,10 +37,10 @@ import { errorMessage, fmtKcal, fmtKg } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
 const NOTE_SUGGESTIONS = [
-  "Ayo jalan 10 menit! 🚶",
-  "Jangan lupa minum air 💧",
-  "Jangan lupa sarapan 🍳",
-  "Semangat catat kalorinya! 💪",
+  "Ayo jalan 10 menit!",
+  "Jangan lupa minum air",
+  "Jangan lupa sarapan",
+  "Semangat catat kalorinya!",
 ];
 
 function activityRow(event: GroupActivityEvent): { icon: "restaurant" | "fitness" | "scale"; title: string; subtitle: string } {
@@ -99,9 +101,10 @@ function MemberCard({
         </View>
         {member.streakDays > 0 ? (
           <View style={[styles.streak, { backgroundColor: theme.colors.bakarSoft }]}>
-            <Text style={[styles.streakText, { color: theme.colors.bakarText }]}>
-              🔥 {member.streakDays}
-            </Text>
+            <Ionicons name="flame" size={12} color={theme.colors.bakarText} />
+            <Num style={[styles.streakText, { color: theme.colors.bakarText }]}>
+              {member.streakDays}
+            </Num>
           </View>
         ) : null}
       </View>
@@ -114,9 +117,9 @@ function MemberCard({
       />
 
       <Text style={styles.memberStats}>
-        🔥 bakar {fmtKcal(today.burnedKcal)} kcal • 🍽️ {today.mealsLogged} makan
-        {today.exerciseMinutes !== null ? ` • 🏃 ${today.exerciseMinutes} mnt` : ""}
-        {today.weightKg !== null ? ` • ⚖️ ${fmtKg(today.weightKg)} kg` : ""}
+        Bakar {fmtKcal(today.burnedKcal)} kcal • {today.mealsLogged} makan
+        {today.exerciseMinutes !== null ? ` • ${today.exerciseMinutes} mnt olahraga` : ""}
+        {today.weightKg !== null ? ` • ${fmtKg(today.weightKg)} kg` : ""}
         {today.weightKg !== null && delta !== null
           ? ` (${delta <= 0 ? "−" : "+"}${fmtKg(Math.abs(delta))}/7hr)`
           : ""}
@@ -124,9 +127,9 @@ function MemberCard({
 
       {!isMe ? (
         <View style={styles.memberActions}>
-          <Button size="sm" variant="secondary" label="Colek 👉" onPress={onPoke} />
-          <Button size="sm" variant="secondary" label="Catatan ✍️" onPress={onNote} />
-          <Button size="sm" label="VAR 📺" onPress={onVar} />
+          <Button size="sm" variant="secondary" icon="hand-left" label="Colek" onPress={onPoke} />
+          <Button size="sm" variant="secondary" icon="pencil" label="Catatan" onPress={onNote} />
+          <Button size="sm" icon="tv" label="VAR" onPress={onVar} />
           {isOwner ? (
             <Button size="sm" variant="ghost" destructive label="Keluarkan" onPress={onRemove} />
           ) : null}
@@ -231,7 +234,7 @@ export default function GroupDetail() {
 
   const shareInvite = () => {
     void Share.share({
-      message: `Ayo gabung grup ${group.name} di JoyoRogo! 🌾\nKode: ${group.inviteCode}\n${inviteLink(group.inviteCode)}`,
+      message: `Ayo gabung grup ${group.name} di JoyoRogo!\nKode: ${group.inviteCode}\n${inviteLink(group.inviteCode)}`,
     });
   };
 
@@ -251,7 +254,7 @@ export default function GroupDetail() {
       {
         onSuccess: () => {
           setNoteTarget(null);
-          Alert.alert("Terkirim ✍️", `Catatan untuk ${noteTarget.name} sudah dikirim.`);
+          Alert.alert("Catatan terkirim", `Catatan untuk ${noteTarget.name} sudah dikirim.`);
         },
       },
     );
@@ -343,7 +346,7 @@ export default function GroupDetail() {
               />
             ) : (activityQuery.data ?? []).length === 0 ? (
               <Text style={styles.emptyLine}>
-                Belum ada aktivitas. Waktunya logging makan pertama! 🍽️
+                Belum ada aktivitas. Waktunya logging makan pertama!
               </Text>
             ) : (
               <ListGroup>
@@ -509,6 +512,9 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.mutedForeground,
   },
   streak: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 4,
     borderRadius: theme.radius.pill,

@@ -1,9 +1,10 @@
 import "@/unistyles";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useRef, useState } from "react";
+import { ComponentProps, useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   Alert,
@@ -55,38 +56,23 @@ const FOOD_SLOTS: Array<[left: number, top: number]> = [
   [12, 60],
 ];
 
-const FOOD_EMOJI: Array<[RegExp, string]> = [
-  [/nasi|rice|geprek|ayam|chicken|telur|egg|tempe|tahu|sate/i, "🍗"],
-  [/mie|mi\b|noodle|ramen|bakso|spageti|pasta/i, "🍜"],
-  [/roti|bread|burger|pizza|sandwich|kebab/i, "🍞"],
-  [/ikan|fish|lele|nila|mujair|udang|seafood/i, "🐟"],
-  [/sayur|salad|capcay|tumis|pecel|gado/i, "🥬"],
-  [/buah|pisang|apel|semangka|pepaya|mangga|jeruk/i, "🍌"],
-  [/kopi|coffee|espresso|latte/i, "☕"],
-  [/teh|tea|matcha/i, "🍵"],
-  [/air|water/i, "💧"],
-  [/susu|milk|yogurt/i, "🥛"],
-  [/jus|juice|soda|es\b|dingin/i, "🥤"],
-  [/snack|kerupuk|cireng|cilok|gorengan|cakwe/i, "🍟"],
-];
+type IconName = ComponentProps<typeof Ionicons>["name"];
 
-function foodEmoji(name: string): string {
-  const hit = FOOD_EMOJI.find(([pattern]) => pattern.test(name));
-  return hit ? hit[1] : "🍽️";
-}
-
-function verdictCopy(scan: VarScan, name: string): { icon: string; title: string; color: string } {
+function verdictCopy(
+  scan: VarScan,
+  name: string,
+): { icon: IconName; title: string; color: string } {
   if (scan.hidden) {
-    return { icon: "🙈", title: `${name} menyembunyikan isi perutnya`, color: "#C9C4BA" };
+    return { icon: "eye-off", title: `${name} menyembunyikan isi perutnya`, color: "#C9C4BA" };
   }
   if (scan.verdict === "aman") {
-    return { icon: "✅", title: "AMAN, lanjutkan!", color: "#3DDB84" };
+    return { icon: "checkmark-circle", title: "AMAN, lanjutkan!", color: "#3DDB84" };
   }
   if (scan.verdict === "offside") {
     const over = Math.max(0, scan.eatenKcal - (scan.eatTargetKcal ?? 0));
-    return { icon: "🚩", title: `OFFSIDE! +${fmtKcal(over)} kcal`, color: "#FF6A52" };
+    return { icon: "flag", title: `OFFSIDE! +${fmtKcal(over)} kcal`, color: "#FF6A52" };
   }
-  return { icon: "🫥", title: "Perut kosong… belum makan?", color: "#FFD84D" };
+  return { icon: "ellipse-outline", title: "Perut kosong… belum makan?", color: "#FFD84D" };
 }
 
 /** One food chip bobbing inside the cone; static under reduced motion. */
@@ -136,7 +122,7 @@ function FoodFloat({
       {photoUrl ? (
         <Image source={{ uri: stickerUrl(photoUrl) }} style={styles.foodImg} />
       ) : (
-        <Text style={styles.foodEmoji}>{foodEmoji(name)}</Text>
+        <Ionicons name="restaurant" size={20} color={SCAN_GREEN} />
       )}
       <View style={styles.foodText}>
         <Text style={styles.foodName} numberOfLines={1}>
@@ -275,7 +261,7 @@ export default function VarPerut() {
           ) : (
             <View style={StyleSheet.absoluteFill}>
               <Text style={styles.placeholderHint}>
-                Izin kamera belum ada — mode bayangan 🌚. VAR tetap jalan kok!
+                Izin kamera belum ada — mode bayangan. VAR tetap jalan kok!
               </Text>
               <Button
                 size="sm"
@@ -331,8 +317,9 @@ export default function VarPerut() {
                 </View>
               ) : null}
               {foods.length === 0 && !scan?.hidden ? (
-                <View style={[styles.foodChip, { left: "34%", top: "42%" }]}>
-                  <Text style={styles.foodKcal}>🫥 Tidak ada makanan terdeteksi</Text>
+                <View style={[styles.foodChip, { left: "30%", top: "42%" }]}>
+                  <Ionicons name="ellipse-outline" size={16} color={SCAN_GREEN} />
+                  <Text style={styles.foodKcal}>Tidak ada makanan terdeteksi</Text>
                 </View>
               ) : null}
             </View>
@@ -380,7 +367,7 @@ export default function VarPerut() {
             hitSlop={8}
             style={({ pressed }) => [styles.close, pressed && styles.pressed]}
           >
-            <Text style={styles.closeText}>✕</Text>
+            <Ionicons name="close" size={20} color="#FFFFFF" />
           </Pressable>
         </View>
 
@@ -389,9 +376,12 @@ export default function VarPerut() {
           {revealed && scan && verdict ? (
             <>
               <View style={[styles.verdictCard, { borderColor: verdict.color }]}>
-                <Text style={styles.verdictTitle}>
-                  {verdict.icon} {verdict.title}
-                </Text>
+                <View style={styles.verdictHead}>
+                  <Ionicons name={verdict.icon} size={22} color={verdict.color} />
+                  <Text style={[styles.verdictTitle, { color: verdict.color }]}>
+                    {verdict.title}
+                  </Text>
+                </View>
                 <View style={styles.totalsRow}>
                   <Text style={styles.totalsLabel}>Asupan hari ini</Text>
                   <Text style={styles.totalsValue}>
@@ -426,7 +416,8 @@ export default function VarPerut() {
                 <Button
                   size="sm"
                   variant="secondary"
-                  label={poked ? "Terkirim 👉" : "Colek 👉"}
+                  icon="hand-left"
+                  label={poked ? "Terkirim" : "Colek"}
                   disabled={poked || poke.isPending}
                   loading={poke.isPending}
                   onPress={() => poke.mutate({ groupId, toUserId: targetId, kind: "poke" })}
@@ -439,10 +430,15 @@ export default function VarPerut() {
               <Text style={styles.bottomHint}>
                 {scanning
                   ? "VAR sedang memeriksa rekaman…"
-                  : `Cek isi perut ${firstName} pakai VAR 📺`}
+                  : `Cek isi perut ${firstName} pakai VAR`}
               </Text>
               {!scanning ? (
-                <Button label="🛰️ Scan Sekarang" onPress={startScan} style={styles.scanBtn} />
+                <Button
+                  icon="scan"
+                  label="Scan Sekarang"
+                  onPress={startScan}
+                  style={styles.scanBtn}
+                />
               ) : null}
             </>
           )}
@@ -516,9 +512,6 @@ const styles = StyleSheet.create((theme) => ({
     width: 36,
     height: 36,
     borderRadius: 10,
-  },
-  foodEmoji: {
-    fontSize: 22,
   },
   foodText: {
     flexShrink: 1,
@@ -638,10 +631,6 @@ const styles = StyleSheet.create((theme) => ({
   pressed: {
     opacity: 0.7,
   },
-  closeText: {
-    fontSize: theme.fontSize.md,
-    color: "#FFFFFF",
-  },
   bottom: {
     paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.md,
@@ -665,10 +654,15 @@ const styles = StyleSheet.create((theme) => ({
     gap: theme.spacing.sm,
     backgroundColor: "rgba(255,255,255,0.04)",
   },
+  verdictHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
   verdictTitle: {
     fontSize: theme.fontSize.lg,
     fontWeight: "800",
-    color: "#F1EEE9",
+    flexShrink: 1,
   },
   totalsRow: {
     flexDirection: "row",
