@@ -25,10 +25,18 @@ async function refreshWidgets(widgets: WidgetName[], snapshot: WidgetSnapshot): 
  * App-side snapshot push. Called from the screens whenever the day summary
  * or the inbox query resolves, so widgets always show the freshest data the
  * app itself just loaded.
+ *
+ * `fasting` follows the day data: null clears the IF line (IF off / Ramadan),
+ * undefined (IF query still pending) keeps whatever the snapshot already shows.
  */
-export async function pushDaySnapshot(day: NonNullable<WidgetSnapshot["day"]>): Promise<void> {
+export async function pushDaySnapshot(
+  day: NonNullable<WidgetSnapshot["day"]>,
+  fasting?: WidgetSnapshot["fasting"],
+): Promise<void> {
   // Screens only render behind the session gate, so a push implies signed in.
-  await refreshWidgets(PROGRESS_WIDGETS, await writeSnapshot({ signedIn: true, day }));
+  const patch: Partial<Omit<WidgetSnapshot, "updatedAt">> = { signedIn: true, day };
+  if (fasting !== undefined) patch.fasting = fasting;
+  await refreshWidgets(PROGRESS_WIDGETS, await writeSnapshot(patch));
 }
 
 export async function pushInboxSnapshot(inbox: {

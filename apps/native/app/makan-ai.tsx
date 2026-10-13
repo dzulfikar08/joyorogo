@@ -27,6 +27,7 @@ import {
 } from "@/components/ui";
 import { PlateFields, plateInput } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
+import { ContextualTip } from "@/components/tips/contextual-tip";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { MealStory } from "@/components/story/story-card";
 import { useSessionGate } from "@/lib/use-session-gate";
@@ -611,6 +612,9 @@ export default function MakanAi() {
               );
             })}
           </ListGroup>
+
+          {/* Saran tips kalau ada minuman manis atau saus/gorengan */}
+          <ContextualTip names={items.map((item) => item.name)} />
 
           <View style={styles.mealBlock}>
             <Text style={styles.mealLabel}>Catat sebagai</Text>

@@ -18,6 +18,19 @@ export type WidgetDaySnapshot = {
   streakDays: number;
 };
 
+/**
+ * Intermittent-fasting state for the widget status line. Null when IF is off,
+ * inactive (no profile), or Ramadan owns the day. Times are absolute 'HH:MM'
+ * WIB — widgets redraw every 30 minutes, so no live countdowns here.
+ */
+export type WidgetFasting = {
+  state: "puasa" | "jendela_makan";
+  windowOpen: string;
+  windowClose: string;
+  /** Day kcal budget still unspent (target − eaten). */
+  remainingKcal: number;
+};
+
 /** Minimal inbox row a widget row needs (poke accent vs note text). */
 export type WidgetInboxItem = {
   id: string;
@@ -34,6 +47,7 @@ export type WidgetSnapshot = {
   updatedAt: number;
   signedIn: boolean;
   day: WidgetDaySnapshot | null;
+  fasting: WidgetFasting | null;
   inbox: { unread: number; items: WidgetInboxItem[] } | null;
 };
 
@@ -41,6 +55,7 @@ export const EMPTY_WIDGET_SNAPSHOT: WidgetSnapshot = {
   updatedAt: 0,
   signedIn: false,
   day: null,
+  fasting: null,
   inbox: null,
 };
 

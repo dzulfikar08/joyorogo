@@ -117,6 +117,25 @@ export function slotForTime(minOfDay: number): Meal {
   return "snack";
 }
 
+/**
+ * Fraction (0–1) of the current fast that has elapsed, for progress bars on
+ * Beranda. Measures from the last window close to the next open, so the bar
+ * tracks the fasting phase exactly like the countdown does. Returns null for
+ * malformed times (callers gate on the fasting state before asking).
+ */
+export function fastingElapsedFraction(
+  windowOpen: string,
+  windowClose: string,
+  minutesToOpen: number,
+): number | null {
+  const openMin = parseHHMM(windowOpen);
+  const closeMin = parseHHMM(windowClose);
+  if (openMin === null || closeMin === null) return null;
+  const total = minutesUntil(openMin, closeMin);
+  if (total <= 0) return null;
+  return Math.min(1, Math.max(0, (total - minutesToOpen) / total));
+}
+
 // --- Meal schedule -------------------------------------------------------------
 
 export type MealKind = "buka" | "camilan" | "terakhir";

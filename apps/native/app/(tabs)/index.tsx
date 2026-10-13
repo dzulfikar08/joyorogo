@@ -42,6 +42,7 @@ import {
 } from "@/components/ui";
 import { WaterCard } from "@/components/water-card";
 import { FastingScheduleCard } from "@/components/fasting/schedule-card";
+import { DailyTipCard } from "@/components/tips/daily-tip-card";
 import { WeighInSheet } from "@/components/weigh-in-sheet";
 import { WorkoutCard } from "@/components/workout/workout-card";
 import { authClient } from "@/lib/auth-client";
@@ -120,6 +121,8 @@ export default function Dashboard() {
   const gate = useSessionGate();
   const summary = useQuery(orpc.day.summary.queryOptions({ input: {} }));
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
+  // Shared cache with FastingScheduleCard below; also feeds the widget line.
+  const fastingToday = useQuery(orpc.fasting.today.queryOptions({ input: {} }));
   const config = useAppConfig();
   const { data: sessionData } = authClient.useSession();
   // Diari piring: today's scanned items with their sticker cutouts.
@@ -138,17 +141,32 @@ export default function Dashboard() {
   // Home-screen widgets render from a stored snapshot; feed it every time
   // the day summary query resolves (load, refetch, log mutations invalidate).
   const summaryData = summary.data;
+  const fastingData = fastingToday.data;
   useEffect(() => {
     if (gate !== "authed" || !summaryData?.hasProfile || !summaryData.targets) return;
-    void pushDaySnapshot({
-      date: summaryData.date,
-      eatenKcal: summaryData.eatenKcal,
-      eatKcal: summaryData.targets.eatKcal,
-      proteinEatenG: summaryData.protein?.eatenG ?? null,
-      proteinTargetG: summaryData.protein?.targetG ?? null,
-      streakDays: summaryData.streakDays,
-    });
-  }, [gate, summaryData]);
+    void pushDaySnapshot(
+      {
+        date: summaryData.date,
+        eatenKcal: summaryData.eatenKcal,
+        eatKcal: summaryData.targets.eatKcal,
+        proteinEatenG: summaryData.protein?.eatenG ?? null,
+        proteinTargetG: summaryData.protein?.targetG ?? null,
+        streakDays: summaryData.streakDays,
+      },
+      // undefined (query pending) keeps the snapshot's current IF line so it
+      // doesn't flicker off; null clears it when IF is off or Ramadan owns the day.
+      fastingData?.active && fastingData.state && fastingData.windowOpen && fastingData.windowClose
+        ? {
+            state: fastingData.state,
+            windowOpen: fastingData.windowOpen,
+            windowClose: fastingData.windowClose,
+            remainingKcal: fastingData.remainingKcal,
+          }
+        : fastingData === undefined
+          ? undefined
+          : null,
+    );
+  }, [gate, summaryData, fastingData]);
 
   const [weighOpen, setWeighOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -517,6 +535,9 @@ export default function Dashboard() {
 
       {/* Puasa intermiten: panduan jadwal makan */}
       <FastingScheduleCard />
+
+      {/* Tips hari ini: artikel berbasis bukti, berganti tiap hari */}
+      <DailyTipCard />
 
       {/* Lainnya: air, streak, lencana, share — collapsed by default */}
       <SectionTitle

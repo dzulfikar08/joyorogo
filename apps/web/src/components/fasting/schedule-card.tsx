@@ -5,7 +5,11 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
-import { fmtCountdown, MEAL_KIND_LABELS } from "@joyorogo/api/lib/fasting";
+import {
+  fastingElapsedFraction,
+  fmtCountdown,
+  MEAL_KIND_LABELS,
+} from "@joyorogo/api/lib/fasting";
 
 import { orpc } from "@/utils/orpc";
 
@@ -48,6 +52,12 @@ export function FastingScheduleCard() {
   const nextAway = Math.max(0, Math.ceil(data.nextEvent.minutesAway - elapsedMin));
   const stateLabel =
     data.state === "jendela_makan" ? `Jendela makan ${data.windowOpen}–${data.windowClose}` : "Puasa";
+  // Progress bar only makes sense while fasting; it tracks the current fast
+  // from the last window close to the next open.
+  const fastPct =
+    data.state === "puasa" && data.nextEvent.kind === "open" && data.windowOpen && data.windowClose
+      ? fastingElapsedFraction(data.windowOpen, data.windowClose, nextAway)
+      : null;
 
   return (
     <section aria-label="Panduan jadwal makan" className="rounded-2xl bg-muted p-4">
@@ -70,6 +80,24 @@ export function FastingScheduleCard() {
           <span className="font-semibold tabular-nums text-foreground">{fmtCountdown(nextAway)}</span>
         </span>
       </p>
+
+      {fastPct !== null && (
+        <div
+          className="mt-2.5"
+          role="progressbar"
+          aria-label="Progres puasa hari ini"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(fastPct * 100)}
+        >
+          <div className="h-1.5 overflow-hidden rounded-full bg-card">
+            <div
+              className="h-full rounded-full bg-makan transition-[width] duration-500"
+              style={{ width: `${Math.round(fastPct * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       <ul className="mt-3 space-y-1.5">
         {data.schedule.map((entry) => (

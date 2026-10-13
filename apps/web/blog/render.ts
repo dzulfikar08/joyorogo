@@ -6,6 +6,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { TKPI_2019, type Tkpi2019Row } from "@joyorogo/api/lib/tkpi2019-data";
+import { TIPS, type Tip } from "@joyorogo/api/lib/tips";
 import { Marked } from "marked";
 
 import { OG_IMAGE, PAGES } from "../src/lib/seo.ts";
@@ -150,7 +151,7 @@ function toHtml(md: string): string {
 }
 
 export function loadPosts(): Post[] {
-  return readdirSync(POSTS_DIR)
+  const filePosts: Post[] = readdirSync(POSTS_DIR)
     .filter((f) => f.endsWith(".md"))
     .map((file) => {
       const { meta, body } = parseFrontmatter(readFileSync(join(POSTS_DIR, file), "utf8"), file);
@@ -167,13 +168,44 @@ export function loadPosts(): Post[] {
         minutes: Math.max(1, Math.round(words / 200)),
         featured: meta.featured === "true",
       };
-    })
-    .sort(
-      (a, b) =>
-        Number(b.featured) - Number(a.featured) ||
-        b.date.localeCompare(a.date) ||
-        a.slug.localeCompare(b.slug),
-    );
+    });
+  return [...filePosts, ...TIPS.map(tipToPost)].sort(
+    (a, b) =>
+      Number(b.featured) - Number(a.featured) ||
+      b.date.localeCompare(a.date) ||
+      a.slug.localeCompare(b.slug),
+  );
+}
+
+/**
+ * Tips statis dari @joyorogo/api dirender jadi postingan blog yang sama,
+ * supaya web dan native memakai satu sumber konten tanpa duplikasi.
+ */
+function tipToPost(tip: Tip): Post {
+  const parts: string[] = [];
+  for (const section of tip.sections) {
+    parts.push(`## ${section.heading}`);
+    parts.push(section.paragraphs.join("\n\n"));
+  }
+  parts.push("## Coba ini");
+  parts.push(tip.cobaIni.map((item) => `- ${item}`).join("\n"));
+  parts.push("## Sumber");
+  parts.push(tip.sources.map((s) => `- [${s.title}](${s.url})`).join("\n"));
+  const credit = tip.credit
+    ? `\n\n<p class="blog-source">${esc(tip.credit.label)}: <a href="${esc(tip.credit.url)}" rel="noopener" target="_blank">${esc(tip.credit.url)}</a></p>`
+    : "";
+  const md = parts.join("\n\n");
+  const words = md.split(/\s+/).filter(Boolean).length;
+  return {
+    slug: tip.slug,
+    title: tip.title,
+    description: tip.summary,
+    date: tip.date,
+    updated: tip.date,
+    html: toHtml(md) + credit,
+    minutes: Math.max(1, Math.round(words / 200)),
+    featured: false,
+  };
 }
 
 const THEME_SCRIPT = `try{var t=localStorage.getItem("vite-ui-theme")||"system";document.documentElement.classList.toggle("dark",t==="dark"||(t==="system"&&matchMedia("(prefers-color-scheme: dark)").matches))}catch(e){}`;

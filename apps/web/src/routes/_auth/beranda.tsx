@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Ring } from "@/components/kit/ring";
 import { Card, Page, SectionTitle, StatTile } from "@/components/kit/surface";
 import { Avatar } from "@/components/avatar";
+import { DailyTipCard } from "@/components/tips/daily-tip-card";
 import { FastingScheduleCard } from "@/components/fasting/schedule-card";
 import MovementCard from "@/components/movement-card";
 import { BelanjaCard } from "@/components/plate/belanja";
@@ -229,6 +230,8 @@ function Dashboard({ summary }: { summary: Summary }) {
           </div>
         </section>
       )}
+
+      <DailyTipCard />
 
       <MoreSection summary={summary} />
     </Page>

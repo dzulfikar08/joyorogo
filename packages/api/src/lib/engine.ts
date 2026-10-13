@@ -287,6 +287,73 @@ export function weightTrend(
 
 export type DayKcal = { date: string; kcal: number };
 
+/** Window (days) of the client-side EMA trend line drawn on charts. */
+export const EMA_TREND_DAYS = 7;
+
+/**
+ * 7-day EMA over weigh-ins sorted ascending — same gap-aware smoothing as
+ * weightTrend (each day absorbs a fraction of the gap to the scale reading)
+ * with alpha 2/(N+1) for a 7-day window. Shared by web and native charts,
+ * which need the line over any range while day.summary only ships 30 days.
+ */
+export function emaTrendPoints(weighIns: WeighIn[]): TrendPoint[] {
+  const alphaPerDay = 2 / (EMA_TREND_DAYS + 1);
+  const points: TrendPoint[] = [];
+  for (const w of weighIns) {
+    const prev = points.at(-1);
+    if (!prev) {
+      points.push({ ...w, trendKg: w.weightKg });
+      continue;
+    }
+    const gapDays = Math.max(1, daysBetween(prev.date, w.date));
+    points.push({
+      ...w,
+      trendKg: prev.trendKg + (1 - (1 - alphaPerDay) ** gapDays) * (w.weightKg - prev.trendKg),
+    });
+  }
+  return points.map((p) => ({ ...p, trendKg: Math.round(p.trendKg * 100) / 100 }));
+}
+
+export type RangeStats = {
+  /** smoothed weight at the last weigh-in of the range */
+  trendKg: number;
+  /** trend change across the range; null with fewer than 2 weigh-ins */
+  changeKg: number | null;
+  /** kg/week across the range; null when the two ends cannot define a pace */
+  weeklyRateKg: number | null;
+  /** WIB day the target is reached at this pace; null when not projectable */
+  projectedDate: string | null;
+};
+
+/** Rate below this is water noise, not a pace (matches the server's flat rule). */
+const RANGE_RATE_MIN_KG_WEEK = 0.05;
+const RANGE_PROJECTION_MAX_DAYS = 730;
+
+/** Change, weekly pace, and target projection over a chart's EMA points. */
+export function rangeStats(points: TrendPoint[], targetKg: number | null): RangeStats {
+  const last = points.at(-1);
+  if (!last) return { trendKg: 0, changeKg: null, weeklyRateKg: null, projectedDate: null };
+  const first = points[0]!;
+  const days = daysBetween(first.date, last.date);
+  const changeKg = points.length > 1 ? Math.round((last.trendKg - first.trendKg) * 10) / 10 : null;
+  const perDay = days > 0 && changeKg !== null ? changeKg / days : null;
+  const weeklyRateKg = perDay === null ? null : Math.round(perDay * 700) / 100;
+
+  let projectedDate: string | null = null;
+  if (
+    targetKg !== null &&
+    weeklyRateKg !== null &&
+    Math.abs(weeklyRateKg) >= RANGE_RATE_MIN_KG_WEEK &&
+    (last.trendKg - targetKg) * -weeklyRateKg > 0
+  ) {
+    // weeklyRateKg is per week — convert to days before shifting the date.
+    const daysToTarget = Math.ceil(((targetKg - last.trendKg) / weeklyRateKg) * 7);
+    if (daysToTarget <= RANGE_PROJECTION_MAX_DAYS)
+      projectedDate = shiftDate(last.date, daysToTarget);
+  }
+  return { trendKg: last.trendKg, changeKg, weeklyRateKg, projectedDate };
+}
+
 /**
  * Measured daily-life TDEE from energy balance over the 28 complete days
  * before `date` (MacroFactor-style): average logged intake, minus average

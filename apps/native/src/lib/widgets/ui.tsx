@@ -107,13 +107,55 @@ function Bar({
   );
 }
 
+/**
+ * One IF status line with absolute times only — widgets redraw every 30
+ * minutes, so a countdown would sit stale between refreshes.
+ */
+function FastingLine({
+  fasting,
+  c,
+}: {
+  fasting: NonNullable<WidgetSnapshot["fasting"]>;
+  c: WidgetPalette;
+}) {
+  const text =
+    fasting.state === "jendela_makan"
+      ? `Jendela makan sampai ${fasting.windowClose} · sisa ${fmtKcal(fasting.remainingKcal)} kkal`
+      : `Makan lagi ${fasting.windowOpen} · sisa ${fmtKcal(fasting.remainingKcal)} kkal`;
+  return (
+    <FlexWidget style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
+      <FlexWidget
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: fasting.state === "jendela_makan" ? c.ok : c.note,
+        }}
+      />
+      <TextWidget
+        text={text}
+        maxLines={1}
+        truncate="END"
+        style={{
+          fontSize: 12,
+          fontFamily: FONT_MEDIUM,
+          color: c.mutedForeground,
+          marginLeft: 8,
+        }}
+      />
+    </FlexWidget>
+  );
+}
+
 /** "Progres hari ini" body: remaining kcal, eat bar, protein bar. */
 function ProgressPanel({
   day,
+  fasting,
   c,
   contentWidth,
 }: {
   day: NonNullable<WidgetSnapshot["day"]>;
+  fasting: WidgetSnapshot["fasting"];
   c: WidgetPalette;
   contentWidth: number;
 }) {
@@ -144,6 +186,7 @@ function ProgressPanel({
         text={`${fmtKcal(day.eatenKcal)} / ${fmtKcal(day.eatKcal)} kkal`}
         style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginTop: 6 }}
       />
+      {fasting ? <FastingLine fasting={fasting} c={c} /> : null}
       {day.proteinTargetG ? (
         <FlexWidget
           style={{
@@ -330,7 +373,7 @@ function ProgressWidget({ snapshot, c, width }: { snapshot: WidgetSnapshot; c: W
   return (
     <WidgetCard c={c} clickAction="OPEN_APP">
       {snapshot.signedIn && snapshot.day ? (
-        <ProgressPanel day={snapshot.day} c={c} contentWidth={width - CARD_PADDING * 2} />
+        <ProgressPanel day={snapshot.day} fasting={snapshot.fasting} c={c} contentWidth={width - CARD_PADDING * 2} />
       ) : snapshot.signedIn ? (
         <FlexWidget style={{ flexDirection: "column", width: "match_parent" }}>
           <Caption text="PROGRES HARI INI" c={c} />
@@ -390,7 +433,7 @@ function RingkasanWidget({ snapshot, c, width }: { snapshot: WidgetSnapshot; c: 
         }}
       >
         {snapshot.signedIn && snapshot.day ? (
-          <ProgressPanel day={snapshot.day} c={c} contentWidth={panelWidth} />
+          <ProgressPanel day={snapshot.day} fasting={snapshot.fasting} c={c} contentWidth={panelWidth} />
         ) : (
           <SignedOutBody c={c} />
         )}

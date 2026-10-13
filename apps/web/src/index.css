@@ -49,6 +49,28 @@
   animation: milestone-pop 0.3s cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
+/* Weight trend chart: the line draws in and the dots fade on range change
+   (the chart remounts per range via key). pathLength=1 normalizes the dash. */
+@media (prefers-reduced-motion: no-preference) {
+  .chart-draw {
+    stroke-dasharray: 1;
+    animation: chart-draw 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .chart-fade {
+    animation: chart-fade 350ms ease-out 120ms both;
+  }
+}
+@keyframes chart-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+@keyframes chart-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 /* Staggered entrance for dashboard sections (infrequent view load). */
 @media (prefers-reduced-motion: no-preference) {
   .stagger-enter > * {

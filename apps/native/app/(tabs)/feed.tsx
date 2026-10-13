@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { FEED_TIP_EVERY, TIPS, feedTipIndex, type Tip } from "@joyorogo/api/lib/tips";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Redirect, router } from "expo-router";
 import { useMemo, useState } from "react";
@@ -15,13 +16,16 @@ import {
   Text,
 } from "@/components/ui";
 import { PostCard, openAuthor } from "@/components/feed/post-card";
+import { TipCard } from "@/components/tips/tip-card";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { client, orpc } from "@/utils/orpc";
 import { errorMessage } from "@/utils/format";
 import type { FeedItem } from "@/src/lib/social";
 
-type Tab = "mengikuti" | "jelajah";
+type Tab = "mengikuti" | "jelajah" | "tips";
 const PAGE_SIZE = 10;
+
+type Row = { key: string; post?: FeedItem; tip?: Tip };
 
 /**
  * Feed komunitas: tab Mengikuti / Jelajah, infinite scroll by cursor
@@ -41,17 +45,34 @@ export default function Feed() {
     queryKey: ["social", "feed", tab],
     queryFn: ({ pageParam }) =>
       client.social.feed({
-        tab,
+        // Tab Tips tidak pernah menembak server; nilainya cuma buat tipe.
+        tab: tab === "tips" ? ("jelajah" as const) : tab,
         cursor: pageParam ?? undefined,
         limit: PAGE_SIZE,
       }),
     initialPageParam: null as number | null,
     getNextPageParam: (last) => last.nextCursor,
+    // Tab Tips isinya konten statis lokal; tidak ada feed yang perlu dimuat.
+    enabled: tab !== "tips",
   });
   const items: FeedItem[] = useMemo(
     () => feed.data?.pages.flatMap((page) => page.items) ?? [],
     [feed.data],
   );
+  const rows: Row[] = useMemo(() => {
+    if (tab === "tips") return TIPS.map((tip) => ({ key: `tip-${tip.slug}`, tip }));
+    const mixed: Row[] = [];
+    let postNo = 0;
+    let tipNo = 0;
+    for (const post of items) {
+      mixed.push({ key: post.id, post });
+      postNo++;
+      if (postNo % FEED_TIP_EVERY === 0) {
+        mixed.push({ key: `tip-${tipNo}`, tip: TIPS[feedTipIndex(tipNo++)]! });
+      }
+    }
+    return mixed;
+  }, [items, tab]);
 
   if (gate === "loading") {
     return (
@@ -96,32 +117,39 @@ export default function Feed() {
         options={[
           { value: "mengikuti", label: "Mengikuti" },
           { value: "jelajah", label: "Jelajah" },
+          { value: "tips", label: "Tips" },
         ]}
         value={tab}
         onChange={setTab}
       />
 
-      {feed.isPending ? (
+      {tab !== "tips" && feed.isPending ? (
         <>
           <Skeleton width="100%" height={180} radius={24} />
           <Skeleton width="100%" height={180} radius={24} />
         </>
-      ) : feed.isError ? (
+      ) : tab !== "tips" && feed.isError ? (
         <ErrorState message={errorMessage(feed.error)} onRetry={() => void feed.refetch()} />
       ) : (
         <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <PostCard
-              post={item}
-              onPress={() => router.push(`/feed/${item.id}`)}
-              onPressAuthor={(handle) => openAuthor(handle)}
-            />
-          )}
+          data={rows}
+          keyExtractor={(item) => item.key}
+          renderItem={({ item }) =>
+            item.post ? (
+              <PostCard
+                post={item.post}
+                onPress={() => router.push(`/feed/${item.post!.id}`)}
+                onPressAuthor={(handle) => openAuthor(handle)}
+              />
+            ) : (
+              <TipCard tip={item.tip!} />
+            )
+          }
           onEndReachedThreshold={0.4}
           onEndReached={() => {
-            if (feed.hasNextPage && !feed.isFetchingNextPage) void feed.fetchNextPage();
+            if (feed.hasNextPage && !feed.isFetchingNextPage && tab !== "tips") {
+              void feed.fetchNextPage();
+            }
           }}
           ListFooterComponent={
             feed.isFetchingNextPage ? (

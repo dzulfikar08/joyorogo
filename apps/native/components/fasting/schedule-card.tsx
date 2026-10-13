@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
-import { fmtCountdown, MEAL_KIND_LABELS } from "@joyorogo/api/lib/fasting";
+import { fastingElapsedFraction, fmtCountdown, MEAL_KIND_LABELS } from "@joyorogo/api/lib/fasting";
 
 import { Card, Num, Text } from "@/components/ui";
 import { orpc } from "@/utils/orpc";
@@ -46,11 +46,17 @@ export function FastingScheduleCard() {
     data.state === "jendela_makan"
       ? `Jendela makan ${data.windowOpen ?? ""}–${data.windowClose ?? ""}`.trim()
       : "Puasa";
+  // Progress bar only makes sense while fasting; it tracks the current fast
+  // from the last window close to the next open.
+  const fastPct =
+    data.state === "puasa" && data.nextEvent.kind === "open" && data.windowOpen && data.windowClose
+      ? fastingElapsedFraction(data.windowOpen, data.windowClose, nextAway)
+      : null;
 
   return (
     <Card>
       <View style={styles.head}>
-        <Text style={styles.title}>Panduan jadwal makan</Text>
+…
         <View
           style={[
             styles.chip,
@@ -75,6 +81,16 @@ export function FastingScheduleCard() {
         {data.nextEvent.label} dalam{" "}
         <Num style={styles.countdownStrong}>{fmtCountdown(nextAway)}</Num>
       </Text>
+
+      {fastPct !== null ? (
+        <View
+          style={styles.fastTrack}
+          accessibilityLabel="Progres puasa hari ini"
+          accessibilityValue={{ min: 0, max: 100, now: Math.round(fastPct * 100) }}
+        >
+          <View style={[styles.fastFill, { width: `${Math.round(fastPct * 100)}%` }]} />
+        </View>
+      ) : null}
 
       <View style={styles.list}>
         {data.schedule.map((entry) => (
@@ -164,6 +180,18 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     fontWeight: "700",
     color: theme.colors.foreground,
+  },
+  fastTrack: {
+    marginTop: theme.spacing.sm,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.colors.card,
+    overflow: "hidden",
+  },
+  fastFill: {
+    height: "100%",
+    borderRadius: 3,
+    backgroundColor: theme.colors.makan,
   },
   list: {
     marginTop: theme.spacing.sm,

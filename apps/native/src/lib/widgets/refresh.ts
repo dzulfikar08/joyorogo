@@ -43,9 +43,10 @@ export async function refreshSnapshotFromApi(
   }
 
   try {
-    const [summary, inboxItems] = await Promise.all([
+    const [summary, inboxItems, fast] = await Promise.all([
       withTimeout(client.day.summary({})),
       withTimeout(client.group.inbox({ limit: 3 })),
+      withTimeout(client.fasting.today({})),
     ]);
 
     const items = inboxItems.map((item) => ({
@@ -68,10 +69,22 @@ export async function refreshSnapshotFromApi(
             streakDays: summary.streakDays,
           }
         : null;
+    // Absolute window times only: the launcher redraws every 30 minutes, so
+    // countdown text would go stale between refreshes.
+    const fasting =
+      fast.active && fast.state && fast.windowOpen && fast.windowClose
+        ? {
+            state: fast.state,
+            windowOpen: fast.windowOpen,
+            windowClose: fast.windowClose,
+            remainingKcal: fast.remainingKcal,
+          }
+        : null;
 
     return writeSnapshot({
       signedIn: true,
       day,
+      fasting,
       inbox: {
         unread: items.filter((item) => item.readAt === null).length,
         items,

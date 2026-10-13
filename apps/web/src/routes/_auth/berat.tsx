@@ -5,11 +5,18 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarClock, Medal, Scale, TrendingDown, TrendingUp } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { Medal, Scale, TrendingDown, TrendingUp } from "lucide-react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { daysBetween, jakartaToday } from "@joyorogo/api/lib/engine";
+import {
+  daysBetween,
+  emaTrendPoints,
+  jakartaToday,
+  rangeStats,
+  shiftDate,
+} from "@joyorogo/api/lib/engine";
+import type { RangeStats } from "@joyorogo/api/lib/engine";
 
 import { ScreenError } from "@/components/screen-state";
 import { WaistSection } from "@/components/waist-section";
@@ -26,7 +33,8 @@ import { fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
 import type { WeightHistory } from "@/lib/api-types";
 import { orpc } from "@/utils/orpc";
 
-const historyOptions = orpc.weight.history.queryOptions({ input: { limit: 90 } });
+// 365 = the API cap, so the "Semua" range really shows everything.
+const historyOptions = orpc.weight.history.queryOptions({ input: { limit: 365 } });
 // The authoritative trend (28-day smoothed EMA + pace + projection) comes
 // from day.summary; the history only supplies the raw scale dots.
 const summaryOptions = orpc.day.summary.queryOptions({ input: {} });
@@ -59,7 +67,35 @@ function shortDate(date: string): string {
   return `${Number(d)} ${MONTHS_SHORT[Number(m) - 1]}`;
 }
 
+/** 'YYYY-MM-DD' -> "14 Okt 2025" (tooltips, where the year matters). */
+function mediumDate(date: string): string {
+  const [y, m, d] = date.split("-");
+  return `${Number(d)} ${MONTHS_SHORT[Number(m) - 1]} ${y}`;
+}
+
+/** 'YYYY-MM-DD' -> "Mar 2027" (projection cell). */
+function monthYear(date: string): string {
+  const [y, m] = date.split("-");
+  return `${MONTHS_SHORT[Number(m) - 1]} ${y}`;
+}
+
 const PAD = { top: 18, right: 14, bottom: 26, left: 38 };
+
+const KG_LADDER = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50] as const;
+
+/** Smallest ladder step keeping the y-axis at ~5 ticks or fewer. */
+function niceStep(spanKg: number): number {
+  for (const step of KG_LADDER) if (spanKg / step <= 5) return step;
+  return 100;
+}
+
+const DAY_LADDER = [1, 2, 3, 7, 10, 14, 30, 60, 90, 120, 180, 365, 730] as const;
+
+/** Day gap between x ticks: roughly 3–4 date labels for any span. */
+function niceDayStep(spanDays: number): number {
+  for (const step of DAY_LADDER) if (spanDays / step <= 3.5) return step;
+  return 730;
+}
 
 /** Measures the chart container so the SVG renders 1:1 and 11px text stays 11px. */
 function useChartSize() {
@@ -86,129 +122,370 @@ function WeightChart({
   entries,
   trendPoints,
   targetKg,
-  rangeDays,
+  startKg,
+  domainStart,
+  domainEnd,
+  rangeKey,
+  rangeLabel,
 }: {
   width: number;
   height: number;
+  /** raw scale weigh-ins in the range, oldest first */
   entries: Array<{ date: string; weightKg: number }>;
+  /** EMA trend over the same range, oldest first */
   trendPoints: Array<{ date: string; trendKg: number }>;
   targetKg: number | null;
-  rangeDays: number;
+  startKg: number | null;
+  domainStart: string;
+  domainEnd: string;
+  /** replays the draw-in animation when the range changes */
+  rangeKey: string;
+  rangeLabel: string;
 }) {
-  const CHART_W = width;
-  const CHART_H = height;
-  const innerW = CHART_W - PAD.left - PAD.right;
-  const innerH = CHART_H - PAD.top - PAD.bottom;
-  const weights = entries.map((e) => e.weightKg);
-  let lo = Math.min(...weights);
-  let hi = Math.max(...weights);
-  const span = Math.max(hi - lo, 1);
-  // The target line joins the view only when near the data — a goal 20 kg
-  // away would flatten the whole trend line.
-  const target =
-    targetKg !== null && targetKg >= lo - span && targetKg <= hi + span ? targetKg : null;
-  if (target !== null) {
-    lo = Math.min(lo, target);
-    hi = Math.max(hi, target);
-  }
-  lo -= 0.5;
-  hi += 0.5;
-
-  const firstDate = entries[0].date;
-  const last = entries.at(-1);
-  if (!last) return null;
-  const spanDays = entries.length > 1 ? Math.max(daysBetween(firstDate, last.date), 1) : 0;
+  const [scrubDate, setScrubDate] = useState<string | null>(null);
+  const innerW = width - PAD.left - PAD.right;
+  const innerH = height - PAD.top - PAD.bottom;
+  const spanDays = Math.max(daysBetween(domainStart, domainEnd), 1);
   const x = (date: string) =>
-    spanDays === 0
-      ? PAD.left + innerW / 2
-      : PAD.left + (daysBetween(firstDate, date) / spanDays) * innerW;
+    PAD.left +
+    (Math.min(Math.max(daysBetween(domainStart, date), 0), spanDays) / spanDays) * innerW;
+
+  // Y domain from raw + trend values; the target/start lines join only when
+  // near the data — a goal 20 kg away would flatten the whole trend line.
+  const values = [...entries.map((e) => e.weightKg), ...trendPoints.map((p) => p.trendKg)];
+  const rawLo = Math.min(...values);
+  const rawHi = Math.max(...values);
+  const valSpan = Math.max(rawHi - rawLo, 1);
+  const near = (kg: number) => kg >= rawLo - valSpan && kg <= rawHi + valSpan;
+  const target = targetKg !== null && near(targetKg) ? targetKg : null;
+  const start =
+    startKg !== null && near(startKg) && (target === null || Math.abs(startKg - target) > 0.01)
+      ? startKg
+      : null;
+  // Step is chosen from the FULL domain (lines included) so the tick count
+  // stays ~5 no matter how much the reference lines stretch the view.
+  const dataLo = Math.min(
+    rawLo,
+    ...(target !== null ? [target] : []),
+    ...(start !== null ? [start] : []),
+  );
+  const dataHi = Math.max(
+    rawHi,
+    ...(target !== null ? [target] : []),
+    ...(start !== null ? [start] : []),
+  );
+  const padKg = Math.max((dataHi - dataLo) * 0.08, 0.2);
+  const step = niceStep(dataHi - dataLo + 2 * padKg);
+  let lo = Math.floor((dataLo - padKg) / step) * step;
+  let hi = Math.ceil((dataHi + padKg) / step) * step;
   const y = (kg: number) => PAD.top + (1 - (kg - lo) / (hi - lo)) * innerH;
+  const yTicks = Array.from(
+    { length: Math.round((hi - lo) / step) + 1 },
+    (_, i) => Math.round((lo + i * step) * 100) / 100,
+  );
+  const tickFmt = (kg: number) =>
+    kg.toLocaleString("id-ID", {
+      minimumFractionDigits: step < 1 ? 1 : 0,
+      maximumFractionDigits: step < 1 ? 1 : 0,
+    });
+
+  const dayStep = niceDayStep(spanDays);
+  const xTickDates: string[] = [];
+  for (let d = 0; d <= spanDays; d += dayStep) xTickDates.push(shiftDate(domainStart, d));
+  if (spanDays - (xTickDates.length - 1) * dayStep >= dayStep * 0.5) {
+    xTickDates.push(domainEnd);
+  }
+
   const trendPath =
     trendPoints.length > 1
       ? trendPoints
           .map((p, i) => `${i === 0 ? "M" : "L"}${x(p.date).toFixed(1)} ${y(p.trendKg).toFixed(1)}`)
           .join(" ")
       : null;
-  const mid = entries[Math.floor((entries.length - 1) / 2)];
-  const xTicks = [entries[0], mid, last].filter(
-    (e, i, all) => all.findIndex((other) => other.date === e.date) === i,
-  );
+
+  const scrubIdx = scrubDate ? entries.findIndex((e) => e.date === scrubDate) : -1;
+  const scrubEntry = scrubIdx >= 0 ? entries[scrubIdx] : undefined;
+  const scrubTrend = scrubEntry && trendPoints.find((p) => p.date === scrubEntry.date);
+  const scrubPrev = scrubEntry && scrubIdx > 0 ? entries[scrubIdx - 1] : undefined;
+  const scrubDelta = scrubEntry && scrubPrev ? scrubEntry.weightKg - scrubPrev.weightKg : null;
+
+  const moveScrub = (event: React.PointerEvent<SVGSVGElement>) => {
+    // Touch only scrubs while pressed, so vertical page scroll still works.
+    if (event.pointerType !== "mouse" && event.buttons === 0) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const px = ((event.clientX - rect.left) / rect.width) * width;
+    let best: string | null = null;
+    let bestDist = Infinity;
+    for (const e of entries) {
+      const d = Math.abs(x(e.date) - px);
+      if (d < bestDist) {
+        bestDist = d;
+        best = e.date;
+      }
+    }
+    setScrubDate(best);
+  };
+  const clearScrub = () => setScrubDate(null);
+
+  const TIP_W = 176;
+  const TIP_H = 104;
+  let tipLeft = 0;
+  let tipTop = 0;
+  if (scrubEntry) {
+    const px = x(scrubEntry.date);
+    tipLeft = Math.min(
+      Math.max(px > width * 0.58 ? px - TIP_W - 10 : px + 10, 4),
+      Math.max(width - TIP_W - 4, 4),
+    );
+    tipTop = Math.min(Math.max(y(scrubEntry.weightKg) - 24, 4), Math.max(height - TIP_H - 4, 4));
+  }
 
   return (
-    <svg
-      viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-      width={CHART_W}
-      height={CHART_H}
-      className="h-auto max-w-full"
-      role="img"
-      aria-label={`Grafik berat badan ${rangeDays} hari terakhir`}
-    >
-      {target !== null && (
-        <g>
-          <line
-            x1={PAD.left}
-            x2={CHART_W - PAD.right}
-            y1={y(target)}
-            y2={y(target)}
-            strokeDasharray="4 5"
-            strokeWidth={1.5}
-            className="stroke-makan/45"
-          />
-          <text
-            x={CHART_W - PAD.right}
-            y={y(target) - 6}
-            textAnchor="end"
-            fontSize={11}
-            fontWeight={600}
-            className="fill-makan-ink"
-          >
-            Target {fmtKg(target)}
-          </text>
+    <>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        width={width}
+        height={height}
+        className="h-auto max-w-full touch-pan-y select-none"
+        role="img"
+        aria-label={`Grafik tren berat badan, ${rangeLabel}. Geser kursor untuk melihat tiap catatan.`}
+        onPointerDown={moveScrub}
+        onPointerMove={moveScrub}
+        onPointerLeave={clearScrub}
+        onPointerCancel={clearScrub}
+      >
+        <g className="stroke-border/70">
+          {yTicks.map((t) => (
+            <line
+              key={t}
+              x1={PAD.left}
+              x2={width - PAD.right}
+              y1={y(t)}
+              y2={y(t)}
+              strokeWidth={1}
+            />
+          ))}
         </g>
+        <g fontSize={11} fontWeight={600} className="fill-muted-foreground">
+          {yTicks.map((t) => (
+            <text key={t} x={PAD.left - 8} y={y(t) + 4} textAnchor="end">
+              {tickFmt(t)}
+            </text>
+          ))}
+        </g>
+
+        {target !== null && (
+          <g>
+            <line
+              x1={PAD.left}
+              x2={width - PAD.right}
+              y1={y(target)}
+              y2={y(target)}
+              strokeDasharray="4 5"
+              strokeWidth={1.5}
+              className="stroke-makan/45"
+            />
+            <text
+              x={width - PAD.right}
+              y={y(target) - 6}
+              textAnchor="end"
+              fontSize={11}
+              fontWeight={600}
+              className="fill-makan-ink"
+            >
+              Target {fmtKg(target)}
+            </text>
+          </g>
+        )}
+        {start !== null && (
+          <g>
+            <line
+              x1={PAD.left}
+              x2={width - PAD.right}
+              y1={y(start)}
+              y2={y(start)}
+              strokeDasharray="2 5"
+              strokeWidth={1.25}
+              className="stroke-muted-foreground/45"
+            />
+            <text
+              x={PAD.left}
+              y={
+                (target !== null && Math.abs(y(start) - y(target)) < 15) || y(start) < PAD.top + 14
+                  ? y(start) + 15
+                  : y(start) - 6
+              }
+              fontSize={11}
+              fontWeight={600}
+              className="fill-muted-foreground"
+            >
+              Awal {fmtKg(start)}
+            </text>
+          </g>
+        )}
+
+        {/* The smoothed trend is the number to believe; scale dots stay faint
+            underneath so daily water noise reads as noise. The latest one gets
+            a full-strength dot. */}
+        <g key={`dots-${rangeKey}`} className="chart-fade">
+          {entries.map((e, i) => (
+            <circle
+              key={e.date}
+              cx={x(e.date)}
+              cy={y(e.weightKg)}
+              r={i === entries.length - 1 ? 4 : 2.5}
+              className={i === entries.length - 1 ? "fill-primary" : "fill-primary/35"}
+            />
+          ))}
+        </g>
+        {trendPath && (
+          <path
+            key={`trend-${rangeKey}`}
+            d={trendPath}
+            fill="none"
+            strokeWidth={3}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+            pathLength={1}
+            className="chart-draw stroke-primary"
+          />
+        )}
+
+        {scrubEntry && (
+          <g>
+            <line
+              x1={x(scrubEntry.date)}
+              x2={x(scrubEntry.date)}
+              y1={PAD.top}
+              y2={PAD.top + innerH}
+              strokeWidth={1}
+              className="stroke-muted-foreground/40"
+            />
+            <circle
+              cx={x(scrubEntry.date)}
+              cy={y(scrubEntry.weightKg)}
+              r={6}
+              className="fill-primary/20"
+            />
+            <circle
+              cx={x(scrubEntry.date)}
+              cy={y(scrubEntry.weightKg)}
+              r={3.5}
+              strokeWidth={1.5}
+              className="fill-primary stroke-background"
+            />
+            {scrubTrend && (
+              <circle
+                cx={x(scrubTrend.date)}
+                cy={y(scrubTrend.trendKg)}
+                r={3.5}
+                strokeWidth={2}
+                className="fill-background stroke-primary"
+              />
+            )}
+          </g>
+        )}
+
+        <g fontSize={11} fontWeight={500} className="fill-muted-foreground">
+          {xTickDates.map((t, i) => (
+            <text
+              key={t}
+              x={x(t)}
+              y={height - 8}
+              textAnchor={i === 0 ? "start" : i === xTickDates.length - 1 ? "end" : "middle"}
+            >
+              {shortDate(t)}
+            </text>
+          ))}
+        </g>
+      </svg>
+
+      {scrubEntry && (
+        <div
+          className="pointer-events-none absolute z-10 rounded-2xl border border-border/60 bg-card/95 p-3 shadow-lg backdrop-blur-sm"
+          style={{ left: tipLeft, top: tipTop, width: TIP_W }}
+        >
+          <p className="text-xs font-bold">{mediumDate(scrubEntry.date)}</p>
+          <dl className="mt-1.5 space-y-1 text-xs">
+            <div className="flex justify-between gap-2">
+              <dt className="text-muted-foreground">Timbangan</dt>
+              <dd className="font-bold tabular-nums">{fmtKg(scrubEntry.weightKg)} kg</dd>
+            </div>
+            {scrubTrend && (
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">Tren</dt>
+                <dd className="font-bold tabular-nums">{fmtKg(scrubTrend.trendKg)} kg</dd>
+              </div>
+            )}
+            <div className="flex justify-between gap-2">
+              <dt className="text-muted-foreground">vs sebelumnya</dt>
+              <dd
+                className={cn(
+                  "font-bold tabular-nums",
+                  scrubDelta === null
+                    ? "text-muted-foreground"
+                    : scrubDelta < 0
+                      ? "text-makan-ink"
+                      : scrubDelta > 0
+                        ? "text-bakar-ink"
+                        : "text-muted-foreground",
+                )}
+              >
+                {scrubDelta === null
+                  ? "catatan pertama"
+                  : scrubDelta === 0
+                    ? "sama"
+                    : `${scrubDelta < 0 ? "−" : "+"}${fmtKg(Math.abs(scrubDelta))} kg`}
+              </dd>
+            </div>
+          </dl>
+        </div>
       )}
-      {/* The smoothed trend is the number to believe; scale dots stay faint
-          underneath so daily water noise reads as noise. */}
-      {entries.map((e) => (
-        <circle
-          key={e.date}
-          cx={x(e.date)}
-          cy={y(e.weightKg)}
-          r={2.5}
-          className="fill-primary/35"
-        />
-      ))}
-      {trendPath && (
-        <path
-          d={trendPath}
-          fill="none"
-          strokeWidth={3}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-          className="stroke-primary"
-        />
-      )}
-      <g fontSize={11} fontWeight={600} className="fill-muted-foreground">
-        <text x={PAD.left - 8} y={PAD.top + 4} textAnchor="end">
-          {fmtKg(hi)}
-        </text>
-        <text x={PAD.left - 8} y={PAD.top + innerH + 4} textAnchor="end">
-          {fmtKg(lo)}
-        </text>
-      </g>
-      <g fontSize={11} fontWeight={500} className="fill-muted-foreground">
-        {xTicks.map((t, i) => (
-          <text
-            key={t.date}
-            x={x(t.date)}
-            y={CHART_H - 8}
-            textAnchor={i === 0 ? "start" : i === xTicks.length - 1 ? "end" : "middle"}
-          >
-            {shortDate(t.date)}
-          </text>
-        ))}
-      </g>
-    </svg>
+    </>
+  );
+}
+
+/** Friendly sub-caption for the projection stat, per reason it is (not) shown. */
+function projectionSub(stats: RangeStats, targetKg: number | null, goalReached: boolean): string {
+  if (targetKg === null) return "atur target di Profil";
+  if (goalReached) return "sudah tercapai, jaga ritmenya";
+  if (stats.projectedDate !== null) return `menuju ${fmtKg(targetKg)} kg`;
+  if (stats.weeklyRateKg === null || stats.changeKg === null) return "butuh lebih banyak catatan";
+  if (Math.abs(stats.weeklyRateKg) < 0.05) return "ritme sedang stabil";
+  const toward = (stats.trendKg - targetKg) * stats.weeklyRateKg < 0;
+  return toward ? "hampir ada, teruskan" : "ritme terakhir menjauhi target";
+}
+
+/** Small stat tile inside the chart card header (trend, range delta, pace, projection). */
+function StatCell({
+  label,
+  value,
+  unit,
+  sub,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  sub?: string;
+  tone?: "good" | "bad" | "neutral";
+}) {
+  return (
+    <div className="min-w-0 rounded-2xl bg-muted/50 p-3">
+      <p className="truncate text-[0.8125rem] font-semibold text-muted-foreground">{label}</p>
+      <p
+        className={cn(
+          "mt-1 text-lg leading-tight font-extrabold tabular-nums",
+          tone === "good" && "text-makan-ink",
+          tone === "bad" && "text-bakar-ink",
+        )}
+      >
+        {value}
+        {unit && <span className="ml-1 text-xs font-semibold text-muted-foreground">{unit}</span>}
+      </p>
+      <p className="mt-0.5 truncate text-xs text-muted-foreground">{sub}</p>
+    </div>
   );
 }
 
@@ -229,7 +506,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const trend = summary.data?.trend ?? null;
   const today = jakartaToday();
 
-  const [range, setRange] = useState<"30" | "90">("90");
+  const [range, setRange] = useState<"7" | "30" | "90" | "all">("30");
   const [showAll, setShowAll] = useState(false);
   const [weighOpen, setWeighOpen] = useState(false);
   const [weighValue, setWeighValue] = useState("");
@@ -284,10 +561,25 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const goalReached =
     trendKg !== null && weightSummary.targetKg !== null && trendKg <= weightSummary.targetKg;
 
-  const rangeDays = range === "30" ? 30 : 90;
-  const cutoff = jakartaDatePlusDays(-(rangeDays - 1));
-  const rangeEntries = entries.filter((e) => e.date >= cutoff);
-  const rangeTrend = (trend?.points ?? []).filter((p) => p.date >= cutoff);
+  // Chart line: client-side 7-day EMA over the raw entries, so every range —
+  // including "Semua" — gets a full trend (day.summary only ships 30 days).
+  const allTrend = useMemo(() => emaTrendPoints(entries), [entries]);
+  const rangeDays = range === "all" ? null : Number(range);
+  const cutoff = rangeDays === null ? null : jakartaDatePlusDays(-(rangeDays - 1));
+  const rangeEntries = cutoff === null ? entries : entries.filter((e) => e.date >= cutoff);
+  const rangeTrend = cutoff === null ? allTrend : allTrend.filter((p) => p.date >= cutoff);
+  const rangeStatsOut = rangeStats(rangeTrend, weightSummary.targetKg);
+  const rangeLabel = range === "all" ? "sejak awal" : `${range} hari terakhir`;
+  const domainStart = cutoff ?? rangeEntries[0]?.date ?? today;
+  // "Colored by direction relative to goal": losing only counts as good while
+  // the target sits below the start.
+  const wantDown =
+    weightSummary.targetKg === null ||
+    weightSummary.targetKg <= (weightSummary.startKg ?? Number.POSITIVE_INFINITY);
+  const toneFor = (delta: number | null): "good" | "bad" | "neutral" => {
+    if (delta === null || Math.abs(delta) < 0.05) return "neutral";
+    return (wantDown ? delta < 0 : delta > 0) ? "good" : "bad";
+  };
 
   const newestFirst = [...entries].toReversed();
   const visibleHistory = showAll ? newestFirst : newestFirst.slice(0, 10);
@@ -365,70 +657,120 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                 </p>
               )}
 
-              {goalReached ? (
+              {goalReached && (
                 <p className="mt-5 flex items-center gap-2 rounded-2xl bg-makan-soft px-4 py-3 text-sm font-bold text-makan-ink">
                   <Medal className="size-4 shrink-0" aria-hidden />
                   Target berat sudah tercapai. Jaga ritmenya.
                 </p>
-              ) : (
-                trend?.projectedDate &&
-                weightSummary.targetKg !== null && (
-                  <p className="mt-5 flex items-start gap-2 border-t border-border/60 pt-4 text-sm text-muted-foreground">
-                    <CalendarClock className="mt-0.5 size-4 shrink-0" aria-hidden />
-                    <span>
-                      Dengan ritme ini, target{" "}
-                      <strong className="font-semibold text-foreground tabular-nums">
-                        {fmtKg(weightSummary.targetKg)} kg
-                      </strong>{" "}
-                      tercapai sekitar{" "}
-                      <strong className="font-semibold text-foreground">
-                        {new Intl.DateTimeFormat("id-ID", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                          timeZone: "Asia/Jakarta",
-                        }).format(new Date(`${trend.projectedDate}T00:00:00Z`))}
-                      </strong>
-                      .
-                    </span>
-                  </p>
-                )
               )}
             </Card>
 
             <Card aria-label="Grafik tren berat">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-base font-bold tracking-tight">Grafik tren</h2>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="shrink-0 text-base font-bold tracking-tight">Grafik tren</h2>
                 <Segmented
+                  className="sm:max-w-xs"
                   label="Rentang grafik"
                   value={range}
                   onChange={setRange}
                   options={[
-                    { value: "30", label: "30 hari" },
-                    { value: "90", label: "90 hari" },
+                    { value: "7", label: "7H" },
+                    { value: "30", label: "30H" },
+                    { value: "90", label: "90H" },
+                    { value: "all", label: "Semua" },
                   ]}
                 />
               </div>
-              {rangeEntries.length > 1 ? (
-                <div ref={chart.ref} className={cn("mt-4", !chart.size && "h-44")}>
-                  {chart.size && (
-                    <WeightChart
-                      width={chart.size.w}
-                      height={chart.size.h}
-                      entries={rangeEntries}
-                      trendPoints={rangeTrend}
-                      targetKg={weightSummary.targetKg}
-                      rangeDays={rangeDays}
-                    />
-                  )}
+
+              {rangeEntries.length === 0 ? (
+                <div className="py-10 text-center">
+                  <p className="text-sm font-bold">Belum ada catatan {rangeLabel}.</p>
+                  <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
+                    Pilih rentang lebih panjang, atau catat beratmu untuk mulai mengisi grafik.
+                  </p>
+                  <Button className="mt-4" variant="secondary" onClick={openWeigh}>
+                    Catat berat
+                  </Button>
                 </div>
               ) : (
-                <p className="py-12 text-center text-sm text-muted-foreground">
-                  Belum cukup catatan dalam {rangeDays} hari terakhir untuk menggambar grafik.
-                </p>
+                <>
+                  <div className="mt-4 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+                    <StatCell
+                      label="Berat tren"
+                      value={fmtKg(trendKg ?? rangeStatsOut.trendKg)}
+                      unit="kg"
+                      sub={`terakhir ${shortDate(rangeEntries.at(-1)!.date)}`}
+                    />
+                    <StatCell
+                      label="Perubahan"
+                      value={
+                        rangeStatsOut.changeKg === null
+                          ? "–"
+                          : `${rangeStatsOut.changeKg < 0 ? "−" : "+"}${fmtKg(
+                              Math.abs(rangeStatsOut.changeKg),
+                            )}`
+                      }
+                      unit={rangeStatsOut.changeKg === null ? undefined : "kg"}
+                      sub={rangeLabel}
+                      tone={toneFor(rangeStatsOut.changeKg)}
+                    />
+                    <StatCell
+                      label="Laju"
+                      value={
+                        rangeStatsOut.weeklyRateKg === null
+                          ? "–"
+                          : `${
+                              rangeStatsOut.weeklyRateKg < 0
+                                ? "−"
+                                : rangeStatsOut.weeklyRateKg > 0
+                                  ? "+"
+                                  : ""
+                            }${fmtKg(Math.abs(rangeStatsOut.weeklyRateKg))}`
+                      }
+                      unit={rangeStatsOut.weeklyRateKg === null ? undefined : "kg/minggu"}
+                      sub="rata-rata"
+                      tone={toneFor(rangeStatsOut.weeklyRateKg)}
+                    />
+                    <StatCell
+                      label="Proyeksi"
+                      value={
+                        rangeStatsOut.projectedDate
+                          ? `±${monthYear(rangeStatsOut.projectedDate)}`
+                          : "–"
+                      }
+                      sub={projectionSub(rangeStatsOut, weightSummary.targetKg, goalReached)}
+                    />
+                  </div>
+
+                  {rangeEntries.length === 1 && (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      Timbang lagi besok untuk mulai melihat garis tren.
+                    </p>
+                  )}
+                  <div ref={chart.ref} className={cn("relative mt-4", !chart.size && "h-44")}>
+                    {chart.size && (
+                      <WeightChart
+                        width={chart.size.w}
+                        height={chart.size.h}
+                        entries={rangeEntries}
+                        trendPoints={rangeTrend}
+                        targetKg={weightSummary.targetKg}
+                        startKg={weightSummary.startKg}
+                        domainStart={domainStart}
+                        domainEnd={today}
+                        rangeKey={range}
+                        rangeLabel={rangeLabel}
+                      />
+                    )}
+                  </div>
+                </>
               )}
               <p className="mt-2 text-xs text-muted-foreground">
-                Titik tipis angka timbangan, garis tebal berat tren yang lebih tenang.
+                Garis = tren (rata-rata bergerak 7 hari), titik = timbangan harian.
+                {weightSummary.deltaKg !== null &&
+                  ` Total ${weightSummary.deltaKg < 0 ? "turun" : "naik"} ${fmtKg(
+                    Math.abs(weightSummary.deltaKg),
+                  )} kg sejak berat awal.`}
               </p>
             </Card>
           </div>

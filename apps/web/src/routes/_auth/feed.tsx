@@ -1,3 +1,4 @@
+import { FEED_TIP_EVERY, TIPS, feedTipIndex, type Tip } from "@joyorogo/api/lib/tips";
 import { Button } from "@joyorogo/ui/components/button";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
@@ -16,8 +17,9 @@ import { Avatar } from "@/components/avatar";
 import { PostCard } from "@/components/feed/post-card";
 import { EmptyHint, ScreenError } from "@/components/screen-state";
 import { ListRow, Page, PageHeader, Segmented } from "@/components/kit/surface";
+import { TipCard } from "@/components/tips/tip-card";
 import { useSession } from "@/lib/auth-client";
-import type { SocialNotificationItem } from "@/lib/api-types";
+import type { FeedPost, SocialNotificationItem } from "@/lib/api-types";
 import { timeAgo } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 
@@ -25,12 +27,30 @@ export const Route = createFileRoute("/_auth/feed")({
   component: FeedPage,
 });
 
-type FeedTab = "mengikuti" | "jelajah";
+type FeedTab = "mengikuti" | "jelajah" | "tips";
 
 const TAB_OPTIONS = [
   { value: "mengikuti" as const, label: "Mengikuti" },
   { value: "jelajah" as const, label: "Jelajah" },
+  { value: "tips" as const, label: "Tips" },
 ];
+
+type FeedRow = { kind: "post"; post: FeedPost } | { kind: "tip"; tip: Tip };
+
+/** Satu kartu tips tiap FEED_TIP_EVERY postingan, rotasinya ganti tiap hari. */
+function withTipCards(posts: FeedPost[]): FeedRow[] {
+  const rows: FeedRow[] = [];
+  let tipNo = 0;
+  let postNo = 0;
+  for (const post of posts) {
+    rows.push({ kind: "post", post });
+    postNo++;
+    if (postNo % FEED_TIP_EVERY === 0) {
+      rows.push({ kind: "tip", tip: TIPS[feedTipIndex(tipNo++)]! });
+    }
+  }
+  return rows;
+}
 
 function FeedSkeleton() {
   return (
@@ -169,9 +189,16 @@ function FeedPage() {
   const unread = useQuery(orpc.social.notificationsUnreadCount.queryOptions());
   const feed = useInfiniteQuery(
     orpc.social.feed.infiniteOptions({
-      input: (pageParam: number | undefined) => ({ tab, limit: 10, cursor: pageParam }),
+      input: (pageParam: number | undefined) => ({
+        // Tab Tips tidak pernah menembak server; nilainya cuma buat tipe.
+        tab: tab === "tips" ? ("jelajah" as const) : tab,
+        limit: 10,
+        cursor: pageParam,
+      }),
       initialPageParam: undefined as number | undefined,
       getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+      // Tab Tips murni konten statis lokal; tidak ada feed yang perlu dimuat.
+      enabled: tab !== "tips",
     }),
   );
 
@@ -206,7 +233,9 @@ function FeedPage() {
       />
 
       <div className="mt-3 space-y-3">
-        {feed.isPending ? (
+        {tab === "tips" ? (
+          TIPS.map((tip) => <TipCard key={tip.slug} tip={tip} />)
+        ) : feed.isPending ? (
           <FeedSkeleton />
         ) : feed.error ? (
           <ScreenError message={feed.error.message} onRetry={() => feed.refetch()} />
@@ -222,12 +251,16 @@ function FeedPage() {
             )}
           </EmptyHint>
         ) : (
-          posts.map((post) => (
-            <PostCard key={post.id} post={post} isOwn={post.author.id === myId} />
-          ))
+          withTipCards(posts).map((row) =>
+            row.kind === "tip" ? (
+              <TipCard key={`tip-${row.tip.slug}`} tip={row.tip} />
+            ) : (
+              <PostCard key={row.post.id} post={row.post} isOwn={row.post.author.id === myId} />
+            ),
+          )
         )}
 
-        {feed.hasNextPage && posts.length > 0 && (
+        {tab !== "tips" && feed.hasNextPage && posts.length > 0 && (
           <Button
             variant="secondary"
             className="w-full"
