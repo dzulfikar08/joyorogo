@@ -57,3 +57,7 @@ coverage
 tmp
 temp
 apps/native/keystore/
+
+# Release build outputs (scripts/build-release-apk.sh)
+/joyorogo-release.apk
+/joyorogo-latest.json

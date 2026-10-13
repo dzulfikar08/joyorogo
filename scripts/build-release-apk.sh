@@ -4,6 +4,8 @@
 # updates must be signed with the same key.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# Absolute repo root: later steps run from apps/native/android.
+ROOT="$(pwd)"
 NATIVE=apps/native
 KEYSTORE_DIR="$NATIVE/keystore"
 KEYSTORE="$KEYSTORE_DIR/joyorogo-release.jks"
@@ -31,10 +33,13 @@ for arg in "$@"; do
   esac
 done
 
-# Android versionCode from UTC time, YYMMDDHHmm: strictly increases per build,
-# fits int32 until 2121, and needs no manual bump in app.json. The in-app
-# updater compares this number against the installed build.
-export VERSION_CODE="$(date -u +%y%m%d%H%M)"
+# Android versionCode = minutes since 2024-01-01 UTC: strictly increases per
+# build and needs no manual bump in app.json. YYMMDDHHmm looked tidy but
+# overflows Android's int32 limit (2610130359 > 2147483647, and Play caps at
+# 2100000000), which fails Gradle with "Value is null". This stays under
+# 2100000000 for millennia. The in-app updater compares this number against
+# the installed build.
+export VERSION_CODE="$(( ($(date -u +%s) - 1704067200) / 60 ))"
 
 # 1. Keystore — generated once, reused forever. The password lives only in
 #    the gitignored keystore.properties next to it; keep both backed up, an
@@ -138,11 +143,10 @@ if ! grep -qF "$EXPO_PUBLIC_SERVER_URL" <<<"$BUNDLE_STRINGS"; then
   exit 1
 fi
 
-cp "$APK" "$OLDPWD/../../.."/joyorogo-release.apk
+cp "$APK" "$ROOT/joyorogo-release.apk"
 
 # 6. Update manifest: what the in-app updater fetches as latest-apk.json.
-ROOT="$OLDPWD/../../.."
-VERSION_NAME="$(grep -o '"version": "[^"]*"' "$NATIVE/app.json" | head -1 | cut -d'"' -f4)"
+VERSION_NAME="$(grep -o '"version": "[^"]*"' "$ROOT/$NATIVE/app.json" | head -1 | cut -d'"' -f4)"
 SIZE="$(stat -c %s "$ROOT/joyorogo-release.apk")"
 SHA="$(sha256sum "$ROOT/joyorogo-release.apk" | cut -d' ' -f1)"
 cat > "$ROOT/joyorogo-latest.json" <<EOF

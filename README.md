@@ -119,7 +119,7 @@ server sendiri, build dari source: ganti `EXPO_PUBLIC_SERVER_URL` di
 jalankan skrip itu (butuh Android SDK, JDK, dan Bun). Tanpa APK, aplikasi
 web tetap bisa dipasang ke layar utama HP.
 
-Setiap build memberi `versionCode` otomatis dari waktu UTC (YYMMDDHHmm), jadi
+Setiap build memberi `versionCode` otomatis (menit sejak 2024-01-01 UTC), jadi
 selalu naik tanpa diubah manual, dan menulis `joyorogo-latest.json` di root
 repo: manifest berisi `versionCode`, `versionName`, `size`, `sha256`, dan
 `publishedAt`. Aplikasi Android memakai manifest itu untuk pembaruan dalam
