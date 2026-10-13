@@ -95,7 +95,7 @@ export function Badge({
         tone === "muted" && "bg-muted text-muted-foreground",
         tone === "green" && "bg-primary/10 text-primary",
         tone === "red" && "bg-destructive/10 text-destructive",
-        tone === "amber" && "bg-amber-500/15 text-amber-700",
+        tone === "amber" && "bg-amber-500/15 text-amber-700 dark:text-amber-400",
         className,
       )}
     >

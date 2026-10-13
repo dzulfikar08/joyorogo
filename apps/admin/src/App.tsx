@@ -1,15 +1,33 @@
 import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Toaster, toast } from "sonner";
-import { RotateCw } from "lucide-react";
+import { Moon, RotateCw, Sun } from "lucide-react";
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { api } from "./api";
 import { useAdminGate, useSignIn, useSignOut } from "./auth";
 import { Badge } from "./ui";
+import { useTheme } from "./theme";
 import { OrdersSection } from "./sections/Orders";
 import { OverviewSection, SendTestEmailButton } from "./sections/Overview";
 import { UsersSection } from "./sections/Users";
+
+/** Sun/Moon header toggle: switches light/dark; system default until first pick. */
+function ThemeToggle() {
+  const { resolvedTheme, setTheme } = useTheme();
+  const dark = resolvedTheme === "dark";
+  return (
+    <Button
+      size="icon"
+      variant="ghost"
+      aria-label={dark ? "Mode terang" : "Mode gelap"}
+      title={dark ? "Mode terang" : "Mode gelap"}
+      onClick={() => setTheme(dark ? "light" : "dark")}
+    >
+      {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+    </Button>
+  );
+}
 
 const TABS = ["overview", "users", "orders"] as const;
 type Tab = (typeof TABS)[number];
@@ -107,6 +125,7 @@ export default function App() {
               Refresh
             </Button>
             <SendTestEmailButton />
+            <ThemeToggle />
             <span className="text-xs text-muted-foreground">{gate.data?.email ?? ""}</span>
             <Button
               size="xs"

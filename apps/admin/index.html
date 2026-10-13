@@ -4,7 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f5f0" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141311" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Theme before first paint; matches packages/ui use-theme (class + colorScheme). -->
+    <script>
+      try {
+        var t = localStorage.getItem("vite-ui-theme") || "system";
+        var dark =
+          t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      } catch (e) {}
+    </script>
     <title>JoyoRogo Admin</title>
   </head>
   <body>

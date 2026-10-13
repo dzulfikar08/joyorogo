@@ -9,7 +9,10 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      "@joyorogo/ui/*": ["../../packages/ui/src/*"]
+    }
   },
   "include": ["src", "vite.config.ts"]
 }
