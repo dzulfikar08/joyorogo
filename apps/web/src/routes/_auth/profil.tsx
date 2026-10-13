@@ -218,8 +218,15 @@ function ProfilContent({
               Founder: {config.data ? founderScans(config.data).toLowerCase() : ""}.
             </p>
           </div>
-          <Button size="sm" className="shrink-0" render={<Link to="/harga" />}>
-            Upgrade
+          <Button
+            size="sm"
+            className="shrink-0"
+            disabled={checkout.isPending}
+            onClick={() =>
+              checkout.mutate(undefined, { onError: (error) => toast.error(error.message) })
+            }
+          >
+            {checkout.isPending ? "Membuka..." : "Upgrade"}
           </Button>
         </div>
       )}
