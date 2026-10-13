@@ -5,7 +5,7 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Medal, Scale, TrendingDown, TrendingUp } from "lucide-react";
+import { Medal, Scale, Share2, TrendingDown, TrendingUp } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -31,7 +31,8 @@ import {
 } from "@/components/kit/surface";
 import { fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
 import type { WeightHistory } from "@/lib/api-types";
-import { orpc } from "@/utils/orpc";
+import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
+import { client, orpc } from "@/utils/orpc";
 
 // 365 = the API cap, so the "Semua" range really shows everything.
 const historyOptions = orpc.weight.history.queryOptions({ input: { limit: 365 } });
@@ -510,6 +511,8 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const [showAll, setShowAll] = useState(false);
   const [weighOpen, setWeighOpen] = useState(false);
   const [weighValue, setWeighValue] = useState("");
+  // Bagikan ke feed: check-in berat terakhir sebagai post 'berat'.
+  const [shareOpen, setShareOpen] = useState(false);
   const chart = useChartSize();
 
   const checkIn = useMutation(
@@ -589,9 +592,17 @@ function BeratScreen({ history }: { history: WeightHistory }) {
       <PageHeader
         title="Berat badan"
         action={
-          <Button onClick={openWeigh} disabled={checkIn.isPending}>
-            Timbang
-          </Button>
+          <span className="flex items-center gap-2">
+            {weightSummary.latestKg !== null && (
+              <Button variant="secondary" onClick={() => setShareOpen(true)}>
+                <Share2 className="size-4" aria-hidden />
+                Bagikan progres
+              </Button>
+            )}
+            <Button onClick={openWeigh} disabled={checkIn.isPending}>
+              Timbang
+            </Button>
+          </span>
         }
       />
 
@@ -894,6 +905,23 @@ function BeratScreen({ history }: { history: WeightHistory }) {
           </Button>
         </form>
       </Sheet>
+
+      {entries.length > 0 && (
+        <ShareToFeedSheet
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          title="Bagikan progres berat"
+          preview={`Check-in terakhir · ${fmtKg(weightSummary.latestKg ?? 0)} kg`}
+          share={(input) =>
+            client.social.createPost({
+              kind: "berat",
+              refId: entries[entries.length - 1]!.id,
+              caption: input.caption || undefined,
+              visibility: input.visibility,
+            })
+          }
+        />
+      )}
     </Page>
   );
 }

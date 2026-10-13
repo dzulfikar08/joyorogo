@@ -1,10 +1,12 @@
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import { PostCard } from "@/components/feed/post-card";
 import { PublicFooter } from "@/components/public-footer";
 import { PublicHeader } from "@/components/public-header";
+import { postPhotoUrl } from "@/components/sticker";
 import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/p/$postId")({
@@ -28,6 +30,18 @@ function DetailSkeleton() {
 function PostDetailPage() {
   const { postId } = Route.useParams();
   const post = useQuery(orpc.social.post.queryOptions({ input: { id: postId } }));
+
+  // Pratinjau share: foto pertama post publik sebagai og:image (SPA — crawler
+  // statis tetap memakai og.png bawaan, ini melengkapi untuk pra-render UI).
+  useEffect(() => {
+    const data = post.data;
+    if (!data || data.visibility !== "publik" || data.photoCount === 0) return;
+    const meta = document.createElement("meta");
+    meta.setAttribute("property", "og:image");
+    meta.setAttribute("content", postPhotoUrl(data.id));
+    document.head.appendChild(meta);
+    return () => meta.remove();
+  }, [post.data]);
 
   return (
     <div className="flex min-h-svh flex-col">

@@ -1,18 +1,22 @@
 import { router } from "expo-router";
-import { Pressable, View } from "react-native";
+import { useState } from "react";
+import { Image, Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import type { Tip } from "@joyorogo/api/lib/tips";
 
 import { Card, Text } from "@/components/ui";
 import { TipIconGlyph } from "@/components/tips/tip-icon";
+import { tipImageUrl } from "@/src/lib/tips-img";
 
 /**
  * Kartu tips untuk feed dan Beranda; seluruh kartu menekan ke layar
  * artikel /tips/<slug> yang merender konten statis yang sama dengan blog.
+ * Foto hero diambil dari origin web; kalau gagal dimuat, fallback ikon.
  */
 export function TipCard({ tip, style }: { tip: Tip; style?: object }) {
   const { theme } = useUnistyles();
+  const [imgFailed, setImgFailed] = useState(false);
   return (
     <Card style={style}>
       <Pressable
@@ -21,9 +25,19 @@ export function TipCard({ tip, style }: { tip: Tip; style?: object }) {
         onPress={() => router.push(`/tips/${tip.slug}`)}
         style={({ pressed }) => [styles.row, pressed && styles.pressed]}
       >
-        <View style={[styles.iconChip, { backgroundColor: theme.colors.makanSoft }]}>
-          <TipIconGlyph icon={tip.icon} color={theme.colors.makanText} />
-        </View>
+        {tip.image && !imgFailed ? (
+          <Image
+            source={{ uri: tipImageUrl(`${tip.slug}-600.webp`) }}
+            onError={() => setImgFailed(true)}
+            resizeMode="cover"
+            accessibilityLabel={tip.image.alt}
+            style={styles.thumb}
+          />
+        ) : (
+          <View style={[styles.iconChip, { backgroundColor: theme.colors.makanSoft }]}>
+            <TipIconGlyph icon={tip.icon} color={theme.colors.makanText} />
+          </View>
+        )}
         <View style={styles.body}>
           <Text style={styles.kicker}>Tips</Text>
           <Text style={styles.title}>{tip.title}</Text>
@@ -56,6 +70,12 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
+  },
+  thumb: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: theme.colors.makanSoft,
   },
   body: {
     flex: 1,

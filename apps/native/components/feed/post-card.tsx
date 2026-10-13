@@ -5,8 +5,10 @@ import { useEffect, useState, type ComponentProps, type ReactNode } from "react"
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Platform,
   Pressable,
+  ScrollView,
   View,
 } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -25,21 +27,30 @@ import { timeAgoId } from "@/src/lib/group";
 import { fmtKcal, fmtKg } from "@/utils/format";
 
 /**
- * Feed post photo. Served through /post-photo/{postId}, whose visibility the
- * server checks per post — on native that means the session cookie, same as
- * the authed /photo loads elsewhere in the app.
+ * Feed post photo. Served through /post-photo/{postId}[/{index}], whose
+ * visibility the server checks per post — on native that means the session
+ * cookie, same as the authed /photo loads elsewhere in the app.
  */
-export function PostPhoto({ postId, style }: { postId: string; style?: object }) {
+export function PostPhoto({
+  postId,
+  index,
+  style,
+}: {
+  postId: string;
+  index?: number;
+  style?: object;
+}) {
   const { theme } = useUnistyles();
   const [uri, setUri] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const suffix = index === undefined ? "" : `-${index}`;
 
   useEffect(() => {
     let cancelled = false;
     setUri(null);
     setFailed(false);
     if (Platform.OS === "web") {
-      setUri(postPhotoUrl(postId));
+      setUri(postPhotoUrl(postId, index));
       return;
     }
     void (async () => {
@@ -48,8 +59,8 @@ export function PostPhoto({ postId, style }: { postId: string; style?: object })
         const cookie = await authClient.getCookie();
         if (cookie) headers.Cookie = cookie;
         const file = await File.downloadFileAsync(
-          postPhotoUrl(postId),
-          new File(Paths.cache, `joyorogo-post-${postId}.jpg`),
+          postPhotoUrl(postId, index),
+          new File(Paths.cache, `joyorogo-post-${postId}${suffix}.jpg`),
           { headers, idempotent: true },
         );
         if (!cancelled) setUri(file.uri);
@@ -60,7 +71,7 @@ export function PostPhoto({ postId, style }: { postId: string; style?: object })
     return () => {
       cancelled = true;
     };
-  }, [postId]);
+  }, [postId, index, suffix]);
 
   if (failed) {
     return (
@@ -83,6 +94,117 @@ export function PostPhoto({ postId, style }: { postId: string; style?: object })
 export function openAuthor(handle: string | null | undefined) {
   if (!handle) return;
   router.push(`/u/${handle}`);
+}
+
+const STORY_PREVIEW_LINES = 6;
+
+/** Teks pos cerita; lebih dari enam baris dipangkas dengan Selengkapnya. */
+function StoryText({ caption }: { caption: string }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <View>
+      <Text style={styles.storyText} numberOfLines={expanded ? undefined : STORY_PREVIEW_LINES}>
+        {caption}
+      </Text>
+      {caption.length > 180 ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={expanded ? "Tutup teks" : "Baca selengkapnya"}
+          onPress={() => setExpanded((prev) => !prev)}
+          style={({ pressed }) => [styles.moreWrap, pressed && styles.pressed]}
+        >
+          <Text style={styles.moreText}>{expanded ? "Tutup" : "Selengkapnya"}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+/** Penampil layar penuh: geser antar foto, tap latar untuk menutup. */
+function PhotoViewer({
+  postId,
+  count,
+  initialIndex,
+  onClose,
+}: {
+  postId: string;
+  count: number;
+  initialIndex: number;
+  onClose: () => void;
+}) {
+  const [index, setIndex] = useState(initialIndex);
+  return (
+    <Modal transparent animationType="fade" onRequestClose={onClose} accessibilityLabel="Penampil foto">
+      <Pressable
+        style={styles.viewerBackdrop}
+        accessibilityRole="button"
+        accessibilityLabel="Tutup penampil foto"
+        onPress={onClose}
+      >
+        <Pressable style={styles.viewerInner} onPress={() => {}}>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={(event) => {
+              const x = event.nativeEvent.contentOffset.x;
+              const width = event.nativeEvent.layoutMeasurement.width;
+              const next = width > 0 ? Math.round(x / width) : 0;
+              if (next !== index && next >= 0 && next < count) setIndex(next);
+            }}
+            scrollEventThrottle={100}
+          >
+            {Array.from({ length: count }, (_, i) => (
+              <View key={i} style={styles.viewerPage}>
+                <PostPhoto postId={postId} index={i} style={styles.viewerPhoto} />
+              </View>
+            ))}
+          </ScrollView>
+          {count > 1 ? (
+            <Text style={styles.viewerCount}>
+              {index + 1}/{count}
+            </Text>
+          ) : null}
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+/** Grid foto pos 'cerita': 1 penuh, 2 berdampingan, 3-4 grid (pertama melebar). */
+function PhotoGrid({ postId, count }: { postId: string; count: number }) {
+  const [open, setOpen] = useState<number | null>(null);
+  const shown = Math.min(count, 4);
+  return (
+    <View style={styles.gridSpacing}>
+      <View style={count === 1 ? styles.gridOne : styles.gridMulti}>
+        {Array.from({ length: shown }, (_, index) => (
+          <Pressable
+            key={index}
+            accessibilityRole="button"
+            accessibilityLabel={`Buka foto ${index + 1}`}
+            onPress={() => setOpen(index)}
+            style={({ pressed }) => [
+              styles.gridCell,
+              count === 1 && styles.gridCellSingle,
+              count > 2 && index === 0 && styles.gridCellWide,
+              pressed && styles.pressed,
+            ]}
+          >
+            <PostPhoto postId={postId} index={index} style={styles.gridPhoto} />
+          </Pressable>
+        ))}
+      </View>
+      {open !== null ? (
+        <PhotoViewer
+          postId={postId}
+          count={shown}
+          initialIndex={open}
+          onClose={() => setOpen(null)}
+        />
+      ) : null}
+    </View>
+  );
 }
 
 /** Kudos meta chips: macros for meals, stats for workouts, delta for weight. */
@@ -201,26 +323,35 @@ export function PostCard({
         </View>
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Buka post ${post.title}`}
-        onPress={onPress}
-        disabled={!onPress}
-      >
-        {post.photoId ? <PostPhoto postId={post.id} style={styles.photoSpacing} /> : null}
-        {!post.photoId && post.scanId ? (
-          <StickerPostImage uri={postStickerUrl(post.scanId)} />
-        ) : null}
+      {post.kind === "cerita" ? (
         <View style={styles.body}>
-          <Text style={styles.title} numberOfLines={2}>
-            {post.title}
-          </Text>
-          <PostChips post={post} />
-          {post.caption ? (
-            <Text style={styles.caption}>{post.caption}</Text>
+          {post.caption ? <StoryText caption={post.caption} /> : null}
+          {post.photoCount > 0 ? (
+            <PhotoGrid postId={post.id} count={post.photoCount} />
           ) : null}
         </View>
-      </Pressable>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Buka post ${post.title}`}
+          onPress={onPress}
+          disabled={!onPress}
+        >
+          {post.photoId ? <PostPhoto postId={post.id} style={styles.photoSpacing} /> : null}
+          {!post.photoId && post.scanId ? (
+            <StickerPostImage uri={postStickerUrl(post.scanId)} />
+          ) : null}
+          <View style={styles.body}>
+            <Text style={styles.title} numberOfLines={2}>
+              {post.title}
+            </Text>
+            <PostChips post={post} />
+            {post.caption ? (
+              <Text style={styles.caption}>{post.caption}</Text>
+            ) : null}
+          </View>
+        </Pressable>
+      )}
 
       <View style={styles.actionRow}>
         <Pressable
@@ -325,6 +456,75 @@ const styles = StyleSheet.create((theme) => ({
   },
   body: {
     gap: theme.spacing.sm,
+  },
+  storyText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.foreground,
+  },
+  moreWrap: {
+    alignSelf: "flex-start",
+    paddingVertical: theme.spacing.xs,
+  },
+  moreText: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.primary,
+  },
+  gridSpacing: {
+    gap: 0,
+  },
+  gridOne: {
+    flexDirection: "row",
+  },
+  gridMulti: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.xs,
+  },
+  gridCell: {
+    flex: 1,
+    minWidth: "47%",
+  },
+  gridCellSingle: {
+    width: "100%",
+  },
+  gridCellWide: {
+    width: "100%",
+  },
+  gridPhoto: {
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: theme.radius.tile,
+  },
+  viewerBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.92)",
+  },
+  viewerInner: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  viewerPage: {
+    width: "100%",
+    paddingHorizontal: theme.spacing.md,
+  },
+  viewerPhoto: {
+    width: "100%",
+    aspectRatio: 3 / 4,
+    borderRadius: theme.radius.tile,
+  },
+  viewerCount: {
+    position: "absolute",
+    bottom: theme.spacing.xl,
+    alignSelf: "center",
+    fontSize: theme.fontSize.xs,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 999,
+    overflow: "hidden",
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
   },
   title: {
     fontSize: theme.fontSize.md,

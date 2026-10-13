@@ -95,8 +95,8 @@ export const post = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    // 'makan' | 'latihan' | 'berat' — jenis log yang dibagikan
-    kind: text("kind", { enum: ["makan", "latihan", "berat"] }).notNull(),
+    // 'makan' | 'latihan' | 'berat' | 'cerita' — jenis log/pos yang dibagikan
+    kind: text("kind", { enum: ["makan", "latihan", "berat", "cerita"] }).notNull(),
     // Log sumber (informasional; yang dirender adalah snapshot di bawah).
     // Tanpa FK cascade: menghapus log sumber tidak boleh menghapus postingan.
     foodLogId: text("food_log_id"),
@@ -114,6 +114,9 @@ export const post = sqliteTable(
     scanId: text("scan_id"),
     // JSON { protein, carbs, fat, fiber } untuk makanan
     macroJson: text("macro_json"),
+    // JSON array id foto pos bebas 'cerita' (maks 4), objek R2 di
+    // posts/<userId>/<id>.<ext> — hanya bisa diakses lewat /post-photo/:postId/:index
+    photosJson: text("photos_json"),
     // JSON latihan: { sets, reps, volumeKg } · berat: { weightKg, deltaKg }
     statsJson: text("stats_json"),
     caption: text("caption"),

@@ -14,6 +14,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Avatar } from "@/components/avatar";
+import { FeedComposer } from "@/components/feed/composer";
 import { PostCard } from "@/components/feed/post-card";
 import { EmptyHint, ScreenError } from "@/components/screen-state";
 import { ListRow, Page, PageHeader, Segmented } from "@/components/kit/surface";
@@ -224,6 +225,8 @@ function FeedPage() {
           </Button>
         }
       />
+
+      {tab !== "tips" && <FeedComposer />}
 
       <Segmented<FeedTab>
         label="Pilih tab feed"

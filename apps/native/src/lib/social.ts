@@ -7,7 +7,7 @@
 import { ENV } from "../env";
 
 export type Visibility = "publik" | "grup";
-export type PostKind = "makan" | "latihan" | "berat";
+export type PostKind = "makan" | "latihan" | "berat" | "cerita";
 
 export type FeedAuthor = {
   id: string;
@@ -24,6 +24,8 @@ export type FeedItem = {
   durationMin: number | null;
   photoId: string | null;
   scanId: string | null;
+  /** Jumlah foto yang bisa dirender: grid 'cerita', atau 1 utk foto makanan. */
+  photoCount: number;
   macros?:
     | { protein: number | null; carbs: number | null; fat: number | null; fiber: number | null }
     | undefined;
@@ -98,10 +100,12 @@ export function postStickerUrl(scanId: string): string {
 /**
  * Feed post photos are served per-post visibility, so the card always loads
  * through /post-photo/{postId} (never the private per-user /photo/{photoId}).
+ * Photos of a 'cerita' post append /{index} (0-3).
  * The caller adds the session cookie on native.
  */
-export function postPhotoUrl(postId: string): string {
-  return `${ENV.EXPO_PUBLIC_SERVER_URL}/post-photo/${postId}`;
+export function postPhotoUrl(postId: string, index?: number): string {
+  const suffix = index === undefined ? "" : `/${index}`;
+  return `${ENV.EXPO_PUBLIC_SERVER_URL}/post-photo/${postId}${suffix}`;
 }
 
 export const KIND_META: Record<
@@ -111,6 +115,12 @@ export const KIND_META: Record<
   makan: { icon: "restaurant", outline: "restaurant-outline", label: "Makan", tint: "makan" },
   latihan: { icon: "barbell", outline: "barbell-outline", label: "Latihan", tint: "bakar" },
   berat: { icon: "scale", outline: "scale-outline", label: "Berat", tint: "tidur" },
+  cerita: {
+    icon: "chatbubble-ellipses",
+    outline: "chatbubble-ellipses-outline",
+    label: "Cerita",
+    tint: "makan",
+  },
 };
 
 export const HANDLE_REGEX = /^[a-z0-9_]{3,20}$/;

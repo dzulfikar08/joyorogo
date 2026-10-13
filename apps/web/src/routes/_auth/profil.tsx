@@ -49,6 +49,7 @@ import { BudgetSetting } from "@/components/plate/budget-setting";
 import { FastingSettingsSection } from "@/components/fasting/settings-section";
 import { useTheme } from "@/components/theme-provider";
 import { Avatar } from "@/components/avatar";
+import { FeedSettingsSection } from "@/components/feed/settings";
 import { ScreenError } from "@/components/screen-state";
 import { useStrava } from "@/components/strava-card";
 import { env } from "@/env.public";
@@ -483,6 +484,9 @@ function ProfilContent({
       <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">
         Data diri diatur waktu onboarding. Berat terkini mengikuti timbangmu di halaman Berat.
       </p>
+
+      <SectionTitle className="mt-7">Feed komunitas</SectionTitle>
+      <FeedSettingsSection />
 
       <SectionTitle className="mt-7">Integrasi</SectionTitle>
       <StravaSection />

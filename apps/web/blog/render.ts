@@ -6,7 +6,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { TKPI_2019, type Tkpi2019Row } from "@joyorogo/api/lib/tkpi2019-data";
-import { TIPS, type Tip } from "@joyorogo/api/lib/tips";
+import { TIPS, tipImagePath, type Tip } from "@joyorogo/api/lib/tips";
 import { Marked } from "marked";
 
 import { OG_IMAGE, PAGES } from "../src/lib/seo.ts";
@@ -182,27 +182,38 @@ export function loadPosts(): Post[] {
  * supaya web dan native memakai satu sumber konten tanpa duplikasi.
  */
 function tipToPost(tip: Tip): Post {
-  const parts: string[] = [];
-  for (const section of tip.sections) {
-    parts.push(`## ${section.heading}`);
-    parts.push(section.paragraphs.join("\n\n"));
-  }
-  parts.push("## Coba ini");
-  parts.push(tip.cobaIni.map((item) => `- ${item}`).join("\n"));
-  parts.push("## Sumber");
-  parts.push(tip.sources.map((s) => `- [${s.title}](${s.url})`).join("\n"));
+  const sectionsMd = tip.sections
+    .flatMap((section) => [`## ${section.heading}`, section.paragraphs.join("\n\n")])
+    .join("\n\n");
+  const hero = tip.image
+    ? `<figure>
+        <img src="${tipImagePath(`${tip.slug}.webp`)}" srcset="${tipImagePath(`${tip.slug}.webp`, "sm")} 600w, ${tipImagePath(`${tip.slug}.webp`)} 1200w" sizes="(max-width: 768px) 100vw, 768px" alt="${esc(tip.image.alt)}" width="1200" height="800" class="w-full rounded-3xl" />
+        <figcaption class="mt-2 text-xs text-muted-foreground">Foto${tip.image.credit.author ? `: ${esc(tip.image.credit.author)}` : ""} · ${esc(tip.image.credit.source)} · ${esc(tip.image.credit.page)}</figcaption>
+      </figure>`
+    : "";
+  const figure = tip.figure
+    ? `<figure>
+        <img src="${tipImagePath(tip.figure.src)}" alt="${esc(tip.figure.alt)}" width="1200" height="675" loading="lazy" class="w-full rounded-3xl border border-border/60" />
+        <figcaption class="mt-2 text-sm text-muted-foreground">${esc(tip.figure.caption)}</figcaption>
+      </figure>`
+    : "";
+  const tailMd = [
+    "## Coba ini",
+    tip.cobaIni.map((item) => `- ${item}`).join("\n"),
+    "## Sumber",
+    tip.sources.map((s) => `- [${s.title}](${s.url})`).join("\n"),
+  ].join("\n\n");
   const credit = tip.credit
     ? `\n\n<p class="blog-source">${esc(tip.credit.label)}: <a href="${esc(tip.credit.url)}" rel="noopener" target="_blank">${esc(tip.credit.url)}</a></p>`
     : "";
-  const md = parts.join("\n\n");
-  const words = md.split(/\s+/).filter(Boolean).length;
+  const words = `${sectionsMd} ${tailMd}`.split(/\s+/).filter(Boolean).length;
   return {
     slug: tip.slug,
     title: tip.title,
     description: tip.summary,
     date: tip.date,
     updated: tip.date,
-    html: toHtml(md) + credit,
+    html: hero + toHtml(sectionsMd) + figure + toHtml(tailMd) + credit,
     minutes: Math.max(1, Math.round(words / 200)),
     featured: false,
   };

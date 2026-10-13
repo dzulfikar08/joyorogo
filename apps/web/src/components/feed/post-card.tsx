@@ -9,6 +9,7 @@ import {
   Globe,
   Heart,
   MessageCircle,
+  PenLine,
   Scale,
   Utensils,
   Users2,
@@ -19,16 +20,40 @@ import { toast } from "sonner";
 import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/kit/surface";
 import { CommentsSheet } from "@/components/feed/comments-sheet";
+import { PhotoGrid } from "@/components/feed/photo-grid";
 import { PostMenuSheet } from "@/components/feed/post-menu";
 import { Sticker, postPhotoUrl, stickerUrl } from "@/components/sticker";
 import type { FeedPost } from "@/lib/api-types";
 import { fmtInt, timeAgo } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 
+const STORY_PREVIEW = 280;
+
+/** Teks pos cerita; lebih dari ~280 karakter dipangkas dengan Selengkapnya. */
+function StoryText({ caption }: { caption: string }) {
+  const [expanded, setExpanded] = useState(false);
+  if (caption.length <= STORY_PREVIEW) {
+    return <p className="text-sm whitespace-pre-wrap text-foreground/90">{caption}</p>;
+  }
+  return (
+    <p className="text-sm whitespace-pre-wrap text-foreground/90">
+      {expanded ? caption : `${caption.slice(0, STORY_PREVIEW)}...`}
+      <button
+        type="button"
+        className="ml-1.5 text-sm font-bold text-primary hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+        onClick={() => setExpanded((prev) => !prev)}
+      >
+        {expanded ? "Tutup" : "Selengkapnya"}
+      </button>
+    </p>
+  );
+}
+
 const KIND_ICON = {
   makan: Utensils,
   latihan: Dumbbell,
   berat: Scale,
+  cerita: PenLine,
 } as const;
 
 function VisibilityTag({ visibility }: { visibility: FeedPost["visibility"] }) {
@@ -208,23 +233,32 @@ export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
         </span>
       </header>
 
-      <div className="flex items-center gap-3">
-        <PostMedia post={post} />
-        <div className="min-w-0 flex-1 space-y-1">
-          <p className="truncate text-sm font-extrabold">{post.title}</p>
-          {post.kind === "makan" && post.kcal != null && (
-            <p className="flex items-center gap-1 text-sm font-bold text-makan-ink">
-              <Flame className="size-3.5" aria-hidden />
-              {fmtInt(post.kcal)} kcal
-              <MacroChips post={post} />
-            </p>
-          )}
-          {post.kind === "latihan" && <WorkoutChips post={post} />}
-          {post.kind === "berat" && <WeightChips post={post} />}
+      {post.kind === "cerita" ? (
+        <>
+          {post.caption && <StoryText caption={post.caption} />}
+          {post.photoCount > 0 && <PhotoGrid postId={post.id} count={post.photoCount} />}
+        </>
+      ) : (
+        <div className="flex items-center gap-3">
+          <PostMedia post={post} />
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="truncate text-sm font-extrabold">{post.title}</p>
+            {post.kind === "makan" && post.kcal != null && (
+              <p className="flex items-center gap-1 text-sm font-bold text-makan-ink">
+                <Flame className="size-3.5" aria-hidden />
+                {fmtInt(post.kcal)} kcal
+                <MacroChips post={post} />
+              </p>
+            )}
+            {post.kind === "latihan" && <WorkoutChips post={post} />}
+            {post.kind === "berat" && <WeightChips post={post} />}
+          </div>
         </div>
-      </div>
+      )}
 
-      {post.caption && <p className="text-sm text-foreground/90">{post.caption}</p>}
+      {post.kind !== "cerita" && post.caption && (
+        <p className="text-sm text-foreground/90">{post.caption}</p>
+      )}
 
       <footer className="flex items-center gap-1.5 border-t border-border/60 pt-2">
         <Button

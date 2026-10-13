@@ -15,6 +15,7 @@ import {
   Skeleton,
   Text,
 } from "@/components/ui";
+import { FeedComposer } from "@/components/feed/composer";
 import { PostCard, openAuthor } from "@/components/feed/post-card";
 import { TipCard } from "@/components/tips/tip-card";
 import { useSessionGate } from "@/lib/use-session-gate";
@@ -37,6 +38,7 @@ export default function Feed() {
   const gate = useSessionGate();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("mengikuti");
+  const [composerOpen, setComposerOpen] = useState(false);
 
   const unread = useQuery(orpc.social.notificationsUnreadCount.queryOptions());
   const unreadCount = unread.data?.count ?? 0;
@@ -89,27 +91,44 @@ export default function Feed() {
 
   return (
     <Screen>
+      <FeedComposer
+        visible={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        onPosted={() => {
+          if (tab !== "tips") void feed.refetch();
+        }}
+      />
       <PageHeader
         title="Feed"
         caption="Semangat bareng teman satu grup."
         right={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Notifikasi"
-            onPress={() => router.push("/feed/notifikasi")}
-            style={({ pressed }) => [styles.bell, pressed && styles.pressed]}
-          >
-            <Ionicons
-              name={unreadCount > 0 ? "notifications" : "notifications-outline"}
-              size={22}
-              color={theme.colors.foreground}
-            />
-            {unreadCount > 0 ? (
-              <View style={styles.badge}>
-                <RNText style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</RNText>
-              </View>
-            ) : null}
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Buat post"
+              onPress={() => setComposerOpen(true)}
+              style={({ pressed }) => [styles.bell, pressed && styles.pressed]}
+            >
+              <Ionicons name="add-circle-outline" size={24} color={theme.colors.foreground} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Notifikasi"
+              onPress={() => router.push("/feed/notifikasi")}
+              style={({ pressed }) => [styles.bell, pressed && styles.pressed]}
+            >
+              <Ionicons
+                name={unreadCount > 0 ? "notifications" : "notifications-outline"}
+                size={22}
+                color={theme.colors.foreground}
+              />
+              {unreadCount > 0 ? (
+                <View style={styles.badge}>
+                  <RNText style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</RNText>
+                </View>
+              ) : null}
+            </Pressable>
+          </View>
         }
       />
 
@@ -198,6 +217,11 @@ const styles = StyleSheet.create((theme) => ({
     height: 40,
     alignItems: "center",
     justifyContent: "center",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   badge: {
     position: "absolute",

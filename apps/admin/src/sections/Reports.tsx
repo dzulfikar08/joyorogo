@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { EyeOff, Flag, Trash2 } from "lucide-react";
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
+import { SERVER_URL } from "../auth-client";
 import { del, get, post, type AdminReport, type PagedReports } from "../api";
 import { useHashQuery } from "../hash";
 import { Badge, ConfirmAction, Pagination, Select } from "../ui";
@@ -17,15 +18,40 @@ const REASON_LABEL: Record<AdminReport["reason"], string> = {
 /** Konten yang dilaporkan: potongan postingan atau komentar. */
 function ReportContent({ report }: { report: AdminReport }) {
   if (report.postId) {
+    const hasPhoto =
+      report.postPhotoId !== null ||
+      (() => {
+        try {
+          const parsed = report.postPhotosJson ? (JSON.parse(report.postPhotosJson) as unknown) : null;
+          return Array.isArray(parsed) && parsed.length > 0;
+        } catch {
+          return false;
+        }
+      })();
     return (
-      <div className="min-w-0">
-        <div className="font-medium">{report.postTitle ?? "(postingan dihapus)"}</div>
-        {report.postCaption && (
-          <div className="text-muted-foreground">“{report.postCaption}”</div>
+      <div className="flex min-w-0 items-start gap-3">
+        {hasPhoto && (
+          <img
+            src={`${SERVER_URL}/post-photo/${report.postId}`}
+            alt=""
+            loading="lazy"
+            className="size-14 shrink-0 rounded-lg bg-muted object-cover"
+          />
         )}
-        <div className="text-muted-foreground">
-          @{report.postAuthorHandle ?? report.postAuthorName ?? "?"}
-          {report.postVisibility ? ` · ${report.postVisibility}` : ""}
+        <div className="min-w-0">
+          {report.postKind === "cerita" ? (
+            report.postCaption && <div className="font-medium">“{report.postCaption}”</div>
+          ) : (
+            <div className="font-medium">{report.postTitle ?? "(postingan dihapus)"}</div>
+          )}
+          {report.postKind !== "cerita" && report.postCaption && (
+            <div className="text-muted-foreground">“{report.postCaption}”</div>
+          )}
+          <div className="text-muted-foreground">
+            @{report.postAuthorHandle ?? report.postAuthorName ?? "?"}
+            {report.postKind ? ` · ${report.postKind}` : ""}
+            {report.postVisibility ? ` · ${report.postVisibility}` : ""}
+          </div>
         </div>
       </div>
     );

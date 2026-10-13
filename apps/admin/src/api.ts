@@ -173,7 +173,10 @@ export interface AdminReport {
   resolvedAt: string | number | null;
   postId: string | null;
   commentId: string | null;
+  postKind: "makan" | "latihan" | "berat" | "cerita" | null;
   postTitle: string | null;
+  postPhotoId: string | null;
+  postPhotosJson: string | null;
   postCaption: string | null;
   postVisibility: "publik" | "grup" | null;
   postAuthorName: string | null;

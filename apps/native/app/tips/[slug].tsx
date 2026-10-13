@@ -1,23 +1,29 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
-import { Linking, Pressable, View } from "react-native";
+import { useState } from "react";
+import { Image, Linking, Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { TIPS } from "@joyorogo/api/lib/tips";
 
 import { Card, ErrorState, PageHeader, Screen, Text } from "@/components/ui";
 import { TipIconGlyph } from "@/components/tips/tip-icon";
+import { tipImageUrl } from "@/src/lib/tips-img";
 
 /**
  * Layar artikel tips. Kontennya statis dari @joyorogo/api/lib/tips — sama
  * persis dengan halaman blog /blog/<slug> di web, tanpa klaim yang
- * digenerate saat runtime.
+ * digenerate saat runtime. Foto dan infografis diambil dari origin web
+ * (EXPO_PUBLIC_WEB_URL, default joyorogo.com); kalau gagal dimuat,
+ * gambar disembunyikan dan teks tetap utuh.
  */
 export default function TipArticle() {
   const { theme } = useUnistyles();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const tip = TIPS.find((candidate) => candidate.slug === slug);
+  const [heroFailed, setHeroFailed] = useState(false);
+  const [figureFailed, setFigureFailed] = useState(false);
 
   if (!tip) {
     return (
@@ -38,7 +44,16 @@ export default function TipArticle() {
     <Screen>
       <PageHeader title="Tips" />
 
-      <View style={[styles.iconChip, { backgroundColor: theme.colors.makanSoft }]}>
+      {tip.image && !heroFailed ? (
+        <Image
+          source={{ uri: tipImageUrl(`${tip.slug}.webp`) }}
+          onError={() => setHeroFailed(true)}
+          resizeMode="cover"
+          accessibilityLabel={tip.image.alt}
+          style={[styles.hero, { backgroundColor: theme.colors.makanSoft }]}
+        />
+      ) : null}
+      <View style={styles.iconChip}>
         <TipIconGlyph icon={tip.icon} size={22} color={theme.colors.makanText} />
       </View>
       <Text style={styles.title}>{tip.title}</Text>
@@ -54,6 +69,26 @@ export default function TipArticle() {
           ))}
         </View>
       ))}
+
+      {tip.figure && !figureFailed ? (
+        <View style={styles.figure}>
+          <Image
+            source={{ uri: tipImageUrl(tip.figure.src) }}
+            onError={() => setFigureFailed(true)}
+            resizeMode="contain"
+            accessibilityLabel={tip.figure.alt}
+            style={[styles.figureImg, { backgroundColor: theme.colors.card }]}
+          />
+          <Text style={styles.caption}>{tip.figure.caption}</Text>
+        </View>
+      ) : null}
+
+      {tip.image ? (
+        <Text style={styles.photoCredit}>
+          Foto{tip.image.credit.author ? `: ${tip.image.credit.author}` : ""} ·{" "}
+          {tip.image.credit.source} · {tip.image.credit.page}
+        </Text>
+      ) : null}
 
       <Card style={styles.cobaCard}>
         <Text style={styles.heading}>Coba ini</Text>
@@ -105,9 +140,36 @@ const styles = StyleSheet.create((theme) => ({
   pressed: {
     opacity: 0.7,
   },
+  hero: {
+    width: "100%",
+    aspectRatio: 1.5,
+    borderRadius: theme.radius.card,
+    marginBottom: theme.spacing.md,
+  },
+  figure: {
+    marginTop: theme.spacing.lg,
+    gap: theme.spacing.sm,
+  },
+  figureImg: {
+    width: "100%",
+    aspectRatio: 1200 / 675,
+    borderRadius: theme.radius.card,
+  },
+  caption: {
+    fontSize: theme.fontSize.sm,
+    lineHeight: 20,
+    color: theme.colors.mutedForeground,
+  },
+  photoCredit: {
+    marginTop: theme.spacing.md,
+    fontSize: theme.fontSize.xs,
+    lineHeight: 18,
+    color: theme.colors.mutedForeground,
+  },
   iconChip: {
     width: 48,
     height: 48,
+    backgroundColor: theme.colors.makanSoft,
     borderRadius: theme.radius.pill,
     alignItems: "center",
     justifyContent: "center",

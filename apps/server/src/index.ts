@@ -15,7 +15,7 @@ import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
-import { Hono } from "hono";
+import { Hono, type Context as HonoContext } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 
@@ -180,22 +180,32 @@ app.get("/photo/:photoId", async (c) => {
   });
 });
 
-// Photo of a shared feed post (photos/<authorId>/<id>.jpg). Access follows the
-// post's visibility, not the viewer's own prefix: 'publik' posts on a public
-// profile serve without login (cacheable), 'grup' posts need a teammate
-// session (private). Deleted/hidden posts stop resolving within an hour.
-app.get("/post-photo/:postId", async (c) => {
-  const postId = c.req.param("postId");
+// Photos of a shared feed post. Access follows the post's visibility, not the
+// viewer's own prefix: 'publik' posts on a public profile serve without login
+// (cacheable), 'grup' posts need a teammate session (private). Deleted/hidden
+// posts stop resolving within an hour.
+//   /post-photo/:postId          -> legacy single photo (makan snapshot), or cerita photo 0
+//   /post-photo/:postId/:index   -> cerita photo grid (posts/<authorId>/<id>.jpg)
+async function servePostPhoto(c: HonoContext, indexParam: string | undefined) {
+  const postId = c.req.param("postId") ?? "";
   if (!/^[a-f0-9-]{36}$/.test(postId)) {
     return c.json({ error: "ID tidak valid." }, 400);
   }
   if (!("STICKERS" in env) || !env.STICKERS) {
     return c.json({ error: "Foto belum tersedia." }, 404);
   }
+  let index: number | null = null;
+  if (indexParam !== undefined) {
+    index = Number(indexParam);
+    if (!Number.isInteger(index) || index < 0 || index > 3) {
+      return c.json({ error: "Indeks foto tidak valid." }, 400);
+    }
+  }
   const [row] = await getDb()
     .select({
       userId: postTable.userId,
       photoId: postTable.photoId,
+      photosJson: postTable.photosJson,
       visibility: postTable.visibility,
       authorPublic: profileTable.publicProfile,
     })
@@ -203,9 +213,26 @@ app.get("/post-photo/:postId", async (c) => {
     .innerJoin(profileTable, eq(profileTable.userId, postTable.userId))
     .where(eq(postTable.id, postId))
     .limit(1);
-  if (!row || !row.photoId) {
+  if (!row) {
     return c.json({ error: "Foto tidak ditemukan." }, 404);
   }
+  let photos: string[] = [];
+  if (row.photosJson) {
+    try {
+      const parsed = JSON.parse(row.photosJson) as unknown;
+      if (Array.isArray(parsed)) photos = parsed.filter((x): x is string => typeof x === "string");
+    } catch {
+      // foto tidak lagi bisa dirender; jatuh ke photoId warisan di bawah
+    }
+  }
+  const photoId =
+    index !== null ? (photos[index] ?? null) : (row.photoId ?? photos[0] ?? null);
+  if (!photoId) {
+    return c.json({ error: "Foto tidak ditemukan." }, 404);
+  }
+  const key = photos.includes(photoId)
+    ? `posts/${row.userId}/${photoId}.jpg`
+    : `photos/${row.userId}/${photoId}.jpg`;
   const isPublic = row.visibility === "publik" && row.authorPublic;
   if (!isPublic) {
     const session = await (await createAuth()).api.getSession({ headers: c.req.raw.headers });
@@ -230,7 +257,7 @@ app.get("/post-photo/:postId", async (c) => {
       if ((mate?.total ?? 0) === 0) return notFound;
     }
   }
-  const obj = await env.STICKERS.get(`photos/${row.userId}/${row.photoId}.jpg`);
+  const obj = await env.STICKERS.get(key);
   if (!obj) {
     return c.json({ error: "Foto tidak ditemukan." }, 404);
   }
@@ -241,7 +268,13 @@ app.get("/post-photo/:postId", async (c) => {
       "Cache-Control": isPublic ? "public, max-age=3600" : "private, max-age=3600",
     },
   });
+}
+
+app.get("/post-photo/:postId/:index", (c) => {
+  const index = c.req.param("index");
+  return servePostPhoto(c, typeof index === "string" ? index : undefined);
 });
+app.get("/post-photo/:postId", (c) => servePostPhoto(c, undefined));
 
 // Public profile avatars (avatars/<userId>/<id>.<ext>). No session on purpose:
 // the 32-hex id is the unguessable capability, and the URL rides in public

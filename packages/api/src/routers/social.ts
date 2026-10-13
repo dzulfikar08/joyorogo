@@ -25,11 +25,13 @@ import {
 
 import { publicProcedure, protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
+import { base64ToBytes } from "../lib/sticker";
 import { sendPush } from "../lib/webpush";
 
 // --- Batasan -----------------------------------------------------------------
 
-const CAPTION_MAX = 280;
+const STORY_MAX = 1000;
+const STORY_PHOTOS_MAX = 4;
 const COMMENT_MAX = 280;
 const BIO_MAX = 160;
 const NOTE_MAX = 200;
@@ -48,7 +50,6 @@ const handleSchema = z
   .toLowerCase()
   .regex(/^[a-z0-9_]{3,20}$/, "Handle 3-20 karakter, hanya huruf kecil, angka, dan _");
 
-const captionSchema = z.string().trim().max(CAPTION_MAX).optional();
 const visibilitySchema = z.enum(["publik", "grup"]);
 
 const cursorSchema = z.number().int().positive().optional();
@@ -126,6 +127,7 @@ async function loadVisiblePost(
       photoId: postTable.photoId,
       scanId: postTable.scanId,
       macroJson: postTable.macroJson,
+      photosJson: postTable.photosJson,
       statsJson: postTable.statsJson,
       caption: postTable.caption,
       visibility: postTable.visibility,
@@ -301,6 +303,17 @@ export type PostSnapshot = {
   stats?: Record<string, number | string | null>;
 };
 
+/** JSON string array (foto pos 'cerita');[] kalau rusak/kosong. */
+function parseStringArray(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 function parseJson(raw: string | null): Record<string, unknown> | undefined {
   if (!raw) return undefined;
   try {
@@ -314,13 +327,14 @@ function parseJson(raw: string | null): Record<string, unknown> | undefined {
 function toFeedItem(row: {
   id: string;
   userId: string;
-  kind: "makan" | "latihan" | "berat";
+  kind: "makan" | "latihan" | "berat" | "cerita";
   title: string;
   kcal: number | null;
   durationMin: number | null;
   photoId: string | null;
   scanId: string | null;
   macroJson: string | null;
+  photosJson: string | null;
   statsJson: string | null;
   caption: string | null;
   visibility: "publik" | "grup";
@@ -343,6 +357,7 @@ function toFeedItem(row: {
     scanId: row.scanId,
     macros: parseJson(row.macroJson) as PostSnapshot["macros"],
     stats: parseJson(row.statsJson) as PostSnapshot["stats"],
+    photoCount: parseStringArray(row.photosJson).length || (row.photoId ? 1 : 0),
     caption: row.caption,
     visibility: row.visibility,
     createdAt: row.createdAt,
@@ -371,6 +386,7 @@ const postColumns = {
   photoId: postTable.photoId,
   scanId: postTable.scanId,
   macroJson: postTable.macroJson,
+  photosJson: postTable.photosJson,
   statsJson: postTable.statsJson,
   caption: postTable.caption,
   visibility: postTable.visibility,
@@ -485,9 +501,11 @@ export const socialRouter = {
   createPost: protectedProcedure
     .input(
       z.object({
-        kind: z.enum(["makan", "latihan", "berat"]),
-        refId: z.string().min(1),
-        caption: captionSchema,
+        kind: z.enum(["makan", "latihan", "berat", "cerita"]),
+        refId: z.string().min(1).optional(),
+        caption: z.string().trim().max(STORY_MAX).optional(),
+        // Pos 'cerita': id foto dari social.uploadPostPhoto (maks 4).
+        photoIds: z.array(z.string().regex(/^[a-f0-9]{32}$/)).max(STORY_PHOTOS_MAX).optional(),
         visibility: visibilitySchema.optional(),
       }),
     )
@@ -531,6 +549,7 @@ export const socialRouter = {
         photoId: string | null;
         scanId: string | null;
         macroJson: string | null;
+        photosJson: string | null;
         statsJson: string | null;
         foodLogId: string | null;
         exerciseLogId: string | null;
@@ -538,7 +557,45 @@ export const socialRouter = {
         weightLogId: string | null;
       };
 
-      if (input.kind === "makan") {
+      if (input.kind === "cerita") {
+        // Post bebas: minimal teks atau satu foto; foto harus milik sendiri.
+        const caption = input.caption ?? "";
+        const photoIds = input.photoIds ?? [];
+        if (caption.length === 0 && photoIds.length === 0) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: "Tulis cerita dulu atau lampirkan satu foto.",
+          });
+        }
+        const bucket = context.env.STICKERS;
+        if (bucket && photoIds.length > 0) {
+          for (const photoId of photoIds) {
+            // get() dipakai sebagai head: bucket minimal ini tidak punya head().
+            const found = await bucket.get(`posts/${me}/${photoId}.jpg`);
+            if (!found) {
+              throw new ORPCError("BAD_REQUEST", {
+                message: "Ada foto yang tidak ditemukan, coba lampirkan ulang.",
+              });
+            }
+          }
+        }
+        snapshot = {
+          title: caption.slice(0, 80),
+          kcal: null,
+          durationMin: null,
+          photoId: null,
+          scanId: null,
+          macroJson: null,
+          photosJson: photoIds.length > 0 ? JSON.stringify(photoIds) : null,
+          statsJson: null,
+          foodLogId: null,
+          exerciseLogId: null,
+          workoutSessionId: null,
+          weightLogId: null,
+        };
+      } else if (input.kind === "makan") {
+        if (!input.refId) {
+          throw new ORPCError("BAD_REQUEST", { message: "Pilih dulu makanannya." });
+        }
         const [food] = await db
           .select()
           .from(foodLog)
@@ -557,6 +614,7 @@ export const socialRouter = {
             fat: food.fat,
             fiber: food.fiber,
           }),
+          photosJson: null,
           statsJson: null,
           foodLogId: food.id,
           exerciseLogId: null,
@@ -564,6 +622,9 @@ export const socialRouter = {
           weightLogId: null,
         };
       } else if (input.kind === "berat") {
+        if (!input.refId) {
+          throw new ORPCError("BAD_REQUEST", { message: "Pilih dulu catatan beratnya." });
+        }
         const [weight] = await db
           .select()
           .from(weightLog)
@@ -577,6 +638,7 @@ export const socialRouter = {
           photoId: null,
           scanId: null,
           macroJson: null,
+          photosJson: null,
           statsJson: JSON.stringify({
             weightKg: weight.weightKg,
             deltaKg: Number((weight.weightKg - meProfile.startWeightKg).toFixed(1)),
@@ -588,6 +650,9 @@ export const socialRouter = {
         };
       } else {
         // Latihan: sesi beban (workout_session) atau kardio (exercise_log).
+        if (!input.refId) {
+          throw new ORPCError("BAD_REQUEST", { message: "Pilih dulu latihannya." });
+        }
         const [session] = await db
           .select()
           .from(workoutSession)
@@ -617,6 +682,7 @@ export const socialRouter = {
             photoId: null,
             scanId: null,
             macroJson: null,
+            photosJson: null,
             statsJson: JSON.stringify({
               sets: counted.length,
               reps,
@@ -643,6 +709,7 @@ export const socialRouter = {
             photoId: null,
             scanId: null,
             macroJson: null,
+            photosJson: null,
             statsJson: JSON.stringify({ type: cardio.type }),
             foodLogId: null,
             exerciseLogId: cardio.id,
@@ -664,12 +731,61 @@ export const socialRouter = {
       return { id: postId, visibility };
     }),
 
+  /**
+   * Unggah satu foto untuk pos 'cerita' (maks 4 per pos, dipagari klien).
+   * Klien memampatkan ke sisi ~1600px JPEG/WebP sebelum mengunggah; pagar
+   * input hanya untuk unggahan mentah (~5 MB biner, base64 +4/3).
+   */
+  uploadPostPhoto: protectedProcedure
+    .input(
+      z.object({
+        imageBase64: z.base64().min(50).max(6_990_000),
+        mimeType: z.enum(["image/jpeg", "image/webp"]),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const bucket = context.env.STICKERS;
+      if (!bucket) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Penyimpanan foto belum tersedia." });
+      }
+      const id = crypto.randomUUID().replaceAll("-", "");
+      try {
+        await bucket.put(`posts/${userId}/${id}.jpg`, base64ToBytes(input.imageBase64), {
+          // Kunci selalu .jpg; tipe konten asli tetap dibawa metadata sehingga
+          // /post-photo menyajikan WebP dengan header yang benar.
+          httpMetadata: { contentType: input.mimeType },
+        });
+      } catch {
+        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Gagal menyimpan foto." });
+      }
+      return { photoId: id };
+    }),
+
   deletePost: protectedProcedure
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
+      const me = context.session.user.id;
+      const [row] = await context.db
+        .select({ photosJson: postTable.photosJson })
+        .from(postTable)
+        .where(and(eq(postTable.id, input.id), eq(postTable.userId, me)))
+        .limit(1);
       await context.db
         .delete(postTable)
-        .where(and(eq(postTable.id, input.id), eq(postTable.userId, context.session.user.id)));
+        .where(and(eq(postTable.id, input.id), eq(postTable.userId, me)));
+      // Objek foto pos ikut dihapus; foto lama (photoId milik diary) dibiarkan
+      // karena dipakai bersama catatan makanannya.
+      const bucket = context.env.STICKERS;
+      if (row && bucket) {
+        context.waitUntil(
+          Promise.all(
+            parseStringArray(row.photosJson).map((photoId) =>
+              bucket.delete(`posts/${me}/${photoId}.jpg`).catch(() => {}),
+            ),
+          ).then(() => {}),
+        );
+      }
       return { ok: true };
     }),
 

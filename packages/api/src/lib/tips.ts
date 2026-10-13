@@ -33,6 +33,25 @@ export type TipSource = { title: string; url: string };
 
 export type TipSection = { heading: string; paragraphs: string[] };
 
+/**
+ * Foto hero tip. Berkasnya dilayani web dari /tips-img/<slug>.webp
+ * (1200x800) dan <slug>-600.webp (600x400); native membangun URL absolut
+ * dari origin web. Semua foto CC0 / domain publik: komersial boleh tanpa
+ * atribusi; kreditnya goodwill.
+ */
+export type TipImage = {
+  alt: string;
+  credit: { author: string | null; page: string; source: string };
+};
+
+/** Infografis 1200x675 dari angka yang disitasi di artikel. */
+export type TipFigure = {
+  /** Nama berkas di /tips-img/, misal "<slug>-fig1.webp". */
+  src: string;
+  alt: string;
+  caption: string;
+};
+
 export type Tip = {
   slug: string;
   title: string;
@@ -41,6 +60,9 @@ export type Tip = {
   icon: TipIcon;
   /** YYYY-MM-DD */
   date: string;
+  /** Foto hero + infografis; opsional supaya tip baru tetap valid. */
+  image?: TipImage;
+  figure?: TipFigure;
   sections: TipSection[];
   /** Langkah praktis "Coba ini". */
   cobaIni: string[];
@@ -59,6 +81,15 @@ const JEREMY_ETHIER = {
 export const TIPS: Tip[] = [
   {
     slug: "kenyang-dengan-porsi-banyak",
+    image: {
+      alt: "Mangkuk sup sayur bening dengan kuah jernih",
+      credit: { author: null, page: "https://www.rawpixel.com/image/5924545/photo-image-public-domain-food-water", source: "Rawpixel" },
+    },
+    figure: {
+      src: "kenyang-dengan-porsi-banyak-fig1.webp",
+      alt: "Diagram batang kalori per 100 gram: bayam rebus 23, semangka 28, pepaya 46, nasi 180, kerupuk udang goreng 477 kkal.",
+      caption: "Sayur dan buah berair mengenyangkan dengan kalori jauh lebih kecil daripada camilan padat. Sumber angka: TKPI 2019.",
+    },
     title: "Kenyang dengan porsi banyak: trik volume eating",
     summary:
       "Porsi besar tanpa kalori besar: isi piring dengan makanan bervolume tinggi supaya defisit kalori tidak terasa seperti kelaparan.",
@@ -97,6 +128,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "protein-kenyang-jaga-otot",
+    image: {
+      alt: "Telur rebus tersusun di nampan",
+      credit: { author: "Gary Lee Todd, Ph.D.", page: "https://www.flickr.com/photos/101561334@N08/34294440021", source: "Flickr" },
+    },
+    figure: {
+      src: "protein-kenyang-jaga-otot-fig1.webp",
+      alt: "Diagram batang protein per 100 gram: putih telur 10,8 g, tahu 10,9 g, telur ayam ras 12,4 g, ayam 18,2 g, tempe kedelai 20,8 g.",
+      caption: "Protein cukup dapat dari bahan pasar: telur, tahu, tempe, dan ayam. Sumber angka: TKPI 2019.",
+    },
     title: "Protein: kenyang lebih lama, otot tetap terjaga",
     summary:
       "Protein paling mengenyangkan di antara makronutrien dan membantu memastikan berat yang turun berasal dari lemak, bukan otot.",
@@ -147,6 +187,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "protein-dibagi-empat-momen",
+    image: {
+      alt: "Potongan tempe goreng dari dekat",
+      credit: { author: "ProjectManhattan", page: "https://commons.wikimedia.org/w/index.php?curid=29619858", source: "Wikimedia Commons" },
+    },
+    figure: {
+      src: "protein-dibagi-empat-momen-fig1.webp",
+      alt: "Diagram batang bertumpuk: pola merata 30-30-30-30 gram berbanding pola timpang 10-15-20-65 gram dengan total sama.",
+      caption: "Total protein sama, tapi distribusi merata lebih merangsang sintesis protein otot (Mamerow dkk., 2014).",
+    },
     title: "Bagi protein ke beberapa momen makan",
     summary:
       "Protein yang dibagi rata ke 3-4 makan lebih baik merangsang pemeliharaan otot daripada ditumpuk semua di makan malam.",
@@ -185,6 +234,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "serat-kenyang-lama",
+    image: {
+      alt: "Stal sayur dan buah di pasar",
+      credit: { author: "Kojotisko", page: "https://www.flickr.com/photos/98796230@N03/14167598168", source: "Flickr" },
+    },
+    figure: {
+      src: "serat-kenyang-lama-fig1.webp",
+      alt: "Panel statistik: tambahan sekitar 14 gram serat per hari dikaitkan dengan penurunan asupan energi sekitar 10 persen; contoh kandungan serat bayam, jambu biji, dan kacang hijau.",
+      caption: "Tambahan serat sederhana sudah menggeser asupan. Sumber serat: TKPI 2019; efek: Howarth dkk. (2001).",
+    },
     title: "Serat: murah, mengenyangkan, dan sering kurang",
     summary:
       "Serat memperlambat pencernaan dan memperpanjang rasa kenyang; tambahan sekitar 14 g per hari dikaitkan dengan asupan kalori yang turun.",
@@ -220,6 +278,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "segelas-air-sebelum-makan",
+    image: {
+      alt: "Segelas air putih di atas meja",
+      credit: { author: "Kurt Kaiser", page: "https://commons.wikimedia.org/w/index.php?curid=105399729", source: "Wikimedia Commons" },
+    },
+    figure: {
+      src: "segelas-air-sebelum-makan-fig1.webp",
+      alt: "Diagram batang: kelompok defisit dengan 500 ml air sebelum makan menurunkan berat 44 persen lebih banyak dalam 12 minggu.",
+      caption: "Penurunan berat 44% lebih banyak dengan preload air (Dennis dkk., 2010; dewasa paruh baya-lansia).",
+    },
     title: "Segelas air sebelum makan bantu porsi menyusut",
     summary:
       "RCT: 500 ml air sebelum tiap makan utama menghasilkan penurunan berat 44% lebih banyak dalam 12 minggu, pada dewasa paruh baya ke atas.",
@@ -253,6 +320,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "air-berkarbonasi-fakta",
+    image: {
+      alt: "Air berkarbonasi dengan irisan lemon",
+      credit: { author: null, page: "https://www.rawpixel.com/image/5912059/image-public-domain-fruit-food", source: "Rawpixel" },
+    },
+    figure: {
+      src: "air-berkarbonasi-fakta-fig1.webp",
+      alt: "Diagram batang: es teh manis 60-100 kkal per gelas berbanding soda tanpa gula 0 kkal.",
+      caption: "Soda polos menang karena nol kalori, bukan karena gasnya (es teh: takaran gula umum; bukti karbonasi: Eweis 2017, Harper 2007).",
+    },
     title: "Air soda tanpa gula bantu diet? Jawaban jujurnya",
     summary:
       "Karbonasi bisa memberi rasa kenyang sesaat, tapi bukti soal penurunan berat masih tipis; nilai terbesarnya sebagai pengganti minuman manis.",
@@ -291,6 +367,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "makan-pelan-kenyang-cepat",
+    image: {
+      alt: "Piring nasi campur dengan lauk pauk",
+      credit: { author: "The Bangsawan", page: "https://commons.wikimedia.org/w/index.php?curid=154805235", source: "Wikimedia Commons" },
+    },
+    figure: {
+      src: "makan-pelan-kenyang-cepat-fig1.webp",
+      alt: "Garis waktu 20 menit: sinyal kenyang baru tiba di otak sekitar menit kedua puluh sejak suapan pertama.",
+      caption: "Kenyang butuh waktu; makan terburu-buru selesai sebelum sinyalnya tiba (±20 menit; Zhu & Hollis, 2014).",
+    },
     title: "Makan pelan: kenyang datang sebelum porsi habis",
     summary:
       "Sinyal kenyang butuh waktu sekitar 20 menit; mengunyah lebih banyak terbukti mengecilkan porsi makan.",
@@ -325,6 +410,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "makanan-ultra-proses",
+    image: {
+      alt: "Blok mi instan mentah di kemasan",
+      credit: { author: "Ninosan", page: "https://commons.wikimedia.org/w/index.php?curid=64565250", source: "Wikimedia Commons" },
+    },
+    figure: {
+      src: "makanan-ultra-proses-fig1.webp",
+      alt: "Diagram batang studi Hall 2019: menu ultra-proses menambah asupan sekitar 500 kkal per hari dan berat naik 0,9 kg; menu minim proses berat turun 0,9 kg.",
+      caption: "Menu ultra-proses membuat peserta makan ±500 kkal lebih banyak per hari (Hall dkk., 2019).",
+    },
     title: "Kenapa makanan kemasan bikin kalori bocor",
     summary:
       "RCT di ward metabolik NIH: menu ultra-proses membuat peserta makan sekitar 500 kkal lebih banyak per hari dan naik berat dalam dua minggu.",
@@ -359,6 +453,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "kalori-cair-es-teh-kopi",
+    image: {
+      alt: "Segelas es teh manis dengan sedotan",
+      credit: { author: "roland", page: "https://www.flickr.com/photos/35034347371@N01/79456295", source: "Flickr" },
+    },
+    figure: {
+      src: "kalori-cair-es-teh-kopi-fig1.webp",
+      alt: "Diagram batang kalori per gelas: es tawar 0, es teh manis 60-100 kkal, kopi susu gula aren 200-300 kkal.",
+      caption: "Tiga gelas minuman manis bisa menghapus defisit harian tanpa terasa (kisaran takaran umum).",
+    },
     title: "Kalori cair: es teh manis dan kopi susu gula aren",
     summary:
       "Kalori dari minuman kurang bikin kenyang; es teh manis dan kopi susu bisa menambah 100-300 kkal tanpa terasa.",
@@ -398,6 +501,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "saus-minyak-porsi-kecil",
+    image: {
+      alt: "Nasi putih dengan sambal kerang dan tauge",
+      credit: { author: "Wiki Farazi", page: "https://commons.wikimedia.org/w/index.php?curid=158552419", source: "Wikimedia Commons" },
+    },
+    figure: {
+      src: "saus-minyak-porsi-kecil-fig1.webp",
+      alt: "Diagram batang kalori per sendok makan: minyak goreng sekitar 115 kkal, mayones sekitar 90 kkal, sambal segar sekitar 15 kkal.",
+      caption: "Dua-tiga sendok minyak ekstra plus saus bisa menambah 300-400 kkal tak terasa (minyak: TKPI 2019).",
+    },
     title: "Saus dan minyak: porsi kecil, kalori besar",
     summary:
       "Satu sdm minyak sekitar 120 kkal, satu sdm mayones sekitar 90 kkal; bumbu dan pelengkap sering jadi kalori tersembunyi terbesar.",
@@ -433,6 +545,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "tidur-cukup-lapar-turun",
+    image: {
+      alt: "Orang tidur nyenyak di tempat tidur",
+      credit: { author: "elizabeth lies", page: "https://stocksnap.io/photo/sleeping-bed-843D85B223", source: "StockSnap" },
+    },
+    figure: {
+      src: "tidur-cukup-lapar-turun-fig1.webp",
+      alt: "Diagram batang studi Nedeltcheva 2010: pada tidur 5,5 jam, porsi penurunan berat dari lemak turun 55 persen dan kehilangan massa tanpa lemak naik 60 persen.",
+      caption: "Begadang mengubah komposisi penurunan berat: lebih sedikit lemak, lebih banyak otot yang terkorban (Nedeltcheva dkk., 2010).",
+    },
     title: "Kurang tidur, lapar besoknya",
     summary:
       "Tidur singkat menaikkan hormon lapar dan menurunkan hormon kenyang; saat defisit, kurang tidur membuat berat yang turun lebih banyak dari otot.",
@@ -471,6 +592,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "langkah-harian-neat",
+    image: {
+      alt: "Kaki yang sedang berjalan di trotoar",
+      credit: { author: null, page: "https://www.rawpixel.com/image/5968947/walking-feet", source: "Rawpixel" },
+    },
+    figure: {
+      src: "langkah-harian-neat-fig1.webp",
+      alt: "Panel statistik: 6.000 langkah harian setara sekitar 300 kkal dengan saran menambah langkah sederhana.",
+      caption: "Perkiraan kasar untuk berat badan sedang; NEAT berbeda antar orang (Levine dkk., 1999).",
+    },
     title: "Langkah harian: kalori yang tidak terasa seperti olahraga",
     summary:
       "NEAT, semua gerakan di luar olahraga, berbeda besar antar orang dan ikut menentukan siapa yang gampang naik berat.",
@@ -505,6 +635,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "angkat-beban-saat-diet",
+    image: {
+      alt: "Dumbel dan piring beban di gym",
+      credit: { author: null, page: "https://www.rawpixel.com/image/5944299/free-public-domain-cc0-photo", source: "Rawpixel" },
+    },
+    figure: {
+      src: "angkat-beban-saat-diet-fig1.webp",
+      alt: "Panel statistik: target protein saat defisit 1,6-2,4 gram per kg berat badan per hari; contoh 70 kg sama dengan 112-168 gram.",
+      caption: "Rentang yang dipakai penelitian defisit (Longland dkk., 2016; Mettler dkk., 2009).",
+    },
     title: "Saat defisit, angkat beban",
     summary:
       "Latihan beban plus protein yang cukup membuat berat yang turun datang dari lemak, bukan otot.",
@@ -543,6 +682,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "jeda-diet-yang-terencana",
+    image: {
+      alt: "Piring makan lengkap dengan lauk dan telur",
+      credit: { author: "roland", page: "https://www.flickr.com/photos/35034347371@N01/228858019", source: "Flickr" },
+    },
+    figure: {
+      src: "jeda-diet-yang-terencana-fig1.webp",
+      alt: "Garis waktu studi MATADOR: blok defisit dua minggu diselingi jeda pemeliharaan dua minggu berulang selama 30 minggu.",
+      caption: "Jeda terencana 2 minggu di level pemeliharaan (Byrne dkk., 2018; masih perlu penelitian lanjutan).",
+    },
     title: "Diet break: jeda dua minggu yang justru membantu",
     summary:
       "Studi MATADOR: defisit dua minggu lalu jeda dua minggu menurunkan berat lebih banyak daripada defisit terus-menerus dengan durasi sama.",
@@ -577,6 +725,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "timbangan-naik-turun-normal",
+    image: {
+      alt: "Kaki di atas timbangan badan",
+      credit: { author: null, page: "https://www.rawpixel.com/image/5920157/photo-image-background-public-domain-person", source: "Rawpixel" },
+    },
+    figure: {
+      src: "timbangan-naik-turun-normal-fig1.webp",
+      alt: "Grafik garis ilustrasi: titik-titik timbangan harian naik-turun dengan garis tren mingguan yang menurun.",
+      caption: "Ilustrasi pola umum; penimbangan rutin terkait hasil lebih baik tanpa efek psikologis buruk (Zheng dkk., 2015).",
+    },
     title: "Timbangan naik 1 kg dalam sehari? Cek trennya",
     summary:
       "Berat harian naik-turun karena air, garam, dan isi perut; tren rata-rata mingguan yang jujur.",
@@ -611,6 +768,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "sup-bening-pembuka",
+    image: {
+      alt: "Semangkuk soto ayam dari kedai",
+      credit: { author: "LintasGiat", page: "https://commons.wikimedia.org/w/index.php?curid=154777741", source: "Wikimedia Commons" },
+    },
+    figure: {
+      src: "sup-bening-pembuka-fig1.webp",
+      alt: "Diagram batang: makan dengan sup pembuka menurunkan total asupan sekitar 20 persen dibanding tanpa sup.",
+      caption: "Sup pembuka menurunkan total asupan makan ±20% di makan itu (Flood & Rolls, 2007).",
+    },
     title: "Mulai makan dengan sup bening",
     summary:
       "Sup pembuka menurunkan total makan sekitar 20% di makan itu, dan cocok banget dengan sayur bening kita.",
@@ -645,6 +811,15 @@ export const TIPS: Tip[] = [
   },
   {
     slug: "defisit-fleksibel-8020",
+    image: {
+      alt: "Martabak manis di atas meja",
+      credit: { author: "Muhranoff", page: "https://commons.wikimedia.org/w/index.php?curid=142507539", source: "Wikimedia Commons" },
+    },
+    figure: {
+      src: "defisit-fleksibel-8020-fig1.webp",
+      alt: "Diagram donat 80/20: sekitar 80 persen makanan mendukung target dan 20 persen ruang untuk makanan favorit.",
+      caption: "Pandangan praktis 80/20; restriksi kaku berhubungan dengan pola makan terganggu (Westenhoeffer dkk., 1999).",
+    },
     title: "Restriksi fleksibel mengalahkan diet kaku",
     summary:
       "Diet all-or-nothing rawan berakhir makan berlebih; pendekatan fleksibel memberi ruang untuk makanan favorit tanpa merusak hasil.",
@@ -693,6 +868,14 @@ export function tipRotationOffset(now: Date = new Date()): number {
 /** Tip harian untuk kartu "Tips hari ini" di Beranda; deterministik per hari. */
 export function dailyTip(now: Date = new Date()): Tip {
   return TIPS[tipRotationOffset(now) % TIPS.length] ?? TIPS[0]!;
+}
+
+/**
+ * Jalur publik berkas gambar tips; dilayani web dari /tips-img/. Variant
+ * "sm" adalah varian 600px untuk kartu.
+ */
+export function tipImagePath(file: string, variant: "lg" | "sm" = "lg"): string {
+  return variant === "sm" ? `/tips-img/${file.replace(/\.webp$/, "-600.webp")}` : `/tips-img/${file}`;
 }
 
 /**

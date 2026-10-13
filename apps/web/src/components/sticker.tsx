@@ -16,7 +16,8 @@ export function photoUrl(photoId: string): string {
   return `${getServerUrl(env.VITE_SERVER_URL)}/photo/${photoId}`;
 }
 
-/** Photo of a shared feed post; the server checks the post's visibility. */
+/** Photo of a shared feed post; the server checks the post's visibility.
+ * Photos of a 'cerita' post append /{index} (0-3). */
 export function postPhotoUrl(postId: string): string {
   return `${getServerUrl(env.VITE_SERVER_URL)}/post-photo/${postId}`;
 }
