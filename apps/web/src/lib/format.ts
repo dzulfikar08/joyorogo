@@ -13,6 +13,11 @@ export function fmtKg(n: number): string {
   });
 }
 
+/** Waist-to-height ratio with up to two Indonesian decimals (0,53). */
+export function fmtRatio(ratio: number): string {
+  return ratio.toLocaleString("id-ID", { maximumFractionDigits: 2 });
+}
+
 /** 'YYYY-MM-DD' (WIB calendar day) -> "Minggu, 14 September 2026". */
 export function fmtDateIndo(date: string): string {
   return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {

@@ -18,10 +18,9 @@ import { ScreenError } from "@/components/screen-state";
 import ShareCardButton from "@/components/share-card";
 import { Sticker } from "@/components/sticker";
 import { WaterCard } from "@/components/water-card";
-import { WaistSection } from "@/components/waist-section";
 import { WorkoutCard } from "@/components/workout/workout-card";
 import { pickFact } from "@/lib/facts";
-import { fmtDateIndo, fmtInt, fmtKg, parseNum } from "@/lib/format";
+import { fmtDateIndo, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
 import { useAppConfig } from "@/lib/app-config";
 import type { DaySummary } from "@/lib/api-types";
 import { orpc } from "@/utils/orpc";
@@ -201,7 +200,7 @@ function Dashboard({ summary }: { summary: Summary }) {
         </div>
 
         <div className="min-w-0 lg:col-start-1 lg:row-start-2">
-          <WaistSection />
+          <WaistCard />
         </div>
       </div>
 
@@ -410,9 +409,8 @@ function TodayMeals({ summary }: { summary: Summary }) {
   );
 }
 
-function Sparkline({ points }: { points: Array<{ trendKg: number }> }) {
-  if (points.length < 2) return null;
-  const values = points.map((p) => p.trendKg);
+function Sparkline({ values, tone = "makan" }: { values: number[]; tone?: "makan" | "primary" }) {
+  if (values.length < 2) return null;
   const min = Math.min(...values);
   const max = Math.max(...values);
   const span = Math.max(0.5, max - min);
@@ -427,7 +425,7 @@ function Sparkline({ points }: { points: Array<{ trendKg: number }> }) {
     .join(" ");
   return (
     <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-16 w-full" aria-hidden>
-      <path d={`${path} L${w},${h} L0,${h} Z`} className="fill-makan-soft" />
+      <path d={`${path} L${w},${h} L0,${h} Z`} className={tone === "makan" ? "fill-makan-soft" : "fill-primary/10"} />
       <path
         d={path}
         fill="none"
@@ -435,7 +433,7 @@ function Sparkline({ points }: { points: Array<{ trendKg: number }> }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"
-        className="stroke-makan"
+        className={tone === "makan" ? "stroke-makan" : "stroke-primary"}
       />
     </svg>
   );
@@ -515,7 +513,7 @@ function WeightCard({ summary }: { summary: Summary }) {
         {trend && (
           <>
             <div className="mt-4">
-              <Sparkline points={trend.points} />
+              <Sparkline values={trend.points.map((p) => p.trendKg)} />
             </div>
             {trend.projectedDate && (
               <p className="mt-3 text-sm text-muted-foreground">
@@ -563,6 +561,148 @@ function WeightCard({ summary }: { summary: Summary }) {
             />
             <span className="pointer-events-none absolute top-1/2 right-5 -translate-y-1/2 text-base font-semibold text-muted-foreground">
               kg
+            </span>
+          </div>
+          <Button type="submit" className="w-full" disabled={checkIn.isPending}>
+            {checkIn.isPending ? "Menyimpan..." : "Simpan"}
+          </Button>
+        </form>
+      </Sheet>
+    </section>
+  );
+}
+
+const waistHistoryOptions = orpc.waist.history.queryOptions({ input: { limit: 30 } });
+
+/** Compact Lingkar perut summary mirroring the Berat card; full section lives on /berat. */
+function WaistCard() {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState("");
+  const history = useQuery(waistHistoryOptions);
+  const checkIn = useMutation(
+    orpc.waist.checkIn.mutationOptions({
+      onSuccess: (row) => {
+        if (!row) return;
+        toast.success(`Tercatat ${fmtKg(row.waistCm)} cm`);
+        setOpen(false);
+        void queryClient.invalidateQueries({ queryKey: orpc.waist.key() });
+      },
+      onError: (error) => toast.error(error.message),
+    }),
+  );
+
+  const entries = history.data?.entries ?? [];
+  const latest = entries.length > 0 ? entries[entries.length - 1].waistCm : null;
+  const loggedToday = history.data?.loggedToday ?? false;
+  const assessment = history.data?.assessment ?? null;
+
+  const status =
+    assessment === null
+      ? null
+      : assessment.band === "high"
+        ? {
+            text:
+              assessment.ratio !== null
+                ? `Rasio ${fmtRatio(assessment.ratio)} · risiko tinggi`
+                : "Di atas batas sehat",
+            tone: "text-destructive",
+          }
+        : assessment.band === "raised" || assessment.overCutoff
+          ? {
+              text:
+                assessment.ratio !== null
+                  ? `Rasio ${fmtRatio(assessment.ratio)} · di atas batas`
+                  : "Di atas batas sehat",
+              tone: "text-amber-600 dark:text-amber-400",
+            }
+          : {
+              text:
+                assessment.ratio !== null
+                  ? `Rasio ${fmtRatio(assessment.ratio)} · di bawah batas sehat`
+                  : "Di bawah batas sehat",
+              tone: "text-makan-ink",
+            };
+
+  return (
+    <section aria-label="Lingkar perut">
+      <SectionTitle
+        action={
+          <Link
+            to="/berat"
+            className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-primary hover:underline"
+          >
+            Detail
+          </Link>
+        }
+      >
+        Lingkar perut
+      </SectionTitle>
+      <Card>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground">Lingkar perut terbaru</p>
+            <p className="text-[2rem] leading-tight font-extrabold tracking-tight tabular-nums">
+              {latest !== null ? fmtKg(latest) : "–"}
+              <span className="ml-1 text-base font-semibold text-muted-foreground">cm</span>
+            </p>
+            {status !== null ? (
+              <p className={cn("mt-0.5 text-sm font-semibold", status.tone)}>{status.text}</p>
+            ) : (
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {latest !== null ? "Lengkapi tinggi di profil untuk status risiko" : "Belum ada catatan"}
+              </p>
+            )}
+          </div>
+          <Button
+            variant={loggedToday ? "secondary" : "default"}
+            size="sm"
+            onClick={() => {
+              setValue(latest !== null ? String(latest) : "");
+              setOpen(true);
+            }}
+          >
+            {loggedToday ? "Ubah" : "Ukur"}
+          </Button>
+        </div>
+        <div className="mt-4">
+          <Sparkline values={entries.slice(-30).map((entry) => entry.waistCm)} tone="primary" />
+        </div>
+      </Card>
+
+      <Sheet
+        open={open}
+        onOpenChange={setOpen}
+        title="Ukur lingkar perut"
+        description="Satu catatan per hari. Menyimpan lagi menimpa angka tadi."
+      >
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const cm = parseNum(value);
+            if (cm === null || cm < 40 || cm > 250) {
+              toast.error("Isi lingkar perut antara 40 dan 250 cm.");
+              return;
+            }
+            checkIn.mutate({ waistCm: cm });
+          }}
+          className="space-y-4"
+        >
+          <div className="relative">
+            <Input
+              aria-label="Lingkar perut (cm)"
+              autoFocus
+              type="number"
+              step="0.5"
+              min="40"
+              max="250"
+              inputMode="decimal"
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+              className="h-16 pr-14 text-center text-3xl font-extrabold"
+            />
+            <span className="pointer-events-none absolute top-1/2 right-5 -translate-y-1/2 text-base font-semibold text-muted-foreground">
+              cm
             </span>
           </div>
           <Button type="submit" className="w-full" disabled={checkIn.isPending}>

@@ -10,7 +10,7 @@ import { WAIST_CUTOFF_CM } from "@joyorogo/api/lib/waist";
 
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Card, ListGroup, ListRow, SectionTitle } from "@/components/kit/surface";
-import { fmtKg, parseNum } from "@/lib/format";
+import { fmtKg, fmtRatio, parseNum } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 
 const historyOptions = orpc.waist.history.queryOptions({ input: { limit: 90 } });
@@ -35,10 +35,6 @@ const MONTHS_SHORT = [
 function shortDate(date: string): string {
   const [, month, day] = date.split("-");
   return `${Number(day)} ${MONTHS_SHORT[Number(month) - 1]}`;
-}
-
-function fmtRatio(ratio: number): string {
-  return ratio.toLocaleString("id-ID", { maximumFractionDigits: 2 });
 }
 
 const STEPS = [
