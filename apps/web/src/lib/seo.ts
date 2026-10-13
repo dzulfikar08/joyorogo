@@ -12,7 +12,7 @@ export const OG_IMAGE = {
   alt: "JoyoRogo: diet yang paham porsi warteg. Tiga angka harian: boleh makan, harus bakar, butuh tidur.",
 } as const;
 
-export type PublicPath = "/" | "/harga" | "/privasi" | "/login" | "/pembayaran";
+export type PublicPath = "/" | "/harga" | "/privasi" | "/login" | "/pembayaran" | "/gabung";
 
 export type PageMeta = {
   title: string;
@@ -48,6 +48,13 @@ export const PAGES: Record<PublicPath, PageMeta> = {
   "/pembayaran": {
     title: "Pembayaran | JoyoRogo",
     description: "Status pembayaran Founder JoyoRogo.",
+    noindex: true,
+  },
+  // Capability invite links: one per group code, kept out of search results.
+  "/gabung": {
+    title: "Gabung Grup | JoyoRogo",
+    description:
+      "Kamu diundang ke grup JoyoRogo. Pantau kalori bareng, colek yang malas catat, dan intip perut lewat VAR.",
     noindex: true,
   },
 };

@@ -100,7 +100,9 @@ Pemilik server yang menentukan. Tanpa konfigurasi, semua fitur gratis tanpa bata
 | `FREE_DAILY_SCANS`                                       | Batas scan AI per hari untuk pengguna gratis. Kosong = tanpa paywall.                                                                                                       | kosong |
 | `FOUNDER_DAILY_CAP`                                      | Batas pengaman scan Founder per hari. Kosong = tanpa batas.                                                                                                                 | kosong |
 | `ANON_SCANS`                                             | Coba scan tanpa daftar per perangkat. `0` mematikan demo.                                                                                                                   | 2      |
-| `FOUNDER_PRICE_IDR`                                      | Harga Founder per bulan.                                                                                                                                                    | 15000  |
+| `FOUNDER_PRICE_IDR`                                      | Harga Founder per bulan (dipakai saat `FOUNDER_PRICE_LADDER` kosong).                                       | 15000  |
+| `FOUNDER_PRICE_LADDER`                                   | Tangga harga "pembeli:hargaBulanan", mis. `10:15000,110:29000,:49000`: 10 pembeli pertama Rp15rb, pembeli 11-110 Rp29rb, lalu Rp49rb. Pembeli = pengguna unik dengan minimal satu pembayaran. Yang pernah bayar mengunci harga terendahnya. Kosong = harga flat tanpa promo. | kosong |
+| `FOUNDER_YEARLY_PRICE_IDR`                               | Harga Founder per tahun. Kosong = 10x harga bulanan; kalau diisi, berlaku untuk SEMUA step tangga.          | kosong |
 | `BILLING_PROVIDER`                                       | Gateway untuk checkout baru: `doku` atau `pakasir`. Kosong = DOKU kalau diisi, kalau tidak Pakasir.                                                                         | kosong |
 | `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL`     | DOKU Checkout (QRIS, VA, e-wallet). Pembayaran aktif hanya kalau `FREE_DAILY_SCANS` juga diisi.                                                                             | kosong |
 | `PAKASIR_SLUG`, `PAKASIR_API_KEY`, `PAKASIR_WEBHOOK_SECRET` | Pakasir payment link (QRIS, VA). Webhook proyek: `/api/billing/pakasir/webhook`.                                                                                         | kosong |
@@ -115,6 +117,24 @@ masuk ke `/api/billing/webhook`, Pakasir ke `/api/billing/pakasir/webhook`;
 keduanya tetap aktif selama kredensialnya diisi, jadi ganti `BILLING_PROVIDER`
 tidak memutus pesanan yang masih terbuka. Di iOS, Founder dibayar lewat Apple
 in-app purchase (`/api/billing/apple`) tanpa kredensial tambahan.
+
+## Email
+
+Email transaksional (struk pembayaran, notifikasi admin, pengingat habis
+masa Founder) dikirim lewat Cloudflare Email Service. Tanpa konfigurasi,
+email mati dan aplikasi tetap jalan. Untuk mengaktifkan:
+
+1. Di dashboard Cloudflare, buka domain **joyorogo.com** → **Email** →
+   **Email Service**, lalu onboard domain pengirim `mail.joyorogo.com`
+   (Enable Email Sending; ikuti wizard DNS-nya).
+2. Tambahkan binding `send_email` bernama `EMAIL` di `apps/server/wrangler.jsonc`
+   (sudah ada di repo).
+3. Set variabel: `EMAIL_FROM=halo@mail.joyorogo.com` (alamat di domain yang
+   di-onboard), `EMAIL_FROM_NAME=JoyoRogo`, dan opsional
+   `EMAIL_REPLY_TO=dzulfikar.at@gmail.com` supaya balasan pembeli masuk ke
+   pemilik. Notifikasi admin dikirim ke daftar `ADMIN_EMAILS`.
+
+Catatan: self-host tanpa binding/`EMAIL_FROM` otomatis mematikan email.
 
 ## Aplikasi Android
 

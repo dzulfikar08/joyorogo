@@ -76,3 +76,31 @@ type WorkoutStatusOutput = Awaited<ReturnType<AppRouterClient["workout"]["status
 
 /** workout.status: weekly muscle volume, warnings, PRs, strength-trend hint. */
 export type WorkoutStatus = WorkoutStatusOutput;
+
+type GroupListOutput = Awaited<ReturnType<AppRouterClient["group"]["list"]>>;
+
+/** One row of group.list ({ id, name, role, memberCount, inviteCode }). */
+export type GroupSummary = GroupListOutput[number];
+
+type GroupDetailOutput = Awaited<ReturnType<AppRouterClient["group"]["detail"]>>;
+
+/** group.detail output: the group card plus every member's day. */
+export type GroupDetail = GroupDetailOutput;
+
+/** One member card of group.detail, with today's numbers and streak. */
+export type GroupMember = GroupDetailOutput["members"][number];
+
+type GroupActivityOutput = Awaited<ReturnType<AppRouterClient["group"]["activity"]>>;
+
+/** One feed event of group.activity (food | exercise | weight). */
+export type GroupActivityEvent = GroupActivityOutput[number];
+
+type InboxOutput = Awaited<ReturnType<AppRouterClient["group"]["inbox"]>>;
+
+/** One nudge received in group.inbox. */
+export type InboxItem = InboxOutput[number];
+
+type VarScanOutput = Awaited<ReturnType<AppRouterClient["group"]["varScan"]>>;
+
+/** varScan output: verdict, totals, and the member's shared foods. */
+export type VarScan = VarScanOutput;

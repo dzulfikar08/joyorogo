@@ -12,6 +12,14 @@ export type AppConfig = {
   freeDailyScans: number | null;
   founderDailyCap: number | null;
   founderPriceIdr: number;
+  /** Yearly founder bundle: 12 months for the price of 10. */
+  founderYearlyPriceIdr: number;
+  /**
+   * Founder intro-price ladder; null when the promo is off. `slots` = buyers
+   * allowed at the current step, `taken` = buyers so far, `nextPriceIdr` =
+   * monthly price after this step fills (null/undefined = no further increase).
+   */
+  promo: { slots: number; taken: number; nextPriceIdr?: number | null } | null;
   anonScans: number;
 };
 

@@ -1,14 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { Check, CircleHelp } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@joyorogo/ui/components/button";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
-import { Page } from "@/components/kit/surface";
+import { FounderPromo } from "@/components/founder-promo";
+import { Page, Segmented } from "@/components/kit/surface";
 import { ScreenError } from "@/components/screen-state";
 import { fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
-import type { PaywallFrom } from "@/lib/billing";
+import type { CheckoutPlan, PaywallFrom } from "@/lib/billing";
 import { useFounderCheckout } from "@/lib/billing";
 import { orpc } from "@/utils/orpc";
 
@@ -53,7 +55,8 @@ function FounderPage() {
   const { next, from } = Route.useSearch();
   const config = useAppConfig();
   const profile = useQuery(profileOptions);
-  const checkout = useFounderCheckout();
+  const [plan, setPlan] = useState<CheckoutPlan>("monthly");
+  const checkout = useFounderCheckout(plan);
 
   if (config.isError) {
     return <ScreenError message="Harga belum bisa dimuat." onRetry={() => void config.refetch()} />;
@@ -69,6 +72,7 @@ function FounderPage() {
 
   return (
     <Page className="max-w-md">
+      <FounderPromo className="mb-3" />
       <section aria-labelledby="founder-title" className="rounded-3xl bg-card p-6">
         <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-xs font-bold text-muted-foreground">
           Terbatas
@@ -79,10 +83,37 @@ function FounderPage() {
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
           {SUBHEAD[from ?? "banner"]}
         </p>
+        <Segmented
+          label="Pilih masa Founder"
+          className="mt-5"
+          value={plan}
+          onChange={setPlan}
+          options={[
+            { value: "monthly", label: "Bulanan" },
+            {
+              value: "yearly",
+              label: (
+                <>
+                  Tahunan <span className="text-xs font-bold text-primary">hemat 2 bulan</span>
+                </>
+              ),
+            },
+          ]}
+        />
         <p className="mt-4 text-3xl font-extrabold tracking-tight tabular-nums">
-          {fmtRupiah(config.data.founderPriceIdr)}
-          <span className="text-sm font-semibold text-muted-foreground"> /bulan</span>
+          {fmtRupiah(
+            plan === "monthly" ? config.data.founderPriceIdr : config.data.founderYearlyPriceIdr,
+          )}
+          <span className="text-sm font-semibold text-muted-foreground">
+            {" "}
+            {plan === "monthly" ? "/bulan" : "/tahun"}
+          </span>
         </p>
+        {plan === "yearly" && (
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            12 bulan aktif, bayar 10. Menumpuk di sisa masa Founder-mu.
+          </p>
+        )}
         <ul className="mt-5 space-y-2.5">
           {[
             founderScans(config.data),

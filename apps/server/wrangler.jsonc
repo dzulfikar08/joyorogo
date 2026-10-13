@@ -33,6 +33,11 @@
   "images": {
     "binding": "IMAGES"
   },
+  "send_email": [
+    {
+      "name": "EMAIL"
+    }
+  ],
   "r2_buckets": [
     {
       "binding": "DOWNLOADS",
@@ -54,7 +59,11 @@
     "FOUNDER_DAILY_CAP": "100",
     "ANON_SCANS": "2",
     "FOUNDER_PRICE_IDR": "15000",
+    "FOUNDER_PRICE_LADDER": "10:15000,110:29000,:49000",
     "ADMIN_EMAILS": "dzulfikar.at@gmail.com",
+    "EMAIL_FROM": "halo@mail.joyorogo.com",
+    "EMAIL_FROM_NAME": "JoyoRogo",
+    "EMAIL_REPLY_TO": "dzulfikar.at@gmail.com",
     "BILLING_PROVIDER": "doku",
     "DOKU_CLIENT_ID": "BRN-0177-1790860845392",
     "DOKU_BASE_URL": "https://api.doku.com",

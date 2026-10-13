@@ -7,6 +7,7 @@ import { dayRouter } from "./day";
 import { exerciseRouter } from "./exercise";
 import { fastingRouter } from "./fasting";
 import { foodRouter } from "./food";
+import { groupRouter } from "./group";
 import { plateRouter } from "./plate";
 import { profileRouter } from "./profile";
 import { privacyRouter } from "./privacy";
@@ -42,6 +43,7 @@ export const appRouter = {
   workout: workoutRouter,
   fasting: fastingRouter,
   plate: plateRouter,
+  group: groupRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

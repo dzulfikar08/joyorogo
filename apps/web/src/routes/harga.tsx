@@ -4,6 +4,7 @@ import { Check } from "lucide-react";
 import { Button } from "@joyorogo/ui/components/button";
 
 import { PublicHeader } from "@/components/public-header";
+import { FounderPromo } from "@/components/founder-promo";
 import { fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { useFounderCheckout } from "@/lib/billing";
@@ -67,7 +68,8 @@ function TierCard({
 
 function HargaPage() {
   const config = useAppConfig();
-  const checkout = useFounderCheckout();
+  const checkout = useFounderCheckout("monthly");
+  const checkoutYearly = useFounderCheckout("yearly");
 
   return (
     <div className="min-h-svh">
@@ -82,6 +84,8 @@ function HargaPage() {
             </p>
           )}
         </header>
+
+        {config.data?.paywall && <FounderPromo className="mx-auto mt-8 max-w-md" />}
 
         {config.isPending && (
           <div
@@ -118,7 +122,7 @@ function HargaPage() {
         )}
 
         {config.data?.paywall && (
-          <div className="mt-10 grid items-start gap-4 sm:grid-cols-2">
+          <div className="mt-10 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <TierCard
               name="Gratis"
               price="Rp0"
@@ -131,7 +135,7 @@ function HargaPage() {
               }
             />
             <TierCard
-              name="Founder"
+              name="Founder Bulanan"
               price={fmtRupiah(config.data.founderPriceIdr)}
               per="per bulan"
               badge="Terbatas"
@@ -148,15 +152,36 @@ function HargaPage() {
                 )
               }
             />
+            <TierCard
+              name="Founder Tahunan"
+              price={fmtRupiah(config.data.founderYearlyPriceIdr)}
+              per="per tahun"
+              badge="Hemat 2 bulan"
+              features={[...founderFeatures(config.data), "12 bulan sekaligus, bayar 10"]}
+              cta={
+                config.data.billing ? (
+                  <Button
+                    disabled={checkoutYearly.isPending}
+                    onClick={() => checkoutYearly.mutate()}
+                  >
+                    {checkoutYearly.isPending ? "Membuka pembayaran..." : "Ambil paket tahunan"}
+                  </Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Pembayaran belum dibuka di server ini.
+                  </p>
+                )
+              }
+            />
           </div>
         )}
 
-        {checkout.isError && (
+        {(checkout.isError || checkoutYearly.isError) && (
           <p
             role="alert"
             className="mt-4 rounded-2xl bg-card p-4 text-center text-sm text-muted-foreground"
           >
-            {checkout.error.message}
+            {checkout.error?.message ?? checkoutYearly.error?.message}
           </p>
         )}
 

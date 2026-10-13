@@ -134,10 +134,14 @@ export function UserDetail({ userId, onClose }: { userId: string; onClose: () =>
       ) : (
         <div className="flex flex-col gap-4 pb-4">
           <div className="flex flex-wrap gap-2">
-            <Badge tone={u.tier === "founder" ? "green" : "muted"}>
-              {u.tier}
-              {u.founderUntil !== null ? ` until ${fmtDate(u.founderUntil)}` : ""}
+            <Badge tone={(u.effectiveTier ?? u.tier) === "founder" ? "green" : "muted"}>
+              {u.effectiveTier ?? u.tier}
+              {(u.effectiveTier ?? u.tier) === "founder" &&
+                u.manualTier !== "founder" &&
+                u.founderUntil !== null &&
+                ` until ${fmtDate(u.founderUntil)}`}
             </Badge>
+            {u.manualTier === "founder" && <Badge tone="amber">comp</Badge>}
             {u.aiUnlimited && <Badge tone="amber">AI unlimited</Badge>}
             {u.onboarded ? <Badge tone="green">onboarded</Badge> : <Badge>not onboarded</Badge>}
             <Badge>joined {fmtDate(u.createdAt)}</Badge>

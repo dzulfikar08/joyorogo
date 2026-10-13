@@ -1,3 +1,4 @@
+import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 import type { ReactNode } from "react";
 
@@ -86,6 +87,61 @@ export function DayBars({
         </div>
       ))}
       {rows.length === 0 && <p className="text-xs text-muted-foreground">No data.</p>}
+    </div>
+  );
+}
+
+/** Server-side pagination controls: page size select + prev/next + totals. */
+export function Pagination({
+  page,
+  pageSize,
+  total,
+  onPage,
+  onPageSize,
+  sizes = [25, 50, 100],
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  onPage: (page: number) => void;
+  onPageSize: (pageSize: number) => void;
+  sizes?: number[];
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
+      <span className="tabular-nums">
+        {total} data · halaman {page} dari {totalPages}
+      </span>
+      <div className="flex items-center gap-2">
+        <select
+          value={pageSize}
+          onChange={(e) => onPageSize(Number(e.target.value))}
+          className="h-8 rounded-lg border border-border bg-card px-2 text-xs text-foreground"
+        >
+          {sizes.map((s) => (
+            <option key={s} value={s}>
+              {s}/hal
+            </option>
+          ))}
+        </select>
+        <Button
+          size="xs"
+          variant="outline"
+          disabled={page <= 1}
+          onClick={() => onPage(page - 1)}
+        >
+          Sebelumnya
+        </Button>
+        <Button
+          size="xs"
+          variant="outline"
+          disabled={page >= totalPages}
+          onClick={() => onPage(page + 1)}
+        >
+          Berikutnya
+        </Button>
+      </div>
     </div>
   );
 }

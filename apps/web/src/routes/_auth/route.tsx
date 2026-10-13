@@ -11,7 +11,7 @@ import { sessionQuery, useSession } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/_auth")({
   component: AuthLayout,
-  beforeLoad: async ({ context }) => {
+  beforeLoad: async ({ context, location }) => {
     // Cached (and persisted) session answers instantly; a stale one is
     // revalidated in the background and AuthLayout reacts if it turned null.
     const session = await context.queryClient.ensureQueryData({
@@ -19,7 +19,8 @@ export const Route = createFileRoute("/_auth")({
       revalidateIfStale: true,
     });
     if (!session) {
-      throw redirect({ to: "/login" });
+      // Deep links (undangan, /grup/...) come back to the same screen after login.
+      throw redirect({ to: "/login", search: { redirect: location.pathname } });
     }
     return { session };
   },
@@ -28,9 +29,10 @@ export const Route = createFileRoute("/_auth")({
 function AuthLayout() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const session = useSession();
-  if (session.data === null) return <Navigate to="/login" replace />;
+  if (session.data === null) return <Navigate to="/login" search={{ redirect: pathname }} replace />;
   // Onboarding is a guided form; the app chrome starts once the plan exists.
-  const showNav = pathname !== "/onboarding";
+  // VAR is a full-screen camera and keeps the screen to itself.
+  const showNav = pathname !== "/onboarding" && !pathname.includes("/var/");
   return (
     <div className="min-h-svh">
       {showNav && <DesktopBar />}

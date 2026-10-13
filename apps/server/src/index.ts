@@ -30,6 +30,7 @@ import { pushSubscription as pushSubscriptionTable } from "@joyorogo/db/schema/p
 import { registerAnonScanRoutes } from "./anon";
 import { registerBillingRoutes } from "./billing";
 import { registerAdminRoutes } from "./admin";
+import { sendEmail } from "./email";
 import { createContext } from "./context";
 import { registerBenchRoutes } from "./bench";
 import { registerPrivacyRoutes } from "./privacy";
@@ -73,6 +74,13 @@ registerAdminRoutes(app, {
   getDb,
   createAuth,
   reconcileById: billing.reconcileById,
+  sendTestEmail: (to) =>
+    sendEmail(env, {
+      to,
+      subject: "Tes email JoyoRogo",
+      html: "<p>Email dari JoyoRogo berhasil terkirim. ✅</p>",
+      text: "Email dari JoyoRogo berhasil terkirim.",
+    }),
 });
 
 // Blind accuracy benchmark — gated by the AI_BENCH_KEY secret.
@@ -399,5 +407,6 @@ export default {
   scheduled: (_controller: ScheduledController, _env2: unknown, ctx: ExecutionContext) => {
     ctx.waitUntil(runFastingReminders());
     ctx.waitUntil(billing.reconcilePending());
+    ctx.waitUntil(billing.runEmails());
   },
 };

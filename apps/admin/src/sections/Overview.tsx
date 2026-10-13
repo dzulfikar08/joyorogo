@@ -1,6 +1,34 @@
 import { useQuery } from "@tanstack/react-query";
-import { fmtIdr, get, type Overview, type UsageDay } from "../api";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@joyorogo/ui/components/button";
+import { api, fmtIdr, get, type Overview, type UsageDay } from "../api";
 import { DayBars, SectionCard, StatCard } from "../ui";
+
+function SendTestEmailButton() {
+  const [sending, setSending] = useState(false);
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      disabled={sending}
+      onClick={async () => {
+        setSending(true);
+        try {
+          const res = await api<{ outcome: string }>("/api/admin/test-email", { method: "POST" });
+          if (res.outcome === "sent") toast.success(res.outcome);
+          else toast.error(res.outcome);
+        } catch (err) {
+          toast.error(String(err));
+        } finally {
+          setSending(false);
+        }
+      }}
+    >
+      {sending ? "Sending…" : "Send test email"}
+    </Button>
+  );
+}
 
 export function OverviewSection() {
   const overview = useQuery({
@@ -17,6 +45,9 @@ export function OverviewSection() {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <SendTestEmailButton />
+      </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard
           label="Users"

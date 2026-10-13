@@ -1,12 +1,16 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  addOneMonth,
+  addMonths,
   dailyScanQuota,
   effectiveTier,
+  grandfatheredMonthlyIdr,
+  ladderStep,
   nextFounderUntil,
+  parseLadder,
   paywallConfig,
   paywallEnabled,
+  promoFor,
   wibDayBounds,
 } from "./tiers";
 
@@ -76,14 +80,24 @@ describe("effectiveTier", () => {
 
 describe("founder period math", () => {
   test("one month keeps the day, clamped to month end", () => {
-    expect(addOneMonth(new Date("2026-01-31T10:00:00Z")).toISOString()).toBe(
+    expect(addMonths(new Date("2026-01-31T10:00:00Z"), 1).toISOString()).toBe(
       "2026-02-28T10:00:00.000Z",
     );
-    expect(addOneMonth(new Date("2028-01-31T10:00:00Z")).toISOString()).toBe(
+    expect(addMonths(new Date("2028-01-31T10:00:00Z"), 1).toISOString()).toBe(
       "2028-02-29T10:00:00.000Z",
     );
-    expect(addOneMonth(new Date("2026-12-15T00:00:00Z")).toISOString()).toBe(
+    expect(addMonths(new Date("2026-12-15T00:00:00Z"), 1).toISOString()).toBe(
       "2027-01-15T00:00:00.000Z",
+    );
+  });
+
+  test("a yearly order adds twelve months, clamping leap day", () => {
+    expect(addMonths(new Date("2028-02-29T10:00:00Z"), 12).toISOString()).toBe(
+      "2029-02-28T10:00:00.000Z",
+    );
+    const now = new Date("2026-10-12T05:00:00Z");
+    expect(nextFounderUntil(new Date("2026-11-01T00:00:00Z"), now, 12).toISOString()).toBe(
+      "2027-11-01T00:00:00.000Z",
     );
   });
 
@@ -100,6 +114,66 @@ describe("founder period math", () => {
     expect(nextFounderUntil(new Date("2026-10-20T00:00:00Z"), now).toISOString()).toBe(
       "2026-11-20T00:00:00.000Z",
     );
+  });
+});
+
+describe("founder price ladder", () => {
+  const LADDER = parseLadder("10:15000,110:29000,:49000")!;
+
+  test("empty var means flat pricing", () => {
+    expect(parseLadder(undefined)).toBeNull();
+    expect(parseLadder("")).toBeNull();
+    expect(parseLadder("  ")).toBeNull();
+  });
+
+  test("malformed ladders fail loudly", () => {
+    expect(() => parseLadder("abc:15000")).toThrow("FOUNDER_PRICE_LADDER");
+    expect(() => parseLadder("10:")).toThrow("FOUNDER_PRICE_LADDER");
+    expect(() => parseLadder("10:0")).toThrow("FOUNDER_PRICE_LADDER");
+    expect(() => parseLadder("10:15000,5:29000")).toThrow("strictly increase");
+    expect(() => parseLadder("10:15000,:29000,:49000")).toThrow("open-ended");
+  });
+
+  test("current rung respects buyer boundaries", () => {
+    expect(ladderStep(LADDER, 0).monthlyIdr).toBe(15_000);
+    expect(ladderStep(LADDER, 9).monthlyIdr).toBe(15_000);
+    expect(ladderStep(LADDER, 10).monthlyIdr).toBe(29_000);
+    expect(ladderStep(LADDER, 109).monthlyIdr).toBe(29_000);
+    expect(ladderStep(LADDER, 110).monthlyIdr).toBe(49_000);
+    expect(ladderStep(LADDER, 111).monthlyIdr).toBe(49_000);
+  });
+
+  test("promo advertises the next step and stops on the open rung", () => {
+    expect(promoFor(LADDER, 5)).toEqual({ slots: 10, taken: 5, nextPriceIdr: 29_000 });
+    expect(promoFor(LADDER, 10)).toEqual({ slots: 110, taken: 10, nextPriceIdr: 49_000 });
+    expect(promoFor(LADDER, 110)).toBeNull();
+    expect(promoFor(null, 5)).toBeNull();
+  });
+
+  test("grandfathering keeps the lowest monthly-equivalent ever paid", () => {
+    expect(grandfatheredMonthlyIdr([])).toBeNull();
+    expect(grandfatheredMonthlyIdr([{ amountIdr: 29_000, months: 1 }])).toBe(29_000);
+    // A yearly order counts as amount/10 per month.
+    expect(grandfatheredMonthlyIdr([{ amountIdr: 290_000, months: 12 }])).toBe(29_000);
+    expect(
+      grandfatheredMonthlyIdr([
+        { amountIdr: 29_000, months: 1 },
+        { amountIdr: 150_000, months: 12 },
+      ]),
+    ).toBe(15_000);
+  });
+
+  test("paywallConfig parses the ladder and honours the yearly override", () => {
+    const config = paywallConfig({
+      FOUNDER_PRICE_LADDER: "10:15000,110:29000,:49000",
+      FOUNDER_YEARLY_PRICE_IDR: "250000",
+    });
+    expect(config.founderLadder).toEqual(LADDER);
+    expect(ladderStep(config.founderLadder!, 0).monthlyIdr).toBe(15_000);
+    // Override applies to every step instead of 10x monthly.
+    expect(promoFor(config.founderLadder, 0)?.nextPriceIdr).toBe(29_000);
+    expect(config.founderPriceIdr).toBe(15_000);
+    expect(config.founderYearlyPriceIdr).toBe(250_000);
   });
 });
 

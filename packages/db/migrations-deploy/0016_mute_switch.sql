@@ -1,0 +1,1 @@
+ALTER TABLE `payment` ADD `months` integer DEFAULT 1 NOT NULL;

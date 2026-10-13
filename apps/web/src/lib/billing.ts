@@ -16,14 +16,19 @@ export function isPaywallError(err: unknown): boolean {
   return err instanceof ORPCError && err.code === "FORBIDDEN" && err.data?.paywall === true;
 }
 
+/** Founder billing period; yearly stacks 12 months on the remaining period. */
+export type CheckoutPlan = "monthly" | "yearly";
+
 /** Start a Founder checkout (DOKU or Pakasir, server's choice), then leave for its page. */
-export function useFounderCheckout() {
+export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
   const navigate = useNavigate();
   return useMutation({
     mutationFn: async () => {
       const res = await fetch(apiUrl("/api/billing/checkout"), {
         method: "POST",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
       });
       if (res.status === 401) {
         navigate({ to: "/login" });

@@ -96,7 +96,12 @@ export interface AdminUser {
   id: string;
   name: string | null;
   email: string;
+  /** Effective tier: "founder" while any paid period is active. */
   tier: "free" | "founder";
+  /** Raw comp column; "founder" here means manually granted. */
+  manualTier: "free" | "founder";
+  /** Detail endpoint echoes the effective tier; falls back to `tier`. */
+  effectiveTier?: "free" | "founder";
   founderUntil: string | number | null;
   aiUnlimited: boolean;
   createdAt: string | number;
@@ -157,3 +162,17 @@ export interface UserDetail {
 }
 
 export const get = <T>(path: string) => api<T>(path);
+
+export interface PagedUsers {
+  users: AdminUser[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface PagedOrders {
+  orders: AdminOrder[];
+  total: number;
+  page: number;
+  pageSize: number;
+}

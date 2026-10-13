@@ -116,6 +116,38 @@
   }
 }
 
+/* VAR perut: ultrasound sweep line drifts down the cone, food stickers bob. */
+@media (prefers-reduced-motion: no-preference) {
+  .var-sweep {
+    animation: var-sweep 3.2s linear infinite;
+  }
+  .var-sweep-fast {
+    animation: var-sweep 0.8s linear infinite;
+  }
+  .var-bob {
+    animation: var-bob 2.8s ease-in-out infinite;
+  }
+}
+
+@keyframes var-sweep {
+  from {
+    top: 10%;
+  }
+  to {
+    top: 92%;
+  }
+}
+
+@keyframes var-bob {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-9px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-milestone-pop,
   .chip-pop {

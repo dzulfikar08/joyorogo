@@ -1,4 +1,4 @@
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, asc, eq, isNotNull, ne, or } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
 import {
@@ -15,6 +15,8 @@ import {
   weightLog,
 } from "@joyorogo/db/schema/fitness";
 import { plate, pushSubscription, workoutSession, workoutSet } from "@joyorogo/db/schema/plans";
+import { emailLog } from "@joyorogo/db/schema/billing";
+import { team, teamMember, teamNudge } from "@joyorogo/db/schema/social";
 
 import { photoPrefix, stickerKey } from "./sticker";
 import type { StickersBucket } from "./sticker";
@@ -73,5 +75,41 @@ export function deleteAllUserData(db: Database, userId: string) {
     db.delete(aiUsage).where(eq(aiUsage.userId, userId)),
     // userId is nullable (anon scans) but scoped wipes only ever match rows.
     db.delete(scanCorrection).where(eq(scanCorrection.userId, userId)),
+    db.delete(emailLog).where(eq(emailLog.userId, userId)),
+  ]);
+}
+
+/**
+ * Team cleanup: nudges to/from the user and their memberships go; each team
+ * they own follows the leave rule — ownership passes to the earliest-joined
+ * remaining member, and a team with no one left is deleted (cascades).
+ */
+export async function deleteUserSocialData(db: Database, userId: string) {
+  const owned = await db
+    .select({ id: team.id })
+    .from(team)
+    .where(eq(team.ownerId, userId));
+  for (const t of owned) {
+    const [heir] = await db
+      .select({ userId: teamMember.userId })
+      .from(teamMember)
+      .where(and(eq(teamMember.teamId, t.id), ne(teamMember.userId, userId)))
+      .orderBy(asc(teamMember.joinedAt))
+      .limit(1);
+    if (heir) {
+      await db.batch([
+        db.update(team).set({ ownerId: heir.userId }).where(eq(team.id, t.id)),
+        db
+          .update(teamMember)
+          .set({ role: "owner" })
+          .where(and(eq(teamMember.teamId, t.id), eq(teamMember.userId, heir.userId))),
+      ]);
+    } else {
+      await db.delete(team).where(eq(team.id, t.id));
+    }
+  }
+  await db.batch([
+    db.delete(teamNudge).where(or(eq(teamNudge.fromUserId, userId), eq(teamNudge.toUserId, userId))),
+    db.delete(teamMember).where(eq(teamMember.userId, userId)),
   ]);
 }

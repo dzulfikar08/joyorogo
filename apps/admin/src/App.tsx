@@ -11,7 +11,7 @@ const TABS = ["overview", "users", "orders"] as const;
 type Tab = (typeof TABS)[number];
 
 function currentTab(): Tab {
-  const hash = window.location.hash.replace(/^#/, "");
+  const hash = window.location.hash.replace(/^#/, "").split("?")[0];
   return (TABS as readonly string[]).includes(hash) ? (hash as Tab) : "overview";
 }
 

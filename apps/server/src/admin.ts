@@ -4,13 +4,22 @@ import type { Hono } from "hono";
 import { z } from "zod";
 
 import { jakartaToday } from "@joyorogo/api/lib/engine";
-import { wibDayBounds } from "@joyorogo/api/lib/tiers";
+import { effectiveTier, wibDayBounds } from "@joyorogo/api/lib/tiers";
 import { session, user } from "@joyorogo/db/schema/auth";
 import { payment } from "@joyorogo/db/schema/billing";
 import { aiUsage, foodLog } from "@joyorogo/db/schema/fitness";
 import type { Database } from "@joyorogo/db";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+// Abuse heuristics shared by the users filter and the console badges.
+const ABUSE_TODAY = 50;
+const ABUSE_7D = 300;
+
+function paging(rawPage: string | undefined, rawSize: string | undefined) {
+  const page = Math.max(1, Math.floor(Number(rawPage)) || 1);
+  const pageSize = Math.min(200, Math.max(1, Math.floor(Number(rawSize)) || 50));
+  return { page, pageSize, offset: (page - 1) * pageSize };
+}
 // Calendar day in WIB (UTC+7) for a ms timestamp column.
 const wibDay = (column: unknown) => sql<string>`date((${column} / 1000) + 25200, 'unixepoch')`;
 
@@ -29,6 +38,8 @@ type Deps = {
   getDb: () => Database;
   createAuth: () => Promise<JoyoAuth>;
   reconcileById: (orderId: string) => Promise<string>;
+  /** Sends a test email to `to`; returns the send outcome text. */
+  sendTestEmail: (to: string) => Promise<string>;
 };
 
 /**
@@ -58,30 +69,67 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
 
   app.get("/api/admin/me", (c) => c.json({ ok: true }));
 
+  // Paged, filtered user list. Query: q (name/email), tier=free|founder,
+  // abuse=1, sort=newest|lastSeen|scansToday|scans7d|scansTotal, page, pageSize.
   app.get("/api/admin/users", async (c) => {
     const { startMs, endMs } = wibDayBounds(jakartaToday());
-    const rows = await deps
-      .getDb()
-      .select({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        tier: user.tier,
-        founderUntil: user.founderUntil,
-        aiUnlimited: user.aiUnlimited,
-        createdAt: user.createdAt,
-        lastSeen: sql<number | null>`(select max(updated_at) from session where session.user_id = ${user.id})`,
-        scansToday: sql<number>`(select count(*) from ai_usage where ai_usage.user_id = ${user.id} and ai_usage.scan_type = 'user' and ai_usage.created_at between ${startMs} and ${endMs})`,
-        scans7d: sql<number>`(select count(*) from ai_usage where ai_usage.user_id = ${user.id} and ai_usage.scan_type = 'user' and ai_usage.created_at >= ${Date.now() - 7 * DAY_MS})`,
-        scansTotal: sql<number>`(select count(*) from ai_usage where ai_usage.user_id = ${user.id} and ai_usage.scan_type = 'user')`,
-        foodLogs: sql<number>`(select count(*) from food_log where food_log.user_id = ${user.id})`,
-        onboarded: sql<number>`(select count(*) from profile where profile.user_id = ${user.id})`,
-        pendingOrders: sql<number>`(select count(*) from payment where payment.user_id = ${user.id} and payment.status = 'pending')`,
-        paidOrders: sql<number>`(select count(*) from payment where payment.user_id = ${user.id} and payment.status = 'paid')`,
-      })
-      .from(user)
-      .orderBy(desc(user.createdAt));
-    return c.json({ users: rows });
+    const now = Date.now();
+    const { page, pageSize, offset } = paging(c.req.query("page"), c.req.query("pageSize"));
+    // Correlated subqueries must name the outer table: drizzle renders a bare
+    // column ref as "id", which the inner FROM would resolve to its own id.
+    const uid = sql.raw(`"user"."id"`);
+    const scans7dExpr = sql<number>`(select count(*) from ai_usage where ai_usage.user_id = ${uid} and ai_usage.scan_type = 'user' and ai_usage.created_at >= ${now - 7 * DAY_MS})`;
+    const scansTodayExpr = sql<number>`(select count(*) from ai_usage where ai_usage.user_id = ${uid} and ai_usage.scan_type = 'user' and ai_usage.created_at between ${startMs} and ${endMs})`;
+    const scansTotalExpr = sql<number>`(select count(*) from ai_usage where ai_usage.user_id = ${uid} and ai_usage.scan_type = 'user')`;
+    const lastSeenExpr = sql<number | null>`(select max(updated_at) from session where session.user_id = ${uid})`;
+    const founderExpr = sql`(${user.tier} = 'founder' or ${user.founderUntil} > ${now})`;
+
+    const q = c.req.query("q")?.trim().toLowerCase();
+    const tier = c.req.query("tier");
+    const filters = and(
+      q ? sql`(lower(${user.name}) like ${`%${q}%`} or lower(${user.email}) like ${`%${q}%`})` : undefined,
+      tier === "founder" ? founderExpr : tier === "free" ? sql`not ${founderExpr}` : undefined,
+      c.req.query("abuse") === "1"
+        ? sql`(${scansTodayExpr} >= ${ABUSE_TODAY} or ${scans7dExpr} >= ${ABUSE_7D})`
+        : undefined,
+    );
+    const order = {
+      lastSeen: sql`${lastSeenExpr} desc nulls last`,
+      scansToday: sql`${scansTodayExpr} desc`,
+      scans7d: sql`${scans7dExpr} desc`,
+      scansTotal: sql`${scansTotalExpr} desc`,
+    }[c.req.query("sort") ?? ""] ?? desc(user.createdAt);
+
+    const db = deps.getDb();
+    const [rows, [count]] = await Promise.all([
+      db
+        .select({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          // Effective tier (paid period counts); manualTier is the raw comp column.
+          tier: sql<"free" | "founder">`case when ${founderExpr} then 'founder' else 'free' end`,
+          manualTier: user.tier,
+          founderUntil: user.founderUntil,
+          aiUnlimited: user.aiUnlimited,
+          createdAt: user.createdAt,
+          lastSeen: lastSeenExpr,
+          scansToday: scansTodayExpr,
+          scans7d: scans7dExpr,
+          scansTotal: scansTotalExpr,
+          foodLogs: sql<number>`(select count(*) from food_log where food_log.user_id = ${uid})`,
+          onboarded: sql<number>`(select count(*) from profile where profile.user_id = ${uid})`,
+          pendingOrders: sql<number>`(select count(*) from payment where payment.user_id = ${uid} and payment.status = 'pending')`,
+          paidOrders: sql<number>`(select count(*) from payment where payment.user_id = ${uid} and payment.status = 'paid')`,
+        })
+        .from(user)
+        .where(filters)
+        .orderBy(order)
+        .limit(pageSize)
+        .offset(offset),
+      db.select({ total: sql<number>`count(*)` }).from(user).where(filters),
+    ]);
+    return c.json({ users: rows, total: count?.total ?? 0, page, pageSize });
   });
 
   // Headline numbers for the dashboard cards.
@@ -200,7 +248,14 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
         .limit(20),
     ]);
     if (!profile) return c.json({ error: "user not found" }, 404);
-    return c.json({ user: profile, calls, perDay, foods, orders, sessions });
+    return c.json({
+      user: { ...profile, effectiveTier: effectiveTier(profile) },
+      calls,
+      perDay,
+      foods,
+      orders,
+      sessions,
+    });
   });
 
   // Manual tier switch: comp Founder, end a paid period, lift/restore the quota.
@@ -229,29 +284,56 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
     return c.json(updated[0]);
   });
 
+  // Paged orders. Query: status=pending|paid|failed, q (name/email/order id), page, pageSize.
   app.get("/api/admin/orders", async (c) => {
-    const rows = await deps
-      .getDb()
-      .select({
-        orderId: payment.orderId,
-        userId: payment.userId,
-        name: user.name,
-        email: user.email,
-        amountIdr: payment.amountIdr,
-        status: payment.status,
-        paymentUrl: payment.paymentUrl,
-        createdAt: payment.createdAt,
-        paidAt: payment.paidAt,
-        founderUntil: payment.founderUntil,
-      })
-      .from(payment)
-      .innerJoin(user, sql`${user.id} = ${payment.userId}`)
-      .orderBy(desc(payment.createdAt))
-      .limit(200);
-    return c.json({ orders: rows });
+    const { page, pageSize, offset } = paging(c.req.query("page"), c.req.query("pageSize"));
+    const q = c.req.query("q")?.trim().toLowerCase();
+    const status = c.req.query("status");
+    const filters = and(
+      status === "pending" || status === "paid" || status === "failed"
+        ? eq(payment.status, status)
+        : undefined,
+      q
+        ? sql`(lower(${user.name}) like ${`%${q}%`} or lower(${user.email}) like ${`%${q}%`} or lower(${payment.orderId}) like ${`%${q}%`})`
+        : undefined,
+    );
+    const db = deps.getDb();
+    const [rows, [count]] = await Promise.all([
+      db
+        .select({
+          orderId: payment.orderId,
+          userId: payment.userId,
+          name: user.name,
+          email: user.email,
+          amountIdr: payment.amountIdr,
+          status: payment.status,
+          paymentUrl: payment.paymentUrl,
+          createdAt: payment.createdAt,
+          paidAt: payment.paidAt,
+          founderUntil: payment.founderUntil,
+        })
+        .from(payment)
+        .innerJoin(user, eq(user.id, payment.userId))
+        .where(filters)
+        .orderBy(desc(payment.createdAt))
+        .limit(pageSize)
+        .offset(offset),
+      db
+        .select({ total: sql<number>`count(*)` })
+        .from(payment)
+        .innerJoin(user, eq(user.id, payment.userId))
+        .where(filters),
+    ]);
+    return c.json({ orders: rows, total: count?.total ?? 0, page, pageSize });
   });
 
   app.post("/api/admin/orders/:orderId/check", async (c) =>
     c.json({ outcome: await deps.reconcileById(c.req.param("orderId")) }),
   );
+
+  // Deliverability check: send a test email to the signed-in admin.
+  app.post("/api/admin/test-email", async (c) => {
+    const session = await (await deps.createAuth()).api.getSession({ headers: c.req.raw.headers });
+    return c.json({ outcome: await deps.sendTestEmail(session!.user.email) });
+  });
 }

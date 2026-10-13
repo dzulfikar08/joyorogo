@@ -15,6 +15,7 @@ import { Ring, type Metric } from "@/components/kit/ring";
 import { ScanDemo } from "@/components/landing/scan-demo";
 import { HeroPhone, WeightTrendDemo } from "@/components/landing/visuals";
 import { PublicHeader } from "@/components/public-header";
+import { FounderPromo } from "@/components/founder-promo";
 import { APK_URL, fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { sessionQuery } from "@/lib/auth-client";
@@ -101,7 +102,7 @@ function pricingFaq(config: AppConfig | undefined): Array<{ q: string; a: string
   return [
     {
       q: "Gratisnya sampai kapan?",
-      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Founder ${fmtRupiah(config.founderPriceIdr)} per bulan: ${founderScans(config).toLowerCase()}.`,
+      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Founder ${fmtRupiah(config.founderPriceIdr)} per bulan: ${founderScans(config).toLowerCase()}. Paket tahunan ${fmtRupiah(config.founderYearlyPriceIdr)} — setara 10 bulan, hemat 2 bulan.`,
     },
   ];
 }
@@ -118,6 +119,9 @@ function Landing() {
       <PublicHeader />
 
       <main>
+        {/* Founder intro price, while slots last. */}
+        <FounderPromo className="mx-auto w-full max-w-6xl px-4 pt-6 md:px-6 md:pt-10" />
+
         {/* Hero */}
         <section
           data-section="hero"
@@ -438,6 +442,11 @@ function Landing() {
                     <li className="flex gap-2">
                       <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
                       Badge founder di profilmu
+                    </li>
+                    <li className="flex gap-2">
+                      <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                      Paket tahunan {fmtRupiah(config.data.founderYearlyPriceIdr)}/tahun — hemat 2
+                      bulan
                     </li>
                   </ul>
                 </div>

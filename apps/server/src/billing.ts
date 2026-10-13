@@ -1,4 +1,5 @@
 import { and, desc, eq, gte, like, lte, sql } from "drizzle-orm";
+import type { SendEmail } from "@cloudflare/workers-types";
 import type { JoyoAuth } from "@joyorogo/auth";
 import type { Context, Hono } from "hono";
 
@@ -31,12 +32,21 @@ import {
   secretMatches,
 } from "@joyorogo/api/lib/pakasir";
 import type { PakasirConfig } from "@joyorogo/api/lib/pakasir";
-import { nextFounderUntil, paywallConfig, paywallEnabled } from "@joyorogo/api/lib/tiers";
-import type { PaywallEnv } from "@joyorogo/api/lib/tiers";
+import {
+  grandfatheredMonthlyIdr,
+  ladderStep,
+  nextFounderUntil,
+  paywallConfig,
+  paywallEnabled,
+  planMonths,
+  promoFor,
+} from "@joyorogo/api/lib/tiers";
+import type { FounderPlan, PaywallEnv } from "@joyorogo/api/lib/tiers";
 import { user } from "@joyorogo/db/schema/auth";
 import { payment } from "@joyorogo/db/schema/billing";
 import { aiUsage } from "@joyorogo/db/schema/fitness";
 import type { Database } from "@joyorogo/db";
+import { runFounderEmails, sendOrderEmails } from "./email";
 
 export type BillingEnv = PaywallEnv & {
   BETTER_AUTH_URL: string;
@@ -55,6 +65,12 @@ export type BillingEnv = PaywallEnv & {
   APPLE_BUNDLE_ID?: string;
   APPLE_FOUNDER_PRODUCT_ID?: string;
   APPLE_SANDBOX_EMAILS?: string;
+  /** Transactional email (Cloudflare Email Service binding). Unset = off. */
+  EMAIL?: SendEmail;
+  EMAIL_FROM?: string;
+  EMAIL_FROM_NAME?: string;
+  EMAIL_REPLY_TO?: string;
+  ADMIN_EMAILS?: string;
 };
 
 type Deps = {
@@ -127,10 +143,16 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
    * founder_until still holds the value we extended from, so duplicate
    * notifications extend once and two concurrent payments can't both stack
    * on the same base (the loser gets "conflict" and the gateway retries).
+   * On the winning flip, receipt + admin emails are claimed and sent; the
+   * caller decides how the work is scheduled (waitUntil on requests, awaited
+   * in the cron).
    */
   const activateOrder = async (
     db: Database,
-    order: { orderId: string; userId: string },
+    order: { orderId: string; userId: string; months: number; gateway: string },
+    notify: (work: Promise<void>) => void = (work) => {
+      work.catch((error) => console.error(`order emails ${order.orderId}:`, error));
+    },
   ): Promise<"activated" | "already" | "conflict" | "no-user"> => {
     const [owner] = await db
       .select({ founderUntil: user.founderUntil })
@@ -140,7 +162,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     if (!owner) return "no-user";
     const now = new Date();
     const previousMs = owner.founderUntil?.getTime() ?? null;
-    const until = nextFounderUntil(owner.founderUntil, now);
+    const until = nextFounderUntil(owner.founderUntil, now, order.months);
 
     const [flipped] = await db.batch([
       db
@@ -164,7 +186,12 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
           ),
         ),
     ]);
-    if (flipped.length === 1) return "activated";
+    if (flipped.length === 1) {
+      notify(
+        sendOrderEmails(env, db, order, { founderDailyCap: config.founderDailyCap }),
+      );
+      return "activated";
+    }
 
     const [again] = await db
       .select({ status: payment.status })
@@ -183,8 +210,15 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   const findOrder = async (db: Database, orderId: string) =>
     (await db.select().from(payment).where(eq(payment.orderId, orderId)).limit(1))[0];
 
-  const settle = async (c: Context, db: Database, order: { orderId: string; userId: string }) => {
-    const result = await activateOrder(db, order);
+  const settle = async (
+    c: Context,
+    db: Database,
+    order: { orderId: string; userId: string; months: number },
+    gateway: Provider,
+  ) => {
+    const result = await activateOrder(db, { ...order, gateway }, (work) =>
+      c.executionCtx.waitUntil(work),
+    );
     if (result === "activated") return c.json({ received: true, activated: true });
     if (result === "already") return c.json({ received: true, activated: false });
     if (result === "no-user") return c.json({ error: "user not found" }, 404);
@@ -192,40 +226,83 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   };
 
   // Public: lets the web hide pricing and upgrade prompts on self-hosts.
-  app.get("/api/config", (c) =>
-    c.json({
+  app.get("/api/config", async (c) => {
+    // Urgency ladder: current rung comes from how many users have ever paid.
+    const db = deps.getDb();
+    const yearlyOverride = env.FOUNDER_YEARLY_PRICE_IDR?.trim()
+      ? config.founderYearlyPriceIdr
+      : null;
+    let buyers: number | null = null;
+    if (config.founderLadder !== null && provider !== null) {
+      const [row] = await db
+        .select({ taken: sql<number>`count(distinct ${payment.userId})` })
+        .from(payment)
+        .where(eq(payment.status, "paid"));
+      buyers = row?.taken ?? 0;
+    }
+    const step = config.founderLadder && buyers !== null ? ladderStep(config.founderLadder, buyers) : null;
+    const promo = config.founderLadder && buyers !== null ? promoFor(config.founderLadder, buyers) : null;
+    return c.json({
       paywall: paywallEnabled(config),
       billing: provider !== null,
       // iOS pays through Apple in-app purchase; gateway credentials irrelevant.
       appleBilling: paywallEnabled(config),
       freeDailyScans: config.freeDailyScans,
       founderDailyCap: config.founderDailyCap,
-      founderPriceIdr: config.founderPriceIdr,
+      founderPriceIdr: step ? step.monthlyIdr : config.founderPriceIdr,
+      founderYearlyPriceIdr: step
+        ? (yearlyOverride ?? step.monthlyIdr * 10)
+        : config.founderYearlyPriceIdr,
+      promo,
       anonScans: config.anonScans,
-    }),
-  );
+    });
+  });
 
+  // Body (optional JSON): { plan: "monthly" | "yearly" }; default monthly.
   app.post("/api/billing/checkout", async (c) => {
     if (!provider) return c.json({ error: "Pembayaran tidak tersedia di server ini." }, 404);
     const me = await sessionUser(c.req.raw.headers);
     if (!me) return c.json({ error: "Masuk dulu untuk berlangganan." }, 401);
+    const body = (await c.req.json().catch(() => null)) as { plan?: unknown } | null;
+    const plan: FounderPlan = body?.plan === "yearly" ? "yearly" : "monthly";
+    const months = planMonths(plan);
+    const db = deps.getDb();
+
+    // Urgency ladder price for this buyer, then grandfathering: anyone who
+    // has paid before renews at their lowest monthly-equivalent price when
+    // that beats the current rung ("harga terkunci").
+    let basePriceIdr: number;
+    if (config.founderLadder) {
+      const [[row], paid] = await Promise.all([
+        db
+          .select({ taken: sql<number>`count(distinct ${payment.userId})` })
+          .from(payment)
+          .where(eq(payment.status, "paid")),
+        db
+          .select({ amountIdr: payment.amountIdr, months: payment.months })
+          .from(payment)
+          .where(and(eq(payment.userId, me.id), eq(payment.status, "paid"))),
+      ]);
+      const step = ladderStep(config.founderLadder, row?.taken ?? 0);
+      const locked = grandfatheredMonthlyIdr(paid);
+      basePriceIdr =
+        locked !== null && locked < step.monthlyIdr ? Math.round(locked) : step.monthlyIdr;
+    } else {
+      basePriceIdr = config.founderPriceIdr;
+    }
+    const amountIdr = plan === "yearly" ? basePriceIdr * 10 : basePriceIdr;
 
     const orderId = buildOrderId();
     const returnUrl = `${appUrl}/pembayaran?order=${encodeURIComponent(orderId)}`;
-    const db = deps.getDb();
-    await db.insert(payment).values({ orderId, userId: me.id, amountIdr: config.founderPriceIdr });
+    await db.insert(payment).values({ orderId, userId: me.id, amountIdr, months });
     try {
       const { paymentUrl } =
         provider === "pakasir" && pakasir
-          ? await createPaymentLink(pakasir, {
-              orderId,
-              amountIdr: config.founderPriceIdr,
-              redirectUrl: returnUrl,
-            })
+          ? await createPaymentLink(pakasir, { orderId, amountIdr, redirectUrl: returnUrl })
           : await createCheckout(doku as DokuConfig, {
               orderId,
-              amountIdr: config.founderPriceIdr,
-              itemName: "JoyoRogo Founder 1 bulan",
+              amountIdr,
+              itemName: plan === "yearly" ? "JoyoRogo Founder 1 tahun" : "JoyoRogo Founder 1 bulan",
               customerEmail: me.email,
               customerName: me.name,
               notifyUrl: `${apiUrl}${DOKU_WEBHOOK_PATH}`,
@@ -282,7 +359,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     if (Math.round(n.amount) !== order.amountIdr) {
       return c.json({ error: "amount mismatch" }, 400);
     }
-    return settle(c, db, order);
+    return settle(c, db, order, "doku");
   });
 
   // Pakasir success webhook. Public; the X-Secret header gates it, and the
@@ -321,7 +398,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     if (Math.round(txn.amount) !== order.amountIdr) {
       return c.json({ error: "amount mismatch" }, 400);
     }
-    return settle(c, db, order);
+    return settle(c, db, order, "pakasir");
   });
 
   // StoreKit 2 purchase from the iOS app. Trust comes from the JWS chain
@@ -411,7 +488,17 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
           ),
         ),
     ]);
-    if (flipped.length === 1) return c.json({ activated: true, founderUntil: until });
+    if (flipped.length === 1) {
+      c.executionCtx.waitUntil(
+        sendOrderEmails(
+          env,
+          db,
+          { orderId, userId: me.id, gateway: "apple" },
+          { founderDailyCap: config.founderDailyCap },
+        ).catch((error: unknown) => console.error(`order emails ${orderId}:`, error)),
+      );
+      return c.json({ activated: true, founderUntil: until });
+    }
 
     // Lost a race: either this transaction already paid (replay) or another
     // purchase flipped founder_until first; the client retries the replay.
@@ -445,10 +532,13 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       amountIdr: number;
       status: string;
       paymentUrl: string | null;
+      months: number;
     },
+    notify?: (work: Promise<void>) => void,
   ): Promise<string> => {
     if (order.status !== "pending") return `already ${order.status}`;
     const pakasirTxn = order.paymentUrl?.match(/app\.pakasir\.com\/pay-v2\/([^/?#]+)/)?.[1];
+    const gateway: Provider = pakasirTxn ? "pakasir" : "doku";
     let paidAmount: number;
     try {
       if (pakasirTxn) {
@@ -482,7 +572,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       console.error(`reconcile ${order.orderId}: amount mismatch ${paidAmount}`);
       return `amount mismatch (${paidAmount})`;
     }
-    return `paid: ${await activateOrder(db, order)}`;
+    return `paid: ${await activateOrder(db, { ...order, gateway }, notify)}`;
   };
 
   const ownOrder = (orderId: string, userId: string) =>
@@ -515,7 +605,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     const db = deps.getDb();
     const order = await findOrder(db, c.req.param("orderId"));
     if (!order || order.userId !== me.id) return c.json({ error: "Pesanan tidak ditemukan." }, 404);
-    await reconcileOrder(db, order);
+    await reconcileOrder(db, order, (work) => c.executionCtx.waitUntil(work));
     return c.json(await ownOrder(order.orderId, me.id));
   });
 
@@ -566,10 +656,21 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       )
       .orderBy(desc(payment.createdAt))
       .limit(25);
+    // Cron has no request context: collect activation emails and await them
+    // sequentially so the scheduled handler doesn't drop them.
+    const emails: Promise<void>[] = [];
     for (const order of rows) {
-      console.log(`reconcile ${order.orderId}: ${await reconcileOrder(db, order)}`);
+      console.log(
+        `reconcile ${order.orderId}: ${await reconcileOrder(db, order, (work) => {
+          emails.push(work);
+        })}`,
+      );
     }
+    for (const work of emails) await work;
   };
+
+  /** Cron: founder expiry + expired reminder emails (bounded, deduped). */
+  const runEmails = (): Promise<void> => runFounderEmails(env, deps.getDb());
 
   /** Admin: verify one order with its gateway now. */
   const reconcileById = async (orderId: string): Promise<string> => {
@@ -577,5 +678,5 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     const order = await findOrder(db, orderId);
     return order ? reconcileOrder(db, order) : "order not found";
   };
-  return { reconcilePending, reconcileById };
+  return { reconcilePending, reconcileById, runEmails };
 }

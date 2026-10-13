@@ -113,6 +113,20 @@
       "when": 1792300000000,
       "tag": "0016_workout_fasting_price",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1791875004695,
+      "tag": "0017_team_social",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1791875989973,
+      "tag": "0018_email_log",
+      "breakpoints": true
     }
   ]
 }

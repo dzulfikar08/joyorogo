@@ -36,3 +36,16 @@ export function parseNum(value: string): number | null {
   const n = Number(normalized);
   return Number.isFinite(n) ? n : null;
 }
+
+/** "baru saja", "5 menit lalu", "2 jam lalu", "3 hari lalu" — for feeds. */
+export function timeAgo(at: Date | string): string {
+  const seconds = Math.max(0, (Date.now() - new Date(at).getTime()) / 1000);
+  if (seconds < 60) return "baru saja";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} menit lalu`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} jam lalu`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} hari lalu`;
+  return new Date(at).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+}

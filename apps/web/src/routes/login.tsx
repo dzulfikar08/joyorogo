@@ -7,13 +7,23 @@ import { env } from "@/env.public";
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
   head: () => pageHead("/login"),
-  beforeLoad: async ({ context }) => {
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } => {
+    const raw = typeof search.redirect === "string" ? search.redirect : undefined;
+    // Internal paths only: a single leading slash, no protocol-relative or
+    // absolute URLs, and never a loop back into /login.
+    const redirect =
+      raw && raw.startsWith("/") && !raw.startsWith("//") && !raw.startsWith("/login")
+        ? raw
+        : undefined;
+    return { redirect };
+  },
+  beforeLoad: async ({ context, search }) => {
     // The login page must render even when the server is unreachable —
     // it is the pre-auth surface, not somewhere an error boundary helps.
     try {
       const session = await context.queryClient.fetchQuery({ ...sessionQuery, staleTime: 0 });
       if (session) {
-        throw redirect({ to: "/beranda" });
+        throw redirect({ to: search.redirect ?? "/beranda" });
       }
     } catch (error) {
       if (isRedirect(error)) throw error;
@@ -24,6 +34,7 @@ export const Route = createFileRoute("/login")({
 
 function RouteComponent() {
   const isPending = false;
+  const { redirect: returnTo } = Route.useSearch();
 
   // Absolute web-origin URLs: better-auth resolves relative callbackURLs
   // against the API origin (server baseURL), which would land users on the
@@ -33,8 +44,8 @@ function RouteComponent() {
   const signInGoogle = () => {
     authClient.signIn.social({
       provider: "google",
-      callbackURL: `${webOrigin}/beranda`,
-      errorCallbackURL: `${webOrigin}/login`,
+      callbackURL: `${webOrigin}${returnTo ?? "/beranda"}`,
+      errorCallbackURL: `${webOrigin}/login${returnTo ? `?redirect=${encodeURIComponent(returnTo)}` : ""}`,
     });
   };
   const signInDev = async () => {
@@ -44,7 +55,7 @@ function RouteComponent() {
       body: {},
     });
     if (!error) {
-      window.location.href = `${webOrigin}/`;
+      window.location.href = `${webOrigin}${returnTo ?? "/"}`;
     }
   };
 
