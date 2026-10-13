@@ -150,6 +150,13 @@ function GrupDetailPage() {
     }),
   );
 
+  const setShareVar = useMutation(
+    orpc.group.varSetShare.mutationOptions({
+      onSuccess: invalidate,
+      onError: (error) => toast.error(error.message),
+    }),
+  );
+
   const removeMember = useMutation(
     orpc.group.removeMember.mutationOptions({
       onSuccess: (_data, input) => {
@@ -313,6 +320,18 @@ function GrupDetailPage() {
                     label="Tampilkan makananku"
                     disabled={setShareFood.isPending}
                     onCheckedChange={(shareFood) => setShareFood.mutate({ groupId, shareFood })}
+                  />
+                }
+              />
+              <ListRow
+                title="Status VAR perut"
+                subtitle="Verdict + tanggal scan terakhirmu terlihat di tim ini. Foto perut tidak pernah ikut."
+                trailing={
+                  <Switch
+                    checked={me.shareVar}
+                    label="Bagikan status VAR perut"
+                    disabled={setShareVar.isPending}
+                    onCheckedChange={(shareVar) => setShareVar.mutate({ groupId, shareVar })}
                   />
                 }
               />
@@ -485,6 +504,7 @@ function MemberCard({
 }) {
   const { today } = member;
   const delta = today.weightDeltaKg7d;
+  const firstName = member.name.split(" ")[0] ?? member.name;
   return (
     <Card className="p-4">
       <div className="flex items-center gap-3">
@@ -558,37 +578,78 @@ function MemberCard({
         </div>
       </div>
 
-      {!isSelf && (
-        <div className="mt-3 flex gap-2">
-          <button
-            type="button"
-            onClick={onPoke}
-            disabled={pokePending}
-            className={cn(CARD_ACTION, "bg-muted hover:bg-accent")}
-          >
-            <Hand className="size-4" aria-hidden />
-            Colek
-          </button>
-          <button
-            type="button"
-            onClick={onNote}
-            className={cn(CARD_ACTION, "bg-muted hover:bg-accent")}
-          >
-            <PenLine className="size-4" aria-hidden />
-            Catatan
-          </button>
+      {/* Shared VAR perut status: verdict + date only, never a photo. */}
+      {member.varStatus && (
+        <Link
+          to="/grup/$groupId/var/$userId"
+          params={{ groupId, userId: member.userId }}
+          className="mt-3 flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/15 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+        >
+          <Tv className="size-3.5 shrink-0" aria-hidden />
+          VAR perut {isSelf ? "kamu" : firstName} · {member.varStatus.verdict === "turun"
+            ? "mengecil"
+            : member.varStatus.verdict === "naik"
+              ? "lebih penuh"
+              : member.varStatus.verdict === "sama"
+                ? "belum beda"
+                : member.varStatus.verdict === "beda"
+                  ? "foto beda"
+                  : "scan pertama"}{" "}
+          · {varChipDate(member.varStatus.date)}
+        </Link>
+      )}
+
+      <div className="mt-3 flex gap-2">
+        {isSelf ? (
           <Link
-            to="/grup/$groupId/var/$userId"
-            params={{ groupId, userId: member.userId }}
+            to="/grup/$groupId/var/saya"
+            params={{ groupId }}
             className={cn(CARD_ACTION, "bg-primary text-primary-foreground")}
           >
             <Tv className="size-4" aria-hidden />
-            VAR
+            Scan VAR perut
           </Link>
-        </div>
-      )}
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={onPoke}
+              disabled={pokePending}
+              className={cn(CARD_ACTION, "bg-muted hover:bg-accent")}
+            >
+              <Hand className="size-4" aria-hidden />
+              Colek
+            </button>
+            <button
+              type="button"
+              onClick={onNote}
+              className={cn(CARD_ACTION, "bg-muted hover:bg-accent")}
+            >
+              <PenLine className="size-4" aria-hidden />
+              Catatan
+            </button>
+            <Link
+              to="/grup/$groupId/var/$userId"
+              params={{ groupId, userId: member.userId }}
+              className={cn(CARD_ACTION, "bg-primary text-primary-foreground")}
+            >
+              <Tv className="size-4" aria-hidden />
+              VAR
+            </Link>
+          </>
+        )}
+      </div>
     </Card>
   );
+}
+
+/** "12 Okt" untuk chip tanggal status VAR. */
+function varChipDate(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
 }
 
 function ActivityFeed({

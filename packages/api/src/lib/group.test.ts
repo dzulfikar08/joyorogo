@@ -67,8 +67,8 @@ describe("VAR verdict thresholds", () => {
     expect(varVerdict(2001, 2000, 3)).toBe("offside");
   });
 
-  test("logged food without a profile target is offside", () => {
-    expect(varVerdict(800, null, 1)).toBe("offside");
+  test("logged food without a profile target cannot be offside", () => {
+    expect(varVerdict(800, null, 1)).toBe("tanpa_target");
   });
 });
 

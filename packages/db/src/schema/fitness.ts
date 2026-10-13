@@ -99,6 +99,36 @@ export const waistLog = sqliteTable(
   (table) => [uniqueIndex("waist_log_user_date_uidx").on(table.userId, table.date)],
 );
 
+// VAR perut: foto perut milik sendiri buat diproses AI jadi verdict visual
+// (turun/sama/naik) dibanding scan sebelumnya. Sifatnya privat: foto hanya
+// bisa diakses lewat /var-photo/:photoId yang mengecek sesi pemiliknya, dan
+// teman satu tim cuma melihat verdict+tanggal kalau pemilik memilih bagikan
+// (team_member.share_var).
+export const varScan = sqliteTable(
+  "var_scan",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    // WIB calendar day of the capture, same convention as the other logs.
+    date: text("date").notNull(),
+    // capability id of the private photo (var/<user_id>/<photo_id>.jpg)
+    photoId: text("photo_id").notNull(),
+    // 'pertama' (baseline, tanpa pembanding) | 'turun' | 'sama' | 'naik' | 'beda'
+    verdict: text("verdict", { enum: ["pertama", "turun", "sama", "naik", "beda"] }).notNull(),
+    // 0-1: seberapa yakin AI dengan verdictnya (visual saja, bukan pengukuran)
+    confidence: real("confidence"),
+    note: text("note"),
+    // lingkar perut tercatat pada hari yang sama (tanda tangan objektif)
+    waistCm: real("waist_cm"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [index("var_scan_user_created_idx").on(table.userId, table.createdAt)],
+);
+
 export const foodLog = sqliteTable(
   "food_log",
   {

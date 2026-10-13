@@ -1,68 +1,16 @@
-import { eq } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { user } from "@joyorogo/db/schema/auth";
 import { aiUsage, scanCorrection } from "@joyorogo/db/schema/fitness";
 import { base64ToBytes, makeSticker, newScanId, stickerKey } from "../lib/sticker";
 import type { ImagesBinding, StickersBucket } from "../lib/sticker";
 
-import type { AiBinding, ApiEnv } from "../context";
 import { protectedProcedure } from "../index";
-import type { Database } from "@joyorogo/db";
-import { MEALS, jakartaToday } from "../lib/engine";
+import { MEALS } from "../lib/engine";
 import { dateSchema, mealSchema } from "../lib/schemas";
 import { STORY_EMPTY_ERROR, TRANSCRIBE_MODEL, parseFoodStory, transcribeStory } from "../lib/story";
-import { dailyScanQuota, effectiveTier, paywallConfig, scansUsedToday } from "../lib/tiers";
+import { requireAiQuota } from "../lib/quota";
 import { FRIENDLY_ERROR, analyzeFoodPhoto } from "../lib/vision";
-
-/**
- * Every AI food call (photo or story) spends one scan of the daily quota.
- * Runs BEFORE inference so a rejected call never costs Neurons.
- * `quotaReached`: a free user's successful call now would use the last scan
- * of today — clients show the (skippable) Founder paywall after it.
- */
-async function requireAiQuota(
-  db: Database,
-  env: ApiEnv,
-  userId: string,
-): Promise<{ ai: AiBinding; quotaReached: boolean }> {
-  const ai = env.AI;
-  if (!ai) {
-    throw new ORPCError("SERVICE_UNAVAILABLE", {
-      message: "Layanan AI belum tersedia. Coba lagi nanti.",
-    });
-  }
-  const config = paywallConfig(env);
-  const [[userRow], usedToday] = await Promise.all([
-    db
-      .select({
-        tier: user.tier,
-        founderUntil: user.founderUntil,
-        aiUnlimited: user.aiUnlimited,
-      })
-      .from(user)
-      .where(eq(user.id, userId))
-      .limit(1),
-    scansUsedToday(db, userId, jakartaToday()),
-  ]);
-  const tier = effectiveTier(userRow);
-  const quota = userRow?.aiUnlimited ? null : dailyScanQuota(tier, config);
-  if (quota !== null && usedToday >= quota) {
-    throw new ORPCError("FORBIDDEN", {
-      message:
-        tier === "founder"
-          ? `Batas pengaman Founder tercapai (${quota} scan/hari). Coba lagi besok ya.`
-          : `Kuota AI hari ini habis (${quota}/hari). ${
-              config.founderDailyCap === null
-                ? "Founder buka AI tanpa batas."
-                : `Founder dapat ${config.founderDailyCap}/hari.`
-            }`,
-      data: { paywall: true, tier },
-    });
-  }
-  return { ai, quotaReached: tier === "free" && quota !== null && usedToday + 1 >= quota };
-}
 
 export const aiRouter = {
   analyzeFood: protectedProcedure

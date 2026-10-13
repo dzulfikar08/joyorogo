@@ -180,6 +180,35 @@ app.get("/photo/:photoId", async (c) => {
   });
 });
 
+// VAR perut photos (var/<userId>/<id>.jpg) — the most sensitive media in the
+// app. Owner-only: the session picks the prefix exactly like /photo does, so
+// even a guessed id from a teammate resolves to nothing. Sharing a verdict
+// never exposes this route; the photo only ever renders for its owner.
+app.get("/var-photo/:photoId", async (c) => {
+  const photoId = c.req.param("photoId");
+  if (!/^[a-f0-9]{32}$/.test(photoId)) {
+    return c.json({ error: "ID tidak valid." }, 400);
+  }
+  const session = await (await createAuth()).api.getSession({ headers: c.req.raw.headers });
+  if (!session?.user) {
+    return c.json({ error: "Kamu harus masuk dulu." }, 401);
+  }
+  if (!("STICKERS" in env) || !env.STICKERS) {
+    return c.json({ error: "Foto belum tersedia." }, 404);
+  }
+  const obj = await env.STICKERS.get(`var/${session.user.id}/${photoId}.jpg`);
+  if (!obj) {
+    return c.json({ error: "Foto tidak ditemukan." }, 404);
+  }
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": obj.httpMetadata?.contentType ?? "image/jpeg",
+      "Content-Length": String(obj.size),
+      "Cache-Control": "private, no-store",
+    },
+  });
+});
+
 // Photos of a shared feed post. Access follows the post's visibility, not the
 // viewer's own prefix: 'publik' posts on a public profile serve without login
 // (cacheable), 'grup' posts need a teammate session (private). Deleted/hidden

@@ -24,6 +24,15 @@ export function photoPrefix(userId: string): string {
   return `photos/${userId}/`;
 }
 
+/** VAR perut photos are private the same way: the key embeds the owner. */
+export function varPhotoKey(userId: string, photoId: string): string {
+  return `var/${userId}/${photoId}.jpg`;
+}
+
+export function varPhotoPrefix(userId: string): string {
+  return `var/${userId}/`;
+}
+
 type ImagesTransformer = {
   transform(options: Record<string, unknown>): ImagesTransformer;
   output(options: Record<string, unknown>): Promise<{ response(): Response }>;
@@ -71,6 +80,7 @@ export type StickersBucket = {
   get(key: string): Promise<{
     body: ReadableStream;
     size: number;
+    arrayBuffer(): Promise<ArrayBuffer>;
     httpMetadata?: { contentType?: string };
     customMetadata?: Record<string, string>;
   } | null>;
@@ -152,4 +162,15 @@ export function base64ToBytes(base64: string): ArrayBuffer {
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes.buffer;
+}
+
+/** Inverse of base64ToBytes, chunked so large photos cannot blow the stack. */
+export function bytesToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
 }

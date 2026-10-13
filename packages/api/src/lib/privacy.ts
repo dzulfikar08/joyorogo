@@ -10,6 +10,7 @@ import {
   scanCorrection,
   sleepLog,
   stravaAccount,
+  varScan,
   waistLog,
   waterLog,
   weightLog,
@@ -19,7 +20,7 @@ import { emailLog } from "@joyorogo/db/schema/billing";
 import { team, teamMember, teamNudge } from "@joyorogo/db/schema/social";
 
 import { avatarPrefix } from "./avatar";
-import { photoPrefix, stickerKey } from "./sticker";
+import { photoPrefix, stickerKey, varPhotoPrefix } from "./sticker";
 import type { StickersBucket } from "./sticker";
 
 /** Sticker keys of the user's diary; read BEFORE the rows are wiped. */
@@ -42,7 +43,7 @@ export async function deleteUserMedia(
   stickerKeys: string[],
 ): Promise<void> {
   const keys = [...stickerKeys];
-  for (const prefix of [photoPrefix(userId), avatarPrefix(userId)]) {
+  for (const prefix of [photoPrefix(userId), avatarPrefix(userId), varPhotoPrefix(userId)]) {
     let cursor: string | undefined;
     do {
       const page = await bucket.list({ prefix, cursor });
@@ -71,6 +72,7 @@ export function deleteAllUserData(db: Database, userId: string) {
     db.delete(profile).where(eq(profile.userId, userId)),
     db.delete(weightLog).where(eq(weightLog.userId, userId)),
     db.delete(waistLog).where(eq(waistLog.userId, userId)),
+    db.delete(varScan).where(eq(varScan.userId, userId)),
     db.delete(foodLog).where(eq(foodLog.userId, userId)),
     db.delete(exerciseLog).where(eq(exerciseLog.userId, userId)),
     db.delete(sleepLog).where(eq(sleepLog.userId, userId)),

@@ -40,6 +40,9 @@ export const teamMember = sqliteTable(
     role: text("role", { enum: ["owner", "member"] }).notNull().default("member"),
     // member boleh menyembunyikan nama/foto makanannya; total tetap terlihat.
     shareFood: integer("share_food", { mode: "boolean" }).notNull().default(true),
+    // Status VAR perut dibagikan ke tim ini? Default sembunyi. Yang ikut
+    // dibagikan cuma verdict + tanggal — foto perut tidak pernah keluar.
+    shareVar: integer("share_var", { mode: "boolean" }).notNull().default(false),
     joinedAt: integer("joined_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),

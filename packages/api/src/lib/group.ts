@@ -15,14 +15,18 @@ export function normalizeInviteCode(code: string): string {
   return cleaned.slice(0, INVITE_CODE_LENGTH);
 }
 
-/** 'kosong' when nothing logged, 'aman' at/below target, 'offside' above. */
+/**
+ * 'kosong' when nothing logged, 'aman' at/below target, 'offside' above.
+ * Without a computed target there is no offside to call — 'tanpa_target' is
+ * the honest call (the member has no height/weight plan yet).
+ */
 export function varVerdict(
   eatenKcal: number,
   eatTargetKcal: number | null,
   mealsLogged: number,
-): "aman" | "offside" | "kosong" {
+): "aman" | "offside" | "kosong" | "tanpa_target" {
   if (mealsLogged === 0 || eatenKcal === 0) return "kosong";
-  if (eatTargetKcal === null) return eatenKcal > 0 ? "offside" : "kosong";
+  if (eatTargetKcal === null) return "tanpa_target";
   return eatenKcal <= eatTargetKcal ? "aman" : "offside";
 }
 

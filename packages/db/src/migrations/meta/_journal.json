@@ -148,6 +148,13 @@
       "when": 1791926450550,
       "tag": "0020_abandoned_cyclops",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1791930831825,
+      "tag": "0021_skinny_mister_sinister",
+      "breakpoints": true
     }
   ]
 }

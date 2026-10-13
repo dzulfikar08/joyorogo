@@ -127,6 +127,16 @@ function MemberCard({
           : ""}
       </Text>
 
+      {member.varStatus ? (
+        <View style={styles.varChip}>
+          <Ionicons name="tv" size={12} color={theme.colors.primary} />
+          <Text style={[styles.varChipText, { color: theme.colors.primary }]} numberOfLines={1}>
+            VAR perut {isMe ? "kamu" : (member.name.split(" ")[0] ?? "")}:{" "}
+            {bellyChipLabel(member.varStatus.verdict)} • {chipDate(member.varStatus.date)}
+          </Text>
+        </View>
+      ) : null}
+
       {!isMe ? (
         <View style={styles.memberActions}>
           <Button size="sm" variant="secondary" icon="hand-left" label="Colek" onPress={onPoke} />
@@ -136,9 +146,38 @@ function MemberCard({
             <Button size="sm" variant="ghost" destructive label="Keluarkan" onPress={onRemove} />
           ) : null}
         </View>
-      ) : null}
+      ) : (
+        <View style={styles.memberActions}>
+          <Button size="sm" icon="tv" label="Scan VAR perut" onPress={onVar} />
+        </View>
+      )}
     </Card>
   );
+}
+
+/** Salinan label chip VAR perut (mirror lib/varscan.ts untuk klien). */
+function bellyChipLabel(verdict: NonNullable<GroupMember["varStatus"]>["verdict"]): string {
+  switch (verdict) {
+    case "turun":
+      return "mengecil";
+    case "naik":
+      return "lebih penuh";
+    case "sama":
+      return "belum beda";
+    case "beda":
+      return "foto beda";
+    case "pertama":
+      return "scan pertama";
+  }
+}
+
+/** "12 Okt" untuk chip status VAR. */
+function chipDate(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
 }
 
 export default function GroupDetail() {
@@ -172,6 +211,12 @@ export default function GroupDetail() {
     }),
   );
   const setShareFood = useMutation(orpc.group.setShareFood.mutationOptions({ onSuccess: invalidate }));
+  const setShareVar = useMutation(
+    orpc.group.varSetShare.mutationOptions({
+      onSuccess: invalidate,
+      onError: (e) => toast.error("Gagal mengubah bagikan", errorMessage(e)),
+    }),
+  );
   const rename = useMutation(
     orpc.group.rename.mutationOptions({
       onSuccess: async () => {
@@ -311,23 +356,36 @@ export default function GroupDetail() {
 
         {tab === "anggota" ? (
           <View style={styles.stack}>
-            {sortedMembers.map((member) => (
-              <MemberCard
-                key={member.userId}
-                member={member}
-                isMe={member.userId === session?.user.id}
-                isOwner={isOwner && member.role !== "owner"}
-                onPoke={() => poke(member)}
-                onNote={() => openNote(member)}
-                onVar={() =>
-                  router.push({
-                    pathname: "/grup/[id]/var",
-                    params: { id: groupId, userId: member.userId, name: member.name },
-                  })
-                }
-                onRemove={() => confirmRemove(member)}
-              />
-            ))}
+            {sortedMembers.map((member) => {
+              const isMe = member.userId === session?.user.id;
+              return (
+                <MemberCard
+                  key={member.userId}
+                  member={member}
+                  isMe={isMe}
+                  isOwner={isOwner && member.role !== "owner"}
+                  onPoke={() => poke(member)}
+                  onNote={() => openNote(member)}
+                  onVar={() =>
+                    isMe
+                      ? router.push({
+                          pathname: "/grup/[id]/var-saya",
+                          params: { id: groupId },
+                        })
+                      : router.push({
+                          pathname: "/grup/[id]/var",
+                          params: {
+                            id: groupId,
+                            userId: member.userId,
+                            name: member.name,
+                            shareFood: member.shareFood ? "1" : "0",
+                          },
+                        })
+                  }
+                  onRemove={() => confirmRemove(member)}
+                />
+              );
+            })}
           </View>
         ) : (
           <View style={styles.stack}>
@@ -409,6 +467,19 @@ export default function GroupDetail() {
                   value={me?.shareFood ?? false}
                   disabled={setShareFood.isPending}
                   onValueChange={(value) => setShareFood.mutate({ groupId, shareFood: value })}
+                />
+              }
+            />
+            <ListRow
+              icon="tv"
+              iconTint="bakar"
+              title="Status VAR perut"
+              subtitle="Verdict + tanggal scan terakhirmu terlihat di grup ini. Foto perut tidak pernah ikut."
+              right={
+                <Switch
+                  value={me?.shareVar ?? false}
+                  disabled={setShareVar.isPending}
+                  onValueChange={(value) => setShareVar.mutate({ groupId, shareVar: value })}
                 />
               }
             />
@@ -549,6 +620,21 @@ const styles = StyleSheet.create((theme) => ({
     flexWrap: "wrap",
     gap: theme.spacing.sm,
     marginTop: theme.spacing.md,
+  },
+  varChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    marginTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 6,
+    borderRadius: theme.radius.pill,
+    backgroundColor: "rgba(46, 125, 70, 0.12)",
+  },
+  varChipText: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "700",
   },
   emptyLine: {
     fontSize: theme.fontSize.sm,

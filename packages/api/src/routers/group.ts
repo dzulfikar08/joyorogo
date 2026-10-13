@@ -7,11 +7,14 @@ import { z } from "zod";
 import { session, user } from "@joyorogo/db/schema/auth";
 import type { Database } from "@joyorogo/db";
 import {
+  aiUsage,
   dailyActivity,
   exerciseLog,
   foodLog,
   profile,
   sleepLog,
+  varScan,
+  waistLog,
   waterLog,
   weightLog,
 } from "@joyorogo/db/schema/fitness";
@@ -31,8 +34,17 @@ import {
   rateLimited,
   varVerdict,
 } from "../lib/group";
+import { requireAiQuota } from "../lib/quota";
 import { buildPlan } from "../lib/plan";
 import { dateSchema } from "../lib/schemas";
+import {
+  base64ToBytes,
+  bytesToBase64,
+  newScanId,
+  varPhotoKey,
+} from "../lib/sticker";
+import { analyzeVarPhotos } from "../lib/varscan";
+import type { VarVerdict } from "../lib/varscan";
 import { sendPush } from "../lib/webpush";
 
 const MAX_MEMBERS = 20;
@@ -315,6 +327,7 @@ export const groupRouter = {
           role: teamMember.role,
           joinedAt: teamMember.joinedAt,
           shareFood: teamMember.shareFood,
+          shareVar: teamMember.shareVar,
         })
         .from(teamMember)
         .innerJoin(user, eq(teamMember.userId, user.id))
@@ -338,6 +351,7 @@ export const groupRouter = {
         waterRows,
         foodDates,
         lastActive,
+        varRows,
       ] = await db.batch([
         db.select().from(profile).where(inArray(profile.userId, ids)),
         // Latest weigh-in ever (per member) via the group-by-max pattern.
@@ -434,6 +448,24 @@ export const groupRouter = {
           .from(session)
           .where(inArray(session.userId, ids))
           .groupBy(session.userId),
+        // Latest VAR perut scan per member. Bare columns ride the max() row
+        // (SQLite group-by-max, same trick as food.recent). Only rows of
+        // members who share their verdict with this team are exposed here;
+        // a member always sees their own through varHistory instead.
+        db
+          .select({
+            userId: teamMember.userId,
+            verdict: varScan.verdict,
+            date: varScan.date,
+            at: max(varScan.createdAt),
+          })
+          .from(varScan)
+          .innerJoin(
+            teamMember,
+            and(eq(teamMember.userId, varScan.userId), eq(teamMember.teamId, input.groupId)),
+          )
+          .where(and(inArray(varScan.userId, ids), eq(teamMember.shareVar, true)))
+          .groupBy(varScan.userId),
       ]);
 
       const profileByUser = new Map(profiles.map((p) => [p.userId, p]));
@@ -444,6 +476,9 @@ export const groupRouter = {
       const latestByUser = new Map(latestWeights.map((r) => [r.userId, r]));
       const baselineByUser = new Map(weekBaseline.map((r) => [r.userId, r]));
       const lastActiveByUser = new Map(lastActive.map((r) => [r.userId, r.at]));
+      const varStatusByUser = new Map(
+        varRows.map((r) => [r.userId, { verdict: r.verdict as VarVerdict, date: r.date }]),
+      );
       const foodDatesByUser = new Map<string, string[]>();
       for (const row of foodDates) {
         const list = foodDatesByUser.get(row.userId) ?? [];
@@ -510,6 +545,9 @@ export const groupRouter = {
             role: m.role,
             joinedAt: m.joinedAt,
             shareFood: m.shareFood,
+            shareVar: m.shareVar,
+            // Verdict+tanggal VAR perut terakhir; foto tidak pernah ikut.
+            varStatus: varStatusByUser.get(m.userId) ?? null,
             lastActiveAt: lastActiveByUser.get(m.userId) ?? null,
             today: {
               eatenKcal,
@@ -773,6 +811,17 @@ export const groupRouter = {
         .where(eq(user.id, input.userId))
         .limit(1);
 
+      // The friend's latest VAR perut verdict — only when they share it with
+      // this team. The photo never leaves their own /var-photo route.
+      const [targetVar] = target.shareVar
+        ? await db
+            .select({ verdict: varScan.verdict, date: varScan.date })
+            .from(varScan)
+            .where(eq(varScan.userId, input.userId))
+            .orderBy(desc(varScan.createdAt))
+            .limit(1)
+        : [];
+
       const rows = await db
         .select({
           userId: foodLog.userId,
@@ -838,7 +887,214 @@ export const groupRouter = {
         verdict: varVerdict(eatenKcal, eatTargetKcal, mealsLogged),
         hidden: !target.shareFood,
         foods,
+        varStatus: targetVar ?? null,
       };
+    }),
+
+  // --- VAR perut (diri sendiri): foto perut, AI bandingkan dengan scan lalu --
+
+  /** Own scans oldest first, plus the share toggle state and the latest waist tape entry. */
+  varHistory: protectedProcedure
+    .input(z.object({ groupId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const db = context.db;
+      const userId = context.session.user.id;
+      await requireMember(db, input.groupId, userId);
+      const [rows, [membership], waistRows] = await Promise.all([
+        db
+          .select()
+          .from(varScan)
+          .where(eq(varScan.userId, userId))
+          .orderBy(asc(varScan.createdAt))
+          .limit(60),
+        db
+          .select({ shareVar: teamMember.shareVar })
+          .from(teamMember)
+          .where(and(eq(teamMember.teamId, input.groupId), eq(teamMember.userId, userId)))
+          .limit(1),
+        db
+          .select({ date: waistLog.date, waistCm: waistLog.waistCm })
+          .from(waistLog)
+          .where(eq(waistLog.userId, userId))
+          .orderBy(desc(waistLog.date))
+          .limit(60),
+      ]);
+      const firstWaist = waistRows.at(-1);
+      const latestWaist = waistRows[0];
+      return {
+        scans: rows.map((row) => ({
+          id: row.id,
+          date: row.date,
+          verdict: row.verdict,
+          confidence: row.confidence,
+          note: row.note,
+          waistCm: row.waistCm,
+          photoUrl: `/var-photo/${row.photoId}`,
+          createdAt: row.createdAt,
+        })),
+        shareVar: membership?.shareVar ?? false,
+        latestWaist:
+          latestWaist !== undefined
+            ? {
+                ...latestWaist,
+                deltaCm:
+                  firstWaist !== undefined && firstWaist !== latestWaist
+                    ? Math.round((latestWaist.waistCm - firstWaist.waistCm) * 10) / 10
+                    : null,
+              }
+            : null,
+      };
+    }),
+
+  /**
+   * Captures a new belly scan: stores the photo privately, compares it with
+   * the previous scan through the vision model, and stores the verdict.
+   * A first scan is a free baseline (no comparison possible, no AI call).
+   * Photos only persist for successful scans — a failed scan keeps nothing.
+   */
+  varAnalyze: protectedProcedure
+    .input(
+      z.object({
+        groupId: z.string(),
+        // Clients send ≤1024 px JPEGs (~0.2–0.5 MB base64); 8 MB caps abuse.
+        imageBase64: z.base64().min(50).max(8_000_000),
+        mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const db = context.db;
+      const userId = context.session.user.id;
+      await requireMember(db, input.groupId, userId);
+      const bucket = context.env.STICKERS;
+      if (!bucket) {
+        throw new ORPCError("SERVICE_UNAVAILABLE", {
+          message: "Penyimpanan foto belum tersedia.",
+        });
+      }
+      const date = jakartaToday();
+
+      // Objective signal first: the tape entry of the same WIB day rides
+      // along in the DB row and in the AI prompt (meteran, bukan tebakan).
+      const [waistToday] = await db
+        .select({ waistCm: waistLog.waistCm })
+        .from(waistLog)
+        .where(and(eq(waistLog.userId, userId), eq(waistLog.date, date)))
+        .limit(1);
+
+      const [previous] = await db
+        .select()
+        .from(varScan)
+        .where(eq(varScan.userId, userId))
+        .orderBy(desc(varScan.createdAt))
+        .limit(1);
+      const previousPhoto =
+        previous !== undefined ? await bucket.get(varPhotoKey(userId, previous.photoId)) : null;
+
+      const startedAt = Date.now();
+      let verdict: VarVerdict = "pertama";
+      let confidence = 1;
+      let note = "Pemindaian pertama tersimpan. Scan lagi di lain hari buat mulai perbandingan.";
+      let quotaReached = false;
+      if (previous && previousPhoto) {
+        // Quota only for scans that actually call the model.
+        const { ai, quotaReached: reached } = await requireAiQuota(db, context.env, userId);
+        quotaReached = reached;
+        const previousLabel = `scan ${previous.date}`;
+        let analysis;
+        try {
+          analysis = await analyzeVarPhotos(ai, {
+            previous: {
+              imageBase64: bytesToBase64(await previousPhoto.arrayBuffer()),
+              label: previousLabel,
+            },
+            current: {
+              imageBase64: input.imageBase64,
+              mimeType: input.mimeType,
+              label: `hari ini (${date})`,
+            },
+            // The tape measure is the objective signal; the photo is the feel.
+            waistCm: waistToday?.waistCm ?? previous.waistCm,
+            model: context.env.AI_VISION_MODEL || undefined,
+          });
+        } catch (error) {
+          throw new ORPCError("UNPROCESSABLE_CONTENT", {
+            message: error instanceof Error ? error.message : "VAR gagal menganalisis foto.",
+          });
+        }
+        verdict = analysis.verdict;
+        confidence = analysis.confidence;
+        note = analysis.reason;
+        await context.db.insert(aiUsage).values({
+          id: crypto.randomUUID(),
+          userId,
+          model: analysis.model,
+          scanType: "user",
+          latencyMs: Date.now() - startedAt,
+          usageJson: JSON.stringify({ kind: "var", ...analysis.usage }),
+        });
+      }
+
+      // Store only successful scans: the photo key is unguessable and the
+      // serving route checks the session, so nothing leaks on failure.
+      const photoId = newScanId();
+      try {
+        await bucket.put(varPhotoKey(userId, photoId), base64ToBytes(input.imageBase64), {
+          httpMetadata: { contentType: input.mimeType },
+        });
+      } catch {
+        throw new ORPCError("INTERNAL_SERVER_ERROR", {
+          message: "Gagal menyimpan foto. Coba lagi.",
+        });
+      }
+      const [row] = await db
+        .insert(varScan)
+        .values({
+          id: crypto.randomUUID(),
+          userId,
+          date,
+          photoId,
+          verdict,
+          confidence,
+          note,
+          waistCm: waistToday?.waistCm ?? null,
+        })
+        .returning();
+      return { scan: row, previousDate: previous?.date ?? null, quotaReached };
+    }),
+
+  /** Deletes one own scan together with its private photo. */
+  varDelete: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      const [row] = await context.db
+        .delete(varScan)
+        .where(and(eq(varScan.id, input.id), eq(varScan.userId, context.session.user.id)))
+        .returning({ photoId: varScan.photoId });
+      if (row) {
+        try {
+          await context.env.STICKERS?.delete(varPhotoKey(context.session.user.id, row.photoId));
+        } catch {
+          // orphaned objects are harmless; never block the delete
+        }
+      }
+      return { ok: true };
+    }),
+
+  /** Per-team opt-in: share VAR verdicts (never photos) with this group. */
+  varSetShare: protectedProcedure
+    .input(z.object({ groupId: z.string(), shareVar: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      await requireMember(context.db, input.groupId, context.session.user.id);
+      await context.db
+        .update(teamMember)
+        .set({ shareVar: input.shareVar })
+        .where(
+          and(
+            eq(teamMember.teamId, input.groupId),
+            eq(teamMember.userId, context.session.user.id),
+          ),
+        );
+      return { ok: true };
     }),
 };
 

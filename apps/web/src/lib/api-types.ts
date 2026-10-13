@@ -101,9 +101,12 @@ type InboxOutput = Awaited<ReturnType<AppRouterClient["group"]["inbox"]>>;
 export type InboxItem = InboxOutput[number];
 
 type VarScanOutput = Awaited<ReturnType<AppRouterClient["group"]["varScan"]>>;
+type VarHistoryOutput = Awaited<ReturnType<AppRouterClient["group"]["varHistory"]>>;
 
 /** varScan output: verdict, totals, and the member's shared foods. */
 export type VarScan = VarScanOutput;
+/** varHistory output: own VAR perut scans, share flag, and the latest tape entry. */
+export type VarHistory = VarHistoryOutput;
 
 type SocialProfileOutput = Awaited<ReturnType<AppRouterClient["social"]["myProfile"]>>;
 type FeedOutput = Awaited<ReturnType<AppRouterClient["social"]["feed"]>>;

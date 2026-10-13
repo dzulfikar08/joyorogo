@@ -2,7 +2,7 @@ import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Activity, ChevronLeft, CircleCheck, CircleDashed, EyeOff, Flag, Hand, RotateCcw, ScanLine, Utensils, X } from "lucide-react";
+import { Activity, ChevronLeft, CircleAlert, CircleCheck, CircleDashed, EyeOff, Flag, Hand, Info, RotateCcw, ScanLine, Tv, Utensils, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -51,8 +51,11 @@ function VarPage() {
   // Navigated from the detail page, so member names are already in cache.
   const detail = useQuery(orpc.group.detail.queryOptions({ input: { groupId } }));
   const session = useSession();
-  const targetName = detail.data?.members.find((m) => m.userId === userId)?.name ?? "dia";
+  const target = detail.data?.members.find((m) => m.userId === userId);
+  const targetName = target?.name ?? "dia";
   const isSelf = session.data?.user.id === userId;
+  // Hidden members skip the theatrics: there is nothing to reveal after 2.4 s.
+  const hidden = !(target?.shareFood ?? true);
 
   const scan = useQuery({
     ...orpc.group.varScan.queryOptions({ input: { groupId, userId } }),
@@ -61,6 +64,9 @@ function VarPage() {
 
   const [phase, setPhase] = useState<"aim" | "scan" | "reveal">("aim");
   const [progress, setProgress] = useState(0);
+  const [theatricsDone, setTheatricsDone] = useState(false);
+  const [fetchDone, setFetchDone] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [camError, setCamError] = useState(false);
 
@@ -97,28 +103,39 @@ function VarPage() {
     const timer = window.setInterval(() => {
       setProgress(Math.min(100, ((Date.now() - startedAt) / SCAN_MS) * 100));
     }, 80);
-    const finish = window.setTimeout(() => {
-      window.clearInterval(timer);
-      setPhase("reveal");
-    }, SCAN_MS);
+    const finish = window.setTimeout(() => setTheatricsDone(true), SCAN_MS);
     return () => {
       window.clearInterval(timer);
       window.clearTimeout(finish);
     };
   }, [phase]);
 
+  // The reveal waits for BOTH the theatrics beat and the server answer, so a
+  // slow fetch never reveals an empty cone (the old race).
+  useEffect(() => {
+    if (phase === "scan" && theatricsDone && fetchDone) {
+      setPhase(scanError !== null ? "aim" : "reveal");
+    }
+  }, [phase, theatricsDone, fetchDone, scanError]);
+
   const startScan = () => {
     setProgress(0);
+    setTheatricsDone(false);
+    setFetchDone(false);
+    setScanError(null);
     setPhase("scan");
     void scan
       .refetch()
       .then((result) => {
+        setFetchDone(true);
         if (result.isError) {
-          toast.error(result.error?.message ?? "Gagal memindai.");
-          setPhase("aim");
+          setScanError(result.error?.message ?? "Gagal memindai.");
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setFetchDone(true);
+        setScanError("Gagal memindai. Cek koneksimu lalu coba lagi.");
+      });
   };
 
   const nudge = useMutation(
@@ -250,7 +267,9 @@ function VarPage() {
               <ScanLine className="size-8 text-emerald-200" aria-hidden />
             </div>
             <p className="mt-3 text-sm font-bold text-emerald-100 drop-shadow">
-              Arahkan ke perut {targetName}
+              {hidden
+                ? `${targetName} menyembunyikan isi perutnya`
+                : `Arahkan ke perut ${targetName}`}
             </p>
           </div>
         )}
@@ -269,14 +288,33 @@ function VarPage() {
 
       {/* Verdict + totals */}
       <div className="relative z-20 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
-        {phase === "reveal" && scan.data && <VerdictCard scan={scan.data} />}
+        {/* Hidden members get the honest card straight away — no fake scan. */}
+        {hidden ? (
+          <VerdictCard scan={scan.data ?? null} targetName={targetName} />
+        ) : (
+          <>
+            {phase === "reveal" && scan.data && <VerdictCard scan={scan.data} targetName={targetName} />}
+            {scanError !== null && phase === "aim" && (
+              <div className="mx-auto mb-3 max-w-lg rounded-3xl bg-card p-4 text-card-foreground shadow-float" role="alert">
+                <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold text-destructive">
+                  <CircleAlert className="size-5 shrink-0" aria-hidden />
+                  VAR gagal memindai
+                </p>
+                <p className="mt-1 text-center text-sm text-muted-foreground">{scanError}</p>
+              </div>
+            )}
+          </>
+        )}
         <div className="mx-auto flex max-w-lg items-center justify-center gap-3">
-          {phase === "reveal" ? (
+          {!hidden && phase === "reveal" ? (
             <>
               <Button
                 variant="secondary"
                 className="flex-1 bg-white/10 text-white hover:bg-white/20"
-                onClick={() => setPhase("aim")}
+                onClick={() => {
+                  setScanError(null);
+                  setPhase("aim");
+                }}
               >
                 <RotateCcw className="size-4" aria-hidden />
                 Scan ulang
@@ -302,10 +340,12 @@ function VarPage() {
               >
                 <ChevronLeft className="size-6" aria-hidden />
               </Link>
-              <Button size="lg" className="flex-1" disabled={phase === "scan"} onClick={startScan}>
-                <ScanLine className="size-5" aria-hidden />
-                {phase === "scan" ? "Memindai…" : "Scan"}
-              </Button>
+              {!hidden && (
+                <Button size="lg" className="flex-1" disabled={phase === "scan"} onClick={startScan}>
+                  <ScanLine className="size-5" aria-hidden />
+                  {phase === "scan" ? "Memindai…" : "Scan"}
+                </Button>
+              )}
             </>
           )}
         </div>
@@ -319,9 +359,49 @@ function VarPage() {
   );
 }
 
-function VerdictCard({ scan }: { scan: VarScan }) {
+/** Label tanggal pendek untuk chip status VAR: "12 Okt". */
+function varDayLabel(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
+/** Salinan verdict perut VAR perut (mirror lib/varscan.ts untuk klien). */
+function bellyVerdictLabel(verdict: NonNullable<VarScan["varStatus"]>["verdict"]): string {
+  switch (verdict) {
+    case "turun":
+      return "Perut mengecil";
+    case "naik":
+      return "Terlihat lebih penuh";
+    case "sama":
+      return "Belum kelihatan beda";
+    case "beda":
+      return "Kondisi foto beda";
+    case "pertama":
+      return "Scan pertama";
+  }
+}
+
+function VerdictCard({ scan, targetName }: { scan: VarScan | null; targetName: string }) {
+  // Hidden member and the query has not run (or failed): still show why.
+  if (scan === null) {
+    return (
+      <div className="mx-auto mb-3 max-w-lg rounded-3xl bg-card p-4 text-card-foreground shadow-float">
+        <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold">
+          <EyeOff className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+          {targetName} menyembunyikan isi perutnya
+        </p>
+        <p className="mt-1 text-center text-sm text-muted-foreground">
+          Total kalori tetap terlihat di kartu anggotanya.
+        </p>
+      </div>
+    );
+  }
   const target = scan.eatTargetKcal;
   const over = target !== null ? scan.eatenKcal - target : null;
+  const firstName = (scan.name ?? targetName).split(" ")[0] ?? targetName;
   return (
     <div className="mx-auto mb-3 max-w-lg rounded-3xl bg-card p-4 text-card-foreground shadow-float">
       {scan.hidden ? (
@@ -339,6 +419,11 @@ function VerdictCard({ scan }: { scan: VarScan }) {
           <Flag className="size-5 shrink-0" aria-hidden />
           OFFSIDE! +{fmtInt(over ?? 0)} kcal
         </p>
+      ) : scan.verdict === "tanpa_target" ? (
+        <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold">
+          <Info className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+          Belum ada target pembanding
+        </p>
       ) : (
         <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold">
           <CircleDashed className="size-5 shrink-0 text-muted-foreground" aria-hidden />
@@ -349,6 +434,16 @@ function VerdictCard({ scan }: { scan: VarScan }) {
         Total hari ini {fmtInt(scan.eatenKcal)}
         {target !== null ? ` dari ${fmtInt(target)} kcal` : " kcal"}
       </p>
+      <p className="mt-1 text-center text-xs text-muted-foreground/80">
+        Berdasarkan catatan makan {firstName} hari ini, bukan foto asli.
+      </p>
+      {scan.varStatus && (
+        <p className="mt-2 flex items-center justify-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-center text-xs font-semibold text-muted-foreground">
+          <Tv className="size-3.5 shrink-0" aria-hidden />
+          VAR perut {firstName} ({varDayLabel(scan.varStatus.date)}):{" "}
+          {bellyVerdictLabel(scan.varStatus.verdict)}
+        </p>
+      )}
     </div>
   );
 }

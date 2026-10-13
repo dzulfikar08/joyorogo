@@ -72,7 +72,35 @@ function verdictCopy(
     const over = Math.max(0, scan.eatenKcal - (scan.eatTargetKcal ?? 0));
     return { icon: "flag", title: `OFFSIDE! +${fmtKcal(over)} kcal`, color: "#FF6A52" };
   }
+  if (scan.verdict === "tanpa_target") {
+    return { icon: "information-circle", title: "Belum ada target pembanding", color: "#C9C4BA" };
+  }
   return { icon: "ellipse-outline", title: "Perut kosong… belum makan?", color: "#FFD84D" };
+}
+
+/** Salinan verdict VAR perut (mirror lib/varscan.ts untuk klien). */
+function bellyVerdictLabel(verdict: NonNullable<VarScan["varStatus"]>["verdict"]): string {
+  switch (verdict) {
+    case "turun":
+      return "mengecil";
+    case "naik":
+      return "lebih penuh";
+    case "sama":
+      return "belum beda";
+    case "beda":
+      return "foto beda";
+    case "pertama":
+      return "scan pertama";
+  }
+}
+
+/** "12 Okt" untuk chip status VAR perut. */
+function varChipDate(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
 }
 
 /** One food chip bobbing inside the cone; static under reduced motion. */
@@ -138,14 +166,19 @@ export default function VarPerut() {
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const router = useRouter();
-  const { id, userId, name = "" } = useLocalSearchParams<{
+  const { id, userId, name = "", shareFood = "1" } = useLocalSearchParams<{
     id: string;
     userId: string;
     name?: string;
+    /** "0" = target menyembunyikan nama makanannya; scan ditekan, bukan dipura-pura. */
+    shareFood?: string;
   }>();
   const groupId = Array.isArray(id) ? (id[0] ?? "") : (id ?? "");
   const targetId = Array.isArray(userId) ? (userId[0] ?? "") : (userId ?? "");
   const firstName = name.split(" ")[0] || "temanmu";
+  // Anggota yang menyembunyikan makanannya tidak dijamin apa-apa setelah
+  // teatrikal 2,4 detik — kartu jujurnya langsung tampil, tanpa scan palsu.
+  const hidden = shareFood === "0";
 
   const [permission, requestPermission] = useCameraPermissions();
   const [phase, setPhase] = useState<"aim" | "scanning" | "reveal">("aim");
@@ -347,7 +380,9 @@ export default function VarPerut() {
                 <View style={[styles.crosshair, styles.crosshairH]} />
                 <View style={[styles.crosshair, styles.crosshairV]} />
               </View>
-              <Text style={styles.aimHint}>Arahkan ke perut {firstName}</Text>
+              <Text style={styles.aimHint}>
+                {hidden ? `${firstName} menyembunyikan isi perutnya` : `Arahkan ke perut ${firstName}`}
+              </Text>
             </View>
           ) : null}
 
@@ -377,7 +412,33 @@ export default function VarPerut() {
 
         {/* --- Bottom panel: verdict / scan button --- */}
         <View style={styles.bottom}>
-          {revealed && scan && verdict ? (
+          {hidden ? (
+            <>
+              <View style={[styles.verdictCard, { borderColor: "#C9C4BA" }]}>
+                <View style={styles.verdictHead}>
+                  <Ionicons name="eye-off" size={22} color="#C9C4BA" />
+                  <Text style={[styles.verdictTitle, { color: "#C9C4BA" }]}>
+                    {firstName} menyembunyikan isi perutnya
+                  </Text>
+                </View>
+                <Text style={styles.hiddenNote}>
+                  Total kalorinya tetap terlihat di kartu anggotanya. Colek aja biar makin semangat.
+                </Text>
+              </View>
+              <View style={styles.bottomActions}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon="hand-left"
+                  label={poked ? "Terkirim" : "Colek"}
+                  disabled={poked || poke.isPending}
+                  loading={poke.isPending}
+                  onPress={() => poke.mutate({ groupId, toUserId: targetId, kind: "poke" })}
+                />
+                <Button size="sm" label="Selesai" onPress={() => router.back()} />
+              </View>
+            </>
+          ) : revealed && scan && verdict ? (
             <>
               <View style={[styles.verdictCard, { borderColor: verdict.color }]}>
                 <View style={styles.verdictHead}>
@@ -406,6 +467,18 @@ export default function VarPerut() {
                     ]}
                   />
                 </View>
+                <Text style={styles.honestNote}>
+                  Berdasarkan catatan makan {firstName} hari ini, bukan foto asli.
+                </Text>
+                {scan.varStatus ? (
+                  <View style={styles.varStatusChip}>
+                    <Ionicons name="tv" size={13} color="#78FFB4" />
+                    <Text style={styles.varStatusText}>
+                      VAR perut {firstName} ({varChipDate(scan.varStatus.date)}):{" "}
+                      {bellyVerdictLabel(scan.varStatus.verdict)}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
               <View style={styles.bottomActions}>
                 <Button
@@ -433,8 +506,8 @@ export default function VarPerut() {
             <>
               <Text style={styles.bottomHint}>
                 {scanning
-                  ? "VAR sedang memeriksa rekaman…"
-                  : `Cek isi perut ${firstName} pakai VAR`}
+                  ? "VAR sedang memeriksa catatan makan…"
+                  : `Cek catatan makan ${firstName} lewat VAR`}
               </Text>
               {!scanning ? (
                 <Button
@@ -696,5 +769,30 @@ const styles = StyleSheet.create((theme) => ({
     flexDirection: "row",
     justifyContent: "center",
     gap: theme.spacing.sm,
+  },
+  hiddenNote: {
+    fontSize: theme.fontSize.sm,
+    color: "rgba(201,196,186,0.85)",
+  },
+  honestNote: {
+    fontSize: theme.fontSize.xs,
+    color: "rgba(201,196,186,0.7)",
+  },
+  varStatusChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "center",
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 6,
+    borderRadius: theme.radius.pill,
+    backgroundColor: "rgba(120,255,180,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(120,255,180,0.35)",
+  },
+  varStatusText: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "600",
+    color: "#78FFB4",
   },
 }));

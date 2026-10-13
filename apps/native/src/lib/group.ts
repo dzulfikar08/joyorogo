@@ -20,6 +20,9 @@ export type InboxItem = Awaited<ReturnType<AppRouterClient["group"]["inbox"]>>[n
 /** varScan output: verdict, totals, and the member's shared foods. */
 export type VarScan = Awaited<ReturnType<AppRouterClient["group"]["varScan"]>>;
 
+/** varHistory output: own VAR perut scans, share flag, and the latest tape entry. */
+export type VarHistory = Awaited<ReturnType<AppRouterClient["group"]["varHistory"]>>;
+
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
