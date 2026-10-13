@@ -57,10 +57,16 @@ function fontTheme(theme: Fonts, style: TextProps["style"]): TextStyle {
   return { ...rest, fontFamily: familyForWeight(theme, fontWeight) };
 }
 
-/** The default text: Plus Jakarta Sans, weight from `fontWeight` style. */
+/**
+ * The default text: Plus Jakarta Sans, weight from `fontWeight` style, and the
+ * theme foreground unless the style sets a color (RN's default is black, which
+ * vanishes on dark cards).
+ */
 export function Text({ style, ...rest }: TextProps) {
   const { theme } = useUnistyles();
-  return <RNText style={fontTheme(theme.fonts, style)} {...rest} />;
+  return (
+    <RNText style={[{ color: theme.colors.foreground }, fontTheme(theme.fonts, style)]} {...rest} />
+  );
 }
 
 /** Numeric text: tabular figures so dials never jitter. Defaults to bold. */
@@ -73,7 +79,7 @@ export function Num({ style, ...rest }: TextProps) {
       ? base.fontVariant
       : [...(base.fontVariant ?? []), "tabular-nums"],
   };
-  return <RNText style={styled} {...rest} />;
+  return <RNText style={[{ color: theme.colors.foreground }, styled]} {...rest} />;
 }
 
 // --- Layout ----------------------------------------------------------------
