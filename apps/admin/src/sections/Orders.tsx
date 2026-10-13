@@ -114,14 +114,15 @@ export function OrdersSection() {
         </div>
         <Select
           value={status}
-          onChange={(e) => setFilter({ status: e.target.value || null })}
+          onValueChange={(v) => setFilter({ status: v || null })}
           aria-label="Filter status"
-        >
-          <option value="">Status: semua</option>
-          <option value="pending">Status: pending</option>
-          <option value="paid">Status: paid</option>
-          <option value="failed">Status: failed</option>
-        </Select>
+          options={[
+            { value: "", label: "Status: semua" },
+            { value: "pending", label: "Status: pending" },
+            { value: "paid", label: "Status: paid" },
+            { value: "failed", label: "Status: failed" },
+          ]}
+        />
         <Button
           size="sm"
           disabled={checkingAll > 0}

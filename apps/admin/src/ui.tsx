@@ -1,21 +1,61 @@
+import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
-/** Styled native select matching the filled Input field look, with chevron. */
-export function Select({ className, children, ...props }: ComponentProps<"select">) {
+/** Custom dropdown on the shared headless lib: filled trigger + styled popup. */
+export function Select({
+  value,
+  onValueChange,
+  options,
+  className,
+  ...props
+}: {
+  value: string;
+  onValueChange: (value: string) => void;
+  options: { value: string; label: string }[];
+} & Omit<ComponentProps<"button">, "value" | "onChange" | "children">) {
   return (
-    <div className={cn("relative", className)}>
-      <select
+    <SelectPrimitive.Root
+      items={options}
+      value={value}
+      onValueChange={(next) => {
+        if (next !== null) onValueChange(next);
+      }}
+    >
+      <SelectPrimitive.Trigger
         data-slot="select"
-        className="h-12 w-full cursor-pointer appearance-none rounded-xl border border-transparent bg-muted px-3 pr-9 text-base text-foreground transition-[border-color,box-shadow,background-color] outline-none focus-visible:border-ring/60 focus-visible:bg-card focus-visible:ring-[3px] focus-visible:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-50"
+        className={cn(
+          "flex h-12 min-w-0 cursor-pointer items-center justify-between gap-2 rounded-xl border border-transparent bg-muted px-3 pr-9 text-base text-foreground transition-[border-color,box-shadow,background-color] outline-none focus-visible:border-ring/60 focus-visible:bg-card focus-visible:ring-[3px] focus-visible:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-50 data-popup-open:border-ring/60 data-popup-open:bg-card data-popup-open:ring-[3px] data-popup-open:ring-ring/25",
+          className,
+        )}
         {...props}
       >
-        {children}
-      </select>
-      <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
-    </div>
+        <SelectPrimitive.Value />
+        <SelectPrimitive.Icon>
+          <ChevronDown className="pointer-events-none size-4 text-muted-foreground" />
+        </SelectPrimitive.Icon>
+      </SelectPrimitive.Trigger>
+      <SelectPrimitive.Portal>
+        <SelectPrimitive.Positioner sideOffset={4} className="z-50 outline-none">
+          <SelectPrimitive.Popup className="max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] overflow-y-auto rounded-xl border border-border bg-card p-1 text-popover-foreground shadow-lg">
+            {options.map((option) => (
+              <SelectPrimitive.Item
+                key={option.value}
+                value={option.value}
+                className="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm outline-none data-highlighted:bg-muted"
+              >
+                <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+                <SelectPrimitive.ItemIndicator>
+                  <Check className="size-4 text-primary" />
+                </SelectPrimitive.ItemIndicator>
+              </SelectPrimitive.Item>
+            ))}
+          </SelectPrimitive.Popup>
+        </SelectPrimitive.Positioner>
+      </SelectPrimitive.Portal>
+    </SelectPrimitive.Root>
   );
 }
 
@@ -191,17 +231,12 @@ export function Pagination({
       </span>
       <div className="flex items-center gap-2">
         <Select
-          value={pageSize}
-          onChange={(e) => onPageSize(Number(e.target.value))}
+          value={String(pageSize)}
+          onValueChange={(v) => onPageSize(Number(v))}
           aria-label="Baris per halaman"
-          className="[&_[data-slot=select]]:h-8 [&_[data-slot=select]]:rounded-lg [&_[data-slot=select]]:px-2 [&_[data-slot=select]]:pr-7 [&_[data-slot=select]]:text-xs"
-        >
-          {sizes.map((s) => (
-            <option key={s} value={s}>
-              {s}/hal
-            </option>
-          ))}
-        </Select>
+          className="h-8 rounded-lg px-2 pr-7 text-xs"
+          options={sizes.map((s) => ({ value: String(s), label: `${s}/hal` }))}
+        />
         <Button
           size="xs"
           variant="outline"

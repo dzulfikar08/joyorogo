@@ -70,13 +70,14 @@ export function UsersSection() {
         </div>
         <Select
           value={tier}
-          onChange={(e) => setFilter({ tier: e.target.value || null })}
+          onValueChange={(v) => setFilter({ tier: v || null })}
           aria-label="Filter tier"
-        >
-          <option value="">Tier: semua</option>
-          <option value="free">Tier: free</option>
-          <option value="founder">Tier: founder</option>
-        </Select>
+          options={[
+            { value: "", label: "Tier: semua" },
+            { value: "free", label: "Tier: free" },
+            { value: "founder", label: "Tier: founder" },
+          ]}
+        />
         <label className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-xl bg-muted px-3 text-base text-foreground">
           <Checkbox
             checked={abuse}
@@ -86,15 +87,16 @@ export function UsersSection() {
         </label>
         <Select
           value={sort}
-          onChange={(e) => setFilter({ sort: e.target.value })}
+          onValueChange={(v) => setFilter({ sort: v })}
           aria-label="Urutkan"
-        >
-          <option value="scans7d">Sort: scans 7d</option>
-          <option value="scansToday">Sort: scans today</option>
-          <option value="scansTotal">Sort: scans total</option>
-          <option value="lastSeen">Sort: last seen</option>
-          <option value="newest">Sort: newest</option>
-        </Select>
+          options={[
+            { value: "scans7d", label: "Sort: scans 7d" },
+            { value: "scansToday", label: "Sort: scans today" },
+            { value: "scansTotal", label: "Sort: scans total" },
+            { value: "lastSeen", label: "Sort: last seen" },
+            { value: "newest", label: "Sort: newest" },
+          ]}
+        />
       </div>
 
       <div className={cn("rounded-xl border border-border bg-card", users.isPlaceholderData && "opacity-60")}>
