@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   analyzeFoodPhoto,
+  dropDuplicateBroth,
   FRIENDLY_ERROR,
   normalizeBox,
   runVisionOnce,
@@ -150,5 +151,33 @@ describe("item boxes", () => {
 
   test("out-of-range coordinates clamp onto the 0-1000 grid", () => {
     expect(normalizeBox([-20, 50, 1200, 600.4])).toEqual([0, 50, 1000, 600]);
+  });
+});
+
+describe("soup broth", () => {
+  test("a separate broth line is dropped when the soup dish already counts it", async () => {
+    // Prod scan 2026-10-13: bakso bowl + gorengan + a duplicate "kuah kaldu".
+    const plate = {
+      items: [
+        { name: "bakso", kcal: 380, grams: 350 },
+        { name: "pangsit goreng", kcal: 120, grams: 40 },
+        { name: "tahu goreng", kcal: 90, grams: 50 },
+        { name: "kuah kaldu", kcal: 50, grams: 150 },
+      ],
+    };
+    const result = await analyzeFoodPhoto(jsonRunner(plate), OPTS);
+    expect(result.items.map((item) => item.name)).toEqual([
+      "bakso",
+      "pangsit goreng",
+      "tahu goreng",
+    ]);
+  });
+
+  test("broth stays when no soup dish carries it", () => {
+    const items = [{ name: "nasi putih" }, { name: "kuah opor" }];
+    expect(dropDuplicateBroth(items)).toEqual(items);
+    expect(dropDuplicateBroth([{ name: "mie ayam" }, { name: "kuah" }])).toEqual([
+      { name: "mie ayam" },
+    ]);
   });
 });

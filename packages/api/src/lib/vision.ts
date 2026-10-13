@@ -197,6 +197,21 @@ function dedupeItems<T extends { name: string }>(items: T[]): T[] {
   return [...byKey.values()];
 }
 
+// Dishes whose kcal already includes their broth (see VISION_PROMPT).
+const SOUP_DISH = /\b(bakso|baso|soto|sop|sup|rawon|coto|konro|tekwan|mie? (ayam|kuah|bakso))\b/i;
+// A line that is only broth: "kuah", "kaldu", "kuah kaldu", "kuah bakso".
+const BROTH_ONLY = /^(kuah|kaldu)\b/i;
+
+/**
+ * The model sometimes lists a soup's broth as its own item despite the
+ * prompt, double counting it (bakso 380 + "kuah kaldu" 50). Drop broth
+ * lines only when a soup dish on the same plate already carries them.
+ */
+export function dropDuplicateBroth<T extends { name: string }>(items: T[]): T[] {
+  const hasSoup = items.some((item) => !BROTH_ONLY.test(item.name) && SOUP_DISH.test(item.name));
+  return hasSoup ? items.filter((item) => !BROTH_ONLY.test(item.name.trim())) : items;
+}
+
 /** Parse, bound, calibrate against TKPI, and dedupe one model answer. */
 function itemsFromText(text: string): VisionAnalysis["items"] {
   const raw = visionResultSchema
@@ -219,7 +234,9 @@ function itemsFromText(text: string): VisionAnalysis["items"] {
     );
   // calibrateItems maps 1:1, so boxes re-attach by index.
   const calibrated = calibrateItems(raw.map(({ box: _box, ...item }) => item));
-  return dedupeItems(calibrated.map((item, index) => ({ ...item, box: raw[index]!.box })));
+  return dropDuplicateBroth(
+    dedupeItems(calibrated.map((item, index) => ({ ...item, box: raw[index]!.box }))),
+  );
 }
 
 /**
