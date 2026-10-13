@@ -133,6 +133,69 @@ scripts/build-release-apk.sh --publish
 APK pertama yang mendukung pembaruan dalam aplikasi harus dipasang manual satu
 kali; setelah itu pembaruan berikutnya bisa dari dalam aplikasi.
 
+## Roadmap
+
+Rencana, belum dibangun. Urutan bisa berubah.
+
+### Latihan beban: turun berat tanpa kehilangan otot
+
+Defisit kalori tanpa latihan beban ikut membakar otot. Fitur ini mencatat
+latihan kekuatan (mirip aplikasi Hevy) supaya yang turun lemak, bukan otot.
+
+- **Catat sesi**: gerakan, set, repetisi, beban, dan RPE. Template rutin
+  (push/pull/legs, full body) dan "ulangi sesi terakhir" supaya cepat.
+- **Peta otot**: tiap gerakan dipetakan ke otot utama dan pendukung (bench press
+  → dada, triceps, bahu depan). Volume mingguan per otot dihitung dari set
+  efektif.
+- **Peringatan otot terlewat**: kalau satu otot belum dilatih dalam 7 hari atau
+  volumenya jauh di bawah otot lain, Beranda memberi tahu, misalnya "Triceps
+  belum dilatih minggu ini", lengkap dengan saran gerakan.
+- **Progres kekuatan**: rekor pribadi dan perkiraan 1RM per gerakan. Kalau
+  kekuatan turun selagi berat turun cepat, itu tanda defisit terlalu besar,
+  jadi JoyoRogo menyarankan memperlambat target.
+- **Protein**: hari latihan menaikkan target protein (sekitar 1,6 g/kg) dan
+  sisa kalori menyarankan menu tinggi protein.
+- **Data**: tabel baru `workout_session` dan `workout_set`, plus katalog
+  gerakan dengan pemetaan otot. Kalori sesi beban masuk ke angka bakar seperti
+  `exercise_log` sekarang.
+
+### Mode puasa intermiten (IF)
+
+Perluasan dari mode Ramadan yang sudah ada, untuk pola 16:8, 18:6, 20:4, dan
+OMAD.
+
+- **Panduan jadwal makan**: pengguna memilih pola dan jam buka. JoyoRogo
+  membagi kalori harian ke waktu makan di dalam jendela makan, misalnya buka
+  12.00 sebanyak 700 kcal, camilan 15.30 sebanyak 250 kcal, dan makan terakhir
+  19.30 sebanyak 650 kcal.
+- **Status di Beranda**: sedang puasa atau di jendela makan, hitung mundur ke
+  waktu makan berikutnya, jam makan terakhir, dan sisa kalori jendela ini.
+- **Notifikasi (opsional)**: "jendela makan buka", "waktunya makan, sisa
+  650 kcal", "30 menit lagi jendela tutup". Memakai jadwal pengingat makan yang
+  sudah ada di aplikasi Android, lalu ditambah ke web lewat Web Push.
+- **Catatan konsisten**: makanan yang dicatat di luar jendela ditandai, dan ada
+  ringkasan mingguan berapa hari jadwal puasa terpenuhi.
+- **Data**: `profile` mendapat pola puasa dan jam buka; jadwal dihitung di
+  mesin target yang sama dengan mode Ramadan.
+
+### Harga makanan: kalori dan uang
+
+Tidak cuma mencatat kalori, tapi juga biaya makan, supaya pengguna bisa memilih
+makanan yang paling hemat sekaligus bergizi.
+
+- **Catat harga**: kolom harga (Rp) opsional di tiap catatan makan, terisi
+  otomatis dari harga terakhir untuk makanan yang sama.
+- **Ringkasan belanja makan**: total per hari, minggu, dan bulan, serta rata-rata
+  per waktu makan.
+- **Nilai terbaik**: urutan makanan berdasarkan protein per Rp1.000 dan kalori
+  per rupiah, misalnya "telur + tempe: 9 g protein per Rp1.000, ayam geprek:
+  4 g". Saran menu "masih muat di sisa kalori" juga bisa diurutkan dari yang
+  paling hemat.
+- **Anggaran**: batas belanja makan harian atau bulanan, dengan sisa anggaran
+  ditampilkan di samping sisa kalori.
+- **Data**: `food_log` mendapat kolom `price_idr`; ringkasan dihitung dari
+  catatan yang sudah ada, tanpa tabel baru.
+
 ## Pengembangan
 
 ```bash
