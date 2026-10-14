@@ -43,6 +43,7 @@ import {
   useApkUpdate,
 } from "@/src/lib/apk-update";
 import { isHealthSyncSupported, syncHealthData } from "@/src/lib/health-sync";
+import { backfillNutritionToHealth, isNutritionMirrorSupported } from "@/src/lib/health-nutrition";
 import {
   loadReminderPrefs,
   setMealReminders,
@@ -205,6 +206,20 @@ export default function Profil() {
       }
       setHcMessage(summary);
       queryClient.invalidateQueries();
+    } catch (e) {
+      setHcError(errorMessage(e));
+    } finally {
+      setHcBusy(false);
+    }
+  };
+
+  const writeNutrition = async () => {
+    setHcBusy(true);
+    setHcError(null);
+    setHcMessage(null);
+    try {
+      const result = await backfillNutritionToHealth();
+      setHcMessage(`${result.meals} makanan 30 hari terakhir ditulis ke Health Connect.`);
     } catch (e) {
       setHcError(errorMessage(e));
     } finally {
@@ -565,6 +580,21 @@ export default function Profil() {
             onPress={() => void importHealthData()}
             loading={hcBusy}
           />
+          {isNutritionMirrorSupported() ? (
+            <>
+              <Text style={styles.note}>
+                Tulis makananmu (kalori, protein, karbo, lemak, serat) ke Health Connect agar
+                terbaca aplikasi lain. Makanan baru, hasil edit, dan hapus ikut tersinkron otomatis
+                setelah izin diberikan.
+              </Text>
+              <Button
+                variant="secondary"
+                label="Izinkan & Tulis Nutrisi 30 Hari"
+                onPress={() => void writeNutrition()}
+                loading={hcBusy}
+              />
+            </>
+          ) : null}
           {hcMessage ? <Text style={styles.note}>{hcMessage}</Text> : null}
           {hcError ? <Text style={styles.error}>{hcError}</Text> : null}
         </Card>

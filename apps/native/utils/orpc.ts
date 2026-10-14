@@ -6,6 +6,7 @@ import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { Platform } from "react-native";
 
 import { authClient } from "@/lib/auth-client";
+import { mirrorFoodCall } from "@/src/lib/health-nutrition";
 
 // Must stay named `ENV`: varlock's babel plugin only inlines `ENV.X` reads;
 // anything else hits the runtime proxy, which throws in release builds.
@@ -54,6 +55,13 @@ function serverBaseUrl(): string {
 
 export const link = new RPCLink({
   url: `${serverBaseUrl()}/rpc`,
+  interceptors: [
+    async (options) => {
+      const output = await options.next();
+      mirrorFoodCall(options.path, options.input, output);
+      return output;
+    },
+  ],
   fetch(request, init) {
     return expoFetch(request, {
       ...init,
