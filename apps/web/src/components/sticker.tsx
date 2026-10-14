@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
+import { MetaLine } from "@/components/meta-line";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { env } from "@/env.public";
 import { fmtInt } from "@/lib/format";
@@ -140,10 +141,7 @@ export function Sticker({
             )}
             <figcaption className="mt-3 flex flex-wrap items-center justify-center gap-2">
               <span className="rounded-full bg-card px-4 py-2 text-sm font-semibold shadow-float">
-                {name}
-                {kcal != null && (
-                  <span className="text-muted-foreground tabular-nums"> · {fmtInt(kcal)} kcal</span>
-                )}
+                <MetaLine items={[name, kcal != null ? `${fmtInt(kcal)} kcal` : null]} />
               </span>
               {photoId && (
                 <button

@@ -8,6 +8,7 @@ import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 
 import { Card, ListGroup, ListRow, Num, Skeleton, Text } from "@/components/ui";
+import { MetaLine } from "@/components/meta-line";
 import { orpc } from "@/utils/orpc";
 
 /** "Rp28.000" — one formatter shared by every plate-price UI. */
@@ -61,12 +62,15 @@ export function BelanjaSection() {
       >
         <View style={styles.headerText}>
           <Text style={styles.title}>Belanja makan</Text>
-          <Text style={styles.empty} numberOfLines={1}>
-            {`Hari ini ${fmtIdr(s.today)}`}
-            {s.budget?.remaining != null
-              ? ` · Sisa ${fmtIdr(s.budget.remaining)}`
-              : ` · Minggu ini ${fmtIdr(s.week)}`}
-          </Text>
+          <MetaLine
+            items={[
+              `Hari ini ${fmtIdr(s.today)}`,
+              s.budget?.remaining != null
+                ? `Sisa ${fmtIdr(s.budget.remaining)}`
+                : `Minggu ini ${fmtIdr(s.week)}`,
+            ]}
+            itemStyle={styles.empty}
+          />
         </View>
         <Ionicons
           name={open ? "chevron-up" : "chevron-down"}
@@ -117,8 +121,15 @@ export function BelanjaSection() {
                   <ListRow
                     key={row.key}
                     title={row.name}
-                    subtitle={row.place ?? undefined}
-                    value={`${fmtIdr(row.priceIdr)} · ${fmtProteinPer(row.proteinPer1000)} protein`}
+                    subtitle={
+                      <MetaLine
+                        items={[
+                          row.place ?? null,
+                          `${fmtProteinPer(row.proteinPer1000)} protein per Rp1.000`,
+                        ]}
+                      />
+                    }
+                    value={fmtIdr(row.priceIdr)}
                   />
                 ))}
               </ListGroup>
@@ -141,17 +152,19 @@ export function BelanjaCompact() {
   if (spending.isPending || spending.isError) return null;
   const s = spending.data;
   if (s.today === 0 && s.budget === null) return null;
-  const parts = [`Belanja makan hari ini: ${fmtIdr(s.today)}`];
-  if (s.budget?.remaining != null) {
-    parts.push(
-      s.budget.remaining < 0
-        ? `lewat anggaran ${fmtIdr(Math.abs(s.budget.remaining))}`
-        : `sisa anggaran ${fmtIdr(s.budget.remaining)}`,
-    );
-  }
   return (
     <Card>
-      <Text style={styles.compact}>{parts.join(" · ")}</Text>
+      <MetaLine
+        items={[
+          `Belanja makan hari ini: ${fmtIdr(s.today)}`,
+          s.budget?.remaining != null
+            ? s.budget.remaining < 0
+              ? `lewat anggaran ${fmtIdr(Math.abs(s.budget.remaining))}`
+              : `sisa anggaran ${fmtIdr(s.budget.remaining)}`
+            : null,
+        ]}
+        itemStyle={styles.compact}
+      />
     </Card>
   );
 }

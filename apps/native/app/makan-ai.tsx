@@ -28,6 +28,8 @@ import {
 } from "@/components/ui";
 import { PlateFields, plateInput } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
+import { MacroLine } from "@/components/macro-line";
+import { MetaLine } from "@/components/meta-line";
 import { ContextualTip } from "@/components/tips/contextual-tip";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { MealStory } from "@/components/story/story-card";
@@ -758,15 +760,11 @@ export default function MakanAi() {
             {items.map((item, index) => {
               const draft = drafts[index];
               if (!draft) return null;
-              const meta = [
-                item.portion,
-                item.grams !== undefined ? `± ${Math.round(item.grams)} g` : null,
-                item.confidence !== undefined
-                  ? `yakin ${Math.round(item.confidence * 100)}%`
-                  : "perkiraan AI",
-              ]
-                .filter(Boolean)
-                .join(" • ");
+              const hasMacros =
+                item.protein !== undefined ||
+                item.carbs !== undefined ||
+                item.fat !== undefined ||
+                item.fiber !== undefined;
               return (
                 <ListRow
                   key={`${item.name}-${index}`}
@@ -782,17 +780,28 @@ export default function MakanAi() {
                     ) : undefined
                   }
                   title={item.name}
-                  subtitle={[
-                    meta,
-                    item.protein !== undefined ||
-                    item.carbs !== undefined ||
-                    item.fat !== undefined ||
-                    item.fiber !== undefined
-                      ? `P ${Math.round(item.protein ?? 0)} · K ${Math.round(item.carbs ?? 0)} · L ${Math.round(item.fat ?? 0)} · S ${Math.round(item.fiber ?? 0)} g`
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join("\n")}
+                  subtitle={
+                    <View style={styles.itemMeta}>
+                      <MetaLine
+                        items={[
+                          item.portion,
+                          item.grams !== undefined ? `± ${Math.round(item.grams)} g` : null,
+                          item.confidence !== undefined
+                            ? `yakin ${Math.round(item.confidence * 100)}%`
+                            : "perkiraan AI",
+                        ]}
+                      />
+                      {hasMacros ? (
+                        <MacroLine
+                          compact
+                          protein={item.protein ?? null}
+                          carbs={item.carbs ?? null}
+                          fat={item.fat ?? null}
+                          fiber={item.fiber ?? null}
+                        />
+                      ) : null}
+                    </View>
+                  }
                   right={
                     <View style={styles.kcalEdit}>
                       <Input
@@ -913,9 +922,7 @@ export default function MakanAi() {
         <Text style={styles.doneText}>Makanan dari foto sudah masuk ke catatan hari ini.</Text>
         <View style={styles.doneActions}>
           <Button label="Lihat Daftar Makanan" onPress={() => router.replace("/makan")} />
-          {mealStory ? (
-            <ShareStoryButton story={mealStory} variant="secondary" />
-          ) : null}
+          {mealStory ? <ShareStoryButton story={mealStory} variant="secondary" /> : null}
           <Button variant="secondary" label="Foto Lagi" onPress={resetToCamera} />
         </View>
       </View>
@@ -1202,6 +1209,9 @@ const styles = StyleSheet.create((theme) => ({
     height: 40,
     borderRadius: 20,
     backgroundColor: theme.colors.muted,
+  },
+  itemMeta: {
+    gap: 2,
   },
   kcalEdit: {
     flexDirection: "row",

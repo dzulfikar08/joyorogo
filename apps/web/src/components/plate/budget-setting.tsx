@@ -1,13 +1,13 @@
 import { Button } from "@joyorogo/ui/components/button";
-import { Input } from "@joyorogo/ui/components/input";
 import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { FieldLabel } from "@/components/kit/surface";
-import { parseNum } from "@/lib/format";
+import { IdrInput } from "@/components/plate/idr-input";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
@@ -35,10 +35,7 @@ export function BudgetSetting() {
         if (!old) return old;
         return {
           ...old,
-          budget:
-            input.idr !== null
-              ? { idr: input.idr, period: input.period ?? "month" }
-              : null,
+          budget: input.idr !== null ? { idr: input.idr, period: input.period ?? "month" } : null,
         };
       });
     },
@@ -49,8 +46,7 @@ export function BudgetSetting() {
       if (!prev) return { message: "Anggaran disimpan" };
       return {
         message: "Anggaran disimpan",
-        undo: () =>
-          void client.plate.setBudget({ idr: prev.idr, period: prev.period }),
+        undo: () => void client.plate.setBudget({ idr: prev.idr, period: prev.period }),
       };
     },
   });
@@ -69,15 +65,7 @@ export function BudgetSetting() {
       <div className="mt-3 flex items-end gap-2">
         <div className="w-36">
           <FieldLabel htmlFor="food-budget">Batas (Rp)</FieldLabel>
-          <Input
-            id="food-budget"
-            type="number"
-            min="0"
-            inputMode="numeric"
-            value={value}
-            placeholder="mis. 50000"
-            onChange={(event) => setAmount(event.target.value)}
-          />
+          <IdrInput id="food-budget" value={value} onChange={setAmount} placeholder="mis. 50.000" />
         </div>
         <div role="group" aria-label="Periode anggaran" className="flex rounded-full bg-muted p-1">
           {(["day", "month"] as const).map((option) => (
@@ -102,8 +90,8 @@ export function BudgetSetting() {
           size="sm"
           disabled={setBudget.isPending}
           onClick={() => {
-            const parsed = parseNum(value);
-            if (parsed === null || parsed < 0) {
+            const parsed = parseIdrInput(value);
+            if (parsed === null) {
               toast.error("Isi angka rupiah yang valid, atau kosongkan.");
               return;
             }

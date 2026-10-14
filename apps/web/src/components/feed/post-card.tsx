@@ -24,6 +24,7 @@ import { Card } from "@/components/kit/surface";
 import { CommentsSheet } from "@/components/feed/comments-sheet";
 import { PhotoGrid } from "@/components/feed/photo-grid";
 import { PostMenuSheet } from "@/components/feed/post-menu";
+import { MacroLine } from "@/components/macro-line";
 import { Sticker, postPhotoUrl, stickerUrl } from "@/components/sticker";
 import type { FeedPost } from "@/lib/api-types";
 import { fmtInt, timeAgo } from "@/lib/format";
@@ -110,13 +111,15 @@ function PostMedia({ post, className }: { post: FeedPost; className?: string }) 
 function MacroChips({ post }: { post: FeedPost }) {
   const macros = post.macros;
   if (!macros) return null;
-  const parts = [
-    macros.protein != null ? `P ${fmtInt(macros.protein)}` : null,
-    macros.carbs != null ? `K ${fmtInt(macros.carbs)}` : null,
-    macros.fat != null ? `L ${fmtInt(macros.fat)}` : null,
-  ].filter(Boolean);
-  if (parts.length === 0) return null;
-  return <p className="text-xs font-semibold text-muted-foreground">{parts.join(" · ")} g</p>;
+  return (
+    <MacroLine
+      compact
+      protein={macros.protein}
+      carbs={macros.carbs}
+      fat={macros.fat}
+      className="text-xs font-semibold text-muted-foreground"
+    />
+  );
 }
 
 function WorkoutChips({ post }: { post: FeedPost }) {
@@ -156,7 +159,9 @@ function WeightChips({ post }: { post: FeedPost }) {
         <li
           className={cn(
             "rounded-full px-2.5 py-1 text-xs font-bold",
-            delta < 0 ? "bg-primary/10 text-primary" : "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+            delta < 0
+              ? "bg-primary/10 text-primary"
+              : "bg-amber-500/15 text-amber-600 dark:text-amber-400",
           )}
         >
           {delta < 0 ? `Turun ${fmtInt(Math.abs(delta))} kg` : `Naik ${fmtInt(delta)} kg`}
@@ -217,9 +222,7 @@ export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
             <Avatar name={author.name} image={author.image} className="size-10" />
             <span className="min-w-0">
               <span className="block truncate text-sm font-bold">{author.name}</span>
-              <span className="block truncate text-xs text-muted-foreground">
-                @{author.handle}
-              </span>
+              <span className="block truncate text-xs text-muted-foreground">@{author.handle}</span>
             </span>
           </Link>
         ) : (
@@ -301,12 +304,7 @@ export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
         onOpenChange={setMenuOpen}
         onDeleted={() => queryClient.invalidateQueries({ queryKey: orpc.social.key() })}
       />
-      <CommentsSheet
-        post={post}
-        isOwn={isOwn}
-        open={commentsOpen}
-        onOpenChange={setCommentsOpen}
-      />
+      <CommentsSheet post={post} isOwn={isOwn} open={commentsOpen} onOpenChange={setCommentsOpen} />
     </Card>
   );
 }

@@ -42,6 +42,7 @@ import {
   StatTile,
   Text,
 } from "@/components/ui";
+import { MetaLine } from "@/components/meta-line";
 import { WaterCard } from "@/components/water-card";
 import { FastingScheduleCard } from "@/components/fasting/schedule-card";
 import { DailyTipCard } from "@/components/tips/daily-tip-card";
@@ -435,9 +436,10 @@ export default function Dashboard() {
                 <Text style={styles.ideaChipName} numberOfLines={2}>
                   {idea.name}
                 </Text>
-                <Text style={styles.ideaChipMeta}>
-                  {fmtKcal(idea.kcal)} kcal · {fmtKcal(idea.proteinG)} g protein
-                </Text>
+                <MetaLine
+                  items={[`${fmtKcal(idea.kcal)} kcal`, `${fmtKcal(idea.proteinG)} g protein`]}
+                  itemStyle={styles.ideaChipMeta}
+                />
               </View>
             ))}
           </ScrollView>

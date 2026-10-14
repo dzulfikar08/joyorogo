@@ -1,4 +1,5 @@
 import { MEALS, jakartaToday, relativeDayLabel, storySlotLabel } from "@joyorogo/api/lib/engine";
+import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
@@ -13,6 +14,8 @@ import type { StoryFoodItem } from "@/lib/api-types";
 import { isPaywallError } from "@/lib/billing";
 import { removeById } from "@joyorogo/api/lib/optimistic";
 import { FieldLabel } from "@/components/kit/surface";
+import { MetaLine } from "@/components/meta-line";
+import { IdrInput } from "@/components/plate/idr-input";
 import { fmtInt, parseNum } from "@/lib/format";
 import { OptimisticCache, UNDO_LABEL, UNDO_TOAST_MS } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
@@ -260,7 +263,16 @@ export function Cerita({
     }
     setSaving(true);
     let saved = 0;
-    const created: Array<{ id: string; date: string; meal: string; kcal: number; protein?: number | null; carbs?: number | null; fat?: number | null; fiber?: number | null }> = [];
+    const created: Array<{
+      id: string;
+      date: string;
+      meal: string;
+      kcal: number;
+      protein?: number | null;
+      carbs?: number | null;
+      fat?: number | null;
+      fiber?: number | null;
+    }> = [];
     try {
       let plateId: string | null = null;
       let plateGroup: string | null = null;
@@ -269,7 +281,7 @@ export function Cerita({
         const plateForm = plates[group];
         // First item of a group creates the plate; the rest join it.
         const startsGroup = group !== plateGroup;
-        const priceNum = plateForm ? parseNum(plateForm.price) : null;
+        const priceNum = plateForm ? parseIdrInput(plateForm.price) : null;
         if (priceNum !== null && priceNum < 0) {
           throw new Error("Harga piring belum valid (angka rupiah).");
         }
@@ -345,21 +357,30 @@ export function Cerita({
                     // row and pull the rendered totals down with it.
                     cache.value<{
                       items: Array<{ id: string }>;
-                      totals: { kcal: number; protein: number; carbs: number; fat: number; fiber: number };
-                    }>(orpc.food.listByDate.queryOptions({ input: { date: row.date } }).queryKey, (old) => {
-                      if (!old || !old.items.some((item) => item.id === row.id)) return old;
-                      return {
-                        ...old,
-                        items: removeById(old.items, row.id),
-                        totals: {
-                          kcal: Math.max(0, old.totals.kcal - row.kcal),
-                          protein: Math.max(0, old.totals.protein - (row.protein ?? 0)),
-                          carbs: Math.max(0, old.totals.carbs - (row.carbs ?? 0)),
-                          fat: Math.max(0, old.totals.fat - (row.fat ?? 0)),
-                          fiber: Math.max(0, old.totals.fiber - (row.fiber ?? 0)),
-                        },
+                      totals: {
+                        kcal: number;
+                        protein: number;
+                        carbs: number;
+                        fat: number;
+                        fiber: number;
                       };
-                    });
+                    }>(
+                      orpc.food.listByDate.queryOptions({ input: { date: row.date } }).queryKey,
+                      (old) => {
+                        if (!old || !old.items.some((item) => item.id === row.id)) return old;
+                        return {
+                          ...old,
+                          items: removeById(old.items, row.id),
+                          totals: {
+                            kcal: Math.max(0, old.totals.kcal - row.kcal),
+                            protein: Math.max(0, old.totals.protein - (row.protein ?? 0)),
+                            carbs: Math.max(0, old.totals.carbs - (row.carbs ?? 0)),
+                            fat: Math.max(0, old.totals.fat - (row.fat ?? 0)),
+                            fiber: Math.max(0, old.totals.fiber - (row.fiber ?? 0)),
+                          },
+                        };
+                      },
+                    );
                     cache.summary({
                       date: row.date,
                       kcal: -row.kcal,
@@ -460,9 +481,16 @@ export function Cerita({
                         {item.name}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        {[item.portion, item.grams != null ? `± ${fmtInt(item.grams)} g` : null]
-                          .filter(Boolean)
-                          .join(" · ") || "1 porsi"}
+                        {item.portion || item.grams != null ? (
+                          <MetaLine
+                            items={[
+                              item.portion,
+                              item.grams != null ? `± ${fmtInt(item.grams)} g` : null,
+                            ]}
+                          />
+                        ) : (
+                          "1 porsi"
+                        )}
                       </span>
                     </span>
                     <Input
@@ -506,14 +534,11 @@ export function Cerita({
                 </div>
                 <div className="w-32">
                   <FieldLabel htmlFor={`plate-price-${label}`}>Harga (Rp)</FieldLabel>
-                  <Input
+                  <IdrInput
                     id={`plate-price-${label}`}
-                    type="number"
-                    min="0"
-                    inputMode="numeric"
                     value={plates[order(first)]?.price ?? ""}
-                    onChange={(event) => updatePlate(order(first), { price: event.target.value })}
-                    placeholder="28000"
+                    onChange={(price) => updatePlate(order(first), { price })}
+                    placeholder="mis. 28.000"
                     className="h-11 bg-muted text-right font-bold"
                   />
                 </div>

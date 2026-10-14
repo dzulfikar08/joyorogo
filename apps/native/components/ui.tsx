@@ -427,7 +427,8 @@ export function ListRow({
   iconTint?: Tint | "muted";
   thumb?: React.ReactNode;
   title: string;
-  subtitle?: string;
+  /** Plain text, or a node (e.g. MacroLine) styled like the subtitle. */
+  subtitle?: string | React.ReactNode;
   value?: string;
   chevron?: boolean;
   destructive?: boolean;
@@ -462,9 +463,13 @@ export function ListRow({
           {title}
         </Text>
         {subtitle ? (
-          <Text style={styles.rowSubtitle} numberOfLines={2}>
-            {subtitle}
-          </Text>
+          typeof subtitle === "string" ? (
+            <Text style={styles.rowSubtitle} numberOfLines={2}>
+              {subtitle}
+            </Text>
+          ) : (
+            <View style={styles.rowSubtitleBox}>{subtitle}</View>
+          )
         ) : null}
       </View>
       {value ? <Num style={styles.rowValue}>{value}</Num> : null}
@@ -528,11 +533,7 @@ export function Sheet({
         {/* keyboard-controller's KAV pads on both platforms, including Android
             edge-to-edge and inside this Modal. box-none lets taps on the empty
             area above the panel reach the backdrop. */}
-        <KeyboardAvoidingView
-          behavior="padding"
-          pointerEvents="box-none"
-          style={styles.sheetAvoid}
-        >
+        <KeyboardAvoidingView behavior="padding" pointerEvents="box-none" style={styles.sheetAvoid}>
           <View style={[styles.sheetPanel, { paddingBottom: Math.max(insets.bottom, 16) }]}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>{title}</Text>
@@ -1030,6 +1031,12 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
     lineHeight: 18,
+  },
+  rowSubtitleBox: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    marginTop: 2,
   },
   rowValue: {
     fontSize: theme.fontSize.base,

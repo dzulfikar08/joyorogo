@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet } from "react-native-unistyles";
 
+import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/format";
+
 import { Button, Field, Input, Card, Segmented, Text } from "@/components/ui";
-import { errorMessage, parseNum } from "@/utils/format";
+import { errorMessage } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 
@@ -15,7 +17,11 @@ export function BudgetSetting() {
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
   type BudgetInput = { idr: number | null; period: "day" | "month" };
 
-  const setBudget = useOptimisticMutation<BudgetInput, unknown, { idr: number | null; period: "day" | "month" } | null>({
+  const setBudget = useOptimisticMutation<
+    BudgetInput,
+    unknown,
+    { idr: number | null; period: "day" | "month" } | null
+  >({
     mutationFn: (input) => client.plate.setBudget(input),
     patch: (input, cache) => {
       const key = orpc.profile.myProfile.queryOptions().queryKey;
@@ -27,7 +33,8 @@ export function BudgetSetting() {
           ? null
           : {
               idr: previous.profile.foodBudgetIdr,
-              period: previous.profile.foodBudgetPeriod === "day" ? ("day" as const) : ("month" as const),
+              period:
+                previous.profile.foodBudgetPeriod === "day" ? ("day" as const) : ("month" as const),
             };
       cache.value<typeof previous>(key, (old) => ({
         ...old,
@@ -55,6 +62,8 @@ export function BudgetSetting() {
     profile.data?.profile?.foodBudgetPeriod === "day" ? "day" : "month",
   );
   const [error, setError] = useState<string | null>(null);
+  // Caret inside the amount input, so backspacing a separator drops the digit.
+  const amountCaret = useRef(0);
 
   // Prefill once the profile lands; later refetches never clobber typing.
   useEffect(() => {
@@ -63,12 +72,12 @@ export function BudgetSetting() {
   }, [current !== null]);
 
   const save = () => {
-    const value = amount.trim() === "" ? null : parseNum(amount);
-    if (value !== null && (value < 0 || !Number.isInteger(value))) {
+    const value = parseIdrInput(amount);
+    if (amount.trim() !== "" && value === null) {
       setError("Isi angka rupiah bulat, contoh: 30000.");
       return;
     }
-    setBudget.mutate({ idr: value !== null ? Math.round(value) : null, period });
+    setBudget.mutate({ idr: value, period });
   };
 
   return (
@@ -79,11 +88,16 @@ export function BudgetSetting() {
       </Text>
       <Field label="Jumlah (Rp)" hint="Kosongkan untuk mematikan anggaran.">
         <Input
-          value={amount}
-          onChangeText={setAmount}
+          value={formatIdrInput(amount)}
+          onChangeText={(text) =>
+            setAmount(idrKeystroke(text, formatIdrInput(amount), amountCaret.current))
+          }
+          onSelectionChange={({ nativeEvent: { selection } }) => {
+            amountCaret.current = selection.start;
+          }}
           keyboardType="number-pad"
-          maxLength={9}
-          placeholder="30000"
+          maxLength={13}
+          placeholder="Rp0"
           accessibilityLabel="Jumlah anggaran belanja makan"
         />
       </Field>

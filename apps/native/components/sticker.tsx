@@ -6,6 +6,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { File, Paths } from "expo-file-system";
 
 import { Text } from "@/components/ui";
+import { MetaLine } from "@/components/meta-line";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { authClient } from "@/lib/auth-client";
 // Must stay named `ENV`: varlock's babel plugin only inlines `ENV.X` reads;
@@ -136,9 +137,10 @@ export function StickerViewer({
             <Image source={{ uri: viewer?.uri }} style={styles.viewerImage} resizeMode="contain" />
           )}
           <View style={styles.viewerCaptionRow}>
-            <Text style={styles.viewerCaption}>
-              {viewer?.name} · {fmtKcal(viewer?.kcal ?? 0)} kcal
-            </Text>
+            <MetaLine
+              items={[viewer?.name ?? null, `${fmtKcal(viewer?.kcal ?? 0)} kcal`]}
+              itemStyle={styles.viewerCaption}
+            />
             {viewer?.photoId ? (
               <Pressable
                 accessibilityRole="button"

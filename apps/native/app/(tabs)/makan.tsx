@@ -17,9 +17,11 @@ import {
   suggestMealNow,
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/format";
 
 import { BelanjaSection } from "@/components/plate/belanja";
 import { PlateHeader } from "@/components/plate/plate-header";
+import { MacroLine } from "@/components/macro-line";
 import { DaySwitcher } from "@/components/day-switcher";
 import { Cerita } from "@/components/cerita";
 import type { CeritaPhase } from "@/components/cerita";
@@ -227,10 +229,8 @@ export default function Makan() {
       const listKey = orpc.food.listByDate.queryOptions({ input: { date: row.date } }).queryKey;
       let lastOfPlate = false;
       stripFoodRow(cache, listKey, row);
-      const remaining =
-        queryClient.getQueryData<{ items: FoodRow[] }>(listKey)?.items ?? [];
-      lastOfPlate =
-        row.plateId !== null && !remaining.some((item) => item.plateId === row.plateId);
+      const remaining = queryClient.getQueryData<{ items: FoodRow[] }>(listKey)?.items ?? [];
+      lastOfPlate = row.plateId !== null && !remaining.some((item) => item.plateId === row.plateId);
       cache.summary(foodSummaryDelta(row, -1));
       if (row.plateId !== null && lastOfPlate) {
         const plateKey = orpc.plate.byDate.queryOptions({ input: { date: row.date } }).queryKey;
@@ -345,6 +345,9 @@ export default function Makan() {
   const [macrosOpen, setMacrosOpen] = useState(false);
   // Manual form's optional plate price, and the diary's inline plate editor.
   const [platePriceManual, setPlatePriceManual] = useState("");
+  // Caret inside the manual price input, so backspacing a separator drops the
+  // digit instead of letting the separator snap back.
+  const priceCaret = useRef(0);
   const [plateEdit, setPlateEdit] = useState<{
     id: string;
     name: string;
@@ -353,9 +356,12 @@ export default function Makan() {
   } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [viewer, setViewer] = useState<StickerViewerTarget | null>(null);
-  const [shareTarget, setShareTarget] = useState<
-    null | { kind: "makan"; refId: string; title: string; preview: string }
-  >(null);
+  const [shareTarget, setShareTarget] = useState<null | {
+    kind: "makan";
+    refId: string;
+    title: string;
+    preview: string;
+  }>(null);
   const quickAddRef = useRef(false);
 
   if (gate === "loading") {
@@ -406,8 +412,8 @@ export default function Makan() {
     const proteinNum = parseNum(protein);
     const carbsNum = parseNum(carbs);
     const fatNum = parseNum(fat);
-    const priceNum = platePriceManual.trim() === "" ? null : parseNum(platePriceManual);
-    if (priceNum !== null && (priceNum < 0 || !Number.isInteger(priceNum))) {
+    const priceNum = parseIdrInput(platePriceManual);
+    if (platePriceManual.trim() !== "" && priceNum === null) {
       setFormError("Harga piringnya angka rupiah bulat, contoh: 28000.");
       return;
     }
@@ -493,6 +499,16 @@ export default function Makan() {
                   segment.plateId !== null
                     ? ((plateDayQuery.data ?? []).find((row) => row.id === segment.plateId) ?? null)
                     : null;
+                const segmentKcal = segment.rows.reduce((sum, item) => sum + item.kcal, 0);
+                const anyMacro = segment.rows.some(
+                  (item) =>
+                    item.protein !== null ||
+                    item.carbs !== null ||
+                    item.fat !== null ||
+                    item.fiber !== null,
+                );
+                const sumMacro = (pick: (item: (typeof segment.rows)[number]) => number | null) =>
+                  anyMacro ? segment.rows.reduce((sum, item) => sum + (pick(item) ?? 0), 0) : null;
                 return (
                   <View key={segment.plateId ?? `plain-${segmentIndex}`}>
                     {plateRow ? (
@@ -503,17 +519,22 @@ export default function Makan() {
                           priceIdr: plateRow.priceIdr,
                           date: plateRow.date,
                         }}
+                        kcal={segmentKcal}
+                        protein={sumMacro((item) => item.protein)}
+                        carbs={sumMacro((item) => item.carbs)}
+                        fat={sumMacro((item) => item.fat)}
+                        fiber={sumMacro((item) => item.fiber)}
                         edit={plateEdit}
                         onEdit={setPlateEdit}
                         onSave={(id, editName, price, moveDate) => {
-                          const priceNum = parseNum(price);
+                          const priceNum = price.trim() === "" ? null : parseIdrInput(price);
                           updatePlate.mutate({
                             id,
                             ...(editName.trim() !== "" ? { name: editName.trim() } : {}),
                             ...(price.trim() === ""
                               ? { priceIdr: null }
                               : priceNum !== null && priceNum >= 0
-                                ? { priceIdr: Math.round(priceNum) }
+                                ? { priceIdr: priceNum }
                                 : {}),
                             ...(moveDate ? { date: moveDate } : {}),
                           });
@@ -526,11 +547,19 @@ export default function Makan() {
                         key={item.id}
                         title={item.name}
                         subtitle={
-                          item.protein !== null || item.carbs !== null || item.fat !== null
-                            ? `P ${fmtKcal(item.protein ?? 0)} · K ${fmtKcal(item.carbs ?? 0)} · L ${fmtKcal(item.fat ?? 0)} g`
-                            : item.source === "ai"
-                              ? "Dari pindai AI"
-                              : undefined
+                          [item.protein, item.carbs, item.fat, item.fiber].some(
+                            (g) => (g ?? 0) > 0,
+                          ) ? (
+                            <MacroLine
+                              compact
+                              protein={item.protein}
+                              carbs={item.carbs}
+                              fat={item.fat}
+                              fiber={item.fiber}
+                            />
+                          ) : item.source === "ai" ? (
+                            "Dari pindai AI"
+                          ) : undefined
                         }
                         value={`${fmtKcal(item.kcal)}`}
                         thumb={
@@ -825,11 +854,18 @@ export default function Makan() {
             </Field>
             <Field label="Harga piring ini (Rp, opsional)">
               <Input
-                value={platePriceManual}
-                onChangeText={setPlatePriceManual}
+                value={formatIdrInput(platePriceManual)}
+                onChangeText={(text) =>
+                  setPlatePriceManual(
+                    idrKeystroke(text, formatIdrInput(platePriceManual), priceCaret.current),
+                  )
+                }
+                onSelectionChange={({ nativeEvent: { selection } }) => {
+                  priceCaret.current = selection.start;
+                }}
                 keyboardType="number-pad"
-                maxLength={9}
-                placeholder="28000"
+                maxLength={13}
+                placeholder="Rp0"
                 accessibilityLabel="Harga piring ini dalam rupiah"
               />
             </Field>

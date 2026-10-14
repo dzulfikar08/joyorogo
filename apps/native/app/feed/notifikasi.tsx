@@ -13,6 +13,7 @@ import {
   Screen,
   Skeleton,
 } from "@/components/ui";
+import { MetaLine } from "@/components/meta-line";
 import { openAuthor } from "@/components/feed/post-card";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { client, orpc } from "@/utils/orpc";
@@ -105,13 +106,15 @@ export default function Notifikasi() {
                 icon={copy.icon}
                 iconTint={item.readAt === null ? "bakar" : undefined}
                 title={rowTitle(item)}
-                subtitle={[
-                  item.excerpt ?? null,
-                  item.postKind ? KIND_META[item.postKind].label : null,
-                  timeAgoId(item.createdAt),
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
+                subtitle={
+                  <MetaLine
+                    items={[
+                      item.excerpt ?? null,
+                      item.postKind ? KIND_META[item.postKind].label : null,
+                      timeAgoId(item.createdAt),
+                    ]}
+                  />
+                }
                 onPress={() => press(item)}
               />
             );

@@ -3,7 +3,14 @@ import { Pressable, View } from "react-native";
 import { useState } from "react";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { jakartaToday, relativeDayLabel, shiftDate } from "@joyorogo/api/lib/engine";
+import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
+import {
+  daysInMonth,
+  monthLabel,
+  parseDateKey,
+  recentDayLabel,
+  weekdayIndex,
+} from "@joyorogo/api/lib/format";
 
 import { Chip, Sheet, Text } from "@/components/ui";
 
@@ -12,20 +19,8 @@ const WINDOW_DAYS = 30;
 
 const WEEKDAYS = ["Sn", "Sl", "R", "K", "J", "S", "M"] as const;
 
-/** Monday-first index of a day key (YYYY-MM-DD). */
-function weekdayIndex(date: string): number {
-  const dow = new Date(`${date}T00:00:00Z`).getUTCDay();
-  return (dow + 6) % 7;
-}
-
 /** Chip shortcuts for the three most recent days. */
-export function DayChips({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (date: string) => void;
-}) {
+export function DayChips({ value, onChange }: { value: string; onChange: (date: string) => void }) {
   const today = jakartaToday();
   const options = [today, shiftDate(today, -1), shiftDate(today, -2)];
   return (
@@ -33,7 +28,7 @@ export function DayChips({
       {options.map((date) => (
         <Chip
           key={date}
-          label={relativeDayLabel(date, today)}
+          label={recentDayLabel(date, today)}
           selected={value === date}
           onPress={() => onChange(date)}
         />
@@ -43,7 +38,9 @@ export function DayChips({
 }
 
 /** Month grid in WIB day keys: future days and anything outside the window
- * are rendered dim and untappable. Months step one at a time within bounds. */
+ * are rendered dim and untappable. Months step one at a time within bounds.
+ * `month` is a 'YYYY-MM' key — everything is parsed by hand because the
+ * string Date constructor and Intl are unreliable on Hermes. */
 function MonthGrid({
   value,
   month,
@@ -59,29 +56,22 @@ function MonthGrid({
   const today = jakartaToday();
   const min = shiftDate(today, -WINDOW_DAYS);
 
-  const year = Number(month.slice(0, 4));
-  const monthIndex = Number(month.slice(5, 7)) - 1;
-  const first = `${month}-01`;
-  const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
-  const leading = weekdayIndex(first);
+  const parts = parseDateKey(`${month}-01`);
+  if (!parts) return null;
 
-  const canPrev = `${month}-01` > `${min.slice(0, 7)}-01`;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const canPrev = month > min.slice(0, 7);
   const canNext = month < today.slice(0, 7);
   const prevMonth =
-    monthIndex === 0 ? `${year - 1}-12-01` : `${year}-${String(monthIndex).padStart(2, "0")}-01`;
+    parts.month === 1 ? `${parts.year - 1}-12` : `${parts.year}-${pad(parts.month - 1)}`;
   const nextMonth =
-    monthIndex === 11 ? `${year + 1}-01-01` : `${year}-${String(monthIndex + 2).padStart(2, "0")}-01`;
-  const monthLabel = new Date(`${first}T00:00:00Z`).toLocaleDateString("id-ID", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
+    parts.month === 12 ? `${parts.year + 1}-01` : `${parts.year}-${pad(parts.month + 1)}`;
+  const total = daysInMonth(parts.year, parts.month);
+  const leading = weekdayIndex(`${month}-01`);
 
-  const cells: Array<string | null> = [];
+  const cells: Array<{ key: string; day: number } | null> = [];
   for (let i = 0; i < leading; i++) cells.push(null);
-  for (let day = 1; day <= daysInMonth; day++) {
-    cells.push(`${month}-${String(day).padStart(2, "0")}`);
-  }
+  for (let day = 1; day <= total; day++) cells.push({ key: `${month}-${pad(day)}`, day });
 
   return (
     <View>
@@ -91,17 +81,25 @@ function MonthGrid({
           accessibilityLabel="Bulan sebelumnya"
           disabled={!canPrev}
           onPress={() => onMonth(prevMonth)}
-          style={({ pressed }) => [styles.monthNav, pressed && styles.pressedSoft, !canPrev && styles.dim]}
+          style={({ pressed }) => [
+            styles.monthNav,
+            pressed && styles.pressedSoft,
+            !canPrev && styles.dim,
+          ]}
         >
           <Ionicons name="chevron-back" size={18} color={theme.colors.foreground} />
         </Pressable>
-        <Text style={styles.monthLabel}>{monthLabel}</Text>
+        <Text style={styles.monthLabel}>{monthLabel(month)}</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Bulan berikutnya"
           disabled={!canNext}
           onPress={() => onMonth(nextMonth)}
-          style={({ pressed }) => [styles.monthNav, pressed && styles.pressedSoft, !canNext && styles.dim]}
+          style={({ pressed }) => [
+            styles.monthNav,
+            pressed && styles.pressedSoft,
+            !canNext && styles.dim,
+          ]}
         >
           <Ionicons name="chevron-forward" size={18} color={theme.colors.foreground} />
         </Pressable>
@@ -112,20 +110,20 @@ function MonthGrid({
             {label}
           </Text>
         ))}
-        {cells.map((date, index) => {
-          if (date === null) {
+        {cells.map((cell, index) => {
+          if (cell === null) {
             return <View key={`empty-${index}`} style={styles.cell} />;
           }
-          const disabled = date > today || date < min;
-          const selected = date === value;
+          const disabled = cell.key > today || cell.key < min;
+          const selected = cell.key === value;
           return (
             <Pressable
-              key={date}
+              key={cell.key}
               accessibilityRole="button"
-              accessibilityLabel={date}
+              accessibilityLabel={cell.key}
               accessibilityState={{ selected, disabled }}
               disabled={disabled}
-              onPress={() => onPick(date)}
+              onPress={() => onPick(cell.key)}
               style={({ pressed }) => [
                 styles.cell,
                 styles.day,
@@ -140,7 +138,7 @@ function MonthGrid({
                   disabled && styles.dim,
                 ]}
               >
-                {Number(date.slice(8, 10))}
+                {cell.day}
               </Text>
             </Pressable>
           );
@@ -164,8 +162,17 @@ export function DateSheet({
 }) {
   const today = jakartaToday();
   // The grid opens on the chosen day's month; browsing stays independent of
-  // the chip picks until one lands.
-  const [month, setMonth] = useState(`${value.slice(0, 7)}-01`);
+  // the chip picks until one lands. Root cause of the dead calendar: the old
+  // init appended "-01" to the sliced key, so `month` became "2026-10-01"
+  // while the grid expects "YYYY-MM" — "2026-10-01" + "-01" parses as
+  // Invalid Date and every cell label sliced back to 1. Month is a plain
+  // 'YYYY-MM' key now, parsed by hand.
+  const [month, setMonth] = useState(() => {
+    const parts = parseDateKey(value);
+    return parts
+      ? `${parts.year}-${String(parts.month).padStart(2, "0")}`
+      : jakartaToday().slice(0, 7);
+  });
   return (
     <Sheet visible={visible} onClose={onClose} title="Pilih tanggal">
       <DayChips value={value} onChange={onPick} />

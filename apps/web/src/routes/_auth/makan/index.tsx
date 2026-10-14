@@ -6,6 +6,7 @@ import {
   suggestMealNow,
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import { parseIdrInput } from "@joyorogo/api/lib/format";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
@@ -22,17 +23,16 @@ import { DaySwitcher } from "@/components/day-switcher";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { FieldLabel, ListRow, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
 import { MakanSummaryCard } from "@/components/macro-card";
+import { MacroLine } from "@/components/macro-line";
+import { MetaLine } from "@/components/meta-line";
 import { BelanjaCard } from "@/components/plate/belanja";
 import { PlateDiary } from "@/components/plate/plate-group";
+import { IdrInput } from "@/components/plate/idr-input";
 import { ScreenError } from "@/components/screen-state";
 import { Sticker } from "@/components/sticker";
 import type { FoodAddInput, FoodItem, FoodRecentItem } from "@/lib/api-types";
 import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
-import {
-  OptimisticCache,
-  useDelayedDelete,
-  useOptimisticMutation,
-} from "@/lib/optimistic";
+import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import { upsertById, removeById } from "@joyorogo/api/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
@@ -209,9 +209,9 @@ function MakanPage() {
     remove: (row) => client.food.remove({ id: row.id }),
     patch: (row, cache) => {
       // Read remaining items BEFORE the strip, to decide plate cleanup.
-      const others = (queryClient.getQueryData<{ items: FoodItem[] }>(listOptions(row.date).queryKey)?.items ?? []).filter(
-        (item) => item.id !== row.id && item.plateId === row.plateId,
-      );
+      const others = (
+        queryClient.getQueryData<{ items: FoodItem[] }>(listOptions(row.date).queryKey)?.items ?? []
+      ).filter((item) => item.id !== row.id && item.plateId === row.plateId);
       stripFood(cache, row);
       cache.summary({
         date: row.date,
@@ -243,10 +243,7 @@ function MakanPage() {
 
   return (
     <Page className="md:max-w-3xl">
-      <PageHeader
-        title="Makan"
-        action={<DaySwitcher date={date} onChange={showDate} />}
-      />
+      <PageHeader title="Makan" action={<DaySwitcher date={date} onChange={showDate} />} />
 
       {daySummary.data?.targets && daySummary.data.protein && (
         <div className="mt-3">
@@ -398,7 +395,7 @@ function MakanPage() {
             if (!open) setShareItem(null);
           }}
           title="Bagikan makanan ini"
-          preview={`${shareItem.name} · ${fmtInt(shareItem.kcal)} kcal`}
+          preview={<MetaLine items={[shareItem.name, `${fmtInt(shareItem.kcal)} kcal`]} />}
           share={(input) =>
             client.social.createPost({
               kind: "makan",
@@ -422,12 +419,17 @@ function FoodRow({
   onDelete: () => void;
   onShare: () => void;
 }) {
-  const hasMacros = item.protein != null || item.carbs != null || item.fat != null;
-  const subtitle = hasMacros
-    ? `P ${fmtInt(item.protein ?? 0)} · K ${fmtInt(item.carbs ?? 0)} · L ${fmtInt(item.fat ?? 0)} g`
-    : item.source === "ai"
-      ? "Dari pindai AI"
-      : undefined;
+  const hasMacros = [item.protein, item.carbs, item.fat, item.fiber].some((g) => (g ?? 0) > 0);
+  const macros = hasMacros ? (
+    <MacroLine
+      compact
+      protein={item.protein}
+      carbs={item.carbs}
+      fat={item.fat}
+      fiber={item.fiber}
+    />
+  ) : null;
+  const subtitle = macros ?? (item.source === "ai" ? "Dari pindai AI" : undefined);
   const utensil = (
     <span
       className="flex size-9 items-center justify-center rounded-full bg-makan-soft"
@@ -537,8 +539,8 @@ function AddFoodSheet({
     const proteinNum = showMacros ? parseNum(protein) : null;
     const carbsNum = showMacros ? parseNum(carbs) : null;
     const fatNum = showMacros ? parseNum(fat) : null;
-    const priceNum = price.trim() === "" ? null : parseNum(price);
-    if (price.trim() !== "" && (priceNum === null || priceNum < 0)) {
+    const priceNum = parseIdrInput(price);
+    if (price.trim() !== "" && priceNum === null) {
       setError("Harga belum valid (angka rupiah).");
       return;
     }
@@ -699,14 +701,11 @@ function AddFoodSheet({
 
             <div className="w-44">
               <FieldLabel htmlFor={`${meal}-price`}>Harga sepiring (Rp, opsional)</FieldLabel>
-              <Input
+              <IdrInput
                 id={`${meal}-price`}
-                type="number"
-                min="0"
-                inputMode="numeric"
                 value={price}
-                onChange={(event) => setPrice(event.target.value)}
-                placeholder="12000"
+                onChange={setPrice}
+                placeholder="mis. 12.000"
               />
             </div>
 

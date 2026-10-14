@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 import { Ring } from "@/components/kit/ring";
 import { Card, Page, SectionTitle, StatTile } from "@/components/kit/surface";
+import { MetaLine } from "@/components/meta-line";
 import { Avatar } from "@/components/avatar";
 import { DailyTipCard } from "@/components/tips/daily-tip-card";
 import { FastingScheduleCard } from "@/components/fasting/schedule-card";
@@ -345,7 +346,9 @@ function EatHero({ summary }: { summary: Summary }) {
               <li key={idea.name} className="w-44 shrink-0 rounded-2xl bg-makan-soft px-3.5 py-3">
                 <p className="line-clamp-2 text-sm leading-snug font-semibold">{idea.name}</p>
                 <p className="mt-1.5 text-xs font-semibold text-makan-ink tabular-nums">
-                  {fmtInt(idea.kcal)} kcal · {fmtInt(idea.proteinG)} g protein
+                  <MetaLine
+                    items={[`${fmtInt(idea.kcal)} kcal`, `${fmtInt(idea.proteinG)} g protein`]}
+                  />
                 </p>
               </li>
             ))}
@@ -416,9 +419,7 @@ function TodayMeals({ summary, isToday }: { summary: Summary; isToday: boolean }
           </span>
         }
       >
-        {isToday
-          ? "Makan hari ini"
-          : `Makan ${relativeDayLabel(summary.date, jakartaToday())}`}
+        {isToday ? "Makan hari ini" : `Makan ${relativeDayLabel(summary.date, jakartaToday())}`}
       </SectionTitle>
       <ul className="overflow-hidden rounded-3xl bg-card">
         {slots.map((slot, index) => {
@@ -468,7 +469,10 @@ function Sparkline({ values, tone = "makan" }: { values: number[]; tone?: "makan
     .join(" ");
   return (
     <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-16 w-full" aria-hidden>
-      <path d={`${path} L${w},${h} L0,${h} Z`} className={tone === "makan" ? "fill-makan-soft" : "fill-primary/10"} />
+      <path
+        d={`${path} L${w},${h} L0,${h} Z`}
+        className={tone === "makan" ? "fill-makan-soft" : "fill-primary/10"}
+      />
       <path
         d={path}
         fill="none"
@@ -569,11 +573,7 @@ function WeightCard({
       <Sheet
         open={open}
         onOpenChange={setOpen}
-        title={
-          isToday
-            ? "Timbang hari ini"
-            : `Timbang ${relativeDayLabel(date, jakartaToday())}`
-        }
+        title={isToday ? "Timbang hari ini" : `Timbang ${relativeDayLabel(date, jakartaToday())}`}
         description="Satu catatan per hari. Menyimpan lagi menimpa angka tadi."
       >
         <form
@@ -682,7 +682,9 @@ function WaistCard({ date, isToday }: { date: string; isToday: boolean }) {
               <p className={cn("mt-0.5 text-sm font-semibold", status.tone)}>{status.text}</p>
             ) : (
               <p className="mt-0.5 text-sm text-muted-foreground">
-                {latest !== null ? "Lengkapi tinggi di profil untuk status risiko" : "Belum ada catatan"}
+                {latest !== null
+                  ? "Lengkapi tinggi di profil untuk status risiko"
+                  : "Belum ada catatan"}
               </p>
             )}
           </div>
@@ -794,9 +796,7 @@ function MoreSection({
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted p-4">
           <div>
             <p className="text-sm font-bold">Bagikan progres</p>
-            <p className="text-xs text-muted-foreground">
-              Kartu siap posting dari angka hari ini.
-            </p>
+            <p className="text-xs text-muted-foreground">Kartu siap posting dari angka hari ini.</p>
           </div>
           <ShareStoryButton
             size="sm"

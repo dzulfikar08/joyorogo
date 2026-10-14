@@ -1,29 +1,46 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, View } from "react-native";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
+import { jakartaToday } from "@joyorogo/api/lib/engine";
+import { formatIdrInput, idrKeystroke, recentDayLabel } from "@joyorogo/api/lib/format";
+
 import { Button, Input, Text } from "@/components/ui";
+import { MacroLine } from "@/components/macro-line";
 import { fmtIdr } from "@/components/plate/belanja";
 import { DayChips, DateSheet } from "@/components/plate/date-sheet";
+import { fmtKcal } from "@/utils/format";
 
-/** One plate's info as the diary shows it. */
+/** One plate's info as the diary shows it, with the components' totals. */
 type PlateInfo = { id: string; name: string; priceIdr: number | null };
 type PlateEdit = { id: string; name: string; price: string; date: string } | null;
 
 /**
- * Diary plate header: "Piring: Nasi padang · Rp28.000". Tapping opens a tiny
- * inline editor (name + price + day) saved via plate.update; an emptied price
- * clears it.
+ * Diary plate header: "Piring: Nasi padang · Rp28.000" plus the plate's total
+ * kcal (and protein when the rows carry it). Tapping opens a tiny inline
+ * editor (name + price + day) saved via plate.update; an emptied price clears
+ * it. `price` stays plain digits — the input renders it as "Rp28.000".
  */
 export function PlateHeader({
   plate,
+  kcal,
+  protein,
+  carbs,
+  fat,
+  fiber,
   edit,
   onEdit,
   onSave,
   saving,
 }: {
   plate: PlateInfo & { date: string };
+  /** Component totals summed by the diary, shown in the bar. */
+  kcal: number;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+  fiber: number | null;
   edit: PlateEdit;
   onEdit: (next: PlateEdit) => void;
   onSave: (id: string, name: string, price: string, date?: string) => void;
@@ -32,6 +49,9 @@ export function PlateHeader({
   const { theme } = useUnistyles();
   const [pickingDate, setPickingDate] = useState(false);
   const editing = edit?.id === plate.id;
+  const today = jakartaToday();
+  // Caret inside the price input, so backspacing a separator drops the digit.
+  const priceCaret = useRef(0);
 
   if (!editing) {
     return (
@@ -47,16 +67,24 @@ export function PlateHeader({
             date: plate.date,
           })
         }
-        style={({ pressed }) => [styles.bar, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.bar, styles.barColumn, pressed && styles.pressed]}
       >
-        <Ionicons name="restaurant" size={14} color={theme.colors.makanText} />
-        <Text style={styles.label} numberOfLines={1}>
-          Piring: {plate.name}
-        </Text>
-        {plate.priceIdr !== null ? (
-          <Text style={styles.price}>{fmtIdr(plate.priceIdr)}</Text>
+        <View style={styles.barRow}>
+          <Ionicons name="restaurant" size={14} color={theme.colors.makanText} />
+          <Text style={styles.label} numberOfLines={1}>
+            Piring: {plate.name}
+          </Text>
+          {plate.priceIdr !== null ? (
+            <Text style={styles.price}>{fmtIdr(plate.priceIdr)}</Text>
+          ) : null}
+          <Ionicons name="pencil" size={12} color={theme.colors.mutedForeground} />
+        </View>
+        {kcal > 0 ? (
+          <View style={styles.totals}>
+            <Text style={styles.kcal}>{fmtKcal(kcal)} kcal</Text>
+            <MacroLine protein={protein} carbs={carbs} fat={fat} fiber={fiber} />
+          </View>
         ) : null}
-        <Ionicons name="pencil" size={12} color={theme.colors.mutedForeground} />
       </Pressable>
     );
   }
@@ -73,11 +101,20 @@ export function PlateHeader({
       />
       <View style={styles.editRow}>
         <Input
-          value={edit.price}
-          onChangeText={(price) => edit && onEdit({ ...edit, price })}
+          value={formatIdrInput(edit.price)}
+          onChangeText={(text) =>
+            edit &&
+            onEdit({
+              ...edit,
+              price: idrKeystroke(text, formatIdrInput(edit.price), priceCaret.current),
+            })
+          }
+          onSelectionChange={({ nativeEvent: { selection } }) => {
+            priceCaret.current = selection.start;
+          }}
           keyboardType="number-pad"
-          maxLength={9}
-          placeholder="Harga (Rp)"
+          maxLength={13}
+          placeholder="Rp0"
           accessibilityLabel="Harga piring dalam rupiah"
           style={styles.priceInput}
         />
@@ -103,14 +140,12 @@ export function PlateHeader({
           style={styles.cancelBtn}
         />
       </View>
-      <DayChips
-        value={edit.date}
-        onChange={(date) => edit && onEdit({ ...edit, date })}
-      />
+      <DayChips value={edit.date} onChange={(date) => edit && onEdit({ ...edit, date })} />
       <Button
         variant="ghost"
         size="sm"
-        label="Pilih tanggal"
+        icon="calendar"
+        label={recentDayLabel(edit.date, today)}
         onPress={() => setPickingDate(true)}
       />
       <DateSheet
@@ -135,6 +170,16 @@ const styles = StyleSheet.create((theme) => ({
     marginTop: theme.spacing.sm,
     marginBottom: theme.spacing.xs,
   },
+  barColumn: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: 2,
+  },
+  barRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
   pressed: {
     opacity: 0.7,
   },
@@ -148,6 +193,17 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     fontWeight: "600",
     color: theme.colors.makanText,
+  },
+  kcal: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  totals: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    columnGap: theme.spacing.sm,
   },
   editBox: {
     flexDirection: "column",

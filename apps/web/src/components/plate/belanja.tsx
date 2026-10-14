@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Wallet } from "lucide-react";
 
 import { Card } from "@/components/kit/surface";
+import { MetaLine } from "@/components/meta-line";
 import { fmtRupiah } from "@/lib/app-config";
 import { fmtInt } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
@@ -64,10 +65,14 @@ export function BelanjaCard({ variant = "full" }: { variant?: "full" | "line" })
           <span className="min-w-0 flex-1">
             <span className="block text-[0.9375rem] font-bold">Belanja makan</span>
             <span className="block text-xs text-muted-foreground tabular-nums">
-              Hari ini {fmtRupiah(today)}
-              {budget
-                ? ` · Sisa ${budget.period === "day" ? "harian" : "bulanan"} ${fmtRupiah(budget.remaining ?? 0)}`
-                : ` · Minggu ini ${fmtRupiah(week)}`}
+              <MetaLine
+                items={[
+                  `Hari ini ${fmtRupiah(today)}`,
+                  budget
+                    ? `Sisa ${budget.period === "day" ? "harian" : "bulanan"} ${fmtRupiah(budget.remaining ?? 0)}`
+                    : `Minggu ini ${fmtRupiah(week)}`,
+                ]}
+              />
             </span>
           </span>
           <ChevronDown
@@ -117,11 +122,15 @@ export function BelanjaCard({ variant = "full" }: { variant?: "full" | "line" })
                     >
                       <span className="min-w-0 flex-1 truncate font-semibold">{entry.name}</span>
                       <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                        {fmtRupiah(entry.priceIdr)} · {fmtInt(entry.nutrients.proteinG)} g protein ·{" "}
-                        {entry.proteinPer1000.toLocaleString("id-ID", {
-                          maximumFractionDigits: 1,
-                        })}{" "}
-                        g per Rp1.000
+                        <MetaLine
+                          items={[
+                            fmtRupiah(entry.priceIdr),
+                            `${fmtInt(entry.nutrients.proteinG)} g protein`,
+                            `${entry.proteinPer1000.toLocaleString("id-ID", {
+                              maximumFractionDigits: 1,
+                            })} g per Rp1.000`,
+                          ]}
+                        />
                       </span>
                     </li>
                   ))}

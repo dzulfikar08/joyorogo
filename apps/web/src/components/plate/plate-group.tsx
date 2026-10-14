@@ -3,18 +3,21 @@ import { Calendar } from "@joyorogo/ui/components/calendar";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { useQuery } from "@tanstack/react-query";
-import { Pencil, Utensils } from "lucide-react";
+import { CalendarIcon, Pencil, Utensils } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { jakartaToday, relativeDayLabel, shiftDate } from "@joyorogo/api/lib/engine";
+import { dateKeyToUtcDate, parseIdrInput, recentDayLabel } from "@joyorogo/api/lib/format";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { Chip } from "@/components/chip";
 import { FieldLabel, ListGroup } from "@/components/kit/surface";
+import { MacroLine } from "@/components/macro-line";
+import { IdrInput } from "@/components/plate/idr-input";
 import { fmtRupiah } from "@/lib/app-config";
-import { fmtDateIndo, parseNum } from "@/lib/format";
+import { fmtDateIndo, fmtInt } from "@/lib/format";
 import { insertFoodRow, stripFoodRow, useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
@@ -64,6 +67,8 @@ function CalendarSheet({
   onClose: () => void;
 }) {
   const today = jakartaToday();
+  // Manual key parse: `new Date("2026-10-14")` is unreliable off-browser.
+  const selected = dateKeyToUtcDate(value) ?? new Date();
   return (
     <Sheet
       open
@@ -75,15 +80,18 @@ function CalendarSheet({
     >
       <Calendar
         mode="single"
-        selected={new Date(`${value}T00:00:00Z`)}
-        defaultMonth={new Date(`${value}T00:00:00Z`)}
+        selected={selected}
+        defaultMonth={selected}
         onSelect={(day) => {
           if (!day) return;
-          onPick(day.toISOString().slice(0, 10));
+          onPick(jakartaToday(day));
           onClose();
         }}
         timeZone="UTC"
-        disabled={[{ after: new Date(`${today}T23:59:59Z`) }, { before: new Date(`${shiftDate(today, -30)}T00:00:00Z`) }]}
+        disabled={[
+          { after: dateKeyToUtcDate(today) ?? new Date() },
+          { before: dateKeyToUtcDate(shiftDate(today, -30)) ?? new Date() },
+        ]}
       />
     </Sheet>
   );
@@ -122,27 +130,53 @@ export function PlateDiary<T extends Item & FoodRowFields>({
     <div className="space-y-2">
       {groups.map((group, index) => {
         const plate = group.plateId ? byId.get(group.plateId) : undefined;
+        const totalKcal = group.items.reduce((sum, row) => sum + row.kcal, 0);
+        const totalProtein = group.items.reduce((sum, row) => sum + (row.protein ?? 0), 0);
+        const totalCarbs = group.items.reduce((sum, row) => sum + (row.carbs ?? 0), 0);
+        const totalFat = group.items.reduce((sum, row) => sum + (row.fat ?? 0), 0);
+        const totalFiber = group.items.reduce((sum, row) => sum + (row.fiber ?? 0), 0);
         return (
           <div key={group.plateId ?? `solo-${group.items[0]?.id ?? index}`}>
             {plate && (
-              <div className="flex items-center gap-2 rounded-t-3xl bg-muted px-5 py-2 text-sm">
-                <Utensils className="size-4 shrink-0 text-makan-ink" aria-hidden />
-                <span className="min-w-0 flex-1 truncate font-semibold">
-                  Piring: {plate.name}
-                  {plate.place ? ` · ${plate.place}` : ""}
-                </span>
-                <span className="shrink-0 font-bold tabular-nums">
-                  {plate.priceIdr != null ? fmtRupiah(plate.priceIdr) : "Tanpa harga"}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Ubah harga ${plate.name}`}
-                  onClick={() => setEditing(plate.id)}
-                  className="text-muted-foreground"
-                >
-                  <Pencil />
-                </Button>
+              <div className="rounded-t-3xl bg-muted px-5 py-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Utensils className="size-4 shrink-0 text-makan-ink" aria-hidden />
+                  <span className="inline-flex min-w-0 flex-1 items-center gap-x-1.5 truncate font-semibold">
+                    <span className="truncate">Piring: {plate.name}</span>
+                    {plate.place && (
+                      <>
+                        <span
+                          className="size-1 shrink-0 rounded-full bg-muted-foreground/60"
+                          aria-hidden
+                        />
+                        <span className="truncate font-normal text-muted-foreground">
+                          {plate.place}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                  <span className="shrink-0 font-bold tabular-nums">
+                    {plate.priceIdr != null ? fmtRupiah(plate.priceIdr) : "Tanpa harga"}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Ubah harga ${plate.name}`}
+                    onClick={() => setEditing(plate.id)}
+                    className="text-muted-foreground"
+                  >
+                    <Pencil />
+                  </Button>
+                </div>
+                <p className="flex flex-wrap items-center gap-x-3 text-xs font-semibold text-muted-foreground">
+                  <span className="tabular-nums">{fmtInt(totalKcal)} kcal</span>
+                  <MacroLine
+                    protein={totalProtein}
+                    carbs={totalCarbs}
+                    fat={totalFat}
+                    fiber={totalFiber}
+                  />
+                </p>
               </div>
             )}
             <ListGroup className={plate ? "rounded-t-none border-t-0" : undefined}>
@@ -189,10 +223,7 @@ function PlateEditSheet({
   // Field edits patch every byDate cache; a date change additionally relocates
   // the plate row and every component row between the two day caches (with
   // matching summary deltas). Undo re-runs the same mutation with the old values.
-  const update = useOptimisticMutation<
-    Parameters<AppRouterClient["plate"]["update"]>[0],
-    unknown
-  >({
+  const update = useOptimisticMutation<Parameters<AppRouterClient["plate"]["update"]>[0], unknown>({
     mutationFn: (input) => client.plate.update(input),
     patch: (input, cache) => {
       const fields = {
@@ -266,8 +297,8 @@ function PlateEditSheet({
   });
 
   const submit = () => {
-    const priceNum = price.trim() === "" ? null : parseNum(price);
-    if (price.trim() !== "" && (priceNum === null || priceNum < 0)) {
+    const priceNum = parseIdrInput(price);
+    if (price.trim() !== "" && priceNum === null) {
       toast.error("Harga belum valid.");
       return;
     }
@@ -310,27 +341,28 @@ function PlateEditSheet({
           </div>
           <div>
             <FieldLabel htmlFor="plate-price">Harga sepiring (Rp)</FieldLabel>
-            <Input
+            <IdrInput
               id="plate-price"
-              type="number"
-              min="0"
-              inputMode="numeric"
               value={price}
-              onChange={(event) => setPrice(event.target.value)}
-              placeholder="28000"
+              onChange={setPrice}
+              placeholder="mis. 28.000"
             />
           </div>
           <div>
             <FieldLabel htmlFor="plate-date">Dicatat pada</FieldLabel>
             <div className="mt-1.5 space-y-2">
               <DayChips value={date} onChange={setDate} />
-              <button
+              <Button
                 type="button"
+                variant={dateChanged ? "secondary" : "outline"}
+                size="sm"
+                aria-expanded={pickingDate}
+                aria-label={`Pilih tanggal, terpilih ${recentDayLabel(date, jakartaToday())}`}
                 onClick={() => setPickingDate(true)}
-                className="min-h-11 px-1 text-sm font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
               >
-                Pilih tanggal
-              </button>
+                <CalendarIcon aria-hidden />
+                {recentDayLabel(date, jakartaToday())}
+              </Button>
               <p className="text-xs text-muted-foreground">
                 {dateChanged
                   ? `Akan dipindah ke ${fmtDateIndo(date)} beserta ${rows.length} catatannya.`
@@ -339,11 +371,7 @@ function PlateEditSheet({
             </div>
           </div>
           <Button type="submit" className="w-full" disabled={update.isPending}>
-            {update.isPending
-              ? "Menyimpan..."
-              : dateChanged
-                ? "Pindahkan"
-                : "Simpan"}
+            {update.isPending ? "Menyimpan..." : dateChanged ? "Pindahkan" : "Simpan"}
           </Button>
         </form>
       </Sheet>

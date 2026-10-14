@@ -19,6 +19,7 @@ import { toast } from "sonner";
 
 import { MEAL_LABELS, effectiveRamadan, slotsFor, suggestMealNow } from "@joyorogo/api/lib/engine";
 import { randomFact } from "@joyorogo/api/lib/facts";
+import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { Button, buttonVariants } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
@@ -32,6 +33,7 @@ import {
   SectionTitle,
   Segmented,
 } from "@/components/kit/surface";
+import { IdrInput } from "@/components/plate/idr-input";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { cropItems } from "@/lib/crop";
 import type { AiFoodItem } from "@/lib/api-types";
@@ -386,8 +388,8 @@ function AiFoodPage() {
       return;
     }
     setSaving(true);
-    const priceNum = platePrice.trim() === "" ? null : parseNum(platePrice);
-    if (platePrice.trim() !== "" && (priceNum === null || priceNum < 0)) {
+    const priceNum = parseIdrInput(platePrice);
+    if (platePrice.trim() !== "" && priceNum === null) {
       toast.error("Harga sepiring belum valid (angka rupiah).");
       setSaving(false);
       return;
@@ -593,7 +595,9 @@ function AiFoodPage() {
               story={{
                 kind: "meal",
                 name:
-                  items.length > 1 ? `${items[0]!.name} +${items.length - 1} lainnya` : items[0]!.name,
+                  items.length > 1
+                    ? `${items[0]!.name} +${items.length - 1} lainnya`
+                    : items[0]!.name,
                 kcal: totalKcal,
                 protein: items.reduce((sum, item) => sum + (item.protein ?? 0), 0),
                 carbs: items.reduce((sum, item) => sum + (item.carbs ?? 0), 0),
@@ -639,7 +643,11 @@ function AiFoodPage() {
                   <ThumbsUp className="size-4" aria-hidden />
                   Akurat
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setFeedbackRating("kurang_akurat")}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFeedbackRating("kurang_akurat")}
+                >
                   Kurang akurat
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setFeedbackRating("salah")}>
@@ -770,9 +778,7 @@ function AiFoodPage() {
             <SectionTitle
               action={
                 <span className="text-xs font-semibold text-muted-foreground">
-                  {retriesLeft > 0
-                    ? `Gratis, sisa ${retriesLeft}x`
-                    : "Batas hitung ulang habis"}
+                  {retriesLeft > 0 ? `Gratis, sisa ${retriesLeft}x` : "Batas hitung ulang habis"}
                 </span>
               }
             >
@@ -796,7 +802,11 @@ function AiFoodPage() {
                     />
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="secondary" onClick={() => void retryAnalysis()} disabled={retrying}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => void retryAnalysis()}
+                      disabled={retrying}
+                    >
                       {retrying ? (
                         <>
                           <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -854,14 +864,11 @@ function AiFoodPage() {
             <div className="flex items-end gap-3">
               <div className="w-36">
                 <FieldLabel htmlFor="plate-price">Harga (Rp)</FieldLabel>
-                <Input
+                <IdrInput
                   id="plate-price"
-                  type="number"
-                  min="0"
-                  inputMode="numeric"
                   value={platePrice}
-                  onChange={(event) => setPlatePrice(event.target.value)}
-                  placeholder="28000"
+                  onChange={setPlatePrice}
+                  placeholder="mis. 28.000"
                 />
               </div>
               <div className="min-w-0 flex-1">

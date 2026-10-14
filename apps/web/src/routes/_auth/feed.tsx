@@ -2,14 +2,17 @@ import { FEED_TIP_EVERY, TIPS, feedTipIndex, type Tip } from "@joyorogo/api/lib/
 import { Button } from "@joyorogo/ui/components/button";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Bell, CheckCheck, Hand, Heart, MessageSquareText, PlusCircle, UserPlus } from "lucide-react";
+import {
+  Bell,
+  CheckCheck,
+  Hand,
+  Heart,
+  MessageSquareText,
+  PlusCircle,
+  UserPlus,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -18,6 +21,7 @@ import { FeedComposerSheet } from "@/components/feed/composer";
 import { PostCard } from "@/components/feed/post-card";
 import { EmptyHint, ScreenError } from "@/components/screen-state";
 import { ListRow, Page, PageHeader, Segmented } from "@/components/kit/surface";
+import { MetaLine } from "@/components/meta-line";
 import { TipCard } from "@/components/tips/tip-card";
 import { useSession } from "@/lib/auth-client";
 import type { FeedPost, SocialNotificationItem } from "@/lib/api-types";
@@ -80,12 +84,13 @@ const NOTIF_ICON = {
   follow: UserPlus,
 } as const;
 
-const NOTIF_TEXT: Record<SocialNotificationItem["kind"], (item: SocialNotificationItem) => string> = {
-  kudos: (item) => `${item.actorName} kasih semangat`,
-  comment: (item) =>
-    item.excerpt ? `${item.actorName}: ${item.excerpt}` : `${item.actorName} berkomentar`,
-  follow: (item) => `${item.actorName} mulai mengikuti kamu`,
-};
+const NOTIF_TEXT: Record<SocialNotificationItem["kind"], (item: SocialNotificationItem) => string> =
+  {
+    kudos: (item) => `${item.actorName} kasih semangat`,
+    comment: (item) =>
+      item.excerpt ? `${item.actorName}: ${item.excerpt}` : `${item.actorName} berkomentar`,
+    follow: (item) => `${item.actorName} mulai mengikuti kamu`,
+  };
 
 function NotificationsSheet({
   open,
@@ -169,7 +174,12 @@ function NotificationsSheet({
                     </span>
                   }
                   title={NOTIF_TEXT[item.kind](item)}
-                  subtitle={[item.postTitle, timeAgo(item.createdAt)].filter(Boolean).join(" · ")}
+                  subtitle={
+                    <MetaLine
+                      items={[item.postTitle, timeAgo(item.createdAt)]}
+                      className="tabular-nums"
+                    />
+                  }
                   trailing={
                     <Avatar name={item.actorName} image={item.actorImage} className="size-8" />
                   }
@@ -254,11 +264,13 @@ function FeedPage() {
         ) : feed.error ? (
           <ScreenError message={feed.error.message} onRetry={() => feed.refetch()} />
         ) : posts.length === 0 ? (
-          <EmptyHint title={tab === "mengikuti" ? "Feed-mu masih sepi" : "Belum ada postingan publik"}>
+          <EmptyHint
+            title={tab === "mengikuti" ? "Feed-mu masih sepi" : "Belum ada postingan publik"}
+          >
             {tab === "mengikuti" ? (
               <>
-                Ikuti orang dari profil publik mereka, atau bagikan makanan, latihan, dan
-                progres beratmu lewat tombol Bagikan ke feed.
+                Ikuti orang dari profil publik mereka, atau bagikan makanan, latihan, dan progres
+                beratmu lewat tombol Bagikan ke feed.
               </>
             ) : (
               <>Postingan publik dari semua pengguna muncul di sini.</>

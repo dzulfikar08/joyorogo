@@ -1,5 +1,8 @@
 import { View } from "react-native";
+import { useRef } from "react";
 import { StyleSheet } from "react-native-unistyles";
+
+import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/format";
 
 import { Field, Input, Text } from "@/components/ui";
 
@@ -9,7 +12,7 @@ export type PlateValues = { name: string; place: string; price: string };
 /**
  * "Harga sepiring": price in rupiah plus the plate name and where it came
  * from. `name` arrives prefilled (last price paid, else the AI's first item)
- * and stays editable.
+ * and stays editable. `price` holds plain digits; the input shows "Rp28.000".
  */
 export function PlateFields({
   values,
@@ -23,16 +26,26 @@ export function PlateFields({
   title?: string;
   priceLabel?: string;
 }) {
+  // Caret inside the price input, so backspacing a separator drops the digit.
+  const priceCaret = useRef(0);
   return (
     <View style={styles.gap}>
       <Text style={styles.title}>{title}</Text>
       <Field label={priceLabel}>
         <Input
-          value={values.price}
-          onChangeText={(price) => onChange({ ...values, price })}
+          value={formatIdrInput(values.price)}
+          onChangeText={(text) =>
+            onChange({
+              ...values,
+              price: idrKeystroke(text, formatIdrInput(values.price), priceCaret.current),
+            })
+          }
+          onSelectionChange={({ nativeEvent: { selection } }) => {
+            priceCaret.current = selection.start;
+          }}
           keyboardType="number-pad"
-          maxLength={9}
-          placeholder="28000"
+          maxLength={13}
+          placeholder="Rp0"
           accessibilityLabel="Harga sepiring dalam rupiah"
         />
       </Field>
@@ -65,8 +78,8 @@ export function plateInput(
 ): { name?: string; place?: string; priceIdr?: number } | undefined {
   const name = values.name.trim();
   const place = values.place.trim();
-  const price = values.price.trim() === "" ? null : Number(values.price.replace(",", "."));
-  const priceIdr = price !== null && Number.isFinite(price) && price >= 0 ? Math.round(price) : null;
+  const price = parseIdrInput(values.price);
+  const priceIdr = price !== null && price >= 0 ? price : null;
   if (name === "" && place === "" && priceIdr === null) return undefined;
   return {
     ...(name !== "" ? { name } : fallbackName ? { name: fallbackName } : {}),

@@ -14,8 +14,10 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { MEALS, jakartaToday, storySlotLabel } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import { parseIdrInput } from "@joyorogo/api/lib/format";
 
 import { Button, Input, ListGroup, ListRow, Text } from "@/components/ui";
+import { MetaLine } from "@/components/meta-line";
 import { PlateFields } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
 import { errorMessage, fmtKcal, parseNum } from "@/utils/format";
@@ -321,11 +323,8 @@ export function Cerita({
           if (plateVals) {
             const name = plateVals.name.trim();
             const place = plateVals.place.trim();
-            const priceNum = parseNum(plateVals.price);
-            const priceIdr =
-              plateVals.price.trim() !== "" && priceNum !== null && priceNum >= 0
-                ? Math.round(priceNum)
-                : null;
+            const priceNum = parseIdrInput(plateVals.price);
+            const priceIdr = plateVals.price.trim() !== "" && priceNum !== null ? priceNum : null;
             // Pass a plate only when the price is filled or the name was edited.
             if (priceIdr !== null || (name !== "" && name !== item.name)) {
               plate = {
@@ -470,9 +469,16 @@ export function Cerita({
                     key={`${item.name}-${index}`}
                     title={item.name}
                     subtitle={
-                      [item.portion, item.grams != null ? `± ${fmtKcal(item.grams)} g` : null]
-                        .filter(Boolean)
-                        .join(" · ") || "1 porsi"
+                      item.portion || item.grams != null ? (
+                        <MetaLine
+                          items={[
+                            item.portion,
+                            item.grams != null ? `± ${fmtKcal(item.grams)} g` : null,
+                          ]}
+                        />
+                      ) : (
+                        "1 porsi"
+                      )
                     }
                     right={
                       <View style={styles.kcalEdit}>
