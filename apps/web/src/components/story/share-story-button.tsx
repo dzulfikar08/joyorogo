@@ -1,14 +1,15 @@
-import { Share2 } from "lucide-react";
+import { ImagePlus, Share2, X } from "lucide-react";
 import type { ComponentProps } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@joyorogo/ui/components/button";
 
+import { Segmented } from "@/components/kit/surface";
 import {
   defaultShareText,
   drawStoryCard,
-  storyPhotoSrc,
+  storyPhoto,
   STORY_TEMPLATES,
   type StorySpec,
   type StoryTemplate,
@@ -28,13 +29,18 @@ type ShareStoryButtonProps = {
   disabled?: boolean;
 };
 
+/** Dark checkerboard: the sticker is light text on transparent, so it needs a dark stage in both themes. */
+const STICKER_STAGE =
+  "bg-[conic-gradient(#1a1d1b_25%,#262a28_0_50%,#1a1d1b_0_75%,#262a28_0)] bg-[length:20px_20px]";
+
 /**
- * Opens a preview sheet with the three story templates (photo + stats,
- * transparent stats sticker, branded card), lets the user swap the background
- * photo, and hands the picked render to the OS share sheet via the Web Share
- * API (mobile Chrome/Safari offer Instagram > Story there); on browsers
- * without file sharing it downloads the PNG instead. Pure data in — screens
- * own their queries, the social feed can reuse the same painters.
+ * Opens a preview sheet with the story templates (photo + stats, transparent
+ * stats sticker, branded card) behind one segmented switcher (swipe works
+ * too), lets the user swap the background photo, and hands the picked render
+ * to the OS share sheet via the Web Share API (mobile Chrome/Safari offer
+ * Instagram > Story there); on browsers without file sharing it downloads the
+ * PNG instead. Pure data in — screens own their queries, the social feed can
+ * reuse the same painters.
  */
 export function ShareStoryButton({
   story,
@@ -51,40 +57,43 @@ export function ShareStoryButton({
   const [template, setTemplate] = useState<StoryTemplate>("brand");
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [active, setActive] = useState(0);
-  const canvasRefs = useRef<Array<HTMLCanvasElement | null>>([]);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const canvasRefs = useRef<Partial<Record<StoryTemplate, HTMLCanvasElement | null>>>({});
+  /** Ignore scroll events until this time: a segmented tap animates the track. */
+  const scrollLockUntil = useRef(0);
 
-  const defaultPhoto = storyPhotoSrc(story);
-  const effectivePhoto = photoSrc ?? defaultPhoto;
+  const hasPhoto = photoSrc != null || storyPhoto(story) != null;
   const templates = useMemo(
-    () => STORY_TEMPLATES.filter((candidate) => !candidate.needsPhoto || effectivePhoto != null),
-    [effectivePhoto],
+    () => STORY_TEMPLATES.filter((candidate) => !candidate.needsPhoto || hasPhoto),
+    [hasPhoto],
   );
+  const activeTemplate = templates.find((candidate) => candidate.id === template) ?? templates[0];
 
-  const renderTemplate = useCallback(
-    (candidate: StoryTemplate, canvas: HTMLCanvasElement | null) => {
-      if (!canvas) return;
-      void drawStoryCard(
-        canvas,
-        story,
-        candidate,
-        candidate === "photo" ? effectivePhoto : undefined,
-      ).catch((err: Error) => toast.error(err.message || "Gagal membuat gambar."));
+  const scrollToTemplate = useCallback(
+    (id: StoryTemplate, behavior: ScrollBehavior) => {
+      const track = trackRef.current;
+      const index = templates.findIndex((candidate) => candidate.id === id);
+      if (!track || index < 0) return;
+      scrollLockUntil.current = behavior === "smooth" ? Date.now() + 500 : 0;
+      track.scrollTo({ left: index * track.clientWidth, behavior });
     },
-    [story, effectivePhoto],
+    [templates],
   );
 
   useEffect(() => {
     if (!open) return;
-    setTemplate((current) =>
-      templates.some((candidate) => candidate.id === current)
-        ? current
-        : (templates[0]?.id ?? "brand"),
-    );
-    templates.forEach((candidate, index) => {
-      renderTemplate(candidate.id, canvasRefs.current[index] ?? null);
-    });
-  }, [open, templates, renderTemplate]);
+    let cancelled = false;
+    for (const candidate of templates) {
+      const canvas = canvasRefs.current[candidate.id];
+      if (!canvas) continue;
+      drawStoryCard(canvas, story, candidate.id, photoSrc).catch((err: Error) => {
+        if (!cancelled) toast.error(err.message || "Gagal membuat gambar.");
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [open, templates, story, photoSrc]);
 
   useEffect(() => {
     if (!open) return;
@@ -99,12 +108,12 @@ export function ShareStoryButton({
     setBusy(true);
     try {
       const canvas = document.createElement("canvas");
-      await drawStoryCard(canvas, story, template, template === "photo" ? effectivePhoto : undefined);
+      await drawStoryCard(canvas, story, activeTemplate?.id ?? "brand", photoSrc);
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob((b) => resolve(b), "image/png"),
       );
       if (!blob) throw new Error("Gagal membuat gambar.");
-      const name = fileName ?? `joyorogo-${story.kind}-${template}.png`;
+      const name = fileName ?? `joyorogo-${story.kind}-${activeTemplate?.id ?? "brand"}.png`;
       const file = new File([blob], name, { type: "image/png" });
 
       const nav = navigator as Navigator & {
@@ -136,6 +145,8 @@ export function ShareStoryButton({
     if (photoSrc) URL.revokeObjectURL(photoSrc);
     setPhotoSrc(URL.createObjectURL(file));
     setTemplate("photo");
+    // The photo template is always first; the track exists once the sheet is open.
+    requestAnimationFrame(() => scrollToTemplate("photo", "smooth"));
   };
 
   return (
@@ -146,7 +157,11 @@ export function ShareStoryButton({
         className={className}
         disabled={disabled || busy}
         aria-label={label ? undefined : (ariaLabel ?? label)}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          // Open on the first template (photo when the story has one).
+          setTemplate(templates[0]?.id ?? "brand");
+          setOpen(true);
+        }}
       >
         {busy && label ? (
           "Menyiapkan..."
@@ -163,62 +178,77 @@ export function ShareStoryButton({
           role="dialog"
           aria-modal="true"
           aria-label="Bagikan ke Story"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/85 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center"
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-sm rounded-3xl border border-white/10 bg-zinc-900 p-4 text-zinc-50 shadow-2xl"
+            className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-sm flex-col rounded-3xl bg-card p-4 text-foreground shadow-float"
             onClick={(event) => event.stopPropagation()}
           >
-            <div
-              className="flex snap-x snap-mandatory gap-3 overflow-x-auto rounded-2xl pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              onScroll={(event) => {
-                const slide = Math.round(event.currentTarget.scrollLeft / event.currentTarget.clientWidth);
-                setActive(Math.min(Math.max(slide, 0), templates.length - 1));
-              }}
-            >
-              {templates.map((candidate, index) => (
-                <div key={candidate.id} className="w-full shrink-0 snap-center">
-                  <div className="mx-auto aspect-[9/16] h-[52dvh] overflow-hidden rounded-2xl bg-zinc-800">
-                    <canvas
-                      ref={(canvas) => {
-                        canvasRefs.current[index] = canvas;
-                        renderTemplate(candidate.id, canvas);
-                      }}
-                      className="h-full w-full object-contain"
-                      aria-label={`Pratinjau ${candidate.label}`}
-                    />
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center justify-between pb-3 pl-1">
+              <h2 className="text-lg font-bold">Bagikan ke Story</h2>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Tutup"
+                onClick={() => setOpen(false)}
+              >
+                <X aria-hidden />
+              </Button>
             </div>
 
-            <div className="mt-3 flex items-center justify-center gap-2" role="tablist">
-              {templates.map((candidate, index) => (
-                <button
-                  key={candidate.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={index === active}
-                  aria-label={candidate.label}
-                  onClick={() => {
-                    const track = canvasRefs.current[index]?.closest(".snap-x");
-                    track?.scrollTo({ left: index * track.clientWidth, behavior: "smooth" });
+            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
+              <Segmented
+                label="Pilih tampilan story"
+                value={activeTemplate?.id ?? "brand"}
+                options={templates.map((candidate) => ({
+                  value: candidate.id,
+                  label: candidate.label,
+                }))}
+                onChange={(id) => {
+                  setTemplate(id);
+                  scrollToTemplate(id, "smooth");
+                }}
+              />
+
+              <div className="rounded-2xl bg-muted py-3">
+                <div
+                  ref={trackRef}
+                  className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto"
+                  onScroll={(event) => {
+                    if (Date.now() < scrollLockUntil.current) return;
+                    const track = event.currentTarget;
+                    const slide = Math.round(track.scrollLeft / track.clientWidth);
+                    const next = templates[Math.min(Math.max(slide, 0), templates.length - 1)];
+                    if (next) setTemplate(next.id);
                   }}
-                  className={`h-2 cursor-pointer rounded-full transition-all ${
-                    index === active ? "w-6 bg-primary" : "w-2 bg-white/25 hover:bg-white/40"
-                  }`}
-                />
-              ))}
-            </div>
+                >
+                  {templates.map((candidate) => (
+                    <div
+                      key={candidate.id}
+                      className="flex w-full shrink-0 snap-center justify-center"
+                    >
+                      <div
+                        className={`aspect-[9/16] h-[min(50dvh,440px)] overflow-hidden rounded-xl ${
+                          candidate.id === "sticker" ? STICKER_STAGE : "bg-card"
+                        }`}
+                      >
+                        <canvas
+                          ref={(canvas) => {
+                            canvasRefs.current[candidate.id] = canvas;
+                          }}
+                          className="size-full object-contain"
+                          aria-label={`Pratinjau ${candidate.label}`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-            <div className="mt-2 min-h-10 text-center">
-              <p className="text-sm font-bold">{templates[active]?.label}</p>
-              <p className="text-xs text-zinc-400">{templates[active]?.hint}</p>
-            </div>
+              <p className="text-center text-sm text-muted-foreground">{activeTemplate?.hint}</p>
 
-            <div className="mt-3 flex items-center justify-center gap-2">
-              <label className="cursor-pointer rounded-full border border-white/15 px-4 py-2 text-xs font-semibold text-zinc-200 transition-colors hover:bg-white/10 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none">
+              <label className="mx-auto inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-within:ring-[3px] focus-within:ring-ring/40">
                 <input
                   type="file"
                   accept="image/*"
@@ -228,22 +258,15 @@ export function ShareStoryButton({
                     event.target.value = "";
                   }}
                 />
-                {effectivePhoto ? "Pilih foto lain" : "Pakai fotoku"}
+                <ImagePlus className="size-4" aria-hidden />
+                {hasPhoto ? "Ganti foto" : "Pakai fotoku"}
               </label>
             </div>
 
-            <div className="mt-4 flex gap-2">
-              <Button
-                variant="ghost"
-                className="flex-1 border-white/15 text-zinc-200 hover:bg-white/10"
-                onClick={() => setOpen(false)}
-              >
-                Batal
-              </Button>
-              <Button className="flex-1" disabled={busy} onClick={() => void share()}>
-                {busy ? "Menyiapkan..." : "Bagikan"}
-              </Button>
-            </div>
+            <Button className="mt-3 w-full" disabled={busy} onClick={() => void share()}>
+              <Share2 aria-hidden />
+              {busy ? "Menyiapkan..." : "Bagikan"}
+            </Button>
           </div>
         </div>
       )}

@@ -145,6 +145,9 @@ export const foodLog = sqliteTable(
     carbs: real("carbs"),
     fat: real("fat"),
     fiber: real("fiber"),
+    // Portion weight in grams when known (AI scan/Cerita estimate or typed in);
+    // null when unknown. Baseline for the proportional portion edit.
+    grams: real("grams"),
     // 'manual' | 'ai'
     source: text("source").notNull().default("manual"),
     // scan_id keys this item's background-removed sticker in R2

@@ -384,6 +384,7 @@ export default function Dashboard() {
             proteinTargetG: data.protein?.targetG ?? null,
             streakDays: data.streakDays,
             weightLostKg: data.weightLostKg,
+            weekTrend: data.weekTrend,
           }}
         />
       </Card>

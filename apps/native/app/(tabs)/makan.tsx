@@ -24,6 +24,7 @@ import { PlateHeader } from "@/components/plate/plate-header";
 import { MacroLine } from "@/components/macro-line";
 import { DaySwitcher } from "@/components/day-switcher";
 import { Cerita } from "@/components/cerita";
+import { FoodPortionSheet } from "@/components/food-portion-sheet";
 import type { CeritaPhase } from "@/components/cerita";
 import { FoodSticker, StickerViewer, stickerUrl } from "@/components/sticker";
 import type { StickerViewerTarget } from "@/components/sticker";
@@ -185,6 +186,7 @@ export default function Makan() {
         carbs: input.carbs ?? null,
         fat: input.fat ?? null,
         fiber: input.fiber ?? null,
+        grams: input.grams ?? null,
         source: input.source ?? "manual",
         itemsJson: input.itemsJson ?? null,
         scanId: input.scanId ?? null,
@@ -333,6 +335,7 @@ export default function Makan() {
   });
 
   const [sheetMeal, setSheetMeal] = useState<Meal | null>(null);
+  const [editRow, setEditRow] = useState<FoodRow | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [ceritaPhase, setCeritaPhase] = useState<CeritaPhase>("input");
   const [ceritaOpen, setCeritaOpen] = useState(false);
@@ -546,19 +549,31 @@ export default function Makan() {
                       <ListRow
                         key={item.id}
                         title={item.name}
+                        onPress={() => setEditRow(item)}
                         subtitle={
                           [item.protein, item.carbs, item.fat, item.fiber].some(
                             (g) => (g ?? 0) > 0,
                           ) ? (
-                            <MacroLine
-                              compact
-                              protein={item.protein}
-                              carbs={item.carbs}
-                              fat={item.fat}
-                              fiber={item.fiber}
-                            />
+                            <View style={styles.gramsLine}>
+                              {item.grams ? (
+                                <Text style={styles.gramsText}>{fmtKcal(item.grams)} g</Text>
+                              ) : null}
+                              <MacroLine
+                                compact
+                                protein={item.protein}
+                                carbs={item.carbs}
+                                fat={item.fat}
+                                fiber={item.fiber}
+                              />
+                            </View>
                           ) : item.source === "ai" ? (
-                            "Dari pindai AI"
+                            item.grams ? (
+                              `Dari pindai AI · ${fmtKcal(item.grams)} g`
+                            ) : (
+                              "Dari pindai AI"
+                            )
+                          ) : item.grams ? (
+                            `${fmtKcal(item.grams)} g`
                           ) : undefined
                         }
                         value={`${fmtKcal(item.kcal)}`}
@@ -909,6 +924,10 @@ export default function Makan() {
           </View>
         ) : null}
       </Sheet>
+      {editRow ? (
+        <FoodPortionSheet key={editRow.id} row={editRow} onClose={() => setEditRow(null)} />
+      ) : null}
+
 
       {/* Global Ceritakan: cerita bebas, bisa beberapa waktu makan sekaligus */}
       <Sheet visible={ceritaOpen} onClose={() => setCeritaOpen(false)} title="Ceritakan makananmu">
@@ -937,6 +956,16 @@ export default function Makan() {
 }
 
 const styles = StyleSheet.create((theme) => ({
+  gramsLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  gramsText: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.mutedForeground,
+    fontVariant: ["tabular-nums"],
+  },
   rowActions: {
     flexDirection: "row",
     alignItems: "center",

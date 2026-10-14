@@ -42,7 +42,7 @@ type PlateRow = {
 };
 
 /** Chip shortcuts for the three most recent days, WIB. */
-function DayChips({ value, onChange }: { value: string; onChange: (date: string) => void }) {
+export function DayChips({ value, onChange }: { value: string; onChange: (date: string) => void }) {
   const today = jakartaToday();
   const options = [today, shiftDate(today, -1), shiftDate(today, -2)];
   return (
@@ -57,7 +57,7 @@ function DayChips({ value, onChange }: { value: string; onChange: (date: string)
 }
 
 /** Styled calendar sheet: future days and anything older than the window are off. */
-function CalendarSheet({
+export function CalendarSheet({
   value,
   onPick,
   onClose,

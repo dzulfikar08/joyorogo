@@ -164,6 +164,7 @@ export function StickerViewer({
                 carbs: viewer.carbs,
                 fat: viewer.fat,
                 photoUri: viewer.uri,
+                photoCutout: true,
               }}
               variant="secondary"
               style={styles.viewerShare}

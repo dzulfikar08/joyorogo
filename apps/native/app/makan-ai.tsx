@@ -448,6 +448,7 @@ export default function MakanAi() {
         items: chosen.map(({ item, draft }) => ({
           name: item.name,
           kcal: parseNum(draft.kcal) ?? 0,
+          grams: item.grams,
           protein: item.protein,
           carbs: item.carbs,
           fat: item.fat,

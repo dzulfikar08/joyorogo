@@ -6,7 +6,7 @@ import Svg, { Defs, Pattern, Rect } from "react-native-svg";
 import { captureRef } from "react-native-view-shot";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { Button, Sheet, Text } from "@/components/ui";
+import { Button, Segmented, Sheet, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import {
   CARD_H,
@@ -98,7 +98,7 @@ export function ShareStoryButton({
 
   // Fixed 9:16 frame sized from the window; the card inside keeps its real
   // 1080/PixelRatio dp layout and is shrunk visually by `scale`.
-  const maxFrameH = Math.min(Math.max(screen.height * 0.42, 240), 460);
+  const maxFrameH = Math.min(Math.max(screen.height * 0.44, 240), 460);
   const frameW = Math.round((maxFrameH * CARD_W) / CARD_H);
   const frameH = (frameW * CARD_H) / CARD_W;
   const scale = frameW / CARD_W;
@@ -124,6 +124,14 @@ export function ShareStoryButton({
       setActive(0);
       scrollRef.current?.scrollTo({ x: 0, animated: false });
     }
+  };
+
+  /** Segmented control tap: page the preview to the template at `index`. */
+  const goTo = (index: number) => {
+    if (index < 0 || index === active) return;
+    setActive(index);
+    setCaptureFailed(false);
+    scrollRef.current?.scrollTo({ x: index * pageW, animated: true });
   };
 
   /** Captures the mounted card as a PNG file; null when the view is gone or view-shot throws. */
@@ -197,7 +205,27 @@ export function ShareStoryButton({
         visible={open}
         onClose={() => setOpen(false)}
         title="Bagikan ke Story"
+        footer={
+          <Button
+            label={busy ? "Menyiapkan…" : "Bagikan"}
+            icon="share-outline"
+            loading={busy}
+            disabled={!activeReady || photoFailed}
+            onPress={() => void share()}
+          />
+        }
       >
+        {activeTemplate ? (
+          <Segmented
+            options={templates.map((candidate) => ({
+              value: candidate.id,
+              label: candidate.label,
+            }))}
+            value={activeTemplate.id}
+            onChange={(id) => goTo(templates.findIndex((candidate) => candidate.id === id))}
+          />
+        ) : null}
+
         <View
           style={styles.stage}
           onLayout={(event) => {
@@ -220,7 +248,10 @@ export function ShareStoryButton({
             }}
           >
             {templates.map((candidate) => (
-              <View key={cardKey(candidate.id)} style={[styles.page, { width: pageW, height: frameH }]}>
+              <View
+                key={cardKey(candidate.id)}
+                style={[styles.page, { width: pageW, height: frameH }]}
+              >
                 <View style={[styles.frame, { width: frameW, height: frameH }]}>
                   {candidate.id === "sticker" ? <StickerBackdrop /> : null}
                   <View pointerEvents="none" style={[styles.scaler, { transform: [{ scale }] }]}>
@@ -252,21 +283,7 @@ export function ShareStoryButton({
           </ScrollView>
         </View>
 
-        <View style={styles.dotsRow}>
-          {templates.map((candidate, index) => (
-            <View
-              key={candidate.id}
-              style={[styles.dot, index === active ? styles.dotActive : null]}
-            />
-          ))}
-        </View>
-
-        {activeTemplate ? (
-          <View style={styles.templateCaption}>
-            <Text style={styles.templateName}>{activeTemplate.label}</Text>
-            <Text style={styles.templateHint}>{activeTemplate.hint}</Text>
-          </View>
-        ) : null}
+        {activeTemplate ? <Text style={styles.hint}>{activeTemplate.hint}</Text> : null}
 
         {failure ? (
           <View style={styles.errorBox} accessibilityRole="alert">
@@ -288,19 +305,13 @@ export function ShareStoryButton({
           </View>
         ) : null}
 
-        <Button
-          variant="secondary"
-          label={effectivePhoto ? "Pilih foto lain" : "Pakai fotoku"}
-          icon="images-outline"
-          onPress={() => void pickPhoto()}
-        />
-        <View style={styles.actions}>
-          <Button variant="ghost" label="Batal" onPress={() => setOpen(false)} />
+        <View style={styles.photoRow}>
           <Button
-            label={busy ? "Menyiapkan…" : "Bagikan"}
-            loading={busy}
-            disabled={!activeReady || photoFailed}
-            onPress={() => void share()}
+            variant="ghost"
+            size="sm"
+            label={effectivePhoto ? "Ganti foto" : "Pakai fotoku"}
+            icon="images-outline"
+            onPress={() => void pickPhoto()}
           />
         </View>
       </Sheet>
@@ -320,7 +331,14 @@ const styles = StyleSheet.create((theme) => ({
   backdrop: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
   // The card keeps its real CARD_W x CARD_H layout (so a 1:1 capture is 1080x1920 px)
   // and is shrunk visually from the top-left corner to exactly fill the frame.
-  scaler: { position: "absolute", top: 0, left: 0, width: CARD_W, height: CARD_H, transformOrigin: "top left" },
+  scaler: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: CARD_W,
+    height: CARD_H,
+    transformOrigin: "top left",
+  },
   card: { width: CARD_W, height: CARD_H },
   frameOverlay: {
     position: "absolute",
@@ -332,12 +350,13 @@ const styles = StyleSheet.create((theme) => ({
     justifyContent: "center",
     backgroundColor: "rgba(0, 0, 0, 0.4)",
   },
-  dotsRow: { flexDirection: "row", justifyContent: "center", gap: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.hairline },
-  dotActive: { width: 24, backgroundColor: theme.colors.primary },
-  templateCaption: { alignItems: "center" },
-  templateName: { fontFamily: theme.fonts.bold, fontSize: theme.fontSize.base, color: theme.colors.foreground },
-  templateHint: { fontFamily: theme.fonts.regular, fontSize: theme.fontSize.sm, color: theme.colors.mutedForeground },
+  hint: {
+    textAlign: "center",
+    fontFamily: theme.fonts.regular,
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+  },
+  photoRow: { alignItems: "center" },
   errorBox: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -357,8 +376,15 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.destructive,
   },
   errorBody: { flex: 1, gap: theme.spacing.xs },
-  errorTitle: { fontFamily: theme.fonts.bold, fontSize: theme.fontSize.base, color: theme.colors.foreground },
-  errorText: { fontFamily: theme.fonts.regular, fontSize: theme.fontSize.sm, color: theme.colors.mutedForeground },
+  errorTitle: {
+    fontFamily: theme.fonts.bold,
+    fontSize: theme.fontSize.base,
+    color: theme.colors.foreground,
+  },
+  errorText: {
+    fontFamily: theme.fonts.regular,
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+  },
   errorRetry: { alignSelf: "flex-start", marginTop: theme.spacing.sm },
-  actions: { flexDirection: "row", gap: theme.spacing.md },
 }));

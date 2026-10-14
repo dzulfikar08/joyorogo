@@ -411,6 +411,7 @@ function AiFoodPage() {
         items: items.map((item, index) => ({
           name: item.name,
           kcal: values[index]!,
+          grams: item.grams,
           protein: item.protein,
           carbs: item.carbs,
           fat: item.fat,

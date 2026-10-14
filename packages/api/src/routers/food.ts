@@ -8,6 +8,7 @@ import { plate } from "@joyorogo/db/schema/plans";
 
 import { protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
+import { MAX_GRAMS, MAX_KCAL, resolvePortion } from "../lib/portion";
 import { dateSchema, mealSchema, pastDateSchema } from "../lib/schemas";
 import {
   SCAN_ID_RE,
@@ -22,6 +23,7 @@ import { normalizeBox } from "../lib/vision";
 
 const scanItemSchema = z.object({
   name: z.string().min(1).max(200),
+  grams: z.number().min(1).max(MAX_GRAMS).optional(),
   kcal: z.number().min(0).max(5000),
   protein: z.number().min(0).max(500).optional(),
   carbs: z.number().min(0).max(500).optional(),
@@ -139,6 +141,7 @@ export const foodRouter = {
             meal: input.meal,
             name: item.name,
             kcal: item.kcal,
+            grams: item.grams,
             protein: item.protein,
             carbs: item.carbs,
             fat: item.fat,
@@ -164,6 +167,7 @@ export const foodRouter = {
         date: dateSchema.optional(),
         meal: mealSchema,
         name: z.string().min(1).max(200),
+        grams: z.number().min(1).max(MAX_GRAMS).optional(),
         kcal: z.number().min(0).max(5000),
         protein: z.number().min(0).max(500).optional(),
         carbs: z.number().min(0).max(500).optional(),
@@ -207,6 +211,7 @@ export const foodRouter = {
           meal: input.meal,
           name: input.name,
           kcal: input.kcal,
+          grams: input.grams,
           protein: input.protein,
           carbs: input.carbs,
           fat: input.fat,
@@ -220,25 +225,43 @@ export const foodRouter = {
       return row;
     }),
 
-  // Moves one logged row to another day (WIB key). Stickers and photos ride
-  // along untouched; when the row was the last component of its plate on the
-  // old day, the plate moves with it so the grouping never splits.
+  // Edits one logged row: name, portion (weight, kcal, macros; see
+  // resolvePortion for how they follow each other) and/or day (WIB key). Stickers
+  // and photos ride along untouched; when the row was the last component of its
+  // plate on the old day, the plate moves with it so the grouping never splits.
+  // Plate totals are derived from rows, and price stays on the plate, so
+  // nothing else needs rewriting.
   update: protectedProcedure
-    .input(z.object({ id: z.string(), date: pastDateSchema }))
+    .input(
+      z.object({
+        id: z.string(),
+        date: pastDateSchema.optional(),
+        name: z.string().trim().min(1).max(200).optional(),
+        grams: z.number().min(1).max(MAX_GRAMS).optional(),
+        kcal: z.number().min(0).max(MAX_KCAL).optional(),
+        protein: z.number().min(0).max(500).optional(),
+        carbs: z.number().min(0).max(500).optional(),
+        fat: z.number().min(0).max(500).optional(),
+        fiber: z.number().min(0).max(500).optional(),
+      }),
+    )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
       const [row] = await context.db
-        .select({ plateId: foodLog.plateId, date: foodLog.date })
+        .select()
         .from(foodLog)
         .where(and(eq(foodLog.id, input.id), eq(foodLog.userId, userId)))
         .limit(1);
       if (!row) return null;
+      // Portion fields resolve against the stored row (weight <-> kcal <-> macros).
+      const { id: _id, date, name, ...patch } = input;
+      const next = resolvePortion(row, patch);
       const [updated] = await context.db
         .update(foodLog)
-        .set({ date: input.date })
+        .set({ ...next, ...(name ? { name } : {}), ...(date ? { date } : {}) })
         .where(and(eq(foodLog.id, input.id), eq(foodLog.userId, userId)))
         .returning();
-      if (row.plateId && row.date !== input.date) {
+      if (date && row.plateId && row.date !== date) {
         const [remaining] = await context.db
           .select({ id: foodLog.id })
           .from(foodLog)
@@ -253,7 +276,7 @@ export const foodRouter = {
         if (!remaining) {
           await context.db
             .update(plate)
-            .set({ date: input.date })
+            .set({ date })
             .where(and(eq(plate.id, row.plateId), eq(plate.userId, userId)));
         }
       }

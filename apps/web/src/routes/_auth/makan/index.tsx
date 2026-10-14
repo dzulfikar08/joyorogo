@@ -25,6 +25,7 @@ import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { FieldLabel, ListRow, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
 import { MakanSummaryCard } from "@/components/macro-card";
 import { MacroLine } from "@/components/macro-line";
+import { FoodPortionSheet } from "@/components/food-portion-sheet";
 import { MetaLine } from "@/components/meta-line";
 import { BelanjaCard } from "@/components/plate/belanja";
 import { PlateDiary } from "@/components/plate/plate-group";
@@ -82,6 +83,7 @@ function MakanPage() {
   const [sheetMeal, setSheetMeal] = useState<Meal | null>(null);
   // Bagikan ke feed: item makanan yang sedang dibagikan (sheet di bawah).
   const [shareItem, setShareItem] = useState<FoodItem | null>(null);
+  const [editItem, setEditItem] = useState<FoodItem | null>(null);
   const setCeritaOpen = (open: boolean) =>
     navigate({ search: (prev) => ({ ...prev, cerita: open || undefined }), replace: true });
   const showDate = (target: string) =>
@@ -174,6 +176,7 @@ function MakanPage() {
         carbs: input.carbs ?? null,
         fat: input.fat ?? null,
         fiber: input.fiber ?? null,
+        grams: input.grams ?? null,
         source: input.source ?? ("manual" as const),
         itemsJson: input.itemsJson ?? null,
         scanId: input.scanId ?? null,
@@ -343,6 +346,7 @@ function MakanPage() {
                   <FoodRow
                     key={item.id}
                     item={item}
+                    onEdit={() => setEditItem(item)}
                     onDelete={() => removeFood(item)}
                     onShare={() => setShareItem(item)}
                   />
@@ -390,6 +394,7 @@ function MakanPage() {
         </Sheet>
       )}
 
+      {editItem && <FoodPortionSheet key={editItem.id} row={editItem} onClose={() => setEditItem(null)} />}
       {shareItem && (
         <ShareToFeedSheet
           open
@@ -414,10 +419,12 @@ function MakanPage() {
 
 function FoodRow({
   item,
+  onEdit,
   onDelete,
   onShare,
 }: {
   item: FoodItem;
+  onEdit: () => void;
   onDelete: () => void;
   onShare: () => void;
 }) {
@@ -459,7 +466,19 @@ function FoodRow({
           utensil
         )
       }
-      title={item.name}
+      title={
+        item.grams ? (
+          <>
+            {item.name}
+            <span className="ml-1.5 text-xs font-medium text-muted-foreground tabular-nums">
+              {fmtInt(item.grams)} g
+            </span>
+          </>
+        ) : (
+          item.name
+        )
+      }
+      onClick={onEdit}
       subtitle={subtitle}
       value={
         <span>
@@ -473,7 +492,10 @@ function FoodRow({
             variant="ghost"
             size="icon-sm"
             aria-label={`Bagikan ${item.name} ke feed`}
-            onClick={onShare}
+            onClick={(event) => {
+              event.stopPropagation();
+              onShare();
+            }}
             className="text-muted-foreground hover:text-foreground"
           >
             <Share2 />
@@ -482,7 +504,10 @@ function FoodRow({
             variant="ghost"
             size="icon-sm"
             aria-label={`Hapus ${item.name}`}
-            onClick={onDelete}
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete();
+            }}
             className="text-muted-foreground hover:text-destructive"
           >
             <Trash2 />

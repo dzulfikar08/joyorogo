@@ -290,6 +290,7 @@ export function Cerita({
           meal: item.meal,
           name: item.name,
           kcal: values[index]!,
+          grams: item.grams,
           protein: item.protein,
           carbs: item.carbs,
           fat: item.fat,
