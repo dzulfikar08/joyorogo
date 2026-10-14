@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
 import { z } from "zod";
 
 import { exerciseLog } from "@joyorogo/db/schema/fitness";
@@ -65,6 +65,32 @@ export const exerciseRouter = {
         .orderBy(asc(exerciseLog.createdAt));
       const totalKcal = items.reduce((total, item) => total + item.kcal, 0);
       return { items, totalKcal };
+    }),
+
+  // Health Connect / Apple Health imports land on the workout's own WIB day,
+  // which is often not today — screens show this window so imported
+  // activities from the last few days stay visible.
+  recent: protectedProcedure
+    .input(z.object({ days: z.number().int().min(1).max(30).default(7) }))
+    .handler(async ({ context, input }) => {
+      const end = jakartaToday();
+      const start = new Date(
+        Date.now() + 7 * 60 * 60 * 1000 - (input.days - 1) * 86_400_000,
+      )
+        .toISOString()
+        .slice(0, 10);
+      const items = await context.db
+        .select()
+        .from(exerciseLog)
+        .where(
+          and(
+            eq(exerciseLog.userId, context.session.user.id),
+            gte(exerciseLog.date, start),
+            lte(exerciseLog.date, end),
+          ),
+        )
+        .orderBy(desc(exerciseLog.date), asc(exerciseLog.createdAt));
+      return { items, startDate: start, endDate: end };
     }),
 
   types: protectedProcedure.handler(() => EXERCISE_TYPES),

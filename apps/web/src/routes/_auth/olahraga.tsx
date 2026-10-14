@@ -5,6 +5,7 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { Chip } from "@/components/chip";
+import { DaySwitcher } from "@/components/day-switcher";
 import { Ring } from "@/components/kit/ring";
 import { ErrorNote } from "@/components/kit/error-note";
 import { ScreenError } from "@/components/screen-state";
@@ -43,16 +44,26 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { jakartaToday } from "@joyorogo/api/lib/engine";
+import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import { estimateKcal } from "@joyorogo/api/lib/met";
 
-const listOptions = orpc.exercise.listByDate.queryOptions({ input: {} });
+const listOptions = (date: string) => orpc.exercise.listByDate.queryOptions({ input: { date } });
+const recentOptions = orpc.exercise.recent.queryOptions({ input: { days: 7 } });
 const typesOptions = orpc.exercise.types.queryOptions();
-const summaryOptions = orpc.day.summary.queryOptions({ input: {} });
+const summaryOptions = (date: string) => orpc.day.summary.queryOptions({ input: { date } });
 const profileOptions = orpc.profile.myProfile.queryOptions();
 
 export const Route = createFileRoute("/_auth/olahraga")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(listOptions),
+  validateSearch: (search: Record<string, unknown>): { date?: string } => {
+    const raw = typeof search.date === "string" ? search.date : undefined;
+    return { date: raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : undefined };
+  },
+  loaderDeps: ({ search }) => ({ date: search.date }),
+  loader: ({ context, deps }) => {
+    const date = deps.date ?? jakartaToday();
+    void context.queryClient.ensureQueryData(summaryOptions(date));
+    return context.queryClient.ensureQueryData(listOptions(date));
+  },
   pendingComponent: OlahragaSkeleton,
   component: OlahragaPage,
 });
@@ -79,18 +90,31 @@ const TYPE_ICONS: Record<string, LucideIcon> = {
 };
 
 function OlahragaPage() {
-  const list = useQuery(listOptions);
+  const { date: paramDate } = Route.useSearch();
+  const date = paramDate ?? jakartaToday();
+  const list = useQuery(listOptions(date));
   if (list.isPending) return <OlahragaSkeleton />;
   if (list.error) {
     return <ScreenError message={list.error.message} onRetry={() => list.refetch()} />;
   }
-  return <OlahragaScreen list={list.data} />;
+  return <OlahragaScreen list={list.data} date={date} />;
 }
 
-function OlahragaScreen({ list }: { list: { items: ExerciseItem[]; totalKcal: number } }) {
+function OlahragaScreen({
+  list,
+  date,
+}: {
+  list: { items: ExerciseItem[]; totalKcal: number };
+  date: string;
+}) {
   const queryClient = useQueryClient();
+  const navigate = Route.useNavigate();
+  const isToday = date === jakartaToday();
+  const showDate = (target: string) =>
+    navigate({ search: { date: target === jakartaToday() ? undefined : target } });
   const types = useQuery(typesOptions);
-  const summary = useQuery(summaryOptions);
+  const recent = useQuery(recentOptions);
+  const summary = useQuery(summaryOptions(date));
   const profile = useQuery(profileOptions);
 
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -185,6 +209,7 @@ function OlahragaScreen({ list }: { list: { items: ExerciseItem[]; totalKcal: nu
     setError(null);
     try {
       await add.mutateAsync({
+        date,
         type: typeKey ?? undefined,
         name: nameClean,
         kcal: kcalNum,
@@ -200,6 +225,16 @@ function OlahragaScreen({ list }: { list: { items: ExerciseItem[]; totalKcal: nu
   };
 
   const { items, totalKcal } = list;
+  // Health Connect imports land on the workout's own WIB day, so surface the
+  // past week or they look lost next to an empty "Hari ini".
+  const wibToday = jakartaToday();
+  const pastItems = (recent.data?.items ?? []).filter((item) => item.date !== wibToday);
+  const historyByDate = new Map<string, ExerciseItem[]>();
+  for (const item of pastItems) {
+    const group = historyByDate.get(item.date);
+    if (group) group.push(item);
+    else historyByDate.set(item.date, [item]);
+  }
   const over = burnTarget !== null && totalKcal > burnTarget;
   const activeType = types.data?.find((type) => type.key === typeKey);
 
@@ -207,13 +242,18 @@ function OlahragaScreen({ list }: { list: { items: ExerciseItem[]; totalKcal: nu
     <Page className="max-w-xl lg:max-w-5xl">
       <PageHeader
         title="Olahraga"
-        subtitle={fmtDateIndo(jakartaToday())}
+        subtitle={fmtDateIndo(date)}
         action={
           <Button variant="secondary" onClick={openManual}>
             Tulis manual
           </Button>
         }
       />
+
+      {/* Day switcher */}
+      <div className="mb-3 flex justify-center lg:justify-start">
+        <DaySwitcher date={date} onChange={showDate} />
+      </div>
 
       <div className="grid items-start gap-3 lg:grid-cols-2 lg:gap-5">
         <Card className="p-6 lg:col-start-1 lg:row-start-1">
@@ -257,11 +297,13 @@ function OlahragaScreen({ list }: { list: { items: ExerciseItem[]; totalKcal: nu
               </span>
             }
           >
-            Hari ini
+            {isToday ? "Hari ini" : relativeDayLabel(date, jakartaToday())}
           </SectionTitle>
           {items.length === 0 ? (
             <Card className="text-center">
-              <p className="text-sm font-bold">Belum ada aktivitas tercatat</p>
+              <p className="text-sm font-bold">
+                {isToday ? "Belum ada aktivitas tercatat" : "Tidak ada aktivitas tercatat"}
+              </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Pilih jenis olahraga di bawah, atau hubungkan Strava biar masuk otomatis.
               </p>
@@ -319,7 +361,52 @@ function OlahragaScreen({ list }: { list: { items: ExerciseItem[]; totalKcal: nu
           )}
         </section>
 
-        <section aria-label="Pilih jenis aktivitas" className="lg:col-start-2 lg:row-start-2">
+        {/* Recent history: Health Connect imports land on the workout's own
+            WIB day, so show the past week or they look lost. */}
+        {historyByDate.size > 0 && (
+          <section aria-label="Riwayat 7 hari terakhir" className="lg:col-start-2 lg:row-start-2">
+            <SectionTitle>7 hari terakhir</SectionTitle>
+            <ListGroup>
+              {[...historyByDate.entries()].map(([date, dayItems]) => (
+                <div key={date}>
+                  <p className="px-1 pt-2 pb-1 text-xs font-bold text-muted-foreground">
+                    {relativeDayLabel(date, wibToday)}
+                  </p>
+                  {dayItems.map((item) => {
+                    const Icon = TYPE_ICONS[item.type ?? ""] ?? Flame;
+                    return (
+                      <ListRow
+                        key={item.id}
+                        icon={
+                          <span className="flex size-9 items-center justify-center rounded-full bg-bakar-soft text-bakar">
+                            <Icon className="size-4" aria-hidden />
+                          </span>
+                        }
+                        title={
+                          <>
+                            {item.name}
+                            {item.source !== "manual" && (
+                              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 align-middle text-[10px] font-bold text-muted-foreground">
+                                {SOURCE_LABELS[item.source] ?? item.source}
+                              </span>
+                            )}
+                          </>
+                        }
+                        subtitle={`${item.durationMin != null ? `${fmtInt(item.durationMin)} menit · ` : ""}${fmtInt(item.kcal)} kcal`}
+                        trailing={<span className="text-sm font-bold tabular-nums">{fmtInt(item.kcal)}</span>}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </ListGroup>
+          </section>
+        )}
+
+        <section
+          aria-label="Pilih jenis aktivitas"
+          className={cn("lg:col-start-2", historyByDate.size > 0 ? "lg:row-start-3" : "lg:row-start-2")}
+        >
           <SectionTitle>Pilih aktivitas</SectionTitle>
           {types.isPending ? (
             <div className="grid grid-cols-3 gap-2.5">

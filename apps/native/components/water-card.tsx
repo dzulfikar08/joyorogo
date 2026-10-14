@@ -9,10 +9,12 @@ import { Card, Num, Text } from "@/components/ui";
 import { errorMessage } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
-// Penghitung gelas air hari ini — data sama dengan kartu air di dashboard web.
-export function WaterCard() {
+// Penghitung gelas air per hari — data sama dengan kartu air di dashboard web.
+export function WaterCard({ date }: { date?: string }) {
   const { theme } = useUnistyles();
-  const today = useQuery(orpc.water.today.queryOptions());
+  const today = useQuery(
+    orpc.water.today.queryOptions({ input: date === undefined ? {} : { date } }),
+  );
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: orpc.water.key() });
@@ -41,7 +43,7 @@ export function WaterCard() {
         </View>
         <View style={styles.controls}>
           <Pressable
-            onPress={() => remove.mutate()}
+            onPress={() => remove.mutate(date === undefined ? {} : { date })}
             disabled={busy || glasses <= 0}
             accessibilityLabel="Kurangi gelas air"
             accessibilityRole="button"
@@ -55,7 +57,7 @@ export function WaterCard() {
             <Ionicons name="remove" size={18} color={theme.colors.foreground} />
           </Pressable>
           <Pressable
-            onPress={() => add.mutate()}
+            onPress={() => add.mutate(date === undefined ? {} : { date })}
             disabled={busy}
             accessibilityLabel="Tambah gelas air"
             accessibilityRole="button"

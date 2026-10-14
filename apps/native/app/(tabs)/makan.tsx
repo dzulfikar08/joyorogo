@@ -20,6 +20,7 @@ import type { Meal } from "@joyorogo/api/lib/engine";
 
 import { BelanjaSection } from "@/components/plate/belanja";
 import { PlateHeader } from "@/components/plate/plate-header";
+import { DaySwitcher } from "@/components/day-switcher";
 import { Cerita } from "@/components/cerita";
 import type { CeritaPhase } from "@/components/cerita";
 import { FoodSticker, StickerViewer, stickerUrl } from "@/components/sticker";
@@ -60,12 +61,6 @@ const MEAL_SHORT: Record<Meal, string> = {
   sahur: "Sahur",
   berbuka: "Berbuka",
 };
-
-function shiftDate(date: string, days: number): string {
-  const day = new Date(`${date}T00:00:00Z`);
-  day.setUTCDate(day.getUTCDate() + days);
-  return day.toISOString().slice(0, 10);
-}
 
 /** Fields needed to re-add a deleted row verbatim via food.add. */
 type UndoItem = {
@@ -254,6 +249,7 @@ export default function Makan() {
       priceNum !== null ? { name: name.trim(), priceIdr: Math.round(priceNum) } : undefined;
     setFormError(null);
     addFood.mutate({
+      date,
       meal,
       name: name.trim(),
       kcal: kcalNum,
@@ -447,32 +443,7 @@ export default function Makan() {
       <PageHeader title="Makan" caption={isToday ? "Catat piringmu" : undefined} />
 
       {/* Day switcher */}
-      <View style={styles.dayRow}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Hari sebelumnya"
-          onPress={() => setDate(shiftDate(date, -1))}
-          style={({ pressed }) => [styles.dayArrow, pressed && styles.pressedSoft]}
-        >
-          <Ionicons name="chevron-back" size={20} color={theme.colors.foreground} />
-        </Pressable>
-        <Text style={styles.dayLabel}>
-          {isToday ? "Hari ini" : date === shiftDate(today, -1) ? "Kemarin" : fmtDateId(date)}
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Hari berikutnya"
-          disabled={isToday}
-          onPress={() => setDate(shiftDate(date, 1))}
-          style={({ pressed }) => [
-            styles.dayArrow,
-            isToday && styles.disabled,
-            pressed && styles.pressedSoft,
-          ]}
-        >
-          <Ionicons name="chevron-forward" size={20} color={theme.colors.foreground} />
-        </Pressable>
-      </View>
+      <DaySwitcher date={date} onChange={setDate} />
 
       {/* Summary strip: ring + per-macro progress bars (same budgets as web) */}
       <Card style={styles.summaryCard}>
@@ -521,8 +492,8 @@ export default function Makan() {
         </View>
       </Card>
 
-      {/* Belanja makan: pengeluaran + anggaran + nilai terbaik */}
-      <BelanjaSection />
+      {/* Belanja: angkanya selalu hari ini */}
+      {isToday ? <BelanjaSection /> : null}
 
       {/* Global story entry: several meals, even another day, in one go */}
       <Pressable
@@ -643,6 +614,7 @@ export default function Makan() {
                   onPress={() => {
                     quickAddRef.current = true;
                     addFood.mutate({
+                      date,
                       meal: sheetMeal ?? "sarapan",
                       name: food.name,
                       kcal: food.kcal,
@@ -779,30 +751,6 @@ const styles = StyleSheet.create((theme) => ({
   },
   pressedSoft: {
     opacity: 0.7,
-  },
-  disabled: {
-    opacity: 0.35,
-  },
-  dayRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: theme.spacing.sm,
-  },
-  dayArrow: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.card,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dayLabel: {
-    fontSize: theme.fontSize.base,
-    fontWeight: "700",
-    color: theme.colors.foreground,
-    minWidth: 120,
-    textAlign: "center",
   },
   summaryCard: {
     flexDirection: "row",

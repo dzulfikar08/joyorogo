@@ -10,9 +10,11 @@ import { orpc } from "@/utils/orpc";
  * "Air minum" — one tappable droplet per glass. Tapping a filled droplet
  * pours one back out, tapping an empty one fills one in.
  */
-export function WaterCard() {
+export function WaterCard({ date }: { date?: string }) {
   const queryClient = useQueryClient();
-  const today = useQuery(orpc.water.today.queryOptions());
+  const today = useQuery(
+    orpc.water.today.queryOptions({ input: date === undefined ? {} : { date } }),
+  );
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: orpc.water.key() });
@@ -54,7 +56,7 @@ export function WaterCard() {
           </div>
           <div
             role="group"
-            aria-label="Gelas air hari ini, ketuk untuk mengisi"
+            aria-label="Gelas air, ketuk untuk mengisi"
             className="mt-2 grid max-w-72 grid-cols-4 gap-1"
           >
             {Array.from({ length: goal }, (_, i) => i + 1).map((n) => {
@@ -66,7 +68,11 @@ export function WaterCard() {
                   aria-pressed={filled}
                   aria-label={filled ? `Kosongkan gelas ke-${n}` : `Isi gelas ke-${n}`}
                   disabled={busy}
-                  onClick={() => (filled ? remove.mutate() : add.mutate())}
+                  onClick={() =>
+                    filled
+                      ? remove.mutate(date === undefined ? {} : { date })
+                      : add.mutate(date === undefined ? {} : { date })
+                  }
                   className="flex h-11 items-center justify-center rounded-xl transition-colors hover:bg-card/70 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60"
                 >
                   <Droplet

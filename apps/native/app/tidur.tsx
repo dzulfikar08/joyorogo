@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { Redirect, Stack } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { SLEEP_NEED_HOURS, jakartaToday } from "@joyorogo/api/lib/engine";
+import { SLEEP_NEED_HOURS, jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 
+import { DaySwitcher } from "@/components/day-switcher";
 import {
   BootLoader,
   Button,
@@ -24,18 +25,10 @@ import {
   Text,
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtKg, parseNum } from "@/utils/format";
+import { errorMessage, fmtDateId, fmtKg, parseNum } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
 const PRESETS = [5, 6, 7, 8, 9];
-
-// day.summary reads "last night" from the previous WIB day, so the record
-// for the night just slept is dated yesterday.
-function wibYesterday(date: string): string {
-  const day = new Date(`${date}T00:00:00Z`);
-  day.setUTCDate(day.getUTCDate() - 1);
-  return day.toISOString().slice(0, 10);
-}
 
 function shiftDate(date: string, days: number): string {
   const day = new Date(`${date}T00:00:00Z`);
@@ -49,20 +42,25 @@ function weekdayShort(date: string): string {
   );
 }
 
-/** Last 7 nights as mini bars; tonight's bar highlighted. */
-function SleepBars({ nights }: { nights: Array<{ date: string; hours: number | null }> }) {
+/** Last 7 nights as mini bars; the viewed night's bar highlighted. */
+function SleepBars({
+  nights,
+  lastLabel = "Semalam",
+}: {
+  nights: Array<{ date: string; hours: number | null }>;
+  lastLabel?: string;
+}) {
   const { theme } = useUnistyles();
   const w = Math.min(320, Dimensions.get("window").width - 100);
   const h = 96;
   const gap = 8;
   const barW = (w - gap * (nights.length - 1)) / nights.length;
   const max = Math.max(SLEEP_NEED_HOURS, ...nights.map((n) => n.hours ?? 0));
-  const today = wibYesterday(jakartaToday());
   return (
     <View style={styles.barsRow}>
       {nights.map((night, i) => {
         const ratio = night.hours !== null ? night.hours / max : 0;
-        const isLast = night.date === today;
+        const isLast = i === nights.length - 1;
         return (
           <View key={night.date} style={styles.barCol}>
             {night.hours !== null ? <Num style={styles.barValue}>{fmtKg(night.hours)}</Num> : null}
@@ -82,7 +80,7 @@ function SleepBars({ nights }: { nights: Array<{ date: string; hours: number | n
               />
             </View>
             <Text style={[styles.barLabel, isLast && styles.barLabelActive]}>
-              {i === nights.length - 1 ? "Semalam" : weekdayShort(night.date)}
+              {isLast ? lastLabel : weekdayShort(night.date)}
             </Text>
           </View>
         );
@@ -94,8 +92,16 @@ function SleepBars({ nights }: { nights: Array<{ date: string; hours: number | n
 export default function Tidur() {
   const { theme } = useUnistyles();
   const gate = useSessionGate();
-  const sleepDate = wibYesterday(jakartaToday());
-  const sleepQuery = useQuery(orpc.sleep.getForDate.queryOptions({ input: { date: sleepDate } }));
+  const today = jakartaToday();
+  // The switcher picks a day; that day's sleep is the night keyed the
+  // previous WIB day (day.summary reads it the same way).
+  const [viewDate, setViewDate] = useState(today);
+  const isToday = viewDate === today;
+  const sleepDate = shiftDate(viewDate, -1);
+  const sleepQuery = useQuery({
+    ...orpc.sleep.getForDate.queryOptions({ input: { date: sleepDate } }),
+    placeholderData: (prev) => prev,
+  });
 
   const weekDates = Array.from({ length: 7 }, (_, i) => shiftDate(sleepDate, i - 6));
   const weekQueries = useQueries({
@@ -122,11 +128,13 @@ export default function Tidur() {
 
   // Prefill the manual field with the existing record when the sheet opens.
   useEffect(() => {
-    if (sheetOpen && hours === "") {
+    // Skip while a day-switch fetch is in flight so the field never prefills
+    // from the previously viewed night's placeholder data.
+    if (sheetOpen && hours === "" && !sleepQuery.isFetching) {
       const existing = sleepQuery.data?.hours;
       if (existing !== null && existing !== undefined) setHours(String(existing));
     }
-  }, [sheetOpen, hours, sleepQuery.data]);
+  }, [sheetOpen, hours, sleepQuery.data, sleepQuery.isFetching]);
 
   if (gate === "loading") {
     return <BootLoader />;
@@ -173,7 +181,13 @@ export default function Tidur() {
     <>
       <Stack.Screen options={{ title: "Tidur" }} />
       <Screen>
-      <PageHeader title="Tidur" caption="Jam tidur semalam (WIB)" />
+      <PageHeader
+        title="Tidur"
+        caption={isToday ? "Jam tidur semalam (WIB)" : `Jam tidur ${relativeDayLabel(viewDate, today)} (WIB)`}
+      />
+
+      {/* Day switcher */}
+      <DaySwitcher date={viewDate} onChange={setViewDate} />
 
       {/* Last night ring */}
       <Card style={styles.ringCard}>
@@ -185,7 +199,7 @@ export default function Tidur() {
           color={theme.colors.tidur}
           track={theme.colors.tidurSoft}
         >
-          <Text style={styles.ringLabel}>Semalam</Text>
+          <Text style={styles.ringLabel}>{isToday ? "Semalam" : fmtDateId(sleepDate)}</Text>
           <Num style={styles.ringValue} adjustsFontSizeToFit numberOfLines={1}>
             {logged !== null ? fmtKg(logged) : "–"}
           </Num>
@@ -234,7 +248,10 @@ export default function Tidur() {
             <Skeleton width="100%" height={96} radius={12} />
           </View>
         ) : (
-          <SleepBars nights={nights} />
+          <SleepBars
+            nights={nights}
+            lastLabel={isToday ? "Semalam" : fmtDateId(sleepDate)}
+          />
         )}
         <Text style={styles.note}>
           Satu catatan per malam. Hasil {Platform.OS === "ios" ? "Apple Health" : "Health Connect"}{" "}

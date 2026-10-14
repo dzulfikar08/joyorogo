@@ -12,13 +12,14 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Camera, ChevronLeft, ChevronRight, Mic, Plus, Share2, Trash2, Utensils } from "lucide-react";
+import { Camera, ChevronRight, Mic, Plus, Share2, Trash2, Utensils } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { Cerita } from "@/components/cerita";
 import type { CeritaPhase } from "@/components/cerita";
 import { Chip } from "@/components/chip";
+import { DaySwitcher } from "@/components/day-switcher";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { FieldLabel, ListRow, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
 import { MakanSummaryCard } from "@/components/macro-card";
@@ -53,22 +54,6 @@ export const Route = createFileRoute("/_auth/makan/")({
   pendingComponent: MakanSkeleton,
   component: MakanPage,
 });
-
-function shiftDate(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-/** Short switcher label: "Hari ini", "Kemarin", otherwise "6 Okt". */
-function dayLabel(date: string): string {
-  if (date === shiftDate(jakartaToday(), -1)) return "Kemarin";
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
-}
 
 function MakanPage() {
   const queryClient = useQueryClient();
@@ -157,37 +142,7 @@ function MakanPage() {
     <Page className="md:max-w-3xl">
       <PageHeader
         title="Makan"
-        action={
-          <div
-            role="group"
-            aria-label="Pilih hari"
-            className="flex items-center gap-0.5 rounded-full bg-muted p-1"
-          >
-            <button
-              type="button"
-              aria-label="Hari sebelumnya"
-              onClick={() => navigate({ search: { date: shiftDate(date, -1) } })}
-              className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-            >
-              <ChevronLeft className="size-5" aria-hidden />
-            </button>
-            <span
-              className="min-w-[4.25rem] text-center text-sm font-bold text-foreground tabular-nums"
-              title={fmtDateIndo(date)}
-            >
-              {isToday ? "Hari ini" : dayLabel(date)}
-            </span>
-            <button
-              type="button"
-              aria-label="Hari berikutnya"
-              disabled={isToday}
-              onClick={() => navigate({ search: { date: shiftDate(date, 1) } })}
-              className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30"
-            >
-              <ChevronRight className="size-5" aria-hidden />
-            </button>
-          </div>
-        }
+        action={<DaySwitcher date={date} onChange={showDate} />}
       />
 
       {daySummary.data?.targets && daySummary.data.protein && (
@@ -201,7 +156,8 @@ function MakanPage() {
         </div>
       )}
 
-      <BelanjaCard />
+      {/* Belanja: angkanya selalu hari ini */}
+      {isToday ? <BelanjaCard /> : null}
 
       <button
         type="button"

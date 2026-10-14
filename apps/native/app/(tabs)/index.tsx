@@ -12,12 +12,14 @@ import {
   effectiveRamadan,
   jakartaToday,
   MEAL_LABELS,
+  relativeDayLabel,
   slotsFor,
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { pickFact } from "@joyorogo/api/lib/facts";
 
 import { BelanjaCompact } from "@/components/plate/belanja";
+import { DaySwitcher } from "@/components/day-switcher";
 import { useAppConfig } from "@/components/billing";
 import { FoodSticker, StickerViewer, stickerUrl } from "@/components/sticker";
 import type { StickerViewerTarget } from "@/components/sticker";
@@ -119,7 +121,13 @@ function TrendSpark({ points }: { points: TrendPoint[] }) {
 export default function Dashboard() {
   const { theme } = useUnistyles();
   const gate = useSessionGate();
-  const summary = useQuery(orpc.day.summary.queryOptions({ input: {} }));
+  const today = jakartaToday();
+  const [date, setDate] = useState(today);
+  const isToday = date === today;
+  const summary = useQuery({
+    ...orpc.day.summary.queryOptions({ input: { date } }),
+    placeholderData: (prev) => prev,
+  });
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   // Shared cache with FastingScheduleCard below; also feeds the widget line.
   const fastingToday = useQuery(orpc.fasting.today.queryOptions({ input: {} }));
@@ -143,7 +151,9 @@ export default function Dashboard() {
   const summaryData = summary.data;
   const fastingData = fastingToday.data;
   useEffect(() => {
+    // Widgets describe the live day; skip while a past day is on screen.
     if (gate !== "authed" || !summaryData?.hasProfile || !summaryData.targets) return;
+    if (summaryData.date !== today) return;
     void pushDaySnapshot(
       {
         date: summaryData.date,
@@ -166,7 +176,7 @@ export default function Dashboard() {
           ? undefined
           : null,
     );
-  }, [gate, summaryData, fastingData]);
+  }, [gate, summaryData, fastingData, today]);
 
   const [weighOpen, setWeighOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -281,6 +291,9 @@ export default function Dashboard() {
           </Pressable>
         </Link>
       </View>
+
+      {/* Day switcher */}
+      <DaySwitcher date={date} onChange={setDate} />
 
       {/* Founder banner: kuota gratis vs Founder, ketuk Upgrade → paywall */}
       {showFounderBanner && configData ? (
@@ -405,8 +418,8 @@ export default function Dashboard() {
       {/* Latihan beban: peringatan otot terlewat + pintu ke /latihan */}
       <WorkoutCard />
 
-      {/* Belanja makan hari ini, satu baris */}
-      <BelanjaCompact />
+      {/* Belanja makan hari ini, satu baris — angkanya selalu hari ini */}
+      {isToday ? <BelanjaCompact /> : null}
 
       {/* Masih muat: ide menu yang masih muat di sisa budget */}
       {data.ideas.length > 0 ? (
@@ -433,7 +446,7 @@ export default function Dashboard() {
 
       {/* Makan hari ini per slot */}
       <SectionTitle
-        title="Makan hari ini"
+        title={isToday ? "Makan hari ini" : `Makan ${relativeDayLabel(date, today)}`}
         action={{ label: "Lihat semua", onPress: () => router.navigate("/makan") }}
       />
       <ListGroup>
@@ -510,34 +523,36 @@ export default function Dashboard() {
             ) : null}
           </View>
           {trendPoints.length > 1 ? <TrendSpark points={trendPoints} /> : null}
-          {data.weightLoggedToday ? (
-            <Text style={styles.trendNote}>Sudah ditimbang hari ini. Mantap.</Text>
-          ) : (
-            <>
-              <Text style={styles.trendNote}>
-                {trendPoints.length === 0
-                  ? "Timbang dirimu agar angka tren mulai terbentuk."
-                  : "Belum timbang hari ini. Satu angka bikin rencana makin pas."}
-              </Text>
-              <View>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  label="Timbang sekarang"
-                  icon="scale-outline"
-                  onPress={() => setWeighOpen(true)}
-                />
-              </View>
-            </>
-          )}
+          {isToday ? (
+            data.weightLoggedToday ? (
+              <Text style={styles.trendNote}>Sudah ditimbang hari ini. Mantap.</Text>
+            ) : (
+              <>
+                <Text style={styles.trendNote}>
+                  {trendPoints.length === 0
+                    ? "Timbang dirimu agar angka tren mulai terbentuk."
+                    : "Belum timbang hari ini. Satu angka bikin rencana makin pas."}
+                </Text>
+                <View>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    label="Timbang sekarang"
+                    icon="scale-outline"
+                    onPress={() => setWeighOpen(true)}
+                  />
+                </View>
+              </>
+            )
+          ) : null}
         </Card>
       ) : null}
 
-      {/* Puasa intermiten: panduan jadwal makan */}
-      <FastingScheduleCard />
+      {/* Puasa intermiten: panduan jadwal makan — timer hidup hanya ada hari ini */}
+      {isToday ? <FastingScheduleCard /> : null}
 
       {/* Tips hari ini: artikel berbasis bukti, berganti tiap hari */}
-      <DailyTipCard />
+      {isToday ? <DailyTipCard /> : null}
 
       {/* Lainnya: air, streak, lencana, share — collapsed by default */}
       <SectionTitle
@@ -549,7 +564,7 @@ export default function Dashboard() {
       />
       {moreOpen ? (
         <>
-          <WaterCard />
+          <WaterCard date={date} />
           <ListGroup>
             <View style={styles.factBox}>
               <Text style={styles.factLabel}>Fakta kalori hari ini</Text>
@@ -583,7 +598,7 @@ export default function Dashboard() {
         <Text style={styles.moreHint}>Air minum, streak, dan recap mingguan ada di sini.</Text>
       )}
 
-      <WeighInSheet visible={weighOpen} onClose={() => setWeighOpen(false)} />
+      <WeighInSheet visible={weighOpen} onClose={() => setWeighOpen(false)} date={date} />
 
       {/* Info target adaptif */}
       <Sheet visible={adaptiveOpen} onClose={() => setAdaptiveOpen(false)} title="Target adaptif">

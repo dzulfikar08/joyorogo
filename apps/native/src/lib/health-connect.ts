@@ -257,18 +257,27 @@ async function importWorkouts(
       recordedKcal > 0
         ? recordedKcal
         : estimateKcal(metForStravaType(activity), latestWeightKg ?? 70, duration);
-    await client.exercise.add({
-      date: wibDateOf(record.startTime),
-      type: activity,
-      name:
-        record.title ??
-        LABEL_ID_BY_EXERCISE_TYPE[record.exerciseType] ??
-        "Olahraga (Health Connect)",
-      durationMin: duration,
-      kcal,
-      source: "health_connect",
-      externalId,
-    });
+    try {
+      await client.exercise.add({
+        date: wibDateOf(record.startTime),
+        type: activity,
+        name:
+          record.title ??
+          LABEL_ID_BY_EXERCISE_TYPE[record.exerciseType] ??
+          "Olahraga (Health Connect)",
+        durationMin: duration,
+        kcal,
+        source: "health_connect",
+        externalId,
+      });
+    } catch {
+      // exercise.add is a strict insert guarded by the
+      // (user, source, externalId) unique index — a conflict (e.g. a
+      // background auto-sync racing this one) must not fail the whole
+      // sync, and must not be counted as imported.
+      skipped++;
+      continue;
+    }
     existing.add(externalId);
     imported++;
   }

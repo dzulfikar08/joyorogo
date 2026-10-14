@@ -167,7 +167,7 @@ export default function Profil() {
     try {
       const result = await syncHealthData(profileQuery.data?.latestWeightKg ?? null);
       const parts = [
-        `${result.workoutsImported} latihan diimpor`,
+        `${result.workoutsImported} latihan diimpor (7 hari terakhir)`,
         `${result.activityDays} hari aktivitas`,
         `${result.sleepNights} malam tidur`,
       ];

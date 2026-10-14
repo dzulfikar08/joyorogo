@@ -7,6 +7,7 @@ import { Redirect, Stack, router } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { estimateKcal } from "@joyorogo/api/lib/met";
+import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 
 import {
   BootLoader,
@@ -28,9 +29,10 @@ import {
   Text,
 } from "@/components/ui";
 import { StravaCard } from "@/components/strava-card";
+import { DaySwitcher } from "@/components/day-switcher";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtKcal, fmtKg, parseNum } from "@/utils/format";
+import { errorMessage, fmtDateId, fmtKcal, fmtKg, parseNum } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -59,10 +61,20 @@ const TYPE_ICONS: Record<string, React.ComponentProps<typeof Ionicons>["name"]> 
 export default function Olahraga() {
   const { theme } = useUnistyles();
   const gate = useSessionGate();
-  const listQuery = useQuery(orpc.exercise.listByDate.queryOptions({ input: {} }));
+  const today = jakartaToday();
+  const [date, setDate] = useState(today);
+  const isToday = date === today;
+  const listQuery = useQuery({
+    ...orpc.exercise.listByDate.queryOptions({ input: { date } }),
+    placeholderData: (prev) => prev,
+  });
+  const recentQuery = useQuery(orpc.exercise.recent.queryOptions({ input: { days: 7 } }));
   const typesQuery = useQuery(orpc.exercise.types.queryOptions());
   const historyQuery = useQuery(orpc.weight.history.queryOptions({ input: { limit: 30 } }));
-  const summaryQuery = useQuery(orpc.day.summary.queryOptions({ input: {} }));
+  const summaryQuery = useQuery({
+    ...orpc.day.summary.queryOptions({ input: { date } }),
+    placeholderData: (prev) => prev,
+  });
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
 
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -175,6 +187,7 @@ export default function Olahraga() {
     const label = typesQuery.data?.find((t) => t.key === sheetType)?.label ?? "Olahraga";
     setFormError(null);
     addExercise.mutate({
+      date,
       type: sheetType ?? undefined,
       name: name.trim() === "" ? label : name.trim(),
       durationMin: minutes === null ? undefined : minutes,
@@ -198,6 +211,9 @@ export default function Olahraga() {
           />
         }
       />
+
+      {/* Day switcher */}
+      <DaySwitcher date={date} onChange={setDate} />
 
       {/* Burn ring */}
       <Card style={styles.burnCard}>
@@ -303,11 +319,11 @@ export default function Olahraga() {
       </ListGroup>
 
       {/* Activity list */}
-      <Text style={styles.sectionLabel}>Hari ini</Text>
+      <Text style={styles.sectionLabel}>{isToday ? "Hari ini" : relativeDayLabel(date, today)}</Text>
       {items.length === 0 ? (
         <EmptyState
           icon="barbell-outline"
-          title="Belum ada olahraga hari ini"
+          title={isToday ? "Belum ada olahraga hari ini" : `Belum ada olahraga ${fmtDateId(date)}`}
           description={`Pilih aktivitas di atas, sinkronkan Strava, atau impor dari ${healthSourceName}.`}
         />
       ) : (
@@ -353,6 +369,51 @@ export default function Olahraga() {
           ))}
         </ListGroup>
       )}
+
+      {/* Recent history: Health Connect / Apple Health imports land on the
+          workout's own WIB day, so show the past week or they look lost. */}
+      {(() => {
+        const wibToday = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const pastItems = (recentQuery.data?.items ?? []).filter((item) => item.date !== wibToday);
+        const byDate = new Map<string, typeof pastItems>();
+        for (const item of pastItems) {
+          const group = byDate.get(item.date);
+          if (group) group.push(item);
+          else byDate.set(item.date, [item]);
+        }
+        if (byDate.size === 0) return null;
+        return (
+          <>
+            <Text style={styles.sectionLabel}>7 hari terakhir</Text>
+            {recentQuery.isError ? (
+              <ErrorState
+                message={errorMessage(recentQuery.error)}
+                onRetry={() => recentQuery.refetch()}
+              />
+            ) : (
+              <ListGroup>
+                {[...byDate.entries()].map(([date, dayItems]) => (
+                  <View key={date}>
+                    <Text style={styles.historyDate}>
+                      {relativeDayLabel(date, wibToday)}
+                    </Text>
+                    {dayItems.map((item) => (
+                      <ListRow
+                        key={item.id}
+                        icon="flame"
+                        iconTint="bakar"
+                        title={item.name}
+                        subtitle={`${item.durationMin != null ? `${fmtKcal(item.durationMin)} menit · ` : ""}${fmtKcal(item.kcal)} kcal · ${SOURCE_LABELS[item.source] ?? item.source}`}
+                        value={fmtKcal(item.kcal)}
+                      />
+                    ))}
+                  </View>
+                ))}
+              </ListGroup>
+            )}
+          </>
+        );
+      })()}
 
       <StravaCard />
 
@@ -470,6 +531,14 @@ const styles = StyleSheet.create((theme) => ({
     fontWeight: "700",
     color: theme.colors.foreground,
     marginTop: theme.spacing.sm,
+  },
+  historyDate: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.mutedForeground,
+    paddingHorizontal: theme.spacing.xs,
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.xs,
   },
   typeGrid: {
     flexDirection: "row",

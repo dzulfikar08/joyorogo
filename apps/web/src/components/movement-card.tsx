@@ -7,11 +7,13 @@ import { fmtInt } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 
 /**
- * "Gerak dikit" — converts today's remaining burn target into walking
+ * "Gerak dikit" — converts the viewed day's remaining burn target into walking
  * equivalents (steps / km / minutes), so the number feels doable.
  */
-export default function MovementCard() {
-  const summary = useQuery(orpc.day.summary.queryOptions({ input: {} }));
+export default function MovementCard({ date }: { date?: string }) {
+  const summary = useQuery(
+    orpc.day.summary.queryOptions({ input: date === undefined ? {} : { date } }),
+  );
   if (!summary.data?.targets) return null;
 
   const remaining = Math.max(0, summary.data.targets.burnKcal - summary.data.burnedKcal);

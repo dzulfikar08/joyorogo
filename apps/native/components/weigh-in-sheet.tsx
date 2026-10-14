@@ -4,6 +4,7 @@ import { View } from "react-native";
 import { useUnistyles } from "react-native-unistyles";
 
 import { Button, Field, Input, Sheet, Text } from "@/components/ui";
+import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import { errorMessage, parseNum } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
@@ -12,10 +13,13 @@ export function WeighInSheet({
   visible,
   onClose,
   latestKg,
+  date,
 }: {
   visible: boolean;
   onClose: () => void;
   latestKg?: number | null;
+  /** WIB day key the weigh-in lands on; defaults to today. */
+  date?: string;
 }) {
   const { theme } = useUnistyles();
   const [kg, setKg] = useState("");
@@ -47,19 +51,27 @@ export function WeighInSheet({
       return;
     }
     setError(null);
-    checkIn.mutate({ weightKg: num });
+    checkIn.mutate({ weightKg: num, ...(date === undefined ? {} : { date }) });
   };
+
+  const today = jakartaToday();
+  const isToday = date === undefined || date === today;
+  const dayLabel = relativeDayLabel(date ?? today, today);
 
   return (
     <Sheet
       visible={visible}
       onClose={onClose}
-      title="Timbang hari ini"
+      title={isToday ? "Timbang hari ini" : `Timbang ${dayLabel}`}
       footer={<Button label="Simpan" onPress={submit} loading={checkIn.isPending} />}
     >
       <Field
         label="Berat badan (kg)"
-        hint="Satu catatan per hari. Menyimpan lagi akan menimpa catatan hari ini."
+        hint={
+          isToday
+            ? "Satu catatan per hari. Menyimpan lagi akan menimpa catatan hari ini."
+            : `Satu catatan per hari. Menyimpan lagi akan menimpa catatan ${dayLabel}.`
+        }
       >
         <Input
           value={kg}

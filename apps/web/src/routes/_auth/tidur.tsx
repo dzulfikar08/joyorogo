@@ -7,18 +7,29 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { SLEEP_NEED_HOURS } from "@joyorogo/api/lib/engine";
+import { SLEEP_NEED_HOURS, jakartaToday, relativeDayLabel, shiftDate } from "@joyorogo/api/lib/engine";
 
 import { Ring } from "@/components/kit/ring";
 import { ScreenError } from "@/components/screen-state";
 import { Card, FieldLabel, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
+import { DaySwitcher } from "@/components/day-switcher";
 import { fmtKg, parseNum } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 
-const sleepOptions = orpc.sleep.getForDate.queryOptions({ input: {} });
+const sleepOptions = (date: string) => orpc.sleep.getForDate.queryOptions({ input: { date } });
 
 export const Route = createFileRoute("/_auth/tidur")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(sleepOptions),
+  validateSearch: (search: Record<string, unknown>): { date?: string } => {
+    const raw = typeof search.date === "string" ? search.date : undefined;
+    return { date: raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : undefined };
+  },
+  loaderDeps: ({ search }) => ({ date: search.date }),
+  loader: ({ context, deps }) => {
+    // The switcher picks a day; that day's sleep is the night keyed the
+    // previous WIB day (day.summary reads it the same way).
+    const date = shiftDate(deps.date ?? jakartaToday(), -1);
+    return context.queryClient.ensureQueryData(sleepOptions(date));
+  },
   pendingComponent: TidurSkeleton,
   component: TidurPage,
 });
@@ -26,16 +37,42 @@ export const Route = createFileRoute("/_auth/tidur")({
 const PRESETS = [5, 6, 7, 8, 9];
 
 function TidurPage() {
-  const logged = useQuery(sleepOptions);
+  const { date: paramDate } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const viewDate = paramDate ?? jakartaToday();
+  const nightDate = shiftDate(viewDate, -1);
+  const logged = useQuery(sleepOptions(nightDate));
   if (logged.isPending) return <TidurSkeleton />;
   if (logged.error) {
     return <ScreenError message={logged.error.message} onRetry={() => logged.refetch()} />;
   }
-  return <TidurScreen row={logged.data} />;
+  return (
+    <TidurScreen
+      row={logged.data}
+      viewDate={viewDate}
+      nightDate={nightDate}
+      onChange={(target) =>
+        navigate({ search: { date: target === jakartaToday() ? undefined : target } })
+      }
+    />
+  );
 }
 
-function TidurScreen({ row }: { row: { hours: number } | null }) {
+function TidurScreen({
+  row,
+  viewDate,
+  nightDate,
+  onChange,
+}: {
+  row: { hours: number } | null;
+  viewDate: string;
+  nightDate: string;
+  onChange: (date: string) => void;
+}) {
   const queryClient = useQueryClient();
+  const today = jakartaToday();
+  const isToday = viewDate === today;
+  const dayLabel = relativeDayLabel(viewDate, today);
   const [manual, setManual] = useState("");
   const [error, setError] = useState<string | null>(null);
   const hours = row?.hours ?? null;
@@ -44,7 +81,9 @@ function TidurScreen({ row }: { row: { hours: number } | null }) {
     orpc.sleep.log.mutationOptions({
       onSuccess: (saved) => {
         if (!saved) return;
-        toast.success(`Tidur tadi malam: ${fmtKg(saved.hours)} jam.`);
+        toast.success(
+          isToday ? `Tidur tadi malam: ${fmtKg(saved.hours)} jam.` : `Tersimpan ke ${dayLabel}.`,
+        );
         setManual("");
         setError(null);
         queryClient.invalidateQueries({ queryKey: orpc.sleep.key() });
@@ -60,12 +99,17 @@ function TidurScreen({ row }: { row: { hours: number } | null }) {
       setError("Isi jam tidur antara 0 dan 24.");
       return;
     }
-    log.mutate({ hours: value });
+    log.mutate({ date: nightDate, hours: value });
   };
 
   return (
     <Page className="max-w-xl lg:max-w-3xl">
       <PageHeader title="Tidur" />
+
+      {/* Day switcher */}
+      <div className="mb-3 flex justify-center lg:justify-start">
+        <DaySwitcher date={viewDate} onChange={onChange} />
+      </div>
 
       <Card className="p-6">
         <div className="flex flex-col items-center text-center">
@@ -82,7 +126,9 @@ function TidurScreen({ row }: { row: { hours: number } | null }) {
             }
           >
             <div>
-              <p className="text-sm font-semibold text-muted-foreground">Tadi malam</p>
+              <p className="text-sm font-semibold text-muted-foreground">
+                {isToday ? "Tadi malam" : dayLabel}
+              </p>
               {hours !== null ? (
                 <p className="text-[3.5rem] leading-none font-extrabold tracking-tighter tabular-nums">
                   {fmtKg(hours)}
@@ -106,7 +152,7 @@ function TidurScreen({ row }: { row: { hours: number } | null }) {
       </Card>
 
       <section aria-label="Catat durasi tidur" className="mt-7">
-        <SectionTitle>Durasi tadi malam</SectionTitle>
+        <SectionTitle>{isToday ? "Durasi tadi malam" : `Durasi ${dayLabel}`}</SectionTitle>
         <div role="group" aria-label="Preset jam tidur" className="grid grid-cols-5 gap-2">
           {PRESETS.map((preset) => {
             const active = hours === preset;
@@ -116,7 +162,7 @@ function TidurScreen({ row }: { row: { hours: number } | null }) {
                 type="button"
                 aria-pressed={active}
                 disabled={log.isPending}
-                onClick={() => log.mutate({ hours: preset })}
+                onClick={() => log.mutate({ date: nightDate, hours: preset })}
                 className={cn(
                   "pressable flex min-h-16 flex-col items-center justify-center rounded-2xl bg-card focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60",
                   active
@@ -165,7 +211,9 @@ function TidurScreen({ row }: { row: { hours: number } | null }) {
         </form>
         {error && <p className="mt-2 px-1 text-sm text-destructive">{error}</p>}
         <p className="mt-2 px-1 text-xs text-muted-foreground">
-          Catatan masuk untuk tadi malam. Menyimpan ulang menimpa nilai sebelumnya.
+          {isToday
+            ? "Catatan masuk untuk tadi malam. Menyimpan ulang menimpa nilai sebelumnya."
+            : `Catatan masuk untuk malam ${dayLabel}. Menyimpan ulang menimpa nilai sebelumnya.`}
         </p>
       </section>
     </Page>

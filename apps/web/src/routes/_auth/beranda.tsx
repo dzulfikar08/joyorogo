@@ -25,13 +25,22 @@ import { pickFact } from "@/lib/facts";
 import { fmtDateIndo, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
 import { useAppConfig } from "@/lib/app-config";
 import type { DaySummary } from "@/lib/api-types";
+import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import { orpc } from "@/utils/orpc";
 
-const summaryOptions = orpc.day.summary.queryOptions({ input: {} });
+import { DaySwitcher } from "@/components/day-switcher";
+
+const summaryOptions = (date: string) => orpc.day.summary.queryOptions({ input: { date } });
 const profileOptions = orpc.profile.myProfile.queryOptions();
 
 export const Route = createFileRoute("/_auth/beranda")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(summaryOptions),
+  validateSearch: (search: Record<string, unknown>): { date?: string } => {
+    const raw = typeof search.date === "string" ? search.date : undefined;
+    return { date: raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : undefined };
+  },
+  loaderDeps: ({ search }) => ({ date: search.date }),
+  loader: ({ context, deps }) =>
+    context.queryClient.ensureQueryData(summaryOptions(deps.date ?? jakartaToday())),
   pendingComponent: BerandaSkeleton,
   component: BerandaPage,
 });
@@ -39,7 +48,10 @@ export const Route = createFileRoute("/_auth/beranda")({
 type Summary = DaySummary;
 
 function BerandaPage() {
-  const summary = useQuery(summaryOptions);
+  const { date: paramDate } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const date = paramDate ?? jakartaToday();
+  const summary = useQuery(summaryOptions(date));
   if (summary.isPending) return <BerandaSkeleton />;
   if (summary.error) {
     return <ScreenError message={summary.error.message} onRetry={() => summary.refetch()} />;
@@ -47,7 +59,15 @@ function BerandaPage() {
   if (summary.data.targets === null) {
     return <Navigate to="/onboarding" replace />;
   }
-  return <Dashboard summary={summary.data} />;
+  return (
+    <Dashboard
+      summary={summary.data}
+      date={date}
+      onChange={(target) =>
+        navigate({ search: { date: target === jakartaToday() ? undefined : target } })
+      }
+    />
+  );
 }
 
 /** Always-visible nudge for free users while billing is on. Not dismissible:
@@ -102,10 +122,19 @@ const SLOT_LABEL: Record<string, string> = {
 };
 const DEFAULT_SLOTS = ["sarapan", "makan_siang", "makan_malam", "snack"];
 
-function Dashboard({ summary }: { summary: Summary }) {
+function Dashboard({
+  summary,
+  date,
+  onChange,
+}: {
+  summary: Summary;
+  date: string;
+  onChange: (date: string) => void;
+}) {
   const { session } = Route.useRouteContext();
   const targets = summary.targets;
   const firstName = session.user.name?.split(" ")[0];
+  const isToday = date === jakartaToday();
 
   const foods = useQuery(orpc.food.listByDate.queryOptions({ input: { date: summary.date } }));
   const stickers = (foods.data?.items ?? []).filter(
@@ -149,6 +178,11 @@ function Dashboard({ summary }: { summary: Summary }) {
       </header>
 
       <FounderBanner />
+
+      {/* Day switcher */}
+      <div className="mb-3 flex justify-center lg:justify-start">
+        <DaySwitcher date={date} onChange={onChange} />
+      </div>
 
       {/* minmax(0, …) tracks: the scrollable ideas row inside EatHero must
           scroll, not widen its column past the phone screen. Rows are pinned
@@ -194,17 +228,17 @@ function Dashboard({ summary }: { summary: Summary }) {
         </div>
 
         <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-1">
-          <TodayMeals summary={summary} />
-          <FastingScheduleCard />
+          <TodayMeals summary={summary} isToday={isToday} />
+          {isToday ? <FastingScheduleCard /> : null}
         </div>
 
         <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-2 lg:space-y-5">
-          <WeightCard summary={summary} />
+          <WeightCard summary={summary} date={date} isToday={isToday} />
           <WorkoutCard />
         </div>
 
         <div className="min-w-0 lg:col-start-1 lg:row-start-2">
-          <WaistCard />
+          <WaistCard date={date} isToday={isToday} />
         </div>
       </div>
 
@@ -231,9 +265,9 @@ function Dashboard({ summary }: { summary: Summary }) {
         </section>
       )}
 
-      <DailyTipCard />
+      {isToday ? <DailyTipCard /> : null}
 
-      <MoreSection summary={summary} />
+      <MoreSection summary={summary} date={date} isToday={isToday} />
     </Page>
   );
 }
@@ -350,7 +384,7 @@ function EatHero({ summary }: { summary: Summary }) {
   );
 }
 
-function TodayMeals({ summary }: { summary: Summary }) {
+function TodayMeals({ summary, isToday }: { summary: Summary; isToday: boolean }) {
   const slots = [
     ...DEFAULT_SLOTS,
     ...Object.keys(summary.eatenByMeal).filter(
@@ -381,7 +415,9 @@ function TodayMeals({ summary }: { summary: Summary }) {
           </span>
         }
       >
-        Makan hari ini
+        {isToday
+          ? "Makan hari ini"
+          : `Makan ${relativeDayLabel(summary.date, jakartaToday())}`}
       </SectionTitle>
       <ul className="overflow-hidden rounded-3xl bg-card">
         {slots.map((slot, index) => {
@@ -445,7 +481,15 @@ function Sparkline({ values, tone = "makan" }: { values: number[]; tone?: "makan
   );
 }
 
-function WeightCard({ summary }: { summary: Summary }) {
+function WeightCard({
+  summary,
+  date,
+  isToday,
+}: {
+  summary: Summary;
+  date: string;
+  isToday: boolean;
+}) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
@@ -506,14 +550,14 @@ function WeightCard({ summary }: { summary: Summary }) {
             )}
           </div>
           <Button
-            variant={summary.weightLoggedToday ? "secondary" : "default"}
+            variant={isToday && summary.weightLoggedToday ? "secondary" : "default"}
             size="sm"
             onClick={() => {
               setValue(summary.latestWeightKg !== null ? String(summary.latestWeightKg) : "");
               setOpen(true);
             }}
           >
-            {summary.weightLoggedToday ? "Ubah" : "Timbang"}
+            {isToday && summary.weightLoggedToday ? "Ubah" : "Timbang"}
           </Button>
         </div>
         {trend && (
@@ -537,7 +581,11 @@ function WeightCard({ summary }: { summary: Summary }) {
       <Sheet
         open={open}
         onOpenChange={setOpen}
-        title="Timbang hari ini"
+        title={
+          isToday
+            ? "Timbang hari ini"
+            : `Timbang ${relativeDayLabel(date, jakartaToday())}`
+        }
         description="Satu catatan per hari. Menyimpan lagi menimpa angka tadi."
       >
         <form
@@ -548,7 +596,7 @@ function WeightCard({ summary }: { summary: Summary }) {
               toast.error("Isi berat antara 25 dan 400 kg.");
               return;
             }
-            checkIn.mutate({ weightKg: kg });
+            checkIn.mutate({ weightKg: kg, ...(isToday ? {} : { date }) });
           }}
           className="space-y-4"
         >
@@ -581,7 +629,7 @@ function WeightCard({ summary }: { summary: Summary }) {
 const waistHistoryOptions = orpc.waist.history.queryOptions({ input: { limit: 30 } });
 
 /** Compact Lingkar perut summary mirroring the Berat card; full section lives on /berat. */
-function WaistCard() {
+function WaistCard({ date, isToday }: { date: string; isToday: boolean }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
@@ -661,14 +709,14 @@ function WaistCard() {
             )}
           </div>
           <Button
-            variant={loggedToday ? "secondary" : "default"}
+            variant={isToday && loggedToday ? "secondary" : "default"}
             size="sm"
             onClick={() => {
               setValue(latest !== null ? String(latest) : "");
               setOpen(true);
             }}
           >
-            {loggedToday ? "Ubah" : "Ukur"}
+            {isToday && loggedToday ? "Ubah" : "Ukur"}
           </Button>
         </div>
         <div className="mt-4">
@@ -690,7 +738,7 @@ function WaistCard() {
               toast.error("Isi lingkar perut antara 40 dan 250 cm.");
               return;
             }
-            checkIn.mutate({ waistCm: cm });
+            checkIn.mutate({ waistCm: cm, ...(isToday ? {} : { date }) });
           }}
           className="space-y-4"
         >
@@ -720,7 +768,15 @@ function WaistCard() {
   );
 }
 
-function MoreSection({ summary }: { summary: Summary }) {
+function MoreSection({
+  summary,
+  date,
+  isToday,
+}: {
+  summary: Summary;
+  date: string;
+  isToday: boolean;
+}) {
   const fact = pickFact(summary.date);
   return (
     <details className="group mt-7 rounded-3xl bg-card">
@@ -732,9 +788,9 @@ function MoreSection({ summary }: { summary: Summary }) {
         />
       </summary>
       <div className="space-y-5 px-5 pb-5">
-        <BelanjaCard variant="line" />
-        <WaterCard />
-        <MovementCard />
+        {isToday ? <BelanjaCard variant="line" /> : null}
+        <WaterCard date={date} />
+        <MovementCard date={date} />
         {fact && (
           <div className="rounded-2xl bg-muted p-4">
             <p className="text-xs font-semibold text-muted-foreground">Fakta kalori hari ini</p>
