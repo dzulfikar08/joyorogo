@@ -43,6 +43,17 @@ export type VarAnalysis = {
 export const VAR_FRIENDLY_ERROR =
   "VAR tidak berhasil membandingkan fotonya. Coba lagi dengan pencahayaan lebih baik, atau ulangi besok.";
 
+/**
+ * Prompt tambahan untuk "Hitung ulang": pengguna menilai verdict pertama
+ * kurang tepat. Catatan opsionalnya kata-kata pengguna sendiri; keduanya
+ * hanya mengarahkan pembacaan ulang foto yang sama, bukan menyetir hasil.
+ */
+export function varRetryInstruction(hint?: string): string {
+  const base =
+    "Koreksi: verdict sebelumnya untuk pasangan foto ini dinilai kurang tepat oleh pengguna. Periksa ulang kedua foto dengan teliti dan jawab jujur sesuai yang terlihat, dengan bentuk JSON yang sama.";
+  return hint ? `${base} Catatan pengguna: "${hint}".` : base;
+}
+
 /** Satu usaha inferensi dengan batas waktu keras (pola yang sama dengan vision.ts). */
 function runVarOnce(
   ai: AiRunner,
@@ -51,6 +62,7 @@ function runVarOnce(
     previous: { imageBase64: string; label: string };
     current: { imageBase64: string; mimeType: string; label: string };
     waistCm: number | null;
+    retry?: { hint?: string };
   },
   timeoutMs: number,
   schedule: ScheduleTimeout = defaultSchedule,
@@ -59,6 +71,7 @@ function runVarOnce(
     opts.waistCm !== null
       ? ` Data objektif pemiliknya: lingkar perut tercatat ${opts.waistCm} cm (meteran, jangan diulang di reason).`
       : "";
+  const retryLine = opts.retry ? ` ${varRetryInstruction(opts.retry.hint)}` : "";
   const run = ai.run(model, {
     messages: [
       {
@@ -66,7 +79,7 @@ function runVarOnce(
         content: [
           {
             type: "text",
-            text: `${VAR_VISION_PROMPT_BASE}${waistLine} Foto lama (${opts.previous.label}) dikirim lebih dulu, lalu foto terbaru (${opts.current.label}).`,
+            text: `${VAR_VISION_PROMPT_BASE}${waistLine}${retryLine} Foto lama (${opts.previous.label}) dikirim lebih dulu, lalu foto terbaru (${opts.current.label}).`,
           },
           {
             type: "image_url",
@@ -117,6 +130,8 @@ export async function analyzeVarPhotos(
     previous: { imageBase64: string; label: string };
     current: { imageBase64: string; mimeType: string; label: string };
     waistCm: number | null;
+    /** Present when this run re-checks a pair the user judged inaccurate. */
+    retry?: { hint?: string };
     model?: string;
     /** Injectable for tests. */
     timeouts?: [number, number];

@@ -43,6 +43,7 @@ import {
   newScanId,
   varPhotoKey,
 } from "../lib/sticker";
+import { restoreVarVerdict, retryVarScan, varRetriesLeft } from "../lib/varretry";
 import { analyzeVarPhotos } from "../lib/varscan";
 import type { VarVerdict } from "../lib/varscan";
 import { sendPush } from "../lib/webpush";
@@ -922,7 +923,7 @@ export const groupRouter = {
       const firstWaist = waistRows.at(-1);
       const latestWaist = waistRows[0];
       return {
-        scans: rows.map((row) => ({
+        scans: rows.map((row, index) => ({
           id: row.id,
           date: row.date,
           verdict: row.verdict,
@@ -931,6 +932,8 @@ export const groupRouter = {
           waistCm: row.waistCm,
           photoUrl: `/var-photo/${row.photoId}`,
           createdAt: row.createdAt,
+          // Only a scan with an earlier one to compare against can be recounted.
+          retriesLeft: index > 0 ? varRetriesLeft(row.retries) : 0,
         })),
         shareVar: membership?.shareVar ?? false,
         latestWaist:
@@ -1077,6 +1080,52 @@ export const groupRouter = {
           // orphaned objects are harmless; never block the delete
         }
       }
+      return { ok: true };
+    }),
+
+  /**
+   * "Hitung ulang": re-runs the comparison on the SAME stored photos and
+   * overwrites this scan's verdict. Free (no daily scan), capped per scan and
+   * enforced in SQL (lib/varretry.ts). Teammates see the new verdict through
+   * the same row, so a shared scan updates with no extra write.
+   */
+  varRetry: protectedProcedure
+    .input(z.object({ id: z.string(), hint: z.string().trim().min(1).max(200).optional() }))
+    .handler(async ({ context, input }) => {
+      const ai = context.env.AI;
+      const bucket = context.env.STICKERS;
+      if (!ai) {
+        throw new ORPCError("SERVICE_UNAVAILABLE", {
+          message: "Layanan AI belum tersedia. Coba lagi nanti.",
+        });
+      }
+      if (!bucket) {
+        throw new ORPCError("SERVICE_UNAVAILABLE", {
+          message: "Penyimpanan foto belum tersedia.",
+        });
+      }
+      return retryVarScan(
+        { db: context.db, bucket, ai, model: context.env.AI_VISION_MODEL },
+        { userId: context.session.user.id, id: input.id, hint: input.hint },
+      );
+    }),
+
+  /** Undo for varRetry: puts the previous verdict back (the used retry stays spent). */
+  varRestore: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        verdict: z.enum(["pertama", "turun", "sama", "naik", "beda"]),
+        confidence: z.number().min(0).max(1).nullable(),
+        note: z.string().max(300).nullable(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      await restoreVarVerdict(context.db, context.session.user.id, input.id, {
+        verdict: input.verdict,
+        confidence: input.confidence,
+        note: input.note,
+      });
       return { ok: true };
     }),
 

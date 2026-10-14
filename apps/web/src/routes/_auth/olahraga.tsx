@@ -6,6 +6,7 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { Mascot } from "@/components/mascot";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { Chip } from "@/components/chip";
+import { ExerciseEditSheet } from "@/components/exercise-edit-sheet";
 import { DaySwitcher } from "@/components/day-switcher";
 import { Ring } from "@/components/kit/ring";
 import { ErrorNote } from "@/components/kit/error-note";
@@ -127,6 +128,8 @@ function OlahragaScreen({
   const [sheetOpen, setSheetOpen] = useState(false);
   // Bagikan ke feed: aktivitas yang sedang dibagikan.
   const [shareItem, setShareItem] = useState<ExerciseItem | null>(null);
+  // Ubah aktivitas: baris yang sedang diedit.
+  const [editItem, setEditItem] = useState<ExerciseItem | null>(null);
   const [typeKey, setTypeKey] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [durationMin, setDurationMin] = useState("");
@@ -385,6 +388,7 @@ function OlahragaScreen({
                 return (
                   <ListRow
                     key={item.id}
+                    onClick={() => setEditItem(item)}
                     icon={
                       <span className="flex size-9 items-center justify-center rounded-full bg-bakar-soft text-bakar">
                         <Icon className="size-4" aria-hidden />
@@ -408,7 +412,10 @@ function OlahragaScreen({
                           size="icon-sm"
                           aria-label={`Bagikan ${item.name} ke feed`}
                           className="text-muted-foreground hover:text-foreground"
-                          onClick={() => setShareItem(item)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setShareItem(item);
+                          }}
                         >
                           <Share2 aria-hidden />
                         </Button>
@@ -417,7 +424,10 @@ function OlahragaScreen({
                           size="icon-sm"
                           aria-label={`Hapus ${item.name}`}
                           className="text-muted-foreground hover:text-destructive"
-                          onClick={() => removeExercise(item)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            removeExercise(item);
+                          }}
                         >
                           <Trash2 aria-hidden />
                         </Button>
@@ -446,6 +456,7 @@ function OlahragaScreen({
                     return (
                       <ListRow
                         key={item.id}
+                        onClick={() => setEditItem(item)}
                         icon={
                           <span className="flex size-9 items-center justify-center rounded-full bg-bakar-soft text-bakar">
                             <Icon className="size-4" aria-hidden />
@@ -638,6 +649,10 @@ function OlahragaScreen({
           </p>
         </form>
       </Sheet>
+
+      {editItem && (
+        <ExerciseEditSheet key={editItem.id} row={editItem} onClose={() => setEditItem(null)} />
+      )}
 
       {shareItem && (
         <ShareToFeedSheet

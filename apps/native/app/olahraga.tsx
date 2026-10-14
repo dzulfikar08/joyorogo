@@ -28,6 +28,7 @@ import {
   Skeleton,
   Text,
 } from "@/components/ui";
+import { ExerciseEditSheet, type ExerciseEditRow } from "@/components/exercise-edit-sheet";
 import { StravaCard } from "@/components/strava-card";
 import { DaySwitcher } from "@/components/day-switcher";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
@@ -83,6 +84,8 @@ export default function Olahraga() {
   const [shareTarget, setShareTarget] = useState<
     null | { kind: "latihan"; refId: string; title: string; preview: string }
   >(null);
+  // Ubah aktivitas: baris yang sedang diedit.
+  const [editRow, setEditRow] = useState<ExerciseEditRow | null>(null);
   const [sheetType, setSheetType] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [duration, setDuration] = useState("30");
@@ -396,6 +399,7 @@ export default function Olahraga() {
           {items.map((item) => (
             <ListRow
               key={item.id}
+              onPress={() => setEditRow(item)}
               icon="flame"
               iconTint="bakar"
               title={item.name}
@@ -465,6 +469,7 @@ export default function Olahraga() {
                     {dayItems.map((item) => (
                       <ListRow
                         key={item.id}
+                        onPress={() => setEditRow(item)}
                         icon="flame"
                         iconTint="bakar"
                         title={item.name}
@@ -532,6 +537,9 @@ export default function Olahraga() {
         </Field>
         {formError ? <Text style={styles.error}>{formError}</Text> : null}
       </Sheet>
+      {editRow ? (
+        <ExerciseEditSheet key={editRow.id} row={editRow} onClose={() => setEditRow(null)} />
+      ) : null}
       <ShareToFeedSheet
         visible={shareTarget !== null}
         onClose={() => setShareTarget(null)}

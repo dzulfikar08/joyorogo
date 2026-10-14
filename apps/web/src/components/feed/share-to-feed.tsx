@@ -7,6 +7,7 @@ import { Globe, Users2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { HandlePrompt } from "@/components/feed/handle-prompt";
 import { FieldLabel, Segmented } from "@/components/kit/surface";
 import { orpc } from "@/utils/orpc";
 
@@ -82,6 +83,8 @@ export function ShareToFeedSheet({
             <p className="text-muted-foreground">{preview}</p>
           </div>
         </div>
+
+        {open && <HandlePrompt className="bg-muted" />}
 
         <label className="block space-y-1.5">
           <FieldLabel>Caption (opsional)</FieldLabel>

@@ -443,6 +443,7 @@ export const socialRouter = {
     ]);
     return {
       handle: row?.handle ?? handle,
+      handleIsPlaceholder: /^jr-[0-9a-f]{8}$/.test(row?.handle ?? handle ?? ""),
       bio: row?.bio ?? null,
       publicProfile: row?.publicProfile ?? true,
       defaultVisibility: row?.defaultVisibility ?? "grup",
@@ -497,6 +498,62 @@ export const socialRouter = {
       }
       return { ok: true };
     }),
+
+  /** Cek live: format valid, milik sendiri, sudah dipakai, atau bebas. */
+  handleCheck: protectedProcedure
+    .input(z.object({ handle: z.string().max(40) }))
+    .handler(async ({ context, input }) => {
+      const parsed = handleSchema.safeParse(input.handle);
+      if (!parsed.success) {
+        return {
+          status: "invalid" as const,
+          message: parsed.error.issues[0]?.message ?? "Handle tidak valid",
+        };
+      }
+      const [current] = await context.db
+        .select({ handle: profileTable.handle })
+        .from(profileTable)
+        .where(eq(profileTable.userId, context.session.user.id))
+        .limit(1);
+      if (current?.handle === parsed.data) return { status: "own" as const, message: null };
+      if (await handleTaken(context.db, parsed.data)) {
+        return { status: "taken" as const, message: "Sudah dipakai, coba yang lain." };
+      }
+      return { status: "free" as const, message: null };
+    }),
+
+  /** Saran handle yang masih bebas, diturunkan dari nama akun. */
+  handleSuggestions: protectedProcedure.handler(async ({ context }) => {
+    const [row] = await context.db
+      .select({ name: user.name })
+      .from(user)
+      .where(eq(user.id, context.session.user.id))
+      .limit(1);
+    const words = (row?.name ?? "")
+      .toLowerCase()
+      .split(/\s+/)
+      .map((word) => word.replace(/[^a-z0-9]+/g, ""))
+      .filter((word) => word.length > 0);
+    const first = (words[0] ?? "pengguna").slice(0, 14);
+    const last = words.length > 1 ? (words.at(-1) ?? "").slice(0, 10) : "";
+    const digits = () => String(Math.floor(10 + Math.random() * 90));
+    const candidates = [
+      last ? `${first}_${last}` : first,
+      first,
+      last ? `${first}${last.slice(0, 1)}` : `${first}_fit`,
+      `${first}${digits()}`,
+      `${first}_${digits()}`,
+      `${first}${digits()}${digits()}`,
+    ]
+      .map((candidate) => candidate.slice(0, 20))
+      .filter((candidate, index, all) => /^[a-z0-9_]{3,20}$/.test(candidate) && all.indexOf(candidate) === index);
+    const free: string[] = [];
+    for (const candidate of candidates) {
+      if (free.length >= 4) break;
+      if (!(await handleTaken(context.db, candidate))) free.push(candidate);
+    }
+    return { suggestions: free };
+  }),
 
   createPost: protectedProcedure
     .input(

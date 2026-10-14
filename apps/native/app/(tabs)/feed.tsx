@@ -16,6 +16,7 @@ import {
   Text,
 } from "@/components/ui";
 import { FeedComposer } from "@/components/feed/composer";
+import { HandlePrompt } from "@/components/feed/handle-prompt";
 import { PostCard, openAuthor } from "@/components/feed/post-card";
 import { TipCard } from "@/components/tips/tip-card";
 import { useSessionGate } from "@/lib/use-session-gate";
@@ -131,6 +132,8 @@ export default function Feed() {
           </View>
         }
       />
+
+      <HandlePrompt />
 
       <Segmented<Tab>
         options={[

@@ -16,18 +16,19 @@ import {
   Switch,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Circle, Ellipse, Line, Svg } from "react-native-svg";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { BootLoader, Button, Card, Text } from "@/components/ui";
+import { BootLoader, Button, Card, Input, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
 import type { VarHistory } from "@/src/lib/group";
 import { errorMessage } from "@/utils/format";
 import { client, isPaywallError, orpc } from "@/utils/orpc";
-import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
+import { UNDO_LABEL, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 
 type VarVerdict = VarHistory["scans"][number]["verdict"];
 type VarScanRow = VarHistory["scans"][number];
@@ -216,6 +217,35 @@ export default function VarSaya() {
     label: (row) => `Scan ${row.date}`,
     fallback: "Scan",
     invalidate: () => [orpc.group.key()],
+  });
+
+  // Hitung ulang: the server re-runs the AI on the stored photo pair and
+  // overwrites this scan's verdict (free, capped per scan). A failure leaves
+  // the previous verdict untouched; undo puts it back, shared status included.
+  const retryScan = useMutation({
+    mutationFn: (input: { id: string; hint?: string }) => client.group.varRetry(input),
+    onSuccess: ({ scan, previous }) => {
+      void queryClient.invalidateQueries({ queryKey: orpc.group.key() });
+      toast.success(`Hasil baru: ${verdictCopy(scan.verdict).label}`, undefined, {
+        label: UNDO_LABEL,
+        onPress: () => {
+          const key = orpc.group.varHistory.queryOptions({ input: { groupId } }).queryKey;
+          queryClient.setQueryData<VarHistory>(key, (old) =>
+            old
+              ? {
+                  ...old,
+                  scans: old.scans.map((row) => (row.id === scan.id ? { ...row, ...previous } : row)),
+                }
+              : old,
+          );
+          void client.group
+            .varRestore({ id: scan.id, ...previous })
+            .catch((e: unknown) => toast.error("Gagal mengembalikan hasil", errorMessage(e)))
+            .finally(() => void queryClient.invalidateQueries({ queryKey: orpc.group.key() }));
+        },
+      });
+    },
+    onError: (e) => toast.error("Hasil sebelumnya tetap dipakai", errorMessage(e)),
   });
 
   // Timer yang tertinggal di layar tidak boleh menembak saat sudah pindah view.
@@ -434,18 +464,29 @@ export default function VarSaya() {
           <>
             {/* --- Hasil: verdict + perbandingan --- */}
             {newest ? (
-              <ResultView
-                scans={scans}
-                shareVar={shareVar}
-                latestWaist={latestWaist}
-                onShare={(value) => setShare.mutate({ groupId, shareVar: value })}
-                sharePending={setShare.isPending}
-                onDelete={(scanId) => {
-                  const scan = scans.find((row) => row.id === scanId);
-                  if (scan) removeScan(scan);
-                }}
-                onRescan={() => setView("capture")}
-              />
+              <KeyboardAwareScrollView
+                style={styles.resultScroll}
+                contentContainerStyle={styles.resultContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <ResultView
+                  scans={scans}
+                  shareVar={shareVar}
+                  latestWaist={latestWaist}
+                  onShare={(value) => setShare.mutate({ groupId, shareVar: value })}
+                  sharePending={setShare.isPending}
+                  onDelete={(scanId) => {
+                    const scan = scans.find((row) => row.id === scanId);
+                    if (scan) removeScan(scan);
+                  }}
+                  onRescan={() => setView("capture")}
+                  onRetry={(scanId, hint, onDone) =>
+                    retryScan.mutate({ id: scanId, hint }, { onSuccess: onDone })
+                  }
+                  retrying={retryScan.isPending}
+                />
+              </KeyboardAwareScrollView>
             ) : (
               <View style={styles.emptyWrap}>
                 <Button label="Scan pertama" icon="scan" onPress={() => setView("capture")} />
@@ -466,6 +507,8 @@ function ResultView({
   sharePending,
   onDelete,
   onRescan,
+  onRetry,
+  retrying,
 }: {
   scans: VarScanRow[];
   shareVar: boolean;
@@ -474,8 +517,11 @@ function ResultView({
   sharePending: boolean;
   onDelete: (scanId: string) => void;
   onRescan: () => void;
+  onRetry: (scanId: string, hint: string | undefined, onDone: () => void) => void;
+  retrying: boolean;
 }) {
   const { theme } = useUnistyles();
+  const [retryHint, setRetryHint] = useState("");
   const newest = scans.at(-1)!;
   const previous = scans.at(-2) ?? null;
   const verdict = verdictCopy(newest.verdict);
@@ -525,7 +571,52 @@ function ResultView({
             <Text style={styles.compareCaption}>Sekarang · {dayLabel(newest.date)}</Text>
           </View>
         </View>
+        {retrying ? (
+          <View style={styles.retryOverlay} accessibilityRole="progressbar" accessibilityLabel="Menghitung ulang">
+            <ActivityIndicator color={theme.colors.primary} />
+            <Text style={styles.retryOverlayText}>AI membaca ulang kedua foto...</Text>
+          </View>
+        ) : null}
       </Card>
+
+      {/* Hitung ulang: foto yang sama, gratis, dibatasi per scan */}
+      {previous ? (
+        <Card style={styles.resultCard}>
+          <View style={styles.retryHead}>
+            <Text style={styles.shareTitle}>Hasilnya kurang pas?</Text>
+            <Text style={styles.shareHint}>
+              {newest.retriesLeft > 0 ? `Gratis, sisa ${newest.retriesLeft}x` : "Batas habis"}
+            </Text>
+          </View>
+          <Text style={styles.shareHint}>
+            AI membandingkan ulang kedua foto yang sama, tanpa foto ulang dan tanpa memakai kuota scan
+            harian.{shareVar ? " Status yang dibagikan ke grup ikut diperbarui." : ""}
+          </Text>
+          {newest.retriesLeft > 0 ? (
+            <>
+              <Input
+                value={retryHint}
+                onChangeText={setRetryHint}
+                placeholder="Koreksi singkat (opsional), mis. pose sebenarnya sama"
+                maxLength={200}
+                editable={!retrying}
+              />
+              <Button
+                variant="secondary"
+                icon="refresh"
+                label={retrying ? "Menghitung ulang..." : "Hitung ulang"}
+                loading={retrying}
+                disabled={retrying}
+                onPress={() => onRetry(newest.id, retryHint.trim() || undefined, () => setRetryHint(""))}
+              />
+            </>
+          ) : (
+            <Text style={styles.retryExhausted}>
+              Scan ini sudah dihitung ulang sampai batasnya. Scan lagi di lain hari ya.
+            </Text>
+          )}
+        </Card>
+      ) : null}
 
       <Card style={styles.resultCard}>
         <View style={styles.waistHead}>
@@ -763,6 +854,39 @@ const styles = StyleSheet.create((theme) => ({
   resultCard: {
     gap: theme.spacing.sm,
     padding: theme.spacing.lg,
+  },
+  resultScroll: {
+    flex: 1,
+  },
+  resultContent: {
+    gap: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.xl,
+  },
+  retryOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: theme.spacing.sm,
+    borderRadius: theme.radius.card,
+    backgroundColor: theme.colors.card,
+    opacity: 0.92,
+  },
+  retryOverlayText: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.primary,
+  },
+  retryHead: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+  },
+  retryExhausted: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
   },
   verdictHead: {
     flexDirection: "row",

@@ -1,0 +1,1 @@
+ALTER TABLE `var_scan` ADD `retries` integer DEFAULT 0 NOT NULL;

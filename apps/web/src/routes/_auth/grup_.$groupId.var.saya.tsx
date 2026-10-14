@@ -1,4 +1,5 @@
 import { Button } from "@joyorogo/ui/components/button";
+import { Input } from "@joyorogo/ui/components/input";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -8,6 +9,7 @@ import {
   CircleDashed,
   Info,
   Lightbulb,
+  Loader2,
   MinusCircle,
   RefreshCw,
   Ruler,
@@ -21,6 +23,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { FieldLabel } from "@/components/kit/surface";
 import { Switch } from "@/components/kit/switch";
 import { apiUrl } from "@/lib/app-config";
 import { prepareImageFile, prepareVideoFrame } from "@/lib/image";
@@ -28,7 +31,7 @@ import type { VarHistory } from "@/lib/api-types";
 import { client, orpc } from "@/utils/orpc";
 import { removeById } from "@joyorogo/api/lib/optimistic";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
-import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
+import { UNDO_LABEL, UNDO_TOAST_MS, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 
 export const Route = createFileRoute("/_auth/grup_/$groupId/var/saya")({
   component: VarSayaPage,
@@ -183,6 +186,39 @@ function VarSayaPage() {
     invalidate: () => [orpc.group.key()],
   });
 
+  // Hitung ulang: the server re-runs the AI on the stored photo pair and
+  // overwrites this scan's verdict (free, capped per scan). A failure leaves
+  // the previous verdict untouched; undo puts it back, shared status included.
+  const retryScan = useMutation({
+    mutationFn: (input: { id: string; hint?: string }) => client.group.varRetry(input),
+    onSuccess: ({ scan, previous }) => {
+      void queryClient.invalidateQueries({ queryKey: orpc.group.key() });
+      toast.success(`Hasil baru: ${verdictStyle(scan.verdict).label}`, {
+        duration: UNDO_TOAST_MS,
+        action: {
+          label: UNDO_LABEL,
+          onClick: () => {
+            queryClient.setQueryData<VarHistory>(historyKey, (data) =>
+              data
+                ? {
+                    ...data,
+                    scans: data.scans.map((row) => (row.id === scan.id ? { ...row, ...previous } : row)),
+                  }
+                : data,
+            );
+            void client.group
+              .varRestore({ id: scan.id, ...previous })
+              .catch((error: unknown) =>
+                toast.error(error instanceof Error ? error.message : "Gagal mengembalikan hasil."),
+              )
+              .finally(() => void queryClient.invalidateQueries({ queryKey: orpc.group.key() }));
+          },
+        },
+      });
+    },
+    onError: (error) => toast.error(`Hasil sebelumnya tetap dipakai. ${error.message}`),
+  });
+
   const submit = (image: { base64: string; mimeType: "image/jpeg" }, previewUrl: string) => {
     setCaptured(previewUrl);
     analyze.mutate({ groupId, imageBase64: image.base64, mimeType: image.mimeType });
@@ -283,6 +319,8 @@ function VarSayaPage() {
           sharePending={setShare.isPending}
           onDelete={(id) => removeScan({ id })}
           deletePending={false}
+          onRetry={(id, hint, onDone) => retryScan.mutate({ id, hint }, { onSuccess: onDone })}
+          retrying={retryScan.isPending}
         />
       )}
     </div>
@@ -487,6 +525,8 @@ function CompareStep({
   sharePending,
   onDelete,
   deletePending,
+  onRetry,
+  retrying,
 }: {
   groupId: string;
   scans: VarHistory["scans"];
@@ -498,7 +538,10 @@ function CompareStep({
   sharePending: boolean;
   onDelete: (id: string) => void;
   deletePending: boolean;
+  onRetry: (id: string, hint: string | undefined, onDone: () => void) => void;
+  retrying: boolean;
 }) {
+  const [retryHint, setRetryHint] = useState("");
   const newest = scans.at(-1) ?? null;
   const previous = scans.at(-2) ?? null;
   if (!newest) return null;
@@ -508,7 +551,7 @@ function CompareStep({
   return (
     <>
       {/* Verdict + comparison pair */}
-      <div className="rounded-3xl bg-card p-4">
+      <div className="relative rounded-3xl bg-card p-4" aria-busy={retrying}>
         <p className={cn("flex items-center justify-center gap-2 text-center text-lg font-extrabold", verdict.className)}>
           <VerdictIcon className="size-6 shrink-0" aria-hidden />
           {verdict.label}
@@ -539,7 +582,72 @@ function CompareStep({
           />
           <ScanPhoto photoUrl={newest.photoUrl} date={newest.date} caption="Sekarang" highlight />
         </div>
+        {retrying && (
+          <div
+            className="absolute inset-0 z-10 grid place-items-center rounded-3xl bg-card/80 backdrop-blur-[2px]"
+            role="status"
+          >
+            <p className="flex items-center gap-2 text-sm font-bold text-primary animate-pulse">
+              <Loader2 className="size-5 animate-spin" aria-hidden />
+              AI membaca ulang kedua foto...
+            </p>
+          </div>
+        )}
       </div>
+
+      {/* Hitung ulang: same photos, free, capped per scan */}
+      {previous && (
+        <div className="rounded-3xl bg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm font-bold">Hasilnya kurang pas?</p>
+            <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+              {newest.retriesLeft > 0 ? `Gratis, sisa ${newest.retriesLeft}x` : "Batas hitung ulang habis"}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            AI membandingkan ulang kedua foto yang sama, tanpa foto ulang dan tanpa memakai kuota scan
+            harian.
+            {shareVar ? ` Status yang dibagikan ke ${groupName} ikut diperbarui.` : ""}
+          </p>
+          {newest.retriesLeft > 0 ? (
+            <div className="mt-3 space-y-3">
+              <div>
+                <FieldLabel htmlFor="var-retry-hint">Koreksi singkat (opsional)</FieldLabel>
+                <Input
+                  id="var-retry-hint"
+                  value={retryHint}
+                  maxLength={200}
+                  onChange={(event) => setRetryHint(event.target.value)}
+                  placeholder="mis. pose kedua foto sebenarnya sama"
+                  autoComplete="off"
+                  disabled={retrying}
+                />
+              </div>
+              <Button
+                variant="secondary"
+                disabled={retrying}
+                onClick={() => onRetry(newest.id, retryHint.trim() || undefined, () => setRetryHint(""))}
+              >
+                {retrying ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                    Menghitung ulang...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="size-4" aria-hidden />
+                    Hitung ulang
+                  </>
+                )}
+              </Button>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm font-semibold text-muted-foreground">
+              Scan ini sudah dihitung ulang sampai batasnya. Scan lagi di lain hari ya.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Objective signal: the tape, not the photo */}
       <div className="rounded-3xl bg-card p-4">

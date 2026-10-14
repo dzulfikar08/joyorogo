@@ -5,6 +5,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Button, Chip, Field, Input, Sheet, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
+import { HandlePrompt } from "@/components/feed/handle-prompt";
 import { client, orpc } from "@/utils/orpc";
 import { errorMessage } from "@/utils/format";
 import { useOptimisticMutation } from "@/lib/optimistic";
@@ -89,6 +90,8 @@ export function ShareToFeedSheet({
         <Text style={styles.previewTitle}>{title}</Text>
         <Text style={styles.previewSub}>{preview}</Text>
       </View>
+
+      {visible ? <HandlePrompt /> : null}
 
       <Field label={`Caption (opsional) · ${caption.length}/${CAPTION_MAX}`}>
         <Input

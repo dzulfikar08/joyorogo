@@ -169,6 +169,13 @@
       "when": 1791977262029,
       "tag": "0023_food_grams",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1792020289827,
+      "tag": "0024_var_retries",
+      "breakpoints": true
     }
   ]
 }

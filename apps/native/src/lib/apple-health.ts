@@ -149,15 +149,24 @@ async function importWorkouts(
       recordedKcal > 0
         ? recordedKcal
         : estimateKcal(metForStravaType(activity), latestWeightKg ?? 70, duration);
-    await client.exercise.add({
-      date: wibDateOf(workout.start),
-      type: activity,
-      name: LABEL_BY_ACTIVITY_TYPE[workout.activityType] ?? "Olahraga (Apple Health)",
-      durationMin: duration,
-      kcal,
-      source: "apple_health",
-      externalId: workout.id,
-    });
+    try {
+      await client.exercise.add({
+        date: wibDateOf(workout.start),
+        type: activity,
+        name: LABEL_BY_ACTIVITY_TYPE[workout.activityType] ?? "Olahraga (Apple Health)",
+        durationMin: duration,
+        kcal,
+        source: "apple_health",
+        externalId: workout.id,
+      });
+    } catch {
+      // The (user, source, externalId) unique index rejects a workout that is
+      // already stored even when the list window above misses it (a row the
+      // user moved to another day, or a racing sync). Skip it: the stored row,
+      // including any user edit, stays untouched.
+      skipped++;
+      continue;
+    }
     existing.add(workout.id);
     imported++;
   }

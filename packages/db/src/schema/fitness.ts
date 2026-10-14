@@ -122,6 +122,8 @@ export const varScan = sqliteTable(
     note: text("note"),
     // lingkar perut tercatat pada hari yang sama (tanda tangan objektif)
     waistCm: real("waist_cm"),
+    // "Hitung ulang" yang sudah terpakai untuk scan ini (batas server-side, gratis).
+    retries: integer("retries").default(0).notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),
