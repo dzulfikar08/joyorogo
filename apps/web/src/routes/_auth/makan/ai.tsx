@@ -3,10 +3,13 @@ import {
   Check,
   Drumstick,
   Images,
+  Loader2,
   Mic,
+  RefreshCw,
   ShieldCheck,
   ThumbsUp,
   TriangleAlert,
+  X,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,6 +44,16 @@ export const Route = createFileRoute("/_auth/makan/ai")({
 });
 
 const GEPREK_KCAL = 600;
+
+/** Optional chips for the negative answers of "Hasilnya akurat?". */
+const FEEDBACK_REASONS = [
+  ["porsi", "Porsi salah"],
+  ["makanan", "Makanan salah"],
+  ["kcal_tinggi", "Kalori kelewat tinggi"],
+  ["kcal_rendah", "Kalori kelewat rendah"],
+] as const;
+
+type FeedbackReason = (typeof FEEDBACK_REASONS)[number][0];
 
 /** The signature reaction line — the gimmick people screenshot. */
 function reaction(totalKcal: number): string {
@@ -127,6 +140,25 @@ function AiFoodPage() {
   // This scan used the free user's last quota of today: show the (skippable)
   // Founder offer once the results are saved.
   const [quotaReached, setQuotaReached] = useState(false);
+  // Hitung ulang: the server keeps the photo, a retry sends only its id and
+  // never spends the daily quota. The previous result stays on screen while
+  // one runs and stays for good when one fails.
+  const [photoId, setPhotoId] = useState<string | null>(null);
+  const [retriesLeft, setRetriesLeft] = useState(0);
+  const [retryHint, setRetryHint] = useState("");
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
+  const retryAbortRef = useRef<AbortController | null>(null);
+  // "Hasilnya akurat?" — shown when the server asks (every scan for the
+  // first 3, then once per WIB day). Never blocks saving; answering or
+  // dismissing hides the card, and a "Hitung ulang" tap logs kurang_akurat.
+  const [model, setModel] = useState<string | null>(null);
+  const [askFeedback, setAskFeedback] = useState(false);
+  const [feedbackAnswered, setFeedbackAnswered] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState<"kurang_akurat" | "salah" | null>(null);
+  const [feedbackReasons, setFeedbackReasons] = useState<FeedbackReason[]>([]);
+  const [feedbackNote, setFeedbackNote] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
   // Price attaches to the whole plate, not per item: one number per photo.
   const [plateName, setPlateName] = useState("");
   const [platePlace, setPlatePlace] = useState("");
@@ -165,7 +197,13 @@ function AiFoodPage() {
     };
   }, [photoUrl]);
 
-  useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+      retryAbortRef.current?.abort();
+    },
+    [],
+  );
 
   const pickFile = async (file: File | undefined) => {
     setError(null);
@@ -201,6 +239,17 @@ function AiFoodPage() {
       setQuotaReached(result.quotaReached);
       setCrops(itemCrops);
       setKcals(Object.fromEntries(result.items.map((item, index) => [index, String(item.kcal)])));
+      setPhotoId(result.photoId ?? null);
+      setRetriesLeft(result.retriesLeft ?? 0);
+      setRetryHint("");
+      setRetryError(null);
+      setModel(result.model ?? null);
+      setAskFeedback(result.askFeedback ?? false);
+      setFeedbackAnswered(false);
+      setFeedbackRating(null);
+      setFeedbackReasons([]);
+      setFeedbackNote("");
+      setRetryCount(0);
       // Prefill the price form from the last time this plate was bought.
       const defaultName = result.items[0]?.name ?? "";
       setPlateName(defaultName);
@@ -236,6 +285,7 @@ function AiFoodPage() {
   const reset = () => {
     runRef.current += 1;
     abortRef.current?.abort();
+    retryAbortRef.current?.abort();
     setPhase("idle");
     setItems([]);
     setKcals({});
@@ -247,8 +297,76 @@ function AiFoodPage() {
     setPlatePlace("");
     setPlatePrice("");
     setError(null);
+    setPhotoId(null);
+    setRetriesLeft(0);
+    setRetryHint("");
+    setRetryError(null);
+    setAskFeedback(false);
+    setFeedbackAnswered(false);
+    setFeedbackRating(null);
+    setFeedbackReasons([]);
+    setFeedbackNote("");
+    setRetryCount(0);
     if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (galleryInputRef.current) galleryInputRef.current.value = "";
+  };
+
+  // Fire-and-forget: feedback failures must never block the scan flow.
+  const sendFeedback = (
+    rating: "akurat" | "kurang_akurat" | "salah" | "dilewati",
+    reasons?: FeedbackReason[],
+    note?: string,
+  ) => {
+    if (!photoId) return;
+    void client.ai
+      .saveScanFeedback({
+        photoId,
+        rating,
+        source: "web",
+        ...(reasons?.length ? { reasons } : {}),
+        ...(note?.trim() ? { note: note.trim() } : {}),
+        ...(model ? { model } : {}),
+        afterRetry: retryCount > 0,
+      })
+      .catch(() => {});
+  };
+
+  // Hitung ulang: same photo, one more model pass. Only the id travels (the
+  // photo stays server-side) and no daily scan is spent. The previous result
+  // stays visible until the new items land; on failure it stays for good.
+  const retryAnalysis = async () => {
+    if (!image || !photoId || retrying || retriesLeft <= 0) return;
+    // The tap itself is an implicit "kurang akurat" verdict on this result.
+    if (askFeedback && !feedbackAnswered) {
+      sendFeedback("kurang_akurat");
+      setFeedbackAnswered(true);
+    }
+    setRetryError(null);
+    setRetrying(true);
+    const controller = new AbortController();
+    retryAbortRef.current = controller;
+    try {
+      const result = await client.ai.analyzeFoodRetry(
+        { photoId, hint: retryHint.trim() || undefined },
+        { signal: controller.signal },
+      );
+      const itemCrops = await cropItems(
+        `data:${image.mimeType};base64,${image.base64}`,
+        result.items.map((item) => item.box),
+      ).catch(() => result.items.map(() => null));
+      setItems(result.items);
+      setCrops(itemCrops);
+      setKcals(Object.fromEntries(result.items.map((item, index) => [index, String(item.kcal)])));
+      setRetriesLeft(result.retriesLeft);
+      setRetryHint("");
+      setModel(result.model ?? model);
+      setRetryCount((count) => count + 1);
+    } catch (err) {
+      setRetryError(err instanceof Error ? err.message : "Gagal menghitung ulang. Coba lagi.");
+    } finally {
+      if (retryAbortRef.current === controller) retryAbortRef.current = null;
+      setRetrying(false);
+    }
   };
 
   const saveAll = async () => {
@@ -390,7 +508,7 @@ function AiFoodPage() {
           title="Cek hasil AI"
           action={
             <Button variant="ghost" size="sm" onClick={reset}>
-              Ulangi foto
+              Foto ulang
             </Button>
           }
         />
@@ -478,6 +596,103 @@ function AiFoodPage() {
           )}
         </Card>
 
+        {askFeedback && !feedbackAnswered && photoId && (
+          <Card className="mt-3 px-5 py-4" role="form" aria-label="Penilaian hasil AI">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold">Hasilnya akurat?</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  Jawabanmu melatih perkiraan berikutnya.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label="Lewati penilaian"
+                onClick={() => {
+                  sendFeedback("dilewati");
+                  setFeedbackAnswered(true);
+                }}
+              >
+                <X className="size-4" aria-hidden />
+              </Button>
+            </div>
+            {feedbackRating === null ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    sendFeedback("akurat");
+                    setFeedbackAnswered(true);
+                  }}
+                >
+                  <ThumbsUp className="size-4" aria-hidden />
+                  Akurat
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setFeedbackRating("kurang_akurat")}>
+                  Kurang akurat
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setFeedbackRating("salah")}>
+                  Salah
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                <div className="flex flex-wrap gap-2" role="group" aria-label="Alasan">
+                  {FEEDBACK_REASONS.map(([key, label]) => {
+                    const active = feedbackReasons.includes(key);
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() =>
+                          setFeedbackReasons((current) =>
+                            current.includes(key)
+                              ? current.filter((reason) => reason !== key)
+                              : [...current, key],
+                          )
+                        }
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                          active
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:bg-muted",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <Input
+                  aria-label="Catatan tambahan (opsional)"
+                  value={feedbackNote}
+                  maxLength={300}
+                  onChange={(event) => setFeedbackNote(event.target.value)}
+                  placeholder="Catatan singkat (opsional)"
+                  autoComplete="off"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      sendFeedback(feedbackRating, feedbackReasons, feedbackNote);
+                      setFeedbackAnswered(true);
+                    }}
+                  >
+                    Kirim
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setFeedbackRating(null)}>
+                    Kembali
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
+
         <section className="mt-7" aria-label="Makanan yang dikenali">
           <SectionTitle
             action={
@@ -540,6 +755,71 @@ function AiFoodPage() {
             ))}
           </ListGroup>
         </section>
+
+        {photoId && (
+          <section className="mt-7" aria-label="Hitung ulang hasil AI">
+            <SectionTitle
+              action={
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {retriesLeft > 0
+                    ? `Gratis, sisa ${retriesLeft}x`
+                    : "Batas hitung ulang habis"}
+                </span>
+              }
+            >
+              Angka kurang pas?
+            </SectionTitle>
+            <Card className="mt-3 space-y-3 px-5 py-4">
+              <p className="text-sm text-muted-foreground">
+                AI membaca ulang foto yang sama tanpa foto ulang dan tanpa memakai kuota harian.
+              </p>
+              {retriesLeft > 0 ? (
+                <>
+                  <div>
+                    <FieldLabel htmlFor="retry-hint">Koreksi singkat (opsional)</FieldLabel>
+                    <Input
+                      id="retry-hint"
+                      value={retryHint}
+                      maxLength={200}
+                      onChange={(event) => setRetryHint(event.target.value)}
+                      placeholder="mis. nasinya nasi merah, porsi setengah"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="secondary" onClick={() => void retryAnalysis()} disabled={retrying}>
+                      {retrying ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" aria-hidden />
+                          Menghitung ulang...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="size-4" aria-hidden />
+                          Hitung ulang
+                        </>
+                      )}
+                    </Button>
+                    {retrying && (
+                      <p className="text-sm text-muted-foreground animate-pulse" role="status">
+                        Hasil sebelumnya masih ditampilkan.
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm font-semibold text-muted-foreground">
+                  Foto ini sudah dihitung ulang dua kali. Foto ulang lewat tombol di atas ya.
+                </p>
+              )}
+              {retryError && (
+                <p className="text-sm font-semibold text-destructive" role="alert">
+                  Hasil sebelumnya tetap terpakai. {retryError}
+                </p>
+              )}
+            </Card>
+          </section>
+        )}
 
         <section className="mt-7" aria-label="Catat ke waktu makan">
           <SectionTitle>Catat ke waktu makan</SectionTitle>
@@ -606,7 +886,7 @@ function AiFoodPage() {
               size="lg"
               className="w-full shadow-float md:w-auto"
               onClick={() => void saveAll()}
-              disabled={saving}
+              disabled={saving || retrying}
             >
               {saving ? "Menyimpan..." : `Simpan ke ${MEAL_LABELS[meal]}`}
             </Button>
@@ -614,7 +894,7 @@ function AiFoodPage() {
               variant="ghost"
               size="lg"
               onClick={reset}
-              disabled={saving}
+              disabled={saving || retrying}
               className="hidden md:inline-flex"
             >
               Batalkan

@@ -25,7 +25,10 @@ import { Switch } from "@/components/kit/switch";
 import { apiUrl } from "@/lib/app-config";
 import { prepareImageFile, prepareVideoFrame } from "@/lib/image";
 import type { VarHistory } from "@/lib/api-types";
-import { orpc } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
+import { removeById } from "@joyorogo/api/lib/optimistic";
+import type { AppRouterClient } from "@joyorogo/api/routers/index";
+import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 
 export const Route = createFileRoute("/_auth/grup_/$groupId/var/saya")({
   component: VarSayaPage,
@@ -139,25 +142,46 @@ function VarSayaPage() {
     }),
   );
 
-  const setShare = useMutation(
-    orpc.group.varSetShare.mutationOptions({
-      onSuccess: () => {
-        void queryClient.invalidateQueries({ queryKey: orpc.group.key() });
-        void queryClient.invalidateQueries({ queryKey: orpc.group.varHistory.queryOptions({ input: { groupId } }).queryKey });
-      },
-      onError: (error) => toast.error(error.message),
-    }),
-  );
+  // Optimistic shareVar flip in the history cache; undo re-applies the old value.
+  const historyKey = orpc.group.varHistory.queryOptions({ input: { groupId } }).queryKey;
+  const previousShare = useRef<boolean | null>(null);
+  const setShare = useOptimisticMutation<
+    Parameters<AppRouterClient["group"]["varSetShare"]>[0],
+    unknown
+  >({
+    mutationFn: (input) => client.group.varSetShare(input),
+    patch: (input, cache) => {
+      previousShare.current = history.data?.shareVar ?? null;
+      cache.value<VarHistory>(historyKey, (data) =>
+        data ? { ...data, shareVar: input.shareVar } : data,
+      );
+    },
+    invalidate: () => [orpc.group.key()],
+    success: (input) => {
+      const prev = previousShare.current;
+      previousShare.current = null;
+      if (prev === null) return undefined;
+      return {
+        message: input.shareVar ? "Scan perut dibagikan ke grup." : "Scan perut disembunyikan.",
+        undo: () => void client.group.varSetShare({ groupId, shareVar: prev }),
+      };
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
-  const removeScan = useMutation(
-    orpc.group.varDelete.mutationOptions({
-      onSuccess: () => {
-        toast.success("Scan dihapus beserta fotonya.");
-        void queryClient.invalidateQueries({ queryKey: orpc.group.varHistory.queryOptions({ input: { groupId } }).queryKey });
-      },
-      onError: (error) => toast.error(error.message),
-    }),
-  );
+  // Delayed-commit delete: scan hilang dari riwayat seketika, DELETE setelah
+  // jendela undo; undo mengembalikannya tanpa memanggil server.
+  const removeScan = useDelayedDelete<{ id: string }>({
+    remove: (row) => client.group.varDelete({ id: row.id }),
+    patch: (row, cache) => {
+      cache.value<VarHistory>(historyKey, (data) =>
+        data ? { ...data, scans: removeById(data.scans, row.id) } : data,
+      );
+    },
+    label: () => "Scan",
+    fallback: "Scan perut",
+    invalidate: () => [orpc.group.key()],
+  });
 
   const submit = (image: { base64: string; mimeType: "image/jpeg" }, previewUrl: string) => {
     setCaptured(previewUrl);
@@ -257,8 +281,8 @@ function VarSayaPage() {
           onRescan={() => setStep("capture")}
           onShare={(shareVar) => setShare.mutate({ groupId, shareVar })}
           sharePending={setShare.isPending}
-          onDelete={(id) => removeScan.mutate({ id })}
-          deletePending={removeScan.isPending}
+          onDelete={(id) => removeScan({ id })}
+          deletePending={false}
         />
       )}
     </div>

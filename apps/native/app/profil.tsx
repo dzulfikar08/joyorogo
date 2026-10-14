@@ -51,7 +51,8 @@ import {
 } from "@/src/lib/notifications";
 import { saveThemePref } from "@/src/lib/theme-pref";
 import { errorMessage, fmtDateId, fmtKcal, fmtKg, fmtMb } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc, queryClient } from "@/utils/orpc";
+import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 
 const NOTE_EXPLANATIONS: Record<string, string> = {
   MAINTENANCE: "Berat sudah mencapai target. Rencana sekarang menjaga berat.",
@@ -72,14 +73,36 @@ export default function Profil() {
   const session = authClient.useSession();
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   const config = useAppConfig();
-  const updateTargets = useMutation(
-    orpc.profile.updateTargets.mutationOptions({
-      onSuccess: () => {
-        setSheet(null);
-        queryClient.invalidateQueries();
-      },
-    }),
-  );
+  type TargetsInput = { targetWeightKg: number; targetDate: string };
+  type ProfileCache = { profile: Record<string, unknown> | null };
+  const myProfileKey = orpc.profile.myProfile.queryOptions().queryKey;
+
+  const updateTargets = useOptimisticMutation<TargetsInput, unknown, TargetsInput | null>({
+    mutationFn: (input) => client.profile.updateTargets(input),
+    patch: (input, cache) => {
+      const row = queryClient.getQueryData<ProfileCache>(myProfileKey);
+      const previous =
+        row?.profile == null
+          ? null
+          : {
+              targetWeightKg: row.profile.targetWeightKg as number,
+              targetDate: row.profile.targetDate as string,
+            };
+      cache.value<ProfileCache>(myProfileKey, (old) => ({
+        profile: { ...old?.profile, targetWeightKg: input.targetWeightKg, targetDate: input.targetDate },
+      }));
+      return previous;
+    },
+    success: (_input, _data, previous) => {
+      setSheet(null);
+      const undoFrom = previous ?? null;
+      return {
+        message: "Rencana diperbarui",
+        undo: undoFrom === null ? undefined : () => updateTargets.mutate(undoFrom),
+      };
+    },
+    invalidate: () => [orpc.profile.key()],
+  });
 
   // Two focused editors, like web: "weight" and "date" open separately.
   const [sheet, setSheet] = useState<null | "weight" | "date">(null);
@@ -202,26 +225,49 @@ export default function Profil() {
 
   // Foto profil: galeri atau kamera (potong persegi di picker), lalu
   // dipampatkan ke persegi 512px JPEG sebelum diunggah.
-  const uploadAvatar = useMutation(
-    orpc.avatar.upload.mutationOptions({
-      onSuccess: async () => {
-        await session.refetch();
-        queryClient.invalidateQueries();
-        toast.success("Foto profil diperbarui");
-      },
-      onError: (e) => toast.error("Ganti foto gagal", errorMessage(e)),
-    }),
-  );
-  const removeAvatar = useMutation(
-    orpc.avatar.remove.mutationOptions({
-      onSuccess: async () => {
-        await session.refetch();
-        queryClient.invalidateQueries();
-        toast.success("Foto profil dihapus");
-      },
-      onError: (e) => toast.error("Hapus foto gagal", errorMessage(e)),
-    }),
-  );
+  const refreshAfterAvatar = async () => {
+    await session.refetch();
+    queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
+  };
+
+  const uploadAvatar = useOptimisticMutation<
+    { imageBase64: string; mimeType: "image/png" | "image/jpeg" | "image/webp" },
+    unknown
+  >({
+    mutationFn: (input) => client.avatar.upload(input),
+    success: () => {
+      void refreshAfterAvatar();
+      return {
+        message: "Foto profil diperbarui",
+        undo: () => {
+          void client.avatar.remove().then(() => refreshAfterAvatar());
+        },
+      };
+    },
+    onError: (e) => toast.error("Ganti foto gagal", errorMessage(e)),
+    invalidate: () => [orpc.profile.key()],
+  });
+
+  // Hapus foto: optimistic (avatar langsung kosong), DELETE-nya menyusul
+  // setelah jendela urungkan lewat. Undo mengembalikan sesi tanpa server call.
+  const removeAvatar = useDelayedDelete<{ id: string }>({
+    remove: async () => {
+      await client.avatar.remove();
+      await refreshAfterAvatar();
+    },
+    patch: (_row, cache) => {
+      // Sesi better-auth bukan cache oRPC; temukan query yang punya user.
+      for (const query of queryClient.getQueryCache().findAll({ queryKey: [] })) {
+        const data = query.state.data as { user?: { image?: string | null } } | undefined;
+        if (data?.user === undefined) continue;
+        cache.value(query.queryKey, (old: typeof data | undefined) =>
+          old === undefined ? undefined : { ...old, user: { ...old.user, image: null } },
+        );
+      }
+    },
+    label: () => "Foto profil",
+    invalidate: () => [orpc.profile.key()],
+  });
   const pickAvatar = async (source: "gallery" | "camera") => {
     const options: ImagePicker.ImagePickerOptions = {
       mediaTypes: ["images"],
@@ -291,7 +337,6 @@ export default function Profil() {
           size="sm"
           label="Kamera"
           loading={uploadAvatar.isPending}
-          disabled={removeAvatar.isPending}
           onPress={() => void pickAvatar("camera")}
         />
         <Button
@@ -299,7 +344,6 @@ export default function Profil() {
           size="sm"
           label="Galeri"
           loading={uploadAvatar.isPending}
-          disabled={removeAvatar.isPending}
           onPress={() => void pickAvatar("gallery")}
         />
         {avatarImage ? (
@@ -307,7 +351,6 @@ export default function Profil() {
             variant="secondary"
             size="sm"
             label="Hapus foto"
-            loading={removeAvatar.isPending}
             disabled={uploadAvatar.isPending}
             onPress={() => setAvatarRemoveOpen(true)}
           />
@@ -608,10 +651,9 @@ export default function Profil() {
         title="Hapus foto profil?"
         message="Foto unggahanmu dihapus. Kalau akun Google-mu punya foto, foto itu yang dipakai lagi."
         confirmLabel="Hapus"
-        loading={removeAvatar.isPending}
         onConfirm={() => {
           setAvatarRemoveOpen(false);
-          removeAvatar.mutate();
+          removeAvatar({ id: "avatar" });
         }}
       />
     </>
@@ -622,11 +664,31 @@ export default function Profil() {
 function ShareRow() {
   const { theme } = useUnistyles();
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
-  const toggle = useMutation(
-    orpc.profile.shareToggle.mutationOptions({
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.profile.key() }),
+  const toggle = useOptimisticMutation<
+    { enabled: boolean },
+    unknown,
+    boolean | undefined
+  >({
+    mutationFn: (input) => client.profile.shareToggle(input),
+    patch: (input, cache) => {
+      const key = orpc.profile.myProfile.queryOptions().queryKey;
+      const previous = queryClient.getQueryData<{ profile?: { shareEnabled?: boolean } | null }>(
+        key,
+      )?.profile?.shareEnabled;
+      cache.value<{ profile?: Record<string, unknown> | null }>(key, (old) => ({
+        profile: { ...old?.profile, shareEnabled: input.enabled },
+      }));
+      return previous;
+    },
+    success: (_input, _data, previous) => ({
+      message: "Pengaturan disimpan",
+      undo:
+        previous === undefined
+          ? undefined
+          : () => toggle.mutate({ enabled: previous }),
     }),
-  );
+    invalidate: () => [orpc.profile.key()],
+  });
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;
@@ -735,13 +797,28 @@ const RAMADAN_OPTIONS: Array<{ value: "auto" | "on" | "off"; label: string }> = 
 ];
 
 function RamadanList({ mode }: { mode: "auto" | "on" | "off" }) {
-  const setMode = useMutation(
-    orpc.profile.setRamadanMode.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
-      },
+  const setMode = useOptimisticMutation<
+    { mode: "auto" | "on" | "off" },
+    unknown,
+    "auto" | "on" | "off" | undefined
+  >({
+    mutationFn: (input) => client.profile.setRamadanMode(input),
+    patch: (input, cache) => {
+      const key = orpc.profile.myProfile.queryOptions().queryKey;
+      const previous = queryClient.getQueryData<{
+        profile?: { ramadanMode?: "auto" | "on" | "off" } | null;
+      }>(key)?.profile?.ramadanMode;
+      cache.value<{ profile?: Record<string, unknown> | null }>(key, (old) => ({
+        profile: { ...old?.profile, ramadanMode: input.mode },
+      }));
+      return previous;
+    },
+    success: (_input, _data, previous) => ({
+      message: "Pengaturan disimpan",
+      undo: previous === undefined ? undefined : () => setMode.mutate({ mode: previous }),
     }),
-  );
+    invalidate: () => [orpc.profile.key()],
+  });
   return (
     <Card>
       <Text style={styles.cardTitle}>Mode Ramadan</Text>
@@ -762,14 +839,42 @@ function RamadanList({ mode }: { mode: "auto" | "on" | "off" }) {
 function PrivacyList({ keepPhotos }: { keepPhotos: boolean }) {
   const { theme } = useUnistyles();
   const [keepConfirm, setKeepConfirm] = useState(false);
-  const setKeep = useMutation(
-    orpc.profile.setKeepPhotos.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
-        queryClient.invalidateQueries({ queryKey: orpc.food.key() });
-      },
+  const setKeep = useOptimisticMutation<
+    { keep: boolean },
+    unknown,
+    boolean | undefined
+  >({
+    mutationFn: (input) => client.profile.setKeepPhotos(input),
+    patch: (input, cache) => {
+      const key = orpc.profile.myProfile.queryOptions().queryKey;
+      const previous = queryClient.getQueryData<{
+        profile?: { keepPhotos?: boolean } | null;
+      }>(key)?.profile?.keepPhotos;
+      cache.value<{ profile?: Record<string, unknown> | null }>(key, (old) => ({
+        profile: { ...old?.profile, keepPhotos: input.keep },
+      }));
+      return previous;
+    },
+    success: (_input, _data, previous) => ({
+      message: "Pengaturan disimpan",
+      undo: previous === undefined ? undefined : () => setKeep.mutate({ keep: previous }),
     }),
-  );
+    invalidate: () => [orpc.profile.key(), orpc.food.key()],
+  });
+
+  // keep=false destroys stored originals server-side, so it gets the same
+  // delayed commit as a delete; keep=true is instant and simply undoable.
+  const setKeepOff = useDelayedDelete<{ id: string }>({
+    remove: () => client.profile.setKeepPhotos({ keep: false }),
+    patch: (_row, cache) => {
+      const key = orpc.profile.myProfile.queryOptions().queryKey;
+      cache.value<{ profile?: Record<string, unknown> | null }>(key, (old) => ({
+        profile: { ...old?.profile, keepPhotos: false },
+      }));
+    },
+    label: () => "Pengaturan disimpan",
+    invalidate: () => [orpc.profile.key(), orpc.food.key()],
+  });
 
   const change = (value: boolean) => {
     if (!value) {
@@ -808,10 +913,9 @@ function PrivacyList({ keepPhotos }: { keepPhotos: boolean }) {
         title="Matikan simpan foto asli?"
         message="Foto asli yang sudah tersimpan ikut dihapus permanen. Catatan makan dan stiker tiap makanan tetap ada."
         confirmLabel="Ya, matikan dan hapus"
-        loading={setKeep.isPending}
         onConfirm={() => {
           setKeepConfirm(false);
-          setKeep.mutate({ keep: false });
+          setKeepOff({ id: "keep-photos" });
         }}
       />
     </Card>

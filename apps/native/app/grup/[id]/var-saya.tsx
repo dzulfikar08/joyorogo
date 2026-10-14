@@ -27,6 +27,7 @@ import { useSessionGate } from "@/lib/use-session-gate";
 import type { VarHistory } from "@/src/lib/group";
 import { errorMessage } from "@/utils/format";
 import { client, isPaywallError, orpc } from "@/utils/orpc";
+import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 
 type VarVerdict = VarHistory["scans"][number]["verdict"];
 type VarScanRow = VarHistory["scans"][number];
@@ -176,22 +177,46 @@ export default function VarSaya() {
     }),
   );
 
-  const setShare = useMutation(
-    orpc.group.varSetShare.mutationOptions({
-      onSuccess: () => void queryClient.invalidateQueries({ queryKey: orpc.group.key() }),
-      onError: (e) => toast.error("Gagal mengubah bagikan", errorMessage(e)),
+  const setShare = useOptimisticMutation<
+    { groupId: string; shareVar: boolean },
+    unknown,
+    boolean | undefined
+  >({
+    mutationFn: (input) => client.group.varSetShare(input),
+    patch: (input, cache) => {
+      const key = orpc.group.varHistory.queryOptions({ input: { groupId } }).queryKey;
+      const previous = queryClient.getQueryData<{ shareVar?: boolean }>(key)?.shareVar;
+      cache.value<{ shareVar?: boolean }>(key, (old) =>
+        old === undefined ? undefined : { ...old, shareVar: input.shareVar },
+      );
+      return previous;
+    },
+    success: (_input, _data, previous) => ({
+      message: "Pengaturan grup disimpan",
+      undo: previous === undefined ? undefined : () => setShare.mutate({ groupId, shareVar: previous }),
     }),
-  );
+    onError: (e) => toast.error("Gagal mengubah bagikan", errorMessage(e)),
+    invalidate: () => [orpc.group.key()],
+  });
 
-  const removeScan = useMutation(
-    orpc.group.varDelete.mutationOptions({
-      onSuccess: () => {
-        toast.success("Scan dihapus", "Foto beserta catatannya ikut terhapus.");
-        void queryClient.invalidateQueries({ queryKey: orpc.group.key() });
-      },
-      onError: (e) => toast.error("Gagal menghapus", errorMessage(e)),
-    }),
-  );
+  type VarScanRow = NonNullable<
+    NonNullable<typeof history.data>["scans"]
+  >[number];
+
+  const removeScan = useDelayedDelete<VarScanRow>({
+    remove: (row) => client.group.varDelete({ id: row.id }),
+    patch: (row, cache) => {
+      const key = orpc.group.varHistory.queryOptions({ input: { groupId } }).queryKey;
+      cache.value<{ scans?: VarScanRow[] }>(key, (old) =>
+        old === undefined
+          ? undefined
+          : { ...old, scans: (old.scans ?? []).filter((scan) => scan.id !== row.id) },
+      );
+    },
+    label: (row) => `Scan ${row.date}`,
+    fallback: "Scan",
+    invalidate: () => [orpc.group.key()],
+  });
 
   // Timer yang tertinggal di layar tidak boleh menembak saat sudah pindah view.
   useEffect(
@@ -415,8 +440,10 @@ export default function VarSaya() {
                 latestWaist={latestWaist}
                 onShare={(value) => setShare.mutate({ groupId, shareVar: value })}
                 sharePending={setShare.isPending}
-                onDelete={(scanId) => removeScan.mutate({ id: scanId })}
-                deletePending={removeScan.isPending}
+                onDelete={(scanId) => {
+                  const scan = scans.find((row) => row.id === scanId);
+                  if (scan) removeScan(scan);
+                }}
                 onRescan={() => setView("capture")}
               />
             ) : (
@@ -438,7 +465,6 @@ function ResultView({
   onShare,
   sharePending,
   onDelete,
-  deletePending,
   onRescan,
 }: {
   scans: VarScanRow[];
@@ -447,7 +473,6 @@ function ResultView({
   onShare: (value: boolean) => void;
   sharePending: boolean;
   onDelete: (scanId: string) => void;
-  deletePending: boolean;
   onRescan: () => void;
 }) {
   const { theme } = useUnistyles();
@@ -544,8 +569,7 @@ function ResultView({
             variant="secondary"
             destructive
             icon="trash-outline"
-            label={deletePending ? "Menghapus…" : "Hapus scan ini"}
-            disabled={deletePending}
+            label="Hapus scan ini"
             onPress={() => onDelete(newest.id)}
           />
         </View>

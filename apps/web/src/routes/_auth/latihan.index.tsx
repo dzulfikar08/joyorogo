@@ -16,6 +16,9 @@ import {
 import { workoutApi, workoutQueryPrefix } from "@/lib/workout-contract";
 import { fmtDateIndo, fmtInt } from "@/lib/format";
 import type { WorkoutStatus } from "@/lib/api-types";
+import { useDelayedDelete } from "@/lib/optimistic";
+import { removeById } from "@joyorogo/api/lib/optimistic";
+import type { Routine } from "@/lib/workout-contract";
 import { orpc } from "@/utils/orpc";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, createFileRoute } from "@tanstack/react-router";
@@ -58,12 +61,16 @@ function LatihanScreen() {
     void navigate({ to: "/latihan/aktif" });
   };
 
-  const deleteRoutine = useMutation({
-    mutationFn: (id: string) => workoutApi.deleteRoutine({ id }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [...workoutQueryPrefix] });
-      toast.success("Rutinitas dihapus.");
+  // Delayed-commit delete: gone from the list instantly, DELETE after the
+  // undo window; undo restores and never calls the server.
+  const deleteRoutine = useDelayedDelete<Routine>({
+    remove: (row) => workoutApi.deleteRoutine({ id: row.id }),
+    patch: (row, cache) => {
+      cache.list<Routine>(["workout", "routines"], (rows) => removeById(rows, row.id));
     },
+    label: (row) => row.name,
+    fallback: "Rutinitas",
+    invalidate: () => [orpc.workout.key()],
   });
 
   const nameOf = (exerciseId: string) => catalogById.get(exerciseId)?.name ?? exerciseId;

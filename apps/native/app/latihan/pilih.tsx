@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams, Stack } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
@@ -22,7 +22,8 @@ import {
   type ExerciseType,
 } from "@/lib/workout/active";
 import { errorMessage } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc, queryClient } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
 
 type CatalogExercise = {
   id: string;
@@ -240,17 +241,46 @@ function CreateExerciseSheet({
   const [type, setType] = useState<ExerciseType>("weight_reps");
   const [error, setError] = useState<string | null>(null);
 
-  const create = useMutation(
-    orpc.workout.createCustomExercise.mutationOptions({
-      onSuccess: (exercise) => {
-        setName("");
-        setError(null);
-        onCreated(exercise as CatalogExercise);
-        onClose();
-      },
-      onError: (e) => setError(errorMessage(e)),
-    }),
-  );
+  const create = useOptimisticMutation<
+    Parameters<typeof client.workout.createCustomExercise>[0],
+    CatalogExercise
+  >({
+    mutationFn: (input) => client.workout.createCustomExercise(input),
+    patch: (input, cache) => {
+      cache.value<{ exercises: CatalogExercise[] }>(
+        orpc.workout.catalog.queryOptions().queryKey,
+        (old) =>
+          old === undefined
+            ? undefined
+            : {
+                ...old,
+                exercises: [
+                  ...old.exercises,
+                  {
+                    id: `temp-${Date.now()}`,
+                    name: input.name,
+                    muscle: input.muscle,
+                    equipment: input.equipment,
+                    type: input.type,
+                    custom: true,
+                  },
+                ],
+              },
+      );
+    },
+    success: (input, data) => {
+      setName("");
+      setError(null);
+      onCreated(data);
+      onClose();
+      return {
+        message: `Latihan ${input.name} dibuat`,
+        undo: () => void client.workout.deleteCustomExercise({ id: data.id }),
+      };
+    },
+    onError: (e) => setError(errorMessage(e)),
+    invalidate: () => [orpc.workout.key()],
+  });
 
   return (
     <Sheet visible={visible} onClose={onClose} title="Gerakan baru">

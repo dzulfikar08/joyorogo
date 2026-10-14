@@ -14,6 +14,14 @@ import type { PaywallEnv } from "./tiers";
 export type QuotaEnv = PaywallEnv & { AI?: AiBinding };
 
 /**
+ * "Hitung ulang" re-runs the model on a photo the user already paid a scan
+ * for, so a retry never spends the daily quota — the cap below is the only
+ * limit, enforced per photo in the ai router. After it, the client offers a
+ * fresh photo (which is billed normally).
+ */
+export const MAX_SCAN_RETRIES = 2;
+
+/**
  * Every AI call (plate photo, food story, VAR perut) spends one scan of the
  * daily quota. Runs BEFORE inference so a rejected call never costs Neurons.
  * `quotaReached`: a free user's successful call now would use the last scan

@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
@@ -35,7 +35,8 @@ import {
   type ActiveSet,
 } from "@/lib/workout/active";
 import { errorMessage, fmtKcal } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc, queryClient } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
 
 const PR_LABEL: Record<string, string> = {
   weight: "Beban terberat",
@@ -136,16 +137,35 @@ export default function LatihanRingkasan() {
   const nameOf = (id: string) =>
     catalog.data?.exercises.find((e) => e.id === id)?.name ?? id;
 
-  const save = useMutation(
-    orpc.workout.saveSession.mutationOptions({
-      onSuccess: (result) => {
-        setSaved({ id: result.id, prs: result.prs });
-        setActiveWorkout(null);
-        void queryClient.invalidateQueries();
-      },
-      onError: (e) => setError(errorMessage(e)),
-    }),
-  );
+  const save = useOptimisticMutation<
+    Parameters<typeof client.workout.saveSession>[0],
+    { id: string; prs: SavePr[] }
+  >({
+    mutationFn: async (input) => {
+      const result = (await client.workout.saveSession(input)) as {
+        id?: string;
+        prs?: SavePr[];
+      };
+      if (result.id === undefined) throw new Error("Gagal menyimpan latihan.");
+      return { id: result.id, prs: result.prs ?? [] };
+    },
+    success: (_input, result) => {
+      setSaved({ id: result.id, prs: result.prs });
+      setActiveWorkout(null);
+      void queryClient.invalidateQueries({ queryKey: orpc.workout.key() });
+      return {
+        message: "Latihan tersimpan",
+        undo: () => {
+          void client.workout.deleteSession({ id: result.id }).then(() => {
+            void queryClient.invalidateQueries({ queryKey: orpc.workout.key() });
+            void queryClient.invalidateQueries({ queryKey: orpc.day.key() });
+          });
+        },
+      };
+    },
+    onError: (e) => setError(errorMessage(e)),
+    invalidate: () => [orpc.workout.key(), orpc.day.key()],
+  });
 
   // Snapshot: once saved the draft is dropped from the store, but the recap
   // still needs the finished workout's numbers.

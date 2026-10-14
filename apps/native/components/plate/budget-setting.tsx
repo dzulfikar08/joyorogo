@@ -1,10 +1,11 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { StyleSheet } from "react-native-unistyles";
 
 import { Button, Field, Input, Card, Segmented, Text } from "@/components/ui";
 import { errorMessage, parseNum } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc, queryClient } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
 
 /**
  * "Anggaran belanja makan": amount + period, saved via plate.setBudget.
@@ -12,14 +13,41 @@ import { orpc, queryClient } from "@/utils/orpc";
  */
 export function BudgetSetting() {
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
-  const setBudget = useMutation(
-    orpc.plate.setBudget.mutationOptions({
-      onSuccess: () => {
-        setError(null);
-        queryClient.invalidateQueries();
-      },
-    }),
-  );
+  type BudgetInput = { idr: number | null; period: "day" | "month" };
+
+  const setBudget = useOptimisticMutation<BudgetInput, unknown, { idr: number | null; period: "day" | "month" } | null>({
+    mutationFn: (input) => client.plate.setBudget(input),
+    patch: (input, cache) => {
+      const key = orpc.profile.myProfile.queryOptions().queryKey;
+      const previous = queryClient.getQueryData<{
+        profile?: { foodBudgetIdr: number | null; foodBudgetPeriod: string } | null;
+      }>(key);
+      const previousBudget =
+        previous?.profile == null
+          ? null
+          : {
+              idr: previous.profile.foodBudgetIdr,
+              period: previous.profile.foodBudgetPeriod === "day" ? ("day" as const) : ("month" as const),
+            };
+      cache.value<typeof previous>(key, (old) => ({
+        ...old,
+        profile: {
+          ...old?.profile,
+          foodBudgetIdr: input.idr,
+          foodBudgetPeriod: input.period,
+        },
+      }));
+      return previousBudget;
+    },
+    success: (_input, _data, context) => {
+      const previous = context ?? null;
+      return {
+        message: "Anggaran disimpan",
+        undo: previous === null ? undefined : () => setBudget.mutate(previous),
+      };
+    },
+    invalidate: () => [orpc.profile.key()],
+  });
 
   const current = profile.data?.profile?.foodBudgetIdr ?? null;
   const [amount, setAmount] = useState(current !== null ? String(current) : "");

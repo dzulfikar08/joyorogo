@@ -20,7 +20,7 @@ import { emailLog } from "@joyorogo/db/schema/billing";
 import { team, teamMember, teamNudge } from "@joyorogo/db/schema/social";
 
 import { avatarPrefix } from "./avatar";
-import { photoPrefix, stickerKey, varPhotoPrefix } from "./sticker";
+import { photoPrefix, scanSrcPrefix, stickerKey, varPhotoPrefix } from "./sticker";
 import type { StickersBucket } from "./sticker";
 
 /** Sticker keys of the user's diary; read BEFORE the rows are wiped. */
@@ -43,7 +43,13 @@ export async function deleteUserMedia(
   stickerKeys: string[],
 ): Promise<void> {
   const keys = [...stickerKeys];
-  for (const prefix of [photoPrefix(userId), avatarPrefix(userId), varPhotoPrefix(userId)]) {
+  for (const prefix of [
+    photoPrefix(userId),
+    avatarPrefix(userId),
+    varPhotoPrefix(userId),
+    // Pending-scan originals kept for "Hitung ulang".
+    scanSrcPrefix(userId),
+  ]) {
     let cursor: string | undefined;
     do {
       const page = await bucket.list({ prefix, cursor });

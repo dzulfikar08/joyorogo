@@ -8,7 +8,8 @@ import { toast } from "sonner";
 
 import { ListButtonRow, ListGroup } from "@/components/kit/surface";
 import type { FeedPost } from "@/lib/api-types";
-import { orpc } from "@/utils/orpc";
+import { useDelayedDelete } from "@/lib/optimistic";
+import { client, orpc } from "@/utils/orpc";
 
 const REASONS = [
   { value: "spam", label: "Spam atau promosi" },
@@ -68,17 +69,35 @@ export function PostMenuSheet({
       onError: (error) => toast.error(error.message),
     }),
   );
-  const remove = useMutation(
-    orpc.social.deletePost.mutationOptions({
-      onSuccess: () => {
-        toast.success("Postingan dihapus.");
-        queryClient.invalidateQueries({ queryKey: orpc.social.key() });
-        onOpenChange(false);
-        onDeleted?.();
-      },
-      onError: (error) => toast.error(error.message),
-    }),
-  );
+  // Delayed-commit delete: post vanishes from every feed cache instantly,
+  // DELETE fires after the undo window; undo restores with zero server calls.
+  const removePost = useDelayedDelete<FeedPost>({
+    remove: (row) => client.social.deletePost({ id: row.id }),
+    patch: (row, cache) => {
+      cache.matching<{ pages: Array<{ items: FeedPost[] }>; pageParams: unknown[] }>(
+        orpc.social.feed.key(),
+        (data) => ({
+          ...data,
+          pages: data.pages.map((page) => ({
+            ...page,
+            items: page.items.filter((item) => item.id !== row.id),
+          })),
+        }),
+      );
+      cache.matching<{ pages: Array<{ items: FeedPost[] }>; pageParams: unknown[] }>(
+        orpc.social.myPosts.key(),
+        (data) => ({
+          ...data,
+          pages: data.pages.map((page) => ({
+            ...page,
+            items: page.items.filter((item) => item.id !== row.id),
+          })),
+        }),
+      );
+    },
+    label: () => "Postingan",
+    invalidate: () => [orpc.social.key()],
+  });
 
   if (!post) return null;
   return (
@@ -172,7 +191,11 @@ export function PostMenuSheet({
               {isOwn && (
                 <ListButtonRow
                   destructive
-                  onClick={() => remove.mutate({ id: post.id })}
+                  onClick={() => {
+                    onOpenChange(false);
+                    onDeleted?.();
+                    removePost(post);
+                  }}
                   icon={
                     <span className="grid size-11 shrink-0 place-items-center rounded-full bg-muted">
                       <Trash2 className="size-5 text-destructive" aria-hidden />

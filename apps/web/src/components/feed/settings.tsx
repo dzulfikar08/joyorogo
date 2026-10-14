@@ -5,14 +5,17 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { Textarea } from "@joyorogo/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AtSign, Globe, ShieldBan } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+
+import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { Avatar } from "@/components/avatar";
 import { Segmented, ListGroup, ListRow, FieldLabel } from "@/components/kit/surface";
 import { Switch } from "@/components/kit/switch";
 import { useSession } from "@/lib/auth-client";
-import { orpc } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
+import { client, orpc } from "@/utils/orpc";
 
 const HANDLE_REGEX = /^[a-z0-9_]{3,20}$/;
 const BIO_MAX = 160;
@@ -33,20 +36,35 @@ export function FeedSettingsSection() {
   const [blockOpen, setBlockOpen] = useState(false);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: orpc.social.key() });
+  const myProfileKey = orpc.social.myProfile.queryOptions().queryKey;
 
-  const togglePublic = useMutation(
-    orpc.social.updateProfile.mutationOptions({
-      onSuccess: () => {
-        toast.success(
-          profile.data?.publicProfile
-            ? "Profil publik dimatikan."
-            : "Profil publik dinyalakan.",
-        );
-        void refresh();
-      },
-      onError: (error) => toast.error(error.message),
-    }),
-  );
+  // Optimistic profile patch + undo re-applies the previous publicProfile.
+  const previousPublic = useRef<boolean | null>(null);
+  const togglePublic = useOptimisticMutation<
+    Parameters<AppRouterClient["social"]["updateProfile"]>[0],
+    unknown
+  >({
+    mutationFn: (input) => client.social.updateProfile(input),
+    patch: (input, cache) => {
+      previousPublic.current = profile.data?.publicProfile ?? null;
+      cache.value(myProfileKey, (old) =>
+        old && input.publicProfile !== undefined ? { ...old, publicProfile: input.publicProfile } : old,
+      );
+    },
+    invalidate: () => [orpc.social.key()],
+    success: (input) => {
+      const prev = previousPublic.current;
+      previousPublic.current = null;
+      const nowOn = input.publicProfile === true;
+      return {
+        message: nowOn ? "Profil publik dinyalakan." : "Profil publik dimatikan.",
+        undo:
+          prev === null
+            ? undefined
+            : () => void client.social.updateProfile({ publicProfile: !prev }),
+      };
+    },
+  });
 
   const data = profile.data;
 
@@ -155,16 +173,60 @@ function EditSheet({
     }
   }, [open, initial]);
 
-  const update = useMutation(
-    orpc.social.updateProfile.mutationOptions({
-      onSuccess: () => {
-        toast.success("Pengaturan feed tersimpan.");
-        onOpenChange(false);
-        onSaved();
-      },
-      onError: (mutationError) => setError(mutationError.message),
-    }),
-  );
+  // Optimistic myProfile patch; undo re-applies the values from before the save.
+  const previousProfile = useRef<{
+    handle: string;
+    bio: string;
+    defaultVisibility: Visibility;
+  } | null>(null);
+  const update = useOptimisticMutation<
+    Parameters<AppRouterClient["social"]["updateProfile"]>[0],
+    unknown
+  >({
+    mutationFn: (input) => client.social.updateProfile(input),
+    patch: (input, cache) => {
+      const key = orpc.social.myProfile.queryOptions().queryKey;
+      previousProfile.current = null;
+      cache.value<{
+        handle?: string | null;
+        bio?: string | null;
+        defaultVisibility?: Visibility;
+      }>(key, (old) => {
+        if (!old) return old;
+        previousProfile.current = {
+          handle: old.handle ?? "",
+          bio: old.bio ?? "",
+          defaultVisibility: old.defaultVisibility ?? "grup",
+        };
+        return {
+          ...old,
+          ...(input.handle !== undefined ? { handle: input.handle } : {}),
+          ...(input.bio !== undefined ? { bio: input.bio } : {}),
+          ...(input.defaultVisibility !== undefined
+            ? { defaultVisibility: input.defaultVisibility }
+            : {}),
+        };
+      });
+    },
+    invalidate: () => [orpc.social.key()],
+    success: () => {
+      onOpenChange(false);
+      onSaved();
+      const prev = previousProfile.current;
+      previousProfile.current = null;
+      if (!prev) return { message: "Pengaturan feed tersimpan." };
+      return {
+        message: "Pengaturan feed tersimpan.",
+        undo: () =>
+          void client.social.updateProfile({
+            handle: prev.handle || undefined,
+            bio: prev.bio || undefined,
+            defaultVisibility: prev.defaultVisibility,
+          }),
+      };
+    },
+    onError: (mutationError) => setError(mutationError.message),
+  });
 
   const submit = () => {
     const clean = handle.trim().toLowerCase();

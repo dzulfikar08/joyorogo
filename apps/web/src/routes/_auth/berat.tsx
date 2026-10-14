@@ -3,7 +3,7 @@ import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Medal, Scale, Share2, TrendingDown, TrendingUp } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -30,6 +30,7 @@ import {
   Segmented,
 } from "@/components/kit/surface";
 import { fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
+import { useWeightCheckIn } from "@/lib/optimistic";
 import type { WeightHistory } from "@/lib/api-types";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { client, orpc } from "@/utils/orpc";
@@ -500,7 +501,6 @@ function BeratPage() {
 }
 
 function BeratScreen({ history }: { history: WeightHistory }) {
-  const queryClient = useQueryClient();
   const summary = useQuery(summaryOptions);
   const profile = useQuery(profileOptions);
   const { entries, summary: weightSummary } = history;
@@ -515,20 +515,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const [shareOpen, setShareOpen] = useState(false);
   const chart = useChartSize();
 
-  const checkIn = useMutation(
-    orpc.weight.checkIn.mutationOptions({
-      onSuccess: (row) => {
-        if (!row) return;
-        toast.success(`Berat dicatat: ${fmtKg(row.weightKg)} kg.`);
-        setWeighOpen(false);
-        // Targets (and therefore the eat number) use the latest known weight.
-        queryClient.invalidateQueries({ queryKey: orpc.weight.key() });
-        queryClient.invalidateQueries({ queryKey: orpc.day.key() });
-        queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
-      },
-      onError: (error) => toast.error(error.message),
-    }),
-  );
+  const checkIn = useWeightCheckIn((row) => `Berat dicatat: ${fmtKg(row.weightKg)} kg`);
 
   const openWeigh = () => {
     setWeighValue(weightSummary.latestKg !== null ? String(weightSummary.latestKg) : "");
@@ -541,6 +528,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
       return;
     }
     checkIn.mutate({ weightKg: kg });
+    setWeighOpen(false);
   };
 
   const trendKg = trend?.weightKg ?? weightSummary.latestKg;

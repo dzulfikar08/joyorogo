@@ -10,11 +10,10 @@ import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Camera, ChevronRight, Mic, Plus, Share2, Trash2, Utensils } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+import { useRef, useState } from "react";
 
 import { Cerita } from "@/components/cerita";
 import type { CeritaPhase } from "@/components/cerita";
@@ -29,12 +28,19 @@ import { ScreenError } from "@/components/screen-state";
 import { Sticker } from "@/components/sticker";
 import type { FoodAddInput, FoodItem, FoodRecentItem } from "@/lib/api-types";
 import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
+import {
+  OptimisticCache,
+  useDelayedDelete,
+  useOptimisticMutation,
+} from "@/lib/optimistic";
+import { upsertById, removeById } from "@joyorogo/api/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
 // One options object per query, reused by the loader and the component so the
 // cache keys match and navigation preloads land in the exact bucket read here.
 const listOptions = (date: string) => orpc.food.listByDate.queryOptions({ input: { date } });
 const summaryOptions = (date: string) => orpc.day.summary.queryOptions({ input: { date } });
+const plateOptions = (date: string) => orpc.plate.byDate.queryOptions({ input: { date } });
 
 export const Route = createFileRoute("/_auth/makan/")({
   validateSearch: (search: Record<string, unknown>): { date?: string; cerita?: boolean } => {
@@ -80,56 +86,153 @@ function MakanPage() {
   const showDate = (target: string) =>
     navigate({ search: { date: target === jakartaToday() ? undefined : target } });
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: orpc.food.key() });
-    queryClient.invalidateQueries({ queryKey: orpc.day.key() });
+  /** Replaces a provisional row (temp id) with the settled server row, in place. */
+  const cacheSwap = (tempId: string, row: FoodItem) => {
+    queryClient.setQueryData<{ items: FoodItem[]; totals: { kcal: number } }>(
+      listOptions(row.date).queryKey,
+      (old) => (old ? { ...old, items: upsertById(removeById(old.items, tempId), row) } : old),
+    );
   };
 
-  const add = useMutation(
-    orpc.food.add.mutationOptions({
-      onSuccess: (row) => {
-        if (!row) return;
-        toast.success(`${row.name} dicatat.`);
-        invalidate();
-      },
-      onError: (error) => toast.error(error.message),
-    }),
-  );
-  const remove = useMutation(
-    orpc.food.remove.mutationOptions({
-      onSuccess: (_result, { id }) => {
-        const item = list.data?.items.find((row) => row.id === id);
-        toast.success(`${item?.name ?? "Catatan"} dihapus.`, {
-          duration: 6000,
-          action:
-            item !== undefined
-              ? {
-                  label: "Urungkan",
-                  onClick: () =>
-                    void add.mutateAsync({
-                      date: item.date,
-                      // listByDate returns raw drizzle columns (string); the
-                      // DB constraints guarantee these are the engine enums.
-                      meal: item.meal as Meal,
-                      name: item.name,
-                      kcal: item.kcal,
-                      protein: item.protein ?? undefined,
-                      carbs: item.carbs ?? undefined,
-                      fat: item.fat ?? undefined,
-                      fiber: item.fiber ?? undefined,
-                      source: item.source as "manual" | "ai",
-                      // The sticker asset was deleted server-side; re-adding
-                      // its scanId would render a broken image.
-                      itemsJson: item.itemsJson ?? undefined,
-                    }),
-                }
-              : undefined,
-        });
-        invalidate();
-      },
-      onError: (error) => toast.error(error.message),
-    }),
-  );
+  /** food.listByDate caches hold { items, totals }: strip one row and pull
+   * the rendered totals down with it (clamped, they are display values). */
+  const stripFood = (cache: OptimisticCache, row: FoodItem) => {
+    cache.value<{
+      items: FoodItem[];
+      totals: { kcal: number; protein: number; carbs: number; fat: number; fiber: number };
+    }>(listOptions(row.date).queryKey, (old) => {
+      if (!old || !old.items.some((item) => item.id === row.id)) return old;
+      return {
+        ...old,
+        items: removeById(old.items, row.id),
+        totals: {
+          kcal: Math.max(0, old.totals.kcal - row.kcal),
+          protein: Math.max(0, old.totals.protein - (row.protein ?? 0)),
+          carbs: Math.max(0, old.totals.carbs - (row.carbs ?? 0)),
+          fat: Math.max(0, old.totals.fat - (row.fat ?? 0)),
+          fiber: Math.max(0, old.totals.fiber - (row.fiber ?? 0)),
+        },
+      };
+    });
+  };
+
+  /** food.listByDate caches hold { items, totals }: land a row and lift the totals. */
+  const insertFood = (cache: OptimisticCache, rowDate: string, row: FoodItem) => {
+    cache.value<{
+      items: FoodItem[];
+      totals: { kcal: number; protein: number; carbs: number; fat: number; fiber: number };
+    }>(listOptions(rowDate).queryKey, (old) =>
+      old
+        ? {
+            ...old,
+            items: upsertById(old.items, row),
+            totals: {
+              kcal: old.totals.kcal + row.kcal,
+              protein: old.totals.protein + (row.protein ?? 0),
+              carbs: old.totals.carbs + (row.carbs ?? 0),
+              fat: old.totals.fat + (row.fat ?? 0),
+              fiber: old.totals.fiber + (row.fiber ?? 0),
+            },
+          }
+        : old,
+    );
+  };
+
+  // Adds are instant: a provisional row lands in the cache and the server row
+  // replaces it on settle. Undo reverts the cache and deletes the server row.
+  const addTempId = useRef<string | null>(null);
+  const revertAdd = (row: FoodItem) => {
+    const cache = new OptimisticCache(queryClient);
+    stripFood(cache, row);
+    cache.summary({
+      date: row.date,
+      kcal: -row.kcal,
+      protein: -(row.protein ?? 0),
+      carbs: -(row.carbs ?? 0),
+      fat: -(row.fat ?? 0),
+      meal: row.meal,
+      meals: -1,
+    });
+    void client.food.remove({ id: row.id });
+  };
+  const add = useOptimisticMutation<FoodAddInput, FoodItem | undefined>({
+    mutationFn: (input) => client.food.add(input),
+    patch: (input, cache) => {
+      const rowDate = input.date ?? date;
+      const tempId = crypto.randomUUID();
+      addTempId.current = tempId;
+      // Provisional placeholder until the server row (real id) replaces it on settle.
+      const provisional = {
+        id: tempId,
+        userId: "",
+        date: rowDate,
+        meal: input.meal,
+        name: input.name,
+        kcal: input.kcal,
+        protein: input.protein ?? null,
+        carbs: input.carbs ?? null,
+        fat: input.fat ?? null,
+        fiber: input.fiber ?? null,
+        source: input.source ?? ("manual" as const),
+        itemsJson: input.itemsJson ?? null,
+        scanId: input.scanId ?? null,
+        photoId: null,
+        plateId: input.plateId ?? null,
+        createdAt: new Date(),
+      } as FoodItem;
+      insertFood(cache, rowDate, provisional);
+      cache.summary({
+        date: rowDate,
+        kcal: input.kcal,
+        protein: input.protein,
+        carbs: input.carbs,
+        fat: input.fat,
+        meal: input.meal,
+        meals: 1,
+      });
+    },
+    invalidate: () => [orpc.food.key(), orpc.day.key()],
+    success: (_input, serverRow) => {
+      const row = serverRow as FoodItem;
+      const tempId = addTempId.current;
+      addTempId.current = null;
+      if (tempId) {
+        // Swap the provisional (temp id) for the server row before refetch lands.
+        cacheSwap(tempId, row);
+      }
+      return row ? { message: `${row.name} dicatat`, undo: () => revertAdd(row) } : undefined;
+    },
+  });
+  // Delayed-commit delete: row vanishes instantly, DELETE fires after the
+  // undo window; undo restores with zero server calls.
+  const removeFood = useDelayedDelete<FoodItem>({
+    remove: (row) => client.food.remove({ id: row.id }),
+    patch: (row, cache) => {
+      // Read remaining items BEFORE the strip, to decide plate cleanup.
+      const others = (queryClient.getQueryData<{ items: FoodItem[] }>(listOptions(row.date).queryKey)?.items ?? []).filter(
+        (item) => item.id !== row.id && item.plateId === row.plateId,
+      );
+      stripFood(cache, row);
+      cache.summary({
+        date: row.date,
+        kcal: -row.kcal,
+        protein: -(row.protein ?? 0),
+        carbs: -(row.carbs ?? 0),
+        fat: -(row.fat ?? 0),
+        meal: row.meal,
+        meals: -1,
+      });
+      // A plate with no components left disappears with its last item.
+      if (row.plateId && others.length === 0) {
+        cache.list<{ id: string }>(plateOptions(row.date).queryKey, (rows) =>
+          removeById(rows, row.plateId as string),
+        );
+      }
+    },
+    label: (row) => row.name,
+    fallback: "Catatan",
+    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key()],
+  });
 
   if (list.isPending) return <MakanSkeleton />;
   if (list.error) {
@@ -241,7 +344,7 @@ function MakanPage() {
                   <FoodRow
                     key={item.id}
                     item={item}
-                    onDelete={() => remove.mutate({ id: item.id })}
+                    onDelete={() => removeFood(item)}
                     onShare={() => setShareItem(item)}
                   />
                 )}

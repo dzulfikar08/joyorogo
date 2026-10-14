@@ -1,12 +1,12 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { jakartaToday } from "@joyorogo/api/lib/engine";
 import { WAIST_CUTOFF_CM } from "@joyorogo/api/lib/waist";
+import { useWaistCheckIn } from "@/lib/optimistic";
 
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Card, ListGroup, ListRow, SectionTitle } from "@/components/kit/surface";
@@ -110,7 +110,6 @@ function WaistIllustration() {
 }
 
 export function WaistSection() {
-  const queryClient = useQueryClient();
   const history = useQuery(historyOptions);
   const profile = useQuery(profileOptions);
 
@@ -118,18 +117,7 @@ export function WaistSection() {
   const [error, setError] = useState<string | null>(null);
   const [guideOpen, setGuideOpen] = useState(() => (history.data?.entries.length ?? 0) === 0);
 
-  const checkIn = useMutation(
-    orpc.waist.checkIn.mutationOptions({
-      onSuccess: (row) => {
-        if (!row) return;
-        toast.success(`Lingkar perut dicatat: ${fmtKg(row.waistCm)} cm.`);
-        setValue("");
-        setError(null);
-        queryClient.invalidateQueries({ queryKey: orpc.waist.key() });
-      },
-      onError: (mutationError) => toast.error(mutationError.message),
-    }),
-  );
+  const checkIn = useWaistCheckIn((row) => `Lingkar perut dicatat: ${fmtKg(row.waistCm)} cm`);
 
   const entries = history.data?.entries ?? [];
   const loggedToday = history.data?.loggedToday ?? false;
@@ -150,6 +138,7 @@ export function WaistSection() {
       return;
     }
     setError(null);
+    setValue("");
     checkIn.mutate({ waistCm: cm });
   };
 

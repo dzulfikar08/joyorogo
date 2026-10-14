@@ -21,6 +21,7 @@ import { openAuthor } from "@/components/feed/post-card";
 import { HANDLE_REGEX, type Visibility } from "@/src/lib/social";
 import { client, orpc } from "@/utils/orpc";
 import { errorMessage } from "@/utils/format";
+import { useOptimisticMutation } from "@/lib/optimistic";
 
 /**
  * Pengaturan feed komunitas di Profil: handle, bio, toggle profil publik,
@@ -38,15 +39,28 @@ export function FeedSettingsCard() {
 
   const refresh = () => void queryClient.invalidateQueries({ queryKey: orpc.social.key() });
 
-  const update = useMutation({
-    mutationFn: (input: Parameters<typeof client.social.updateProfile>[0]) =>
-      client.social.updateProfile(input),
-    onSuccess: () => {
+  const update = useOptimisticMutation<
+    Parameters<typeof client.social.updateProfile>[0],
+    unknown,
+    Parameters<typeof client.social.updateProfile>[0] | null
+  >({
+    mutationFn: (input) => client.social.updateProfile(input),
+    patch: (input, cache) => {
+      const key = orpc.social.myProfile.queryOptions().queryKey;
+      const previous = queryClient.getQueryData<Parameters<typeof client.social.updateProfile>[0]>(key);
+      cache.value(key, (old) => (old === undefined ? undefined : { ...old, ...input }));
+      return previous ?? null;
+    },
+    success: (_input, _data, context) => {
       setEditOpen(false);
-      refresh();
-      toast.success("Pengaturan feed tersimpan.");
+      const previous = context ?? null;
+      return {
+        message: "Pengaturan feed tersimpan.",
+        undo: previous === null ? undefined : () => update.mutate(previous),
+      };
     },
     onError: (e) => toast.error("Gagal menyimpan", errorMessage(e)),
+    invalidate: () => [orpc.social.key()],
   });
 
   const unblock = useMutation({

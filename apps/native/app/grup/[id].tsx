@@ -1,6 +1,6 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { Share, Switch, View } from "react-native";
@@ -36,7 +36,8 @@ import { useToast } from "@/components/toast";
 import type { GroupActivityEvent, GroupMember } from "@/src/lib/group";
 import { inviteLink, timeAgoId } from "@/src/lib/group";
 import { errorMessage, fmtKcal, fmtKg } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc, queryClient } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
 
 const NOTE_SUGGESTIONS = [
   "Ayo jalan 10 menit!",
@@ -210,22 +211,93 @@ export default function GroupDetail() {
       onError: (e) => toast.error("Gagal mengirim", errorMessage(e)),
     }),
   );
-  const setShareFood = useMutation(orpc.group.setShareFood.mutationOptions({ onSuccess: invalidate }));
-  const setShareVar = useMutation(
-    orpc.group.varSetShare.mutationOptions({
-      onSuccess: invalidate,
-      onError: (e) => toast.error("Gagal mengubah bagikan", errorMessage(e)),
+  type DetailRow = NonNullable<typeof detail.data>;
+
+  const setShareFood = useOptimisticMutation<
+    { groupId: string; shareFood: boolean },
+    unknown,
+    boolean | undefined
+  >({
+    mutationFn: (input) => client.group.setShareFood(input),
+    patch: (input, cache) => {
+      const key = orpc.group.detail.queryOptions({ input: { groupId } }).queryKey;
+      const previous = (queryClient.getQueryData<DetailRow>(key)?.members ?? []).find(
+        (m) => m.userId === session?.user.id,
+      )?.shareFood;
+      cache.value<DetailRow>(key, (old) =>
+        old === undefined
+          ? undefined
+          : {
+              ...old,
+              members: old.members.map((m) =>
+                m.userId === session?.user.id ? { ...m, shareFood: input.shareFood } : m,
+              ),
+            },
+      );
+      return previous;
+    },
+    success: (_input, _data, previous) => ({
+      message: "Pengaturan grup disimpan",
+      undo: previous === undefined ? undefined : () => setShareFood.mutate({ groupId, shareFood: previous }),
     }),
-  );
-  const rename = useMutation(
-    orpc.group.rename.mutationOptions({
-      onSuccess: async () => {
-        setRenameOpen(false);
-        await invalidate();
-      },
-      onError: (e) => toast.error("Gagal mengubah nama", errorMessage(e)),
+    onError: (e) => toast.error("Gagal mengubah bagikan", errorMessage(e)),
+    invalidate: () => [orpc.group.key()],
+  });
+  const setShareVar = useOptimisticMutation<
+    { groupId: string; shareVar: boolean },
+    unknown,
+    boolean | undefined
+  >({
+    mutationFn: (input) => client.group.varSetShare(input),
+    patch: (input, cache) => {
+      const key = orpc.group.detail.queryOptions({ input: { groupId } }).queryKey;
+      const previous = (queryClient.getQueryData<DetailRow>(key)?.members ?? []).find(
+        (m) => m.userId === session?.user.id,
+      )?.shareVar;
+      cache.value<DetailRow>(key, (old) =>
+        old === undefined
+          ? undefined
+          : {
+              ...old,
+              members: old.members.map((m) =>
+                m.userId === session?.user.id ? { ...m, shareVar: input.shareVar } : m,
+              ),
+            },
+      );
+      return previous;
+    },
+    success: (_input, _data, previous) => ({
+      message: "Pengaturan grup disimpan",
+      undo: previous === undefined ? undefined : () => setShareVar.mutate({ groupId, shareVar: previous }),
     }),
-  );
+    onError: (e) => toast.error("Gagal mengubah bagikan", errorMessage(e)),
+    invalidate: () => [orpc.group.key()],
+  });
+  const rename = useOptimisticMutation<
+    { groupId: string; name: string },
+    unknown,
+    string | undefined
+  >({
+    mutationFn: (input) => client.group.rename(input),
+    patch: (input, cache) => {
+      const key = orpc.group.detail.queryOptions({ input: { groupId } }).queryKey;
+      const previous = queryClient.getQueryData<DetailRow>(key)?.group.name;
+      cache.value<DetailRow>(key, (old) =>
+        old === undefined ? undefined : { ...old, group: { ...old.group, name: input.name } },
+      );
+      return previous;
+    },
+    success: (_input, _data, previous) => {
+      setRenameOpen(false);
+      return {
+        message: "Nama grup diganti",
+        undo:
+          previous === undefined ? undefined : () => rename.mutate({ groupId, name: previous }),
+      };
+    },
+    onError: (e) => toast.error("Gagal mengubah nama", errorMessage(e)),
+    invalidate: () => [orpc.group.key()],
+  });
   const rotateInvite = useMutation(
     orpc.group.rotateInvite.mutationOptions({
       onSuccess: invalidate,

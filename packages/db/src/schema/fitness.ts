@@ -275,6 +275,8 @@ export const stravaAccountRelations = relations(stravaAccount, ({ one }) => ({
 /**
  * AI cost ledger: one row per successful vision scan, anon or user.
  * Quota counts rows inside the WIB day; cost reports read latencyMs.
+ * "retry" rows are free re-runs of an already-billed photo ("Hitung
+ * ulang") — scansUsedToday deliberately counts only "user" rows.
  */
 export const aiUsage = sqliteTable(
   "ai_usage",
@@ -282,7 +284,7 @@ export const aiUsage = sqliteTable(
     id: text("id").primaryKey(),
     userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
     model: text("model").notNull(),
-    scanType: text("scan_type", { enum: ["anon", "user"] }).notNull(),
+    scanType: text("scan_type", { enum: ["anon", "user", "retry"] }).notNull(),
     latencyMs: integer("latency_ms").notNull(),
     usageJson: text("usage_json"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
@@ -311,6 +313,35 @@ export const scanCorrection = sqliteTable(
       .notNull(),
   },
   (table) => [index("scan_correction_created_idx").on(table.createdAt)],
+);
+
+// Scan accuracy feedback ("Hasilnya akurat?" on the result screen): one row
+// per prompt answer. `dilewati` = dismissed without a rating; accuracy
+// metrics exclude it, but the row keeps the once-per-WIB-day cadence honest.
+// Tapping "Hitung ulang" logs an implicit kurang_akurat row. photoId is the
+// scan-src capability id of the rated photo (admin thumbnail looks it up).
+export const scanFeedback = sqliteTable(
+  "scan_feedback",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    photoId: text("photo_id").notNull(),
+    rating: text("rating", { enum: ["akurat", "kurang_akurat", "salah", "dilewati"] }).notNull(),
+    reasonsJson: text("reasons_json"),
+    note: text("note"),
+    afterRetry: integer("after_retry", { mode: "boolean" }).notNull().default(false),
+    model: text("model"),
+    source: text("source", { enum: ["web", "native"] }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [
+    index("scan_feedback_user_created_idx").on(table.userId, table.createdAt),
+    index("scan_feedback_created_idx").on(table.createdAt),
+  ],
 );
 
 /** Daily water glasses; WIB calendar day, one row per user-day. */

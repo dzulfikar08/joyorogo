@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Switch, View } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -15,7 +15,8 @@ import {
 import { Card, Input, Segmented, Text } from "@/components/ui";
 import { setFastingReminders, type FastingReminder } from "@/src/lib/notifications";
 import { errorMessage } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc, queryClient } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
 
 type FastingSettings = {
   pattern: "off" | FastingPattern;
@@ -75,13 +76,23 @@ export function FastingSettingsCard() {
     );
   }, [settings.data, today.data]);
 
-  const save = useMutation(
-    orpc.fasting.setSettings.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: orpc.fasting.key() });
-      },
-    }),
-  );
+  const save = useOptimisticMutation<FastingSettings, unknown, FastingSettings | null>({
+    mutationFn: (input) => client.fasting.setSettings(input),
+    patch: (input, cache) => {
+      const key = orpc.fasting.settings.queryOptions().queryKey;
+      const previous = queryClient.getQueryData<FastingSettings>(key) ?? null;
+      cache.value<FastingSettings>(key, () => input);
+      return previous;
+    },
+    success: (_input, _data, context) => {
+      const previous = context ?? null;
+      return {
+        message: "Pengaturan puasa disimpan",
+        undo: previous === null ? undefined : () => save.mutate(previous),
+      };
+    },
+    invalidate: () => [orpc.fasting.key()],
+  });
 
   if (settings.isPending || !settings.data) {
     return (

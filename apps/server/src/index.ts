@@ -74,6 +74,7 @@ registerAdminRoutes(app, {
   adminEmails: env.ADMIN_EMAILS,
   getDb,
   createAuth,
+  getBucket: () => ("STICKERS" in env ? env.STICKERS : undefined),
   reconcileById: billing.reconcileById,
   sendTestEmail: (to) =>
     sendEmail(env, {

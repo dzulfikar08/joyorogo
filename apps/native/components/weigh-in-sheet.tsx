@@ -1,4 +1,3 @@
-import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { useUnistyles } from "react-native-unistyles";
@@ -6,7 +5,8 @@ import { useUnistyles } from "react-native-unistyles";
 import { Button, Field, Input, Sheet, Text } from "@/components/ui";
 import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import { errorMessage, parseNum } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc, queryClient } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
 
 /** Weigh-in form in a bottom sheet, shared by Beranda and Berat. */
 export function WeighInSheet({
@@ -32,17 +32,39 @@ export function WeighInSheet({
     }
   }, [visible, kg, latestKg]);
 
-  const checkIn = useMutation(
-    orpc.weight.checkIn.mutationOptions({
-      onSuccess: () => {
-        setError(null);
-        setKg("");
-        queryClient.invalidateQueries();
-        onClose();
-      },
-      onError: (e) => setError(errorMessage(e)),
-    }),
-  );
+  type WeightCheckInInput = { weightKg: number; date?: string };
+
+  const checkIn = useOptimisticMutation<WeightCheckInInput, unknown>({
+    mutationFn: (input) => client.weight.checkIn(input),
+    patch: (input, cache) => {
+      cache.weight({ date: input.date ?? jakartaToday(), weightKg: input.weightKg });
+    },
+    success: (input) => {
+      setError(null);
+      setKg("");
+      onClose();
+      // Undo re-logs the weight the day had before this check-in, if known.
+      const historyKey = orpc.weight.history.queryOptions({ input: { limit: 30 } }).queryKey;
+      const rows =
+        (queryClient.getQueryData<{ entries?: Array<{ date: string; weightKg: number }> }>(
+          historyKey,
+        )?.entries ?? []).filter((entry) => entry.date !== (input.date ?? jakartaToday()));
+      const previous = rows.at(-1)?.weightKg;
+      return {
+        message: "Berat dicatat",
+        undo:
+          previous === undefined
+            ? undefined
+            : () => checkIn.mutate({ weightKg: previous, ...(input.date ? { date: input.date } : {}) }),
+      };
+    },
+    onError: (e) => setError(errorMessage(e)),
+    invalidate: (input) => [
+      orpc.weight.key(),
+      orpc.day.key(),
+      ...(input.date === undefined ? [orpc.profile.key()] : []),
+    ],
+  });
 
   const submit = () => {
     const num = parseNum(kg);

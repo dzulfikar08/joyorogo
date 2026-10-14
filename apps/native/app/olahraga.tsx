@@ -1,6 +1,6 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Platform, Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
 import { Redirect, Stack, router } from "expo-router";
@@ -33,7 +33,9 @@ import { DaySwitcher } from "@/components/day-switcher";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtDateId, fmtKcal, fmtKg, parseNum } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc, queryClient } from "@/utils/orpc";
+import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
+import type { QueryKey } from "@tanstack/react-query";
 
 const SOURCE_LABELS: Record<string, string> = {
   manual: "Manual",
@@ -92,26 +94,89 @@ export default function Olahraga() {
   const weightKg = profileQuery.data?.latestWeightKg ?? latestKg;
   const targetBurn = summaryQuery.data?.targets?.burnKcal ?? null;
 
-  const addExercise = useMutation(
-    orpc.exercise.add.mutationOptions({
-      onSuccess: () => {
-        setFormError(null);
-        setName("");
-        setDuration("30");
-        setKcal("");
-        setKcalEdited(false);
-        setSheetOpen(false);
-        setSheetType(null);
-        queryClient.invalidateQueries();
-      },
-      onError: (e) => setFormError(errorMessage(e)),
-    }),
-  );
-  const removeExercise = useMutation(
-    orpc.exercise.remove.mutationOptions({
-      onSuccess: () => queryClient.invalidateQueries(),
-    }),
-  );
+  type ExerciseRow = NonNullable<
+    NonNullable<typeof listQuery.data>["items"]
+  >[number];
+  const exerciseListKey = orpc.exercise.listByDate.queryOptions({ input: { date } }).queryKey;
+
+  /** exercise.listByDate caches hold { items, totalKcal }: land a row and lift the total. */
+  const insertExerciseRow = (cache: OptimisticCache, listKey: QueryKey, row: ExerciseRow) => {
+    cache.value<{ items: ExerciseRow[]; totalKcal: number }>(listKey, (old) =>
+      old ? { ...old, items: [...old.items, row], totalKcal: old.totalKcal + row.kcal } : old,
+    );
+  };
+
+  /** exercise.listByDate caches hold { items, totalKcal }: strip one row and pull the total down. */
+  const stripExerciseRow = (cache: OptimisticCache, listKey: QueryKey, row: ExerciseRow) => {
+    cache.value<{ items: ExerciseRow[]; totalKcal: number }>(listKey, (old) => {
+      if (!old || !old.items.some((item) => item.id === row.id)) return old;
+      return {
+        ...old,
+        items: old.items.filter((item) => item.id !== row.id),
+        totalKcal: Math.max(0, old.totalKcal - row.kcal),
+      };
+    });
+  };
+
+  const addExercise = useOptimisticMutation<
+    Parameters<typeof client.exercise.add>[0],
+    ExerciseRow
+  >({
+    mutationFn: async (input) => {
+      const row = await client.exercise.add(input);
+      if (!row) throw new Error("Gagal menyimpan.");
+      return row;
+    },
+    patch: (input, cache) => {
+      const rowDate = input.date ?? today;
+      insertExerciseRow(cache, exerciseListKey, {
+        id: "",
+        userId: "",
+        date: rowDate,
+        type: input.type ?? null,
+        name: input.name,
+        durationMin: input.durationMin ?? null,
+        kcal: input.kcal,
+        source: input.source ?? "manual",
+        externalId: input.externalId ?? null,
+        createdAt: new Date(),
+      });
+      cache.summary({ date: rowDate, burnKcal: input.kcal });
+    },
+    success: (input, data) => {
+      setFormError(null);
+      setName("");
+      setDuration("30");
+      setKcal("");
+      setKcalEdited(false);
+      setSheetOpen(false);
+      setSheetType(null);
+      return {
+        message: `${input.name} dicatat`,
+        undo: () => {
+          void client.exercise.remove({ id: data.id }).then(() => {
+            void queryClient.invalidateQueries({ queryKey: orpc.exercise.key() });
+            void queryClient.invalidateQueries({ queryKey: orpc.day.key() });
+          });
+        },
+      };
+    },
+    onError: (e) => setFormError(errorMessage(e)),
+    invalidate: () => [orpc.exercise.key(), orpc.day.key()],
+  });
+  const removeExercise = useDelayedDelete<ExerciseRow>({
+    remove: (row) => client.exercise.remove({ id: row.id }),
+    patch: (row, cache) => {
+      const listKey = orpc.exercise.listByDate.queryOptions({
+        input: { date: row.date },
+      }).queryKey;
+      stripExerciseRow(cache, listKey, row);
+      cache.summary({ date: row.date, burnKcal: -row.kcal });
+    },
+    label: (row) => row.name,
+    fallback: "Aktivitas",
+    invalidate: () => [orpc.exercise.key(), orpc.day.key()],
+  });
 
   // MET prefill: pick a type (or change duration/weight) → kcal estimate.
   // Skipped once the user types their own kcal.
@@ -358,7 +423,7 @@ export default function Olahraga() {
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={`Hapus ${item.name}`}
-                    onPress={() => removeExercise.mutate({ id: item.id })}
+                    onPress={() => removeExercise(item)}
                     style={({ pressed }) => [styles.deleteButton, pressed && styles.pressedSoft]}
                   >
                     <Ionicons name="trash-outline" size={18} color={theme.colors.destructive} />

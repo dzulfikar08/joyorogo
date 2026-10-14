@@ -1,9 +1,11 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Link2, UserCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+
+import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { Avatar } from "@/components/avatar";
 import { PostCard } from "@/components/feed/post-card";
@@ -12,7 +14,8 @@ import { PublicHeader } from "@/components/public-header";
 import { EmptyHint, ScreenError } from "@/components/screen-state";
 import { useSession } from "@/lib/auth-client";
 import type { PublicProfileData } from "@/lib/api-types";
-import { orpc } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
+import { client, orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/u/$handle")({
   component: PublicProfilePage,
@@ -31,18 +34,45 @@ function Skeletons() {
 
 function FollowButton({ profile }: { profile: PublicProfileData }) {
   const queryClient = useQueryClient();
-  const follow = useMutation(
-    orpc.social.setFollow.mutationOptions({
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.social.key() }),
-      onError: (error) => toast.error(error.message),
-    }),
-  );
+  const profileKey = orpc.social.publicProfile
+    .queryOptions({ input: { handle: profile.handle ?? "", limit: 10 } })
+    .queryKey;
+  const follow = useOptimisticMutation<
+    Parameters<AppRouterClient["social"]["setFollow"]>[0],
+    unknown
+  >({
+    mutationFn: (input) => client.social.setFollow(input),
+    patch: (input, cache) => {
+      cache.value<{ isFollowing?: boolean; followersCount?: number }>(profileKey, (old) =>
+        old
+          ? {
+              ...old,
+              isFollowing: input.follow,
+              followersCount: Math.max(
+                0,
+                (old.followersCount ?? 0) + (input.follow ? 1 : -1),
+              ),
+            }
+          : old,
+      );
+    },
+    invalidate: () => [orpc.social.key()],
+    success: (input) =>
+      input.follow
+        ? {
+            message: `Kamu mengikuti ${profile.name}`,
+            undo: () => void client.social.setFollow({ userId: profile.userId, follow: false }),
+          }
+        : {
+            message: `Berhenti mengikuti ${profile.name}`,
+            undo: () => void client.social.setFollow({ userId: profile.userId, follow: true }),
+          },
+  });
   const active = profile.isFollowing === true;
   return (
     <Button
       size="sm"
       variant={active ? "secondary" : "default"}
-      disabled={follow.isPending}
       onClick={() => follow.mutate({ userId: profile.userId, follow: !active })}
     >
       {active ? (

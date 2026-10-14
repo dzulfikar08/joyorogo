@@ -11,8 +11,10 @@ import { toast } from "sonner";
 
 import type { StoryFoodItem } from "@/lib/api-types";
 import { isPaywallError } from "@/lib/billing";
+import { removeById } from "@joyorogo/api/lib/optimistic";
 import { FieldLabel } from "@/components/kit/surface";
 import { fmtInt, parseNum } from "@/lib/format";
+import { OptimisticCache, UNDO_LABEL, UNDO_TOAST_MS } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
 /** Whisper reads these as-is: Chrome/Firefox record webm/opus, Safari mp4/aac. */
@@ -258,6 +260,7 @@ export function Cerita({
     }
     setSaving(true);
     let saved = 0;
+    const created: Array<{ id: string; date: string; meal: string; kcal: number; protein?: number | null; carbs?: number | null; fat?: number | null; fiber?: number | null }> = [];
     try {
       let plateId: string | null = null;
       let plateGroup: string | null = null;
@@ -296,6 +299,18 @@ export function Cerita({
           plateGroup = group;
           plateId = row?.plateId ?? null;
         }
+        if (row) {
+          created.push({
+            id: row.id,
+            date: row.date,
+            meal: row.meal,
+            kcal: row.kcal,
+            protein: row.protein,
+            carbs: row.carbs,
+            fat: row.fat,
+            fiber: row.fiber,
+          });
+        }
         saved += 1;
       }
       void client.ai
@@ -314,11 +329,51 @@ export function Cerita({
       const dates = [...new Set(items.map((item) => item.date))].sort();
       const today = jakartaToday();
       const elsewhere = dates.find((d) => d !== date);
+      // Undo removes every row this story created and reverses the summaries.
+      const createdRows = created;
       toast.success(
         `${saved} makanan dicatat ke ${dates.map((d) => relativeDayLabel(d, today)).join(" dan ")}.`,
-        elsewhere && onShowDate
-          ? { action: { label: "Lihat", onClick: () => onShowDate(elsewhere) } }
-          : undefined,
+        createdRows.length > 0
+          ? {
+              duration: UNDO_TOAST_MS,
+              action: {
+                label: UNDO_LABEL,
+                onClick: () => {
+                  const cache = new OptimisticCache(queryClient);
+                  for (const row of createdRows) {
+                    // food.listByDate caches hold { items, totals }: strip the
+                    // row and pull the rendered totals down with it.
+                    cache.value<{
+                      items: Array<{ id: string }>;
+                      totals: { kcal: number; protein: number; carbs: number; fat: number; fiber: number };
+                    }>(orpc.food.listByDate.queryOptions({ input: { date: row.date } }).queryKey, (old) => {
+                      if (!old || !old.items.some((item) => item.id === row.id)) return old;
+                      return {
+                        ...old,
+                        items: removeById(old.items, row.id),
+                        totals: {
+                          kcal: Math.max(0, old.totals.kcal - row.kcal),
+                          protein: Math.max(0, old.totals.protein - (row.protein ?? 0)),
+                          carbs: Math.max(0, old.totals.carbs - (row.carbs ?? 0)),
+                          fat: Math.max(0, old.totals.fat - (row.fat ?? 0)),
+                          fiber: Math.max(0, old.totals.fiber - (row.fiber ?? 0)),
+                        },
+                      };
+                    });
+                    cache.summary({
+                      date: row.date,
+                      kcal: -row.kcal,
+                      meal: row.meal,
+                      meals: -1,
+                    });
+                    void client.food.remove({ id: row.id });
+                  }
+                },
+              },
+            }
+          : elsewhere && onShowDate
+            ? { action: { label: "Lihat", onClick: () => onShowDate(elsewhere) } }
+            : undefined,
       );
       queryClient.invalidateQueries({ queryKey: orpc.food.key() });
       queryClient.invalidateQueries({ queryKey: orpc.day.key() });

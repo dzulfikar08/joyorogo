@@ -18,6 +18,7 @@ import type { Meal } from "@joyorogo/api/lib/engine";
 import {
   BootLoader,
   Button,
+  Chip,
   Input,
   ListGroup,
   ListRow,
@@ -63,6 +64,14 @@ const MAX_SIDE = 1024;
 
 /** Fun portion stat, same as the web confirm card: 600 kcal = one geprek. */
 const GEPREK_KCAL = 600;
+
+/** Optional chips for the negative answers of "Hasilnya akurat?". */
+const FEEDBACK_REASONS = [
+  ["porsi", "Porsi salah"],
+  ["makanan", "Makanan salah"],
+  ["kcal_tinggi", "Kalori kelewat tinggi"],
+  ["kcal_rendah", "Kalori kelewat rendah"],
+] as const;
 
 /**
  * Cuts one item crop on device from the image we sent. Boxes are on a
@@ -163,10 +172,28 @@ export default function MakanAi() {
   const [flowError, setFlowError] = useState<string | null>(null);
 
   const analyze = useMutation(orpc.ai.analyzeFood.mutationOptions());
+  const retry = useMutation(orpc.ai.analyzeFoodRetry.mutationOptions());
+  const saveFeedback = useMutation(orpc.ai.saveScanFeedback.mutationOptions());
   const addScan = useMutation(orpc.food.addScan.mutationOptions());
   const logCorrections = useMutation(orpc.ai.logCorrections.mutationOptions());
   // Plate price autofill: one lookup per parse, prefill name/place/price.
   const lastPrice = useMutation(orpc.plate.lastPrice.mutationOptions());
+  // Hitung ulang: the server keeps the photo, a retry sends only the id and
+  // spends no daily scan. Previous items stay visible when a retry fails.
+  const [photoId, setPhotoId] = useState<string | null>(null);
+  const [retriesLeft, setRetriesLeft] = useState(0);
+  const [retryHint, setRetryHint] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
+  // "Hasilnya akurat?" — the server decides when to ask (every scan for the
+  // first 3, then once per WIB day). Answering or dismissing hides the card.
+  const [model, setModel] = useState<string | null>(null);
+  const [askFeedback, setAskFeedback] = useState(false);
+  const [feedbackAnswered, setFeedbackAnswered] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState<"kurang_akurat" | "salah" | null>(null);
+  const [feedbackReasons, setFeedbackReasons] = useState<
+    Array<(typeof FEEDBACK_REASONS)[number][0]>
+  >([]);
+  const [feedbackNote, setFeedbackNote] = useState("");
   const [plateValues, setPlateValues] = useState<PlateValues>({
     name: "",
     place: "",
@@ -192,7 +219,17 @@ export default function MakanAi() {
     setCrops([]);
     setPreviewUri(null);
     setPlateValues({ name: "", place: "", price: "" });
+    setPhotoId(null);
+    setRetriesLeft(0);
+    setRetryHint("");
+    setRetryCount(0);
+    setAskFeedback(false);
+    setFeedbackAnswered(false);
+    setFeedbackRating(null);
+    setFeedbackReasons([]);
+    setFeedbackNote("");
     analyze.reset();
+    retry.reset();
     setPhase("camera");
   };
 
@@ -229,6 +266,16 @@ export default function MakanAi() {
         crops: true,
       });
       setQuotaReached(result.quotaReached);
+      setPhotoId(result.photoId ?? null);
+      setRetriesLeft(result.retriesLeft ?? 0);
+      setRetryHint("");
+      setRetryCount(0);
+      setModel(result.model ?? null);
+      setAskFeedback(result.askFeedback ?? false);
+      setFeedbackAnswered(false);
+      setFeedbackRating(null);
+      setFeedbackReasons([]);
+      setFeedbackNote("");
       setItems(result.items);
       // Plate fields: default name = first item, then autofill the last price.
       const firstName = result.items[0]?.name;
@@ -303,6 +350,66 @@ export default function MakanAi() {
       if (!asset) return;
       await processImage(asset.uri, asset.width, asset.height);
     } catch (e) {
+      setFlowError(errorMessage(e));
+    }
+  };
+
+  // Fire-and-forget: feedback failures must never block the scan flow.
+  const sendFeedback = (
+    rating: "akurat" | "kurang_akurat" | "salah" | "dilewati",
+    reasons?: Array<(typeof FEEDBACK_REASONS)[number][0]>,
+    note?: string,
+  ) => {
+    if (!photoId) return;
+    saveFeedback
+      .mutateAsync({
+        photoId,
+        rating,
+        source: "native",
+        ...(reasons?.length ? { reasons } : {}),
+        ...(note?.trim() ? { note: note.trim() } : {}),
+        ...(model ? { model } : {}),
+        afterRetry: retryCount > 0,
+      })
+      .catch(() => {});
+  };
+
+  /** Hitung ulang: same photo, one more model pass; only the id travels. */
+  const retryAnalysis = async () => {
+    if (!photoId || retry.isPending || retriesLeft <= 0) return;
+    // The tap itself is an implicit "kurang akurat" verdict on this result.
+    if (askFeedback && !feedbackAnswered) {
+      sendFeedback("kurang_akurat");
+      setFeedbackAnswered(true);
+    }
+    setFlowError(null);
+    try {
+      const result = await retry.mutateAsync({
+        photoId,
+        ...(retryHint.trim() ? { hint: retryHint.trim() } : {}),
+      });
+      setItems(result.items);
+      setDrafts(
+        result.items.map((item) => ({ kcal: String(Math.round(item.kcal)), include: true })),
+      );
+      setRetriesLeft(result.retriesLeft);
+      setRetryHint("");
+      setModel(result.model ?? model);
+      setRetryCount((count) => count + 1);
+      // Re-cut the per-item tiles from the same sent image, in the background.
+      if (sentImage) {
+        void Promise.all(
+          result.items.map(async (item) =>
+            item.box
+              ? cropFromBox(sentImage.uri, sentImage.width, sentImage.height, item.box).catch(
+                  () => null,
+                )
+              : null,
+          ),
+        ).then((uris) => setCrops(uris));
+      }
+    } catch (e) {
+      // The previous result stays on screen; only the message changes.
       setFlowError(errorMessage(e));
     }
   };
@@ -512,6 +619,99 @@ export default function MakanAi() {
             ) : null}
           </View>
 
+          {/* Penilaian hasil: selalu bisa dilewati, tidak pernah blokir simpan */}
+          {askFeedback && !feedbackAnswered && photoId ? (
+            <View style={styles.feedbackCard}>
+              <View style={styles.feedbackHead}>
+                <View style={styles.flexOne}>
+                  <Text style={styles.feedbackTitle}>Hasilnya akurat?</Text>
+                  <Text style={styles.feedbackSubtitle}>
+                    Jawabanmu melatih perkiraan berikutnya.
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Lewati penilaian"
+                  hitSlop={8}
+                  onPress={() => {
+                    sendFeedback("dilewati");
+                    setFeedbackAnswered(true);
+                  }}
+                  style={({ pressed }) => [styles.feedbackClose, pressed && styles.disabled]}
+                >
+                  <Ionicons name="close" size={20} color={theme.colors.mutedForeground} />
+                </Pressable>
+              </View>
+              {feedbackRating === null ? (
+                <View style={styles.feedbackRow}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    label="Akurat"
+                    icon="checkmark"
+                    onPress={() => {
+                      sendFeedback("akurat");
+                      setFeedbackAnswered(true);
+                    }}
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    label="Kurang akurat"
+                    onPress={() => setFeedbackRating("kurang_akurat")}
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    label="Salah"
+                    onPress={() => setFeedbackRating("salah")}
+                  />
+                </View>
+              ) : (
+                <View style={styles.feedbackDetail}>
+                  <View style={styles.feedbackRow}>
+                    {FEEDBACK_REASONS.map(([key, label]) => (
+                      <Chip
+                        key={key}
+                        label={label}
+                        selected={feedbackReasons.includes(key)}
+                        onPress={() =>
+                          setFeedbackReasons((current) =>
+                            current.includes(key)
+                              ? current.filter((reason) => reason !== key)
+                              : [...current, key],
+                          )
+                        }
+                      />
+                    ))}
+                  </View>
+                  <Input
+                    value={feedbackNote}
+                    onChangeText={setFeedbackNote}
+                    placeholder="Catatan singkat (opsional)"
+                    maxLength={300}
+                  />
+                  <View style={styles.feedbackRow}>
+                    <Button
+                      size="sm"
+                      label="Kirim"
+                      onPress={() => {
+                        sendFeedback(feedbackRating, feedbackReasons, feedbackNote);
+                        setFeedbackAnswered(true);
+                      }}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      label="Kembali"
+                      onPress={() => setFeedbackRating(null)}
+                    />
+                  </View>
+                </View>
+              )}
+            </View>
+          ) : null}
+
           {/* Original photo + per-item crops cut on device */}
           {previewUri ? (
             <View style={styles.reviewPhotoBlock}>
@@ -616,6 +816,43 @@ export default function MakanAi() {
           {/* Saran tips kalau ada minuman manis atau saus/gorengan */}
           <ContextualTip names={items.map((item) => item.name)} />
 
+          {/* Hitung ulang: foto yang sama, tanpa foto ulang, tanpa kuota harian */}
+          {photoId ? (
+            <View style={styles.retryBlock}>
+              <View style={styles.flexOne}>
+                <Text style={styles.feedbackTitle}>Angka kurang pas?</Text>
+                <Text style={styles.feedbackSubtitle}>
+                  {retriesLeft > 0
+                    ? `Hitung ulang foto yang sama, gratis. Sisa ${retriesLeft}x.`
+                    : "Batas hitung ulang foto ini habis. Foto ulang lewat tombol di bawah ya."}
+                </Text>
+              </View>
+              {retriesLeft > 0 ? (
+                <>
+                  <Input
+                    value={retryHint}
+                    onChangeText={setRetryHint}
+                    placeholder="mis. nasinya nasi merah, porsi setengah"
+                    maxLength={200}
+                  />
+                  <Button
+                    variant="secondary"
+                    label={retry.isPending ? "Menghitung ulang..." : "Hitung ulang"}
+                    icon="refresh"
+                    loading={retry.isPending}
+                    disabled={retry.isPending}
+                    onPress={() => void retryAnalysis()}
+                  />
+                </>
+              ) : null}
+              {retry.isPending ? (
+                <Text style={styles.feedbackSubtitle}>
+                  Hasil sebelumnya masih ditampilkan sampai yang baru selesai.
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+
           <View style={styles.mealBlock}>
             <Text style={styles.mealLabel}>Catat sebagai</Text>
             <Segmented
@@ -630,7 +867,7 @@ export default function MakanAi() {
           {flowError ? <Text style={styles.errorText}>{flowError}</Text> : null}
           <Button
             label={includedCount > 0 ? `Simpan ${includedCount} item` : "Pilih minimal satu item"}
-            disabled={includedCount === 0}
+            disabled={includedCount === 0 || retry.isPending}
             onPress={() => void saveIncluded()}
             loading={addScan.isPending}
           />
@@ -983,6 +1220,49 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     fontWeight: "600",
     color: theme.colors.mutedForeground,
+  },
+  retryBlock: {
+    gap: theme.spacing.sm,
+  },
+  feedbackCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.card,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.md,
+  },
+  feedbackHead: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: theme.spacing.sm,
+  },
+  feedbackClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  feedbackRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  feedbackDetail: {
+    gap: theme.spacing.md,
+  },
+  feedbackTitle: {
+    fontSize: theme.fontSize.base,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  feedbackSubtitle: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+    marginTop: 2,
+  },
+  flexOne: {
+    flex: 1,
   },
   errorText: {
     fontSize: theme.fontSize.sm,

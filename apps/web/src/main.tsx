@@ -4,6 +4,7 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 
 import Loader from "./components/loader";
+import { ErrorScreen, NotFoundScreen } from "./components/error-screen";
 import { limitRevklikToPublicPages } from "./lib/analytics";
 import { sessionQuery } from "./lib/auth-client";
 import { routeTree } from "./routeTree.gen";
@@ -20,6 +21,8 @@ const router = createRouter({
   defaultPreloadStaleTime: 0,
   scrollRestoration: true,
   defaultPendingComponent: () => <Loader />,
+  defaultErrorComponent: ErrorScreen,
+  defaultNotFoundComponent: NotFoundScreen,
   context: { orpc, queryClient },
   Wrap: function WrapComponent({ children }: { children: React.ReactNode }) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;

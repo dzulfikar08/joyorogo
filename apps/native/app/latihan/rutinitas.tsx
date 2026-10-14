@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams, Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -30,7 +30,9 @@ import {
   type ExerciseType,
 } from "@/lib/workout/active";
 import { errorMessage } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc, queryClient } from "@/utils/orpc";
+import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
+import { upsertById } from "@joyorogo/api/lib/optimistic";
 
 const REST_OPTIONS = [
   { value: null, label: "Mati" },
@@ -88,24 +90,70 @@ export default function LatihanRutinitas() {
     );
   }, [existing, catalog.data]);
 
-  const save = useMutation(
-    orpc.workout.routines.saveRoutine.mutationOptions({
-      onSuccess: () => {
-        void queryClient.invalidateQueries();
-        router.back();
-      },
-      onError: (e) => setError(errorMessage(e)),
-    }),
-  );
-  const remove = useMutation(
-    orpc.workout.routines.deleteRoutine.mutationOptions({
-      onSuccess: () => {
-        void queryClient.invalidateQueries();
-        router.back();
-      },
-      onError: (e) => setError(errorMessage(e)),
-    }),
-  );
+  type RoutineInput = Parameters<typeof client.workout.routines.saveRoutine>[0];
+  type RoutineRow = NonNullable<typeof routines.data>[number];
+  const routinesKey = orpc.workout.routines.listRoutines.queryOptions().queryKey;
+
+  const save = useOptimisticMutation<RoutineInput, { id: string }, RoutineRow | null>({
+    mutationFn: (input) => client.workout.routines.saveRoutine(input),
+    patch: (input, cache) => {
+      const previous = input.id
+        ? ((queryClient.getQueryData<RoutineRow[]>(routinesKey) ?? []).find(
+            (row) => row.id === input.id,
+          ) ?? null)
+        : null;
+      cache.list<RoutineRow>(routinesKey, (rows) =>
+        upsertById(rows, {
+          id: input.id ?? `temp-${Date.now()}`,
+          name: input.name,
+          note: input.note ?? null,
+          exercises: input.exercises.map((exercise) => ({
+            ...exercise,
+            sets: exercise.sets.map((set) => ({ ...set, setType: set.setType ?? "normal" })),
+          })),
+          updatedAt: new Date().toISOString(),
+        }),
+      );
+      return previous;
+    },
+    success: (
+      _input,
+      data,
+      context,
+    ): { message: string; undo?: () => void } | undefined => {
+      const previous = context ?? null;
+      void queryClient.invalidateQueries({ queryKey: orpc.workout.key() });
+      router.back();
+      return {
+        message: "Rutinitas disimpan",
+        undo:
+          previous === null
+            ? // New routine: undo deletes it outright.
+              () => void client.workout.routines.deleteRoutine({ id: data.id })
+            : // Edited: undo re-saves the previous draft.
+              () =>
+                save.mutate({
+                  id: previous.id,
+                  name: previous.name,
+                  note: previous.note ?? undefined,
+                  exercises: previous.exercises as RoutineInput["exercises"],
+                }),
+      };
+    },
+    onError: (e) => setError(errorMessage(e)),
+    invalidate: () => [orpc.workout.key()],
+  });
+  const remove = useDelayedDelete<RoutineRow>({
+    remove: (row) => client.workout.routines.deleteRoutine({ id: row.id }),
+    patch: (row, cache) => {
+      cache.list<RoutineRow>(routinesKey, (rows) => rows.filter((item) => item.id !== row.id));
+    },
+    label: (row) => row.name,
+    fallback: "Rutinitas",
+    // The screen navigates back immediately; keep the undo window alive.
+    flushOnUnmount: false,
+    invalidate: () => [orpc.workout.key()],
+  });
 
   if (gate === "loading") return null;
 
@@ -302,7 +350,6 @@ export default function LatihanRutinitas() {
             destructive
             label="Hapus rutinitas"
             onPress={askDelete}
-            disabled={remove.isPending}
           />
         ) : null}
       </KeyboardAwareScrollView>
@@ -337,10 +384,15 @@ export default function LatihanRutinitas() {
         title="Hapus rutinitas?"
         message="Rutinitas ini hilang dari daftar."
         confirmLabel="Hapus"
-        loading={remove.isPending}
         onConfirm={() => {
           setConfirmDelete(false);
-          if (params.id !== undefined) remove.mutate({ id: params.id });
+          if (params.id !== undefined) {
+            const row = (queryClient.getQueryData<RoutineRow[]>(routinesKey) ?? []).find(
+              (item) => item.id === params.id,
+            );
+            if (row) remove(row);
+            router.back();
+          }
         }}
       />
     </>

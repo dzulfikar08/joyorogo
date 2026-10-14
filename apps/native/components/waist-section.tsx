@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,7 +19,8 @@ import {
   Text,
 } from "@/components/ui";
 import { errorMessage, fmtDateId, fmtKg, parseNum } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
 
 /**
  * Lingkar perut section for the Berat screen. Sits below the weight content;
@@ -55,15 +56,21 @@ export function WaistSection({
     }
   }, [loggedToday, latest]);
 
-  const checkIn = useMutation(
-    orpc.waist.checkIn.mutationOptions({
-      onSuccess: () => {
-        setError(null);
-        queryClient.invalidateQueries();
-      },
-      onError: (e) => setError(errorMessage(e)),
-    }),
-  );
+  type WaistCheckInInput = { waistCm: number };
+
+  const checkIn = useOptimisticMutation<WaistCheckInInput, unknown>({
+    mutationFn: (input) => client.waist.checkIn(input),
+    success: (_input) => {
+      setError(null);
+      const previous = entries.at(-1)?.waistCm;
+      return {
+        message: "Lingkar perut dicatat",
+        undo: previous === undefined ? undefined : () => checkIn.mutate({ waistCm: previous }),
+      };
+    },
+    onError: (e) => setError(errorMessage(e)),
+    invalidate: () => [orpc.waist.key(), orpc.day.key()],
+  });
 
   const submit = () => {
     const num = parseNum(cm);

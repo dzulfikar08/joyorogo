@@ -1,5 +1,5 @@
 import "@/unistyles";
-import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { Dimensions, Platform, Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
 import { Redirect, Stack } from "expo-router";
@@ -26,7 +26,8 @@ import {
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtDateId, fmtKg, parseNum } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
 
 const PRESETS = [5, 6, 7, 8, 9];
 
@@ -114,17 +115,35 @@ export default function Tidur() {
   const [hours, setHours] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
-  const logSleep = useMutation(
-    orpc.sleep.log.mutationOptions({
-      onSuccess: () => {
-        setFormError(null);
-        setSheetOpen(false);
-        setHours("");
-        queryClient.invalidateQueries();
-      },
-      onError: (e) => setFormError(errorMessage(e)),
-    }),
-  );
+  type SleepLogInput = { date?: string; hours: number };
+
+  const logSleep = useOptimisticMutation<SleepLogInput, unknown>({
+    mutationFn: (input) => client.sleep.log(input),
+    patch: (input, cache) => {
+      const rowDate = input.date ?? shiftDate(jakartaToday(), -1);
+      // applySummaryDelta puts sleepHours on the summary of date + 1 itself.
+      cache.summary({ date: rowDate, sleepHours: input.hours });
+      cache.value<{ hours: number | null }>(
+        orpc.sleep.getForDate.queryOptions({ input: { date: rowDate } }).queryKey,
+        () => ({ hours: input.hours }),
+      );
+    },
+    success: (input) => {
+      setFormError(null);
+      setSheetOpen(false);
+      setHours("");
+      const previous = sleepQuery.data?.hours;
+      return {
+        message: "Tidur dicatat",
+        undo:
+          previous === null || previous === undefined
+            ? undefined
+            : () => logSleep.mutate({ date: input.date, hours: previous }),
+      };
+    },
+    onError: (e) => setFormError(errorMessage(e)),
+    invalidate: () => [orpc.sleep.key(), orpc.day.key()],
+  });
 
   // Prefill the manual field with the existing record when the sheet opens.
   useEffect(() => {

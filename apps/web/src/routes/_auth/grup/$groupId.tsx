@@ -23,7 +23,7 @@ import {
   UserMinus,
   Utensils,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { ProgressBar } from "@/components/progress-bar";
@@ -40,9 +40,12 @@ import {
 } from "@/components/kit/surface";
 import { Switch } from "@/components/kit/switch";
 import { useSession } from "@/lib/auth-client";
-import type { GroupActivityEvent, GroupMember } from "@/lib/api-types";
+import type { GroupActivityEvent, GroupDetail, GroupMember } from "@/lib/api-types";
+import type { AppRouterClient } from "@joyorogo/api/routers/index";
+
+import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
 import { fmtInt, fmtKg, timeAgo } from "@/lib/format";
-import { orpc } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
 
 const detailOptions = (groupId: string) => orpc.group.detail.queryOptions({ input: { groupId } });
 const activityOptions = (groupId: string) =>
@@ -122,16 +125,34 @@ function GrupDetailPage() {
     }),
   );
 
-  const rename = useMutation(
-    orpc.group.rename.mutationOptions({
-      onSuccess: () => {
-        toast.success("Nama grup diganti.");
-        setNewName("");
-        invalidate();
-      },
-      onError: (error) => toast.error(error.message),
-    }),
-  );
+  const detailKey = detailOptions(groupId).queryKey;
+  // Optimistic detail.name patch; undo restores the previous name.
+  const previousName = useRef<string | null>(null);
+  const rename = useOptimisticMutation<
+    Parameters<AppRouterClient["group"]["rename"]>[0],
+    unknown
+  >({
+    mutationFn: (input) => client.group.rename(input),
+    patch: (input, cache) => {
+      const old = queryClient.getQueryData<GroupDetail>(detailKey);
+      previousName.current = old?.group.name ?? null;
+      cache.value<GroupDetail>(detailKey, (data) =>
+        data ? { ...data, group: { ...data.group, name: input.name } } : data,
+      );
+    },
+    invalidate: () => [orpc.group.key()],
+    success: () => {
+      setNewName("");
+      const prev = previousName.current;
+      previousName.current = null;
+      if (prev === null) return { message: "Nama grup diganti" };
+      return {
+        message: "Nama grup diganti",
+        undo: () => void client.group.rename({ groupId, name: prev }),
+      };
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   const rotate = useMutation(
     orpc.group.rotateInvite.mutationOptions({
@@ -143,19 +164,35 @@ function GrupDetailPage() {
     }),
   );
 
-  const setShareFood = useMutation(
-    orpc.group.setShareFood.mutationOptions({
-      onSuccess: invalidate,
-      onError: (error) => toast.error(error.message),
-    }),
-  );
-
-  const setShareVar = useMutation(
-    orpc.group.varSetShare.mutationOptions({
-      onSuccess: invalidate,
-      onError: (error) => toast.error(error.message),
-    }),
-  );
+  // Optimistic flip of my member row's share flag; undo re-applies the old value.
+  const patchShare = (input: { groupId: string; shareFood: boolean } | { groupId: string; shareVar: boolean }, cache: OptimisticCache) => {
+    cache.value<GroupDetail>(detailKey, (data) =>
+      data
+        ? {
+            ...data,
+            members: data.members.map((m) =>
+              m.userId === meId ? { ...m, ...("shareFood" in input ? { shareFood: input.shareFood } : { shareVar: input.shareVar }) } : m,
+            ),
+          }
+        : data,
+    );
+  };
+  const setShareFood = useOptimisticMutation<
+    Parameters<AppRouterClient["group"]["setShareFood"]>[0],
+    unknown
+  >({
+    mutationFn: (input) => client.group.setShareFood(input),
+    patch: (input, cache) => patchShare(input, cache),
+    invalidate: () => [orpc.group.key()],
+  });
+  const setShareVar = useOptimisticMutation<
+    Parameters<AppRouterClient["group"]["varSetShare"]>[0],
+    unknown
+  >({
+    mutationFn: (input) => client.group.varSetShare(input),
+    patch: (input, cache) => patchShare(input, cache),
+    invalidate: () => [orpc.group.key()],
+  });
 
   const removeMember = useMutation(
     orpc.group.removeMember.mutationOptions({

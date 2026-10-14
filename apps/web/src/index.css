@@ -284,3 +284,24 @@
   font-size: 0.875rem;
   color: var(--muted-foreground);
 }
+
+/* "Urungkan" undo action on sonner toasts; light/dark come from the vars. */
+[data-sonner-toast] [data-button] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.75rem;
+  min-height: 2rem;
+  cursor: pointer;
+}
+[data-sonner-toast] [data-button]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+[data-sonner-toast] [data-button]:active {
+  transform: translateY(1px);
+  opacity: 0.9;
+}

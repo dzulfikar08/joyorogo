@@ -1,38 +1,51 @@
 import { Droplet } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
-import { toast } from "sonner";
 
-import { orpc } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
+import type { AppRouterClient } from "@joyorogo/api/routers/index";
+import { client, orpc } from "@/utils/orpc";
+
+type WaterInput = Parameters<AppRouterClient["water"]["add"]>[0];
+type WaterToday = Awaited<ReturnType<AppRouterClient["water"]["today"]>>;
 
 /**
  * "Air minum" — one tappable droplet per glass. Tapping a filled droplet
  * pours one back out, tapping an empty one fills one in.
  */
 export function WaterCard({ date }: { date?: string }) {
-  const queryClient = useQueryClient();
+  const todayKey = orpc.water.today.queryOptions({ input: date === undefined ? {} : { date } }).queryKey;
   const today = useQuery(
     orpc.water.today.queryOptions({ input: date === undefined ? {} : { date } }),
   );
 
-  const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: orpc.water.key() });
-    queryClient.invalidateQueries({ queryKey: orpc.day.key() });
-  };
-
-  const add = useMutation(
-    orpc.water.add.mutationOptions({
-      onSuccess: refresh,
-      onError: (error) => toast.error(error.message),
+  const add = useOptimisticMutation<WaterInput, unknown>({
+    mutationFn: (input) => client.water.add(input),
+    patch: (_input, cache) => {
+      cache.value<WaterToday>(todayKey, (old) =>
+        old ? { ...old, glasses: Math.min(old.glasses + 1, 99) } : old,
+      );
+    },
+    invalidate: () => [orpc.water.key(), orpc.day.key()],
+    success: (_input) => ({
+      message: "+1 gelas dicatat",
+      undo: () => void client.water.remove(date === undefined ? {} : { date }),
     }),
-  );
-  const remove = useMutation(
-    orpc.water.remove.mutationOptions({
-      onSuccess: refresh,
-      onError: (error) => toast.error(error.message),
+  });
+  const remove = useOptimisticMutation<WaterInput, unknown>({
+    mutationFn: (input) => client.water.remove(input),
+    patch: (_input, cache) => {
+      cache.value<WaterToday>(todayKey, (old) =>
+        old ? { ...old, glasses: Math.max(old.glasses - 1, 0) } : old,
+      );
+    },
+    invalidate: () => [orpc.water.key(), orpc.day.key()],
+    success: (_input) => ({
+      message: "1 gelas dihapus",
+      undo: () => void client.water.add(date === undefined ? {} : { date }),
     }),
-  );
+  });
 
   const glasses = today.data?.glasses ?? 0;
   const goal = today.data?.goal ?? 8;

@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
 import {
@@ -17,6 +16,7 @@ import { File, Paths } from "expo-file-system";
 import { Avatar, Card, Text } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
 import { client } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
 import {
   KIND_META,
   postPhotoUrl,
@@ -275,9 +275,9 @@ export function PostCard({
     count: post.kudosCount,
   });
 
-  const toggleKudos = useMutation({
+  const toggleKudos = useOptimisticMutation<void, { kudos: boolean; kudosCount: number }>({
     mutationFn: () => client.social.kudos({ postId: post.id }),
-    onMutate: () => {
+    patch: () => {
       // Optimistic: flip immediately, roll back if the server refuses.
       setKudos((prev) => ({
         byMe: !prev.byMe,
@@ -287,8 +287,11 @@ export function PostCard({
     onError: () => {
       setKudos({ byMe: post.kudosByMe ?? false, count: post.kudosCount });
     },
-    onSuccess: (result) => {
+    success: (_input, result) => {
       setKudos({ byMe: result.kudos, count: result.kudosCount });
+      // Only giving kudos is undoable; taking it back is a plain tap.
+      if (!result.kudos) return undefined;
+      return { message: "Semangat terkirim", undo: () => toggleKudos.mutate() };
     },
   });
 

@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, ne, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import type { JoyoAuth } from "@joyorogo/auth";
 import type { Hono } from "hono";
@@ -6,9 +6,11 @@ import { z } from "zod";
 
 import { jakartaToday } from "@joyorogo/api/lib/engine";
 import { effectiveTier, wibDayBounds } from "@joyorogo/api/lib/tiers";
+import { SCAN_ID_RE, scanSrcKey } from "@joyorogo/api/lib/sticker";
+import type { StickersBucket } from "@joyorogo/api/lib/sticker";
 import { session, user } from "@joyorogo/db/schema/auth";
 import { payment } from "@joyorogo/db/schema/billing";
-import { aiUsage, foodLog, profile } from "@joyorogo/db/schema/fitness";
+import { aiUsage, foodLog, profile, scanFeedback } from "@joyorogo/db/schema/fitness";
 import { post as postTable, postComment, socialReport } from "@joyorogo/db/schema/social";
 import type { Database } from "@joyorogo/db";
 
@@ -39,6 +41,8 @@ type Deps = {
   adminEmails: string | undefined;
   getDb: () => Database;
   createAuth: () => Promise<JoyoAuth>;
+  /** Stickers R2 bucket, for feedback photo thumbnails. Missing = no thumbs. */
+  getBucket: () => StickersBucket | undefined;
   reconcileById: (orderId: string) => Promise<string>;
   /** Sends a test email to `to`; returns the send outcome text. */
   sendTestEmail: (to: string) => Promise<string>;
@@ -419,5 +423,86 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
   app.delete("/api/admin/comments/:id", async (c) => {
     await deps.getDb().delete(postComment).where(eq(postComment.id, c.req.param("id")));
     return c.json({ ok: true });
+  });
+
+  // Feedback scan ("Hasilnya akurat?"): accuracy per WIB day and per model,
+  // plus the recent negative results. Dismissals (`dilewati`) are excluded
+  // from every metric.
+  app.get("/api/admin/feedback", async (c) => {
+    const days = Math.min(90, Math.max(1, Number(c.req.query("days")) || 30));
+    const since = Date.now() - days * DAY_MS;
+    const db = deps.getDb();
+    const rated = and(
+      ne(scanFeedback.rating, "dilewati"),
+      sql`${scanFeedback.createdAt} >= ${since}`,
+    );
+    const accuracy = {
+      total: sql<number>`count(*)`,
+      akurat: sql<number>`sum(case when ${scanFeedback.rating} = 'akurat' then 1 else 0 end)`,
+      kurang: sql<number>`sum(case when ${scanFeedback.rating} = 'kurang_akurat' then 1 else 0 end)`,
+      salah: sql<number>`sum(case when ${scanFeedback.rating} = 'salah' then 1 else 0 end)`,
+    };
+    const [byDay, byModel, recent] = await Promise.all([
+      db
+        .select({ day: wibDay(scanFeedback.createdAt), ...accuracy })
+        .from(scanFeedback)
+        .where(rated)
+        .groupBy(wibDay(scanFeedback.createdAt)),
+      db
+        .select({ model: scanFeedback.model, ...accuracy })
+        .from(scanFeedback)
+        .where(rated)
+        .groupBy(scanFeedback.model),
+      db
+        .select({
+          id: scanFeedback.id,
+          createdAt: scanFeedback.createdAt,
+          rating: scanFeedback.rating,
+          reasonsJson: scanFeedback.reasonsJson,
+          note: scanFeedback.note,
+          afterRetry: scanFeedback.afterRetry,
+          model: scanFeedback.model,
+          source: scanFeedback.source,
+          photoId: scanFeedback.photoId,
+          userId: scanFeedback.userId,
+          userName: user.name,
+        })
+        .from(scanFeedback)
+        .leftJoin(user, eq(user.id, scanFeedback.userId))
+        .where(and(ne(scanFeedback.rating, "akurat"), ne(scanFeedback.rating, "dilewati")))
+        .orderBy(desc(scanFeedback.createdAt))
+        .limit(50),
+    ]);
+    return c.json({ byDay, byModel, recent });
+  });
+
+  // Thumbnail of a rated photo (scan-src/<userId>/<photoId>, ext-less — the
+  // mime rides in the object metadata). Objects expire via the bucket
+  // lifecycle rule, so older feedback often has no photo left; the console
+  // falls back to a placeholder on 404.
+  app.get("/api/admin/feedback-photo/:photoId", async (c) => {
+    const photoId = c.req.param("photoId");
+    if (!SCAN_ID_RE.test(photoId)) {
+      return c.json({ error: "ID tidak valid." }, 400);
+    }
+    const userId = c.req.query("userId");
+    if (!userId) {
+      return c.json({ error: "User tidak diketahui." }, 400);
+    }
+    const bucket = deps.getBucket();
+    if (!bucket) {
+      return c.json({ error: "Foto belum tersedia." }, 404);
+    }
+    const obj = await bucket.get(scanSrcKey(userId, photoId)).catch(() => null);
+    if (!obj) {
+      return c.json({ error: "Foto tidak ditemukan." }, 404);
+    }
+    return new Response(obj.body, {
+      headers: {
+        "Content-Type": obj.httpMetadata?.contentType ?? "image/jpeg",
+        "Content-Length": String(obj.size),
+        "Cache-Control": "private, no-store",
+      },
+    });
   });
 }

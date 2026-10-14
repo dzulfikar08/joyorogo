@@ -138,6 +138,17 @@ export const defaultSchedule: ScheduleTimeout = (fn, ms) => {
 };
 
 /**
+ * Prompt preamble for "Hitung ulang": the user judged the first answer on
+ * this photo wrong. The optional hint is the user's own words; both lines
+ * steer the same re-read of the same pixels.
+ */
+export function retryInstruction(hint?: string): string {
+  const base =
+    "Koreksi: jawabanmu sebelumnya untuk foto ini dinilai tidak akurat oleh pengguna. Periksa ulang nama, porsi, dan angka kalorinya, lalu jawab dengan bentuk JSON yang sama.";
+  return hint ? `${base} Catatan pengguna: "${hint}".` : base;
+}
+
+/**
  * One inference call with a hard wall-clock deadline. Workers AI cannot be
  * cancelled, so timing out only stops OUR wait — the underlying run keeps
  * burning tokens until it finishes. That is still the right trade: the user
@@ -146,7 +157,7 @@ export const defaultSchedule: ScheduleTimeout = (fn, ms) => {
 export function runVisionOnce(
   ai: AiRunner,
   model: string,
-  opts: { imageBase64: string; mimeType: string },
+  opts: { imageBase64: string; mimeType: string; instruction?: string },
   timeoutMs: number,
   schedule: ScheduleTimeout = defaultSchedule,
 ): Promise<unknown> {
@@ -155,7 +166,7 @@ export function runVisionOnce(
       {
         role: "user",
         content: [
-          { type: "text", text: VISION_PROMPT },
+          { type: "text", text: opts.instruction ? `${VISION_PROMPT}\n\n${opts.instruction}` : VISION_PROMPT },
           {
             type: "image_url",
             image_url: { url: `data:${opts.mimeType};base64,${opts.imageBase64}` },
@@ -252,6 +263,8 @@ export async function analyzeFoodPhoto(
     imageBase64: string;
     mimeType: string;
     model?: string;
+    /** Present when this run re-checks a photo the user judged inaccurate. */
+    retry?: { hint?: string };
     /** Injectable for tests. */
     timeouts?: [number, number];
     /** Injectable for tests — deterministic deadlines without real timers. */
@@ -265,7 +278,17 @@ export async function analyzeFoodPhoto(
     const attemptStartedAt = Date.now();
     let finish: string | null = null;
     try {
-      const result = await runVisionOnce(ai, model, opts, timeoutMs, opts.schedule);
+      const result = await runVisionOnce(
+        ai,
+        model,
+        {
+          imageBase64: opts.imageBase64,
+          mimeType: opts.mimeType,
+          instruction: opts.retry ? retryInstruction(opts.retry.hint) : undefined,
+        },
+        timeoutMs,
+        opts.schedule,
+      );
       finish = finishReasonOf(result);
       const text = responseText(result);
       if (text === null) throw new Error("no text in response");

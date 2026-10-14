@@ -1,4 +1,4 @@
-import "@/unistyles";
+import { Ionicons } from "@expo/vector-icons";
 import { Link, Stack } from "expo-router";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
@@ -13,9 +13,15 @@ export default function NotFoundScreen() {
       <Container>
         <View style={styles.container}>
           <View style={styles.content}>
+            <Ionicons
+              name="compass-outline"
+              size={56}
+              color={styles.icon.color}
+              style={styles.iconSpacing}
+            />
             <Text style={styles.title}>Halaman tidak ditemukan</Text>
             <Text style={styles.description}>
-              Halaman yang kamu cari tidak ada. Kembali ke Beranda untuk melanjutkan.
+              Halaman yang kamu cari tidak ada atau sudah dipindah. Yuk kembali ke Beranda.
             </Text>
             <Link href="/" style={styles.button}>
               <Text style={styles.buttonText}>Ke Beranda</Text>
@@ -37,6 +43,12 @@ const styles = StyleSheet.create((theme) => ({
   content: {
     alignItems: "center",
   },
+  icon: {
+    color: theme.colors.mutedForeground,
+  },
+  iconSpacing: {
+    marginBottom: theme.spacing.lg,
+  },
   title: {
     fontSize: theme.fontSize["2xl"],
     fontWeight: "800",
@@ -57,6 +69,7 @@ const styles = StyleSheet.create((theme) => ({
     paddingVertical: 14,
     borderRadius: theme.radius.pill,
     minHeight: 48,
+    alignItems: "center",
     justifyContent: "center",
   },
   buttonText: {

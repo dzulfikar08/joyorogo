@@ -13,11 +13,16 @@ import {
   workoutApi,
   workoutQueryPrefix,
 } from "@/lib/workout-contract";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Plus, Timer, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+
+import { removeById, upsertById } from "@joyorogo/api/lib/optimistic";
+
+import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
+import { orpc } from "@/utils/orpc";
 
 type RoutineExercise = RoutineInput["exercises"][number] & { uid: string };
 
@@ -92,24 +97,68 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
     return byId;
   }, [catalog.data]);
 
-  const save = useMutation({
-    mutationFn: (input: RoutineInput) => workoutApi.saveRoutine(input),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [...workoutQueryPrefix] });
-      toast.success("Rutinitas tersimpan.");
+  // Optimistic routines-list upsert; undo re-saves the previous draft when
+  // editing, or deletes the freshly created routine when new.
+  const previousRoutine = useRef<Routine | null>(null);
+  const save = useOptimisticMutation<RoutineInput, { id: string }>({
+    mutationFn: (input) => workoutApi.saveRoutine(input),
+    patch: (input, cache) => {
+      const routines = queryClient.getQueryData<Routine[]>(["workout", "routines"]) ?? [];
+      previousRoutine.current = routines.find((item) => item.id === (input.id ?? "")) ?? null;
+      const provisional: Routine = {
+        id: input.id ?? crypto.randomUUID(),
+        name: input.name,
+        note: input.note ?? null,
+        exercises: input.exercises.map((item) => ({
+          exerciseId: item.exerciseId,
+          restSec: item.restSec ?? null,
+          note: item.note ?? null,
+          sets: item.sets,
+        })),
+        updatedAt: new Date().toISOString(),
+      };
+      cache.list<Routine>(["workout", "routines"], (rows) => upsertById(rows, provisional));
+    },
+    invalidate: () => [orpc.workout.key()],
+    success: (input, data) => {
       void navigate({ to: "/latihan" });
+      const prev = previousRoutine.current;
+      previousRoutine.current = null;
+      if (prev) {
+        return {
+          message: "Rutinitas tersimpan",
+          undo: () =>
+            void workoutApi.saveRoutine({
+              id: prev.id,
+              name: prev.name,
+              note: prev.note ?? undefined,
+              exercises: prev.exercises.map((item) => ({
+                exerciseId: item.exerciseId,
+                restSec: item.restSec,
+                note: item.note ?? undefined,
+                sets: item.sets,
+              })),
+            }),
+        };
+      }
+      return {
+        message: "Rutinitas tersimpan",
+        undo: () => void workoutApi.deleteRoutine({ id: data.id }),
+      };
     },
     onError: (err) => setError(err.message),
   });
 
-  const remove = useMutation({
-    mutationFn: () => workoutApi.deleteRoutine({ id: routineId }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [...workoutQueryPrefix] });
-      toast.success("Rutinitas dihapus.");
-      void navigate({ to: "/latihan" });
+  // Delayed-commit delete: gone from the list instantly, DELETE after the
+  // undo window; undo restores and never calls the server.
+  const removeRoutine = useDelayedDelete<Routine>({
+    remove: (row) => workoutApi.deleteRoutine({ id: row.id }),
+    patch: (row, cache) => {
+      cache.list<Routine>(["workout", "routines"], (rows) => removeById(rows, row.id));
     },
-    onError: (err) => setError(err.message),
+    label: (row) => row.name,
+    fallback: "Rutinitas",
+    invalidate: () => [orpc.workout.key()],
   });
 
   const addExercises = (picked: CatalogExercise[]) => {
@@ -360,8 +409,14 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
           <Button
             variant="secondary"
             className="flex-1 text-destructive"
-            disabled={remove.isPending}
-            onClick={() => remove.mutate()}
+            onClick={() => {
+              const row = (queryClient.getQueryData<Routine[]>(["workout", "routines"]) ?? []).find(
+                (item) => item.id === routineId,
+              );
+              if (!row) return;
+              void navigate({ to: "/latihan" });
+              removeRoutine(row);
+            }}
           >
             Hapus rutinitas
           </Button>

@@ -11,6 +11,7 @@ import Animated, {
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Text } from "@/components/ui";
+import { UNDO_TOAST_MS } from "@joyorogo/api/lib/optimistic";
 
 type ToastKind = "success" | "error" | "info";
 
@@ -59,7 +60,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     clearTimeout(timer.current);
     Vibration.vibrate(8);
     setToast({ id: Date.now(), kind, title, message, action });
-    timer.current = setTimeout(() => setToast(null), AUTO_DISMISS_MS);
+    // An undoable toast needs the whole undo window; plain ones stay snappy.
+    timer.current = setTimeout(
+      () => setToast(null),
+      action ? UNDO_TOAST_MS : AUTO_DISMISS_MS,
+    );
   }, []);
 
   const dismiss = useCallback(() => {

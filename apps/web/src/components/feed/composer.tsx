@@ -5,10 +5,14 @@ import { ImagePlus, Loader2, Send, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
+import type { AppRouterClient } from "@joyorogo/api/routers/index";
+
 import { Card } from "@/components/kit/surface";
 import { Segmented } from "@/components/kit/surface";
-import { useSession } from "@/lib/auth-client";
 import { Avatar } from "@/components/avatar";
+import type { FeedPost } from "@/lib/api-types";
+import { useSession } from "@/lib/auth-client";
+import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
 const STORY_MAX = 1000;
@@ -73,6 +77,100 @@ export function FeedComposer() {
     if (fileInput.current) fileInput.current.value = "";
   };
 
+  type ComposerInput = {
+    caption: string;
+    visibility: "publik" | "grup";
+    photos: Pending[];
+  };
+  // Uploads + createPost as one mutation; the new post is inserted into the
+  // feed caches once the server id exists, and the toast undo deletes it.
+  const createPost = useOptimisticMutation<
+    ComposerInput,
+    Awaited<ReturnType<AppRouterClient["social"]["createPost"]>>
+  >({
+    mutationFn: async (input) => {
+      const photoIds: string[] = [];
+      for (let i = 0; i < input.photos.length; i++) {
+        setBusy(`Mengunggah foto ${i + 1}/${input.photos.length}...`);
+        const uploaded = await client.social.uploadPostPhoto({
+          imageBase64: input.photos[i].base64,
+          mimeType: input.photos[i].mimeType,
+        });
+        photoIds.push(uploaded.photoId);
+      }
+      setBusy("Membagikan...");
+      return client.social.createPost({
+        kind: "cerita",
+        caption: input.caption || undefined,
+        photoIds: photoIds.length > 0 ? photoIds : undefined,
+        visibility: input.visibility,
+      });
+    },
+    invalidate: () => [orpc.social.key()],
+    success: (input, post) => {
+      setCaption("");
+      setPhotos([]);
+      const author = session.data?.user;
+      const feedCache = new OptimisticCache(queryClient);
+      // Newest first: prepend to the first page of every feed/myPosts cache.
+      const prepend = (data: { pages: Array<{ items: FeedPost[] }> }) => ({
+        ...data,
+        pages: data.pages.map((page, index) =>
+          index === 0
+            ? {
+                ...page,
+                items: [
+                  {
+                    id: post.id,
+                    kind: "cerita",
+                    title: "",
+                    kcal: null,
+                    durationMin: null,
+                    photoId: null,
+                    scanId: null,
+                    macros: undefined,
+                    stats: undefined,
+                    photoCount: input.photos.length,
+                    caption: input.caption || null,
+                    visibility: post.visibility,
+                    createdAt: new Date(),
+                    author: {
+                      id: author?.id ?? "",
+                      name: author?.name ?? "Kamu",
+                      handle: null,
+                      image: author?.image ?? null,
+                    },
+                    kudosCount: 0,
+                    commentCount: 0,
+                    kudosByMe: false,
+                  } satisfies FeedPost,
+                  ...page.items,
+                ],
+              }
+            : page,
+        ),
+      });
+      feedCache.matching(orpc.social.feed.key(), prepend);
+      feedCache.matching(orpc.social.myPosts.key(), prepend);
+      return {
+        message: "Postingan dibagikan",
+        undo: () => {
+          const revert = new OptimisticCache(queryClient);
+          const drop = (data: { pages: Array<{ items: FeedPost[] }> }) => ({
+            ...data,
+            pages: data.pages.map((page) => ({
+              ...page,
+              items: page.items.filter((item) => item.id !== post.id),
+            })),
+          });
+          revert.matching(orpc.social.feed.key(), drop);
+          revert.matching(orpc.social.myPosts.key(), drop);
+          void client.social.deletePost({ id: post.id });
+        },
+      };
+    },
+  });
+
   const submit = async () => {
     const text = caption.trim();
     if (text.length === 0 && photos.length === 0) {
@@ -81,28 +179,7 @@ export function FeedComposer() {
     }
     setBusy("Menyiapkan...");
     try {
-      const photoIds: string[] = [];
-      for (let i = 0; i < photos.length; i++) {
-        setBusy(`Mengunggah foto ${i + 1}/${photos.length}...`);
-        const uploaded = await client.social.uploadPostPhoto({
-          imageBase64: photos[i].base64,
-          mimeType: photos[i].mimeType,
-        });
-        photoIds.push(uploaded.photoId);
-      }
-      setBusy("Membagikan...");
-      await client.social.createPost({
-        kind: "cerita",
-        caption: text || undefined,
-        photoIds: photoIds.length > 0 ? photoIds : undefined,
-        visibility,
-      });
-      toast.success("Post kamu muncul di feed.");
-      setCaption("");
-      setPhotos([]);
-      queryClient.invalidateQueries({ queryKey: orpc.social.key() });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Gagal membagikan post.");
+      await createPost.mutateAsync({ caption: text, visibility, photos });
     } finally {
       setBusy(null);
     }

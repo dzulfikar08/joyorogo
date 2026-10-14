@@ -1,8 +1,8 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Pressable, ScrollView, View } from "react-native";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Redirect, router } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -49,7 +49,10 @@ import {
 import { useSessionGate } from "@/lib/use-session-gate";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { errorMessage, fmtDateId, fmtKcal, parseNum } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc, queryClient } from "@/utils/orpc";
+import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
+import type { QueryKey } from "@tanstack/react-query";
+import type { SummaryDelta } from "@joyorogo/api/lib/optimistic";
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
 
@@ -60,21 +63,6 @@ const MEAL_SHORT: Record<Meal, string> = {
   snack: "Snack",
   sahur: "Sahur",
   berbuka: "Berbuka",
-};
-
-/** Fields needed to re-add a deleted row verbatim via food.add. */
-type UndoItem = {
-  id: string;
-  date: string;
-  meal: string;
-  name: string;
-  kcal: number;
-  protein: number | null;
-  carbs: number | null;
-  fat: number | null;
-  fiber: number | null;
-  source: string;
-  itemsJson: string | null;
 };
 
 export default function Makan() {
@@ -102,14 +90,201 @@ export default function Makan() {
     ...orpc.plate.byDate.queryOptions({ input: { date } }),
     placeholderData: (prev) => prev,
   });
-  const updatePlate = useMutation(
-    orpc.plate.update.mutationOptions({
-      onSuccess: () => {
-        setPlateEdit(null);
-        queryClient.invalidateQueries();
-      },
-    }),
-  );
+  // Cache keys for the day this screen shows.
+  type FoodRow = NonNullable<NonNullable<typeof listQuery.data>["items"]>[number];
+  type PlateRow = {
+    id: string;
+    meal: string;
+    name: string;
+    place: string | null;
+    priceIdr: number | null;
+  };
+  const foodListKey = orpc.food.listByDate.queryOptions({ input: { date } }).queryKey;
+  const plateDayKey = orpc.plate.byDate.queryOptions({ input: { date } }).queryKey;
+
+  type Totals = { kcal: number; protein: number; carbs: number; fat: number; fiber: number };
+
+  /** food.listByDate caches hold { items, totals }: land a row and lift the totals. */
+  const insertFoodRow = (cache: OptimisticCache, listKey: QueryKey, row: FoodRow) => {
+    cache.value<{ items: FoodRow[]; totals: Totals }>(listKey, (old) =>
+      old
+        ? {
+            ...old,
+            items: [...old.items, row],
+            totals: {
+              kcal: old.totals.kcal + row.kcal,
+              protein: old.totals.protein + (row.protein ?? 0),
+              carbs: old.totals.carbs + (row.carbs ?? 0),
+              fat: old.totals.fat + (row.fat ?? 0),
+              fiber: old.totals.fiber + (row.fiber ?? 0),
+            },
+          }
+        : old,
+    );
+  };
+
+  /** food.listByDate caches hold { items, totals }: strip one row and pull
+   * the rendered totals down with it (clamped, they are display values). */
+  const stripFoodRow = (cache: OptimisticCache, listKey: QueryKey, row: FoodRow) => {
+    cache.value<{ items: FoodRow[]; totals: Totals }>(listKey, (old) => {
+      if (!old || !old.items.some((item) => item.id === row.id)) return old;
+      return {
+        ...old,
+        items: old.items.filter((item) => item.id !== row.id),
+        totals: {
+          kcal: Math.max(0, old.totals.kcal - row.kcal),
+          protein: Math.max(0, old.totals.protein - (row.protein ?? 0)),
+          carbs: Math.max(0, old.totals.carbs - (row.carbs ?? 0)),
+          fat: Math.max(0, old.totals.fat - (row.fat ?? 0)),
+          fiber: Math.max(0, old.totals.fiber - (row.fiber ?? 0)),
+        },
+      };
+    });
+  };
+
+  /** Signed food delta for the day-summary caches; fiber rides the refetch. */
+  const foodSummaryDelta = (
+    row: {
+      date: string;
+      meal: string;
+      kcal: number;
+      protein?: number | null;
+      carbs?: number | null;
+      fat?: number | null;
+    },
+    sign: 1 | -1,
+  ): SummaryDelta => ({
+    date: row.date,
+    meal: row.meal,
+    kcal: sign * row.kcal,
+    ...(row.protein ? { protein: sign * row.protein } : {}),
+    ...(row.carbs ? { carbs: sign * row.carbs } : {}),
+    ...(row.fat ? { fat: sign * row.fat } : {}),
+    meals: sign,
+  });
+
+  const addFood = useOptimisticMutation<Parameters<typeof client.food.add>[0], FoodRow>({
+    mutationFn: async (input) => {
+      const row = await client.food.add(input);
+      if (!row) throw new Error("Gagal menyimpan.");
+      return row;
+    },
+    patch: (input, cache) => {
+      const rowDate = input.date ?? today;
+      insertFoodRow(cache, foodListKey, {
+        id: `temp-${Date.now()}`,
+        userId: "",
+        date: rowDate,
+        meal: input.meal,
+        name: input.name,
+        kcal: input.kcal,
+        protein: input.protein ?? null,
+        carbs: input.carbs ?? null,
+        fat: input.fat ?? null,
+        fiber: input.fiber ?? null,
+        source: input.source ?? "manual",
+        itemsJson: input.itemsJson ?? null,
+        scanId: input.scanId ?? null,
+        photoId: null,
+        plateId: null,
+        createdAt: new Date(),
+      });
+      cache.summary(foodSummaryDelta({ ...input, date: rowDate }, 1));
+    },
+    success: (input, data) => {
+      // The quick-add chips flip this ref so a half-typed manual entry
+      // survives a one-tap add.
+      if (!quickAddRef.current) {
+        setName("");
+        setKcal("");
+        setProtein("");
+        setCarbs("");
+        setFat("");
+        setPlatePriceManual("");
+        setMacrosOpen(false);
+      }
+      quickAddRef.current = false;
+      setFormError(null);
+      return {
+        message: `${input.name} dicatat`,
+        undo: () => {
+          // Undo deletes the just-created row; quiet, then targeted refetch.
+          void client.food.remove({ id: data.id }).then(() => {
+            void queryClient.invalidateQueries({ queryKey: orpc.food.key() });
+            void queryClient.invalidateQueries({ queryKey: orpc.plate.key() });
+            void queryClient.invalidateQueries({ queryKey: orpc.day.key() });
+          });
+        },
+      };
+    },
+    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key()],
+  });
+
+  const deleteFood = useDelayedDelete<FoodRow>({
+    remove: (row) => client.food.remove({ id: row.id }),
+    patch: (row, cache) => {
+      const listKey = orpc.food.listByDate.queryOptions({ input: { date: row.date } }).queryKey;
+      let lastOfPlate = false;
+      stripFoodRow(cache, listKey, row);
+      const remaining =
+        queryClient.getQueryData<{ items: FoodRow[] }>(listKey)?.items ?? [];
+      lastOfPlate =
+        row.plateId !== null && !remaining.some((item) => item.plateId === row.plateId);
+      cache.summary(foodSummaryDelta(row, -1));
+      if (row.plateId !== null && lastOfPlate) {
+        const plateKey = orpc.plate.byDate.queryOptions({ input: { date: row.date } }).queryKey;
+        cache.value<PlateRow[]>(plateKey, (plates) =>
+          (plates ?? []).filter((plate) => plate.id !== row.plateId),
+        );
+      }
+    },
+    label: (row) => row.name,
+    fallback: "Catatan",
+    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key()],
+  });
+
+  const updatePlate = useOptimisticMutation<
+    Parameters<typeof client.plate.update>[0],
+    unknown,
+    PlateRow | null
+  >({
+    mutationFn: (input) => client.plate.update(input),
+    patch: (input, cache) => {
+      const previous =
+        (queryClient.getQueryData<PlateRow[]>(plateDayKey) ?? []).find(
+          (plate) => plate.id === input.id,
+        ) ?? null;
+      cache.value<PlateRow[]>(plateDayKey, (plates) =>
+        (plates ?? []).map((plate) =>
+          plate.id === input.id
+            ? {
+                ...plate,
+                name: input.name ?? plate.name,
+                priceIdr: input.priceIdr !== undefined ? input.priceIdr : plate.priceIdr,
+              }
+            : plate,
+        ),
+      );
+      return previous;
+    },
+    success: (input, _data, context) => {
+      const previous = context ?? null;
+      setPlateEdit(null);
+      return {
+        message: "Piring diperbarui",
+        undo:
+          previous === null
+            ? undefined
+            : () =>
+                updatePlate.mutate({
+                  id: input.id,
+                  name: previous.name,
+                  priceIdr: previous.priceIdr,
+                }),
+      };
+    },
+    invalidate: () => [orpc.plate.key()],
+  });
 
   const [sheetMeal, setSheetMeal] = useState<Meal | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
@@ -132,65 +307,7 @@ export default function Makan() {
   const [shareTarget, setShareTarget] = useState<
     null | { kind: "makan"; refId: string; title: string; preview: string }
   >(null);
-  const [undoItem, setUndoItem] = useState<UndoItem | null>(null);
   const quickAddRef = useRef(false);
-
-  // Undo window: 6 s after a delete, same as the web toast.
-  useEffect(() => {
-    if (undoItem === null) return;
-    const timer = setTimeout(() => setUndoItem(null), 6000);
-    return () => clearTimeout(timer);
-  }, [undoItem]);
-
-  const addFood = useMutation(
-    orpc.food.add.mutationOptions({
-      onSuccess: () => {
-        // The quick-add chips flip this ref so a half-typed manual entry
-        // survives a one-tap add.
-        if (!quickAddRef.current) {
-          setName("");
-          setKcal("");
-          setProtein("");
-          setCarbs("");
-          setFat("");
-          setPlatePriceManual("");
-          setMacrosOpen(false);
-        }
-        quickAddRef.current = false;
-        setFormError(null);
-        queryClient.invalidateQueries();
-      },
-    }),
-  );
-  const removeFood = useMutation(
-    orpc.food.remove.mutationOptions({
-      onSuccess: () => queryClient.invalidateQueries(),
-    }),
-  );
-
-  /** Capture the row before removal so "Urungkan" can re-add it verbatim. */
-  const handleDelete = (item: UndoItem) => {
-    setUndoItem(item);
-    removeFood.mutate({ id: item.id });
-  };
-
-  const undoDelete = () => {
-    const item = undoItem;
-    if (item === null) return;
-    setUndoItem(null);
-    addFood.mutate({
-      date: item.date,
-      meal: item.meal as Meal,
-      name: item.name,
-      kcal: item.kcal,
-      protein: item.protein ?? undefined,
-      carbs: item.carbs ?? undefined,
-      fat: item.fat ?? undefined,
-      fiber: item.fiber ?? undefined,
-      source: item.source === "ai" ? "ai" : "manual",
-      itemsJson: item.itemsJson ?? undefined,
-    });
-  };
 
   if (gate === "loading") {
     return <BootLoader />;
@@ -413,7 +530,7 @@ export default function Makan() {
                             <Pressable
                               accessibilityRole="button"
                               accessibilityLabel={`Hapus ${item.name}`}
-                              onPress={() => handleDelete(item)}
+                              onPress={() => deleteFood(item)}
                               style={({ pressed }) => [
                                 styles.deleteButton,
                                 pressed && styles.pressedSoft,
@@ -526,22 +643,6 @@ export default function Makan() {
             style={({ pressed }) => [styles.feedbackClose, pressed && styles.pressedSoft]}
           >
             <Ionicons name="close" size={18} color={theme.colors.makanText} />
-          </Pressable>
-        </View>
-      ) : null}
-
-      {undoItem ? (
-        <View style={styles.undoBar}>
-          <Text style={styles.undoText} numberOfLines={1}>
-            {undoItem.name} dihapus.
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Urungkan hapus"
-            onPress={undoDelete}
-            style={({ pressed }) => [styles.undoAction, pressed && styles.pressedSoft]}
-          >
-            <Text style={styles.undoActionText}>Urungkan</Text>
           </Pressable>
         </View>
       ) : null}
@@ -923,30 +1024,5 @@ const styles = StyleSheet.create((theme) => ({
   error: {
     fontSize: theme.fontSize.sm,
     color: theme.colors.destructive,
-  },
-  undoBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    backgroundColor: theme.colors.muted,
-    borderRadius: theme.radius.card,
-    paddingLeft: theme.spacing.lg,
-    paddingRight: theme.spacing.xs,
-    paddingVertical: theme.spacing.xs,
-  },
-  undoText: {
-    flex: 1,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.foreground,
-  },
-  undoAction: {
-    minHeight: 44,
-    paddingHorizontal: theme.spacing.md,
-    justifyContent: "center",
-  },
-  undoActionText: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: "700",
-    color: theme.colors.primary,
   },
 }));

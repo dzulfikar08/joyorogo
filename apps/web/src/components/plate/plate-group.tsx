@@ -1,16 +1,19 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Pencil, Utensils } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
+
+import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { FieldLabel, ListGroup } from "@/components/kit/surface";
 import { fmtRupiah } from "@/lib/app-config";
 import { parseNum } from "@/lib/format";
-import { orpc } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
+import { client, orpc } from "@/utils/orpc";
 
 type Item = { id: string; plateId: string | null };
 
@@ -82,23 +85,59 @@ export function PlateDiary<T extends Item>({
 }
 
 function PlateEditSheet({ id, onClose }: { id: string; onClose: () => void }) {
-  const queryClient = useQueryClient();
   const plates = useQuery(orpc.plate.byDate.queryOptions({ input: {} }));
   const plate = (plates.data ?? []).find((row) => row.id === id);
   const [name, setName] = useState(plate?.name ?? "");
   const [place, setPlace] = useState(plate?.place ?? "");
   const [price, setPrice] = useState(plate?.priceIdr != null ? String(plate.priceIdr) : "");
 
-  const update = useMutation(
-    orpc.plate.update.mutationOptions({
-      onSuccess: () => {
-        toast.success("Piring diperbarui.");
-        queryClient.invalidateQueries({ queryKey: orpc.plate.key() });
-        onClose();
-      },
-      onError: (error) => toast.error(error.message),
-    }),
+  // Optimistic name/place/price patch in every byDate cache; undo re-applies
+  // the previous values captured at patch time.
+  const previous = useRef<{ name: string; place: string | null; priceIdr: number | null } | null>(
+    null,
   );
+  const update = useOptimisticMutation<
+    Parameters<AppRouterClient["plate"]["update"]>[0],
+    unknown
+  >({
+    mutationFn: (input) => client.plate.update(input),
+    patch: (input, cache) => {
+      previous.current = plate
+        ? { name: plate.name, place: plate.place, priceIdr: plate.priceIdr }
+        : null;
+      cache.matching<Array<{ id: string; name: string; place: string | null; priceIdr: number | null }>>(
+        orpc.plate.byDate.key(),
+        (data) =>
+          data.map((row) =>
+            row.id === input.id
+              ? {
+                  ...row,
+                  ...(input.name !== undefined ? { name: input.name } : {}),
+                  ...(input.place !== undefined ? { place: input.place } : {}),
+                  ...(input.priceIdr !== undefined ? { priceIdr: input.priceIdr } : {}),
+                }
+              : row,
+          ),
+      );
+    },
+    invalidate: () => [orpc.plate.key()],
+    success: () => {
+      onClose();
+      const prev = previous.current;
+      previous.current = null;
+      if (!prev) return { message: "Piring diperbarui" };
+      return {
+        message: "Piring diperbarui",
+        undo: () =>
+          void client.plate.update({
+            id,
+            name: prev.name,
+            place: prev.place,
+            priceIdr: prev.priceIdr,
+          }),
+      };
+    },
+  });
 
   if (!plate) return null;
   return (

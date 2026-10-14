@@ -2,10 +2,9 @@ import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { toast } from "sonner";
+import { useRef, useState } from "react";
 
 import { SLEEP_NEED_HOURS, jakartaToday, relativeDayLabel, shiftDate } from "@joyorogo/api/lib/engine";
 
@@ -14,7 +13,9 @@ import { ScreenError } from "@/components/screen-state";
 import { Card, FieldLabel, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
 import { DaySwitcher } from "@/components/day-switcher";
 import { fmtKg, parseNum } from "@/lib/format";
-import { orpc } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
+import type { AppRouterClient } from "@joyorogo/api/routers/index";
+import { client, orpc } from "@/utils/orpc";
 
 const sleepOptions = (date: string) => orpc.sleep.getForDate.queryOptions({ input: { date } });
 
@@ -69,7 +70,6 @@ function TidurScreen({
   nightDate: string;
   onChange: (date: string) => void;
 }) {
-  const queryClient = useQueryClient();
   const today = jakartaToday();
   const isToday = viewDate === today;
   const dayLabel = relativeDayLabel(viewDate, today);
@@ -77,21 +77,33 @@ function TidurScreen({
   const [error, setError] = useState<string | null>(null);
   const hours = row?.hours ?? null;
 
-  const log = useMutation(
-    orpc.sleep.log.mutationOptions({
-      onSuccess: (saved) => {
-        if (!saved) return;
-        toast.success(
-          isToday ? `Tidur tadi malam: ${fmtKg(saved.hours)} jam.` : `Tersimpan ke ${dayLabel}.`,
-        );
-        setManual("");
-        setError(null);
-        queryClient.invalidateQueries({ queryKey: orpc.sleep.key() });
-        queryClient.invalidateQueries({ queryKey: orpc.day.key() });
-      },
-      onError: (err) => toast.error(err.message),
-    }),
-  );
+  // Previous hours for this night, for the undo re-log.
+  const previousHours = useRef<number | null>(null);
+  const log = useOptimisticMutation<
+    Parameters<AppRouterClient["sleep"]["log"]>[0],
+    Awaited<ReturnType<AppRouterClient["sleep"]["log"]>>
+  >({
+    mutationFn: (input) => client.sleep.log(input),
+    patch: (input, cache) => {
+      const nightDate = input.date ?? viewDate;
+      previousHours.current = row?.hours ?? null;
+      cache.summary({ date: nightDate, sleepHours: input.hours });
+    },
+    invalidate: () => [orpc.sleep.key(), orpc.day.key()],
+    success: (_input, saved) => {
+      if (!saved) return undefined;
+      const prev = previousHours.current;
+      previousHours.current = null;
+      const message = isToday
+        ? `Tidur tadi malam: ${fmtKg(saved.hours)} jam.`
+        : `Tersimpan ke ${dayLabel}.`;
+      if (prev === null || prev === saved.hours) return { message };
+      return {
+        message,
+        undo: () => void client.sleep.log({ date: saved.date, hours: prev }),
+      };
+    },
+  });
 
   const submitManual = () => {
     const value = parseNum(manual);
@@ -100,6 +112,8 @@ function TidurScreen({
       return;
     }
     log.mutate({ date: nightDate, hours: value });
+    setManual("");
+    setError(null);
   };
 
   return (

@@ -3,7 +3,7 @@ import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Beef, Flame, Info, Mic, Moon, Plus, Sparkles, Trophy } from "lucide-react";
 import { useState } from "react";
@@ -23,6 +23,7 @@ import { WaterCard } from "@/components/water-card";
 import { WorkoutCard } from "@/components/workout/workout-card";
 import { pickFact } from "@/lib/facts";
 import { fmtDateIndo, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
+import { useWaistCheckIn, useWeightCheckIn } from "@/lib/optimistic";
 import { useAppConfig } from "@/lib/app-config";
 import type { DaySummary } from "@/lib/api-types";
 import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
@@ -490,23 +491,10 @@ function WeightCard({
   date: string;
   isToday: boolean;
 }) {
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const trend = summary.trend;
-  const checkIn = useMutation(
-    orpc.weight.checkIn.mutationOptions({
-      onSuccess: (row) => {
-        if (!row) return;
-        toast.success(`Tercatat ${fmtKg(row.weightKg)} kg`);
-        setOpen(false);
-        void queryClient.invalidateQueries({ queryKey: orpc.day.key() });
-        void queryClient.invalidateQueries({ queryKey: orpc.weight.key() });
-        void queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
-      },
-      onError: (error) => toast.error(error.message),
-    }),
-  );
+  const checkIn = useWeightCheckIn();
   const rate = trend?.weeklyRateKg ?? null;
   const flat = rate !== null && Math.abs(rate) <= 0.05;
 
@@ -597,6 +585,7 @@ function WeightCard({
               return;
             }
             checkIn.mutate({ weightKg: kg, ...(isToday ? {} : { date }) });
+            setOpen(false);
           }}
           className="space-y-4"
         >
@@ -630,21 +619,10 @@ const waistHistoryOptions = orpc.waist.history.queryOptions({ input: { limit: 30
 
 /** Compact Lingkar perut summary mirroring the Berat card; full section lives on /berat. */
 function WaistCard({ date, isToday }: { date: string; isToday: boolean }) {
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const history = useQuery(waistHistoryOptions);
-  const checkIn = useMutation(
-    orpc.waist.checkIn.mutationOptions({
-      onSuccess: (row) => {
-        if (!row) return;
-        toast.success(`Tercatat ${fmtKg(row.waistCm)} cm`);
-        setOpen(false);
-        void queryClient.invalidateQueries({ queryKey: orpc.waist.key() });
-      },
-      onError: (error) => toast.error(error.message),
-    }),
-  );
+  const checkIn = useWaistCheckIn((row) => `Tercatat ${fmtKg(row.waistCm)} cm`);
 
   const entries = history.data?.entries ?? [];
   const latest = entries.length > 0 ? entries[entries.length - 1].waistCm : null;
@@ -739,6 +717,7 @@ function WaistCard({ date, isToday }: { date: string; isToday: boolean }) {
               return;
             }
             checkIn.mutate({ waistCm: cm, ...(isToday ? {} : { date }) });
+            setOpen(false);
           }}
           className="space-y-4"
         >

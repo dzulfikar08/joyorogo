@@ -17,6 +17,8 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { UNDO_LABEL, UNDO_TOAST_MS } from "@/lib/optimistic";
+
 import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/kit/surface";
 import { CommentsSheet } from "@/components/feed/comments-sheet";
@@ -180,7 +182,14 @@ export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
 
   const toggleKudos = useMutation(
     orpc.social.kudos.mutationOptions({
-      onMutate: () => {
+      onMutate: (input) => {
+        const turningOn = !kudos.active;
+        if (turningOn) {
+          toast.success("Semangat terkirim", {
+            duration: UNDO_TOAST_MS,
+            action: { label: UNDO_LABEL, onClick: () => toggleKudos.mutate(input) },
+          });
+        }
         setKudos((prev) => ({
           active: !prev.active,
           count: prev.count + (prev.active ? -1 : 1),

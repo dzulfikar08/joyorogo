@@ -6,7 +6,13 @@ import {
   PlusJakartaSans_800ExtraBold,
   useFonts,
 } from "@expo-google-fonts/plus-jakarta-sans";
+import { Ionicons } from "@expo/vector-icons";
 import { Stack } from "expo-router";
+import { Pressable, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StyleSheet } from "react-native-unistyles";
+
+import { Text } from "@/components/ui";
 // expo-router ships its own react-navigation fork; this is its theme
 // context. Deep import: the SDK forbids a direct @react-navigation
 // dependency, and the fork's DefaultTheme paints containers neutral grey.
@@ -145,3 +151,97 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
+
+// Expo-router boundary for render errors anywhere in the app. It renders
+// outside every provider above, so it stays self-contained: no hooks into
+// auth, toast, or the query client.
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
+  const chunkError = /failed to fetch dynamically imported module|loading chunk/i.test(
+    error.message,
+  );
+
+  return (
+    <SafeAreaView style={errStyles.screen} edges={["top", "left", "right", "bottom"]}>
+      <View style={errStyles.content}>
+        <Ionicons
+          name={chunkError ? "cloud-download-outline" : "bug-outline"}
+          size={56}
+          color={errStyles.icon.color}
+        />
+        <Text style={errStyles.title}>
+          {chunkError ? "Versi baru tersedia" : "Waduh, ada yang error"}
+        </Text>
+        <Text style={errStyles.description}>
+          {chunkError
+            ? "JoyoRogo baru saja diperbarui. Muat ulang aplikasi untuk memakai versi terbaru, ya."
+            : "Ada yang salah di sisi kami. Tenang, datamu aman. Coba lagi dulu, yuk."}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          style={({ pressed }) => [errStyles.button, pressed && errStyles.buttonPressed]}
+          onPress={retry}
+        >
+          <Text style={errStyles.buttonText}>
+            {chunkError ? "Muat ulang aplikasi" : "Coba lagi"}
+          </Text>
+        </Pressable>
+        <Text style={errStyles.details} numberOfLines={4}>
+          {error.message}
+        </Text>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const errStyles = StyleSheet.create((theme) => ({
+  screen: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  content: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: theme.spacing.lg,
+  },
+  icon: {
+    color: theme.colors.mutedForeground,
+    marginBottom: theme.spacing.lg,
+  },
+  title: {
+    fontSize: theme.fontSize["2xl"],
+    fontWeight: "800",
+    color: theme.colors.foreground,
+    textAlign: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  description: {
+    color: theme.colors.mutedForeground,
+    textAlign: "center",
+    maxWidth: 300,
+    lineHeight: 22,
+    marginBottom: theme.spacing.xl,
+  },
+  button: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: 14,
+    borderRadius: theme.radius.pill,
+    minHeight: 48,
+    justifyContent: "center",
+  },
+  buttonPressed: {
+    opacity: 0.85,
+  },
+  buttonText: {
+    color: theme.colors.primaryForeground,
+    fontWeight: "700",
+  },
+  details: {
+    marginTop: theme.spacing.xl,
+    color: theme.colors.mutedForeground,
+    fontSize: 12,
+    textAlign: "center",
+    maxWidth: 300,
+  },
+}));

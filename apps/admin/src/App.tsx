@@ -9,6 +9,7 @@ import { useAdminGate, useSignIn, useSignOut } from "./auth";
 import { Badge } from "./ui";
 import { useTheme } from "./theme";
 import { OrdersSection } from "./sections/Orders";
+import { FeedbackSection } from "./sections/Feedback";
 import { OverviewSection, SendTestEmailButton } from "./sections/Overview";
 import { ReportsSection } from "./sections/Reports";
 import { UsersSection } from "./sections/Users";
@@ -30,7 +31,7 @@ function ThemeToggle() {
   );
 }
 
-const TABS = ["overview", "users", "orders", "reports"] as const;
+const TABS = ["overview", "users", "orders", "reports", "feedback"] as const;
 type Tab = (typeof TABS)[number];
 
 function currentTab(): Tab {
@@ -161,6 +162,7 @@ export default function App() {
           {tab === "users" && <UsersSection />}
           {tab === "orders" && <OrdersSection />}
           {tab === "reports" && <ReportsSection />}
+          {tab === "feedback" && <FeedbackSection />}
         </main>
       </div>
       <Toaster />

@@ -20,6 +20,21 @@ export function photoKey(userId: string, photoId: string): string {
   return `photos/${userId}/${photoId}.jpg`;
 }
 
+/**
+ * Pending-scan originals kept server-side for "Hitung ulang" (re-analyze):
+ * the retry sends only the id, never the photo again. Keys embed the owner
+ * (a privacy wipe lists them) and are ext-less — the mime rides in the
+ * object's httpMetadata. Short-lived by design: point a bucket lifecycle
+ * rule at the scan-src/ prefix (1 day is plenty) so abandoned scans expire.
+ */
+export function scanSrcKey(userId: string, photoId: string): string {
+  return `scan-src/${userId}/${photoId}`;
+}
+
+export function scanSrcPrefix(userId: string): string {
+  return `scan-src/${userId}/`;
+}
+
 export function photoPrefix(userId: string): string {
   return `photos/${userId}/`;
 }

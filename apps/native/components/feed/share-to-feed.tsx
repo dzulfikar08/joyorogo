@@ -1,5 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -8,6 +7,7 @@ import { Button, Chip, Field, Input, Sheet, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { client, orpc } from "@/utils/orpc";
 import { errorMessage } from "@/utils/format";
+import { useOptimisticMutation } from "@/lib/optimistic";
 import type { PostKind, Visibility } from "@/src/lib/social";
 
 const CAPTION_MAX = 280;
@@ -35,7 +35,6 @@ export function ShareToFeedSheet({
 }) {
   const { theme } = useUnistyles();
   const toast = useToast();
-  const queryClient = useQueryClient();
   const [caption, setCaption] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("grup");
 
@@ -55,18 +54,21 @@ export function ShareToFeedSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, profile.data?.defaultVisibility]);
 
-  const share = useMutation({
-    mutationFn: (input: { caption: string; visibility: Visibility }) =>
-      client.social.createPost({ kind, refId, ...input }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: orpc.social.key() });
-      toast.success("Muncul di feed, semangat!", undefined, {
-        label: "Lihat",
-        onPress: () => router.push("/feed"),
-      });
+  type ShareInput = { caption: string; visibility: Visibility };
+
+  const share = useOptimisticMutation<ShareInput, { id: string; visibility: string }>({
+    mutationFn: (input) => client.social.createPost({ kind, refId, ...input }),
+    success: (input, data) => {
       onClose();
+      // The feed list lives in another screen's cache; the invalidate on
+      // settle is enough. Undo deletes the post outright.
+      return {
+        message: "Postingan dibagikan",
+        undo: () => void client.social.deletePost({ id: data.id }),
+      };
     },
     onError: (e) => toast.error("Gagal membagikan", errorMessage(e)),
+    invalidate: () => [orpc.social.key()],
   });
 
   return (

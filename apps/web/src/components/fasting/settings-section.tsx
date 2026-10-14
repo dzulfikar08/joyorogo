@@ -2,13 +2,16 @@ import { Input } from "@joyorogo/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { BellRing } from "lucide-react";
+import { useRef } from "react";
 import { toast } from "sonner";
 
 import type { FastingPattern } from "@joyorogo/api/lib/fasting";
+import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { Card, Segmented } from "@/components/kit/surface";
 import { Switch } from "@/components/kit/switch";
-import { orpc } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
+import { client, orpc } from "@/utils/orpc";
 
 type FastingSettings = {
   pattern: "off" | FastingPattern;
@@ -117,16 +120,34 @@ export function FastingSettingsSection() {
   const queryClient = useQueryClient();
   const settings = useQuery(orpc.fasting.settings.queryOptions());
 
-  const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: orpc.fasting.key() });
-  };
-
-  const save = useMutation(
-    orpc.fasting.setSettings.mutationOptions({
-      onSuccess: refresh,
-      onError: (error) => toast.error(error.message),
-    }),
-  );
+  // Previous settings for the undo re-apply.
+  const previousSettings = useRef<Awaited<ReturnType<AppRouterClient["fasting"]["settings"]>> | null>(null);
+  const save = useOptimisticMutation<
+    Parameters<AppRouterClient["fasting"]["setSettings"]>[0],
+    unknown
+  >({
+    mutationFn: (input) => client.fasting.setSettings(input),
+    patch: (input, cache) => {
+      const key = orpc.fasting.settings.queryOptions().queryKey;
+      previousSettings.current = queryClient.getQueryData(key) ?? null;
+      cache.value(key, (old) => (old ? { ...old, ...input } : old));
+    },
+    invalidate: () => [orpc.fasting.key()],
+    success: () => {
+      const prev = previousSettings.current;
+      previousSettings.current = null;
+      if (!prev) return { message: "Pengaturan puasa disimpan" };
+      return {
+        message: "Pengaturan puasa disimpan",
+        undo: () =>
+          void client.fasting.setSettings({
+            pattern: prev.pattern,
+            windowStart: prev.windowStart,
+            notify: prev.notify,
+          }),
+      };
+    },
+  });
   const subscribePush = useMutation(
     orpc.fasting.subscribePush.mutationOptions({
       onError: (error) => toast.error(error.message),

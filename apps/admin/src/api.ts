@@ -125,6 +125,44 @@ export interface AiCall {
   kind: "photo" | "text" | "voice";
 }
 
+/** One WIB day of "Hasilnya akurat?" answers (dismissals excluded). */
+export interface FeedbackDay {
+  day: string;
+  total: number;
+  akurat: number;
+  kurang: number;
+  salah: number;
+}
+
+export interface FeedbackModelRow {
+  model: string | null;
+  total: number;
+  akurat: number;
+  kurang: number;
+  salah: number;
+}
+
+/** One recent negative scan result; photo served by /api/admin/feedback-photo. */
+export interface FeedbackRecent {
+  id: string;
+  createdAt: string | number;
+  rating: "kurang_akurat" | "salah";
+  reasonsJson: string | null;
+  note: string | null;
+  afterRetry: boolean;
+  model: string | null;
+  source: string;
+  photoId: string;
+  userId: string;
+  userName: string | null;
+}
+
+export interface FeedbackScan {
+  byDay: FeedbackDay[];
+  byModel: FeedbackModelRow[];
+  recent: FeedbackRecent[];
+}
+
 export interface FoodLog {
   date: string;
   meal: string;

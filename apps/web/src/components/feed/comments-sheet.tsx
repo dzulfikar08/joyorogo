@@ -2,18 +2,28 @@ import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Send, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useEffect, useRef, useState } from "react";
+
+import type { AppRouterClient } from "@joyorogo/api/routers/index";
+import { removeById, upsertById } from "@joyorogo/api/lib/optimistic";
 
 import { Avatar } from "@/components/avatar";
 import { EmptyHint, ScreenError } from "@/components/screen-state";
 import { useSession } from "@/lib/auth-client";
 import type { FeedPost } from "@/lib/api-types";
 import { timeAgo } from "@/lib/format";
-import { orpc } from "@/utils/orpc";
+import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
+import { client, orpc } from "@/utils/orpc";
+
+type FeedComment = {
+  id: string;
+  body: string;
+  createdAt: Date;
+  author: { id: string; name: string; handle: string | null; image: string | null };
+};
 
 /**
  * Komentar satu postingan: daftar + kirim + hapus (milik sendiri, atau
@@ -34,6 +44,7 @@ export function CommentsSheet({
   const session = useSession();
   const myId = session.data?.user.id ?? null;
   const [body, setBody] = useState("");
+  const addTempId = useRef<string | null>(null);
 
   const comments = useQuery({
     ...orpc.social.comments.queryOptions({ input: { postId: post.id, limit: 50 } }),
@@ -44,24 +55,64 @@ export function CommentsSheet({
     if (!open) setBody("");
   }, [open]);
 
-  // Satu invalidasi untuk semua query social: kartu feed ikut memperbarui jumlah.
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: orpc.social.key() });
+  const commentsKey = orpc.social.comments.queryOptions({
+    input: { postId: post.id, limit: 50 },
+  }).queryKey;
 
-  const add = useMutation(
-    orpc.social.addComment.mutationOptions({
-      onSuccess: () => {
-        setBody("");
-        void invalidate();
-      },
-      onError: (error) => toast.error(error.message),
-    }),
-  );
-  const remove = useMutation(
-    orpc.social.deleteComment.mutationOptions({
-      onSuccess: () => void invalidate(),
-      onError: (error) => toast.error(error.message),
-    }),
-  );
+  const add = useOptimisticMutation<
+    Parameters<AppRouterClient["social"]["addComment"]>[0],
+    Awaited<ReturnType<AppRouterClient["social"]["addComment"]>>
+  >({
+    mutationFn: (input) => client.social.addComment(input),
+    patch: (input, cache) => {
+      const tempId = crypto.randomUUID();
+      addTempId.current = tempId;
+      // Provisional comment (my own author card) until the server id arrives.
+      const provisional = {
+        id: tempId,
+        body: input.body,
+        createdAt: new Date(),
+        author: { id: myId ?? "", name: session.data?.user.name ?? "", handle: null, image: session.data?.user.image ?? null },
+      };
+      // social.comments caches hold { items, nextCursor }.
+      cache.value<{ items: FeedComment[]; nextCursor: number | null }>(commentsKey, (old) =>
+        old ? { ...old, items: [...old.items, provisional] } : old,
+      );
+    },
+    invalidate: () => [orpc.social.key()],
+    success: (_input, row) => {
+      setBody("");
+      const tempId = addTempId.current;
+      addTempId.current = null;
+      if (tempId) {
+        queryClient.setQueryData<{ items: FeedComment[] }>(commentsKey, (old) => {
+          if (!old) return old;
+          const last = old.items.at(-1);
+          if (!last) return old;
+          return { ...old, items: upsertById(removeById(old.items, tempId), { ...last, id: row.id }) };
+        });
+      }
+      return {
+        message: "Komentar terkirim",
+        undo: () => {
+          queryClient.setQueryData<{ items: FeedComment[] }>(commentsKey, (old) =>
+            old ? { ...old, items: removeById(old.items, row.id) } : old,
+          );
+          void client.social.deleteComment({ id: row.id });
+        },
+      };
+    },
+  });
+  const removeComment = useDelayedDelete<{ id: string }>({
+    remove: (row) => client.social.deleteComment({ id: row.id }),
+    patch: (row, cache) => {
+      cache.value<{ items: FeedComment[]; nextCursor: number | null }>(commentsKey, (old) =>
+        old ? { ...old, items: removeById(old.items, row.id) } : old,
+      );
+    },
+    label: () => "Komentar",
+    invalidate: () => [orpc.social.key()],
+  });
 
   const items = comments.data?.items ?? [];
 
@@ -113,8 +164,7 @@ export function CommentsSheet({
                     type="button"
                     aria-label="Hapus komentar"
                     className="-mr-1 flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-                    disabled={remove.isPending}
-                    onClick={() => remove.mutate({ id: comment.id })}
+                    onClick={() => removeComment(comment)}
                   >
                     <Trash2 className="size-4" aria-hidden />
                   </button>

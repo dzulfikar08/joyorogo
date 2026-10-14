@@ -25,7 +25,8 @@ import { useToast } from "@/components/toast";
 import { PostCard, openAuthor } from "@/components/feed/post-card";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
-import { REPORT_REASONS, type FeedComment } from "@/src/lib/social";
+import { REPORT_REASONS, type FeedComment, type FeedItem } from "@/src/lib/social";
+import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import { timeAgoId } from "@/src/lib/group";
 import { client, orpc } from "@/utils/orpc";
 import { errorMessage } from "@/utils/format";
@@ -57,12 +58,33 @@ export default function DetailPost() {
     void queryClient.invalidateQueries({ queryKey: orpc.social.key() });
   };
 
-  const deletePost = useMutation({
-    mutationFn: () => client.social.deletePost({ id }),
-    onSuccess: () => {
-      refresh();
+  type FeedPage = { items: FeedItem[]; nextCursor: number | null };
+  type FeedCache = { pages: FeedPage[]; pageParams: unknown[] };
+
+  // Delayed commit: post vanishes now, DELETE fires after the undo window,
+  // and the back navigation only happens once the delete really landed.
+  const deletePostCommit = useDelayedDelete<{ id: string }>({
+    remove: async () => {
+      await client.social.deletePost({ id });
       router.replace("/feed");
     },
+    patch: (_row, cache) => {
+      for (const query of queryClient.getQueryCache().findAll({ queryKey: ["social", "feed"] })) {
+        cache.value<FeedCache>(query.queryKey, (data) =>
+          data === undefined
+            ? undefined
+            : {
+                ...data,
+                pages: data.pages.map((page) => ({
+                  ...page,
+                  items: page.items.filter((item) => item.id !== id),
+                })),
+              },
+        );
+      }
+    },
+    label: () => "Postingan",
+    invalidate: () => [orpc.social.key()],
   });
   const block = useMutation({
     mutationFn: () => client.social.block({ userId: post.data!.author.id }),
@@ -79,16 +101,58 @@ export default function DetailPost() {
       toast.success("Laporan terkirim. Terima kasih.");
     },
   });
-  const addComment = useMutation({
-    mutationFn: (body: string) => client.social.addComment({ postId: id, body }),
-    onSuccess: () => {
-      setCommentText("");
-      refresh();
+  type CommentRow = NonNullable<NonNullable<typeof comments.data>["items"]>[number];
+  const commentsKey = orpc.social.comments.queryOptions({ input: { postId: id } }).queryKey;
+
+  /** social.comments caches hold { items, nextCursor }: append one row. */
+  const insertCommentRow = (cache: OptimisticCache, row: CommentRow) => {
+    cache.value<{ items: CommentRow[]; nextCursor: number | null }>(commentsKey, (old) =>
+      old ? { ...old, items: [...old.items, row] } : old,
+    );
+  };
+
+  /** social.comments caches hold { items, nextCursor }: strip one row. */
+  const stripCommentRow = (cache: OptimisticCache, commentId: string) => {
+    cache.value<{ items: CommentRow[]; nextCursor: number | null }>(commentsKey, (old) =>
+      old ? { ...old, items: old.items.filter((comment) => comment.id !== commentId) } : old,
+    );
+  };
+
+  const addComment = useOptimisticMutation<
+    string,
+    { id: string }
+  >({
+    mutationFn: (body) => client.social.addComment({ postId: id, body }),
+    patch: (body, cache) => {
+      insertCommentRow(cache, {
+        id: `temp-${Date.now()}`,
+        body,
+        createdAt: new Date(),
+        author: {
+          id: me ?? "",
+          name: session?.user.name ?? "Kamu",
+          handle: null,
+          image: session?.user.image ?? null,
+        },
+      });
     },
+    success: (_input, data) => {
+      setCommentText("");
+      return {
+        message: "Komentar terkirim",
+        undo: () => void client.social.deleteComment({ id: data.id }),
+      };
+    },
+    invalidate: () => [orpc.social.key()],
   });
-  const deleteComment = useMutation({
-    mutationFn: (commentId: string) => client.social.deleteComment({ id: commentId }),
-    onSuccess: refresh,
+  const deleteComment = useDelayedDelete<CommentRow>({
+    remove: (row) => client.social.deleteComment({ id: row.id }),
+    patch: (row, cache) => {
+      stripCommentRow(cache, row.id);
+    },
+    label: (row) => row.body,
+    fallback: "Komentar",
+    invalidate: () => [orpc.social.key()],
   });
 
   const [commentText, setCommentText] = useState("");
@@ -144,9 +208,6 @@ export default function DetailPost() {
         }
       />
 
-      {deletePost.isError ? (
-        <Text style={styles.error}>{errorMessage(deletePost.error)}</Text>
-      ) : null}
       <PostCard
         post={data}
         onPressAuthor={(handle) => openAuthor(handle)}
@@ -301,8 +362,10 @@ export default function DetailPost() {
         message="Post, semangat, dan komentarnya akan hilang untuk semua orang."
         confirmLabel="Hapus"
         cancelLabel="Batal"
-        loading={deletePost.isPending}
-        onConfirm={() => deletePost.mutate()}
+        onConfirm={() => {
+          setConfirm(null);
+          deletePostCommit({ id });
+        }}
       />
       <ConfirmSheet
         visible={confirm === "block"}
@@ -321,11 +384,10 @@ export default function DetailPost() {
         message="Komentar akan dihapus untuk semua orang."
         confirmLabel="Hapus"
         cancelLabel="Batal"
-        loading={deleteComment.isPending}
         onConfirm={() => {
           const target = confirm;
           if (target && target !== "block" && target !== "deletePost") {
-            deleteComment.mutate(target.comment.id);
+            deleteComment(target.comment);
           }
           setConfirm(null);
         }}

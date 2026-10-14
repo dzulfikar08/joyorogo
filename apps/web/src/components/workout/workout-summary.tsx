@@ -14,6 +14,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Share2, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
+
+import { useOptimisticMutation } from "@/lib/optimistic";
+import type { SaveSessionOutput } from "@/lib/workout-contract";
+import { orpc } from "@/utils/orpc";
 import { toast } from "sonner";
 
 import { client } from "@/utils/orpc";
@@ -182,15 +186,16 @@ export function WorkoutSummary({
     );
   }, [previous.data, workout.exercises, finished, nameOf]);
 
-  const save = useMutation({
+  const save = useOptimisticMutation<void, SaveSessionOutput>({
     mutationFn: () => workoutApi.saveSession(sessionPayload()),
-    onSuccess: (result) => {
-      invalidateWorkout();
+    invalidate: () => [orpc.workout.key(), orpc.day.key()],
+    success: (_input, result) => {
       const prCount = result.prs.length;
-      toast.success(
-        prCount > 0 ? `Tersimpan. ${prCount} rekor baru, mantap!` : "Sesi latihan tersimpan.",
-      );
       onClose();
+      return {
+        message: prCount > 0 ? `Tersimpan. ${prCount} rekor baru, mantap!` : "Latihan tersimpan",
+        undo: () => void client.workout.deleteSession({ id: result.id }),
+      };
     },
     onError: (err) => setError(err.message),
   });
@@ -207,7 +212,7 @@ export function WorkoutSummary({
     });
   };
 
-  const saveRoutine = useMutation({
+  const saveRoutine = useOptimisticMutation<void, { id: string }>({
     mutationFn: () =>
       workoutApi.saveRoutine({
         name: routineName.trim(),
@@ -223,10 +228,13 @@ export function WorkoutSummary({
           })),
         })),
       }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [...workoutQueryPrefix] });
-      toast.success("Rutinitas tersimpan.");
+    invalidate: () => [orpc.workout.key()],
+    success: (_input, result) => {
       setSaveRoutineOpen(false);
+      return {
+        message: "Rutinitas tersimpan",
+        undo: () => void workoutApi.deleteRoutine({ id: result.id }),
+      };
     },
     onError: (err) => setError(err.message),
   });

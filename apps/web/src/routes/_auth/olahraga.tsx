@@ -20,9 +20,16 @@ import {
 } from "@/components/kit/surface";
 import { StravaCard } from "@/components/strava-card";
 import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
+import {
+  OptimisticCache,
+  useDelayedDelete,
+  useOptimisticMutation,
+} from "@/lib/optimistic";
 import type { ExerciseItem, ExerciseType } from "@/lib/api-types";
+import { removeById, upsertById } from "@joyorogo/api/lib/optimistic";
+import type { AppRouterClient } from "@joyorogo/api/routers/index";
 import { client, orpc } from "@/utils/orpc";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Bike,
@@ -41,8 +48,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+import { useRef, useState } from "react";
 
 import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import { estimateKcal } from "@joyorogo/api/lib/met";
@@ -131,28 +137,90 @@ function OlahragaScreen({
   const weightKg = profile.data?.profile == null ? null : profile.data.latestWeightKg;
   const burnTarget = summary.data?.targets?.burnKcal ?? null;
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: orpc.exercise.key() });
-    queryClient.invalidateQueries({ queryKey: orpc.day.key() });
+  // Server row replaces the provisional (temp id) once the add settles.
+  const addTempId = useRef<string | null>(null);
+  const swapTemp = (tempId: string, row: ExerciseItem) => {
+    queryClient.setQueryData<{ items: ExerciseItem[]; totalKcal: number }>(
+      listOptions(row.date).queryKey,
+      (old) => (old ? { ...old, items: upsertById(removeById(old.items, tempId), row) } : old),
+    );
   };
 
-  const add = useMutation(
-    orpc.exercise.add.mutationOptions({
-      onSuccess: (row) => {
-        if (!row) return;
-        toast.success(`${row.name} dicatat (+${fmtInt(row.kcal)} kcal).`);
-        invalidate();
-        setSheetOpen(false);
-      },
-      onError: (err) => toast.error(err.message),
-    }),
-  );
-  const remove = useMutation(
-    orpc.exercise.remove.mutationOptions({
-      onSuccess: invalidate,
-      onError: (err) => toast.error(err.message),
-    }),
-  );
+  /** exercise.listByDate caches hold { items, totalKcal }: land a row and lift the total. */
+  const insertExercise = (cache: OptimisticCache, rowDate: string, row: ExerciseItem) => {
+    cache.value<{ items: ExerciseItem[]; totalKcal: number }>(
+      listOptions(rowDate).queryKey,
+      (old) => (old ? { ...old, items: upsertById(old.items, row), totalKcal: old.totalKcal + row.kcal } : old),
+    );
+  };
+
+  /** exercise.listByDate caches hold { items, totalKcal }: strip one row and pull the total down. */
+  const stripExercise = (cache: OptimisticCache, row: ExerciseItem) => {
+    cache.value<{ items: ExerciseItem[]; totalKcal: number }>(listOptions(row.date).queryKey, (old) => {
+      if (!old || !old.items.some((item) => item.id === row.id)) return old;
+      return {
+        ...old,
+        items: removeById(old.items, row.id),
+        totalKcal: Math.max(0, old.totalKcal - row.kcal),
+      };
+    });
+  };
+
+  const add = useOptimisticMutation<
+    Parameters<AppRouterClient["exercise"]["add"]>[0],
+    ExerciseItem | undefined
+  >({
+    mutationFn: (input) => client.exercise.add(input),
+    patch: (input, cache) => {
+      const rowDate = input.date ?? date;
+      const tempId = crypto.randomUUID();
+      addTempId.current = tempId;
+      // Provisional placeholder until the server row (real id) replaces it on settle.
+      const provisional = {
+        id: tempId,
+        userId: "",
+        date: rowDate,
+        type: input.type ?? null,
+        name: input.name,
+        kcal: input.kcal,
+        durationMin: input.durationMin ?? null,
+        source: "manual",
+        externalId: null,
+        createdAt: new Date(),
+      } as ExerciseItem;
+      insertExercise(cache, rowDate, provisional);
+      cache.summary({ date: rowDate, burnKcal: input.kcal });
+    },
+    invalidate: () => [orpc.exercise.key(), orpc.day.key()],
+    success: (_input, serverRow) => {
+      if (!serverRow) return undefined;
+      const row = serverRow as ExerciseItem;
+      const tempId = addTempId.current;
+      addTempId.current = null;
+      if (tempId) swapTemp(tempId, row);
+      setSheetOpen(false);
+      return {
+        message: `${row.name} dicatat (+${fmtInt(row.kcal)} kcal)`,
+        undo: () => {
+          const cache = new OptimisticCache(queryClient);
+          stripExercise(cache, row);
+          cache.summary({ date: row.date, burnKcal: -row.kcal });
+          void client.exercise.remove({ id: row.id });
+        },
+      };
+    },
+  });
+  // Delayed-commit delete: hidden instantly, DELETE after the undo window.
+  const removeExercise = useDelayedDelete<ExerciseItem>({
+    remove: (row) => client.exercise.remove({ id: row.id }),
+    patch: (row, cache) => {
+      stripExercise(cache, row);
+      cache.summary({ date: row.date, burnKcal: -row.kcal });
+    },
+    label: (row) => row.name,
+    fallback: "Latihan",
+    invalidate: () => [orpc.exercise.key(), orpc.day.key()],
+  });
 
   const setType = (type: ExerciseType) => {
     setTypeKey(type.key);
@@ -347,8 +415,7 @@ function OlahragaScreen({
                           size="icon-sm"
                           aria-label={`Hapus ${item.name}`}
                           className="text-muted-foreground hover:text-destructive"
-                          disabled={remove.isPending}
-                          onClick={() => remove.mutate({ id: item.id })}
+                          onClick={() => removeExercise(item)}
                         >
                           <Trash2 aria-hidden />
                         </Button>

@@ -12,6 +12,9 @@ import {
   workoutQueryPrefix,
 } from "@/lib/workout-contract";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { upsertById } from "@joyorogo/api/lib/optimistic";
+import { useOptimisticMutation } from "@/lib/optimistic";
+import { orpc } from "@/utils/orpc";
 import { Check, Plus, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -276,8 +279,10 @@ function CustomExerciseForm({
   const [equipment, setEquipment] = useState("");
   const [type, setType] = useState<ExerciseType>("weight_reps");
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const create = useMutation({
+  // Optimistic catalog insert; undo removes the freshly created exercise.
+  const create = useOptimisticMutation({
     mutationFn: () =>
       workoutApi.createCustomExercise({
         name: name.trim(),
@@ -285,9 +290,41 @@ function CustomExerciseForm({
         equipment: equipment || catalog?.equipment[0]?.id || "other",
         type,
       }),
-    onSuccess: (exercise) => {
-      toast.success("Gerakan baru dibuat.");
+    patch: (_input, cache) => {
+      cache.matching<Catalog>(orpc.workout.catalog.key(), (data) => ({
+        ...data,
+        exercises: [
+          ...data.exercises,
+          {
+            id: `temp-${crypto.randomUUID()}`,
+            name: name.trim(),
+            muscle: muscle || catalog?.muscles[0]?.id || "other",
+            equipment: equipment || catalog?.equipment[0]?.id || "other",
+            type,
+            custom: true,
+          } satisfies CatalogExercise,
+        ],
+      }));
+    },
+    invalidate: () => [orpc.workout.key()],
+    success: (_input, exercise) => {
+      // Swap the provisional catalog row for the real one.
+      queryClient.setQueryData<Catalog>(orpc.workout.catalog.queryOptions().queryKey, (old) =>
+        old
+          ? {
+              ...old,
+              exercises: upsertById(
+                old.exercises.filter((item) => !item.id.startsWith("temp-")),
+                exercise,
+              ),
+            }
+          : old,
+      );
       onCreated(exercise);
+      return {
+        message: `Latihan ${exercise.name} dibuat`,
+        undo: () => void workoutApi.deleteCustomExercise({ id: exercise.id }),
+      };
     },
     onError: (err) => setError(err.message),
   });

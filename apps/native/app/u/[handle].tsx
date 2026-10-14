@@ -22,6 +22,7 @@ import { PostCard, openAuthor } from "@/components/feed/post-card";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
 import { client, orpc } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
 import { errorMessage } from "@/utils/format";
 
 type ListTab = "followers" | "following";
@@ -54,10 +55,43 @@ export default function ProfilPublik() {
 
   const refresh = () => void queryClient.invalidateQueries({ queryKey: orpc.social.key() });
 
-  const setFollow = useMutation({
-    mutationFn: (follow: boolean) =>
-      client.social.setFollow({ userId: profile.data!.userId, follow }),
-    onSuccess: refresh,
+  type ProfileRow = Omit<NonNullable<typeof profile.data>, "stats" | "isFollowing"> & {
+    stats: { postCount: number; followerCount: number; followingCount: number } | null;
+    isFollowing: boolean | null;
+  };
+
+  const setFollow = useOptimisticMutation<boolean, unknown, boolean | undefined>({
+    mutationFn: (follow) => client.social.setFollow({ userId: profile.data!.userId, follow }),
+    patch: (follow, cache) => {
+      cache.value<ProfileRow>(
+        orpc.social.publicProfile.queryOptions({ input: { handle } }).queryKey,
+        (old) =>
+          old === undefined
+            ? undefined
+            : {
+                ...old,
+                isFollowing: follow,
+                stats: old.stats
+                  ? {
+                      ...old.stats,
+                      followerCount:
+                        old.stats.followerCount + (follow === old.isFollowing ? 0 : follow ? 1 : -1),
+                    }
+                  : null,
+              },
+      );
+      return follow;
+    },
+    success: (follow) => {
+      const undo = () => setFollow.mutate(!follow);
+      return {
+        message: follow
+          ? `Kamu mengikuti ${profile.data?.name ?? "akun ini"}`
+          : `Berhenti mengikuti ${profile.data?.name ?? "akun ini"}`,
+        undo,
+      };
+    },
+    invalidate: () => [orpc.social.key()],
   });
   const block = useMutation({
     mutationFn: () => client.social.block({ userId: profile.data!.userId }),

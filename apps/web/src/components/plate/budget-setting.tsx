@@ -1,12 +1,15 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
+
+import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { FieldLabel } from "@/components/kit/surface";
 import { parseNum } from "@/lib/format";
-import { orpc } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
+import { client, orpc } from "@/utils/orpc";
 
 /**
  * Anggaran belanja makan (Profil): a daily or monthly IDR limit. Empty input
@@ -14,21 +17,43 @@ import { orpc } from "@/utils/orpc";
  * and Makan.
  */
 export function BudgetSetting() {
-  const queryClient = useQueryClient();
   const spending = useQuery(orpc.plate.spending.queryOptions());
   const [amount, setAmount] = useState<string | null>(null);
   const [period, setPeriod] = useState<"day" | "month" | null>(null);
 
-  const setBudget = useMutation(
-    orpc.plate.setBudget.mutationOptions({
-      onSuccess: () => {
-        toast.success("Anggaran disimpan.");
-        queryClient.invalidateQueries({ queryKey: orpc.plate.key() });
-        queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
-      },
-      onError: (error) => toast.error(error.message),
-    }),
-  );
+  // Optimistic spending.budget patch; undo re-applies the previous budget.
+  const previousBudget = useRef<{ idr: number; period: "day" | "month" } | null>(null);
+  const setBudget = useOptimisticMutation<
+    Parameters<AppRouterClient["plate"]["setBudget"]>[0],
+    unknown
+  >({
+    mutationFn: (input) => client.plate.setBudget(input),
+    patch: (input, cache) => {
+      const key = orpc.plate.spending.queryOptions().queryKey;
+      previousBudget.current = spending.data?.budget ?? null;
+      cache.value<{ budget: { idr: number; period: "day" | "month" } | null }>(key, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          budget:
+            input.idr !== null
+              ? { idr: input.idr, period: input.period ?? "month" }
+              : null,
+        };
+      });
+    },
+    invalidate: () => [orpc.plate.key(), orpc.profile.key()],
+    success: () => {
+      const prev = previousBudget.current;
+      previousBudget.current = null;
+      if (!prev) return { message: "Anggaran disimpan" };
+      return {
+        message: "Anggaran disimpan",
+        undo: () =>
+          void client.plate.setBudget({ idr: prev.idr, period: prev.period }),
+      };
+    },
+  });
 
   const current = spending.data?.budget ?? null;
   const value = amount ?? (current ? String(current.idr) : "");

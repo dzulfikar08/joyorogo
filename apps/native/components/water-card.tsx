@@ -1,13 +1,14 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Pressable, View } from "react-native";
 import { useState } from "react";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Card, Num, Text } from "@/components/ui";
 import { errorMessage } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
 
 // Penghitung gelas air per hari — data sama dengan kartu air di dashboard web.
 export function WaterCard({ date }: { date?: string }) {
@@ -16,15 +17,44 @@ export function WaterCard({ date }: { date?: string }) {
     orpc.water.today.queryOptions({ input: date === undefined ? {} : { date } }),
   );
 
-  const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: orpc.water.key() });
-    queryClient.invalidateQueries({ queryKey: orpc.day.key() });
-  };
-
   const [error, setError] = useState<string | null>(null);
   const onError = (e: Error) => setError(errorMessage(e));
-  const add = useMutation(orpc.water.add.mutationOptions({ onSuccess: refresh, onError }));
-  const remove = useMutation(orpc.water.remove.mutationOptions({ onSuccess: refresh, onError }));
+
+  type WaterToday = { glasses: number; goal: number };
+  type WaterInput = { date?: string };
+
+  const add = useOptimisticMutation<WaterInput, unknown>({
+    mutationFn: (input) => client.water.add(input),
+    patch: (input, cache) => {
+      const key = orpc.water.today.queryOptions({ input }).queryKey;
+      cache.value<WaterToday>(key, (prev) => ({
+        glasses: (prev?.glasses ?? 0) + 1,
+        goal: prev?.goal ?? 8,
+      }));
+    },
+    success: (_input, _data) => ({
+      message: "+1 gelas dicatat",
+      undo: () => remove.mutate(date === undefined ? {} : { date }),
+    }),
+    onError,
+    invalidate: () => [orpc.water.key(), orpc.day.key()],
+  });
+  const remove = useOptimisticMutation<WaterInput, unknown>({
+    mutationFn: (input) => client.water.remove(input),
+    patch: (input, cache) => {
+      const key = orpc.water.today.queryOptions({ input }).queryKey;
+      cache.value<WaterToday>(key, (prev) => ({
+        glasses: Math.max((prev?.glasses ?? 1) - 1, 0),
+        goal: prev?.goal ?? 8,
+      }));
+    },
+    success: (_input, _data) => ({
+      message: "1 gelas dihapus",
+      undo: () => add.mutate(date === undefined ? {} : { date }),
+    }),
+    onError,
+    invalidate: () => [orpc.water.key(), orpc.day.key()],
+  });
 
   const glasses = today.data?.glasses ?? 0;
   const goal = today.data?.goal ?? 8;

@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Pressable, ScrollView, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useState } from "react";
@@ -18,7 +18,8 @@ import {
   Text,
 } from "@/components/ui";
 import { errorMessage, fmtKcal, parseNum } from "@/utils/format";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc, queryClient } from "@/utils/orpc";
+import { useOptimisticMutation } from "@/lib/optimistic";
 
 /** One editable set; strings because the inputs own the draft values. */
 export type EditorSet = { reps: string; weightKg: string; rpe: string };
@@ -206,15 +207,32 @@ export function SessionEditor({ draft, onClose }: { draft: SessionDraft; onClose
   const [error, setError] = useState<string | null>(null);
   const weightKg = profile.data?.latestWeightKg ?? null;
 
-  const save = useMutation(
-    orpc.workout.saveSession.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries();
-        onClose();
-      },
-      onError: (e) => setError(errorMessage(e)),
-    }),
-  );
+  type SavedSession = { id: string };
+  const save = useOptimisticMutation<
+    Parameters<typeof client.workout.saveSession>[0],
+    SavedSession
+  >({
+    mutationFn: async (input) => {
+      const result = (await client.workout.saveSession(input)) as { id?: string };
+      if (result.id === undefined) throw new Error("Gagal menyimpan latihan.");
+      return { id: result.id };
+    },
+    success: (_input, data) => {
+      queryClient.invalidateQueries({ queryKey: orpc.workout.key() });
+      onClose();
+      return {
+        message: "Latihan tersimpan",
+        undo: () => {
+          void client.workout.deleteSession({ id: data.id }).then(() => {
+            void queryClient.invalidateQueries({ queryKey: orpc.workout.key() });
+            void queryClient.invalidateQueries({ queryKey: orpc.day.key() });
+          });
+        },
+      };
+    },
+    onError: (e) => setError(errorMessage(e)),
+    invalidate: () => [orpc.workout.key(), orpc.day.key()],
+  });
 
   const minutes = parseNum(state.durationMin);
   const kcalEstimate = minutes !== null && weightKg !== null ? sessionKcal(minutes, weightKg) : null;

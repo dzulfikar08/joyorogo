@@ -19,7 +19,10 @@ import { Button, Input, ListGroup, ListRow, Text } from "@/components/ui";
 import { PlateFields } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
 import { errorMessage, fmtKcal, parseNum } from "@/utils/format";
-import { isPaywallError, orpc, queryClient } from "@/utils/orpc";
+import { client, isPaywallError, orpc, queryClient } from "@/utils/orpc";
+import { useToast } from "@/components/toast";
+import { useOptimisticMutation } from "@/lib/optimistic";
+import { UNDO_LABEL } from "@joyorogo/api/lib/optimistic";
 
 /** One parsed story item as describeFood answers it: pinned to slot and day. */
 type StoryItem = {
@@ -79,6 +82,7 @@ export function Cerita({
 }) {
   const { theme } = useUnistyles();
   const router = useRouter();
+  const toast = useToast();
   const [phase, setPhaseState] = useState<CeritaPhase>("input");
   // This story used the last free scan of today → paywall after the save.
   const [quotaReached, setQuotaReached] = useState(false);
@@ -100,8 +104,21 @@ export function Cerita({
   // Bumped on cancel so a slow answer can never jump the UI back to review.
   const runRef = useRef(0);
 
+  // Every food row this story created, so the undo toast can delete them all.
+  const createdIdsRef = useRef<string[]>([]);
+
   const describe = useMutation(orpc.ai.describeFood.mutationOptions());
-  const addFood = useMutation(orpc.food.add.mutationOptions());
+  const addFood = useOptimisticMutation<
+    Parameters<typeof client.food.add>[0],
+    { id: string; plateId: string | null }
+  >({
+    mutationFn: async (input) => {
+      const row = await client.food.add(input);
+      if (!row) throw new Error("Gagal menyimpan.");
+      return { id: row.id, plateId: row.plateId };
+    },
+    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key()],
+  });
   const logCorrections = useMutation(orpc.ai.logCorrections.mutationOptions());
 
   const setPhase = (next: CeritaPhase) => {
@@ -289,6 +306,7 @@ export function Cerita({
     }
     setSaving(true);
     setError(null);
+    createdIdsRef.current = [];
     let saved = 0;
     // First row of each date+meal group creates the plate; the rest follow it.
     const plateIds: Record<string, string | undefined> = {};
@@ -331,6 +349,7 @@ export function Cerita({
           ...(existing ? { plateId: existing } : plate ? { plate } : {}),
         });
         if (!existing && savedRow?.plateId) plateIds[key] = savedRow.plateId;
+        if (savedRow?.id) createdIdsRef.current.push(savedRow.id);
         saved += 1;
       }
       // Miss log: AI estimate vs what the user kept. Never blocks the save.
@@ -347,7 +366,9 @@ export function Cerita({
           })),
         })
         .catch(() => {});
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: orpc.food.key() });
+      queryClient.invalidateQueries({ queryKey: orpc.plate.key() });
+      queryClient.invalidateQueries({ queryKey: orpc.day.key() });
       const dates: string[] = [];
       for (const item of items) {
         if (!dates.includes(item.date)) dates.push(item.date);
@@ -358,6 +379,22 @@ export function Cerita({
       setPlates({});
       setPhase("input");
       onSaved({ count: saved, dates });
+      // Undo deletes every row this story created; zero server calls skipped.
+      const createdIds = createdIdsRef.current;
+      toast.success(
+        `${saved} makanan dicatat`,
+        undefined,
+        createdIds.length > 0
+          ? {
+              label: UNDO_LABEL,
+              onPress: () => {
+                for (const id of createdIds) {
+                  void client.food.remove({ id });
+                }
+              },
+            }
+          : undefined,
+      );
       // The saved story stays in the diary; paywall follows the sheet close
       // when this story used the last free scan of today.
       if (quotaReached) {
