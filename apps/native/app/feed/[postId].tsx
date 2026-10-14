@@ -39,7 +39,7 @@ export default function DetailPost() {
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const queryClient = useQueryClient();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { postId: id } = useLocalSearchParams<{ postId: string }>();
 
   const { data: session } = authClient.useSession();
   const me = session?.user.id ?? null;
