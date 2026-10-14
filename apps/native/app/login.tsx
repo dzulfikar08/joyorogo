@@ -7,7 +7,7 @@ import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
 import { Container } from "@/components/container";
-import { LogoMark } from "@/components/logo-mark";
+import { Mascot } from "@/components/mascot";
 import { Button, Text } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/utils/orpc";
@@ -58,7 +58,7 @@ export default function Login() {
       <Container>
         <View style={styles.content}>
           <View style={styles.hero}>
-            <LogoMark size={64} />
+            <Mascot pose="hero" size="md" />
             <Text style={styles.logo}>JoyoRogo</Text>
             <Text style={styles.tagline}>
               Tiga angka tiap hari: boleh makan berapa, harus bakar berapa, butuh tidur berapa jam.

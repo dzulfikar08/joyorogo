@@ -378,7 +378,7 @@ export default function Latihan() {
           </Card>
         ) : (history.data?.items.length ?? 0) === 0 ? (
           <EmptyState
-            icon="barbell-outline"
+            pose="determined"
             title="Belum ada sesi"
             description="Mulai dari template di atas. Dua-tiga sesi seminggu cukup buat jaga otot."
           />

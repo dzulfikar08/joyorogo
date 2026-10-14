@@ -181,7 +181,7 @@ export default function Feed() {
           }
           ListEmptyComponent={
             <EmptyState
-              icon="people-outline"
+              pose={tab === "mengikuti" ? "peek" : "relax"}
               title={tab === "mengikuti" ? "Feed masih sepi" : "Belum ada post publik"}
               description={
                 tab === "mengikuti"

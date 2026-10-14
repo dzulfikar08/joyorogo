@@ -1,6 +1,8 @@
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Image, ScrollView, View } from "react-native";
+import { useMemo, useRef, useState } from "react";
+import { ActivityIndicator, ScrollView, useWindowDimensions, View } from "react-native";
+import Svg, { Defs, Pattern, Rect } from "react-native-svg";
 import { captureRef } from "react-native-view-shot";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -12,6 +14,8 @@ import {
   STORY_TEMPLATES,
   StoryCard,
   storyPhotoUri,
+  storyShowsPhoto,
+  type StoryPhotoStatus,
   type StorySpec,
   type StoryTemplate,
 } from "@/components/story/story-card";
@@ -26,6 +30,31 @@ type ShareStoryButtonProps = {
   style?: object;
 };
 
+type PhotoState = StoryPhotoStatus | "loading";
+
+/** Resolves after the next frame, so a just-loaded image has been drawn once. */
+function nextFrame(): Promise<void> {
+  const { promise, resolve } = Promise.withResolvers<void>();
+  requestAnimationFrame(() => resolve());
+  return promise;
+}
+
+/** Dark checkerboard: the sticker is white text on transparent, so it needs a dark stage in both themes. */
+function StickerBackdrop() {
+  return (
+    <Svg width="100%" height="100%" style={styles.backdrop}>
+      <Defs>
+        <Pattern id="checker" width={20} height={20} patternUnits="userSpaceOnUse">
+          <Rect width={20} height={20} fill="#1a1d1b" />
+          <Rect width={10} height={10} fill="#262a28" />
+          <Rect x={10} y={10} width={10} height={10} fill="#262a28" />
+        </Pattern>
+      </Defs>
+      <Rect width="100%" height="100%" fill="url(#checker)" />
+    </Svg>
+  );
+}
+
 /**
  * Opens a preview sheet with the three story templates (photo + stats,
  * transparent stats sticker, branded card), lets the user swap the background
@@ -33,6 +62,11 @@ type ShareStoryButtonProps = {
  * composer when a Facebook App ID is configured, else via the system share
  * sheet. Pure data in — screens own their queries, the social feed can reuse
  * the same cards.
+ *
+ * The preview is the real 1080x1920 card, mounted live and scaled down with a
+ * transform inside a 9:16 frame, so it is always visible. view-shot captures
+ * that same mounted view only when the user taps Bagikan, after the photo has
+ * fired onLoad and one more frame has passed.
  */
 export function ShareStoryButton({
   story,
@@ -42,64 +76,41 @@ export function ShareStoryButton({
   disabled,
   style,
 }: ShareStoryButtonProps) {
-  const cardRefs = useRef<Array<View | null>>([]);
+  const cardRefs = useRef<Partial<Record<StoryTemplate, View | null>>>({});
+  const scrollRef = useRef<ScrollView>(null);
   const [open, setOpen] = useState(false);
-  const [previews, setPreviews] = useState<string[] | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [active, setActive] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [captureFailed, setCaptureFailed] = useState(false);
+  // Bumped by "Coba lagi" after a photo failure; remounts the cards so the image reloads.
+  const [attempt, setAttempt] = useState(0);
+  const [photoStatus, setPhotoStatus] = useState<Record<string, StoryPhotoStatus>>({});
   const toast = useToast();
   const { theme } = useUnistyles();
+  const screen = useWindowDimensions();
 
-  const defaultPhoto = storyPhotoUri(story);
-  const effectivePhoto = photoUri ?? defaultPhoto;
+  const effectivePhoto = photoUri ?? storyPhotoUri(story);
   const templates = useMemo(
     () => STORY_TEMPLATES.filter((candidate) => !candidate.needsPhoto || effectivePhoto != null),
     [effectivePhoto],
   );
 
-  // The offscreen cards mount in the same commit that opens the sheet, so the
-  // first capture can run before Android has laid them out (or the photo has
-  // decoded) and view-shot throws. Wait a few frames, retry with backoff, and
-  // only fail the templates that still can't be drawn.
-  const capturePreviews = useCallback(async (isCancelled: () => boolean) => {
-    const uris: string[] = [];
-    for (const index of templates.keys()) {
-      let uri: string | null = null;
-      for (let attempt = 0; attempt < 4 && uri == null; attempt++) {
-        const { promise: settled, resolve } = Promise.withResolvers<void>();
-        setTimeout(resolve, 250 * (attempt + 1));
-        await settled;
-        if (isCancelled()) return;
-        const view = cardRefs.current[index];
-        if (!view) continue;
-        try {
-          uri = await captureRef(view, { format: "png", quality: 1 });
-        } catch (error) {
-          console.warn("story preview capture failed", templates[index]?.id, attempt, error);
-        }
-      }
-      if (uri == null) throw new Error(`capture failed: ${templates[index]?.id}`);
-      uris.push(uri);
-    }
-    if (!isCancelled()) setPreviews(uris);
-  }, [templates]);
+  // Fixed 9:16 frame sized from the window; the card inside keeps its real
+  // 1080/PixelRatio dp layout and is shrunk visually by `scale`.
+  const maxFrameH = Math.min(Math.max(screen.height * 0.42, 240), 460);
+  const frameW = Math.round((maxFrameH * CARD_W) / CARD_H);
+  const frameH = (frameW * CARD_H) / CARD_W;
+  const scale = frameW / CARD_W;
+  const [pageW, setPageW] = useState(Math.max(screen.width - theme.spacing.lg * 2, frameW));
 
-  useEffect(() => {
-    if (!open) {
-      setPreviews(null);
-      return;
-    }
-    let cancelled = false;
-    capturePreviews(() => cancelled).catch(() => {
-      if (!cancelled) toast.error("Gagal menyiapkan pratinjau", "Coba lagi sebentar ya.");
-    });
-    return () => {
-      cancelled = true;
-    };
-    // toast is stable per provider; capture reruns only when templates/photo change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, capturePreviews]);
+  const cardKey = (id: StoryTemplate) => `${id}|${effectivePhoto}|${attempt}`;
+  const photoState = (id: StoryTemplate): PhotoState =>
+    storyShowsPhoto(story, id, effectivePhoto) ? (photoStatus[cardKey(id)] ?? "loading") : "ready";
+
+  const activeTemplate = templates[active];
+  const activeReady = activeTemplate != null && photoState(activeTemplate.id) === "ready";
+  const photoFailed = templates.some((candidate) => photoState(candidate.id) === "error");
 
   const pickPhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -108,16 +119,40 @@ export function ShareStoryButton({
     });
     if (!result.canceled && result.assets[0]?.uri) {
       setPhotoUri(result.assets[0].uri);
-      setPreviews(null);
+      setCaptureFailed(false);
+      // The photo template appears at index 0; jump to it so the pick is visible.
+      setActive(0);
+      scrollRef.current?.scrollTo({ x: 0, animated: false });
+    }
+  };
+
+  /** Captures the mounted card as a PNG file; null when the view is gone or view-shot throws. */
+  const captureCard = async (id: StoryTemplate): Promise<string | null> => {
+    try {
+      // The photo's onLoad already fired (Bagikan is gated on it); one more
+      // frame lets Android draw the decoded bitmap before view.draw().
+      await nextFrame();
+      await nextFrame();
+      const view = cardRefs.current[id];
+      if (!view) throw new Error("story card is not mounted");
+      return await captureRef(view, { format: "png", result: "tmpfile", quality: 1 });
+    } catch (error) {
+      console.warn("story capture failed", id, error);
+      return null;
     }
   };
 
   const share = async () => {
-    const fileUri = previews?.[active];
-    if (!fileUri || busy) return;
+    if (!activeTemplate || busy) return;
     setBusy(true);
+    setCaptureFailed(false);
     try {
-      await shareStoryImage(fileUri, templates[active]!.id, instagramFbAppId());
+      const fileUri = await captureCard(activeTemplate.id);
+      if (fileUri == null) {
+        setCaptureFailed(true);
+        return;
+      }
+      await shareStoryImage(fileUri, activeTemplate.id, instagramFbAppId());
       setOpen(false);
     } catch (error) {
       if (!isShareCancel(error)) {
@@ -128,38 +163,33 @@ export function ShareStoryButton({
     }
   };
 
-  const activeTemplate = templates[active];
+  const failure = photoFailed
+    ? {
+        title: "Foto gagal dimuat",
+        text: "Cek koneksimu atau pilih foto lain, lalu coba lagi.",
+        retry: () => setAttempt((count) => count + 1),
+      }
+    : captureFailed
+      ? {
+          title: "Gambar story belum jadi",
+          text: "Pratinjau aman, tapi gambarnya gagal dibuat. Coba lagi ya.",
+          retry: () => void share(),
+        }
+      : null;
 
   return (
     <>
-      {/* Offscreen 1080x1920 renders; captured only while the sheet is open. */}
-      {open ? (
-        <View pointerEvents="none" style={styles.offscreenWrap}>
-          {templates.map((candidate, index) => (
-            <View
-              key={candidate.id}
-              ref={(view) => {
-                cardRefs.current[index] = view;
-              }}
-              collapsable={false}
-              style={styles.offscreenCard}
-            >
-              <StoryCard
-                story={story}
-                template={candidate.id}
-              />
-            </View>
-          ))}
-        </View>
-      ) : null}
-
       <View style={style}>
         <Button
           label={label}
           variant={variant}
           size={size}
           disabled={disabled}
-          onPress={() => setOpen(true)}
+          onPress={() => {
+            setActive(0);
+            setCaptureFailed(false);
+            setOpen(true);
+          }}
         />
       </View>
 
@@ -168,30 +198,58 @@ export function ShareStoryButton({
         onClose={() => setOpen(false)}
         title="Bagikan ke Story"
       >
-        <View style={styles.previewWrap}>
-          {previews ? (
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={(event) => {
-                setActive(
-                  Math.min(
-                    Math.max(Math.round(event.nativeEvent.contentOffset.x / event.nativeEvent.layoutMeasurement.width), 0),
-                    templates.length - 1,
-                  ),
-                );
-              }}
-            >
-              {previews.map((uri) => (
-                <Image key={uri} source={{ uri }} style={styles.preview} resizeMode="cover" />
-              ))}
-            </ScrollView>
-          ) : (
-            <View style={[styles.preview, styles.previewLoading]}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
-            </View>
-          )}
+        <View
+          style={styles.stage}
+          onLayout={(event) => {
+            const width = event.nativeEvent.layout.width;
+            if (width > 0) setPageW(width);
+          }}
+        >
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            pagingEnabled
+            removeClippedSubviews={false}
+            showsHorizontalScrollIndicator={false}
+            style={{ height: frameH, flexGrow: 0 }}
+            onMomentumScrollEnd={(event) => {
+              const page = Math.round(event.nativeEvent.contentOffset.x / pageW);
+              const next = Math.min(Math.max(page, 0), templates.length - 1);
+              if (next !== active) setCaptureFailed(false);
+              setActive(next);
+            }}
+          >
+            {templates.map((candidate) => (
+              <View key={cardKey(candidate.id)} style={[styles.page, { width: pageW, height: frameH }]}>
+                <View style={[styles.frame, { width: frameW, height: frameH }]}>
+                  {candidate.id === "sticker" ? <StickerBackdrop /> : null}
+                  <View pointerEvents="none" style={[styles.scaler, { transform: [{ scale }] }]}>
+                    <View
+                      ref={(view) => {
+                        cardRefs.current[candidate.id] = view;
+                      }}
+                      collapsable={false}
+                      style={styles.card}
+                    >
+                      <StoryCard
+                        story={story}
+                        template={candidate.id}
+                        photoUri={effectivePhoto}
+                        onPhotoStatus={(status) =>
+                          setPhotoStatus((prev) => ({ ...prev, [cardKey(candidate.id)]: status }))
+                        }
+                      />
+                    </View>
+                  </View>
+                  {photoState(candidate.id) === "loading" ? (
+                    <View style={styles.frameOverlay}>
+                      <ActivityIndicator size="large" color="#ffffff" />
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
         </View>
 
         <View style={styles.dotsRow}>
@@ -210,6 +268,26 @@ export function ShareStoryButton({
           </View>
         ) : null}
 
+        {failure ? (
+          <View style={styles.errorBox} accessibilityRole="alert">
+            <View style={styles.errorIcon}>
+              <Ionicons name="alert" size={18} color={theme.colors.destructiveForeground} />
+            </View>
+            <View style={styles.errorBody}>
+              <Text style={styles.errorTitle}>{failure.title}</Text>
+              <Text style={styles.errorText}>{failure.text}</Text>
+              <Button
+                variant="secondary"
+                size="sm"
+                label="Coba lagi"
+                icon="refresh"
+                onPress={failure.retry}
+                style={styles.errorRetry}
+              />
+            </View>
+          </View>
+        ) : null}
+
         <Button
           variant="secondary"
           label={effectivePhoto ? "Pilih foto lain" : "Pakai fotoku"}
@@ -221,7 +299,7 @@ export function ShareStoryButton({
           <Button
             label={busy ? "Menyiapkan…" : "Bagikan"}
             loading={busy}
-            disabled={previews == null}
+            disabled={!activeReady || photoFailed}
             onPress={() => void share()}
           />
         </View>
@@ -231,23 +309,56 @@ export function ShareStoryButton({
 }
 
 const styles = StyleSheet.create((theme) => ({
-  // Fully offscreen but rendered: view-shot needs mounted, non-collapsing views.
-  offscreenWrap: { position: "absolute" },
-  offscreenCard: {
-    position: "absolute",
-    top: -CARD_H * 3,
-    left: 0,
-    width: CARD_W,
-    height: CARD_H,
+  stage: {
+    borderRadius: theme.radius.tile,
+    overflow: "hidden",
+    backgroundColor: theme.colors.muted,
+    paddingVertical: theme.spacing.md,
   },
-  previewWrap: { borderRadius: theme.radius.tile, overflow: "hidden", backgroundColor: theme.colors.muted },
-  preview: { width: "100%", aspectRatio: 9 / 16, maxHeight: 420 },
-  previewLoading: { alignItems: "center", justifyContent: "center" },
-  dotsRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginTop: theme.spacing.md },
+  page: { alignItems: "center", justifyContent: "center" },
+  frame: { borderRadius: theme.radius.input, overflow: "hidden" },
+  backdrop: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
+  // The card keeps its real CARD_W x CARD_H layout (so a 1:1 capture is 1080x1920 px)
+  // and is shrunk visually from the top-left corner to exactly fill the frame.
+  scaler: { position: "absolute", top: 0, left: 0, width: CARD_W, height: CARD_H, transformOrigin: "top left" },
+  card: { width: CARD_W, height: CARD_H },
+  frameOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+  },
+  dotsRow: { flexDirection: "row", justifyContent: "center", gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.hairline },
   dotActive: { width: 24, backgroundColor: theme.colors.primary },
-  templateCaption: { alignItems: "center", marginTop: theme.spacing.sm, marginBottom: theme.spacing.md },
+  templateCaption: { alignItems: "center" },
   templateName: { fontFamily: theme.fonts.bold, fontSize: theme.fontSize.base, color: theme.colors.foreground },
   templateHint: { fontFamily: theme.fonts.regular, fontSize: theme.fontSize.sm, color: theme.colors.mutedForeground },
-  actions: { flexDirection: "row", gap: theme.spacing.md, marginTop: theme.spacing.md },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: theme.spacing.md,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.tile,
+    borderWidth: 1,
+    borderColor: theme.colors.destructive,
+    backgroundColor: theme.colors.background,
+  },
+  errorIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.destructive,
+  },
+  errorBody: { flex: 1, gap: theme.spacing.xs },
+  errorTitle: { fontFamily: theme.fonts.bold, fontSize: theme.fontSize.base, color: theme.colors.foreground },
+  errorText: { fontFamily: theme.fonts.regular, fontSize: theme.fontSize.sm, color: theme.colors.mutedForeground },
+  errorRetry: { alignSelf: "flex-start", marginTop: theme.spacing.sm },
+  actions: { flexDirection: "row", gap: theme.spacing.md },
 }));

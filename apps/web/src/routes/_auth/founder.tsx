@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@joyorogo/ui/components/button";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
+import { Mascot } from "@/components/mascot";
 import { FounderPromo } from "@/components/founder-promo";
 import { Page, Segmented } from "@/components/kit/surface";
 import { ScreenError } from "@/components/screen-state";
@@ -74,6 +75,12 @@ function FounderPage() {
     <Page className="max-w-md">
       <FounderPromo className="mb-3" />
       <section aria-labelledby="founder-title" className="rounded-3xl bg-card p-6">
+        <Mascot
+          pose={from === "quota" ? "sleepy" : "happy"}
+          size="md"
+          eager
+          className="mx-0 mb-4"
+        />
         <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-xs font-bold text-muted-foreground">
           Terbatas
         </span>

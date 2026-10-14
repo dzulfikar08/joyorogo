@@ -132,7 +132,7 @@ export function CommentsSheet({
         ) : comments.error ? (
           <ScreenError message={comments.error.message} onRetry={() => comments.refetch()} />
         ) : items.length === 0 ? (
-          <EmptyHint title="Belum ada komentar">
+          <EmptyHint title="Belum ada komentar" pose="wink">
             Jadi yang pertama memberi semangat lewat komentar.
           </EmptyHint>
         ) : (

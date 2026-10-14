@@ -16,6 +16,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Camera, ChevronRight, Mic, Plus, Share2, Trash2, Utensils } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { Mascot } from "@/components/mascot";
 import { Cerita } from "@/components/cerita";
 import type { CeritaPhase } from "@/components/cerita";
 import { Chip } from "@/components/chip";
@@ -281,6 +282,7 @@ function MakanPage() {
 
       {items.length === 0 && (
         <div className="mt-3 rounded-3xl bg-card p-6 text-center">
+          <Mascot pose="ready" size="md" className="mb-3" />
           <p className="text-base font-bold">
             Belum ada catatan {isToday ? "hari ini" : "di hari ini"}
           </p>

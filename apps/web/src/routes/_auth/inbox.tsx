@@ -114,7 +114,7 @@ function InboxPage() {
 
       {items.length === 0 ? (
         <div className="mt-1">
-          <EmptyHint title="Masih sepi">
+          <EmptyHint title="Masih sepi" pose="sleepy">
             Colek dan catatan dari anggota grup akan muncul di sini.
           </EmptyHint>
         </div>

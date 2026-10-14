@@ -147,7 +147,7 @@ function NotificationsSheet({
             onRetry={() => notifications.refetch()}
           />
         ) : items.length === 0 ? (
-          <EmptyHint title="Belum ada notifikasi">
+          <EmptyHint title="Belum ada notifikasi" pose="sleepy">
             Saat ada yang memberi semangat atau komentar, kabarnya muncul di sini.
           </EmptyHint>
         ) : (
@@ -265,6 +265,7 @@ function FeedPage() {
           <ScreenError message={feed.error.message} onRetry={() => feed.refetch()} />
         ) : posts.length === 0 ? (
           <EmptyHint
+            pose={tab === "mengikuti" ? "peek" : "relax"}
             title={tab === "mengikuti" ? "Feed-mu masih sepi" : "Belum ada postingan publik"}
           >
             {tab === "mengikuti" ? (

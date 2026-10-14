@@ -1,9 +1,9 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Link, Stack } from "expo-router";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
 import { Container } from "@/components/container";
+import { Mascot } from "@/components/mascot";
 import { Text } from "@/components/ui";
 
 export default function NotFoundScreen() {
@@ -13,12 +13,7 @@ export default function NotFoundScreen() {
       <Container>
         <View style={styles.container}>
           <View style={styles.content}>
-            <Ionicons
-              name="compass-outline"
-              size={56}
-              color={styles.icon.color}
-              style={styles.iconSpacing}
-            />
+            <Mascot pose="peek" size="xl" style={styles.mascot} />
             <Text style={styles.title}>Halaman tidak ditemukan</Text>
             <Text style={styles.description}>
               Halaman yang kamu cari tidak ada atau sudah dipindah. Yuk kembali ke Beranda.
@@ -43,10 +38,7 @@ const styles = StyleSheet.create((theme) => ({
   content: {
     alignItems: "center",
   },
-  icon: {
-    color: theme.colors.mutedForeground,
-  },
-  iconSpacing: {
+  mascot: {
     marginBottom: theme.spacing.lg,
   },
   title: {

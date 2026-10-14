@@ -31,6 +31,7 @@ import {
   Text,
 } from "@/components/ui";
 
+import { Mascot } from "@/components/mascot";
 import { WeighInSheet } from "@/components/weigh-in-sheet";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { WaistSection } from "@/components/waist-section";
@@ -591,6 +592,7 @@ export default function Berat() {
             )}
             {goalReached ? (
               <View style={styles.goalBanner}>
+                <Mascot pose="mantap" size="sm" />
                 <Text style={styles.goalBannerText}>
                   Target berat sudah tercapai. Jaga ritmenya.
                 </Text>
@@ -921,9 +923,13 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.makanSoft,
     borderRadius: theme.radius.tile,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   goalBannerText: {
+    flex: 1,
     fontSize: theme.fontSize.sm,
     fontWeight: "700",
     color: theme.colors.makanText,

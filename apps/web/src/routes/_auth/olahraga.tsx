@@ -3,6 +3,7 @@ import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
+import { Mascot } from "@/components/mascot";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { Chip } from "@/components/chip";
 import { DaySwitcher } from "@/components/day-switcher";
@@ -369,6 +370,7 @@ function OlahragaScreen({
           </SectionTitle>
           {items.length === 0 ? (
             <Card className="text-center">
+              <Mascot pose="gas" size="md" className="mb-3" />
               <p className="text-sm font-bold">
                 {isToday ? "Belum ada aktivitas tercatat" : "Tidak ada aktivitas tercatat"}
               </p>

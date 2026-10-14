@@ -18,6 +18,7 @@ import {
 } from "@joyorogo/api/lib/engine";
 import type { RangeStats } from "@joyorogo/api/lib/engine";
 
+import { Mascot } from "@/components/mascot";
 import { ScreenError } from "@/components/screen-state";
 import { WaistSection } from "@/components/waist-section";
 import {
@@ -596,6 +597,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
 
       {weightSummary.latestKg === null ? (
         <Card className="text-center">
+          <Mascot pose="determined" size="md" className="mb-3" />
           <p className="text-base font-bold">Belum ada catatan berat</p>
           <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
             Timbang dirimu lalu simpan lewat tombol Timbang. Grafik, tren, dan riwayat muncul
@@ -657,10 +659,13 @@ function BeratScreen({ history }: { history: WeightHistory }) {
               )}
 
               {goalReached && (
-                <p className="mt-5 flex items-center gap-2 rounded-2xl bg-makan-soft px-4 py-3 text-sm font-bold text-makan-ink">
-                  <Medal className="size-4 shrink-0" aria-hidden />
-                  Target berat sudah tercapai. Jaga ritmenya.
-                </p>
+                <div className="mt-5 flex items-center gap-3 rounded-2xl bg-makan-soft px-4 py-2 text-sm font-bold text-makan-ink">
+                  <Mascot pose="mantap" size="sm" className="mx-0" />
+                  <p className="flex items-center gap-2">
+                    <Medal className="size-4 shrink-0" aria-hidden />
+                    Target berat sudah tercapai. Jaga ritmenya.
+                  </p>
+                </div>
               )}
             </Card>
 
@@ -683,6 +688,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
 
               {rangeEntries.length === 0 ? (
                 <div className="py-10 text-center">
+                  <Mascot pose="determined" size="sm" className="mb-2" />
                   <p className="text-sm font-bold">Belum ada catatan {rangeLabel}.</p>
                   <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
                     Pilih rentang lebih panjang, atau catat beratmu untuk mulai mengisi grafik.

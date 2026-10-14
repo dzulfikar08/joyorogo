@@ -133,7 +133,7 @@ function GrupPage() {
 
       {groups.data && groups.data.length === 0 && (
         <div className="mt-1">
-          <EmptyHint title="Belum ada grup">
+          <EmptyHint title="Belum ada grup" pose="cheer">
             Buat grup untuk teman sekantor atau sekeluarga, lalu bagikan kode undangannya.
           </EmptyHint>
         </div>

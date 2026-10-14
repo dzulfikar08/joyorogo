@@ -99,7 +99,7 @@ export default function GrupList() {
         <Skeleton width="100%" height={180} radius={24} />
       ) : groups.length === 0 ? (
         <EmptyState
-          icon="people-outline"
+          pose="cheer"
           title="Belum ada grup"
           description="Buat grup sendiri atau gabung pakai kode undangan teman biar semangatnya bareng."
         />

@@ -23,13 +23,13 @@ Locations:
 
 - `assets/mascot/*.png` — canonical source PNGs (edit/replace these first)
 - `apps/web/public/mascot/*.webp` — optimised WebP for the web app
-- `apps/native/assets/mascot/*.png` — optimised PNG for the native app
+- `apps/native/assets/mascot/*.webp` — WebP for the native app; only poses a screen uses (`apps/native/components/mascot.tsx` `POSES` map, Metro bundles just those)
 
 ## Upgrading the art
 
 Drop in better source art by **overwriting the files in `assets/mascot/` with
 the same names**, then re-export the web/native copies (WebP q~85 for web,
-optimised PNG for native). No filename changes needed — consumers reference
+WebP for native). `peek` and `hero` are trimmed to their bounding box in the web/native copies (881×384, 560×875). No filename changes needed — consumers reference
 assets by name.
 
 Known caveats (from the low-res sheet): soft edges from upscaling, slightly

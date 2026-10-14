@@ -28,6 +28,7 @@ import type { darkTheme, lightTheme } from "@/theme";
 import { ENV } from "@/src/env";
 
 import { Container } from "@/components/container";
+import { Mascot, type MascotPose } from "@/components/mascot";
 
 // JoyoRogo v2 kit. Paper canvas, borderless white cards, one leaf-green
 // primary; the data colors (makan/bakar/tidur) only ever tell the three
@@ -834,12 +835,9 @@ export function BootLoader() {
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  const { theme } = useUnistyles();
   return (
     <View style={styles.stateBox}>
-      <View style={styles.stateIcon}>
-        <Ionicons name="cloud-offline-outline" size={22} color={theme.colors.mutedForeground} />
-      </View>
+      <Mascot pose="surprised" size="sm" />
       <Text style={styles.stateTitle}>Gagal memuat</Text>
       <Text style={styles.stateText}>{message}</Text>
       <Button variant="secondary" size="sm" label="Coba lagi" onPress={onRetry} />
@@ -849,11 +847,14 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry: () 
 
 export function EmptyState({
   icon,
+  pose,
   title,
   description,
   action,
 }: {
   icon?: IconName;
+  /** Mascot illustration; takes the place of `icon`. */
+  pose?: MascotPose;
   title: string;
   description: string;
   action?: React.ReactNode;
@@ -861,7 +862,8 @@ export function EmptyState({
   const { theme } = useUnistyles();
   return (
     <View style={styles.stateBox}>
-      {icon ? (
+      {pose ? <Mascot pose={pose} size="md" /> : null}
+      {!pose && icon ? (
         <View style={styles.stateIcon}>
           <Ionicons name={icon} size={22} color={theme.colors.mutedForeground} />
         </View>

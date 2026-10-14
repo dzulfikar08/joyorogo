@@ -41,6 +41,15 @@ export function AdminErrorScreen({
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-background px-6 py-12 text-center text-foreground">
       <div className="flex w-full max-w-md flex-col items-center">
+        <img
+          src="/mascot/surprised.webp"
+          alt="Joyo terkejut"
+          width={512}
+          height={512}
+          decoding="async"
+          draggable={false}
+          className="mb-4 size-56 max-w-full object-contain select-none md:size-64"
+        />
         {!chunkError ? (
           <p className="text-xs font-bold tracking-[0.3em] text-muted-foreground uppercase">
             500

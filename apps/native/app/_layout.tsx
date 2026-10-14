@@ -6,12 +6,12 @@ import {
   PlusJakartaSans_800ExtraBold,
   useFonts,
 } from "@expo-google-fonts/plus-jakarta-sans";
-import { Ionicons } from "@expo/vector-icons";
 import { Stack } from "expo-router";
 import { Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native-unistyles";
 
+import { Mascot } from "@/components/mascot";
 import { Text } from "@/components/ui";
 // expo-router ships its own react-navigation fork; this is its theme
 // context. Deep import: the SDK forbids a direct @react-navigation
@@ -163,11 +163,7 @@ export function ErrorBoundary({ error, retry }: { error: Error; retry: () => voi
   return (
     <SafeAreaView style={errStyles.screen} edges={["top", "left", "right", "bottom"]}>
       <View style={errStyles.content}>
-        <Ionicons
-          name={chunkError ? "cloud-download-outline" : "bug-outline"}
-          size={56}
-          color={errStyles.icon.color}
-        />
+        <Mascot pose="surprised" size="xl" style={errStyles.mascot} />
         <Text style={errStyles.title}>
           {chunkError ? "Versi baru tersedia" : "Waduh, ada yang error"}
         </Text>
@@ -204,8 +200,7 @@ const errStyles = StyleSheet.create((theme) => ({
     justifyContent: "center",
     padding: theme.spacing.lg,
   },
-  icon: {
-    color: theme.colors.mutedForeground,
+  mascot: {
     marginBottom: theme.spacing.lg,
   },
   title: {

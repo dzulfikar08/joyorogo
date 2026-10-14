@@ -178,11 +178,11 @@ function PublicProfilePage() {
         </section>
 
         {!data.publicProfile ? (
-          <EmptyHint title="Profil ini privat">
+          <EmptyHint title="Profil ini privat" pose="peek">
             {data.name} tidak membagikan progresnya ke publik.
           </EmptyHint>
         ) : posts.length === 0 ? (
-          <EmptyHint title="Belum ada postingan publik">
+          <EmptyHint title="Belum ada postingan publik" pose="relax">
             {data.isSelf
               ? "Bagikan makanan, latihan, atau progres beratmu lewat tombol Bagikan ke feed."
               : "Postingan publiknya akan muncul di sini."}

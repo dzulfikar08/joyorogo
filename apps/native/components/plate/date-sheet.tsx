@@ -10,6 +10,7 @@ import {
   parseDateKey,
   recentDayLabel,
   weekdayIndex,
+  shortDayLabel,
 } from "@joyorogo/api/lib/format";
 
 import { Chip, Sheet, Text } from "@/components/ui";
@@ -72,6 +73,11 @@ function MonthGrid({
   const cells: Array<{ key: string; day: number } | null> = [];
   for (let i = 0; i < leading; i++) cells.push(null);
   for (let day = 1; day <= total; day++) cells.push({ key: `${month}-${pad(day)}`, day });
+  while (cells.length % 7 !== 0) cells.push(null);
+  // Explicit 7-cell rows with flex:1 cells: percentage widths round up on
+  // Android and wrapped the 7th column onto the next line.
+  const weeks: Array<typeof cells> = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
 
   return (
     <View>
@@ -104,46 +110,52 @@ function MonthGrid({
           <Ionicons name="chevron-forward" size={18} color={theme.colors.foreground} />
         </Pressable>
       </View>
-      <View style={styles.grid}>
+      <View style={styles.week}>
         {WEEKDAYS.map((label) => (
-          <Text key={label} style={[styles.cell, styles.weekday]}>
-            {label}
-          </Text>
+          <View key={label} style={styles.cell}>
+            <Text style={styles.weekday}>{label}</Text>
+          </View>
         ))}
-        {cells.map((cell, index) => {
-          if (cell === null) {
-            return <View key={`empty-${index}`} style={styles.cell} />;
-          }
-          const disabled = cell.key > today || cell.key < min;
-          const selected = cell.key === value;
-          return (
-            <Pressable
-              key={cell.key}
-              accessibilityRole="button"
-              accessibilityLabel={cell.key}
-              accessibilityState={{ selected, disabled }}
-              disabled={disabled}
-              onPress={() => onPick(cell.key)}
-              style={({ pressed }) => [
-                styles.cell,
-                styles.day,
-                selected && { backgroundColor: theme.colors.foreground },
-                (pressed || disabled) && styles.pressedSoft,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.dayLabel,
-                  selected && { color: theme.colors.background },
-                  disabled && styles.dim,
-                ]}
-              >
-                {cell.day}
-              </Text>
-            </Pressable>
-          );
-        })}
       </View>
+      {weeks.map((week, weekIndex) => (
+        <View key={`week-${weekIndex}`} style={styles.week}>
+          {week.map((cell, index) => {
+            if (cell === null) {
+              return <View key={`empty-${index}`} style={styles.cell} />;
+            }
+            const disabled = cell.key > today || cell.key < min;
+            const selected = cell.key === value;
+            const isToday = cell.key === today;
+            return (
+              <View key={cell.key} style={styles.cell}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={shortDayLabel(cell.key)}
+                  accessibilityState={{ selected, disabled }}
+                  disabled={disabled}
+                  onPress={() => onPick(cell.key)}
+                  style={({ pressed }) => [
+                    styles.day,
+                    isToday && !selected && styles.todayRing,
+                    selected && { backgroundColor: theme.colors.primary },
+                    pressed && styles.pressedSoft,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.dayLabel,
+                      selected && { color: theme.colors.primaryForeground, fontWeight: "700" },
+                      disabled && styles.dim,
+                    ]}
+                  >
+                    {cell.day}
+                  </Text>
+                </Pressable>
+              </View>
+            );
+          })}
+        </View>
+      ))}
     </View>
   );
 }
@@ -185,7 +197,9 @@ export function DateSheet({
           onClose();
         }}
       />
-      <Text style={styles.hint}>Antara {shiftDate(today, -WINDOW_DAYS)} dan hari ini.</Text>
+      <Text style={styles.hint}>
+        Paling jauh {shortDayLabel(shiftDate(today, -WINDOW_DAYS))}, maksimal hari ini.
+      </Text>
     </Sheet>
   );
 }
@@ -216,15 +230,14 @@ const styles = StyleSheet.create((theme) => ({
     fontWeight: "700",
     color: theme.colors.foreground,
   },
-  grid: {
+  week: {
     flexDirection: "row",
-    flexWrap: "wrap",
   },
   cell: {
-    width: `${100 / 7}%`,
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 4,
+    paddingVertical: 3,
   },
   weekday: {
     fontSize: theme.fontSize.xs,
@@ -232,8 +245,15 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.mutedForeground,
   },
   day: {
-    aspectRatio: 1,
-    borderRadius: 999,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  todayRing: {
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary,
   },
   dayLabel: {
     fontSize: theme.fontSize.sm,

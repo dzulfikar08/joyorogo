@@ -24,6 +24,7 @@ import {
   Screen,
   Text,
 } from "@/components/ui";
+import { Mascot } from "@/components/mascot";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtKcal, fmtKg, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
@@ -230,6 +231,7 @@ export default function Onboarding() {
 
       {targets ? (
         <>
+          <Mascot pose="cheer" size="md" style={styles.resultMascot} />
           <Text style={styles.stepTitle}>Rencana harianmu</Text>
           <Card style={styles.resultCard}>
             <Text style={styles.resultLabel}>Boleh makan</Text>
@@ -458,6 +460,9 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "flex-start",
+  },
+  resultMascot: {
+    alignSelf: "center",
   },
   stepTitle: {
     fontSize: theme.fontSize.title,

@@ -6,8 +6,9 @@ import { LogoMark } from "@/components/logo-mark";
 import { lightTheme as brandTheme } from "@/theme";
 
 /**
- * 1080x1920 story cards rendered as plain views, captured offscreen by
- * react-native-view-shot and handed to the share sheet — the native twin of
+ * 1080x1920 story cards rendered as plain views. The share sheet mounts them
+ * live, scaled down inside a 9:16 frame, and react-native-view-shot captures
+ * the same mounted view on share — the native twin of
  * apps/web/src/components/story/story-card.ts. Three Strava-style templates:
  *
  * - "photo": user photo full-bleed, minimal bold white stats in the lower
@@ -104,6 +105,18 @@ export function storyPhotoUri(story: StorySpec): string | null {
   return story.kind === "meal" ? (story.photoUri ?? null) : null;
 }
 
+export type StoryPhotoStatus = "ready" | "error";
+
+/**
+ * Whether `template` actually draws `photoUri`. The share sheet waits for the
+ * photo's load event before capturing only when this is true.
+ */
+export function storyShowsPhoto(story: StorySpec, template: StoryTemplate, photoUri: string | null): boolean {
+  if (photoUri == null) return false;
+  if (template === "photo") return true;
+  return template === "brand" && story.kind === "meal";
+}
+
 const EYEBROWS = {
   meal: "MAKAN HARI INI",
   workout: "SESI LATIHAN",
@@ -118,7 +131,7 @@ const dateFmt = new Intl.DateTimeFormat("id-ID", {
   year: "numeric",
 });
 
-// Design pixels -> density-independent pixels of the offscreen view.
+// Design pixels -> density-independent pixels of the card view.
 const scale = 1 / PixelRatio.get();
 const px = (value: number) => Math.round(value * scale * 100) / 100;
 export const CARD_W = px(1080);
@@ -449,14 +462,30 @@ function StatsBlock({ story }: { story: StorySpec }) {
 }
 
 /** The photo + minimal stats template (also the sticker when transparent). */
-function OverlayStoryCard({ story, template }: { story: StorySpec; template: "photo" | "sticker" }) {
-  const photoUri = template === "photo" ? storyPhotoUri(story) : null;
+function OverlayStoryCard({
+  story,
+  template,
+  photoUri: photo,
+  onPhotoStatus,
+}: {
+  story: StorySpec;
+  template: "photo" | "sticker";
+  photoUri: string | null;
+  onPhotoStatus?: (status: StoryPhotoStatus) => void;
+}) {
+  const photoUri = storyShowsPhoto(story, template, photo) ? photo : null;
   const sticker = template === "sticker";
   return (
     <View style={[styles.card, sticker ? null : styles.cardOpaque]}>
       {photoUri ? (
         <>
-          <Image source={{ uri: photoUri }} style={styles.photoBg} resizeMode="cover" />
+          <Image
+            source={{ uri: photoUri }}
+            style={styles.photoBg}
+            resizeMode="cover"
+            onLoad={() => onPhotoStatus?.("ready")}
+            onError={() => onPhotoStatus?.("error")}
+          />
           <LinearGradient
             colors={["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0.72)"]}
             style={styles.scrimBottom}
@@ -490,8 +519,16 @@ function OverlayStoryCard({ story, template }: { story: StorySpec; template: "ph
   );
 }
 
-function BrandStoryCard({ story }: { story: StorySpec }) {
-  const photoUri = storyPhotoUri(story);
+function BrandStoryCard({
+  story,
+  photoUri: photo,
+  onPhotoStatus,
+}: {
+  story: StorySpec;
+  photoUri: string | null;
+  onPhotoStatus?: (status: StoryPhotoStatus) => void;
+}) {
+  const photoUri = storyShowsPhoto(story, "brand", photo) ? photo : null;
   return (
     <View style={[styles.card, styles.cardOpaque]}>
       <LinearGradient colors={[BG_TOP, BG_BOTTOM]} style={StyleSheet.absoluteFill} />
@@ -510,7 +547,13 @@ function BrandStoryCard({ story }: { story: StorySpec }) {
         {story.kind === "meal" ? (
           <>
             {photoUri ? (
-              <Image source={{ uri: photoUri }} style={styles.mealPhoto} resizeMode="cover" />
+              <Image
+                source={{ uri: photoUri }}
+                style={styles.mealPhoto}
+                resizeMode="cover"
+                onLoad={() => onPhotoStatus?.("ready")}
+                onError={() => onPhotoStatus?.("error")}
+              />
             ) : null}
             <Text style={[styles.brandTitle, { fontSize: px(60) }]} numberOfLines={2}>
               {story.name}
@@ -664,8 +707,24 @@ function BrandStoryCard({ story }: { story: StorySpec }) {
   );
 }
 
-/** The full 1080x1920 story card; render offscreen and capture with view-shot. */
-export function StoryCard({ story, template = "brand" }: { story: StorySpec; template?: StoryTemplate }) {
-  if (template === "brand") return <BrandStoryCard story={story} />;
-  return <OverlayStoryCard story={story} template={template} />;
+/**
+ * The full 1080x1920 story card. The share sheet renders it live (scaled down
+ * with a transform) and view-shot captures this same mounted view on share.
+ * `photoUri` overrides the story's own photo (gallery pick); `onPhotoStatus`
+ * reports when the photo finished decoding or failed so capture can wait.
+ */
+export function StoryCard({
+  story,
+  template = "brand",
+  photoUri,
+  onPhotoStatus,
+}: {
+  story: StorySpec;
+  template?: StoryTemplate;
+  photoUri?: string | null;
+  onPhotoStatus?: (status: StoryPhotoStatus) => void;
+}) {
+  const photo = photoUri === undefined ? storyPhotoUri(story) : photoUri;
+  if (template === "brand") return <BrandStoryCard story={story} photoUri={photo} onPhotoStatus={onPhotoStatus} />;
+  return <OverlayStoryCard story={story} template={template} photoUri={photo} onPhotoStatus={onPhotoStatus} />;
 }

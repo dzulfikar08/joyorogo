@@ -18,6 +18,7 @@ import { Input } from "@joyorogo/ui/components/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@joyorogo/ui/components/popover";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
+import { Mascot } from "@/components/mascot";
 import { Page } from "@/components/kit/surface";
 import { PlanNumbers, TargetNotesList } from "@/components/plan-numbers";
 import { trackConversion } from "@/lib/analytics";
@@ -263,6 +264,7 @@ function OnboardingPage() {
     return (
       <Page className="max-w-xl">
         <header className="px-1 pt-2 pb-6">
+          <Mascot pose="cheer" size="md" eager className="mx-0 mb-3" />
           <h1 className="text-[1.75rem] leading-tight font-extrabold tracking-tight">
             Rencana harianmu siap
           </h1>

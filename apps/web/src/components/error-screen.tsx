@@ -2,6 +2,8 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { ChevronDown, Home, RefreshCw } from "lucide-react";
 import { useState } from "react";
 
+import { Mascot } from "@/components/mascot";
+
 import type { ErrorComponentProps, NotFoundRouteProps } from "@tanstack/react-router";
 
 // Chunk-load errors mean the user still has an old tab open while a new
@@ -18,19 +20,6 @@ function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
   return String(error);
-}
-
-function Mascot({ src, alt }: { src: string; alt: string }) {
-  return (
-    <img
-      src={src}
-      alt={alt}
-      width={120}
-      height={120}
-      className="mx-auto h-28 w-28 select-none object-contain"
-      draggable={false}
-    />
-  );
 }
 
 function Actions({ children }: { children: React.ReactNode }) {
@@ -76,7 +65,7 @@ export function ErrorScreen({ error, reset }: ErrorComponentProps) {
 
   return (
     <Shell status={chunkError ? undefined : "500"}>
-      <Mascot src="/mascot/surprised.webp" alt="Maskot JoyoRogo kaget" />
+      <Mascot pose="surprised" size="xl" eager />
       <h1 className="mt-6 text-2xl font-extrabold tracking-tight">
         {chunkError ? "Versi baru tersedia" : "Waduh, ada yang error"}
       </h1>
@@ -143,7 +132,7 @@ export function ErrorScreen({ error, reset }: ErrorComponentProps) {
 export function NotFoundScreen(_props: NotFoundRouteProps) {
   return (
     <Shell status="404">
-      <Mascot src="/mascot/peek.webp" alt="Maskot JoyoRogo mengintip" />
+      <Mascot pose="peek" size="xl" eager />
       <h1 className="mt-6 text-2xl font-extrabold tracking-tight">
         Halaman tidak ditemukan
       </h1>

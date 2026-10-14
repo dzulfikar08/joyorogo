@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@joyorogo/ui/components/button";
+import { Mascot } from "@/components/mascot";
 import { Ring, type Metric } from "@/components/kit/ring";
 import { ScanDemo } from "@/components/landing/scan-demo";
 import { GroupPeek, HeroPhone, ScanExample, WeightTrendDemo } from "@/components/landing/visuals";
@@ -639,6 +640,7 @@ function Landing() {
         {/* Closing CTA */}
         <section data-section="signup" className="mx-auto w-full max-w-6xl px-4 pb-16 md:px-6">
           <div className="rounded-[2rem] bg-primary px-6 py-12 text-center text-primary-foreground md:px-14 md:py-16">
+            <Mascot pose="mantap" size="lg" className="mb-4" />
             <h2 className="mx-auto max-w-xl text-3xl font-extrabold tracking-tight text-balance md:text-[2.75rem] md:leading-[1.1]">
               Rencana harianmu siap dalam satu menit
             </h2>

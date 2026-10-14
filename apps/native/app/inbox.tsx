@@ -122,7 +122,7 @@ export default function Inbox() {
         <Skeleton width="100%" height={220} radius={24} />
       ) : items.length === 0 ? (
         <EmptyState
-          icon="notifications-off-outline"
+          pose="sleepy"
           title="Belum ada apa-apa"
           description="Colek dan catatan dari teman grup akan muncul di sini."
         />

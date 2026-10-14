@@ -734,7 +734,7 @@ export default function Makan() {
 
       {items.length === 0 ? (
         <EmptyState
-          icon="restaurant-outline"
+          pose="ready"
           title="Belum ada makanan"
           description={`Catat makan pertamamu untuk ${isToday ? "hari ini" : fmtDateId(date)}, atau foto piringmu lewat tombol kamera.`}
           action={
