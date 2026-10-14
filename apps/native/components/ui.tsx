@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useReducedMotion } from "react-native-reanimated";
+import { MacroIcon, type MacroKey } from "@/utils/macro-icons";
 import React, { Fragment, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -291,11 +292,14 @@ export function Ring({
  * Over budget turns terracotta (bakar), mirroring the web MacroBar.
  */
 export function MacroBar({
+  macro,
   label,
   eaten,
   budget,
   unit = "g",
 }: {
+  /** Shows the shared macro icon before the label. */
+  macro?: MacroKey;
   label: string;
   eaten: number;
   /** null while the target is unknown (no profile yet): bar stays empty, shows "?". */
@@ -320,7 +324,10 @@ export function MacroBar({
         now: Math.round(Math.min(eaten, budget ?? eaten)),
       }}
     >
-      <Text style={styles.macroLabel}>{label}</Text>
+      <View style={styles.macroLabelWrap}>
+        {macro ? <MacroIcon macro={macro} size={14} /> : null}
+        <Text style={styles.macroLabel}>{label}</Text>
+      </View>
       <View style={styles.macroTrack}>
         <View
           style={[
@@ -349,13 +356,16 @@ const TINT_COLORS = {
 /** Soft-tinted tile for one daily number. Tappable → detail page. */
 export function StatTile({
   icon,
+  macro,
   tint,
   label,
   value,
   sub,
   onPress,
 }: {
-  icon: IconName;
+  icon?: IconName;
+  /** Shared macro icon; takes precedence over `icon`. */
+  macro?: MacroKey;
   tint: Tint;
   label: string;
   value: string;
@@ -367,7 +377,11 @@ export function StatTile({
   const body = (
     <>
       <View style={styles.tileChip}>
-        <Ionicons name={icon} size={15} color={theme.colors[c.icon]} />
+        {macro ? (
+          <MacroIcon macro={macro} size={15} />
+        ) : icon ? (
+          <Ionicons name={icon} size={15} color={theme.colors[c.icon]} />
+        ) : null}
       </View>
       <Text style={[styles.tileLabel, { color: theme.colors[c.text] }]}>{label}</Text>
       <Num style={[styles.tileValue, { color: theme.colors[c.text] }]}>{value}</Num>
@@ -941,8 +955,13 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     gap: 8,
   },
+  macroLabelWrap: {
+    width: 72,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   macroLabel: {
-    width: 52,
     fontSize: theme.fontSize.xs,
     fontWeight: "600",
     color: theme.colors.mutedForeground,

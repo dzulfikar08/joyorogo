@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { MacroIcon, type MacroKey } from "@/utils/macro-icons";
 import { router } from "expo-router";
 import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
 import {
@@ -209,16 +210,21 @@ function PhotoGrid({ postId, count }: { postId: string; count: number }) {
 
 /** Kudos meta chips: macros for meals, stats for workouts, delta for weight. */
 function PostChips({ post }: { post: FeedItem }) {
-  const chips: { icon: ComponentProps<typeof Ionicons>["name"]; label: string }[] = [];
-  if (post.kcal !== null) chips.push({ icon: "flame-outline", label: `${fmtKcal(post.kcal)} kcal` });
+  const { theme } = useUnistyles();
+  const chips: {
+    icon?: ComponentProps<typeof Ionicons>["name"];
+    macro?: MacroKey;
+    label: string;
+  }[] = [];
+  if (post.kcal !== null) chips.push({ macro: "kcal", label: `${fmtKcal(post.kcal)} kcal` });
   if (post.durationMin !== null)
     chips.push({ icon: "time-outline", label: `${fmtKcal(post.durationMin)} mnt` });
   if (post.macros) {
     const { protein, carbs, fat, fiber } = post.macros;
-    if (protein !== null) chips.push({ icon: "nutrition-outline", label: `P ${fmtKcal(protein)}g` });
-    if (carbs !== null) chips.push({ icon: "pie-chart-outline", label: `K ${fmtKcal(carbs)}g` });
-    if (fat !== null) chips.push({ icon: "water-outline", label: `L ${fmtKcal(fat)}g` });
-    if (fiber !== null) chips.push({ icon: "leaf-outline", label: `Serat ${fmtKcal(fiber)}g` });
+    if (protein !== null) chips.push({ macro: "protein", label: `P ${fmtKcal(protein)}g` });
+    if (carbs !== null) chips.push({ macro: "carbs", label: `K ${fmtKcal(carbs)}g` });
+    if (fat !== null) chips.push({ macro: "fat", label: `L ${fmtKcal(fat)}g` });
+    if (fiber !== null) chips.push({ macro: "fiber", label: `Serat ${fmtKcal(fiber)}g` });
   }
   if (post.stats) {
     const s = post.stats;
@@ -243,7 +249,11 @@ function PostChips({ post }: { post: FeedItem }) {
     <View style={styles.chipRow}>
       {chips.map((chip, i) => (
         <View key={`${chip.label}-${i}`} style={styles.chip}>
-          <Ionicons name={chip.icon} size={12} />
+          {chip.macro ? (
+            <MacroIcon macro={chip.macro} size={12} />
+          ) : chip.icon ? (
+            <Ionicons name={chip.icon} size={12} color={theme.colors.mutedForeground} />
+          ) : null}
           <Text style={styles.chipText}>{chip.label}</Text>
         </View>
       ))}

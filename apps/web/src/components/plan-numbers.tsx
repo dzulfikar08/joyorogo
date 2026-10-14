@@ -1,4 +1,4 @@
-import { Beef, Flame, Moon } from "lucide-react";
+import { Flame, Moon, Utensils } from "lucide-react";
 
 import type { TargetNotes, Targets } from "@joyorogo/api/lib/engine";
 import { cn } from "@joyorogo/ui/lib/utils";
@@ -41,7 +41,7 @@ export function PlanNumbers({ targets }: { targets: Targets }) {
     <div className="grid grid-cols-3 gap-3">
       <StatTile
         metric="makan"
-        icon={<Beef className="size-[1.125rem]" aria-hidden />}
+        icon={<Utensils className="size-[1.125rem]" aria-hidden />}
         label="Makan"
         value={fmtInt(targets.eatKcal)}
         unit="kcal"

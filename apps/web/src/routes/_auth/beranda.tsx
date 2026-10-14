@@ -5,10 +5,11 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { ChevronDown, Beef, Flame, Info, Mic, Moon, Plus, Sparkles, Trophy } from "lucide-react";
+import { ChevronDown, Flame, Info, Mic, Moon, Plus, Sparkles, Trophy } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { MACRO_META } from "@/lib/macro-icons";
 import { Ring } from "@/components/kit/ring";
 import { Card, Page, SectionTitle, StatTile } from "@/components/kit/surface";
 import { MetaLine } from "@/components/meta-line";
@@ -220,7 +221,7 @@ function Dashboard({
             <StatTile
               metric="makan"
               to="/makan"
-              icon={<Beef className="size-[1.125rem]" aria-hidden />}
+              icon={<MACRO_META.protein.Icon className="size-[1.125rem]" aria-hidden />}
               label="Protein"
               value={fmtInt(summary.protein?.eatenG ?? 0)}
               unit="g"

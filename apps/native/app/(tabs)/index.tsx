@@ -407,7 +407,7 @@ export default function Dashboard() {
           onPress={() => router.navigate("/tidur")}
         />
         <StatTile
-          icon="fitness"
+          macro="protein"
           tint="makan"
           label="Protein"
           value={data.protein ? `${fmtKcal(data.protein.eatenG)}g` : "–"}

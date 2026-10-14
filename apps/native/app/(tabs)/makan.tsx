@@ -683,13 +683,14 @@ export default function Makan() {
         </Ring>
         <View style={styles.summaryInfo}>
           <MacroBar
+            macro="protein"
             label="Protein"
             eaten={totals.protein}
             budget={summaryQuery.data?.protein?.targetG ?? null}
           />
-          <MacroBar label="Karbo" eaten={totals.carbs} budget={macroBudgets?.carbsG ?? null} />
-          <MacroBar label="Lemak" eaten={totals.fat} budget={macroBudgets?.fatG ?? null} />
-          <MacroBar label="Serat" eaten={totals.fiber} budget={macroBudgets?.fiberG ?? null} />
+          <MacroBar macro="carbs" label="Karbo" eaten={totals.carbs} budget={macroBudgets?.carbsG ?? null} />
+          <MacroBar macro="fat" label="Lemak" eaten={totals.fat} budget={macroBudgets?.fatG ?? null} />
+          <MacroBar macro="fiber" label="Serat" eaten={totals.fiber} budget={macroBudgets?.fiberG ?? null} />
         </View>
       </Card>
 

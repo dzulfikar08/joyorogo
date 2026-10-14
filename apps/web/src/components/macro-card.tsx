@@ -4,6 +4,7 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { Ring } from "@/components/kit/ring";
 import { Card } from "@/components/kit/surface";
 import { fmtInt } from "@/lib/format";
+import { MACRO_META, type MacroKey } from "@/lib/macro-icons";
 
 export type MacroTotals = {
   protein: number;
@@ -12,15 +13,19 @@ export type MacroTotals = {
   fiber: number;
 };
 
-function MacroBar({ label, eaten, budget }: { label: string; eaten: number; budget: number }) {
+function MacroBar({ macro, eaten, budget }: { macro: MacroKey; eaten: number; budget: number }) {
+  const { label, Icon, tone } = MACRO_META[macro];
   const over = eaten > budget;
   const pct = budget > 0 ? Math.min(100, Math.max(0, (eaten / budget) * 100)) : 0;
   return (
     <div
-      className="grid grid-cols-[3.5rem_1fr_auto] items-center gap-2"
+      className="grid grid-cols-[4.75rem_1fr_auto] items-center gap-2"
       title={`${label}: ${fmtInt(eaten)} dari ${fmtInt(budget)} g`}
     >
-      <span className="text-xs font-semibold text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+        <Icon className={cn("size-3.5 shrink-0", tone)} aria-hidden />
+        {label}
+      </span>
       <span
         role="progressbar"
         aria-label={label}
@@ -97,10 +102,10 @@ export function MakanSummaryCard({
           </div>
         </Ring>
         <div className="min-w-0 flex-1 space-y-3.5">
-          <MacroBar label="Protein" eaten={totals.protein} budget={proteinTargetG} />
-          <MacroBar label="Karbo" eaten={totals.carbs} budget={budgets.carbsG} />
-          <MacroBar label="Lemak" eaten={totals.fat} budget={budgets.fatG} />
-          <MacroBar label="Serat" eaten={totals.fiber} budget={budgets.fiberG} />
+          <MacroBar macro="protein" eaten={totals.protein} budget={proteinTargetG} />
+          <MacroBar macro="carbs" eaten={totals.carbs} budget={budgets.carbsG} />
+          <MacroBar macro="fat" eaten={totals.fat} budget={budgets.fatG} />
+          <MacroBar macro="fiber" eaten={totals.fiber} budget={budgets.fiberG} />
         </div>
       </div>
     </Card>
