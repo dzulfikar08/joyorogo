@@ -96,6 +96,7 @@ export function createAuth(
         .filter(Boolean),
       ...desktopOrigins,
       "joyorogo://",
+      "joyofit://",
       "exp://",
       "http://localhost:8081",
     ],
