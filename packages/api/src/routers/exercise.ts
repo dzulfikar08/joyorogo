@@ -5,7 +5,7 @@ import { exerciseLog } from "@joyorogo/db/schema/fitness";
 
 import { protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
-import { dateSchema } from "../lib/schemas";
+import { dateSchema, pastDateSchema } from "../lib/schemas";
 import { EXERCISE_TYPES } from "../lib/met";
 
 export const exerciseRouter = {
@@ -39,6 +39,18 @@ export const exerciseRouter = {
         })
         .returning();
       return row;
+    }),
+
+  // Moves one logged activity to another day (WIB key).
+  update: protectedProcedure
+    .input(z.object({ id: z.string(), date: pastDateSchema }))
+    .handler(async ({ context, input }) => {
+      const [row] = await context.db
+        .update(exerciseLog)
+        .set({ date: input.date })
+        .where(and(eq(exerciseLog.id, input.id), eq(exerciseLog.userId, context.session.user.id)))
+        .returning();
+      return row ?? null;
     }),
 
   remove: protectedProcedure

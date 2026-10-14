@@ -17,7 +17,7 @@ import {
   spendingSummary,
 } from "../lib/plates";
 import type { PlateNutrients } from "../lib/plates";
-import { dateSchema } from "../lib/schemas";
+import { dateSchema, pastDateSchema } from "../lib/schemas";
 
 const plateFields = z.object({
   name: z.string().trim().min(1).max(200).optional(),
@@ -104,10 +104,19 @@ export const plateRouter = {
         name: z.string().trim().min(1).max(200).optional(),
         place: z.string().trim().max(200).nullable().optional(),
         priceIdr: z.number().int().min(0).max(100_000_000).nullable().optional(),
+        // Moving the plate moves every component row with it, so the diary
+        // grouping stays intact and stickers/photos stay attached.
+        date: pastDateSchema.optional(),
       }),
     )
     .handler(async ({ context, input }) => {
       const { id, ...fields } = input;
+      if (fields.date) {
+        await context.db
+          .update(foodLog)
+          .set({ date: fields.date })
+          .where(and(eq(foodLog.plateId, id), eq(foodLog.userId, context.session.user.id)));
+      }
       const [row] = await context.db
         .update(plate)
         .set(fields)
@@ -145,6 +154,7 @@ export const plateRouter = {
       return context.db
         .select({
           id: plate.id,
+          date: plate.date,
           meal: plate.meal,
           name: plate.name,
           place: plate.place,

@@ -1,11 +1,23 @@
 import { z } from "zod";
 
-import { ACTIVITY_LEVELS, GENDERS, MEALS, type ProfileInput } from "./engine";
+import { ACTIVITY_LEVELS, GENDERS, MEALS, jakartaToday, shiftDate, type ProfileInput } from "./engine";
 
 export const genderSchema = z.enum(GENDERS);
 export const activityLevelSchema = z.enum(ACTIVITY_LEVELS);
 export const mealSchema = z.enum(MEALS);
 export const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD");
+
+// How far back a log date may be moved or chosen: a bounded recent window.
+export const LOG_DATE_WINDOW_DAYS = 30;
+
+/** A WIB day key from today down to LOG_DATE_WINDOW_DAYS ago. */
+export const pastDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD")
+  .refine((date) => {
+    const today = jakartaToday();
+    return date <= today && date >= shiftDate(today, -LOG_DATE_WINDOW_DAYS);
+  }, `Tanggal harus antara ${LOG_DATE_WINDOW_DAYS} hari lalu dan hari ini`);
 
 export const profileInputSchema = z.object({
   birthYear: z.number().int().min(1930).max(2020),

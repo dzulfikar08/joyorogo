@@ -295,7 +295,7 @@ function MakanPage() {
               <Plus className="size-4" aria-hidden />
               Catat makan
             </Button>
-            <Link to="/makan/ai">
+            <Link to="/makan/ai" search={isToday ? {} : { date }}>
               <Button variant="secondary">
                 <Camera className="size-4" aria-hidden />
                 Pindai foto
@@ -721,6 +721,7 @@ function AddFoodSheet({
         {ceritaPhase === "input" && (
           <Link
             to="/makan/ai"
+            search={isToday ? {} : { date }}
             className="flex items-center gap-3 rounded-2xl bg-muted p-4 transition-colors hover:bg-border focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
           >
             <span

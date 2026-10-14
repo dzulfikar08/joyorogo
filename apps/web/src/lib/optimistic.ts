@@ -6,6 +6,7 @@ import {
   applySummaryDelta,
   applyWeightCheckIn,
   deletedMsg,
+  removeById,
   upsertById,
   type SummaryDelta,
 } from "@joyorogo/api/lib/optimistic";
@@ -25,6 +26,57 @@ import { toast } from "sonner";
 import { client } from "@/utils/orpc";
 
 export type Snapshot = { restore(): void };
+
+/** The food.listByDate cache shape this helper family patches. */
+export type FoodListData<T extends { kcal: number; protein?: number | null; carbs?: number | null; fat?: number | null; fiber?: number | null }> = {
+  items: T[];
+  totals: { kcal: number; protein: number; carbs: number; fat: number; fiber: number };
+};
+
+/** Land a row in one food.listByDate cache and lift the rendered totals. */
+export function insertFoodRow<T extends { id: string } & { kcal: number; protein?: number | null; carbs?: number | null; fat?: number | null; fiber?: number | null }>(
+  cache: OptimisticCache,
+  listKey: QueryKey,
+  row: T,
+): void {
+  cache.value<FoodListData<T>>(listKey, (old) =>
+    old
+      ? {
+          ...old,
+          items: upsertById(old.items, row),
+          totals: {
+            kcal: old.totals.kcal + row.kcal,
+            protein: old.totals.protein + (row.protein ?? 0),
+            carbs: old.totals.carbs + (row.carbs ?? 0),
+            fat: old.totals.fat + (row.fat ?? 0),
+            fiber: old.totals.fiber + (row.fiber ?? 0),
+          },
+        }
+      : old,
+  );
+}
+
+/** Strip one row from a food.listByDate cache, pulling totals down with it. */
+export function stripFoodRow<T extends { id: string; kcal: number; protein?: number | null; carbs?: number | null; fat?: number | null; fiber?: number | null }>(
+  cache: OptimisticCache,
+  listKey: QueryKey,
+  row: T,
+): void {
+  cache.value<FoodListData<T>>(listKey, (old) => {
+    if (!old || !old.items.some((item) => item.id === row.id)) return old;
+    return {
+      ...old,
+      items: removeById(old.items, row.id),
+      totals: {
+        kcal: Math.max(0, old.totals.kcal - row.kcal),
+        protein: Math.max(0, old.totals.protein - (row.protein ?? 0)),
+        carbs: Math.max(0, old.totals.carbs - (row.carbs ?? 0)),
+        fat: Math.max(0, old.totals.fat - (row.fat ?? 0)),
+        fiber: Math.max(0, old.totals.fiber - (row.fiber ?? 0)),
+      },
+    };
+  });
+}
 
 type RestoreFn = () => void;
 

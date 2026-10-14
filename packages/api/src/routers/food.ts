@@ -8,7 +8,7 @@ import { plate } from "@joyorogo/db/schema/plans";
 
 import { protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
-import { dateSchema, mealSchema } from "../lib/schemas";
+import { dateSchema, mealSchema, pastDateSchema } from "../lib/schemas";
 import {
   SCAN_ID_RE,
   base64ToBytes,
@@ -218,6 +218,46 @@ export const foodRouter = {
         })
         .returning();
       return row;
+    }),
+
+  // Moves one logged row to another day (WIB key). Stickers and photos ride
+  // along untouched; when the row was the last component of its plate on the
+  // old day, the plate moves with it so the grouping never splits.
+  update: protectedProcedure
+    .input(z.object({ id: z.string(), date: pastDateSchema }))
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const [row] = await context.db
+        .select({ plateId: foodLog.plateId, date: foodLog.date })
+        .from(foodLog)
+        .where(and(eq(foodLog.id, input.id), eq(foodLog.userId, userId)))
+        .limit(1);
+      if (!row) return null;
+      const [updated] = await context.db
+        .update(foodLog)
+        .set({ date: input.date })
+        .where(and(eq(foodLog.id, input.id), eq(foodLog.userId, userId)))
+        .returning();
+      if (row.plateId && row.date !== input.date) {
+        const [remaining] = await context.db
+          .select({ id: foodLog.id })
+          .from(foodLog)
+          .where(
+            and(
+              eq(foodLog.userId, userId),
+              eq(foodLog.plateId, row.plateId),
+              eq(foodLog.date, row.date),
+            ),
+          )
+          .limit(1);
+        if (!remaining) {
+          await context.db
+            .update(plate)
+            .set({ date: input.date })
+            .where(and(eq(plate.id, row.plateId), eq(plate.userId, userId)));
+        }
+      }
+      return updated ?? null;
     }),
 
   remove: protectedProcedure

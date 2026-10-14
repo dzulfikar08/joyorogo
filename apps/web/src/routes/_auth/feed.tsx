@@ -9,12 +9,12 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Bell, CheckCheck, Hand, Heart, MessageSquareText, UserPlus } from "lucide-react";
+import { Bell, CheckCheck, Hand, Heart, MessageSquareText, PlusCircle, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { Avatar } from "@/components/avatar";
-import { FeedComposer } from "@/components/feed/composer";
+import { FeedComposerSheet } from "@/components/feed/composer";
 import { PostCard } from "@/components/feed/post-card";
 import { EmptyHint, ScreenError } from "@/components/screen-state";
 import { ListRow, Page, PageHeader, Segmented } from "@/components/kit/surface";
@@ -187,6 +187,7 @@ function FeedPage() {
   const session = useSession();
   const [tab, setTab] = useState<FeedTab>("mengikuti");
   const [notifOpen, setNotifOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
   const unread = useQuery(orpc.social.notificationsUnreadCount.queryOptions());
   const feed = useInfiniteQuery(
     orpc.social.feed.infiniteOptions({
@@ -213,20 +214,30 @@ function FeedPage() {
         title="Feed"
         subtitle="Progres makan, latihan, dan berat yang dibagikan."
         action={
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Notifikasi${unreadCount > 0 ? `, ${unreadCount} belum dibaca` : ""}`}
-            onClick={() => setNotifOpen(true)}
-            className="relative"
-          >
-            <Bell className="size-5" aria-hidden />
-            {unreadCount > 0 && <UnreadBadge count={unreadCount} />}
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Buat post"
+              onClick={() => setComposerOpen(true)}
+            >
+              <PlusCircle className="size-5" aria-hidden />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Notifikasi${unreadCount > 0 ? `, ${unreadCount} belum dibaca` : ""}`}
+              onClick={() => setNotifOpen(true)}
+              className="relative"
+            >
+              <Bell className="size-5" aria-hidden />
+              {unreadCount > 0 && <UnreadBadge count={unreadCount} />}
+            </Button>
+          </div>
         }
       />
 
-      {tab !== "tips" && <FeedComposer />}
+      <FeedComposerSheet open={composerOpen} onOpenChange={setComposerOpen} />
 
       <Segmented<FeedTab>
         label="Pilih tab feed"

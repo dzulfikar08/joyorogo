@@ -94,6 +94,7 @@ export default function Makan() {
   type FoodRow = NonNullable<NonNullable<typeof listQuery.data>["items"]>[number];
   type PlateRow = {
     id: string;
+    date: string;
     meal: string;
     name: string;
     place: string | null;
@@ -254,6 +255,39 @@ export default function Makan() {
         (queryClient.getQueryData<PlateRow[]>(plateDayKey) ?? []).find(
           (plate) => plate.id === input.id,
         ) ?? null;
+      if (input.date && previous && input.date !== previous.date) {
+        // Date move: relocate the plate row and every component row between
+        // the two day caches, with matching summary deltas on both days.
+        const moveDate = input.date;
+        const oldKey = orpc.plate.byDate.queryOptions({ input: { date: previous.date } }).queryKey;
+        const newKey = orpc.plate.byDate.queryOptions({ input: { date: moveDate } }).queryKey;
+        cache.value<PlateRow[]>(oldKey, (plates) =>
+          (plates ?? []).filter((plate) => plate.id !== input.id),
+        );
+        cache.value<PlateRow[]>(newKey, (plates) => [
+          ...(plates ?? []),
+          {
+            ...previous,
+            ...(input.name !== undefined ? { name: input.name } : {}),
+            date: moveDate,
+          },
+        ]);
+        const rows = (
+          queryClient.getQueryData<{ items: FoodRow[] }>(foodListKey)?.items ?? []
+        ).filter((item) => item.plateId === input.id);
+        for (const row of rows) {
+          const moved = { ...row, date: moveDate };
+          stripFoodRow(cache, foodListKey, row);
+          insertFoodRow(
+            cache,
+            orpc.food.listByDate.queryOptions({ input: { date: input.date } }).queryKey,
+            moved,
+          );
+          cache.summary(foodSummaryDelta(row, -1));
+          cache.summary(foodSummaryDelta(moved, 1));
+        }
+        return previous;
+      }
       cache.value<PlateRow[]>(plateDayKey, (plates) =>
         (plates ?? []).map((plate) =>
           plate.id === input.id
@@ -270,20 +304,32 @@ export default function Makan() {
     success: (input, _data, context) => {
       const previous = context ?? null;
       setPlateEdit(null);
+      if (input.date && previous && input.date !== previous.date) {
+        return {
+          message: `Dipindah ke ${relativeDayLabel(input.date, today)}`,
+          undo: () =>
+            void client.plate.update({
+              id: input.id,
+              name: previous.name,
+              priceIdr: previous.priceIdr,
+              date: previous.date,
+            }),
+        };
+      }
       return {
         message: "Piring diperbarui",
         undo:
           previous === null
             ? undefined
             : () =>
-                updatePlate.mutate({
+                void client.plate.update({
                   id: input.id,
                   name: previous.name,
                   priceIdr: previous.priceIdr,
                 }),
       };
     },
-    invalidate: () => [orpc.plate.key()],
+    invalidate: () => [orpc.plate.key(), orpc.food.key(), orpc.day.key()],
   });
 
   const [sheetMeal, setSheetMeal] = useState<Meal | null>(null);
@@ -299,9 +345,12 @@ export default function Makan() {
   const [macrosOpen, setMacrosOpen] = useState(false);
   // Manual form's optional plate price, and the diary's inline plate editor.
   const [platePriceManual, setPlatePriceManual] = useState("");
-  const [plateEdit, setPlateEdit] = useState<{ id: string; name: string; price: string } | null>(
-    null,
-  );
+  const [plateEdit, setPlateEdit] = useState<{
+    id: string;
+    name: string;
+    price: string;
+    date: string;
+  } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [viewer, setViewer] = useState<StickerViewerTarget | null>(null);
   const [shareTarget, setShareTarget] = useState<
@@ -452,10 +501,11 @@ export default function Makan() {
                           id: plateRow.id,
                           name: plateRow.name,
                           priceIdr: plateRow.priceIdr,
+                          date: plateRow.date,
                         }}
                         edit={plateEdit}
                         onEdit={setPlateEdit}
-                        onSave={(id, editName, price) => {
+                        onSave={(id, editName, price, moveDate) => {
                           const priceNum = parseNum(price);
                           updatePlate.mutate({
                             id,
@@ -465,6 +515,7 @@ export default function Makan() {
                               : priceNum !== null && priceNum >= 0
                                 ? { priceIdr: Math.round(priceNum) }
                                 : {}),
+                            ...(moveDate ? { date: moveDate } : {}),
                           });
                         }}
                         saving={updatePlate.isPending}
@@ -732,7 +783,7 @@ export default function Makan() {
             accessibilityLabel="Pindai pakai foto"
             onPress={() => {
               closeSheet();
-              router.push("/makan-ai");
+              router.push(isToday ? "/makan-ai" : { pathname: "/makan-ai", params: { date } });
             }}
             style={({ pressed }) => [styles.photoLink, pressed && styles.pressedSoft]}
           >

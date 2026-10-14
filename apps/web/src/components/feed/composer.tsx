@@ -1,4 +1,5 @@
 import { Button } from "@joyorogo/ui/components/button";
+import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Textarea } from "@joyorogo/ui/components/textarea";
 import { useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, Loader2, Send, X } from "lucide-react";
@@ -7,9 +8,7 @@ import { toast } from "sonner";
 
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
-import { Card } from "@/components/kit/surface";
 import { Segmented } from "@/components/kit/surface";
-import { Avatar } from "@/components/avatar";
 import type { FeedPost } from "@/lib/api-types";
 import { useSession } from "@/lib/auth-client";
 import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
@@ -43,11 +42,17 @@ async function compressImage(file: File): Promise<Pending> {
 }
 
 /**
- * Kartu "Buat post" di atas feed: teks bebas (maks 1000) + 0-4 foto +
- * penonton. Foto dipampatkan di perangkat, diunggah satu-satu, lalu pos
- * dibuat dengan id fotonya.
+ * Sheet "Buat post" di feed: teks bebas (maks 1000) + 0-4 foto + penonton.
+ * Foto dipampatkan di perangkat, diunggah satu-satu, lalu pos dibuat dengan
+ * id fotonya. Sheet dibuka dari tombol plus di header feed.
  */
-export function FeedComposer() {
+export function FeedComposerSheet({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const queryClient = useQueryClient();
   const session = useSession();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -180,53 +185,53 @@ export function FeedComposer() {
     setBusy("Menyiapkan...");
     try {
       await createPost.mutateAsync({ caption: text, visibility, photos });
+      onOpenChange(false);
     } finally {
       setBusy(null);
     }
   };
 
   return (
-    <Card className="space-y-3 p-4">
-      <div className="flex items-start gap-3">
-        <Avatar
-          name={session.data?.user.name ?? "Kamu"}
-          image={session.data?.user.image ?? null}
-          className="size-10"
-        />
+    <Sheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Buat post"
+    >
+      <div className="space-y-3">
         <Textarea
           value={caption}
           onChange={(event) => setCaption(event.target.value)}
           maxLength={STORY_MAX}
-          rows={3}
+          rows={4}
           placeholder="Ada cerita hari ini? Ceritakan perjalananmu..."
           aria-label="Tulis post"
-          className="flex-1"
         />
-      </div>
+        <p className="text-right text-xs text-muted-foreground tabular-nums" aria-live="polite">
+          {caption.length}/{STORY_MAX}
+        </p>
 
-      {photos.length > 0 && (
-        <ul className="grid grid-cols-4 gap-2" aria-label="Foto terlampir">
-          {photos.map((photo, index) => (
-            <li key={photo.localUrl} className="relative">
-              <img
-                src={photo.localUrl}
-                alt={`Foto ${index + 1}`}
-                className="aspect-square w-full rounded-xl bg-muted object-cover"
-              />
-              <button
-                type="button"
-                aria-label={`Buang foto ${index + 1}`}
-                className="absolute -top-1.5 -right-1.5 grid size-6 place-items-center rounded-full bg-foreground text-background shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-                onClick={() => setPhotos((prev) => prev.filter((p) => p !== photo))}
-              >
-                <X className="size-3.5" aria-hidden />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+        {photos.length > 0 && (
+          <ul className="grid grid-cols-4 gap-2" aria-label="Foto terlampir">
+            {photos.map((photo, index) => (
+              <li key={photo.localUrl} className="relative">
+                <img
+                  src={photo.localUrl}
+                  alt={`Foto ${index + 1}`}
+                  className="aspect-square w-full rounded-xl bg-muted object-cover"
+                />
+                <button
+                  type="button"
+                  aria-label={`Buang foto ${index + 1}`}
+                  className="absolute -top-1.5 -right-1.5 grid size-6 place-items-center rounded-full bg-foreground text-background shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+                  onClick={() => setPhotos((prev) => prev.filter((p) => p !== photo))}
+                >
+                  <X className="size-3.5" aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
-      <div className="flex flex-wrap items-center gap-2">
         <input
           ref={fileInput}
           type="file"
@@ -244,22 +249,20 @@ export function FeedComposer() {
           onClick={() => fileInput.current?.click()}
         >
           <ImagePlus className="size-4" aria-hidden />
-          Foto
+          Foto{photos.length > 0 ? ` (${photos.length}/${PHOTOS_MAX})` : ""}
         </Button>
+
         <Segmented<"publik" | "grup">
           label="Penonton post"
           value={visibility}
           onChange={setVisibility}
-          className="text-xs"
           options={[
             { value: "grup", label: "Teman grup" },
             { value: "publik", label: "Publik" },
           ]}
         />
-        <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-          {caption.length}/{STORY_MAX}
-        </span>
-        <Button size="sm" disabled={busy !== null} onClick={() => void submit()}>
+
+        <Button className="w-full" disabled={busy !== null} onClick={() => void submit()}>
           {busy !== null ? (
             <>
               <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -273,6 +276,6 @@ export function FeedComposer() {
           )}
         </Button>
       </div>
-    </Card>
+    </Sheet>
   );
 }

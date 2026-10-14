@@ -40,6 +40,12 @@ import { fmtInt, parseNum } from "@/lib/format";
 import { client, orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/_auth/makan/ai")({
+  // The makan page forwards its DaySwitcher day (?date=), so a scan taken
+  // while browsing a past day lands on that day, not on hari ini.
+  validateSearch: (search: Record<string, unknown>): { date?: string } => {
+    const raw = typeof search.date === "string" ? search.date : undefined;
+    return { date: raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : undefined };
+  },
   component: AiFoodPage,
 });
 
@@ -116,6 +122,8 @@ async function fileToImageBase64(
 function AiFoodPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // The day the scan belongs to, forwarded from the makan page's DaySwitcher.
+  const { date: scanDate } = Route.useSearch();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [phase, setPhase] = useState<"idle" | "preparing" | "analyzing" | "confirm">("idle");
@@ -392,6 +400,7 @@ function AiFoodPage() {
     try {
       // One call: photo stored once, one row and one sticker per item.
       const saved = await client.food.addScan({
+        date: scanDate,
         meal,
         imageBase64: image.base64,
         mimeType: image.mimeType,

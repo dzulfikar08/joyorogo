@@ -1,17 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, View } from "react-native";
+import { useState } from "react";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Button, Input, Text } from "@/components/ui";
 import { fmtIdr } from "@/components/plate/belanja";
+import { DayChips, DateSheet } from "@/components/plate/date-sheet";
 
 /** One plate's info as the diary shows it. */
 type PlateInfo = { id: string; name: string; priceIdr: number | null };
-type PlateEdit = { id: string; name: string; price: string } | null;
+type PlateEdit = { id: string; name: string; price: string; date: string } | null;
 
 /**
  * Diary plate header: "Piring: Nasi padang · Rp28.000". Tapping opens a tiny
- * inline editor (name + price) saved via plate.update; an emptied price clears it.
+ * inline editor (name + price + day) saved via plate.update; an emptied price
+ * clears it.
  */
 export function PlateHeader({
   plate,
@@ -20,13 +23,14 @@ export function PlateHeader({
   onSave,
   saving,
 }: {
-  plate: PlateInfo;
+  plate: PlateInfo & { date: string };
   edit: PlateEdit;
   onEdit: (next: PlateEdit) => void;
-  onSave: (id: string, name: string, price: string) => void;
+  onSave: (id: string, name: string, price: string, date?: string) => void;
   saving: boolean;
 }) {
   const { theme } = useUnistyles();
+  const [pickingDate, setPickingDate] = useState(false);
   const editing = edit?.id === plate.id;
 
   if (!editing) {
@@ -35,7 +39,14 @@ export function PlateHeader({
         accessibilityRole="button"
         accessibilityLabel={`Ubah piring ${plate.name}`}
         disabled={saving}
-        onPress={() => onEdit({ id: plate.id, name: plate.name, price: plate.priceIdr !== null ? String(plate.priceIdr) : "" })}
+        onPress={() =>
+          onEdit({
+            id: plate.id,
+            name: plate.name,
+            price: plate.priceIdr !== null ? String(plate.priceIdr) : "",
+            date: plate.date,
+          })
+        }
         style={({ pressed }) => [styles.bar, pressed && styles.pressed]}
       >
         <Ionicons name="restaurant" size={14} color={theme.colors.makanText} />
@@ -73,7 +84,14 @@ export function PlateHeader({
         <Button
           size="sm"
           label="Simpan"
-          onPress={() => onSave(plate.id, edit.name, edit.price)}
+          onPress={() =>
+            onSave(
+              plate.id,
+              edit.name,
+              edit.price,
+              edit.date !== plate.date ? edit.date : undefined,
+            )
+          }
           loading={saving}
           style={styles.saveBtn}
         />
@@ -85,6 +103,22 @@ export function PlateHeader({
           style={styles.cancelBtn}
         />
       </View>
+      <DayChips
+        value={edit.date}
+        onChange={(date) => edit && onEdit({ ...edit, date })}
+      />
+      <Button
+        variant="ghost"
+        size="sm"
+        label="Pilih tanggal"
+        onPress={() => setPickingDate(true)}
+      />
+      <DateSheet
+        visible={pickingDate}
+        value={edit.date}
+        onPick={(date) => edit && onEdit({ ...edit, date })}
+        onClose={() => setPickingDate(false)}
+      />
     </View>
   );
 }

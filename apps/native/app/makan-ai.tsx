@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, Pressable, ScrollView, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -147,6 +147,10 @@ function AnalyzingOverlay({ previewUri, onCancel }: { previewUri: string; onCanc
 export default function MakanAi() {
   const { theme } = useUnistyles();
   const gate = useSessionGate();
+  // Day forwarded from the makan screen when its DaySwitcher sits on a past
+  // day: the scan then saves to that day instead of hari ini.
+  const rawDate = useLocalSearchParams<{ date?: string | string[] }>().date;
+  const scanDate = typeof rawDate === "string" ? rawDate : undefined;
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
 
@@ -435,6 +439,7 @@ export default function MakanAi() {
         return;
       }
       await addScan.mutateAsync({
+        ...(scanDate ? { date: scanDate } : {}),
         meal,
         imageBase64: sentImage.base64,
         mimeType: "image/jpeg",
