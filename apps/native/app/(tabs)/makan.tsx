@@ -576,7 +576,11 @@ export default function Makan() {
                                 pressed && styles.pressedSoft,
                               ]}
                             >
-                              <Ionicons name="share-social-outline" size={18} />
+                              <Ionicons
+                                name="share-social-outline"
+                                size={18}
+                                color={theme.colors.foreground}
+                              />
                             </Pressable>
                             <Pressable
                               accessibilityRole="button"

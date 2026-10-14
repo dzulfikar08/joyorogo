@@ -280,6 +280,7 @@ function PeopleListSheet({
   pending: boolean;
   people: { id: string; name: string; image: string | null; handle: string | null }[];
 }) {
+  const { theme } = useUnistyles();
   return (
     <Sheet
       visible={visible}
@@ -310,7 +311,7 @@ function PeopleListSheet({
                 <Text style={styles.personName}>{person.name}</Text>
                 {person.handle ? <Text style={styles.muted}>@{person.handle}</Text> : null}
               </View>
-              <Ionicons name="chevron-forward" size={15} />
+              <Ionicons name="chevron-forward" size={15} color={theme.colors.mutedForeground} />
             </Pressable>
           ))}
         </View>
