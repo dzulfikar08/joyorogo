@@ -15,9 +15,9 @@ import {
   base64ToBytes,
   newScanId,
   photoKey,
-  stickerKey,
   storeStickers,
 } from "../lib/sticker";
+import { purgeUnreferencedMedia } from "./saved-food";
 import type { StickerJob } from "../lib/sticker";
 import { normalizeBox } from "../lib/vision";
 
@@ -173,7 +173,7 @@ export const foodRouter = {
         carbs: z.number().min(0).max(500).optional(),
         fat: z.number().min(0).max(500).optional(),
         fiber: z.number().min(0).max(500).optional(),
-        source: z.enum(["manual", "ai"]).default("manual"),
+        source: z.enum(["manual", "ai", "barcode"]).default("manual"),
         itemsJson: z.string().max(10_000).optional(),
         // capability id of the dish sticker generated at scan time
         scanId: z.string().regex(SCAN_ID_RE).optional(),
@@ -301,25 +301,7 @@ export const foodRouter = {
           await context.db.delete(plate).where(eq(plate.id, row.plateId));
         }
       }
-      const stickers = context.env.STICKERS;
-      if (row && stickers) {
-        try {
-          if (row.scanId) await stickers.delete(stickerKey(row.scanId));
-          if (row.photoId) {
-            // The photo is shared by every item of its scan: drop it with the last one.
-            const [other] = await context.db
-              .select({ id: foodLog.id })
-              .from(foodLog)
-              .where(
-                and(eq(foodLog.userId, context.session.user.id), eq(foodLog.photoId, row.photoId)),
-              )
-              .limit(1);
-            if (!other) await stickers.delete(photoKey(context.session.user.id, row.photoId));
-          }
-        } catch {
-          // orphaned objects are harmless; never block the delete
-        }
-      }
+      await purgeUnreferencedMedia(context.db, context.env.STICKERS, context.session.user.id, row ? [row] : []);
       return { ok: true };
     }),
 

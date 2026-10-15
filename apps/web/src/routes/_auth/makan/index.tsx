@@ -13,7 +13,7 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Camera, ChevronRight, Mic, Plus, Share2, Trash2, Utensils } from "lucide-react";
+import { Camera, ChevronRight, Mic, Plus, ScanBarcode, Share2, Trash2, Utensils } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { Mascot } from "@/components/mascot";
@@ -26,6 +26,8 @@ import { FieldLabel, ListRow, Page, PageHeader, SectionTitle } from "@/component
 import { MakanSummaryCard } from "@/components/macro-card";
 import { MacroLine } from "@/components/macro-line";
 import { FoodPortionSheet } from "@/components/food-portion-sheet";
+import { FavoritChips, FavoritManageSheet, FavoritStar, useFavorites } from "@/components/favorit";
+import type { Favorites } from "@/components/favorit";
 import { MetaLine } from "@/components/meta-line";
 import { BelanjaCard } from "@/components/plate/belanja";
 import { PlateDiary } from "@/components/plate/plate-group";
@@ -84,6 +86,8 @@ function MakanPage() {
   // Bagikan ke feed: item makanan yang sedang dibagikan (sheet di bawah).
   const [shareItem, setShareItem] = useState<FoodItem | null>(null);
   const [editItem, setEditItem] = useState<FoodItem | null>(null);
+  const favorites = useFavorites();
+  const [manageOpen, setManageOpen] = useState(false);
   const setCeritaOpen = (open: boolean) =>
     navigate({ search: (prev) => ({ ...prev, cerita: open || undefined }), replace: true });
   const showDate = (target: string) =>
@@ -283,6 +287,26 @@ function MakanPage() {
         <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
       </button>
 
+      {favorites.items.length > 0 && (
+        <section className="mt-3 rounded-3xl bg-card p-5" aria-label="Favorit">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-base font-bold tracking-tight">Favorit</h2>
+            <span className="text-xs text-muted-foreground">
+              Tap untuk catat ke {MEAL_LABELS[quickMeal]}
+              {isToday ? "" : `, ${fmtDateIndo(date)}`}
+            </span>
+          </div>
+          <div className="mt-3">
+            <FavoritChips
+              favorites={favorites}
+              date={date}
+              meal={quickMeal}
+              onManage={() => setManageOpen(true)}
+            />
+          </div>
+        </section>
+      )}
+
       {items.length === 0 && (
         <div className="mt-3 rounded-3xl bg-card p-6 text-center">
           <Mascot pose="ready" size="md" className="mb-3" />
@@ -349,6 +373,15 @@ function MakanPage() {
                     onEdit={() => setEditItem(item)}
                     onDelete={() => removeFood(item)}
                     onShare={() => setShareItem(item)}
+                    favorite={favorites.isFoodSaved(item)}
+                    onFavorite={() => favorites.toggleFood(item)}
+                  />
+                )}
+                plateAction={(plate, rows) => (
+                  <FavoritStar
+                    active={favorites.isPlateSaved(plate, rows)}
+                    label={`piring ${plate.name}`}
+                    onToggle={() => favorites.togglePlate(plate, rows)}
                   />
                 )}
               />
@@ -369,12 +402,19 @@ function MakanPage() {
           isToday={isToday}
           slots={slots}
           recent={recent.data?.items ?? []}
+          favorites={favorites}
+          onManage={() => {
+            setSheetMeal(null);
+            setManageOpen(true);
+          }}
           addPending={add.isPending}
           onAdd={(input) => add.mutateAsync(input)}
           onShowDate={showDate}
           onClose={() => setSheetMeal(null)}
         />
       )}
+
+      {manageOpen && <FavoritManageSheet favorites={favorites} onClose={() => setManageOpen(false)} />}
 
       {ceritaOpen && (
         <Sheet
@@ -422,11 +462,15 @@ function FoodRow({
   onEdit,
   onDelete,
   onShare,
+  favorite,
+  onFavorite,
 }: {
   item: FoodItem;
   onEdit: () => void;
   onDelete: () => void;
   onShare: () => void;
+  favorite: boolean;
+  onFavorite: () => void;
 }) {
   const hasMacros = [item.protein, item.carbs, item.fat, item.fiber].some((g) => (g ?? 0) > 0);
   const macros = hasMacros ? (
@@ -488,6 +532,7 @@ function FoodRow({
       }
       trailing={
         <>
+          <FavoritStar active={favorite} label={item.name} onToggle={onFavorite} />
           <Button
             variant="ghost"
             size="icon-sm"
@@ -524,6 +569,8 @@ function AddFoodSheet({
   isToday,
   slots,
   recent,
+  favorites,
+  onManage,
   addPending,
   onAdd,
   onShowDate,
@@ -534,6 +581,8 @@ function AddFoodSheet({
   isToday: boolean;
   slots: Meal[];
   recent: FoodRecentItem[];
+  favorites: Favorites;
+  onManage: () => void;
   addPending: boolean;
   onAdd: (input: FoodAddInput) => Promise<unknown>;
   onShowDate: (date: string) => void;
@@ -615,6 +664,18 @@ function AddFoodSheet({
           onSaved={onClose}
           onShowDate={onShowDate}
         />
+
+        {ceritaPhase === "input" && favorites.items.length > 0 && (
+          <div>
+            <p className="text-sm font-bold">Favorit</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Tap untuk langsung masuk ke {label}.
+            </p>
+            <div className="mt-3">
+              <FavoritChips favorites={favorites} date={date} meal={meal} onManage={onManage} />
+            </div>
+          </div>
+        )}
 
         {ceritaPhase === "input" && recent.length > 0 && (
           <div>
@@ -760,6 +821,28 @@ function AddFoodSheet({
               <span className="block text-sm font-bold">Pindai pakai foto</span>
               <span className="block text-xs text-muted-foreground">
                 AI hitung kalorinya, kamu cek dulu.
+              </span>
+            </span>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+          </Link>
+        )}
+
+        {ceritaPhase === "input" && (
+          <Link
+            to="/makan/barcode"
+            search={{ ...(isToday ? {} : { date }), meal }}
+            className="flex items-center gap-3 rounded-2xl bg-muted p-4 transition-colors hover:bg-border focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+          >
+            <span
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-card"
+              aria-hidden
+            >
+              <ScanBarcode className="size-5 text-makan-ink" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold">Pindai barcode kemasan</span>
+              <span className="block text-xs text-muted-foreground">
+                Ambil angka gizi dari Open Food Facts.
               </span>
             </span>
             <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />

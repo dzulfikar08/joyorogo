@@ -532,6 +532,21 @@ export default function MakanAi() {
           <>
             <View style={styles.shutterRow}>
               <Text style={styles.shutterHint}>Potret piringmu, AI hitung kalorinya</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Pindai barcode kemasan"
+                onPress={() =>
+                  router.replace(
+                    scanDate
+                      ? { pathname: "/makan-barcode", params: { date: scanDate } }
+                      : "/makan-barcode",
+                  )
+                }
+                style={({ pressed }) => [styles.barcodeLink, pressed && styles.shutterPressed]}
+              >
+                <Ionicons name="barcode-outline" size={18} color="#FFFFFF" />
+                <Text style={styles.barcodeLinkText}>Pindai barcode kemasan</Text>
+              </Pressable>
               <View style={styles.shutterActions}>
                 <Pressable
                   accessibilityRole="button"
@@ -1001,6 +1016,20 @@ const styles = StyleSheet.create((theme) => ({
     paddingVertical: 8,
     borderRadius: theme.radius.pill,
     overflow: "hidden",
+  },
+  barcodeLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 16,
+    borderRadius: theme.radius.pill,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  barcodeLinkText: {
+    color: "#FFFFFF",
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
   },
   shutterOuter: {
     width: 78,

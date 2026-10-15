@@ -107,10 +107,13 @@ export function PlateDiary<T extends Item & FoodRowFields>({
   items,
   date,
   renderRow,
+  plateAction,
 }: {
   items: T[];
   date: string;
   renderRow: (item: T) => ReactNode;
+  /** Extra header control (the Favorit star) rendered next to the edit pencil. */
+  plateAction?: (plate: PlateRow, rows: T[]) => ReactNode;
 }) {
   const plates = useQuery(orpc.plate.byDate.queryOptions({ input: { date } }));
   const byId = new Map((plates.data ?? []).map((plate) => [plate.id, plate]));
@@ -158,6 +161,7 @@ export function PlateDiary<T extends Item & FoodRowFields>({
                   <span className="shrink-0 font-bold tabular-nums">
                     {plate.priceIdr != null ? fmtRupiah(plate.priceIdr) : "Tanpa harga"}
                   </span>
+                  {plateAction?.(plate, group.items)}
                   <Button
                     variant="ghost"
                     size="icon-sm"

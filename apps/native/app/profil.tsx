@@ -34,6 +34,7 @@ import { BudgetSetting } from "@/components/plate/budget-setting";
 import { TargetDateSheet, TargetWeightSheet } from "@/components/target-sheets";
 import { StravaCard } from "@/components/strava-card";
 import { FastingSettingsCard } from "@/components/fasting/settings-card";
+import { RemindersCard } from "@/components/reminders/reminders-card";
 import { FeedSettingsCard } from "@/components/feed/settings";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
@@ -44,12 +45,7 @@ import {
 } from "@/src/lib/apk-update";
 import { isHealthSyncSupported, syncHealthData } from "@/src/lib/health-sync";
 import { backfillNutritionToHealth, isNutritionMirrorSupported } from "@/src/lib/health-nutrition";
-import {
-  loadReminderPrefs,
-  setMealReminders,
-  setWeighInReminder,
-  teardownReminders,
-} from "@/src/lib/notifications";
+import { teardownReminders } from "@/src/lib/notifications";
 import { saveThemePref } from "@/src/lib/theme-pref";
 import { errorMessage, fmtDateId, fmtKcal, fmtKg, fmtMb } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
@@ -529,7 +525,7 @@ export default function Profil() {
       )}
 
       {/* Pengingat */}
-      <RemindersList />
+      <RemindersCard />
 
       {/* Tampilan */}
       <AppearanceList />
@@ -948,57 +944,6 @@ function PrivacyList({ keepPhotos }: { keepPhotos: boolean }) {
           setKeepOff({ id: "keep-photos" });
         }}
       />
-    </Card>
-  );
-}
-
-function RemindersList() {
-  const { theme } = useUnistyles();
-  const [meals, setMeals] = useState(false);
-  const [weighIn, setWeighIn] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const prefs = await loadReminderPrefs();
-      if (cancelled) return;
-      setMeals(prefs.meals);
-      setWeighIn(prefs.weighIn);
-      // Reschedule on mount so saved choices keep firing after reboots.
-      if (prefs.meals) setMeals(await setMealReminders(true));
-      if (prefs.weighIn) setWeighIn(await setWeighInReminder(true));
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return (
-    <Card>
-      <Text style={styles.cardTitle}>Pengingat</Text>
-      <View style={styles.switchRow}>
-        <Text style={styles.rowTitle}>Pengingat makan</Text>
-        <Switch
-          value={meals}
-          onValueChange={(value) => void setMealReminders(value).then(setMeals)}
-          trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
-          thumbColor={theme.colors.background}
-          accessibilityLabel="Pengingat makan (09:00 / 13:00 / 19:00)"
-        />
-      </View>
-      <View style={styles.switchRow}>
-        <Text style={styles.rowTitle}>Timbang pagi 07:00</Text>
-        <Switch
-          value={weighIn}
-          onValueChange={(value) => void setWeighInReminder(value).then(setWeighIn)}
-          trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
-          thumbColor={theme.colors.background}
-          accessibilityLabel="Pengingat timbang pagi 07:00"
-        />
-      </View>
-      <Text style={styles.note}>
-        Selama pengingat aktif, notifikasi harian muncul di jam yang tertera.
-      </Text>
     </Card>
   );
 }

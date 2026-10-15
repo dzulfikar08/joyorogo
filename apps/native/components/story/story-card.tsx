@@ -15,6 +15,7 @@ import Svg, {
 import { LogoMark } from "@/components/logo-mark";
 import { lightTheme as brandTheme } from "@/theme";
 import { MACRO_META } from "@/utils/macro-icons";
+import { ON_TARGET_TOLERANCE, type RecapShare } from "@joyorogo/api/lib/recap";
 
 /**
  * 1080x1920 story cards rendered as plain views. The share sheet mounts them
@@ -107,7 +108,14 @@ export type ProgressStory = {
   date?: Date;
 };
 
-export type StorySpec = MealStory | WorkoutStory | ProgressStory;
+/** Weekly recap; numbers come from stats.weekRecap through recapShare. */
+export type RecapStory = RecapShare & {
+  kind: "recap";
+  eyebrow?: string;
+  date?: Date;
+};
+
+export type StorySpec = MealStory | WorkoutStory | ProgressStory | RecapStory;
 
 export const STORY_TEMPLATES: Array<{
   id: StoryTemplate;
@@ -159,6 +167,7 @@ export function storyShowsPhoto(
 const EYEBROWS = {
   meal: "Makan hari ini",
   workout: "Sesi latihan",
+  recap: "Rekap minggu",
   progress: "Progres hari ini",
 } as const;
 
@@ -391,6 +400,71 @@ function progressCells(story: ProgressStory): Cell[] {
   return cells;
 }
 
+/** Recap grid, two rows of three; a stat without data is skipped. */
+function recapCells(story: RecapStory): Cell[] {
+  const cells: Cell[] = [
+    {
+      icon: "check-circle-outline",
+      color: ACCENT,
+      label: "Sesuai target",
+      value: `${story.daysOnTarget}`,
+      unit: "hari",
+      sub: `dari ${story.loggedDays} tercatat`,
+    },
+  ];
+  if (story.proteinAvgG != null) {
+    cells.push({
+      icon: MACRO_META.protein.icon,
+      color: MACRO_TONE.protein,
+      label: MACRO_META.protein.label,
+      value: intFmt(story.proteinAvgG),
+      unit: "g",
+      sub: story.proteinTargetG ? `target ${intFmt(story.proteinTargetG)} g` : undefined,
+    });
+  }
+  if (story.streakDays > 0) {
+    cells.push({
+      icon: "fire",
+      color: AMBER,
+      label: "Beruntun",
+      value: `${story.streakDays}`,
+      unit: "hari",
+    });
+  }
+  if (story.exerciseKcal > 0) {
+    cells.push({
+      icon: "dumbbell",
+      color: ACCENT,
+      label: "Olahraga",
+      value: intFmt(story.exerciseKcal),
+      unit: "kcal",
+      sub: story.exerciseMin > 0 ? `${intFmt(story.exerciseMin)} menit` : undefined,
+    });
+  }
+  if (story.weightChangeKg != null) {
+    const change = story.weightChangeKg;
+    cells.push({
+      icon: change < 0 ? "trending-down" : change > 0 ? "trending-up" : "minus",
+      color: ACCENT,
+      label: "Berat",
+      value: `${change > 0 ? "+" : ""}${idFmt.format(change)}`,
+      unit: "kg",
+      sub: "tren mingguan",
+    });
+  }
+  if (story.bestDay) {
+    cells.push({
+      icon: "trophy",
+      color: AMBER,
+      label: "Hari terbaik",
+      value: story.bestDay.label,
+      unit: "",
+      sub: `${intFmt(story.bestDay.kcal)} kcal`,
+    });
+  }
+  return cells;
+}
+
 /** Trend delta over the sorted weigh-ins, or null without 2+ points. */
 function weekTrend(story: ProgressStory) {
   const trend = [...(story.weekTrend ?? [])].sort((a, b) => a.date.localeCompare(b.date));
@@ -495,13 +569,28 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
     cells = mealCells(story);
   } else if (story.kind === "workout") {
     ({ hero, cells } = workoutMetrics(story));
-  } else {
+  } else if (story.kind === "progress") {
     hero = { value: intFmt(story.eatenKcal), unit: "kcal" };
     cells = progressCells(story);
+  } else {
+    hero = { value: intFmt(story.avgKcal), unit: "kcal", label: "Rata-rata per hari" };
+    cells = recapCells(story);
   }
-  const pct =
-    story.kind === "progress" && story.targetKcal > 0 ? story.eatenKcal / story.targetKcal : 0;
-  const pctColor = pct > 1 ? OVER : pct >= 0.9 ? AMBER : ACCENT;
+  const barKcal =
+    story.kind === "progress" ? story.eatenKcal : story.kind === "recap" ? story.avgKcal : 0;
+  const hasBar = story.kind === "progress" || story.kind === "recap";
+  const pct = hasBar && story.targetKcal > 0 ? barKcal / story.targetKcal : 0;
+  // A recap average is judged like a day: within tolerance of the target is on target.
+  const pctColor =
+    story.kind === "recap"
+      ? pct > ON_TARGET_TOLERANCE
+        ? OVER
+        : ACCENT
+      : pct > 1
+        ? OVER
+        : pct >= 0.9
+          ? AMBER
+          : ACCENT;
   const trend = card && story.kind === "progress" ? weekTrend(story) : null;
 
   return (
@@ -531,7 +620,7 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
             />
           </View>
         ) : null}
-        {story.kind === "workout" && hero?.label ? (
+        {(story.kind === "workout" || story.kind === "recap") && hero?.label ? (
           <View style={{ marginTop: px(4) }}>
             <Txt size={32} weight={600} color="soft" lh={38} lines={1}>
               {hero.label}
@@ -547,7 +636,7 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
           </View>
         ) : null}
 
-        {story.kind === "progress" ? (
+        {story.kind === "progress" || story.kind === "recap" ? (
           <>
             <View style={styles.track}>
               <View
@@ -559,7 +648,7 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
             </View>
             <View style={styles.captionRow}>
               <Txt size={36} weight={600} color="soft" lh={46} lines={1}>
-                {`dari ${intFmt(story.targetKcal)} kcal`}
+                {`dari ${intFmt(story.targetKcal)} kcal${story.kind === "recap" ? " target" : ""}`}
               </Txt>
               <Txt size={36} weight={800} color={pctColor === ACCENT ? WHITE : pctColor} lh={46}>
                 {`${Math.round(pct * 100)}%`}
@@ -572,8 +661,12 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
           <>
             <View style={[styles.rule, { backgroundColor: tone.rule }]} />
             <View style={styles.grid}>
-              {cells.map((cell) => (
-                <GridCell key={cell.label} cell={cell} />
+              {Array.from({ length: Math.ceil(cells.length / 3) }, (_, rowIndex) => (
+                <View key={rowIndex} style={[styles.gridRow, rowIndex > 0 && styles.gridRowNext]}>
+                  {cells.slice(rowIndex * 3, rowIndex * 3 + 3).map((cell) => (
+                    <GridCell key={cell.label} cell={cell} />
+                  ))}
+                </View>
               ))}
             </View>
           </>
@@ -916,7 +1009,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   rule: { height: px(2), marginTop: px(40) },
-  grid: { flexDirection: "row", alignItems: "flex-start", marginTop: px(34) },
+  grid: { marginTop: px(34) },
+  gridRow: { flexDirection: "row", alignItems: "flex-start" },
+  gridRowNext: { marginTop: px(40) },
   prHeader: { flexDirection: "row", alignItems: "center", height: px(48), marginTop: px(44) },
   prItem: { height: px(86) },
   prLine: { flexDirection: "row", alignItems: "center" },

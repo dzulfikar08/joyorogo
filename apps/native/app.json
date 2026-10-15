@@ -53,10 +53,18 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Izinkan kamera untuk memotret makananmu dan menghitung kalorinya."
+          "cameraPermission": "Izinkan kamera untuk memotret makananmu, menghitung kalorinya, dan memindai barcode kemasan.",
+          "barcodeScannerEnabled": true
         }
       ],
       "react-native-health-connect",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#137D41"
+        }
+      ],
       [
         "expo-splash-screen",
         {

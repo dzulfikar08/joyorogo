@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Bell, Scale, Sparkles, Tag, Users } from "lucide-react";
+import { Bell, CalendarCheck, Scale, Sparkles, Tag, Users } from "lucide-react";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 
 import { Avatar } from "@/components/avatar";
@@ -75,6 +75,16 @@ function LainnyaPage() {
           }
           title="Berat"
           subtitle="Berat badan, lingkar perut, dan tren"
+        />
+        <ListLinkRow
+          to="/rekap"
+          icon={
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-primary/10">
+              <CalendarCheck className="size-5 text-primary" aria-hidden />
+            </span>
+          }
+          title="Rekap mingguan"
+          subtitle="Ringkasan makan, olahraga, dan berat per minggu"
         />
         <ListLinkRow
           to="/grup"

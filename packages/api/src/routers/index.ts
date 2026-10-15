@@ -4,6 +4,7 @@ import { protectedProcedure, publicProcedure } from "../index";
 import { activityRouter } from "./activity";
 import { aiRouter } from "./ai";
 import { avatarRouter } from "./avatar";
+import { barcodeRouter } from "./barcode";
 import { dayRouter } from "./day";
 import { exerciseRouter } from "./exercise";
 import { fastingRouter } from "./fasting";
@@ -12,8 +13,10 @@ import { groupRouter } from "./group";
 import { plateRouter } from "./plate";
 import { profileRouter } from "./profile";
 import { privacyRouter } from "./privacy";
+import { savedFoodRouter } from "./saved-food";
 import { sleepRouter } from "./sleep";
 import { socialRouter } from "./social";
+import { statsRouter } from "./stats";
 import { stravaRouter } from "./strava";
 import { waterRouter } from "./water";
 import { waistRouter } from "./waist";
@@ -48,6 +51,9 @@ export const appRouter = {
   plate: plateRouter,
   group: groupRouter,
   social: socialRouter,
+  stats: statsRouter,
+  savedFood: savedFoodRouter,
+  barcode: barcodeRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

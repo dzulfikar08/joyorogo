@@ -20,6 +20,7 @@ import { pickFact } from "@joyorogo/api/lib/facts";
 
 import { BelanjaCompact } from "@/components/plate/belanja";
 import { DaySwitcher } from "@/components/day-switcher";
+import { RecapCard } from "@/components/recap-card";
 import { useAppConfig } from "@/components/billing";
 import { FoodSticker, StickerViewer, stickerUrl } from "@/components/sticker";
 import type { StickerViewerTarget } from "@/components/sticker";
@@ -295,6 +296,9 @@ export default function Dashboard() {
 
       {/* Day switcher */}
       <DaySwitcher date={date} onChange={setDate} />
+
+      {/* Monday only: recap of the week that just ended */}
+      {isToday ? <RecapCard /> : null}
 
       {/* Founder banner: kuota gratis vs Founder, ketuk Upgrade → paywall */}
       {showFounderBanner && configData ? (

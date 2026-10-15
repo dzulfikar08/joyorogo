@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, View } from "react-native";
 import { useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { jakartaToday } from "@joyorogo/api/lib/engine";
@@ -33,6 +34,7 @@ export function PlateHeader({
   onEdit,
   onSave,
   saving,
+  action,
 }: {
   plate: PlateInfo & { date: string };
   /** Component totals summed by the diary, shown in the bar. */
@@ -45,6 +47,8 @@ export function PlateHeader({
   onEdit: (next: PlateEdit) => void;
   onSave: (id: string, name: string, price: string, date?: string) => void;
   saving: boolean;
+  /** Extra header control (the Favorit star) next to the edit pencil. */
+  action?: ReactNode;
 }) {
   const { theme } = useUnistyles();
   const [pickingDate, setPickingDate] = useState(false);
@@ -77,6 +81,7 @@ export function PlateHeader({
           {plate.priceIdr !== null ? (
             <Text style={styles.price}>{fmtIdr(plate.priceIdr)}</Text>
           ) : null}
+          {action}
           <Ionicons name="pencil" size={12} color={theme.colors.mutedForeground} />
         </View>
         {kcal > 0 ? (

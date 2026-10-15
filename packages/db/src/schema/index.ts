@@ -3,3 +3,5 @@ export * from "./fitness";
 export * from "./billing";
 export * from "./plans";
 export * from "./social";
+export * from "./saved-foods";
+export * from "./barcode";

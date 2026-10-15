@@ -55,6 +55,7 @@ import { errorMessage, fmtDateId, fmtKcal, parseNum } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import type { QueryKey } from "@tanstack/react-query";
+import { FavoritChips, FavoritManageSheet, FavoritStar, useFavorites } from "@/components/favorit";
 import type { SummaryDelta } from "@joyorogo/api/lib/optimistic";
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
@@ -88,6 +89,8 @@ export default function Makan() {
     placeholderData: (prev) => prev,
   });
   const recentQuery = useQuery(orpc.food.recent.queryOptions());
+  const favorites = useFavorites();
+  const [manageOpen, setManageOpen] = useState(false);
   // Plate prices for the diary's plate grouping (plate.byDate) and inline edit.
   const plateDayQuery = useQuery({
     ...orpc.plate.byDate.queryOptions({ input: { date } }),
@@ -543,6 +546,21 @@ export default function Makan() {
                           });
                         }}
                         saving={updatePlate.isPending}
+                        action={
+                          <FavoritStar
+                            active={favorites.isPlateSaved(
+                              { id: plateRow.id, name: plateRow.name, place: plateRow.place },
+                              segment.rows,
+                            )}
+                            label={`piring ${plateRow.name}`}
+                            onToggle={() =>
+                              favorites.togglePlate(
+                                { id: plateRow.id, name: plateRow.name, place: plateRow.place },
+                                segment.rows,
+                              )
+                            }
+                          />
+                        }
                       />
                     ) : null}
                     {segment.rows.map((item) => (
@@ -600,6 +618,11 @@ export default function Makan() {
                         }
                         right={
                           <View style={styles.rowActions}>
+                            <FavoritStar
+                              active={favorites.isFoodSaved(item)}
+                              label={item.name}
+                              onToggle={() => favorites.toggleFood(item)}
+                            />
                             <Pressable
                               accessibilityRole="button"
                               accessibilityLabel={`Bagikan ${item.name} ke feed`}
@@ -747,6 +770,21 @@ export default function Makan() {
         </View>
       ) : null}
 
+      {favorites.items.length > 0 ? (
+        <Card style={styles.favCard}>
+          <Text style={styles.recentLabel}>
+            Favorit · tap untuk catat ke {MEAL_LABELS[suggestMealNow(new Date(), ramadan)]}
+            {isToday ? "" : `, ${fmtDateId(date)}`}
+          </Text>
+          <FavoritChips
+            favorites={favorites}
+            date={date}
+            meal={suggestMealNow(new Date(), ramadan)}
+            onManage={() => setManageOpen(true)}
+          />
+        </Card>
+      ) : null}
+
       {items.length === 0 ? (
         <EmptyState
           pose="ready"
@@ -799,6 +837,20 @@ export default function Makan() {
             onChange={(value) => setSheetMeal(value)}
           />
         ) : null}
+        {ceritaPhase === "input" && sheetMeal !== null && favorites.items.length > 0 ? (
+          <View style={styles.recentBox}>
+            <Text style={styles.recentLabel}>Favorit · tap untuk masuk ke {MEAL_LABELS[sheetMeal]}</Text>
+            <FavoritChips
+              favorites={favorites}
+              date={date}
+              meal={sheetMeal}
+              onManage={() => {
+                closeSheet();
+                setManageOpen(true);
+              }}
+            />
+          </View>
+        ) : null}
         {ceritaPhase === "input" && recentQuery.data && recentQuery.data.items.length > 0 ? (
           <View style={styles.recentBox}>
             <Text style={styles.recentLabel}>Catat cepat</Text>
@@ -842,6 +894,30 @@ export default function Makan() {
             <View style={styles.ceritaTexts}>
               <Text style={styles.photoTitle}>Pindai pakai foto</Text>
               <Text style={styles.ceritaSub}>AI hitung kalorinya, kamu cek dulu.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.mutedForeground} />
+          </Pressable>
+        ) : null}
+        {ceritaPhase === "input" ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Pindai barcode kemasan"
+            onPress={() => {
+              const meal = sheetMeal;
+              closeSheet();
+              router.push({
+                pathname: "/makan-barcode",
+                params: { ...(isToday ? {} : { date }), ...(meal ? { meal } : {}) },
+              });
+            }}
+            style={({ pressed }) => [styles.photoLink, pressed && styles.pressedSoft]}
+          >
+            <View style={styles.photoIcon}>
+              <Ionicons name="barcode-outline" size={20} color={theme.colors.makanText} />
+            </View>
+            <View style={styles.ceritaTexts}>
+              <Text style={styles.photoTitle}>Pindai barcode kemasan</Text>
+              <Text style={styles.ceritaSub}>Ambil angka gizi dari Open Food Facts.</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.colors.mutedForeground} />
           </Pressable>
@@ -924,6 +1000,11 @@ export default function Makan() {
           </View>
         ) : null}
       </Sheet>
+      <FavoritManageSheet
+        visible={manageOpen}
+        favorites={favorites}
+        onClose={() => setManageOpen(false)}
+      />
       {editRow ? (
         <FoodPortionSheet key={editRow.id} row={editRow} onClose={() => setEditRow(null)} />
       ) : null}
@@ -1043,6 +1124,9 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     justifyContent: "center",
     marginRight: -12,
+  },
+  favCard: {
+    gap: theme.spacing.sm,
   },
   recentBox: {
     gap: theme.spacing.sm,

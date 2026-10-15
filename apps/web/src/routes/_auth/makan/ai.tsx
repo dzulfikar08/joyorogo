@@ -6,6 +6,7 @@ import {
   Loader2,
   Mic,
   RefreshCw,
+  ScanBarcode,
   ShieldCheck,
   ThumbsUp,
   TriangleAlert,
@@ -1025,6 +1026,20 @@ function AiFoodPage() {
           </span>
         </span>
         <Mic className="size-5 shrink-0 text-primary" aria-hidden />
+      </Link>
+
+      <Link
+        to="/makan/barcode"
+        search={scanDate ? { date: scanDate } : {}}
+        className="mt-3 flex min-h-14 items-center gap-3 rounded-3xl bg-card px-5 py-3 transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-bold">Makanan kemasan?</span>
+          <span className="block text-sm text-muted-foreground">
+            Pindai barcode-nya, angka gizi diambil dari Open Food Facts.
+          </span>
+        </span>
+        <ScanBarcode className="size-5 shrink-0 text-primary" aria-hidden />
       </Link>
     </Page>
   );

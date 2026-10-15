@@ -27,6 +27,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { UnistylesRuntime, useUnistyles } from "react-native-unistyles";
 
 import { authClient } from "@/lib/auth-client";
+import { ReminderSync } from "@/components/reminders/reminder-sync";
 import { ToastProvider } from "@/components/toast";
 import { useApkUpdate } from "@/src/lib/apk-update";
 import { loadThemePref } from "@/src/lib/theme-pref";
@@ -109,6 +110,7 @@ export default function RootLayout() {
               keyboard position, Android edge-to-edge included. */}
           <KeyboardProvider>
           <ToastProvider>
+          <ReminderSync />
           {/* Follows the app theme (which can override the OS), not the OS. */}
           <StatusBar style={navTheme.dark ? "light" : "dark"} />
           <Stack
@@ -132,6 +134,10 @@ export default function RootLayout() {
             <Stack.Screen
               name="makan-ai"
               options={{ title: "Foto Makanan", presentation: "modal", headerShown: false }}
+            />
+            <Stack.Screen
+              name="makan-barcode"
+              options={{ title: "Pindai Barcode", presentation: "modal", headerShown: false }}
             />
             <Stack.Screen
               name="founder"

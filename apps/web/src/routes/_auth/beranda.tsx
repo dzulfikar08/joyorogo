@@ -19,6 +19,7 @@ import { FastingScheduleCard } from "@/components/fasting/schedule-card";
 import MovementCard from "@/components/movement-card";
 import { BelanjaCard } from "@/components/plate/belanja";
 import { ScreenError } from "@/components/screen-state";
+import { RecapCard } from "@/components/recap-card";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { Sticker } from "@/components/sticker";
 import { WaterCard } from "@/components/water-card";
@@ -186,6 +187,12 @@ function Dashboard({
       <div className="mb-3 flex justify-center lg:justify-start">
         <DaySwitcher date={date} onChange={onChange} />
       </div>
+
+      {isToday ? (
+        <div className="mb-3 empty:hidden">
+          <RecapCard />
+        </div>
+      ) : null}
 
       {/* minmax(0, …) tracks: the scrollable ideas row inside EatHero must
           scroll, not widen its column past the phone screen. Rows are pinned

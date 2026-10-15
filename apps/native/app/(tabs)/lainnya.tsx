@@ -62,6 +62,14 @@ export default function Lainnya() {
           onPress={() => router.push("/berat")}
         />
         <ListRow
+          icon="calendar"
+          iconTint="makan"
+          title="Rekap mingguan"
+          subtitle="Ringkasan makan, olahraga, dan berat per minggu"
+          chevron
+          onPress={() => router.push("/rekap")}
+        />
+        <ListRow
           icon="people"
           iconTint="makan"
           title="Grup"

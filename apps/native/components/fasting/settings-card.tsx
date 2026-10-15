@@ -13,6 +13,7 @@ import {
 } from "@joyorogo/api/lib/fasting";
 
 import { Card, Input, Segmented, Text } from "@/components/ui";
+import { useNotificationGate } from "@/components/reminders/permission-sheet";
 import { setFastingReminders, type FastingReminder } from "@/src/lib/notifications";
 import { errorMessage } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
@@ -59,6 +60,7 @@ export function FastingSettingsCard() {
   const { theme } = useUnistyles();
   const settings = useQuery(orpc.fasting.settings.queryOptions());
   const today = useQuery(orpc.fasting.today.queryOptions({ input: {} }));
+  const gate = useNotificationGate();
   const [windowText, setWindowText] = useState<string | null>(null);
 
   // Reschedule once on mount so the saved schedule keeps firing after
@@ -122,6 +124,11 @@ export function FastingSettingsCard() {
       commit({ notify: false });
       return;
     }
+    // Styled pre-prompt first; the system dialog only follows a yes.
+    if (enabled && !(await gate.ensure())) {
+      commit({ notify: false });
+      return;
+    }
     const reminders = enabled
       ? buildNativeReminders(data.pattern as FastingPattern, data.windowStart, remaining)
       : null;
@@ -178,6 +185,7 @@ export function FastingSettingsCard() {
           : `${FASTING_LABELS[data.pattern]}: notifikasi muncul saat jendela buka, waktu makan, dan 30 menit sebelum tutup.`}
       </Text>
       {save.isError ? <Text style={styles.error}>{errorMessage(save.error)}</Text> : null}
+      {gate.sheet}
     </Card>
   );
 }

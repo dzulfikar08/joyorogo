@@ -1,0 +1,68 @@
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { CalendarCheck, ChevronRight } from "lucide-react";
+
+import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
+import { weekRangeLabel, weekStartOf } from "@joyorogo/api/lib/recap";
+
+import { fmtInt } from "@/lib/format";
+import { orpc } from "@/utils/orpc";
+
+/**
+ * "Rekap minggu ini" on Beranda: only on Monday (WIB), summarizing the week
+ * that just ended. The full recap lives at /rekap and stays reachable from Lainnya.
+ */
+export function RecapCard() {
+  const today = jakartaToday();
+  const isMonday = weekStartOf(today) === today;
+  const weekStart = shiftDate(today, -7);
+  const recap = useQuery({
+    ...orpc.stats.weekRecap.queryOptions({ input: { weekStart } }),
+    enabled: isMonday,
+  });
+  const data = recap.data;
+  if (!isMonday || !data || data.avgKcal === null) return null;
+
+  return (
+    <Link
+      to="/rekap"
+      search={{ week: weekStart }}
+      className="pressable block rounded-3xl bg-card p-5 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+    >
+      <div className="flex items-center gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10">
+          <CalendarCheck className="size-5 text-primary" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-bold tracking-tight">Rekap minggu ini</h2>
+          <p className="text-sm text-muted-foreground">
+            Minggu lalu, {weekRangeLabel(weekStart)}
+          </p>
+        </div>
+        <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+      </div>
+      <dl className="mt-4 grid grid-cols-2 gap-3">
+        <div className="rounded-2xl bg-muted/60 px-4 py-3">
+          <dt className="text-xs font-semibold text-muted-foreground">Rata-rata per hari</dt>
+          <dd className="mt-0.5 text-xl font-extrabold tracking-tight tabular-nums">
+            {fmtInt(data.avgKcal)}
+            <span className="ml-1 text-sm font-semibold text-muted-foreground">kcal</span>
+          </dd>
+          <dd className="text-xs text-muted-foreground tabular-nums">
+            target {fmtInt(data.targetKcal)}
+          </dd>
+        </div>
+        <div className="rounded-2xl bg-muted/60 px-4 py-3">
+          <dt className="text-xs font-semibold text-muted-foreground">Sesuai target</dt>
+          <dd className="mt-0.5 text-xl font-extrabold tracking-tight tabular-nums">
+            {data.daysOnTarget}
+            <span className="ml-1 text-sm font-semibold text-muted-foreground">hari</span>
+          </dd>
+          <dd className="text-xs text-muted-foreground tabular-nums">
+            dari {data.loggedDays} hari tercatat
+          </dd>
+        </div>
+      </dl>
+    </Link>
+  );
+}

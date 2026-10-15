@@ -124,3 +124,13 @@ export type FeedPost = FeedOutput["items"][number];
 export type SocialNotificationItem = SocialNotificationsOutput["items"][number];
 export type PostCommentItem = SocialCommentsOutput["items"][number];
 export type PublicProfileData = PublicProfileOutput;
+
+type SavedFoodListOutput = Awaited<ReturnType<AppRouterClient["savedFood"]["list"]>>;
+
+/** One Favorit (saved food or plate) with its parsed components. */
+export type SavedFood = SavedFoodListOutput["items"][number];
+
+type SavedFoodRelogOutput = Awaited<ReturnType<AppRouterClient["savedFood"]["relog"]>>;
+
+/** savedFood.relog output: the new diary rows and the plate they were grouped under, if any. */
+export type SavedFoodRelog = SavedFoodRelogOutput;

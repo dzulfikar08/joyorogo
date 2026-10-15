@@ -545,6 +545,9 @@ function ProfilContent({
       <SectionTitle className="mt-7">Puasa Intermiten</SectionTitle>
       <FastingSettingsSection />
 
+      <SectionTitle className="mt-7">Pengingat</SectionTitle>
+      <AppRemindersNote />
+
       <SectionTitle className="mt-7">Belanja makan</SectionTitle>
       <BudgetSetting />
 
@@ -949,6 +952,24 @@ function StravaSection() {
         onClick={() => authorize()}
       />
     </ListGroup>
+  );
+}
+
+/**
+ * Meal/water/weigh-in reminders are scheduled on the phone (local
+ * notifications) and are not stored on the server, so the web has nothing to
+ * sync. Only the IF reminders above also reach the browser via Web Push.
+ */
+function AppRemindersNote() {
+  return (
+    <Card>
+      <p className="px-1 text-sm leading-relaxed text-muted-foreground">
+        Pengingat catat makan, minum air, dan timbang ada di aplikasi Android dan iOS: buka Profil
+        di aplikasi, lalu atur jam tiap pengingat di bagian Pengingat. Pengingat itu tersimpan di
+        ponselmu, bukan di akun, jadi tidak muncul di web. Notifikasi puasa intermiten di atas
+        tetap bisa dinyalakan di browser.
+      </p>
+    </Card>
   );
 }
 

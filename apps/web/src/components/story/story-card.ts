@@ -1,3 +1,5 @@
+import { ON_TARGET_TOLERANCE, type RecapShare } from "@joyorogo/api/lib/recap";
+
 import { MACRO_META } from "@/lib/macro-icons";
 import { photoUrl, stickerUrl } from "@/components/sticker";
 
@@ -123,7 +125,14 @@ export type ProgressStory = {
   date?: Date;
 };
 
-export type StorySpec = MealStory | WorkoutStory | ProgressStory;
+/** Weekly recap; numbers come from stats.weekRecap through recapShare. */
+export type RecapStory = RecapShare & {
+  kind: "recap";
+  eyebrow?: string;
+  date?: Date;
+};
+
+export type StorySpec = MealStory | WorkoutStory | ProgressStory | RecapStory;
 
 /** A resolved story photo. A cutout has a transparent background. */
 export type StoryPhoto = { src: string; cutout: boolean };
@@ -188,6 +197,9 @@ const ICON_PATHS = {
     "M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z",
     "M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3",
   ],
+  check: ["M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0", "m9 12 2 2 4-4"],
+  trendingUp: ["M16 7h6v6", "m22 7-8.5 8.5-5-5L2 17"],
+  minus: ["M5 12h14"],
   trendingDown: ["M16 17h6v-6", "m22 17-8.5-8.5-5 5L2 7"],
 } as const satisfies Record<string, readonly string[]>;
 
@@ -393,6 +405,7 @@ function drawContain(
 const EYEBROWS = {
   meal: "Makan hari ini",
   workout: "Sesi latihan",
+  recap: "Rekap minggu",
   progress: "Progres hari ini",
 } as const;
 
@@ -510,6 +523,71 @@ function mealCells(story: MealStory): Cell[] {
   return cells;
 }
 
+/** Recap grid, two rows of three; a stat without data is skipped. */
+function recapCells(story: RecapStory): Cell[] {
+  const cells: Cell[] = [
+    {
+      icon: "check",
+      color: ACCENT,
+      label: "Sesuai target",
+      value: `${story.daysOnTarget}`,
+      unit: "hari",
+      sub: `dari ${story.loggedDays} tercatat`,
+    },
+  ];
+  if (story.proteinAvgG != null) {
+    cells.push({
+      icon: "protein",
+      color: MACRO_ICON.protein.color,
+      label: MACRO_META.protein.label,
+      value: intFmt(story.proteinAvgG),
+      unit: "g",
+      sub: story.proteinTargetG ? `target ${intFmt(story.proteinTargetG)} g` : undefined,
+    });
+  }
+  if (story.streakDays > 0) {
+    cells.push({
+      icon: "flame",
+      color: AMBER,
+      label: "Beruntun",
+      value: `${story.streakDays}`,
+      unit: "hari",
+    });
+  }
+  if (story.exerciseKcal > 0) {
+    cells.push({
+      icon: "dumbbell",
+      color: ACCENT,
+      label: "Olahraga",
+      value: intFmt(story.exerciseKcal),
+      unit: "kcal",
+      sub: story.exerciseMin > 0 ? `${intFmt(story.exerciseMin)} menit` : undefined,
+    });
+  }
+  if (story.weightChangeKg != null) {
+    const change = story.weightChangeKg;
+    cells.push({
+      icon: change < 0 ? "trendingDown" : change > 0 ? "trendingUp" : "minus",
+      color: ACCENT,
+      label: "Berat",
+      value: `${change > 0 ? "+" : ""}${idFmt.format(change)}`,
+      unit: "kg",
+      sub: "tren mingguan",
+    });
+  }
+  if (story.bestDay) {
+    cells.push({
+      icon: "trophy",
+      color: AMBER,
+      label: "Hari terbaik",
+      value: story.bestDay.label,
+      unit: "",
+      sub: `${intFmt(story.bestDay.kcal)} kcal`,
+    });
+  }
+  return cells;
+}
+
 /** Trend delta over the sorted weigh-ins, or null without 2+ points. */
 function weekTrend(story: ProgressStory) {
   const trend = [...(story.weekTrend ?? [])].sort((a, b) => a.date.localeCompare(b.date));
@@ -609,9 +687,12 @@ function layoutStats(
     const metrics = workoutMetrics(story);
     hero = metrics.hero;
     cells = metrics.cells;
-  } else {
+  } else if (story.kind === "progress") {
     hero = { value: intFmt(story.eatenKcal), unit: "kcal" };
     cells = progressCells(story);
+  } else {
+    hero = { value: intFmt(story.avgKcal), unit: "kcal", label: "Rata-rata per hari" };
+    cells = recapCells(story);
   }
   if (hero) {
     const size = heroSize(hero.value);
@@ -628,7 +709,7 @@ function layoutStats(
           textOnBaseline(unit, 700, 52, soft, x + width + 20, baselineIn(top, lh, size));
         }),
     });
-    if (hero.label && story.kind === "workout") {
+    if (hero.label && (story.kind === "workout" || story.kind === "recap")) {
       const label = hero.label;
       rows.push({
         gap: 4,
@@ -649,9 +730,20 @@ function layoutStats(
     });
   }
 
-  if (story.kind === "progress") {
-    const pct = story.targetKcal > 0 ? story.eatenKcal / story.targetKcal : 0;
-    const color = pct > 1 ? OVER : pct >= 0.9 ? AMBER : ACCENT;
+  if (story.kind === "progress" || story.kind === "recap") {
+    const eaten = story.kind === "progress" ? story.eatenKcal : story.avgKcal;
+    const pct = story.targetKcal > 0 ? eaten / story.targetKcal : 0;
+    // A recap average is judged like a day: within tolerance of the target is on target.
+    const color =
+      story.kind === "recap"
+        ? pct > ON_TARGET_TOLERANCE
+          ? OVER
+          : ACCENT
+        : pct > 1
+          ? OVER
+          : pct >= 0.9
+            ? AMBER
+            : ACCENT;
     rows.push({
       gap: 28,
       height: 22,
@@ -669,7 +761,15 @@ function layoutStats(
       height: 46,
       paint: (top) =>
         withShadow(() => {
-          text(`dari ${intFmt(story.targetKcal)} kcal`, 600, 36, soft, x, top, 46);
+          text(
+            `dari ${intFmt(story.targetKcal)} kcal${story.kind === "recap" ? " target" : ""}`,
+            600,
+            36,
+            soft,
+            x,
+            top,
+            46,
+          );
           text(
             `${Math.round(pct * 100)}%`,
             800,
@@ -696,26 +796,29 @@ function layoutStats(
     });
     const valueLh = (cell: Cell) => Math.round(cellSize(cell.value) * 0.95);
     const cellH = (cell: Cell) => 44 + 8 + valueLh(cell) + (cell.sub ? 4 + 38 : 0);
-    rows.push({
-      gap: 34,
-      height: Math.max(...cells.map(cellH)),
-      paint: (top) =>
-        cells.forEach((cell, index) => {
-          const left = x + index * GRID_COL_W;
-          withShadow(() => {
-            drawIcon(ctx, cell.icon, left, top, 44, cell.color);
-            text(cell.label, 600, 32, soft, left + 56, top, 44);
-            const size = cellSize(cell.value);
-            const lh = valueLh(cell);
-            const vTop = top + 52;
-            text(cell.value, 800, size, WHITE, left, vTop, lh);
-            setFont(ctx, 800, size);
-            const width = ctx.measureText(cell.value).width;
-            textOnBaseline(cell.unit, 700, 36, soft, left + width + 8, baselineIn(vTop, lh, size));
-            if (cell.sub) text(cell.sub, 600, 30, muted, left, vTop + lh + 4, 38);
-          });
-        }),
-    });
+    for (let start = 0; start < cells.length; start += 3) {
+      const rowCells = cells.slice(start, start + 3);
+      rows.push({
+        gap: start === 0 ? 34 : 40,
+        height: Math.max(...rowCells.map(cellH)),
+        paint: (top) =>
+          rowCells.forEach((cell, index) => {
+            const left = x + index * GRID_COL_W;
+            withShadow(() => {
+              drawIcon(ctx, cell.icon, left, top, 44, cell.color);
+              text(cell.label, 600, 32, soft, left + 56, top, 44);
+              const size = cellSize(cell.value);
+              const lh = valueLh(cell);
+              const vTop = top + 52;
+              text(cell.value, 800, size, WHITE, left, vTop, lh);
+              setFont(ctx, 800, size);
+              const width = ctx.measureText(cell.value).width;
+              textOnBaseline(cell.unit, 700, 36, soft, left + width + 8, baselineIn(vTop, lh, size));
+              if (cell.sub) text(cell.sub, 600, 30, muted, left, vTop + lh + 4, 38);
+            });
+          }),
+      });
+    }
   }
 
   // Brand card extras: top 3 records (the cell above already shows the total).
@@ -1002,6 +1105,9 @@ export function defaultShareText(story: StorySpec): string {
   }
   if (story.kind === "workout") {
     return `Baru selesai latihan: ${story.name}. Catat latihanmu di JoyoRogo.`;
+  }
+  if (story.kind === "recap") {
+    return `Rekapku ${story.name}: ${story.daysOnTarget} dari ${story.loggedDays} hari sesuai target, rata-rata ${idFmt.format(story.avgKcal)} kcal per hari. Catat makanmu di JoyoRogo.`;
   }
   const lost = story.weightLostKg ?? 0;
   return lost > 0

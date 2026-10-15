@@ -18,9 +18,11 @@ import {
 import { plate, pushSubscription, workoutCustomExercise, workoutRoutine, workoutSession, workoutSet } from "@joyorogo/db/schema/plans";
 import { emailLog } from "@joyorogo/db/schema/billing";
 import { team, teamMember, teamNudge } from "@joyorogo/db/schema/social";
+import { savedFood } from "@joyorogo/db/schema/saved-foods";
 
 import { avatarPrefix } from "./avatar";
 import { photoPrefix, scanSrcPrefix, stickerKey, varPhotoPrefix } from "./sticker";
+import { parseSavedItems } from "./saved-foods";
 import type { StickersBucket } from "./sticker";
 
 /** Sticker keys of the user's diary; read BEFORE the rows are wiped. */
@@ -29,7 +31,12 @@ export async function userStickerKeys(db: Database, userId: string): Promise<str
     .select({ scanId: foodLog.scanId })
     .from(foodLog)
     .where(and(eq(foodLog.userId, userId), isNotNull(foodLog.scanId)));
-  return rows.flatMap((row) => (row.scanId ? [stickerKey(row.scanId)] : []));
+  const saved = await db
+    .select({ itemsJson: savedFood.itemsJson })
+    .from(savedFood)
+    .where(eq(savedFood.userId, userId));
+  const savedIds = saved.flatMap((row) => parseSavedItems(row.itemsJson).flatMap((i) => (i.scanId ? [i.scanId] : [])));
+  return [...rows.flatMap((row) => (row.scanId ? [row.scanId] : [])), ...savedIds].map(stickerKey);
 }
 
 /**
@@ -74,6 +81,7 @@ export function deleteAllUserData(db: Database, userId: string) {
     db.delete(workoutCustomExercise).where(eq(workoutCustomExercise.userId, userId)),
     db.delete(workoutRoutine).where(eq(workoutRoutine.userId, userId)),
     db.delete(plate).where(eq(plate.userId, userId)),
+    db.delete(savedFood).where(eq(savedFood.userId, userId)),
     db.delete(pushSubscription).where(eq(pushSubscription.userId, userId)),
     db.delete(profile).where(eq(profile.userId, userId)),
     db.delete(weightLog).where(eq(weightLog.userId, userId)),
