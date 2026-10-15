@@ -28,7 +28,7 @@ export const Route = createFileRoute("/harga")({
 
 /**
  * Features that are NOT gated (verified: the gated ones are the daily AI scan
- * quota in packages/api ai.ts and day.readinessGuidance). Every package gets these.
+ * quota in packages/api ai.ts, day.readinessGuidance and the JoyoFit cloud worker via fitness.cloudAccess). Every package gets these.
  */
 function sharedFeatures(config: AppConfig): string[] {
   return [
@@ -46,6 +46,7 @@ function founderFeatures(config: AppConfig): string[] {
   return [
     founderScans(config),
     "Saran makan dari skor JoyoFit",
+    "Cadangan cloud JoyoFit (langkah, detak jantung, tidur, latihan dari jam)",
     "Badge founder di profilmu",
     "Harga terkunci saat perpanjang",
   ];
@@ -179,7 +180,7 @@ function pricingFaq(config: AppConfig): Array<{ q: string; a: string }> {
   return [
     {
       q: "Gratisnya sampai kapan?",
-      a: `Selamanya. Diary, tren berat, lingkar perut, grup, dan latihan bebas dipakai tanpa bayar. Yang dibatasi cuma scan AI (${config.freeDailyScans} foto atau cerita per hari) dan saran makan dari skor JoyoFit.`,
+      a: `Selamanya. Diary, tren berat, lingkar perut, grup, dan latihan bebas dipakai tanpa bayar. Yang dibatasi cuma scan AI (${config.freeDailyScans} foto atau cerita per hari), saran makan dari skor JoyoFit, dan cadangan cloud JoyoFit. JoyoFit sendiri tetap gratis dipakai di HP, tanpa akun.`,
     },
     {
       q: "Apakah ini langganan otomatis?",
@@ -252,10 +253,16 @@ function HargaPage() {
           <header className="mx-auto max-w-md text-center">
             <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">Harga</h1>
             {config.data?.paywall && (
-              <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
-                Mulai gratis, selamanya. Founder menambah jatah scan AI untuk hari-hari yang butuh
-                lebih dari {config.data.freeDailyScans} kali, plus saran makan dari skor JoyoFit.
-              </p>
+              <>
+                <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
+                  Mulai gratis, selamanya. Founder menambah jatah scan AI untuk hari-hari yang butuh
+                  lebih dari {config.data.freeDailyScans} kali, plus saran makan dari skor JoyoFit dan
+                  cadangan cloud JoyoFit.
+                </p>
+                <p className="mt-2 text-[0.9375rem] font-semibold leading-relaxed">
+                  Founder mencakup JoyoRogo + JoyoFit.
+                </p>
+              </>
             )}
           </header>
         </div>
@@ -473,6 +480,7 @@ function HargaPage() {
                     <CompareRow key={feature} feature={feature} free founder />
                   ))}
                   <CompareRow feature="Saran makan dari skor JoyoFit" free={false} founder />
+                  <CompareRow feature="Cadangan cloud JoyoFit" free={false} founder />
                   <CompareRow feature="Badge founder di profil" free={false} founder />
                 </tbody>
               </table>

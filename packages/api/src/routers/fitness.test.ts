@@ -22,13 +22,17 @@ for (const file of readdirSync(migrationsDir)
 }
 await client.executeMultiple(`
   INSERT INTO "user" (id, name, email) VALUES ('u1', 'u1', 'u1@test.id'), ('u2', 'u2', 'u2@test.id');
+  INSERT INTO "user" (id, name, email, tier, founder_until) VALUES
+    ('comp', 'comp', 'comp@test.id', 'founder', NULL),
+    ('paid', 'paid', 'paid@test.id', 'free', ${Date.now() + 86_400_000}),
+    ('lapsed', 'lapsed', 'lapsed@test.id', 'free', ${Date.now() - 86_400_000});
 `);
 
 const db = drizzle(client) as unknown as Database;
-const ctx = (userId: string) =>
+const ctx = (userId: string, env: Context["env"] = {}) =>
   ({
     db,
-    env: {},
+    env,
     waitUntil: () => {},
     session: { user: { id: userId } },
   }) as unknown as Context;
@@ -81,5 +85,20 @@ describe("fitness router", () => {
     await expect(bad([{ date: shiftDate(today, 5), strain: 5 }])).rejects.toThrow();
     await expect(bad([{ date: "2026-13-45", strain: 5 }])).rejects.toThrow();
     await expect(bad([])).rejects.toThrow();
+  });
+
+  test("cloudAccess: Founder (comp or paid period) is unlocked, free is locked behind a paywall", async () => {
+    const paywalled = { FREE_DAILY_SCANS: "3" } as Context["env"];
+    const access = (userId: string, env?: Context["env"]) =>
+      call(fitnessRouter.cloudAccess, undefined, { context: ctx(userId, env) });
+    expect(await access("comp", paywalled)).toEqual({ unlocked: true, tier: "founder" });
+    expect(await access("paid", paywalled)).toEqual({ unlocked: true, tier: "founder" });
+    expect(await access("u1", paywalled)).toEqual({ unlocked: false, tier: "free" });
+    expect(await access("lapsed", paywalled)).toEqual({ unlocked: false, tier: "free" });
+  });
+
+  test("cloudAccess: everyone is unlocked when the server has no paywall", async () => {
+    const out = await call(fitnessRouter.cloudAccess, undefined, { context: ctx("u1") });
+    expect(out).toEqual({ unlocked: true, tier: "free" });
   });
 });

@@ -1,12 +1,15 @@
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
+import { user } from "@joyorogo/db/schema/auth";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 
 import { protectedProcedure } from "../index";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import { READINESS_LABELS } from "../lib/fitness-hint";
+import { premiumUnlocked } from "../lib/readiness-food";
 import { dateSchema } from "../lib/schemas";
+import { effectiveTier, paywallConfig } from "../lib/tiers";
 
 // JoyoFit pushes its last few days after every sync; 14 leaves room for a
 // phone that was offline for a while and still stays well under D1's limits.
@@ -30,6 +33,23 @@ const dayInput = z.object({
 });
 
 export const fitnessRouter = {
+  /**
+   * Whether this account may use the JoyoFit cloud backup: Founder, or anyone on a
+   * server without a paywall (premiumUnlocked). The JoyoFit cloud worker asks this
+   * with the user's own session cookie before it accepts an upload.
+   */
+  cloudAccess: protectedProcedure.handler(async ({ context }) => {
+    const [row] = await context.db
+      .select({ tier: user.tier, founderUntil: user.founderUntil })
+      .from(user)
+      .where(eq(user.id, context.session.user.id))
+      .limit(1);
+    return {
+      unlocked: premiumUnlocked(row, paywallConfig(context.env)),
+      tier: effectiveTier(row),
+    };
+  }),
+
   /**
    * Stores a batch of JoyoFit days. A score left out (or null) keeps whatever is
    * already stored for that day, so a past day pushed with strain only never

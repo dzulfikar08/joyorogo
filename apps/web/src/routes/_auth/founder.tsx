@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_auth/founder")({
       !search.next.startsWith("//")
         ? search.next
         : undefined,
-    from: (["onboarding", "quota", "banner", "profile", "fitness", "challenge"] as const).find(
+    from: (["onboarding", "quota", "banner", "profile", "fitness", "challenge", "joyofit"] as const).find(
       (value) => search.from === value,
     ),
   }),
@@ -44,6 +44,7 @@ const SUBHEAD: Record<PaywallFrom, string> = {
   profile: "Dukung pengembangan JoyoRogo dan dapatkan jatah scan AI yang jauh lebih besar.",
   fitness: "Dapat saran porsi dan menu harian dari skor JoyoFit, targetmu, dan makanan yang kamu catat.",
   challenge: "Founder yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis.",
+  joyofit: "Cadangan cloud JoyoFit termasuk di Founder, satu paket dengan JoyoRogo.",
 };
 
 /** "Cara bayar" — users keep asking how payment actually works. */
@@ -92,6 +93,9 @@ function FounderPage() {
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
           {SUBHEAD[from ?? "banner"]}
         </p>
+        <p className="mt-2 text-sm font-semibold leading-relaxed">
+          Founder mencakup JoyoRogo + JoyoFit.
+        </p>
         <Segmented
           label="Pilih masa Founder"
           className="mt-5"
@@ -127,6 +131,7 @@ function FounderPage() {
           {[
             founderScans(config.data),
             "Saran makan dari skor JoyoFit",
+            "Cadangan cloud JoyoFit: langkah, detak jantung, tidur, dan latihan dari jam",
             "Badge founder di profilmu",
             "Dukung pengembangan JoyoRogo",
           ].map((feature) => (
