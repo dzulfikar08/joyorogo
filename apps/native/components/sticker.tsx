@@ -26,21 +26,12 @@ function photoUrl(photoId: string): string {
 /** Cutouts are made in the background after saving: retry briefly, then give up. */
 const RETRY_DELAYS_MS = [3000, 6000, 12000];
 
-const OUTLINE_OFFSETS = [
-  [1.5, 0],
-  [-1.5, 0],
-  [0, 1.5],
-  [0, -1.5],
-  [1.1, 1.1],
-  [-1.1, 1.1],
-  [1.1, -1.1],
-  [-1.1, -1.1],
-] as const;
-
 /**
  * Die-cut sticker: the cutout drawn over white-tinted copies (outline) and a
  * soft dark copy (shadow). Tinting the alpha mask works on iOS and Android,
- * where view shadows ignore the cutout's shape.
+ * where view shadows ignore the cutout's shape. The outline thickness and the
+ * padding that keeps it from being clipped scale with `size`, so a 128 px hero
+ * gets the same relative outline as a 56 px diary row.
  */
 function StickerImage({
   uri,
@@ -58,20 +49,48 @@ function StickerImage({
   onError?: () => void;
 }) {
   const source = { uri };
-  const box = { width: size, height: size };
+  const ring = Math.max(1.5, size * 0.03);
+  const pad = Math.ceil(ring * 1.8);
+  const inner = { width: size - pad * 2, height: size - pad * 2 };
+  const steps = size > 80 ? 16 : 8;
+  const offsets = Array.from({ length: steps }, (_, k) => {
+    const angle = (k * 2 * Math.PI) / steps;
+    return [Math.cos(angle) * ring, Math.sin(angle) * ring] as const;
+  });
   return (
-    <View style={[box, hidden ? styles.hidden : undefined]} pointerEvents="none">
+    <View
+      style={[{ width: size, height: size }, hidden ? styles.hidden : undefined]}
+      pointerEvents="none"
+    >
       <Image
         source={source}
         resizeMode="contain"
-        style={[styles.stickerLayer, box, { tintColor: "#000", opacity: 0.22, top: 2.5 }]}
+        style={[
+          styles.stickerLayer,
+          inner,
+          { tintColor: "#000", opacity: 0.22, left: pad, top: pad + ring * 1.6 },
+        ]}
       />
-      {OUTLINE_OFFSETS.map(([x, y]) => (
+      {size > 80
+        ? offsets.map(([x, y]) => (
+            <Image
+              key={`edge:${x}:${y}`}
+              source={source}
+              resizeMode="contain"
+              style={[
+                styles.stickerLayer,
+                inner,
+                { tintColor: "#000", opacity: 0.1, left: pad + x * 1.35, top: pad + y * 1.35 },
+              ]}
+            />
+          ))
+        : null}
+      {offsets.map(([x, y]) => (
         <Image
           key={`${x}:${y}`}
           source={source}
           resizeMode="contain"
-          style={[styles.stickerLayer, box, { tintColor: "#fff", left: x, top: y }]}
+          style={[styles.stickerLayer, inner, { tintColor: "#fff", left: pad + x, top: pad + y }]}
         />
       ))}
       <Image
@@ -79,7 +98,7 @@ function StickerImage({
         resizeMode="contain"
         onLoad={onLoad}
         onError={onError}
-        style={[styles.stickerLayer, box]}
+        style={[styles.stickerLayer, inner, { left: pad, top: pad }]}
         accessibilityLabel={name}
       />
     </View>
@@ -90,13 +109,25 @@ function StickerImage({
 export function StickerMini({
   scanId,
   size = 32,
+  name = "",
+  onLoad,
   onError,
 }: {
   scanId: string;
   size?: number;
+  name?: string;
+  onLoad?: () => void;
   onError?: () => void;
 }) {
-  return <StickerImage uri={stickerUrl(scanId)} size={size} name="" onError={onError} />;
+  return (
+    <StickerImage
+      uri={stickerUrl(scanId)}
+      size={size}
+      name={name}
+      onLoad={onLoad}
+      onError={onError}
+    />
+  );
 }
 
 /**

@@ -21,6 +21,7 @@ import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/f
 
 import { BelanjaSection } from "@/components/plate/belanja";
 import { PlateHeader } from "@/components/plate/plate-header";
+import { PlateEditSheet } from "@/components/plate/plate-edit-sheet";
 import { DaySwitcher } from "@/components/day-switcher";
 import { Cerita } from "@/components/cerita";
 import { FoodPortionSheet } from "@/components/food-portion-sheet";
@@ -55,7 +56,6 @@ import { client, orpc, queryClient } from "@/utils/orpc";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import type { QueryKey } from "@tanstack/react-query";
 import { FavoritChips, FavoritManageSheet, useFavorites } from "@/components/favorit";
-import { SheetActions } from "@/components/sheet-actions";
 import type { SummaryDelta } from "@joyorogo/api/lib/optimistic";
 import { FOOD_KIND_LABELS, foodKind, matchesKind } from "@joyorogo/api/lib/food-kind";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
@@ -149,7 +149,17 @@ export default function Makan() {
     name: string;
     place: string | null;
     priceIdr: number | null;
+    lat: number | null;
+    lng: number | null;
   };
+  /** Fields of a plate.update payload as they look in the cache. */
+  const plateFieldPatch = (input: Parameters<typeof client.plate.update>[0]) => ({
+    ...(input.name !== undefined ? { name: input.name } : {}),
+    ...(input.place !== undefined ? { place: input.place } : {}),
+    ...(input.priceIdr !== undefined ? { priceIdr: input.priceIdr } : {}),
+    ...(input.lat !== undefined ? { lat: input.lat } : {}),
+    ...(input.lng !== undefined ? { lng: input.lng } : {}),
+  });
   const foodListKey = orpc.food.listByDate.queryOptions({ input: { date } }).queryKey;
   const plateDayKey = orpc.plate.byDate.queryOptions({ input: { date } }).queryKey;
 
@@ -318,11 +328,7 @@ export default function Makan() {
         );
         cache.value<PlateRow[]>(newKey, (plates) => [
           ...(plates ?? []),
-          {
-            ...previous,
-            ...(input.name !== undefined ? { name: input.name } : {}),
-            date: moveDate,
-          },
+          { ...previous, ...plateFieldPatch(input), date: moveDate },
         ]);
         const rows = (
           queryClient.getQueryData<{ items: FoodRow[] }>(foodListKey)?.items ?? []
@@ -342,43 +348,32 @@ export default function Makan() {
       }
       cache.value<PlateRow[]>(plateDayKey, (plates) =>
         (plates ?? []).map((plate) =>
-          plate.id === input.id
-            ? {
-                ...plate,
-                name: input.name ?? plate.name,
-                priceIdr: input.priceIdr !== undefined ? input.priceIdr : plate.priceIdr,
-              }
-            : plate,
+          plate.id === input.id ? { ...plate, ...plateFieldPatch(input) } : plate,
         ),
       );
       return previous;
     },
     success: (input, _data, context) => {
       const previous = context ?? null;
-      setPlateEdit(null);
+      const restore = previous
+        ? {
+            id: input.id,
+            name: previous.name,
+            place: previous.place,
+            priceIdr: previous.priceIdr,
+            lat: previous.lat,
+            lng: previous.lng,
+          }
+        : null;
       if (input.date && previous && input.date !== previous.date) {
         return {
           message: `Dipindah ke ${relativeDayLabel(input.date, today)}`,
-          undo: () =>
-            void client.plate.update({
-              id: input.id,
-              name: previous.name,
-              priceIdr: previous.priceIdr,
-              date: previous.date,
-            }),
+          undo: () => void client.plate.update({ ...restore!, date: previous.date }),
         };
       }
       return {
         message: "Piring diperbarui",
-        undo:
-          previous === null
-            ? undefined
-            : () =>
-                void client.plate.update({
-                  id: input.id,
-                  name: previous.name,
-                  priceIdr: previous.priceIdr,
-                }),
+        undo: restore === null ? undefined : () => void client.plate.update(restore),
       };
     },
     invalidate: () => [orpc.plate.key(), orpc.food.key(), orpc.day.key(), orpc.diary.key()],
@@ -412,12 +407,12 @@ export default function Makan() {
   // Caret inside the manual price input, so backspacing a separator drops the
   // digit instead of letting the separator snap back.
   const priceCaret = useRef(0);
-  const [plateEdit, setPlateEdit] = useState<{
-    id: string;
-    name: string;
-    price: string;
-    date: string;
-  } | null>(null);
+  // Plate whose edit sheet is open; the sheet reads the live row from the cache.
+  const [plateEditId, setPlateEditId] = useState<string | null>(null);
+  const editPlate = plateEditId
+    ? ((plateDayQuery.data ?? []).find((row) => row.id === plateEditId) ?? null)
+    : null;
+  const editPlateRows = (listQuery.data?.items ?? []).filter((row) => row.plateId === plateEditId);
   const [formError, setFormError] = useState<string | null>(null);
   const [viewer, setViewer] = useState<StickerViewerTarget | null>(null);
   const [shareTarget, setShareTarget] = useState<null | {
@@ -630,47 +625,15 @@ export default function Makan() {
                   <View key={segment.plateId ?? `plain-${segmentIndex}`}>
                     {plateRow ? (
                       <PlateHeader
-                        plate={{
-                          id: plateRow.id,
-                          name: plateRow.name,
-                          priceIdr: plateRow.priceIdr,
-                          date: plateRow.date,
-                        }}
+                        name={plateRow.name}
+                        priceIdr={plateRow.priceIdr}
                         kcal={segmentKcal}
                         protein={sumMacro((item) => item.protein)}
                         carbs={sumMacro((item) => item.carbs)}
                         fat={sumMacro((item) => item.fat)}
                         fiber={sumMacro((item) => item.fiber)}
-                        edit={plateEdit}
-                        onEdit={setPlateEdit}
-                        onSave={(id, editName, price, moveDate) => {
-                          const priceNum = price.trim() === "" ? null : parseIdrInput(price);
-                          updatePlate.mutate({
-                            id,
-                            ...(editName.trim() !== "" ? { name: editName.trim() } : {}),
-                            ...(price.trim() === ""
-                              ? { priceIdr: null }
-                              : priceNum !== null && priceNum >= 0
-                                ? { priceIdr: priceNum }
-                                : {}),
-                            ...(moveDate ? { date: moveDate } : {}),
-                          });
-                        }}
-                        saving={updatePlate.isPending}
-                        action={
-                          <SheetActions
-                            favorite={favorites.isPlateSaved(
-                              { id: plateRow.id, name: plateRow.name, place: plateRow.place },
-                              segment.rows,
-                            )}
-                            onFavorite={() =>
-                              favorites.togglePlate(
-                                { id: plateRow.id, name: plateRow.name, place: plateRow.place },
-                                segment.rows,
-                              )
-                            }
-                          />
-                        }
+                        onEdit={() => setPlateEditId(plateRow.id)}
+                        disabled={updatePlate.isPending}
                       />
                     ) : null}
                     {segment.rows.map((item) => (
@@ -1150,6 +1113,27 @@ export default function Makan() {
             deleteFood(editRow);
             setEditRow(null);
           }}
+        />
+      ) : null}
+
+      {editPlate ? (
+        <PlateEditSheet
+          key={editPlate.id}
+          plate={{
+            id: editPlate.id,
+            name: editPlate.name,
+            place: editPlate.place,
+            priceIdr: editPlate.priceIdr,
+            date: editPlate.date,
+            lat: editPlate.lat,
+            lng: editPlate.lng,
+            scanId: editPlateRows.find((row) => row.scanId)?.scanId ?? null,
+          }}
+          saving={updatePlate.isPending}
+          favorite={favorites.isPlateSaved(editPlate, editPlateRows)}
+          onFavorite={() => favorites.togglePlate(editPlate, editPlateRows)}
+          onSave={(input) => updatePlate.mutate(input)}
+          onClose={() => setPlateEditId(null)}
         />
       ) : null}
 

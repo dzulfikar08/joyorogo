@@ -2,13 +2,17 @@ import { describe, expect, test } from "bun:test";
 
 import {
   SCAN_ID_RE,
+  claimBoxSticker,
   cropRect,
+  cutBoxSticker,
   makeBoxSticker,
   makeSticker,
+  markBoxPending,
   newScanId,
   pendingStickerKey,
   stickerKey,
   storeStickers,
+  waitBoxSticker,
   type ImagesBinding,
   type StickersBucket,
 } from "./sticker";
@@ -172,5 +176,86 @@ describe("makeBoxSticker / pendingStickerKey", () => {
       },
     } as unknown as ImagesBinding;
     expect(await makeBoxSticker(binding, new ArrayBuffer(8), [0, 0, 500, 500])).toBeNull();
+  });
+});
+
+/** In-memory R2 stand-in with metadata and prefix listing. */
+function ledgerBucket() {
+  const store = new Map<string, { customMetadata?: Record<string, string> }>();
+  const bucket = {
+    put: async (key: string, _v: unknown, options?: { customMetadata?: Record<string, string> }) => {
+      store.set(key, { customMetadata: options?.customMetadata });
+    },
+    get: async (key: string) => store.get(key) ?? null,
+    list: async ({ prefix }: { prefix: string }) => ({
+      objects: [...store.keys()].filter((key) => key.startsWith(prefix)).map((key) => ({ key })),
+      truncated: false,
+    }),
+  } as unknown as StickersBucket;
+  return { bucket, store };
+}
+
+describe("box sticker ledger", () => {
+  const PHOTO = "scan-src/u1/" + "p".repeat(32);
+  const BOX = [0, 0, 500, 500] as const;
+
+  test("first claim wins, then the box reports pending and later its sticker", async () => {
+    const { bucket } = ledgerBucket();
+    expect(await claimBoxSticker(bucket, PHOTO, BOX, 36)).toEqual({ kind: "claimed" });
+    expect(await claimBoxSticker(bucket, PHOTO, BOX, 36)).toEqual({
+      kind: "existing",
+      scanId: null,
+      pending: true,
+    });
+    const { binding } = recordingImages();
+    const id = await cutBoxSticker(binding, bucket, "u1", PHOTO, new ArrayBuffer(8), BOX);
+    expect(id).toMatch(SCAN_ID_RE);
+    expect(await claimBoxSticker(bucket, PHOTO, BOX, 36)).toEqual({
+      kind: "existing",
+      scanId: id,
+      pending: false,
+    });
+  });
+
+  test("a failed cut is remembered so the box is not cut again", async () => {
+    const { bucket } = ledgerBucket();
+    await claimBoxSticker(bucket, PHOTO, BOX, 36);
+    const { binding, trims } = recordingImages({ width: 40, height: 40 });
+    expect(await cutBoxSticker(binding, bucket, "u1", PHOTO, new ArrayBuffer(8), BOX)).toBeNull();
+    expect(trims).toHaveLength(0);
+    expect(await claimBoxSticker(bucket, PHOTO, BOX, 36)).toEqual({
+      kind: "existing",
+      scanId: null,
+      pending: false,
+    });
+  });
+
+  test("the per-photo cap stops new boxes but not known ones", async () => {
+    const { bucket } = ledgerBucket();
+    await claimBoxSticker(bucket, PHOTO, [0, 0, 100, 100], 2);
+    await claimBoxSticker(bucket, PHOTO, [0, 0, 200, 200], 2);
+    expect(await claimBoxSticker(bucket, PHOTO, [0, 0, 300, 300], 2)).toEqual({ kind: "capped" });
+    expect((await claimBoxSticker(bucket, PHOTO, [0, 0, 100, 100], 2)).kind).toBe("existing");
+  });
+
+  test("a stale pending claim is taken over", async () => {
+    const { bucket, store } = ledgerBucket();
+    await claimBoxSticker(bucket, PHOTO, BOX, 36);
+    for (const entry of store.values()) {
+      if (entry.customMetadata?.state === "pending") {
+        entry.customMetadata.at = String(Date.now() - 60_000);
+      }
+    }
+    expect(await claimBoxSticker(bucket, PHOTO, BOX, 36)).toEqual({ kind: "claimed" });
+  });
+
+  test("waitBoxSticker returns the id once the cut settles, null on timeout", async () => {
+    const { bucket } = ledgerBucket();
+    await markBoxPending(bucket, PHOTO, BOX);
+    expect(await waitBoxSticker(bucket, PHOTO, BOX, 50)).toBeNull();
+    const { binding } = recordingImages();
+    const waiting = waitBoxSticker(bucket, PHOTO, BOX, 5_000);
+    const id = await cutBoxSticker(binding, bucket, "u1", PHOTO, new ArrayBuffer(8), BOX);
+    expect(await waiting).toBe(id);
   });
 });

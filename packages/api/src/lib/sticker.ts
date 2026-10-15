@@ -198,6 +198,128 @@ export async function makeBoxSticker(
   return crop ? makeSticker(images, bytes, crop) : null;
 }
 
+type StickerBox = readonly [number, number, number, number];
+
+/**
+ * Per-photo ledger of cutouts, one marker object per box next to the scan
+ * photo (so it expires with it). A marker is `pending` while some request is
+ * cutting that box and `done` afterwards, with the sticker id (empty when the
+ * cut failed, so a hopeless box is never retried). It makes every cut
+ * idempotent per photo and bounds the paid Images calls.
+ */
+function boxMarkerPrefix(photoKey: string): string {
+  return `${photoKey}.stk/`;
+}
+
+function boxMarkerKey(photoKey: string, box: StickerBox): string {
+  return `${boxMarkerPrefix(photoKey)}${box.join("-")}`;
+}
+
+/** A pending claim older than this belongs to a worker that died. */
+const CLAIM_STALE_MS = 30_000;
+const POLL_MS = 400;
+
+/** Records that this request is about to cut `box` (no checks; fresh photos only). */
+export async function markBoxPending(
+  bucket: StickersBucket,
+  photoKey: string,
+  box: StickerBox,
+): Promise<void> {
+  await bucket.put(boxMarkerKey(photoKey, box), "", {
+    customMetadata: { state: "pending", at: String(Date.now()) },
+  });
+}
+
+export type BoxClaim =
+  | { kind: "claimed" }
+  | { kind: "existing"; scanId: string | null; pending: boolean }
+  | { kind: "capped" };
+
+/**
+ * Asks to cut `box` for this photo. `claimed` means the caller now owns the
+ * cut (pending marker written); `existing` means another request already did
+ * or is doing it; `capped` means the photo used up its `cap` cutouts.
+ */
+export async function claimBoxSticker(
+  bucket: StickersBucket,
+  photoKey: string,
+  box: StickerBox,
+  cap: number,
+): Promise<BoxClaim> {
+  const [marker, markers] = await Promise.all([
+    bucket.get(boxMarkerKey(photoKey, box)),
+    bucket.list({ prefix: boxMarkerPrefix(photoKey) }),
+  ]);
+  if (marker) {
+    const meta = marker.customMetadata ?? {};
+    if (meta.state !== "pending") return { kind: "existing", scanId: meta.scanId || null, pending: false };
+    if (Date.now() - Number(meta.at ?? 0) < CLAIM_STALE_MS) {
+      return { kind: "existing", scanId: null, pending: true };
+    }
+    // Stale claim: take it over; it is already counted against the cap.
+  } else if (markers.objects.length >= cap) {
+    return { kind: "capped" };
+  }
+  await markBoxPending(bucket, photoKey, box);
+  return { kind: "claimed" };
+}
+
+/**
+ * Cuts a claimed box, stores the sticker under the pending prefix and settles
+ * the marker. Returns the sticker id, or null (no bytes, unusable box, failed
+ * transform or write) — never throws.
+ */
+export async function cutBoxSticker(
+  images: ImagesBinding,
+  bucket: StickersBucket,
+  userId: string,
+  photoKey: string,
+  bytes: ArrayBuffer | null,
+  box: StickerBox,
+): Promise<string | null> {
+  let scanId: string | null = null;
+  try {
+    const png = bytes ? await makeBoxSticker(images, bytes, box) : null;
+    if (png) {
+      const id = newScanId();
+      await bucket.put(pendingStickerKey(id), png, {
+        httpMetadata: { contentType: "image/png" },
+        customMetadata: { userId },
+      });
+      scanId = id;
+    }
+  } catch {
+    scanId = null;
+  }
+  try {
+    await bucket.put(boxMarkerKey(photoKey, box), "", {
+      customMetadata: { state: "done", scanId: scanId ?? "" },
+    });
+  } catch {
+    // the claim goes stale and the box may be cut again
+  }
+  return scanId;
+}
+
+/** Polls the marker of a box another request is cutting; null on failure or timeout. */
+export async function waitBoxSticker(
+  bucket: StickersBucket,
+  photoKey: string,
+  box: StickerBox,
+  timeoutMs: number,
+): Promise<string | null> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const marker = await bucket.get(boxMarkerKey(photoKey, box));
+    const meta = marker?.customMetadata;
+    if (meta && meta.state !== "pending") return meta.scanId || null;
+    if (!marker || Date.now() >= deadline) return null;
+    const { promise, resolve } = Promise.withResolvers<void>();
+    setTimeout(resolve, POLL_MS);
+    await promise;
+  }
+}
+
 export function base64ToBytes(base64: string): ArrayBuffer {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);

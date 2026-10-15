@@ -225,7 +225,13 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
       db
         .select({ day: wibDay(aiUsage.createdAt), scans: sql<number>`count(*)` })
         .from(aiUsage)
-        .where(and(eq(aiUsage.userId, id), sql`${aiUsage.createdAt} >= ${Date.now() - 30 * DAY_MS}`))
+        .where(
+          and(
+            eq(aiUsage.userId, id),
+            ne(aiUsage.scanType, "failed"),
+            sql`${aiUsage.createdAt} >= ${Date.now() - 30 * DAY_MS}`,
+          ),
+        )
         .groupBy(wibDay(aiUsage.createdAt))
         .orderBy(wibDay(aiUsage.createdAt)),
       db

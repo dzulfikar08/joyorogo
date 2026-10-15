@@ -1,5 +1,5 @@
 import type { SendEmail } from "@cloudflare/workers-types";
-import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { and, eq, gt, isNotNull, lte, or, sql } from "drizzle-orm";
 
 import { emailLog, payment } from "@joyorogo/db/schema/billing";
 import { user } from "@joyorogo/db/schema/auth";
@@ -272,6 +272,24 @@ function expiredDraft(name: string): Draft {
 }
 
 /**
+ * Rows due a founder mail: tier='free' with a paid period that ends within 3
+ * days, or ended within the last day. Operators (not raw sql`` fragments) so
+ * drizzle encodes the Date through the column's integer-ms mapper — a Date
+ * interpolated in sql`` reaches D1 unencoded and D1 rejects the bind.
+ */
+export function founderEmailsDue(now: number) {
+  const day = 24 * 60 * 60 * 1000;
+  return and(
+    eq(user.tier, "free"),
+    isNotNull(user.founderUntil),
+    or(
+      and(gt(user.founderUntil, new Date(now)), lte(user.founderUntil, new Date(now + 3 * day))),
+      and(lte(user.founderUntil, new Date(now)), gt(user.founderUntil, new Date(now - day))),
+    ),
+  );
+}
+
+/**
  * Cron: founder expiry reminders. Paid founders (tier='free' — 'founder' rows
  * are manual comps) whose period ends within 3 days get one reminder, and a
  * single "sudah berakhir" mail on the day after expiry. UNIQUE(kind, ref)
@@ -281,18 +299,10 @@ function expiredDraft(name: string): Draft {
 export async function runFounderEmails(env: EmailEnv, db: Database): Promise<void> {
   if (!env.EMAIL || !env.EMAIL_FROM) return;
   const now = Date.now();
-  const day = 24 * 60 * 60 * 1000;
   const rows = await db
     .select({ id: user.id, name: user.name, email: user.email, founderUntil: user.founderUntil })
     .from(user)
-    .where(
-      and(
-        eq(user.tier, "free"),
-        isNotNull(user.founderUntil),
-        sql`(${user.founderUntil} > ${new Date(now)} and ${user.founderUntil} <= ${new Date(now + 3 * day)})
-          or (${user.founderUntil} <= ${new Date(now)} and ${user.founderUntil} > ${new Date(now - day)})`,
-      ),
-    )
+    .where(founderEmailsDue(now))
     .limit(50);
 
   let sends = 0;

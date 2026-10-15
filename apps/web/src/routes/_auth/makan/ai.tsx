@@ -3,6 +3,7 @@ import {
   Check,
   Drumstick,
   Images,
+  Lightbulb,
   Loader2,
   Mic,
   RefreshCw,
@@ -20,6 +21,8 @@ import { toast } from "sonner";
 
 import { MEAL_LABELS, effectiveRamadan, slotsFor, suggestMealNow } from "@joyorogo/api/lib/engine";
 import { randomFact } from "@joyorogo/api/lib/facts";
+import { SCAN_FAIL_COPY, TOO_MANY_PARTIAL_MESSAGE, scanFailReason } from "@joyorogo/api/lib/scan-errors";
+import type { ScanFailReason } from "@joyorogo/api/lib/scan-errors";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { scalePortion } from "@joyorogo/api/lib/portion";
@@ -248,6 +251,10 @@ function AiFoodPage() {
   );
   const [meal, setMeal] = useState<Meal>(suggestMealNow(new Date(), ramadan));
   const [error, setError] = useState<string | null>(null);
+  const [errorReason, setErrorReason] = useState<ScanFailReason | null>(null);
+  // The photo held more food than fit: the result keeps the most prominent
+  // items and shows guidance until the user keeps them or reshoots.
+  const [tooMany, setTooMany] = useState(false);
   const [fact] = useState(() => randomFact());
   const [saving, setSaving] = useState(false);
   // This scan used the free user's last quota of today: show the (skippable)
@@ -384,6 +391,7 @@ function AiFoodPage() {
 
   const pickFile = async (file: File | undefined) => {
     setError(null);
+    setErrorReason(null);
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       setError("File itu bukan gambar. Pilih foto makanan (JPG/PNG/WebP).");
@@ -427,6 +435,7 @@ function AiFoodPage() {
       setImage(image);
       applyItems(result.items);
       setQuotaReached(result.quotaReached);
+      setTooMany(result.tooMany);
       setPhotoId(result.photoId ?? null);
       setRetriesLeft(result.retriesLeft ?? 0);
       setRetryHint("");
@@ -489,6 +498,7 @@ function AiFoodPage() {
         return;
       }
       setError(err instanceof Error ? err.message : "Gagal menganalisis foto. Coba lagi.");
+      setErrorReason(scanFailReason(err));
       setPhase("idle");
     }
   };
@@ -555,6 +565,8 @@ function AiFoodPage() {
     setPlatePlace("");
     setPlatePrice("");
     setError(null);
+    setErrorReason(null);
+    setTooMany(false);
     setPhotoId(null);
     setRetriesLeft(0);
     setRetryHint("");
@@ -627,6 +639,7 @@ function AiFoodPage() {
       setRetryHint("");
       setModel(result.model ?? model);
       setRetryCount((count) => count + 1);
+      setTooMany(result.tooMany);
     } catch (err) {
       setRetryError(err instanceof Error ? err.message : "Gagal menghitung ulang. Coba lagi.");
     } finally {
@@ -836,6 +849,26 @@ function AiFoodPage() {
                 )}
               </ul>
             )}
+          </Card>
+        )}
+
+        {tooMany && (
+          <Card className="mt-3" role="status">
+            <span className="flex size-9 items-center justify-center rounded-full bg-makan-soft">
+              <TriangleAlert className="size-[1.125rem] text-makan-ink" aria-hidden />
+            </span>
+            <p className="mt-3 text-[0.9375rem] font-bold">{SCAN_FAIL_COPY.too_many.title}</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              {TOO_MANY_PARTIAL_MESSAGE}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => setTooMany(false)}>
+                Pakai {items.length} item ini
+              </Button>
+              <Button variant="secondary" size="sm" onClick={reset}>
+                Foto ulang
+              </Button>
+            </div>
           </Card>
         )}
 
@@ -1236,18 +1269,33 @@ function AiFoodPage() {
       />
 
       {error && (
-        <div className="rounded-3xl bg-card p-5" role="alert">
-          <p className="text-sm font-bold text-destructive">Gagal menganalisis foto</p>
-          <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+        <Card role="alert">
+          <span className="flex size-9 items-center justify-center rounded-full bg-destructive/10">
+            <TriangleAlert className="size-[1.125rem] text-destructive" aria-hidden />
+          </span>
+          <p className="mt-3 text-[0.9375rem] font-bold">
+            {SCAN_FAIL_COPY[errorReason ?? "failed"].title}
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{error}</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => galleryInputRef.current?.click()}>
-              Coba foto lain
+            <Button size="sm" onClick={() => cameraInputRef.current?.click()}>
+              Foto ulang
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setError(null)}>
+            <Button variant="secondary" size="sm" onClick={() => galleryInputRef.current?.click()}>
+              Pilih dari galeri
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setError(null);
+                setErrorReason(null);
+              }}
+            >
               Tutup
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       <Card className={cn("flex flex-col items-center p-8 text-center", error && "mt-3")}>
@@ -1261,6 +1309,9 @@ function AiFoodPage() {
         <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-muted-foreground">
           AI mengenali masakan Indonesia dan menghitung kalorinya. Kamu bisa koreksi dulu sebelum
           disimpan.
+        </p>
+        <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-makan-soft px-3.5 py-1.5 text-sm font-semibold text-makan-ink">
+          <Lightbulb className="size-4 shrink-0" aria-hidden />1 piring per foto, dari dekat
         </p>
         <div className="mt-6 flex w-full flex-col gap-2 sm:flex-row sm:w-auto">
           <label className={cn(buttonVariants(), "w-full cursor-pointer sm:w-auto")}>

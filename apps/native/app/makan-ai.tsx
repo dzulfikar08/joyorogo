@@ -27,6 +27,7 @@ import { foodKind } from "@joyorogo/api/lib/food-kind";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { scalePortion } from "@joyorogo/api/lib/portion";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
+import { SCAN_FAIL_COPY, TOO_MANY_PARTIAL_MESSAGE, scanFailTitle } from "@joyorogo/api/lib/scan-errors";
 
 import {
   BootLoader,
@@ -50,7 +51,7 @@ import type { MealStory } from "@/components/story/story-card";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, parseNum } from "@/utils/format";
 import { client, isPaywallError, orpc, queryClient } from "@/utils/orpc";
-import { stickerUrl } from "@/components/sticker";
+import { StickerMini } from "@/components/sticker";
 
 type AnalyzedItem = {
   name: string;
@@ -138,31 +139,38 @@ const ANALYZE_STAGES = [
 ] as const;
 const STAGE_MS = 2500;
 
-/** Crop tile: pulsing placeholder until the crop lands, then a fade-in. */
+/**
+ * Result tile: pulsing placeholder, then the plain rectangular crop, then the
+ * real outlined sticker (the shared StickerMini look) fading in over it.
+ */
 function CropSlot({
   uri,
-  stickerUri,
+  stickerId,
+  size,
   style,
   label,
 }: {
   uri: string | null | undefined;
-  /** Real background-removed cutout; fades in over the crop once loaded. */
-  stickerUri?: string;
+  /** Scan id of the real background-removed cutout, once it exists. */
+  stickerId?: string;
+  size: number;
   style: StyleProp<ViewStyle>;
   label: string;
 }) {
   const pulse = useRef(new Animated.Value(0.08)).current;
   const fade = useRef(new Animated.Value(0)).current;
   const stickerFade = useRef(new Animated.Value(0)).current;
+  const [stickerReady, setStickerReady] = useState(false);
   // Crop opacity = its own fade-in x (1 - sticker fade-in).
   const cropOpacity = useRef(
     Animated.multiply(fade, Animated.subtract(1, stickerFade)),
   ).current;
   useEffect(() => {
     stickerFade.setValue(0);
-  }, [stickerUri, stickerFade]);
+    setStickerReady(false);
+  }, [stickerId, stickerFade]);
   useEffect(() => {
-    if (uri || stickerUri) return;
+    if (uri || stickerId) return;
     let loop: Animated.CompositeAnimation | null = null;
     let cancelled = false;
     void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
@@ -179,9 +187,11 @@ function CropSlot({
       cancelled = true;
       loop?.stop();
     };
-  }, [uri, stickerUri, pulse]);
+  }, [uri, stickerId, pulse]);
   return (
-    <View style={[style, styles.cropSlot]}>
+    // The tile's muted backdrop goes once the sticker shows: the cutout sits
+    // on the card like everywhere else, outline and shadow included.
+    <View style={[style, styles.cropSlot, stickerReady && styles.cropSlotSticker]}>
       {uri ? (
         <Animated.Image
           source={{ uri }}
@@ -191,23 +201,25 @@ function CropSlot({
             Animated.timing(fade, { toValue: 1, duration: 220, useNativeDriver: true }).start()
           }
         />
-      ) : stickerUri ? null : (
+      ) : stickerId ? null : (
         <Animated.View style={[styles.cropFill, styles.cropShimmer, { opacity: pulse }]} />
       )}
-      {stickerUri ? (
-        <Animated.Image
-          source={{ uri: stickerUri }}
-          resizeMode="contain"
-          style={[styles.cropFill, { opacity: stickerFade }]}
-          accessibilityLabel={uri ? undefined : label}
-          onLoad={() =>
-            Animated.timing(stickerFade, {
-              toValue: 1,
-              duration: 300,
-              useNativeDriver: true,
-            }).start()
-          }
-        />
+      {stickerId ? (
+        <Animated.View style={[styles.cropFill, { opacity: stickerFade }]}>
+          <StickerMini
+            scanId={stickerId}
+            size={size}
+            name={uri ? "" : label}
+            onLoad={() => {
+              setStickerReady(true);
+              Animated.timing(stickerFade, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+              }).start();
+            }}
+          />
+        </Animated.View>
       ) : null}
     </View>
   );
@@ -281,6 +293,9 @@ export default function MakanAi() {
   const MEAL_KEYS = ALL_MEAL_KEYS.filter((key) => slotsFor(ramadan).includes(key));
   const [meal, setMeal] = useState<Meal>(() => suggestMealNow(new Date(), ramadan));
   const [flowError, setFlowError] = useState<string | null>(null);
+  // The photo held more food than fit: the result keeps the most prominent
+  // items and shows guidance until the user keeps them or reshoots.
+  const [tooMany, setTooMany] = useState(false);
 
   const analyze = useMutation(orpc.ai.analyzeFood.mutationOptions());
   const retry = useMutation(orpc.ai.analyzeFoodRetry.mutationOptions());
@@ -332,6 +347,7 @@ export default function MakanAi() {
 
   const resetToCamera = () => {
     setFlowError(null);
+    setTooMany(false);
     setQuotaReached(false);
     setItems([]);
     setDrafts([]);
@@ -471,6 +487,7 @@ export default function MakanAi() {
       setRetryHint("");
       setRetryCount(0);
       setModel(result.model ?? null);
+      setTooMany(result.tooMany);
       setAskFeedback(result.askFeedback ?? false);
       setFeedbackAnswered(false);
       setFeedbackRating(null);
@@ -617,6 +634,7 @@ export default function MakanAi() {
       setRetryHint("");
       setModel(result.model ?? model);
       setRetryCount((count) => count + 1);
+      setTooMany(result.tooMany);
       // Re-cut the per-item tiles from the same sent image, in the background.
       if (sentImage) {
         cutCrops(sentImage.uri, sentImage.width, sentImage.height, result.items);
@@ -740,6 +758,8 @@ export default function MakanAi() {
     setFullPortion(null);
   };
 
+  const flowErrorTitle = flowError ? scanFailTitle(flowError) : null;
+
   // ---- Camera phase (full-bleed, no card layout) ----
   if (phase === "camera") {
     if (!permission.granted) {
@@ -787,6 +807,7 @@ export default function MakanAi() {
           <>
             <View style={styles.shutterRow}>
               <Text style={styles.shutterHint}>Potret piringmu, AI hitung kalorinya</Text>
+              <Text style={styles.shutterTip}>1 piring per foto, dari dekat</Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Pindai barcode kemasan"
@@ -831,6 +852,9 @@ export default function MakanAi() {
             </View>
             {flowError ? (
               <View style={styles.cameraError}>
+                {flowErrorTitle ? (
+                  <Text style={styles.cameraErrorTitle}>{flowErrorTitle}</Text>
+                ) : null}
                 <Text style={styles.cameraErrorText}>{flowError}</Text>
                 <View style={styles.cameraErrorActions}>
                   <Pressable
@@ -906,6 +930,28 @@ export default function MakanAi() {
               </Text>
             ) : null}
           </View>
+
+          {tooMany ? (
+            <View style={styles.feedbackCard}>
+              <View style={styles.flexOne}>
+                <Text style={styles.feedbackTitle}>{SCAN_FAIL_COPY.too_many.title}</Text>
+                <Text style={styles.feedbackSubtitle}>{TOO_MANY_PARTIAL_MESSAGE}</Text>
+              </View>
+              <View style={styles.feedbackRow}>
+                <Button
+                  size="sm"
+                  label={`Pakai ${items.length} item ini`}
+                  onPress={() => setTooMany(false)}
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  label="Foto ulang"
+                  onPress={resetToCamera}
+                />
+              </View>
+            </View>
+          ) : null}
 
           {/* Penilaian hasil: selalu bisa dilewati, tidak pernah blokir simpan */}
           {askFeedback && !feedbackAnswered && photoId ? (
@@ -1017,7 +1063,8 @@ export default function MakanAi() {
                         <View key={`crop-${item.name}-${index}`} style={styles.cropTile}>
                           <CropSlot
                             uri={crops[index]}
-                            stickerUri={stickers[index] ? stickerUrl(stickers[index]) : undefined}
+                            stickerId={stickers[index] ?? undefined}
+                            size={96}
                             style={styles.cropImage}
                             label={`Potongan ${item.name}`}
                           />
@@ -1052,7 +1099,8 @@ export default function MakanAi() {
                     crops[index] || stickers[index] || (cropping && item.box) ? (
                       <CropSlot
                         uri={crops[index]}
-                        stickerUri={stickers[index] ? stickerUrl(stickers[index]) : undefined}
+                        stickerId={stickers[index] ?? undefined}
+                        size={40}
                         style={styles.cropThumb}
                         label={`Potongan ${item.name}`}
                       />
@@ -1295,6 +1343,17 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: theme.radius.pill,
     overflow: "hidden",
   },
+  shutterTip: {
+    color: "#FFFFFF",
+    fontSize: theme.fontSize.xs,
+    fontWeight: "600",
+    backgroundColor: "rgba(0,0,0,0.4)",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: theme.radius.pill,
+    overflow: "hidden",
+    marginTop: -6,
+  },
   barcodeLink: {
     flexDirection: "row",
     alignItems: "center",
@@ -1406,6 +1465,12 @@ const styles = StyleSheet.create((theme) => ({
     padding: theme.spacing.lg,
     gap: theme.spacing.sm,
   },
+  cameraErrorTitle: {
+    color: theme.colors.foreground,
+    fontSize: theme.fontSize.base,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
   cameraErrorText: {
     color: theme.colors.foreground,
     fontSize: theme.fontSize.sm,
@@ -1505,6 +1570,9 @@ const styles = StyleSheet.create((theme) => ({
   },
   cropSlot: {
     overflow: "hidden",
+  },
+  cropSlotSticker: {
+    backgroundColor: "transparent",
   },
   cropFill: {
     position: "absolute",

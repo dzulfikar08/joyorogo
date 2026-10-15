@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/server";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { z } from "zod";
 
+import type { Database } from "@joyorogo/db";
 import { aiUsage, scanCorrection, scanFeedback } from "@joyorogo/db/schema/fitness";
 import {
   SCAN_ID_RE,
@@ -11,8 +12,10 @@ import {
   newScanId,
   scanSrcKey,
   stickerKey,
-  makeBoxSticker,
-  pendingStickerKey,
+  claimBoxSticker,
+  cutBoxSticker,
+  markBoxPending,
+  waitBoxSticker,
 } from "../lib/sticker";
 import type { ImagesBinding, StickersBucket } from "../lib/sticker";
 
@@ -22,10 +25,70 @@ import { dateSchema, mealSchema } from "../lib/schemas";
 import { STORY_EMPTY_ERROR, TRANSCRIBE_MODEL, parseFoodStory, transcribeStory } from "../lib/story";
 import { MAX_SCAN_RETRIES, requireAiQuota } from "../lib/quota";
 import { wibDayBounds } from "../lib/tiers";
-import { FRIENDLY_ERROR, analyzeFoodPhoto, normalizeBox } from "../lib/vision";
+import { DEFAULT_VISION_MODEL, FRIENDLY_ERROR, VisionError, analyzeFoodPhoto, normalizeBox } from "../lib/vision";
+import type { ItemBox } from "../lib/vision";
 
 /** Cutouts per photo: 12 items for the first pass plus each allowed retry. */
 const MAX_STICKERS_PER_PHOTO = 12 * (1 + MAX_SCAN_RETRIES);
+/** How long scanSticker waits on a cut another request is running. */
+const STICKER_WAIT_MS = 15_000;
+
+/** The distinct boxes of an analysis (at most 12: one cutout per item). */
+function distinctBoxes(items: ReadonlyArray<{ box?: ItemBox }>): ItemBox[] {
+  const byKey = new Map<string, ItemBox>();
+  for (const item of items) {
+    if (item.box) byKey.set(item.box.join("-"), item.box);
+  }
+  return [...byKey.values()].slice(0, 12);
+}
+
+/** The ORPC error for a failed scan: `data.reason` lets clients pick the right guidance. */
+function scanFailure(error: unknown) {
+  const reason = error instanceof VisionError ? error.reason : "failed";
+  return new ORPCError(
+    reason === "failed" || reason === "timeout" ? "INTERNAL_SERVER_ERROR" : "UNPROCESSABLE_CONTENT",
+    { message: error instanceof Error ? error.message : FRIENDLY_ERROR, data: { reason } },
+  );
+}
+
+/**
+ * A failed scan leaves a ledger row (reason, item count, finish reason, token
+ * usage) so prod shows why photos fail. Scan type "failed" never counts
+ * against the quota, which only counts "user" rows. Bookkeeping: never throws.
+ */
+function logScanFailure(
+  db: Database,
+  userId: string,
+  error: unknown,
+  startedAt: number,
+  kind: "photo" | "retry",
+  clientTiming?: unknown,
+): Promise<void> {
+  const failure = error instanceof VisionError ? error : null;
+  return db
+    .insert(aiUsage)
+    .values({
+      id: crypto.randomUUID(),
+      userId,
+      model: DEFAULT_VISION_MODEL,
+      scanType: "failed",
+      latencyMs: Date.now() - startedAt,
+      usageJson: JSON.stringify({
+        kind,
+        reason: failure?.reason ?? "failed",
+        itemCount: failure?.detail.itemCount ?? 0,
+        finish: failure?.detail.finish ?? null,
+        attempts: failure?.detail.attempts ?? null,
+        ...failure?.detail.usage,
+        ...(clientTiming ? { clientTiming } : {}),
+      }),
+    })
+    .then(
+      () => undefined,
+      (insertError: unknown) => console.error("[ai] failure ledger insert failed", insertError),
+    );
+}
+
 const timingMs = z.number().min(0).max(600_000);
 const clientTimingSchema = z.object({
   captureMs: timingMs.optional(),
@@ -82,6 +145,7 @@ export const aiRouter = {
 
       const startedAt = Date.now();
       const stickers = context.env.STICKERS as StickersBucket | undefined;
+      const images = context.env.IMAGES as ImagesBinding | undefined;
       // Legacy stiker piring (older app builds): segmentation runs
       // concurrently with inference so it adds no latency. No bucket, no cutout.
       const cutout =
@@ -97,11 +161,12 @@ export const aiRouter = {
       // server-side cap; scan-src/ objects are short-lived via lifecycle.
       // The put runs concurrently with inference: it hides entirely behind
       // the model call instead of adding an R2 roundtrip after it.
+      const photoBytes = base64ToBytes(input.imageBase64);
       const photoStored: Promise<string | null> = stickers
         ? (async () => {
             const id = newScanId();
             try {
-              await stickers.put(scanSrcKey(userId, id), base64ToBytes(input.imageBase64), {
+              await stickers.put(scanSrcKey(userId, id), photoBytes, {
                 httpMetadata: { contentType: input.mimeType },
                 customMetadata: { n: "0" },
               });
@@ -125,9 +190,10 @@ export const aiRouter = {
             photoStored.then((id) => (id ? stickers.delete(scanSrcKey(userId, id)) : undefined)).catch(() => {}),
           );
         }
-        throw new ORPCError("INTERNAL_SERVER_ERROR", {
-          message: error instanceof Error ? error.message : FRIENDLY_ERROR,
-        });
+        context.waitUntil(
+          logScanFailure(context.db, userId, error, startedAt, "photo", input.clientTiming),
+        );
+        throw scanFailure(error);
       }
       const latencyMs = Date.now() - startedAt;
       const sticker = await cutout;
@@ -157,6 +223,8 @@ export const aiRouter = {
             latencyMs,
             usageJson: JSON.stringify({
               ...analysis.usage,
+              itemCount: analysis.items.length,
+              ...(analysis.tooMany ? { tooMany: true } : {}),
               serverTiming: { quotaMs, aiMs: latencyMs, totalMs: Date.now() - requestStartedAt },
               ...(input.clientTiming ? { clientTiming: input.clientTiming } : {}),
             }),
@@ -166,13 +234,37 @@ export const aiRouter = {
             (error: unknown) => console.error("[ai] ledger insert failed", error),
           ),
       );
+      // Every detected box gets its cutout started right away, in waitUntil,
+      // so segmentation runs during the response roundtrip and the client's
+      // first render. The pending markers are written before responding, so a
+      // scanSticker call that lands first waits on them instead of cutting the
+      // same box twice. Legacy clients (no `crops`) use the plate sticker.
+      const boxes = stickers && images && input.crops ? distinctBoxes(analysis.items) : [];
       const [scanId, photoId, [[scansEverRow], [askedTodayRow]]] = await Promise.all([
         storeSticker(),
-        photoStored,
+        photoStored.then(async (id) => {
+          if (id && stickers && images && boxes.length > 0) {
+            const photoKey = scanSrcKey(userId, id);
+            try {
+              await Promise.all(boxes.map((box) => markBoxPending(stickers, photoKey, box)));
+              context.waitUntil(
+                Promise.all(
+                  boxes.map((box) =>
+                    cutBoxSticker(images, stickers, userId, photoKey, photoBytes, box),
+                  ),
+                ),
+              );
+            } catch {
+              // no markers, no background cut: scanSticker claims each box itself
+            }
+          }
+          return id;
+        }),
         feedbackGate,
       ]);
       return {
         items: analysis.items,
+        tooMany: analysis.tooMany,
         scanId,
         photoId,
         retriesLeft: photoId ? MAX_SCAN_RETRIES : 0,
@@ -234,18 +326,33 @@ export const aiRouter = {
           retry: { hint: input.hint },
         });
       } catch (error) {
-        throw new ORPCError("INTERNAL_SERVER_ERROR", {
-          message: error instanceof Error ? error.message : FRIENDLY_ERROR,
-        });
+        context.waitUntil(logScanFailure(context.db, userId, error, startedAt, "retry"));
+        throw scanFailure(error);
       }
       // Both writes come after inference: a failed or abandoned attempt
       // never consumes the cap, and ledger rows marked "retry" stay outside
       // the daily quota count (scansUsedToday only counts "user").
+      // Boxes this pass found that no earlier pass of the photo has cut yet
+      // (a changed box = a new marker) start their cutouts now, in waitUntil.
+      const images = context.env.IMAGES as ImagesBinding | undefined;
+      const claimedBoxes: ItemBox[] = [];
+      const claimBoxes = async () => {
+        if (!images) return;
+        for (const box of distinctBoxes(analysis.items)) {
+          try {
+            const claim = await claimBoxSticker(bucket, key, box, MAX_STICKERS_PER_PHOTO);
+            if (claim.kind === "claimed") claimedBoxes.push(box);
+          } catch {
+            // scanSticker claims it later
+          }
+        }
+      };
       await Promise.all([
         bucket.put(key, bytes, {
           httpMetadata: photo.httpMetadata,
           customMetadata: { n: String(used + 1) },
         }),
+        claimBoxes(),
         context.db.insert(aiUsage).values({
           id: crypto.randomUUID(),
           userId,
@@ -255,23 +362,39 @@ export const aiRouter = {
           usageJson: JSON.stringify({
             kind: "retry",
             ...(input.hint ? { hint: input.hint } : {}),
+            itemCount: analysis.items.length,
+            ...(analysis.tooMany ? { tooMany: true } : {}),
             ...analysis.usage,
           }),
         }),
       ]);
-      return { items: analysis.items, retriesLeft: MAX_SCAN_RETRIES - (used + 1), model: analysis.model };
+      if (images && claimedBoxes.length > 0) {
+        context.waitUntil(
+          Promise.all(
+            claimedBoxes.map((box) => cutBoxSticker(images, bucket, userId, key, bytes, box)),
+          ),
+        );
+      }
+      return {
+        items: analysis.items,
+        tooMany: analysis.tooMany,
+        retriesLeft: MAX_SCAN_RETRIES - (used + 1),
+        model: analysis.model,
+      };
     }),
-  // Real background-removed cutout of one detected item, made while the user
-  // reviews the result (the clients fire one call per boxed item right after
-  // the first render). Reads the photo analyzeFood kept for "Hitung ulang", so
-  // it costs no scan quota and no pixels travel again. The cutout lands under
-  // the scan-src/ lifecycle prefix; food.addScan promotes it on save. Never
-  // throws: null just means "keep the rectangular crop".
+  // Real background-removed cutout of one detected item, for the result screen.
+  // analyzeFood (and the retry) already start every box's cut in waitUntil, so
+  // this usually just returns the finished sticker id from the box's marker, or
+  // briefly waits for the cut in flight. Only a box nobody started (older
+  // server pass, failed marker write, a stale claim) is cut here. Reads the
+  // photo kept for "Hitung ulang", so it costs no scan quota and no pixels
+  // travel again. The cutout lands under the scan-src/ lifecycle prefix;
+  // food.addScan promotes it on save. Never throws: null just means "keep the
+  // rectangular crop".
   //
-  // Each cut is a paid Images call, so it is bounded per photo: one marker
-  // object per box (a repeated box answers from its marker, success or
-  // failure, without a new call) and at most MAX_STICKERS_PER_PHOTO markers
-  // (12 items x the original pass plus every allowed retry).
+  // Each cut is a paid Images call, bounded per photo by the marker ledger:
+  // one marker per box (repeats answer from it) and at most
+  // MAX_STICKERS_PER_PHOTO markers (12 items x the first pass plus retries).
   scanSticker: protectedProcedure
     .input(
       z.object({
@@ -288,29 +411,18 @@ export const aiRouter = {
       try {
         // The key embeds the owner: another user's photo id resolves to nothing.
         const photoKey = scanSrcKey(userId, input.photoId);
-        const markerPrefix = `${photoKey}.stk/`;
-        const markerKey = `${markerPrefix}${box.join("-")}`;
-        const [photo, marker, markers] = await Promise.all([
-          bucket.get(photoKey),
-          bucket.get(markerKey),
-          bucket.list({ prefix: markerPrefix }),
-        ]);
-        if (!photo) return { scanId: null };
-        if (marker) return { scanId: marker.customMetadata?.scanId || null };
-        if (markers.objects.length >= MAX_STICKERS_PER_PHOTO) return { scanId: null };
-        const png = await makeBoxSticker(images, await photo.arrayBuffer(), box);
-        let scanId: string | null = null;
-        if (png) {
-          const id = newScanId();
-          await bucket.put(pendingStickerKey(id), png, {
-            httpMetadata: { contentType: "image/png" },
-            customMetadata: { userId },
-          });
-          scanId = id;
+        const claim = await claimBoxSticker(bucket, photoKey, box, MAX_STICKERS_PER_PHOTO);
+        if (claim.kind === "capped") return { scanId: null };
+        if (claim.kind === "existing") {
+          return {
+            scanId: claim.pending
+              ? await waitBoxSticker(bucket, photoKey, box, STICKER_WAIT_MS)
+              : claim.scanId,
+          };
         }
-        // Marker also records failures: a box that cannot be cut is not retried.
-        await bucket.put(markerKey, "", { customMetadata: { scanId: scanId ?? "" } });
-        return { scanId };
+        const photo = await bucket.get(photoKey);
+        const bytes = photo ? await photo.arrayBuffer() : null;
+        return { scanId: await cutBoxSticker(images, bucket, userId, photoKey, bytes, box) };
       } catch {
         return { scanId: null };
       }

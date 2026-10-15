@@ -289,7 +289,8 @@ export const aiUsage = sqliteTable(
     id: text("id").primaryKey(),
     userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
     model: text("model").notNull(),
-    scanType: text("scan_type", { enum: ["anon", "user", "retry"] }).notNull(),
+    // "failed": a scan that returned nothing usable (reason in usage_json); never billed or counted.
+    scanType: text("scan_type", { enum: ["anon", "user", "retry", "failed"] }).notNull(),
     latencyMs: integer("latency_ms").notNull(),
     usageJson: text("usage_json"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })

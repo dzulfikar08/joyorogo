@@ -7,7 +7,7 @@ import type { Database } from "@joyorogo/db";
 
 import { protectedProcedure } from "../index";
 import { jakartaToday, shiftDate } from "../lib/engine";
-import { normalizePlaceKey } from "../lib/places";
+import { normalizePlaceKey, toStoredCoords } from "../lib/places";
 import {
   aggregateNutrients,
   budgetRemaining,
@@ -108,10 +108,13 @@ export const plateRouter = {
         // Moving the plate moves every component row with it, so the diary
         // grouping stays intact and stickers/photos stay attached.
         date: pastDateSchema.optional(),
+        // Opt-in location of the place; null clears it. Rounded to ~100 m on write.
+        lat: z.number().min(-90).max(90).nullable().optional(),
+        lng: z.number().min(-180).max(180).nullable().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
-      const { id, ...fields } = input;
+      const { id, lat, lng, ...fields } = input;
       if (fields.date) {
         await context.db
           .update(foodLog)
@@ -130,9 +133,19 @@ export const plateRouter = {
         moved =
           normalizePlaceKey(current?.place ?? "") !== normalizePlaceKey(fields.place ?? "");
       }
+      const coords = lat === undefined && lng === undefined ? undefined : toStoredCoords(lat, lng);
+      const patch = moved ? { ...fields, lat: null, lng: null } : fields;
       const [row] = await context.db
         .update(plate)
-        .set(moved ? { ...fields, lat: null, lng: null } : fields)
+        .set(
+          coords === undefined
+            ? patch
+            : {
+                ...patch,
+                lat: fields.place === null ? null : (coords?.lat ?? null),
+                lng: fields.place === null ? null : (coords?.lng ?? null),
+              },
+        )
         .where(and(eq(plate.id, id), eq(plate.userId, context.session.user.id)))
         .returning();
       return row ?? null;
@@ -172,6 +185,8 @@ export const plateRouter = {
           name: plate.name,
           place: plate.place,
           priceIdr: plate.priceIdr,
+          lat: plate.lat,
+          lng: plate.lng,
         })
         .from(plate)
         .where(

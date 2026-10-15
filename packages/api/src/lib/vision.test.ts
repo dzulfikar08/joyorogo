@@ -4,12 +4,16 @@ import {
   analyzeFoodPhoto,
   dropDuplicateBroth,
   FRIENDLY_ERROR,
+  MAX_ITEMS,
   normalizeBox,
   runVisionOnce,
+  salvageItems,
+  VisionError,
   visionResultSchema,
   type AiRunner,
   type ScheduleTimeout,
 } from "./vision";
+import { SCAN_FAIL_COPY } from "./scan-errors";
 
 const PLATE = {
   items: [
@@ -58,11 +62,11 @@ function jsonRunner(payload: unknown): AiRunner {
 }
 
 describe("analyzeFoodPhoto deadlines", () => {
-  test("timed-out attempt is not retried -> friendly error after one run", async () => {
+  test("timed-out attempt is not retried -> timeout error after one run", async () => {
     const calls: string[] = [];
     await expect(
       analyzeFoodPhoto(hangingRunner(calls), { ...OPTS, schedule: microtaskSchedule }),
-    ).rejects.toThrow(FRIENDLY_ERROR);
+    ).rejects.toThrow(SCAN_FAIL_COPY.timeout.message);
     expect(calls.length).toBe(1);
   });
 
@@ -111,13 +115,145 @@ describe("analyzeFoodPhoto deadlines", () => {
     expect(input).toMatchObject({ chat_template_kwargs: { enable_thinking: false } });
   });
 
-  test("a busy plate is truncated to 8 items, not rejected", async () => {
+  test("a busy plate is capped at 10 items and flagged tooMany, not rejected", async () => {
     const many = {
       items: Array.from({ length: 12 }, (_, i) => ({ name: `item${i}`, kcal: 100 })),
     };
     expect(() => visionResultSchema.parse(many)).not.toThrow();
     const result = await analyzeFoodPhoto(jsonRunner(many), OPTS);
-    expect(result.items.length).toBe(8);
+    expect(result.items.length).toBe(MAX_ITEMS);
+    expect(result.tooMany).toBe(true);
+  });
+
+  test("a normal plate is not flagged tooMany", async () => {
+    const result = await analyzeFoodPhoto(jsonRunner(PLATE), OPTS);
+    expect(result.tooMany).toBe(false);
+  });
+
+  test("the model's own tooMany flag survives with its items", async () => {
+    const result = await analyzeFoodPhoto(jsonRunner({ ...PLATE, tooMany: true }), OPTS);
+    expect(result.items).toHaveLength(2);
+    expect(result.tooMany).toBe(true);
+  });
+
+  test("a malformed item is skipped, the rest of the answer is kept", async () => {
+    const result = await analyzeFoodPhoto(
+      jsonRunner({ items: [{ name: "Sate", kcal: "banyak" }, ...PLATE.items] }),
+      OPTS,
+    );
+    expect(result.items.map((item) => item.name)).toEqual(["Nasi goreng", "Telur dadar"]);
+  });
+});
+
+describe("truncated answers", () => {
+  const twelve = Array.from({ length: 12 }, (_, i) => ({
+    name: `Item ${i}`,
+    kcal: 100 + i,
+    box: [10, 10, 200, 200],
+  }));
+  const full = JSON.stringify({ items: twelve, tooMany: false });
+  // Cut in the middle of the 8th item, as max_tokens does.
+  const cutAt = full.indexOf('"name":"Item 7"') + 15;
+  const truncated = full.slice(0, cutAt);
+
+  test("salvageItems returns only the complete items of a cut-off answer", () => {
+    expect(truncated.endsWith('"name":"Item 7"')).toBe(true);
+    const salvaged = salvageItems(truncated) as Array<{ name: string }>;
+    expect(salvaged.map((item) => item.name)).toEqual([
+      "Item 0",
+      "Item 1",
+      "Item 2",
+      "Item 3",
+      "Item 4",
+      "Item 5",
+      "Item 6",
+    ]);
+  });
+
+  test("salvageItems ignores braces inside strings and handles a clean cut after an item", () => {
+    const text = '{"items":[{"name":"Nasi } goreng","kcal":300},{"name":"Es teh","kcal":90},';
+    expect((salvageItems(text) as Array<{ name: string }>).map((item) => item.name)).toEqual([
+      "Nasi } goreng",
+      "Es teh",
+    ]);
+    expect(salvageItems("bukan json")).toEqual([]);
+  });
+
+  test("analyzeFoodPhoto keeps the salvaged items and flags tooMany without a retry", async () => {
+    const calls: string[] = [];
+    const runner: AiRunner = {
+      run: (model) => {
+        calls.push(model);
+        return Promise.resolve({
+          choices: [{ message: { content: truncated }, finish_reason: "length" }],
+        });
+      },
+    };
+    const result = await analyzeFoodPhoto(runner, OPTS);
+    expect(calls.length).toBe(1);
+    expect(result.items).toHaveLength(7);
+    expect(result.tooMany).toBe(true);
+  });
+
+  test("a cut-off answer with no complete item is a plain failure", async () => {
+    const runner: AiRunner = {
+      run: () =>
+        Promise.resolve({
+          choices: [{ message: { content: '{"items":[{"name":"Item 0","kc' }, finish_reason: "length" }],
+        }),
+    };
+    const outcome = await analyzeFoodPhoto(runner, OPTS).catch((error: unknown) => error);
+    expect(outcome).toBeInstanceOf(VisionError);
+    expect((outcome as VisionError).reason).toBe("failed");
+  });
+});
+
+describe("failure reasons", () => {
+  const fails = (payload: unknown) =>
+    analyzeFoodPhoto(jsonRunner(payload), OPTS).catch((error: unknown) => error as VisionError);
+
+  test("the model's verdict maps to its own reason and is not retried", async () => {
+    let calls = 0;
+    const runner: AiRunner = {
+      run: () => {
+        calls += 1;
+        return Promise.resolve({ response: JSON.stringify({ items: [], problem: "gelap" }) });
+      },
+    };
+    const outcome = (await analyzeFoodPhoto(runner, OPTS).catch((e: unknown) => e)) as VisionError;
+    expect(outcome.reason).toBe("unclear");
+    expect(outcome.message).toBe(SCAN_FAIL_COPY.unclear.message);
+    expect(calls).toBe(1);
+    expect(((await fails({ items: [], problem: "buram" })) as VisionError).reason).toBe("unclear");
+    expect(((await fails({ items: [], problem: "bukan_makanan" })) as VisionError).reason).toBe(
+      "not_food",
+    );
+  });
+
+  test("an empty list without a verdict means no food", async () => {
+    expect(((await fails({ items: [] })) as VisionError).reason).toBe("not_food");
+  });
+
+  test("tooMany with nothing usable is its own reason, with the specific copy", async () => {
+    const outcome = (await fails({ items: [], tooMany: true })) as VisionError;
+    expect(outcome.reason).toBe("too_many");
+    expect(outcome.message).toContain("Fotonya kebanyakan makanan");
+  });
+
+  test("a deadline is the timeout reason", async () => {
+    const outcome = (await analyzeFoodPhoto(hangingRunner(), {
+      ...OPTS,
+      schedule: microtaskSchedule,
+    }).catch((e: unknown) => e)) as VisionError;
+    expect(outcome.reason).toBe("timeout");
+  });
+
+  test("unreadable prose twice is the generic failure", async () => {
+    const runner: AiRunner = { run: () => Promise.resolve({ response: "Maaf, tidak bisa." }) };
+    const outcome = (await analyzeFoodPhoto(runner, OPTS).catch((e: unknown) => e)) as VisionError;
+    expect(outcome.reason).toBe("failed");
+    expect(outcome.message).toBe(FRIENDLY_ERROR);
+    expect(outcome.detail.attempts).toBe(2);
   });
 });
 

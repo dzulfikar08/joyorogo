@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { resolveFoodKind } from "./food-kind";
 import type { FoodKind } from "./food-kind";
+import { SCAN_FAIL_COPY } from "./scan-errors";
+import type { ScanFailReason } from "./scan-errors";
 import { calibrateItems } from "./tkpi";
 import type { CalibratedItem } from "./tkpi";
 
@@ -12,17 +14,26 @@ export const DEFAULT_VISION_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 // tokens / 2-7 s with the same estimates (probe 2026-10-11, 3 dishes).
 // Guided JSON (response_format) was dropped: without thinking it degenerates
 // into whitespace loops until max_tokens on busy plates.
-export const VISION_PROMPT = `Anda adalah ahli gizi. Identifikasi makanan pada foto ini (fokus masakan Indonesia), maksimal 8 item terbesar/terpenting.
+// "tooMany" comes last so the model decides it after listing, and a cut-off
+// answer loses only that flag, not items.
+export const VISION_PROMPT = `Anda adalah ahli gizi. Identifikasi makanan pada foto ini (fokus masakan Indonesia): maksimal 10 item terbesar/terpenting. Kalau makanan di foto lebih dari 10, tulis 10 yang paling menonjol dan isi "tooMany":true.
 Jawab HANYA JSON valid satu baris (tanpa indentasi, tanpa \`\`\`) tanpa teks lain, dengan bentuk persis:
-{"items":[{"name":"nama masakan","kind":"makanan|camilan|minuman","portion":"perkiraan porsi","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":number,"box":[ymin,xmin,ymax,xmax]}]}
+{"items":[{"name":"nama masakan","kind":"makanan|camilan|minuman","portion":"porsi, maks 3 kata","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":number,"box":[ymin,xmin,ymax,xmax]}],"tooMany":false}
+Semua angka bulat kecuali confidence. Tidak ada makanan di foto: {"items":[],"problem":"bukan_makanan"}. Foto terlalu gelap atau buram sampai makanan tidak bisa dikenali: {"items":[],"problem":"gelap"} atau {"items":[],"problem":"buram"}.
 kind: "makanan" = makanan berat (nasi, lauk, sayur, mi, sup), "camilan" = gorengan, kue, keripik, martabak, es krim, jajanan ringan, "minuman" = semua yang diminum.
 box = kotak pembatas item itu di foto, skala 0-1000 relatif tinggi dan lebar foto.
 Satu hidangan = satu item: kuah, bumbu/saus, sayur, dan lontong/mi/bihun yang sudah bagian dari hidangan itu (mis. gado-gado, bakso, soto) TERMASUK di kcal hidangan, jangan dipisah. Pisahkan hanya yang berdiri sendiri: nasi, lauk terpisah, telur, kerupuk, gorengan, sambal, minuman.
 Aturan: ini bukan percakapan — jangan menjawab dengan tabel markdown. name dalam Bahasa Indonesia tanpa terjemahan. grams = perkiraan berat (1-5000); kcal, protein/carbs/fat (gram), fiber (gram) = estimasi realistis porsi umum; confidence 0-1.`;
 
-/** 8 single-line items incl. boxes; measured answers are 110-660 (+~20/item for box). */
-const MAX_COMPLETION_TOKENS = 1500;
-const MAX_ITEMS = 8;
+/**
+ * Room for ~12 single-line items incl. boxes: ~60-80 tokens each (measured
+ * 110-660 for up to 8). Billing is per generated token, so the ceiling costs
+ * nothing on plates that stop early; it only keeps a busy photo from being
+ * cut mid-JSON.
+ */
+const MAX_COMPLETION_TOKENS = 1600;
+/** Items kept per photo; the prompt asks for the same number. */
+export const MAX_ITEMS = 10;
 
 export const visionItemSchema = z.object({
   name: z.string(),
@@ -59,8 +70,10 @@ export function normalizeBox(raw: unknown): ItemBox | undefined {
 }
 
 export const visionResultSchema = z.object({
-  // Loose upper bound for parsing — the 8-item cap is enforced by slicing.
-  items: z.array(visionItemSchema).max(15),
+  // Items are validated one by one in parseAnswer: a bad item must not sink the plate.
+  items: z.array(z.unknown()),
+  tooMany: z.boolean().optional().catch(undefined),
+  problem: z.string().optional().catch(undefined),
 });
 
 export type AiRunner = { run(model: string, input: unknown): Promise<unknown> };
@@ -92,6 +105,8 @@ export type VisionAnalysis = {
   /** Model actually used — callers pass `model` through unresolved. */
   model: string;
   usage: Record<string, unknown> | null;
+  /** More food in the photo than fit: items are the most prominent ones. */
+  tooMany: boolean;
 };
 
 /** Handles every Workers AI response shape: text, {response}, {result}, chat. */
@@ -118,8 +133,25 @@ export function responseText(result: unknown): string | null {
   return null;
 }
 
-export const FRIENDLY_ERROR =
-  "AI tidak berhasil mengenali foto ini. Coba foto lain dengan pencahayaan lebih baik.";
+export const FRIENDLY_ERROR = SCAN_FAIL_COPY.failed.message;
+
+/** A failed scan: `reason` picks the copy, `detail` is for the failure ledger. */
+export class VisionError extends Error {
+  reason: ScanFailReason;
+  detail: {
+    itemCount: number;
+    finish: string | null;
+    attempts: number;
+    usage: Record<string, unknown> | null;
+  };
+
+  constructor(reason: ScanFailReason, detail: VisionError["detail"]) {
+    super(SCAN_FAIL_COPY[reason].message);
+    this.name = "VisionError";
+    this.reason = reason;
+    this.detail = detail;
+  }
+}
 
 /**
  * A failed attempt may only trigger the retry if it failed fast; anything
@@ -127,8 +159,13 @@ export const FRIENDLY_ERROR =
  */
 export const FAST_FAILURE_BUDGET_MS = 12_000;
 
-/** Healthy answers land in 2-14 s; the retry gets a shorter leash. */
-const ATTEMPT_DEADLINES_MS: [number, number] = [25_000, 20_000];
+/**
+ * Healthy single plates answer in 2-14 s (prod ledger: 28-50 tokens/s). A
+ * busy photo of ~12 items is ~800-1000 tokens, i.e. 16-35 s, so the first
+ * attempt waits up to 40 s; the retry only follows a fast failure and gets a
+ * shorter leash.
+ */
+const ATTEMPT_DEADLINES_MS: [number, number] = [40_000, 25_000];
 
 export function finishReasonOf(result: unknown): string | null {
   const r = result as { choices?: Array<{ finish_reason?: unknown }> };
@@ -228,11 +265,99 @@ export function dropDuplicateBroth<T extends { name: string }>(items: T[]): T[] 
   return hasSoup ? items.filter((item) => !BROTH_ONLY.test(item.name.trim())) : items;
 }
 
-/** Parse, bound, calibrate against TKPI, and dedupe one model answer. */
-function itemsFromText(text: string): VisionAnalysis["items"] {
-  const raw = visionResultSchema
-    .parse(extractJson(text.replace(/```(?:json)?/g, "")))
-    .items.slice(0, MAX_ITEMS)
+type ParsedAnswer = {
+  items: VisionAnalysis["items"];
+  /** The photo held more than fit (model flag, over the cap, or cut off). */
+  tooMany: boolean;
+  /** The model's own verdict when it found no food (dark, blurry, not food). */
+  problem: ScanFailReason | null;
+  /** The answer was a valid, empty list. */
+  empty: boolean;
+  /** Valid items in the answer before the cap. */
+  found: number;
+};
+
+/** The model reports why it found nothing as a short Indonesian/English tag. */
+function problemReason(problem: string | undefined): ScanFailReason | null {
+  if (!problem) return null;
+  const p = problem.toLowerCase();
+  if (/gelap|buram|blur|dark|kabur/.test(p)) return "unclear";
+  if (/bukan|not.?food|no.?food|tidak ada/.test(p)) return "not_food";
+  return null;
+}
+
+/**
+ * Every complete item object of an `"items":[...]` array, even when the answer
+ * is cut off mid-item (max_tokens) so the whole text is not valid JSON.
+ * Braces inside strings do not count; the unfinished last object is dropped.
+ */
+export function salvageItems(text: string): unknown[] {
+  const key = text.search(/"items"\s*:\s*\[/);
+  if (key === -1) return [];
+  const out: unknown[] = [];
+  let depth = 0;
+  let start = -1;
+  let inString = false;
+  let escaped = false;
+  for (let i = text.indexOf("[", key) + 1; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+    } else if (ch === '"') {
+      inString = true;
+    } else if (ch === "{") {
+      if (depth === 0) start = i;
+      depth += 1;
+    } else if (ch === "}") {
+      depth -= 1;
+      if (depth === 0 && start !== -1) {
+        try {
+          out.push(JSON.parse(text.slice(start, i + 1)));
+        } catch {
+          // a malformed object is skipped, the rest still counts
+        }
+        start = -1;
+      } else if (depth < 0) {
+        break;
+      }
+    } else if (ch === "]" && depth === 0) {
+      break;
+    }
+  }
+  return out;
+}
+
+/**
+ * Parse, bound, calibrate against TKPI, and dedupe one model answer. A
+ * cut-off answer (finish "length", or text that is not valid JSON but holds
+ * complete items) keeps those items and counts as `tooMany`: running out of
+ * tokens means the photo had more dishes than fit.
+ */
+export function parseAnswer(text: string, finish: string | null): ParsedAnswer {
+  const cleaned = text.replace(/```(?:json)?/g, "");
+  let rawItems: unknown[];
+  let tooMany = false;
+  let problem: ScanFailReason | null = null;
+  let truncated = finish === "length";
+  try {
+    const answer = visionResultSchema.parse(extractJson(cleaned));
+    rawItems = answer.items;
+    tooMany = answer.tooMany === true;
+    problem = problemReason(answer.problem);
+  } catch (error) {
+    rawItems = salvageItems(cleaned);
+    if (rawItems.length === 0) throw error;
+    truncated = true;
+  }
+  // One malformed item must not sink the plate.
+  const valid = rawItems.flatMap((entry) => {
+    const parsed = visionItemSchema.safeParse(entry);
+    return parsed.success ? [parsed.data] : [];
+  });
+  const raw = valid
+    .slice(0, MAX_ITEMS)
     .map(({ box, kind, ...item }) => ({
       ...item,
       box: normalizeBox(box),
@@ -251,7 +376,7 @@ function itemsFromText(text: string): VisionAnalysis["items"] {
     );
   // calibrateItems maps 1:1, so boxes and kinds re-attach by index.
   const calibrated = calibrateItems(raw.map(({ box: _box, kind: _kind, ...item }) => item));
-  return dropDuplicateBroth(
+  const items = dropDuplicateBroth(
     dedupeItems(
       calibrated.map((item, index) => ({
         ...item,
@@ -260,14 +385,23 @@ function itemsFromText(text: string): VisionAnalysis["items"] {
       })),
     ),
   );
+  return {
+    items,
+    tooMany: tooMany || truncated || valid.length > MAX_ITEMS,
+    problem,
+    empty: rawItems.length === 0,
+    found: valid.length,
+  };
 }
 
 /**
  * Runs the vision model and returns validated items plus the model and the
- * binding's token usage (for the cost ledger). Throws a plain Error
- * (message = user-safe copy) on any failure; callers wrap into their
- * transport's error shape. Two attempts; the second only after a fast
- * failure (unparseable/truncated answer, transport blip).
+ * binding's token usage (for the cost ledger). `tooMany` is true when the
+ * photo held more than fit: the items are the ones that were listed or
+ * salvaged from a cut-off answer. Throws a VisionError (message = user-safe
+ * copy, `reason` = which failure) when nothing usable came back; callers wrap
+ * it into their transport's error shape. Two attempts; the second only after
+ * a fast, non-deterministic failure (unparseable answer, transport blip).
  */
 export async function analyzeFoodPhoto(
   ai: AiRunner,
@@ -285,10 +419,15 @@ export async function analyzeFoodPhoto(
 ): Promise<VisionAnalysis> {
   const model = opts.model || DEFAULT_VISION_MODEL;
   const deadlines = opts.timeouts ?? ATTEMPT_DEADLINES_MS;
+  let reason: ScanFailReason = "failed";
+  let found = 0;
+  let finish: string | null = null;
+  let usage: Record<string, unknown> | null = null;
+  let attempts = 0;
 
   for (const [attempt, timeoutMs] of deadlines.entries()) {
     const attemptStartedAt = Date.now();
-    let finish: string | null = null;
+    attempts = attempt + 1;
     try {
       const result = await runVisionOnce(
         ai,
@@ -302,14 +441,28 @@ export async function analyzeFoodPhoto(
         opts.schedule,
       );
       finish = finishReasonOf(result);
+      usage = extractUsage(result);
       const text = responseText(result);
       if (text === null) throw new Error("no text in response");
-      const items = itemsFromText(text);
-      if (items.length === 0) throw new Error(`no usable items: ${text.slice(0, 200)}`);
-      return { items, model, usage: extractUsage(result) };
+      const answer = parseAnswer(text, finish);
+      found = answer.found;
+      if (answer.items.length > 0) {
+        if (answer.tooMany) {
+          console.error(
+            `[vision] too many items: kept ${answer.items.length} of ${answer.found} finish=${finish}`,
+          );
+        }
+        return { items: answer.items, model, usage, tooMany: answer.tooMany };
+      }
+      // The model's own verdict, or a valid empty list: the same photo gives
+      // the same answer again, so a second attempt would only burn quota.
+      reason = answer.problem ?? (answer.tooMany ? "too_many" : answer.empty ? "not_food" : "failed");
+      if (reason !== "failed") break;
+      throw new Error(`no usable items: ${text.slice(0, 200)}`);
     } catch (error) {
       const isTimeout = error instanceof Error && error.message === "vision-timeout";
       const elapsed = Date.now() - attemptStartedAt;
+      reason = isTimeout ? "timeout" : "failed";
       console.error(
         `[vision] attempt ${attempt + 1} failed after ${elapsed}ms finish=${finish}`,
         error,
@@ -319,5 +472,6 @@ export async function analyzeFoodPhoto(
     }
   }
 
-  throw new Error(FRIENDLY_ERROR);
+  console.error(`[vision] giving up: reason=${reason} items=${found} finish=${finish}`);
+  throw new VisionError(reason, { itemCount: found, finish, attempts, usage });
 }

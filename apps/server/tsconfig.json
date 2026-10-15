@@ -1,6 +1,7 @@
 {
   "extends": "@joyorogo/config/tsconfig.base.json",
   "references": [{ "path": "../../packages/api" }],
+  "exclude": ["src/**/*.test.ts"],
   "compilerOptions": {
     "noEmit": true,
     "paths": {
