@@ -24,6 +24,7 @@ import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { Button, buttonVariants } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
+import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import {
   Card,
@@ -37,6 +38,7 @@ import {
 import { IdrInput } from "@/components/plate/idr-input";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { cropItems } from "@/lib/crop";
+import type { ItemBox } from "@/lib/crop";
 import type { AiFoodItem } from "@/lib/api-types";
 import { isPaywallError } from "@/lib/billing";
 import { fmtInt, parseNum } from "@/lib/format";
@@ -88,38 +90,78 @@ function celebrate(totalKcal: number) {
 
 const MAX_EDGE = 1024;
 
+// Phase timings of the previous scan (this session only), reported with the
+// next analyzeFood request; cleared once sent.
+let sessionTiming: { prevRoundTripMs?: number; prevRenderMs?: number; prevCropMs?: number } = {};
+
+type SentImage = {
+  base64: string;
+  mimeType: "image/jpeg" | "image/webp";
+  /** Same pixels as `base64`; cropping decodes this instead of a data URL. */
+  blob: Blob;
+  /** Decode + downscale time, and encode + base64 time, in ms. */
+  resizeMs: number;
+  encodeMs: number;
+};
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number) {
+  const { promise, resolve } = Promise.withResolvers<Blob | null>();
+  canvas.toBlob(resolve, type, quality);
+  return promise;
+}
+
+function blobToBase64(blob: Blob) {
+  const { promise, resolve, reject } = Promise.withResolvers<string>();
+  const reader = new FileReader();
+  reader.onload = () => {
+    const url = reader.result as string;
+    resolve(url.slice(url.indexOf(",") + 1));
+  };
+  reader.onerror = () => reject(reader.error);
+  reader.readAsDataURL(blob);
+  return promise;
+}
+
 /**
  * Client-side resize to <= 1024 px; WebP when the browser can encode it
- * (smaller upload on 4G), JPEG fallback elsewhere. Inference cost is driven
- * by pixel count, so the edge cap is what keeps it cheap. The original is
- * only kept when the user turned on "Simpan foto asli".
+ * (smaller upload on 4G), JPEG fallback elsewhere. The bitmap is decoded
+ * straight at the target size and encoded off the main thread (toBlob).
+ * Inference cost is driven by pixel count, so the edge cap is what keeps it
+ * cheap. The original is only kept when the user turned on "Simpan foto asli".
  */
-async function fileToImageBase64(
-  file: File,
-): Promise<{ base64: string; mimeType: "image/jpeg" | "image/webp" }> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-  const width = Math.max(1, Math.round(bitmap.width * scale));
-  const height = Math.max(1, Math.round(bitmap.height * scale));
+async function fileToImageBase64(file: File): Promise<SentImage> {
+  const startedAt = performance.now();
+  const source = await createImageBitmap(file);
+  const scale = Math.min(1, MAX_EDGE / Math.max(source.width, source.height));
+  const width = Math.max(1, Math.round(source.width * scale));
+  const height = Math.max(1, Math.round(source.height * scale));
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) {
+    source.close();
     throw new Error("Browser ini tidak mendukung pengolahan gambar.");
   }
   // Flatten alpha onto white — gallery cutouts/screenshots with transparency
   // get rejected by the vision model otherwise ("could not be decoded").
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, width, height);
-  ctx.drawImage(bitmap, 0, 0, width, height);
-  bitmap.close();
-  const dataUrl = canvas.toDataURL("image/webp", 0.82);
-  if (dataUrl.startsWith("data:image/webp")) {
-    return { base64: dataUrl.slice(dataUrl.indexOf(",") + 1), mimeType: "image/webp" };
+  ctx.imageSmoothingQuality = "medium";
+  ctx.drawImage(source, 0, 0, width, height);
+  source.close();
+  const resizeMs = Math.round(performance.now() - startedAt);
+  const webp = await canvasToBlob(canvas, "image/webp", 0.82);
+  if (webp?.type === "image/webp") {
+    const base64 = await blobToBase64(webp);
+    const encodeMs = Math.round(performance.now() - startedAt) - resizeMs;
+    return { base64, mimeType: "image/webp", blob: webp, resizeMs, encodeMs };
   }
-  const jpegUrl = canvas.toDataURL("image/jpeg", 0.85);
-  return { base64: jpegUrl.slice(jpegUrl.indexOf(",") + 1), mimeType: "image/jpeg" };
+  const jpeg = await canvasToBlob(canvas, "image/jpeg", 0.85);
+  if (!jpeg) throw new Error("Gagal memproses foto. Coba lagi.");
+  const base64 = await blobToBase64(jpeg);
+  const encodeMs = Math.round(performance.now() - startedAt) - resizeMs;
+  return { base64, mimeType: "image/jpeg", blob: jpeg, resizeMs, encodeMs };
 }
 
 function AiFoodPage() {
@@ -133,11 +175,10 @@ function AiFoodPage() {
   const [items, setItems] = useState<AiFoodItem[]>([]);
   const [kcals, setKcals] = useState<Record<number, string>>({});
   // The exact pixels the AI saw: boxes map onto this, and it is what gets saved.
-  const [image, setImage] = useState<{
-    base64: string;
-    mimeType: "image/jpeg" | "image/webp";
-  } | null>(null);
+  const [image, setImage] = useState<SentImage | null>(null);
   const [crops, setCrops] = useState<Array<string | null>>([]);
+  // Crops are cut after the result is on screen; tiles shimmer until then.
+  const [cropping, setCropping] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
   const ramadan = effectiveRamadan(profile.data?.profile?.ramadanMode);
@@ -235,20 +276,32 @@ function AiFoodPage() {
       const image = await fileToImageBase64(file);
       if (runRef.current !== run) return;
       setPhase("analyzing");
+      // Prev* come from the previous scan of this session: its render and
+      // crop finished after its own request had already been logged.
+      const { prevRoundTripMs, prevRenderMs, prevCropMs } = sessionTiming;
+      sessionTiming = {};
+      const requestAt = performance.now();
       const result = await client.ai.analyzeFood(
-        { imageBase64: image.base64, mimeType: image.mimeType, crops: true },
+        {
+          imageBase64: image.base64,
+          mimeType: image.mimeType,
+          crops: true,
+          clientTiming: {
+            resizeMs: image.resizeMs,
+            encodeMs: image.encodeMs,
+            payloadKb: Math.round(image.blob.size / 1024),
+            prevRoundTripMs,
+            prevRenderMs,
+            prevCropMs,
+          },
+        },
         { signal: controller.signal },
       );
-      if (runRef.current !== run) return;
-      const itemCrops = await cropItems(
-        `data:${image.mimeType};base64,${image.base64}`,
-        result.items.map((item) => item.box),
-      ).catch(() => result.items.map(() => null));
+      sessionTiming.prevRoundTripMs = Math.round(performance.now() - requestAt);
       if (runRef.current !== run) return;
       setImage(image);
       setItems(result.items);
       setQuotaReached(result.quotaReached);
-      setCrops(itemCrops);
       setKcals(Object.fromEntries(result.items.map((item, index) => [index, String(item.kcal)])));
       setPhotoId(result.photoId ?? null);
       setRetriesLeft(result.retriesLeft ?? 0);
@@ -278,6 +331,22 @@ function AiFoodPage() {
           .catch(() => {});
       }
       setPhase("confirm");
+      // Numbers are on screen after the next two frames; record how long the
+      // state commit took, then cut the per-item tiles in the background.
+      const respondedAt = performance.now();
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          sessionTiming.prevRenderMs = Math.round(performance.now() - respondedAt);
+        }),
+      );
+      cutCrops(
+        image.blob,
+        result.items.map((item) => item.box),
+        run,
+        (cropMs) => {
+          sessionTiming.prevCropMs = cropMs;
+        },
+      );
     } catch (err) {
       // Aborted runs bump runRef before aborting, so this only reports real
       // failures of the current run.
@@ -293,6 +362,29 @@ function AiFoodPage() {
     }
   };
 
+  // Cuts the per-item tiles after the first paint. `run` guards against a
+  // newer shot or Foto ulang landing first.
+  const cutCrops = (
+    blob: Blob,
+    boxes: Array<ItemBox | undefined | null>,
+    run: number,
+    onDone?: (cropMs: number) => void,
+  ) => {
+    const startedAt = performance.now();
+    setCrops(boxes.map(() => null));
+    setCropping(true);
+    const url = URL.createObjectURL(blob);
+    void cropItems(url, boxes)
+      .catch(() => boxes.map(() => null))
+      .then((cut) => {
+        URL.revokeObjectURL(url);
+        if (runRef.current !== run) return;
+        setCrops(cut);
+        setCropping(false);
+        onDone?.(Math.round(performance.now() - startedAt));
+      });
+  };
+
   const reset = () => {
     runRef.current += 1;
     abortRef.current?.abort();
@@ -302,6 +394,7 @@ function AiFoodPage() {
     setKcals({});
     setImage(null);
     setCrops([]);
+    setCropping(false);
     setQuotaReached(false);
     setPhotoUrl(null);
     setPlateName("");
@@ -361,13 +454,13 @@ function AiFoodPage() {
         { photoId, hint: retryHint.trim() || undefined },
         { signal: controller.signal },
       );
-      const itemCrops = await cropItems(
-        `data:${image.mimeType};base64,${image.base64}`,
-        result.items.map((item) => item.box),
-      ).catch(() => result.items.map(() => null));
       setItems(result.items);
-      setCrops(itemCrops);
       setKcals(Object.fromEntries(result.items.map((item, index) => [index, String(item.kcal)])));
+      cutCrops(
+        image.blob,
+        result.items.map((item) => item.box),
+        runRef.current,
+      );
       setRetriesLeft(result.retriesLeft);
       setRetryHint("");
       setModel(result.model ?? model);
@@ -536,23 +629,35 @@ function AiFoodPage() {
               />
               <figcaption className="sr-only">Foto asli dan potongan tiap makanan</figcaption>
             </figure>
-            {crops.some(Boolean) && (
+            {(cropping || crops.some(Boolean)) && (
               <ul
                 className="mt-4 flex flex-wrap justify-center gap-3"
                 aria-label="Potongan tiap makanan"
+                aria-busy={cropping}
               >
                 {items.map((item, index) =>
                   crops[index] ? (
                     <li
                       key={`${item.name}-${index}`}
                       className="chip-pop flex w-24 flex-col items-center gap-1 motion-reduce:animate-none"
-                      style={{ animationDelay: `${200 + index * 70}ms` }}
+                      style={{ animationDelay: `${index * 70}ms` }}
                     >
                       <img
                         src={crops[index]!}
                         alt={item.name}
                         className="size-20 rounded-2xl object-cover shadow-sm"
                       />
+                      <span className="w-full truncate text-center text-xs font-semibold">
+                        {item.name}
+                      </span>
+                    </li>
+                  ) : cropping && item.box ? (
+                    <li
+                      key={`${item.name}-${index}`}
+                      className="flex w-24 flex-col items-center gap-1"
+                      aria-hidden
+                    >
+                      <Skeleton className="size-20 rounded-2xl" />
                       <span className="w-full truncate text-center text-xs font-semibold">
                         {item.name}
                       </span>
@@ -733,8 +838,10 @@ function AiFoodPage() {
                     src={crops[index]!}
                     alt=""
                     aria-hidden
-                    className="size-11 shrink-0 rounded-xl object-cover"
+                    className="chip-pop size-11 shrink-0 rounded-xl object-cover motion-reduce:animate-none"
                   />
+                ) : cropping && item.box ? (
+                  <Skeleton className="size-11 shrink-0 rounded-xl" aria-hidden />
                 ) : null}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[0.9375rem] font-semibold">{item.name}</span>

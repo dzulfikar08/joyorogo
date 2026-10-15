@@ -30,7 +30,8 @@ function fileFor(url: string): string | undefined {
  *
  * VITE_SITE_URL sets the canonical origin (defaults to the hosted site);
  * VITE_SERVER_URL locates the APK download, like the app does. When
- * VITE_REVKLIK_SITE_ID is set, the Revklik tag goes into the app's
+ * VITE_REVKLIK_SITE_ID is set, the Revklik tag and the inline filter that
+ * limits it to public pages (revklik.ts) go into the app's
  * index.html and every blog page; self-hosted builds leave it unset.
  */
 export function blogPlugin(): Plugin {
@@ -55,9 +56,11 @@ export function blogPlugin(): Plugin {
       const url = ctx.server ? ctx.originalUrl?.split("?")[0]?.replace(/(.)\/$/, "$1") : "/";
       const path = PUBLIC_PATHS.find((p) => p === url) ?? "/";
       const out = html.replace(HEAD_MARKER, pageHeadTags(path, cfg.siteUrl));
-      return cfg.analyticsSiteId
-        ? out.replace("</head>", `    ${analyticsTag(cfg.analyticsSiteId)}\n  </head>`)
-        : out;
+      const siteId = cfg.analyticsSiteId;
+      if (!siteId) return out;
+      // A replacer function: the filter script holds `$` sequences that
+      // String.replace would otherwise expand.
+      return out.replace("</head>", () => `    ${analyticsTag(siteId)}\n  </head>`);
     },
     configureServer(server) {
       server.middlewares.use((req, res, next) => {

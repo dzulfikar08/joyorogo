@@ -113,6 +113,19 @@ function rewrite(page: Response, tags: OgTags): Response {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    // A missing hashed chunk (old HTML after a deploy) must 404, not get the
+    // SPA's index.html with the immutable asset cache header: browsers would
+    // cache HTML as the script for a year and the app would never boot.
+    if (url.pathname.startsWith("/assets/")) {
+      const asset = await env.ASSETS.fetch(request);
+      if (asset.headers.get("Content-Type")?.startsWith("text/html")) {
+        return new Response("Not found", {
+          status: 404,
+          headers: { "Cache-Control": "no-store", "Content-Type": "text/plain" },
+        });
+      }
+      return asset;
+    }
     const route = ROUTE.exec(url.pathname);
     if (!route || (request.method !== "GET" && request.method !== "HEAD")) {
       return env.ASSETS.fetch(request);

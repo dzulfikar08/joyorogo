@@ -11,6 +11,7 @@ import { Marked } from "marked";
 
 import { OG_IMAGE, PAGES } from "../src/lib/seo.ts";
 import { ogImageTags, PUBLIC_PATHS } from "./pages.ts";
+import { REVKLIK_GUARD } from "./revklik.ts";
 
 export type BlogConfig = {
   /** Canonical origin, no trailing slash. */
@@ -221,9 +222,14 @@ function tipToPost(tip: Tip): Post {
 
 const THEME_SCRIPT = `try{var t=localStorage.getItem("vite-ui-theme")||"system";document.documentElement.classList.toggle("dark",t==="dark"||(t==="system"&&matchMedia("(prefers-color-scheme: dark)").matches))}catch(e){}`;
 
-/** Revklik pageview script (tracks SPA navigation itself). */
+/**
+ * Revklik pageview script (tracks SPA navigation itself), preceded by the
+ * inline filter that keeps in-app paths out of its batches (./revklik.ts). The
+ * filter must come first: the tag batches for 1 s after load, and a page whose
+ * bundle never runs still has the tag.
+ */
 export function analyticsTag(siteId: string): string {
-  return `<script defer data-site-id="${esc(siteId)}" src="https://app.revklik.com/klikapa.js"></script>`;
+  return `<script>${REVKLIK_GUARD}</script>\n    <script defer data-site-id="${esc(siteId)}" src="https://app.revklik.com/klikapa.js"></script>`;
 }
 
 const FOCUS = "focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none";

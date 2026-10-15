@@ -3,7 +3,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, View } from "react-native";
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Animated,
+  Image,
+  Pressable,
+  ScrollView,
+  View,
+} from "react-native";
+import type { StyleProp, ViewStyle } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -64,6 +73,10 @@ const MEAL_SHORT: Record<Meal, string> = {
 
 const MAX_SIDE = 1024;
 
+// Phase timings of the previous scan (this session only), reported with the
+// next analyzeFood request; cleared once sent.
+let sessionTiming: { prevRoundTripMs?: number; prevRenderMs?: number; prevCropMs?: number } = {};
+
 /** Fun portion stat, same as the web confirm card: 600 kcal = one geprek. */
 const GEPREK_KCAL = 600;
 
@@ -118,6 +131,55 @@ const ANALYZE_STAGES = [
 ] as const;
 const STAGE_MS = 2500;
 
+/** Crop tile: pulsing placeholder until the crop lands, then a fade-in. */
+function CropSlot({
+  uri,
+  style,
+  label,
+}: {
+  uri: string | null | undefined;
+  style: StyleProp<ViewStyle>;
+  label: string;
+}) {
+  const pulse = useRef(new Animated.Value(0.08)).current;
+  const fade = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (uri) return;
+    let loop: Animated.CompositeAnimation | null = null;
+    let cancelled = false;
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+      if (cancelled || reduced) return;
+      loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulse, { toValue: 0.22, duration: 700, useNativeDriver: true }),
+          Animated.timing(pulse, { toValue: 0.08, duration: 700, useNativeDriver: true }),
+        ]),
+      );
+      loop.start();
+    });
+    return () => {
+      cancelled = true;
+      loop?.stop();
+    };
+  }, [uri, pulse]);
+  return (
+    <View style={[style, styles.cropSlot]}>
+      {uri ? (
+        <Animated.Image
+          source={{ uri }}
+          style={[styles.cropFill, { opacity: fade }]}
+          accessibilityLabel={label}
+          onLoad={() =>
+            Animated.timing(fade, { toValue: 1, duration: 220, useNativeDriver: true }).start()
+          }
+        />
+      ) : (
+        <Animated.View style={[styles.cropFill, styles.cropShimmer, { opacity: pulse }]} />
+      )}
+    </View>
+  );
+}
+
 function AnalyzingOverlay({ previewUri, onCancel }: { previewUri: string; onCancel: () => void }) {
   const [stage, setStage] = useState(0);
   useEffect(() => {
@@ -170,6 +232,9 @@ export default function MakanAi() {
   } | null>(null);
   // Per-item crops cut on device from the sent image, parallel to items.
   const [crops, setCrops] = useState<Array<string | null>>([]);
+  // Tiles shimmer while the post-render crop pass is still running.
+  const [cropping, setCropping] = useState(false);
+  const cropRunRef = useRef(0);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
   const ramadan = effectiveRamadan(profile.data?.profile?.ramadanMode);
@@ -222,7 +287,9 @@ export default function MakanAi() {
     setItems([]);
     setDrafts([]);
     setSentImage(null);
+    cropRunRef.current += 1;
     setCrops([]);
+    setCropping(false);
     setPreviewUri(null);
     setPlateValues({ name: "", place: "", price: "" });
     setPhotoId(null);
@@ -239,8 +306,39 @@ export default function MakanAi() {
     setPhase("camera");
   };
 
+  /** Cuts per-item tiles after the first render; each fills in as it lands. */
+  const cutCrops = (
+    uri: string,
+    width: number,
+    height: number,
+    list: AnalyzedItem[],
+    onDone?: () => void,
+  ) => {
+    const run = ++cropRunRef.current;
+    setCrops(list.map(() => null));
+    setCropping(true);
+    void Promise.all(
+      list.map(async (item, index) => {
+        const cut = item.box
+          ? await cropFromBox(uri, width, height, item.box).catch(() => null)
+          : null;
+        if (cropRunRef.current !== run) return;
+        setCrops((prev) => prev.map((current, i) => (i === index ? cut : current)));
+      }),
+    ).then(() => {
+      if (cropRunRef.current !== run) return;
+      setCropping(false);
+      onDone?.();
+    });
+  };
+
   /** Resize to MAX_SIDE, analyze, then enter confirm with drafts and crops. */
-  const processImage = async (photoUri: string, photoWidth: number, photoHeight: number) => {
+  const processImage = async (
+    photoUri: string,
+    photoWidth: number,
+    photoHeight: number,
+    captureMs: number | undefined,
+  ) => {
     setFlowError(null);
     let previewSet = false;
     try {
@@ -255,22 +353,40 @@ export default function MakanAi() {
             ? context.resize({ height: MAX_SIDE })
             : context.resize({ width: MAX_SIDE });
       }
+      const processStartedAt = performance.now();
       const rendered = await context.renderAsync();
+      const resizeMs = Math.round(performance.now() - processStartedAt);
       const saved = await rendered.saveAsync({
         compress: 0.75,
         format: SaveFormat.JPEG,
         base64: true,
       });
+      const encodeMs = Math.round(performance.now() - processStartedAt) - resizeMs;
       if (!saved.base64) {
         setFlowError("Gagal memproses foto. Coba lagi.");
         if (previewSet) setPreviewUri(null);
         return;
       }
+      // Prev* come from the previous scan of this session: its render and
+      // crop finished after its own request had already been logged.
+      const { prevRoundTripMs, prevRenderMs, prevCropMs } = sessionTiming;
+      sessionTiming = {};
+      const requestAt = performance.now();
       const result = await analyze.mutateAsync({
         imageBase64: saved.base64,
         mimeType: "image/jpeg",
         crops: true,
+        clientTiming: {
+          ...(captureMs !== undefined ? { captureMs } : {}),
+          resizeMs,
+          encodeMs,
+          payloadKb: Math.round((saved.base64.length * 3) / 4 / 1024),
+          prevRoundTripMs,
+          prevRenderMs,
+          prevCropMs,
+        },
       });
+      sessionTiming.prevRoundTripMs = Math.round(performance.now() - requestAt);
       setQuotaReached(result.quotaReached);
       setPhotoId(result.photoId ?? null);
       setRetriesLeft(result.retriesLeft ?? 0);
@@ -310,15 +426,18 @@ export default function MakanAi() {
         result.items.map((item) => ({ kcal: String(Math.round(item.kcal)), include: true })),
       );
       setPhase("confirm");
-      // Cut the per-item tiles in the background; rows update as they land.
-      void Promise.all(
-        result.items.map(async (item) =>
-          item.box
-            ? cropFromBox(saved.uri, rendered.width, rendered.height, item.box).catch(() => null)
-            : null,
-        ),
-      ).then((uris) => {
-        setCrops(uris);
+      // The state commit is on screen after two frames; record how long that
+      // took, then cut the per-item tiles in the background.
+      const respondedAt = performance.now();
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          sessionTiming.prevRenderMs = Math.round(performance.now() - respondedAt);
+        }),
+      );
+      // Slots shimmer until each crop lands.
+      const cropStartedAt = performance.now();
+      cutCrops(saved.uri, rendered.width, rendered.height, result.items, () => {
+        sessionTiming.prevCropMs = Math.round(performance.now() - cropStartedAt);
       });
     } catch (e) {
       // Out of free scans: paywall now, not just an error line.
@@ -333,12 +452,21 @@ export default function MakanAi() {
 
   const capture = async () => {
     try {
-      const photo = await cameraRef.current?.takePictureAsync({ quality: 1 });
+      // skipProcessing stays off: it returns the sensor's raw orientation and
+      // the preview/crops/model would see rotated photos on some devices.
+      // exif/base64 are off by default; spelled out so nobody turns them on.
+      const captureStartedAt = performance.now();
+      const photo = await cameraRef.current?.takePictureAsync({
+        quality: 1,
+        exif: false,
+        base64: false,
+      });
+      const captureMs = Math.round(performance.now() - captureStartedAt);
       if (!photo?.uri) {
         setFlowError("Gagal mengambil foto. Coba lagi.");
         return;
       }
-      await processImage(photo.uri, photo.width, photo.height);
+      await processImage(photo.uri, photo.width, photo.height, captureMs);
     } catch (e) {
       setFlowError(errorMessage(e));
     }
@@ -354,7 +482,7 @@ export default function MakanAi() {
       if (result.canceled) return;
       const asset = result.assets[0];
       if (!asset) return;
-      await processImage(asset.uri, asset.width, asset.height);
+      await processImage(asset.uri, asset.width, asset.height, undefined);
     } catch (e) {
       setFlowError(errorMessage(e));
     }
@@ -404,15 +532,7 @@ export default function MakanAi() {
       setRetryCount((count) => count + 1);
       // Re-cut the per-item tiles from the same sent image, in the background.
       if (sentImage) {
-        void Promise.all(
-          result.items.map(async (item) =>
-            item.box
-              ? cropFromBox(sentImage.uri, sentImage.width, sentImage.height, item.box).catch(
-                  () => null,
-                )
-              : null,
-          ),
-        ).then((uris) => setCrops(uris));
+        cutCrops(sentImage.uri, sentImage.width, sentImage.height, result.items);
       }
     } catch (e) {
       // The previous result stays on screen; only the message changes.
@@ -744,27 +864,23 @@ export default function MakanAi() {
                 resizeMode="cover"
                 accessibilityLabel="Foto makanan yang dipindai"
               />
-              {crops.some(Boolean) ? (
+              {cropping || crops.some(Boolean) ? (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.cropRow}>
-                    {items.map((item, index) => (
-                      <View key={`crop-${item.name}-${index}`} style={styles.cropTile}>
-                        {crops[index] ? (
-                          <Image
-                            source={{ uri: crops[index] as string }}
+                    {items.map((item, index) =>
+                      crops[index] || (cropping && item.box) ? (
+                        <View key={`crop-${item.name}-${index}`} style={styles.cropTile}>
+                          <CropSlot
+                            uri={crops[index]}
                             style={styles.cropImage}
-                            accessibilityLabel={`Potongan ${item.name}`}
+                            label={`Potongan ${item.name}`}
                           />
-                        ) : (
-                          <View style={[styles.cropImage, styles.cropPending]}>
-                            <ActivityIndicator size="small" color={theme.colors.mutedForeground} />
-                          </View>
-                        )}
-                        <Text style={styles.cropLabel} numberOfLines={1}>
-                          {item.name}
-                        </Text>
-                      </View>
-                    ))}
+                          <Text style={styles.cropLabel} numberOfLines={1}>
+                            {item.name}
+                          </Text>
+                        </View>
+                      ) : null,
+                    )}
                   </View>
                 </ScrollView>
               ) : null}
@@ -787,11 +903,11 @@ export default function MakanAi() {
                   icon={draft.include ? "checkmark-circle" : "ellipse-outline"}
                   iconTint={draft.include ? "makan" : "muted"}
                   thumb={
-                    crops[index] ? (
-                      <Image
-                        source={{ uri: crops[index] as string }}
+                    crops[index] || (cropping && item.box) ? (
+                      <CropSlot
+                        uri={crops[index]}
                         style={styles.cropThumb}
-                        accessibilityLabel={`Potongan ${item.name}`}
+                        label={`Potongan ${item.name}`}
                       />
                     ) : undefined
                   }
@@ -1225,9 +1341,18 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: theme.radius.card,
     backgroundColor: theme.colors.muted,
   },
-  cropPending: {
-    alignItems: "center",
-    justifyContent: "center",
+  cropSlot: {
+    overflow: "hidden",
+  },
+  cropFill: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  cropShimmer: {
+    backgroundColor: theme.colors.mutedForeground,
   },
   cropLabel: {
     fontSize: theme.fontSize.xs,

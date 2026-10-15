@@ -22,21 +22,38 @@ import { MAX_SCAN_RETRIES, requireAiQuota } from "../lib/quota";
 import { wibDayBounds } from "../lib/tiers";
 import { FRIENDLY_ERROR, analyzeFoodPhoto } from "../lib/vision";
 
+const timingMs = z.number().min(0).max(600_000);
+const clientTimingSchema = z.object({
+  captureMs: timingMs.optional(),
+  resizeMs: timingMs.optional(),
+  encodeMs: timingMs.optional(),
+  payloadKb: z.number().min(0).max(100_000).optional(),
+  prevRoundTripMs: timingMs.optional(),
+  prevRenderMs: timingMs.optional(),
+  prevCropMs: timingMs.optional(),
+});
+
 export const aiRouter = {
   analyzeFood: protectedProcedure
     .input(
       z.object({
-        // Clients send ≤1024 px JPEGs (~0.2–0.5 MB base64); 8 MB caps abuse.
+        // Clients send ≤1024 px images (~0.2–0.5 MB base64); 8 MB caps abuse.
         imageBase64: z.base64().min(50).max(8_000_000),
         mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
         // Clients that crop per item from the boxes (and save via
         // food.addScan) skip the legacy whole-plate sticker.
         crops: z.boolean().optional(),
+        // Phase timings (ms) the client measured, stored in ai_usage.usage_json
+        // so prod data shows where the felt latency goes. Prev* describe the
+        // previous scan of this session, which finished after its own request.
+        clientTiming: clientTimingSchema.optional(),
       }),
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
+      const requestStartedAt = Date.now();
       const { ai, quotaReached } = await requireAiQuota(context.db, context.env, userId);
+      const quotaMs = Date.now() - requestStartedAt;
 
       // "Hasilnya akurat?" cadence: ask after every scan for a brand-new user
       // (first 3 scans ever), otherwise at most once per WIB day. Counted
@@ -70,6 +87,26 @@ export const aiRouter = {
               base64ToBytes(input.imageBase64),
             )
           : Promise.resolve(null);
+      // Hitung ulang support: keep the exact photo the model saw so a retry
+      // sends only the id — no recapture, no reupload, no second scan of the
+      // daily quota. The counter metadata `n` (retries used) is the
+      // server-side cap; scan-src/ objects are short-lived via lifecycle.
+      // The put runs concurrently with inference: it hides entirely behind
+      // the model call instead of adding an R2 roundtrip after it.
+      const photoStored: Promise<string | null> = stickers
+        ? (async () => {
+            const id = newScanId();
+            try {
+              await stickers.put(scanSrcKey(userId, id), base64ToBytes(input.imageBase64), {
+                httpMetadata: { contentType: input.mimeType },
+                customMetadata: { n: "0" },
+              });
+              return id;
+            } catch {
+              return null;
+            }
+          })()
+        : Promise.resolve(null);
       let analysis;
       try {
         analysis = await analyzeFoodPhoto(ai, {
@@ -78,6 +115,12 @@ export const aiRouter = {
           model: context.env.AI_VISION_MODEL || undefined,
         });
       } catch (error) {
+        // No result, no retry target: drop the photo stored alongside inference.
+        if (stickers) {
+          context.waitUntil(
+            photoStored.then((id) => (id ? stickers.delete(scanSrcKey(userId, id)) : undefined)).catch(() => {}),
+          );
+        }
         throw new ORPCError("INTERNAL_SERVER_ERROR", {
           message: error instanceof Error ? error.message : FRIENDLY_ERROR,
         });
@@ -96,36 +139,34 @@ export const aiRouter = {
           return null;
         }
       };
-      // Hitung ulang support: keep the exact photo the model saw so a retry
-      // sends only the id — no recapture, no reupload, no second scan of the
-      // daily quota. The counter metadata `n` (retries used) is the
-      // server-side cap; scan-src/ objects are short-lived via lifecycle.
-      const [scanId, photoId] = await Promise.all([
+      // Charge only successful analyses — quota counts these ledger rows. The
+      // insert is bookkeeping the user never sees, so it runs after the
+      // response instead of adding a DB roundtrip to the critical path.
+      context.waitUntil(
+        context.db
+          .insert(aiUsage)
+          .values({
+            id: crypto.randomUUID(),
+            userId,
+            model: analysis.model,
+            scanType: "user",
+            latencyMs,
+            usageJson: JSON.stringify({
+              ...analysis.usage,
+              serverTiming: { quotaMs, aiMs: latencyMs, totalMs: Date.now() - requestStartedAt },
+              ...(input.clientTiming ? { clientTiming: input.clientTiming } : {}),
+            }),
+          })
+          .then(
+            () => undefined,
+            (error: unknown) => console.error("[ai] ledger insert failed", error),
+          ),
+      );
+      const [scanId, photoId, [[scansEverRow], [askedTodayRow]]] = await Promise.all([
         storeSticker(),
-        (async (): Promise<string | null> => {
-          if (!stickers) return null;
-          const photoId = newScanId();
-          try {
-            await stickers.put(scanSrcKey(userId, photoId), base64ToBytes(input.imageBase64), {
-              httpMetadata: { contentType: input.mimeType },
-              customMetadata: { n: "0" },
-            });
-            return photoId;
-          } catch {
-            return null;
-          }
-        })(),
-        // Charge only successful analyses — quota counts these ledger rows.
-        context.db.insert(aiUsage).values({
-          id: crypto.randomUUID(),
-          userId,
-          model: analysis.model,
-          scanType: "user",
-          latencyMs,
-          usageJson: analysis.usage ? JSON.stringify(analysis.usage) : null,
-        }),
+        photoStored,
+        feedbackGate,
       ]);
-      const [[scansEverRow], [askedTodayRow]] = await feedbackGate;
       return {
         items: analysis.items,
         scanId,

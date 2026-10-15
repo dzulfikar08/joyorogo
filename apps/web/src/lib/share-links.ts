@@ -2,7 +2,7 @@
 // here, so visits from shares show up in Revklik under one source.
 //
 // Invite links (/gabung/<kode>) get UTM too. That does not make them tracked:
-// limitRevklikToPublicPages (analytics.ts) still drops /gabung pageviews and
+// the Revklik filter (blog/revklik.ts) still drops /gabung pageviews and
 // strips the code from anything else that mentions it.
 
 export const SITE_ORIGIN = "https://joyorogo.com";
