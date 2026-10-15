@@ -185,6 +185,21 @@ export interface AdminOrder {
   founderUntil: string | number | null;
 }
 
+/**
+ * How an order was paid, read from what the server stores: Apple orders are
+ * "apple:<txn>", Pakasir links live on app.pakasir.com (the QRIS button adds
+ * qris_only=1), anything else with a link is DOKU (the Transfer Bank button;
+ * DOKU's page can still offer other methods). No link = checkout never opened.
+ */
+export function orderMethod(o: Pick<AdminOrder, "orderId" | "paymentUrl">): string {
+  if (o.orderId.startsWith("apple:")) return "Apple";
+  if (!o.paymentUrl) return "—";
+  if (o.paymentUrl.includes("app.pakasir.com")) {
+    return o.paymentUrl.includes("qris_only=1") ? "QRIS (Pakasir)" : "Pakasir";
+  }
+  return "Transfer Bank (DOKU)";
+}
+
 export interface AdminSession {
   createdAt: string | number;
   updatedAt: string | number;

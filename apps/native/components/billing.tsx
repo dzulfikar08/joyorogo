@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Platform, Pressable, View } from "react-native";
+import { Linking, Platform, Pressable, View } from "react-native";
+import * as Crypto from "expo-crypto";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -302,15 +303,36 @@ export function FounderPromoCard() {
   );
 }
 
-/** App Store Connect products for Founder (non-renewing); the server verifies the ids. */
+/** App Store Connect auto-renewable subscriptions (group "JoyoRogo Founder"); the server verifies the ids. */
 const FOUNDER_PRODUCT_IDS = {
-  monthly: "com.joyodigitama.joyorogo.founder.1m",
-  yearly: "com.joyodigitama.joyorogo.founder.1y",
+  monthly: "com.joyodigitama.joyorogo.founder.monthly",
+  yearly: "com.joyodigitama.joyorogo.founder.yearly",
 } as const;
 
+export const APPLE_SUBSCRIPTIONS_URL = "https://apps.apple.com/account/subscriptions";
+
 /**
- * The server will never credit this transaction (bad JWS or sandbox account
- * not allowlisted), so the caller must finish it instead of replaying forever.
+ * StoreKit appAccountToken for a user: SHA-256("joyorogo-apple:<userId>"), first
+ * 16 bytes, UUID version 5 + RFC 4122 variant. Must match appleAccountToken in
+ * packages/api/src/lib/apple.ts: the server rejects a transaction whose token
+ * belongs to another account.
+ */
+async function appleAccountToken(userId: string): Promise<string> {
+  const digest = await Crypto.digest(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    new TextEncoder().encode(`joyorogo-apple:${userId}`),
+  );
+  const bytes = new Uint8Array(digest).slice(0, 16);
+  bytes[6] = (bytes[6]! & 0x0f) | 0x50;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/**
+ * The server will never credit this transaction (bad JWS, sandbox account
+ * not allowlisted, or a subscription linked to another account), so the
+ * caller must finish it instead of replaying forever.
  */
 class AppleRejectedError extends Error {}
 
@@ -323,23 +345,30 @@ async function postAppleJws(signedTransaction: string): Promise<void> {
   });
   const body = (await res.json().catch(() => null)) as { error?: string } | null;
   if (res.status === 401) throw new Error("Masuk dulu untuk berlangganan.");
-  if (res.status === 400) {
+  if (res.status === 400 || res.status === 403) {
     throw new AppleRejectedError(body?.error ?? "Bukti pembelian tidak valid.");
   }
   if (!res.ok) throw new Error(body?.error ?? "Pembelian belum bisa diproses. Coba lagi nanti.");
 }
 
 /**
- * Buys the Founder month through StoreKit, credits it on the server, and only
- * then finishes the transaction. A transient failure before the server
- * confirms leaves the transaction unfinished, so the next mount replays it;
- * a definitive rejection finishes it immediately.
+ * Subscribes to a Founder plan through StoreKit with the account's
+ * appAccountToken, credits it on the server, and only then finishes the
+ * transaction. A transient failure before the server confirms leaves the
+ * transaction unfinished, so the next mount replays it; a definitive
+ * rejection finishes it immediately. Renewals arrive later through App Store
+ * Server Notifications and the launch entitlement sync.
  */
 export function useAppleFounderPurchase() {
   return useMutation({
     mutationFn: async (plan: "monthly" | "yearly") => {
       if (!appleIap) throw new Error("Pembelian lewat App Store tidak tersedia.");
-      const result = await appleIap.purchase(FOUNDER_PRODUCT_IDS[plan]);
+      const userId = (await authClient.getSession()).data?.user.id;
+      if (!userId) throw new Error("Masuk dulu untuk berlangganan.");
+      const result = await appleIap.purchase(
+        FOUNDER_PRODUCT_IDS[plan],
+        await appleAccountToken(userId),
+      );
       if (result.status === "cancelled") return "cancelled";
       if (result.status === "pending") {
         throw new Error(
@@ -357,6 +386,41 @@ export function useAppleFounderPurchase() {
     },
     onSuccess: () => queryClient.invalidateQueries(),
   });
+}
+
+/**
+ * Posts every active subscription this Apple ID holds (StoreKit
+ * currentEntitlements). `sync` first asks the App Store to refresh, for the
+ * explicit restore. Returns how many were accepted; rejected ones (linked to
+ * another JoyoRogo account) are counted separately.
+ */
+async function syncAppleEntitlements(sync: boolean) {
+  const summary = { accepted: 0, rejected: 0 };
+  if (!appleIap) return summary;
+  for (const item of await appleIap.currentEntitlements(sync)) {
+    try {
+      await postAppleJws(item.signedTransaction);
+      summary.accepted++;
+    } catch (error) {
+      if (!(error instanceof AppleRejectedError)) throw error;
+      summary.rejected++;
+    }
+  }
+  return summary;
+}
+
+/** "Pulihkan pembelian" (required by Apple): re-reads this Apple ID's subscriptions and credits them. */
+export function useAppleRestore() {
+  return useMutation({
+    mutationFn: () => syncAppleEntitlements(true),
+    onSuccess: () => queryClient.invalidateQueries(),
+  });
+}
+
+/** Opens Apple's subscription management ("Kelola langganan"). */
+export async function openManageSubscriptions(): Promise<void> {
+  if (appleIap && (await appleIap.showManageSubscriptions().catch(() => false))) return;
+  await Linking.openURL(APPLE_SUBSCRIPTIONS_URL);
 }
 
 /** StoreKit products for both plans; a plan is null while its product is unavailable. */
@@ -383,6 +447,7 @@ export function useAppleFounderPrice(enabled: boolean) {
  * retry on the next mount. Already-credited transactions are skipped by the
  * server (once per id).
  */
+/** Also syncs current entitlements so a renewal made while closed is credited at launch. */
 function useUnfinishedReplay(enabled: boolean) {
   useEffect(() => {
     if (!enabled || !appleIap) return;
@@ -399,7 +464,11 @@ function useUnfinishedReplay(enabled: boolean) {
         }
         await appleIap.finish(item.transactionId);
       }
-    })();
+      // Renewals while the app was closed: current entitlements carry the new period.
+      if (cancelled) return;
+      const summary = await syncAppleEntitlements(false);
+      if (summary.accepted > 0) queryClient.invalidateQueries();
+    })().catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -656,7 +725,7 @@ export function FounderCards({
               </Text>
               {ios && price.data?.monthly?.displayPrice ? (
                 <Text style={styles.cardNote}>
-                  {price.data.monthly.displayPrice}/bulan lewat App Store.
+                  {price.data.monthly.displayPrice}/bulan lewat App Store, diperpanjang otomatis.
                 </Text>
               ) : null}
               {PLAY_ACTIVE && playPrices.data?.monthly ? (
@@ -701,10 +770,19 @@ export function FounderCards({
               Sampai {fmtFounderDate(founderUntil)}.{" "}
               {PLAY_ACTIVE
                 ? "Langganan Google Play dikelola dan dibatalkan di Play Store."
-                : "Tidak diperpanjang otomatis."}
+                : ios
+                  ? "Langganan App Store, kelola di Pengaturan > Apple ID > Langganan."
+                  : "Tidak diperpanjang otomatis."}
             </Text>
           </View>
-          {billing ? (
+          {ios ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              label="Kelola langganan"
+              onPress={() => void openManageSubscriptions()}
+            />
+          ) : billing ? (
             <Button
               size="sm"
               variant="secondary"

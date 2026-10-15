@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import StoreKit
+import UIKit
 
 enum AppleIapError: Error, LocalizedError {
   case productNotFound(String)
@@ -32,12 +33,18 @@ public class AppleIapModule: Module {
       ]
     }
 
-    AsyncFunction("purchase") { (productId: String) -> [String: String] in
+    // appAccountToken ties the transaction (and every renewal) to the JoyoRogo
+    // account, so App Store Server Notifications can be mapped to a user.
+    AsyncFunction("purchase") { (productId: String, appAccountToken: String) -> [String: String] in
       let products = try await Product.products(for: [productId])
       guard let product = products.first else {
         throw AppleIapError.productNotFound(productId)
       }
-      let result = try await product.purchase()
+      var options: Set<Product.PurchaseOption> = []
+      if let token = UUID(uuidString: appAccountToken) {
+        options.insert(.appAccountToken(token))
+      }
+      let result = try await product.purchase(options: options)
       switch result {
       case .success(let verification):
         // Only verified transactions carry a JWS the server will accept.
@@ -69,6 +76,30 @@ public class AppleIapModule: Module {
         return true
       }
       return false
+    }
+
+    // Active subscriptions this Apple ID holds ("Pulihkan pembelian" and launch sync).
+    // AppStore.sync() first so a reinstall or new device sees purchases from the store.
+    AsyncFunction("currentEntitlements") { (sync: Bool) -> [[String: String]] in
+      if sync { try? await AppStore.sync() }
+      var items: [[String: String]] = []
+      for await result in Transaction.currentEntitlements {
+        guard case .verified(let transaction) = result else { continue }
+        items.append([
+          "signedTransaction": result.jwsRepresentation,
+          "transactionId": String(transaction.id),
+        ])
+      }
+      return items
+    }
+
+    // Apple's native subscription management sheet.
+    AsyncFunction("showManageSubscriptions") { () -> Bool in
+      guard let scene = await MainActor.run(body: {
+        UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene
+      }) else { return false }
+      try await AppStore.showManageSubscriptions(in: scene)
+      return true
     }
 
     AsyncFunction("unfinished") { () -> [[String: String]] in

@@ -218,6 +218,13 @@
       "when": 1792084331340,
       "tag": "0030_google_play_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1792090712866,
+      "tag": "0031_apple_subscriptions",
+      "breakpoints": true
     }
   ]
 }

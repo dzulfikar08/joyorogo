@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import type { Href } from "expo-router";
 import { useEffect, useState } from "react";
-import { AppState, Platform, View } from "react-native";
+import { AppState, Linking, Platform, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import {
@@ -19,7 +19,9 @@ import {
 import {
   FounderPromoCard,
   PLAY_ACTIVE,
+  openManageSubscriptions,
   useAppleFounderPrice,
+  useAppleRestore,
   useAppleFounderPurchase,
   useAppConfig,
   useCheckoutPicker,
@@ -50,6 +52,7 @@ export default function FounderPaywall() {
   const config = useAppConfig();
   const ios = Platform.OS === "ios";
   const purchase = useAppleFounderPurchase();
+  const appleRestore = useAppleRestore();
   const [plan, setPlan] = useState<CheckoutPlan>("monthly");
   const checkout = useCheckoutPicker(ios ? "monthly" : plan);
   const appleBilling = config.data?.appleBilling === true;
@@ -118,6 +121,23 @@ export default function FounderPaywall() {
       toast.error("Pembayaran gagal", errorMessage(e));
     }
   };
+  const restoreApple = async () => {
+    try {
+      const summary = await appleRestore.mutateAsync();
+      if (summary.accepted > 0) {
+        toast.success("Pembelian dipulihkan", "JoyoRogo Pro aktif.");
+      } else if (summary.rejected > 0) {
+        toast.error(
+          "Tidak bisa dipulihkan",
+          "Langganan ini sudah terhubung ke akun JoyoRogo lain.",
+        );
+      } else {
+        toast.info("Tidak ada langganan", "Apple ID ini belum punya langganan Pro aktif.");
+      }
+    } catch (e) {
+      toast.error("Pemulihan gagal", errorMessage(e));
+    }
+  };
   const restore = async () => {
     try {
       const summary = await playRestore.mutateAsync();
@@ -178,7 +198,7 @@ export default function FounderPaywall() {
       ]
     : ios && appleBilling
       ? [
-          'Ketuk tombol "Jadi Pro".',
+          'Pilih Bulanan atau Tahunan, lalu ketuk "Berlangganan JoyoRogo Pro".',
           "Bayar lewat App Store.",
           "Pro aktif otomatis setelah pembayaran.",
         ]
@@ -210,7 +230,7 @@ export default function FounderPaywall() {
           <Text style={styles.price}>{priceLabel}</Text>
           <Text style={styles.pricePer}>{yearly ? "/tahun" : "/bulan"}</Text>
         </View>
-        {yearly && !PLAY_ACTIVE ? (
+        {yearly && !PLAY_ACTIVE && !ios ? (
           <Text style={styles.priceNote}>
             12 bulan aktif. Menumpuk di sisa masa Pro-mu.
           </Text>
@@ -218,7 +238,9 @@ export default function FounderPaywall() {
         <Text style={styles.priceNote}>
           {PLAY_ACTIVE
             ? `JoyoRogo Pro, langganan ${yearly ? "tahunan" : "bulanan"} lewat Google Play. Diperpanjang otomatis tiap ${yearly ? "tahun" : "bulan"} sampai kamu batalkan di Google Play > Langganan.`
-            : "Tidak diperpanjang otomatis."}
+            : ios
+              ? `${priceLabel} per ${yearly ? "tahun" : "bulan"}. Diperpanjang otomatis kecuali dibatalkan minimal 24 jam sebelum periode berakhir. Kelola atau batalkan di Pengaturan > Apple ID > Langganan.`
+              : "Tidak diperpanjang otomatis."}
         </Text>
       </Card>
 
@@ -256,7 +278,7 @@ export default function FounderPaywall() {
 
       <View style={styles.actions}>
         <Button
-          label={PLAY_ACTIVE ? "Berlangganan JoyoRogo Pro" : "Jadi Pro"}
+          label={PLAY_ACTIVE || ios ? "Berlangganan JoyoRogo Pro" : "Jadi Pro"}
           onPress={() => void buy()}
           loading={buying}
           disabled={playUnavailable}
@@ -271,6 +293,40 @@ export default function FounderPaywall() {
             onPress={() => void restore()}
             loading={playRestore.isPending}
           />
+        ) : null}
+        {ios ? (
+          <>
+            <Button
+              variant="secondary"
+              label="Pulihkan pembelian"
+              onPress={() => void restoreApple()}
+              loading={appleRestore.isPending}
+            />
+            <Button
+              variant="secondary"
+              label="Kelola langganan"
+              onPress={() => void openManageSubscriptions()}
+            />
+            <View style={styles.legalRow}>
+              <Text
+                style={styles.legalLink}
+                accessibilityRole="link"
+                onPress={() =>
+                  void Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
+                }
+              >
+                Syarat
+              </Text>
+              <Text style={styles.skipHint}>dan</Text>
+              <Text
+                style={styles.legalLink}
+                accessibilityRole="link"
+                onPress={() => void Linking.openURL("https://joyorogo.com/privasi")}
+              >
+                Privasi
+              </Text>
+            </View>
+          </>
         ) : null}
         {!ios && !PLAY_ACTIVE ? checkout.sheet : null}
         <Button
@@ -360,6 +416,17 @@ const styles = StyleSheet.create((theme) => ({
   actions: {
     gap: theme.spacing.sm,
     marginTop: theme.spacing.xs,
+  },
+  legalRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: theme.spacing.xs,
+  },
+  legalLink: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.primary,
+    textDecorationLine: "underline",
   },
   skipHint: {
     textAlign: "center",

@@ -12,6 +12,9 @@ export const APPLE_ROOT_CA_G3_SHA256 =
 export const DEFAULT_APPLE_BUNDLE_ID = "com.joyodigitama.joyorogo";
 export const DEFAULT_APPLE_FOUNDER_PRODUCT_ID = "com.joyodigitama.joyorogo.founder.1m";
 export const DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID = "com.joyodigitama.joyorogo.founder.1y";
+/** Auto-renewable subscriptions in the "JoyoRogo Founder" group. The 1m/1y ids above are the legacy non-renewing IAPs. */
+export const DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID = "com.joyodigitama.joyorogo.founder.monthly";
+export const DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID = "com.joyodigitama.joyorogo.founder.yearly";
 
 // 1.2.840.113635.100.6.2.1 marks Apple WWDR intermediates, 1.2.840.113635.100.6.11.1
 // marks the App Store signing certificate (same OIDs Apple's own verifier checks).
@@ -43,6 +46,11 @@ export type AppleVerifyOptions = {
   bundleId: string;
   /** Any of these product ids is accepted; the caller maps the id to a plan. */
   productIds: string[];
+  /**
+   * Accept a transaction Apple revoked (refund, family-sharing removal).
+   * Purchases from the app never do; REFUND/REVOKE notifications must.
+   */
+  allowRevoked?: boolean;
 };
 
 export type AppleTransaction = {
@@ -52,6 +60,14 @@ export type AppleTransaction = {
   signedDate: Date;
   /** JWS price in IDR (App Store sends milliunits); null when currency is not IDR. */
   priceIdr: number | null;
+  /** Stable across every renewal of one subscription; equals transactionId on the first purchase. */
+  originalTransactionId: string;
+  /** End of the paid period; null for non-renewing purchases. */
+  expiresDate: Date | null;
+  /** Set when Apple refunded or revoked this transaction. */
+  revocationDate: Date | null;
+  /** The UUID the app passed at purchase (see appleAccountToken); null on legacy purchases. */
+  appAccountToken: string | null;
 };
 
 export type AppleVerification =
@@ -84,10 +100,16 @@ const jwsPayloadSchema = z.object({
   productId: z.string(),
   environment: z.string(),
   signedDate: z.number().finite(),
+  originalTransactionId: z.string().min(1).optional(),
+  expiresDate: z.number().finite().nullish(),
   revocationDate: z.number().nullish(),
+  appAccountToken: z.string().nullish(),
   currency: z.string().optional(),
   price: z.number().optional(),
 });
+
+/** Every signed Apple payload carries signedDate; the rest is checked per payload type. */
+const jwsBaseSchema = z.object({ signedDate: z.number().finite() }).passthrough();
 
 export async function verifyAppleTransactionJws(
   jws: string,
@@ -101,6 +123,52 @@ export async function verifyAppleTransactionJws(
 }
 
 async function verify(jws: string, opts: AppleVerifyOptions): Promise<AppleVerification> {
+  const chain = await verifyChain(jws, opts.rootSha256);
+  if (!chain.ok) return chain;
+
+  const parsed = jwsPayloadSchema.safeParse(chain.payload);
+  if (!parsed.success) return { ok: false, reason: "payload" };
+  const payload = parsed.data;
+
+  if (payload.bundleId !== opts.bundleId) return { ok: false, reason: "bundle" };
+  if (!opts.productIds.includes(payload.productId)) return { ok: false, reason: "product" };
+  if (payload.revocationDate != null && !opts.allowRevoked) {
+    return { ok: false, reason: "revoked" };
+  }
+  if (payload.environment !== "Sandbox" && payload.environment !== "Production") {
+    return { ok: false, reason: "environment" };
+  }
+  const priceIdr =
+    payload.currency === "IDR" && payload.price !== undefined
+      ? Math.round(payload.price / 1000)
+      : null;
+
+  return {
+    ok: true,
+    transaction: {
+      transactionId: payload.transactionId,
+      productId: payload.productId,
+      environment: payload.environment,
+      signedDate: chain.signedDate,
+      priceIdr,
+      originalTransactionId: payload.originalTransactionId ?? payload.transactionId,
+      expiresDate: payload.expiresDate != null ? new Date(payload.expiresDate) : null,
+      revocationDate: payload.revocationDate != null ? new Date(payload.revocationDate) : null,
+      appAccountToken: payload.appAccountToken ?? null,
+    },
+  };
+}
+
+type ChainResult =
+  | { ok: true; payload: unknown; signedDate: Date }
+  | { ok: false; reason: FailureReason };
+
+/**
+ * Trust check shared by every Apple-signed JWS (transactions, renewal info,
+ * server notifications): ES256 signature, x5c chain to the pinned root, Apple
+ * marker OIDs, certificate validity at signedDate. Returns the raw payload.
+ */
+async function verifyChain(jws: string, rootSha256: string): Promise<ChainResult> {
   const parts = jws.split(".");
   if (parts.length !== 3) return { ok: false, reason: "format" };
   const [headB64, payloadB64, sigB64] = parts as [string, string, string];
@@ -126,7 +194,7 @@ async function verify(jws: string, opts: AppleVerifyOptions): Promise<AppleVerif
 
   const rootDigestBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", root.raw));
   const rootDigest = [...rootDigestBytes].map((b) => b.toString(16).padStart(2, "0")).join("");
-  if (rootDigest !== normalizeFingerprint(opts.rootSha256)) return { ok: false, reason: "root" };
+  if (rootDigest !== normalizeFingerprint(rootSha256)) return { ok: false, reason: "root" };
 
   if (!bytesEqual(leaf.issuer, intermediate.subject)) return { ok: false, reason: "chain" };
   if (!bytesEqual(intermediate.issuer, root.subject)) return { ok: false, reason: "chain" };
@@ -137,11 +205,11 @@ async function verify(jws: string, opts: AppleVerifyOptions): Promise<AppleVerif
   if (!leaf.oids.includes(APPLE_APP_STORE_LEAF_OID)) return { ok: false, reason: "oid" };
   if (!intermediate.oids.includes(APPLE_WWDR_OID)) return { ok: false, reason: "oid" };
 
-  const parsed = jwsPayloadSchema.safeParse(parseJson(b64urlDecode(payloadB64)));
-  if (!parsed.success) return { ok: false, reason: "payload" };
-  const payload = parsed.data;
+  const payload = parseJson(b64urlDecode(payloadB64));
+  const base = jwsBaseSchema.safeParse(payload);
+  if (!base.success) return { ok: false, reason: "payload" };
 
-  const signedDate = new Date(payload.signedDate);
+  const signedDate = new Date(base.data.signedDate);
   for (const cert of [leaf, intermediate, root]) {
     if (signedDate.getTime() < cert.notBefore || signedDate.getTime() > cert.notAfter) {
       return { ok: false, reason: "validity" };
@@ -165,27 +233,130 @@ async function verify(jws: string, opts: AppleVerifyOptions): Promise<AppleVerif
   );
   if (!valid) return { ok: false, reason: "signature" };
 
-  if (payload.bundleId !== opts.bundleId) return { ok: false, reason: "bundle" };
-  if (!opts.productIds.includes(payload.productId)) return { ok: false, reason: "product" };
-  if (payload.revocationDate != null) return { ok: false, reason: "revoked" };
-  if (payload.environment !== "Sandbox" && payload.environment !== "Production") {
-    return { ok: false, reason: "environment" };
-  }
-  const priceIdr =
-    payload.currency === "IDR" && payload.price !== undefined
-      ? Math.round(payload.price / 1000)
-      : null;
+  return { ok: true, payload, signedDate };
+}
 
-  return {
-    ok: true,
-    transaction: {
-      transactionId: payload.transactionId,
-      productId: payload.productId,
-      environment: payload.environment,
-      signedDate,
-      priceIdr,
-    },
-  };
+// --- App Store Server Notifications V2 ------------------------------------
+
+export type AppleNotification = {
+  notificationType: string;
+  subtype: string | null;
+  notificationUUID: string | null;
+  environment: "Sandbox" | "Production" | null;
+  /** Verified transaction the notification is about; null for TEST and non-subscription types. */
+  transaction: AppleTransaction | null;
+  /** Verified renewal info (autoRenewStatus etc.); null when absent or unverifiable. */
+  renewalInfo: AppleRenewalInfo | null;
+};
+
+export type AppleRenewalInfo = {
+  originalTransactionId: string;
+  /** 1 = renews at period end, 0 = turned off. */
+  autoRenewStatus: number | null;
+  expirationIntent: number | null;
+};
+
+export type AppleNotificationVerification =
+  | { ok: true; notification: AppleNotification }
+  | { ok: false; reason: FailureReason };
+
+const notificationSchema = z.object({
+  notificationType: z.string().min(1),
+  subtype: z.string().nullish(),
+  notificationUUID: z.string().nullish(),
+  data: z
+    .object({
+      environment: z.string().optional(),
+      bundleId: z.string().optional(),
+      signedTransactionInfo: z.string().optional(),
+      signedRenewalInfo: z.string().optional(),
+    })
+    .optional(),
+});
+
+const renewalInfoSchema = z.object({
+  originalTransactionId: z.string().min(1),
+  autoRenewStatus: z.number().nullish(),
+  expirationIntent: z.number().nullish(),
+});
+
+/**
+ * Verifies a V2 `signedPayload` and its embedded signedTransactionInfo /
+ * signedRenewalInfo against the pinned root. The inner transaction may be
+ * revoked (REFUND / REVOKE) and may be any of `productIds`.
+ */
+export async function verifyAppleNotificationJws(
+  signedPayload: string,
+  opts: AppleVerifyOptions,
+): Promise<AppleNotificationVerification> {
+  try {
+    const chain = await verifyChain(signedPayload, opts.rootSha256);
+    if (!chain.ok) return chain;
+    const parsed = notificationSchema.safeParse(chain.payload);
+    if (!parsed.success) return { ok: false, reason: "payload" };
+    const { data } = parsed.data;
+    if (data?.bundleId !== undefined && data.bundleId !== opts.bundleId) {
+      return { ok: false, reason: "bundle" };
+    }
+    const environment =
+      data?.environment === "Sandbox" || data?.environment === "Production"
+        ? data.environment
+        : null;
+
+    let transaction: AppleTransaction | null = null;
+    if (data?.signedTransactionInfo) {
+      const inner = await verifyAppleTransactionJws(data.signedTransactionInfo, {
+        ...opts,
+        allowRevoked: true,
+      });
+      if (!inner.ok) return inner;
+      transaction = inner.transaction;
+    }
+
+    let renewalInfo: AppleRenewalInfo | null = null;
+    if (data?.signedRenewalInfo) {
+      const renewal = await verifyChain(data.signedRenewalInfo, opts.rootSha256);
+      if (!renewal.ok) return renewal;
+      const info = renewalInfoSchema.safeParse(renewal.payload);
+      if (!info.success) return { ok: false, reason: "payload" };
+      renewalInfo = {
+        originalTransactionId: info.data.originalTransactionId,
+        autoRenewStatus: info.data.autoRenewStatus ?? null,
+        expirationIntent: info.data.expirationIntent ?? null,
+      };
+    }
+
+    return {
+      ok: true,
+      notification: {
+        notificationType: parsed.data.notificationType,
+        subtype: parsed.data.subtype ?? null,
+        notificationUUID: parsed.data.notificationUUID ?? null,
+        environment,
+        transaction,
+        renewalInfo,
+      },
+    };
+  } catch {
+    return { ok: false, reason: "format" };
+  }
+}
+
+/**
+ * Deterministic UUID the app passes as StoreKit `appAccountToken` so a
+ * notification can be tied back to the JoyoRogo account. Must match
+ * apps/native/components/billing.tsx: SHA-256("joyorogo-apple:<userId>"),
+ * first 16 bytes, version 5 and RFC 4122 variant bits set.
+ */
+export async function appleAccountToken(userId: string): Promise<string> {
+  const digest = new Uint8Array(
+    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`joyorogo-apple:${userId}`)),
+  );
+  const bytes = digest.slice(0, 16);
+  bytes[6] = (bytes[6]! & 0x0f) | 0x50;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 async function certSignedBy(cert: ParsedCert, issuer: ParsedCert): Promise<boolean> {

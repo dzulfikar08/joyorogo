@@ -4,7 +4,15 @@ import { toast } from "sonner";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { cn } from "@joyorogo/ui/lib/utils";
-import { api, fmtDateTime, fmtIdr, get, type AdminOrder, type PagedOrders } from "../api";
+import {
+  api,
+  fmtDateTime,
+  fmtIdr,
+  get,
+  orderMethod,
+  type AdminOrder,
+  type PagedOrders,
+} from "../api";
 import { useHashQuery } from "../hash";
 import { Badge, Pagination, Select } from "../ui";
 
@@ -140,6 +148,7 @@ export function OrdersSection() {
                 <th>Order</th>
                 <th>User</th>
                 <th>Amount</th>
+                <th>Method</th>
                 <th>Status</th>
                 <th>Created</th>
                 <th>Paid</th>
@@ -156,6 +165,7 @@ export function OrdersSection() {
                     <div className="text-muted-foreground">{o.email}</div>
                   </td>
                   <td className="tabular-nums">{fmtIdr(o.amountIdr)}</td>
+                  <td className="whitespace-nowrap">{orderMethod(o)}</td>
                   <td>
                     <Badge
                       tone={
@@ -175,7 +185,7 @@ export function OrdersSection() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-muted-foreground">
+                  <td colSpan={9} className="text-muted-foreground">
                     {orders.isPending ? "Loading…" : "No orders."}
                   </td>
                 </tr>

@@ -8,8 +8,17 @@ import {
   DEFAULT_APPLE_BUNDLE_ID,
   DEFAULT_APPLE_FOUNDER_PRODUCT_ID,
   DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID,
+  DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID,
+  DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID,
+  verifyAppleNotificationJws,
   verifyAppleTransactionJws,
 } from "@joyorogo/api/lib/apple";
+import {
+  appleLedgerId,
+  handleAppleNotification,
+  redeemAppleTransaction,
+} from "@joyorogo/api/lib/apple-billing";
+import type { AppleBillingDeps } from "@joyorogo/api/lib/apple-billing";
 import { summarize } from "@joyorogo/api/lib/cost";
 import { googlePlayConfig } from "@joyorogo/api/lib/google-play";
 import type { GooglePlayEnv } from "@joyorogo/api/lib/google-play";
@@ -36,7 +45,6 @@ import {
 } from "@joyorogo/api/lib/pakasir";
 import type { PakasirConfig } from "@joyorogo/api/lib/pakasir";
 import {
-  appleFounderGrant,
   grandfatheredMonthlyIdr,
   ladderStep,
   nextFounderUntil,
@@ -434,6 +442,37 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     return settle(c, db, order, "pakasir");
   });
 
+  const appleProductConfig = () => ({
+    subscriptionIds: {
+      monthly: DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID,
+      yearly: DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID,
+    },
+    legacyIds: {
+      monthly: env.APPLE_FOUNDER_PRODUCT_ID || DEFAULT_APPLE_FOUNDER_PRODUCT_ID,
+      yearly: env.APPLE_FOUNDER_YEARLY_PRODUCT_ID || DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID,
+    },
+  });
+  const appleProductIds = () => {
+    const { subscriptionIds, legacyIds } = appleProductConfig();
+    return [
+      subscriptionIds.monthly,
+      subscriptionIds.yearly,
+      legacyIds.monthly,
+      legacyIds.yearly,
+    ];
+  };
+  const appleBillingDeps = (db: Database): AppleBillingDeps => ({
+    db,
+    config: {
+      ...appleProductConfig(),
+      sandboxAllowlist: env.APPLE_SANDBOX_EMAILS,
+      fallbackPriceIdr: {
+        monthly: config.founderPriceIdr,
+        yearly: config.founderYearlyPriceIdr,
+      },
+    },
+  });
+
   // StoreKit 2 purchase from the iOS app. Trust comes from the JWS chain
   // (pinned Apple Root CA - G3); no DOKU credentials involved, so the gate is
   // the paywall alone and an iOS-only self-host works.
@@ -448,13 +487,11 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       return c.json({ error: "Bukti pembelian tidak ada." }, 400);
     }
 
-    const monthlyId = env.APPLE_FOUNDER_PRODUCT_ID || DEFAULT_APPLE_FOUNDER_PRODUCT_ID;
-    const yearlyId =
-      env.APPLE_FOUNDER_YEARLY_PRODUCT_ID || DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID;
+    const billing = appleBillingDeps(deps.getDb());
     const verification = await verifyAppleTransactionJws(body.signedTransaction, {
       rootSha256: APPLE_ROOT_CA_G3_SHA256,
       bundleId: env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID,
-      productIds: [monthlyId, yearlyId],
+      productIds: appleProductIds(),
     });
     if (!verification.ok) {
       console.error(`apple billing rejected: ${verification.reason}`);
@@ -464,100 +501,84 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
 
     // TestFlight and App Review purchases are Sandbox with unknown buyer
     // emails (often Apple private relay). Allowlisted buyers (owner, review
-    // demo) get the full month; any other Sandbox buyer gets one day at zero
-    // revenue (appleFounderGrant), so review works without free months.
-    const orderId = `apple:${transaction.transactionId}`;
-    const plan = transaction.productId === yearlyId ? "yearly" : "monthly";
-    const paidPriceIdr =
-      transaction.priceIdr ??
-      (plan === "yearly" ? config.founderYearlyPriceIdr : config.founderPriceIdr);
-
-    const db = deps.getDb();
-    const [owner] = await db
-      .select({ founderUntil: user.founderUntil })
-      .from(user)
-      .where(eq(user.id, me.id))
-      .limit(1);
-    if (!owner) return c.json({ error: "Pengguna tidak ditemukan." }, 404);
-    const [existing] = await db
-      .select({ status: payment.status })
-      .from(payment)
-      .where(eq(payment.orderId, orderId))
-      .limit(1);
-    if (existing?.status === "paid") {
-      return c.json({ activated: false, founderUntil: owner.founderUntil });
+    // demo) get the full period; any other Sandbox buyer gets one day at zero
+    // revenue (appleFounderGrant / appleSubscriptionGrant), so review works
+    // without free months. Subscriptions are credited up to the store's own
+    // expiresDate and linked to the account by originalTransactionId.
+    const result = await redeemAppleTransaction(billing, {
+      userId: me.id,
+      email: me.email,
+      transaction,
+    });
+    if (!result.ok) {
+      if (result.error === "other-account") {
+        return c.json({ error: "Langganan ini sudah terhubung ke akun JoyoRogo lain." }, 403);
+      }
+      if (result.error === "no-user") return c.json({ error: "Pengguna tidak ditemukan." }, 404);
+      if (result.error === "wrong-product") {
+        return c.json({ error: "Bukti pembelian tidak valid." }, 400);
+      }
+      return c.json({ error: "Pembayaran masih diproses. Coba lagi sebentar." }, 409);
     }
-
-    const now = new Date();
-    const previousMs = owner.founderUntil?.getTime() ?? null;
-    const { until, amountIdr } = appleFounderGrant(
-      transaction.environment,
-      me.email,
-      env.APPLE_SANDBOX_EMAILS,
-      paidPriceIdr,
-      owner.founderUntil,
-      now,
-      planMonths(plan),
-    );
-
-    // One D1 batch. The pending row records the order; the paid flip only
-    // lands while founder_until still holds the value we extended from, so a
-    // replayed JWS or two concurrent purchases extend exactly once. The user
-    // update rides on the flip (a paid row stamped with this batch's time).
-    await db.insert(payment).values({ orderId, userId: me.id, amountIdr }).onConflictDoNothing();
-    const [flipped] = await db.batch([
-      db
-        .update(payment)
-        .set({ status: "paid", paidAt: now, founderUntil: until })
-        .where(
-          and(
-            eq(payment.orderId, orderId),
-            eq(payment.status, "pending"),
-            sql`(select ${user.founderUntil} from ${user} where ${user.id} = ${me.id}) is ${previousMs}`,
-          ),
-        )
-        .returning({ orderId: payment.orderId }),
-      db
-        .update(user)
-        .set({ founderUntil: until })
-        .where(
-          and(
-            eq(user.id, me.id),
-            sql`exists (select 1 from ${payment} where ${payment.orderId} = ${orderId} and ${payment.status} = 'paid' and ${payment.paidAt} = ${now.getTime()})`,
-          ),
-        ),
-    ]);
-    if (flipped.length === 1) {
+    if (result.status === "granted") {
       // The one-day sandbox trial is not a sale: no receipt, no admin alert.
-      if (amountIdr > 0) {
+      if (result.amountIdr > 0) {
+        const orderId = appleLedgerId(transaction.transactionId);
         c.executionCtx.waitUntil(
           sendOrderEmails(
             env,
-            db,
+            billing.db,
             { orderId, userId: me.id, gateway: "apple" },
             { founderDailyCap: config.founderDailyCap },
           ).catch((error: unknown) => console.error(`order emails ${orderId}:`, error)),
         );
       }
-      return c.json({ activated: true, founderUntil: until });
+      return c.json({ activated: true, founderUntil: result.founderUntil });
     }
+    return c.json({ activated: false, founderUntil: result.founderUntil });
+  });
 
-    // Lost a race: either this transaction already paid (replay) or another
-    // purchase flipped founder_until first; the client retries the replay.
-    const [again] = await db
-      .select({ status: payment.status })
-      .from(payment)
-      .where(eq(payment.orderId, orderId))
-      .limit(1);
-    if (again?.status === "paid") {
-      const [current] = await db
-        .select({ founderUntil: user.founderUntil })
-        .from(user)
-        .where(eq(user.id, me.id))
-        .limit(1);
-      return c.json({ activated: false, founderUntil: current?.founderUntil ?? null });
+  // App Store Server Notifications V2. Set this URL as both the Production and
+  // Sandbox Server URL in App Store Connect (App Information). Trust comes from
+  // the signed payload's JWS chain, like the purchase route. Verified
+  // notifications always answer 200 (unmapped ones are logged); a failed
+  // signature is 400; a D1 failure is 500 so Apple redelivers.
+  app.post("/api/billing/apple/notifications", async (c) => {
+    if (!paywallEnabled(config)) {
+      return c.json({ error: "Pembayaran tidak tersedia di server ini." }, 404);
     }
-    return c.json({ error: "Pembayaran masih diproses. Coba lagi sebentar." }, 409);
+    const body = (await c.req.json().catch(() => null)) as { signedPayload?: string } | null;
+    if (typeof body?.signedPayload !== "string" || !body.signedPayload) {
+      return c.json({ error: "signedPayload tidak ada." }, 400);
+    }
+    const verification = await verifyAppleNotificationJws(body.signedPayload, {
+      rootSha256: APPLE_ROOT_CA_G3_SHA256,
+      bundleId: env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID,
+      productIds: appleProductIds(),
+    });
+    if (!verification.ok) {
+      console.error(`apple notification rejected: ${verification.reason}`);
+      return c.json({ error: "signedPayload tidak valid." }, 400);
+    }
+    const billing = appleBillingDeps(deps.getDb());
+    try {
+      const result = await handleAppleNotification(billing, verification.notification);
+      if (result.granted && result.granted.amountIdr > 0) {
+        const { granted } = result;
+        c.executionCtx.waitUntil(
+          sendOrderEmails(
+            env,
+            billing.db,
+            { orderId: granted.orderId, userId: granted.userId, gateway: "apple" },
+            { founderDailyCap: config.founderDailyCap },
+          ).catch((error: unknown) => console.error(`order emails ${granted.orderId}:`, error)),
+        );
+      }
+      return c.json({ received: true });
+    } catch (error) {
+      console.error("apple notification failed:", error);
+      return c.json({ error: "retry" }, 500);
+    }
   });
 
   /**

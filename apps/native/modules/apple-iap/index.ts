@@ -21,9 +21,14 @@ export type ApplePurchaseResult =
 
 type NativeAppleIap = {
   getProduct(productId: string): Promise<AppleIapProduct | null>;
-  purchase(productId: string): Promise<ApplePurchaseResult>;
+  /** appAccountToken: UUID derived from the user id (see appleAccountToken in components/billing). */
+  purchase(productId: string, appAccountToken: string): Promise<ApplePurchaseResult>;
   finish(transactionId: string): Promise<boolean>;
   unfinished(): Promise<AppleUnfinished[]>;
+  /** Verified active subscription transactions; `sync` asks the App Store to refresh first (restore). */
+  currentEntitlements(sync: boolean): Promise<AppleUnfinished[]>;
+  /** Opens Apple's subscription management sheet; false when no window scene is available. */
+  showManageSubscriptions(): Promise<boolean>;
 };
 
 /**

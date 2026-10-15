@@ -237,6 +237,38 @@ export function appleFounderGrant(
   return { until: nextFounderUntil(current, now, months), amountIdr: priceIdr };
 }
 
+/**
+ * Founder time one auto-renewable App Store transaction grants: the store's
+ * own period end (`expiresDate`), never less than what the user already has.
+ * Sandbox buyers off the allowlist get the same 24h trial at zero revenue as
+ * appleFounderGrant, so review and TestFlight renewals never mint months.
+ * Returns null when the period already ended (a replayed old transaction).
+ */
+export function appleSubscriptionGrant(
+  environment: "Sandbox" | "Production",
+  buyerEmail: string,
+  sandboxAllowlist: string | undefined,
+  priceIdr: number,
+  expiresDate: Date,
+  current: Date | null,
+  now = new Date(),
+): { until: Date; amountIdr: number } | null {
+  if (expiresDate.getTime() <= now.getTime()) return null;
+  if (environment === "Sandbox") {
+    const allowed = (sandboxAllowlist ?? "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean);
+    if (!allowed.includes(buyerEmail.toLowerCase())) {
+      const base = current && current.getTime() > now.getTime() ? current : now;
+      return { until: new Date(base.getTime() + DAY_MS), amountIdr: 0 };
+    }
+  }
+  const until =
+    current && current.getTime() > expiresDate.getTime() ? current : expiresDate;
+  return { until, amountIdr: priceIdr };
+}
+
 /** Epoch-ms window of one WIB calendar day ('YYYY-MM-DD', UTC+7, no DST). */
 export function wibDayBounds(wibDay: string): { startMs: number; endMs: number } {
   const startMs = Date.parse(`${wibDay}T00:00:00+07:00`);

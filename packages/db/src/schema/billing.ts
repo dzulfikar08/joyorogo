@@ -82,3 +82,37 @@ export const googlePurchase = sqliteTable(
   },
   (table) => [index("google_purchase_user_idx").on(table.userId)],
 );
+
+/**
+ * App Store auto-renewable subscriptions, each linked to the one account that
+ * redeemed it. `original_transaction_id` is stable across renewals, so it is
+ * what lets an App Store Server Notification (renewal, refund, expiry) find
+ * its user, and what stops one subscription crediting a second account.
+ * Founder time itself is credited per transaction in `payment` as `apple:<transactionId>`.
+ */
+export const appleSubscription = sqliteTable(
+  "apple_subscription",
+  {
+    originalTransactionId: text("original_transaction_id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    productId: text("product_id").notNull(),
+    environment: text("environment", { enum: ["Sandbox", "Production"] }).notNull(),
+    // The StoreKit appAccountToken the app bought with (see appleAccountToken); fallback key for notifications.
+    appAccountToken: text("app_account_token"),
+    // Last state we saw: active, canceled (auto-renew off), grace, retry (billing retry), expired, revoked.
+    state: text("state").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [
+    index("apple_subscription_user_idx").on(table.userId),
+    index("apple_subscription_token_idx").on(table.appAccountToken),
+  ],
+);

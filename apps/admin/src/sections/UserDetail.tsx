@@ -10,6 +10,7 @@ import {
   get,
   toDate,
   type AdminUser,
+  orderMethod,
   type UserDetail,
 } from "../api";
 import { Badge, ConfirmAction, DayBars, SectionCard } from "../ui";
@@ -245,6 +246,7 @@ export function UserDetail({ userId, onClose }: { userId: string; onClose: () =>
                   <tr>
                     <th>Order</th>
                     <th>Amount</th>
+                    <th>Method</th>
                     <th>Status</th>
                     <th>Created</th>
                     <th>Paid</th>
@@ -257,6 +259,7 @@ export function UserDetail({ userId, onClose }: { userId: string; onClose: () =>
                     <tr key={o.orderId}>
                       <td className="font-mono text-[0.6875rem]">{o.orderId}</td>
                       <td>{fmtIdr(o.amountIdr)}</td>
+                      <td className="whitespace-nowrap">{orderMethod(o)}</td>
                       <td>
                         <Badge
                           tone={
@@ -278,7 +281,7 @@ export function UserDetail({ userId, onClose }: { userId: string; onClose: () =>
                   ))}
                   {d.orders.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="text-muted-foreground">
+                      <td colSpan={8} className="text-muted-foreground">
                         No orders.
                       </td>
                     </tr>
