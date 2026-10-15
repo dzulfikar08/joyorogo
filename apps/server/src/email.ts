@@ -230,7 +230,7 @@ async function lockedMonthlyIdr(db: Database, userId: string): Promise<number | 
       lowest: sql<number | null>`min(case when ${payment.months} >= 12 then ${payment.amountIdr} / 10.0 else ${payment.amountIdr} end)`,
     })
     .from(payment)
-    .where(and(eq(payment.userId, userId), eq(payment.status, "paid")));
+    .where(and(eq(payment.userId, userId), eq(payment.status, "paid"), gt(payment.amountIdr, 0)));
   return row?.lowest ?? null;
 }
 

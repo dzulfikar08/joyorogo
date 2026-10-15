@@ -7,12 +7,16 @@ import { APIError, createAuthEndpoint } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
+const DEFAULT_APPLE_BUNDLE_ID = "com.joyodigitama.joyorogo";
+
 export type AuthConfig = {
   BETTER_AUTH_URL: string;
   BETTER_AUTH_SECRET: string;
   CORS_ORIGIN: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
+  /** iOS bundle id, the audience of native Sign in with Apple identity tokens. */
+  APPLE_BUNDLE_ID?: string;
   DEV_LOGIN?: string;
 };
 
@@ -84,6 +88,7 @@ export function createAuth(
   database: Database,
   desktopOrigins: readonly string[] = [],
 ) {
+  const appleBundleId = env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID;
   return betterAuth({
     database: drizzleAdapter(database, {
       provider: "sqlite",
@@ -108,6 +113,18 @@ export function createAuth(
         // keep following the Google account and users who signed up before
         // photos were stored get theirs backfilled on the next sign-in.
         overrideUserInfoOnSignIn: true,
+      },
+      // Native Sign in with Apple only: the app sends the identity token and
+      // better-auth verifies it against Apple's JWKS (issuer appleid.apple.com,
+      // audience = bundle id). No Services ID, private key or client secret:
+      // those are needed only for the web redirect / code-exchange flow,
+      // which this app never starts.
+      apple: {
+        clientId: appleBundleId,
+        appBundleIdentifier: appleBundleId,
+        // Apple omits the name on every sign-in after the first (and on
+        // relay-only grants); never store an empty one.
+        mapProfileToUser: (profile) => (profile.name ? {} : { name: "Pengguna" }),
       },
     },
     databaseHooks: {

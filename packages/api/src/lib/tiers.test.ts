@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   addMonths,
+  appleFounderGrant,
   dailyScanQuota,
   effectiveTier,
   grandfatheredMonthlyIdr,
@@ -114,6 +115,36 @@ describe("founder period math", () => {
     expect(nextFounderUntil(new Date("2026-10-20T00:00:00Z"), now).toISOString()).toBe(
       "2026-11-20T00:00:00.000Z",
     );
+  });
+});
+
+describe("apple founder grant", () => {
+  const now = new Date("2026-10-12T05:00:00Z");
+  const allow = "Owner@joyo.id, review@joyo.id";
+
+  test("production grants the full month at the paid price", () => {
+    const grant = appleFounderGrant("Production", "x@y.z", allow, 15000, null, now);
+    expect(grant.until.toISOString()).toBe("2026-11-12T05:00:00.000Z");
+    expect(grant.amountIdr).toBe(15000);
+  });
+
+  test("allowlisted sandbox buyer (case-insensitive) keeps the month", () => {
+    const grant = appleFounderGrant("Sandbox", "OWNER@joyo.id", allow, 15000, null, now);
+    expect(grant.until.toISOString()).toBe("2026-11-12T05:00:00.000Z");
+    expect(grant.amountIdr).toBe(15000);
+  });
+
+  test("other sandbox buyers get 24h at zero revenue", () => {
+    const grant = appleFounderGrant("Sandbox", "abc@privaterelay.appleid.com", allow, 15000, null, now);
+    expect(grant.until.toISOString()).toBe("2026-10-13T05:00:00.000Z");
+    expect(grant.amountIdr).toBe(0);
+    expect(appleFounderGrant("Sandbox", "a@b.c", undefined, 15000, null, now).amountIdr).toBe(0);
+  });
+
+  test("the day stacks on an active period", () => {
+    const active = new Date("2026-10-20T00:00:00Z");
+    const first = appleFounderGrant("Sandbox", "a@b.c", allow, 0, active, now);
+    expect(first.until.toISOString()).toBe("2026-10-21T00:00:00.000Z");
   });
 });
 

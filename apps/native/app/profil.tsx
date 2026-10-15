@@ -108,6 +108,25 @@ export default function Profil() {
   const [hcMessage, setHcMessage] = useState<string | null>(null);
   const [hcError, setHcError] = useState<string | null>(null);
   const [wipeOpen, setWipeOpen] = useState(false);
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+  // Server-side delete: wipes data, photos and the user row (sessions and
+  // Google/Apple logins cascade). Afterwards the local session is dead, so
+  // sign out best-effort just to clear SecureStore.
+  const deleteAccount = useMutation(
+    orpc.privacy.deleteMyAccount.mutationOptions({
+      onSuccess: async () => {
+        try {
+          await authClient.signOut();
+        } catch {
+          // the server session is already gone
+        }
+        queryClient.clear();
+        await teardownReminders();
+        router.replace("/login");
+      },
+      onError: (e) => toast.error("Gagal menghapus akun", errorMessage(e)),
+    }),
+  );
   const [avatarRemoveOpen, setAvatarRemoveOpen] = useState(false);
 
   // Android only: Profil forces a check on mount so the section reflects the
@@ -616,6 +635,15 @@ export default function Profil() {
           right={deleteData.isPending ? <Text style={styles.error}>Menghapus…</Text> : undefined}
         />
         <ListRow
+          icon="person-remove"
+          iconTint="muted"
+          title="Hapus akun"
+          subtitle="Permanen: akun dan semua datamu hilang"
+          destructive
+          onPress={() => setDeleteAccountOpen(true)}
+          right={deleteAccount.isPending ? <Text style={styles.error}>Menghapus…</Text> : undefined}
+        />
+        <ListRow
           icon="log-out"
           iconTint="muted"
           title="Keluar"
@@ -668,6 +696,20 @@ export default function Profil() {
         onConfirm={() => {
           setWipeOpen(false);
           deleteData.mutate();
+        }}
+      />
+
+      <ConfirmSheet
+        visible={deleteAccountOpen}
+        onClose={() => setDeleteAccountOpen(false)}
+        title="Hapus akun?"
+        message="Akunmu dan semua datamu (profil, catatan, foto, postingan, grup) dihapus permanen dan tidak bisa dikembalikan. Kamu harus daftar lagi kalau mau pakai JoyoRogo."
+        confirmLabel="Hapus akun"
+        cancelLabel="Batal"
+        loading={deleteAccount.isPending}
+        onConfirm={() => {
+          setDeleteAccountOpen(false);
+          deleteAccount.mutate();
         }}
       />
 

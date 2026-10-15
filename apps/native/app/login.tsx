@@ -1,10 +1,12 @@
 import "@/unistyles";
+import * as AppleAuthentication from "expo-apple-authentication";
+import * as Crypto from "expo-crypto";
 import * as Linking from "expo-linking";
 import { Redirect, Stack, useLocalSearchParams } from "expo-router";
 import type { Href } from "expo-router";
-import { useState } from "react";
-import { View } from "react-native";
-import { StyleSheet } from "react-native-unistyles";
+import { useEffect, useState } from "react";
+import { Platform, View } from "react-native";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Container } from "@/components/container";
 import { Mascot } from "@/components/mascot";
@@ -25,6 +27,13 @@ export default function Login() {
     typeof next === "string" && next !== "" ? next : "/"
   ) as Href;
   const [signInError, setSignInError] = useState<string | null>(null);
+  const { rt } = useUnistyles();
+  const dark = (rt.themeName ?? rt.colorScheme) === "dark";
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+    void AppleAuthentication.isAvailableAsync().then(setAppleAvailable, () => setAppleAvailable(false));
+  }, []);
 
   if (!isPending && session) {
     return <Redirect href={destination} />;
@@ -37,6 +46,53 @@ export default function Login() {
       // expoClient rewrites this to the joyorogo:// deep link after OAuth
       callbackURL: Linking.createURL("/"),
     });
+  };
+
+  const handleAppleSignIn = async () => {
+    setSignInError(null);
+    try {
+      // Apple puts the SHA-256 of this value in the token's nonce claim;
+      // better-auth hashes the raw nonce we send and compares.
+      const rawNonce = Crypto.randomUUID();
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce,
+      );
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+      if (!credential.identityToken) {
+        setSignInError("Apple tidak mengirim data masuk. Coba lagi.");
+        return;
+      }
+      // Apple returns the name only on the very first authorization, and it is
+      // not inside the identity token, so hand it to better-auth explicitly.
+      const { givenName, familyName } = credential.fullName ?? {};
+      const { error } = await authClient.signIn.social({
+        provider: "apple",
+        idToken: {
+          token: credential.identityToken,
+          nonce: rawNonce,
+          ...(givenName || familyName
+            ? { user: { name: { firstName: givenName ?? undefined, lastName: familyName ?? undefined } } }
+            : {}),
+        },
+      });
+      if (error) {
+        setSignInError("Gagal masuk dengan Apple. Coba lagi sebentar.");
+        return;
+      }
+      queryClient.invalidateQueries();
+    } catch (e) {
+      // Closing the Apple sheet is not an error.
+      const code = typeof e === "object" && e !== null && "code" in e ? e.code : undefined;
+      if (code === "ERR_REQUEST_CANCELED" || code === "ERR_CANCELED") return;
+      setSignInError("Gagal masuk dengan Apple. Coba lagi sebentar.");
+    }
   };
 
   const handleDevSignIn = async () => {
@@ -65,6 +121,19 @@ export default function Login() {
             </Text>
           </View>
           <View style={styles.actions}>
+            {appleAvailable ? (
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                buttonStyle={
+                  dark
+                    ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                    : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+                }
+                cornerRadius={24}
+                style={styles.appleButton}
+                onPress={() => void handleAppleSignIn()}
+              />
+            ) : null}
             <Button label="Masuk dengan Google" icon="logo-google" onPress={handleGoogleSignIn} />
             {ENV.EXPO_PUBLIC_DEV_LOGIN === "1" ? (
               <Button
@@ -108,6 +177,10 @@ const styles = StyleSheet.create((theme) => ({
   },
   actions: {
     gap: theme.spacing.md,
+  },
+  appleButton: {
+    height: 48,
+    width: "100%",
   },
   errorText: {
     fontSize: theme.fontSize.sm,

@@ -25,6 +25,7 @@
     "babel-preset-expo": "~57.0.10",
     "better-auth": "catalog:",
     "expo": "~57.0.20",
+    "expo-apple-authentication": "~57.0.2",
     "expo-application": "~57.0.3",
     "expo-audio": "~57.0.5",
     "expo-build-properties": "^57.0.17",

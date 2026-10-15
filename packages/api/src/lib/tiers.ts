@@ -207,6 +207,35 @@ export function nextFounderUntil(current: Date | null, now = new Date(), months 
   return addMonths(base, months);
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Founder time an App Store transaction grants. Production and allowlisted
+ * sandbox buyers (owner, review demo) get the paid month. Any other Sandbox
+ * transaction (App Review and TestFlight, often a private-relay email) gets a
+ * 24h trial at zero revenue, so review passes without minting free months.
+ */
+export function appleFounderGrant(
+  environment: "Sandbox" | "Production",
+  buyerEmail: string,
+  sandboxAllowlist: string | undefined,
+  priceIdr: number,
+  current: Date | null,
+  now = new Date(),
+): { until: Date; amountIdr: number } {
+  if (environment === "Sandbox") {
+    const allowed = (sandboxAllowlist ?? "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean);
+    if (!allowed.includes(buyerEmail.toLowerCase())) {
+      const base = current && current.getTime() > now.getTime() ? current : now;
+      return { until: new Date(base.getTime() + DAY_MS), amountIdr: 0 };
+    }
+  }
+  return { until: nextFounderUntil(current, now), amountIdr: priceIdr };
+}
+
 /** Epoch-ms window of one WIB calendar day ('YYYY-MM-DD', UTC+7, no DST). */
 export function wibDayBounds(wibDay: string): { startMs: number; endMs: number } {
   const startMs = Date.parse(`${wibDay}T00:00:00+07:00`);

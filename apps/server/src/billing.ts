@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, like, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, like, lte, sql } from "drizzle-orm";
 import type { SendEmail } from "@cloudflare/workers-types";
 import type { JoyoAuth } from "@joyorogo/auth";
 import type { Context, Hono } from "hono";
@@ -33,6 +33,7 @@ import {
 } from "@joyorogo/api/lib/pakasir";
 import type { PakasirConfig } from "@joyorogo/api/lib/pakasir";
 import {
+  appleFounderGrant,
   grandfatheredMonthlyIdr,
   ladderStep,
   nextFounderUntil,
@@ -295,11 +296,11 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
         db
           .select({ taken: sql<number>`count(distinct ${payment.userId})` })
           .from(payment)
-          .where(eq(payment.status, "paid")),
+          .where(and(eq(payment.status, "paid"), gt(payment.amountIdr, 0))),
         db
           .select({ amountIdr: payment.amountIdr, months: payment.months })
           .from(payment)
-          .where(and(eq(payment.userId, me.id), eq(payment.status, "paid"))),
+          .where(and(eq(payment.userId, me.id), eq(payment.status, "paid"), gt(payment.amountIdr, 0))),
       ]);
       const step = ladderStep(config.founderLadder, row?.taken ?? 0);
       const locked = grandfatheredMonthlyIdr(paid);
@@ -449,20 +450,12 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     }
     const transaction = verification.transaction;
 
-    // TestFlight and App Review purchases are Sandbox; only allowlisted
-    // accounts (owner, review demo) may credit them, or a production server
-    // would hand out free Founder months.
-    const sandboxEmails = (env.APPLE_SANDBOX_EMAILS ?? "")
-      .split(",")
-      .map((email) => email.trim().toLowerCase())
-      .filter(Boolean);
-    if (transaction.environment === "Sandbox" && !sandboxEmails.includes(me.email.toLowerCase())) {
-      console.error("apple billing rejected: sandbox buyer not allowlisted");
-      return c.json({ error: "Akun ini tidak bisa memakai pembelian sandbox." }, 400);
-    }
-
+    // TestFlight and App Review purchases are Sandbox with unknown buyer
+    // emails (often Apple private relay). Allowlisted buyers (owner, review
+    // demo) get the full month; any other Sandbox buyer gets one day at zero
+    // revenue (appleFounderGrant), so review works without free months.
     const orderId = `apple:${transaction.transactionId}`;
-    const amountIdr = transaction.priceIdr ?? config.founderPriceIdr;
+    const paidPriceIdr = transaction.priceIdr ?? config.founderPriceIdr;
 
     const db = deps.getDb();
     const [owner] = await db
@@ -482,7 +475,14 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
 
     const now = new Date();
     const previousMs = owner.founderUntil?.getTime() ?? null;
-    const until = nextFounderUntil(owner.founderUntil, now);
+    const { until, amountIdr } = appleFounderGrant(
+      transaction.environment,
+      me.email,
+      env.APPLE_SANDBOX_EMAILS,
+      paidPriceIdr,
+      owner.founderUntil,
+      now,
+    );
 
     // One D1 batch. The pending row records the order; the paid flip only
     // lands while founder_until still holds the value we extended from, so a
@@ -512,14 +512,17 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
         ),
     ]);
     if (flipped.length === 1) {
-      c.executionCtx.waitUntil(
-        sendOrderEmails(
-          env,
-          db,
-          { orderId, userId: me.id, gateway: "apple" },
-          { founderDailyCap: config.founderDailyCap },
-        ).catch((error: unknown) => console.error(`order emails ${orderId}:`, error)),
-      );
+      // The one-day sandbox trial is not a sale: no receipt, no admin alert.
+      if (amountIdr > 0) {
+        c.executionCtx.waitUntil(
+          sendOrderEmails(
+            env,
+            db,
+            { orderId, userId: me.id, gateway: "apple" },
+            { founderDailyCap: config.founderDailyCap },
+          ).catch((error: unknown) => console.error(`order emails ${orderId}:`, error)),
+        );
+      }
       return c.json({ activated: true, founderUntil: until });
     }
 
