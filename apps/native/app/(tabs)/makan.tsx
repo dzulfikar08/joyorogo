@@ -1235,6 +1235,7 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     justifyContent: "space-between",
     marginTop: theme.spacing.sm,
+    paddingRight: theme.spacing.sm,
   },
   slotTitle: {
     fontSize: theme.fontSize.md,

@@ -71,6 +71,7 @@ const styles = StyleSheet.create((theme) => ({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     marginTop: theme.spacing.sm,
+    marginHorizontal: theme.spacing.sm,
     marginBottom: theme.spacing.xs,
   },
   barRow: {

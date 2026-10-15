@@ -1056,6 +1056,7 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.card,
     paddingVertical: theme.spacing.xs,
+    overflow: "hidden",
   },
   listSeparator: {
     height: StyleSheet.hairlineWidth,

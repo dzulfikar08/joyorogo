@@ -957,19 +957,12 @@ export default function MakanAi() {
         ? `${includedItems[0]!.name} dan ${includedItems.length - 1} lainnya`
         : includedItems[0]?.name;
     return (
+      <>
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAwareScrollView
           contentContainerStyle={styles.confirmContent}
           keyboardShouldPersistTaps="handled"
         >
-          {totalKcal > 0 && (
-            <ConfettiCannon
-              count={totalKcal > 1100 ? 160 : totalKcal > 550 ? 100 : 50}
-              origin={{ x: -10, y: 0 }}
-              autoStart
-              fadeOut
-            />
-          )}
           <View style={styles.totalBlock}>
             <Text style={styles.totalLabel}>Total kalori foto ini</Text>
             <Num style={styles.totalValue} adjustsFontSizeToFit numberOfLines={1}>
@@ -1286,6 +1279,17 @@ export default function MakanAi() {
           <Button variant="secondary" label="Foto Ulang" onPress={resetToCamera} />
         </KeyboardAwareScrollView>
       </SafeAreaView>
+      {totalKcal > 0 && (
+        <View pointerEvents="none" style={styles.confettiLayer}>
+          <ConfettiCannon
+            count={totalKcal > 1100 ? 160 : totalKcal > 550 ? 100 : 50}
+            origin={{ x: -10, y: 0 }}
+            autoStart
+            fadeOut
+          />
+        </View>
+      )}
+      </>
     );
   }
 
@@ -1564,6 +1568,11 @@ const styles = StyleSheet.create((theme) => ({
   safeArea: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  confettiLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1000,
+    elevation: 1000,
   },
   confirmContent: {
     paddingHorizontal: theme.spacing.lg,
