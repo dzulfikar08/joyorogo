@@ -19,6 +19,8 @@ declare module "cloudflare:workers" {
       IMAGES: ImagesBinding;
       // Per-IP budget for the public invite preview; unset = no limit.
       INVITE_PREVIEW_LIMITER?: RateLimitBinding;
+      // Per-IP budget for review-login password guesses; unset = no limit.
+      REVIEW_LOGIN_LIMITER?: RateLimitBinding;
       // Optional Cloudflare Email Service binding; unset = email off.
       EMAIL?: SendEmail;
       // Wrangler-deployed vars/secrets (see .env.schema); unset = feature off.

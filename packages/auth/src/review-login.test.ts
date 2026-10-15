@@ -2,17 +2,17 @@ import { describe, expect, test } from "bun:test";
 import { betterAuth } from "better-auth";
 import { memoryAdapter } from "better-auth/adapters/memory";
 
-import { parseReviewLoginEmails, reviewLoginOptions } from "./index";
+import { type RateLimiter, parseReviewLoginEmails, reviewLoginOptions } from "./index";
 
 const REVIEW_EMAIL = "review@joyorogo.com";
 const PASSWORD = "correct-horse-battery-staple-91";
 
-async function setup(allowed: string) {
+async function setup(allowed: string, limiter?: RateLimiter) {
   const auth = betterAuth({
     database: memoryAdapter({ user: [], session: [], account: [], verification: [] }),
     secret: "test-secret-test-secret-test-secret-1234",
     baseURL: "http://localhost:3000",
-    ...reviewLoginOptions(parseReviewLoginEmails(allowed)),
+    ...reviewLoginOptions(parseReviewLoginEmails(allowed), limiter),
   });
   const ctx = await auth.$context;
   // Same shape the review script writes: a user plus a credential account.
@@ -85,23 +85,32 @@ describe("review login", () => {
     expect(await errorOf(auth.api.signUpEmail({ body: { email: "n@example.com", password: PASSWORD, name: "N" } }))).not.toBeNull();
   });
 
-  test("password guesses are rate limited per client on /sign-in/email only", async () => {
-    const { auth } = await setup(REVIEW_EMAIL);
-    const post = (path: string) =>
+  test("password guesses are throttled per client IP, before any password check", async () => {
+    const seen: string[] = [];
+    let budget = 2;
+    const limiter: RateLimiter = {
+      async limit({ key }) {
+        seen.push(key);
+        return { success: budget-- > 0 };
+      },
+    };
+    const { auth } = await setup(REVIEW_EMAIL, limiter);
+    const post = (password: string) =>
       auth.handler(
-        new Request(`http://localhost:3000/api/auth${path}`, {
+        new Request("http://localhost:3000/api/auth/sign-in/email", {
           method: "POST",
-          headers: { "content-type": "application/json", origin: "http://localhost:3000" },
-          body: JSON.stringify({ email: REVIEW_EMAIL, password: "wrong-password-123" }),
+          headers: {
+            "content-type": "application/json",
+            origin: "http://localhost:3000",
+            "cf-connecting-ip": "203.0.113.7",
+          },
+          body: JSON.stringify({ email: REVIEW_EMAIL, password }),
         }),
       );
-    const statuses: number[] = [];
-    for (let i = 0; i < 7; i++) statuses.push((await post("/sign-in/email")).status);
-    expect(statuses.slice(0, 5)).toEqual([401, 401, 401, 401, 401]);
-    expect(statuses.slice(5)).toEqual([429, 429]);
-    // Other endpoints are not throttled by this rule.
-    const other: number[] = [];
-    for (let i = 0; i < 8; i++) other.push((await auth.handler(new Request("http://localhost:3000/api/auth/get-session"))).status);
-    expect(other.every((s) => s !== 429)).toBe(true);
+    expect((await post("wrong-password-123")).status).toBe(401);
+    expect((await post(PASSWORD)).status).toBe(200);
+    // Budget spent: even the right password is refused.
+    expect((await post(PASSWORD)).status).toBe(429);
+    expect(seen).toEqual(Array(3).fill("review-login:203.0.113.7"));
   });
 });

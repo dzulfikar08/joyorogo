@@ -23,6 +23,8 @@ export type AuthConfig = {
    * Play / App Store review accounts). Empty = email/password is fully off.
    */
   REVIEW_LOGIN_EMAILS?: string;
+  /** Per-IP throttle for the review login (wrangler `ratelimits`); unset = no throttle. */
+  REVIEW_LOGIN_LIMITER?: RateLimiter;
 };
 
 /** The configured better-auth instance createAuth returns. */
@@ -96,14 +98,21 @@ export function parseReviewLoginEmails(raw: string | undefined): string[] {
     .filter(Boolean);
 }
 
+/** Workers Rate Limiting binding surface (wrangler.jsonc `ratelimits`). */
+export type RateLimiter = {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
+};
+
 /**
  * Email + password sign-in for the allowlisted review accounts only.
  * Sign-up is always off (the accounts are created out of band by
- * scripts/review-login.ts) and every other email gets the exact error a wrong
- * password gets, so the allowlist cannot be probed. An empty allowlist turns
- * the whole feature off.
+ * packages/auth/scripts/review-login.ts) and every other email gets the exact
+ * error a wrong password gets, so the allowlist cannot be probed. An empty
+ * allowlist turns the whole feature off. `limiter` throttles password
+ * guesses per client IP (the Workers binding is shared by every isolate in a
+ * location, unlike better-auth's in-memory rate limit).
  */
-export function reviewLoginOptions(allowedEmails: readonly string[]) {
+export function reviewLoginOptions(allowedEmails: readonly string[], limiter?: RateLimiter) {
   const allowed = new Set(allowedEmails);
   return {
     emailAndPassword: {
@@ -115,6 +124,15 @@ export function reviewLoginOptions(allowedEmails: readonly string[]) {
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         if (ctx.path !== "/sign-in/email") return;
+        if (limiter) {
+          const ip = ctx.request?.headers.get("cf-connecting-ip") ?? "unknown";
+          const { success } = await limiter.limit({ key: `review-login:${ip}` });
+          if (!success) {
+            throw new APIError("TOO_MANY_REQUESTS", {
+              message: "Too many requests. Please try again later.",
+            });
+          }
+        }
         const email = (ctx.body as { email?: unknown } | undefined)?.email;
         if (typeof email === "string" && allowed.has(email.trim().toLowerCase())) return;
         // Burn the same hash the real path would, so timing does not reveal the allowlist.
@@ -126,17 +144,6 @@ export function reviewLoginOptions(allowedEmails: readonly string[]) {
         });
       }),
     },
-    // Throttle password guesses (per IP, per isolate: best effort, the
-    // review password is long and random). Every other path stays unlimited,
-    // exactly as before rate limiting was switched on.
-    rateLimit: {
-      enabled: true,
-      storage: "memory" as const,
-      customRules: {
-        "/sign-in/email": { window: 60, max: 5 },
-        "*": false as const,
-      },
-    },
   };
 }
 
@@ -146,7 +153,10 @@ export function createAuth(
   desktopOrigins: readonly string[] = [],
 ) {
   const appleBundleId = env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID;
-  const review = reviewLoginOptions(parseReviewLoginEmails(env.REVIEW_LOGIN_EMAILS));
+  const review = reviewLoginOptions(
+    parseReviewLoginEmails(env.REVIEW_LOGIN_EMAILS),
+    env.REVIEW_LOGIN_LIMITER,
+  );
   return betterAuth({
     ...review,
     database: drizzleAdapter(database, {
@@ -226,9 +236,6 @@ export function createAuth(
         secure: true,
         httpOnly: true,
       },
-      // Workers set cf-connecting-ip, not x-forwarded-for; without it every
-      // client would share one rate-limit bucket.
-      ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] },
     },
     plugins: [expo(), devLogin(Boolean(env.DEV_LOGIN))],
   });
