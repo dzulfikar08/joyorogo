@@ -74,8 +74,7 @@ export function StravaCard() {
       />
     );
   } else if (statusQuery.data && !statusQuery.data.configured) {
-    subtitle =
-      "Belum dikonfigurasi: kredensial Strava belum diisi di server, jadi akun belum bisa dihubungkan.";
+    subtitle = "Segera hadir: aktivitas Strava otomatis masuk ke angka bakar.";
   } else if (statusQuery.data && !statusQuery.data.connected) {
     subtitle = "Hubungkan akun Strava untuk mengimpor aktivitas olahragamu otomatis.";
     action = (

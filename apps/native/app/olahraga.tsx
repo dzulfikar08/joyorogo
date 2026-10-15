@@ -392,7 +392,7 @@ export default function Olahraga() {
         <EmptyState
           icon="barbell-outline"
           title={isToday ? "Belum ada olahraga hari ini" : `Belum ada olahraga ${fmtDateId(date)}`}
-          description={`Pilih aktivitas di atas, sinkronkan Strava, atau impor dari ${healthSourceName}.`}
+          description={`Pilih aktivitas di atas atau impor dari ${healthSourceName}.`}
         />
       ) : (
         <ListGroup>

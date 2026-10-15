@@ -83,7 +83,7 @@ const NUMBERS: Array<{
     center: "300",
     unit: "kcal",
     title: "Harus bakar",
-    body: "Dari langkah dan olahraga. Di Android terbaca otomatis dari Health Connect, atau sambungkan Strava. Mau catat manual juga bisa.",
+    body: "Dari langkah dan olahraga. Di Android terbaca otomatis dari Health Connect, dan Strava segera menyusul. Mau catat manual juga bisa.",
   },
   {
     metric: "tidur",
@@ -434,9 +434,14 @@ function Landing() {
                   <Activity className="size-5" aria-hidden />
                 </span>
                 <span>
-                  <span className="block text-[0.9375rem] font-bold">Strava</span>
+                  <span className="flex items-center gap-2 text-[0.9375rem] font-bold">
+                    Strava
+                    <span className="rounded-full bg-bakar-soft px-2 py-0.5 text-xs font-bold text-bakar-ink">
+                      Segera
+                    </span>
+                  </span>
                   <span className="block text-sm text-muted-foreground">
-                    Lari, sepeda, dan aktivitas lain.
+                    Lari, sepeda, dan aktivitas lain masuk otomatis.
                   </span>
                 </span>
               </li>

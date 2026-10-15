@@ -92,7 +92,7 @@ export function StravaCard() {
       </Button>
     );
   } else if (!strava.configured) {
-    note = "Strava belum dikonfigurasi di server, sambungan menyusul setelah kredensial disetel.";
+    note = "Segera hadir: aktivitas Strava otomatis masuk ke angka bakar.";
   } else if (strava.connected) {
     note = `Terhubung${strava.athleteId ? ` (ID atlet ${strava.athleteId})` : ""}.`;
     actions = (
