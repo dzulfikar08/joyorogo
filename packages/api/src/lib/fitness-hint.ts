@@ -19,6 +19,8 @@ export type FitnessDay = {
 };
 
 export const HARD_STRAIN = 14;
+/** Two hard hours in JoyoFit's own scale (see header); the upper band of a hard day. */
+export const VERY_HARD_STRAIN = 18;
 export const LOW_RECOVERY_PCT = 34;
 export const SHORT_SLEEP_PCT = 75;
 
@@ -35,20 +37,33 @@ export function hasFitnessData(day: FitnessDay | null | undefined): day is Fitne
   return !!day && (day.recoveryPct !== null || day.strain !== null || day.sleepPct !== null || day.readiness !== null);
 }
 
+/** What stands out in a day's scores; one definition for the free hints and the Premium guidance. */
+export function readinessFlags(day: FitnessDay) {
+  const lowRecovery = day.recoveryPct !== null && day.recoveryPct < LOW_RECOVERY_PCT;
+  const strained = day.readiness === "Strained" || day.readiness === "Run down";
+  const shortSleep = day.sleepPct !== null && day.sleepPct < SHORT_SLEEP_PCT;
+  return {
+    hardDay: day.strain !== null && day.strain >= HARD_STRAIN,
+    veryHardDay: day.strain !== null && day.strain >= VERY_HARD_STRAIN,
+    lowRecovery,
+    strained,
+    shortSleep,
+    needsRest: lowRecovery || strained || shortSleep,
+  };
+}
+
 /** Up to two short hints for the day's food; empty when nothing stands out. */
 export function fitnessHints(day: FitnessDay): string[] {
   const hints: string[] = [];
+  const { hardDay, lowRecovery, strained, shortSleep, needsRest } = readinessFlags(day);
 
-  if (day.strain !== null && day.strain >= HARD_STRAIN) {
+  if (hardDay) {
     hints.push(
       "Hari ini berat untuk tubuhmu, jadi kebutuhan energi dan karbohidrat lebih tinggi dari biasanya. Cukupi cairan juga.",
     );
   }
 
-  const lowRecovery = day.recoveryPct !== null && day.recoveryPct < LOW_RECOVERY_PCT;
-  const strained = day.readiness === "Strained" || day.readiness === "Run down";
-  const shortSleep = day.sleepPct !== null && day.sleepPct < SHORT_SLEEP_PCT;
-  if (lowRecovery || strained || shortSleep) {
+  if (needsRest) {
     const why = lowRecovery
       ? "Pemulihanmu rendah"
       : shortSleep && !strained
@@ -59,3 +74,10 @@ export function fitnessHints(day: FitnessDay): string[] {
 
   return hints;
 }
+
+/** Locked teaser the free tier sees under the hints; the action opens the Founder paywall. */
+export const FOOD_GUIDANCE_TEASER = {
+  title: "Saran makan dari skor JoyoFit",
+  body: "Founder dapat saran porsi dan menu hari ini, dihitung dari skormu, target harianmu, dan makanan yang sudah kamu catat.",
+  action: "Buka dengan Founder",
+} as const;

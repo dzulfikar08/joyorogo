@@ -27,8 +27,8 @@ export const Route = createFileRoute("/harga")({
 });
 
 /**
- * Features that are NOT gated (verified: the only paywall in the API is the
- * daily AI scan quota in packages/api ai.ts). Every package gets these.
+ * Features that are NOT gated (verified: the gated ones are the daily AI scan
+ * quota in packages/api ai.ts and day.readinessGuidance). Every package gets these.
  */
 function sharedFeatures(config: AppConfig): string[] {
   return [
@@ -43,7 +43,12 @@ function sharedFeatures(config: AppConfig): string[] {
 
 /** Founder-only extras besides the scan quota. */
 function founderFeatures(config: AppConfig): string[] {
-  return [founderScans(config), "Badge founder di profilmu", "Harga terkunci saat perpanjang"];
+  return [
+    founderScans(config),
+    "Saran makan dari skor JoyoFit",
+    "Badge founder di profilmu",
+    "Harga terkunci saat perpanjang",
+  ];
 }
 
 function TierCard({
@@ -174,7 +179,7 @@ function pricingFaq(config: AppConfig): Array<{ q: string; a: string }> {
   return [
     {
       q: "Gratisnya sampai kapan?",
-      a: `Selamanya. Diary, tren berat, lingkar perut, grup, dan latihan bebas dipakai tanpa bayar. Yang dibatasi cuma scan AI: ${config.freeDailyScans} foto atau cerita per hari.`,
+      a: `Selamanya. Diary, tren berat, lingkar perut, grup, dan latihan bebas dipakai tanpa bayar. Yang dibatasi cuma scan AI (${config.freeDailyScans} foto atau cerita per hari) dan saran makan dari skor JoyoFit.`,
     },
     {
       q: "Apakah ini langganan otomatis?",
@@ -248,8 +253,8 @@ function HargaPage() {
             <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">Harga</h1>
             {config.data?.paywall && (
               <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
-                Mulai gratis, selamanya. Founder cuma menambah jatah scan AI untuk hari-hari yang
-                butuh lebih dari {config.data.freeDailyScans} kali.
+                Mulai gratis, selamanya. Founder menambah jatah scan AI untuk hari-hari yang butuh
+                lebih dari {config.data.freeDailyScans} kali, plus saran makan dari skor JoyoFit.
               </p>
             )}
           </header>
@@ -467,6 +472,7 @@ function HargaPage() {
                   {sharedFeatures(config.data).map((feature) => (
                     <CompareRow key={feature} feature={feature} free founder />
                   ))}
+                  <CompareRow feature="Saran makan dari skor JoyoFit" free={false} founder />
                   <CompareRow feature="Badge founder di profil" free={false} founder />
                 </tbody>
               </table>

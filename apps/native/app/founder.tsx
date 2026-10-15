@@ -30,7 +30,7 @@ import { errorMessage } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 /** Why the paywall opened; picks the subhead and nothing else. */
-type PaywallFrom = "onboarding" | "quota" | "banner" | "profile";
+type PaywallFrom = "onboarding" | "quota" | "banner" | "profile" | "fitness";
 
 export default function FounderPaywall() {
   const { theme } = useUnistyles();
@@ -113,7 +113,9 @@ export default function FounderPaywall() {
       ? "Rencana harianmu sudah siap. Founder buka scan AI lebih banyak setiap hari."
       : from === "quota"
         ? "Jatah scan AI gratis hari ini sudah habis."
-        : "Scan AI lebih banyak setiap hari, dan dukung JoyoRogo sekalian.";
+        : from === "fitness"
+          ? "Dapat saran porsi dan menu harian dari skor JoyoFit, targetmu, dan makanan yang kamu catat."
+          : "Scan AI lebih banyak setiap hari, dan dukung JoyoRogo sekalian.";
   const paySteps =
     ios && appleBilling
       ? [
@@ -164,6 +166,7 @@ export default function FounderPaywall() {
       <Card>
         {[
           capText,
+          "Saran makan dari skor JoyoFit",
           "Lencana Founder di profilmu",
           "Dukung pengembangan JoyoRogo",
         ].map((benefit) => (

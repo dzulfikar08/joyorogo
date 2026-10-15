@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_auth/founder")({
       !search.next.startsWith("//")
         ? search.next
         : undefined,
-    from: (["onboarding", "quota", "banner", "profile"] as const).find(
+    from: (["onboarding", "quota", "banner", "profile", "fitness"] as const).find(
       (value) => search.from === value,
     ),
   }),
@@ -42,6 +42,7 @@ const SUBHEAD: Record<PaywallFrom, string> = {
   quota: "Jatah scan AI gratis hari ini sudah habis. Jadi Founder untuk lanjut scan sekarang.",
   banner: "Scan AI gratis terbatas setiap hari. Founder dapat jatah yang jauh lebih besar.",
   profile: "Dukung pengembangan JoyoRogo dan dapatkan jatah scan AI yang jauh lebih besar.",
+  fitness: "Dapat saran porsi dan menu harian dari skor JoyoFit, targetmu, dan makanan yang kamu catat.",
 };
 
 /** "Cara bayar" — users keep asking how payment actually works. */
@@ -124,6 +125,7 @@ function FounderPage() {
         <ul className="mt-5 space-y-2.5">
           {[
             founderScans(config.data),
+            "Saran makan dari skor JoyoFit",
             "Badge founder di profilmu",
             "Dukung pengembangan JoyoRogo",
           ].map((feature) => (

@@ -1,6 +1,7 @@
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 
+import { user } from "@joyorogo/db/schema/auth";
 import {
   dailyActivity,
   exerciseLog,
@@ -8,6 +9,7 @@ import {
   sleepLog,
   weightLog,
 } from "@joyorogo/db/schema/fitness";
+import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 import { workoutSession } from "@joyorogo/db/schema/plans";
 
 import type { Meal } from "../lib/engine";
@@ -18,15 +20,26 @@ import {
   computeDeficit,
   effectiveRamadan,
   jakartaToday,
+  macroTargets,
   proteinTargetG,
   shiftDate,
   streakFromDates,
   suggestMealNow,
 } from "../lib/engine";
+import { READINESS_LABELS, hasFitnessData } from "../lib/fitness-hint";
 import { dateSchema } from "../lib/schemas";
 import { loadIdeaValues } from "./plate";
 import { mealIdeas } from "../lib/ideas";
 import { buildPlan, planQueries } from "../lib/plan";
+import {
+  DIARY_MACRO_REFERENCE_KG,
+  HISTORY_DAYS,
+  MIN_HISTORY_DAYS,
+  buildGuidance,
+  premiumUnlocked,
+} from "../lib/readiness-food";
+import type { GuidanceTargets, HistoryFood } from "../lib/readiness-food";
+import { paywallConfig } from "../lib/tiers";
 
 const ZERO_MEALS: Record<Meal, number> = {
   sarapan: 0,
@@ -234,4 +247,130 @@ export const dayRouter = {
         date,
       };
     }),
+
+  /**
+   * Founder food guidance for today from JoyoFit readiness, what is logged
+   * today and the user's own food history (lib/readiness-food). Premium is
+   * decided here: a free caller only ever gets `locked`, never the numbers.
+   * Lives on `day` so every diary mutation (which invalidates `day`) refreshes it.
+   */
+  readinessGuidance: protectedProcedure.handler(async ({ context }) => {
+    const userId = context.session.user.id;
+    const [userRow] = await context.db
+      .select({ tier: user.tier, founderUntil: user.founderUntil })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
+    if (!premiumUnlocked(userRow, paywallConfig(context.env))) {
+      return { status: "locked" as const };
+    }
+
+    const today = jakartaToday();
+    const dayCount = sql`count(distinct ${foodLog.date})`;
+    const [
+      scoreRows,
+      profileRows,
+      latestRows,
+      weighIns,
+      intake,
+      exercise,
+      todayRows,
+      historyRows,
+      workoutRows,
+    ] = await context.db.batch([
+      context.db
+        .select({
+          recoveryPct: fitnessScore.recoveryPct,
+          strain: fitnessScore.strain,
+          sleepPct: fitnessScore.sleepPct,
+          readiness: fitnessScore.readiness,
+        })
+        .from(fitnessScore)
+        .where(and(eq(fitnessScore.userId, userId), eq(fitnessScore.date, today)))
+        .limit(1),
+      ...planQueries(context.db, userId, today),
+      context.db
+        .select({
+          name: foodLog.name,
+          kcal: foodLog.kcal,
+          protein: foodLog.protein,
+          carbs: foodLog.carbs,
+        })
+        .from(foodLog)
+        .where(and(eq(foodLog.userId, userId), eq(foodLog.date, today))),
+      // Foods logged on at least MIN_HISTORY_DAYS days of the last HISTORY_DAYS,
+      // before today; avg() skips null macros, so unknown stays unknown.
+      context.db
+        .select({
+          name: sql<string>`min(${foodLog.name})`,
+          days: sql<number>`${dayCount}`,
+          kcal: sql<number>`avg(${foodLog.kcal})`,
+          protein: sql<number | null>`avg(${foodLog.protein})`,
+          carbs: sql<number | null>`avg(${foodLog.carbs})`,
+          meals: sql<string>`group_concat(distinct ${foodLog.meal})`,
+        })
+        .from(foodLog)
+        .where(
+          and(
+            eq(foodLog.userId, userId),
+            gte(foodLog.date, shiftDate(today, -HISTORY_DAYS)),
+            lt(foodLog.date, today),
+          ),
+        )
+        .groupBy(sql`lower(trim(${foodLog.name}))`)
+        .having(sql`${dayCount} >= ${MIN_HISTORY_DAYS}`)
+        .orderBy(desc(dayCount))
+        .limit(80),
+      context.db
+        .select({ id: workoutSession.id })
+        .from(workoutSession)
+        .where(and(eq(workoutSession.userId, userId), eq(workoutSession.date, today)))
+        .limit(1),
+    ]);
+
+    const score = scoreRows[0];
+    const fitnessDay = score && {
+      ...score,
+      // free text in the column; only JoyoFit's four words are meaningful
+      readiness: READINESS_LABELS.find((label) => label === score.readiness) ?? null,
+    };
+    if (!hasFitnessData(fitnessDay)) return { status: "none" as const };
+
+    const prof = profileRows[0];
+    let targets: GuidanceTargets | null = null;
+    if (prof) {
+      const { targets: plan, weightNowKg } = buildPlan(
+        prof,
+        { latestWeightKg: latestRows[0]?.weightKg ?? null, weighIns, intake, exercise },
+        today,
+      );
+      targets = {
+        eatKcal: plan.eatKcal,
+        proteinG: proteinTargetG(weightNowKg, prof.heightCm, workoutRows.length > 0),
+        carbsG: macroTargets(plan.eatKcal, DIARY_MACRO_REFERENCE_KG).carbsG,
+      };
+    }
+
+    const history: HistoryFood[] = historyRows.map((row) => ({
+      name: row.name,
+      days: row.days,
+      kcal: row.kcal,
+      proteinG: row.protein,
+      carbsG: row.carbs,
+      meals: row.meals ? row.meals.split(",") : [],
+    }));
+    const guidance = buildGuidance({
+      day: fitnessDay,
+      targets,
+      eaten: {
+        kcal: todayRows.reduce((sum, row) => sum + row.kcal, 0),
+        proteinG: todayRows.reduce((sum, row) => sum + (row.protein ?? 0), 0),
+        carbsG: todayRows.reduce((sum, row) => sum + (row.carbs ?? 0), 0),
+        names: todayRows.map((row) => row.name),
+      },
+      history,
+      slot: suggestMealNow(new Date(), effectiveRamadan(prof?.ramadanMode)),
+    });
+    return { status: "ready" as const, guidance };
+  }),
 };
