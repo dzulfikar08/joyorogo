@@ -123,6 +123,9 @@ export default function RootLayout() {
                 fontFamily: theme.fonts.bold,
               },
               headerTintColor: theme.colors.foreground,
+              // iOS otherwise labels the back button with the previous route's
+              // name, which for tab screens is the "(tabs)" group.
+              headerBackButtonDisplayMode: "minimal",
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
