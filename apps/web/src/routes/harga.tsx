@@ -12,13 +12,13 @@ import { AppDownload } from "@/components/app-download";
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 
+import { useCheckoutPicker } from "@/components/checkout-picker";
 import { PublicFooter } from "@/components/public-footer";
 import { PublicHeader } from "@/components/public-header";
 import { FounderPromo } from "@/components/founder-promo";
 import { ProgressBar } from "@/components/progress-bar";
 import { fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
-import { useFounderCheckout } from "@/lib/billing";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/harga")({
@@ -197,8 +197,8 @@ function pricingFaq(config: AppConfig): Array<{ q: string; a: string }> {
 
 function HargaPage() {
   const config = useAppConfig();
-  const checkout = useFounderCheckout("monthly");
-  const checkoutYearly = useFounderCheckout("yearly");
+  const checkout = useCheckoutPicker("monthly");
+  const checkoutYearly = useCheckoutPicker("yearly");
 
   // Sticky mobile CTA only when checkout actually exists on this server.
   const stickyCta = config.data?.paywall === true && config.data.billing === true;
@@ -317,7 +317,7 @@ function HargaPage() {
                 features={founderFeatures(config.data)}
                 cta={
                   config.data.billing ? (
-                    <Button disabled={checkout.isPending} onClick={() => checkout.mutate()}>
+                    <Button disabled={checkout.isPending} onClick={() => checkout.start()}>
                       {checkout.isPending ? "Membuka pembayaran..." : "Jadi Founder"}
                     </Button>
                   ) : (
@@ -344,7 +344,7 @@ function HargaPage() {
                   config.data.billing ? (
                     <Button
                       disabled={checkoutYearly.isPending}
-                      onClick={() => checkoutYearly.mutate()}
+                      onClick={() => checkoutYearly.start()}
                     >
                       {checkoutYearly.isPending ? "Membuka pembayaran..." : "Ambil paket tahunan"}
                     </Button>
@@ -365,14 +365,16 @@ function HargaPage() {
           </>
         )}
 
-        {(checkout.isError || checkoutYearly.isError) && (
+        {(checkout.error ?? checkoutYearly.error) && (
           <p
             role="alert"
             className="mt-4 rounded-2xl bg-card p-4 text-center text-sm text-muted-foreground"
           >
-            {checkout.error?.message ?? checkoutYearly.error?.message}
+            {(checkout.error ?? checkoutYearly.error)?.message}
           </p>
         )}
+        {checkout.sheet}
+        {checkoutYearly.sheet}
 
         {config.data?.paywall && promo && promo.nextPriceIdr != null && (
           <section aria-label="Daftar harga perkenalan" className="mt-14 md:mt-16">
@@ -576,7 +578,7 @@ function HargaPage() {
             <Button
               className="ml-auto shrink-0"
               disabled={checkout.isPending}
-              onClick={() => checkout.mutate()}
+              onClick={() => checkout.start()}
             >
               {checkout.isPending ? "Membuka..." : "Jadi Founder"}
             </Button>

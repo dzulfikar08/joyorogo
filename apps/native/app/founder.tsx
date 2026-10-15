@@ -21,7 +21,7 @@ import {
   useAppleFounderPrice,
   useAppleFounderPurchase,
   useAppConfig,
-  useFounderCheckout,
+  useCheckoutPicker,
   type CheckoutPlan,
 } from "@/components/billing";
 import { useToast } from "@/components/toast";
@@ -45,15 +45,15 @@ export default function FounderPaywall() {
   const config = useAppConfig();
   const ios = Platform.OS === "ios";
   const purchase = useAppleFounderPurchase();
-  // Yearly is DOKU-only: Apple IAP stays monthly.
+  // Yearly is gateway-only: Apple IAP stays monthly.
   const [plan, setPlan] = useState<CheckoutPlan>("monthly");
-  const checkout = useFounderCheckout(ios ? "monthly" : plan);
+  const checkout = useCheckoutPicker(ios ? "monthly" : plan);
   const appleBilling = config.data?.appleBilling === true;
   const billing = ios ? appleBilling : config.data?.billing === true;
   const price = useAppleFounderPrice(ios && appleBilling);
   const tier = profileQuery.data?.tier ?? null;
 
-  // Android: coming back from the DOKU browser is when payment lands; refetch
+  // Android: coming back from the payment browser is when payment lands; refetch
   // the profile so this screen continues on its own after paying.
   const refetchProfile = profileQuery.refetch;
   useEffect(() => {
@@ -85,9 +85,12 @@ export default function FounderPaywall() {
   }
 
   const buy = async () => {
+    if (!ios) {
+      checkout.start((e) => toast.error("Pembayaran gagal", errorMessage(e)));
+      return;
+    }
     try {
-      if (ios) await purchase.mutateAsync();
-      else await checkout.mutateAsync();
+      await purchase.mutateAsync();
     } catch (e) {
       toast.error("Pembayaran gagal", errorMessage(e));
     }
@@ -120,7 +123,7 @@ export default function FounderPaywall() {
         ]
       : [
           'Ketuk tombol "Jadi Founder".',
-          "Pilih QRIS, transfer bank (VA), atau e-wallet, lalu bayar.",
+          "Pilih QRIS atau Transfer Bank, lalu bayar.",
           "Founder aktif otomatis setelah pembayaran.",
         ];
 
@@ -190,6 +193,7 @@ export default function FounderPaywall() {
 
       <View style={styles.actions}>
         <Button label="Jadi Founder" onPress={() => void buy()} loading={buying} />
+        {!ios ? checkout.sheet : null}
         <Button
           variant="secondary"
           label="Nanti saja"

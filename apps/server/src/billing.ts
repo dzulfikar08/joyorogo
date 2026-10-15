@@ -52,7 +52,10 @@ export type BillingEnv = PaywallEnv & {
   BETTER_AUTH_URL: string;
   /** Public web app origin; defaults to BETTER_AUTH_URL (single-worker deploys). */
   APP_URL?: string;
-  /** Gateway for new checkouts: "doku" or "pakasir". Empty = first configured, DOKU first. */
+  /**
+   * Default gateway for checkouts that name no payment method (older app
+   * builds): "doku" or "pakasir". Empty or unconfigured = first configured, DOKU first.
+   */
   BILLING_PROVIDER?: string;
   DOKU_CLIENT_ID?: string;
   DOKU_SECRET_KEY?: string;
@@ -81,6 +84,11 @@ type Deps = {
 
 type Provider = "doku" | "pakasir";
 
+/** Buyer-facing choice in the checkout picker; each maps to one gateway. */
+type PaymentMethod = "qris" | "transfer";
+const METHOD_GATEWAY: Record<PaymentMethod, Provider> = { qris: "pakasir", transfer: "doku" };
+const PAYMENT_METHODS: readonly PaymentMethod[] = ["qris", "transfer"];
+
 const SUMMARY_WINDOW_DAYS = 30;
 const DOKU_PRODUCTION = "https://api.doku.com";
 
@@ -103,12 +111,12 @@ function pakasirConfig(env: BillingEnv): PakasirConfig | null {
   };
 }
 
-/** Gateway new checkouts go to; null = checkout off. */
-function checkoutProvider(
+/** Gateway for checkouts without a payment method; null = checkout off. */
+function defaultProvider(
   choice: string | undefined,
   configured: Record<Provider, boolean>,
 ): Provider | null {
-  if (choice === "doku" || choice === "pakasir") return configured[choice] ? choice : null;
+  if ((choice === "doku" || choice === "pakasir") && configured[choice]) return choice;
   if (configured.doku) return "doku";
   if (configured.pakasir) return "pakasir";
   return null;
@@ -116,21 +124,21 @@ function checkoutProvider(
 
 /**
  * Founder plan: prepaid months over DOKU Checkout or a Pakasir payment link.
- * Billing is live only when the operator set a paywall (FREE_DAILY_SCANS) AND
- * the chosen gateway's credentials; any other self-hosted setup runs without
- * checkout or upgrade prompts. Both webhooks stay mounted whenever their
- * gateway is configured, so orders opened before a BILLING_PROVIDER switch
- * still settle.
+ * The buyer picks QRIS (Pakasir, QR only) or bank transfer (DOKU); each
+ * option exists only when its gateway is configured. Billing is live only
+ * when the operator set a paywall (FREE_DAILY_SCANS) AND at least one
+ * gateway's credentials; any other self-hosted setup runs without checkout
+ * or upgrade prompts. Both webhooks stay mounted whenever their gateway is
+ * configured, so open orders settle whichever gateway they went to.
  */
 export function registerBillingRoutes(app: Hono, deps: Deps) {
   const { env } = deps;
   const config = paywallConfig(env);
   const doku = paywallEnabled(config) ? dokuConfig(env) : null;
   const pakasir = paywallEnabled(config) ? pakasirConfig(env) : null;
-  const provider = checkoutProvider(env.BILLING_PROVIDER, {
-    doku: doku !== null,
-    pakasir: pakasir !== null,
-  });
+  const configured: Record<Provider, boolean> = { doku: doku !== null, pakasir: pakasir !== null };
+  const provider = defaultProvider(env.BILLING_PROVIDER, configured);
+  const paymentMethods = PAYMENT_METHODS.filter((method) => configured[METHOD_GATEWAY[method]]);
   const appUrl = (env.APP_URL || env.BETTER_AUTH_URL).replace(/\/$/, "");
   const apiUrl = env.BETTER_AUTH_URL.replace(/\/$/, "");
 
@@ -245,7 +253,8 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     return c.json({
       paywall: paywallEnabled(config),
       billing: provider !== null,
-      // iOS pays through Apple in-app purchase; gateway credentials irrelevant.
+      // Options for the checkout picker, in display order.
+      paymentMethods,
       appleBilling: paywallEnabled(config),
       freeDailyScans: config.freeDailyScans,
       founderDailyCap: config.founderDailyCap,
@@ -258,13 +267,22 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     });
   });
 
-  // Body (optional JSON): { plan: "monthly" | "yearly" }; default monthly.
+  // Body (optional JSON): { plan: "monthly" | "yearly"; method?: "qris" | "transfer" }.
+  // Default monthly; no method = the default gateway's full page (older apps).
   app.post("/api/billing/checkout", async (c) => {
     if (!provider) return c.json({ error: "Pembayaran tidak tersedia di server ini." }, 404);
     const me = await sessionUser(c.req.raw.headers);
     if (!me) return c.json({ error: "Masuk dulu untuk berlangganan." }, 401);
-    const body = (await c.req.json().catch(() => null)) as { plan?: unknown } | null;
+    const body = (await c.req.json().catch(() => null)) as {
+      plan?: unknown;
+      method?: unknown;
+    } | null;
     const plan: FounderPlan = body?.plan === "yearly" ? "yearly" : "monthly";
+    const method = PAYMENT_METHODS.find((m) => m === body?.method) ?? null;
+    const gateway = method ? METHOD_GATEWAY[method] : provider;
+    if (!configured[gateway]) {
+      return c.json({ error: "Metode pembayaran ini tidak tersedia." }, 400);
+    }
     const months = planMonths(plan);
     const db = deps.getDb();
 
@@ -297,8 +315,13 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     await db.insert(payment).values({ orderId, userId: me.id, amountIdr, months });
     try {
       const { paymentUrl } =
-        provider === "pakasir" && pakasir
-          ? await createPaymentLink(pakasir, { orderId, amountIdr, redirectUrl: returnUrl })
+        gateway === "pakasir"
+          ? await createPaymentLink(pakasir as PakasirConfig, {
+              orderId,
+              amountIdr,
+              redirectUrl: returnUrl,
+              qrisOnly: method === "qris",
+            })
           : await createCheckout(doku as DokuConfig, {
               orderId,
               amountIdr,
@@ -311,7 +334,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       await db.update(payment).set({ paymentUrl }).where(eq(payment.orderId, orderId));
       return c.json({ orderId, paymentUrl });
     } catch (error) {
-      console.error(`${provider} checkout ${orderId} failed:`, error);
+      console.error(`${gateway} checkout ${orderId} failed:`, error);
       await db.update(payment).set({ status: "failed" }).where(eq(payment.orderId, orderId));
       return c.json({ error: "Halaman pembayaran gagal dibuat. Coba lagi sebentar lagi." }, 502);
     }

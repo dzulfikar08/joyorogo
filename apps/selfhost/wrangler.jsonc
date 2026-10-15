@@ -109,12 +109,12 @@
     {
       "name": "BILLING_PROVIDER",
       "label": "Gateway pembayaran",
-      "description": "doku atau pakasir. Kosong = DOKU kalau diisi, kalau tidak Pakasir.",
+      "description": "doku atau pakasir, untuk aplikasi versi lama yang belum punya pilihan QRIS/Transfer Bank. Kosong = DOKU kalau diisi, kalau tidak Pakasir.",
     },
     {
       "name": "DOKU_CLIENT_ID",
       "label": "DOKU Client ID",
-      "description": "Opsional, untuk menjual paket Founder lewat DOKU Checkout. Pembayaran aktif hanya kalau batas scan gratis juga diisi.",
+      "description": "Opsional, tombol Transfer Bank untuk paket Founder lewat DOKU Checkout. Pembayaran aktif hanya kalau batas scan gratis juga diisi.",
       "docs_url": "https://dashboard.doku.com",
     },
     { "name": "DOKU_SECRET_KEY", "label": "DOKU Secret Key", "secret": true },
@@ -126,7 +126,7 @@
     {
       "name": "PAKASIR_SLUG",
       "label": "Pakasir slug proyek",
-      "description": "Opsional, alternatif DOKU. Webhook proyek: <alamatmu>/api/billing/pakasir/webhook",
+      "description": "Opsional, tombol QRIS lewat Pakasir. Webhook proyek: <alamatmu>/api/billing/pakasir/webhook",
       "docs_url": "https://pakasir.com/p/get-started",
     },
     { "name": "PAKASIR_API_KEY", "label": "Pakasir API key", "secret": true },

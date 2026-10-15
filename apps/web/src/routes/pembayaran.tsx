@@ -6,9 +6,10 @@ import { toast } from "sonner";
 
 import { Button } from "@joyorogo/ui/components/button";
 
+import { useCheckoutPicker } from "@/components/checkout-picker";
 import { PublicHeader } from "@/components/public-header";
 import { trackConversion } from "@/lib/analytics";
-import { checkOrder, fetchOrder, fmtFounderDate, useFounderCheckout } from "@/lib/billing";
+import { checkOrder, fetchOrder, fmtFounderDate } from "@/lib/billing";
 import { pageHead } from "@/lib/seo";
 import { orpc } from "@/utils/orpc";
 
@@ -27,7 +28,7 @@ const POLL_WINDOW_MS = 3 * 60 * 1000;
 function PembayaranPage() {
   const { order } = Route.useSearch();
   const queryClient = useQueryClient();
-  const checkout = useFounderCheckout();
+  const checkout = useCheckoutPicker();
   const [openedAt] = useState(() => Date.now());
 
   const status = useQuery({
@@ -121,7 +122,7 @@ function PembayaranPage() {
         title="Pembayaran tidak selesai"
         text="Pesanan ini kedaluwarsa atau dibatalkan. Tidak ada dana yang ditarik."
         action={
-          <Button disabled={checkout.isPending} onClick={() => checkout.mutate()}>
+          <Button disabled={checkout.isPending} onClick={() => checkout.start()}>
             {checkout.isPending ? "Membuka pembayaran..." : "Bayar lagi"}
           </Button>
         }
@@ -161,7 +162,8 @@ function PembayaranPage() {
       <PublicHeader />
       <main className="mx-auto w-full max-w-md px-4 py-10 md:py-14" aria-live="polite">
         {body}
-        {checkout.isError && (
+        {checkout.sheet}
+        {checkout.error && (
           <p role="alert" className="mt-4 text-center text-sm text-muted-foreground">
             {checkout.error.message}
           </p>

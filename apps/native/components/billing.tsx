@@ -1,13 +1,14 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { Platform, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Platform, Pressable, View } from "react-native";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { StyleSheet } from "react-native-unistyles";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { appleIap } from "@/modules/apple-iap";
 import { authClient } from "@/lib/auth-client";
-import { Button, Card, Text } from "@/components/ui";
+import { Button, Card, Sheet, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { errorMessage } from "@/utils/format";
 import { ENV } from "@/src/env";
@@ -19,6 +20,11 @@ export type AppConfig = {
   paywall: boolean;
   /** Founder checkout is available (paywall + a payment gateway configured). */
   billing: boolean;
+  /**
+   * Checkout picker options in display order: "qris" (Pakasir) and/or
+   * "transfer" (DOKU). Missing on servers older than the picker.
+   */
+  paymentMethods?: PaymentMethod[];
   /** Apple in-app purchase is available on iOS (paywall configured). */
   appleBilling: boolean;
   freeDailyScans: number | null;
@@ -34,6 +40,9 @@ export type AppConfig = {
   promo: { slots: number; taken: number; nextPriceIdr?: number | null } | null;
   anonScans: number;
 };
+
+/** Buyer-facing payment choice; the server maps each to its gateway. */
+export type PaymentMethod = "qris" | "transfer";
 
 /**
  * Server origin: the same host serves the public share page (/u/<code>),
@@ -106,14 +115,20 @@ export async function checkOrderPaid(orderId: string): Promise<BillingOrder> {
 /** Founder billing period; yearly stacks 12 months on the remaining period. */
 export type CheckoutPlan = "monthly" | "yearly";
 
-/** Start a Founder checkout (DOKU or Pakasir), opened in the browser. */
+/**
+ * Start a Founder checkout, opened in the browser. `method` picks QRIS
+ * (Pakasir) or bank transfer (DOKU); omitted = server default. UI goes
+ * through useCheckoutPicker, which asks the buyer first.
+ */
 export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
   return useMutation({
-    mutationFn: async (): Promise<{ orderId: string; paymentUrl: string }> => {
+    mutationFn: async (
+      method: PaymentMethod | undefined,
+    ): Promise<{ orderId: string; paymentUrl: string }> => {
       const res = await fetch(`${serverUrl()}/api/billing/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(await checkoutHeaders()) },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, method }),
       });
       const body = (await res.json().catch(() => null)) as {
         orderId?: string;
@@ -139,6 +154,81 @@ export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
       }
     },
   });
+}
+
+const METHOD_OPTIONS: Record<
+  PaymentMethod,
+  { icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; note: string }
+> = {
+  qris: {
+    icon: "qr-code-outline",
+    label: "QRIS",
+    note: "Scan pakai e-wallet atau m-banking apa saja.",
+  },
+  transfer: {
+    icon: "business-outline",
+    label: "Transfer Bank",
+    note: "Bayar lewat virtual account bank.",
+  },
+};
+
+/**
+ * Founder checkout behind a "QRIS atau Transfer Bank" choice (Android; iOS
+ * buys through Apple). `start()` opens the picker when the server offers
+ * both, otherwise goes straight to the one gateway (or the server default
+ * when the config predates the picker). Render `sheet` once on the screen.
+ */
+export function useCheckoutPicker(plan: CheckoutPlan = "monthly") {
+  const config = useAppConfig();
+  const checkout = useFounderCheckout(plan);
+  const { theme } = useUnistyles();
+  const [open, setOpen] = useState(false);
+  const onErrorRef = useRef<((error: Error) => void) | undefined>(undefined);
+  const methods = config.data?.paymentMethods ?? [];
+
+  const start = (onError?: (error: Error) => void) => {
+    onErrorRef.current = onError;
+    if (methods.length > 1) setOpen(true);
+    else checkout.mutate(methods[0], { onError });
+  };
+
+  const sheet = (
+    <Sheet visible={open} onClose={() => setOpen(false)} title="Pilih cara bayar">
+      <Text style={styles.methodHint}>Founder aktif otomatis setelah pembayaran masuk.</Text>
+      {methods.map((method) => {
+        const { icon, label, note } = METHOD_OPTIONS[method];
+        return (
+          <Pressable
+            key={method}
+            accessibilityRole="button"
+            accessibilityLabel={`${label}. ${note}`}
+            disabled={checkout.isPending}
+            onPress={() => {
+              setOpen(false);
+              checkout.mutate(method, { onError: onErrorRef.current });
+            }}
+            style={({ pressed }) => [styles.methodOption, pressed && styles.methodPressed]}
+          >
+            <View style={styles.methodIcon}>
+              <Ionicons name={icon} size={26} color={theme.colors.primary} />
+            </View>
+            <View style={styles.cardText}>
+              <Text style={styles.methodLabel}>{label}</Text>
+              <Text style={styles.cardNote}>{note}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.mutedForeground} />
+          </Pressable>
+        );
+      })}
+    </Sheet>
+  );
+
+  return {
+    start,
+    sheet,
+    isPending: checkout.isPending,
+    error: checkout.error,
+  };
 }
 
 /** Latest pending order of the caller (null when none); drives "Sudah bayar?". */
@@ -306,11 +396,11 @@ export function FounderCards({
 }) {
   const config = useAppConfig();
   const ios = Platform.OS === "ios";
-  const checkout = useFounderCheckout();
+  const checkout = useCheckoutPicker();
   const purchase = useAppleFounderPurchase();
-  const dokuBilling = config.data?.billing === true;
+  const gatewayBilling = config.data?.billing === true;
   const appleBilling = config.data?.appleBilling === true;
-  const billing = ios ? appleBilling : dokuBilling;
+  const billing = ios ? appleBilling : gatewayBilling;
   const price = useAppleFounderPrice(ios && appleBilling);
   useUnfinishedReplay(ios && appleBilling);
   const pendingOrder = usePendingOrder(tier === "free" && billing).data ?? null;
@@ -338,15 +428,13 @@ export function FounderCards({
   // While the config loads, render no pricing at all rather than guessing.
   if (!config.data) return null;
 
-  const buy = () => (ios ? purchase.mutate() : checkout.mutate());
+  const buy = () => (ios ? purchase.mutate() : checkout.start());
   const buying = ios ? purchase.isPending : checkout.isPending;
   const failure = ios
     ? purchase.isError
       ? purchase.error.message
       : null
-    : checkout.isError
-      ? checkout.error.message
-      : null;
+    : (checkout.error?.message ?? null);
 
   return (
     <>
@@ -404,6 +492,7 @@ export function FounderCards({
           ) : null}
         </Card>
       ) : null}
+      {!ios && billing ? checkout.sheet : null}
       {failure ? <Text style={styles.error}>{failure}</Text> : null}
     </>
   );
@@ -439,6 +528,38 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
     lineHeight: 19,
+  },
+  methodHint: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+    marginBottom: theme.spacing.xs,
+  },
+  methodOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+    minHeight: 80,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.tile,
+    borderWidth: 1,
+    borderColor: theme.colors.hairline,
+    backgroundColor: theme.colors.background,
+  },
+  methodPressed: {
+    backgroundColor: theme.colors.muted,
+  },
+  methodIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: theme.radius.input,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.makanSoft,
+  },
+  methodLabel: {
+    fontSize: theme.fontSize.lg,
+    fontWeight: "700",
+    color: theme.colors.foreground,
   },
   promoCard: {
     gap: theme.spacing.sm,

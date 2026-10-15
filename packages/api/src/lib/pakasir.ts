@@ -64,12 +64,12 @@ export function secretMatches(given: string, expected: string): boolean {
 
 /**
  * Create (or find: Pakasir is idempotent per order_id) a payment link where
- * the buyer picks QRIS or a bank VA. `redirectUrl` backs the page's
- * "Kembali ke halaman Merchant" button.
+ * the buyer picks QRIS or a bank VA; `qrisOnly` locks it to the QR code.
+ * `redirectUrl` backs the page's "Kembali ke halaman Merchant" button.
  */
 export async function createPaymentLink(
   config: PakasirConfig,
-  params: { orderId: string; amountIdr: number; redirectUrl: string },
+  params: { orderId: string; amountIdr: number; redirectUrl: string; qrisOnly?: boolean },
 ): Promise<{ txnId: string; paymentUrl: string }> {
   const res = await fetch(
     `${PAKASIR_BASE_URL}/api/v2/create-transaction/${encodeURIComponent(config.slug)}/${encodeURIComponent(params.orderId)}`,
@@ -88,6 +88,7 @@ export async function createPaymentLink(
   }
   const url = new URL(body.payment_link);
   url.searchParams.set("redirect", params.redirectUrl);
+  if (params.qrisOnly) url.searchParams.set("qris_only", "1");
   return { txnId: body.txn_id, paymentUrl: url.toString() };
 }
 

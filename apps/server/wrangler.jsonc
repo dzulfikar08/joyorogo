@@ -77,6 +77,7 @@
     "BILLING_PROVIDER": "doku",
     "DOKU_CLIENT_ID": "BRN-0177-1790860845392",
     "DOKU_BASE_URL": "https://api.doku.com",
+    "PAKASIR_SLUG": "joyorogo",
     "APPLE_BUNDLE_ID": "com.joyodigitama.joyorogo",
     "APPLE_FOUNDER_PRODUCT_ID": "com.joyodigitama.joyorogo.founder.1m",
     "APPLE_SANDBOX_EMAILS": ""

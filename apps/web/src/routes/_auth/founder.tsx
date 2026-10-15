@@ -6,13 +6,13 @@ import { toast } from "sonner";
 
 import { Button } from "@joyorogo/ui/components/button";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
+import { useCheckoutPicker } from "@/components/checkout-picker";
 import { Mascot } from "@/components/mascot";
 import { FounderPromo } from "@/components/founder-promo";
 import { Page, Segmented } from "@/components/kit/surface";
 import { ScreenError } from "@/components/screen-state";
 import { fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
 import type { CheckoutPlan, PaywallFrom } from "@/lib/billing";
-import { useFounderCheckout } from "@/lib/billing";
 import { orpc } from "@/utils/orpc";
 
 const profileOptions = orpc.profile.myProfile.queryOptions();
@@ -47,7 +47,7 @@ const SUBHEAD: Record<PaywallFrom, string> = {
 /** "Cara bayar" — users keep asking how payment actually works. */
 const PAY_STEPS = [
   'Ketuk "Jadi Founder" di bawah.',
-  "Pilih QRIS, transfer bank (VA), atau e-wallet, lalu bayar.",
+  "Pilih QRIS atau Transfer Bank, lalu bayar.",
   "Founder aktif otomatis setelah pembayaran.",
 ] as const;
 
@@ -57,7 +57,7 @@ function FounderPage() {
   const config = useAppConfig();
   const profile = useQuery(profileOptions);
   const [plan, setPlan] = useState<CheckoutPlan>("monthly");
-  const checkout = useFounderCheckout(plan);
+  const checkout = useCheckoutPicker(plan);
 
   if (config.isError) {
     return <ScreenError message="Harga belum bisa dimuat." onRetry={() => void config.refetch()} />;
@@ -140,12 +140,11 @@ function FounderPage() {
         <Button
           className="mt-5 w-full"
           disabled={checkout.isPending}
-          onClick={() =>
-            checkout.mutate(undefined, { onError: (error) => toast.error(error.message) })
-          }
+          onClick={() => checkout.start((error) => toast.error(error.message))}
         >
           {checkout.isPending ? "Membuka pembayaran..." : "Jadi Founder"}
         </Button>
+        {checkout.sheet}
         <Button
           variant="secondary"
           className="mt-2 w-full"

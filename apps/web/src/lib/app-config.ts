@@ -9,6 +9,11 @@ export type AppConfig = {
   paywall: boolean;
   /** Founder checkout is available (paywall + a payment gateway configured). */
   billing: boolean;
+  /**
+   * Checkout picker options in display order: "qris" (Pakasir) and/or
+   * "transfer" (DOKU). Missing on servers older than the picker.
+   */
+  paymentMethods?: PaymentMethod[];
   freeDailyScans: number | null;
   founderDailyCap: number | null;
   founderPriceIdr: number;
@@ -22,6 +27,9 @@ export type AppConfig = {
   promo: { slots: number; taken: number; nextPriceIdr?: number | null } | null;
   anonScans: number;
 };
+
+/** Buyer-facing payment choice; the server maps each to its gateway. */
+export type PaymentMethod = "qris" | "transfer";
 
 export function apiUrl(path: string): string {
   return `${getServerUrl(env.VITE_SERVER_URL)}${path}`;

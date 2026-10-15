@@ -53,13 +53,14 @@ import { BudgetSetting } from "@/components/plate/budget-setting";
 import { FastingSettingsSection } from "@/components/fasting/settings-section";
 import { useTheme } from "@/components/theme-provider";
 import { Avatar } from "@/components/avatar";
+import { useCheckoutPicker } from "@/components/checkout-picker";
 import { FeedSettingsSection } from "@/components/feed/settings";
 import { ScreenError } from "@/components/screen-state";
 import { useStrava } from "@/components/strava-card";
 import { env } from "@/env.public";
 import type { ProfileRow } from "@/lib/api-types";
 import { APK_URL, founderScans, useAppConfig } from "@/lib/app-config";
-import { checkOrder, fetchPendingOrder, fmtFounderDate, useFounderCheckout } from "@/lib/billing";
+import { checkOrder, fetchPendingOrder, fmtFounderDate } from "@/lib/billing";
 import { sessionQuery, signOut } from "@/lib/auth-client";
 import type { Session } from "@/lib/auth-client";
 import { fmtDateIndo, fmtInt, fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
@@ -155,7 +156,7 @@ function ProfilContent({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const config = useAppConfig();
-  const checkout = useFounderCheckout();
+  const checkout = useCheckoutPicker();
   const billing = config.data?.billing === true;
 
   // Foto profil: unggahan dipotong jadi persegi 512px di kanvas dulu, lalu
@@ -429,13 +430,12 @@ function ProfilContent({
               variant="secondary"
               className="shrink-0"
               disabled={checkout.isPending}
-              onClick={() =>
-                checkout.mutate(undefined, { onError: (error) => toast.error(error.message) })
-              }
+              onClick={() => checkout.start((error) => toast.error(error.message))}
             >
               {checkout.isPending ? "Membuka..." : "Perpanjang"}
             </Button>
           )}
+          {billing && checkout.sheet}
         </div>
       )}
 

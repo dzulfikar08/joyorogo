@@ -103,20 +103,22 @@ Pemilik server yang menentukan. Tanpa konfigurasi, semua fitur gratis tanpa bata
 | `FOUNDER_PRICE_IDR`                                      | Harga Founder per bulan (dipakai saat `FOUNDER_PRICE_LADDER` kosong).                                       | 15000  |
 | `FOUNDER_PRICE_LADDER`                                   | Tangga harga "pembeli:hargaBulanan", mis. `10:15000,110:29000,:49000`: 10 pembeli pertama Rp15rb, pembeli 11-110 Rp29rb, lalu Rp49rb. Pembeli = pengguna unik dengan minimal satu pembayaran. Yang pernah bayar mengunci harga terendahnya. Kosong = harga flat tanpa promo. | kosong |
 | `FOUNDER_YEARLY_PRICE_IDR`                               | Harga Founder per tahun. Kosong = 10x harga bulanan; kalau diisi, berlaku untuk SEMUA step tangga.          | kosong |
-| `BILLING_PROVIDER`                                       | Gateway untuk checkout baru: `doku` atau `pakasir`. Kosong = DOKU kalau diisi, kalau tidak Pakasir.                                                                         | kosong |
-| `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL`     | DOKU Checkout (QRIS, VA, e-wallet). Pembayaran aktif hanya kalau `FREE_DAILY_SCANS` juga diisi.                                                                             | kosong |
-| `PAKASIR_SLUG`, `PAKASIR_API_KEY`, `PAKASIR_WEBHOOK_SECRET` | Pakasir payment link (QRIS, VA). Webhook proyek: `/api/billing/pakasir/webhook`.                                                                                         | kosong |
+| `BILLING_PROVIDER`                                       | Gateway untuk checkout tanpa pilihan metode (versi aplikasi lama): `doku` atau `pakasir`. Kosong = DOKU kalau diisi, kalau tidak Pakasir.                                   | kosong |
+| `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL`     | DOKU Checkout, tombol **Transfer Bank**. Pembayaran aktif hanya kalau `FREE_DAILY_SCANS` juga diisi.                                                                        | kosong |
+| `PAKASIR_SLUG`, `PAKASIR_API_KEY`, `PAKASIR_WEBHOOK_SECRET` | Pakasir payment link khusus QRIS, tombol **QRIS**. Webhook proyek: `/api/billing/pakasir/webhook`.                                                                      | kosong |
 | `PAKASIR_SANDBOX`                                        | `1` = pembayaran sandbox Pakasir ikut mengaktifkan Founder (uji coba saja).                                                                                                 | kosong |
 | `APPLE_BUNDLE_ID`, `APPLE_FOUNDER_PRODUCT_ID`            | Apple in-app purchase untuk Founder di iOS. Kosong = `com.joyodigitama.joyorogo` dan `com.joyodigitama.joyorogo.founder.1m`; harus sama dengan produk di App Store Connect. | kosong |
 | `APPLE_SANDBOX_EMAILS`                                   | Email (pisah koma) yang boleh memakai pembelian sandbox/TestFlight: akunmu dan akun demo App Review. Production selalu diterima.                                            | kosong |
 | `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`               | Impor olahraga dari Strava.                                                                                                                                                 | kosong |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push untuk pengingat puasa intermiten di web (cron tiap 5 menit). Kosong = pengingat web mati.                                                                          | kosong |
 
-Founder dibayar per bulan (tanpa perpanjangan otomatis). Notifikasi DOKU
-masuk ke `/api/billing/webhook`, Pakasir ke `/api/billing/pakasir/webhook`;
-keduanya tetap aktif selama kredensialnya diisi, jadi ganti `BILLING_PROVIDER`
-tidak memutus pesanan yang masih terbuka. Di iOS, Founder dibayar lewat Apple
-in-app purchase (`/api/billing/apple`) tanpa kredensial tambahan.
+Founder dibayar per bulan (tanpa perpanjangan otomatis). Sebelum checkout,
+pembeli memilih **QRIS** (Pakasir) atau **Transfer Bank** (DOKU); tombol hanya
+muncul untuk gateway yang kredensialnya diisi, dan kalau cuma satu yang diisi
+pilihan dilewati. Notifikasi DOKU masuk ke `/api/billing/webhook`, Pakasir ke
+`/api/billing/pakasir/webhook`; keduanya tetap aktif selama kredensialnya
+diisi. Di iOS, Founder dibayar lewat Apple in-app purchase
+(`/api/billing/apple`) tanpa kredensial tambahan.
 
 ## Email
 

@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 
 import { trackEvent } from "./analytics";
 import { apiUrl } from "./app-config";
+import type { PaymentMethod } from "./app-config";
 
 /** Where the Founder paywall screen was opened from; picks its subhead. */
 export type PaywallFrom = "onboarding" | "quota" | "banner" | "profile";
@@ -19,17 +20,21 @@ export function isPaywallError(err: unknown): boolean {
 /** Founder billing period; yearly stacks 12 months on the remaining period. */
 export type CheckoutPlan = "monthly" | "yearly";
 
-/** Start a Founder checkout (DOKU or Pakasir, server's choice), then leave for its page. */
+/**
+ * Start a Founder checkout, then leave for the gateway's page. `method`
+ * picks QRIS (Pakasir) or bank transfer (DOKU); omitted = server default.
+ * UI goes through useCheckoutPicker, which asks the buyer first.
+ */
 export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
   const navigate = useNavigate();
   const location = useLocation();
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (method: PaymentMethod | undefined) => {
       const res = await fetch(apiUrl("/api/billing/checkout"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, method }),
       });
       if (res.status === 401) {
         // Signed out (e.g. the /harga visitor): let them sign in first, then
