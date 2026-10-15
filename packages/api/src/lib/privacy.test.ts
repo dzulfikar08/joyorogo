@@ -104,4 +104,27 @@ describe("deleteAllUserData", () => {
     }
     expect(await count('"user"')).toBe(2);
   });
+
+  test("removes feed posts, interactions, follows and blocks of the user only", async () => {
+    await client.executeMultiple(
+      `INSERT INTO "user" (id, name, email) VALUES ('feed-a', 'A', 'a@feed.id'), ('feed-b', 'B', 'b@feed.id');
+       INSERT INTO post (id, user_id, kind, title) VALUES ('post-a', 'feed-a', 'makan', 'nasi'), ('post-b', 'feed-b', 'makan', 'soto');
+       INSERT INTO post_comment (id, post_id, user_id, body) VALUES
+         ('c-b-on-a', 'post-a', 'feed-b', 'enak'), ('c-a-on-b', 'post-b', 'feed-a', 'mantap');
+       INSERT INTO post_kudos (post_id, user_id) VALUES ('post-a', 'feed-b'), ('post-b', 'feed-a');
+       INSERT INTO social_follow (follower_id, following_id) VALUES ('feed-a', 'feed-b'), ('feed-b', 'feed-a');
+       INSERT INTO social_block (blocker_id, blocked_id) VALUES ('feed-a', 'feed-b');`,
+    );
+
+    await deleteAllUserData(db, "feed-a");
+
+    const n = async (table: string) =>
+      Number((await client.execute(`SELECT COUNT(*) AS n FROM ${table}`)).rows[0]?.n ?? 0);
+    expect(await n("post")).toBe(1);
+    expect(await n("post_comment")).toBe(0);
+    expect(await n("post_kudos")).toBe(0);
+    expect(await n("social_follow")).toBe(0);
+    expect(await n("social_block")).toBe(0);
+    expect((await client.execute("SELECT id FROM post")).rows[0]?.id).toBe("post-b");
+  });
 });

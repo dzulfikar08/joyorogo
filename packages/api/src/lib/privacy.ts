@@ -17,12 +17,23 @@ import {
 } from "@joyorogo/db/schema/fitness";
 import { plate, pushSubscription, workoutCustomExercise, workoutRoutine, workoutSession, workoutSet } from "@joyorogo/db/schema/plans";
 import { emailLog } from "@joyorogo/db/schema/billing";
-import { team, teamMember, teamNudge } from "@joyorogo/db/schema/social";
+import {
+  post,
+  postComment,
+  postKudos,
+  socialBlock,
+  socialFollow,
+  socialNotification,
+  socialReport,
+  team,
+  teamMember,
+  teamNudge,
+} from "@joyorogo/db/schema/social";
 import { savedFood } from "@joyorogo/db/schema/saved-foods";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 
 import { avatarPrefix } from "./avatar";
-import { photoPrefix, scanSrcPrefix, stickerKey, varPhotoPrefix } from "./sticker";
+import { photoPrefix, postPhotoPrefix, scanSrcPrefix, stickerKey, varPhotoPrefix } from "./sticker";
 import { parseSavedItems } from "./saved-foods";
 import type { StickersBucket } from "./sticker";
 
@@ -55,6 +66,8 @@ export async function deleteUserMedia(
     photoPrefix(userId),
     avatarPrefix(userId),
     varPhotoPrefix(userId),
+    // Feed post photos (cerita + shared meals).
+    postPhotoPrefix(userId),
     // Pending-scan originals kept for "Hitung ulang".
     scanSrcPrefix(userId),
   ]) {
@@ -81,6 +94,21 @@ export function deleteAllUserData(db: Database, userId: string) {
     db.delete(workoutSession).where(eq(workoutSession.userId, userId)),
     db.delete(workoutCustomExercise).where(eq(workoutCustomExercise.userId, userId)),
     db.delete(workoutRoutine).where(eq(workoutRoutine.userId, userId)),
+    // Feed: posts go with their kudos/comments/notifications (FK cascade);
+    // the user's own reactions, follows, blocks and reports on others go too.
+    db.delete(socialReport).where(eq(socialReport.reporterId, userId)),
+    db
+      .delete(socialNotification)
+      .where(or(eq(socialNotification.userId, userId), eq(socialNotification.actorId, userId))),
+    db.delete(postKudos).where(eq(postKudos.userId, userId)),
+    db.delete(postComment).where(eq(postComment.userId, userId)),
+    db.delete(post).where(eq(post.userId, userId)),
+    db
+      .delete(socialFollow)
+      .where(or(eq(socialFollow.followerId, userId), eq(socialFollow.followingId, userId))),
+    db
+      .delete(socialBlock)
+      .where(or(eq(socialBlock.blockerId, userId), eq(socialBlock.blockedId, userId))),
     db.delete(plate).where(eq(plate.userId, userId)),
     db.delete(savedFood).where(eq(savedFood.userId, userId)),
     db.delete(pushSubscription).where(eq(pushSubscription.userId, userId)),

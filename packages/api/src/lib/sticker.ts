@@ -39,6 +39,11 @@ export function photoPrefix(userId: string): string {
   return `photos/${userId}/`;
 }
 
+/** Feed post photos (posts/<userId>/<photoId>.jpg), see routers/social.ts. */
+export function postPhotoPrefix(userId: string): string {
+  return `posts/${userId}/`;
+}
+
 /** VAR perut photos are private the same way: the key embeds the owner. */
 export function varPhotoKey(userId: string, photoId: string): string {
   return `var/${userId}/${photoId}.jpg`;

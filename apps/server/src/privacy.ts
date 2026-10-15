@@ -1,7 +1,12 @@
 import type { JoyoAuth } from "@joyorogo/auth";
 import type { Hono } from "hono";
 
-import { deleteAllUserData, deleteUserMedia, userStickerKeys } from "@joyorogo/api/lib/privacy";
+import {
+  deleteAllUserData,
+  deleteUserMedia,
+  deleteUserSocialData,
+  userStickerKeys,
+} from "@joyorogo/api/lib/privacy";
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
 import type { Database } from "@joyorogo/db";
 
@@ -26,6 +31,7 @@ export function registerPrivacyRoutes(app: Hono, deps: Deps) {
       return c.json({ error: "Kamu harus masuk dulu." }, 401);
     }
     const stickerKeys = await userStickerKeys(db, session.user.id);
+    await deleteUserSocialData(db, session.user.id);
     await deleteAllUserData(db, session.user.id);
     // Photos and stickers are personal data too; rows are gone already, so a
     // storage hiccup is reported instead of leaving a half-wiped diary.
