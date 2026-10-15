@@ -87,8 +87,16 @@ function StickerImage({
 }
 
 /** Cutout without press handling, for chips and other compact spots. */
-export function StickerMini({ scanId, size = 32 }: { scanId: string; size?: number }) {
-  return <StickerImage uri={stickerUrl(scanId)} size={size} name="" />;
+export function StickerMini({
+  scanId,
+  size = 32,
+  onError,
+}: {
+  scanId: string;
+  size?: number;
+  onError?: () => void;
+}) {
+  return <StickerImage uri={stickerUrl(scanId)} size={size} name="" onError={onError} />;
 }
 
 /**
@@ -160,6 +168,27 @@ export function FoodSticker({
         onError={onError}
       />
     </Pressable>
+  );
+}
+
+/**
+ * Large outlined cutout at the top of a detail sheet. Renders nothing without
+ * a scan id so sheets without a cutout keep their layout.
+ */
+export function StickerHero({
+  scanId,
+  name,
+  size = 128,
+}: {
+  scanId?: string | null;
+  name: string;
+  size?: number;
+}) {
+  if (!scanId) return null;
+  return (
+    <View style={styles.hero}>
+      <FoodSticker scanId={scanId} name={name} size={size} />
+    </View>
   );
 }
 
@@ -298,6 +327,10 @@ function AuthedPhoto({ photoId, name }: { photoId: string; name: string }) {
 }
 
 const styles = StyleSheet.create((theme) => ({
+  hero: {
+    alignItems: "center",
+    paddingVertical: theme.spacing.sm,
+  },
   pressed: {
     opacity: 0.7,
   },

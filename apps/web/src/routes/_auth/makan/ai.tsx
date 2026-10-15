@@ -40,6 +40,7 @@ import {
 } from "@/components/kit/surface";
 import { IdrInput } from "@/components/plate/idr-input";
 import { SaveLocationToggle } from "@/components/places/location-toggle";
+import { STICKER_FILTER, stickerUrl } from "@/components/sticker";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { cropItems } from "@/lib/crop";
 import type { ItemBox } from "@/lib/crop";
@@ -170,6 +171,57 @@ async function fileToImageBase64(file: File): Promise<SentImage> {
   return { base64, mimeType: "image/jpeg", blob: jpeg, resizeMs, encodeMs };
 }
 
+function sameBox(a: AiFoodItem["box"], b: AiFoodItem["box"]) {
+  return !!a && !!b && a.length === b.length && a.every((value, i) => value === b[i]);
+}
+
+/**
+ * Rectangular crop as the instant placeholder; once the real background-removed
+ * sticker has loaded it fades in and the crop fades out.
+ */
+function CutoutImage({
+  crop,
+  sticker,
+  name,
+  className,
+}: {
+  crop: string | null | undefined;
+  sticker: string | null | undefined;
+  name: string;
+  className?: string;
+}) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(false), [sticker]);
+  return (
+    <div className={cn("relative", className)}>
+      {crop && (
+        <img
+          src={crop}
+          alt={name}
+          aria-hidden={name === ""}
+          className={cn(
+            "size-full rounded-[inherit] object-cover shadow-sm transition-opacity duration-300 motion-reduce:transition-none",
+            ready && "opacity-0",
+          )}
+        />
+      )}
+      {sticker && (
+        <img
+          src={stickerUrl(sticker)}
+          alt=""
+          aria-hidden
+          onLoad={() => setReady(true)}
+          style={STICKER_FILTER}
+          className={cn(
+            "absolute inset-0 size-full object-contain p-0.5 opacity-0 transition-opacity duration-300 motion-reduce:transition-none",
+            ready && "opacity-100",
+          )}
+        />
+      )}
+    </div>
+  );
+}
+
 function AiFoodPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -183,6 +235,9 @@ function AiFoodPage() {
   // The exact pixels the AI saw: boxes map onto this, and it is what gets saved.
   const [image, setImage] = useState<SentImage | null>(null);
   const [crops, setCrops] = useState<Array<string | null>>([]);
+  // Ids of the real cutouts (ai.scanSticker), parallel to items; null until ready.
+  const [stickers, setStickers] = useState<Array<string | null>>([]);
+  const stickerRunRef = useRef(0);
   // Crops are cut after the result is on screen; tiles shimmer until then.
   const [cropping, setCropping] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -416,6 +471,13 @@ function AiFoodPage() {
           sessionTiming.prevCropMs = cropMs;
         },
       );
+      if (result.photoId) {
+        cutStickers(
+          result.photoId,
+          result.items,
+          result.items.map(() => null),
+        );
+      }
     } catch (err) {
       // Aborted runs bump runRef before aborting, so this only reports real
       // failures of the current run.
@@ -433,6 +495,28 @@ function AiFoodPage() {
 
   // Cuts the per-item tiles after the first paint. `run` guards against a
   // newer shot or Foto ulang landing first.
+  // Real cutouts (ai.scanSticker): fire one call per boxed item without a
+  // sticker yet; each fades in over its crop as it lands. `reuse` carries the
+  // ids that are still valid (same box after Hitung ulang).
+  const cutStickers = (
+    photoId: string,
+    list: AiFoodItem[],
+    reuse: Array<string | null>,
+  ) => {
+    const run = ++stickerRunRef.current;
+    setStickers(reuse);
+    list.forEach((item, index) => {
+      if (!item.box || reuse[index]) return;
+      client.ai
+        .scanSticker({ photoId, box: [...item.box] })
+        .then(({ scanId }) => {
+          if (!scanId || stickerRunRef.current !== run) return;
+          setStickers((prev) => prev.map((current, i) => (i === index ? scanId : current)));
+        })
+        .catch(() => {});
+    });
+  };
+
   const cutCrops = (
     blob: Blob,
     boxes: Array<ItemBox | undefined | null>,
@@ -462,6 +546,8 @@ function AiFoodPage() {
     applyItems([]);
     setImage(null);
     setCrops([]);
+    stickerRunRef.current += 1;
+    setStickers([]);
     setCropping(false);
     setQuotaReached(false);
     setPhotoUrl(null);
@@ -528,6 +614,15 @@ function AiFoodPage() {
         result.items.map((item) => item.box),
         runRef.current,
       );
+      // Only items whose box moved get a fresh cutout; same box, same sticker.
+      cutStickers(
+        photoId,
+        result.items,
+        result.items.map((next) => {
+          const prevIndex = items.findIndex((prev) => sameBox(prev.box, next.box));
+          return prevIndex === -1 ? null : (stickers[prevIndex] ?? null);
+        }),
+      );
       setRetriesLeft(result.retriesLeft);
       setRetryHint("");
       setModel(result.model ?? model);
@@ -582,6 +677,9 @@ function AiFoodPage() {
           fat: item.fat,
           fiber: item.fiber,
           box: item.box,
+          // Already-cut stickers are promoted on save; unfinished ones are
+          // cut by the server in the background.
+          ...(stickers[index] ? { scanId: stickers[index] } : {}),
         })),
       });
       // Miss log: AI estimate vs what the user kept. Never blocks the save.
@@ -700,23 +798,24 @@ function AiFoodPage() {
               />
               <figcaption className="sr-only">Foto asli dan potongan tiap makanan</figcaption>
             </figure>
-            {(cropping || crops.some(Boolean)) && (
+            {(cropping || crops.some(Boolean) || stickers.some(Boolean)) && (
               <ul
                 className="mt-4 flex flex-wrap justify-center gap-3"
                 aria-label="Potongan tiap makanan"
                 aria-busy={cropping}
               >
                 {items.map((item, index) =>
-                  crops[index] ? (
+                  crops[index] || stickers[index] ? (
                     <li
                       key={`${item.name}-${index}`}
                       className="chip-pop flex w-24 flex-col items-center gap-1 motion-reduce:animate-none"
                       style={{ animationDelay: `${index * 70}ms` }}
                     >
-                      <img
-                        src={crops[index]!}
-                        alt={item.name}
-                        className="size-20 rounded-2xl object-cover shadow-sm"
+                      <CutoutImage
+                        crop={crops[index]}
+                        sticker={stickers[index]}
+                        name={item.name}
+                        className="size-20 rounded-2xl"
                       />
                       <span className="w-full truncate text-center text-xs font-semibold">
                         {item.name}
@@ -904,12 +1003,12 @@ function AiFoodPage() {
                 key={`${item.name}-${index}`}
                 className="relative flex min-h-14 items-center gap-3 px-5 py-3"
               >
-                {crops[index] ? (
-                  <img
-                    src={crops[index]!}
-                    alt=""
-                    aria-hidden
-                    className="chip-pop size-11 shrink-0 rounded-xl object-cover motion-reduce:animate-none"
+                {crops[index] || stickers[index] ? (
+                  <CutoutImage
+                    crop={crops[index]}
+                    sticker={stickers[index]}
+                    name=""
+                    className="chip-pop size-11 shrink-0 rounded-xl motion-reduce:animate-none"
                   />
                 ) : cropping && item.box ? (
                   <Skeleton className="size-11 shrink-0 rounded-xl" aria-hidden />

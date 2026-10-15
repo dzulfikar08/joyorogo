@@ -11,6 +11,8 @@ import {
   newScanId,
   scanSrcKey,
   stickerKey,
+  makeBoxSticker,
+  pendingStickerKey,
 } from "../lib/sticker";
 import type { ImagesBinding, StickersBucket } from "../lib/sticker";
 
@@ -20,8 +22,10 @@ import { dateSchema, mealSchema } from "../lib/schemas";
 import { STORY_EMPTY_ERROR, TRANSCRIBE_MODEL, parseFoodStory, transcribeStory } from "../lib/story";
 import { MAX_SCAN_RETRIES, requireAiQuota } from "../lib/quota";
 import { wibDayBounds } from "../lib/tiers";
-import { FRIENDLY_ERROR, analyzeFoodPhoto } from "../lib/vision";
+import { FRIENDLY_ERROR, analyzeFoodPhoto, normalizeBox } from "../lib/vision";
 
+/** Cutouts per photo: 12 items for the first pass plus each allowed retry. */
+const MAX_STICKERS_PER_PHOTO = 12 * (1 + MAX_SCAN_RETRIES);
 const timingMs = z.number().min(0).max(600_000);
 const clientTimingSchema = z.object({
   captureMs: timingMs.optional(),
@@ -256,6 +260,60 @@ export const aiRouter = {
         }),
       ]);
       return { items: analysis.items, retriesLeft: MAX_SCAN_RETRIES - (used + 1), model: analysis.model };
+    }),
+  // Real background-removed cutout of one detected item, made while the user
+  // reviews the result (the clients fire one call per boxed item right after
+  // the first render). Reads the photo analyzeFood kept for "Hitung ulang", so
+  // it costs no scan quota and no pixels travel again. The cutout lands under
+  // the scan-src/ lifecycle prefix; food.addScan promotes it on save. Never
+  // throws: null just means "keep the rectangular crop".
+  //
+  // Each cut is a paid Images call, so it is bounded per photo: one marker
+  // object per box (a repeated box answers from its marker, success or
+  // failure, without a new call) and at most MAX_STICKERS_PER_PHOTO markers
+  // (12 items x the original pass plus every allowed retry).
+  scanSticker: protectedProcedure
+    .input(
+      z.object({
+        photoId: z.string().regex(SCAN_ID_RE),
+        box: z.array(z.number()).length(4),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const bucket = context.env.STICKERS as StickersBucket | undefined;
+      const images = context.env.IMAGES as ImagesBinding | undefined;
+      const box = normalizeBox(input.box);
+      if (!bucket || !images || !box) return { scanId: null };
+      const userId = context.session.user.id;
+      try {
+        // The key embeds the owner: another user's photo id resolves to nothing.
+        const photoKey = scanSrcKey(userId, input.photoId);
+        const markerPrefix = `${photoKey}.stk/`;
+        const markerKey = `${markerPrefix}${box.join("-")}`;
+        const [photo, marker, markers] = await Promise.all([
+          bucket.get(photoKey),
+          bucket.get(markerKey),
+          bucket.list({ prefix: markerPrefix }),
+        ]);
+        if (!photo) return { scanId: null };
+        if (marker) return { scanId: marker.customMetadata?.scanId || null };
+        if (markers.objects.length >= MAX_STICKERS_PER_PHOTO) return { scanId: null };
+        const png = await makeBoxSticker(images, await photo.arrayBuffer(), box);
+        let scanId: string | null = null;
+        if (png) {
+          const id = newScanId();
+          await bucket.put(pendingStickerKey(id), png, {
+            httpMetadata: { contentType: "image/png" },
+            customMetadata: { userId },
+          });
+          scanId = id;
+        }
+        // Marker also records failures: a box that cannot be cut is not retried.
+        await bucket.put(markerKey, "", { customMetadata: { scanId: scanId ?? "" } });
+        return { scanId };
+      } catch {
+        return { scanId: null };
+      }
     }),
   // Feedback on a scan result ("Hasilnya akurat?"). Fire-and-forget from the
   // clients — failures here must never block anything. A dismissal is stored

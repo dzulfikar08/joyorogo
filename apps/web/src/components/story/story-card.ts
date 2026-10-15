@@ -1090,7 +1090,7 @@ export async function drawStoryCard(
 
   const source: StoryPhoto | null = photoOverrideSrc
     ? { src: photoOverrideSrc, cutout: false }
-    : storyPhoto(story, template === "brand" ? "cutout" : "original");
+    : storyPhoto(story, "cutout");
   const bitmap = source ? await loadBitmap(source.src) : null;
   if (template === "photo" && bitmap) {
     paintPhotoTemplate(ctx, story, date, bitmap, source!.cutout);

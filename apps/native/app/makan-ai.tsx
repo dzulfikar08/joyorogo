@@ -49,7 +49,8 @@ import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { MealStory } from "@/components/story/story-card";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, parseNum } from "@/utils/format";
-import { isPaywallError, orpc, queryClient } from "@/utils/orpc";
+import { client, isPaywallError, orpc, queryClient } from "@/utils/orpc";
+import { stickerUrl } from "@/components/sticker";
 
 type AnalyzedItem = {
   name: string;
@@ -140,17 +141,28 @@ const STAGE_MS = 2500;
 /** Crop tile: pulsing placeholder until the crop lands, then a fade-in. */
 function CropSlot({
   uri,
+  stickerUri,
   style,
   label,
 }: {
   uri: string | null | undefined;
+  /** Real background-removed cutout; fades in over the crop once loaded. */
+  stickerUri?: string;
   style: StyleProp<ViewStyle>;
   label: string;
 }) {
   const pulse = useRef(new Animated.Value(0.08)).current;
   const fade = useRef(new Animated.Value(0)).current;
+  const stickerFade = useRef(new Animated.Value(0)).current;
+  // Crop opacity = its own fade-in x (1 - sticker fade-in).
+  const cropOpacity = useRef(
+    Animated.multiply(fade, Animated.subtract(1, stickerFade)),
+  ).current;
   useEffect(() => {
-    if (uri) return;
+    stickerFade.setValue(0);
+  }, [stickerUri, stickerFade]);
+  useEffect(() => {
+    if (uri || stickerUri) return;
     let loop: Animated.CompositeAnimation | null = null;
     let cancelled = false;
     void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
@@ -167,23 +179,42 @@ function CropSlot({
       cancelled = true;
       loop?.stop();
     };
-  }, [uri, pulse]);
+  }, [uri, stickerUri, pulse]);
   return (
     <View style={[style, styles.cropSlot]}>
       {uri ? (
         <Animated.Image
           source={{ uri }}
-          style={[styles.cropFill, { opacity: fade }]}
+          style={[styles.cropFill, { opacity: cropOpacity }]}
           accessibilityLabel={label}
           onLoad={() =>
             Animated.timing(fade, { toValue: 1, duration: 220, useNativeDriver: true }).start()
           }
         />
-      ) : (
+      ) : stickerUri ? null : (
         <Animated.View style={[styles.cropFill, styles.cropShimmer, { opacity: pulse }]} />
       )}
+      {stickerUri ? (
+        <Animated.Image
+          source={{ uri: stickerUri }}
+          resizeMode="contain"
+          style={[styles.cropFill, { opacity: stickerFade }]}
+          accessibilityLabel={uri ? undefined : label}
+          onLoad={() =>
+            Animated.timing(stickerFade, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }).start()
+          }
+        />
+      ) : null}
     </View>
   );
+}
+
+function sameBox(a: number[] | undefined, b: number[] | undefined) {
+  return !!a && !!b && a.length === b.length && a.every((value, i) => value === b[i]);
 }
 
 function AnalyzingOverlay({ previewUri, onCancel }: { previewUri: string; onCancel: () => void }) {
@@ -238,6 +269,9 @@ export default function MakanAi() {
   } | null>(null);
   // Per-item crops cut on device from the sent image, parallel to items.
   const [crops, setCrops] = useState<Array<string | null>>([]);
+  // Ids of the real cutouts (ai.scanSticker), parallel to items; null until ready.
+  const [stickers, setStickers] = useState<Array<string | null>>([]);
+  const stickerRunRef = useRef(0);
   // Tiles shimmer while the post-render crop pass is still running.
   const [cropping, setCropping] = useState(false);
   const cropRunRef = useRef(0);
@@ -306,6 +340,8 @@ export default function MakanAi() {
     setSentImage(null);
     cropRunRef.current += 1;
     setCrops([]);
+    stickerRunRef.current += 1;
+    setStickers([]);
     setCropping(false);
     setPreviewUri(null);
     setPlateValues({ name: "", place: "", price: "" });
@@ -346,6 +382,31 @@ export default function MakanAi() {
       if (cropRunRef.current !== run) return;
       setCropping(false);
       onDone?.();
+    });
+  };
+
+  /**
+   * Real cutouts (ai.scanSticker): one call per boxed item without a sticker
+   * yet; each fades in over its crop as it lands. `reuse` carries the ids that
+   * are still valid (same box after Hitung ulang).
+   */
+  const cutStickers = (
+    forPhotoId: string | null,
+    list: AnalyzedItem[],
+    reuse: Array<string | null>,
+  ) => {
+    const run = ++stickerRunRef.current;
+    setStickers(reuse);
+    if (!forPhotoId) return;
+    list.forEach((item, index) => {
+      if (!item.box || reuse[index]) return;
+      client.ai
+        .scanSticker({ photoId: forPhotoId, box: item.box })
+        .then(({ scanId }) => {
+          if (!scanId || stickerRunRef.current !== run) return;
+          setStickers((prev) => prev.map((current, i) => (i === index ? scanId : current)));
+        })
+        .catch(() => {});
     });
   };
 
@@ -458,6 +519,11 @@ export default function MakanAi() {
       cutCrops(saved.uri, rendered.width, rendered.height, result.items, () => {
         sessionTiming.prevCropMs = Math.round(performance.now() - cropStartedAt);
       });
+      cutStickers(
+        result.photoId ?? null,
+        result.items,
+        result.items.map(() => null),
+      );
     } catch (e) {
       // Out of free scans: paywall now, not just an error line.
       if (isPaywallError(e)) {
@@ -555,6 +621,15 @@ export default function MakanAi() {
       if (sentImage) {
         cutCrops(sentImage.uri, sentImage.width, sentImage.height, result.items);
       }
+      // Only items whose box moved get a fresh cutout; same box, same sticker.
+      cutStickers(
+        photoId,
+        result.items,
+        result.items.map((next) => {
+          const prevIndex = items.findIndex((prev) => sameBox(prev.box, next.box));
+          return prevIndex === -1 ? null : (stickers[prevIndex] ?? null);
+        }),
+      );
     } catch (e) {
       // The previous result stays on screen; only the message changes.
       setFlowError(errorMessage(e));
@@ -565,7 +640,7 @@ export default function MakanAi() {
     setFlowError(null);
     const plate = plateInput(plateValues, items[0]?.name);
     const chosen = items
-      .map((item, index) => ({ item, draft: drafts[index] }))
+      .map((item, index) => ({ item, draft: drafts[index], index }))
       .filter((entry) => entry.draft?.include);
     if (chosen.length === 0) {
       setFlowError("Pilih minimal satu makanan untuk dicatat.");
@@ -586,7 +661,7 @@ export default function MakanAi() {
         meal,
         imageBase64: sentImage.base64,
         mimeType: "image/jpeg",
-        items: chosen.map(({ item, draft }) => ({
+        items: chosen.map(({ item, draft, index }) => ({
           name: item.name,
           kcal: parseNum(draft.kcal) ?? 0,
           grams: item.grams,
@@ -595,6 +670,9 @@ export default function MakanAi() {
           fat: item.fat,
           fiber: item.fiber,
           box: item.box,
+          // Already-cut stickers are promoted on save; unfinished ones are
+          // cut by the server in the background.
+          ...(stickers[index] ? { scanId: stickers[index] } : {}),
         })),
         itemsJson: JSON.stringify(aiItems),
         ...(plate ? { plate } : {}),
@@ -931,14 +1009,15 @@ export default function MakanAi() {
                 resizeMode="cover"
                 accessibilityLabel="Foto makanan yang dipindai"
               />
-              {cropping || crops.some(Boolean) ? (
+              {cropping || crops.some(Boolean) || stickers.some(Boolean) ? (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.cropRow}>
                     {items.map((item, index) =>
-                      crops[index] || (cropping && item.box) ? (
+                      crops[index] || stickers[index] || (cropping && item.box) ? (
                         <View key={`crop-${item.name}-${index}`} style={styles.cropTile}>
                           <CropSlot
                             uri={crops[index]}
+                            stickerUri={stickers[index] ? stickerUrl(stickers[index]) : undefined}
                             style={styles.cropImage}
                             label={`Potongan ${item.name}`}
                           />
@@ -970,9 +1049,10 @@ export default function MakanAi() {
                   icon={draft.include ? "checkmark-circle" : "ellipse-outline"}
                   iconTint={draft.include ? "makan" : "muted"}
                   thumb={
-                    crops[index] || (cropping && item.box) ? (
+                    crops[index] || stickers[index] || (cropping && item.box) ? (
                       <CropSlot
                         uri={crops[index]}
+                        stickerUri={stickers[index] ? stickerUrl(stickers[index]) : undefined}
                         style={styles.cropThumb}
                         label={`Potongan ${item.name}`}
                       />

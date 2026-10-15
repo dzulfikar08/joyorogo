@@ -16,6 +16,8 @@ import {
   base64ToBytes,
   newScanId,
   photoKey,
+  pendingStickerKey,
+  stickerKey,
   storeStickers,
 } from "../lib/sticker";
 import { purgeUnreferencedMedia } from "./saved-food";
@@ -32,6 +34,8 @@ const scanItemSchema = z.object({
   fiber: z.number().min(0).max(500).optional(),
   // [ymin, xmin, ymax, xmax] on 0-1000, as ai.analyzeFood returned it.
   box: z.array(z.number()).length(4).optional(),
+  // Cutout id from ai.scanSticker, when the client already has one for this item.
+  scanId: z.string().regex(SCAN_ID_RE).optional(),
 });
 
 // Price attaches to the plate, never to components: one scan, one Cerita meal,
@@ -121,10 +125,27 @@ export const foodRouter = {
       }
       const boxes = input.items.map((item) => normalizeBox(item.box));
       const anyBox = boxes.some(Boolean);
-      // Boxed items get their own cutout; with no boxes at all, the first
-      // item keeps the classic whole-plate sticker.
+      // Stickers ai.scanSticker already cut during review are promoted from
+      // the expiring scan-src/ prefix to scans/ instead of cut again. Anything
+      // missing (still running, failed, expired, not ours) falls through to
+      // the background job below.
+      const promoted = await Promise.all(
+        input.items.map(async (item): Promise<string | null> => {
+          if (!bucket || !item.scanId) return null;
+          try {
+            const pending = await bucket.get(pendingStickerKey(item.scanId));
+            if (!pending || pending.customMetadata?.userId !== userId) return null;
+            await bucket.put(stickerKey(item.scanId), await pending.arrayBuffer(), {
+              httpMetadata: { contentType: "image/png" },
+            });
+            return item.scanId;
+          } catch {
+            return null;
+          }
+        }),
+      );
       const jobs: Array<StickerJob | null> = input.items.map((_, index) => {
-        if (!bucket || !images) return null;
+        if (!bucket || !images || promoted[index]) return null;
         const box = boxes[index];
         if (box) return { scanId: newScanId(), box };
         return !anyBox && index === 0 ? { scanId: newScanId() } : null;
@@ -154,7 +175,7 @@ export const foodRouter = {
             fiber: item.fiber,
             source: "ai",
             itemsJson: input.itemsJson,
-            scanId: jobs[index]?.scanId,
+            scanId: promoted[index] ?? jobs[index]?.scanId,
             photoId,
             plateId,
           })),

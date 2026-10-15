@@ -218,3 +218,22 @@ export function FoodThumb({
   if (!scanId) return fallback;
   return <Sticker scanId={scanId} className={`block ${className}`} fallback={fallback} {...sticker} />;
 }
+
+/**
+ * Large outlined cutout at the top of a detail sheet. Tapping opens the
+ * lightbox (cutout first; "Lihat foto asli" stays secondary there). Renders
+ * nothing without a cutout so sheets without one keep their layout.
+ */
+export function StickerHero({
+  scanId,
+  ...sticker
+}: Omit<FoodThumbProps, "scanId" | "className" | "iconClassName"> & {
+  scanId?: string | null;
+}) {
+  if (!scanId) return null;
+  return (
+    <div className="flex justify-center">
+      <FoodThumb scanId={scanId} className="size-36" iconClassName="size-10" {...sticker} />
+    </div>
+  );
+}

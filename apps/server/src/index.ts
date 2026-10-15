@@ -7,6 +7,7 @@ import {
   streakFromDates,
 } from "@joyorogo/api/lib/engine";
 import { dueReminders, isFastingPattern, wibDateKey, wibMinutes } from "@joyorogo/api/lib/fasting";
+import { pendingStickerKey } from "@joyorogo/api/lib/sticker";
 import { buildPlan, planQueries } from "@joyorogo/api/lib/plan";
 import { sendPush, vapidConfigured } from "@joyorogo/api/lib/webpush";
 import { paywallConfig } from "@joyorogo/api/lib/tiers";
@@ -144,7 +145,11 @@ app.get("/sticker/:scanId", async (c) => {
   if (!("STICKERS" in env) || !env.STICKERS) {
     return c.json({ error: "Stiker belum tersedia." }, 404);
   }
-  const obj = await env.STICKERS.get(`scans/${scanId}.png`);
+  // Saved diary stickers first; during review the cutout still sits under the
+  // expiring scan-src/ prefix until food.addScan promotes it.
+  const obj =
+    (await env.STICKERS.get(`scans/${scanId}.png`)) ??
+    (await env.STICKERS.get(pendingStickerKey(scanId)));
   if (!obj) {
     return c.json({ error: "Stiker tidak ditemukan." }, 404);
   }

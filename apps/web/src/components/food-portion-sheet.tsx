@@ -15,6 +15,7 @@ import { FieldLabel } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
 import { CalendarSheet, DayChips } from "@/components/plate/plate-group";
 import { SheetActions } from "@/components/sheet-actions";
+import { StickerHero } from "@/components/sticker";
 import type { FoodItem } from "@/lib/api-types";
 import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
 import { MACRO_META } from "@/lib/macro-icons";
@@ -264,6 +265,7 @@ export function FoodPortionSheet({
             submit();
           }}
         >
+          <StickerHero scanId={row.scanId} photoId={row.photoId} name={row.name} kcal={row.kcal} />
           <div>
             <FieldLabel htmlFor="food-name">Nama</FieldLabel>
             <Input id="food-name" value={name} onChange={(event) => setName(event.target.value)} />

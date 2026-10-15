@@ -11,6 +11,7 @@ import type { PlaceSummary } from "@joyorogo/api/lib/places";
 
 import { fmtIdr } from "@/components/plate/belanja";
 import { PlaceThumb } from "@/components/places/place-thumb";
+import { StickerHero } from "@/components/sticker";
 import { Button, ErrorState, Num, Sheet, Skeleton, Text } from "@/components/ui";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
@@ -89,9 +90,9 @@ export function PlaceDetailSheet({
     <Sheet visible onClose={onClose} title={place.name}>
       <Text style={styles.subtitle}>{subtitle}</Text>
 
+      <StickerHero scanId={place.stickerScanId} name={place.favoriteDish ?? place.name} />
       {place.favoriteDish || place.avgPriceIdr != null ? (
         <View style={styles.summary}>
-          <PlaceThumb scanId={place.stickerScanId} size={64} />
           <View style={styles.summaryText}>
             {place.favoriteDish ? (
               <Text style={styles.favorite} numberOfLines={2}>

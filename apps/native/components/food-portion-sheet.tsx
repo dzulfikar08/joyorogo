@@ -13,6 +13,7 @@ import type { PortionValues } from "@joyorogo/api/lib/portion";
 import { MacroLine } from "@/components/macro-line";
 import { DateSheet, DayChips } from "@/components/plate/date-sheet";
 import { SheetActions } from "@/components/sheet-actions";
+import { StickerHero } from "@/components/sticker";
 import { MacroIcon } from "@/utils/macro-icons";
 import { Button, Chip, Field, Input, Num, Sheet, Text } from "@/components/ui";
 import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
@@ -27,6 +28,7 @@ export type PortionRow = PortionValues & {
   date: string;
   meal: string;
   name: string;
+  scanId?: string | null;
 };
 
 type FoodList = {
@@ -310,6 +312,7 @@ export function FoodPortionSheet({
         }
       >
         <View style={styles.body}>
+          <StickerHero scanId={row.scanId} name={row.name} />
           <Field label="Nama">
             <Input
               value={name}

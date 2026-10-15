@@ -1,3 +1,4 @@
+import { StickerHero } from "@/components/sticker";
 import { Button } from "@joyorogo/ui/components/button";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -91,22 +92,22 @@ export function PlaceDetailSheet({
         .join(" · ")}
     >
       <div className="space-y-5">
+        {place.stickerScanId && (
+          <StickerHero scanId={place.stickerScanId} name={place.favoriteDish ?? place.name} />
+        )}
         {(place.favoriteDish || place.avgPriceIdr != null) && (
-          <div className="flex items-center gap-4 rounded-2xl bg-muted/60 p-3">
-            <PlaceThumb scanId={place.stickerScanId} className="size-16" />
-            <div className="min-w-0 text-sm">
-              {place.favoriteDish && (
-                <p className="font-semibold">
-                  <span className="font-normal text-muted-foreground">Paling sering: </span>
-                  {place.favoriteDish}
-                </p>
-              )}
-              {place.avgPriceIdr != null && (
-                <p className="mt-0.5 text-muted-foreground">
-                  Rata-rata {fmtRupiah(place.avgPriceIdr)} per piring
-                </p>
-              )}
-            </div>
+          <div className="min-w-0 rounded-2xl bg-muted/60 p-3 text-sm">
+            {place.favoriteDish && (
+              <p className="font-semibold">
+                <span className="font-normal text-muted-foreground">Paling sering: </span>
+                {place.favoriteDish}
+              </p>
+            )}
+            {place.avgPriceIdr != null && (
+              <p className="mt-0.5 text-muted-foreground">
+                Rata-rata {fmtRupiah(place.avgPriceIdr)} per piring
+              </p>
+            )}
           </div>
         )}
 

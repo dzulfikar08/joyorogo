@@ -16,6 +16,7 @@ import { Chip } from "@/components/chip";
 import { FieldLabel, ListGroup } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
 import { IdrInput } from "@/components/plate/idr-input";
+import { StickerHero } from "@/components/sticker";
 import { fmtRupiah } from "@/lib/app-config";
 import { fmtDateIndo, fmtInt } from "@/lib/format";
 import { insertFoodRow, stripFoodRow, useOptimisticMutation } from "@/lib/optimistic";
@@ -31,6 +32,8 @@ type FoodRowFields = {
   carbs: number | null;
   fat: number | null;
   fiber: number | null;
+  scanId?: string | null;
+  photoId?: string | null;
 };
 type PlateRow = {
   id: string;
@@ -327,6 +330,11 @@ function PlateEditSheet({
             submit();
           }}
         >
+          <StickerHero
+            scanId={rows.find((row) => row.scanId)?.scanId}
+            photoId={rows.find((row) => row.scanId)?.photoId}
+            name={plate.name}
+          />
           <div>
             <FieldLabel htmlFor="plate-name">Nama piring</FieldLabel>
             <Input

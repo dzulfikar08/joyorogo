@@ -172,6 +172,32 @@ export async function storeStickers(
   );
 }
 
+/**
+ * Cutout of one boxed item, made while the user is still reviewing the scan.
+ * Lives under scan-src/ (bucket lifecycle expires it if the scan is never
+ * saved); food.addScan copies it to scans/ on save. Same capability-id idea
+ * as stickerKey; the owner rides in the object's customMetadata.
+ */
+export function pendingStickerKey(scanId: string): string {
+  return `scan-src/stk/${scanId}.png`;
+}
+
+/** Crops `box` out of the photo and segments it; null when unusable or failed. */
+export async function makeBoxSticker(
+  images: ImagesBinding,
+  bytes: ArrayBuffer,
+  box: readonly [number, number, number, number],
+): Promise<ArrayBuffer | null> {
+  let size: { width?: number; height?: number };
+  try {
+    size = await images.info(new Blob([bytes]).stream());
+  } catch {
+    return null;
+  }
+  const crop = size.width && size.height ? cropRect(box, size.width, size.height) : null;
+  return crop ? makeSticker(images, bytes, crop) : null;
+}
+
 export function base64ToBytes(base64: string): ArrayBuffer {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);

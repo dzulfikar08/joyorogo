@@ -3,8 +3,10 @@ import { describe, expect, test } from "bun:test";
 import {
   SCAN_ID_RE,
   cropRect,
+  makeBoxSticker,
   makeSticker,
   newScanId,
+  pendingStickerKey,
   stickerKey,
   storeStickers,
   type ImagesBinding,
@@ -141,5 +143,34 @@ describe("storeStickers", () => {
       { scanId: A, box: [0, 0, 100, 100] },
     ]);
     expect(keys).toEqual([]);
+  });
+});
+
+describe("makeBoxSticker / pendingStickerKey", () => {
+  test("pending stickers live under the expiring scan-src/ prefix", () => {
+    expect(pendingStickerKey("a".repeat(32))).toBe(`scan-src/stk/${"a".repeat(32)}.png`);
+  });
+
+  test("segments only the boxed region", async () => {
+    const { binding, trims } = recordingImages();
+    const png = await makeBoxSticker(binding, new ArrayBuffer(8), [0, 0, 500, 500]);
+    expect(png).not.toBeNull();
+    expect(trims).toHaveLength(1);
+    expect(trims[0]).not.toBeNull();
+  });
+
+  test("an unusable box yields null without a transform", async () => {
+    const { binding, trims } = recordingImages({ width: 40, height: 40 });
+    expect(await makeBoxSticker(binding, new ArrayBuffer(8), [0, 0, 100, 100])).toBeNull();
+    expect(trims).toHaveLength(0);
+  });
+
+  test("null when the image info cannot be read", async () => {
+    const binding = {
+      info: async () => {
+        throw new Error("boom");
+      },
+    } as unknown as ImagesBinding;
+    expect(await makeBoxSticker(binding, new ArrayBuffer(8), [0, 0, 500, 500])).toBeNull();
   });
 });

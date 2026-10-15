@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Image, View } from "react-native";
+import { View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { stickerUrl } from "@/components/sticker";
+import { StickerMini } from "@/components/sticker";
 
 /** Plain (non-interactive) sticker cutout, so it can sit inside a tappable card. */
 export function PlaceThumb({ scanId, size = 72 }: { scanId: string | null; size?: number }) {
@@ -16,16 +16,7 @@ export function PlaceThumb({ scanId, size = 72 }: { scanId: string | null; size?
       </View>
     );
   }
-  return (
-    <Image
-      source={{ uri: stickerUrl(scanId) }}
-      onError={() => setFailed(true)}
-      resizeMode="contain"
-      style={{ width: size, height: size }}
-      accessibilityElementsHidden
-      importantForAccessibility="no"
-    />
-  );
+  return <StickerMini scanId={scanId} size={size} onError={() => setFailed(true)} />;
 }
 
 const styles = StyleSheet.create((theme) => ({
