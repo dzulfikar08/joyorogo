@@ -462,6 +462,8 @@ Admin (`admin.joyorogo.com`): users, onboarded, signups today and 7 days, active
 | Revenue | Founder buyers, revenue, rung | Admin orders; `/api/config` `promo.taken` |
 | Cost watch | Scans today, anon scans | Admin overview |
 
+JoyoFit tester funnel (same Revklik site; fit.joyorogo.com loads the tag, filter hostname `fit.joyorogo.com` for pageviews). Goal names, in order: `tester_group_click` and `tester_optin_click` (location `hero` or `cara`, on fit.joyorogo.com), then `google_signin` (click) and `signin_success` (reported after the Google round trip returns a session, once per button press), then `founder_purchase` (revenue). Links from fit.joyorogo.com to `/harga` carry `from=joyofit` plus `utm_source=joyofit`; `signin_success` and `founder_purchase` get the prop `from=joyofit` when that marker was stored in the browser (`captureFrom` in `apps/web/src/lib/analytics.ts`). Visitor ids are per origin, so the stages are compared as counts, not followed per visitor. Sign-in inside the JoyoFit app happens in the system browser against api.joyorogo.com and is not seen by Revklik; use the cloud worker or admin signups for that.
+
 ### 11.4 Weekly SQL (read-only; run `bunx wrangler d1 execute DB --remote --command "..."` from `apps/server`; timestamps are epoch milliseconds)
 
 Activation since a date (replace `:since` with the epoch ms of the start of your window):
