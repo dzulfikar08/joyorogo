@@ -20,7 +20,7 @@ import { Button } from "@joyorogo/ui/components/button";
 import { Ring, type Metric } from "@/components/kit/ring";
 import { ScanDemo } from "@/components/landing/scan-demo";
 import { GroupPeek, HeroPhone, ScanExample, WeightTrendDemo } from "@/components/landing/visuals";
-import { PublicHeader } from "@/components/public-header";
+import { GITHUB_URL, GithubMark, PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
 import { FounderPromo } from "@/components/founder-promo";
 import { APK_URL, fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
@@ -633,6 +633,43 @@ function Landing() {
                 </p>
               </details>
             ))}
+          </div>
+        </section>
+
+        {/* Open source */}
+        <section data-section="opensource" className="mx-auto w-full max-w-6xl px-4 pb-16 md:px-6">
+          <div className="flex flex-col gap-5 rounded-[1.75rem] bg-card p-6 md:flex-row md:items-center md:justify-between md:p-8">
+            <div className="flex gap-4">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-muted text-foreground">
+                <GithubMark className="size-6" />
+              </span>
+              <div>
+                <h2 className="text-xl font-extrabold tracking-tight md:text-2xl">
+                  Kodenya terbuka, bisa kamu cek sendiri
+                </h2>
+                <p className="mt-1 max-w-xl text-[0.9375rem] leading-relaxed text-muted-foreground">
+                  Seluruh kode JoyoRogo ada di GitHub dengan lisensi AGPL-3.0: cara kalori dihitung,
+                  data TKPI yang dipakai, sampai apa yang disimpan dari fotomu. Ada yang salah? Buka
+                  issue atau kirim perbaikan.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              className="shrink-0"
+              render={
+                <a
+                  href={GITHUB_URL}
+                  target="_blank"
+                  rel="noopener"
+                  data-revklik-goal="github_click"
+                  data-revklik-goal-location="opensource"
+                />
+              }
+            >
+              <GithubMark className="size-4" />
+              Lihat di GitHub
+            </Button>
           </div>
         </section>
 
