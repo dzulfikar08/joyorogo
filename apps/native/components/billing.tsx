@@ -11,6 +11,7 @@ import { authClient } from "@/lib/auth-client";
 import { Button, Card, Sheet, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { errorMessage } from "@/utils/format";
+import { IS_PLAY_BUILD } from "@/src/distribution";
 import { ENV } from "@/src/env";
 import { queryClient } from "@/utils/orpc";
 
@@ -56,6 +57,9 @@ export function serverUrl(): string {
 /**
  * Read at runtime, not build time: self-hosted copies run without billing and
  * must show no pricing at all rather than guessing (same contract as web).
+ * The Google Play build never sells Founder: Play requires Play Billing for
+ * digital goods, so the DOKU/Pakasir checkout is reported as unavailable and
+ * every purchase surface (banner, /founder, Profil cards) stays hidden.
  */
 export function useAppConfig() {
   return useQuery({
@@ -63,7 +67,10 @@ export function useAppConfig() {
     queryFn: async (): Promise<AppConfig> => {
       const res = await fetch(`${serverUrl()}/api/config`);
       if (!res.ok) throw new Error(`config ${res.status}`);
-      return (await res.json()) as AppConfig;
+      const config = (await res.json()) as AppConfig;
+      return IS_PLAY_BUILD
+        ? { ...config, billing: false, paymentMethods: [], promo: null }
+        : config;
     },
     staleTime: 60 * 60 * 1000,
     retry: 2,

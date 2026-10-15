@@ -70,13 +70,10 @@ export async function hasNutritionWritePermission(): Promise<boolean> {
   return granted.some((p) => p.recordType === "Nutrition" && p.accessType === "write");
 }
 
-/** Prompts for Nutrition write + read (read lets us see what we wrote). */
+/** Prompts for Nutrition write; the app never reads nutrition back from Health Connect. */
 export async function requestNutritionPermission(): Promise<boolean> {
   if (!(await ensureInit())) return false;
-  await requestPermission([
-    { accessType: "write", recordType: "Nutrition" },
-    { accessType: "read", recordType: "Nutrition" },
-  ]);
+  await requestPermission([{ accessType: "write", recordType: "Nutrition" }]);
   return hasNutritionWritePermission();
 }
 

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
+import { IS_PLAY_BUILD } from "@/src/distribution";
 import { ENV } from "@/src/env";
 
 /** Manifest served at GET /downloads/latest-apk.json (written by build-release-apk.sh). */
@@ -40,6 +41,9 @@ export type ApkUpdateState = {
 // silent, not a request on every launch.
 const CHECK_THROTTLE_MS = 6 * 60 * 60 * 1000;
 const LAST_CHECK_KEY = "apk-update-checked-at";
+
+/** Sideload Android builds only: Google Play builds update through Play and never fetch. */
+const UPDATER_ENABLED = Platform.OS === "android" && !IS_PLAY_BUILD;
 
 /** Server origin, same contract as utils/orpc.ts: ENV is the source of truth. */
 const SERVER_ORIGIN = ENV.EXPO_PUBLIC_SERVER_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
@@ -137,18 +141,18 @@ async function autoCheck(force: boolean): Promise<ApkCheckResult> {
 }
 
 /**
- * Android-only update check. iOS and web never fetch the manifest and get
- * null so the UI renders nothing. On Android the state starts as "checking"
+ * Sideload-Android-only update check. iOS, web and the Play build never fetch
+ * the manifest and get null so the UI renders nothing. On Android the state starts as "checking"
  * (result null) and settles into one ApkCheckResult.
  */
 export function useApkUpdate(force = false): ApkUpdateState | null {
   const [result, setResult] = useState<ApkCheckResult | null>(
-    Platform.OS === "android" && cached !== undefined ? cached : null,
+    UPDATER_ENABLED && cached !== undefined ? cached : null,
   );
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (Platform.OS !== "android") return;
+    if (!UPDATER_ENABLED) return;
     let live = true;
     void autoCheck(force).then((r) => {
       if (live) setResult(r);
@@ -159,7 +163,7 @@ export function useApkUpdate(force = false): ApkUpdateState | null {
   }, [force]);
 
   const refresh = useCallback(async () => {
-    if (Platform.OS !== "android") return;
+    if (!UPDATER_ENABLED) return;
     setRefreshing(true);
     try {
       setResult(await runCheck());
@@ -168,7 +172,7 @@ export function useApkUpdate(force = false): ApkUpdateState | null {
     }
   }, []);
 
-  if (Platform.OS !== "android") return null;
+  if (!UPDATER_ENABLED) return null;
   return { result, refresh, refreshing };
 }
 

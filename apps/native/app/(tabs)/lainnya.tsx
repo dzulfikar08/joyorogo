@@ -1,5 +1,6 @@
 import "@/unistyles";
 import { Redirect, router } from "expo-router";
+import { Platform } from "react-native";
 
 import { useAppConfig } from "@/components/billing";
 import {
@@ -39,8 +40,12 @@ export default function Lainnya() {
     return <Redirect href="/login" />;
   }
 
-  // Free accounts see the paywall row; Founder sees nothing to buy.
-  const showPricing = config.data?.paywall === true;
+  // Free accounts see the paywall row; Founder sees nothing to buy. The row
+  // needs a working checkout: /founder bounces back when billing is off
+  // (self-hosted copies, Play build).
+  const showPricing =
+    config.data?.paywall === true &&
+    (Platform.OS === "ios" ? config.data.appleBilling : config.data.billing);
 
   return (
     <Screen>

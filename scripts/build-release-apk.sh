@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 # Release APK: signed with the local keystore, arm64-only, R8 + resource shrinking.
+#
+#   scripts/build-release-apk.sh [--clean] [--publish]   sideload APK (self-updater, R2)
+#   scripts/build-release-apk.sh --play [--clean]        Google Play AAB -> dist/joyorogo-play-<versionCode>.aab
+#
+# --play builds with JOYOROGO_DISTRIBUTION=play (see apps/native/app.config.ts):
+# no REQUEST_INSTALL_PACKAGES, no APK self-updater, no external checkout;
+# arm64-v8a + armeabi-v7a; signed with the same keystore as the upload key
+# (Play App Signing re-signs for users). ARCHS overrides the ABI list.
 # Keystore lives OUTSIDE android/ so prebuild never wipes it. Back it up —
 # updates must be signed with the same key.
 set -euo pipefail
@@ -28,13 +36,25 @@ export EXPO_PUBLIC_DEV_LOGIN=0
 # --clean forces a fresh prebuild and a cold native build.
 PUBLISH=0
 CLEAN=0
+PLAY=0
 for arg in "$@"; do
   case "$arg" in
     --publish) PUBLISH=1 ;;
     --clean) CLEAN=1 ;;
+    --play) PLAY=1 ;;
     *) echo "unknown option: $arg" >&2; exit 1 ;;
   esac
 done
+if [ "$PLAY" = 1 ] && [ "$PUBLISH" = 1 ]; then
+  echo "--play and --publish are exclusive: the AAB is uploaded in Play Console, not R2" >&2
+  exit 1
+fi
+if [ "$PLAY" = 1 ]; then
+  export JOYOROGO_DISTRIBUTION=play
+  export ARCHS="${ARCHS:-arm64-v8a,armeabi-v7a}"
+else
+  export JOYOROGO_DISTRIBUTION=sideload
+fi
 
 # Android versionCode = minutes since 2024-01-01 UTC: strictly increases per
 # build and needs no manual bump in app.json. YYMMDDHHmm looked tidy but
@@ -71,7 +91,9 @@ fi
 cd "$NATIVE"
 STAMP=android/.prebuild-hash
 PREBUILD_HASH="$(
-  { sha256sum app.json package.json "$ROOT/bun.lock"
+  { sha256sum app.json app.config.ts package.json "$ROOT/bun.lock"
+    echo "distribution=$JOYOROGO_DISTRIBUTION"
+    find plugins -type f -print0 | sort -z | xargs -0 sha256sum
     find modules assets -type f -print0 | sort -z | xargs -0 sha256sum
   } | sha256sum | cut -d' ' -f1
 )"
@@ -106,7 +128,7 @@ android {""",
         """    signingConfigs {
         release {
             if (keystorePropertiesFile.exists()) {
-                storeFile file(keystoreProperties['storeFile'])
+                storeFile new File(keystorePropertiesFile.parentFile, new File(keystoreProperties['storeFile']).name)
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
@@ -115,16 +137,38 @@ android {""",
         debug {""",
         1,
     )
-    # Only the release buildType switches to the release config.
-    s = s.replace(
-        """        release {
-            signingConfig signingConfigs.debug""",
-        """        release {
-            signingConfig signingConfigs.release""",
-        1,
-    )
     app.write_text(s)
     print("build.gradle patched")
+
+# The keystore sits next to keystore.properties, and the file written above
+# stores a repo-relative storeFile that Gradle would resolve against app/.
+# Resolve by file name beside the properties file instead; also upgrades an
+# android/ that was patched by an older version of this script.
+s = app.read_text()
+s = s.replace(
+    "storeFile file(keystoreProperties['storeFile'])",
+    "storeFile new File(keystorePropertiesFile.parentFile, new File(keystoreProperties['storeFile']).name)",
+)
+app.write_text(s)
+
+# Release buildType signing, set on every build (android/ is reused across
+# sideload and --play builds). Play builds use the keystore as the Play upload
+# key. Sideload builds stay on the template's debug key: that is what the
+# installed APKs and the published latest-apk are signed with, and Android
+# refuses an in-place update across keys (install would need an uninstall).
+# The SDK 57 template puts comment lines between `release {` and
+# `signingConfig`, so match across them and fail loudly instead of silently
+# shipping the wrong key.
+s = app.read_text()
+use = "release" if os.environ["JOYOROGO_DISTRIBUTION"] == "play" else "debug"
+s, n = re.subn(
+    r"(buildTypes \{.*?\n        release \{.*?signingConfig signingConfigs\.)(?:debug|release)",
+    lambda m: m.group(1) + use,
+    s, count=1, flags=re.S,
+)
+if n != 1:
+    raise SystemExit("could not set the release signingConfig in android/app/build.gradle")
+app.write_text(s)
 
 # versionCode from UTC time (see VERSION_CODE above); runs every build since
 # android/ is now reused across builds.
@@ -148,13 +192,19 @@ PY
 
 # 4. Build.
 cd android
-./gradlew assembleRelease
-APK=app/build/outputs/apk/release/app-release.apk
+if [ "$PLAY" = 1 ]; then
+  ./gradlew bundleRelease
+  APK=app/build/outputs/bundle/release/app-release.aab
+else
+  ./gradlew assembleRelease
+  APK=app/build/outputs/apk/release/app-release.apk
+fi
 
 # 5. Bundle sanity. Every ENV.X read must be inlined at build time: a leftover
 # EXPO_PUBLIC_* name means a runtime proxy read, which throws "varlock ENV not
 # initialized" on launch. The inlined server URL must be the live API.
-BUNDLE_STRINGS=$(unzip -p "$APK" assets/index.android.bundle | strings)
+if [ "$PLAY" = 1 ]; then BUNDLE_ENTRY=base/assets/index.android.bundle; else BUNDLE_ENTRY=assets/index.android.bundle; fi
+BUNDLE_STRINGS=$(unzip -p "$APK" "$BUNDLE_ENTRY" | strings)
 if grep -qE 'EXPO_PUBLIC_(SERVER_URL|DEV_LOGIN)' <<<"$BUNDLE_STRINGS"; then
   echo "release bundle reads ENV at runtime (not inlined): $(grep -oE 'EXPO_PUBLIC_(SERVER_URL|DEV_LOGIN)' <<<"$BUNDLE_STRINGS" | sort -u | tr '\n' ' ')" >&2
   exit 1
@@ -162,6 +212,16 @@ fi
 if ! grep -qF "$EXPO_PUBLIC_SERVER_URL" <<<"$BUNDLE_STRINGS"; then
   echo "release bundle does not contain the API URL $EXPO_PUBLIC_SERVER_URL" >&2
   exit 1
+fi
+
+if [ "$PLAY" = 1 ]; then
+  mkdir -p "$ROOT/dist"
+  AAB="$ROOT/dist/joyorogo-play-$VERSION_CODE.aab"
+  cp "$APK" "$AAB"
+  ls -la "$AAB"
+  echo "versionCode=$VERSION_CODE"
+  echo RELEASE-AAB-DONE
+  exit 0
 fi
 
 cp "$APK" "$ROOT/joyorogo-release.apk"

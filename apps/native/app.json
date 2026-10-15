@@ -37,12 +37,11 @@
         "android.permission.health.READ_SLEEP",
         "android.permission.health.READ_STEPS",
         "android.permission.health.WRITE_NUTRITION",
-        "android.permission.health.READ_NUTRITION",
         "android.permission.health.READ_DISTANCE",
         "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
-        "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND",
         "android.permission.REQUEST_INSTALL_PACKAGES"
-      ]
+      ],
+      "blockedPermissions": ["android.permission.SYSTEM_ALERT_WINDOW"]
     },
     "web": {
       "output": "static",
@@ -101,7 +100,8 @@
         "expo-audio",
         {
           "microphonePermission": "Izinkan mikrofon untuk merekam cerita makananmu dan menghitung kalorinya.",
-          "recordAudioAndroid": true
+          "recordAudioAndroid": true,
+          "enableBackgroundPlayback": false
         }
       ],
       "@react-native-community/datetimepicker",
@@ -168,7 +168,8 @@
           "ios": ["instagram", "instagram-stories"]
         }
       ],
-      "./plugins/with-widget-headless-fix"
+      "./plugins/with-widget-headless-fix",
+      "./plugins/with-no-location-service"
     ],
     "experiments": {
       "typedRoutes": true,

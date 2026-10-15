@@ -25,7 +25,6 @@ import {
   requestPermission,
 } from "react-native-health-connect";
 import type {
-  BackgroundAccessPermission,
   Permission,
   RecordResult,
 } from "react-native-health-connect";
@@ -43,20 +42,13 @@ function isHealthConnectSupported(): boolean {
   return Platform.OS === "android";
 }
 
-const READ_PERMISSIONS: (Permission | BackgroundAccessPermission)[] = [
+const READ_PERMISSIONS: Permission[] = [
   { accessType: "read", recordType: "ExerciseSession" },
   { accessType: "read", recordType: "SleepSession" },
   { accessType: "read", recordType: "Steps" },
   { accessType: "read", recordType: "Distance" },
   { accessType: "read", recordType: "ActiveCaloriesBurned" },
 ];
-
-// Android 14+ background reads: data syncs without opening the app. Requested
-// separately — older Health Connect builds reject the request outright.
-const BACKGROUND_READ_PERMISSION: BackgroundAccessPermission = {
-  accessType: "read",
-  recordType: "BackgroundAccessPermission",
-};
 
 // Health Connect ExerciseType numbers → Strava-ish type names, which the
 // shared metForStravaType() already maps to our MET keys.
@@ -148,11 +140,6 @@ async function requestReadPermissions(): Promise<{
     granted.some(
       (p) => "recordType" in p && p.recordType === recordType && p.accessType === "read",
     );
-  try {
-    await requestPermission([BACKGROUND_READ_PERMISSION]);
-  } catch {
-    // Background reads are a bonus (Android 14+); foreground sync still works.
-  }
   return {
     canReadExercise: has("ExerciseSession"),
     canReadDailyMetrics: has("Steps") && has("Distance") && has("ActiveCaloriesBurned"),
