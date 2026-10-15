@@ -78,6 +78,6 @@ export function fitnessHints(day: FitnessDay): string[] {
 /** Locked teaser the free tier sees under the hints; the action opens the Founder paywall. */
 export const FOOD_GUIDANCE_TEASER = {
   title: "Saran makan dari skor JoyoFit",
-  body: "Founder dapat saran porsi dan menu hari ini, dihitung dari skormu, target harianmu, dan makanan yang sudah kamu catat.",
-  action: "Buka dengan Founder",
+  body: "Pro dapat saran porsi dan menu hari ini, dihitung dari skormu, target harianmu, dan makanan yang sudah kamu catat.",
+  action: "Buka dengan Pro",
 } as const;

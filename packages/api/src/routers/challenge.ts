@@ -380,7 +380,7 @@ export const challengeRouter = {
         .limit(1);
       if (!canHostChallenge(userRow, paywallConfig(context.env))) {
         throw new ORPCError("FORBIDDEN", {
-          message: "Founder yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis.",
+          message: "Pro yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis.",
           data: { paywall: true, tier: "free", reason: "challenge" },
         });
       }

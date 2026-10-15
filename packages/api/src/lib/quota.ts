@@ -57,11 +57,11 @@ export async function requireAiQuota(
     throw new ORPCError("FORBIDDEN", {
       message:
         tier === "founder"
-          ? `Batas pengaman Founder tercapai (${quota} scan/hari). Coba lagi besok ya.`
+          ? `Batas pengaman Pro tercapai (${quota} scan/hari). Coba lagi besok ya.`
           : `Kuota AI hari ini habis (${quota}/hari). ${
               config.founderDailyCap === null
-                ? "Founder buka AI tanpa batas."
-                : `Founder dapat ${config.founderDailyCap}/hari.`
+                ? "Pro buka AI tanpa batas."
+                : `Pro dapat ${config.founderDailyCap}/hari.`
             }`,
       data: { paywall: true, tier },
     });
