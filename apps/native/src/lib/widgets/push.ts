@@ -39,9 +39,11 @@ export async function pushDaySnapshot(
   await refreshWidgets(PROGRESS_WIDGETS, await writeSnapshot(patch));
 }
 
-export async function pushInboxSnapshot(inbox: {
-  unread: number;
-  items: WidgetInboxItem[];
-}): Promise<void> {
-  await refreshWidgets(INBOX_WIDGETS, await writeSnapshot({ signedIn: true, inbox }));
+/** Widgets only show unread rows; pass the full (read + unread) inbox list. */
+export async function pushInboxSnapshot(all: WidgetInboxItem[]): Promise<void> {
+  const items = all.filter((item) => item.readAt === null);
+  await refreshWidgets(
+    INBOX_WIDGETS,
+    await writeSnapshot({ signedIn: true, inbox: { unread: items.length, items: items.slice(0, 3) } }),
+  );
 }

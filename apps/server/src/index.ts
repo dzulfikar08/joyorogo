@@ -34,6 +34,7 @@ import { registerAdminRoutes } from "./admin";
 import { sendEmail } from "./email";
 import { createContext } from "./context";
 import { registerBenchRoutes } from "./bench";
+import { registerOgRoutes } from "./og";
 import { registerPrivacyRoutes } from "./privacy";
 import { env } from "./env.server";
 import { createAuth, getDb } from "./services";
@@ -56,6 +57,9 @@ app.use(
     credentials: true,
   }),
 );
+
+// Minimal link-preview data for the web Worker's HTMLRewriter (apps/web/worker).
+registerOgRoutes(app, { getDb });
 
 // Anonymous landing-page scans (after CORS so browsers can read responses).
 registerAnonScanRoutes(app, {

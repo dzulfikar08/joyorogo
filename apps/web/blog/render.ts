@@ -311,6 +311,7 @@ function ctaCard(cfg: BlogConfig): string {
         <p class="mt-2 leading-relaxed">Foto piringmu atau ceritakan apa yang kamu makan. JoyoRogo menghitung kalorinya dan bilang berapa lagi yang boleh kamu makan hari ini.</p>
         <div class="mt-4 flex flex-wrap gap-2">
           <a href="/login" data-revklik-goal="signup_click" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 ${FOCUS}">Coba gratis</a>
+          <a href="/#coba" data-revklik-goal="try_scan_click" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">Coba scan tanpa daftar</a>
           <a href="${esc(cfg.apkUrl)}" data-revklik-goal="apk_download" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">Unduh untuk Android</a>
         </div>
       </aside>`;

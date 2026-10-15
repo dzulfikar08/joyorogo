@@ -16,5 +16,8 @@
       "@/*": ["./src/*"],
       "@joyorogo/ui/*": ["../../packages/ui/src/*"]
     }
-  }
+  },
+  // worker/ targets the Workers runtime types, not the DOM: it has its own tsconfig.
+  // *.test.ts run under bun test, which the browser tsconfig has no types for.
+  "exclude": ["worker", "dist", "node_modules", "src/**/*.test.ts"]
 }

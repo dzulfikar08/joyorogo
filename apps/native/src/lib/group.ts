@@ -4,6 +4,8 @@ import type { AppRouterClient } from "@joyorogo/api/routers/index";
 import { authClient } from "@/lib/auth-client";
 import { orpc } from "@/utils/orpc";
 
+import { shareUrl } from "./share-links";
+
 type GroupDetailOutput = Awaited<ReturnType<AppRouterClient["group"]["detail"]>>;
 
 /** One member card of group.detail, with today's numbers and streak. */
@@ -27,9 +29,14 @@ const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 
-/** Public share link for an invite code (same shape as the web /gabung route). */
+/** Public share link for an invite code (same shape as the web /gabung route), with UTM. */
 export function inviteLink(code: string): string {
-  return `https://joyorogo.com/gabung/${code}`;
+  return shareUrl(`/gabung/${code}`, "invite");
+}
+
+/** WhatsApp-ready invite: group name, code, link, and one sentence on why. */
+export function inviteMessage(groupName: string, code: string): string {
+  return `Ayo gabung grup "${groupName}" di JoyoRogo, biar kita saling catat kalori dan colek yang lupa.\nKode: ${code}\n${inviteLink(code)}`;
 }
 
 /**

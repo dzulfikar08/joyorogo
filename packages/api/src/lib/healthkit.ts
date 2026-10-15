@@ -2,8 +2,7 @@
 // reports fragmented sleepAnalysis category samples, often duplicated because
 // iPhone and Apple Watch both write the same night. Overlapping intervals are
 // unioned before summing so double-reported sleep counts once, then each bout
-// is keyed by the WIB day whose morning it ended, like the Health Connect
-// import keys SleepSession rows.
+// is keyed with sleepNightKey, like the Health Connect import keys SleepSession rows.
 
 export type SleepInterval = { startMs: number; endMs: number };
 
@@ -34,7 +33,15 @@ function wibDayKey(ms: number): string {
   return new Date(ms + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
-// Unioned asleep hours per WIB day, keyed by each bout's end. Standalone
+// sleep_log keys a night by the WIB evening it began ("tidur tadi malam" is
+// read as date - 1 by day.summary, group and Tidur). Sleep that ends before
+// noon WIB belongs to the previous day, so the end shifted back 12 h gives the
+// key; a nap ending in the afternoon stays on its own day.
+export function sleepNightKey(endMs: number): string {
+  return wibDayKey(endMs - 12 * 60 * 60 * 1000);
+}
+
+// Unioned asleep hours per night (sleepNightKey of each bout's end). Standalone
 // bouts under 15 minutes are dropped, mirroring the Health Connect import's
 // session filter; the threshold applies after the union so short stage
 // samples inside a long night are never lost.
@@ -46,7 +53,7 @@ export function sleepHoursByWibDay(
   for (const bout of bouts) {
     const hours = (bout.endMs - bout.startMs) / 3_600_000;
     if (hours < 0.25) continue;
-    const day = wibDayKey(bout.endMs);
+    const day = sleepNightKey(bout.endMs);
     hoursByDay.set(day, (hoursByDay.get(day) ?? 0) + hours);
   }
   return hoursByDay;

@@ -1,8 +1,11 @@
 import { Button } from "@joyorogo/ui/components/button";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, isRedirect, Link, redirect } from "@tanstack/react-router";
+import { Users } from "lucide-react";
 import { Mascot } from "@/components/mascot";
 import { authClient, sessionQuery } from "@/lib/auth-client";
 import { pageHead } from "@/lib/seo";
+import { orpc } from "@/utils/orpc";
 import { env } from "@/env.public";
 
 export const Route = createFileRoute("/login")({
@@ -60,6 +63,14 @@ function RouteComponent() {
     }
   };
 
+  // Invite links land here first; naming the group keeps the sign-in from feeling generic.
+  const inviteCode = returnTo?.match(/^\/gabung\/([A-Za-z0-9]{4,20})$/)?.[1];
+  const invite = useQuery({
+    ...orpc.group.preview.queryOptions({ input: { code: inviteCode ?? "" } }),
+    enabled: inviteCode !== undefined,
+    retry: false,
+  });
+
   return (
     <div className="flex min-h-svh flex-col">
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-10">
@@ -68,6 +79,19 @@ function RouteComponent() {
         <p className="mt-2 max-w-xs text-center text-[0.9375rem] leading-relaxed text-muted-foreground">
           Turun berat pakai 3 angka harian: makan, bakar, tidur. Foto makananmu, AI yang menghitung.
         </p>
+        {invite.data && (
+          <div className="mt-6 flex w-full max-w-xs items-center gap-3 rounded-2xl bg-card p-3 text-left">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <Users className="size-5 text-primary" aria-hidden />
+            </span>
+            <p className="min-w-0 text-sm text-muted-foreground">
+              Kamu diundang ke
+              <span className="block truncate text-base font-extrabold text-foreground">
+                {invite.data.name}
+              </span>
+            </p>
+          </div>
+        )}
         <Button
           size="lg"
           className="mt-8 w-full max-w-xs"

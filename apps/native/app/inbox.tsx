@@ -45,9 +45,8 @@ export default function Inbox() {
   const inboxData = inbox.data;
   useEffect(() => {
     if (gate !== "authed" || !inboxData) return;
-    void pushInboxSnapshot({
-      unread: inboxData.filter((item) => item.readAt === null).length,
-      items: inboxData.slice(0, 3).map((item) => ({
+    void pushInboxSnapshot(
+      inboxData.map((item) => ({
         id: item.id,
         kind: item.kind,
         senderName: item.senderName,
@@ -56,7 +55,7 @@ export default function Inbox() {
         createdAt: item.createdAt,
         readAt: item.readAt,
       })),
-    });
+    );
   }, [gate, inboxData]);
 
   const [replyTarget, setReplyTarget] = useState<InboxItem | null>(null);

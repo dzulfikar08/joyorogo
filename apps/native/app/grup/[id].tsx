@@ -34,7 +34,7 @@ import { useSessionGate } from "@/lib/use-session-gate";
 import { ConfirmSheet } from "@/components/confirm-sheet";
 import { useToast } from "@/components/toast";
 import type { GroupActivityEvent, GroupMember } from "@/src/lib/group";
-import { inviteLink, timeAgoId } from "@/src/lib/group";
+import { inviteMessage, timeAgoId } from "@/src/lib/group";
 import { errorMessage, fmtKcal, fmtKg } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
@@ -359,9 +359,7 @@ export default function GroupDetail() {
   const isOwner = me?.role === "owner";
 
   const shareInvite = () => {
-    void Share.share({
-      message: `Ayo gabung grup ${group.name} di JoyoRogo!\nKode: ${group.inviteCode}\n${inviteLink(group.inviteCode)}`,
-    });
+    void Share.share({ message: inviteMessage(group.name, group.inviteCode) });
   };
 
   const poke = (member: GroupMember) => {

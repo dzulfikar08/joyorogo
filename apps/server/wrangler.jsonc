@@ -33,6 +33,16 @@
   "images": {
     "binding": "IMAGES"
   },
+  "ratelimits": [
+    {
+      "name": "INVITE_PREVIEW_LIMITER",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    }
+  ],
   "send_email": [
     {
       "name": "EMAIL"

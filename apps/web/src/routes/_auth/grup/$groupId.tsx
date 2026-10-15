@@ -39,6 +39,7 @@ import {
   Segmented,
 } from "@/components/kit/surface";
 import { Switch } from "@/components/kit/switch";
+import { inviteLink, shareInvite } from "@/lib/group-invite";
 import { useSession } from "@/lib/auth-client";
 import type { GroupActivityEvent, GroupDetail, GroupMember } from "@/lib/api-types";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
@@ -74,19 +75,6 @@ function DetailSkeleton() {
       <Skeleton className="mt-3 h-44 rounded-3xl" />
     </Page>
   );
-}
-
-/** Invite link shared by the web route; the code is case-insensitive server-side. */
-function inviteLink(code: string): string {
-  return `https://joyorogo.com/gabung/${code}`;
-}
-
-async function shareOrCopy(text: string, url: string): Promise<void> {
-  if (typeof navigator.share === "function") {
-    await navigator.share({ title: "JoyoRogo", text, url });
-    return;
-  }
-  await navigator.clipboard.writeText(url);
 }
 
 function GrupDetailPage() {
@@ -236,7 +224,6 @@ function GrupDetailPage() {
     return 0;
   });
   const others = detail.data.members.filter((m) => m.userId !== meId);
-  const link = inviteLink(group.inviteCode);
 
   return (
     <Page className="max-w-xl">
@@ -304,15 +291,16 @@ function GrupDetailPage() {
             <SectionTitle>Undangan</SectionTitle>
             <div className="mt-2 rounded-2xl bg-muted p-4">
               <p className="text-sm font-bold">{group.name}</p>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">{link}</p>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                joyorogo.com/gabung/{group.inviteCode}
+              </p>
               <div className="mt-3 flex gap-2">
                 <Button
                   size="sm"
                   onClick={() => {
-                    void shareOrCopy(
-                      `Gabung grup ${group.name} di JoyoRogo!`,
-                      link,
-                    ).then(() => toast.success("Tautan disalin"));
+                    void shareInvite(group.name, group.inviteCode).then((result) => {
+                      if (result === "copied") toast.success("Tautan disalin");
+                    });
                   }}
                 >
                   <Share2 className="size-4" aria-hidden />
@@ -323,7 +311,7 @@ function GrupDetailPage() {
                   variant="secondary"
                   onClick={() => {
                     void navigator.clipboard
-                      .writeText(link)
+                      .writeText(inviteLink(group.inviteCode))
                       .then(() => toast.success("Tautan disalin"));
                   }}
                 >

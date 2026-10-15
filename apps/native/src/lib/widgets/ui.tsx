@@ -298,6 +298,7 @@ function InboxPanel({
   inbox: NonNullable<WidgetSnapshot["inbox"]>;
   c: WidgetPalette;
 }) {
+  const unreadItems = inbox.items.filter((item) => item.readAt === null);
   return (
     <FlexWidget style={{ flexDirection: "column", width: "match_parent" }}>
       <FlexWidget
@@ -327,13 +328,38 @@ function InboxPanel({
           </FlexWidget>
         ) : null}
       </FlexWidget>
-      {inbox.items.length === 0 ? (
-        <TextWidget
-          text="Belum ada kabar dari grupmu."
-          style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginTop: 10 }}
-        />
+      {unreadItems.length === 0 ? (
+        <FlexWidget
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            width: "match_parent",
+            marginTop: 10,
+          }}
+        >
+          <FlexWidget
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: c.pill,
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 10,
+            }}
+          >
+            <SvgWidget
+              svg={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${String(c.pillText)}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`}
+              style={{ width: 18, height: 18 }}
+            />
+          </FlexWidget>
+          <TextWidget
+            text="Belum ada kabar baru"
+            style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground }}
+          />
+        </FlexWidget>
       ) : (
-        inbox.items.map((item) => <InboxRow key={item.id} item={item} c={c} />)
+        unreadItems.map((item) => <InboxRow key={item.id} item={item} c={c} />)
       )}
     </FlexWidget>
   );

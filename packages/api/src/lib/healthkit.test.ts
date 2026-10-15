@@ -43,15 +43,31 @@ describe("sleepHoursByWibDay", () => {
       { startMs: at("2026-10-12T15:00:00Z"), endMs: at("2026-10-12T18:00:00Z"), value: 3 },
       { startMs: at("2026-10-12T15:00:00Z"), endMs: at("2026-10-12T18:00:00Z"), value: 3 },
     ]);
-    expect([...hours]).toEqual([["2026-10-13", 3]]);
+    expect([...hours]).toEqual([["2026-10-12", 3]]);
   });
 
-  test("keys the night by the WIB day whose morning it ended", () => {
-    // 22:00 WIB Oct 12 to 06:30 WIB Oct 13 ends on the 13th.
+  test("keys the night by the WIB evening it began, the date day.summary reads as last night", () => {
+    // 22:00 WIB Oct 12 to 06:30 WIB Oct 13 is the night of the 12th.
     const hours = sleepHoursByWibDay([
       { startMs: at("2026-10-12T15:00:00Z"), endMs: at("2026-10-12T23:30:00Z"), value: 1 },
     ]);
-    expect([...hours]).toEqual([["2026-10-13", 8.5]]);
+    expect([...hours]).toEqual([["2026-10-12", 8.5]]);
+  });
+
+  test("a night that starts after midnight still belongs to the evening before", () => {
+    // 01:30 to 08:00 WIB Oct 13.
+    const hours = sleepHoursByWibDay([
+      { startMs: at("2026-10-12T18:30:00Z"), endMs: at("2026-10-13T01:00:00Z"), value: 1 },
+    ]);
+    expect([...hours]).toEqual([["2026-10-12", 6.5]]);
+  });
+
+  test("an afternoon nap stays on its own day", () => {
+    // 13:00 to 14:00 WIB Oct 13.
+    const hours = sleepHoursByWibDay([
+      { startMs: at("2026-10-13T06:00:00Z"), endMs: at("2026-10-13T07:00:00Z"), value: 1 },
+    ]);
+    expect([...hours]).toEqual([["2026-10-13", 1]]);
   });
 
   test("in bed and awake samples never count", () => {
@@ -68,7 +84,7 @@ describe("sleepHoursByWibDay", () => {
       { startMs: at("2026-10-12T18:00:00Z"), endMs: at("2026-10-12T18:30:00Z"), value: 2 },
       { startMs: at("2026-10-12T18:30:00Z"), endMs: at("2026-10-12T23:30:00Z"), value: 5 },
     ]);
-    expect([...hours]).toEqual([["2026-10-13", 8]]);
+    expect([...hours]).toEqual([["2026-10-12", 8]]);
   });
 
   test("short stage samples survive inside a night, short standalone bouts do not", () => {
@@ -79,6 +95,6 @@ describe("sleepHoursByWibDay", () => {
       // 10 minute midday nap: standalone, dropped.
       { startMs: at("2026-10-12T06:00:00Z"), endMs: at("2026-10-12T06:10:00Z"), value: 1 },
     ]);
-    expect([...hours]).toEqual([["2026-10-13", 8.5]]);
+    expect([...hours]).toEqual([["2026-10-12", 8.5]]);
   });
 });

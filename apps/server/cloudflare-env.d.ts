@@ -1,5 +1,6 @@
 import type { ServerEnv } from "@joyorogo/infra/alchemy.run";
 import type { ImagesBinding, R2Bucket, SendEmail } from "@cloudflare/workers-types";
+import type { RateLimitBinding } from "@joyorogo/api/lib/group-preview";
 
 // This file infers types for the cloudflare:workers environment from your Alchemy Worker.
 // @see https://alchemy.run/cloudflare/compute/workers
@@ -16,6 +17,8 @@ declare module "cloudflare:workers" {
       DOWNLOADS: R2Bucket;
       STICKERS: R2Bucket;
       IMAGES: ImagesBinding;
+      // Per-IP budget for the public invite preview; unset = no limit.
+      INVITE_PREVIEW_LIMITER?: RateLimitBinding;
       // Optional Cloudflare Email Service binding; unset = email off.
       EMAIL?: SendEmail;
       // Wrangler-deployed vars/secrets (see .env.schema); unset = feature off.

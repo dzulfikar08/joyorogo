@@ -13,6 +13,7 @@ import { PublicFooter } from "@/components/public-footer";
 import { PublicHeader } from "@/components/public-header";
 import { EmptyHint, ScreenError } from "@/components/screen-state";
 import { useSession } from "@/lib/auth-client";
+import { shareUrl } from "@/lib/share-links";
 import type { PublicProfileData } from "@/lib/api-types";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
@@ -85,14 +86,14 @@ function FollowButton({ profile }: { profile: PublicProfileData }) {
   );
 }
 
-function CopyLinkButton() {
+function CopyLinkButton({ handle }: { handle: string }) {
   return (
     <Button
       size="sm"
       variant="secondary"
       aria-label="Salin tautan profil"
       onClick={() => {
-        void navigator.clipboard.writeText(window.location.href);
+        void navigator.clipboard.writeText(shareUrl(`/u/${handle}`, "profile"));
         toast.success("Tautan disalin.");
       }}
     >
@@ -153,7 +154,7 @@ function PublicProfilePage() {
             </div>
             {data.publicProfile && (
               <span className="flex shrink-0 gap-1.5">
-                <CopyLinkButton />
+                <CopyLinkButton handle={handle} />
                 {data.isFollowing !== null && <FollowButton profile={data} />}
               </span>
             )}

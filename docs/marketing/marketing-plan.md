@@ -537,6 +537,8 @@ Order is by value per effort.
 
 If any of these touches `/gabung` tracking, keep the invite code out of analytics: normalize the path to `/gabung` inside `limitRevklikToPublicPages` before sending.
 
+Status (15 Oct 2026): all five are in the code, not yet deployed. What changes how you measure: `/gabung` links now carry UTM (`utm_medium=invite`) but stay untracked, and the code is cut from every Revklik batch (`scrubInviteCodes`, `apps/web/src/lib/analytics.ts`), so invited joins still come from the database, not Revklik. Story, recap, profile-copy and invite shares carry `utm_source=app-share`, `utm_medium` of `meal`, `workout`, `progress`, `recap`, `invite` or `profile`, and `utm_campaign` of `share-web` or `share-android`/`share-ios`. The share-progress link on the Profil screen points at the API-rendered `/u/<kode>` page, which has no Revklik tag, so it has no UTM. Change 5 is the link only, as written: the guest scan already existed (`ANON_SCANS` lifetime scans per device cookie, nothing stored), and it is not limited per IP.
+
 ---
 
 ## 14. Open decisions for you

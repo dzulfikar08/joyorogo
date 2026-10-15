@@ -30,6 +30,7 @@ import type {
   RecordResult,
 } from "react-native-health-connect";
 
+import { sleepNightKey } from "@joyorogo/api/lib/healthkit";
 import { estimateKcal, metForStravaType } from "@joyorogo/api/lib/met";
 
 import { client } from "@/utils/orpc";
@@ -329,7 +330,8 @@ async function importDailyActivity(records: HealthSessionRecord[]): Promise<numb
 
 /**
  * SleepSession rows → sleepLog (source 'health_connect'), keyed by the WIB
- * day whose morning the sleep ended. The server refuses to overwrite manual
+ * evening the night began (sleepNightKey), the date day.summary and Tidur read
+ * as "last night". The server refuses to overwrite manual
  * rows, so user corrections always survive a resync.
  */
 async function importSleep(endTime: Date): Promise<number> {
@@ -340,7 +342,7 @@ async function importSleep(endTime: Date): Promise<number> {
   for (const record of records) {
     const hours = (Date.parse(record.endTime) - Date.parse(record.startTime)) / 3_600_000;
     if (hours < 0.25) continue;
-    const day = wibDateOf(record.endTime);
+    const day = sleepNightKey(Date.parse(record.endTime));
     hoursByDay.set(day, (hoursByDay.get(day) ?? 0) + hours);
   }
   let imported = 0;

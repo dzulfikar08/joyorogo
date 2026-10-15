@@ -26,6 +26,8 @@ import {
 } from "@/components/ui";
 import { Mascot } from "@/components/mascot";
 import { useSessionGate } from "@/lib/use-session-gate";
+import { authClient } from "@/lib/auth-client";
+import { InviteFriendsStep } from "@/components/onboarding/invite-step";
 import { errorMessage, fmtKcal, fmtKg, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
@@ -100,6 +102,8 @@ export default function Onboarding() {
   const queryClient = useQueryClient();
 
   const [saving, setSaving] = useState(false);
+  const [inviting, setInviting] = useState(false);
+  const { data: session } = authClient.useSession();
   const [savedTargets, setSavedTargets] = useState<Targets | null>(null);
   const [step, setStep] = useState(0);
   const [gender, setGender] = useState<Gender>("male");
@@ -207,6 +211,23 @@ export default function Onboarding() {
 
   const targets = savedTargets;
 
+  const firstName = session?.user.name?.trim().split(/\s+/)[0];
+
+  /** Beranda's cached "no profile yet" summary would redirect straight back
+   * here; drop it so whatever opens next loads the new plan. */
+  const openAfterOnboarding = (go: () => void) => {
+    queryClient.removeQueries({ queryKey: orpc.profile.key() });
+    queryClient.removeQueries({ queryKey: orpc.day.key() });
+    void queryClient.invalidateQueries();
+    go();
+  };
+
+  // Skippable Founder paywall; "Nanti saja" lands on Beranda.
+  const startApp = () =>
+    openAfterOnboarding(() =>
+      router.replace({ pathname: "/founder", params: { from: "onboarding" } }),
+    );
+
   const goBack = () => {
     setFormError(null);
     setStep((s) => Math.max(0, s - 1));
@@ -229,7 +250,13 @@ export default function Onboarding() {
         ))}
       </View>
 
-      {targets ? (
+      {targets && inviting ? (
+        <InviteFriendsStep
+          defaultName={firstName ? `Diet bareng ${firstName}`.slice(0, 40) : "Diet bareng"}
+          onSkip={startApp}
+          onOpenGroup={(groupId) => openAfterOnboarding(() => router.replace(`/grup/${groupId}`))}
+        />
+      ) : targets ? (
         <>
           <Mascot pose="cheer" size="md" style={styles.resultMascot} />
           <Text style={styles.stepTitle}>Rencana harianmu</Text>
@@ -264,17 +291,12 @@ export default function Onboarding() {
               Beratmu sudah di target. Rencana sekarang menjaga berat, bukan menurunkan.
             </Text>
           ) : null}
+          <Button label="Mulai di Beranda" onPress={startApp} />
           <Button
-            label="Mulai di Beranda"
-            onPress={() => {
-              // Beranda's cached "no profile yet" summary would redirect
-              // straight back here; drop it so Beranda loads the new plan.
-              queryClient.removeQueries({ queryKey: orpc.profile.key() });
-              queryClient.removeQueries({ queryKey: orpc.day.key() });
-              queryClient.invalidateQueries();
-              // Skippable Founder paywall; "Nanti saja" lands on Beranda.
-              router.replace({ pathname: "/founder", params: { from: "onboarding" } });
-            }}
+            variant="secondary"
+            icon="people-outline"
+            label="Ajak teman"
+            onPress={() => setInviting(true)}
           />
         </>
       ) : (

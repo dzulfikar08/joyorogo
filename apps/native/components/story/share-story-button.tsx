@@ -160,7 +160,7 @@ export function ShareStoryButton({
         setCaptureFailed(true);
         return;
       }
-      await shareStoryImage(fileUri, activeTemplate.id, instagramFbAppId());
+      await shareStoryImage(fileUri, activeTemplate.id, instagramFbAppId(), story);
       setOpen(false);
     } catch (error) {
       if (!isShareCancel(error)) {

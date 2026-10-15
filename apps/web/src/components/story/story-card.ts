@@ -1,6 +1,7 @@
 import { ON_TARGET_TOLERANCE, type RecapShare } from "@joyorogo/api/lib/recap";
 
 import { MACRO_META } from "@/lib/macro-icons";
+import { shareUrl } from "@/lib/share-links";
 import { photoUrl, stickerUrl } from "@/components/sticker";
 
 /**
@@ -1098,8 +1099,12 @@ export async function drawStoryCard(
   paintBrandTemplate(ctx, story, date, bitmap, source?.cutout ?? false);
 }
 
-/** Default share copy per card, matching the app's casual voice. */
+/** Default share copy per card, matching the app's casual voice, ending in a tracked link. */
 export function defaultShareText(story: StorySpec): string {
+  return `${shareBody(story)}\n${shareUrl("/", story.kind)}`;
+}
+
+function shareBody(story: StorySpec): string {
   if (story.kind === "meal") {
     return `${story.name}, ${idFmt.format(Math.round(story.kcal))} kcal. Tahu boleh makan apa hari ini? Cek JoyoRogo.`;
   }

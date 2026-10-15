@@ -294,6 +294,23 @@ HTML statis masing-masing (`harga.html`, dst.) beserta JSON-LD halaman utama.
 Gambar share `public/og.png` (1200×630) dibuat dari `apps/web/og/og-image.html`
 dengan `bun run og` di `apps/web` (butuh Chromium).
 
+Tautan `/gabung/<kode>`, `/p/<id>`, dan `/u/<handle>` punya pratinjau share
+sendiri (crawler pratinjau umumnya tidak menjalankan JavaScript). Worker web
+(`apps/web/worker`, `HTMLRewriter`) menulis judul, deskripsi, dan gambar ke
+HTML halaman itu dari `GET /og/*` di API (`apps/server/src/og.ts`). Hanya
+postingan publik dan profil publik yang tampil; yang privat atau tidak ada
+memakai tag umum. Hasilnya di-cache sekitar semenit. Hanya tiga rute itu yang
+melewati worker (`run_worker_first`); sisanya tetap dilayani langsung dari
+aset. `API_URL` dan `SITE_URL` ada di `apps/web/wrangler.jsonc`. Versi
+`apps/selfhost` belum memakai worker ini.
+
+Pratinjau undangan (`group.preview`) bisa dibuka sebelum masuk, jadi dibatasi
+60 permintaan per menit per IP lewat binding `INVITE_PREVIEW_LIMITER`
+(`ratelimits` di wrangler); tanpa binding itu tidak ada batas. Yang keluar
+hanya nama grup dan jumlah anggota. Tautan share dari aplikasi membawa
+`utm_source=app-share` lewat `shareUrl` (web dan native); `/gabung` tetap tidak
+dilacak Revklik dan kodenya dipotong dari data analitik.
+
 ## Lisensi
 
 [AGPL-3.0](LICENSE). Kalau kamu menjalankan versi yang diubah sebagai layanan

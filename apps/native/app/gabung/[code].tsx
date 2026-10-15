@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Redirect, router, Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -15,8 +15,9 @@ import { orpc, queryClient } from "@/utils/orpc";
 
 /**
  * Invite landing (https://joyorogo.com/gabung/<CODE> and joyorogo://gabung/<CODE>):
- * preview the group, then join. Signed-out visitors pass through login and
- * come back here via the `next` param.
+ * preview the group, then join. The preview works before sign-in, so a
+ * signed-out visitor sees which group invited them; joining sends them
+ * through login and back here via the `next` param.
  */
 export default function GabungInvite() {
   const { theme } = useUnistyles();
@@ -27,7 +28,7 @@ export default function GabungInvite() {
 
   const preview = useQuery({
     ...orpc.group.preview.queryOptions({ input: { code } }),
-    enabled: gate === "authed" && code !== "",
+    enabled: gate !== "loading" && code !== "",
     retry: false,
   });
 
@@ -44,9 +45,7 @@ export default function GabungInvite() {
   if (gate === "loading") {
     return <Skeleton width="100%" height={280} radius={24} />;
   }
-  if (gate === "anon") {
-    return <Redirect href={{ pathname: "/login", params: { next: `/gabung/${code}` } }} />;
-  }
+  const signIn = () => router.replace({ pathname: "/login", params: { next: `/gabung/${code}` } });
 
   const close = () => {
     if (router.canGoBack()) router.back();
@@ -93,9 +92,15 @@ export default function GabungInvite() {
               {preview.data.alreadyMember ? " • kamu sudah di dalam" : ""}
             </Text>
             <Button
-              label={preview.data.alreadyMember ? "Buka Grup" : "Gabung Grup"}
+              label={
+                gate === "anon"
+                  ? "Masuk untuk gabung"
+                  : preview.data.alreadyMember
+                    ? "Buka Grup"
+                    : "Gabung Grup"
+              }
               loading={join.isPending}
-              onPress={() => join.mutate({ code })}
+              onPress={() => (gate === "anon" ? signIn() : join.mutate({ code }))}
               style={styles.action}
             />
             <Button variant="ghost" label="Nanti dulu" onPress={close} style={styles.action} />

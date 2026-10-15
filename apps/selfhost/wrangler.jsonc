@@ -42,6 +42,14 @@
   ],
   "ai": { "binding": "AI" },
   "images": { "binding": "IMAGES" },
+  // The invite preview works before sign-in, so it gets a per-IP budget.
+  "ratelimits": [
+    {
+      "name": "INVITE_PREVIEW_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 60, "period": 60 },
+    },
+  ],
   "r2_buckets": [{ "binding": "STICKERS", "bucket_name": "joyorogo-stickers" }],
   "vars": {
     // Your public origin, e.g. https://joyorogo.example.com (CloudAgni fills both).

@@ -215,7 +215,7 @@ async function importDailyActivity(
 
 /**
  * sleepAnalysis samples → sleepLog (source 'apple_health'), unioned across
- * overlapping sources and keyed by the WIB day whose morning the sleep ended.
+ * overlapping sources and keyed by the WIB evening the night began (sleepNightKey).
  * The server refuses to overwrite manual rows, so user corrections always
  * survive a resync.
  */

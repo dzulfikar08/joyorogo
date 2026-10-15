@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, isRedirect, redirect, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, CalendarDays, CircleAlert } from "lucide-react";
+import { ArrowLeft, CalendarDays, CircleAlert, Users } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
@@ -23,6 +23,8 @@ import { Page } from "@/components/kit/surface";
 import { PlanNumbers, TargetNotesList } from "@/components/plan-numbers";
 import { trackConversion } from "@/lib/analytics";
 import { fmtDateIndo, fmtInt, fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
+import { InviteFriendsStep } from "@/components/onboarding/invite-step";
+import { useSession } from "@/lib/auth-client";
 import { orpc } from "@/utils/orpc";
 
 const profileOptions = orpc.profile.myProfile.queryOptions();
@@ -140,6 +142,8 @@ function OnboardingPage() {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [done, setDone] = useState(false);
+  const [inviting, setInviting] = useState(false);
+  const session = useSession();
   const [form, setForm] = useState<FormState>({
     birthYear: "1995",
     gender: "",
@@ -260,6 +264,20 @@ function OnboardingPage() {
     setStep(step - 1);
   };
 
+  const openApp = () =>
+    navigate({ to: "/founder", search: { from: "onboarding", next: "/beranda" } });
+
+  if (done && save.data?.targets && inviting) {
+    const firstName = session.data?.user.name?.trim().split(/\s+/)[0];
+    return (
+      <InviteFriendsStep
+        defaultName={firstName ? `Diet bareng ${firstName}`.slice(0, 40) : "Diet bareng"}
+        onSkip={openApp}
+        onOpenGroup={(groupId) => navigate({ to: "/grup/$groupId", params: { groupId } })}
+      />
+    );
+  }
+
   if (done && save.data?.targets) {
     return (
       <Page className="max-w-xl">
@@ -278,13 +296,12 @@ function OnboardingPage() {
             <TargetNotesList notes={save.data.targets.notes} />
           </div>
         )}
-        <Button
-          className="mt-6 w-full"
-          onClick={() =>
-            navigate({ to: "/founder", search: { from: "onboarding", next: "/beranda" } })
-          }
-        >
+        <Button className="mt-6 w-full" onClick={openApp}>
           Buka Beranda
+        </Button>
+        <Button variant="secondary" className="mt-2 w-full" onClick={() => setInviting(true)}>
+          <Users aria-hidden />
+          Ajak teman
         </Button>
       </Page>
     );

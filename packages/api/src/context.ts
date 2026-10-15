@@ -1,5 +1,6 @@
 import type { AuthSession } from "@joyorogo/auth";
 import type { Database } from "@joyorogo/db";
+import type { RateLimitBinding } from "./lib/group-preview";
 import type { ImagesBinding, StickersBucket } from "./lib/sticker";
 import type { PaywallEnv } from "./lib/tiers";
 
@@ -22,6 +23,8 @@ export type ApiEnv = PaywallEnv & {
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
   VAPID_SUBJECT?: string;
+  /** Workers Rate Limiting binding for the public invite preview; unset = no limit. */
+  INVITE_PREVIEW_LIMITER?: RateLimitBinding;
 };
 
 export type Context = {
@@ -29,6 +32,8 @@ export type Context = {
   session: AuthSession;
   db: Database;
   env: ApiEnv;
+  /** Caller IP (CF-Connecting-IP) for per-client limits; null when unknown. */
+  clientIp: string | null;
   /** Keeps background work (sticker cutouts) alive after the response. */
   waitUntil: (promise: Promise<unknown>) => void;
 };

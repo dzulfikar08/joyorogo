@@ -25,6 +25,7 @@ import { useAppConfig } from "@/components/billing";
 import { FoodSticker, StickerViewer, stickerUrl } from "@/components/sticker";
 import type { StickerViewerTarget } from "@/components/sticker";
 import { ShareStoryButton } from "@/components/story/share-story-button";
+import { shareUrl } from "@/src/lib/share-links";
 
 import {
   Avatar,
@@ -257,7 +258,7 @@ export default function Dashboard() {
       `Streak: ${data.streakDays} hari`,
       `Rata-rata makan: ${fmtKcal(Math.round(data.weekEatenKcal / 7))} kkal/hari`,
       `Tren berat: ${pts.map((t) => t.weightKg.toFixed(1) + "kg").join(" → ")}`,
-      "Dibuat dengan JoyoRogo",
+      `Dibuat dengan JoyoRogo: ${shareUrl("/", "recap")}`,
     ].join("\n");
     Share.share({ message: txt }).catch(() => {
       // User dismissed the share sheet; nothing to surface.

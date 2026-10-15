@@ -21,7 +21,7 @@ import {
 import { pushSubscription } from "@joyorogo/db/schema/plans";
 import { team, teamMember, teamNudge } from "@joyorogo/db/schema/social";
 
-import { protectedProcedure } from "../index";
+import { protectedProcedure, publicProcedure } from "../index";
 import {
   computeBurn,
   jakartaToday,
@@ -34,6 +34,7 @@ import {
   rateLimited,
   varVerdict,
 } from "../lib/group";
+import { loadPublicGroupPreview, previewAllowed } from "../lib/group-preview";
 import { requireAiQuota } from "../lib/quota";
 import { buildPlan } from "../lib/plan";
 import { dateSchema } from "../lib/schemas";
@@ -159,22 +160,28 @@ export const groupRouter = {
       return row;
     }),
 
-  preview: protectedProcedure
+  /**
+   * Invite preview. Public on purpose (a friend taps the link before they have
+   * an account) and therefore rate limited per client; only name and member
+   * count are exposed, see loadPublicGroupPreview.
+   */
+  preview: publicProcedure
     .input(z.object({ code: z.string().min(4).max(20) }))
     .handler(async ({ context, input }) => {
-      const code = normalizeInviteCode(input.code);
-      const [row] = await context.db
-        .select({ id: team.id, name: team.name })
-        .from(team)
-        .where(eq(team.inviteCode, code))
-        .limit(1);
-      if (!row) throw new ORPCError("NOT_FOUND", { message: "Kode undangan tidak valid." });
-      const [members] = await context.db
-        .select({ total: count() })
-        .from(teamMember)
-        .where(eq(teamMember.teamId, row.id));
-      const existing = await memberRow(context.db, row.id, context.session.user.id);
-      return { name: row.name, memberCount: members?.total ?? 0, alreadyMember: existing !== null };
+      if (!(await previewAllowed(context.env.INVITE_PREVIEW_LIMITER, context.clientIp))) {
+        throw new ORPCError("TOO_MANY_REQUESTS", {
+          message: "Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.",
+        });
+      }
+      const found = await loadPublicGroupPreview(context.db, input.code);
+      if (!found) throw new ORPCError("NOT_FOUND", { message: "Kode undangan tidak valid." });
+      const viewerId = context.session?.user.id;
+      const existing = viewerId ? await memberRow(context.db, found.id, viewerId) : null;
+      return {
+        name: found.name,
+        memberCount: found.memberCount,
+        alreadyMember: existing !== null,
+      };
     }),
 
   join: protectedProcedure

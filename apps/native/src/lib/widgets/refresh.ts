@@ -45,19 +45,21 @@ export async function refreshSnapshotFromApi(
   try {
     const [summary, inboxItems, fast] = await Promise.all([
       withTimeout(client.day.summary({})),
-      withTimeout(client.group.inbox({ limit: 3 })),
+      withTimeout(client.group.inbox({ limit: 50 })),
       withTimeout(client.fasting.today({})),
     ]);
 
-    const items = inboxItems.map((item) => ({
-      id: item.id,
-      kind: item.kind,
-      senderName: item.senderName,
-      message: item.message,
-      groupName: item.groupName,
-      createdAt: item.createdAt,
-      readAt: item.readAt,
-    }));
+    const unreadItems = inboxItems
+      .filter((item) => item.readAt === null)
+      .map((item) => ({
+        id: item.id,
+        kind: item.kind,
+        senderName: item.senderName,
+        message: item.message,
+        groupName: item.groupName,
+        createdAt: item.createdAt,
+        readAt: item.readAt,
+      }));
     const day =
       summary.hasProfile && summary.targets
         ? {
@@ -86,8 +88,8 @@ export async function refreshSnapshotFromApi(
       day,
       fasting,
       inbox: {
-        unread: items.filter((item) => item.readAt === null).length,
-        items,
+        unread: unreadItems.length,
+        items: unreadItems.slice(0, 3),
       },
     });
   } catch (error) {

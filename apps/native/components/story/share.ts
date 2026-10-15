@@ -3,7 +3,8 @@ import Share, { Social } from "react-native-share";
 // Must stay named `ENV`: varlock's babel plugin only inlines `ENV.X` reads;
 // anything else hits the runtime proxy, which throws in release builds.
 import { ENV } from "../../src/env";
-import type { StoryTemplate } from "./story-card";
+import { shareUrl } from "../../src/lib/share-links";
+import type { StorySpec, StoryTemplate } from "./story-card";
 
 /**
  * Single place that knows how Instagram Stories direct sharing works. The
@@ -29,6 +30,32 @@ export function isShareCancel(error: unknown): boolean {
   return /cancel|User did not share|does not respond/i.test(message);
 }
 
+const idFmt = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
+
+/**
+ * Caption that travels with the story PNG: casual copy per card kind plus a
+ * tracked link back to the site. Mirror of defaultShareText on web.
+ */
+export function storyShareText(story: StorySpec): string {
+  return `${storyShareBody(story)}\n${shareUrl("/", story.kind)}`;
+}
+
+function storyShareBody(story: StorySpec): string {
+  if (story.kind === "meal") {
+    return `${story.name}, ${idFmt.format(Math.round(story.kcal))} kcal. Tahu boleh makan apa hari ini? Cek JoyoRogo.`;
+  }
+  if (story.kind === "workout") {
+    return `Baru selesai latihan: ${story.name}. Catat latihanmu di JoyoRogo.`;
+  }
+  if (story.kind === "recap") {
+    return `Rekapku ${story.name}: ${story.daysOnTarget} dari ${story.loggedDays} hari sesuai target, rata-rata ${idFmt.format(story.avgKcal)} kcal per hari. Catat makanmu di JoyoRogo.`;
+  }
+  const lost = story.weightLostKg ?? 0;
+  return lost > 0
+    ? `Sudah turun ${idFmt.format(lost)} kg. Turun berat pakai 3 angka aja di JoyoRogo.`
+    : "Turun berat pakai 3 angka aja: makan, bakar, tidur. JoyoRogo.";
+}
+
 /**
  * Shares a captured story PNG (file:// URI from view-shot). With a Facebook
  * App ID configured it opens Instagram's story composer directly; the
@@ -39,6 +66,7 @@ export async function shareStoryImage(
   fileUri: string,
   template: StoryTemplate,
   appId: string | null,
+  story: StorySpec,
 ): Promise<void> {
   if (appId) {
     await Share.shareSingle({
@@ -48,5 +76,12 @@ export async function shareStoryImage(
     });
     return;
   }
-  await Share.open({ url: fileUri, type: "image/png", failOnCancel: false });
+  // Instagram's composer takes no text; the system sheet carries the caption
+  // (WhatsApp and most chat apps show it under the image).
+  await Share.open({
+    url: fileUri,
+    type: "image/png",
+    message: storyShareText(story),
+    failOnCancel: false,
+  });
 }

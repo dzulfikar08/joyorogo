@@ -32,6 +32,17 @@ const TRACKED_PATHS = /^\/(?:$|harga|login|pembayaran|privasi|blog|u\/|p\/)/;
 
 type TrackItem = { t?: string; p?: string };
 
+// /gabung/<kode> is a capability link: whoever holds the code can join the
+// group. /gabung pageviews are already dropped above; this also covers the
+// pieces that survive (conversions fired on that page, /login?redirect=… and
+// referrers that carry it, plain or URL-encoded) by cutting the code out of
+// anything that leaves the page.
+const INVITE_PATH = /(\/|%2F)gabung(?:\/|%2F)[A-Za-z0-9]+/gi;
+
+export function scrubInviteCodes(json: string): string {
+  return json.replace(INVITE_PATH, "$1gabung");
+}
+
 /**
  * The Revklik tag has no route exclusion, so filter its batches at the one
  * place they leave the page: its fetch to `/api/track`. Install before the
@@ -54,6 +65,6 @@ export function limitRevklikToPublicPages() {
     if (kept.length === 0) {
       return Promise.resolve(new Response("{}", { headers: { "Content-Type": "application/json" } }));
     }
-    return original(input, { ...init, body: JSON.stringify(kept) });
+    return original(input, { ...init, body: scrubInviteCodes(JSON.stringify(kept)) });
   };
 }
