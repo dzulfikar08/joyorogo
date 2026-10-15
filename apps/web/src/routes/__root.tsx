@@ -3,9 +3,12 @@ import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { HeadContent, Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { useEffect } from "react";
 
 import { IosInstallHost } from "@/components/ios-install";
 import { ThemeProvider } from "@/components/theme-provider";
+import { reportSignIn, signInPending } from "@/lib/analytics";
+import { useSession } from "@/lib/auth-client";
 import type { orpc } from "@/utils/orpc";
 
 import "../index.css";
@@ -22,6 +25,15 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   head: () => ({ meta: [{ title: "JoyoRogo" }] }),
 });
 
+/** Mounted only while a Google sign-in is pending; reports it once the session exists. */
+function SignInReporter() {
+  const session = useSession();
+  useEffect(() => {
+    if (session.data) reportSignIn();
+  }, [session.data]);
+  return null;
+}
+
 // Each layout owns its chrome: the signed-in shell (_auth) has the tab bar
 // and desktop top bar; public pages render their own slim header.
 function RootComponent() {
@@ -30,6 +42,7 @@ function RootComponent() {
       <HeadContent />
       <ThemeProvider>
         <Outlet />
+        {signInPending() && <SignInReporter />}
         <IosInstallHost />
         <Toaster position="top-center" />
       </ThemeProvider>

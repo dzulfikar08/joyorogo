@@ -8,7 +8,7 @@ import { Button } from "@joyorogo/ui/components/button";
 
 import { useCheckoutPicker } from "@/components/checkout-picker";
 import { PublicHeader } from "@/components/public-header";
-import { trackConversion } from "@/lib/analytics";
+import { fromProps, trackConversion } from "@/lib/analytics";
 import { checkOrder, fetchOrder, fmtFounderDate } from "@/lib/billing";
 import { pageHead } from "@/lib/seo";
 import { orpc } from "@/utils/orpc";
@@ -65,7 +65,7 @@ function PembayaranPage() {
     const key = `jrg-kp-paid-${order}`;
     if (localStorage.getItem(key)) return;
     localStorage.setItem(key, "1");
-    trackConversion("founder_purchase", amountIdr, { order });
+    trackConversion("founder_purchase", amountIdr, { order, ...fromProps() });
   }, [paid, order, amountIdr, queryClient]);
 
   let body: React.ReactNode;

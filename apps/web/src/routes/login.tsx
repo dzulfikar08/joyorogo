@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, isRedirect, Link, redirect } from "@tanstack/react-router";
 import { Users } from "lucide-react";
 import { Mascot } from "@/components/mascot";
+import { markSignInStart } from "@/lib/analytics";
 import { authClient, sessionQuery } from "@/lib/auth-client";
 import { pageHead } from "@/lib/seo";
 import { orpc } from "@/utils/orpc";
@@ -46,6 +47,7 @@ function RouteComponent() {
   const webOrigin = window.location.origin;
 
   const signInGoogle = () => {
+    markSignInStart();
     authClient.signIn.social({
       provider: "google",
       callbackURL: `${webOrigin}${returnTo ?? "/beranda"}`,
