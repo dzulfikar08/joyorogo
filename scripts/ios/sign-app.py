@@ -14,6 +14,7 @@ import os
 import plistlib
 import subprocess
 import sys
+import urllib.parse
 from pathlib import Path
 
 app = Path(sys.argv[1])
@@ -27,6 +28,12 @@ with open(app / "Info.plist", "rb") as f:
 entitlements_src = Path(os.environ["APP_ENTITLEMENTS"])
 
 cert_id, key_path, cert_path = asc.certificate()
+# Enabling a capability invalidates the profile; asc.profile only looks for ACTIVE ones and
+# then fails creating a same-name profile, so drop the invalidated one first.
+name = f"omarchy-apple-dev {bundle_id} {cert_id[:8]}"
+for stale in asc.call("GET", f"/v1/profiles?filter[name]={urllib.parse.quote(name)}")["data"]:
+    if stale["attributes"]["profileState"] != "ACTIVE":
+        asc.call("DELETE", f"/v1/profiles/{stale['id']}")
 profile = asc.profile(bundle_id, cert_id)
 (app / "embedded.mobileprovision").write_bytes(profile)
 granted = asc.profile_payload(profile)["Entitlements"]
