@@ -144,7 +144,7 @@ export default function RootLayout() {
             />
             <Stack.Screen
               name="founder"
-              options={{ title: "Founder", presentation: "modal", headerShown: false }}
+              options={{ title: "Pro", presentation: "modal", headerShown: false }}
             />
             <Stack.Screen name="inbox" options={{ title: "Kotak Masuk" }} />
             <Stack.Screen name="tips/[slug]" options={{ title: "Tips" }} />

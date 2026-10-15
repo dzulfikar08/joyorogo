@@ -97,7 +97,7 @@ export default function Lainnya() {
             icon="star"
             iconTint="tidur"
             title="Harga"
-            subtitle="Jadi Founder, buka semua fitur"
+            subtitle="Jadi Pro, buka semua fitur"
             chevron
             onPress={() =>
               router.push({ pathname: "/founder", params: { from: "profile" } })

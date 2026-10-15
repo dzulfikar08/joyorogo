@@ -301,14 +301,14 @@ export default function Dashboard() {
       {/* Monday only: recap of the week that just ended */}
       {isToday ? <RecapCard /> : null}
 
-      {/* Founder banner: kuota gratis vs Founder, ketuk Upgrade → paywall */}
+      {/* Pro banner: kuota gratis vs Pro, ketuk Upgrade → paywall */}
       {showFounderBanner && configData ? (
         <Card style={styles.founderBanner}>
           <Text style={styles.founderBannerText} numberOfLines={1}>
             Scan AI {configData.freeDailyScans}x/hari ·{" "}
             {configData.founderDailyCap === null
-              ? "Founder tanpa batas"
-              : `Founder ${configData.founderDailyCap}/hari`}
+              ? "Pro tanpa batas"
+              : `Pro ${configData.founderDailyCap}/hari`}
           </Text>
           <Button
             size="sm"

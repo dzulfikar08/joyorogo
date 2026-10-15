@@ -386,7 +386,7 @@ export default function Profil() {
           <Text style={styles.accountEmail}>{session.data?.user.email ?? "-"}</Text>
           {profileQuery.data?.tier === "founder" ? (
             <View style={styles.founderBadge}>
-              <Text style={styles.founderText}>Founder</Text>
+              <Text style={styles.founderText}>Pro</Text>
             </View>
           ) : config.data?.paywall ? (
             <View style={styles.freeBadge}>
@@ -423,7 +423,7 @@ export default function Profil() {
         ) : null}
       </View>
 
-      {/* Kuota scan gratis + langganan Founder (web profil banners) */}
+      {/* Kuota scan gratis + langganan Pro (web profil banners) */}
       <FounderCards
         tier={profileQuery.data?.tier ?? "free"}
         founderUntil={profileQuery.data?.founderUntil ?? null}

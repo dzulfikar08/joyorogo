@@ -333,7 +333,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
           : await createCheckout(doku as DokuConfig, {
               orderId,
               amountIdr,
-              itemName: plan === "yearly" ? "JoyoRogo Founder 1 tahun" : "JoyoRogo Founder 1 bulan",
+              itemName: plan === "yearly" ? "JoyoRogo Pro 1 tahun" : "JoyoRogo Pro 1 bulan",
               customerEmail: me.email,
               customerName: me.name,
               notifyUrl: `${apiUrl}${DOKU_WEBHOOK_PATH}`,

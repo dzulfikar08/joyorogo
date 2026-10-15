@@ -12,7 +12,7 @@ Users buy **JoyoRogo Pro** inside the Play build as a Play subscription. It gran
 | --- | --- |
 | Play product | subscription `pro`, base plans `monthly` and `yearly` (IDR). Prices live in Play Console only; the app shows the localized price Play returns and hardcodes nothing. |
 | Client library | `expo-iap` 6.0.2 (Play Billing Library through OpenIAP). Android only: `apps/native/package.json` has `expo.autolinking.apple.exclude: ["expo-iap"]`, so iOS builds keep using the local StoreKit module `modules/apple-iap` and never link it. The sideload APK links it but never calls it. |
-| Client code | `apps/native/src/lib/play-billing.ts` (products, purchase sheet, owned purchases), hooks in `apps/native/components/billing.tsx` (`usePlayPurchase`, `usePlayRestore`, `usePlayReplay`, `usePlayPrices`), paywall in `apps/native/app/founder.tsx`, cards in Profil. Only runs when `IS_PLAY_BUILD` on Android. |
+| Client code | `apps/native/src/lib/play-billing.ts` (products, purchase sheet, owned purchases), hooks in `apps/native/components/billing.tsx` (`usePlayPurchase`, `usePlayRestore`, `usePlayReplay`, `usePlayPrices`), paywall in `apps/native/app/founder.tsx` (route `/founder`, screen title "Pro"), cards in Profil. Only runs when `IS_PLAY_BUILD` on Android. |
 | Server routes | `apps/server/src/google-billing.ts`: `POST /api/billing/google` (client submits a purchase token) and `POST /api/billing/google/rtdn` (Pub/Sub push). |
 | Server logic | `packages/api/src/lib/google-play.ts` (service-account OAuth, Android Publisher calls, Pub/Sub JWT check) and `google-play-billing.ts` (verify, credit, link, refund). Tests next to them. |
 | Database | `google_purchase` (purchase token -> user link), migration `0030_google_play_billing`. Credits are `payment` rows with order id `google:<Play order id>`. |
@@ -41,7 +41,7 @@ Pub/Sub pushes to `POST /api/billing/google/rtdn`. The payload is never trusted 
 - Cancellation, on hold, expiry: nothing to do. The paid period was credited up front, so the account keeps Pro until it ends. An on-hold or expired subscription simply stops renewing credits.
 - Tokens that are not linked yet (the notification beat the app's own verify call) are ignored; the app's call credits them.
 - Anything unparsable, from another package, or a test ping answers 204. A Google or database failure answers 500 so Pub/Sub redelivers.
-- Auto-renewing Play subscribers are excluded from the "Founder ends soon" reminder emails while Play reports the subscription `active` or in grace.
+- Auto-renewing Play subscribers are excluded from the "Pro ends soon" reminder emails while Play reports the subscription `active` or in grace.
 
 Authentication: either a Google-signed Pub/Sub push JWT (`GOOGLE_PLAY_RTDN_PUSH_EMAIL`, audience = the endpoint URL) or a shared token in the URL (`GOOGLE_PLAY_RTDN_TOKEN`, `?token=`). With neither set, the endpoint answers 401.
 
@@ -171,6 +171,6 @@ Play Console -> **Settings -> License testing** (all-apps settings, left menu) -
 - No link or button to the web checkout exists in the Play build; the DOKU/Pakasir options, promo card and "Cek pembayaran" are hidden when `IS_PLAY_BUILD`. Pro bought on the web or App Store still unlocks the Play app because the paid period is per account.
 - The paywall screen discloses price, billing period, auto-renewal and where to cancel, as Play requires for subscriptions.
 - Deleting a JoyoRogo account does not cancel the Play subscription; Play keeps billing until the user cancels in Play Store -> Subscriptions. [INFERENCE] worth a line in the privacy policy / account deletion screen.
-- Founder periods credited from Play stack on web and App Store periods. A buyer who has web time left and then buys on Play pays Play and gets the months on top.
+- Pro periods credited from Play stack on web and App Store periods. A buyer who has web time left and then buys on Play pays Play and gets the months on top.
 - Grace period and account hold: the server grants only for charged orders. A renewal that fails goes to grace, then hold, and no further months are credited until Play charges it successfully.
 - If you change a base plan price in Play Console, existing subscribers keep their old recurring price until they accept the change; the ledger records the price Play reports per subscriber (`autoRenewingPlan.recurringPrice`, IDR), falling back to the configured plan price for non-IDR billing.

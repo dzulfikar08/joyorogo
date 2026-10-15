@@ -211,7 +211,7 @@ export function useCheckoutPicker(plan: CheckoutPlan = "monthly") {
 
   const sheet = (
     <Sheet visible={open} onClose={() => setOpen(false)} title="Pilih cara bayar">
-      <Text style={styles.methodHint}>Founder aktif otomatis setelah pembayaran masuk.</Text>
+      <Text style={styles.methodHint}>Pro aktif otomatis setelah pembayaran masuk.</Text>
       {methods.map((method) => {
         const { icon, label, note } = METHOD_OPTIONS[method];
         return (
@@ -283,8 +283,8 @@ export function FounderPromoCard() {
   return (
     <Card style={styles.promoCard}>
       <Text style={styles.promoText}>
-        Harga perkenalan Rp{config.data.founderPriceIdr.toLocaleString("id-ID")}
-        /bulan cuma untuk {promo.slots} Founder pertama — sisa {left} slot
+        Harga Founder (terbatas) Rp{config.data.founderPriceIdr.toLocaleString("id-ID")}
+        /bulan untuk {promo.slots} pembeli pertama, sisa {left} slot
         {nextPriceIdr !== null ? `. Setelah itu Rp${nextPriceIdr.toLocaleString("id-ID")}` : ""}.
       </Text>
       <View style={styles.promoTrack}>
@@ -296,7 +296,7 @@ export function FounderPromoCard() {
         />
       </View>
       <Text style={styles.promoNote}>
-        Harga terkunci: Founder awal tetap bayar harga ini saat perpanjang.
+        Harga terkunci: pembeli promo Founder tetap bayar harga ini saat perpanjang.
       </Text>
     </Card>
   );
@@ -577,7 +577,7 @@ export function FounderCards({
       const order = await checkOrderPaid(pendingOrder);
       if (order.status === "paid") {
         queryClient.invalidateQueries();
-        toast.success("Pembayaran diterima", "Founder aktif. Terima kasih!");
+        toast.success("Pembayaran diterima", "Pro aktif. Terima kasih!");
       } else {
         toast.info("Belum ada pembayaran masuk", "Coba lagi sebentar.");
       }
@@ -642,8 +642,8 @@ export function FounderCards({
               </Text>
               <Text style={styles.cardNote}>
                 {config.data.founderDailyCap === null
-                  ? "Founder buka scan tanpa batas."
-                  : `Founder: ${config.data.founderDailyCap} scan AI per hari.`}
+                  ? "Pro buka scan tanpa batas."
+                  : `Pro: ${config.data.founderDailyCap} scan AI per hari.`}
               </Text>
               {ios && price.data?.displayPrice ? (
                 <Text style={styles.cardNote}>{price.data.displayPrice} lewat App Store.</Text>
@@ -685,7 +685,7 @@ export function FounderCards({
       {tier === "founder" && founderUntil ? (
         <Card style={styles.founderCard}>
           <View style={styles.cardText}>
-            <Text style={styles.founderTitle}>Founder aktif</Text>
+            <Text style={styles.founderTitle}>Pro aktif</Text>
             <Text style={styles.cardNote}>
               Sampai {fmtFounderDate(founderUntil)}.{" "}
               {PLAY_ACTIVE

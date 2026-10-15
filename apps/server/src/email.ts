@@ -113,21 +113,21 @@ function receiptDraft(info: ReceiptInfo): Draft {
       ? "scan AI tanpa batas harian"
       : `hingga ${info.founderDailyCap} scan AI per hari`;
   const html = shell(
-    "Terima kasih sudah jadi Founder!",
-    p(`Halo ${info.name}, pembayaran <b>${formatIdr(info.amountIdr)}</b> untuk langganan Founder <b>${planLabel}</b> sudah kami terima.`) +
-      p(`Status Founder kamu aktif sampai <b>${formatWibDate(info.founderUntil)}</b> (WIB).`) +
-      p(`Selama jadi Founder kamu bisa scan makanan ${cap}.`) +
+    "Terima kasih sudah jadi Pro!",
+    p(`Halo ${info.name}, pembayaran <b>${formatIdr(info.amountIdr)}</b> untuk langganan Pro <b>${planLabel}</b> sudah kami terima.`) +
+      p(`Status Pro kamu aktif sampai <b>${formatWibDate(info.founderUntil)}</b> (WIB).`) +
+      p(`Selama jadi Pro kamu bisa scan makanan ${cap}.`) +
       button("https://joyorogo.com/beranda", "Mulai scan"),
   );
   const text = [
-    `Halo ${info.name}, terima kasih! Pembayaran ${formatIdr(info.amountIdr)} untuk langganan Founder ${planLabel} sudah kami terima.`,
-    `Status Founder kamu aktif sampai ${formatWibDate(info.founderUntil)} (WIB).`,
+    `Halo ${info.name}, terima kasih! Pembayaran ${formatIdr(info.amountIdr)} untuk langganan Pro ${planLabel} sudah kami terima.`,
+    `Status Pro kamu aktif sampai ${formatWibDate(info.founderUntil)} (WIB).`,
     info.founderDailyCap === null
-      ? "Selama jadi Founder kamu bisa scan makanan tanpa batas harian."
-      : `Selama jadi Founder kamu bisa scan makanan hingga ${info.founderDailyCap} scan AI per hari.`,
+      ? "Selama jadi Pro kamu bisa scan makanan tanpa batas harian."
+      : `Selama jadi Pro kamu bisa scan makanan hingga ${info.founderDailyCap} scan AI per hari.`,
     "Buka https://joyorogo.com/beranda untuk mulai scan.",
   ].join("\n\n");
-  return { to: "", subject: "Pembayaran Founder JoyoRogo diterima", html, text };
+  return { to: "", subject: "Pembayaran Pro JoyoRogo diterima", html, text };
 }
 
 type PaidOrderInfo = {
@@ -145,13 +145,13 @@ function adminDraft(info: PaidOrderInfo): Draft {
   const rows: [string, string][] = [
     ["Pembeli", `${info.name} (${info.email})`],
     ["Jumlah", formatIdr(info.amountIdr)],
-    ["Paket", `Founder ${planLabel}`],
+    ["Paket", `Pro ${planLabel}`],
     ["Gateway", info.gateway],
     ["Order", info.orderId],
-    ["Founder sampai", info.founderUntil ? formatWibDate(info.founderUntil) : "-"],
+    ["Pro sampai", info.founderUntil ? formatWibDate(info.founderUntil) : "-"],
   ];
   const html = shell(
-    "Pembayaran Founder masuk",
+    "Pembayaran Pro masuk",
     `<table style="width:100%;border-collapse:collapse;font-size:14px;">${rows
       .map(
         ([k, v]) =>
@@ -161,11 +161,11 @@ function adminDraft(info: PaidOrderInfo): Draft {
       button("https://admin.joyorogo.com/#orders", "Lihat pesanan"),
   );
   const text = [
-    "Pembayaran Founder masuk:",
+    "Pembayaran Pro masuk:",
     ...rows.map(([k, v]) => `${k}: ${v}`),
     "https://admin.joyorogo.com/#orders",
   ].join("\n");
-  return { to: "", subject: `Founder baru: ${formatIdr(info.amountIdr)} — ${info.name}`, html, text };
+  return { to: "", subject: `Pro baru: ${formatIdr(info.amountIdr)} — ${info.name}`, html, text };
 }
 
 /**
@@ -237,38 +237,38 @@ async function lockedMonthlyIdr(db: Database, userId: string): Promise<number | 
 function endingDraft(name: string, until: Date, locked: number | null): Draft {
   const price = locked === null ? "" : ` Harga terkunci kamu masih ${formatIdr(Math.round(locked))}/bulan.`;
   const html = shell(
-    `Founder kamu berakhir ${formatWibDate(until)}`,
-    p(`Halo ${name}, masa Founder kamu akan berakhir pada <b>${formatWibDate(until)}</b> (WIB).`) +
+    `Pro kamu berakhir ${formatWibDate(until)}`,
+    p(`Halo ${name}, masa Pro kamu akan berakhir pada <b>${formatWibDate(until)}</b> (WIB).`) +
       p(`Perpanjang sekarang biar scan gizi harianmu tidak berhenti.${price}`) +
       button(
-        "https://joyorogo.com/founder?from=profile&next=/profil",
-        "Perpanjang Founder",
+        "https://joyorogo.com/pro?from=profile&next=/profil",
+        "Perpanjang Pro",
       ),
   );
   const text = [
-    `Halo ${name}, masa Founder kamu berakhir ${formatWibDate(until)} (WIB).`,
+    `Halo ${name}, masa Pro kamu berakhir ${formatWibDate(until)} (WIB).`,
     `Perpanjang sekarang biar scan gizi harianmu tidak berhenti.${price}`,
-    "https://joyorogo.com/founder?from=profile&next=/profil",
+    "https://joyorogo.com/pro?from=profile&next=/profil",
   ].join("\n\n");
-  return { to: "", subject: `Founder kamu berakhir ${formatWibDate(until)}`, html, text };
+  return { to: "", subject: `Pro kamu berakhir ${formatWibDate(until)}`, html, text };
 }
 
 function expiredDraft(name: string): Draft {
   const html = shell(
-    "Founder kamu sudah berakhir",
-    p(`Halo ${name}, masa Founder kamu sudah berakhir, jadi scan gizi harian kembali ke batas pengguna gratis.`) +
-      p("Aktifkan lagi Founder kapan saja untuk lanjut scan tanpa khawatir.") +
+    "Pro kamu sudah berakhir",
+    p(`Halo ${name}, masa Pro kamu sudah berakhir, jadi scan gizi harian kembali ke batas pengguna gratis.`) +
+      p("Aktifkan lagi Pro kapan saja untuk lanjut scan tanpa khawatir.") +
       button(
-        "https://joyorogo.com/founder?from=profile&next=/profil",
-        "Aktifkan Founder",
+        "https://joyorogo.com/pro?from=profile&next=/profil",
+        "Aktifkan Pro",
       ),
   );
   const text = [
-    `Halo ${name}, masa Founder kamu sudah berakhir, jadi scan gizi harian kembali ke batas pengguna gratis.`,
-    "Aktifkan lagi Founder kapan saja untuk lanjut scan tanpa khawatir.",
-    "https://joyorogo.com/founder?from=profile&next=/profil",
+    `Halo ${name}, masa Pro kamu sudah berakhir, jadi scan gizi harian kembali ke batas pengguna gratis.`,
+    "Aktifkan lagi Pro kapan saja untuk lanjut scan tanpa khawatir.",
+    "https://joyorogo.com/pro?from=profile&next=/profil",
   ].join("\n\n");
-  return { to: "", subject: "Founder kamu sudah berakhir", html, text };
+  return { to: "", subject: "Pro kamu sudah berakhir", html, text };
 }
 
 /**

@@ -73,8 +73,8 @@ export default function FounderPaywall() {
     return () => sub.remove();
   }, [refetchProfile]);
 
-  // Only sellable when billing is on and the user is not Founder yet. Anything
-  // else (billing off, already Founder, config/profile unreadable) continues
+  // Only sellable when billing is on and the user is not Pro yet. Anything
+  // else (billing off, already Pro, config/profile unreadable) continues
   // straight to the destination instead of flashing the paywall.
   useEffect(() => {
     if (config.isPending || profileQuery.isPending) return;
@@ -155,15 +155,15 @@ export default function FounderPaywall() {
   const playUnavailable = PLAY_ACTIVE && playPrices.isSuccess && !playPrice;
   const subhead =
     from === "onboarding"
-      ? "Rencana harianmu sudah siap. Founder buka scan AI lebih banyak setiap hari."
+      ? "Rencana harianmu sudah siap. Pro buka scan AI lebih banyak setiap hari."
       : from === "quota"
         ? "Jatah scan AI gratis hari ini sudah habis."
         : from === "fitness"
           ? "Dapat saran porsi dan menu harian dari skor JoyoFit, targetmu, dan makanan yang kamu catat."
           : from === "challenge"
-            ? "Founder yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis."
+            ? "Pro yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis."
             : from === "joyofit"
-              ? "Cadangan cloud JoyoFit termasuk di Founder, satu paket dengan JoyoRogo."
+              ? "Cadangan cloud JoyoFit termasuk di Pro, satu paket dengan JoyoRogo."
               : "Scan AI lebih banyak setiap hari, dan dukung JoyoRogo sekalian.";
   const paySteps = PLAY_ACTIVE
     ? [
@@ -173,19 +173,19 @@ export default function FounderPaywall() {
       ]
     : ios && appleBilling
       ? [
-          'Ketuk tombol "Jadi Founder".',
+          'Ketuk tombol "Jadi Pro".',
           "Bayar lewat App Store.",
-          "Founder aktif otomatis setelah pembayaran.",
+          "Pro aktif otomatis setelah pembayaran.",
         ]
       : [
-          'Ketuk tombol "Jadi Founder".',
+          'Ketuk tombol "Jadi Pro".',
           "Pilih QRIS atau Transfer Bank, lalu bayar.",
-          "Founder aktif otomatis setelah pembayaran.",
+          "Pro aktif otomatis setelah pembayaran.",
         ];
 
   return (
     <Screen>
-      <PageHeader title="Jadi Founder" caption={`${subhead} Founder mencakup JoyoRogo + JoyoFit.`} />
+      <PageHeader title="Jadi Pro" caption={`${subhead} Pro mencakup JoyoRogo + JoyoFit.`} />
 
       {!ios && <FounderPromoCard />}
 
@@ -211,7 +211,7 @@ export default function FounderPaywall() {
         </View>
         {yearly && !PLAY_ACTIVE ? (
           <Text style={styles.priceNote}>
-            12 bulan aktif. Menumpuk di sisa masa Founder-mu.
+            12 bulan aktif. Menumpuk di sisa masa Pro-mu.
           </Text>
         ) : null}
         <Text style={styles.priceNote}>
@@ -226,7 +226,7 @@ export default function FounderPaywall() {
           capText,
           "Saran makan dari skor JoyoFit",
           "Cadangan cloud JoyoFit: langkah, detak jantung, tidur, dan latihan dari jam",
-          "Lencana Founder di profilmu",
+          "Lencana Pro di profilmu",
           "Dukung pengembangan JoyoRogo",
         ].map((benefit) => (
           <View key={benefit} style={styles.benefitRow}>
@@ -255,7 +255,7 @@ export default function FounderPaywall() {
 
       <View style={styles.actions}>
         <Button
-          label={PLAY_ACTIVE ? "Berlangganan JoyoRogo Pro" : "Jadi Founder"}
+          label={PLAY_ACTIVE ? "Berlangganan JoyoRogo Pro" : "Jadi Pro"}
           onPress={() => void buy()}
           loading={buying}
           disabled={playUnavailable}
@@ -277,7 +277,7 @@ export default function FounderPaywall() {
           label="Nanti saja"
           onPress={() => router.replace(destination)}
         />
-        <Text style={styles.skipHint}>Kamu bisa jadi Founder kapan saja dari Profil.</Text>
+        <Text style={styles.skipHint}>Kamu bisa jadi Pro kapan saja dari Profil.</Text>
       </View>
     </Screen>
   );

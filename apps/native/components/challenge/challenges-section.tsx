@@ -46,7 +46,7 @@ export function ChallengesSection({ groupId }: { groupId: string }) {
       </View>
       {list.data && !canHost ? (
         <Text style={styles.hint}>
-          Founder yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis.
+          Pro yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis.
         </Text>
       ) : null}
 

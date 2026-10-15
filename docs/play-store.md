@@ -153,7 +153,7 @@ Important: JoyoRogo is not a medical device and does not diagnose, treat, cure, 
 Made in Malang, Indonesia. Privacy policy: https://joyorogo.com/privasi
 ```
 
-Notes for the listing text: it deliberately avoids accuracy claims, prices, Strava (marked "coming soon" in the app), and Founder, because the Play build does not sell Founder.
+Notes for the listing text: it deliberately avoids accuracy claims, prices, Strava (marked "coming soon" in the app), and Founder (the web-only early-buyer promo), because the Play build sells JoyoRogo Pro through Play only.
 
 ### Graphics
 
@@ -175,7 +175,7 @@ Capture from the release build with a demo account (not your real data). Order m
 8. Profil: Health Connect sync card and "Hapus semua data saya".
 9. (optional) Feed and the three home-screen widgets.
 
-Do not show the Founder/pricing screens (not in the Play build) or any real name or email.
+Do not show the Pro/pricing screens or any real name or email.
 
 ## 5. App content declarations (Policy -> App content)
 
@@ -244,7 +244,7 @@ Source: https://support.google.com/googleplay/android-developer/answer/10787469 
 | Location: **Approximate location** | Yes | No | Optional (off by default) | App functionality | "Simpan lokasi tempat makan": one position fix is rounded to ~100 m on the device before it is sent (`apps/native/src/lib/location.ts`, `roundCoord`). Not shared with other users. Declare approximate, not precise. |
 | Messages: **Other in-app messages** | Yes | No (visible to the people you choose) | Optional | App functionality | Group notes and colek, post comments |
 | App activity: **Other user-generated content** | Yes | No (visible to group/public as the user chooses) | Optional | App functionality | Feed posts, captions, cerita |
-| Financial info: **Purchase history** | Yes | No | Optional | App functionality, Account management | Founder orders made on the website are stored (order id, amount, status, date). The Play build has no checkout, but the account can carry that history. Payment card, bank, and e-wallet details are handled by DOKU/Pakasir and never reach JoyoRogo. DOKU receives name and email when a web checkout is created (not from this app). |
+| Financial info: **Purchase history** | Yes | No | Optional | App functionality, Account management | Pro orders made on the website are stored (order id, amount, status, date). The Play build has no web checkout, but the account can carry that history. Payment card, bank, and e-wallet details are handled by DOKU/Pakasir and never reach JoyoRogo. DOKU receives name and email when a web checkout is created (not from this app). |
 | Nutrition (food and drink) | Play has no separate "nutrition" type: it goes under **Health info** (already declared above). Meals are also **written to** Health Connect. | | | | `health-connect-nutrition.ts` |
 | Device or other IDs | **No** | | | | No advertising ID, no push token |
 | App info and performance (crash logs, diagnostics) | **No** | | | | No crash SDK in the app. Cloudflare keeps request logs server-side (IP, user agent); this is standard infrastructure logging. [INFERENCE] whether to declare it; Play's guidance covers data the *app* collects. |

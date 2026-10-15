@@ -43,11 +43,11 @@ Web untuk HP dan laptop, plus aplikasi Android.
 
 |                                                             | Untuk siapa                                                         | Biaya                                                                 |
 | ----------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| [JoyoRogo Cloud](https://joyorogo.com)                      | Kebanyakan orang. Langsung pakai, tanpa setup.                      | Gratis 3 scan AI/hari. Founder Rp15.000/bulan untuk scan tanpa batas. |
+| [JoyoRogo Cloud](https://joyorogo.com)                      | Kebanyakan orang. Langsung pakai, tanpa setup.                      | Gratis 3 scan AI/hari. Pro Rp15.000/bulan untuk scan tanpa batas.     |
 | [Deploy di CloudAgni](https://cloudagni.id/deploy/joyorogo) | Klinik, gym, ahli gizi, atau keluarga yang ingin servernya sendiri. | Paket CloudAgni, kuota AI sudah termasuk.                             |
 | Cloudflare sendiri                                          | Developer yang ingin mengurus semuanya sendiri.                     | Akun Cloudflare-mu, termasuk tagihan Workers AI.                      |
 
-Langganan Founder di JoyoRogo Cloud membiayai pengembangan proyek ini.
+Langganan Pro di JoyoRogo Cloud membiayai pengembangan proyek ini.
 
 ## Deploy di CloudAgni
 
@@ -98,33 +98,33 @@ Pemilik server yang menentukan. Tanpa konfigurasi, semua fitur gratis tanpa bata
 | Variabel                                                 | Arti                                                                                                                                                                        | Bawaan |
 | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | `FREE_DAILY_SCANS`                                       | Batas scan AI per hari untuk pengguna gratis. Kosong = tanpa paywall.                                                                                                       | kosong |
-| `FOUNDER_DAILY_CAP`                                      | Batas pengaman scan Founder per hari. Kosong = tanpa batas.                                                                                                                 | kosong |
+| `FOUNDER_DAILY_CAP`                                      | Batas pengaman scan Pro per hari. Kosong = tanpa batas.                                                                                                                     | kosong |
 | `ANON_SCANS`                                             | Coba scan tanpa daftar per perangkat. `0` mematikan demo.                                                                                                                   | 2      |
-| `FOUNDER_PRICE_IDR`                                      | Harga Founder per bulan (dipakai saat `FOUNDER_PRICE_LADDER` kosong).                                       | 15000  |
-| `FOUNDER_PRICE_LADDER`                                   | Tangga harga "pembeli:hargaBulanan", mis. `10:15000,110:29000,:49000`: 10 pembeli pertama Rp15rb, pembeli 11-110 Rp29rb, lalu Rp49rb. Pembeli = pengguna unik dengan minimal satu pembayaran. Yang pernah bayar mengunci harga terendahnya. Kosong = harga flat tanpa promo. | kosong |
-| `FOUNDER_YEARLY_PRICE_IDR`                               | Harga Founder per tahun. Kosong = 10x harga bulanan; kalau diisi, berlaku untuk SEMUA step tangga.          | kosong |
+| `FOUNDER_PRICE_IDR`                                      | Harga Pro per bulan (dipakai saat `FOUNDER_PRICE_LADDER` kosong).                                           | 15000  |
+| `FOUNDER_PRICE_LADDER`                                   | Tangga harga "pembeli:hargaBulanan", mis. `10:15000,110:29000,:49000`: 10 pembeli pertama Rp15rb, pembeli 11-110 Rp29rb, lalu Rp49rb. Langkah awal tampil sebagai promo "Harga Founder (terbatas)"; pembeli promo itu mendapat lencana Founder. Pembeli = pengguna unik dengan minimal satu pembayaran. Yang pernah bayar mengunci harga terendahnya. Kosong = harga flat tanpa promo. | kosong |
+| `FOUNDER_YEARLY_PRICE_IDR`                               | Harga Pro per tahun. Kosong = 10x harga bulanan; kalau diisi, berlaku untuk SEMUA step tangga.              | kosong |
 | `BILLING_PROVIDER`                                       | Gateway untuk checkout tanpa pilihan metode (versi aplikasi lama): `doku` atau `pakasir`. Kosong = DOKU kalau diisi, kalau tidak Pakasir.                                   | kosong |
 | `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL`     | DOKU Checkout, tombol **Transfer Bank**. Pembayaran aktif hanya kalau `FREE_DAILY_SCANS` juga diisi.                                                                        | kosong |
 | `PAKASIR_SLUG`, `PAKASIR_API_KEY`, `PAKASIR_WEBHOOK_SECRET` | Pakasir payment link khusus QRIS, tombol **QRIS**. Webhook proyek: `/api/billing/pakasir/webhook`.                                                                      | kosong |
-| `PAKASIR_SANDBOX`                                        | `1` = pembayaran sandbox Pakasir ikut mengaktifkan Founder (uji coba saja).                                                                                                 | kosong |
-| `APPLE_BUNDLE_ID`, `APPLE_FOUNDER_PRODUCT_ID`            | Apple in-app purchase untuk Founder di iOS. Kosong = `com.joyodigitama.joyorogo` dan `com.joyodigitama.joyorogo.founder.1m`; harus sama dengan produk di App Store Connect. | kosong |
+| `PAKASIR_SANDBOX`                                        | `1` = pembayaran sandbox Pakasir ikut mengaktifkan Pro (uji coba saja).                                                                                                     | kosong |
+| `APPLE_BUNDLE_ID`, `APPLE_FOUNDER_PRODUCT_ID`            | Apple in-app purchase untuk Pro di iOS. Kosong = `com.joyodigitama.joyorogo` dan `com.joyodigitama.joyorogo.founder.1m`; harus sama dengan produk di App Store Connect. | kosong |
 | `APPLE_SANDBOX_EMAILS`                                   | Email (pisah koma) yang boleh memakai pembelian sandbox/TestFlight: akunmu dan akun demo App Review. Production selalu diterima.                                            | kosong |
-| `REVIEW_LOGIN_EMAILS`                                    | Email (pisah koma) yang boleh masuk dengan email + kata sandi: akun reviewer Google Play/App Store. Daftar tidak pernah membuka pendaftaran lewat email. Akun dibuat dengan `bun packages/auth/scripts/review-login.ts` (Founder gratis, sandi acak disimpan di `~/.config/joyorogo/review-login.txt`). Kosong = masuk dengan email mati. | kosong |
+| `REVIEW_LOGIN_EMAILS`                                    | Email (pisah koma) yang boleh masuk dengan email + kata sandi: akun reviewer Google Play/App Store. Daftar tidak pernah membuka pendaftaran lewat email. Akun dibuat dengan `bun packages/auth/scripts/review-login.ts` (Pro gratis, sandi acak disimpan di `~/.config/joyorogo/review-login.txt`). Kosong = masuk dengan email mati. | kosong |
 | `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`               | Impor olahraga dari Strava.                                                                                                                                                 | kosong |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push untuk pengingat puasa intermiten di web (cron tiap 5 menit). Kosong = pengingat web mati.                                                                          | kosong |
 
-Founder dibayar per bulan (tanpa perpanjangan otomatis). Sebelum checkout,
+Pro dibayar per bulan (tanpa perpanjangan otomatis). Sebelum checkout,
 pembeli memilih **QRIS** (Pakasir) atau **Transfer Bank** (DOKU); tombol hanya
 muncul untuk gateway yang kredensialnya diisi, dan kalau cuma satu yang diisi
 pilihan dilewati. Notifikasi DOKU masuk ke `/api/billing/webhook`, Pakasir ke
 `/api/billing/pakasir/webhook`; keduanya tetap aktif selama kredensialnya
-diisi. Di iOS, Founder dibayar lewat Apple in-app purchase
+diisi. Di iOS, Pro dibayar lewat Apple in-app purchase
 (`/api/billing/apple`) tanpa kredensial tambahan.
 
 ## Email
 
 Email transaksional (struk pembayaran, notifikasi admin, pengingat habis
-masa Founder) dikirim lewat Cloudflare Email Service. Tanpa konfigurasi,
+masa Pro) dikirim lewat Cloudflare Email Service. Tanpa konfigurasi,
 email mati dan aplikasi tetap jalan. Untuk mengaktifkan:
 
 1. Di dashboard Cloudflare, buka domain **joyorogo.com** → **Email** →
