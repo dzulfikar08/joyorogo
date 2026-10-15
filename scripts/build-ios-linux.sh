@@ -37,6 +37,9 @@ export ASC_KEY_ID=${ASC_KEY_ID:-BUU2CPKLGM}
 export ASC_ISSUER_ID=${ASC_ISSUER_ID:-9e34111d-e39f-4122-9000-6eb4628fe9b9}
 export ASC_KEY_PATH=${ASC_KEY_PATH:-$HOME/Downloads/AuthKey_$ASC_KEY_ID.p8}
 export ASC_IDENTITY_DIR=${ASC_IDENTITY_DIR:-$HOME/.config/joyorogo-ios/distribution}
+# asc.py stamp writes DTXcode/DTXcodeBuild; a .xip-built SDK does not record them.
+# The SDK here comes from Xcode 27.0 (27A266a).
+export XCODE_VERSION=${XCODE_VERSION:-27.0} XCODE_BUILD=${XCODE_BUILD:-27A266a}
 
 # Release JS env, as in build-release-apk.sh: beats apps/native/.env (local dev).
 export NODE_ENV=production
