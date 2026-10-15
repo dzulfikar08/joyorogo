@@ -1,0 +1,45 @@
+{
+  "defaults": {
+    "brand": "JoyoFit",
+    "brandColor": "#58C4DE",
+    "highlightColor": "#58C4DE",
+    "crop": { "top": 112, "bottom": 0 }
+  },
+  "slides": [
+    {
+      "out": "../../../../watch-fit/dist/store/slide-01-lepas.png",
+      "headline": "Lepas dari\nHuawei Health",
+      "highlight": "Huawei Health",
+      "subhead": "Tanpa akun Huawei. Datamu ada di ponselmu.",
+      "screen": "../../../../watch-fit/dist/store/captures/today.png"
+    },
+    {
+      "out": "../../../../watch-fit/dist/store/slide-02-recovery.png",
+      "headline": "Recovery & Strain\nala WHOOP",
+      "highlight": "ala WHOOP",
+      "subhead": "Dihitung dari HRV dan detak jantungmu sendiri.",
+      "screen": "../../../../watch-fit/dist/store/captures/readiness.png"
+    },
+    {
+      "out": "../../../../watch-fit/dist/store/slide-03-olahraga.png",
+      "headline": "Olahraga live,\nlemak & karbo kebakar",
+      "highlight": "lemak & karbo kebakar",
+      "subhead": "Perkiraan gram lemak dan karbo dari detak jantungmu.",
+      "screen": "../../../../watch-fit/dist/store/captures/workout-live.png"
+    },
+    {
+      "out": "../../../../watch-fit/dist/store/slide-04-tidur.png",
+      "headline": "Tidur lengkap\ndengan tahapnya",
+      "highlight": "dengan tahapnya",
+      "subhead": "Tahap tidur dan jam terbangun, tiap malam.",
+      "screen": "../../../../watch-fit/dist/store/captures/sleep.png"
+    },
+    {
+      "out": "../../../../watch-fit/dist/store/slide-05-tren.png",
+      "headline": "Tren\n30 dan 90 hari",
+      "highlight": "30 dan 90 hari",
+      "subhead": "Pemulihan, strain, dan tidurmu dalam satu grafik.",
+      "screen": "../../../../watch-fit/dist/store/captures/trends.png"
+    }
+  ]
+}

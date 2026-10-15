@@ -1,0 +1,25 @@
+{
+  "defaults": {
+    "brand": "JoyoRogo",
+    "brandColor": "#6CBE45",
+    "highlightColor": "#5EBC7D",
+    "leaf": true,
+    "crop": { "top": 112, "bottom": 0 }
+  },
+  "slides": [
+    {
+      "out": "../../../dist/store-play/05.png",
+      "headline": "Jam Huawei-mu + makanmu,\nsatu tempat",
+      "highlight": "satu tempat",
+      "subhead": "Skor JoyoFit di samping makananmu, plus saran makan.",
+      "screen": "../../../dist/store-play/captures/makan-fitness.png"
+    },
+    {
+      "out": "../../../dist/store-play/06.png",
+      "headline": "Tantangan 30 hari\nbareng teman",
+      "highlight": "bareng teman",
+      "subhead": "Progres dihitung dari jam dan catatan makanmu.",
+      "screen": "../../../dist/store-play/captures/challenge.png"
+    }
+  ]
+}
