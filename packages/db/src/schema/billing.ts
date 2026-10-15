@@ -54,3 +54,31 @@ export const emailLog = sqliteTable(
   },
   (table) => [uniqueIndex("email_log_kind_ref_uidx").on(table.kind, table.ref)],
 );
+
+/**
+ * Google Play subscription purchase tokens, each linked to the one account that
+ * redeemed it. The link is what stops a token being credited to a second
+ * account, and what lets a Play notification (renewal, refund) find its user.
+ * Founder time itself is credited per Play order in `payment` as `google:<orderId>`.
+ */
+export const googlePurchase = sqliteTable(
+  "google_purchase",
+  {
+    purchaseToken: text("purchase_token").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    productId: text("product_id").notNull(),
+    basePlanId: text("base_plan_id").notNull(),
+    // Last subscriptionsv2 state we saw (pending, active, canceled, grace, hold, paused, expired).
+    state: text("state").notNull(),
+    latestOrderId: text("latest_order_id"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [index("google_purchase_user_idx").on(table.userId)],
+);

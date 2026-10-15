@@ -1,7 +1,7 @@
 import type { SendEmail } from "@cloudflare/workers-types";
 import { and, eq, gt, isNotNull, lte, or, sql } from "drizzle-orm";
 
-import { emailLog, payment } from "@joyorogo/db/schema/billing";
+import { emailLog, googlePurchase, payment } from "@joyorogo/db/schema/billing";
 import { user } from "@joyorogo/db/schema/auth";
 import type { Database } from "@joyorogo/db";
 
@@ -273,7 +273,9 @@ function expiredDraft(name: string): Draft {
 
 /**
  * Rows due a founder mail: tier='free' with a paid period that ends within 3
- * days, or ended within the last day. Operators (not raw sql`` fragments) so
+ * days, or ended within the last day, and no auto-renewing Google Play
+ * subscription (its renewal extends the period; Play tells us when it stops).
+ * Operators (not raw sql`` fragments) so
  * drizzle encodes the Date through the column's integer-ms mapper — a Date
  * interpolated in sql`` reaches D1 unencoded and D1 rejects the bind.
  */
@@ -286,6 +288,7 @@ export function founderEmailsDue(now: number) {
       and(gt(user.founderUntil, new Date(now)), lte(user.founderUntil, new Date(now + 3 * day))),
       and(lte(user.founderUntil, new Date(now)), gt(user.founderUntil, new Date(now - day))),
     ),
+    sql`not exists (select 1 from ${googlePurchase} where ${googlePurchase.userId} = ${user.id} and ${googlePurchase.state} in ('active', 'grace'))`,
   );
 }
 

@@ -11,6 +11,13 @@
     "check-types": "tsc -b ../../packages/api && tsc --noEmit",
     "env:generate": "varlock codegen"
   },
+  "expo": {
+    "autolinking": {
+      "apple": {
+        "exclude": ["expo-iap"]
+      }
+    }
+  },
   "dependencies": {
     "@better-auth/expo": "catalog:",
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
@@ -36,6 +43,7 @@
     "expo-dev-client": "~57.0.18",
     "expo-file-system": "~57.0.7",
     "expo-font": "~57.0.3",
+    "expo-iap": "6.0.2",
     "expo-image-manipulator": "~57.0.17",
     "expo-image-picker": "~57.0.20",
     "expo-intent-launcher": "~57.0.1",

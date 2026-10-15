@@ -18,6 +18,7 @@ describe("founderEmailsDue", () => {
   test("selects the ending-soon and just-expired windows, only for tier=free", () => {
     const db = new Database(":memory:");
     db.run('create table "user" (id text primary key, tier text not null, founder_until integer)');
+    db.run("create table google_purchase (purchase_token text primary key, user_id text not null, state text not null)");
     const rows: [string, string, number | null][] = [
       ["ending", "free", NOW + DAY],
       ["edge-3d", "free", NOW + 3 * DAY],
@@ -27,12 +28,32 @@ describe("founderEmailsDue", () => {
       ["no-period", "free", null],
       ["comp-ending", "founder", NOW + DAY],
       ["comp-expired", "founder", NOW - 1],
+      ["play-active", "free", NOW + DAY],
+      ["play-grace", "free", NOW + DAY],
+      ["play-canceled", "free", NOW + DAY],
+      ["play-expired", "free", NOW - 1],
     ];
     for (const r of rows) db.run('insert into "user" values (?, ?, ?)', r);
+    // An auto-renewing Play subscription renews the period itself: no reminder.
+    // A canceled or lapsed one will not, so those still get the mails.
+    for (const [id, state] of [
+      ["play-active", "active"],
+      ["play-grace", "grace"],
+      ["play-canceled", "canceled"],
+      ["play-expired", "expired"],
+    ] as const) {
+      db.run("insert into google_purchase values (?, ?, ?)", [`tok-${id}`, id, state]);
+    }
 
     const due = db
       .query(`select id from "user" where ${sql} order by id`)
       .all(...(params as (string | number)[])) as { id: string }[];
-    expect(due.map((r) => r.id)).toEqual(["edge-3d", "ending", "expired"]);
+    expect(due.map((r) => r.id)).toEqual([
+      "edge-3d",
+      "ending",
+      "expired",
+      "play-canceled",
+      "play-expired",
+    ]);
   });
 });

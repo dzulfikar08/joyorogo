@@ -10,6 +10,8 @@ import {
   verifyAppleTransactionJws,
 } from "@joyorogo/api/lib/apple";
 import { summarize } from "@joyorogo/api/lib/cost";
+import { googlePlayConfig } from "@joyorogo/api/lib/google-play";
+import type { GooglePlayEnv } from "@joyorogo/api/lib/google-play";
 import {
   WEBHOOK_TARGET as DOKU_WEBHOOK_PATH,
   buildOrderId,
@@ -49,7 +51,7 @@ import { aiUsage } from "@joyorogo/db/schema/fitness";
 import type { Database } from "@joyorogo/db";
 import { runFounderEmails, sendOrderEmails } from "./email";
 
-export type BillingEnv = PaywallEnv & {
+export type BillingEnv = PaywallEnv & GooglePlayEnv & {
   BETTER_AUTH_URL: string;
   /** Public web app origin; defaults to BETTER_AUTH_URL (single-worker deploys). */
   APP_URL?: string;
@@ -260,6 +262,8 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       // Options for the checkout picker, in display order.
       paymentMethods,
       appleBilling: paywallEnabled(config),
+      // Google Play Billing for the Play build: needs the paywall and the Play service account.
+      googlePlayBilling: paywallEnabled(config) && googlePlayConfig(env) !== null,
       freeDailyScans: config.freeDailyScans,
       founderDailyCap: config.founderDailyCap,
       founderPriceIdr: step ? step.monthlyIdr : config.founderPriceIdr,

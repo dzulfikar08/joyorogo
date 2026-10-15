@@ -31,6 +31,7 @@ import { post as postTable } from "@joyorogo/db/schema/social";
 
 import { registerAnonScanRoutes } from "./anon";
 import { registerBillingRoutes } from "./billing";
+import { registerGooglePlayRoutes } from "./google-billing";
 import { registerAdminRoutes } from "./admin";
 import { sendEmail } from "./email";
 import { createContext } from "./context";
@@ -73,6 +74,9 @@ registerAnonScanRoutes(app, {
 // Public config, Founder checkout (DOKU/Pakasir) + webhooks, personal AI usage.
 // After CORS so web can read errors.
 const billing = registerBillingRoutes(app, { env, getDb, createAuth });
+
+// Google Play Billing (Play build Pro subscription) + its Pub/Sub notifications.
+registerGooglePlayRoutes(app, { env, getDb, createAuth });
 
 // Operator console API for admin.joyorogo.com (ADMIN_EMAILS allowlist).
 registerAdminRoutes(app, {

@@ -18,10 +18,15 @@ import {
 } from "@/components/ui";
 import {
   FounderPromoCard,
+  PLAY_ACTIVE,
   useAppleFounderPrice,
   useAppleFounderPurchase,
   useAppConfig,
   useCheckoutPicker,
+  usePlayPrices,
+  usePlayPurchase,
+  usePlayReplay,
+  usePlayRestore,
   type CheckoutPlan,
 } from "@/components/billing";
 import { useToast } from "@/components/toast";
@@ -51,6 +56,11 @@ export default function FounderPaywall() {
   const appleBilling = config.data?.appleBilling === true;
   const billing = ios ? appleBilling : config.data?.billing === true;
   const price = useAppleFounderPrice(ios && appleBilling);
+  // Play build: JoyoRogo Pro subscription (monthly / yearly) through Google Play.
+  const playBuy = usePlayPurchase();
+  const playRestore = usePlayRestore();
+  const playPrices = usePlayPrices(PLAY_ACTIVE && billing);
+  usePlayReplay(PLAY_ACTIVE && billing);
   const tier = profileQuery.data?.tier ?? null;
 
   // Android: coming back from the payment browser is when payment lands; refetch
@@ -85,6 +95,20 @@ export default function FounderPaywall() {
   }
 
   const buy = async () => {
+    if (PLAY_ACTIVE) {
+      try {
+        const result = await playBuy.mutateAsync(plan);
+        if (result === "pending") {
+          toast.info(
+            "Menunggu pembayaran",
+            "Pro aktif otomatis setelah pembayaran di Google Play selesai.",
+          );
+        }
+      } catch (e) {
+        toast.error("Pembayaran gagal", errorMessage(e));
+      }
+      return;
+    }
     if (!ios) {
       checkout.start((e) => toast.error("Pembayaran gagal", errorMessage(e)));
       return;
@@ -95,19 +119,40 @@ export default function FounderPaywall() {
       toast.error("Pembayaran gagal", errorMessage(e));
     }
   };
-  const buying = ios ? purchase.isPending : checkout.isPending;
+  const restore = async () => {
+    try {
+      const summary = await playRestore.mutateAsync();
+      if (summary.granted + summary.already > 0) {
+        toast.success("Pembelian dipulihkan", "JoyoRogo Pro aktif.");
+      } else if (summary.pending > 0) {
+        toast.info("Menunggu pembayaran", "Pro aktif otomatis setelah pembayaran selesai.");
+      } else if (summary.rejected) {
+        toast.error("Tidak bisa dipulihkan", summary.rejected);
+      } else {
+        toast.info("Tidak ada langganan", "Akun Google Play ini belum punya langganan Pro aktif.");
+      }
+    } catch (e) {
+      toast.error("Pemulihan gagal", errorMessage(e));
+    }
+  };
+  const buying = PLAY_ACTIVE ? playBuy.isPending : ios ? purchase.isPending : checkout.isPending;
 
   const capText =
     config.data.founderDailyCap === null
       ? "Scan AI tanpa batas"
       : `${config.data.founderDailyCap} scan AI per hari`;
   const yearly = !ios && plan === "yearly";
-  const priceLabel =
-    ios && price.data?.displayPrice
+  // Play and the App Store charge their own localized price; never show the web one for them.
+  const playPrice = PLAY_ACTIVE ? playPrices.data?.[plan]?.displayPrice : undefined;
+  const priceLabel = PLAY_ACTIVE
+    ? (playPrice ?? "...")
+    : ios && price.data?.displayPrice
       ? price.data.displayPrice
       : `Rp${(
           yearly ? config.data.founderYearlyPriceIdr : config.data.founderPriceIdr
         ).toLocaleString("id-ID")}`;
+  // Play needs the offer for the chosen plan: without it Play has nothing to sell.
+  const playUnavailable = PLAY_ACTIVE && playPrices.isSuccess && !playPrice;
   const subhead =
     from === "onboarding"
       ? "Rencana harianmu sudah siap. Founder buka scan AI lebih banyak setiap hari."
@@ -120,8 +165,13 @@ export default function FounderPaywall() {
             : from === "joyofit"
               ? "Cadangan cloud JoyoFit termasuk di Founder, satu paket dengan JoyoRogo."
               : "Scan AI lebih banyak setiap hari, dan dukung JoyoRogo sekalian.";
-  const paySteps =
-    ios && appleBilling
+  const paySteps = PLAY_ACTIVE
+    ? [
+        'Pilih Bulanan atau Tahunan, lalu ketuk "Berlangganan JoyoRogo Pro".',
+        "Bayar lewat Google Play.",
+        "Pro aktif otomatis setelah pembayaran.",
+      ]
+    : ios && appleBilling
       ? [
           'Ketuk tombol "Jadi Founder".',
           "Bayar lewat App Store.",
@@ -150,7 +200,7 @@ export default function FounderPaywall() {
               value={plan}
               onChange={setPlan}
             />
-            {yearly ? (
+            {yearly && !PLAY_ACTIVE ? (
               <Text style={styles.priceNote}>Setara 10 bulan — hemat 2 bulan.</Text>
             ) : null}
           </>
@@ -159,12 +209,16 @@ export default function FounderPaywall() {
           <Text style={styles.price}>{priceLabel}</Text>
           <Text style={styles.pricePer}>{yearly ? "/tahun" : "/bulan"}</Text>
         </View>
-        {yearly ? (
+        {yearly && !PLAY_ACTIVE ? (
           <Text style={styles.priceNote}>
             12 bulan aktif. Menumpuk di sisa masa Founder-mu.
           </Text>
         ) : null}
-        <Text style={styles.priceNote}>Tidak diperpanjang otomatis.</Text>
+        <Text style={styles.priceNote}>
+          {PLAY_ACTIVE
+            ? `JoyoRogo Pro, langganan ${yearly ? "tahunan" : "bulanan"} lewat Google Play. Diperpanjang otomatis tiap ${yearly ? "tahun" : "bulan"} sampai kamu batalkan di Google Play > Langganan.`
+            : "Tidak diperpanjang otomatis."}
+        </Text>
       </Card>
 
       <Card>
@@ -200,8 +254,24 @@ export default function FounderPaywall() {
       </Card>
 
       <View style={styles.actions}>
-        <Button label="Jadi Founder" onPress={() => void buy()} loading={buying} />
-        {!ios ? checkout.sheet : null}
+        <Button
+          label={PLAY_ACTIVE ? "Berlangganan JoyoRogo Pro" : "Jadi Founder"}
+          onPress={() => void buy()}
+          loading={buying}
+          disabled={playUnavailable}
+        />
+        {playUnavailable ? (
+          <Text style={styles.skipHint}>Langganan belum tersedia di Google Play untuk akunmu.</Text>
+        ) : null}
+        {PLAY_ACTIVE ? (
+          <Button
+            variant="secondary"
+            label="Pulihkan pembelian"
+            onPress={() => void restore()}
+            loading={playRestore.isPending}
+          />
+        ) : null}
+        {!ios && !PLAY_ACTIVE ? checkout.sheet : null}
         <Button
           variant="secondary"
           label="Nanti saja"

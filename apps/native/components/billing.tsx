@@ -13,6 +13,7 @@ import { useToast } from "@/components/toast";
 import { errorMessage } from "@/utils/format";
 import { IS_PLAY_BUILD } from "@/src/distribution";
 import { ENV } from "@/src/env";
+import type * as PlayBilling from "@/src/lib/play-billing";
 import { queryClient } from "@/utils/orpc";
 
 /** Server-decided paywall/billing settings (GET /api/config). */
@@ -28,6 +29,8 @@ export type AppConfig = {
   paymentMethods?: PaymentMethod[];
   /** Apple in-app purchase is available on iOS (paywall configured). */
   appleBilling: boolean;
+  /** Google Play Billing is available (paywall + Play service account); used by the Play build only. */
+  googlePlayBilling?: boolean;
   freeDailyScans: number | null;
   founderDailyCap: number | null;
   founderPriceIdr: number;
@@ -57,9 +60,11 @@ export function serverUrl(): string {
 /**
  * Read at runtime, not build time: self-hosted copies run without billing and
  * must show no pricing at all rather than guessing (same contract as web).
- * The Google Play build never sells Founder: Play requires Play Billing for
- * digital goods, so the DOKU/Pakasir checkout is reported as unavailable and
- * every purchase surface (banner, /founder, Profil cards) stays hidden.
+ * The Google Play build never sells through the DOKU/Pakasir checkout: Play
+ * requires Play Billing for digital goods, so `billing` there means "Play
+ * Billing is configured on the server" and the web payment options and promo
+ * are hidden. When it is off every purchase surface (banner, /founder, Profil
+ * cards) stays hidden.
  */
 export function useAppConfig() {
   return useQuery({
@@ -69,7 +74,12 @@ export function useAppConfig() {
       if (!res.ok) throw new Error(`config ${res.status}`);
       const config = (await res.json()) as AppConfig;
       return IS_PLAY_BUILD
-        ? { ...config, billing: false, paymentMethods: [], promo: null }
+        ? {
+            ...config,
+            billing: config.googlePlayBilling === true,
+            paymentMethods: [],
+            promo: null,
+          }
         : config;
     },
     staleTime: 60 * 60 * 1000,
@@ -387,12 +397,154 @@ function useUnfinishedReplay(enabled: boolean) {
   }, [enabled]);
 }
 
+/** Play Billing exists only in the Play build on Android; its module loads lazily. */
+export const PLAY_ACTIVE = IS_PLAY_BUILD && Platform.OS === "android";
+
+function playBilling(): typeof PlayBilling {
+  return require("@/src/lib/play-billing") as typeof PlayBilling;
+}
+
+/** The server will never credit this token (not ours, wrong product, or another account's). */
+class PlayRejectedError extends Error {}
+
+type PlayVerdict = "granted" | "already" | "pending" | "inactive";
+
+/** Sends a Play purchase token for verification; the server is idempotent per Play order. */
+async function postPlayPurchase(purchaseToken: string): Promise<PlayVerdict> {
+  const res = await fetch(`${serverUrl()}/api/billing/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(await checkoutHeaders()) },
+    body: JSON.stringify({ purchaseToken }),
+  });
+  const body = (await res.json().catch(() => null)) as {
+    status?: PlayVerdict;
+    error?: string;
+  } | null;
+  if (res.status === 401) throw new Error("Masuk dulu untuk berlangganan.");
+  if (res.status === 400 || res.status === 409) {
+    throw new PlayRejectedError(body?.error ?? "Bukti pembelian tidak valid.");
+  }
+  if (!res.ok || !body?.status) {
+    throw new Error(body?.error ?? "Pembelian belum bisa diproses. Coba lagi nanti.");
+  }
+  return body.status;
+}
+
+export type PlayBuyResult = "bought" | "pending" | "cancelled";
+
+/**
+ * Buys JoyoRogo Pro through Google Play Billing. The server verifies the
+ * purchase token with Google and acknowledges it only after crediting; a
+ * transient failure leaves the purchase unacknowledged, and the next
+ * mount's replay (usePlayReplay) credits it.
+ */
+export function usePlayPurchase() {
+  return useMutation({
+    mutationFn: async (plan: CheckoutPlan): Promise<PlayBuyResult> => {
+      const play = playBilling();
+      const userId = (await authClient.getSession()).data?.user.id;
+      if (!userId) throw new Error("Masuk dulu untuk berlangganan.");
+      let outcome: PlayBilling.PlayPurchaseOutcome;
+      try {
+        outcome = await play.buyPlan(plan, userId);
+      } catch (error) {
+        if (error instanceof play.AlreadySubscribedError) {
+          throw new Error('Kamu sudah berlangganan Pro di Google Play. Ketuk "Pulihkan pembelian".');
+        }
+        throw error;
+      }
+      if (outcome.status === "cancelled") return "cancelled";
+      if (outcome.status === "pending") {
+        // Not charged yet (e.g. convenience store). Linking the token now lets
+        // the server credit it the moment Google reports the payment.
+        if (outcome.purchaseToken) await postPlayPurchase(outcome.purchaseToken).catch(() => null);
+        return "pending";
+      }
+      const verdict = await postPlayPurchase(outcome.purchaseToken);
+      if (verdict === "pending") return "pending";
+      if (verdict === "inactive") {
+        throw new Error('Pembelian belum aktif. Coba lagi sebentar atau ketuk "Pulihkan pembelian".');
+      }
+      return "bought";
+    },
+    onSuccess: () => queryClient.invalidateQueries(),
+  });
+}
+
+/** Localized Play prices for each plan; empty while Play has no `pro` subscription for this user. */
+export function usePlayPrices(enabled: boolean) {
+  return useQuery({
+    queryKey: ["play-plans"],
+    queryFn: () => playBilling().loadPlans(),
+    enabled: enabled && PLAY_ACTIVE,
+    staleTime: 60 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+export type PlaySyncSummary = {
+  /** Newly credited by this sync. */
+  granted: number;
+  /** Credited earlier, still active. */
+  already: number;
+  /** Waiting for the buyer's payment. */
+  pending: number;
+  /** Linked to another JoyoRogo account (or not valid); message of the first one. */
+  rejected: string | null;
+};
+
+/** Posts every subscription this Google account holds to the server (restore + replay). */
+async function syncPlayPurchases(): Promise<PlaySyncSummary> {
+  const summary: PlaySyncSummary = { granted: 0, already: 0, pending: 0, rejected: null };
+  for (const owned of await playBilling().ownedPurchases()) {
+    try {
+      const verdict = await postPlayPurchase(owned.purchaseToken);
+      if (verdict === "granted") summary.granted++;
+      else if (verdict === "already") summary.already++;
+      else if (verdict === "pending") summary.pending++;
+    } catch (error) {
+      if (!(error instanceof PlayRejectedError)) throw error;
+      summary.rejected ??= error.message;
+    }
+  }
+  return summary;
+}
+
+/** "Pulihkan pembelian": re-reads Play's purchases for this Google account and credits them. */
+export function usePlayRestore() {
+  return useMutation({
+    mutationFn: syncPlayPurchases,
+    onSuccess: () => queryClient.invalidateQueries(),
+  });
+}
+
+/**
+ * Purchases Play holds that the server has not confirmed yet (app killed
+ * before the credit, a pending payment that completed, an unacknowledged
+ * renewal) are replayed on mount. Failures are silent: the next mount retries.
+ */
+export function usePlayReplay(enabled: boolean) {
+  useEffect(() => {
+    if (!enabled || !PLAY_ACTIVE) return;
+    let cancelled = false;
+    void syncPlayPurchases()
+      .then((summary) => {
+        if (!cancelled && summary.granted > 0) queryClient.invalidateQueries();
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+}
+
 /**
  * The web profil banners (profil.tsx): free-tier scan quota + Upgrade when
  * billing is on, and founder expiry + Perpanjang. Upgrade opens the paywall
  * screen (/founder) so users see the "Cara bayar" steps first; Perpanjang
  * starts checkout directly because founders never see that screen. Android
- * starts a DOKU checkout; iOS buys through Apple in-app purchase instead.
+ * starts a DOKU checkout; iOS buys through Apple in-app purchase instead; the
+ * Play build buys the JoyoRogo Pro subscription through Google Play Billing.
  */
 export function FounderCards({
   tier,
@@ -405,12 +557,16 @@ export function FounderCards({
   const ios = Platform.OS === "ios";
   const checkout = useCheckoutPicker();
   const purchase = useAppleFounderPurchase();
+  const playBuy = usePlayPurchase();
+  const playRestore = usePlayRestore();
   const gatewayBilling = config.data?.billing === true;
   const appleBilling = config.data?.appleBilling === true;
   const billing = ios ? appleBilling : gatewayBilling;
   const price = useAppleFounderPrice(ios && appleBilling);
   useUnfinishedReplay(ios && appleBilling);
-  const pendingOrder = usePendingOrder(tier === "free" && billing).data ?? null;
+  usePlayReplay(PLAY_ACTIVE && billing);
+  const playPrices = usePlayPrices(PLAY_ACTIVE && billing);
+  const pendingOrder = usePendingOrder(tier === "free" && billing && !PLAY_ACTIVE).data ?? null;
   const toast = useToast();
   const [checking, setChecking] = useState(false);
 
@@ -435,13 +591,45 @@ export function FounderCards({
   // While the config loads, render no pricing at all rather than guessing.
   if (!config.data) return null;
 
-  const buy = () => (ios ? purchase.mutate() : checkout.start());
-  const buying = ios ? purchase.isPending : checkout.isPending;
+  const onPlayBought = (result: PlayBuyResult) => {
+    if (result === "bought") toast.success("Langganan aktif", "JoyoRogo Pro aktif. Terima kasih!");
+    else if (result === "pending") {
+      toast.info(
+        "Menunggu pembayaran",
+        "Pro aktif otomatis setelah pembayaran di Google Play selesai.",
+      );
+    }
+  };
+  const restorePlay = () =>
+    playRestore.mutate(undefined, {
+      onSuccess: (summary) => {
+        if (summary.granted + summary.already > 0) {
+          toast.success("Pembelian dipulihkan", "JoyoRogo Pro aktif.");
+        } else if (summary.pending > 0) {
+          toast.info("Menunggu pembayaran", "Pro aktif otomatis setelah pembayaran selesai.");
+        } else if (summary.rejected) {
+          toast.error("Tidak bisa dipulihkan", summary.rejected);
+        } else {
+          toast.info("Tidak ada langganan", "Akun Google Play ini belum punya langganan Pro aktif.");
+        }
+      },
+      onError: (e) => toast.error("Pemulihan gagal", errorMessage(e)),
+    });
+  const buy = () => {
+    if (ios) purchase.mutate();
+    else if (PLAY_ACTIVE) playBuy.mutate("monthly", { onSuccess: onPlayBought });
+    else checkout.start();
+  };
+  const buying = ios ? purchase.isPending : PLAY_ACTIVE ? playBuy.isPending : checkout.isPending;
   const failure = ios
     ? purchase.isError
       ? purchase.error.message
       : null
-    : (checkout.error?.message ?? null);
+    : PLAY_ACTIVE
+      ? playBuy.isError
+        ? playBuy.error.message
+        : null
+      : (checkout.error?.message ?? null);
 
   return (
     <>
@@ -459,6 +647,11 @@ export function FounderCards({
               </Text>
               {ios && price.data?.displayPrice ? (
                 <Text style={styles.cardNote}>{price.data.displayPrice} lewat App Store.</Text>
+              ) : null}
+              {PLAY_ACTIVE && playPrices.data?.monthly ? (
+                <Text style={styles.cardNote}>
+                  JoyoRogo Pro {playPrices.data.monthly.displayPrice}/bulan lewat Google Play.
+                </Text>
               ) : null}
             </View>
             <Button
@@ -478,6 +671,15 @@ export function FounderCards({
               onPress={() => void checkPending()}
             />
           ) : null}
+          {PLAY_ACTIVE ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              label="Pulihkan pembelian"
+              loading={playRestore.isPending}
+              onPress={restorePlay}
+            />
+          ) : null}
         </>
       ) : null}
       {tier === "founder" && founderUntil ? (
@@ -485,7 +687,10 @@ export function FounderCards({
           <View style={styles.cardText}>
             <Text style={styles.founderTitle}>Founder aktif</Text>
             <Text style={styles.cardNote}>
-              Sampai {fmtFounderDate(founderUntil)}. Tidak diperpanjang otomatis.
+              Sampai {fmtFounderDate(founderUntil)}.{" "}
+              {PLAY_ACTIVE
+                ? "Langganan Google Play dikelola dan dibatalkan di Play Store."
+                : "Tidak diperpanjang otomatis."}
             </Text>
           </View>
           {billing ? (
@@ -499,7 +704,7 @@ export function FounderCards({
           ) : null}
         </Card>
       ) : null}
-      {!ios && billing ? checkout.sheet : null}
+      {!ios && !PLAY_ACTIVE && billing ? checkout.sheet : null}
       {failure ? <Text style={styles.error}>{failure}</Text> : null}
     </>
   );
