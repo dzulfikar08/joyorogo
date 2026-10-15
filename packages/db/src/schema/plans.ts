@@ -142,6 +142,10 @@ export const plate = sqliteTable(
     meal: text("meal").notNull(),
     name: text("name").notNull(),
     place: text("place"),
+    // Where the plate was eaten, opt-in only. Rounded to ~100 m (3 decimals)
+    // before it is stored; private to the owner and never served publicly.
+    lat: real("lat"),
+    lng: real("lng"),
     priceIdr: integer("price_idr"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)

@@ -48,6 +48,8 @@ async function seedUserData(userId: string, tag: string) {
      INSERT INTO water_log (user_id, date, glasses) VALUES ('${userId}', '2026-09-01', 3);
      INSERT INTO daily_activity (id, user_id, date, steps)
        VALUES ('da1-${userId}', '${userId}', '2026-09-01', 4200);
+     INSERT INTO plate (id, user_id, date, meal, name, place, lat, lng)
+       VALUES ('p1-${userId}', '${userId}', '2026-09-01', 'sarapan', 'nasi goreng', 'warung', -7.984, 112.63);
      INSERT INTO scan_correction (id, user_id, source, meal, dish_name, ai_kcal, saved_kcal)
        VALUES ('sc1-${userId}', '${userId}', 'web', 'sarapan', 'nasi goreng', 500, 480);
      INSERT INTO ai_usage (id, user_id, model, scan_type, latency_ms)
@@ -56,6 +58,7 @@ async function seedUserData(userId: string, tag: string) {
 }
 
 const FITNESS_TABLES = [
+  "plate",
   "profile",
   "weight_log",
   "waist_log",

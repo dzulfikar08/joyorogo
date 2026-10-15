@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { resolveFoodKind } from "./food-kind";
+import type { FoodKind } from "./food-kind";
 import { calibrateItems } from "./tkpi";
 import type { CalibratedItem } from "./tkpi";
 
@@ -12,7 +14,8 @@ export const DEFAULT_VISION_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 // into whitespace loops until max_tokens on busy plates.
 export const VISION_PROMPT = `Anda adalah ahli gizi. Identifikasi makanan pada foto ini (fokus masakan Indonesia), maksimal 8 item terbesar/terpenting.
 Jawab HANYA JSON valid satu baris (tanpa indentasi, tanpa \`\`\`) tanpa teks lain, dengan bentuk persis:
-{"items":[{"name":"nama masakan","portion":"perkiraan porsi","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":number,"box":[ymin,xmin,ymax,xmax]}]}
+{"items":[{"name":"nama masakan","kind":"makanan|camilan|minuman","portion":"perkiraan porsi","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":number,"box":[ymin,xmin,ymax,xmax]}]}
+kind: "makanan" = makanan berat (nasi, lauk, sayur, mi, sup), "camilan" = gorengan, kue, keripik, martabak, es krim, jajanan ringan, "minuman" = semua yang diminum.
 box = kotak pembatas item itu di foto, skala 0-1000 relatif tinggi dan lebar foto.
 Satu hidangan = satu item: kuah, bumbu/saus, sayur, dan lontong/mi/bihun yang sudah bagian dari hidangan itu (mis. gado-gado, bakso, soto) TERMASUK di kcal hidangan, jangan dipisah. Pisahkan hanya yang berdiri sendiri: nasi, lauk terpisah, telur, kerupuk, gorengan, sambal, minuman.
 Aturan: ini bukan percakapan — jangan menjawab dengan tabel markdown. name dalam Bahasa Indonesia tanpa terjemahan. grams = perkiraan berat (1-5000); kcal, protein/carbs/fat (gram), fiber (gram) = estimasi realistis porsi umum; confidence 0-1.`;
@@ -23,6 +26,8 @@ const MAX_ITEMS = 8;
 
 export const visionItemSchema = z.object({
   name: z.string(),
+  // Model's own call; resolveFoodKind falls back to the name when it is missing or odd.
+  kind: z.string().optional(),
   portion: z.string().optional(),
   grams: z.number().optional(),
   kcal: z.number(),
@@ -83,7 +88,7 @@ export function extractUsage(result: unknown): Record<string, unknown> | null {
 }
 
 export type VisionAnalysis = {
-  items: Array<CalibratedItem & { box?: ItemBox }>;
+  items: Array<CalibratedItem & { box?: ItemBox; kind: FoodKind }>;
   /** Model actually used — callers pass `model` through unresolved. */
   model: string;
   usage: Record<string, unknown> | null;
@@ -228,9 +233,10 @@ function itemsFromText(text: string): VisionAnalysis["items"] {
   const raw = visionResultSchema
     .parse(extractJson(text.replace(/```(?:json)?/g, "")))
     .items.slice(0, MAX_ITEMS)
-    .map(({ box, ...item }) => ({
+    .map(({ box, kind, ...item }) => ({
       ...item,
       box: normalizeBox(box),
+      kind,
       kcal: clamp(item.kcal, 0, 5000),
       grams: clamp(item.grams, 1, 5000),
       protein: clamp(item.protein, 0, 500),
@@ -243,10 +249,16 @@ function itemsFromText(text: string): VisionAnalysis["items"] {
       (item): item is typeof item & { kcal: number } =>
         item.kcal !== undefined && item.kcal > 0 && item.name.length > 0,
     );
-  // calibrateItems maps 1:1, so boxes re-attach by index.
-  const calibrated = calibrateItems(raw.map(({ box: _box, ...item }) => item));
+  // calibrateItems maps 1:1, so boxes and kinds re-attach by index.
+  const calibrated = calibrateItems(raw.map(({ box: _box, kind: _kind, ...item }) => item));
   return dropDuplicateBroth(
-    dedupeItems(calibrated.map((item, index) => ({ ...item, box: raw[index]!.box }))),
+    dedupeItems(
+      calibrated.map((item, index) => ({
+        ...item,
+        box: raw[index]!.box,
+        kind: resolveFoodKind(item.name, raw[index]!.kind),
+      })),
+    ),
   );
 }
 

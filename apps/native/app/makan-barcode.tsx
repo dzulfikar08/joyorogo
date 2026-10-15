@@ -13,6 +13,7 @@ import { MEAL_LABELS, effectiveRamadan, slotsFor, suggestMealNow } from "@joyoro
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { normalizeBarcode } from "@joyorogo/api/lib/barcode";
 import { MAX_GRAMS, portionFromGrams } from "@joyorogo/api/lib/portion";
+import { foodKind } from "@joyorogo/api/lib/food-kind";
 
 import { MacroLine } from "@/components/macro-line";
 import {
@@ -28,6 +29,8 @@ import {
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtKcal, parseNum } from "@/utils/format";
+import { KindPicker, SnackAdviceSection } from "@/components/makan/snack-advice";
+import type { PickableKind } from "@/components/makan/snack-advice";
 import { orpc, queryClient } from "@/utils/orpc";
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
@@ -73,6 +76,10 @@ export default function MakanBarcode() {
   const [manualName, setManualName] = useState("");
   const [manualKcal, setManualKcal] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  // Item kind: the name heuristic until the user taps a pill. Advice only.
+  const [kindOverride, setKindOverride] = useState<PickableKind | null>(null);
+  // The field "Setengah porsi" rescaled, with its text before, so one tap undoes it.
+  const [halfUndo, setHalfUndo] = useState<{ field: "grams" | "kcal"; value: string } | null>(null);
   const [saved, setSaved] = useState<{ name: string; kcal: number } | null>(null);
 
   const lookup = useQuery({
@@ -98,6 +105,8 @@ export default function MakanBarcode() {
     setManualKcal("");
     setFormError(null);
     setSaved(null);
+    setKindOverride(null);
+    setHalfUndo(null);
     addFood.reset();
   };
 
@@ -183,6 +192,14 @@ export default function MakanBarcode() {
         />
       ) : null;
 
+    const manualKind = kindOverride ?? foodKind(manualName);
+    const undoHalf = () => {
+      if (!halfUndo) return;
+      if (halfUndo.field === "kcal") setManualKcal(halfUndo.value);
+      else setGrams(halfUndo.value);
+      setHalfUndo(null);
+    };
+
     const fallback = (
       <View style={styles.block}>
         <Button
@@ -207,6 +224,22 @@ export default function MakanBarcode() {
                 placeholder="350"
               />
             </Field>
+            <KindPicker value={manualKind} onChange={setKindOverride} />
+            <SnackAdviceSection
+              date={logDate}
+              kcal={parseNum(manualKcal) ?? 0}
+              kind={manualKind}
+              slot={meal}
+              name={manualName.trim() || undefined}
+              onHalf={() => {
+                const kcal = parseNum(manualKcal);
+                if (kcal === null) return;
+                setHalfUndo({ field: "kcal", value: manualKcal });
+                setManualKcal(String(Math.round(kcal / 2)));
+              }}
+              halfApplied={halfUndo !== null}
+              onUndoHalf={undoHalf}
+            />
             {mealPicker}
             {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
             {addFood.isError ? (
@@ -389,6 +422,21 @@ export default function MakanBarcode() {
             </View>
           ) : null}
 
+          <KindPicker value={kindOverride ?? foodKind(data.product.name)} onChange={setKindOverride} />
+          <SnackAdviceSection
+            date={logDate}
+            kcal={scaled?.kcal ?? 0}
+            kind={kindOverride ?? foodKind(data.product.name)}
+            slot={meal}
+            name={data.product.name}
+            onHalf={() => {
+              if (gramsNum === null) return;
+              setHalfUndo({ field: "grams", value: gramsText });
+              setGrams(String(Math.max(1, Math.round(gramsNum / 2))));
+            }}
+            halfApplied={halfUndo !== null}
+            onUndoHalf={undoHalf}
+          />
           {mealPicker}
           {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
           {addFood.isError ? (

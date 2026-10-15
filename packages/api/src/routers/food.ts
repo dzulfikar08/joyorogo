@@ -9,6 +9,7 @@ import { plate } from "@joyorogo/db/schema/plans";
 import { protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
 import { MAX_GRAMS, MAX_KCAL, resolvePortion } from "../lib/portion";
+import { toStoredCoords } from "../lib/places";
 import { dateSchema, mealSchema, pastDateSchema } from "../lib/schemas";
 import {
   SCAN_ID_RE,
@@ -39,6 +40,9 @@ const plateInput = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   place: z.string().trim().min(1).max(200).optional(),
   priceIdr: z.number().int().min(0).max(100_000_000).optional(),
+  // Opt-in location of the place; stored rounded to ~100 m and only with a place.
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
 });
 
 /**
@@ -53,10 +57,11 @@ async function createPlate(
     date: string;
     meal: string;
     fallbackName: string;
-    plate?: { name?: string; place?: string; priceIdr?: number };
+    plate?: z.infer<typeof plateInput>;
   },
 ): Promise<string | null> {
   if (!values.plate) return null;
+  const coords = toStoredCoords(values.plate.lat, values.plate.lng);
   const [row] = await db
     .insert(plate)
     .values({
@@ -66,6 +71,7 @@ async function createPlate(
       meal: values.meal,
       name: values.plate.name?.trim() || values.fallbackName,
       place: values.plate.place ?? null,
+      ...(values.plate.place ? { lat: coords?.lat ?? null, lng: coords?.lng ?? null } : {}),
       priceIdr: values.plate.priceIdr ?? null,
     })
     .returning({ id: plate.id });
@@ -337,6 +343,7 @@ export const foodRouter = {
         name: foodLog.name,
         kcal: foodLog.kcal,
         meal: foodLog.meal,
+        scanId: foodLog.scanId,
         lastDate: sql<string>`max(${foodLog.date})`,
       })
       .from(foodLog)

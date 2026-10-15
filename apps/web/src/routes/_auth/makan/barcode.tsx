@@ -8,12 +8,15 @@ import { MEAL_LABELS, effectiveRamadan, slotsFor, suggestMealNow } from "@joyoro
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { normalizeBarcode } from "@joyorogo/api/lib/barcode";
 import { MAX_GRAMS, portionFromGrams } from "@joyorogo/api/lib/portion";
+import { foodKind } from "@joyorogo/api/lib/food-kind";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Card, FieldLabel, Page, PageHeader, Segmented } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
 import { fmtInt, parseNum } from "@/lib/format";
+import { KindPicker, SnackAdviceCard, useSnackAdvice } from "@/components/makan/snack-advice";
+import type { PickableKind } from "@/components/makan/snack-advice";
 import { client, orpc } from "@/utils/orpc";
 
 const MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
@@ -253,6 +256,8 @@ function BarcodeResult({
   const [manualKcal, setManualKcal] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [kindOverride, setKindOverride] = useState<PickableKind | null>(null);
+  const [halfUndo, setHalfUndo] = useState<{ field: "grams" | "kcal"; value: string } | null>(null);
 
   const save = async (input: Parameters<typeof client.food.add>[0]) => {
     setSaving(true);
@@ -283,6 +288,37 @@ function BarcodeResult({
 
   const data = lookup.data;
   const product = data && data.status !== "not_found" ? data.product : null;
+
+  const okData = data && data.status !== "not_found" && data.status !== "incomplete" ? data : null;
+  const gramsText = grams ?? String(okData?.servingSize ?? 100);
+  const gramsNum = parseNum(gramsText);
+  const gramsOk = gramsNum !== null && gramsNum >= 1 && gramsNum <= MAX_GRAMS;
+  const scaled = okData && gramsOk ? portionFromGrams(okData.per100, gramsNum) : null;
+  const manualKcalNum = parseNum(manualKcal);
+  const adviceName = (manualOpen ? manualName.trim() : product?.name) || undefined;
+  const kind = kindOverride ?? foodKind(adviceName ?? "");
+  const adviceKcal = manualOpen ? (manualKcalNum ?? 0) : (scaled?.kcal ?? 0);
+  const advice = useSnackAdvice({ date, kcal: adviceKcal, kind, slot: meal, name: adviceName });
+
+  // "Setengah porsi" rescales the field the screen is already using (grams or
+  // typed kcal); the previous text is kept so one tap brings the full portion back.
+  const halve = () => {
+    if (manualOpen) {
+      if (manualKcalNum === null) return;
+      setHalfUndo({ field: "kcal", value: manualKcal });
+      setManualKcal(String(Math.round(manualKcalNum / 2)));
+      return;
+    }
+    if (gramsNum === null) return;
+    setHalfUndo({ field: "grams", value: gramsText });
+    setGrams(String(Math.max(1, Math.round(gramsNum / 2))));
+  };
+  const undoHalf = () => {
+    if (!halfUndo) return;
+    if (halfUndo.field === "kcal") setManualKcal(halfUndo.value);
+    else setGrams(halfUndo.value);
+    setHalfUndo(null);
+  };
 
   const fallback = (
     <div className="space-y-3">
@@ -330,6 +366,13 @@ function BarcodeResult({
             />
           </div>
           {mealPicker}
+          <KindPicker value={kind} onChange={setKindOverride} />
+          <SnackAdviceCard
+            state={advice}
+            onHalf={halve}
+            halfApplied={halfUndo !== null}
+            onUndoHalf={undoHalf}
+          />
           {error && (
             <p role="alert" className="px-1 text-sm text-destructive">
               {error}
@@ -405,10 +448,6 @@ function BarcodeResult({
 
   const { per100, perServing, servingSize, missing } = data;
   const unit = data.product.unit;
-  const gramsText = grams ?? String(servingSize ?? 100);
-  const gramsNum = parseNum(gramsText);
-  const gramsOk = gramsNum !== null && gramsNum >= 1 && gramsNum <= MAX_GRAMS;
-  const scaled = gramsOk ? portionFromGrams(per100, gramsNum) : null;
 
   return (
     <div className="space-y-3">
@@ -521,6 +560,13 @@ function BarcodeResult({
         )}
 
         {mealPicker}
+        <KindPicker value={kind} onChange={setKindOverride} />
+        <SnackAdviceCard
+          state={advice}
+          onHalf={halve}
+          halfApplied={halfUndo !== null}
+          onUndoHalf={undoHalf}
+        />
         {error && (
           <p role="alert" className="px-1 text-sm text-destructive">
             {error}

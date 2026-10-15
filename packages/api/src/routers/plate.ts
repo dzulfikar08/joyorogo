@@ -7,6 +7,7 @@ import type { Database } from "@joyorogo/db";
 
 import { protectedProcedure } from "../index";
 import { jakartaToday, shiftDate } from "../lib/engine";
+import { normalizePlaceKey } from "../lib/places";
 import {
   aggregateNutrients,
   budgetRemaining,
@@ -117,9 +118,21 @@ export const plateRouter = {
           .set({ date: fields.date })
           .where(and(eq(foodLog.plateId, id), eq(foodLog.userId, context.session.user.id)));
       }
+      // Coordinates belong to the place they were saved for: a different
+      // (or removed) place must not keep them.
+      let moved = false;
+      if (fields.place !== undefined) {
+        const [current] = await context.db
+          .select({ place: plate.place })
+          .from(plate)
+          .where(and(eq(plate.id, id), eq(plate.userId, context.session.user.id)))
+          .limit(1);
+        moved =
+          normalizePlaceKey(current?.place ?? "") !== normalizePlaceKey(fields.place ?? "");
+      }
       const [row] = await context.db
         .update(plate)
-        .set(fields)
+        .set(moved ? { ...fields, lat: null, lng: null } : fields)
         .where(and(eq(plate.id, id), eq(plate.userId, context.session.user.id)))
         .returning();
       return row ?? null;

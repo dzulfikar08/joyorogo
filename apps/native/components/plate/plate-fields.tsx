@@ -1,13 +1,20 @@
 import { View } from "react-native";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { StyleSheet } from "react-native-unistyles";
 
 import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/format";
 
+import { SaveLocationToggle } from "@/components/places/location-toggle";
 import { Field, Input, Text } from "@/components/ui";
+import { usePlaceLocation } from "@/src/lib/location";
 
-/** The three plate fields shared by scan confirm and manual forms. */
-export type PlateValues = { name: string; place: string; price: string };
+/** The plate fields shared by scan confirm and manual forms; coords are set by PlateFields. */
+export type PlateValues = {
+  name: string;
+  place: string;
+  price: string;
+  coords?: { lat: number; lng: number } | null;
+};
 
 /**
  * "Harga sepiring": price in rupiah plus the plate name and where it came
@@ -28,6 +35,13 @@ export function PlateFields({
 }) {
   // Caret inside the price input, so backspacing a separator drops the digit.
   const priceCaret = useRef(0);
+  // Opt-in location of the place: kept on the values so plateInput can send it.
+  const location = usePlaceLocation();
+  const wanted = location.enabled && values.place.trim() !== "" ? location.coords : null;
+  useEffect(() => {
+    if (values.coords?.lat === wanted?.lat && values.coords?.lng === wanted?.lng) return;
+    onChange({ ...values, coords: wanted });
+  }, [wanted?.lat, wanted?.lng]);
   return (
     <View style={styles.gap}>
       <Text style={styles.title}>{title}</Text>
@@ -67,6 +81,11 @@ export function PlateFields({
           accessibilityLabel="Tempat membeli"
         />
       </Field>
+      <SaveLocationToggle
+        enabled={location.enabled}
+        status={location.status}
+        onChange={location.setEnabled}
+      />
     </View>
   );
 }
@@ -75,7 +94,7 @@ export function PlateFields({
 export function plateInput(
   values: PlateValues,
   fallbackName: string | undefined,
-): { name?: string; place?: string; priceIdr?: number } | undefined {
+): { name?: string; place?: string; priceIdr?: number; lat?: number; lng?: number } | undefined {
   const name = values.name.trim();
   const place = values.place.trim();
   const price = parseIdrInput(values.price);
@@ -84,6 +103,8 @@ export function plateInput(
   return {
     ...(name !== "" ? { name } : fallbackName ? { name: fallbackName } : {}),
     ...(place !== "" ? { place } : {}),
+    // Coordinates only ever ride along with a place name (see PlateFields).
+    ...(place !== "" && values.coords ? values.coords : {}),
     ...(priceIdr !== null ? { priceIdr } : {}),
   };
 }

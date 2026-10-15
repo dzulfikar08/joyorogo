@@ -26,18 +26,86 @@ function photoUrl(photoId: string): string {
 /** Cutouts are made in the background after saving: retry briefly, then give up. */
 const RETRY_DELAYS_MS = [3000, 6000, 12000];
 
+const OUTLINE_OFFSETS = [
+  [1.5, 0],
+  [-1.5, 0],
+  [0, 1.5],
+  [0, -1.5],
+  [1.1, 1.1],
+  [-1.1, 1.1],
+  [1.1, -1.1],
+  [-1.1, -1.1],
+] as const;
+
 /**
- * Clickable sticker thumbnail with retry-while-cutout-pending. Falls back to
- * a plain food icon if the cutout never shows up.
+ * Die-cut sticker: the cutout drawn over white-tinted copies (outline) and a
+ * soft dark copy (shadow). Tinting the alpha mask works on iOS and Android,
+ * where view shadows ignore the cutout's shape.
+ */
+function StickerImage({
+  uri,
+  size,
+  name,
+  hidden,
+  onLoad,
+  onError,
+}: {
+  uri: string;
+  size: number;
+  name: string;
+  hidden?: boolean;
+  onLoad?: () => void;
+  onError?: () => void;
+}) {
+  const source = { uri };
+  const box = { width: size, height: size };
+  return (
+    <View style={[box, hidden ? styles.hidden : undefined]} pointerEvents="none">
+      <Image
+        source={source}
+        resizeMode="contain"
+        style={[styles.stickerLayer, box, { tintColor: "#000", opacity: 0.22, top: 2.5 }]}
+      />
+      {OUTLINE_OFFSETS.map(([x, y]) => (
+        <Image
+          key={`${x}:${y}`}
+          source={source}
+          resizeMode="contain"
+          style={[styles.stickerLayer, box, { tintColor: "#fff", left: x, top: y }]}
+        />
+      ))}
+      <Image
+        source={source}
+        resizeMode="contain"
+        onLoad={onLoad}
+        onError={onError}
+        style={[styles.stickerLayer, box]}
+        accessibilityLabel={name}
+      />
+    </View>
+  );
+}
+
+/** Cutout without press handling, for chips and other compact spots. */
+export function StickerMini({ scanId, size = 32 }: { scanId: string; size?: number }) {
+  return <StickerImage uri={stickerUrl(scanId)} size={size} name="" />;
+}
+
+/**
+ * Sticker-first leading visual for food rows: the cutout (pressable, with
+ * retry-while-pending) or a soft makan-tinted tile with a food icon when
+ * there is no cutout or it never arrives.
  */
 export function FoodSticker({
   scanId,
   name,
   onPress,
+  size = 56,
 }: {
-  scanId: string;
+  scanId?: string | null;
   name: string;
-  onPress: () => void;
+  onPress?: () => void;
+  size?: number;
 }) {
   const { theme } = useUnistyles();
   const [attempt, setAttempt] = useState(0);
@@ -45,12 +113,12 @@ export function FoodSticker({
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (failed || loaded) return;
+    if (failed || loaded || !scanId) return;
     const delay = RETRY_DELAYS_MS[attempt];
     if (delay === undefined) return;
     const timer = setTimeout(() => setAttempt((n) => n + 1), delay);
     return () => clearTimeout(timer);
-  }, [attempt, failed, loaded]);
+  }, [attempt, failed, loaded, scanId]);
 
   const onError = () => {
     if (RETRY_DELAYS_MS[attempt] === undefined) {
@@ -61,34 +129,35 @@ export function FoodSticker({
     setAttempt((n) => n + 1);
   };
 
-  if (failed) {
-    return (
-      <View style={[styles.fallback, { backgroundColor: theme.colors.muted }]}>
-        <Ionicons name="restaurant" size={18} color={theme.colors.mutedForeground} />
-      </View>
-    );
-  }
+  const tile = (
+    <View
+      style={[
+        styles.fallback,
+        { width: size, height: size, backgroundColor: theme.colors.makanSoft },
+      ]}
+    >
+      <Ionicons name="restaurant" size={Math.round(size * 0.42)} color={theme.colors.makanText} />
+    </View>
+  );
+
+  if (!scanId || failed) return tile;
 
   return (
     <Pressable
-      accessibilityRole="imagebutton"
-      accessibilityLabel={`Lihat stiker ${name}`}
+      accessibilityRole={onPress ? "imagebutton" : "image"}
+      accessibilityLabel={onPress ? `Lihat stiker ${name}` : name}
+      disabled={!onPress}
       onPress={onPress}
-      style={({ pressed }) => [styles.stickerButton, pressed && styles.pressed]}
+      style={({ pressed }) => [{ width: size, height: size }, pressed && styles.pressed]}
     >
-      {!loaded ? (
-        <View style={[styles.fallback, { backgroundColor: theme.colors.muted }]}>
-          <ActivityIndicator size="small" color={theme.colors.mutedForeground} />
-        </View>
-      ) : null}
-      <Image
-        source={{
-          uri: `${stickerUrl(scanId)}${attempt > 0 ? `?r=${attempt}` : ""}`,
-        }}
+      {!loaded ? <View style={styles.fallbackLoading}>{tile}</View> : null}
+      <StickerImage
+        uri={`${stickerUrl(scanId)}${attempt > 0 ? `?r=${attempt}` : ""}`}
+        size={size}
+        name={name}
+        hidden={!loaded}
         onLoad={() => setLoaded(true)}
         onError={onError}
-        style={[styles.stickerImage, loaded ? undefined : styles.hidden]}
-        accessibilityLabel={name}
       />
     </Pressable>
   );
@@ -235,24 +304,20 @@ const styles = StyleSheet.create((theme) => ({
   hidden: {
     opacity: 0,
   },
-  stickerButton: {
-    width: 40,
-    height: 40,
-  },
-  stickerImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  stickerLayer: {
+    position: "absolute",
   },
   fallback: {
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fallbackLoading: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
   },
   viewerBackdrop: {
     flex: 1,

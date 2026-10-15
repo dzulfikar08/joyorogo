@@ -57,6 +57,14 @@
           "barcodeScannerEnabled": true
         }
       ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Izinkan lokasi supaya JoyoRogo bisa menyimpan tempat makanmu. Hanya perkiraan sekitar 100 m, tersimpan pribadi, dan cuma kamu yang bisa melihatnya.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
+        }
+      ],
       "react-native-health-connect",
       [
         "expo-notifications",

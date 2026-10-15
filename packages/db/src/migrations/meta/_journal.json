@@ -190,6 +190,13 @@
       "when": 1792025873532,
       "tag": "0026_barcode_product",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1792048501245,
+      "tag": "0027_plate_location",
+      "breakpoints": true
     }
   ]
 }

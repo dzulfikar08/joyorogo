@@ -79,16 +79,32 @@ export function ListGroup({ className, ...props }: ComponentProps<"ul">) {
 type RowContent = {
   icon?: ReactNode;
   title: ReactNode;
+  /** Wrap the title up to 2 lines instead of truncating to 1. */
+  wrapTitle?: boolean;
   subtitle?: ReactNode;
   value?: ReactNode;
 };
 
-function RowInner({ icon, title, subtitle, value, chevron }: RowContent & { chevron?: boolean }) {
+function RowInner({
+  icon,
+  title,
+  wrapTitle,
+  subtitle,
+  value,
+  chevron,
+}: RowContent & { chevron?: boolean }) {
   return (
     <>
       {icon && <span className="shrink-0">{icon}</span>}
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[0.9375rem] font-semibold">{title}</span>
+        <span
+          className={cn(
+            "block text-[0.9375rem] font-semibold",
+            wrapTitle ? "line-clamp-2 break-words leading-snug" : "truncate",
+          )}
+        >
+          {title}
+        </span>
         {subtitle && (
           <span className="mt-0.5 block truncate text-[0.8125rem] text-muted-foreground">
             {subtitle}

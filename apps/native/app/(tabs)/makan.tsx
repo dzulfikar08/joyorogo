@@ -2,7 +2,7 @@ import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Pressable, ScrollView, View } from "react-native";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Redirect, router } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -21,13 +21,12 @@ import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/f
 
 import { BelanjaSection } from "@/components/plate/belanja";
 import { PlateHeader } from "@/components/plate/plate-header";
-import { MacroIcon } from "@/utils/macro-icons";
-import { MacroLine } from "@/components/macro-line";
 import { DaySwitcher } from "@/components/day-switcher";
 import { Cerita } from "@/components/cerita";
 import { FoodPortionSheet } from "@/components/food-portion-sheet";
 import type { CeritaPhase } from "@/components/cerita";
-import { FoodSticker, StickerViewer, stickerUrl } from "@/components/sticker";
+import { StickerMini, StickerViewer, stickerUrl } from "@/components/sticker";
+import { FoodRow } from "@/components/makan/food-row";
 import type { StickerViewerTarget } from "@/components/sticker";
 import {
   BootLoader,
@@ -40,7 +39,6 @@ import {
   Input,
   ListGroup,
   MacroBar,
-  ListRow,
   Num,
   PageHeader,
   Ring,
@@ -59,6 +57,21 @@ import type { QueryKey } from "@tanstack/react-query";
 import { FavoritChips, FavoritManageSheet, useFavorites } from "@/components/favorit";
 import { SheetActions } from "@/components/sheet-actions";
 import type { SummaryDelta } from "@joyorogo/api/lib/optimistic";
+import { FOOD_KIND_LABELS, foodKind, matchesKind } from "@joyorogo/api/lib/food-kind";
+import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
+import type { MakanView } from "@joyorogo/api/lib/diary-view";
+import { KalenderView } from "@/components/makan/kalender-view";
+import { KindChips } from "@/components/makan/kind-chips";
+import { MonthScrubber } from "@/components/makan/month-scrubber";
+import { StikerView } from "@/components/makan/stiker-view";
+import { Timeline } from "@/components/makan/timeline";
+import { KindPicker, SnackAdviceSection } from "@/components/makan/snack-advice";
+import type { PickableKind } from "@/components/makan/snack-advice";
+import { MakanViewSwitcher } from "@/components/makan/view-switcher";
+import { PlacesView } from "@/components/places/places-view";
+import { SaveLocationToggle } from "@/components/places/location-toggle";
+import { loadMakanPrefs, saveMakanKind, saveMakanView } from "@/src/lib/makan-prefs";
+import { usePlaceLocation } from "@/src/lib/location";
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
 
@@ -79,6 +92,35 @@ export default function Makan() {
   const isToday = date === today;
 
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
+
+  // Last chosen view and kind chip live on the device; the saved pair loads
+  // once, unless the user already picked something while it was reading.
+  const [view, setView] = useState<MakanView>("daftar");
+  const [kind, setKind] = useState<FoodKindFilter>("semua");
+  const chosen = useRef(false);
+  useEffect(() => {
+    void loadMakanPrefs().then((saved) => {
+      if (chosen.current) return;
+      if (saved.view) setView(saved.view);
+      if (saved.kind) setKind(saved.kind);
+    });
+  }, []);
+  const chooseView = (next: MakanView) => {
+    chosen.current = true;
+    setView(next);
+    void saveMakanView(next);
+  };
+  const chooseKind = (next: FoodKindFilter) => {
+    chosen.current = true;
+    setKind(next);
+    void saveMakanKind(next);
+  };
+  const openDaftar = (target: string) => {
+    setDate(target);
+    chooseView("daftar");
+  };
+  /** Kalender and Stiker read their own queries; nudge them after an edit. */
+  const refreshDiary = () => void queryClient.invalidateQueries({ queryKey: orpc.diary.key() });
   const ramadan = effectiveRamadan(profile.data?.profile?.ramadanMode);
   const MEAL_KEYS = ALL_MEAL_KEYS.filter((key) => slotsFor(ramadan).includes(key));
 
@@ -207,10 +249,13 @@ export default function Makan() {
       if (!quickAddRef.current) {
         setName("");
         setKcal("");
+        setKindOverride(null);
+        setFullPortion(null);
         setProtein("");
         setCarbs("");
         setFat("");
         setPlatePriceManual("");
+        setManualPlace("");
         setMacrosOpen(false);
       }
       quickAddRef.current = false;
@@ -227,7 +272,7 @@ export default function Makan() {
         },
       };
     },
-    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key()],
+    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.diary.key()],
   });
 
   const deleteFood = useDelayedDelete<FoodRow>({
@@ -248,7 +293,7 @@ export default function Makan() {
     },
     label: (row) => row.name,
     fallback: "Catatan",
-    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key()],
+    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.diary.key()],
   });
 
   const updatePlate = useOptimisticMutation<
@@ -336,7 +381,7 @@ export default function Makan() {
                 }),
       };
     },
-    invalidate: () => [orpc.plate.key(), orpc.food.key(), orpc.day.key()],
+    invalidate: () => [orpc.plate.key(), orpc.food.key(), orpc.day.key(), orpc.diary.key()],
   });
 
   const [sheetMeal, setSheetMeal] = useState<Meal | null>(null);
@@ -351,8 +396,19 @@ export default function Makan() {
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
   const [macrosOpen, setMacrosOpen] = useState(false);
+  // Item kind for the advice card: the name heuristic until a pill is tapped.
+  const [kindOverride, setKindOverride] = useState<PickableKind | null>(null);
+  // Manual fields as typed before "Setengah porsi", so one tap restores them.
+  const [fullPortion, setFullPortion] = useState<{
+    kcal: string;
+    protein: string;
+    carbs: string;
+    fat: string;
+  } | null>(null);
   // Manual form's optional plate price, and the diary's inline plate editor.
   const [platePriceManual, setPlatePriceManual] = useState("");
+  const [manualPlace, setManualPlace] = useState("");
+  const placeLocation = usePlaceLocation();
   // Caret inside the manual price input, so backspacing a separator drops the
   // digit instead of letting the separator snap back.
   const priceCaret = useRef(0);
@@ -378,7 +434,7 @@ export default function Makan() {
   if (gate === "anon") {
     return <Redirect href="/login" />;
   }
-  if (listQuery.isPending) {
+  if (view === "daftar" && listQuery.isPending) {
     return (
       <Screen>
         <PageHeader title="Makan" />
@@ -389,7 +445,7 @@ export default function Makan() {
       </Screen>
     );
   }
-  if (listQuery.isError) {
+  if (view === "daftar" && listQuery.isError) {
     return (
       <Screen>
         <PageHeader title="Makan" />
@@ -398,12 +454,34 @@ export default function Makan() {
     );
   }
 
-  const items = listQuery.data.items;
-  const totals = listQuery.data.totals;
+  const items = listQuery.data?.items ?? [];
+  const totals = listQuery.data?.totals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+  const visibleItems = items.filter((item) => matchesKind(item.name, kind));
   const targets = summaryQuery.data?.targets ?? null;
   const eatenKcal = summaryQuery.data?.eatenKcal ?? totals.kcal;
   // Carb/fat/fiber floors from the engine; same reference as the web card.
   const macroBudgets = targets ? macroTargets(targets.eatKcal, 70) : null;
+
+  const manualKind = kindOverride ?? foodKind(name);
+  const halveManual = () => {
+    const half = (value: string) => {
+      const n = parseNum(value);
+      return n === null ? value : String(Math.round((n / 2) * 10) / 10);
+    };
+    setFullPortion({ kcal, protein, carbs, fat });
+    setKcal(String(Math.round((parseNum(kcal) ?? 0) / 2)));
+    setProtein(half(protein));
+    setCarbs(half(carbs));
+    setFat(half(fat));
+  };
+  const undoHalfManual = () => {
+    if (!fullPortion) return;
+    setKcal(fullPortion.kcal);
+    setProtein(fullPortion.protein);
+    setCarbs(fullPortion.carbs);
+    setFat(fullPortion.fat);
+    setFullPortion(null);
+  };
 
   const submit = () => {
     const meal = sheetMeal;
@@ -425,8 +503,19 @@ export default function Makan() {
       setFormError("Harga piringnya angka rupiah bulat, contoh: 28000.");
       return;
     }
+    const placeClean = manualPlace.trim();
     const plate =
-      priceNum !== null ? { name: name.trim(), priceIdr: Math.round(priceNum) } : undefined;
+      priceNum !== null || placeClean !== ""
+        ? {
+            name: name.trim(),
+            ...(priceNum !== null ? { priceIdr: Math.round(priceNum) } : {}),
+            ...(placeClean !== "" ? { place: placeClean } : {}),
+            // Coordinates ride along only with a place name and only when opted in.
+            ...(placeClean !== "" && placeLocation.enabled && placeLocation.coords
+              ? placeLocation.coords
+              : {}),
+          }
+        : undefined;
     setFormError(null);
     addFood.mutate({
       date,
@@ -444,17 +533,36 @@ export default function Makan() {
   const showFeedback = (result: { count: number; dates: string[] }) => {
     const labels = result.dates.map((d) => relativeDayLabel(d, today));
     setCeritaFeedback(`${result.count} makanan dicatat ke ${labels.join(" dan ")}.`);
+    refreshDiary();
+  };
+
+  /** Open a day's cutout in the full-size viewer. */
+  const viewSticker = (item: FoodRow) => {
+    const scanId = item.scanId;
+    if (!scanId) return;
+    setViewer({
+      uri: stickerUrl(scanId),
+      name: item.name,
+      kcal: item.kcal,
+      photoId: item.photoId,
+      protein: item.protein,
+      carbs: item.carbs,
+      fat: item.fat,
+    });
   };
 
   const closeSheet = () => {
     setSheetMeal(null);
     setFormError(null);
     setName("");
+    setKindOverride(null);
+    setFullPortion(null);
     setKcal("");
     setProtein("");
     setCarbs("");
     setFat("");
     setPlatePriceManual("");
+    setManualPlace("");
     setMacrosOpen(false);
     setManualOpen(false);
     setCeritaPhase("input");
@@ -462,11 +570,12 @@ export default function Makan() {
   };
 
   const renderSlot = (key: Meal) => {
-    const slotItems = items.filter((item) => item.meal === key);
+    const slotItems = visibleItems.filter((item) => item.meal === key);
     const slotKcal = slotItems.reduce((sum, item) => sum + item.kcal, 0);
     return (
       <View key={key}>
         <View style={styles.slotHeader}>
+          <View style={styles.slotDot} />
           <Text style={styles.slotTitle}>{MEAL_LABELS[key]}</Text>
           <View style={styles.slotRight}>
             {slotKcal > 0 ? <Num style={styles.slotKcal}>{fmtKcal(slotKcal)} kcal</Num> : null}
@@ -565,82 +674,12 @@ export default function Makan() {
                       />
                     ) : null}
                     {segment.rows.map((item) => (
-                      <ListRow
+                      <FoodRow
                         key={item.id}
-                        title={item.name}
-                        onPress={() => setEditRow(item)}
-                        subtitle={
-                          <View style={styles.metaBox}>
-                            <View style={styles.metaLine}>
-                              <View style={styles.metaItem}>
-                                <MacroIcon macro="kcal" size={14} />
-                                <Text style={[styles.metaText, styles.kcalText]}>
-                                  {fmtKcal(item.kcal)} kkal
-                                </Text>
-                              </View>
-                              {item.grams ? (
-                                <View style={styles.metaItem}>
-                                  <MacroIcon macro="grams" size={14} />
-                                  <Text style={[styles.metaText, styles.gramText]}>
-                                    {fmtKcal(item.grams)} g
-                                  </Text>
-                                </View>
-                              ) : null}
-                            </View>
-                            {[item.protein, item.carbs, item.fat, item.fiber].some(
-                              (g) => (g ?? 0) > 0,
-                            ) ? (
-                              <MacroLine
-                                compact
-                                protein={item.protein}
-                                carbs={item.carbs}
-                                fat={item.fat}
-                                fiber={item.fiber}
-                              />
-                            ) : item.source === "ai" ? (
-                              <Text style={styles.gramsText}>Dari pindai AI</Text>
-                            ) : null}
-                          </View>
-                        }
-                        thumb={
-                          item.scanId ? (
-                            <FoodSticker
-                              scanId={item.scanId}
-                              name={item.name}
-                              onPress={() => {
-                                const scanId = item.scanId;
-                                if (!scanId) return;
-                                setViewer({
-                                  uri: stickerUrl(scanId),
-                                  name: item.name,
-                                  kcal: item.kcal,
-                                  photoId: item.photoId,
-                                  protein: item.protein,
-                                  carbs: item.carbs,
-                                  fat: item.fat,
-                                });
-                              }}
-                            />
-                          ) : undefined
-                        }
-                        right={
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={`Hapus ${item.name}`}
-                            onPress={() => deleteFood(item)}
-                            hitSlop={4}
-                            style={({ pressed }) => [
-                              styles.deleteButton,
-                              pressed && styles.pressedSoft,
-                            ]}
-                          >
-                            <Ionicons
-                              name="trash-outline"
-                              size={18}
-                              color={theme.colors.destructive}
-                            />
-                          </Pressable>
-                        }
+                        item={item}
+                        onEdit={() => setEditRow(item)}
+                        onDelete={() => deleteFood(item)}
+                        onViewSticker={() => viewSticker(item)}
                       />
                     ))}
                   </View>
@@ -654,128 +693,206 @@ export default function Makan() {
 
   return (
     <Screen>
-      <PageHeader title="Makan" caption={isToday ? "Catat piringmu" : undefined} />
+      <PageHeader
+        title="Makan"
+        caption={isToday && view === "daftar" ? "Catat piringmu" : undefined}
+      />
 
-      {/* Day switcher */}
-      <DaySwitcher date={date} onChange={setDate} />
+      <MakanViewSwitcher value={view} onChange={chooseView} />
+      {view !== "tempat" ? <KindChips value={kind} onChange={chooseKind} /> : null}
 
-      {/* Summary strip: ring + per-macro progress bars (same budgets as web) */}
-      <Card style={styles.summaryCard}>
-        <Ring
-          size={110}
-          stroke={12}
-          value={eatenKcal}
-          max={targets !== null && targets.eatKcal > 0 ? targets.eatKcal : Math.max(eatenKcal, 1)}
-          color={
-            {
-              ok: theme.colors.makan,
-              near: theme.colors.eatNear,
-              over: theme.colors.destructive,
-            }[eatTone(eatenKcal, targets?.eatKcal ?? 0)]
-          }
-          track={theme.colors.makanSoft}
-        >
-          <View style={styles.ringCenter}>
-            <Num style={styles.ringKcal} adjustsFontSizeToFit numberOfLines={1}>
-              {fmtKcal(eatenKcal)}
-            </Num>
-            <Text style={styles.ringUnit}>kcal</Text>
-            {targets !== null && targets.eatKcal > 0 ? (
-              <Text
-                style={[
-                  styles.ringTarget,
-                  eatenKcal > targets.eatKcal && { color: theme.colors.bakarText },
-                ]}
-              >
-                {eatenKcal > targets.eatKcal
-                  ? `+${fmtKcal(eatenKcal - targets.eatKcal)} lebih`
-                  : `dari ${fmtKcal(targets.eatKcal)}`}
-              </Text>
-            ) : null}
-          </View>
-        </Ring>
-        <View style={styles.summaryInfo}>
-          <MacroBar
-            macro="protein"
-            label="Protein"
-            eaten={totals.protein}
-            budget={summaryQuery.data?.protein?.targetG ?? null}
-          />
-          <MacroBar macro="carbs" label="Karbo" eaten={totals.carbs} budget={macroBudgets?.carbsG ?? null} />
-          <MacroBar macro="fat" label="Lemak" eaten={totals.fat} budget={macroBudgets?.fatG ?? null} />
-          <MacroBar macro="fiber" label="Serat" eaten={totals.fiber} budget={macroBudgets?.fiberG ?? null} />
-        </View>
-      </Card>
+      {view === "daftar" ? (
+        <>
+          <MonthScrubber date={date} kind={kind} onPick={setDate} />
 
-      {/* Belanja: angkanya selalu hari ini */}
-      {isToday ? <BelanjaSection /> : null}
+          {/* Day switcher */}
+          <DaySwitcher date={date} onChange={setDate} />
 
-      {/* Global story entry: several meals, even another day, in one go */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Ceritakan makananmu"
-        onPress={() => {
-          setCeritaFeedback(null);
-          setCeritaOpen(true);
-        }}
-        style={({ pressed }) => [styles.ceritaBar, pressed && styles.pressedSoft]}
-      >
-        <View style={styles.ceritaMic}>
-          <Ionicons name="mic" size={20} color={theme.colors.primaryForeground} />
-        </View>
-        <View style={styles.ceritaTexts}>
-          <Text style={styles.ceritaTitle}>Ceritakan makananmu</Text>
-          <Text style={styles.ceritaSub}>Ketik atau ucapkan, AI yang hitung kalorinya.</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={theme.colors.mutedForeground} />
-      </Pressable>
+          {/* Summary strip: ring + per-macro progress bars (same budgets as web) */}
+          <Card style={styles.summaryCard}>
+            <Ring
+              size={110}
+              stroke={12}
+              value={eatenKcal}
+              max={
+                targets !== null && targets.eatKcal > 0 ? targets.eatKcal : Math.max(eatenKcal, 1)
+              }
+              color={
+                {
+                  ok: theme.colors.makan,
+                  near: theme.colors.eatNear,
+                  over: theme.colors.destructive,
+                }[eatTone(eatenKcal, targets?.eatKcal ?? 0)]
+              }
+              track={theme.colors.makanSoft}
+            >
+              <View style={styles.ringCenter}>
+                <Num style={styles.ringKcal} adjustsFontSizeToFit numberOfLines={1}>
+                  {fmtKcal(eatenKcal)}
+                </Num>
+                <Text style={styles.ringUnit}>kcal</Text>
+                {targets !== null && targets.eatKcal > 0 ? (
+                  <Text
+                    style={[
+                      styles.ringTarget,
+                      eatenKcal > targets.eatKcal && { color: theme.colors.bakarText },
+                    ]}
+                  >
+                    {eatenKcal > targets.eatKcal
+                      ? `+${fmtKcal(eatenKcal - targets.eatKcal)} lebih`
+                      : `dari ${fmtKcal(targets.eatKcal)}`}
+                  </Text>
+                ) : null}
+              </View>
+            </Ring>
+            <View style={styles.summaryInfo}>
+              <MacroBar
+                macro="protein"
+                label="Protein"
+                eaten={totals.protein}
+                budget={summaryQuery.data?.protein?.targetG ?? null}
+              />
+              <MacroBar
+                macro="carbs"
+                label="Karbo"
+                eaten={totals.carbs}
+                budget={macroBudgets?.carbsG ?? null}
+              />
+              <MacroBar
+                macro="fat"
+                label="Lemak"
+                eaten={totals.fat}
+                budget={macroBudgets?.fatG ?? null}
+              />
+              <MacroBar
+                macro="fiber"
+                label="Serat"
+                eaten={totals.fiber}
+                budget={macroBudgets?.fiberG ?? null}
+              />
+            </View>
+          </Card>
 
-      {ceritaFeedback ? (
-        <View style={styles.feedbackBox}>
-          <Ionicons name="checkmark-circle" size={20} color={theme.colors.makanText} />
-          <Text style={styles.feedbackText}>{ceritaFeedback}</Text>
+          {/* Belanja: angkanya selalu hari ini */}
+          {isToday ? <BelanjaSection /> : null}
+
+          {/* Global story entry: several meals, even another day, in one go */}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Tutup pemberitahuan"
-            onPress={() => setCeritaFeedback(null)}
-            style={({ pressed }) => [styles.feedbackClose, pressed && styles.pressedSoft]}
+            accessibilityLabel="Ceritakan makananmu"
+            onPress={() => {
+              setCeritaFeedback(null);
+              setCeritaOpen(true);
+            }}
+            style={({ pressed }) => [styles.ceritaBar, pressed && styles.pressedSoft]}
           >
-            <Ionicons name="close" size={18} color={theme.colors.makanText} />
+            <View style={styles.ceritaMic}>
+              <Ionicons name="mic" size={20} color={theme.colors.primaryForeground} />
+            </View>
+            <View style={styles.ceritaTexts}>
+              <Text style={styles.ceritaTitle}>Ceritakan makananmu</Text>
+              <Text style={styles.ceritaSub}>Ketik atau ucapkan, AI yang hitung kalorinya.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.mutedForeground} />
           </Pressable>
-        </View>
-      ) : null}
 
-      {favorites.items.length > 0 ? (
-        <Card style={styles.favCard}>
-          <Text style={styles.recentLabel}>
-            Favorit · tap untuk catat ke {MEAL_LABELS[suggestMealNow(new Date(), ramadan)]}
-            {isToday ? "" : `, ${fmtDateId(date)}`}
-          </Text>
-          <FavoritChips
-            favorites={favorites}
-            date={date}
-            meal={suggestMealNow(new Date(), ramadan)}
-            onManage={() => setManageOpen(true)}
-          />
-        </Card>
-      ) : null}
+          {ceritaFeedback ? (
+            <View style={styles.feedbackBox}>
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.makanText} />
+              <Text style={styles.feedbackText}>{ceritaFeedback}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Tutup pemberitahuan"
+                onPress={() => setCeritaFeedback(null)}
+                style={({ pressed }) => [styles.feedbackClose, pressed && styles.pressedSoft]}
+              >
+                <Ionicons name="close" size={18} color={theme.colors.makanText} />
+              </Pressable>
+            </View>
+          ) : null}
 
-      {items.length === 0 ? (
-        <EmptyState
-          pose="ready"
-          title="Belum ada makanan"
-          description={`Catat makan pertamamu untuk ${isToday ? "hari ini" : fmtDateId(date)}, atau foto piringmu lewat tombol kamera.`}
-          action={
-            <Button
-              label="Tambah makanan"
-              icon="add"
-              onPress={() => setSheetMeal(suggestMealNow(new Date(), ramadan))}
+          {favorites.items.length > 0 ? (
+            <Card style={styles.favCard}>
+              <Text style={styles.recentLabel}>
+                Favorit · tap untuk catat ke {MEAL_LABELS[suggestMealNow(new Date(), ramadan)]}
+                {isToday ? "" : `, ${fmtDateId(date)}`}
+              </Text>
+              <FavoritChips
+                favorites={favorites}
+                date={date}
+                meal={suggestMealNow(new Date(), ramadan)}
+                onManage={() => setManageOpen(true)}
+              />
+            </Card>
+          ) : null}
+
+          {items.length === 0 ? (
+            <EmptyState
+              pose="ready"
+              title="Belum ada makanan"
+              description={`Catat makan pertamamu untuk ${isToday ? "hari ini" : fmtDateId(date)}, atau foto piringmu lewat tombol kamera.`}
+              action={
+                <Button
+                  label="Tambah makanan"
+                  icon="add"
+                  onPress={() => setSheetMeal(suggestMealNow(new Date(), ramadan))}
+                />
+              }
             />
-          }
-        />
-      ) : (
-        MEAL_KEYS.map(renderSlot)
-      )}
+          ) : (
+            <Timeline title={relativeDayLabel(date, today)} count={visibleItems.length}>
+              {MEAL_KEYS.map(renderSlot)}
+            </Timeline>
+          )}
+        </>
+      ) : null}
+
+      {view === "kalender" ? (
+        <KalenderView date={date} kind={kind} onSelect={setDate}>
+          <Timeline
+            title={relativeDayLabel(date, today)}
+            count={visibleItems.length}
+            trailing={
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Buka di Daftar"
+                onPress={() => chooseView("daftar")}
+                hitSlop={8}
+                style={({ pressed }) => [styles.openDaftar, pressed && styles.pressedSoft]}
+              >
+                <Text style={styles.openDaftarLabel}>Buka di Daftar</Text>
+                <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+              </Pressable>
+            }
+          >
+            {listQuery.isPending ? (
+              <Skeleton width="100%" height={96} radius={24} />
+            ) : visibleItems.length > 0 ? (
+              <ListGroup>
+                {visibleItems.map((item) => (
+                  <FoodRow
+                    key={item.id}
+                    item={item}
+                    onEdit={() => setEditRow(item)}
+                    onDelete={() => deleteFood(item)}
+                    onViewSticker={() => viewSticker(item)}
+                  />
+                ))}
+              </ListGroup>
+            ) : (
+              <Text style={styles.slotEmpty}>
+                {kind === "semua"
+                  ? "Belum ada catatan di hari ini."
+                  : `Tidak ada ${FOOD_KIND_LABELS[kind].toLowerCase()} di hari ini.`}
+              </Text>
+            )}
+          </Timeline>
+        </KalenderView>
+      ) : null}
+
+      {view === "stiker" ? <StikerView date={date} kind={kind} onOpen={setEditRow} /> : null}
+
+      {view === "tempat" ? <PlacesView onOpenDate={openDaftar} /> : null}
 
       {/* Add form lives in a bottom sheet; Ceritakan leads, manual hides behind a toggle */}
       <Sheet
@@ -814,7 +931,9 @@ export default function Makan() {
         ) : null}
         {ceritaPhase === "input" && sheetMeal !== null && favorites.items.length > 0 ? (
           <View style={styles.recentBox}>
-            <Text style={styles.recentLabel}>Favorit · tap untuk masuk ke {MEAL_LABELS[sheetMeal]}</Text>
+            <Text style={styles.recentLabel}>
+              Favorit · tap untuk masuk ke {MEAL_LABELS[sheetMeal]}
+            </Text>
             <FavoritChips
               favorites={favorites}
               date={date}
@@ -838,6 +957,7 @@ export default function Makan() {
                 <Chip
                   key={food.name}
                   label={`${food.name} · ${fmtKcal(food.kcal)}`}
+                  leading={food.scanId ? <StickerMini scanId={food.scanId} size={32} /> : undefined}
                   disabled={addFood.isPending}
                   onPress={() => {
                     quickAddRef.current = true;
@@ -919,6 +1039,17 @@ export default function Makan() {
                 placeholder="350"
               />
             </Field>
+            <KindPicker value={manualKind} onChange={setKindOverride} />
+            <SnackAdviceSection
+              date={date}
+              kcal={parseNum(kcal) ?? 0}
+              kind={manualKind}
+              slot={sheetMeal ?? "snack"}
+              name={name.trim() || undefined}
+              onHalf={halveManual}
+              halfApplied={fullPortion !== null}
+              onUndoHalf={undoHalfManual}
+            />
             <Field label="Harga piring ini (Rp, opsional)">
               <Input
                 value={formatIdrInput(platePriceManual)}
@@ -936,6 +1067,20 @@ export default function Makan() {
                 accessibilityLabel="Harga piring ini dalam rupiah"
               />
             </Field>
+            <Field label="Tempat (opsional)">
+              <Input
+                value={manualPlace}
+                onChangeText={setManualPlace}
+                maxLength={200}
+                placeholder="Warung Bu Siti"
+                accessibilityLabel="Tempat membeli"
+              />
+            </Field>
+            <SaveLocationToggle
+              enabled={placeLocation.enabled}
+              status={placeLocation.status}
+              onChange={placeLocation.setEnabled}
+            />
             {macrosOpen ? (
               <View style={styles.macroRow}>
                 <Input
@@ -984,7 +1129,10 @@ export default function Makan() {
         <FoodPortionSheet
           key={editRow.id}
           row={editRow}
-          onClose={() => setEditRow(null)}
+          onClose={() => {
+            setEditRow(null);
+            refreshDiary();
+          }}
           favorite={favorites.isFoodSaved(editRow)}
           onFavorite={() => favorites.toggleFood(editRow)}
           onShare={() => {
@@ -1004,7 +1152,6 @@ export default function Makan() {
           }}
         />
       ) : null}
-
 
       {/* Global Ceritakan: cerita bebas, bisa beberapa waktu makan sekaligus */}
       <Sheet visible={ceritaOpen} onClose={() => setCeritaOpen(false)} title="Ceritakan makananmu">
@@ -1033,46 +1180,6 @@ export default function Makan() {
 }
 
 const styles = StyleSheet.create((theme) => ({
-  metaBox: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    columnGap: theme.spacing.md,
-    rowGap: 2,
-  },
-  metaLine: {
-    flexDirection: "row",
-    alignItems: "center",
-    columnGap: theme.spacing.md,
-  },
-  metaItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  metaText: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: "700",
-    fontVariant: ["tabular-nums"],
-  },
-  kcalText: {
-    color: theme.colors.kcalText,
-  },
-  gramText: {
-    color: theme.colors.gramText,
-  },
-  deleteButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: -12,
-  },
-  gramsText: {
-    fontSize: theme.fontSize.xs,
-    color: theme.colors.mutedForeground,
-    fontVariant: ["tabular-nums"],
-  },
   pressedSoft: {
     opacity: 0.7,
   },
@@ -1133,6 +1240,28 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.makanSoft,
     alignItems: "center",
     justifyContent: "center",
+  },
+  slotDot: {
+    position: "absolute",
+    left: -21,
+    top: 15,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.colors.primary,
+    opacity: 0.5,
+  },
+  openDaftar: {
+    marginLeft: "auto",
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  openDaftarLabel: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.primary,
   },
   slotEmpty: {
     fontSize: theme.fontSize.sm,

@@ -317,7 +317,7 @@ export function Cerita({
       for (const [index, item] of items.entries()) {
         const key = groupKey(item);
         const existing = plateIds[key];
-        let plate: { name?: string; place?: string; priceIdr?: number } | undefined;
+        let plate: { name?: string; place?: string; priceIdr?: number; lat?: number; lng?: number } | undefined;
         if (!existing) {
           const plateVals = plates[key];
           if (plateVals) {
@@ -325,11 +325,12 @@ export function Cerita({
             const place = plateVals.place.trim();
             const priceNum = parseIdrInput(plateVals.price);
             const priceIdr = plateVals.price.trim() !== "" && priceNum !== null ? priceNum : null;
-            // Pass a plate only when the price is filled or the name was edited.
-            if (priceIdr !== null || (name !== "" && name !== item.name)) {
+            // Pass a plate when the price is filled, a place is named, or the name was edited.
+            if (priceIdr !== null || place !== "" || (name !== "" && name !== item.name)) {
               plate = {
                 ...(name !== "" ? { name } : {}),
                 ...(place !== "" ? { place } : {}),
+                ...(place !== "" && plateVals.coords ? plateVals.coords : {}),
                 ...(priceIdr !== null ? { priceIdr } : {}),
               };
             }

@@ -67,6 +67,21 @@ function PrivasiPage() {
           </section>
 
           <section className="rounded-3xl bg-card p-5">
+            <h2 className="text-base font-bold tracking-tight">Lokasi tempat makan</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Lokasi mati secara bawaan. Kalau kamu menyalakan "Simpan lokasi tempat makan" saat
+              mencatat piring dengan nama tempat, kami menyimpan titik tempat itu dibulatkan ke
+              sekitar 100 meter, bukan titik persis. Lokasi hanya dipakai untuk peta dan urutan
+              "Terdekat" di tab Tempat, hanya bisa dilihat akunmu, dan tidak pernah muncul di profil
+              publik atau feed.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Lokasi bisa dihapus per tempat atau sekaligus semuanya dari tab Tempat tanpa
+              mengubah catatan makanmu. Menghapus semua data juga menghapus semua lokasi tersimpan.
+            </p>
+          </section>
+
+          <section className="rounded-3xl bg-card p-5">
             <h2 className="text-base font-bold tracking-tight">Cerita dan rekaman suara</h2>
             <p className="mt-3 text-sm leading-relaxed">
               Saat kamu menceritakan makananmu, teks atau rekaman suaramu diteruskan ke AI

@@ -305,3 +305,21 @@
   transform: translateY(1px);
   opacity: 0.9;
 }
+
+/* MapLibre chrome (Tempat makan map): follow the app surface in dark mode. */
+.dark .maplibregl-ctrl-attrib {
+  background: color-mix(in oklab, var(--card) 85%, transparent);
+  color: var(--muted-foreground);
+}
+.dark .maplibregl-ctrl-attrib a {
+  color: var(--foreground);
+}
+.dark .maplibregl-ctrl-group {
+  background: var(--card);
+}
+.dark .maplibregl-ctrl-group button + button {
+  border-top-color: var(--border);
+}
+.dark .maplibregl-ctrl-group .maplibregl-ctrl-icon {
+  filter: invert(1);
+}

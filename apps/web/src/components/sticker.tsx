@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Utensils, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
@@ -23,7 +23,12 @@ export function postPhotoUrl(postId: string): string {
   return `${getServerUrl(env.VITE_SERVER_URL)}/post-photo/${postId}`;
 }
 
-const DROP_SHADOW = { filter: "drop-shadow(0 3px 4px rgb(0 0 0 / 0.28))" } as const;
+/** Die-cut look: thin white outline (four 1px hard shadows) over a soft drop shadow. */
+export const STICKER_FILTER = {
+  filter:
+    "drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff) drop-shadow(0 3px 4px rgb(0 0 0 / 0.28))",
+} as const;
+const DROP_SHADOW = STICKER_FILTER;
 
 /** Cutouts are made in the background after saving: retry briefly, then give up. */
 const RETRY_DELAYS_MS = [3000, 6000, 12000];
@@ -181,4 +186,35 @@ export function Sticker({
       )}
     </>
   );
+}
+
+type FoodThumbProps = Pick<
+  StickerProps,
+  "scanId" | "photoId" | "name" | "kcal" | "protein" | "carbs" | "fat"
+> & {
+  /** Tailwind size class pair, e.g. "size-16". */
+  className?: string;
+  iconClassName?: string;
+};
+
+/**
+ * Sticker-first leading visual for food rows and cards: the cutout when there is
+ * one, otherwise a soft makan-tinted tile with a utensils icon.
+ */
+export function FoodThumb({
+  scanId,
+  className = "size-16",
+  iconClassName = "size-6",
+  ...sticker
+}: Omit<FoodThumbProps, "scanId"> & { scanId?: string | null }) {
+  const fallback = (
+    <span
+      className={`flex items-center justify-center rounded-2xl bg-makan-soft ${className}`}
+      aria-hidden
+    >
+      <Utensils className={`${iconClassName} text-makan-ink`} />
+    </span>
+  );
+  if (!scanId) return fallback;
+  return <Sticker scanId={scanId} className={`block ${className}`} fallback={fallback} {...sticker} />;
 }

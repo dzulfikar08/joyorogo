@@ -437,11 +437,14 @@ export function ListRow({
   destructive,
   onPress,
   right,
+  wrapTitle,
 }: {
   icon?: IconName;
   iconTint?: Tint | "muted";
   thumb?: React.ReactNode;
   title: string;
+  /** Wrap the title up to 2 lines instead of truncating to 1. */
+  wrapTitle?: boolean;
   /** Plain text, or a node (e.g. MacroLine) styled like the subtitle. */
   subtitle?: string | React.ReactNode;
   value?: string;
@@ -473,7 +476,7 @@ export function ListRow({
       <View style={styles.rowText}>
         <Text
           style={[styles.rowTitle, destructive && { color: theme.colors.destructive }]}
-          numberOfLines={1}
+          numberOfLines={wrapTitle ? 2 : 1}
         >
           {title}
         </Text>
@@ -702,11 +705,14 @@ export function Chip({
   onPress,
   selected,
   disabled,
+  leading,
 }: {
   label: string;
   onPress: () => void;
   selected?: boolean;
   disabled?: boolean;
+  /** Sticker thumb shown before the label. */
+  leading?: React.ReactNode;
 }) {
   const { theme } = useUnistyles();
   return (
@@ -718,10 +724,12 @@ export function Chip({
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,
+        leading ? styles.chipWithLeading : null,
         { backgroundColor: selected ? theme.colors.foreground : theme.colors.muted },
         (pressed || disabled) && styles.pressedSoft,
       ]}
     >
+      {leading}
       <Text
         style={[
           styles.chipLabel,
@@ -1201,6 +1209,13 @@ const styles = StyleSheet.create((theme) => ({
     minHeight: 40,
     justifyContent: "center",
     alignSelf: "flex-start",
+  },
+  chipWithLeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingLeft: 6,
+    minHeight: 44,
   },
   chipLabel: {
     fontSize: theme.fontSize.sm,

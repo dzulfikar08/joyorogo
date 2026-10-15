@@ -2,6 +2,7 @@ import {
   MEAL_LABELS,
   effectiveRamadan,
   jakartaToday,
+  relativeDayLabel,
   slotsFor,
   suggestMealNow,
 } from "@joyorogo/api/lib/engine";
@@ -13,7 +14,7 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Camera, ChevronRight, Mic, Plus, ScanBarcode, Trash2, Utensils } from "lucide-react";
+import { Camera, ChevronRight, Mic, Plus, ScanBarcode } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { Mascot } from "@/components/mascot";
@@ -22,12 +23,10 @@ import type { CeritaPhase } from "@/components/cerita";
 import { Chip } from "@/components/chip";
 import { DaySwitcher } from "@/components/day-switcher";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
-import { FieldLabel, ListRow, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
+import { FieldLabel, ListGroup, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
 import { MakanSummaryCard } from "@/components/macro-card";
-import { MacroLine } from "@/components/macro-line";
 import { FoodPortionSheet } from "@/components/food-portion-sheet";
 import { FavoritChips, FavoritManageSheet, useFavorites } from "@/components/favorit";
-import { MACRO_META } from "@/lib/macro-icons";
 import { SheetActions } from "@/components/sheet-actions";
 import type { Favorites } from "@/components/favorit";
 import { MetaLine } from "@/components/meta-line";
@@ -35,12 +34,33 @@ import { BelanjaCard } from "@/components/plate/belanja";
 import { PlateDiary } from "@/components/plate/plate-group";
 import { IdrInput } from "@/components/plate/idr-input";
 import { ScreenError } from "@/components/screen-state";
-import { Sticker } from "@/components/sticker";
+import { STICKER_FILTER, stickerUrl } from "@/components/sticker";
+import { FoodRow } from "@/components/makan/food-row";
 import type { FoodAddInput, FoodItem, FoodRecentItem } from "@/lib/api-types";
 import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import { upsertById, removeById } from "@joyorogo/api/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
+import { KalenderView } from "@/components/makan/kalender-view";
+import { KindChips } from "@/components/makan/kind-chips";
+import { MonthScrubber } from "@/components/makan/month-scrubber";
+import { StikerView } from "@/components/makan/stiker-view";
+import { MakanViewSwitcher } from "@/components/makan/view-switcher";
+import { KindPicker, SnackAdviceCard, useSnackAdvice } from "@/components/makan/snack-advice";
+import type { PickableKind } from "@/components/makan/snack-advice";
+import { PlacesView } from "@/components/places/places-view";
+import { SaveLocationToggle } from "@/components/places/location-toggle";
+import { usePlaceLocation } from "@/lib/location";
+import { saveKind, saveMakanView, storedKind, storedMakanView } from "@/lib/makan-prefs";
+import { parseMakanView } from "@joyorogo/api/lib/diary-view";
+import type { MakanView } from "@joyorogo/api/lib/diary-view";
+import {
+  FOOD_KIND_LABELS,
+  foodKind,
+  matchesKind,
+  parseFoodKindFilter,
+} from "@joyorogo/api/lib/food-kind";
+import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 
 // One options object per query, reused by the loader and the component so the
 // cache keys match and navigation preloads land in the exact bucket read here.
@@ -49,13 +69,21 @@ const summaryOptions = (date: string) => orpc.day.summary.queryOptions({ input: 
 const plateOptions = (date: string) => orpc.plate.byDate.queryOptions({ input: { date } });
 
 export const Route = createFileRoute("/_auth/makan/")({
-  validateSearch: (search: Record<string, unknown>): { date?: string; cerita?: boolean } => {
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { date?: string; cerita?: boolean; view?: MakanView; kind?: FoodKindFilter } => {
     const raw = typeof search.date === "string" ? search.date : undefined;
     const date = raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : undefined;
     // ?cerita=1 opens the story sheet (deep link from Beranda and the camera page).
     const cerita =
       search.cerita === true || search.cerita === 1 || search.cerita === "1" || undefined;
-    return { date, cerita };
+    // ?view= picks the Makan view, ?kind= the Semua/Makanan/Minuman/Lainnya chip.
+    return {
+      date,
+      cerita,
+      view: parseMakanView(search.view),
+      kind: parseFoodKindFilter(search.kind),
+    };
   },
   loaderDeps: ({ search }) => ({ date: search.date }),
   loader: ({ context, deps }) => {
@@ -69,7 +97,17 @@ export const Route = createFileRoute("/_auth/makan/")({
 
 function MakanPage() {
   const queryClient = useQueryClient();
-  const { date: paramDate, cerita: ceritaOpen } = Route.useSearch();
+  const {
+    date: paramDate,
+    cerita: ceritaOpen,
+    view: paramView,
+    kind: paramKind,
+  } = Route.useSearch();
+  // Deep links with a date or the story sheet mean the day list; otherwise the
+  // last chosen view (URL first, then this device's saved choice).
+  const view: MakanView =
+    paramView ?? (paramDate || ceritaOpen ? "daftar" : (storedMakanView() ?? "daftar"));
+  const kind: FoodKindFilter = paramKind ?? storedKind() ?? "semua";
   const navigate = Route.useNavigate();
   const date = paramDate ?? jakartaToday();
   const isToday = date === jakartaToday();
@@ -92,8 +130,36 @@ function MakanPage() {
   const [manageOpen, setManageOpen] = useState(false);
   const setCeritaOpen = (open: boolean) =>
     navigate({ search: (prev) => ({ ...prev, cerita: open || undefined }), replace: true });
+  // Day moves keep the chosen view and kind chip; opening a day from the
+  // calendar or the places list lands on Daftar.
   const showDate = (target: string) =>
-    navigate({ search: { date: target === jakartaToday() ? undefined : target } });
+    navigate({
+      search: (prev) => ({
+        view: prev.view,
+        kind: prev.kind,
+        date: target === jakartaToday() ? undefined : target,
+      }),
+    });
+  const chooseView = (next: MakanView) => {
+    saveMakanView(next);
+    navigate({ search: (prev) => ({ ...prev, view: next }), replace: true });
+  };
+  const chooseKind = (next: FoodKindFilter) => {
+    saveKind(next);
+    navigate({ search: (prev) => ({ ...prev, kind: next }), replace: true });
+  };
+  const openDaftar = (target: string) => {
+    saveMakanView("daftar");
+    navigate({
+      search: (prev) => ({
+        view: "daftar",
+        kind: prev.kind,
+        date: target === jakartaToday() ? undefined : target,
+      }),
+    });
+  };
+  /** Kalender and Stiker read their own queries; nudge them after an edit. */
+  const refreshDiary = () => void queryClient.invalidateQueries({ queryKey: orpc.diary.key() });
 
   /** Replaces a provisional row (temp id) with the settled server row, in place. */
   const cacheSwap = (tempId: string, row: FoodItem) => {
@@ -201,7 +267,7 @@ function MakanPage() {
         meals: 1,
       });
     },
-    invalidate: () => [orpc.food.key(), orpc.day.key()],
+    invalidate: () => [orpc.food.key(), orpc.day.key(), orpc.diary.key()],
     success: (_input, serverRow) => {
       const row = serverRow as FoodItem;
       const tempId = addTempId.current;
@@ -241,156 +307,250 @@ function MakanPage() {
     },
     label: (row) => row.name,
     fallback: "Catatan",
-    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key()],
+    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.diary.key()],
   });
 
-  if (list.isPending) return <MakanSkeleton />;
-  if (list.error) {
+  if (view === "daftar" && list.isPending) return <MakanSkeleton />;
+  if (view === "daftar" && list.error) {
     return <ScreenError message={list.error.message} onRetry={() => list.refetch()} />;
   }
 
-  const { items, totals } = list.data;
+  const items = list.data?.items ?? [];
+  const totals = list.data?.totals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+  const visibleItems = items.filter((item) => matchesKind(item.name, kind));
 
   return (
     <Page className="md:max-w-3xl">
-      <PageHeader title="Makan" action={<DaySwitcher date={date} onChange={showDate} />} />
+      <PageHeader
+        title="Makan"
+        action={view === "daftar" ? <DaySwitcher date={date} onChange={showDate} /> : undefined}
+      />
 
-      {daySummary.data?.targets && daySummary.data.protein && (
+      <MakanViewSwitcher value={view} onChange={chooseView} />
+      {view !== "tempat" && (
         <div className="mt-3">
-          <MakanSummaryCard
-            eatKcal={daySummary.data.targets.eatKcal}
-            eatenKcal={totals.kcal}
-            proteinTargetG={daySummary.data.protein.targetG}
-            totals={totals}
-          />
+          <KindChips value={kind} onChange={chooseKind} />
         </div>
       )}
 
-      {/* Belanja: angkanya selalu hari ini */}
-      {isToday ? <BelanjaCard /> : null}
-
-      <button
-        type="button"
-        onClick={() => setCeritaOpen(true)}
-        className="mt-3 flex min-h-16 w-full items-center gap-3 rounded-3xl bg-card px-5 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-      >
-        <span
-          aria-hidden
-          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
-        >
-          <Mic className="size-5" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[0.9375rem] font-bold">Ceritakan makananmu</span>
-          <span className="block text-sm text-muted-foreground">
-            Ketik atau ucapkan, AI yang hitung kalorinya.
-          </span>
-        </span>
-        <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-      </button>
-
-      {favorites.items.length > 0 && (
-        <section className="mt-3 rounded-3xl bg-card p-5" aria-label="Favorit">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-base font-bold tracking-tight">Favorit</h2>
-            <span className="text-xs text-muted-foreground">
-              Tap untuk catat ke {MEAL_LABELS[quickMeal]}
-              {isToday ? "" : `, ${fmtDateIndo(date)}`}
-            </span>
+      {view === "daftar" && (
+        <>
+          <div className="mt-5">
+            <MonthScrubber date={date} kind={kind} onPick={showDate} />
           </div>
-          <div className="mt-3">
-            <FavoritChips
-              favorites={favorites}
-              date={date}
-              meal={quickMeal}
-              onManage={() => setManageOpen(true)}
-            />
-          </div>
-        </section>
-      )}
 
-      {items.length === 0 && (
-        <div className="mt-3 rounded-3xl bg-card p-6 text-center">
-          <Mascot pose="ready" size="md" className="mb-3" />
-          <p className="text-base font-bold">
-            Belum ada catatan {isToday ? "hari ini" : "di hari ini"}
-          </p>
-          <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
-            Ceritakan apa yang kamu makan, atau pindai foto piringmu biar AI yang hitung.
-          </p>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            <Button onClick={() => setSheetMeal(quickMeal)}>
-              <Plus className="size-4" aria-hidden />
-              Catat makan
-            </Button>
-            <Link to="/makan/ai" search={isToday ? {} : { date }}>
-              <Button variant="secondary">
-                <Camera className="size-4" aria-hidden />
-                Pindai foto
-              </Button>
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {MEALS.map(([meal, label]) => {
-        const sectionItems = items.filter((item) => item.meal === meal);
-        const subtotal = sectionItems.reduce((sum, item) => sum + item.kcal, 0);
-        return (
-          <section
-            key={meal}
-            className="mt-7"
-            aria-label={`${label}, total ${fmtInt(subtotal)} kcal`}
-          >
-            <SectionTitle
-              action={
-                <button
-                  type="button"
-                  onClick={() => setSheetMeal(meal)}
-                  className="inline-flex min-h-11 items-center gap-1 px-1 text-sm font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-                >
-                  <Plus className="size-4" aria-hidden />
-                  Tambah
-                </button>
-              }
-            >
-              <span className="flex items-baseline gap-2">
-                {label}
-                {sectionItems.length > 0 && (
-                  <span className="text-xs font-semibold text-muted-foreground tabular-nums">
-                    {fmtInt(subtotal)} kcal
-                  </span>
-                )}
-              </span>
-            </SectionTitle>
-
-            {sectionItems.length > 0 ? (
-              <PlateDiary
-                items={sectionItems}
-                date={date}
-                renderRow={(item) => (
-                  <FoodRow
-                    key={item.id}
-                    item={item}
-                    onEdit={() => setEditItem(item)}
-                    onDelete={() => removeFood(item)}
-                  />
-                )}
-                plateAction={(plate, rows) => (
-                  <SheetActions
-                    favorite={favorites.isPlateSaved(plate, rows)}
-                    onFavorite={() => favorites.togglePlate(plate, rows)}
-                  />
-                )}
+          {daySummary.data?.targets && daySummary.data.protein && (
+            <div className="mt-3">
+              <MakanSummaryCard
+                eatKcal={daySummary.data.targets.eatKcal}
+                eatenKcal={totals.kcal}
+                proteinTargetG={daySummary.data.protein.targetG}
+                totals={totals}
               />
-            ) : (
-              <div className="rounded-3xl bg-card px-5 py-4 text-sm text-muted-foreground">
-                Belum ada catatan. Tekan Tambah di atas, atau pindai fotonya.
+            </div>
+          )}
+
+          {/* Belanja: angkanya selalu hari ini */}
+          {isToday ? <BelanjaCard /> : null}
+
+          <button
+            type="button"
+            onClick={() => setCeritaOpen(true)}
+            className="mt-3 flex min-h-16 w-full items-center gap-3 rounded-3xl bg-card px-5 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+          >
+            <span
+              aria-hidden
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+            >
+              <Mic className="size-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[0.9375rem] font-bold">Ceritakan makananmu</span>
+              <span className="block text-sm text-muted-foreground">
+                Ketik atau ucapkan, AI yang hitung kalorinya.
+              </span>
+            </span>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+          </button>
+
+          {favorites.items.length > 0 && (
+            <section className="mt-3 rounded-3xl bg-card p-5" aria-label="Favorit">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="text-base font-bold tracking-tight">Favorit</h2>
+                <span className="text-xs text-muted-foreground">
+                  Tap untuk catat ke {MEAL_LABELS[quickMeal]}
+                  {isToday ? "" : `, ${fmtDateIndo(date)}`}
+                </span>
               </div>
-            )}
+              <div className="mt-3">
+                <FavoritChips
+                  favorites={favorites}
+                  date={date}
+                  meal={quickMeal}
+                  onManage={() => setManageOpen(true)}
+                />
+              </div>
+            </section>
+          )}
+
+          {items.length === 0 && (
+            <div className="mt-3 rounded-3xl bg-card p-6 text-center">
+              <Mascot pose="ready" size="md" className="mb-3" />
+              <p className="text-base font-bold">
+                Belum ada catatan {isToday ? "hari ini" : "di hari ini"}
+              </p>
+              <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
+                Ceritakan apa yang kamu makan, atau pindai foto piringmu biar AI yang hitung.
+              </p>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <Button onClick={() => setSheetMeal(quickMeal)}>
+                  <Plus className="size-4" aria-hidden />
+                  Catat makan
+                </Button>
+                <Link to="/makan/ai" search={isToday ? {} : { date }}>
+                  <Button variant="secondary">
+                    <Camera className="size-4" aria-hidden />
+                    Pindai foto
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          <div className="relative mt-5 pl-6">
+            <span aria-hidden className="absolute top-3 bottom-0 left-1.5 w-px bg-border" />
+            <div className="relative flex min-h-9 items-center gap-2.5">
+              <span
+                aria-hidden
+                className="absolute top-1/2 -left-6 size-3 -translate-y-1/2 rounded-full border-[3px] border-primary bg-background"
+              />
+              <h2 className="min-w-0 truncate text-base font-bold tracking-tight">
+                {relativeDayLabel(date, jakartaToday())}
+              </h2>
+              <span className="shrink-0 rounded-full bg-card px-2.5 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
+                {fmtInt(visibleItems.length)} catatan
+              </span>
+            </div>
+            {MEALS.map(([meal, label]) => {
+              const sectionItems = visibleItems.filter((item) => item.meal === meal);
+              const subtotal = sectionItems.reduce((sum, item) => sum + item.kcal, 0);
+              return (
+                <section
+                  key={meal}
+                  className="relative mt-5"
+                  aria-label={`${label}, total ${fmtInt(subtotal)} kcal`}
+                >
+                  <span
+                    aria-hidden
+                    className="absolute top-5 -left-[1.3125rem] size-1.5 rounded-full bg-primary/50"
+                  />
+                  <SectionTitle
+                    action={
+                      <button
+                        type="button"
+                        onClick={() => setSheetMeal(meal)}
+                        className="inline-flex min-h-11 items-center gap-1 px-1 text-sm font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+                      >
+                        <Plus className="size-4" aria-hidden />
+                        Tambah
+                      </button>
+                    }
+                  >
+                    <span className="flex items-baseline gap-2">
+                      {label}
+                      {sectionItems.length > 0 && (
+                        <span className="text-xs font-semibold text-muted-foreground tabular-nums">
+                          {fmtInt(subtotal)} kcal
+                        </span>
+                      )}
+                    </span>
+                  </SectionTitle>
+
+                  {sectionItems.length > 0 ? (
+                    <PlateDiary
+                      items={sectionItems}
+                      date={date}
+                      renderRow={(item) => (
+                        <FoodRow
+                          key={item.id}
+                          item={item}
+                          onEdit={() => setEditItem(item)}
+                          onDelete={() => removeFood(item)}
+                        />
+                      )}
+                      plateAction={(plate, rows) => (
+                        <SheetActions
+                          favorite={favorites.isPlateSaved(plate, rows)}
+                          onFavorite={() => favorites.togglePlate(plate, rows)}
+                        />
+                      )}
+                    />
+                  ) : (
+                    <div className="rounded-3xl bg-card px-5 py-4 text-sm text-muted-foreground">
+                      {kind === "semua"
+                        ? "Belum ada catatan. Tekan Tambah di atas, atau pindai fotonya."
+                        : `Tidak ada ${FOOD_KIND_LABELS[kind].toLowerCase()} di waktu makan ini.`}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {view === "kalender" && (
+        <KalenderView date={date} kind={kind} onSelect={showDate}>
+          <section className="relative mt-6 pl-6" aria-label={`Catatan ${fmtDateIndo(date)}`}>
+            <span
+              aria-hidden
+              className="absolute top-3 left-0 size-3 rounded-full border-[3px] border-primary bg-background"
+            />
+            <div className="flex min-h-9 items-center gap-2.5">
+              <h2 className="min-w-0 truncate text-base font-bold tracking-tight">
+                {relativeDayLabel(date, jakartaToday())}
+              </h2>
+              <span className="shrink-0 rounded-full bg-card px-2.5 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
+                {fmtInt(visibleItems.length)} catatan
+              </span>
+              <button
+                type="button"
+                onClick={() => openDaftar(date)}
+                className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-0.5 px-1 text-sm font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+              >
+                Buka di Daftar
+                <ChevronRight className="size-4" aria-hidden />
+              </button>
+            </div>
+            <div className="mt-1 border-t border-border pt-3">
+              {list.isPending ? (
+                <Skeleton className="h-24 w-full rounded-3xl" />
+              ) : visibleItems.length > 0 ? (
+                <ListGroup>
+                  {visibleItems.map((item) => (
+                    <FoodRow
+                      key={item.id}
+                      item={item}
+                      onEdit={() => setEditItem(item)}
+                      onDelete={() => removeFood(item)}
+                    />
+                  ))}
+                </ListGroup>
+              ) : (
+                <div className="rounded-3xl bg-card px-5 py-4 text-sm text-muted-foreground">
+                  {kind === "semua"
+                    ? "Belum ada catatan di hari ini."
+                    : `Tidak ada ${FOOD_KIND_LABELS[kind].toLowerCase()} di hari ini.`}
+                </div>
+              )}
+            </div>
           </section>
-        );
-      })}
+        </KalenderView>
+      )}
+
+      {view === "stiker" && <StikerView date={date} kind={kind} onOpen={setEditItem} />}
+
+      {view === "tempat" && <PlacesView onOpenDate={openDaftar} />}
 
       {sheetMeal !== null && (
         <AddFoodSheet
@@ -412,7 +572,9 @@ function MakanPage() {
         />
       )}
 
-      {manageOpen && <FavoritManageSheet favorites={favorites} onClose={() => setManageOpen(false)} />}
+      {manageOpen && (
+        <FavoritManageSheet favorites={favorites} onClose={() => setManageOpen(false)} />
+      )}
 
       {ceritaOpen && (
         <Sheet
@@ -426,7 +588,10 @@ function MakanPage() {
           <Cerita
             date={date}
             slots={slots}
-            onSaved={() => setCeritaOpen(false)}
+            onSaved={() => {
+              setCeritaOpen(false);
+              refreshDiary();
+            }}
             onShowDate={showDate}
           />
         </Sheet>
@@ -436,7 +601,10 @@ function MakanPage() {
         <FoodPortionSheet
           key={editItem.id}
           row={editItem}
-          onClose={() => setEditItem(null)}
+          onClose={() => {
+            setEditItem(null);
+            refreshDiary();
+          }}
           favorite={favorites.isFoodSaved(editItem)}
           onFavorite={() => favorites.toggleFood(editItem)}
           onShare={() => {
@@ -468,96 +636,6 @@ function MakanPage() {
         />
       )}
     </Page>
-  );
-}
-
-function FoodRow({
-  item,
-  onEdit,
-  onDelete,
-}: {
-  item: FoodItem;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const hasMacros = [item.protein, item.carbs, item.fat, item.fiber].some((g) => (g ?? 0) > 0);
-  // Energy and weight lead the line, each with its own icon and hue, then the macro chips.
-  const subtitle = (
-    <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-      <span
-        className="inline-flex items-center gap-1.5 font-semibold text-kcal"
-        aria-label={`${MACRO_META.kcal.label} ${fmtInt(item.kcal)} kkal`}
-      >
-        <MACRO_META.kcal.Icon className="size-3.5 shrink-0" aria-hidden />
-        <span className="tabular-nums">{fmtInt(item.kcal)} kkal</span>
-      </span>
-      {item.grams ? (
-        <span
-          className="inline-flex items-center gap-1.5 font-semibold text-gram"
-          aria-label={`${MACRO_META.grams.label} ${fmtInt(item.grams)} g`}
-        >
-          <MACRO_META.grams.Icon className="size-3.5 shrink-0" aria-hidden />
-          <span className="tabular-nums">{fmtInt(item.grams)} g</span>
-        </span>
-      ) : null}
-      {hasMacros ? (
-        <MacroLine
-          compact
-          protein={item.protein}
-          carbs={item.carbs}
-          fat={item.fat}
-          fiber={item.fiber}
-        />
-      ) : item.source === "ai" ? (
-        <span>Dari pindai AI</span>
-      ) : null}
-    </span>
-  );
-  const utensil = (
-    <span
-      className="flex size-9 items-center justify-center rounded-full bg-makan-soft"
-      aria-hidden
-    >
-      <Utensils className="size-4 text-makan-ink" />
-    </span>
-  );
-  return (
-    <ListRow
-      icon={
-        item.scanId ? (
-          <Sticker
-            scanId={item.scanId}
-            photoId={item.photoId}
-            name={item.name}
-            kcal={item.kcal}
-            protein={item.protein}
-            carbs={item.carbs}
-            fat={item.fat}
-            className="block size-10"
-            fallback={utensil}
-          />
-        ) : (
-          utensil
-        )
-      }
-      title={item.name}
-      onClick={onEdit}
-      subtitle={subtitle}
-      trailing={
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={`Hapus ${item.name}`}
-          onClick={(event) => {
-            event.stopPropagation();
-            onDelete();
-          }}
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 />
-        </Button>
-      }
-    />
   );
 }
 
@@ -596,8 +674,47 @@ function AddFoodSheet({
   const [fat, setFat] = useState("");
   // Optional price for the whole plate; the dish name becomes the plate name.
   const [price, setPrice] = useState("");
+  const [place, setPlace] = useState("");
+  const placeLocation = usePlaceLocation();
   const [error, setError] = useState<string | null>(null);
   const label = MEAL_LABELS[meal];
+
+  // Item kind: the name heuristic until the user taps a pill. Advice only.
+  const [kindOverride, setKindOverride] = useState<PickableKind | null>(null);
+  const kind = kindOverride ?? foodKind(name);
+  const advice = useSnackAdvice({
+    date,
+    kcal: parseNum(kcal) ?? 0,
+    kind,
+    slot: meal,
+    name: name.trim() || undefined,
+  });
+  // Fields as typed before "Setengah porsi", so one tap brings them back.
+  const [fullPortion, setFullPortion] = useState<{
+    kcal: string;
+    protein: string;
+    carbs: string;
+    fat: string;
+  } | null>(null);
+  const halve = () => {
+    const half = (value: string) => {
+      const n = parseNum(value);
+      return n === null ? value : String(Math.round((n / 2) * 10) / 10);
+    };
+    setFullPortion({ kcal, protein, carbs, fat });
+    setKcal(String(Math.round((parseNum(kcal) ?? 0) / 2)));
+    setProtein(half(protein));
+    setCarbs(half(carbs));
+    setFat(half(fat));
+  };
+  const undoHalf = () => {
+    if (!fullPortion) return;
+    setKcal(fullPortion.kcal);
+    setProtein(fullPortion.protein);
+    setCarbs(fullPortion.carbs);
+    setFat(fullPortion.fat);
+    setFullPortion(null);
+  };
 
   const submit = async () => {
     const nameClean = name.trim();
@@ -614,6 +731,7 @@ function AddFoodSheet({
     const carbsNum = showMacros ? parseNum(carbs) : null;
     const fatNum = showMacros ? parseNum(fat) : null;
     const priceNum = parseIdrInput(price);
+    const placeClean = place.trim();
     if (price.trim() !== "" && priceNum === null) {
       setError("Harga belum valid (angka rupiah).");
       return;
@@ -628,14 +746,28 @@ function AddFoodSheet({
         protein: proteinNum ?? undefined,
         carbs: carbsNum ?? undefined,
         fat: fatNum ?? undefined,
-        ...(priceNum != null ? { plate: { priceIdr: Math.round(priceNum) } } : {}),
+        ...(priceNum != null || placeClean
+          ? {
+              plate: {
+                ...(priceNum != null ? { priceIdr: Math.round(priceNum) } : {}),
+                ...(placeClean ? { place: placeClean } : {}),
+                // Coordinates ride along only with a place name and only when opted in.
+                ...(placeClean && placeLocation.enabled && placeLocation.coords
+                  ? placeLocation.coords
+                  : {}),
+              },
+            }
+          : {}),
       });
       setName("");
       setKcal("");
+      setKindOverride(null);
+      setFullPortion(null);
       setProtein("");
       setCarbs("");
       setFat("");
       setPrice("");
+      setPlace("");
       setShowMacros(false);
     } catch {
       // the mutation already toasts the server message
@@ -687,9 +819,21 @@ function AddFoodSheet({
                   key={food.name}
                   active={false}
                   disabled={addPending}
+                  className={food.scanId ? "max-w-full gap-2 pl-1.5" : "max-w-full"}
                   onClick={() => void onAdd({ date, meal, name: food.name, kcal: food.kcal })}
                 >
-                  {food.name} · {fmtInt(food.kcal)} kcal
+                  {food.scanId ? (
+                    <img
+                      src={stickerUrl(food.scanId)}
+                      alt=""
+                      loading="lazy"
+                      className="size-8 shrink-0 object-contain"
+                      style={STICKER_FILTER}
+                    />
+                  ) : null}
+                  <span className="truncate">
+                    {food.name} · {fmtInt(food.kcal)} kcal
+                  </span>
                 </Chip>
               ))}
             </div>
@@ -738,6 +882,14 @@ function AddFoodSheet({
                 />
               </div>
             </div>
+
+            <KindPicker value={kind} onChange={setKindOverride} />
+            <SnackAdviceCard
+              state={advice}
+              onHalf={halve}
+              halfApplied={fullPortion !== null}
+              onUndoHalf={undoHalf}
+            />
 
             {showMacros ? (
               <div className="grid grid-cols-3 gap-2">
@@ -794,6 +946,22 @@ function AddFoodSheet({
                 placeholder="mis. 12.000"
               />
             </div>
+
+            <div>
+              <FieldLabel htmlFor={`${meal}-place`}>Tempat (opsional)</FieldLabel>
+              <Input
+                id={`${meal}-place`}
+                value={place}
+                onChange={(event) => setPlace(event.target.value)}
+                placeholder="RM Sederhana"
+                autoComplete="off"
+              />
+            </div>
+            <SaveLocationToggle
+              enabled={placeLocation.enabled}
+              status={placeLocation.status}
+              onChange={placeLocation.setEnabled}
+            />
 
             {error && <p className="px-1 text-sm text-destructive">{error}</p>}
 

@@ -22,6 +22,9 @@ import { MEAL_LABELS, effectiveRamadan, slotsFor, suggestMealNow } from "@joyoro
 import { randomFact } from "@joyorogo/api/lib/facts";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import { scalePortion } from "@joyorogo/api/lib/portion";
+import { dominantKind } from "@joyorogo/api/lib/snack-advice";
+import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { Button, buttonVariants } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
@@ -36,12 +39,15 @@ import {
   Segmented,
 } from "@/components/kit/surface";
 import { IdrInput } from "@/components/plate/idr-input";
+import { SaveLocationToggle } from "@/components/places/location-toggle";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { cropItems } from "@/lib/crop";
 import type { ItemBox } from "@/lib/crop";
 import type { AiFoodItem } from "@/lib/api-types";
+import { KindCycleChip, SnackAdviceCard, useSnackAdvice } from "@/components/makan/snack-advice";
 import { isPaywallError } from "@/lib/billing";
 import { fmtInt, parseNum } from "@/lib/format";
+import { usePlaceLocation } from "@/lib/location";
 import { client, orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/_auth/makan/ai")({
@@ -215,6 +221,7 @@ function AiFoodPage() {
   const [plateName, setPlateName] = useState("");
   const [platePlace, setPlatePlace] = useState("");
   const [platePrice, setPlatePrice] = useState("");
+  const placeLocation = usePlaceLocation();
 
   // Live total of the (editable) per-item kcal — drives the big number
   // and the reaction line on the confirm screen.
@@ -222,6 +229,69 @@ function AiFoodPage() {
     (sum, item, index) => sum + (parseNum(kcals[index] ?? String(item.kcal)) ?? 0),
     0,
   );
+
+  // Item kind: the AI's call, or what the user tapped on the row. Advice only.
+  const [kinds, setKinds] = useState<Record<number, FoodKind>>({});
+  // Items and kcal inputs as they were before "Setengah porsi", so one tap restores them.
+  const [fullPortion, setFullPortion] = useState<{
+    items: AiFoodItem[];
+    kcals: Record<number, string>;
+  } | null>(null);
+  const fullItems = fullPortion?.items ?? null;
+  // What the AI said, for the stored breakdown and the miss log.
+  const aiItems = fullItems ?? items;
+  const advice = useSnackAdvice({
+    date: scanDate,
+    kcal: totalKcal,
+    kind: dominantKind(items.map((item, index) => kinds[index] ?? item.kind)),
+    slot: meal,
+    name:
+      items.length > 1
+        ? `${items[0]!.name} dan ${items.length - 1} lainnya`
+        : items[0]?.name,
+  });
+
+  const applyItems = (next: AiFoodItem[]) => {
+    setItems(next);
+    setKcals(Object.fromEntries(next.map((item, index) => [index, String(item.kcal)])));
+    setKinds({});
+    setFullPortion(null);
+  };
+
+  const halve = () => {
+    const scaled = items.map((item, index) => {
+      const half = scalePortion(
+        {
+          kcal: parseNum(kcals[index] ?? String(item.kcal)) ?? 0,
+          grams: item.grams ?? null,
+          protein: item.protein ?? null,
+          carbs: item.carbs ?? null,
+          fat: item.fat ?? null,
+          fiber: item.fiber ?? null,
+        },
+        0.5,
+      );
+      return {
+        ...item,
+        kcal: half.kcal,
+        grams: half.grams ?? undefined,
+        protein: half.protein ?? undefined,
+        carbs: half.carbs ?? undefined,
+        fat: half.fat ?? undefined,
+        fiber: half.fiber ?? undefined,
+      };
+    });
+    setFullPortion({ items, kcals });
+    setItems(scaled);
+    setKcals(Object.fromEntries(scaled.map((item, index) => [index, String(item.kcal)])));
+  };
+
+  const undoHalf = () => {
+    if (!fullPortion) return;
+    setItems(fullPortion.items);
+    setKcals(fullPortion.kcals);
+    setFullPortion(null);
+  };
 
   // Rules of hooks: this must run on EVERY render, so it lives above the
   // early returns. Confetti fires once per confirm entry, sized by tier.
@@ -300,9 +370,8 @@ function AiFoodPage() {
       sessionTiming.prevRoundTripMs = Math.round(performance.now() - requestAt);
       if (runRef.current !== run) return;
       setImage(image);
-      setItems(result.items);
+      applyItems(result.items);
       setQuotaReached(result.quotaReached);
-      setKcals(Object.fromEntries(result.items.map((item, index) => [index, String(item.kcal)])));
       setPhotoId(result.photoId ?? null);
       setRetriesLeft(result.retriesLeft ?? 0);
       setRetryHint("");
@@ -390,8 +459,7 @@ function AiFoodPage() {
     abortRef.current?.abort();
     retryAbortRef.current?.abort();
     setPhase("idle");
-    setItems([]);
-    setKcals({});
+    applyItems([]);
     setImage(null);
     setCrops([]);
     setCropping(false);
@@ -454,8 +522,7 @@ function AiFoodPage() {
         { photoId, hint: retryHint.trim() || undefined },
         { signal: controller.signal },
       );
-      setItems(result.items);
-      setKcals(Object.fromEntries(result.items.map((item, index) => [index, String(item.kcal)])));
+      applyItems(result.items);
       cutCrops(
         image.blob,
         result.items.map((item) => item.box),
@@ -491,6 +558,10 @@ function AiFoodPage() {
     const plate = {
       name: plateName.trim() || undefined,
       place: platePlace.trim() || undefined,
+      // Coordinates ride along only with a place name and only when opted in.
+      ...(platePlace.trim() && placeLocation.enabled && placeLocation.coords
+        ? placeLocation.coords
+        : {}),
       ...(priceNum != null ? { priceIdr: Math.round(priceNum) } : {}),
     };
     try {
@@ -500,7 +571,7 @@ function AiFoodPage() {
         meal,
         imageBase64: image.base64,
         mimeType: image.mimeType,
-        itemsJson: JSON.stringify(items),
+        itemsJson: JSON.stringify(aiItems),
         ...(plate.name || plate.place || plate.priceIdr != null ? { plate } : {}),
         items: items.map((item, index) => ({
           name: item.name,
@@ -520,9 +591,9 @@ function AiFoodPage() {
           items: items.map((item, index) => ({
             meal,
             dishName: item.name,
-            aiKcal: Math.round(item.kcal),
+            aiKcal: Math.round(aiItems[index]?.kcal ?? item.kcal),
             savedKcal: values[index] ?? 0,
-            aiGrams: item.grams ?? null,
+            aiGrams: aiItems[index]?.grams ?? item.grams ?? null,
             aiConfidence: item.confidence ?? null,
           })),
         })
@@ -862,6 +933,12 @@ function AiFoodPage() {
                       {fmtInt(item.fat ?? 0)} · S {fmtInt(item.fiber ?? 0)} g
                     </span>
                   )}
+                  <span className="mt-1 block">
+                    <KindCycleChip
+                      value={kinds[index] ?? item.kind}
+                      onChange={(next) => setKinds((current) => ({ ...current, [index]: next }))}
+                    />
+                  </span>
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5">
                   <Input
@@ -959,6 +1036,14 @@ function AiFoodPage() {
           />
         </section>
 
+        <SnackAdviceCard
+          className="mt-5"
+          state={advice}
+          onHalf={halve}
+          halfApplied={fullItems !== null}
+          onUndoHalf={undoHalf}
+        />
+
         <section className="mt-7" aria-label="Harga piring">
           <SectionTitle
             action={
@@ -1001,6 +1086,11 @@ function AiFoodPage() {
                 autoComplete="off"
               />
             </div>
+            <SaveLocationToggle
+              enabled={placeLocation.enabled}
+              status={placeLocation.status}
+              onChange={placeLocation.setEnabled}
+            />
           </Card>
         </section>
 

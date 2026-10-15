@@ -154,6 +154,28 @@ describe("item boxes", () => {
   });
 });
 
+describe("item kind", () => {
+  test("the model's kind wins, the name heuristic fills the gaps", async () => {
+    const plate = {
+      items: [
+        { name: "Nasi goreng", kind: "makanan", kcal: 450, grams: 250 },
+        { name: "Pisang goreng", kind: "Camilan", kcal: 140, grams: 60 },
+        { name: "Es teh manis", kcal: 90, grams: 250 },
+        { name: "Martabak manis", kind: "gado-gado", kcal: 300, grams: 100 },
+        { name: "Kopi susu", kind: "makanan berat", kcal: 120, grams: 200 },
+      ],
+    };
+    const result = await analyzeFoodPhoto(jsonRunner(plate), OPTS);
+    expect(result.items.map((item) => item.kind)).toEqual([
+      "makanan",
+      "camilan",
+      "minuman",
+      "camilan",
+      "makanan",
+    ]);
+  });
+});
+
 describe("soup broth", () => {
   test("a separate broth line is dropped when the soup dish already counts it", async () => {
     // Prod scan 2026-10-13: bakso bowl + gorengan + a duplicate "kuah kaldu".

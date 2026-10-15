@@ -23,6 +23,10 @@ import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
 import { MEAL_LABELS, effectiveRamadan, slotsFor, suggestMealNow } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import { foodKind } from "@joyorogo/api/lib/food-kind";
+import type { FoodKind } from "@joyorogo/api/lib/food-kind";
+import { scalePortion } from "@joyorogo/api/lib/portion";
+import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 
 import {
   BootLoader,
@@ -35,6 +39,7 @@ import {
   Segmented,
   Text,
 } from "@/components/ui";
+import { KindCycleChip, SnackAdviceSection } from "@/components/makan/snack-advice";
 import { PlateFields, plateInput } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
 import { MacroLine } from "@/components/macro-line";
@@ -58,6 +63,7 @@ type AnalyzedItem = {
   confidence?: number;
   /** [ymin, xmin, ymax, xmax] on 0-1000 relative to the image we sent. */
   box?: number[];
+  kind?: FoodKind;
 };
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
@@ -265,6 +271,15 @@ export default function MakanAi() {
     Array<(typeof FEEDBACK_REASONS)[number][0]>
   >([]);
   const [feedbackNote, setFeedbackNote] = useState("");
+  // Item kind: the AI's call, or what the user tapped on the row. Advice only.
+  const [kinds, setKinds] = useState<Record<number, FoodKind>>({});
+  // Items and kcal drafts as they were before "Setengah porsi", so one tap restores them.
+  const [fullPortion, setFullPortion] = useState<{
+    items: AnalyzedItem[];
+    drafts: { kcal: string; include: boolean }[];
+  } | null>(null);
+  // What the AI said, for the stored breakdown and the miss log.
+  const aiItems = fullPortion?.items ?? items;
   const [plateValues, setPlateValues] = useState<PlateValues>({
     name: "",
     place: "",
@@ -286,6 +301,8 @@ export default function MakanAi() {
     setQuotaReached(false);
     setItems([]);
     setDrafts([]);
+    setKinds({});
+    setFullPortion(null);
     setSentImage(null);
     cropRunRef.current += 1;
     setCrops([]);
@@ -425,6 +442,8 @@ export default function MakanAi() {
       setDrafts(
         result.items.map((item) => ({ kcal: String(Math.round(item.kcal)), include: true })),
       );
+      setKinds({});
+      setFullPortion(null);
       setPhase("confirm");
       // The state commit is on screen after two frames; record how long that
       // took, then cut the per-item tiles in the background.
@@ -526,6 +545,8 @@ export default function MakanAi() {
       setDrafts(
         result.items.map((item) => ({ kcal: String(Math.round(item.kcal)), include: true })),
       );
+      setKinds({});
+      setFullPortion(null);
       setRetriesLeft(result.retriesLeft);
       setRetryHint("");
       setModel(result.model ?? model);
@@ -575,7 +596,7 @@ export default function MakanAi() {
           fiber: item.fiber,
           box: item.box,
         })),
-        itemsJson: JSON.stringify(items),
+        itemsJson: JSON.stringify(aiItems),
         ...(plate ? { plate } : {}),
       });
       // Miss log: AI estimate vs what the user kept. Never blocks the save.
@@ -585,9 +606,9 @@ export default function MakanAi() {
           items: chosen.map(({ item, draft }) => ({
             meal,
             dishName: item.name,
-            aiKcal: Math.round(item.kcal),
+            aiKcal: Math.round(aiItems[items.indexOf(item)]?.kcal ?? item.kcal),
             savedKcal: parseNum(draft.kcal) ?? 0,
-            aiGrams: item.grams ?? null,
+            aiGrams: aiItems[items.indexOf(item)]?.grams ?? item.grams ?? null,
             aiConfidence: item.confidence ?? null,
           })),
         })
@@ -603,6 +624,42 @@ export default function MakanAi() {
     } catch (e) {
       setFlowError(errorMessage(e));
     }
+  };
+
+  /** "Setengah porsi": every item (kcal, grams, macros) halves; the full portion is kept for undo. */
+  const halve = () => {
+    const scaled = items.map((item, index) => {
+      const half = scalePortion(
+        {
+          kcal: parseNum(drafts[index]?.kcal ?? "") ?? item.kcal,
+          grams: item.grams ?? null,
+          protein: item.protein ?? null,
+          carbs: item.carbs ?? null,
+          fat: item.fat ?? null,
+          fiber: item.fiber ?? null,
+        },
+        0.5,
+      );
+      return {
+        ...item,
+        kcal: half.kcal,
+        grams: half.grams ?? undefined,
+        protein: half.protein ?? undefined,
+        carbs: half.carbs ?? undefined,
+        fat: half.fat ?? undefined,
+        fiber: half.fiber ?? undefined,
+      };
+    });
+    setFullPortion({ items, drafts });
+    setItems(scaled);
+    setDrafts(drafts.map((draft, index) => ({ ...draft, kcal: String(scaled[index]!.kcal) })));
+  };
+
+  const undoHalf = () => {
+    if (!fullPortion) return;
+    setItems(fullPortion.items);
+    setDrafts(fullPortion.drafts);
+    setFullPortion(null);
   };
 
   // ---- Camera phase (full-bleed, no card layout) ----
@@ -734,6 +791,16 @@ export default function MakanAi() {
       (sum, draft) => (draft.include ? sum + (parseNum(draft.kcal) ?? 0) : sum),
       0,
     );
+    const includedItems = items.filter((_, index) => drafts[index]?.include);
+    const adviceKind = dominantKind(
+      items.flatMap((item, index) =>
+        drafts[index]?.include ? [kinds[index] ?? item.kind ?? foodKind(item.name)] : [],
+      ),
+    );
+    const adviceName =
+      includedItems.length > 1
+        ? `${includedItems[0]!.name} dan ${includedItems.length - 1} lainnya`
+        : includedItems[0]?.name;
     return (
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAwareScrollView
@@ -932,6 +999,10 @@ export default function MakanAi() {
                           fiber={item.fiber ?? null}
                         />
                       ) : null}
+                      <KindCycleChip
+                        value={kinds[index] ?? item.kind ?? foodKind(item.name)}
+                        onChange={(next) => setKinds((prev) => ({ ...prev, [index]: next }))}
+                      />
                     </View>
                   }
                   right={
@@ -1007,6 +1078,17 @@ export default function MakanAi() {
               onChange={(value) => setMeal(value)}
             />
           </View>
+
+          <SnackAdviceSection
+            date={scanDate}
+            kcal={totalKcal}
+            kind={adviceKind}
+            slot={meal}
+            name={adviceName}
+            onHalf={halve}
+            halfApplied={fullPortion !== null}
+            onUndoHalf={undoHalf}
+          />
 
           <PlateFields values={plateValues} onChange={setPlateValues} />
 

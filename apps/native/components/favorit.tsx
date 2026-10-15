@@ -10,6 +10,7 @@ import { foodSavedKey, plateSavedKey } from "@joyorogo/api/lib/saved-foods";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { Chip, Input, ListGroup, ListRow, Sheet, Text } from "@/components/ui";
+import { FoodSticker, StickerMini } from "@/components/sticker";
 import { MacroLine } from "@/components/macro-line";
 import { useToast } from "@/components/toast";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
@@ -243,6 +244,11 @@ export function FavoritChips({
         <Chip
           key={saved.id}
           label={`${saved.name} · ${fmtKcal(saved.kcal)}`}
+          leading={
+            saved.items[0]?.scanId ? (
+              <StickerMini scanId={saved.items[0].scanId} size={32} />
+            ) : undefined
+          }
           disabled={favorites.relogPending || saved.id.startsWith("tmp-")}
           onPress={() => favorites.relog(saved, date, meal)}
         />
@@ -331,8 +337,8 @@ export function FavoritManageSheet({
                     />
                   </View>
                 }
-                icon="star"
-                iconTint="makan"
+                wrapTitle
+                thumb={<FoodSticker scanId={saved.items[0]?.scanId} name={saved.name} size={52} />}
                 right={
                   <View style={styles.actions}>
                     <Pressable

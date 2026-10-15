@@ -487,6 +487,7 @@ export default function Dashboard() {
                 <FoodSticker
                   scanId={item.scanId}
                   name={item.name}
+                  size={72}
                   onPress={() =>
                     setViewer({
                       uri: stickerUrl(item.scanId),

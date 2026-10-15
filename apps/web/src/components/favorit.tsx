@@ -6,13 +6,13 @@ import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Pencil, Star, Trash2, Utensils } from "lucide-react";
+import { Check, Pencil, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { Chip } from "@/components/chip";
 import { ListGroup, ListRow } from "@/components/kit/surface";
-import { Sticker } from "@/components/sticker";
+import { FoodThumb, STICKER_FILTER, stickerUrl } from "@/components/sticker";
 import type { FoodItem, SavedFood, SavedFoodRelog } from "@/lib/api-types";
 import { fmtRupiah } from "@/lib/app-config";
 import { fmtInt } from "@/lib/format";
@@ -237,11 +237,24 @@ export function FavoritChips({
       {favorites.items.map((saved) => (
         <Chip
           key={saved.id}
+          className={`max-w-full ${saved.items[0]?.scanId ? "gap-1.5 pl-1.5" : ""}`}
           disabled={favorites.relogPending || saved.id.startsWith("tmp-")}
           onClick={() => favorites.relog(saved, date, meal)}
         >
-          <Star className="mr-1.5 size-3.5 fill-current text-makan-ink" aria-hidden />
-          {saved.name} · {fmtInt(saved.kcal)} kcal
+          {saved.items[0]?.scanId ? (
+            <img
+              src={stickerUrl(saved.items[0].scanId)}
+              alt=""
+              loading="lazy"
+              className="size-8 shrink-0 object-contain"
+              style={STICKER_FILTER}
+            />
+          ) : (
+            <Star className="mr-1.5 size-3.5 shrink-0 fill-current text-makan-ink" aria-hidden />
+          )}
+          <span className="truncate">
+            {saved.name} · {fmtInt(saved.kcal)} kcal
+          </span>
         </Chip>
       ))}
       <Chip onClick={onManage} className="bg-transparent text-muted-foreground">
@@ -289,30 +302,19 @@ export function FavoritManageSheet({
         <ListGroup className="bg-muted/50">
           {favorites.items.map((saved) => {
             const first = saved.items[0];
-            const utensil = (
-              <span
-                className="flex size-9 items-center justify-center rounded-full bg-makan-soft"
-                aria-hidden
-              >
-                <Utensils className="size-4 text-makan-ink" />
-              </span>
-            );
             const isEditing = editing === saved.id;
             return (
               <ListRow
                 key={saved.id}
+                wrapTitle
                 icon={
-                  first?.scanId ? (
-                    <Sticker
-                      scanId={first.scanId}
-                      photoId={first.photoId}
-                      name={saved.name}
-                      className="block size-10"
-                      fallback={utensil}
-                    />
-                  ) : (
-                    utensil
-                  )
+                  <FoodThumb
+                    scanId={first?.scanId}
+                    photoId={first?.photoId}
+                    name={saved.name}
+                    className="size-14"
+                    iconClassName="size-5"
+                  />
                 }
                 title={
                   isEditing ? (
