@@ -79,6 +79,9 @@ export const PAGES: Record<PublicPath, PageMeta> = {
   },
 };
 
+/** The landing renders an "install" button under this answer. */
+export const IPHONE_FAQ_Q = "Ada versi iPhone?";
+
 /** Landing FAQ; also emitted as FAQPage structured data on "/". */
 export const FAQ = [
   {
@@ -94,8 +97,8 @@ export const FAQ = [
     a: "Dari usia, jenis kelamin, tinggi, berat, dan tingkat aktivitasmu (rumus Mifflin-St Jeor), lalu dikurangi defisit sesuai target berat dan tanggal yang kamu pilih. Kalau catatan makan dan timbanganmu cukup, target menyesuaikan pembakaran nyatamu, dibatasi 15% dari rumus.",
   },
   {
-    q: "Bisa dipakai di iPhone?",
-    a: "Bisa lewat browser. JoyoRogo jalan di web untuk HP dan laptop. Aplikasi Android tersedia sebagai APK dan bisa membaca langkah, olahraga, dan tidur dari Health Connect.",
+    q: IPHONE_FAQ_Q,
+    a: "Ada, tapi bentuknya web app, bukan aplikasi dari App Store. Buka joyorogo.com di Safari, tap Bagikan, lalu Tambah ke Layar Utama. JoyoRogo muncul sebagai ikon dan terbuka layar penuh, dengan akun dan data yang sama seperti di Android dan laptop. Bedanya, langkah dan tidur dari Health Connect hanya terbaca di aplikasi Android, dan notifikasi pengingat di iPhone butuh iOS 16.4 ke atas.",
   },
   {
     q: "Apakah JoyoRogo open source?",

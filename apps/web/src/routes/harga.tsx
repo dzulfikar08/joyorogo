@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 
+import { AppDownload } from "@/components/app-download";
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 
@@ -520,6 +521,22 @@ function HargaPage() {
             </ul>
           </section>
         )}
+
+        <section
+          aria-label="Pakai di HP"
+          className="mx-auto mt-14 flex max-w-3xl flex-col items-start gap-4 rounded-3xl bg-card p-6 md:mt-16 md:p-8"
+        >
+          <div>
+            <h2 className="text-xl font-extrabold tracking-tight md:text-2xl">Pakai di HP-mu</h2>
+            <p className="mt-2 text-[0.9375rem] leading-relaxed text-muted-foreground">
+              Android: unduh APK. iPhone: web app yang dipasang ke Layar Utama, tanpa App Store.
+              Akun dan datanya sama di semua perangkat.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <AppDownload location="harga" />
+          </div>
+        </section>
 
         {config.data?.paywall && (
           <section aria-label="Pertanyaan soal harga" className="mx-auto mt-14 max-w-3xl md:mt-16">

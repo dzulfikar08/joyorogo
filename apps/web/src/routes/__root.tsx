@@ -4,6 +4,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { HeadContent, Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
+import { IosInstallHost } from "@/components/ios-install";
 import { ThemeProvider } from "@/components/theme-provider";
 import type { orpc } from "@/utils/orpc";
 
@@ -29,6 +30,7 @@ function RootComponent() {
       <HeadContent />
       <ThemeProvider>
         <Outlet />
+        <IosInstallHost />
         <Toaster position="top-center" />
       </ThemeProvider>
       {import.meta.env.DEV && (

@@ -15,6 +15,7 @@ import {
   Image as ImageIcon,
   LogOut,
   ShieldCheck,
+  Smartphone,
   Trash2,
 } from "lucide-react";
 import { useRef, useState } from "react";
@@ -63,14 +64,11 @@ import { sessionQuery, signOut } from "@/lib/auth-client";
 import type { Session } from "@/lib/auth-client";
 import { fmtDateIndo, fmtInt, fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
 import { client, getServerUrl, orpc } from "@/utils/orpc";
+import { openIosInstall } from "@/lib/ios-install";
+import { usePlatform } from "@/lib/platform";
 
 type MyProfileData = Awaited<ReturnType<AppRouterClient["profile"]["myProfile"]>>;
 const profileOptions = orpc.profile.myProfile.queryOptions();
-
-/** The APK is useless on iPhone/iPad; iPadOS reports as Mac with touch. */
-const IS_IOS =
-  /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 /** Center-crops the pick into a 512px square JPEG; one shape for every upload. */
 async function fileToAvatarBase64(file: File): Promise<string> {
@@ -153,6 +151,7 @@ function ProfilContent({
   email: string | null;
   image: string | null;
 }) {
+  const platform = usePlatform();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const config = useAppConfig();
@@ -551,7 +550,21 @@ function ProfilContent({
       <SectionTitle className="mt-7">Belanja makan</SectionTitle>
       <BudgetSetting />
 
-      {!IS_IOS && (
+      {platform.os === "ios" ? (
+        !platform.standalone && (
+          <>
+            <SectionTitle className="mt-7">Aplikasi iPhone</SectionTitle>
+            <ListGroup>
+              <ListButtonRow
+                icon={<Smartphone className="size-5 text-makan" aria-hidden />}
+                title="Pasang di layar utama"
+                subtitle="Web app dengan akun yang sama, terbuka layar penuh."
+                onClick={() => openIosInstall("profil")}
+              />
+            </ListGroup>
+          </>
+        )
+      ) : (
         <>
           <SectionTitle className="mt-7">Aplikasi Android</SectionTitle>
           <ListGroup>

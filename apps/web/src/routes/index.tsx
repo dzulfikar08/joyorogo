@@ -5,7 +5,6 @@ import {
   CameraOff,
   Check,
   ChevronDown,
-  Download,
   Footprints,
   Hand,
   ListChecks,
@@ -15,19 +14,22 @@ import {
   Radar,
   Trash2,
   Watch,
+  Smartphone,
 } from "lucide-react";
 
 import { Button } from "@joyorogo/ui/components/button";
 import { Ring, type Metric } from "@/components/kit/ring";
+import { AppDownload } from "@/components/app-download";
 import { ScanDemo } from "@/components/landing/scan-demo";
 import { GroupPeek, HeroPhone, ScanExample, WeightTrendDemo } from "@/components/landing/visuals";
 import { GITHUB_URL, GithubMark, PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
 import { FounderPromo } from "@/components/founder-promo";
-import { APK_URL, fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
+import { fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { sessionQuery } from "@/lib/auth-client";
-import { FAQ, pageHead } from "@/lib/seo";
+import { openIosInstall } from "@/lib/ios-install";
+import { FAQ, IPHONE_FAQ_Q, pageHead } from "@/lib/seo";
 import { CACHE_OWNER_KEY } from "@/utils/orpc";
 
 export const Route = createFileRoute("/")({
@@ -190,20 +192,7 @@ function Landing() {
               >
                 Coba gratis
               </Button>
-              <Button
-                size="lg"
-                variant="secondary"
-                render={
-                  <a
-                    href={APK_URL}
-                    data-revklik-goal="apk_download"
-                    data-revklik-goal-location="hero"
-                  />
-                }
-              >
-                <Download aria-hidden />
-                Unduh APK
-              </Button>
+              <AppDownload location="hero" />
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
               {config.data?.anonScans ? `${config.data.anonScans} foto pertama tanpa daftar. ` : ""}
@@ -679,6 +668,18 @@ function Landing() {
                 <p className="pb-5 text-[0.9375rem] leading-relaxed text-muted-foreground">
                   {item.a}
                 </p>
+                {item.q === IPHONE_FAQ_Q && (
+                  <Button
+                    variant="secondary"
+                    className="mb-5"
+                    data-revklik-goal="ios_cta_click"
+                    data-revklik-goal-location="faq"
+                    onClick={() => openIosInstall("faq")}
+                  >
+                    <Smartphone aria-hidden />
+                    Lihat caranya
+                  </Button>
+                )}
               </details>
             ))}
           </div>
@@ -745,21 +746,12 @@ function Landing() {
               >
                 Daftar dengan Google
               </Button>
-              <Button
-                size="lg"
-                variant="ghost"
-                className="border-primary-foreground/35 text-primary-foreground hover:bg-primary-foreground/10 focus-visible:ring-primary-foreground/50"
-                render={
-                  <a
-                    href={APK_URL}
-                    data-revklik-goal="apk_download"
-                    data-revklik-goal-location="closing"
-                  />
-                }
-              >
-                <Download aria-hidden />
-                Unduh untuk Android
-              </Button>
+              <AppDownload
+                location="closing"
+                apkLabel="Unduh untuk Android"
+                onPrimary
+                align="center"
+              />
             </div>
           </div>
         </section>

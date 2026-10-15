@@ -6,6 +6,7 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 
+import { IosInstallBanner } from "@/components/ios-install";
 import BottomNav, { DesktopBar } from "@/components/bottom-nav";
 import { sessionQuery, useSession } from "@/lib/auth-client";
 
@@ -36,6 +37,7 @@ function AuthLayout() {
   return (
     <div className="min-h-svh">
       {showNav && <DesktopBar />}
+      {showNav && <IosInstallBanner />}
       <main>
         <Outlet />
       </main>

@@ -323,6 +323,9 @@ function tipToPost(tip: Tip): Post {
 
 const THEME_SCRIPT = `try{var t=localStorage.getItem("vite-ui-theme")||"system";document.documentElement.classList.toggle("dark",t==="dark"||(t==="system"&&matchMedia("(prefers-color-scheme: dark)").matches))}catch(e){}`;
 
+/** Same rules as detectPlatform() in src/lib/platform.ts (kept in step by platform.test.ts). */
+export const PLATFORM_SCRIPT = `try{var u=navigator.userAgent;document.documentElement.dataset.os=/iPhone|iPad|iPod/.test(u)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)?"ios":/Android/i.test(u)?"android":"desktop"}catch(e){}`;
+
 /**
  * Revklik pageview script (tracks SPA navigation itself), preceded by the
  * inline filter that keeps in-app paths out of its batches (./revklik.ts). The
@@ -370,7 +373,8 @@ function shell(opts: {
     <meta property="og:url" content="${url}" />
     ${ogImageTags(cfg.siteUrl, opts.ogImage).join("\n    ")}${opts.extraHead ?? ""}
     <link rel="stylesheet" href="${cfg.cssHref}" />
-    <script>${THEME_SCRIPT}</script>${cfg.analyticsSiteId ? `\n    ${analyticsTag(cfg.analyticsSiteId)}` : ""}
+    <script>${THEME_SCRIPT}</script>
+    <script>${PLATFORM_SCRIPT}</script>${cfg.analyticsSiteId ? `\n    ${analyticsTag(cfg.analyticsSiteId)}` : ""}
 ${opts.jsonLd.map((data) => `    <script type="application/ld+json">${JSON.stringify(data)}</script>`).join("\n")}
   </head>
   <body class="min-h-dvh bg-background text-foreground antialiased">
@@ -413,6 +417,15 @@ const PUBLISHER = (cfg: BlogConfig) => ({
   logo: { "@type": "ImageObject", url: `${cfg.siteUrl}/icons/apple-touch-icon.png` },
 });
 
+/**
+ * The page is static, so the CTA row is prerendered neutral (iPhone and
+ * Android options both visible, as on desktop) and PLATFORM_SCRIPT tags <html>
+ * with data-os before first paint. These variants key off that attribute.
+ */
+const ON_ANDROID_HIDE = "[html[data-os=android]_&]:hidden";
+const ON_IOS_SECONDARY =
+  "[html[data-os=ios]_&]:bg-transparent [html[data-os=ios]_&]:px-2 [html[data-os=ios]_&]:text-muted-foreground [html[data-os=ios]_&]:underline [html[data-os=ios]_&]:underline-offset-4 [html[data-os=ios]_&]:hover:bg-transparent";
+
 function ctaCard(cfg: BlogConfig): string {
   return `      <aside class="mt-12 rounded-3xl bg-makan-soft p-6" aria-labelledby="cta-title">
         <h2 id="cta-title" class="text-lg font-bold tracking-tight text-makan-ink">Malas menghitung sendiri?</h2>
@@ -420,7 +433,8 @@ function ctaCard(cfg: BlogConfig): string {
         <div class="mt-4 flex flex-wrap gap-2">
           <a href="/login" data-revklik-goal="signup_click" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 ${FOCUS}">Coba gratis</a>
           <a href="/#coba" data-revklik-goal="try_scan_click" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">Coba scan tanpa daftar</a>
-          <a href="${esc(cfg.apkUrl)}" data-revklik-goal="apk_download" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">Unduh untuk Android</a>
+          <a href="/?pasang=iphone" data-revklik-goal="ios_cta_click" data-revklik-goal-location="blog" class="${ON_ANDROID_HIDE} inline-flex min-h-11 items-center rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">Buka di iPhone</a>
+          <a href="${esc(cfg.apkUrl)}" data-revklik-goal="apk_download" data-revklik-goal-location="blog" class="${ON_IOS_SECONDARY} inline-flex min-h-11 items-center rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">Unduh untuk Android</a>
         </div>
       </aside>`;
 }

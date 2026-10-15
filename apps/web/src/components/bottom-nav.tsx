@@ -65,7 +65,7 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="Navigasi utama"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-card pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-12px_oklch(0.3_0.02_85/18%)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-card pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] shadow-[0_-8px_24px_-12px_oklch(0.3_0.02_85/18%)] md:hidden"
     >
       <ul className="mx-auto grid max-w-xl grid-cols-5 items-end px-2">
         {TABS.slice(0, 2).map((tab) => (
