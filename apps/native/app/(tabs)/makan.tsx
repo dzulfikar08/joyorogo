@@ -21,6 +21,7 @@ import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/f
 
 import { BelanjaSection } from "@/components/plate/belanja";
 import { PlateHeader } from "@/components/plate/plate-header";
+import { MacroIcon } from "@/utils/macro-icons";
 import { MacroLine } from "@/components/macro-line";
 import { DaySwitcher } from "@/components/day-switcher";
 import { Cerita } from "@/components/cerita";
@@ -569,13 +570,26 @@ export default function Makan() {
                         title={item.name}
                         onPress={() => setEditRow(item)}
                         subtitle={
-                          [item.protein, item.carbs, item.fat, item.fiber].some(
-                            (g) => (g ?? 0) > 0,
-                          ) ? (
-                            <View style={styles.gramsLine}>
+                          <View style={styles.metaBox}>
+                            <View style={styles.metaLine}>
+                              <View style={styles.metaItem}>
+                                <MacroIcon macro="kcal" size={14} />
+                                <Text style={[styles.metaText, styles.kcalText]}>
+                                  {fmtKcal(item.kcal)} kkal
+                                </Text>
+                              </View>
                               {item.grams ? (
-                                <Text style={styles.gramsText}>{fmtKcal(item.grams)} g</Text>
+                                <View style={styles.metaItem}>
+                                  <MacroIcon macro="grams" size={14} />
+                                  <Text style={[styles.metaText, styles.gramText]}>
+                                    {fmtKcal(item.grams)} g
+                                  </Text>
+                                </View>
                               ) : null}
+                            </View>
+                            {[item.protein, item.carbs, item.fat, item.fiber].some(
+                              (g) => (g ?? 0) > 0,
+                            ) ? (
                               <MacroLine
                                 compact
                                 protein={item.protein}
@@ -583,18 +597,11 @@ export default function Makan() {
                                 fat={item.fat}
                                 fiber={item.fiber}
                               />
-                            </View>
-                          ) : item.source === "ai" ? (
-                            item.grams ? (
-                              `Dari pindai AI · ${fmtKcal(item.grams)} g`
-                            ) : (
-                              "Dari pindai AI"
-                            )
-                          ) : item.grams ? (
-                            `${fmtKcal(item.grams)} g`
-                          ) : undefined
+                            ) : item.source === "ai" ? (
+                              <Text style={styles.gramsText}>Dari pindai AI</Text>
+                            ) : null}
+                          </View>
                         }
-                        value={`${fmtKcal(item.kcal)}`}
                         thumb={
                           item.scanId ? (
                             <FoodSticker
@@ -615,6 +622,24 @@ export default function Makan() {
                               }}
                             />
                           ) : undefined
+                        }
+                        right={
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`Hapus ${item.name}`}
+                            onPress={() => deleteFood(item)}
+                            hitSlop={4}
+                            style={({ pressed }) => [
+                              styles.deleteButton,
+                              pressed && styles.pressedSoft,
+                            ]}
+                          >
+                            <Ionicons
+                              name="trash-outline"
+                              size={18}
+                              color={theme.colors.destructive}
+                            />
+                          </Pressable>
                         }
                       />
                     ))}
@@ -1008,10 +1033,40 @@ export default function Makan() {
 }
 
 const styles = StyleSheet.create((theme) => ({
-  gramsLine: {
+  metaBox: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    columnGap: theme.spacing.md,
+    rowGap: 2,
+  },
+  metaLine: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
+    columnGap: theme.spacing.md,
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  metaText: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+  },
+  kcalText: {
+    color: theme.colors.kcalText,
+  },
+  gramText: {
+    color: theme.colors.gramText,
+  },
+  deleteButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: -12,
   },
   gramsText: {
     fontSize: theme.fontSize.xs,

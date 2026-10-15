@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { useUnistyles } from "react-native-unistyles";
 
-export type MacroKey = "protein" | "carbs" | "fat" | "fiber" | "kcal";
+export type MacroKey = "protein" | "carbs" | "fat" | "fiber" | "kcal" | "grams";
 
 type McIconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 type ThemeColors = ReturnType<typeof useUnistyles>["theme"]["colors"];
@@ -20,7 +20,8 @@ export const MACRO_META: Record<
   carbs: { label: "Karbo", icon: "barley", color: "bakarText" },
   fat: { label: "Lemak", icon: "water", color: "tidurText" },
   fiber: { label: "Serat", icon: "leaf", color: "mutedForeground" },
-  kcal: { label: "Kalori", icon: "fire", color: "bakarText" },
+  kcal: { label: "Kalori", icon: "fire", color: "kcalText" },
+  grams: { label: "Berat", icon: "scale", color: "gramText" },
 };
 
 export function MacroIcon({ macro, size = 14 }: { macro: MacroKey; size?: number }) {

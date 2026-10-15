@@ -17,6 +17,7 @@ import { CalendarSheet, DayChips } from "@/components/plate/plate-group";
 import { SheetActions } from "@/components/sheet-actions";
 import type { FoodItem } from "@/lib/api-types";
 import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
+import { MACRO_META } from "@/lib/macro-icons";
 import { OptimisticCache, insertFoodRow, stripFoodRow, useOptimisticMutation } from "@/lib/optimistic";
 import type { FoodListData } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
@@ -271,7 +272,12 @@ export function FoodPortionSheet({
           {hasGrams ? (
             <div className="flex items-end gap-2">
               <div className="min-w-0 flex-1">
-                <FieldLabel htmlFor="food-grams">Berat (g)</FieldLabel>
+                <FieldLabel htmlFor="food-grams">
+                  <span className="inline-flex items-center gap-1.5 text-gram">
+                    <MACRO_META.grams.Icon className="size-3.5" aria-hidden />
+                    Berat (g)
+                  </span>
+                </FieldLabel>
                 <Input
                   id="food-grams"
                   inputMode="decimal"
@@ -297,7 +303,12 @@ export function FoodPortionSheet({
                 {linked ? <Link2 aria-hidden /> : <Link2Off aria-hidden />}
               </Button>
               <div className="min-w-0 flex-1">
-                <FieldLabel htmlFor="food-kcal">Kalori (kcal)</FieldLabel>
+                <FieldLabel htmlFor="food-kcal">
+                  <span className="inline-flex items-center gap-1.5 text-kcal">
+                    <MACRO_META.kcal.Icon className="size-3.5" aria-hidden />
+                    Kalori (kcal)
+                  </span>
+                </FieldLabel>
                 <Input
                   id="food-kcal"
                   inputMode="decimal"
@@ -328,7 +339,12 @@ export function FoodPortionSheet({
                 </div>
               </div>
               <div>
-                <FieldLabel htmlFor="food-kcal">Kalori (kcal)</FieldLabel>
+                <FieldLabel htmlFor="food-kcal">
+                  <span className="inline-flex items-center gap-1.5 text-kcal">
+                    <MACRO_META.kcal.Icon className="size-3.5" aria-hidden />
+                    Kalori (kcal)
+                  </span>
+                </FieldLabel>
                 <Input
                   id="food-kcal"
                   inputMode="decimal"
@@ -341,9 +357,17 @@ export function FoodPortionSheet({
           )}
 
           <div className="rounded-2xl bg-muted px-4 py-3 text-sm" aria-live="polite">
-            <p className="font-semibold tabular-nums">
-              {fmtInt(values.kcal)} kcal
-              {hasGrams && values.grams !== null ? ` · ${fmtInt(values.grams)} g` : ""}
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-semibold tabular-nums">
+              <span className="inline-flex items-center gap-1.5 text-kcal">
+                <MACRO_META.kcal.Icon className="size-3.5" aria-hidden />
+                {fmtInt(values.kcal)} kkal
+              </span>
+              {hasGrams && values.grams !== null ? (
+                <span className="inline-flex items-center gap-1.5 text-gram">
+                  <MACRO_META.grams.Icon className="size-3.5" aria-hidden />
+                  {fmtInt(values.grams)} g
+                </span>
+              ) : null}
             </p>
             <MacroLine
               className="mt-1 text-muted-foreground"

@@ -13,7 +13,7 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Camera, ChevronRight, Mic, Plus, ScanBarcode, Utensils } from "lucide-react";
+import { Camera, ChevronRight, Mic, Plus, ScanBarcode, Trash2, Utensils } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { Mascot } from "@/components/mascot";
@@ -27,6 +27,7 @@ import { MakanSummaryCard } from "@/components/macro-card";
 import { MacroLine } from "@/components/macro-line";
 import { FoodPortionSheet } from "@/components/food-portion-sheet";
 import { FavoritChips, FavoritManageSheet, useFavorites } from "@/components/favorit";
+import { MACRO_META } from "@/lib/macro-icons";
 import { SheetActions } from "@/components/sheet-actions";
 import type { Favorites } from "@/components/favorit";
 import { MetaLine } from "@/components/meta-line";
@@ -368,7 +369,12 @@ function MakanPage() {
                 items={sectionItems}
                 date={date}
                 renderRow={(item) => (
-                  <FoodRow key={item.id} item={item} onEdit={() => setEditItem(item)} />
+                  <FoodRow
+                    key={item.id}
+                    item={item}
+                    onEdit={() => setEditItem(item)}
+                    onDelete={() => removeFood(item)}
+                  />
                 )}
                 plateAction={(plate, rows) => (
                   <SheetActions
@@ -465,18 +471,48 @@ function MakanPage() {
   );
 }
 
-function FoodRow({ item, onEdit }: { item: FoodItem; onEdit: () => void }) {
+function FoodRow({
+  item,
+  onEdit,
+  onDelete,
+}: {
+  item: FoodItem;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const hasMacros = [item.protein, item.carbs, item.fat, item.fiber].some((g) => (g ?? 0) > 0);
-  const macros = hasMacros ? (
-    <MacroLine
-      compact
-      protein={item.protein}
-      carbs={item.carbs}
-      fat={item.fat}
-      fiber={item.fiber}
-    />
-  ) : null;
-  const subtitle = macros ?? (item.source === "ai" ? "Dari pindai AI" : undefined);
+  // Energy and weight lead the line, each with its own icon and hue, then the macro chips.
+  const subtitle = (
+    <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+      <span
+        className="inline-flex items-center gap-1.5 font-semibold text-kcal"
+        aria-label={`${MACRO_META.kcal.label} ${fmtInt(item.kcal)} kkal`}
+      >
+        <MACRO_META.kcal.Icon className="size-3.5 shrink-0" aria-hidden />
+        <span className="tabular-nums">{fmtInt(item.kcal)} kkal</span>
+      </span>
+      {item.grams ? (
+        <span
+          className="inline-flex items-center gap-1.5 font-semibold text-gram"
+          aria-label={`${MACRO_META.grams.label} ${fmtInt(item.grams)} g`}
+        >
+          <MACRO_META.grams.Icon className="size-3.5 shrink-0" aria-hidden />
+          <span className="tabular-nums">{fmtInt(item.grams)} g</span>
+        </span>
+      ) : null}
+      {hasMacros ? (
+        <MacroLine
+          compact
+          protein={item.protein}
+          carbs={item.carbs}
+          fat={item.fat}
+          fiber={item.fiber}
+        />
+      ) : item.source === "ai" ? (
+        <span>Dari pindai AI</span>
+      ) : null}
+    </span>
+  );
   const utensil = (
     <span
       className="flex size-9 items-center justify-center rounded-full bg-makan-soft"
@@ -504,25 +540,22 @@ function FoodRow({ item, onEdit }: { item: FoodItem; onEdit: () => void }) {
           utensil
         )
       }
-      title={
-        item.grams ? (
-          <>
-            {item.name}
-            <span className="ml-1.5 text-xs font-medium text-muted-foreground tabular-nums">
-              {fmtInt(item.grams)} g
-            </span>
-          </>
-        ) : (
-          item.name
-        )
-      }
+      title={item.name}
       onClick={onEdit}
       subtitle={subtitle}
-      value={
-        <span>
-          {fmtInt(item.kcal)}
-          <span className="ml-1 text-xs font-semibold text-muted-foreground">kcal</span>
-        </span>
+      trailing={
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={`Hapus ${item.name}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete();
+          }}
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 />
+        </Button>
       }
     />
   );

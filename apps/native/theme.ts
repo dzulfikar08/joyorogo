@@ -38,6 +38,9 @@ export const lightTheme = {
     tidur: "#5C69BC",
     tidurSoft: "#E8EDFF",
     tidurText: "#424B8E",
+    // Weight (grams) and energy (kcal), distinct from the macro hues.
+    gramText: "#2B6A9B",
+    kcalText: "#8A5A00",
   },
   // Page padding 20, related cards 12 apart, sections 28 apart, card padding 20.
   spacing: {
@@ -95,6 +98,9 @@ export const darkTheme = {
     tidur: "#8592DC",
     tidurSoft: "#262C47",
     tidurText: "#8592DC",
+    // Weight (grams) and energy (kcal), distinct from the macro hues.
+    gramText: "#6DB3E0",
+    kcalText: "#F2C14E",
   },
   spacing: {
     xs: 4,

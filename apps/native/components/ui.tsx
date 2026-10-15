@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useReducedMotion } from "react-native-reanimated";
-import { MacroIcon, type MacroKey } from "@/utils/macro-icons";
+import { MACRO_META, MacroIcon, type MacroKey } from "@/utils/macro-icons";
 import React, { Fragment, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -740,15 +740,28 @@ export function Chip({
 export function Field({
   label,
   hint,
+  macro,
   children,
 }: {
   label: string;
   hint?: string;
+  /** Shows the shared macro icon and tone before the label (grams, kcal). */
+  macro?: MacroKey;
   children: React.ReactNode;
 }) {
+  const { theme } = useUnistyles();
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      {macro ? (
+        <View style={styles.fieldLabelRow}>
+          <MacroIcon macro={macro} size={14} />
+          <Text style={[styles.fieldLabel, { color: theme.colors[MACRO_META[macro].color] }]}>
+            {label}
+          </Text>
+        </View>
+      ) : (
+        <Text style={styles.fieldLabel}>{label}</Text>
+      )}
       {children}
       {hint ? <Text style={styles.fieldHint}>{hint}</Text> : null}
     </View>
@@ -1195,6 +1208,11 @@ const styles = StyleSheet.create((theme) => ({
   },
 
   field: {
+    gap: 6,
+  },
+  fieldLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   fieldLabel: {

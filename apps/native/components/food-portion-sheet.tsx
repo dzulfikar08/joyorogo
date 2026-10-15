@@ -13,6 +13,7 @@ import type { PortionValues } from "@joyorogo/api/lib/portion";
 import { MacroLine } from "@/components/macro-line";
 import { DateSheet, DayChips } from "@/components/plate/date-sheet";
 import { SheetActions } from "@/components/sheet-actions";
+import { MacroIcon } from "@/utils/macro-icons";
 import { Button, Chip, Field, Input, Num, Sheet, Text } from "@/components/ui";
 import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
 import { fmtDateId, fmtKcal, parseNum } from "@/utils/format";
@@ -321,7 +322,7 @@ export function FoodPortionSheet({
           {hasGrams ? (
             <View style={styles.pair}>
               <View style={styles.pairField}>
-                <Field label="Berat (g)">
+                <Field label="Berat (g)" macro="grams">
                   <Input
                     value={gramsText}
                     onChangeText={onGrams}
@@ -352,7 +353,7 @@ export function FoodPortionSheet({
                 />
               </Pressable>
               <View style={styles.pairField}>
-                <Field label="Kalori (kcal)">
+                <Field label="Kalori (kcal)" macro="kcal">
                   <Input
                     value={kcalText}
                     onChangeText={onKcal}
@@ -383,7 +384,7 @@ export function FoodPortionSheet({
                   />
                 </View>
               </Field>
-              <Field label="Kalori (kcal)">
+              <Field label="Kalori (kcal)" macro="kcal">
                 <Input
                   value={kcalText}
                   onChangeText={onKcal}
@@ -395,10 +396,20 @@ export function FoodPortionSheet({
           )}
 
           <View style={styles.preview} accessibilityLiveRegion="polite">
-            <Num style={styles.previewKcal}>
-              {fmtKcal(values.kcal)} kcal
-              {hasGrams && values.grams !== null ? ` · ${fmtKcal(values.grams)} g` : ""}
-            </Num>
+            <View style={styles.previewLine}>
+              <View style={styles.previewItem}>
+                <MacroIcon macro="kcal" size={16} />
+                <Num style={styles.previewKcal}>{fmtKcal(values.kcal)} kkal</Num>
+              </View>
+              {hasGrams && values.grams !== null ? (
+                <View style={styles.previewItem}>
+                  <MacroIcon macro="grams" size={16} />
+                  <Num style={[styles.previewKcal, styles.previewGram]}>
+                    {fmtKcal(values.grams)} g
+                  </Num>
+                </View>
+              ) : null}
+            </View>
             <MacroLine
               protein={values.protein}
               carbs={values.carbs}
@@ -483,10 +494,24 @@ const styles = StyleSheet.create((theme) => ({
     padding: theme.spacing.md,
     gap: theme.spacing.xs,
   },
+  previewLine: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    columnGap: theme.spacing.md,
+  },
+  previewItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  previewGram: {
+    color: theme.colors.gramText,
+  },
   previewKcal: {
     fontSize: theme.fontSize.base,
     fontWeight: "700",
-    color: theme.colors.foreground,
+    color: theme.colors.kcalText,
   },
   hint: {
     fontSize: theme.fontSize.xs,
