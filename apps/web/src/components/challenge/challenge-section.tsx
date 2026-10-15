@@ -37,7 +37,7 @@ export function ChallengeSection({ groupId }: { groupId: string }) {
 
   const openPaywall = () => {
     setCreateOpen(false);
-    void navigate({ to: "/founder", search: { from: "challenge", next: `/grup/${groupId}` } });
+    void navigate({ to: "/pro", search: { from: "challenge", next: `/grup/${groupId}` } });
   };
 
   if (list.isPending) return <Skeleton className="mt-1 mb-4 h-28 rounded-3xl" />;
@@ -76,7 +76,7 @@ export function ChallengeSection({ groupId }: { groupId: string }) {
           <Trophy className="mx-auto size-6 text-muted-foreground" aria-hidden />
           <p className="mt-2 text-[0.9375rem] font-bold">Belum ada tantangan</p>
           <p className="mx-auto mt-1 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            Ajak tim adu langkah, protein, atau latihan. Founder yang membuat tantangan, semua
+            Ajak tim adu langkah, protein, atau latihan. Pro yang membuat tantangan, semua
             anggota ikut gratis.
           </p>
         </div>

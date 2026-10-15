@@ -41,7 +41,7 @@ export const PAGES: Record<PublicPath, PageMeta> = {
   "/harga": {
     title: "Harga | JoyoRogo",
     description:
-      "Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan jatah foto AI harian. Founder menambah jatah foto AI harian dan mendukung JoyoRogo.",
+      "Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan jatah foto AI harian. Pro menambah jatah foto AI harian dan mendukung JoyoRogo.",
   },
   "/privasi": {
     title: "Privasi | JoyoRogo",
@@ -55,7 +55,7 @@ export const PAGES: Record<PublicPath, PageMeta> = {
   },
   "/pembayaran": {
     title: "Pembayaran | JoyoRogo",
-    description: "Status pembayaran Founder JoyoRogo.",
+    description: "Status pembayaran Pro JoyoRogo.",
     noindex: true,
   },
   // Capability invite links: one per group code, kept out of search results.

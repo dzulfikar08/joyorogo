@@ -525,7 +525,7 @@ function AiFoodPage() {
       // Scan rejected because the free quota ran out: the paywall explains
       // itself better than an error line.
       if (isPaywallError(err)) {
-        navigate({ to: "/founder", search: { from: "quota", next: "/makan/ai" } });
+        navigate({ to: "/pro", search: { from: "quota", next: "/makan/ai" } });
         return;
       }
       setError(err instanceof Error ? err.message : "Gagal menganalisis foto. Coba lagi.");
@@ -756,7 +756,7 @@ function AiFoodPage() {
       // offer Founder to the user who just spent their last free scan.
       navigate(
         quotaReached
-          ? { to: "/founder", search: { from: "quota", next: "/makan" } }
+          ? { to: "/pro", search: { from: "quota", next: "/makan" } }
           : { to: "/makan" },
       );
     } catch (err) {

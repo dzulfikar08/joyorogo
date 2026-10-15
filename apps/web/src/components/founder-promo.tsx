@@ -20,10 +20,10 @@ export function FounderPromo({ className }: { className?: string }) {
     >
       <p className="text-sm leading-relaxed">
         <span className="font-bold">
-          Harga perkenalan {fmtRupiah(config.data.founderPriceIdr)}/bulan
+          Harga Founder (terbatas): {fmtRupiah(config.data.founderPriceIdr)}/bulan
         </span>{" "}
         <span className="text-muted-foreground">
-          cuma untuk {promo.slots} Founder pertama — sisa{" "}
+          cuma untuk {promo.slots} pembeli pertama, sisa{" "}
           <span className="font-bold tabular-nums text-foreground">{left}</span> slot.
           {nextPriceIdr !== null && <> Setelah itu {fmtRupiah(nextPriceIdr)}.</>}
         </span>

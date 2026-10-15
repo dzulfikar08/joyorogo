@@ -106,7 +106,7 @@ function PembayaranPage() {
     body = (
       <State
         icon={<CircleCheck className="size-7 text-primary" aria-hidden />}
-        title="Kamu sekarang Founder"
+        title="Kamu sekarang Pro"
         text={
           status.data.founderUntil
             ? `Aktif sampai ${fmtFounderDate(status.data.founderUntil)}. Terima kasih sudah mendukung JoyoRogo.`

@@ -91,7 +91,7 @@ function Teaser() {
       <p className="text-sm text-muted-foreground">{FOOD_GUIDANCE_TEASER.body}</p>
       <Button
         size="sm"
-        render={<Link to="/founder" search={{ from: "fitness", next: "/makan" }} />}
+        render={<Link to="/pro" search={{ from: "fitness", next: "/makan" }} />}
       >
         {FOOD_GUIDANCE_TEASER.action}
       </Button>

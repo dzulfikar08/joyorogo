@@ -6,8 +6,25 @@ import { trackEvent } from "./analytics";
 import { apiUrl } from "./app-config";
 import type { PaymentMethod } from "./app-config";
 
-/** Where the Founder paywall screen was opened from; picks its subhead. */
+/** Where the Pro paywall screen was opened from; picks its subhead. */
 export type PaywallFrom = "onboarding" | "quota" | "banner" | "profile" | "fitness" | "challenge" | "joyofit";
+
+export type PaywallSearch = { next?: string; from?: PaywallFrom };
+
+/** Search params of the paywall route: `next` must be an in-app path. */
+export function validatePaywallSearch(search: Record<string, unknown>): PaywallSearch {
+  return {
+    next:
+      typeof search.next === "string" &&
+      search.next.startsWith("/") &&
+      !search.next.startsWith("//")
+        ? search.next
+        : undefined,
+    from: (["onboarding", "quota", "banner", "profile", "fitness", "challenge", "joyofit"] as const).find(
+      (value) => search.from === value,
+    ),
+  };
+}
 
 /**
  * Quota-exhausted AI call: the server throws FORBIDDEN carrying
@@ -17,11 +34,11 @@ export function isPaywallError(err: unknown): boolean {
   return err instanceof ORPCError && err.code === "FORBIDDEN" && err.data?.paywall === true;
 }
 
-/** Founder billing period; yearly stacks 12 months on the remaining period. */
+/** Pro billing period; yearly stacks 12 months on the remaining period. */
 export type CheckoutPlan = "monthly" | "yearly";
 
 /**
- * Start a Founder checkout, then leave for the gateway's page. `method`
+ * Start a Pro checkout, then leave for the gateway's page. `method`
  * picks QRIS (Pakasir) or bank transfer (DOKU); omitted = server default.
  * UI goes through useCheckoutPicker, which asks the buyer first.
  */

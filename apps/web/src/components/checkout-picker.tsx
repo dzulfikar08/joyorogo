@@ -45,7 +45,7 @@ export function useCheckoutPicker(plan: CheckoutPlan = "monthly") {
       open={open}
       onOpenChange={setOpen}
       title="Pilih cara bayar"
-      description="Founder aktif otomatis setelah pembayaran masuk."
+      description="Pro aktif otomatis setelah pembayaran masuk."
     >
       <div className="grid gap-3">
         {methods.map((method) => {

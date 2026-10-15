@@ -122,15 +122,15 @@ function LainnyaPage() {
         )}
         {isFree && config.data?.billing && (
           <ListLinkRow
-            to="/founder"
+            to="/pro"
             search={{ from: "profile", next: "/lainnya" }}
             icon={
               <span className="grid size-11 shrink-0 place-items-center rounded-full bg-bakar-soft">
                 <Sparkles className="size-5 text-bakar-ink" aria-hidden />
               </span>
             }
-            title="Jadi Founder"
-            subtitle={`Founder: ${config.data ? founderScans(config.data).toLowerCase() : ""}`}
+            title="Jadi Pro"
+            subtitle={`Pro: ${config.data ? founderScans(config.data).toLowerCase() : ""}`}
           />
         )}
       </ListGroup>

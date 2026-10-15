@@ -151,7 +151,7 @@ function PrivasiPage() {
           <section className="rounded-3xl bg-card p-5">
             <h2 className="text-base font-bold tracking-tight">Pembayaran</h2>
             <p className="mt-3 text-sm leading-relaxed">
-              Langganan Founder dibayar lewat halaman pembayaran di browser: QRIS melalui Pakasir
+              Langganan Pro dibayar lewat halaman pembayaran di browser: QRIS melalui Pakasir
               atau transfer bank melalui DOKU (di iPhone lewat App Store). Kami menyimpan nomor
               pesanan, jumlah, status, dan waktu pembayaran. DOKU menerima namamu dan emailmu
               untuk membuat halaman pembayaran. Kami tidak menyimpan nomor kartu, rekening, atau
@@ -178,7 +178,7 @@ function PrivasiPage() {
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
               Untuk tahu halaman dan tombol mana yang dipakai, kami memakai analitik tanpa cookie
               (Revklik): halaman yang dibuka, sumber kunjungan, jenis perangkat, dan langkah seperti
-              daftar atau pembayaran Founder. Tanpa nama, email, atau catatan kesehatanmu.
+              daftar atau pembayaran Pro. Tanpa nama, email, atau catatan kesehatanmu.
             </p>
           </section>
 
@@ -195,7 +195,7 @@ function PrivasiPage() {
                 Profil
               </Link>
               . Akunmu tetap bisa dipakai, jadi kamu bisa mulai lagi dari nol kapan pun. Riwayat
-              pembayaran dan status Founder tidak ikut terhapus.
+              pembayaran dan status Pro tidak ikut terhapus.
             </p>
             <p className="mt-3 text-sm leading-relaxed">
               Mau menghapus akunnya juga (nama, email, dan riwayat pembayaran)? Kirim email dari

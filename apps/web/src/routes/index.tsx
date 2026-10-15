@@ -149,7 +149,7 @@ function pricingFaq(config: AppConfig | undefined): Array<{ q: string; a: string
   return [
     {
       q: "Gratisnya sampai kapan?",
-      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Founder ${fmtRupiah(config.founderPriceIdr)} per bulan: ${founderScans(config).toLowerCase()}. Paket tahunan ${fmtRupiah(config.founderYearlyPriceIdr)} — setara 10 bulan, hemat 2 bulan.`,
+      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Pro ${fmtRupiah(config.founderPriceIdr)} per bulan: ${founderScans(config).toLowerCase()}. Paket tahunan ${fmtRupiah(config.founderYearlyPriceIdr)}, setara 10 bulan, hemat 2 bulan.`,
     },
   ];
 }
@@ -581,7 +581,7 @@ function Landing() {
                   Gratis untuk dipakai setiap hari
                 </h2>
                 <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-                  Tanpa iklan. Founder membantu JoyoRogo tetap independen.
+                  Tanpa iklan. Pro membantu JoyoRogo tetap independen.
                 </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -614,7 +614,7 @@ function Landing() {
                   </Button>
                 </div>
                 <div className="flex flex-col rounded-[1.75rem] bg-makan-soft p-6">
-                  <p className="font-bold text-makan-ink">Founder</p>
+                  <p className="font-bold text-makan-ink">Pro</p>
                   <p className="mt-2 text-4xl font-extrabold tracking-tight">
                     {fmtRupiah(config.data.founderPriceIdr)}
                   </p>
@@ -626,11 +626,11 @@ function Landing() {
                     </li>
                     <li className="flex gap-2">
                       <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
-                      Badge founder di profilmu
+                      Badge Pro di profilmu
                     </li>
                     <li className="flex gap-2">
                       <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
-                      Paket tahunan {fmtRupiah(config.data.founderYearlyPriceIdr)}/tahun — hemat 2
+                      Paket tahunan {fmtRupiah(config.data.founderYearlyPriceIdr)}/tahun, hemat 2
                       bulan
                     </li>
                   </ul>
@@ -644,7 +644,7 @@ function Landing() {
                       />
                     }
                   >
-                    Pilih Founder
+                    Pilih Pro
                   </Button>
                 </div>
               </div>

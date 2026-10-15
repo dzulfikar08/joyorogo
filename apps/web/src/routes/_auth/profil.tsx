@@ -233,7 +233,7 @@ function ProfilContent({
         toast.error("Belum ada pembayaran masuk. Coba lagi sebentar.");
         return;
       }
-      toast.success("Pembayaran masuk. Founder aktif!");
+      toast.success("Pembayaran masuk. Pro aktif!");
       queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
       queryClient.invalidateQueries({ queryKey: ["billing", "pending-order"] });
     },
@@ -333,7 +333,7 @@ function ProfilContent({
                     : "bg-muted text-muted-foreground",
                 )}
               >
-                {tier === "founder" ? "Founder" : "Gratis"}
+                {tier === "founder" ? "Pro" : "Gratis"}
               </span>
             )}
           </div>
@@ -384,14 +384,14 @@ function ProfilContent({
                 Scan AI {config.data?.freeDailyScans} kali sehari
               </p>
               <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
-                Founder: {config.data ? founderScans(config.data).toLowerCase() : ""}.
+                Pro: {config.data ? founderScans(config.data).toLowerCase() : ""}.
               </p>
             </div>
             <Button
               size="sm"
               className="shrink-0"
               onClick={() =>
-                navigate({ to: "/founder", search: { from: "profile", next: "/profil" } })
+                navigate({ to: "/pro", search: { from: "profile", next: "/profil" } })
               }
             >
               Upgrade
@@ -400,7 +400,7 @@ function ProfilContent({
           {pendingOrder.data && (
             <div className="mt-3 flex items-center justify-between gap-3">
               <p className="min-w-0 text-sm leading-snug text-muted-foreground">
-                Ada pembayaran Founder yang belum selesai.
+                Ada pembayaran Pro yang belum selesai.
               </p>
               <Button
                 size="sm"
@@ -419,7 +419,7 @@ function ProfilContent({
       {tier === "founder" && founderUntil && (
         <div className="mb-3 flex items-center justify-between gap-3 rounded-3xl bg-card p-5">
           <div className="min-w-0">
-            <p className="text-[0.9375rem] font-bold">Founder aktif</p>
+            <p className="text-[0.9375rem] font-bold">Pro aktif</p>
             <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
               Sampai {fmtFounderDate(founderUntil)}. Tidak diperpanjang otomatis.
             </p>

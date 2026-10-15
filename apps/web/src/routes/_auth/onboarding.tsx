@@ -265,7 +265,7 @@ function OnboardingPage() {
   };
 
   const openApp = () =>
-    navigate({ to: "/founder", search: { from: "onboarding", next: "/beranda" } });
+    navigate({ to: "/pro", search: { from: "onboarding", next: "/beranda" } });
 
   if (done && save.data?.targets && inviting) {
     const firstName = session.data?.user.name?.trim().split(/\s+/)[0];

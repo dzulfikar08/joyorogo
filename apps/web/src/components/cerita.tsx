@@ -173,7 +173,7 @@ export function Cerita({
       // Story rejected because the free quota ran out: paywall instead of an
       // error line.
       if (isPaywallError(err)) {
-        navigate({ to: "/founder", search: { from: "quota", next: "/makan" } });
+        navigate({ to: "/pro", search: { from: "quota", next: "/makan" } });
         return;
       }
       const parts = errorParts(err);
@@ -403,7 +403,7 @@ export function Cerita({
       // The save landed first, so nothing is lost: now offer Founder to the
       // user who just spent their last free story scan.
       if (quotaReached) {
-        navigate({ to: "/founder", search: { from: "quota", next: "/makan" } });
+        navigate({ to: "/pro", search: { from: "quota", next: "/makan" } });
       }
     } catch (err) {
       toast.error(errorParts(err).message);

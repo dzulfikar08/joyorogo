@@ -89,12 +89,12 @@ function FounderBanner() {
         <span aria-hidden className="mx-1 text-muted-foreground">
           ·
         </span>
-        <span className="font-normal">Founder {cap === null ? "tanpa batas" : `${cap}/hari`}</span>
+        <span className="font-normal">Pro {cap === null ? "tanpa batas" : `${cap}/hari`}</span>
       </p>
       <Button
         size="sm"
         className="shrink-0"
-        onClick={() => navigate({ to: "/founder", search: { from: "banner", next: "/beranda" } })}
+        onClick={() => navigate({ to: "/pro", search: { from: "banner", next: "/beranda" } })}
       >
         Upgrade
       </Button>

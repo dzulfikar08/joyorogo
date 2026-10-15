@@ -41,13 +41,13 @@ function sharedFeatures(config: AppConfig): string[] {
   ];
 }
 
-/** Founder-only extras besides the scan quota. */
+/** Pro-only extras besides the scan quota. */
 function founderFeatures(config: AppConfig): string[] {
   return [
     founderScans(config),
     "Saran makan dari skor JoyoFit",
     "Cadangan cloud JoyoFit (langkah, detak jantung, tidur, latihan dari jam)",
-    "Badge founder di profilmu",
+    "Badge Pro di profilmu",
     "Harga terkunci saat perpanjang",
   ];
 }
@@ -251,16 +251,16 @@ function HargaPage() {
             className="pointer-events-none absolute -right-32 top-10 hidden w-28 -rotate-6 lg:block"
           />
           <header className="mx-auto max-w-md text-center">
-            <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">Harga</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">JoyoRogo Pro</h1>
             {config.data?.paywall && (
               <>
                 <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
-                  Mulai gratis, selamanya. Founder menambah jatah scan AI untuk hari-hari yang butuh
+                  Mulai gratis, selamanya. Pro menambah jatah scan AI untuk hari-hari yang butuh
                   lebih dari {config.data.freeDailyScans} kali, plus saran makan dari skor JoyoFit dan
                   cadangan cloud JoyoFit.
                 </p>
                 <p className="mt-2 text-[0.9375rem] font-semibold leading-relaxed">
-                  Founder mencakup JoyoRogo + JoyoFit.
+                  Pro mencakup JoyoRogo + JoyoFit.
                 </p>
               </>
             )}
@@ -322,15 +322,15 @@ function HargaPage() {
                 }
               />
               <TierCard
-                name="Founder Bulanan"
+                name="Pro Bulanan"
                 price={fmtRupiah(config.data.founderPriceIdr)}
                 per="per bulan"
-                badge={promo ? "Terbatas" : undefined}
+                badge={promo ? "Founder (terbatas)" : undefined}
                 features={founderFeatures(config.data)}
                 cta={
                   config.data.billing ? (
                     <Button disabled={checkout.isPending} onClick={() => checkout.start()}>
-                      {checkout.isPending ? "Membuka pembayaran..." : "Jadi Founder"}
+                      {checkout.isPending ? "Membuka pembayaran..." : "Jadi Pro"}
                     </Button>
                   ) : (
                     <p className="text-sm text-muted-foreground">
@@ -340,7 +340,7 @@ function HargaPage() {
                 }
               />
               <TierCard
-                name="Founder Tahunan"
+                name="Pro Tahunan"
                 price={fmtRupiah(config.data.founderYearlyPriceIdr)}
                 per="per tahun"
                 sub={perMonthYearly > 0 ? `setara ${fmtRupiah(perMonthYearly)}/bulan` : undefined}
@@ -451,7 +451,7 @@ function HargaPage() {
             <div className="mt-6 overflow-hidden rounded-3xl bg-card">
               <table className="w-full border-separate border-spacing-0">
                 <caption className="sr-only">
-                  Perbandingan fitur paket Gratis dan Founder
+                  Perbandingan fitur paket Gratis dan Pro
                 </caption>
                 <thead>
                   <tr>
@@ -462,7 +462,7 @@ function HargaPage() {
                       Gratis
                     </th>
                     <th scope="col" className="px-2 pb-2 pt-4 text-center text-xs font-bold uppercase tracking-wide text-makan-ink">
-                      Founder
+                      Pro
                     </th>
                   </tr>
                 </thead>
@@ -481,7 +481,7 @@ function HargaPage() {
                   ))}
                   <CompareRow feature="Saran makan dari skor JoyoFit" free={false} founder />
                   <CompareRow feature="Cadangan cloud JoyoFit" free={false} founder />
-                  <CompareRow feature="Badge founder di profil" free={false} founder />
+                  <CompareRow feature="Badge Pro di profil" free={false} founder />
                 </tbody>
               </table>
             </div>
@@ -532,7 +532,7 @@ function HargaPage() {
               </li>
               <li className="flex gap-2.5">
                 <span aria-hidden className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-muted-foreground/60" />
-                Harga Founder terkunci di harga pertama kali kamu bayar, termasuk saat perpanjang.
+                Harga Pro terkunci di harga pertama kali kamu bayar, termasuk saat perpanjang.
               </li>
             </ul>
           </section>
@@ -583,7 +583,7 @@ function HargaPage() {
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm sm:hidden">
           <div className="flex items-center gap-3 px-4 py-3">
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-muted-foreground">Founder bulanan</p>
+              <p className="text-xs font-semibold text-muted-foreground">Pro bulanan</p>
               <p className="text-sm font-extrabold tabular-nums">
                 {fmtRupiah(config.data.founderPriceIdr)}
                 <span className="font-semibold text-muted-foreground">/bulan</span>
@@ -594,7 +594,7 @@ function HargaPage() {
               disabled={checkout.isPending}
               onClick={() => checkout.start()}
             >
-              {checkout.isPending ? "Membuka..." : "Jadi Founder"}
+              {checkout.isPending ? "Membuka..." : "Jadi Pro"}
             </Button>
           </div>
         </div>
