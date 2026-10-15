@@ -146,6 +146,20 @@ describe("apple founder grant", () => {
     const first = appleFounderGrant("Sandbox", "a@b.c", allow, 0, active, now);
     expect(first.until.toISOString()).toBe("2026-10-21T00:00:00.000Z");
   });
+
+  test("yearly grants 12 months in production and allowlisted sandbox", () => {
+    const prod = appleFounderGrant("Production", "x@y.z", allow, 290000, null, now, 12);
+    expect(prod.until.toISOString()).toBe("2027-10-12T05:00:00.000Z");
+    expect(prod.amountIdr).toBe(290000);
+    const sb = appleFounderGrant("Sandbox", "owner@joyo.id", allow, 290000, null, now, 12);
+    expect(sb.until.toISOString()).toBe("2027-10-12T05:00:00.000Z");
+  });
+
+  test("non-allowlisted sandbox yearly is still 24h at zero revenue", () => {
+    const grant = appleFounderGrant("Sandbox", "a@b.c", allow, 290000, null, now, 12);
+    expect(grant.until.toISOString()).toBe("2026-10-13T05:00:00.000Z");
+    expect(grant.amountIdr).toBe(0);
+  });
 });
 
 describe("founder price ladder", () => {

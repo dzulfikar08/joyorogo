@@ -5,6 +5,8 @@ export type AppleIapProduct = {
   id: string;
   displayName: string;
   displayPrice: string;
+  /** Numeric price in the storefront currency (Swift Decimal, e.g. "29000"). */
+  price: string;
 };
 
 export type AppleUnfinished = {

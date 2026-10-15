@@ -302,8 +302,11 @@ export function FounderPromoCard() {
   );
 }
 
-/** App Store Connect product for one month of Founder; server verifies the id. */
-const FOUNDER_PRODUCT_ID = "com.joyodigitama.joyorogo.founder.1m";
+/** App Store Connect products for Founder (non-renewing); the server verifies the ids. */
+const FOUNDER_PRODUCT_IDS = {
+  monthly: "com.joyodigitama.joyorogo.founder.1m",
+  yearly: "com.joyodigitama.joyorogo.founder.1y",
+} as const;
 
 /**
  * The server will never credit this transaction (bad JWS or sandbox account
@@ -334,9 +337,9 @@ async function postAppleJws(signedTransaction: string): Promise<void> {
  */
 export function useAppleFounderPurchase() {
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (plan: "monthly" | "yearly") => {
       if (!appleIap) throw new Error("Pembelian lewat App Store tidak tersedia.");
-      const result = await appleIap.purchase(FOUNDER_PRODUCT_ID);
+      const result = await appleIap.purchase(FOUNDER_PRODUCT_IDS[plan]);
       if (result.status === "cancelled") return "cancelled";
       if (result.status === "pending") {
         throw new Error(
@@ -356,11 +359,17 @@ export function useAppleFounderPurchase() {
   });
 }
 
-/** StoreKit price for the card copy; null while the product is unavailable. */
+/** StoreKit products for both plans; a plan is null while its product is unavailable. */
 export function useAppleFounderPrice(enabled: boolean) {
   return useQuery({
-    queryKey: ["apple-founder-product"],
-    queryFn: async () => (await appleIap?.getProduct(FOUNDER_PRODUCT_ID)) ?? null,
+    queryKey: ["apple-founder-products"],
+    queryFn: async () => {
+      const [monthly, yearly] = await Promise.all([
+        appleIap?.getProduct(FOUNDER_PRODUCT_IDS.monthly),
+        appleIap?.getProduct(FOUNDER_PRODUCT_IDS.yearly),
+      ]);
+      return { monthly: monthly ?? null, yearly: yearly ?? null };
+    },
     enabled,
     staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
@@ -616,7 +625,7 @@ export function FounderCards({
       onError: (e) => toast.error("Pemulihan gagal", errorMessage(e)),
     });
   const buy = () => {
-    if (ios) purchase.mutate();
+    if (ios) purchase.mutate("monthly");
     else if (PLAY_ACTIVE) playBuy.mutate("monthly", { onSuccess: onPlayBought });
     else checkout.start();
   };
@@ -645,8 +654,10 @@ export function FounderCards({
                   ? "Pro buka scan tanpa batas."
                   : `Pro: ${config.data.founderDailyCap} scan AI per hari.`}
               </Text>
-              {ios && price.data?.displayPrice ? (
-                <Text style={styles.cardNote}>{price.data.displayPrice} lewat App Store.</Text>
+              {ios && price.data?.monthly?.displayPrice ? (
+                <Text style={styles.cardNote}>
+                  {price.data.monthly.displayPrice}/bulan lewat App Store.
+                </Text>
               ) : null}
               {PLAY_ACTIVE && playPrices.data?.monthly ? (
                 <Text style={styles.cardNote}>

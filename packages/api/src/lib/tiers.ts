@@ -222,6 +222,7 @@ export function appleFounderGrant(
   priceIdr: number,
   current: Date | null,
   now = new Date(),
+  months = 1,
 ): { until: Date; amountIdr: number } {
   if (environment === "Sandbox") {
     const allowed = (sandboxAllowlist ?? "")
@@ -233,7 +234,7 @@ export function appleFounderGrant(
       return { until: new Date(base.getTime() + DAY_MS), amountIdr: 0 };
     }
   }
-  return { until: nextFounderUntil(current, now), amountIdr: priceIdr };
+  return { until: nextFounderUntil(current, now, months), amountIdr: priceIdr };
 }
 
 /** Epoch-ms window of one WIB calendar day ('YYYY-MM-DD', UTC+7, no DST). */

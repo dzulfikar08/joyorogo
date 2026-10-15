@@ -28,6 +28,7 @@ public class AppleIapModule: Module {
         "id": product.id,
         "displayName": product.displayName,
         "displayPrice": product.displayPrice,
+        "price": "\(product.price)",
       ]
     }
 

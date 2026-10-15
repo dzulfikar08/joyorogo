@@ -49,6 +49,7 @@ declare module "cloudflare:workers" {
       APPLE_SIWA_KEY_ID?: string;
       APPLE_SIWA_PRIVATE_KEY?: string;
       APPLE_FOUNDER_PRODUCT_ID?: string;
+      APPLE_FOUNDER_YEARLY_PRODUCT_ID?: string;
       APPLE_SANDBOX_EMAILS?: string;
       GOOGLE_PLAY_SERVICE_ACCOUNT_JSON?: string;
       GOOGLE_PLAY_PACKAGE_NAME?: string;

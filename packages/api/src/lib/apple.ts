@@ -11,6 +11,7 @@ export const APPLE_ROOT_CA_G3_SHA256 =
   "63343abfb89a6a03ebb57e9b3f5fa7be7c4f5c756f3017b3a8c488c3653e9179";
 export const DEFAULT_APPLE_BUNDLE_ID = "com.joyodigitama.joyorogo";
 export const DEFAULT_APPLE_FOUNDER_PRODUCT_ID = "com.joyodigitama.joyorogo.founder.1m";
+export const DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID = "com.joyodigitama.joyorogo.founder.1y";
 
 // 1.2.840.113635.100.6.2.1 marks Apple WWDR intermediates, 1.2.840.113635.100.6.11.1
 // marks the App Store signing certificate (same OIDs Apple's own verifier checks).
@@ -40,11 +41,13 @@ export type AppleVerifyOptions = {
   /** SHA-256 (hex, colons tolerated) of the trusted root cert's DER. Tests pin their own root. */
   rootSha256: string;
   bundleId: string;
-  productId: string;
+  /** Any of these product ids is accepted; the caller maps the id to a plan. */
+  productIds: string[];
 };
 
 export type AppleTransaction = {
   transactionId: string;
+  productId: string;
   environment: "Sandbox" | "Production";
   signedDate: Date;
   /** JWS price in IDR (App Store sends milliunits); null when currency is not IDR. */
@@ -163,7 +166,7 @@ async function verify(jws: string, opts: AppleVerifyOptions): Promise<AppleVerif
   if (!valid) return { ok: false, reason: "signature" };
 
   if (payload.bundleId !== opts.bundleId) return { ok: false, reason: "bundle" };
-  if (payload.productId !== opts.productId) return { ok: false, reason: "product" };
+  if (!opts.productIds.includes(payload.productId)) return { ok: false, reason: "product" };
   if (payload.revocationDate != null) return { ok: false, reason: "revoked" };
   if (payload.environment !== "Sandbox" && payload.environment !== "Production") {
     return { ok: false, reason: "environment" };
@@ -177,6 +180,7 @@ async function verify(jws: string, opts: AppleVerifyOptions): Promise<AppleVerif
     ok: true,
     transaction: {
       transactionId: payload.transactionId,
+      productId: payload.productId,
       environment: payload.environment,
       signedDate,
       priceIdr,

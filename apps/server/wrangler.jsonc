@@ -89,6 +89,7 @@
     "PAKASIR_SLUG": "joyorogo",
     "APPLE_BUNDLE_ID": "com.joyodigitama.joyorogo",
     "APPLE_FOUNDER_PRODUCT_ID": "com.joyodigitama.joyorogo.founder.1m",
+    "APPLE_FOUNDER_YEARLY_PRODUCT_ID": "com.joyodigitama.joyorogo.founder.1y",
     "APPLE_SANDBOX_EMAILS": ""
   }
 }

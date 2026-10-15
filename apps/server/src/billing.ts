@@ -7,6 +7,7 @@ import {
   APPLE_ROOT_CA_G3_SHA256,
   DEFAULT_APPLE_BUNDLE_ID,
   DEFAULT_APPLE_FOUNDER_PRODUCT_ID,
+  DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID,
   verifyAppleTransactionJws,
 } from "@joyorogo/api/lib/apple";
 import { summarize } from "@joyorogo/api/lib/cost";
@@ -73,6 +74,7 @@ export type BillingEnv = PaywallEnv & GooglePlayEnv & {
   APPLE_SIWA_KEY_ID?: string;
   APPLE_SIWA_PRIVATE_KEY?: string;
   APPLE_FOUNDER_PRODUCT_ID?: string;
+  APPLE_FOUNDER_YEARLY_PRODUCT_ID?: string;
   APPLE_SANDBOX_EMAILS?: string;
   /** Transactional email (Cloudflare Email Service binding). Unset = off. */
   EMAIL?: SendEmail;
@@ -446,10 +448,13 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       return c.json({ error: "Bukti pembelian tidak ada." }, 400);
     }
 
+    const monthlyId = env.APPLE_FOUNDER_PRODUCT_ID || DEFAULT_APPLE_FOUNDER_PRODUCT_ID;
+    const yearlyId =
+      env.APPLE_FOUNDER_YEARLY_PRODUCT_ID || DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID;
     const verification = await verifyAppleTransactionJws(body.signedTransaction, {
       rootSha256: APPLE_ROOT_CA_G3_SHA256,
       bundleId: env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID,
-      productId: env.APPLE_FOUNDER_PRODUCT_ID || DEFAULT_APPLE_FOUNDER_PRODUCT_ID,
+      productIds: [monthlyId, yearlyId],
     });
     if (!verification.ok) {
       console.error(`apple billing rejected: ${verification.reason}`);
@@ -462,7 +467,10 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     // demo) get the full month; any other Sandbox buyer gets one day at zero
     // revenue (appleFounderGrant), so review works without free months.
     const orderId = `apple:${transaction.transactionId}`;
-    const paidPriceIdr = transaction.priceIdr ?? config.founderPriceIdr;
+    const plan = transaction.productId === yearlyId ? "yearly" : "monthly";
+    const paidPriceIdr =
+      transaction.priceIdr ??
+      (plan === "yearly" ? config.founderYearlyPriceIdr : config.founderPriceIdr);
 
     const db = deps.getDb();
     const [owner] = await db
@@ -489,6 +497,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       paidPriceIdr,
       owner.founderUntil,
       now,
+      planMonths(plan),
     );
 
     // One D1 batch. The pending row records the order; the paid flip only

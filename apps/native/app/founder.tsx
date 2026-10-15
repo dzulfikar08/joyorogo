@@ -50,7 +50,6 @@ export default function FounderPaywall() {
   const config = useAppConfig();
   const ios = Platform.OS === "ios";
   const purchase = useAppleFounderPurchase();
-  // Yearly is gateway-only: Apple IAP stays monthly.
   const [plan, setPlan] = useState<CheckoutPlan>("monthly");
   const checkout = useCheckoutPicker(ios ? "monthly" : plan);
   const appleBilling = config.data?.appleBilling === true;
@@ -114,7 +113,7 @@ export default function FounderPaywall() {
       return;
     }
     try {
-      await purchase.mutateAsync();
+      await purchase.mutateAsync(plan);
     } catch (e) {
       toast.error("Pembayaran gagal", errorMessage(e));
     }
@@ -141,13 +140,19 @@ export default function FounderPaywall() {
     config.data.founderDailyCap === null
       ? "Scan AI tanpa batas"
       : `${config.data.founderDailyCap} scan AI per hari`;
-  const yearly = !ios && plan === "yearly";
+  const yearly = plan === "yearly";
+  const appleProduct = ios ? price.data?.[plan] : undefined;
+  // Apple's yearly product only saves 2 months if its StoreKit price is at most 10 monthly prices.
+  const appleSaves =
+    ios && price.data?.monthly && price.data.yearly
+      ? Number(price.data.yearly.price) <= Number(price.data.monthly.price) * 10
+      : false;
   // Play and the App Store charge their own localized price; never show the web one for them.
   const playPrice = PLAY_ACTIVE ? playPrices.data?.[plan]?.displayPrice : undefined;
   const priceLabel = PLAY_ACTIVE
     ? (playPrice ?? "...")
-    : ios && price.data?.displayPrice
-      ? price.data.displayPrice
+    : ios && appleProduct?.displayPrice
+      ? appleProduct.displayPrice
       : `Rp${(
           yearly ? config.data.founderYearlyPriceIdr : config.data.founderPriceIdr
         ).toLocaleString("id-ID")}`;
@@ -190,21 +195,17 @@ export default function FounderPaywall() {
       {!ios && <FounderPromoCard />}
 
       <Card style={styles.priceCard}>
-        {!ios && (
-          <>
-            <Segmented
-              options={[
-                { value: "monthly", label: "Bulanan" },
-                { value: "yearly", label: "Tahunan" },
-              ]}
-              value={plan}
-              onChange={setPlan}
-            />
-            {yearly && !PLAY_ACTIVE ? (
-              <Text style={styles.priceNote}>Setara 10 bulan — hemat 2 bulan.</Text>
-            ) : null}
-          </>
-        )}
+        <Segmented
+          options={[
+            { value: "monthly", label: "Bulanan" },
+            { value: "yearly", label: "Tahunan" },
+          ]}
+          value={plan}
+          onChange={setPlan}
+        />
+        {yearly && !PLAY_ACTIVE && (!ios || appleSaves) ? (
+          <Text style={styles.priceNote}>Setara 10 bulan, hemat 2 bulan.</Text>
+        ) : null}
         <View style={styles.priceRow}>
           <Text style={styles.price}>{priceLabel}</Text>
           <Text style={styles.pricePer}>{yearly ? "/tahun" : "/bulan"}</Text>

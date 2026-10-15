@@ -5,6 +5,7 @@ import {
   APPLE_ROOT_CA_G3_SHA256,
   DEFAULT_APPLE_BUNDLE_ID,
   DEFAULT_APPLE_FOUNDER_PRODUCT_ID,
+  DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID,
   verifyAppleTransactionJws,
 } from "./apple";
 
@@ -24,6 +25,7 @@ const APPLE_WWDR_G6_B64 =
 
 const BUNDLE = DEFAULT_APPLE_BUNDLE_ID;
 const PRODUCT = DEFAULT_APPLE_FOUNDER_PRODUCT_ID;
+const YEARLY = DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID;
 const SIGNED_DATE = Date.parse("2026-10-13T00:00:00Z");
 const NOT_BEFORE = Date.parse("2026-01-01T00:00:00Z");
 const NOT_AFTER = Date.parse("2027-01-01T00:00:00Z");
@@ -314,7 +316,7 @@ beforeAll(async () => {
   );
   leaf384 = await issueLeaf(intermediate384, NOT_AFTER, [markerExt(APPLE_LEAF_OID)], "SHA-384");
 
-  pinned = { rootSha256: await sha256Hex(root.der), bundleId: BUNDLE, productId: PRODUCT };
+  pinned = { rootSha256: await sha256Hex(root.der), bundleId: BUNDLE, productIds: [PRODUCT, YEARLY] };
 });
 
 const validJws = (payload = validPayload()) =>
@@ -337,6 +339,12 @@ describe("verifyAppleTransactionJws", () => {
       expect(result.transaction.priceIdr).toBe(15_000);
       expect(result.transaction.signedDate.getTime()).toBe(SIGNED_DATE);
     }
+  });
+
+  test("accepts the yearly product and reports the product id", async () => {
+    const jws = await validJws(validPayload({ productId: YEARLY }));
+    const result = await verifyAppleTransactionJws(jws, pinned);
+    expect(result.ok && result.transaction.productId).toBe(YEARLY);
   });
 
   test("verifies Apple's real WWDR G6 under the pinned G3 root (P-384, SHA-384)", async () => {
