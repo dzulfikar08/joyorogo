@@ -41,15 +41,20 @@ entitlements["get-task-allow"] = False
 for key, value in requested.items():
     if key not in granted:
         sys.exit(f"profile for {bundle_id} does not grant {key}; enable the capability on the bundle id")
-    entitlements[key] = value
+    # Prebuild writes aps-environment "development"; the App Store profile grants "production".
+    entitlements[key] = granted[key] if key == "aps-environment" else value
 
 identity.mkdir(parents=True, exist_ok=True)
 ent_path = identity / "entitlements.plist"
 ent_path.write_bytes(plistlib.dumps(entitlements))
 
-sign = ["rcodesign", "sign", "--pem-file", str(key_path), "--certificate-der-file", str(cert_path)]
+# --team-name everywhere, as omarchy-apple-dev's ship.sh (its App Store uploads are VALID).
+# Resource-only .bundle directories are sealed as resources, as Xcode does; signing
+# them makes nested "code" with no executable.
+sign = ["rcodesign", "sign", "--pem-file", str(key_path), "--certificate-der-file", str(cert_path),
+        "--team-name", team, "--exclude", "**/*.bundle"]
 for nested in sorted((app / "Frameworks").glob("*")):
     subprocess.run([*sign, str(nested)], check=True, stdout=subprocess.DEVNULL)
-subprocess.run([*sign, "--team-name", team, "--entitlements-xml-file", str(ent_path), str(app)],
+subprocess.run([*sign, "--entitlements-xml-file", str(ent_path), str(app)],
                check=True, stdout=subprocess.DEVNULL)
 print(f"signed {bundle_id} for team {team} with {sorted(entitlements)}")

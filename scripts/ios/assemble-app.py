@@ -69,6 +69,8 @@ with open(summary["info_plist"], "rb") as f:
 info["MinimumOSVersion"] = summary["deployment_target"]
 info["UIDeviceFamily"] = [int(x) for x in env.get("TARGETED_DEVICE_FAMILY", "1").split(",")]
 info["CFBundleSupportedPlatforms"] = ["iPhoneOS"]
+# $(PRODUCT_BUNDLE_PACKAGE_TYPE) is an Xcode product-type default no xcconfig sets.
+info["CFBundlePackageType"] = info.get("CFBundlePackageType") or "APPL"
 info["UIRequiredDeviceCapabilities"] = ["arm64"]
 # Release strips the dev launcher's Bonjour service and its usage text.
 services = [s for s in info.get("NSBonjourServices", []) if "_expo._tcp" not in s]
@@ -122,7 +124,12 @@ for raw in paths:
     dst = frameworks_dir / src.name
     shutil.copytree(src, dst, symlinks=True,
                     ignore=shutil.ignore_patterns("Headers", "PrivateHeaders", "Modules", "*.swiftmodule",
-                                                  "_CodeSignature", "*.dSYM"))
+                                                  "_CodeSignature", "*.dSYM", "._*"))
+
+# Expo's precompiled xcframework tarballs carry macOS AppleDouble files (._ExpoCamera, ...);
+# App Store processing rejects a signature over them (error 90034), so none may ship.
+for junk in app.rglob("._*"):
+    junk.unlink()
 
 # Swift back-deployment libraries the executable (or a framework) loads by rpath.
 swift_libs = Path(SDK).parents[4] / "usr/lib/swift/iphoneos"

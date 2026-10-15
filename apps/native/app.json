@@ -16,7 +16,8 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "NSHealthShareUsageDescription": "Izinkan JoyoRogo membaca langkah, jarak, kalori aktif, olahraga, dan tidur dari Apple Health untuk menghitung kalori yang kamu bakar."
+        "NSHealthShareUsageDescription": "Izinkan JoyoRogo membaca langkah, jarak, kalori aktif, olahraga, dan tidur dari Apple Health untuk menghitung kalori yang kamu bakar.",
+        "NSHealthUpdateUsageDescription": "JoyoRogo hanya membaca data dari Apple Health dan tidak menulis apa pun ke sana."
       },
       "entitlements": {
         "com.apple.developer.healthkit": true,
