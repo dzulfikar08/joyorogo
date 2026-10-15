@@ -15,6 +15,7 @@ function trimSlash(url: string): string {
 function fileFor(url: string): string | undefined {
   const path = url.split("?")[0] ?? "";
   if (path === "/sitemap.xml") return "sitemap.xml";
+  if (path === "/llms.txt") return "llms.txt";
   if (path === "/blog/rss.xml") return "blog/rss.xml";
   if (path === "/blog" || path === "/blog/") return "blog/index.html";
   const slug = /^\/blog\/([a-z0-9-]+)\/?$/.exec(path)?.[1];
@@ -68,7 +69,14 @@ export function blogPlugin(): Plugin {
         if (!key) return next();
         const body = renderBlog({ ...cfg, cssHref: "/src/index.css" }).get(key);
         if (!body) return next();
-        res.setHeader("Content-Type", key.endsWith(".html") ? "text/html" : "application/xml");
+        res.setHeader(
+          "Content-Type",
+          key.endsWith(".html")
+            ? "text/html"
+            : key.endsWith(".txt")
+              ? "text/plain; charset=utf-8"
+              : "application/xml",
+        );
         res.end(body);
       });
     },

@@ -1,7 +1,8 @@
 ---
 title: Daftar kalori makanan Indonesia sehari-hari menurut TKPI 2019
-description: Tabel kalori nasi, lauk, sayur, soto, mie, jajanan, dan minuman Indonesia per 100 gram dari Tabel Komposisi Pangan Indonesia 2019, plus cara membacanya untuk porsimu sendiri.
+description: Tabel kalori nasi, lauk, sayur, soto, mie, jajanan, dan minuman Indonesia per 100 gram dari TKPI 2019, plus cara membacanya untuk porsimu.
 date: 2026-10-12
+related: kenyang-dengan-porsi-banyak
 featured: true
 ---
 

@@ -1,7 +1,8 @@
 ---
-title: Diet saat puasa Ramadan: membagi kalori sahur, berbuka, dan camilan malam
-description: Puasa tidak otomatis menurunkan berat badan. Cara membagi target kalori harian ke sahur, berbuka, dan camilan malam, contoh hitungannya, dan jebakan takjil yang sering tidak tercatat.
+title: Diet saat puasa Ramadan: bagi kalori sahur, berbuka, camilan
+description: Puasa tidak otomatis menurunkan berat badan. Cara membagi kalori harian ke sahur, berbuka, dan camilan malam, plus jebakan takjil yang sering lupa dicatat.
 date: 2026-10-12
+related: kalori-kurma-kolak, kalori-es-buah-bubur-takjil, menu-sahur-kenyang-lama, kalori-ketupat-opor-lebaran
 ---
 
 Banyak orang berharap berat badan turun selama Ramadan karena jam makan berkurang. Kenyataannya sering sebaliknya. Waktu makan memang lebih pendek, tapi takjil, gorengan, minuman manis, dan makan besar setelah tarawih bisa membuat total harian justru naik.

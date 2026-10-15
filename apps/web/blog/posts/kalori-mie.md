@@ -2,6 +2,7 @@
 title: Kalori mie ayam, mie bakso, dan mie instan
 description: Kalori semangkuk mie ayam dan mie bakso menurut TKPI 2019, kenapa angka per 100 gram mie berkuah terlihat kecil, dan cara membaca label gizi mie instan.
 date: 2026-10-12
+related: makanan-ultra-proses
 ---
 
 Mie ayam, mie bakso, mie pangsit: semuanya gampang ditemui dan cepat disajikan. Menghitung kalorinya sedikit lebih rumit daripada nasi, karena ada kuahnya.

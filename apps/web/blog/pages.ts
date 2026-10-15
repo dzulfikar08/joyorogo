@@ -17,18 +17,28 @@ function esc(s: string): string {
     .replaceAll('"', "&quot;");
 }
 
+export type ShareImage = {
+  path: string;
+  width: number;
+  height: number;
+  alt: string;
+  type: string;
+};
+
+const DEFAULT_SHARE_IMAGE: ShareImage = { ...OG_IMAGE, type: "image/png" };
+
 /** Share image tags; large card so previews show the image, not a thumbnail. */
-export function ogImageTags(siteUrl: string): string[] {
-  const src = `${siteUrl}${OG_IMAGE.path}`;
+export function ogImageTags(siteUrl: string, image: ShareImage = DEFAULT_SHARE_IMAGE): string[] {
+  const src = `${siteUrl}${image.path}`;
   return [
     `<meta property="og:image" content="${src}" />`,
-    `<meta property="og:image:type" content="image/png" />`,
-    `<meta property="og:image:width" content="${OG_IMAGE.width}" />`,
-    `<meta property="og:image:height" content="${OG_IMAGE.height}" />`,
-    `<meta property="og:image:alt" content="${esc(OG_IMAGE.alt)}" />`,
+    `<meta property="og:image:type" content="${image.type}" />`,
+    `<meta property="og:image:width" content="${image.width}" />`,
+    `<meta property="og:image:height" content="${image.height}" />`,
+    `<meta property="og:image:alt" content="${esc(image.alt)}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:image" content="${src}" />`,
-    `<meta name="twitter:image:alt" content="${esc(OG_IMAGE.alt)}" />`,
+    `<meta name="twitter:image:alt" content="${esc(image.alt)}" />`,
   ];
 }
 

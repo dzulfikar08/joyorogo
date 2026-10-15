@@ -1,7 +1,8 @@
 ---
 title: Berapa kalori nasi padang? Hitung per lauk, bukan per bungkus
-description: Kalori nasi padang dihitung dari nasi, rendang, kalio telur, daun singkong, dan kuah gulainya. Contoh perhitungan dengan data TKPI 2019 dan cara memangkasnya tanpa berhenti makan nasi padang.
+description: Kalori nasi padang dihitung dari nasi, rendang, kalio telur, daun singkong, dan kuah gulai, dengan data TKPI 2019 dan cara memangkasnya.
 date: 2026-10-12
+related: saus-minyak-porsi-kecil
 ---
 
 Nasi padang tidak punya satu angka kalori. Isinya tergantung lauk yang kamu tunjuk di etalase, seberapa banyak nasi yang disendokkan, dan berapa banyak kuah gulai yang disiram. Cara paling jujur menghitungnya adalah **per komponen**.

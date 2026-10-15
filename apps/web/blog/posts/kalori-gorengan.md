@@ -1,6 +1,6 @@
 ---
-title: Kalori gorengan: tempe, tahu, bakwan, dan kerupuk sebelum dan sesudah digoreng
-description: Data TKPI 2019 menunjukkan seberapa banyak kalori yang bertambah saat tempe, tahu, dan kerupuk digoreng. Perbandingan mentah dan goreng, contoh porsi warung, dan cara menikmatinya dengan lebih hemat.
+title: Kalori gorengan sebelum dan sesudah digoreng: tempe, tahu
+description: Kalori gorengan dari data TKPI 2019: tempe, tahu, dan kerupuk mentah dibanding goreng, contoh porsi warung, dan cara menikmatinya lebih hemat.
 date: 2026-10-12
 ---
 

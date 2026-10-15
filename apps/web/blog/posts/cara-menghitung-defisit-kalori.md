@@ -1,6 +1,6 @@
 ---
-title: Cara menghitung defisit kalori untuk turun berat badan, dengan contoh
-description: Langkah menghitung kebutuhan kalori harian dengan rumus Mifflin-St Jeor, menentukan defisit dari target berat dan tanggal, dan membaginya antara makan lebih sedikit dan bergerak lebih banyak.
+title: Cara menghitung defisit kalori untuk turun berat badan
+description: Cara menghitung kebutuhan kalori harian dengan rumus Mifflin-St Jeor, lalu defisit dari target berat dan tanggal, dibagi antara makan dan gerak.
 date: 2026-10-12
 ---
 

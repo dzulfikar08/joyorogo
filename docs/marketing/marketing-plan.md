@@ -224,8 +224,8 @@ State (verified): 7 articles in `apps/web/blog/posts/` (kalori makanan Indonesia
 
 Actions, in order:
 
-1. Add the 16 tips to `llms.txt`. Submit the sitemap in Google Search Console and connect it to Revklik so `gsc_queries` works.
-2. Link every tip to the closest article and back (the Ramadan article already links to defisit and gorengan).
+1. Done in code (2026-10-15): `llms.txt` is now generated at build from every article and tip, grouped by category (intro text in `apps/web/blog/llms-intro.txt`). Still manual: submit the sitemap in Google Search Console and connect it to Revklik so `gsc_queries` works.
+2. Done in code (2026-10-15): every post ends with an "Artikel terkait" block computed in `apps/web/blog/related.ts` from shared topics, always including one article and one tip when they exist. Optional frontmatter `related: slug-a, slug-b` pins links; `category:` overrides the derived category (Makanan, Ramadan, Tips).
 3. Change the blog CTA to include "Coba scan tanpa daftar" pointing at `/#coba` (product change 5). Readers with search intent get the demo scan without signing up.
 4. Publish one new article a week from this backlog. Each uses the `::tkpi` / `::porsi` directives so numbers come from TKPI 2019, and you look up the real food IDs when writing (do not invent figures; where TKPI lacks a value, say so as the nasi padang article does for sambal):
    - Kalori bakso dan soto

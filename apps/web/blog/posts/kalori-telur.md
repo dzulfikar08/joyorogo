@@ -1,7 +1,8 @@
 ---
 title: Kalori telur ayam, telur kampung, puyuh, dan telur dadar
-description: Berapa kalori satu butir telur? Data TKPI 2019 untuk telur ayam ras, kampung, bebek, puyuh, putih dan kuning telur, telur dadar, dan telur asin, plus contoh hitungan per butir.
+description: Kalori satu butir telur ayam ras, kampung, bebek, puyuh, putih, kuning, telur dadar, dan telur asin dari data TKPI 2019, plus contoh hitungan.
 date: 2026-10-12
+related: protein-kenyang-jaga-otot
 ---
 
 Telur termasuk lauk paling murah, paling gampang dimasak, dan kaya protein. Kalorinya juga relatif mudah dihitung, asal tahu cara masaknya.
