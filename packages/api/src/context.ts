@@ -28,6 +28,11 @@ export type ApiEnv = PaywallEnv & {
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
   VAPID_SUBJECT?: string;
+  /** Sign in with Apple revocation on account deletion (.p8 key, PKCS8 PEM). */
+  APPLE_TEAM_ID?: string;
+  APPLE_SIWA_KEY_ID?: string;
+  APPLE_SIWA_PRIVATE_KEY?: string;
+  APPLE_BUNDLE_ID?: string;
   /** Workers Rate Limiting binding for the public invite preview; unset = no limit. */
   INVITE_PREVIEW_LIMITER?: RateLimitBinding;
 };

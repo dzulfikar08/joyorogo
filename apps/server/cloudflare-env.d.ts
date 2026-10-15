@@ -42,6 +42,9 @@ declare module "cloudflare:workers" {
       PAKASIR_WEBHOOK_SECRET?: string;
       PAKASIR_SANDBOX?: string;
       APPLE_BUNDLE_ID?: string;
+      APPLE_TEAM_ID?: string;
+      APPLE_SIWA_KEY_ID?: string;
+      APPLE_SIWA_PRIVATE_KEY?: string;
       APPLE_FOUNDER_PRODUCT_ID?: string;
       APPLE_SANDBOX_EMAILS?: string;
       VAPID_PUBLIC_KEY?: string;

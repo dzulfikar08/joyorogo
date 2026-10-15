@@ -1,4 +1,5 @@
 import "@/unistyles";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
@@ -127,6 +128,41 @@ export default function Profil() {
       onError: (e) => toast.error("Gagal menghapus akun", errorMessage(e)),
     }),
   );
+  const [appleChecking, setAppleChecking] = useState(false);
+  // Apple 5.1.1(v): an Apple-linked account needs a fresh authorization code so
+  // the server can revoke the Sign in with Apple token. Cancelling the Apple
+  // sheet keeps the confirm sheet open and does nothing else.
+  const confirmDeleteAccount = async () => {
+    if (appleChecking || deleteAccount.isPending) return;
+    if (Platform.OS !== "ios") {
+      setDeleteAccountOpen(false);
+      deleteAccount.mutate(undefined);
+      return;
+    }
+    setAppleChecking(true);
+    try {
+      const accounts = await authClient.listAccounts();
+      const hasApple = (accounts.data ?? []).some((a) => a.providerId === "apple");
+      if (!hasApple) {
+        setDeleteAccountOpen(false);
+        deleteAccount.mutate(undefined);
+        return;
+      }
+      const credential = await AppleAuthentication.signInAsync({ requestedScopes: [] });
+      if (!credential.authorizationCode) {
+        toast.error("Gagal menghapus akun", "Apple tidak mengirim kode otorisasi. Coba lagi.");
+        return;
+      }
+      setDeleteAccountOpen(false);
+      deleteAccount.mutate({ appleAuthorizationCode: credential.authorizationCode });
+    } catch (e) {
+      const code = (e as { code?: string } | null)?.code;
+      if (code === "ERR_REQUEST_CANCELED") return;
+      toast.error("Gagal menghapus akun", errorMessage(e));
+    } finally {
+      setAppleChecking(false);
+    }
+  };
   const [avatarRemoveOpen, setAvatarRemoveOpen] = useState(false);
 
   // Android only: Profil forces a check on mount so the section reflects the
@@ -707,10 +743,7 @@ export default function Profil() {
         confirmLabel="Hapus akun"
         cancelLabel="Batal"
         loading={deleteAccount.isPending}
-        onConfirm={() => {
-          setDeleteAccountOpen(false);
-          deleteAccount.mutate();
-        }}
+        onConfirm={() => void confirmDeleteAccount()}
       />
 
       <ConfirmSheet

@@ -1,8 +1,10 @@
 import { ORPCError } from "@orpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
-import { user } from "@joyorogo/db/schema/auth";
+import { account, user } from "@joyorogo/db/schema/auth";
 
+import { appleRevokeConfig, revokeAppleAuthorization } from "../lib/apple-revoke";
 import { customAvatarKey } from "../lib/avatar";
 
 import { deleteAllUserData, deleteUserMedia, deleteUserSocialData, userStickerKeys } from "../lib/privacy";
@@ -40,23 +42,57 @@ export const privacyRouter = {
    * ON DELETE CASCADE, so sessions and linked logins (Google, Apple) go too.
    * Media goes before the user row so a storage failure stays retryable.
    */
-  deleteMyAccount: protectedProcedure.handler(async ({ context }) => {
-    const userId = context.session.user.id;
-    const stickerKeys = await userStickerKeys(context.db, userId);
-    await deleteUserSocialData(context.db, userId);
-    await deleteAllUserData(context.db, userId);
-    const bucket = context.env.STICKERS;
-    if (bucket) {
-      try {
-        await deleteUserMedia(bucket, userId, stickerKeys);
-      } catch (error) {
-        console.error("[privacy] media wipe failed", error);
-        throw new ORPCError("INTERNAL_SERVER_ERROR", {
-          message: "Foto belum bisa dihapus. Coba lagi sebentar.",
-        });
+  deleteMyAccount: protectedProcedure
+    .input(z.object({ appleAuthorizationCode: z.string().min(1).optional() }).optional())
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+
+      // Apple 5.1.1(v): revoke the Sign in with Apple token before anything is
+      // deleted, so a failure leaves the account intact and retryable.
+      const [appleLink] = await context.db
+        .select({ id: account.id })
+        .from(account)
+        .where(and(eq(account.userId, userId), eq(account.providerId, "apple")))
+        .limit(1);
+      if (appleLink) {
+        const code = input?.appleAuthorizationCode;
+        if (!code) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: "Masuk ulang dengan Apple untuk menghapus akun.",
+          });
+        }
+        const config = appleRevokeConfig(context.env);
+        if (!config) {
+          console.error(
+            "[privacy] APPLE_SIWA_KEY_ID / APPLE_SIWA_PRIVATE_KEY not set: deleting Apple-linked account WITHOUT revoking the Sign in with Apple token",
+          );
+        } else {
+          try {
+            await revokeAppleAuthorization(config, code);
+          } catch (error) {
+            console.error("[privacy] apple revoke failed", error);
+            throw new ORPCError("BAD_GATEWAY", {
+              message: "Akun Apple belum bisa diputus dari JoyoRogo. Coba lagi sebentar.",
+            });
+          }
+        }
       }
-    }
-    await context.db.delete(user).where(eq(user.id, userId));
-    return { deleted: true };
-  }),
+
+      const stickerKeys = await userStickerKeys(context.db, userId);
+      await deleteUserSocialData(context.db, userId);
+      await deleteAllUserData(context.db, userId);
+      const bucket = context.env.STICKERS;
+      if (bucket) {
+        try {
+          await deleteUserMedia(bucket, userId, stickerKeys);
+        } catch (error) {
+          console.error("[privacy] media wipe failed", error);
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: "Foto belum bisa dihapus. Coba lagi sebentar.",
+          });
+        }
+      }
+      await context.db.delete(user).where(eq(user.id, userId));
+      return { deleted: true };
+    }),
 };
