@@ -8,7 +8,8 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { jakartaToday, relativeDayLabel, shiftDate } from "@joyorogo/api/lib/engine";
+import { MEAL_EDIT_LABELS, jakartaToday, relativeDayLabel, shiftDate } from "@joyorogo/api/lib/engine";
+import type { Meal } from "@joyorogo/api/lib/engine";
 import { dateKeyToUtcDate, parseIdrInput, recentDayLabel } from "@joyorogo/api/lib/format";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
@@ -16,10 +17,12 @@ import { Chip } from "@/components/chip";
 import { FieldLabel, ListGroup } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
 import { IdrInput } from "@/components/plate/idr-input";
+import { MealSlotField } from "@/components/plate/meal-slot-field";
 import { StickerHero } from "@/components/sticker";
 import { fmtRupiah } from "@/lib/app-config";
 import { fmtDateIndo, fmtInt } from "@/lib/format";
 import { insertFoodRow, stripFoodRow, useOptimisticMutation } from "@/lib/optimistic";
+import type { FoodListData } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
 type Item = { id: string; plateId: string | null };
@@ -223,8 +226,10 @@ function PlateEditSheet({
   const [place, setPlace] = useState(plate.place ?? "");
   const [price, setPrice] = useState(plate.priceIdr != null ? String(plate.priceIdr) : "");
   const [date, setDate] = useState(plate.date);
+  const [meal, setMeal] = useState<Meal>(plate.meal as Meal);
   const [pickingDate, setPickingDate] = useState(false);
   const dateChanged = date !== plate.date;
+  const mealChanged = meal !== plate.meal;
 
   const listOptions = (day: string) => orpc.food.listByDate.queryOptions({ input: { date: day } });
   const plateOptions = (day: string) => orpc.plate.byDate.queryOptions({ input: { date: day } });
@@ -239,12 +244,46 @@ function PlateEditSheet({
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.place !== undefined ? { place: input.place } : {}),
         ...(input.priceIdr !== undefined ? { priceIdr: input.priceIdr } : {}),
+        ...(input.meal !== undefined ? { meal: input.meal } : {}),
       };
-      const to = input.date;
-      if (!to || to === plate.date) {
+      const to = input.date ?? plate.date;
+      const toMeal = input.meal ?? plate.meal;
+      if (to === plate.date) {
         cache.matching<PlateRow[]>(orpc.plate.byDate.key(), (data) =>
           data.map((row) => (row.id === plate.id ? { ...row, ...fields } : row)),
         );
+        if (toMeal !== plate.meal) {
+          cache.value<FoodListData<Item & FoodRowFields>>(listOptions(plate.date).queryKey, (data) =>
+            data
+              ? {
+                  ...data,
+                  items: data.items.map((item) =>
+                    item.plateId === plate.id ? { ...item, meal: toMeal } : item,
+                  ),
+                }
+              : data,
+          );
+          for (const row of rows) {
+            cache.summary({
+              date: plate.date,
+              kcal: -row.kcal,
+              protein: -(row.protein ?? 0),
+              carbs: -(row.carbs ?? 0),
+              fat: -(row.fat ?? 0),
+              meal: row.meal,
+              meals: -1,
+            });
+            cache.summary({
+              date: plate.date,
+              kcal: row.kcal,
+              protein: row.protein ?? 0,
+              carbs: row.carbs ?? 0,
+              fat: row.fat ?? 0,
+              meal: toMeal,
+              meals: 1,
+            });
+          }
+        }
         return;
       }
       const movedPlate = { ...plate, ...fields, date: to };
@@ -253,7 +292,7 @@ function PlateEditSheet({
       );
       cache.value<PlateRow[]>(plateOptions(to).queryKey, (data) => [...(data ?? []), movedPlate]);
       for (const row of rows) {
-        const movedRow = { ...row, date: to };
+        const movedRow = { ...row, date: to, meal: toMeal };
         stripFoodRow(cache, listOptions(plate.date).queryKey, row);
         insertFoodRow(cache, listOptions(to).queryKey, movedRow);
         cache.summary({
@@ -271,7 +310,7 @@ function PlateEditSheet({
           protein: row.protein ?? 0,
           carbs: row.carbs ?? 0,
           fat: row.fat ?? 0,
-          meal: row.meal,
+          meal: toMeal,
           meals: 1,
         });
       }
@@ -279,28 +318,28 @@ function PlateEditSheet({
     invalidate: () => [orpc.plate.key(), orpc.food.key(), orpc.day.key()],
     success: (input) => {
       onClose();
+      const restore = {
+        id: plate.id,
+        name: plate.name,
+        place: plate.place,
+        priceIdr: plate.priceIdr,
+        meal: plate.meal as Meal,
+      };
       if (input.date && input.date !== plate.date) {
         return {
           message: `Dipindah ke ${relativeDayLabel(input.date, jakartaToday())}`,
-          undo: () =>
-            void client.plate.update({
-              id: plate.id,
-              name: plate.name,
-              place: plate.place,
-              priceIdr: plate.priceIdr,
-              date: plate.date,
-            }),
+          undo: () => void client.plate.update({ ...restore, date: plate.date }),
+        };
+      }
+      if (input.meal && input.meal !== plate.meal) {
+        return {
+          message: `Dipindah ke ${MEAL_EDIT_LABELS[input.meal]}`,
+          undo: () => void client.plate.update(restore),
         };
       }
       return {
         message: "Piring diperbarui",
-        undo: () =>
-          void client.plate.update({
-            id: plate.id,
-            name: plate.name,
-            place: plate.place,
-            priceIdr: plate.priceIdr,
-          }),
+        undo: () => void client.plate.update(restore),
       };
     },
   });
@@ -317,6 +356,7 @@ function PlateEditSheet({
       place: place.trim() === "" ? null : place.trim(),
       priceIdr: priceNum === null ? null : Math.round(priceNum),
       ...(dateChanged ? { date } : {}),
+      ...(mealChanged ? { meal } : {}),
     });
   };
 
@@ -384,8 +424,19 @@ function PlateEditSheet({
               </p>
             </div>
           </div>
+          <MealSlotField
+            id="plate-meal"
+            value={meal}
+            current={plate.meal as Meal}
+            onChange={setMeal}
+            hint={
+              mealChanged
+                ? `Piring dan ${rows.length} catatannya dipindah ke ${MEAL_EDIT_LABELS[meal]}.`
+                : "Pindahkan piring ini bila salah waktu makan."
+            }
+          />
           <Button type="submit" className="w-full" disabled={update.isPending}>
-            {update.isPending ? "Menyimpan..." : dateChanged ? "Pindahkan" : "Simpan"}
+            {update.isPending ? "Menyimpan..." : dateChanged || mealChanged ? "Pindahkan" : "Simpan"}
           </Button>
           {action}
         </form>

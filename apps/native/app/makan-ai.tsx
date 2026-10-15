@@ -21,9 +21,15 @@ import * as ImagePicker from "expo-image-picker";
 import ConfettiCannon from "react-native-confetti-cannon";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
-import { MEAL_LABELS, effectiveRamadan, slotsFor, suggestMealNow } from "@joyorogo/api/lib/engine";
+import {
+  MEAL_LABELS,
+  effectiveRamadan,
+  slotsFor,
+  suggestMealForDish,
+  suggestMealNow,
+} from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
-import { foodKind } from "@joyorogo/api/lib/food-kind";
+import { foodKind, isHeavyDish } from "@joyorogo/api/lib/food-kind";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { scalePortion } from "@joyorogo/api/lib/portion";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
@@ -316,6 +322,14 @@ export default function MakanAi() {
   const ramadan = effectiveRamadan(profile.data?.profile?.ramadanMode);
   const MEAL_KEYS = ALL_MEAL_KEYS.filter((key) => slotsFor(ramadan).includes(key));
   const [meal, setMeal] = useState<Meal>(() => suggestMealNow(new Date(), ramadan));
+  // Once the user picks a slot, a rescan must not overwrite it.
+  const mealPickedRef = useRef(false);
+  const suggestSlotFor = (scanned: Array<{ name: string }>) => {
+    if (scanned.length === 0 || mealPickedRef.current) return;
+    setMeal(
+      suggestMealForDish(new Date(), ramadan, scanned.some((item) => isHeavyDish(item.name))),
+    );
+  };
   const [flowError, setFlowError] = useState<string | null>(null);
   // The photo held more food than fit: the result keeps the most prominent
   // items and shows guidance until the user keeps them or reshoots.
@@ -530,6 +544,7 @@ export default function MakanAi() {
       setFeedbackReasons([]);
       setFeedbackNote("");
       setItems(result.items);
+      suggestSlotFor(result.items);
       // Plate fields: default name = first item, then autofill the last price.
       const firstName = result.items[0]?.name;
       setPlateValues({ name: firstName ?? "", place: "", price: "" });
@@ -661,6 +676,7 @@ export default function MakanAi() {
         ...(retryHint.trim() ? { hint: retryHint.trim() } : {}),
       });
       setItems(result.items);
+      suggestSlotFor(result.items);
       setDrafts(
         result.items.map((item) => ({ kcal: String(Math.round(item.kcal)), include: true })),
       );
@@ -1240,7 +1256,10 @@ export default function MakanAi() {
             <Segmented
               options={MEAL_KEYS.map((key) => ({ value: key, label: MEAL_SHORT[key] }))}
               value={meal}
-              onChange={(value) => setMeal(value)}
+              onChange={(value) => {
+                mealPickedRef.current = true;
+                setMeal(value);
+              }}
             />
           </View>
 

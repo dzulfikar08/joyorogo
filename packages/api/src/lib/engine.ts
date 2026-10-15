@@ -26,6 +26,16 @@ export const MEAL_LABELS: Record<Meal, string> = {
   berbuka: "Berbuka",
 };
 
+/** Slot names on the edit chips; snack reads as "Camilan" there. */
+export const MEAL_EDIT_LABELS: Record<Meal, string> = {
+  sarapan: "Sarapan",
+  makan_siang: "Makan siang",
+  makan_malam: "Makan malam",
+  snack: "Camilan",
+  sahur: "Sahur",
+  berbuka: "Berbuka",
+};
+
 export const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
   low: "Jarang gerak",
   mid: "Sedang",
@@ -451,6 +461,17 @@ export function suggestMealNow(now: Date = new Date(), ramadan = false): Meal {
   if (hour >= 10.5 && hour < 15) return "makan_siang";
   if (hour >= 17.5 && hour < 21.5) return "makan_malam";
   return "snack";
+}
+
+/**
+ * Slot for a scan/log that holds a heavy main dish (nasi, mie, lauk). The plain
+ * time suggestion falls back to snack in the 15:00-17:30 gap and late at night,
+ * which is wrong for a real meal: those hours become makan malam. Ramadan
+ * keeps its own eating-window slots.
+ */
+export function suggestMealForDish(now: Date, ramadan: boolean, heavy: boolean): Meal {
+  const meal = suggestMealNow(now, ramadan);
+  return heavy && !ramadan && meal === "snack" ? "makan_malam" : meal;
 }
 
 /**

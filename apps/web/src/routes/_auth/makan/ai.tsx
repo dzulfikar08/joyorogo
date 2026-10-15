@@ -19,7 +19,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { MEAL_LABELS, effectiveRamadan, slotsFor, suggestMealNow } from "@joyorogo/api/lib/engine";
+import {
+  MEAL_LABELS,
+  effectiveRamadan,
+  slotsFor,
+  suggestMealForDish,
+  suggestMealNow,
+} from "@joyorogo/api/lib/engine";
+import { isHeavyDish } from "@joyorogo/api/lib/food-kind";
 import { randomFact } from "@joyorogo/api/lib/facts";
 import { SCAN_FAIL_COPY, TOO_MANY_PARTIAL_MESSAGE, scanFailReason } from "@joyorogo/api/lib/scan-errors";
 import type { ScanFailReason } from "@joyorogo/api/lib/scan-errors";
@@ -269,6 +276,8 @@ function AiFoodPage() {
     slotsFor(ramadan).includes(meal),
   );
   const [meal, setMeal] = useState<Meal>(suggestMealNow(new Date(), ramadan));
+  // Once the user picks a slot, a rescan must not overwrite it.
+  const mealPickedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [errorReason, setErrorReason] = useState<ScanFailReason | null>(null);
   // The photo held more food than fit: the result keeps the most prominent
@@ -334,6 +343,9 @@ function AiFoodPage() {
 
   const applyItems = (next: AiFoodItem[]) => {
     setItems(next);
+    if (next.length > 0 && !mealPickedRef.current) {
+      setMeal(suggestMealForDish(new Date(), ramadan, next.some((item) => isHeavyDish(item.name))));
+    }
     setKcals(Object.fromEntries(next.map((item, index) => [index, String(item.kcal)])));
     setKinds({});
     setFullPortion(null);
@@ -1191,7 +1203,10 @@ function AiFoodPage() {
           <Segmented
             label="Waktu makan"
             value={meal}
-            onChange={setMeal}
+            onChange={(value) => {
+              mealPickedRef.current = true;
+              setMeal(value);
+            }}
             options={MEALS.map(([key, mealLabel]) => ({ value: key, label: mealLabel }))}
           />
         </section>

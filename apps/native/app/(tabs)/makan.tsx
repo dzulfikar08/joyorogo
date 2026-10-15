@@ -7,6 +7,7 @@ import { Redirect, router } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import {
+  MEAL_EDIT_LABELS,
   MEAL_LABELS,
   eatTone,
   effectiveRamadan,
@@ -158,6 +159,7 @@ export default function Makan() {
     ...(input.name !== undefined ? { name: input.name } : {}),
     ...(input.place !== undefined ? { place: input.place } : {}),
     ...(input.priceIdr !== undefined ? { priceIdr: input.priceIdr } : {}),
+    ...(input.meal !== undefined ? { meal: input.meal } : {}),
     ...(input.lat !== undefined ? { lat: input.lat } : {}),
     ...(input.lng !== undefined ? { lng: input.lng } : {}),
   });
@@ -335,7 +337,7 @@ export default function Makan() {
           queryClient.getQueryData<{ items: FoodRow[] }>(foodListKey)?.items ?? []
         ).filter((item) => item.plateId === input.id);
         for (const row of rows) {
-          const moved = { ...row, date: moveDate };
+          const moved = { ...row, date: moveDate, ...(input.meal ? { meal: input.meal } : {}) };
           stripFoodRow(cache, foodListKey, row);
           insertFoodRow(
             cache,
@@ -346,6 +348,26 @@ export default function Makan() {
           cache.summary(foodSummaryDelta(moved, 1));
         }
         return previous;
+      }
+      if (input.meal && previous && input.meal !== previous.meal) {
+        const newMeal = input.meal;
+        const rows = (
+          queryClient.getQueryData<{ items: FoodRow[] }>(foodListKey)?.items ?? []
+        ).filter((item) => item.plateId === input.id);
+        cache.value<{ items: FoodRow[]; totals: Totals }>(foodListKey, (old) =>
+          old
+            ? {
+                ...old,
+                items: old.items.map((item) =>
+                  item.plateId === input.id ? { ...item, meal: newMeal } : item,
+                ),
+              }
+            : old,
+        );
+        for (const row of rows) {
+          cache.summary(foodSummaryDelta(row, -1));
+          cache.summary(foodSummaryDelta({ ...row, meal: newMeal }, 1));
+        }
       }
       cache.value<PlateRow[]>(plateDayKey, (plates) =>
         (plates ?? []).map((plate) =>
@@ -361,6 +383,7 @@ export default function Makan() {
             id: input.id,
             name: previous.name,
             place: previous.place,
+            meal: previous.meal as Meal,
             priceIdr: previous.priceIdr,
             lat: previous.lat,
             lng: previous.lng,
@@ -370,6 +393,12 @@ export default function Makan() {
         return {
           message: `Dipindah ke ${relativeDayLabel(input.date, today)}`,
           undo: () => void client.plate.update({ ...restore!, date: previous.date }),
+        };
+      }
+      if (input.meal && previous && input.meal !== previous.meal) {
+        return {
+          message: `Dipindah ke ${MEAL_EDIT_LABELS[input.meal]}`,
+          undo: () => void client.plate.update({ ...restore!, meal: previous.meal as Meal }),
         };
       }
       return {
@@ -1129,6 +1158,7 @@ export default function Makan() {
             place: editPlate.place,
             priceIdr: editPlate.priceIdr,
             date: editPlate.date,
+            meal: editPlate.meal as Meal,
             lat: editPlate.lat,
             lng: editPlate.lng,
             scanId: editPlateRows.find((row) => row.scanId)?.scanId ?? null,

@@ -2,10 +2,12 @@ import { useRef, useState } from "react";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
-import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import { MEAL_EDIT_LABELS, jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import type { Meal } from "@joyorogo/api/lib/engine";
 import { formatIdrInput, idrKeystroke, parseIdrInput, recentDayLabel } from "@joyorogo/api/lib/format";
 
 import { DateSheet, DayChips } from "@/components/plate/date-sheet";
+import { MealSlotField } from "@/components/plate/meal-slot-field";
 import { SaveLocationToggle } from "@/components/places/location-toggle";
 import { SheetActions } from "@/components/sheet-actions";
 import { StickerHero } from "@/components/sticker";
@@ -20,6 +22,7 @@ export type PlateEditTarget = {
   place: string | null;
   priceIdr: number | null;
   date: string;
+  meal: Meal;
   lat: number | null;
   lng: number | null;
   /** Cutout of the first component that has one. */
@@ -32,6 +35,7 @@ export type PlateEditInput = {
   place?: string | null;
   priceIdr?: number | null;
   date?: string;
+  meal?: Meal;
   lat?: number | null;
   lng?: number | null;
 };
@@ -62,6 +66,7 @@ export function PlateEditSheet({
   const [place, setPlace] = useState(plate.place ?? "");
   const [price, setPrice] = useState(plate.priceIdr !== null ? String(plate.priceIdr) : "");
   const [date, setDate] = useState(plate.date);
+  const [meal, setMeal] = useState<Meal>(plate.meal);
   const [pickingDate, setPickingDate] = useState(false);
   // "Simpan lokasi di sini" only applies when switched on in this sheet: an
   // edit from home must not overwrite where the plate was eaten.
@@ -77,12 +82,14 @@ export function PlateEditSheet({
   const hasLocation = plate.lat !== null && plate.lng !== null && !clearLocation;
   const wantsCoords = locate && placeClean !== "" && location.coords !== null;
   const dateChanged = date !== plate.date;
+  const mealChanged = meal !== plate.meal;
 
   const changed =
     name.trim() !== plate.name ||
     placeClean !== (plate.place ?? "") ||
     (priceNum ?? null) !== plate.priceIdr ||
     dateChanged ||
+    mealChanged ||
     wantsCoords ||
     clearLocation;
   const valid = name.trim() !== "" && priceValid;
@@ -103,6 +110,7 @@ export function PlateEditSheet({
       ...(placeClean !== (plate.place ?? "") ? { place: placeClean === "" ? null : placeClean } : {}),
       ...((priceNum ?? null) !== plate.priceIdr ? { priceIdr: priceNum } : {}),
       ...(dateChanged ? { date } : {}),
+      ...(mealChanged ? { meal } : {}),
       ...coords,
     });
     onClose();
@@ -185,6 +193,17 @@ export function PlateEditSheet({
               )}
             </View>
           </Field>
+
+          <MealSlotField
+            value={meal}
+            current={plate.meal}
+            onChange={setMeal}
+            hint={
+              mealChanged
+                ? `Piring dan semua isinya dipindah ke ${MEAL_EDIT_LABELS[meal]}.`
+                : "Pindahkan piring ini bila salah waktu makan."
+            }
+          />
 
           <SaveLocationToggle
             enabled={locate}

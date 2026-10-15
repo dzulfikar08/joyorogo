@@ -19,6 +19,7 @@ import {
   shiftDate,
   slotsFor,
   streakFromDates,
+  suggestMealForDish,
   suggestMealNow,
   weightTrend,
 } from "./engine";
@@ -290,6 +291,17 @@ describe("Ramadan schedule (US-022)", () => {
     expect(suggestMealNow(at(19), true)).toBe("berbuka");
     expect(suggestMealNow(at(23), true)).toBe("snack");
     expect(suggestMealNow(at(12), false)).toBe("makan_siang");
+  });
+
+  test("suggestMealForDish: heavy dish never defaults to snack outside Ramadan", () => {
+    const at = (h: string) => new Date(`2026-10-15T${h}:00+07:00`);
+    // 16:19 WIB (prod nasi kuning case) sits in the snack gap.
+    expect(suggestMealNow(at("16:19"), false)).toBe("snack");
+    expect(suggestMealForDish(at("16:19"), false, true)).toBe("makan_malam");
+    expect(suggestMealForDish(at("16:19"), false, false)).toBe("snack");
+    expect(suggestMealForDish(at("19:00"), false, true)).toBe("makan_malam");
+    expect(suggestMealForDish(at("12:00"), false, true)).toBe("makan_siang");
+    expect(suggestMealForDish(at("23:00"), true, true)).toBe("snack");
   });
 });
 

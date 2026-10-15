@@ -219,13 +219,56 @@ export function foodKind(name: string): FoodKind {
 }
 
 /**
+ * Rice/noodle/lauk words that make a dish a main meal. A vision model
+ * sometimes calls nasi kuning "snack"; these names win over a camilan hint.
+ */
+const STAPLE_WORDS: Record<string, true> = Object.fromEntries(
+  [
+    "nasi",
+    "mie",
+    "mi",
+    "bihun",
+    "kwetiau",
+    "lontong",
+    "ketupat",
+    "soto",
+    "rawon",
+    "bubur",
+    "sate",
+    "satay",
+    "gado",
+    "pecel",
+    "rendang",
+    "opor",
+    "ayam",
+    "bakso",
+    "pasta",
+    "spaghetti",
+    "burger",
+    "pizza",
+  ].map((word) => [word, true] as const),
+);
+
+/** True for a name that is a heavy main dish (nasi, mie, lontong, lauk). */
+export function isHeavyDish(name: string): boolean {
+  if (foodKind(name) !== "makanan") return false;
+  return name
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .some((word) => STAPLE_WORDS[word] === true);
+}
+
+/**
  * The kind for an item: the AI's own call when it made a usable one, else the
  * name heuristic. A hint of 'lainnya' is ignored so supplements still come
- * from the name list.
+ * from the name list; a camilan/minuman hint never overrides a staple name.
  */
 export function resolveFoodKind(name: string, hint?: unknown): FoodKind {
   const fromAi = normalizeFoodKind(hint);
-  if (fromAi && fromAi !== "lainnya") return fromAi;
+  if (fromAi && fromAi !== "lainnya") {
+    if (fromAi !== "makanan" && isHeavyDish(name)) return "makanan";
+    return fromAi;
+  }
   return foodKind(name);
 }
 

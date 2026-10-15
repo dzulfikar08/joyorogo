@@ -5,7 +5,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CalendarIcon, Link2, Link2Off } from "lucide-react";
 import { useState } from "react";
 
-import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import { MEAL_EDIT_LABELS, jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import type { Meal } from "@joyorogo/api/lib/engine";
 import { recentDayLabel } from "@joyorogo/api/lib/format";
 import { PORTION_MULTIPLIERS, scalePortion } from "@joyorogo/api/lib/portion";
 import type { PortionValues } from "@joyorogo/api/lib/portion";
@@ -13,6 +14,7 @@ import type { PortionValues } from "@joyorogo/api/lib/portion";
 import { Chip } from "@/components/chip";
 import { FieldLabel } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
+import { MealSlotField } from "@/components/plate/meal-slot-field";
 import { CalendarSheet, DayChips } from "@/components/plate/plate-group";
 import { SheetActions } from "@/components/sheet-actions";
 import { StickerHero } from "@/components/sticker";
@@ -104,7 +106,29 @@ function patchFoodEdit(cache: OptimisticCache, before: FoodItem, after: FoodItem
         }
       : old,
   );
-  cache.summary({ date: before.date, ...delta, meal: before.meal });
+  if (after.meal !== before.meal) {
+    // Slot move on the same day: the kcal and the meal count leave one slot and land in the other.
+    cache.summary({
+      date: before.date,
+      kcal: -before.kcal,
+      protein: -(before.protein ?? 0),
+      carbs: -(before.carbs ?? 0),
+      fat: -(before.fat ?? 0),
+      meal: before.meal,
+      meals: -1,
+    });
+    cache.summary({
+      date: after.date,
+      kcal: after.kcal,
+      protein: after.protein ?? 0,
+      carbs: after.carbs ?? 0,
+      fat: after.fat ?? 0,
+      meal: after.meal,
+      meals: 1,
+    });
+  } else {
+    cache.summary({ date: before.date, ...delta, meal: before.meal });
+  }
 }
 
 /**
@@ -136,6 +160,7 @@ export function FoodPortionSheet({
   const hasGrams = base.grams !== null;
   const [name, setName] = useState(row.name);
   const [date, setDate] = useState(row.date);
+  const [meal, setMeal] = useState<Meal>(row.meal as Meal);
   const [pickingDate, setPickingDate] = useState(false);
   const [linked, setLinked] = useState(true);
   // Scale of the portion relative to what was logged; macros always follow it.
@@ -159,8 +184,10 @@ export function FoodPortionSheet({
     typedKcal <= 5000 &&
     (!hasGrams || (typedGrams !== null && typedGrams >= 1 && typedGrams <= 5000));
   const dateChanged = date !== row.date;
+  const mealChanged = meal !== row.meal;
   const changed =
     dateChanged ||
+    mealChanged ||
     name.trim() !== row.name ||
     values.kcal !== row.kcal ||
     values.grams !== row.grams ||
@@ -216,24 +243,40 @@ export function FoodPortionSheet({
         ...values,
         name: input.name ?? row.name,
         date: input.date ?? row.date,
+        meal: input.meal ?? row.meal,
       });
     },
     invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key()],
     success: (input) => {
       const moved = input.date && input.date !== row.date;
+      const slotMoved = input.meal !== undefined && input.meal !== row.meal;
       return {
         message: moved
           ? `Dipindah ke ${relativeDayLabel(input.date!, jakartaToday())}`
-          : `${input.name ?? row.name} diperbarui`,
+          : slotMoved
+            ? `Dipindah ke ${MEAL_EDIT_LABELS[input.meal!]}`
+            : `${input.name ?? row.name} diperbarui`,
         undo: () => {
           const cache = new OptimisticCache(queryClient);
           patchFoodEdit(
             cache,
-            { ...row, ...values, name: input.name ?? row.name, date: input.date ?? row.date },
+            {
+              ...row,
+              ...values,
+              name: input.name ?? row.name,
+              date: input.date ?? row.date,
+              meal: input.meal ?? row.meal,
+            },
             row,
           );
           void client.food
-            .update(updateInput(row, base, { name: row.name, ...(moved ? { date: row.date } : {}) }))
+            .update(
+              updateInput(row, base, {
+                name: row.name,
+                ...(moved ? { date: row.date } : {}),
+                ...(slotMoved ? { meal: row.meal as Meal } : {}),
+              }),
+            )
             .finally(() => {
               for (const key of [orpc.food.key(), orpc.plate.key(), orpc.day.key()]) {
                 void queryClient.invalidateQueries({ queryKey: key });
@@ -250,6 +293,7 @@ export function FoodPortionSheet({
       updateInput(row, values, {
         ...(name.trim() !== row.name ? { name: name.trim() } : {}),
         ...(dateChanged ? { date } : {}),
+        ...(mealChanged ? { meal } : {}),
       }),
     );
     onClose();
@@ -407,6 +451,18 @@ export function FoodPortionSheet({
               )}
             </div>
           </div>
+
+          <MealSlotField
+            id="food-meal"
+            value={meal}
+            current={row.meal as Meal}
+            onChange={setMeal}
+            hint={
+              mealChanged
+                ? `Akan dipindah ke ${MEAL_EDIT_LABELS[meal]}.`
+                : "Pindahkan ke waktu makan lain bila salah slot."
+            }
+          />
 
           <Button
             type="submit"

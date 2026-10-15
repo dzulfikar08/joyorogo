@@ -18,7 +18,7 @@ import {
   spendingSummary,
 } from "../lib/plates";
 import type { PlateNutrients } from "../lib/plates";
-import { dateSchema, pastDateSchema } from "../lib/schemas";
+import { dateSchema, mealSchema, pastDateSchema } from "../lib/schemas";
 
 const plateFields = z.object({
   name: z.string().trim().min(1).max(200).optional(),
@@ -108,6 +108,8 @@ export const plateRouter = {
         // Moving the plate moves every component row with it, so the diary
         // grouping stays intact and stickers/photos stay attached.
         date: pastDateSchema.optional(),
+        // Moves the plate and every component row to another meal slot.
+        meal: mealSchema.optional(),
         // Opt-in location of the place; null clears it. Rounded to ~100 m on write.
         lat: z.number().min(-90).max(90).nullable().optional(),
         lng: z.number().min(-180).max(180).nullable().optional(),
@@ -115,10 +117,14 @@ export const plateRouter = {
     )
     .handler(async ({ context, input }) => {
       const { id, lat, lng, ...fields } = input;
-      if (fields.date) {
+      const moveRows = {
+        ...(fields.date ? { date: fields.date } : {}),
+        ...(fields.meal ? { meal: fields.meal } : {}),
+      };
+      if (Object.keys(moveRows).length > 0) {
         await context.db
           .update(foodLog)
-          .set({ date: fields.date })
+          .set(moveRows)
           .where(and(eq(foodLog.plateId, id), eq(foodLog.userId, context.session.user.id)));
       }
       // Coordinates belong to the place they were saved for: a different

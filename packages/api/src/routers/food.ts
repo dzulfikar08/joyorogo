@@ -263,6 +263,7 @@ export const foodRouter = {
       z.object({
         id: z.string(),
         date: pastDateSchema.optional(),
+        meal: mealSchema.optional(),
         name: z.string().trim().min(1).max(200).optional(),
         grams: z.number().min(1).max(MAX_GRAMS).optional(),
         kcal: z.number().min(0).max(MAX_KCAL).optional(),
@@ -281,14 +282,22 @@ export const foodRouter = {
         .limit(1);
       if (!row) return null;
       // Portion fields resolve against the stored row (weight <-> kcal <-> macros).
-      const { id: _id, date, name, ...patch } = input;
+      const { id: _id, date, meal, name, ...patch } = input;
       const next = resolvePortion(row, patch);
       const [updated] = await context.db
         .update(foodLog)
-        .set({ ...next, ...(name ? { name } : {}), ...(date ? { date } : {}) })
+        .set({
+          ...next,
+          ...(name ? { name } : {}),
+          ...(date ? { date } : {}),
+          ...(meal ? { meal } : {}),
+        })
         .where(and(eq(foodLog.id, input.id), eq(foodLog.userId, userId)))
         .returning();
-      if (date && row.plateId && row.date !== date) {
+      // The plate follows its last component to a new day or slot.
+      const movedDay = date && row.date !== date;
+      const movedMeal = meal && row.meal !== meal;
+      if (row.plateId && (movedDay || movedMeal)) {
         const [remaining] = await context.db
           .select({ id: foodLog.id })
           .from(foodLog)
@@ -297,13 +306,14 @@ export const foodRouter = {
               eq(foodLog.userId, userId),
               eq(foodLog.plateId, row.plateId),
               eq(foodLog.date, row.date),
+              eq(foodLog.meal, row.meal),
             ),
           )
           .limit(1);
         if (!remaining) {
           await context.db
             .update(plate)
-            .set({ date })
+            .set({ ...(movedDay ? { date } : {}), ...(movedMeal ? { meal } : {}) })
             .where(and(eq(plate.id, row.plateId), eq(plate.userId, userId)));
         }
       }
