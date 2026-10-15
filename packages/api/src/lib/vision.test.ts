@@ -130,9 +130,37 @@ describe("analyzeFoodPhoto deadlines", () => {
     expect(result.tooMany).toBe(false);
   });
 
-  test("the model's own tooMany flag survives with its items", async () => {
-    const result = await analyzeFoodPhoto(jsonRunner({ ...PLATE, tooMany: true }), OPTS);
-    expect(result.items).toHaveLength(2);
+  // Prod 2026-10-15: an americano + a donut came back as 1 item with tooMany=true.
+  test("the model's tooMany flag on a small plate is ignored: both items kept, no tooMany", async () => {
+    const coffeeAndDonut = {
+      items: [
+        { name: "Americano", kind: "minuman", kcal: 5, grams: 240 },
+        { name: "Donat cokelat", kind: "camilan", kcal: 290, grams: 70 },
+      ],
+      tooMany: true,
+    };
+    const result = await analyzeFoodPhoto(jsonRunner(coffeeAndDonut), OPTS);
+    expect(result.items.map((item) => item.name)).toEqual(["Americano", "Donat cokelat"]);
+    expect(result.tooMany).toBe(false);
+    expect(result.modelTooMany).toBe(true);
+  });
+
+  test("the model's tooMany flag counts once the list is nearly full", async () => {
+    const nine = {
+      items: Array.from({ length: 9 }, (_, i) => ({ name: `item${i}`, kcal: 100 })),
+      tooMany: true,
+    };
+    expect((await analyzeFoodPhoto(jsonRunner(nine), OPTS)).tooMany).toBe(true);
+    const nineNoFlag = { items: nine.items };
+    expect((await analyzeFoodPhoto(jsonRunner(nineNoFlag), OPTS)).tooMany).toBe(false);
+  });
+
+  test("a list that fills the cap is flagged even without a model flag", async () => {
+    const ten = {
+      items: Array.from({ length: MAX_ITEMS }, (_, i) => ({ name: `item${i}`, kcal: 100 })),
+    };
+    const result = await analyzeFoodPhoto(jsonRunner(ten), OPTS);
+    expect(result.items).toHaveLength(MAX_ITEMS);
     expect(result.tooMany).toBe(true);
   });
 
@@ -234,10 +262,9 @@ describe("failure reasons", () => {
     expect(((await fails({ items: [] })) as VisionError).reason).toBe("not_food");
   });
 
-  test("tooMany with nothing usable is its own reason, with the specific copy", async () => {
+  test("the model's tooMany flag with an empty list is still just no food", async () => {
     const outcome = (await fails({ items: [], tooMany: true })) as VisionError;
-    expect(outcome.reason).toBe("too_many");
-    expect(outcome.message).toContain("Fotonya kebanyakan makanan");
+    expect(outcome.reason).toBe("not_food");
   });
 
   test("a deadline is the timeout reason", async () => {

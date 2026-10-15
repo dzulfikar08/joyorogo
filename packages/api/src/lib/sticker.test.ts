@@ -9,6 +9,7 @@ import {
   makeSticker,
   markBoxPending,
   newScanId,
+  runScanStickers,
   pendingStickerKey,
   stickerKey,
   storeStickers,
@@ -206,6 +207,7 @@ describe("box sticker ledger", () => {
       kind: "existing",
       scanId: null,
       pending: true,
+      final: false,
     });
     const { binding } = recordingImages();
     const id = await cutBoxSticker(binding, bucket, "u1", PHOTO, new ArrayBuffer(8), BOX);
@@ -214,6 +216,7 @@ describe("box sticker ledger", () => {
       kind: "existing",
       scanId: id,
       pending: false,
+      final: true,
     });
   });
 
@@ -227,6 +230,7 @@ describe("box sticker ledger", () => {
       kind: "existing",
       scanId: null,
       pending: false,
+      final: true,
     });
   });
 
@@ -252,10 +256,118 @@ describe("box sticker ledger", () => {
   test("waitBoxSticker returns the id once the cut settles, null on timeout", async () => {
     const { bucket } = ledgerBucket();
     await markBoxPending(bucket, PHOTO, BOX);
-    expect(await waitBoxSticker(bucket, PHOTO, BOX, 50)).toBeNull();
+    expect((await waitBoxSticker(bucket, PHOTO, BOX, 50)).scanId).toBeNull();
     const { binding } = recordingImages();
     const waiting = waitBoxSticker(bucket, PHOTO, BOX, 5_000);
     const id = await cutBoxSticker(binding, bucket, "u1", PHOTO, new ArrayBuffer(8), BOX);
-    expect(await waiting).toBe(id);
+    expect(await waiting).toEqual({ scanId: id, final: true });
+  });
+
+  test("a quick marker answers 'any' at once and 'final' only after the refinement", async () => {
+    const { bucket } = ledgerBucket();
+    await bucket.put(`${PHOTO}.stk/${BOX.join("-")}`, "", {
+      customMetadata: { state: "quick", scanId: "q".repeat(32), at: String(Date.now()) },
+    });
+    expect(await waitBoxSticker(bucket, PHOTO, BOX, 50, "any")).toEqual({
+      scanId: "q".repeat(32),
+      final: false,
+    });
+    expect(await waitBoxSticker(bucket, PHOTO, BOX, 50, "final")).toEqual({
+      scanId: "q".repeat(32),
+      final: false,
+    });
+    expect(await claimBoxSticker(bucket, PHOTO, BOX, 36)).toEqual({
+      kind: "existing",
+      scanId: "q".repeat(32),
+      pending: false,
+      final: false,
+    });
+  });
+});
+
+describe("runScanStickers", () => {
+  const PHOTO = "scan-src/u1/" + "p".repeat(32);
+  const BOX = [0, 0, 500, 500] as const;
+
+  function setup(wholeResult: "ok" | "fail", refine: boolean) {
+    const { binding, trims } = recordingImages();
+    const { bucket, store } = ledgerBucket();
+    const states: string[] = [];
+    const put = bucket.put.bind(bucket);
+    bucket.put = async (key, value, options) => {
+      if (key.includes(".stk/")) states.push(options?.customMetadata?.state ?? "?");
+      return put(key, value, options);
+    };
+    const whole = Promise.resolve(
+      wholeResult === "ok"
+        ? { png: new ArrayBuffer(8), width: 1000, height: 1000, doneAt: Date.now() }
+        : null,
+    );
+    const run = () =>
+      runScanStickers({
+        images: binding,
+        bucket,
+        userId: "u1",
+        photoKey: PHOTO,
+        bytes: new ArrayBuffer(8),
+        boxes: [BOX],
+        size: { width: 1000, height: 1000 },
+        whole,
+        refine,
+        startedAt: Date.now(),
+      });
+    return { run, trims, states, store };
+  }
+
+  test("refine on: quick crop first, then the refined per-box cut wins", async () => {
+    const { run, trims, states, store } = setup("ok", true);
+    const timing = await run();
+    // One crop of the whole cutout, one per-box segmentation.
+    expect(trims).toHaveLength(2);
+    expect(states.at(-1)).toBe("done");
+    const marker = store.get(`${PHOTO}.stk/${BOX.join("-")}`)!.customMetadata!;
+    expect(marker.state).toBe("done");
+    expect(marker.scanId).toMatch(SCAN_ID_RE);
+    expect(timing.quickMs[0]).not.toBeNull();
+    expect(timing.finalMs[0]).not.toBeNull();
+  });
+
+  test("refine off: the quick crop is final and no per-box segmentation runs", async () => {
+    const { run, trims, store } = setup("ok", false);
+    const timing = await run();
+    expect(trims).toHaveLength(1);
+    const marker = store.get(`${PHOTO}.stk/${BOX.join("-")}`)!.customMetadata!;
+    expect(marker.state).toBe("done");
+    expect(marker.scanId).toMatch(SCAN_ID_RE);
+    expect(timing.finalMs[0]).toBeNull();
+  });
+
+  test("a failed whole cutout falls back to the per-box sticker even with refine off", async () => {
+    const { run, store } = setup("fail", false);
+    const timing = await run();
+    const marker = store.get(`${PHOTO}.stk/${BOX.join("-")}`)!.customMetadata!;
+    expect(marker.state).toBe("done");
+    expect(marker.scanId).toMatch(SCAN_ID_RE);
+    expect(timing.quickMs[0]).toBeNull();
+    expect(timing.finalMs[0]).not.toBeNull();
+  });
+
+  test("every outcome fails: the marker still settles so the box is not retried", async () => {
+    const { binding } = recordingImages({ width: 40, height: 40 });
+    const { bucket, store } = ledgerBucket();
+    await runScanStickers({
+      images: binding,
+      bucket,
+      userId: "u1",
+      photoKey: PHOTO,
+      bytes: new ArrayBuffer(8),
+      boxes: [BOX],
+      size: { width: 40, height: 40 },
+      whole: Promise.resolve(null),
+      refine: true,
+      startedAt: Date.now(),
+    });
+    const marker = store.get(`${PHOTO}.stk/${BOX.join("-")}`)!.customMetadata!;
+    expect(marker).toMatchObject({ state: "done", scanId: "" });
   });
 });

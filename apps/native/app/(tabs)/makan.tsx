@@ -28,6 +28,7 @@ import { FoodPortionSheet } from "@/components/food-portion-sheet";
 import type { CeritaPhase } from "@/components/cerita";
 import { StickerMini, StickerViewer, stickerUrl } from "@/components/sticker";
 import { FoodRow } from "@/components/makan/food-row";
+import { FitnessCard } from "@/components/makan/fitness-card";
 import type { StickerViewerTarget } from "@/components/sticker";
 import {
   BootLoader,
@@ -735,6 +736,9 @@ export default function Makan() {
               />
             </View>
           </Card>
+
+          {/* Skor JoyoFit untuk hari yang dipilih; kosong kalau JoyoFit belum mengirim */}
+          <FitnessCard date={date} />
 
           {/* Belanja: angkanya selalu hari ini */}
           {isToday ? <BelanjaSection /> : null}

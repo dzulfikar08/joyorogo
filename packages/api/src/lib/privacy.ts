@@ -19,6 +19,7 @@ import { plate, pushSubscription, workoutCustomExercise, workoutRoutine, workout
 import { emailLog } from "@joyorogo/db/schema/billing";
 import { team, teamMember, teamNudge } from "@joyorogo/db/schema/social";
 import { savedFood } from "@joyorogo/db/schema/saved-foods";
+import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 
 import { avatarPrefix } from "./avatar";
 import { photoPrefix, scanSrcPrefix, stickerKey, varPhotoPrefix } from "./sticker";
@@ -90,6 +91,7 @@ export function deleteAllUserData(db: Database, userId: string) {
     db.delete(foodLog).where(eq(foodLog.userId, userId)),
     db.delete(exerciseLog).where(eq(exerciseLog.userId, userId)),
     db.delete(sleepLog).where(eq(sleepLog.userId, userId)),
+    db.delete(fitnessScore).where(eq(fitnessScore.userId, userId)),
     db.delete(stravaAccount).where(eq(stravaAccount.userId, userId)),
     db.delete(waterLog).where(eq(waterLog.userId, userId)),
     db.delete(dailyActivity).where(eq(dailyActivity.userId, userId)),

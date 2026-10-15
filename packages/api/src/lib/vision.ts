@@ -14,11 +14,11 @@ export const DEFAULT_VISION_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 // tokens / 2-7 s with the same estimates (probe 2026-10-11, 3 dishes).
 // Guided JSON (response_format) was dropped: without thinking it degenerates
 // into whitespace loops until max_tokens on busy plates.
-// "tooMany" comes last so the model decides it after listing, and a cut-off
-// answer loses only that flag, not items.
-export const VISION_PROMPT = `Anda adalah ahli gizi. Identifikasi makanan pada foto ini (fokus masakan Indonesia): maksimal 10 item terbesar/terpenting. Kalau makanan di foto lebih dari 10, tulis 10 yang paling menonjol dan isi "tooMany":true.
+// A model-side "too many" flag proved unreliable (it dropped the donut next
+// to an americano), so the prompt only asks for a cap, not for a verdict.
+export const VISION_PROMPT = `Anda adalah ahli gizi. Identifikasi makanan pada foto ini (fokus masakan Indonesia). Sebutkan SETIAP makanan atau minuman berbeda yang terlihat, termasuk yang kecil (mis. donat di samping segelas kopi), urut dari yang paling menonjol, maksimal 10 item.
 Jawab HANYA JSON valid satu baris (tanpa indentasi, tanpa \`\`\`) tanpa teks lain, dengan bentuk persis:
-{"items":[{"name":"nama masakan","kind":"makanan|camilan|minuman","portion":"porsi, maks 3 kata","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":number,"box":[ymin,xmin,ymax,xmax]}],"tooMany":false}
+{"items":[{"name":"nama masakan","kind":"makanan|camilan|minuman","portion":"porsi, maks 3 kata","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":number,"box":[ymin,xmin,ymax,xmax]}]}
 Semua angka bulat kecuali confidence. Tidak ada makanan di foto: {"items":[],"problem":"bukan_makanan"}. Foto terlalu gelap atau buram sampai makanan tidak bisa dikenali: {"items":[],"problem":"gelap"} atau {"items":[],"problem":"buram"}.
 kind: "makanan" = makanan berat (nasi, lauk, sayur, mi, sup), "camilan" = gorengan, kue, keripik, martabak, es krim, jajanan ringan, "minuman" = semua yang diminum.
 box = kotak pembatas item itu di foto, skala 0-1000 relatif tinggi dan lebar foto.
@@ -105,8 +105,10 @@ export type VisionAnalysis = {
   /** Model actually used — callers pass `model` through unresolved. */
   model: string;
   usage: Record<string, unknown> | null;
-  /** More food in the photo than fit: items are the most prominent ones. */
+  /** More food in the photo than fit: the answer was cut off or reached the item cap. */
   tooMany: boolean;
+  /** The model set its own tooMany flag (logged for tuning; does not drive the UI). */
+  modelTooMany?: boolean;
 };
 
 /** Handles every Workers AI response shape: text, {response}, {result}, chat. */
@@ -267,8 +269,10 @@ export function dropDuplicateBroth<T extends { name: string }>(items: T[]): T[] 
 
 type ParsedAnswer = {
   items: VisionAnalysis["items"];
-  /** The photo held more than fit (model flag, over the cap, or cut off). */
+  /** Show the "too many" guidance: truncated answer or the item cap was reached. */
   tooMany: boolean;
+  /** The raw flag the model set itself (logged for tuning, not trusted). */
+  modelTooMany: boolean;
   /** The model's own verdict when it found no food (dark, blurry, not food). */
   problem: ScanFailReason | null;
   /** The answer was a valid, empty list. */
@@ -329,22 +333,26 @@ export function salvageItems(text: string): unknown[] {
   return out;
 }
 
+/** The model's tooMany flag is believed only with at least this many items. */
+const MODEL_FLAG_MIN_ITEMS = 8;
+
 /**
  * Parse, bound, calibrate against TKPI, and dedupe one model answer. A
  * cut-off answer (finish "length", or text that is not valid JSON but holds
  * complete items) keeps those items and counts as `tooMany`: running out of
- * tokens means the photo had more dishes than fit.
+ * tokens means the photo had more dishes than fit. So does a list that
+ * reached MAX_ITEMS.
  */
 export function parseAnswer(text: string, finish: string | null): ParsedAnswer {
   const cleaned = text.replace(/```(?:json)?/g, "");
   let rawItems: unknown[];
-  let tooMany = false;
+  let modelTooMany = false;
   let problem: ScanFailReason | null = null;
   let truncated = finish === "length";
   try {
     const answer = visionResultSchema.parse(extractJson(cleaned));
     rawItems = answer.items;
-    tooMany = answer.tooMany === true;
+    modelTooMany = answer.tooMany === true;
     problem = problemReason(answer.problem);
   } catch (error) {
     rawItems = salvageItems(cleaned);
@@ -387,7 +395,14 @@ export function parseAnswer(text: string, finish: string | null): ParsedAnswer {
   );
   return {
     items,
-    tooMany: tooMany || truncated || valid.length > MAX_ITEMS,
+    // Real evidence only: the answer was cut off, or it filled the cap. The
+    // model's own flag is unreliable on small plates (prod: 1-2 item photos
+    // flagged), so it only counts when it came with a near-full list.
+    tooMany:
+      truncated ||
+      valid.length >= MAX_ITEMS ||
+      (modelTooMany && valid.length >= MODEL_FLAG_MIN_ITEMS),
+    modelTooMany,
     problem,
     empty: rawItems.length === 0,
     found: valid.length,
@@ -447,12 +462,18 @@ export async function analyzeFoodPhoto(
       const answer = parseAnswer(text, finish);
       found = answer.found;
       if (answer.items.length > 0) {
-        if (answer.tooMany) {
+        if (answer.tooMany || answer.modelTooMany) {
           console.error(
-            `[vision] too many items: kept ${answer.items.length} of ${answer.found} finish=${finish}`,
+            `[vision] too many: shown=${answer.tooMany} modelFlag=${answer.modelTooMany} kept ${answer.items.length} of ${answer.found} finish=${finish}`,
           );
         }
-        return { items: answer.items, model, usage, tooMany: answer.tooMany };
+        return {
+          items: answer.items,
+          model,
+          usage,
+          tooMany: answer.tooMany,
+          ...(answer.modelTooMany ? { modelTooMany: true } : {}),
+        };
       }
       // The model's own verdict, or a valid empty list: the same photo gives
       // the same answer again, so a second attempt would only burn quota.

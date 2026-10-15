@@ -30,6 +30,12 @@ export const STICKER_FILTER = {
 } as const;
 const DROP_SHADOW = STICKER_FILTER;
 
+/** Same die-cut look at lightbox size: a ~4px outline (axes + diagonals) and a deeper shadow. */
+const STICKER_FILTER_LARGE = {
+  filter:
+    "drop-shadow(4px 0 0 #fff) drop-shadow(-4px 0 0 #fff) drop-shadow(0 4px 0 #fff) drop-shadow(0 -4px 0 #fff) drop-shadow(3px 3px 0 #fff) drop-shadow(-3px 3px 0 #fff) drop-shadow(3px -3px 0 #fff) drop-shadow(-3px -3px 0 #fff) drop-shadow(0 12px 24px rgb(0 0 0 / 0.45))",
+} as const;
+
 /** Cutouts are made in the background after saving: retry briefly, then give up. */
 const RETRY_DELAYS_MS = [3000, 6000, 12000];
 
@@ -141,7 +147,7 @@ export function Sticker({
                 src={src}
                 alt={name}
                 className="max-h-[70vh] max-w-full object-contain"
-                style={{ filter: "drop-shadow(0 12px 28px rgb(0 0 0 / 0.45))" }}
+                style={STICKER_FILTER_LARGE}
               />
             )}
             <figcaption className="mt-3 flex flex-wrap items-center justify-center gap-2">

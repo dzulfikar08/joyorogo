@@ -36,6 +36,7 @@ import { IdrInput } from "@/components/plate/idr-input";
 import { ScreenError } from "@/components/screen-state";
 import { STICKER_FILTER, stickerUrl } from "@/components/sticker";
 import { FoodRow } from "@/components/makan/food-row";
+import { FitnessCard } from "@/components/makan/fitness-card";
 import type { FoodAddInput, FoodItem, FoodRecentItem } from "@/lib/api-types";
 import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
@@ -349,6 +350,8 @@ function MakanPage() {
               />
             </div>
           )}
+
+          <FitnessCard date={date} />
 
           {/* Belanja: angkanya selalu hari ini */}
           {isToday ? <BelanjaCard /> : null}

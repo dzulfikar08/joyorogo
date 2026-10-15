@@ -5,3 +5,4 @@ export * from "./plans";
 export * from "./social";
 export * from "./saved-foods";
 export * from "./barcode";
+export * from "./joyofit";

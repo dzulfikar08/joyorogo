@@ -9,6 +9,7 @@ import { dayRouter } from "./day";
 import { diaryRouter } from "./diary";
 import { exerciseRouter } from "./exercise";
 import { fastingRouter } from "./fasting";
+import { fitnessRouter } from "./fitness";
 import { foodRouter } from "./food";
 import { groupRouter } from "./group";
 import { plateRouter } from "./plate";
@@ -58,6 +59,7 @@ export const appRouter = {
   stats: statsRouter,
   savedFood: savedFoodRouter,
   barcode: barcodeRouter,
+  fitness: fitnessRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

@@ -116,12 +116,14 @@ export async function makeSticker(
   images: ImagesBinding | undefined,
   bytes: ArrayBuffer,
   crop?: CropRect,
+  /** Output width; defaults to 480 for a cropped item and 720 for a whole photo. */
+  width?: number,
 ): Promise<ArrayBuffer | null> {
   if (!images) return null;
   try {
     const source = images.input(bytes);
     const result = await (crop ? source.transform({ trim: crop }) : source)
-      .transform({ width: crop ? 480 : 720, segment: "foreground" })
+      .transform({ width: width ?? (crop ? 480 : 720), segment: "foreground" })
       .output({ format: "image/png" });
     const response = result.response();
     if (!response.ok) return null;
@@ -182,30 +184,95 @@ export function pendingStickerKey(scanId: string): string {
   return `scan-src/stk/${scanId}.png`;
 }
 
+type StickerBox = readonly [number, number, number, number];
+export type PhotoSize = { width?: number; height?: number };
+
+/** Pixel size of a photo through the Images binding; empty when unreadable. */
+export async function readPhotoSize(images: ImagesBinding, bytes: ArrayBuffer): Promise<PhotoSize> {
+  try {
+    return await images.info(new Blob([bytes]).stream());
+  } catch {
+    return {};
+  }
+}
+
 /** Crops `box` out of the photo and segments it; null when unusable or failed. */
 export async function makeBoxSticker(
   images: ImagesBinding,
   bytes: ArrayBuffer,
-  box: readonly [number, number, number, number],
+  box: StickerBox,
+  /** Photo size when the caller already read it; saves one Images call per box. */
+  knownSize?: PhotoSize,
 ): Promise<ArrayBuffer | null> {
-  let size: { width?: number; height?: number };
-  try {
-    size = await images.info(new Blob([bytes]).stream());
-  } catch {
-    return null;
-  }
+  const size = knownSize ?? (await readPhotoSize(images, bytes));
   const crop = size.width && size.height ? cropRect(box, size.width, size.height) : null;
   return crop ? makeSticker(images, bytes, crop) : null;
 }
 
-type StickerBox = readonly [number, number, number, number];
+/** One foreground segmentation of the whole photo, shared by every item's quick sticker. */
+export type WholeCutout = { png: ArrayBuffer; width: number; height: number; doneAt: number };
+
+/** The whole cutout is made at the photo's own width, never wider than this. */
+const WHOLE_MAX_WIDTH = 1024;
+
+/**
+ * Segments the entire photo. Started the moment the photo arrives so it runs
+ * during the vision call; the per-item quick stickers are then plain crops of
+ * this PNG (no second segmentation). Null when unreadable or failed.
+ */
+export async function makeWholeCutout(
+  images: ImagesBinding,
+  bytes: ArrayBuffer,
+  size: PhotoSize,
+): Promise<WholeCutout | null> {
+  if (!size.width || !size.height) return null;
+  const width = Math.min(size.width, WHOLE_MAX_WIDTH);
+  const png = await makeSticker(images, bytes, undefined, width);
+  if (!png) return null;
+  return { png, width, height: Math.round((size.height * width) / size.width), doneAt: Date.now() };
+}
+
+/** Crops a rectangle out of an already-segmented PNG; alpha is kept, nothing is re-segmented. */
+async function cropCutout(
+  images: ImagesBinding,
+  png: ArrayBuffer,
+  rect: CropRect,
+): Promise<ArrayBuffer | null> {
+  try {
+    const result = await images.input(png).transform({ trim: rect }).output({ format: "image/png" });
+    const response = result.response();
+    return response.ok ? await response.arrayBuffer() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Stores a cutout under the expiring pending prefix; null when the write fails. */
+async function storePending(
+  bucket: StickersBucket,
+  userId: string,
+  png: ArrayBuffer,
+): Promise<string | null> {
+  const id = newScanId();
+  try {
+    await bucket.put(pendingStickerKey(id), png, {
+      httpMetadata: { contentType: "image/png" },
+      customMetadata: { userId },
+    });
+    return id;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Per-photo ledger of cutouts, one marker object per box next to the scan
  * photo (so it expires with it). A marker is `pending` while some request is
- * cutting that box and `done` afterwards, with the sticker id (empty when the
- * cut failed, so a hopeless box is never retried). It makes every cut
- * idempotent per photo and bounds the paid Images calls.
+ * cutting that box, `quick` once a crop of the whole-photo cutout is
+ * available but the per-box refinement is still running, and `done` when the
+ * sticker is final. `scanId` is the best sticker so far (empty when the cut
+ * failed, so a hopeless box is never retried). It makes every cut idempotent
+ * per photo and bounds the paid Images calls.
  */
 function boxMarkerPrefix(photoKey: string): string {
   return `${photoKey}.stk/`;
@@ -215,7 +282,7 @@ function boxMarkerKey(photoKey: string, box: StickerBox): string {
   return `${boxMarkerPrefix(photoKey)}${box.join("-")}`;
 }
 
-/** A pending claim older than this belongs to a worker that died. */
+/** A pending or quick marker older than this belongs to a worker that died. */
 const CLAIM_STALE_MS = 30_000;
 const POLL_MS = 400;
 
@@ -230,9 +297,37 @@ export async function markBoxPending(
   });
 }
 
+async function settleBox(
+  bucket: StickersBucket,
+  photoKey: string,
+  box: StickerBox,
+  state: "quick" | "done",
+  scanId: string | null,
+): Promise<void> {
+  try {
+    await bucket.put(boxMarkerKey(photoKey, box), "", {
+      customMetadata: { state, scanId: scanId ?? "", at: String(Date.now()) },
+    });
+  } catch {
+    // the marker goes stale and the box may be cut again
+  }
+}
+
+/** What a marker says right now: the best sticker id and whether it is final. */
+function readBoxState(meta: Record<string, string> | undefined): {
+  state: "pending" | "quick" | "done";
+  scanId: string | null;
+} {
+  const stale = Date.now() - Number(meta?.at ?? 0) >= CLAIM_STALE_MS;
+  const scanId = meta?.scanId || null;
+  if (meta?.state === "pending") return { state: stale ? "done" : "pending", scanId: null };
+  if (meta?.state === "quick" && stale) return { state: "done", scanId };
+  return { state: meta?.state === "quick" ? "quick" : "done", scanId };
+}
+
 export type BoxClaim =
   | { kind: "claimed" }
-  | { kind: "existing"; scanId: string | null; pending: boolean }
+  | { kind: "existing"; scanId: string | null; pending: boolean; final: boolean }
   | { kind: "capped" };
 
 /**
@@ -251,12 +346,19 @@ export async function claimBoxSticker(
     bucket.list({ prefix: boxMarkerPrefix(photoKey) }),
   ]);
   if (marker) {
-    const meta = marker.customMetadata ?? {};
-    if (meta.state !== "pending") return { kind: "existing", scanId: meta.scanId || null, pending: false };
-    if (Date.now() - Number(meta.at ?? 0) < CLAIM_STALE_MS) {
-      return { kind: "existing", scanId: null, pending: true };
+    const meta = marker.customMetadata;
+    const current = readBoxState(meta);
+    // A dead worker's pending claim (read as done without an id) is taken over.
+    const deadClaim = meta?.state === "pending" && current.state === "done";
+    if (!deadClaim) {
+      return {
+        kind: "existing",
+        scanId: current.scanId,
+        pending: current.state === "pending",
+        final: current.state === "done",
+      };
     }
-    // Stale claim: take it over; it is already counted against the cap.
+    // It is already counted against the cap.
   } else if (markers.objects.length >= cap) {
     return { kind: "capped" };
   }
@@ -264,10 +366,27 @@ export async function claimBoxSticker(
   return { kind: "claimed" };
 }
 
+/** Cuts and stores the per-box sticker (the refined one); null on any failure. */
+async function makeAndStoreBox(
+  images: ImagesBinding,
+  bucket: StickersBucket,
+  userId: string,
+  bytes: ArrayBuffer | null,
+  box: StickerBox,
+  size?: PhotoSize,
+): Promise<string | null> {
+  try {
+    const png = bytes ? await makeBoxSticker(images, bytes, box, size) : null;
+    return png ? await storePending(bucket, userId, png) : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Cuts a claimed box, stores the sticker under the pending prefix and settles
- * the marker. Returns the sticker id, or null (no bytes, unusable box, failed
- * transform or write) — never throws.
+ * the marker as final. Returns the sticker id, or null (no bytes, unusable
+ * box, failed transform or write) — never throws.
  */
 export async function cutBoxSticker(
   images: ImagesBinding,
@@ -277,47 +396,104 @@ export async function cutBoxSticker(
   bytes: ArrayBuffer | null,
   box: StickerBox,
 ): Promise<string | null> {
-  let scanId: string | null = null;
-  try {
-    const png = bytes ? await makeBoxSticker(images, bytes, box) : null;
-    if (png) {
-      const id = newScanId();
-      await bucket.put(pendingStickerKey(id), png, {
-        httpMetadata: { contentType: "image/png" },
-        customMetadata: { userId },
-      });
-      scanId = id;
-    }
-  } catch {
-    scanId = null;
-  }
-  try {
-    await bucket.put(boxMarkerKey(photoKey, box), "", {
-      customMetadata: { state: "done", scanId: scanId ?? "" },
-    });
-  } catch {
-    // the claim goes stale and the box may be cut again
-  }
+  const scanId = await makeAndStoreBox(images, bucket, userId, bytes, box);
+  await settleBox(bucket, photoKey, box, "done", scanId);
   return scanId;
 }
 
-/** Polls the marker of a box another request is cutting; null on failure or timeout. */
+/**
+ * Polls the marker of a box another request is cutting. `any` returns as soon
+ * as some sticker (quick or final) exists; `final` waits for the refined one.
+ * On timeout it returns the best id so far, marked not final.
+ */
 export async function waitBoxSticker(
   bucket: StickersBucket,
   photoKey: string,
   box: StickerBox,
   timeoutMs: number,
-): Promise<string | null> {
+  until: "any" | "final" = "any",
+): Promise<{ scanId: string | null; final: boolean }> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const marker = await bucket.get(boxMarkerKey(photoKey, box));
-    const meta = marker?.customMetadata;
-    if (meta && meta.state !== "pending") return meta.scanId || null;
-    if (!marker || Date.now() >= deadline) return null;
+    if (!marker) return { scanId: null, final: true };
+    const current = readBoxState(marker.customMetadata);
+    if (current.state === "done") return { scanId: current.scanId, final: true };
+    if (current.state === "quick" && until === "any") return { scanId: current.scanId, final: false };
+    if (Date.now() >= deadline) return { scanId: current.scanId, final: false };
     const { promise, resolve } = Promise.withResolvers<void>();
     setTimeout(resolve, POLL_MS);
     await promise;
   }
+}
+
+/** Milliseconds since the scan request started, per box (null = that stage produced nothing). */
+export type ScanStickerTiming = {
+  wholeMs: number | null;
+  quickMs: Array<number | null>;
+  finalMs: Array<number | null>;
+};
+
+/** The quick crop pads a little less than the refined cut: the cutout is already isolated. */
+const QUICK_PAD = 10;
+
+/**
+ * Produces every box's sticker for a fresh scan. Each box gets a quick sticker
+ * (a crop of the whole-photo cutout, ready as soon as that cutout is) and,
+ * unless `refine` is off, a refined sticker segmented from the box itself that
+ * replaces it. The marker moves pending -> quick -> done; with refine off the
+ * quick crop is final, and the per-box cut only runs when the quick one failed.
+ */
+export async function runScanStickers(options: {
+  images: ImagesBinding;
+  bucket: StickersBucket;
+  userId: string;
+  photoKey: string;
+  bytes: ArrayBuffer;
+  boxes: readonly StickerBox[];
+  size: PhotoSize;
+  whole: Promise<WholeCutout | null>;
+  refine: boolean;
+  startedAt: number;
+}): Promise<ScanStickerTiming> {
+  const { images, bucket, userId, photoKey, bytes, size, whole, refine, startedAt } = options;
+  const timing: ScanStickerTiming = {
+    wholeMs: null,
+    quickMs: options.boxes.map(() => null),
+    finalMs: options.boxes.map(() => null),
+  };
+  await Promise.all(
+    options.boxes.map(async (box, index) => {
+      let settled = false;
+      let quickId: string | null = null;
+      let quickWrite: Promise<void> = Promise.resolve();
+      const quick = (async () => {
+        const cutout = await whole;
+        if (!cutout) return;
+        timing.wholeMs = cutout.doneAt - startedAt;
+        const rect = cropRect(box, cutout.width, cutout.height, QUICK_PAD);
+        const png = rect ? await cropCutout(images, cutout.png, rect) : null;
+        const id = png ? await storePending(bucket, userId, png) : null;
+        if (!id) return;
+        quickId = id;
+        timing.quickMs[index] = Date.now() - startedAt;
+        // A refined marker that already landed must not be overwritten.
+        if (!settled) quickWrite = settleBox(bucket, photoKey, box, refine ? "quick" : "done", id);
+      })();
+      let finalId: string | null = null;
+      if (!refine) await quick;
+      if (refine || !quickId) {
+        finalId = await makeAndStoreBox(images, bucket, userId, bytes, box, size);
+        if (finalId) timing.finalMs[index] = Date.now() - startedAt;
+      }
+      settled = true;
+      await quickWrite;
+      await quick;
+      // Written last on purpose: it is the one that must win.
+      if (refine || !quickId) await settleBox(bucket, photoKey, box, "done", finalId ?? quickId);
+    }),
+  );
+  return timing;
 }
 
 export function base64ToBytes(base64: string): ArrayBuffer {

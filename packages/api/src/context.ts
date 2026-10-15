@@ -19,6 +19,11 @@ export type ApiEnv = PaywallEnv & {
   IMAGES?: ImagesBinding;
   /** R2 bucket storing the generated cutout PNGs. */
   STICKERS?: StickersBucket;
+  /**
+   * "0" keeps only the quick sticker (a crop of the whole-photo cutout) and skips
+   * the per-box refinement, which saves one segmentation per item. Default: refine.
+   */
+  STICKER_REFINE?: string;
   /** Web Push (puasa intermiten): reminders stay off until all three are set. */
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;

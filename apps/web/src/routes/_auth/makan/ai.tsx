@@ -180,7 +180,9 @@ function sameBox(a: AiFoodItem["box"], b: AiFoodItem["box"]) {
 
 /**
  * Rectangular crop as the instant placeholder; once the real background-removed
- * sticker has loaded it fades in and the crop fades out.
+ * sticker has loaded it fades in and the crop fades out. A refined sticker that
+ * replaces the quick one fades in over it, so the tile never flashes back to
+ * the crop.
  */
 function CutoutImage({
   crop,
@@ -193,8 +195,24 @@ function CutoutImage({
   name: string;
   className?: string;
 }) {
-  const [ready, setReady] = useState(false);
-  useEffect(() => setReady(false), [sticker]);
+  // `shown` is the newest sticker id that finished loading; `under` keeps the
+  // one it replaces on screen until the fade-in is done.
+  const [shown, setShown] = useState<string | null>(null);
+  const [under, setUnder] = useState<string | null>(null);
+  useEffect(() => {
+    if (sticker) return;
+    setShown(null);
+    setUnder(null);
+  }, [sticker]);
+  const onLoaded = (id: string) => {
+    if (shown === id) return;
+    setUnder(shown);
+    setShown(id);
+    setTimeout(() => setUnder(null), 350);
+  };
+  const underId = shown && shown !== sticker ? shown : under;
+  const layer =
+    "absolute inset-0 size-full object-contain p-0.5 transition-opacity duration-300 motion-reduce:transition-none";
   return (
     <div className={cn("relative", className)}>
       {crop && (
@@ -204,21 +222,22 @@ function CutoutImage({
           aria-hidden={name === ""}
           className={cn(
             "size-full rounded-[inherit] object-cover shadow-sm transition-opacity duration-300 motion-reduce:transition-none",
-            ready && "opacity-0",
+            shown && "opacity-0",
           )}
         />
       )}
+      {underId && (
+        <img src={stickerUrl(underId)} alt="" aria-hidden style={STICKER_FILTER} className={layer} />
+      )}
       {sticker && (
         <img
+          key={sticker}
           src={stickerUrl(sticker)}
           alt=""
           aria-hidden
-          onLoad={() => setReady(true)}
+          onLoad={() => onLoaded(sticker)}
           style={STICKER_FILTER}
-          className={cn(
-            "absolute inset-0 size-full object-contain p-0.5 opacity-0 transition-opacity duration-300 motion-reduce:transition-none",
-            ready && "opacity-100",
-          )}
+          className={cn(layer, shown === sticker ? "opacity-100" : "opacity-0")}
         />
       )}
     </div>
@@ -506,8 +525,10 @@ function AiFoodPage() {
   // Cuts the per-item tiles after the first paint. `run` guards against a
   // newer shot or Foto ulang landing first.
   // Real cutouts (ai.scanSticker): fire one call per boxed item without a
-  // sticker yet; each fades in over its crop as it lands. `reuse` carries the
-  // ids that are still valid (same box after Hitung ulang).
+  // sticker yet. The server answers with a quick sticker (a crop of the
+  // whole-photo cutout) almost at once; a second call then waits for the
+  // refined per-box cutout, which fades in over it. `reuse` carries the ids
+  // that are still valid (same box after Hitung ulang).
   const cutStickers = (
     photoId: string,
     list: AiFoodItem[],
@@ -515,13 +536,20 @@ function AiFoodPage() {
   ) => {
     const run = ++stickerRunRef.current;
     setStickers(reuse);
+    const apply = (index: number, scanId: string) => {
+      if (stickerRunRef.current !== run) return;
+      setStickers((prev) => prev.map((current, i) => (i === index ? scanId : current)));
+    };
     list.forEach((item, index) => {
       if (!item.box || reuse[index]) return;
+      const box = [...item.box];
       client.ai
-        .scanSticker({ photoId, box: [...item.box] })
-        .then(({ scanId }) => {
-          if (!scanId || stickerRunRef.current !== run) return;
-          setStickers((prev) => prev.map((current, i) => (i === index ? scanId : current)));
+        .scanSticker({ photoId, box })
+        .then(async ({ scanId, final }) => {
+          if (scanId) apply(index, scanId);
+          if (final || !scanId) return;
+          const refined = await client.ai.scanSticker({ photoId, box, refine: true });
+          if (refined.scanId && refined.scanId !== scanId) apply(index, refined.scanId);
         })
         .catch(() => {});
     });

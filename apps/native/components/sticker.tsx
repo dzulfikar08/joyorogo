@@ -1,6 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Image, Modal, Pressable, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Modal,
+  Pressable,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { Platform } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { File, Paths } from "expo-file-system";
@@ -250,6 +257,9 @@ export function StickerViewer({
     setShowPhoto(false);
   }, [viewer]);
 
+  const { width } = useWindowDimensions();
+  const { theme } = useUnistyles();
+
   return (
     <Modal
       visible={viewer !== null}
@@ -263,7 +273,11 @@ export function StickerViewer({
           {viewer && showPhoto && viewer.photoId ? (
             <AuthedPhoto photoId={viewer.photoId} name={viewer.name} />
           ) : (
-            <Image source={{ uri: viewer?.uri }} style={styles.viewerImage} resizeMode="contain" />
+            <StickerImage
+              uri={viewer?.uri ?? ""}
+              size={Math.min(width - theme.spacing.xl * 2, 360)}
+              name={viewer?.name ?? ""}
+            />
           )}
           <View style={styles.viewerCaptionRow}>
             <MetaLine

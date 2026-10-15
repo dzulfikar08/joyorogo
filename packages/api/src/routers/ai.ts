@@ -9,7 +9,10 @@ import {
   base64ToBytes,
   bytesToBase64,
   makeSticker,
+  makeWholeCutout,
   newScanId,
+  readPhotoSize,
+  runScanStickers,
   scanSrcKey,
   stickerKey,
   claimBoxSticker,
@@ -17,7 +20,13 @@ import {
   markBoxPending,
   waitBoxSticker,
 } from "../lib/sticker";
-import type { ImagesBinding, StickersBucket } from "../lib/sticker";
+import type {
+  ImagesBinding,
+  PhotoSize,
+  ScanStickerTiming,
+  StickersBucket,
+  WholeCutout,
+} from "../lib/sticker";
 
 import { protectedProcedure } from "../index";
 import { MEALS, jakartaToday } from "../lib/engine";
@@ -162,6 +171,13 @@ export const aiRouter = {
       // The put runs concurrently with inference: it hides entirely behind
       // the model call instead of adding an R2 roundtrip after it.
       const photoBytes = base64ToBytes(input.imageBase64);
+      // The whole photo starts segmenting now, in parallel with the vision call;
+      // the boxes it returns only need cropping out of this cutout afterwards.
+      const photoSize: Promise<PhotoSize> =
+        stickers && images && input.crops ? readPhotoSize(images, photoBytes) : Promise.resolve({});
+      const wholeCutout: Promise<WholeCutout | null> = photoSize.then((size) =>
+        stickers && images && input.crops ? makeWholeCutout(images, photoBytes, size) : null,
+      );
       const photoStored: Promise<string | null> = stickers
         ? (async () => {
             const id = newScanId();
@@ -212,34 +228,41 @@ export const aiRouter = {
       // Charge only successful analyses — quota counts these ledger rows. The
       // insert is bookkeeping the user never sees, so it runs after the
       // response instead of adding a DB roundtrip to the critical path.
-      context.waitUntil(
-        context.db
-          .insert(aiUsage)
-          .values({
-            id: crypto.randomUUID(),
-            userId,
-            model: analysis.model,
-            scanType: "user",
-            latencyMs,
-            usageJson: JSON.stringify({
-              ...analysis.usage,
-              itemCount: analysis.items.length,
-              ...(analysis.tooMany ? { tooMany: true } : {}),
-              serverTiming: { quotaMs, aiMs: latencyMs, totalMs: Date.now() - requestStartedAt },
-              ...(input.clientTiming ? { clientTiming: input.clientTiming } : {}),
-            }),
-          })
-          .then(
-            () => undefined,
-            (error: unknown) => console.error("[ai] ledger insert failed", error),
-          ),
-      );
-      // Every detected box gets its cutout started right away, in waitUntil,
-      // so segmentation runs during the response roundtrip and the client's
-      // first render. The pending markers are written before responding, so a
-      // scanSticker call that lands first waits on them instead of cutting the
-      // same box twice. Legacy clients (no `crops`) use the plate sticker.
+      const ledgerId = crypto.randomUUID();
+      const ledgerUsage = {
+        ...analysis.usage,
+        itemCount: analysis.items.length,
+        ...(analysis.tooMany ? { tooMany: true } : {}),
+        ...(analysis.modelTooMany ? { modelTooMany: true } : {}),
+        serverTiming: { quotaMs, aiMs: latencyMs, totalMs: Date.now() - requestStartedAt },
+        ...(input.clientTiming ? { clientTiming: input.clientTiming } : {}),
+      };
+      const ledger = context.db
+        .insert(aiUsage)
+        .values({
+          id: ledgerId,
+          userId,
+          model: analysis.model,
+          scanType: "user",
+          latencyMs,
+          usageJson: JSON.stringify(ledgerUsage),
+        })
+        .then(
+          () => true,
+          (error: unknown) => {
+            console.error("[ai] ledger insert failed", error);
+            return false;
+          },
+        );
+      context.waitUntil(ledger);
+      // Every detected box gets its sticker right away, in waitUntil: a quick
+      // crop of the whole-photo cutout that has been segmenting since the photo
+      // arrived, then the refined per-box cut. The pending markers are written
+      // before responding, so a scanSticker call that lands first waits on
+      // them instead of cutting the same box twice. Legacy clients (no
+      // `crops`) use the plate sticker.
       const boxes = stickers && images && input.crops ? distinctBoxes(analysis.items) : [];
+      const stickerRun: { promise: Promise<ScanStickerTiming> | null } = { promise: null };
       const [scanId, photoId, [[scansEverRow], [askedTodayRow]]] = await Promise.all([
         storeSticker(),
         photoStored.then(async (id) => {
@@ -247,13 +270,19 @@ export const aiRouter = {
             const photoKey = scanSrcKey(userId, id);
             try {
               await Promise.all(boxes.map((box) => markBoxPending(stickers, photoKey, box)));
-              context.waitUntil(
-                Promise.all(
-                  boxes.map((box) =>
-                    cutBoxSticker(images, stickers, userId, photoKey, photoBytes, box),
-                  ),
-                ),
-              );
+              stickerRun.promise = runScanStickers({
+                images,
+                bucket: stickers,
+                userId,
+                photoKey,
+                bytes: photoBytes,
+                boxes,
+                size: await photoSize,
+                whole: wholeCutout,
+                refine: context.env.STICKER_REFINE !== "0",
+                startedAt: requestStartedAt,
+              });
+              context.waitUntil(stickerRun.promise);
             } catch {
               // no markers, no background cut: scanSticker claims each box itself
             }
@@ -262,6 +291,24 @@ export const aiRouter = {
         }),
         feedbackGate,
       ]);
+      // Read the real numbers off prod: the ledger row gains stickerTiming
+      // (ms since the request started) once the cuts settle.
+      const responseMs = Date.now() - requestStartedAt;
+      if (stickerRun.promise) {
+        context.waitUntil(
+          Promise.all([ledger, stickerRun.promise])
+            .then(async ([inserted, timing]) => {
+              const stickerTiming = { responseMs, ...timing };
+              console.log("[sticker]", JSON.stringify(stickerTiming));
+              if (!inserted) return;
+              await context.db
+                .update(aiUsage)
+                .set({ usageJson: JSON.stringify({ ...ledgerUsage, stickerTiming }) })
+                .where(eq(aiUsage.id, ledgerId));
+            })
+            .catch((error: unknown) => console.error("[ai] sticker timing failed", error)),
+        );
+      }
       return {
         items: analysis.items,
         tooMany: analysis.tooMany,
@@ -364,6 +411,7 @@ export const aiRouter = {
             ...(input.hint ? { hint: input.hint } : {}),
             itemCount: analysis.items.length,
             ...(analysis.tooMany ? { tooMany: true } : {}),
+            ...(analysis.modelTooMany ? { modelTooMany: true } : {}),
             ...analysis.usage,
           }),
         }),
@@ -400,31 +448,44 @@ export const aiRouter = {
       z.object({
         photoId: z.string().regex(SCAN_ID_RE),
         box: z.array(z.number()).length(4),
+        // Second call for a sticker that came back as a quick crop: waits for
+        // the refined per-box cutout (or gives the quick one back on timeout).
+        refine: z.boolean().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
       const bucket = context.env.STICKERS as StickersBucket | undefined;
       const images = context.env.IMAGES as ImagesBinding | undefined;
       const box = normalizeBox(input.box);
-      if (!bucket || !images || !box) return { scanId: null };
+      if (!bucket || !images || !box) return { scanId: null, final: true };
       const userId = context.session.user.id;
       try {
         // The key embeds the owner: another user's photo id resolves to nothing.
         const photoKey = scanSrcKey(userId, input.photoId);
         const claim = await claimBoxSticker(bucket, photoKey, box, MAX_STICKERS_PER_PHOTO);
-        if (claim.kind === "capped") return { scanId: null };
+        if (claim.kind === "capped") return { scanId: null, final: true };
         if (claim.kind === "existing") {
-          return {
-            scanId: claim.pending
-              ? await waitBoxSticker(bucket, photoKey, box, STICKER_WAIT_MS)
-              : claim.scanId,
-          };
+          if (claim.final) return { scanId: claim.scanId, final: true };
+          // Nothing yet (pending) or only the quick crop: wait for what was asked.
+          if (claim.pending || input.refine) {
+            return await waitBoxSticker(
+              bucket,
+              photoKey,
+              box,
+              STICKER_WAIT_MS,
+              input.refine ? "final" : "any",
+            );
+          }
+          return { scanId: claim.scanId, final: false };
         }
         const photo = await bucket.get(photoKey);
         const bytes = photo ? await photo.arrayBuffer() : null;
-        return { scanId: await cutBoxSticker(images, bucket, userId, photoKey, bytes, box) };
+        return {
+          scanId: await cutBoxSticker(images, bucket, userId, photoKey, bytes, box),
+          final: true,
+        };
       } catch {
-        return { scanId: null };
+        return { scanId: null, final: true };
       }
     }),
   // Feedback on a scan result ("Hasilnya akurat?"). Fire-and-forget from the

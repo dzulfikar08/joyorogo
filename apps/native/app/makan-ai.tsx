@@ -141,7 +141,9 @@ const STAGE_MS = 2500;
 
 /**
  * Result tile: pulsing placeholder, then the plain rectangular crop, then the
- * real outlined sticker (the shared StickerMini look) fading in over it.
+ * real outlined sticker (the shared StickerMini look) fading in over it. A
+ * refined sticker that replaces the quick one fades in over it, so the tile
+ * never flashes back to the crop.
  */
 function CropSlot({
   uri,
@@ -159,16 +161,27 @@ function CropSlot({
 }) {
   const pulse = useRef(new Animated.Value(0.08)).current;
   const fade = useRef(new Animated.Value(0)).current;
+  // Fades the newest sticker in; reset to 0 for each new id.
   const stickerFade = useRef(new Animated.Value(0)).current;
-  const [stickerReady, setStickerReady] = useState(false);
-  // Crop opacity = its own fade-in x (1 - sticker fade-in).
-  const cropOpacity = useRef(
-    Animated.multiply(fade, Animated.subtract(1, stickerFade)),
-  ).current;
+  // Crop -> sticker, once: stays 1 so a refined swap never shows the crop again.
+  const coverFade = useRef(new Animated.Value(0)).current;
+  // Crop opacity = its own fade-in x (1 - cover fade-in).
+  const cropOpacity = useRef(Animated.multiply(fade, Animated.subtract(1, coverFade))).current;
+  // `shown` is the id that finished loading; `under` is the one it replaces.
+  const [shown, setShown] = useState<string | undefined>();
+  const [under, setUnder] = useState<string | undefined>();
+  const shownRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     stickerFade.setValue(0);
-    setStickerReady(false);
-  }, [stickerId, stickerFade]);
+    if (!stickerId) {
+      shownRef.current = undefined;
+      coverFade.setValue(0);
+      setShown(undefined);
+      setUnder(undefined);
+    } else if (shownRef.current && shownRef.current !== stickerId) {
+      setUnder(shownRef.current);
+    }
+  }, [stickerId, stickerFade, coverFade]);
   useEffect(() => {
     if (uri || stickerId) return;
     let loop: Animated.CompositeAnimation | null = null;
@@ -191,7 +204,7 @@ function CropSlot({
   return (
     // The tile's muted backdrop goes once the sticker shows: the cutout sits
     // on the card like everywhere else, outline and shadow included.
-    <View style={[style, styles.cropSlot, stickerReady && styles.cropSlotSticker]}>
+    <View style={[style, styles.cropSlot, shown !== undefined && styles.cropSlotSticker]}>
       {uri ? (
         <Animated.Image
           source={{ uri }}
@@ -204,6 +217,11 @@ function CropSlot({
       ) : stickerId ? null : (
         <Animated.View style={[styles.cropFill, styles.cropShimmer, { opacity: pulse }]} />
       )}
+      {under ? (
+        <View style={styles.cropFill}>
+          <StickerMini scanId={under} size={size} />
+        </View>
+      ) : null}
       {stickerId ? (
         <Animated.View style={[styles.cropFill, { opacity: stickerFade }]}>
           <StickerMini
@@ -211,12 +229,18 @@ function CropSlot({
             size={size}
             name={uri ? "" : label}
             onLoad={() => {
-              setStickerReady(true);
-              Animated.timing(stickerFade, {
+              shownRef.current = stickerId;
+              setShown(stickerId);
+              Animated.timing(coverFade, {
                 toValue: 1,
                 duration: 300,
                 useNativeDriver: true,
               }).start();
+              Animated.timing(stickerFade, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+              }).start(() => setUnder(undefined));
             }}
           />
         </Animated.View>
@@ -403,8 +427,10 @@ export default function MakanAi() {
 
   /**
    * Real cutouts (ai.scanSticker): one call per boxed item without a sticker
-   * yet; each fades in over its crop as it lands. `reuse` carries the ids that
-   * are still valid (same box after Hitung ulang).
+   * yet. The server answers with a quick sticker (a crop of the whole-photo
+   * cutout) almost at once; a second call then waits for the refined per-box
+   * cutout, which fades in over it. `reuse` carries the ids that are still
+   * valid (same box after Hitung ulang).
    */
   const cutStickers = (
     forPhotoId: string | null,
@@ -414,13 +440,23 @@ export default function MakanAi() {
     const run = ++stickerRunRef.current;
     setStickers(reuse);
     if (!forPhotoId) return;
+    const apply = (index: number, scanId: string) => {
+      if (stickerRunRef.current !== run) return;
+      setStickers((prev) => prev.map((current, i) => (i === index ? scanId : current)));
+    };
     list.forEach((item, index) => {
       if (!item.box || reuse[index]) return;
       client.ai
         .scanSticker({ photoId: forPhotoId, box: item.box })
-        .then(({ scanId }) => {
-          if (!scanId || stickerRunRef.current !== run) return;
-          setStickers((prev) => prev.map((current, i) => (i === index ? scanId : current)));
+        .then(async ({ scanId, final }) => {
+          if (scanId) apply(index, scanId);
+          if (final || !scanId) return;
+          const refined = await client.ai.scanSticker({
+            photoId: forPhotoId,
+            box: item.box!,
+            refine: true,
+          });
+          if (refined.scanId && refined.scanId !== scanId) apply(index, refined.scanId);
         })
         .catch(() => {});
     });
