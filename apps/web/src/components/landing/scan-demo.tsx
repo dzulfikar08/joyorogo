@@ -202,7 +202,7 @@ export function ScanDemo() {
           {busy && (
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4 pt-12">
               <p role="status" className="text-sm font-semibold text-white">
-                Mengenali makanan, umumnya 3-9 detik...
+                Mengenali makanan, umumnya 8-15 detik...
               </p>
               <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/25">
                 <div className="h-full w-1/3 animate-[scan-progress_1.4s_ease-in-out_infinite] rounded-full bg-white motion-reduce:animate-none" />

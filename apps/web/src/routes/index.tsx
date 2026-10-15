@@ -49,7 +49,7 @@ export const Route = createFileRoute("/")({
 
 /** Facts the product can back up; no user counts or ratings we don't have. */
 const FACTS = [
-  { value: "3-9 detik", label: "untuk menghitung satu foto" },
+  { value: "8-15 detik", label: "untuk menghitung satu foto" },
   { value: "Rp0", label: "diary lengkap, selamanya" },
   { value: "0 foto", label: "disimpan tanpa seizinmu" },
   { value: "TKPI 2019", label: "data kalori dari Kemenkes" },

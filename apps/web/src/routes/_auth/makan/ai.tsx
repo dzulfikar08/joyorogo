@@ -461,7 +461,7 @@ function AiFoodPage() {
     ];
     return (
       <Page className="md:max-w-3xl" role="status">
-        <PageHeader title="Menganalisis foto" subtitle="Sebentar ya, biasanya 3 sampai 9 detik." />
+        <PageHeader title="Menganalisis foto" subtitle="Sebentar ya, biasanya 8 sampai 15 detik." />
         <Card className="overflow-hidden p-0">
           <div className="relative">
             {photoUrl && (

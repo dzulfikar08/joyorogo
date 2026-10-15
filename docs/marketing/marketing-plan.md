@@ -12,7 +12,7 @@ Evidence rules used throughout. "Verified" means I read it in the repo or on the
 2. Android distribution is an APK today (README, landing). Before a Play listing is possible you need a closed test with at least 12 testers opted in continuously for 14 days if your developer account is a personal one created after 13 Nov 2023 [S11], a Health apps declaration plus a "not a medical device" disclaimer in the description [S10], and an answer on billing (section 8.5). The 14-day clock is the longest lead item, so it starts in week 1 and the challenge cohort doubles as the tester pool.
 3. Virality runs on WhatsApp, discovery on TikTok and Instagram. APJII 2025 (via Kontan) puts WhatsApp at 95.9% of internet users, Instagram 62.4%, Facebook 60.5%, TikTok 42.5% [S2]. Group invites are `https://joyorogo.com/gabung/<kode>` links that people paste into WhatsApp, so every acquisition asset should end in "ajak 1 teman".
 4. Revklik is blind inside the app and the admin console has no group or retention numbers. Revklik only keeps `/`, `/harga`, `/login`, `/pembayaran`, `/privasi`, `/blog`, `/u/`, `/p/` plus conversions (`apps/web/src/lib/analytics.ts`). Admin shows users, signups, active today, founders, scans, orders. Section 11.4 supplies SQL for the rest.
-5. The landing's "3-9 detik" claim is not backed by anything I could find in the repo. Before it appears on camera, read median latency in admin (user detail, "Recent AI calls", Latency column).
+5. Scan time: the landing now says "8-15 detik", the owner's observed end-to-end time (photo to result). Prod `ai_usage` for the 14 days to 15 Oct 2026 (67 user scans) shows the AI call alone at a median of about 3 s, p90 about 7.5 s, max 14.5 s; upload, resizing and cropping add the rest. Re-check before quoting a tighter number.
 6. Ramadan 1448 is expected around 8 to 9 Feb 2027, with the official date set by Sidang Isbat Kemenag [S5][S6]. The app's `auto` Ramadan mode uses the Umm al-Qura calendar (`packages/api/src/lib/engine.ts`, `isRamadanDate`), which can differ from the Indonesian decision by a day. Tell users to set Mode Ramadan to "Aktif" by hand on day 1.
 7. Avoid the visual and copy patterns of oyenza.com (section 1.6).
 
@@ -366,7 +366,7 @@ Pilot terms: one group of 5 or more for 2 weeks; one 15-minute feedback call; pe
 Day 0 (Thu 15 to Sun 18 Oct), prep:
 - Baseline: Revklik 30-day overview, admin overview, the SQL in section 11.
 - Read `GET /api/config` and note the current rung and `promo.taken`.
-- Read median scan latency in admin before using "3-9 detik" anywhere.
+- Scan time is settled at "8-15 detik" end to end (see finding 5); re-check `ai_usage.latency_ms` before quoting anything tighter.
 - Create TikTok and Instagram accounts with one identical handle (no handle exists in the repo).
 - Fresh-phone test: landing, `#coba` demo, Google sign-in, onboarding, first scan on the APK.
 - Decide whether to set `EXPO_PUBLIC_FB_APP_ID` for direct Instagram story sharing.
@@ -547,7 +547,7 @@ Status (15 Oct 2026): all five are in the code, not yet deployed. What changes h
 2. Whether to create the Facebook App ID for direct Instagram story sharing (section 4).
 3. Whether to use Founder comps as challenge rewards, and the cap.
 4. The identical social handle across TikTok and Instagram.
-5. Whether to remove or measure the landing's "3-9 detik" claim.
+5. (Settled) Scan-time claim changed to "8-15 detik".
 
 ---
 
