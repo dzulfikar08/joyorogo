@@ -118,15 +118,27 @@ public class AppleHealthModule: Module {
     )
   }
 
-  private func runSamples(_ query: HKSampleQuery) async throws -> [HKSample] {
+  // HKSampleQuery takes its results handler at init; HKHealthStore.execute only runs it.
+  private func runSamples(
+    type: HKSampleType,
+    fromMs: Double,
+    toMs: Double,
+    ascending: Bool
+  ) async throws -> [HKSample] {
     try await withCheckedThrowingContinuation { continuation in
-      self.store.execute(query) { _, samples, error in
+      let query = HKSampleQuery(
+        sampleType: type,
+        predicate: samplesPredicate(fromMs: fromMs, toMs: toMs),
+        limit: HKObjectQueryNoLimit,
+        sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: ascending)]
+      ) { _, samples, error in
         if let error {
           continuation.resume(throwing: error)
         } else {
           continuation.resume(returning: samples ?? [])
         }
       }
+      self.store.execute(query)
     }
   }
 
@@ -150,13 +162,7 @@ public class AppleHealthModule: Module {
   }
 
   private func readWorkouts(fromMs: Double, toMs: Double) async throws -> [[String: Any?]] {
-    let query = HKSampleQuery(
-      sampleType: .workoutType(),
-      predicate: samplesPredicate(fromMs: fromMs, toMs: toMs),
-      limit: HKObjectQueryNoLimit,
-      sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
-    )
-    let samples = try await runSamples(query)
+    let samples = try await runSamples(type: .workoutType(), fromMs: fromMs, toMs: toMs, ascending: false)
     let formatter = ISO8601DateFormatter()
     return samples.compactMap { sample -> [String: Any?]? in
       guard let workout = sample as? HKWorkout else { return nil }
@@ -214,13 +220,7 @@ public class AppleHealthModule: Module {
   }
 
   private func readSleepSamples(fromMs: Double, toMs: Double) async throws -> [[String: Any?]] {
-    let query = HKSampleQuery(
-      sampleType: HKCategoryType(.sleepAnalysis),
-      predicate: samplesPredicate(fromMs: fromMs, toMs: toMs),
-      limit: HKObjectQueryNoLimit,
-      sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
-    )
-    let samples = try await runSamples(query)
+    let samples = try await runSamples(type: HKCategoryType(.sleepAnalysis), fromMs: fromMs, toMs: toMs, ascending: true)
     let formatter = ISO8601DateFormatter()
     return samples.compactMap { sample -> [String: Any?]? in
       guard let category = sample as? HKCategorySample else { return nil }

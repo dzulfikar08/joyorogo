@@ -13,7 +13,7 @@ PODS_ROOT=$(cd "$1" && pwd)
 DARWIN=$2
 NATIVE=$(cd "$PODS_ROOT/../.." && pwd)
 CACHE=${XDG_CACHE_HOME:-$HOME/.cache}/joyorogo-ios
-J=$(node -p "require('path').dirname(require.resolve('expo-modules-jsi/package.json', {paths: [require.resolve('expo-modules-core/package.json', {paths: ['$NATIVE']})]}))")/apple
+J=$(node -p "const r = (m, p) => require.resolve(m + '/package.json', {paths: [p]}); require('path').dirname(r('expo-modules-jsi', r('expo-modules-core', r('expo', '$NATIVE'))))")/apple
 RN_ROOT=$(node -p "require('path').dirname(require.resolve('react-native/package.json', {paths: ['$NATIVE']}))")
 NAME=ExpoModulesJSI
 SCRATCH=$CACHE/jsi-build
@@ -21,10 +21,17 @@ export PODS_ROOT RN_ROOT
 
 PODS_ROOT="$PODS_ROOT" RN_ROOT="$RN_ROOT" bash "$J/scripts/generate-modulemap.sh"
 
-swift build --package-path "$J" --scratch-path "$SCRATCH" -c release \
-  --swift-sdk arm64-apple-ios --product "$NAME" \
+# Swift 6.4 defaults to the swiftbuild system, which has no 'iphoneos' platform
+# for an xtool SDK; the native build system cross-compiles with it. The slim SDK
+# drops Xcode's usr/include, so <swift/bridging> comes from the host toolchain.
+# The open-source 6.4 compiler rejects this package's C++ types in public API
+# under library evolution; AssumeResilientCxxTypes lifts that check.
+SWIFT_INCLUDE=$(dirname "$(command -v swiftc)")/../include
+swift build --package-path "$J" --scratch-path "$SCRATCH" -c release --build-system native \
+  --swift-sdk arm64-apple-ios --product "$NAME" -Xcc -I"$SWIFT_INCLUDE" \
+  -Xswiftc -enable-experimental-feature -Xswiftc AssumeResilientCxxTypes \
   -Xlinker -install_name -Xlinker "@rpath/$NAME.framework/$NAME" 2>&1 | grep -vE "no version information|^warning:" | tail -5
-BIN=$(swift build --package-path "$J" --scratch-path "$SCRATCH" -c release --swift-sdk arm64-apple-ios --show-bin-path 2>/dev/null)
+BIN=$(swift build --package-path "$J" --scratch-path "$SCRATCH" -c release --build-system native --swift-sdk arm64-apple-ios --show-bin-path 2>/dev/null)
 
 slice=$J/Products/$NAME.xcframework/ios-arm64
 fw=$slice/$NAME.framework

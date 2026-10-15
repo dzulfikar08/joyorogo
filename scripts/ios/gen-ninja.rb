@@ -12,8 +12,9 @@
 #
 #   gen-ninja.rb <ios dir> <build dir> <toolchain.json>
 #
-# toolchain.json keys: sdk (iPhoneOS.sdk path), clang, swiftc, ar, ld (ld64.lld),
-# macro_plugin (Linux build of ExpoModulesMacros-tool), node.
+# toolchain.json keys: sdk (iPhoneOS.sdk path), clang, swiftc, swift_resource_dir
+# (the SDK's Swift resource dir: Apple's stdlib interfaces, not the host's Linux
+# ones), ar, ld (ld64.lld), macro_plugin (Linux build of ExpoModulesMacros-tool), node.
 
 require 'fileutils'
 require 'json'
@@ -24,6 +25,7 @@ require 'xcodeproj'
 IOS = File.expand_path(ARGV.fetch(0))
 OUT = File.expand_path(ARGV.fetch(1))
 TC = JSON.parse(File.read(ARGV.fetch(2)))
+SWIFT_BRIDGING_INCLUDE = File.expand_path('../include', File.dirname(TC.fetch('swiftc')))
 CONFIG = 'Release'
 TRIPLE_ARCH = 'arm64'
 
@@ -327,8 +329,14 @@ class Generator
   # include Debug-only pods (expo-dev-launcher, dev menu). Resource bundles
   # are the ones the Release resources script installs.
   def release_closure
-    wanted = @app['OTHER_LDFLAGS'].scan(/-l"?([A-Za-z0-9_.+-]+)"?/).flatten.to_set
-    roots = @pods.values.select { |t| t.static_library? && wanted.include?(t['PRODUCT_NAME']) }
+    ldflags = @app['OTHER_LDFLAGS']
+    wanted = ldflags.scan(/-l"?([A-Za-z0-9_.+-]+)"?/).flatten.to_set
+    # Precompiled Expo pods (ExpoCamera, ...) are aggregate targets whose
+    # xcframework phase installs a -framework the app links.
+    frameworks = ldflags.scan(/-framework\s+"?([A-Za-z0-9_.+-]+)"?/).flatten.to_set
+    roots = @pods.values.select do |t|
+      (t.static_library? && wanted.include?(t['PRODUCT_NAME'])) || (!t.native? && frameworks.include?(t.name))
+    end
     section = File.read(resources_script).split(/\nif \[\[ "\$CONFIGURATION" == "/).find { |s| s.start_with?(CONFIG) }
     bundle_names = section.to_s.scan(%r{/([^/"]+)\.bundle"}).flatten.to_set
     closure = {}
@@ -413,7 +421,52 @@ class Generator
     # against every directory holding one of the target's headers or sources.
     flags += header_dirs(t).flat_map { |d| ['-iquote', d] } if t.yes?('USE_HEADERMAP')
     flags += ["-I#{t['BUILT_PRODUCTS_DIR']}/include", "-I#{t['DERIVED_FILE_DIR']}", "-I#{t['DERIVED_FILE_DIR']}/#{TRIPLE_ARCH}"]
+    # Stand-in for Xcode's all-non-framework-target-headers map, last and for
+    # quoted includes only (it keys case-insensitively: as -I, <math.h> would hit
+    # folly/Math.h): bare quoted includes of another pod's header ("RCTAssert.h",
+    # "RNShareSpec.h", "RCTFabricComponentsPlugins.h").
+    flags += ['-iquote', all_headers_hmap]
     flags
+  end
+
+  # Writes clang's header map format (basename -> path) for every pod header,
+  # public before private (Xcode's map covers a pod's project headers too);
+  # within each, the first path in sorted order wins a basename clash.
+  def all_headers_hmap
+    @all_headers_hmap ||= begin
+      entries = {}
+      %w[Public Private].each do |scope|
+        Dir[File.join(IOS, "Pods/Headers/#{scope}/**/*.{h,hpp}")].sort.each do |path|
+          entries[File.basename(path).downcase] ||= [File.basename(path), path]
+        end
+      end
+      path = File.join(OUT, 'all-pod-headers.hmap')
+      # Rewriting an unchanged map would bump its mtime and recompile every file.
+      data = header_map(entries.values)
+      File.binwrite(path, data) unless File.exist?(path) && File.binread(path) == data
+      path
+    end
+  end
+
+  def header_map(pairs)
+    buckets = 1
+    buckets <<= 1 while buckets < pairs.size * 2
+    strings = +"\0"
+    intern = ->(s) { strings.length.tap { strings << s << "\0" } }
+    table = Array.new(buckets) { [0, 0, 0] }
+    max_value = 0
+    pairs.each do |key, path|
+      prefix = "#{File.dirname(path)}/"
+      max_value = [max_value, path.bytesize].max
+      hash = key.downcase.bytes.sum { |b| b * 13 }
+      slot = hash & (buckets - 1)
+      slot = (slot + 1) & (buckets - 1) until table[slot][0].zero?
+      table[slot] = [intern.(key), intern.(prefix), intern.(File.basename(path))]
+    end
+    strings_offset = 24 + buckets * 12 # header, then the bucket table
+    # Magic 'hmap' as a little-endian uint32, i.e. the bytes "pamh".
+    header = ['pamh', 1, 0, strings_offset, pairs.size, buckets, max_value].pack('a4 S< S< L< L< L< L<')
+    header + table.flatten.pack('L<*') + strings
   end
 
   def expand_recursive(path)
@@ -442,15 +495,25 @@ class Generator
     flags << '-fobjc-weak' if objc && t.yes?('CLANG_ENABLE_OBJC_WEAK')
     if t.yes?('CLANG_ENABLE_MODULES') && lang != 'c++'
       flags += ['-fmodules', "-fmodules-cache-path=#{File.join(OUT, 'ModuleCache')}"]
-      flags << '-fcxx-modules' if lang == 'objective-c++'
+      # ObjC modules only: with C++ modules on, React's C++ headers fail their
+      # local-visibility checks (RCT_EXTERN unknown, "missing #include ...").
+      flags << '-fno-cxx-modules' if lang == 'objective-c++'
     end
     flags << "-fmodule-name=#{t['PRODUCT_MODULE_NAME']}" if t.yes?('DEFINES_MODULE')
     pch = t['GCC_PREFIX_HEADER']
     flags += ['-include', File.expand_path(pch, t['SRCROOT'])] unless pch.empty?
     flags += defines(t)
     flags += search_flags(t)
+    # <swift/bridging> (Xcode's toolchain include; here the host Swift toolchain's).
+    # -idirafter: after the SDK and libc++ so their #include_next chains stay intact.
+    flags += ['-idirafter', SWIFT_BRIDGING_INCLUDE]
     flags += t.list(cxx ? 'OTHER_CPLUSPLUSFLAGS' : 'OTHER_CFLAGS')
-    flags += t.split(per_file) unless per_file.empty?
+    # Per-file COMPILER_FLAGS have no parent level: Xcode reads "$(inherited)" there as empty.
+    flags += t.split(per_file).reject { |f| f == '$(inherited)' } unless per_file.empty?
+    # C++ and ObjC++ build without C++ modules (above); a forced -fmodule-map-file
+    # (ReactCodegen's) then makes clang demand that module's file for every
+    # textual #include of its headers. Plain header search finds them instead.
+    flags = flags.grep_v(/\A-fmodule-map-file=/) if cxx
     flags
   end
 
@@ -460,6 +523,7 @@ class Generator
 
   def swift_flags(t)
     flags = ['-target', "arm64-apple-ios#{t['IPHONEOS_DEPLOYMENT_TARGET']}", '-sdk', TC.fetch('sdk'),
+             '-resource-dir', TC.fetch('swift_resource_dir'),
              '-module-name', t['PRODUCT_MODULE_NAME'], '-swift-version', swift_version(t),
              t['SWIFT_OPTIMIZATION_LEVEL'], '-whole-module-optimization', '-num-threads', '0',
              '-module-cache-path', File.join(OUT, 'ModuleCache'), '-Xcc', '-w', '-suppress-warnings']
@@ -472,6 +536,13 @@ class Generator
     flags += header_dirs(t).flat_map { |d| ['-Xcc', '-iquote', '-Xcc', d] }
     flags += t.list('SWIFT_ACTIVE_COMPILATION_CONDITIONS').flat_map { |c| ['-D', c] }
     flags += macro_plugin_rewrite(t.list('OTHER_SWIFT_FLAGS'))
+    # Xcode's SWIFT_OBJC_INTEROP_MODE = objcxx (NitroModules and its users) is C++
+    # interop; the importer needs the pod's C++ standard and <swift/bridging>, or
+    # Nitro's SWIFT_COMPUTED_PROPERTY macros expand to nothing.
+    if t['SWIFT_OBJC_INTEROP_MODE'] == 'objcxx'
+      flags += ['-cxx-interoperability-mode=default', '-Xcc', "-std=#{t['CLANG_CXX_LANGUAGE_STANDARD']}"]
+    end
+    flags += ['-Xcc', '-idirafter', '-Xcc', SWIFT_BRIDGING_INCLUDE, '-Xcc', '-iquote', '-Xcc', all_headers_hmap]
     bridging = t['SWIFT_OBJC_BRIDGING_HEADER']
     flags += ['-import-objc-header', File.expand_path(bridging, t['SRCROOT'])] unless bridging.empty?
     flags
@@ -588,12 +659,19 @@ class Generator
     emit "  module = #{t['PRODUCT_MODULE_NAME']}"
     exe = File.join(OUT, 'app', t['EXECUTABLE_NAME'])
     link_flags = ['-target', "arm64-apple-ios#{t['IPHONEOS_DEPLOYMENT_TARGET']}", '-sdk', TC.fetch('sdk'),
+                  '-resource-dir', TC.fetch('swift_resource_dir'),
                   '-emit-executable', "-ld-path=#{TC.fetch('ld')}", '-o', exe]
     link_flags += t.list('LIBRARY_SEARCH_PATHS').flat_map { |p| ['-L', p] }
     link_flags += t.list('FRAMEWORK_SEARCH_PATHS').flat_map { |p| expand_recursive(p).flat_map { |d| ['-F', d] } }
     link_flags += ldflags(t.list('OTHER_LDFLAGS'))
     link_flags += t.list('LD_RUNPATH_SEARCH_PATHS').flat_map { |p| ['-Xlinker', '-rpath', '-Xlinker', p] }
     link_flags += ['-Xlinker', '-dead_strip']
+    # An unknown linker makes clang emit ld64's legacy -iphoneos_version_min,
+    # which lld rejects; a modern ld64 version gets -platform_version instead.
+    link_flags += ['-Xclang-linker', '-mlinker-version=907']
+    # The host clang has no Darwin compiler-rt (__isPlatformVersionAtLeast for
+    # @available); link Xcode's.
+    link_flags << Dir[File.join(TC.fetch('swift_resource_dir'), '../clang/*/lib/darwin/libclang_rt.ios.a')].fetch(0)
     emit 'rule link'
     emit "  command = #{TC.fetch('swiftc')} $flags $in"
     emit '  description = LINK $out'

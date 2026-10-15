@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # iOS App Store build on Linux, no Xcode and no Mac.
 #
-#   scripts/build-ios-linux.sh            build + sign build/ios/JoyoRogo.ipa
+#   scripts/build-ios-linux.sh            build + sign build/ios/JoyoRogo.ipa (App Store)
 #   scripts/build-ios-linux.sh --upload   ...then upload it to App Store Connect (TestFlight)
+#   scripts/build-ios-linux.sh --dev      build + development-sign build/ios/JoyoRogo-dev.ipa
+#                                         for the team's registered iPhones (USB install)
 #
 # Pipeline: expo prebuild -> pod install (CocoaPods on Linux, shims in
 # scripts/ios/shims/pod) -> ExpoModulesJSI cross-built with SwiftPM ->
@@ -29,8 +31,7 @@ OAD=${OMARCHY_APPLE_DEV:-$HOME/.local/share/omarchy-apple-dev}
 SWIFTPM_DIR=${XDG_CONFIG_HOME:+$XDG_CONFIG_HOME/swiftpm}
 DARWIN=${DARWIN_SDK:-${SWIFTPM_DIR:-$HOME/.swiftpm}/swift-sdks/darwin.artifactbundle}
 PY=${ASC_PYTHON:-$HOME/.local/share/joyorogo-ios/venv/bin/python}
-upload=0
-[ "${1:-}" = "--upload" ] && upload=1
+mode=${1:-}
 
 export ASC_KEY_ID=${ASC_KEY_ID:-BUU2CPKLGM}
 export ASC_ISSUER_ID=${ASC_ISSUER_ID:-9e34111d-e39f-4122-9000-6eb4628fe9b9}
@@ -61,7 +62,8 @@ step "2. pod install (release precompiled Expo modules)"
   { tail -40 "$OUT/pod-install.log" >&2; exit 1; }
 
 step "3. Expo macros plugin (Linux host build)"
-MACROS_SRC=$(node -p "require('path').dirname(require.resolve('@expo/expo-modules-macros-plugin/package.json', {paths: [require.resolve('expo-modules-core/package.json', {paths: ['$NATIVE']})]}))")/apple
+# Bun's isolated install does not hoist expo-modules-core: reach it through expo.
+MACROS_SRC=$(node -p "const r = (m, p) => require.resolve(m + '/package.json', {paths: [p]}); require('path').dirname(r('@expo/expo-modules-macros-plugin', r('expo-modules-core', r('expo', '$NATIVE'))))")/apple
 MACROS_VERSION=$(node -p "require('$MACROS_SRC/../package.json').version")
 MACROS=$CACHE/macros-$MACROS_VERSION
 # On Linux SwiftPM names a macro's host tool after the target, no -tool suffix.
@@ -88,7 +90,8 @@ bash "$ROOT/scripts/ios/build-jsi.sh" "$IOS/Pods" "$DARWIN"
 step "5. build.ninja"
 cat > "$OUT/toolchain.json" <<EOF
 {"sdk": "$SDK", "clang": "$SWIFT_BIN/clang", "swiftc": "$SWIFT_BIN/swiftc",
- "ar": "$(command -v llvm-ar)", "ld": "$(command -v ld64.lld)",
+ "swift_resource_dir": "$DARWIN/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift",
+ "ar": "$(command -v llvm-ar)", "ld": "$DARWIN/toolset/bin/ld64.lld",
  "macro_plugin": "$MACRO_TOOL", "node": "$(command -v node)"}
 EOF
 ruby "$ROOT/scripts/ios/gen-ninja.rb" "$IOS" "$OUT" "$OUT/toolchain.json"
@@ -101,6 +104,17 @@ step "7. Assemble, sign, package"
 "$PY" "$ROOT/scripts/ios/assemble-app.py" "$OUT" "$NATIVE" "$SDK" "$OAD"
 APP=$(ls -d "$OUT"/Payload/*.app)
 ASC="$OAD/tools/asc.py"
+
+if [ "$mode" = --dev ]; then
+  # iOS Development certificate + profile for every registered iPhone, reused on later runs.
+  "$PY" "$OAD/tools/provision-dev.py" --bundle-id "$(node -p "require('$OUT/app.json').bundle_id")" | tail -2
+  rm -f "$OUT/JoyoRogo-dev.ipa"
+  PATH="$(dirname "$PY"):$HOME/.cargo/bin:$PATH" bash "$OAD/tools/sign-dev.sh" "$APP" "$OUT/JoyoRogo-dev.ipa" | tail -1
+  "$PY" "$OAD/tools/macho-lint.py" "$OUT/JoyoRogo-dev.ipa" | tail -1
+  echo "ipa: $OUT/JoyoRogo-dev.ipa"
+  exit 0
+fi
+
 DARWIN_SDK="$DARWIN" "$PY" "$ASC" stamp "$APP" "${BUILD_NUMBER:-$(date -u +%Y%m%d%H%M)}"
 PATH="$HOME/.cargo/bin:$PATH" OMARCHY_APPLE_DEV="$OAD" \
   APP_ENTITLEMENTS=$(node -p "require('$OUT/app.json').entitlements") \
@@ -110,7 +124,7 @@ rm -f "$OUT/JoyoRogo.ipa"
 DARWIN_SDK="$DARWIN" "$PY" "$ASC" validate "$OUT/JoyoRogo.ipa"
 echo "ipa: $OUT/JoyoRogo.ipa"
 
-if [ "$upload" = 1 ]; then
+if [ "$mode" = --upload ]; then
   step "8. Upload to App Store Connect"
   "$PY" "$ASC" upload "$OUT/JoyoRogo.ipa"
 fi

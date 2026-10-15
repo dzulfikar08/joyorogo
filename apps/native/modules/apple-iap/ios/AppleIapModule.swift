@@ -45,7 +45,7 @@ public class AppleIapModule: Module {
         }
         return [
           "status": "success",
-          "signedTransaction": transaction.jwsRepresentation,
+          "signedTransaction": verification.jwsRepresentation,
           "transactionId": String(transaction.id),
         ]
       case .userCancelled:

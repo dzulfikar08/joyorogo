@@ -108,14 +108,15 @@ for bundle in summary["bundles"]:
     shutil.copytree(bundle, app / Path(bundle).name, dirs_exist_ok=True)
 
 # Pod frameworks: the Release install_framework list, without headers or
-# module maps (CocoaPods' rsync excludes), plus ExpoModulesJSI which
-# ExpoModulesCore links but the pods' list leaves to its own build phase.
+# module maps (CocoaPods' rsync excludes), plus ExpoModulesJSI, which
+# ExpoModulesCore links, when the pods' list leaves it to its own build phase.
 frameworks_dir = app / "Frameworks"
 frameworks_dir.mkdir()
 script = Path(summary["frameworks_script"]).read_text()
 release = script.split('if [[ "$CONFIGURATION" == "Release" ]]; then', 1)[1].split("fi", 1)[0]
 paths = re.findall(r'install_framework "([^"]+)"', release)
-paths.append("${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoModulesJSI/ExpoModulesJSI.framework")
+if not any(p.endswith("/ExpoModulesJSI.framework") for p in paths):
+    paths.append("${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoModulesJSI/ExpoModulesJSI.framework")
 for raw in paths:
     src = Path(expand(raw))
     dst = frameworks_dir / src.name
