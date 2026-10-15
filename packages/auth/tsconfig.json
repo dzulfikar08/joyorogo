@@ -1,6 +1,7 @@
 {
   "extends": "@joyorogo/config/tsconfig.base.json",
   "compilerOptions": {
+    "types": ["node", "bun"],
     "composite": true,
     "declaration": true,
     "declarationMap": true,

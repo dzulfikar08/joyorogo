@@ -3,7 +3,7 @@ import type { Database } from "@joyorogo/db";
 import * as schema from "@joyorogo/db/schema/auth";
 import type { BetterAuthPlugin } from "better-auth";
 import { betterAuth } from "better-auth";
-import { APIError, createAuthEndpoint } from "better-auth/api";
+import { APIError, createAuthEndpoint, createAuthMiddleware } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
@@ -18,6 +18,11 @@ export type AuthConfig = {
   /** iOS bundle id, the audience of native Sign in with Apple identity tokens. */
   APPLE_BUNDLE_ID?: string;
   DEV_LOGIN?: string;
+  /**
+   * Comma-separated emails allowed to sign in with email + password (Google
+   * Play / App Store review accounts). Empty = email/password is fully off.
+   */
+  REVIEW_LOGIN_EMAILS?: string;
 };
 
 /** The configured better-auth instance createAuth returns. */
@@ -83,13 +88,67 @@ function devLogin(enabled: boolean): BetterAuthPlugin {
   };
 }
 
+/** Lower-cased, trimmed allowlist from the comma-separated REVIEW_LOGIN_EMAILS. */
+export function parseReviewLoginEmails(raw: string | undefined): string[] {
+  return (raw ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/**
+ * Email + password sign-in for the allowlisted review accounts only.
+ * Sign-up is always off (the accounts are created out of band by
+ * scripts/review-login.ts) and every other email gets the exact error a wrong
+ * password gets, so the allowlist cannot be probed. An empty allowlist turns
+ * the whole feature off.
+ */
+export function reviewLoginOptions(allowedEmails: readonly string[]) {
+  const allowed = new Set(allowedEmails);
+  return {
+    emailAndPassword: {
+      enabled: allowed.size > 0,
+      disableSignUp: true,
+      // Reviewer accounts have no inbox: no verification mail, no reset mail.
+      requireEmailVerification: false,
+    },
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/sign-in/email") return;
+        const email = (ctx.body as { email?: unknown } | undefined)?.email;
+        if (typeof email === "string" && allowed.has(email.trim().toLowerCase())) return;
+        // Burn the same hash the real path would, so timing does not reveal the allowlist.
+        const password = (ctx.body as { password?: unknown } | undefined)?.password;
+        await ctx.context.password.hash(typeof password === "string" ? password : "");
+        throw new APIError("UNAUTHORIZED", {
+          code: "INVALID_EMAIL_OR_PASSWORD",
+          message: "Invalid email or password",
+        });
+      }),
+    },
+    // Throttle password guesses (per IP, per isolate: best effort, the
+    // review password is long and random). Every other path stays unlimited,
+    // exactly as before rate limiting was switched on.
+    rateLimit: {
+      enabled: true,
+      storage: "memory" as const,
+      customRules: {
+        "/sign-in/email": { window: 60, max: 5 },
+        "*": false as const,
+      },
+    },
+  };
+}
+
 export function createAuth(
   env: AuthConfig,
   database: Database,
   desktopOrigins: readonly string[] = [],
 ) {
   const appleBundleId = env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID;
+  const review = reviewLoginOptions(parseReviewLoginEmails(env.REVIEW_LOGIN_EMAILS));
   return betterAuth({
+    ...review,
     database: drizzleAdapter(database, {
       provider: "sqlite",
       schema,
@@ -167,6 +226,9 @@ export function createAuth(
         secure: true,
         httpOnly: true,
       },
+      // Workers set cf-connecting-ip, not x-forwarded-for; without it every
+      // client would share one rate-limit bucket.
+      ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] },
     },
     plugins: [expo(), devLogin(Boolean(env.DEV_LOGIN))],
   });

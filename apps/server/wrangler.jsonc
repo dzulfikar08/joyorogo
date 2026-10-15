@@ -71,6 +71,7 @@
     "FOUNDER_PRICE_IDR": "15000",
     "FOUNDER_PRICE_LADDER": "10:15000,110:29000,:49000",
     "ADMIN_EMAILS": "dzulfikar.at@gmail.com",
+    "REVIEW_LOGIN_EMAILS": "review@joyorogo.com",
     "EMAIL_FROM": "halo@mail.joyorogo.com",
     "EMAIL_FROM_NAME": "JoyoRogo",
     "EMAIL_REPLY_TO": "dzulfikar.at@gmail.com",

@@ -1,7 +1,9 @@
 import { Button } from "@joyorogo/ui/components/button";
+import { Input } from "@joyorogo/ui/components/input";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, isRedirect, Link, redirect } from "@tanstack/react-router";
 import { Users } from "lucide-react";
+import { useState } from "react";
 import { Mascot } from "@/components/mascot";
 import { markSignInStart } from "@/lib/analytics";
 import { authClient, sessionQuery } from "@/lib/auth-client";
@@ -63,6 +65,30 @@ function RouteComponent() {
     if (!error) {
       window.location.href = `${webOrigin}${returnTo ?? "/"}`;
     }
+  };
+
+  // Review login (Google Play / App Store reviewers): email + password, only
+  // accepted server-side for the REVIEW_LOGIN_EMAILS allowlist.
+  const [emailForm, setEmailForm] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailBusy, setEmailBusy] = useState(false);
+  const signInEmail = async (event: { preventDefault: () => void }) => {
+    event.preventDefault();
+    setEmailError(null);
+    setEmailBusy(true);
+    const { error } = await authClient.signIn.email({ email: email.trim(), password });
+    setEmailBusy(false);
+    if (error) {
+      setEmailError(
+        error.status === 429
+          ? "Terlalu banyak percobaan. Coba lagi sebentar."
+          : "Email atau kata sandi salah.",
+      );
+      return;
+    }
+    window.location.href = `${webOrigin}${returnTo ?? "/beranda"}`;
   };
 
   // Invite links land here first; naming the group keeps the sign-in from feeling generic.
@@ -127,6 +153,44 @@ function RouteComponent() {
           <Button variant="ghost" size="sm" className="mt-3" onClick={signInDev}>
             Masuk (dev)
           </Button>
+        )}
+        {emailForm ? (
+          <form onSubmit={signInEmail} className="mt-4 flex w-full max-w-xs flex-col gap-3">
+            <Input
+              type="email"
+              autoComplete="username"
+              placeholder="Email"
+              aria-label="Email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+            <Input
+              type="password"
+              autoComplete="current-password"
+              placeholder="Kata sandi"
+              aria-label="Kata sandi"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+            {emailError && (
+              <p role="alert" className="text-center text-sm text-destructive">
+                {emailError}
+              </p>
+            )}
+            <Button type="submit" variant="secondary" disabled={emailBusy}>
+              Masuk
+            </Button>
+          </form>
+        ) : (
+          <button
+            type="button"
+            className="mt-4 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            onClick={() => setEmailForm(true)}
+          >
+            Masuk dengan email
+          </button>
         )}
       </main>
       <footer className="pb-8 text-center">

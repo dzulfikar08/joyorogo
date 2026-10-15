@@ -5,12 +5,12 @@ import * as Linking from "expo-linking";
 import { Redirect, Stack, useLocalSearchParams } from "expo-router";
 import type { Href } from "expo-router";
 import { useEffect, useState } from "react";
-import { Platform, View } from "react-native";
+import { Platform, ScrollView, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Container } from "@/components/container";
 import { Mascot } from "@/components/mascot";
-import { Button, Text } from "@/components/ui";
+import { Button, Field, Input, Text } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/utils/orpc";
 
@@ -30,6 +30,12 @@ export default function Login() {
   const { rt } = useUnistyles();
   const dark = (rt.themeName ?? rt.colorScheme) === "dark";
   const [appleAvailable, setAppleAvailable] = useState(false);
+  // Review login (Google Play / App Store reviewers): email + password, only
+  // accepted server-side for the REVIEW_LOGIN_EMAILS allowlist.
+  const [emailForm, setEmailForm] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [emailBusy, setEmailBusy] = useState(false);
   useEffect(() => {
     if (Platform.OS !== "ios") return;
     void AppleAuthentication.isAvailableAsync().then(setAppleAvailable, () => setAppleAvailable(false));
@@ -108,11 +114,32 @@ export default function Login() {
     queryClient.invalidateQueries();
   };
 
+  const handleEmailSignIn = async () => {
+    setSignInError(null);
+    setEmailBusy(true);
+    try {
+      const { error } = await authClient.signIn.email({ email: email.trim(), password });
+      if (error) {
+        setSignInError(
+          error.status === 429
+            ? "Terlalu banyak percobaan. Coba lagi sebentar."
+            : "Email atau kata sandi salah.",
+        );
+        return;
+      }
+      queryClient.invalidateQueries();
+    } catch {
+      setSignInError("Gagal masuk. Periksa koneksi, lalu coba lagi.");
+    } finally {
+      setEmailBusy(false);
+    }
+  };
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <Container>
-        <View style={styles.content}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
             <Mascot pose="hero" size="md" />
             <Text style={styles.logo}>JoyoRogo</Text>
@@ -142,9 +169,50 @@ export default function Login() {
                 onPress={() => void handleDevSignIn()}
               />
             ) : null}
+            {emailForm ? (
+              <View style={styles.emailForm}>
+                <Field label="Email">
+                  <Input
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="nama@email.com"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    autoCorrect={false}
+                    textContentType="username"
+                  />
+                </Field>
+                <Field label="Kata sandi">
+                  <Input
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoComplete="current-password"
+                    autoCorrect={false}
+                    textContentType="password"
+                    onSubmitEditing={() => void handleEmailSignIn()}
+                  />
+                </Field>
+                <Button
+                  label="Masuk"
+                  loading={emailBusy}
+                  disabled={email.trim() === "" || password === ""}
+                  onPress={() => void handleEmailSignIn()}
+                />
+              </View>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                label="Masuk dengan email"
+                onPress={() => setEmailForm(true)}
+              />
+            )}
             {signInError ? <Text style={styles.errorText}>{signInError}</Text> : null}
           </View>
-        </View>
+        </ScrollView>
       </Container>
     </>
   );
@@ -152,7 +220,7 @@ export default function Login() {
 
 const styles = StyleSheet.create((theme) => ({
   content: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: "center",
     gap: theme.spacing.xxl,
     paddingHorizontal: theme.spacing.lg,
@@ -181,6 +249,9 @@ const styles = StyleSheet.create((theme) => ({
   appleButton: {
     height: 48,
     width: "100%",
+  },
+  emailForm: {
+    gap: theme.spacing.md,
   },
   errorText: {
     fontSize: theme.fontSize.sm,
