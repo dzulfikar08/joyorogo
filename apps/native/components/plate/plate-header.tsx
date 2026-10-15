@@ -47,7 +47,7 @@ export function PlateHeader({
   onEdit: (next: PlateEdit) => void;
   onSave: (id: string, name: string, price: string, date?: string) => void;
   saving: boolean;
-  /** Extra header control (the Favorit star) next to the edit pencil. */
+  /** Secondary actions (Favorit) shown inside the open plate editor. */
   action?: ReactNode;
 }) {
   const { theme } = useUnistyles();
@@ -81,7 +81,6 @@ export function PlateHeader({
           {plate.priceIdr !== null ? (
             <Text style={styles.price}>{fmtIdr(plate.priceIdr)}</Text>
           ) : null}
-          {action}
           <Ionicons name="pencil" size={12} color={theme.colors.mutedForeground} />
         </View>
         {kcal > 0 ? (
@@ -159,6 +158,7 @@ export function PlateHeader({
         onPick={(date) => edit && onEdit({ ...edit, date })}
         onClose={() => setPickingDate(false)}
       />
+      {action}
     </View>
   );
 }

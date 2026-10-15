@@ -219,33 +219,6 @@ function describe(saved: SavedFood): string {
   return parts.join(" · ");
 }
 
-/** Star toggle for a diary row or plate header. */
-export function FavoritStar({
-  active,
-  label,
-  onToggle,
-}: {
-  active: boolean;
-  label: string;
-  onToggle: () => void;
-}) {
-  return (
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      aria-label={active ? `Hapus ${label} dari Favorit` : `Simpan ${label} ke Favorit`}
-      aria-pressed={active}
-      onClick={(event) => {
-        event.stopPropagation();
-        onToggle();
-      }}
-      className={active ? "text-makan-ink" : "text-muted-foreground hover:text-foreground"}
-    >
-      <Star className={active ? "fill-current" : undefined} />
-    </Button>
-  );
-}
-
 /** One-tap chips: tapping logs the favorite to the given day and slot. */
 export function FavoritChips({
   favorites,

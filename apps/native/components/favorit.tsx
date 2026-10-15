@@ -224,35 +224,6 @@ export function useFavorites(): Favorites {
   };
 }
 
-/** Star toggle for a diary row or plate header. */
-export function FavoritStar({
-  active,
-  label,
-  onToggle,
-}: {
-  active: boolean;
-  label: string;
-  onToggle: () => void;
-}) {
-  const { theme } = useUnistyles();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={active ? `Hapus ${label} dari Favorit` : `Simpan ${label} ke Favorit`}
-      accessibilityState={{ selected: active }}
-      hitSlop={8}
-      onPress={onToggle}
-      style={({ pressed }) => [styles.starButton, pressed && styles.pressed]}
-    >
-      <Ionicons
-        name={active ? "star" : "star-outline"}
-        size={18}
-        color={active ? theme.colors.makanText : theme.colors.mutedForeground}
-      />
-    </Pressable>
-  );
-}
-
 /** One-tap chips: tapping logs the favorite to the given day and slot. */
 export function FavoritChips({
   favorites,

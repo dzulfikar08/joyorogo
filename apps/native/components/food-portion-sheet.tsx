@@ -12,6 +12,7 @@ import type { PortionValues } from "@joyorogo/api/lib/portion";
 
 import { MacroLine } from "@/components/macro-line";
 import { DateSheet, DayChips } from "@/components/plate/date-sheet";
+import { SheetActions } from "@/components/sheet-actions";
 import { Button, Chip, Field, Input, Num, Sheet, Text } from "@/components/ui";
 import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
 import { fmtDateId, fmtKcal, parseNum } from "@/utils/format";
@@ -153,7 +154,21 @@ function patchFoodEdit(cache: OptimisticCache, before: PortionRow, after: Portio
  * Typing kcal always rescales the macros. The preview shows exactly what will
  * be stored; price lives on the plate and does not change with portion.
  */
-export function FoodPortionSheet({ row, onClose }: { row: PortionRow; onClose: () => void }) {
+export function FoodPortionSheet({
+  row,
+  onClose,
+  favorite,
+  onFavorite,
+  onShare,
+  onDelete,
+}: {
+  row: PortionRow;
+  onClose: () => void;
+  favorite: boolean;
+  onFavorite: () => void;
+  onShare: () => void;
+  onDelete: () => void;
+}) {
   const { theme } = useUnistyles();
   const queryClient = useQueryClient();
   const base = portionOf(row);
@@ -410,6 +425,13 @@ export function FoodPortionSheet({ row, onClose }: { row: PortionRow; onClose: (
               {dateChanged ? <Text style={styles.hint}>Akan dipindah ke {fmtDateId(date)}.</Text> : null}
             </View>
           </Field>
+
+          <SheetActions
+            favorite={favorite}
+            onFavorite={onFavorite}
+            onShare={onShare}
+            onDelete={onDelete}
+          />
         </View>
       </Sheet>
       <DateSheet

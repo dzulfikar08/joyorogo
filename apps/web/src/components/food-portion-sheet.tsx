@@ -14,6 +14,7 @@ import { Chip } from "@/components/chip";
 import { FieldLabel } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
 import { CalendarSheet, DayChips } from "@/components/plate/plate-group";
+import { SheetActions } from "@/components/sheet-actions";
 import type { FoodItem } from "@/lib/api-types";
 import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
 import { OptimisticCache, insertFoodRow, stripFoodRow, useOptimisticMutation } from "@/lib/optimistic";
@@ -113,7 +114,21 @@ function patchFoodEdit(cache: OptimisticCache, before: FoodItem, after: FoodItem
  * Typing kcal always rescales the macros. The macro preview shows exactly what
  * will be stored; price lives on the plate and does not change with portion.
  */
-export function FoodPortionSheet({ row, onClose }: { row: FoodItem; onClose: () => void }) {
+export function FoodPortionSheet({
+  row,
+  onClose,
+  favorite,
+  onFavorite,
+  onShare,
+  onDelete,
+}: {
+  row: FoodItem;
+  onClose: () => void;
+  favorite: boolean;
+  onFavorite: () => void;
+  onShare: () => void;
+  onDelete: () => void;
+}) {
   const queryClient = useQueryClient();
   const base = portionOf(row);
   const hasGrams = base.grams !== null;
@@ -374,6 +389,13 @@ export function FoodPortionSheet({ row, onClose }: { row: FoodItem; onClose: () 
           >
             {update.isPending ? "Menyimpan..." : "Simpan"}
           </Button>
+
+          <SheetActions
+            favorite={favorite}
+            onFavorite={onFavorite}
+            onShare={onShare}
+            onDelete={onDelete}
+          />
         </form>
       </Sheet>
       {pickingDate && (

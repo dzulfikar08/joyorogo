@@ -55,7 +55,8 @@ import { errorMessage, fmtDateId, fmtKcal, parseNum } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import type { QueryKey } from "@tanstack/react-query";
-import { FavoritChips, FavoritManageSheet, FavoritStar, useFavorites } from "@/components/favorit";
+import { FavoritChips, FavoritManageSheet, useFavorites } from "@/components/favorit";
+import { SheetActions } from "@/components/sheet-actions";
 import type { SummaryDelta } from "@joyorogo/api/lib/optimistic";
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
@@ -547,13 +548,12 @@ export default function Makan() {
                         }}
                         saving={updatePlate.isPending}
                         action={
-                          <FavoritStar
-                            active={favorites.isPlateSaved(
+                          <SheetActions
+                            favorite={favorites.isPlateSaved(
                               { id: plateRow.id, name: plateRow.name, place: plateRow.place },
                               segment.rows,
                             )}
-                            label={`piring ${plateRow.name}`}
-                            onToggle={() =>
+                            onFavorite={() =>
                               favorites.togglePlate(
                                 { id: plateRow.id, name: plateRow.name, place: plateRow.place },
                                 segment.rows,
@@ -615,56 +615,6 @@ export default function Makan() {
                               }}
                             />
                           ) : undefined
-                        }
-                        right={
-                          <View style={styles.rowActions}>
-                            <FavoritStar
-                              active={favorites.isFoodSaved(item)}
-                              label={item.name}
-                              onToggle={() => favorites.toggleFood(item)}
-                            />
-                            <Pressable
-                              accessibilityRole="button"
-                              accessibilityLabel={`Bagikan ${item.name} ke feed`}
-                              onPress={() =>
-                                setShareTarget({
-                                  kind: "makan",
-                                  refId: item.id,
-                                  title: item.name,
-                                  preview: `${fmtKcal(item.kcal)} kcal${
-                                    item.protein !== null
-                                      ? ` · P ${fmtKcal(item.protein ?? 0)}g`
-                                      : ""
-                                  }`,
-                                })
-                              }
-                              style={({ pressed }) => [
-                                styles.deleteButton,
-                                pressed && styles.pressedSoft,
-                              ]}
-                            >
-                              <Ionicons
-                                name="share-social-outline"
-                                size={18}
-                                color={theme.colors.foreground}
-                              />
-                            </Pressable>
-                            <Pressable
-                              accessibilityRole="button"
-                              accessibilityLabel={`Hapus ${item.name}`}
-                              onPress={() => deleteFood(item)}
-                              style={({ pressed }) => [
-                                styles.deleteButton,
-                                pressed && styles.pressedSoft,
-                              ]}
-                            >
-                              <Ionicons
-                                name="trash-outline"
-                                size={18}
-                                color={theme.colors.destructive}
-                              />
-                            </Pressable>
-                          </View>
                         }
                       />
                     ))}
@@ -1006,7 +956,28 @@ export default function Makan() {
         onClose={() => setManageOpen(false)}
       />
       {editRow ? (
-        <FoodPortionSheet key={editRow.id} row={editRow} onClose={() => setEditRow(null)} />
+        <FoodPortionSheet
+          key={editRow.id}
+          row={editRow}
+          onClose={() => setEditRow(null)}
+          favorite={favorites.isFoodSaved(editRow)}
+          onFavorite={() => favorites.toggleFood(editRow)}
+          onShare={() => {
+            setShareTarget({
+              kind: "makan",
+              refId: editRow.id,
+              title: editRow.name,
+              preview: `${fmtKcal(editRow.kcal)} kcal${
+                editRow.protein !== null ? ` · P ${fmtKcal(editRow.protein ?? 0)}g` : ""
+              }`,
+            });
+            setEditRow(null);
+          }}
+          onDelete={() => {
+            deleteFood(editRow);
+            setEditRow(null);
+          }}
+        />
       ) : null}
 
 
@@ -1046,11 +1017,6 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
     fontVariant: ["tabular-nums"],
-  },
-  rowActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
   },
   pressedSoft: {
     opacity: 0.7,
@@ -1117,13 +1083,6 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
     paddingHorizontal: theme.spacing.xs,
-  },
-  deleteButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: -12,
   },
   favCard: {
     gap: theme.spacing.sm,

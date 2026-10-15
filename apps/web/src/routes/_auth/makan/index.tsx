@@ -13,7 +13,7 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Camera, ChevronRight, Mic, Plus, ScanBarcode, Share2, Trash2, Utensils } from "lucide-react";
+import { Camera, ChevronRight, Mic, Plus, ScanBarcode, Utensils } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { Mascot } from "@/components/mascot";
@@ -26,7 +26,8 @@ import { FieldLabel, ListRow, Page, PageHeader, SectionTitle } from "@/component
 import { MakanSummaryCard } from "@/components/macro-card";
 import { MacroLine } from "@/components/macro-line";
 import { FoodPortionSheet } from "@/components/food-portion-sheet";
-import { FavoritChips, FavoritManageSheet, FavoritStar, useFavorites } from "@/components/favorit";
+import { FavoritChips, FavoritManageSheet, useFavorites } from "@/components/favorit";
+import { SheetActions } from "@/components/sheet-actions";
 import type { Favorites } from "@/components/favorit";
 import { MetaLine } from "@/components/meta-line";
 import { BelanjaCard } from "@/components/plate/belanja";
@@ -367,21 +368,12 @@ function MakanPage() {
                 items={sectionItems}
                 date={date}
                 renderRow={(item) => (
-                  <FoodRow
-                    key={item.id}
-                    item={item}
-                    onEdit={() => setEditItem(item)}
-                    onDelete={() => removeFood(item)}
-                    onShare={() => setShareItem(item)}
-                    favorite={favorites.isFoodSaved(item)}
-                    onFavorite={() => favorites.toggleFood(item)}
-                  />
+                  <FoodRow key={item.id} item={item} onEdit={() => setEditItem(item)} />
                 )}
                 plateAction={(plate, rows) => (
-                  <FavoritStar
-                    active={favorites.isPlateSaved(plate, rows)}
-                    label={`piring ${plate.name}`}
-                    onToggle={() => favorites.togglePlate(plate, rows)}
+                  <SheetActions
+                    favorite={favorites.isPlateSaved(plate, rows)}
+                    onFavorite={() => favorites.togglePlate(plate, rows)}
                   />
                 )}
               />
@@ -434,7 +426,23 @@ function MakanPage() {
         </Sheet>
       )}
 
-      {editItem && <FoodPortionSheet key={editItem.id} row={editItem} onClose={() => setEditItem(null)} />}
+      {editItem && (
+        <FoodPortionSheet
+          key={editItem.id}
+          row={editItem}
+          onClose={() => setEditItem(null)}
+          favorite={favorites.isFoodSaved(editItem)}
+          onFavorite={() => favorites.toggleFood(editItem)}
+          onShare={() => {
+            setShareItem(editItem);
+            setEditItem(null);
+          }}
+          onDelete={() => {
+            removeFood(editItem);
+            setEditItem(null);
+          }}
+        />
+      )}
       {shareItem && (
         <ShareToFeedSheet
           open
@@ -457,21 +465,7 @@ function MakanPage() {
   );
 }
 
-function FoodRow({
-  item,
-  onEdit,
-  onDelete,
-  onShare,
-  favorite,
-  onFavorite,
-}: {
-  item: FoodItem;
-  onEdit: () => void;
-  onDelete: () => void;
-  onShare: () => void;
-  favorite: boolean;
-  onFavorite: () => void;
-}) {
+function FoodRow({ item, onEdit }: { item: FoodItem; onEdit: () => void }) {
   const hasMacros = [item.protein, item.carbs, item.fat, item.fiber].some((g) => (g ?? 0) > 0);
   const macros = hasMacros ? (
     <MacroLine
@@ -529,35 +523,6 @@ function FoodRow({
           {fmtInt(item.kcal)}
           <span className="ml-1 text-xs font-semibold text-muted-foreground">kcal</span>
         </span>
-      }
-      trailing={
-        <>
-          <FavoritStar active={favorite} label={item.name} onToggle={onFavorite} />
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Bagikan ${item.name} ke feed`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onShare();
-            }}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <Share2 />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Hapus ${item.name}`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onDelete();
-            }}
-            className="text-muted-foreground hover:text-destructive"
-          >
-            <Trash2 />
-          </Button>
-        </>
       }
     />
   );
