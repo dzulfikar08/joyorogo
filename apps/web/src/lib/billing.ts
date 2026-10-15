@@ -7,7 +7,7 @@ import { apiUrl } from "./app-config";
 import type { PaymentMethod } from "./app-config";
 
 /** Where the Founder paywall screen was opened from; picks its subhead. */
-export type PaywallFrom = "onboarding" | "quota" | "banner" | "profile" | "fitness";
+export type PaywallFrom = "onboarding" | "quota" | "banner" | "profile" | "fitness" | "challenge";
 
 /**
  * Quota-exhausted AI call: the server throws FORBIDDEN carrying

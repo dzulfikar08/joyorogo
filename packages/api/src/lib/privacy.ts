@@ -30,6 +30,7 @@ import {
   teamNudge,
 } from "@joyorogo/db/schema/social";
 import { savedFood } from "@joyorogo/db/schema/saved-foods";
+import { teamChallengeMember } from "@joyorogo/db/schema/challenge";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 
 import { avatarPrefix } from "./avatar";
@@ -161,6 +162,7 @@ export async function deleteUserSocialData(db: Database, userId: string) {
   }
   await db.batch([
     db.delete(teamNudge).where(or(eq(teamNudge.fromUserId, userId), eq(teamNudge.toUserId, userId))),
+    db.delete(teamChallengeMember).where(eq(teamChallengeMember.userId, userId)),
     db.delete(teamMember).where(eq(teamMember.userId, userId)),
   ]);
 }

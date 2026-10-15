@@ -6,3 +6,4 @@ export * from "./social";
 export * from "./saved-foods";
 export * from "./barcode";
 export * from "./joyofit";
+export * from "./challenge";

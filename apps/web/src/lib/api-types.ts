@@ -134,3 +134,19 @@ type SavedFoodRelogOutput = Awaited<ReturnType<AppRouterClient["savedFood"]["rel
 
 /** savedFood.relog output: the new diary rows and the plate they were grouped under, if any. */
 export type SavedFoodRelog = SavedFoodRelogOutput;
+
+type ChallengeListOutput = Awaited<ReturnType<AppRouterClient["challenge"]["list"]>>;
+
+/** challenge.list output: whether the viewer may host, plus a group's challenges. */
+export type ChallengeList = ChallengeListOutput;
+
+/** One challenge card of challenge.list, with the viewer's own progress. */
+export type ChallengeSummary = ChallengeListOutput["challenges"][number];
+
+type ChallengeDetailOutput = Awaited<ReturnType<AppRouterClient["challenge"]["detail"]>>;
+
+/** challenge.detail output: header, viewer state, leaderboard and share payload. */
+export type ChallengeDetail = ChallengeDetailOutput;
+
+/** One leaderboard row of challenge.detail. */
+export type ChallengeMember = ChallengeDetailOutput["leaderboard"][number];

@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_auth/founder")({
       !search.next.startsWith("//")
         ? search.next
         : undefined,
-    from: (["onboarding", "quota", "banner", "profile", "fitness"] as const).find(
+    from: (["onboarding", "quota", "banner", "profile", "fitness", "challenge"] as const).find(
       (value) => search.from === value,
     ),
   }),
@@ -43,6 +43,7 @@ const SUBHEAD: Record<PaywallFrom, string> = {
   banner: "Scan AI gratis terbatas setiap hari. Founder dapat jatah yang jauh lebih besar.",
   profile: "Dukung pengembangan JoyoRogo dan dapatkan jatah scan AI yang jauh lebih besar.",
   fitness: "Dapat saran porsi dan menu harian dari skor JoyoFit, targetmu, dan makanan yang kamu catat.",
+  challenge: "Founder yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis.",
 };
 
 /** "Cara bayar" — users keep asking how payment actually works. */

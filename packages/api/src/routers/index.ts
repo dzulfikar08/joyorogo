@@ -5,6 +5,7 @@ import { activityRouter } from "./activity";
 import { aiRouter } from "./ai";
 import { avatarRouter } from "./avatar";
 import { barcodeRouter } from "./barcode";
+import { challengeRouter } from "./challenge";
 import { dayRouter } from "./day";
 import { diaryRouter } from "./diary";
 import { exerciseRouter } from "./exercise";
@@ -55,6 +56,7 @@ export const appRouter = {
   plate: plateRouter,
   place: placeRouter,
   group: groupRouter,
+  challenge: challengeRouter,
   social: socialRouter,
   stats: statsRouter,
   savedFood: savedFoodRouter,

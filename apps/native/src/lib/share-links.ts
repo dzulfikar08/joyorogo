@@ -11,7 +11,14 @@ import { Platform } from "react-native";
 export const SITE_ORIGIN = "https://joyorogo.com";
 
 /** What is being shared; becomes utm_medium. */
-export type ShareMedium = "meal" | "workout" | "progress" | "recap" | "invite" | "profile";
+export type ShareMedium =
+  | "meal"
+  | "workout"
+  | "progress"
+  | "recap"
+  | "challenge"
+  | "invite"
+  | "profile";
 
 /** `path` is a site path, e.g. "/" or "/gabung/ABCD2345". */
 export function shareUrl(path: string, medium: ShareMedium): string {

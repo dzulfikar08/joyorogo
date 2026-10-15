@@ -34,6 +34,7 @@ import {
   rateLimited,
   varVerdict,
 } from "../lib/group";
+import { leaveTeamChallenges } from "../lib/challenge-db";
 import { loadPublicGroupPreview, previewAllowed } from "../lib/group-preview";
 import { requireAiQuota } from "../lib/quota";
 import { buildPlan } from "../lib/plan";
@@ -215,6 +216,7 @@ export const groupRouter = {
       const db = context.db;
       const userId = context.session.user.id;
       const me = await requireMember(db, input.groupId, userId);
+      await leaveTeamChallenges(db, input.groupId, userId);
       const [team_] = await db
         .select({ ownerId: team.ownerId })
         .from(team)
@@ -261,6 +263,7 @@ export const groupRouter = {
       if (input.userId === context.session.user.id) {
         throw new ORPCError("BAD_REQUEST", { message: "Gunakan keluar tim." });
       }
+      await leaveTeamChallenges(context.db, input.groupId, input.userId);
       await context.db
         .delete(teamMember)
         .where(and(eq(teamMember.teamId, input.groupId), eq(teamMember.userId, input.userId)));

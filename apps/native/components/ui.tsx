@@ -9,6 +9,7 @@ import {
   Image,
   Modal,
   Pressable,
+  RefreshControl,
   TextInput,
   View,
   Text as RNText,
@@ -86,8 +87,21 @@ export function Num({ style, ...rest }: TextProps) {
 
 // --- Layout ----------------------------------------------------------------
 
-/** Scrollable page on paper: 20px gutters, 12px between related cards. */
-export function Screen({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
+/**
+ * Scrollable page on paper: 20px gutters, 12px between related cards. Passing
+ * `onRefresh` turns on pull-to-refresh.
+ */
+export function Screen({
+  children,
+  style,
+  refreshing = false,
+  onRefresh,
+}: {
+  children: React.ReactNode;
+  style?: ViewStyle;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+}) {
   return (
     <Container>
       {/* Keyboard-aware on both platforms: the focused input always scrolls
@@ -96,6 +110,9 @@ export function Screen({ children, style }: { children: React.ReactNode; style?:
         contentContainerStyle={[styles.screenContent, style]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined
+        }
       >
         {children}
       </KeyboardAwareScrollView>

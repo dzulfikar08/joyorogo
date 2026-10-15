@@ -16,6 +16,7 @@ import { LogoMark } from "@/components/logo-mark";
 import { lightTheme as brandTheme } from "@/theme";
 import { MACRO_META } from "@/utils/macro-icons";
 import { ON_TARGET_TOLERANCE, type RecapShare } from "@joyorogo/api/lib/recap";
+import { verificationLabel, type ChallengeShare } from "@joyorogo/api/lib/challenge";
 
 /**
  * 1080x1920 story cards rendered as plain views. The share sheet mounts them
@@ -115,7 +116,14 @@ export type RecapStory = RecapShare & {
   date?: Date;
 };
 
-export type StorySpec = MealStory | WorkoutStory | ProgressStory | RecapStory;
+/** Group challenge result; numbers come from challenge.detail's `share`. */
+export type ChallengeStory = ChallengeShare & {
+  kind: "challenge";
+  eyebrow?: string;
+  date?: Date;
+};
+
+export type StorySpec = MealStory | WorkoutStory | ProgressStory | RecapStory | ChallengeStory;
 
 export const STORY_TEMPLATES: Array<{
   id: StoryTemplate;
@@ -169,6 +177,7 @@ const EYEBROWS = {
   workout: "Sesi latihan",
   recap: "Rekap minggu",
   progress: "Progres hari ini",
+  challenge: "Tantangan grup",
 } as const;
 
 const idFmt = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
@@ -465,6 +474,37 @@ function recapCells(story: RecapStory): Cell[] {
   return cells;
 }
 
+/** Challenge grid; streak and rank only exist once days are judged and there is someone to rank against. */
+function challengeCells(story: ChallengeStory): Cell[] {
+  const cells: Cell[] = [];
+  if (story.status !== "upcoming") {
+    cells.push({
+      icon: "fire",
+      color: AMBER,
+      label: "Streak terbaik",
+      value: `${story.bestStreak}`,
+      unit: "hari",
+    });
+    if (story.rank !== null && story.participants > 1) {
+      cells.push({
+        icon: "trophy",
+        color: AMBER,
+        label: "Peringkat",
+        value: `${story.rank}`,
+        unit: `dari ${story.participants}`,
+      });
+    }
+  }
+  cells.push({
+    icon: "account-group-outline",
+    color: ACCENT,
+    label: "Peserta",
+    value: `${story.participants}`,
+    unit: "orang",
+  });
+  return cells;
+}
+
 /** Trend delta over the sorted weigh-ins, or null without 2+ points. */
 function weekTrend(story: ProgressStory) {
   const trend = [...(story.weekTrend ?? [])].sort((a, b) => a.date.localeCompare(b.date));
@@ -572,9 +612,19 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
   } else if (story.kind === "progress") {
     hero = { value: intFmt(story.eatenKcal), unit: "kcal" };
     cells = progressCells(story);
-  } else {
+  } else if (story.kind === "recap") {
     hero = { value: intFmt(story.avgKcal), unit: "kcal", label: "Rata-rata per hari" };
     cells = recapCells(story);
+  } else {
+    hero =
+      story.status === "upcoming"
+        ? { value: `${story.durationDays}`, unit: "hari", label: "Tantangan segera dimulai" }
+        : {
+            value: `${story.hitDays}/${story.judgedDays}`,
+            unit: "hari",
+            label: "Hari target tercapai",
+          };
+    cells = challengeCells(story);
   }
   const barKcal =
     story.kind === "progress" ? story.eatenKcal : story.kind === "recap" ? story.avgKcal : 0;
@@ -603,7 +653,7 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
         {story.kind !== "progress" ? (
           <View style={{ marginTop: px(12) }}>
             <Txt size={68} weight={800} lines={2}>
-              {story.name}
+              {story.kind === "challenge" ? story.title : story.name}
             </Txt>
           </View>
         ) : null}
@@ -620,10 +670,30 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
             />
           </View>
         ) : null}
-        {(story.kind === "workout" || story.kind === "recap") && hero?.label ? (
+        {(story.kind === "workout" || story.kind === "recap" || story.kind === "challenge") &&
+        hero?.label ? (
           <View style={{ marginTop: px(4) }}>
             <Txt size={32} weight={600} color="soft" lh={38} lines={1}>
               {hero.label}
+            </Txt>
+          </View>
+        ) : null}
+
+        {story.kind === "challenge" && verificationLabel(story.hitsByBasis) ? (
+          <View style={styles.verifyRow}>
+            <Icon
+              name={
+                story.hitsByBasis.manual > 0
+                  ? "pencil-outline"
+                  : story.hitsByBasis.photo > 0
+                    ? "camera-outline"
+                    : "shield-check-outline"
+              }
+              size={44}
+              color={ACCENT}
+            />
+            <Txt size={36} weight={700} lh={48} lines={1} style={{ marginLeft: px(14), flexShrink: 1 }}>
+              {verificationLabel(story.hitsByBasis) ?? ""}
             </Txt>
           </View>
         ) : null}
@@ -1016,6 +1086,7 @@ const styles = StyleSheet.create({
   prItem: { height: px(86) },
   prLine: { flexDirection: "row", alignItems: "center" },
   trendHeader: { flexDirection: "row", alignItems: "center", height: px(48), marginTop: px(52) },
+  verifyRow: { flexDirection: "row", alignItems: "center", height: px(48), marginTop: px(28) },
   footer: {
     marginTop: px(44),
     height: px(FOOTER_H),

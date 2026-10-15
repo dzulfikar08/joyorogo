@@ -5,6 +5,7 @@ import Share, { Social } from "react-native-share";
 import { ENV } from "../../src/env";
 import { shareUrl } from "../../src/lib/share-links";
 import type { StorySpec, StoryTemplate } from "./story-card";
+import { challengeShareText } from "@joyorogo/api/lib/challenge";
 
 /**
  * Single place that knows how Instagram Stories direct sharing works. The
@@ -49,6 +50,9 @@ function storyShareBody(story: StorySpec): string {
   }
   if (story.kind === "recap") {
     return `Rekapku ${story.name}: ${story.daysOnTarget} dari ${story.loggedDays} hari sesuai target, rata-rata ${idFmt.format(story.avgKcal)} kcal per hari. Catat makanmu di JoyoRogo.`;
+  }
+  if (story.kind === "challenge") {
+    return challengeShareText(story);
   }
   const lost = story.weightLostKg ?? 0;
   return lost > 0

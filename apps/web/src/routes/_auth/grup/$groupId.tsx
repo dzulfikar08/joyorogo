@@ -26,6 +26,7 @@ import {
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { ChallengeSection } from "@/components/challenge/challenge-section";
 import { ProgressBar } from "@/components/progress-bar";
 import { Avatar } from "@/components/avatar";
 import { EmptyHint, ScreenError } from "@/components/screen-state";
@@ -241,6 +242,8 @@ function GrupDetailPage() {
           </Button>
         }
       />
+
+      <ChallengeSection groupId={groupId} />
 
       <Segmented
         className="mt-1"

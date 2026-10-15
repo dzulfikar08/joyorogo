@@ -32,6 +32,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { ConfirmSheet } from "@/components/confirm-sheet";
+import { ChallengesSection } from "@/components/challenge/challenges-section";
 import { useToast } from "@/components/toast";
 import type { GroupActivityEvent, GroupMember } from "@/src/lib/group";
 import { inviteMessage, timeAgoId } from "@/src/lib/group";
@@ -192,7 +193,7 @@ export default function GroupDetail() {
   const detail = useQuery(orpc.group.detail.queryOptions({ input: { groupId } }));
   const activityQuery = useQuery(orpc.group.activity.queryOptions({ input: { groupId, limit: 30 } }));
 
-  const [tab, setTab] = useState<"anggota" | "aktivitas">("anggota");
+  const [tab, setTab] = useState<"anggota" | "aktivitas" | "tantangan">("anggota");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -419,6 +420,7 @@ export default function GroupDetail() {
           options={[
             { value: "anggota", label: "Anggota" },
             { value: "aktivitas", label: "Aktivitas" },
+            { value: "tantangan", label: "Tantangan" },
           ]}
           value={tab}
           onChange={setTab}
@@ -457,7 +459,7 @@ export default function GroupDetail() {
               );
             })}
           </View>
-        ) : (
+        ) : tab === "aktivitas" ? (
           <View style={styles.stack}>
             <SectionTitle title="Aktivitas 7 hari terakhir" />
             {activityQuery.isPending ? (
@@ -489,6 +491,8 @@ export default function GroupDetail() {
               </ListGroup>
             )}
           </View>
+        ) : (
+          <ChallengesSection groupId={groupId} />
         )}
 
         {/* Settings sheet: invite, owner tools, privacy, leave. */}

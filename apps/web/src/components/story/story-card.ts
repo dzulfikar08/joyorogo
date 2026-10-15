@@ -1,4 +1,5 @@
 import { ON_TARGET_TOLERANCE, type RecapShare } from "@joyorogo/api/lib/recap";
+import { verificationLabel, type ChallengeShare, challengeShareText } from "@joyorogo/api/lib/challenge";
 
 import { MACRO_META } from "@/lib/macro-icons";
 import { shareUrl } from "@/lib/share-links";
@@ -133,7 +134,15 @@ export type RecapStory = RecapShare & {
   date?: Date;
 };
 
-export type StorySpec = MealStory | WorkoutStory | ProgressStory | RecapStory;
+/** Group challenge result; numbers come from challenge.detail's `share`. */
+export type ChallengeStory = {
+  kind: "challenge";
+  share: ChallengeShare;
+  eyebrow?: string;
+  date?: Date;
+};
+
+export type StorySpec = MealStory | WorkoutStory | ProgressStory | RecapStory | ChallengeStory;
 
 /** A resolved story photo. A cutout has a transparent background. */
 export type StoryPhoto = { src: string; cutout: boolean };
@@ -202,6 +211,24 @@ const ICON_PATHS = {
   trendingUp: ["M16 7h6v6", "m22 7-8.5 8.5-5-5L2 17"],
   minus: ["M5 12h14"],
   trendingDown: ["M16 17h6v-6", "m22 17-8.5-8.5-5 5L2 7"],
+  users: [
+    "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2",
+    "M16 3.128a4 4 0 0 1 0 7.744",
+    "M22 21v-2a4 4 0 0 0-3-3.87",
+    "M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0",
+  ],
+  shieldCheck: [
+    "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
+    "m9 12 2 2 4-4",
+  ],
+  camera: [
+    "M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z",
+    "M9 13a3 3 0 1 0 6 0a3 3 0 1 0 -6 0",
+  ],
+  pencil: [
+    "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z",
+    "m15 5 4 4",
+  ],
 } as const satisfies Record<string, readonly string[]>;
 
 type IconName = keyof typeof ICON_PATHS;
@@ -408,6 +435,7 @@ const EYEBROWS = {
   workout: "Sesi latihan",
   recap: "Rekap minggu",
   progress: "Progres hari ini",
+  challenge: "Tantangan grup",
 } as const;
 
 type Row = { gap: number; height: number; paint: (top: number) => void };
@@ -589,6 +617,45 @@ function recapCells(story: RecapStory): Cell[] {
   return cells;
 }
 
+/** Challenge hero ("5/7 hari") and secondary stats. Rank only counts with 2+ participants. */
+function challengeMetrics(share: ChallengeShare) {
+  const started = share.status !== "upcoming";
+  const hero: Metric = started
+    ? {
+        value: `${share.hitDays}/${share.judgedDays}`,
+        unit: "hari",
+        label: "Hari target tercapai",
+      }
+    : { value: `${share.durationDays}`, unit: "hari", label: "Tantangan segera dimulai" };
+  const cells: Cell[] = [];
+  if (started) {
+    cells.push({
+      icon: "flame",
+      color: AMBER,
+      label: "Streak terbaik",
+      value: `${share.bestStreak}`,
+      unit: "hari",
+    });
+    if (share.rank !== null && share.participants > 1) {
+      cells.push({
+        icon: "trophy",
+        color: AMBER,
+        label: "Peringkat",
+        value: `${share.rank}`,
+        unit: `dari ${share.participants}`,
+      });
+    }
+  }
+  cells.push({
+    icon: "users",
+    color: ACCENT,
+    label: "Peserta",
+    value: `${share.participants}`,
+    unit: "orang",
+  });
+  return { hero, cells };
+}
+
 /** Trend delta over the sorted weigh-ins, or null without 2+ points. */
 function weekTrend(story: ProgressStory) {
   const trend = [...(story.weekTrend ?? [])].sort((a, b) => a.date.localeCompare(b.date));
@@ -664,7 +731,8 @@ function layoutStats(
   // Title
   if (story.kind !== "progress") {
     setFont(ctx, 800, TITLE_SIZE);
-    const lines = wrapLines(ctx, story.name, CONTENT_W, 2);
+    const title = story.kind === "challenge" ? story.share.title : story.name;
+    const lines = wrapLines(ctx, title, CONTENT_W, 2);
     const step = lineBox(TITLE_SIZE);
     rows.push({
       gap: 12,
@@ -691,9 +759,13 @@ function layoutStats(
   } else if (story.kind === "progress") {
     hero = { value: intFmt(story.eatenKcal), unit: "kcal" };
     cells = progressCells(story);
-  } else {
+  } else if (story.kind === "recap") {
     hero = { value: intFmt(story.avgKcal), unit: "kcal", label: "Rata-rata per hari" };
     cells = recapCells(story);
+  } else {
+    const metrics = challengeMetrics(story.share);
+    hero = metrics.hero;
+    cells = metrics.cells;
   }
   if (hero) {
     const size = heroSize(hero.value);
@@ -710,7 +782,10 @@ function layoutStats(
           textOnBaseline(unit, 700, 52, soft, x + width + 20, baselineIn(top, lh, size));
         }),
     });
-    if (hero.label && (story.kind === "workout" || story.kind === "recap")) {
+    if (
+      hero.label &&
+      (story.kind === "workout" || story.kind === "recap" || story.kind === "challenge")
+    ) {
       const label = hero.label;
       rows.push({
         gap: 4,
@@ -718,6 +793,30 @@ function layoutStats(
         paint: (top) => withShadow(() => text(label, 600, 32, soft, x, top, 38)),
       });
     }
+  }
+
+  // Challenge: one honest line on how the hit days were recorded. The shield
+  // is reserved for all-device days; manual (pencil) wins over photo (camera).
+  const challenge = story.kind === "challenge" ? story.share : null;
+  const backing =
+    challenge && challenge.status !== "upcoming" ? verificationLabel(challenge.hitsByBasis) : null;
+  if (challenge && backing) {
+    const icon: IconName =
+      challenge.hitsByBasis.manual > 0
+        ? "pencil"
+        : challenge.hitsByBasis.photo > 0
+          ? "camera"
+          : "shieldCheck";
+    rows.push({
+      gap: 28,
+      height: 48,
+      paint: (top) =>
+        withShadow(() => {
+          drawIcon(ctx, icon, x, top + 2, 44, ACCENT);
+          setFont(ctx, 700, 36);
+          text(fitText(ctx, backing, CONTENT_W - 60), 700, 36, soft, x + 60, top, 48);
+        }),
+    });
   }
 
   if (story.kind === "meal" && story.reaction) {
@@ -1113,6 +1212,9 @@ function shareBody(story: StorySpec): string {
   }
   if (story.kind === "recap") {
     return `Rekapku ${story.name}: ${story.daysOnTarget} dari ${story.loggedDays} hari sesuai target, rata-rata ${idFmt.format(story.avgKcal)} kcal per hari. Catat makanmu di JoyoRogo.`;
+  }
+  if (story.kind === "challenge") {
+    return challengeShareText(story.share);
   }
   const lost = story.weightLostKg ?? 0;
   return lost > 0

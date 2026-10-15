@@ -139,6 +139,13 @@ function PrivasiPage() {
               bisa dilaporkan, dan pengguna bisa memblokir pengguna lain. Kamu bisa menghapus
               postinganmu kapan saja.
             </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Ikut tantangan grup berarti anggota grup itu bisa melihat apakah targetmu tercapai
+              tiap hari, streakmu, dan angka langkah, strain, tidur, atau jumlah latihanmu untuk
+              tantangan tersebut. Angka makananmu (kalori dan protein) hanya terlihat olehmu,
+              teman hanya melihat tercapai atau tidak. Kamu bisa keluar dari tantangan kapan saja
+              dan datamu di papan peringkatnya ikut hilang.
+            </p>
           </section>
 
           <section className="rounded-3xl bg-card p-5">
