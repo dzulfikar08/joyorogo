@@ -1,3 +1,4 @@
+import "./polyfills";
 import "./unistyles";
 import { registerWidgetTaskHandler } from "react-native-android-widget";
 
