@@ -828,7 +828,8 @@ export default function MakanAi() {
     }
     return (
       <View style={styles.cameraWrap}>
-        <CameraView ref={cameraRef} style={styles.camera} facing="back" />
+        {/* 4:3 portrait, the sensor's native shape: what you frame is what gets sent. */}
+        <CameraView ref={cameraRef} style={styles.camera} facing="back" ratio="4:3" />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Tutup kamera"
@@ -1348,7 +1349,11 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: "#000000",
   },
   camera: {
-    flex: 1,
+    width: "100%",
+    aspectRatio: 3 / 4,
+    marginTop: 108,
+    borderRadius: 24,
+    overflow: "hidden",
   },
   closeButton: {
     position: "absolute",

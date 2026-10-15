@@ -14,6 +14,7 @@ import {
   PencilLine,
   Radar,
   Trash2,
+  Watch,
 } from "lucide-react";
 
 import { Button } from "@joyorogo/ui/components/button";
@@ -463,6 +464,53 @@ function Landing() {
               </li>
             </ul>
           </article>
+        </section>
+
+        {/* Smartwatch: Health Connect / Apple Health, and JoyoFit for Huawei watches. */}
+        <section data-section="smartwatch" className="mx-auto w-full max-w-6xl px-4 pb-16 md:px-6">
+          <div className="grid gap-6 rounded-[1.75rem] bg-card p-6 md:grid-cols-[1.2fr_1fr] md:items-center md:p-8">
+            <div className="flex gap-4">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-bakar-soft text-bakar-ink">
+                <Watch className="size-6" aria-hidden />
+              </span>
+              <div>
+                <h2 className="text-xl font-extrabold tracking-tight md:text-2xl">
+                  Punya smartwatch? Angka bakarmu jadi lebih pas.
+                </h2>
+                <p className="mt-1 max-w-xl text-[0.9375rem] leading-relaxed text-muted-foreground">
+                  JoyoRogo membaca olahraga dan tidur dari Health Connect di Android dan Apple Health
+                  di iPhone, jadi kalori yang terbakar dihitung dari data jam tanganmu, bukan
+                  tebakan.
+                </p>
+              </div>
+            </div>
+            <div className="rounded-2xl bg-muted/60 p-5">
+              <p className="text-sm font-bold">Pakai jam Huawei atau Honor?</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                Hubungkan dengan JoyoFit, aplikasi Android pendamping dari kami tanpa perlu Huawei
+                Health. Langkah, detak jantung, tidur, dan olahraga masuk ke Health Connect, dan
+                kalori makan dari JoyoRogo tampil di jammu. Sudah dicoba di Huawei Watch Fit 4 Pro;
+                model lain masih tahap uji.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                render={
+                  <a
+                    href="https://fit.joyorogo.com"
+                    target="_blank"
+                    rel="noopener"
+                    data-revklik-goal="joyofit_click"
+                    data-revklik-goal-location="smartwatch"
+                  />
+                }
+              >
+                <Watch aria-hidden />
+                Kenalan dengan JoyoFit
+              </Button>
+            </div>
+          </div>
         </section>
 
         {/* Together: groups, colek, VAR perut. The playful section. */}
