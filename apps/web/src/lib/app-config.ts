@@ -38,6 +38,12 @@ export function apiUrl(path: string): string {
 /** Latest signed release APK, served by the API worker from R2. */
 export const APK_URL = apiUrl("/downloads/latest-apk");
 
+/** Google Play closed test: join the group first, then opt in on Play. */
+export const TESTER_GROUP_URL = "https://groups.google.com/g/joyorogo-testers";
+export const TESTER_OPTIN_URL = "https://play.google.com/apps/testing/com.joyodigitama.joyorogo";
+/** Landing section with the tester steps; AppDownload links here from any page. */
+export const TESTER_SECTION_HREF = "/#tester";
+
 /**
  * Read at runtime, not build time: the same web build serves the hosted
  * cloud and self-hosted copies. While loading, callers render no pricing

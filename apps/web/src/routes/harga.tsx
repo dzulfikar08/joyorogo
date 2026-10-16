@@ -545,7 +545,8 @@ function HargaPage() {
           <div>
             <h2 className="text-xl font-extrabold tracking-tight md:text-2xl">Pakai di HP-mu</h2>
             <p className="mt-2 text-[0.9375rem] leading-relaxed text-muted-foreground">
-              Android: unduh APK. iPhone: web app yang dipasang ke Layar Utama, tanpa App Store.
+              Android: Google Play (tes tertutup, gabung sebagai tester) atau APK. iPhone: web app
+              yang dipasang ke Layar Utama, tanpa App Store.
               Akun dan datanya sama di semua perangkat.
             </p>
           </div>

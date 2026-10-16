@@ -13,6 +13,7 @@ import {
   PencilLine,
   Radar,
   Trash2,
+  Users,
   Watch,
   Smartphone,
 } from "lucide-react";
@@ -25,7 +26,13 @@ import { GroupPeek, HeroPhone, ScanExample, WeightTrendDemo } from "@/components
 import { GITHUB_URL, GithubMark, PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
 import { FounderPromo } from "@/components/founder-promo";
-import { fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
+import {
+  fmtRupiah,
+  founderScans,
+  TESTER_GROUP_URL,
+  TESTER_OPTIN_URL,
+  useAppConfig,
+} from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { sessionQuery } from "@/lib/auth-client";
 import { openIosInstall } from "@/lib/ios-install";
@@ -58,6 +65,78 @@ const FACTS = [
   { value: "0 foto", label: "disimpan tanpa seizinmu" },
   { value: "TKPI 2019", label: "data kalori dari Kemenkes" },
 ] as const;
+
+const TESTER_STEPS = [
+  "Gabung grup Google joyorogo-testers dengan akun Google yang kamu pakai di Play Store. Grup inilah yang membuka akses ke tes tertutup.",
+  "Buka halaman tes di Play lalu ketuk Become a tester. Kalau halamannya belum bisa dibuka, tunggu beberapa menit lalu coba lagi.",
+  "Pasang JoyoRogo dari Play Store dan masuk dengan akun Google yang sama seperti di web. Diary-mu ikut pindah.",
+] as const;
+
+/** Google Play closed test signup. AppDownload links here (`/#tester`). */
+function TesterJoin() {
+  return (
+    <section
+      id="tester"
+      data-section="tester"
+      className="mx-auto w-full max-w-6xl scroll-mt-20 px-4 pb-16 md:px-6"
+    >
+      <div className="grid gap-8 rounded-[1.75rem] bg-makan-soft p-6 md:grid-cols-[1fr_1.1fr] md:items-start md:p-8">
+        <div>
+          <h2 className="text-2xl font-extrabold tracking-tight text-makan-ink md:text-3xl">
+            JoyoRogo di Google Play: gabung tester
+          </h2>
+          <p className="mt-3 max-w-md text-[0.9375rem] leading-relaxed text-makan-ink/85">
+            Versi Android di Play Store masih tes tertutup. Google baru mengizinkan rilis untuk
+            semua orang setelah 12 tester memakainya selama 14 hari, jadi tiap tester sangat
+            membantu. Gratis.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button
+              size="lg"
+              render={
+                <a
+                  href={TESTER_GROUP_URL}
+                  target="_blank"
+                  rel="noopener"
+                  data-revklik-goal="tester_group_click"
+                  data-revklik-goal-location="tester"
+                />
+              }
+            >
+              <Users aria-hidden />
+              1. Gabung grup Google
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              render={
+                <a
+                  href={TESTER_OPTIN_URL}
+                  target="_blank"
+                  rel="noopener"
+                  data-revklik-goal="tester_optin_click"
+                  data-revklik-goal-location="tester"
+                />
+              }
+            >
+              2. Become a tester di Play
+            </Button>
+          </div>
+        </div>
+        <ol className="space-y-4">
+          {TESTER_STEPS.map((step, i) => (
+            <li key={step} className="flex gap-3.5">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-card text-sm font-extrabold text-makan-ink tabular-nums">
+                {i + 1}
+              </span>
+              <p className="pt-0.5 text-[0.9375rem] leading-relaxed text-makan-ink/90">{step}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
 
 const NUMBERS: Array<{
   metric: Metric;
@@ -697,6 +776,8 @@ function Landing() {
           </div>
         </section>
 
+        <TesterJoin />
+
         {/* Open source */}
         <section data-section="opensource" className="mx-auto w-full max-w-6xl px-4 pb-16 md:px-6">
           <div className="flex flex-col gap-5 rounded-[1.75rem] bg-card p-6 md:flex-row md:items-center md:justify-between md:p-8">
@@ -758,12 +839,7 @@ function Landing() {
               >
                 Daftar dengan Google
               </Button>
-              <AppDownload
-                location="closing"
-                apkLabel="Unduh untuk Android"
-                onPrimary
-                align="center"
-              />
+              <AppDownload location="closing" onPrimary align="center" />
             </div>
           </div>
         </section>
