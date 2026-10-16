@@ -249,21 +249,25 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     return c.json({ error: "concurrent update, retry" }, 409);
   };
 
+  // Ladder rung = distinct users with a real (non-zero) paid order. Zero-amount
+  // rows are sandbox/test grants and never take a seat.
+  const ladderBuyers = async (db: Database) => {
+    const [row] = await db
+      .select({ taken: sql<number>`count(distinct ${payment.userId})` })
+      .from(payment)
+      .where(and(eq(payment.status, "paid"), gt(payment.amountIdr, 0)));
+    return row?.taken ?? 0;
+  };
+  const yearlyOverride = env.FOUNDER_YEARLY_PRICE_IDR?.trim() ? config.founderYearlyPriceIdr : null;
+  // Yearly = the override when set, but never more than 10x the buyer's monthly.
+  const yearlyFor = (monthlyIdr: number) =>
+    yearlyOverride === null ? monthlyIdr * 10 : Math.min(yearlyOverride, monthlyIdr * 10);
+
   // Public: lets the web hide pricing and upgrade prompts on self-hosts.
   app.get("/api/config", async (c) => {
-    // Urgency ladder: current rung comes from how many users have ever paid.
     const db = deps.getDb();
-    const yearlyOverride = env.FOUNDER_YEARLY_PRICE_IDR?.trim()
-      ? config.founderYearlyPriceIdr
-      : null;
     let buyers: number | null = null;
-    if (config.founderLadder !== null && provider !== null) {
-      const [row] = await db
-        .select({ taken: sql<number>`count(distinct ${payment.userId})` })
-        .from(payment)
-        .where(eq(payment.status, "paid"));
-      buyers = row?.taken ?? 0;
-    }
+    if (config.founderLadder !== null && provider !== null) buyers = await ladderBuyers(db);
     const step = config.founderLadder && buyers !== null ? ladderStep(config.founderLadder, buyers) : null;
     const promo = config.founderLadder && buyers !== null ? promoFor(config.founderLadder, buyers) : null;
     return c.json({
@@ -277,9 +281,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       freeDailyScans: config.freeDailyScans,
       founderDailyCap: config.founderDailyCap,
       founderPriceIdr: step ? step.monthlyIdr : config.founderPriceIdr,
-      founderYearlyPriceIdr: step
-        ? (yearlyOverride ?? step.monthlyIdr * 10)
-        : config.founderYearlyPriceIdr,
+      founderYearlyPriceIdr: step ? yearlyFor(step.monthlyIdr) : config.founderYearlyPriceIdr,
       promo,
       anonScans: config.anonScans,
     });
@@ -309,24 +311,26 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     // that beats the current rung ("harga terkunci").
     let basePriceIdr: number;
     if (config.founderLadder) {
-      const [[row], paid] = await Promise.all([
-        db
-          .select({ taken: sql<number>`count(distinct ${payment.userId})` })
-          .from(payment)
-          .where(and(eq(payment.status, "paid"), gt(payment.amountIdr, 0))),
+      const [taken, paid] = await Promise.all([
+        ladderBuyers(db),
         db
           .select({ amountIdr: payment.amountIdr, months: payment.months })
           .from(payment)
           .where(and(eq(payment.userId, me.id), eq(payment.status, "paid"), gt(payment.amountIdr, 0))),
       ]);
-      const step = ladderStep(config.founderLadder, row?.taken ?? 0);
+      const step = ladderStep(config.founderLadder, taken);
       const locked = grandfatheredMonthlyIdr(paid);
       basePriceIdr =
         locked !== null && locked < step.monthlyIdr ? Math.round(locked) : step.monthlyIdr;
     } else {
       basePriceIdr = config.founderPriceIdr;
     }
-    const amountIdr = plan === "yearly" ? basePriceIdr * 10 : basePriceIdr;
+    const amountIdr =
+      plan === "yearly"
+        ? config.founderLadder
+          ? yearlyFor(basePriceIdr)
+          : config.founderYearlyPriceIdr
+        : basePriceIdr;
 
     const orderId = buildOrderId();
     const returnUrl = `${appUrl}/pembayaran?order=${encodeURIComponent(orderId)}`;
