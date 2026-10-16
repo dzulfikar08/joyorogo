@@ -225,6 +225,13 @@
       "when": 1792090712866,
       "tag": "0031_apple_subscriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1792139826981,
+      "tag": "0032_strava_shared_grant",
+      "breakpoints": true
     }
   ]
 }

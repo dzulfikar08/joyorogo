@@ -221,19 +221,32 @@ export const sleepLog = sqliteTable(
   (table) => [uniqueIndex("sleep_log_user_date_uidx").on(table.userId, table.date)],
 );
 
-export const stravaAccount = sqliteTable("strava_account", {
-  userId: text("user_id")
-    .primaryKey()
-    .references(() => user.id, { onDelete: "cascade" }),
-  athleteId: text("athlete_id").notNull(),
-  accessToken: text("access_token").notNull(),
-  refreshToken: text("refresh_token").notNull(),
-  expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
-    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
-    .$onUpdate(() => /* @__PURE__ */ new Date())
-    .notNull(),
-});
+// One row per athlete grant, shared by JoyoRogo and JoyoFit: the Strava app is one app, and Strava keeps one
+// refresh-token chain per athlete and app, so both products read the same tokens from here (docs/strava.md).
+// A product is "linked" while its *_linked_at is set; the grant is revoked at Strava and the row deleted only
+// when neither product is linked any more.
+export const stravaAccount = sqliteTable(
+  "strava_account",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade" }),
+    athleteId: text("athlete_id").notNull(),
+    accessToken: text("access_token").notNull(),
+    refreshToken: text("refresh_token").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    // Space-delimited scopes the athlete granted in the latest authorization.
+    scope: text("scope").notNull().default(""),
+    rogoLinkedAt: integer("rogo_linked_at", { mode: "timestamp_ms" }),
+    fitLinkedAt: integer("fit_linked_at", { mode: "timestamp_ms" }),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  // Strava's deauthorization webhook names the athlete, not our user.
+  (table) => [index("strava_account_athlete_idx").on(table.athleteId)],
+);
 
 export const profileRelations = relations(profile, ({ one }) => ({
   user: one(user, {

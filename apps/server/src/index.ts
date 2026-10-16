@@ -38,6 +38,7 @@ import { createContext } from "./context";
 import { registerBenchRoutes } from "./bench";
 import { registerOgRoutes } from "./og";
 import { registerPrivacyRoutes } from "./privacy";
+import { registerStravaRoutes } from "./strava";
 import { env } from "./env.server";
 import { createAuth, getDb } from "./services";
 
@@ -348,9 +349,13 @@ app.get("/avatar/:userId/:file", async (c) => {
 // Personal-data wipe (profil + /privasi). After CORS so web can read errors.
 registerPrivacyRoutes(app, {
   getDb,
+  strava: env,
   createAuth,
   stickers: () => ("STICKERS" in env ? env.STICKERS : undefined),
 });
+
+// JoyoFit's Worker reads and writes the shared Strava grant here (Basic auth with the Strava client credentials).
+registerStravaRoutes(app, { env, getDb });
 
 // The Android app only knows the API origin; send its "Kebijakan privasi"
 // link on to the web page.

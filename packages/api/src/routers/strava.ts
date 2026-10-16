@@ -1,32 +1,33 @@
 import { ORPCError } from "@orpc/server";
-import { and, asc, eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { exerciseLog, profile, stravaAccount, weightLog } from "@joyorogo/db/schema/fitness";
+import { exerciseLog, profile, weightLog } from "@joyorogo/db/schema/fitness";
 
 import type { Context } from "../context";
 
 import { protectedProcedure } from "../index";
 import { estimateKcal, metForStravaType } from "../lib/met";
+import {
+  StravaGrantError,
+  deleteImportedActivities,
+  disconnectProduct,
+  exchangeCode,
+  freshAccessToken,
+  grantStatus,
+  isJoyofitUpload,
+  stravaConfigured,
+} from "../lib/strava-grant";
 
 // protectedProcedure narrows session to non-null; helpers share that shape.
 type AuthedContext = Context & { session: NonNullable<Context["session"]> };
 
-const STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token";
 const STRAVA_ACTIVITIES_URL = "https://www.strava.com/api/v3/athlete/activities?per_page=30";
-const TOKEN_EXPIRY_MARGIN_MS = 60_000;
 
 // WIB calendar day of an ISO instant — same fixed UTC+7 rule as jakartaToday.
 function wibDate(iso: string): string {
   return new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
-
-type StravaTokenResponse = {
-  access_token: string;
-  refresh_token: string;
-  expires_at: number;
-  athlete: { id: number };
-};
 
 type StravaActivity = {
   id: number;
@@ -35,132 +36,76 @@ type StravaActivity = {
   start_date: string;
   moving_time?: number;
   calories?: number;
+  // What the uploader gave Strava; JoyoFit's files start with `joyofit-`.
+  external_id?: string;
 };
 
-async function stravaTokenFetch(
-  body: Record<string, string | undefined>,
-): Promise<StravaTokenResponse> {
-  const res = await fetch(STRAVA_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    // 400/401: the grant (auth code or refresh token) is invalid or revoked —
-    // only then may the user be told to reconnect. Anything else is transient.
-    if (res.status === 400 || res.status === 401) {
-      throw new ORPCError("UNAUTHORIZED", {
-        message: "Sambungan Strava ditolak. Hubungkan ulang di halaman profil.",
-      });
-    }
-    throw new ORPCError("INTERNAL_SERVER_ERROR", {
-      message: "Gagal menghubungi Strava. Coba lagi nanti.",
-    });
-  }
-  try {
-    const token = (await res.json()) as StravaTokenResponse;
-    if (!token.access_token) {
-      throw new Error("missing access_token");
-    }
-    return token;
-  } catch {
-    throw new ORPCError("INTERNAL_SERVER_ERROR", {
-      message: "Strava memberi jawaban tak terduga. Coba lagi nanti.",
-    });
-  }
-}
-
-async function getValidToken(
-  context: AuthedContext,
-): Promise<{ accessToken: string; athleteId: string }> {
-  const [row] = await context.db
-    .select()
-    .from(stravaAccount)
-    .where(eq(stravaAccount.userId, context.session.user.id));
-  if (!row) {
-    throw new ORPCError("NOT_FOUND", {
-      message: "Hubungkan Strava dulu di halaman profil.",
-    });
-  }
-  if (row.expiresAt.getTime() > Date.now() + TOKEN_EXPIRY_MARGIN_MS) {
-    return { accessToken: row.accessToken, athleteId: row.athleteId };
-  }
-  try {
-    const token = await stravaTokenFetch({
-      client_id: context.env.STRAVA_CLIENT_ID,
-      client_secret: context.env.STRAVA_CLIENT_SECRET,
-      grant_type: "refresh_token",
-      refresh_token: row.refreshToken,
-    });
-    await context.db
-      .update(stravaAccount)
-      .set({
-        accessToken: token.access_token,
-        refreshToken: token.refresh_token,
-        expiresAt: new Date(token.expires_at * 1000),
-      })
-      .where(eq(stravaAccount.userId, context.session.user.id));
-    return { accessToken: token.access_token, athleteId: row.athleteId };
-  } catch (error) {
-    // Strava rotates refresh tokens: a concurrent request may have refreshed
-    // first and invalidated ours. Re-read before failing the user out.
-    const [fresh] = await context.db
-      .select()
-      .from(stravaAccount)
-      .where(eq(stravaAccount.userId, context.session.user.id));
-    if (
-      fresh &&
-      fresh.accessToken !== row.accessToken &&
-      fresh.expiresAt.getTime() > Date.now() + TOKEN_EXPIRY_MARGIN_MS
-    ) {
-      return { accessToken: fresh.accessToken, athleteId: fresh.athleteId };
-    }
-    // Grant rejections keep their reconnect guidance; transient failures keep
-    // theirs (network errors get the generic retry copy, never "reconnect").
-    if (error instanceof ORPCError) {
-      throw error;
-    }
-    throw new ORPCError("INTERNAL_SERVER_ERROR", {
-      message: "Gagal menghubungi Strava. Coba lagi nanti.",
-      cause: error,
-    });
-  }
-}
-
-function requireStravaConfig(context: Context): { clientId: string; clientSecret: string } {
-  const clientId = context.env.STRAVA_CLIENT_ID;
-  const clientSecret = context.env.STRAVA_CLIENT_SECRET;
-  if (!clientId || !clientSecret) {
+function requireStravaConfig(context: Context): void {
+  if (!stravaConfigured(context.env)) {
     throw new ORPCError("NOT_FOUND", {
       message: "Strava belum dikonfigurasi di server.",
     });
   }
-  return { clientId, clientSecret };
+}
+
+const RECONNECT_MESSAGE = "Sambungan Strava ditolak. Hubungkan ulang di halaman profil.";
+const RETRY_MESSAGE = "Gagal menghubungi Strava. Coba lagi nanti.";
+
+/** Strava failures as the user should read them: only a refused grant may tell them to reconnect. */
+function toOrpcError(error: unknown): ORPCError<string, unknown> {
+  if (error instanceof StravaGrantError) {
+    if (error.failure === "rejected") return new ORPCError("UNAUTHORIZED", { message: RECONNECT_MESSAGE });
+    if (error.failure === "scope_missing") {
+      return new ORPCError("BAD_REQUEST", {
+        message: "Izinkan JoyoRogo membaca aktivitasmu di halaman Strava, lalu hubungkan lagi.",
+      });
+    }
+  }
+  return new ORPCError("INTERNAL_SERVER_ERROR", { message: RETRY_MESSAGE, cause: error });
+}
+
+async function getValidToken(context: AuthedContext): Promise<string> {
+  let token;
+  try {
+    token = await freshAccessToken(context.db, context.env, context.session.user.id, "rogo");
+  } catch (error) {
+    throw toOrpcError(error);
+  }
+  if (!token) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "Hubungkan Strava dulu di halaman profil.",
+    });
+  }
+  return token.accessToken;
 }
 
 export const stravaRouter = {
   status: protectedProcedure.handler(async ({ context }) => {
-    const configured = Boolean(context.env.STRAVA_CLIENT_ID && context.env.STRAVA_CLIENT_SECRET);
-    const [row] = await context.db
-      .select({ athleteId: stravaAccount.athleteId })
-      .from(stravaAccount)
-      .where(eq(stravaAccount.userId, context.session.user.id));
+    const userId = context.session.user.id;
+    const configured = stravaConfigured(context.env);
+    const status = await grantStatus(context.db, userId, "rogo");
+    // Nothing imported from Strava outlives the connection (Strava API policy), including when the
+    // grant ended elsewhere (deauthorized on strava.com, refused refresh token).
+    if (!status.connected) await deleteImportedActivities(context.db, userId);
     return {
       configured,
-      connected: Boolean(row),
-      athleteId: row?.athleteId,
+      connected: status.connected,
+      athleteId: status.athleteId,
     };
   }),
 
   authorizeUrl: protectedProcedure
     .input(z.object({ redirectUri: z.string().url() }))
-    .handler(({ context, input }) => {
-      const { clientId } = requireStravaConfig(context);
+    .handler(async ({ context, input }) => {
+      requireStravaConfig(context);
+      const { requestedScope: scope } = await grantStatus(context.db, context.session.user.id, "rogo");
       const url = new URL("https://www.strava.com/oauth/authorize");
-      url.searchParams.set("client_id", clientId);
+      url.searchParams.set("client_id", context.env.STRAVA_CLIENT_ID ?? "");
       url.searchParams.set("redirect_uri", input.redirectUri);
       url.searchParams.set("response_type", "code");
-      url.searchParams.set("scope", "read,activity:read_all");
+      // JoyoRogo's own scopes plus whatever is already granted, so connecting here never narrows a
+      // grant JoyoFit uploads with (docs/strava.md).
+      url.searchParams.set("scope", scope);
       url.searchParams.set("approval_prompt", "auto");
       return { url: url.toString() };
     }),
@@ -168,33 +113,17 @@ export const stravaRouter = {
   exchangeCode: protectedProcedure
     .input(z.object({ code: z.string().min(1), redirectUri: z.string().url() }))
     .handler(async ({ context, input }) => {
-      const { clientId, clientSecret } = requireStravaConfig(context);
-      const token = await stravaTokenFetch({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code: input.code,
-        grant_type: "authorization_code",
-      });
-      const athleteId = String(token.athlete.id);
-      await context.db
-        .insert(stravaAccount)
-        .values({
+      requireStravaConfig(context);
+      try {
+        const { athleteId } = await exchangeCode(context.db, context.env, {
           userId: context.session.user.id,
-          athleteId,
-          accessToken: token.access_token,
-          refreshToken: token.refresh_token,
-          expiresAt: new Date(token.expires_at * 1000),
-        })
-        .onConflictDoUpdate({
-          target: stravaAccount.userId,
-          set: {
-            athleteId,
-            accessToken: token.access_token,
-            refreshToken: token.refresh_token,
-            expiresAt: new Date(token.expires_at * 1000),
-          },
+          product: "rogo",
+          code: input.code,
         });
-      return { connected: true, athleteId };
+        return { connected: true, athleteId };
+      } catch (error) {
+        throw toOrpcError(error);
+      }
     }),
 
   // Strava API policy notes for imported rows (exercise_log.source = 'strava'):
@@ -202,7 +131,7 @@ export const stravaRouter = {
   // sent to AI, not used in adaptive-plan analytics. The 7-day cache cap (6.2) is
   // NOT enforced yet: rows persist until disconnect.
   sync: protectedProcedure.handler(async ({ context }) => {
-    const { accessToken } = await getValidToken(context);
+    const accessToken = await getValidToken(context);
     const res = await fetch(STRAVA_ACTIVITIES_URL, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
@@ -213,10 +142,13 @@ export const stravaRouter = {
     }
     if (!res.ok) {
       throw new ORPCError("INTERNAL_SERVER_ERROR", {
-        message: "Gagal menghubungi Strava. Coba lagi nanti.",
+        message: RETRY_MESSAGE,
       });
     }
     const activities = (await res.json()) as StravaActivity[];
+    // A workout JoyoFit uploaded reaches the diary through Health Connect / Apple Health
+    // (source health_connect / apple_health); importing it from Strava too would count it twice.
+    const imports = activities.filter((activity) => !isJoyofitUpload(activity.external_id));
 
     // One weight query for the whole batch instead of two per activity.
     const [weights, profileRows] = await Promise.all([
@@ -240,7 +172,7 @@ export const stravaRouter = {
       return latest ?? fallbackKg;
     };
 
-    const statements = activities.map((activity) => {
+    const statements = imports.map((activity) => {
       const date = wibDate(activity.start_date);
       const durationMin = (activity.moving_time ?? 0) / 60;
       const kcal =
@@ -276,16 +208,13 @@ export const stravaRouter = {
     return { imported, skipped: activities.length - imported };
   }),
 
-  // Strava API policy: on disconnect (deauthorization) the imported Strava
-  // activities go with the token.
+  // Strava API policy: on disconnect the imported Strava activities go with the
+  // connection. The grant itself is revoked at Strava only when JoyoFit is not
+  // using it either (lib/strava-grant disconnectProduct).
   disconnect: protectedProcedure.handler(async ({ context }) => {
     const userId = context.session.user.id;
-    await context.db.batch([
-      context.db.delete(stravaAccount).where(eq(stravaAccount.userId, userId)),
-      context.db
-        .delete(exerciseLog)
-        .where(and(eq(exerciseLog.userId, userId), eq(exerciseLog.source, "strava"))),
-    ]);
+    await disconnectProduct(context.db, context.env, userId, "rogo");
+    await deleteImportedActivities(context.db, userId);
     return { connected: false };
   }),
 };

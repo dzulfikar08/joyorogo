@@ -8,10 +8,12 @@ import {
   userStickerKeys,
 } from "@joyorogo/api/lib/privacy";
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
+import { revokeGrant, type StravaGrantEnv } from "@joyorogo/api/lib/strava-grant";
 import type { Database } from "@joyorogo/db";
 
 type Deps = {
   getDb: () => Database;
+  strava: StravaGrantEnv;
   createAuth: () => Promise<JoyoAuth>;
   stickers: () => StickersBucket | undefined;
 };
@@ -32,6 +34,7 @@ export function registerPrivacyRoutes(app: Hono, deps: Deps) {
     }
     const stickerKeys = await userStickerKeys(db, session.user.id);
     await deleteUserSocialData(db, session.user.id);
+    await revokeGrant(db, deps.strava, session.user.id);
     await deleteAllUserData(db, session.user.id);
     // Photos and stickers are personal data too; rows are gone already, so a
     // storage hiccup is reported instead of leaving a half-wiped diary.

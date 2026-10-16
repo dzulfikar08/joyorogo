@@ -8,6 +8,7 @@ import { appleRevokeConfig, revokeAppleAuthorization } from "../lib/apple-revoke
 import { customAvatarKey } from "../lib/avatar";
 
 import { deleteAllUserData, deleteUserMedia, deleteUserSocialData, userStickerKeys } from "../lib/privacy";
+import { revokeGrant } from "../lib/strava-grant";
 
 import { protectedProcedure } from "../index";
 
@@ -16,6 +17,7 @@ export const privacyRouter = {
   deleteMyData: protectedProcedure.handler(async ({ context }) => {
     const userId = context.session.user.id;
     await deleteUserSocialData(context.db, userId);
+    await revokeGrant(context.db, context.env, userId);
     await deleteAllUserData(context.db, userId);
     // Foto profil ikut dihapus: reset dulu, objek R2 menyusul (best effort).
     const [current] = await context.db
@@ -88,6 +90,7 @@ export const privacyRouter = {
 
       const stickerKeys = await userStickerKeys(context.db, userId);
       await deleteUserSocialData(context.db, userId);
+      await revokeGrant(context.db, context.env, userId);
       await deleteAllUserData(context.db, userId);
       const bucket = context.env.STICKERS;
       if (bucket) {
