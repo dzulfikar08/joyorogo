@@ -176,7 +176,8 @@ function CompareRow({
 /** Pricing FAQ; numbers follow the live config. */
 function pricingFaq(config: AppConfig): Array<{ q: string; a: string }> {
   const perMonthYearly = Math.round(config.founderYearlyPriceIdr / 12);
-  const paidMonths = Math.round(config.founderYearlyPriceIdr / config.founderPriceIdr);
+  const standardMonthly = config.promo?.nextPriceIdr ?? config.founderPriceIdr;
+  const saving = standardMonthly * 12 - config.founderYearlyPriceIdr;
   return [
     {
       q: "Gratisnya sampai kapan?",
@@ -196,7 +197,7 @@ function pricingFaq(config: AppConfig): Array<{ q: string; a: string }> {
     },
     {
       q: "Bedanya paket bulanan dan tahunan?",
-      a: `Isinya sama. Tahunan ${fmtRupiah(config.founderYearlyPriceIdr)} setara ${fmtRupiah(perMonthYearly)}/bulan — bayar ${paidMonths} bulan untuk 12 bulan penuh. Cocok kalau memang mau jalan panjang.`,
+      a: `Isinya sama. Tahunan ${fmtRupiah(config.founderYearlyPriceIdr)} setara ${fmtRupiah(perMonthYearly)}/bulan, aktif 12 bulan penuh${saving > 0 ? `, hemat ${fmtRupiah(saving)} dibanding bayar bulanan ${fmtRupiah(standardMonthly)}` : ""}. Cocok kalau memang mau jalan panjang.`,
     },
   ];
 }
@@ -209,14 +210,14 @@ function HargaPage() {
   // Sticky mobile CTA only when checkout actually exists on this server.
   const stickyCta = config.data?.paywall === true && config.data.billing === true;
 
-  // Yearly pitch, computed from the live config so an override can't make
-  // "hemat 2 bulan" a lie.
-  const paidMonths = config.data
-    ? Math.round(config.data.founderYearlyPriceIdr / config.data.founderPriceIdr)
-    : 12;
+  // Yearly pitch from the live config. Savings are measured against the
+  // standard monthly price (after the promo), not the limited promo price.
+  const standardMonthly = config.data
+    ? (config.data.promo?.nextPriceIdr ?? config.data.founderPriceIdr)
+    : 0;
   const perMonthYearly = config.data ? Math.round(config.data.founderYearlyPriceIdr / 12) : 0;
-  const freeMonths = 12 - paidMonths;
-  const yearlyBadge = freeMonths > 0 ? `Hemat ${freeMonths} bulan` : undefined;
+  const yearlySaving = config.data ? standardMonthly * 12 - config.data.founderYearlyPriceIdr : 0;
+  const yearlyBadge = yearlySaving > 0 ? `Hemat ${fmtRupiah(yearlySaving)}` : undefined;
 
   const promo = config.data?.promo ?? null;
   const promoLeft = promo ? promo.slots - promo.taken : 0;
@@ -306,7 +307,7 @@ function HargaPage() {
 
         {config.data?.paywall && (
           <>
-            <div className="mt-10 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.12fr]">
+            <div className="mt-10 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1.12fr_1fr]">
               <TierCard
                 name="Gratis"
                 price="Rp0"
@@ -322,15 +323,23 @@ function HargaPage() {
                 }
               />
               <TierCard
-                name="Pro Bulanan"
-                price={fmtRupiah(config.data.founderPriceIdr)}
-                per="per bulan"
-                badge={promo ? "Founder (terbatas)" : undefined}
-                features={founderFeatures(config.data)}
+                name="Pro Tahunan"
+                price={fmtRupiah(config.data.founderYearlyPriceIdr)}
+                per="per tahun"
+                sub={perMonthYearly > 0 ? `setara ${fmtRupiah(perMonthYearly)}/bulan` : undefined}
+                badge={yearlyBadge}
+                highlight
+                features={[
+                  ...founderFeatures(config.data),
+                  "Aktif 12 bulan sekaligus",
+                ]}
                 cta={
                   config.data.billing ? (
-                    <Button disabled={checkout.isPending} onClick={() => checkout.start()}>
-                      {checkout.isPending ? "Membuka pembayaran..." : "Jadi Pro"}
+                    <Button
+                      disabled={checkoutYearly.isPending}
+                      onClick={() => checkoutYearly.start()}
+                    >
+                      {checkoutYearly.isPending ? "Membuka pembayaran..." : "Ambil paket tahunan"}
                     </Button>
                   ) : (
                     <p className="text-sm text-muted-foreground">
@@ -340,25 +349,15 @@ function HargaPage() {
                 }
               />
               <TierCard
-                name="Pro Tahunan"
-                price={fmtRupiah(config.data.founderYearlyPriceIdr)}
-                per="per tahun"
-                sub={perMonthYearly > 0 ? `setara ${fmtRupiah(perMonthYearly)}/bulan` : undefined}
-                badge={yearlyBadge}
-                highlight
-                features={[
-                  ...founderFeatures(config.data),
-                  paidMonths < 12
-                    ? `Bayar ${paidMonths} bulan, aktif 12 bulan`
-                    : "12 bulan sekaligus",
-                ]}
+                name="Pro Bulanan"
+                price={fmtRupiah(config.data.founderPriceIdr)}
+                per="per bulan"
+                badge={promo ? "Founder (terbatas)" : undefined}
+                features={founderFeatures(config.data)}
                 cta={
                   config.data.billing ? (
-                    <Button
-                      disabled={checkoutYearly.isPending}
-                      onClick={() => checkoutYearly.start()}
-                    >
-                      {checkoutYearly.isPending ? "Membuka pembayaran..." : "Ambil paket tahunan"}
+                    <Button disabled={checkout.isPending} onClick={() => checkout.start()}>
+                      {checkout.isPending ? "Membuka pembayaran..." : "Jadi Pro"}
                     </Button>
                   ) : (
                     <p className="text-sm text-muted-foreground">

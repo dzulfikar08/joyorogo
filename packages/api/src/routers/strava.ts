@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { exerciseLog, profile, stravaAccount, weightLog } from "@joyorogo/db/schema/fitness";
@@ -197,6 +197,10 @@ export const stravaRouter = {
       return { connected: true, athleteId };
     }),
 
+  // Strava API policy notes for imported rows (exercise_log.source = 'strava'):
+  // owner-only display (excluded from groups, challenges, feed and shares), never
+  // sent to AI, not used in adaptive-plan analytics. The 7-day cache cap (6.2) is
+  // NOT enforced yet: rows persist until disconnect.
   sync: protectedProcedure.handler(async ({ context }) => {
     const { accessToken } = await getValidToken(context);
     const res = await fetch(STRAVA_ACTIVITIES_URL, {
@@ -272,8 +276,16 @@ export const stravaRouter = {
     return { imported, skipped: activities.length - imported };
   }),
 
+  // Strava API policy: on disconnect (deauthorization) the imported Strava
+  // activities go with the token.
   disconnect: protectedProcedure.handler(async ({ context }) => {
-    await context.db.delete(stravaAccount).where(eq(stravaAccount.userId, context.session.user.id));
+    const userId = context.session.user.id;
+    await context.db.batch([
+      context.db.delete(stravaAccount).where(eq(stravaAccount.userId, userId)),
+      context.db
+        .delete(exerciseLog)
+        .where(and(eq(exerciseLog.userId, userId), eq(exerciseLog.source, "strava"))),
+    ]);
     return { connected: false };
   }),
 };

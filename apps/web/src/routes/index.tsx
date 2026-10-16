@@ -229,7 +229,7 @@ function pricingFaq(config: AppConfig | undefined): Array<{ q: string; a: string
   return [
     {
       q: "Gratisnya sampai kapan?",
-      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Pro ${fmtRupiah(config.founderPriceIdr)} per bulan: ${founderScans(config).toLowerCase()}. Paket tahunan ${fmtRupiah(config.founderYearlyPriceIdr)}, setara 10 bulan, hemat 2 bulan.`,
+      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Pro ${fmtRupiah(config.founderPriceIdr)} per bulan: ${founderScans(config).toLowerCase()}. Paket tahunan ${fmtRupiah(config.founderYearlyPriceIdr)}, setara ${fmtRupiah(Math.round(config.founderYearlyPriceIdr / 12))} per bulan.`,
     },
   ];
 }
@@ -716,8 +716,8 @@ function Landing() {
                     </li>
                     <li className="flex gap-2">
                       <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
-                      Paket tahunan {fmtRupiah(config.data.founderYearlyPriceIdr)}/tahun, hemat 2
-                      bulan
+                      Paket tahunan {fmtRupiah(config.data.founderYearlyPriceIdr)}/tahun, setara{" "}
+                      {fmtRupiah(Math.round(config.data.founderYearlyPriceIdr / 12))}/bulan
                     </li>
                   </ul>
                   <Button

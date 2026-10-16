@@ -48,7 +48,7 @@ function FounderPage() {
   const { next, from } = Route.useSearch();
   const config = useAppConfig();
   const profile = useQuery(profileOptions);
-  const [plan, setPlan] = useState<CheckoutPlan>("monthly");
+  const [plan, setPlan] = useState<CheckoutPlan>("yearly");
   const checkout = useCheckoutPicker(plan);
 
   if (config.isError) {
@@ -62,6 +62,9 @@ function FounderPage() {
   if (!config.data.billing || profile.data?.tier === "founder") {
     return <Navigate to={destination} replace />;
   }
+
+  const standardMonthly = config.data.promo?.nextPriceIdr ?? config.data.founderPriceIdr;
+  const yearlySaving = standardMonthly * 12 - config.data.founderYearlyPriceIdr;
 
   return (
     <Page className="max-w-md">
@@ -88,15 +91,20 @@ function FounderPage() {
           value={plan}
           onChange={setPlan}
           options={[
-            { value: "monthly", label: "Bulanan" },
             {
               value: "yearly",
               label: (
                 <>
-                  Tahunan <span className="text-xs font-bold text-primary">hemat 2 bulan</span>
+                  Tahunan{" "}
+                  {yearlySaving > 0 && (
+                    <span className="text-xs font-bold text-primary">
+                      hemat {fmtRupiah(yearlySaving)}
+                    </span>
+                  )}
                 </>
               ),
             },
+            { value: "monthly", label: "Bulanan" },
           ]}
         />
         <p className="mt-4 text-3xl font-extrabold tracking-tight tabular-nums">
@@ -110,7 +118,8 @@ function FounderPage() {
         </p>
         {plan === "yearly" && (
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            12 bulan aktif, bayar 10. Menumpuk di sisa masa Pro-mu.
+            Setara {fmtRupiah(Math.round(config.data.founderYearlyPriceIdr / 12))}/bulan, aktif 12
+            bulan. Menumpuk di sisa masa Pro-mu.
           </p>
         )}
         <ul className="mt-5 space-y-2.5">

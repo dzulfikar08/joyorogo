@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import {
-  and, asc, count, desc, eq, gt, inArray, isNull, lt, or, sql,
+  and, asc, count, desc, eq, gt, inArray, isNull, lt, ne, or, sql,
 } from "drizzle-orm";
 import { z } from "zod";
 
@@ -754,7 +754,14 @@ export const socialRouter = {
           const [cardio] = await db
             .select()
             .from(exerciseLog)
-            .where(and(eq(exerciseLog.id, input.refId), eq(exerciseLog.userId, me)))
+            .where(
+              and(
+                eq(exerciseLog.id, input.refId),
+                eq(exerciseLog.userId, me),
+                // Strava API policy: Strava data is never shared to others.
+                ne(exerciseLog.source, "strava"),
+              ),
+            )
             .limit(1);
           if (!cardio) {
             throw new ORPCError("NOT_FOUND", { message: "Catatan latihan tidak ditemukan." });

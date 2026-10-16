@@ -17,7 +17,7 @@ export type AppConfig = {
   freeDailyScans: number | null;
   founderDailyCap: number | null;
   founderPriceIdr: number;
-  /** Yearly founder bundle: 12 months for the price of 10. */
+  /** Yearly Pro price (FOUNDER_YEARLY_PRICE_IDR, Rp199.000 in production). */
   founderYearlyPriceIdr: number;
   /**
    * Founder intro-price ladder; null when the promo is off. `slots` = buyers

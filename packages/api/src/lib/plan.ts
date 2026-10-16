@@ -65,6 +65,8 @@ export function planQueries(db: Database, userId: string, date: string) {
           gte(exerciseLog.date, windowStart),
           lt(exerciseLog.date, date),
           ne(exerciseLog.source, "rest"),
+          // Strava API policy 5.4: no combining Strava data with weight/food analytics (adaptive TDEE).
+          ne(exerciseLog.source, "strava"),
         ),
       )
       .groupBy(exerciseLog.date),

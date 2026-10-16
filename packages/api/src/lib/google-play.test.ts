@@ -294,11 +294,11 @@ describe("googleFounderGrant", () => {
       ...base,
       test: false,
       months: 12,
-      priceIdr: 150000,
+      priceIdr: 199000,
       current: new Date("2027-01-31T00:00:00.000Z"),
     });
     expect(yearly.until.toISOString()).toBe("2028-01-31T00:00:00.000Z");
-    expect(yearly.amountIdr).toBe(150000);
+    expect(yearly.amountIdr).toBe(199000);
   });
 
   test("test purchase: allowlisted buyer gets the paid period, anyone else 24h at Rp0", () => {

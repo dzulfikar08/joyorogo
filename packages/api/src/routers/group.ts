@@ -410,7 +410,14 @@ export const groupRouter = {
         db
           .select({ userId: exerciseLog.userId, kcal: exerciseLog.kcal, source: exerciseLog.source })
           .from(exerciseLog)
-          .where(and(inArray(exerciseLog.userId, ids), eq(exerciseLog.date, date))),
+          .where(
+            and(
+              inArray(exerciseLog.userId, ids),
+              eq(exerciseLog.date, date),
+              // Strava API policy: Strava data is shown only to its owner.
+              ne(exerciseLog.source, "strava"),
+            ),
+          ),
         db
           .select({
             userId: exerciseLog.userId,
@@ -424,6 +431,7 @@ export const groupRouter = {
               gte(exerciseLog.date, windowStart),
               lt(exerciseLog.date, date),
               ne(exerciseLog.source, "rest"),
+              ne(exerciseLog.source, "strava"),
             ),
           )
           .groupBy(exerciseLog.userId, exerciseLog.date),
@@ -625,6 +633,8 @@ export const groupRouter = {
               inArray(exerciseLog.userId, ids),
               gte(exerciseLog.date, weekStart),
               gte(exerciseLog.createdAt, since),
+              // Strava API policy: never in the group feed.
+              ne(exerciseLog.source, "strava"),
             ),
           )
           .orderBy(desc(exerciseLog.createdAt))

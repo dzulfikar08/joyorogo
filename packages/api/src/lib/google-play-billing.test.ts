@@ -82,7 +82,7 @@ beforeEach(async () => {
     db,
     client: fake.play,
     config: { testEmails: ["tester@test.id"] },
-    fallbackPriceIdr: { monthly: 15000, yearly: 150000 },
+    fallbackPriceIdr: { monthly: 15000, yearly: 199000 },
     now: () => NOW,
   };
 });
@@ -121,9 +121,9 @@ describe("verifyGooglePurchase", () => {
     await client.execute(
       `UPDATE "user" SET founder_until = ${Date.UTC(2026, 11, 1)} WHERE id = 'u1'`,
     );
-    fake.subs.set(TOKEN, sub({ basePlanId: "yearly", priceIdr: 150000 }));
+    fake.subs.set(TOKEN, sub({ basePlanId: "yearly", priceIdr: 199000 }));
     const result = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" });
-    expect(result).toMatchObject({ ok: true, status: "granted", amountIdr: 150000 });
+    expect(result).toMatchObject({ ok: true, status: "granted", amountIdr: 199000 });
     expect((await until("u1"))?.toISOString()).toBe("2027-12-01T00:00:00.000Z");
     expect((await ledger())[0]?.months).toBe(12);
   });
@@ -271,7 +271,7 @@ describe("verifyGooglePurchase", () => {
     fake.subs.set(TOKEN, sub({ priceIdr: null, basePlanId: "yearly" }));
     expect(await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" })).toMatchObject({
       status: "granted",
-      amountIdr: 150000,
+      amountIdr: 199000,
     });
   });
 

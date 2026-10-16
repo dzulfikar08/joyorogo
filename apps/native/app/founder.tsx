@@ -53,7 +53,7 @@ export default function FounderPaywall() {
   const ios = Platform.OS === "ios";
   const purchase = useAppleFounderPurchase();
   const appleRestore = useAppleRestore();
-  const [plan, setPlan] = useState<CheckoutPlan>("monthly");
+  const [plan, setPlan] = useState<CheckoutPlan>("yearly");
   const checkout = useCheckoutPicker(ios ? "monthly" : plan);
   const appleBilling = config.data?.appleBilling === true;
   const billing = ios ? appleBilling : config.data?.billing === true;
@@ -162,11 +162,8 @@ export default function FounderPaywall() {
       : `${config.data.founderDailyCap} scan AI per hari`;
   const yearly = plan === "yearly";
   const appleProduct = ios ? price.data?.[plan] : undefined;
-  // Apple's yearly product only saves 2 months if its StoreKit price is at most 10 monthly prices.
-  const appleSaves =
-    ios && price.data?.monthly && price.data.yearly
-      ? Number(price.data.yearly.price) <= Number(price.data.monthly.price) * 10
-      : false;
+  const standardMonthly = config.data.promo?.nextPriceIdr ?? config.data.founderPriceIdr;
+  const yearlySaving = standardMonthly * 12 - config.data.founderYearlyPriceIdr;
   // Play and the App Store charge their own localized price; never show the web one for them.
   const playPrice = PLAY_ACTIVE ? playPrices.data?.[plan]?.displayPrice : undefined;
   const priceLabel = PLAY_ACTIVE
@@ -217,14 +214,17 @@ export default function FounderPaywall() {
       <Card style={styles.priceCard}>
         <Segmented
           options={[
-            { value: "monthly", label: "Bulanan" },
             { value: "yearly", label: "Tahunan" },
+            { value: "monthly", label: "Bulanan" },
           ]}
           value={plan}
           onChange={setPlan}
         />
-        {yearly && !PLAY_ACTIVE && (!ios || appleSaves) ? (
-          <Text style={styles.priceNote}>Setara 10 bulan, hemat 2 bulan.</Text>
+        {yearly && !PLAY_ACTIVE && !ios && yearlySaving > 0 ? (
+          <Text style={styles.priceNote}>
+            Setara Rp{Math.round(config.data.founderYearlyPriceIdr / 12).toLocaleString("id-ID")}
+            /bulan, hemat Rp{yearlySaving.toLocaleString("id-ID")}.
+          </Text>
         ) : null}
         <View style={styles.priceRow}>
           <Text style={styles.price}>{priceLabel}</Text>

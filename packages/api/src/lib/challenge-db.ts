@@ -14,8 +14,8 @@ import type { DayFacts } from "./challenge";
 /** userId -> date -> facts for one challenge span. */
 export type FactsByUser = Map<string, Map<string, DayFacts>>;
 
-/** exercise_log sources written by a device or Strava, as opposed to typed in. */
-const VERIFIED_EXERCISE_SOURCES = ["strava", "health_connect", "apple_health"];
+/** exercise_log sources written by a device, as opposed to typed in. Strava is excluded from challenges entirely (Strava API policy: owner-only display). */
+const VERIFIED_EXERCISE_SOURCES = ["health_connect", "apple_health"];
 
 function put(out: FactsByUser, userId: string, date: string, facts: DayFacts | undefined) {
   if (!facts) return;
@@ -88,6 +88,7 @@ export async function loadFacts(
           gte(exerciseLog.date, from),
           lte(exerciseLog.date, to),
           ne(exerciseLog.source, "rest"),
+          ne(exerciseLog.source, "strava"),
         ),
       )
       .groupBy(exerciseLog.userId, exerciseLog.date);

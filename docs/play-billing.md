@@ -79,7 +79,7 @@ Play Console -> your app -> **Monetize with Play -> Products -> Subscriptions ->
 1. **Product ID:** `pro`. It can never change or be reused, so type it exactly. **Name:** `JoyoRogo Pro`. Add a short benefits list and description (Indonesian is fine).
 2. **Add a base plan:**
    - Base plan ID `monthly` (exact), **Auto-renewing**, billing period **Monthly**. Keep the default grace period and account hold. Price: your monthly price in **IDR** (set the Indonesia price; Play converts others). Save.
-   - Base plan ID `yearly` (exact), **Auto-renewing**, billing period **Yearly**, your yearly price in IDR. Save.
+   - Base plan ID `yearly` (exact), **Auto-renewing**, billing period **Yearly**, your yearly price in IDR (owner checklist: **Rp199.000**, about Rp16.600/month, shown first in the app; monthly base plan Rp29.000 standard, the Rp15.000 first-10 promo is web/DOKU/Pakasir only). The App Store yearly product likewise needs the tier closest to Rp199.000. Prices are never hardcoded in the app. Save.
 3. **Activate** both base plans (Activate button on each). Only active base plans are sold.
 4. Do not add promotional offers yet. The app picks each plan's plain base-plan offer and ignores offers with extra pricing phases.
 

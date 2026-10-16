@@ -339,12 +339,14 @@ describe("protein and calories: personal targets and honest labels", () => {
 });
 
 describe("workouts, strain and sleep", () => {
-  test("workouts label device sessions and typed ones, and ignore rest days", async () => {
+  test("workouts label device sessions and typed ones, and ignore rest and Strava days", async () => {
     await seed("c-work", "t1", "workouts", 1, 2, [{ userId: "comp" }]);
     await Promise.all([
-      workout("comp", 2, 1, "strava"),
+      workout("comp", 2, 1, "health_connect"),
       workout("comp", 1, 1, "manual"),
       workout("comp", 0, 1, "rest"),
+      // Strava API policy: Strava activities never count in a challenge.
+      workout("comp", 1, 2, "strava"),
     ]);
     const me = (await detail("comp", "c-work")).leaderboard[0]!;
     expect(me.days.map((d) => [d.status, d.basis])).toEqual([
