@@ -30,6 +30,7 @@ import type { AppConfig } from "@/lib/app-config";
 import { sessionQuery } from "@/lib/auth-client";
 import { openIosInstall } from "@/lib/ios-install";
 import { FAQ, IPHONE_FAQ_Q, pageHead } from "@/lib/seo";
+import { IOS_TESTFLIGHT_LIVE } from "@/lib/testflight";
 import { CACHE_OWNER_KEY } from "@/utils/orpc";
 
 export const Route = createFileRoute("/")({
@@ -486,6 +487,12 @@ function Landing() {
                 kalori makan dari JoyoRogo tampil di jammu. Sudah dicoba di Huawei Watch Fit 4 Pro;
                 model lain masih tahap uji.
               </p>
+              {IOS_TESTFLIGHT_LIVE && (
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  JoyoFit sekarang juga punya versi iPhone beta lewat TestFlight, baru diuji dengan
+                  Huawei Watch Fit 4 Pro.
+                </p>
+              )}
               <Button
                 variant="outline"
                 size="sm"

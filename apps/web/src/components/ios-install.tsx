@@ -10,6 +10,8 @@ import {
   ChevronRight,
   Compass,
   Copy,
+  ExternalLink,
+  FlaskConical,
   Share,
   SquarePlus,
   Smartphone,
@@ -28,6 +30,7 @@ import {
   useIosInstallOpen,
 } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
+import { IOS_TESTFLIGHT_LIVE, JOYOROGO_TESTFLIGHT_URL } from "@/lib/testflight";
 import { sessionQuery } from "@/lib/auth-client";
 
 /** Copies through the async clipboard API, falling back for webviews that block it. */
@@ -190,6 +193,51 @@ function IosInstallSheet() {
           <CopyLink url={url} />
         </div>
       )}
+
+      {IOS_TESTFLIGHT_LIVE && (
+        <div className="mb-5 rounded-3xl bg-primary/10 p-4">
+          <p className="flex items-center gap-2 text-sm font-bold">
+            <FlaskConical className="size-4 shrink-0 text-primary" aria-hidden />
+            Coba aplikasi iPhone (beta, TestFlight)
+          </p>
+          <ol className="mt-3 space-y-2 text-sm leading-relaxed">
+            <li className="flex gap-2.5">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground">
+                1
+              </span>
+              <span className="pt-0.5">Pasang TestFlight dari App Store, kalau belum ada.</span>
+            </li>
+            <li className="flex gap-2.5">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground">
+                2
+              </span>
+              <span className="pt-0.5">
+                Buka link undangan di iPhone, ketuk Terima, lalu Pasang JoyoRogo.
+              </span>
+            </li>
+          </ol>
+          <Button
+            className="mt-4 w-full"
+            render={
+              <a
+                href={JOYOROGO_TESTFLIGHT_URL}
+                target="_blank"
+                rel="noopener"
+                data-revklik-goal="ios_testflight_click"
+                data-revklik-goal-location="ios_sheet"
+              />
+            }
+          >
+            <ExternalLink aria-hidden />
+            Buka undangan TestFlight
+          </Button>
+          <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground">
+            Masih beta, jadi mungkin ada yang belum rapi. Akunnya sama dengan versi web.
+          </p>
+        </div>
+      )}
+
+      {IOS_TESTFLIGHT_LIVE && <p className="mb-3 text-sm font-bold">Atau pakai versi web</p>}
 
       <ol className="space-y-3">
         <Step n={1} title="Buka di Safari" illustration={<SafariMark />}>
