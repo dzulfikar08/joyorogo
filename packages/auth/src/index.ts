@@ -7,6 +7,8 @@ import { APIError, createAuthEndpoint, createAuthMiddleware } from "better-auth/
 import { setSessionCookie } from "better-auth/cookies";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
+import { appleAudiences } from "./apple-audience";
+
 const DEFAULT_APPLE_BUNDLE_ID = "com.joyodigitama.joyorogo";
 
 export type AuthConfig = {
@@ -191,6 +193,9 @@ export function createAuth(
       apple: {
         clientId: appleBundleId,
         appBundleIdentifier: appleBundleId,
+        // JoyoFit (iOS) signs in to the same account with its own bundle id as
+        // the token audience; `audience` wins over appBundleIdentifier.
+        audience: appleAudiences(appleBundleId),
         // Apple omits the name on every sign-in after the first (and on
         // relay-only grants); never store an empty one.
         mapProfileToUser: (profile) => (profile.name ? {} : { name: "Pengguna" }),

@@ -41,6 +41,16 @@ describe("appleRevokeConfig", () => {
   });
 });
 
+describe("appleRevokeConfig client id", () => {
+  const env = { APPLE_SIWA_KEY_ID: "K", APPLE_SIWA_PRIVATE_KEY: "P" };
+  test("JoyoFit's bundle id is accepted as the client id", () => {
+    expect(appleRevokeConfig(env, "com.joyodigitama.joyofit")?.clientId).toBe("com.joyodigitama.joyofit");
+  });
+  test("an unknown bundle id falls back to JoyoRogo's", () => {
+    expect(appleRevokeConfig(env, "com.evil.app")?.clientId).toBe("com.joyodigitama.joyorogo");
+  });
+});
+
 describe("buildAppleClientSecret", () => {
   test("ES256 JWT with Apple claims and a verifiable signature", async () => {
     const { pem, publicKey } = await testKey();

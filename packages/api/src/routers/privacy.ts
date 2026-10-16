@@ -43,7 +43,15 @@ export const privacyRouter = {
    * Media goes before the user row so a storage failure stays retryable.
    */
   deleteMyAccount: protectedProcedure
-    .input(z.object({ appleAuthorizationCode: z.string().min(1).optional() }).optional())
+    .input(
+      z
+        .object({
+          appleAuthorizationCode: z.string().min(1).optional(),
+          // Bundle id of the app that asked for the code (JoyoFit); default is JoyoRogo.
+          appleClientId: z.string().min(1).optional(),
+        })
+        .optional(),
+    )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
 
@@ -61,7 +69,7 @@ export const privacyRouter = {
             message: "Masuk ulang dengan Apple untuk menghapus akun.",
           });
         }
-        const config = appleRevokeConfig(context.env);
+        const config = appleRevokeConfig(context.env, input?.appleClientId);
         if (!config) {
           console.error(
             "[privacy] APPLE_SIWA_KEY_ID / APPLE_SIWA_PRIVATE_KEY not set: deleting Apple-linked account WITHOUT revoking the Sign in with Apple token",
