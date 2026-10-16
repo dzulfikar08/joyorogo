@@ -26,6 +26,7 @@ import { GroupPeek, HeroPhone, ScanExample, WeightTrendDemo } from "@/components
 import { GITHUB_URL, GithubMark, PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
 import { FounderPromo } from "@/components/founder-promo";
+import { Testimonials } from "@/components/testimonials";
 import {
   fmtRupiah,
   founderScans,
@@ -36,6 +37,7 @@ import {
 import type { AppConfig } from "@/lib/app-config";
 import { sessionQuery } from "@/lib/auth-client";
 import { openIosInstall } from "@/lib/ios-install";
+import { TESTIMONIALS } from "@/lib/testimonials";
 import { FAQ, IPHONE_FAQ_Q, pageHead } from "@/lib/seo";
 import { IOS_TESTFLIGHT_LIVE } from "@/lib/testflight";
 import { CACHE_OWNER_KEY } from "@/utils/orpc";
@@ -626,6 +628,8 @@ function Landing() {
             <GroupPeek />
           </div>
         </section>
+
+        <Testimonials items={TESTIMONIALS} />
 
         {/* Privacy promises: only what the code actually does. */}
         <section aria-label="Janji privasi" className="border-y border-border/70 bg-card">
