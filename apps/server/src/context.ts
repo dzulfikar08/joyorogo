@@ -1,18 +1,18 @@
 import type { ApiEnv } from "@joyorogo/api/context";
 import type { Context as ApiContext } from "@joyorogo/api/context";
-import { DEFAULT_LOCALE, LOCALE_HEADER, matchAcceptLanguage, matchLocale } from "@joyorogo/i18n";
+import { DEFAULT_LOCALE, LOCALE_HEADER, matchLocale } from "@joyorogo/i18n";
 import type { Context as HonoContext } from "hono";
 
 import { createAuth, getDb } from "./services";
 import { env as workerEnv } from "./env.server";
 
-/** Language of a plain Hono request: x-locale, else Accept-Language, else `id`. */
+/**
+ * Language of a plain Hono request: x-locale, else `id`. No Accept-Language
+ * fallback on purpose: clients released before i18n send no x-locale and only
+ * render Indonesian (they match error text), so they must keep getting `id`.
+ */
 export function requestLocale(context: HonoContext) {
-  return (
-    matchLocale(context.req.header(LOCALE_HEADER)) ??
-    matchAcceptLanguage(context.req.header("Accept-Language")) ??
-    DEFAULT_LOCALE
-  );
+  return matchLocale(context.req.header(LOCALE_HEADER)) ?? DEFAULT_LOCALE;
 }
 
 export type CreateContextOptions = {
