@@ -2,7 +2,7 @@ import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Smartphone, Users } from "lucide-react";
 
-import { APK_URL, TESTER_SECTION_HREF } from "@/lib/app-config";
+import { TESTER_SECTION_HREF } from "@/lib/app-config";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
 
@@ -12,14 +12,13 @@ const ON_PRIMARY =
 /**
  * Get-the-app buttons that follow the visitor's platform.
  *
- * Android goes to the Google Play closed test (the landing's tester section);
- * the APK stays as a small text link for people who can't use Play.
+ * Android goes to the Google Play closed test (the landing's tester section).
  *
  * - Before the platform is known (prerender, first paint) and on desktop:
  *   iPhone web app and Android tester.
  * - iOS: "Pakai di iPhone" opens the install sheet; Android tester is a small
  *   secondary text link.
- * - Android: the tester button plus the APK link.
+ * - Android: the tester button.
  *
  * Renders a fragment so it drops into the caller's button row.
  */
@@ -80,19 +79,7 @@ export function AppDownload({
   );
 
   if (os === "android") {
-    return (
-      <>
-        {tester}
-        <a
-          href={APK_URL}
-          data-revklik-goal="apk_download"
-          data-revklik-goal-location={location}
-          className={smallLink}
-        >
-          Tidak bisa lewat Play? Unduh APK
-        </a>
-      </>
-    );
+    return tester;
   }
 
   if (os === "ios") {

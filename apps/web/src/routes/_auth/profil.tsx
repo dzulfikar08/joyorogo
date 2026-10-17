@@ -59,7 +59,7 @@ import { ScreenError } from "@/components/screen-state";
 import { useStrava } from "@/components/strava-card";
 import { env } from "@/env.public";
 import type { ProfileRow } from "@/lib/api-types";
-import { APK_URL, founderScans, useAppConfig } from "@/lib/app-config";
+import { APP_STORE_URL, PLAY_STORE_URL, founderScans, useAppConfig } from "@/lib/app-config";
 import { checkOrder, fetchPendingOrder, fmtFounderDate } from "@/lib/billing";
 import { sessionQuery, signOut } from "@/lib/auth-client";
 import type { Session } from "@/lib/auth-client";
@@ -569,16 +569,18 @@ function ProfilContent({
           <SectionTitle className="mt-7">Aplikasi Android</SectionTitle>
           <ListGroup>
             <ListAnchorRow
-              href={APK_URL}
+              href={PLAY_STORE_URL}
               icon={<Download className="size-5 text-makan" aria-hidden />}
-              title="Unduh aplikasi Android"
-              subtitle="Versi terbaru, pakai akun yang sama."
+              title="JoyoRogo di Google Play"
+              subtitle="Pakai akun yang sama."
+            />
+            <ListAnchorRow
+              href={APP_STORE_URL}
+              icon={<Smartphone className="size-5 text-makan" aria-hidden />}
+              title="JoyoRogo di App Store"
+              subtitle="Untuk iPhone, akun yang sama."
             />
           </ListGroup>
-          <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">
-            Berupa file APK. Saat memasang, Android mungkin meminta izin memasang dari sumber ini.
-            Sudah terpasang? Unduh lagi untuk memperbarui.
-          </p>
         </>
       )}
 

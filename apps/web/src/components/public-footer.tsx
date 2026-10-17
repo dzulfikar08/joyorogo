@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ShieldCheck } from "lucide-react";
 
-import { APK_URL, useAppConfig } from "@/lib/app-config";
+import { PLAY_STORE_URL, useAppConfig } from "@/lib/app-config";
 
 const SOURCE_URL = "https://github.com/dzulfikar08/joyorogo";
 
@@ -37,12 +37,12 @@ export function PublicFooter() {
             Blog
           </a>
           <a
-            href={APK_URL}
-            data-revklik-goal="apk_download"
+            href={PLAY_STORE_URL}
+            data-revklik-goal="play_store_click"
             data-revklik-goal-location="footer"
             className="inline-flex min-h-11 items-center hover:text-primary"
           >
-            Unduh Android
+            Google Play
           </a>
           <a
             href={SOURCE_URL}
