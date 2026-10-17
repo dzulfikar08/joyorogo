@@ -255,7 +255,11 @@ export const socialReport = sqliteTable(
       .notNull(),
     resolvedAt: integer("resolved_at", { mode: "timestamp_ms" }),
   },
-  (table) => [index("social_report_resolved_idx").on(table.resolvedAt, table.createdAt)],
+  (table) => [
+    index("social_report_resolved_idx").on(table.resolvedAt, table.createdAt),
+    // Admin reports list with the "all"/"resolved" status filter.
+    index("social_report_created_idx").on(table.createdAt, table.id),
+  ],
 );
 
 export const postRelations = relations(post, ({ one, many }) => ({

@@ -239,6 +239,13 @@
       "when": 1792211830611,
       "tag": "0033_profile_locale",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1792230574454,
+      "tag": "0034_admin_list_indexes",
+      "breakpoints": true
     }
   ]
 }

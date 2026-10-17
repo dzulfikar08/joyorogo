@@ -28,7 +28,11 @@ export const payment = sqliteTable(
       .notNull(),
     paidAt: integer("paid_at", { mode: "timestamp_ms" }),
   },
-  (table) => [index("payment_user_created_idx").on(table.userId, table.createdAt)],
+  (table) => [
+    index("payment_user_created_idx").on(table.userId, table.createdAt),
+    // Admin orders list: newest first, order id as the tiebreak.
+    index("payment_created_idx").on(table.createdAt, table.orderId),
+  ],
 );
 
 /**

@@ -172,6 +172,8 @@ export const foodLog = sqliteTable(
   (table) => [
     index("food_log_user_date_idx").on(table.userId, table.date),
     index("food_log_plate_idx").on(table.plateId),
+    // Admin user detail: food logs newest first.
+    index("food_log_user_created_idx").on(table.userId, table.createdAt),
   ],
 );
 
@@ -364,6 +366,8 @@ export const scanFeedback = sqliteTable(
   (table) => [
     index("scan_feedback_user_created_idx").on(table.userId, table.createdAt),
     index("scan_feedback_created_idx").on(table.createdAt),
+    // Admin feedback: negative results (rating in kurang_akurat/salah), newest first.
+    index("scan_feedback_rating_created_idx").on(table.rating, table.createdAt),
   ],
 );
 

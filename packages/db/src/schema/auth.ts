@@ -23,7 +23,10 @@ export const user = sqliteTable("user", {
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
-});
+}, (table) => [
+  // Admin users list: newest first, id as the tiebreak.
+  index("user_created_idx").on(table.createdAt, table.id),
+]);
 
 export const session = sqliteTable(
   "session",
