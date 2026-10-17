@@ -53,12 +53,22 @@ function PrivasiPage() {
           <section className="rounded-3xl bg-card p-5">
             <h2 className="text-base font-bold tracking-tight">Kamera, galeri, dan barcode</h2>
             <p className="mt-3 text-sm leading-relaxed">
-              Kamera hanya dipakai saat kamu memotret makanan untuk dihitung kalorinya atau
-              memindai barcode kemasan, dan galeri hanya untuk foto yang kamu pilih sendiri (foto
-              makanan, foto profil, foto cerita). Kami tidak membaca isi galerimu di luar foto yang
-              kamu pilih. Untuk barcode, hanya nomor barcodenya yang dikirim lewat server kami ke
-              Open Food Facts (basis data produk terbuka) untuk mengambil info gizi; nomor itu
-              tidak disertai nama atau emailmu.
+              Kamera hanya dipakai saat kamu memotret makanan untuk dihitung kalorinya, memindai
+              barcode kemasan, atau memotret tabel "Informasi Nilai Gizi" di kemasan, dan galeri
+              hanya untuk foto yang kamu pilih sendiri (foto makanan, foto label, foto profil, foto
+              cerita). Kami tidak membaca isi galerimu di luar foto yang kamu pilih. Untuk barcode,
+              hanya nomor barcodenya yang dikirim lewat server kami dan basis data produk
+              eksternal, seperti Open Food Facts (basis data produk terbuka), untuk mengambil info
+              gizi; nomor itu tidak disertai nama atau emailmu.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Kalau kamu memotret label gizi produk, fotonya dikirim sekali ke server kami untuk
+              dibaca oleh AI, lalu dibuang: foto itu tidak disimpan dan tidak ditahan. Yang
+              tersimpan hanya nama produk dan angka gizi yang kamu ketik atau konfirmasi sendiri di
+              formulir, dan data produk itu dibagikan ke semua pengguna JoyoRogo supaya mereka bisa
+              memindai produk yang sama. Kontribusimu tetap terhubung ke akunmu supaya kami bisa
+              menghitung berapa orang yang mengonfirmasi angkanya dan membatasi penyalahgunaan,
+              tapi namamu tidak ditampilkan ke pengguna lain.
             </p>
           </section>
 

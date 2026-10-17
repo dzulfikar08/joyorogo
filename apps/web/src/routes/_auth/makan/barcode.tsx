@@ -19,6 +19,9 @@ import { fmtInt, fmtKcalLabel, parseNum } from "@/lib/format";
 import { KindPicker, SnackAdviceCard, useSnackAdvice } from "@/components/makan/snack-advice";
 import type { PickableKind } from "@/components/makan/snack-advice";
 import { client, orpc } from "@/utils/orpc";
+import { LabelFlow, LabelThanks } from "@/components/makan/label-flow";
+import type { ContributeResult } from "@/components/makan/label-flow";
+import { fmtNumber } from "@joyorogo/i18n";
 
 const MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
 
@@ -271,6 +274,14 @@ function BarcodeResult({
   const [saving, setSaving] = useState(false);
   const [kindOverride, setKindOverride] = useState<PickableKind | null>(null);
   const [halfUndo, setHalfUndo] = useState<{ field: "grams" | "kcal"; value: string } | null>(null);
+  const [labelOpen, setLabelOpen] = useState(false);
+  const [thanks, setThanks] = useState<{
+    outcome: ContributeResult["outcome"];
+    contributors: number;
+  } | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [communityDone, setCommunityDone] = useState(false);
+  const foundRef = useRef<HTMLElement>(null);
 
   const save = async (input: Parameters<typeof client.food.add>[0]) => {
     setSaving(true);
@@ -288,6 +299,41 @@ function BarcodeResult({
     } finally {
       setSaving(false);
     }
+  };
+
+  // The server answers contribute/confirm with the product as everyone sees it
+  // now; writing it under the lookup key makes the found UI render it at once.
+  const applyResult = (result: ContributeResult) => {
+    queryClient.setQueryData(orpc.barcode.lookup.queryOptions({ input: { code } }).queryKey, result.lookup);
+    setCommunityDone(true);
+    setGrams(null);
+  };
+
+  const confirmCommunity = async () => {
+    setConfirming(true);
+    try {
+      const result = await client.barcode.confirm({ code });
+      applyResult(result);
+      toast.success(
+        result.outcome === "outvoted"
+          ? t("result.community.outvoted")
+          : t("result.community.confirmed", { count: result.contributors }),
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("save.failed"));
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const continueToLog = () => {
+    const el = foundRef.current;
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    el.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "start",
+    });
   };
 
   const mealPicker = meals.length > 1 && (
@@ -335,8 +381,15 @@ function BarcodeResult({
 
   const fallback = (
     <div className="space-y-2">
+      <Button className="w-full" onClick={() => setLabelOpen(true)}>
+        <Camera className="size-4" aria-hidden />
+        {t("fallback.label")}
+      </Button>
+      <Notes summary={t("label.title")}>
+        <p>{t("fallback.labelNote")}</p>
+      </Notes>
       <Link to="/makan/ai" search={date ? { date } : {}}>
-        <Button className="w-full">
+        <Button variant="secondary" className="w-full">
           <Camera className="size-4" aria-hidden />
           {t("fallback.photo")}
         </Button>
@@ -412,6 +465,21 @@ function BarcodeResult({
     </div>
   );
 
+  if (labelOpen) {
+    return (
+      <LabelFlow
+        code={code}
+        known={product ?? undefined}
+        onCancel={() => setLabelOpen(false)}
+        onSaved={(result) => {
+          applyResult(result);
+          setThanks({ outcome: result.outcome, contributors: result.contributors });
+          setLabelOpen(false);
+        }}
+      />
+    );
+  }
+
   if (lookup.isPending) {
     return (
       <Card role="status" className="text-center text-sm text-muted-foreground">
@@ -460,8 +528,17 @@ function BarcodeResult({
   const unit = data.product.unit;
   const servingLabel = servingSize ? `${fmtInt(servingSize)} ${unit}` : "";
 
-  return (
-    <Card className="space-y-3">
+  const sourceLine =
+    data.source === "off"
+      ? t("result.sources.off")
+      : data.source === "label_photo"
+        ? data.contributors >= 2
+          ? t("result.sources.labelPhotoConfirmed", { count: data.contributors })
+          : t("result.sources.labelPhoto")
+        : t("result.sources.other", { source: data.source });
+
+  const foundCard = (
+    <Card ref={foundRef} tabIndex={-1} className="space-y-3 outline-none">
       <div className="flex items-center gap-3">
         {data.product.imageUrl ? (
           <img
@@ -485,6 +562,25 @@ function BarcodeResult({
           </p>
         </div>
       </div>
+
+      {data.source === "label_photo" && data.mine !== true && !communityDone && (
+        <div className="space-y-2 rounded-2xl bg-muted/60 p-4">
+          <p className="text-sm font-semibold">{t("result.community.prompt")}</p>
+          <div className="flex gap-2">
+            <Button className="flex-1" disabled={confirming} onClick={() => void confirmCommunity()}>
+              {confirming ? t("result.community.confirming") : t("result.community.confirm")}
+            </Button>
+            <Button
+              variant="secondary"
+              className="flex-1"
+              disabled={confirming}
+              onClick={() => setLabelOpen(true)}
+            >
+              {t("result.community.wrong")}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <dl className={cn("grid gap-3 text-sm", perServing && servingSize && "grid-cols-2")}>
         <div>
@@ -518,6 +614,11 @@ function BarcodeResult({
           </div>
         ) : null}
       </dl>
+      {data.sugar100 !== null && (
+        <p className="text-sm text-muted-foreground">
+          {t("result.sugar", { value: fmtNumber(data.sugar100, 1), unit })}
+        </p>
+      )}
 
       <div>
         <FieldLabel htmlFor="barcode-grams">{t("quantity.label", { unit })}</FieldLabel>
@@ -596,7 +697,7 @@ function BarcodeResult({
             itemsJson: JSON.stringify({
               barcode: data.code,
               brand: data.product.brand,
-              source: "openfoodfacts",
+              source: data.source,
             }),
           });
         }}
@@ -613,9 +714,34 @@ function BarcodeResult({
             {t("result.missing", { fields: missing.map((key) => t(`macro.${key}`)).join(", ") })}
           </p>
         )}
-        <p>{t("result.source")}</p>
+        <p>{sourceLine}</p>
+        {data.source === "off" && (
+          <p>
+            <a
+              href={`https://world.openfoodfacts.org/product/${data.code}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold underline underline-offset-2"
+            >
+              {t("result.sources.offLink")}
+            </a>
+          </p>
+        )}
       </Notes>
     </Card>
+  );
+
+  return thanks ? (
+    <div className="space-y-3">
+      <LabelThanks
+        outcome={thanks.outcome}
+        contributors={thanks.contributors}
+        onContinue={continueToLog}
+      />
+      {foundCard}
+    </div>
+  ) : (
+    foundCard
   );
 }
 
