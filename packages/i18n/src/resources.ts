@@ -3,6 +3,8 @@ import idCommon from "./locales/id/common.json";
 import idEmail from "./locales/id/email.json";
 import idErrors from "./locales/id/errors.json";
 import idMakan from "./locales/id/makan.json";
+import idTidur from "./locales/id/tidur.json";
+import idOlahraga from "./locales/id/olahraga.json";
 import idPush from "./locales/id/push.json";
 import idSettings from "./locales/id/settings.json";
 
@@ -11,6 +13,8 @@ import enCommon from "./locales/en/common.json";
 import enEmail from "./locales/en/email.json";
 import enErrors from "./locales/en/errors.json";
 import enMakan from "./locales/en/makan.json";
+import enTidur from "./locales/en/tidur.json";
+import enOlahraga from "./locales/en/olahraga.json";
 import enPush from "./locales/en/push.json";
 import enSettings from "./locales/en/settings.json";
 
@@ -23,6 +27,8 @@ const id = {
   email: idEmail,
   errors: idErrors,
   makan: idMakan,
+  tidur: idTidur,
+  olahraga: idOlahraga,
   push: idPush,
   settings: idSettings,
 };
@@ -37,6 +43,8 @@ const en: typeof id = {
   email: enEmail,
   errors: enErrors,
   makan: enMakan,
+  tidur: enTidur,
+  olahraga: enOlahraga,
   push: enPush,
   settings: enSettings,
 };
