@@ -1,0 +1,338 @@
+{
+  "tab": {
+    "following": "Following",
+    "explore": "Explore",
+    "tips": "Tips",
+    "label": "Feed tabs"
+  },
+  "header": {
+    "compose": "New post",
+    "notifications": "Notifications",
+    "notificationsUnread_other": "Notifications, {{count}} unread",
+    "notificationsUnread_one": "Notifications, {{count}} unread"
+  },
+  "list": {
+    "loading": "Loading feed",
+    "more": "Load more",
+    "end": "You've reached the end of the feed.",
+    "empty": {
+      "following": {
+        "title": "Your feed is quiet",
+        "body": "Follow people from their profiles, or share a log with Share to feed."
+      },
+      "explore": {
+        "title": "No public posts yet",
+        "body": "Public posts from everyone show up here."
+      }
+    }
+  },
+  "notif": {
+    "title": "Notifications",
+    "markRead": "Mark as read",
+    "list": "Notifications",
+    "empty": {
+      "title": "No notifications yet",
+      "body": "Cheers, comments and new followers show up here."
+    },
+    "text": {
+      "kudos": "{{name}} cheered you on",
+      "comment": "{{name}} commented",
+      "commentExcerpt": "{{name}}: {{excerpt}}",
+      "follow": "{{name}} started following you"
+    },
+    "onPost": {
+      "kudos": "{{name}} cheered \"{{post}}\"",
+      "comment": "{{name}} commented on \"{{post}}\""
+    },
+    "deletedPost": "a deleted post"
+  },
+  "visibility": {
+    "publik": "Public",
+    "grup": "Group",
+    "friends": "Group friends",
+    "label": {
+      "publik": "Public post",
+      "grup": "Group friends only"
+    }
+  },
+  "kind": {
+    "makan": "Meal",
+    "latihan": "Workout",
+    "berat": "Weight",
+    "cerita": "Story"
+  },
+  "post": {
+    "weightTitle": "Weight check-in",
+    "showMore": "Read more",
+    "showLess": "Show less",
+    "actions": "Post actions",
+    "openProfile": "{{name}}'s profile",
+    "open": "Open post {{title}}",
+    "photoAlt": "Meal photo",
+    "stickerAlt": "Meal sticker",
+    "kudos": {
+      "give": "Cheer",
+      "remove": "Remove cheer",
+      "label": "Cheers",
+      "sent": "Cheer sent",
+      "empty": "No cheers yet. Be the first."
+    },
+    "comments": {
+      "view": "View comments"
+    },
+    "chip": {
+      "minutes": "{{n}} min",
+      "minutesShort": "{{n}} min",
+      "sets_other": "{{count}} sets",
+      "sets_one": "{{count}} set",
+      "reps_other": "{{count}} reps",
+      "reps_one": "{{count}} rep",
+      "volume": "{{kg}} kg total",
+      "down": "Down {{kg}} kg",
+      "up": "Up {{kg}} kg",
+      "protein": "P {{g}}g",
+      "carbs": "C {{g}}g",
+      "fat": "F {{g}}g",
+      "fiber": "Fiber {{g}}g"
+    }
+  },
+  "comments": {
+    "title": "Comments",
+    "own": "Comments on your post",
+    "other": "On {{name}}'s post",
+    "empty": {
+      "title": "No comments yet",
+      "body": "Be the first to cheer them on.",
+      "short": "No comments yet. Start the conversation."
+    },
+    "list": "Comments",
+    "delete": "Delete comment",
+    "placeholder": "Write a comment...",
+    "label": "Write a comment",
+    "send": "Send comment",
+    "sendShort": "Send",
+    "field": "Comment · {{n}}/{{max}}",
+    "signIn": "<link>Sign in</link> to join the conversation.",
+    "toast": {
+      "sent": "Comment sent"
+    },
+    "undoLabel": "Comment"
+  },
+  "menu": {
+    "report": {
+      "title": "Report post",
+      "subtitle": "Reviewed by the JoyoRogo team"
+    },
+    "block": {
+      "title": "Block {{name}}",
+      "subtitle": "Hide each other's content",
+      "note": "Blocking also removes follows both ways."
+    },
+    "delete": {
+      "title": "Delete post",
+      "subtitle": "Cheers and comments go too"
+    },
+    "undoLabel": "Post",
+    "toast": {
+      "reported": "Report sent, thank you.",
+      "blocked": "User blocked."
+    }
+  },
+  "report": {
+    "ask": "Why are you reporting this post?",
+    "reasonLabel": "Reason",
+    "reason": {
+      "spam": "Spam or promotion",
+      "kasar": "Abusive content",
+      "salah_info": "Misleading information",
+      "lainnya": "Other"
+    },
+    "note": "Extra note (optional)",
+    "noteCount": "Note (optional) · {{n}}/{{max}}",
+    "notePlaceholder": "Briefly explain...",
+    "noteDetail": "Add detail if needed",
+    "send": "Send report",
+    "sending": "Sending..."
+  },
+  "confirm": {
+    "deletePost": {
+      "title": "Delete this post?",
+      "message": "The post, its cheers and comments will disappear for everyone."
+    },
+    "block": {
+      "title": "Block {{name}}?",
+      "message": "You won't see each other's content and follows are removed. Undo it from the blocked list in Profile.",
+      "action": "Block"
+    },
+    "deleteComment": {
+      "title": "Delete this comment?",
+      "message": "The comment will be deleted for everyone."
+    }
+  },
+  "composer": {
+    "title": "New post",
+    "storyLabel": "Your story",
+    "placeholder": "Anything to share today? Tell us about your journey...",
+    "label": "Write a post",
+    "photos": "Attached photos",
+    "photo": "Photo {{n}}",
+    "removePhoto": "Remove photo {{n}}",
+    "addPhoto": "Photo",
+    "addPhotoCount": "Photos ({{n}}/{{max}})",
+    "addFromGallery": "Add photo from gallery",
+    "audience": "Who can see this",
+    "submit": "Post",
+    "busy": {
+      "preparing": "Preparing...",
+      "processing": "Processing photo...",
+      "uploading": "Uploading photo {{n}}/{{total}}...",
+      "sharing": "Sharing..."
+    },
+    "error": {
+      "maxPhotos_other": "Up to {{count}} photos per post.",
+      "maxPhotos_one": "Up to {{count}} photo per post.",
+      "processFile": "Couldn't process {{name}}.",
+      "processFailed": "Couldn't process photo",
+      "empty": "Write something or attach a photo first.",
+      "shareFailed": "Couldn't share post",
+      "noCanvas": "This browser can't process images.",
+      "emptyPhoto": "Empty photo"
+    },
+    "toast": {
+      "posted": "Post shared"
+    },
+    "fallbackName": "You"
+  },
+  "share": {
+    "title": "Share to feed",
+    "caption": "Caption (optional)",
+    "captionCount": "Caption (optional) · {{n}}/{{max}}",
+    "captionPlaceholder": "Tell us about it...",
+    "audience": "Who can see this",
+    "audienceLabel": "Post audience",
+    "hint": {
+      "grup": "Only your group friends and you.",
+      "publik": "Everyone in Explore and on your public profile."
+    },
+    "needPublic": "Turn on \"Public profile\" in Feed settings to choose Public.",
+    "submit": "Share",
+    "toast": {
+      "shared": "It's in the feed. Nice work!"
+    },
+    "error": "Couldn't share."
+  },
+  "handle": {
+    "title": "Choose a username",
+    "body": "Temporary name: {{handle}}. It becomes your profile link.",
+    "placeholder": "e.g. budi_fit",
+    "label": "Username",
+    "checking": "Checking...",
+    "free": "Available",
+    "own": "That's already your username.",
+    "saving": "Saving...",
+    "later": "Not now",
+    "toast": {
+      "saved": "Username saved."
+    },
+    "error": {
+      "save": "Couldn't save"
+    }
+  },
+  "photo": {
+    "viewer": "Photo {{n}} of {{total}}",
+    "viewerNative": "Photo viewer",
+    "close": "Close viewer",
+    "prev": "Previous photo",
+    "next": "Next photo",
+    "open": "Open photo {{n}}",
+    "alt": "Photo {{n}} of the post"
+  },
+  "profile": {
+    "pageTitle": "JoyoRogo profile",
+    "loading": "Loading profile",
+    "follow": "Follow",
+    "following": "Following",
+    "unfollow": "Unfollow",
+    "toast": {
+      "followed": "You're following {{name}}",
+      "unfollowed": "Unfollowed {{name}}"
+    },
+    "fallbackName": "this account",
+    "copyLink": "Copy profile link",
+    "linkCopied": "Link copied.",
+    "notFound": {
+      "title": "Profile not found",
+      "body": "The link is wrong, or the owner made their profile private."
+    },
+    "stats": {
+      "posts": "Posts",
+      "followers": "Followers",
+      "following": "Following"
+    },
+    "private": {
+      "title": "This profile is private",
+      "web": "{{name}} doesn't share progress publicly.",
+      "native": "This account is private. Only group mates can see its activity."
+    },
+    "empty": {
+      "title": "No posts yet",
+      "self": "Share a meal, workout or weigh-in with Share to feed.",
+      "other": "Their public posts will show up here."
+    },
+    "older": "Older posts are available in the feed.",
+    "noFollowers": "No followers yet.",
+    "noFollowing": "Not following anyone yet.",
+    "open": "{{name}}'s profile"
+  },
+  "postPage": {
+    "title": "JoyoRogo post",
+    "loading": "Loading post",
+    "notFound": {
+      "title": "Post not found",
+      "body": "It may have been deleted, or only its group friends can see it."
+    }
+  },
+  "sticker": {
+    "view": "View {{name}} sticker",
+    "sticker": "{{name}} sticker",
+    "photo": "Original photo of {{name}}",
+    "toSticker": "View sticker",
+    "toPhoto": "View original photo",
+    "photoFailed": "Couldn't load the original photo."
+  },
+  "server": {
+    "push": {
+      "kudos": "{{name}} cheered you on",
+      "comment": "{{name}} commented"
+    },
+    "error": {
+      "postNotFound": "Post not found.",
+      "handleTaken": "That username is taken. Try another.",
+      "handleTakenShort": "Taken. Try another.",
+      "handleFormat": "Username: 3-20 characters, lowercase letters, numbers and _ only.",
+      "postQuota": "You've reached today's sharing limit.",
+      "onboardingRequired": "Finish onboarding first.",
+      "publicProfileRequired": "Turn on Public profile in settings first.",
+      "storyEmpty": "Write something or attach a photo first.",
+      "photoMissing": "A photo wasn't found. Try attaching it again.",
+      "pickFood": "Pick a meal first.",
+      "foodNotFound": "Meal entry not found.",
+      "pickWeight": "Pick a weight entry first.",
+      "weightNotFound": "Weight entry not found.",
+      "pickWorkout": "Pick a workout first.",
+      "workoutNotFound": "Workout entry not found.",
+      "photoStorageUnavailable": "Photo storage isn't available yet.",
+      "photoSaveFailed": "Couldn't save the photo.",
+      "profileNotFound": "Profile not found.",
+      "followSelf": "You can't follow yourself.",
+      "followUnavailable": "You can't follow this user.",
+      "followLimit": "You've reached the follow limit.",
+      "commentQuota": "You've reached today's comment limit.",
+      "notYourComment": "That's not your comment.",
+      "blockSelf": "You can't block yourself.",
+      "reportOne": "Report one item at a time.",
+      "reportQuota": "You've reached today's report limit.",
+      "commentNotFound": "Comment not found."
+    }
+  }
+}

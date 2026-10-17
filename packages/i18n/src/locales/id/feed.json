@@ -1,0 +1,334 @@
+{
+  "tab": {
+    "following": "Mengikuti",
+    "explore": "Jelajah",
+    "tips": "Tips",
+    "label": "Pilih tab feed"
+  },
+  "header": {
+    "compose": "Buat post",
+    "notifications": "Notifikasi",
+    "notificationsUnread_other": "Notifikasi, {{count}} belum dibaca"
+  },
+  "list": {
+    "loading": "Memuat feed",
+    "more": "Muat lebih banyak",
+    "end": "Kamu sudah sampai ujung feed.",
+    "empty": {
+      "following": {
+        "title": "Feed-mu masih sepi",
+        "body": "Ikuti orang dari profilnya, atau bagikan log lewat Bagikan ke feed."
+      },
+      "explore": {
+        "title": "Belum ada postingan publik",
+        "body": "Postingan publik dari semua pengguna muncul di sini."
+      }
+    }
+  },
+  "notif": {
+    "title": "Notifikasi",
+    "markRead": "Tandai dibaca",
+    "list": "Daftar notifikasi",
+    "empty": {
+      "title": "Belum ada notifikasi",
+      "body": "Semangat, komentar, dan pengikut baru muncul di sini."
+    },
+    "text": {
+      "kudos": "{{name}} kasih semangat",
+      "comment": "{{name}} berkomentar",
+      "commentExcerpt": "{{name}}: {{excerpt}}",
+      "follow": "{{name}} mulai mengikuti kamu"
+    },
+    "onPost": {
+      "kudos": "{{name}} memberi semangat di \"{{post}}\"",
+      "comment": "{{name}} berkomentar di \"{{post}}\""
+    },
+    "deletedPost": "sebuah post yang sudah dihapus"
+  },
+  "visibility": {
+    "publik": "Publik",
+    "grup": "Grup",
+    "friends": "Teman grup",
+    "label": {
+      "publik": "Postingan publik",
+      "grup": "Hanya teman grup"
+    }
+  },
+  "kind": {
+    "makan": "Makan",
+    "latihan": "Latihan",
+    "berat": "Berat",
+    "cerita": "Cerita"
+  },
+  "post": {
+    "weightTitle": "Check-in berat badan",
+    "showMore": "Selengkapnya",
+    "showLess": "Tutup",
+    "actions": "Aksi postingan",
+    "openProfile": "Profil {{name}}",
+    "open": "Buka post {{title}}",
+    "photoAlt": "Foto makanan",
+    "stickerAlt": "Stiker makanan",
+    "kudos": {
+      "give": "Beri semangat",
+      "remove": "Batalkan semangat",
+      "label": "Semangat",
+      "sent": "Semangat terkirim",
+      "empty": "Belum ada yang memberi semangat. Jadilah yang pertama."
+    },
+    "comments": {
+      "view": "Lihat komentar"
+    },
+    "chip": {
+      "minutes": "{{n}} menit",
+      "minutesShort": "{{n}} mnt",
+      "sets_other": "{{count}} set",
+      "reps_other": "{{count}} rep",
+      "volume": "{{kg}} kg total",
+      "down": "Turun {{kg}} kg",
+      "up": "Naik {{kg}} kg",
+      "protein": "P {{g}}g",
+      "carbs": "K {{g}}g",
+      "fat": "L {{g}}g",
+      "fiber": "Serat {{g}}g"
+    }
+  },
+  "comments": {
+    "title": "Komentar",
+    "own": "Komentar di postinganmu",
+    "other": "Di postingan {{name}}",
+    "empty": {
+      "title": "Belum ada komentar",
+      "body": "Jadi yang pertama memberi semangat lewat komentar.",
+      "short": "Belum ada komentar. Mulai percakapannya."
+    },
+    "list": "Daftar komentar",
+    "delete": "Hapus komentar",
+    "placeholder": "Tulis komentar...",
+    "label": "Tulis komentar",
+    "send": "Kirim komentar",
+    "sendShort": "Kirim",
+    "field": "Komentar · {{n}}/{{max}}",
+    "signIn": "<link>Masuk</link> untuk ikut berkomentar.",
+    "toast": {
+      "sent": "Komentar terkirim"
+    },
+    "undoLabel": "Komentar"
+  },
+  "menu": {
+    "report": {
+      "title": "Laporkan postingan",
+      "subtitle": "Diperiksa tim JoyoRogo"
+    },
+    "block": {
+      "title": "Blokir {{name}}",
+      "subtitle": "Sembunyikan konten satu sama lain",
+      "note": "Blokir juga memutus hubungan mengikuti dua arah."
+    },
+    "delete": {
+      "title": "Hapus postingan",
+      "subtitle": "Semangat dan komentar ikut hilang"
+    },
+    "undoLabel": "Postingan",
+    "toast": {
+      "reported": "Laporan terkirim, terima kasih.",
+      "blocked": "Pengguna diblokir."
+    }
+  },
+  "report": {
+    "ask": "Kenapa kamu melaporkan postingan ini?",
+    "reasonLabel": "Alasan",
+    "reason": {
+      "spam": "Spam atau promosi",
+      "kasar": "Konten kasar",
+      "salah_info": "Informasi menyesatkan",
+      "lainnya": "Lainnya"
+    },
+    "note": "Catatan tambahan (opsional)",
+    "noteCount": "Catatan (opsional) · {{n}}/{{max}}",
+    "notePlaceholder": "Jelaskan singkat...",
+    "noteDetail": "Tambahkan detail kalau perlu",
+    "send": "Kirim laporan",
+    "sending": "Mengirim..."
+  },
+  "confirm": {
+    "deletePost": {
+      "title": "Hapus post ini?",
+      "message": "Post, semangat, dan komentarnya akan hilang untuk semua orang."
+    },
+    "block": {
+      "title": "Blokir {{name}}?",
+      "message": "Konten kalian saling disembunyikan dan follow diputus. Bisa dibuka lewat daftar blokir di Profil.",
+      "action": "Blokir"
+    },
+    "deleteComment": {
+      "title": "Hapus komentar ini?",
+      "message": "Komentar akan dihapus untuk semua orang."
+    }
+  },
+  "composer": {
+    "title": "Buat post",
+    "storyLabel": "Ceritamu",
+    "placeholder": "Ada cerita hari ini? Ceritakan perjalananmu...",
+    "label": "Tulis post",
+    "photos": "Foto terlampir",
+    "photo": "Foto {{n}}",
+    "removePhoto": "Buang foto {{n}}",
+    "addPhoto": "Foto",
+    "addPhotoCount": "Foto ({{n}}/{{max}})",
+    "addFromGallery": "Tambah foto dari galeri",
+    "audience": "Penonton post",
+    "submit": "Posting",
+    "busy": {
+      "preparing": "Menyiapkan...",
+      "processing": "Memproses foto...",
+      "uploading": "Mengunggah foto {{n}}/{{total}}...",
+      "sharing": "Membagikan..."
+    },
+    "error": {
+      "maxPhotos_other": "Maksimal {{count}} foto per post.",
+      "processFile": "Gagal memproses {{name}}.",
+      "processFailed": "Foto tidak bisa diproses",
+      "empty": "Tulis cerita dulu atau lampirkan satu foto.",
+      "shareFailed": "Post gagal dibagikan",
+      "noCanvas": "Browser tidak mendukung pengolahan gambar.",
+      "emptyPhoto": "Foto kosong"
+    },
+    "toast": {
+      "posted": "Postingan dibagikan"
+    },
+    "fallbackName": "Kamu"
+  },
+  "share": {
+    "title": "Bagikan ke feed",
+    "caption": "Caption (opsional)",
+    "captionCount": "Caption (opsional) · {{n}}/{{max}}",
+    "captionPlaceholder": "Ceritakan prosesnya...",
+    "audience": "Siapa yang bisa lihat",
+    "audienceLabel": "Penonton postingan",
+    "hint": {
+      "grup": "Hanya teman satu Grup dan kamu.",
+      "publik": "Semua orang di tab Jelajah dan profil publikmu."
+    },
+    "needPublic": "Nyalakan \"Profil publik\" di Pengaturan feed dulu agar bisa memilih Publik.",
+    "submit": "Bagikan",
+    "toast": {
+      "shared": "Muncul di feed, semangat!"
+    },
+    "error": "Gagal membagikan."
+  },
+  "handle": {
+    "title": "Pilih nama pengguna",
+    "body": "Nama sementara: {{handle}}. Ini jadi tautan profilmu.",
+    "placeholder": "mis. budi_olahraga",
+    "label": "Nama pengguna",
+    "checking": "Mengecek...",
+    "free": "Tersedia",
+    "own": "Ini sudah jadi namamu.",
+    "saving": "Menyimpan...",
+    "later": "Nanti saja",
+    "toast": {
+      "saved": "Nama pengguna tersimpan."
+    },
+    "error": {
+      "save": "Gagal menyimpan"
+    }
+  },
+  "photo": {
+    "viewer": "Foto {{n}} dari {{total}}",
+    "viewerNative": "Penampil foto",
+    "close": "Tutup penampil",
+    "prev": "Foto sebelumnya",
+    "next": "Foto berikutnya",
+    "open": "Buka foto {{n}}",
+    "alt": "Foto {{n}} dari post"
+  },
+  "profile": {
+    "pageTitle": "Profil JoyoRogo",
+    "loading": "Memuat profil",
+    "follow": "Ikuti",
+    "following": "Mengikuti",
+    "unfollow": "Berhenti ikuti",
+    "toast": {
+      "followed": "Kamu mengikuti {{name}}",
+      "unfollowed": "Berhenti mengikuti {{name}}"
+    },
+    "fallbackName": "akun ini",
+    "copyLink": "Salin tautan profil",
+    "linkCopied": "Tautan disalin.",
+    "notFound": {
+      "title": "Profil tidak ditemukan",
+      "body": "Tautannya salah, atau pemiliknya menutup profilnya."
+    },
+    "stats": {
+      "posts": "Postingan",
+      "followers": "Pengikut",
+      "following": "Mengikuti"
+    },
+    "private": {
+      "title": "Profil ini privat",
+      "web": "{{name}} tidak membagikan progresnya ke publik.",
+      "native": "Akun ini privat. Hanya rekan satu grup yang bisa melihat aktivitasnya."
+    },
+    "empty": {
+      "title": "Belum ada postingan",
+      "self": "Bagikan makanan, latihan, atau progres beratmu lewat tombol Bagikan ke feed.",
+      "other": "Postingan publiknya akan muncul di sini."
+    },
+    "older": "Post yang lebih lama bisa dibuka dari feed.",
+    "noFollowers": "Belum ada pengikut.",
+    "noFollowing": "Belum mengikuti siapa pun.",
+    "open": "Profil {{name}}"
+  },
+  "postPage": {
+    "title": "Postingan JoyoRogo",
+    "loading": "Memuat postingan",
+    "notFound": {
+      "title": "Postingan tidak ditemukan",
+      "body": "Mungkin sudah dihapus, atau cuma terlihat oleh teman grupnya."
+    }
+  },
+  "sticker": {
+    "view": "Lihat stiker {{name}}",
+    "sticker": "Stiker {{name}}",
+    "photo": "Foto asli {{name}}",
+    "toSticker": "Lihat stiker",
+    "toPhoto": "Lihat foto asli",
+    "photoFailed": "Foto asli gagal dimuat."
+  },
+  "server": {
+    "push": {
+      "kudos": "{{name}} kasih semangat",
+      "comment": "{{name}} berkomentar"
+    },
+    "error": {
+      "postNotFound": "Postingan tidak ditemukan.",
+      "handleTaken": "Handle sudah dipakai, coba yang lain.",
+      "handleTakenShort": "Sudah dipakai, coba yang lain.",
+      "handleFormat": "Handle 3-20 karakter, hanya huruf kecil, angka, dan _",
+      "postQuota": "Kuota bagikan hari ini habis.",
+      "onboardingRequired": "Lengkapi onboarding dulu.",
+      "publicProfileRequired": "Aktifkan Profil publik dulu di pengaturan.",
+      "storyEmpty": "Tulis cerita dulu atau lampirkan satu foto.",
+      "photoMissing": "Ada foto yang tidak ditemukan, coba lampirkan ulang.",
+      "pickFood": "Pilih dulu makanannya.",
+      "foodNotFound": "Catatan makan tidak ditemukan.",
+      "pickWeight": "Pilih dulu catatan beratnya.",
+      "weightNotFound": "Catatan berat tidak ditemukan.",
+      "pickWorkout": "Pilih dulu latihannya.",
+      "workoutNotFound": "Catatan latihan tidak ditemukan.",
+      "photoStorageUnavailable": "Penyimpanan foto belum tersedia.",
+      "photoSaveFailed": "Gagal menyimpan foto.",
+      "profileNotFound": "Profil tidak ditemukan.",
+      "followSelf": "Tidak bisa mengikuti diri sendiri.",
+      "followUnavailable": "Tidak bisa mengikuti pengguna ini.",
+      "followLimit": "Batas mengikuti tercapai.",
+      "commentQuota": "Kuota komentar hari ini habis.",
+      "notYourComment": "Bukan komentarmu.",
+      "blockSelf": "Tidak bisa memblokir diri sendiri.",
+      "reportOne": "Lapor satu konten saja.",
+      "reportQuota": "Kuota laporan hari ini habis.",
+      "commentNotFound": "Komentar tidak ditemukan."
+    }
+  }
+}

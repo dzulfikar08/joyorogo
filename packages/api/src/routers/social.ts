@@ -50,7 +50,7 @@ const handleSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .regex(/^[a-z0-9_]{3,20}$/, "Handle 3-20 karakter, hanya huruf kecil, angka, dan _");
+  .regex(/^[a-z0-9_]{3,20}$/);
 
 const visibilitySchema = z.enum(["publik", "grup"]);
 
@@ -117,6 +117,7 @@ async function loadVisiblePost(
   db: Database,
   postId: string,
   viewerId: string | null,
+  t: TFunction<"feed">,
 ) {
   const [row] = await db
     .select({
@@ -144,9 +145,9 @@ async function loadVisiblePost(
     .leftJoin(profileTable, eq(profileTable.userId, postTable.userId))
     .where(eq(postTable.id, postId))
     .limit(1);
-  if (!row) throw new ORPCError("NOT_FOUND", { message: "Postingan tidak ditemukan." });
+  if (!row) throw new ORPCError("NOT_FOUND", { message: t("server.error.postNotFound") });
   const visible = await canViewPost(db, row, row.authorPublic ?? true, viewerId);
-  if (!visible) throw new ORPCError("NOT_FOUND", { message: "Postingan tidak ditemukan." });
+  if (!visible) throw new ORPCError("NOT_FOUND", { message: t("server.error.postNotFound") });
   return row;
 }
 
@@ -208,7 +209,7 @@ function pushFeed(
   },
   toUserId: string,
   /** Written in the RECIPIENT's language, not the actor's. */
-  payload: (t: TFunction<"push">) => { title: string; body: string },
+  payload: (t: TFunction<"feed">) => { title: string; body: string },
 ) {
   context.waitUntil(
     (async () => {
@@ -217,7 +218,7 @@ function pushFeed(
         .from(pushSubscription)
         .where(eq(pushSubscription.userId, toUserId));
       if (subs.length === 0) return;
-      const message = payload(serverT(await userLocale(context.db, toUserId), "push"));
+      const message = payload(serverT(await userLocale(context.db, toUserId), "feed"));
       await Promise.all(
         subs.map(async (sub) => {
           const result = await sendPush(context.env, sub, message);
@@ -273,7 +274,7 @@ async function notifyKudos(
   }
   if (shouldPush) {
     pushFeed(context, authorId, (t) => ({
-      title: t("social.kudos", { name: actorName }),
+      title: t("server.push.kudos", { name: actorName }),
       body: postTitle,
     }));
   }
@@ -296,7 +297,7 @@ async function notifyComment(
     excerpt: body.slice(0, 120),
   });
   pushFeed(context, authorId, (t) => ({
-    title: t("social.comment", { name: actorName }),
+    title: t("server.push.comment", { name: actorName }),
     body: body.slice(0, 120),
   }));
 }
@@ -461,13 +462,14 @@ export const socialRouter = {
   updateProfile: protectedProcedure
     .input(
       z.object({
-        handle: handleSchema.optional(),
+        handle: z.string().max(40).optional(),
         bio: z.string().trim().max(BIO_MAX).optional(),
         publicProfile: z.boolean().optional(),
         defaultVisibility: visibilitySchema.optional(),
       }),
     )
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       const me = context.session.user.id;
       const patch: Partial<{
         handle: string;
@@ -475,7 +477,13 @@ export const socialRouter = {
         publicProfile: boolean;
         defaultVisibility: "publik" | "grup";
       }> = {};
-      if (input.handle !== undefined) patch.handle = input.handle;
+      if (input.handle !== undefined) {
+        const parsed = handleSchema.safeParse(input.handle);
+        if (!parsed.success) {
+          throw new ORPCError("BAD_REQUEST", { message: t("server.error.handleFormat") });
+        }
+        patch.handle = parsed.data;
+      }
       if (input.bio !== undefined) patch.bio = input.bio.length > 0 ? input.bio : null;
       if (input.publicProfile !== undefined) {
         patch.publicProfile = input.publicProfile;
@@ -493,13 +501,13 @@ export const socialRouter = {
           .limit(1);
         if (current?.handle === patch.handle) delete patch.handle;
         else if (await handleTaken(context.db, patch.handle)) {
-          throw new ORPCError("BAD_REQUEST", { message: "Handle sudah dipakai, coba yang lain." });
+          throw new ORPCError("BAD_REQUEST", { message: t("server.error.handleTaken") });
         }
       }
       try {
         await context.db.update(profileTable).set(patch).where(eq(profileTable.userId, me));
       } catch {
-        throw new ORPCError("BAD_REQUEST", { message: "Handle sudah dipakai, coba yang lain." });
+        throw new ORPCError("BAD_REQUEST", { message: t("server.error.handleTaken") });
       }
       return { ok: true };
     }),
@@ -508,11 +516,12 @@ export const socialRouter = {
   handleCheck: protectedProcedure
     .input(z.object({ handle: z.string().max(40) }))
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       const parsed = handleSchema.safeParse(input.handle);
       if (!parsed.success) {
         return {
           status: "invalid" as const,
-          message: parsed.error.issues[0]?.message ?? "Handle tidak valid",
+          message: t("server.error.handleFormat"),
         };
       }
       const [current] = await context.db
@@ -522,7 +531,7 @@ export const socialRouter = {
         .limit(1);
       if (current?.handle === parsed.data) return { status: "own" as const, message: null };
       if (await handleTaken(context.db, parsed.data)) {
-        return { status: "taken" as const, message: "Sudah dipakai, coba yang lain." };
+        return { status: "taken" as const, message: t("server.error.handleTakenShort") };
       }
       return { status: "free" as const, message: null };
     }),
@@ -572,6 +581,7 @@ export const socialRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       const me = context.session.user.id;
       const db = context.db;
 
@@ -582,7 +592,7 @@ export const socialRouter = {
           .where(and(eq(postTable.userId, me), gt(postTable.createdAt, new Date(dayStartWib())))),
       );
       if (todayCount >= MAX_POSTS_PER_DAY) {
-        throw new ORPCError("BAD_REQUEST", { message: "Kuota bagikan hari ini habis." });
+        throw new ORPCError("BAD_REQUEST", { message: t("server.error.postQuota") });
       }
 
       const [meProfile] = await db
@@ -595,12 +605,12 @@ export const socialRouter = {
         .where(eq(profileTable.userId, me))
         .limit(1);
       if (!meProfile) {
-        throw new ORPCError("FAILED_PRECONDITION", { message: "Lengkapi onboarding dulu." });
+        throw new ORPCError("FAILED_PRECONDITION", { message: t("server.error.onboardingRequired") });
       }
       const visibility = input.visibility ?? meProfile.defaultVisibility;
       if (visibility === "publik" && !meProfile.publicProfile) {
         throw new ORPCError("BAD_REQUEST", {
-          message: "Aktifkan Profil publik dulu di pengaturan.",
+          message: t("server.error.publicProfileRequired"),
         });
       }
 
@@ -625,7 +635,7 @@ export const socialRouter = {
         const photoIds = input.photoIds ?? [];
         if (caption.length === 0 && photoIds.length === 0) {
           throw new ORPCError("BAD_REQUEST", {
-            message: "Tulis cerita dulu atau lampirkan satu foto.",
+            message: t("server.error.storyEmpty"),
           });
         }
         const bucket = context.env.STICKERS;
@@ -635,7 +645,7 @@ export const socialRouter = {
             const found = await bucket.get(`posts/${me}/${photoId}.jpg`);
             if (!found) {
               throw new ORPCError("BAD_REQUEST", {
-                message: "Ada foto yang tidak ditemukan, coba lampirkan ulang.",
+                message: t("server.error.photoMissing"),
               });
             }
           }
@@ -656,14 +666,14 @@ export const socialRouter = {
         };
       } else if (input.kind === "makan") {
         if (!input.refId) {
-          throw new ORPCError("BAD_REQUEST", { message: "Pilih dulu makanannya." });
+          throw new ORPCError("BAD_REQUEST", { message: t("server.error.pickFood") });
         }
         const [food] = await db
           .select()
           .from(foodLog)
           .where(and(eq(foodLog.id, input.refId), eq(foodLog.userId, me)))
           .limit(1);
-        if (!food) throw new ORPCError("NOT_FOUND", { message: "Catatan makan tidak ditemukan." });
+        if (!food) throw new ORPCError("NOT_FOUND", { message: t("server.error.foodNotFound") });
         snapshot = {
           title: food.name,
           kcal: food.kcal,
@@ -685,14 +695,14 @@ export const socialRouter = {
         };
       } else if (input.kind === "berat") {
         if (!input.refId) {
-          throw new ORPCError("BAD_REQUEST", { message: "Pilih dulu catatan beratnya." });
+          throw new ORPCError("BAD_REQUEST", { message: t("server.error.pickWeight") });
         }
         const [weight] = await db
           .select()
           .from(weightLog)
           .where(and(eq(weightLog.id, input.refId), eq(weightLog.userId, me)))
           .limit(1);
-        if (!weight) throw new ORPCError("NOT_FOUND", { message: "Catatan berat tidak ditemukan." });
+        if (!weight) throw new ORPCError("NOT_FOUND", { message: t("server.error.weightNotFound") });
         snapshot = {
           title: "Check-in berat badan",
           kcal: null,
@@ -713,7 +723,7 @@ export const socialRouter = {
       } else {
         // Latihan: sesi beban (workout_session) atau kardio (exercise_log).
         if (!input.refId) {
-          throw new ORPCError("BAD_REQUEST", { message: "Pilih dulu latihannya." });
+          throw new ORPCError("BAD_REQUEST", { message: t("server.error.pickWorkout") });
         }
         const [session] = await db
           .select()
@@ -769,7 +779,7 @@ export const socialRouter = {
             )
             .limit(1);
           if (!cardio) {
-            throw new ORPCError("NOT_FOUND", { message: "Catatan latihan tidak ditemukan." });
+            throw new ORPCError("NOT_FOUND", { message: t("server.error.workoutNotFound") });
           }
           snapshot = {
             title: cardio.name,
@@ -813,10 +823,11 @@ export const socialRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       const userId = context.session.user.id;
       const bucket = context.env.STICKERS;
       if (!bucket) {
-        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Penyimpanan foto belum tersedia." });
+        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: t("server.error.photoStorageUnavailable") });
       }
       const id = crypto.randomUUID().replaceAll("-", "");
       try {
@@ -826,7 +837,7 @@ export const socialRouter = {
           httpMetadata: { contentType: input.mimeType },
         });
       } catch {
-        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Gagal menyimpan foto." });
+        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: t("server.error.photoSaveFailed") });
       }
       return { photoId: id };
     }),
@@ -930,8 +941,9 @@ export const socialRouter = {
   post: publicProcedure
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       const me = context.session?.user.id ?? null;
-      const row = await loadVisiblePost(context.db, input.id, me);
+      const row = await loadVisiblePost(context.db, input.id, me, t);
       const kudosCount = await countRow(
         context.db.select({ total: count() }).from(postKudos).where(eq(postKudos.postId, row.id)),
       );
@@ -963,6 +975,7 @@ export const socialRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       const db = context.db;
       const me = context.session?.user.id ?? null;
       const [row] = await db
@@ -978,7 +991,7 @@ export const socialRouter = {
         .innerJoin(user, eq(user.id, profileTable.userId))
         .where(eq(profileTable.handle, input.handle))
         .limit(1);
-      if (!row) throw new ORPCError("NOT_FOUND", { message: "Profil tidak ditemukan." });
+      if (!row) throw new ORPCError("NOT_FOUND", { message: t("server.error.profileNotFound") });
       const isSelf = me === row.userId;
       if (!row.publicProfile && !isSelf) {
         return {
@@ -1008,7 +1021,7 @@ export const socialRouter = {
             ),
         );
         if (blocked > 0) {
-          throw new ORPCError("NOT_FOUND", { message: "Profil tidak ditemukan." });
+          throw new ORPCError("NOT_FOUND", { message: t("server.error.profileNotFound") });
         }
       }
       const [[postCount], [followers], [following], [isFollowingRow], posts] = await Promise.all([
@@ -1081,10 +1094,11 @@ export const socialRouter = {
   setFollow: protectedProcedure
     .input(z.object({ userId: z.string(), follow: z.boolean() }))
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       const me = context.session.user.id;
       const db = context.db;
       if (input.userId === me) {
-        throw new ORPCError("BAD_REQUEST", { message: "Tidak bisa mengikuti diri sendiri." });
+        throw new ORPCError("BAD_REQUEST", { message: t("server.error.followSelf") });
       }
       if (input.follow) {
         const blocked = await countRow(
@@ -1099,13 +1113,13 @@ export const socialRouter = {
             ),
         );
         if (blocked > 0) {
-          throw new ORPCError("NOT_FOUND", { message: "Tidak bisa mengikuti pengguna ini." });
+          throw new ORPCError("NOT_FOUND", { message: t("server.error.followUnavailable") });
         }
         const followingCount = await countRow(
           db.select({ total: count() }).from(socialFollow).where(eq(socialFollow.followerId, me)),
         );
         if (followingCount >= MAX_FOLLOWING) {
-          throw new ORPCError("BAD_REQUEST", { message: "Batas mengikuti tercapai." });
+          throw new ORPCError("BAD_REQUEST", { message: t("server.error.followLimit") });
         }
         await db
           .insert(socialFollow)
@@ -1151,15 +1165,16 @@ export const socialRouter = {
   followers: publicProcedure
     .input(z.object({ handle: z.string().trim().toLowerCase() }))
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       const [row] = await context.db
         .select({ userId: profileTable.userId, publicProfile: profileTable.publicProfile })
         .from(profileTable)
         .where(eq(profileTable.handle, input.handle))
         .limit(1);
-      if (!row) throw new ORPCError("NOT_FOUND", { message: "Profil tidak ditemukan." });
+      if (!row) throw new ORPCError("NOT_FOUND", { message: t("server.error.profileNotFound") });
       const me = context.session?.user.id ?? null;
       if (!row.publicProfile && me !== row.userId) {
-        throw new ORPCError("NOT_FOUND", { message: "Profil tidak ditemukan." });
+        throw new ORPCError("NOT_FOUND", { message: t("server.error.profileNotFound") });
       }
       const rows = await context.db
         .select({
@@ -1185,15 +1200,16 @@ export const socialRouter = {
   following: publicProcedure
     .input(z.object({ handle: z.string().trim().toLowerCase() }))
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       const [row] = await context.db
         .select({ userId: profileTable.userId, publicProfile: profileTable.publicProfile })
         .from(profileTable)
         .where(eq(profileTable.handle, input.handle))
         .limit(1);
-      if (!row) throw new ORPCError("NOT_FOUND", { message: "Profil tidak ditemukan." });
+      if (!row) throw new ORPCError("NOT_FOUND", { message: t("server.error.profileNotFound") });
       const me = context.session?.user.id ?? null;
       if (!row.publicProfile && me !== row.userId) {
-        throw new ORPCError("NOT_FOUND", { message: "Profil tidak ditemukan." });
+        throw new ORPCError("NOT_FOUND", { message: t("server.error.profileNotFound") });
       }
       const rows = await context.db
         .select({
@@ -1219,9 +1235,10 @@ export const socialRouter = {
   kudos: protectedProcedure
     .input(z.object({ postId: z.string() }))
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       const me = context.session.user.id;
       const db = context.db;
-      const row = await loadVisiblePost(db, input.postId, me);
+      const row = await loadVisiblePost(db, input.postId, me, t);
       const [existing] = await db
         .select({ postId: postKudos.postId })
         .from(postKudos)
@@ -1335,6 +1352,7 @@ export const socialRouter = {
   addComment: protectedProcedure
     .input(z.object({ postId: z.string(), body: z.string().trim().min(1).max(COMMENT_MAX) }))
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       const me = context.session.user.id;
       const db = context.db;
       const dayCount = await countRow(
@@ -1346,9 +1364,9 @@ export const socialRouter = {
           ),
       );
       if (dayCount >= MAX_COMMENTS_PER_DAY) {
-        throw new ORPCError("BAD_REQUEST", { message: "Kuota komentar hari ini habis." });
+        throw new ORPCError("BAD_REQUEST", { message: t("server.error.commentQuota") });
       }
-      const row = await loadVisiblePost(db, input.postId, me);
+      const row = await loadVisiblePost(db, input.postId, me, t);
       const commentId = crypto.randomUUID();
       await db.insert(postComment).values({
         id: commentId,
@@ -1378,6 +1396,7 @@ export const socialRouter = {
   deleteComment: protectedProcedure
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       const me = context.session.user.id;
       const [comment] = await context.db
         .select({ id: postComment.id, userId: postComment.userId, postId: postComment.postId })
@@ -1391,7 +1410,7 @@ export const socialRouter = {
         .where(eq(postTable.id, comment.postId))
         .limit(1);
       if (comment.userId !== me && post?.userId !== me) {
-        throw new ORPCError("FORBIDDEN", { message: "Bukan komentarmu." });
+        throw new ORPCError("FORBIDDEN", { message: t("server.error.notYourComment") });
       }
       await context.db.delete(postComment).where(eq(postComment.id, comment.id));
       return { ok: true };
@@ -1400,9 +1419,10 @@ export const socialRouter = {
   block: protectedProcedure
     .input(z.object({ userId: z.string() }))
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       const me = context.session.user.id;
       if (input.userId === me) {
-        throw new ORPCError("BAD_REQUEST", { message: "Tidak bisa memblokir diri sendiri." });
+        throw new ORPCError("BAD_REQUEST", { message: t("server.error.blockSelf") });
       }
       await context.db
         .insert(socialBlock)
@@ -1460,8 +1480,9 @@ export const socialRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       if (Boolean(input.postId) === Boolean(input.commentId)) {
-        throw new ORPCError("BAD_REQUEST", { message: "Lapor satu konten saja." });
+        throw new ORPCError("BAD_REQUEST", { message: t("server.error.reportOne") });
       }
       const me = context.session.user.id;
       const dayCount = await countRow(
@@ -1471,7 +1492,7 @@ export const socialRouter = {
           .where(and(eq(socialReport.reporterId, me), gt(socialReport.createdAt, new Date(dayStartWib())))),
       );
       if (dayCount >= MAX_REPORTS_PER_DAY) {
-        throw new ORPCError("BAD_REQUEST", { message: "Kuota laporan hari ini habis." });
+        throw new ORPCError("BAD_REQUEST", { message: t("server.error.reportQuota") });
       }
       if (input.postId) {
         const [post] = await context.db
@@ -1479,14 +1500,14 @@ export const socialRouter = {
           .from(postTable)
           .where(eq(postTable.id, input.postId))
           .limit(1);
-        if (!post) throw new ORPCError("NOT_FOUND", { message: "Postingan tidak ditemukan." });
+        if (!post) throw new ORPCError("NOT_FOUND", { message: t("server.error.postNotFound") });
       } else if (input.commentId) {
         const [comment] = await context.db
           .select({ id: postComment.id })
           .from(postComment)
           .where(eq(postComment.id, input.commentId))
           .limit(1);
-        if (!comment) throw new ORPCError("NOT_FOUND", { message: "Komentar tidak ditemukan." });
+        if (!comment) throw new ORPCError("NOT_FOUND", { message: t("server.error.commentNotFound") });
       }
       await context.db.insert(socialReport).values({
         id: crypto.randomUUID(),
