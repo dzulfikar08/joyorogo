@@ -16,7 +16,10 @@ import idVarperut from "./locales/id/varperut.json";
 import idFeed from "./locales/id/feed.json";
 import idPlace from "./locales/id/place.json";
 import idChallenge from "./locales/id/challenge.json";
+import idMisc from "./locales/id/misc.json";
+import idTips from "./locales/id/tips.json";
 import idHome from "./locales/id/home.json";
+import idGrup from "./locales/id/grup.json";
 
 import enAuth from "./locales/en/auth.json";
 import enBerat from "./locales/en/berat.json";
@@ -36,7 +39,10 @@ import enVarperut from "./locales/en/varperut.json";
 import enFeed from "./locales/en/feed.json";
 import enPlace from "./locales/en/place.json";
 import enChallenge from "./locales/en/challenge.json";
+import enMisc from "./locales/en/misc.json";
+import enTips from "./locales/en/tips.json";
 import enHome from "./locales/en/home.json";
+import enGrup from "./locales/en/grup.json";
 
 import type { Locale } from "./locale";
 
@@ -60,7 +66,10 @@ const id = {
   feed: idFeed,
   place: idPlace,
   challenge: idChallenge,
+  misc: idMisc,
+  tips: idTips,
   home: idHome,
+  grup: idGrup,
 };
 
 /**
@@ -86,7 +95,10 @@ const en: typeof id = {
   feed: enFeed,
   place: enPlace,
   challenge: enChallenge,
+  misc: enMisc,
+  tips: enTips,
   home: enHome,
+  grup: enGrup,
 };
 
 export const resources = { id, en } satisfies Record<Locale, typeof id>;

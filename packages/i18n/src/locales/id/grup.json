@@ -1,0 +1,376 @@
+{
+  "members_other": "{{count}} anggota",
+  "list": {
+    "title": "Grup",
+    "subtitle": "Semangat bareng, curi perhatian ala VAR.",
+    "loading": "Memuat grup",
+    "inbox": "Kotak masuk",
+    "inboxUnread": "Kotak masuk, {{count}} belum dibaca",
+    "listLabel": "Daftar grup",
+    "row": {
+      "owner_other": "Kamu pemilik · {{count}} anggota"
+    },
+    "empty": {
+      "title": "Belum ada grup",
+      "body": "Buat grup untuk teman sekantor atau sekeluarga, lalu bagikan kode undangannya."
+    },
+    "create": "Buat grup",
+    "join": "Gabung pakai kode"
+  },
+  "create": {
+    "title": "Buat grup",
+    "limits": "Maksimal 5 grup per akun, 20 anggota per grup.",
+    "nameLabel": "Nama grup",
+    "namePlaceholder": "mis. Tim Sehat Kantor",
+    "submit": "Buat",
+    "pending": "Membuat...",
+    "toast": "Grup dibuat. Bagikan kode undangannya!",
+    "nameHint": "1–40 huruf, bebas kreasinya."
+  },
+  "join": {
+    "title": "Gabung grup",
+    "hint": "Minta kode ke temanmu, atau buka tautan undangannya.",
+    "codeLabel": "Kode undangan",
+    "codePlaceholder": "mis. JOYO1234",
+    "check": "Cek kode",
+    "checking": "Memeriksa kode…",
+    "alreadyMember": "Kamu sudah anggota grup ini.",
+    "submit": "Gabung",
+    "pending": "Gabung…",
+    "toast": "Berhasil gabung!",
+    "codeLength": "Kode undangan 4–20 karakter.",
+    "pasteFirst": "Tempel kode atau tautan undangannya dulu, ya.",
+    "codeHint": "Tempel kode atau tautan undangannya di sini.",
+    "linkPlaceholder": "mis. ABC123 atau tautan undangan"
+  },
+  "how": {
+    "title": "Cara kerja",
+    "body": "Colek teman yang malas catat, atau intip isi perutnya lewat VAR."
+  },
+  "invite": {
+    "invalidTitle": "Kode undangan tidak valid",
+    "invalidBody": "Periksa lagi tautan atau kodenya, lalu coba buka sekali lagi.",
+    "openApp": "Buka JoyoRogo",
+    "checking": "Memeriksa undangan",
+    "yourGroup": "Grupmu",
+    "invitedTo": "Kamu diundang ke",
+    "pitch": "Gabung buat pantau kalori bareng, colek yang malas catat, dan intip perut lewat VAR.",
+    "open": "Buka grup",
+    "opening": "Membuka grup…",
+    "signIn": "Masuk untuk gabung",
+    "signInHint": "Masuk dengan Google, lalu kamu balik ke sini dan tinggal ketuk Gabung.",
+    "joinFailed": "Gagal gabung",
+    "incomplete": "Tautan undangan tidak lengkap.",
+    "invitedToGroup": "Kamu diundang ke grup",
+    "membersAlready_other": "{{count}} anggota • kamu sudah di dalam",
+    "join": "Gabung grup",
+    "later": "Nanti dulu",
+    "shareText": "Ayo gabung grup \"{{name}}\" di JoyoRogo, biar kita saling catat kalori dan colek yang lupa.\nKode: {{code}}"
+  },
+  "detail": {
+    "notFound": "Grup tidak ditemukan.",
+    "subtitle_other": "{{count}} anggota · kode {{code}}",
+    "viewLabel": "Tampilan grup",
+    "tab": {
+      "members": "Anggota",
+      "activity": "Aktivitas",
+      "challenges": "Tantangan"
+    },
+    "invite": "Undang",
+    "settings": "Setelan"
+  },
+  "toast": {
+    "poked": "Colek terkirim",
+    "noteSent": "Catatan terkirim",
+    "renamed": "Nama grup diganti",
+    "newCode": "Kode baru: {{code}}",
+    "removed": "{{name}} dikeluarkan.",
+    "memberFallback": "Anggota",
+    "left": "Kamu keluar dari grup.",
+    "linkCopied": "Tautan disalin",
+    "sendFailed": "Gagal mengirim",
+    "settingsSaved": "Pengaturan grup disimpan",
+    "shareFailed": "Gagal mengubah bagikan",
+    "renameFailed": "Gagal mengubah nama",
+    "rotateFailed": "Gagal ganti kode",
+    "removeFailed": "Gagal mengeluarkan",
+    "leaveFailed": "Gagal keluar",
+    "noteSentBody": "Catatan untuk {{name}} sudah dikirim."
+  },
+  "settings": {
+    "title": "Pengaturan grup",
+    "hint": "Undangan, privasi, dan keanggotaan.",
+    "invite": {
+      "title": "Undangan",
+      "share": "Bagikan",
+      "copy": "Salin",
+      "rotate": "Putar kode"
+    },
+    "privacy": {
+      "title": "Privasiku",
+      "food": {
+        "title": "Tampilkan makananku",
+        "hint": "Total kalori tetap terlihat anggota tim, hanya nama makananmu yang disembunyikan.",
+        "titleNative": "Tampilkan makananku ke grup",
+        "hintNative": "Total kalorimu tetap terlihat apapun pilihanmu"
+      },
+      "var": {
+        "title": "Status VAR perut",
+        "hint": "Verdict + tanggal scan terakhirmu terlihat di tim ini. Foto perut tidak pernah ikut.",
+        "label": "Bagikan status VAR perut"
+      }
+    },
+    "name": {
+      "title": "Nama grup",
+      "label": "Nama grup baru",
+      "submit": "Ganti"
+    },
+    "members": {
+      "title": "Anggota",
+      "remove": "Keluarkan"
+    },
+    "leave": {
+      "confirm": "Keluar dari {{name}}?",
+      "confirmOwner": "Keluar dari {{name}}? Grup pindah ke anggota lain.",
+      "yes": "Ya, keluar",
+      "button": "Keluar dari grup"
+    },
+    "shareInvite": "Bagikan undangan",
+    "codeLine": "Kode {{code}}",
+    "rotate": "Ganti kode undangan",
+    "rotating": "Mengganti…",
+    "rotateHint": "Kode lama tidak berlaku",
+    "rename": "Ubah nama grup"
+  },
+  "note": {
+    "title": "Catatan untuk {{name}}",
+    "hint": "Maksimal 20 catatan per hari, 140 karakter.",
+    "label": "Isi catatan",
+    "placeholder": "Tulis catatan semangat…",
+    "send": "Kirim catatan",
+    "sending": "Mengirim…",
+    "suggestion": {
+      "s1": "Ayo jalan 10 menit!",
+      "s2": "Jangan lupa minum air",
+      "s3": "Catat sarapannya",
+      "s4": "Semangat, hampir sampai!"
+    },
+    "sendCount": "Kirim ({{count}}/140)",
+    "messageLabel": "Pesan",
+    "hintNative": "Maksimal 140 huruf, dikirim lewat notifikasi.",
+    "placeholderNative": "mis. Ayo jalan 10 menit!"
+  },
+  "member": {
+    "owner": "pemilik",
+    "member": "anggota",
+    "active": "aktif {{time}}",
+    "inactive": "belum aktif minggu ini",
+    "streak_other": "{{count}} hari beruntun",
+    "eatenLabel": "Makan {{eaten}} dari {{target}} kcal",
+    "burned": "{{kcal}} dibakar",
+    "meals_other": "{{count}}x catat makan",
+    "scanVar": "Scan VAR perut",
+    "poke": "Colek",
+    "note": "Catatan",
+    "var": "VAR",
+    "inactiveShort": "belum aktif",
+    "you": "kamu",
+    "ownerCap": "Pemilik",
+    "intake": "Asupan hari ini",
+    "statBurn": "Bakar {{kcal}} kcal",
+    "statMeals_other": "{{count}} makan",
+    "statExercise": "{{minutes}} mnt olahraga",
+    "statDelta": "({{value}}/7hr)"
+  },
+  "var": {
+    "chip": {
+      "self": "VAR perut kamu · {{verdict}} · {{date}}",
+      "other": "VAR perut {{name}} · {{verdict}} · {{date}}"
+    },
+    "verdict": {
+      "turun": "mengecil",
+      "naik": "lebih penuh",
+      "sama": "belum beda",
+      "beda": "foto beda",
+      "pertama": "scan pertama"
+    },
+    "belly": {
+      "turun": "Perut mengecil",
+      "naik": "Terlihat lebih penuh",
+      "sama": "Belum kelihatan beda",
+      "beda": "Kondisi foto beda",
+      "pertama": "Scan pertama"
+    }
+  },
+  "activity": {
+    "loading": "Memuat aktivitas",
+    "errorTitle": "Aktivitas gagal dimuat",
+    "empty": {
+      "title": "Belum ada aktivitas",
+      "body": "Catat makan, olahraga, atau timbangan — aktivitas 7 hari terakhir muncul di sini."
+    },
+    "listLabel": "Aktivitas 7 hari terakhir",
+    "food": {
+      "named": "{{name}} ({{kcal}} kcal)",
+      "plain": "makan ({{kcal}} kcal)"
+    },
+    "exercise": {
+      "fallback": "olahraga",
+      "timed": "{{name}} {{minutes}} menit ({{kcal}} kcal)",
+      "plain": "{{name}} ({{kcal}} kcal)"
+    },
+    "weight": "timbangan: {{kg}} kg",
+    "someone": "Seseorang",
+    "mealFallback": "Makan",
+    "hidden": "disembunyikan",
+    "exerciseLine": "{{name}} • {{minutes}} mnt • {{kcal}} kcal",
+    "exerciseFallback": "Olahraga",
+    "weightLine": "Timbang • {{kg}} kg",
+    "emptyNative": "Belum ada aktivitas. Waktunya logging makan pertama!"
+  },
+  "watch": {
+    "they": "dia",
+    "friend": "Teman",
+    "close": "Tutup VAR",
+    "foodsLabel": "Makanan {{name}} hari ini",
+    "hidden": "{{name}} menyembunyikan isi perutnya",
+    "hiddenHint": "Total kalori tetap terlihat di kartu anggotanya.",
+    "aim": "Arahkan ke perut {{name}}",
+    "scanning": "MEMINDAI…",
+    "progress": "beeping… {{percent}}%",
+    "errorTitle": "VAR gagal memindai",
+    "scanFailed": "Gagal memindai.",
+    "scanFailedOffline": "Gagal memindai. Cek koneksimu lalu coba lagi.",
+    "rescan": "Scan ulang",
+    "backToGroup": "Kembali ke grup",
+    "scan": "Scan",
+    "scanningShort": "Memindai…",
+    "noCamera": "Kamera tidak tersedia. Overlay tetap jalan, coba izinkan kamera di pengaturan browser.",
+    "verdict": {
+      "aman": "AMAN, lanjutkan!",
+      "offside": "OFFSIDE! +{{kcal}} kcal",
+      "tanpaTarget": "Belum ada target pembanding",
+      "kosong": "Perut kosong… belum makan?"
+    },
+    "total": "Total hari ini {{eaten}} kcal",
+    "totalOf": "Total hari ini {{eaten}} dari {{target}} kcal",
+    "basis": "Berdasarkan catatan makan {{name}} hari ini, bukan foto asli.",
+    "belly": "VAR perut {{name}} ({{date}}): {{verdict}}"
+  },
+  "mine": {
+    "title": "VAR Perut",
+    "subtitle": "Perkembangan perutmu dilihat AI secara visual — bukan alat ukur.",
+    "loading": "Memuat riwayat VAR",
+    "loadFailed": "Riwayat gagal dimuat",
+    "thisGroup": "grup ini",
+    "scan": "Scan",
+    "scanFallback": "Scan perut",
+    "toast": {
+      "shared": "Scan perut dibagikan ke grup.",
+      "hidden": "Scan perut disembunyikan."
+    },
+    "verdict": {
+      "turun": "Perut mengecil",
+      "naik": "Terlihat lebih penuh",
+      "sama": "Belum kelihatan beda",
+      "beda": "Kondisi foto beda, ulangi",
+      "pertama": "Scan pertama tersimpan"
+    },
+    "retry": {
+      "newResult": "Hasil baru: {{verdict}}",
+      "restoreFailed": "Gagal mengembalikan hasil.",
+      "failed": "Hasil sebelumnya tetap dipakai. {{message}}",
+      "rereading": "AI membaca ulang kedua foto...",
+      "title": "Hasilnya kurang pas?",
+      "left_other": "Gratis, sisa {{count}}x",
+      "limit": "Batas hitung ulang habis",
+      "howTitle": "Cara kerja",
+      "how": "AI membandingkan ulang kedua foto yang sama, tanpa foto ulang dan tanpa memakai kuota scan harian.",
+      "howShared": "Status yang dibagikan ke {{group}} ikut diperbarui.",
+      "hintLabel": "Koreksi singkat (opsional)",
+      "hintPlaceholder": "mis. pose kedua foto sebenarnya sama",
+      "retrying": "Menghitung ulang...",
+      "button": "Hitung ulang",
+      "exhausted": "Scan ini sudah dihitung ulang sampai batasnya. Scan lagi di lain hari ya."
+    },
+    "capture": {
+      "failed": "Gagal mengambil foto.",
+      "processFailed": "Gagal memproses fotonya.",
+      "cameraLabel": "Kamera untuk foto perut",
+      "frame": "Perutmu di dalam garis putus-putus",
+      "justTaken": "Foto yang baru diambil",
+      "comparing": "AI membandingkan dengan scan sebelumnya…",
+      "savingFirst": "Menyimpan scan pertamamu…",
+      "wait": "Biasanya 5-20 detik. Foto asli cuma tersimpan untukmu.",
+      "noCamera": "Kamera tidak tersedia di perangkat ini. Pakai tombol galeri di bawah, atau izinkan kamera di pengaturan browser.",
+      "tipsTitle": "Tips foto & privasi",
+      "tip": {
+        "same": "Pose dan jarak yang sama tiap scan",
+        "light": "Cahaya terang, kamera sejajar perut",
+        "stand": "Berdiri tegak, napas biasa"
+      },
+      "privacy": "Foto perutmu privat: tidak pernah masuk feed, dan hanya kamu yang bisa membukanya.",
+      "saved_other": "{{count}} scan tersimpan.",
+      "firstBaseline": "Scan pertama jadi pembanding awal.",
+      "timerOn": "Timer {{seconds}} dtk nyala",
+      "timerOff": "Timer {{seconds}} dtk mati",
+      "shutter": "Ambil foto perut",
+      "gallery": "Galeri"
+    },
+    "confidence": "Keyakinan visual ~{{percent}}% — perkiraan dari foto, bukan pengukuran.",
+    "historyConfidence": "yakin ~{{percent}}%",
+    "photo": {
+      "before": "Sebelumnya",
+      "now": "Sekarang",
+      "alt": "Foto perut: {{caption}}",
+      "none": "Belum ada",
+      "comparedAlt": "Pembanding: {{date}}",
+      "comparedWith": "Dibandingkan dengan {{date}}"
+    },
+    "waist": {
+      "title": "Angka yang lebih jujur: lingkar perut",
+      "last": "Terakhir {{date}}: <b>{{cm}} cm</b>",
+      "note": "Foto cuma perkiraan visual — meteran yang mengukur.",
+      "none": "Belum ada catatan meteran. <link>Catat lingkar perut di Berat</link> — itu sinyal objektifnya, foto hanya pelengkap."
+    },
+    "share": {
+      "title": "Bagikan status ke {{group}}",
+      "hint": "Yang ikut terlihat cuma verdict + tanggal. Foto perutmu tidak pernah dibagikan."
+    },
+    "rescan": "Scan lagi",
+    "delete": "Hapus scan ini",
+    "history": "Riwayat scan"
+  },
+  "server": {
+    "error": {
+      "notFound": "Tim tidak ditemukan.",
+      "tooManyGroups": "Maksimal {{max}} tim per akun.",
+      "tooManyAttempts": "Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.",
+      "invalidCode": "Kode undangan tidak valid.",
+      "full": "Tim ini sudah penuh.",
+      "ownerOnly": "Hanya pemilik tim.",
+      "useLeave": "Gunakan keluar tim.",
+      "pokeSelf": "Tidak bisa mencolek diri sendiri.",
+      "notInGroup": "Teman tidak ada di tim ini.",
+      "pokeLimit": "Colek lagi satu jam lagi, ya.",
+      "noteEmpty": "Catatan tidak boleh kosong.",
+      "noteQuota": "Kuota catatan hari ini habis."
+    },
+    "push": {
+      "friend": "Teman",
+      "pokeTitle": "{{name}} mencolekmu",
+      "noteTitle": "Catatan dari {{name}}",
+      "defaultBody": "Semangat catat kalorinya hari ini!"
+    }
+  },
+  "confirm": {
+    "removeTitle": "Keluarkan anggota?",
+    "leaveTitle": "Keluar dari grup?",
+    "removeBody": "{{name}} tidak bisa lihat grup ini lagi.",
+    "leaveBody": "{{name}} akan hilang dari daftar grupmu.",
+    "leaveConfirm": "Keluar"
+  },
+  "time": {
+    "never": "belum pernah"
+  }
+}

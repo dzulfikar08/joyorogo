@@ -1,0 +1,385 @@
+{
+  "members_one": "{{count}} member",
+  "members_other": "{{count}} members",
+  "list": {
+    "title": "Groups",
+    "subtitle": "Cheer each other on, VAR-style.",
+    "loading": "Loading groups",
+    "inbox": "Inbox",
+    "inboxUnread": "Inbox, {{count}} unread",
+    "listLabel": "Group list",
+    "row": {
+      "owner_one": "You own it · {{count}} member",
+      "owner_other": "You own it · {{count}} members"
+    },
+    "empty": {
+      "title": "No groups yet",
+      "body": "Make a group for coworkers or family, then share the invite code."
+    },
+    "create": "New group",
+    "join": "Join with code"
+  },
+  "create": {
+    "title": "New group",
+    "limits": "Up to 5 groups per account, 20 members per group.",
+    "nameLabel": "Group name",
+    "namePlaceholder": "e.g. Office Health Crew",
+    "submit": "Create",
+    "pending": "Creating...",
+    "toast": "Group created. Share the invite code!",
+    "nameHint": "1–40 characters, get creative."
+  },
+  "join": {
+    "title": "Join a group",
+    "hint": "Ask a friend for the code, or open their invite link.",
+    "codeLabel": "Invite code",
+    "codePlaceholder": "e.g. JOYO1234",
+    "check": "Check code",
+    "checking": "Checking code…",
+    "alreadyMember": "You're already in this group.",
+    "submit": "Join",
+    "pending": "Joining…",
+    "toast": "You're in!",
+    "codeLength": "Invite code is 4–20 characters.",
+    "pasteFirst": "Paste the invite code or link first.",
+    "codeHint": "Paste the invite code or link here.",
+    "linkPlaceholder": "e.g. ABC123 or invite link"
+  },
+  "how": {
+    "title": "How it works",
+    "body": "Poke friends who forgot to log, or peek at their belly with VAR."
+  },
+  "invite": {
+    "invalidTitle": "Invalid invite code",
+    "invalidBody": "Check the link or code, then try opening it again.",
+    "openApp": "Open JoyoRogo",
+    "checking": "Checking invite",
+    "yourGroup": "Your group",
+    "invitedTo": "You're invited to",
+    "pitch": "Join to track calories together, poke friends who forgot to log, and peek at bellies with VAR.",
+    "open": "Open group",
+    "opening": "Opening group…",
+    "signIn": "Sign in to join",
+    "signInHint": "Sign in with Google, then come back here and tap Join.",
+    "joinFailed": "Couldn't join",
+    "incomplete": "This invite link is incomplete.",
+    "invitedToGroup": "You're invited to a group",
+    "membersAlready_one": "{{count}} member • you're already in",
+    "membersAlready_other": "{{count}} members • you're already in",
+    "join": "Join group",
+    "later": "Not now",
+    "shareText": "Join my group \"{{name}}\" on JoyoRogo so we can log calories together and nudge whoever forgets.\nCode: {{code}}"
+  },
+  "detail": {
+    "notFound": "Group not found.",
+    "subtitle_one": "{{count}} member · code {{code}}",
+    "subtitle_other": "{{count}} members · code {{code}}",
+    "viewLabel": "Group view",
+    "tab": {
+      "members": "Members",
+      "activity": "Activity",
+      "challenges": "Challenges"
+    },
+    "invite": "Invite",
+    "settings": "Settings"
+  },
+  "toast": {
+    "poked": "Poke sent",
+    "noteSent": "Note sent",
+    "renamed": "Group renamed",
+    "newCode": "New code: {{code}}",
+    "removed": "{{name}} removed.",
+    "memberFallback": "Member",
+    "left": "You left the group.",
+    "linkCopied": "Link copied",
+    "sendFailed": "Couldn't send",
+    "settingsSaved": "Group settings saved",
+    "shareFailed": "Couldn't change sharing",
+    "renameFailed": "Couldn't rename",
+    "rotateFailed": "Couldn't change the code",
+    "removeFailed": "Couldn't remove member",
+    "leaveFailed": "Couldn't leave",
+    "noteSentBody": "Your note for {{name}} was sent."
+  },
+  "settings": {
+    "title": "Group settings",
+    "hint": "Invites, privacy and members.",
+    "invite": {
+      "title": "Invite",
+      "share": "Share",
+      "copy": "Copy",
+      "rotate": "New code"
+    },
+    "privacy": {
+      "title": "My privacy",
+      "food": {
+        "title": "Show my food",
+        "hint": "Members still see your calorie total; only your food names stay hidden.",
+        "titleNative": "Show my food to the group",
+        "hintNative": "Your calorie total stays visible either way"
+      },
+      "var": {
+        "title": "Belly VAR status",
+        "hint": "Your latest verdict and scan date are visible to this group. The belly photo is never shared.",
+        "label": "Share belly VAR status"
+      }
+    },
+    "name": {
+      "title": "Group name",
+      "label": "New group name",
+      "submit": "Rename"
+    },
+    "members": {
+      "title": "Members",
+      "remove": "Remove"
+    },
+    "leave": {
+      "confirm": "Leave {{name}}?",
+      "confirmOwner": "Leave {{name}}? Ownership moves to another member.",
+      "yes": "Yes, leave",
+      "button": "Leave group"
+    },
+    "shareInvite": "Share invite",
+    "codeLine": "Code {{code}}",
+    "rotate": "New invite code",
+    "rotating": "Changing…",
+    "rotateHint": "The old code stops working",
+    "rename": "Rename group"
+  },
+  "note": {
+    "title": "Note for {{name}}",
+    "hint": "Up to 20 notes a day, 140 characters.",
+    "label": "Note text",
+    "placeholder": "Write an encouraging note…",
+    "send": "Send note",
+    "sending": "Sending…",
+    "suggestion": {
+      "s1": "Let's walk 10 minutes!",
+      "s2": "Don't forget to drink water",
+      "s3": "Log your breakfast",
+      "s4": "Keep going, almost there!"
+    },
+    "sendCount": "Send ({{count}}/140)",
+    "messageLabel": "Message",
+    "hintNative": "Up to 140 characters, sent as a notification.",
+    "placeholderNative": "e.g. Let's walk 10 minutes!"
+  },
+  "member": {
+    "owner": "owner",
+    "member": "member",
+    "active": "active {{time}}",
+    "inactive": "not active this week",
+    "streak_one": "{{count}} day streak",
+    "streak_other": "{{count}} day streak",
+    "eatenLabel": "Ate {{eaten}} of {{target}} kcal",
+    "burned": "{{kcal}} burned",
+    "meals_one": "{{count}} meal logged",
+    "meals_other": "{{count}} meals logged",
+    "scanVar": "Belly VAR scan",
+    "poke": "Poke",
+    "note": "Note",
+    "var": "VAR",
+    "inactiveShort": "not active yet",
+    "you": "you",
+    "ownerCap": "Owner",
+    "intake": "Intake today",
+    "statBurn": "Burned {{kcal}} kcal",
+    "statMeals_one": "{{count}} meal",
+    "statMeals_other": "{{count}} meals",
+    "statExercise": "{{minutes}} min exercise",
+    "statDelta": "({{value}}/7d)"
+  },
+  "var": {
+    "chip": {
+      "self": "Your belly VAR · {{verdict}} · {{date}}",
+      "other": "{{name}}'s belly VAR · {{verdict}} · {{date}}"
+    },
+    "verdict": {
+      "turun": "smaller",
+      "naik": "fuller",
+      "sama": "no change",
+      "beda": "photo differs",
+      "pertama": "first scan"
+    },
+    "belly": {
+      "turun": "Belly looks smaller",
+      "naik": "Looks fuller",
+      "sama": "No visible change",
+      "beda": "Photo conditions differ",
+      "pertama": "First scan"
+    }
+  },
+  "activity": {
+    "loading": "Loading activity",
+    "errorTitle": "Couldn't load activity",
+    "empty": {
+      "title": "No activity yet",
+      "body": "Log a meal, workout or weigh-in — the last 7 days show up here."
+    },
+    "listLabel": "Last 7 days of activity",
+    "food": {
+      "named": "{{name}} ({{kcal}} kcal)",
+      "plain": "ate ({{kcal}} kcal)"
+    },
+    "exercise": {
+      "fallback": "workout",
+      "timed": "{{name}} {{minutes}} min ({{kcal}} kcal)",
+      "plain": "{{name}} ({{kcal}} kcal)"
+    },
+    "weight": "weighed in: {{kg}} kg",
+    "someone": "Someone",
+    "mealFallback": "Meal",
+    "hidden": "hidden",
+    "exerciseLine": "{{name}} • {{minutes}} min • {{kcal}} kcal",
+    "exerciseFallback": "Workout",
+    "weightLine": "Weigh-in • {{kg}} kg",
+    "emptyNative": "No activity yet. Time to log the first meal!"
+  },
+  "watch": {
+    "they": "your friend",
+    "friend": "Your friend",
+    "close": "Close VAR",
+    "foodsLabel": "{{name}}'s food today",
+    "hidden": "{{name}} is hiding their belly",
+    "hiddenHint": "Their calorie total is still visible on their member card.",
+    "aim": "Aim at {{name}}'s belly",
+    "scanning": "SCANNING…",
+    "progress": "beeping… {{percent}}%",
+    "errorTitle": "VAR scan failed",
+    "scanFailed": "Scan failed.",
+    "scanFailedOffline": "Scan failed. Check your connection and try again.",
+    "rescan": "Scan again",
+    "backToGroup": "Back to group",
+    "scan": "Scan",
+    "scanningShort": "Scanning…",
+    "noCamera": "Camera unavailable. The overlay still works; allow camera access in your browser settings.",
+    "verdict": {
+      "aman": "SAFE, keep going!",
+      "offside": "OFFSIDE! +{{kcal}} kcal",
+      "tanpaTarget": "No target to compare with",
+      "kosong": "Empty belly… no meals yet?"
+    },
+    "total": "Total today {{eaten}} kcal",
+    "totalOf": "Total today {{eaten}} of {{target}} kcal",
+    "basis": "Based on {{name}}'s food log today, not a real photo.",
+    "belly": "{{name}}'s belly VAR ({{date}}): {{verdict}}"
+  },
+  "mine": {
+    "title": "Belly VAR",
+    "subtitle": "AI looks at your belly progress visually — it's not a measuring tool.",
+    "loading": "Loading VAR history",
+    "loadFailed": "Couldn't load history",
+    "thisGroup": "this group",
+    "scan": "Scan",
+    "scanFallback": "Belly scan",
+    "toast": {
+      "shared": "Belly scan shared with the group.",
+      "hidden": "Belly scan hidden."
+    },
+    "verdict": {
+      "turun": "Belly looks smaller",
+      "naik": "Looks fuller",
+      "sama": "No visible change",
+      "beda": "Photo conditions differ, retake",
+      "pertama": "First scan saved"
+    },
+    "retry": {
+      "newResult": "New result: {{verdict}}",
+      "restoreFailed": "Couldn't restore the result.",
+      "failed": "Kept the previous result. {{message}}",
+      "rereading": "AI is re-reading both photos...",
+      "title": "Not quite right?",
+      "left_one": "Free, {{count}} left",
+      "left_other": "Free, {{count}} left",
+      "limit": "Recalculation limit reached",
+      "howTitle": "How it works",
+      "how": "AI compares the same two photos again. No new photo and no daily scan quota used.",
+      "howShared": "The status shared with {{group}} is updated too.",
+      "hintLabel": "Quick correction (optional)",
+      "hintPlaceholder": "e.g. both photos are actually the same pose",
+      "retrying": "Recalculating...",
+      "button": "Recalculate",
+      "exhausted": "This scan hit its recalculation limit. Scan again another day."
+    },
+    "capture": {
+      "failed": "Couldn't take the photo.",
+      "processFailed": "Couldn't process the photo.",
+      "cameraLabel": "Camera for the belly photo",
+      "frame": "Keep your belly inside the dashed line",
+      "justTaken": "Photo just taken",
+      "comparing": "AI is comparing with your previous scan…",
+      "savingFirst": "Saving your first scan…",
+      "wait": "Usually 5-20 seconds. The original photo is only stored for you.",
+      "noCamera": "Camera isn't available on this device. Use the gallery button below, or allow camera access in your browser settings.",
+      "tipsTitle": "Photo tips & privacy",
+      "tip": {
+        "same": "Same pose and distance every scan",
+        "light": "Bright light, camera level with your belly",
+        "stand": "Stand straight, breathe normally"
+      },
+      "privacy": "Your belly photos are private: never in the feed, and only you can open them.",
+      "saved_one": "{{count}} scan saved.",
+      "saved_other": "{{count}} scans saved.",
+      "firstBaseline": "Your first scan becomes the baseline.",
+      "timerOn": "{{seconds}}s timer on",
+      "timerOff": "{{seconds}}s timer off",
+      "shutter": "Take belly photo",
+      "gallery": "Gallery"
+    },
+    "confidence": "Visual confidence ~{{percent}}% — an estimate from the photo, not a measurement.",
+    "historyConfidence": "~{{percent}}% sure",
+    "photo": {
+      "before": "Before",
+      "now": "Now",
+      "alt": "Belly photo: {{caption}}",
+      "none": "None yet",
+      "comparedAlt": "Compared with: {{date}}",
+      "comparedWith": "Compared with {{date}}"
+    },
+    "waist": {
+      "title": "A more honest number: waist",
+      "last": "Last {{date}}: <b>{{cm}} cm</b>",
+      "note": "The photo is only a visual estimate — the tape measure does the measuring.",
+      "none": "No tape measurements yet. <link>Log your waist in Weight</link> — that's the objective signal, the photo just adds to it."
+    },
+    "share": {
+      "title": "Share status with {{group}}",
+      "hint": "Only the verdict and date are visible. Your belly photo is never shared."
+    },
+    "rescan": "Scan again",
+    "delete": "Delete this scan",
+    "history": "Scan history"
+  },
+  "server": {
+    "error": {
+      "notFound": "Group not found.",
+      "tooManyGroups": "You can be in at most {{max}} groups.",
+      "tooManyAttempts": "Too many attempts. Wait a moment and try again.",
+      "invalidCode": "Invalid invite code.",
+      "full": "This group is full.",
+      "ownerOnly": "Only the group owner can do that.",
+      "useLeave": "Use leave group instead.",
+      "pokeSelf": "You can't poke yourself.",
+      "notInGroup": "That friend isn't in this group.",
+      "pokeLimit": "You can poke again in an hour.",
+      "noteEmpty": "Note can't be empty.",
+      "noteQuota": "You've used today's note limit."
+    },
+    "push": {
+      "friend": "A friend",
+      "pokeTitle": "{{name}} poked you",
+      "noteTitle": "Note from {{name}}",
+      "defaultBody": "Keep logging your calories today!"
+    }
+  },
+  "confirm": {
+    "removeTitle": "Remove member?",
+    "leaveTitle": "Leave group?",
+    "removeBody": "{{name}} won't be able to see this group anymore.",
+    "leaveBody": "{{name}} will disappear from your groups.",
+    "leaveConfirm": "Leave"
+  },
+  "time": {
+    "never": "never"
+  }
+}
