@@ -39,7 +39,7 @@ function PrivasiPage() {
             <h2 className="text-base font-bold tracking-tight">Data yang kami simpan</h2>
             <CheckList
               items={[
-                "Akun: nama, email, dan foto profil dari akun Google yang kamu pakai untuk masuk. JoyoRogo tidak menyimpan kata sandi.",
+                "Akun: nama, email, dan foto profil dari akun Google yang kamu pakai untuk masuk. Kalau masuk dengan Apple di aplikasi iPhone, kami menyimpan nama (bila Apple memberikannya) dan email, yang bisa berupa alamat relai Apple. JoyoRogo tidak menyimpan kata sandi.",
                 "Data diri: tahun lahir, jenis kelamin, tinggi, dan berat badan.",
                 "Riwayat harian: berat timbangan, makanan, olahraga, tidur, dan air minum.",
                 "Rencana harian: target makan, bakar, dan tidur yang dihitung dari data dirimu.",
@@ -128,6 +128,58 @@ function PrivasiPage() {
             </p>
           </section>
 
+          <section className="rounded-3xl bg-card p-5" id="apple-health">
+            <h2 className="text-base font-bold tracking-tight">Apple Health (iPhone)</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Kalau kamu menghubungkan Apple Health di aplikasi iPhone, iOS meminta izinmu lewat
+              dialog Apple Health sendiri, dan izinnya bisa dicabut kapan saja di aplikasi Kesehatan
+              atau Pengaturan iPhone. JoyoRogo hanya membaca; aplikasi tidak menulis apa pun ke
+              Apple Health. Yang dibaca adalah data 7 hari terakhir, saat kamu menjalankan sinkron
+              dari Profil, dan setelah itu saat aplikasi dibuka. Tidak ada pembacaan di latar
+              belakang.
+            </p>
+            <CheckList
+              items={[
+                "Dibaca: olahraga (jenis, waktu mulai dan selesai, kalori), langkah, jarak jalan dan lari, kalori aktif, dan tidur.",
+                "Disimpan di akunmu: tiap olahraga (nama, jenis, durasi, kalori), ringkasan harian (langkah, jarak, kalori aktif, menit olahraga), dan jam tidur per malam, supaya target harianmu bisa dihitung.",
+                "Tidak dibaca: detak jantung, rute GPS, berat badan, atau data kesehatan lain di luar daftar di atas.",
+              ]}
+            />
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Data Apple Health tidak dijual, tidak dipakai untuk iklan atau penentuan profil
+              iklan, dan tidak dibagikan ke pihak ketiga. Data itu dipakai hanya untuk menghitung
+              dan menampilkan progresmu. Menghapus semua data di Profil menghapus semua catatan
+              yang sudah tersimpan di akunmu.
+            </p>
+          </section>
+
+          <section className="rounded-3xl bg-card p-5" id="strava">
+            <h2 className="text-base font-bold tracking-tight">Strava (opsional)</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Kalau kamu menyambungkan Strava, JoyoRogo meminta izin baca aktivitasmu (
+              <span className="font-mono text-xs">read</span> dan{" "}
+              <span className="font-mono text-xs">activity:read_all</span>) untuk mengubahnya jadi
+              kalori terbakar di diarimu. Saat kamu menekan Sinkron di Profil atau Olahraga,
+              JoyoRogo mengambil 30 aktivitas terakhirmu.
+            </p>
+            <CheckList
+              items={[
+                "Dibaca dari tiap aktivitas: jenis, nama, waktu mulai, waktu bergerak, dan kalori. Kalau Strava tidak mencatat kalori, kami memperkirakannya dari jenis olahraga, durasi, dan beratmu.",
+                "Disimpan di akunmu sebagai olahraga, dengan nomor aktivitas Strava supaya tidak tercatat dua kali. Olahraga dari Strava hanya terlihat olehmu: tidak dihitung di grup, tantangan, dan feed, dan tidak dipakai untuk menyesuaikan targetmu.",
+                "Token akses dan ID atlet Strava disimpan di database JoyoRogo. JoyoRogo dan JoyoFit memakai satu aplikasi Strava, jadi sambungan itu dipakai bersama; olahraga yang diunggah JoyoFit ke Strava tidak diimpor lagi oleh JoyoRogo supaya tidak dobel.",
+                "Olahraga dari Strava tetap tersimpan di akunmu sampai kamu memutus Strava atau menghapus data.",
+              ]}
+            />
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Memutus Strava di JoyoRogo menghapus olahraga yang diimpor dari Strava. Izinnya
+              dicabut di Strava hanya kalau JoyoFit juga tidak memakainya; kalau masih dipakai,
+              sambungan JoyoFit tetap jalan. Kalau kamu mencabut aplikasi di strava.com
+              (Pengaturan, Aplikasi Saya), semua token dan semua olahraga hasil impor Strava ikut
+              terhapus. Menghapus data atau akunmu mencabut izin Strava sepenuhnya. JoyoRogo tidak
+              memakai data Strava untuk iklan atau analitik, dan tidak menjualnya.
+            </p>
+          </section>
+
           <section className="rounded-3xl bg-card p-5">
             <h2 className="text-base font-bold tracking-tight">Komunitas: feed dan grup</h2>
             <p className="mt-3 text-sm leading-relaxed">
@@ -151,12 +203,45 @@ function PrivasiPage() {
           <section className="rounded-3xl bg-card p-5">
             <h2 className="text-base font-bold tracking-tight">Pembayaran</h2>
             <p className="mt-3 text-sm leading-relaxed">
-              Langganan Pro dibayar lewat halaman pembayaran di browser: QRIS melalui Pakasir
-              atau transfer bank melalui DOKU (di iPhone lewat App Store). Kami menyimpan nomor
-              pesanan, jumlah, status, dan waktu pembayaran. DOKU menerima namamu dan emailmu
-              untuk membuat halaman pembayaran. Kami tidak menyimpan nomor kartu, rekening, atau
-              data dompet digitalmu; itu ditangani penyedia pembayaran. Bukti pembayaran dikirim
-              ke emailmu.
+              Di web, Pro dibayar sekali per periode lewat halaman pembayaran di browser: QRIS
+              melalui Pakasir atau transfer bank melalui DOKU. Kami menyimpan nomor pesanan,
+              jumlah, status, dan waktu pembayaran. DOKU menerima namamu dan emailmu untuk membuat
+              halaman pembayaran. Kami tidak menyimpan nomor kartu, rekening, atau data dompet
+              digitalmu; itu ditangani penyedia pembayaran. Bukti pembayaran dikirim ke emailmu.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Di aplikasi, Pro adalah langganan otomatis lewat App Store (iPhone) atau Google Play
+              (Android). Pembayarannya ditangani Apple atau Google; kami tidak menerima nomor
+              kartu atau data pembayaranmu. Yang kami simpan untuk mengaitkan langganan dengan
+              akunmu dan memperpanjang atau mencabut Pro saat Apple atau Google memberi kabar
+              (perpanjangan, pembatalan, pengembalian dana):
+            </p>
+            <CheckList
+              items={[
+                "App Store: ID transaksi asli, ID produk, lingkungan (Sandbox atau Production), status langganan, tanggal berakhir, dan token acak yang dipakai aplikasi saat membeli.",
+                "Google Play: token pembelian, ID produk dan paket dasar, status langganan, dan ID pesanan terakhir.",
+                "Catatan tiap transaksi: nomor transaksi atau pesanan, jumlah dalam rupiah, jumlah bulan, status, dan waktu.",
+              ]}
+            />
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Langganan dikelola dan dibatalkan di pengaturan Apple atau Google, bukan di JoyoRogo.
+            </p>
+          </section>
+
+          <section className="rounded-3xl bg-card p-5" id="masuk-apple">
+            <h2 className="text-base font-bold tracking-tight">Masuk dengan Apple</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Di aplikasi iPhone kamu bisa masuk dengan Apple, selain dengan Google. Apple
+              mengirim token identitas ke aplikasi, lalu JoyoRogo memeriksanya ke Apple. Yang
+              kami terima dan simpan: ID pengguna Apple untuk akunmu, email (alamat relai pribadi
+              Apple bila kamu memilih Sembunyikan Email Saya), dan nama bila Apple
+              mengirimkannya. Kalau tidak ada nama, kami memakai "Pengguna". Kami tidak menerima
+              kata sandi Apple IDmu.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Saat kamu menghapus akun dari aplikasi, JoyoRogo mencabut token Sign in with Apple
+              milik akunmu di Apple lebih dulu. Untuk itu aplikasi meminta kamu masuk ulang dengan
+              Apple, dan kalau pencabutannya gagal, akunmu belum dihapus dan bisa dicoba lagi.
             </p>
           </section>
 
@@ -194,12 +279,20 @@ function PrivasiPage() {
               >
                 Profil
               </Link>
-              . Akunmu tetap bisa dipakai, jadi kamu bisa mulai lagi dari nol kapan pun. Riwayat
-              pembayaran dan status Pro tidak ikut terhapus.
+              . Akunmu tetap bisa dipakai, jadi kamu bisa mulai lagi dari nol kapan pun. Tombol ini
+              tidak menghapus akunnya: riwayat pembayaran dan status Pro tetap ada.
             </p>
             <p className="mt-3 text-sm leading-relaxed">
-              Mau menghapus akunnya juga (nama, email, dan riwayat pembayaran)? Kirim email dari
-              alamat akun Google yang kamu pakai ke{" "}
+              Di aplikasi iPhone dan Android, tombol <span className="font-semibold">Hapus akun</span> di
+              Profil menghapus akun itu sendiri: seluruh catatan, foto, dan lokasi di atas,
+              sambungan Strava (izinnya dicabut di Strava), tautan masuk Google dan Apple, sesi,
+              nama, email, dan riwayat pembayaran. Pro tidak bisa dipulihkan setelahnya.
+              Langganan App Store atau Google Play tetap harus kamu batalkan sendiri di pengaturan
+              Apple atau Google.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Dari web, atau kalau kamu tidak punya aplikasinya, kirim email dari
+              alamat akun yang kamu pakai ke{" "}
               <a
                 href="mailto:dzulfikar@joyorogo.com?subject=Hapus%20akun%20JoyoRogo"
                 className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
