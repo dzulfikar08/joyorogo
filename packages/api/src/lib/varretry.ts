@@ -183,5 +183,7 @@ export async function restoreVarVerdict(
     })
     .where(and(eq(varScan.id, id), eq(varScan.userId, userId)))
     .returning({ id: varScan.id });
-  if (!updated) throw new ORPCError("NOT_FOUND", { message: t("errors.scanNotFound") });
+  if (!updated) {
+    throw new ORPCError("NOT_FOUND", { message: serverT(locale, "varperut")("errors.scanNotFound") });
+  }
 }

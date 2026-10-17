@@ -77,7 +77,7 @@ function verdictCopy(
   return { icon: "ellipse-outline", title: t("live.verdict.empty"), color: "#FFD84D" };
 }
 
- bobbing inside the cone; static under reduced motion. */
+/** One food chip bobbing inside the cone; static under reduced motion. */
 function FoodFloat({
   name,
   kcal,

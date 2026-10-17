@@ -57,7 +57,8 @@ function verdictCopy(verdict: VarVerdict): { icon: string; label: string; color:
   }
 }
 
- lewat /var-photo/:id — server hanya melayani sesi pemilik,
+/**
+ * Foto VAR privat lewat /var-photo/:id — server hanya melayani sesi pemilik,
  * jadi di native fotonya diunduh dengan cookie sesi (pola AuthedPhoto).
  */
 function AuthedVarPhoto({
