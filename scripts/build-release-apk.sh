@@ -30,6 +30,8 @@ export NODE_ENV=production
 # your own server (and change the Android package id in apps/native/app.json).
 export EXPO_PUBLIC_SERVER_URL="https://api.joyorogo.com"
 export EXPO_PUBLIC_DEV_LOGIN=0
+# Meta app "JoyoDigitama": direct Instagram Stories share (public id, shared with JoyoFit).
+export EXPO_PUBLIC_FB_APP_ID=1016598258111944
 
 # --publish uploads the APK + update manifest to the R2 bucket after a
 # successful build. Without it the build only writes them to the repo root.

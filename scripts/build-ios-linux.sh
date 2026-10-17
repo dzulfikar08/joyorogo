@@ -45,6 +45,7 @@ export XCODE_VERSION=${XCODE_VERSION:-27.0} XCODE_BUILD=${XCODE_BUILD:-27A266a}
 export NODE_ENV=production
 export EXPO_PUBLIC_SERVER_URL="https://api.joyorogo.com"
 export EXPO_PUBLIC_DEV_LOGIN=0
+export EXPO_PUBLIC_FB_APP_ID=1016598258111944
 
 SDK=$(ls -d "$DARWIN"/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS[0-9]*.sdk | tail -n1)
 [ -d "$SDK" ] || { echo "no iPhoneOS SDK under $DARWIN; build it from Xcode.xip (docs/ios-linux.md)" >&2; exit 1; }
