@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Image, Pressable, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,6 +16,7 @@ import { normalizeBarcode } from "@joyorogo/api/lib/barcode";
 import { MAX_GRAMS, portionFromGrams } from "@joyorogo/api/lib/portion";
 import { foodKind } from "@joyorogo/api/lib/food-kind";
 
+import { Disclosure } from "@/components/disclosure";
 import { MacroLine } from "@/components/macro-line";
 import {
   BootLoader,
@@ -28,30 +30,15 @@ import {
   Text,
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtInt, parseNum } from "@/utils/format";
+import { errorMessage, fmtInt, fmtKcalLabel, parseNum } from "@/utils/format";
 import { KindPicker, SnackAdviceSection } from "@/components/makan/snack-advice";
 import type { PickableKind } from "@/components/makan/snack-advice";
 import { orpc, queryClient } from "@/utils/orpc";
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
 
-const MEAL_SHORT: Record<Meal, string> = {
-  sarapan: "Sarapan",
-  makan_siang: "Siang",
-  makan_malam: "Malam",
-  snack: "Snack",
-  sahur: "Sahur",
-  berbuka: "Berbuka",
-};
-
-const MACRO_NAMES = {
-  protein: "protein",
-  carbs: "karbo",
-  fat: "lemak",
-  fiber: "serat",
-} as const;
-
 export default function MakanBarcode() {
+  const { t } = useTranslation(["barcode", "makan", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   // Day forwarded from the makan screen (same contract as makan-ai).
@@ -113,7 +100,7 @@ export default function MakanBarcode() {
   const accept = (raw: string) => {
     const normalized = normalizeBarcode(raw);
     if (!normalized) {
-      setScanError("Nomor barcode tidak valid. Cek lagi angkanya.");
+      setScanError(t("entry.invalid"));
       // Let the camera try again shortly; a misread should not lock the screen.
       setTimeout(() => {
         handled.current = false;
@@ -146,13 +133,17 @@ export default function MakanBarcode() {
           <View style={[styles.doneIcon, { backgroundColor: theme.colors.makanSoft }]}>
             <Ionicons name="checkmark" size={34} color={theme.colors.makanText} />
           </View>
-          <Text style={styles.doneTitle}>Tercatat!</Text>
+          <Text style={styles.doneTitle}>{t("done.title")}</Text>
           <Text style={styles.doneText}>
-            {`${saved.name} (${fmtInt(saved.kcal)} kcal) sudah masuk ke ${MEAL_LABELS[meal]}.`}
+            {t("done.text", {
+              name: saved.name,
+              kcal: fmtKcalLabel(saved.kcal),
+              meal: MEAL_LABELS[meal],
+            })}
           </Text>
           <View style={styles.doneActions}>
-            <Button label="Lihat Daftar Makanan" onPress={() => router.replace("/makan")} />
-            <Button variant="secondary" label="Pindai Lagi" onPress={reset} />
+            <Button label={t("done.viewList")} onPress={() => router.replace("/makan")} />
+            <Button variant="secondary" label={t("done.scanAgain")} onPress={reset} />
           </View>
         </View>
       </SafeAreaView>
@@ -169,11 +160,11 @@ export default function MakanBarcode() {
       const name = manualName.trim();
       const kcal = parseNum(manualKcal);
       if (name === "") {
-        setFormError("Isi dulu nama makanannya.");
+        setFormError(t("manual.nameRequired"));
         return;
       }
       if (kcal === null || kcal < 0) {
-        setFormError("Isi jumlah kalorinya, contoh: 350.");
+        setFormError(t("manual.kcalRequired"));
         return;
       }
       setFormError(null);
@@ -186,7 +177,10 @@ export default function MakanBarcode() {
     const mealPicker =
       MEAL_KEYS.length > 1 ? (
         <Segmented
-          options={MEAL_KEYS.map((key) => ({ value: key, label: MEAL_SHORT[key] }))}
+          options={MEAL_KEYS.map((key) => ({
+            value: key,
+            label: t(`makan:diary.mealShort.${key}`),
+          }))}
           value={meal}
           onChange={setMeal}
         />
@@ -202,21 +196,20 @@ export default function MakanBarcode() {
 
     const fallback = (
       <View style={styles.block}>
-        <Button
-          label="Foto produknya, AI perkirakan"
-          icon="camera-outline"
-          onPress={photoScan}
-        />
-        <Text style={styles.caption}>
-          AI memperkirakan dari foto, bukan membaca angka di label. Kalau kamu punya angka dari
-          label, isi sendiri.
-        </Text>
+        <Button label={t("fallback.photo")} icon="camera-outline" onPress={photoScan} />
+        <Disclosure plain title={t("fallback.notes")}>
+          <Text style={styles.caption}>{t("fallback.photoNote")}</Text>
+        </Disclosure>
         {manualOpen ? (
           <View style={styles.block}>
-            <Field label="Nama makanan">
-              <Input value={manualName} onChangeText={setManualName} placeholder="Nama produk" />
+            <Field label={t("manual.name")}>
+              <Input
+                value={manualName}
+                onChangeText={setManualName}
+                placeholder={t("manual.namePlaceholder")}
+              />
             </Field>
-            <Field label="Kalori (kcal)">
+            <Field label={t("manual.kcal")}>
               <Input
                 value={manualKcal}
                 onChangeText={setManualKcal}
@@ -245,19 +238,19 @@ export default function MakanBarcode() {
             {addFood.isError ? (
               <Text style={styles.errorText}>{errorMessage(addFood.error)}</Text>
             ) : null}
-            <Button label="Catat" onPress={saveManual} loading={addFood.isPending} />
+            <Button label={t("save.button")} onPress={saveManual} loading={addFood.isPending} />
           </View>
         ) : (
           <Button
             variant="secondary"
-            label="Isi kalori sendiri"
+            label={t("fallback.manual")}
             onPress={() => {
               setManualName(product?.name ?? "");
               setManualOpen(true);
             }}
           />
         )}
-        <Button variant="ghost" label="Pindai barcode lain" onPress={reset} />
+        <Button variant="ghost" label={t("fallback.scanAnother")} onPress={reset} />
       </View>
     );
 
@@ -265,25 +258,23 @@ export default function MakanBarcode() {
     if (lookup.isPending) {
       body = (
         <View style={styles.centerBlock}>
-          <Text style={styles.loadingText}>Mencari {code} di Open Food Facts…</Text>
+          <Text style={styles.loadingText}>{t("lookup.searching", { code })}</Text>
         </View>
       );
     } else if (lookup.isError || !data) {
       body = (
         <View style={styles.block}>
-          <Text style={styles.title}>Pencarian gagal</Text>
+          <Text style={styles.title}>{t("lookup.failed.title")}</Text>
           <Text style={styles.caption}>{errorMessage(lookup.error)}</Text>
-          <Button label="Coba lagi" onPress={() => void lookup.refetch()} />
+          <Button label={t("common:actions.retry")} onPress={() => void lookup.refetch()} />
           {fallback}
         </View>
       );
     } else if (data.status === "not_found") {
       body = (
         <View style={styles.block}>
-          <Text style={styles.title}>Produk belum ada di Open Food Facts</Text>
-          <Text style={styles.caption}>
-            {`Barcode ${data.code} belum terdaftar di basis data komunitas itu, jadi kami tidak punya angka gizinya. Kamu bisa foto produknya atau isi kalorinya sendiri.`}
-          </Text>
+          <Text style={styles.title}>{t("lookup.notFound.title")}</Text>
+          <Text style={styles.caption}>{t("lookup.notFound.body", { code: data.code })}</Text>
           {fallback}
         </View>
       );
@@ -292,7 +283,9 @@ export default function MakanBarcode() {
         <View style={styles.block}>
           <Text style={styles.title}>{data.product.name}</Text>
           <Text style={styles.caption}>
-            {`${data.reason} Karena itu produk ini tidak kami catat otomatis. Kamu bisa foto produknya atau isi kalorinya sendiri dari label.`}
+            {t("lookup.incomplete.body", {
+              reason: t(`lookup.incomplete.reason.${data.reason}`),
+            })}
           </Text>
           {fallback}
         </View>
@@ -303,9 +296,10 @@ export default function MakanBarcode() {
       const gramsNum = parseNum(gramsText);
       const gramsOk = gramsNum !== null && gramsNum >= 1 && gramsNum <= MAX_GRAMS;
       const scaled = gramsOk ? portionFromGrams(base, gramsNum) : null;
+      const servingLabel = data.servingSize ? `${fmtInt(data.servingSize)} ${unit}` : "";
       const save = () => {
         if (!scaled || !gramsOk) {
-          setFormError(`Isi takaran antara 1 dan ${MAX_GRAMS} ${unit}.`);
+          setFormError(t("quantity.range", { max: MAX_GRAMS, unit }));
           return;
         }
         setFormError(null);
@@ -341,69 +335,65 @@ export default function MakanBarcode() {
               />
             ) : (
               <View style={[styles.productImage, styles.productImageEmpty]}>
-                <Ionicons name="barcode-outline" size={28} color={theme.colors.mutedForeground} />
+                <Ionicons name="barcode-outline" size={24} color={theme.colors.mutedForeground} />
               </View>
             )}
             <View style={styles.flexOne}>
               <Text style={styles.title}>{data.product.name}</Text>
               <Text style={styles.caption}>
                 {[data.product.brand, data.product.quantity].filter(Boolean).join(" · ") ||
-                  `Barcode ${data.code}`}
+                  t("result.unknownProduct", { code: data.code })}
               </Text>
             </View>
           </View>
 
           <Card style={styles.infoCard}>
-            <Text style={styles.infoLabel}>{`Per 100 ${unit}`}</Text>
-            <Num style={styles.infoKcal}>{`${fmtInt(base.kcal)} kcal`}</Num>
-            <MacroLine
-              protein={base.protein}
-              carbs={base.carbs}
-              fat={base.fat}
-              fiber={base.fiber}
-            />
-            {data.perServing && data.servingSize ? (
-              <>
-                <Text style={[styles.infoLabel, styles.infoGap]}>
-                  {`Per sajian (${fmtInt(data.servingSize)} ${unit})`}
-                </Text>
-                <Num style={styles.infoKcal}>{`${fmtInt(data.perServing.kcal)} kcal`}</Num>
+            <View style={styles.nutriRow}>
+              <View style={styles.nutriCol}>
+                <Text style={styles.infoLabel}>{t("result.per100", { unit })}</Text>
+                <Num style={styles.infoKcal}>{fmtKcalLabel(base.kcal)}</Num>
                 <MacroLine
-                  protein={data.perServing.protein}
-                  carbs={data.perServing.carbs}
-                  fat={data.perServing.fat}
-                  fiber={data.perServing.fiber}
+                  protein={base.protein}
+                  carbs={base.carbs}
+                  fat={base.fat}
+                  fiber={base.fiber}
                 />
-              </>
-            ) : null}
+              </View>
+              {data.perServing && data.servingSize ? (
+                <View style={styles.nutriCol}>
+                  <Text style={styles.infoLabel}>
+                    {t("result.perServing", { size: servingLabel })}
+                  </Text>
+                  <Num style={styles.infoKcal}>{fmtKcalLabel(data.perServing.kcal)}</Num>
+                  <MacroLine
+                    protein={data.perServing.protein}
+                    carbs={data.perServing.carbs}
+                    fat={data.perServing.fat}
+                    fiber={data.perServing.fiber}
+                  />
+                </View>
+              ) : null}
+            </View>
           </Card>
 
-          {data.missing.length > 0 ? (
-            <Text style={styles.caption}>
-              {`Open Food Facts belum punya data ${data.missing
-                .map((key) => MACRO_NAMES[key])
-                .join(", ")} untuk produk ini; yang kosong dicatat sebagai tidak diketahui, bukan nol.`}
-            </Text>
-          ) : null}
-
-          <Field label={`Berapa banyak yang kamu makan (${unit})`}>
+          <Field label={t("quantity.label", { unit })}>
             <Input
               value={gramsText}
               onChangeText={setGrams}
               keyboardType="decimal-pad"
-              accessibilityLabel={`Takaran dalam ${unit}`}
+              accessibilityLabel={t("quantity.aria", { unit })}
             />
           </Field>
           <View style={styles.chipRow}>
             {data.servingSize ? (
               <Chip
-                label={`1 sajian · ${fmtInt(data.servingSize)} ${unit}`}
+                label={t("quantity.serving", { size: servingLabel })}
                 selected={gramsNum === data.servingSize}
                 onPress={() => setGrams(String(data.servingSize))}
               />
             ) : null}
             <Chip
-              label={`100 ${unit}`}
+              label={t("quantity.hundred", { unit })}
               selected={gramsNum === 100}
               onPress={() => setGrams("100")}
             />
@@ -411,8 +401,8 @@ export default function MakanBarcode() {
 
           {scaled ? (
             <View style={styles.totalBlock}>
-              <Text style={styles.infoLabel}>Yang dicatat</Text>
-              <Num style={styles.totalValue}>{`${fmtInt(scaled.kcal)} kcal`}</Num>
+              <Text style={styles.infoLabel}>{t("total.label")}</Text>
+              <Num style={styles.totalValue}>{fmtKcalLabel(scaled.kcal)}</Num>
               <MacroLine
                 protein={scaled.protein}
                 carbs={scaled.carbs}
@@ -420,7 +410,21 @@ export default function MakanBarcode() {
                 fiber={scaled.fiber}
               />
             </View>
+          ) : (
+            <Text style={styles.errorText}>{t("quantity.range", { max: MAX_GRAMS, unit })}</Text>
+          )}
+
+          {mealPicker}
+          {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
+          {addFood.isError ? (
+            <Text style={styles.errorText}>{errorMessage(addFood.error)}</Text>
           ) : null}
+          <Button
+            label={t("save.button")}
+            onPress={save}
+            loading={addFood.isPending}
+            disabled={!gramsOk}
+          />
 
           <KindPicker value={kindOverride ?? foodKind(data.product.name)} onChange={setKindOverride} />
           <SnackAdviceSection
@@ -437,17 +441,19 @@ export default function MakanBarcode() {
             halfApplied={halfUndo !== null}
             onUndoHalf={undoHalf}
           />
-          {mealPicker}
-          {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
-          {addFood.isError ? (
-            <Text style={styles.errorText}>{errorMessage(addFood.error)}</Text>
-          ) : null}
-          <Button label="Catat" onPress={save} loading={addFood.isPending} disabled={!gramsOk} />
-          <Button variant="ghost" label="Pindai barcode lain" onPress={reset} />
-          <Text style={styles.caption}>
-            Sumber: Open Food Facts, basis data komunitas. Angkanya bisa beda dari label kemasanmu;
-            cek lagi kalau ragu.
-          </Text>
+          <Button variant="ghost" label={t("fallback.scanAnother")} onPress={reset} />
+          <Disclosure plain title={t("result.notes")}>
+            <View style={styles.block}>
+              {data.missing.length > 0 ? (
+                <Text style={styles.caption}>
+                  {t("result.missing", {
+                    fields: data.missing.map((key) => t(`macro.${key}`)).join(", "),
+                  })}
+                </Text>
+              ) : null}
+              <Text style={styles.caption}>{t("result.source")}</Text>
+            </View>
+          </Disclosure>
         </View>
       );
     }
@@ -461,14 +467,14 @@ export default function MakanBarcode() {
           <View style={styles.topRow}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Kembali ke pemindai"
+              accessibilityLabel={t("page.backToScanner")}
               onPress={reset}
               hitSlop={8}
               style={styles.backButton}
             >
               <Ionicons name="chevron-back" size={24} color={theme.colors.foreground} />
             </Pressable>
-            <Text style={styles.screenTitle}>Hasil Barcode</Text>
+            <Text style={styles.screenTitle}>{t("page.resultTitle")}</Text>
           </View>
           {body}
         </KeyboardAwareScrollView>
@@ -479,19 +485,19 @@ export default function MakanBarcode() {
   // ---- Scanner ----
   const typedPanel = (
     <View style={styles.typePanel}>
-      <Field label="Nomor barcode">
+      <Field label={t("entry.number")}>
         <Input
           value={typed}
           onChangeText={setTyped}
           keyboardType="number-pad"
           placeholder="8996001600146"
           maxLength={20}
-          accessibilityLabel="Nomor barcode"
+          accessibilityLabel={t("entry.number")}
           onSubmitEditing={() => accept(typed)}
         />
       </Field>
       {scanError ? <Text style={styles.errorText}>{scanError}</Text> : null}
-      <Button label="Cari" onPress={() => accept(typed)} disabled={typed.trim() === ""} />
+      <Button label={t("entry.search")} onPress={() => accept(typed)} disabled={typed.trim() === ""} />
     </View>
   );
 
@@ -505,23 +511,22 @@ export default function MakanBarcode() {
           <View style={styles.topRow}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Tutup"
+              accessibilityLabel={t("common:actions.close")}
               onPress={() => router.back()}
               hitSlop={8}
               style={styles.backButton}
             >
               <Ionicons name="close" size={24} color={theme.colors.foreground} />
             </Pressable>
-            <Text style={styles.screenTitle}>Pindai Barcode</Text>
+            <Text style={styles.screenTitle}>{t("page.title")}</Text>
           </View>
           <View style={styles.block}>
-            <Text style={styles.title}>Kamera dibutuhkan</Text>
-            <Text style={styles.caption}>
-              JoyoRogo butuh izin kamera untuk membaca barcode di kemasan. Barcode dibaca di
-              perangkatmu; fotonya tidak dikirim ke mana pun.
-            </Text>
-            <Button label="Beri Izin Kamera" onPress={() => void requestPermission()} />
-            <Text style={styles.caption}>Atau ketik nomornya:</Text>
+            <Text style={styles.title}>{t("camera.permissionTitle")}</Text>
+            <Disclosure plain title={t("camera.notes")}>
+              <Text style={styles.caption}>{t("camera.privacyNative")}</Text>
+            </Disclosure>
+            <Button label={t("camera.grant")} onPress={() => void requestPermission()} />
+            <Text style={styles.caption}>{t("camera.orType")}</Text>
             {typedPanel}
           </View>
         </KeyboardAwareScrollView>
@@ -539,7 +544,7 @@ export default function MakanBarcode() {
       />
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Tutup kamera"
+        accessibilityLabel={t("camera.close")}
         onPress={() => router.back()}
         style={styles.closeButton}
       >
@@ -555,12 +560,10 @@ export default function MakanBarcode() {
           </KeyboardAwareScrollView>
         ) : (
           <>
-            <Text style={styles.hint}>
-              {scanError ?? "Arahkan kamera ke barcode di kemasan"}
-            </Text>
+            <Text style={styles.hint}>{scanError ?? t("camera.aim")}</Text>
             <Button
               variant="secondary"
-              label="Ketik nomor barcode"
+              label={t("entry.type")}
               icon="keypad-outline"
               onPress={() => setTyping(true)}
             />
@@ -570,6 +573,7 @@ export default function MakanBarcode() {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create((theme) => ({
   safeArea: {
@@ -634,8 +638,8 @@ const styles = StyleSheet.create((theme) => ({
     gap: theme.spacing.md,
   },
   productImage: {
-    width: 72,
-    height: 72,
+    width: 56,
+    height: 56,
     borderRadius: theme.radius.card,
     backgroundColor: theme.colors.muted,
   },
@@ -651,8 +655,13 @@ const styles = StyleSheet.create((theme) => ({
     fontWeight: "600",
     color: theme.colors.mutedForeground,
   },
-  infoGap: {
-    marginTop: theme.spacing.sm,
+  nutriRow: {
+    flexDirection: "row",
+    gap: theme.spacing.md,
+  },
+  nutriCol: {
+    flex: 1,
+    gap: 4,
   },
   infoKcal: {
     fontSize: theme.fontSize.xl,

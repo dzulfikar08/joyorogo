@@ -2,6 +2,7 @@ import { Camera, Check, ChevronLeft, ScanBarcode, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { MEAL_LABELS, effectiveRamadan, slotsFor, suggestMealNow } from "@joyorogo/api/lib/engine";
@@ -14,7 +15,7 @@ import { Input } from "@joyorogo/ui/components/input";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Card, FieldLabel, Page, PageHeader, Segmented } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
-import { fmtInt, parseNum } from "@/lib/format";
+import { fmtInt, fmtKcalLabel, parseNum } from "@/lib/format";
 import { KindPicker, SnackAdviceCard, useSnackAdvice } from "@/components/makan/snack-advice";
 import type { PickableKind } from "@/components/makan/snack-advice";
 import { client, orpc } from "@/utils/orpc";
@@ -32,8 +33,6 @@ export const Route = createFileRoute("/_auth/makan/barcode")({
   component: BarcodePage,
 });
 
-const MACRO_NAMES = { protein: "protein", carbs: "karbo", fat: "lemak", fiber: "serat" } as const;
-
 // BarcodeDetector ships in Chromium (Android, ChromeOS, macOS) but is missing
 // from Firefox, Safari and desktop Chrome on Linux/Windows, and from lib.dom.
 type DetectorInstance = { detect(source: HTMLVideoElement): Promise<Array<{ rawValue: string }>> };
@@ -46,12 +45,23 @@ function barcodeDetector(): DetectorCtor | null {
   return detector;
 }
 
+/** Collapsed-by-default explanation, so screenshots stay about the data. */
+function Notes({ summary, children }: { summary: string; children: React.ReactNode }) {
+  return (
+    <details className="text-xs text-muted-foreground">
+      <summary className="cursor-pointer px-1 font-semibold select-none">{summary}</summary>
+      <div className="mt-1.5 space-y-1.5 px-1">{children}</div>
+    </details>
+  );
+}
+
 /** Live camera feed polled by BarcodeDetector; reports the first code it reads. */
 function CameraScanner({ onCode, onClose }: { onCode: (raw: string) => void; onClose: () => void }) {
+  const { t } = useTranslation(["barcode", "common"]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const onCodeRef = useRef(onCode);
   onCodeRef.current = onCode;
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<"denied" | "failed" | null>(null);
 
   useEffect(() => {
     let stopped = false;
@@ -87,11 +97,7 @@ function CameraScanner({ onCode, onClose }: { onCode: (raw: string) => void; onC
         };
         void tick();
       } catch (err) {
-        setError(
-          err instanceof DOMException && err.name === "NotAllowedError"
-            ? "Izin kamera ditolak. Izinkan kamera di pengaturan browser, atau ketik nomornya."
-            : "Kamera tidak bisa dibuka. Ketik nomor barcode di bawah.",
-        );
+        setError(err instanceof DOMException && err.name === "NotAllowedError" ? "denied" : "failed");
       }
     };
     void start();
@@ -103,13 +109,13 @@ function CameraScanner({ onCode, onClose }: { onCode: (raw: string) => void; onC
   }, []);
 
   return (
-    <Card className="p-3">
+    <Card className="space-y-3 p-3">
       <div className="relative overflow-hidden rounded-2xl bg-black">
         <video
           ref={videoRef}
           playsInline
           muted
-          aria-label="Pratinjau kamera untuk membaca barcode"
+          aria-label={t("camera.preview")}
           className="aspect-[4/3] w-full object-cover"
         />
         <div
@@ -118,23 +124,27 @@ function CameraScanner({ onCode, onClose }: { onCode: (raw: string) => void; onC
         />
       </div>
       {error ? (
-        <p role="alert" className="mt-3 px-1 text-sm text-destructive">
-          {error}
+        <p role="alert" className="px-1 text-sm text-destructive">
+          {t(`camera.error.${error}`)}
         </p>
       ) : (
-        <p className="mt-3 px-1 text-sm text-muted-foreground">
-          Arahkan kamera ke barcode di kemasan. Gambar diproses di browsermu dan tidak dikirim.
-        </p>
+        <>
+          <p className="px-1 text-sm text-muted-foreground">{t("camera.aim")}</p>
+          <Notes summary={t("camera.notes")}>
+            <p>{t("camera.privacyWeb")}</p>
+          </Notes>
+        </>
       )}
-      <Button variant="secondary" className="mt-3 w-full" onClick={onClose}>
+      <Button variant="secondary" className="w-full" onClick={onClose}>
         <X className="size-4" aria-hidden />
-        Tutup kamera
+        {t("camera.close")}
       </Button>
     </Card>
   );
 }
 
 function BarcodePage() {
+  const { t } = useTranslation(["barcode", "common"]);
   const { date, meal: startMeal } = Route.useSearch();
   const [code, setCode] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
@@ -145,7 +155,7 @@ function BarcodePage() {
   const accept = (raw: string) => {
     const normalized = normalizeBarcode(raw);
     if (!normalized) {
-      setCodeError("Nomor barcode tidak valid. Cek lagi angkanya (8, 12, atau 13 digit).");
+      setCodeError(t("entry.invalid"));
       return;
     }
     setCodeError(null);
@@ -162,13 +172,13 @@ function BarcodePage() {
   return (
     <Page className="md:max-w-3xl">
       <PageHeader
-        title="Pindai barcode"
-        subtitle="Angka gizi kemasan dari Open Food Facts."
+        title={t("page.title")}
+        subtitle={t("page.subtitle")}
         action={
           <Link to="/makan" search={date ? { date } : {}}>
             <Button variant="ghost" size="sm">
               <ChevronLeft className="size-4" aria-hidden />
-              Kembali
+              {t("common:actions.back")}
             </Button>
           </Link>
         }
@@ -178,17 +188,19 @@ function BarcodePage() {
           {cameraOn ? (
             <CameraScanner onCode={accept} onClose={() => setCameraOn(false)} />
           ) : (
-            <Card>
+            <Card className="space-y-2">
               {cameraSupported ? (
                 <Button className="w-full" onClick={() => setCameraOn(true)}>
                   <Camera className="size-4" aria-hidden />
-                  Buka kamera
+                  {t("camera.open")}
                 </Button>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  Browser ini belum bisa membaca barcode lewat kamera (didukung Chrome di Android).
-                  Ketik nomor yang tertera di bawah barcode, atau pakai aplikasi JoyoRogo di HP.
-                </p>
+                <>
+                  <p className="text-sm text-muted-foreground">{t("camera.unsupported")}</p>
+                  <Notes summary={t("camera.notes")}>
+                    <p>{t("camera.unsupportedDetail")}</p>
+                  </Notes>
+                </>
               )}
             </Card>
           )}
@@ -199,7 +211,7 @@ function BarcodePage() {
                 accept(typed);
               }}
             >
-              <FieldLabel htmlFor="barcode-number">Nomor barcode</FieldLabel>
+              <FieldLabel htmlFor="barcode-number">{t("entry.number")}</FieldLabel>
               <Input
                 id="barcode-number"
                 inputMode="numeric"
@@ -216,7 +228,7 @@ function BarcodePage() {
               )}
               <Button type="submit" className="mt-3 w-full" disabled={typed.trim() === ""}>
                 <ScanBarcode className="size-4" aria-hidden />
-                Cari
+                {t("entry.search")}
               </Button>
             </form>
           </Card>
@@ -239,6 +251,7 @@ function BarcodeResult({
   startMeal?: Meal;
   onReset: () => void;
 }) {
+  const { t } = useTranslation(["barcode", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const lookup = useQuery({
@@ -264,14 +277,14 @@ function BarcodeResult({
     setError(null);
     try {
       await client.food.add({ ...input, date, meal });
-      toast.success(`${input.name} dicatat ke ${MEAL_LABELS[meal]}.`);
+      toast.success(t("save.toast", { name: input.name, meal: MEAL_LABELS[meal] }));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: orpc.food.key() }),
         queryClient.invalidateQueries({ queryKey: orpc.day.key() }),
       ]);
       void navigate({ to: "/makan", search: date ? { date } : {} });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal menyimpan. Coba lagi.");
+      setError(err instanceof Error ? err.message : t("save.failed"));
     } finally {
       setSaving(false);
     }
@@ -279,7 +292,7 @@ function BarcodeResult({
 
   const mealPicker = meals.length > 1 && (
     <Segmented
-      label="Waktu makan"
+      label={t("meal.label")}
       value={meal}
       onChange={setMeal}
       options={meals.map((key) => ({ value: key, label: MEAL_LABELS[key] }))}
@@ -321,17 +334,16 @@ function BarcodeResult({
   };
 
   const fallback = (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <Link to="/makan/ai" search={date ? { date } : {}}>
         <Button className="w-full">
           <Camera className="size-4" aria-hidden />
-          Foto produknya, AI perkirakan
+          {t("fallback.photo")}
         </Button>
       </Link>
-      <p className="px-1 text-xs text-muted-foreground">
-        AI memperkirakan dari foto, bukan membaca angka di label. Kalau kamu punya angka dari
-        label, isi sendiri.
-      </p>
+      <Notes summary={t("fallback.notes")}>
+        <p>{t("fallback.photoNote")}</p>
+      </Notes>
       {manualOpen ? (
         <form
           className="space-y-3"
@@ -339,22 +351,22 @@ function BarcodeResult({
             event.preventDefault();
             const name = manualName.trim();
             const kcal = parseNum(manualKcal);
-            if (name === "") return setError("Isi dulu nama makanannya.");
-            if (kcal === null || kcal < 0) return setError("Isi jumlah kalorinya, contoh: 350.");
+            if (name === "") return setError(t("manual.nameRequired"));
+            if (kcal === null || kcal < 0) return setError(t("manual.kcalRequired"));
             void save({ meal, name, kcal, source: "manual" });
           }}
         >
           <div>
-            <FieldLabel htmlFor="barcode-manual-name">Nama makanan</FieldLabel>
+            <FieldLabel htmlFor="barcode-manual-name">{t("manual.name")}</FieldLabel>
             <Input
               id="barcode-manual-name"
               value={manualName}
               onChange={(event) => setManualName(event.target.value)}
-              placeholder="Nama produk"
+              placeholder={t("manual.namePlaceholder")}
             />
           </div>
           <div>
-            <FieldLabel htmlFor="barcode-manual-kcal">Kalori (kcal)</FieldLabel>
+            <FieldLabel htmlFor="barcode-manual-kcal">{t("manual.kcal")}</FieldLabel>
             <Input
               id="barcode-manual-kcal"
               type="number"
@@ -379,7 +391,7 @@ function BarcodeResult({
             </p>
           )}
           <Button type="submit" className="w-full" disabled={saving}>
-            {saving ? "Menyimpan..." : "Catat"}
+            {saving ? t("save.saving") : t("save.button")}
           </Button>
         </form>
       ) : (
@@ -391,11 +403,11 @@ function BarcodeResult({
             setManualOpen(true);
           }}
         >
-          Isi kalori sendiri
+          {t("fallback.manual")}
         </Button>
       )}
       <Button variant="ghost" className="w-full" onClick={onReset}>
-        Pindai barcode lain
+        {t("fallback.scanAnother")}
       </Button>
     </div>
   );
@@ -403,19 +415,19 @@ function BarcodeResult({
   if (lookup.isPending) {
     return (
       <Card role="status" className="text-center text-sm text-muted-foreground">
-        Mencari {code} di Open Food Facts…
+        {t("lookup.searching", { code })}
       </Card>
     );
   }
   if (lookup.isError || !data) {
     return (
       <Card className="space-y-3">
-        <h2 className="text-lg font-bold">Pencarian gagal</h2>
-        <p className="text-sm text-muted-foreground">
-          {lookup.error?.message ?? "Open Food Facts tidak bisa dihubungi."}
+        <h2 className="text-lg font-bold">{t("lookup.failed.title")}</h2>
+        <p role="alert" className="text-sm text-muted-foreground">
+          {lookup.error?.message ?? t("lookup.failed.fallback")}
         </p>
         <Button className="w-full" onClick={() => void lookup.refetch()}>
-          Coba lagi
+          {t("common:actions.retry")}
         </Button>
         {fallback}
       </Card>
@@ -424,10 +436,9 @@ function BarcodeResult({
   if (data.status === "not_found") {
     return (
       <Card className="space-y-3">
-        <h2 className="text-lg font-bold">Produk belum ada di Open Food Facts</h2>
+        <h2 className="text-lg font-bold">{t("lookup.notFound.title")}</h2>
         <p className="text-sm text-muted-foreground">
-          Barcode {data.code} belum terdaftar di basis data komunitas itu, jadi kami tidak punya
-          angka gizinya. Kamu bisa foto produknya atau isi kalorinya sendiri.
+          {t("lookup.notFound.body", { code: data.code })}
         </p>
         {fallback}
       </Card>
@@ -438,8 +449,7 @@ function BarcodeResult({
       <Card className="space-y-3">
         <h2 className="text-lg font-bold">{data.product.name}</h2>
         <p className="text-sm text-muted-foreground">
-          {data.reason} Karena itu produk ini tidak kami catat otomatis. Kamu bisa foto produknya
-          atau isi kalorinya sendiri dari label.
+          {t("lookup.incomplete.body", { reason: t(`lookup.incomplete.reason.${data.reason}`) })}
         </p>
         {fallback}
       </Card>
@@ -448,165 +458,164 @@ function BarcodeResult({
 
   const { per100, perServing, servingSize, missing } = data;
   const unit = data.product.unit;
+  const servingLabel = servingSize ? `${fmtInt(servingSize)} ${unit}` : "";
 
   return (
-    <div className="space-y-3">
-      <Card>
-        <div className="flex items-center gap-4">
-          {data.product.imageUrl ? (
-            <img
-              src={data.product.imageUrl}
-              alt=""
-              className="size-[72px] shrink-0 rounded-2xl bg-muted object-contain"
-            />
-          ) : (
-            <span
-              aria-hidden
-              className="flex size-[72px] shrink-0 items-center justify-center rounded-2xl bg-muted"
-            >
-              <ScanBarcode className="size-7 text-muted-foreground" />
-            </span>
-          )}
-          <div className="min-w-0">
-            <h2 className="text-lg font-bold">{data.product.name}</h2>
-            <p className="text-sm text-muted-foreground">
-              {[data.product.brand, data.product.quantity].filter(Boolean).join(" · ") ||
-                `Barcode ${data.code}`}
-            </p>
-          </div>
+    <Card className="space-y-3">
+      <div className="flex items-center gap-3">
+        {data.product.imageUrl ? (
+          <img
+            src={data.product.imageUrl}
+            alt=""
+            className="size-14 shrink-0 rounded-xl bg-muted object-contain"
+          />
+        ) : (
+          <span
+            aria-hidden
+            className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-muted"
+          >
+            <ScanBarcode className="size-6 text-muted-foreground" />
+          </span>
+        )}
+        <div className="min-w-0">
+          <h2 className="text-lg leading-tight font-bold">{data.product.name}</h2>
+          <p className="text-sm text-muted-foreground">
+            {[data.product.brand, data.product.quantity].filter(Boolean).join(" · ") ||
+              t("result.unknownProduct", { code: data.code })}
+          </p>
         </div>
-        <dl className="mt-4 space-y-3 text-sm">
+      </div>
+
+      <dl className={cn("grid gap-3 text-sm", perServing && servingSize && "grid-cols-2")}>
+        <div>
+          <dt className="font-semibold text-muted-foreground">{t("result.per100", { unit })}</dt>
+          <dd className="text-lg font-extrabold tabular-nums">{fmtKcalLabel(per100.kcal)}</dd>
+          <dd>
+            <MacroLine
+              className="text-xs text-muted-foreground"
+              protein={per100.protein}
+              carbs={per100.carbs}
+              fat={per100.fat}
+              fiber={per100.fiber}
+            />
+          </dd>
+        </div>
+        {perServing && servingSize ? (
           <div>
-            <dt className="font-semibold text-muted-foreground">Per 100 {unit}</dt>
-            <dd className="text-xl font-extrabold tabular-nums">{fmtInt(per100.kcal)} kcal</dd>
+            <dt className="font-semibold text-muted-foreground">
+              {t("result.perServing", { size: servingLabel })}
+            </dt>
+            <dd className="text-lg font-extrabold tabular-nums">{fmtKcalLabel(perServing.kcal)}</dd>
             <dd>
               <MacroLine
-                className="text-muted-foreground"
-                protein={per100.protein}
-                carbs={per100.carbs}
-                fat={per100.fat}
-                fiber={per100.fiber}
+                className="text-xs text-muted-foreground"
+                protein={perServing.protein}
+                carbs={perServing.carbs}
+                fat={perServing.fat}
+                fiber={perServing.fiber}
               />
             </dd>
           </div>
-          {perServing && servingSize ? (
-            <div>
-              <dt className="font-semibold text-muted-foreground">
-                Per sajian ({fmtInt(servingSize)} {unit})
-              </dt>
-              <dd className="text-xl font-extrabold tabular-nums">{fmtInt(perServing.kcal)} kcal</dd>
-              <dd>
-                <MacroLine
-                  className="text-muted-foreground"
-                  protein={perServing.protein}
-                  carbs={perServing.carbs}
-                  fat={perServing.fat}
-                  fiber={perServing.fiber}
-                />
-              </dd>
-            </div>
-          ) : null}
-        </dl>
-        {missing.length > 0 && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            Open Food Facts belum punya data {missing.map((key) => MACRO_NAMES[key]).join(", ")}{" "}
-            untuk produk ini; yang kosong dicatat sebagai tidak diketahui, bukan nol.
-          </p>
-        )}
-      </Card>
+        ) : null}
+      </dl>
 
-      <Card className="space-y-4">
-        <div>
-          <FieldLabel htmlFor="barcode-grams">Berapa banyak yang kamu makan ({unit})</FieldLabel>
+      <div>
+        <FieldLabel htmlFor="barcode-grams">{t("quantity.label", { unit })}</FieldLabel>
+        <div className="flex items-center gap-2">
           <Input
             id="barcode-grams"
+            className="w-24 shrink-0"
             inputMode="decimal"
             value={gramsText}
             onChange={(event) => setGrams(event.target.value)}
           />
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {servingSize ? (
               <PortionChip
                 active={gramsNum === servingSize}
                 onClick={() => setGrams(String(servingSize))}
               >
-                1 sajian · {fmtInt(servingSize)} {unit}
+                {t("quantity.serving", { size: servingLabel })}
               </PortionChip>
             ) : null}
             <PortionChip active={gramsNum === 100} onClick={() => setGrams("100")}>
-              100 {unit}
+              {t("quantity.hundred", { unit })}
             </PortionChip>
           </div>
         </div>
+      </div>
 
-        {scaled ? (
-          <div className="text-center">
-            <p className="text-sm font-semibold text-muted-foreground">Yang dicatat</p>
-            <p className="text-4xl font-extrabold tracking-tight tabular-nums">
-              {fmtInt(scaled.kcal)} kcal
-            </p>
-            <MacroLine
-              className="mt-1 justify-center text-sm text-muted-foreground"
-              protein={scaled.protein}
-              carbs={scaled.carbs}
-              fat={scaled.fat}
-              fiber={scaled.fiber}
-            />
-          </div>
-        ) : (
-          <p className="text-center text-sm text-muted-foreground">
-            Isi takaran antara 1 dan {MAX_GRAMS} {unit}.
+      {scaled ? (
+        <div className="text-center">
+          <p className="text-sm font-semibold text-muted-foreground">{t("total.label")}</p>
+          <p className="text-3xl font-extrabold tracking-tight tabular-nums">
+            {fmtKcalLabel(scaled.kcal)}
           </p>
-        )}
-
-        {mealPicker}
-        <KindPicker value={kind} onChange={setKindOverride} />
-        <SnackAdviceCard
-          state={advice}
-          onHalf={halve}
-          halfApplied={halfUndo !== null}
-          onUndoHalf={undoHalf}
-        />
-        {error && (
-          <p role="alert" className="px-1 text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <Button
-          className="w-full"
-          disabled={!scaled || saving}
-          onClick={() => {
-            if (!scaled) return;
-            void save({
-              meal,
-              name: data.product.name,
-              grams: scaled.grams ?? undefined,
-              kcal: scaled.kcal,
-              protein: scaled.protein ?? undefined,
-              carbs: scaled.carbs ?? undefined,
-              fat: scaled.fat ?? undefined,
-              fiber: scaled.fiber ?? undefined,
-              source: "barcode",
-              itemsJson: JSON.stringify({
-                barcode: data.code,
-                brand: data.product.brand,
-                source: "openfoodfacts",
-              }),
-            });
-          }}
-        >
-          <Check className="size-4" aria-hidden />
-          {saving ? "Menyimpan..." : `Catat ke ${MEAL_LABELS[meal]}`}
-        </Button>
-        <Button variant="ghost" className="w-full" onClick={onReset}>
-          Pindai barcode lain
-        </Button>
-        <p className="px-1 text-xs text-muted-foreground">
-          Sumber: Open Food Facts, basis data komunitas. Angkanya bisa beda dari label kemasanmu;
-          cek lagi kalau ragu.
+          <MacroLine
+            className="mt-0.5 justify-center text-sm text-muted-foreground"
+            protein={scaled.protein}
+            carbs={scaled.carbs}
+            fat={scaled.fat}
+            fiber={scaled.fiber}
+          />
+        </div>
+      ) : (
+        <p role="alert" className="text-center text-sm text-destructive">
+          {t("quantity.range", { max: MAX_GRAMS, unit })}
         </p>
-      </Card>
-    </div>
+      )}
+
+      {mealPicker}
+      <KindPicker value={kind} onChange={setKindOverride} />
+      <SnackAdviceCard
+        state={advice}
+        onHalf={halve}
+        halfApplied={halfUndo !== null}
+        onUndoHalf={undoHalf}
+      />
+      {error && (
+        <p role="alert" className="px-1 text-sm text-destructive">
+          {error}
+        </p>
+      )}
+      <Button
+        className="w-full"
+        disabled={!scaled || saving}
+        onClick={() => {
+          if (!scaled) return;
+          void save({
+            meal,
+            name: data.product.name,
+            grams: scaled.grams ?? undefined,
+            kcal: scaled.kcal,
+            protein: scaled.protein ?? undefined,
+            carbs: scaled.carbs ?? undefined,
+            fat: scaled.fat ?? undefined,
+            fiber: scaled.fiber ?? undefined,
+            source: "barcode",
+            itemsJson: JSON.stringify({
+              barcode: data.code,
+              brand: data.product.brand,
+              source: "openfoodfacts",
+            }),
+          });
+        }}
+      >
+        <Check className="size-4" aria-hidden />
+        {saving ? t("save.saving") : t("save.buttonTo", { meal: MEAL_LABELS[meal] })}
+      </Button>
+      <Button variant="ghost" className="w-full" onClick={onReset}>
+        {t("fallback.scanAnother")}
+      </Button>
+      <Notes summary={t("result.notes")}>
+        {missing.length > 0 && (
+          <p>
+            {t("result.missing", { fields: missing.map((key) => t(`macro.${key}`)).join(", ") })}
+          </p>
+        )}
+        <p>{t("result.source")}</p>
+      </Notes>
+    </Card>
   );
 }
 
