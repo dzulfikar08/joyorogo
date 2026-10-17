@@ -46,6 +46,8 @@ import {
 type ShareStoryButtonProps = {
   story: StorySpec;
   label?: string;
+  /** Compact 44px round icon (share-outline); `label` becomes the accessibility label. */
+  iconOnly?: boolean;
   variant?: "primary" | "secondary" | "ghost";
   size?: "lg" | "sm";
   disabled?: boolean;
@@ -156,6 +158,7 @@ function TargetTile({
 export function ShareStoryButton({
   story,
   label: labelProp,
+  iconOnly = false,
   variant = "primary",
   size,
   disabled,
@@ -384,17 +387,33 @@ export function ShareStoryButton({
   return (
     <>
       <View style={style}>
-        <Button
-          label={label}
-          variant={variant}
-          size={size}
-          disabled={disabled}
-          onPress={() => {
-            setActive(0);
-            setActionFailure(null);
-            setOpen(true);
-          }}
-        />
+        {iconOnly ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            disabled={disabled}
+            onPress={() => {
+              setActive(0);
+              setActionFailure(null);
+              setOpen(true);
+            }}
+            style={({ pressed }) => [styles.iconButton, pressed && styles.tilePressed]}
+          >
+            <Ionicons name="share-outline" size={22} color={theme.colors.foreground} />
+          </Pressable>
+        ) : (
+          <Button
+            label={label}
+            variant={variant}
+            size={size}
+            disabled={disabled}
+            onPress={() => {
+              setActive(0);
+              setActionFailure(null);
+              setOpen(true);
+            }}
+          />
+        )}
       </View>
 
       <Sheet
@@ -636,6 +655,14 @@ const styles = StyleSheet.create((theme) => ({
   },
   tileDisabled: { opacity: 0.45 },
   tilePressed: { opacity: 0.75 },
+  iconButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.muted,
+  },
   tileIcon: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   tileLabel: {
     fontFamily: theme.fonts.bold,

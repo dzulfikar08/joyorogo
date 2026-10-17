@@ -6,7 +6,7 @@ import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { Image, Platform, Switch, View } from "react-native";
 import { useEffect, useState } from "react";
-import { Redirect, Stack, router } from "expo-router";
+import { Redirect, Stack, router, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, UnistylesRuntime, useUnistyles } from "react-native-unistyles";
@@ -34,6 +34,7 @@ import { FounderCards, serverUrl, useAppConfig } from "@/components/billing";
 import { ConfirmSheet } from "@/components/confirm-sheet";
 import { useToast } from "@/components/toast";
 import { BudgetSetting } from "@/components/plate/budget-setting";
+import { NeedsSheet } from "@/components/needs-sheet";
 import { TargetDateSheet, TargetWeightSheet } from "@/components/target-sheets";
 import { StravaCard } from "@/components/strava-card";
 import { FastingSettingsCard } from "@/components/fasting/settings-card";
@@ -94,8 +95,13 @@ export default function Profil() {
     invalidate: () => [orpc.profile.key()],
   });
 
-  // Two focused editors, like web: "weight" and "date" open separately.
-  const [sheet, setSheet] = useState<null | "weight" | "date">(null);
+  // Focused editors: "weight" and "date" open separately; "needs" is the TDEE
+  // breakdown, also opened from Beranda via ?needs=1.
+  const [sheet, setSheet] = useState<null | "weight" | "date" | "needs">(null);
+  const { needs: needsParam } = useLocalSearchParams<{ needs?: string }>();
+  useEffect(() => {
+    if (needsParam === "1") setSheet("needs");
+  }, [needsParam]);
 
   const [hcBusy, setHcBusy] = useState(false);
   const [hcMessage, setHcMessage] = useState<string | null>(null);
@@ -497,6 +503,18 @@ export default function Profil() {
             />
           </View>
 
+          {/* TDEE: dari mana target makan datang */}
+          <ListGroup>
+            <ListRow
+              icon="flash"
+              iconTint="makan"
+              title={t("plan.needs.row")}
+              value={t("plan.needs.rowValue", { kcal: fmtInt(targets.tdee) })}
+              chevron
+              onPress={() => setSheet("needs")}
+            />
+          </ListGroup>
+
           {/* Rencana rows → sheet editors */}
           <ListGroup>
             <ListRow
@@ -737,6 +755,9 @@ export default function Profil() {
               });
             }}
           />
+          {targets ? (
+            <NeedsSheet visible={sheet === "needs"} onClose={() => setSheet(null)} targets={targets} />
+          ) : null}
         </>
       ) : null}
       </Screen>

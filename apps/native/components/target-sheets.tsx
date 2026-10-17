@@ -1,29 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
-import { Platform, View } from "react-native";
-import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
+import { View } from "react-native";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 
 import {
-  daysBetween,
+  checkTargetDate,
   idealWeightRange,
   jakartaToday,
-  KCAL_PER_KG_FAT,
+  MAX_TARGET_DAYS,
+  shiftDate,
 } from "@joyorogo/api/lib/engine";
 
-import { Button, Field, Input, Sheet, Text } from "@/components/ui";
+import { Calendar } from "@/components/calendar";
+import { Button, Chip, Field, Input, Sheet, Text } from "@/components/ui";
 import { errorMessage, fmtDateMedium, fmtInt, fmtKg, parseNum } from "@/utils/format";
-
-/** WIB date N days from now as 'YYYY-MM-DD' (fixed UTC+7, no DST). */
-function jakartaDatePlusDays(days: number): string {
-  return new Date(Date.now() + 7 * 3_600_000 + days * 86_400_000).toISOString().slice(0, 10);
-}
-
-function dateToIso(date: Date): string {
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-}
+import { orpc } from "@/utils/orpc";
 
 /**
  * Sheet "Berat target": one focused input, healthy-range hint, and the web's
@@ -111,9 +103,9 @@ export function TargetWeightSheet({
 }
 
 /**
- * Sheet "Tanggal target": real calendar picker plus the web's too-fast guard
- * (profil.tsx TargetDateForm): warn when the target date demands more than
- * ~1.000 kkal/day of deficit and offer a realistic date.
+ * Sheet "Tanggal target": in-app calendar (future days only), quick chips, a
+ * pace verdict from the shared engine check, and the live daily eat target the
+ * date would give (profile.previewTargets, never blocks Save).
  */
 export function TargetDateSheet({
   visible,
@@ -134,58 +126,52 @@ export function TargetDateSheet({
 }) {
   const { t } = useTranslation(["settings", "common"]);
   const [date, setDate] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
       setDate(null);
-      setError(null);
       setSaveError(null);
     }
   }, [visible]);
 
+  const today = jakartaToday();
+  const minDate = shiftDate(today, 1);
+  const maxDate = shiftDate(today, MAX_TARGET_DAYS);
   const shown = date ?? targetDate;
-  const selected = /^\d{4}-\d{2}-\d{2}$/.test(shown) ? new Date(`${shown}T00:00:00`) : new Date();
-  const minDate = new Date(`${jakartaToday()}T00:00:00`);
+  const check = useMemo(
+    () => checkTargetDate({ weightNowKg, targetWeightKg, targetDate: shown, today }),
+    [weightNowKg, targetWeightKg, shown, today],
+  );
+  const valid =
+    check.status === "ok" ||
+    check.status === "fast" ||
+    check.status === "slow" ||
+    check.status === "maintenance";
 
-  const tooFast = useMemo(() => {
-    if (targetWeightKg >= weightNowKg) return null;
-    const days = daysBetween(jakartaToday(), shown);
-    if (days < 1) return null;
-    const lossKg = weightNowKg - targetWeightKg;
-    const rawDeficit = Math.round((lossKg * KCAL_PER_KG_FAT) / days);
-    if (rawDeficit <= 1000) return null;
-    return {
-      rawDeficit,
-      lossKg,
-      feasibleDays: Math.ceil((lossKg * KCAL_PER_KG_FAT) / 1000),
-    };
-  }, [shown, weightNowKg, targetWeightKg]);
+  const preview = useQuery({
+    ...orpc.profile.previewTargets.queryOptions({
+      input: { targetWeightKg, targetDate: shown },
+    }),
+    enabled: visible && valid,
+    placeholderData: (prev) => prev,
+    retry: false,
+  });
 
-  const onPicked = (picked: Date | undefined) => {
-    if (picked) {
-      setDate(dateToIso(picked));
-      setError(null);
-    }
+  const pick = (iso: string) => {
+    setDate(iso);
+    setSaveError(null);
   };
 
-  const openPicker = () => {
-    if (Platform.OS !== "android") return;
-    DateTimePickerAndroid.open({
-      value: selected,
-      mode: "date",
-      minimumDate: minDate,
-      onChange: (_event, picked) => onPicked(picked),
-    });
-  };
+  const quick = [
+    { key: "month1", days: 30 },
+    { key: "month3", days: 91 },
+    { key: "month6", days: 182 },
+    { key: "year1", days: 365 },
+  ] as const;
 
   const submit = async () => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(shown) || shown < jakartaToday()) {
-      setError(t("plan.targetDate.error"));
-      return;
-    }
-    setError(null);
+    if (!valid) return;
     setSaveError(null);
     try {
       await onSave(shown);
@@ -194,56 +180,117 @@ export function TargetDateSheet({
     }
   };
 
+  const days = valid && "days" in check ? check.days : null;
+
   return (
     <Sheet
       visible={visible}
       onClose={onClose}
       title={t("plan.targetDate.title")}
       footer={
-        <Button label={t("common:actions.save")} onPress={() => void submit()} loading={pending} />
+        <Button
+          label={t("common:actions.save")}
+          onPress={() => void submit()}
+          loading={pending}
+          disabled={!valid}
+        />
       }
     >
-      {Platform.OS === "android" ? (
-        <Button
-          variant="secondary"
-          icon="calendar"
-          label={fmtDateMedium(shown)}
-          onPress={openPicker}
-          style={styles.dateButton}
-        />
-      ) : (
-        <DateTimePicker
-          value={selected}
-          mode="date"
-          display="spinner"
-          minimumDate={minDate}
-          onChange={(_event, picked) => onPicked(picked)}
-        />
-      )}
-      {tooFast ? (
+      <View style={styles.chipRow} accessibilityLabel={t("plan.targetDate.pickLabel")}>
+        {quick.map(({ key, days: n }) => {
+          const iso = shiftDate(today, n);
+          return (
+            <Chip
+              key={key}
+              label={t(`plan.targetDate.quick.${key}`)}
+              selected={shown === iso}
+              onPress={() => pick(iso)}
+            />
+          );
+        })}
+      </View>
+      <Calendar
+        value={shown}
+        onChange={pick}
+        minDate={minDate}
+        maxDate={maxDate}
+        prevLabel={t("plan.targetDate.prevMonth")}
+        nextLabel={t("plan.targetDate.nextMonth")}
+      />
+      <View style={styles.summary}>
+        <Text style={styles.summaryDate}>{fmtDateMedium(shown)}</Text>
+        {days !== null ? (
+          <Text style={styles.summaryAway}>{t("plan.targetDate.daysAway", { count: days })}</Text>
+        ) : null}
+      </View>
+
+      {check.status === "fast" ? (
         <View style={styles.warnBox}>
           <Text style={styles.warnTitle}>
-            {t("plan.targetDate.tooFast.title", { deficit: fmtInt(tooFast.rawDeficit) })}
+            {t("plan.targetDate.tooFast.title", { deficit: fmtInt(check.rawDeficitKcal) })}
           </Text>
           <Text style={styles.warnBody}>
             {t("plan.targetDate.tooFast.body", {
-              kg: fmtKg(tooFast.lossKg),
-              count: tooFast.feasibleDays,
+              kg: fmtKg(check.lossKg),
+              count: check.feasibleDays,
             })}
           </Text>
           <Button
             variant="secondary"
             size="sm"
-            label={t("plan.targetDate.tooFast.useDate", { count: tooFast.feasibleDays })}
-            onPress={() => {
-              setDate(jakartaDatePlusDays(tooFast.feasibleDays));
-              setError(null);
-            }}
+            label={t("plan.targetDate.tooFast.useDate", { count: check.feasibleDays })}
+            onPress={() => pick(shiftDate(today, check.feasibleDays))}
             style={styles.warnAction}
           />
         </View>
       ) : null}
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {check.status === "slow" ? (
+        <View style={styles.infoBox}>
+          <Text style={styles.infoTitle}>{t("plan.targetDate.slow.title")}</Text>
+          <Text style={styles.warnBody}>
+            {t("plan.targetDate.slow.body", {
+              deficit: fmtInt(check.deficitKcal),
+              date: fmtDateMedium(shiftDate(today, check.feasibleDays)),
+            })}
+          </Text>
+          <Button
+            variant="secondary"
+            size="sm"
+            label={t("plan.targetDate.slow.useDate", {
+              date: fmtDateMedium(shiftDate(today, check.feasibleDays)),
+            })}
+            onPress={() => pick(shiftDate(today, check.feasibleDays))}
+            style={styles.warnAction}
+          />
+        </View>
+      ) : null}
+      {check.status === "ok" ? (
+        <Text style={styles.note}>
+          {t("plan.targetDate.ok", {
+            kg: fmtKg(check.lossKg),
+            count: check.days,
+            perWeek: fmtKg((check.lossKg / check.days) * 7),
+          })}
+        </Text>
+      ) : null}
+      {check.status === "maintenance" ? (
+        <Text style={styles.note}>{t("plan.targetDate.maintenance")}</Text>
+      ) : null}
+      {!valid ? <Text style={styles.errorText}>{t("plan.targetDate.error")}</Text> : null}
+
+      {valid && preview.data ? (
+        <Text style={styles.previewText}>
+          {preview.data.next.eatKcal === preview.data.current.eatKcal
+            ? t("plan.targetDate.preview.same", { kcal: fmtInt(preview.data.next.eatKcal) })
+            : t("plan.targetDate.preview.changed", {
+                next: fmtInt(preview.data.next.eatKcal),
+                current: fmtInt(preview.data.current.eatKcal),
+              })}
+        </Text>
+      ) : null}
+      {valid && preview.isError ? (
+        <Text style={styles.note}>{t("plan.targetDate.previewFailed")}</Text>
+      ) : null}
       {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
       <Text style={styles.note}>{t("plan.targetDate.hint")}</Text>
     </Sheet>
@@ -291,7 +338,41 @@ const styles = StyleSheet.create((theme) => ({
   warnAction: {
     alignSelf: "flex-start",
   },
-  dateButton: {
-    height: 64,
+  infoBox: {
+    gap: theme.spacing.sm,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.tile,
+    backgroundColor: theme.colors.muted,
+  },
+  infoTitle: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    lineHeight: 20,
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
+  },
+  summary: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+  },
+  summaryDate: {
+    fontSize: theme.fontSize.md,
+    fontWeight: "800",
+  },
+  summaryAway: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  previewText: {
+    fontSize: theme.fontSize.base,
+    fontWeight: "700",
+    color: theme.colors.makanText,
+    lineHeight: 22,
   },
 }));

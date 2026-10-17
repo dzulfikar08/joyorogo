@@ -116,7 +116,6 @@
           "granularPermissions": []
         }
       ],
-      "@react-native-community/datetimepicker",
       [
         "react-native-android-widget",
         {

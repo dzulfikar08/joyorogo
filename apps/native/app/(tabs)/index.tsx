@@ -14,6 +14,7 @@ import {
   jakartaToday,
   MEAL_LABELS,
   relativeDayLabel,
+  remainingKcal,
   slotsFor,
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
@@ -188,6 +189,7 @@ export default function Dashboard() {
   const [weighOpen, setWeighOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [adaptiveOpen, setAdaptiveOpen] = useState(false);
+  const [explainOpen, setExplainOpen] = useState(false);
   const [viewer, setViewer] = useState<StickerViewerTarget | null>(null);
 
   if (gate === "loading") {
@@ -223,14 +225,14 @@ export default function Dashboard() {
     return <Redirect href="/onboarding" />;
   }
 
-  const over = data.eatenKcal > data.targets.eatKcal;
+  const { kcal: leftKcal, over } = remainingKcal(data.targets.eatKcal, data.eatenKcal);
   const tone = eatTone(data.eatenKcal, data.targets.eatKcal);
   const ringColor = {
     ok: theme.colors.makan,
     near: theme.colors.eatNear,
     over: theme.colors.destructive,
   }[tone];
-  const deficitKcal = data.deficit?.deficitKcal ?? null;
+  const maintenance = data.targets.notes?.includes("MAINTENANCE") || data.targets.deficitKcal === 0;
   const adaptive = data.targets.notes?.includes("ADAPTIVE") ?? false;
   const plates = (foods.data?.items ?? []).filter((item) => item.scanId != null) as Array<
     PlateItem & { scanId: string }
@@ -258,7 +260,6 @@ export default function Dashboard() {
     }>;
     const txt = [
       t("recapShare.title"),
-      t("recapShare.deficit", { kcal: fmtInt(data.deficit.deficitKcal) }),
       t("recapShare.streak", { count: data.streakDays }),
       t("recapShare.average", { kcal: fmtInt(Math.round(data.weekEatenKcal / 7)) }),
       t("recapShare.trend", { points: pts.map((p) => fmtKg(p.weightKg) + "kg").join(" → ") }),
@@ -291,6 +292,20 @@ export default function Dashboard() {
             <Num style={styles.streakChipText}>{data.streakDays}</Num>
           </View>
         ) : null}
+        <ShareStoryButton
+          iconOnly
+          label={t("header.share")}
+          story={{
+            kind: "progress",
+            eatenKcal: data.eatenKcal,
+            targetKcal: data.targets.eatKcal,
+            proteinG: data.protein?.eatenG ?? null,
+            proteinTargetG: data.protein?.targetG ?? null,
+            streakDays: data.streakDays,
+            weightLostKg: data.weightLostKg,
+            weekTrend: data.weekTrend,
+          }}
+        />
         <Link href="/profil" asChild>
           <Pressable
             accessibilityRole="button"
@@ -346,7 +361,7 @@ export default function Dashboard() {
               adjustsFontSizeToFit
               numberOfLines={1}
             >
-              {fmtInt(Math.abs(data.targets.eatKcal - data.eatenKcal))}
+              {fmtInt(leftKcal)}
             </Num>
             <Text style={styles.heroLabel}>kcal</Text>
           </Ring>
@@ -359,17 +374,17 @@ export default function Dashboard() {
               <Text style={styles.heroStatLabel}>{t("eat.eaten")}</Text>
               <Num style={styles.heroStatValue}>{fmtInt(data.eatenKcal)}</Num>
             </View>
-            <View style={styles.heroStat}>
-              <Text style={styles.heroStatLabel}>{t("eat.deficit")}</Text>
-              <Num
-                style={[
-                  styles.heroStatValue,
-                  deficitKcal !== null && deficitKcal >= 0 && { color: theme.colors.makanText },
-                ]}
-              >
-                {deficitKcal !== null ? fmtInt(deficitKcal) : "–"}
-              </Num>
-            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("eat.help")}
+              onPress={() => setExplainOpen(true)}
+              style={({ pressed }) => [styles.helpButton, pressed && styles.pressedSoft]}
+            >
+              <Ionicons name="help-circle-outline" size={20} color={theme.colors.mutedForeground} />
+              <Text style={styles.adaptiveText} numberOfLines={1}>
+                {t("eat.help")}
+              </Text>
+            </Pressable>
           </View>
         </View>
         {adaptive ? (
@@ -385,7 +400,7 @@ export default function Dashboard() {
         ) : null}
         {over ? (
           <Text style={styles.heroNote}>
-            {t("eat.overNote", { kcal: fmtInt(data.eatenKcal - data.targets.eatKcal) })}
+            {t("eat.overNote", { kcal: fmtInt(leftKcal) })}
           </Text>
         ) : null}
       </Card>
@@ -617,23 +632,6 @@ export default function Dashboard() {
               onPress={() => shareRecap()}
             />
           </ListGroup>
-          <Card>
-            <Text style={styles.milestoneTitle}>{t("more.shareTitle")}</Text>
-            <Text style={styles.moreHint}>{t("more.shareHint")}</Text>
-            <ShareStoryButton
-              variant="secondary"
-              story={{
-                kind: "progress",
-                eatenKcal: data.eatenKcal,
-                targetKcal: data.targets.eatKcal,
-                proteinG: data.protein?.eatenG ?? null,
-                proteinTargetG: data.protein?.targetG ?? null,
-                streakDays: data.streakDays,
-                weightLostKg: data.weightLostKg,
-                weekTrend: data.weekTrend,
-              }}
-            />
-          </Card>
           {data.milestones.length > 0 ? (
             <Card>
               <Text style={styles.milestoneTitle}>{t("more.badges")}</Text>
@@ -678,6 +676,55 @@ export default function Dashboard() {
             />
           </Text>
           <Text style={styles.adaptiveMuted}>{t("adaptive.limit")}</Text>
+        </View>
+      </Sheet>
+
+      {/* Cara baca angka hari ini */}
+      <Sheet visible={explainOpen} onClose={() => setExplainOpen(false)} title={t("explain.title")}>
+        <View style={styles.adaptiveBody}>
+          <View style={styles.explainFormula}>
+            <Text style={styles.explainFormulaText}>{t("explain.formula")}</Text>
+            <Num style={styles.explainExample}>
+              {over
+                ? t("explain.exampleOver", {
+                    target: fmtInt(data.targets.eatKcal),
+                    eaten: fmtInt(data.eatenKcal),
+                    over: fmtInt(leftKcal),
+                  })
+                : t("explain.example", {
+                    target: fmtInt(data.targets.eatKcal),
+                    eaten: fmtInt(data.eatenKcal),
+                    left: fmtInt(leftKcal),
+                  })}
+            </Num>
+          </View>
+          {(["target", "eaten", "left", "burn"] as const).map((key) => (
+            <View key={key} style={styles.explainItem}>
+              <Text style={styles.explainTitle}>{t(`explain.${key}.title`)}</Text>
+              <Text style={styles.adaptiveMuted}>{t(`explain.${key}.body`)}</Text>
+            </View>
+          ))}
+          <View style={styles.explainItem}>
+            <Text style={styles.explainTitle}>{t("explain.deficit.title")}</Text>
+            <Text style={styles.adaptiveMuted}>
+              {maintenance
+                ? t("explain.deficit.bodyMaintenance")
+                : t("explain.deficit.body", { kcal: fmtInt(data.targets.deficitKcal) })}
+            </Text>
+          </View>
+          <ListGroup>
+            <ListRow
+              icon="flash"
+              iconTint="makan"
+              title={t("explain.needs")}
+              wrapTitle
+              chevron
+              onPress={() => {
+                setExplainOpen(false);
+                router.push({ pathname: "/profil", params: { needs: "1" } });
+              }}
+            />
+          </ListGroup>
         </View>
       </Sheet>
 
@@ -769,6 +816,34 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.title,
     fontWeight: "800",
     color: theme.colors.foreground,
+  },
+  helpButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    minHeight: 44,
+  },
+  explainFormula: {
+    gap: theme.spacing.xs,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.tile,
+    backgroundColor: theme.colors.makanSoft,
+  },
+  explainFormulaText: {
+    fontSize: theme.fontSize.base,
+    fontWeight: "800",
+    color: theme.colors.makanText,
+  },
+  explainExample: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.makanText,
+  },
+  explainItem: {
+    gap: 2,
+  },
+  explainTitle: {
+    fontSize: theme.fontSize.base,
+    fontWeight: "700",
   },
   adaptiveRow: {
     flexDirection: "row",
