@@ -24,8 +24,18 @@
   border-bottom: 1px solid color-mix(in oklch, var(--border) 50%, transparent);
   vertical-align: top;
 }
+.table-wrap tbody tr {
+  transition: background-color 120ms ease-out;
+}
 .table-wrap tbody tr:hover {
   background: var(--muted);
+}
+/* Clickable rows confirm the press a shade darker than hover. */
+.table-wrap tbody tr[role="button"] {
+  cursor: pointer;
+}
+.table-wrap tbody tr[role="button"]:active {
+  background: color-mix(in oklch, var(--muted), var(--foreground) 6%);
 }
 
 /* Simple CSS usage bars (no chart library). */

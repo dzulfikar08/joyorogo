@@ -274,9 +274,10 @@ function GrupDetailPage() {
 
       {tab === "anggota" ? (
         <div className="mt-3 space-y-2">
-          {members.map((member) => (
+          {members.map((member, index) => (
             <MemberCard
               key={member.userId}
+              index={index}
               groupId={groupId}
               member={member}
               isSelf={member.userId === meId}
@@ -550,6 +551,7 @@ function MemberCard({
   onPoke,
   onNote,
   pokePending,
+  index,
 }: {
   groupId: string;
   member: Member;
@@ -557,13 +559,14 @@ function MemberCard({
   onPoke: () => void;
   onNote: () => void;
   pokePending: boolean;
+  index: number;
 }) {
   const { t } = useTranslation("grup");
   const { today } = member;
   const delta = today.weightDeltaKg7d;
   const firstName = member.name.split(" ")[0] ?? member.name;
   return (
-    <Card className="p-3">
+    <Card className="post-enter p-3" style={{ "--post-index": index } as React.CSSProperties}>
       <div className="flex items-center gap-3">
         <Avatar name={member.name} image={member.image} />
         <div className="min-w-0 flex-1">
@@ -759,7 +762,11 @@ function ActivityFeed({
   return (
     <ul className="mt-4 space-y-2" aria-label={t("activity.listLabel")}>
       {feed.map((event, index) => (
-        <li key={`${event.at instanceof Date ? event.at.getTime() : String(event.at)}-${index}`}>
+        <li
+          key={`${event.at instanceof Date ? event.at.getTime() : String(event.at)}-${index}`}
+          className="post-enter"
+          style={{ "--post-index": index } as React.CSSProperties}
+        >
           {event.type === "food" && (
             <ActivityRow
               icon={<Utensils className="size-4" aria-hidden />}

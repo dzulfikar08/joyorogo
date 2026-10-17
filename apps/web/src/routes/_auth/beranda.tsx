@@ -24,6 +24,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { MACRO_META } from "@/lib/macro-icons";
+import { CountUp } from "@/components/kit/count-up";
 import { Ring } from "@/components/kit/ring";
 import { Card, Page, SectionTitle } from "@/components/kit/surface";
 import { MetaLine } from "@/components/meta-line";
@@ -41,6 +42,7 @@ import { WaterCard, WaterTile } from "@/components/water-card";
 import { WorkoutCard } from "@/components/workout/workout-card";
 import { pickFact } from "@/lib/facts";
 import { fmtDateLong, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
+import { useFirstVisit } from "@/lib/motion";
 import { useWaistCheckIn, useWeightCheckIn } from "@/lib/optimistic";
 import { useAppConfig } from "@/lib/app-config";
 import type { DaySummary } from "@/lib/api-types";
@@ -200,6 +202,7 @@ function Dashboard({
   const targets = summary.targets;
   const firstName = session.user.name?.split(" ")[0];
   const isToday = date === jakartaToday();
+  const firstVisit = useFirstVisit("beranda");
 
   const foods = useQuery(orpc.food.listByDate.queryOptions({ input: { date: summary.date } }));
   const stickers = (foods.data?.items ?? []).filter(
@@ -288,7 +291,12 @@ function Dashboard({
           scroll, not widen its column past the phone screen. Rows are pinned
           per column on lg so Lingkar perut fills the empty slot next to the
           Berat badan cards; on phones the DOM order keeps Berat first. */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-5">
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-5",
+          firstVisit && "stagger-enter",
+        )}
+      >
         <div className="min-w-0 space-y-2 lg:col-start-1 lg:row-start-1">
           <EatHero summary={summary} />
           <div className="grid grid-cols-3 gap-2">
@@ -297,7 +305,7 @@ function Dashboard({
               to="/olahraga"
               icon={<Flame className="size-4 shrink-0" aria-hidden />}
               label={t("tile.burn")}
-              value={fmtInt(summary.burnedKcal)}
+              value={<CountUp value={summary.burnedKcal} />}
               sub={t("tile.burnOf", { kcal: fmtInt(targets.burnKcal) })}
             />
             <GlanceTile
@@ -306,7 +314,11 @@ function Dashboard({
               icon={<Moon className="size-4 shrink-0" aria-hidden />}
               label={t("tile.sleep")}
               value={
-                summary.sleepHoursLastNight === null ? "–" : fmtKg(summary.sleepHoursLastNight)
+                summary.sleepHoursLastNight === null ? (
+                  "–"
+                ) : (
+                  <CountUp value={summary.sleepHoursLastNight} format={fmtKg} />
+                )
               }
               unit={summary.sleepHoursLastNight === null ? undefined : t("tile.sleepUnit")}
               sub={
@@ -320,7 +332,7 @@ function Dashboard({
               to="/makan"
               icon={<MACRO_META.protein.Icon className="size-4 shrink-0" aria-hidden />}
               label={t("tile.protein")}
-              value={fmtInt(summary.protein?.eatenG ?? 0)}
+              value={<CountUp value={summary.protein?.eatenG ?? 0} />}
               unit="g"
               sub={t("tile.proteinOf", { g: fmtInt(summary.protein?.targetG ?? 0) })}
             />
@@ -332,7 +344,7 @@ function Dashboard({
               to="/berat"
               icon={<Scale className="size-4 shrink-0" aria-hidden />}
               label={t("tile.weight")}
-              value={weightKg === null ? "–" : fmtKg(weightKg)}
+              value={weightKg === null ? "–" : <CountUp value={weightKg} format={fmtKg} />}
               unit={weightKg === null ? undefined : "kg"}
               sub={weightSub}
             />
@@ -416,7 +428,7 @@ function EatHero({ summary }: { summary: Summary }) {
                 over && "text-bakar-ink",
               )}
             >
-              {fmtInt(leftKcal)}
+              <CountUp value={leftKcal} />
             </p>
             <p className="mt-0.5 text-xs font-semibold text-muted-foreground">kcal</p>
           </div>
@@ -426,11 +438,15 @@ function EatHero({ summary }: { summary: Summary }) {
           <dl className="divide-y divide-border">
             <div className="flex items-baseline justify-between gap-2 pb-2">
               <dt className="text-xs font-semibold text-muted-foreground">{t("eat.target")}</dt>
-              <dd className="text-lg font-extrabold tabular-nums">{fmtInt(targets.eatKcal)}</dd>
+              <dd className="text-lg font-extrabold tabular-nums">
+                <CountUp value={targets.eatKcal} />
+              </dd>
             </div>
             <div className="flex items-baseline justify-between gap-2 pt-2">
               <dt className="text-xs font-semibold text-muted-foreground">{t("eat.eaten")}</dt>
-              <dd className="text-lg font-extrabold tabular-nums">{fmtInt(summary.eatenKcal)}</dd>
+              <dd className="text-lg font-extrabold tabular-nums">
+                <CountUp value={summary.eatenKcal} />
+              </dd>
             </div>
           </dl>
           <div className="-mr-2.5 -mb-2.5 mt-1 flex justify-end">
@@ -606,7 +622,7 @@ function TodayMeals({ summary, isToday }: { summary: Summary; isToday: boolean }
                 </span>
                 {kcal > 0 ? (
                   <span className="text-[0.9375rem] font-bold tabular-nums">
-                    {fmtInt(kcal)}{" "}
+                    <CountUp value={kcal} />{" "}
                     <span className="text-xs font-semibold text-muted-foreground">kcal</span>
                   </span>
                 ) : (

@@ -106,7 +106,7 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
@@ -125,6 +125,118 @@
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* Landing hero: the phone follows the copy by a beat. Backwards fill only, so
+   nothing keeps holding a transform once it has landed. */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-in {
+    animation: reveal-in 360ms cubic-bezier(0.23, 1, 0.32, 1) 120ms backwards;
+  }
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+
+/* Marketing pages (landing, harga): pointer-only lift on pricing cards and
+   buttons. Touch skips it so a tap never leaves a card stuck raised. */
+@media (hover: hover) and (pointer: fine) {
+  .card-lift {
+    transition:
+      translate 200ms cubic-bezier(0.23, 1, 0.32, 1),
+      box-shadow 200ms ease-out;
+  }
+  .card-lift:hover {
+    box-shadow: var(--shadow-float);
+  }
+  .marketing [data-slot="button"]:not(:disabled):hover {
+    box-shadow: 0 6px 14px -8px oklch(0.3 0.02 85 / 40%);
+  }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .card-lift:hover {
+    translate: 0 -3px;
+  }
+  .marketing [data-slot="button"]:not(:disabled):hover {
+    translate: 0 -1px;
+  }
+}
+
+/* Diary rows that come and go one at a time (see usePresence). The row is a
+   one-cell grid so 1fr -> 0fr collapses it to nothing while the content fades. */
+.row-presence {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.row-presence > * {
+  min-height: 0;
+  overflow: hidden;
+}
+.row-presence[data-presence="leave"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .row-presence {
+    transition:
+      grid-template-rows 200ms cubic-bezier(0.23, 1, 0.32, 1),
+      opacity 140ms ease-out;
+  }
+  .row-presence[data-presence="enter"] {
+    animation: row-enter 260ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+  }
+}
+
+@keyframes row-enter {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+}
+
+/* Kudos heart: one quick pulse when the visitor gives it, not on every render. */
+@media (prefers-reduced-motion: no-preference) {
+  .heart-pop {
+    animation: heart-pop 280ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+}
+
+@keyframes heart-pop {
+  40% {
+    transform: scale(1.28);
+  }
+}
+
+/* Success toasts: the check draws itself as the toast lands. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-sonner-toast][data-type="success"] [data-icon] svg path {
+    stroke-dasharray: 9;
+    animation: check-draw 320ms cubic-bezier(0.23, 1, 0.32, 1) 120ms backwards;
+  }
+}
+@keyframes check-draw {
+  from {
+    stroke-dashoffset: 9;
+  }
+}
+/* Reduced motion keeps the toast's fade but drops its slide. */
+@media (prefers-reduced-motion: reduce) {
+  [data-sonner-toast] {
+    transition: opacity 150ms ease-out !important;
+  }
+}
+
+/* Public feed and group activity: posts rise in as the list mounts. */
+@media (prefers-reduced-motion: no-preference) {
+  .post-enter {
+    animation: enter-up 260ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+    animation-delay: calc(min(var(--post-index, 0), 6) * 45ms);
   }
 }
 

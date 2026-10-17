@@ -14,6 +14,7 @@ import {
   Utensils,
   Users2,
 } from "lucide-react";
+import type { CSSProperties } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -196,7 +197,7 @@ function WeightChips({ post }: { post: FeedPost }) {
  * Kartu postingan feed: penulis + snapshot log + semangat/komentar. Semua
  * interaksi lokal (optimistic) lalu invalidasi query social.
  */
-export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
+export function PostCard({ post, isOwn, index = 0 }: { post: FeedPost; isOwn: boolean; index?: number }) {
   const { t } = useTranslation("feed");
   const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -206,6 +207,8 @@ export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
     active: post.kudosByMe ?? false,
     count: post.kudosCount,
   });
+  // Counts kudos given this visit; the key restarts the pulse and keeps first paint still.
+  const [kudosPop, setKudosPop] = useState(0);
 
   const toggleKudos = useMutation(
     orpc.social.kudos.mutationOptions({
@@ -233,7 +236,10 @@ export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
   const author = post.author;
 
   return (
-    <Card className="space-y-3 p-4">
+    <Card
+      className="post-enter space-y-3 p-4"
+      style={{ "--post-index": index } as CSSProperties}
+    >
       <header className="flex items-center gap-3">
         {author.handle ? (
           <Link
@@ -302,11 +308,22 @@ export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
           size="sm"
           className={cn("gap-1.5", kudos.active && "text-destructive")}
           disabled={toggleKudos.isPending}
-          onClick={() => toggleKudos.mutate({ postId: post.id })}
+          onClick={() => {
+            if (!kudos.active) setKudosPop((n) => n + 1);
+            toggleKudos.mutate({ postId: post.id });
+          }}
           aria-pressed={kudos.active}
           aria-label={kudos.active ? t("post.kudos.remove") : t("post.kudos.give")}
         >
-          <Heart className={cn("size-4", kudos.active && "fill-current")} aria-hidden />
+          <Heart
+            key={kudosPop}
+            className={cn(
+              "size-4",
+              kudos.active && "fill-current",
+              kudosPop > 0 && kudos.active && "heart-pop",
+            )}
+            aria-hidden
+          />
           {fmtInt(kudos.count)}
         </Button>
         <Button

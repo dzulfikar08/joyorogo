@@ -133,7 +133,7 @@ export function HeroPhone() {
   const remaining = EXAMPLE.target - EXAMPLE.eaten;
   const lunch = SCAN_ITEMS.reduce((sum, item) => sum + item.kcal, 0);
   return (
-    <figure className="relative mx-auto w-full max-w-[22rem] md:max-w-[26rem]">
+    <figure className="reveal-in relative mx-auto w-full max-w-[22rem] md:max-w-[26rem]">
       {/* Solid stage behind the device: grounds it without a glow. Real
           food cutouts peek from its corners; decorative, so no alt text. */}
       <div

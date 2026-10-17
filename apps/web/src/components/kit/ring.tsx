@@ -1,4 +1,5 @@
 import { cn } from "@joyorogo/ui/lib/utils";
+import { useEffect, useRef } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 export type Metric = "makan" | "bakar" | "tidur";
@@ -32,6 +33,7 @@ export function Ring({
   children,
   className,
   tone = "ok",
+  whenVisible = false,
 }: {
   value: number;
   max: number;
@@ -43,7 +45,31 @@ export function Ring({
   children?: ReactNode;
   className?: string;
   tone?: "ok" | keyof typeof TONE_STROKE;
+  /** Start the first fill when the ring scrolls into view (landing rings below the fold). */
+  whenVisible?: boolean;
 }) {
+  const arc = useRef<SVGCircleElement>(null);
+  const hasArc = max > 0 && value > 0;
+
+  // Below the fold the first fill would play unseen: hold it until the arc is on screen.
+  useEffect(() => {
+    const node = arc.current;
+    if (!whenVisible || !node || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          node.style.animationPlayState = "running";
+          observer.disconnect();
+        } else {
+          node.style.animationPlayState = "paused";
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [whenVisible, hasArc]);
+
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const fraction = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;
@@ -73,6 +99,7 @@ export function Ring({
         {/* No arc at 0: a round cap would still paint a dot. */}
         {fraction > 0 && (
           <circle
+            ref={arc}
             cx={center}
             cy={center}
             r={radius}
@@ -82,7 +109,7 @@ export function Ring({
             strokeDasharray={circumference}
             strokeDashoffset={circumference * (1 - fraction)}
             className={cn(
-              "ring-fill transition-[stroke-dashoffset] duration-500 ease-out",
+              "ring-fill transition-[stroke-dashoffset,stroke] duration-500 ease-out",
               tone === "ok" ? STROKE[metric] : TONE_STROKE[tone],
             )}
             style={{ "--ring-circumference": circumference } as CSSProperties}

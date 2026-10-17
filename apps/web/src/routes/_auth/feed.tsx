@@ -287,11 +287,16 @@ function FeedPage() {
             {tab === "mengikuti" ? t("list.empty.following.body") : t("list.empty.explore.body")}
           </EmptyHint>
         ) : (
-          withTipCards(posts).map((row) =>
+          withTipCards(posts).map((row, index) =>
             row.kind === "tip" ? (
               <TipCard key={`tip-${row.tip.slug}`} tip={row.tip} />
             ) : (
-              <PostCard key={row.post.id} post={row.post} isOwn={row.post.author.id === myId} />
+              <PostCard
+                key={row.post.id}
+                post={row.post}
+                isOwn={row.post.author.id === myId}
+                index={index}
+              />
             ),
           )
         )}

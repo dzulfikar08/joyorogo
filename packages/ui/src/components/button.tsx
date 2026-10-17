@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 // v2: pill buttons, 15px semibold labels, 48px primary touch height. Press
 // feedback is a quick scale; focus is a visible 3px ring in the brand green.
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-transparent text-[0.9375rem] font-semibold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,transform] duration-150 ease-out outline-none select-none focus-visible:ring-[3px] focus-visible:ring-ring/40 active:not-aria-[haspopup]:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 aria-invalid:ring-[3px] aria-invalid:ring-destructive/25 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[1.125rem]",
+  "group/button inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-transparent text-[0.9375rem] font-semibold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,translate,scale] duration-150 ease-out outline-none select-none focus-visible:ring-[3px] focus-visible:ring-ring/40 active:not-aria-[haspopup]:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 aria-invalid:ring-[3px] aria-invalid:ring-destructive/25 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[1.125rem]",
   {
     variants: {
       variant: {

@@ -75,7 +75,7 @@ function TierCard({
   return (
     <section
       className={cn(
-        "flex flex-col rounded-3xl p-6",
+        "card-lift flex flex-col rounded-3xl p-6",
         highlight ? "bg-makan-soft" : "bg-card",
       )}
     >
@@ -223,7 +223,7 @@ function HargaPage() {
   const promoLeft = promo ? promo.slots - promo.taken : 0;
 
   return (
-    <div className="min-h-svh">
+    <div className="marketing min-h-svh">
       <PublicHeader />
       <main
         className={cn(

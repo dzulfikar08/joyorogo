@@ -60,6 +60,7 @@ import { SaveLocationToggle } from "@/components/places/location-toggle";
 import { CORRECTED_ROW_CLASS, CorrectBadge, CorrectBox } from "@/components/scan/correct-box";
 import type { CorrectScanResult, CorrectionKind } from "@/components/scan/correct-box";
 import { LiveRows } from "@/components/scan/live-rows";
+import { CountUp } from "@/components/kit/count-up";
 import { STICKER_FILTER, stickerUrl } from "@/components/sticker";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { cropItems } from "@/lib/crop";
@@ -1046,7 +1047,7 @@ function AiFoodPage() {
     const reactionText = totalKcal > 0 ? t(`reaction.${reactionKey(totalKcal)}`) : null;
     const showCrops = cropping || crops.some(Boolean) || stickers.some(Boolean);
     return (
-      <Page className="md:max-w-3xl">
+      <Page className="stagger-enter md:max-w-3xl">
         <PageHeader
           className="pb-3"
           title={t("result.title")}
@@ -1084,7 +1085,7 @@ function AiFoodPage() {
         <Card className="px-4 py-4 text-center">
           <p className="text-sm font-semibold text-muted-foreground">{t("result.total")}</p>
           <p className="mt-1 text-[3rem] leading-none font-extrabold tracking-tighter tabular-nums">
-            {fmtInt(totalKcal)}
+            <CountUp value={totalKcal} duration={700} />
             <span className="ml-1.5 text-base font-semibold tracking-normal text-muted-foreground">
               kcal
             </span>
@@ -1535,7 +1536,10 @@ function AiFoodPage() {
         </div>
 
         {/* Mobile: the primary pill floats above the tab bar; desktop: inline. */}
-        <div className="fixed inset-x-0 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-30 px-4 md:static md:mt-6 md:px-0">
+        <div
+          style={{ animation: "none" }}
+          className="fixed inset-x-0 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-30 px-4 md:static md:mt-6 md:px-0"
+        >
           <div className="mx-auto flex max-w-[41rem] items-center gap-2 md:max-w-none">
             <Button
               size="lg"

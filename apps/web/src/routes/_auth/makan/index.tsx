@@ -41,8 +41,10 @@ import { FitnessCard } from "@/components/makan/fitness-card";
 import type { FoodAddInput, FoodItem, FoodRecentItem } from "@/lib/api-types";
 import { fmtDateLong, fmtInt, parseNum } from "@/lib/format";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
+import { usePresence } from "@/lib/use-presence";
 import { upsertById, removeById } from "@joyorogo/api/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
+import { CountUp } from "@/components/kit/count-up";
 import { KalenderView } from "@/components/makan/kalender-view";
 import { KindChips } from "@/components/makan/kind-chips";
 import { MonthScrubber } from "@/components/makan/month-scrubber";
@@ -110,6 +112,12 @@ function MakanPage() {
   const date = paramDate ?? jakartaToday();
   const isToday = date === jakartaToday();
   const list = useQuery(listOptions(date));
+  // Single adds and deletes animate; day, filter and view swaps don't.
+  const presence = usePresence(
+    (list.data?.items ?? []).filter((item) => matchesKind(item.name, kind)),
+    `${view}:${date}:${kind}:${list.isPending}`,
+    (a, b) => a.meal === b.meal && a.name === b.name && a.kcal === b.kcal,
+  );
   const daySummary = useQuery(summaryOptions(date));
   const recent = useQuery(orpc.food.recent.queryOptions());
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
@@ -438,8 +446,11 @@ function MakanPage() {
               </span>
             </div>
             {MEALS.map(([meal, label]) => {
-              const sectionItems = visibleItems.filter((item) => item.meal === meal);
-              const subtotal = sectionItems.reduce((sum, item) => sum + item.kcal, 0);
+              const sectionItems = presence.rows.filter((item) => item.meal === meal);
+              const subtotal = sectionItems.reduce(
+                (sum, item) => sum + (presence.presenceOf(item.id) === "leave" ? 0 : item.kcal),
+                0,
+              );
               return (
                 <section
                   key={meal}
@@ -466,7 +477,7 @@ function MakanPage() {
                       {label}
                       {sectionItems.length > 0 && (
                         <span className="text-xs font-semibold text-muted-foreground tabular-nums">
-                          {fmtInt(subtotal)} kcal
+                          <CountUp value={subtotal} /> kcal
                         </span>
                       )}
                     </span>
@@ -480,6 +491,7 @@ function MakanPage() {
                         <FoodRow
                           key={item.id}
                           item={item}
+                          presence={presence.presenceOf(item.id)}
                           onEdit={() => setEditItem(item)}
                           onDelete={() => removeFood(item)}
                         />
@@ -534,12 +546,13 @@ function MakanPage() {
             <div className="mt-1 border-t border-border pt-3">
               {list.isPending ? (
                 <Skeleton className="h-24 w-full rounded-3xl" />
-              ) : visibleItems.length > 0 ? (
+              ) : presence.rows.length > 0 ? (
                 <ListGroup>
-                  {visibleItems.map((item) => (
+                  {presence.rows.map((item) => (
                     <FoodRow
                       key={item.id}
                       item={item}
+                      presence={presence.presenceOf(item.id)}
                       onEdit={() => setEditItem(item)}
                       onDelete={() => removeFood(item)}
                     />

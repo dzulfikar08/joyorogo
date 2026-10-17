@@ -384,7 +384,7 @@ function Landing() {
   if (session) return <Navigate to="/beranda" replace />;
 
   return (
-    <div className="min-h-svh">
+    <div className="marketing min-h-svh">
       <PublicHeader />
 
       <main>
@@ -393,7 +393,7 @@ function Landing() {
           data-section="hero"
           className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 pt-8 pb-14 md:grid-cols-[1.05fr_1fr] md:gap-8 md:px-6 md:pt-14 md:pb-20"
         >
-          <div>
+          <div className="stagger-enter">
             <h1 className="max-w-xl text-[2.625rem] leading-[1.04] font-extrabold tracking-tight text-balance md:text-[4rem]">
               Diet yang paham porsi warteg
             </h1>
@@ -479,6 +479,7 @@ function Landing() {
                   size={96}
                   stroke={9}
                   className="shrink-0"
+                  whenVisible
                   label={`Contoh target ${n.title.toLowerCase()}: ${n.center} ${n.unit}`}
                 >
                   <div>
@@ -842,7 +843,7 @@ function Landing() {
                 </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex flex-col rounded-[1.75rem] bg-card p-6">
+                <div className="card-lift flex flex-col rounded-[1.75rem] bg-card p-6">
                   <p className="font-bold">Gratis</p>
                   <p className="mt-2 text-4xl font-extrabold tracking-tight">Rp0</p>
                   <p className="text-sm text-muted-foreground">selamanya</p>
@@ -870,7 +871,7 @@ function Landing() {
                     Mulai gratis
                   </Button>
                 </div>
-                <div className="flex flex-col rounded-[1.75rem] bg-makan-soft p-6">
+                <div className="card-lift flex flex-col rounded-[1.75rem] bg-makan-soft p-6">
                   <p className="font-bold text-makan-ink">Pro</p>
                   <p className="mt-2 text-4xl font-extrabold tracking-tight">
                     {fmtRupiah(config.data.founderPriceIdr)}
