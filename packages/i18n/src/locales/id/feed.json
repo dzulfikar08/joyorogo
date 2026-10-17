@@ -331,6 +331,7 @@
       "weightNotFound": "Catatan berat tidak ditemukan.",
       "pickWorkout": "Pilih dulu latihannya.",
       "workoutNotFound": "Catatan latihan tidak ditemukan.",
+      "analysisMismatch": "Analisis latihan tidak cocok dengan latihan ini. Perbarui JoyoFit lalu coba lagi.",
       "photoStorageUnavailable": "Penyimpanan foto belum tersedia.",
       "photoSaveFailed": "Gagal menyimpan foto.",
       "profileNotFound": "Profil tidak ditemukan.",

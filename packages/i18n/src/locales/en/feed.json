@@ -335,6 +335,7 @@
       "weightNotFound": "Weight entry not found.",
       "pickWorkout": "Pick a workout first.",
       "workoutNotFound": "Workout entry not found.",
+      "analysisMismatch": "The workout analysis doesn't match this workout. Update JoyoFit and try again.",
       "photoStorageUnavailable": "Photo storage isn't available yet.",
       "photoSaveFailed": "Couldn't save the photo.",
       "profileNotFound": "Profile not found.",

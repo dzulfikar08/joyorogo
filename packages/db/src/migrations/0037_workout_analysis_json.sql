@@ -1,0 +1,1 @@
+ALTER TABLE `post_workout_detail` ADD `analysis_json` text;

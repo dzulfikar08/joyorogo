@@ -146,6 +146,8 @@ export const postWorkoutDetail = sqliteTable("post_workout_detail", {
   hrJson: text("hr_json"),
   // JSON [lat, lon][]
   routeJson: text("route_json"),
+  // JSON WorkoutAnalysis v1 (JoyoFit's full analysis; contract in packages/api/src/lib/workout-analysis.ts)
+  analysisJson: text("analysis_json"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),

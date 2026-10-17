@@ -32,6 +32,7 @@ import { serverT, userLocale } from "../lib/messages";
 import { sendPush } from "../lib/webpush";
 import { premiumUnlocked } from "../lib/readiness-food";
 import { paywallConfig } from "../lib/tiers";
+import { parseStoredAnalysis, workoutAnalysisSchema } from "../lib/workout-analysis-schema";
 
 // --- Batasan -----------------------------------------------------------------
 
@@ -60,6 +61,16 @@ const visibilitySchema = z.enum(["publik", "grup"]);
 const hrSchema = z.number().int().min(20).max(250);
 
 const cursorSchema = z.number().int().positive().optional();
+
+/** JSON tersimpan -> nilai, atau null kalau rusak (detail pos tidak boleh jadi 500). */
+function parseJsonOrNull<T>(json: string | null): T | null {
+  if (!json) return null;
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    return null;
+  }
+}
 
 // --- Helper visibility & blokir ------------------------------------------------
 
@@ -853,6 +864,7 @@ export const socialRouter = {
               .array(z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)]))
               .max(1000)
               .nullish(),
+            analysis: workoutAnalysisSchema.nullish(),
           })
           .optional(),
         caption: z.string().trim().max(STORY_MAX).optional(),
@@ -863,9 +875,17 @@ export const socialRouter = {
       const t = serverT(context.locale, "feed");
       const me = context.session.user.id;
       const db = context.db;
+      const { workout } = input;
+      const analysis = input.detail?.analysis ?? null;
+      if (
+        analysis &&
+        (analysis.startedAt !== workout.startedAt ||
+          Math.abs(analysis.elapsedSec - workout.durationMin * 60) > 60)
+      ) {
+        throw new ORPCError("BAD_REQUEST", { message: t("server.error.analysisMismatch") });
+      }
       const { visibility } = await preparePost(db, me, input.visibility, t);
 
-      const { workout } = input;
       const hr = input.detail?.hr?.bpm.length ? input.detail.hr : null;
       const route = input.detail?.route?.length ? input.detail.route : null;
       const postId = crypto.randomUUID();
@@ -885,15 +905,16 @@ export const socialRouter = {
             avgHr: workout.avgHr ?? null,
             maxHr: workout.maxHr ?? null,
             startedAt: workout.startedAt,
-            hasDetail: hr || route ? 1 : 0,
+            hasDetail: hr || route || analysis ? 1 : 0,
           }),
         }),
-        ...(hr || route
+        ...(hr || route || analysis
           ? [
               db.insert(postWorkoutDetail).values({
                 postId,
                 hrJson: hr ? JSON.stringify(hr) : null,
                 routeJson: route ? JSON.stringify(route) : null,
+                analysisJson: analysis ? JSON.stringify(analysis) : null,
               }),
             ]
           : []),
@@ -903,8 +924,8 @@ export const socialRouter = {
     }),
 
   /**
-   * Detail HR/rute pos jam. Penulis selalu boleh; penonton lain cuma kalau Pro,
-   * selain itu `locked` (klien menampilkan upsell).
+   * Detail HR/rute/analisis pos jam. Penulis selalu boleh; penonton lain cuma kalau Pro,
+   * selain itu `locked` (klien menampilkan upsell). JSON rusak jadi null, bukan 500.
    */
   workoutDetail: protectedProcedure
     .input(z.object({ postId: z.string() }))
@@ -914,7 +935,11 @@ export const socialRouter = {
       const db = context.db;
       const post = await loadVisiblePost(db, input.postId, me, t);
       const [detail] = await db
-        .select({ hrJson: postWorkoutDetail.hrJson, routeJson: postWorkoutDetail.routeJson })
+        .select({
+          hrJson: postWorkoutDetail.hrJson,
+          routeJson: postWorkoutDetail.routeJson,
+          analysisJson: postWorkoutDetail.analysisJson,
+        })
         .from(postWorkoutDetail)
         .where(eq(postWorkoutDetail.postId, post.id))
         .limit(1);
@@ -926,15 +951,14 @@ export const socialRouter = {
           .where(eq(user.id, me))
           .limit(1);
         if (!premiumUnlocked(viewer, paywallConfig(context.env))) {
-          return { locked: true, hr: null, route: null };
+          return { locked: true, hr: null, route: null, analysis: null };
         }
       }
       return {
         locked: false,
-        hr: detail.hrJson
-          ? (JSON.parse(detail.hrJson) as { intervalSec: number; bpm: (number | null)[] })
-          : null,
-        route: detail.routeJson ? (JSON.parse(detail.routeJson) as [number, number][]) : null,
+        hr: parseJsonOrNull<{ intervalSec: number; bpm: (number | null)[] }>(detail.hrJson),
+        route: parseJsonOrNull<[number, number][]>(detail.routeJson),
+        analysis: parseStoredAnalysis(detail.analysisJson),
       };
     }),
 
