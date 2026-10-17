@@ -3,9 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Pressable, ScrollView, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { sessionKcal } from "@joyorogo/api/lib/workout";
+import type { EquipmentKey, MuscleKey } from "@joyorogo/api/lib/exercises";
+import { equipmentLabel, muscleLabel, sessionKcal } from "@joyorogo/api/lib/workout";
+import { i18n } from "@joyorogo/i18n";
 
 import {
   Button,
@@ -33,31 +36,7 @@ export type SessionDraft = {
 
 const emptySet: EditorSet = { reps: "", weightKg: "", rpe: "" };
 
-/** Template presets arrive with target reps and no weight yet. */
-export function draftFromTemplate(
-  templateId: string,
-  templates: { id: string; name: string; exercises: { exerciseId: string; sets: number; targetReps: number }[] }[],
-  nameOf: (exerciseId: string) => string,
-): SessionDraft | null {
-  const template = templates.find((t) => t.id === templateId);
-  if (!template) return null;
-  return {
-    name: template.name,
-    durationMin: "45",
-    note: "",
-    exercises: template.exercises.map((item) => ({
-      exerciseId: item.exerciseId,
-      name: nameOf(item.exerciseId),
-      sets: Array.from({ length: item.sets }, () => ({
-        reps: String(item.targetReps),
-        weightKg: "",
-        rpe: "",
-      })),
-    })),
-  };
-}
-
-/** "Ulangi sesi terakhir" — same movements and sets, new session. */
+/** Same movements and sets as a saved session, as an editable draft. */
 export function draftFromSession(item: {
   session: { name: string; durationMin: number | null; note: string | null };
   sets: { exerciseId: string; reps: number | null; weightKg: number | null; rpe: number | null }[];
@@ -99,6 +78,7 @@ function ExercisePicker({
   onClose: () => void;
   onPick: (exercise: { id: string; name: string }) => void;
 }) {
+  const { t } = useTranslation("olahraga");
   const { theme } = useUnistyles();
   const catalog = useQuery(orpc.workout.catalog.queryOptions());
   const [query, setQuery] = useState("");
@@ -113,28 +93,24 @@ function ExercisePicker({
         exercise.name.toLowerCase().includes(q) ||
         exercise.id.includes(q)),
   );
-  const muscleLabel = (key: string) =>
-    catalog.data?.muscles.find((m) => m.key === key)?.label ?? key;
-  const equipmentLabel = (key: string) =>
-    filters.find((f) => f.key === key)?.label ?? key;
 
   return (
-    <Sheet visible={visible} onClose={onClose} title="Tambah gerakan">
+    <Sheet visible={visible} onClose={onClose} title={t("latihan.action.addExercise")}>
       <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 480 }}>
-        <Field label="Cari gerakan">
+        <Field label={t("latihan.picker.searchLabel")}>
           <Input
             value={query}
             onChangeText={setQuery}
-            placeholder="mis. bench"
+            placeholder={t("latihan.picker.searchExample")}
             autoCapitalize="none"
           />
         </Field>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={pickerStyles.chipRow}>
-          <Chip label="Semua" selected={equipment === "all"} onPress={() => setEquipment("all")} />
+          <Chip label={t("latihan.picker.all")} selected={equipment === "all"} onPress={() => setEquipment("all")} />
           {filters.map((f) => (
             <Chip
               key={f.key}
-              label={f.label}
+              label={equipmentLabel(f.key as EquipmentKey)}
               selected={equipment === f.key}
               onPress={() => setEquipment(f.key)}
             />
@@ -145,7 +121,7 @@ function ExercisePicker({
             <Pressable
               key={exercise.id}
               accessibilityRole="button"
-              accessibilityLabel={`Tambah ${exercise.name}`}
+              accessibilityLabel={t("latihan.picker.add", { name: exercise.name })}
               onPress={() => {
                 onPick(exercise);
                 onClose();
@@ -158,14 +134,14 @@ function ExercisePicker({
               <View style={pickerStyles.rowText}>
                 <Text style={pickerStyles.rowTitle}>{exercise.name}</Text>
                 <Text style={pickerStyles.rowSub}>
-                  {exercise.primary.map(muscleLabel).join(", ")}
+                  {exercise.primary.map((key) => muscleLabel(key as MuscleKey)).join(", ")}
                 </Text>
               </View>
-              <Text style={pickerStyles.rowTag}>{equipmentLabel(exercise.equipment)}</Text>
+              <Text style={pickerStyles.rowTag}>{equipmentLabel(exercise.equipment as EquipmentKey)}</Text>
             </Pressable>
           ))}
           {filtered.length === 0 && !catalog.isPending ? (
-            <Text style={pickerStyles.empty}>Tidak ketemu. Coba kata kunci lain.</Text>
+            <Text style={pickerStyles.empty}>{t("latihan.picker.empty.hint")}</Text>
           ) : null}
         </View>
       </KeyboardAwareScrollView>
@@ -200,6 +176,7 @@ const pickerStyles = StyleSheet.create((theme) => ({
 }));
 
 export function SessionEditor({ draft, onClose }: { draft: SessionDraft; onClose: () => void }) {
+  const { t } = useTranslation(["olahraga", "common"]);
   const { theme } = useUnistyles();
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
   const [state, setState] = useState<SessionDraft>(draft);
@@ -214,14 +191,14 @@ export function SessionEditor({ draft, onClose }: { draft: SessionDraft; onClose
   >({
     mutationFn: async (input) => {
       const result = (await client.workout.saveSession(input)) as { id?: string };
-      if (result.id === undefined) throw new Error("Gagal menyimpan latihan.");
+      if (result.id === undefined) throw new Error(i18n.t("olahraga:latihan.summary.error.saveFailed"));
       return { id: result.id };
     },
     success: (_input, data) => {
       queryClient.invalidateQueries({ queryKey: orpc.workout.key() });
       onClose();
       return {
-        message: "Latihan tersimpan",
+        message: t("latihan.summary.toast.saved"),
         undo: () => {
           void client.workout.deleteSession({ id: data.id }).then(() => {
             void queryClient.invalidateQueries({ queryKey: orpc.workout.key() });
@@ -258,15 +235,15 @@ export function SessionEditor({ draft, onClose }: { draft: SessionDraft; onClose
 
   const submit = () => {
     if (state.name.trim().length === 0) {
-      setError("Beri nama sesinya dulu, mis. Push Senin.");
+      setError(t("latihan.summary.error.name"));
       return;
     }
     if (state.exercises.length === 0) {
-      setError("Tambahkan minimal satu gerakan.");
+      setError(t("latihan.routine.error.exercise"));
       return;
     }
     if (!setsValid(state.exercises)) {
-      setError("Semua set butuh repetisi (angka).");
+      setError(t("latihan.editor.error.reps"));
       return;
     }
     setError(null);
@@ -288,23 +265,23 @@ export function SessionEditor({ draft, onClose }: { draft: SessionDraft; onClose
   return (
     <Card>
       <View style={editorStyles.headRow}>
-        <Text style={editorStyles.title}>Sesi baru</Text>
-        <Button variant="secondary" size="sm" label="Tutup" onPress={onClose} />
+        <Text style={editorStyles.title}>{t("latihan.editor.title")}</Text>
+        <Button variant="secondary" size="sm" label={t("common:actions.close")} onPress={onClose} />
       </View>
 
-      <Field label="Nama sesi">
+      <Field label={t("latihan.field.sessionName")}>
         <Input
           value={state.name}
           onChangeText={(name) => setState((prev) => ({ ...prev, name }))}
-          placeholder="Push Senin"
+          placeholder={t("latihan.summary.namePlaceholder")}
         />
       </Field>
       <Field
-        label="Durasi (menit)"
+        label={t("latihan.editor.duration")}
         hint={
           kcalEstimate !== null
-            ? `Perkiraan ${fmtInt(kcalEstimate)} kcal masuk ke angka bakar saat disimpan.`
-            : "Isi durasi untuk perkiraan kalori."
+            ? t("latihan.editor.kcalHint", { kcal: fmtInt(kcalEstimate) })
+            : t("latihan.editor.kcalHintEmpty")
         }
       >
         <Input
@@ -323,7 +300,7 @@ export function SessionEditor({ draft, onClose }: { draft: SessionDraft; onClose
             </Text>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Hapus ${exercise.name}`}
+              accessibilityLabel={t("latihan.routine.removeExercise", { name: exercise.name })}
               hitSlop={8}
               onPress={() =>
                 setState((prev) => ({
@@ -337,9 +314,9 @@ export function SessionEditor({ draft, onClose }: { draft: SessionDraft; onClose
             </Pressable>
           </View>
           <View style={editorStyles.setHeader}>
-            <Text style={editorStyles.setHeaderCell}>Set</Text>
-            <Text style={editorStyles.setHeaderCell}>Reps</Text>
-            <Text style={editorStyles.setHeaderCell}>Kg</Text>
+            <Text style={editorStyles.setHeaderCell}>{t("latihan.active.col.set")}</Text>
+            <Text style={editorStyles.setHeaderCell}>{t("latihan.active.col.reps")}</Text>
+            <Text style={editorStyles.setHeaderCell}>{t("latihan.active.col.kg")}</Text>
             <Text style={editorStyles.setHeaderCell}>RPE</Text>
           </View>
           {exercise.sets.map((set, setIndex) => (
@@ -383,7 +360,7 @@ export function SessionEditor({ draft, onClose }: { draft: SessionDraft; onClose
               />
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Hapus set ${setIndex + 1}`}
+                accessibilityLabel={t("latihan.active.aria.removeSet", { n: setIndex + 1 })}
                 hitSlop={6}
                 disabled={exercise.sets.length <= 1}
                 onPress={() =>
@@ -402,7 +379,7 @@ export function SessionEditor({ draft, onClose }: { draft: SessionDraft; onClose
           <Button
             variant="secondary"
             size="sm"
-            label="Tambah set"
+            label={t("latihan.action.addSet")}
             icon="add"
             style={editorStyles.addSet}
             onPress={() => patchExercise(exerciseIndex, [...exercise.sets, { ...emptySet }])}
@@ -412,23 +389,23 @@ export function SessionEditor({ draft, onClose }: { draft: SessionDraft; onClose
 
       <Button
         variant="secondary"
-        label="Tambah gerakan"
+        label={t("latihan.action.addExercise")}
         icon="add"
         onPress={() => setPickerOpen(true)}
       />
 
-      <Field label="Catatan (opsional)">
+      <Field label={t("latihan.field.noteOptional")}>
         <Input
           value={state.note}
           onChangeText={(note) => setState((prev) => ({ ...prev, note }))}
-          placeholder="Naikkan beban squat minggu depan"
+          placeholder={t("latihan.summary.notePlaceholder")}
           multiline
         />
       </Field>
 
       {error ? <Text style={editorStyles.error}>{error}</Text> : null}
       <Button
-        label={save.isPending ? "Menyimpan…" : "Simpan sesi"}
+        label={save.isPending ? t("latihan.summary.saving") : t("latihan.editor.save")}
         onPress={submit}
         disabled={save.isPending}
         loading={save.isPending}

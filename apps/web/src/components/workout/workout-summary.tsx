@@ -10,16 +10,17 @@ import {
   workoutQueryPrefix,
 } from "@/lib/workout-contract";
 import { fmtInt, parseNum } from "@/lib/format";
+import { fmtNumber, i18n } from "@joyorogo/i18n";
+import { prKindLabel } from "@joyorogo/api/lib/workout";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Share2, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useOptimisticMutation } from "@/lib/optimistic";
 import type { SaveSessionOutput } from "@/lib/workout-contract";
 import { orpc } from "@/utils/orpc";
-import { toast } from "sonner";
-
 import { client } from "@/utils/orpc";
 
 export type FinishedSet = {
@@ -55,13 +56,21 @@ export function computeLocalPrs(
     const bestWeight = Math.max(0, ...working.map((s) => s.weightKg ?? 0));
     const prevWeight = Math.max(0, ...prevWorking.map((s) => s.weightKg ?? 0));
     if (bestWeight > 0 && bestWeight > prevWeight) {
-      prs.push({ exerciseName: name, label: "Beban terberat", value: `${fmtInt(bestWeight)} kg` });
+      prs.push({
+        exerciseName: name,
+        label: prKindLabel("weight"),
+        value: `${fmtNumber(bestWeight, 1)} kg`,
+      });
     }
 
     const bestOneRm = Math.max(0, ...working.map((s) => epley(s.weightKg ?? 0, s.reps ?? 0)));
     const prevOneRm = Math.max(0, ...prevWorking.map((s) => epley(s.weightKg ?? 0, s.reps ?? 0)));
     if (bestWeight > 0 && bestOneRm > prevOneRm) {
-      prs.push({ exerciseName: name, label: "Estimasi 1RM", value: `${fmtInt(bestOneRm)} kg` });
+      prs.push({
+        exerciseName: name,
+        label: prKindLabel("one_rm"),
+        value: `${fmtNumber(bestOneRm, 1)} kg`,
+      });
     }
 
     const atWeight = working.filter((s) => (s.weightKg ?? 0) === bestWeight && bestWeight > 0);
@@ -71,8 +80,8 @@ export function computeLocalPrs(
     if (bestReps > 0 && (bestWeight > prevWeight || bestReps > prevReps)) {
       prs.push({
         exerciseName: name,
-        label: `Reps terbanyak @ ${fmtInt(bestWeight)} kg`,
-        value: `${bestReps} reps`,
+        label: i18n.t("olahraga:latihan.pr.repsAtWeight", { kg: fmtNumber(bestWeight, 1) }),
+        value: i18n.t("olahraga:latihan.set.reps", { count: bestReps }),
       });
     }
 
@@ -81,7 +90,7 @@ export function computeLocalPrs(
     if (bestVolume > 0 && bestVolume > prevVolume) {
       prs.push({
         exerciseName: name,
-        label: "Volume set terbaik",
+        label: prKindLabel("set_volume"),
         value: `${fmtInt(bestVolume)} kg`,
       });
     }
@@ -114,7 +123,7 @@ export function computeTotals(workout: ActiveWorkout, now: number): WorkoutTotal
 }
 
 /**
- * Post-finish review screen: totals, "Rekor baru" list, editable title and
+ * Post-finish review screen: totals, new-records list, editable title and
  * note, then save (or save as a routine for next time).
  */
 export function WorkoutSummary({
@@ -130,12 +139,13 @@ export function WorkoutSummary({
   nameOf: (exerciseId: string) => string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation(["olahraga", "common"]);
   const queryClient = useQueryClient();
-  const [name, setName] = useState(workout.name || "Latihan bebas");
+  const [name, setName] = useState(workout.name || t("latihan.list.resume.untitled"));
   const [note, setNote] = useState(workout.note);
   const [error, setError] = useState<string | null>(null);
   const [saveRoutineOpen, setSaveRoutineOpen] = useState(false);
-  const [routineName, setRoutineName] = useState(workout.name || "Latihan bebas");
+  const [routineName, setRoutineName] = useState(workout.name || t("latihan.list.resume.untitled"));
   // Sheet bagikan-ke-feed: menyimpan sesi dulu, lalu membuat postingan.
   const [shareOpen, setShareOpen] = useState(false);
 
@@ -193,7 +203,10 @@ export function WorkoutSummary({
       const prCount = result.prs.length;
       onClose();
       return {
-        message: prCount > 0 ? `Tersimpan. ${prCount} rekor baru, mantap!` : "Latihan tersimpan",
+        message:
+          prCount > 0
+            ? t("latihan.summary.toast.savedPr", { count: prCount })
+            : t("latihan.summary.toast.saved"),
         undo: () => void client.workout.deleteSession({ id: result.id }),
       };
     },
@@ -232,7 +245,7 @@ export function WorkoutSummary({
     success: (_input, result) => {
       setSaveRoutineOpen(false);
       return {
-        message: "Rutinitas tersimpan",
+        message: t("latihan.routine.toast.saved"),
         undo: () => void workoutApi.deleteRoutine({ id: result.id }),
       };
     },
@@ -242,46 +255,32 @@ export function WorkoutSummary({
   const minutes = Math.round(totals.durationMs / 60000);
 
   return (
-    <div className="space-y-4">
-      <Card className="space-y-3 text-center">
-        <Trophy className="mx-auto size-6 text-amber-500" aria-hidden />
-        <p className="text-lg font-extrabold">Latihan selesai!</p>
-        <div className="grid grid-cols-3 gap-2 text-sm">
+    <div className="space-y-3">
+      <Card className="space-y-3">
+        <div className="flex items-center justify-center gap-2">
+          <Trophy className="size-5 text-amber-500" aria-hidden />
+          <p className="text-lg font-extrabold">{t("latihan.summary.done")}</p>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center text-sm">
           <div>
             <p className="font-extrabold tabular-nums">{fmtInt(minutes)}</p>
-            <p className="text-xs text-muted-foreground">menit</p>
+            <p className="text-xs text-muted-foreground">{t("latihan.stat.minutes")}</p>
           </div>
           <div>
             <p className="font-extrabold tabular-nums">{fmtInt(totals.volumeKg)}</p>
-            <p className="text-xs text-muted-foreground">kg volume</p>
+            <p className="text-xs text-muted-foreground">{t("latihan.stat.volumeKg")}</p>
           </div>
           <div>
             <p className="font-extrabold tabular-nums">{totals.setsDone}</p>
-            <p className="text-xs text-muted-foreground">set selesai</p>
+            <p className="text-xs text-muted-foreground">{t("latihan.stat.setsDone")}</p>
           </div>
         </div>
-        <ShareStoryButton
-          variant="secondary"
-          className="w-full"
-          story={{
-            kind: "workout",
-            name,
-            durationMin: minutes,
-            volumeKg: totals.volumeKg,
-            setsDone: totals.setsDone,
-            prs: localPrs.map((pr) => ({
-              exercise: pr.exerciseName,
-              label: pr.label,
-              value: pr.value,
-            })),
-          }}
-        />
       </Card>
 
       {localPrs.length > 0 && (
         <Card className="space-y-2">
-          <p className="text-sm font-extrabold">Rekor baru</p>
-          <ul className="space-y-1.5">
+          <p className="text-sm font-extrabold">{t("latihan.summary.records")}</p>
+          <ul className="space-y-1">
             {localPrs.map((pr, index) => (
               <li key={index} className="flex items-start gap-2 text-sm">
                 <Trophy className="mt-0.5 size-3.5 shrink-0 text-amber-500" aria-hidden />
@@ -299,15 +298,15 @@ export function WorkoutSummary({
 
       <Card className="space-y-3">
         <label className="block space-y-1.5">
-          <FieldLabel>Nama sesi</FieldLabel>
+          <FieldLabel>{t("latihan.field.sessionName")}</FieldLabel>
           <Input value={name} onChange={(event) => setName(event.target.value)} />
         </label>
         <label className="block space-y-1.5">
-          <FieldLabel>Catatan (opsional)</FieldLabel>
+          <FieldLabel>{t("latihan.field.noteOptional")}</FieldLabel>
           <Input
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            placeholder="Naikkan beban minggu depan"
+            placeholder={t("latihan.summary.notePlaceholder")}
           />
         </label>
       </Card>
@@ -320,12 +319,12 @@ export function WorkoutSummary({
 
       {saveRoutineOpen ? (
         <Card className="space-y-3">
-          <p className="text-sm font-extrabold">Simpan sebagai rutinitas</p>
+          <p className="text-sm font-extrabold">{t("latihan.summary.saveRoutine")}</p>
           <Input
             value={routineName}
             onChange={(event) => setRoutineName(event.target.value)}
-            placeholder="Nama rutinitas"
-            aria-label="Nama rutinitas"
+            placeholder={t("latihan.routine.name")}
+            aria-label={t("latihan.routine.name")}
           />
           <div className="flex gap-2">
             <Button
@@ -333,39 +332,52 @@ export function WorkoutSummary({
               className="flex-1"
               onClick={() => setSaveRoutineOpen(false)}
             >
-              Batal
+              {t("common:actions.cancel")}
             </Button>
             <Button
               className="flex-1"
               disabled={routineName.trim().length === 0 || saveRoutine.isPending}
               onClick={() => saveRoutine.mutate()}
             >
-              {saveRoutine.isPending ? "Menyimpan…" : "Simpan rutinitas"}
+              {saveRoutine.isPending ? t("latihan.summary.saving") : t("latihan.routine.save")}
             </Button>
           </div>
         </Card>
       ) : (
         <div className="space-y-2">
           <Button className="w-full" disabled={save.isPending} onClick={() => save.mutate()}>
-            {save.isPending ? "Menyimpan…" : "Simpan latihan"}
+            {save.isPending ? t("latihan.summary.saving") : t("latihan.summary.save")}
           </Button>
-          <Button variant="secondary" className="w-full" onClick={() => setShareOpen(true)}>
-            <Share2 className="size-4" aria-hidden />
-            Simpan & bagikan ke feed
-          </Button>
-          <Button
-            variant="secondary"
-            className="w-full"
-            onClick={() => setSaveRoutineOpen(true)}
-          >
-            Simpan sebagai rutinitas
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="secondary" onClick={() => setShareOpen(true)}>
+              <Share2 className="size-4" aria-hidden />
+              {t("latihan.summary.shareFeed")}
+            </Button>
+            <ShareStoryButton
+              variant="secondary"
+              story={{
+                kind: "workout",
+                name,
+                durationMin: minutes,
+                volumeKg: totals.volumeKg,
+                setsDone: totals.setsDone,
+                prs: localPrs.map((pr) => ({
+                  exercise: pr.exerciseName,
+                  label: pr.label,
+                  value: pr.value,
+                })),
+              }}
+            />
+          </div>
+          <Button variant="secondary" className="w-full" onClick={() => setSaveRoutineOpen(true)}>
+            {t("latihan.summary.saveRoutine")}
           </Button>
           <Link
             to="/latihan"
             className="block w-full rounded-full py-2 text-center text-sm font-semibold text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
             onClick={onClose}
           >
-            Buang perubahan dan kembali
+            {t("latihan.summary.discard")}
           </Link>
         </div>
       )}
@@ -373,8 +385,12 @@ export function WorkoutSummary({
       <ShareToFeedSheet
         open={shareOpen}
         onOpenChange={setShareOpen}
-        title="Bagikan sesi ini"
-        preview={`${name.trim() || "Latihan bebas"} · ${fmtInt(minutes)} menit · ${fmtInt(totals.volumeKg)} kg volume`}
+        title={t("latihan.summary.shareTitle")}
+        preview={[
+          name.trim() || t("latihan.list.resume.untitled"),
+          t("latihan.count.minutes", { count: minutes }),
+          `${fmtInt(totals.volumeKg)} kg`,
+        ].join(" · ")}
         share={saveAndShare}
         onShared={onClose}
       />

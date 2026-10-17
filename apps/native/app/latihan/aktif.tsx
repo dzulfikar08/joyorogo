@@ -11,8 +11,11 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { Swipeable } from "react-native-gesture-handler";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { setSummaryLabel, setTypeBadge, setTypeLabel } from "@joyorogo/api/lib/workout";
 
 import {
   Button,
@@ -31,8 +34,6 @@ import {
   emptySet,
   formatClock,
   nextSetType,
-  previousSetLabel,
-  SET_TYPE_LABEL,
   showsDuration,
   showsWeight,
   uncheckedSetCount,
@@ -49,13 +50,7 @@ import {
 } from "@/lib/workout/notify";
 import { orpc } from "@/utils/orpc";
 
-const REST_OPTIONS = [
-  { value: null, label: "Nonaktif" },
-  { value: 60, label: "1:00" },
-  { value: 90, label: "1:30" },
-  { value: 120, label: "2:00" },
-  { value: 180, label: "3:00" },
-];
+const REST_SECONDS = [null, 60, 90, 120, 180] as const;
 
 type MenuTarget = { index: number; exercise: ActiveExercise } | null;
 
@@ -71,6 +66,7 @@ function useNow(running: boolean): number {
 }
 
 export default function LatihanAktif() {
+  const { t } = useTranslation(["olahraga", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const insets = useSafeAreaInsets();
@@ -125,10 +121,10 @@ export default function LatihanAktif() {
     // Draft discarded elsewhere; nothing to log here anymore.
     return (
       <>
-        <Stack.Screen options={{ title: "Latihan" }} />
+        <Stack.Screen options={{ title: t("latihan.active.screenTitle") }} />
         <View style={styles.emptyRoot}>
-          <Text style={styles.emptyText}>Tidak ada latihan berjalan.</Text>
-          <Button label="Kembali" onPress={() => router.back()} />
+          <Text style={styles.emptyText}>{t("latihan.active.none")}</Text>
+          <Button label={t("common:actions.back")} onPress={() => router.back()} />
         </View>
       </>
     );
@@ -270,7 +266,7 @@ export default function LatihanAktif() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Latihan", headerBackVisible: false }} />
+      <Stack.Screen options={{ title: t("latihan.active.screenTitle"), headerBackVisible: false }} />
       <View style={styles.root}>
         <KeyboardAwareScrollView
           style={styles.scroll}
@@ -280,24 +276,24 @@ export default function LatihanAktif() {
           <View style={styles.statRow}>
             <View style={styles.stat}>
               <Text style={styles.statValue}>{formatClock(elapsed)}</Text>
-              <Text style={styles.statLabel}>Durasi</Text>
+              <Text style={styles.statLabel}>{t("latihan.stat.duration")}</Text>
             </View>
             <View style={styles.stat}>
               <Num style={styles.statValue}>{Math.round(workoutVolume(workout))}</Num>
-              <Text style={styles.statLabel}>Volume (kg)</Text>
+              <Text style={styles.statLabel}>{t("latihan.stat.volumeKg")}</Text>
             </View>
             <View style={styles.stat}>
               <Num style={styles.statValue}>
                 {completedSetCount(workout)}/{workout.exercises.reduce((n, e) => n + e.sets.length, 0)}
               </Num>
-              <Text style={styles.statLabel}>Set selesai</Text>
+              <Text style={styles.statLabel}>{t("latihan.stat.setsDone")}</Text>
             </View>
           </View>
 
           <Input
             value={workout.name}
             onChangeText={(name) => patch((prev) => ({ ...prev, name }))}
-            placeholder="Nama sesi, mis. Push Senin"
+            placeholder={t("latihan.active.namePlaceholder")}
             style={styles.nameInput}
           />
 
@@ -311,7 +307,7 @@ export default function LatihanAktif() {
             >
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Menu ${exercise.name}`}
+                accessibilityLabel={t("latihan.active.menu.label", { name: exercise.name })}
                 onPress={() => setMenu({ index: exerciseIndex, exercise })}
                 style={styles.exerciseHead}
               >
@@ -325,7 +321,11 @@ export default function LatihanAktif() {
                   <Ionicons name="chevron-down" size={16} color={theme.colors.mutedForeground} />
                 </View>
                 <Chip
-                  label={exercise.restSec === null ? "Istirahat: mati" : `Istirahat ${formatClock(exercise.restSec * 1000)}`}
+                  label={
+                    exercise.restSec === null
+                      ? t("latihan.active.rest.chipOff")
+                      : t("latihan.active.rest.chip", { time: formatClock(exercise.restSec * 1000) })
+                  }
                   onPress={() => setRestFor(exerciseIndex)}
                 />
               </Pressable>
@@ -336,13 +336,18 @@ export default function LatihanAktif() {
               ) : null}
 
               <View style={styles.setHeader}>
-                <Text style={[styles.setHeaderCell, styles.colSet]}>SET</Text>
-                <Text style={styles.setHeaderCell}>SEBELUMNYA</Text>
+                <Text style={[styles.setHeaderCell, styles.colSet]}>
+                  {t("latihan.active.col.set").toUpperCase()}
+                </Text>
+                <Text style={styles.setHeaderCell}>{t("latihan.active.col.previous").toUpperCase()}</Text>
                 {showsWeight(exercise.type) ? (
-                  <Text style={styles.setHeaderCell}>KG</Text>
+                  <Text style={styles.setHeaderCell}>{t("latihan.active.col.kg").toUpperCase()}</Text>
                 ) : null}
                 <Text style={styles.setHeaderCell}>
-                  {showsDuration(exercise.type) ? "DETIK" : "REPS"}
+                  {(showsDuration(exercise.type)
+                    ? t("latihan.active.col.seconds")
+                    : t("latihan.active.col.reps")
+                  ).toUpperCase()}
                 </Text>
                 <View style={styles.colCheck} />
               </View>
@@ -355,7 +360,7 @@ export default function LatihanAktif() {
                     renderRightActions={() => (
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={`Hapus set ${setIndex + 1}`}
+                        accessibilityLabel={t("latihan.active.aria.removeSet", { n: setIndex + 1 })}
                         onPress={() => removeSet(exerciseIndex, setIndex)}
                         style={styles.swipeDelete}
                       >
@@ -366,7 +371,10 @@ export default function LatihanAktif() {
                     <View style={[styles.setRow, set.done && styles.setRowDone]}>
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={`Tipe set ${setIndex + 1}`}
+                        accessibilityLabel={t("latihan.active.aria.setType", {
+                          n: setIndex + 1,
+                          type: setTypeLabel(set.type),
+                        })}
                         onPress={() =>
                           patchSet(exerciseIndex, setIndex, { type: nextSetType(set.type) })
                         }
@@ -376,12 +384,14 @@ export default function LatihanAktif() {
                         ]}
                       >
                         <Num style={styles.setTypeText}>
-                          {set.type === "normal" ? setIndex + 1 : SET_TYPE_LABEL[set.type]}
+                          {setTypeBadge(set.type) || setIndex + 1}
                         </Num>
                       </Pressable>
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Isi dari latihan sebelumnya"
+                        accessibilityLabel={t("latihan.active.aria.fillPrevious", {
+                          value: prevSet ? setSummaryLabel(prevSet) : "–",
+                        })}
                         disabled={!prevSet}
                         onPress={() => fillFromPrevious(exerciseIndex, setIndex)}
                         style={styles.prevCell}
@@ -390,7 +400,7 @@ export default function LatihanAktif() {
                           style={[styles.prevText, !prevSet && styles.prevEmpty]}
                           numberOfLines={1}
                         >
-                          {prevSet ? previousSetLabel(prevSet) : "—"}
+                          {prevSet ? setSummaryLabel(prevSet) : "—"}
                         </Text>
                       </Pressable>
                       {showsWeight(exercise.type) ? (
@@ -421,7 +431,11 @@ export default function LatihanAktif() {
                       )}
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={set.done ? `Batalkan set ${setIndex + 1}` : `Set ${setIndex + 1} selesai`}
+                        accessibilityLabel={
+                          set.done
+                            ? t("latihan.active.aria.undoDone", { n: setIndex + 1 })
+                            : t("latihan.active.aria.markDone", { n: setIndex + 1 })
+                        }
                         onPress={() => toggleDone(exerciseIndex, set, setIndex)}
                         style={[styles.check, set.done && styles.checkDone]}
                       >
@@ -439,7 +453,7 @@ export default function LatihanAktif() {
               <Button
                 variant="secondary"
                 size="sm"
-                label="Tambah set"
+                label={t("latihan.action.addSet")}
                 icon="add"
                 style={styles.addSet}
                 onPress={() => addSet(exerciseIndex)}
@@ -458,7 +472,7 @@ export default function LatihanAktif() {
               <View style={styles.restActions}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Kurangi 15 detik"
+                  accessibilityLabel={t("latihan.active.rest.minus")}
                   onPress={() => setRestEndsAt(Math.max(now + 1000, restEndsAt - 15000))}
                   style={styles.restButton}
                 >
@@ -466,7 +480,7 @@ export default function LatihanAktif() {
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Tambah 15 detik"
+                  accessibilityLabel={t("latihan.active.rest.plus")}
                   onPress={() => setRestEndsAt(restEndsAt + 15000)}
                   style={styles.restButton}
                 >
@@ -474,28 +488,33 @@ export default function LatihanAktif() {
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Lewati istirahat"
+                  accessibilityLabel={t("latihan.active.rest.skip")}
                   onPress={() => {
                     setRestEndsAt(null);
                     void cancelRestEndNotification();
                   }}
                   style={styles.restButton}
                 >
-                  <Text style={styles.restButtonText}>Lewati</Text>
+                  <Text style={styles.restButtonText}>{t("latihan.active.rest.skipShort")}</Text>
                 </Pressable>
               </View>
               <Text style={styles.restTotal}>{formatClock(restTotal * 1000)}</Text>
             </View>
           ) : (
             <Button
-              label="Tambah latihan"
+              label={t("latihan.action.addExercise")}
               icon="add"
               onPress={() => router.push("/latihan/pilih?mode=add")}
             />
           )}
           <View style={styles.finishRow}>
-            <Button variant="secondary" label="Buang" onPress={discard} style={styles.finishSide} />
-            <Button label="Selesai" onPress={finish} style={styles.finishMain} />
+            <Button
+              variant="secondary"
+              label={t("latihan.active.discardShort")}
+              onPress={discard}
+              style={styles.finishSide}
+            />
+            <Button label={t("common:actions.done")} onPress={finish} style={styles.finishMain} />
           </View>
         </View>
 
@@ -508,7 +527,7 @@ export default function LatihanAktif() {
             <View style={styles.menuList}>
               <Button
                 variant="secondary"
-                label="Ganti latihan"
+                label={t("latihan.action.replaceExercise")}
                 onPress={() => {
                   router.push(`/latihan/pilih?mode=replace&index=${menuExercise.index}`);
                   setMenu(null);
@@ -516,7 +535,7 @@ export default function LatihanAktif() {
               />
               <Button
                 variant="secondary"
-                label="Catatan"
+                label={t("latihan.active.menu.note")}
                 onPress={() => {
                   setNoteFor(menuExercise.index);
                   setMenu(null);
@@ -526,28 +545,28 @@ export default function LatihanAktif() {
                 variant="secondary"
                 label={
                   menuExercise.exercise.supersetGroup !== null
-                    ? "Lepas superset"
-                    : "Superset dengan berikutnya"
+                    ? t("latihan.active.menu.supersetOff")
+                    : t("latihan.active.menu.supersetOn")
                 }
                 disabled={menuExercise.index >= (workout?.exercises.length ?? 0) - 1}
                 onPress={() => toggleSuperset(menuExercise.index)}
               />
               <Button
                 variant="secondary"
-                label="Naikkan urutan"
+                label={t("latihan.active.menu.moveUp")}
                 disabled={menuExercise.index === 0}
                 onPress={() => moveExercise(menuExercise.index, -1)}
               />
               <Button
                 variant="secondary"
-                label="Turunkan urutan"
+                label={t("latihan.active.menu.moveDown")}
                 disabled={menuExercise.index >= (workout?.exercises.length ?? 0) - 1}
                 onPress={() => moveExercise(menuExercise.index, 1)}
               />
               <Button
                 variant="primary"
                 destructive
-                label="Hapus latihan"
+                label={t("latihan.active.menu.remove")}
                 onPress={() => removeExercise(menuExercise.index)}
               />
             </View>
@@ -567,18 +586,16 @@ export default function LatihanAktif() {
         <Sheet
           visible={restFor !== null}
           onClose={() => setRestFor(null)}
-          title="Waktu istirahat"
+          title={t("latihan.active.rest.title")}
         >
           <View style={styles.chipRow}>
-            {REST_OPTIONS.map((option) => (
+            {REST_SECONDS.map((seconds) => (
               <Chip
-                key={option.label}
-                label={option.label}
-                selected={
-                  restFor !== null && workout.exercises[restFor]?.restSec === option.value
-                }
+                key={seconds ?? "off"}
+                label={seconds === null ? t("latihan.active.rest.off") : formatClock(seconds * 1000)}
+                selected={restFor !== null && workout.exercises[restFor]?.restSec === seconds}
                 onPress={() => {
-                  if (restFor !== null) patchExercise(restFor, { restSec: option.value });
+                  if (restFor !== null) patchExercise(restFor, { restSec: seconds });
                   setRestFor(null);
                 }}
               />
@@ -589,9 +606,9 @@ export default function LatihanAktif() {
         <ConfirmSheet
           visible={confirmDiscard}
           onClose={() => setConfirmDiscard(false)}
-          title="Buang latihan?"
-          message="Semua set yang sudah dicatat akan hilang."
-          confirmLabel="Buang"
+          title={t("latihan.active.discardConfirm.title")}
+          message={t("latihan.active.discardConfirm.message")}
+          confirmLabel={t("latihan.active.discardShort")}
           onConfirm={() => {
             setConfirmDiscard(false);
             setActiveWorkout(null);
@@ -603,10 +620,10 @@ export default function LatihanAktif() {
         <ConfirmSheet
           visible={finishUnchecked !== null}
           onClose={() => setFinishUnchecked(null)}
-          title="Ada set belum dicentang"
-          message={`${finishUnchecked ?? 0} set belum ditandai selesai. Set yang tidak dicentang tidak akan disimpan.`}
-          confirmLabel="Simpan tanpa set itu"
-          cancelLabel="Kembali"
+          title={t("latihan.unchecked.title")}
+          message={t("latihan.active.unchecked.message", { count: finishUnchecked ?? 0 })}
+          confirmLabel={t("latihan.active.unchecked.save")}
+          cancelLabel={t("common:actions.back")}
           onConfirm={() => {
             setFinishUnchecked(null);
             setRestEndsAt(null);
@@ -630,13 +647,14 @@ function ExerciseNoteSheet({
   onClose: () => void;
   onSave: (note: string) => void;
 }) {
+  const { t } = useTranslation(["olahraga", "common"]);
   const [draft, setDraft] = useState(initialNote);
   return (
-    <Sheet visible={index !== null} onClose={onClose} title="Catatan latihan">
-      <Field label="Catatan" hint="Mis. pegangan lebar, turun pelan.">
-        <Input value={draft} onChangeText={setDraft} placeholder="Mis. pegangan lebar, turun pelan" multiline />
+    <Sheet visible={index !== null} onClose={onClose} title={t("latihan.active.noteTitle")}>
+      <Field label={t("latihan.active.menu.note")}>
+        <Input value={draft} onChangeText={setDraft} placeholder={t("latihan.active.notePlaceholder")} multiline />
       </Field>
-      <Button label="Simpan catatan" onPress={() => onSave(draft)} />
+      <Button label={t("common:actions.save")} onPress={() => onSave(draft)} />
     </Sheet>
   );
 }
@@ -648,14 +666,14 @@ const styles = StyleSheet.create((theme) => ({
   emptyRoot: { flex: 1, alignItems: "center", justifyContent: "center", gap: theme.spacing.lg },
   emptyText: { color: theme.colors.mutedForeground },
   statRow: { flexDirection: "row", gap: theme.spacing.sm },
-  stat: { flex: 1, alignItems: "center", backgroundColor: theme.colors.card, borderRadius: theme.radius.tile, paddingVertical: theme.spacing.md, gap: 2 },
+  stat: { flex: 1, alignItems: "center", backgroundColor: theme.colors.card, borderRadius: theme.radius.tile, paddingVertical: theme.spacing.sm, gap: 2 },
   statValue: { fontSize: theme.fontSize.md, fontWeight: "800", color: theme.colors.foreground },
   statLabel: { fontSize: theme.fontSize.xs, color: theme.colors.mutedForeground },
   nameInput: { fontWeight: "700", fontSize: theme.fontSize.md },
-  exerciseCard: { gap: theme.spacing.md },
+  exerciseCard: { gap: theme.spacing.sm },
   supersetCard: { borderLeftWidth: 3, borderLeftColor: theme.colors.tidur },
-  exerciseHead: { gap: theme.spacing.sm },
-  exerciseTitleRow: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
+  exerciseHead: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
+  exerciseTitleRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
   supersetDot: { width: 8, height: 8, borderRadius: 4 },
   exerciseName: { flex: 1, fontSize: theme.fontSize.md, fontWeight: "700", color: theme.colors.foreground },
   exerciseNote: { fontSize: theme.fontSize.sm, color: theme.colors.mutedForeground },

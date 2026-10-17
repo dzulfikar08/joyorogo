@@ -4,7 +4,11 @@ import { router, Stack } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+
+import { prKindLabel } from "@joyorogo/api/lib/workout";
+import { fmtNumber, i18n } from "@joyorogo/i18n";
 
 import {
   Button,
@@ -38,23 +42,26 @@ import { errorMessage, fmtInt } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 
-const PR_LABEL: Record<string, string> = {
-  weight: "Beban terberat",
-  one_rm: "e1RM terbaik",
-  reps: "Reps terbanyak",
-  set_volume: "Volume set terbaik",
-};
-
 type SavePr = { exerciseId: string; kind: string; value: number; previous: number | null };
 
 /** Formatted right-hand side of a PR bullet: kg for load PRs, reps for reps. */
 function prValueText(pr: SavePr): string {
-  return pr.kind === "reps" ? `${fmtInt(pr.value)} reps` : `${fmtInt(pr.value)} kg`;
+  return pr.kind === "reps"
+    ? i18n.t("olahraga:latihan.set.reps", { count: Math.round(pr.value) })
+    : `${fmtNumber(pr.value, 1)} kg`;
 }
 
-/** Collapse per-kind PR rows into one bullet per exercise for the recap. */
+const PR_KINDS = ["weight", "one_rm", "reps", "set_volume"] as const;
+
+/** Server-sent PR kind as a label; unknown kinds fall back to the raw value. */
+function prLabel(kind: string): string {
+  const known = PR_KINDS.find((item) => item === kind);
+  return known ? prKindLabel(known) : kind;
+}
+
+/** One bullet per PR row for the recap. */
 function prBullet(pr: SavePr, nameOf: (id: string) => string): string {
-  return `${nameOf(pr.exerciseId)} — ${PR_LABEL[pr.kind] ?? pr.kind}: ${prValueText(pr)}`;
+  return `${nameOf(pr.exerciseId)} — ${prLabel(pr.kind)}: ${prValueText(pr)}`;
 }
 
 /** One set ready for the API, or null when it fails the contract rules. */
@@ -111,6 +118,7 @@ function toApiSet(exercise: ActiveExercise, set: ActiveSet): ApiSet | null {
 }
 
 export default function LatihanRingkasan() {
+  const { t } = useTranslation(["olahraga", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const workout = useActiveWorkout();
@@ -146,7 +154,7 @@ export default function LatihanRingkasan() {
         id?: string;
         prs?: SavePr[];
       };
-      if (result.id === undefined) throw new Error("Gagal menyimpan latihan.");
+      if (result.id === undefined) throw new Error(t("latihan.summary.error.saveFailed"));
       return { id: result.id, prs: result.prs ?? [] };
     },
     success: (_input, result) => {
@@ -154,7 +162,7 @@ export default function LatihanRingkasan() {
       setActiveWorkout(null);
       void queryClient.invalidateQueries({ queryKey: orpc.workout.key() });
       return {
-        message: "Latihan tersimpan",
+        message: t("latihan.summary.toast.saved"),
         undo: () => {
           void client.workout.deleteSession({ id: result.id }).then(() => {
             void queryClient.invalidateQueries({ queryKey: orpc.workout.key() });
@@ -176,10 +184,10 @@ export default function LatihanRingkasan() {
   if (draft === null && saved === null) {
     return (
       <>
-        <Stack.Screen options={{ title: "Ringkasan" }} />
+        <Stack.Screen options={{ title: t("latihan.summary.screenTitle") }} />
         <View style={styles.emptyRoot}>
-          <Text style={styles.emptyText}>Tidak ada latihan untuk disimpan.</Text>
-          <Button label="Kembali" onPress={() => router.replace("/latihan")} />
+          <Text style={styles.emptyText}>{t("latihan.summary.nothing")}</Text>
+          <Button label={t("common:actions.back")} onPress={() => router.replace("/latihan")} />
         </View>
       </>
     );
@@ -194,7 +202,7 @@ export default function LatihanRingkasan() {
   const submit = () => {
     if (draft === null) return;
     if (name.trim().length === 0) {
-      setError("Beri nama sesinya dulu, mis. Push Senin.");
+      setError(t("latihan.summary.error.name"));
       return;
     }
     const apiSets = draft.exercises.flatMap((exercise) =>
@@ -203,7 +211,7 @@ export default function LatihanRingkasan() {
     const dropped = apiSets.filter((set) => set === null).length;
     const valid = apiSets.filter((set) => set !== null);
     if (valid.length === 0) {
-      setError("Set yang dicentang belum lengkap. Isi repetisi atau durasinya.");
+      setError(t("latihan.summary.error.incomplete"));
       return;
     }
     const payload = {
@@ -234,31 +242,29 @@ export default function LatihanRingkasan() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Ringkasan" }} />
+      <Stack.Screen options={{ title: t("latihan.summary.screenTitle") }} />
       <KeyboardAwareScrollView contentContainerStyle={styles.content}>
         <View style={styles.statRow}>
           <View style={styles.stat}>
             <Text style={styles.statValue}>{formatClock(elapsedMs)}</Text>
-            <Text style={styles.statLabel}>Durasi</Text>
+            <Text style={styles.statLabel}>{t("latihan.stat.duration")}</Text>
           </View>
           <View style={styles.stat}>
             <Num style={styles.statValue}>{fmtInt(volume)}</Num>
-            <Text style={styles.statLabel}>Volume (kg)</Text>
+            <Text style={styles.statLabel}>{t("latihan.stat.volumeKg")}</Text>
           </View>
           <View style={styles.stat}>
             <Num style={styles.statValue}>{setsDone}</Num>
-            <Text style={styles.statLabel}>Set</Text>
+            <Text style={styles.statLabel}>{t("latihan.active.col.set")}</Text>
           </View>
         </View>
 
         {saved ? (
           <>
-            <SectionTitle title="Rekor baru" />
+            <SectionTitle title={t("latihan.summary.records")} />
             <Card>
               {newPrs.length === 0 ? (
-                <Text style={styles.emptyText}>
-                  Belum ada rekor baru kali ini. Tetap solid, sesi tercatat.
-                </Text>
+                <Text style={styles.emptyText}>{t("latihan.summary.noRecords")}</Text>
               ) : (
                 <View style={styles.prList}>
                   {newPrs.map((pr, i) => (
@@ -274,40 +280,40 @@ export default function LatihanRingkasan() {
               variant="secondary"
               story={{
                 kind: "workout",
-                name: name.trim().length > 0 ? name.trim() : "Latihan bebas",
+                name: name.trim().length > 0 ? name.trim() : t("latihan.list.resume.untitled"),
                 durationMin: elapsedMin,
                 volumeKg: volume,
                 setsDone,
                 prs: newPrs.map((pr) => ({
                   exercise: nameOf(pr.exerciseId),
-                  label: PR_LABEL[pr.kind] ?? pr.kind,
+                  label: prLabel(pr.kind),
                   value: prValueText(pr),
                 })),
               }}
             />
             <Button
               variant="secondary"
-              label="Bagikan ke feed"
+              label={t("latihan.summary.shareFeed")}
               onPress={() => setShareOpen(true)}
             />
-            <Button label="Selesai" onPress={() => router.replace("/latihan")} />
+            <Button label={t("common:actions.done")} onPress={() => router.replace("/latihan")} />
           </>
         ) : (
           <>
-            <Field label="Nama sesi">
-              <Input value={name} onChangeText={setName} placeholder="Push Senin" />
+            <Field label={t("latihan.field.sessionName")}>
+              <Input value={name} onChangeText={setName} placeholder={t("latihan.summary.namePlaceholder")} />
             </Field>
-            <Field label="Catatan sesi (opsional)">
+            <Field label={t("latihan.field.noteOptional")}>
               <Input
                 value={note}
                 onChangeText={setNote}
-                placeholder="Minggu depan naikkan beban squat"
+                placeholder={t("latihan.summary.notePlaceholder")}
                 multiline
               />
             </Field>
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Button
-              label={save.isPending ? "Menyimpan…" : "Simpan latihan"}
+              label={save.isPending ? t("latihan.summary.saving") : t("latihan.summary.save")}
               onPress={submit}
               disabled={save.isPending}
               loading={save.isPending}
@@ -319,8 +325,12 @@ export default function LatihanRingkasan() {
       <ShareToFeedSheet
         visible={shareOpen && saved !== null}
         onClose={() => setShareOpen(false)}
-        title={saved !== null && name.trim().length > 0 ? name.trim() : "Latihan beban"}
-        preview={`${fmtInt(volume)} kg volume · ${setsDone} set · ${fmtInt(elapsedMin)} menit`}
+        title={saved !== null && name.trim().length > 0 ? name.trim() : t("latihan.title")}
+        preview={[
+          `${fmtInt(volume)} kg`,
+          t("latihan.count.sets", { count: setsDone }),
+          t("latihan.count.minutes", { count: elapsedMin }),
+        ].join(" · ")}
         kind="latihan"
         refId={saved?.id ?? ""}
       />
@@ -328,10 +338,10 @@ export default function LatihanRingkasan() {
       <ConfirmSheet
         visible={pending?.kind === "unchecked"}
         onClose={() => setPending(null)}
-        title="Ada set belum dicentang"
-        message={`${pending?.count ?? 0} set tidak ikut tersimpan. Lanjutkan?`}
-        confirmLabel="Simpan"
-        cancelLabel="Periksa lagi"
+        title={t("latihan.unchecked.title")}
+        message={t("latihan.summary.confirm.unchecked", { count: pending?.count ?? 0 })}
+        confirmLabel={t("common:actions.save")}
+        cancelLabel={t("latihan.summary.confirm.review")}
         onConfirm={() => {
           const payload = pending?.payload;
           setPending(null);
@@ -342,9 +352,9 @@ export default function LatihanRingkasan() {
       <ConfirmSheet
         visible={pending?.kind === "dropped"}
         onClose={() => setPending(null)}
-        title="Sebagian set dilewati"
-        message={`${pending?.count ?? 0} set dicentang tapi datanya kurang (tanpa repetisi/durasi), jadi tidak ikut disimpan.`}
-        confirmLabel="Lanjutkan"
+        title={t("latihan.summary.confirm.droppedTitle")}
+        message={t("latihan.summary.confirm.dropped", { count: pending?.count ?? 0 })}
+        confirmLabel={t("latihan.summary.confirm.continue")}
         destructive={false}
         onConfirm={() => {
           const payload = pending?.payload;

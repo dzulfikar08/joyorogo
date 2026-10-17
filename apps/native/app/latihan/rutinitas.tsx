@@ -4,7 +4,10 @@ import { router, useLocalSearchParams, Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+
+import { setTypeBadge, setTypeLabel } from "@joyorogo/api/lib/workout";
 
 import { ExercisePickerList } from "@/components/workout/exercise-picker-list";
 import { ConfirmSheet } from "@/components/confirm-sheet";
@@ -21,7 +24,6 @@ import { useSessionGate } from "@/lib/use-session-gate";
 import {
   emptySet,
   newExercise,
-  SET_TYPE_LABEL,
   nextSetType,
   showsDuration,
   showsWeight,
@@ -34,13 +36,7 @@ import { client, orpc, queryClient } from "@/utils/orpc";
 import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import { upsertById } from "@joyorogo/api/lib/optimistic";
 
-const REST_OPTIONS = [
-  { value: null, label: "Mati" },
-  { value: 60, label: "1:00" },
-  { value: 90, label: "1:30" },
-  { value: 120, label: "2:00" },
-  { value: 180, label: "3:00" },
-];
+const REST_SECONDS = [null, 60, 90, 120, 180] as const;
 
 /** Routine draft mirrors ActiveExercise; saved through saveRoutine. */
 type RoutineExercise = Pick<
@@ -49,6 +45,7 @@ type RoutineExercise = Pick<
 >;
 
 export default function LatihanRutinitas() {
+  const { t } = useTranslation(["olahraga", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const params = useLocalSearchParams<{ id?: string }>();
@@ -125,7 +122,7 @@ export default function LatihanRutinitas() {
       void queryClient.invalidateQueries({ queryKey: orpc.workout.key() });
       router.back();
       return {
-        message: "Rutinitas disimpan",
+        message: t("latihan.routine.toast.saved"),
         undo:
           previous === null
             ? // New routine: undo deletes it outright.
@@ -149,7 +146,7 @@ export default function LatihanRutinitas() {
       cache.list<RoutineRow>(routinesKey, (rows) => rows.filter((item) => item.id !== row.id));
     },
     label: (row) => row.name,
-    fallback: "Rutinitas",
+    fallback: t("latihan.routine.fallbackName"),
     // The screen navigates back immediately; keep the undo window alive.
     flushOnUnmount: false,
     invalidate: () => [orpc.workout.key()],
@@ -181,11 +178,11 @@ export default function LatihanRutinitas() {
 
   const submit = () => {
     if (name.trim().length === 0) {
-      setError("Beri nama rutinitasnya dulu.");
+      setError(t("latihan.routine.error.name"));
       return;
     }
     if (exercises.length === 0) {
-      setError("Tambahkan minimal satu gerakan.");
+      setError(t("latihan.routine.error.exercise"));
       return;
     }
     setError(null);
@@ -221,13 +218,15 @@ export default function LatihanRutinitas() {
 
   return (
     <>
-      <Stack.Screen options={{ title: params.id ? "Edit rutinitas" : "Rutinitas baru" }} />
+      <Stack.Screen
+        options={{ title: params.id ? t("latihan.routine.titleEdit") : t("latihan.routine.titleNew") }}
+      />
       <KeyboardAwareScrollView contentContainerStyle={styles.content}>
-        <Field label="Nama rutinitas">
-          <Input value={name} onChangeText={setName} placeholder="mis. Push Senin" />
+        <Field label={t("latihan.routine.name")}>
+          <Input value={name} onChangeText={setName} placeholder={t("latihan.routine.namePlaceholder")} />
         </Field>
-        <Field label="Catatan (opsional)">
-          <Input value={note} onChangeText={setNote} placeholder="Target 4 set tiap gerakan" multiline />
+        <Field label={t("latihan.field.noteOptional")}>
+          <Input value={note} onChangeText={setNote} placeholder={t("latihan.routine.notePlaceholder")} multiline />
         </Field>
 
         {exercises.map((exercise, exerciseIndex) => (
@@ -238,7 +237,7 @@ export default function LatihanRutinitas() {
               </Text>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Hapus ${exercise.name}`}
+                accessibilityLabel={t("latihan.routine.removeExercise", { name: exercise.name })}
                 hitSlop={8}
                 onPress={() =>
                   setExercises((prev) => prev.filter((_, i) => i !== exerciseIndex))
@@ -249,30 +248,46 @@ export default function LatihanRutinitas() {
               </Pressable>
             </View>
             <View style={styles.chipRow}>
-              {REST_OPTIONS.map((option) => (
+              {REST_SECONDS.map((seconds) => (
                 <Chip
-                  key={option.label}
-                  label={option.label}
-                  selected={exercise.restSec === option.value}
-                  onPress={() => patchExercise(exerciseIndex, { restSec: option.value })}
+                  key={seconds ?? "off"}
+                  label={
+                    seconds === null
+                      ? t("latihan.active.rest.off")
+                      : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`
+                  }
+                  selected={exercise.restSec === seconds}
+                  onPress={() => patchExercise(exerciseIndex, { restSec: seconds })}
                 />
               ))}
             </View>
             <View style={styles.setHeader}>
-              <Text style={[styles.setHeaderCell, styles.colSet]}>SET</Text>
-              <Text style={styles.setHeaderCell}>{showsDuration(exercise.type) ? "DETIK" : "REPS"}</Text>
-              {showsWeight(exercise.type) ? <Text style={styles.setHeaderCell}>KG</Text> : null}
+              <Text style={[styles.setHeaderCell, styles.colSet]}>
+                {t("latihan.active.col.set").toUpperCase()}
+              </Text>
+              <Text style={styles.setHeaderCell}>
+                {(showsDuration(exercise.type)
+                  ? t("latihan.active.col.seconds")
+                  : t("latihan.active.col.reps")
+                ).toUpperCase()}
+              </Text>
+              {showsWeight(exercise.type) ? (
+                <Text style={styles.setHeaderCell}>{t("latihan.active.col.kg").toUpperCase()}</Text>
+              ) : null}
             </View>
             {exercise.sets.map((set, setIndex) => (
               <View key={setIndex} style={styles.setRow}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Tipe set ${setIndex + 1}`}
+                  accessibilityLabel={t("latihan.active.aria.setType", {
+                    n: setIndex + 1,
+                    type: setTypeLabel(set.type),
+                  })}
                   onPress={() => patchSet(exerciseIndex, setIndex, { type: nextSetType(set.type) })}
                   style={[styles.setType, set.type !== "normal" && { backgroundColor: theme.colors.muted }]}
                 >
                   <Text style={styles.setTypeText}>
-                    {set.type === "normal" ? setIndex + 1 : SET_TYPE_LABEL[set.type]}
+                    {setTypeBadge(set.type) || setIndex + 1}
                   </Text>
                 </Pressable>
                 {showsDuration(exercise.type) ? (
@@ -303,7 +318,7 @@ export default function LatihanRutinitas() {
                 ) : null}
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Hapus set ${setIndex + 1}`}
+                  accessibilityLabel={t("latihan.active.aria.removeSet", { n: setIndex + 1 })}
                   disabled={exercise.sets.length <= 1}
                   onPress={() =>
                     patchExercise(exerciseIndex, {
@@ -323,7 +338,7 @@ export default function LatihanRutinitas() {
             <Button
               variant="secondary"
               size="sm"
-              label="Tambah set"
+              label={t("latihan.action.addSet")}
               icon="add"
               style={styles.addSet}
               onPress={() => {
@@ -336,10 +351,10 @@ export default function LatihanRutinitas() {
           </Card>
         ))}
 
-        <Button label="Tambah latihan" icon="add" onPress={() => setPickerOpen(true)} />
+        <Button label={t("latihan.action.addExercise")} icon="add" onPress={() => setPickerOpen(true)} />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <Button
-          label={save.isPending ? "Menyimpan…" : "Simpan rutinitas"}
+          label={save.isPending ? t("latihan.summary.saving") : t("latihan.routine.save")}
           onPress={submit}
           disabled={save.isPending}
           loading={save.isPending}
@@ -348,7 +363,7 @@ export default function LatihanRutinitas() {
           <Button
             variant="secondary"
             destructive
-            label="Hapus rutinitas"
+            label={t("latihan.routine.delete")}
             onPress={askDelete}
           />
         ) : null}
@@ -357,10 +372,14 @@ export default function LatihanRutinitas() {
       <Sheet
         visible={pickerOpen}
         onClose={() => setPickerOpen(false)}
-        title="Tambah latihan"
+        title={t("latihan.action.addExercise")}
         footer={
           <Button
-            label={picked.length > 0 ? `Tambah (${picked.length})` : "Tambah"}
+            label={
+              picked.length > 0
+                ? t("latihan.picker.addCount", { n: picked.length })
+                : t("common:actions.add")
+            }
             onPress={addPicked}
             disabled={picked.length === 0}
           />
@@ -381,9 +400,9 @@ export default function LatihanRutinitas() {
       <ConfirmSheet
         visible={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        title="Hapus rutinitas?"
-        message="Rutinitas ini hilang dari daftar."
-        confirmLabel="Hapus"
+        title={t("latihan.routine.confirmDelete.title")}
+        message={t("latihan.routine.confirmDelete.message")}
+        confirmLabel={t("common:actions.delete")}
         onConfirm={() => {
           setConfirmDelete(false);
           if (params.id !== undefined) {

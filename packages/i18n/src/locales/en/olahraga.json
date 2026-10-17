@@ -300,13 +300,6 @@
         "summary": "Every muscle in one session"
       }
     },
-    "card": {
-      "title": "Strength training",
-      "open": "Open",
-      "openAria": "Open Strength Training",
-      "allGood": "Every muscle got some work this week. Nice.",
-      "start": "Protect your muscle in a deficit: log your lifting."
-    },
     "active": {
       "screenTitle": "Workout",
       "none": "No workout in progress.",

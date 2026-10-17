@@ -39,14 +39,7 @@ export type ActiveWorkout = {
   exercises: ActiveExercise[];
 };
 
-export const SET_TYPE_LABEL: Record<SetType, string> = {
-  normal: "",
-  warmup: "P",
-  drop: "D",
-  failure: "G",
-};
-
-/** Next type when the SET cell is tapped: normal → warmup → drop → gagal. */
+/** Next type when the SET cell is tapped: normal → warmup → drop → failure. */
 export function nextSetType(type: SetType): SetType {
   if (type === "normal") return "warmup";
   if (type === "warmup") return "drop";
@@ -187,19 +180,6 @@ export function formatClock(ms: number): string {
   const m = Math.floor(total / 60);
   const s = total % 60;
   return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-/** "60 kg × 8" / "8 reps" / "45 detik" — the SEBELUMNYA cell text. */
-export function previousSetLabel(set: {
-  setType: string;
-  reps: number | null;
-  weightKg: number | null;
-  durationSec: number | null;
-}): string {
-  if (set.durationSec != null) return `${set.durationSec} dtk`;
-  const reps = set.reps != null ? String(set.reps) : "–";
-  if (set.weightKg != null) return `${set.weightKg} kg × ${reps}`;
-  return `${reps} reps`;
 }
 
 /** Columns a set row shows for the given exercise type. */

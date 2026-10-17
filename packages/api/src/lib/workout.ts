@@ -3,10 +3,62 @@
 // strength trend, session kcal, and built-in routines. Dates are WIB
 // 'YYYY-MM-DD'; no I/O here so every boundary is testable.
 
-import type { EquipmentKey, MuscleKey } from "./exercises";
-import { MUSCLE_LABELS, exerciseById, exercisesForMuscle } from "./exercises";
+import { DEFAULT_LOCALE, fmtNumber, getActiveLocale, getT } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+
+import type { EquipmentKey, ExerciseType, MuscleKey } from "./exercises";
+import { MUSCLES, exerciseById, exercisesForMuscle } from "./exercises";
 import { estimateKcal, metByKey } from "./met";
 import { shiftDate } from "./engine";
+
+// Display labels. Clients omit `locale` (the active language); server code
+// must pass the request locale. Exercise names stay untranslated (database).
+
+/** Translated muscle-group name (`olahraga:latihan.muscle.*`). */
+export function muscleLabel(muscle: MuscleKey, locale: Locale = getActiveLocale()): string {
+  return getT(locale, "olahraga")(`latihan.muscle.${muscle}`);
+}
+
+/** Translated equipment name (`olahraga:latihan.equipment.*`). */
+export function equipmentLabel(equipment: EquipmentKey, locale: Locale = getActiveLocale()): string {
+  return getT(locale, "olahraga")(`latihan.equipment.${equipment}`);
+}
+
+/** Translated set-type name (`olahraga:latihan.setType.*`). */
+export function setTypeLabel(setType: SetType, locale: Locale = getActiveLocale()): string {
+  return getT(locale, "olahraga")(`latihan.setType.${setType}`);
+}
+
+/** One-letter badge shown instead of the set number; empty for a normal set. */
+export function setTypeBadge(setType: SetType, locale: Locale = getActiveLocale()): string {
+  return setType === "normal" ? "" : getT(locale, "olahraga")(`latihan.setType.badge.${setType}`);
+}
+
+/** How an exercise is logged (weight × reps, duration, ...). */
+export function exerciseTypeLabel(type: ExerciseType, locale: Locale = getActiveLocale()): string {
+  return getT(locale, "olahraga")(`latihan.type.${type}`);
+}
+
+/** Name of a personal-record kind. */
+export function prKindLabel(kind: PRKind, locale: Locale = getActiveLocale()): string {
+  return getT(locale, "olahraga")(`latihan.pr.kind.${kind}`);
+}
+
+/** "60 kg × 8", "8 reps" or "45 s": one logged set in a single line. */
+export function setSummaryLabel(
+  set: { reps: number | null; weightKg: number | null; durationSec: number | null },
+  locale: Locale = getActiveLocale(),
+): string {
+  const t = getT(locale, "olahraga");
+  if (set.durationSec !== null) return t("latihan.set.seconds", { count: set.durationSec });
+  if (set.weightKg !== null) {
+    return t("latihan.set.weighted", {
+      kg: fmtNumber(set.weightKg, 1, locale),
+      reps: set.reps === null ? "–" : String(set.reps),
+    });
+  }
+  return set.reps === null ? "–" : t("latihan.set.reps", { count: set.reps });
+}
 
 export type WorkoutSetLike = {
   exerciseId: string;
@@ -76,7 +128,7 @@ export function weeklySetsPerMuscle(
   to: string,
 ): Record<MuscleKey, number> {
   const totals = {} as Record<MuscleKey, number>;
-  for (const m of Object.keys(MUSCLE_LABELS) as MuscleKey[]) totals[m] = 0;
+  for (const { key } of MUSCLES) totals[key] = 0;
 
   for (const session of sessions) {
     if (!inRange(session.date, from, to)) continue;
@@ -103,8 +155,28 @@ export type MissedMuscleWarning = {
   suggestions: { id: string; name: string; equipment: EquipmentKey }[];
 };
 
-function fmtSets(sets: number): string {
-  return String(Number(sets.toFixed(1)));
+/** The warning sentence for a muscle; clients rebuild it from the structured fields. */
+export function warningMessage(
+  warning: Pick<MissedMuscleWarning, "muscle" | "kind" | "weeklySets">,
+  locale: Locale = getActiveLocale(),
+): string {
+  const t = getT(locale, "olahraga");
+  const muscle = muscleLabel(warning.muscle, locale);
+  if (warning.kind === "untrained_7d") return t("latihan.warning.untrained", { muscle });
+  return t("latihan.warning.lowVolume", {
+    muscle,
+    count: warning.weeklySets,
+    sets: fmtNumber(warning.weeklySets, 1, locale),
+  });
+}
+
+/** The "strength dropped while the deficit is big" sentence. */
+export function trendMessage(
+  name: string,
+  dropPct: number,
+  locale: Locale = getActiveLocale(),
+): string {
+  return getT(locale, "olahraga")("latihan.trend.message", { name, pct: dropPct });
 }
 
 function median(values: number[]): number {
@@ -124,6 +196,7 @@ function median(values: number[]): number {
 export function missedMuscleWarnings(
   sessions: readonly WorkoutSessionLike[],
   today: string,
+  locale: Locale = getActiveLocale(),
 ): MissedMuscleWarning[] {
   const from7 = shiftDate(today, -(UNTRAINED_WINDOW_DAYS - 1));
   const from28 = shiftDate(today, -27);
@@ -146,14 +219,13 @@ export function missedMuscleWarnings(
       .map((e) => ({ id: e.id, name: e.name, equipment: e.equipment }));
 
   const warnings: MissedMuscleWarning[] = [];
-  for (const m of Object.keys(MUSCLE_LABELS) as MuscleKey[]) {
+  for (const { key: m } of MUSCLES) {
     if (weekly[m] > 0) continue;
+    const warning = { muscle: m, kind: "untrained_7d", weeklySets: 0 } as const;
     warnings.push({
-      muscle: m,
-      label: MUSCLE_LABELS[m],
-      kind: "untrained_7d",
-      weeklySets: 0,
-      message: `${MUSCLE_LABELS[m]} belum dilatih minggu ini`,
+      ...warning,
+      label: muscleLabel(m, locale),
+      message: warningMessage(warning, locale),
       suggestions: suggestionsFor(m),
     });
   }
@@ -163,12 +235,11 @@ export function missedMuscleWarnings(
       .filter((m) => weekly[m] * LOW_VOLUME_MEDIAN_DIVISOR < medianTrained)
       .sort((a, b) => weekly[a] - weekly[b]);
     for (const m of low) {
+      const warning = { muscle: m, kind: "low_volume", weeklySets: weekly[m] } as const;
       warnings.push({
-        muscle: m,
-        label: MUSCLE_LABELS[m],
-        kind: "low_volume",
-        weeklySets: weekly[m],
-        message: `${MUSCLE_LABELS[m]} cuma ${fmtSets(weekly[m])} set minggu ini, jauh di bawah otot lain`,
+        ...warning,
+        label: muscleLabel(m, locale),
+        message: warningMessage(warning, locale),
         suggestions: suggestionsFor(m),
       });
     }
@@ -419,9 +490,9 @@ function bestE1rmIn(
  */
 export function strengthTrendHint(
   sessions: readonly WorkoutSessionLike[],
-  options: { today: string; weeklyWeightChangeKg?: number | null },
+  options: { today: string; weeklyWeightChangeKg?: number | null; locale?: Locale },
 ): StrengthTrendHint | null {
-  const { today, weeklyWeightChangeKg } = options;
+  const { today, weeklyWeightChangeKg, locale = getActiveLocale() } = options;
   if (weeklyWeightChangeKg === undefined || weeklyWeightChangeKg === null) return null;
   if (weeklyWeightChangeKg > -FAST_LOSS_KG_PER_WEEK) return null;
 
@@ -444,7 +515,7 @@ export function strengthTrendHint(
       recentE1rm: recent,
       priorE1rm: prior,
       dropPct,
-      message: `Kekuatan ${exercise?.name ?? id} turun ${dropPct}% dua minggu terakhir selagi berat turun cepat — tanda defisit terlalu besar. Perlambat saja target turunnya.`,
+      message: trendMessage(exercise?.name ?? id, dropPct, locale),
     };
   }
   return worst;
@@ -463,51 +534,57 @@ export type WorkoutTemplate = {
   exercises: WorkoutTemplateExercise[];
 };
 
-function tpl(
-  id: string,
-  name: string,
-  summary: string,
-  exercises: [string, number, number][],
-): WorkoutTemplate {
-  return {
-    id,
-    name,
-    summary,
-    exercises: exercises.map(([exerciseId, sets, targetReps]) => ({
-      exerciseId,
-      sets,
-      targetReps,
-    })),
-  };
-}
-
-export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
-  tpl("push", "Push (Dorong)", "Dada, bahu, triceps", [
+const TEMPLATE_EXERCISES: Record<string, [string, number, number][]> = {
+  push: [
     ["bench_press", 3, 8],
     ["overhead_press", 3, 8],
     ["incline_dumbbell_press", 3, 10],
     ["lateral_raise", 3, 12],
     ["triceps_pushdown", 3, 12],
-  ]),
-  tpl("pull", "Pull (Tarik)", "Punggung, biceps", [
+  ],
+  pull: [
     ["lat_pulldown", 3, 10],
     ["barbell_row", 3, 8],
     ["face_pull", 3, 15],
     ["dumbbell_curl", 3, 12],
     ["wrist_curl", 2, 15],
-  ]),
-  tpl("legs", "Legs (Kaki)", "Quadriceps, glutes, hamstring, betis", [
+  ],
+  legs: [
     ["squat", 3, 8],
     ["leg_press", 3, 10],
     ["romanian_deadlift", 3, 8],
     ["leg_curl", 3, 12],
     ["standing_calf_raise", 4, 15],
-  ]),
-  tpl("fullbody", "Full Body", "Semua otot dalam satu sesi", [
+  ],
+  fullbody: [
     ["squat", 3, 8],
     ["bench_press", 3, 8],
     ["barbell_row", 3, 8],
     ["overhead_press", 2, 10],
     ["leg_raise", 3, 15],
-  ]),
-];
+  ],
+};
+
+/** Built-in routines with name and summary in `locale`. */
+export function workoutTemplates(locale: Locale = getActiveLocale()): WorkoutTemplate[] {
+  const t = getT(locale, "olahraga");
+  const names = {
+    push: [t("latihan.template.push.name"), t("latihan.template.push.summary")],
+    pull: [t("latihan.template.pull.name"), t("latihan.template.pull.summary")],
+    legs: [t("latihan.template.legs.name"), t("latihan.template.legs.summary")],
+    fullbody: [t("latihan.template.fullbody.name"), t("latihan.template.fullbody.summary")],
+  } as const;
+  return (Object.keys(names) as (keyof typeof names)[]).map((id) => ({
+    id,
+    name: names[id][0],
+    summary: names[id][1],
+    exercises: (TEMPLATE_EXERCISES[id] ?? []).map(([exerciseId, sets, targetReps]) => ({
+      exerciseId,
+      sets,
+      targetReps,
+    })),
+  }));
+}
+
+/** The same routines in the default language (`id`); localise per request with `workoutTemplates(locale)`. */
+export const WORKOUT_TEMPLATES: WorkoutTemplate[] = workoutTemplates(DEFAULT_LOCALE);

@@ -1,7 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+
+import type { EquipmentKey, MuscleKey } from "@joyorogo/api/lib/exercises";
+import { equipmentLabel, muscleLabel } from "@joyorogo/api/lib/workout";
 
 import { Chip, Input, Text } from "@/components/ui";
 import { orpc } from "@/utils/orpc";
@@ -25,6 +29,7 @@ export function ExercisePickerList({
   selected: string[];
   onToggle: (exercise: { id: string; name: string }) => void;
 }) {
+  const { t } = useTranslation("olahraga");
   const { theme } = useUnistyles();
   const catalog = useQuery(orpc.workout.catalog.queryOptions());
   const [query, setQuery] = useState("");
@@ -42,27 +47,24 @@ export function ExercisePickerList({
     );
   }, [exercises, query, muscle, equipment]);
 
-  const label = (list: { id: string; label: string }[], id: string) =>
-    list.find((item) => item.id === id)?.label ?? id;
-
   return (
     <View style={styles.root}>
       <Input
         value={query}
         onChangeText={setQuery}
-        placeholder="Cari gerakan…"
+        placeholder={t("latihan.picker.search")}
         autoCapitalize="none"
       />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        <Chip label="Semua otot" selected={muscle === "all"} onPress={() => setMuscle("all")} />
+        <Chip label={t("latihan.picker.allMuscles")} selected={muscle === "all"} onPress={() => setMuscle("all")} />
         {(catalog.data?.muscles ?? []).map((m) => (
-          <Chip key={m.id} label={m.label} selected={muscle === m.id} onPress={() => setMuscle(m.id)} />
+          <Chip key={m.id} label={muscleLabel(m.id as MuscleKey)} selected={muscle === m.id} onPress={() => setMuscle(m.id)} />
         ))}
       </ScrollView>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        <Chip label="Semua alat" selected={equipment === "all"} onPress={() => setEquipment("all")} />
+        <Chip label={t("latihan.picker.allEquipment")} selected={equipment === "all"} onPress={() => setEquipment("all")} />
         {(catalog.data?.equipment ?? []).map((e) => (
-          <Chip key={e.id} label={e.label} selected={equipment === e.id} onPress={() => setEquipment(e.id)} />
+          <Chip key={e.id} label={equipmentLabel(e.id as EquipmentKey)} selected={equipment === e.id} onPress={() => setEquipment(e.id)} />
         ))}
       </ScrollView>
       <ScrollView style={styles.list} keyboardShouldPersistTaps="handled">
@@ -72,7 +74,7 @@ export function ExercisePickerList({
             <Pressable
               key={exercise.id}
               accessibilityRole="button"
-              accessibilityLabel={`Pilih ${exercise.name}`}
+              accessibilityLabel={t("latihan.picker.select", { name: exercise.name })}
               onPress={() => onToggle(exercise)}
               style={({ pressed }) => [
                 styles.row,
@@ -82,20 +84,21 @@ export function ExercisePickerList({
             >
               <View style={styles.rowText}>
                 <Text style={styles.rowTitle} numberOfLines={1}>
-                  {exercise.name}
-                  {exercise.custom ? " (buatanmu)" : ""}
+                  {exercise.custom
+                    ? t("latihan.picker.customName", { name: exercise.name })
+                    : exercise.name}
                 </Text>
                 <Text style={styles.rowSub}>
-                  {label(catalog.data?.muscles ?? [], exercise.muscle)} ·{" "}
-                  {label(catalog.data?.equipment ?? [], exercise.equipment)}
+                  {muscleLabel(exercise.muscle as MuscleKey)} ·{" "}
+                  {equipmentLabel(exercise.equipment as EquipmentKey)}
                 </Text>
               </View>
-              <Text style={styles.rowAction}>{isSelected ? "Dipilih" : "Pilih"}</Text>
+              <Text style={styles.rowAction}>{isSelected ? t("latihan.picker.picked") : t("latihan.picker.pick")}</Text>
             </Pressable>
           );
         })}
         {filtered.length === 0 && !catalog.isPending ? (
-          <Text style={styles.empty}>Tidak ketemu. Coba kata kunci lain.</Text>
+          <Text style={styles.empty}>{t("latihan.picker.empty.hint")}</Text>
         ) : null}
       </ScrollView>
     </View>

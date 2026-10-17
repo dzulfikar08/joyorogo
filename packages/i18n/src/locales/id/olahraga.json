@@ -292,13 +292,6 @@
         "summary": "Semua otot dalam satu sesi"
       }
     },
-    "card": {
-      "title": "Latihan beban",
-      "open": "Buka",
-      "openAria": "Buka Latihan Beban",
-      "allGood": "Semua otot kebagian minggu ini, mantap.",
-      "start": "Jaga otot saat defisit: catat latihan bebanmu."
-    },
     "active": {
       "screenTitle": "Latihan",
       "none": "Tidak ada latihan berjalan.",

@@ -1,24 +1,12 @@
 import { cn } from "@joyorogo/ui/lib/utils";
+import { SET_TYPES, setTypeBadge, setTypeLabel } from "@joyorogo/api/lib/workout";
 import type { SetType } from "@/lib/workout-contract";
 import { useEffect, useRef, useState } from "react";
-
-const SET_TYPE_OPTIONS: { value: SetType; label: string; badge: string }[] = [
-  { value: "normal", label: "Normal", badge: "" },
-  { value: "warmup", label: "Pemanasan", badge: "W" },
-  { value: "drop", label: "Drop set", badge: "D" },
-  { value: "failure", label: "Gagal", badge: "F" },
-];
-
-const BADGE_BY_TYPE: Record<SetType, string> = {
-  normal: "",
-  warmup: "W",
-  drop: "D",
-  failure: "F",
-};
+import { useTranslation } from "react-i18next";
 
 /**
- * The SET column: shows the set number, or W/D/F for non-normal types. Tap to
- * open the type menu (Pemanasan / Normal / Drop / Gagal).
+ * The SET column: shows the set number, or P/D/G (W/D/F in English) for
+ * non-normal types. Tap to open the type menu.
  */
 export function SetTypeBadge({
   index,
@@ -31,6 +19,7 @@ export function SetTypeBadge({
   onChange: (next: SetType) => void;
   done?: boolean;
 }) {
+  const { t } = useTranslation("olahraga");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -50,7 +39,6 @@ export function SetTypeBadge({
     };
   }, [open]);
 
-  const active = SET_TYPE_OPTIONS.find((option) => option.value === setType);
   const isWarmup = setType === "warmup";
 
   return (
@@ -59,7 +47,7 @@ export function SetTypeBadge({
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`Jenis set ${index + 1}: ${active?.label ?? "Normal"}. Ganti jenis.`}
+        aria-label={t("latihan.active.aria.setType", { n: index + 1, type: setTypeLabel(setType) })}
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
           "flex size-9 items-center justify-center rounded-full text-sm font-bold tabular-nums focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
@@ -69,29 +57,31 @@ export function SetTypeBadge({
           done && "text-primary",
         )}
       >
-        {active?.badge || index + 1}
+        {setTypeBadge(setType) || index + 1}
       </button>
       {open && (
         <div
           role="menu"
           className="absolute top-full left-0 z-20 mt-1 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-float"
         >
-          {SET_TYPE_OPTIONS.map((option) => (
+          {SET_TYPES.map((option) => (
             <button
-              key={option.value}
+              key={option}
               type="button"
               role="menuitemradio"
-              aria-checked={option.value === setType}
+              aria-checked={option === setType}
               onClick={() => {
-                onChange(option.value);
+                onChange(option);
                 setOpen(false);
               }}
               className={cn(
                 "block w-full px-3 py-2.5 text-left text-sm font-semibold hover:bg-muted focus-visible:bg-muted focus-visible:outline-none",
-                option.value === setType && "bg-muted",
+                option === setType && "bg-muted",
               )}
             >
-              {option.badge ? `${option.badge} · ${option.label}` : option.label}
+              {setTypeBadge(option)
+                ? `${setTypeBadge(option)} · ${setTypeLabel(option)}`
+                : setTypeLabel(option)}
             </button>
           ))}
         </div>
@@ -99,5 +89,3 @@ export function SetTypeBadge({
     </div>
   );
 }
-
-export { BADGE_BY_TYPE };

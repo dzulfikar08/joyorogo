@@ -17,7 +17,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Plus, Timer, Trash2 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import { removeById, upsertById } from "@joyorogo/api/lib/optimistic";
 
@@ -55,6 +55,7 @@ const REST_OPTIONS = [60, 90, 120, 180] as const;
  * and notes. "id" of "baru" starts a fresh draft.
  */
 export function RoutineEditor({ routineId }: { routineId: string }) {
+  const { t } = useTranslation(["olahraga", "common"]);
   const existing = useQuery({
     queryKey: [...workoutQueryPrefix, "routines"],
     queryFn: () => workoutApi.listRoutines(),
@@ -62,11 +63,11 @@ export function RoutineEditor({ routineId }: { routineId: string }) {
 
   if (routineId !== "baru") {
     if (existing.isPending) {
-      return <p className="p-6 text-sm text-muted-foreground">Memuat rutinitas…</p>;
+      return <p className="p-6 text-sm text-muted-foreground">{t("common:state.loading")}</p>;
     }
     const routine = (existing.data ?? []).find((item) => item.id === routineId);
     if (!routine) {
-      return <p className="p-6 text-sm text-muted-foreground">Rutinitas tidak ditemukan.</p>;
+      return <p className="p-6 text-sm text-muted-foreground">{t("latihan.routine.notFound")}</p>;
     }
     return <RoutineEditorForm key={routineId} initial={draftFromRoutine(routine)} />;
   }
@@ -79,6 +80,7 @@ export function RoutineEditor({ routineId }: { routineId: string }) {
 }
 
 function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
+  const { t } = useTranslation(["olahraga", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const routineId = initial.id ?? "baru";
@@ -126,7 +128,7 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
       previousRoutine.current = null;
       if (prev) {
         return {
-          message: "Rutinitas tersimpan",
+          message: t("latihan.routine.toast.saved"),
           undo: () =>
             void workoutApi.saveRoutine({
               id: prev.id,
@@ -142,7 +144,7 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
         };
       }
       return {
-        message: "Rutinitas tersimpan",
+        message: t("latihan.routine.toast.saved"),
         undo: () => void workoutApi.deleteRoutine({ id: data.id }),
       };
     },
@@ -157,7 +159,7 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
       cache.list<Routine>(["workout", "routines"], (rows) => removeById(rows, row.id));
     },
     label: (row) => row.name,
-    fallback: "Rutinitas",
+    fallback: t("latihan.routine.fallbackName"),
     invalidate: () => [orpc.workout.key()],
   });
 
@@ -185,11 +187,11 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
 
   const submit = () => {
     if (draft.name.trim().length === 0) {
-      setError("Beri nama rutinitasnya dulu.");
+      setError(t("latihan.routine.error.name"));
       return;
     }
     if (draft.exercises.length === 0) {
-      setError("Tambahkan minimal satu latihan.");
+      setError(t("latihan.routine.error.exercise"));
       return;
     }
     setError(null);
@@ -210,19 +212,19 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
     <div className="mx-auto w-full max-w-xl px-4 py-5">
       <Card className="space-y-3">
         <label className="block space-y-1.5">
-          <FieldLabel>Nama rutinitas</FieldLabel>
+          <FieldLabel>{t("latihan.routine.name")}</FieldLabel>
           <Input
             value={draft.name}
             onChange={(event) => setDraft({ ...draft, name: event.target.value })}
-            placeholder="mis. Push Senin"
+            placeholder={t("latihan.routine.namePlaceholder")}
           />
         </label>
         <label className="block space-y-1.5">
-          <FieldLabel>Catatan (opsional)</FieldLabel>
+          <FieldLabel>{t("latihan.field.noteOptional")}</FieldLabel>
           <Input
             value={draft.note}
             onChange={(event) => setDraft({ ...draft, note: event.target.value })}
-            placeholder="mis. 3x sepekan"
+            placeholder={t("latihan.routine.notePlaceholder")}
           />
         </label>
       </Card>
@@ -250,10 +252,12 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
                     });
                   }}
                   className="flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-                  aria-label={`Timer istirahat: ${item.restSec ? fmtClock(item.restSec) : "mati"}`}
+                  aria-label={t("latihan.active.aria.rest", {
+                    value: item.restSec ? fmtClock(item.restSec) : t("latihan.active.rest.off"),
+                  })}
                 >
                   <Timer className="size-3.5" aria-hidden />
-                  {item.restSec ? fmtClock(item.restSec) : "off"}
+                  {item.restSec ? fmtClock(item.restSec) : t("latihan.active.rest.off")}
                 </button>
               </div>
 
@@ -264,10 +268,14 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
                     : "grid-cols-[2.25rem_1fr_1fr_1fr_2.25rem]"
                 }`}
               >
-                <span>Set</span>
-                <span>Target</span>
-                {columns.duration ? <span>Detik</span> : <span>Kg</span>}
-                {!columns.duration && <span>Reps</span>}
+                <span>{t("latihan.active.col.set")}</span>
+                <span>{t("latihan.active.col.target")}</span>
+                {columns.duration ? (
+                  <span>{t("latihan.active.col.seconds")}</span>
+                ) : (
+                  <span>{t("latihan.active.col.kg")}</span>
+                )}
+                {!columns.duration && <span>{t("latihan.active.col.reps")}</span>}
                 <span />
               </div>
 
@@ -305,7 +313,7 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
                         })
                       }
                       placeholder="60"
-                      aria-label={`Set ${setIndex + 1} durasi detik`}
+                      aria-label={t("latihan.active.aria.setDuration", { n: setIndex + 1 })}
                     />
                   ) : (
                     <>
@@ -324,7 +332,7 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
                           })
                         }
                         placeholder="0"
-                        aria-label={`Set ${setIndex + 1} beban kg`}
+                        aria-label={t("latihan.active.aria.setWeight", { n: setIndex + 1 })}
                       />
                       <Input
                         data-field
@@ -341,7 +349,7 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
                           })
                         }
                         placeholder="10"
-                        aria-label={`Set ${setIndex + 1} repetisi`}
+                        aria-label={t("latihan.active.aria.setReps", { n: setIndex + 1 })}
                       />
                     </>
                   )}
@@ -354,7 +362,7 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
                           sets: item.sets.filter((_, i) => i !== setIndex),
                         })
                       }
-                      aria-label={`Hapus set ${setIndex + 1}`}
+                      aria-label={t("latihan.active.aria.removeSet", { n: setIndex + 1 })}
                       className="flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-40"
                     >
                       <Trash2 className="size-4" aria-hidden />
@@ -373,7 +381,7 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
                     })
                   }
                 >
-                  <Plus className="size-4" aria-hidden /> Tambah set
+                  <Plus className="size-4" aria-hidden /> {t("latihan.action.addSet")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -386,7 +394,7 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
                     }))
                   }
                 >
-                  <Trash2 className="size-4" aria-hidden /> Hapus
+                  <Trash2 className="size-4" aria-hidden /> {t("common:actions.delete")}
                 </Button>
               </div>
             </section>
@@ -395,7 +403,7 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
       </div>
 
       <Button variant="secondary" className="mt-3 w-full" onClick={() => setPickerOpen(true)}>
-        <Plus className="size-4" aria-hidden /> Tambah latihan
+        <Plus className="size-4" aria-hidden /> {t("latihan.action.addExercise")}
       </Button>
 
       {error && (
@@ -418,11 +426,11 @@ function RoutineEditorForm({ initial }: { initial: RoutineDraft }) {
               removeRoutine(row);
             }}
           >
-            Hapus rutinitas
+            {t("latihan.routine.delete")}
           </Button>
         )}
         <Button className="flex-1" disabled={save.isPending} onClick={submit}>
-          {save.isPending ? "Menyimpan…" : "Simpan rutinitas"}
+          {save.isPending ? t("latihan.summary.saving") : t("latihan.routine.save")}
         </Button>
       </div>
 

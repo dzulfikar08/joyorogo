@@ -20,6 +20,7 @@ import {
   workoutQueryPrefix,
 } from "@/lib/workout-contract";
 import { fmtInt, parseNum } from "@/lib/format";
+import { setSummaryLabel } from "@joyorogo/api/lib/workout";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -37,6 +38,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { WorkoutSummary, computeTotals, type FinishedSet } from "@/components/workout/workout-summary";
@@ -57,11 +59,11 @@ function previousLabel(
   if (columns.duration) {
     return entry.durationSec != null ? fmtClock(entry.durationSec) : "–";
   }
-  const reps = entry.reps != null ? `${entry.reps}` : "?";
-  if (columns.weight) {
-    return entry.weightKg != null ? `${fmtInt(entry.weightKg)} kg × ${reps}` : `${reps}× BW`;
-  }
-  return `${reps}× BW`;
+  return setSummaryLabel({
+    reps: entry.reps,
+    weightKg: columns.weight ? entry.weightKg : null,
+    durationSec: null,
+  });
 }
 
 /**
@@ -69,6 +71,7 @@ function previousLabel(
  * check-to-done with rest timer, all persisted locally until saved.
  */
 export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }) {
+  const { t } = useTranslation(["olahraga", "common"]);
   const navigate = useNavigate();
   const catalog = useQuery({
     queryKey: [...workoutQueryPrefix, "catalog"],
@@ -113,8 +116,8 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
 
   // Live duration timer while the workout is running.
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   // Persist after every change: refresh or app kill resumes cleanly.
@@ -180,7 +183,7 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
     const exercise = workout.exercises[index];
     const next = workout.exercises[index + 1];
     if (!next) {
-      toast.info("Tidak ada latihan berikutnya untuk dipasangkan.");
+      toast.info(t("latihan.active.toast.noNext"));
       return;
     }
     const group =
@@ -266,7 +269,7 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
   const startFinish = () => {
     const hasDone = workout.exercises.some((exercise) => exercise.sets.some((set) => set.done));
     if (!hasDone) {
-      toast.error("Centang minimal satu set dulu sebelum selesai.");
+      toast.error(t("latihan.active.toast.checkOne"));
       return;
     }
     // Server rules: reps >= 1 for rep types, durationSec >= 1 for timed types.
@@ -280,7 +283,9 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
       });
       if (bad) {
         toast.error(
-          `${nameOf(exercise.exerciseId)}: isi ${timed ? "durasi (detik)" : "repetisi"} pada set yang dicentang.`,
+          t(timed ? "latihan.active.toast.fillDuration" : "latihan.active.toast.fillReps", {
+            name: nameOf(exercise.exerciseId),
+          }),
         );
         return;
       }
@@ -356,14 +361,18 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
           </div>
           <div className="text-sm font-bold tabular-nums">{fmtInt(totals.volumeKg)} kg</div>
           <div className="text-sm font-bold tabular-nums">
-            {totals.setsDone}/{totals.setsTotal} set
+            {t("latihan.active.setsProgress", {
+              count: totals.setsTotal,
+              done: totals.setsDone,
+              total: totals.setsTotal,
+            })}
           </div>
           <Button className="ml-auto" size="sm" onClick={startFinish}>
-            Selesai
+            {t("common:actions.done")}
           </Button>
           <button
             type="button"
-            aria-label="Buang latihan"
+            aria-label={t("latihan.active.discard")}
             onClick={() => {
               if (discardConfirm) discard();
               else setDiscardConfirm(true);
@@ -378,12 +387,12 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
         </div>
         {finishState === "confirm" && (
           <div role="alert" className="mt-2 flex flex-wrap items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-sm">
-            <span className="flex-1">Masih ada set yang belum dicentang. Tetap selesai?</span>
+            <span className="flex-1">{t("latihan.active.unchecked.warn")}</span>
             <Button size="sm" variant="secondary" onClick={() => setFinishState("idle")}>
-              Periksa
+              {t("latihan.active.unchecked.review")}
             </Button>
             <Button size="sm" onClick={startFinish}>
-              Tetap selesai
+              {t("latihan.active.unchecked.confirm")}
             </Button>
           </div>
         )}
@@ -391,7 +400,7 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
 
       {workout.exercises.length === 0 && (
         <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-          Sesi masih kosong. Tambah latihan pertamamu di bawah.
+          {t("latihan.active.empty")}
         </p>
       )}
 
@@ -430,10 +439,12 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
                   type="button"
                   onClick={() => cycleRest(exercise)}
                   className="flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-                  aria-label={`Timer istirahat: ${exercise.restSec ? fmtClock(exercise.restSec) : "mati"}. Ketuk untuk ganti.`}
+                  aria-label={t("latihan.active.aria.rest", {
+                    value: exercise.restSec ? fmtClock(exercise.restSec) : t("latihan.active.rest.off"),
+                  })}
                 >
                   <Timer className="size-3.5" aria-hidden />
-                  {exercise.restSec ? fmtClock(exercise.restSec) : "off"}
+                  {exercise.restSec ? fmtClock(exercise.restSec) : t("latihan.active.rest.off")}
                 </button>
               </div>
 
@@ -441,7 +452,7 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
                 <div className="border-t border-border bg-muted/30 px-3 py-2">
                   <div className="flex flex-wrap gap-1.5">
                     <Chip onClick={() => { setReplaceUid(exercise.uid); setMenuUid(null); setPickerOpen(true); }}>
-                      <Repeat className="mr-1 inline size-3.5" aria-hidden /> Ganti latihan
+                      <Repeat className="mr-1 inline size-3.5" aria-hidden /> {t("latihan.action.replaceExercise")}
                     </Chip>
                     <Chip
                       active={exercise.note.trim().length > 0}
@@ -452,7 +463,7 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
                         }))
                       }
                     >
-                      <StickyNote className="mr-1 inline size-3.5" aria-hidden /> Catatan
+                      <StickyNote className="mr-1 inline size-3.5" aria-hidden /> {t("latihan.active.menu.note")}
                     </Chip>
                     <Chip
                       active={
@@ -461,16 +472,16 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
                       }
                       onClick={() => toggleSuperset(exerciseIndex)}
                     >
-                      <Link2 className="mr-1 inline size-3.5" aria-hidden /> Superset
+                      <Link2 className="mr-1 inline size-3.5" aria-hidden /> {t("latihan.active.chip.superset")}
                     </Chip>
                     <Chip onClick={() => moveExercise(exerciseIndex, -1)} disabled={exerciseIndex === 0}>
-                      <ArrowUp className="size-3.5" aria-hidden /> Naik
+                      <ArrowUp className="size-3.5" aria-hidden /> {t("latihan.active.chip.up")}
                     </Chip>
                     <Chip
                       onClick={() => moveExercise(exerciseIndex, 1)}
                       disabled={exerciseIndex === workout.exercises.length - 1}
                     >
-                      <ArrowDown className="size-3.5" aria-hidden /> Turun
+                      <ArrowDown className="size-3.5" aria-hidden /> {t("latihan.active.chip.down")}
                     </Chip>
                     <Chip
                       onClick={() => {
@@ -479,17 +490,17 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
                       }}
                       className="text-destructive"
                     >
-                      <Trash2 className="mr-1 inline size-3.5" aria-hidden /> Hapus
+                      <Trash2 className="mr-1 inline size-3.5" aria-hidden /> {t("common:actions.delete")}
                     </Chip>
                   </div>
                   <label className="mt-2 block">
-                    <span className="sr-only">Catatan latihan</span>
+                    <span className="sr-only">{t("latihan.active.noteTitle")}</span>
                     <Input
                       value={exercise.note.trim()}
                       onChange={(event) =>
                         patchExercise(exercise.uid, (item) => ({ ...item, note: event.target.value }))
                       }
-                      placeholder="Catatan: mis. fokus kencangkan scapula"
+                      placeholder={t("latihan.active.notePlaceholder")}
                     />
                   </label>
                 </div>
@@ -503,10 +514,14 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
                     : "grid-cols-[2.25rem_1fr_1fr_1fr_2.25rem]"
                 }`}
               >
-                <span>Set</span>
-                <span>Sebelumnya</span>
-                {columns.duration ? <span>Detik</span> : <span>Kg</span>}
-                {!columns.duration && <span>Reps</span>}
+                <span>{t("latihan.active.col.set")}</span>
+                <span>{t("latihan.active.col.previous")}</span>
+                {columns.duration ? (
+                  <span>{t("latihan.active.col.seconds")}</span>
+                ) : (
+                  <span>{t("latihan.active.col.kg")}</span>
+                )}
+                {!columns.duration && <span>{t("latihan.active.col.reps")}</span>}
                 <span />
               </div>
 
@@ -529,7 +544,9 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
                     type="button"
                     className="truncate text-left text-xs text-muted-foreground tabular-nums focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                     onClick={() => fillFromPrevious(exercise, setIndex)}
-                    aria-label={`Isi dari sesi sebelumnya: ${previousLabel(prev[setIndex], columns)}`}
+                    aria-label={t("latihan.active.aria.fillPrevious", {
+                      value: previousLabel(prev[setIndex], columns),
+                    })}
                   >
                     {previousLabel(prev[setIndex], columns)}
                   </button>
@@ -544,7 +561,7 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
                       }
                       onKeyDown={onFieldKeyDown}
                       placeholder="60"
-                      aria-label={`Set ${setIndex + 1} durasi detik`}
+                      aria-label={t("latihan.active.aria.setDuration", { n: setIndex + 1 })}
                     />
                   ) : (
                     <>
@@ -558,7 +575,7 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
                         }
                         onKeyDown={onFieldKeyDown}
                         placeholder={prev[setIndex]?.weightKg != null ? String(prev[setIndex]!.weightKg) : "0"}
-                        aria-label={`Set ${setIndex + 1} beban kg`}
+                        aria-label={t("latihan.active.aria.setWeight", { n: setIndex + 1 })}
                       />
                       <Input
                         data-field
@@ -568,7 +585,7 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
                         onChange={(event) => patchSet(exercise.uid, set.id, { reps: event.target.value })}
                         onKeyDown={onFieldKeyDown}
                         placeholder={prev[setIndex]?.reps != null ? String(prev[setIndex]!.reps) : "0"}
-                        aria-label={`Set ${setIndex + 1} repetisi`}
+                        aria-label={t("latihan.active.aria.setReps", { n: setIndex + 1 })}
                       />
                     </>
                   )}
@@ -577,7 +594,7 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
                       <button
                         type="button"
                         onClick={() => checkSet(exercise, set)}
-                        aria-label={`Batalkan set ${setIndex + 1}`}
+                        aria-label={t("latihan.active.aria.undoDone", { n: setIndex + 1 })}
                         className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                       >
                         <Check className="size-4" aria-hidden />
@@ -586,7 +603,7 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
                       <button
                         type="button"
                         onClick={() => checkSet(exercise, set)}
-                        aria-label={`Tandai set ${setIndex + 1} selesai`}
+                        aria-label={t("latihan.active.aria.markDone", { n: setIndex + 1 })}
                         className="flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                       >
                         <Check className="size-4" aria-hidden />
@@ -598,13 +615,13 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
 
               <div className="flex items-center gap-2 border-t border-border px-3 py-2">
                 <Button variant="secondary" size="sm" onClick={() => addSet(exercise)}>
-                  <Plus className="size-4" aria-hidden /> Tambah set
+                  <Plus className="size-4" aria-hidden /> {t("latihan.action.addSet")}
                 </Button>
                 {exercise.sets.length > 1 && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    aria-label="Hapus set terakhir"
+                    aria-label={t("latihan.active.aria.removeLastSet")}
                     onClick={() =>
                       patchExercise(exercise.uid, (item) => ({ ...item, sets: item.sets.slice(0, -1) }))
                     }
@@ -614,7 +631,7 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
                 )}
                 {letter && exercise.supersetGroup !== null && (
                   <span className="ml-auto text-xs font-semibold text-muted-foreground">
-                    Superset {letter}
+                    {t("latihan.active.supersetLetter", { letter })}
                   </span>
                 )}
               </div>
@@ -637,14 +654,14 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
               <Button variant="secondary" size="sm" onClick={() => rest.adjust(15)}>
                 +15s
               </Button>
-              <Button variant="ghost" size="sm" onClick={rest.stop} aria-label="Lewati istirahat">
+              <Button variant="ghost" size="sm" onClick={rest.stop} aria-label={t("latihan.active.rest.skip")}>
                 <X className="size-4" aria-hidden />
               </Button>
             </div>
           </div>
         )}
         <Button variant="secondary" className="w-full shadow-float" onClick={() => setPickerOpen(true)}>
-          <Plus className="size-4" aria-hidden /> Tambah latihan
+          <Plus className="size-4" aria-hidden /> {t("latihan.action.addExercise")}
         </Button>
       </div>
 
@@ -652,7 +669,7 @@ export function ActiveWorkoutScreen({ resume }: { resume: ActiveWorkout | null }
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         onAdd={addExercises}
-        title={replaceUid ? "Ganti latihan" : "Tambah latihan"}
+        title={replaceUid ? t("latihan.action.replaceExercise") : t("latihan.action.addExercise")}
       />
     </div>
   );

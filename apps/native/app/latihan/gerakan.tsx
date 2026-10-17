@@ -2,16 +2,20 @@ import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams, Stack } from "expo-router";
 import { ScrollView, View } from "react-native";
 import { Circle, Polyline, Svg } from "react-native-svg";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { Button, Card, EmptyState, Num, SectionTitle, Text } from "@/components/ui";
-import { useSessionGate } from "@/lib/use-session-gate";
 import {
-  newExercise,
-  previousSetLabel,
-  setActiveWorkout,
-  SET_TYPE_LABEL,
-} from "@/lib/workout/active";
+  prKindLabel,
+  setSummaryLabel,
+  setTypeBadge,
+  type SetType,
+} from "@joyorogo/api/lib/workout";
+
+import { Button, Card, Num, SectionTitle, Text } from "@/components/ui";
+import { Disclosure } from "@/components/disclosure";
+import { useSessionGate } from "@/lib/use-session-gate";
+import { newExercise, setActiveWorkout } from "@/lib/workout/active";
 import { errorMessage, fmtDateMedium, fmtKg } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
@@ -21,12 +25,11 @@ const CHART_PAD = 8;
 
 /** Best-estimated-1RM trend as a minimal sparkline with end dots. */
 function OneRmChart({ points }: { points: Array<{ date: string; oneRm: number }> }) {
+  const { t } = useTranslation("olahraga");
   const { theme } = useUnistyles();
   if (points.length < 2) {
     return (
-      <Text style={styles.chartEmpty}>
-        Butuh minimal dua sesi berbeban untuk grafik e1RM.
-      </Text>
+      <Text style={styles.chartEmpty}>{t("latihan.detail.chartNeed")}</Text>
     );
   }
   const values = points.map((p) => p.oneRm);
@@ -66,15 +69,25 @@ function OneRmChart({ points }: { points: Array<{ date: string; oneRm: number }>
   );
 }
 
-const BEST_LABEL: Record<string, string> = {
-  weightKg: "Beban terberat",
-  oneRm: "e1RM terbaik",
-  reps: "Reps terbanyak",
-  setVolume: "Volume set terbaik",
-};
+/** History `best` keys → record-kind label. */
+function bestLabel(key: string): string {
+  switch (key) {
+    case "weightKg":
+      return prKindLabel("weight");
+    case "oneRm":
+      return prKindLabel("one_rm");
+    case "reps":
+      return prKindLabel("reps");
+    case "setVolume":
+      return prKindLabel("set_volume");
+    default:
+      return key;
+  }
+}
 
 /** Per-exercise history: PR bests, e1RM chart, and recent sessions. */
 export default function LatihanGerakan() {
+  const { t } = useTranslation(["olahraga", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const params = useLocalSearchParams<{ id: string }>();
@@ -89,12 +102,12 @@ export default function LatihanGerakan() {
 
   return (
     <>
-      <Stack.Screen options={{ title: exercise?.name ?? "Riwayat gerakan" }} />
+      <Stack.Screen options={{ title: exercise?.name ?? t("latihan.detail.screenTitle") }} />
       <ScrollView contentContainerStyle={styles.content}>
         <Button
           variant="secondary"
           size="sm"
-          label="Catat gerakan ini"
+          label={t("latihan.detail.logThis")}
           icon="add"
           style={styles.startButton}
           onPress={() => {
@@ -110,10 +123,10 @@ export default function LatihanGerakan() {
           }}
         />
 
-        <SectionTitle title="Rekor terbaik" />
+        <SectionTitle title={t("latihan.detail.bests")} />
         <Card>
           {history.isPending ? (
-            <Text style={styles.empty}>Memuat rekor…</Text>
+            <Text style={styles.empty}>{t("common:state.loading")}</Text>
           ) : history.isError ? (
             <Text style={styles.empty}>{errorMessage(history.error)}</Text>
           ) : (
@@ -123,34 +136,36 @@ export default function LatihanGerakan() {
                   <Num style={styles.bestValue}>
                     {value != null && value > 0
                       ? key === "reps"
-                        ? `${Math.round(value)} reps`
+                        ? t("latihan.set.reps", { count: Math.round(value) })
                         : `${fmtKg(value)} kg`
                       : "–"}
                   </Num>
-                  <Text style={styles.bestLabel}>{BEST_LABEL[key] ?? key}</Text>
+                  <Text style={styles.bestLabel}>{bestLabel(key)}</Text>
                 </View>
               ))}
               {Object.keys(history.data.best).length === 0 ? (
-                <Text style={styles.empty}>Belum ada data.</Text>
+                <Text style={styles.empty}>{t("latihan.detail.noData")}</Text>
               ) : null}
             </View>
           )}
         </Card>
 
-        <SectionTitle title="Tren e1RM" />
+        <SectionTitle title={t("latihan.detail.trend")} />
         <Card>
           {history.data ? <OneRmChart points={history.data.oneRmByDate} /> : null}
         </Card>
+        <Disclosure title={t("latihan.detail.how.title")}>
+          <Text style={styles.empty}>{t("latihan.detail.how.body")}</Text>
+        </Disclosure>
 
-        <SectionTitle title="Sesi sebelumnya" />
+        <SectionTitle title={t("latihan.detail.sessions")} />
         {history.isPending ? (
-          <Card><Text style={styles.empty}>Memuat riwayat…</Text></Card>
+          <Card><Text style={styles.empty}>{t("common:state.loading")}</Text></Card>
         ) : (history.data?.sessions.length ?? 0) === 0 ? (
-          <EmptyState
-            icon="barbell-outline"
-            title="Belum pernah dicatat"
-            description="Setelah kamu mencatat gerakan ini, riwayatnya muncul di sini."
-          />
+          <Card>
+            <Text style={styles.emptyTitle}>{t("latihan.detail.emptyTitle")}</Text>
+            <Text style={styles.empty}>{t("latihan.detail.emptyHint")}</Text>
+          </Card>
         ) : (
           <Card style={styles.sessionList}>
             {(history.data?.sessions ?? []).map((session) => (
@@ -160,9 +175,9 @@ export default function LatihanGerakan() {
                   {session.sets.map((set, i) => (
                     <View key={i} style={styles.setTagRow}>
                       <Text style={styles.setTag}>
-                        {set.setType === "normal" ? i + 1 : SET_TYPE_LABEL[set.setType as keyof typeof SET_TYPE_LABEL] ?? i + 1}
+                        {setTypeBadge(set.setType as SetType) || i + 1}
                       </Text>
-                      <Text style={styles.setLabel}>{previousSetLabel(set)}</Text>
+                      <Text style={styles.setLabel}>{setSummaryLabel(set)}</Text>
                     </View>
                   ))}
                 </View>
@@ -179,6 +194,7 @@ const styles = StyleSheet.create((theme) => ({
   content: { padding: theme.spacing.lg, gap: theme.spacing.md },
   startButton: { alignSelf: "flex-start" },
   empty: { color: theme.colors.mutedForeground, fontSize: theme.fontSize.sm },
+  emptyTitle: { color: theme.colors.foreground, fontSize: theme.fontSize.base, fontWeight: "700" },
   bestGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md },
   bestCell: { minWidth: 130, gap: 2 },
   bestValue: { fontSize: theme.fontSize.md, fontWeight: "800", color: theme.colors.foreground },

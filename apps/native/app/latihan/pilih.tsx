@@ -3,7 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams, Stack } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+
+import {
+  EXERCISE_TYPES,
+  type EquipmentKey,
+  type MuscleKey,
+} from "@joyorogo/api/lib/exercises";
+import { equipmentLabel, exerciseTypeLabel, muscleLabel } from "@joyorogo/api/lib/workout";
 
 import {
   Button,
@@ -34,16 +42,9 @@ type CatalogExercise = {
   custom?: boolean;
 };
 
-const TYPE_OPTIONS: Array<{ value: ExerciseType; label: string }> = [
-  { value: "weight_reps", label: "Beban + reps" },
-  { value: "bodyweight_reps", label: "Berat badan" },
-  { value: "assisted", label: "Berbantu" },
-  { value: "duration", label: "Durasi" },
-  { value: "distance_duration", label: "Jarak + durasi" },
-];
-
 /** Multi-select exercise picker; mode=add appends, mode=replace swaps one card. */
 export default function LatihanPilih() {
+  const { t } = useTranslation(["olahraga", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const params = useLocalSearchParams<{ mode?: string; index?: string }>();
@@ -123,40 +124,52 @@ export default function LatihanPilih() {
     router.back();
   };
 
-  const label = (list: { id: string; label: string }[], id: string) =>
-    list.find((item) => item.id === id)?.label ?? id;
-
   return (
     <>
-      <Stack.Screen options={{ title: mode === "replace" ? "Ganti latihan" : "Tambah latihan" }} />
+      <Stack.Screen
+        options={{
+          title: mode === "replace" ? t("latihan.action.replaceExercise") : t("latihan.action.addExercise"),
+        }}
+      />
       <View style={styles.root}>
         <View style={styles.searchArea}>
           <Input
             value={query}
             onChangeText={setQuery}
-            placeholder="Cari gerakan…"
+            placeholder={t("latihan.picker.search")}
             autoCapitalize="none"
           />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-            <Chip label="Semua otot" selected={muscle === "all"} onPress={() => setMuscle("all")} />
+            <Chip label={t("latihan.picker.allMuscles")} selected={muscle === "all"} onPress={() => setMuscle("all")} />
             {(catalog.data?.muscles ?? []).map((m) => (
-              <Chip key={m.id} label={m.label} selected={muscle === m.id} onPress={() => setMuscle(m.id)} />
+              <Chip
+                key={m.id}
+                label={muscleLabel(m.id as MuscleKey)}
+                selected={muscle === m.id}
+                onPress={() => setMuscle(m.id)}
+              />
             ))}
           </ScrollView>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-            <Chip label="Semua alat" selected={equipment === "all"} onPress={() => setEquipment("all")} />
+            <Chip label={t("latihan.picker.allEquipment")} selected={equipment === "all"} onPress={() => setEquipment("all")} />
             {(catalog.data?.equipment ?? []).map((e) => (
-              <Chip key={e.id} label={e.label} selected={equipment === e.id} onPress={() => setEquipment(e.id)} />
+              <Chip
+                key={e.id}
+                label={equipmentLabel(e.id as EquipmentKey)}
+                selected={equipment === e.id}
+                onPress={() => setEquipment(e.id)}
+              />
             ))}
           </ScrollView>
         </View>
 
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
           {catalog.isPending ? (
-            <Card><Text style={styles.empty}>Memuat daftar gerakan…</Text></Card>
+            <Card><Text style={styles.empty}>{t("common:state.loading")}</Text></Card>
           ) : filtered.length === 0 ? (
             <Card>
-              <Text style={styles.empty}>Tidak ketemu. Coba kata kunci lain atau buat gerakan baru.</Text>
+              <Text style={styles.emptyTitle}>{t("latihan.picker.empty.title")}</Text>
+              <Text style={styles.empty}>{t("latihan.picker.empty.hint")}</Text>
             </Card>
           ) : (
             filtered.map((exercise) => {
@@ -165,7 +178,7 @@ export default function LatihanPilih() {
                 <Pressable
                   key={exercise.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`Pilih ${exercise.name}`}
+                  accessibilityLabel={t("latihan.picker.select", { name: exercise.name })}
                   onPress={() => toggle(exercise.id)}
                   style={({ pressed }) => [
                     styles.row,
@@ -175,12 +188,13 @@ export default function LatihanPilih() {
                 >
                   <View style={styles.rowText}>
                     <Text style={styles.rowTitle} numberOfLines={1}>
-                      {exercise.name}
-                      {exercise.custom ? " (buatanmu)" : ""}
+                      {exercise.custom
+                        ? t("latihan.picker.customName", { name: exercise.name })
+                        : exercise.name}
                     </Text>
                     <Text style={styles.rowSub}>
-                      {label(catalog.data?.muscles ?? [], exercise.muscle)} ·{" "}
-                      {label(catalog.data?.equipment ?? [], exercise.equipment)}
+                      {muscleLabel(exercise.muscle as MuscleKey)} ·{" "}
+                      {equipmentLabel(exercise.equipment as EquipmentKey)}
                     </Text>
                   </View>
                   <View style={[styles.checkbox, isSelected && styles.checkboxOn]}>
@@ -194,12 +208,16 @@ export default function LatihanPilih() {
               );
             })
           )}
-          <Button variant="secondary" label="Buat gerakan baru" icon="add" onPress={() => setCreateOpen(true)} />
+          <Button variant="secondary" label={t("latihan.picker.create")} icon="add" onPress={() => setCreateOpen(true)} />
         </ScrollView>
 
         <View style={styles.footer}>
           <Button
-            label={mode === "replace" ? "Ganti" : `Tambah (${selected.length})`}
+            label={
+              mode === "replace"
+                ? t("latihan.picker.replace")
+                : t("latihan.picker.addCount", { n: selected.length })
+            }
             onPress={apply}
             disabled={selected.length === 0}
           />
@@ -235,6 +253,7 @@ function CreateExerciseSheet({
   onClose: () => void;
   onCreated: (exercise: CatalogExercise) => void;
 }) {
+  const { t } = useTranslation("olahraga");
   const [name, setName] = useState("");
   const [muscle, setMuscle] = useState<string | null>(null);
   const [equipment, setEquipment] = useState<string | null>(null);
@@ -274,7 +293,7 @@ function CreateExerciseSheet({
       onCreated(data);
       onClose();
       return {
-        message: `Latihan ${input.name} dibuat`,
+        message: t("latihan.picker.toast.created", { name: input.name }),
         undo: () => void client.workout.deleteCustomExercise({ id: data.id }),
       };
     },
@@ -283,43 +302,58 @@ function CreateExerciseSheet({
   });
 
   return (
-    <Sheet visible={visible} onClose={onClose} title="Gerakan baru">
-      <Field label="Nama gerakan">
-        <Input value={name} onChangeText={setName} placeholder="mis. Leg Press Mesin" />
+    <Sheet visible={visible} onClose={onClose} title={t("latihan.picker.form.title")}>
+      <Field label={t("latihan.picker.form.name")}>
+        <Input value={name} onChangeText={setName} placeholder={t("latihan.picker.form.namePlaceholder")} />
       </Field>
-      <Field label="Otot utama">
+      <Field label={t("latihan.picker.form.muscle")}>
         <View style={styles.chipRow}>
           {muscles.map((m) => (
-            <Chip key={m.id} label={m.label} selected={muscle === m.id} onPress={() => setMuscle(m.id)} />
+            <Chip
+              key={m.id}
+              label={muscleLabel(m.id as MuscleKey)}
+              selected={muscle === m.id}
+              onPress={() => setMuscle(m.id)}
+            />
           ))}
         </View>
       </Field>
-      <Field label="Alat">
+      <Field label={t("latihan.picker.form.equipment")}>
         <View style={styles.chipRow}>
           {equipments.map((e) => (
-            <Chip key={e.id} label={e.label} selected={equipment === e.id} onPress={() => setEquipment(e.id)} />
+            <Chip
+              key={e.id}
+              label={equipmentLabel(e.id as EquipmentKey)}
+              selected={equipment === e.id}
+              onPress={() => setEquipment(e.id)}
+            />
           ))}
         </View>
       </Field>
-      <Field label="Jenis">
+      <Field label={t("latihan.picker.form.type")}>
         <View style={styles.chipRow}>
-          {TYPE_OPTIONS.map((t) => (
-            <Chip key={t.value} label={t.label} selected={type === t.value} onPress={() => setType(t.value)} />
+          {EXERCISE_TYPES.map((item) => (
+            <Chip
+              key={item}
+              label={exerciseTypeLabel(item)}
+              selected={type === item}
+              onPress={() => setType(item)}
+            />
           ))}
         </View>
       </Field>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button
-        label={create.isPending ? "Menyimpan…" : "Buat gerakan"}
+        label={create.isPending ? t("latihan.summary.saving") : t("latihan.picker.form.create")}
         disabled={create.isPending}
         loading={create.isPending}
         onPress={() => {
           if (name.trim().length === 0) {
-            setError("Nama gerakannya diisi dulu ya.");
+            setError(t("latihan.picker.error.name"));
             return;
           }
           if (muscle === null || equipment === null) {
-            setError("Pilih otot utama dan alatnya.");
+            setError(t("latihan.picker.error.choose"));
             return;
           }
           create.mutate({ name: name.trim(), muscle, equipment, type } as Parameters<
@@ -366,5 +400,6 @@ const styles = StyleSheet.create((theme) => ({
   checkboxOn: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
   footer: { padding: theme.spacing.lg },
   empty: { color: theme.colors.mutedForeground, fontSize: theme.fontSize.sm },
+  emptyTitle: { color: theme.colors.foreground, fontSize: theme.fontSize.base, fontWeight: "700" },
   error: { color: theme.colors.destructive, fontSize: theme.fontSize.sm, fontWeight: "600" },
 }));

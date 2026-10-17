@@ -14,7 +14,7 @@ import {
   workoutFromSessionItem,
 } from "@/components/workout/active-store";
 import { workoutApi, workoutQueryPrefix } from "@/lib/workout-contract";
-import { fmtDateLong, fmtInt } from "@/lib/format";
+import { fmtDateMedium, fmtInt } from "@/lib/format";
 import type { WorkoutStatus } from "@/lib/api-types";
 import { useDelayedDelete } from "@/lib/optimistic";
 import { removeById } from "@joyorogo/api/lib/optimistic";
@@ -24,7 +24,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, createFileRoute } from "@tanstack/react-router";
 import { Dumbbell, History, Pencil, Play, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/_auth/latihan/")({
   component: LatihanPage,
@@ -32,6 +32,7 @@ export const Route = createFileRoute("/_auth/latihan/")({
 
 /** Hub: resume banner, start options, routines, history, weekly progress. */
 function LatihanScreen() {
+  const { t } = useTranslation(["olahraga", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const catalog = useQuery({
@@ -69,7 +70,7 @@ function LatihanScreen() {
       cache.list<Routine>(["workout", "routines"], (rows) => removeById(rows, row.id));
     },
     label: (row) => row.name,
-    fallback: "Rutinitas",
+    fallback: t("latihan.routine.fallbackName"),
     invalidate: () => [orpc.workout.key()],
   });
 
@@ -103,29 +104,29 @@ function LatihanScreen() {
 
   return (
     <Page className="max-w-xl lg:max-w-3xl">
-      <PageHeader
-        title="Latihan Beban"
-        subtitle="Turun berat tanpa kehilangan otot. Catat gerakan, set, dan beban."
-      />
+      <PageHeader title={t("latihan.title")} />
 
       {resumable && (
         <Card className="mb-4 flex items-center gap-3 border-primary/40 bg-primary/5">
           <Dumbbell className="size-5 shrink-0 text-primary" aria-hidden />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-extrabold">Ada latihan yang belum selesai</p>
+            <p className="text-sm font-extrabold">{t("latihan.list.resume.title")}</p>
             <p className="text-xs text-muted-foreground">
-              {resumable.name || "Latihan bebas"} · {resumable.exercises.length} gerakan
+              {[
+                resumable.name || t("latihan.list.resume.untitled"),
+                t("latihan.count.exercises", { count: resumable.exercises.length }),
+              ].join(" · ")}
             </p>
           </div>
           <Link
             to="/latihan/aktif"
             className="rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
           >
-            Lanjutkan latihan
+            {t("latihan.list.resume.continue")}
           </Link>
           <button
             type="button"
-            aria-label="Buang latihan yang belum selesai"
+            aria-label={t("latihan.list.resume.discard")}
             onClick={() => {
               clearActive();
               setResumable(null);
@@ -137,10 +138,9 @@ function LatihanScreen() {
         </Card>
       )}
 
-      <SectionTitle>Mulai</SectionTitle>
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         <Button onClick={startEmpty} disabled={resumable !== null}>
-          <Plus className="size-4" aria-hidden /> Latihan kosong
+          <Plus className="size-4" aria-hidden /> {t("latihan.list.start.empty")}
         </Button>
         {last.data && (
           <Button
@@ -148,7 +148,8 @@ function LatihanScreen() {
             onClick={startFromLast}
             disabled={resumable !== null}
           >
-            <RotateCcw className="size-4" aria-hidden /> Ulangi: {last.data.session.name}
+            <RotateCcw className="size-4" aria-hidden />{" "}
+            {t("latihan.list.start.repeat", { name: last.data.session.name })}
           </Button>
         )}
       </div>
@@ -157,21 +158,19 @@ function LatihanScreen() {
         <div className="min-w-0 space-y-3 lg:space-y-5">
           <Card className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <SectionTitle>Rutinitas</SectionTitle>
+              <SectionTitle>{t("latihan.list.routines.title")}</SectionTitle>
               <Link
                 to="/latihan/rutinitas/$id"
                 params={{ id: "baru" }}
                 className="rounded-full bg-muted px-3 py-1.5 text-xs font-bold focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
               >
-                Buat baru
+                {t("latihan.list.routines.new")}
               </Link>
             </div>
             {routines.isPending ? (
-              <p className="text-sm text-muted-foreground">Memuat rutinitas…</p>
+              <p className="text-sm text-muted-foreground">{t("common:state.loading")}</p>
             ) : (routines.data?.length ?? 0) === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Belum ada rutinitas. Simpan latihan favoritmu biar tinggal ulang.
-              </p>
+              <p className="text-sm text-muted-foreground">{t("latihan.list.routines.empty")}</p>
             ) : (
               <ul className="divide-y divide-border">
                 {(routines.data ?? []).map((routine) => (
@@ -179,8 +178,12 @@ function LatihanScreen() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold">{routine.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {routine.exercises.length} gerakan ·{" "}
-                        {routine.exercises.reduce((sum, item) => sum + item.sets.length, 0)} set
+                        {[
+                          t("latihan.count.exercises", { count: routine.exercises.length }),
+                          t("latihan.count.sets", {
+                            count: routine.exercises.reduce((sum, item) => sum + item.sets.length, 0),
+                          }),
+                        ].join(" · ")}
                       </p>
                     </div>
                     <Button
@@ -189,12 +192,12 @@ function LatihanScreen() {
                       onClick={() => startFromRoutine(routine.id)}
                       disabled={resumable !== null}
                     >
-                      <Play className="size-4" aria-hidden /> Mulai
+                      <Play className="size-4" aria-hidden /> {t("latihan.list.start.begin")}
                     </Button>
                     <Link
                       to="/latihan/rutinitas/$id"
                       params={{ id: routine.id }}
-                      aria-label={`Edit rutinitas ${routine.name}`}
+                      aria-label={t("latihan.list.routines.edit", { name: routine.name })}
                       className="rounded-full p-2 text-muted-foreground hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                     >
                       <Pencil className="size-4" aria-hidden />
@@ -206,12 +209,15 @@ function LatihanScreen() {
           </Card>
 
           <Card className="space-y-3">
-            <SectionTitle>Riwayat sesi</SectionTitle>
+            <SectionTitle>{t("latihan.list.history.title")}</SectionTitle>
             {history.isPending ? (
-              <p className="text-sm text-muted-foreground">Memuat riwayat…</p>
+              <p className="text-sm text-muted-foreground">{t("common:state.loading")}</p>
             ) : (history.data?.items.length ?? 0) === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Belum ada sesi. Dua-tiga sesi seminggu cukup buat jaga otot.
+                <span className="block font-semibold text-foreground">
+                  {t("latihan.list.history.emptyTitle")}
+                </span>
+                {t("latihan.list.history.emptyHint")}
               </p>
             ) : (
               <ul className="divide-y divide-border">
@@ -222,16 +228,20 @@ function LatihanScreen() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold">{item.session.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {fmtDateLong(item.session.date)}
-                          {item.session.durationMin != null
-                            ? ` · ${fmtInt(item.session.durationMin)} menit`
-                            : ""}
-                          {` · ${item.sets.length} set`}
+                          {[
+                            fmtDateMedium(item.session.date),
+                            item.session.durationMin != null
+                              ? t("latihan.count.minutes", { count: item.session.durationMin })
+                              : null,
+                            t("latihan.count.sets", { count: item.sets.length }),
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </p>
                       </div>
                       <ShareStoryButton
                         label=""
-                        aria-label={`Bagikan sesi ${item.session.name} ke Story`}
+                        aria-label={t("latihan.list.history.shareStory", { name: item.session.name })}
                         variant="ghost"
                         size="icon-sm"
                         className="text-muted-foreground"
@@ -271,9 +281,9 @@ function LatihanScreen() {
 
         <div className="min-w-0 space-y-3 lg:space-y-5">
           <Card className="space-y-3">
-            <SectionTitle>Peta otot minggu ini</SectionTitle>
+            <SectionTitle>{t("latihan.map.title")}</SectionTitle>
             {status.isPending ? (
-              <p className="text-sm text-muted-foreground">Menghitung volume otot…</p>
+              <p className="text-sm text-muted-foreground">{t("latihan.map.loading")}</p>
             ) : status.error ? (
               <p className="text-sm text-destructive">{status.error.message}</p>
             ) : (
@@ -282,11 +292,11 @@ function LatihanScreen() {
           </Card>
 
           <Card className="space-y-3">
-            <SectionTitle>Progres kekuatan</SectionTitle>
+            <SectionTitle>{t("latihan.progress.title")}</SectionTitle>
             {status.data ? (
               <ProgressCard status={status.data} />
             ) : (
-              <p className="text-sm text-muted-foreground">Memuat rekor…</p>
+              <p className="text-sm text-muted-foreground">{t("common:state.loading")}</p>
             )}
           </Card>
         </div>

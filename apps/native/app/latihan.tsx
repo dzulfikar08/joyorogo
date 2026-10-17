@@ -4,16 +4,18 @@ import { useQuery } from "@tanstack/react-query";
 import { Redirect, Stack, router } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
+import { muscleLabel, trendMessage, warningMessage, workoutTemplates } from "@joyorogo/api/lib/workout";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
+import { fmtNumber } from "@joyorogo/i18n";
 
 import {
   BootLoader,
   Button,
   Card,
   Chip,
-  EmptyState,
   ErrorState,
   Num,
   PageHeader,
@@ -25,8 +27,8 @@ import {
   type SessionDraft,
   SessionEditor,
   draftFromSession,
-  draftFromTemplate,
 } from "@/components/workout/session-editor";
+import { Disclosure } from "@/components/disclosure";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import {
@@ -50,6 +52,7 @@ function startEmpty(): ActiveWorkout {
 
 /** Weekly effective sets per muscle, loudest first, with warning callouts. */
 function MuscleMap({ status }: { status: WorkoutStatus }) {
+  const { t } = useTranslation("olahraga");
   const { theme } = useUnistyles();
   const maxSets = Math.max(...status.weekly.map((m) => m.sets), 1);
 
@@ -59,7 +62,7 @@ function MuscleMap({ status }: { status: WorkoutStatus }) {
         <View style={[styles.trendBox, { backgroundColor: theme.colors.bakarSoft }]}>
           <Ionicons name="trending-down" size={16} color={theme.colors.bakarText} />
           <Text style={[styles.trendText, { color: theme.colors.bakarText }]}>
-            {status.trendHint.message}
+            {trendMessage(status.trendHint.name, status.trendHint.dropPct)}
           </Text>
         </View>
       ) : null}
@@ -67,11 +70,11 @@ function MuscleMap({ status }: { status: WorkoutStatus }) {
         <View key={warning.muscle} style={styles.warningBox}>
           <View style={styles.warningHead}>
             <Ionicons name="alert-circle" size={14} color={theme.colors.bakarText} />
-            <Text style={styles.warningText}>{warning.message}</Text>
+            <Text style={styles.warningText}>{warningMessage(warning)}</Text>
           </View>
           {warning.suggestions.length > 0 ? (
             <Text style={styles.suggestionText}>
-              Coba: {warning.suggestions.map((s) => s.name).join(", ")}
+              {t("latihan.map.try", { names: warning.suggestions.map((s) => s.name).join(", ") })}
             </Text>
           ) : null}
         </View>
@@ -80,7 +83,7 @@ function MuscleMap({ status }: { status: WorkoutStatus }) {
         {status.weekly.map((muscle) => (
           <View key={muscle.muscle} style={styles.volumeRow}>
             <Text style={styles.volumeLabel} numberOfLines={1}>
-              {muscle.label}
+              {muscleLabel(muscle.muscle)}
             </Text>
             <View style={styles.volumeTrack}>
               <View
@@ -95,37 +98,42 @@ function MuscleMap({ status }: { status: WorkoutStatus }) {
             </View>
             <Num style={styles.volumeValue}>
               {muscle.sets > 0
-                ? `${muscle.sets % 1 === 0 ? fmtInt(muscle.sets) : muscle.sets.toFixed(1)} set`
+                ? t("latihan.map.sets", { count: muscle.sets, sets: fmtNumber(muscle.sets, 1) })
                 : "–"}
             </Num>
           </View>
         ))}
       </View>
-      <Text style={styles.mapCaption}>
-        Set efektif minggu ini: gerakan utama dihitung 1, pendukung 0,5.
-      </Text>
+      <Disclosure plain title={t("latihan.map.how.title")}>
+        <Text style={styles.mapCaption}>{t("latihan.map.how.body")}</Text>
+      </Disclosure>
     </View>
   );
 }
 
 /** Live draft persisted across app kills shows the resume banner. */
 function ResumeBanner() {
+  const { t } = useTranslation("olahraga");
   const workout = useActiveWorkout();
   if (workout === null) return null;
   const totalSets = workout.exercises.reduce((n, e) => n + e.sets.length, 0);
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Lanjutkan latihan"
+      accessibilityLabel={t("latihan.list.resume.continue")}
       onPress={() => router.push("/latihan/aktif")}
       style={({ pressed }) => [styles.resume, pressed && styles.pressed]}
     >
       <Ionicons name="play" size={18} color="#FFFFFF" />
       <View style={styles.resumeText}>
-        <Text style={styles.resumeTitle}>Lanjutkan latihan</Text>
+        <Text style={styles.resumeTitle}>{t("latihan.list.resume.continue")}</Text>
         <Text style={styles.resumeSub}>
-          {workout.name.trim().length > 0 ? workout.name : "Sesi tanpa nama"}
-          {totalSets > 0 ? ` · ${totalSets} set` : ""}
+          {[
+            workout.name.trim().length > 0 ? workout.name : t("latihan.list.resume.untitled"),
+            totalSets > 0 ? t("latihan.count.sets", { count: totalSets }) : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
@@ -134,6 +142,7 @@ function ResumeBanner() {
 }
 
 export default function Latihan() {
+  const { t } = useTranslation(["olahraga", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   // Restore a draft persisted by a previous app run before showing resume.
@@ -155,6 +164,30 @@ export default function Latihan() {
   const typeOf = (id: string): ExerciseType =>
     (catalog.data?.exercises.find((e) => e.id === id)?.type ?? "weight_reps") as ExerciseType;
   const nameOf = (id: string) => catalog.data?.exercises.find((e) => e.id === id)?.name ?? id;
+
+  const sessionMeta = (date: string, durationMin: number | null, sets: number) =>
+    [
+      fmtDateMedium(date),
+      durationMin != null ? t("latihan.count.minutes", { count: durationMin }) : null,
+      t("latihan.count.sets", { count: sets }),
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  const recordLine = (pr: WorkoutStatus["prs"][number]): string => {
+    const best = pr.bestSet;
+    if (!best) return "–";
+    const set =
+      best.weightKg != null
+        ? t("latihan.record.weighted", { reps: best.reps, kg: fmtNumber(best.weightKg, 1) })
+        : t("latihan.record.bodyweight", { reps: best.reps });
+    return pr.best1RM
+      ? t("latihan.record.bestE1rm", { set, kg: fmtInt(pr.best1RM.e1rm ?? 0) })
+      : t("latihan.record.best", { set });
+  };
+  // Template names come from the shared catalogue in the active language.
+  const localTemplates = workoutTemplates();
+  const templateName = (template: { id: string; name: string }) =>
+    localTemplates.find((item) => item.id === template.id)?.name ?? template.name;
 
   if (gate === "loading") {
     return <BootLoader />;
@@ -196,7 +229,7 @@ export default function Latihan() {
     const template = (templates.data ?? []).find((t) => t.id === templateId);
     if (!template) return startEmpty();
     return {
-      name: template.name,
+      name: templateName(template),
       note: "",
       startedAt: Date.now(),
       exercises: template.exercises.map((item) =>
@@ -235,16 +268,15 @@ export default function Latihan() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Latihan Beban" }} />
+      <Stack.Screen options={{ title: t("latihan.title") }} />
       <Screen>
         <PageHeader
-          title="Latihan Beban"
-          caption="Turun berat tanpa kehilangan otot."
+          title={t("latihan.title")}
           right={
             <Button
               variant="secondary"
               size="sm"
-              label="Mulai"
+              label={t("latihan.list.start.begin")}
               onPress={() => begin(startEmpty)}
             />
           }
@@ -252,7 +284,6 @@ export default function Latihan() {
 
         <ResumeBanner />
 
-        <SectionTitle title="Mulai cepat" />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -260,33 +291,31 @@ export default function Latihan() {
         >
           {last.data ? (
             <Chip
-              label={`Ulangi: ${last.data.session.name}`}
+              label={t("latihan.list.start.repeat", { name: last.data.session.name })}
               onPress={() => begin(() => fromLastSession() ?? startEmpty())}
             />
           ) : null}
           {(templates.data ?? []).map((template) => (
             <Chip
               key={template.id}
-              label={template.name}
+              label={templateName(template)}
               onPress={() => begin(() => fromTemplate(template.id))}
             />
           ))}
-          <Chip label="Sesi kosong" onPress={() => begin(startEmpty)} />
+          <Chip label={t("latihan.list.start.empty")} onPress={() => begin(startEmpty)} />
         </ScrollView>
 
         <SectionTitle
-          title="Rutinitas"
-          action={{ label: "Buat", onPress: () => router.push("/latihan/rutinitas") }}
+          title={t("latihan.list.routines.title")}
+          action={{ label: t("latihan.list.routines.new"), onPress: () => router.push("/latihan/rutinitas") }}
         />
         {routines.isPending ? (
           <Card>
-            <Text style={styles.loadingText}>Memuat rutinitas…</Text>
+            <Text style={styles.loadingText}>{t("common:state.loading")}</Text>
           </Card>
         ) : (routines.data?.length ?? 0) === 0 ? (
           <Card>
-            <Text style={styles.loadingText}>
-              Belum ada rutinitas. Simpan kombinasi latihan andalanmu di sini.
-            </Text>
+            <Text style={styles.loadingText}>{t("latihan.list.routines.empty")}</Text>
           </Card>
         ) : (
           <Card style={styles.historyCard}>
@@ -294,7 +323,7 @@ export default function Latihan() {
               <View key={routine.id} style={styles.routineRow}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Edit rutinitas ${routine.name}`}
+                  accessibilityLabel={t("latihan.list.routines.edit", { name: routine.name })}
                   onPress={() => router.push(`/latihan/rutinitas?id=${routine.id}`)}
                   style={({ pressed }) => [styles.routineMain, pressed && styles.pressed]}
                 >
@@ -302,13 +331,17 @@ export default function Latihan() {
                     {routine.name}
                   </Text>
                   <Text style={styles.prSub} numberOfLines={1}>
-                    {routine.exercises.length} gerakan ·{" "}
-                    {routine.exercises.reduce((n, e) => n + e.sets.length, 0)} set
+                    {[
+                      t("latihan.count.exercises", { count: routine.exercises.length }),
+                      t("latihan.count.sets", {
+                        count: routine.exercises.reduce((n, e) => n + e.sets.length, 0),
+                      }),
+                    ].join(" · ")}
                   </Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Mulai rutinitas ${routine.name}`}
+                  accessibilityLabel={t("latihan.list.routines.play", { name: routine.name })}
                   onPress={() => begin(() => fromRoutine(routine.id))}
                   style={({ pressed }) => [styles.playButton, pressed && styles.pressed]}
                 >
@@ -319,10 +352,10 @@ export default function Latihan() {
           </Card>
         )}
 
-        <SectionTitle title="Peta otot minggu ini" />
+        <SectionTitle title={t("latihan.map.title")} />
         {status.isPending ? (
           <Card>
-            <Text style={styles.loadingText}>Menghitung volume otot…</Text>
+            <Text style={styles.loadingText}>{t("latihan.map.loading")}</Text>
           </Card>
         ) : status.isError ? (
           <ErrorState message={errorMessage(status.error)} onRetry={() => status.refetch()} />
@@ -332,21 +365,19 @@ export default function Latihan() {
           </Card>
         )}
 
-        <SectionTitle title="Progres kekuatan" />
+        <SectionTitle title={t("latihan.progress.title")} />
         <Card>
           {status.isPending ? (
-            <Text style={styles.loadingText}>Memuat rekor…</Text>
+            <Text style={styles.loadingText}>{t("common:state.loading")}</Text>
           ) : (status.data?.prs.length ?? 0) === 0 ? (
-            <Text style={styles.loadingText}>
-              Belum ada rekor. Selesaikan satu sesi, rekor gerakan muncul di sini.
-            </Text>
+            <Text style={styles.loadingText}>{t("latihan.progress.empty")}</Text>
           ) : (
             <View style={styles.prList}>
               {status.data!.prs.slice(0, 10).map((pr) => (
                 <Pressable
                   key={pr.exerciseId}
                   accessibilityRole="button"
-                  accessibilityLabel={`Riwayat ${pr.name}`}
+                  accessibilityLabel={t("latihan.progress.history", { name: pr.name })}
                   onPress={() => router.push(`/latihan/gerakan?id=${pr.exerciseId}`)}
                   style={({ pressed }) => [styles.prRow, pressed && styles.pressed]}
                 >
@@ -355,13 +386,7 @@ export default function Latihan() {
                       {pr.name}
                     </Text>
                     <Text style={styles.prSub} numberOfLines={1}>
-                      {pr.bestSet
-                        ? `Rekor: ${pr.bestSet.reps}× ${
-                            pr.bestSet.weightKg != null
-                              ? `${fmtInt(pr.bestSet.weightKg)} kg`
-                              : "tanpa beban"
-                          }${pr.best1RM ? ` · e1RM ${fmtInt(pr.best1RM.e1rm ?? 0)} kg` : ""}`
-                        : "–"}
+                      {recordLine(pr)}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={15} color={theme.colors.mutedForeground} />
@@ -371,24 +396,23 @@ export default function Latihan() {
           )}
         </Card>
 
-        <SectionTitle title="Riwayat sesi" />
+        <SectionTitle title={t("latihan.list.history.title")} />
         {history.isPending ? (
           <Card>
-            <Text style={styles.loadingText}>Memuat riwayat…</Text>
+            <Text style={styles.loadingText}>{t("common:state.loading")}</Text>
           </Card>
         ) : (history.data?.items.length ?? 0) === 0 ? (
-          <EmptyState
-            pose="determined"
-            title="Belum ada sesi"
-            description="Mulai dari template di atas. Dua-tiga sesi seminggu cukup buat jaga otot."
-          />
+          <Card>
+            <Text style={styles.historyEmptyTitle}>{t("latihan.list.history.emptyTitle")}</Text>
+            <Text style={styles.loadingText}>{t("latihan.list.history.emptyHint")}</Text>
+          </Card>
         ) : (
           <Card style={styles.historyCard}>
             {history.data!.items.map((item) => (
               <View key={item.session.id} style={styles.historyRowWrap}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Edit sesi ${item.session.name}`}
+                  accessibilityLabel={t("latihan.list.history.edit", { name: item.session.name })}
                   onPress={() => setDraft(draftFromSession(item, nameOf))}
                   style={({ pressed }) => [styles.prText, styles.pressed]}
                 >
@@ -396,25 +420,17 @@ export default function Latihan() {
                     {item.session.name}
                   </Text>
                   <Text style={styles.prSub} numberOfLines={1}>
-                    {fmtDateMedium(item.session.date)}
-                    {item.session.durationMin != null
-                      ? ` · ${fmtInt(item.session.durationMin)} menit`
-                      : ""}
-                    {` · ${item.sets.length} set`}
+                    {sessionMeta(item.session.date, item.session.durationMin, item.sets.length)}
                   </Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Bagikan sesi ${item.session.name} ke feed`}
+                  accessibilityLabel={t("latihan.list.history.shareFeed", { name: item.session.name })}
                   onPress={() =>
                     setShareTarget({
                       refId: item.session.id,
                       title: item.session.name,
-                      preview: `${fmtDateMedium(item.session.date)} · ${item.sets.length} set${
-                        item.session.durationMin != null
-                          ? ` · ${fmtInt(item.session.durationMin)} menit`
-                          : ""
-                      }`,
+                      preview: sessionMeta(item.session.date, item.session.durationMin, item.sets.length),
                     })
                   }
                   style={({ pressed }) => [styles.shareButton, pressed && styles.pressed]}
@@ -460,6 +476,7 @@ const styles = StyleSheet.create((theme) => ({
   resumeSub: { fontSize: theme.fontSize.xs, color: "#FFFFFF", opacity: 0.85 },
   quickRow: { gap: theme.spacing.sm, paddingVertical: theme.spacing.xs },
   loadingText: { fontSize: theme.fontSize.sm, color: theme.colors.mutedForeground },
+  historyEmptyTitle: { fontSize: theme.fontSize.base, fontWeight: "700", color: theme.colors.foreground },
   mapBody: { gap: theme.spacing.md },
   trendBox: {
     flexDirection: "row",

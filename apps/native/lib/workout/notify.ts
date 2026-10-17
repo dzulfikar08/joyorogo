@@ -1,5 +1,7 @@
 import * as Notifications from "expo-notifications";
 
+import { i18n } from "@joyorogo/i18n";
+
 // Registered at module import (active workout screen) so the rest-timer
 // notification shows even when the app is backgrounded when it fires.
 void Notifications.setNotificationHandler({
@@ -19,8 +21,8 @@ export async function scheduleRestEndNotification(seconds: number) {
   try {
     scheduledId = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Istirahat selesai",
-        body: "Waktunya set berikutnya.",
+        title: i18n.t("olahraga:latihan.active.notify.title"),
+        body: i18n.t("olahraga:latihan.active.notify.body"),
         sound: true,
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds },

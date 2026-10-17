@@ -4,11 +4,14 @@ import {
   workoutApi,
   workoutQueryPrefix,
 } from "@/lib/workout-contract";
-import { fmtDateLong, fmtInt } from "@/lib/format";
+import { fmtDateMedium, fmtInt } from "@/lib/format";
+import { fmtNumber } from "@joyorogo/i18n";
+import { prKindLabel, setSummaryLabel } from "@joyorogo/api/lib/workout";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft } from "lucide-react";
+import { ChevronDown, ChevronLeft } from "lucide-react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 const CHART_W = 560;
 const CHART_H = 180;
@@ -16,6 +19,7 @@ const CHART_PAD = 28;
 
 /** Simple SVG line of estimated 1RM over time (Hevy-style progress chart). */
 function OneRmChart({ points }: { points: { date: string; oneRm: number }[] }) {
+  const { t } = useTranslation("olahraga");
   const path = useMemo(() => {
     if (points.length < 2) return null;
     const xs = points.map((_, index) => index / (points.length - 1));
@@ -35,11 +39,7 @@ function OneRmChart({ points }: { points: { date: string; oneRm: number }[] }) {
   }, [points]);
 
   if (points.length < 2) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Butuh minimal dua sesi dengan beban untuk grafik estimasi 1RM.
-      </p>
-    );
+    return <p className="text-sm text-muted-foreground">{t("latihan.detail.chartNeed")}</p>;
   }
 
   return (
@@ -48,12 +48,15 @@ function OneRmChart({ points }: { points: { date: string; oneRm: number }[] }) {
         viewBox={`0 0 ${CHART_W} ${CHART_H}`}
         className="w-full"
         role="img"
-        aria-label={`Grafik estimasi 1RM dari ${fmtDateLong(points[0].date)} ke ${fmtDateLong(points[points.length - 1].date)}`}
+        aria-label={t("latihan.detail.chartAria", {
+          from: fmtDateMedium(points[0].date),
+          to: fmtDateMedium(points[points.length - 1].date),
+        })}
       >
         <path d={path!.d} fill="none" stroke="currentColor" strokeWidth="2.5" className="text-primary" />
         {path!.coords.map((coord) => (
           <circle key={coord.date + coord.x} cx={coord.x} cy={coord.y} r="3.5" className="fill-primary">
-            <title>{`${fmtDateLong(coord.date)}: ${fmtInt(coord.oneRm)} kg`}</title>
+            <title>{`${fmtDateMedium(coord.date)}: ${fmtInt(coord.oneRm)} kg`}</title>
           </circle>
         ))}
         <text x={CHART_PAD} y={12} className="fill-muted-foreground text-[10px]">
@@ -63,15 +66,13 @@ function OneRmChart({ points }: { points: { date: string; oneRm: number }[] }) {
           {fmtInt(path!.min)} kg
         </text>
       </svg>
-      <figcaption className="text-center text-xs text-muted-foreground">
-        Estimasi 1RM (Epley) per sesi
-      </figcaption>
     </figure>
   );
 }
 
 /** Per-exercise history: best numbers, 1RM chart, recent sessions. */
 export function ExerciseDetail({ exercise }: { exercise: CatalogExercise }) {
+  const { t } = useTranslation(["olahraga", "common"]);
   const history = useQuery({
     queryKey: [...workoutQueryPrefix, "history", exercise.id],
     queryFn: () => workoutApi.exerciseHistory({ exerciseId: exercise.id, limit: 50 }),
@@ -79,11 +80,11 @@ export function ExerciseDetail({ exercise }: { exercise: CatalogExercise }) {
 
   const best = history.data?.best;
   const bestRows = [
-    { label: "Terberat", value: best?.weightKg != null ? `${fmtInt(best.weightKg)} kg` : "–" },
-    { label: "Estimasi 1RM", value: best?.oneRm != null ? `${fmtInt(best.oneRm)} kg` : "–" },
-    { label: "Reps terbanyak", value: best?.reps != null ? `${best.reps}` : "–" },
+    { label: prKindLabel("weight"), value: best?.weightKg != null ? `${fmtNumber(best.weightKg, 1)} kg` : "–" },
+    { label: prKindLabel("one_rm"), value: best?.oneRm != null ? `${fmtNumber(best.oneRm, 1)} kg` : "–" },
+    { label: prKindLabel("reps"), value: best?.reps != null ? `${best.reps}` : "–" },
     {
-      label: "Volume set terbaik",
+      label: prKindLabel("set_volume"),
       value: best?.setVolume != null ? `${fmtInt(best.setVolume)} kg` : "–",
     },
   ];
@@ -94,9 +95,9 @@ export function ExerciseDetail({ exercise }: { exercise: CatalogExercise }) {
         to="/latihan"
         className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
       >
-        <ChevronLeft className="size-4" aria-hidden /> Latihan beban
+        <ChevronLeft className="size-4" aria-hidden /> {t("latihan.title")}
       </Link>
-      <PageHeader title={exercise.name} subtitle="Riwayat dan rekor gerakan ini." />
+      <PageHeader title={exercise.name} />
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         {bestRows.map((row) => (
@@ -109,7 +110,7 @@ export function ExerciseDetail({ exercise }: { exercise: CatalogExercise }) {
 
       <Card className="mt-3 space-y-3">
         {history.isPending ? (
-          <p className="text-sm text-muted-foreground">Memuat riwayat…</p>
+          <p className="text-sm text-muted-foreground">{t("common:state.loading")}</p>
         ) : history.error ? (
           <p className="text-sm text-destructive">{history.error.message}</p>
         ) : (
@@ -118,21 +119,18 @@ export function ExerciseDetail({ exercise }: { exercise: CatalogExercise }) {
             <ul className="divide-y divide-border">
               {(history.data?.sessions ?? []).slice(0, 10).map((session) => (
                 <li key={session.sessionId} className="py-2.5">
-                  <p className="text-sm font-bold">{fmtDateLong(session.date)}</p>
+                  <p className="text-sm font-bold">{fmtDateMedium(session.date)}</p>
                   <p className="text-xs text-muted-foreground">
-                    {session.sets
-                      .map((set) =>
-                        set.durationSec != null
-                          ? fmtInt(set.durationSec) + " dtk"
-                          : `${set.reps}×${set.weightKg != null ? `${fmtInt(set.weightKg)}kg` : "BW"}`,
-                      )
-                      .join(" · ")}
+                    {session.sets.map((set) => setSummaryLabel(set)).join(" · ")}
                   </p>
                 </li>
               ))}
               {(history.data?.sessions.length ?? 0) === 0 && (
                 <li className="py-2 text-sm text-muted-foreground">
-                  Belum pernah dicatat. Selesaikan satu sesi dulu.
+                  <span className="block font-semibold text-foreground">
+                    {t("latihan.detail.emptyTitle")}
+                  </span>
+                  {t("latihan.detail.emptyHint")}
                 </li>
               )}
             </ul>
@@ -140,6 +138,16 @@ export function ExerciseDetail({ exercise }: { exercise: CatalogExercise }) {
         )}
       </Card>
 
+      <details className="group mt-3 rounded-2xl bg-card">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-2xl px-4 select-none focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+          <span className="text-sm font-bold">{t("latihan.detail.how.title")}</span>
+          <ChevronDown
+            className="size-5 text-muted-foreground transition-transform duration-200 group-open:rotate-180"
+            aria-hidden
+          />
+        </summary>
+        <p className="px-4 pb-4 text-sm text-muted-foreground">{t("latihan.detail.how.body")}</p>
+      </details>
     </div>
   );
 }
