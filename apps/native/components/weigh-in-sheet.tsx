@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { useUnistyles } from "react-native-unistyles";
+import { useTranslation } from "react-i18next";
 
 import { Button, Field, Input, Sheet, Text } from "@/components/ui";
 import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
-import { errorMessage, parseNum } from "@/utils/format";
+import { errorMessage, fmtKg, parseNum } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 
@@ -22,6 +23,7 @@ export function WeighInSheet({
   date?: string;
 }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation(["berat", "common"]);
   const [kg, setKg] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -51,7 +53,7 @@ export function WeighInSheet({
         )?.entries ?? []).filter((entry) => entry.date !== (input.date ?? jakartaToday()));
       const previous = rows.at(-1)?.weightKg;
       return {
-        message: "Berat dicatat",
+        message: t("toast.logged", { kg: fmtKg(input.weightKg) }),
         undo:
           previous === undefined
             ? undefined
@@ -69,7 +71,7 @@ export function WeighInSheet({
   const submit = () => {
     const num = parseNum(kg);
     if (num === null || num < 25 || num > 400) {
-      setError("Isi berat badan antara 25 dan 400 kg.");
+      setError(t("error.weightRange", { min: 25, max: 400 }));
       return;
     }
     setError(null);
@@ -84,16 +86,12 @@ export function WeighInSheet({
     <Sheet
       visible={visible}
       onClose={onClose}
-      title={isToday ? "Timbang hari ini" : `Timbang ${dayLabel}`}
-      footer={<Button label="Simpan" onPress={submit} loading={checkIn.isPending} />}
+      title={isToday ? t("sheet.title") : t("sheet.titleDay", { day: dayLabel })}
+      footer={<Button label={t("common:actions.save")} onPress={submit} loading={checkIn.isPending} />}
     >
       <Field
-        label="Berat badan (kg)"
-        hint={
-          isToday
-            ? "Satu catatan per hari. Menyimpan lagi akan menimpa catatan hari ini."
-            : `Satu catatan per hari. Menyimpan lagi akan menimpa catatan ${dayLabel}.`
-        }
+        label={t("sheet.weightLabel")}
+        hint={isToday ? t("sheet.hintToday") : t("sheet.hintDay", { day: dayLabel })}
       >
         <Input
           value={kg}

@@ -3,5 +3,192 @@
     "stable": "Berat stabil",
     "down": "Turun {{kg}} kg/minggu",
     "up": "Naik {{kg}} kg/minggu"
+  },
+  "page": {
+    "title": "Berat badan",
+    "titleShort": "Berat",
+    "weigh": "Timbang",
+    "weighNow": "Timbang sekarang",
+    "share": "Bagikan progres",
+    "loading": "Memuat riwayat berat"
+  },
+  "empty": {
+    "title": "Belum ada catatan berat",
+    "body": "Timbang dirimu lalu simpan lewat tombol Timbang. Grafik, tren, dan riwayat muncul setelah catatan pertama.",
+    "bodyNative": "Simpan timbangan pertamamu untuk mulai melihat tren dan proyeksi target."
+  },
+  "hero": {
+    "trendLabel": "Berat tren",
+    "scale": "Timbangan {{kg}} kg · {{date}}",
+    "steadyWeek": "Stabil minggu ini",
+    "needMoreDays": "Timbang beberapa hari lagi untuk melihat laju per minggu.",
+    "goalReached": "Target berat sudah tercapai. Jaga ritmenya.",
+    "loggedToday": "Tersimpan untuk hari ini",
+    "weighToday": "Timbang hari ini"
+  },
+  "bmi": {
+    "pill": "BMI {{value}} · {{category}}",
+    "category": {
+      "under": "Kurang",
+      "ideal": "Ideal",
+      "over": "Overweight",
+      "obese": "Obesitas"
+    }
+  },
+  "summary": {
+    "start": "Mulai",
+    "now": "Sekarang",
+    "down": "Turun",
+    "changed": "Berubah",
+    "remaining": "Sisa",
+    "remainingToGoal": "Sisa ke target",
+    "noData": "belum ada data",
+    "fromStart": "dari berat awal",
+    "upFromStart": "naik dari awal",
+    "same": "masih sama",
+    "target": "Target {{kg}} kg",
+    "setTarget": "atur target di Profil"
+  },
+  "chart": {
+    "title": "Grafik tren",
+    "titleNative": "Perjalanan berat",
+    "rangeLabel": "Rentang grafik",
+    "range": {
+      "d7": "7H",
+      "d30": "30H",
+      "d90": "90H",
+      "all": "Semua"
+    },
+    "rangeLast_other": "{{count}} hari terakhir",
+    "rangeDays_other": "{{count}} hari",
+    "sinceStart": "sejak awal",
+    "a11yPointer": "Grafik tren berat badan, {{range}}. Geser kursor untuk melihat tiap catatan.",
+    "a11yTouch": "Grafik tren berat badan, {{range}}. Geser untuk melihat tiap catatan.",
+    "target": "Target {{kg}}",
+    "start": "Awal {{kg}}",
+    "emptyTitle": "Belum ada catatan {{range}}.",
+    "emptyBody": "Pilih rentang lebih panjang, atau catat beratmu untuk mulai mengisi grafik.",
+    "emptyAction": "Catat berat",
+    "tomorrow": "Timbang lagi besok untuk mulai melihat garis tren."
+  },
+  "stats": {
+    "change": "Perubahan",
+    "pace": "Laju",
+    "projection": "Proyeksi",
+    "perWeek": "kg/minggu",
+    "projectionValue": "±{{month}}"
+  },
+  "projection": {
+    "setTarget": "atur target di Profil",
+    "reached": "sudah tercapai, jaga ritmenya",
+    "toward": "menuju {{kg}} kg",
+    "needMore": "butuh lebih banyak catatan",
+    "steady": "ritme sedang stabil",
+    "almost": "hampir ada, teruskan",
+    "away": "ritme terakhir menjauhi target"
+  },
+  "legend": {
+    "weight": "Berat",
+    "trend": "Tren",
+    "kcal": "Kalori",
+    "unlogged": "Belum dicatat",
+    "kcalTarget": "Target kalori"
+  },
+  "kcal": {
+    "none": "Belum ada kalori tercatat",
+    "summary_other": "Tercatat {{tracked}} dari {{count}} hari · rata-rata {{avg}}"
+  },
+  "detail": {
+    "title": "Detail",
+    "trustTrend": "Angka tren lebih bisa dipercaya daripada timbangan harian.",
+    "legend": "Garis = tren (rata-rata bergerak 7 hari), titik = timbangan harian. Batang = kalori harian yang dicatat (gelap = di atas target, terang = di bawah); area garis-garis = hari tanpa catatan makan.",
+    "weekly": "Rentang panjang dirata-rata per minggu per hari tercatat.",
+    "totalDown": "Total turun {{kg}} kg sejak berat awal.",
+    "totalUp": "Total naik {{kg}} kg sejak berat awal."
+  },
+  "tip": {
+    "scale": "Timbangan",
+    "trend": "Tren",
+    "kcal": "Kalori",
+    "kcalPerDay": "Kalori/hari",
+    "notLogged": "tak dicatat",
+    "kcalValueGaps_other": "{{kcal}} · {{count}} kosong",
+    "vsPrev": "vs sebelumnya",
+    "first": "pertama",
+    "same": "sama"
+  },
+  "history": {
+    "title": "Riwayat",
+    "first": "catatan pertama",
+    "same": "sama seperti sebelumnya",
+    "delta": "{{delta}} kg dari sebelumnya",
+    "showAll": "Tampilkan semua ({{count}})",
+    "showLess": "Tampilkan lebih sedikit"
+  },
+  "sheet": {
+    "title": "Timbang hari ini",
+    "titleDay": "Timbang {{day}}",
+    "description": "Satu catatan per hari. Menyimpan lagi menimpa angka tadi.",
+    "hintToday": "Satu catatan per hari. Menyimpan lagi akan menimpa catatan hari ini.",
+    "hintDay": "Satu catatan per hari. Menyimpan lagi akan menimpa catatan {{day}}.",
+    "weightLabel": "Berat badan (kg)",
+    "saving": "Menyimpan..."
+  },
+  "toast": {
+    "logged": "Berat dicatat: {{kg}} kg",
+    "waistLogged": "Lingkar perut dicatat: {{cm}} cm"
+  },
+  "error": {
+    "weightRange": "Isi berat badan antara {{min}} dan {{max}} kg."
+  },
+  "share": {
+    "title": "Bagikan progres berat",
+    "titleNative": "Check-in berat badan",
+    "preview": "Check-in terakhir · {{kg}} kg",
+    "previewNative": "{{kg}} kg",
+    "previewTrend": "{{kg}} kg · tren {{trend}} kg"
+  },
+  "waist": {
+    "title": "Lingkar perut",
+    "inputLabel": "Lingkar perut (cm)",
+    "placeholder": "misal 85",
+    "saving": "Menyimpan...",
+    "loggedToday": "Tersimpan untuk hari ini",
+    "latest": "Terbaru",
+    "error": {
+      "range": "Isi lingkar perut antara {{min}} dan {{max}} cm."
+    },
+    "sinceFirst": "{{delta}} cm sejak ukuran pertama",
+    "status": {
+      "high": "Rasio lingkar perut terhadap tinggi {{ratio}}: risiko tinggi. Cek gula darah dan tekanan darah di puskesmas atau dokter.",
+      "above": "Di atas batas sehat. Turun beberapa cm saja sudah menurunkan risiko.",
+      "below": "Di bawah batas sehat. Pertahankan."
+    },
+    "about": {
+      "title": "Penjelasan & cara mengukur",
+      "intro": "Berat badan tidak membedakan lemak dan otot. Lingkar perut menunjukkan lemak di sekitar organ dalam, yang paling terkait dengan diabetes dan penyakit jantung."
+    },
+    "standard": {
+      "title": "Standar",
+      "cutoff": "Batas obesitas sentral untuk orang Asia: pria 90 cm, wanita 80 cm.",
+      "cutoffYours": "Batasmu {{cm}} cm.",
+      "ratio": "Rasio lingkar perut terhadap tinggi badan sebaiknya di bawah 0,5. Untuk tinggi {{height}} cm, jaga lingkar perut di bawah {{half}} cm.",
+      "source": "Sumber: WHO Asia Pasifik (2000), Kemenkes RI, WHO Expert Consultation (2008), NICE (2022)."
+    },
+    "guide": {
+      "title": "Cara mengukur",
+      "step1": "Berdiri tegak, kaki rapat, lengan rileks di samping badan.",
+      "step2": "Raba tulang rusuk terbawah dan puncak tulang panggul. Lingkarkan pita ukur tepat di tengah keduanya.",
+      "step3": "Pita mendatar sejajar lantai, menempel di kulit tapi tidak menekan.",
+      "step4": "Baca angka di akhir buang napas biasa. Jangan menahan atau mengempiskan perut.",
+      "tip": "Ukur pagi hari sebelum makan. Seminggu sekali sudah cukup."
+    },
+    "illustration": {
+      "alt": "Ilustrasi: pita ukur dilingkarkan di tengah antara tulang rusuk terbawah dan puncak tulang panggul",
+      "ribs": "Tulang rusuk terbawah",
+      "measureHere": "Ukur di sini:",
+      "middle": "tengah-tengahnya",
+      "pelvis": "Puncak tulang panggul"
+    }
   }
 }

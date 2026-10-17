@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { Circle, Path, Rect, Svg, Text as SvgText } from "react-native-svg";
 
 import { jakartaToday } from "@joyorogo/api/lib/engine";
 
+import { Disclosure } from "@/components/disclosure";
 import {
   Button,
   Card,
@@ -18,7 +19,7 @@ import {
   Skeleton,
   Text,
 } from "@/components/ui";
-import { errorMessage, fmtDateMedium, fmtKg, parseNum } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtInt, fmtKg, fmtRatio, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 
@@ -34,10 +35,9 @@ export function WaistSection({
   heightCm: number | null;
 }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation(["berat", "common"]);
   const [cm, setCm] = useState("");
   const [error, setError] = useState<string | null>(null);
-  // null = follow the default (open without entries, collapsed otherwise).
-  const [openOverride, setOpenOverride] = useState<boolean | null>(null);
 
   const historyQuery = useQuery(orpc.waist.history.queryOptions({ input: { limit: 90 } }));
 
@@ -60,11 +60,11 @@ export function WaistSection({
 
   const checkIn = useOptimisticMutation<WaistCheckInInput, unknown>({
     mutationFn: (input) => client.waist.checkIn(input),
-    success: (_input) => {
+    success: (input) => {
       setError(null);
       const previous = entries.at(-1)?.waistCm;
       return {
-        message: "Lingkar perut dicatat",
+        message: t("toast.waistLogged", { cm: fmtKg(input.waistCm) }),
         undo: previous === undefined ? undefined : () => checkIn.mutate({ waistCm: previous }),
       };
     },
@@ -75,7 +75,7 @@ export function WaistSection({
   const submit = () => {
     const num = parseNum(cm);
     if (num === null || num < 40 || num > 250) {
-      setError("Isi lingkar perut antara 40 dan 250 cm.");
+      setError(t("waist.error.range", { min: 40, max: 250 }));
       return;
     }
     setError(null);
@@ -87,8 +87,6 @@ export function WaistSection({
     assessment?.cutoffCm ?? (gender === "female" ? 80 : gender === "male" ? 90 : null);
   const halfHeightCm =
     assessment?.halfHeightCm ?? (heightCm !== null ? Math.round(heightCm * 5) / 10 : null);
-
-  const open = openOverride ?? entries.length === 0;
 
   const statusTone =
     assessment?.band === "high"
@@ -106,28 +104,24 @@ export function WaistSection({
     assessment === null
       ? null
       : assessment.band === "high"
-        ? "Rasio lingkar perut terhadap tinggi " +
-          (assessment.ratio !== null ? fmtRatio(assessment.ratio) : "-") +
-          ": risiko tinggi. Cek gula darah dan tekanan darah di puskesmas atau dokter."
+        ? t("waist.status.high", {
+            ratio: assessment.ratio !== null ? fmtRatio(assessment.ratio) : "-",
+          })
         : assessment.overCutoff || assessment.band === "raised"
-          ? "Di atas batas sehat. Turun beberapa cm saja sudah menurunkan risiko."
-          : "Di bawah batas sehat. Pertahankan.";
+          ? t("waist.status.above")
+          : t("waist.status.below");
 
   const recent = entries.slice(-5).toReversed();
 
   return (
     <Card>
-      <Text style={styles.title}>Lingkar perut</Text>
-      <Text style={styles.lead}>
-        Berat badan tidak membedakan lemak dan otot. Lingkar perut menunjukkan lemak di sekitar
-        organ dalam, yang paling terkait dengan diabetes dan penyakit jantung.
-      </Text>
+      <Text style={styles.title}>{t("waist.title")}</Text>
 
       {historyQuery.isPending ? (
         <Skeleton width="100%" height={180} radius={16} />
       ) : (
         <>
-          <Field label="Lingkar perut (cm)">
+          <Field label={t("waist.inputLabel")}>
             <View style={styles.inputRow}>
               <Input
                 style={styles.input}
@@ -137,7 +131,7 @@ export function WaistSection({
                 placeholder="78,5"
               />
               <Button
-                label={loggedToday ? "Ubah" : "Simpan"}
+                label={loggedToday ? t("common:actions.edit") : t("common:actions.save")}
                 variant={loggedToday ? "secondary" : "primary"}
                 onPress={submit}
                 loading={checkIn.isPending}
@@ -145,11 +139,7 @@ export function WaistSection({
             </View>
           </Field>
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          {loggedToday ? (
-            <Text style={styles.note}>
-              Tersimpan untuk hari ini. Menyimpan lagi menimpa angka tadi.
-            </Text>
-          ) : null}
+          {loggedToday ? <Text style={styles.note}>{t("waist.loggedToday")}</Text> : null}
 
           {assessment !== null && latest !== null ? (
             <View style={styles.statusBox}>
@@ -158,102 +148,83 @@ export function WaistSection({
                 <Text style={styles.statusUnit}>cm</Text>
               </View>
               {deltaCm !== null ? (
-                <Text style={styles.note}>
-                  <Num>
-                    {deltaCm > 0 ? "+" : ""}
-                    {fmtKg(deltaCm)}
-                  </Num>{" "}
-                  cm sejak ukuran pertama
-                </Text>
+                <Num style={styles.note}>
+                  {t("waist.sinceFirst", {
+                    delta: `${deltaCm > 0 ? "+" : ""}${fmtKg(deltaCm)}`,
+                  })}
+                </Num>
               ) : null}
               <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
             </View>
           ) : null}
 
-          <View style={styles.standar}>
-            <Text style={styles.standarTitle}>Standar</Text>
-            <Text style={styles.note}>
-              Batas obesitas sentral untuk orang Asia: pria 90 cm, wanita 80 cm.
-              {cutoffCm !== null ? ` Batasmu ${cutoffCm} cm.` : ""}
-            </Text>
-            {heightCm !== null && halfHeightCm !== null ? (
-              <Text style={styles.note}>
-                Rasio lingkar perut terhadap tinggi badan sebaiknya di bawah 0,5. Untuk tinggi{" "}
-                {heightCm.toLocaleString("id-ID")} cm, jaga lingkar perut di bawah{" "}
-                {fmtKg(halfHeightCm)} cm.
-              </Text>
-            ) : null}
-            <Text style={styles.footnote}>
-              Sumber: WHO Asia Pasifik (2000), Kemenkes RI, WHO Expert Consultation (2008), NICE
-              (2022).
-            </Text>
-          </View>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: open }}
-            onPress={() => setOpenOverride(!open)}
-            style={styles.disclosureHead}
-          >
-            <Text style={styles.standarTitle}>Cara mengukur</Text>
-            <Ionicons
-              name={open ? "chevron-up" : "chevron-down"}
-              size={18}
-              color={theme.colors.mutedForeground}
-            />
-          </Pressable>
-          {open ? (
-            <View style={styles.howBox}>
-              <WaistIllustration />
-              {HOW_STEPS.map((step, i) => (
-                <Text key={i} style={styles.step}>
-                  {i + 1}. {step}
-                </Text>
-              ))}
-              <Text style={styles.footnote}>
-                Ukur pagi hari sebelum makan. Seminggu sekali sudah cukup.
-              </Text>
-            </View>
-          ) : null}
-
           {recent.length > 0 ? (
             <View style={styles.recentBox}>
-              <Text style={styles.standarTitle}>Terbaru</Text>
+              <Text style={styles.standarTitle}>{t("waist.latest")}</Text>
               <ListGroup>
                 {recent.map((entry) => (
                   <ListRow
                     key={entry.id}
-                    title={entry.date === jakartaToday() ? "Hari ini" : fmtDateMedium(entry.date)}
+                    title={
+                      entry.date === jakartaToday()
+                        ? t("common:date.today")
+                        : fmtDateMedium(entry.date)
+                    }
                     value={`${fmtKg(entry.waistCm)} cm`}
                   />
                 ))}
               </ListGroup>
             </View>
           ) : null}
+
+          <Disclosure plain title={t("waist.about.title")}>
+            <Text style={styles.note}>{t("waist.about.intro")}</Text>
+
+            <View style={styles.standar}>
+              <Text style={styles.standarTitle}>{t("waist.standard.title")}</Text>
+              <Text style={styles.note}>
+                {t("waist.standard.cutoff")}
+                {cutoffCm !== null ? ` ${t("waist.standard.cutoffYours", { cm: cutoffCm })}` : ""}
+              </Text>
+              {heightCm !== null && halfHeightCm !== null ? (
+                <Text style={styles.note}>
+                  {t("waist.standard.ratio", {
+                    height: fmtInt(heightCm),
+                    half: fmtKg(halfHeightCm),
+                  })}
+                </Text>
+              ) : null}
+              <Text style={styles.footnote}>{t("waist.standard.source")}</Text>
+            </View>
+
+            <View style={styles.howBox}>
+              <Text style={styles.standarTitle}>{t("waist.guide.title")}</Text>
+              <WaistIllustration />
+              {STEP_KEYS.map((key, i) => (
+                <Text key={key} style={styles.step}>
+                  {i + 1}. {t(key)}
+                </Text>
+              ))}
+              <Text style={styles.footnote}>{t("waist.guide.tip")}</Text>
+            </View>
+          </Disclosure>
         </>
       )}
     </Card>
   );
 }
 
-/** "0,52" — two decimals with an Indonesian decimal comma. */
-function fmtRatio(ratio: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(ratio);
-}
-
-const HOW_STEPS = [
-  "Berdiri tegak, kaki rapat, lengan rileks di samping badan.",
-  "Raba tulang rusuk terbawah dan puncak tulang panggul. Lingkarkan pita ukur tepat di tengah keduanya.",
-  "Pita mendatar sejajar lantai, menempel di kulit tapi tidak menekan.",
-  "Baca angka di akhir buang napas biasa. Jangan menahan atau mengempiskan perut.",
-];
+const STEP_KEYS = [
+  "waist.guide.step1",
+  "waist.guide.step2",
+  "waist.guide.step3",
+  "waist.guide.step4",
+] as const;
 
 /** Theme-mapped tape-measure illustration: ribs and pelvis guides in muted
     foreground, the tape and bracket in primary green. */
 function WaistIllustration() {
+  const { t } = useTranslation("berat");
   const { theme } = useUnistyles();
   const c = theme.colors;
   return (
@@ -261,7 +232,7 @@ function WaistIllustration() {
       viewBox="0 0 320 230"
       width="100%"
       height={230}
-      accessibilityLabel="Ilustrasi: pita ukur dilingkarkan di tengah antara tulang rusuk terbawah dan puncak tulang panggul"
+      accessibilityLabel={t("waist.illustration.alt")}
       accessibilityRole="image"
     >
       {/* Torso outline */}
@@ -309,18 +280,18 @@ function WaistIllustration() {
       {/* Callouts */}
       <Path d="M132 100 L170 78" stroke={c.mutedForeground} strokeWidth={1} />
       <SvgText x={174} y={76} fontSize={13} fill={c.foreground}>
-        Tulang rusuk terbawah
+        {t("waist.illustration.ribs")}
       </SvgText>
       <Path d="M144 128 L170 128" stroke={c.primary} strokeWidth={1.5} />
       <SvgText x={174} y={126} fontSize={13} fontWeight="700" fill={c.primary}>
-        Ukur di sini:
+        {t("waist.illustration.measureHere")}
       </SvgText>
       <SvgText x={174} y={141} fontSize={13} fill={c.foreground}>
-        tengah-tengahnya
+        {t("waist.illustration.middle")}
       </SvgText>
       <Path d="M138 160 L170 184" stroke={c.mutedForeground} strokeWidth={1} />
       <SvgText x={174} y={188} fontSize={13} fill={c.foreground}>
-        Puncak tulang panggul
+        {t("waist.illustration.pelvis")}
       </SvgText>
     </Svg>
   );
@@ -331,12 +302,6 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.md,
     fontWeight: "700",
     color: theme.colors.foreground,
-  },
-  lead: {
-    marginTop: 6,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.mutedForeground,
-    lineHeight: 20,
   },
   inputRow: {
     flexDirection: "row",
@@ -392,13 +357,6 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
     lineHeight: 18,
-  },
-  disclosureHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    minHeight: 44,
-    marginTop: 8,
   },
   howBox: {
     gap: 8,

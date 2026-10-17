@@ -8,6 +8,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Medal, Scale, Share2, TrendingDown, TrendingUp } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import {
   daysBetween,
@@ -32,7 +33,16 @@ import {
   SectionTitle,
   Segmented,
 } from "@/components/kit/surface";
-import { fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
+import { fmtDate, fmtDecimal, fmtNumber } from "@joyorogo/i18n";
+import {
+  fmtDateMedium,
+  fmtDateShort,
+  fmtInt,
+  fmtKcalLabel,
+  fmtKg,
+  jakartaDatePlusDays,
+  parseNum,
+} from "@/lib/format";
 import { useWeightCheckIn } from "@/lib/optimistic";
 import type { WeightHistory } from "@/lib/api-types";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
@@ -51,38 +61,6 @@ export const Route = createFileRoute("/_auth/berat")({
   component: BeratPage,
 });
 
-const MONTHS_SHORT = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "Mei",
-  "Jun",
-  "Jul",
-  "Agu",
-  "Sep",
-  "Okt",
-  "Nov",
-  "Des",
-] as const;
-
-/** 'YYYY-MM-DD' -> "14 Okt" */
-function shortDate(date: string): string {
-  const [, m, d] = date.split("-");
-  return `${Number(d)} ${MONTHS_SHORT[Number(m) - 1]}`;
-}
-
-/** 'YYYY-MM-DD' -> "14 Okt 2025" (tooltips, where the year matters). */
-function mediumDate(date: string): string {
-  const [y, m, d] = date.split("-");
-  return `${Number(d)} ${MONTHS_SHORT[Number(m) - 1]} ${y}`;
-}
-
-/** 'YYYY-MM-DD' -> "Mar 2027" (projection cell). */
-function monthYear(date: string): string {
-  const [y, m] = date.split("-");
-  return `${MONTHS_SHORT[Number(m) - 1]} ${y}`;
-}
 
 const PAD = { top: 18, right: 38, bottom: 26, left: 38 };
 
@@ -93,8 +71,8 @@ const GHOST_SHARE = 0.45;
 
 /** 2140 -> "2,1k" for the compact right axis. */
 function kcalAxis(n: number): string {
-  if (n < 1000) return String(n);
-  return `${(n / 1000).toLocaleString("id-ID", { maximumFractionDigits: 1 })}k`;
+  if (n < 1000) return fmtInt(n);
+  return `${fmtNumber(n / 1000, 1)}k`;
 }
 
 const KG_LADDER = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50] as const;
@@ -165,6 +143,7 @@ function WeightChart({
   weekly: boolean;
   targetKcal: number | null;
 }) {
+  const { t } = useTranslation("berat");
   const [scrubDate, setScrubDate] = useState<string | null>(null);
   const innerW = width - PAD.left - PAD.right;
   const innerH = height - PAD.top - PAD.bottom;
@@ -206,11 +185,7 @@ function WeightChart({
     { length: Math.round((hi - lo) / step) + 1 },
     (_, i) => Math.round((lo + i * step) * 100) / 100,
   );
-  const tickFmt = (kg: number) =>
-    kg.toLocaleString("id-ID", {
-      minimumFractionDigits: step < 1 ? 1 : 0,
-      maximumFractionDigits: step < 1 ? 1 : 0,
-    });
+  const tickFmt = (kg: number) => (step < 1 ? fmtDecimal(kg, 1) : fmtInt(kg));
 
   const dayStep = niceDayStep(spanDays);
   const xTickDates: string[] = [];
@@ -290,7 +265,7 @@ function WeightChart({
         height={height}
         className="h-auto max-w-full touch-pan-y select-none"
         role="img"
-        aria-label={`Grafik tren berat badan, ${rangeLabel}. Geser kursor untuk melihat tiap catatan.`}
+        aria-label={t("chart.a11yPointer", { range: rangeLabel })}
         onPointerDown={moveScrub}
         onPointerMove={moveScrub}
         onPointerLeave={clearScrub}
@@ -402,7 +377,7 @@ function WeightChart({
               fontWeight={600}
               className="fill-makan-ink"
             >
-              Target {fmtKg(target)}
+              {t("chart.target", { kg: fmtKg(target) })}
             </text>
           </g>
         )}
@@ -428,7 +403,7 @@ function WeightChart({
               fontWeight={600}
               className="fill-muted-foreground"
             >
-              Awal {fmtKg(start)}
+              {t("chart.start", { kg: fmtKg(start) })}
             </text>
           </g>
         )}
@@ -504,7 +479,7 @@ function WeightChart({
               y={height - 8}
               textAnchor={i === 0 ? "start" : i === xTickDates.length - 1 ? "end" : "middle"}
             >
-              {shortDate(t)}
+              {fmtDateShort(t)}
             </text>
           ))}
         </g>
@@ -515,15 +490,15 @@ function WeightChart({
           className="pointer-events-none absolute z-10 rounded-2xl border border-border/60 bg-card/95 p-3 shadow-lg backdrop-blur-sm"
           style={{ left: tipLeft, top: tipTop, width: TIP_W }}
         >
-          <p className="text-xs font-bold">{mediumDate(scrubEntry.date)}</p>
+          <p className="text-xs font-bold">{fmtDateMedium(scrubEntry.date)}</p>
           <dl className="mt-1.5 space-y-1 text-xs">
             <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">Timbangan</dt>
+              <dt className="text-muted-foreground">{t("tip.scale")}</dt>
               <dd className="font-bold tabular-nums">{fmtKg(scrubEntry.weightKg)} kg</dd>
             </div>
             {scrubTrend && (
               <div className="flex justify-between gap-2">
-                <dt className="text-muted-foreground">Tren</dt>
+                <dt className="text-muted-foreground">{t("tip.trend")}</dt>
                 <dd className="font-bold tabular-nums">{fmtKg(scrubTrend.trendKg)} kg</dd>
               </div>
             )}
@@ -532,20 +507,24 @@ function WeightChart({
               if (!bar) return null;
               return (
                 <div className="flex justify-between gap-2">
-                  <dt className="text-muted-foreground">{weekly ? "Kalori/hari" : "Kalori"}</dt>
+                  <dt className="text-muted-foreground">
+                    {weekly ? t("tip.kcalPerDay") : t("tip.kcal")}
+                  </dt>
                   <dd className="font-bold tabular-nums">
                     {bar.avgKcal === null
-                      ? "tak dicatat"
-                      : `${bar.avgKcal.toLocaleString("id-ID")} kcal`}
-                    {weekly && bar.untrackedDays > 0 && bar.avgKcal !== null
-                      ? ` · ${bar.untrackedDays} kosong`
-                      : ""}
+                      ? t("tip.notLogged")
+                      : weekly && bar.untrackedDays > 0
+                        ? t("tip.kcalValueGaps", {
+                            kcal: fmtKcalLabel(bar.avgKcal),
+                            count: bar.untrackedDays,
+                          })
+                        : fmtKcalLabel(bar.avgKcal)}
                   </dd>
                 </div>
               );
             })()}
             <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">vs sebelumnya</dt>
+              <dt className="text-muted-foreground">{t("tip.vsPrev")}</dt>
               <dd
                 className={cn(
                   "font-bold tabular-nums",
@@ -559,9 +538,9 @@ function WeightChart({
                 )}
               >
                 {scrubDelta === null
-                  ? "catatan pertama"
+                  ? t("tip.first")
                   : scrubDelta === 0
-                    ? "sama"
+                    ? t("tip.same")
                     : `${scrubDelta < 0 ? "−" : "+"}${fmtKg(Math.abs(scrubDelta))} kg`}
               </dd>
             </div>
@@ -574,20 +553,21 @@ function WeightChart({
 
 /** One-line key: Berat, Tren, Kalori (over/under), Belum dicatat, Target. */
 function ChartLegend({ showTarget }: { showTarget: boolean }) {
+  const { t } = useTranslation("berat");
   return (
     <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-muted-foreground">
       <li className="flex items-center gap-1">
         <span className="size-2 rounded-full bg-primary/35" />
-        Berat
+        {t("legend.weight")}
       </li>
       <li className="flex items-center gap-1">
         <span className="h-0.5 w-3 rounded-full bg-primary" />
-        Tren
+        {t("legend.trend")}
       </li>
       <li className="flex items-center gap-1">
         <span className="size-2 rounded-sm bg-bakar/35" />
         <span className="-ml-0.5 size-2 rounded-sm bg-bakar/80" />
-        Kalori
+        {t("legend.kcal")}
       </li>
       <li className="flex items-center gap-1">
         <svg width={10} height={10} aria-hidden>
@@ -611,28 +591,18 @@ function ChartLegend({ showTarget }: { showTarget: boolean }) {
           </defs>
           <rect width={10} height={10} rx={2} fill="url(#kcal-hatch-legend)" />
         </svg>
-        Belum dicatat
+        {t("legend.unlogged")}
       </li>
       {showTarget && (
         <li className="flex items-center gap-1">
           <span className="w-3 border-t-2 border-dashed border-bakar-ink/70" />
-          Target kalori
+          {t("legend.kcalTarget")}
         </li>
       )}
     </ul>
   );
 }
 
-/** Friendly sub-caption for the projection stat, per reason it is (not) shown. */
-function projectionSub(stats: RangeStats, targetKg: number | null, goalReached: boolean): string {
-  if (targetKg === null) return "atur target di Profil";
-  if (goalReached) return "sudah tercapai, jaga ritmenya";
-  if (stats.projectedDate !== null) return `menuju ${fmtKg(targetKg)} kg`;
-  if (stats.weeklyRateKg === null || stats.changeKg === null) return "butuh lebih banyak catatan";
-  if (Math.abs(stats.weeklyRateKg) < 0.05) return "ritme sedang stabil";
-  const toward = (stats.trendKg - targetKg) * stats.weeklyRateKg < 0;
-  return toward ? "hampir ada, teruskan" : "ritme terakhir menjauhi target";
-}
 
 /** Small stat tile inside the chart card header (trend, range delta, pace, projection). */
 function StatCell({
@@ -649,11 +619,11 @@ function StatCell({
   tone?: "good" | "bad" | "neutral";
 }) {
   return (
-    <div className="min-w-0 rounded-2xl bg-muted/50 p-3">
-      <p className="truncate text-[0.8125rem] font-semibold text-muted-foreground">{label}</p>
+    <div className="min-w-0 rounded-2xl bg-muted/50 p-2.5">
+      <p className="truncate text-xs font-semibold text-muted-foreground">{label}</p>
       <p
         className={cn(
-          "mt-1 text-lg leading-tight font-extrabold tabular-nums",
+          "mt-0.5 text-base leading-tight font-extrabold tabular-nums",
           tone === "good" && "text-makan-ink",
           tone === "bad" && "text-bakar-ink",
         )}
@@ -676,6 +646,7 @@ function BeratPage() {
 }
 
 function BeratScreen({ history }: { history: WeightHistory }) {
+  const { t } = useTranslation(["berat", "common"]);
   const summary = useQuery(summaryOptions);
   const profile = useQuery(profileOptions);
   const { entries, summary: weightSummary } = history;
@@ -696,7 +667,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
     }),
   );
 
-  const checkIn = useWeightCheckIn((row) => `Berat dicatat: ${fmtKg(row.weightKg)} kg`);
+  const checkIn = useWeightCheckIn((row) => t("toast.logged", { kg: fmtKg(row.weightKg) }));
 
   const openWeigh = () => {
     setWeighValue(weightSummary.latestKg !== null ? String(weightSummary.latestKg) : "");
@@ -705,7 +676,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const submitWeigh = () => {
     const kg = parseNum(weighValue);
     if (kg === null || kg < 25 || kg > 400) {
-      toast.error("Isi berat badan antara 25 dan 400 kg.");
+      toast.error(t("error.weightRange", { min: 25, max: 400 }));
       return;
     }
     checkIn.mutate({ weightKg: kg });
@@ -721,15 +692,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
       ? weightSummary.latestKg / (heightCm / 100) ** 2
       : null;
   const bmiCategory =
-    bmi === null
-      ? null
-      : bmi < 18.5
-        ? "Kurang"
-        : bmi < 25
-          ? "Ideal"
-          : bmi < 30
-            ? "Overweight"
-            : "Obesitas";
+    bmi === null ? null : bmi < 18.5 ? "under" : bmi < 25 ? "ideal" : bmi < 30 ? "over" : "obese";
   const goalReached =
     trendKg !== null && weightSummary.targetKg !== null && trendKg <= weightSummary.targetKg;
 
@@ -741,7 +704,10 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const rangeEntries = cutoff === null ? entries : entries.filter((e) => e.date >= cutoff);
   const rangeTrend = cutoff === null ? allTrend : allTrend.filter((p) => p.date >= cutoff);
   const rangeStatsOut = rangeStats(rangeTrend, weightSummary.targetKg);
-  const rangeLabel = range === "all" ? "sejak awal" : `${range} hari terakhir`;
+  const rangeLabel =
+    range === "all" ? t("chart.sinceStart") : t("chart.rangeLast", { count: Number(range) });
+  const rangeShort =
+    range === "all" ? t("chart.sinceStart") : t("chart.rangeDays", { count: Number(range) });
   const domainStart = cutoff ?? rangeEntries[0]?.date ?? today;
   const targetKcal = summary.data?.targets?.eatKcal ?? null;
   const kcalRange = kcalSeries.data ?? [];
@@ -760,20 +726,35 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const newestFirst = [...entries].toReversed();
   const visibleHistory = showAll ? newestFirst : newestFirst.slice(0, 10);
 
+  const dayLabel = (date: string) => (date === today ? t("common:date.today") : fmtDateShort(date));
+  const signed = (n: number) => `${n < 0 ? "−" : n > 0 ? "+" : ""}${fmtKg(Math.abs(n))}`;
+
+  /** Friendly sub-caption for the projection stat, per reason it is (not) shown. */
+  const projectionSub = (stats: RangeStats, targetKg: number | null): string => {
+    if (targetKg === null) return t("projection.setTarget");
+    if (goalReached) return t("projection.reached");
+    if (stats.projectedDate !== null) return t("projection.toward", { kg: fmtKg(targetKg) });
+    if (stats.weeklyRateKg === null || stats.changeKg === null) return t("projection.needMore");
+    if (Math.abs(stats.weeklyRateKg) < 0.05) return t("projection.steady");
+    const toward = (stats.trendKg - targetKg) * stats.weeklyRateKg < 0;
+    return toward ? t("projection.almost") : t("projection.away");
+  };
+
   return (
     <Page className="max-w-xl lg:max-w-5xl">
       <PageHeader
-        title="Berat badan"
+        title={t("page.title")}
+        className="pb-3"
         action={
           <span className="flex items-center gap-2">
             {weightSummary.latestKg !== null && (
               <Button variant="secondary" onClick={() => setShareOpen(true)}>
                 <Share2 className="size-4" aria-hidden />
-                Bagikan progres
+                <span className="max-sm:sr-only">{t("page.share")}</span>
               </Button>
             )}
             <Button onClick={openWeigh} disabled={checkIn.isPending}>
-              Timbang
+              {t("page.weigh")}
             </Button>
           </span>
         }
@@ -782,43 +763,48 @@ function BeratScreen({ history }: { history: WeightHistory }) {
       {weightSummary.latestKg === null ? (
         <Card className="text-center">
           <Mascot pose="determined" size="md" className="mb-3" />
-          <p className="text-base font-bold">Belum ada catatan berat</p>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-            Timbang dirimu lalu simpan lewat tombol Timbang. Grafik, tren, dan riwayat muncul
-            setelah catatan pertama.
-          </p>
+          <p className="text-base font-bold">{t("empty.title")}</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">{t("empty.body")}</p>
           <Button className="mt-4" variant="secondary" onClick={openWeigh}>
-            Timbang sekarang
+            {t("page.weighNow")}
           </Button>
         </Card>
       ) : (
         <div className="grid items-start gap-3 lg:grid-cols-[1.15fr_1fr] lg:gap-5">
           <div className="space-y-3 lg:space-y-5">
-            <Card className="p-6">
-              <div className="flex items-start justify-between gap-4">
+            <Card className="p-4 sm:p-6">
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[0.8125rem] font-semibold text-muted-foreground">Berat tren</p>
-                  <p className="mt-1 text-[3.25rem] leading-none font-extrabold tracking-tighter tabular-nums">
+                  <p className="text-[0.8125rem] font-semibold text-muted-foreground">
+                    {t("hero.trendLabel")}
+                  </p>
+                  <p className="mt-0.5 text-5xl leading-none font-extrabold tracking-tighter tabular-nums sm:text-[3.25rem]">
                     {fmtKg(trendKg ?? 0)}
                     <span className="ml-1.5 text-lg font-bold text-muted-foreground">kg</span>
                   </p>
                 </div>
-                <div className="flex shrink-0 flex-col items-end gap-2">
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
                   {bmi !== null && bmiCategory !== null && (
                     <span
                       className={cn(
-                        "inline-flex min-h-8 items-center rounded-full px-3 text-xs font-bold tabular-nums",
-                        bmiCategory === "Ideal"
+                        "inline-flex min-h-7 items-center rounded-full px-3 text-xs font-bold tabular-nums",
+                        bmiCategory === "ideal"
                           ? "bg-makan-soft text-makan-ink"
                           : "bg-bakar-soft text-bakar-ink",
                       )}
                     >
-                      BMI {fmtKg(bmi)} · {bmiCategory}
+                      {t("bmi.pill", {
+                        value: fmtKg(bmi),
+                        category: t(`bmi.category.${bmiCategory}`),
+                      })}
                     </span>
                   )}
-                  <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-muted px-3 text-xs font-semibold text-muted-foreground tabular-nums">
+                  <span className="inline-flex min-h-7 items-center gap-1.5 rounded-full bg-muted px-3 text-xs font-semibold text-muted-foreground tabular-nums">
                     <Scale className="size-3.5" aria-hidden />
-                    Timbangan {fmtKg(weightSummary.latestKg)} kg
+                    {t("hero.scale", {
+                      kg: fmtKg(weightSummary.latestKg),
+                      date: dayLabel(entries.at(-1)!.date),
+                    })}
                   </span>
                 </div>
               </div>
@@ -826,7 +812,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
               {rate !== null && (
                 <p
                   className={cn(
-                    "mt-3 flex items-center gap-1.5 text-sm font-bold",
+                    "mt-2 flex items-center gap-1.5 text-sm font-bold",
                     flat ? "text-muted-foreground" : rate < 0 ? "text-makan-ink" : "text-bakar-ink",
                   )}
                 >
@@ -837,35 +823,83 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                       <TrendingUp className="size-4" aria-hidden />
                     ))}
                   {flat
-                    ? "Stabil minggu ini"
-                    : `${rate < 0 ? "Turun" : "Naik"} ${fmtKg(Math.abs(rate))} kg/minggu`}
+                    ? t("hero.steadyWeek")
+                    : t(rate < 0 ? "trend.down" : "trend.up", { kg: fmtKg(Math.abs(rate)) })}
                 </p>
               )}
 
               {goalReached && (
-                <div className="mt-5 flex items-center gap-3 rounded-2xl bg-makan-soft px-4 py-2 text-sm font-bold text-makan-ink">
+                <div className="mt-3 flex items-center gap-3 rounded-2xl bg-makan-soft px-3 py-1.5 text-sm font-bold text-makan-ink">
                   <Mascot pose="mantap" size="sm" className="mx-0" />
                   <p className="flex items-center gap-2">
                     <Medal className="size-4 shrink-0" aria-hidden />
-                    Target berat sudah tercapai. Jaga ritmenya.
+                    {t("hero.goalReached")}
                   </p>
                 </div>
               )}
+
+              <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/60 pt-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-muted-foreground">{t("summary.start")}</p>
+                  <p className="mt-0.5 text-lg leading-tight font-extrabold tabular-nums">
+                    {fmtKg(weightSummary.startKg ?? 0)}
+                    <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
+                  </p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-muted-foreground">{t("summary.down")}</p>
+                  <p
+                    className={cn(
+                      "mt-0.5 text-lg leading-tight font-extrabold tabular-nums",
+                      (weightSummary.deltaKg ?? 0) < 0 && "text-makan-ink",
+                      (weightSummary.deltaKg ?? 0) > 0 && "text-bakar-ink",
+                    )}
+                  >
+                    {weightSummary.deltaKg !== null ? fmtKg(Math.abs(weightSummary.deltaKg)) : "–"}
+                    <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {weightSummary.deltaKg === null
+                      ? t("summary.noData")
+                      : weightSummary.deltaKg < 0
+                        ? t("summary.fromStart")
+                        : weightSummary.deltaKg > 0
+                          ? t("summary.upFromStart")
+                          : t("summary.same")}
+                  </p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    {t("summary.remaining")}
+                  </p>
+                  <p className="mt-0.5 text-lg leading-tight font-extrabold tabular-nums">
+                    {weightSummary.remainingKg !== null ? fmtKg(weightSummary.remainingKg) : "–"}
+                    <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {weightSummary.targetKg !== null
+                      ? t("summary.target", { kg: fmtKg(weightSummary.targetKg) })
+                      : t("summary.setTarget")}
+                  </p>
+                </div>
+              </div>
             </Card>
 
-            <Card aria-label="Grafik tren berat">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="shrink-0 text-base font-bold tracking-tight">Grafik tren</h2>
+            <Card aria-label={t("chart.title")} className="p-4 sm:p-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="shrink-0 text-base font-bold tracking-tight max-sm:sr-only">
+                  {t("chart.title")}
+                </h2>
                 <Segmented
                   className="sm:max-w-xs"
-                  label="Rentang grafik"
+                  label={t("chart.rangeLabel")}
                   value={range}
                   onChange={setRange}
                   options={[
-                    { value: "7", label: "7H" },
-                    { value: "30", label: "30H" },
-                    { value: "90", label: "90H" },
-                    { value: "all", label: "Semua" },
+                    { value: "7", label: t("chart.range.d7") },
+                    { value: "30", label: t("chart.range.d30") },
+                    { value: "90", label: t("chart.range.d90") },
+                    { value: "all", label: t("chart.range.all") },
                   ]}
                 />
               </div>
@@ -873,25 +907,19 @@ function BeratScreen({ history }: { history: WeightHistory }) {
               {rangeEntries.length === 0 ? (
                 <div className="py-10 text-center">
                   <Mascot pose="determined" size="sm" className="mb-2" />
-                  <p className="text-sm font-bold">Belum ada catatan {rangeLabel}.</p>
+                  <p className="text-sm font-bold">{t("chart.emptyTitle", { range: rangeLabel })}</p>
                   <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
-                    Pilih rentang lebih panjang, atau catat beratmu untuk mulai mengisi grafik.
+                    {t("chart.emptyBody")}
                   </p>
                   <Button className="mt-4" variant="secondary" onClick={openWeigh}>
-                    Catat berat
+                    {t("chart.emptyAction")}
                   </Button>
                 </div>
               ) : (
                 <>
-                  <div className="mt-4 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+                  <div className="mt-3 grid grid-cols-3 gap-2">
                     <StatCell
-                      label="Berat tren"
-                      value={fmtKg(trendKg ?? rangeStatsOut.trendKg)}
-                      unit="kg"
-                      sub={`terakhir ${shortDate(rangeEntries.at(-1)!.date)}`}
-                    />
-                    <StatCell
-                      label="Perubahan"
+                      label={t("stats.change")}
                       value={
                         rangeStatsOut.changeKg === null
                           ? "–"
@@ -900,43 +928,32 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                             )}`
                       }
                       unit={rangeStatsOut.changeKg === null ? undefined : "kg"}
-                      sub={rangeLabel}
+                      sub={rangeShort}
                       tone={toneFor(rangeStatsOut.changeKg)}
                     />
                     <StatCell
-                      label="Laju"
-                      value={
-                        rangeStatsOut.weeklyRateKg === null
-                          ? "–"
-                          : `${
-                              rangeStatsOut.weeklyRateKg < 0
-                                ? "−"
-                                : rangeStatsOut.weeklyRateKg > 0
-                                  ? "+"
-                                  : ""
-                            }${fmtKg(Math.abs(rangeStatsOut.weeklyRateKg))}`
-                      }
-                      unit={rangeStatsOut.weeklyRateKg === null ? undefined : "kg/minggu"}
-                      sub="rata-rata"
+                      label={t("stats.pace")}
+                      value={rangeStatsOut.weeklyRateKg === null ? "–" : signed(rangeStatsOut.weeklyRateKg)}
+                      sub={rangeStatsOut.weeklyRateKg === null ? undefined : t("stats.perWeek")}
                       tone={toneFor(rangeStatsOut.weeklyRateKg)}
                     />
                     <StatCell
-                      label="Proyeksi"
+                      label={t("stats.projection")}
                       value={
                         rangeStatsOut.projectedDate
-                          ? `±${monthYear(rangeStatsOut.projectedDate)}`
+                          ? t("stats.projectionValue", {
+                              month: fmtDate(rangeStatsOut.projectedDate, "month"),
+                            })
                           : "–"
                       }
-                      sub={projectionSub(rangeStatsOut, weightSummary.targetKg, goalReached)}
+                      sub={projectionSub(rangeStatsOut, weightSummary.targetKg)}
                     />
                   </div>
 
                   {rangeEntries.length === 1 && (
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      Timbang lagi besok untuk mulai melihat garis tren.
-                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground">{t("chart.tomorrow")}</p>
                   )}
-                  <div ref={chart.ref} className={cn("relative mt-4", !chart.size && "h-44")}>
+                  <div ref={chart.ref} className={cn("relative mt-3", !chart.size && "h-44")}>
                     {chart.size && (
                       <WeightChart
                         width={chart.size.w}
@@ -959,75 +976,35 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                   {kcalSeries.data && (
                     <p className="mt-1.5 text-xs font-semibold tabular-nums">
                       {kcalStats.trackedDays === 0
-                        ? "Belum ada kalori tercatat"
-                        : `Tercatat ${kcalStats.trackedDays} dari ${kcalStats.days} hari · rata-rata ${(kcalStats.avgKcal ?? 0).toLocaleString("id-ID")} kcal`}
+                        ? t("kcal.none")
+                        : t("kcal.summary", {
+                            tracked: kcalStats.trackedDays,
+                            count: kcalStats.days,
+                            avg: fmtKcalLabel(kcalStats.avgKcal ?? 0),
+                          })}
                     </p>
                   )}
                 </>
               )}
               <details className="group mt-2 text-xs text-muted-foreground">
-                <summary className="cursor-pointer font-semibold select-none">Detail</summary>
+                <summary className="cursor-pointer font-semibold select-none">
+                  {t("detail.title")}
+                </summary>
                 <p className="mt-1.5">
-                  Garis = tren (rata-rata bergerak 7 hari), titik = timbangan harian. Batang =
-                  kalori harian yang dicatat (gelap = di atas target, terang = di bawah); area
-                  garis-garis = hari tanpa catatan makan
-                  {kcalWeekly ? "; rentang panjang dirata-rata per minggu per hari tercatat" : ""}.
+                  {t("detail.trustTrend")} {t("detail.legend")}
+                  {kcalWeekly ? ` ${t("detail.weekly")}` : ""}
                   {weightSummary.deltaKg !== null &&
-                    ` Total ${weightSummary.deltaKg < 0 ? "turun" : "naik"} ${fmtKg(
-                      Math.abs(weightSummary.deltaKg),
-                    )} kg sejak berat awal.`}
+                    ` ${t(weightSummary.deltaKg < 0 ? "detail.totalDown" : "detail.totalUp", {
+                      kg: fmtKg(Math.abs(weightSummary.deltaKg)),
+                    })}`}
                 </p>
               </details>
             </Card>
           </div>
 
           <div className="space-y-3 lg:space-y-5">
-            <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-2xl bg-card p-3.5">
-                <p className="text-[0.8125rem] font-semibold text-muted-foreground">Mulai</p>
-                <p className="mt-1 text-xl leading-tight font-extrabold tabular-nums">
-                  {fmtKg(weightSummary.startKg ?? 0)}
-                  <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
-                </p>
-              </div>
-              <div className="rounded-2xl bg-card p-3.5">
-                <p className="text-[0.8125rem] font-semibold text-muted-foreground">Turun</p>
-                <p
-                  className={cn(
-                    "mt-1 text-xl leading-tight font-extrabold tabular-nums",
-                    (weightSummary.deltaKg ?? 0) < 0 && "text-makan-ink",
-                    (weightSummary.deltaKg ?? 0) > 0 && "text-bakar-ink",
-                  )}
-                >
-                  {weightSummary.deltaKg !== null ? fmtKg(Math.abs(weightSummary.deltaKg)) : "–"}
-                  <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
-                </p>
-                <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                  {weightSummary.deltaKg === null
-                    ? "belum ada data"
-                    : weightSummary.deltaKg < 0
-                      ? "dari berat awal"
-                      : weightSummary.deltaKg > 0
-                        ? "naik dari awal"
-                        : "masih sama"}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-card p-3.5">
-                <p className="text-[0.8125rem] font-semibold text-muted-foreground">Sisa</p>
-                <p className="mt-1 text-xl leading-tight font-extrabold tabular-nums">
-                  {weightSummary.remainingKg !== null ? fmtKg(weightSummary.remainingKg) : "–"}
-                  <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
-                </p>
-                <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                  {weightSummary.targetKg !== null
-                    ? `Target ${fmtKg(weightSummary.targetKg)} kg`
-                    : "atur target di Profil"}
-                </p>
-              </div>
-            </div>
-
-            <section aria-label="Riwayat timbangan">
-              <SectionTitle>Riwayat</SectionTitle>
+            <section aria-label={t("history.title")}>
+              <SectionTitle>{t("history.title")}</SectionTitle>
               <ListGroup>
                 {visibleHistory.map((entry) => {
                   const index = newestFirst.indexOf(entry);
@@ -1036,13 +1013,13 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                   return (
                     <ListRow
                       key={entry.id}
-                      title={entry.date === today ? "Hari ini" : shortDate(entry.date)}
+                      title={dayLabel(entry.date)}
                       subtitle={
                         delta === null
-                          ? "catatan pertama"
+                          ? t("history.first")
                           : delta !== 0
-                            ? `${delta < 0 ? "−" : "+"}${fmtKg(Math.abs(delta))} kg dari sebelumnya`
-                            : "sama seperti sebelumnya"
+                            ? t("history.delta", { delta: signed(delta) })
+                            : t("history.same")
                       }
                       value={`${fmtKg(entry.weightKg)} kg`}
                     />
@@ -1055,7 +1032,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                   onClick={() => setShowAll((v) => !v)}
                   className="pressable mt-2 min-h-11 w-full rounded-3xl bg-card text-sm font-semibold text-primary focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                 >
-                  {showAll ? "Tampilkan lebih sedikit" : `Tampilkan semua (${entries.length})`}
+                  {showAll ? t("history.showLess") : t("history.showAll", { count: entries.length })}
                 </button>
               )}
             </section>
@@ -1068,8 +1045,8 @@ function BeratScreen({ history }: { history: WeightHistory }) {
       <Sheet
         open={weighOpen}
         onOpenChange={setWeighOpen}
-        title="Timbang hari ini"
-        description="Satu catatan per hari. Menyimpan lagi menimpa angka tadi."
+        title={t("sheet.title")}
+        description={t("sheet.description")}
       >
         <form
           onSubmit={(event) => {
@@ -1080,7 +1057,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
         >
           <div className="relative">
             <Input
-              aria-label="Berat badan (kg)"
+              aria-label={t("sheet.weightLabel")}
               autoFocus
               type="number"
               step="0.1"
@@ -1096,7 +1073,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
             </span>
           </div>
           <Button type="submit" className="w-full" disabled={checkIn.isPending}>
-            {checkIn.isPending ? "Menyimpan..." : "Simpan"}
+            {checkIn.isPending ? t("sheet.saving") : t("common:actions.save")}
           </Button>
         </form>
       </Sheet>
@@ -1105,8 +1082,8 @@ function BeratScreen({ history }: { history: WeightHistory }) {
         <ShareToFeedSheet
           open={shareOpen}
           onOpenChange={setShareOpen}
-          title="Bagikan progres berat"
-          preview={`Check-in terakhir · ${fmtKg(weightSummary.latestKg ?? 0)} kg`}
+          title={t("share.title")}
+          preview={t("share.preview", { kg: fmtKg(weightSummary.latestKg ?? 0) })}
           share={(input) =>
             client.social.createPost({
               kind: "berat",
@@ -1122,19 +1099,15 @@ function BeratScreen({ history }: { history: WeightHistory }) {
 }
 
 function BeratSkeleton() {
+  const { t } = useTranslation("berat");
   return (
-    <Page className="max-w-xl lg:max-w-5xl" aria-busy="true" aria-label="Memuat riwayat berat">
+    <Page className="max-w-xl lg:max-w-5xl" aria-busy="true" aria-label={t("page.loading")}>
       <div className="flex items-center justify-between gap-3 px-1 pt-2 pb-5">
         <Skeleton className="h-9 w-44 rounded-full" />
         <Skeleton className="h-12 w-28 rounded-full" />
       </div>
       <Skeleton className="h-40 rounded-3xl" />
       <Skeleton className="mt-3 h-72 rounded-3xl" />
-      <div className="mt-3 grid grid-cols-3 gap-3">
-        {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-24 rounded-2xl" />
-        ))}
-      </div>
       <Skeleton className="mt-7 h-80 rounded-3xl" />
     </Page>
   );
