@@ -32,7 +32,6 @@ export type BlogConfig = {
   siteUrl: string;
   /** Hashed app stylesheet, e.g. /assets/index-abc.css. */
   cssHref: string;
-  apkUrl: string;
   /** Revklik site id; no tag when unset (self-hosted builds). */
   analyticsSiteId?: string;
 };
@@ -408,7 +407,7 @@ ${opts.main}
           <a href="/" class="inline-flex min-h-11 items-center hover:text-primary">JoyoRogo</a>
           <a href="/blog/" class="inline-flex min-h-11 items-center hover:text-primary">Blog</a>
           <a href="/privasi" class="inline-flex min-h-11 items-center hover:text-primary">Privasi</a>
-          <a href="${esc(cfg.apkUrl)}" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${ANDROID_ICON}Unduh Android</a>
+          <a href="/#tester" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${ANDROID_ICON}Android (tes Google Play)</a>
           <a href="${JOYOROGO_TESTFLIGHT_URL}" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${APPLE_ICON}iPhone (TestFlight)</a>
           <a href="${SOURCE_URL}" class="inline-flex min-h-11 items-center hover:text-primary">Kode sumber</a>
         </nav>
@@ -445,7 +444,7 @@ function ctaCard(cfg: BlogConfig): string {
           <a href="/login" data-revklik-goal="signup_click" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 ${FOCUS}">Coba gratis</a>
           <a href="/#coba" data-revklik-goal="try_scan_click" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">Coba scan tanpa daftar</a>
           <a href="/?pasang=iphone" data-revklik-goal="ios_cta_click" data-revklik-goal-location="blog" class="${ON_ANDROID_HIDE} inline-flex min-h-11 items-center gap-2 rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">${APPLE_ICON}Buka di iPhone</a>
-          <a href="${esc(cfg.apkUrl)}" data-revklik-goal="apk_download" data-revklik-goal-location="blog" class="${ON_IOS_SECONDARY} inline-flex min-h-11 items-center gap-2 rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">${ANDROID_ICON}Unduh untuk Android</a>
+          <a href="/#tester" data-revklik-goal="tester_cta_click" data-revklik-goal-location="blog" class="${ON_IOS_SECONDARY} inline-flex min-h-11 items-center gap-2 rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">${ANDROID_ICON}Gabung tester Android</a>
         </div>
       </aside>`;
 }
@@ -664,7 +663,7 @@ ${items}
 export function renderSitemap(posts: Post[], cfg: BlogConfig): string {
   const newest = posts.reduce((max, p) => (p.updated > max ? p.updated : max), "");
   const urls = [
-    ...PUBLIC_PATHS.filter((p) => !PAGES[p].noindex).map((loc) => ({ loc, lastmod: "" })),
+    ...PUBLIC_PATHS.filter((p) => !PAGES[p].noindex).map((loc) => ({ loc, lastmod: PAGES[loc].lastmod ?? "" })),
     { loc: "/blog/", lastmod: newest },
     ...posts.map((p) => ({ loc: `/blog/${p.slug}/`, lastmod: p.updated })),
   ];

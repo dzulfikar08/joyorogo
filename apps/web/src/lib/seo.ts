@@ -29,6 +29,8 @@ export type PageMeta = {
   ogTitle?: string;
   /** Transactional pages: keep out of search results. */
   noindex?: boolean;
+  /** YYYY-MM-DD, written to the sitemap's lastmod; bump when the page's content changes. */
+  lastmod?: string;
 };
 
 export const PAGES: Record<PublicPath, PageMeta> = {
@@ -37,6 +39,7 @@ export const PAGES: Record<PublicPath, PageMeta> = {
     ogTitle: "JoyoRogo: Diet yang Paham Porsi Warteg",
     description:
       "Foto piringmu, AI menghitung kalorinya dalam beberapa detik. Tiap hari tahu berapa boleh makan, harus bakar, dan butuh tidur. Gratis, foto tidak disimpan.",
+    lastmod: "2026-10-18",
   },
   "/harga": {
     title: "Harga | JoyoRogo",
@@ -91,6 +94,10 @@ export const FAQ = [
   {
     q: "Apakah fotoku disimpan?",
     a: "Tidak. Foto hanya dipakai untuk analisis lalu dibuang. Yang tersimpan cuma nama makanan dan angka yang kamu konfirmasi, dan semuanya bisa kamu hapus dari halaman Profil.",
+  },
+  {
+    q: "Hasil scan salah, bisa dikoreksi?",
+    a: "Bisa. Di hasil scan, ketik atau ucapkan koreksinya, misalnya \"nasinya setengah aja\", \"itu rolade bukan perkedel\", atau \"cuma 2\" untuk makanan yang dihitung per potong. Daftar makanan diperbarui, dan koreksinya bisa diurungkan. Barcode produk yang belum terdaftar? Foto tabel Informasi Nilai Gizi di kemasannya, angkanya dibaca otomatis dan kamu cek dulu sebelum disimpan.",
   },
   {
     q: "Bagaimana target kalori dihitung?",

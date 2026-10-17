@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, isRedirect, Link, Navigate, redirect } from "@tanstack/react-router";
 import {
   Activity,
+  CalendarDays,
   CameraOff,
   Check,
   ChevronDown,
@@ -10,10 +11,15 @@ import {
   Hand,
   ListChecks,
   MegaphoneOff,
+  Mic,
   NotebookPen,
   PencilLine,
   Radar,
+  RefreshCw,
+  ScanBarcode,
+  Share2,
   Trash2,
+  Users,
   Watch,
 } from "lucide-react";
 
@@ -34,7 +40,6 @@ import {
   founderScans,
   TESTER_GROUP_URL,
   TESTER_OPTIN_URL,
-  apiUrl,
   useAppConfig,
 } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
@@ -208,16 +213,6 @@ function InstallApp() {
                   2. Become a tester di Play
                 </Button>
               </div>
-              <p className="mt-4 text-sm text-makan-ink/85">
-                <a
-                  href={apiUrl("/downloads/latest-apk")}
-                  data-revklik-goal="apk_download"
-                  data-revklik-goal-location="tester"
-                  className="font-semibold underline underline-offset-4"
-                >
-                  Tidak bisa pakai Play? Unduh APK
-                </a>
-              </p>
             </div>
             <InstallSteps steps={ANDROID_STEPS} />
           </div>
@@ -318,6 +313,45 @@ const NUMBERS: Array<{
     body: "Target jam tidur setiap malam. Durasi tidurmu ikut terbaca dari Health Connect di Android atau Apple Health di iPhone.",
   },
 ];
+
+/** Features testers already have; add a card only once it is in a store build. */
+const NEW_FEATURES = [
+  {
+    icon: Mic,
+    title: "Koreksi scan pakai suara",
+    body: "Hasil kurang pas? Ucapkan atau ketik \"nasinya setengah aja\" atau \"cuma 2\", dan daftarnya dihitung ulang. Salah koreksi, tinggal urungkan.",
+    href: "/blog/panduan-koreksi-scan-suara-teks/",
+  },
+  {
+    icon: ScanBarcode,
+    title: "Barcode dan foto label gizi",
+    body: "Produk belum terdaftar? Foto tabel Informasi Nilai Gizi, angkanya dibaca otomatis dan bisa dipakai semua pengguna. USDA jadi sumber cadangan.",
+    href: "/blog/panduan-barcode-foto-label-gizi/",
+  },
+  {
+    icon: CalendarDays,
+    title: "Tanggal target dan kebutuhan harian",
+    body: "Pilih tanggal di kalender dan lihat langsung apakah ritmenya aman. Rincian TDEE dan angka Sisa di Beranda dijelaskan langkah demi langkah.",
+    href: "/blog/panduan-tanggal-target-dan-tdee/",
+  },
+  {
+    icon: Share2,
+    title: "Bagikan progres",
+    body: "Satu tombol di Beranda untuk membuat kartu progres, lalu kirim ke Instagram Story, salin, simpan, atau bagikan lewat aplikasi lain.",
+    href: "/blog/panduan-bagikan-progres-share-sheet/",
+  },
+  {
+    icon: Users,
+    title: "Grup dengan skor JoyoFit",
+    body: "Bagikan Recovery, Strain, dan Tidur dari jam Huawei ke grupmu, atau posting latihan ke feed. Detail detak jantung dan rute terbuka untuk Pro.",
+    href: "/blog/panduan-grup-dan-skor-joyofit/",
+  },
+  {
+    icon: RefreshCw,
+    title: "Pembaruan di dalam aplikasi",
+    body: "Di Android, versi baru muncul sebagai banner. Ketuk Update, lalu mulai ulang kalau sudah selesai diunduh.",
+  },
+] as const;
 
 /** Grup features in the order the app's Grup screen lists them. */
 const GROUP_FEATURES = [
@@ -699,6 +733,45 @@ function Landing() {
           </article>
         </section>
 
+        {/* What testers can use today. */}
+        <section
+          id="baru"
+          data-section="baru"
+          className="mx-auto w-full max-w-6xl scroll-mt-20 px-4 pb-20 md:px-6 md:pb-24"
+        >
+          <div className="max-w-2xl">
+            <h2 className="text-3xl font-extrabold tracking-tight text-balance md:text-[2.75rem] md:leading-[1.1]">
+              Baru di versi tes
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+              Fitur yang sudah bisa dipakai tester Android hari ini.
+            </p>
+          </div>
+          <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {NEW_FEATURES.map((feature) => (
+              <li key={feature.title} className="flex flex-col rounded-[1.75rem] bg-card p-6">
+                <span className="flex size-11 items-center justify-center rounded-full bg-makan-soft text-makan-ink">
+                  <feature.icon className="size-5" aria-hidden />
+                </span>
+                <h3 className="mt-4 text-lg font-extrabold tracking-tight">{feature.title}</h3>
+                <p className="mt-1.5 flex-1 text-[0.9375rem] leading-relaxed text-muted-foreground">
+                  {feature.body}
+                </p>
+                {"href" in feature && (
+                  <a
+                    href={feature.href}
+                    data-revklik-goal="feature_guide_click"
+                    data-revklik-goal-location="baru"
+                    className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+                  >
+                    Baca panduannya
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+
         {/* Smartwatch: Health Connect / Apple Health, and JoyoFit for Huawei watches. */}
         <section data-section="smartwatch" className="mx-auto w-full max-w-6xl px-4 pb-16 md:px-6">
           <div className="grid gap-6 rounded-[1.75rem] bg-card p-6 md:grid-cols-[1.2fr_1fr] md:items-center md:p-8">
@@ -723,8 +796,8 @@ function Landing() {
                 Hubungkan dengan JoyoFit, aplikasi pendamping dari kami untuk Android dan iPhone,
                 tanpa perlu Huawei Health. Di Android, langkah, detak jantung, tidur, dan olahraga
                 masuk ke Health Connect; di iPhone, olahraga dan rute GPS masuk ke Apple Health.
-                Kalori makan dari JoyoRogo tampil di jammu. Sudah dicoba di Huawei Watch Fit 4 Pro;
-                model lain masih tahap uji.
+                Kalori makan dari JoyoRogo tampil di jammu, dan skor serta latihanmu bisa dibagikan ke
+                grup JoyoRogo. Sudah dicoba di Huawei Watch Fit 4 Pro; model lain masih tahap uji.
               </p>
               {IOS_TESTFLIGHT_LIVE && (
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -790,7 +863,7 @@ function Landing() {
                 ))}
               </ul>
               <p className="mt-8 text-sm text-tidur-ink/70">
-                Grup dibuat dari dalam aplikasi; undangannya lewat tautan.
+                Grup dibuat dari dalam aplikasi; undangannya lewat tautan atau kode, dan bisa dibuka juga dari JoyoFit.
               </p>
             </div>
             <GroupPeek />

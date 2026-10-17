@@ -29,8 +29,7 @@ function fileFor(url: string): string | undefined {
  * hashed stylesheet. In dev it serves the same pages on request so posts can
  * be previewed while writing.
  *
- * VITE_SITE_URL sets the canonical origin (defaults to the hosted site);
- * VITE_SERVER_URL locates the APK download, like the app does. When
+ * VITE_SITE_URL sets the canonical origin (defaults to the hosted site). When
  * VITE_REVKLIK_SITE_ID is set, the Revklik tag and the inline filter that
  * limits it to public pages (revklik.ts) go into the app's
  * index.html and every blog page; self-hosted builds leave it unset.
@@ -45,7 +44,6 @@ export function blogPlugin(): Plugin {
       base = config.base;
       cfg = {
         siteUrl: trimSlash(env.VITE_SITE_URL || DEFAULT_SITE_URL),
-        apkUrl: `${trimSlash(env.VITE_SERVER_URL ?? "")}/downloads/latest-apk`,
         analyticsSiteId: env.VITE_REVKLIK_SITE_ID || undefined,
       };
     },

@@ -4,13 +4,14 @@
 // post therefore links to, and is linked from, its neighbours at the next build.
 // Frontmatter `related: slug-a, slug-b` pins specific posts first.
 
-export const CATEGORIES = ["Makanan", "Ramadan", "Tips"] as const;
+export const CATEGORIES = ["Makanan", "Ramadan", "Tips", "Panduan"] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 export const CATEGORY_BLURB: Record<Category, string> = {
   Makanan: "Kalori lauk, jajanan, dan menu sehari-hari menurut TKPI 2019.",
   Ramadan: "Sahur, takjil, berbuka, dan Lebaran tanpa kehilangan hitungan kalori.",
   Tips: "Cara menghitung dan menjalani diet, dengan studi yang bisa kamu cek sendiri.",
+  Panduan: "Cara memakai fitur JoyoRogo langkah demi langkah, dari grup sampai koreksi scan.",
 };
 
 export const categoryAnchor = (c: Category): string => c.toLowerCase();
