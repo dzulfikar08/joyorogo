@@ -5,8 +5,9 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Image, Pressable, View } from "react-native";
+import { Image, Linking, Pressable, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import type { KeyboardAwareScrollViewRef } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -34,6 +35,9 @@ import { errorMessage, fmtInt, fmtKcalLabel, parseNum } from "@/utils/format";
 import { KindPicker, SnackAdviceSection } from "@/components/makan/snack-advice";
 import type { PickableKind } from "@/components/makan/snack-advice";
 import { orpc, queryClient } from "@/utils/orpc";
+import { fmtNumber } from "@joyorogo/i18n";
+import { CommunityCheckCard, LabelFlow, LabelThanks } from "@/components/makan/label-flow";
+import type { ContributeOutcome } from "@/components/makan/label-flow";
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
 
@@ -68,6 +72,12 @@ export default function MakanBarcode() {
   // The field "Setengah porsi" rescaled, with its text before, so one tap undoes it.
   const [halfUndo, setHalfUndo] = useState<{ field: "grams" | "kcal"; value: string } | null>(null);
   const [saved, setSaved] = useState<{ name: string; kcal: number } | null>(null);
+  const [labelOpen, setLabelOpen] = useState(false);
+  const [thanks, setThanks] = useState<{ outcome: ContributeOutcome; contributors: number } | null>(
+    null,
+  );
+  const scrollRef = useRef<KeyboardAwareScrollViewRef>(null);
+  const bodyY = useRef(0);
 
   const lookup = useQuery({
     ...orpc.barcode.lookup.queryOptions({ input: { code: code ?? "" } }),
@@ -93,6 +103,8 @@ export default function MakanBarcode() {
     setFormError(null);
     setSaved(null);
     setKindOverride(null);
+    setLabelOpen(false);
+    setThanks(null);
     setHalfUndo(null);
     addFood.reset();
   };
@@ -196,7 +208,16 @@ export default function MakanBarcode() {
 
     const fallback = (
       <View style={styles.block}>
-        <Button label={t("fallback.photo")} icon="camera-outline" onPress={photoScan} />
+        <Button label={t("fallback.label")} icon="camera-outline" onPress={() => setLabelOpen(true)} />
+        <Disclosure plain title={t("result.notes")}>
+          <Text style={styles.caption}>{t("fallback.labelNote")}</Text>
+        </Disclosure>
+        <Button
+          variant="secondary"
+          label={t("fallback.photo")}
+          icon="camera-outline"
+          onPress={photoScan}
+        />
         <Disclosure plain title={t("fallback.notes")}>
           <Text style={styles.caption}>{t("fallback.photoNote")}</Text>
         </Disclosure>
@@ -318,7 +339,7 @@ export default function MakanBarcode() {
             itemsJson: JSON.stringify({
               barcode: data.code,
               brand: data.product.brand,
-              source: "openfoodfacts",
+              source: data.source,
             }),
           },
           { onSuccess: () => finishSave(data.product.name, scaled.kcal) },
@@ -375,6 +396,14 @@ export default function MakanBarcode() {
               ) : null}
             </View>
           </Card>
+          {data.sugar100 !== null ? (
+            <Text style={styles.caption}>
+              {t("result.sugar", { value: fmtNumber(data.sugar100, 1), unit })}
+            </Text>
+          ) : null}
+          {data.source === "label_photo" && data.mine !== true ? (
+            <CommunityCheckCard code={data.code} onWrong={() => setLabelOpen(true)} />
+          ) : null}
 
           <Field label={t("quantity.label", { unit })}>
             <Input
@@ -451,16 +480,45 @@ export default function MakanBarcode() {
                   })}
                 </Text>
               ) : null}
-              <Text style={styles.caption}>{t("result.source")}</Text>
+              <Text style={styles.caption}>
+                {data.source === "off"
+                  ? t("result.sources.off")
+                  : data.source === "label_photo"
+                    ? data.contributors >= 2
+                      ? t("result.sources.labelPhotoConfirmed", { count: data.contributors })
+                      : t("result.sources.labelPhoto")
+                    : t("result.sources.other", { source: data.source })}
+              </Text>
+              {data.source === "off" ? (
+                <Button
+                  variant="ghost"
+                  label={t("result.sources.offLink")}
+                  onPress={() => void Linking.openURL(`https://world.openfoodfacts.org/product/${data.code}`)}
+                />
+              ) : null}
             </View>
           </Disclosure>
         </View>
       );
     }
 
+    if (labelOpen) {
+      body = (
+        <LabelFlow
+          code={code}
+          initial={product ?? undefined}
+          onCancel={() => setLabelOpen(false)}
+          onSaved={(response) => {
+            setLabelOpen(false);
+            setThanks({ outcome: response.outcome, contributors: response.contributors });
+          }}
+        />
+      );
+    }
     return (
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAwareScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
@@ -476,7 +534,14 @@ export default function MakanBarcode() {
             </Pressable>
             <Text style={styles.screenTitle}>{t("page.resultTitle")}</Text>
           </View>
-          {body}
+          {thanks ? (
+            <LabelThanks
+              outcome={thanks.outcome}
+              contributors={thanks.contributors}
+              onContinue={() => scrollRef.current?.scrollTo({ y: bodyY.current, animated: true })}
+            />
+          ) : null}
+          <View onLayout={(event) => (bodyY.current = event.nativeEvent.layout.y)}>{body}</View>
         </KeyboardAwareScrollView>
       </SafeAreaView>
     );
