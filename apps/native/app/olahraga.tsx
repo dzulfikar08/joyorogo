@@ -514,9 +514,7 @@ export default function Olahraga() {
         );
       })()}
 
-      <Disclosure title="Strava">
-        <StravaCard />
-      </Disclosure>
+      <StravaCard compact />
       <Disclosure title={t("about.title")}>
         <Text style={styles.aboutText}>{t("about.sources", { health: healthSourceName })}</Text>
         {weightKg !== null ? <Text style={styles.aboutText}>{t("about.estimate")}</Text> : null}

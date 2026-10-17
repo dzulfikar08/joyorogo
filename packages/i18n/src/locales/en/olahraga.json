@@ -525,5 +525,8 @@
     "title": "Move a little",
     "line": "<kcal>{{kcal}}</kcal> left = <steps>{{steps}} steps</steps> (about {{km}} km / {{minutes}} min of walking)",
     "hint": "An easy evening walk covers it."
+  },
+  "strava": {
+    "notesTitle": "Strava notes"
   }
 }

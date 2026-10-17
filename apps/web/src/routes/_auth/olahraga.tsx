@@ -522,9 +522,7 @@ function OlahragaScreen({
         )}
 
         <div className="space-y-2 lg:col-start-1 lg:row-start-2">
-          <InfoAccordion title="Strava">
-            <StravaCard />
-          </InfoAccordion>
+          <StravaCard compact />
           <InfoAccordion title={t("about.title")}>
             {weightKg !== null && <p>{t("about.estimate")}</p>}
             <p>{t("about.strength")}</p>

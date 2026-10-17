@@ -512,5 +512,8 @@
     "title": "Gerak dikit",
     "line": "Sisa <kcal>{{kcal}}</kcal> = <steps>{{steps}} langkah</steps> (±{{km}} km / {{minutes}} menit jalan kaki)",
     "hint": "Santai jalan sore aja udah kebayang habisnya."
+  },
+  "strava": {
+    "notesTitle": "Catatan Strava"
   }
 }

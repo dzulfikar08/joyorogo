@@ -8,6 +8,7 @@ import { StyleSheet } from "react-native-unistyles";
 import Svg, { Path } from "react-native-svg";
 
 import { Button, Card, Text } from "@/components/ui";
+import { Disclosure } from "@/components/disclosure";
 import { StravaRetentionNote } from "@/components/strava-retention-notice";
 import { errorMessage } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
@@ -18,8 +19,8 @@ import { client, orpc, queryClient } from "@/utils/orpc";
 // exchanged server-side; app/+native-intent.tsx keeps the router off this URL.
 export const STRAVA_REDIRECT_URI = "joyorogo://joyorogo.com/strava";
 
-export function StravaCard() {
-  const { t } = useTranslation(["settings", "common"]);
+export function StravaCard({ compact = false }: { compact?: boolean }) {
+  const { t } = useTranslation(["settings", "common", "olahraga"]);
   const statusQuery = useQuery(orpc.strava.status.queryOptions());
   const sync = useMutation(
     orpc.strava.sync.mutationOptions({
@@ -139,9 +140,19 @@ export function StravaCard() {
         </View>
       </View>
       {action}
-      {statusQuery.data?.configured ? <StravaRetentionNote /> : null}
+      {statusQuery.data?.configured ? (
+        compact ? (
+          <Disclosure plain title={t("olahraga:strava.notesTitle")}>
+            <StravaRetentionNote />
+          </Disclosure>
+        ) : (
+          <StravaRetentionNote />
+        )
+      ) : null}
       {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
-      {sync.isError ? <Text style={styles.error}>{errorMessage(sync.error)}</Text> : null}
+      {sync.isError ? (
+        <Text style={styles.error}>{errorMessage(sync.error)}</Text>
+      ) : null}
     </Card>
   );
 }

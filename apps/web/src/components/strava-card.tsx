@@ -1,4 +1,4 @@
-import { Activity, Clock, HeartPulse } from "lucide-react";
+import { Activity, ChevronDown, Clock, HeartPulse } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@joyorogo/ui/components/button";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
@@ -65,7 +65,10 @@ export function useStrava() {
     connected: status.data?.connected ?? false,
     athleteId: status.data?.athleteId ?? null,
     /** Redirects the browser to the Strava OAuth page. */
-    authorize: () => authorize.mutate({ redirectUri: `${window.location.origin}${CALLBACK_PATH}` }),
+    authorize: () =>
+      authorize.mutate({
+        redirectUri: `${window.location.origin}${CALLBACK_PATH}`,
+      }),
     /** Imports recent Strava activities; toasts the result. */
     sync: () => sync.mutate(),
     /** Disconnects the account; toasts + refreshes exercise/day data. */
@@ -79,8 +82,8 @@ export function useStrava() {
 }
 
 /** Strava integration as one row-like card: status line + one main action. */
-export function StravaCard() {
-  const { t } = useTranslation(["settings", "common"]);
+export function StravaCard({ compact = false }: { compact?: boolean }) {
+  const { t } = useTranslation(["settings", "common", "olahraga"]);
   const strava = useStrava();
 
   let note = t("strava.status.idle");
@@ -90,7 +93,12 @@ export function StravaCard() {
   } else if (strava.statusError) {
     note = t("strava.status.error", { error: strava.statusError });
     actions = (
-      <Button variant="secondary" size="sm" className="min-h-11" onClick={() => strava.recheck()}>
+      <Button
+        variant="secondary"
+        size="sm"
+        className="min-h-11"
+        onClick={() => strava.recheck()}
+      >
         {t("common:actions.retry")}
       </Button>
     );
@@ -102,8 +110,15 @@ export function StravaCard() {
       : t("strava.status.connected");
     actions = (
       <>
-        <Button size="sm" className="min-h-11" onClick={strava.sync} disabled={strava.isSyncing}>
-          {strava.isSyncing ? t("strava.action.syncing") : t("strava.action.sync")}
+        <Button
+          size="sm"
+          className="min-h-11"
+          onClick={strava.sync}
+          disabled={strava.isSyncing}
+        >
+          {strava.isSyncing
+            ? t("strava.action.syncing")
+            : t("strava.action.sync")}
         </Button>
         <Button
           variant="ghost"
@@ -124,12 +139,27 @@ export function StravaCard() {
         onClick={strava.authorize}
         disabled={strava.isAuthorizing}
       >
-        {strava.isAuthorizing ? t("strava.action.connecting") : t("strava.action.connect")}
+        {strava.isAuthorizing
+          ? t("strava.action.connecting")
+          : t("strava.action.connect")}
       </Button>
     );
   }
 
-  const showRetention = strava.configured && !strava.isChecking && !strava.statusError;
+  const showRetention =
+    strava.configured && !strava.isChecking && !strava.statusError;
+  const notes = (
+    <div className="basis-full space-y-2 rounded-2xl bg-muted p-3 text-xs leading-relaxed text-muted-foreground">
+      <p className="flex items-start gap-2">
+        <Clock className="mt-0.5 size-4 shrink-0" aria-hidden />
+        <span>{t("strava.retention.text")}</span>
+      </p>
+      <p className="flex items-start gap-2">
+        <HeartPulse className="mt-0.5 size-4 shrink-0" aria-hidden />
+        <span>{t("strava.retention.healthAlternative")}</span>
+      </p>
+    </div>
+  );
 
   return (
     <Card aria-label="Strava" className="flex flex-wrap items-center gap-4">
@@ -151,20 +181,25 @@ export function StravaCard() {
       {strava.isChecking ? (
         <Skeleton className="h-10 w-28 rounded-full" />
       ) : (
-        actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        actions && (
+          <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        )
       )}
-      {showRetention && (
-        <div className="basis-full space-y-2 rounded-2xl bg-muted p-3 text-xs leading-relaxed text-muted-foreground">
-          <p className="flex items-start gap-2">
-            <Clock className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span>{t("strava.retention.text")}</span>
-          </p>
-          <p className="flex items-start gap-2">
-            <HeartPulse className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span>{t("strava.retention.healthAlternative")}</span>
-          </p>
-        </div>
-      )}
+      {showRetention &&
+        (compact ? (
+          <details className="group basis-full">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-muted-foreground select-none [&::-webkit-details-marker]:hidden">
+              {t("olahraga:strava.notesTitle")}
+              <ChevronDown
+                className="size-4 shrink-0 transition-transform duration-200 group-open:rotate-180"
+                aria-hidden
+              />
+            </summary>
+            {notes}
+          </details>
+        ) : (
+          notes
+        ))}
     </Card>
   );
 }
