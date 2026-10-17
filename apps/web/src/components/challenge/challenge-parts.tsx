@@ -1,27 +1,22 @@
 import { cn } from "@joyorogo/ui/lib/utils";
 import type { Basis } from "@joyorogo/api/lib/challenge";
+import type { TFunction } from "@joyorogo/i18n";
 import { Camera, Pencil, ShieldCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import type { ChallengeSummary } from "@/lib/api-types";
 
 type StatusFields = Pick<ChallengeSummary, "status" | "startsInDays" | "dayNumber" | "durationDays">;
 
-/** "Mulai 3 hari lagi" / "Hari ke-2 dari 7" / "Selesai". */
-export function statusText(c: StatusFields): string {
-  if (c.status === "ended") return "Selesai";
+/** "Starts in 3 days" / "Day 2 of 7" / "Ended". */
+export function statusText(t: TFunction<"challenge">, c: StatusFields): string {
+  if (c.status === "ended") return t("status.ended");
   if (c.status === "upcoming") {
-    return c.startsInDays === 1 ? "Mulai besok" : `Mulai ${c.startsInDays} hari lagi`;
+    return c.startsInDays === 1
+      ? t("status.startsTomorrow")
+      : t("status.startsIn", { count: c.startsInDays });
   }
-  return `Hari ke-${c.dayNumber} dari ${c.durationDays}`;
-}
-
-/** "12 Okt" for a 'YYYY-MM-DD' calendar day. */
-export function shortDate(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
+  return t("status.day", { day: c.dayNumber, total: c.durationDays });
 }
 
 const CHIP_TONE: Record<ChallengeSummary["status"], string> = {
@@ -31,6 +26,7 @@ const CHIP_TONE: Record<ChallengeSummary["status"], string> = {
 };
 
 export function StatusChip({ challenge }: { challenge: StatusFields }) {
+  const { t } = useTranslation("challenge");
   return (
     <span
       className={cn(
@@ -38,7 +34,7 @@ export function StatusChip({ challenge }: { challenge: StatusFields }) {
         CHIP_TONE[challenge.status],
       )}
     >
-      {statusText(challenge)}
+      {statusText(t, challenge)}
     </span>
   );
 }

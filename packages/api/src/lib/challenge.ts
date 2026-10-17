@@ -3,6 +3,8 @@
 // Clients import this file for goal labels and share text, so it must not pull
 // in server-only modules (type imports are erased and safe).
 import type { ChallengeGoal } from "@joyorogo/db/schema/challenge";
+import { fmtNumber, getActiveLocale, getT } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
 
 import { daysBetween, shiftDate } from "./engine";
 
@@ -30,20 +32,13 @@ export const CALORIE_FLOOR_RATIO = 0.5;
  */
 export type Basis = "device" | "photo" | "manual";
 
-export const BASIS_LABEL: Record<Basis, string> = {
-  device: "Terverifikasi perangkat",
-  photo: "Dari scan foto",
-  manual: "Dicatat manual",
-};
+/** "Terverifikasi perangkat" / "Verified by device": how a hit day was recorded. */
+export function basisLabel(basis: Basis, locale: Locale = getActiveLocale()): string {
+  return getT(locale, "challenge")(`basis.${basis}`);
+}
 
 export type GoalSpec = {
   id: ChallengeGoal;
-  label: string;
-  /** One-line picker blurb. */
-  blurb: string;
-  /** Where the number comes from, shown under the goal. */
-  source: string;
-  unit: string;
   /** 'fixed': host sets one threshold. 'personal': each member's own plan target. */
   targetKind: "fixed" | "personal";
   /** Bounds for a fixed target; null for personal goals. */
@@ -52,82 +47,72 @@ export type GoalSpec = {
   monotonic: boolean;
   /** Needs a device or app the member may not have connected. */
   needsDevice: boolean;
-  /** Hint shown when a member has no data for this goal. */
+};
+
+/** Words for a goal; `deviceHint` is shown when a member has no data for it. */
+export type GoalText = {
+  label: string;
+  /** One-line picker blurb. */
+  blurb: string;
+  /** Where the number comes from, shown under the goal. */
+  source: string;
+  unit: string;
   deviceHint: string | null;
 };
+
+export function goalText(goal: ChallengeGoal, locale: Locale = getActiveLocale()): GoalText {
+  const t = getT(locale, "challenge");
+  return {
+    label: t(`goal.${goal}.label`),
+    blurb: t(`goal.${goal}.blurb`),
+    source: t(`goal.${goal}.source`),
+    unit: t(`goal.${goal}.unit`),
+    deviceHint: GOALS[goal].needsDevice ? t(`goal.${goal}.deviceHint` as "goal.steps.deviceHint") : null,
+  };
+}
 
 export const GOALS: Record<ChallengeGoal, GoalSpec> = {
   steps: {
     id: "steps",
-    label: "Langkah harian",
-    blurb: "Capai jumlah langkah tertentu tiap hari.",
-    source: "Langkah dari Health Connect atau Apple Health.",
-    unit: "langkah",
     targetKind: "fixed",
     range: { min: 2000, max: 30000, step: 500, default: 8000, presets: [6000, 8000, 10000, 12000] },
     monotonic: true,
     needsDevice: true,
-    deviceHint: "Hubungkan Health Connect atau Apple Health di JoyoRogo supaya langkahmu terhitung.",
   },
   protein: {
     id: "protein",
-    label: "Target protein",
-    blurb: "Penuhi target protein harianmu sendiri.",
-    source: "Protein dari catatan makanmu, dibandingkan target proteinmu saat bergabung.",
-    unit: "g protein",
     targetKind: "personal",
     range: null,
     monotonic: true,
     needsDevice: false,
-    deviceHint: null,
   },
   calories: {
     id: "calories",
-    label: "Kalori sesuai target",
-    blurb: "Makan di bawah target kalori harianmu, tetap dicatat lengkap.",
-    source: "Kalori dari catatan makanmu, dibandingkan target kalorimu saat bergabung.",
-    unit: "kkal",
     targetKind: "personal",
     range: null,
     monotonic: false,
     needsDevice: false,
-    deviceHint: null,
   },
   workouts: {
     id: "workouts",
-    label: "Latihan tercatat",
-    blurb: "Catat sesi latihan tiap hari.",
-    source: "Sesi latihan di JoyoRogo, Strava, Health Connect atau Apple Health.",
-    unit: "sesi",
     targetKind: "fixed",
     range: { min: 1, max: 3, step: 1, default: 1, presets: [1, 2, 3] },
     monotonic: true,
     needsDevice: false,
-    deviceHint: null,
   },
   strain: {
     id: "strain",
-    label: "Strain JoyoFit",
-    blurb: "Capai strain tertentu dari jam tanganmu.",
-    source: "Strain harian dari JoyoFit (skala 0 sampai 21).",
-    unit: "strain",
     targetKind: "fixed",
     range: { min: 1, max: 21, step: 0.5, default: 10, presets: [8, 10, 12, 14] },
     monotonic: true,
     needsDevice: true,
-    deviceHint: "Butuh JoyoFit dan jam tangan yang tersambung supaya strain terhitung.",
   },
   sleep: {
     id: "sleep",
-    label: "Tidur JoyoFit",
-    blurb: "Penuhi persentase tidur dari JoyoFit tiap malam.",
-    source: "Skor tidur harian dari JoyoFit, persen dari kebutuhan tidurmu.",
-    unit: "% tidur",
     targetKind: "fixed",
     range: { min: 50, max: 100, step: 5, default: 85, presets: [75, 85, 90, 100] },
     monotonic: true,
     needsDevice: true,
-    deviceHint: "Butuh JoyoFit dan jam tangan yang tersambung supaya skor tidur terhitung.",
   },
 };
 
@@ -140,26 +125,29 @@ export const GOAL_ORDER: ChallengeGoal[] = [
   "sleep",
 ];
 
-const numFmt = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
-const fmt = (n: number) => numFmt.format(n);
-
 /** "Minimal 8.000 langkah per hari" style rule for a threshold. */
-export function describeGoal(goal: ChallengeGoal, target: number | null): string {
+export function describeGoal(
+  goal: ChallengeGoal,
+  target: number | null,
+  locale: Locale = getActiveLocale(),
+): string {
+  const t = getT(locale, "challenge");
+  const n = target === null ? "" : fmtNumber(target, 1, locale);
   switch (goal) {
     case "steps":
-      return target === null ? "Capai target langkah" : `Minimal ${fmt(target)} langkah per hari`;
+      return target === null ? t("goal.steps.rule") : t("goal.steps.ruleTarget", { target: n });
     case "protein":
-      return "Penuhi target protein harianmu";
+      return t("goal.protein.rule");
     case "calories":
-      return "Makan sampai target kalori harianmu, tidak lebih";
+      return t("goal.calories.rule");
     case "workouts":
       return target === null
-        ? "Catat latihan tiap hari"
-        : `Catat minimal ${fmt(target)} sesi latihan per hari`;
+        ? t("goal.workouts.rule")
+        : t("goal.workouts.ruleTarget", { target: n });
     case "strain":
-      return target === null ? "Capai strain" : `Strain JoyoFit minimal ${fmt(target)} per hari`;
+      return target === null ? t("goal.strain.rule") : t("goal.strain.ruleTarget", { target: n });
     case "sleep":
-      return target === null ? "Capai tidur" : `Tidur JoyoFit minimal ${fmt(target)}% per hari`;
+      return target === null ? t("goal.sleep.rule") : t("goal.sleep.ruleTarget", { target: n });
   }
 }
 
@@ -168,22 +156,25 @@ export function defaultChallengeTitle(
   goal: ChallengeGoal,
   target: number | null,
   durationDays: number,
+  locale: Locale = getActiveLocale(),
 ): string {
+  const t = getT(locale, "challenge");
+  const n = target === null ? "" : fmtNumber(target, 1, locale);
   const head =
     goal === "steps" && target !== null
-      ? `${fmt(target)} langkah`
+      ? t("title.stepsTarget", { target: n })
       : goal === "protein"
-        ? "Protein tercapai"
+        ? t("title.protein")
         : goal === "calories"
-          ? "Kalori sesuai target"
+          ? t("title.calories")
           : goal === "workouts"
-            ? "Latihan tiap hari"
+            ? t("title.workouts")
             : goal === "strain" && target !== null
-              ? `Strain ${fmt(target)}`
+              ? t("title.strainTarget", { target: n })
               : goal === "sleep" && target !== null
-                ? `Tidur ${fmt(target)}%`
-                : GOALS[goal].label;
-  return `${head}, ${durationDays} hari`;
+                ? t("title.sleepTarget", { target: n })
+                : t(`goal.${goal}.label`);
+  return t("title.withDays", { head, days: durationDays });
 }
 
 export type ChallengeInput = {
@@ -193,27 +184,36 @@ export type ChallengeInput = {
   startDate: string;
 };
 
-/** Error message (Indonesian) for an invalid host input, null when valid. */
-export function validateChallengeInput(input: ChallengeInput, today: string): string | null {
+/** Error message for an invalid host input, in `locale`; null when valid. */
+export function validateChallengeInput(
+  input: ChallengeInput,
+  today: string,
+  locale: Locale = getActiveLocale(),
+): string | null {
+  const t = getT(locale, "challenge");
   const spec = GOALS[input.goal];
   if (!(CHALLENGE_DURATIONS as readonly number[]).includes(input.durationDays)) {
-    return "Pilih durasi 7, 14, atau 30 hari.";
+    return t("validate.duration");
   }
   if (input.startDate < today || input.startDate > shiftDate(today, MAX_START_AHEAD_DAYS)) {
-    return `Mulai paling lambat ${MAX_START_AHEAD_DAYS} hari dari sekarang.`;
+    return t("validate.startAhead", { days: MAX_START_AHEAD_DAYS });
   }
   if (spec.targetKind === "personal") {
-    return input.target === null ? null : "Target protein dan kalori ikut profil tiap anggota.";
+    return input.target === null ? null : t("validate.personal");
   }
   const range = spec.range;
-  if (!range || input.target === null) return "Isi targetnya dulu.";
+  if (!range || input.target === null) return t("validate.targetRequired");
   if (input.target < range.min || input.target > range.max) {
-    return `Target ${spec.label.toLowerCase()} antara ${fmt(range.min)} dan ${fmt(range.max)}.`;
+    return t("validate.range", {
+      goal: t(`goal.${input.goal}.lower`),
+      min: fmtNumber(range.min, 1, locale),
+      max: fmtNumber(range.max, 1, locale),
+    });
   }
   // Multiples of the step keep steps/sleep/strain thresholds tidy.
   const offset = (input.target - range.min) / range.step;
   if (Math.abs(offset - Math.round(offset)) > 1e-9) {
-    return `Target harus kelipatan ${fmt(range.step)}.`;
+    return t("validate.step", { step: fmtNumber(range.step, 1, locale) });
   }
   return null;
 }
@@ -422,33 +422,44 @@ export type ChallengeShare = {
  * One honest line about how the hit days were recorded; null with no hits.
  * Anything typed in by hand always shows up, even as a minority.
  */
-export function verificationLabel(hits: Record<Basis, number>): string | null {
+export function verificationLabel(
+  hits: Record<Basis, number>,
+  locale: Locale = getActiveLocale(),
+): string | null {
   const total = hits.device + hits.photo + hits.manual;
   if (total === 0) return null;
-  if (hits.device === total) return BASIS_LABEL.device;
-  if (hits.photo === total) return BASIS_LABEL.photo;
-  if (hits.manual === total) return BASIS_LABEL.manual;
-  return hits.manual > 0 ? "Sebagian dicatat manual" : "Perangkat dan scan foto";
+  if (hits.device === total) return basisLabel("device", locale);
+  if (hits.photo === total) return basisLabel("photo", locale);
+  if (hits.manual === total) return basisLabel("manual", locale);
+  return getT(locale, "challenge")(hits.manual > 0 ? "basis.mixedManual" : "basis.mixedAuto");
 }
 
 /** Caption for Threads/IG/WhatsApp. Honest about progress: no rounding up. */
-export function challengeShareText(share: ChallengeShare): string {
-  const ordinal =
-    share.rank !== null && share.participants > 1
-      ? ` Peringkat ${share.rank} dari ${share.participants}.`
-      : "";
-  const streak = share.bestStreak >= 2 ? ` Streak terbaik ${share.bestStreak} hari.` : "";
+export function challengeShareText(
+  share: ChallengeShare,
+  locale: Locale = getActiveLocale(),
+): string {
+  const t = getT(locale, "challenge");
   const when =
     share.status === "ended"
-      ? `Tantangan ${share.durationDays} hari selesai`
+      ? t("share.ended", { days: share.durationDays })
       : share.status === "upcoming"
-        ? `Ikut tantangan ${share.durationDays} hari`
-        : `Lagi jalan di tantangan ${share.durationDays} hari`;
-  const score =
+        ? t("share.upcoming", { days: share.durationDays })
+        : t("share.active", { days: share.durationDays });
+  const label = verificationLabel(share.hitsByBasis, locale);
+  const sentences = [
+    `${when}: ${share.title}.`,
     share.status === "upcoming"
-      ? ""
-      : ` ${share.hitDays} dari ${share.judgedDays} hari target tercapai.`;
-  const label = verificationLabel(share.hitsByBasis);
-  const data = share.status !== "upcoming" && label ? ` Data: ${label.toLowerCase()}.` : "";
-  return `${when}: ${share.title}.${score}${ordinal}${streak}${data} Ayo ikut di JoyoRogo.`;
+      ? null
+      : t("share.score", { hit: share.hitDays, judged: share.judgedDays }),
+    share.rank !== null && share.participants > 1
+      ? t("share.rank", { rank: share.rank, total: share.participants })
+      : null,
+    share.bestStreak >= 2 ? t("share.streak", { days: share.bestStreak }) : null,
+    share.status !== "upcoming" && label
+      ? t("share.data", { label: label.toLocaleLowerCase(locale) })
+      : null,
+    t("share.invite"),
+  ];
+  return sentences.filter(Boolean).join(" ");
 }

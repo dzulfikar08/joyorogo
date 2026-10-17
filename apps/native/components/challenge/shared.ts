@@ -1,5 +1,7 @@
 import type { Basis } from "@joyorogo/api/lib/challenge";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
+import { fmtDate, fmtNumber } from "@joyorogo/i18n";
+import type { TFunction } from "@joyorogo/i18n";
 import type { InferClientOutputs } from "@orpc/client";
 import { useFocusEffect, type Href } from "expo-router";
 import { useCallback, useRef } from "react";
@@ -17,21 +19,14 @@ export type ChallengeMember = ChallengeOutputs["detail"]["leaderboard"][number];
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
-const numFmt = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
-
 /** "8.000", "10,5": goal values, one decimal at most. */
 export function fmtGoalValue(value: number): string {
-  return numFmt.format(value);
+  return fmtNumber(value, 1);
 }
 
-/** "Sen, 20 Okt" for a YYYY-MM-DD date. */
+/** "Sabtu, 10 Okt" / "Saturday, Oct 10" for a YYYY-MM-DD date. */
 export function fmtShortDay(date: string): string {
-  return new Intl.DateTimeFormat("id-ID", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  }).format(new Date(`${date}T00:00:00Z`));
+  return fmtDate(date, "weekday");
 }
 
 /** Detail route of one challenge. Built as a string so it needs no generated route types. */
@@ -39,16 +34,23 @@ export function challengeHref(groupId: string, challengeId: string): Href {
   return `/grup/${groupId}/tantangan/${challengeId}` as Href;
 }
 
-/** "Mulai 3 hari lagi" / "Hari ke-2 dari 7" / "Selesai". */
-export function challengeStatusLabel(c: {
+/** "Starts in 3 days" / "Day 2 of 7" / "Ended". */
+export function challengeStatusLabel(
+  t: TFunction<"challenge">,
+  c: {
   status: ChallengeListItem["status"];
   startsInDays: number;
   dayNumber: number;
   durationDays: number;
-}): string {
-  if (c.status === "upcoming") return `Mulai ${c.startsInDays} hari lagi`;
-  if (c.status === "active") return `Hari ke-${c.dayNumber} dari ${c.durationDays}`;
-  return "Selesai";
+  },
+): string {
+  if (c.status === "upcoming") {
+    return c.startsInDays === 1
+      ? t("status.startsTomorrow")
+      : t("status.startsIn", { count: c.startsInDays });
+  }
+  if (c.status === "active") return t("status.day", { day: c.dayNumber, total: c.durationDays });
+  return t("status.ended");
 }
 
 /** Icon per data backing; only `device` gets a shield. */

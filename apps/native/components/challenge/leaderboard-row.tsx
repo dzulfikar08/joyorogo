@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { BASIS_LABEL, type Basis } from "@joyorogo/api/lib/challenge";
+import { basisLabel, type Basis } from "@joyorogo/api/lib/challenge";
 
 import { Avatar, Card, Num, Text } from "@/components/ui";
 
-import { BASIS_ICON, fmtGoalValue, type ChallengeMember } from "./shared";
+import { BASIS_ICON, fmtGoalValue, fmtShortDay, type ChallengeMember } from "./shared";
 
 const BASIS_ORDER: Basis[] = ["device", "photo", "manual"];
 
@@ -17,13 +18,14 @@ const BASIS_ORDER: Basis[] = ["device", "photo", "manual"];
  */
 export function LeaderboardRow({ member, unit }: { member: ChallengeMember; unit: string }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("challenge");
   const m = member;
 
   const todayLine =
     m.todayValue !== null
-      ? `Hari ini: ${fmtGoalValue(m.todayValue)} ${unit}${m.todayStatus === "hit" ? " • tercapai" : ""}`
+      ? `${t("board.today")} ${t("board.value", { value: fmtGoalValue(m.todayValue), unit })}${m.todayStatus === "hit" ? ` • ${t("board.day.hit")}` : ""}`
       : m.todayStatus === "hit"
-        ? "Hari ini tercapai"
+        ? `${t("board.today")} ${t("board.day.hit")}`
         : null;
 
   const dotColor = {
@@ -31,7 +33,6 @@ export function LeaderboardRow({ member, unit }: { member: ChallengeMember; unit
     miss: theme.colors.bakar,
     pending: theme.colors.mutedForeground,
   } as const;
-  const dotLabel = { hit: "tercapai", miss: "tidak tercapai", pending: "belum diputuskan" } as const;
 
   return (
     <Card style={m.isMe ? { borderWidth: 1.5, borderColor: theme.colors.primary } : undefined}>
@@ -45,12 +46,12 @@ export function LeaderboardRow({ member, unit }: { member: ChallengeMember; unit
         <View style={styles.headText}>
           <Text style={styles.name} numberOfLines={1}>
             {m.name}
-            {m.isMe ? " (kamu)" : ""}
+            {m.isMe ? ` (${t("board.you")})` : ""}
           </Text>
           <Num style={styles.score}>
             {m.judgedDays === 0
-              ? "Belum ada hari yang dinilai"
-              : `${m.hitDays} dari ${m.judgedDays} hari`}
+              ? t("board.noJudged")
+              : t("board.score", { hit: m.hitDays, judged: m.judgedDays })}
           </Num>
         </View>
         {m.streak > 0 ? (
@@ -64,12 +65,12 @@ export function LeaderboardRow({ member, unit }: { member: ChallengeMember; unit
       <View
         style={styles.dots}
         accessible
-        accessibilityLabel={`${m.hitDays} hari tercapai dari ${m.totalDays} hari tantangan`}
+        accessibilityLabel={t("board.dots", { hit: m.hitDays, total: m.totalDays })}
       >
         {m.days.map((day) => (
           <View
             key={day.date}
-            accessibilityLabel={`${day.date}: ${dotLabel[day.status]}`}
+            accessibilityLabel={`${fmtShortDay(day.date)}: ${t(`board.day.${day.status}`)}`}
             style={[
               styles.dot,
               day.status === "pending"
@@ -81,7 +82,7 @@ export function LeaderboardRow({ member, unit }: { member: ChallengeMember; unit
       </View>
 
       {todayLine ? <Text style={styles.today}>{todayLine}</Text> : null}
-      {!m.hasData ? <Text style={styles.today}>Belum ada data masuk.</Text> : null}
+      {!m.hasData ? <Text style={styles.today}>{t("board.noData")}</Text> : null}
 
       {BASIS_ORDER.some((basis) => m.hitsByBasis[basis] > 0) ? (
         <View style={styles.basisRow}>
@@ -106,7 +107,7 @@ export function LeaderboardRow({ member, unit }: { member: ChallengeMember; unit
                   { color: basis === "device" ? theme.colors.makanText : theme.colors.mutedForeground },
                 ]}
               >
-                {BASIS_LABEL[basis]} {m.hitsByBasis[basis]}
+                {basisLabel(basis)} {m.hitsByBasis[basis]}
               </Text>
             </View>
           ))}

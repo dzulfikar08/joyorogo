@@ -1,0 +1,234 @@
+{
+  "basis": {
+    "device": "Terverifikasi perangkat",
+    "photo": "Dari scan foto",
+    "manual": "Dicatat manual",
+    "mixedManual": "Sebagian dicatat manual",
+    "mixedAuto": "Perangkat dan scan foto"
+  },
+  "goal": {
+    "steps": {
+      "label": "Langkah harian",
+      "lower": "langkah harian",
+      "blurb": "Capai jumlah langkah tertentu tiap hari.",
+      "source": "Langkah dari Health Connect atau Apple Health.",
+      "unit": "langkah",
+      "deviceHint": "Hubungkan Health Connect atau Apple Health di JoyoRogo supaya langkahmu terhitung.",
+      "rule": "Capai target langkah",
+      "ruleTarget": "Minimal {{target}} langkah per hari"
+    },
+    "protein": {
+      "label": "Target protein",
+      "lower": "target protein",
+      "blurb": "Penuhi target protein harianmu sendiri.",
+      "source": "Protein dari catatan makanmu, dibandingkan target proteinmu saat bergabung.",
+      "unit": "g protein",
+      "rule": "Penuhi target protein harianmu"
+    },
+    "calories": {
+      "label": "Kalori sesuai target",
+      "lower": "kalori sesuai target",
+      "blurb": "Makan di bawah target kalori harianmu, tetap dicatat lengkap.",
+      "source": "Kalori dari catatan makanmu, dibandingkan target kalorimu saat bergabung.",
+      "unit": "kkal",
+      "rule": "Makan sampai target kalori harianmu, tidak lebih"
+    },
+    "workouts": {
+      "label": "Latihan tercatat",
+      "lower": "latihan tercatat",
+      "blurb": "Catat sesi latihan tiap hari.",
+      "source": "Sesi latihan di JoyoRogo, Strava, Health Connect atau Apple Health.",
+      "unit": "sesi",
+      "rule": "Catat latihan tiap hari",
+      "ruleTarget": "Catat minimal {{target}} sesi latihan per hari"
+    },
+    "strain": {
+      "label": "Strain JoyoFit",
+      "lower": "strain JoyoFit",
+      "blurb": "Capai strain tertentu dari jam tanganmu.",
+      "source": "Strain harian dari JoyoFit (skala 0 sampai 21).",
+      "unit": "strain",
+      "deviceHint": "Butuh JoyoFit dan jam tangan yang tersambung supaya strain terhitung.",
+      "rule": "Capai strain",
+      "ruleTarget": "Strain JoyoFit minimal {{target}} per hari"
+    },
+    "sleep": {
+      "label": "Tidur JoyoFit",
+      "lower": "tidur JoyoFit",
+      "blurb": "Penuhi persentase tidur dari JoyoFit tiap malam.",
+      "source": "Skor tidur harian dari JoyoFit, persen dari kebutuhan tidurmu.",
+      "unit": "% tidur",
+      "deviceHint": "Butuh JoyoFit dan jam tangan yang tersambung supaya skor tidur terhitung.",
+      "rule": "Capai tidur",
+      "ruleTarget": "Tidur JoyoFit minimal {{target}}% per hari"
+    }
+  },
+  "title": {
+    "stepsTarget": "{{target}} langkah",
+    "protein": "Protein tercapai",
+    "calories": "Kalori sesuai target",
+    "workouts": "Latihan tiap hari",
+    "strainTarget": "Strain {{target}}",
+    "sleepTarget": "Tidur {{target}}%",
+    "withDays": "{{head}}, {{days}} hari"
+  },
+  "validate": {
+    "duration": "Pilih durasi 7, 14, atau 30 hari.",
+    "startAhead": "Mulai paling lambat {{days}} hari dari sekarang.",
+    "personal": "Target protein dan kalori ikut profil tiap anggota.",
+    "targetRequired": "Isi targetnya dulu.",
+    "range": "Target {{goal}} antara {{min}} dan {{max}}.",
+    "step": "Target harus kelipatan {{step}}."
+  },
+  "share": {
+    "ended": "Tantangan {{days}} hari selesai",
+    "upcoming": "Ikut tantangan {{days}} hari",
+    "active": "Lagi jalan di tantangan {{days}} hari",
+    "score": "{{hit}} dari {{judged}} hari target tercapai.",
+    "rank": "Peringkat {{rank}} dari {{total}}.",
+    "streak": "Streak terbaik {{days}} hari.",
+    "data": "Data: {{label}}.",
+    "invite": "Ayo ikut di JoyoRogo."
+  },
+  "status": {
+    "ended": "Selesai",
+    "startsTomorrow": "Mulai besok",
+    "startsIn_other": "Mulai {{count}} hari lagi",
+    "day": "Hari ke-{{day}} dari {{total}}"
+  },
+  "section": {
+    "ariaLabel": "Tantangan grup",
+    "title": "Tantangan",
+    "create": "Buat tantangan",
+    "empty": {
+      "title": "Belum ada tantangan",
+      "body": "Ajak grupmu adu langkah, protein, atau latihan. Pro yang membuat, semua anggota ikut gratis."
+    },
+    "full": "Maksimal {{max}} tantangan berjalan per grup. Tunggu salah satunya selesai.",
+    "hostHint": "Pro yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis."
+  },
+  "card": {
+    "open": "Buka tantangan {{title}}",
+    "participants_other": "{{count}} peserta",
+    "progress": "{{hit}} dari {{judged}} hari",
+    "firstDay": "Hari pertamamu berjalan",
+    "joined": "Kamu ikut",
+    "streak_other": "{{count}} hari beruntun",
+    "join": "Gabung",
+    "joining": "Bergabung..."
+  },
+  "toast": {
+    "joined": "Kamu ikut tantangan ini",
+    "left": "Kamu keluar dari tantangan",
+    "removed": "Tantangan dihapus",
+    "created": "Tantangan dibuat",
+    "joinFailed": "Gagal bergabung",
+    "leaveFailed": "Gagal keluar",
+    "removeFailed": "Gagal menghapus"
+  },
+  "detail": {
+    "title": "Tantangan",
+    "loading": "Memuat tantangan",
+    "refresh": "Muat ulang",
+    "backToGroup": "Kembali ke grup",
+    "dateRange": "{{from}} sampai {{to}}",
+    "daysLeft_other": "sisa {{count}} hari",
+    "lastDay": "hari terakhir",
+    "createdBy": "Dibuat oleh {{name}}",
+    "yourTarget": "Targetmu: {{target}} {{unit}}, dibekukan saat kamu bergabung",
+    "countedFrom": "Harimu mulai dihitung dari {{date}}, saat kamu bergabung.",
+    "join": "Gabung tantangan",
+    "joining": "Bergabung...",
+    "share": "Bagikan hasil",
+    "leave": "Keluar",
+    "leaveFull": "Keluar dari tantangan",
+    "remove": "Hapus tantangan",
+    "confirm": {
+      "leaveTitle": "Keluar dari tantangan?",
+      "leaveMessage": "Progresmu di tantangan ini tidak lagi tampil di papan peringkat.",
+      "removeTitle": "Hapus tantangan?",
+      "removeMessage": "Tantangan dan papan peringkatnya hilang untuk semua peserta.",
+      "leaveYes": "Ya, keluar",
+      "removeYes": "Ya, hapus"
+    },
+    "howItWorks": {
+      "title": "Cara kerja",
+      "basis": "Label di tiap peserta menunjukkan asal datanya: Terverifikasi perangkat berasal dari perangkat atau JoyoFit; Dari scan foto dan Dicatat manual berasal dari catatan peserta sendiri.",
+      "foodPrivacy": "Angka makan peserta lain tidak ditampilkan, hanya tercapai atau tidak."
+    }
+  },
+  "board": {
+    "title": "Papan peringkat",
+    "empty": {
+      "title": "Belum ada peserta",
+      "body": "Gabung dulu supaya namamu muncul di papan peringkat."
+    },
+    "rank": "Peringkat {{rank}}",
+    "you": "kamu",
+    "noJudged": "Belum ada hari dinilai",
+    "score": "{{hit}} dari {{judged}} hari",
+    "dots": "{{hit}} hari tercapai dari {{total}} hari tantangan",
+    "dayNotStarted": "Belum berjalan",
+    "day": {
+      "hit": "tercapai",
+      "miss": "meleset",
+      "pending": "berjalan"
+    },
+    "today": "Hari ini:",
+    "noData": "Belum ada data",
+    "legend": {
+      "hit": "Tercapai",
+      "miss": "Meleset",
+      "pending": "Hari ini berjalan"
+    },
+    "value": "{{value}} {{unit}}"
+  },
+  "create": {
+    "title": "Buat tantangan",
+    "description": "Satu tujuan, satu durasi. Semua anggota ikut gratis.",
+    "goal": {
+      "label": "Tujuan",
+      "aria": "Tujuan tantangan"
+    },
+    "target": {
+      "label": "Target harian",
+      "labelUnit": "Target ({{unit}})",
+      "aria": "Target {{unit}}",
+      "decrease": "Kurangi target",
+      "increase": "Tambah target",
+      "range": "Antara {{min}} dan {{max}}, kelipatan {{step}}.",
+      "personal": "Target ikut profil tiap anggota dan dibekukan saat mereka bergabung."
+    },
+    "duration": {
+      "label": "Durasi",
+      "aria": "Durasi tantangan",
+      "days": "{{count}} hari"
+    },
+    "start": {
+      "label": "Mulai",
+      "aria": "Tanggal mulai",
+      "today": "Hari ini",
+      "tomorrow": "Besok",
+      "pick": "Pilih tanggal",
+      "dateAria": "Tanggal mulai tantangan",
+      "endsOn": "Berakhir {{date}}."
+    },
+    "name": {
+      "label": "Nama tantangan (opsional)",
+      "hint": "Kosongkan untuk nama otomatis. {{length}}/{{max}}"
+    },
+    "submit": "Buat tantangan",
+    "submitting": "Membuat..."
+  },
+  "server": {
+    "error": {
+      "teamNotFound": "Tim tidak ditemukan.",
+      "notFound": "Tantangan tidak ditemukan.",
+      "founderOnly": "Pro yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis.",
+      "maxOpen": "Maksimal {{max}} tantangan berjalan per tim. Tunggu salah satunya selesai atau hapus.",
+      "needsProfile": "Lengkapi profil dulu supaya target protein dan kalorimu bisa dihitung.",
+      "ended": "Tantangan ini sudah selesai.",
+      "deleteForbidden": "Hanya pembuat tantangan atau pemilik tim yang bisa menghapusnya."
+    }
+  }
+}

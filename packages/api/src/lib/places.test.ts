@@ -42,6 +42,8 @@ describe("coordinates", () => {
     expect(formatDistance(430)).toBe("430 m");
     expect(formatDistance(2400)).toBe("2,4 km");
     expect(formatDistance(14_000)).toBe("14 km");
+    expect(formatDistance(2400, "en")).toBe("2.4 km");
+    expect(formatDistance(430, "en")).toBe("430 m");
   });
 });
 
@@ -60,6 +62,14 @@ describe("visitAgeLabel", () => {
     expect(visitAgeLabel("2026-10-11", "2026-10-15")).toBe("4 hari lalu");
     expect(visitAgeLabel("2026-09-24", "2026-10-15")).toBe("3 minggu lalu");
     expect(visitAgeLabel("2026-07-15", "2026-10-15")).toBe("3 bulan lalu");
+  });
+
+  test("relative English labels with plurals", () => {
+    expect(visitAgeLabel("2026-10-15", "2026-10-15", "en")).toBe("Today");
+    expect(visitAgeLabel("2026-10-14", "2026-10-15", "en")).toBe("Yesterday");
+    expect(visitAgeLabel("2026-10-11", "2026-10-15", "en")).toBe("4 days ago");
+    expect(visitAgeLabel("2026-09-24", "2026-10-15", "en")).toBe("3 weeks ago");
+    expect(visitAgeLabel("2025-10-14", "2026-10-15", "en")).toBe("1 year ago");
   });
 });
 

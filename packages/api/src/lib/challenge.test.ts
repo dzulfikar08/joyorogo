@@ -314,6 +314,41 @@ describe("copy", () => {
     expect(defaultChallengeTitle("calories", null, 30)).toBe("Kalori sesuai target, 30 hari");
   });
 
+  test("English wording and number format", () => {
+    expect(describeGoal("steps", 10000, "en")).toBe("At least 10,000 steps a day");
+    expect(defaultChallengeTitle("steps", 10000, 7, "en")).toBe("10,000 steps, 7 days");
+    expect(verificationLabel({ device: 4, photo: 0, manual: 1 }, "en")).toBe(
+      "Partly logged manually",
+    );
+    expect(
+      validateChallengeInput(
+        { goal: "steps", target: 500, durationDays: 7, startDate: "2026-10-15" },
+        "2026-10-15",
+        "en",
+      ),
+    ).toBe("The daily steps target must be between 2,000 and 30,000.");
+    const text = challengeShareText(
+      {
+        title: "10,000 steps, 7 days",
+        goal: "steps",
+        target: 10000,
+        durationDays: 7,
+        status: "ended",
+        hitDays: 5,
+        judgedDays: 7,
+        streak: 3,
+        bestStreak: 4,
+        rank: 1,
+        participants: 6,
+        hitsByBasis: { device: 5, photo: 0, manual: 0 },
+      },
+      "en",
+    );
+    expect(text).toBe(
+      "Finished a 7-day challenge: 10,000 steps, 7 days. Goal hit on 5 of 7 days. Rank 1 of 6. Best streak 4 days. Data: verified by device. Join me on JoyoRogo.",
+    );
+  });
+
   test("share text states real numbers and has no em dash", () => {
     const text = challengeShareText({
       title: "10.000 langkah, 7 hari",

@@ -8,14 +8,17 @@ import {
   defaultChallengeTitle,
   GOAL_ORDER,
   GOALS,
+  goalText,
   MAX_START_AHEAD_DAYS,
   validateChallengeInput,
   type ChallengeGoal,
 } from "@joyorogo/api/lib/challenge";
+import { fmtNumber } from "@joyorogo/i18n";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { CircleAlert, Minus, Plus } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Chip } from "@/components/chip";
@@ -39,12 +42,13 @@ export function CreateChallengeSheet({
   /** The server refused with the Founder paywall (free account). */
   onPaywall: () => void;
 }) {
+  const { t } = useTranslation("challenge");
   return (
     <Sheet
       open={open}
       onOpenChange={onOpenChange}
-      title="Buat tantangan"
-      description="Satu tujuan, satu durasi. Semua anggota grup bisa ikut gratis."
+      title={t("create.title")}
+      description={t("create.description")}
     >
       <CreateForm groupId={groupId} onPaywall={onPaywall} />
     </Sheet>
@@ -52,6 +56,7 @@ export function CreateChallengeSheet({
 }
 
 function CreateForm({ groupId, onPaywall }: { groupId: string; onPaywall: () => void }) {
+  const { t } = useTranslation("challenge");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const today = jakartaDatePlusDays(0);
@@ -71,12 +76,13 @@ function CreateForm({ groupId, onPaywall }: { groupId: string; onPaywall: () => 
   const startDate =
     startChoice === "today" ? today : startChoice === "tomorrow" ? jakartaDatePlusDays(1) : customDate;
   const invalid = validateChallengeInput({ goal, target, durationDays, startDate }, today);
+  const text = goalText(goal);
 
   const create = useMutation(
     orpc.challenge.create.mutationOptions({
       onSuccess: ({ id }) => {
         void queryClient.invalidateQueries({ queryKey: orpc.challenge.key() });
-        toast.success("Tantangan dibuat");
+        toast.success(t("toast.created"));
         void navigate({
           to: "/grup/$groupId/tantangan/$challengeId",
           params: { groupId, challengeId: id },
@@ -124,8 +130,8 @@ function CreateForm({ groupId, onPaywall }: { groupId: string; onPaywall: () => 
       }}
     >
       <section>
-        <FieldLabel>Tujuan</FieldLabel>
-        <div role="radiogroup" aria-label="Tujuan tantangan" className="space-y-2">
+        <FieldLabel>{t("create.goal.label")}</FieldLabel>
+        <div role="radiogroup" aria-label={t("create.goal.aria")} className="space-y-2">
           {GOAL_ORDER.map((id) => {
             const active = id === goal;
             return (
@@ -136,28 +142,25 @@ function CreateForm({ groupId, onPaywall }: { groupId: string; onPaywall: () => 
                 aria-checked={active}
                 onClick={() => pickGoal(id)}
                 className={cn(
-                  "block min-h-14 w-full rounded-2xl px-4 py-3 text-left transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
+                  "block min-h-11 w-full rounded-2xl px-4 py-2.5 text-left transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
                   active ? "bg-foreground text-background" : "bg-muted hover:bg-border",
                 )}
               >
-                <span className="block text-[0.9375rem] font-bold">{GOALS[id].label}</span>
-                <span
-                  className={cn(
-                    "mt-0.5 block text-[0.8125rem]",
-                    active ? "text-background/80" : "text-muted-foreground",
-                  )}
-                >
-                  {GOALS[id].blurb}
-                </span>
+                <span className="block text-[0.9375rem] font-bold">{goalText(id).label}</span>
+                {active && (
+                  <span className="mt-0.5 block text-[0.8125rem] text-background/80">
+                    {goalText(id).blurb}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
-        <p className="mt-2 px-1 text-[0.8125rem] text-muted-foreground">{spec.source}</p>
+        <p className="mt-2 px-1 text-[0.8125rem] text-muted-foreground">{text.source}</p>
       </section>
 
       <section>
-        <FieldLabel htmlFor="challenge-target">Target harian</FieldLabel>
+        <FieldLabel htmlFor="challenge-target">{t("create.target.label")}</FieldLabel>
         {fixed && range ? (
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
@@ -179,7 +182,7 @@ function CreateForm({ groupId, onPaywall }: { groupId: string; onPaywall: () => 
                 type="button"
                 variant="secondary"
                 size="icon"
-                aria-label="Kurangi target"
+                aria-label={t("create.target.decrease")}
                 disabled={target !== null && target <= range.min}
                 onClick={() => nudgeTarget(-1)}
               >
@@ -188,7 +191,7 @@ function CreateForm({ groupId, onPaywall }: { groupId: string; onPaywall: () => 
               <Input
                 id="challenge-target"
                 inputMode="decimal"
-                aria-label={`Target ${spec.unit}`}
+                aria-label={t("create.target.aria", { unit: text.unit })}
                 value={targetText}
                 onChange={(event) => {
                   setTargetText(event.target.value);
@@ -200,33 +203,35 @@ function CreateForm({ groupId, onPaywall }: { groupId: string; onPaywall: () => 
                 type="button"
                 variant="secondary"
                 size="icon"
-                aria-label="Tambah target"
+                aria-label={t("create.target.increase")}
                 disabled={target !== null && target >= range.max}
                 onClick={() => nudgeTarget(1)}
               >
                 <Plus aria-hidden />
               </Button>
               <span className="w-16 shrink-0 text-sm font-semibold text-muted-foreground">
-                {spec.unit}
+                {text.unit}
               </span>
             </div>
             <p className="px-1 text-xs text-muted-foreground">
-              Antara {fmtInt(range.min)} dan {fmtInt(range.max)}, kelipatan{" "}
-              {range.step.toLocaleString("id-ID")}.
+              {t("create.target.range", {
+                min: fmtInt(range.min),
+                max: fmtInt(range.max),
+                step: fmtNumber(range.step, 1),
+              })}
             </p>
           </div>
         ) : (
           <p className="rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">
-            Target ikut profil tiap anggota dan dibekukan saat mereka bergabung. Kamu tidak perlu
-            mengisi apa-apa.
+            {t("create.target.personal")}
           </p>
         )}
       </section>
 
       <section>
-        <FieldLabel>Durasi</FieldLabel>
+        <FieldLabel>{t("create.duration.label")}</FieldLabel>
         <Segmented
-          label="Durasi tantangan"
+          label={t("create.duration.aria")}
           value={String(durationDays)}
           onChange={(value) => {
             setDurationDays(Number(value));
@@ -234,30 +239,30 @@ function CreateForm({ groupId, onPaywall }: { groupId: string; onPaywall: () => 
           }}
           options={CHALLENGE_DURATIONS.map((days) => ({
             value: String(days),
-            label: `${days} hari`,
+            label: t("create.duration.days", { count: days }),
           }))}
         />
       </section>
 
       <section>
-        <FieldLabel>Mulai</FieldLabel>
+        <FieldLabel>{t("create.start.label")}</FieldLabel>
         <Segmented
-          label="Tanggal mulai"
+          label={t("create.start.aria")}
           value={startChoice}
           onChange={(value) => {
             setStartChoice(value);
             setServerError(null);
           }}
           options={[
-            { value: "today", label: "Hari ini" },
-            { value: "tomorrow", label: "Besok" },
-            { value: "date", label: "Pilih tanggal" },
+            { value: "today", label: t("create.start.today") },
+            { value: "tomorrow", label: t("create.start.tomorrow") },
+            { value: "date", label: t("create.start.pick") },
           ]}
         />
         {startChoice === "date" && (
           <Input
             type="date"
-            aria-label="Tanggal mulai tantangan"
+            aria-label={t("create.start.dateAria")}
             className="mt-2"
             min={today}
             max={jakartaDatePlusDays(MAX_START_AHEAD_DAYS)}
@@ -271,7 +276,7 @@ function CreateForm({ groupId, onPaywall }: { groupId: string; onPaywall: () => 
       </section>
 
       <section>
-        <FieldLabel htmlFor="challenge-title">Nama tantangan (opsional)</FieldLabel>
+        <FieldLabel htmlFor="challenge-title">{t("create.name.label")}</FieldLabel>
         <Input
           id="challenge-title"
           maxLength={CHALLENGE_TITLE_MAX}
@@ -296,7 +301,7 @@ function CreateForm({ groupId, onPaywall }: { groupId: string; onPaywall: () => 
         className="w-full"
         disabled={create.isPending || invalid !== null}
       >
-        {create.isPending ? "Membuat..." : "Buat tantangan"}
+        {create.isPending ? t("create.submitting") : t("create.submit")}
       </Button>
     </form>
   );

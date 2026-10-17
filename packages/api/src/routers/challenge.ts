@@ -15,6 +15,7 @@ import { protectedProcedure } from "../index";
 import {
   CHALLENGE_TITLE_MAX,
   GOALS,
+  goalText,
   MAX_OPEN_CHALLENGES,
   assignRanks,
   buildProgress,
@@ -33,24 +34,30 @@ import { daysBetween, jakartaToday, proteinTargetG, shiftDate } from "../lib/eng
 import { buildPlan, planQueries } from "../lib/plan";
 import { dateSchema } from "../lib/schemas";
 import { paywallConfig } from "../lib/tiers";
+import { serverT } from "../lib/messages";
+import type { Locale } from "@joyorogo/i18n";
 
 /** Ended challenges stay listed (for the result card) this many days. */
 const ENDED_VISIBLE_DAYS = 30;
 const MAX_ENDED_LISTED = 10;
 
-async function requireTeamMember(db: Database, teamId: string, userId: string) {
+async function requireTeamMember(db: Database, teamId: string, userId: string, locale: Locale) {
   const [row] = await db
     .select({ role: teamMember.role })
     .from(teamMember)
     .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
     .limit(1);
-  if (!row) throw new ORPCError("NOT_FOUND", { message: "Tim tidak ditemukan." });
+  if (!row) {
+    throw new ORPCError("NOT_FOUND", {
+      message: serverT(locale, "challenge")("server.error.teamNotFound"),
+    });
+  }
   return row;
 }
 
 type ChallengeRow = typeof teamChallenge.$inferSelect;
 
-async function requireChallenge(db: Database, challengeId: string, userId: string) {
+async function requireChallenge(db: Database, challengeId: string, userId: string, locale: Locale) {
   const [row] = await db
     .select({ challenge: teamChallenge, groupName: team.name, role: teamMember.role })
     .from(teamChallenge)
@@ -61,22 +68,26 @@ async function requireChallenge(db: Database, challengeId: string, userId: strin
     )
     .where(eq(teamChallenge.id, challengeId))
     .limit(1);
-  if (!row) throw new ORPCError("NOT_FOUND", { message: "Tantangan tidak ditemukan." });
+  if (!row) {
+    throw new ORPCError("NOT_FOUND", {
+      message: serverT(locale, "challenge")("server.error.notFound"),
+    });
+  }
   return row;
 }
 
 /** Fields every client needs to render a challenge header. */
-function describeChallenge(c: ChallengeRow, today: string) {
+function describeChallenge(c: ChallengeRow, today: string, locale: Locale) {
   const status = challengeStatus(c.startDate, c.endDate, today);
   return {
     id: c.id,
     groupId: c.teamId,
     title: c.title,
     goal: c.goal,
-    goalLabel: GOALS[c.goal].label,
-    rule: describeGoal(c.goal, c.target),
-    source: GOALS[c.goal].source,
-    unit: GOALS[c.goal].unit,
+    goalLabel: goalText(c.goal, locale).label,
+    rule: describeGoal(c.goal, c.target, locale),
+    source: goalText(c.goal, locale).source,
+    unit: goalText(c.goal, locale).unit,
     target: c.target,
     durationDays: c.durationDays,
     startDate: c.startDate,
@@ -131,8 +142,6 @@ async function memberTarget(db: Database, goal: ChallengeRow["goal"], userId: st
   return { ok: true as const, target: goal === "protein" ? targets.proteinG : targets.eatKcal };
 }
 
-const NEEDS_PROFILE = "Lengkapi profil dulu supaya target protein dan kalorimu bisa dihitung.";
-
 type Member = { userId: string; fromDate: string; target: number | null };
 
 /** Progress for each member against the challenge's rule, one facts query for all. */
@@ -175,7 +184,7 @@ export const challengeRouter = {
       const db = context.db;
       const userId = context.session.user.id;
       const today = jakartaToday();
-      await requireTeamMember(db, input.groupId, userId);
+      await requireTeamMember(db, input.groupId, userId, context.locale);
 
       const [userRow] = await db
         .select({ tier: user.tier, founderUntil: user.founderUntil })
@@ -232,7 +241,7 @@ export const challengeRouter = {
               )
             : [];
           return {
-            ...describeChallenge(challenge, today),
+            ...describeChallenge(challenge, today, context.locale),
             creatorName,
             participants: participants.get(challenge.id) ?? 0,
             joined: me !== undefined,
@@ -250,8 +259,13 @@ export const challengeRouter = {
     const db = context.db;
     const userId = context.session.user.id;
     const today = jakartaToday();
-    const { challenge: c, groupName, role } = await requireChallenge(db, input.challengeId, userId);
-    const base = describeChallenge(c, today);
+    const { challenge: c, groupName, role } = await requireChallenge(
+      db,
+      input.challengeId,
+      userId,
+      context.locale,
+    );
+    const base = describeChallenge(c, today, context.locale);
 
     const rows = await db
       .select({
@@ -342,7 +356,7 @@ export const challengeRouter = {
             fromDate: me.fromDate,
             target: me.target,
             // Device goals with no synced day yet: the client explains how to connect.
-            deviceHint: GOALS[c.goal].needsDevice && !me.hasData ? GOALS[c.goal].deviceHint : null,
+            deviceHint: !me.hasData ? goalText(c.goal, context.locale).deviceHint : null,
           }
         : {
             joined: false as const,
@@ -371,6 +385,7 @@ export const challengeRouter = {
       const db = context.db;
       const userId = context.session.user.id;
       const today = jakartaToday();
+      const t = serverT(context.locale, "challenge");
 
       // Founder gate first, on the server: the client's upsell is only a courtesy.
       const [userRow] = await db
@@ -380,11 +395,11 @@ export const challengeRouter = {
         .limit(1);
       if (!canHostChallenge(userRow, paywallConfig(context.env))) {
         throw new ORPCError("FORBIDDEN", {
-          message: "Pro yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis.",
+          message: t("server.error.founderOnly"),
           data: { paywall: true, tier: "free", reason: "challenge" },
         });
       }
-      await requireTeamMember(db, input.groupId, userId);
+      await requireTeamMember(db, input.groupId, userId, context.locale);
 
       const startDate = input.startDate ?? today;
       const invalid = validateChallengeInput(
@@ -395,6 +410,7 @@ export const challengeRouter = {
           startDate,
         },
         today,
+        context.locale,
       );
       if (invalid) throw new ORPCError("BAD_REQUEST", { message: invalid });
 
@@ -404,13 +420,13 @@ export const challengeRouter = {
         .where(and(eq(teamChallenge.teamId, input.groupId), gte(teamChallenge.endDate, today)));
       if ((open?.total ?? 0) >= MAX_OPEN_CHALLENGES) {
         throw new ORPCError("BAD_REQUEST", {
-          message: `Maksimal ${MAX_OPEN_CHALLENGES} tantangan berjalan per tim. Tunggu salah satunya selesai atau hapus.`,
+          message: t("server.error.maxOpen", { max: MAX_OPEN_CHALLENGES }),
         });
       }
 
       const fromDate = memberFromDate(startDate, today);
       const mine = await memberTarget(db, input.goal, userId, today);
-      if (!mine.ok) throw new ORPCError("BAD_REQUEST", { message: NEEDS_PROFILE });
+      if (!mine.ok) throw new ORPCError("BAD_REQUEST", { message: t("server.error.needsProfile") });
 
       const id = crypto.randomUUID();
       const target = GOALS[input.goal].targetKind === "fixed" ? input.target : null;
@@ -419,7 +435,9 @@ export const challengeRouter = {
           id,
           teamId: input.groupId,
           createdBy: userId,
-          title: input.title || defaultChallengeTitle(input.goal, target, input.durationDays),
+          title:
+            input.title ||
+            defaultChallengeTitle(input.goal, target, input.durationDays, context.locale),
           goal: input.goal,
           target,
           durationDays: input.durationDays,
@@ -438,9 +456,10 @@ export const challengeRouter = {
     const db = context.db;
     const userId = context.session.user.id;
     const today = jakartaToday();
-    const { challenge: c } = await requireChallenge(db, input.challengeId, userId);
+    const t = serverT(context.locale, "challenge");
+    const { challenge: c } = await requireChallenge(db, input.challengeId, userId, context.locale);
     if (c.endDate < today) {
-      throw new ORPCError("BAD_REQUEST", { message: "Tantangan ini sudah selesai." });
+      throw new ORPCError("BAD_REQUEST", { message: t("server.error.ended") });
     }
     const [existing] = await db
       .select({ userId: teamChallengeMember.userId })
@@ -450,7 +469,7 @@ export const challengeRouter = {
     if (existing) return { ok: true };
 
     const mine = await memberTarget(db, c.goal, userId, today);
-    if (!mine.ok) throw new ORPCError("BAD_REQUEST", { message: NEEDS_PROFILE });
+    if (!mine.ok) throw new ORPCError("BAD_REQUEST", { message: t("server.error.needsProfile") });
     await db
       .insert(teamChallengeMember)
       .values({
@@ -465,7 +484,7 @@ export const challengeRouter = {
 
   leave: protectedProcedure.input(challengeId).handler(async ({ context, input }) => {
     const userId = context.session.user.id;
-    await requireChallenge(context.db, input.challengeId, userId);
+    await requireChallenge(context.db, input.challengeId, userId, context.locale);
     await context.db
       .delete(teamChallengeMember)
       .where(
@@ -480,10 +499,16 @@ export const challengeRouter = {
   /** The host or the group owner removes a challenge for everyone. */
   remove: protectedProcedure.input(challengeId).handler(async ({ context, input }) => {
     const userId = context.session.user.id;
-    const { challenge: c, role } = await requireChallenge(context.db, input.challengeId, userId);
+    const t = serverT(context.locale, "challenge");
+    const { challenge: c, role } = await requireChallenge(
+      context.db,
+      input.challengeId,
+      userId,
+      context.locale,
+    );
     if (c.createdBy !== userId && role !== "owner") {
       throw new ORPCError("FORBIDDEN", {
-        message: "Hanya pembuat tantangan atau pemilik tim yang bisa menghapusnya.",
+        message: t("server.error.deleteForbidden"),
       });
     }
     await context.db.delete(teamChallenge).where(eq(teamChallenge.id, c.id));

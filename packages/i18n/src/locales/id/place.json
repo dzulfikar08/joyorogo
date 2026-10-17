@@ -1,0 +1,99 @@
+{
+  "distance": {
+    "m": "{{value}} m",
+    "km": "{{value}} km"
+  },
+  "age": {
+    "today": "Hari ini",
+    "yesterday": "Kemarin",
+    "days_other": "{{count}} hari lalu",
+    "weeks_other": "{{count}} minggu lalu",
+    "months_other": "{{count}} bulan lalu",
+    "years_other": "{{count}} tahun lalu"
+  },
+  "sort": {
+    "aria": "Urutkan tempat",
+    "frequent": "Paling sering",
+    "recent": "Terbaru",
+    "nearest": "Terdekat"
+  },
+  "list": {
+    "loading": "Memuat tempat makan",
+    "loadError": "Tempat makanmu belum bisa dimuat.",
+    "empty": {
+      "title": "Belum ada tempat makan",
+      "body": "Isi kolom <b>Tempat</b> saat mencatat piring, nanti semua warung dan restoran langgananmu muncul di sini.",
+      "bodyPlain": "Isi kolom Tempat saat mencatat piring, nanti semua warung dan restoran langgananmu muncul di sini."
+    }
+  },
+  "map": {
+    "aria": "Peta tempat makan",
+    "enlarge": "Perbesar peta",
+    "close": "Tutup peta",
+    "fullscreenAria": "Peta tempat makan layar penuh",
+    "fullscreenTitle": "Tempat makan",
+    "cluster": "{{n}} tempat makan di sekitar sini",
+    "you": "Lokasimu",
+    "offline": "Peta butuh internet. Coba lagi nanti.",
+    "gesture": {
+      "windows": "Gunakan Ctrl + gulir untuk memperbesar peta",
+      "mac": "Gunakan ⌘ + gulir untuk memperbesar peta",
+      "mobile": "Gunakan dua jari untuk menggeser peta"
+    },
+    "empty": {
+      "title": "Belum ada lokasi tersimpan",
+      "body": "Nyalakan “Simpan lokasi tempat makan” di bawah, lalu catat piring dengan nama tempat."
+    }
+  },
+  "card": {
+    "visits_other": "{{count}} kali",
+    "aria": "{{name}}, {{visits}}",
+    "favorite": "Paling sering:",
+    "average": "Rata-rata {{price}}"
+  },
+  "detail": {
+    "averagePerPlate": "Rata-rata {{price}} per piring",
+    "history": "Riwayat",
+    "historyAria": "Riwayat kunjungan",
+    "historyError": "Riwayat tempat ini belum bisa dimuat.",
+    "relog": "Makan lagi",
+    "relogAria": "Makan lagi {{name}}",
+    "viewInDiary": "Lihat {{name}} di diari",
+    "showing": "Menampilkan {{shown}} kunjungan terbaru dari {{total}}.",
+    "loggedTo": "{{name}} dicatat ke {{meal}}",
+    "location": {
+      "aria": "Lokasi",
+      "title": "Lokasi tersimpan",
+      "body": "Sekitar 100 m saja, cuma kamu yang lihat. Menghapusnya tidak mengubah catatan makanmu.",
+      "clear": "Hapus lokasi tempat ini"
+    }
+  },
+  "privacy": {
+    "aria": "Lokasi tempat makan",
+    "title": "Soal lokasi",
+    "note": "Lokasi cuma terlihat olehmu. Tidak muncul di profil publik atau feed, dan ikut terhapus saat kamu menghapus data.",
+    "clearAll": "Hapus semua lokasi tersimpan"
+  },
+  "toast": {
+    "locationCleared": "Lokasi tempat ini dihapus",
+    "allCleared": "Semua lokasi tersimpan dihapus",
+    "clearFailed": "Gagal menghapus lokasi"
+  },
+  "toggle": {
+    "title": "Simpan lokasi tempat makan",
+    "hint": {
+      "off": "Mati secara bawaan. Cuma kamu yang bisa lihat, dan bisa kamu hapus kapan saja.",
+      "locating": "Mencari lokasimu...",
+      "ready": "Lokasi didapat. Disimpan sekitar 100 m saja, cuma kamu yang lihat.",
+      "deniedWeb": "Izin lokasi ditolak di browser. Izinkan dulu lewat pengaturan situs.",
+      "deniedApp": "Izin lokasi ditolak. Izinkan dulu lewat pengaturan aplikasi.",
+      "unavailable": "Lokasi belum bisa didapat. Piring tetap tersimpan tanpa lokasi."
+    }
+  },
+  "server": {
+    "error": {
+      "plateNotFound": "Piring tidak ditemukan",
+      "plateEmpty": "Piring ini kosong"
+    }
+  }
+}

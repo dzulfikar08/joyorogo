@@ -1,16 +1,19 @@
 import { cn } from "@joyorogo/ui/lib/utils";
-import { BASIS_LABEL, type Basis } from "@joyorogo/api/lib/challenge";
+import { basisLabel, type Basis } from "@joyorogo/api/lib/challenge";
+import { fmtDateShort, fmtNumber } from "@joyorogo/i18n";
+import type { TFunction } from "@joyorogo/i18n";
 import { Flame } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Avatar } from "@/components/avatar";
-import { BasisIcon, shortDate } from "@/components/challenge/challenge-parts";
+import { BasisIcon } from "@/components/challenge/challenge-parts";
 import type { ChallengeMember } from "@/lib/api-types";
 
 type Day = ChallengeMember["days"][number];
 
 const BASES: Basis[] = ["device", "photo", "manual"];
 
-const numFmt = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
+const fmtValue = (value: number) => fmtNumber(value, 1);
 
 /** Hit days look different per backing so a self-logged day never reads as verified. */
 const DOT_TONE = {
@@ -31,18 +34,12 @@ function dotTone(day: Day | undefined): string {
   return DOT_TONE.hitManual;
 }
 
-const STATUS_LABEL: Record<Day["status"], string> = {
-  hit: "tercapai",
-  miss: "meleset",
-  pending: "berjalan",
-};
-
-function dayTitle(day: Day | undefined, unit: string): string {
-  if (!day) return "Belum berjalan";
-  const parts: string[] = [STATUS_LABEL[day.status]];
-  if (day.value !== null) parts.push(`${numFmt.format(day.value)} ${unit}`);
-  if (day.status === "hit" && day.basis) parts.push(BASIS_LABEL[day.basis]);
-  return `${shortDate(day.date)}: ${parts.join(", ")}`;
+function dayTitle(t: TFunction<"challenge">, day: Day | undefined, unit: string): string {
+  if (!day) return t("board.dayNotStarted");
+  const parts: string[] = [t(`board.day.${day.status}`)];
+  if (day.value !== null) parts.push(t("board.value", { value: fmtValue(day.value), unit }));
+  if (day.status === "hit" && day.basis) parts.push(basisLabel(day.basis));
+  return `${fmtDateShort(day.date)}: ${parts.join(", ")}`;
 }
 
 const BASIS_TONE: Record<Basis, string> = {
@@ -53,13 +50,16 @@ const BASIS_TONE: Record<Basis, string> = {
 
 /** One leaderboard entry: rank, score, daily dots and how the hit days were recorded. */
 export function LeaderboardRow({ member, unit }: { member: ChallengeMember; unit: string }) {
+  const { t } = useTranslation("challenge");
   const dots = Array.from({ length: member.totalDays }, (_, index) => member.days[index]);
   const today =
     member.todayStatus === null
       ? null
       : [
-          member.todayValue !== null ? `${numFmt.format(member.todayValue)} ${unit}` : null,
-          STATUS_LABEL[member.todayStatus],
+          member.todayValue !== null
+            ? t("board.value", { value: fmtValue(member.todayValue), unit })
+            : null,
+          t(`board.day.${member.todayStatus}`),
         ]
           .filter(Boolean)
           .join(", ");
@@ -74,7 +74,7 @@ export function LeaderboardRow({ member, unit }: { member: ChallengeMember; unit
       <div className="flex items-center gap-3">
         <span
           className="w-7 shrink-0 text-center text-lg font-extrabold tabular-nums"
-          aria-label={`Peringkat ${member.rank}`}
+          aria-label={t("board.rank", { rank: member.rank })}
         >
           {member.rank}
         </span>
@@ -84,14 +84,14 @@ export function LeaderboardRow({ member, unit }: { member: ChallengeMember; unit
             <span className="truncate">{member.name}</span>
             {member.isMe && (
               <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[0.6875rem] font-bold text-primary-foreground">
-                kamu
+                {t("board.you")}
               </span>
             )}
           </p>
           <p className="text-[0.8125rem] text-muted-foreground tabular-nums">
             {member.judgedDays === 0
-              ? "Belum ada hari dinilai"
-              : `${member.hitDays} dari ${member.judgedDays} hari`}
+              ? t("board.noJudged")
+              : t("board.score", { hit: member.hitDays, judged: member.judgedDays })}
           </p>
         </div>
         {member.streak > 0 && (
@@ -105,13 +105,13 @@ export function LeaderboardRow({ member, unit }: { member: ChallengeMember; unit
       {dots.length > 0 && (
         <div
           role="img"
-          aria-label={`${member.hitDays} hari tercapai dari ${member.totalDays} hari tantangan`}
+          aria-label={t("board.dots", { hit: member.hitDays, total: member.totalDays })}
           className="mt-3 flex flex-wrap gap-1.5"
         >
           {dots.map((day, index) => (
             <span
               key={day?.date ?? `future-${index}`}
-              title={dayTitle(day, unit)}
+              title={dayTitle(t, day, unit)}
               className={cn("size-3.5 rounded-full", dotTone(day))}
             />
           ))}
@@ -120,7 +120,7 @@ export function LeaderboardRow({ member, unit }: { member: ChallengeMember; unit
 
       {today && (
         <p className="mt-3 text-[0.8125rem] text-muted-foreground">
-          Hari ini: <span className="font-semibold text-foreground">{today}</span>
+          {t("board.today")} <span className="font-semibold text-foreground">{today}</span>
         </p>
       )}
 
@@ -134,12 +134,12 @@ export function LeaderboardRow({ member, unit }: { member: ChallengeMember; unit
             )}
           >
             <BasisIcon basis={basis} className="size-3" />
-            {BASIS_LABEL[basis]} {member.hitsByBasis[basis]}
+            {basisLabel(basis)} {member.hitsByBasis[basis]}
           </span>
         ))}
         {!member.hasData && !member.isMe && (
           <span className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-[0.6875rem] font-bold text-muted-foreground">
-            Belum ada data
+            {t("board.noData")}
           </span>
         )}
       </div>
@@ -149,12 +149,13 @@ export function LeaderboardRow({ member, unit }: { member: ChallengeMember; unit
 
 /** Key to the day dots: backing for hits, plus misses and the day still running. */
 export function DotLegend() {
+  const { t } = useTranslation("challenge");
   const items: Array<{ tone: string; label: string }> = [
-    { tone: DOT_TONE.hitDevice, label: BASIS_LABEL.device },
-    { tone: DOT_TONE.hitPhoto, label: BASIS_LABEL.photo },
-    { tone: DOT_TONE.hitManual, label: BASIS_LABEL.manual },
-    { tone: DOT_TONE.miss, label: "Meleset" },
-    { tone: DOT_TONE.pending, label: "Hari ini berjalan" },
+    { tone: DOT_TONE.hitDevice, label: basisLabel("device") },
+    { tone: DOT_TONE.hitPhoto, label: basisLabel("photo") },
+    { tone: DOT_TONE.hitManual, label: basisLabel("manual") },
+    { tone: DOT_TONE.miss, label: t("board.legend.miss") },
+    { tone: DOT_TONE.pending, label: t("board.legend.pending") },
   ];
   return (
     <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 px-1 text-xs text-muted-foreground">

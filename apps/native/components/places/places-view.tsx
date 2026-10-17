@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Modal, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -16,16 +17,17 @@ import { PlacesMap } from "@/components/places/places-map";
 import type { MapPin } from "@/components/places/places-map-html";
 import { stickerUrl } from "@/components/sticker";
 import { useToast } from "@/components/toast";
+import { Disclosure } from "@/components/disclosure";
 import { Button, EmptyState, ErrorState, Segmented, Skeleton, Text } from "@/components/ui";
 import { usePlaceLocation, useNearbyOrigin } from "@/src/lib/location";
 import { client, orpc } from "@/utils/orpc";
 import { errorMessage } from "@/utils/format";
 
-const TABS: Array<{ value: PlaceSort; label: string }> = [
-  { value: "sering", label: "Paling sering" },
-  { value: "terbaru", label: "Terbaru" },
-  { value: "terdekat", label: "Terdekat" },
-];
+const TAB_KEYS = [
+  { value: "sering", key: "sort.frequent" },
+  { value: "terbaru", key: "sort.recent" },
+  { value: "terdekat", key: "sort.nearest" },
+] as const satisfies ReadonlyArray<{ value: PlaceSort; key: string }>;
 
 /**
  * "Tempat makan": plates grouped by where they were eaten, with a sticker-pin
@@ -34,6 +36,7 @@ const TABS: Array<{ value: PlaceSort; label: string }> = [
  */
 export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("place");
   const insets = useSafeAreaInsets();
   const query = useQuery(orpc.place.list.queryOptions());
   const origin = useNearbyOrigin();
@@ -85,7 +88,7 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
   }
   if (query.isError) {
     return (
-      <ErrorState message="Tempat makanmu belum bisa dimuat." onRetry={() => void query.refetch()} />
+      <ErrorState message={t("list.loadError")} onRetry={() => void query.refetch()} />
     );
   }
 
@@ -104,23 +107,23 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
       {(places?.length ?? 0) === 0 ? (
         <EmptyState
           pose="peek"
-          title="Belum ada tempat makan"
-          description="Isi kolom Tempat saat mencatat piring, nanti semua warung dan restoran langgananmu muncul di sini."
+          title={t("list.empty.title")}
+          description={t("list.empty.bodyPlain")}
         />
       ) : (
         <>
-          <View style={styles.mapCard} accessibilityLabel="Peta tempat makan">
+          <View style={styles.mapCard} accessibilityLabel={t("map.aria")}>
             {pins.length > 0 ? (
               <>
                 <PlacesMap pins={pins} origin={origin} interactive={false} onSelect={select} />
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Perbesar peta"
+                  accessibilityLabel={t("map.enlarge")}
                   onPress={() => setFullscreen(true)}
                   style={({ pressed }) => [styles.enlarge, pressed && styles.pressed]}
                 >
                   <Ionicons name="expand" size={16} color={theme.colors.foreground} />
-                  <Text style={styles.enlargeLabel}>Perbesar peta</Text>
+                  <Text style={styles.enlargeLabel}>{t("map.enlarge")}</Text>
                 </Pressable>
               </>
             ) : (
@@ -128,17 +131,17 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
                 <View style={styles.mapEmptyIcon}>
                   <Ionicons name="location-outline" size={22} color={theme.colors.makanText} />
                 </View>
-                <Text style={styles.mapEmptyTitle}>Belum ada lokasi tersimpan</Text>
-                <Text style={styles.muted}>
-                  Nyalakan &ldquo;Simpan lokasi tempat makan&rdquo; di bawah, lalu catat piring
-                  dengan nama tempat. Peta ini terisi dari situ.
-                </Text>
+                <Text style={styles.mapEmptyTitle}>{t("map.empty.title")}</Text>
+                <Text style={styles.muted}>{t("map.empty.body")}</Text>
               </View>
             )}
           </View>
 
           <Segmented
-            options={TABS.filter((t) => t.value !== "terdekat" || canNearby)}
+            options={TAB_KEYS.filter((tab) => tab.value !== "terdekat" || canNearby).map((tab) => ({
+              value: tab.value,
+              label: t(tab.key),
+            }))}
             value={activeTab}
             onChange={setTab}
           />
@@ -163,10 +166,9 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
           status={saveLocation.status}
           onChange={saveLocation.setEnabled}
         />
-        <Text style={styles.muted}>
-          Lokasi cuma terlihat olehmu. Tidak muncul di profil publik atau feed, dan ikut terhapus
-          saat kamu menghapus data.
-        </Text>
+        <Disclosure plain title={t("privacy.title")}>
+          <Text style={styles.muted}>{t("privacy.note")}</Text>
+        </Disclosure>
         {pins.length > 0 ? <ClearAllLocations /> : null}
       </View>
 
@@ -191,11 +193,11 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
           <PlacesMap pins={pins} origin={origin} interactive onSelect={select} />
           <View style={[styles.fullBar, { top: insets.top + theme.spacing.sm }]} pointerEvents="box-none">
             <View style={styles.fullTitle}>
-              <Text style={styles.fullTitleText}>Tempat makan</Text>
+              <Text style={styles.fullTitleText}>{t("map.fullscreenTitle")}</Text>
             </View>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Tutup peta"
+              accessibilityLabel={t("map.close")}
               onPress={() => setFullscreen(false)}
               style={({ pressed }) => [styles.close, pressed && styles.pressed]}
             >
@@ -209,19 +211,20 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
 }
 
 function ClearAllLocations() {
+  const { t } = useTranslation("place");
   const queryClient = useQueryClient();
   const toast = useToast();
   const clear = useMutation({
     mutationFn: () => client.place.clearLocation({}),
-    onSuccess: () => toast.success("Semua lokasi tersimpan dihapus"),
-    onError: (error: Error) => toast.error("Gagal menghapus lokasi", errorMessage(error)),
+    onSuccess: () => toast.success(t("toast.allCleared")),
+    onError: (error: Error) => toast.error(t("toast.clearFailed"), errorMessage(error)),
     onSettled: () => queryClient.invalidateQueries({ queryKey: orpc.place.key() }),
   });
   return (
     <Button
       variant="secondary"
       size="sm"
-      label="Hapus semua lokasi tersimpan"
+      label={t("privacy.clearAll")}
       icon="location-outline"
       disabled={clear.isPending}
       onPress={() => clear.mutate()}
@@ -242,10 +245,14 @@ function PlaceCard({
   onOpen: () => void;
 }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("place");
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${place.name}, ${place.visits} kali`}
+      accessibilityLabel={t("card.aria", {
+        name: place.name,
+        visits: t("card.visits", { count: place.visits }),
+      })}
       onPress={onOpen}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
@@ -257,7 +264,7 @@ function PlaceCard({
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
             <Ionicons name="layers-outline" size={14} color={theme.colors.mutedForeground} />
-            <Text style={styles.muted}>{place.visits} kali</Text>
+            <Text style={styles.muted}>{t("card.visits", { count: place.visits })}</Text>
           </View>
           <View style={styles.metaItem}>
             <Ionicons name="time-outline" size={14} color={theme.colors.mutedForeground} />
@@ -274,13 +281,13 @@ function PlaceCard({
           <View style={styles.metaItem}>
             <Ionicons name="heart" size={14} color={theme.colors.bakar} />
             <Text style={styles.favorite} numberOfLines={1}>
-              <Text style={styles.muted}>Paling sering: </Text>
+              <Text style={styles.muted}>{t("card.favorite")} </Text>
               {place.favoriteDish}
             </Text>
           </View>
         ) : null}
         {place.avgPriceIdr != null ? (
-          <Text style={styles.muted}>Rata-rata {fmtIdr(place.avgPriceIdr)}</Text>
+          <Text style={styles.muted}>{t("card.average", { price: fmtIdr(place.avgPriceIdr) })}</Text>
         ) : null}
       </View>
       <Ionicons name="chevron-forward" size={20} color={theme.colors.mutedForeground} />

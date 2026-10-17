@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { WebView } from "react-native-webview";
 import type { WebViewMessageEvent } from "react-native-webview";
@@ -28,6 +29,7 @@ export function PlacesMap({
   onSelect: (key: string) => void;
 }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("place");
   const dark = theme.colors.background === darkTheme.colors.background;
   const [offline, setOffline] = useState(false);
   const html = useMemo(
@@ -37,6 +39,7 @@ export function PlacesMap({
         origin,
         dark,
         interactive,
+        labels: { offline: t("map.offline"), cluster: t("map.cluster", { n: "%N%" }) },
         colors: {
           background: theme.colors.background,
           card: theme.colors.card,
@@ -46,7 +49,7 @@ export function PlacesMap({
           primaryForeground: theme.colors.primaryForeground,
         },
       }),
-    [pins, origin, dark, interactive, theme],
+    [pins, origin, dark, interactive, theme, t],
   );
 
   const onMessage = (event: WebViewMessageEvent) => {
@@ -61,7 +64,7 @@ export function PlacesMap({
   };
 
   return (
-    <View style={styles.box} accessibilityLabel="Peta tempat makan">
+    <View style={styles.box} accessibilityLabel={t("map.aria")}>
       <WebView
         originWhitelist={["*"]}
         source={{ html, baseUrl: "https://joyorogo.app" }}
@@ -76,7 +79,7 @@ export function PlacesMap({
       />
       {offline ? (
         <View style={styles.offline} pointerEvents="none">
-          <Text style={styles.offlineText}>Peta butuh internet. Coba lagi nanti.</Text>
+          <Text style={styles.offlineText}>{t("map.offline")}</Text>
         </View>
       ) : null}
     </View>

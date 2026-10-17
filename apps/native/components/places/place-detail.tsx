@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -15,7 +16,7 @@ import { StickerHero } from "@/components/sticker";
 import { Button, ErrorState, Num, Sheet, Skeleton, Text } from "@/components/ui";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
-import { fmtInt } from "@/utils/format";
+import { fmtKcalLabel } from "@/utils/format";
 
 type RelogResult = { items: Array<{ id: string }>; meal: string };
 
@@ -37,6 +38,7 @@ export function PlaceDetailSheet({
   onOpenDate?: (date: string) => void;
 }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("place");
   const queryClient = useQueryClient();
   const detail = useQuery(orpc.place.detail.queryOptions({ input: { key: place.key } }));
 
@@ -62,7 +64,7 @@ export function PlaceDetailSheet({
       orpc.diary.key(),
     ],
     success: ({ name }, result) => ({
-      message: `${name} dicatat ke ${MEAL_LABELS[result.meal as Meal]}`,
+      message: t("detail.loggedTo", { name, meal: MEAL_LABELS[result.meal as Meal] }),
       undo: () => {
         void Promise.all(result.items.map((row) => client.food.remove({ id: row.id }))).finally(
           refresh,
@@ -74,12 +76,12 @@ export function PlaceDetailSheet({
   const clearLocation = useOptimisticMutation<void, { cleared: number }>({
     mutationFn: () => client.place.clearLocation({ key: place.key }),
     invalidate: () => [orpc.place.key()],
-    success: () => ({ message: "Lokasi tempat ini dihapus" }),
+    success: () => ({ message: t("toast.locationCleared") }),
   });
 
   const hasLocation = place.lat != null && place.lng != null;
   const subtitle = [
-    `${place.visits} kali`,
+    t("card.visits", { count: place.visits }),
     visitAgeLabel(place.lastDate, today),
     distanceM != null ? formatDistance(distanceM) : null,
   ]
@@ -96,32 +98,34 @@ export function PlaceDetailSheet({
           <View style={styles.summaryText}>
             {place.favoriteDish ? (
               <Text style={styles.favorite} numberOfLines={2}>
-                <Text style={styles.favoriteLabel}>Paling sering: </Text>
+                <Text style={styles.favoriteLabel}>{t("card.favorite")} </Text>
                 {place.favoriteDish}
               </Text>
             ) : null}
             {place.avgPriceIdr != null ? (
-              <Text style={styles.muted}>Rata-rata {fmtIdr(place.avgPriceIdr)} per piring</Text>
+              <Text style={styles.muted}>
+                {t("detail.averagePerPlate", { price: fmtIdr(place.avgPriceIdr) })}
+              </Text>
             ) : null}
           </View>
         </View>
       ) : null}
 
-      <Text style={styles.heading}>Riwayat</Text>
+      <Text style={styles.heading}>{t("detail.history")}</Text>
       {detail.isPending ? (
         <View style={styles.list}>
           <Skeleton width="100%" height={72} />
           <Skeleton width="100%" height={72} />
         </View>
       ) : detail.isError ? (
-        <ErrorState message="Riwayat tempat ini belum bisa dimuat." onRetry={() => void detail.refetch()} />
+        <ErrorState message={t("detail.historyError")} onRetry={() => void detail.refetch()} />
       ) : (
         <View style={styles.list}>
           {detail.data?.visits.map((visit) => (
             <View key={visit.id} style={styles.visit}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Lihat ${visit.name} di diari`}
+                accessibilityLabel={t("detail.viewInDiary", { name: visit.name })}
                 disabled={!onOpenDate}
                 onPress={() => {
                   onClose();
@@ -139,7 +143,7 @@ export function PlaceDetailSheet({
                   </Text>
                   <View style={styles.visitMeta}>
                     <Ionicons name="flame" size={13} color={theme.colors.kcalText} />
-                    <Num style={styles.muted}>{fmtInt(visit.kcal)} kkal</Num>
+                    <Num style={styles.muted}>{fmtKcalLabel(visit.kcal)}</Num>
                     {visit.priceIdr != null ? (
                       <Text style={styles.muted}>{fmtIdr(visit.priceIdr)}</Text>
                     ) : null}
@@ -149,7 +153,7 @@ export function PlaceDetailSheet({
               <Button
                 variant="secondary"
                 size="sm"
-                label="Makan lagi"
+                label={t("detail.relog")}
                 icon="refresh"
                 disabled={relog.isPending}
                 onPress={() => relog.mutate({ plateId: visit.id, name: visit.name })}
@@ -158,7 +162,7 @@ export function PlaceDetailSheet({
           ))}
           {detail.data && detail.data.total > detail.data.visits.length ? (
             <Text style={styles.muted}>
-              Menampilkan {detail.data.visits.length} kunjungan terbaru dari {detail.data.total}.
+              {t("detail.showing", { shown: detail.data.visits.length, total: detail.data.total })}
             </Text>
           ) : null}
         </View>
@@ -166,14 +170,12 @@ export function PlaceDetailSheet({
 
       {hasLocation ? (
         <View style={styles.location}>
-          <Text style={styles.favorite}>Lokasi tersimpan</Text>
-          <Text style={styles.muted}>
-            Sekitar 100 m saja, cuma kamu yang lihat. Menghapusnya tidak mengubah catatan makanmu.
-          </Text>
+          <Text style={styles.favorite}>{t("detail.location.title")}</Text>
+          <Text style={styles.muted}>{t("detail.location.body")}</Text>
           <Button
             variant="secondary"
             size="sm"
-            label="Hapus lokasi tempat ini"
+            label={t("detail.location.clear")}
             icon="location-outline"
             disabled={clearLocation.isPending}
             onPress={() => clearLocation.mutate()}

@@ -1,0 +1,238 @@
+{
+  "basis": {
+    "device": "Verified by device",
+    "photo": "From photo scan",
+    "manual": "Logged manually",
+    "mixedManual": "Partly logged manually",
+    "mixedAuto": "Device and photo scan"
+  },
+  "goal": {
+    "steps": {
+      "label": "Daily steps",
+      "lower": "daily steps",
+      "blurb": "Reach a step count every day.",
+      "source": "Steps from Health Connect or Apple Health.",
+      "unit": "steps",
+      "deviceHint": "Connect Health Connect or Apple Health in JoyoRogo so your steps count.",
+      "rule": "Reach the step goal",
+      "ruleTarget": "At least {{target}} steps a day"
+    },
+    "protein": {
+      "label": "Protein goal",
+      "lower": "protein goal",
+      "blurb": "Hit your own daily protein target.",
+      "source": "Protein from your food log, compared with your protein target when you joined.",
+      "unit": "g protein",
+      "rule": "Hit your daily protein target"
+    },
+    "calories": {
+      "label": "Calories on target",
+      "lower": "calories on target",
+      "blurb": "Stay within your daily calorie target and log everything.",
+      "source": "Calories from your food log, compared with your calorie target when you joined.",
+      "unit": "kcal",
+      "rule": "Eat up to your daily calorie target, no more"
+    },
+    "workouts": {
+      "label": "Logged workouts",
+      "lower": "logged workouts",
+      "blurb": "Log a workout every day.",
+      "source": "Workouts in JoyoRogo, Strava, Health Connect or Apple Health.",
+      "unit": "sessions",
+      "rule": "Log a workout every day",
+      "ruleTarget": "Log at least {{target}} workouts a day"
+    },
+    "strain": {
+      "label": "JoyoFit strain",
+      "lower": "JoyoFit strain",
+      "blurb": "Reach a strain level from your watch.",
+      "source": "Daily strain from JoyoFit (scale 0 to 21).",
+      "unit": "strain",
+      "deviceHint": "You need JoyoFit and a connected watch for strain to count.",
+      "rule": "Reach the strain goal",
+      "ruleTarget": "JoyoFit strain of at least {{target}} a day"
+    },
+    "sleep": {
+      "label": "JoyoFit sleep",
+      "lower": "JoyoFit sleep",
+      "blurb": "Hit a JoyoFit sleep percentage every night.",
+      "source": "Daily sleep score from JoyoFit, as a percent of the sleep you need.",
+      "unit": "% sleep",
+      "deviceHint": "You need JoyoFit and a connected watch for the sleep score to count.",
+      "rule": "Reach the sleep goal",
+      "ruleTarget": "JoyoFit sleep of at least {{target}}% a day"
+    }
+  },
+  "title": {
+    "stepsTarget": "{{target}} steps",
+    "protein": "Protein goal hit",
+    "calories": "Calories on target",
+    "workouts": "Workout every day",
+    "strainTarget": "Strain {{target}}",
+    "sleepTarget": "Sleep {{target}}%",
+    "withDays": "{{head}}, {{days}} days"
+  },
+  "validate": {
+    "duration": "Pick 7, 14 or 30 days.",
+    "startAhead": "It can start at most {{days}} days from now.",
+    "personal": "Protein and calorie targets follow each member's profile.",
+    "targetRequired": "Set a target first.",
+    "range": "The {{goal}} target must be between {{min}} and {{max}}.",
+    "step": "The target must be a multiple of {{step}}."
+  },
+  "share": {
+    "ended": "Finished a {{days}}-day challenge",
+    "upcoming": "Joining a {{days}}-day challenge",
+    "active": "Mid-way through a {{days}}-day challenge",
+    "score": "Goal hit on {{hit}} of {{judged}} days.",
+    "rank": "Rank {{rank}} of {{total}}.",
+    "streak": "Best streak {{days}} days.",
+    "data": "Data: {{label}}.",
+    "invite": "Join me on JoyoRogo."
+  },
+  "status": {
+    "ended": "Ended",
+    "startsTomorrow": "Starts tomorrow",
+    "startsIn_one": "Starts in {{count}} day",
+    "startsIn_other": "Starts in {{count}} days",
+    "day": "Day {{day}} of {{total}}"
+  },
+  "section": {
+    "ariaLabel": "Group challenges",
+    "title": "Challenges",
+    "create": "New challenge",
+    "empty": {
+      "title": "No challenges yet",
+      "body": "Race your group on steps, protein or workouts. Pro members create them, everyone joins free."
+    },
+    "full": "Up to {{max}} open challenges per group. Wait for one to finish.",
+    "hostHint": "Pro members create group challenges. You can still join your friends' challenges for free."
+  },
+  "card": {
+    "open": "Open challenge {{title}}",
+    "participants_one": "{{count}} participant",
+    "participants_other": "{{count}} participants",
+    "progress": "{{hit}} of {{judged}} days",
+    "firstDay": "Your first day is running",
+    "joined": "You're in",
+    "streak_one": "{{count}}-day streak",
+    "streak_other": "{{count}}-day streak",
+    "join": "Join",
+    "joining": "Joining…"
+  },
+  "toast": {
+    "joined": "You joined this challenge",
+    "left": "You left the challenge",
+    "removed": "Challenge deleted",
+    "created": "Challenge created",
+    "joinFailed": "Couldn't join",
+    "leaveFailed": "Couldn't leave",
+    "removeFailed": "Couldn't delete"
+  },
+  "detail": {
+    "title": "Challenge",
+    "loading": "Loading challenge",
+    "refresh": "Refresh",
+    "backToGroup": "Back to group",
+    "dateRange": "{{from}} to {{to}}",
+    "daysLeft_one": "{{count}} day left",
+    "daysLeft_other": "{{count}} days left",
+    "lastDay": "last day",
+    "createdBy": "Created by {{name}}",
+    "yourTarget": "Your target: {{target}} {{unit}}, locked when you joined",
+    "countedFrom": "Your days count from {{date}}, when you joined.",
+    "join": "Join challenge",
+    "joining": "Joining…",
+    "share": "Share result",
+    "leave": "Leave",
+    "leaveFull": "Leave challenge",
+    "remove": "Delete challenge",
+    "confirm": {
+      "leaveTitle": "Leave this challenge?",
+      "leaveMessage": "Your progress will no longer show on the leaderboard.",
+      "removeTitle": "Delete this challenge?",
+      "removeMessage": "The challenge and its leaderboard disappear for everyone.",
+      "leaveYes": "Yes, leave",
+      "removeYes": "Yes, delete"
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "basis": "The label on each member shows where the data came from: Verified by device comes from a device or JoyoFit; From photo scan and Logged manually come from the member's own entries.",
+      "foodPrivacy": "Other members' food numbers are hidden: you only see hit or miss."
+    }
+  },
+  "board": {
+    "title": "Leaderboard",
+    "empty": {
+      "title": "No participants yet",
+      "body": "Join to put your name on the leaderboard."
+    },
+    "rank": "Rank {{rank}}",
+    "you": "you",
+    "noJudged": "No days judged yet",
+    "score": "{{hit}} of {{judged}} days",
+    "dots": "{{hit}} days hit out of {{total}} challenge days",
+    "dayNotStarted": "Not started",
+    "day": {
+      "hit": "hit",
+      "miss": "missed",
+      "pending": "running"
+    },
+    "today": "Today:",
+    "noData": "No data yet",
+    "legend": {
+      "hit": "Hit",
+      "miss": "Missed",
+      "pending": "Today, running"
+    },
+    "value": "{{value}} {{unit}}"
+  },
+  "create": {
+    "title": "New challenge",
+    "description": "One goal, one length. Everyone in the group joins free.",
+    "goal": {
+      "label": "Goal",
+      "aria": "Challenge goal"
+    },
+    "target": {
+      "label": "Daily target",
+      "labelUnit": "Target ({{unit}})",
+      "aria": "Target {{unit}}",
+      "decrease": "Lower target",
+      "increase": "Raise target",
+      "range": "Between {{min}} and {{max}}, in steps of {{step}}.",
+      "personal": "The target follows each member's profile and locks when they join."
+    },
+    "duration": {
+      "label": "Length",
+      "aria": "Challenge length",
+      "days": "{{count}} days"
+    },
+    "start": {
+      "label": "Start",
+      "aria": "Start date",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "pick": "Pick a date",
+      "dateAria": "Challenge start date",
+      "endsOn": "Ends {{date}}."
+    },
+    "name": {
+      "label": "Challenge name (optional)",
+      "hint": "Leave empty for an automatic name. {{length}}/{{max}}"
+    },
+    "submit": "Create challenge",
+    "submitting": "Creating…"
+  },
+  "server": {
+    "error": {
+      "teamNotFound": "Group not found.",
+      "notFound": "Challenge not found.",
+      "founderOnly": "Pro members create group challenges. You can still join your friends' challenges for free.",
+      "maxOpen": "Up to {{max}} open challenges per group. Wait for one to finish or delete one.",
+      "needsProfile": "Complete your profile first so your protein and calorie targets can be worked out.",
+      "ended": "This challenge has ended.",
+      "deleteForbidden": "Only the challenge creator or the group owner can delete it."
+    }
+  }
+}

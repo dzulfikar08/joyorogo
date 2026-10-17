@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -10,6 +11,7 @@ import {
   CHALLENGE_TITLE_MAX,
   GOALS,
   GOAL_ORDER,
+  goalText,
   MAX_START_AHEAD_DAYS,
   challengeEndDate,
   defaultChallengeTitle,
@@ -53,6 +55,7 @@ export function CreateChallengeSheet({
   onPaywall: () => void;
 }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("challenge");
   const router = useRouter();
   const today = useMemo(() => jakartaToday(), [visible]);
 
@@ -78,6 +81,7 @@ export function CreateChallengeSheet({
   const target = range ? parseNum(targetText) : null;
   const startDate = shiftDate(today, startOffset);
   const liveError = validateChallengeInput({ goal, target, durationDays, startDate }, today);
+  const text = goalText(goal);
 
   const create = useMutation(
     orpc.challenge.create.mutationOptions({
@@ -136,12 +140,12 @@ export function CreateChallengeSheet({
     <Sheet
       visible={visible}
       onClose={onClose}
-      title="Buat tantangan"
+      title={t("create.title")}
       footer={
         <View style={styles.footer}>
           {error ? <Text style={[styles.error, { color: theme.colors.destructive }]}>{error}</Text> : null}
           <Button
-            label="Buat tantangan"
+            label={t("create.submit")}
             disabled={liveError !== null}
             loading={create.isPending}
             onPress={submit}
@@ -150,10 +154,10 @@ export function CreateChallengeSheet({
       }
     >
       <View style={styles.form}>
-        <Field label="Jenis tantangan">
+        <Field label={t("create.goal.label")}>
           <View style={styles.goals}>
             {GOAL_ORDER.map((id) => {
-              const option = GOALS[id];
+              const option = goalText(id);
               const selected = id === goal;
               return (
                 <Pressable
@@ -173,7 +177,7 @@ export function CreateChallengeSheet({
                 >
                   <View style={styles.goalText}>
                     <Text style={styles.goalLabel}>{option.label}</Text>
-                    <Text style={styles.goalBlurb}>{option.blurb}</Text>
+                    {selected ? <Text style={styles.goalBlurb}>{option.blurb}</Text> : null}
                   </View>
                   {selected ? (
                     <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
@@ -182,13 +186,17 @@ export function CreateChallengeSheet({
               );
             })}
           </View>
-          <Text style={styles.source}>{spec.source}</Text>
+          <Text style={styles.source}>{text.source}</Text>
         </Field>
 
         {range ? (
           <Field
-            label={`Target (${spec.unit})`}
-            hint={`Antara ${fmtGoalValue(range.min)} dan ${fmtGoalValue(range.max)}, kelipatan ${fmtGoalValue(range.step)}.`}
+            label={t("create.target.labelUnit", { unit: text.unit })}
+            hint={t("create.target.range", {
+              min: fmtGoalValue(range.min),
+              max: fmtGoalValue(range.max),
+              step: fmtGoalValue(range.step),
+            })}
           >
             <View style={styles.chips}>
               {range.presets.map((preset) => (
@@ -206,7 +214,7 @@ export function CreateChallengeSheet({
             <View style={styles.stepper}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Kurangi target"
+                accessibilityLabel={t("create.target.decrease")}
                 onPress={() => bump(-1)}
                 style={({ pressed }) => [
                   styles.step,
@@ -221,12 +229,12 @@ export function CreateChallengeSheet({
                   value={targetText}
                   onChangeText={edit(setTargetText)}
                   keyboardType="decimal-pad"
-                  accessibilityLabel={`Target ${spec.unit}`}
+                  accessibilityLabel={t("create.target.aria", { unit: text.unit })}
                 />
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Tambah target"
+                accessibilityLabel={t("create.target.increase")}
                 onPress={() => bump(1)}
                 style={({ pressed }) => [
                   styles.step,
@@ -242,29 +250,34 @@ export function CreateChallengeSheet({
           <View style={[styles.note, { backgroundColor: theme.colors.tidurSoft }]}>
             <Ionicons name="information-circle" size={18} color={theme.colors.tidurText} />
             <Text style={[styles.noteText, { color: theme.colors.tidurText }]}>
-              Targetnya ikut profil tiap peserta dan dibekukan saat mereka bergabung.
+              {t("create.target.personal")}
             </Text>
           </View>
         )}
 
-        <Field label="Durasi">
+        <Field label={t("create.duration.label")}>
           <Segmented
-            options={CHALLENGE_DURATIONS.map((days) => ({ value: String(days), label: `${days} hari` }))}
+            options={CHALLENGE_DURATIONS.map((days) => ({ value: String(days), label: t("create.duration.days", { count: days }) }))}
             value={String(durationDays)}
             onChange={edit((value: string) => setDurationDays(Number(value)))}
           />
         </Field>
 
-        <Field label="Mulai" hint={`Berakhir ${fmtShortDay(challengeEndDate(startDate, durationDays))}.`}>
+        <Field
+          label={t("create.start.label")}
+          hint={t("create.start.endsOn", {
+            date: fmtShortDay(challengeEndDate(startDate, durationDays)),
+          })}
+        >
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
             {START_OFFSETS.map((offset) => (
               <Chip
                 key={offset}
                 label={
                   offset === 0
-                    ? "Hari ini"
+                    ? t("create.start.today")
                     : offset === 1
-                      ? "Besok"
+                      ? t("create.start.tomorrow")
                       : fmtShortDay(shiftDate(today, offset))
                 }
                 selected={offset === startOffset}
@@ -275,8 +288,8 @@ export function CreateChallengeSheet({
         </Field>
 
         <Field
-          label="Nama tantangan (opsional)"
-          hint={`Kosongkan untuk nama otomatis. ${title.length}/${CHALLENGE_TITLE_MAX}`}
+          label={t("create.name.label")}
+          hint={t("create.name.hint", { length: title.length, max: CHALLENGE_TITLE_MAX })}
         >
           <Input
             value={title}

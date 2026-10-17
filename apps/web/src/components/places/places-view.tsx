@@ -2,6 +2,7 @@ import { Button } from "@joyorogo/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, Clock, Heart, Layers, Maximize2, MapPin, MapPinOff, X } from "lucide-react";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { formatDistance, sortPlaces, visitAgeLabel } from "@joyorogo/api/lib/places";
@@ -21,11 +22,11 @@ import { client, orpc } from "@/utils/orpc";
 // maplibre-gl is ~800 KB: only fetched when the user opens this view.
 const PlacesMap = lazy(() => import("@/components/places/places-map"));
 
-const TABS: ReadonlyArray<{ value: PlaceSort; label: string }> = [
-  { value: "sering", label: "Paling sering" },
-  { value: "terbaru", label: "Terbaru" },
-  { value: "terdekat", label: "Terdekat" },
-];
+const TAB_KEYS = [
+  { value: "sering", key: "sort.frequent" },
+  { value: "terbaru", key: "sort.recent" },
+  { value: "terdekat", key: "sort.nearest" },
+] as const satisfies ReadonlyArray<{ value: PlaceSort; key: string }>;
 
 const listOptions = orpc.place.list.queryOptions();
 
@@ -39,6 +40,7 @@ function MapFallback() {
  * location show in the list only.
  */
 export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void }) {
+  const { t } = useTranslation("place");
   const query = useQuery(listOptions);
   const { resolvedTheme } = useTheme();
   const dark = resolvedTheme === "dark";
@@ -90,7 +92,7 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
   if (query.isError) {
     return (
       <div className="mt-5">
-        <ErrorNote message="Tempat makanmu belum bisa dimuat." onRetry={() => void query.refetch()} />
+        <ErrorNote message={t("list.loadError")} onRetry={() => void query.refetch()} />
       </div>
     );
   }
@@ -103,14 +105,17 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
   return (
     <div className="mt-5 space-y-4">
       {(places?.length ?? 0) === 0 ? (
-        <EmptyHint title="Belum ada tempat makan" pose="peek">
-          Isi kolom <span className="font-semibold text-foreground">Tempat</span> saat mencatat
-          piring, nanti semua warung dan restoran langgananmu muncul di sini.
+        <EmptyHint title={t("list.empty.title")} pose="peek">
+          <Trans
+            ns="place"
+            i18nKey="list.empty.body"
+            components={{ b: <span className="font-semibold text-foreground" /> }}
+          />
         </EmptyHint>
       ) : (
         <>
           <section
-            aria-label="Peta tempat makan"
+            aria-label={t("map.aria")}
             className="relative h-60 overflow-hidden rounded-3xl bg-card"
           >
             {mapPlaces.length > 0 ? (
@@ -130,7 +135,7 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
                   className="absolute top-3 right-3 z-10 inline-flex min-h-11 items-center gap-2 rounded-full bg-card px-4 text-sm font-semibold shadow-float transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                 >
                   <Maximize2 className="size-4" aria-hidden />
-                  Perbesar peta
+                  {t("map.enlarge")}
                 </button>
               </>
             ) : (
@@ -139,10 +144,9 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
                   <span className="mx-auto grid size-11 place-items-center rounded-full bg-makan-soft">
                     <MapPinOff className="size-5 text-makan-ink" aria-hidden />
                   </span>
-                  <p className="mt-3 text-[0.9375rem] font-bold">Belum ada lokasi tersimpan</p>
-                  <p className="mx-auto mt-1 max-w-xs text-sm leading-relaxed text-muted-foreground">
-                    Nyalakan &ldquo;Simpan lokasi tempat makan&rdquo; di bawah, lalu catat piring
-                    dengan nama tempat. Peta ini terisi dari situ.
+                  <p className="mt-3 text-[0.9375rem] font-bold">{t("map.empty.title")}</p>
+                  <p className="mx-auto mt-1 max-w-xs text-sm leading-snug text-muted-foreground">
+                    {t("map.empty.body")}
                   </p>
                 </div>
               </div>
@@ -150,10 +154,13 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
           </section>
 
           <Segmented
-            label="Urutkan tempat"
+            label={t("sort.aria")}
             value={activeTab}
             onChange={setTab}
-            options={TABS.filter((t) => t.value !== "terdekat" || canNearby)}
+            options={TAB_KEYS.filter((tab) => tab.value !== "terdekat" || canNearby).map((tab) => ({
+              value: tab.value,
+              label: t(tab.key),
+            }))}
           />
 
           <ul className="space-y-3">
@@ -171,19 +178,18 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
         </>
       )}
 
-      <section
-        aria-label="Lokasi tempat makan"
-        className="space-y-3 rounded-3xl bg-card p-4"
-      >
+      <section aria-label={t("privacy.aria")} className="space-y-3 rounded-3xl bg-card p-4">
         <SaveLocationToggle
           enabled={saveLocation.enabled}
           status={saveLocation.status}
           onChange={saveLocation.setEnabled}
         />
-        <p className="px-1 text-[0.8125rem] leading-snug text-muted-foreground">
-          Lokasi cuma terlihat olehmu. Tidak muncul di profil publik atau feed, dan ikut terhapus
-          saat kamu menghapus data.
-        </p>
+        <details className="group px-1 text-[0.8125rem] text-muted-foreground">
+          <summary className="cursor-pointer font-semibold select-none">
+            {t("privacy.title")}
+          </summary>
+          <p className="mt-1.5 leading-snug">{t("privacy.note")}</p>
+        </details>
         {mapPlaces.length > 0 && <ClearAllLocations />}
       </section>
 
@@ -201,7 +207,7 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Peta tempat makan layar penuh"
+          aria-label={t("map.fullscreenAria")}
           className="fixed inset-0 z-[60] bg-background"
         >
           <Suspense fallback={<MapFallback />}>
@@ -209,12 +215,12 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
           </Suspense>
           <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-3 p-4 pt-[max(1rem,env(safe-area-inset-top))]">
             <span className="pointer-events-auto rounded-full bg-card px-4 py-2.5 text-sm font-bold shadow-float">
-              Tempat makan
+              {t("map.fullscreenTitle")}
             </span>
             <button
               type="button"
               onClick={() => setFullscreen(false)}
-              aria-label="Tutup peta"
+              aria-label={t("map.close")}
               className="pointer-events-auto grid size-11 place-items-center rounded-full bg-card shadow-float transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
             >
               <X className="size-5" aria-hidden />
@@ -227,17 +233,18 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
 }
 
 function ClearAllLocations() {
+  const { t } = useTranslation("place");
   const queryClient = useQueryClient();
   const clear = useMutation({
     mutationFn: () => client.place.clearLocation({}),
-    onSuccess: () => toast.success("Semua lokasi tersimpan dihapus"),
+    onSuccess: () => toast.success(t("toast.allCleared")),
     onError: (error: Error) => toast.error(error.message),
     onSettled: () => queryClient.invalidateQueries({ queryKey: orpc.place.key() }),
   });
   return (
     <Button variant="outline" size="sm" disabled={clear.isPending} onClick={() => clear.mutate()}>
       <MapPinOff className="size-4" aria-hidden />
-      Hapus semua lokasi tersimpan
+      {t("privacy.clearAll")}
     </Button>
   );
 }
@@ -253,6 +260,7 @@ function PlaceCard({
   distanceM: number | null;
   onOpen: () => void;
 }) {
+  const { t } = useTranslation("place");
   return (
     <button
       type="button"
@@ -265,7 +273,7 @@ function PlaceCard({
         <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.8125rem] text-muted-foreground">
           <span className="inline-flex items-center gap-1 tabular-nums">
             <Layers className="size-3.5" aria-hidden />
-            {place.visits} kali
+            {t("card.visits", { count: place.visits })}
           </span>
           <span className="inline-flex items-center gap-1">
             <Clock className="size-3.5" aria-hidden />
@@ -282,14 +290,14 @@ function PlaceCard({
           <span className="mt-1 flex items-center gap-1.5 text-[0.8125rem]">
             <Heart className="size-3.5 shrink-0 text-bakar" aria-hidden />
             <span className="truncate">
-              <span className="text-muted-foreground">Paling sering: </span>
+              <span className="text-muted-foreground">{t("card.favorite")} </span>
               <span className="font-semibold">{place.favoriteDish}</span>
             </span>
           </span>
         )}
         {place.avgPriceIdr != null && (
           <span className="mt-0.5 block text-[0.8125rem] text-muted-foreground">
-            Rata-rata {fmtRupiah(place.avgPriceIdr)}
+            {t("card.average", { price: fmtRupiah(place.avgPriceIdr) })}
           </span>
         )}
       </span>
@@ -299,8 +307,9 @@ function PlaceCard({
 }
 
 function PlacesSkeleton() {
+  const { t } = useTranslation("place");
   return (
-    <div className="mt-5 space-y-4" aria-busy aria-label="Memuat tempat makan">
+    <div className="mt-5 space-y-4" aria-busy aria-label={t("list.loading")}>
       <div className="h-60 animate-pulse rounded-3xl bg-muted" />
       <div className="h-12 animate-pulse rounded-full bg-muted" />
       {[0, 1, 2].map((i) => (

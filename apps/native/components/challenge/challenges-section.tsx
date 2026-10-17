@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
@@ -19,6 +20,7 @@ import { challengeHref, useRefetchOnFocus } from "./shared";
  * paywall instead, and can still join any challenge for free.
  */
 export function ChallengesSection({ groupId }: { groupId: string }) {
+  const { t } = useTranslation("challenge");
   const router = useRouter();
   const toast = useToast();
   const list = useQuery(orpc.challenge.list.queryOptions({ input: { groupId } }));
@@ -28,7 +30,7 @@ export function ChallengesSection({ groupId }: { groupId: string }) {
   const join = useMutation(
     orpc.challenge.join.mutationOptions({
       onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.challenge.key() }),
-      onError: (e) => toast.error("Gagal bergabung", errorMessage(e)),
+      onError: (e) => toast.error(t("toast.joinFailed"), errorMessage(e)),
     }),
   );
 
@@ -41,13 +43,11 @@ export function ChallengesSection({ groupId }: { groupId: string }) {
   return (
     <View style={styles.stack}>
       <View style={styles.head}>
-        <Text style={styles.title}>Tantangan</Text>
-        <Button size="sm" icon="add" label="Buat tantangan" onPress={onCreate} disabled={list.isPending} />
+        <Text style={styles.title}>{t("section.title")}</Text>
+        <Button size="sm" icon="add" label={t("section.create")} onPress={onCreate} disabled={list.isPending} />
       </View>
       {list.data && !canHost ? (
-        <Text style={styles.hint}>
-          Pro yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis.
-        </Text>
+        <Text style={styles.hint}>{t("section.hostHint")}</Text>
       ) : null}
 
       {list.isPending ? (
@@ -60,8 +60,8 @@ export function ChallengesSection({ groupId }: { groupId: string }) {
       ) : list.data.challenges.length === 0 ? (
         <EmptyState
           icon="trophy-outline"
-          title="Belum ada tantangan"
-          description="Ajak grupmu adu langkah, protein, atau tidur selama 7, 14, atau 30 hari. Tekan Buat tantangan untuk mulai."
+          title={t("section.empty.title")}
+          description={t("section.empty.body")}
         />
       ) : (
         list.data.challenges.map((challenge) => (

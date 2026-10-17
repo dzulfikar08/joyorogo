@@ -2,6 +2,9 @@
 // Coordinates are sensitive: they only exist when the user opted in, are cut
 // to ~100 m before storage, and are only ever served back to their owner.
 
+import { fmtDecimal, fmtInt, getActiveLocale, getT } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+
 import { daysBetween } from "./engine";
 
 /** 3 decimals of a degree is ~111 m north-south: coarse enough to not be a doorstep. */
@@ -47,22 +50,28 @@ export function distanceM(
   return 2 * 6_371_000 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-/** "850 m" under a kilometre, "2,4 km" above (id-ID decimal comma). */
-export function formatDistance(meters: number): string {
-  if (meters < 950) return `${Math.max(10, Math.round(meters / 10) * 10)} m`;
+/** "850 m" under a kilometre, "2,4 km" (id) / "2.4 km" (en) above. */
+export function formatDistance(meters: number, locale: Locale = getActiveLocale()): string {
+  const t = getT(locale, "place");
+  if (meters < 950) return t("distance.m", { value: fmtInt(Math.max(10, Math.round(meters / 10) * 10), locale) });
   const km = meters / 1000;
-  return `${km.toFixed(km < 10 ? 1 : 0).replace(".", ",")} km`;
+  return t("distance.km", { value: km < 10 ? fmtDecimal(km, 1, locale) : fmtInt(km, locale) });
 }
 
 /** "Hari ini", "Kemarin", "4 hari lalu", "2 minggu lalu", "3 bulan lalu". */
-export function visitAgeLabel(date: string, today: string): string {
+export function visitAgeLabel(
+  date: string,
+  today: string,
+  locale: Locale = getActiveLocale(),
+): string {
+  const t = getT(locale, "place");
   const days = Math.max(0, daysBetween(date, today));
-  if (days === 0) return "Hari ini";
-  if (days === 1) return "Kemarin";
-  if (days < 14) return `${days} hari lalu`;
-  if (days < 60) return `${Math.floor(days / 7)} minggu lalu`;
-  if (days < 365) return `${Math.floor(days / 30)} bulan lalu`;
-  return `${Math.floor(days / 365)} tahun lalu`;
+  if (days === 0) return t("age.today");
+  if (days === 1) return t("age.yesterday");
+  if (days < 14) return t("age.days", { count: days });
+  if (days < 60) return t("age.weeks", { count: Math.floor(days / 7) });
+  if (days < 365) return t("age.months", { count: Math.floor(days / 30) });
+  return t("age.years", { count: Math.floor(days / 365) });
 }
 
 /** One plate that carries a place: a single visit. */

@@ -1,17 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { Switch, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Text } from "@/components/ui";
 import type { LocationStatus } from "@/src/lib/location";
 
-const HINT: Record<LocationStatus, string> = {
-  off: "Mati secara bawaan. Cuma kamu yang bisa lihat, dan bisa kamu hapus kapan saja.",
-  locating: "Mencari lokasimu...",
-  ready: "Lokasi didapat. Disimpan sekitar 100 m saja, cuma kamu yang lihat.",
-  denied: "Izin lokasi ditolak. Izinkan dulu lewat pengaturan aplikasi.",
-  unavailable: "Lokasi belum bisa didapat. Piring tetap tersimpan tanpa lokasi.",
-};
+const HINT_KEY = {
+  off: "toggle.hint.off",
+  locating: "toggle.hint.locating",
+  ready: "toggle.hint.ready",
+  denied: "toggle.hint.deniedApp",
+  unavailable: "toggle.hint.unavailable",
+} as const satisfies Record<LocationStatus, string>;
 
 /** Opt-in switch under the place field; state comes from usePlaceLocation(). */
 export function SaveLocationToggle({
@@ -24,21 +25,22 @@ export function SaveLocationToggle({
   onChange: (on: boolean) => void;
 }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("place");
   return (
     <View style={styles.row}>
       <View style={styles.icon}>
         <Ionicons name="location" size={18} color={theme.colors.makanText} />
       </View>
       <View style={styles.text}>
-        <Text style={styles.title}>Simpan lokasi tempat makan</Text>
-        <Text style={styles.hint}>{HINT[enabled ? status : "off"]}</Text>
+        <Text style={styles.title}>{t("toggle.title")}</Text>
+        <Text style={styles.hint}>{t(HINT_KEY[enabled ? status : "off"])}</Text>
       </View>
       <Switch
         value={enabled}
         onValueChange={onChange}
         trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
         thumbColor={theme.colors.background}
-        accessibilityLabel="Simpan lokasi tempat makan"
+        accessibilityLabel={t("toggle.title")}
       />
     </View>
   );

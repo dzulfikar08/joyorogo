@@ -47,8 +47,14 @@ await client.executeMultiple(`
 
 const db = drizzle(client) as unknown as Database;
 const HOSTED = { FREE_DAILY_SCANS: "3", FOUNDER_DAILY_CAP: "100" };
-const as = (userId: string, env: Context["env"] = HOSTED) => ({
-  context: { db, env, waitUntil: () => {}, session: { user: { id: userId } } } as unknown as Context,
+const as = (userId: string, env: Context["env"] = HOSTED, locale: "id" | "en" = "id") => ({
+  context: {
+    db,
+    env,
+    locale,
+    waitUntil: () => {},
+    session: { user: { id: userId } },
+  } as unknown as Context,
 });
 
 /** Inserts a challenge straight into the DB so tests can start it in the past. */
@@ -162,6 +168,25 @@ describe("create: Founder gate and validation", () => {
     await expect(
       call(challengeRouter.create, { ...input, goal: "protein", target: 100 }, as("comp")),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  test("messages, titles and goal wording follow the caller's language", async () => {
+    await expect(
+      call(challengeRouter.create, { ...input, durationDays: 10 }, as("comp", HOSTED, "en")),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST", message: "Pick 7, 14 or 30 days." });
+    await expect(
+      call(challengeRouter.create, { ...input, groupId: "t2" }, as("bare", HOSTED, "en")),
+    ).rejects.toMatchObject({ code: "NOT_FOUND", message: "Group not found." });
+    const { id } = await call(challengeRouter.create, input, as("comp", HOSTED, "en"));
+    const out = await call(challengeRouter.detail, { challengeId: id }, as("comp", HOSTED, "en"));
+    expect(out.challenge).toMatchObject({
+      title: "8,000 steps, 7 days",
+      rule: "At least 8,000 steps a day",
+      goalLabel: "Daily steps",
+      unit: "steps",
+    });
+    expect(out.me.deviceHint).toContain("Health Connect");
+    await call(challengeRouter.remove, { challengeId: id }, as("comp"));
   });
 
   test("a group holds at most 3 running challenges", async () => {

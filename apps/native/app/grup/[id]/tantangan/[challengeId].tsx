@@ -3,12 +3,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { GOALS } from "@joyorogo/api/lib/challenge";
 
 import { StatusChip } from "@/components/challenge/challenge-card";
+import { Disclosure } from "@/components/disclosure";
 import { LeaderboardRow } from "@/components/challenge/leaderboard-row";
 import { fmtGoalValue, useRefetchOnFocus } from "@/components/challenge/shared";
 import { ConfirmSheet } from "@/components/confirm-sheet";
@@ -31,6 +33,7 @@ import { orpc, queryClient } from "@/utils/orpc";
 
 export default function ChallengeDetailScreen() {
   const { theme } = useUnistyles();
+  const { t } = useTranslation(["challenge", "common"]);
   const gate = useSessionGate();
   const router = useRouter();
   const toast = useToast();
@@ -46,7 +49,7 @@ export default function ChallengeDetailScreen() {
   const join = useMutation(
     orpc.challenge.join.mutationOptions({
       onSuccess: invalidate,
-      onError: (e) => toast.error("Gagal bergabung", errorMessage(e)),
+      onError: (e) => toast.error(t("toast.joinFailed"), errorMessage(e)),
     }),
   );
   const leave = useMutation(
@@ -55,7 +58,7 @@ export default function ChallengeDetailScreen() {
         setConfirm(null);
         await invalidate();
       },
-      onError: (e) => toast.error("Gagal keluar", errorMessage(e)),
+      onError: (e) => toast.error(t("toast.leaveFailed"), errorMessage(e)),
     }),
   );
   const remove = useMutation(
@@ -65,14 +68,14 @@ export default function ChallengeDetailScreen() {
         await invalidate();
         router.back();
       },
-      onError: (e) => toast.error("Gagal menghapus", errorMessage(e)),
+      onError: (e) => toast.error(t("toast.removeFailed"), errorMessage(e)),
     }),
   );
 
   if (gate === "loading") {
     return (
       <Screen>
-        <PageHeader title="Tantangan" />
+        <PageHeader title={t("detail.title")} />
         <Skeleton width="100%" height={180} radius={24} />
         <Skeleton width="100%" height={140} radius={24} />
       </Screen>
@@ -84,7 +87,7 @@ export default function ChallengeDetailScreen() {
   if (detail.isPending) {
     return (
       <Screen>
-        <PageHeader title="Tantangan" />
+        <PageHeader title={t("detail.title")} />
         <Skeleton width="100%" height={180} radius={24} />
         <Skeleton width="100%" height={140} radius={24} />
       </Screen>
@@ -93,7 +96,7 @@ export default function ChallengeDetailScreen() {
   if (detail.isError) {
     return (
       <Screen>
-        <PageHeader title="Tantangan" />
+        <PageHeader title={t("detail.title")} />
         <ErrorState message={errorMessage(detail.error)} onRetry={() => detail.refetch()} />
       </Screen>
     );
@@ -111,7 +114,7 @@ export default function ChallengeDetailScreen() {
       <Screen refreshing={detail.isRefetching} onRefresh={() => void detail.refetch()}>
         <PageHeader
           title={c.title}
-          caption={`${c.groupName}${c.creatorName ? ` • dibuat ${c.creatorName}` : ""}`}
+          caption={`${c.groupName}${c.creatorName ? ` • ${t("detail.createdBy", { name: c.creatorName })}` : ""}`}
         />
 
         <Card>
@@ -119,20 +122,28 @@ export default function ChallengeDetailScreen() {
             <StatusChip challenge={c} />
           </View>
           <Text style={styles.rule}>{c.rule}</Text>
-          <Text style={styles.muted}>{c.source}</Text>
           <Text style={styles.dates}>
-            {fmtDateMedium(c.startDate)} sampai {fmtDateMedium(c.endDate)} • {c.durationDays} hari
+            {t("detail.dateRange", {
+              from: fmtDateMedium(c.startDate),
+              to: fmtDateMedium(c.endDate),
+            })}{" "}
+            • {t("create.duration.days", { count: c.durationDays })}
           </Text>
           {personalTarget !== null ? (
             <Text style={styles.personal}>
-              Targetmu: {fmtGoalValue(personalTarget)} {c.unit}, dibekukan saat kamu bergabung.
+              {t("detail.yourTarget", { target: fmtGoalValue(personalTarget), unit: c.unit })}
             </Text>
           ) : null}
           {countedFrom !== null ? (
             <Text style={styles.muted}>
-              Harimu mulai dihitung dari {fmtDateMedium(countedFrom)}, saat kamu bergabung.
+              {t("detail.countedFrom", { date: fmtDateMedium(countedFrom) })}
             </Text>
           ) : null}
+          <Disclosure plain title={t("detail.howItWorks.title")}>
+            <Text style={styles.muted}>{c.source}</Text>
+            <Text style={styles.muted}>{t("detail.howItWorks.basis")}</Text>
+            {foodGoal ? <Text style={styles.muted}>{t("detail.howItWorks.foodPrivacy")}</Text> : null}
+          </Disclosure>
         </Card>
 
         {me.deviceHint ? (
@@ -148,7 +159,7 @@ export default function ChallengeDetailScreen() {
           {detail.data.canJoin ? (
             <Button
               icon="enter-outline"
-              label="Gabung tantangan"
+              label={t("detail.join")}
               loading={join.isPending}
               onPress={() => join.mutate({ challengeId })}
             />
@@ -156,7 +167,7 @@ export default function ChallengeDetailScreen() {
           {share ? (
             <ShareStoryButton
               story={{ kind: "challenge", ...share }}
-              label="Bagikan hasil"
+              label={t("detail.share")}
               variant="secondary"
               disabled={c.status === "upcoming"}
             />
@@ -166,21 +177,21 @@ export default function ChallengeDetailScreen() {
               variant="ghost"
               destructive
               size="sm"
-              label="Keluar dari tantangan"
+              label={t("detail.leaveFull")}
               onPress={() => setConfirm("leave")}
             />
           ) : null}
         </View>
 
-        <SectionTitle title="Papan peringkat" />
+        <SectionTitle title={t("board.title")} />
         <View style={styles.legend}>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: theme.colors.primary }]} />
-            <Text style={styles.legendText}>Tercapai</Text>
+            <Text style={styles.legendText}>{t("board.legend.hit")}</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: theme.colors.bakar }]} />
-            <Text style={styles.legendText}>Tidak tercapai</Text>
+            <Text style={styles.legendText}>{t("board.legend.miss")}</Text>
           </View>
           <View style={styles.legendItem}>
             <View
@@ -189,30 +200,23 @@ export default function ChallengeDetailScreen() {
                 { borderWidth: 1.5, borderColor: theme.colors.mutedForeground },
               ]}
             />
-            <Text style={styles.legendText}>Belum diputuskan</Text>
+            <Text style={styles.legendText}>{t("board.legend.pending")}</Text>
           </View>
         </View>
 
         {leaderboard.length === 0 ? (
           <EmptyState
             icon="people-outline"
-            title="Belum ada peserta"
-            description="Gabung dulu supaya namamu muncul di papan peringkat."
+            title={t("board.empty.title")}
+            description={t("board.empty.body")}
           />
         ) : (
           <View style={styles.rows}>
             {leaderboard.map((member) => (
-              <LeaderboardRow key={member.userId} member={member} unit={spec.unit} />
+              <LeaderboardRow key={member.userId} member={member} unit={c.unit} />
             ))}
           </View>
         )}
-
-        <Text style={styles.muted}>
-          Label di tiap peserta menunjukkan asal datanya. Terverifikasi perangkat berasal dari
-          perangkat atau JoyoFit; Dari scan foto dan Dicatat manual berasal dari catatan peserta
-          sendiri.
-          {foodGoal ? " Angka makan peserta lain tidak ditampilkan, hanya tercapai atau tidak." : ""}
-        </Text>
 
         {c.canDelete ? (
           <Button
@@ -220,7 +224,7 @@ export default function ChallengeDetailScreen() {
             destructive
             size="sm"
             icon="trash-outline"
-            label="Hapus tantangan"
+            label={t("detail.remove")}
             onPress={() => setConfirm("remove")}
           />
         ) : null}
@@ -228,13 +232,17 @@ export default function ChallengeDetailScreen() {
         <ConfirmSheet
           visible={confirm !== null}
           onClose={() => setConfirm(null)}
-          title={confirm === "remove" ? "Hapus tantangan?" : "Keluar dari tantangan?"}
+          title={
+            confirm === "remove" ? t("detail.confirm.removeTitle") : t("detail.confirm.leaveTitle")
+          }
           message={
             confirm === "remove"
-              ? "Tantangan dan papan peringkatnya hilang untuk semua peserta."
-              : "Progresmu di tantangan ini tidak lagi tampil di papan peringkat."
+              ? t("detail.confirm.removeMessage")
+              : t("detail.confirm.leaveMessage")
           }
-          confirmLabel={confirm === "remove" ? "Hapus" : "Keluar"}
+          confirmLabel={
+            confirm === "remove" ? t("common:actions.delete") : t("detail.leave")
+          }
           loading={leave.isPending || remove.isPending}
           onConfirm={() => {
             if (confirm === "remove") remove.mutate({ challengeId });

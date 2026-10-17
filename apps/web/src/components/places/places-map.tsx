@@ -1,3 +1,4 @@
+import { i18n } from "@joyorogo/i18n";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef } from "react";
@@ -71,7 +72,7 @@ function pinElement(cluster: Cluster, onClick: () => void): HTMLButtonElement {
   const top = cluster.members[0]!;
   const label =
     cluster.members.length > 1
-      ? `${cluster.members.length} tempat makan di sekitar sini`
+      ? i18n.t("place:map.cluster", { n: cluster.members.length })
       : top.name;
   const button = document.createElement("button");
   button.type = "button";
@@ -111,7 +112,7 @@ function pinElement(cluster: Cluster, onClick: () => void): HTMLButtonElement {
 
 function youAreHere(): HTMLElement {
   const dot = document.createElement("div");
-  dot.setAttribute("aria-label", "Lokasimu");
+  dot.setAttribute("aria-label", i18n.t("place:map.you"));
   dot.className = "size-4 rounded-full border-[3px] border-white bg-[#2f6fed] shadow-float";
   return dot;
 }
@@ -154,9 +155,9 @@ export default function PlacesMap({
       // Inline preview: one finger scrolls the page, two fingers move the map.
       cooperativeGestures: cooperative,
       locale: {
-        "CooperativeGesturesHandler.WindowsHelpText": "Gunakan Ctrl + gulir untuk memperbesar peta",
-        "CooperativeGesturesHandler.MacHelpText": "Gunakan ⌘ + gulir untuk memperbesar peta",
-        "CooperativeGesturesHandler.MobileHelpText": "Gunakan dua jari untuk menggeser peta",
+        "CooperativeGesturesHandler.WindowsHelpText": i18n.t("place:map.gesture.windows"),
+        "CooperativeGesturesHandler.MacHelpText": i18n.t("place:map.gesture.mac"),
+        "CooperativeGesturesHandler.MobileHelpText": i18n.t("place:map.gesture.mobile"),
       },
       dragRotate: false,
       pitchWithRotate: false,
@@ -227,7 +228,7 @@ export default function PlacesMap({
     <div
       ref={host}
       role="application"
-      aria-label="Peta tempat makan"
+      aria-label={i18n.t("place:map.aria")}
       className={cn("size-full overflow-hidden bg-muted", className)}
     />
   );

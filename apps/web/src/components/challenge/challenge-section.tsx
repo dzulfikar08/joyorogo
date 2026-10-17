@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Flame, Plus, Trophy, Users } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { StatusChip } from "@/components/challenge/challenge-parts";
@@ -13,8 +14,9 @@ import { SectionTitle } from "@/components/kit/surface";
 import type { ChallengeSummary } from "@/lib/api-types";
 import { orpc } from "@/utils/orpc";
 
-/** Compact "Tantangan" block of the group screen: the group's challenges plus the host entry point. */
+/** Compact challenges block of the group screen: the group's challenges plus the host entry point. */
 export function ChallengeSection({ groupId }: { groupId: string }) {
+  const { t } = useTranslation("challenge");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
@@ -28,7 +30,7 @@ export function ChallengeSection({ groupId }: { groupId: string }) {
   const join = useMutation(
     orpc.challenge.join.mutationOptions({
       onSuccess: () => {
-        toast.success("Kamu ikut tantangan ini");
+        toast.success(t("toast.joined"));
         void queryClient.invalidateQueries({ queryKey: orpc.challenge.key() });
       },
       onError: (error) => toast.error(error.message),
@@ -54,7 +56,7 @@ export function ChallengeSection({ groupId }: { groupId: string }) {
   const full = canHost && openCount >= maxOpen;
 
   return (
-    <section className="mt-1 mb-5" aria-label="Tantangan grup">
+    <section className="mt-1 mb-5" aria-label={t("section.ariaLabel")}>
       <SectionTitle
         action={
           <Button
@@ -64,20 +66,19 @@ export function ChallengeSection({ groupId }: { groupId: string }) {
             onClick={() => (canHost ? setCreateOpen(true) : openPaywall())}
           >
             <Plus className="size-4" aria-hidden />
-            Buat tantangan
+            {t("section.create")}
           </Button>
         }
       >
-        Tantangan
+        {t("section.title")}
       </SectionTitle>
 
       {challenges.length === 0 ? (
         <div className="rounded-3xl bg-card px-5 py-5 text-center">
           <Trophy className="mx-auto size-6 text-muted-foreground" aria-hidden />
-          <p className="mt-2 text-[0.9375rem] font-bold">Belum ada tantangan</p>
-          <p className="mx-auto mt-1 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            Ajak tim adu langkah, protein, atau latihan. Pro yang membuat tantangan, semua
-            anggota ikut gratis.
+          <p className="mt-2 text-[0.9375rem] font-bold">{t("section.empty.title")}</p>
+          <p className="mx-auto mt-1 max-w-xs text-sm leading-snug text-muted-foreground">
+            {t("section.empty.body")}
           </p>
         </div>
       ) : (
@@ -96,7 +97,7 @@ export function ChallengeSection({ groupId }: { groupId: string }) {
 
       {full && (
         <p className="mt-2 px-1 text-xs text-muted-foreground">
-          Maksimal {maxOpen} tantangan berjalan per grup. Tunggu salah satunya selesai.
+          {t("section.full", { max: maxOpen })}
         </p>
       )}
 
@@ -121,6 +122,7 @@ function ChallengeCard({
   joining: boolean;
   onJoin: () => void;
 }) {
+  const { t } = useTranslation("challenge");
   const canJoin = !challenge.joined && challenge.status !== "ended";
   return (
     <div className="rounded-3xl bg-card p-4">
@@ -141,29 +143,29 @@ function ChallengeCard({
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.8125rem] text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <Users className="size-4" aria-hidden />
-            {challenge.participants} peserta
+            {t("card.participants", { count: challenge.participants })}
           </span>
           {challenge.joined && challenge.status !== "upcoming" && (
             <span className="font-semibold text-foreground tabular-nums">
               {challenge.judgedDays === 0
-                ? "Hari pertamamu berjalan"
-                : `${challenge.hitDays} dari ${challenge.judgedDays} hari`}
+                ? t("card.firstDay")
+                : t("card.progress", { hit: challenge.hitDays, judged: challenge.judgedDays })}
             </span>
           )}
           {challenge.joined && challenge.status === "upcoming" && (
-            <span className="font-semibold text-foreground">Kamu ikut</span>
+            <span className="font-semibold text-foreground">{t("card.joined")}</span>
           )}
           {challenge.joined && challenge.streak > 0 && (
             <span className="inline-flex items-center gap-1 font-semibold text-foreground tabular-nums">
               <Flame className="size-4 text-bakar" aria-hidden />
-              {challenge.streak} hari beruntun
+              {t("card.streak", { count: challenge.streak })}
             </span>
           )}
         </div>
       </Link>
       {canJoin && (
         <Button size="sm" className="mt-3 w-full" disabled={joining} onClick={onJoin}>
-          {joining ? "Bergabung..." : "Gabung"}
+          {joining ? t("card.joining") : t("card.join")}
         </Button>
       )}
     </div>

@@ -1,0 +1,104 @@
+{
+  "distance": {
+    "m": "{{value}} m",
+    "km": "{{value}} km"
+  },
+  "age": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "days_one": "{{count}} day ago",
+    "days_other": "{{count}} days ago",
+    "weeks_one": "{{count}} week ago",
+    "weeks_other": "{{count}} weeks ago",
+    "months_one": "{{count}} month ago",
+    "months_other": "{{count}} months ago",
+    "years_one": "{{count}} year ago",
+    "years_other": "{{count}} years ago"
+  },
+  "sort": {
+    "aria": "Sort places",
+    "frequent": "Most visited",
+    "recent": "Recent",
+    "nearest": "Nearest"
+  },
+  "list": {
+    "loading": "Loading places",
+    "loadError": "Couldn't load your places.",
+    "empty": {
+      "title": "No places yet",
+      "body": "Fill in the <b>Place</b> field when you log a plate and your favourite eateries will show up here.",
+      "bodyPlain": "Fill in the Place field when you log a plate and your favourite eateries will show up here."
+    }
+  },
+  "map": {
+    "aria": "Places map",
+    "enlarge": "Enlarge map",
+    "close": "Close map",
+    "fullscreenAria": "Full-screen places map",
+    "fullscreenTitle": "Places",
+    "cluster": "{{n}} places nearby",
+    "you": "Your location",
+    "offline": "The map needs internet. Try again later.",
+    "gesture": {
+      "windows": "Use Ctrl + scroll to zoom the map",
+      "mac": "Use ⌘ + scroll to zoom the map",
+      "mobile": "Use two fingers to move the map"
+    },
+    "empty": {
+      "title": "No saved locations yet",
+      "body": "Turn on “Save place location” below, then log a plate with a place name."
+    }
+  },
+  "card": {
+    "visits_one": "{{count}} visit",
+    "visits_other": "{{count}} visits",
+    "aria": "{{name}}, {{visits}}",
+    "favorite": "Most often:",
+    "average": "Avg {{price}}"
+  },
+  "detail": {
+    "averagePerPlate": "Avg {{price}} per plate",
+    "history": "History",
+    "historyAria": "Visit history",
+    "historyError": "Couldn't load this place's history.",
+    "relog": "Eat again",
+    "relogAria": "Eat {{name}} again",
+    "viewInDiary": "See {{name}} in the diary",
+    "showing": "Showing the latest {{shown}} of {{total}} visits.",
+    "loggedTo": "{{name}} logged to {{meal}}",
+    "location": {
+      "aria": "Location",
+      "title": "Saved location",
+      "body": "Only about 100 m accurate, and only you can see it. Deleting it doesn't change your food log.",
+      "clear": "Delete this place's location"
+    }
+  },
+  "privacy": {
+    "aria": "Place location",
+    "title": "About location",
+    "note": "Only you can see locations. They never show on your public profile or feed, and are deleted when you delete your data.",
+    "clearAll": "Delete all saved locations"
+  },
+  "toast": {
+    "locationCleared": "This place's location was deleted",
+    "allCleared": "All saved locations deleted",
+    "clearFailed": "Couldn't delete locations"
+  },
+  "toggle": {
+    "title": "Save place location",
+    "hint": {
+      "off": "Off by default. Only you can see it, and you can delete it any time.",
+      "locating": "Finding your location…",
+      "ready": "Got your location. Saved at about 100 m accuracy, only you can see it.",
+      "deniedWeb": "Location permission was denied in the browser. Allow it in site settings first.",
+      "deniedApp": "Location permission was denied. Allow it in the app settings first.",
+      "unavailable": "Couldn't get your location. The plate is still saved without it."
+    }
+  },
+  "server": {
+    "error": {
+      "plateNotFound": "Plate not found",
+      "plateEmpty": "This plate is empty"
+    }
+  }
+}

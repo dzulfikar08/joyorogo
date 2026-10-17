@@ -7,6 +7,7 @@ import { plate } from "@joyorogo/db/schema/plans";
 
 import { protectedProcedure } from "../index";
 import { jakartaToday, suggestMealNow } from "../lib/engine";
+import { serverT } from "../lib/messages";
 import { aggregatePlaces, normalizePlaceKey, visitsOfPlace } from "../lib/places";
 import type { PlaceVisitRow } from "../lib/places";
 import { dateSchema, mealSchema } from "../lib/schemas";
@@ -147,14 +148,17 @@ export const placeRouter = {
         .from(plate)
         .where(and(eq(plate.id, input.plateId), eq(plate.userId, userId)))
         .limit(1);
-      if (!source) throw new ORPCError("NOT_FOUND", { message: "Piring tidak ditemukan" });
+      const t = serverT(context.locale, "place");
+      if (!source) {
+        throw new ORPCError("NOT_FOUND", { message: t("server.error.plateNotFound") });
+      }
       const items = await context.db
         .select()
         .from(foodLog)
         .where(and(eq(foodLog.userId, userId), eq(foodLog.plateId, source.id)))
         .orderBy(asc(foodLog.createdAt));
       if (items.length === 0) {
-        throw new ORPCError("UNPROCESSABLE_CONTENT", { message: "Piring ini kosong" });
+        throw new ORPCError("UNPROCESSABLE_CONTENT", { message: t("server.error.plateEmpty") });
       }
       const date = input.date ?? jakartaToday();
       const meal = input.meal ?? suggestMealNow();

@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -15,6 +16,7 @@ export type ChallengeTiming = Pick<
 /** Status pill: upcoming (tidur), running (makan), ended (muted). */
 export function StatusChip({ challenge }: { challenge: ChallengeTiming }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("challenge");
   const tone =
     challenge.status === "active"
       ? { bg: theme.colors.makanSoft, fg: theme.colors.makanText }
@@ -23,7 +25,7 @@ export function StatusChip({ challenge }: { challenge: ChallengeTiming }) {
         : { bg: theme.colors.muted, fg: theme.colors.mutedForeground };
   return (
     <View style={[styles.chip, { backgroundColor: tone.bg }]}>
-      <Text style={[styles.chipText, { color: tone.fg }]}>{challengeStatusLabel(challenge)}</Text>
+      <Text style={[styles.chipText, { color: tone.fg }]}>{challengeStatusLabel(t, challenge)}</Text>
     </View>
   );
 }
@@ -41,12 +43,13 @@ export function ChallengeCard({
   onJoin: () => void;
 }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("challenge");
   const c = challenge;
   return (
     <Card>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Buka tantangan ${c.title}`}
+        accessibilityLabel={t("card.open", { title: c.title })}
         onPress={onOpen}
         style={({ pressed }) => pressed && styles.pressed}
       >
@@ -62,18 +65,18 @@ export function ChallengeCard({
 
         <View style={styles.metaRow}>
           <StatusChip challenge={c} />
-          <Text style={styles.meta}>{c.participants} peserta</Text>
+          <Text style={styles.meta}>{t("card.participants", { count: c.participants })}</Text>
         </View>
 
         {c.joined ? (
           <View style={styles.mine}>
             {c.status === "upcoming" ? (
-              <Text style={styles.mineText}>Kamu sudah ikut</Text>
+              <Text style={styles.mineText}>{t("card.joined")}</Text>
             ) : c.judgedDays === 0 ? (
-              <Text style={styles.mineText}>Belum ada hari yang dinilai</Text>
+              <Text style={styles.mineText}>{t("card.firstDay")}</Text>
             ) : (
               <Num style={styles.mineText}>
-                {c.hitDays} dari {c.judgedDays} hari
+                {t("card.progress", { hit: c.hitDays, judged: c.judgedDays })}
               </Num>
             )}
             {c.streak > 0 ? (
@@ -88,7 +91,7 @@ export function ChallengeCard({
 
       {!c.joined && c.status !== "ended" ? (
         <View style={styles.actions}>
-          <Button size="sm" icon="enter-outline" label="Gabung" loading={joining} onPress={onJoin} />
+          <Button size="sm" icon="enter-outline" label={t("card.join")} loading={joining} onPress={onJoin} />
         </View>
       ) : null}
     </Card>

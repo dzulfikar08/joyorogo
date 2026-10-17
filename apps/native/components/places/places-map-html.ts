@@ -27,6 +27,12 @@ export type MapColors = {
   primaryForeground: string;
 };
 
+/** Words rendered inside the page; `cluster` carries a `%N%` placeholder for the pin count. */
+export type MapLabels = { offline: string; cluster: string };
+
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
 /** Messages the page posts back to React Native. */
 export type MapMessage = { type: "select"; key: string } | { type: "error" };
 
@@ -39,6 +45,7 @@ export function buildMapHtml(input: {
   dark: boolean;
   interactive: boolean;
   colors: MapColors;
+  labels: MapLabels;
 }): string {
   const { colors } = input;
   return `<!doctype html>
@@ -58,13 +65,14 @@ export function buildMapHtml(input: {
   .maplibregl-ctrl-attrib{background:${colors.card}d9 !important;color:${colors.mutedForeground} !important}
   .maplibregl-ctrl-attrib a{color:${colors.mutedForeground} !important}
 </style></head>
-<body><div id="map"></div><div id="offline">Peta butuh internet. Coba lagi nanti.</div>
+<body><div id="map"></div><div id="offline">${escapeHtml(input.labels.offline)}</div>
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js"></script>
 <script>
 (function () {
   var PINS = ${inlineJson(input.pins)};
   var ORIGIN = ${inlineJson(input.origin)};
   var INTERACTIVE = ${input.interactive ? "true" : "false"};
+  var CLUSTER_LABEL = ${inlineJson(input.labels.cluster)};
   function post(message) {
     if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify(message));
   }
@@ -113,7 +121,7 @@ export function buildMapHtml(input: {
     var top = c.members[0];
     var el = document.createElement("button");
     el.className = "pin";
-    el.setAttribute("aria-label", c.members.length > 1 ? c.members.length + " tempat makan" : top.name);
+    el.setAttribute("aria-label", c.members.length > 1 ? CLUSTER_LABEL.replace("%N%", String(c.members.length)) : top.name);
     if (top.stickerUrl) {
       var img = document.createElement("img");
       img.src = top.stickerUrl;
