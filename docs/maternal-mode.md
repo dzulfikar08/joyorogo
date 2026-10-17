@@ -60,8 +60,9 @@ months (0-5 first, 6+ second).
 **Flagged where the source has no figure**
 - Twins: AKG has no twin addition. The singleton pregnancy addition is used and the UI says so
   (`TWINS_ENERGY`); no extra kcal is invented.
-- Partial breastfeeding: AKG has no figure; half of the AKG addition (rounded to 5) is our estimate and is
-  flagged `PARTIAL_ESTIMATE`.
+- Partial breastfeeding: AKG has no figure; the full AKG addition is used as the estimate (decided by the
+  lead: under-feeding a nursing mother is the worse error) and flagged `PARTIAL_ESTIMATE`. The exclusive/partial
+  answer only drives that note.
 - Baby older than 12 months: AKG stops at 12; the second-period figures keep applying (`BABY_OVER_12`).
 - Nutrients our food data cannot track (food logs carry kcal, protein, carbs, fat, fibre; water has its own
   log): besi, folat, kalsium, iodium, vitamin A, DHA are shown as "perhatikan" guidance, not progress.

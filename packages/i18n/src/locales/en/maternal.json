@@ -244,7 +244,7 @@
   },
   "notes": {
     "TWINS_ENERGY": "Twin pregnancy: AKG has no twin-specific addition, so we use the singleton pregnancy figure. You may need more; ask your doctor or dietitian.",
-    "PARTIAL_ESTIMATE": "Partial breastfeeding: AKG has no figure of its own. We use half of the AKG addition as an estimate.",
+    "PARTIAL_ESTIMATE": "Partial breastfeeding: AKG has no figure of its own. We use the full AKG addition as an estimate; your need may be a little lower if your baby also has formula or solids. Ask your doctor or midwife if you're unsure.",
     "OVERDUE": "Your HPHT is more than 42 weeks ago. Please check the date, or choose Had my baby if your baby has been born.",
     "BABY_OVER_12": "AKG only covers babies up to 12 months. We keep using the month 7 to 12 figures.",
     "TWINS_UNDERWEIGHT": "For twins with an underweight start, IOM has no official range. We show the normal-weight twin range as a reference; ask your doctor.",

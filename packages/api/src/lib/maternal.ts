@@ -256,8 +256,6 @@ export function resolveMaternalInput(
 export const AKG_PREGNANCY_KCAL: Record<Trimester, number> = { 1: 180, 2: 300, 3: 300 };
 /** Menyusui (+an) energi, kkal: "6 bln pertama", "6 bln kedua". */
 export const AKG_LACTATION_KCAL = { first: 330, second: 400 } as const;
-/** Partial breastfeeding: our own estimate (half of the AKG addition); AKG has no partial figure. */
-export const PARTIAL_FEEDING_SHARE = 0.5;
 
 export type Lactation = "first" | "second";
 
@@ -279,7 +277,7 @@ export function maternalStage(state: MaternalState, today: string = jakartaToday
   return null;
 }
 
-/** The AKG energy addition for a stage (before the partial-feeding scale). */
+/** The AKG energy addition for a stage. */
 export function akgEnergyAddition(stage: MaternalStage): number {
   switch (stage) {
     case "t1":
@@ -601,7 +599,7 @@ export function weightGainChart(input: {
 /**
  * Things the clients explain next to the numbers. Flags never block anything.
  *  TWINS_ENERGY      twins: AKG has no twin figure; the singleton addition is used, ask the doctor/dietitian
- *  PARTIAL_ESTIMATE  partial breastfeeding: half of the AKG addition is our estimate
+ *  PARTIAL_ESTIMATE  partial breastfeeding: AKG has no figure; the full AKG addition is used as an estimate
  *  OVERDUE           HPHT is more than 42 weeks back: review the date or end the mode
  *  BABY_OVER_12      AKG stops at 12 months; the second-period figures keep applying
  *  TWINS_UNDERWEIGHT no IOM twin range for an underweight start; the normal range is shown
@@ -626,10 +624,8 @@ export type MaternalInfo = {
   babyMonths: number | null;
   /** maintenance TDEE on the pre-pregnancy basis (the number before the addition) */
   baseKcal: number;
-  /** what the target adds to baseKcal */
+  /** the AKG addition of the stage; added to baseKcal to make the target */
   addKcal: number;
-  /** the AKG figure for the stage, before the partial-feeding scale */
-  akgAddKcal: number;
   nutrients: MaternalNutrient[];
   weightGain: WeightGainPlan | null;
   conditions: MaternalCondition[];
@@ -669,10 +665,10 @@ export function computeMaternalTargets(
         ? "bf1"
         : "bf2";
 
-  const akgAdd = akgEnergyAddition(stage);
-  const partial = state.mode === "breastfeeding" && state.feedingType === "partial";
-  const add = partial ? round5(akgAdd * PARTIAL_FEEDING_SHARE) : akgAdd;
-  if (partial) flags.push("PARTIAL_ESTIMATE");
+  const add = akgEnergyAddition(stage);
+  // AKG has no figure for partial breastfeeding: the full addition stands in (under-feeding a
+  // nursing mother is the worse error) and the note says it is an estimate.
+  if (state.mode === "breastfeeding" && state.feedingType === "partial") flags.push("PARTIAL_ESTIMATE");
   if (state.twins && state.mode === "pregnant") flags.push("TWINS_ENERGY");
   if (gestation?.overdue) flags.push("OVERDUE");
   if (babyMonths !== null && babyMonths >= 12) flags.push("BABY_OVER_12");
@@ -706,7 +702,6 @@ export function computeMaternalTargets(
       babyMonths,
       baseKcal,
       addKcal: add,
-      akgAddKcal: akgAdd,
       nutrients: maternalNutrients(stage, age),
       weightGain,
       conditions: state.conditions,

@@ -193,14 +193,16 @@ describe("energy: maintenance on the pre-pregnancy basis + AKG 2019 addition", (
     expect(computeMaternalTargets(profile, breastfeeding(11), { today: TODAY }).eatKcal).toBe(base + 400);
   });
 
-  test("partial breastfeeding is half the AKG addition and is flagged as our estimate", () => {
-    const t = computeMaternalTargets(profile, breastfeeding(2, { feedingType: "partial" }), { today: TODAY });
-    expect(t.maternal?.addKcal).toBe(165);
-    expect(t.maternal?.akgAddKcal).toBe(330);
-    expect(t.eatKcal).toBe(base + 165);
-    expect(t.maternal?.flags).toContain("PARTIAL_ESTIMATE");
+  test("partial breastfeeding gets the full AKG addition and is flagged as an estimate", () => {
+    const partial = computeMaternalTargets(profile, breastfeeding(2, { feedingType: "partial" }), { today: TODAY });
     const exclusive = computeMaternalTargets(profile, breastfeeding(2), { today: TODAY });
+    expect(partial.maternal?.addKcal).toBe(330);
+    expect(partial.eatKcal).toBe(base + 330);
+    expect(partial.eatKcal).toBe(exclusive.eatKcal);
+    expect(partial.maternal?.flags).toContain("PARTIAL_ESTIMATE");
     expect(exclusive.maternal?.flags).not.toContain("PARTIAL_ESTIMATE");
+    const second = computeMaternalTargets(profile, breastfeeding(8, { feedingType: "partial" }), { today: TODAY });
+    expect(second.maternal?.addKcal).toBe(400);
   });
 
   test("breastfeeding without a pre-pregnancy weight uses today's weight", () => {
