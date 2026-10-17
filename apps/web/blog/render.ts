@@ -11,6 +11,7 @@ import { Marked } from "marked";
 
 import { OG_IMAGE, PAGES } from "../src/lib/seo.ts";
 import { ANDROID_ROBOT_PATH, ANDROID_ROBOT_VIEWBOX } from "../src/lib/android-robot.ts";
+import { APPLE_LOGO_PATH, APPLE_LOGO_VIEWBOX } from "../src/lib/apple-logo.ts";
 import { ANDROID_ROBOT_CREDIT } from "../src/lib/credits.ts";
 import { JOYOROGO_TESTFLIGHT_URL } from "../src/lib/testflight.ts";
 import { ogImageTags, PUBLIC_PATHS, type ShareImage } from "./pages.ts";
@@ -62,9 +63,9 @@ export type Post = {
 
 const POSTS_DIR = join(import.meta.dirname, "posts");
 const SOURCE_URL = "https://github.com/dzulfikar08/joyorogo";
-/** Inline icons for the static pages: the official Android robot head (src/lib/android-robot.ts) and lucide's Smartphone. */
+/** Inline icons for the static pages: the official Android robot head (src/lib/android-robot.ts) and the Apple logo (src/lib/apple-logo.ts). */
 const ANDROID_ICON = `<svg viewBox="${ANDROID_ROBOT_VIEWBOX}" aria-hidden="true" focusable="false" class="size-4 shrink-0"><path fill="currentColor" fill-rule="evenodd" d="${ANDROID_ROBOT_PATH}"/></svg>`;
-const PHONE_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" class="size-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>`;
+const APPLE_ICON = `<svg viewBox="${APPLE_LOGO_VIEWBOX}" aria-hidden="true" focusable="false" class="size-4 shrink-0"><path fill="currentColor" d="${APPLE_LOGO_PATH}"/></svg>`;
 const TKPI_NOTE =
   "Sumber angka: Tabel Komposisi Pangan Indonesia (TKPI) 2019, Kementerian Kesehatan RI. Nilai per 100 g bagian yang dapat dimakan. Berat porsi di artikel ini contoh, porsimu bisa berbeda.";
 
@@ -408,7 +409,7 @@ ${opts.main}
           <a href="/blog/" class="inline-flex min-h-11 items-center hover:text-primary">Blog</a>
           <a href="/privasi" class="inline-flex min-h-11 items-center hover:text-primary">Privasi</a>
           <a href="${esc(cfg.apkUrl)}" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${ANDROID_ICON}Unduh Android</a>
-          <a href="${JOYOROGO_TESTFLIGHT_URL}" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${PHONE_ICON}iPhone (TestFlight)</a>
+          <a href="${JOYOROGO_TESTFLIGHT_URL}" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${APPLE_ICON}iPhone (TestFlight)</a>
           <a href="${SOURCE_URL}" class="inline-flex min-h-11 items-center hover:text-primary">Kode sumber</a>
         </nav>
         <p class="text-muted-foreground">Artikel di blog ini informasi umum, bukan pengganti saran dokter atau ahli gizi.</p>
@@ -443,7 +444,7 @@ function ctaCard(cfg: BlogConfig): string {
         <div class="mt-4 flex flex-wrap gap-2">
           <a href="/login" data-revklik-goal="signup_click" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 ${FOCUS}">Coba gratis</a>
           <a href="/#coba" data-revklik-goal="try_scan_click" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">Coba scan tanpa daftar</a>
-          <a href="/?pasang=iphone" data-revklik-goal="ios_cta_click" data-revklik-goal-location="blog" class="${ON_ANDROID_HIDE} inline-flex min-h-11 items-center gap-2 rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">${PHONE_ICON}Buka di iPhone</a>
+          <a href="/?pasang=iphone" data-revklik-goal="ios_cta_click" data-revklik-goal-location="blog" class="${ON_ANDROID_HIDE} inline-flex min-h-11 items-center gap-2 rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">${APPLE_ICON}Buka di iPhone</a>
           <a href="${esc(cfg.apkUrl)}" data-revklik-goal="apk_download" data-revklik-goal-location="blog" class="${ON_IOS_SECONDARY} inline-flex min-h-11 items-center gap-2 rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">${ANDROID_ICON}Unduh untuk Android</a>
         </div>
       </aside>`;

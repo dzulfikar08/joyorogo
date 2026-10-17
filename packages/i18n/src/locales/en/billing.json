@@ -85,6 +85,9 @@
   },
   "promo": {
     "headline": "Pro intro price: {{price}}/month",
+    "eyebrow": "Pro intro price",
+    "perMonth": "/month",
+    "wasPrice": "Regular price {{price}}",
     "slots_one": "For the first {{total}} buyers. <b>{{left}}</b> spot left.",
     "slots_other": "For the first {{total}} buyers. <b>{{left}}</b> spots left.",
     "progress_one": "{{left}} of {{total}} intro-price spots left",

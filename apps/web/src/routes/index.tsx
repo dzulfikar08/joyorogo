@@ -15,7 +15,6 @@ import {
   Radar,
   Trash2,
   Watch,
-  Smartphone,
 } from "lucide-react";
 
 import { Button } from "@joyorogo/ui/components/button";
@@ -23,6 +22,7 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { Ring, type Metric } from "@/components/kit/ring";
 import { AppDownload } from "@/components/app-download";
 import { AndroidMark } from "@/components/android-mark";
+import { AppleMark } from "@/components/apple-mark";
 import { ScanDemo } from "@/components/landing/scan-demo";
 import { GroupPeek, HeroPhone, ScanExample, WeightTrendDemo } from "@/components/landing/visuals";
 import { GITHUB_URL, GithubMark, PublicHeader } from "@/components/public-header";
@@ -152,7 +152,7 @@ function InstallApp() {
                 tab === id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {id === "android" ? <AndroidMark className="mr-2 size-[1.125rem]" /> : <Smartphone aria-hidden className="mr-2 size-[1.125rem]" />}
+              {id === "android" ? <AndroidMark className="mr-2 size-[1.125rem]" /> : <AppleMark className="mr-2 size-[1.125rem]" />}
               {label}
             </button>
           ))}
@@ -254,7 +254,7 @@ function InstallApp() {
                       />
                     }
                   >
-                    <Smartphone aria-hidden />
+                    <AppleMark />
                     Buka TestFlight
                   </Button>
                 </div>
@@ -427,7 +427,9 @@ function Landing() {
 
         {/* Founder intro price, while slots last — after the hero so the
             promise leads and the price tag follows. */}
-        <FounderPromo className="mx-auto w-full max-w-6xl px-4 pb-8 md:px-6 md:pb-10" />
+        <div className="mx-auto w-full max-w-6xl px-4 pb-8 md:px-6 md:pb-10">
+          <FounderPromo className="mx-auto max-w-3xl" />
+        </div>
 
         {/* Facts strip */}
         <section aria-label="Fakta singkat" className="border-y border-border/70 bg-card">
@@ -936,7 +938,7 @@ function Landing() {
                     data-revklik-goal-location="faq"
                     onClick={() => openIosInstall("faq")}
                   >
-                    <Smartphone aria-hidden />
+                    <AppleMark />
                     Lihat caranya
                   </Button>
                 )}

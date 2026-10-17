@@ -83,6 +83,9 @@
   },
   "promo": {
     "headline": "Harga perkenalan Pro: {{price}}/bulan",
+    "eyebrow": "Harga perkenalan Pro",
+    "perMonth": "/bulan",
+    "wasPrice": "Harga normal {{price}}",
     "slots_other": "Untuk {{total}} pembeli pertama, sisa <b>{{left}}</b> slot.",
     "progress_other": "{{left}} dari {{total}} slot harga perkenalan tersisa",
     "details": "Rincian harga",

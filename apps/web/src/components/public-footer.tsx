@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { ShieldCheck, Smartphone } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 import { AndroidMark } from "@/components/android-mark";
+import { AppleMark } from "@/components/apple-mark";
 import { ANDROID_ROBOT_CREDIT } from "@/lib/credits";
 import { PLAY_STORE_URL, useAppConfig } from "@/lib/app-config";
 import { IOS_TESTFLIGHT_LIVE, JOYOROGO_TESTFLIGHT_URL } from "@/lib/testflight";
@@ -57,7 +58,7 @@ export function PublicFooter() {
               data-revklik-goal-location="footer"
               className="inline-flex min-h-11 items-center gap-1.5 hover:text-primary"
             >
-              <Smartphone className="size-4" aria-hidden />
+              <AppleMark className="size-4" />
               iPhone (TestFlight)
             </a>
           )}

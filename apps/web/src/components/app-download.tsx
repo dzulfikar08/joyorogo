@@ -1,8 +1,8 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
-import { Smartphone } from "lucide-react";
 
 import { AndroidMark } from "@/components/android-mark";
+import { AppleMark } from "@/components/apple-mark";
 
 import { TESTER_SECTION_HREF } from "@/lib/app-config";
 import { openIosInstall } from "@/lib/ios-install";
@@ -80,7 +80,7 @@ export function AppDownload({
         />
       }
     >
-      <Smartphone aria-hidden />
+      <AppleMark />
       {iphoneLabel}
     </Button>
   ) : (
@@ -92,7 +92,7 @@ export function AppDownload({
       data-revklik-goal-location={location}
       onClick={() => openIosInstall(location)}
     >
-      <Smartphone aria-hidden />
+      <AppleMark />
       {iphoneLabel}
     </Button>
   );
