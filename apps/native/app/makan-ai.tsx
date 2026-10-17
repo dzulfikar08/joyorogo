@@ -359,7 +359,7 @@ export default function MakanAi() {
   const [feedbackAnswered, setFeedbackAnswered] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState<"kurang_akurat" | "salah" | null>(null);
   const [feedbackReasons, setFeedbackReasons] = useState<
-    Array<(typeof FEEDBACK_REASONS)[number][0]>
+    Array<(typeof FEEDBACK_REASONS)[number]>
   >([]);
   const [feedbackNote, setFeedbackNote] = useState("");
   // Item kind: the AI's call, or what the user tapped on the row. Advice only.
@@ -648,7 +648,7 @@ export default function MakanAi() {
   // Fire-and-forget: feedback failures must never block the scan flow.
   const sendFeedback = (
     rating: "akurat" | "kurang_akurat" | "salah" | "dilewati",
-    reasons?: Array<(typeof FEEDBACK_REASONS)[number][0]>,
+    reasons?: Array<(typeof FEEDBACK_REASONS)[number]>,
     note?: string,
   ) => {
     if (!photoId) return;
