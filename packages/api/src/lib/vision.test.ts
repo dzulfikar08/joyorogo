@@ -8,6 +8,7 @@ import {
   runVisionOnce,
   salvageItems,
   VisionError,
+  visionPrompt,
   visionResultSchema,
   type AiRunner,
   type ScheduleTimeout,
@@ -518,5 +519,33 @@ describe("streaming scan", () => {
     });
     expect(events[0]).toEqual({ type: "name", index: 0, name: "Fried rice" });
     expect(result.items[0]?.name).toBe("Fried rice");
+  });
+});
+
+describe("promptTransform (eval hook)", () => {
+  function promptSeen(opts: Parameters<typeof analyzeFoodPhoto>[1]) {
+    const seen: string[] = [];
+    const ai: AiRunner = {
+      run: (_model, input) => {
+        const content = (input as { messages: Array<{ content: Array<{ text?: string }> }> })
+          .messages[0]!.content;
+        seen.push(content[0]!.text ?? "");
+        return Promise.resolve({ response: JSON.stringify(PLATE) });
+      },
+    };
+    return analyzeFoodPhoto(ai, opts).then(() => seen[0]!);
+  }
+
+  test("unset: the prompt is exactly the shipped one", async () => {
+    expect(await promptSeen(OPTS)).toBe(visionPrompt());
+  });
+
+  test("set: rewrites the base prompt; a retry instruction still follows it", async () => {
+    const text = await promptSeen({
+      ...OPTS,
+      retry: {},
+      promptTransform: (base) => `${base}\nCatatan eval.`,
+    });
+    expect(text.startsWith(`${visionPrompt()}\nCatatan eval.\n\nKoreksi:`)).toBe(true);
   });
 });

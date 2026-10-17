@@ -8,6 +8,7 @@ import {
   foodLog,
   profile,
   scanCorrection,
+  scanFeedback,
   sleepLog,
   stravaAccount,
   varScan,
@@ -35,6 +36,7 @@ import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 
 import { avatarPrefix } from "./avatar";
 import { datasetPrefix } from "./dataset";
+import { feedbackPrefix } from "./feedback-keep";
 import { photoPrefix, postPhotoPrefix, scanSrcPrefix, stickerKey, varPhotoPrefix } from "./sticker";
 import { parseSavedItems } from "./saved-foods";
 import type { StickersBucket } from "./sticker";
@@ -74,6 +76,8 @@ export async function deleteUserMedia(
     scanSrcPrefix(userId),
     // Internal accuracy dataset (allowlisted accounts only): "delete on request".
     datasetPrefix(userId),
+    // Photos the user opted in to keep with negative feedback.
+    feedbackPrefix(userId),
   ]) {
     let cursor: string | undefined;
     do {
@@ -130,6 +134,8 @@ export function deleteAllUserData(db: Database, userId: string) {
     db.delete(aiUsage).where(eq(aiUsage.userId, userId)),
     // userId is nullable (anon scans) but scoped wipes only ever match rows.
     db.delete(scanCorrection).where(eq(scanCorrection.userId, userId)),
+    // Ratings and notes the user wrote on scan results.
+    db.delete(scanFeedback).where(eq(scanFeedback.userId, userId)),
     db.delete(emailLog).where(eq(emailLog.userId, userId)),
   ]);
 }

@@ -52,6 +52,8 @@ async function seedUserData(userId: string, tag: string) {
        VALUES ('p1-${userId}', '${userId}', '2026-09-01', 'sarapan', 'nasi goreng', 'warung', -7.984, 112.63);
      INSERT INTO scan_correction (id, user_id, source, meal, dish_name, ai_kcal, saved_kcal)
        VALUES ('sc1-${userId}', '${userId}', 'web', 'sarapan', 'nasi goreng', 500, 480);
+     INSERT INTO scan_feedback (id, user_id, photo_id, rating, reasons_json, note, source)
+       VALUES ('sf1-${userId}', '${userId}', 'photo', 'kurang_akurat', '["keep_photo"]', 'siomay', 'web');
      INSERT INTO ai_usage (id, user_id, model, scan_type, latency_ms)
        VALUES ('ai1-${userId}', '${userId}', 'test-model', 'user', 900);`,
   );
@@ -70,6 +72,7 @@ const FITNESS_TABLES = [
   "daily_activity",
   "ai_usage",
   "scan_correction",
+  "scan_feedback",
 ];
 
 async function count(table: string, userId?: string): Promise<number> {

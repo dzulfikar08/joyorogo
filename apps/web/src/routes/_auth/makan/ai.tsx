@@ -45,6 +45,7 @@ import { Button, buttonVariants } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
+import { Checkbox } from "@joyorogo/ui/components/checkbox";
 import {
   Card,
   FieldLabel,
@@ -370,13 +371,14 @@ function AiFoodPage() {
   const retryAbortRef = useRef<AbortController | null>(null);
   // "Hasilnya akurat?" — shown when the server asks (every scan for the
   // first 3, then once per WIB day). Never blocks saving; answering or
-  // dismissing hides the card, and a "Hitung ulang" tap logs kurang_akurat.
+  // dismissing hides the card; "Hitung ulang" is logged server-side as a retry.
   const [model, setModel] = useState<string | null>(null);
   const [askFeedback, setAskFeedback] = useState(false);
   const [feedbackAnswered, setFeedbackAnswered] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState<"kurang_akurat" | "salah" | null>(null);
   const [feedbackReasons, setFeedbackReasons] = useState<FeedbackReason[]>([]);
   const [feedbackNote, setFeedbackNote] = useState("");
+  const [feedbackKeepPhoto, setFeedbackKeepPhoto] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   // Price attaches to the whole plate, not per item: one number per photo.
   const [plateName, setPlateName] = useState("");
@@ -681,6 +683,7 @@ function AiFoodPage() {
       setFeedbackRating(null);
       setFeedbackReasons([]);
       setFeedbackNote("");
+      setFeedbackKeepPhoto(false);
       setRetryCount(0);
       // Prefill the price form from the last time this plate was bought.
       const defaultName = result.items[0]?.name ?? "";
@@ -820,6 +823,7 @@ function AiFoodPage() {
     setFeedbackRating(null);
     setFeedbackReasons([]);
     setFeedbackNote("");
+    setFeedbackKeepPhoto(false);
     setRetryCount(0);
     if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (galleryInputRef.current) galleryInputRef.current.value = "";
@@ -830,6 +834,7 @@ function AiFoodPage() {
     rating: "akurat" | "kurang_akurat" | "salah" | "dilewati",
     reasons?: FeedbackReason[],
     note?: string,
+    keepPhoto?: boolean,
   ) => {
     if (!photoId) return;
     void client.ai
@@ -841,6 +846,9 @@ function AiFoodPage() {
         ...(note?.trim() ? { note: note.trim() } : {}),
         ...(model ? { model } : {}),
         afterRetry: retryCount > 0,
+        ...(keepPhoto && (rating === "kurang_akurat" || rating === "salah")
+          ? { keepPhoto: true }
+          : {}),
       })
       .catch(() => {});
   };
@@ -850,11 +858,6 @@ function AiFoodPage() {
   // stays visible until the new items land; on failure it stays for good.
   const retryAnalysis = async () => {
     if (!image || !photoId || retrying || retriesLeft <= 0) return;
-    // The tap itself is an implicit "kurang akurat" verdict on this result.
-    if (askFeedback && !feedbackAnswered) {
-      sendFeedback("kurang_akurat");
-      setFeedbackAnswered(true);
-    }
     setRetryError(null);
     setRetrying(true);
     const controller = new AbortController();
@@ -1208,11 +1211,26 @@ function AiFoodPage() {
                   placeholder={t("feedback.notePlaceholder")}
                   autoComplete="off"
                 />
+                <label className="flex cursor-pointer items-start gap-2.5">
+                  <Checkbox
+                    className="mt-0.5"
+                    checked={feedbackKeepPhoto}
+                    onCheckedChange={(checked) => setFeedbackKeepPhoto(checked === true)}
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-xs font-semibold">
+                      {t("feedback.keepPhoto.label")}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {t("feedback.keepPhoto.hint")}
+                    </span>
+                  </span>
+                </label>
                 <div className="flex gap-2">
                   <Button
                     size="sm"
                     onClick={() => {
-                      sendFeedback(feedbackRating, feedbackReasons, feedbackNote);
+                      sendFeedback(feedbackRating, feedbackReasons, feedbackNote, feedbackKeepPhoto);
                       setFeedbackAnswered(true);
                     }}
                   >

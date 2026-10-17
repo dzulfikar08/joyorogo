@@ -50,6 +50,18 @@ import {
   recordRetry,
   recordScan,
 } from "../lib/dataset";
+import { keepFeedbackPhoto } from "../lib/feedback-keep";
+import {
+  FEEDBACK_MARK,
+  buildFeedbackReasons,
+  compactItems,
+  loadSession,
+  markRetryTapFeedback,
+  markSessionKeep,
+  recordSessionCorrection,
+  recordSessionRetry,
+  retryJustRan,
+} from "../lib/scan-outcome";
 import {
   CorrectionError,
   DEFAULT_CORRECT_MODEL,
@@ -308,6 +320,10 @@ async function runAnalyzeFood(
   // insert is bookkeeping the user never sees, so it runs after the
   // response instead of adding a DB roundtrip to the critical path.
   const ledgerId = crypto.randomUUID();
+  // The scan session key: the photo id the clients carry through retry,
+  // correction, feedback and the diary save. The R2 put ran beside the model
+  // call, so this wait is normally already over.
+  const storedPhotoId = await photoStored;
   const serverTiming = {
     ...(receiveMs !== undefined ? { receiveMs } : {}),
     quotaMs,
@@ -324,6 +340,8 @@ async function runAnalyzeFood(
     ...(analysis.modelTooMany ? { modelTooMany: true } : {}),
     serverTiming,
     ...(input.clientTiming ? { clientTiming: input.clientTiming } : {}),
+    // Implicit outcome labels (lib/scan-outcome.ts) build on these two.
+    ...(storedPhotoId ? { photoId: storedPhotoId, aiItems: compactItems(analysis.items) } : {}),
   };
   const ledger = context.db
     .insert(aiUsage)
@@ -406,14 +424,12 @@ async function runAnalyzeFood(
           const stickerTiming = { responseMs, ...timing };
           console.log("[sticker]", JSON.stringify(stickerTiming));
           if (!inserted) return;
+          // json_set, not a rewrite: the session fields (retries, saved...) may
+          // already be in this row by now.
           await context.db
             .update(aiUsage)
             .set({
-              usageJson: JSON.stringify({
-                ...ledgerUsage,
-                serverTiming: { ...serverTiming, responseMs },
-                stickerTiming,
-              }),
+              usageJson: sql`json_set(coalesce(${aiUsage.usageJson}, '{}'), '$.serverTiming', json(${JSON.stringify({ ...serverTiming, responseMs })}), '$.stickerTiming', json(${JSON.stringify(stickerTiming)}))`,
             })
             .where(eq(aiUsage.id, ledgerId));
         })
@@ -564,6 +580,18 @@ export const aiRouter = {
           }),
         }),
       ]);
+      // Implicit outcome: this scan session was retried. Old clients also sent
+      // an implicit kurang_akurat with the tap: mark it so it is not an explicit rating.
+      context.waitUntil(
+        Promise.all([
+          recordSessionRetry(context.db, userId, input.photoId, {
+            model: analysis.model,
+            hint: input.hint,
+            items: analysis.items,
+          }),
+          markRetryTapFeedback(context.db, userId, input.photoId),
+        ]).catch((error: unknown) => console.error("[ai] retry outcome failed", error)),
+      );
       if (datasetEnabled(context.env, userId)) {
         context.waitUntil(
           recordRetry(bucket, userId, input.photoId, {
@@ -660,6 +688,9 @@ export const aiRouter = {
         note: z.string().trim().min(1).max(300).optional(),
         // True when the rated result came from a "Hitung ulang" pass.
         afterRetry: z.boolean().optional(),
+        // Opt-in ("Boleh simpan foto ini untuk bantu memperbaiki AI"): honored
+        // only with a negative rating; keeps the photo + meta under feedback/.
+        keepPhoto: z.boolean().optional(),
         model: z.string().max(100).optional(),
         source: z.enum(["web", "native"]),
       }),
@@ -676,17 +707,63 @@ export const aiRouter = {
           }),
         );
       }
+      const negative = input.rating === "kurang_akurat" || input.rating === "salah";
+      const keepPhoto = negative && input.keepPhoto === true;
+      const afterRetry = input.afterRetry ?? false;
+      // The session behind the rating: what the AI said, and (old clients) a
+      // retry that already ran. Only read when something needs it.
+      const session =
+        keepPhoto || (input.rating === "kurang_akurat" && !afterRetry)
+          ? await loadSession(context.db, userId, input.photoId)
+          : null;
+      // Old clients rate kurang_akurat (nothing else) on the "Hitung ulang"
+      // tap; the retry was recorded first, so this row is that tap.
+      const retryTap =
+        input.rating === "kurang_akurat" &&
+        !afterRetry &&
+        !input.reasons?.length &&
+        !input.note &&
+        !keepPhoto &&
+        retryJustRan(session?.session);
+      const marks = [
+        ...(retryTap ? [FEEDBACK_MARK.retryTap] : []),
+        ...(keepPhoto ? [FEEDBACK_MARK.keepPhoto] : []),
+      ];
       await context.db.insert(scanFeedback).values({
         id: crypto.randomUUID(),
         userId,
         photoId: input.photoId,
         rating: input.rating,
-        reasonsJson: input.reasons?.length ? JSON.stringify(input.reasons) : null,
+        reasonsJson: buildFeedbackReasons(input.reasons ?? [], marks),
         note: input.note,
-        afterRetry: input.afterRetry ?? false,
+        afterRetry,
         model: input.model,
         source: input.source,
       });
+      if (keepPhoto && bucket) {
+        const ai = session?.session;
+        context.waitUntil(
+          (async () => {
+            await keepFeedbackPhoto(bucket, {
+              version: 1,
+              photoId: input.photoId,
+              userId,
+              createdAt: new Date().toISOString(),
+              source: input.source,
+              ...(input.model ? { model: input.model } : {}),
+              rating: input.rating as "kurang_akurat" | "salah",
+              reasons: input.reasons ?? [],
+              ...(input.note ? { note: input.note } : {}),
+              afterRetry,
+              aiItems: ai?.aiItems ?? [],
+              ...(ai?.retryItems ? { retryItems: ai.retryItems } : {}),
+              ...(ai?.savedItems ? { savedItems: ai.savedItems, savedAt: ai.savedAt } : {}),
+            });
+            // The save may follow later: addScan sees `keep` and completes the meta.
+            await markSessionKeep(context.db, userId, input.photoId);
+          })().catch((error: unknown) => console.error("[ai] keep photo failed", error)),
+        );
+      }
       return { ok: true };
     }),
   // "Koreksi": the user types or says what the scan got wrong ("itu rolade
@@ -777,6 +854,13 @@ export const aiRouter = {
           message: t(`correct.error.${CORRECTION_ERROR_KEY[reason]}`),
           data: { reason, transcript },
         });
+      }
+      if (input.photoId) {
+        context.waitUntil(
+          recordSessionCorrection(context.db, userId, input.photoId).catch((error: unknown) =>
+            console.error("[ai] correction outcome failed", error),
+          ),
+        );
       }
       const bucket = context.env.STICKERS as StickersBucket | undefined;
       if (input.photoId && bucket && datasetEnabled(context.env, userId)) {

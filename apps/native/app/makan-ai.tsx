@@ -401,6 +401,7 @@ export default function MakanAi() {
     Array<(typeof FEEDBACK_REASONS)[number]>
   >([]);
   const [feedbackNote, setFeedbackNote] = useState("");
+  const [feedbackKeepPhoto, setFeedbackKeepPhoto] = useState(false);
   // Item kind: the AI's call, or what the user tapped on the row. Advice only.
   const [kinds, setKinds] = useState<Record<number, FoodKind>>({});
   // Items and kcal drafts as they were before "Setengah porsi", so one tap restores them.
@@ -472,6 +473,7 @@ export default function MakanAi() {
     setFeedbackRating(null);
     setFeedbackReasons([]);
     setFeedbackNote("");
+    setFeedbackKeepPhoto(false);
     correctRunRef.current += 1;
     setUndoStack([]);
     setFlagged(null);
@@ -655,6 +657,7 @@ export default function MakanAi() {
       setFeedbackRating(null);
       setFeedbackReasons([]);
       setFeedbackNote("");
+      setFeedbackKeepPhoto(false);
       setItems(result.items);
       setBaseline({ items: result.items, origin: result.items.map((_, i) => i) });
       correctRunRef.current += 1;
@@ -764,6 +767,7 @@ export default function MakanAi() {
     rating: "akurat" | "kurang_akurat" | "salah" | "dilewati",
     reasons?: Array<(typeof FEEDBACK_REASONS)[number]>,
     note?: string,
+    keepPhoto?: boolean,
   ) => {
     if (!photoId) return;
     saveFeedback
@@ -775,6 +779,9 @@ export default function MakanAi() {
         ...(note?.trim() ? { note: note.trim() } : {}),
         ...(model ? { model } : {}),
         afterRetry: retryCount > 0,
+        ...(keepPhoto && (rating === "kurang_akurat" || rating === "salah")
+          ? { keepPhoto: true }
+          : {}),
       })
       .catch(() => {});
   };
@@ -782,11 +789,6 @@ export default function MakanAi() {
   /** Hitung ulang: same photo, one more model pass; only the id travels. */
   const retryAnalysis = async () => {
     if (!photoId || retry.isPending || correct.isPending || retriesLeft <= 0) return;
-    // The tap itself is an implicit "kurang akurat" verdict on this result.
-    if (askFeedback && !feedbackAnswered) {
-      sendFeedback("kurang_akurat");
-      setFeedbackAnswered(true);
-    }
     setFlowError(null);
     try {
       const result = await retry.mutateAsync({
@@ -1326,12 +1328,38 @@ export default function MakanAi() {
                     accessibilityLabel={t("feedback.noteAria")}
                     maxLength={300}
                   />
+                  <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: feedbackKeepPhoto }}
+                    accessibilityLabel={t("feedback.keepPhoto.label")}
+                    onPress={() => setFeedbackKeepPhoto((current) => !current)}
+                    style={({ pressed }) => [styles.keepPhotoRow, pressed && styles.disabled]}
+                  >
+                    <View style={[styles.keepPhotoBox, feedbackKeepPhoto && styles.keepPhotoBoxOn]}>
+                      {feedbackKeepPhoto ? (
+                        <Ionicons
+                          name="checkmark"
+                          size={16}
+                          color={theme.colors.primaryForeground}
+                        />
+                      ) : null}
+                    </View>
+                    <View style={styles.keepPhotoText}>
+                      <Text style={styles.keepPhotoLabel}>{t("feedback.keepPhoto.label")}</Text>
+                      <Text style={styles.keepPhotoHint}>{t("feedback.keepPhoto.hint")}</Text>
+                    </View>
+                  </Pressable>
                   <View style={styles.feedbackRow}>
                     <Button
                       size="sm"
                       label={t("feedback.send")}
                       onPress={() => {
-                        sendFeedback(feedbackRating, feedbackReasons, feedbackNote);
+                        sendFeedback(
+                          feedbackRating,
+                          feedbackReasons,
+                          feedbackNote,
+                          feedbackKeepPhoto,
+                        );
                         setFeedbackAnswered(true);
                       }}
                     />
@@ -2100,6 +2128,38 @@ const styles = StyleSheet.create((theme) => ({
   },
   feedbackDetail: {
     gap: theme.spacing.md,
+  },
+  keepPhotoRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: theme.spacing.sm,
+  },
+  keepPhotoBox: {
+    width: 22,
+    height: 22,
+    marginTop: 1,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: theme.colors.mutedForeground,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  keepPhotoBoxOn: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary,
+  },
+  keepPhotoText: {
+    flex: 1,
+    gap: 2,
+  },
+  keepPhotoLabel: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.foreground,
+  },
+  keepPhotoHint: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.mutedForeground,
   },
   feedbackTitle: {
     fontSize: theme.fontSize.base,

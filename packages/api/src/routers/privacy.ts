@@ -18,6 +18,8 @@ export const privacyRouter = {
   // Native app entry (web uses the REST route); both share lib/privacy.
   deleteMyData: protectedProcedure.handler(async ({ context }) => {
     const userId = context.session.user.id;
+    // Sticker keys come from the diary rows: read them before the rows go.
+    const stickerKeys = await userStickerKeys(context.db, userId);
     await deleteUserSocialData(context.db, userId);
     await revokeGrant(context.db, context.env, userId);
     await deleteAllUserData(context.db, userId);
@@ -30,6 +32,17 @@ export const privacyRouter = {
     const avatarKey = customAvatarKey(current?.image ?? null);
     await context.db.update(user).set({ image: null }).where(eq(user.id, userId));
     const bucket = context.env.STICKERS;
+    // Same media wipe as the web route: stickers, photos, scan-src, kept
+    // feedback photos, dataset. Rows are gone already, so a storage failure is
+    // reported instead of silently leaving photos behind.
+    if (bucket) {
+      try {
+        await deleteUserMedia(bucket, userId, stickerKeys);
+      } catch (error) {
+        console.error("[privacy] media wipe failed", error);
+        return { deleted: true, mediaPending: true };
+      }
+    }
     if (avatarKey && bucket) {
       try {
         await bucket.delete(avatarKey);

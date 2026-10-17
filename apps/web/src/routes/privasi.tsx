@@ -66,10 +66,26 @@ function PrivasiPage() {
             <h2 className="text-base font-bold tracking-tight">Foto makanan</h2>
             <p className="mt-3 text-sm leading-relaxed">
               Foto yang kamu kirim diteruskan ke AI (Cloudflare Workers AI) untuk menghitung kalori
-              dan kadar gizinya, dan tidak dipakai untuk melatih model. Foto asli tidak disimpan di
-              server kami. Yang kami simpan hanya potongan tiap makanannya (tanpa latar) sebagai
-              stiker diari, lewat alamat acak yang tidak bisa ditebak; hapus catatan makanannya,
-              stikernya ikut terhapus.
+              dan kadar gizinya, dan tidak dipakai untuk melatih model. Foto itu ditahan sementara
+              di server supaya tombol "Hitung ulang" bisa memakai foto yang sama, lalu terhapus
+              otomatis dalam sekitar 2 hari (penghapusan otomatis bisa terlambat sedikit). Foto asli
+              tidak disimpan permanen. Yang kami simpan hanya potongan tiap makanannya (tanpa
+              latar) sebagai stiker diari, lewat alamat acak yang tidak bisa ditebak; hapus catatan
+              makanannya, stikernya ikut terhapus.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Kalau kamu menilai hasil scan "Kurang akurat" atau "Salah", ada kotak opsional yang
+              tidak tercentang: "Boleh simpan foto ini untuk bantu memperbaiki AI". Hanya kalau kamu
+              mencentangnya, foto itu disimpan bersama catatanmu, daftar makanan dari AI, dan hasil
+              yang kamu simpan. Isinya dipakai hanya untuk menguji dan memperbaiki AI JoyoRogo, bisa
+              dihapus atas permintaan, dan ikut terhapus saat kamu menghapus akun atau semua data.
+              Tanpa centang, fotonya tidak disimpan di luar masa sementara tadi.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Untuk setiap scan foto, teks jawaban AI (daftar makanan, perkiraan berat, kalori, dan
+              gizi, tanpa fotonya) kami simpan bersama hasil akhir yang kamu catat. Tujuannya
+              mengukur dan memperbaiki akurasi AI. Teks itu ikut terhapus saat kamu menghapus akun
+              atau semua data.
             </p>
             <p className="mt-3 text-sm leading-relaxed">
               Kalau kamu menyalakan "Simpan foto asli" di Profil, foto asli (versi kecil) dari scan

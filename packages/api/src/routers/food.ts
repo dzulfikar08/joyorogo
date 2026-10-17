@@ -23,6 +23,8 @@ import {
 import { purgeUnreferencedMedia } from "./saved-food";
 import type { StickerJob } from "../lib/sticker";
 import { datasetEnabled, recordFinal } from "../lib/dataset";
+import { recordKeptSaved } from "../lib/feedback-keep";
+import { compactItems, recordSessionSaved } from "../lib/scan-outcome";
 import { normalizeBox } from "../lib/vision";
 
 const scanItemSchema = z.object({
@@ -188,6 +190,24 @@ export const foodRouter = {
       const queued = jobs.filter((job): job is StickerJob => job !== null);
       if (bucket && queued.length > 0) {
         context.waitUntil(storeStickers(images, bucket, bytes, queued));
+      }
+      // Implicit accuracy label of this scan session: saved as the AI answered,
+      // or with edits (lib/scan-outcome.ts). A scan the user opted in to keep
+      // (feedback consent) gets its saved items added to the kept meta.
+      if (input.scanPhotoId) {
+        const scanPhotoId = input.scanPhotoId;
+        context.waitUntil(
+          recordSessionSaved(context.db, userId, scanPhotoId, rows)
+            .then(async (session) => {
+              if (session?.keep && bucket) {
+                await recordKeptSaved(bucket, userId, scanPhotoId, {
+                  items: compactItems(rows),
+                  at: session.savedAt ?? Date.now(),
+                });
+              }
+            })
+            .catch((error: unknown) => console.error("[food] scan outcome failed", error)),
+        );
       }
       if (input.scanPhotoId && bucket && datasetEnabled(context.env, userId)) {
         context.waitUntil(

@@ -189,26 +189,117 @@ export interface FeedbackModelRow {
   salah: number;
 }
 
+export interface CompactItem {
+  n: string;
+  g?: number;
+  k: number;
+  /** Protein, carbs, fat, fiber (g). */
+  p?: number;
+  c?: number;
+  f?: number;
+  fi?: number;
+  /** Model confidence 0-1. */
+  cf?: number;
+}
+
+/** What the user changed between the model's answer and the diary. */
+export interface ScanDiff {
+  renamed: { from: CompactItem; to: CompactItem }[];
+  removed: CompactItem[];
+  added: CompactItem[];
+  changed: { n: string; g?: [number, number]; k?: [number, number] }[];
+  aiKcal: number;
+  savedKcal: number;
+}
+
+export interface RetryPass {
+  i: number;
+  at: number;
+  model: string;
+  hint?: string;
+  items: CompactItem[];
+}
+
+/** One corrected scan session (photo-independent); newest first via /api/admin/feedback/corrected. */
+export interface CorrectedScan {
+  id: string;
+  createdAt: string | number;
+  model: string | null;
+  userId: string | null;
+  userName: string | null;
+  photoId: string | null;
+  retries: number;
+  corrections: number;
+  savedAt: number | null;
+  aiItems: CompactItem[] | null;
+  retryLog: RetryPass[] | null;
+  savedItems: CompactItem[] | null;
+  diff: ScanDiff | null;
+}
+
 /** One negative scan result; photo served by /api/admin/feedback-photo. */
 export interface FeedbackNegative {
   id: string;
   createdAt: string | number;
   rating: "kurang_akurat" | "salah";
-  reasonsJson: string | null;
+  /** The user's reasons, without reserved marks. */
+  reasons: string[];
   note: string | null;
   afterRetry: boolean;
+  /** Only a "Hitung ulang" tap (old client / legacy row), not a real verdict. */
+  retryDerived: boolean;
+  keptPhoto: boolean;
   model: string | null;
   source: string;
   photoId: string;
   userId: string;
   userName: string | null;
+  /** Scan session fields; null when the scan has no session (older than the outcome tracking). */
+  aiItems: CompactItem[] | null;
+  retryItems: CompactItem[] | null;
+  /** Every "Hitung ulang" pass, in order. */
+  retryLog: RetryPass[] | null;
+  savedItems: CompactItem[] | null;
+  diff: ScanDiff | null;
+}
+
+export interface OutcomeCounts {
+  accurate: number;
+  corrected: number;
+  retried: number;
+  abandoned: number;
+  pending: number;
+}
+
+/** Plate-level kcal error of corrected sessions; positive % = AI above what the user saved. */
+export interface KcalBias {
+  n: number;
+  over: number;
+  under: number;
+  meanPct: number | null;
+  meanOverPct: number | null;
+  meanUnderPct: number | null;
 }
 
 export interface FeedbackScan {
+  days: number;
+  /** Explicit ratings per day/model, retry-derived rows excluded. */
   byDay: FeedbackDay[];
   byModel: FeedbackModelRow[];
+  explicit: { total: number; akurat: number; kurang: number; salah: number };
+  /** Ratings in the window that only recorded a "Hitung ulang" tap. */
+  retryLegacy: number;
   /** All-time negative results (the list pages through /api/admin/feedback/negatives). */
   negatives: { total: number; afterRetry: number };
+  outcomes: {
+    total: OutcomeCounts;
+    byDay: (OutcomeCounts & { day: string })[];
+    byModel: (OutcomeCounts & { model: string | null })[];
+  };
+  bias: {
+    total: KcalBias;
+    byModel: (KcalBias & { model: string | null })[];
+  };
 }
 
 export interface FoodLog {

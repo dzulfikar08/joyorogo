@@ -253,15 +253,193 @@ describe("reports", () => {
 });
 
 describe("feedback", () => {
-  test("summary counts negatives; the negative list pages", async () => {
-    const summary = await call("/api/admin/feedback?days=90");
-    expect(summary.body.negatives).toEqual({ total: 30, afterRetry: 6 });
-    expect(summary.body.recent).toBeUndefined();
+  const now = Date.now();
+  const HOUR = 3_600_000;
+  const DAY = 24 * HOUR;
+  // Mirrors RETRY_TAP_CUTOVER_MS in admin.ts.
+  const cutover = Date.parse("2026-10-18T00:00:00+07:00");
+  const legacyAt = Math.min(now, cutover) - 1000;
+  const legacyInWindow = now - legacyAt <= 90 * DAY;
+  const wib = (ms: number) => new Date(ms + 7 * HOUR).toISOString().slice(0, 10);
+  const diff = (aiKcal: number, savedKcal: number) => ({
+    renamed: [],
+    removed: [],
+    added: [],
+    changed: [{ n: "Nasi", k: [aiKcal, savedKcal] }],
+    aiKcal,
+    savedKcal,
+  });
+  const aiItems = [{ n: "Nasi", g: 200, k: 300 }];
 
-    const page2 = await call("/api/admin/feedback/negatives?pageSize=25&page=2");
-    expect(page2.body.total).toBe(30);
-    expect(ids(page2.body.negatives)).toEqual(
-      Array.from({ length: 5 }, (_, i) => `fb${String(4 - i).padStart(2, "0")}`),
+  beforeAll(async () => {
+    const session = (
+      id: string,
+      model: string,
+      photoId: string,
+      ageMs: number,
+      usage: Record<string, unknown>,
+    ) =>
+      client.execute({
+        sql: "INSERT INTO ai_usage (id, user_id, model, scan_type, latency_ms, usage_json, created_at) VALUES (?, 'u05', ?, 'user', 100, ?, ?)",
+        args: [id, model, JSON.stringify({ photoId, aiItems, ...usage }), now - ageMs],
+      });
+    await session("fs1", "mA", "photoS1", 2 * HOUR, { savedLabel: "accurate", savedAt: now });
+    await session("fs2", "mA", "photoS2", 2 * HOUR, {
+      savedLabel: "corrected",
+      corrections: 1,
+      savedItems: [{ n: "Nasi", g: 150, k: 200 }],
+      diff: diff(600, 400),
+    });
+    await session("fs3", "mB", "photoS3", 2 * HOUR, {
+      savedLabel: "corrected",
+      diff: diff(300, 400),
+    });
+    // Retried, then saved: still "retried", and not part of the kcal bias.
+    await session("fs4", "mB", "photoS4", 2 * HOUR, {
+      retries: 1,
+      retryLog: [{ i: 1, at: now, model: "mB", items: [{ n: "Nasi", g: 100, k: 150 }] }],
+      retryItems: [{ n: "Nasi", g: 100, k: 150 }],
+      savedLabel: "corrected",
+      diff: diff(150, 100),
+    });
+    await session("fs5", "mB", "photoS5", 3 * HOUR, {});
+    await session("fs6", "mB", "photoS6", 1000, {});
+    await session("fs7", "mA", "photoS7", 5 * DAY, { savedLabel: "accurate" });
+
+    const fb = (
+      id: string,
+      photoId: string,
+      rating: string,
+      reasons: string[] | null,
+      note: string | null,
+      at: number,
+    ) =>
+      client.execute({
+        sql: "INSERT INTO scan_feedback (id, user_id, photo_id, rating, reasons_json, note, source, model, created_at) VALUES (?, 'u05', ?, ?, ?, ?, 'web', 'mA', ?)",
+        args: [id, photoId, rating, reasons ? JSON.stringify(reasons) : null, note, at],
+      });
+    await fb("fx1", "photoX1", "akurat", null, null, now);
+    await fb("fx2", "photoX2", "akurat", null, null, now);
+    await fb("fx3", "photoS2", "salah", ["porsi", "keep_photo"], "porsinya lebih kecil", now);
+    await fb("fx4", "photoS3", "kurang_akurat", ["kcal_rendah"], null, now - 1);
+    await fb("fx5", "photoS4", "kurang_akurat", ["retry_tap"], null, now - 2);
+    await fb("fx6", "photoX6", "kurang_akurat", null, null, legacyAt);
+    await fb("fx7", "photoX7", "dilewati", null, null, now);
+  });
+
+  test("summary: implicit outcomes per day and model, bias, explicit without retry taps", async () => {
+    const { body } = await call("/api/admin/feedback?days=90");
+    expect(body.negatives.afterRetry).toBe(6);
+
+    expect(body.outcomes.total).toEqual({
+      accurate: 2,
+      corrected: 2,
+      retried: 1,
+      abandoned: 1,
+      pending: 1,
+    });
+    const model = (name: string) => body.outcomes.byModel.find((m: any) => m.model === name);
+    expect(model("mA")).toMatchObject({ accurate: 2, corrected: 1, retried: 0, abandoned: 0 });
+    expect(model("mB")).toMatchObject({
+      accurate: 0,
+      corrected: 1,
+      retried: 1,
+      abandoned: 1,
+      pending: 1,
+    });
+    const sum = (key: string) =>
+      body.outcomes.byDay.reduce((s: number, d: any) => s + d[key], 0);
+    expect(sum("accurate")).toBe(2);
+    expect(sum("corrected") + sum("retried") + sum("abandoned") + sum("pending")).toBe(5);
+    const oldDay = body.outcomes.byDay.find((d: any) => d.day === wib(now - 5 * DAY));
+    expect(oldDay).toMatchObject({ accurate: 1, corrected: 0, retried: 0 });
+
+    // fs2: AI 600 vs saved 400 = +50%; fs3: AI 300 vs saved 400 = -25%.
+    expect(body.bias.total).toEqual({
+      n: 2,
+      over: 1,
+      under: 1,
+      meanPct: 12.5,
+      meanOverPct: 50,
+      meanUnderPct: -25,
+    });
+    expect(body.bias.byModel.find((m: any) => m.model === "mB")).toMatchObject({
+      n: 1,
+      over: 0,
+      under: 1,
+      meanPct: -25,
+    });
+
+    // Explicit: 2 akurat + 1 salah + 1 kurang (kcal_rendah); retry taps and dismissals out.
+    expect(body.explicit).toEqual({ total: 4, akurat: 2, kurang: 1, salah: 1 });
+    expect(body.retryLegacy).toBe(1 + (legacyInWindow ? 1 : 0));
+    const explicitDayTotal = body.byDay.reduce((s: number, d: any) => s + d.total, 0);
+    expect(explicitDayTotal).toBe(4);
+    expect(body.byModel.reduce((s: number, m: any) => s + m.total, 0)).toBe(4);
+  });
+
+  test("negative list pages and joins the scan session", async () => {
+    const page4 = await call("/api/admin/feedback/negatives?pageSize=10&page=4");
+    expect(page4.body.total).toBe(34);
+    expect(ids(page4.body.negatives)).toEqual(
+      Array.from({ length: 4 }, (_, i) => `fb${String(3 - i).padStart(2, "0")}`),
     );
+    // Legacy rows have no session: nulls, and the T0 seed rows are legacy retry taps.
+    expect(page4.body.negatives[1]).toMatchObject({
+      retryDerived: true,
+      keptPhoto: false,
+      reasons: [],
+      aiItems: null,
+      retryItems: null,
+      savedItems: null,
+      diff: null,
+    });
+
+    const page1 = await call("/api/admin/feedback/negatives?pageSize=10&page=1");
+    const byId = (id: string) => page1.body.negatives.find((r: any) => r.id === id);
+    expect(byId("fx3")).toMatchObject({
+      retryDerived: false,
+      keptPhoto: true,
+      reasons: ["porsi"],
+      note: "porsinya lebih kecil",
+      aiItems,
+      retryItems: null,
+      savedItems: [{ n: "Nasi", g: 150, k: 200 }],
+      diff: diff(600, 400),
+    });
+    expect(byId("fx3").reasonsJson).toBeUndefined();
+    expect(byId("fx4")).toMatchObject({ retryDerived: false, reasons: ["kcal_rendah"] });
+    expect(byId("fx5")).toMatchObject({
+      retryDerived: true,
+      reasons: [],
+      retryItems: [{ n: "Nasi", g: 100, k: 150 }],
+    });
+    expect(byId("fx6")).toMatchObject({ retryDerived: true, diff: null });
+    expect(byId("fx5").retryLog).toEqual([
+      { i: 1, at: now, model: "mB", items: [{ n: "Nasi", g: 100, k: 150 }] },
+    ]);
+  });
+
+  test("corrected sessions page without photos", async () => {
+    const { body } = await call("/api/admin/feedback/corrected?pageSize=10");
+    expect(body.total).toBe(3);
+    const byPhoto = (id: string) =>
+      body.corrections.find((r: { photoId: string }) => r.photoId === id);
+    expect(body.corrections.map((r: { photoId: string }) => r.photoId).sort()).toEqual([
+      "photoS2",
+      "photoS3",
+      "photoS4",
+    ]);
+    expect(byPhoto("photoS2")).toMatchObject({
+      model: "mA",
+      corrections: 1,
+      aiItems,
+      savedItems: [{ n: "Nasi", g: 150, k: 200 }],
+      diff: diff(600, 400),
+    });
+    expect(byPhoto("photoS4").retries).toBe(1);
+    expect(byPhoto("photoS4").retryLog).toHaveLength(1);
+    const page2 = await call("/api/admin/feedback/corrected?pageSize=10&page=2");
+    expect(page2.body.corrections).toEqual([]);
   });
 });

@@ -215,6 +215,8 @@ type VisionRunOptions = {
   mimeType: string;
   instruction?: string;
   locale?: Locale;
+  /** Eval-only: rewrites the base prompt (see analyzeFoodPhoto). Unset in production. */
+  promptTransform?: (base: string) => string;
 };
 
 function visionRequest(opts: VisionRunOptions) {
@@ -225,9 +227,12 @@ function visionRequest(opts: VisionRunOptions) {
         content: [
           {
             type: "text",
-            text: opts.instruction
-              ? `${visionPrompt(opts.locale)}\n\n${opts.instruction}`
-              : visionPrompt(opts.locale),
+            text: [
+              opts.promptTransform
+                ? opts.promptTransform(visionPrompt(opts.locale))
+                : visionPrompt(opts.locale),
+              ...(opts.instruction ? [opts.instruction] : []),
+            ].join("\n\n"),
           },
           {
             type: "image_url",
@@ -577,6 +582,12 @@ export async function analyzeFoodPhoto(
     onEvent?: (event: VisionEvent) => void;
     /** Injectable for tests. */
     timeouts?: [number, number];
+    /**
+     * Eval harness only (scripts/eval-scans.ts): rewrites the production prompt
+     * for this run, so a variant is a diff on the prompt instead of a copy.
+     * Production callers never set it; unset = the prompt exactly as shipped.
+     */
+    promptTransform?: (base: string) => string;
     /** Injectable for tests — deterministic deadlines without real timers. */
     schedule?: ScheduleTimeout;
   },
@@ -600,6 +611,7 @@ export async function analyzeFoodPhoto(
         mimeType: opts.mimeType,
         instruction: opts.retry ? retryInstruction(opts.retry.hint) : undefined,
         locale: opts.locale,
+        promptTransform: opts.promptTransform,
       };
       const result = opts.onEvent
         ? await runVisionStream(

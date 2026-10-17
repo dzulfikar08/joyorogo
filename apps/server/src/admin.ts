@@ -6,6 +6,15 @@ import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 
 import { jakartaToday } from "@joyorogo/api/lib/engine";
+import { feedbackPhotoKey } from "@joyorogo/api/lib/feedback-keep";
+import {
+  FEEDBACK_MARK,
+  isSessionSql,
+  outcomeSql,
+  parseFeedbackReasons,
+  parseSession,
+} from "@joyorogo/api/lib/scan-outcome";
+import type { ScanOutcome, ScanSession } from "@joyorogo/api/lib/scan-outcome";
 import { effectiveTier, wibDayBounds } from "@joyorogo/api/lib/tiers";
 import { SCAN_ID_RE, scanSrcKey } from "@joyorogo/api/lib/sticker";
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
@@ -15,7 +24,16 @@ import { aiUsage, foodLog, profile, scanFeedback } from "@joyorogo/db/schema/fit
 import { post as postTable, postComment, socialReport } from "@joyorogo/db/schema/social";
 import type { Database } from "@joyorogo/db";
 
+/**
+ * Moment of the deploy that stopped treating the "Hitung ulang" tap as an
+ * explicit rating. Older kurang_akurat rows with no reasons and no note are
+ * retry taps in disguise. Set to the planned deploy time (2026-10-17 14:30 WIB).
+ */
+const RETRY_TAP_CUTOVER_MS = Date.parse("2026-10-17T14:30:00+07:00");
+
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+type OutcomeCounts = Record<ScanOutcome, number>;
 // Abuse heuristics shared by the users filter and the console badges.
 const ABUSE_TODAY = 50;
 const ABUSE_7D = 300;
@@ -552,52 +570,153 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
     return c.json({ ok: true });
   });
 
-  // Feedback scan ("Hasilnya akurat?"): accuracy per WIB day and per model,
-  // plus how many results were negative. Dismissals (`dilewati`) are excluded
-  // from every metric. The negative results themselves page through
-  // /api/admin/feedback/negatives.
+  // Feedback scan. Two views, kept apart:
+  //  - implicit outcomes per scan session (ai_usage usage_json, see
+  //    scan-outcome.ts): accurate / corrected / retried / abandoned / pending,
+  //    per WIB day and model, plus plate-level kcal bias of corrected sessions;
+  //  - explicit "Hasilnya akurat?" ratings (scan_feedback), without the rows
+  //    that only record a "Hitung ulang" tap (counted in `retryLegacy`).
+  // Dismissals (`dilewati`) are excluded from every metric. The negative
+  // results themselves page through /api/admin/feedback/negatives.
   const negativeRating = inArray(scanFeedback.rating, ["kurang_akurat", "salah"]);
+  const retryDerived = sql`(coalesce(${scanFeedback.reasonsJson} like '%"${sql.raw(FEEDBACK_MARK.retryTap)}"%', 0) or (${scanFeedback.rating} = 'kurang_akurat' and coalesce(${scanFeedback.reasonsJson}, '') in ('', '[]') and coalesce(${scanFeedback.note}, '') = '' and ${scanFeedback.createdAt} < ${RETRY_TAP_CUTOVER_MS}))`;
   app.get("/api/admin/feedback", async (c) => {
     const days = Math.min(90, Math.max(1, Number(c.req.query("days")) || 30));
-    const since = Date.now() - days * DAY_MS;
+    const now = Date.now();
+    const since = now - days * DAY_MS;
     const db = deps.getDb();
     const rated = and(
       ne(scanFeedback.rating, "dilewati"),
       sql`${scanFeedback.createdAt} >= ${since}`,
     );
+    const explicitOnly = and(rated, sql`not ${retryDerived}`);
     const accuracy = {
       total: sql<number>`count(*)`,
-      akurat: sql<number>`sum(case when ${scanFeedback.rating} = 'akurat' then 1 else 0 end)`,
-      kurang: sql<number>`sum(case when ${scanFeedback.rating} = 'kurang_akurat' then 1 else 0 end)`,
-      salah: sql<number>`sum(case when ${scanFeedback.rating} = 'salah' then 1 else 0 end)`,
+      akurat: sql<number>`coalesce(sum(case when ${scanFeedback.rating} = 'akurat' then 1 else 0 end), 0)`,
+      kurang: sql<number>`coalesce(sum(case when ${scanFeedback.rating} = 'kurang_akurat' then 1 else 0 end), 0)`,
+      salah: sql<number>`coalesce(sum(case when ${scanFeedback.rating} = 'salah' then 1 else 0 end), 0)`,
     };
-    const [byDay, byModel, [negatives]] = await Promise.all([
-      db
-        .select({ day: wibDay(scanFeedback.createdAt), ...accuracy })
-        .from(scanFeedback)
-        .where(rated)
-        .groupBy(wibDay(scanFeedback.createdAt)),
-      db
-        .select({ model: scanFeedback.model, ...accuracy })
-        .from(scanFeedback)
-        .where(rated)
-        .groupBy(scanFeedback.model),
-      db
-        .select({
-          total: sql<number>`count(*)`,
-          afterRetry: sql<number>`coalesce(sum(case when ${scanFeedback.afterRetry} = 1 then 1 else 0 end), 0)`,
-        })
-        .from(scanFeedback)
-        .where(negativeRating),
-    ]);
-    return c.json({ byDay, byModel, negatives: negatives ?? { total: 0, afterRetry: 0 } });
+    const outcome = outcomeSql(now);
+    const sessionWindow = and(isSessionSql(), sql`${aiUsage.createdAt} >= ${since}`);
+    const aiKcal = sql`json_extract(${aiUsage.usageJson}, '$.diff.aiKcal')`;
+    const savedKcal = sql`json_extract(${aiUsage.usageJson}, '$.diff.savedKcal')`;
+    const pct = sql`((${aiKcal} - ${savedKcal}) * 100.0 / ${savedKcal})`;
+    const correctedWithKcal = and(
+      sessionWindow,
+      sql`${outcome} = 'corrected'`,
+      sql`${aiKcal} is not null and ${savedKcal} > 0`,
+    );
+    const [byDay, byModel, [negatives], [explicit], [retryLegacy], outcomeRows, biasRows] =
+      await Promise.all([
+        db
+          .select({ day: wibDay(scanFeedback.createdAt), ...accuracy })
+          .from(scanFeedback)
+          .where(explicitOnly)
+          .groupBy(wibDay(scanFeedback.createdAt)),
+        db
+          .select({ model: scanFeedback.model, ...accuracy })
+          .from(scanFeedback)
+          .where(explicitOnly)
+          .groupBy(scanFeedback.model),
+        db
+          .select({
+            total: sql<number>`count(*)`,
+            afterRetry: sql<number>`coalesce(sum(case when ${scanFeedback.afterRetry} = 1 then 1 else 0 end), 0)`,
+          })
+          .from(scanFeedback)
+          .where(negativeRating),
+        db.select(accuracy).from(scanFeedback).where(explicitOnly),
+        db
+          .select({ total: sql<number>`count(*)` })
+          .from(scanFeedback)
+          .where(and(rated, retryDerived)),
+        db
+          .select({
+            day: wibDay(aiUsage.createdAt),
+            model: aiUsage.model,
+            outcome,
+            n: sql<number>`count(*)`,
+          })
+          .from(aiUsage)
+          .where(sessionWindow)
+          .groupBy(wibDay(aiUsage.createdAt), aiUsage.model, outcome),
+        db
+          .select({
+            model: aiUsage.model,
+            n: sql<number>`count(*)`,
+            over: sql<number>`sum(case when ${aiKcal} > ${savedKcal} then 1 else 0 end)`,
+            under: sql<number>`sum(case when ${aiKcal} < ${savedKcal} then 1 else 0 end)`,
+            sumPct: sql<number>`sum(${pct})`,
+            sumOverPct: sql<number>`coalesce(sum(case when ${aiKcal} > ${savedKcal} then ${pct} end), 0)`,
+            sumUnderPct: sql<number>`coalesce(sum(case when ${aiKcal} < ${savedKcal} then ${pct} end), 0)`,
+          })
+          .from(aiUsage)
+          .where(correctedWithKcal)
+          .groupBy(aiUsage.model),
+      ]);
+
+    const emptyCounts = (): OutcomeCounts => ({
+      accurate: 0,
+      corrected: 0,
+      retried: 0,
+      abandoned: 0,
+      pending: 0,
+    });
+    const total = emptyCounts();
+    const perDay = new Map<string, OutcomeCounts>();
+    const perModel = new Map<string | null, OutcomeCounts>();
+    for (const row of outcomeRows) {
+      const n = Number(row.n);
+      total[row.outcome] += n;
+      const d = perDay.get(row.day) ?? emptyCounts();
+      d[row.outcome] += n;
+      perDay.set(row.day, d);
+      const m = perModel.get(row.model) ?? emptyCounts();
+      m[row.outcome] += n;
+      perModel.set(row.model, m);
+    }
+
+    const biasOf = (rows: typeof biasRows) => {
+      const n = rows.reduce((s, r) => s + Number(r.n), 0);
+      const over = rows.reduce((s, r) => s + Number(r.over), 0);
+      const under = rows.reduce((s, r) => s + Number(r.under), 0);
+      const mean = (sum: number, count: number) =>
+        count > 0 ? Math.round((sum / count) * 10) / 10 : null;
+      return {
+        n,
+        over,
+        under,
+        // Signed: positive = the AI ran above what the user saved.
+        meanPct: mean(rows.reduce((s, r) => s + Number(r.sumPct), 0), n),
+        meanOverPct: mean(rows.reduce((s, r) => s + Number(r.sumOverPct), 0), over),
+        meanUnderPct: mean(rows.reduce((s, r) => s + Number(r.sumUnderPct), 0), under),
+      };
+    };
+
+    return c.json({
+      days,
+      byDay,
+      byModel,
+      explicit: explicit ?? { total: 0, akurat: 0, kurang: 0, salah: 0 },
+      retryLegacy: retryLegacy?.total ?? 0,
+      negatives: negatives ?? { total: 0, afterRetry: 0 },
+      outcomes: {
+        total,
+        byDay: [...perDay].map(([day, counts]) => ({ day, ...counts })),
+        byModel: [...perModel].map(([model, counts]) => ({ model, ...counts })),
+      },
+      bias: {
+        total: biasOf(biasRows),
+        byModel: biasRows.map((row) => ({ model: row.model, ...biasOf([row]) })),
+      },
+    });
   });
 
   // Paged negative results, newest first (id as the tiebreak): page, pageSize.
   app.get("/api/admin/feedback/negatives", async (c) => {
     const query = parseQuery(c, pagingSchema);
     const db = deps.getDb();
-    const [negatives, [count]] = await Promise.all([
+    const [rows, [count]] = await Promise.all([
       db
         .select({
           id: scanFeedback.id,
@@ -618,10 +737,109 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
         .orderBy(desc(scanFeedback.createdAt), desc(scanFeedback.id))
         .limit(query.pageSize)
         .offset(offsetOf(query)),
-      db.select({ total: sql<number>`count(*)` }).from(scanFeedback).where(negativeRating),
+      db
+        .select({ total: sql<number>`count(*)`, retryDerived: sql<number>`coalesce(sum(case when ${retryDerived} then 1 else 0 end), 0)` })
+        .from(scanFeedback)
+        .where(negativeRating),
     ]);
+
+    // One batched session lookup for this page (user + photoId).
+    const sessions = new Map<string, ScanSession>();
+    if (rows.length > 0) {
+      const found = await db
+        .select({ userId: aiUsage.userId, usageJson: aiUsage.usageJson })
+        .from(aiUsage)
+        .where(
+          and(
+            isSessionSql(),
+            inArray(aiUsage.userId, [...new Set(rows.map((r) => r.userId))]),
+            sql`json_extract(${aiUsage.usageJson}, '$.photoId') in (${sql.join(
+              rows.map((r) => sql`${r.photoId}`),
+              sql`, `,
+            )})`,
+          ),
+        );
+      for (const row of found) {
+        const session = parseSession(row.usageJson);
+        if (session?.photoId && !sessions.has(`${row.userId}/${session.photoId}`)) {
+          sessions.set(`${row.userId}/${session.photoId}`, session);
+        }
+      }
+    }
+
+    const negatives = rows.map(({ reasonsJson, ...row }) => {
+      const parsed = parseFeedbackReasons(reasonsJson);
+      const session = sessions.get(`${row.userId}/${row.photoId}`);
+      return {
+        ...row,
+        reasons: parsed.reasons,
+        retryDerived:
+          parsed.retryTap ||
+          (row.rating === "kurang_akurat" &&
+            parsed.reasons.length === 0 &&
+            !row.note &&
+            row.createdAt.getTime() < RETRY_TAP_CUTOVER_MS),
+        keptPhoto: parsed.keepPhoto,
+        aiItems: session?.aiItems ?? null,
+        retryItems: session?.retryItems ?? null,
+        retryLog: session?.retryLog ?? null,
+        savedItems: session?.savedItems ?? null,
+        diff: session?.diff ?? null,
+      };
+    });
     return c.json({
       negatives,
+      total: count?.total ?? 0,
+      retryDerived: count?.retryDerived ?? 0,
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+  });
+
+  // Paged corrected sessions (saved with edits or after a typed/spoken fix),
+  // newest first: what the AI returned (first pass + every retry) vs what the
+  // user saved. Needs no photo, so it stays readable after scan-src expires.
+  app.get("/api/admin/feedback/corrected", async (c) => {
+    const query = parseQuery(c, pagingSchema);
+    const db = deps.getDb();
+    const corrected = and(
+      isSessionSql(),
+      sql`json_extract(${aiUsage.usageJson}, '$.savedLabel') = 'corrected'`,
+    );
+    const [rows, [count]] = await Promise.all([
+      db
+        .select({
+          id: aiUsage.id,
+          createdAt: aiUsage.createdAt,
+          model: aiUsage.model,
+          userId: aiUsage.userId,
+          userName: user.name,
+          usageJson: aiUsage.usageJson,
+        })
+        .from(aiUsage)
+        .leftJoin(user, eq(user.id, aiUsage.userId))
+        .where(corrected)
+        .orderBy(desc(aiUsage.createdAt), desc(aiUsage.id))
+        .limit(query.pageSize)
+        .offset(offsetOf(query)),
+      db.select({ total: sql<number>`count(*)` }).from(aiUsage).where(corrected),
+    ]);
+    const corrections = rows.map(({ usageJson, ...row }) => {
+      const session = parseSession(usageJson);
+      return {
+        ...row,
+        photoId: session?.photoId ?? null,
+        retries: session?.retries ?? 0,
+        corrections: session?.corrections ?? 0,
+        savedAt: session?.savedAt ?? null,
+        aiItems: session?.aiItems ?? null,
+        retryLog: session?.retryLog ?? null,
+        savedItems: session?.savedItems ?? null,
+        diff: session?.diff ?? null,
+      };
+    });
+    return c.json({
+      corrections,
       total: count?.total ?? 0,
       page: query.page,
       pageSize: query.pageSize,
@@ -645,7 +863,10 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
     if (!bucket) {
       return c.json({ error: "Foto belum tersedia." }, 404);
     }
-    const obj = await bucket.get(scanSrcKey(userId, photoId)).catch(() => null);
+    const obj =
+      (await bucket.get(scanSrcKey(userId, photoId)).catch(() => null)) ??
+      // scan-src expires after ~2 days; consented feedback keeps its own copy.
+      (await bucket.get(feedbackPhotoKey(userId, photoId)).catch(() => null));
     if (!obj) {
       return c.json({ error: "Foto tidak ditemukan." }, 404);
     }

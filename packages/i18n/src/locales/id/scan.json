@@ -191,6 +191,10 @@
       "kcal_tinggi": "Kalori kelewat tinggi",
       "kcal_rendah": "Kalori kelewat rendah"
     },
+    "keepPhoto": {
+      "label": "Boleh simpan foto ini untuk bantu memperbaiki AI",
+      "hint": "Fotonya cuma dipakai untuk menguji dan memperbaiki AI, dan bisa dihapus kalau kamu minta."
+    },
     "noteAria": "Catatan tambahan (opsional)",
     "notePlaceholder": "Catatan singkat (opsional)",
     "send": "Kirim"

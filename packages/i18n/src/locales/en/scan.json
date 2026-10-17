@@ -199,6 +199,10 @@
       "kcal_tinggi": "Calories too high",
       "kcal_rendah": "Calories too low"
     },
+    "keepPhoto": {
+      "label": "OK to keep this photo to help improve the AI",
+      "hint": "The photo is only used to test and improve the AI, and can be deleted if you ask."
+    },
     "noteAria": "Additional note (optional)",
     "notePlaceholder": "Short note (optional)",
     "send": "Send"
