@@ -9,7 +9,14 @@
     "onboardingRequired": "Please finish setting up your profile first.",
     "targetDatePast": "The target date must be tomorrow or later.",
     "targetDateInvalid": "That target date isn't valid.",
-    "targetDateTooFar": "The target date can be at most 5 years from now."
+    "targetDateTooFar": "The target date can be at most 5 years from now.",
+    "maternalFemaleOnly": "Pregnancy and breastfeeding modes are only for female profiles.",
+    "pregnancyDateFuture": "The first day of your last period can't be after today. Please check the date.",
+    "pregnancyDateTooOld": "That date is more than 42 weeks ago. Please check your last period or due date.",
+    "notPregnant": "Pregnancy mode isn't active.",
+    "birthDateInvalid": "The birth date must be today or earlier, within the last 2 years.",
+    "fastingMaternal": "Intermittent fasting isn't available while pregnant or breastfeeding.",
+    "shareMaternal": "The public progress page isn't available while pregnant or breastfeeding."
   },
   "ai": {
     "unavailable": "The AI service isn't available right now. Please try again later.",

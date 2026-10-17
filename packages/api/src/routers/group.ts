@@ -592,12 +592,16 @@ export const groupRouter = {
               // past days are complete; today prorates by the live WIB clock
               ...(date === today ? {} : { dayFraction: 1 }),
             });
-            eatTargetKcal = Math.round(plan.targets.eatKcal);
-            burnTargetKcal = Math.round(plan.targets.tdee);
+            // Hamil / Menyusui: the daily need is health data and stays out of the group.
+            if (plan.maternal === null) {
+              eatTargetKcal = Math.round(plan.targets.eatKcal);
+              burnTargetKcal = Math.round(plan.targets.tdee);
+            }
             burnedKcal = Math.round(burn.exerciseKcal);
           }
 
-          const weightNow = latest?.weightKg ?? null;
+          // Hamil / Menyusui: weight and its changes are health data and stay out of the group.
+          const weightNow = prof && prof.maternalMode !== "none" ? null : (latest?.weightKg ?? null);
           const weightDeltaKg7d =
             weightNow !== null && baseline && baseline.date !== latest?.date
               ? Math.round((weightNow - baseline.weightKg) * 10) / 10
@@ -933,7 +937,8 @@ export const groupRouter = {
           { latestWeightKg: latest[0]?.weightKg ?? null, weighIns: [], intake: [], exercise: [] },
           date,
         );
-        eatTargetKcal = Math.round(plan.targets.eatKcal);
+        // Hamil / Menyusui: the daily need is health data and stays out of the group.
+        if (plan.maternal === null) eatTargetKcal = Math.round(plan.targets.eatKcal);
       }
 
       const foods = target.shareFood

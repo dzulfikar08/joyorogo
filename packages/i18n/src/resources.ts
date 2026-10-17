@@ -20,6 +20,7 @@ import idMisc from "./locales/id/misc.json";
 import idTips from "./locales/id/tips.json";
 import idHome from "./locales/id/home.json";
 import idGrup from "./locales/id/grup.json";
+import idMaternal from "./locales/id/maternal.json";
 
 import enAuth from "./locales/en/auth.json";
 import enBerat from "./locales/en/berat.json";
@@ -43,6 +44,7 @@ import enMisc from "./locales/en/misc.json";
 import enTips from "./locales/en/tips.json";
 import enHome from "./locales/en/home.json";
 import enGrup from "./locales/en/grup.json";
+import enMaternal from "./locales/en/maternal.json";
 
 import type { Locale } from "./locale";
 
@@ -70,6 +72,7 @@ const id = {
   tips: idTips,
   home: idHome,
   grup: idGrup,
+  maternal: idMaternal,
 };
 
 /**
@@ -99,6 +102,7 @@ const en: typeof id = {
   tips: enTips,
   home: enHome,
   grup: enGrup,
+  maternal: enMaternal,
 };
 
 export const resources = { id, en } satisfies Record<Locale, typeof id>;

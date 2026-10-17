@@ -60,6 +60,22 @@ export const profile = sqliteTable("profile", {
   // Saved app language ('id' | 'en' | ...; validated by @joyorogo/i18n in the
   // API). Null = never chosen: clients fall back to their device language.
   locale: text("locale"),
+  // Hamil / Menyusui (api lib/maternal.ts). 'none' = the normal weight-loss plan.
+  // The mode drops the deficit and the weight target; health data, never shared.
+  maternalMode: text("maternal_mode", { enum: ["none", "pregnant", "breastfeeding"] })
+    .notNull()
+    .default("none"),
+  // HPHT (first day of last period) as a WIB day; an entered HPL is stored as HPL - 280 days.
+  pregnancyLmp: text("pregnancy_lmp"),
+  // What the user typed: 'hpht' | 'hpl'.
+  pregnancyDateKind: text("pregnancy_date_kind", { enum: ["hpht", "hpl"] }),
+  prePregnancyWeightKg: real("pre_pregnancy_weight_kg"),
+  pregnancyTwins: integer("pregnancy_twins", { mode: "boolean" }).notNull().default(false),
+  // 'exclusive' | 'partial'
+  breastfeedingType: text("breastfeeding_type", { enum: ["exclusive", "partial"] }),
+  babyBirthDate: text("baby_birth_date"),
+  // JSON array of 'gestational_diabetes' | 'hypertension' | 'anemia'; only triggers a see-your-doctor note.
+  maternalConditions: text("maternal_conditions", { mode: "json" }).$type<string[]>(),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),

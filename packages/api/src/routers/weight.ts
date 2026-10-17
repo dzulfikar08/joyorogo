@@ -1,10 +1,11 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { z } from "zod";
 
 import { profile, weightLog } from "@joyorogo/db/schema/fitness";
 
 import { protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
+import { maternalFromRow, weightGainChart } from "../lib/maternal";
 import { dateSchema } from "../lib/schemas";
 
 export const weightRouter = {
@@ -63,15 +64,43 @@ export const weightRouter = {
         .where(eq(profile.userId, userId))
         .limit(1);
       const startKg = prof?.startWeightKg ?? first.weightKg;
+      // Hamil / Menyusui have no weight target, so no "remaining" either.
+      const target = prof && prof.maternalMode === "none" ? prof.targetWeightKg : null;
       return {
         entries,
         summary: {
           startKg,
           latestKg: latest.weightKg,
           deltaKg: Math.round((latest.weightKg - startKg) * 10) / 10,
-          remainingKg: prof ? Math.round((latest.weightKg - prof.targetWeightKg) * 10) / 10 : null,
-          targetKg: prof?.targetWeightKg ?? null,
+          remainingKg: target === null ? null : Math.round((latest.weightKg - target) * 10) / 10,
+          targetKg: target,
         },
       };
     }),
+
+  /**
+   * Hamil: the weekly weight-gain chart. IOM 2009 band for the pre-pregnancy BMI
+   * against the gain since the pre-pregnancy weight, one point per weigh-in.
+   * Null outside pregnancy (or before the pregnancy answers exist).
+   */
+  pregnancyChart: protectedProcedure.handler(async ({ context }) => {
+    const userId = context.session.user.id;
+    const [prof] = await context.db.select().from(profile).where(eq(profile.userId, userId)).limit(1);
+    if (!prof) return null;
+    const maternal = maternalFromRow(prof);
+    if (maternal.mode !== "pregnant" || !maternal.pregnancyLmp || maternal.prePregnancyWeightKg === null) {
+      return null;
+    }
+    const weighIns = await context.db
+      .select({ date: weightLog.date, weightKg: weightLog.weightKg })
+      .from(weightLog)
+      .where(and(eq(weightLog.userId, userId), gte(weightLog.date, maternal.pregnancyLmp)));
+    return weightGainChart({
+      lmp: maternal.pregnancyLmp,
+      prePregnancyWeightKg: maternal.prePregnancyWeightKg,
+      heightCm: prof.heightCm,
+      twins: maternal.twins,
+      weighIns,
+    });
+  }),
 };

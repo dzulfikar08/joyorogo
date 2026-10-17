@@ -4,8 +4,8 @@ import { z } from "zod";
 import { exerciseLog, foodLog, weightLog } from "@joyorogo/db/schema/fitness";
 
 import { protectedProcedure } from "../index";
-import { jakartaToday, proteinTargetG, shiftDate } from "../lib/engine";
-import { buildPlan, planQueries } from "../lib/plan";
+import { jakartaToday, shiftDate } from "../lib/engine";
+import { buildPlan, planQueries, proteinGoalG } from "../lib/plan";
 import { buildWeekRecap, weekStartOf } from "../lib/recap";
 import { dateSchema } from "../lib/schemas";
 
@@ -98,11 +98,12 @@ export const statsRouter = {
         weekStart,
         today,
         targetKcal: plan.targets.eatKcal,
-        proteinTargetG: proteinTargetG(plan.weightNowKg, prof.heightCm),
+        proteinTargetG: proteinGoalG(plan, prof.heightCm),
         food: foodRows,
         exercise: exerciseRows.map((row) => ({ ...row, minutes: row.minutes ?? 0 })),
         trendPoints: plan.trend?.points ?? [],
-        loggedDates: [...foodDates, ...weightDates].map((row) => row.date),
+        // No streak pressure in Hamil / Menyusui.
+        loggedDates: plan.maternal ? [] : [...foodDates, ...weightDates].map((row) => row.date),
       });
     }),
 };

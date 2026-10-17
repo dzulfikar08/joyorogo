@@ -1,0 +1,297 @@
+{
+  "disclaimer": {
+    "title": "Panduan umum, bukan saran medis",
+    "body": "JoyoRogo bukan alat medis. Angka di sini mengikuti AKG 2019 (Permenkes 28/2019) dan anjuran IOM 2009, dan tidak menggantikan dokter atau bidan. Ikuti saran tenaga kesehatan yang memeriksamu.",
+    "kia": "Catat pemeriksaanmu di Buku KIA dan rutin periksa ke Posyandu, puskesmas, atau bidan.",
+    "short": "Bukan alat medis. Ikuti saran dokter atau bidan."
+  },
+  "privacy": {
+    "note": "Data kehamilan dan menyusuimu cuma terlihat olehmu. Tidak ada yang dibagikan ke grup, feed, atau halaman publik."
+  },
+  "mode": {
+    "none": "Biasa",
+    "pregnant": "Hamil",
+    "breastfeeding": "Menyusui"
+  },
+  "entry": {
+    "question": "Sedang hamil atau menyusui?",
+    "hint": "Kami sesuaikan target kalori dan gizimu untuk masa ini. Tanpa defisit dan tanpa target turun berat badan. Kamu bisa mengubahnya kapan saja di Profil.",
+    "pregnant": "Sedang hamil",
+    "pregnantHint": "Hitung minggu dan trimester otomatis",
+    "breastfeeding": "Sedang menyusui",
+    "breastfeedingHint": "Sesuaikan dengan usia bayi",
+    "neither": "Tidak keduanya"
+  },
+  "form": {
+    "pregnantTitle": "Tentang kehamilanmu",
+    "breastfeedingTitle": "Tentang menyusuimu",
+    "dateKind": {
+      "label": "Kamu tahu yang mana?",
+      "hpht": "HPHT",
+      "hphtHint": "Hari pertama haid terakhir",
+      "hpl": "HPL",
+      "hplHint": "Hari perkiraan lahir"
+    },
+    "date": {
+      "hpht": "Tanggal HPHT",
+      "hpl": "Tanggal HPL",
+      "hphtHelp": "Kami hitung minggu kehamilanmu dari tanggal ini, dan diperbarui tiap hari.",
+      "hplHelp": "Perkiraan lahir dari dokter atau bidan, misalnya dari USG. Minggu kehamilanmu dihitung mundur dari sini.",
+      "pick": "Pilih tanggal"
+    },
+    "preWeight": {
+      "label": "Berat badan sebelum hamil",
+      "hint": "Dalam kg. Jadi dasar kebutuhan energimu dan rentang kenaikan berat.",
+      "hintOptional": "Opsional. Kalau kosong, kami pakai berat badanmu sekarang."
+    },
+    "currentWeight": {
+      "label": "Berat badanmu sekarang",
+      "hint": "Dalam kg. Jadi catatan timbangan pertamamu."
+    },
+    "fetuses": {
+      "label": "Jumlah janin",
+      "single": "Satu",
+      "twins": "Kembar"
+    },
+    "feeding": {
+      "label": "Cara menyusui",
+      "exclusive": "ASI eksklusif",
+      "exclusiveHint": "Bayi hanya minum ASI",
+      "partial": "Sebagian",
+      "partialHint": "ASI plus susu formula atau makanan pendamping"
+    },
+    "babyAge": {
+      "label": "Usia bayi",
+      "months": "{{months}} bulan",
+      "decrease": "Kurangi usia bayi satu bulan",
+      "increase": "Tambah usia bayi satu bulan"
+    },
+    "conditions": {
+      "title": "Ada kondisi yang sudah diketahui?",
+      "optional": "Opsional. Cuma untuk pengingat konsultasi, bukan untuk mengubah angka.",
+      "gestational_diabetes": "Diabetes gestasional",
+      "hypertension": "Hipertensi atau preeklamsia",
+      "anemia": "Anemia"
+    },
+    "save": "Simpan",
+    "continue": "Lanjut",
+    "error": {
+      "date": "Pilih tanggalnya dulu ya.",
+      "weight": "Isi berat badan sebelum hamil, antara 25 dan 250 kg.",
+      "female": "Mode ini hanya untuk profil perempuan."
+    }
+  },
+  "summary": {
+    "week": "Minggu {{week}}",
+    "weekDay": "Minggu {{week}} hari ke-{{day}}",
+    "trimester": "Trimester {{n}}",
+    "due": "HPL {{date}}",
+    "daysToDue": "{{days}} hari lagi menuju HPL",
+    "pastDue": "{{days}} hari lewat HPL",
+    "babyAge": "Bayi {{months}} bulan",
+    "twins": "Kembar",
+    "feeding": {
+      "exclusive": "ASI eksklusif",
+      "partial": "ASI sebagian"
+    }
+  },
+  "target": {
+    "title": "Kebutuhanmu hari ini",
+    "base": "Kebutuhan dasar",
+    "baseHint": "Sebelum hamil, dari berat badan awal, tinggi, usia, dan aktivitasmu",
+    "add": "Tambahan AKG",
+    "total": "Target hari ini",
+    "noDeficit": "Tanpa pengurangan kalori dan tanpa target berat badan selama mode ini.",
+    "eaten": "Sudah dimakan",
+    "progress": "{{pct}}% dari kebutuhanmu",
+    "ofTarget": "{{eaten}} dari {{target}} kkal",
+    "reached": "Kebutuhanmu hari ini sudah terpenuhi",
+    "kcal": "kkal"
+  },
+  "needs": {
+    "add": {
+      "t1": "Tambahan trimester 1",
+      "t2": "Tambahan trimester 2",
+      "t3": "Tambahan trimester 3",
+      "bf1": "Tambahan menyusui, 6 bulan pertama",
+      "bf2": "Tambahan menyusui, 6 bulan kedua"
+    },
+    "addBody": "Tambahan energi dari AKG 2019 (Permenkes 28/2019) untuk tahap ini.",
+    "baseName": "Kebutuhan sebelum hamil",
+    "baseBody": "Energi harian untuk menjaga berat badan, dari berat badan sebelum hamil, tinggi, usia, dan aktivitas.",
+    "noDeficit": "Tidak ada pengurangan kalori dan tidak ada target berat badan selama mode ini."
+  },
+  "nutrients": {
+    "title": "Gizi harianmu",
+    "source": "Angka dari AKG 2019 (Permenkes 28/2019), sudah termasuk tambahan untuk tahap ini.",
+    "trackedTitle": "Dipantau di JoyoRogo",
+    "guidanceTitle": "Perhatikan",
+    "guidanceNote": "Makanan di JoyoRogo belum mencatat zat ini, jadi ini panduan saja, bukan angka yang kami hitung dari makananmu.",
+    "base": "Dasar {{base}}",
+    "plus": "tambahan {{add}}",
+    "protein": {
+      "name": "Protein",
+      "hint": "Telur matang, ikan, ayam, tempe, tahu, kacang-kacangan."
+    },
+    "fiber": {
+      "name": "Serat",
+      "hint": "Sayur, buah, kacang-kacangan, nasi merah. Membantu pencernaan."
+    },
+    "water": {
+      "name": "Air",
+      "hint": "Termasuk air dari makanan dan minuman lain (AKG 2019). Catat gelas airmu di Beranda."
+    },
+    "iron": {
+      "name": "Zat besi",
+      "hint": "Daging merah, ikan, telur matang, tempe, bayam. Vitamin C membantu penyerapan. Soal tablet tambah darah, tanya bidan atau dokter."
+    },
+    "folate": {
+      "name": "Folat",
+      "hint": "Sayur hijau, kacang-kacangan, jeruk, telur matang. Suplemen asam folat ikuti anjuran dokter atau bidan."
+    },
+    "calcium": {
+      "name": "Kalsium",
+      "hint": "Susu pasteurisasi atau UHT, yogurt, ikan teri, tahu, tempe, sayur hijau."
+    },
+    "iodine": {
+      "name": "Iodium",
+      "hint": "Garam beryodium, ikan laut, telur matang, susu."
+    },
+    "vitaminA": {
+      "name": "Vitamin A",
+      "hint": "Wortel, labu kuning, ubi jalar, sayur hijau, telur matang. Hindari suplemen vitamin A dosis tinggi tanpa saran dokter."
+    },
+    "dha": {
+      "name": "DHA (omega-3)",
+      "hint": "Ikan laut rendah merkuri yang dimasak matang, misalnya kembung, teri, sarden, salmon. Anjuran minimal 200 mg DHA per hari (FAO/WHO 2010)."
+    },
+    "unit": {
+      "g": "g",
+      "ml": "ml",
+      "mg": "mg",
+      "mcg": "mcg",
+      "RE": "RE"
+    }
+  },
+  "gain": {
+    "title": "Kenaikan berat badan",
+    "subtitle": "Dibanding berat badan sebelum hamil",
+    "preWeight": "Berat sebelum hamil {{kg}} kg",
+    "bmi": "BMI sebelum hamil {{bmi}} ({{category}})",
+    "category": {
+      "under": "kurus",
+      "normal": "normal",
+      "over": "berlebih",
+      "obese": "obesitas"
+    },
+    "total": "Anjuran IOM 2009 untuk seluruh kehamilan: {{min}} sampai {{max}} kg",
+    "totalTwins": "Anjuran IOM 2009 untuk kembar (sementara): {{min}} sampai {{max}} kg",
+    "rate": "Trimester 2 dan 3, rata-rata {{min}} sampai {{max}} kg per minggu",
+    "current": "Naik {{gain}} kg di minggu {{week}}. Rentang minggu ini {{min}} sampai {{max}} kg.",
+    "empty": "Timbang berat badanmu untuk mulai melihat grafik kenaikan.",
+    "weighIn": "Timbang sekarang",
+    "band": "Rentang anjuran",
+    "you": "Kenaikanmu",
+    "chartLabel": "Grafik kenaikan berat badan per minggu kehamilan dibanding rentang anjuran",
+    "axis": {
+      "week": "Minggu kehamilan",
+      "kg": "Naik (kg)"
+    },
+    "status": {
+      "within": "Kenaikan beratmu ada di dalam rentang anjuran untuk minggu ini.",
+      "below": "Kenaikan beratmu sedikit di bawah rentang untuk minggu ini. Belum tentu masalah; bicarakan dengan dokter atau bidan di kontrol berikutnya.",
+      "above": "Kenaikan beratmu sedikit di atas rentang untuk minggu ini. Jangan mengurangi makan sendiri; bicarakan dulu dengan dokter atau bidan."
+    },
+    "source": "Sumber: IOM 2009. Garis rentang antar minggu adalah interpolasi kami antara 0,5 sampai 2 kg di akhir trimester 1 dan total saat cukup bulan."
+  },
+  "flags": {
+    "title": "Catatan buat kamu",
+    "footer": "Ini pengingat, bukan larangan atau saran medis. Kalau ragu, tanya dokter atau bidan.",
+    "alcohol": {
+      "title": "Mengandung alkohol",
+      "body": "Selama hamil atau menyusui, lebih aman tanpa alkohol. Kalau sudah terlanjur, tidak perlu panik; cerita ke dokter atau bidan kalau kamu khawatir."
+    },
+    "caffeine": {
+      "title": "Mengandung kafein",
+      "body": "Perkiraan {{mg}} mg kafein per sajian. Batas harian yang umum dianjurkan 200 mg, sekitar dua cangkir kopi."
+    },
+    "caffeineDay": "Kafein hari ini sekitar {{mg}} dari batas {{limit}} mg",
+    "caffeineOver": "Kafein hari ini sudah sekitar {{mg}} mg, di atas batas harian {{limit}} mg. Besok bisa dikurangi pelan-pelan.",
+    "rawMeat": {
+      "title": "Daging belum matang sempurna",
+      "body": "Daging mentah atau setengah matang bisa membawa bakteri dan parasit, termasuk toksoplasma. Minta dimasak sampai matang."
+    },
+    "rawEgg": {
+      "title": "Telur belum matang sempurna",
+      "body": "Telur mentah atau setengah matang berisiko salmonella. Masak sampai kuning dan putihnya padat."
+    },
+    "rawFish": {
+      "title": "Ikan atau kerang mentah",
+      "body": "Sushi, sashimi, dan seafood mentah sebaiknya dihindari selama hamil. Pilih yang dimasak matang."
+    },
+    "mercuryFish": {
+      "title": "Ikan tinggi merkuri",
+      "body": "Hiu, ikan todak, marlin, dan tuna segar kadar merkurinya tinggi. Pilih ikan lain seperti kembung, salmon matang, atau tuna kaleng secukupnya."
+    },
+    "unpasteurized": {
+      "title": "Susu atau keju belum pasteurisasi",
+      "body": "Produk tanpa pasteurisasi bisa membawa listeria. Pilih yang berlabel pasteurisasi atau UHT."
+    },
+    "herbal": {
+      "title": "Jamu atau ramuan herbal",
+      "body": "Tidak semua jamu terbukti aman untuk ibu hamil atau menyusui. Tanya dokter atau bidan dulu sebelum minum."
+    }
+  },
+  "notes": {
+    "TWINS_ENERGY": "Hamil kembar: AKG belum punya angka tambahan khusus kembar, jadi kami pakai angka kehamilan tunggal. Kebutuhanmu bisa lebih tinggi; tanyakan ke dokter atau ahli gizi.",
+    "PARTIAL_ESTIMATE": "Menyusui sebagian: AKG tidak punya angka tersendiri. Kami pakai separuh dari tambahan AKG sebagai perkiraan.",
+    "OVERDUE": "HPHT-mu sudah lebih dari 42 minggu lalu. Cek lagi tanggalnya, atau pilih Sudah melahirkan kalau bayimu sudah lahir.",
+    "BABY_OVER_12": "AKG hanya menghitung sampai bayi 12 bulan. Kami tetap memakai angka bulan ke-7 sampai 12.",
+    "TWINS_UNDERWEIGHT": "Untuk kembar dengan berat badan awal kurang, IOM belum punya rentang resmi. Kami tampilkan rentang kembar berat badan normal sebagai patokan; tanyakan ke dokter.",
+    "CONSULT": "Kamu mencatat kondisi tertentu. Angka di sini panduan umum; ikuti saran dokter atau bidan yang memantaumu.",
+    "gestational_diabetes": "Diabetes gestasional: pengaturan karbohidrat perlu dibicarakan dengan dokter atau ahli gizi.",
+    "hypertension": "Hipertensi atau preeklamsia: pantau tekanan darah dan ikuti saran dokter, termasuk soal garam.",
+    "anemia": "Anemia: tanyakan ke dokter atau bidan soal tablet tambah darah dan makanan kaya zat besi."
+  },
+  "home": {
+    "pregnant": "Minggu {{week}} · Trimester {{trimester}}",
+    "breastfeeding": "Menyusui · bayi {{months}} bulan",
+    "card": "Hamil dan menyusui",
+    "weightTitle": "Kenaikan berat badan",
+    "seeAll": "Lihat detail"
+  },
+  "settings": {
+    "title": "Hamil dan menyusui",
+    "rowOff": "Atur kalau kamu sedang hamil atau menyusui",
+    "rowPregnant": "Hamil · minggu {{week}}",
+    "rowBreastfeeding": "Menyusui · bayi {{months}} bulan",
+    "intro": "Targetmu tanpa defisit dan tanpa penurunan berat badan: kebutuhan harian ditambah angka dari AKG 2019 untuk tahap kamu.",
+    "enable": "Aktifkan mode",
+    "edit": "Ubah data",
+    "turnOff": "Matikan mode",
+    "turnOffTitle": "Matikan mode ini?",
+    "turnOffBody": "Targetmu kembali ke kebutuhan harian biasa, tanpa penurunan berat badan. Kalau nanti kamu ingin menurunkan berat badan, bicarakan dulu dengan dokter atau bidan, lalu atur targetnya di Profil.",
+    "turnOffConfirm": "Ya, matikan",
+    "saved": "Tersimpan",
+    "turnedOff": "Mode dimatikan",
+    "hiddenNote": "Target berat badan, tanggal target, puasa, dan streak disembunyikan selama mode ini aktif.",
+    "ramadanNote": "Ibu hamil dan menyusui boleh tidak berpuasa. Jadwal Ramadan otomatis tidak dipakai untukmu; bicarakan dengan dokter atau ustaz kalau kamu ingin berpuasa."
+  },
+  "end": {
+    "button": "Sudah melahirkan",
+    "title": "Sudah melahirkan?",
+    "body": "Semoga kamu dan bayimu sehat. Pilih yang paling cocok, targetmu akan menyesuaikan.",
+    "birthDate": "Tanggal melahirkan",
+    "breastfeeding": "Aku menyusui",
+    "breastfeedingHint": "Lanjut ke mode menyusui",
+    "none": "Aku tidak menyusui",
+    "noneHint": "Kembali ke kebutuhan harian biasa",
+    "confirm": "Simpan",
+    "done": "Tersimpan. Selamat ya.",
+    "postpartum": {
+      "title": "Catatan setelah melahirkan",
+      "body": "Tubuhmu butuh waktu untuk pulih, jadi tidak ada target penurunan berat badan di sini. Kalau nanti kamu ingin menurunkan berat badan, bicarakan dulu dengan dokter atau bidan, lalu atur target yang lembut di Profil.",
+      "check": "Periksa nifas dan catat di Buku KIA."
+    }
+  }
+}

@@ -16,9 +16,12 @@ import {
   ADAPTIVE_WINDOW_DAYS,
   adaptiveTdee,
   computeTargets,
+  proteinTargetG,
   shiftDate,
   weightTrend,
 } from "./engine";
+import { computeMaternalTargets, maternalFromRow, maternalNutrient } from "./maternal";
+import type { MaternalState } from "./maternal";
 
 /** Weigh-in history for trend warm-up; the EMA forgets ~99% of a reading in 45 days. */
 const TREND_HISTORY_DAYS = 60;
@@ -84,6 +87,8 @@ export type Plan = {
   weighIns: WeighIn[];
   targets: Targets;
   trend: WeightTrend | null;
+  /** Hamil / Menyusui state of the profile row; null for the normal plan */
+  maternal: MaternalState | null;
 };
 
 /** The 3 numbers for `date`: formula first, then measured TDEE when the data supports it. */
@@ -107,6 +112,19 @@ export function buildPlan(
     activityLevel: row.activityLevel as ActivityLevel,
   };
   const weightNowKg = history.latestWeightKg ?? row.startWeightKg;
+  // Hamil / Menyusui: no deficit, no weight target, no measured-TDEE drift.
+  const maternal = maternalFromRow(row);
+  if (maternal.mode !== "none") {
+    return {
+      profileInput,
+      latestWeightKg: history.latestWeightKg,
+      weightNowKg,
+      weighIns: history.weighIns,
+      targets: computeMaternalTargets(profileInput, maternal, { today: date, weightNow: weightNowKg }),
+      trend: null,
+      maternal,
+    };
+  }
   const formula = computeTargets(profileInput, { weightNow: weightNowKg });
   const measured = adaptiveTdee({
     date,
@@ -126,5 +144,21 @@ export function buildPlan(
         ? formula
         : computeTargets(profileInput, { weightNow: weightNowKg, adaptiveTdee: measured }),
     trend: weightTrend(history.weighIns, row.targetWeightKg, date),
+    maternal: null,
   };
+}
+
+/**
+ * Daily protein goal of a plan: the AKG 2019 figure (with the stage's addition)
+ * for Hamil / Menyusui, else the weight-based cut target.
+ */
+export function proteinGoalG(
+  plan: Pick<Plan, "targets" | "weightNowKg">,
+  heightCm: number,
+  trainingDay = false,
+): number {
+  return (
+    maternalNutrient(plan.targets, "protein")?.target ??
+    proteinTargetG(plan.weightNowKg, heightCm, trainingDay)
+  );
 }

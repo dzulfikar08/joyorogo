@@ -21,7 +21,6 @@ import {
   effectiveRamadan,
   jakartaToday,
   macroTargets,
-  proteinTargetG,
   shiftDate,
   streakFromDates,
   suggestMealNow,
@@ -30,7 +29,8 @@ import { READINESS_LABELS, hasFitnessData } from "../lib/fitness-hint";
 import { dateSchema } from "../lib/schemas";
 import { loadIdeaValues } from "./plate";
 import { mealIdeas } from "../lib/ideas";
-import { buildPlan, planQueries } from "../lib/plan";
+import { buildPlan, planQueries, proteinGoalG } from "../lib/plan";
+import { caffeineOfDay } from "../lib/maternal";
 import {
   DIARY_MACRO_REFERENCE_KG,
   HISTORY_DAYS,
@@ -176,6 +176,7 @@ export const dayRouter = {
           milestones: [],
           trend: null,
           protein: null,
+          maternal: null,
           ideas: [],
           date,
         };
@@ -196,7 +197,17 @@ export const dayRouter = {
         eatenKcal += row.kcal ?? 0;
         eatenProteinG += row.protein ?? 0;
       }
+      const maternal = plan.maternal !== null;
       const weightLostKg = Math.round((prof.startWeightKg - plan.weightNowKg) * 10) / 10;
+      // Pregnant and breastfeeding users are exempt from fasting: "auto" Ramadan stays off for them.
+      const ramadanPref = maternal && prof.ramadanMode === "auto" ? "off" : prof.ramadanMode;
+      const loggedNames = async () =>
+        (
+          await context.db
+            .select({ name: foodLog.name })
+            .from(foodLog)
+            .where(and(eq(foodLog.userId, userId), eq(foodLog.date, date)))
+        ).map((row) => row.name);
       const burn = computeBurn({
         profile: plan.profileInput,
         weightNowKg: plan.weightNowKg,
@@ -220,8 +231,9 @@ export const dayRouter = {
         sleepHoursLastNight: sleptRows[0]?.hours ?? null,
         latestWeightKg: plan.latestWeightKg,
         weightLoggedToday: (loggedRows[0]?.logged ?? 0) > 0,
-        streakDays,
-        weightLostKg,
+        // No streak pressure or weight-loss recap in Hamil / Menyusui.
+        streakDays: maternal ? 0 : streakDays,
+        weightLostKg: maternal ? 0 : weightLostKg,
         weekEatenKcal: Math.round(eatenWeek[0]?.kcal ?? 0),
         weekTrend: plan.weighIns
           .filter((w) => w.date >= weekTrendStart)
@@ -232,17 +244,19 @@ export const dayRouter = {
         weekProtein: Math.round(eatenWeek[0]?.protein ?? 0),
         weekCarbs: Math.round(eatenWeek[0]?.carbs ?? 0),
         weekFat: Math.round(eatenWeek[0]?.fat ?? 0),
-        milestones: buildMilestones(streakDays, weightLostKg),
+        milestones: maternal ? [] : buildMilestones(streakDays, weightLostKg),
         trend: plan.trend,
         protein: {
           eatenG: Math.round(eatenProteinG),
-          targetG: proteinTargetG(plan.weightNowKg, prof.heightCm, workoutRows.length > 0),
+          targetG: proteinGoalG(plan, prof.heightCm, workoutRows.length > 0),
         },
+        // Hamil / Menyusui: caffeine against the daily limit, estimated from the logged names.
+        maternal: plan.maternal ? { caffeine: caffeineOfDay(await loggedNames()) } : null,
         ideas:
           date === today
             ? mealIdeas(
                 targets.eatKcal - eatenKcal,
-                suggestMealNow(new Date(), effectiveRamadan(prof.ramadanMode)),
+                suggestMealNow(new Date(), effectiveRamadan(ramadanPref)),
                 3,
                 (await loadIdeaValues(context.db, userId)) ?? undefined,
                 context.locale,
@@ -377,14 +391,15 @@ export const dayRouter = {
     const prof = profileRows[0];
     let targets: GuidanceTargets | null = null;
     if (prof) {
-      const { targets: plan, weightNowKg } = buildPlan(
+      const builtPlan = buildPlan(
         prof,
         { latestWeightKg: latestRows[0]?.weightKg ?? null, weighIns, intake, exercise },
         today,
       );
+      const plan = builtPlan.targets;
       targets = {
         eatKcal: plan.eatKcal,
-        proteinG: proteinTargetG(weightNowKg, prof.heightCm, workoutRows.length > 0),
+        proteinG: proteinGoalG(builtPlan, prof.heightCm, workoutRows.length > 0),
         carbsG: macroTargets(plan.eatKcal, DIARY_MACRO_REFERENCE_KG).carbsG,
       };
     }

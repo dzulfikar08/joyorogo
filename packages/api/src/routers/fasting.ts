@@ -12,6 +12,7 @@ import { protectedProcedure } from "../index";
 import { effectiveRamadan, jakartaToday, shiftDate } from "../lib/engine";
 import { dateSchema } from "../lib/schemas";
 import { buildPlan, planQueries } from "../lib/plan";
+import { serverT } from "../lib/messages";
 import {
   adherenceWeek,
   countKept,
@@ -48,6 +49,19 @@ export const fastingRouter = {
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
+      // Fasting is not part of Hamil / Menyusui.
+      if (input.pattern !== "off") {
+        const [mode] = await context.db
+          .select({ maternalMode: profile.maternalMode })
+          .from(profile)
+          .where(eq(profile.userId, userId))
+          .limit(1);
+        if (mode && mode.maternalMode !== "none") {
+          throw new ORPCError("BAD_REQUEST", {
+            message: serverT(context.locale, "errors")("profile.fastingMaternal"),
+          });
+        }
+      }
       const fields = {
         fastingPattern: input.pattern,
         fastingWindowStart: input.windowStart,
@@ -79,7 +93,7 @@ export const fastingRouter = {
           .where(and(eq(foodLog.userId, userId), eq(foodLog.date, date))),
       ]);
       const prof = profRows[0];
-      if (!prof || !isFastingPattern(prof.fastingPattern)) {
+      if (!prof || prof.maternalMode !== "none" || !isFastingPattern(prof.fastingPattern)) {
         const day = inactiveFastingDay(prof ? effectiveRamadan(prof.ramadanMode, now) : false);
         return { date, eatKcal: 0, ...day };
       }

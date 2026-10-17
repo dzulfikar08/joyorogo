@@ -419,7 +419,14 @@ app.get("/u/:code", async (c) => {
   const [row] = await db
     .select()
     .from(profileTable)
-    .where(and(eq(profileTable.shareCode, code), eq(profileTable.shareEnabled, true)))
+    .where(
+      and(
+        eq(profileTable.shareCode, code),
+        eq(profileTable.shareEnabled, true),
+        // Health data is never published: Hamil / Menyusui profiles have no public page.
+        eq(profileTable.maternalMode, "none"),
+      ),
+    )
     .limit(1);
   if (!row) {
     return c.html(
@@ -569,7 +576,13 @@ async function runFastingReminders(): Promise<void> {
     })
     .from(pushSubscriptionTable)
     .innerJoin(profileTable, eq(profileTable.userId, pushSubscriptionTable.userId))
-    .where(and(eq(profileTable.fastingNotify, true), ne(profileTable.fastingPattern, "off")));
+    .where(
+      and(
+        eq(profileTable.fastingNotify, true),
+        ne(profileTable.fastingPattern, "off"),
+        eq(profileTable.maternalMode, "none"),
+      ),
+    );
 
   for (const row of rows) {
     if (!isFastingPattern(row.pattern)) continue;

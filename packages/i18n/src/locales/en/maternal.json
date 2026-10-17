@@ -1,0 +1,297 @@
+{
+  "disclaimer": {
+    "title": "General guidance, not medical advice",
+    "body": "JoyoRogo is not a medical device. The numbers here follow Indonesia's AKG 2019 (Permenkes 28/2019) and the IOM 2009 guidelines, and they do not replace your doctor or midwife. Follow the advice of the health professional who sees you.",
+    "kia": "Keep your check-ups in the KIA book (Buku KIA) and see Posyandu, the puskesmas, or your midwife regularly.",
+    "short": "Not a medical device. Follow your doctor or midwife."
+  },
+  "privacy": {
+    "note": "Your pregnancy and breastfeeding details are only visible to you. Nothing is shared to groups, the feed, or public pages."
+  },
+  "mode": {
+    "none": "Standard",
+    "pregnant": "Pregnant",
+    "breastfeeding": "Breastfeeding"
+  },
+  "entry": {
+    "question": "Pregnant or breastfeeding?",
+    "hint": "We adjust your calorie and nutrient targets for this time: no deficit and no weight-loss target. You can change it any time in Profile.",
+    "pregnant": "I'm pregnant",
+    "pregnantHint": "Week and trimester are worked out for you",
+    "breastfeeding": "I'm breastfeeding",
+    "breastfeedingHint": "Matched to your baby's age",
+    "neither": "Neither"
+  },
+  "form": {
+    "pregnantTitle": "About your pregnancy",
+    "breastfeedingTitle": "About breastfeeding",
+    "dateKind": {
+      "label": "Which one do you know?",
+      "hpht": "HPHT",
+      "hphtHint": "First day of your last period",
+      "hpl": "HPL",
+      "hplHint": "Estimated due date"
+    },
+    "date": {
+      "hpht": "HPHT date",
+      "hpl": "HPL date",
+      "hphtHelp": "We work out your pregnancy week from this date, and it updates every day.",
+      "hplHelp": "The due date from your doctor or midwife, for example from an ultrasound. Your pregnancy week is counted back from it.",
+      "pick": "Pick a date"
+    },
+    "preWeight": {
+      "label": "Weight before pregnancy",
+      "hint": "In kg. It is the basis of your energy needs and your weight-gain range.",
+      "hintOptional": "Optional. If empty, we use your current weight."
+    },
+    "currentWeight": {
+      "label": "Your weight now",
+      "hint": "In kg. It becomes your first weigh-in."
+    },
+    "fetuses": {
+      "label": "Number of babies",
+      "single": "One",
+      "twins": "Twins"
+    },
+    "feeding": {
+      "label": "How you breastfeed",
+      "exclusive": "Exclusive",
+      "exclusiveHint": "Baby only has breast milk",
+      "partial": "Partial",
+      "partialHint": "Breast milk plus formula or solids"
+    },
+    "babyAge": {
+      "label": "Baby's age",
+      "months": "{{months}} mo",
+      "decrease": "One month younger",
+      "increase": "One month older"
+    },
+    "conditions": {
+      "title": "Any known conditions?",
+      "optional": "Optional. It only adds a reminder to check with your doctor and does not change the numbers.",
+      "gestational_diabetes": "Gestational diabetes",
+      "hypertension": "Hypertension or preeclampsia",
+      "anemia": "Anemia"
+    },
+    "save": "Save",
+    "continue": "Continue",
+    "error": {
+      "date": "Please pick the date first.",
+      "weight": "Enter your weight before pregnancy, between 25 and 250 kg.",
+      "female": "This mode is only for female profiles."
+    }
+  },
+  "summary": {
+    "week": "Week {{week}}",
+    "weekDay": "Week {{week}}, day {{day}}",
+    "trimester": "Trimester {{n}}",
+    "due": "Due {{date}}",
+    "daysToDue": "{{days}} days to your due date",
+    "pastDue": "{{days}} days past your due date",
+    "babyAge": "Baby is {{months}} mo",
+    "twins": "Twins",
+    "feeding": {
+      "exclusive": "Exclusive breastfeeding",
+      "partial": "Partial breastfeeding"
+    }
+  },
+  "target": {
+    "title": "What you need today",
+    "base": "Base need",
+    "baseHint": "Before pregnancy, from your starting weight, height, age, and activity",
+    "add": "AKG addition",
+    "total": "Today's target",
+    "noDeficit": "No calorie cut and no weight target while this mode is on.",
+    "eaten": "Eaten",
+    "progress": "{{pct}}% of what you need",
+    "ofTarget": "{{eaten}} of {{target}} kcal",
+    "reached": "You've covered what you need today",
+    "kcal": "kcal"
+  },
+  "needs": {
+    "add": {
+      "t1": "Trimester 1 addition",
+      "t2": "Trimester 2 addition",
+      "t3": "Trimester 3 addition",
+      "bf1": "Breastfeeding addition, first 6 months",
+      "bf2": "Breastfeeding addition, second 6 months"
+    },
+    "addBody": "The energy addition from AKG 2019 (Permenkes 28/2019) for this stage.",
+    "baseName": "Need before pregnancy",
+    "baseBody": "Daily energy to hold your weight, from your weight before pregnancy, height, age, and activity.",
+    "noDeficit": "No calorie cut and no weight target while this mode is on."
+  },
+  "nutrients": {
+    "title": "Your daily nutrients",
+    "source": "Numbers from AKG 2019 (Permenkes 28/2019), including the addition for this stage.",
+    "trackedTitle": "Tracked in JoyoRogo",
+    "guidanceTitle": "Keep in mind",
+    "guidanceNote": "Foods in JoyoRogo don't record these nutrients yet, so this is guidance only, not a number we calculate from your meals.",
+    "base": "Base {{base}}",
+    "plus": "addition {{add}}",
+    "protein": {
+      "name": "Protein",
+      "hint": "Well-cooked eggs, fish, chicken, tempeh, tofu, legumes."
+    },
+    "fiber": {
+      "name": "Fiber",
+      "hint": "Vegetables, fruit, legumes, brown rice. It helps digestion."
+    },
+    "water": {
+      "name": "Water",
+      "hint": "Includes water from food and other drinks (AKG 2019). Log your glasses of water on Home."
+    },
+    "iron": {
+      "name": "Iron",
+      "hint": "Red meat, fish, well-cooked eggs, tempeh, spinach. Vitamin C helps absorption. Ask your midwife or doctor about iron tablets."
+    },
+    "folate": {
+      "name": "Folate",
+      "hint": "Leafy greens, legumes, citrus, well-cooked eggs. Follow your doctor's or midwife's advice on folic acid supplements."
+    },
+    "calcium": {
+      "name": "Calcium",
+      "hint": "Pasteurized or UHT milk, yogurt, anchovies, tofu, tempeh, leafy greens."
+    },
+    "iodine": {
+      "name": "Iodine",
+      "hint": "Iodized salt, sea fish, well-cooked eggs, milk."
+    },
+    "vitaminA": {
+      "name": "Vitamin A",
+      "hint": "Carrots, pumpkin, sweet potato, leafy greens, well-cooked eggs. Avoid high-dose vitamin A supplements unless your doctor says so."
+    },
+    "dha": {
+      "name": "DHA (omega-3)",
+      "hint": "Well-cooked, low-mercury sea fish such as mackerel, anchovies, sardines, salmon. At least 200 mg DHA a day is recommended (FAO/WHO 2010)."
+    },
+    "unit": {
+      "g": "g",
+      "ml": "ml",
+      "mg": "mg",
+      "mcg": "mcg",
+      "RE": "RE"
+    }
+  },
+  "gain": {
+    "title": "Weight gain",
+    "subtitle": "Compared with your weight before pregnancy",
+    "preWeight": "Weight before pregnancy {{kg}} kg",
+    "bmi": "Pre-pregnancy BMI {{bmi}} ({{category}})",
+    "category": {
+      "under": "underweight",
+      "normal": "normal",
+      "over": "overweight",
+      "obese": "obese"
+    },
+    "total": "IOM 2009 advice for the whole pregnancy: {{min}} to {{max}} kg",
+    "totalTwins": "IOM 2009 advice for twins (provisional): {{min}} to {{max}} kg",
+    "rate": "Trimesters 2 and 3, on average {{min}} to {{max}} kg per week",
+    "current": "Up {{gain}} kg at week {{week}}. This week's range is {{min}} to {{max}} kg.",
+    "empty": "Weigh in to start seeing your gain chart.",
+    "weighIn": "Weigh in now",
+    "band": "Recommended range",
+    "you": "Your gain",
+    "chartLabel": "Chart of weight gain by pregnancy week against the recommended range",
+    "axis": {
+      "week": "Pregnancy week",
+      "kg": "Gain (kg)"
+    },
+    "status": {
+      "within": "Your weight gain is inside the recommended range for this week.",
+      "below": "Your weight gain is a little under the range for this week. That isn't necessarily a problem; mention it to your doctor or midwife at your next visit.",
+      "above": "Your weight gain is a little above the range for this week. Don't cut back on eating on your own; talk to your doctor or midwife first."
+    },
+    "source": "Source: IOM 2009. The line between weeks is our interpolation between 0.5 to 2 kg at the end of trimester 1 and the total at term."
+  },
+  "flags": {
+    "title": "A note for you",
+    "footer": "This is a reminder, not a ban or medical advice. If you're unsure, ask your doctor or midwife.",
+    "alcohol": {
+      "title": "Contains alcohol",
+      "body": "It's safer to have no alcohol while pregnant or breastfeeding. If it already happened, no need to panic; tell your doctor or midwife if you're worried."
+    },
+    "caffeine": {
+      "title": "Contains caffeine",
+      "body": "About {{mg}} mg of caffeine per serving. The commonly advised daily limit is 200 mg, around two cups of coffee."
+    },
+    "caffeineDay": "Caffeine today is about {{mg}} of the {{limit}} mg limit",
+    "caffeineOver": "Caffeine today is already about {{mg}} mg, over the {{limit}} mg daily limit. You can ease off gently tomorrow.",
+    "rawMeat": {
+      "title": "Meat not fully cooked",
+      "body": "Raw or undercooked meat can carry bacteria and parasites, including toxoplasma. Ask for it to be cooked through."
+    },
+    "rawEgg": {
+      "title": "Eggs not fully cooked",
+      "body": "Raw or runny eggs carry a salmonella risk. Cook until the yolk and white are firm."
+    },
+    "rawFish": {
+      "title": "Raw fish or shellfish",
+      "body": "Sushi, sashimi, and raw seafood are best avoided during pregnancy. Choose cooked options."
+    },
+    "mercuryFish": {
+      "title": "High-mercury fish",
+      "body": "Shark, swordfish, marlin, and fresh tuna are high in mercury. Choose other fish such as mackerel, cooked salmon, or canned tuna in moderation."
+    },
+    "unpasteurized": {
+      "title": "Unpasteurized milk or cheese",
+      "body": "Unpasteurized products can carry listeria. Choose ones labelled pasteurized or UHT."
+    },
+    "herbal": {
+      "title": "Jamu or herbal remedy",
+      "body": "Not every jamu is proven safe for pregnant or breastfeeding women. Ask your doctor or midwife before drinking it."
+    }
+  },
+  "notes": {
+    "TWINS_ENERGY": "Twin pregnancy: AKG has no twin-specific addition, so we use the singleton pregnancy figure. You may need more; ask your doctor or dietitian.",
+    "PARTIAL_ESTIMATE": "Partial breastfeeding: AKG has no figure of its own. We use half of the AKG addition as an estimate.",
+    "OVERDUE": "Your HPHT is more than 42 weeks ago. Please check the date, or choose Had my baby if your baby has been born.",
+    "BABY_OVER_12": "AKG only covers babies up to 12 months. We keep using the month 7 to 12 figures.",
+    "TWINS_UNDERWEIGHT": "For twins with an underweight start, IOM has no official range. We show the normal-weight twin range as a reference; ask your doctor.",
+    "CONSULT": "You noted a condition. The numbers here are general guidance; follow the advice of the doctor or midwife who monitors you.",
+    "gestational_diabetes": "Gestational diabetes: carbohydrate planning should be discussed with your doctor or dietitian.",
+    "hypertension": "Hypertension or preeclampsia: keep an eye on your blood pressure and follow your doctor's advice, including on salt.",
+    "anemia": "Anemia: ask your doctor or midwife about iron tablets and iron-rich foods."
+  },
+  "home": {
+    "pregnant": "Week {{week}} · Trimester {{trimester}}",
+    "breastfeeding": "Breastfeeding · baby {{months}} mo",
+    "card": "Pregnancy and breastfeeding",
+    "weightTitle": "Weight gain",
+    "seeAll": "See details"
+  },
+  "settings": {
+    "title": "Pregnancy and breastfeeding",
+    "rowOff": "Set this up if you're pregnant or breastfeeding",
+    "rowPregnant": "Pregnant · week {{week}}",
+    "rowBreastfeeding": "Breastfeeding · baby {{months}} mo",
+    "intro": "Your target has no deficit and no weight loss: your daily need plus the AKG 2019 addition for your stage.",
+    "enable": "Turn on",
+    "edit": "Edit details",
+    "turnOff": "Turn off",
+    "turnOffTitle": "Turn this mode off?",
+    "turnOffBody": "Your target goes back to a standard daily need, with no weight loss. If you later want to lose weight, talk to your doctor or midwife first, then set the target in Profile.",
+    "turnOffConfirm": "Yes, turn off",
+    "saved": "Saved",
+    "turnedOff": "Mode turned off",
+    "hiddenNote": "Weight target, target date, fasting, and streaks are hidden while this mode is on.",
+    "ramadanNote": "Pregnant and breastfeeding women may skip the fast. The automatic Ramadan schedule isn't used for you; talk to your doctor or religious teacher if you want to fast."
+  },
+  "end": {
+    "button": "Had my baby",
+    "title": "Had your baby?",
+    "body": "We hope you and your baby are well. Pick what fits, and your target will adjust.",
+    "birthDate": "Birth date",
+    "breastfeeding": "I'm breastfeeding",
+    "breastfeedingHint": "Continue in breastfeeding mode",
+    "none": "I'm not breastfeeding",
+    "noneHint": "Back to a standard daily need",
+    "confirm": "Save",
+    "done": "Saved. Congratulations.",
+    "postpartum": {
+      "title": "After birth",
+      "body": "Your body needs time to recover, so there is no weight-loss target here. If you later want to lose weight, talk to your doctor or midwife first, then set a gentle target in Profile.",
+      "check": "Go to your postnatal check-up and note it in the KIA book."
+    }
+  }
+}

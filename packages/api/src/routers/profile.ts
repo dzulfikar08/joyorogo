@@ -12,11 +12,32 @@ import type { Database } from "@joyorogo/db";
 import type { Targets } from "../lib/engine";
 
 import { protectedProcedure } from "../index";
-import { checkTargetDate, computeTargets, jakartaToday } from "../lib/engine";
-import { dateSchema, profileInputSchema } from "../lib/schemas";
+import { checkTargetDate, computeTargets, jakartaToday, shiftDate } from "../lib/engine";
+import { FEEDING_TYPES, NO_MATERNAL, computeMaternalTargets, maternalFromRow, maternalToRow, resolveMaternalInput } from "../lib/maternal";
+import type { MaternalState } from "../lib/maternal";
+import { dateSchema, maternalInputSchema, profileInputSchema } from "../lib/schemas";
 import { buildPlan, planQueries } from "../lib/plan";
 import { serverT } from "../lib/messages";
 import { effectiveTier } from "../lib/tiers";
+
+/**
+ * Entering Hamil / Menyusui: fasting reminders and the public progress page go off.
+ * Fasting is not part of these modes, and health data is never shared by default.
+ */
+const MATERNAL_DEFAULTS = {
+  fastingPattern: "off",
+  fastingNotify: false,
+  shareEnabled: false,
+} as const;
+
+/**
+ * Hamil / Menyusui compute no weight target, but the columns are NOT NULL: they
+ * hold a maintenance target (today's weight) one year out, the plan that applies
+ * if the mode ends. No deficit comes from it.
+ */
+function holdWeight(weightKg: number, today: string) {
+  return { targetWeightKg: weightKg, targetDate: shiftDate(today, 365) };
+}
 
 /** Today's plan exactly as day.summary computes it (latest weigh-in + measured TDEE). */
 async function loadPlan(db: Database, userId: string) {
@@ -71,6 +92,11 @@ export const profileRouter = {
           message: serverT(context.locale, "errors")("profile.onboardingRequired"),
         });
       }
+      if (input.enabled && row.maternalMode !== "none") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: serverT(context.locale, "errors")("profile.shareMaternal"),
+        });
+      }
       const shareCode =
         input.enabled && !row.shareCode
           ? crypto.randomUUID().replace(/-/g, "").slice(0, 8)
@@ -83,17 +109,45 @@ export const profileRouter = {
     }),
 
   upsert: protectedProcedure
-    .input(profileInputSchema)
+    .input(
+      profileInputSchema.extend({
+        // Not asked in Hamil / Menyusui: those modes have no weight target.
+        targetWeightKg: z.number().min(25).max(400).optional(),
+        targetDate: dateSchema.optional(),
+        maternal: maternalInputSchema.optional(),
+      }),
+    )
     .handler(async ({ context, input }): Promise<{ targets: Targets }> => {
       const userId = context.session.user.id;
+      const t = serverT(context.locale, "errors");
+      const today = jakartaToday();
+      const resolved = resolveMaternalInput(input.maternal ?? { mode: "none" }, today);
+      if (!resolved.ok) {
+        throw new ORPCError("BAD_REQUEST", { message: t(`profile.${resolved.error}`) });
+      }
+      const maternal = resolved.state;
+      if (maternal.mode !== "none" && input.gender !== "female") {
+        throw new ORPCError("BAD_REQUEST", { message: t("profile.maternalFemaleOnly") });
+      }
+      const held =
+        maternal.mode === "none"
+          ? null
+          : holdWeight(maternal.prePregnancyWeightKg ?? input.weightKg, today);
+      const targetWeightKg = held?.targetWeightKg ?? input.targetWeightKg;
+      const targetDate = held?.targetDate ?? input.targetDate;
+      if (targetWeightKg === undefined || targetDate === undefined) {
+        throw new ORPCError("BAD_REQUEST", { message: t("profile.targetDateInvalid") });
+      }
       const fields = {
         birthYear: input.birthYear,
         gender: input.gender,
         heightCm: input.heightCm,
         startWeightKg: input.weightKg,
-        targetWeightKg: input.targetWeightKg,
-        targetDate: input.targetDate,
+        targetWeightKg,
+        targetDate,
         activityLevel: input.activityLevel,
+        ...maternalToRow(maternal),
+        ...(maternal.mode !== "none" ? MATERNAL_DEFAULTS : {}),
       };
       // the onboarding weight doubles as the first weigh-in; one atomic batch
       await context.db.batch([
@@ -106,7 +160,7 @@ export const profileRouter = {
           .values({
             id: crypto.randomUUID(),
             userId,
-            date: jakartaToday(),
+            date: today,
             weightKg: input.weightKg,
           })
           .onConflictDoUpdate({
@@ -114,7 +168,21 @@ export const profileRouter = {
             set: { weightKg: input.weightKg },
           }),
       ]);
-      return { targets: computeTargets(input, { weightNow: input.weightKg }) };
+      const profileInput = {
+        birthYear: input.birthYear,
+        gender: input.gender,
+        heightCm: input.heightCm,
+        weightKg: input.weightKg,
+        targetWeightKg,
+        targetDate,
+        activityLevel: input.activityLevel,
+      };
+      return {
+        targets:
+          maternal.mode === "none"
+            ? computeTargets(profileInput, { weightNow: input.weightKg })
+            : computeMaternalTargets(profileInput, maternal, { today, weightNow: input.weightKg }),
+      };
     }),
 
   // Editing the plan from /profil must not touch startWeightKg (the history
@@ -201,6 +269,93 @@ export const profileRouter = {
         current: now.targets,
         next: next.targets,
       };
+    }),
+
+  // Hamil / Menyusui on or off, from Settings > Profile. Turning it off returns to a
+  // maintenance plan (target weight = today's weight): the old weight-loss target
+  // pre-dates the pregnancy and is only set again on purpose, after a doctor visit.
+  setMaternal: protectedProcedure.input(maternalInputSchema).handler(async ({ context, input }) => {
+    const userId = context.session.user.id;
+    const t = serverT(context.locale, "errors");
+    const today = jakartaToday();
+    const { row, plan } = await loadPlan(context.db, userId);
+    if (!row || !plan) {
+      throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+    }
+    if (input.mode !== "none" && row.gender !== "female") {
+      throw new ORPCError("BAD_REQUEST", { message: t("profile.maternalFemaleOnly") });
+    }
+    const resolved = resolveMaternalInput(input, today);
+    if (!resolved.ok) {
+      throw new ORPCError("BAD_REQUEST", { message: t(`profile.${resolved.error}`) });
+    }
+    const previous = maternalFromRow(row);
+    // Pregnant -> breastfeeding without a new answer keeps the pre-pregnancy weight already stored.
+    const state =
+      resolved.state.mode === "breastfeeding" && resolved.state.prePregnancyWeightKg === null
+        ? { ...resolved.state, prePregnancyWeightKg: previous.prePregnancyWeightKg }
+        : resolved.state;
+    await context.db
+      .update(profile)
+      .set({
+        ...maternalToRow(state),
+        ...(state.mode !== "none" ? MATERNAL_DEFAULTS : {}),
+        ...(state.mode === "none" && previous.mode !== "none"
+          ? holdWeight(plan.weightNowKg, today)
+          : {}),
+      })
+      .where(eq(profile.userId, userId));
+    const next = await loadPlan(context.db, userId);
+    return { targets: next.plan?.targets ?? plan.targets };
+  }),
+
+  // "Sudah melahirkan": pregnancy ends; the baby's birth date starts Menyusui, or the
+  // account goes back to a maintenance plan (no deficit until the user sets a target).
+  endPregnancy: protectedProcedure
+    .input(
+      z.object({
+        next: z.enum(["breastfeeding", "none"]),
+        birthDate: dateSchema.optional(),
+        feeding: z.enum(FEEDING_TYPES).default("exclusive"),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const t = serverT(context.locale, "errors");
+      const today = jakartaToday();
+      const { row, plan } = await loadPlan(context.db, userId);
+      if (!row || !plan) {
+        throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+      }
+      const previous = maternalFromRow(row);
+      if (previous.mode !== "pregnant") {
+        throw new ORPCError("BAD_REQUEST", { message: t("profile.notPregnant") });
+      }
+      const birthDate = input.birthDate ?? today;
+      if (birthDate > today || birthDate < shiftDate(today, -730)) {
+        throw new ORPCError("BAD_REQUEST", { message: t("profile.birthDateInvalid") });
+      }
+      const state: MaternalState =
+        input.next === "breastfeeding"
+          ? {
+              ...previous,
+              mode: "breastfeeding",
+              pregnancyLmp: null,
+              pregnancyDateKind: null,
+              twins: false,
+              feedingType: input.feeding,
+              babyBirthDate: birthDate,
+            }
+          : NO_MATERNAL;
+      await context.db
+        .update(profile)
+        .set({
+          ...maternalToRow(state),
+          ...(state.mode === "none" ? holdWeight(plan.weightNowKg, today) : {}),
+        })
+        .where(eq(profile.userId, userId));
+      const next = await loadPlan(context.db, userId);
+      return { mode: state.mode, targets: next.plan?.targets ?? plan.targets };
     }),
   // Saved app language. Clients resolve saved > device choice > device language
   // and send the result as x-locale; this stores the explicit choice so it

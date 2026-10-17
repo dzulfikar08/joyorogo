@@ -619,6 +619,8 @@ export async function analyzeFoodPhoto(
     retry?: { hint?: string };
     /** Language of the item names and portions in the result; default Indonesian. */
     locale?: Locale;
+    /** One line about the person (maternalPromptNote: Hamil/Menyusui), appended to the prompt. */
+    userContext?: string;
     /**
      * Stream the answer and report items as they complete. The returned
      * analysis is parsed from the whole text, identical to a plain run.
@@ -655,7 +657,10 @@ export async function analyzeFoodPhoto(
       const runOptions = {
         imageBase64: opts.imageBase64,
         mimeType: opts.mimeType,
-        instruction: opts.retry ? retryInstruction(opts.retry.hint) : undefined,
+        instruction:
+          [opts.retry ? retryInstruction(opts.retry.hint) : undefined, opts.userContext]
+            .filter(Boolean)
+            .join("\n\n") || undefined,
         locale: opts.locale,
         promptTransform: opts.promptTransform,
         temperature: opts.temperature,

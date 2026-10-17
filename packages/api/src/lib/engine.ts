@@ -6,6 +6,8 @@
 import { getActiveLocale, getT, relativeDayLabel } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
+import type { MaternalInfo } from "./maternal";
+
 // One definition of "Hari ini / Kemarin / Sabtu, 10 Okt" for every caller.
 export { relativeDayLabel };
 
@@ -63,7 +65,7 @@ export const ACTIVITY_LABELS = localizedLabels(ACTIVITY_LEVELS, (level, locale) 
   getT(locale)(`activity.${level}`),
 );
 
-const ACTIVITY_MULTIPLIER: Record<ActivityLevel, number> = {
+export const ACTIVITY_MULTIPLIER: Record<ActivityLevel, number> = {
   low: 1.25,
   mid: 1.35,
   high: 1.45,
@@ -98,7 +100,13 @@ export type ProfileInput = {
   activityLevel: ActivityLevel;
 };
 
-export type TargetNotes = "MAINTENANCE" | "BELOW_HEALTHY_RANGE" | "PLAN_CLAMPED" | "ADAPTIVE";
+export type TargetNotes =
+  | "MAINTENANCE"
+  | "BELOW_HEALTHY_RANGE"
+  | "PLAN_CLAMPED"
+  | "ADAPTIVE"
+  /** Hamil / Menyusui plan (lib/maternal): no deficit, AKG additions */
+  | "MATERNAL";
 
 export type Targets = {
   bmr: number;
@@ -116,6 +124,8 @@ export type Targets = {
   idealMinKg: number;
   idealMaxKg: number;
   notes: TargetNotes[];
+  /** Hamil / Menyusui detail; null for everyone else */
+  maternal: MaternalInfo | null;
 };
 
 export function round5(n: number): number {
@@ -590,6 +600,7 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
     idealMinKg: ideal.minKg,
     idealMaxKg: ideal.maxKg,
     notes,
+    maternal: null,
   };
 }
 
@@ -749,6 +760,8 @@ export type NeedsBreakdown = {
   tdeeKcal: number;
   /** what the plan takes off the TDEE through food; 0 when holding weight */
   cutKcal: number;
+  /** Hamil / Menyusui: the AKG 2019 addition on top of the TDEE; 0 otherwise */
+  addKcal: number;
   targetKcal: number;
   /** planned exercise (Bakar) that covers the rest of the daily deficit */
   plannedBurnKcal: number;
@@ -769,6 +782,7 @@ export function needsBreakdown(targets: Targets): NeedsBreakdown {
     tdeeKcal: targets.tdee,
     // under 5 kcal is round5 noise, not a cut
     cutKcal: cut < 5 ? 0 : cut,
+    addKcal: targets.maternal?.addKcal ?? 0,
     targetKcal: targets.eatKcal,
     plannedBurnKcal: targets.burnKcal,
     deficitKcal: targets.deficitKcal,

@@ -9,7 +9,14 @@
     "onboardingRequired": "Lengkapi onboarding dulu ya.",
     "targetDatePast": "Tanggal target harus besok atau setelahnya.",
     "targetDateInvalid": "Tanggal target tidak valid.",
-    "targetDateTooFar": "Tanggal target paling jauh 5 tahun dari sekarang."
+    "targetDateTooFar": "Tanggal target paling jauh 5 tahun dari sekarang.",
+    "maternalFemaleOnly": "Mode hamil dan menyusui hanya untuk profil perempuan.",
+    "pregnancyDateFuture": "HPHT tidak boleh setelah hari ini. Cek lagi tanggalnya ya.",
+    "pregnancyDateTooOld": "Tanggal itu lebih dari 42 minggu lalu. Cek lagi HPHT atau HPL-mu ya.",
+    "notPregnant": "Mode hamil tidak sedang aktif.",
+    "birthDateInvalid": "Tanggal melahirkan harus hari ini atau sebelumnya, dalam 2 tahun terakhir.",
+    "fastingMaternal": "Puasa intermiten tidak tersedia selama hamil atau menyusui.",
+    "shareMaternal": "Halaman progres publik tidak tersedia selama hamil atau menyusui."
   },
   "ai": {
     "unavailable": "Layanan AI belum tersedia. Coba lagi nanti.",

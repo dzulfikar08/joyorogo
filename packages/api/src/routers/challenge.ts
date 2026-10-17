@@ -30,8 +30,8 @@ import {
 import type { ChallengeShare, DayFacts, DayResult } from "../lib/challenge";
 import { canHostChallenge } from "../lib/challenge-host";
 import { loadFacts } from "../lib/challenge-db";
-import { daysBetween, jakartaToday, proteinTargetG, shiftDate } from "../lib/engine";
-import { buildPlan, planQueries } from "../lib/plan";
+import { daysBetween, jakartaToday, shiftDate } from "../lib/engine";
+import { buildPlan, planQueries, proteinGoalG } from "../lib/plan";
 import { dateSchema } from "../lib/schemas";
 import { paywallConfig } from "../lib/tiers";
 import { serverT } from "../lib/messages";
@@ -129,7 +129,7 @@ async function personalTargets(db: Database, userId: string, date: string) {
   );
   return {
     eatKcal: Math.round(plan.targets.eatKcal),
-    proteinG: proteinTargetG(plan.weightNowKg, prof.heightCm),
+    proteinG: proteinGoalG(plan, prof.heightCm),
   };
 }
 

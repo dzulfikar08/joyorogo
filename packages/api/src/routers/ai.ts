@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import type { Database } from "@joyorogo/db";
 import type { Locale } from "@joyorogo/i18n";
-import { aiUsage, scanCorrection, scanFeedback } from "@joyorogo/db/schema/fitness";
+import { aiUsage, profile, scanCorrection, scanFeedback } from "@joyorogo/db/schema/fitness";
 import {
   SCAN_ID_RE,
   base64ToBytes,
@@ -33,6 +33,7 @@ import { protectedProcedure } from "../index";
 import { serverT } from "../lib/messages";
 import { scanFailMessage } from "../lib/scan-fail-message";
 import { MEALS, jakartaToday } from "../lib/engine";
+import { maternalFromRow, maternalNoteFor } from "../lib/maternal";
 import { dateSchema, mealSchema } from "../lib/schemas";
 import { TRANSCRIBE_MODEL, parseFoodStory, transcribeStory } from "../lib/story";
 import { MAX_SCAN_RETRIES, requireAiQuota } from "../lib/quota";
@@ -173,6 +174,12 @@ type AnalyzeFoodInput = z.infer<typeof analyzeFoodInput>;
 /** What a handler behind protectedProcedure sees. */
 type AuthedContext = Context & { session: NonNullable<Context["session"]> };
 
+/** The scan-prompt line for a Hamil / Menyusui user (see maternalPromptNote); null for everyone else. */
+async function loadMaternalNote(db: Database, userId: string): Promise<string | null> {
+  const [row] = await db.select().from(profile).where(eq(profile.userId, userId)).limit(1);
+  return row ? maternalNoteFor(maternalFromRow(row)) : null;
+}
+
 /** What analyzeFood answers, and what the closing `done` event of analyzeFoodStream carries. */
 export type AnalyzeFoodResult = {
   items: VisionAnalysis["items"];
@@ -210,6 +217,8 @@ async function runAnalyzeFood(
   );
   const quotaMs = Date.now() - requestStartedAt;
 
+  // Hamil / Menyusui: one context line for the prompt, read beside the model call's setup.
+  const maternalNote = loadMaternalNote(context.db, userId);
   // "Hasilnya akurat?" cadence: ask after every scan for a brand-new user
   // (first 3 scans ever), otherwise at most once per WIB day. Counted
   // before this scan's ledger row lands; awaited after inference so the
@@ -289,6 +298,7 @@ async function runAnalyzeFood(
       mimeType: input.mimeType,
       model: context.env.AI_VISION_MODEL || undefined,
       locale: context.locale,
+      userContext: (await maternalNote) ?? undefined,
       onEvent: report,
     });
   } catch (error) {
@@ -511,6 +521,7 @@ export const aiRouter = {
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
       const requestStartedAt = Date.now();
+      const maternalNote = loadMaternalNote(context.db, userId);
       const t = serverT(context.locale, "errors");
       const ai = context.env.AI;
       if (!ai) {
@@ -549,6 +560,7 @@ export const aiRouter = {
           model: context.env.AI_VISION_MODEL || undefined,
           retry: { hint: input.hint },
           locale: context.locale,
+          userContext: (await maternalNote) ?? undefined,
         });
       } catch (error) {
         context.waitUntil(logScanFailure(context.db, userId, error, startedAt, "retry"));
