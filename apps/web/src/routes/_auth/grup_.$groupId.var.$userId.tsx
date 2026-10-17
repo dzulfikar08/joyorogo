@@ -2,14 +2,15 @@ import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Activity, ChevronLeft, CircleAlert, CircleCheck, CircleDashed, EyeOff, Flag, Hand, Info, RotateCcw, ScanLine, Tv, Utensils, X } from "lucide-react";
+import { Activity, ChevronDown, ChevronLeft, CircleAlert, CircleCheck, CircleDashed, EyeOff, Flag, Hand, Info, RotateCcw, ScanLine, Tv, Utensils, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import { fmtDateShort, i18n } from "@joyorogo/i18n";
 
 import { apiUrl } from "@/lib/app-config";
 import { useSession } from "@/lib/auth-client";
-import { fmtDateShort, fmtInt } from "@/lib/format";
+import { fmtInt } from "@/lib/format";
 import type { VarScan } from "@/lib/api-types";
 import { orpc } from "@/utils/orpc";
 
@@ -46,7 +47,7 @@ function usePrefersReducedMotion(): boolean {
 }
 
 function VarPage() {
-  const { t } = useTranslation("grup");
+  const { t } = useTranslation(["varperut", "common"]);
   const { groupId, userId } = Route.useParams();
   const reducedMotion = usePrefersReducedMotion();
 
@@ -54,7 +55,7 @@ function VarPage() {
   const detail = useQuery(orpc.group.detail.queryOptions({ input: { groupId } }));
   const session = useSession();
   const target = detail.data?.members.find((m) => m.userId === userId);
-  const targetName = target?.name ?? t("watch.they");
+  const targetName = target?.name ?? t("live.fallback.them");
   const isSelf = session.data?.user.id === userId;
   // Hidden members skip the theatrics: there is nothing to reveal after 2.4 s.
   const hidden = !(target?.shareFood ?? true);
@@ -131,18 +132,18 @@ function VarPage() {
       .then((result) => {
         setFetchDone(true);
         if (result.isError) {
-          setScanError(result.error?.message ?? t("watch.scanFailed"));
+          setScanError(result.error?.message ?? t("live.error.generic"));
         }
       })
       .catch(() => {
         setFetchDone(true);
-        setScanError(t("watch.scanFailedOffline"));
+        setScanError(t("live.error.network"));
       });
   };
 
   const nudge = useMutation(
     orpc.group.nudge.mutationOptions({
-      onSuccess: () => toast.success(t("toast.poked")),
+      onSuccess: () => toast.success(t("live.toast.sent")),
       onError: (error) => toast.error(error.message),
     }),
   );
@@ -154,13 +155,13 @@ function VarPage() {
         <Link
           to="/grup/$groupId"
           params={{ groupId }}
-          aria-label={t("watch.close")}
+          aria-label={t("close")}
           className="grid size-11 place-items-center rounded-full bg-white/10 backdrop-blur focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
         >
           <X className="size-5" aria-hidden />
         </Link>
         <span className="rounded-md border-2 border-white/70 px-3 py-1 text-sm font-black tracking-[0.2em] italic uppercase">
-          VAR Check
+          {t("live.banner.aim")}
         </span>
         {/* Spacer keeps the banner centred. */}
         <span className="size-11" aria-hidden />
@@ -210,7 +211,7 @@ function VarPage() {
           )}
           {/* Floating foods on reveal */}
           {phase === "reveal" && scan.data && !scan.data.hidden && (
-            <ul aria-label={t("watch.foodsLabel", { name: scan.data.name ?? t("watch.friend") })}>
+            <ul aria-label={t("live.foodsLabel", { name: scan.data.name ?? t("live.fallback.friend") })}>
               {scan.data.foods.slice(0, FOOD_SLOTS.length).map((food, index) => {
                 const slot = FOOD_SLOTS[index]!;
                 return (
@@ -270,8 +271,8 @@ function VarPage() {
             </div>
             <p className="mt-3 text-sm font-bold text-emerald-100 drop-shadow">
               {hidden
-                ? t("watch.hidden", { name: targetName })
-                : t("watch.aim", { name: targetName })}
+                ? t("live.hiddenTitle", { name: targetName })
+                : t("live.aim", { name: targetName })}
             </p>
           </div>
         )}
@@ -279,10 +280,10 @@ function VarPage() {
         {/* Scan readout */}
         {phase === "scan" && (
           <div className="pointer-events-none absolute inset-x-0 bottom-6 text-center" role="status">
-            <p className="text-sm font-black tracking-[0.25em] text-emerald-200">{t("watch.scanning")}</p>
+            <p className="text-sm font-black tracking-[0.25em] text-emerald-200">{t("live.scanning")}</p>
             <p className="mt-1 flex items-center justify-center gap-1.5 font-mono text-[0.6875rem] text-emerald-100/80">
               <Activity className="size-3.5" aria-hidden />
-              {t("watch.progress", { percent: Math.round(progress) })}
+              {t("live.beep", { percent: Math.round(progress) })}
             </p>
           </div>
         )}
@@ -300,7 +301,7 @@ function VarPage() {
               <div className="mx-auto mb-3 max-w-lg rounded-3xl bg-card p-4 text-card-foreground shadow-float" role="alert">
                 <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold text-destructive">
                   <CircleAlert className="size-5 shrink-0" aria-hidden />
-                  {t("watch.errorTitle")}
+                  {t("live.failTitle")}
                 </p>
                 <p className="mt-1 text-center text-sm text-muted-foreground">{scanError}</p>
               </div>
@@ -319,7 +320,7 @@ function VarPage() {
                 }}
               >
                 <RotateCcw className="size-4" aria-hidden />
-                {t("watch.rescan")}
+                {t("live.rescan")}
               </Button>
               {!isSelf && (
                 <Button
@@ -328,7 +329,7 @@ function VarPage() {
                   onClick={() => nudge.mutate({ groupId, toUserId: userId, kind: "poke" })}
                 >
                   <Hand className="size-4" aria-hidden />
-                  {t("member.poke")}
+                  {t("live.poke")}
                 </Button>
               )}
             </>
@@ -338,14 +339,14 @@ function VarPage() {
                 to="/grup/$groupId"
                 params={{ groupId }}
                 className="grid size-14 shrink-0 place-items-center rounded-full bg-white/10 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-                aria-label={t("watch.backToGroup")}
+                aria-label={t("back")}
               >
                 <ChevronLeft className="size-6" aria-hidden />
               </Link>
               {!hidden && (
                 <Button size="lg" className="flex-1" disabled={phase === "scan"} onClick={startScan}>
                   <ScanLine className="size-5" aria-hidden />
-                  {phase === "scan" ? t("watch.scanningShort") : t("watch.scan")}
+                  {phase === "scan" ? t("live.scanningBtn") : t("live.scan")}
                 </Button>
               )}
             </>
@@ -353,7 +354,7 @@ function VarPage() {
         </div>
         {camError && (
           <p className="mt-2 text-center text-xs text-white/60">
-            {t("watch.noCamera")}
+            {t("live.noCamera")}
           </p>
         )}
       </div>
@@ -362,18 +363,18 @@ function VarPage() {
 }
 
 function VerdictCard({ scan, targetName }: { scan: VarScan | null; targetName: string }) {
-  const { t } = useTranslation("grup");
+  const { t } = useTranslation("varperut");
   // Hidden member and the query has not run (or failed): still show why.
   if (scan === null) {
     return (
       <div className="mx-auto mb-3 max-w-lg rounded-3xl bg-card p-4 text-card-foreground shadow-float">
         <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold">
           <EyeOff className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-          {t("watch.hidden", { name: targetName })}
+          {t("live.hiddenTitle", { name: targetName })}
         </p>
-        <p className="mt-1 text-center text-sm text-muted-foreground">
-          {t("watch.hiddenHint")}
-        </p>
+        <VerdictAbout>
+          <p>{t("live.hiddenNote")}</p>
+        </VerdictAbout>
       </div>
     );
   }
@@ -385,47 +386,61 @@ function VerdictCard({ scan, targetName }: { scan: VarScan | null; targetName: s
       {scan.hidden ? (
         <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold">
           <EyeOff className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-          {t("watch.hidden", { name: scan.name ?? t("watch.friend") })}
+          {t("live.hiddenTitle", { name: scan.name ?? t("live.fallback.friend") })}
         </p>
       ) : scan.verdict === "aman" ? (
         <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold text-primary">
           <CircleCheck className="size-5 shrink-0" aria-hidden />
-          {t("watch.verdict.aman")}
+          {t("live.verdict.safe")}
         </p>
       ) : scan.verdict === "offside" ? (
         <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold text-destructive">
           <Flag className="size-5 shrink-0" aria-hidden />
-          {t("watch.verdict.offside", { kcal: fmtInt(over ?? 0) })}
+          {t("live.verdict.offside", { kcal: fmtInt(over ?? 0) })}
         </p>
       ) : scan.verdict === "tanpa_target" ? (
         <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold">
           <Info className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-          {t("watch.verdict.tanpaTarget")}
+          {t("live.verdict.noTarget")}
         </p>
       ) : (
         <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold">
           <CircleDashed className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-          {t("watch.verdict.kosong")}
+          {t("live.verdict.empty")}
         </p>
       )}
       <p className="mt-1 text-center text-sm text-muted-foreground">
         {target !== null
-          ? t("watch.totalOf", { eaten: fmtInt(scan.eatenKcal), target: fmtInt(target) })
-          : t("watch.total", { eaten: fmtInt(scan.eatenKcal) })}
-      </p>
-      <p className="mt-1 text-center text-xs text-muted-foreground/80">
-        {t("watch.basis", { name: firstName })}
+          ? t("live.total", { eaten: fmtInt(scan.eatenKcal), target: fmtInt(target) })
+          : t("live.totalNoTarget", { eaten: fmtInt(scan.eatenKcal) })}
       </p>
       {scan.varStatus && (
         <p className="mt-2 flex items-center justify-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-center text-xs font-semibold text-muted-foreground">
           <Tv className="size-3.5 shrink-0" aria-hidden />
-          {t("watch.belly", {
+          {t("live.chip", {
             name: firstName,
             date: fmtDateShort(scan.varStatus.date),
-            verdict: t(`var.belly.${scan.varStatus.verdict}`),
+            verdict: i18n.t(`varperut:verdict.short.${scan.varStatus.verdict}`),
           })}
         </p>
       )}
+      <VerdictAbout>
+        <p>{t("live.basis", { name: firstName })}</p>
+      </VerdictAbout>
     </div>
+  );
+}
+
+/** Collapsed-by-default explainer inside the verdict card. */
+function VerdictAbout({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation("varperut");
+  return (
+    <details className="group mt-1 text-center text-xs text-muted-foreground">
+      <summary className="inline-flex min-h-8 cursor-pointer list-none items-center gap-1 font-semibold select-none [&::-webkit-details-marker]:hidden">
+        {t("live.about")}
+        <ChevronDown className="size-3.5 transition-transform duration-200 group-open:rotate-180" aria-hidden />
+      </summary>
+      <div className="mt-0.5">{children}</div>
+    </details>
   );
 }
