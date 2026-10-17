@@ -129,7 +129,7 @@ function GainSvg({ data, width, height }: { data: GainChartData; width: number; 
           <title>
             {t("gain.current", {
               gain: fmtKg(p.gainKg),
-              week: fmtDecimal(p.week, 1),
+              week: Math.floor(p.week),
               min: fmtKg(data.band[Math.round(Math.min(Math.max(p.week, 0), TERM_WEEK))]!.minKg),
               max: fmtKg(data.band[Math.round(Math.min(Math.max(p.week, 0), TERM_WEEK))]!.maxKg),
             })}{" "}
@@ -169,7 +169,7 @@ export function WeightGainCard({ onWeigh }: { onWeigh: () => void }) {
           <p className="text-sm font-bold tabular-nums">
             {t("gain.current", {
               gain: fmtKg(current.gainKg),
-              week: fmtDecimal(current.week, 1),
+              week: Math.floor(current.week),
               min: fmtKg(current.bandMinKg),
               max: fmtKg(current.bandMaxKg),
             })}

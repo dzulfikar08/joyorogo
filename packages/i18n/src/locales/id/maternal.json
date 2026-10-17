@@ -139,7 +139,7 @@
     },
     "water": {
       "name": "Air",
-      "hint": "Termasuk air dari makanan dan minuman lain (AKG 2019). Catat gelas airmu di Beranda."
+      "hint": "Angka AKG 2019 ini termasuk air dari makanan dan minuman lain; target gelasmu dibulatkan dari angka ini. Catat gelas airmu di kartu Air."
     },
     "iron": {
       "name": "Zat besi",

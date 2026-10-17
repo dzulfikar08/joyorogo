@@ -139,7 +139,7 @@
     },
     "water": {
       "name": "Water",
-      "hint": "Includes water from food and other drinks (AKG 2019). Log your glasses of water on Home."
+      "hint": "This AKG 2019 figure includes water from food and other drinks; your glass goal is rounded from it. Log your glasses on the Water card."
     },
     "iron": {
       "name": "Iron",

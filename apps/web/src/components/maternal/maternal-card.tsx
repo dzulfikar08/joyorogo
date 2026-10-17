@@ -7,7 +7,6 @@ import type { MaternalInfo } from "@joyorogo/api/lib/maternal";
 
 import { Card } from "@/components/kit/surface";
 import type { DaySummary } from "@/lib/api-types";
-import { fmtDecimal } from "@joyorogo/i18n";
 import { fmtInt, fmtKg } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 import { MaternalDisclaimer } from "./disclaimer";
@@ -32,7 +31,7 @@ function GainMini() {
           {current
             ? t("gain.current", {
                 gain: fmtKg(current.gainKg),
-                week: fmtDecimal(current.week, 1),
+                week: Math.floor(current.week),
                 min: fmtKg(current.bandMinKg),
                 max: fmtKg(current.bandMaxKg),
               })
