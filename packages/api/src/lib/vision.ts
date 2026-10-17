@@ -33,8 +33,29 @@ Semua angka bulat kecuali confidence. Tidak ada makanan di foto: {"items":[],"pr
 kind: "makanan" = makanan berat (nasi, lauk, sayur, mi, sup), "camilan" = gorengan, kue, keripik, martabak, es krim, jajanan ringan, "minuman" = semua yang diminum.
 box = kotak pembatas item itu di foto, skala 0-1000 relatif tinggi dan lebar foto.
 Satu hidangan = satu item: kuah, bumbu/saus, sayur, dan lontong/mi/bihun yang sudah bagian dari hidangan itu (mis. gado-gado, bakso, soto) TERMASUK di kcal hidangan, jangan dipisah. Pisahkan hanya yang berdiri sendiri: nasi, lauk terpisah, telur, kerupuk, gorengan, sambal, minuman.
-Aturan: ini bukan percakapan — jangan menjawab dengan tabel markdown. name dalam Bahasa Indonesia tanpa terjemahan. grams = perkiraan berat (1-5000); kcal, protein/carbs/fat (gram), fiber (gram) = estimasi realistis porsi umum; confidence 0-1.${localNameRule(locale)}`;
+Aturan: ini bukan percakapan — jangan menjawab dengan tabel markdown. name dalam Bahasa Indonesia tanpa terjemahan. grams = perkiraan berat (1-5000); kcal, protein/carbs/fat (gram), fiber (gram) = estimasi realistis porsi umum; confidence 0-1.${localNameRule(locale)}
+${SAUCE_RULE}`;
 }
+
+/**
+ * Reference kcal for the add-ons the model low-balls most (A/B 2026-10-17,
+ * docs/ai-accuracy-review-2026-10-17.md: sauce prompt variant).
+ */
+export const SAUCE_RULE =
+  "Saus, sambal, mayones, dan bumbu kacang yang banyak dihitung kalorinya: mayones 1 sdm (15 g) = 100 kcal, bumbu kacang 50 g = 150 kcal, sambal berminyak (ijo/balado/terasi) 30 g = 60-100 kcal, kacang tanah goreng 10 g = 60 kcal. Lauk bersambal (ayam sambal ijo, ayam penyet, telur balado) = kcal lauknya DITAMBAH sambalnya, bukan hanya kcal sambal.";
+
+/**
+ * Shadow variant (see lib/shadow-scan.ts): the production prompt plus the
+ * trimmed dish-identity rule, answered at temperature 0.1. It runs beside live
+ * scans only, to be compared with what users saved; it never reaches a user.
+ */
+export const SHADOW_IDENTITY_RULE =
+  "Kenali hidangan dari ISInya, bukan dari saus penutupnya: tertutup bumbu kacang bisa siomay/batagor (pangsit kukus, tahu, kentang, kol, telur), gado-gado (sayur rebus, lontong, tempe, kerupuk), ketoprak atau pecel; pilih yang bahan terlihatnya cocok. Untaian kuning = mi, bukan nasi: sebut karbohidrat utamanya dengan benar. Bebek (tulang besar, kulit tebal, kaki panjang) bukan ayam.";
+export const SHADOW_VARIANT = {
+  id: "identity-t01",
+  temperature: 0.1,
+  promptTransform: (base: string) => `${base}\n${SHADOW_IDENTITY_RULE}`,
+} as const;
 
 export const VISION_PROMPT = visionPrompt();
 
@@ -48,6 +69,18 @@ const MAX_COMPLETION_TOKENS = 1600;
 /** Items kept per photo; the prompt asks for the same number. */
 export const MAX_ITEMS = 10;
 
+/**
+ * The model sometimes quotes every number (`"grams":"200"`). A numeric string
+ * is that number; anything else (null, "", "abc") stays itself and fails
+ * z.number() as before. Part of the schema, so the stream preview, the final
+ * parse and the eval harness all read quoted numbers alike.
+ */
+const quotedNumber = (value: unknown) =>
+  typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))
+    ? Number(value)
+    : value;
+const modelNumber = z.preprocess(quotedNumber, z.number());
+
 export const visionItemSchema = z.object({
   name: z.string(),
   // Name in the user's language when it is not Indonesian (see ai-locale.ts).
@@ -55,13 +88,13 @@ export const visionItemSchema = z.object({
   // Model's own call; resolveFoodKind falls back to the name when it is missing or odd.
   kind: z.string().optional(),
   portion: z.string().optional(),
-  grams: z.number().optional(),
-  kcal: z.number(),
-  protein: z.number().optional(),
-  carbs: z.number().optional(),
-  fat: z.number().optional(),
-  fiber: z.number().optional(),
-  confidence: z.number().min(0).max(1).optional(),
+  grams: modelNumber.optional(),
+  kcal: modelNumber,
+  protein: modelNumber.optional(),
+  carbs: modelNumber.optional(),
+  fat: modelNumber.optional(),
+  fiber: modelNumber.optional(),
+  confidence: z.preprocess(quotedNumber, z.number().min(0).max(1)).optional(),
   // Bounding box [ymin, xmin, ymax, xmax] on a 0-1000 grid; validated by normalizeBox.
   box: z.unknown().optional(),
 });
@@ -219,6 +252,8 @@ type VisionRunOptions = {
   locale?: Locale;
   /** Eval-only: rewrites the base prompt (see analyzeFoodPhoto). Unset in production. */
   promptTransform?: (base: string) => string;
+  /** Sampling temperature; unset = the model default (every production scan today). */
+  temperature?: number;
 };
 
 function visionRequest(opts: VisionRunOptions) {
@@ -244,6 +279,7 @@ function visionRequest(opts: VisionRunOptions) {
       },
     ],
     max_tokens: MAX_COMPLETION_TOKENS,
+    ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
     // Thinking quintuples latency for no measurable accuracy gain on plates.
     chat_template_kwargs: { enable_thinking: false },
   };
@@ -596,6 +632,8 @@ export async function analyzeFoodPhoto(
      * Production callers never set it; unset = the prompt exactly as shipped.
      */
     promptTransform?: (base: string) => string;
+    /** Sampling temperature (the shadow variant only); unset = the model default. */
+    temperature?: number;
     /** Injectable for tests — deterministic deadlines without real timers. */
     schedule?: ScheduleTimeout;
   },
@@ -620,6 +658,7 @@ export async function analyzeFoodPhoto(
         instruction: opts.retry ? retryInstruction(opts.retry.hint) : undefined,
         locale: opts.locale,
         promptTransform: opts.promptTransform,
+        temperature: opts.temperature,
       };
       const result = opts.onEvent
         ? await runVisionStream(

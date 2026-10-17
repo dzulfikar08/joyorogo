@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { ItemScanner, lenientItem, repairKeys, scanItems } from "./item-stream";
+import { ItemScanner, lenientItem, repairKeys, scanItems, unescapeQuotes } from "./item-stream";
 import { analyzeFoodPhoto, parseAnswer } from "./vision";
 import type { AiRunner } from "./vision";
 
@@ -149,5 +149,99 @@ describe("cut-off and unreadable objects", () => {
       box: [1, 2, 3, 4],
     });
     expect(lenientItem('{"name":"x","kcal":??}')).toBeNull();
+  });
+});
+
+// Answers that quote every number ("grams":"200") or write the JSON with every
+// quote backslash-escaped ({\"items\":...}) used to fail z.number() or never
+// reach the item array, so a valid plate failed with scan:failed.
+describe("quoted numbers and escaped quotes", () => {
+  const quoted = fixture("vision-quoted.json");
+  const itemCounts = [2, 2, 1, 2, 2];
+
+  test("every answer keeps its items with numeric values", () => {
+    expect(quoted).toHaveLength(itemCounts.length);
+    quoted.forEach((text, i) => {
+      const answer = parseAnswer(text, "stop");
+      expect(answer.found).toBe(itemCounts[i]!);
+      for (const item of answer.items) {
+        expect(typeof item.kcal).toBe("number");
+        expect(item.grams === undefined || typeof item.grams === "number").toBe(true);
+      }
+    });
+    const [rice] = parseAnswer(quoted[0]!, "stop").items;
+    expect(rice?.grams).toBe(150);
+    expect(rice?.confidence).toBe(0.9);
+  });
+
+  test("a quoted garbled item is repaired like an unquoted one", () => {
+    const answer = parseAnswer(quoted[3]!, "stop");
+    expect(answer.items.map((item) => item.name)).toEqual(["sayur bayam", "tahu goreng"]);
+    expect(answer.items[0]?.grams).toBe(100);
+  });
+
+  test("a cut-off answer with quoted numbers keeps the last item with its kcal", () => {
+    const answer = parseAnswer(quoted[4]!, "length");
+    expect(answer.items.map((item) => item.name)).toEqual(["mie goreng", "telur dadar"]);
+    expect(answer.tooMany).toBe(true);
+  });
+
+  test("escaped quotes are unescaped only when no bare quote exists", () => {
+    const escaped = quoted[1]!;
+    expect(unescapeQuotes(escaped)).toBe(escaped.replace(/\\"/g, '"'));
+    expect(JSON.parse(repairKeys(escaped)).items).toHaveLength(2);
+    const valid = '{"items":[{"name":"es \\"teh\\"","kcal":40}]}';
+    expect(unescapeQuotes(valid)).toBe(valid);
+    expect(unescapeQuotes('"{\\"items\\":[]}"')).toBe('"{"items":[]}"');
+  });
+
+  test("non-numeric strings still reject the item and do not sink the plate", () => {
+    const text = '{"items":[{"name":"nasi","kcal":"banyak"},{"name":"tahu","kcal":"90"}]}';
+    const answer = parseAnswer(text, "stop");
+    expect(answer.items.map((item) => item.name)).toEqual(["tahu"]);
+    expect(parseAnswer('{"items":[{"name":"x","kcal":"90","grams":""}]}', "stop").found).toBe(0);
+  });
+
+  test("the scanner and the stream agree with the plain parse on every fixture", async () => {
+    for (const text of quoted) {
+      const scanner = new ItemScanner();
+      const events: unknown[] = [];
+      for (let i = 0; i < text.length; i += 5) {
+        for (const event of scanner.push(text.slice(i, i + 5))) if (event.kind === "item") events.push(event.raw);
+      }
+      for (const event of scanner.end()) if (event.kind === "item") events.push(event.raw);
+      expect(events).toEqual(scanItems(text));
+    }
+    const encoder = new TextEncoder();
+    const frames = (text: string) => [
+      ...[text.slice(0, 31), text.slice(31)].map(
+        (content) =>
+          `data: ${JSON.stringify({ choices: [{ delta: { content }, finish_reason: null }] })}\n\n`,
+      ),
+      `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }] })}\n\n`,
+      "data: [DONE]\n\n",
+    ];
+    const opts = { imageBase64: "aGVsbG8=", mimeType: "image/jpeg" };
+    for (const text of quoted.slice(0, 4)) {
+      const streamed = await analyzeFoodPhoto(
+        {
+          run: () =>
+            Promise.resolve(
+              new ReadableStream<Uint8Array>({
+                start(controller) {
+                  for (const frame of frames(text)) controller.enqueue(encoder.encode(frame));
+                  controller.close();
+                },
+              }),
+            ),
+        },
+        { ...opts, onEvent: () => {} },
+      );
+      const direct = await analyzeFoodPhoto(
+        { run: () => Promise.resolve({ choices: [{ message: { content: text }, finish_reason: "stop" }] }) },
+        opts,
+      );
+      expect(streamed.items).toEqual(direct.items);
+    }
   });
 });

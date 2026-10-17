@@ -8,6 +8,7 @@ import {
   runVisionOnce,
   salvageItems,
   VisionError,
+  SHADOW_VARIANT,
   visionPrompt,
   visionResultSchema,
   type AiRunner,
@@ -547,5 +548,45 @@ describe("promptTransform (eval hook)", () => {
       promptTransform: (base) => `${base}\nCatatan eval.`,
     });
     expect(text.startsWith(`${visionPrompt()}\nCatatan eval.\n\nKoreksi:`)).toBe(true);
+  });
+});
+
+describe("prompt additions and the shadow variant", () => {
+  function requestSeen(opts: Parameters<typeof analyzeFoodPhoto>[1]) {
+    const seen: Array<Record<string, unknown>> = [];
+    const ai: AiRunner = {
+      run: (_model, input) => {
+        seen.push(input as Record<string, unknown>);
+        return Promise.resolve({ response: JSON.stringify(PLATE) });
+      },
+    };
+    return analyzeFoodPhoto(ai, opts).then(() => seen[0]!);
+  }
+  const textOf = (request: Record<string, unknown>) =>
+    (request.messages as Array<{ content: Array<{ text?: string }> }>)[0]!.content[0]!.text ?? "";
+
+  test("the production prompt carries the sauce reference values and no identity rules", () => {
+    const prompt = visionPrompt();
+    expect(prompt).toContain("mayones 1 sdm (15 g) = 100 kcal");
+    expect(prompt).toContain("bukan hanya kcal sambal");
+    expect(prompt).not.toContain("Kenali hidangan dari ISInya");
+    expect(visionPrompt("en")).toContain("mayones 1 sdm (15 g) = 100 kcal");
+  });
+
+  test("production requests set no temperature", async () => {
+    expect("temperature" in (await requestSeen(OPTS))).toBe(false);
+  });
+
+  test("the shadow variant adds the identity rule and temperature 0.1 to the same prompt", async () => {
+    const request = await requestSeen({
+      ...OPTS,
+      promptTransform: SHADOW_VARIANT.promptTransform,
+      temperature: SHADOW_VARIANT.temperature,
+    });
+    expect(request.temperature).toBe(0.1);
+    expect(textOf(request).startsWith(visionPrompt())).toBe(true);
+    expect(textOf(request)).toContain("Kenali hidangan dari ISInya");
+    expect(textOf(request)).not.toContain("Tempe = blok");
+    expect(textOf(request)).not.toContain("Labu siam");
   });
 });

@@ -15,16 +15,18 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { repairKeys } from "../packages/api/src/lib/item-stream";
-import { atwaterAdjust, calibrateItems, TKPI_DISHES } from "../packages/api/src/lib/tkpi";
+import { calibrateItems } from "../packages/api/src/lib/tkpi";
 import type { CalibratableItem, CalibratedItem } from "../packages/api/src/lib/tkpi";
-import { lookupTkpi2019 } from "../packages/api/src/lib/tkpi2019";
 import {
   analyzeFoodPhoto,
   DEFAULT_VISION_MODEL,
   extractJson,
   MAX_ITEMS,
   responseText,
+  SAUCE_RULE,
   salvageItems,
+  SHADOW_IDENTITY_RULE,
+  SHADOW_VARIANT,
   visionItemSchema,
   visionResultSchema,
 } from "../packages/api/src/lib/vision";
@@ -41,19 +43,18 @@ const IDENTITY =
   "Kenali hidangan dari ISInya, bukan dari saus penutupnya: tertutup bumbu kacang bisa siomay/batagor (pangsit kukus, tahu, kentang, kol, telur), gado-gado (sayur rebus, lontong, tempe, kerupuk), ketoprak atau pecel; pilih yang bahan terlihatnya cocok. Untaian kuning = mi, bukan nasi: sebut karbohidrat utamanya dengan benar. Bebek (tulang besar, kulit tebal, kaki panjang) bukan ayam. Tempe = blok kacang berbutir, bukan daging. Labu siam = potongan hijau pucat, bukan timun.";
 const PORTION =
   "Hitung potongan satu per satu dan tulis jumlahnya di portion (mis. '4 potong'). Patokan berat matang: satu centong nasi 100 g, gundukan nasi di piring 150-200 g, nasi kotak/bungkus penuh 200-250 g; telur 55 g/butir; satu potong ayam goreng (paha/dada) 100-130 g; nugget 25 g/potong; tahu atau tempe 25-50 g/potong; lauk tumis berbumbu satu sendok sayur 80-100 g. Ikuti ukuran relatif terhadap piring: jangan sengaja memperkecil atau membesarkan berat.";
-const SAUCE =
-  "Saus, sambal, mayones, dan bumbu kacang yang banyak dihitung kalorinya: mayones 1 sdm (15 g) = 100 kcal, bumbu kacang 50 g = 150 kcal, sambal berminyak (ijo/balado/terasi) 30 g = 60-100 kcal, kacang tanah goreng 10 g = 60 kcal. Lauk bersambal (ayam sambal ijo, ayam penyet, telur balado) = kcal lauknya DITAMBAH sambalnya, bukan hanya kcal sambal.";
-
 // Candidate set after the first round: identity without the two clauses that
 // leaked into unrelated photos, piece counting without the rice-weight priors
 // (those pushed small nasi boxes up), and no GROUND rule (it did not remove
 // the hallucinated kerupuk and made sachet photos return "not food").
-const IDENTITY2 =
-  "Kenali hidangan dari ISInya, bukan dari saus penutupnya: tertutup bumbu kacang bisa siomay/batagor (pangsit kukus, tahu, kentang, kol, telur), gado-gado (sayur rebus, lontong, tempe, kerupuk), ketoprak atau pecel; pilih yang bahan terlihatnya cocok. Untaian kuning = mi, bukan nasi: sebut karbohidrat utamanya dengan benar. Bebek (tulang besar, kulit tebal, kaki panjang) bukan ayam.";
 const PIECES =
   "Hitung potongan satu per satu dan tulis jumlahnya di portion (mis. '4 potong'). Patokan: telur 55 g/butir; nugget 25 g/potong; tahu atau tempe 25-50 g/potong; satu potong ayam goreng (paha/dada) 100-130 g.";
 
-const add = (...rules: string[]) => (p: string) => `${p}\n${rules.join("\n")}`;
+// Production now carries the sauce rule (lib/vision.ts). `strip` rebuilds the
+// pre-2026-10-17 prompt so the historical variants below still mean what the
+// review doc says; "baseline" is whatever production sends today.
+const strip = (p: string) => p.replace(`\n${SAUCE_RULE}`, "");
+const add = (...rules: string[]) => (p: string) => `${strip(p)}\n${rules.join("\n")}`;
 const temperature = (t: number) => (b: Record<string, unknown>) => {
   b.temperature = t;
 };
@@ -61,16 +62,19 @@ const temperature = (t: number) => (b: Record<string, unknown>) => {
 /** Extra rules appended to the prod prompt, keyed by variant name. */
 export const PROMPT_VARIANTS: Record<string, Variant> = {
   baseline: {},
+  "no-sauce": { prompt: strip },
   temp01: { body: temperature(0.1) },
   ground: { prompt: add(GROUND) },
   identity: { prompt: add(IDENTITY) },
   portion: { prompt: add(PORTION) },
-  sauce: { prompt: add(SAUCE) },
-  all: { prompt: add(GROUND, IDENTITY, PORTION, SAUCE) },
-  rec: { prompt: add(IDENTITY2, SAUCE), body: temperature(0.1) },
-  ship: { prompt: add(IDENTITY2, PIECES, SAUCE), body: temperature(0.1) },
-  "ship-notemp": { prompt: add(IDENTITY2, PIECES, SAUCE) },
-  "all-temp01": { prompt: add(GROUND, IDENTITY, PORTION, SAUCE), body: temperature(0.1) },
+  sauce: { prompt: add(SAUCE_RULE) },
+  all: { prompt: add(GROUND, IDENTITY, PORTION, SAUCE_RULE) },
+  // The shadow variant of lib/shadow-scan.ts: prod prompt + identity rule, temperature 0.1.
+  shadow: { prompt: (p) => SHADOW_VARIANT.promptTransform(p), body: temperature(SHADOW_VARIANT.temperature) },
+  rec: { prompt: add(SHADOW_IDENTITY_RULE, SAUCE_RULE), body: temperature(0.1) },
+  ship: { prompt: add(SHADOW_IDENTITY_RULE, PIECES, SAUCE_RULE), body: temperature(0.1) },
+  "ship-notemp": { prompt: add(SHADOW_IDENTITY_RULE, PIECES, SAUCE_RULE) },
+  "all-temp01": { prompt: add(GROUND, IDENTITY, PORTION, SAUCE_RULE), body: temperature(0.1) },
 };
 
 const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID ?? "b7e6f8457bd39fa37a7eea5249799754";
@@ -178,87 +182,11 @@ export async function runAll(dir: string, variants: string[], reps = REPS): Prom
 
 type Calibrator = (items: CalibratableItem[]) => CalibratedItem[];
 
-const normalizeName = (s: string) =>
-  s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-
-// Proposed tkpi.ts change #1: a condiment word ("sambal", "kecap", "saus") at
-// the tail of a protein/staple dish name is a modifier, not the dish. Prod
-// matches the library's "sambal" row (band 5-80 kcal) and clamps a whole
-// "ayam penyet sambal ijo" to 80 kcal, or TKPI 2019 "Kecap" (71 kcal/100 g)
-// for "telur rebus kuah kecap". Such names skip both lookups and keep the
-// model's kcal under the generic band, exactly like any unknown dish.
-const CONDIMENT = /\b(sambal|kecap|saus|bumbu|mayones|kuah)\b/;
-const FOOD_HEAD =
-  /\b(ayam|bebek|daging|sapi|kambing|ikan|lele|udang|cumi|telur|tahu|tempe|nasi|mie|mi|bihun|terong|kangkung|sayur|kentang|jamur|ati|usus|teri|tongkol|kacang)\b/;
-const LIBRARY_NAMES = new Set(
-  TKPI_DISHES.flatMap((d) => [d.name, ...d.aliases].map(normalizeName)),
-);
-
-function bypassesLibrary(name: string): boolean {
-  const q = normalizeName(name);
-  if (LIBRARY_NAMES.has(q)) return false;
-  if (CONDIMENT.test(q) && FOOD_HEAD.test(q)) return true;
-  // Proposed change #2: TKPI 2019 reverse containment ("kacang tanah" inside
-  // "Oncom kacang tanah pepes", 132 kcal/100 g, gave 40 g of peanuts 53 kcal)
-  // may only match a row that starts with the query.
-  const row = lookupTkpi2019(name);
-  if (row) {
-    const key = normalizeName(row.name);
-    if (key.length > q.length && !q.includes(key) && !key.startsWith(`${q} `)) return true;
-  }
-  return false;
-}
-
-export const calibrateProd: Calibrator = (items) => calibrateItems(items);
-
-export const calibrateGuarded: Calibrator = (items) =>
-  items.map((item) => {
-    if (!bypassesLibrary(item.name)) return calibrateItems([item])[0]!;
-    const cap = item.grams && item.grams > 0 ? Math.max(400, item.grams * 7) : 4000;
-    return atwaterAdjust({
-      ...item,
-      kcal: Math.min(cap, Math.max(20, item.kcal)),
-      matched: false,
-    });
-  });
-
-// Proposed tkpi.ts change #3: a density band (+-30% around kcal/100 g) for the
-// calorie-dense add-ons the model low-balls most ("saus mayones 30 g, 100 kcal"
-// is 680 kcal/100 g = ~200). Unmatched dishes only have an upper cap today, so
-// nothing stops an underestimate there. Entries are rounded TKPI/label values.
-const DENSITY_BANDS: Array<{ re: RegExp; per100: number }> = [
-  { re: /\b(mayones|mayonnaise|mayo)\b/, per100: 680 },
-  { re: /\b(bumbu|saus) kacang\b/, per100: 250 },
-  { re: /\bkacang tanah\b/, per100: 590 },
-  { re: /\bnugget\b/, per100: 260 },
-];
-
-export const calibrateGuardedDensity: Calibrator = (items) =>
-  calibrateGuarded(items).map((item) => {
-    const band = DENSITY_BANDS.find((b) => b.re.test(normalizeName(item.name)));
-    if (!band || !item.grams) return item;
-    const base = (band.per100 * item.grams) / 100;
-    return { ...item, kcal: Math.round(Math.min(base * 1.3, Math.max(base * 0.7, item.kcal))) };
-  });
-
-// Proposed vision.ts change: the model sometimes quotes every number
-// ("grams":"200"), and z.number() then drops the item, so a valid one-item
-// answer fails the whole scan (scan:failed). Coerce numeric strings first.
-function numericStrings(entry: unknown): unknown {
-  if (!entry || typeof entry !== "object") return entry;
-  return Object.fromEntries(
-    Object.entries(entry).map(([key, value]) => [
-      key,
-      typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value)) ? Number(value) : value,
-    ]),
-  );
-}
-
 /**
  * Re-calibrate stored raw answers with `calibrate`, no API calls. Dedupe and
  * the broth rule are skipped for both arms, so only calibration differs.
  */
-export function replayRaw(rows: Run[], calibrate: Calibrator, coerce = false): Run[] {
+export function replayRaw(rows: Run[], calibrate: Calibrator = (items) => calibrateItems(items)): Run[] {
   return rows.map((r) => {
     if (!r.raw) return r;
     const cleaned = repairKeys(r.raw.replace(/```(?:json)?/g, ""));
@@ -269,7 +197,7 @@ export function replayRaw(rows: Run[], calibrate: Calibrator, coerce = false): R
       entries = salvageItems(cleaned);
     }
     const usable = entries.flatMap((entry) => {
-      const item = visionItemSchema.safeParse(coerce ? numericStrings(entry) : entry);
+      const item = visionItemSchema.safeParse(entry);
       return item.success && item.data.kcal > 0 && item.data.name ? [item.data] : [];
     });
     const calibrated = calibrate(

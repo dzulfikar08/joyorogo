@@ -50,9 +50,21 @@ const GARBLED_SPAN = new RegExp(
   "g",
 );
 
+/**
+ * An answer whose every quote is backslash-escaped (`{\"items\":[...]}`, the
+ * model wrote the JSON as if it sat inside a string) is that JSON with the
+ * backslashes in the way. Real JSON always has bare quotes around its keys, so
+ * text with even one bare quote (past the optional wrapping pair) is left alone.
+ */
+export function unescapeQuotes(text: string): string {
+  if (!text.includes('\\"')) return text;
+  const bare = text.trim().replace(/\\"/g, "").replace(/^"|"$/g, "");
+  return bare.includes('"') ? text : text.replace(/\\"/g, '"');
+}
+
 /** Puts the `":` back after garbled numeric keys; text that is valid JSON passes through unchanged. */
 export function repairKeys(text: string): string {
-  return text
+  return unescapeQuotes(text)
     .replace(GARBLED_VALUE, '$1"$2":$3')
     .replace(GARBLED_BOX, '$1"box":')
     .replace(GARBLED_SPAN, "$1")
@@ -74,8 +86,9 @@ function stringValue(pattern: RegExp, text: string): string | undefined {
 const STRING_PATTERNS = STRING_KEYS.map(
   (key) => [key, new RegExp(String.raw`"${key}"\s*:\s*("(?:[^"\\]|\\.)*")`)] as const,
 );
+// A number the model quoted (`"grams":"200"`) still reads as that number.
 const NUMBER_PATTERNS = NUMERIC_KEYS.map(
-  (key) => [key, new RegExp(String.raw`"${key}"\s*:\s*(${NUM})(?=\s*[,}\]])`)] as const,
+  (key) => [key, new RegExp(String.raw`"${key}"\s*:\s*"?(${NUM})"?(?=\s*[,}\]])`)] as const,
 );
 const BOX_PATTERN = new RegExp(
   String.raw`"box"\s*:\s*\[\s*(${NUM})\s*,\s*(${NUM})\s*,\s*(${NUM})\s*,\s*(${NUM})\s*\]`,

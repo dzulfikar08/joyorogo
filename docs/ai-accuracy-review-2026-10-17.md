@@ -1,7 +1,36 @@
 # AI scan accuracy review, 2026-10-17
 
+## Status (2026-10-17, later the same day)
+
+| Change | Status |
+|---|---|
+| 1. Calibration guard (`lib/tkpi.ts`) + 2019 reverse containment (`lib/tkpi2019.ts`) | **Shipped.** Unit tests from the table below. |
+| 3. Density bands (mayones, bumbu/saus kacang, kacang tanah, nugget) | **Shipped** with the guard (`applyDensityBand`). |
+| 5. Numeric-string coercion (`visionItemSchema`) + backslash-escaped answers (`unescapeQuotes` in `repairKeys`) | **Shipped.** Same parser for stream and plain; fixtures `vision-quoted.json`. |
+| Gram edit check ("Findings outside the model") | **Fixed where broken**: unlinked diary portion sheet (web + native), `ai.correctScan` rename with stated grams. The 99 g / 300 kcal row was not a user edit, see below. |
+| 4. Prompt: sauce reference values | **Shipped.** A/B below. |
+| 4. Prompt: dish identity rules (trimmed) + temperature 0.1 | **Not shipped. Running as a shadow test** (`lib/shadow-scan.ts`, `SHADOW_SAMPLE_RATE` default 0.2, `0` = off). Compared with what users save in the daily digest ("Uji bayangan"). Decide after about a week. |
+| Rice-weight priors, "visible only" rule | Not shipped (unchanged). |
+
+**99 g / 300 kcal was calibration, not an edit.** `calibrateItems` clamps kcal into the dish's band for a *typical* portion and the vision path does not pass `scaleBand`: `nasi goreng` 99 g with 170 kcal becomes 300, `ayam goreng` 70 g becomes 300, `tempe goreng` 24 g becomes 120 (reproduced with `calibrateItems` after the guard shipped). These are the grams and kcal of scan #4, so the "weighed" grams in the user's note are most likely the grams the app showed, next to a floor-lifted kcal (H1 in `docs/ai-accuracy-log.md`). It over-estimates small portions, which the owner tolerates, so it was left alone; `scaleBand: true` in `calibrateRaw` would be the fix if it should go.
+
+### A/B for the sauce prompt (2026-10-17)
+
+Same code path as the review (`scripts/review-scans-ab.ts`, real `analyzeFoodPhoto`, `gemma-4-26b-a4b-it`), both arms with the new calibration so only the prompt differs. Photos: the 23 negative scans still in `scan-src/` (21 scored against the ranges in the table below, 3 runs each; temporary local copies, deleted afterwards) and the 8 Wikimedia bench photos (3 runs each, kcal bands from `scripts/eval-scans.ts`). The owner dataset (`dataset/`) and consented feedback photos (`feedback/`) were empty.
+
+| Arm | Photos | Runs | in range | under | over | MAPE vs range midpoint | bias | severe under (<75% of low end) |
+|---|---|---|---|---|---|---|---|---|
+| prompt before | 21 negative scans | 63 | 37% | 41% | 22% | 24.1% | +0.3% | 1.6% (1 run) |
+| **prompt with sauce values** | 21 negative scans | 61 (2 failed: 1 timeout, 1 `too_many`) | **48%** | **36%** | **16%** | **19.5%** | -4.6% | 4.9% (3 runs) |
+| prompt before | 8 Wikimedia | 24 | 75% | 0% | 25% | 45.2% | - | 0 |
+| **prompt with sauce values** | 8 Wikimedia | 24 | 75% | 0% | 25% | 52.7% | - | 0 |
+
+Paired per photo (closer to range, 3% tie band): 11 better, 3 worse, 7 unchanged.
+
+Under-estimates did not increase (41% to 36% of runs). Bias and the severe-under count did move the wrong way, and both come from one photo: #13 (siomay/batagor in peanut sauce) answered "tahu tek" 300 g twice and `matchDish` clamped it to the "tahu" band, 150 kcal (the old prompt named it gado-gado or ketoprak, 350-536). That is a dish-name calibration trap, not something the sauce text asks for; without #13 the bias is about -2%. On Wikimedia nothing was under and the MAPE rise is the nasi goreng photo (1270-1990 kcal in both arms) plus es teh 70 to 90. 3 runs per photo, so read differences under ~10 points as noise.
+
 Review of the negatively rated food scans whose photos were still in R2
-(`scan-src/`, ~2 day expiry). Nothing here is deployed: every fix was tested as a
+(`scan-src/`, ~2 day expiry). Everything below this status section was written before any of it shipped: every fix was tested as a
 local variant with `scripts/review-scans-ab.ts`, which runs the real
 `analyzeFoodPhoto` (same parser, same TKPI calibration, `gemma-4-26b-a4b-it`)
 over the Workers AI REST API and only rewrites the prompt text or request body
@@ -162,15 +191,14 @@ What each fix did and did not do:
   twice); a backslash-escaped-quote answer is recoverable by unescaping (#21,
   not tested in the pipeline); one answer (#7) is not recoverable by a simple repair.
 
-## Proposed changes (not applied)
+## Proposed changes (as written before shipping; see Status)
 
 1. `lib/tkpi.ts`: condiment-tail guard in `calibrateItems`. If the normalized name
    contains `sambal|kecap|saus|bumbu|mayones|kuah` **and** a protein/staple
    head word (`ayam|bebek|daging|sapi|ikan|udang|telur|tahu|tempe|nasi|mie|...`) and
    is not itself a library name or alias, skip `matchDish` and `lookupTkpi2019`
-   and apply the generic band (as unmatched dishes do today). Reference
-   implementation: `bypassesLibrary` / `calibrateGuarded` in
-   `scripts/review-scans-ab.ts`.
+   and apply the generic band (as unmatched dishes do today). Shipped as
+   `isCondimentedDish` in `lib/tkpi.ts`.
 2. `lib/tkpi2019.ts`: reverse containment (`key.includes(q)`) may match only a
    row that starts with the query (`kacang tanah` must not hit "Oncom kacang tanah pepes").
 3. `lib/tkpi.ts`: density bands for mayones, bumbu kacang, kacang tanah, nugget (see above).
@@ -207,5 +235,5 @@ clauses written from these photos are in-sample; only 13 hold-out photos, of whi
 ## Reproduce
 
 `bun run scripts/review-scans-ab.ts <photo-dir> baseline rec` (REPS=3,
-`CLOUDFLARE_ACCOUNT_ID`, wrangler OAuth). `replayRaw(rows, calibrateGuardedDensity)`
-re-scores stored answers without API calls. Variants live in `PROMPT_VARIANTS`.
+`CLOUDFLARE_ACCOUNT_ID`, wrangler OAuth). `replayRaw(rows)`
+re-scores stored answers with the shipped calibration without API calls. Variants live in `PROMPT_VARIANTS`.
