@@ -169,5 +169,56 @@
         "target": "Target"
       }
     }
+  },
+  "inbox": {
+    "subtitleWeb": "Colek dan catatan dari teman satu grup.",
+    "subtitleNative": "Colek dan catatan dari teman grupmu.",
+    "loading": "Memuat kotak masuk",
+    "markAllRead": "Tandai dibaca",
+    "unread": "Belum dibaca",
+    "error": {
+      "markRead": "Gagal menandai dibaca",
+      "send": "Gagal mengirim"
+    },
+    "empty": {
+      "titleWeb": "Masih sepi",
+      "titleNative": "Belum ada apa-apa",
+      "bodyWeb": "Colek dan catatan dari anggota grup akan muncul di sini.",
+      "bodyNative": "Colek dan catatan dari teman grup akan muncul di sini."
+    },
+    "item": {
+      "pokeTitle": "{{name}} mencolek kamu",
+      "noteTitle": "Catatan dari {{name}}",
+      "pokeSubtitle": "mencolek kamu",
+      "noteSubtitle": "mengirim catatan",
+      "pokeBack": "Colek balik",
+      "pokeBackAria": "Colek balik {{name}}",
+      "reply": "Balas catatan",
+      "replyAria": "Balas catatan dari {{name}}"
+    },
+    "toast": {
+      "pokeSent": "Colek balik terkirim",
+      "noteSent": "Catatan balasan terkirim",
+      "delivered": "Pesan masuk ke kotak temanmu."
+    },
+    "footnote": "50 pesan terakhir. Ketuk pesan untuk menandainya dibaca.",
+    "sheet": {
+      "title": "Balas catatan {{name}}",
+      "titleFallback": "Balas catatan",
+      "description": "Kirim catatan balasan di grup {{group}}.",
+      "textAria": "Isi catatan balasan",
+      "placeholderWeb": "Tulis catatan semangat…",
+      "placeholderNative": "Tulis catatan balasan…",
+      "send": "Kirim balasan",
+      "sending": "Mengirim…",
+      "sendCount": "Kirim ({{count}}/140)",
+      "fieldLabel": "Pesan",
+      "fieldHint": "Maksimal 140 huruf, dikirim lewat notifikasi."
+    },
+    "suggestion": {
+      "log": "Semangat catat kalorinya hari ini!",
+      "water": "Jangan lupa minum air, ya.",
+      "walk": "Ayo jalan 10 menit bareng!"
+    }
   }
 }

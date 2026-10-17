@@ -173,5 +173,56 @@
         "target": "Target"
       }
     }
+  },
+  "inbox": {
+    "subtitleWeb": "Pokes and notes from people in your groups.",
+    "subtitleNative": "Pokes and notes from your group mates.",
+    "loading": "Loading inbox",
+    "markAllRead": "Mark as read",
+    "unread": "Unread",
+    "error": {
+      "markRead": "Couldn't mark as read",
+      "send": "Couldn't send"
+    },
+    "empty": {
+      "titleWeb": "All quiet",
+      "titleNative": "Nothing here yet",
+      "bodyWeb": "Pokes and notes from group members will show up here.",
+      "bodyNative": "Pokes and notes from your group mates will show up here."
+    },
+    "item": {
+      "pokeTitle": "{{name}} poked you",
+      "noteTitle": "Note from {{name}}",
+      "pokeSubtitle": "poked you",
+      "noteSubtitle": "sent a note",
+      "pokeBack": "Poke back",
+      "pokeBackAria": "Poke {{name}} back",
+      "reply": "Reply",
+      "replyAria": "Reply to the note from {{name}}"
+    },
+    "toast": {
+      "pokeSent": "Poke sent",
+      "noteSent": "Reply sent",
+      "delivered": "It's now in their inbox."
+    },
+    "footnote": "Last 50 messages. Tap a message to mark it as read.",
+    "sheet": {
+      "title": "Reply to {{name}}",
+      "titleFallback": "Reply",
+      "description": "Send a reply note in {{group}}.",
+      "textAria": "Reply note",
+      "placeholderWeb": "Write an encouraging note…",
+      "placeholderNative": "Write a reply…",
+      "send": "Send reply",
+      "sending": "Sending…",
+      "sendCount": "Send ({{count}}/140)",
+      "fieldLabel": "Message",
+      "fieldHint": "Up to 140 characters, delivered as a notification."
+    },
+    "suggestion": {
+      "log": "Keep logging those calories today!",
+      "water": "Don't forget to drink water.",
+      "walk": "Let's go for a 10-minute walk!"
+    }
   }
 }

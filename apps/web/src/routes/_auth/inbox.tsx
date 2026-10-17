@@ -10,6 +10,7 @@ import {
 import { createFileRoute } from "@tanstack/react-router";
 import { CheckCheck, Hand, MessageSquareText, Send } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import type { InboxItem } from "@/lib/api-types";
@@ -29,8 +30,9 @@ export const Route = createFileRoute("/_auth/inbox")({
 });
 
 function InboxSkeleton() {
+  const { t } = useTranslation("misc");
   return (
-    <Page className="max-w-xl" aria-busy="true" aria-label="Memuat kotak masuk">
+    <Page className="max-w-xl" aria-busy="true" aria-label={t("inbox.loading")}>
       <div className="px-1 pt-2 pb-5">
         <Skeleton className="h-9 w-44 rounded-full" />
       </div>
@@ -44,6 +46,7 @@ function InboxSkeleton() {
 type MarkReadSnapshot = { restore: () => void };
 
 function InboxPage() {
+  const { t } = useTranslation(["misc", "common"]);
   const queryClient = useQueryClient();
   const session = useSession();
   const meId = session.data?.user.id;
@@ -72,7 +75,9 @@ function InboxPage() {
         return markReadOptimistic(queryClient, target ? [target.id] : []);
       },
       onSuccess: (_data, input) => {
-        toast.success(input.kind === "poke" ? "Colek balik terkirim" : "Catatan balasan terkirim");
+        toast.success(
+          input.kind === "poke" ? t("inbox.toast.pokeSent") : t("inbox.toast.noteSent"),
+        );
         queryClient.invalidateQueries({ queryKey: orpc.group.key() });
       },
       onError: (error, _input, previous) => {
@@ -95,8 +100,8 @@ function InboxPage() {
   return (
     <Page className="max-w-xl">
       <PageHeader
-        title="Kotak Masuk"
-        subtitle="Colek dan catatan dari teman satu grup."
+        title={t("common:nav.title.inbox")}
+        subtitle={t("inbox.subtitleWeb")}
         action={
           unread.length > 0 ? (
             <Button
@@ -106,7 +111,7 @@ function InboxPage() {
               onClick={() => markRead.mutate({})}
             >
               <CheckCheck className="size-4" aria-hidden />
-              Tandai dibaca
+              {t("inbox.markAllRead")}
             </Button>
           ) : undefined
         }
@@ -114,8 +119,8 @@ function InboxPage() {
 
       {items.length === 0 ? (
         <div className="mt-1">
-          <EmptyHint title="Masih sepi" pose="sleepy">
-            Colek dan catatan dari anggota grup akan muncul di sini.
+          <EmptyHint title={t("inbox.empty.titleWeb")} pose="sleepy">
+            {t("inbox.empty.bodyWeb")}
           </EmptyHint>
         </div>
       ) : (
@@ -128,8 +133,8 @@ function InboxPage() {
               icon={<Avatar name={item.senderName} image={item.senderImage ?? null} className="size-10" />}
               title={
                 item.kind === "poke"
-                  ? `${item.senderName} mencolek kamu`
-                  : `Catatan dari ${item.senderName}`
+                  ? t("inbox.item.pokeTitle", { name: item.senderName })
+                  : t("inbox.item.noteTitle", { name: item.senderName })
               }
               subtitle={item.message ?? item.groupName}
               value={timeAgo(item.createdAt)}
@@ -138,7 +143,7 @@ function InboxPage() {
                   <div className="flex shrink-0 gap-1.5">
                     {item.kind === "poke" ? (
                       <ReplyButton
-                        label={`Colek balik ${item.senderName}`}
+                        label={t("inbox.item.pokeBackAria", { name: item.senderName })}
                         pending={nudge.isPending && nudge.variables?.toUserId === item.senderId}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -150,11 +155,11 @@ function InboxPage() {
                         }}
                       >
                         <Hand className="size-4" aria-hidden />
-                        Colek balik
+                        {t("inbox.item.pokeBack")}
                       </ReplyButton>
                     ) : (
                       <ReplyButton
-                        label={`Balas catatan dari ${item.senderName}`}
+                        label={t("inbox.item.replyAria", { name: item.senderName })}
                         pending={false}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -162,7 +167,7 @@ function InboxPage() {
                         }}
                       >
                         <MessageSquareText className="size-4" aria-hidden />
-                        Balas catatan
+                        {t("inbox.item.reply")}
                       </ReplyButton>
                     )}
                   </div>
@@ -174,7 +179,7 @@ function InboxPage() {
       )}
       {items.length > 0 && (
         <p className="mt-4 px-2 text-xs text-muted-foreground">
-          50 pesan terakhir. Ketuk pesan untuk menandainya dibaca.
+          {t("inbox.footnote")}
         </p>
       )}
 
@@ -253,6 +258,7 @@ function ReplySheet({
   onClose: () => void;
   onSend: (message: string) => void;
 }) {
+  const { t } = useTranslation("misc");
   const [message, setMessage] = useState("");
 
   if (!item) return null;
@@ -263,8 +269,8 @@ function ReplySheet({
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      title={`Balas catatan ${item.senderName}`}
-      description={`Kirim catatan balasan di grup ${item.groupName}.`}
+      title={t("inbox.sheet.title", { name: item.senderName })}
+      description={t("inbox.sheet.description", { group: item.groupName })}
     >
       <form
         className="space-y-3"
@@ -275,11 +281,11 @@ function ReplySheet({
       >
         <div className="relative">
           <textarea
-            aria-label="Isi catatan balasan"
+            aria-label={t("inbox.sheet.textAria")}
             rows={3}
             maxLength={140}
             autoFocus
-            placeholder="Tulis catatan semangat…"
+            placeholder={t("inbox.sheet.placeholderWeb")}
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             className="w-full resize-none rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40"
@@ -290,7 +296,7 @@ function ReplySheet({
         </div>
         <Button type="submit" className="w-full" disabled={pending || message.trim() === ""}>
           <Send className="size-4" aria-hidden />
-          {pending ? "Mengirim…" : "Kirim balasan"}
+          {pending ? t("inbox.sheet.sending") : t("inbox.sheet.send")}
         </Button>
       </form>
     </Sheet>

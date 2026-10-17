@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Redirect } from "expo-router";
 import { useEffect, useState, type ComponentProps } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -26,17 +27,14 @@ import { errorMessage } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
 const inboxOptions = orpc.group.inbox.queryOptions({ input: { limit: 50 } });
-const NOTE_SUGGESTIONS = [
-  "Semangat catat kalorinya hari ini!",
-  "Jangan lupa minum air, ya.",
-  "Ayo jalan 10 menit bareng!",
-];
+const NOTE_SUGGESTIONS = ["log", "water", "walk"] as const;
 
 /**
  * Kotak Masuk: pokes and notes from groupmates. Opening a row marks it read
  * (optimistic, so the badge clears instantly); each row offers a quick reply.
  */
 export default function Inbox() {
+  const { t } = useTranslation(["misc", "common"]);
   const gate = useSessionGate();
   const toast = useToast();
   const inbox = useQuery(inboxOptions);
@@ -66,7 +64,7 @@ export default function Inbox() {
       onMutate: (input) => markReadOptimistic(input.ids),
       onError: (e, _input, previous) => {
         previous?.restore();
-        toast.error("Gagal menandai dibaca", errorMessage(e));
+        toast.error(t("inbox.error.markRead"), errorMessage(e));
       },
       onSettled: () => queryClient.invalidateQueries({ queryKey: orpc.group.key() }),
     }),
@@ -83,8 +81,8 @@ export default function Inbox() {
       },
       onSuccess: (_data, input) => {
         toast.success(
-          input.kind === "poke" ? "Colek balik terkirim" : "Catatan balasan terkirim",
-          "Pesan masuk ke kotak temanmu.",
+          input.kind === "poke" ? t("inbox.toast.pokeSent") : t("inbox.toast.noteSent"),
+          t("inbox.toast.delivered"),
         );
         setReplyTarget(null);
         setReplyText("");
@@ -92,7 +90,7 @@ export default function Inbox() {
       },
       onError: (e, _input, previous) => {
         previous?.restore();
-        toast.error("Gagal mengirim", errorMessage(e));
+        toast.error(t("inbox.error.send"), errorMessage(e));
       },
     }),
   );
@@ -100,7 +98,7 @@ export default function Inbox() {
   if (gate === "loading") {
     return (
       <Screen>
-        <PageHeader title="Kotak Masuk" />
+        <PageHeader title={t("common:nav.title.inbox")} />
         <Skeleton width="100%" height={64} radius={20} />
         <Skeleton width="100%" height={64} radius={20} />
         <Skeleton width="100%" height={64} radius={20} />
@@ -115,15 +113,15 @@ export default function Inbox() {
 
   return (
     <Screen>
-      <PageHeader title="Kotak Masuk" caption="Colek dan catatan dari teman grupmu." />
+      <PageHeader title={t("common:nav.title.inbox")} caption={t("inbox.subtitleNative")} />
 
       {inbox.isPending ? (
         <Skeleton width="100%" height={220} radius={24} />
       ) : items.length === 0 ? (
         <EmptyState
           pose="sleepy"
-          title="Belum ada apa-apa"
-          description="Colek dan catatan dari teman grup akan muncul di sini."
+          title={t("inbox.empty.titleNative")}
+          description={t("inbox.empty.bodyNative")}
         />
       ) : (
         <ListGroup>
@@ -134,7 +132,7 @@ export default function Inbox() {
                 {item.kind === "poke" ? (
                   <IconButton
                     icon="hand-left"
-                    label={`Colek balik ${item.senderName}`}
+                    label={t("inbox.item.pokeBackAria", { name: item.senderName })}
                     disabled={nudge.isPending}
                     onPress={() =>
                       nudge.mutate({
@@ -147,16 +145,16 @@ export default function Inbox() {
                 ) : (
                   <IconButton
                     icon="chatbubble-ellipses"
-                    label={`Balas catatan dari ${item.senderName}`}
+                    label={t("inbox.item.replyAria", { name: item.senderName })}
                     onPress={() => setReplyTarget(item)}
                   />
                 )}
                 {unread ? (
-                  <View style={styles.dot} accessibilityLabel="Belum dibaca" />
+                  <View style={styles.dot} accessibilityLabel={t("inbox.unread")} />
                 ) : null}
               </View>
             ) : unread ? (
-              <View style={styles.dot} accessibilityLabel="Belum dibaca" />
+              <View style={styles.dot} accessibilityLabel={t("inbox.unread")} />
             ) : undefined;
             return (
               <ListRow
@@ -164,7 +162,7 @@ export default function Inbox() {
                 icon={item.kind === "poke" ? "hand-left" : "pencil"}
                 iconTint={item.kind === "poke" ? "bakar" : "tidur"}
                 title={item.senderName}
-                subtitle={`${item.kind === "poke" ? "mencolek kamu" : (item.message ?? "mengirim catatan")} • ${item.groupName}`}
+                subtitle={`${item.kind === "poke" ? t("inbox.item.pokeSubtitle") : (item.message ?? t("inbox.item.noteSubtitle"))} • ${item.groupName}`}
                 value={timeAgoId(item.createdAt)}
                 onPress={unread ? () => markRead.mutate({ ids: [item.id] }) : undefined}
                 right={reply}
@@ -180,10 +178,14 @@ export default function Inbox() {
           setReplyTarget(null);
           setReplyText("");
         }}
-        title={replyTarget ? `Balas catatan ${replyTarget.senderName}` : "Balas catatan"}
+        title={
+          replyTarget
+            ? t("inbox.sheet.title", { name: replyTarget.senderName })
+            : t("inbox.sheet.titleFallback")
+        }
         footer={
           <Button
-            label={`Kirim (${replyText.trim().length}/140)`}
+            label={t("inbox.sheet.sendCount", { count: replyText.trim().length })}
             disabled={replyText.trim().length === 0}
             loading={nudge.isPending}
             onPress={() => {
@@ -199,22 +201,25 @@ export default function Inbox() {
         }
       >
         <View style={styles.chips}>
-          {NOTE_SUGGESTIONS.map((suggestion) => (
-            <Chip
-              key={suggestion}
-              label={suggestion}
-              onPress={() => setReplyText(suggestion)}
-              selected={replyText === suggestion}
-            />
-          ))}
+          {NOTE_SUGGESTIONS.map((key) => {
+            const suggestion = t(`inbox.suggestion.${key}`);
+            return (
+              <Chip
+                key={key}
+                label={suggestion}
+                onPress={() => setReplyText(suggestion)}
+                selected={replyText === suggestion}
+              />
+            );
+          })}
         </View>
-        <Field label="Pesan" hint="Maksimal 140 huruf, dikirim lewat notifikasi.">
+        <Field label={t("inbox.sheet.fieldLabel")} hint={t("inbox.sheet.fieldHint")}>
           <Input
             value={replyText}
             onChangeText={setReplyText}
             maxLength={140}
             multiline
-            placeholder="Tulis catatan balasan…"
+            placeholder={t("inbox.sheet.placeholderNative")}
           />
         </Field>
       </Sheet>
