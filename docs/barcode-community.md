@@ -7,7 +7,7 @@ Why: Open Food Facts (OFF) has no calories for 41 % of the popular Indonesian (G
 `barcode.lookup` (`packages/api/src/lib/barcode-lookup.ts`, `lookupBarcode`):
 
 1. **Our rows.** `barcode_product.source = 'label_photo'` rows are served as is and never expire or get overwritten by a source refresh.
-2. **External sources**, in the order of `lib/barcode-sources.ts` (today: Open Food Facts only). The first source with a *complete* product (name + plausible kcal) wins; a name without calories is kept as the fallback while later sources are asked.
+2. **External sources**, in the order of `lib/barcode-sources.ts`: Open Food Facts, then USDA FoodData Central (only when the Worker secret `USDA_FDC_API_KEY` is set; fallback for US-labelled products). The first source with a *complete* product (name + plausible kcal) wins; a name without calories is kept as the fallback while later sources are asked.
 3. **Not found / incomplete** -> the clients offer "Foto label gizinya".
 
 Caching, one D1 row per code:

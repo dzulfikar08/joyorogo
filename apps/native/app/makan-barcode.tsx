@@ -487,7 +487,9 @@ export default function MakanBarcode() {
                     ? data.contributors >= 2
                       ? t("result.sources.labelPhotoConfirmed", { count: data.contributors })
                       : t("result.sources.labelPhoto")
-                    : t("result.sources.other", { source: data.source })}
+                    : data.source === "usda"
+                      ? t("result.sources.usda")
+                      : t("result.sources.other", { source: data.source })}
               </Text>
               {data.source === "off" ? (
                 <Button

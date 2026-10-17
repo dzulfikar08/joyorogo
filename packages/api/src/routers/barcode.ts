@@ -118,7 +118,7 @@ export const barcodeRouter = {
     .handler(async ({ context, input }): Promise<BarcodeLookup> => {
       const code = normalizedCode(input.code, context.locale);
       try {
-        const result = await lookupBarcode(context.db, code, barcodeSources());
+        const result = await lookupBarcode(context.db, code, barcodeSources(context.env));
         return await withOwnership(context.db, context.session.user.id, result);
       } catch (error) {
         if (!(error instanceof SourceUnavailableError)) throw error;

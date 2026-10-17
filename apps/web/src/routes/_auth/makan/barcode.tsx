@@ -535,7 +535,9 @@ function BarcodeResult({
         ? data.contributors >= 2
           ? t("result.sources.labelPhotoConfirmed", { count: data.contributors })
           : t("result.sources.labelPhoto")
-        : t("result.sources.other", { source: data.source });
+        : data.source === "usda"
+          ? t("result.sources.usda")
+          : t("result.sources.other", { source: data.source });
 
   const foundCard = (
     <Card ref={foundRef} tabIndex={-1} className="space-y-3 outline-none">

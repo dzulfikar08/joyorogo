@@ -75,7 +75,8 @@
       "labelPhoto": "Sumber: label kemasan yang difoto seorang pengguna JoyoRogo. Belum ada yang mengonfirmasi, jadi cocokkan dengan kemasanmu.",
       "labelPhotoConfirmed": "Sumber: label kemasan yang difoto pengguna JoyoRogo, dikonfirmasi {{count}} orang.",
       "other": "Sumber: {{source}}. Angkanya bisa beda dari label kemasanmu; cek lagi kalau ragu.",
-      "offLink": "Lihat produk ini di Open Food Facts"
+      "offLink": "Lihat produk ini di Open Food Facts",
+      "usda": "Sumber: USDA FoodData Central (data publik pemerintah AS). Angkanya bisa beda dari label kemasanmu; cek lagi kalau ragu."
     },
     "community": {
       "prompt": "Angka ini dari pengguna lain. Cocok dengan kemasan di tanganmu?",

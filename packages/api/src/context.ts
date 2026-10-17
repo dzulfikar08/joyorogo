@@ -22,6 +22,8 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
    * (R2 dataset/<userId>/<scanId>/, see lib/dataset.ts). Unset or empty = nobody.
    */
   DATASET_USER_IDS?: string;
+  /** USDA FoodData Central key (api.data.gov): enables the USDA barcode source; unset = not asked. */
+  USDA_FDC_API_KEY?: string;
   STRAVA_CLIENT_ID?: string;
   STRAVA_CLIENT_SECRET?: string;
   /** Images binding for dish sticker cutouts (BiRefNet segmentation). */

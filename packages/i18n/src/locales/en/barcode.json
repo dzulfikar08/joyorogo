@@ -75,7 +75,8 @@
       "labelPhoto": "Source: a package label photographed by one JoyoRogo user. Nobody has confirmed it yet, so compare it with your package.",
       "labelPhotoConfirmed": "Source: package label photographed by JoyoRogo users, confirmed by {{count}} people.",
       "other": "Source: {{source}}. Numbers may differ from your package label; double-check if unsure.",
-      "offLink": "View this product on Open Food Facts"
+      "offLink": "View this product on Open Food Facts",
+      "usda": "Source: USDA FoodData Central (US government public-domain data). Numbers may differ from your package label; double-check if unsure."
     },
     "community": {
       "prompt": "These numbers come from another user. Do they match the pack in your hand?",
