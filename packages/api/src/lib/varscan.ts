@@ -3,6 +3,9 @@
 // visual, bukan pengukuran — prompt melarang angka persen lemak/cm/berat.
 import { z } from "zod";
 
+import type { Locale } from "@joyorogo/i18n";
+
+import { serverT } from "./messages";
 import {
   extractJson,
   extractUsage,
@@ -39,9 +42,6 @@ export type VarAnalysis = {
   model: string;
   usage: Record<string, unknown> | null;
 };
-
-export const VAR_FRIENDLY_ERROR =
-  "VAR tidak berhasil membandingkan fotonya. Coba lagi dengan pencahayaan lebih baik, atau ulangi besok.";
 
 /**
  * Prompt tambahan untuk "Hitung ulang": pengguna menilai verdict pertama
@@ -133,6 +133,8 @@ export async function analyzeVarPhotos(
     /** Present when this run re-checks a pair the user judged inaccurate. */
     retry?: { hint?: string };
     model?: string;
+    /** Language of the failure message. */
+    locale: Locale;
     /** Injectable for tests. */
     timeouts?: [number, number];
     /** Fast-failure budget, ms; a failure past it never chains a retry. */
@@ -163,21 +165,5 @@ export async function analyzeVarPhotos(
     }
   }
 
-  throw new Error(VAR_FRIENDLY_ERROR);
-}
-
-/** Salinan verdict untuk klien (satu tempat, web + native + server). */
-export function varVerdictCopy(
-  verdict: VarVerdict,
-): { label: string; tone: "good" | "flat" | "warn" | "retry" } {
-  switch (verdict) {
-    case "turun":
-      return { label: "Perut mengecil", tone: "good" };
-    case "naik":
-      return { label: "Terlihat lebih penuh", tone: "warn" };
-    case "sama":
-      return { label: "Belum kelihatan beda", tone: "flat" };
-    default:
-      return { label: "Kondisi foto beda, ulangi", tone: "retry" };
-  }
+  throw new Error(serverT(opts.locale, "varperut")("errors.compareFailed"));
 }

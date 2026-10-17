@@ -99,7 +99,7 @@ describe("retryVarScan", () => {
     const ai = fakeAi([TURUN]);
     const result = await retryVarScan(
       { db, bucket: fakeBucket(), ai },
-      { userId: USER, id: "s2", hint: "pose sama" },
+      { userId: USER, id: "s2", hint: "pose sama", locale: "id" },
     );
     expect(result.scan).toEqual({ id: "s2", verdict: "turun", confidence: 0.9, note: "lebih rata" });
     expect(result.previous).toEqual({ verdict: "naik", confidence: 0.5, note: "catatan lama" });
@@ -109,7 +109,7 @@ describe("retryVarScan", () => {
   });
 
   test("is free: the daily quota ledger only gets a retry row", async () => {
-    await retryVarScan({ db, bucket: fakeBucket(), ai: fakeAi([SAMA]) }, { userId: USER, id: "s2" });
+    await retryVarScan({ db, bucket: fakeBucket(), ai: fakeAi([SAMA]) }, { userId: USER, id: "s2", locale: "id" });
     const rows = await client.execute("SELECT scan_type FROM ai_usage");
     expect(rows.rows.map((r: Record<string, unknown>) => r.scan_type)).toEqual(["retry"]);
   });
@@ -118,10 +118,10 @@ describe("retryVarScan", () => {
     const ai = fakeAi([SAMA, TURUN, SAMA]);
     const deps = { db, bucket: fakeBucket(), ai };
     for (let i = 0; i < MAX_SCAN_RETRIES; i += 1) {
-      await retryVarScan(deps, { userId: USER, id: "s2" });
+      await retryVarScan(deps, { userId: USER, id: "s2", locale: "id" });
     }
     expect(ai.state.calls).toBe(MAX_SCAN_RETRIES);
-    await expect(retryVarScan(deps, { userId: USER, id: "s2" })).rejects.toMatchObject({
+    await expect(retryVarScan(deps, { userId: USER, id: "s2", locale: "id" })).rejects.toMatchObject({
       code: "FORBIDDEN",
       data: { retriesExhausted: true },
     });
@@ -133,7 +133,7 @@ describe("retryVarScan", () => {
     const ai = fakeAi([SAMA, SAMA, SAMA, SAMA, SAMA]);
     const deps = { db, bucket: fakeBucket(), ai };
     const results = await Promise.allSettled(
-      Array.from({ length: 5 }, () => retryVarScan(deps, { userId: USER, id: "s2" })),
+      Array.from({ length: 5 }, () => retryVarScan(deps, { userId: USER, id: "s2", locale: "id" })),
     );
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(MAX_SCAN_RETRIES);
     expect((await scanRow("s2")).retries).toBe(MAX_SCAN_RETRIES);
@@ -143,7 +143,7 @@ describe("retryVarScan", () => {
     // Dua jawaban sampah = kedua usaha analisis gagal.
     const ai = fakeAi(["sampah", "sampah"]);
     await expect(
-      retryVarScan({ db, bucket: fakeBucket(), ai }, { userId: USER, id: "s2" }),
+      retryVarScan({ db, bucket: fakeBucket(), ai }, { userId: USER, id: "s2", locale: "id" }),
     ).rejects.toMatchObject({ code: "UNPROCESSABLE_CONTENT" });
     expect(await scanRow("s2")).toMatchObject({
       verdict: "naik",
@@ -156,7 +156,7 @@ describe("retryVarScan", () => {
   test("a missing stored photo fails cleanly and refunds the claim", async () => {
     const bucket = fakeBucket(new Set([varPhotoKey(USER, "p1")]));
     await expect(
-      retryVarScan({ db, bucket, ai: fakeAi([SAMA]) }, { userId: USER, id: "s2" }),
+      retryVarScan({ db, bucket, ai: fakeAi([SAMA]) }, { userId: USER, id: "s2", locale: "id" }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect((await scanRow("s2")).retries).toBe(0);
   });
@@ -164,14 +164,14 @@ describe("retryVarScan", () => {
   test("the first scan has no comparison and cannot be retried", async () => {
     const ai = fakeAi([SAMA]);
     await expect(
-      retryVarScan({ db, bucket: fakeBucket(), ai }, { userId: USER, id: "s1" }),
+      retryVarScan({ db, bucket: fakeBucket(), ai }, { userId: USER, id: "s1", locale: "id" }),
     ).rejects.toMatchObject({ code: "UNPROCESSABLE_CONTENT" });
     expect(ai.state.calls).toBe(0);
   });
 
   test("another user's scan is not found", async () => {
     await expect(
-      retryVarScan({ db, bucket: fakeBucket(), ai: fakeAi([SAMA]) }, { userId: OTHER, id: "s2" }),
+      retryVarScan({ db, bucket: fakeBucket(), ai: fakeAi([SAMA]) }, { userId: OTHER, id: "s2", locale: "id" }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 });
@@ -180,9 +180,9 @@ describe("restoreVarVerdict", () => {
   test("puts the previous verdict back but keeps the retry spent", async () => {
     const { previous } = await retryVarScan(
       { db, bucket: fakeBucket(), ai: fakeAi([TURUN]) },
-      { userId: USER, id: "s2" },
+      { userId: USER, id: "s2", locale: "id" },
     );
-    await restoreVarVerdict(db, USER, "s2", previous);
+    await restoreVarVerdict(db, USER, "s2", previous, "id");
     expect(await scanRow("s2")).toMatchObject({
       verdict: "naik",
       confidence: 0.5,
@@ -193,7 +193,7 @@ describe("restoreVarVerdict", () => {
 
   test("never touches someone else's row", async () => {
     await expect(
-      restoreVarVerdict(db, OTHER, "s2", { verdict: "sama", confidence: 0.1, note: null }),
+      restoreVarVerdict(db, OTHER, "s2", { verdict: "sama", confidence: 0.1, note: null }, "id"),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect((await scanRow("s2")).verdict).toBe("naik");
   });

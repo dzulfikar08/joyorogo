@@ -1,1 +1,211 @@
-{}
+{
+  "title": "Belly VAR",
+  "back": "Back to group",
+  "close": "Close VAR",
+  "group": {
+    "fallback": "this group"
+  },
+  "verdict": {
+    "label": {
+      "turun": "Belly is smaller",
+      "naik": "Looks fuller",
+      "sama": "No visible change",
+      "beda": "Photo conditions differ, retake",
+      "pertama": "First scan saved"
+    },
+    "short": {
+      "turun": "Belly is smaller",
+      "naik": "Looks fuller",
+      "sama": "No visible change",
+      "beda": "Photo conditions differ",
+      "pertama": "First scan"
+    },
+    "chip": {
+      "turun": "smaller",
+      "naik": "fuller",
+      "sama": "no change",
+      "beda": "photo differs",
+      "pertama": "first scan"
+    }
+  },
+  "confidence": {
+    "short": "~{{percent}}% sure"
+  },
+  "about": {
+    "title": "How it works & privacy",
+    "disclaimer": "AI reads your belly progress from the photos. It's not a measurement.",
+    "confidence": "Confidence is an estimate from the photo, not a measurement.",
+    "duration": "Usually 5-20 seconds. The original photo is only stored for you.",
+    "photoPrivate": "Your belly photo is private: it never reaches the feed and only you can open it.",
+    "retry": "Recalculate: the AI compares the same two photos again. No new photo, and it doesn't use your daily scan quota.",
+    "retryShared": "The status shared with {{group}} updates too.",
+    "share": "Only the verdict and date are visible. Your belly photo is never shared.",
+    "waist": "A photo is only a visual estimate. The tape measure is what measures."
+  },
+  "capture": {
+    "guide": "Keep your belly inside the dashed line",
+    "cameraLabel": "Camera for belly photo",
+    "capturedAlt": "Photo just taken",
+    "analyzing": {
+      "compare": "AI is comparing with your last scan…",
+      "first": "Saving your first scan…"
+    },
+    "cameraUnavailable": "Camera isn't available on this device. Use the gallery button below, or allow the camera in your browser settings.",
+    "permission": {
+      "text": "No camera permission. Use the gallery, or allow the camera first.",
+      "action": "Allow camera"
+    },
+    "tips": {
+      "pose": "Same pose and distance every scan",
+      "light": "Bright light, camera level with your belly",
+      "stand": "Stand straight, breathe normally"
+    },
+    "timer": {
+      "on": "{{seconds}}s timer on",
+      "off": "{{seconds}}s timer off",
+      "turnOff": "Turn off {{seconds}} second timer",
+      "turnOn": "Turn on {{seconds}} second timer"
+    },
+    "shutter": "Take belly photo",
+    "gallery": "Gallery",
+    "galleryPick": "Choose from gallery",
+    "saved_one": "{{count}} scan saved.",
+    "saved_other": "{{count}} scans saved.",
+    "savedNone": "Your first scan becomes the starting point.",
+    "firstScan": "First scan"
+  },
+  "error": {
+    "process": "Couldn't process the photo. Try again.",
+    "capture": "Couldn't take the photo. Try again.",
+    "historyLoad": "Couldn't load history",
+    "historyLoading": "Loading VAR history"
+  },
+  "compare": {
+    "before": "Before",
+    "now": "Now",
+    "none": "None yet",
+    "altBefore": "Previous belly photo",
+    "altNow": "Current belly photo",
+    "altDate": "Belly photo {{date}}",
+    "altCompare": "Compared with: {{date}}",
+    "compareTitle": "Compared with {{date}}",
+    "rereading": "AI is re-reading both photos...",
+    "rereadingLabel": "Recalculating"
+  },
+  "retry": {
+    "title": "Not quite right?",
+    "left_one": "Free, {{count}} left",
+    "left_other": "Free, {{count}} left",
+    "limit": "Recalculation limit reached",
+    "exhausted": "This scan has hit its recalculation limit. Scan again another day.",
+    "hint": "Quick correction (optional), e.g. both photos had the same pose",
+    "action": "Recalculate",
+    "running": "Recalculating...",
+    "toast": {
+      "result": "New result: {{label}}",
+      "keptTitle": "Previous result kept",
+      "kept": "Previous result kept. {{message}}",
+      "restoreFailed": "Couldn't restore the result"
+    }
+  },
+  "waist": {
+    "title": "A more honest number: waist",
+    "last": "Last {{date}}: {{cm}} cm",
+    "lastDelta": "Last {{date}}: {{cm}} cm ({{delta}} cm)",
+    "empty": "A more honest number: waist.",
+    "link": "Log it in Weight"
+  },
+  "share": {
+    "title": "Share status with {{group}}",
+    "toggle": "Share VAR status with group",
+    "toast": {
+      "on": "Belly scan shared with the group.",
+      "off": "Belly scan hidden.",
+      "saved": "Group setting saved",
+      "failed": "Couldn't change sharing"
+    }
+  },
+  "actions": {
+    "rescan": "Scan again",
+    "delete": "Delete this scan"
+  },
+  "history": {
+    "title": "Scan history",
+    "deleteLabel": "Scan {{date}}",
+    "deleteFallback": "Belly scan"
+  },
+  "live": {
+    "banner": {
+      "aim": "VAR CHECK",
+      "scanning": "VAR SCANNING"
+    },
+    "stage": {
+      "lock": "LOCKING TARGET…",
+      "scan": "SCANNING BELLY…",
+      "kcal": "ANALYSING CALORIES…",
+      "decide": "DECIDING…"
+    },
+    "scanning": "SCANNING…",
+    "beep": "beeping… {{percent}}%",
+    "beepNative": "beep… beep…",
+    "fallback": {
+      "them": "them",
+      "friend": "Friend",
+      "yourFriend": "your friend"
+    },
+    "hiddenTitle": "{{name}} is hiding their belly contents",
+    "hiddenNote": "Their total calories are still visible on their member card.",
+    "hiddenNoteNudge": "Their total calories are still visible on their member card. Give them a poke for motivation.",
+    "aim": "Aim at {{name}}'s belly",
+    "foodsLabel": "{{name}}'s food today",
+    "verdict": {
+      "safe": "SAFE, keep going!",
+      "offside": "OFFSIDE! +{{kcal}} kcal",
+      "noTarget": "No target to compare against",
+      "empty": "Empty belly… haven't eaten?"
+    },
+    "total": "Total today {{eaten}} of {{target}} kcal",
+    "totalNoTarget": "Total today {{eaten}} kcal",
+    "intake": {
+      "label": "Intake today",
+      "value": "{{eaten}} / {{target}} kcal"
+    },
+    "basis": "Based on {{name}}'s food log today, not a real photo.",
+    "chip": "{{name}}'s belly VAR ({{date}}): {{verdict}}",
+    "failTitle": "VAR couldn't scan",
+    "error": {
+      "generic": "Couldn't scan.",
+      "network": "Couldn't scan. Check your connection and try again."
+    },
+    "poke": "Poke",
+    "poked": "Sent",
+    "rescan": "Scan again",
+    "toast": {
+      "sent": "Poke sent",
+      "sentDetail": "{{name}} gets a notification now.",
+      "failed": "Couldn't poke"
+    },
+    "scan": "Scan",
+    "scanNow": "Scan now",
+    "scanningBtn": "Scanning…",
+    "checking": "VAR is checking the food log…",
+    "check": "Check {{name}}'s food log with VAR",
+    "more": "+{{count}} more",
+    "noFood": "No food detected",
+    "noCamera": "Camera isn't available. The overlay still works, or allow the camera in your browser settings.",
+    "permissionHint": "No camera permission: shadow mode. VAR still works!",
+    "about": "Info"
+  },
+  "errors": {
+    "compareFailed": "VAR couldn't compare the photos. Try again with better light, or retry tomorrow.",
+    "analyzeFailed": "VAR couldn't analyze the photo.",
+    "retryFailed": "VAR couldn't recalculate.",
+    "saveFailed": "Couldn't save the photo. Please try again.",
+    "firstScanNote": "First scan saved. Scan again another day to start comparing.",
+    "scanNotFound": "Scan not found.",
+    "noBaseline": "The first scan has nothing to compare with, so it can't be recalculated.",
+    "photoGone": "The scan photos are no longer stored, so it can't be recalculated.",
+    "retriesExhausted_one": "You've used the {{count}} recalculation allowed for this scan. Scan again another day.",
+    "retriesExhausted_other": "You've used all {{count}} recalculations allowed for this scan. Scan again another day."
+  }
+}

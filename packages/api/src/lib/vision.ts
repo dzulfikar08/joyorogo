@@ -4,7 +4,6 @@ import type { Locale } from "@joyorogo/i18n";
 import { localNameRule, localNameShape } from "./ai-locale";
 import { resolveFoodKind } from "./food-kind";
 import type { FoodKind } from "./food-kind";
-import { SCAN_FAIL_COPY } from "./scan-errors";
 import type { ScanFailReason } from "./scan-errors";
 import { calibrateItems } from "./tkpi";
 import type { CalibratedItem } from "./tkpi";
@@ -148,9 +147,10 @@ export function responseText(result: unknown): string | null {
   return null;
 }
 
-export const FRIENDLY_ERROR = SCAN_FAIL_COPY.failed.message;
-
-/** A failed scan: `reason` picks the copy, `detail` is for the failure ledger. */
+/**
+ * A failed scan: `reason` is the stable code clients and the router localize
+ * from (message is for logs only), `detail` is for the failure ledger.
+ */
 export class VisionError extends Error {
   reason: ScanFailReason;
   detail: {
@@ -161,7 +161,7 @@ export class VisionError extends Error {
   };
 
   constructor(reason: ScanFailReason, detail: VisionError["detail"]) {
-    super(SCAN_FAIL_COPY[reason].message);
+    super(`scan:${reason}`);
     this.name = "VisionError";
     this.reason = reason;
     this.detail = detail;
@@ -440,8 +440,7 @@ export function parseAnswer(
  * Runs the vision model and returns validated items plus the model and the
  * binding's token usage (for the cost ledger). `tooMany` is true when the
  * photo held more than fit: the items are the ones that were listed or
- * salvaged from a cut-off answer. Throws a VisionError (message = user-safe
- * copy, `reason` = which failure) when nothing usable came back; callers wrap
+ * salvaged from a cut-off answer. Throws a VisionError (`reason` = which failure) when nothing usable came back; callers wrap
  * it into their transport's error shape. Two attempts; the second only after
  * a fast, non-deterministic failure (unparseable answer, transport blip).
  */

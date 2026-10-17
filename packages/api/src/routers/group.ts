@@ -35,6 +35,7 @@ import {
   varVerdict,
 } from "../lib/group";
 import { leaveTeamChallenges } from "../lib/challenge-db";
+import { serverT } from "../lib/messages";
 import { loadPublicGroupPreview, previewAllowed } from "../lib/group-preview";
 import { requireAiQuota } from "../lib/quota";
 import { buildPlan } from "../lib/plan";
@@ -987,11 +988,12 @@ export const groupRouter = {
     .handler(async ({ context, input }) => {
       const db = context.db;
       const userId = context.session.user.id;
+      const tVar = serverT(context.locale, "varperut");
       await requireMember(db, input.groupId, userId);
       const bucket = context.env.STICKERS;
       if (!bucket) {
         throw new ORPCError("SERVICE_UNAVAILABLE", {
-          message: "Penyimpanan foto belum tersedia.",
+          message: serverT(context.locale, "errors")("ai.storageUnavailable"),
         });
       }
       const date = jakartaToday();
@@ -1016,7 +1018,7 @@ export const groupRouter = {
       const startedAt = Date.now();
       let verdict: VarVerdict = "pertama";
       let confidence = 1;
-      let note = "Pemindaian pertama tersimpan. Scan lagi di lain hari buat mulai perbandingan.";
+      let note = tVar("errors.firstScanNote");
       let quotaReached = false;
       if (previous && previousPhoto) {
         // Quota only for scans that actually call the model.
@@ -1043,10 +1045,11 @@ export const groupRouter = {
             // The tape measure is the objective signal; the photo is the feel.
             waistCm: waistToday?.waistCm ?? previous.waistCm,
             model: context.env.AI_VISION_MODEL || undefined,
+            locale: context.locale,
           });
         } catch (error) {
           throw new ORPCError("UNPROCESSABLE_CONTENT", {
-            message: error instanceof Error ? error.message : "VAR gagal menganalisis foto.",
+            message: error instanceof Error ? error.message : tVar("errors.analyzeFailed"),
           });
         }
         verdict = analysis.verdict;
@@ -1071,7 +1074,7 @@ export const groupRouter = {
         });
       } catch {
         throw new ORPCError("INTERNAL_SERVER_ERROR", {
-          message: "Gagal menyimpan foto. Coba lagi.",
+          message: tVar("errors.saveFailed"),
         });
       }
       const [row] = await db
@@ -1121,17 +1124,17 @@ export const groupRouter = {
       const bucket = context.env.STICKERS;
       if (!ai) {
         throw new ORPCError("SERVICE_UNAVAILABLE", {
-          message: "Layanan AI belum tersedia. Coba lagi nanti.",
+          message: serverT(context.locale, "errors")("ai.unavailable"),
         });
       }
       if (!bucket) {
         throw new ORPCError("SERVICE_UNAVAILABLE", {
-          message: "Penyimpanan foto belum tersedia.",
+          message: serverT(context.locale, "errors")("ai.storageUnavailable"),
         });
       }
       return retryVarScan(
         { db: context.db, bucket, ai, model: context.env.AI_VISION_MODEL },
-        { userId: context.session.user.id, id: input.id, hint: input.hint },
+        { userId: context.session.user.id, id: input.id, hint: input.hint, locale: context.locale },
       );
     }),
 
@@ -1150,7 +1153,7 @@ export const groupRouter = {
         verdict: input.verdict,
         confidence: input.confidence,
         note: input.note,
-      });
+      }, context.locale);
       return { ok: true };
     }),
 

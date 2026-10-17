@@ -23,5 +23,11 @@
       }
     },
     "tooManyPartial": "Fotonya kebanyakan makanan, jadi AI cuma mencatat yang paling menonjol. Pakai item ini, atau foto ulang 1 piring (maksimal 3-4 jenis) dari lebih dekat."
+  },
+  "errors": {
+    "storyInputRequired": "Kirim teks atau rekaman suara.",
+    "anonAiUnavailable": "Layanan AI belum tersedia.",
+    "anonTrialUsed": "Coba gratis sudah habis. Daftar untuk lanjut scan.",
+    "anonPhotoUnreadable": "Foto tidak terbaca."
   }
 }

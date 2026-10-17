@@ -3,7 +3,6 @@ import { describe, expect, test } from "bun:test";
 import {
   analyzeFoodPhoto,
   dropDuplicateBroth,
-  FRIENDLY_ERROR,
   MAX_ITEMS,
   normalizeBox,
   runVisionOnce,
@@ -13,7 +12,6 @@ import {
   type AiRunner,
   type ScheduleTimeout,
 } from "./vision";
-import { SCAN_FAIL_COPY } from "./scan-errors";
 
 const PLATE = {
   items: [
@@ -66,7 +64,7 @@ describe("analyzeFoodPhoto deadlines", () => {
     const calls: string[] = [];
     await expect(
       analyzeFoodPhoto(hangingRunner(calls), { ...OPTS, schedule: microtaskSchedule }),
-    ).rejects.toThrow(SCAN_FAIL_COPY.timeout.message);
+    ).rejects.toMatchObject({ reason: "timeout" });
     expect(calls.length).toBe(1);
   });
 
@@ -250,7 +248,6 @@ describe("failure reasons", () => {
     };
     const outcome = (await analyzeFoodPhoto(runner, OPTS).catch((e: unknown) => e)) as VisionError;
     expect(outcome.reason).toBe("unclear");
-    expect(outcome.message).toBe(SCAN_FAIL_COPY.unclear.message);
     expect(calls).toBe(1);
     expect(((await fails({ items: [], problem: "buram" })) as VisionError).reason).toBe("unclear");
     expect(((await fails({ items: [], problem: "bukan_makanan" })) as VisionError).reason).toBe(
@@ -279,7 +276,6 @@ describe("failure reasons", () => {
     const runner: AiRunner = { run: () => Promise.resolve({ response: "Maaf, tidak bisa." }) };
     const outcome = (await analyzeFoodPhoto(runner, OPTS).catch((e: unknown) => e)) as VisionError;
     expect(outcome.reason).toBe("failed");
-    expect(outcome.message).toBe(FRIENDLY_ERROR);
     expect(outcome.detail.attempts).toBe(2);
   });
 });

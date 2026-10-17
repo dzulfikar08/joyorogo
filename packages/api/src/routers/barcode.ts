@@ -5,6 +5,7 @@ import { z } from "zod";
 import { barcodeProduct } from "@joyorogo/db/schema/barcode";
 
 import { protectedProcedure } from "../index";
+import { serverT } from "../lib/messages";
 import {
   OffUnavailableError,
   classifyProduct,
@@ -51,7 +52,7 @@ export const barcodeRouter = {
       const code = normalizeBarcode(input.code);
       if (!code) {
         throw new ORPCError("BAD_REQUEST", {
-          message: "Nomor barcode tidak valid. Cek lagi angkanya (8, 12, atau 13 digit).",
+          message: serverT(context.locale, "barcode")("errors.invalidCode"),
         });
       }
       const [cached] = await context.db
@@ -70,7 +71,7 @@ export const barcodeRouter = {
         if (!(error instanceof OffUnavailableError)) throw error;
         if (cached) return toLookup(code, rowToProduct(cached));
         throw new ORPCError("SERVICE_UNAVAILABLE", {
-          message: "Open Food Facts lagi tidak bisa dihubungi. Coba lagi sebentar atau isi manual.",
+          message: serverT(context.locale, "barcode")("errors.offUnavailable"),
         });
       }
       const values = {

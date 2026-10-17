@@ -8,8 +8,10 @@ import { ORPCError } from "@orpc/server";
 import { and, desc, eq, lt, sql } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
+import type { Locale } from "@joyorogo/i18n";
 import { aiUsage, varScan } from "@joyorogo/db/schema/fitness";
 
+import { serverT } from "./messages";
 import { MAX_SCAN_RETRIES } from "./quota";
 import { bytesToBase64, varPhotoKey } from "./sticker";
 import type { StickersBucket } from "./sticker";
@@ -58,21 +60,22 @@ export async function retryVarScan(
     ai: AiRunner;
     model?: string;
   },
-  input: { userId: string; id: string; hint?: string },
+  input: { userId: string; id: string; hint?: string; locale: Locale },
 ): Promise<{
   scan: { id: string; verdict: VarVerdict; confidence: number; note: string };
   previous: VarVerdictSnapshot;
   retriesLeft: number;
 }> {
   const { db, bucket, ai } = deps;
-  const { userId, id, hint } = input;
+  const { userId, id, hint, locale } = input;
+  const t = serverT(locale, "varperut");
 
   const [row] = await db
     .select()
     .from(varScan)
     .where(and(eq(varScan.id, id), eq(varScan.userId, userId)))
     .limit(1);
-  if (!row) throw new ORPCError("NOT_FOUND", { message: "Scan tidak ditemukan." });
+  if (!row) throw new ORPCError("NOT_FOUND", { message: t("errors.scanNotFound") });
 
   // Pembanding = scan milik pengguna tepat sebelum scan ini, seperti saat
   // varAnalyze memilih pembanding.
@@ -84,13 +87,13 @@ export async function retryVarScan(
     .limit(1);
   if (!before) {
     throw new ORPCError("UNPROCESSABLE_CONTENT", {
-      message: "Scan pertama belum punya pembanding, jadi belum bisa dihitung ulang.",
+      message: t("errors.noBaseline"),
     });
   }
   const claimed = await claimRetry(db, userId, id);
   if (claimed === null) {
     throw new ORPCError("FORBIDDEN", {
-      message: `Batas hitung ulang scan ini habis (${MAX_SCAN_RETRIES} kali). Scan lagi di lain hari ya.`,
+      message: t("errors.retriesExhausted", { count: MAX_SCAN_RETRIES }),
       data: { retriesExhausted: true },
     });
   }
@@ -104,7 +107,7 @@ export async function retryVarScan(
     ]);
     if (!currentPhoto || !previousPhoto) {
       throw new ORPCError("NOT_FOUND", {
-        message: "Foto scan sudah tidak tersimpan, jadi tidak bisa dihitung ulang.",
+        message: t("errors.photoGone"),
       });
     }
     const mimeType = currentPhoto.httpMetadata?.contentType;
@@ -121,6 +124,7 @@ export async function retryVarScan(
       waistCm: row.waistCm ?? before.waistCm,
       model: deps.model || undefined,
       retry: { hint },
+      locale,
     });
     const [updated] = await db
       .update(varScan)
@@ -128,13 +132,13 @@ export async function retryVarScan(
       .where(and(eq(varScan.id, id), eq(varScan.userId, userId)))
       .returning({ id: varScan.id });
     // Dihapus selagi AI berjalan: tidak ada baris yang perlu dilindungi lagi.
-    if (!updated) throw new ORPCError("NOT_FOUND", { message: "Scan tidak ditemukan." });
+    if (!updated) throw new ORPCError("NOT_FOUND", { message: t("errors.scanNotFound") });
   } catch (error) {
     // Kegagalan apa pun tidak memakan jatah, dan verdict lama tidak tersentuh.
     await releaseRetry(db, userId, id).catch(() => {});
     if (error instanceof ORPCError) throw error;
     throw new ORPCError("UNPROCESSABLE_CONTENT", {
-      message: error instanceof Error ? error.message : "VAR gagal menghitung ulang.",
+      message: error instanceof Error ? error.message : t("errors.retryFailed"),
     });
   }
 
@@ -168,6 +172,7 @@ export async function restoreVarVerdict(
   userId: string,
   id: string,
   snapshot: VarVerdictSnapshot,
+  locale: Locale,
 ): Promise<void> {
   const [updated] = await db
     .update(varScan)
@@ -178,5 +183,5 @@ export async function restoreVarVerdict(
     })
     .where(and(eq(varScan.id, id), eq(varScan.userId, userId)))
     .returning({ id: varScan.id });
-  if (!updated) throw new ORPCError("NOT_FOUND", { message: "Scan tidak ditemukan." });
+  if (!updated) throw new ORPCError("NOT_FOUND", { message: t("errors.scanNotFound") });
 }

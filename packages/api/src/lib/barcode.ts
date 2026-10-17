@@ -58,6 +58,8 @@ export type BarcodeProductInfo = {
   unit: "g" | "ml";
 };
 
+export type BarcodeIncompleteReason = "no_kcal" | "implausible";
+
 export type BarcodeLookup =
   | { status: "not_found"; code: string }
   | {
@@ -65,7 +67,8 @@ export type BarcodeLookup =
       status: "incomplete";
       code: string;
       product: BarcodeProductInfo;
-      reason: string;
+      /** Stable code; clients look the copy up in `barcode:lookup.incomplete.reason.*`. */
+      reason: BarcodeIncompleteReason;
     }
   | {
       status: "found";
@@ -187,7 +190,7 @@ export function classifyProduct(code: string, product: OffProduct): BarcodeLooku
       status: "incomplete",
       code,
       product: info,
-      reason: "Open Food Facts belum punya data kalori untuk produk ini.",
+      reason: "no_kcal",
     };
   }
   const macroSum = (protein100 ?? 0) + (carbs100 ?? 0) + (fat100 ?? 0);
@@ -196,7 +199,7 @@ export function classifyProduct(code: string, product: OffProduct): BarcodeLooku
       status: "incomplete",
       code,
       product: info,
-      reason: "Angka gizi di Open Food Facts terlihat janggal, jadi tidak kami pakai.",
+      reason: "implausible",
     };
   }
   const base: PortionValues = {
@@ -244,15 +247,15 @@ export async function fetchOffProduct(
       { headers: { "User-Agent": OFF_USER_AGENT }, signal: AbortSignal.timeout(8000) },
     );
   } catch {
-    throw new OffUnavailableError("Open Food Facts tidak merespons.");
+    throw new OffUnavailableError("Open Food Facts did not respond.");
   }
   if (res.status === 404) return null;
-  if (!res.ok) throw new OffUnavailableError(`Open Food Facts membalas ${res.status}.`);
+  if (!res.ok) throw new OffUnavailableError(`Open Food Facts replied ${res.status}.`);
   let body: z.infer<typeof offResponseSchema>;
   try {
     body = offResponseSchema.parse(await res.json());
   } catch {
-    throw new OffUnavailableError("Balasan Open Food Facts tidak terbaca.");
+    throw new OffUnavailableError("Open Food Facts reply was unreadable.");
   }
   if (body.status !== 1) return null;
   return parseOffProduct(body.product);

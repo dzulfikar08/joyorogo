@@ -1,1 +1,108 @@
-{}
+{
+  "page": {
+    "title": "Pindai barcode",
+    "subtitle": "Angka gizi kemasan dari Open Food Facts.",
+    "resultTitle": "Hasil barcode",
+    "backToScanner": "Kembali ke pemindai"
+  },
+  "camera": {
+    "open": "Buka kamera",
+    "close": "Tutup kamera",
+    "preview": "Pratinjau kamera untuk membaca barcode",
+    "aim": "Arahkan kamera ke barcode di kemasan",
+    "notes": "Catatan kamera",
+    "privacyWeb": "Gambar diproses di browsermu dan tidak dikirim.",
+    "privacyNative": "JoyoRogo butuh izin kamera untuk membaca barcode di kemasan. Barcode dibaca di perangkatmu; fotonya tidak dikirim ke mana pun.",
+    "unsupported": "Kamera tidak tersedia di browser ini.",
+    "unsupportedDetail": "Browser ini belum bisa membaca barcode lewat kamera (didukung Chrome di Android). Ketik nomor yang tertera di bawah barcode, atau pakai aplikasi JoyoRogo di HP.",
+    "permissionTitle": "Kamera dibutuhkan",
+    "grant": "Beri izin kamera",
+    "orType": "Atau ketik nomornya:",
+    "error": {
+      "denied": "Izin kamera ditolak. Izinkan kamera di pengaturan browser, atau ketik nomornya.",
+      "failed": "Kamera tidak bisa dibuka. Ketik nomor barcode di bawah."
+    }
+  },
+  "entry": {
+    "number": "Nomor barcode",
+    "type": "Ketik nomor barcode",
+    "search": "Cari",
+    "invalid": "Nomor barcode tidak valid. Cek lagi angkanya (8, 12, atau 13 digit)."
+  },
+  "lookup": {
+    "searching": "Mencari {{code}} di Open Food Facts…",
+    "failed": {
+      "title": "Pencarian gagal",
+      "fallback": "Open Food Facts tidak bisa dihubungi."
+    },
+    "notFound": {
+      "title": "Produk belum ada di Open Food Facts",
+      "body": "Barcode {{code}} belum terdaftar, jadi belum ada angka gizinya. Foto produknya atau isi kalorinya sendiri."
+    },
+    "incomplete": {
+      "body": "{{reason}} Produk ini tidak dicatat otomatis. Foto produknya atau isi kalori dari label.",
+      "reason": {
+        "no_kcal": "Open Food Facts belum punya data kalori untuk produk ini.",
+        "implausible": "Angka gizi di Open Food Facts terlihat janggal, jadi tidak kami pakai."
+      }
+    }
+  },
+  "fallback": {
+    "photo": "Foto produknya, AI perkirakan",
+    "photoNote": "AI memperkirakan dari foto, bukan membaca angka di label. Kalau kamu punya angka dari label, isi sendiri.",
+    "notes": "Tentang perkiraan AI",
+    "manual": "Isi kalori sendiri",
+    "scanAnother": "Pindai barcode lain"
+  },
+  "manual": {
+    "name": "Nama makanan",
+    "namePlaceholder": "Nama produk",
+    "kcal": "Kalori (kcal)",
+    "nameRequired": "Isi dulu nama makanannya.",
+    "kcalRequired": "Isi jumlah kalorinya, contoh: 350."
+  },
+  "result": {
+    "per100": "Per 100 {{unit}}",
+    "perServing": "Per sajian ({{size}})",
+    "unknownProduct": "Barcode {{code}}",
+    "notes": "Sumber & catatan",
+    "missing": "Open Food Facts belum punya data {{fields}} untuk produk ini; yang kosong dicatat sebagai tidak diketahui, bukan nol.",
+    "source": "Sumber: Open Food Facts, basis data komunitas. Angkanya bisa beda dari label kemasanmu; cek lagi kalau ragu."
+  },
+  "macro": {
+    "protein": "protein",
+    "carbs": "karbo",
+    "fat": "lemak",
+    "fiber": "serat"
+  },
+  "quantity": {
+    "label": "Berapa banyak yang kamu makan ({{unit}})",
+    "aria": "Takaran dalam {{unit}}",
+    "serving": "1 sajian · {{size}}",
+    "hundred": "100 {{unit}}",
+    "range": "Isi takaran antara 1 dan {{max}} {{unit}}."
+  },
+  "total": {
+    "label": "Yang dicatat"
+  },
+  "meal": {
+    "label": "Waktu makan"
+  },
+  "save": {
+    "button": "Catat",
+    "buttonTo": "Catat ke {{meal}}",
+    "saving": "Menyimpan...",
+    "failed": "Gagal menyimpan. Coba lagi.",
+    "toast": "{{name}} dicatat ke {{meal}}."
+  },
+  "done": {
+    "title": "Tercatat!",
+    "text": "{{name}} ({{kcal}}) sudah masuk ke {{meal}}.",
+    "viewList": "Lihat daftar makanan",
+    "scanAgain": "Pindai lagi"
+  },
+  "errors": {
+    "invalidCode": "Nomor barcode tidak valid. Cek lagi angkanya (8, 12, atau 13 digit).",
+    "offUnavailable": "Open Food Facts lagi tidak bisa dihubungi. Coba lagi sebentar atau isi manual."
+  }
+}

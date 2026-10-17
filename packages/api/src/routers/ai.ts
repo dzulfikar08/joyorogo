@@ -3,6 +3,7 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@joyorogo/db";
+import type { Locale } from "@joyorogo/i18n";
 import { aiUsage, scanCorrection, scanFeedback } from "@joyorogo/db/schema/fitness";
 import {
   SCAN_ID_RE,
@@ -30,12 +31,13 @@ import type {
 
 import { protectedProcedure } from "../index";
 import { serverT } from "../lib/messages";
+import { scanFailMessage } from "../lib/scan-fail-message";
 import { MEALS, jakartaToday } from "../lib/engine";
 import { dateSchema, mealSchema } from "../lib/schemas";
 import { TRANSCRIBE_MODEL, parseFoodStory, transcribeStory } from "../lib/story";
 import { MAX_SCAN_RETRIES, requireAiQuota } from "../lib/quota";
 import { wibDayBounds } from "../lib/tiers";
-import { DEFAULT_VISION_MODEL, FRIENDLY_ERROR, VisionError, analyzeFoodPhoto, normalizeBox } from "../lib/vision";
+import { DEFAULT_VISION_MODEL, VisionError, analyzeFoodPhoto, normalizeBox } from "../lib/vision";
 import type { ItemBox } from "../lib/vision";
 
 /** Cutouts per photo: 12 items for the first pass plus each allowed retry. */
@@ -53,11 +55,11 @@ function distinctBoxes(items: ReadonlyArray<{ box?: ItemBox }>): ItemBox[] {
 }
 
 /** The ORPC error for a failed scan: `data.reason` lets clients pick the right guidance. */
-function scanFailure(error: unknown) {
+function scanFailure(error: unknown, locale: Locale) {
   const reason = error instanceof VisionError ? error.reason : "failed";
   return new ORPCError(
     reason === "failed" || reason === "timeout" ? "INTERNAL_SERVER_ERROR" : "UNPROCESSABLE_CONTENT",
-    { message: error instanceof Error ? error.message : FRIENDLY_ERROR, data: { reason } },
+    { message: scanFailMessage(reason, locale), data: { reason } },
   );
 }
 
@@ -216,7 +218,7 @@ export const aiRouter = {
         context.waitUntil(
           logScanFailure(context.db, userId, error, startedAt, "photo", input.clientTiming),
         );
-        throw scanFailure(error);
+        throw scanFailure(error, context.locale);
       }
       const latencyMs = Date.now() - startedAt;
       const sticker = await cutout;
@@ -379,7 +381,7 @@ export const aiRouter = {
         });
       } catch (error) {
         context.waitUntil(logScanFailure(context.db, userId, error, startedAt, "retry"));
-        throw scanFailure(error);
+        throw scanFailure(error, context.locale);
       }
       // Both writes come after inference: a failed or abandoned attempt
       // never consumes the cap, and ledger rows marked "retry" stay outside
@@ -541,13 +543,15 @@ export const aiRouter = {
           date: dateSchema.optional(),
           // The client's active slots (Ramadan swaps in sahur/berbuka).
           slots: z.array(mealSchema).min(1).max(MEALS.length),
-        })
-        .refine((v) => (v.text === undefined) !== (v.audioBase64 === undefined), {
-          message: "Kirim teks atau rekaman suara.",
         }),
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
+      if ((input.text === undefined) === (input.audioBase64 === undefined)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: serverT(context.locale, "scan")("errors.storyInputRequired"),
+        });
+      }
       const { ai, quotaReached } = await requireAiQuota(
         context.db,
         context.env,

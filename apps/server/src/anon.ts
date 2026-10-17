@@ -1,10 +1,14 @@
 import { eq, sql } from "drizzle-orm";
 import type { Hono } from "hono";
 
-import { analyzeFoodPhoto } from "@joyorogo/api/lib/vision";
+import { serverT } from "@joyorogo/api/lib/messages";
+import { scanFailMessage } from "@joyorogo/api/lib/scan-fail-message";
+import { analyzeFoodPhoto, VisionError } from "@joyorogo/api/lib/vision";
 import type { VisionAnalysis } from "@joyorogo/api/lib/vision";
 import { aiUsage, anonScan } from "@joyorogo/db/schema/fitness";
 import type { Database } from "@joyorogo/db";
+
+import { requestLocale } from "./context";
 
 const COOKIE = "jr_anon";
 
@@ -22,8 +26,10 @@ type Deps = {
 export function registerAnonScanRoutes(app: Hono, deps: Deps) {
   app.post("/ai/scan-anon", async (c) => {
     const ai = deps.ai;
+    const locale = requestLocale(c);
+    const t = serverT(locale, "scan");
     if (!ai) {
-      return c.json({ error: "Layanan AI belum tersedia." }, 503);
+      return c.json({ error: t("errors.anonAiUnavailable") }, 503);
     }
     let cookieId = c.req.header("Cookie")?.match(new RegExp(`${COOKIE}=([^;]+)`))?.[1];
     let setCookie: string | undefined;
@@ -43,7 +49,7 @@ export function registerAnonScanRoutes(app: Hono, deps: Deps) {
       if (setCookie) c.header("Set-Cookie", setCookie);
       return c.json(
         {
-          error: "Coba gratis sudah habis. Daftar untuk lanjut scan.",
+          error: t("errors.anonTrialUsed"),
           paywall: true,
         },
         402,
@@ -55,7 +61,7 @@ export function registerAnonScanRoutes(app: Hono, deps: Deps) {
       mimeType?: string;
     } | null;
     if (!body?.imageBase64 || body.imageBase64.length < 50) {
-      return c.json({ error: "Foto tidak terbaca." }, 400);
+      return c.json({ error: t("errors.anonPhotoUnreadable") }, 400);
     }
     const mime = body.mimeType ?? "image/jpeg";
     const startedAt = Date.now();
@@ -65,12 +71,11 @@ export function registerAnonScanRoutes(app: Hono, deps: Deps) {
         imageBase64: body.imageBase64,
         mimeType: mime,
         model: deps.model,
+        locale,
       });
     } catch (error) {
-      return c.json(
-        { error: error instanceof Error ? error.message : "AI tidak berhasil mengenali foto ini." },
-        500,
-      );
+      const reason = error instanceof VisionError ? error.reason : "failed";
+      return c.json({ error: scanFailMessage(reason, locale), reason }, 500);
     }
 
     // Charge only successful scans.

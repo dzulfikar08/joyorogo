@@ -1,1 +1,108 @@
-{}
+{
+  "page": {
+    "title": "Scan barcode",
+    "subtitle": "Package nutrition from Open Food Facts.",
+    "resultTitle": "Barcode result",
+    "backToScanner": "Back to scanner"
+  },
+  "camera": {
+    "open": "Open camera",
+    "close": "Close camera",
+    "preview": "Camera preview for reading a barcode",
+    "aim": "Point the camera at the barcode on the package",
+    "notes": "Camera notes",
+    "privacyWeb": "Images are processed in your browser and never sent.",
+    "privacyNative": "JoyoRogo needs camera access to read package barcodes. Barcodes are read on your device; the photo is never sent anywhere.",
+    "unsupported": "Camera isn't available in this browser.",
+    "unsupportedDetail": "This browser can't read barcodes with the camera yet (Chrome on Android can). Type the number printed under the barcode, or use the JoyoRogo app on your phone.",
+    "permissionTitle": "Camera needed",
+    "grant": "Allow camera",
+    "orType": "Or type the number:",
+    "error": {
+      "denied": "Camera access was denied. Allow it in your browser settings, or type the number.",
+      "failed": "Couldn't open the camera. Type the barcode number below."
+    }
+  },
+  "entry": {
+    "number": "Barcode number",
+    "type": "Type barcode number",
+    "search": "Search",
+    "invalid": "That barcode number isn't valid. Check the digits (8, 12 or 13)."
+  },
+  "lookup": {
+    "searching": "Looking up {{code}} on Open Food Facts…",
+    "failed": {
+      "title": "Search failed",
+      "fallback": "Couldn't reach Open Food Facts."
+    },
+    "notFound": {
+      "title": "Not on Open Food Facts yet",
+      "body": "Barcode {{code}} isn't listed, so there are no nutrition numbers. Photograph the product or enter the calories yourself."
+    },
+    "incomplete": {
+      "body": "{{reason}} This product isn't logged automatically. Photograph it or enter the calories from the label.",
+      "reason": {
+        "no_kcal": "Open Food Facts has no calorie data for this product.",
+        "implausible": "The nutrition numbers on Open Food Facts look off, so we don't use them."
+      }
+    }
+  },
+  "fallback": {
+    "photo": "Photo it, AI estimates",
+    "photoNote": "The AI estimates from the photo; it doesn't read the label numbers. If you have the label numbers, enter them yourself.",
+    "notes": "About the AI estimate",
+    "manual": "Enter calories myself",
+    "scanAnother": "Scan another barcode"
+  },
+  "manual": {
+    "name": "Food name",
+    "namePlaceholder": "Product name",
+    "kcal": "Calories (kcal)",
+    "nameRequired": "Enter the food name first.",
+    "kcalRequired": "Enter the calories, e.g. 350."
+  },
+  "result": {
+    "per100": "Per 100 {{unit}}",
+    "perServing": "Per serving ({{size}})",
+    "unknownProduct": "Barcode {{code}}",
+    "notes": "Source & notes",
+    "missing": "Open Food Facts has no {{fields}} data for this product; missing values are logged as unknown, not zero.",
+    "source": "Source: Open Food Facts, a community database. Numbers may differ from your package label; double-check if unsure."
+  },
+  "macro": {
+    "protein": "protein",
+    "carbs": "carbs",
+    "fat": "fat",
+    "fiber": "fiber"
+  },
+  "quantity": {
+    "label": "How much did you eat ({{unit}})",
+    "aria": "Amount in {{unit}}",
+    "serving": "1 serving · {{size}}",
+    "hundred": "100 {{unit}}",
+    "range": "Enter an amount between 1 and {{max}} {{unit}}."
+  },
+  "total": {
+    "label": "Will be logged"
+  },
+  "meal": {
+    "label": "Meal"
+  },
+  "save": {
+    "button": "Log",
+    "buttonTo": "Log to {{meal}}",
+    "saving": "Saving...",
+    "failed": "Couldn't save. Try again.",
+    "toast": "{{name}} logged to {{meal}}."
+  },
+  "done": {
+    "title": "Logged!",
+    "text": "{{name}} ({{kcal}}) was added to {{meal}}.",
+    "viewList": "View food list",
+    "scanAgain": "Scan again"
+  },
+  "errors": {
+    "invalidCode": "That barcode isn't valid. Check the digits (8, 12 or 13).",
+    "offUnavailable": "Can't reach Open Food Facts right now. Try again shortly or enter it by hand."
+  }
+}

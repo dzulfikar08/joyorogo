@@ -1,1 +1,208 @@
-{}
+{
+  "title": "VAR Perut",
+  "back": "Kembali ke grup",
+  "close": "Tutup VAR",
+  "group": {
+    "fallback": "grup ini"
+  },
+  "verdict": {
+    "label": {
+      "turun": "Perut mengecil",
+      "naik": "Terlihat lebih penuh",
+      "sama": "Belum kelihatan beda",
+      "beda": "Kondisi foto beda, ulangi",
+      "pertama": "Scan pertama tersimpan"
+    },
+    "short": {
+      "turun": "Perut mengecil",
+      "naik": "Terlihat lebih penuh",
+      "sama": "Belum kelihatan beda",
+      "beda": "Kondisi foto beda",
+      "pertama": "Scan pertama"
+    },
+    "chip": {
+      "turun": "mengecil",
+      "naik": "lebih penuh",
+      "sama": "belum beda",
+      "beda": "foto beda",
+      "pertama": "scan pertama"
+    }
+  },
+  "confidence": {
+    "short": "Yakin ~{{percent}}%"
+  },
+  "about": {
+    "title": "Cara kerja & privasi",
+    "disclaimer": "Perkembangan perutmu dilihat AI secara visual — bukan alat ukur.",
+    "confidence": "Keyakinan visual itu perkiraan dari foto, bukan pengukuran.",
+    "duration": "Biasanya 5-20 detik. Foto asli cuma tersimpan untukmu.",
+    "photoPrivate": "Foto perutmu privat: tidak pernah masuk feed, dan hanya kamu yang bisa membukanya.",
+    "retry": "Hitung ulang: AI membandingkan ulang kedua foto yang sama, tanpa foto ulang dan tanpa memakai kuota scan harian.",
+    "retryShared": "Status yang dibagikan ke {{group}} ikut diperbarui.",
+    "share": "Yang ikut terlihat cuma verdict + tanggal. Foto perutmu tidak pernah dibagikan.",
+    "waist": "Foto cuma perkiraan visual — meteran yang mengukur."
+  },
+  "capture": {
+    "guide": "Perutmu di dalam garis putus-putus",
+    "cameraLabel": "Kamera untuk foto perut",
+    "capturedAlt": "Foto yang baru diambil",
+    "analyzing": {
+      "compare": "AI membandingkan dengan scan sebelumnya…",
+      "first": "Menyimpan scan pertamamu…"
+    },
+    "cameraUnavailable": "Kamera tidak tersedia di perangkat ini. Pakai tombol galeri di bawah, atau izinkan kamera di pengaturan browser.",
+    "permission": {
+      "text": "Izin kamera belum ada — pakai galeri, atau beri izin kamera dulu.",
+      "action": "Beri Izin Kamera"
+    },
+    "tips": {
+      "pose": "Pose dan jarak yang sama tiap scan",
+      "light": "Cahaya terang, kamera sejajar perut",
+      "stand": "Berdiri tegak, napas biasa"
+    },
+    "timer": {
+      "on": "Timer {{seconds}} dtk nyala",
+      "off": "Timer {{seconds}} dtk mati",
+      "turnOff": "Matikan timer {{seconds}} detik",
+      "turnOn": "Nyalakan timer {{seconds}} detik"
+    },
+    "shutter": "Ambil foto perut",
+    "gallery": "Galeri",
+    "galleryPick": "Pilih dari galeri",
+    "saved_other": "{{count}} scan tersimpan.",
+    "savedNone": "Scan pertama jadi pembanding awal.",
+    "firstScan": "Scan pertama"
+  },
+  "error": {
+    "process": "Gagal memproses foto. Coba lagi.",
+    "capture": "Gagal mengambil foto. Coba lagi.",
+    "historyLoad": "Riwayat gagal dimuat",
+    "historyLoading": "Memuat riwayat VAR"
+  },
+  "compare": {
+    "before": "Sebelumnya",
+    "now": "Sekarang",
+    "none": "Belum ada",
+    "altBefore": "Foto perut sebelumnya",
+    "altNow": "Foto perut sekarang",
+    "altDate": "Foto perut {{date}}",
+    "altCompare": "Pembanding: {{date}}",
+    "compareTitle": "Dibandingkan dengan {{date}}",
+    "rereading": "AI membaca ulang kedua foto...",
+    "rereadingLabel": "Menghitung ulang"
+  },
+  "retry": {
+    "title": "Hasilnya kurang pas?",
+    "left_other": "Gratis, sisa {{count}}x",
+    "limit": "Batas hitung ulang habis",
+    "exhausted": "Scan ini sudah dihitung ulang sampai batasnya. Scan lagi di lain hari ya.",
+    "hint": "Koreksi singkat (opsional), mis. pose kedua foto sebenarnya sama",
+    "action": "Hitung ulang",
+    "running": "Menghitung ulang...",
+    "toast": {
+      "result": "Hasil baru: {{label}}",
+      "keptTitle": "Hasil sebelumnya tetap dipakai",
+      "kept": "Hasil sebelumnya tetap dipakai. {{message}}",
+      "restoreFailed": "Gagal mengembalikan hasil"
+    }
+  },
+  "waist": {
+    "title": "Angka yang lebih jujur: lingkar perut",
+    "last": "Terakhir {{date}}: {{cm}} cm",
+    "lastDelta": "Terakhir {{date}}: {{cm}} cm ({{delta}} cm)",
+    "empty": "Angka yang lebih jujur: lingkar perut.",
+    "link": "Catat di Berat"
+  },
+  "share": {
+    "title": "Bagikan status ke {{group}}",
+    "toggle": "Bagikan status VAR ke grup",
+    "toast": {
+      "on": "Scan perut dibagikan ke grup.",
+      "off": "Scan perut disembunyikan.",
+      "saved": "Pengaturan grup disimpan",
+      "failed": "Gagal mengubah bagikan"
+    }
+  },
+  "actions": {
+    "rescan": "Scan lagi",
+    "delete": "Hapus scan ini"
+  },
+  "history": {
+    "title": "Riwayat scan",
+    "deleteLabel": "Scan {{date}}",
+    "deleteFallback": "Scan perut"
+  },
+  "live": {
+    "banner": {
+      "aim": "VAR CHECK",
+      "scanning": "VAR SCANNING"
+    },
+    "stage": {
+      "lock": "MENGUNCI TARGET…",
+      "scan": "MEMINDAI ISI PERUT…",
+      "kcal": "ANALISIS KALORI…",
+      "decide": "MEMUTUSKAN…"
+    },
+    "scanning": "MEMINDAI…",
+    "beep": "beeping… {{percent}}%",
+    "beepNative": "biip… biip…",
+    "fallback": {
+      "them": "dia",
+      "friend": "Teman",
+      "yourFriend": "temanmu"
+    },
+    "hiddenTitle": "{{name}} menyembunyikan isi perutnya",
+    "hiddenNote": "Total kalori tetap terlihat di kartu anggotanya.",
+    "hiddenNoteNudge": "Total kalorinya tetap terlihat di kartu anggotanya. Colek aja biar makin semangat.",
+    "aim": "Arahkan ke perut {{name}}",
+    "foodsLabel": "Makanan {{name}} hari ini",
+    "verdict": {
+      "safe": "AMAN, lanjutkan!",
+      "offside": "OFFSIDE! +{{kcal}} kcal",
+      "noTarget": "Belum ada target pembanding",
+      "empty": "Perut kosong… belum makan?"
+    },
+    "total": "Total hari ini {{eaten}} dari {{target}} kcal",
+    "totalNoTarget": "Total hari ini {{eaten}} kcal",
+    "intake": {
+      "label": "Asupan hari ini",
+      "value": "{{eaten}} / {{target}} kcal"
+    },
+    "basis": "Berdasarkan catatan makan {{name}} hari ini, bukan foto asli.",
+    "chip": "VAR perut {{name}} ({{date}}): {{verdict}}",
+    "failTitle": "VAR gagal memindai",
+    "error": {
+      "generic": "Gagal memindai.",
+      "network": "Gagal memindai. Cek koneksimu lalu coba lagi."
+    },
+    "poke": "Colek",
+    "poked": "Terkirim",
+    "rescan": "Scan ulang",
+    "toast": {
+      "sent": "Colek terkirim",
+      "sentDetail": "{{name}} dapat notifikasi sekarang.",
+      "failed": "Gagal mencolek"
+    },
+    "scan": "Scan",
+    "scanNow": "Scan Sekarang",
+    "scanningBtn": "Memindai…",
+    "checking": "VAR sedang memeriksa catatan makan…",
+    "check": "Cek catatan makan {{name}} lewat VAR",
+    "more": "+{{count}} lagi",
+    "noFood": "Tidak ada makanan terdeteksi",
+    "noCamera": "Kamera tidak tersedia. Overlay tetap jalan, coba izinkan kamera di pengaturan browser.",
+    "permissionHint": "Izin kamera belum ada — mode bayangan. VAR tetap jalan kok!",
+    "about": "Info"
+  },
+  "errors": {
+    "compareFailed": "VAR tidak berhasil membandingkan fotonya. Coba lagi dengan pencahayaan lebih baik, atau ulangi besok.",
+    "analyzeFailed": "VAR gagal menganalisis foto.",
+    "retryFailed": "VAR gagal menghitung ulang.",
+    "saveFailed": "Gagal menyimpan foto. Coba lagi.",
+    "firstScanNote": "Pemindaian pertama tersimpan. Scan lagi di lain hari buat mulai perbandingan.",
+    "scanNotFound": "Scan tidak ditemukan.",
+    "noBaseline": "Scan pertama belum punya pembanding, jadi belum bisa dihitung ulang.",
+    "photoGone": "Foto scan sudah tidak tersimpan, jadi tidak bisa dihitung ulang.",
+    "retriesExhausted_other": "Batas hitung ulang scan ini habis ({{count}} kali). Scan lagi di lain hari ya."
+  }
+}

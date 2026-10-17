@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
+import { serverT } from "./messages";
+
 import {
-  VAR_FRIENDLY_ERROR,
   analyzeVarPhotos,
   varResultFromText,
 } from "./varscan";
@@ -40,6 +41,7 @@ const OPTS = {
   previous: { imageBase64: "cHJldg==", label: "scan 1 Okt" },
   current: { imageBase64: "Y3Vy", mimeType: "image/jpeg", label: "hari ini" },
   waistCm: null,
+  locale: "id",
 } as const;
 
 describe("varResultFromText", () => {
@@ -93,7 +95,7 @@ describe("analyzeVarPhotos", () => {
     // budget -1: setiap kegagalan dianggap sudah memakan kesabaran pengguna.
     await expect(
       analyzeVarPhotos(ai as never, { ...OPTS, schedule: neverSchedule, budgetMs: -1 }),
-    ).rejects.toThrow(VAR_FRIENDLY_ERROR);
+    ).rejects.toThrow(serverT("id", "varperut")("errors.compareFailed"));
     expect(ai.calls).toBe(1);
   });
 
@@ -116,7 +118,7 @@ describe("analyzeVarPhotos", () => {
       schedule,
     });
     fired[0]?.();
-    await expect(pending).rejects.toThrow(VAR_FRIENDLY_ERROR);
+    await expect(pending).rejects.toThrow(serverT("id", "varperut")("errors.compareFailed"));
     expect(calls).toBe(1);
   });
 });

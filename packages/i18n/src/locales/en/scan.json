@@ -23,5 +23,11 @@
       }
     },
     "tooManyPartial": "There was too much food in the photo, so the AI only logged the most prominent items. Use these, or retake one plate (3-4 items max) from closer up."
+  },
+  "errors": {
+    "storyInputRequired": "Send text or a voice recording.",
+    "anonAiUnavailable": "The AI service isn't available yet.",
+    "anonTrialUsed": "Your free tries are used up. Sign up to keep scanning.",
+    "anonPhotoUnreadable": "We couldn't read that photo."
   }
 }
