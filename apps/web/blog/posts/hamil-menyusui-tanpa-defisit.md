@@ -27,6 +27,6 @@ Protein, zat besi, folat, kalsium, yodium, dan vitamin A juga punya tambahan sen
 
 ## Yang tidak diklaim
 
-JoyoRogo bukan alat medis. Angkanya kutipan dari AKG, IOM, dan FAO/WHO, bukan resep untukmu. Untuk menyusui sebagian, tambahan energinya perkiraan kami sendiri, setengah dari angka AKG, karena AKG tidak punya angka untuk itu. Untuk kembar dengan IMT di bawah normal, IOM tidak punya kisaran, dan aplikasi mengatakannya terang-terangan.
+JoyoRogo bukan alat medis. Angkanya kutipan dari AKG, IOM, dan FAO/WHO, bukan resep untukmu. Untuk menyusui sebagian, AKG tidak punya angka sendiri, jadi kami memakai tambahan AKG penuh sebagai perkiraan, supaya ibu yang menyusui tidak kekurangan makan. Untuk kembar dengan IMT di bawah normal, IOM tidak punya kisaran, dan aplikasi mengatakannya terang-terangan.
 
 Langkah mengaktifkannya ada di [panduan mode Hamil dan Menyusui](/blog/panduan-mode-hamil-menyusui/).

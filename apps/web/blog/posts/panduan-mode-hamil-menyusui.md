@@ -13,15 +13,15 @@ JoyoRogo bukan pengganti dokter atau bidan. Angka di mode ini kutipan dari sumbe
 
 - **Tidak ada defisit dan tidak ada target berat turun.** Target makan harian adalah TDEE sebelum hamil, ditambah tambahan energi dari AKG 2019 (Permenkes 28 Tahun 2019).
 - **Tambahan energi hamil:** +180 kcal di trimester 1, +300 kcal di trimester 2 dan 3.
-- **Tambahan energi menyusui:** +330 kcal di 6 bulan pertama, +400 kcal di 6 bulan kedua. Untuk menyusui sebagian (bukan eksklusif), JoyoRogo memakai setengah dari tambahan itu. Ini perkiraan kami sendiri, karena AKG tidak punya angka untuk menyusui sebagian.
+- **Tambahan energi menyusui:** +330 kcal di 6 bulan pertama, +400 kcal di 6 bulan kedua. Untuk menyusui sebagian (bukan eksklusif), AKG tidak punya angka sendiri, jadi JoyoRogo memakai tambahan AKG penuh sebagai perkiraan dan menandainya begitu. Kebutuhanmu bisa sedikit lebih rendah kalau bayi juga minum susu formula atau makanan pendamping.
 - **Kebutuhan gizi lain** ditampilkan menurut tahap: protein, serat, air, zat besi, folat, kalsium, yodium, dan vitamin A. DHA 200 mg per hari mengikuti FAO/WHO 2010.
 - **Batas kafein 200 mg per hari** selama hamil. JoyoRogo menandai minuman berkafein yang kamu catat dan menjumlahkan perkiraannya. Perkiraan per sajian kasar, karena kekuatan seduhan berbeda-beda.
 
 ## Mengaktifkan mode
 
-1. Buka Profil lalu pilih mode **Hamil** atau **Menyusui**.
+1. Saat onboarding, pengguna perempuan ditanya apakah sedang hamil atau menyusui. Di aplikasi yang sudah dipakai, buka Profil lalu pilih **Hamil dan menyusui**.
 2. Untuk Hamil: masukkan HPHT (hari pertama haid terakhir) atau HPL (perkiraan lahir), berat sebelum hamil, dan apakah kembar. JoyoRogo menghitung usia kehamilan dan trimester setiap hari.
-3. Untuk Menyusui: pilih eksklusif atau sebagian, lalu masukkan tanggal lahir bayi atau usianya dalam bulan.
+3. Untuk Menyusui: pilih eksklusif atau sebagian, lalu masukkan usia bayi dalam bulan. Usia bayi bertambah sendiri tiap bulan.
 4. Kondisi seperti diabetes gestasional, hipertensi, atau anemia boleh dipilih. Pilihan ini hanya memunculkan pengingat untuk bicara dengan dokter atau bidan, bukan mengubah angka.
 
 ## Kenaikan berat badan
@@ -30,7 +30,7 @@ Di mode Hamil, halaman Berat menampilkan pita kenaikan berat yang dianjurkan IOM
 
 ## Mengakhiri mode
 
-Tanggal kehamilan yang sudah lewat 42 minggu dianggap kedaluwarsa, dan aplikasi meminta kamu memeriksa atau mengakhiri mode. Kembali ke mode biasa kapan saja dari Profil.
+Tanggal kehamilan yang sudah lewat 42 minggu dianggap kedaluwarsa, dan aplikasi meminta kamu memeriksa atau mengakhiri mode. Kalau bayimu sudah lahir, pilih **Sudah melahirkan** di Profil: lanjut ke Menyusui atau kembali ke kebutuhan biasa, tanpa target turun berat. Kamu juga bisa mematikan mode kapan saja dari Profil.
 
 ## Sumber
 

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, isRedirect, Link, Navigate, redirect } from "@tanstack/react-router";
 import {
   Activity,
+  Baby,
   CalendarDays,
   CameraOff,
   Check,
@@ -345,6 +346,12 @@ const NEW_FEATURES = [
     title: "Grup dengan skor JoyoFit",
     body: "Bagikan Recovery, Strain, dan Tidur dari jam Huawei ke grupmu, atau posting latihan ke feed. Detail detak jantung dan rute terbuka untuk Pro.",
     href: "/blog/panduan-grup-dan-skor-joyofit/",
+  },
+  {
+    icon: Baby,
+    title: "Mode Hamil dan Menyusui",
+    body: "Tanpa defisit dan tanpa target turun berat. Target kalori dan gizi mengikuti AKG 2019 menurut trimester atau usia bayi, lengkap dengan pita kenaikan berat dari IOM.",
+    href: "/blog/panduan-mode-hamil-menyusui/",
   },
   {
     icon: RefreshCw,
