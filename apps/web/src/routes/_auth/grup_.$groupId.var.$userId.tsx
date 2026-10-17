@@ -4,11 +4,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Activity, ChevronLeft, CircleAlert, CircleCheck, CircleDashed, EyeOff, Flag, Hand, Info, RotateCcw, ScanLine, Tv, Utensils, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { apiUrl } from "@/lib/app-config";
 import { useSession } from "@/lib/auth-client";
-import { fmtInt } from "@/lib/format";
+import { fmtDateShort, fmtInt } from "@/lib/format";
 import type { VarScan } from "@/lib/api-types";
 import { orpc } from "@/utils/orpc";
 
@@ -45,6 +46,7 @@ function usePrefersReducedMotion(): boolean {
 }
 
 function VarPage() {
+  const { t } = useTranslation("grup");
   const { groupId, userId } = Route.useParams();
   const reducedMotion = usePrefersReducedMotion();
 
@@ -52,7 +54,7 @@ function VarPage() {
   const detail = useQuery(orpc.group.detail.queryOptions({ input: { groupId } }));
   const session = useSession();
   const target = detail.data?.members.find((m) => m.userId === userId);
-  const targetName = target?.name ?? "dia";
+  const targetName = target?.name ?? t("watch.they");
   const isSelf = session.data?.user.id === userId;
   // Hidden members skip the theatrics: there is nothing to reveal after 2.4 s.
   const hidden = !(target?.shareFood ?? true);
@@ -129,18 +131,18 @@ function VarPage() {
       .then((result) => {
         setFetchDone(true);
         if (result.isError) {
-          setScanError(result.error?.message ?? "Gagal memindai.");
+          setScanError(result.error?.message ?? t("watch.scanFailed"));
         }
       })
       .catch(() => {
         setFetchDone(true);
-        setScanError("Gagal memindai. Cek koneksimu lalu coba lagi.");
+        setScanError(t("watch.scanFailedOffline"));
       });
   };
 
   const nudge = useMutation(
     orpc.group.nudge.mutationOptions({
-      onSuccess: () => toast.success("Colek terkirim"),
+      onSuccess: () => toast.success(t("toast.poked")),
       onError: (error) => toast.error(error.message),
     }),
   );
@@ -152,7 +154,7 @@ function VarPage() {
         <Link
           to="/grup/$groupId"
           params={{ groupId }}
-          aria-label="Tutup VAR"
+          aria-label={t("watch.close")}
           className="grid size-11 place-items-center rounded-full bg-white/10 backdrop-blur focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
         >
           <X className="size-5" aria-hidden />
@@ -208,7 +210,7 @@ function VarPage() {
           )}
           {/* Floating foods on reveal */}
           {phase === "reveal" && scan.data && !scan.data.hidden && (
-            <ul aria-label={`Makanan ${scan.data.name ?? "teman"} hari ini`}>
+            <ul aria-label={t("watch.foodsLabel", { name: scan.data.name ?? t("watch.friend") })}>
               {scan.data.foods.slice(0, FOOD_SLOTS.length).map((food, index) => {
                 const slot = FOOD_SLOTS[index]!;
                 return (
@@ -268,8 +270,8 @@ function VarPage() {
             </div>
             <p className="mt-3 text-sm font-bold text-emerald-100 drop-shadow">
               {hidden
-                ? `${targetName} menyembunyikan isi perutnya`
-                : `Arahkan ke perut ${targetName}`}
+                ? t("watch.hidden", { name: targetName })
+                : t("watch.aim", { name: targetName })}
             </p>
           </div>
         )}
@@ -277,10 +279,10 @@ function VarPage() {
         {/* Scan readout */}
         {phase === "scan" && (
           <div className="pointer-events-none absolute inset-x-0 bottom-6 text-center" role="status">
-            <p className="text-sm font-black tracking-[0.25em] text-emerald-200">MEMINDAI…</p>
+            <p className="text-sm font-black tracking-[0.25em] text-emerald-200">{t("watch.scanning")}</p>
             <p className="mt-1 flex items-center justify-center gap-1.5 font-mono text-[0.6875rem] text-emerald-100/80">
               <Activity className="size-3.5" aria-hidden />
-              beeping… {Math.round(progress)}%
+              {t("watch.progress", { percent: Math.round(progress) })}
             </p>
           </div>
         )}
@@ -298,7 +300,7 @@ function VarPage() {
               <div className="mx-auto mb-3 max-w-lg rounded-3xl bg-card p-4 text-card-foreground shadow-float" role="alert">
                 <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold text-destructive">
                   <CircleAlert className="size-5 shrink-0" aria-hidden />
-                  VAR gagal memindai
+                  {t("watch.errorTitle")}
                 </p>
                 <p className="mt-1 text-center text-sm text-muted-foreground">{scanError}</p>
               </div>
@@ -317,7 +319,7 @@ function VarPage() {
                 }}
               >
                 <RotateCcw className="size-4" aria-hidden />
-                Scan ulang
+                {t("watch.rescan")}
               </Button>
               {!isSelf && (
                 <Button
@@ -326,7 +328,7 @@ function VarPage() {
                   onClick={() => nudge.mutate({ groupId, toUserId: userId, kind: "poke" })}
                 >
                   <Hand className="size-4" aria-hidden />
-                  Colek
+                  {t("member.poke")}
                 </Button>
               )}
             </>
@@ -336,14 +338,14 @@ function VarPage() {
                 to="/grup/$groupId"
                 params={{ groupId }}
                 className="grid size-14 shrink-0 place-items-center rounded-full bg-white/10 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-                aria-label="Kembali ke grup"
+                aria-label={t("watch.backToGroup")}
               >
                 <ChevronLeft className="size-6" aria-hidden />
               </Link>
               {!hidden && (
                 <Button size="lg" className="flex-1" disabled={phase === "scan"} onClick={startScan}>
                   <ScanLine className="size-5" aria-hidden />
-                  {phase === "scan" ? "Memindai…" : "Scan"}
+                  {phase === "scan" ? t("watch.scanningShort") : t("watch.scan")}
                 </Button>
               )}
             </>
@@ -351,7 +353,7 @@ function VarPage() {
         </div>
         {camError && (
           <p className="mt-2 text-center text-xs text-white/60">
-            Kamera tidak tersedia. Overlay tetap jalan, coba izinkan kamera di pengaturan browser.
+            {t("watch.noCamera")}
           </p>
         )}
       </div>
@@ -359,42 +361,18 @@ function VarPage() {
   );
 }
 
-/** Label tanggal pendek untuk chip status VAR: "12 Okt". */
-function varDayLabel(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
-}
-
-/** Salinan verdict perut VAR perut (mirror lib/varscan.ts untuk klien). */
-function bellyVerdictLabel(verdict: NonNullable<VarScan["varStatus"]>["verdict"]): string {
-  switch (verdict) {
-    case "turun":
-      return "Perut mengecil";
-    case "naik":
-      return "Terlihat lebih penuh";
-    case "sama":
-      return "Belum kelihatan beda";
-    case "beda":
-      return "Kondisi foto beda";
-    case "pertama":
-      return "Scan pertama";
-  }
-}
-
 function VerdictCard({ scan, targetName }: { scan: VarScan | null; targetName: string }) {
+  const { t } = useTranslation("grup");
   // Hidden member and the query has not run (or failed): still show why.
   if (scan === null) {
     return (
       <div className="mx-auto mb-3 max-w-lg rounded-3xl bg-card p-4 text-card-foreground shadow-float">
         <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold">
           <EyeOff className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-          {targetName} menyembunyikan isi perutnya
+          {t("watch.hidden", { name: targetName })}
         </p>
         <p className="mt-1 text-center text-sm text-muted-foreground">
-          Total kalori tetap terlihat di kartu anggotanya.
+          {t("watch.hiddenHint")}
         </p>
       </div>
     );
@@ -407,41 +385,45 @@ function VerdictCard({ scan, targetName }: { scan: VarScan | null; targetName: s
       {scan.hidden ? (
         <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold">
           <EyeOff className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-          {scan.name ?? "Teman"} menyembunyikan isi perutnya
+          {t("watch.hidden", { name: scan.name ?? t("watch.friend") })}
         </p>
       ) : scan.verdict === "aman" ? (
         <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold text-primary">
           <CircleCheck className="size-5 shrink-0" aria-hidden />
-          AMAN, lanjutkan!
+          {t("watch.verdict.aman")}
         </p>
       ) : scan.verdict === "offside" ? (
         <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold text-destructive">
           <Flag className="size-5 shrink-0" aria-hidden />
-          OFFSIDE! +{fmtInt(over ?? 0)} kcal
+          {t("watch.verdict.offside", { kcal: fmtInt(over ?? 0) })}
         </p>
       ) : scan.verdict === "tanpa_target" ? (
         <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold">
           <Info className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-          Belum ada target pembanding
+          {t("watch.verdict.tanpaTarget")}
         </p>
       ) : (
         <p className="flex items-center justify-center gap-1.5 text-center text-[0.9375rem] font-bold">
           <CircleDashed className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-          Perut kosong… belum makan?
+          {t("watch.verdict.kosong")}
         </p>
       )}
       <p className="mt-1 text-center text-sm text-muted-foreground">
-        Total hari ini {fmtInt(scan.eatenKcal)}
-        {target !== null ? ` dari ${fmtInt(target)} kcal` : " kcal"}
+        {target !== null
+          ? t("watch.totalOf", { eaten: fmtInt(scan.eatenKcal), target: fmtInt(target) })
+          : t("watch.total", { eaten: fmtInt(scan.eatenKcal) })}
       </p>
       <p className="mt-1 text-center text-xs text-muted-foreground/80">
-        Berdasarkan catatan makan {firstName} hari ini, bukan foto asli.
+        {t("watch.basis", { name: firstName })}
       </p>
       {scan.varStatus && (
         <p className="mt-2 flex items-center justify-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-center text-xs font-semibold text-muted-foreground">
           <Tv className="size-3.5 shrink-0" aria-hidden />
-          VAR perut {firstName} ({varDayLabel(scan.varStatus.date)}):{" "}
-          {bellyVerdictLabel(scan.varStatus.verdict)}
+          {t("watch.belly", {
+            name: firstName,
+            date: fmtDateShort(scan.varStatus.date),
+            verdict: t(`var.belly.${scan.varStatus.verdict}`),
+          })}
         </p>
       )}
     </div>

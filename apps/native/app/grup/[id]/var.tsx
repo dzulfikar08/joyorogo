@@ -17,12 +17,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ClipPath, Defs, G, Path, Rect, Svg } from "react-native-svg";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
+import { useTranslation } from "react-i18next";
+import { i18n } from "@joyorogo/i18n";
+
 import { stickerUrl } from "@/components/sticker";
 import { BootLoader, Button, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
 import type { VarScan } from "@/src/lib/group";
-import { errorMessage, fmtInt } from "@/utils/format";
+import { errorMessage, fmtDateShort, fmtInt } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
 /** Fixed-length pause so the scanner beat always plays out on screen. */
@@ -35,12 +38,7 @@ function wait(ms: number): Promise<void> {
 /** Total scan theatrics before the reveal, so the server call hides inside. */
 const SCAN_MS = 2400;
 
-const SCAN_STAGES = [
-  "MENGUNCI TARGET…",
-  "MEMINDAI ISI PERUT…",
-  "ANALISIS KALORI…",
-  "MEMUTUSKAN…",
-];
+const SCAN_STAGES = ["live.stage.lock", "live.stage.scan", "live.stage.kcal", "live.stage.decide"] as const;
 
 /** Fan/cone outline drawn in a stretched 100×100 box so it lines up with the
     food slots, which are positioned in percentages of the same box. */
@@ -62,48 +60,24 @@ function verdictCopy(
   scan: VarScan,
   name: string,
 ): { icon: IconName; title: string; color: string } {
+  const t = i18n.getFixedT(null, "varperut");
   if (scan.hidden) {
-    return { icon: "eye-off", title: `${name} menyembunyikan isi perutnya`, color: "#C9C4BA" };
+    return { icon: "eye-off", title: t("live.hiddenTitle", { name }), color: "#C9C4BA" };
   }
   if (scan.verdict === "aman") {
-    return { icon: "checkmark-circle", title: "AMAN, lanjutkan!", color: "#3DDB84" };
+    return { icon: "checkmark-circle", title: t("live.verdict.safe"), color: "#3DDB84" };
   }
   if (scan.verdict === "offside") {
     const over = Math.max(0, scan.eatenKcal - (scan.eatTargetKcal ?? 0));
-    return { icon: "flag", title: `OFFSIDE! +${fmtInt(over)} kcal`, color: "#FF6A52" };
+    return { icon: "flag", title: t("live.verdict.offside", { kcal: fmtInt(over) }), color: "#FF6A52" };
   }
   if (scan.verdict === "tanpa_target") {
-    return { icon: "information-circle", title: "Belum ada target pembanding", color: "#C9C4BA" };
+    return { icon: "information-circle", title: t("live.verdict.noTarget"), color: "#C9C4BA" };
   }
-  return { icon: "ellipse-outline", title: "Perut kosong… belum makan?", color: "#FFD84D" };
+  return { icon: "ellipse-outline", title: t("live.verdict.empty"), color: "#FFD84D" };
 }
 
-/** Salinan verdict VAR perut (mirror lib/varscan.ts untuk klien). */
-function bellyVerdictLabel(verdict: NonNullable<VarScan["varStatus"]>["verdict"]): string {
-  switch (verdict) {
-    case "turun":
-      return "mengecil";
-    case "naik":
-      return "lebih penuh";
-    case "sama":
-      return "belum beda";
-    case "beda":
-      return "foto beda";
-    case "pertama":
-      return "scan pertama";
-  }
-}
-
-/** "12 Okt" untuk chip status VAR perut. */
-function varChipDate(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
-}
-
-/** One food chip bobbing inside the cone; static under reduced motion. */
+ bobbing inside the cone; static under reduced motion. */
 function FoodFloat({
   name,
   kcal,
@@ -163,6 +137,7 @@ function FoodFloat({
 }
 
 export default function VarPerut() {
+  const { t } = useTranslation(["varperut", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const router = useRouter();
@@ -175,7 +150,7 @@ export default function VarPerut() {
   }>();
   const groupId = Array.isArray(id) ? (id[0] ?? "") : (id ?? "");
   const targetId = Array.isArray(userId) ? (userId[0] ?? "") : (userId ?? "");
-  const firstName = name.split(" ")[0] || "temanmu";
+  const firstName = name.split(" ")[0] || t("live.fallback.yourFriend");
   // Anggota yang menyembunyikan makanannya tidak dijamin apa-apa setelah
   // teatrikal 2,4 detik — kartu jujurnya langsung tampil, tanpa scan palsu.
   const hidden = shareFood === "0";
@@ -187,6 +162,7 @@ export default function VarPerut() {
   const [poked, setPoked] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const toast = useToast();
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const sweep = useRef(new Animated.Value(0)).current;
   const progress = useRef(new Animated.Value(0)).current;
@@ -233,9 +209,9 @@ export default function VarPerut() {
     orpc.group.nudge.mutationOptions({
       onSuccess: () => {
         setPoked(true);
-        toast.success("Colek terkirim", `${firstName} dapat notifikasi sekarang.`);
+        toast.success(t("live.toast.sent"), t("live.toast.sentDetail", { name: firstName }));
       },
-      onError: (e) => toast.error("Gagal mencolek", errorMessage(e)),
+      onError: (e) => toast.error(t("live.toast.failed"), errorMessage(e)),
     }),
   );
 
@@ -270,7 +246,7 @@ export default function VarPerut() {
         setPhase("reveal");
       } catch (e) {
         setPhase("aim");
-        toast.error("VAR gagal", errorMessage(e));
+        toast.error(t("live.failTitle"), errorMessage(e));
       }
     })();
   };
@@ -298,12 +274,12 @@ export default function VarPerut() {
           ) : (
             <View style={StyleSheet.absoluteFill}>
               <Text style={styles.placeholderHint}>
-                Izin kamera belum ada — mode bayangan. VAR tetap jalan kok!
+                {t("live.permissionHint")}
               </Text>
               <Button
                 size="sm"
                 variant="secondary"
-                label="Beri Izin Kamera"
+                label={t("capture.permission.action")}
                 onPress={() => void requestPermission()}
                 style={styles.permissionBtn}
               />
@@ -350,13 +326,13 @@ export default function VarPerut() {
               ))}
               {foods.length > shownFoods.length ? (
                 <View style={[styles.foodChip, { left: "44%", top: "76%" }]}>
-                  <Text style={styles.foodKcal}>+{foods.length - shownFoods.length} lagi</Text>
+                  <Text style={styles.foodKcal}>{t("live.more", { count: foods.length - shownFoods.length })}</Text>
                 </View>
               ) : null}
               {foods.length === 0 && !scan?.hidden ? (
                 <View style={[styles.foodChip, { left: "30%", top: "42%" }]}>
                   <Ionicons name="ellipse-outline" size={16} color={SCAN_GREEN} />
-                  <Text style={styles.foodKcal}>Tidak ada makanan terdeteksi</Text>
+                  <Text style={styles.foodKcal}>{t("live.noFood")}</Text>
                 </View>
               ) : null}
             </View>
@@ -367,7 +343,7 @@ export default function VarPerut() {
             <View style={styles.banner} pointerEvents="none">
               <View style={[styles.bannerFlag, { backgroundColor: "#E23B2E" }]} />
               <View style={styles.bannerBox}>
-                <Text style={styles.bannerText}>{scanning ? "VAR SCANNING" : "VAR CHECK"}</Text>
+                <Text style={styles.bannerText}>{scanning ? t("live.banner.scanning") : t("live.banner.aim")}</Text>
               </View>
               <View style={[styles.bannerFlag, { backgroundColor: "#E23B2E" }]} />
             </View>
@@ -381,7 +357,7 @@ export default function VarPerut() {
                 <View style={[styles.crosshair, styles.crosshairV]} />
               </View>
               <Text style={styles.aimHint}>
-                {hidden ? `${firstName} menyembunyikan isi perutnya` : `Arahkan ke perut ${firstName}`}
+                {hidden ? t("live.hiddenTitle", { name: firstName }) : t("live.aim", { name: firstName })}
               </Text>
             </View>
           ) : null}
@@ -389,8 +365,8 @@ export default function VarPerut() {
           {/* Scanning stage copy + progress */}
           {scanning ? (
             <View style={styles.scanInfo} pointerEvents="none">
-              <Text style={styles.stageText}>{SCAN_STAGES[stage]}</Text>
-              <Text style={styles.beepText}>biip… biip…</Text>
+              <Text style={styles.stageText}>{t(SCAN_STAGES[stage]!)}</Text>
+              <Text style={styles.beepText}>{t("live.beepNative")}</Text>
               <View style={styles.progressTrack}>
                 <Animated.View
                   style={[styles.progressFill, reducedMotion ? { width: "60%" } : { width: progressWidth }]}
@@ -401,7 +377,7 @@ export default function VarPerut() {
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Tutup VAR"
+            accessibilityLabel={t("close")}
             onPress={() => router.back()}
             hitSlop={8}
             style={({ pressed }) => [styles.close, pressed && styles.pressed]}
@@ -418,24 +394,22 @@ export default function VarPerut() {
                 <View style={styles.verdictHead}>
                   <Ionicons name="eye-off" size={22} color="#C9C4BA" />
                   <Text style={[styles.verdictTitle, { color: "#C9C4BA" }]}>
-                    {firstName} menyembunyikan isi perutnya
+                    {t("live.hiddenTitle", { name: firstName })}
                   </Text>
                 </View>
-                <Text style={styles.hiddenNote}>
-                  Total kalorinya tetap terlihat di kartu anggotanya. Colek aja biar makin semangat.
-                </Text>
+                <Text style={styles.hiddenNote}>{t("live.hiddenNoteNudge")}</Text>
               </View>
               <View style={styles.bottomActions}>
                 <Button
                   size="sm"
                   variant="secondary"
                   icon="hand-left"
-                  label={poked ? "Terkirim" : "Colek"}
+                  label={poked ? t("live.poked") : t("live.poke")}
                   disabled={poked || poke.isPending}
                   loading={poke.isPending}
                   onPress={() => poke.mutate({ groupId, toUserId: targetId, kind: "poke" })}
                 />
-                <Button size="sm" label="Selesai" onPress={() => router.back()} />
+                <Button size="sm" label={t("common:actions.done")} onPress={() => router.back()} />
               </View>
             </>
           ) : revealed && scan && verdict ? (
@@ -448,9 +422,12 @@ export default function VarPerut() {
                   </Text>
                 </View>
                 <View style={styles.totalsRow}>
-                  <Text style={styles.totalsLabel}>Asupan hari ini</Text>
+                  <Text style={styles.totalsLabel}>{t("live.intake.label")}</Text>
                   <Text style={styles.totalsValue}>
-                    {fmtInt(totalKcal)} / {targetKcal !== null ? fmtInt(targetKcal) : "?"} kcal
+                    {t("live.intake.value", {
+                      eaten: fmtInt(totalKcal),
+                      target: targetKcal !== null ? fmtInt(targetKcal) : "?",
+                    })}
                   </Text>
                 </View>
                 <View style={styles.totalTrack}>
@@ -467,24 +444,37 @@ export default function VarPerut() {
                     ]}
                   />
                 </View>
-                <Text style={styles.honestNote}>
-                  Berdasarkan catatan makan {firstName} hari ini, bukan foto asli.
-                </Text>
                 {scan.varStatus ? (
                   <View style={styles.varStatusChip}>
                     <Ionicons name="tv" size={13} color="#78FFB4" />
                     <Text style={styles.varStatusText}>
-                      VAR perut {firstName} ({varChipDate(scan.varStatus.date)}):{" "}
-                      {bellyVerdictLabel(scan.varStatus.verdict)}
+                      {t("live.chip", {
+                        name: firstName,
+                        date: fmtDateShort(scan.varStatus.date),
+                        verdict: t(`verdict.chip.${scan.varStatus.verdict}`),
+                      })}
                     </Text>
                   </View>
+                ) : null}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: infoOpen }}
+                  onPress={() => setInfoOpen((open) => !open)}
+                  hitSlop={8}
+                  style={styles.infoToggle}
+                >
+                  <Text style={styles.honestNote}>{t("live.about")}</Text>
+                  <Ionicons name={infoOpen ? "chevron-up" : "chevron-down"} size={13} color="rgba(201,196,186,0.7)" />
+                </Pressable>
+                {infoOpen ? (
+                  <Text style={styles.honestNote}>{t("live.basis", { name: firstName })}</Text>
                 ) : null}
               </View>
               <View style={styles.bottomActions}>
                 <Button
                   size="sm"
                   variant="secondary"
-                  label="Scan ulang"
+                  label={t("live.rescan")}
                   onPress={() => {
                     setScan(null);
                     setPhase("aim");
@@ -494,25 +484,23 @@ export default function VarPerut() {
                   size="sm"
                   variant="secondary"
                   icon="hand-left"
-                  label={poked ? "Terkirim" : "Colek"}
+                  label={poked ? t("live.poked") : t("live.poke")}
                   disabled={poked || poke.isPending}
                   loading={poke.isPending}
                   onPress={() => poke.mutate({ groupId, toUserId: targetId, kind: "poke" })}
                 />
-                <Button size="sm" label="Selesai" onPress={() => router.back()} />
+                <Button size="sm" label={t("common:actions.done")} onPress={() => router.back()} />
               </View>
             </>
           ) : (
             <>
               <Text style={styles.bottomHint}>
-                {scanning
-                  ? "VAR sedang memeriksa catatan makan…"
-                  : `Cek catatan makan ${firstName} lewat VAR`}
+                {scanning ? t("live.checking") : t("live.check", { name: firstName })}
               </Text>
               {!scanning ? (
                 <Button
                   icon="scan"
-                  label="Scan Sekarang"
+                  label={t("live.scanNow")}
                   onPress={startScan}
                   style={styles.scanBtn}
                 />
@@ -773,6 +761,12 @@ const styles = StyleSheet.create((theme) => ({
   hiddenNote: {
     fontSize: theme.fontSize.sm,
     color: "rgba(201,196,186,0.85)",
+  },
+  infoToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "center",
+    gap: 4,
   },
   honestNote: {
     fontSize: theme.fontSize.xs,

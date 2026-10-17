@@ -132,7 +132,8 @@
   "history": {
     "title": "Scan history",
     "deleteLabel": "Scan {{date}}",
-    "deleteFallback": "Belly scan"
+    "deleteFallback": "Belly scan",
+    "scan": "Scan"
   },
   "live": {
     "banner": {

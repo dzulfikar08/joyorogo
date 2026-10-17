@@ -130,7 +130,8 @@
   "history": {
     "title": "Riwayat scan",
     "deleteLabel": "Scan {{date}}",
-    "deleteFallback": "Scan perut"
+    "deleteFallback": "Scan perut",
+    "scan": "Scan"
   },
   "live": {
     "banner": {

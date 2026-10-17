@@ -8,6 +8,7 @@ import { File, Paths } from "expo-file-system";
 import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Image,
@@ -22,11 +23,13 @@ import { Circle, Ellipse, Line, Svg } from "react-native-svg";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { BootLoader, Button, Card, Input, Text } from "@/components/ui";
+import { Disclosure } from "@/components/disclosure";
+import { fmtNumber, i18n } from "@joyorogo/i18n";
 import { useToast } from "@/components/toast";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
 import type { VarHistory } from "@/src/lib/group";
-import { errorMessage } from "@/utils/format";
+import { errorMessage, fmtDateShort } from "@/utils/format";
 import { client, isPaywallError, orpc } from "@/utils/orpc";
 import { undoLabel, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 
@@ -36,39 +39,25 @@ type VarScanRow = VarHistory["scans"][number];
 const TIMER_SECONDS = 3;
 const MAX_SIDE = 1024;
 
-const CAPTURE_TIPS = [
-  "Pose dan jarak yang sama tiap scan",
-  "Cahaya terang, kamera sejajar perut",
-  "Berdiri tegak, napas biasa",
-];
+const CAPTURE_TIPS = ["capture.tips.pose", "capture.tips.light", "capture.tips.stand"] as const;
 
 function verdictCopy(verdict: VarVerdict): { icon: string; label: string; color: string } {
+  const label = i18n.t(`varperut:verdict.label.${verdict}`);
   switch (verdict) {
     case "turun":
-      return { icon: "checkmark-circle", label: "Perut mengecil", color: "#3DDB84" };
+      return { icon: "checkmark-circle", label, color: "#3DDB84" };
     case "naik":
-      return { icon: "alert-circle", label: "Terlihat lebih penuh", color: "#FFD84D" };
+      return { icon: "alert-circle", label, color: "#FFD84D" };
     case "sama":
-      return { icon: "remove-circle", label: "Belum kelihatan beda", color: "#C9C4BA" };
+      return { icon: "remove-circle", label, color: "#C9C4BA" };
     case "beda":
-      return { icon: "refresh-circle", label: "Kondisi foto beda, ulangi", color: "#FF6A52" };
+      return { icon: "refresh-circle", label, color: "#FF6A52" };
     case "pertama":
-      return { icon: "information-circle", label: "Scan pertama tersimpan", color: "#C9C4BA" };
+      return { icon: "information-circle", label, color: "#C9C4BA" };
   }
 }
 
-/** "Sen, 12 Okt" — tanggal pendek untuk caption foto dan baris riwayat. */
-function dayLabel(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
-}
-
-/**
- * Foto VAR privat lewat /var-photo/:id — server hanya melayani sesi pemilik,
+ lewat /var-photo/:id — server hanya melayani sesi pemilik,
  * jadi di native fotonya diunduh dengan cookie sesi (pola AuthedPhoto).
  */
 function AuthedVarPhoto({
@@ -142,6 +131,7 @@ function Silhouette() {
 }
 
 export default function VarSaya() {
+  const { t } = useTranslation(["varperut", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const router = useRouter();
@@ -193,10 +183,10 @@ export default function VarSaya() {
       return previous;
     },
     success: (_input, _data, previous) => ({
-      message: "Pengaturan grup disimpan",
+      message: t("share.toast.saved"),
       undo: previous === undefined ? undefined : () => setShare.mutate({ groupId, shareVar: previous }),
     }),
-    onError: (e) => toast.error("Gagal mengubah bagikan", errorMessage(e)),
+    onError: (e) => toast.error(t("share.toast.failed"), errorMessage(e)),
     invalidate: () => [orpc.group.key()],
   });
 
@@ -214,8 +204,8 @@ export default function VarSaya() {
           : { ...old, scans: (old.scans ?? []).filter((scan) => scan.id !== row.id) },
       );
     },
-    label: (row) => `Scan ${row.date}`,
-    fallback: "Scan",
+    label: (row) => t("history.deleteLabel", { date: fmtDateShort(row.date) }),
+    fallback: t("history.deleteFallback"),
     invalidate: () => [orpc.group.key()],
   });
 
@@ -226,7 +216,7 @@ export default function VarSaya() {
     mutationFn: (input: { id: string; hint?: string }) => client.group.varRetry(input),
     onSuccess: ({ scan, previous }) => {
       void queryClient.invalidateQueries({ queryKey: orpc.group.key() });
-      toast.success(`Hasil baru: ${verdictCopy(scan.verdict).label}`, undefined, {
+      toast.success(t("retry.toast.result", { label: verdictCopy(scan.verdict).label }), undefined, {
         label: undoLabel(),
         onPress: () => {
           const key = orpc.group.varHistory.queryOptions({ input: { groupId } }).queryKey;
@@ -240,12 +230,12 @@ export default function VarSaya() {
           );
           void client.group
             .varRestore({ id: scan.id, ...previous })
-            .catch((e: unknown) => toast.error("Gagal mengembalikan hasil", errorMessage(e)))
+            .catch((e: unknown) => toast.error(t("retry.toast.restoreFailed"), errorMessage(e)))
             .finally(() => void queryClient.invalidateQueries({ queryKey: orpc.group.key() }));
         },
       });
     },
-    onError: (e) => toast.error("Hasil sebelumnya tetap dipakai", errorMessage(e)),
+    onError: (e) => toast.error(t("retry.toast.keptTitle"), errorMessage(e)),
   });
 
   // Timer yang tertinggal di layar tidak boleh menembak saat sudah pindah view.
@@ -281,7 +271,7 @@ export default function VarSaya() {
         base64: true,
       });
       if (!saved.base64) {
-        setFlowError("Gagal memproses foto. Coba lagi.");
+        setFlowError(t("error.process"));
         setPreviewUri(null);
         return;
       }
@@ -319,7 +309,7 @@ export default function VarSaya() {
     try {
       const photo = await cameraRef.current?.takePictureAsync({ quality: 1 });
       if (!photo?.uri) {
-        setFlowError("Gagal mengambil foto. Coba lagi.");
+        setFlowError(t("error.capture"));
         return;
       }
       await submit(photo.uri, photo.width, photo.height);
@@ -357,7 +347,7 @@ export default function VarSaya() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: "VAR Perut" }} />
+      <Stack.Screen options={{ headerShown: true, title: t("title") }} />
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safe} edges={["bottom"]}>
         {view === "capture" ? (
@@ -368,7 +358,7 @@ export default function VarSaya() {
                 <View style={styles.finder}>
                   <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
                   <Silhouette />
-                  <Text style={styles.finderHint}>Perutmu di dalam garis putus-putus</Text>
+                  <Text style={styles.finderHint}>{t("capture.guide")}</Text>
                   {countdown !== null ? (
                     <View style={styles.countdownLayer}>
                       <Text style={styles.countdownText}>{countdown}</Text>
@@ -381,12 +371,7 @@ export default function VarSaya() {
                     <View style={styles.analyzingLayer}>
                       <Ionicons name="sparkles" size={26} color="#78FFB4" />
                       <Text style={styles.analyzingTitle}>
-                        {scans.length > 0
-                          ? "AI membandingkan dengan scan sebelumnya…"
-                          : "Menyimpan scan pertamamu…"}
-                      </Text>
-                      <Text style={styles.analyzingHint}>
-                        Biasanya 5-20 detik. Foto cuma tersimpan untukmu.
+                        {scans.length > 0 ? t("capture.analyzing.compare") : t("capture.analyzing.first")}
                       </Text>
                     </View>
                   ) : null}
@@ -394,12 +379,12 @@ export default function VarSaya() {
               ) : (
                 <View style={styles.finder}>
                   <Text style={styles.permissionText}>
-                    Izin kamera belum ada — pakai galeri, atau beri izin kamera dulu.
+                    {t("capture.permission.text")}
                   </Text>
                   <Button
                     size="sm"
                     variant="secondary"
-                    label="Beri Izin Kamera"
+                    label={t("capture.permission.action")}
                     onPress={() => void requestPermission()}
                   />
                 </View>
@@ -408,28 +393,22 @@ export default function VarSaya() {
 
             {/* --- Tips + kontrol jepret --- */}
             <Card style={styles.tipsCard}>
-              {CAPTURE_TIPS.map((tip) => (
-                <View key={tip} style={styles.tipRow}>
-                  <Ionicons name="bulb-outline" size={14} color={theme.colors.mutedForeground} />
-                  <Text style={styles.tipText}>{tip}</Text>
-                </View>
-              ))}
               <View style={styles.shutterRow}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={timerOn ? `Matikan timer ${TIMER_SECONDS} detik` : `Nyalakan timer ${TIMER_SECONDS} detik`}
+                  accessibilityLabel={timerOn ? t("capture.timer.turnOff", { seconds: TIMER_SECONDS }) : t("capture.timer.turnOn", { seconds: TIMER_SECONDS })}
                   accessibilityState={{ selected: timerOn }}
                   onPress={() => setTimerOn((on) => !on)}
                   style={({ pressed }) => [styles.timerChip, timerOn && styles.timerChipOn, pressed && styles.pressedSoft]}
                 >
                   <Ionicons name="timer-outline" size={15} color={timerOn ? theme.colors.primary : theme.colors.mutedForeground} />
                   <Text style={[styles.timerText, timerOn && { color: theme.colors.primary }]}>
-                    Timer {TIMER_SECONDS} dtk
+                    {timerOn ? t("capture.timer.on", { seconds: TIMER_SECONDS }) : t("capture.timer.off", { seconds: TIMER_SECONDS })}
                   </Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Ambil foto perut"
+                  accessibilityLabel={t("capture.shutter")}
                   disabled={busy || countdown !== null || !cameraReady}
                   onPress={timerOn ? countdownAndShoot : () => void shoot()}
                   style={({ pressed }) => [
@@ -444,19 +423,29 @@ export default function VarSaya() {
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Pilih dari galeri"
+                  accessibilityLabel={t("capture.galleryPick")}
                   disabled={busy}
                   onPress={() => void pickFromGallery()}
                   style={({ pressed }) => [styles.timerChip, busy && styles.disabled, pressed && styles.pressedSoft]}
                 >
                   <Ionicons name="images-outline" size={15} color={theme.colors.mutedForeground} />
-                  <Text style={styles.timerText}>Galeri</Text>
+                  <Text style={styles.timerText}>{t("capture.gallery")}</Text>
                 </Pressable>
               </View>
               <Text style={styles.privacyNote}>
-                Foto perutmu privat: tidak masuk feed, cuma kamu yang bisa buka.
-                {scans.length > 0 ? ` ${scans.length} scan tersimpan.` : " Scan pertama jadi pembanding awal."}
+                {scans.length > 0 ? t("capture.saved", { count: scans.length }) : t("capture.savedNone")}
               </Text>
+              <Disclosure title={t("about.title")} plain>
+                {CAPTURE_TIPS.map((tip) => (
+                  <View key={tip} style={styles.tipRow}>
+                    <Ionicons name="bulb-outline" size={14} color={theme.colors.mutedForeground} />
+                    <Text style={styles.tipText}>{t(tip)}</Text>
+                  </View>
+                ))}
+                <Text style={styles.shareHint}>{t("about.disclaimer")}</Text>
+                <Text style={styles.shareHint}>{t("about.duration")}</Text>
+                <Text style={styles.shareHint}>{t("about.photoPrivate")}</Text>
+              </Disclosure>
               {flowError ? <Text style={styles.flowError}>{flowError}</Text> : null}
             </Card>
           </>
@@ -474,6 +463,7 @@ export default function VarSaya() {
                   scans={scans}
                   shareVar={shareVar}
                   latestWaist={latestWaist}
+                  groupName={t("group.fallback")}
                   onShare={(value) => setShare.mutate({ groupId, shareVar: value })}
                   sharePending={setShare.isPending}
                   onDelete={(scanId) => {
@@ -489,7 +479,7 @@ export default function VarSaya() {
               </KeyboardAwareScrollView>
             ) : (
               <View style={styles.emptyWrap}>
-                <Button label="Scan pertama" icon="scan" onPress={() => setView("capture")} />
+                <Button label={t("capture.firstScan")} icon="scan" onPress={() => setView("capture")} />
               </View>
             )}
           </>
@@ -503,6 +493,7 @@ function ResultView({
   scans,
   shareVar,
   latestWaist,
+  groupName,
   onShare,
   sharePending,
   onDelete,
@@ -513,6 +504,7 @@ function ResultView({
   scans: VarScanRow[];
   shareVar: boolean;
   latestWaist: VarHistory["latestWaist"];
+  groupName: string;
   onShare: (value: boolean) => void;
   sharePending: boolean;
   onDelete: (scanId: string) => void;
@@ -520,11 +512,19 @@ function ResultView({
   onRetry: (scanId: string, hint: string | undefined, onDone: () => void) => void;
   retrying: boolean;
 }) {
+  const { t } = useTranslation("varperut");
+  const router = useRouter();
   const { theme } = useUnistyles();
   const [retryHint, setRetryHint] = useState("");
   const newest = scans.at(-1)!;
   const previous = scans.at(-2) ?? null;
   const verdict = verdictCopy(newest.verdict);
+  const hasConfidence = newest.verdict !== "pertama" && newest.confidence !== null;
+  const waistDelta =
+    latestWaist?.deltaCm != null && latestWaist.deltaCm !== 0
+      ? `${latestWaist.deltaCm > 0 ? "+" : "−"}${fmtNumber(Math.abs(latestWaist.deltaCm), 1)}`
+      : null;
+  const reversed = [...scans].reverse();
 
   return (
     <>
@@ -533,15 +533,15 @@ function ResultView({
           <Ionicons name={verdict.icon as never} size={22} color={verdict.color} />
           <Text style={[styles.verdictTitle, { color: verdict.color }]}>{verdict.label}</Text>
         </View>
-        {newest.verdict !== "pertama" && newest.confidence !== null ? (
-          <>
-            <View style={styles.confidenceTrack}>
+        {hasConfidence ? (
+          <View style={styles.confidenceRow}>
+            <View style={[styles.confidenceTrack, styles.confidenceTrackFlex]}>
               <View style={[styles.confidenceFill, { width: `${Math.round((newest.confidence ?? 0) * 100)}%` }]} />
             </View>
             <Text style={styles.confidenceText}>
-              Keyakinan visual ~{Math.round((newest.confidence ?? 0) * 100)}% — perkiraan dari foto, bukan pengukuran.
+              {t("confidence.short", { percent: Math.round((newest.confidence ?? 0) * 100) })}
             </Text>
-          </>
+          </View>
         ) : null}
         {newest.note ? <Text style={styles.noteText}>{newest.note}</Text> : null}
 
@@ -550,31 +550,35 @@ function ResultView({
             {previous ? (
               <AuthedVarPhoto
                 photoUrl={previous.photoUrl}
-                label={`Foto perut ${dayLabel(previous.date)}`}
+                label={t("compare.altDate", { date: fmtDateShort(previous.date) })}
                 style={styles.comparePhoto}
               />
             ) : (
               <View style={[styles.comparePhoto, styles.photoMissing]}>
-                <Text style={styles.photoMissingText}>Belum ada</Text>
+                <Text style={styles.photoMissingText}>{t("compare.none")}</Text>
               </View>
             )}
             <Text style={styles.compareCaption}>
-              Sebelumnya{previous ? ` · ${dayLabel(previous.date)}` : ""}
+              {previous
+                ? `${t("compare.before")} · ${fmtDateShort(previous.date)}`
+                : t("compare.before")}
             </Text>
           </View>
           <View style={styles.compareCell}>
             <AuthedVarPhoto
               photoUrl={newest.photoUrl}
-              label={`Foto perut ${dayLabel(newest.date)}`}
+              label={t("compare.altDate", { date: fmtDateShort(newest.date) })}
               style={styles.comparePhotoHighlight}
             />
-            <Text style={styles.compareCaption}>Sekarang · {dayLabel(newest.date)}</Text>
+            <Text style={styles.compareCaption}>
+              {`${t("compare.now")} · ${fmtDateShort(newest.date)}`}
+            </Text>
           </View>
         </View>
         {retrying ? (
-          <View style={styles.retryOverlay} accessibilityRole="progressbar" accessibilityLabel="Menghitung ulang">
+          <View style={styles.retryOverlay} accessibilityRole="progressbar" accessibilityLabel={t("compare.rereadingLabel")}>
             <ActivityIndicator color={theme.colors.primary} />
-            <Text style={styles.retryOverlayText}>AI membaca ulang kedua foto...</Text>
+            <Text style={styles.retryOverlayText}>{t("compare.rereading")}</Text>
           </View>
         ) : null}
       </Card>
@@ -583,37 +587,32 @@ function ResultView({
       {previous ? (
         <Card style={styles.resultCard}>
           <View style={styles.retryHead}>
-            <Text style={styles.shareTitle}>Hasilnya kurang pas?</Text>
+            <Text style={styles.shareTitle}>{t("retry.title")}</Text>
             <Text style={styles.shareHint}>
-              {newest.retriesLeft > 0 ? `Gratis, sisa ${newest.retriesLeft}x` : "Batas habis"}
+              {newest.retriesLeft > 0 ? t("retry.left", { count: newest.retriesLeft }) : t("retry.limit")}
             </Text>
           </View>
-          <Text style={styles.shareHint}>
-            AI membandingkan ulang kedua foto yang sama, tanpa foto ulang dan tanpa memakai kuota scan
-            harian.{shareVar ? " Status yang dibagikan ke grup ikut diperbarui." : ""}
-          </Text>
           {newest.retriesLeft > 0 ? (
             <>
               <Input
                 value={retryHint}
                 onChangeText={setRetryHint}
-                placeholder="Koreksi singkat (opsional), mis. pose sebenarnya sama"
+                placeholder={t("retry.hint")}
                 maxLength={200}
                 editable={!retrying}
               />
               <Button
+                size="sm"
                 variant="secondary"
                 icon="refresh"
-                label={retrying ? "Menghitung ulang..." : "Hitung ulang"}
+                label={retrying ? t("retry.running") : t("retry.action")}
                 loading={retrying}
                 disabled={retrying}
                 onPress={() => onRetry(newest.id, retryHint.trim() || undefined, () => setRetryHint(""))}
               />
             </>
           ) : (
-            <Text style={styles.retryExhausted}>
-              Scan ini sudah dihitung ulang sampai batasnya. Scan lagi di lain hari ya.
-            </Text>
+            <Text style={styles.retryExhausted}>{t("retry.exhausted")}</Text>
           )}
         </Card>
       ) : null}
@@ -621,73 +620,89 @@ function ResultView({
       <Card style={styles.resultCard}>
         <View style={styles.waistHead}>
           <Ionicons name="speedometer-outline" size={15} color={theme.colors.primary} />
-          <Text style={styles.waistTitle}>Angka yang lebih jujur: lingkar perut</Text>
+          {latestWaist ? (
+            <Text style={styles.waistText}>
+              {waistDelta === null
+                ? t("waist.last", { date: fmtDateShort(latestWaist.date), cm: fmtNumber(latestWaist.waistCm, 1) })
+                : t("waist.lastDelta", {
+                    date: fmtDateShort(latestWaist.date),
+                    cm: fmtNumber(latestWaist.waistCm, 1),
+                    delta: waistDelta,
+                  })}
+            </Text>
+          ) : (
+            <Text style={styles.waistText}>
+              {t("waist.empty")}{" "}
+              <Text style={styles.waistLink} onPress={() => router.push("/berat")} accessibilityRole="link">
+                {t("waist.link")}
+              </Text>
+            </Text>
+          )}
         </View>
-        {latestWaist ? (
-          <Text style={styles.waistText}>
-            Terakhir {dayLabel(latestWaist.date)}: {latestWaist.waistCm} cm
-            {latestWaist.deltaCm !== null && latestWaist.deltaCm !== 0
-              ? ` (${latestWaist.deltaCm > 0 ? "+" : "−"}${Math.abs(latestWaist.deltaCm)} cm)`
-              : ""}. Foto cuma perkiraan visual — meteran yang mengukur.
-          </Text>
-        ) : (
-          <Text style={styles.waistText}>
-            Belum ada catatan meteran. Catat lingkar perut di layar Berat — itu sinyal objektifnya,
-            foto hanya pelengkap.
-          </Text>
-        )}
       </Card>
 
       <Card style={styles.resultCard}>
         <View style={styles.shareRow}>
           <View style={styles.shareText}>
-            <Text style={styles.shareTitle}>Bagikan status ke grup ini</Text>
-            <Text style={styles.shareHint}>
-              Yang ikut terlihat cuma verdict + tanggal. Foto perutmu tidak pernah dibagikan.
-            </Text>
+            <Text style={styles.shareTitle}>{t("share.title", { group: groupName })}</Text>
           </View>
           <Switch
             value={shareVar}
             onValueChange={onShare}
             disabled={sharePending}
-            accessibilityLabel="Bagikan status VAR ke grup"
+            accessibilityLabel={t("share.toggle")}
           />
         </View>
         <View style={styles.actionRow}>
-          <Button size="sm" icon="camera" label="Scan lagi" onPress={onRescan} />
+          <Button size="sm" icon="camera" label={t("actions.rescan")} onPress={onRescan} />
           <Button
             size="sm"
             variant="secondary"
             destructive
             icon="trash-outline"
-            label="Hapus scan ini"
+            label={t("actions.delete")}
             onPress={() => onDelete(newest.id)}
           />
         </View>
       </Card>
 
+      <Disclosure title={t("about.title")}>
+        <Text style={styles.shareHint}>{t("about.disclaimer")}</Text>
+        {hasConfidence ? <Text style={styles.shareHint}>{t("about.confidence")}</Text> : null}
+        <Text style={styles.shareHint}>{t("about.photoPrivate")}</Text>
+        <Text style={styles.shareHint}>{t("about.share")}</Text>
+        {previous ? (
+          <Text style={styles.shareHint}>
+            {t("about.retry")}
+            {shareVar ? ` ${t("about.retryShared", { group: groupName })}` : ""}
+          </Text>
+        ) : null}
+        <Text style={styles.shareHint}>{t("about.waist")}</Text>
+      </Disclosure>
+
       {scans.length > 1 ? (
         <Card style={styles.resultCard}>
-          <Text style={styles.historyTitle}>Riwayat scan</Text>
-          {[...scans].reverse().map((scan, index) => {
-            const newer = [...scans].reverse()[index - 1] ?? null;
+          <Text style={styles.historyTitle}>{t("history.title")}</Text>
+          {reversed.map((scan, index) => {
+            const newer = reversed[index - 1] ?? null;
             const copy = verdictCopy(scan.verdict);
+            const meta = [
+              fmtDateShort(scan.date),
+              scan.verdict !== "pertama" && scan.confidence !== null
+                ? t("confidence.short", { percent: Math.round(scan.confidence * 100) })
+                : null,
+              scan.waistCm !== null ? `${fmtNumber(scan.waistCm, 1)} cm` : null,
+            ].filter(Boolean);
             return (
               <View key={scan.id} style={styles.historyRow}>
                 <AuthedVarPhoto
                   photoUrl={scan.photoUrl}
-                  label={`Foto perut ${dayLabel(scan.date)}`}
+                  label={t("compare.altDate", { date: fmtDateShort(scan.date) })}
                   style={styles.historyPhoto}
                 />
                 <View style={styles.historyText}>
                   <Text style={[styles.historyVerdict, { color: copy.color }]}>{copy.label}</Text>
-                  <Text style={styles.historyMeta}>
-                    {dayLabel(scan.date)}
-                    {scan.verdict !== "pertama" && scan.confidence !== null
-                      ? ` · yakin ~${Math.round(scan.confidence * 100)}%`
-                      : ""}
-                    {scan.waistCm !== null ? ` · ${scan.waistCm} cm` : ""}
-                  </Text>
+                  <Text style={styles.historyMeta}>{meta.join(" · ")}</Text>
                   {scan.note ? (
                     <Text style={styles.historyNote} numberOfLines={2}>
                       {scan.note}
@@ -697,7 +712,7 @@ function ResultView({
                 {newer ? (
                   <AuthedVarPhoto
                     photoUrl={newer.photoUrl}
-                    label={`Pembanding ${dayLabel(newer.date)}`}
+                    label={t("compare.altCompare", { date: fmtDateShort(newer.date) })}
                     style={styles.historyPhoto}
                   />
                 ) : null}
@@ -765,11 +780,6 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     fontWeight: "800",
     color: "#FFFFFF",
-    textAlign: "center",
-  },
-  analyzingHint: {
-    fontSize: theme.fontSize.xs,
-    color: "rgba(255,255,255,0.75)",
     textAlign: "center",
   },
   permissionText: {
@@ -853,7 +863,7 @@ const styles = StyleSheet.create((theme) => ({
   },
   resultCard: {
     gap: theme.spacing.sm,
-    padding: theme.spacing.lg,
+    padding: theme.spacing.md,
   },
   resultScroll: {
     flex: 1,
@@ -903,6 +913,14 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: 3,
     backgroundColor: theme.colors.muted,
     overflow: "hidden",
+  },
+  confidenceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  confidenceTrackFlex: {
+    flex: 1,
   },
   confidenceFill: {
     height: 6,
@@ -957,14 +975,14 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     gap: theme.spacing.sm,
   },
-  waistTitle: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: "700",
-    flex: 1,
-  },
   waistText: {
+    flex: 1,
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
+  },
+  waistLink: {
+    fontWeight: "700",
+    color: theme.colors.primary,
   },
   shareRow: {
     flexDirection: "row",

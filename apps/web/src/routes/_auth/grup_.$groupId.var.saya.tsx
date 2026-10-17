@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Camera,
+  ChevronDown,
   CircleCheck,
   CircleDashed,
   Info,
@@ -21,9 +22,10 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { fmtDateShort, fmtNumber, i18n } from "@joyorogo/i18n";
 import { toast } from "sonner";
 
-import { FieldLabel } from "@/components/kit/surface";
 import { Switch } from "@/components/kit/switch";
 import { apiUrl } from "@/lib/app-config";
 import { prepareImageFile, prepareVideoFrame } from "@/lib/image";
@@ -41,42 +43,30 @@ const TIMER_SECONDS = 3;
 
 type VarVerdict = VarHistory["scans"][number]["verdict"];
 
-/** Short day caption: "Sen, 12 Okt". */
-function dayLabel(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
-}
-
-const CAPTURE_TIPS = [
-  "Pose dan jarak yang sama tiap scan",
-  "Cahaya terang, kamera sejajar perut",
-  "Berdiri tegak, napas biasa",
-] as const;
+const CAPTURE_TIPS = ["capture.tips.pose", "capture.tips.light", "capture.tips.stand"] as const;
 
 function verdictStyle(verdict: VarVerdict): {
   label: string;
   icon: typeof CircleCheck;
   className: string;
 } {
+  const label = i18n.t(`varperut:verdict.label.${verdict}`);
   switch (verdict) {
     case "turun":
-      return { label: "Perut mengecil", icon: CircleCheck, className: "text-primary" };
+      return { label, icon: CircleCheck, className: "text-primary" };
     case "naik":
-      return { label: "Terlihat lebih penuh", icon: TriangleAlert, className: "text-amber-600 dark:text-amber-400" };
+      return { label, icon: TriangleAlert, className: "text-amber-600 dark:text-amber-400" };
     case "sama":
-      return { label: "Belum kelihatan beda", icon: MinusCircle, className: "text-muted-foreground" };
+      return { label, icon: MinusCircle, className: "text-muted-foreground" };
     case "beda":
-      return { label: "Kondisi foto beda, ulangi", icon: RefreshCw, className: "text-destructive" };
+      return { label, icon: RefreshCw, className: "text-destructive" };
     case "pertama":
-      return { label: "Scan pertama tersimpan", icon: Info, className: "text-foreground" };
+      return { label, icon: Info, className: "text-foreground" };
   }
 }
 
 function VarSayaPage() {
+  const { t } = useTranslation(["varperut", "common"]);
   const { groupId } = Route.useParams();
   const queryClient = useQueryClient();
 
@@ -165,7 +155,7 @@ function VarSayaPage() {
       previousShare.current = null;
       if (prev === null) return undefined;
       return {
-        message: input.shareVar ? "Scan perut dibagikan ke grup." : "Scan perut disembunyikan.",
+        message: input.shareVar ? t("share.toast.on") : t("share.toast.off"),
         undo: () => void client.group.varSetShare({ groupId, shareVar: prev }),
       };
     },
@@ -181,8 +171,8 @@ function VarSayaPage() {
         data ? { ...data, scans: removeById(data.scans, row.id) } : data,
       );
     },
-    label: () => "Scan",
-    fallback: "Scan perut",
+    label: () => t("history.deleteLabel", { date: "" }).trim(),
+    fallback: t("history.deleteFallback"),
     invalidate: () => [orpc.group.key()],
   });
 
@@ -193,7 +183,7 @@ function VarSayaPage() {
     mutationFn: (input: { id: string; hint?: string }) => client.group.varRetry(input),
     onSuccess: ({ scan, previous }) => {
       void queryClient.invalidateQueries({ queryKey: orpc.group.key() });
-      toast.success(`Hasil baru: ${verdictStyle(scan.verdict).label}`, {
+      toast.success(t("retry.toast.result", { label: verdictStyle(scan.verdict).label }), {
         duration: UNDO_TOAST_MS,
         action: {
           label: undoLabel(),
@@ -209,14 +199,14 @@ function VarSayaPage() {
             void client.group
               .varRestore({ id: scan.id, ...previous })
               .catch((error: unknown) =>
-                toast.error(error instanceof Error ? error.message : "Gagal mengembalikan hasil."),
+                toast.error(error instanceof Error ? error.message : t("retry.toast.restoreFailed")),
               )
               .finally(() => void queryClient.invalidateQueries({ queryKey: orpc.group.key() }));
           },
         },
       });
     },
-    onError: (error) => toast.error(`Hasil sebelumnya tetap dipakai. ${error.message}`),
+    onError: (error) => toast.error(t("retry.toast.kept", { message: error.message })),
   });
 
   const submit = (image: { base64: string; mimeType: "image/jpeg" }, previewUrl: string) => {
@@ -256,29 +246,29 @@ function VarSayaPage() {
       const image = prepareVideoFrame(video);
       submit(image, `data:${image.mimeType};base64,${image.base64}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Gagal mengambil foto.");
+      toast.error(error instanceof Error ? error.message : t("error.capture"));
     }
   };
 
   const groupName =
-    group.data?.find((g) => g.id === groupId)?.name ?? "grup ini";
+    group.data?.find((g) => g.id === groupId)?.name ?? t("group.fallback");
 
   return (
-    <div className="mx-auto w-full max-w-xl space-y-4 px-4 pb-10">
+    <div className="mx-auto w-full max-w-xl space-y-3 px-4 pb-10">
       <PageHeaderBlock groupId={groupId} />
 
       {history.isPending ? (
-        <div className="space-y-3" aria-busy="true" aria-label="Memuat riwayat VAR">
+        <div className="space-y-3" aria-busy="true" aria-label={t("error.historyLoading")}>
           <div className="h-72 animate-pulse rounded-3xl bg-muted" />
           <div className="h-24 animate-pulse rounded-3xl bg-muted" />
         </div>
       ) : history.isError ? (
         <div className="rounded-3xl bg-card p-5" role="alert">
-          <p className="text-sm font-bold text-destructive">Riwayat gagal dimuat</p>
+          <p className="text-sm font-bold text-destructive">{t("error.historyLoad")}</p>
           <p className="mt-1 text-sm text-muted-foreground">{history.error.message}</p>
           <Button variant="secondary" size="sm" className="mt-3" onClick={() => void history.refetch()}>
             <RefreshCw className="size-4" aria-hidden />
-            Coba lagi
+            {t("common:actions.retry")}
           </Button>
         </div>
       ) : step === "capture" ? (
@@ -300,7 +290,7 @@ function VarSayaPage() {
               .then((image) => submit(image, previewUrl))
               .catch(() => {
                 URL.revokeObjectURL(previewUrl);
-                toast.error("Gagal memproses fotonya.");
+                toast.error(t("error.process"));
               });
           }}
           galleryInputRef={galleryInputRef}
@@ -328,19 +318,15 @@ function VarSayaPage() {
 }
 
 function PageHeaderBlock({ groupId }: { groupId: string }) {
+  const { t } = useTranslation("varperut");
   return (
-    <div className="flex items-center justify-between gap-3 px-1 pt-2">
-      <div>
-        <h1 className="text-xl font-extrabold tracking-tight">VAR Perut</h1>
-        <p className="text-sm text-muted-foreground">
-          Perkembangan perutmu dilihat AI secara visual — bukan alat ukur.
-        </p>
-      </div>
+    <div className="flex items-center justify-between gap-3 px-1 pt-1">
+      <h1 className="text-xl font-extrabold tracking-tight">{t("title")}</h1>
       <Link
         to="/grup/$groupId"
         params={{ groupId }}
         className="grid size-11 shrink-0 place-items-center rounded-full bg-muted transition-colors hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-        aria-label="Kembali ke grup"
+        aria-label={t("back")}
       >
         <X className="size-5" aria-hidden />
       </Link>
@@ -377,10 +363,14 @@ function CaptureStep({
   analyzing: boolean;
   hasPrevious: boolean;
 }) {
+  const { t } = useTranslation("varperut");
   return (
     <>
       {/* Guided viewport: live camera inside the belly silhouette. */}
-      <div className="relative overflow-hidden rounded-3xl bg-black" style={{ aspectRatio: "3 / 4" }}>
+      <div
+        className="relative mx-auto max-h-[58dvh] w-full overflow-hidden rounded-3xl bg-black"
+        style={{ aspectRatio: "3 / 4" }}
+      >
         {!camError && (
           <video
             ref={videoRef}
@@ -388,7 +378,7 @@ function CaptureStep({
             playsInline
             autoPlay
             className="size-full object-cover"
-            aria-label="Kamera untuk foto perut"
+            aria-label={t("capture.cameraLabel")}
           />
         )}
         {/* Silhouette overlay: keep the belly inside the oval, phone at chest height. */}
@@ -414,9 +404,9 @@ function CaptureStep({
           <line x1="46" y1="25" x2="54" y2="25" stroke="white" strokeOpacity="0.6" strokeWidth="0.8" />
         </svg>
         <p className="pointer-events-none absolute inset-x-0 top-4 text-center text-sm font-bold text-white drop-shadow">
-          Perutmu di dalam garis putus-putus
+          {t("capture.guide")}
         </p>
-        {countdown !== null && (
+        {countdown !== undefined && (
           <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/40">
             <span className="text-8xl font-black text-white tabular-nums" role="timer">
               {countdown}
@@ -426,7 +416,7 @@ function CaptureStep({
         {captured && (
           <img
             src={captured}
-            alt="Foto yang baru diambil"
+            alt={t("capture.capturedAlt")}
             className="absolute inset-0 size-full object-cover"
           />
         )}
@@ -435,35 +425,21 @@ function CaptureStep({
             <div className="flex flex-col items-center gap-3 px-6 text-center">
               <Zap className="size-8 animate-pulse text-emerald-300" aria-hidden />
               <p className="text-sm font-bold text-white">
-                {hasPrevious
-                  ? "AI membandingkan dengan scan sebelumnya…"
-                  : "Menyimpan scan pertamamu…"}
+                {hasPrevious ? t("capture.analyzing.compare") : t("capture.analyzing.first")}
               </p>
-              <p className="text-xs text-white/70">Biasanya 5-20 detik. Foto asli cuma tersimpan untukmu.</p>
             </div>
           </div>
         )}
         {camError && (
           <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(ellipse_at_top,#12211c_0%,#020403_70%)] p-6 text-center">
-            <p className="text-sm text-white/80">
-              Kamera tidak tersedia di perangkat ini. Pakai tombol galeri di bawah, atau izinkan
-              kamera di pengaturan browser.
-            </p>
+            <p className="text-sm text-white/80">{t("capture.cameraUnavailable")}</p>
           </div>
         )}
       </div>
 
-      {/* Tips + capture controls */}
-      <div className="rounded-3xl bg-card p-4">
-        <ul className="space-y-1.5 text-sm text-muted-foreground">
-          {CAPTURE_TIPS.map((tip) => (
-            <li key={tip} className="flex items-center gap-2">
-              <Lightbulb className="size-4 shrink-0 text-amber-500" aria-hidden />
-              {tip}
-            </li>
-          ))}
-        </ul>
-        <div className="mt-4 flex items-center justify-center gap-3">
+      {/* Capture controls */}
+      <div className="rounded-3xl bg-card p-3">
+        <div className="flex items-center justify-center gap-3">
           <button
             type="button"
             onClick={onToggleTimer}
@@ -474,13 +450,13 @@ function CaptureStep({
             )}
           >
             <Timer className="size-4" aria-hidden />
-            Timer {TIMER_SECONDS} dtk {timerOn ? "nyala" : "mati"}
+            {t(timerOn ? "capture.timer.on" : "capture.timer.off", { seconds: TIMER_SECONDS })}
           </button>
           <button
             type="button"
             onClick={onCapture}
-            disabled={busy || countdown !== null}
-            aria-label="Ambil foto perut"
+            disabled={busy || countdown !== undefined}
+            aria-label={t("capture.shutter")}
             className="grid size-16 place-items-center rounded-full bg-primary text-primary-foreground shadow-float transition-transform pressable disabled:opacity-50 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
           >
             <Camera className="size-7" aria-hidden />
@@ -502,14 +478,30 @@ function CaptureStep({
                 onPickFile(file);
               }}
             />
-            Galeri
+            {t("capture.gallery")}
           </label>
         </div>
-        <p className="mt-3 text-center text-xs text-muted-foreground">
-          Foto perutmu privat: tidak pernah masuk feed, dan hanya kamu yang bisa membukanya.
-          {scans.length > 0 ? ` ${scans.length} scan tersimpan.` : " Scan pertama jadi pembanding awal."}
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          {scans.length > 0 ? t("capture.saved", { count: scans.length }) : t("capture.savedNone")}
         </p>
       </div>
+
+      <details className="group rounded-3xl bg-card">
+        <AboutSummary />
+        <ul className="space-y-1.5 px-4 pb-3 text-sm text-muted-foreground">
+          {CAPTURE_TIPS.map((tip) => (
+            <li key={tip} className="flex items-center gap-2">
+              <Lightbulb className="size-4 shrink-0 text-amber-500" aria-hidden />
+              {t(tip)}
+            </li>
+          ))}
+          {(["about.disclaimer", "about.duration", "about.photoPrivate"] as const).map((key) => (
+            <li key={key} className="text-xs">
+              {t(key)}
+            </li>
+          ))}
+        </ul>
+      </details>
     </>
   );
 }
@@ -541,46 +533,58 @@ function CompareStep({
   onRetry: (id: string, hint: string | undefined, onDone: () => void) => void;
   retrying: boolean;
 }) {
+  const { t } = useTranslation(["varperut", "common"]);
   const [retryHint, setRetryHint] = useState("");
   const newest = scans.at(-1) ?? null;
   const previous = scans.at(-2) ?? null;
   if (!newest) return null;
   const verdict = verdictStyle(newest.verdict);
   const VerdictIcon = verdict.icon;
+  const hasConfidence = newest.verdict !== "pertama" && newest.confidence !== null;
+  const waistDelta =
+    latestWaist?.deltaCm != null && latestWaist.deltaCm !== 0
+      ? `${latestWaist.deltaCm > 0 ? "+" : "−"}${fmtNumber(Math.abs(latestWaist.deltaCm), 1)}`
+      : null;
 
   return (
     <>
       {/* Verdict + comparison pair */}
-      <div className="relative rounded-3xl bg-card p-4" aria-busy={retrying}>
+      <div className="relative rounded-3xl bg-card p-3" aria-busy={retrying}>
         <p className={cn("flex items-center justify-center gap-2 text-center text-lg font-extrabold", verdict.className)}>
           <VerdictIcon className="size-6 shrink-0" aria-hidden />
           {verdict.label}
         </p>
-        {newest.verdict !== "pertama" && newest.confidence !== null && (
-          <div className="mx-auto mt-2 max-w-xs">
-            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+        {hasConfidence && newest.confidence !== null && (
+          <div className="mx-auto mt-1.5 flex max-w-xs items-center gap-2">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full bg-primary"
                 style={{ width: `${Math.round(newest.confidence * 100)}%` }}
               />
             </div>
-            <p className="mt-1 text-center text-xs text-muted-foreground">
-              Keyakinan visual ~{Math.round(newest.confidence * 100)}% — perkiraan dari foto, bukan
-              pengukuran.
-            </p>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {t("confidence.short", { percent: Math.round(newest.confidence * 100) })}
+            </span>
           </div>
         )}
         {newest.note && (
-          <p className="mt-2 text-center text-sm text-muted-foreground">{newest.note}</p>
+          <p className="mt-1.5 text-center text-sm text-muted-foreground">{newest.note}</p>
         )}
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mx-auto mt-3 grid max-w-sm grid-cols-2 gap-3">
           <ScanPhoto
             photoUrl={previous?.photoUrl ?? null}
             date={previous?.date ?? null}
-            caption="Sebelumnya"
+            caption={t("compare.before")}
+            alt={t("compare.altBefore")}
           />
-          <ScanPhoto photoUrl={newest.photoUrl} date={newest.date} caption="Sekarang" highlight />
+          <ScanPhoto
+            photoUrl={newest.photoUrl}
+            date={newest.date}
+            caption={t("compare.now")}
+            alt={t("compare.altNow")}
+            highlight
+          />
         </div>
         {retrying && (
           <div
@@ -589,7 +593,7 @@ function CompareStep({
           >
             <p className="flex items-center gap-2 text-sm font-bold text-primary animate-pulse">
               <Loader2 className="size-5 animate-spin" aria-hidden />
-              AI membaca ulang kedua foto...
+              {t("compare.rereading")}
             </p>
           </div>
         )}
@@ -597,103 +601,92 @@ function CompareStep({
 
       {/* Hitung ulang: same photos, free, capped per scan */}
       {previous && (
-        <div className="rounded-3xl bg-card p-4">
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-sm font-bold">Hasilnya kurang pas?</p>
+        <div className="rounded-3xl bg-card p-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-bold">{t("retry.title")}</p>
             <span className="shrink-0 text-xs font-semibold text-muted-foreground">
-              {newest.retriesLeft > 0 ? `Gratis, sisa ${newest.retriesLeft}x` : "Batas hitung ulang habis"}
+              {newest.retriesLeft > 0 ? t("retry.left", { count: newest.retriesLeft }) : t("retry.limit")}
             </span>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            AI membandingkan ulang kedua foto yang sama, tanpa foto ulang dan tanpa memakai kuota scan
-            harian.
-            {shareVar ? ` Status yang dibagikan ke ${groupName} ikut diperbarui.` : ""}
-          </p>
           {newest.retriesLeft > 0 ? (
-            <div className="mt-3 space-y-3">
-              <div>
-                <FieldLabel htmlFor="var-retry-hint">Koreksi singkat (opsional)</FieldLabel>
-                <Input
-                  id="var-retry-hint"
-                  value={retryHint}
-                  maxLength={200}
-                  onChange={(event) => setRetryHint(event.target.value)}
-                  placeholder="mis. pose kedua foto sebenarnya sama"
-                  autoComplete="off"
-                  disabled={retrying}
-                />
-              </div>
+            <div className="mt-2 flex items-center gap-2">
+              <Input
+                id="var-retry-hint"
+                aria-label={t("retry.hint")}
+                value={retryHint}
+                maxLength={200}
+                onChange={(event) => setRetryHint(event.target.value)}
+                placeholder={t("retry.hint")}
+                autoComplete="off"
+                disabled={retrying}
+              />
               <Button
                 variant="secondary"
+                className="shrink-0"
                 disabled={retrying}
                 onClick={() => onRetry(newest.id, retryHint.trim() || undefined, () => setRetryHint(""))}
               >
                 {retrying ? (
                   <>
                     <Loader2 className="size-4 animate-spin" aria-hidden />
-                    Menghitung ulang...
+                    {t("retry.running")}
                   </>
                 ) : (
                   <>
                     <RefreshCw className="size-4" aria-hidden />
-                    Hitung ulang
+                    {t("retry.action")}
                   </>
                 )}
               </Button>
             </div>
           ) : (
-            <p className="mt-3 text-sm font-semibold text-muted-foreground">
-              Scan ini sudah dihitung ulang sampai batasnya. Scan lagi di lain hari ya.
-            </p>
+            <p className="mt-2 text-sm font-semibold text-muted-foreground">{t("retry.exhausted")}</p>
           )}
         </div>
       )}
 
       {/* Objective signal: the tape, not the photo */}
-      <div className="rounded-3xl bg-card p-4">
-        <p className="flex items-center gap-2 text-sm font-bold">
-          <Ruler className="size-4 shrink-0 text-primary" aria-hidden />
-          Angka yang lebih jujur: lingkar perut
-        </p>
+      <div className="rounded-3xl bg-card px-4 py-3">
         {latestWaist ? (
-          <p className="mt-1 text-sm text-muted-foreground">
-            Terakhir {dayLabel(latestWaist.date)}:{" "}
-            <span className="font-bold text-foreground tabular-nums">{latestWaist.waistCm} cm</span>
-            {latestWaist.deltaCm !== null && latestWaist.deltaCm !== 0 && (
-              <span className={latestWaist.deltaCm < 0 ? " text-primary" : " text-amber-600 dark:text-amber-400"}>
-                {" "}
-                ({latestWaist.deltaCm > 0 ? "+" : "−"}
-                {Math.abs(latestWaist.deltaCm)} cm)
-              </span>
-            )}
-            . Foto cuma perkiraan visual — meteran yang mengukur.
-          </p>
+          <>
+            <p className="flex items-center gap-2 text-sm font-bold">
+              <Ruler className="size-4 shrink-0 text-primary" aria-hidden />
+              {t("waist.title")}
+            </p>
+            <p className="mt-0.5 text-sm text-muted-foreground tabular-nums">
+              {waistDelta === null
+                ? t("waist.last", { date: fmtDateShort(latestWaist.date), cm: fmtNumber(latestWaist.waistCm, 1) })
+                : t("waist.lastDelta", {
+                    date: fmtDateShort(latestWaist.date),
+                    cm: fmtNumber(latestWaist.waistCm, 1),
+                    delta: waistDelta,
+                  })}
+            </p>
+          </>
         ) : (
-          <p className="mt-1 text-sm text-muted-foreground">
-            Belum ada catatan meteran. <Link to="/berat" className="font-semibold text-primary underline-offset-2 hover:underline">Catat lingkar perut di Berat</Link> — itu
-            sinyal objektifnya, foto hanya pelengkap.
+          <p className="flex flex-wrap items-center gap-x-2 text-sm">
+            <Ruler className="size-4 shrink-0 text-primary" aria-hidden />
+            <span className="font-bold">{t("waist.empty")}</span>
+            <Link to="/berat" className="font-semibold text-primary underline-offset-2 hover:underline">
+              {t("waist.link")}
+            </Link>
           </p>
         )}
       </div>
 
       {/* Share + rescan + delete */}
-      <div className="rounded-3xl bg-card p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="flex items-center gap-2 text-sm font-bold">
-              <Share2 className="size-4 shrink-0 text-primary" aria-hidden />
-              Bagikan status ke {groupName}
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Yang ikut terlihat cuma verdict + tanggal. Foto perutmu tidak pernah dibagikan.
-            </p>
-          </div>
-          <Switch checked={shareVar} onCheckedChange={onShare} disabled={sharePending} label="Bagikan status VAR ke grup" />
+      <div className="rounded-3xl bg-card p-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="flex items-center gap-2 text-sm font-bold">
+            <Share2 className="size-4 shrink-0 text-primary" aria-hidden />
+            {t("share.title", { group: groupName })}
+          </p>
+          <Switch checked={shareVar} onCheckedChange={onShare} disabled={sharePending} label={t("share.toggle")} />
         </div>
-        <div className="mt-4 flex gap-2">
+        <div className="mt-3 flex gap-2">
           <Button className="flex-1" onClick={onRescan}>
             <Camera className="size-4" aria-hidden />
-            Scan lagi
+            {t("actions.rescan")}
           </Button>
           <Button
             variant="ghost"
@@ -702,15 +695,44 @@ function CompareStep({
             onClick={() => onDelete(newest.id)}
           >
             <Trash2 className="size-4" aria-hidden />
-            Hapus scan ini
+            {t("actions.delete")}
           </Button>
         </div>
       </div>
 
-      {scans.length > 1 && (
-        <HistorySection scans={scans} />
-      )}
+      <details className="group rounded-3xl bg-card">
+        <AboutSummary />
+        <ul className="space-y-1.5 px-4 pb-3 text-xs text-muted-foreground">
+          <li>{t("about.disclaimer")}</li>
+          {hasConfidence && <li>{t("about.confidence")}</li>}
+          <li>{t("about.photoPrivate")}</li>
+          <li>{t("about.share")}</li>
+          {previous && (
+            <li>
+              {t("about.retry")}
+              {shareVar ? ` ${t("about.retryShared", { group: groupName })}` : ""}
+            </li>
+          )}
+          <li>{t("about.waist")}</li>
+        </ul>
+      </details>
+
+      {scans.length > 1 && <HistorySection scans={scans} />}
     </>
+  );
+}
+
+/** Summary row shared by the collapsed "how it works & privacy" accordions. */
+function AboutSummary() {
+  const { t } = useTranslation("varperut");
+  return (
+    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-3xl px-4 text-sm font-bold select-none focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+      {t("about.title")}
+      <ChevronDown
+        className="size-4 text-muted-foreground transition-transform duration-200 group-open:rotate-180"
+        aria-hidden
+      />
+    </summary>
   );
 }
 
@@ -718,13 +740,16 @@ function ScanPhoto({
   photoUrl,
   date,
   caption,
+  alt,
   highlight,
 }: {
   photoUrl: string | null;
   date: string | null;
   caption: string;
+  alt: string;
   highlight?: boolean;
 }) {
+  const { t } = useTranslation("varperut");
   return (
     <figure>
       <div
@@ -735,45 +760,48 @@ function ScanPhoto({
         style={{ aspectRatio: "3 / 4" }}
       >
         {photoUrl ? (
-          <img
-            src={apiUrl(photoUrl)}
-            alt={`Foto perut ${caption.toLowerCase()}`}
-            loading="lazy"
-            className="size-full object-cover"
-          />
+          <img src={apiUrl(photoUrl)} alt={alt} loading="lazy" className="size-full object-cover" />
         ) : (
           <div className="grid size-full place-items-center text-xs text-muted-foreground">
-            Belum ada
+            {t("compare.none")}
           </div>
         )}
       </div>
-      <figcaption className="mt-1.5 text-center text-xs text-muted-foreground">
+      <figcaption className="mt-1 text-center text-xs text-muted-foreground">
         {caption}
-        {date && <> · {dayLabel(date)}</>}
+        {date && <> · {fmtDateShort(date)}</>}
       </figcaption>
     </figure>
   );
 }
 
 function HistorySection({ scans }: { scans: VarHistory["scans"] }) {
+  const { t } = useTranslation("varperut");
   // Older first: setiap scan tersimpan sebagai pembandingan dengan scan
   // sesudahnya, jadi pasangan baris i+1/i adalah perbandingan aslinya.
   const older = [...scans].reverse();
   return (
-    <section aria-label="Riwayat scan">
-      <h2 className="px-1 text-sm font-bold text-muted-foreground">Riwayat scan</h2>
+    <section aria-label={t("history.title")}>
+      <h2 className="px-1 text-sm font-bold text-muted-foreground">{t("history.title")}</h2>
       <ul className="mt-2 space-y-2">
         {older.map((scan, index) => {
           const newer = older[index - 1] ?? null;
           const verdict = verdictStyle(scan.verdict);
           const VerdictIcon = verdict.icon;
+          const meta = [
+            fmtDateShort(scan.date),
+            scan.verdict !== "pertama" && scan.confidence !== null
+              ? t("confidence.short", { percent: Math.round(scan.confidence * 100) })
+              : null,
+            scan.waistCm !== null ? `${fmtNumber(scan.waistCm, 1)} cm` : null,
+          ].filter(Boolean);
           return (
             <li key={scan.id} className="rounded-3xl bg-card p-3">
               <div className="flex items-center gap-3">
                 {scan.photoUrl ? (
                   <img
                     src={apiUrl(scan.photoUrl)}
-                    alt={`Foto perut ${dayLabel(scan.date)}`}
+                    alt={t("compare.altDate", { date: fmtDateShort(scan.date) })}
                     loading="lazy"
                     className="size-14 shrink-0 rounded-2xl bg-muted object-cover"
                   />
@@ -787,13 +815,7 @@ function HistorySection({ scans }: { scans: VarHistory["scans"] }) {
                     <VerdictIcon className="size-4 shrink-0" aria-hidden />
                     {verdict.label}
                   </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {dayLabel(scan.date)}
-                    {scan.verdict !== "pertama" && scan.confidence !== null
-                      ? ` · yakin ~${Math.round(scan.confidence * 100)}%`
-                      : ""}
-                    {scan.waistCm !== null ? ` · ${scan.waistCm} cm` : ""}
-                  </p>
+                  <p className="truncate text-xs text-muted-foreground">{meta.join(" · ")}</p>
                   {scan.note && (
                     <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground/80">{scan.note}</p>
                   )}
@@ -801,10 +823,10 @@ function HistorySection({ scans }: { scans: VarHistory["scans"] }) {
                 {newer?.photoUrl && scan.photoUrl && (
                   <img
                     src={apiUrl(newer.photoUrl)}
-                    alt={`Pembanding: ${dayLabel(newer.date)}`}
+                    alt={t("compare.altCompare", { date: fmtDateShort(newer.date) })}
                     loading="lazy"
                     className="size-14 shrink-0 rounded-2xl bg-muted object-cover"
-                    title={`Dibandingkan dengan ${dayLabel(newer.date)}`}
+                    title={t("compare.compareTitle", { date: fmtDateShort(newer.date) })}
                   />
                 )}
               </div>
