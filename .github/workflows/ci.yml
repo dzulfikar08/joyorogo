@@ -1,0 +1,99 @@
+# Checks for pull requests and pushes to main. No secrets, read-only token, so it is safe for forks.
+# Same commands as `bun run check-types` / `bun test` per package, run in parallel jobs.
+#
+# Not in CI on purpose:
+#   - `oxlint`: reports errors on main today (unused imports, prefer-startsWith); enable once cleaned up.
+#   - native/web release builds: see release-android.yml (manual, needs signing secrets).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  types:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - name: Shared packages
+        run: |
+          bunx tsc -b packages/api
+          for p in auth i18n db; do (cd packages/$p && bunx tsc -b); done
+          (cd packages/ui && bunx tsc --noEmit)
+      - name: Apps
+        run: |
+          for a in server web admin native; do echo "== $a"; (cd apps/$a && bunx tsc --noEmit); done
+          (cd apps/web && bunx tsc --noEmit -p worker)
+
+  test:
+    name: Tests and i18n check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: bun test packages/api/src packages/auth/src packages/i18n/src apps/server/src apps/native/src
+      - run: bun run i18n:check
+
+  build:
+    name: Web and admin build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Public build-time value only; the bundles are thrown away.
+      VITE_SERVER_URL: https://api.example.test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: bunx tsc -b packages/api
+      - name: Web
+        working-directory: apps/web
+        run: bunx vite build --configLoader runner --outDir "$RUNNER_TEMP/web-dist" --emptyOutDir
+      - name: Admin
+        working-directory: apps/admin
+        run: bunx vite build --outDir "$RUNNER_TEMP/admin-dist" --emptyOutDir
