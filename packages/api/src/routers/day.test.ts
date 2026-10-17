@@ -136,3 +136,36 @@ describe("day.readinessGuidance premium gate", () => {
     expect(out.guidance.basis).toBeNull();
   });
 });
+
+describe("day.kcalSeries", () => {
+  test("sums food per day, marks untouched days null, and ignores other users and Strava rows", async () => {
+    const d1 = shiftDate(today, -3);
+    const d2 = shiftDate(today, -2);
+    const d3 = shiftDate(today, -1);
+    await client.execute(
+      `INSERT INTO food_log (id, user_id, date, meal, name, kcal) VALUES
+        ('ks-1', 'comp', '${d1}', 'sarapan', 'a', 400.4),
+        ('ks-2', 'comp', '${d1}', 'makan_siang', 'b', 600),
+        ('ks-3', 'bare', '${d3}', 'sarapan', 'other user', 999)`,
+    );
+    await client.execute(
+      `INSERT INTO exercise_log (id, user_id, date, name, kcal, source)
+       VALUES ('ks-ex', 'comp', '${d2}', 'Run', 500, 'strava')`,
+    );
+    const out = await call(dayRouter.kcalSeries, { from: d1, to: d3 }, as("comp"));
+    expect(out).toEqual([
+      { date: d1, kcal: 1000 },
+      { date: d2, kcal: null },
+      { date: d3, kcal: null },
+    ]);
+  });
+
+  test("rejects reversed and oversized ranges", async () => {
+    await expect(
+      call(dayRouter.kcalSeries, { from: today, to: shiftDate(today, -1) }, as("comp")),
+    ).rejects.toThrow();
+    await expect(
+      call(dayRouter.kcalSeries, { from: shiftDate(today, -500), to: today }, as("comp")),
+    ).rejects.toThrow();
+  });
+});

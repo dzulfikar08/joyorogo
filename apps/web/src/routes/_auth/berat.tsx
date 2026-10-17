@@ -17,6 +17,8 @@ import {
   shiftDate,
 } from "@joyorogo/api/lib/engine";
 import type { RangeStats } from "@joyorogo/api/lib/engine";
+import { kcalBars, kcalSummary } from "@joyorogo/api/lib/kcal-bars";
+import type { KcalBar } from "@joyorogo/api/lib/kcal-bars";
 
 import { Mascot } from "@/components/mascot";
 import { ScreenError } from "@/components/screen-state";
@@ -82,7 +84,18 @@ function monthYear(date: string): string {
   return `${MONTHS_SHORT[Number(m) - 1]} ${y}`;
 }
 
-const PAD = { top: 18, right: 14, bottom: 26, left: 38 };
+const PAD = { top: 18, right: 38, bottom: 26, left: 38 };
+
+/** Calorie bars live in the bottom share of the plot, on their own (right) axis. */
+const BAR_ZONE = 0.38;
+/** An untracked day's hatched placeholder, as a share of the bar zone. */
+const GHOST_SHARE = 0.45;
+
+/** 2140 -> "2,1k" for the compact right axis. */
+function kcalAxis(n: number): string {
+  if (n < 1000) return String(n);
+  return `${(n / 1000).toLocaleString("id-ID", { maximumFractionDigits: 1 })}k`;
+}
 
 const KG_LADDER = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50] as const;
 
@@ -130,6 +143,9 @@ function WeightChart({
   domainEnd,
   rangeKey,
   rangeLabel,
+  bars,
+  weekly,
+  targetKcal,
 }: {
   width: number;
   height: number;
@@ -144,6 +160,10 @@ function WeightChart({
   /** replays the draw-in animation when the range changes */
   rangeKey: string;
   rangeLabel: string;
+  /** calorie bars over the same time axis (daily, or per week on long ranges) */
+  bars: KcalBar[];
+  weekly: boolean;
+  targetKcal: number | null;
 }) {
   const [scrubDate, setScrubDate] = useState<string | null>(null);
   const innerW = width - PAD.left - PAD.right;
@@ -206,6 +226,25 @@ function WeightChart({
           .join(" ")
       : null;
 
+  // Secondary axis: kcal 0..maxK in the bottom BAR_ZONE of the plot. The
+  // target line joins the domain so it never clips off the top.
+  const baseY = PAD.top + innerH;
+  const zoneH = innerH * BAR_ZONE;
+  const maxK = Math.max(
+    500,
+    Math.ceil((Math.max(targetKcal ?? 0, ...bars.map((b) => b.avgKcal ?? 0)) * 1.1) / 500) * 500,
+  );
+  const ky = (kcal: number) => baseY - (kcal / maxK) * zoneH;
+  const pxPerDay = innerW / spanDays;
+  const barGeom = (b: KcalBar) =>
+    weekly
+      ? { left: x(b.from), w: Math.max((daysBetween(b.from, b.to) + 1) * pxPerDay - 2, 2) }
+      : (() => {
+          const w = Math.max(pxPerDay * 0.7, 1.5);
+          return { left: x(b.from) - w / 2, w };
+        })();
+  const scrubBar = (date: string) => bars.find((b) => b.from <= date && date <= b.to);
+
   const scrubIdx = scrubDate ? entries.findIndex((e) => e.date === scrubDate) : -1;
   const scrubEntry = scrubIdx >= 0 ? entries[scrubIdx] : undefined;
   const scrubTrend = scrubEntry && trendPoints.find((p) => p.date === scrubEntry.date);
@@ -230,8 +269,8 @@ function WeightChart({
   };
   const clearScrub = () => setScrubDate(null);
 
-  const TIP_W = 176;
-  const TIP_H = 104;
+  const TIP_W = 196;
+  const TIP_H = 124;
   let tipLeft = 0;
   let tipTop = 0;
   if (scrubEntry) {
@@ -257,6 +296,73 @@ function WeightChart({
         onPointerLeave={clearScrub}
         onPointerCancel={clearScrub}
       >
+        <defs>
+          <pattern
+            id="kcal-hatch"
+            width={4}
+            height={4}
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
+            <line
+              x1={0}
+              y1={0}
+              x2={0}
+              y2={4}
+              strokeWidth={1.5}
+              className="stroke-muted-foreground/50"
+            />
+          </pattern>
+        </defs>
+        <g key={`bars-${rangeKey}`} className="chart-fade">
+          {bars.map((b) => {
+            const { left, w } = barGeom(b);
+            const barH = b.avgKcal === null ? 0 : baseY - ky(b.avgKcal);
+            const ghostH = zoneH * GHOST_SHARE * (b.untrackedDays / b.days);
+            const over = targetKcal !== null && b.avgKcal !== null && b.avgKcal > targetKcal;
+            return (
+              <g key={b.from}>
+                {b.avgKcal !== null && (
+                  <rect
+                    x={left}
+                    y={baseY - barH}
+                    width={w}
+                    height={barH}
+                    rx={Math.min(w / 4, 2)}
+                    className={over ? "fill-bakar/80" : "fill-bakar/35"}
+                  />
+                )}
+                {ghostH > 0 && (
+                  <rect
+                    x={left}
+                    y={baseY - barH - ghostH}
+                    width={w}
+                    height={ghostH}
+                    fill="url(#kcal-hatch)"
+                  />
+                )}
+              </g>
+            );
+          })}
+        </g>
+        {targetKcal !== null && (
+          <line
+            x1={PAD.left}
+            x2={width - PAD.right}
+            y1={ky(targetKcal)}
+            y2={ky(targetKcal)}
+            strokeDasharray="6 4"
+            strokeWidth={1.25}
+            className="stroke-bakar-ink/70"
+          />
+        )}
+        <g fontSize={10} fontWeight={600} className="fill-bakar-ink">
+          {[maxK / 2, maxK].map((k) => (
+            <text key={k} x={width - PAD.right + 5} y={ky(k) + 3}>
+              {kcalAxis(k)}
+            </text>
+          ))}
+        </g>
         <g className="stroke-border/70">
           {yTicks.map((t) => (
             <line
@@ -421,6 +527,23 @@ function WeightChart({
                 <dd className="font-bold tabular-nums">{fmtKg(scrubTrend.trendKg)} kg</dd>
               </div>
             )}
+            {(() => {
+              const bar = scrubBar(scrubEntry.date);
+              if (!bar) return null;
+              return (
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">{weekly ? "Kalori/hari" : "Kalori"}</dt>
+                  <dd className="font-bold tabular-nums">
+                    {bar.avgKcal === null
+                      ? "tak dicatat"
+                      : `${bar.avgKcal.toLocaleString("id-ID")} kcal`}
+                    {weekly && bar.untrackedDays > 0 && bar.avgKcal !== null
+                      ? ` · ${bar.untrackedDays} kosong`
+                      : ""}
+                  </dd>
+                </div>
+              );
+            })()}
             <div className="flex justify-between gap-2">
               <dt className="text-muted-foreground">vs sebelumnya</dt>
               <dd
@@ -446,6 +569,57 @@ function WeightChart({
         </div>
       )}
     </>
+  );
+}
+
+/** One-line key: Berat, Tren, Kalori (over/under), Belum dicatat, Target. */
+function ChartLegend({ showTarget }: { showTarget: boolean }) {
+  return (
+    <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-muted-foreground">
+      <li className="flex items-center gap-1">
+        <span className="size-2 rounded-full bg-primary/35" />
+        Berat
+      </li>
+      <li className="flex items-center gap-1">
+        <span className="h-0.5 w-3 rounded-full bg-primary" />
+        Tren
+      </li>
+      <li className="flex items-center gap-1">
+        <span className="size-2 rounded-sm bg-bakar/35" />
+        <span className="-ml-0.5 size-2 rounded-sm bg-bakar/80" />
+        Kalori
+      </li>
+      <li className="flex items-center gap-1">
+        <svg width={10} height={10} aria-hidden>
+          <defs>
+            <pattern
+              id="kcal-hatch-legend"
+              width={4}
+              height={4}
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(45)"
+            >
+              <line
+                x1={0}
+                y1={0}
+                x2={0}
+                y2={4}
+                strokeWidth={1.5}
+                className="stroke-muted-foreground/60"
+              />
+            </pattern>
+          </defs>
+          <rect width={10} height={10} rx={2} fill="url(#kcal-hatch-legend)" />
+        </svg>
+        Belum dicatat
+      </li>
+      {showTarget && (
+        <li className="flex items-center gap-1">
+          <span className="w-3 border-t-2 border-dashed border-bakar-ink/70" />
+          Target kalori
+        </li>
+      )}
+    </ul>
   );
 }
 
@@ -515,6 +689,12 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   // Bagikan ke feed: check-in berat terakhir sebagai post 'berat'.
   const [shareOpen, setShareOpen] = useState(false);
   const chart = useChartSize();
+  // One fetch of the last 400 days (the API cap); ranges filter locally.
+  const kcalSeries = useQuery(
+    orpc.day.kcalSeries.queryOptions({
+      input: { from: jakartaDatePlusDays(-399), to: today },
+    }),
+  );
 
   const checkIn = useWeightCheckIn((row) => `Berat dicatat: ${fmtKg(row.weightKg)} kg`);
 
@@ -563,6 +743,10 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const rangeStatsOut = rangeStats(rangeTrend, weightSummary.targetKg);
   const rangeLabel = range === "all" ? "sejak awal" : `${range} hari terakhir`;
   const domainStart = cutoff ?? rangeEntries[0]?.date ?? today;
+  const targetKcal = summary.data?.targets?.eatKcal ?? null;
+  const kcalRange = kcalSeries.data ?? [];
+  const { bars: kcalBarList, weekly: kcalWeekly } = kcalBars(kcalRange, domainStart, today);
+  const kcalStats = kcalSummary(kcalRange, domainStart, today);
   // "Colored by direction relative to goal": losing only counts as good while
   // the target sits below the start.
   const wantDown =
@@ -765,18 +949,35 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                         domainEnd={today}
                         rangeKey={range}
                         rangeLabel={rangeLabel}
+                        bars={kcalBarList}
+                        weekly={kcalWeekly}
+                        targetKcal={targetKcal}
                       />
                     )}
                   </div>
+                  <ChartLegend showTarget={targetKcal !== null} />
+                  {kcalSeries.data && (
+                    <p className="mt-1.5 text-xs font-semibold tabular-nums">
+                      {kcalStats.trackedDays === 0
+                        ? "Belum ada kalori tercatat"
+                        : `Tercatat ${kcalStats.trackedDays} dari ${kcalStats.days} hari · rata-rata ${(kcalStats.avgKcal ?? 0).toLocaleString("id-ID")} kcal`}
+                    </p>
+                  )}
                 </>
               )}
-              <p className="mt-2 text-xs text-muted-foreground">
-                Garis = tren (rata-rata bergerak 7 hari), titik = timbangan harian.
-                {weightSummary.deltaKg !== null &&
-                  ` Total ${weightSummary.deltaKg < 0 ? "turun" : "naik"} ${fmtKg(
-                    Math.abs(weightSummary.deltaKg),
-                  )} kg sejak berat awal.`}
-              </p>
+              <details className="group mt-2 text-xs text-muted-foreground">
+                <summary className="cursor-pointer font-semibold select-none">Detail</summary>
+                <p className="mt-1.5">
+                  Garis = tren (rata-rata bergerak 7 hari), titik = timbangan harian. Batang =
+                  kalori harian yang dicatat (gelap = di atas target, terang = di bawah); area
+                  garis-garis = hari tanpa catatan makan
+                  {kcalWeekly ? "; rentang panjang dirata-rata per minggu per hari tercatat" : ""}.
+                  {weightSummary.deltaKg !== null &&
+                    ` Total ${weightSummary.deltaKg < 0 ? "turun" : "naik"} ${fmtKg(
+                      Math.abs(weightSummary.deltaKg),
+                    )} kg sejak berat awal.`}
+                </p>
+              </details>
             </Card>
           </div>
 

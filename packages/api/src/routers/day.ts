@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lt, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { user } from "@joyorogo/db/schema/auth";
@@ -246,6 +246,40 @@ export const dayRouter = {
             : [],
         date,
       };
+    }),
+
+  /**
+   * Calories logged per day over [from, to] for the weight chart's bars. Only
+   * food_log counts (imported Strava workouts live in exercise_log and are
+   * excluded from plan and analytics). A day with no food rows is `kcal: null`
+   * ("not tracked"), never 0, so the chart can tell a skipped day from a fast.
+   */
+  kcalSeries: protectedProcedure
+    .input(
+      z
+        .object({ from: dateSchema, to: dateSchema })
+        .refine((v) => v.from <= v.to, "from must not be after to")
+        .refine((v) => shiftDate(v.to, -400) <= v.from, "range is capped at 400 days"),
+    )
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const rows = await context.db
+        .select({ date: foodLog.date, kcal: sql<number>`sum(${foodLog.kcal})` })
+        .from(foodLog)
+        .where(
+          and(
+            eq(foodLog.userId, userId),
+            gte(foodLog.date, input.from),
+            lte(foodLog.date, input.to),
+          ),
+        )
+        .groupBy(foodLog.date);
+      const byDate = new Map(rows.map((r) => [r.date, Math.round(r.kcal)]));
+      const out: { date: string; kcal: number | null }[] = [];
+      for (let d = input.from; d <= input.to; d = shiftDate(d, 1)) {
+        out.push({ date: d, kcal: byDate.get(d) ?? null });
+      }
+      return out;
     }),
 
   /**
