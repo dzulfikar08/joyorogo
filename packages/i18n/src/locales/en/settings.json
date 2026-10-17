@@ -522,6 +522,19 @@
     "downloading": "Downloading {{percent}}%",
     "check": "Check for updates",
     "checkingShort": "Checking…",
+    "banner": {
+      "title": "New version available",
+      "body": "JoyoRogo {{name}} is ready to install.",
+      "bodyPlain": "A JoyoRogo update is ready to download.",
+      "failed": "Couldn't start the update. Try again.",
+      "update": "Update",
+      "later": "Later",
+      "downloadingTitle": "Downloading update…",
+      "downloadingPercent": "{{percent}}%",
+      "readyTitle": "Update ready to install",
+      "readyBody": "Restart JoyoRogo to use the new version.",
+      "restart": "Restart"
+    },
     "error": {
       "offline": "Can't reach the server. Check your internet connection.",
       "rejected": "The server rejected the update request (HTTP {{status}}).",

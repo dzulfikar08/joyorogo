@@ -31,7 +31,7 @@ import { authClient } from "@/lib/auth-client";
 import { LocaleSync } from "@/components/locale-sync";
 import { ReminderSync } from "@/components/reminders/reminder-sync";
 import { ToastProvider } from "@/components/toast";
-import { useApkUpdate } from "@/src/lib/apk-update";
+import { UpdateBanner } from "@/components/update-banner";
 import { loadStoredLocale, setLocale } from "@/src/lib/i18n";
 import { loadThemePref } from "@/src/lib/theme-pref";
 import { orpc, queryClient } from "@/utils/orpc";
@@ -96,10 +96,6 @@ export default function RootLayout() {
     void queryClient.prefetchQuery(orpc.profile.myProfile.queryOptions());
   }, [userId]);
 
-  // Android only: silent, throttled update check; iOS and web never fetch it.
-  // The result is shown as a card in Profil.
-  useApkUpdate();
-
   if (!fontsLoaded || !localeReady) {
     return null;
   }
@@ -130,6 +126,8 @@ export default function RootLayout() {
           <ToastProvider>
           <LocaleSync />
           <ReminderSync />
+          {/* Android only: Play in-app update or sideload APK update. */}
+          <UpdateBanner />
           {/* Follows the app theme (which can override the OS), not the OS. */}
           <StatusBar style={navTheme.dark ? "light" : "dark"} />
           <Stack

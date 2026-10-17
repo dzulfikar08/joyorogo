@@ -508,6 +508,19 @@
     "downloading": "Mengunduh {{percent}}%",
     "check": "Cek pembaruan",
     "checkingShort": "Memeriksa…",
+    "banner": {
+      "title": "Versi baru tersedia",
+      "body": "JoyoRogo {{name}} siap dipasang.",
+      "bodyPlain": "Ada pembaruan JoyoRogo yang siap diunduh.",
+      "failed": "Gagal memulai pembaruan. Coba lagi ya.",
+      "update": "Update",
+      "later": "Nanti",
+      "downloadingTitle": "Mengunduh pembaruan…",
+      "downloadingPercent": "{{percent}}%",
+      "readyTitle": "Pembaruan siap dipasang",
+      "readyBody": "Mulai ulang JoyoRogo untuk memakai versi baru.",
+      "restart": "Mulai ulang"
+    },
     "error": {
       "offline": "Tidak bisa terhubung ke server. Periksa koneksi internetmu.",
       "rejected": "Server menolak permintaan pembaruan (HTTP {{status}}).",

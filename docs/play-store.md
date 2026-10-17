@@ -16,7 +16,7 @@ Written 2026-10-15. Package `com.joyodigitama.joyorogo`. Everything here is for 
 
 What the Play build removes compared with the sideload build:
 
-- `REQUEST_INSTALL_PACKAGES` is not in the manifest, and the APK self-updater never runs: no fetch of `latest-apk.json` at start, no "Pembaruan aplikasi" card in Profil (`useApkUpdate` returns `null`, same path iOS and web already take).
+- `REQUEST_INSTALL_PACKAGES` is not in the manifest, and the APK self-updater never runs: no fetch of `latest-apk.json` at start, no "Pembaruan aplikasi" card in Profil (`useApkUpdate` returns `null`, same path iOS and web already take). Play installs get Google Play In-App Updates instead, shown as a banner with a flexible flow (`docs/in-app-updates.md`).
 - No web checkout. Play requires Google Play Billing for digital goods, so the DOKU/Pakasir checkout never shows in the Play build and nothing links to it. The Play build sells JoyoRogo Pro through Play Billing instead (subscription `pro`, base plans `monthly` and `yearly`); it stays hidden until the server has the Play service account (`useAppConfig` reports `billing: googlePlayBilling`). Setup, products and testing: `docs/play-billing.md`. Free-tier scan limits still apply, and Pro bought elsewhere keeps working on the account.
 
 ### Signing warning (read before mixing sideload and Play)
@@ -296,7 +296,7 @@ Removed in this change: `REQUEST_INSTALL_PACKAGES` (Play build only), `SYSTEM_AL
 
 1. Bump nothing by hand: `scripts/build-release-apk.sh --play` computes versionCode.
 2. Console -> Closed testing -> **Create new release** -> upload the new AAB -> release notes -> rollout.
-3. Testers get the update from the Play Store (auto-update or the Update button). The app no longer updates itself.
+3. Testers get the update from the Play Store (auto-update or the Update button), and the app itself shows a "Versi baru tersedia" banner with in-app Play updates (`docs/in-app-updates.md`, including how to test it). The app does not download APKs itself.
 4. Keep the `version` in `apps/native/app.json` as the user-visible name; versionCode is what Play orders by.
 5. After production access is granted, promote the same AAB from the closed track to Production instead of rebuilding.
 

@@ -5,10 +5,10 @@ import * as IntentLauncher from "expo-intent-launcher";
 import { i18n } from "@joyorogo/i18n";
 import { useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
-import * as SecureStore from "expo-secure-store";
 
 import { IS_PLAY_BUILD } from "@/src/distribution";
 import { ENV } from "@/src/env";
+import { isNewerVersionCode, parseVersionCode } from "@/src/lib/update-policy";
 
 /** Manifest served at GET /downloads/latest-apk.json (written by build-release-apk.sh). */
 export type ApkUpdate = {
@@ -33,21 +33,19 @@ export type ApkCheckResult =
 /** What useApkUpdate gives the UI; result is null while a check is running. */
 export type ApkUpdateState = {
   result: ApkCheckResult | null;
-  /** Manual re-check: bypasses the shared cache and the 6h throttle. */
+  /** Re-check now: bypasses the shared cache (callers apply their own throttle). */
   refresh: () => Promise<void>;
   refreshing: boolean;
 };
-
-// Re-check at most every 6 hours: the check on app start must stay cheap and
-// silent, not a request on every launch.
-const CHECK_THROTTLE_MS = 6 * 60 * 60 * 1000;
-const LAST_CHECK_KEY = "apk-update-checked-at";
 
 /** Sideload Android builds only: Google Play builds update through Play and never fetch. */
 const UPDATER_ENABLED = Platform.OS === "android" && !IS_PLAY_BUILD;
 
 /** Server origin, same contract as utils/orpc.ts: ENV is the source of truth. */
 const SERVER_ORIGIN = ENV.EXPO_PUBLIC_SERVER_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
+
+/** Where the latest sideload APK is served; also the fallback link when the in-app install fails. */
+export const APK_URL = `${SERVER_ORIGIN}/downloads/latest-apk`;
 
 /**
  * Resolves only with a valid manifest; throws a localized message on
@@ -75,9 +73,7 @@ async function fetchLatestApk(): Promise<ApkUpdate> {
 }
 
 function installedVersionCode(): number {
-  const native = Application.nativeBuildVersion;
-  const parsed = native ? Number.parseInt(native, 10) : NaN;
-  return Number.isNaN(parsed) ? 0 : parsed;
+  return parseVersionCode(Application.nativeBuildVersion);
 }
 
 /** Installed version for the Profil section; Android builds always carry both. */
@@ -100,10 +96,9 @@ async function runCheck(): Promise<ApkCheckResult> {
   let result: ApkCheckResult;
   try {
     const update = await fetchLatestApk();
-    result =
-      update.versionCode > installedVersionCode()
-        ? { state: "available", update }
-        : { state: "up-to-date" };
+    result = isNewerVersionCode(update.versionCode, installedVersionCode())
+      ? { state: "available", update }
+      : { state: "up-to-date" };
   } catch (e) {
     result = {
       state: "error",
@@ -112,28 +107,18 @@ async function runCheck(): Promise<ApkCheckResult> {
     };
   }
   cached = result;
-  void SecureStore.setItemAsync(LAST_CHECK_KEY, String(Date.now())).catch(() => {});
   return result;
 }
 
 /**
- * Automatic check. Unforced callers (app start) reuse the cache and honour
- * the 6h throttle; forced callers (Profil mount) always fetch. Never throws.
+ * Automatic check. Unforced callers (app start) reuse the in-process result;
+ * forced callers (Profil mount) always fetch. The manifest is a few hundred
+ * bytes, so every cold start fetches it. Never throws.
  */
 async function autoCheck(force: boolean): Promise<ApkCheckResult> {
   if (!force && cached !== undefined) return cached;
   if (inFlight) return inFlight;
-  inFlight = (async () => {
-    if (!force) {
-      const last = await SecureStore.getItemAsync(LAST_CHECK_KEY).catch(() => null);
-      if (last && Date.now() - Number(last) < CHECK_THROTTLE_MS) {
-        const result: ApkCheckResult = cached ?? { state: "up-to-date" };
-        cached = result;
-        return result;
-      }
-    }
-    return runCheck();
-  })();
+  inFlight = runCheck();
   try {
     return await inFlight;
   } finally {
@@ -192,7 +177,7 @@ export async function downloadAndInstallApk(
   const destination = new File(Paths.cache, "joyorogo-update.apk");
   if (destination.exists) destination.delete();
 
-  const task = File.createDownloadTask(`${SERVER_ORIGIN}/downloads/latest-apk`, destination, {
+  const task = File.createDownloadTask(APK_URL, destination, {
     onProgress: ({ bytesWritten, totalBytes }) => {
       if (totalBytes > 0) onProgress(Math.round((bytesWritten / totalBytes) * 100));
     },
