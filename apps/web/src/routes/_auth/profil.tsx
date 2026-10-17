@@ -4,9 +4,9 @@ import type { AppRouterClient } from "@joyorogo/api/routers/index";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import { Link, Navigate, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
+  Calculator,
   CalendarDays,
   Camera,
-  CircleAlert,
   Download,
   Flag,
   Footprints,
@@ -24,18 +24,13 @@ import { toast } from "sonner";
 
 import {
   ACTIVITY_LABELS,
-  daysBetween,
   idealWeightRange,
-  jakartaToday,
-  KCAL_PER_KG_FAT,
 } from "@joyorogo/api/lib/engine";
 import type { ActivityLevel, Targets } from "@joyorogo/api/lib/engine";
 import { i18n, LOCALES, LOCALE_NAMES } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
-import { Calendar } from "@joyorogo/ui/components/calendar";
 import { Input } from "@joyorogo/ui/components/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@joyorogo/ui/components/popover";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
@@ -52,6 +47,8 @@ import {
 } from "@/components/kit/surface";
 import { Switch } from "@/components/kit/switch";
 import { PlanNumbers, TargetNotesList } from "@/components/plan-numbers";
+import { NeedsSheet } from "@/components/needs-sheet";
+import { TargetDateForm } from "@/components/target-date-form";
 import { BudgetSetting } from "@/components/plate/budget-setting";
 import { FastingSettingsSection } from "@/components/fasting/settings-section";
 import { useTheme } from "@/components/theme-provider";
@@ -66,7 +63,7 @@ import { APP_STORE_URL, PLAY_STORE_URL, founderScans, useAppConfig } from "@/lib
 import { checkOrder, fetchPendingOrder, fmtFounderDate } from "@/lib/billing";
 import { sessionQuery, signOut } from "@/lib/auth-client";
 import type { Session } from "@/lib/auth-client";
-import { fmtDateLong, fmtInt, fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
+import { fmtDateLong, fmtInt, fmtKg, parseNum } from "@/lib/format";
 import { client, getServerUrl, orpc } from "@/utils/orpc";
 import { openIosInstall } from "@/lib/ios-install";
 import { setLocale } from "@/lib/i18n";
@@ -100,6 +97,9 @@ async function fileToAvatarBase64(file: File): Promise<string> {
 
 export const Route = createFileRoute("/_auth/profil")({
   loader: ({ context }) => context.queryClient.ensureQueryData(profileOptions),
+  validateSearch: (search: Record<string, unknown>): { needs?: true } => ({
+    needs: search.needs === true || search.needs === 1 || search.needs === "1" ? true : undefined,
+  }),
   pendingComponent: ProfilSkeleton,
   component: ProfilPage,
 });
@@ -154,6 +154,7 @@ function ProfilContent({
   const { t } = useTranslation(["settings", "common"]);
   const platform = usePlatform();
   const navigate = useNavigate();
+  const { needs } = Route.useSearch();
   const queryClient = useQueryClient();
   const config = useAppConfig();
   const checkout = useCheckoutPicker();
@@ -278,7 +279,13 @@ function ProfilContent({
     },
   });
 
-  const [sheet, setSheet] = useState<null | "weight" | "date">(null);
+  const [sheet, setSheet] = useState<null | "weight" | "date" | "needs">(needs ? "needs" : null);
+  const [dateError, setDateError] = useState<string | null>(null);
+  const closeSheet = () => {
+    setSheet(null);
+    setDateError(null);
+    if (needs) navigate({ to: "/profil", search: {}, replace: true });
+  };
   const [confirmWipe, setConfirmWipe] = useState(false);
   const [wiping, setWiping] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -464,6 +471,14 @@ function ProfilContent({
       <div className="mt-3">
         <PlanNumbers targets={targets} />
       </div>
+      <ListGroup className="mt-3">
+        <ListButtonRow
+          icon={<Calculator className="size-5 text-makan" aria-hidden />}
+          title={t("plan.needs.row")}
+          value={t("plan.needs.rowValue", { kcal: fmtInt(targets.tdee) })}
+          onClick={() => setSheet("needs")}
+        />
+      </ListGroup>
       {targets.notes.length > 0 && (
         <div className="mt-3">
           <TargetNotesList notes={targets.notes} />
@@ -476,7 +491,7 @@ function ProfilContent({
       <Sheet
         open={sheet === "weight"}
         onOpenChange={(open) => {
-          if (!open) setSheet(null);
+          if (!open) closeSheet();
         }}
         title={t("plan.targetWeight.title")}
         description={t("plan.targetWeight.hint")}
@@ -497,7 +512,7 @@ function ProfilContent({
       <Sheet
         open={sheet === "date"}
         onOpenChange={(open) => {
-          if (!open) setSheet(null);
+          if (!open) closeSheet();
         }}
         title={t("plan.targetDate.title")}
         description={t("plan.targetDate.hint")}
@@ -507,14 +522,28 @@ function ProfilContent({
           weightNowKg={latestWeightKg ?? row.startWeightKg}
           targetWeightKg={row.targetWeightKg}
           pending={edit.isPending}
-          onSave={(date) =>
+          serverError={dateError}
+          onSave={(date) => {
+            setDateError(null);
             edit.mutate(
               { targetWeightKg: row.targetWeightKg, targetDate: date },
-              { onSuccess: () => setSheet(null) },
-            )
-          }
+              {
+                onSuccess: () => setSheet(null),
+                onError: (error) => setDateError(error.message),
+              },
+            );
+          }}
         />
       </Sheet>
+
+      <NeedsSheet
+        open={sheet === "needs"}
+        onOpenChange={(open) => {
+          if (!open) closeSheet();
+        }}
+        targets={targets}
+        activityLabel={String(ACTIVITY_LABELS[row.activityLevel as ActivityLevel] ?? row.activityLevel)}
+      />
 
       <SectionTitle className="mt-7">{t("section.personal")}</SectionTitle>
       <ListGroup>
@@ -723,111 +752,6 @@ function TargetWeightForm({
         <p className="text-sm leading-relaxed text-destructive">
           {t("plan.targetWeight.belowRange")}
         </p>
-      )}
-      {error && <p className="text-sm font-semibold text-destructive">{error}</p>}
-      <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? t("state.saving") : t("common:actions.save")}
-      </Button>
-    </form>
-  );
-}
-
-function TargetDateForm({
-  targetDate,
-  weightNowKg,
-  targetWeightKg,
-  pending,
-  onSave,
-}: {
-  targetDate: string;
-  weightNowKg: number;
-  targetWeightKg: number;
-  pending: boolean;
-  onSave: (targetDate: string) => void;
-}) {
-  const { t } = useTranslation(["settings", "common"]);
-  const [date, setDate] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const shownDate = date ?? targetDate;
-
-  const tooFast = (() => {
-    if (targetWeightKg >= weightNowKg) return null;
-    const days = daysBetween(jakartaToday(), shownDate);
-    if (days < 1) return null;
-    const lossKg = weightNowKg - targetWeightKg;
-    const rawDeficit = Math.round((lossKg * KCAL_PER_KG_FAT) / days);
-    if (rawDeficit <= 1000) return null;
-    const feasibleDays = Math.ceil((lossKg * KCAL_PER_KG_FAT) / 1000);
-    return { rawDeficit, lossKg, feasibleDays };
-  })();
-
-  return (
-    <form
-      className="space-y-4"
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(shownDate) || shownDate < jakartaToday()) {
-          setError(t("plan.targetDate.error"));
-          return;
-        }
-        setError(null);
-        onSave(shownDate);
-      }}
-    >
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            type="button"
-            variant="secondary"
-            className="h-16 w-full justify-center rounded-xl text-lg font-extrabold tracking-tight"
-          >
-            <CalendarDays className="size-5 text-muted-foreground" aria-hidden />
-            {fmtDateLong(shownDate).replace(/^\w+, /, "")}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={new Date(`${shownDate}T00:00:00`)}
-            defaultMonth={new Date(`${shownDate}T00:00:00`)}
-            disabled={{ before: new Date() }}
-            onSelect={(day) => {
-              if (day) {
-                setDate(
-                  `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`,
-                );
-                setError(null);
-              }
-            }}
-          />
-        </PopoverContent>
-      </Popover>
-      {tooFast && (
-        <div className="rounded-2xl bg-bakar-soft p-4">
-          <p className="flex items-start gap-1.5 text-sm leading-snug font-bold text-bakar-ink">
-            <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-            {t("plan.targetDate.tooFast.title", { deficit: fmtInt(tooFast.rawDeficit) })}
-          </p>
-          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-            {t("plan.targetDate.tooFast.body", {
-              kg: fmtKg(tooFast.lossKg),
-              count: tooFast.feasibleDays,
-            })}
-          </p>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="mt-3"
-            onClick={() => {
-              setDate(jakartaDatePlusDays(tooFast.feasibleDays));
-              setError(null);
-            }}
-          >
-            {t("plan.targetDate.tooFast.useDate", { count: tooFast.feasibleDays })}
-          </Button>
-        </div>
       )}
       {error && <p className="text-sm font-semibold text-destructive">{error}</p>}
       <Button type="submit" className="w-full" disabled={pending}>

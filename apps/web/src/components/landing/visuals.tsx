@@ -161,7 +161,7 @@ export function HeroPhone() {
         <div
           className="overflow-hidden rounded-[2.2rem] bg-background"
           role="img"
-          aria-label={`Contoh layar Beranda: masih boleh makan ${fmtInt(remaining)} kcal dari target ${fmtInt(EXAMPLE.target)} kcal.`}
+          aria-label={`Contoh layar Beranda: sisa ${fmtInt(remaining)} kcal dari target ${fmtInt(EXAMPLE.target)} kcal.`}
         >
           <div className="flex items-center justify-between px-6 pt-3 text-[0.625rem] font-bold tabular-nums">
             <span>07.42</span>
@@ -186,9 +186,7 @@ export function HeroPhone() {
                   label="Contoh"
                 >
                   <div>
-                    <p className="text-[0.625rem] font-semibold text-muted-foreground">
-                      Masih boleh
-                    </p>
+                    <p className="text-[0.625rem] font-semibold text-muted-foreground">Sisa</p>
                     <p className="text-[2rem] leading-none font-extrabold tracking-tighter tabular-nums">
                       {fmtInt(remaining)}
                     </p>

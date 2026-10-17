@@ -171,8 +171,7 @@
     "needs": {
       "title": "Kebutuhan harianmu",
       "row": "Kebutuhan harianmu",
-      "rowValue": "TDEE {{kcal}} kcal",
-      "subtitle": "Dari mana target makanmu datang",
+      "rowValue": "TDEE {{kcal}}",
       "intro": "Langkah demi langkah, dari tubuhmu sampai target makan hari ini.",
       "unit": "kcal per hari",
       "bmr": {

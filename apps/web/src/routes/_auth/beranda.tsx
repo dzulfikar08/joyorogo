@@ -5,7 +5,19 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { ChevronDown, Flame, Info, Mic, Moon, Plus, Scale, Sparkles, Trophy } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  CircleHelp,
+  Flame,
+  Info,
+  Mic,
+  Moon,
+  Plus,
+  Scale,
+  Sparkles,
+  Trophy,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
@@ -32,7 +44,7 @@ import { fmtDateLong, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
 import { useWaistCheckIn, useWeightCheckIn } from "@/lib/optimistic";
 import { useAppConfig } from "@/lib/app-config";
 import type { DaySummary } from "@/lib/api-types";
-import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import { jakartaToday, relativeDayLabel, remainingKcal } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { orpc } from "@/utils/orpc";
 
@@ -206,18 +218,34 @@ function Dashboard({
 
   return (
     <Page className="max-w-xl lg:max-w-5xl">
-      <header className="flex items-center justify-between gap-4 px-1 pt-1 pb-3">
+      <header className="flex items-center justify-between gap-3 px-1 pt-1 pb-3">
         <div className="min-w-0">
           <p className="text-sm font-medium text-muted-foreground">
             {firstName
               ? t("greeting.named", { greeting: t(`greeting.${greetingKey()}`), name: firstName })
               : t(`greeting.${greetingKey()}`)}
           </p>
-          <h1 className="mt-0.5 text-2xl leading-tight font-extrabold tracking-tight">
+          <h1 className="mt-0.5 text-xl leading-tight font-extrabold tracking-tight min-[420px]:text-2xl">
             {fmtDateLong(summary.date).replace(/^\w+, /, "")}
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
+          <ShareStoryButton
+            label=""
+            ariaLabel={t("header.share")}
+            variant="secondary"
+            size="icon"
+            story={{
+              kind: "progress",
+              eatenKcal: summary.eatenKcal,
+              targetKcal: summary.targets.eatKcal,
+              proteinG: summary.protein.eatenG,
+              proteinTargetG: summary.protein.targetG,
+              streakDays: summary.streakDays,
+              weightLostKg: summary.weightLostKg,
+              weekTrend: summary.weekTrend,
+            }}
+          />
           {summary.streakDays > 0 && (
             <span
               className="inline-flex h-9 items-center gap-1.5 rounded-full bg-bakar-soft px-3 text-sm font-bold text-bakar-ink tabular-nums"
@@ -359,10 +387,10 @@ function Dashboard({
 function EatHero({ summary }: { summary: Summary }) {
   const { t } = useTranslation("home");
   const targets = summary.targets;
-  const remaining = targets.eatKcal - summary.eatenKcal;
-  const over = remaining < 0;
+  const { kcal: leftKcal, over } = remainingKcal(targets.eatKcal, summary.eatenKcal);
   const [adaptiveOpen, setAdaptiveOpen] = useState(false);
-  const deficit = summary.deficit;
+  const [explainOpen, setExplainOpen] = useState(false);
+  const maintenance = targets.notes.includes("MAINTENANCE") || targets.deficitKcal <= 0;
 
   return (
     <Card className="p-4">
@@ -388,34 +416,84 @@ function EatHero({ summary }: { summary: Summary }) {
                 over && "text-bakar-ink",
               )}
             >
-              {fmtInt(Math.abs(remaining))}
+              {fmtInt(leftKcal)}
             </p>
             <p className="mt-0.5 text-xs font-semibold text-muted-foreground">kcal</p>
           </div>
         </Ring>
 
-        <dl className="min-w-0 flex-1 divide-y divide-border">
-          <div className="flex items-baseline justify-between gap-2 pb-2">
-            <dt className="text-xs font-semibold text-muted-foreground">{t("eat.target")}</dt>
-            <dd className="text-lg font-extrabold tabular-nums">{fmtInt(targets.eatKcal)}</dd>
-          </div>
-          <div className="flex items-baseline justify-between gap-2 py-2">
-            <dt className="text-xs font-semibold text-muted-foreground">{t("eat.eaten")}</dt>
-            <dd className="text-lg font-extrabold tabular-nums">{fmtInt(summary.eatenKcal)}</dd>
-          </div>
-          <div className="flex items-baseline justify-between gap-2 pt-2">
-            <dt className="text-xs font-semibold text-muted-foreground">{t("eat.deficit")}</dt>
-            <dd
-              className={cn(
-                "text-lg font-extrabold tabular-nums",
-                deficit && deficit.deficitKcal >= 0 && "text-makan-ink",
-              )}
+        <div className="min-w-0 flex-1">
+          <dl className="divide-y divide-border">
+            <div className="flex items-baseline justify-between gap-2 pb-2">
+              <dt className="text-xs font-semibold text-muted-foreground">{t("eat.target")}</dt>
+              <dd className="text-lg font-extrabold tabular-nums">{fmtInt(targets.eatKcal)}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-2 pt-2">
+              <dt className="text-xs font-semibold text-muted-foreground">{t("eat.eaten")}</dt>
+              <dd className="text-lg font-extrabold tabular-nums">{fmtInt(summary.eatenKcal)}</dd>
+            </div>
+          </dl>
+          <div className="-mr-2.5 -mb-2.5 mt-1 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setExplainOpen(true)}
+              aria-label={t("eat.help")}
+              className="flex size-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
             >
-              {deficit ? fmtInt(deficit.deficitKcal) : "–"}
-            </dd>
+              <CircleHelp className="size-5" aria-hidden />
+            </button>
           </div>
-        </dl>
+        </div>
       </div>
+
+      {over && (
+        <p className="mt-2 text-sm leading-snug font-semibold text-bakar-ink">
+          {t("eat.overNote", { kcal: fmtInt(leftKcal) })}
+        </p>
+      )}
+
+      <Sheet open={explainOpen} onOpenChange={setExplainOpen} title={t("explain.title")}>
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-makan-soft p-4">
+            <p className="text-[0.9375rem] font-extrabold text-makan-ink">{t("explain.formula")}</p>
+            <p className="mt-1 text-sm font-semibold tabular-nums">
+              {over
+                ? t("explain.exampleOver", {
+                    target: fmtInt(targets.eatKcal),
+                    eaten: fmtInt(summary.eatenKcal),
+                    over: fmtInt(leftKcal),
+                  })
+                : t("explain.example", {
+                    target: fmtInt(targets.eatKcal),
+                    eaten: fmtInt(summary.eatenKcal),
+                    left: fmtInt(leftKcal),
+                  })}
+            </p>
+          </div>
+          <dl className="space-y-3">
+            {(["target", "eaten", "left", "burn", "deficit"] as const).map((key) => (
+              <div key={key}>
+                <dt className="text-sm font-bold">{t(`explain.${key}.title`)}</dt>
+                <dd className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+                  {key === "deficit"
+                    ? maintenance
+                      ? t("explain.deficit.bodyMaintenance")
+                      : t("explain.deficit.body", { kcal: fmtInt(targets.deficitKcal) })
+                    : t(`explain.${key}.body`)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <Link
+            to="/profil"
+            search={{ needs: true }}
+            className="flex min-h-11 items-center justify-between gap-2 rounded-2xl bg-muted px-4 text-sm font-semibold hover:bg-muted/70 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+          >
+            {t("explain.needs")}
+            <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+          </Link>
+        </div>
+      </Sheet>
 
       {targets.notes.includes("ADAPTIVE") && (
         <>
@@ -898,25 +976,6 @@ function MoreSection({
             ))}
           </div>
         )}
-        <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted p-4">
-          <div>
-            <p className="text-sm font-bold">{t("more.shareTitle")}</p>
-            <p className="text-xs text-muted-foreground">{t("more.shareHint")}</p>
-          </div>
-          <ShareStoryButton
-            size="sm"
-            story={{
-              kind: "progress",
-              eatenKcal: summary.eatenKcal,
-              targetKcal: summary.targets.eatKcal,
-              proteinG: summary.protein.eatenG,
-              proteinTargetG: summary.protein.targetG,
-              streakDays: summary.streakDays,
-              weightLostKg: summary.weightLostKg,
-              weekTrend: summary.weekTrend,
-            }}
-          />
-        </div>
       </div>
     </details>
   );

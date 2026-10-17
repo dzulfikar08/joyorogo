@@ -177,8 +177,7 @@
     "needs": {
       "title": "Your daily needs",
       "row": "Your daily needs",
-      "rowValue": "TDEE {{kcal}} kcal",
-      "subtitle": "Where your eating target comes from",
+      "rowValue": "TDEE {{kcal}}",
       "intro": "Step by step, from your body to today's eating target.",
       "unit": "kcal per day",
       "bmr": {

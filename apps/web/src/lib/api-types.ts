@@ -43,8 +43,8 @@ export type ProfileRow = NonNullable<ProfileOutput["profile"]>;
 
 type DaySummaryOutput = Awaited<ReturnType<AppRouterClient["day"]["summary"]>>;
 
-/** day.summary for a user who finished onboarding (the branch carrying targets + deficit). */
-export type DaySummary = Extract<DaySummaryOutput, { deficit: unknown }>;
+/** day.summary for a user who finished onboarding (the branch carrying targets). */
+export type DaySummary = Extract<DaySummaryOutput, { targets: object }>;
 
 type WeightHistoryOutput = Awaited<ReturnType<AppRouterClient["weight"]["history"]>>;
 
