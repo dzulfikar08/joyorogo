@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Smartphone } from "lucide-react";
 
+import { AndroidMark } from "@/components/android-mark";
+import { ANDROID_ROBOT_CREDIT } from "@/lib/credits";
 import { PLAY_STORE_URL, useAppConfig } from "@/lib/app-config";
 import { IOS_TESTFLIGHT_LIVE, JOYOROGO_TESTFLIGHT_URL } from "@/lib/testflight";
 
@@ -41,8 +43,9 @@ export function PublicFooter() {
             href={PLAY_STORE_URL}
             data-revklik-goal="play_store_click"
             data-revklik-goal-location="footer"
-            className="inline-flex min-h-11 items-center hover:text-primary"
+            className="inline-flex min-h-11 items-center gap-1.5 hover:text-primary"
           >
+            <AndroidMark className="size-4" />
             Google Play
           </a>
           {IOS_TESTFLIGHT_LIVE && (
@@ -52,8 +55,9 @@ export function PublicFooter() {
               rel="noopener"
               data-revklik-goal="ios_testflight_click"
               data-revklik-goal-location="footer"
-              className="inline-flex min-h-11 items-center hover:text-primary"
+              className="inline-flex min-h-11 items-center gap-1.5 hover:text-primary"
             >
+              <Smartphone className="size-4" aria-hidden />
               iPhone (TestFlight)
             </a>
           )}
@@ -68,6 +72,9 @@ export function PublicFooter() {
           </Link>
         </nav>
       </div>
+      <p className="mx-auto w-full max-w-6xl px-4 pb-8 text-xs leading-relaxed text-muted-foreground md:px-6">
+        {ANDROID_ROBOT_CREDIT}
+      </p>
     </footer>
   );
 }

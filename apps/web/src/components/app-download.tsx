@@ -1,6 +1,8 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
-import { Smartphone, Users } from "lucide-react";
+import { Smartphone } from "lucide-react";
+
+import { AndroidMark } from "@/components/android-mark";
 
 import { TESTER_SECTION_HREF } from "@/lib/app-config";
 import { openIosInstall } from "@/lib/ios-install";
@@ -58,7 +60,7 @@ export function AppDownload({
         />
       }
     >
-      <Users aria-hidden />
+      <AndroidMark />
       {androidLabel}
     </Button>
   );

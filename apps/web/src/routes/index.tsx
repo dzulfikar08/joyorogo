@@ -14,7 +14,6 @@ import {
   PencilLine,
   Radar,
   Trash2,
-  Users,
   Watch,
   Smartphone,
 } from "lucide-react";
@@ -23,6 +22,7 @@ import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Ring, type Metric } from "@/components/kit/ring";
 import { AppDownload } from "@/components/app-download";
+import { AndroidMark } from "@/components/android-mark";
 import { ScanDemo } from "@/components/landing/scan-demo";
 import { GroupPeek, HeroPhone, ScanExample, WeightTrendDemo } from "@/components/landing/visuals";
 import { GITHUB_URL, GithubMark, PublicHeader } from "@/components/public-header";
@@ -152,6 +152,7 @@ function InstallApp() {
                 tab === id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
+              {id === "android" ? <AndroidMark className="mr-2 size-[1.125rem]" /> : <Smartphone aria-hidden className="mr-2 size-[1.125rem]" />}
               {label}
             </button>
           ))}
@@ -188,7 +189,7 @@ function InstallApp() {
                     />
                   }
                 >
-                  <Users aria-hidden />
+                  <AndroidMark />
                   1. Gabung grup Google
                 </Button>
                 <Button
