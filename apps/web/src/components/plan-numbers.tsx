@@ -9,10 +9,12 @@ import { fmtInt } from "@/lib/format";
 
 export function TargetNotesList({ notes }: { notes: TargetNotes[] }) {
   const { t } = useTranslation("settings");
-  if (notes.length === 0) return null;
+  // MATERNAL only marks the plan; its notes render from the maternal namespace.
+  const shown = notes.filter((note): note is Exclude<TargetNotes, "MATERNAL"> => note !== "MATERNAL");
+  if (shown.length === 0) return null;
   return (
     <ul className="space-y-2">
-      {notes.map((note) => (
+      {shown.map((note) => (
         <li
           key={note}
           className={cn(
@@ -32,8 +34,10 @@ export function TargetNotesList({ notes }: { notes: TargetNotes[] }) {
 /** The three daily numbers as tinted tiles, same language as beranda. */
 export function PlanNumbers({ targets }: { targets: Targets }) {
   const { t } = useTranslation("settings");
+  // Hamil / Menyusui has no burn target: the eating need and sleep only.
+  const maternal = targets.maternal !== null;
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className={cn("grid gap-3", maternal ? "grid-cols-2" : "grid-cols-3")}>
       <StatTile
         metric="makan"
         icon={<Utensils className="size-[1.125rem]" aria-hidden />}
@@ -41,13 +45,15 @@ export function PlanNumbers({ targets }: { targets: Targets }) {
         value={fmtInt(targets.eatKcal)}
         unit="kcal"
       />
-      <StatTile
-        metric="bakar"
-        icon={<Flame className="size-[1.125rem]" aria-hidden />}
-        label={t("plan.numbers.burn")}
-        value={fmtInt(targets.burnKcal)}
-        unit="kcal"
-      />
+      {!maternal && (
+        <StatTile
+          metric="bakar"
+          icon={<Flame className="size-[1.125rem]" aria-hidden />}
+          label={t("plan.numbers.burn")}
+          value={fmtInt(targets.burnKcal)}
+          unit="kcal"
+        />
+      )}
       <StatTile
         metric="tidur"
         icon={<Moon className="size-[1.125rem]" aria-hidden />}

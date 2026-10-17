@@ -34,6 +34,14 @@ import {
 import { InfoAccordion } from "@/components/onboarding/info-accordion";
 import { InviteFriendsStep } from "@/components/onboarding/invite-step";
 import { useSession } from "@/lib/auth-client";
+import { MaternalDisclaimer } from "@/components/maternal/disclaimer";
+import { MaternalOnboardingResult } from "@/components/maternal/onboarding-result";
+import {
+  emptyMaternalDraft,
+  MaternalForm,
+  maternalDraftToInput,
+} from "@/components/maternal/maternal-form";
+import type { MaternalDraft } from "@/components/maternal/maternal-form";
 import { orpc } from "@/utils/orpc";
 
 const profileOptions = orpc.profile.myProfile.queryOptions();
@@ -60,10 +68,21 @@ type FormState = {
   activityLevel: ActivityLevel;
   targetWeightKg: string;
   targetDate: string;
+  /** answer to "Sedang hamil atau menyusui?" (only asked of women) */
+  maternalChoice: "pregnant" | "breastfeeding" | "none";
+  maternal: MaternalDraft;
 };
 
-/** Seven questions, one per screen; the eighth view is the result. */
-const STEP_COUNT = 7;
+type StepKey =
+  | "birth"
+  | "gender"
+  | "maternal"
+  | "maternalForm"
+  | "height"
+  | "weight"
+  | "activity"
+  | "target"
+  | "date";
 
 const DEFICIT_CAP_KCAL = 1000;
 
@@ -129,7 +148,7 @@ function BigNumberField({
 }
 
 function OnboardingPage() {
-  const { t } = useTranslation(["onboarding", "common", "settings"]);
+  const { t } = useTranslation(["onboarding", "common", "settings", "maternal"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
@@ -144,6 +163,8 @@ function OnboardingPage() {
     activityLevel: "low",
     targetWeightKg: "65",
     targetDate: jakartaDatePlusDays(90),
+    maternalChoice: "none",
+    maternal: emptyMaternalDraft("pregnant"),
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -175,12 +196,36 @@ function OnboardingPage() {
   const targetWeight = parseNum(form.targetWeightKg);
   const ideal = height !== null && height >= 100 && height <= 250 ? idealWeightRange(height) : null;
 
+  // Hamil / Menyusui: only asked of women. The maternal path swaps the two
+  // target-weight questions for the maternal form (no deficit, no target).
+  const maternalMode =
+    form.gender === "female" &&
+    (form.maternalChoice === "pregnant" || form.maternalChoice === "breastfeeding")
+      ? form.maternalChoice
+      : null;
+  const steps: StepKey[] = [
+    "birth",
+    "gender",
+    ...(form.gender === "female" ? (["maternal"] as const) : []),
+    ...(maternalMode ? (["maternalForm"] as const) : []),
+    "height",
+    "weight",
+    "activity",
+    ...(maternalMode ? [] : (["target", "date"] as const)),
+  ];
+  const STEP_COUNT = steps.length;
+  const key: StepKey = steps[step - 1] ?? "birth";
+  const last = step === STEP_COUNT;
+  const maternalDraft: MaternalDraft | null = maternalMode
+    ? { ...form.maternal, mode: maternalMode }
+    : null;
+
   // Same checks as before, now one step at a time so the error always sits
   // next to the question it belongs to. The final step re-validates the whole
   // form exactly like the old single submit did.
-  const validateStep = (current: number): boolean => {
+  const validateStep = (current: StepKey): boolean => {
     switch (current) {
-      case 1:
+      case "birth":
         if (
           birthYear === null ||
           !Number.isInteger(birthYear) ||
@@ -191,25 +236,33 @@ function OnboardingPage() {
           return false;
         }
         return true;
-      case 2:
+      case "gender":
         if (form.gender === "") {
           setError(t("error.gender"));
           return false;
         }
         return true;
-      case 3:
+      case "maternalForm": {
+        const result = maternalDraft ? maternalDraftToInput(maternalDraft) : null;
+        if (result && !result.ok) {
+          setError(t(`maternal:form.error.${result.error}`));
+          return false;
+        }
+        return true;
+      }
+      case "height":
         if (height === null || height < 100 || height > 250) {
           setError(t("error.height"));
           return false;
         }
         return true;
-      case 4:
+      case "weight":
         if (weight === null || weight < 25 || weight > 400) {
           setError(t("error.weight"));
           return false;
         }
         return true;
-      case 6:
+      case "target":
         if (targetWeight === null || targetWeight < 25 || targetWeight > 400) {
           setError(t("error.targetWeight"));
           return false;
@@ -221,17 +274,35 @@ function OnboardingPage() {
   };
 
   const next = () => {
-    if (step === 7) {
+    if (last) {
+      if (birthYear === null || form.gender === "" || height === null || weight === null) {
+        setStep(1);
+        return;
+      }
+      if (maternalDraft) {
+        const result = maternalDraftToInput(maternalDraft);
+        if (!result.ok) {
+          setError(t(`maternal:form.error.${result.error}`));
+          setStep(steps.indexOf("maternalForm") + 1);
+          return;
+        }
+        setError(null);
+        save.mutate({
+          birthYear,
+          gender: form.gender,
+          heightCm: height,
+          weightKg: weight,
+          activityLevel: form.activityLevel,
+          maternal: result.input,
+        });
+        return;
+      }
       if (targetWeight === null || targetWeight < 25 || targetWeight > 400) {
         setError(t("error.targetWeight"));
         return;
       }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(form.targetDate) || form.targetDate < jakartaToday()) {
         setError(t("error.targetDatePast"));
-        return;
-      }
-      if (birthYear === null || form.gender === "" || height === null || weight === null) {
-        setStep(1);
         return;
       }
       setError(null);
@@ -246,7 +317,7 @@ function OnboardingPage() {
       });
       return;
     }
-    if (!validateStep(step)) return;
+    if (!validateStep(key)) return;
     setError(null);
     setStep(step + 1);
   };
@@ -286,28 +357,34 @@ function OnboardingPage() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("result.subtitle")}</p>
         </header>
-        <PlanNumbers targets={targets} />
-        {targets.notes.includes("BELOW_HEALTHY_RANGE") && (
-          <p className="mt-3 rounded-2xl bg-destructive/10 px-4 py-3 text-sm leading-snug font-medium text-destructive">
-            {t("result.belowRange", {
-              min: fmtKg(targets.idealMinKg),
-              max: fmtKg(targets.idealMaxKg),
-            })}
-          </p>
-        )}
-        {targets.notes.includes("PLAN_CLAMPED") && (
-          <p className="mt-3 rounded-2xl bg-muted px-4 py-3 text-sm leading-snug font-medium text-muted-foreground">
-            {t("settings:plan.noteShort.PLAN_CLAMPED")}
-          </p>
-        )}
-        {infoNotes.length > 0 && (
-          <div className="mt-3">
-            <InfoAccordion title={t("result.aboutTitle")}>
-              {infoNotes.map((note) => (
-                <p key={note}>{t(`settings:plan.noteShort.${note}`)}</p>
-              ))}
-            </InfoAccordion>
-          </div>
+        {targets.maternal ? (
+          <MaternalOnboardingResult targets={targets} info={targets.maternal} />
+        ) : (
+          <>
+            <PlanNumbers targets={targets} />
+            {targets.notes.includes("BELOW_HEALTHY_RANGE") && (
+              <p className="mt-3 rounded-2xl bg-destructive/10 px-4 py-3 text-sm leading-snug font-medium text-destructive">
+                {t("result.belowRange", {
+                  min: fmtKg(targets.idealMinKg),
+                  max: fmtKg(targets.idealMaxKg),
+                })}
+              </p>
+            )}
+            {targets.notes.includes("PLAN_CLAMPED") && (
+              <p className="mt-3 rounded-2xl bg-muted px-4 py-3 text-sm leading-snug font-medium text-muted-foreground">
+                {t("settings:plan.noteShort.PLAN_CLAMPED")}
+              </p>
+            )}
+            {infoNotes.length > 0 && (
+              <div className="mt-3">
+                <InfoAccordion title={t("result.aboutTitle")}>
+                  {infoNotes.map((note) => (
+                    <p key={note}>{t(`settings:plan.noteShort.${note}`)}</p>
+                  ))}
+                </InfoAccordion>
+              </div>
+            )}
+          </>
         )}
         <Button className="mt-6 w-full" onClick={openApp}>
           {t("action.openHome")}
@@ -331,27 +408,31 @@ function OnboardingPage() {
     return { days, lossKg, rawDeficit, feasibleDays };
   })();
 
-  const titles = [
-    "",
-    t("question.birth.title"),
-    t("question.gender.title"),
-    t("question.height.title"),
-    t("question.weight.title"),
-    t("question.activity.title"),
-    t("question.target.title"),
-    t("question.date.title"),
-  ];
-  const hints = [
-    "",
-    t("question.birth.hint"),
-    t("question.gender.hint"),
-    "",
-    t("question.weight.hint"),
-    t("question.activity.hint"),
-    "",
-    "",
-  ];
-  const hint = hints[step];
+  const titles: Record<StepKey, string> = {
+    birth: t("question.birth.title"),
+    gender: t("question.gender.title"),
+    maternal: t("maternal:entry.question"),
+    maternalForm: maternalMode
+      ? t(maternalMode === "pregnant" ? "maternal:form.pregnantTitle" : "maternal:form.breastfeedingTitle")
+      : "",
+    height: t("question.height.title"),
+    weight: t("question.weight.title"),
+    activity: t("question.activity.title"),
+    target: t("question.target.title"),
+    date: t("question.date.title"),
+  };
+  const hints: Record<StepKey, string> = {
+    birth: t("question.birth.hint"),
+    gender: t("question.gender.hint"),
+    maternal: t("maternal:entry.hint"),
+    maternalForm: "",
+    height: "",
+    weight: maternalMode ? t("maternal:form.currentWeight.hint") : t("question.weight.hint"),
+    activity: t("question.activity.hint"),
+    target: "",
+    date: "",
+  };
+  const hint = hints[key];
 
   return (
     <Page className="max-w-xl">
@@ -379,14 +460,14 @@ function OnboardingPage() {
 
       <div className="mt-8">
         <h1 className="text-[1.75rem] leading-tight font-extrabold tracking-tight">
-          {titles[step]}
+          {titles[key]}
         </h1>
         {hint && (
           <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">{hint}</p>
         )}
 
         <div className="mt-6">
-          {step === 1 && (
+          {key === "birth" && (
             <div className="relative">
               <Input
                 id="birth-year"
@@ -406,7 +487,7 @@ function OnboardingPage() {
             </div>
           )}
 
-          {step === 2 && (
+          {key === "gender" && (
             <div className="grid grid-cols-2 gap-3">
               <ChoiceTile active={form.gender === "male"} onClick={() => set({ gender: "male" })}>
                 {t("settings:profile.gender.male")}
@@ -420,7 +501,45 @@ function OnboardingPage() {
             </div>
           )}
 
-          {step === 3 && (
+          {key === "maternal" && (
+            <div className="space-y-3">
+              {(
+                [
+                  ["pregnant", "entry.pregnant", "entry.pregnantHint"],
+                  ["breastfeeding", "entry.breastfeeding", "entry.breastfeedingHint"],
+                  ["none", "entry.neither", null],
+                ] as const
+              ).map(([choice, title, hintKey]) => (
+                <button
+                  key={choice}
+                  type="button"
+                  aria-pressed={form.maternalChoice === choice}
+                  onClick={() => set({ maternalChoice: choice })}
+                  className={cn(
+                    "pressable flex min-h-16 w-full flex-col justify-center rounded-2xl bg-card px-5 py-3 text-left focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
+                    form.maternalChoice === choice && "bg-makan-soft ring-2 ring-makan",
+                  )}
+                >
+                  <span className="text-[0.9375rem] font-bold">{t(`maternal:${title}`)}</span>
+                  {hintKey && (
+                    <span className="text-sm text-muted-foreground">{t(`maternal:${hintKey}`)}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {key === "maternalForm" && maternalMode && (
+            <div className="space-y-6">
+              <MaternalForm
+                draft={{ ...form.maternal, mode: maternalMode }}
+                onChange={(patch) => set({ maternal: { ...form.maternal, ...patch } })}
+              />
+              <MaternalDisclaimer />
+            </div>
+          )}
+
+          {key === "height" && (
             <BigNumberField
               id="height"
               label={t("question.height.label")}
@@ -430,7 +549,7 @@ function OnboardingPage() {
             />
           )}
 
-          {step === 4 && (
+          {key === "weight" && (
             <BigNumberField
               id="weight-now"
               label={t("question.weight.label")}
@@ -441,7 +560,7 @@ function OnboardingPage() {
             />
           )}
 
-          {step === 5 && (
+          {key === "activity" && (
             <div className="grid grid-cols-3 gap-3">
               {(Object.entries(ACTIVITY_LABELS) as Array<[ActivityLevel, string]>).map(
                 ([key, label]) => (
@@ -457,7 +576,7 @@ function OnboardingPage() {
             </div>
           )}
 
-          {step === 6 && (
+          {key === "target" && (
             <div className="space-y-3">
               <BigNumberField
                 id="target-weight"
@@ -483,7 +602,7 @@ function OnboardingPage() {
             </div>
           )}
 
-          {step === 7 && (
+          {key === "date" && (
             <div className="space-y-3">
               <Popover>
                 <PopoverTrigger asChild>
@@ -541,14 +660,14 @@ function OnboardingPage() {
           </p>
         )}
 
-        {step === 4 && (
+        {key === "weight" && (
           <div className="mt-4">
             <InfoAccordion title={t("info.title")}>
               <p>{t("question.weight.why")}</p>
             </InfoAccordion>
           </div>
         )}
-        {step === 7 && (
+        {key === "date" && (
           <div className="mt-4">
             <InfoAccordion title={t("info.title")}>
               <p>{t("question.date.why")}</p>
@@ -578,7 +697,7 @@ function OnboardingPage() {
           </Button>
         )}
         <Button className="flex-1" onClick={next} disabled={save.isPending}>
-          {step === 7
+          {last
             ? save.isPending
               ? t("action.saving")
               : t("action.save")

@@ -38,6 +38,8 @@ import { RecapCard } from "@/components/recap-card";
 import { StravaRetentionNotice } from "@/components/strava-retention-notice";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { Sticker } from "@/components/sticker";
+import { MaternalCard } from "@/components/maternal/maternal-card";
+import { MaternalEatHero } from "@/components/maternal/eat-hero";
 import { WaterCard, WaterTile } from "@/components/water-card";
 import { WorkoutCard } from "@/components/workout/workout-card";
 import { pickFact } from "@/lib/facts";
@@ -200,6 +202,7 @@ function Dashboard({
   const { t } = useTranslation(["home", "berat"]);
   const { session } = Route.useRouteContext();
   const targets = summary.targets;
+  const maternal = targets.maternal;
   const firstName = session.user.name?.split(" ")[0];
   const isToday = date === jakartaToday();
   const firstVisit = useFirstVisit("beranda");
@@ -233,22 +236,24 @@ function Dashboard({
           </h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <ShareStoryButton
-            label=""
-            ariaLabel={t("header.share")}
-            variant="secondary"
-            size="icon"
-            story={{
-              kind: "progress",
-              eatenKcal: summary.eatenKcal,
-              targetKcal: summary.targets.eatKcal,
-              proteinG: summary.protein.eatenG,
-              proteinTargetG: summary.protein.targetG,
-              streakDays: summary.streakDays,
-              weightLostKg: summary.weightLostKg,
-              weekTrend: summary.weekTrend,
-            }}
-          />
+          {!maternal && (
+            <ShareStoryButton
+              label=""
+              ariaLabel={t("header.share")}
+              variant="secondary"
+              size="icon"
+              story={{
+                kind: "progress",
+                eatenKcal: summary.eatenKcal,
+                targetKcal: summary.targets.eatKcal,
+                proteinG: summary.protein.eatenG,
+                proteinTargetG: summary.protein.targetG,
+                streakDays: summary.streakDays,
+                weightLostKg: summary.weightLostKg,
+                weekTrend: summary.weekTrend,
+              }}
+            />
+          )}
           {summary.streakDays > 0 && (
             <span
               className="inline-flex h-9 items-center gap-1.5 rounded-full bg-bakar-soft px-3 text-sm font-bold text-bakar-ink tabular-nums"
@@ -298,16 +303,18 @@ function Dashboard({
         )}
       >
         <div className="min-w-0 space-y-2 lg:col-start-1 lg:row-start-1">
-          <EatHero summary={summary} />
-          <div className="grid grid-cols-3 gap-2">
-            <GlanceTile
-              tint="bakar"
-              to="/olahraga"
-              icon={<Flame className="size-4 shrink-0" aria-hidden />}
-              label={t("tile.burn")}
-              value={<CountUp value={summary.burnedKcal} />}
-              sub={t("tile.burnOf", { kcal: fmtInt(targets.burnKcal) })}
-            />
+          {maternal ? <MaternalEatHero summary={summary} /> : <EatHero summary={summary} />}
+          <div className={cn("grid gap-2", maternal ? "grid-cols-2" : "grid-cols-3")}>
+            {!maternal && (
+              <GlanceTile
+                tint="bakar"
+                to="/olahraga"
+                icon={<Flame className="size-4 shrink-0" aria-hidden />}
+                label={t("tile.burn")}
+                value={<CountUp value={summary.burnedKcal} />}
+                sub={t("tile.burnOf", { kcal: fmtInt(targets.burnKcal) })}
+              />
+            )}
             <GlanceTile
               tint="tidur"
               to="/tidur"
@@ -346,19 +353,20 @@ function Dashboard({
               label={t("tile.weight")}
               value={weightKg === null ? "–" : <CountUp value={weightKg} format={fmtKg} />}
               unit={weightKg === null ? undefined : "kg"}
-              sub={weightSub}
+              sub={maternal ? undefined : weightSub}
             />
           </div>
         </div>
 
         <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-1">
           <TodayMeals summary={summary} isToday={isToday} />
-          {isToday ? <FastingScheduleCard /> : null}
+          {isToday && !maternal ? <FastingScheduleCard /> : null}
+          {maternal && <MaternalCard info={maternal} summary={summary} />}
         </div>
 
         <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-2 lg:space-y-5">
           <WeightCard summary={summary} date={date} isToday={isToday} />
-          <WorkoutCard />
+          {!maternal && <WorkoutCard />}
         </div>
 
         <div className="min-w-0 lg:col-start-1 lg:row-start-2">
@@ -389,7 +397,7 @@ function Dashboard({
         </section>
       )}
 
-      {isToday ? <DailyTipCard /> : null}
+      {isToday && !maternal ? <DailyTipCard /> : null}
 
       <MoreSection summary={summary} date={date} isToday={isToday} />
     </Page>
@@ -708,7 +716,9 @@ function WeightCard({
       <Card className="p-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold text-muted-foreground">{t("weight.trend")}</p>
+            <p className="text-xs font-semibold text-muted-foreground">
+              {summary.targets.maternal ? t("tile.weight") : t("weight.trend")}
+            </p>
             <p className="text-[1.75rem] leading-tight font-extrabold tracking-tight tabular-nums">
               {trend
                 ? fmtKg(trend.weightKg)
@@ -968,8 +978,8 @@ function MoreSection({
       <div className="space-y-5 px-5 pb-5">
         {isToday ? <BelanjaCard variant="line" /> : null}
         <WaterCard date={date} />
-        <MovementCard date={date} />
-        {fact && (
+        {!summary.targets.maternal && <MovementCard date={date} />}
+        {fact && !summary.targets.maternal && (
           <div className="rounded-2xl bg-muted p-4">
             <p className="text-xs font-semibold text-muted-foreground">{t("more.factLabel")}</p>
             <p className="mt-1 text-sm font-semibold">

@@ -45,6 +45,7 @@ import {
   SectionTitle,
   Segmented,
 } from "@/components/kit/surface";
+import { MaternalSettings } from "@/components/maternal/settings-section";
 import { Switch } from "@/components/kit/switch";
 import { PlanNumbers, TargetNotesList } from "@/components/plan-numbers";
 import { NeedsSheet } from "@/components/needs-sheet";
@@ -97,8 +98,10 @@ async function fileToAvatarBase64(file: File): Promise<string> {
 
 export const Route = createFileRoute("/_auth/profil")({
   loader: ({ context }) => context.queryClient.ensureQueryData(profileOptions),
-  validateSearch: (search: Record<string, unknown>): { needs?: true } => ({
+  validateSearch: (search: Record<string, unknown>): { needs?: true; maternal?: true } => ({
     needs: search.needs === true || search.needs === 1 || search.needs === "1" ? true : undefined,
+    maternal:
+      search.maternal === true || search.maternal === 1 || search.maternal === "1" ? true : undefined,
   }),
   pendingComponent: ProfilSkeleton,
   component: ProfilPage,
@@ -151,10 +154,11 @@ function ProfilContent({
   email: string | null;
   image: string | null;
 }) {
-  const { t } = useTranslation(["settings", "common"]);
+  const { t } = useTranslation(["settings", "common", "maternal"]);
   const platform = usePlatform();
   const navigate = useNavigate();
-  const { needs } = Route.useSearch();
+  const { needs, maternal: openMaternalParam } = Route.useSearch();
+  const openMaternal = openMaternalParam === true;
   const queryClient = useQueryClient();
   const config = useAppConfig();
   const checkout = useCheckoutPicker();
@@ -450,18 +454,32 @@ function ProfilContent({
 
       <SectionTitle>{t("section.plan")}</SectionTitle>
       <ListGroup>
-        <ListButtonRow
-          icon={<Flag className="size-5 text-makan" aria-hidden />}
-          title={t("plan.targetWeight.title")}
-          value={`${fmtKg(row.targetWeightKg)} kg`}
-          onClick={() => setSheet("weight")}
-        />
-        <ListButtonRow
-          icon={<CalendarDays className="size-5 text-bakar" aria-hidden />}
-          title={t("plan.targetDate.title")}
-          value={fmtDateLong(row.targetDate).replace(/^\w+, /, "")}
-          onClick={() => setSheet("date")}
-        />
+        {(row.gender === "female" || targets.maternal) && (
+          <MaternalSettings
+            row={row}
+            info={targets.maternal}
+            defaultOpen={openMaternal}
+            onClosed={() => {
+              if (openMaternal) navigate({ to: "/profil", search: {}, replace: true });
+            }}
+          />
+        )}
+        {!targets.maternal && (
+          <>
+            <ListButtonRow
+              icon={<Flag className="size-5 text-makan" aria-hidden />}
+              title={t("plan.targetWeight.title")}
+              value={`${fmtKg(row.targetWeightKg)} kg`}
+              onClick={() => setSheet("weight")}
+            />
+            <ListButtonRow
+              icon={<CalendarDays className="size-5 text-bakar" aria-hidden />}
+              title={t("plan.targetDate.title")}
+              value={fmtDateLong(row.targetDate).replace(/^\w+, /, "")}
+              onClick={() => setSheet("date")}
+            />
+          </>
+        )}
         <ListRow
           icon={<Footprints className="size-5 text-tidur" aria-hidden />}
           title={t("plan.activity.title")}
@@ -479,14 +497,16 @@ function ProfilContent({
           onClick={() => setSheet("needs")}
         />
       </ListGroup>
-      {targets.notes.length > 0 && (
+      {targets.notes.some((note) => note !== "MATERNAL") && (
         <div className="mt-3">
           <TargetNotesList notes={targets.notes} />
         </div>
       )}
-      <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">
-        {t("plan.recalcNote")}
-      </p>
+      {!targets.maternal && (
+        <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">
+          {t("plan.recalcNote")}
+        </p>
+      )}
 
       <Sheet
         open={sheet === "weight"}
@@ -588,9 +608,18 @@ function ProfilContent({
 
       <SectionTitle className="mt-7">{t("section.ramadan")}</SectionTitle>
       <RamadanSection mode={row.ramadanMode} />
+      {targets.maternal && (
+        <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">
+          {t("maternal:settings.ramadanNote")}
+        </p>
+      )}
 
-      <SectionTitle className="mt-7">{t("section.fasting")}</SectionTitle>
-      <FastingSettingsSection />
+      {!targets.maternal && (
+        <>
+          <SectionTitle className="mt-7">{t("section.fasting")}</SectionTitle>
+          <FastingSettingsSection />
+        </>
+      )}
 
       <SectionTitle className="mt-7">{t("section.reminders")}</SectionTitle>
       <AppRemindersNote />
@@ -633,7 +662,7 @@ function ProfilContent({
       )}
 
       <SectionTitle className="mt-7">{t("section.privacy")}</SectionTitle>
-      <ShareSection enabled={row.shareEnabled} code={row.shareCode} />
+      {!targets.maternal && <ShareSection enabled={row.shareEnabled} code={row.shareCode} />}
       <KeepPhotosSection keep={row.keepPhotos} />
       <ListGroup className="mt-3">
         <ListLinkRow

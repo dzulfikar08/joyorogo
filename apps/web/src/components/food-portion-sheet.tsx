@@ -16,6 +16,7 @@ import { FieldLabel } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
 import { MealSlotField } from "@/components/plate/meal-slot-field";
 import { CalendarSheet, DayChips } from "@/components/plate/plate-group";
+import { FoodSafetyNotes } from "@/components/maternal/food-safety-notes";
 import { SheetActions } from "@/components/sheet-actions";
 import { StickerHero } from "@/components/sticker";
 import type { FoodItem } from "@/lib/api-types";
@@ -428,6 +429,8 @@ export function FoodPortionSheet({
               {hasGrams && !linked ? t("portionSheet.hint.unlinked") : t("portionSheet.hint.linked")}
             </p>
           </div>
+
+          <FoodSafetyNotes names={[name]} date={row.date} className="bg-transparent p-0" />
 
           <div>
             <FieldLabel htmlFor="food-date">{t("portionSheet.loggedOn")}</FieldLabel>

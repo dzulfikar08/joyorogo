@@ -16,6 +16,7 @@ import type { StoryFoodItem } from "@/lib/api-types";
 import { isPaywallError } from "@/lib/billing";
 import { removeById } from "@joyorogo/api/lib/optimistic";
 import { FieldLabel } from "@/components/kit/surface";
+import { FoodSafetyNotes } from "@/components/maternal/food-safety-notes";
 import { MetaLine } from "@/components/meta-line";
 import { IdrInput } from "@/components/plate/idr-input";
 import { fmtGramsLabel, fmtInt, parseNum } from "@/lib/format";
@@ -562,6 +563,12 @@ export function Cerita({
             </section>
           );
         })}
+
+        <FoodSafetyNotes
+          names={items.map((item) => item.name)}
+          addToDay
+          className="bg-transparent p-0"
+        />
 
         <div className="flex items-center justify-between px-1">
           <span className="text-sm font-semibold text-muted-foreground">{t("story.total")}</span>

@@ -16,6 +16,7 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { Card, FieldLabel, Page, PageHeader, Segmented } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
 import { fmtInt, fmtKcalLabel, parseNum } from "@/lib/format";
+import { FoodSafetyNotes } from "@/components/maternal/food-safety-notes";
 import { KindPicker, SnackAdviceCard, useSnackAdvice } from "@/components/makan/snack-advice";
 import type { PickableKind } from "@/components/makan/snack-advice";
 import { client, orpc } from "@/utils/orpc";
@@ -438,6 +439,7 @@ function BarcodeResult({
             halfApplied={halfUndo !== null}
             onUndoHalf={undoHalf}
           />
+          <FoodSafetyNotes names={adviceName ? [adviceName] : []} date={date} addToDay />
           {error && (
             <p role="alert" className="px-1 text-sm text-destructive">
               {error}
@@ -676,6 +678,7 @@ function BarcodeResult({
         halfApplied={halfUndo !== null}
         onUndoHalf={undoHalf}
       />
+      <FoodSafetyNotes names={adviceName ? [adviceName] : []} date={date} addToDay />
       {error && (
         <p role="alert" className="px-1 text-sm text-destructive">
           {error}

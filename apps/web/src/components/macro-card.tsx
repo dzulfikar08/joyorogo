@@ -14,10 +14,20 @@ export type MacroTotals = {
   fiber: number;
 };
 
-function MacroBar({ macro, eaten, budget }: { macro: MacroKey; eaten: number; budget: number }) {
+function MacroBar({
+  macro,
+  eaten,
+  budget,
+  neutral,
+}: {
+  macro: MacroKey;
+  eaten: number;
+  budget: number;
+  neutral: boolean;
+}) {
   const { t } = useTranslation("misc");
   const { label, Icon, tone } = MACRO_META[macro];
-  const over = eaten > budget;
+  const over = !neutral && eaten > budget;
   const pct = budget > 0 ? Math.min(100, Math.max(0, (eaten / budget) * 100)) : 0;
   return (
     <div
@@ -66,16 +76,19 @@ export function MakanSummaryCard({
   eatenKcal,
   proteinTargetG,
   totals,
+  neutral = false,
 }: {
   eatKcal: number;
   eatenKcal: number;
   proteinTargetG: number;
   totals: MacroTotals;
+  /** Hamil / Menyusui: progress toward a need, never an over-target tone. */
+  neutral?: boolean;
 }) {
   const { t } = useTranslation("misc");
   // carb/fat/fiber floors from the engine; protein target comes from the server
   const budgets = macroTargets(eatKcal, 70);
-  const over = eatenKcal > eatKcal;
+  const over = !neutral && eatenKcal > eatKcal;
 
   return (
     <Card className="p-6" aria-label={t("macro.summaryTitle")}>
@@ -86,7 +99,7 @@ export function MakanSummaryCard({
           max={eatKcal}
           size={124}
           stroke={12}
-          tone={eatTone(eatenKcal, eatKcal)}
+          tone={neutral ? "ok" : eatTone(eatenKcal, eatKcal)}
           label={t("macro.eatenOf", { eaten: fmtInt(eatenKcal), budget: fmtInt(eatKcal) })}
         >
           <div>
@@ -107,10 +120,10 @@ export function MakanSummaryCard({
           </div>
         </Ring>
         <div className="min-w-0 flex-1 space-y-3.5">
-          <MacroBar macro="protein" eaten={totals.protein} budget={proteinTargetG} />
-          <MacroBar macro="carbs" eaten={totals.carbs} budget={budgets.carbsG} />
-          <MacroBar macro="fat" eaten={totals.fat} budget={budgets.fatG} />
-          <MacroBar macro="fiber" eaten={totals.fiber} budget={budgets.fiberG} />
+          <MacroBar macro="protein" eaten={totals.protein} budget={proteinTargetG} neutral={neutral} />
+          <MacroBar macro="carbs" eaten={totals.carbs} budget={budgets.carbsG} neutral={neutral} />
+          <MacroBar macro="fat" eaten={totals.fat} budget={budgets.fatG} neutral={neutral} />
+          <MacroBar macro="fiber" eaten={totals.fiber} budget={budgets.fiberG} neutral={neutral} />
         </div>
       </div>
     </Card>

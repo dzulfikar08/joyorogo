@@ -354,11 +354,12 @@ function MakanPage() {
                 eatenKcal={totals.kcal}
                 proteinTargetG={daySummary.data.protein.targetG}
                 totals={totals}
+                neutral={daySummary.data.targets.maternal !== null}
               />
             </div>
           )}
 
-          <FitnessCard date={date} />
+          {!daySummary.data?.targets?.maternal && <FitnessCard date={date} />}
 
           {/* Belanja: angkanya selalu hari ini */}
           {isToday ? <BelanjaCard /> : null}

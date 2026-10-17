@@ -65,6 +65,8 @@ import { STICKER_FILTER, stickerUrl } from "@/components/sticker";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { cropItems } from "@/lib/crop";
 import type { ItemBox } from "@/lib/crop";
+import { useMaternalInfo } from "@/components/maternal/use-maternal";
+import { FoodSafetyNotes } from "@/components/maternal/food-safety-notes";
 import { MacroLine } from "@/components/macro-line";
 import type { AiFoodItem } from "@/lib/api-types";
 import { KindCycleChip, SnackAdviceCard, useSnackAdvice } from "@/components/makan/snack-advice";
@@ -328,6 +330,7 @@ function AiFoodPage() {
   const queryClient = useQueryClient();
   // The day the scan belongs to, forwarded from the makan page's DaySwitcher.
   const { date: scanDate } = Route.useSearch();
+  const maternalInfo = useMaternalInfo();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [phase, setPhase] = useState<"idle" | "preparing" | "analyzing" | "confirm">("idle");
@@ -1028,7 +1031,7 @@ function AiFoodPage() {
           </div>
         </Card>
         {phase === "analyzing" && <LiveRows rows={liveRows} />}
-        {fact && (
+        {fact && !maternalInfo && (
           <div className="mt-3 rounded-2xl bg-card p-4 text-sm">
             <span className="font-bold">{t("fact.title")} </span>
             <span className="text-muted-foreground">
@@ -1433,6 +1436,13 @@ function AiFoodPage() {
           onHalf={halve}
           halfApplied={fullItems !== null}
           onUndoHalf={undoHalf}
+        />
+
+        <FoodSafetyNotes
+          className="mt-3"
+          names={items.map((item) => item.name)}
+          date={scanDate}
+          addToDay
         />
 
         <section className="mt-4" aria-label={t("plate.section")}>

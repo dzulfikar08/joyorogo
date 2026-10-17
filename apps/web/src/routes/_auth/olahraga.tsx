@@ -147,7 +147,8 @@ function OlahragaScreen({
   // When a profile exists, the server always returns a number here (it falls
   // back to the start weight itself).
   const weightKg = profile.data?.profile == null ? null : profile.data.latestWeightKg;
-  const burnTarget = summary.data?.targets?.burnKcal ?? null;
+  // Hamil / Menyusui has no burn target.
+  const burnTarget = summary.data?.targets?.maternal ? null : (summary.data?.targets?.burnKcal ?? null);
 
   // Server row replaces the provisional (temp id) once the add settles.
   const addTempId = useRef<string | null>(null);

@@ -19,37 +19,67 @@ export function NeedsSheet({
   targets: Targets;
   activityLabel: string;
 }) {
-  const { t } = useTranslation("settings");
+  const { t } = useTranslation(["settings", "maternal"]);
   const needs = needsBreakdown(targets);
+  const maternal = targets.maternal;
   const cutKey = needs.cutKcal > 0 ? "cut" : "cutNone";
+  const step = (
+    key: "bmr" | "activity" | "tdee" | "cut" | "cutNone" | "target",     value: string,
+    body: string,
+  ) => ({
+    key,
+    label: t(`settings:plan.needs.${key}.label`),
+    name: t(`settings:plan.needs.${key}.name`),
+    value,
+    body,
+  });
 
   const steps = [
-    { key: "bmr", value: fmtInt(needs.bmrKcal), body: t("plan.needs.bmr.body") },
-    {
-      key: "activity",
-      value: `+ ${fmtInt(needs.activityKcal)}`,
-      body: t("plan.needs.activity.body", { level: activityLabel }),
-    },
-    { key: "tdee", value: fmtInt(needs.tdeeKcal), body: t("plan.needs.tdee.body") },
-    {
-      key: cutKey,
-      value: needs.cutKcal > 0 ? `− ${fmtInt(needs.cutKcal)}` : "0",
-      body: t(`plan.needs.${cutKey}.body`),
-    },
-    { key: "target", value: fmtInt(needs.targetKcal), body: t("plan.needs.target.body") },
-  ] as const;
+    step("bmr", fmtInt(needs.bmrKcal), t("settings:plan.needs.bmr.body")),
+    step(
+      "activity",
+      `+ ${fmtInt(needs.activityKcal)}`,
+      t("settings:plan.needs.activity.body", { level: activityLabel }),
+    ),
+    ...(maternal
+      ? [
+          {
+            key: "base",
+            label: t("settings:plan.needs.tdee.label"),
+            name: t("maternal:needs.baseName"),
+            value: fmtInt(needs.tdeeKcal),
+            body: t("maternal:needs.baseBody"),
+          },
+          {
+            key: "add",
+            label: t(`maternal:needs.add.${maternal.stage}`),
+            name: t("maternal:target.add"),
+            value: `+ ${fmtInt(needs.addKcal)}`,
+            body: t("maternal:needs.addBody"),
+          },
+        ]
+      : [
+          step("tdee", fmtInt(needs.tdeeKcal), t("settings:plan.needs.tdee.body")),
+          step(
+            cutKey,
+            needs.cutKcal > 0 ? `− ${fmtInt(needs.cutKcal)}` : "0",
+            t(`settings:plan.needs.${cutKey}.body`),
+          ),
+        ]),
+    step("target", fmtInt(needs.targetKcal), t("settings:plan.needs.target.body")),
+  ];
 
   return (
     <Sheet
       open={open}
       onOpenChange={onOpenChange}
-      title={t("plan.needs.title")}
-      description={t("plan.needs.intro")}
+      title={t("settings:plan.needs.title")}
+      description={t("settings:plan.needs.intro")}
     >
       <ol className="space-y-2">
         {steps.map((step) => {
           const final = step.key === "target";
-          const total = step.key === "tdee";
+          const total = step.key === "tdee" || step.key === "base";
           return (
             <li
               key={step.key}
@@ -66,9 +96,9 @@ export function NeedsSheet({
                       final ? "text-makan-ink" : "text-muted-foreground",
                     )}
                   >
-                    {t(`plan.needs.${step.key}.label`)}
+                    {step.label}
                   </p>
-                  <p className="text-[0.9375rem] font-bold">{t(`plan.needs.${step.key}.name`)}</p>
+                  <p className="text-[0.9375rem] font-bold">{step.name}</p>
                 </div>
                 <p className="shrink-0 text-right tabular-nums">
                   <span className="text-2xl font-extrabold tracking-tight">{step.value}</span>
@@ -80,10 +110,11 @@ export function NeedsSheet({
           );
         })}
       </ol>
-      <p className="mt-2 px-1 text-xs text-muted-foreground">{t("plan.needs.unit")}</p>
+      <p className="mt-2 px-1 text-xs text-muted-foreground">{t("settings:plan.needs.unit")}</p>
 
       <div className="mt-3 space-y-3 text-sm leading-relaxed text-muted-foreground">
-        {needs.plannedBurnKcal > 0 && (
+        {maternal && <p>{t("maternal:needs.noDeficit")}</p>}
+        {!maternal && needs.plannedBurnKcal > 0 && (
           <p>
             {t("plan.needs.burnNote", {
               burn: fmtInt(needs.plannedBurnKcal),
@@ -91,7 +122,7 @@ export function NeedsSheet({
             })}
           </p>
         )}
-        {needs.adaptive && (
+        {!maternal && needs.adaptive && (
           <p>{t("plan.needs.adaptive", { formula: fmtInt(needs.formulaTdeeKcal) })}</p>
         )}
       </div>

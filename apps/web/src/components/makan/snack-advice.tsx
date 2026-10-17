@@ -47,6 +47,8 @@ export function useSnackAdvice(input: {
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
   const targets = summary.data?.targets;
   if (!summary.data || !targets || !(input.kcal > 0)) return { advice: null, impact: null };
+  // Hamil / Menyusui: no over-target verdict, no "upcoming meals" budget pressure.
+  if (targets.maternal) return { advice: null, impact: null };
   if (!isToday) {
     return {
       advice: null,

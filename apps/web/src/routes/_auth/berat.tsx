@@ -23,6 +23,7 @@ import type { KcalBar } from "@joyorogo/api/lib/kcal-bars";
 
 import { Mascot } from "@/components/mascot";
 import { ScreenError } from "@/components/screen-state";
+import { WeightGainCard } from "@/components/maternal/weight-gain-chart";
 import { WaistSection } from "@/components/waist-section";
 import {
   Card,
@@ -649,6 +650,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const { t } = useTranslation(["berat", "common"]);
   const summary = useQuery(summaryOptions);
   const profile = useQuery(profileOptions);
+  const maternal = profile.data?.targets?.maternal ?? null;
   const { entries, summary: weightSummary } = history;
   const trend = summary.data?.trend ?? null;
   const today = jakartaToday();
@@ -688,7 +690,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const flat = rate !== null && Math.abs(rate) <= 0.05;
   const heightCm = profile.data?.profile?.heightCm ?? null;
   const bmi =
-    weightSummary.latestKg !== null && heightCm
+    !maternal && weightSummary.latestKg !== null && heightCm
       ? weightSummary.latestKg / (heightCm / 100) ** 2
       : null;
   const bmiCategory =
@@ -709,7 +711,8 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const rangeShort =
     range === "all" ? t("chart.sinceStart") : t("chart.rangeDays", { count: Number(range) });
   const domainStart = cutoff ?? rangeEntries[0]?.date ?? today;
-  const targetKcal = summary.data?.targets?.eatKcal ?? null;
+  // Hamil / Menyusui: no calorie target line, no over-target bars, no goal.
+  const targetKcal = maternal ? null : (summary.data?.targets?.eatKcal ?? null);
   const kcalRange = kcalSeries.data ?? [];
   const { bars: kcalBarList, weekly: kcalWeekly } = kcalBars(kcalRange, domainStart, today);
   const kcalStats = kcalSummary(kcalRange, domainStart, today);
@@ -719,7 +722,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
     weightSummary.targetKg === null ||
     weightSummary.targetKg <= (weightSummary.startKg ?? Number.POSITIVE_INFINITY);
   const toneFor = (delta: number | null): "good" | "bad" | "neutral" => {
-    if (delta === null || Math.abs(delta) < 0.05) return "neutral";
+    if (maternal || delta === null || Math.abs(delta) < 0.05) return "neutral";
     return (wantDown ? delta < 0 : delta > 0) ? "good" : "bad";
   };
 
@@ -747,7 +750,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
         className="pb-3"
         action={
           <span className="flex items-center gap-2">
-            {weightSummary.latestKg !== null && (
+            {weightSummary.latestKg !== null && !maternal && (
               <Button variant="secondary" onClick={() => setShareOpen(true)}>
                 <Share2 className="size-4" aria-hidden />
                 <span className="max-sm:sr-only">{t("page.share")}</span>
@@ -809,7 +812,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                 </div>
               </div>
 
-              {rate !== null && (
+              {rate !== null && !maternal && (
                 <p
                   className={cn(
                     "mt-2 flex items-center gap-1.5 text-sm font-bold",
@@ -846,44 +849,50 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                     <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
                   </p>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-muted-foreground">{t("summary.down")}</p>
-                  <p
-                    className={cn(
-                      "mt-0.5 text-lg leading-tight font-extrabold tabular-nums",
-                      (weightSummary.deltaKg ?? 0) < 0 && "text-makan-ink",
-                      (weightSummary.deltaKg ?? 0) > 0 && "text-bakar-ink",
-                    )}
-                  >
-                    {weightSummary.deltaKg !== null ? fmtKg(Math.abs(weightSummary.deltaKg)) : "–"}
-                    <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {weightSummary.deltaKg === null
-                      ? t("summary.noData")
-                      : weightSummary.deltaKg < 0
-                        ? t("summary.fromStart")
-                        : weightSummary.deltaKg > 0
-                          ? t("summary.upFromStart")
-                          : t("summary.same")}
-                  </p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-muted-foreground">
-                    {t("summary.remaining")}
-                  </p>
-                  <p className="mt-0.5 text-lg leading-tight font-extrabold tabular-nums">
-                    {weightSummary.remainingKg !== null ? fmtKg(weightSummary.remainingKg) : "–"}
-                    <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {weightSummary.targetKg !== null
-                      ? t("summary.target", { kg: fmtKg(weightSummary.targetKg) })
-                      : t("summary.setTarget")}
-                  </p>
-                </div>
+                {!maternal && (
+                  <>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-muted-foreground">{t("summary.down")}</p>
+                      <p
+                        className={cn(
+                          "mt-0.5 text-lg leading-tight font-extrabold tabular-nums",
+                          (weightSummary.deltaKg ?? 0) < 0 && "text-makan-ink",
+                          (weightSummary.deltaKg ?? 0) > 0 && "text-bakar-ink",
+                        )}
+                      >
+                        {weightSummary.deltaKg !== null ? fmtKg(Math.abs(weightSummary.deltaKg)) : "–"}
+                        <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {weightSummary.deltaKg === null
+                          ? t("summary.noData")
+                          : weightSummary.deltaKg < 0
+                            ? t("summary.fromStart")
+                            : weightSummary.deltaKg > 0
+                              ? t("summary.upFromStart")
+                              : t("summary.same")}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        {t("summary.remaining")}
+                      </p>
+                      <p className="mt-0.5 text-lg leading-tight font-extrabold tabular-nums">
+                        {weightSummary.remainingKg !== null ? fmtKg(weightSummary.remainingKg) : "–"}
+                        <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {weightSummary.targetKg !== null
+                          ? t("summary.target", { kg: fmtKg(weightSummary.targetKg) })
+                          : t("summary.setTarget")}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             </Card>
+
+            {maternal?.mode === "pregnant" && <WeightGainCard onWeigh={openWeigh} />}
 
             <Card aria-label={t("chart.title")} className="p-4 sm:p-5">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -917,7 +926,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                 </div>
               ) : (
                 <>
-                  <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div className={cn("mt-3 grid gap-2", maternal ? "grid-cols-2" : "grid-cols-3")}>
                     <StatCell
                       label={t("stats.change")}
                       value={
@@ -937,17 +946,19 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                       sub={rangeStatsOut.weeklyRateKg === null ? undefined : t("stats.perWeek")}
                       tone={toneFor(rangeStatsOut.weeklyRateKg)}
                     />
-                    <StatCell
-                      label={t("stats.projection")}
-                      value={
-                        rangeStatsOut.projectedDate
-                          ? t("stats.projectionValue", {
-                              month: fmtDate(rangeStatsOut.projectedDate, "month"),
-                            })
-                          : "–"
-                      }
-                      sub={projectionSub(rangeStatsOut, weightSummary.targetKg)}
-                    />
+                    {!maternal && (
+                      <StatCell
+                        label={t("stats.projection")}
+                        value={
+                          rangeStatsOut.projectedDate
+                            ? t("stats.projectionValue", {
+                                month: fmtDate(rangeStatsOut.projectedDate, "month"),
+                              })
+                            : "–"
+                        }
+                        sub={projectionSub(rangeStatsOut, weightSummary.targetKg)}
+                      />
+                    )}
                   </div>
 
                   {rangeEntries.length === 1 && (
@@ -993,7 +1004,8 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                 <p className="mt-1.5">
                   {t("detail.trustTrend")} {t("detail.legend")}
                   {kcalWeekly ? ` ${t("detail.weekly")}` : ""}
-                  {weightSummary.deltaKg !== null &&
+                  {!maternal &&
+                    weightSummary.deltaKg !== null &&
                     ` ${t(weightSummary.deltaKg < 0 ? "detail.totalDown" : "detail.totalUp", {
                       kg: fmtKg(Math.abs(weightSummary.deltaKg)),
                     })}`}
@@ -1078,7 +1090,7 @@ function BeratScreen({ history }: { history: WeightHistory }) {
         </form>
       </Sheet>
 
-      {entries.length > 0 && (
+      {entries.length > 0 && !maternal && (
         <ShareToFeedSheet
           open={shareOpen}
           onOpenChange={setShareOpen}
