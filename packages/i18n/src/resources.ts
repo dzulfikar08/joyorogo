@@ -1,3 +1,4 @@
+import idAuth from "./locales/id/auth.json";
 import idBerat from "./locales/id/berat.json";
 import idCommon from "./locales/id/common.json";
 import idEmail from "./locales/id/email.json";
@@ -11,6 +12,7 @@ import idScan from "./locales/id/scan.json";
 import idBarcode from "./locales/id/barcode.json";
 import idVarperut from "./locales/id/varperut.json";
 
+import enAuth from "./locales/en/auth.json";
 import enBerat from "./locales/en/berat.json";
 import enCommon from "./locales/en/common.json";
 import enEmail from "./locales/en/email.json";
@@ -28,6 +30,7 @@ import type { Locale } from "./locale";
 
 /** Indonesian is the source: its JSON shapes the key types. */
 const id = {
+  auth: idAuth,
   berat: idBerat,
   common: idCommon,
   email: idEmail,
@@ -47,6 +50,7 @@ const id = {
  * forms Indonesian does not have (`_one`).
  */
 const en: typeof id = {
+  auth: enAuth,
   berat: enBerat,
   common: enCommon,
   email: enEmail,

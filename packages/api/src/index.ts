@@ -1,6 +1,7 @@
 import { ORPCError, os } from "@orpc/server";
 
 import type { Context } from "./context";
+import { serverT } from "./lib/messages";
 
 export const o = os.$context<Context>();
 
@@ -8,7 +9,9 @@ export const publicProcedure = o;
 
 const requireAuth = o.middleware(async ({ context, next }) => {
   if (!context.session?.user) {
-    throw new ORPCError("UNAUTHORIZED");
+    throw new ORPCError("UNAUTHORIZED", {
+      message: serverT(context.locale, "errors")("auth.signInRequired"),
+    });
   }
   return next({
     context: {

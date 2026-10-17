@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, isRedirect, Link, redirect } from "@tanstack/react-router";
 import { Users } from "lucide-react";
 import { useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { Mascot } from "@/components/mascot";
 import { markSignInStart } from "@/lib/analytics";
 import { authClient, sessionQuery } from "@/lib/auth-client";
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function RouteComponent() {
+  const { t } = useTranslation("auth");
   const isPending = false;
   const { redirect: returnTo } = Route.useSearch();
 
@@ -82,9 +84,7 @@ function RouteComponent() {
     setEmailBusy(false);
     if (error) {
       setEmailError(
-        error.status === 429
-          ? "Terlalu banyak percobaan. Coba lagi sebentar."
-          : "Email atau kata sandi salah.",
+        error.status === 429 ? t("login.error.rateLimited") : t("login.error.invalidCredentials"),
       );
       return;
     }
@@ -105,7 +105,7 @@ function RouteComponent() {
         <Mascot pose="hero" size="md" eager />
         <h1 className="mt-5 text-[2rem] leading-tight font-extrabold tracking-tight">JoyoRogo</h1>
         <p className="mt-2 max-w-xs text-center text-[0.9375rem] leading-relaxed text-muted-foreground">
-          Turun berat pakai 3 angka harian: makan, bakar, tidur. Foto makananmu, AI yang menghitung.
+          {t("login.tagline")}
         </p>
         {invite.data && (
           <div className="mt-6 flex w-full max-w-xs items-center gap-3 rounded-2xl bg-card p-3 text-left">
@@ -113,7 +113,7 @@ function RouteComponent() {
               <Users className="size-5 text-primary" aria-hidden />
             </span>
             <p className="min-w-0 text-sm text-muted-foreground">
-              Kamu diundang ke
+              {t("login.invite")}
               <span className="block truncate text-base font-extrabold text-foreground">
                 {invite.data.name}
               </span>
@@ -146,12 +146,12 @@ function RouteComponent() {
               d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z"
             />
           </svg>
-          Masuk dengan Google
+          {t("login.google")}
         </Button>
         {/* Vite dev server only: production builds drop this even if .env sets the flag. */}
         {import.meta.env.DEV && env.VITE_DEV_LOGIN === "1" && (
           <Button variant="ghost" size="sm" className="mt-3" onClick={signInDev}>
-            Masuk (dev)
+            {t("login.dev")}
           </Button>
         )}
         {emailForm ? (
@@ -159,8 +159,8 @@ function RouteComponent() {
             <Input
               type="email"
               autoComplete="username"
-              placeholder="Email"
-              aria-label="Email"
+              placeholder={t("login.email.emailLabel")}
+              aria-label={t("login.email.emailLabel")}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
@@ -168,8 +168,8 @@ function RouteComponent() {
             <Input
               type="password"
               autoComplete="current-password"
-              placeholder="Kata sandi"
-              aria-label="Kata sandi"
+              placeholder={t("login.email.passwordLabel")}
+              aria-label={t("login.email.passwordLabel")}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required
@@ -180,7 +180,7 @@ function RouteComponent() {
               </p>
             )}
             <Button type="submit" variant="secondary" disabled={emailBusy}>
-              Masuk
+              {t("login.email.submit")}
             </Button>
           </form>
         ) : (
@@ -189,20 +189,24 @@ function RouteComponent() {
             className="mt-4 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
             onClick={() => setEmailForm(true)}
           >
-            Masuk dengan email
+            {t("login.email.toggle")}
           </button>
         )}
       </main>
       <footer className="pb-8 text-center">
         <p className="text-xs text-muted-foreground">
-          Foto makananmu tidak disimpan.{" "}
-          <Link
-            to="/privasi"
-            className="font-semibold text-foreground underline underline-offset-4 hover:text-foreground/80"
-          >
-            Baca privasinya
-          </Link>
-          .
+          <Trans
+            ns="auth"
+            i18nKey="login.privacyNote"
+            components={{
+              link: (
+                <Link
+                  to="/privasi"
+                  className="font-semibold text-foreground underline underline-offset-4 hover:text-foreground/80"
+                />
+              ),
+            }}
+          />
         </p>
       </footer>
     </div>

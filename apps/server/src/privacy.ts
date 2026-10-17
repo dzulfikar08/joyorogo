@@ -1,6 +1,7 @@
 import type { JoyoAuth } from "@joyorogo/auth";
 import type { Hono } from "hono";
 
+import { serverT } from "@joyorogo/api/lib/messages";
 import {
   deleteAllUserData,
   deleteUserMedia,
@@ -10,6 +11,8 @@ import {
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
 import { revokeGrant, type StravaGrantEnv } from "@joyorogo/api/lib/strava-grant";
 import type { Database } from "@joyorogo/db";
+
+import { requestLocale } from "./context";
 
 type Deps = {
   getDb: () => Database;
@@ -30,7 +33,7 @@ export function registerPrivacyRoutes(app: Hono, deps: Deps) {
       query: { disableCookieCache: true },
     });
     if (!session?.user) {
-      return c.json({ error: "Kamu harus masuk dulu." }, 401);
+      return c.json({ error: serverT(requestLocale(c), "errors")("auth.signInRequired") }, 401);
     }
     const stickerKeys = await userStickerKeys(db, session.user.id);
     await deleteUserSocialData(db, session.user.id);

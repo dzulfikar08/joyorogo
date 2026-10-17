@@ -1,4 +1,5 @@
 import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { serverT } from "@joyorogo/api/lib/messages";
 import { appRouter } from "@joyorogo/api/routers/index";
 import { LOCALE_HEADER, isLocale } from "@joyorogo/i18n";
 import {
@@ -35,7 +36,7 @@ import { registerBillingRoutes } from "./billing";
 import { registerGooglePlayRoutes } from "./google-billing";
 import { registerAdminRoutes } from "./admin";
 import { sendEmail } from "./email";
-import { createContext } from "./context";
+import { createContext, requestLocale } from "./context";
 import { registerBenchRoutes } from "./bench";
 import { registerOgRoutes } from "./og";
 import { registerPrivacyRoutes } from "./privacy";
@@ -179,7 +180,7 @@ app.get("/photo/:photoId", async (c) => {
   }
   const session = await (await createAuth()).api.getSession({ headers: c.req.raw.headers });
   if (!session?.user) {
-    return c.json({ error: "Kamu harus masuk dulu." }, 401);
+    return c.json({ error: serverT(requestLocale(c), "errors")("auth.signInRequired") }, 401);
   }
   if (!("STICKERS" in env) || !env.STICKERS) {
     return c.json({ error: "Foto belum tersedia." }, 404);
@@ -208,7 +209,7 @@ app.get("/var-photo/:photoId", async (c) => {
   }
   const session = await (await createAuth()).api.getSession({ headers: c.req.raw.headers });
   if (!session?.user) {
-    return c.json({ error: "Kamu harus masuk dulu." }, 401);
+    return c.json({ error: serverT(requestLocale(c), "errors")("auth.signInRequired") }, 401);
   }
   if (!("STICKERS" in env) || !env.STICKERS) {
     return c.json({ error: "Foto belum tersedia." }, 404);
@@ -282,7 +283,9 @@ async function servePostPhoto(c: HonoContext, indexParam: string | undefined) {
   const isPublic = row.visibility === "publik" && row.authorPublic;
   if (!isPublic) {
     const session = await (await createAuth()).api.getSession({ headers: c.req.raw.headers });
-    if (!session?.user) return c.json({ error: "Kamu harus masuk dulu." }, 401);
+    if (!session?.user) {
+      return c.json({ error: serverT(requestLocale(c), "errors")("auth.signInRequired") }, 401);
+    }
     if (session.user.id !== row.userId) {
       const db = getDb();
       const notFound = c.json({ error: "Foto tidak ditemukan." }, 404);

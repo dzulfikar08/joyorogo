@@ -1,4 +1,10 @@
 {
+  "auth": {
+    "signInRequired": "Please sign in first.",
+    "appleReauth": "Sign in with Apple again to delete your account.",
+    "appleRevokeFailed": "We couldn't disconnect your Apple account from JoyoRogo. Please try again in a moment.",
+    "mediaDeleteFailed": "We couldn't delete your photos yet. Please try again in a moment."
+  },
   "profile": {
     "onboardingRequired": "Please finish setting up your profile first."
   },

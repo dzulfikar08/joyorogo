@@ -1,4 +1,10 @@
 {
+  "auth": {
+    "signInRequired": "Kamu harus masuk dulu.",
+    "appleReauth": "Masuk ulang dengan Apple untuk menghapus akun.",
+    "appleRevokeFailed": "Akun Apple belum bisa diputus dari JoyoRogo. Coba lagi sebentar.",
+    "mediaDeleteFailed": "Foto belum bisa dihapus. Coba lagi sebentar."
+  },
   "profile": {
     "onboardingRequired": "Lengkapi onboarding dulu ya."
   },

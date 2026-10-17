@@ -10,6 +10,8 @@ import { customAvatarKey } from "../lib/avatar";
 import { deleteAllUserData, deleteUserMedia, deleteUserSocialData, userStickerKeys } from "../lib/privacy";
 import { revokeGrant } from "../lib/strava-grant";
 
+import { serverT } from "../lib/messages";
+
 import { protectedProcedure } from "../index";
 
 export const privacyRouter = {
@@ -68,7 +70,7 @@ export const privacyRouter = {
         const code = input?.appleAuthorizationCode;
         if (!code) {
           throw new ORPCError("BAD_REQUEST", {
-            message: "Masuk ulang dengan Apple untuk menghapus akun.",
+            message: serverT(context.locale, "errors")("auth.appleReauth"),
           });
         }
         const config = appleRevokeConfig(context.env, input?.appleClientId);
@@ -82,7 +84,7 @@ export const privacyRouter = {
           } catch (error) {
             console.error("[privacy] apple revoke failed", error);
             throw new ORPCError("BAD_GATEWAY", {
-              message: "Akun Apple belum bisa diputus dari JoyoRogo. Coba lagi sebentar.",
+              message: serverT(context.locale, "errors")("auth.appleRevokeFailed"),
             });
           }
         }
@@ -99,7 +101,7 @@ export const privacyRouter = {
         } catch (error) {
           console.error("[privacy] media wipe failed", error);
           throw new ORPCError("INTERNAL_SERVER_ERROR", {
-            message: "Foto belum bisa dihapus. Coba lagi sebentar.",
+            message: serverT(context.locale, "errors")("auth.mediaDeleteFailed"),
           });
         }
       }

@@ -6,6 +6,15 @@ import type { Context as HonoContext } from "hono";
 import { createAuth, getDb } from "./services";
 import { env as workerEnv } from "./env.server";
 
+/** Language of a plain Hono request: x-locale, else Accept-Language, else `id`. */
+export function requestLocale(context: HonoContext) {
+  return (
+    matchLocale(context.req.header(LOCALE_HEADER)) ??
+    matchAcceptLanguage(context.req.header("Accept-Language")) ??
+    DEFAULT_LOCALE
+  );
+}
+
 export type CreateContextOptions = {
   context: HonoContext;
 };
@@ -23,10 +32,7 @@ export async function createContext({ context }: CreateContextOptions): Promise<
     auth: null,
     session,
     env: workerEnv as unknown as ApiEnv,
-    locale:
-      matchLocale(context.req.header(LOCALE_HEADER)) ??
-      matchAcceptLanguage(context.req.header("Accept-Language")) ??
-      DEFAULT_LOCALE,
+    locale: requestLocale(context),
     clientIp: context.req.header("CF-Connecting-IP") ?? null,
     waitUntil: (promise) => context.executionCtx.waitUntil(promise),
   };

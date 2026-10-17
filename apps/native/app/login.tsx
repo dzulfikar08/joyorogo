@@ -5,6 +5,7 @@ import * as Linking from "expo-linking";
 import { Redirect, Stack, useLocalSearchParams } from "expo-router";
 import type { Href } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Platform, ScrollView, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -19,6 +20,7 @@ import { queryClient } from "@/utils/orpc";
 import { ENV } from "../src/env";
 
 export default function Login() {
+  const { t } = useTranslation("auth");
   const { data: session, isPending } = authClient.useSession();
   const { next } = useLocalSearchParams<{ next?: string }>();
   // Protected screens (e.g. a gabung invite link opened while signed out)
@@ -72,7 +74,7 @@ export default function Login() {
         nonce: hashedNonce,
       });
       if (!credential.identityToken) {
-        setSignInError("Apple tidak mengirim data masuk. Coba lagi.");
+        setSignInError(t("login.error.appleNoToken"));
         return;
       }
       // Apple returns the name only on the very first authorization, and it is
@@ -89,7 +91,7 @@ export default function Login() {
         },
       });
       if (error) {
-        setSignInError("Gagal masuk dengan Apple. Coba lagi sebentar.");
+        setSignInError(t("login.error.appleFailed"));
         return;
       }
       queryClient.invalidateQueries();
@@ -97,7 +99,7 @@ export default function Login() {
       // Closing the Apple sheet is not an error.
       const code = typeof e === "object" && e !== null && "code" in e ? e.code : undefined;
       if (code === "ERR_REQUEST_CANCELED" || code === "ERR_CANCELED") return;
-      setSignInError("Gagal masuk dengan Apple. Coba lagi sebentar.");
+      setSignInError(t("login.error.appleFailed"));
     }
   };
 
@@ -108,7 +110,7 @@ export default function Login() {
       body: {},
     });
     if (error) {
-      setSignInError("Gagal masuk mode dev. Pastikan server berjalan, lalu coba lagi.");
+      setSignInError(t("login.error.devFailed"));
       return;
     }
     queryClient.invalidateQueries();
@@ -121,15 +123,13 @@ export default function Login() {
       const { error } = await authClient.signIn.email({ email: email.trim(), password });
       if (error) {
         setSignInError(
-          error.status === 429
-            ? "Terlalu banyak percobaan. Coba lagi sebentar."
-            : "Email atau kata sandi salah.",
+          error.status === 429 ? t("login.error.rateLimited") : t("login.error.invalidCredentials"),
         );
         return;
       }
       queryClient.invalidateQueries();
     } catch {
-      setSignInError("Gagal masuk. Periksa koneksi, lalu coba lagi.");
+      setSignInError(t("login.error.network"));
     } finally {
       setEmailBusy(false);
     }
@@ -143,9 +143,7 @@ export default function Login() {
           <View style={styles.hero}>
             <Mascot pose="hero" size="md" />
             <Text style={styles.logo}>JoyoRogo</Text>
-            <Text style={styles.tagline}>
-              Tiga angka tiap hari: boleh makan berapa, harus bakar berapa, butuh tidur berapa jam.
-            </Text>
+            <Text style={styles.tagline}>{t("login.taglineApp")}</Text>
           </View>
           <View style={styles.actions}>
             {appleAvailable ? (
@@ -161,21 +159,21 @@ export default function Login() {
                 onPress={() => void handleAppleSignIn()}
               />
             ) : null}
-            <Button label="Masuk dengan Google" icon="logo-google" onPress={handleGoogleSignIn} />
+            <Button label={t("login.google")} icon="logo-google" onPress={handleGoogleSignIn} />
             {ENV.EXPO_PUBLIC_DEV_LOGIN === "1" ? (
               <Button
                 variant="secondary"
-                label="Masuk (mode dev)"
+                label={t("login.dev")}
                 onPress={() => void handleDevSignIn()}
               />
             ) : null}
             {emailForm ? (
               <View style={styles.emailForm}>
-                <Field label="Email">
+                <Field label={t("login.email.emailLabel")}>
                   <Input
                     value={email}
                     onChangeText={setEmail}
-                    placeholder="nama@email.com"
+                    placeholder={t("login.email.emailPlaceholder")}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoComplete="email"
@@ -183,7 +181,7 @@ export default function Login() {
                     textContentType="username"
                   />
                 </Field>
-                <Field label="Kata sandi">
+                <Field label={t("login.email.passwordLabel")}>
                   <Input
                     value={password}
                     onChangeText={setPassword}
@@ -196,7 +194,7 @@ export default function Login() {
                   />
                 </Field>
                 <Button
-                  label="Masuk"
+                  label={t("login.email.submit")}
                   loading={emailBusy}
                   disabled={email.trim() === "" || password === ""}
                   onPress={() => void handleEmailSignIn()}
@@ -206,7 +204,7 @@ export default function Login() {
               <Button
                 variant="ghost"
                 size="sm"
-                label="Masuk dengan email"
+                label={t("login.email.toggle")}
                 onPress={() => setEmailForm(true)}
               />
             )}
