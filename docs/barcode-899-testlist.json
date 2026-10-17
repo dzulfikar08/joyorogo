@@ -1,0 +1,226 @@
+[
+  {
+    "code": "8991102300322",
+    "name": "Tango Wafer Coklat 20g",
+    "brand": "Tango",
+    "evidence": "https://www.scribd.com/document/359301841/Stok-Barang (store/POS list row \"TANGO WAFER COKLAT 20G\"); https://www.scribd.com/document/408526105/Data-Barang-Kasir-Komp-2019-xls (store/POS list row \"Tango Makanan pcs\")"
+  },
+  {
+    "code": "8992760223022",
+    "name": "Oreo Chocolate Cream biscuit (Indonesia pack)",
+    "brand": "Oreo",
+    "evidence": "https://www.scribd.com/document/823635665/Stok-Baru-2025 (store/POS list row \"OREO COKLAT CREM29G BRG PCS\"); https://www.scribd.com/document/408526105/Data-Barang-Kasir-Komp-2019-xls (store/POS list row \"Oreo Choco Makanan pcs\"); https://world.openfoodfacts.org/product/8992760223022 (OFF: \"oreo (bwn) chocolate 27.6g\")"
+  },
+  {
+    "code": "8997035563544",
+    "name": "Pocari Sweat 350ml",
+    "brand": "Pocari Sweat",
+    "evidence": "https://www.scribd.com/document/405554932/Endang-Cahya-Pe (store/POS list row \"POCARI SWEAT MINUMAN ISOTONIKBTL 350mL\"); https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"POCARY SWEAT 350ML PCS 1001244\"); https://world.openfoodfacts.org/product/8997035563544 (OFF: \"POCARI SWEAT 350ml\")"
+  },
+  {
+    "code": "8996001600146",
+    "name": "Teh Pucuk Harum 350ml",
+    "brand": "Teh Pucuk Harum",
+    "evidence": "https://www.scribd.com/document/408526105/Data-Barang-Kasir-Komp-2019-xls (store/POS list row \"Teh Pucuk 350ml Minuman pcs\"); https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"TEH PUCUK 350ML PCS 1000098\"); https://world.openfoodfacts.org/product/8996001600146 (OFF: \"Teh Pucuk Harum Jasmine 350 ml\")"
+  },
+  {
+    "code": "8996001355756",
+    "name": "Beng-Beng Maxx 32g",
+    "brand": "Beng-Beng",
+    "evidence": "https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"BENGBENG MAX 32G PCS 1003010\"); https://www.scribd.com/document/823635665/Stok-Baru-2025 (store/POS list row \"BENG BENG MAXX BRG PCS\"); https://world.openfoodfacts.org/product/8996001355756 (OFF: \"Beng beng\")"
+  },
+  {
+    "code": "8991001121400",
+    "name": "SilverQueen Almond 68g",
+    "brand": "SilverQueen",
+    "evidence": "https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"SQ ALMOND MILK C 65G PCS 1002093\"); https://www.scribd.com/document/408526105/Data-Barang-Kasir-Komp-2019-xls (store/POS list row \"Silver Quen Almond Makanan pcs\"); https://world.openfoodfacts.org/product/8991001121400 (OFF: \"Almonds with milk chocolate\")"
+  },
+  {
+    "code": "8991002103764",
+    "name": "Good Day Cappuccino 10x25g",
+    "brand": "Good Day",
+    "evidence": "https://www.scribd.com/document/825147975/DATABASE-3400-DATA-ITEM-WARUNG-IPOS4 (store/POS list row \"GOOD DAY CAPPUCCINO PCK 10X25G NA\"); https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"GOODDAY CAPUCINO 25GR GTG 1001567\"); https://world.openfoodfacts.org/product/8991002103764 (OFF: \"Cappuccino\")"
+  },
+  {
+    "code": "8998009010569",
+    "name": "Ultra Milk Coklat 200ml",
+    "brand": "Ultra Milk",
+    "evidence": "https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"ULTRAMILK COK 200ML PCS 1000298\"); https://www.scribd.com/document/823635665/Stok-Baru-2025 (store/POS list row \"ULTRA MILK COKLAT 200ML BRG PCS\"); https://world.openfoodfacts.org/product/8998009010569 (OFF: \"Susu UHT\")"
+  },
+  {
+    "code": "8996001301142",
+    "name": "Roma Biskuit Kelapa 300g",
+    "brand": "Roma",
+    "evidence": "https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"ROMA KELAPA 300G PCS 1000346\"); https://www.scribd.com/document/825147975/DATABASE-3400-DATA-ITEM-WARUNG-IPOS4 (store/POS list row \"ROMA BISKUIT KELAPA 300G NA\"); https://world.openfoodfacts.org/product/8996001301142 (OFF: \"Roma Biskuit Kelapa\")"
+  },
+  {
+    "code": "8999999191368",
+    "name": "Taro Net Chicken 70g",
+    "brand": "Taro",
+    "evidence": "https://www.scribd.com/document/825147975/DATABASE-3400-DATA-ITEM-WARUNG-IPOS4 (store/POS list row \"TARO NET CHICKEN 70GR NA\"); https://www.scribd.com/document/376110491/Barcode-1000-Item (store/POS list row \"TARO NET CHICKEN 70GR\")"
+  },
+  {
+    "code": "8994075230412",
+    "name": "Momogi Keju Twist",
+    "brand": "Momogi",
+    "evidence": "https://www.scribd.com/document/408526105/Data-Barang-Kasir-Komp-2019-xls (store/POS list row \"Momogi Keju Twist Makanan pcs\"); https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"MOMOGI KEJU 5G PCS 1001248\")"
+  },
+  {
+    "code": "8996196002954",
+    "name": "Piattos Rumput Laut 85g",
+    "brand": "Piattos",
+    "evidence": "https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"PIATTOS R LAUT 80G PCS 1001207\"); https://www.scribd.com/document/825147975/DATABASE-3400-DATA-ITEM-WARUNG-IPOS4 (store/POS list row \"PIATTOS RUMPUT LAUT 85GR NA\"); https://world.openfoodfacts.org/product/8996196002954 (OFF: \"Piattos Rumput Laut 75gr\")"
+  },
+  {
+    "code": "8993175532464",
+    "name": "Nabati Richeese Wafer Krim Keju 75g",
+    "brand": "Nabati Richeese",
+    "evidence": "https://www.scribd.com/document/405554932/Endang-Cahya-Pe (store/POS list row \"NABATI RICHEESE WAFER KRIM KEJU PCK 75g\"); https://www.scribd.com/document/823635665/Stok-Baru-2025 (store/POS list row \"NABATI RICHEES 2+1 BRG PCS\"); https://world.openfoodfacts.org/product/8993175532464 (OFF: \"Richeese Wfr Nabati 75G\")"
+  },
+  {
+    "code": "8993175537285",
+    "name": "Nabati Richeese Wafer 145g",
+    "brand": "Nabati Richeese",
+    "evidence": "https://www.scribd.com/document/823635665/Stok-Baru-2025 (store/POS list row \"NABATI KEJU WAFER 145GRAM BRG PCS\"); https://www.scribd.com/document/825147975/DATABASE-3400-DATA-ITEM-WARUNG-IPOS4 (store/POS list row \"RICHEESE NABATI WAFER 145G NA\"); https://world.openfoodfacts.org/product/8993175537285 (OFF: \"Nabati Wafer\")"
+  },
+  {
+    "code": "8992775204009",
+    "name": "Garuda Kacang Atom 130g",
+    "brand": "Garuda",
+    "evidence": "https://www.scribd.com/document/825147975/DATABASE-3400-DATA-ITEM-WARUNG-IPOS4 (store/POS list row \"GARUDA KACANG ATOMPCK 130g NA\"); https://www.scribd.com/document/405554932/Endang-Cahya-Pe (store/POS list row \"GARUDA KACANG ATOMPCK 130g\"); https://world.openfoodfacts.org/product/8992775204009 (OFF: \"Garuda Kacang Atom\")"
+  },
+  {
+    "code": "8998866200301",
+    "name": "Mie Sedaap Goreng 90g",
+    "brand": "Mie Sedaap",
+    "evidence": "https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"SEDAAP GORENG PCS 1000909\"); https://www.scribd.com/document/823635665/Stok-Baru-2025 (store/POS list row \"Mie Sedap Goreng BRG PCS\"); https://world.openfoodfacts.org/product/8998866200301 (OFF: \"Mi Sedaap\")"
+  },
+  {
+    "code": "8998866201452",
+    "name": "Potabee BBQ 35g",
+    "brand": "Potabee",
+    "evidence": "https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"POTABEE BBQ 35G PCS 1002264\"); https://www.scribd.com/document/782458952/so (store/POS list row \"POTABEE PTT CHIPS BBQ 35G\"); https://world.openfoodfacts.org/product/8998866201452 (OFF: \"Potabee Beef BBQ 35Gr\")"
+  },
+  {
+    "code": "8996001600269",
+    "name": "Le Minerale 600ml",
+    "brand": "Le Minerale",
+    "evidence": "https://www.scribd.com/document/782458952/so (store/POS list row \"LE MINERALE AIRMINERAL PET600ML\"); https://www.scribd.com/document/408526105/Data-Barang-Kasir-Komp-2019-xls (store/POS list row \"Le Minerale 600ml Minuman btl\"); https://world.openfoodfacts.org/product/8996001600269 (OFF: \"Mountain Mineral Water\"); https://barcodelive.org/barcode/-8996001600269 (\"Le Minerale Mountain Mineral Water 600mL\")"
+  },
+  {
+    "code": "8996001600221",
+    "name": "Kopiko 78C Coffee Latte 250ml",
+    "brand": "Kopiko",
+    "evidence": "https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"KOPIKO 78C COFFE LATTE 240ML PCS 1002413\"); https://www.scribd.com/document/825147975/DATABASE-3400-DATA-ITEM-WARUNG-IPOS4 (store/POS list row \"KOPIKO COFFEE LATTE 78CBTL 250mL NA\"); https://world.openfoodfacts.org/product/8996001600221 (OFF: \"kopiko coffee latte\")"
+  },
+  {
+    "code": "8992761145026",
+    "name": "Sprite PET 250ml",
+    "brand": "Sprite",
+    "evidence": "https://www.scribd.com/document/408526105/Data-Barang-Kasir-Komp-2019-xls (store/POS list row \"Sprite Imut 250ml Minuman pcs\"); https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"SPRITE 250ML PCS 1000448\"); https://world.openfoodfacts.org/product/8992761145026 (OFF: \"Sprite\")"
+  },
+  {
+    "code": "8996006120014",
+    "name": "Fruit Tea Apel 200ml",
+    "brand": "Sosro Fruit Tea",
+    "evidence": "https://www.scribd.com/document/823635665/Stok-Baru-2025 (store/POS list row \"FRUIT TEA POUCH APEL BRG PCS\"); https://www.scribd.com/document/408526105/Data-Barang-Kasir-Komp-2019-xls (store/POS list row \"Fruit Tea Minuman pcs\")"
+  },
+  {
+    "code": "8992907720018",
+    "name": "Sari Roti Sobek Coklat Keju 216g",
+    "brand": "Sari Roti",
+    "evidence": "https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"SARI ROTI SOBEK COK KEJU 214GR PCS 8000152\"); https://www.scribd.com/document/359301841/Stok-Barang (store/POS list row \"SARI ROTI SOBEK CKLT KEJU 216G\"); https://world.openfoodfacts.org/product/8992907720018 (OFF: \"Sobek Cokelat Keju\")"
+  },
+  {
+    "code": "8992716108816",
+    "name": "Biskuat Original 176g",
+    "brand": "Biskuat",
+    "evidence": "https://www.scribd.com/document/408526105/Data-Barang-Kasir-Komp-2019-xls (store/POS list row \"Biskuat Energi Cokl Makanan pcs\"); https://www.scribd.com/document/782458952/so (store/POS list row \"BISKUAT ENERGI ORI 140G\"); https://world.openfoodfacts.org/product/8992716108816 (OFF: \"8992716108816\")"
+  },
+  {
+    "code": "8993200661305",
+    "name": "Cimory Yogurt Drink Strawberry",
+    "brand": "Cimory",
+    "evidence": "https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"CIMORY STROBERI 240ML PCS 1001065\"); https://www.scribd.com/document/782458952/so (store/POS list row \"CIMORY YOGHURT STRAWBERRY 250ML\"); https://world.openfoodfacts.org/product/8993200661305 (OFF: \"Cimory Yog Str\")"
+  },
+  {
+    "code": "8997004301108",
+    "name": "Oishi Snack Pillows Chocolate 130g",
+    "brand": "Oishi",
+    "evidence": "https://www.scribd.com/document/405554932/Endang-Cahya-Pe (store/POS list row \"OISHI SNACK PILLOWS CHOCOLATE PCH 130g\"); https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"PILLOWS COKLAT 110G PCS 2000677\"); https://world.openfoodfacts.org/product/8997004301108 (OFF: \"Oishi Pillows Cokelat\")"
+  },
+  {
+    "code": "8992753101207",
+    "name": "Frisian Flag Susu Kental Manis Putih Kaleng 375g",
+    "brand": "Frisian Flag",
+    "evidence": "https://www.scribd.com/document/823635665/Stok-Baru-2025 (store/POS list row \"FRISIAN FLAG BENDERA KENTAL MANIS BRG PCS\"); https://www.scribd.com/document/408526105/Data-Barang-Kasir-Komp-2019-xls (store/POS list row \"Bendera Van Kaleng 385g Susu pcs\"); https://world.openfoodfacts.org/product/8992753101207 (OFF: \"Kental Manis\")"
+  },
+  {
+    "code": "8996129803504",
+    "name": "Cleo Air Mineral 550ml",
+    "brand": "Cleo",
+    "evidence": "https://www.scribd.com/document/529867163/Data-Stock-1 (store/POS list row \"CLEO BTL 550ML\"); https://www.scribd.com/document/493152193/Stock-Opname-Barcode-List (store/POS list row \"CLEO 550ML\"); https://world.openfoodfacts.org/product/8996129803504 (OFF: \"Cleo\")"
+  },
+  {
+    "code": "8992702005945",
+    "name": "Indomilk Coklat Botol 190ml",
+    "brand": "Indomilk",
+    "evidence": "https://www.scribd.com/document/408526105/Data-Barang-Kasir-Komp-2019-xls (store/POS list row \"Indomilk Cair Cok 195ml Minuman pcs\"); https://www.scribd.com/document/823635665/Stok-Baru-2025 (store/POS list row \"INDOMILK COKLAT BOTOL 190ML BRG PCS\"); https://world.openfoodfacts.org/product/8992702005945 (OFF: \"indomilk coklat btl 190ML\")"
+  },
+  {
+    "code": "8992775913000",
+    "name": "Chocolatos 3in1 28g",
+    "brand": "Chocolatos",
+    "evidence": "https://www.scribd.com/document/529867163/Data-Stock-1 (store/POS list row \"CHOCOLATOS COKLAT DRINK 5X28GR\"); https://www.scribd.com/document/823635665/Stok-Baru-2025 (store/POS list row \"CHOCOLATOS DRINK 28G BRG PCS\"); https://world.openfoodfacts.org/product/8992775913000 (OFF: \"Chocolatos 3in1\")"
+  },
+  {
+    "code": "0089686598056",
+    "name": "Chitato Sapi Panggang",
+    "brand": "Chitato",
+    "evidence": "https://www.scribd.com/document/408526105/Data-Barang-Kasir-Komp-2019-xls (store/POS list row \"Chitato Sapi 75g Makanan pcs\"); https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"CHITATO SP 68GR PCS 1001722\"); https://world.openfoodfacts.org/product/0089686598056 (OFF: \"Chitato Sapi Panggang 68gr\")"
+  },
+  {
+    "code": "0089686611519",
+    "name": "Qtela Singkong Original",
+    "brand": "Qtela",
+    "evidence": "https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"QTELA ORI 60G PCS 1000867\"); https://www.scribd.com/document/493152193/Stock-Opname-Barcode-List (store/POS list row \"QTELA ORI 60G\"); https://world.openfoodfacts.org/product/0089686611519 (OFF: \"QTELA KERIPIK SINGKONG ORIGINAL BKS 60GR\")"
+  },
+  {
+    "code": "0089686010947",
+    "name": "Indomie Mi Goreng Special 85g",
+    "brand": "Indomie",
+    "evidence": "https://www.scribd.com/document/739106570/Database-Percobaan-Xixixix-08-05-24 (store/POS list row \"INDOMIE G SPESIAL PCS 1000034\"); https://www.scribd.com/document/529867163/Data-Stock-1 (store/POS list row \"INDOMIE GORENG SPECIAL 85GR\"); https://world.openfoodfacts.org/product/0089686010947 (OFF: \"Indomie Mi Goreng Original\")"
+  },
+  {
+    "code": "0089686596564",
+    "name": "Lay's Rasa Sapi Panggang (BBQ)",
+    "brand": "Lay's",
+    "evidence": "https://www.scribd.com/document/493152193/Stock-Opname-Barcode-List (store/POS list row \"LAYS RASA SAPI PANGGANG 68g\"); https://www.scribd.com/document/405554932/Endang-Cahya-Pe (store list row \"LAYS BBQ 75G\"); https://www.scribd.com/document/823635665/Stok-Baru-2025 (store list row \"LAYS SAPI PANGGANG\")"
+  },
+  {
+    "code": "0653314504513",
+    "name": "Kusuka Singkong Rumput Laut 60g",
+    "brand": "Kusuka",
+    "evidence": "https://www.scribd.com/document/825147975/DATABASE-3400-DATA-ITEM-WARUNG-IPOS4 (store/POS list row \"KUSUKA SINGKONG RUMPUT LAUT 60G NA\"); https://www.scribd.com/document/405554932/Endang-Cahya-Pe (store/POS list row \"KUSUKA SINGKONG RUMPUT LAUT 60G\"); https://world.openfoodfacts.org/product/0653314504513 (OFF: \"cassava\")"
+  },
+  {
+    "code": "0089686060065",
+    "name": "Pop Mie Ayam Bawang (cup)",
+    "brand": "Pop Mie",
+    "evidence": "https://www.scribd.com/document/359301841/Stok-Barang (store/POS list row \"POP MIE AYAM BAWANG 57G\"); https://www.scribd.com/document/529867163/Data-Stock-1 (store/POS list row \"POP MIE AYAM BW 75G DEL\")"
+  },
+  {
+    "code": "8997219010406",
+    "name": "unknown (no source returned a name)",
+    "brand": "",
+    "evidence": "prod D1 barcode_product row (status not_found, read-only SELECT 2026-10-17); name not found in OFF, UPCitemdb, Go-UPC web search, barcodelive.org, or the 20 Scribd store lists searched",
+    "prodMiss": true
+  },
+  {
+    "code": "8997235180305",
+    "name": "Cleo Purified Drink Water 1l",
+    "brand": "Cleo",
+    "evidence": "prod D1 barcode_product row (status not_found, read-only SELECT 2026-10-17); name from https://go-upc.com/search?q=8997235180305 (\"Cleo Purified Drink Water 1l\")",
+    "prodMiss": true
+  }
+]

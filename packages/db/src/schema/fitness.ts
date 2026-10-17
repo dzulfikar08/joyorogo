@@ -309,7 +309,8 @@ export const aiUsage = sqliteTable(
     model: text("model").notNull(),
     // "failed": a scan that returned nothing usable (reason in usage_json); never billed or counted.
     // "correction": a typed/spoken fix of a scan result (ai.correctScan); free, only rate-limited.
-    scanType: text("scan_type", { enum: ["anon", "user", "retry", "failed", "correction"] }).notNull(),
+    // "label": a nutrition-label photo read (barcode.readLabel); free, only rate-limited, failures included.
+    scanType: text("scan_type", { enum: ["anon", "user", "retry", "failed", "correction", "label"] }).notNull(),
     latencyMs: integer("latency_ms").notNull(),
     usageJson: text("usage_json"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })

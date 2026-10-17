@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Scan barcode",
-    "subtitle": "Package nutrition from Open Food Facts.",
+    "subtitle": "Package nutrition from the JoyoRogo product database.",
     "resultTitle": "Barcode result",
     "backToScanner": "Back to scanner"
   },
@@ -16,7 +16,7 @@
     "unsupported": "Camera isn't available in this browser.",
     "unsupportedDetail": "This browser can't read barcodes with the camera yet (Chrome on Android can). Type the number printed under the barcode, or use the JoyoRogo app on your phone.",
     "permissionTitle": "Camera needed",
-    "grant": "Allow camera",
+    "grant": "Continue",
     "orType": "Or type the number:",
     "error": {
       "denied": "Camera access was denied. Allow it in your browser settings, or type the number.",
@@ -30,20 +30,20 @@
     "invalid": "That barcode number isn't valid. Check the digits (8, 12 or 13)."
   },
   "lookup": {
-    "searching": "Looking up {{code}} on Open Food Facts…",
+    "searching": "Looking up {{code}}…",
     "failed": {
       "title": "Search failed",
-      "fallback": "Couldn't reach Open Food Facts."
+      "fallback": "Couldn't reach the product database."
     },
     "notFound": {
-      "title": "Not on Open Food Facts yet",
-      "body": "Barcode {{code}} isn't listed, so there are no nutrition numbers. Photograph the product or enter the calories yourself."
+      "title": "Not in the database yet",
+      "body": "Barcode {{code}} isn't listed yet. Photograph its nutrition label and the numbers are saved for every JoyoRogo user."
     },
     "incomplete": {
-      "body": "{{reason}} This product isn't logged automatically. Photograph it or enter the calories from the label.",
+      "body": "{{reason}} Photograph the nutrition label to complete it, or enter the calories yourself.",
       "reason": {
-        "no_kcal": "Open Food Facts has no calorie data for this product.",
-        "implausible": "The nutrition numbers on Open Food Facts look off, so we don't use them."
+        "no_kcal": "This product has no calorie data yet.",
+        "implausible": "The recorded nutrition numbers look off, so we don't use them."
       }
     }
   },
@@ -52,7 +52,9 @@
     "photoNote": "The AI estimates from the photo; it doesn't read the label numbers. If you have the label numbers, enter them yourself.",
     "notes": "About the AI estimate",
     "manual": "Enter calories myself",
-    "scanAnother": "Scan another barcode"
+    "scanAnother": "Scan another barcode",
+    "label": "Photograph the nutrition label",
+    "labelNote": "Just photograph the \"Informasi Nilai Gizi\" table on the pack. The numbers are read automatically, you check them, then they're saved for every user."
   },
   "manual": {
     "name": "Food name",
@@ -66,8 +68,23 @@
     "perServing": "Per serving ({{size}})",
     "unknownProduct": "Barcode {{code}}",
     "notes": "Source & notes",
-    "missing": "Open Food Facts has no {{fields}} data for this product; missing values are logged as unknown, not zero.",
-    "source": "Source: Open Food Facts, a community database. Numbers may differ from your package label; double-check if unsure."
+    "missing": "No {{fields}} data for this product; missing values are logged as unknown, not zero.",
+    "sugar": "Sugar {{value}} g per 100 {{unit}}",
+    "sources": {
+      "off": "Source: Open Food Facts, a community database. Numbers may differ from your package label; double-check if unsure.",
+      "labelPhoto": "Source: a package label photographed by one JoyoRogo user. Nobody has confirmed it yet, so compare it with your package.",
+      "labelPhotoConfirmed": "Source: package label photographed by JoyoRogo users, confirmed by {{count}} people.",
+      "other": "Source: {{source}}. Numbers may differ from your package label; double-check if unsure.",
+      "offLink": "View this product on Open Food Facts"
+    },
+    "community": {
+      "prompt": "These numbers come from another user. Do they match the pack in your hand?",
+      "confirm": "They match",
+      "wrong": "Something differs",
+      "confirming": "Saving...",
+      "confirmed": "Thanks for checking. These numbers are now confirmed by {{count}} users.",
+      "outvoted": "Thanks. These numbers are already confirmed by other users, so your check didn't change them."
+    }
   },
   "macro": {
     "protein": "protein",
@@ -103,6 +120,88 @@
   },
   "errors": {
     "invalidCode": "That barcode isn't valid. Check the digits (8, 12 or 13).",
-    "offUnavailable": "Can't reach Open Food Facts right now. Try again shortly or enter it by hand."
+    "sourcesUnavailable": "Can't reach the product database right now. Try again shortly or enter it by hand.",
+    "implausible": "Those numbers can't be right (over 900 kcal, or over 100 g per 100 g). Check them, especially \"per serving\" versus \"per 100\".",
+    "energyMismatch": "The energy doesn't match the protein, carbohydrate and fat. Check the numbers, or save anyway if the label really says so.",
+    "servingRequired": "Enter the serving size so the numbers can be converted to per 100.",
+    "nameInvalid": "That product name isn't valid. Use the name printed on the pack, without links.",
+    "alreadyKnown": "This product already has complete nutrition data, so no photo is needed.",
+    "contributionLimit": "You've reached today's limit for adding products. Try again tomorrow.",
+    "notConfirmable": "This product can't be confirmed yet.",
+    "aiUnavailable": "The label reader isn't available right now. Enter the numbers yourself.",
+    "labelLimit": "You've used today's {{count}} label photos. Enter the numbers yourself or try again tomorrow.",
+    "labelUnclear": "The label wasn't readable. Retake it closer and without glare, or enter the numbers yourself.",
+    "labelNotLabel": "That doesn't look like an \"Informasi Nilai Gizi\" table. Photograph the table, or enter the numbers yourself.",
+    "labelTimeout": "Reading the label took too long. Try again, or enter the numbers yourself.",
+    "labelFailed": "The label couldn't be read. Try again, or enter the numbers yourself."
+  },
+  "label": {
+    "title": "Nutrition label photo",
+    "intro": "Photograph the \"Informasi Nilai Gizi\" table on the pack. The numbers are read automatically; you check them before saving.",
+    "privacy": "The photo is only read, then deleted. Only the name and nutrition numbers are saved, shared with every JoyoRogo user.",
+    "permission": {
+      "title": "Camera for the label photo",
+      "body": "JoyoRogo needs the camera to photograph the nutrition table on the pack. The photo is sent once to be read, then deleted.",
+      "continue": "Continue",
+      "denied": "Camera access was denied. Open your phone settings to allow it, or pick a photo from your gallery."
+    },
+    "capture": {
+      "label": "Nutrition table photo",
+      "labelHint": "Make sure the \"Informasi Nilai Gizi\" table is clear and free of glare.",
+      "front": "Front of the pack",
+      "frontHint": "Optional, fills in the name and brand for you.",
+      "take": "Take photo",
+      "choose": "Choose from gallery",
+      "retake": "Retake",
+      "remove": "Remove photo",
+      "read": "Read label",
+      "reading": "Reading the label…",
+      "needLabel": "Photograph the nutrition table first.",
+      "photoAlt": "Photo of {{what}}",
+      "manual": "Enter the numbers myself",
+      "labelWhat": "nutrition table",
+      "frontWhat": "front of the pack"
+    },
+    "form": {
+      "title": "Check the numbers",
+      "hint": "Compare with the label on the pack. Fix anything that was misread.",
+      "name": "Product name",
+      "namePlaceholder": "Chitato Sapi Panggang",
+      "brand": "Brand",
+      "quantity": "Net content",
+      "serving": "Serving size ({{unit}})",
+      "unit": "Unit",
+      "basis": "Label numbers are per",
+      "basisServing": "Serving",
+      "basisPer100": "100 {{unit}}",
+      "kcal": "Total energy (kcal)",
+      "protein": "Protein (g)",
+      "carbs": "Total carbohydrate (g)",
+      "fat": "Total fat (g)",
+      "fiber": "Dietary fiber (g)",
+      "sugar": "Sugar (g)",
+      "preview": "Equals {{kcal}} kcal per 100 {{unit}}",
+      "save": "Save for all users",
+      "saving": "Saving...",
+      "unusual": "It matches the label, save",
+      "nameRequired": "Enter the product name.",
+      "kcalRequired": "Enter the total energy, e.g. 150.",
+      "servingRequired": "Enter the serving size, or switch to \"per 100\" if the label uses that.",
+      "numberInvalid": "Numbers only, e.g. 12.5."
+    },
+    "warning": {
+      "no_serving_size": "The serving size couldn't be read. Fill it in from the label.",
+      "no_energy": "The total energy couldn't be read. Fill it in from the label.",
+      "columns_disagree": "The \"per serving\" and \"per 100\" columns don't match. Check which one you copied.",
+      "energy_mismatch": "The energy doesn't match the protein, carbohydrate and fat. Check the numbers.",
+      "implausible": "These numbers can't be right. Check them, including \"per serving\" versus \"per 100\"."
+    },
+    "thanks": {
+      "title": "Thank you!",
+      "saved": "Thanks, now every JoyoRogo user can scan this product.",
+      "confirmed": "Thanks, your numbers match another user's. This product is now confirmed by {{count}} people and every JoyoRogo user can scan it.",
+      "outvoted": "Thanks. Your numbers differ from what other users confirmed, so they aren't used yet. If more people agree with you, they will replace the current ones.",
+      "continue": "Log this food"
+    }
   }
 }

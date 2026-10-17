@@ -55,7 +55,9 @@ async function seedUserData(userId: string, tag: string) {
      INSERT INTO scan_feedback (id, user_id, photo_id, rating, reasons_json, note, source)
        VALUES ('sf1-${userId}', '${userId}', 'photo', 'kurang_akurat', '["keep_photo"]', 'siomay', 'web');
      INSERT INTO ai_usage (id, user_id, model, scan_type, latency_ms)
-       VALUES ('ai1-${userId}', '${userId}', 'test-model', 'user', 900);`,
+       VALUES ('ai1-${userId}', '${userId}', 'test-model', 'user', 900);
+     INSERT INTO barcode_contribution (id, code, user_id, name, unit, kcal_100)
+       VALUES ('bc1-${userId}', '8996001600146', '${userId}', 'Teh Pucuk', 'ml', 29);`,
   );
 }
 
@@ -95,6 +97,10 @@ describe("deleteAllUserData", () => {
     for (const table of FITNESS_TABLES) {
       expect(await count(table, U1)).toBe(0);
     }
+    // Label contributions stay in the shared database but lose the link to U1.
+    expect(await count("barcode_contribution")).toBe(2);
+    expect(await count("barcode_contribution", U1)).toBe(0);
+    expect(await count("barcode_contribution", U2)).toBe(1);
     expect(await count("weight_log", U2)).toBe(2);
     expect(await count("profile", U2)).toBe(1);
     expect(await count('"user"')).toBe(2);

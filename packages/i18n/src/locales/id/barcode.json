@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Pindai barcode",
-    "subtitle": "Angka gizi kemasan dari Open Food Facts.",
+    "subtitle": "Angka gizi kemasan dari database produk JoyoRogo.",
     "resultTitle": "Hasil barcode",
     "backToScanner": "Kembali ke pemindai"
   },
@@ -16,7 +16,7 @@
     "unsupported": "Kamera tidak tersedia di browser ini.",
     "unsupportedDetail": "Browser ini belum bisa membaca barcode lewat kamera (didukung Chrome di Android). Ketik nomor yang tertera di bawah barcode, atau pakai aplikasi JoyoRogo di HP.",
     "permissionTitle": "Kamera dibutuhkan",
-    "grant": "Beri izin kamera",
+    "grant": "Lanjut",
     "orType": "Atau ketik nomornya:",
     "error": {
       "denied": "Izin kamera ditolak. Izinkan kamera di pengaturan browser, atau ketik nomornya.",
@@ -30,20 +30,20 @@
     "invalid": "Nomor barcode tidak valid. Cek lagi angkanya (8, 12, atau 13 digit)."
   },
   "lookup": {
-    "searching": "Mencari {{code}} di Open Food Facts…",
+    "searching": "Mencari {{code}}…",
     "failed": {
       "title": "Pencarian gagal",
-      "fallback": "Open Food Facts tidak bisa dihubungi."
+      "fallback": "Database produk lagi tidak bisa dihubungi."
     },
     "notFound": {
-      "title": "Produk belum ada di Open Food Facts",
-      "body": "Barcode {{code}} belum terdaftar, jadi belum ada angka gizinya. Foto produknya atau isi kalorinya sendiri."
+      "title": "Produk ini belum ada di database",
+      "body": "Barcode {{code}} belum terdaftar. Foto label gizinya, angkanya tersimpan dan bisa dipakai semua pengguna JoyoRogo."
     },
     "incomplete": {
-      "body": "{{reason}} Produk ini tidak dicatat otomatis. Foto produknya atau isi kalori dari label.",
+      "body": "{{reason}} Foto label gizinya supaya angkanya lengkap, atau isi kalori sendiri.",
       "reason": {
-        "no_kcal": "Open Food Facts belum punya data kalori untuk produk ini.",
-        "implausible": "Angka gizi di Open Food Facts terlihat janggal, jadi tidak kami pakai."
+        "no_kcal": "Produk ini belum punya data kalori.",
+        "implausible": "Angka gizi yang tercatat terlihat janggal, jadi tidak kami pakai."
       }
     }
   },
@@ -52,7 +52,9 @@
     "photoNote": "AI memperkirakan dari foto, bukan membaca angka di label. Kalau kamu punya angka dari label, isi sendiri.",
     "notes": "Tentang perkiraan AI",
     "manual": "Isi kalori sendiri",
-    "scanAnother": "Pindai barcode lain"
+    "scanAnother": "Pindai barcode lain",
+    "label": "Foto label gizinya",
+    "labelNote": "Cukup foto tabel \"Informasi Nilai Gizi\" di kemasan. Angkanya dibaca otomatis, kamu cek dulu, lalu tersimpan untuk semua pengguna."
   },
   "manual": {
     "name": "Nama makanan",
@@ -66,8 +68,23 @@
     "perServing": "Per sajian ({{size}})",
     "unknownProduct": "Barcode {{code}}",
     "notes": "Sumber & catatan",
-    "missing": "Open Food Facts belum punya data {{fields}} untuk produk ini; yang kosong dicatat sebagai tidak diketahui, bukan nol.",
-    "source": "Sumber: Open Food Facts, basis data komunitas. Angkanya bisa beda dari label kemasanmu; cek lagi kalau ragu."
+    "missing": "Data {{fields}} belum ada untuk produk ini; yang kosong dicatat sebagai tidak diketahui, bukan nol.",
+    "sugar": "Gula {{value}} g per 100 {{unit}}",
+    "sources": {
+      "off": "Sumber: Open Food Facts, basis data komunitas. Angkanya bisa beda dari label kemasanmu; cek lagi kalau ragu.",
+      "labelPhoto": "Sumber: label kemasan yang difoto seorang pengguna JoyoRogo. Belum ada yang mengonfirmasi, jadi cocokkan dengan kemasanmu.",
+      "labelPhotoConfirmed": "Sumber: label kemasan yang difoto pengguna JoyoRogo, dikonfirmasi {{count}} orang.",
+      "other": "Sumber: {{source}}. Angkanya bisa beda dari label kemasanmu; cek lagi kalau ragu.",
+      "offLink": "Lihat produk ini di Open Food Facts"
+    },
+    "community": {
+      "prompt": "Angka ini dari pengguna lain. Cocok dengan kemasan di tanganmu?",
+      "confirm": "Cocok",
+      "wrong": "Ada yang beda",
+      "confirming": "Menyimpan...",
+      "confirmed": "Makasih sudah mengecek. Angka ini sekarang dikonfirmasi {{count}} pengguna.",
+      "outvoted": "Makasih. Angka ini sudah dikonfirmasi pengguna lain, jadi pengecekanmu tidak mengubahnya."
+    }
   },
   "macro": {
     "protein": "protein",
@@ -103,6 +120,88 @@
   },
   "errors": {
     "invalidCode": "Nomor barcode tidak valid. Cek lagi angkanya (8, 12, atau 13 digit).",
-    "offUnavailable": "Open Food Facts lagi tidak bisa dihubungi. Coba lagi sebentar atau isi manual."
+    "sourcesUnavailable": "Database produk lagi tidak bisa dihubungi. Coba lagi sebentar atau isi manual.",
+    "implausible": "Angkanya tidak masuk akal (lebih dari 900 kkal atau lebih dari 100 g per 100 g). Cek lagi, terutama \"per sajian\" atau \"per 100\".",
+    "energyMismatch": "Energi tidak cocok dengan protein, karbohidrat, dan lemaknya. Cek lagi angkanya, atau simpan kalau memang begitu di labelnya.",
+    "servingRequired": "Isi takaran sajiannya supaya angkanya bisa dihitung per 100.",
+    "nameInvalid": "Nama produk tidak valid. Pakai nama yang tertulis di kemasan, tanpa tautan.",
+    "alreadyKnown": "Produk ini sudah punya angka gizi lengkap, jadi tidak perlu difoto.",
+    "contributionLimit": "Batas harian untuk menambah produk sudah habis. Coba lagi besok.",
+    "notConfirmable": "Produk ini belum bisa dikonfirmasi.",
+    "aiUnavailable": "Pembaca label lagi tidak tersedia. Isi angkanya sendiri.",
+    "labelLimit": "Batas {{count}} foto label per hari sudah habis. Isi angkanya sendiri atau coba lagi besok.",
+    "labelUnclear": "Labelnya kurang jelas terbaca. Foto ulang lebih dekat dan tanpa silau, atau isi angkanya sendiri.",
+    "labelNotLabel": "Itu sepertinya bukan tabel \"Informasi Nilai Gizi\". Foto bagian tabelnya, atau isi angkanya sendiri.",
+    "labelTimeout": "Membaca label terlalu lama. Coba lagi, atau isi angkanya sendiri.",
+    "labelFailed": "Label gagal dibaca. Coba lagi, atau isi angkanya sendiri."
+  },
+  "label": {
+    "title": "Foto label gizi",
+    "intro": "Foto tabel \"Informasi Nilai Gizi\" di kemasan. Angkanya dibaca otomatis, kamu cek dulu sebelum disimpan.",
+    "privacy": "Fotonya cuma dibaca lalu dihapus. Yang tersimpan hanya nama dan angka gizinya, dibagikan ke semua pengguna JoyoRogo.",
+    "permission": {
+      "title": "Kamera untuk memotret label",
+      "body": "JoyoRogo butuh kamera untuk memotret tabel gizi di kemasan. Foto dikirim sekali untuk dibaca, lalu dihapus.",
+      "continue": "Lanjut",
+      "denied": "Izin kamera ditolak. Buka pengaturan ponsel untuk mengizinkan kamera, atau pilih foto dari galeri."
+    },
+    "capture": {
+      "label": "Foto tabel gizi",
+      "labelHint": "Pastikan tabel \"Informasi Nilai Gizi\" terlihat jelas dan tidak silau.",
+      "front": "Foto depan kemasan",
+      "frontHint": "Opsional, untuk mengisi nama dan merek otomatis.",
+      "take": "Ambil foto",
+      "choose": "Pilih dari galeri",
+      "retake": "Foto ulang",
+      "remove": "Hapus foto",
+      "read": "Baca label",
+      "reading": "Membaca label…",
+      "needLabel": "Foto tabel gizinya dulu.",
+      "photoAlt": "Foto {{what}}",
+      "manual": "Isi angkanya sendiri",
+      "labelWhat": "tabel gizi",
+      "frontWhat": "depan kemasan"
+    },
+    "form": {
+      "title": "Cek angkanya",
+      "hint": "Cocokkan dengan label di kemasan. Perbaiki kalau ada yang salah baca.",
+      "name": "Nama produk",
+      "namePlaceholder": "Chitato Sapi Panggang",
+      "brand": "Merek",
+      "quantity": "Isi bersih",
+      "serving": "Takaran saji ({{unit}})",
+      "unit": "Satuan",
+      "basis": "Angka di label per",
+      "basisServing": "Sajian",
+      "basisPer100": "100 {{unit}}",
+      "kcal": "Energi total (kkal)",
+      "protein": "Protein (g)",
+      "carbs": "Karbohidrat total (g)",
+      "fat": "Lemak total (g)",
+      "fiber": "Serat pangan (g)",
+      "sugar": "Gula (g)",
+      "preview": "Setara {{kcal}} kkal per 100 {{unit}}",
+      "save": "Simpan untuk semua pengguna",
+      "saving": "Menyimpan...",
+      "unusual": "Sudah sesuai label, simpan",
+      "nameRequired": "Isi nama produknya.",
+      "kcalRequired": "Isi energi totalnya, contoh: 150.",
+      "servingRequired": "Isi takaran sajiannya, atau ganti ke \"per 100\" kalau label memakai itu.",
+      "numberInvalid": "Isi angka saja, contoh: 12,5."
+    },
+    "warning": {
+      "no_serving_size": "Takaran saji tidak terbaca. Isi dari label.",
+      "no_energy": "Energi total tidak terbaca. Isi dari label.",
+      "columns_disagree": "Kolom \"per sajian\" dan \"per 100\" tidak cocok. Cek lagi mana yang kamu salin.",
+      "energy_mismatch": "Energi dan protein, karbohidrat, lemaknya tidak cocok. Cek lagi angkanya.",
+      "implausible": "Angkanya tidak masuk akal. Cek lagi angkanya, termasuk \"per sajian\" atau \"per 100\"."
+    },
+    "thanks": {
+      "title": "Terima kasih!",
+      "saved": "Terima kasih, sekarang semua pengguna JoyoRogo bisa scan produk ini.",
+      "confirmed": "Terima kasih, angkamu cocok dengan pengguna lain. Produk ini sekarang dikonfirmasi {{count}} orang dan semua pengguna JoyoRogo bisa scan.",
+      "outvoted": "Terima kasih. Angkamu beda dengan yang sudah dikonfirmasi pengguna lain, jadi belum dipakai. Kalau makin banyak yang sama, angkanya akan diganti.",
+      "continue": "Catat makanannya"
+    }
   }
 }

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   OFF_USER_AGENT,
-  OffUnavailableError,
+  SourceUnavailableError,
   classifyProduct,
   fetchOffProduct,
   normalizeBarcode,
@@ -39,6 +39,8 @@ const TEH_PUCUK = {
   },
 };
 
+const OFF = { source: "off", contributors: 0 };
+
 describe("normalizeBarcode", () => {
   test("UPC-A is zero-padded to EAN-13, the same key a scanner reports", () => {
     expect(normalizeBarcode("089686010947")).toBe("0089686010947");
@@ -65,10 +67,12 @@ describe("parseOffProduct + classifyProduct", () => {
     const parsed = parseOffProduct(INDOMIE)!;
     expect(parsed.brand).toBe("Indofood");
     expect(parsed.unit).toBe("g");
-    const result = classifyProduct("0089686010947", parsed);
+    const result = classifyProduct("0089686010947", parsed, OFF);
     expect(result.status).toBe("found");
     if (result.status !== "found") return;
     expect(result.missing).toEqual([]);
+    expect(result.source).toBe("off");
+    expect(result.sugar100).toBeNull();
     expect(result.per100.kcal).toBeCloseTo(470.59, 1);
     expect(result.perServing).toMatchObject({ grams: 85, kcal: 400, protein: 7, carbs: 55, fat: 16 });
   });
@@ -77,7 +81,7 @@ describe("parseOffProduct + classifyProduct", () => {
     const parsed = parseOffProduct(TEH_PUCUK)!;
     expect(parsed.unit).toBe("ml");
     expect(parsed.servingSize).toBe(240);
-    const result = classifyProduct("8996001600146", parsed);
+    const result = classifyProduct("8996001600146", parsed, OFF);
     expect(result.status).toBe("found");
     if (result.status !== "found") return;
     expect(result.missing).toEqual(["fiber"]);
@@ -96,7 +100,7 @@ describe("parseOffProduct + classifyProduct", () => {
   test("no calories is incomplete, never zero", () => {
     const parsed = parseOffProduct({ product_name: "Aqua Botol 600 ml", nutriments: {} })!;
     expect(parsed.kcal100).toBeNull();
-    expect(classifyProduct("8886008101053", parsed).status).toBe("incomplete");
+    expect(classifyProduct("8886008101053", parsed, OFF).status).toBe("incomplete");
   });
 
   test("impossible numbers are incomplete", () => {
@@ -104,12 +108,12 @@ describe("parseOffProduct + classifyProduct", () => {
       product_name: "X",
       nutriments: { "energy-kcal_100g": 4700 },
     })!;
-    expect(classifyProduct("1", highKcal).status).toBe("incomplete");
+    expect(classifyProduct("1", highKcal, OFF).status).toBe("incomplete");
     const bigMacros = parseOffProduct({
       product_name: "X",
       nutriments: { "energy-kcal_100g": 300, proteins_100g: 60, carbohydrates_100g: 60, fat_100g: 20 },
     })!;
-    expect(classifyProduct("1", bigMacros).status).toBe("incomplete");
+    expect(classifyProduct("1", bigMacros, OFF).status).toBe("incomplete");
   });
 
   test("nameless products are dropped", () => {
@@ -139,9 +143,9 @@ describe("fetchOffProduct", () => {
   });
 
   test("429, 5xx and network failure are outages, not misses", async () => {
-    await expect(fetchOffProduct("1", reply(429, {}))).rejects.toBeInstanceOf(OffUnavailableError);
-    await expect(fetchOffProduct("1", reply(503, {}))).rejects.toBeInstanceOf(OffUnavailableError);
+    await expect(fetchOffProduct("1", reply(429, {}))).rejects.toBeInstanceOf(SourceUnavailableError);
+    await expect(fetchOffProduct("1", reply(503, {}))).rejects.toBeInstanceOf(SourceUnavailableError);
     const down = (() => Promise.reject(new Error("net"))) as unknown as typeof fetch;
-    await expect(fetchOffProduct("1", down)).rejects.toBeInstanceOf(OffUnavailableError);
+    await expect(fetchOffProduct("1", down)).rejects.toBeInstanceOf(SourceUnavailableError);
   });
 });

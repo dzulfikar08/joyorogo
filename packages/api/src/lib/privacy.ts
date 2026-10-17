@@ -31,6 +31,7 @@ import {
   teamNudge,
 } from "@joyorogo/db/schema/social";
 import { savedFood } from "@joyorogo/db/schema/saved-foods";
+import { barcodeContribution } from "@joyorogo/db/schema/barcode";
 import { teamChallengeMember } from "@joyorogo/db/schema/challenge";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 
@@ -137,6 +138,9 @@ export function deleteAllUserData(db: Database, userId: string) {
     // Ratings and notes the user wrote on scan results.
     db.delete(scanFeedback).where(eq(scanFeedback.userId, userId)),
     db.delete(emailLog).where(eq(emailLog.userId, userId)),
+    // Nutrition values the user read off a label belong to the shared product
+    // database: they stay, but stop being linked to the person.
+    db.update(barcodeContribution).set({ userId: null }).where(eq(barcodeContribution.userId, userId)),
   ]);
 }
 

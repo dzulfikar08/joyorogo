@@ -1,6 +1,8 @@
 /**
- * Barcode -> nutrition via Open Food Facts (OFF), shared by the API router and
- * its tests. Pure parsing plus one fetch wrapper; caching lives in the router.
+ * Barcode -> nutrition: product types, GTIN normalisation, the Open Food Facts
+ * (OFF) parser and the plausibility rules shared by every source and by label
+ * photos. Pure parsing plus one fetch wrapper; the source chain and caching
+ * live in barcode-lookup.ts.
  *
  * OFF reports nutrients per 100 g (per 100 ml for drinks) and, when the label
  * has it, a serving size. Nothing here guesses: a missing nutrient stays null
@@ -32,8 +34,8 @@ const OFF_FIELDS = [
 const offResponseSchema = z.object({ status: z.number().optional(), product: z.unknown().optional() });
 const looseRecord = z.record(z.string(), z.unknown());
 
-/** A found product's data as OFF reports it, per 100 g/ml. Same shape as the cache row. */
-export type OffProduct = {
+/** A found product's data per 100 g/ml, whichever source it came from. Same shape as the cache row. */
+export type ProductData = {
   name: string;
   brand: string | null;
   quantity: string | null;
@@ -44,7 +46,15 @@ export type OffProduct = {
   carbs100: number | null;
   fat100: number | null;
   fiber100: number | null;
+  sugar100: number | null;
   imageUrl: string | null;
+};
+
+/** Where a product's numbers came from: a lookup source id, or a user's label photo. */
+export type BarcodeOrigin = {
+  source: string;
+  /** label_photo only: how many different users' submissions agree (0 for lookup sources). */
+  contributors: number;
 };
 
 export type BarcodeMacro = "protein" | "carbs" | "fat" | "fiber";
@@ -63,10 +73,11 @@ export type BarcodeIncompleteReason = "no_kcal" | "implausible";
 export type BarcodeLookup =
   | { status: "not_found"; code: string }
   | {
-      // OFF knows the product but its label data cannot be logged safely.
+      // A source knows the product but its label data cannot be logged safely.
       status: "incomplete";
       code: string;
       product: BarcodeProductInfo;
+      source: string;
       /** Stable code; clients look the copy up in `barcode:lookup.incomplete.reason.*`. */
       reason: BarcodeIncompleteReason;
     }
@@ -74,6 +85,14 @@ export type BarcodeLookup =
       status: "found";
       code: string;
       product: BarcodeProductInfo;
+      /** Source id ('off', ..., or 'label_photo' for community values) clients show as the source line. */
+      source: string;
+      /** label_photo: users whose submissions agree with these values; 0 otherwise. */
+      contributors: number;
+      /** Grams of sugar per 100 g/ml when known; shown, not logged (the diary has no sugar column). */
+      sugar100: number | null;
+      /** label_photo rows: this user's own submission is among the agreeing ones; set per caller by the router. */
+      mine?: boolean;
       /** Baseline for portionFromGrams: 100 g/ml of the product. */
       per100: PortionValues;
       /** One printed serving, when OFF has its size. */
@@ -83,11 +102,11 @@ export type BarcodeLookup =
       missing: BarcodeMacro[];
     };
 
-/** Thrown when OFF cannot be reached (network, timeout, 429, 5xx); never cached. */
-export class OffUnavailableError extends Error {
+/** Thrown when a source cannot be reached (network, timeout, 429, 5xx); never cached. */
+export class SourceUnavailableError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "OffUnavailableError";
+    this.name = "SourceUnavailableError";
   }
 }
 
@@ -141,7 +160,7 @@ const KJ_PER_KCAL = 4.184;
  * Maps an OFF `product` object. Returns null when it has no name at all (there
  * is nothing the user could recognise); nutrient gaps are kept as null.
  */
-export function parseOffProduct(raw: unknown): OffProduct | null {
+export function parseOffProduct(raw: unknown): ProductData | null {
   const record = looseRecord.safeParse(raw);
   if (!record.success) return null;
   const p = record.data;
@@ -166,16 +185,34 @@ export function parseOffProduct(raw: unknown): OffProduct | null {
     carbs100: per100(nutriments, "carbohydrates"),
     fat100: per100(nutriments, "fat"),
     fiber100: per100(nutriments, "fiber"),
+    sugar100: per100(nutriments, "sugars"),
     imageUrl: str(p.image_front_small_url, 500),
   };
 }
 
 /**
- * Decides what the app may do with a parsed product. Incomplete = no calories,
- * or numbers that cannot be true (more than pure fat's 900 kcal, or macros
- * adding up to over 100 g in 100 g): crowd-sourced data has both.
+ * Numbers that cannot be true: more than pure fat's 900 kcal, or macros adding
+ * up to over 100 g in 100 g. Crowd-sourced data and misread labels have both.
  */
-export function classifyProduct(code: string, product: OffProduct): BarcodeLookup {
+export function isImplausible(values: {
+  kcal100: number;
+  protein100: number | null;
+  carbs100: number | null;
+  fat100: number | null;
+}): boolean {
+  const macroSum = (values.protein100 ?? 0) + (values.carbs100 ?? 0) + (values.fat100 ?? 0);
+  return values.kcal100 > 950 || macroSum > 105;
+}
+
+/**
+ * Decides what the app may do with a parsed product. Incomplete = no calories,
+ * or implausible numbers (see isImplausible).
+ */
+export function classifyProduct(
+  code: string,
+  product: ProductData,
+  origin: BarcodeOrigin,
+): BarcodeLookup {
   const info: BarcodeProductInfo = {
     code,
     name: product.name,
@@ -190,15 +227,16 @@ export function classifyProduct(code: string, product: OffProduct): BarcodeLooku
       status: "incomplete",
       code,
       product: info,
+      source: origin.source,
       reason: "no_kcal",
     };
   }
-  const macroSum = (protein100 ?? 0) + (carbs100 ?? 0) + (fat100 ?? 0);
-  if (kcal100 > 950 || macroSum > 105) {
+  if (isImplausible({ kcal100, protein100, carbs100, fat100 })) {
     return {
       status: "incomplete",
       code,
       product: info,
+      source: origin.source,
       reason: "implausible",
     };
   }
@@ -224,6 +262,9 @@ export function classifyProduct(code: string, product: OffProduct): BarcodeLooku
     status: "found",
     code,
     product: info,
+    source: origin.source,
+    contributors: origin.contributors,
+    sugar100: product.sugar100,
     per100: base,
     perServing: product.servingSize ? portionFromGrams(base, product.servingSize) : null,
     servingSize: product.servingSize,
@@ -233,13 +274,13 @@ export function classifyProduct(code: string, product: OffProduct): BarcodeLooku
 
 /**
  * One OFF v2 product request. Null = OFF has no such product (404 or status 0).
- * Network failures, timeouts, 429 and 5xx throw OffUnavailableError so the
+ * Network failures, timeouts, 429 and 5xx throw SourceUnavailableError so the
  * caller can serve a stale cache row and never caches an outage as a miss.
  */
 export async function fetchOffProduct(
   code: string,
   fetchFn: typeof fetch = fetch,
-): Promise<OffProduct | null> {
+): Promise<ProductData | null> {
   let res: Response;
   try {
     res = await fetchFn(
@@ -247,15 +288,15 @@ export async function fetchOffProduct(
       { headers: { "User-Agent": OFF_USER_AGENT }, signal: AbortSignal.timeout(8000) },
     );
   } catch {
-    throw new OffUnavailableError("Open Food Facts did not respond.");
+    throw new SourceUnavailableError("Open Food Facts did not respond.");
   }
   if (res.status === 404) return null;
-  if (!res.ok) throw new OffUnavailableError(`Open Food Facts replied ${res.status}.`);
+  if (!res.ok) throw new SourceUnavailableError(`Open Food Facts replied ${res.status}.`);
   let body: z.infer<typeof offResponseSchema>;
   try {
     body = offResponseSchema.parse(await res.json());
   } catch {
-    throw new OffUnavailableError("Open Food Facts reply was unreadable.");
+    throw new SourceUnavailableError("Open Food Facts reply was unreadable.");
   }
   if (body.status !== 1) return null;
   return parseOffProduct(body.product);
