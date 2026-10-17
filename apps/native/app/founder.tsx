@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import type { Href } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AppState, Linking, Platform, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -31,23 +32,35 @@ import {
   usePlayRestore,
   type CheckoutPlan,
 } from "@/components/billing";
+import { Disclosure } from "@/components/disclosure";
 import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage } from "@/utils/format";
+import { errorMessage, fmtIdr } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 /** Why the paywall opened; picks the subhead and nothing else. */
-type PaywallFrom = "onboarding" | "quota" | "banner" | "profile" | "fitness" | "challenge" | "joyofit";
+const PAYWALL_FROM = [
+  "onboarding",
+  "quota",
+  "banner",
+  "profile",
+  "fitness",
+  "challenge",
+  "joyofit",
+] as const;
+type PaywallFrom = (typeof PAYWALL_FROM)[number];
 
 export default function FounderPaywall() {
+  const { t } = useTranslation("billing");
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const toast = useToast();
-  const { next, from } = useLocalSearchParams<{ next?: string; from?: PaywallFrom }>();
+  const { next, from } = useLocalSearchParams<{ next?: string; from?: string }>();
   // Callers only pass internal routes here ("/", "/makan", "/profil").
   const destination = (
     typeof next === "string" && next !== "" ? next : "/"
   ) as Href;
+  const subheadFrom: PaywallFrom = PAYWALL_FROM.find((value) => value === from) ?? "banner";
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   const config = useAppConfig();
   const ios = Platform.OS === "ios";
@@ -101,65 +114,59 @@ export default function FounderPaywall() {
       try {
         const result = await playBuy.mutateAsync(plan);
         if (result === "pending") {
-          toast.info(
-            "Menunggu pembayaran",
-            "Pro aktif otomatis setelah pembayaran di Google Play selesai.",
-          );
+          toast.info(t("toast.waitingTitle"), t("toast.waitingPlay"));
         }
       } catch (e) {
-        toast.error("Pembayaran gagal", errorMessage(e));
+        toast.error(t("toast.payFailed"), errorMessage(e));
       }
       return;
     }
     if (!ios) {
-      checkout.start((e) => toast.error("Pembayaran gagal", errorMessage(e)));
+      checkout.start((e) => toast.error(t("toast.payFailed"), errorMessage(e)));
       return;
     }
     try {
       await purchase.mutateAsync(plan);
     } catch (e) {
-      toast.error("Pembayaran gagal", errorMessage(e));
+      toast.error(t("toast.payFailed"), errorMessage(e));
     }
   };
   const restoreApple = async () => {
     try {
       const summary = await appleRestore.mutateAsync();
       if (summary.accepted > 0) {
-        toast.success("Pembelian dipulihkan", "JoyoRogo Pro aktif.");
+        toast.success(t("toast.restoredTitle"), t("toast.restoredBody"));
       } else if (summary.rejected > 0) {
-        toast.error(
-          "Tidak bisa dipulihkan",
-          "Langganan ini sudah terhubung ke akun JoyoRogo lain.",
-        );
+        toast.error(t("toast.restoreRejectedTitle"), t("toast.restoreRejectedApple"));
       } else {
-        toast.info("Tidak ada langganan", "Apple ID ini belum punya langganan Pro aktif.");
+        toast.info(t("toast.noSubscriptionTitle"), t("toast.noSubscriptionApple"));
       }
     } catch (e) {
-      toast.error("Pemulihan gagal", errorMessage(e));
+      toast.error(t("toast.restoreFailed"), errorMessage(e));
     }
   };
   const restore = async () => {
     try {
       const summary = await playRestore.mutateAsync();
       if (summary.granted + summary.already > 0) {
-        toast.success("Pembelian dipulihkan", "JoyoRogo Pro aktif.");
+        toast.success(t("toast.restoredTitle"), t("toast.restoredBody"));
       } else if (summary.pending > 0) {
-        toast.info("Menunggu pembayaran", "Pro aktif otomatis setelah pembayaran selesai.");
+        toast.info(t("toast.waitingTitle"), t("toast.waitingGeneric"));
       } else if (summary.rejected) {
-        toast.error("Tidak bisa dipulihkan", summary.rejected);
+        toast.error(t("toast.restoreRejectedTitle"), summary.rejected);
       } else {
-        toast.info("Tidak ada langganan", "Akun Google Play ini belum punya langganan Pro aktif.");
+        toast.info(t("toast.noSubscriptionTitle"), t("toast.noSubscriptionPlay"));
       }
     } catch (e) {
-      toast.error("Pemulihan gagal", errorMessage(e));
+      toast.error(t("toast.restoreFailed"), errorMessage(e));
     }
   };
   const buying = PLAY_ACTIVE ? playBuy.isPending : ios ? purchase.isPending : checkout.isPending;
 
   const capText =
     config.data.founderDailyCap === null
-      ? "Scan AI tanpa batas"
-      : `${config.data.founderDailyCap} scan AI per hari`;
+      ? t("benefits.scansUnlimited")
+      : t("benefits.scansCapped", { count: config.data.founderDailyCap });
   const yearly = plan === "yearly";
   const appleProduct = ios ? price.data?.[plan] : undefined;
   const standardMonthly = config.data.promo?.nextPriceIdr ?? config.data.founderPriceIdr;
@@ -170,87 +177,67 @@ export default function FounderPaywall() {
     ? (playPrice ?? "...")
     : ios && appleProduct?.displayPrice
       ? appleProduct.displayPrice
-      : `Rp${(
-          yearly ? config.data.founderYearlyPriceIdr : config.data.founderPriceIdr
-        ).toLocaleString("id-ID")}`;
+      : fmtIdr(yearly ? config.data.founderYearlyPriceIdr : config.data.founderPriceIdr);
   // Play needs the offer for the chosen plan: without it Play has nothing to sell.
   const playUnavailable = PLAY_ACTIVE && playPrices.isSuccess && !playPrice;
-  const subhead =
-    from === "onboarding"
-      ? "Rencana harianmu sudah siap. Pro buka scan AI lebih banyak setiap hari."
-      : from === "quota"
-        ? "Jatah scan AI gratis hari ini sudah habis."
-        : from === "fitness"
-          ? "Dapat saran porsi dan menu harian dari skor JoyoFit, targetmu, dan makanan yang kamu catat."
-          : from === "challenge"
-            ? "Pro yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis."
-            : from === "joyofit"
-              ? "Cadangan cloud JoyoFit termasuk di Pro, satu paket dengan JoyoRogo."
-              : "Scan AI lebih banyak setiap hari, dan dukung JoyoRogo sekalian.";
-  const paySteps = PLAY_ACTIVE
+  const webYearly = yearly && !PLAY_ACTIVE && !ios;
+  const equivalent = [
+    t("plan.equivalent", { price: fmtIdr(Math.round(config.data.founderYearlyPriceIdr / 12)) }),
+    yearlySaving > 0 ? t("plan.save", { amount: fmtIdr(yearlySaving) }) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const renewalNote = PLAY_ACTIVE
+    ? t("renewal.play")
+    : ios
+      ? t("renewal.apple")
+      : t("paywall.noAutoRenew");
+  const renewalDetail = PLAY_ACTIVE
+    ? t(yearly ? "details.renewal.playYearly" : "details.renewal.playMonthly")
+    : ios
+      ? t(yearly ? "details.renewal.appleYearly" : "details.renewal.appleMonthly", {
+          price: priceLabel,
+        })
+      : null;
+  const paySteps = PLAY_ACTIVE || (ios && appleBilling)
     ? [
-        'Pilih Bulanan atau Tahunan, lalu ketuk "Berlangganan JoyoRogo Pro".',
-        "Bayar lewat Google Play.",
-        "Pro aktif otomatis setelah pembayaran.",
+        t("details.step.store.one"),
+        t(PLAY_ACTIVE ? "details.step.store.playTwo" : "details.step.store.appleTwo"),
+        t("details.step.done"),
       ]
-    : ios && appleBilling
-      ? [
-          'Pilih Bulanan atau Tahunan, lalu ketuk "Berlangganan JoyoRogo Pro".',
-          "Bayar lewat App Store.",
-          "Pro aktif otomatis setelah pembayaran.",
-        ]
-      : [
-          'Ketuk tombol "Jadi Pro".',
-          "Pilih QRIS atau Transfer Bank, lalu bayar.",
-          "Pro aktif otomatis setelah pembayaran.",
-        ];
+    : [t("details.step.web.one"), t("details.step.web.two"), t("details.step.done")];
 
   return (
     <Screen>
-      <PageHeader title="Jadi Pro" caption={`${subhead} Pro mencakup JoyoRogo + JoyoFit.`} />
+      <PageHeader title={t("paywall.title")} caption={t(`paywall.subhead.${subheadFrom}`)} />
 
       {!ios && <FounderPromoCard />}
 
       <Card style={styles.priceCard}>
         <Segmented
           options={[
-            { value: "yearly", label: "Tahunan" },
-            { value: "monthly", label: "Bulanan" },
+            { value: "yearly", label: t("plan.yearly") },
+            { value: "monthly", label: t("plan.monthly") },
           ]}
           value={plan}
           onChange={setPlan}
         />
-        {yearly && !PLAY_ACTIVE && !ios && yearlySaving > 0 ? (
-          <Text style={styles.priceNote}>
-            Setara Rp{Math.round(config.data.founderYearlyPriceIdr / 12).toLocaleString("id-ID")}
-            /bulan, hemat Rp{yearlySaving.toLocaleString("id-ID")}.
-          </Text>
-        ) : null}
         <View style={styles.priceRow}>
           <Text style={styles.price}>{priceLabel}</Text>
-          <Text style={styles.pricePer}>{yearly ? "/tahun" : "/bulan"}</Text>
+          <Text style={styles.pricePer}>{yearly ? t("plan.perYear") : t("plan.perMonth")}</Text>
         </View>
-        {yearly && !PLAY_ACTIVE && !ios ? (
-          <Text style={styles.priceNote}>
-            12 bulan aktif. Menumpuk di sisa masa Pro-mu.
-          </Text>
-        ) : null}
-        <Text style={styles.priceNote}>
-          {PLAY_ACTIVE
-            ? `JoyoRogo Pro, langganan ${yearly ? "tahunan" : "bulanan"} lewat Google Play. Diperpanjang otomatis tiap ${yearly ? "tahun" : "bulan"} sampai kamu batalkan di Google Play > Langganan.`
-            : ios
-              ? `${priceLabel} per ${yearly ? "tahun" : "bulan"}. Diperpanjang otomatis kecuali dibatalkan minimal 24 jam sebelum periode berakhir. Kelola atau batalkan di Pengaturan > Apple ID > Langganan.`
-              : "Tidak diperpanjang otomatis."}
-        </Text>
+        {webYearly ? <Text style={styles.priceNote}>{equivalent}</Text> : null}
+        <Text style={styles.priceNote}>{renewalNote}</Text>
       </Card>
 
-      <Card>
+      <Card style={styles.benefitsCard}>
+        <Text style={styles.bundle}>{t("paywall.bundle")}</Text>
         {[
           capText,
-          "Saran makan dari skor JoyoFit",
-          "Cadangan cloud JoyoFit: langkah, detak jantung, tidur, dan latihan dari jam",
-          "Lencana Pro di profilmu",
-          "Dukung pengembangan JoyoRogo",
+          t("benefits.advice"),
+          t("benefits.backup"),
+          t("benefits.badge"),
+          t("benefits.support"),
         ].map((benefit) => (
           <View key={benefit} style={styles.benefitRow}>
             <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
@@ -259,13 +246,13 @@ export default function FounderPaywall() {
         ))}
         {config.data.freeDailyScans !== null ? (
           <Text style={styles.freeNote}>
-            Gratis tetap ada: {config.data.freeDailyScans} scan AI per hari.
+            {t("benefits.free", { count: config.data.freeDailyScans })}
           </Text>
         ) : null}
       </Card>
 
-      <Card>
-        <Text style={styles.howTitle}>Cara bayar</Text>
+      <Disclosure title={t("details.title")}>
+        <Text style={styles.howTitle}>{t("details.stepsTitle")}</Text>
         {paySteps.map((step, index) => (
           <View key={step} style={styles.stepRow}>
             <View style={styles.stepNumber}>
@@ -274,39 +261,48 @@ export default function FounderPaywall() {
             <Text style={styles.stepText}>{step}</Text>
           </View>
         ))}
-      </Card>
+        <Text style={styles.detailText}>{t("details.backup")}</Text>
+        {webYearly ? <Text style={styles.detailText}>{t("details.stacks")}</Text> : null}
+        {renewalDetail ? <Text style={styles.detailText}>{renewalDetail}</Text> : null}
+        <Text style={styles.detailText}>{t("details.later")}</Text>
+      </Disclosure>
 
       <View style={styles.actions}>
         <Button
-          label={PLAY_ACTIVE || ios ? "Berlangganan JoyoRogo Pro" : "Jadi Pro"}
+          label={PLAY_ACTIVE || ios ? t("paywall.buyStore") : t("paywall.buy")}
           onPress={() => void buy()}
           loading={buying}
           disabled={playUnavailable}
         />
-        {playUnavailable ? (
-          <Text style={styles.skipHint}>Langganan belum tersedia di Google Play untuk akunmu.</Text>
-        ) : null}
+        {playUnavailable ? <Text style={styles.skipHint}>{t("paywall.playUnavailable")}</Text> : null}
         {PLAY_ACTIVE ? (
           <Button
             variant="secondary"
-            label="Pulihkan pembelian"
+            size="sm"
+            label={t("cards.restore")}
             onPress={() => void restore()}
             loading={playRestore.isPending}
           />
         ) : null}
         {ios ? (
           <>
-            <Button
-              variant="secondary"
-              label="Pulihkan pembelian"
-              onPress={() => void restoreApple()}
-              loading={appleRestore.isPending}
-            />
-            <Button
-              variant="secondary"
-              label="Kelola langganan"
-              onPress={() => void openManageSubscriptions()}
-            />
+            <View style={styles.buttonRow}>
+              <Button
+                variant="secondary"
+                size="sm"
+                style={styles.rowButton}
+                label={t("cards.restore")}
+                onPress={() => void restoreApple()}
+                loading={appleRestore.isPending}
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                style={styles.rowButton}
+                label={t("cards.manage")}
+                onPress={() => void openManageSubscriptions()}
+              />
+            </View>
             <View style={styles.legalRow}>
               <Text
                 style={styles.legalLink}
@@ -315,26 +311,26 @@ export default function FounderPaywall() {
                   void Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
                 }
               >
-                Syarat
+                {t("paywall.terms")}
               </Text>
-              <Text style={styles.skipHint}>dan</Text>
+              <Text style={styles.skipHint}>·</Text>
               <Text
                 style={styles.legalLink}
                 accessibilityRole="link"
                 onPress={() => void Linking.openURL("https://joyorogo.com/privasi")}
               >
-                Privasi
+                {t("paywall.privacy")}
               </Text>
             </View>
           </>
         ) : null}
         {!ios && !PLAY_ACTIVE ? checkout.sheet : null}
         <Button
-          variant="secondary"
-          label="Nanti saja"
+          variant="ghost"
+          size="sm"
+          label={t("paywall.later")}
           onPress={() => router.replace(destination)}
         />
-        <Text style={styles.skipHint}>Kamu bisa jadi Pro kapan saja dari Profil.</Text>
       </View>
     </Screen>
   );
@@ -365,11 +361,20 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     color: theme.colors.makanText,
   },
+  benefitsCard: {
+    gap: 2,
+  },
+  bundle: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+    marginBottom: 4,
+  },
   benefitRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: 3,
   },
   benefitText: {
     flex: 1,
@@ -377,22 +382,27 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.foreground,
   },
   freeNote: {
-    marginTop: theme.spacing.sm,
+    marginTop: theme.spacing.xs,
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
     lineHeight: 19,
   },
   howTitle: {
-    fontSize: theme.fontSize.md,
+    fontSize: theme.fontSize.sm,
     fontWeight: "700",
-    color: theme.colors.foreground,
-    marginBottom: theme.spacing.sm,
+    color: theme.colors.mutedForeground,
+    textTransform: "uppercase",
+  },
+  detailText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+    lineHeight: 19,
   },
   stepRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: theme.spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: 2,
   },
   stepNumber: {
     width: 24,
@@ -409,13 +419,20 @@ const styles = StyleSheet.create((theme) => ({
   },
   stepText: {
     flex: 1,
-    fontSize: theme.fontSize.base,
+    fontSize: theme.fontSize.sm,
     color: theme.colors.foreground,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   actions: {
     gap: theme.spacing.sm,
     marginTop: theme.spacing.xs,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+  },
+  rowButton: {
+    flex: 1,
   },
   legalRow: {
     flexDirection: "row",

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CircleCheck, Clock, CircleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Button } from "@joyorogo/ui/components/button";
@@ -26,6 +27,7 @@ const POLL_MS = 3000;
 const POLL_WINDOW_MS = 3 * 60 * 1000;
 
 function PembayaranPage() {
+  const { t } = useTranslation("billing");
   const { order } = Route.useSearch();
   const queryClient = useQueryClient();
   const checkout = useCheckoutPicker();
@@ -47,13 +49,13 @@ function PembayaranPage() {
   // Ask the gateway directly (and settle) instead of waiting for its webhook.
   const check = useMutation({
     mutationFn: async () => {
-      if (!order) throw new Error("Pesanan tidak ditemukan.");
+      if (!order) throw new Error(t("order.notFoundError"));
       return checkOrder(order);
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(["billing-order", order], updated);
       if (updated.status !== "paid") {
-        toast.error("Belum ada pembayaran masuk. Coba lagi sebentar.");
+        toast.error(t("order.notPaidYet"));
       }
     },
     onError: (error) => toast.error(error.message),
@@ -73,9 +75,9 @@ function PembayaranPage() {
     body = (
       <State
         icon={<CircleAlert className="size-7 text-muted-foreground" aria-hidden />}
-        title="Pesanan tidak ditemukan"
-        text="Tautan ini tidak membawa nomor pesanan."
-        action={<Button render={<Link to="/harga" />}>Lihat harga</Button>}
+        title={t("order.missing.title")}
+        text={t("order.missing.text")}
+        action={<Button render={<Link to="/harga" />}>{t("order.missing.action")}</Button>}
       />
     );
   } else if (status.isPending) {
@@ -83,21 +85,21 @@ function PembayaranPage() {
       <div
         className="h-56 animate-pulse rounded-3xl bg-card motion-reduce:animate-none"
         aria-busy="true"
-        aria-label="Memeriksa pembayaran"
+        aria-label={t("order.checking")}
       />
     );
   } else if (status.isError) {
     body = (
       <State
         icon={<CircleAlert className="size-7 text-muted-foreground" aria-hidden />}
-        title="Status belum bisa dimuat"
-        text={`${status.error.message} Pastikan kamu masuk dengan akun yang sama saat membayar.`}
+        title={t("order.error.title")}
+        text={t("order.error.text", { message: status.error.message })}
         action={
           <div className="flex flex-wrap justify-center gap-2">
             <Button variant="secondary" onClick={() => status.refetch()}>
-              Coba lagi
+              {t("order.error.retry")}
             </Button>
-            <Button render={<Link to="/login" />}>Masuk</Button>
+            <Button render={<Link to="/login" />}>{t("order.error.signIn")}</Button>
           </div>
         }
       />
@@ -106,24 +108,24 @@ function PembayaranPage() {
     body = (
       <State
         icon={<CircleCheck className="size-7 text-primary" aria-hidden />}
-        title="Kamu sekarang Pro"
+        title={t("order.paid.title")}
         text={
           status.data.founderUntil
-            ? `Aktif sampai ${fmtFounderDate(status.data.founderUntil)}. Terima kasih sudah mendukung JoyoRogo.`
-            : "Terima kasih sudah mendukung JoyoRogo."
+            ? t("order.paid.until", { date: fmtFounderDate(status.data.founderUntil) })
+            : t("order.paid.thanks")
         }
-        action={<Button render={<Link to="/beranda" />}>Ke beranda</Button>}
+        action={<Button render={<Link to="/beranda" />}>{t("order.paid.action")}</Button>}
       />
     );
   } else if (status.data.status === "failed") {
     body = (
       <State
         icon={<CircleAlert className="size-7 text-bakar" aria-hidden />}
-        title="Pembayaran tidak selesai"
-        text="Pesanan ini kedaluwarsa atau dibatalkan. Tidak ada dana yang ditarik."
+        title={t("order.failed.title")}
+        text={t("order.failed.text")}
         action={
           <Button disabled={checkout.isPending} onClick={() => checkout.start()}>
-            {checkout.isPending ? "Membuka pembayaran..." : "Bayar lagi"}
+            {checkout.isPending ? t("paywall.opening") : t("order.failed.action")}
           </Button>
         }
       />
@@ -133,23 +135,19 @@ function PembayaranPage() {
     body = (
       <State
         icon={<Clock className="size-7 text-muted-foreground" aria-hidden />}
-        title="Menunggu konfirmasi pembayaran"
-        text={
-          stillPolling
-            ? "Halaman ini diperbarui sendiri. Biasanya hanya beberapa detik setelah kamu membayar."
-            : "Konfirmasi belum masuk. Kalau kamu sudah membayar, cek lagi sebentar lagi."
-        }
+        title={t("order.pending.title")}
+        text={stillPolling ? t("order.pending.polling") : t("order.pending.stale")}
         action={
           <div className="flex flex-wrap justify-center gap-2">
             <Button disabled={check.isPending} onClick={() => check.mutate()}>
-              {check.isPending ? "Memeriksa..." : "Cek pembayaran"}
+              {check.isPending ? t("order.pending.checkingNow") : t("order.pending.check")}
             </Button>
             <Button
               variant="secondary"
               disabled={status.isFetching}
               onClick={() => status.refetch()}
             >
-              {status.isFetching ? "Memeriksa..." : "Segarkan halaman"}
+              {status.isFetching ? t("order.pending.checkingNow") : t("order.pending.refresh")}
             </Button>
           </div>
         }

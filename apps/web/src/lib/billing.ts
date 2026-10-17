@@ -2,6 +2,8 @@ import { ORPCError } from "@orpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 
+import { LOCALE_HEADER, i18n } from "@joyorogo/i18n";
+
 import { trackEvent } from "./analytics";
 import { apiUrl } from "./app-config";
 import type { PaymentMethod } from "./app-config";
@@ -35,6 +37,9 @@ export function isPaywallError(err: unknown): boolean {
   return err instanceof ORPCError && err.code === "FORBIDDEN" && err.data?.paywall === true;
 }
 
+/** The server writes billing errors in the language the UI shows. */
+const localeHeader = () => ({ [LOCALE_HEADER]: i18n.language });
+
 /** Pro billing period; yearly stacks 12 months on the remaining period. */
 export type CheckoutPlan = "monthly" | "yearly";
 
@@ -51,7 +56,7 @@ export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
       const res = await fetch(apiUrl("/api/billing/checkout"), {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...localeHeader() },
         body: JSON.stringify({ plan, method }),
       });
       if (res.status === 401) {
@@ -65,7 +70,7 @@ export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
         error?: string;
       } | null;
       if (!res.ok || !body?.paymentUrl) {
-        throw new Error(body?.error ?? "Pembayaran belum bisa diproses. Coba lagi nanti.");
+        throw new Error(body?.error ?? i18n.t("billing:error.checkoutFailed"));
       }
       trackEvent("checkout_start");
       window.location.assign(body.paymentUrl);
@@ -84,9 +89,10 @@ export type OrderStatus = {
 export async function fetchOrder(orderId: string): Promise<OrderStatus> {
   const res = await fetch(apiUrl(`/api/billing/orders/${encodeURIComponent(orderId)}`), {
     credentials: "include",
+    headers: localeHeader(),
   });
   const body = (await res.json().catch(() => null)) as (OrderStatus & { error?: string }) | null;
-  if (!res.ok || !body) throw new Error(body?.error ?? "Status pembayaran belum bisa dimuat.");
+  if (!res.ok || !body) throw new Error(body?.error ?? i18n.t("billing:error.statusFailed"));
   return body;
 }
 
@@ -94,11 +100,14 @@ export type PendingOrder = { orderId: string; status: "pending"; createdAt: stri
 
 /** The caller's latest unpaid order, if any. */
 export async function fetchPendingOrder(): Promise<PendingOrder | null> {
-  const res = await fetch(apiUrl("/api/billing/orders"), { credentials: "include" });
+  const res = await fetch(apiUrl("/api/billing/orders"), {
+    credentials: "include",
+    headers: localeHeader(),
+  });
   const body = (await res.json().catch(() => null)) as
     | ({ pending?: PendingOrder | null } & Partial<OrderStatus> & { error?: string })
     | null;
-  if (!res.ok || !body) throw new Error(body?.error ?? "Status pembayaran belum bisa dimuat.");
+  if (!res.ok || !body) throw new Error(body?.error ?? i18n.t("billing:error.statusFailed"));
   return body.pending ?? null;
 }
 
@@ -107,9 +116,10 @@ export async function checkOrder(orderId: string): Promise<OrderStatus> {
   const res = await fetch(apiUrl(`/api/billing/orders/${encodeURIComponent(orderId)}/check`), {
     method: "POST",
     credentials: "include",
+    headers: localeHeader(),
   });
   const body = (await res.json().catch(() => null)) as (OrderStatus & { error?: string }) | null;
-  if (!res.ok || !body) throw new Error(body?.error ?? "Pembayaran belum bisa diperiksa.");
+  if (!res.ok || !body) throw new Error(body?.error ?? i18n.t("billing:error.checkFailed"));
   return body;
 }
 

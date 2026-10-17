@@ -1,0 +1,185 @@
+{
+  "paywall": {
+    "title": "Go Pro",
+    "loadError": "Couldn't load prices.",
+    "loading": "Loading the Pro offer",
+    "bundle": "Pro covers JoyoRogo + JoyoFit.",
+    "buy": "Go Pro",
+    "buyStore": "Subscribe to JoyoRogo Pro",
+    "opening": "Opening checkout...",
+    "later": "Not now",
+    "noAutoRenew": "Does not renew automatically.",
+    "playUnavailable": "Subscriptions aren't available on Google Play for your account yet.",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "subhead": {
+      "onboarding": "Your daily plan is ready. Pro gives you far more AI scans every day.",
+      "quota": "You've used today's free AI scans. Go Pro to keep scanning.",
+      "banner": "Free AI scans are limited each day. Pro gives you a much bigger allowance.",
+      "profile": "Support JoyoRogo and get a much bigger AI scan allowance.",
+      "fitness": "Get daily portion and menu tips based on your JoyoFit score, your targets and what you log.",
+      "challenge": "Pro members create group challenges. Joining a friend's challenge is still free.",
+      "joyofit": "JoyoFit cloud backup comes with Pro, in one plan with JoyoRogo."
+    }
+  },
+  "plan": {
+    "label": "Choose your Pro plan",
+    "yearly": "Yearly",
+    "monthly": "Monthly",
+    "save": "save {{amount}}",
+    "perMonth": "/month",
+    "perYear": "/year",
+    "equivalent": "That's {{price}}/month"
+  },
+  "benefits": {
+    "scansUnlimited": "Unlimited AI scans",
+    "scansCapped_one": "{{count}} AI scan per day",
+    "scansCapped_other": "{{count}} AI scans per day",
+    "advice": "Meal tips from your JoyoFit score",
+    "backup": "JoyoFit cloud backup",
+    "badge": "Pro badge on your profile",
+    "support": "Support JoyoRogo's development",
+    "free_one": "The free plan keeps {{count}} AI scan per day, forever.",
+    "free_other": "The free plan keeps {{count}} AI scans per day, forever."
+  },
+  "details": {
+    "title": "How to pay and details",
+    "backup": "JoyoFit cloud backup: steps, heart rate, sleep and workouts from your watch.",
+    "stacks": "The yearly plan lasts 12 months and adds to your remaining Pro time.",
+    "later": "You can go Pro any time from Profile.",
+    "stepsTitle": "How to pay",
+    "step": {
+      "web": {
+        "one": "Tap \"Go Pro\".",
+        "two": "Pick QRIS or bank transfer, then pay."
+      },
+      "store": {
+        "one": "Pick Monthly or Yearly, then tap \"Subscribe to JoyoRogo Pro\".",
+        "playTwo": "Pay with Google Play.",
+        "appleTwo": "Pay with the App Store."
+      },
+      "done": "Pro turns on automatically once you've paid."
+    },
+    "renewal": {
+      "playMonthly": "JoyoRogo Pro, monthly subscription through Google Play. It renews automatically every month until you cancel in Google Play > Subscriptions.",
+      "playYearly": "JoyoRogo Pro, yearly subscription through Google Play. It renews automatically every year until you cancel in Google Play > Subscriptions.",
+      "appleMonthly": "{{price}} per month, App Store subscription. Manage or cancel in Settings > Apple ID > Subscriptions.",
+      "appleYearly": "{{price}} per year, App Store subscription. Manage or cancel in Settings > Apple ID > Subscriptions."
+    }
+  },
+  "renewal": {
+    "play": "Renews automatically. Cancel any time in Google Play.",
+    "apple": "Renews automatically unless you cancel at least 24 hours before the period ends."
+  },
+  "picker": {
+    "title": "Choose how to pay",
+    "description": "Pro turns on automatically once your payment arrives.",
+    "qris": {
+      "label": "QRIS",
+      "note": "Scan with any e-wallet or mobile banking app."
+    },
+    "transfer": {
+      "label": "Bank transfer",
+      "note": "Pay with a bank virtual account."
+    }
+  },
+  "promo": {
+    "headline": "Pro intro price: {{price}}/month",
+    "slots_one": "For the first {{total}} buyers. <b>{{left}}</b> spot left.",
+    "slots_other": "For the first {{total}} buyers. <b>{{left}}</b> spots left.",
+    "progress_one": "{{left}} of {{total}} intro-price spots left",
+    "progress_other": "{{left}} of {{total}} intro-price spots left",
+    "details": "Price details",
+    "then": "After that: {{price}}/month.",
+    "locked": "Price lock applies to web payments: early buyers keep paying this price when they renew."
+  },
+  "order": {
+    "missing": {
+      "title": "Order not found",
+      "text": "This link doesn't include an order number.",
+      "action": "See pricing"
+    },
+    "checking": "Checking your payment",
+    "error": {
+      "title": "Couldn't load the status",
+      "text": "{{message}} Make sure you're signed in with the same account you paid with.",
+      "retry": "Try again",
+      "signIn": "Sign in"
+    },
+    "paid": {
+      "title": "You're Pro now",
+      "until": "Active until {{date}}. Thanks for supporting JoyoRogo.",
+      "thanks": "Thanks for supporting JoyoRogo.",
+      "action": "Go to Home"
+    },
+    "failed": {
+      "title": "Payment didn't go through",
+      "text": "This order expired or was cancelled. You haven't been charged.",
+      "action": "Pay again"
+    },
+    "pending": {
+      "title": "Waiting for payment confirmation",
+      "polling": "This page updates by itself. It usually takes a few seconds after you pay.",
+      "stale": "No confirmation yet. If you've already paid, check again in a moment.",
+      "check": "Check payment",
+      "refresh": "Refresh page",
+      "checkingNow": "Checking..."
+    },
+    "notPaidYet": "No payment yet. Try again in a moment.",
+    "notFoundError": "Order not found."
+  },
+  "cards": {
+    "freeScans_one": "{{count}} AI scan a day",
+    "freeScans_other": "{{count}} AI scans a day",
+    "proUnlimited": "Pro unlocks unlimited scans.",
+    "proCapped_one": "Pro: {{count}} AI scan per day.",
+    "proCapped_other": "Pro: {{count}} AI scans per day.",
+    "applePrice": "{{price}}/month through the App Store, renews automatically.",
+    "playPrice": "JoyoRogo Pro {{price}}/month through Google Play.",
+    "upgrade": "Upgrade",
+    "checkPending": "Already paid? Check payment",
+    "restore": "Restore purchases",
+    "manage": "Manage subscription",
+    "renew": "Renew",
+    "activeTitle": "Pro is active",
+    "activeUntil": {
+      "play": "Until {{date}}. Manage or cancel your Google Play subscription in the Play Store.",
+      "apple": "Until {{date}}. App Store subscription: manage it in Settings > Apple ID > Subscriptions.",
+      "web": "Until {{date}}. Does not renew automatically."
+    }
+  },
+  "toast": {
+    "paidTitle": "Payment received",
+    "paidBody": "Pro is on. Thank you!",
+    "notPaidTitle": "No payment yet",
+    "notPaidBody": "Try again in a moment.",
+    "checkFailed": "Couldn't check the payment",
+    "subscribedTitle": "Subscription active",
+    "subscribedBody": "JoyoRogo Pro is on. Thank you!",
+    "waitingTitle": "Waiting for payment",
+    "waitingPlay": "Pro turns on automatically once your Google Play payment completes.",
+    "waitingGeneric": "Pro turns on automatically once the payment completes.",
+    "restoredTitle": "Purchases restored",
+    "restoredBody": "JoyoRogo Pro is on.",
+    "restoreRejectedTitle": "Couldn't restore",
+    "restoreRejectedApple": "This subscription is already linked to another JoyoRogo account.",
+    "noSubscriptionTitle": "No subscription found",
+    "noSubscriptionApple": "This Apple ID has no active Pro subscription.",
+    "noSubscriptionPlay": "This Google Play account has no active Pro subscription.",
+    "restoreFailed": "Restore failed",
+    "payFailed": "Payment failed"
+  },
+  "error": {
+    "signIn": "Sign in to subscribe.",
+    "checkFailed": "Couldn't check the payment. Try again later.",
+    "checkoutFailed": "Couldn't process the payment. Try again later.",
+    "statusFailed": "Couldn't load the payment status.",
+    "receiptInvalid": "The purchase receipt isn't valid.",
+    "purchaseFailed": "Couldn't process the purchase. Try again later.",
+    "appleUnavailable": "App Store purchases aren't available.",
+    "applePending": "The purchase is waiting for App Store approval. Come back once it's approved.",
+    "playNoOffer": "The subscription isn't available on Google Play yet.",
+    "playAlready": "You already have a Pro subscription on Google Play. Tap \"Restore purchases\".",
+    "playInactive": "The purchase isn't active yet. Try again in a moment or tap \"Restore purchases\"."
+  }
+}

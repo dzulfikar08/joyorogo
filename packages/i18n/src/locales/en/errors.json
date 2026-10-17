@@ -25,5 +25,22 @@
     "empty": "We couldn't pick out any food from your story. Name the food, for example: 1 plate of fried rice.",
     "failed": "The AI couldn't read your story. Please try again in a moment.",
     "voiceEmpty": "We couldn't hear that clearly. Try recording again closer to the microphone."
+  },
+  "billing": {
+    "unavailable": "Payments aren't available on this server.",
+    "signInToSubscribe": "Sign in to subscribe.",
+    "signIn": "Please sign in first.",
+    "signInForUsage": "Sign in to see your AI usage.",
+    "methodUnavailable": "This payment method isn't available.",
+    "checkoutFailed": "Couldn't create the payment page. Try again in a moment.",
+    "receiptMissing": "The purchase receipt is missing.",
+    "receiptInvalid": "The purchase receipt isn't valid.",
+    "linkedOtherAccount": "This subscription is already linked to another JoyoRogo account.",
+    "userNotFound": "User not found.",
+    "processing": "The payment is still processing. Try again in a moment.",
+    "orderNotFound": "Order not found.",
+    "googleUnavailable": "Google Play payments aren't available on this server.",
+    "googleUnreachable": "Couldn't reach Google Play. Try again in a moment.",
+    "googleLinkedOtherAccount": "This Google Play subscription is already linked to another JoyoRogo account."
   }
 }

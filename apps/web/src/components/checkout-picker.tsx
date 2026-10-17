@@ -2,24 +2,14 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { ChevronRight, Landmark, QrCode } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useAppConfig } from "@/lib/app-config";
 import type { PaymentMethod } from "@/lib/app-config";
 import { useFounderCheckout } from "@/lib/billing";
 import type { CheckoutPlan } from "@/lib/billing";
 
-const OPTIONS: Record<PaymentMethod, { icon: LucideIcon; label: string; note: string }> = {
-  qris: {
-    icon: QrCode,
-    label: "QRIS",
-    note: "Scan pakai e-wallet atau m-banking apa saja.",
-  },
-  transfer: {
-    icon: Landmark,
-    label: "Transfer Bank",
-    note: "Bayar lewat virtual account bank.",
-  },
-};
+const ICONS: Record<PaymentMethod, LucideIcon> = { qris: QrCode, transfer: Landmark };
 
 /**
  * Founder checkout behind a "QRIS atau Transfer Bank" choice. `start()` opens
@@ -28,6 +18,7 @@ const OPTIONS: Record<PaymentMethod, { icon: LucideIcon; label: string; note: st
  * Render `sheet` once next to the buttons that call `start()`.
  */
 export function useCheckoutPicker(plan: CheckoutPlan = "monthly") {
+  const { t } = useTranslation("billing");
   const config = useAppConfig();
   const checkout = useFounderCheckout(plan);
   const [open, setOpen] = useState(false);
@@ -44,12 +35,12 @@ export function useCheckoutPicker(plan: CheckoutPlan = "monthly") {
     <Sheet
       open={open}
       onOpenChange={setOpen}
-      title="Pilih cara bayar"
-      description="Pro aktif otomatis setelah pembayaran masuk."
+      title={t("picker.title")}
+      description={t("picker.description")}
     >
-      <div className="grid gap-3">
+      <div className="grid gap-2">
         {methods.map((method) => {
-          const { icon: Icon, label, note } = OPTIONS[method];
+          const Icon = ICONS[method];
           return (
             <button
               key={method}
@@ -59,14 +50,18 @@ export function useCheckoutPicker(plan: CheckoutPlan = "monthly") {
                 setOpen(false);
                 checkout.mutate(method, { onError: onErrorRef.current });
               }}
-              className="flex min-h-20 w-full items-center gap-4 rounded-2xl border border-border bg-background px-4 py-4 text-left transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-50"
+              className="flex min-h-16 w-full items-center gap-3 rounded-2xl border border-border bg-background px-4 py-3 text-left transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-50"
             >
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Icon className="size-6" aria-hidden />
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Icon className="size-5" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-lg font-bold tracking-tight">{label}</span>
-                <span className="block text-sm leading-snug text-muted-foreground">{note}</span>
+                <span className="block text-lg font-bold tracking-tight">
+                  {t(`picker.${method}.label`)}
+                </span>
+                <span className="block text-sm leading-snug text-muted-foreground">
+                  {t(`picker.${method}.note`)}
+                </span>
               </span>
               <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
             </button>

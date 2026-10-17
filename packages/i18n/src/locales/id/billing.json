@@ -1,0 +1,179 @@
+{
+  "paywall": {
+    "title": "Jadi Pro",
+    "loadError": "Harga belum bisa dimuat.",
+    "loading": "Memuat penawaran Pro",
+    "bundle": "Pro mencakup JoyoRogo + JoyoFit.",
+    "buy": "Jadi Pro",
+    "buyStore": "Berlangganan JoyoRogo Pro",
+    "opening": "Membuka pembayaran...",
+    "later": "Nanti saja",
+    "noAutoRenew": "Tidak diperpanjang otomatis.",
+    "playUnavailable": "Langganan belum tersedia di Google Play untuk akunmu.",
+    "terms": "Syarat",
+    "privacy": "Privasi",
+    "subhead": {
+      "onboarding": "Rencana harianmu sudah siap. Pro dapat scan AI jauh lebih banyak tiap hari.",
+      "quota": "Jatah scan AI gratis hari ini habis. Jadi Pro untuk lanjut scan.",
+      "banner": "Scan AI gratis terbatas tiap hari. Pro dapat jatah jauh lebih besar.",
+      "profile": "Dukung JoyoRogo dan dapat jatah scan AI jauh lebih besar.",
+      "fitness": "Dapat saran porsi dan menu harian dari skor JoyoFit, targetmu, dan makanan yang kamu catat.",
+      "challenge": "Pro yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis.",
+      "joyofit": "Cadangan cloud JoyoFit termasuk di Pro, satu paket dengan JoyoRogo."
+    }
+  },
+  "plan": {
+    "label": "Pilih masa Pro",
+    "yearly": "Tahunan",
+    "monthly": "Bulanan",
+    "save": "hemat {{amount}}",
+    "perMonth": "/bulan",
+    "perYear": "/tahun",
+    "equivalent": "Setara {{price}}/bulan"
+  },
+  "benefits": {
+    "scansUnlimited": "Scan AI tanpa batas",
+    "scansCapped_other": "{{count}} scan AI per hari",
+    "advice": "Saran makan dari skor JoyoFit",
+    "backup": "Cadangan cloud JoyoFit",
+    "badge": "Badge Pro di profilmu",
+    "support": "Dukung pengembangan JoyoRogo",
+    "free_other": "Gratis tetap ada: {{count}} scan AI per hari, selamanya."
+  },
+  "details": {
+    "title": "Cara bayar dan rincian",
+    "backup": "Cadangan cloud JoyoFit: langkah, detak jantung, tidur, dan latihan dari jam.",
+    "stacks": "Paket tahunan aktif 12 bulan dan menumpuk di sisa masa Pro-mu.",
+    "later": "Kamu bisa jadi Pro kapan saja dari Profil.",
+    "stepsTitle": "Cara bayar",
+    "step": {
+      "web": {
+        "one": "Ketuk \"Jadi Pro\".",
+        "two": "Pilih QRIS atau Transfer Bank, lalu bayar."
+      },
+      "store": {
+        "one": "Pilih Bulanan atau Tahunan, lalu ketuk \"Berlangganan JoyoRogo Pro\".",
+        "playTwo": "Bayar lewat Google Play.",
+        "appleTwo": "Bayar lewat App Store."
+      },
+      "done": "Pro aktif otomatis setelah pembayaran."
+    },
+    "renewal": {
+      "playMonthly": "JoyoRogo Pro, langganan bulanan lewat Google Play. Diperpanjang otomatis tiap bulan sampai kamu batalkan di Google Play > Langganan.",
+      "playYearly": "JoyoRogo Pro, langganan tahunan lewat Google Play. Diperpanjang otomatis tiap tahun sampai kamu batalkan di Google Play > Langganan.",
+      "appleMonthly": "{{price}} per bulan, langganan App Store. Kelola atau batalkan di Pengaturan > Apple ID > Langganan.",
+      "appleYearly": "{{price}} per tahun, langganan App Store. Kelola atau batalkan di Pengaturan > Apple ID > Langganan."
+    }
+  },
+  "renewal": {
+    "play": "Diperpanjang otomatis. Batalkan kapan saja di Google Play.",
+    "apple": "Diperpanjang otomatis kecuali dibatalkan minimal 24 jam sebelum periode berakhir."
+  },
+  "picker": {
+    "title": "Pilih cara bayar",
+    "description": "Pro aktif otomatis setelah pembayaran masuk.",
+    "qris": {
+      "label": "QRIS",
+      "note": "Scan pakai e-wallet atau m-banking apa saja."
+    },
+    "transfer": {
+      "label": "Transfer Bank",
+      "note": "Bayar lewat virtual account bank."
+    }
+  },
+  "promo": {
+    "headline": "Harga perkenalan Pro: {{price}}/bulan",
+    "slots_other": "Untuk {{total}} pembeli pertama, sisa <b>{{left}}</b> slot.",
+    "progress_other": "{{left}} dari {{total}} slot harga perkenalan tersisa",
+    "details": "Rincian harga",
+    "then": "Setelah itu {{price}}/bulan.",
+    "locked": "Harga terkunci di pembayaran web: pembeli awal tetap bayar harga ini saat perpanjang."
+  },
+  "order": {
+    "missing": {
+      "title": "Pesanan tidak ditemukan",
+      "text": "Tautan ini tidak membawa nomor pesanan.",
+      "action": "Lihat harga"
+    },
+    "checking": "Memeriksa pembayaran",
+    "error": {
+      "title": "Status belum bisa dimuat",
+      "text": "{{message}} Pastikan kamu masuk dengan akun yang sama saat membayar.",
+      "retry": "Coba lagi",
+      "signIn": "Masuk"
+    },
+    "paid": {
+      "title": "Kamu sekarang Pro",
+      "until": "Aktif sampai {{date}}. Terima kasih sudah mendukung JoyoRogo.",
+      "thanks": "Terima kasih sudah mendukung JoyoRogo.",
+      "action": "Ke beranda"
+    },
+    "failed": {
+      "title": "Pembayaran tidak selesai",
+      "text": "Pesanan ini kedaluwarsa atau dibatalkan. Tidak ada dana yang ditarik.",
+      "action": "Bayar lagi"
+    },
+    "pending": {
+      "title": "Menunggu konfirmasi pembayaran",
+      "polling": "Halaman ini diperbarui sendiri. Biasanya hanya beberapa detik setelah kamu membayar.",
+      "stale": "Konfirmasi belum masuk. Kalau kamu sudah membayar, cek lagi sebentar lagi.",
+      "check": "Cek pembayaran",
+      "refresh": "Segarkan halaman",
+      "checkingNow": "Memeriksa..."
+    },
+    "notPaidYet": "Belum ada pembayaran masuk. Coba lagi sebentar.",
+    "notFoundError": "Pesanan tidak ditemukan."
+  },
+  "cards": {
+    "freeScans_other": "Scan AI {{count}} kali sehari",
+    "proUnlimited": "Pro buka scan tanpa batas.",
+    "proCapped_other": "Pro: {{count}} scan AI per hari.",
+    "applePrice": "{{price}}/bulan lewat App Store, diperpanjang otomatis.",
+    "playPrice": "JoyoRogo Pro {{price}}/bulan lewat Google Play.",
+    "upgrade": "Upgrade",
+    "checkPending": "Sudah bayar? Cek pembayaran",
+    "restore": "Pulihkan pembelian",
+    "manage": "Kelola langganan",
+    "renew": "Perpanjang",
+    "activeTitle": "Pro aktif",
+    "activeUntil": {
+      "play": "Sampai {{date}}. Langganan Google Play dikelola dan dibatalkan di Play Store.",
+      "apple": "Sampai {{date}}. Langganan App Store, kelola di Pengaturan > Apple ID > Langganan.",
+      "web": "Sampai {{date}}. Tidak diperpanjang otomatis."
+    }
+  },
+  "toast": {
+    "paidTitle": "Pembayaran diterima",
+    "paidBody": "Pro aktif. Terima kasih!",
+    "notPaidTitle": "Belum ada pembayaran masuk",
+    "notPaidBody": "Coba lagi sebentar.",
+    "checkFailed": "Cek pembayaran gagal",
+    "subscribedTitle": "Langganan aktif",
+    "subscribedBody": "JoyoRogo Pro aktif. Terima kasih!",
+    "waitingTitle": "Menunggu pembayaran",
+    "waitingPlay": "Pro aktif otomatis setelah pembayaran di Google Play selesai.",
+    "waitingGeneric": "Pro aktif otomatis setelah pembayaran selesai.",
+    "restoredTitle": "Pembelian dipulihkan",
+    "restoredBody": "JoyoRogo Pro aktif.",
+    "restoreRejectedTitle": "Tidak bisa dipulihkan",
+    "restoreRejectedApple": "Langganan ini sudah terhubung ke akun JoyoRogo lain.",
+    "noSubscriptionTitle": "Tidak ada langganan",
+    "noSubscriptionApple": "Apple ID ini belum punya langganan Pro aktif.",
+    "noSubscriptionPlay": "Akun Google Play ini belum punya langganan Pro aktif.",
+    "restoreFailed": "Pemulihan gagal",
+    "payFailed": "Pembayaran gagal"
+  },
+  "error": {
+    "signIn": "Masuk dulu untuk berlangganan.",
+    "checkFailed": "Pembayaran belum bisa dicek. Coba lagi nanti.",
+    "checkoutFailed": "Pembayaran belum bisa diproses. Coba lagi nanti.",
+    "statusFailed": "Status pembayaran belum bisa dimuat.",
+    "receiptInvalid": "Bukti pembelian tidak valid.",
+    "purchaseFailed": "Pembelian belum bisa diproses. Coba lagi nanti.",
+    "appleUnavailable": "Pembelian lewat App Store tidak tersedia.",
+    "applePending": "Pembelian menunggu persetujuan App Store. Buka lagi nanti setelah disetujui.",
+    "playNoOffer": "Langganan belum tersedia di Google Play.",
+    "playAlready": "Kamu sudah berlangganan Pro di Google Play. Ketuk \"Pulihkan pembelian\".",
+    "playInactive": "Pembelian belum aktif. Coba lagi sebentar atau ketuk \"Pulihkan pembelian\"."
+  }
+}

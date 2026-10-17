@@ -22,6 +22,7 @@ import type { AppleBillingDeps } from "@joyorogo/api/lib/apple-billing";
 import { summarize } from "@joyorogo/api/lib/cost";
 import { googlePlayConfig } from "@joyorogo/api/lib/google-play";
 import type { GooglePlayEnv } from "@joyorogo/api/lib/google-play";
+import { serverT } from "@joyorogo/api/lib/messages";
 import {
   WEBHOOK_TARGET as DOKU_WEBHOOK_PATH,
   buildOrderId,
@@ -58,6 +59,7 @@ import { user } from "@joyorogo/db/schema/auth";
 import { payment } from "@joyorogo/db/schema/billing";
 import { aiUsage } from "@joyorogo/db/schema/fitness";
 import type { Database } from "@joyorogo/db";
+import { requestLocale } from "./context";
 import { runFounderEmails, sendOrderEmails } from "./email";
 
 export type BillingEnv = PaywallEnv & GooglePlayEnv & {
@@ -137,6 +139,9 @@ function defaultProvider(
   if (configured.pakasir) return "pakasir";
   return null;
 }
+
+/** User-facing text of a billing response, in the language the request asks for. */
+const t = (c: Context) => serverT(requestLocale(c), "errors");
 
 /**
  * Founder plan: prepaid months over DOKU Checkout or a Pakasir payment link.
@@ -290,9 +295,9 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   // Body (optional JSON): { plan: "monthly" | "yearly"; method?: "qris" | "transfer" }.
   // Default monthly; no method = the default gateway's full page (older apps).
   app.post("/api/billing/checkout", async (c) => {
-    if (!provider) return c.json({ error: "Pembayaran tidak tersedia di server ini." }, 404);
+    if (!provider) return c.json({ error: t(c)("billing.unavailable") }, 404);
     const me = await sessionUser(c.req.raw.headers);
-    if (!me) return c.json({ error: "Masuk dulu untuk berlangganan." }, 401);
+    if (!me) return c.json({ error: t(c)("billing.signInToSubscribe") }, 401);
     const body = (await c.req.json().catch(() => null)) as {
       plan?: unknown;
       method?: unknown;
@@ -301,7 +306,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     const method = PAYMENT_METHODS.find((m) => m === body?.method) ?? null;
     const gateway = method ? METHOD_GATEWAY[method] : provider;
     if (!configured[gateway]) {
-      return c.json({ error: "Metode pembayaran ini tidak tersedia." }, 400);
+      return c.json({ error: t(c)("billing.methodUnavailable") }, 400);
     }
     const months = planMonths(plan);
     const db = deps.getDb();
@@ -358,7 +363,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     } catch (error) {
       console.error(`${gateway} checkout ${orderId} failed:`, error);
       await db.update(payment).set({ status: "failed" }).where(eq(payment.orderId, orderId));
-      return c.json({ error: "Halaman pembayaran gagal dibuat. Coba lagi sebentar lagi." }, 502);
+      return c.json({ error: t(c)("billing.checkoutFailed") }, 502);
     }
   });
 
@@ -482,13 +487,13 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   // the paywall alone and an iOS-only self-host works.
   app.post("/api/billing/apple", async (c) => {
     if (!paywallEnabled(config)) {
-      return c.json({ error: "Pembayaran tidak tersedia di server ini." }, 404);
+      return c.json({ error: t(c)("billing.unavailable") }, 404);
     }
     const me = await sessionUser(c.req.raw.headers);
-    if (!me) return c.json({ error: "Masuk dulu untuk berlangganan." }, 401);
+    if (!me) return c.json({ error: t(c)("billing.signInToSubscribe") }, 401);
     const body = (await c.req.json().catch(() => null)) as { signedTransaction?: string } | null;
     if (typeof body?.signedTransaction !== "string" || !body.signedTransaction) {
-      return c.json({ error: "Bukti pembelian tidak ada." }, 400);
+      return c.json({ error: t(c)("billing.receiptMissing") }, 400);
     }
 
     const billing = appleBillingDeps(deps.getDb());
@@ -499,7 +504,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     });
     if (!verification.ok) {
       console.error(`apple billing rejected: ${verification.reason}`);
-      return c.json({ error: "Bukti pembelian tidak valid." }, 400);
+      return c.json({ error: t(c)("billing.receiptInvalid") }, 400);
     }
     const transaction = verification.transaction;
 
@@ -516,13 +521,13 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     });
     if (!result.ok) {
       if (result.error === "other-account") {
-        return c.json({ error: "Langganan ini sudah terhubung ke akun JoyoRogo lain." }, 403);
+        return c.json({ error: t(c)("billing.linkedOtherAccount") }, 403);
       }
-      if (result.error === "no-user") return c.json({ error: "Pengguna tidak ditemukan." }, 404);
+      if (result.error === "no-user") return c.json({ error: t(c)("billing.userNotFound") }, 404);
       if (result.error === "wrong-product") {
-        return c.json({ error: "Bukti pembelian tidak valid." }, 400);
+        return c.json({ error: t(c)("billing.receiptInvalid") }, 400);
       }
-      return c.json({ error: "Pembayaran masih diproses. Coba lagi sebentar." }, 409);
+      return c.json({ error: t(c)("billing.processing") }, 409);
     }
     if (result.status === "granted") {
       // The one-day sandbox trial is not a sale: no receipt, no admin alert.
@@ -549,7 +554,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   // signature is 400; a D1 failure is 500 so Apple redelivers.
   app.post("/api/billing/apple/notifications", async (c) => {
     if (!paywallEnabled(config)) {
-      return c.json({ error: "Pembayaran tidak tersedia di server ini." }, 404);
+      return c.json({ error: t(c)("billing.unavailable") }, 404);
     }
     const body = (await c.req.json().catch(() => null)) as { signedPayload?: string } | null;
     if (typeof body?.signedPayload !== "string" || !body.signedPayload) {
@@ -659,19 +664,19 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   // Return page polls this until the webhook lands.
   app.get("/api/billing/orders/:orderId", async (c) => {
     const me = await sessionUser(c.req.raw.headers);
-    if (!me) return c.json({ error: "Masuk dulu." }, 401);
+    if (!me) return c.json({ error: t(c)("billing.signIn") }, 401);
     const order = await ownOrder(c.req.param("orderId"), me.id);
-    if (!order) return c.json({ error: "Pesanan tidak ditemukan." }, 404);
+    if (!order) return c.json({ error: t(c)("billing.orderNotFound") }, 404);
     return c.json(order);
   });
 
   // "Cek pembayaran": the buyer asks us to verify with the gateway now.
   app.post("/api/billing/orders/:orderId/check", async (c) => {
     const me = await sessionUser(c.req.raw.headers);
-    if (!me) return c.json({ error: "Masuk dulu." }, 401);
+    if (!me) return c.json({ error: t(c)("billing.signIn") }, 401);
     const db = deps.getDb();
     const order = await findOrder(db, c.req.param("orderId"));
-    if (!order || order.userId !== me.id) return c.json({ error: "Pesanan tidak ditemukan." }, 404);
+    if (!order || order.userId !== me.id) return c.json({ error: t(c)("billing.orderNotFound") }, 404);
     await reconcileOrder(db, order, (work) => c.executionCtx.waitUntil(work));
     return c.json(await ownOrder(order.orderId, me.id));
   });
@@ -679,7 +684,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   // Latest pending order of the caller, so profile can offer "Cek pembayaran".
   app.get("/api/billing/orders", async (c) => {
     const me = await sessionUser(c.req.raw.headers);
-    if (!me) return c.json({ error: "Masuk dulu." }, 401);
+    if (!me) return c.json({ error: t(c)("billing.signIn") }, 401);
     const [latest] = await deps
       .getDb()
       .select({ orderId: payment.orderId, status: payment.status, createdAt: payment.createdAt })
@@ -694,7 +699,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   app.get("/api/ai/my-usage", async (c) => {
     const me = await sessionUser(c.req.raw.headers);
     if (!me) {
-      return c.json({ error: "Masuk dulu untuk melihat pemakaian AI-mu." }, 401);
+      return c.json({ error: t(c)("billing.signInForUsage") }, 401);
     }
     const since = new Date(Date.now() - SUMMARY_WINDOW_DAYS * 24 * 60 * 60 * 1000);
     const rows = await deps

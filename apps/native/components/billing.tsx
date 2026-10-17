@@ -1,17 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { Linking, Platform, Pressable, View } from "react-native";
 import * as Crypto from "expo-crypto";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
+import { LOCALE_HEADER, i18n } from "@joyorogo/i18n";
+
 import { appleIap } from "@/modules/apple-iap";
 import { authClient } from "@/lib/auth-client";
+import { Disclosure } from "@/components/disclosure";
 import { Button, Card, Sheet, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
-import { errorMessage } from "@/utils/format";
+import { errorMessage, fmtDateLong, fmtIdr } from "@/utils/format";
 import { IS_PLAY_BUILD } from "@/src/distribution";
 import { ENV } from "@/src/env";
 import type * as PlayBilling from "@/src/lib/play-billing";
@@ -88,21 +92,19 @@ export function useAppConfig() {
   });
 }
 
-/** "12 November 2026" in WIB. */
+/** "12 November 2026" / "November 12, 2026" in WIB, in the active language. */
 export function fmtFounderDate(value: string | Date): string {
-  return new Date(value).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "Asia/Jakarta",
-  });
+  const wibDay = new Date(new Date(value).getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
+  return fmtDateLong(wibDay).replace(/^\w+, /, "");
 }
 
-// Better Auth Expo forwards the session cookie manually on native.
+// Better Auth Expo forwards the session cookie manually on native. The server
+// writes billing errors in the language the UI shows.
 async function checkoutHeaders(): Promise<Record<string, string>> {
-  if (Platform.OS === "web") return {};
+  const locale = { [LOCALE_HEADER]: i18n.language };
+  if (Platform.OS === "web") return locale;
   const cookies = await authClient.getCookie();
-  return cookies ? { Cookie: cookies } : {};
+  return cookies ? { ...locale, Cookie: cookies } : locale;
 }
 
 /** One Founder order as the order endpoints answer it. */
@@ -123,9 +125,9 @@ export async function checkOrderPaid(orderId: string): Promise<BillingOrder> {
     { method: "POST", headers: await checkoutHeaders() },
   );
   const body = (await res.json().catch(() => null)) as BillingOrder | { error?: string } | null;
-  if (res.status === 401) throw new Error("Masuk dulu untuk berlangganan.");
+  if (res.status === 401) throw new Error(i18n.t("billing:error.signIn"));
   if (!res.ok || !body || !("status" in body)) {
-    throw new Error("Pembayaran belum bisa dicek. Coba lagi nanti.");
+    throw new Error(i18n.t("billing:error.checkFailed"));
   }
   return body;
 }
@@ -153,9 +155,9 @@ export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
         paymentUrl?: string;
         error?: string;
       } | null;
-      if (res.status === 401) throw new Error("Masuk dulu untuk berlangganan.");
+      if (res.status === 401) throw new Error(i18n.t("billing:error.signIn"));
       if (!res.ok || !body?.paymentUrl) {
-        throw new Error(body?.error ?? "Pembayaran belum bisa diproses. Coba lagi nanti.");
+        throw new Error(body?.error ?? i18n.t("billing:error.checkoutFailed"));
       }
       return { orderId: body.orderId ?? "", paymentUrl: body.paymentUrl };
     },
@@ -174,20 +176,9 @@ export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
   });
 }
 
-const METHOD_OPTIONS: Record<
-  PaymentMethod,
-  { icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; note: string }
-> = {
-  qris: {
-    icon: "qr-code-outline",
-    label: "QRIS",
-    note: "Scan pakai e-wallet atau m-banking apa saja.",
-  },
-  transfer: {
-    icon: "business-outline",
-    label: "Transfer Bank",
-    note: "Bayar lewat virtual account bank.",
-  },
+const METHOD_ICONS: Record<PaymentMethod, React.ComponentProps<typeof Ionicons>["name"]> = {
+  qris: "qr-code-outline",
+  transfer: "business-outline",
 };
 
 /**
@@ -197,6 +188,7 @@ const METHOD_OPTIONS: Record<
  * when the config predates the picker). Render `sheet` once on the screen.
  */
 export function useCheckoutPicker(plan: CheckoutPlan = "monthly") {
+  const { t } = useTranslation("billing");
   const config = useAppConfig();
   const checkout = useFounderCheckout(plan);
   const { theme } = useUnistyles();
@@ -211,10 +203,12 @@ export function useCheckoutPicker(plan: CheckoutPlan = "monthly") {
   };
 
   const sheet = (
-    <Sheet visible={open} onClose={() => setOpen(false)} title="Pilih cara bayar">
-      <Text style={styles.methodHint}>Pro aktif otomatis setelah pembayaran masuk.</Text>
+    <Sheet visible={open} onClose={() => setOpen(false)} title={t("picker.title")}>
+      <Text style={styles.methodHint}>{t("picker.description")}</Text>
       {methods.map((method) => {
-        const { icon, label, note } = METHOD_OPTIONS[method];
+        const icon = METHOD_ICONS[method];
+        const label = t(`picker.${method}.label`);
+        const note = t(`picker.${method}.note`);
         return (
           <Pressable
             key={method}
@@ -276,6 +270,7 @@ export function usePendingOrder(enabled: boolean) {
  * mismatch on iOS.
  */
 export function FounderPromoCard() {
+  const { t } = useTranslation("billing");
   const config = useAppConfig();
   const promo = config.data?.promo;
   if (!config.data || !promo || promo.slots - promo.taken <= 0) return null;
@@ -283,10 +278,17 @@ export function FounderPromoCard() {
   const nextPriceIdr = promo.nextPriceIdr ?? null;
   return (
     <Card style={styles.promoCard}>
+      <Text style={styles.promoHeadline}>
+        {t("promo.headline", { price: fmtIdr(config.data.founderPriceIdr) })}
+      </Text>
       <Text style={styles.promoText}>
-        Harga Founder (terbatas) Rp{config.data.founderPriceIdr.toLocaleString("id-ID")}
-        /bulan untuk {promo.slots} pembeli pertama, sisa {left} slot
-        {nextPriceIdr !== null ? `. Setelah itu Rp${nextPriceIdr.toLocaleString("id-ID")}` : ""}.
+        <Trans
+          ns="billing"
+          i18nKey="promo.slots"
+          count={left}
+          values={{ total: promo.slots, left }}
+          components={{ b: <Text style={styles.promoBold} /> }}
+        />
       </Text>
       <View style={styles.promoTrack}>
         <View
@@ -296,9 +298,12 @@ export function FounderPromoCard() {
           ]}
         />
       </View>
-      <Text style={styles.promoNote}>
-        Harga terkunci: pembeli promo Founder tetap bayar harga ini saat perpanjang.
-      </Text>
+      <Disclosure plain title={t("promo.details")}>
+        {nextPriceIdr !== null ? (
+          <Text style={styles.promoNote}>{t("promo.then", { price: fmtIdr(nextPriceIdr) })}</Text>
+        ) : null}
+        <Text style={styles.promoNote}>{t("promo.locked")}</Text>
+      </Disclosure>
     </Card>
   );
 }
@@ -344,11 +349,11 @@ async function postAppleJws(signedTransaction: string): Promise<void> {
     body: JSON.stringify({ signedTransaction }),
   });
   const body = (await res.json().catch(() => null)) as { error?: string } | null;
-  if (res.status === 401) throw new Error("Masuk dulu untuk berlangganan.");
+  if (res.status === 401) throw new Error(i18n.t("billing:error.signIn"));
   if (res.status === 400 || res.status === 403) {
-    throw new AppleRejectedError(body?.error ?? "Bukti pembelian tidak valid.");
+    throw new AppleRejectedError(body?.error ?? i18n.t("billing:error.receiptInvalid"));
   }
-  if (!res.ok) throw new Error(body?.error ?? "Pembelian belum bisa diproses. Coba lagi nanti.");
+  if (!res.ok) throw new Error(body?.error ?? i18n.t("billing:error.purchaseFailed"));
 }
 
 /**
@@ -362,18 +367,16 @@ async function postAppleJws(signedTransaction: string): Promise<void> {
 export function useAppleFounderPurchase() {
   return useMutation({
     mutationFn: async (plan: "monthly" | "yearly") => {
-      if (!appleIap) throw new Error("Pembelian lewat App Store tidak tersedia.");
+      if (!appleIap) throw new Error(i18n.t("billing:error.appleUnavailable"));
       const userId = (await authClient.getSession()).data?.user.id;
-      if (!userId) throw new Error("Masuk dulu untuk berlangganan.");
+      if (!userId) throw new Error(i18n.t("billing:error.signIn"));
       const result = await appleIap.purchase(
         FOUNDER_PRODUCT_IDS[plan],
         await appleAccountToken(userId),
       );
       if (result.status === "cancelled") return "cancelled";
       if (result.status === "pending") {
-        throw new Error(
-          "Pembelian menunggu persetujuan App Store. Buka lagi nanti setelah disetujui.",
-        );
+        throw new Error(i18n.t("billing:error.applePending"));
       }
       try {
         await postAppleJws(result.signedTransaction);
@@ -498,12 +501,12 @@ async function postPlayPurchase(purchaseToken: string): Promise<PlayVerdict> {
     status?: PlayVerdict;
     error?: string;
   } | null;
-  if (res.status === 401) throw new Error("Masuk dulu untuk berlangganan.");
+  if (res.status === 401) throw new Error(i18n.t("billing:error.signIn"));
   if (res.status === 400 || res.status === 409) {
-    throw new PlayRejectedError(body?.error ?? "Bukti pembelian tidak valid.");
+    throw new PlayRejectedError(body?.error ?? i18n.t("billing:error.receiptInvalid"));
   }
   if (!res.ok || !body?.status) {
-    throw new Error(body?.error ?? "Pembelian belum bisa diproses. Coba lagi nanti.");
+    throw new Error(body?.error ?? i18n.t("billing:error.purchaseFailed"));
   }
   return body.status;
 }
@@ -521,13 +524,13 @@ export function usePlayPurchase() {
     mutationFn: async (plan: CheckoutPlan): Promise<PlayBuyResult> => {
       const play = playBilling();
       const userId = (await authClient.getSession()).data?.user.id;
-      if (!userId) throw new Error("Masuk dulu untuk berlangganan.");
+      if (!userId) throw new Error(i18n.t("billing:error.signIn"));
       let outcome: PlayBilling.PlayPurchaseOutcome;
       try {
         outcome = await play.buyPlan(plan, userId);
       } catch (error) {
         if (error instanceof play.AlreadySubscribedError) {
-          throw new Error('Kamu sudah berlangganan Pro di Google Play. Ketuk "Pulihkan pembelian".');
+          throw new Error(i18n.t("billing:error.playAlready"));
         }
         throw error;
       }
@@ -541,7 +544,7 @@ export function usePlayPurchase() {
       const verdict = await postPlayPurchase(outcome.purchaseToken);
       if (verdict === "pending") return "pending";
       if (verdict === "inactive") {
-        throw new Error('Pembelian belum aktif. Coba lagi sebentar atau ketuk "Pulihkan pembelian".');
+        throw new Error(i18n.t("billing:error.playInactive"));
       }
       return "bought";
     },
@@ -631,6 +634,7 @@ export function FounderCards({
   tier: "free" | "founder";
   founderUntil: string | Date | null;
 }) {
+  const { t } = useTranslation("billing");
   const config = useAppConfig();
   const ios = Platform.OS === "ios";
   const checkout = useCheckoutPicker();
@@ -655,12 +659,12 @@ export function FounderCards({
       const order = await checkOrderPaid(pendingOrder);
       if (order.status === "paid") {
         queryClient.invalidateQueries();
-        toast.success("Pembayaran diterima", "Pro aktif. Terima kasih!");
+        toast.success(t("toast.paidTitle"), t("toast.paidBody"));
       } else {
-        toast.info("Belum ada pembayaran masuk", "Coba lagi sebentar.");
+        toast.info(t("toast.notPaidTitle"), t("toast.notPaidBody"));
       }
     } catch (e) {
-      toast.error("Cek pembayaran gagal", errorMessage(e));
+      toast.error(t("toast.checkFailed"), errorMessage(e));
     } finally {
       setChecking(false);
     }
@@ -670,28 +674,25 @@ export function FounderCards({
   if (!config.data) return null;
 
   const onPlayBought = (result: PlayBuyResult) => {
-    if (result === "bought") toast.success("Langganan aktif", "JoyoRogo Pro aktif. Terima kasih!");
+    if (result === "bought") toast.success(t("toast.subscribedTitle"), t("toast.subscribedBody"));
     else if (result === "pending") {
-      toast.info(
-        "Menunggu pembayaran",
-        "Pro aktif otomatis setelah pembayaran di Google Play selesai.",
-      );
+      toast.info(t("toast.waitingTitle"), t("toast.waitingPlay"));
     }
   };
   const restorePlay = () =>
     playRestore.mutate(undefined, {
       onSuccess: (summary) => {
         if (summary.granted + summary.already > 0) {
-          toast.success("Pembelian dipulihkan", "JoyoRogo Pro aktif.");
+          toast.success(t("toast.restoredTitle"), t("toast.restoredBody"));
         } else if (summary.pending > 0) {
-          toast.info("Menunggu pembayaran", "Pro aktif otomatis setelah pembayaran selesai.");
+          toast.info(t("toast.waitingTitle"), t("toast.waitingGeneric"));
         } else if (summary.rejected) {
-          toast.error("Tidak bisa dipulihkan", summary.rejected);
+          toast.error(t("toast.restoreRejectedTitle"), summary.rejected);
         } else {
-          toast.info("Tidak ada langganan", "Akun Google Play ini belum punya langganan Pro aktif.");
+          toast.info(t("toast.noSubscriptionTitle"), t("toast.noSubscriptionPlay"));
         }
       },
-      onError: (e) => toast.error("Pemulihan gagal", errorMessage(e)),
+      onError: (e) => toast.error(t("toast.restoreFailed"), errorMessage(e)),
     });
   const buy = () => {
     if (ios) purchase.mutate("monthly");
@@ -715,28 +716,30 @@ export function FounderCards({
         <>
           <Card style={styles.upgradeCard}>
             <View style={styles.cardText}>
-              <Text style={styles.upgradeTitle}>
-                Scan AI {config.data.freeDailyScans} kali sehari
-              </Text>
+              {config.data.freeDailyScans !== null ? (
+                <Text style={styles.upgradeTitle}>
+                  {t("cards.freeScans", { count: config.data.freeDailyScans })}
+                </Text>
+              ) : null}
               <Text style={styles.cardNote}>
                 {config.data.founderDailyCap === null
-                  ? "Pro buka scan tanpa batas."
-                  : `Pro: ${config.data.founderDailyCap} scan AI per hari.`}
+                  ? t("cards.proUnlimited")
+                  : t("cards.proCapped", { count: config.data.founderDailyCap })}
               </Text>
               {ios && price.data?.monthly?.displayPrice ? (
                 <Text style={styles.cardNote}>
-                  {price.data.monthly.displayPrice}/bulan lewat App Store, diperpanjang otomatis.
+                  {t("cards.applePrice", { price: price.data.monthly.displayPrice })}
                 </Text>
               ) : null}
               {PLAY_ACTIVE && playPrices.data?.monthly ? (
                 <Text style={styles.cardNote}>
-                  JoyoRogo Pro {playPrices.data.monthly.displayPrice}/bulan lewat Google Play.
+                  {t("cards.playPrice", { price: playPrices.data.monthly.displayPrice })}
                 </Text>
               ) : null}
             </View>
             <Button
               size="sm"
-              label="Upgrade"
+              label={t("cards.upgrade")}
               onPress={() =>
                 router.push({ pathname: "/founder", params: { from: "profile", next: "/profil" } })
               }
@@ -746,7 +749,7 @@ export function FounderCards({
             <Button
               variant="secondary"
               size="sm"
-              label="Sudah bayar? Cek pembayaran"
+              label={t("cards.checkPending")}
               loading={checking}
               onPress={() => void checkPending()}
             />
@@ -755,7 +758,7 @@ export function FounderCards({
             <Button
               variant="secondary"
               size="sm"
-              label="Pulihkan pembelian"
+              label={t("cards.restore")}
               loading={playRestore.isPending}
               onPress={restorePlay}
             />
@@ -765,28 +768,25 @@ export function FounderCards({
       {tier === "founder" && founderUntil ? (
         <Card style={styles.founderCard}>
           <View style={styles.cardText}>
-            <Text style={styles.founderTitle}>Pro aktif</Text>
+            <Text style={styles.founderTitle}>{t("cards.activeTitle")}</Text>
             <Text style={styles.cardNote}>
-              Sampai {fmtFounderDate(founderUntil)}.{" "}
-              {PLAY_ACTIVE
-                ? "Langganan Google Play dikelola dan dibatalkan di Play Store."
-                : ios
-                  ? "Langganan App Store, kelola di Pengaturan > Apple ID > Langganan."
-                  : "Tidak diperpanjang otomatis."}
+              {t(`cards.activeUntil.${PLAY_ACTIVE ? "play" : ios ? "apple" : "web"}`, {
+                date: fmtFounderDate(founderUntil),
+              })}
             </Text>
           </View>
           {ios ? (
             <Button
               size="sm"
               variant="secondary"
-              label="Kelola langganan"
+              label={t("cards.manage")}
               onPress={() => void openManageSubscriptions()}
             />
           ) : billing ? (
             <Button
               size="sm"
               variant="secondary"
-              label="Perpanjang"
+              label={t("cards.renew")}
               onPress={buy}
               loading={buying}
             />
@@ -866,10 +866,19 @@ const styles = StyleSheet.create((theme) => ({
     gap: theme.spacing.sm,
     backgroundColor: theme.colors.makanSoft,
   },
+  promoHeadline: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    lineHeight: 19,
+    color: theme.colors.makanText,
+  },
   promoText: {
     fontSize: theme.fontSize.sm,
     lineHeight: 19,
     color: theme.colors.makanText,
+  },
+  promoBold: {
+    fontWeight: "800",
   },
   promoTrack: {
     height: 6,

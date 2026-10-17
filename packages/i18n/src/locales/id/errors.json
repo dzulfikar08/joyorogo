@@ -24,5 +24,22 @@
     "empty": "Belum ada makanan yang dikenali dari ceritamu. Sebut nama makanannya, misalnya: nasi goreng 1 piring.",
     "failed": "AI belum berhasil membaca ceritamu. Coba lagi sebentar lagi.",
     "voiceEmpty": "Suaranya kurang jelas. Coba rekam lagi lebih dekat ke mikrofon."
+  },
+  "billing": {
+    "unavailable": "Pembayaran tidak tersedia di server ini.",
+    "signInToSubscribe": "Masuk dulu untuk berlangganan.",
+    "signIn": "Masuk dulu.",
+    "signInForUsage": "Masuk dulu untuk melihat pemakaian AI-mu.",
+    "methodUnavailable": "Metode pembayaran ini tidak tersedia.",
+    "checkoutFailed": "Halaman pembayaran gagal dibuat. Coba lagi sebentar lagi.",
+    "receiptMissing": "Bukti pembelian tidak ada.",
+    "receiptInvalid": "Bukti pembelian tidak valid.",
+    "linkedOtherAccount": "Langganan ini sudah terhubung ke akun JoyoRogo lain.",
+    "userNotFound": "Pengguna tidak ditemukan.",
+    "processing": "Pembayaran masih diproses. Coba lagi sebentar.",
+    "orderNotFound": "Pesanan tidak ditemukan.",
+    "googleUnavailable": "Pembayaran Google Play tidak tersedia di server ini.",
+    "googleUnreachable": "Google Play belum bisa dihubungi. Coba lagi sebentar.",
+    "googleLinkedOtherAccount": "Langganan Google Play ini sudah terhubung ke akun JoyoRogo lain."
   }
 }

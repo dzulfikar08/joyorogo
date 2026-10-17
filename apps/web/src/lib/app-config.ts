@@ -1,4 +1,4 @@
-import { fmtIdr } from "@joyorogo/i18n";
+import { fmtIdr, i18n } from "@joyorogo/i18n";
 import { useQuery } from "@tanstack/react-query";
 
 import { env } from "@/env.public";
@@ -74,6 +74,6 @@ export function fmtRupiah(amount: number): string {
 /** Founder scan allowance as sold: the daily cap when the server sets one. */
 export function founderScans(config: Pick<AppConfig, "founderDailyCap">): string {
   return config.founderDailyCap === null
-    ? "Scan AI tanpa batas"
-    : `${config.founderDailyCap} scan AI per hari`;
+    ? i18n.t("billing:benefits.scansUnlimited")
+    : i18n.t("billing:benefits.scansCapped", { count: config.founderDailyCap });
 }

@@ -18,6 +18,8 @@ import {
 } from "expo-iap";
 import type { ProductSubscription, Purchase } from "expo-iap";
 
+import { i18n } from "@joyorogo/i18n";
+
 export const PRO_PRODUCT_ID = "pro";
 
 export type PlayPlan = "monthly" | "yearly";
@@ -96,7 +98,7 @@ export async function loadPlans(): Promise<PlayPlans> {
  */
 export async function buyPlan(plan: PlayPlan, accountId: string): Promise<PlayPurchaseOutcome> {
   const offer = (await loadPlans())[plan];
-  if (!offer) throw new Error("Langganan belum tersedia di Google Play.");
+  if (!offer) throw new Error(i18n.t("billing:error.playNoOffer"));
 
   return new Promise<PlayPurchaseOutcome>((resolve, reject) => {
     const subscriptions: { remove: () => void }[] = [];

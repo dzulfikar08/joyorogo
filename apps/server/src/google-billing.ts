@@ -1,5 +1,5 @@
 import type { JoyoAuth } from "@joyorogo/auth";
-import type { Hono } from "hono";
+import type { Context, Hono } from "hono";
 
 import {
   createGoogleKeySource,
@@ -16,9 +16,11 @@ import {
   verifyGooglePurchase,
 } from "@joyorogo/api/lib/google-play-billing";
 import type { GoogleVerifyResult } from "@joyorogo/api/lib/google-play-billing";
+import { serverT } from "@joyorogo/api/lib/messages";
 import { paywallConfig, paywallEnabled } from "@joyorogo/api/lib/tiers";
 import type { PaywallEnv } from "@joyorogo/api/lib/tiers";
 import type { Database } from "@joyorogo/db";
+import { requestLocale } from "./context";
 import { sendOrderEmails } from "./email";
 import type { EmailEnv } from "./email";
 
@@ -39,6 +41,9 @@ export const GOOGLE_RTDN_PATH = "/api/billing/google/rtdn";
 
 /** Play purchase tokens are URL-safe; the pattern keeps them out of path tricks. */
 const PURCHASE_TOKEN = /^[A-Za-z0-9._-]{10,2048}$/;
+
+/** User-facing text of a billing response, in the language the request asks for. */
+const t = (c: Context) => serverT(requestLocale(c), "errors");
 
 /**
  * Google Play Billing for the Play build's JoyoRogo Pro subscription (`pro`,
@@ -62,7 +67,7 @@ export function registerGooglePlayRoutes(app: Hono, deps: Deps) {
   const signingKey = createGoogleKeySource();
   const apiUrl = env.BETTER_AUTH_URL.replace(/\/$/, "");
 
-  const unavailable = { error: "Pembayaran Google Play tidak tersedia di server ini." };
+  const unavailable = (c: Context) => ({ error: t(c)("billing.googleUnavailable") });
 
   const billingDeps = () =>
     config && client
@@ -79,14 +84,14 @@ export function registerGooglePlayRoutes(app: Hono, deps: Deps) {
 
   app.post(GOOGLE_VERIFY_PATH, async (c) => {
     const billing = billingDeps();
-    if (!billing) return c.json(unavailable, 404);
+    if (!billing) return c.json(unavailable(c), 404);
     const session = await (await deps.createAuth()).api.getSession({ headers: c.req.raw.headers });
     const me = session?.user ?? null;
-    if (!me) return c.json({ error: "Masuk dulu untuk berlangganan." }, 401);
+    if (!me) return c.json({ error: t(c)("billing.signInToSubscribe") }, 401);
     const body = (await c.req.json().catch(() => null)) as { purchaseToken?: unknown } | null;
     const purchaseToken = body?.purchaseToken;
     if (typeof purchaseToken !== "string" || !PURCHASE_TOKEN.test(purchaseToken)) {
-      return c.json({ error: "Bukti pembelian tidak ada." }, 400);
+      return c.json({ error: t(c)("billing.receiptMissing") }, 400);
     }
 
     let result: GoogleVerifyResult;
@@ -94,21 +99,21 @@ export function registerGooglePlayRoutes(app: Hono, deps: Deps) {
       result = await verifyGooglePurchase(billing, { purchaseToken, userId: me.id });
     } catch (error) {
       console.error("google billing verify failed:", error);
-      return c.json({ error: "Google Play belum bisa dihubungi. Coba lagi sebentar." }, 502);
+      return c.json({ error: t(c)("billing.googleUnreachable") }, 502);
     }
 
     if (!result.ok) {
       if (result.error === "other-account") {
         return c.json(
-          { error: "Langganan Google Play ini sudah terhubung ke akun JoyoRogo lain." },
+          { error: t(c)("billing.googleLinkedOtherAccount") },
           409,
         );
       }
       if (result.error === "busy") {
-        return c.json({ error: "Pembayaran masih diproses. Coba lagi sebentar." }, 409);
+        return c.json({ error: t(c)("billing.processing") }, 409);
       }
-      if (result.error === "no-user") return c.json({ error: "Pengguna tidak ditemukan." }, 404);
-      return c.json({ error: "Bukti pembelian tidak valid." }, 400);
+      if (result.error === "no-user") return c.json({ error: t(c)("billing.userNotFound") }, 404);
+      return c.json({ error: t(c)("billing.receiptInvalid") }, 400);
     }
     if (result.status === "pending" || result.status === "inactive") {
       return c.json({ status: result.status });
@@ -132,7 +137,7 @@ export function registerGooglePlayRoutes(app: Hono, deps: Deps) {
 
   app.post(GOOGLE_RTDN_PATH, async (c) => {
     const billing = billingDeps();
-    if (!billing || !config) return c.json(unavailable, 404);
+    if (!billing || !config) return c.json(unavailable(c), 404);
 
     const queryToken = c.req.query("token");
     const bearer = c.req.header("Authorization")?.match(/^Bearer (.+)$/i)?.[1];
