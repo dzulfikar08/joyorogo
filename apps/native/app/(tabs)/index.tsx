@@ -660,8 +660,8 @@ export default function Dashboard() {
       {/* Puasa intermiten: panduan jadwal makan — timer hidup hanya ada hari ini */}
       {isToday && !maternal ? <FastingScheduleCard /> : null}
 
-      {/* Tips hari ini: artikel berbasis bukti, berganti tiap hari */}
-      {isToday ? <DailyTipCard /> : null}
+      {/* Tips hari ini: artikel berbasis bukti (fat-loss), tidak untuk Hamil / Menyusui */}
+      {isToday && !maternal ? <DailyTipCard /> : null}
 
       {maternal ? (
         <WaterCard date={date} />
