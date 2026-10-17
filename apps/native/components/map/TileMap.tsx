@@ -102,7 +102,8 @@ export interface TileMapProps {
   a11yLabel: string;
 }
 
-const FIT_PADDING = 32;
+/** Clears the zoom column (8 px gap + 34 px buttons) plus the route casing, so the fitted route never hides under a button. */
+const FIT_PADDING = 48;
 const MARGIN_FRACTION = 0.3;
 const PRESS_MS = 150;
 const SLOP = 8;
@@ -537,15 +538,27 @@ export function TileMap({
     [applyTransform, commit],
   );
 
+  /**
+   * Page position of the map box, re-measured on every first touch. `measure` answers asynchronously, so a gesture that
+   * is already running (a pinch whose fingers landed together) is re-based when the answer differs: otherwise the map
+   * would jump by the difference between the stale and the measured origin.
+   */
+  const measureOrigin = () => {
+    containerRef.current?.measure((_x, _y, _w, _h, px, py) => {
+      const o = origin.current;
+      if (o.x === px && o.y === py) return;
+      origin.current = { x: px, y: py };
+      if (g.engaged) rebaseline();
+    });
+  };
+
   const onTouchStart = (e: GestureResponderEvent) => {
     const ts = e.nativeEvent.touches;
     g.last = ts;
     if (ts.length === 1) {
       cancelAnimation();
       commit();
-      containerRef.current?.measure((_x, _y, _w, _h, px, py) => {
-        origin.current = { x: px, y: py };
-      });
+      measureOrigin();
       g.startT = Date.now();
       g.startX = ts[0].pageX;
       g.startY = ts[0].pageY;
@@ -600,15 +613,15 @@ export function TileMap({
     release();
     if (!wasTap) return;
     const prev = g.lastTap;
-    const x = g.startX - origin.current.x;
-    const y = g.startY - origin.current.y;
+    const x = g.startX;
+    const y = g.startY;
     if (
       prev &&
       now - prev.t < DOUBLE_TAP_MS &&
       Math.hypot(x - prev.x, y - prev.y) < DOUBLE_TAP_DIST
     ) {
       g.lastTap = null;
-      animateZoom(1, x, y);
+      animateZoom(1, x - origin.current.x, y - origin.current.y);
     } else {
       g.lastTap = { t: now, x, y };
     }
