@@ -27,16 +27,19 @@ export function PlateFields({
   onChange,
   title: titleProp,
   priceLabel: priceLabelProp,
+  compact = false,
 }: {
   values: PlateValues;
   onChange: (next: PlateValues) => void;
   /** Group context, e.g. "Piring: Sarapan hari ini". */
   title?: string;
   priceLabel?: string;
+  /** Screenshot-friendly: no heading or hints, price and name share one row. */
+  compact?: boolean;
 }) {
-  const { t } = useTranslation("makan");
+  const { t } = useTranslation(["makan", "scan"]);
   const title = titleProp ?? t("plate.fields.title");
-  const priceLabel = priceLabelProp ?? t("plate.edit.price");
+  const priceLabel = priceLabelProp ?? (compact ? t("scan:plate.price") : t("plate.edit.price"));
   // Caret inside the price input, so backspacing a separator drops the digit.
   const priceCaret = useRef(0);
   // Opt-in location of the place: kept on the values so plateInput can send it.
@@ -46,36 +49,51 @@ export function PlateFields({
     if (values.coords?.lat === wanted?.lat && values.coords?.lng === wanted?.lng) return;
     onChange({ ...values, coords: wanted });
   }, [wanted?.lat, wanted?.lng]);
+  const priceField = (
+    <Field label={priceLabel}>
+      <Input
+        value={formatIdrInput(values.price)}
+        onChangeText={(text) =>
+          onChange({
+            ...values,
+            price: idrKeystroke(text, formatIdrInput(values.price), priceCaret.current),
+          })
+        }
+        onSelectionChange={({ nativeEvent: { selection } }) => {
+          priceCaret.current = selection.start;
+        }}
+        keyboardType="number-pad"
+        maxLength={13}
+        placeholder="Rp0"
+        accessibilityLabel={t("plate.fields.priceAria")}
+      />
+    </Field>
+  );
+  const nameField = (
+    <Field label={t("plate.edit.name")} hint={compact ? undefined : t("plate.fields.nameHint")}>
+      <Input
+        value={values.name}
+        onChangeText={(name) => onChange({ ...values, name })}
+        maxLength={200}
+        placeholder={t("plate.edit.namePlaceholder")}
+        accessibilityLabel={t("plate.edit.name")}
+      />
+    </Field>
+  );
   return (
     <View style={styles.gap}>
-      <Text style={styles.title}>{title}</Text>
-      <Field label={priceLabel}>
-        <Input
-          value={formatIdrInput(values.price)}
-          onChangeText={(text) =>
-            onChange({
-              ...values,
-              price: idrKeystroke(text, formatIdrInput(values.price), priceCaret.current),
-            })
-          }
-          onSelectionChange={({ nativeEvent: { selection } }) => {
-            priceCaret.current = selection.start;
-          }}
-          keyboardType="number-pad"
-          maxLength={13}
-          placeholder="Rp0"
-          accessibilityLabel={t("plate.fields.priceAria")}
-        />
-      </Field>
-      <Field label={t("plate.edit.name")} hint={t("plate.fields.nameHint")}>
-        <Input
-          value={values.name}
-          onChangeText={(name) => onChange({ ...values, name })}
-          maxLength={200}
-          placeholder={t("plate.edit.namePlaceholder")}
-          accessibilityLabel={t("plate.edit.name")}
-        />
-      </Field>
+      {compact ? null : <Text style={styles.title}>{title}</Text>}
+      {compact ? (
+        <View style={styles.compactRow}>
+          <View style={styles.compactPrice}>{priceField}</View>
+          <View style={styles.compactName}>{nameField}</View>
+        </View>
+      ) : (
+        <>
+          {priceField}
+          {nameField}
+        </>
+      )}
       <Field label={t("plate.edit.place")}>
         <Input
           value={values.place}
@@ -116,6 +134,16 @@ export function plateInput(
 const styles = StyleSheet.create((theme) => ({
   gap: {
     gap: theme.spacing.sm,
+  },
+  compactRow: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+  },
+  compactPrice: {
+    flex: 1,
+  },
+  compactName: {
+    flex: 1.3,
   },
   title: {
     fontSize: theme.fontSize.md,

@@ -16,6 +16,7 @@ import type { StyleProp, ViewStyle } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { useTranslation } from "react-i18next";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import ConfettiCannon from "react-native-confetti-cannon";
@@ -33,7 +34,9 @@ import { foodKind, isHeavyDish } from "@joyorogo/api/lib/food-kind";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { scalePortion } from "@joyorogo/api/lib/portion";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
-import { SCAN_FAIL_COPY, TOO_MANY_PARTIAL_MESSAGE, scanFailTitle } from "@joyorogo/api/lib/scan-errors";
+import { fmtPercent } from "@joyorogo/i18n";
+import { scanFailReason } from "@joyorogo/api/lib/scan-errors";
+import type { ScanFailReason } from "@joyorogo/api/lib/scan-errors";
 
 import {
   BootLoader,
@@ -46,6 +49,7 @@ import {
   Segmented,
   Text,
 } from "@/components/ui";
+import { Disclosure } from "@/components/disclosure";
 import { KindCycleChip, SnackAdviceSection } from "@/components/makan/snack-advice";
 import { PlateFields, plateInput } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
@@ -55,7 +59,7 @@ import { ContextualTip } from "@/components/tips/contextual-tip";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { MealStory } from "@/components/story/story-card";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, parseNum } from "@/utils/format";
+import { errorMessage, fmtGramsLabel, fmtInt, parseNum } from "@/utils/format";
 import { client, isPaywallError, orpc, queryClient } from "@/utils/orpc";
 import { StickerMini } from "@/components/sticker";
 
@@ -76,14 +80,6 @@ type AnalyzedItem = {
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
 
-const MEAL_SHORT: Record<Meal, string> = {
-  sarapan: "Sarapan",
-  makan_siang: "Siang",
-  makan_malam: "Malam",
-  snack: "Snack",
-  sahur: "Sahur",
-  berbuka: "Berbuka",
-};
 
 const MAX_SIDE = 1024;
 
@@ -95,12 +91,23 @@ let sessionTiming: { prevRoundTripMs?: number; prevRenderMs?: number; prevCropMs
 const GEPREK_KCAL = 600;
 
 /** Optional chips for the negative answers of "Hasilnya akurat?". */
-const FEEDBACK_REASONS = [
-  ["porsi", "Porsi salah"],
-  ["makanan", "Makanan salah"],
-  ["kcal_tinggi", "Kalori kelewat tinggi"],
-  ["kcal_rendah", "Kalori kelewat rendah"],
-] as const;
+const FEEDBACK_REASONS = ["porsi", "makanan", "kcal_tinggi", "kcal_rendah"] as const;
+
+/**
+ * A failed call. A server reason code selects the copy from the
+ * `scan:fail.reason` keys; any other error keeps its (already localized)
+ * message.
+ */
+type ScanFailure = { reason: ScanFailReason | null; message: string | null };
+
+function failureOf(error: unknown): ScanFailure {
+  const reason = scanFailReason(error);
+  return { reason, message: reason ? null : errorMessage(error) };
+}
+
+function localFailure(message: string): ScanFailure {
+  return { reason: null, message };
+}
 
 /**
  * Cuts one item crop on device from the image we sent. Boxes are on a
@@ -126,23 +133,18 @@ async function cropFromBox(
   return saved.uri;
 }
 
-/** The signature reaction line — same thresholds as the web app. */
-function reaction(totalKcal: number): string {
-  if (totalKcal > 1100) return "Buset, yakin makan segitu bro?";
-  if (totalKcal > 550) return "Buset, yakin makan segitu bro?";
-  return "Aman, bro. Mantap.";
+/** Which line of the signature reaction fits this total (same thresholds as the web app). */
+function reactionKey(totalKcal: number): "high" | "mid" | "low" {
+  if (totalKcal > 1100) return "high";
+  if (totalKcal > 550) return "mid";
+  return "low";
 }
 
 type Phase = "camera" | "confirm" | "done";
 
 // Server answers in ~8-12 s since thinking is disabled; the copy advances on
 // this rhythm so nothing promises "up to a minute".
-const ANALYZE_STAGES = [
-  "Mengirim foto…",
-  "AI mengenali makananmu…",
-  "Menghitung kalori…",
-  "Hampir selesai…",
-] as const;
+const ANALYZE_STAGES = ["sending", "recognizing", "counting", "almost"] as const;
 const STAGE_MS = 2500;
 
 /**
@@ -260,6 +262,7 @@ function sameBox(a: number[] | undefined, b: number[] | undefined) {
 }
 
 function AnalyzingOverlay({ previewUri, onCancel }: { previewUri: string; onCancel: () => void }) {
+  const { t } = useTranslation("scan");
   const [stage, setStage] = useState(0);
   useEffect(() => {
     const timer = setInterval(
@@ -273,14 +276,14 @@ function AnalyzingOverlay({ previewUri, onCancel }: { previewUri: string; onCanc
       <Image source={{ uri: previewUri }} style={styles.analyzingPreview} resizeMode="cover" />
       <View style={styles.analyzingShade}>
         <ActivityIndicator size="large" color="#FFFFFF" />
-        <Text style={styles.analyzingText}>{ANALYZE_STAGES[stage]}</Text>
+        <Text style={styles.analyzingText}>{t(`analyzing.stage.${ANALYZE_STAGES[stage]}`)}</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Batalkan analisis"
+          accessibilityLabel={t("analyzing.cancelLabel")}
           onPress={onCancel}
           style={({ pressed }) => [styles.analyzingCancel, pressed && styles.shutterPressed]}
         >
-          <Text style={styles.analyzingCancelText}>Batalkan</Text>
+          <Text style={styles.analyzingCancelText}>{t("analyzing.cancel")}</Text>
         </Pressable>
       </View>
     </View>
@@ -289,6 +292,7 @@ function AnalyzingOverlay({ previewUri, onCancel }: { previewUri: string; onCanc
 
 export default function MakanAi() {
   const { theme } = useUnistyles();
+  const { t } = useTranslation(["scan", "makan", "common"]);
   const gate = useSessionGate();
   // Day forwarded from the makan screen when its DaySwitcher sits on a past
   // day: the scan then saves to that day instead of hari ini.
@@ -330,7 +334,7 @@ export default function MakanAi() {
       suggestMealForDish(new Date(), ramadan, scanned.some((item) => isHeavyDish(item.name))),
     );
   };
-  const [flowError, setFlowError] = useState<string | null>(null);
+  const [flowError, setFlowError] = useState<ScanFailure | null>(null);
   // The photo held more food than fit: the result keeps the most prominent
   // items and shows guidance until the user keeps them or reshoots.
   const [tooMany, setTooMany] = useState(false);
@@ -507,7 +511,7 @@ export default function MakanAi() {
       });
       const encodeMs = Math.round(performance.now() - processStartedAt) - resizeMs;
       if (!saved.base64) {
-        setFlowError("Gagal memproses foto. Coba lagi.");
+        setFlowError(localFailure(t("flow.processFailed")));
         if (previewSet) setPreviewUri(null);
         return;
       }
@@ -599,7 +603,7 @@ export default function MakanAi() {
         return;
       }
       if (previewSet) setPreviewUri(null);
-      setFlowError(errorMessage(e));
+      setFlowError(failureOf(e));
     }
   };
 
@@ -616,12 +620,12 @@ export default function MakanAi() {
       });
       const captureMs = Math.round(performance.now() - captureStartedAt);
       if (!photo?.uri) {
-        setFlowError("Gagal mengambil foto. Coba lagi.");
+        setFlowError(localFailure(t("flow.captureFailed")));
         return;
       }
       await processImage(photo.uri, photo.width, photo.height, captureMs);
     } catch (e) {
-      setFlowError(errorMessage(e));
+      setFlowError(failureOf(e));
     }
   };
 
@@ -637,7 +641,7 @@ export default function MakanAi() {
       if (!asset) return;
       await processImage(asset.uri, asset.width, asset.height, undefined);
     } catch (e) {
-      setFlowError(errorMessage(e));
+      setFlowError(failureOf(e));
     }
   };
 
@@ -702,7 +706,7 @@ export default function MakanAi() {
       );
     } catch (e) {
       // The previous result stays on screen; only the message changes.
-      setFlowError(errorMessage(e));
+      setFlowError(failureOf(e));
     }
   };
 
@@ -713,17 +717,17 @@ export default function MakanAi() {
       .map((item, index) => ({ item, draft: drafts[index], index }))
       .filter((entry) => entry.draft?.include);
     if (chosen.length === 0) {
-      setFlowError("Pilih minimal satu makanan untuk dicatat.");
+      setFlowError(localFailure(t("flow.pickOne")));
       return;
     }
     const invalid = chosen.find((entry) => (parseNum(entry.draft.kcal) ?? -1) < 0);
     if (invalid) {
-      setFlowError(`Periksa kalori untuk ${invalid.item.name}.`);
+      setFlowError(localFailure(t("flow.kcalInvalid", { name: invalid.item.name })));
       return;
     }
     try {
       if (!sentImage) {
-        setFlowError("Foto pemindaian hilang. Foto ulang dulu.");
+        setFlowError(localFailure(t("flow.photoLost")));
         return;
       }
       await addScan.mutateAsync({
@@ -770,7 +774,7 @@ export default function MakanAi() {
         setPhase("done");
       }
     } catch (e) {
-      setFlowError(errorMessage(e));
+      setFlowError(failureOf(e));
     }
   };
 
@@ -810,7 +814,10 @@ export default function MakanAi() {
     setFullPortion(null);
   };
 
-  const flowErrorTitle = flowError ? scanFailTitle(flowError) : null;
+  const flowErrorTitle = flowError?.reason ? t(`fail.reason.${flowError.reason}.title`) : null;
+  const flowErrorMessage = flowError?.reason
+    ? t(`fail.reason.${flowError.reason}.message`)
+    : (flowError?.message ?? null);
 
   // ---- Camera phase (full-bleed, no card layout) ----
   if (phase === "camera") {
@@ -821,19 +828,16 @@ export default function MakanAi() {
             <View style={[styles.permissionIcon, { backgroundColor: theme.colors.muted }]}>
               <Ionicons name="camera-outline" size={26} color={theme.colors.mutedForeground} />
             </View>
-            <Text style={styles.permissionTitle}>Kamera dibutuhkan</Text>
+            <Text style={styles.permissionTitle}>{t("camera.permissionTitle")}</Text>
+            <Text style={styles.permissionText}>{t("camera.permissionBody")}</Text>
             <Text style={styles.permissionText}>
-              {`JoyoRogo butuh izin kamera untuk memotret makananmu dan menghitung kalorinya dengan AI. ${
-                profile.data?.profile?.keepPhotos
-                  ? "Foto asli disimpan untukmu sendiri. Atur di Profil."
-                  : "Foto tidak disimpan."
-              }`}
+              {profile.data?.profile?.keepPhotos ? t("privacy.kept") : t("privacy.notKept")}
             </Text>
             <View style={styles.permissionAction}>
-              <Button label="Beri Izin Kamera" onPress={() => void requestPermission()} />
+              <Button label={t("camera.grant")} onPress={() => void requestPermission()} />
               <Button
                 variant="secondary"
-                label="Pilih dari Galeri"
+                label={t("idle.gallery")}
                 icon="images-outline"
                 onPress={() => void pickFromGallery()}
               />
@@ -848,7 +852,7 @@ export default function MakanAi() {
         <CameraView ref={cameraRef} style={styles.camera} facing="back" ratio="4:3" />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Tutup kamera"
+          accessibilityLabel={t("camera.close")}
           onPress={() => router.back()}
           style={styles.closeButton}
         >
@@ -859,11 +863,11 @@ export default function MakanAi() {
         ) : (
           <>
             <View style={styles.shutterRow}>
-              <Text style={styles.shutterHint}>Potret piringmu, AI hitung kalorinya</Text>
-              <Text style={styles.shutterTip}>1 piring per foto, dari dekat</Text>
+              <Text style={styles.shutterHint}>{t("camera.hint")}</Text>
+              <Text style={styles.shutterTip}>{t("idle.tip")}</Text>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Pindai barcode kemasan"
+                accessibilityLabel={t("camera.barcode")}
                 onPress={() =>
                   router.replace(
                     scanDate
@@ -874,12 +878,12 @@ export default function MakanAi() {
                 style={({ pressed }) => [styles.barcodeLink, pressed && styles.shutterPressed]}
               >
                 <Ionicons name="barcode-outline" size={18} color="#FFFFFF" />
-                <Text style={styles.barcodeLinkText}>Pindai barcode kemasan</Text>
+                <Text style={styles.barcodeLinkText}>{t("camera.barcode")}</Text>
               </Pressable>
               <View style={styles.shutterActions}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Pilih dari galeri"
+                  accessibilityLabel={t("idle.gallery")}
                   disabled={analyze.isPending}
                   onPress={() => void pickFromGallery()}
                   style={({ pressed }) => [
@@ -892,7 +896,7 @@ export default function MakanAi() {
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Potret makanan"
+                  accessibilityLabel={t("camera.shutter")}
                   disabled={analyze.isPending}
                   onPress={() => void capture()}
                   style={({ pressed }) => [styles.shutterOuter, pressed && styles.shutterPressed]}
@@ -903,31 +907,31 @@ export default function MakanAi() {
                 </Pressable>
               </View>
             </View>
-            {flowError ? (
+            {flowErrorMessage ? (
               <View style={styles.cameraError}>
                 {flowErrorTitle ? (
                   <Text style={styles.cameraErrorTitle}>{flowErrorTitle}</Text>
                 ) : null}
-                <Text style={styles.cameraErrorText}>{flowError}</Text>
+                <Text style={styles.cameraErrorText}>{flowErrorMessage}</Text>
                 <View style={styles.cameraErrorActions}>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Coba lagi"
+                    accessibilityLabel={t("common:actions.retry")}
                     onPress={() => void capture()}
                     style={({ pressed }) => [
                       styles.cameraRetry,
                       pressed && styles.cameraRetryPressed,
                     ]}
                   >
-                    <Text style={styles.cameraRetryText}>Coba Lagi</Text>
+                    <Text style={styles.cameraRetryText}>{t("common:actions.retry")}</Text>
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Tutup pesan galat"
+                    accessibilityLabel={t("camera.dismissError")}
                     onPress={() => setFlowError(null)}
                     hitSlop={8}
                   >
-                    <Text style={styles.cameraErrorDismiss}>Tutup</Text>
+                    <Text style={styles.cameraErrorDismiss}>{t("common:actions.close")}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -954,8 +958,12 @@ export default function MakanAi() {
     );
     const adviceName =
       includedItems.length > 1
-        ? `${includedItems[0]!.name} dan ${includedItems.length - 1} lainnya`
+        ? t("result.names.andMore", {
+            first: includedItems[0]!.name,
+            count: includedItems.length - 1,
+          })
         : includedItems[0]?.name;
+    const reactionText = totalKcal > 0 ? t(`reaction.${reactionKey(totalKcal)}`) : null;
     return (
       <>
       <SafeAreaView style={styles.safeArea}>
@@ -964,35 +972,37 @@ export default function MakanAi() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.totalBlock}>
-            <Text style={styles.totalLabel}>Total kalori foto ini</Text>
-            <Num style={styles.totalValue} adjustsFontSizeToFit numberOfLines={1}>
-              {totalKcal.toLocaleString("id-ID")}
-            </Num>
-            <Text style={styles.totalUnit}>kcal</Text>
-            {totalKcal > 0 ? <Text style={styles.totalReaction}>{reaction(totalKcal)}</Text> : null}
+            <Text style={styles.totalLabel}>{t("result.total")}</Text>
+            <View style={styles.totalRow}>
+              <Num style={styles.totalValue} adjustsFontSizeToFit numberOfLines={1}>
+                {fmtInt(totalKcal)}
+              </Num>
+              <Text style={styles.totalUnit}>kcal</Text>
+            </View>
+            {reactionText ? <Text style={styles.totalReaction}>{reactionText}</Text> : null}
             {totalKcal > 0 ? (
               <Text style={styles.totalGeprek}>
-                Setara {Math.round(totalKcal / GEPREK_KCAL)} porsi geprek
+                {t("result.geprek", { count: Math.round(totalKcal / GEPREK_KCAL) })}
               </Text>
             ) : null}
           </View>
 
           {tooMany ? (
             <View style={styles.feedbackCard}>
-              <View style={styles.flexOne}>
-                <Text style={styles.feedbackTitle}>{SCAN_FAIL_COPY.too_many.title}</Text>
-                <Text style={styles.feedbackSubtitle}>{TOO_MANY_PARTIAL_MESSAGE}</Text>
+              <View>
+                <Text style={styles.feedbackTitle}>{t("fail.reason.too_many.title")}</Text>
+                <Text style={styles.feedbackSubtitle}>{t("fail.tooManyPartial")}</Text>
               </View>
               <View style={styles.feedbackRow}>
                 <Button
                   size="sm"
-                  label={`Pakai ${items.length} item ini`}
+                  label={t("result.keep", { count: items.length })}
                   onPress={() => setTooMany(false)}
                 />
                 <Button
                   variant="secondary"
                   size="sm"
-                  label="Foto ulang"
+                  label={t("result.retake")}
                   onPress={resetToCamera}
                 />
               </View>
@@ -1003,15 +1013,35 @@ export default function MakanAi() {
           {askFeedback && !feedbackAnswered && photoId ? (
             <View style={styles.feedbackCard}>
               <View style={styles.feedbackHead}>
-                <View style={styles.flexOne}>
-                  <Text style={styles.feedbackTitle}>Hasilnya akurat?</Text>
-                  <Text style={styles.feedbackSubtitle}>
-                    Jawabanmu melatih perkiraan berikutnya.
-                  </Text>
-                </View>
+                <Text style={styles.feedbackHeadTitle}>{t("feedback.title")}</Text>
+                {feedbackRating === null ? (
+                  <View style={styles.feedbackRow}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      label={t("feedback.accurate")}
+                      onPress={() => {
+                        sendFeedback("akurat");
+                        setFeedbackAnswered(true);
+                      }}
+                    />
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      label={t("feedback.lessAccurate")}
+                      onPress={() => setFeedbackRating("kurang_akurat")}
+                    />
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      label={t("feedback.wrong")}
+                      onPress={() => setFeedbackRating("salah")}
+                    />
+                  </View>
+                ) : null}
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Lewati penilaian"
+                  accessibilityLabel={t("feedback.skip")}
                   hitSlop={8}
                   onPress={() => {
                     sendFeedback("dilewati");
@@ -1022,38 +1052,13 @@ export default function MakanAi() {
                   <Ionicons name="close" size={20} color={theme.colors.mutedForeground} />
                 </Pressable>
               </View>
-              {feedbackRating === null ? (
-                <View style={styles.feedbackRow}>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    label="Akurat"
-                    icon="checkmark"
-                    onPress={() => {
-                      sendFeedback("akurat");
-                      setFeedbackAnswered(true);
-                    }}
-                  />
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    label="Kurang akurat"
-                    onPress={() => setFeedbackRating("kurang_akurat")}
-                  />
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    label="Salah"
-                    onPress={() => setFeedbackRating("salah")}
-                  />
-                </View>
-              ) : (
+              {feedbackRating !== null ? (
                 <View style={styles.feedbackDetail}>
                   <View style={styles.feedbackRow}>
-                    {FEEDBACK_REASONS.map(([key, label]) => (
+                    {FEEDBACK_REASONS.map((key) => (
                       <Chip
                         key={key}
-                        label={label}
+                        label={t(`feedback.reason.${key}`)}
                         selected={feedbackReasons.includes(key)}
                         onPress={() =>
                           setFeedbackReasons((current) =>
@@ -1068,13 +1073,14 @@ export default function MakanAi() {
                   <Input
                     value={feedbackNote}
                     onChangeText={setFeedbackNote}
-                    placeholder="Catatan singkat (opsional)"
+                    placeholder={t("feedback.notePlaceholder")}
+                    accessibilityLabel={t("feedback.noteAria")}
                     maxLength={300}
                   />
                   <View style={styles.feedbackRow}>
                     <Button
                       size="sm"
-                      label="Kirim"
+                      label={t("feedback.send")}
                       onPress={() => {
                         sendFeedback(feedbackRating, feedbackReasons, feedbackNote);
                         setFeedbackAnswered(true);
@@ -1083,45 +1089,11 @@ export default function MakanAi() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      label="Kembali"
+                      label={t("common:actions.back")}
                       onPress={() => setFeedbackRating(null)}
                     />
                   </View>
                 </View>
-              )}
-            </View>
-          ) : null}
-
-          {/* Original photo + per-item crops cut on device */}
-          {previewUri ? (
-            <View style={styles.reviewPhotoBlock}>
-              <Image
-                source={{ uri: previewUri }}
-                style={styles.reviewPhoto}
-                resizeMode="cover"
-                accessibilityLabel="Foto makanan yang dipindai"
-              />
-              {cropping || crops.some(Boolean) || stickers.some(Boolean) ? (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.cropRow}>
-                    {items.map((item, index) =>
-                      crops[index] || stickers[index] || (cropping && item.box) ? (
-                        <View key={`crop-${item.name}-${index}`} style={styles.cropTile}>
-                          <CropSlot
-                            uri={crops[index]}
-                            stickerId={stickers[index] ?? undefined}
-                            size={96}
-                            style={styles.cropImage}
-                            label={`Potongan ${item.name}`}
-                          />
-                          <Text style={styles.cropLabel} numberOfLines={1}>
-                            {item.name}
-                          </Text>
-                        </View>
-                      ) : null,
-                    )}
-                  </View>
-                </ScrollView>
               ) : null}
             </View>
           ) : null}
@@ -1148,7 +1120,7 @@ export default function MakanAi() {
                         stickerId={stickers[index] ?? undefined}
                         size={40}
                         style={styles.cropThumb}
-                        label={`Potongan ${item.name}`}
+                        label={t("result.cropLabel", { name: item.name })}
                       />
                     ) : undefined
                   }
@@ -1158,25 +1130,29 @@ export default function MakanAi() {
                       <MetaLine
                         items={[
                           item.portion,
-                          item.grams !== undefined ? `± ${Math.round(item.grams)} g` : null,
+                          item.grams !== undefined ? `± ${fmtGramsLabel(item.grams)}` : null,
                           item.confidence !== undefined
-                            ? `yakin ${Math.round(item.confidence * 100)}%`
-                            : "perkiraan AI",
+                            ? t("result.items.confidenceShort", {
+                                percent: fmtPercent(Math.round(item.confidence * 100)),
+                              })
+                            : t("result.items.estimate"),
                         ]}
                       />
-                      {hasMacros ? (
-                        <MacroLine
-                          compact
-                          protein={item.protein ?? null}
-                          carbs={item.carbs ?? null}
-                          fat={item.fat ?? null}
-                          fiber={item.fiber ?? null}
+                      <View style={styles.itemChips}>
+                        {hasMacros ? (
+                          <MacroLine
+                            compact
+                            protein={item.protein ?? null}
+                            carbs={item.carbs ?? null}
+                            fat={item.fat ?? null}
+                            fiber={item.fiber ?? null}
+                          />
+                        ) : null}
+                        <KindCycleChip
+                          value={kinds[index] ?? item.kind ?? foodKind(item.name)}
+                          onChange={(next) => setKinds((prev) => ({ ...prev, [index]: next }))}
                         />
-                      ) : null}
-                      <KindCycleChip
-                        value={kinds[index] ?? item.kind ?? foodKind(item.name)}
-                        onChange={(next) => setKinds((prev) => ({ ...prev, [index]: next }))}
-                      />
+                      </View>
                     </View>
                   }
                   right={
@@ -1184,6 +1160,7 @@ export default function MakanAi() {
                       <Input
                         value={draft.kcal}
                         keyboardType="number-pad"
+                        accessibilityLabel={t("result.items.kcalAria", { name: item.name })}
                         onChangeText={(text) =>
                           setDrafts((prev) =>
                             prev.map((d, i) => (i === index ? { ...d, kcal: text } : d)),
@@ -1210,44 +1187,50 @@ export default function MakanAi() {
           {/* Hitung ulang: foto yang sama, tanpa foto ulang, tanpa kuota harian */}
           {photoId ? (
             <View style={styles.retryBlock}>
-              <View style={styles.flexOne}>
-                <Text style={styles.feedbackTitle}>Angka kurang pas?</Text>
-                <Text style={styles.feedbackSubtitle}>
+              <View style={styles.retryHead}>
+                <Text style={styles.feedbackTitle}>{t("retry.title")}</Text>
+                <Text style={styles.retryMeta}>
                   {retriesLeft > 0
-                    ? `Hitung ulang foto yang sama, gratis. Sisa ${retriesLeft}x.`
-                    : "Batas hitung ulang foto ini habis. Foto ulang lewat tombol di bawah ya."}
+                    ? t("retry.left", { count: retriesLeft })
+                    : t("retry.exhausted")}
                 </Text>
               </View>
               {retriesLeft > 0 ? (
-                <>
+                <View style={styles.retryRow}>
                   <Input
                     value={retryHint}
                     onChangeText={setRetryHint}
-                    placeholder="mis. nasinya nasi merah, porsi setengah"
+                    placeholder={t("retry.hintPlaceholder")}
+                    accessibilityLabel={t("retry.hintLabel")}
                     maxLength={200}
+                    style={styles.retryInput}
                   />
                   <Button
                     variant="secondary"
-                    label={retry.isPending ? "Menghitung ulang..." : "Hitung ulang"}
+                    size="sm"
+                    label={retry.isPending ? t("retry.running") : t("retry.action")}
                     icon="refresh"
                     loading={retry.isPending}
                     disabled={retry.isPending}
                     onPress={() => void retryAnalysis()}
                   />
-                </>
-              ) : null}
+                </View>
+              ) : (
+                <Text style={styles.feedbackSubtitle}>{t("retry.exhaustedHint")}</Text>
+              )}
               {retry.isPending ? (
-                <Text style={styles.feedbackSubtitle}>
-                  Hasil sebelumnya masih ditampilkan sampai yang baru selesai.
-                </Text>
+                <Text style={styles.feedbackSubtitle}>{t("retry.keepPrevious")}</Text>
               ) : null}
             </View>
           ) : null}
 
           <View style={styles.mealBlock}>
-            <Text style={styles.mealLabel}>Catat sebagai</Text>
+            <Text style={styles.mealLabel}>{t("result.meal.title")}</Text>
             <Segmented
-              options={MEAL_KEYS.map((key) => ({ value: key, label: MEAL_SHORT[key] }))}
+              options={MEAL_KEYS.map((key) => ({
+                value: key,
+                label: t(`makan:diary.mealShort.${key}`),
+              }))}
               value={meal}
               onChange={(value) => {
                 mealPickedRef.current = true;
@@ -1267,16 +1250,72 @@ export default function MakanAi() {
             onUndoHalf={undoHalf}
           />
 
-          <PlateFields values={plateValues} onChange={setPlateValues} />
+          <PlateFields compact values={plateValues} onChange={setPlateValues} />
 
-          {flowError ? <Text style={styles.errorText}>{flowError}</Text> : null}
-          <Button
-            label={includedCount > 0 ? `Simpan ${includedCount} item` : "Pilih minimal satu item"}
-            disabled={includedCount === 0 || retry.isPending}
-            onPress={() => void saveIncluded()}
-            loading={addScan.isPending}
-          />
-          <Button variant="secondary" label="Foto Ulang" onPress={resetToCamera} />
+          {/* Original photo and per-item crops, plus how the result is made */}
+          {previewUri ? (
+            <Disclosure title={t("result.photoToggle")}>
+              <View style={styles.reviewPhotoBlock}>
+                <Image
+                  source={{ uri: previewUri }}
+                  style={styles.reviewPhoto}
+                  resizeMode="cover"
+                  accessibilityLabel={t("result.photoAlt")}
+                />
+                {cropping || crops.some(Boolean) || stickers.some(Boolean) ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View style={styles.cropRow}>
+                      {items.map((item, index) =>
+                        crops[index] || stickers[index] || (cropping && item.box) ? (
+                          <View key={`crop-${item.name}-${index}`} style={styles.cropTile}>
+                            <CropSlot
+                              uri={crops[index]}
+                              stickerId={stickers[index] ?? undefined}
+                              size={96}
+                              style={styles.cropImage}
+                              label={t("result.cropLabel", { name: item.name })}
+                            />
+                            <Text style={styles.cropLabel} numberOfLines={1}>
+                              {item.name}
+                            </Text>
+                          </View>
+                        ) : null,
+                      )}
+                    </View>
+                  </ScrollView>
+                ) : null}
+              </View>
+            </Disclosure>
+          ) : null}
+          {photoId ? (
+            <Disclosure title={t("result.info.title")}>
+              <Text style={styles.infoText}>{t("result.info.retry")}</Text>
+              {askFeedback && !feedbackAnswered ? (
+                <Text style={styles.infoText}>{t("result.info.feedback")}</Text>
+              ) : null}
+            </Disclosure>
+          ) : null}
+
+          {flowErrorMessage ? <Text style={styles.errorText}>{flowErrorMessage}</Text> : null}
+          <View style={styles.actionRow}>
+            <Button
+              variant="secondary"
+              label={t("result.retake")}
+              onPress={resetToCamera}
+              style={styles.actionSecondary}
+            />
+            <Button
+              label={
+                includedCount > 0
+                  ? t("result.save.items", { count: includedCount })
+                  : t("result.save.pickOne")
+              }
+              disabled={includedCount === 0 || retry.isPending}
+              onPress={() => void saveIncluded()}
+              loading={addScan.isPending}
+              style={styles.actionPrimary}
+            />
+          </View>
         </KeyboardAwareScrollView>
       </SafeAreaView>
       {totalKcal > 0 && (
@@ -1304,13 +1343,16 @@ export default function MakanAi() {
           kind: "meal",
           name:
             included.length > 1
-              ? `${included[0]!.item.name} +${included.length - 1} lainnya`
+              ? t("result.names.more", {
+                  first: included[0]!.item.name,
+                  count: included.length - 1,
+                })
               : included[0]!.item.name,
           kcal: savedKcal,
           protein: included.reduce((sum, entry) => sum + (entry.item.protein ?? 0), 0),
           carbs: included.reduce((sum, entry) => sum + (entry.item.carbs ?? 0), 0),
           fat: included.reduce((sum, entry) => sum + (entry.item.fat ?? 0), 0),
-          reaction: savedKcal > 0 ? reaction(savedKcal) : undefined,
+          reaction: savedKcal > 0 ? t(`reaction.${reactionKey(savedKcal)}`) : undefined,
           photoUri: previewUri,
         }
       : null;
@@ -1320,12 +1362,12 @@ export default function MakanAi() {
         <View style={[styles.doneIcon, { backgroundColor: theme.colors.makanSoft }]}>
           <Ionicons name="checkmark" size={34} color={theme.colors.makanText} />
         </View>
-        <Text style={styles.doneTitle}>Tercatat!</Text>
-        <Text style={styles.doneText}>Makanan dari foto sudah masuk ke catatan hari ini.</Text>
+        <Text style={styles.doneTitle}>{t("done.title")}</Text>
+        <Text style={styles.doneText}>{t("done.text")}</Text>
         <View style={styles.doneActions}>
-          <Button label="Lihat Daftar Makanan" onPress={() => router.replace("/makan")} />
+          <Button label={t("done.list")} onPress={() => router.replace("/makan")} />
           {mealStory ? <ShareStoryButton story={mealStory} variant="secondary" /> : null}
-          <Button variant="secondary" label="Foto Lagi" onPress={resetToCamera} />
+          <Button variant="secondary" label={t("done.again")} onPress={resetToCamera} />
         </View>
       </View>
     </SafeAreaView>
@@ -1577,13 +1619,13 @@ const styles = StyleSheet.create((theme) => ({
   confirmContent: {
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
     paddingBottom: theme.spacing.xxl,
   },
   totalBlock: {
     alignItems: "center",
-    gap: 4,
-    paddingVertical: theme.spacing.sm,
+    gap: 2,
+    paddingVertical: theme.spacing.xs,
   },
   totalLabel: {
     fontSize: theme.fontSize.sm,
@@ -1596,6 +1638,11 @@ const styles = StyleSheet.create((theme) => ({
     letterSpacing: -2,
     color: theme.colors.foreground,
   },
+  totalRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 6,
+  },
   totalUnit: {
     fontSize: theme.fontSize.base,
     color: theme.colors.mutedForeground,
@@ -1604,7 +1651,7 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.lg,
     fontWeight: "700",
     color: theme.colors.makanText,
-    marginTop: 6,
+    marginTop: 2,
     textAlign: "center",
   },
   totalGeprek: {
@@ -1667,14 +1714,21 @@ const styles = StyleSheet.create((theme) => ({
   itemMeta: {
     gap: 2,
   },
+  itemChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    columnGap: theme.spacing.sm,
+    rowGap: 2,
+  },
   kcalEdit: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
   kcalInput: {
-    width: 84,
-    minHeight: 44,
+    width: 76,
+    minHeight: 40,
     paddingHorizontal: 12,
     textAlign: "right",
   },
@@ -1683,7 +1737,7 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.mutedForeground,
   },
   mealBlock: {
-    gap: theme.spacing.sm,
+    gap: theme.spacing.xs,
   },
   mealLabel: {
     fontSize: theme.fontSize.sm,
@@ -1691,18 +1745,64 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.mutedForeground,
   },
   retryBlock: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.card,
+    padding: theme.spacing.md,
     gap: theme.spacing.sm,
+  },
+  retryHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+  },
+  retryMeta: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  retryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  retryInput: {
+    flex: 1,
+  },
+  infoText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+    lineHeight: 20,
+  },
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  actionSecondary: {
+    flexShrink: 0,
+  },
+  actionPrimary: {
+    flex: 1,
   },
   feedbackCard: {
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.card,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.md,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   feedbackHead: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    flexWrap: "wrap",
+    alignItems: "center",
     gap: theme.spacing.sm,
+  },
+  feedbackHeadTitle: {
+    flexGrow: 1,
+    flexShrink: 1,
+    fontSize: theme.fontSize.base,
+    fontWeight: "700",
+    color: theme.colors.foreground,
   },
   feedbackClose: {
     width: 32,
@@ -1729,9 +1829,6 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
     marginTop: 2,
-  },
-  flexOne: {
-    flex: 1,
   },
   errorText: {
     fontSize: theme.fontSize.sm,

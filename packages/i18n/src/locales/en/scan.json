@@ -29,5 +29,229 @@
     "anonAiUnavailable": "The AI service isn't available yet.",
     "anonTrialUsed": "Your free tries are used up. Sign up to keep scanning.",
     "anonPhotoUnreadable": "We couldn't read that photo."
+  },
+  "idle": {
+    "title": "Scan food",
+    "heading": "Point at your plate",
+    "tip": "One plate per photo, up close",
+    "camera": "Open camera",
+    "gallery": "Choose from gallery",
+    "story": "Tell us instead",
+    "barcode": "Scan barcode",
+    "info": {
+      "title": "How it works",
+      "how": "AI recognizes Indonesian dishes and counts the calories. You can correct the numbers before saving.",
+      "story": "Forgot to take a photo? Just describe your meal, typed or by voice.",
+      "barcode": "Packaged food? Scan the barcode and the nutrition comes from Open Food Facts."
+    }
+  },
+  "privacy": {
+    "kept": "Your original photo is saved for you only. Change this in Profile.",
+    "notKept": "The photo is only used for analysis and isn't saved."
+  },
+  "camera": {
+    "permissionTitle": "Camera access needed",
+    "permissionBody": "JoyoRogo needs camera access to photograph your food and count its calories with AI.",
+    "grant": "Allow camera",
+    "close": "Close camera",
+    "hint": "Snap your plate, AI counts the calories",
+    "barcode": "Scan a package barcode",
+    "shutter": "Take food photo",
+    "dismissError": "Dismiss error"
+  },
+  "flow": {
+    "notImage": "That file isn't an image. Pick a food photo (JPG/PNG/WebP).",
+    "imageUnsupported": "This browser can't process images.",
+    "processFailed": "Couldn't process the photo. Try again.",
+    "captureFailed": "Couldn't take the photo. Try again.",
+    "analyzeFailed": "Couldn't analyze the photo. Try again.",
+    "retryFailed": "Couldn't recount. Try again.",
+    "saveFailed": "Couldn't save. Try again.",
+    "kcalInvalid": "The calories for \"{{name}}\" aren't valid.",
+    "priceInvalid": "The plate price isn't valid (use a rupiah amount).",
+    "pickOne": "Select at least one food to log.",
+    "photoLost": "The scanned photo is gone. Retake it first."
+  },
+  "toast": {
+    "saved_one": "{{count}} item logged.",
+    "saved_other": "{{count}} items logged."
+  },
+  "analyzing": {
+    "title": "Analyzing photo",
+    "subtitle": "Hang on, usually 8 to 15 seconds.",
+    "photoAlt": "Food photo being analyzed",
+    "cancel": "Cancel",
+    "cancelLabel": "Cancel analysis",
+    "step": {
+      "prepared": "Photo ready",
+      "reading": "AI is reading the plate",
+      "tidying": "Tidying portions & calories"
+    },
+    "stage": {
+      "sending": "Sending photo…",
+      "recognizing": "AI is recognizing your food…",
+      "counting": "Counting calories…",
+      "almost": "Almost done…"
+    }
+  },
+  "fact": {
+    "title": "Did you know?",
+    "line": "{{text}} = {{kcal}} kcal, about {{move}}",
+    "move": {
+      "run": "{{duration}} of running",
+      "walk": "{{duration}} of walking",
+      "bike": "{{duration}} of cycling"
+    },
+    "duration": {
+      "minutes_one": "{{count}} minute",
+      "minutes_other": "{{count}} minutes",
+      "hours_one": "{{value}} hour",
+      "hours_other": "{{value}} hours"
+    },
+    "food": {
+      "gepreK": "1 serving of ayam geprek + iced tea",
+      "nasiGoreng": "1 serving of nasi goreng",
+      "martabak": "1 slice of martabak manis",
+      "indomie": "1 pack of Indomie goreng",
+      "sate": "1 serving of chicken satay (10 skewers)",
+      "kopiSusu": "1 iced milk coffee",
+      "bakso": "1 serving of bakso urat",
+      "soto": "1 bowl of soto ayam",
+      "mieAyam": "1 serving of mie ayam",
+      "rotiBakar": "1 chocolate roti bakar",
+      "nasiPadang": "1 serving of nasi padang rendang",
+      "gorengan": "1 fried snack (tempe mendoan)",
+      "mcdChicken": "1 serving of McDonald's chicken",
+      "tehTarik": "1 teh tarik",
+      "kwetiau": "1 serving of kwetiau siram",
+      "risoles": "3 risoles",
+      "pempek": "1 serving of pempek lenjer",
+      "cincau": "1 glass of iced cincau milk",
+      "pecelLele": "1 serving of pecel lele",
+      "bubur": "1 bowl of bubur ayam",
+      "ketoprak": "1 serving of ketoprak",
+      "pisangGoreng": "1 fried banana",
+      "seblak": "1 serving of seblak, level 3",
+      "cireng": "1 cireng rujak (5 pcs)"
+    }
+  },
+  "reaction": {
+    "high": "WHOA, you really eating all that, bro??",
+    "mid": "Whoa, you really eating all that, bro??",
+    "low": "All good, bro"
+  },
+  "result": {
+    "title": "Check AI results",
+    "retake": "Retake",
+    "total": "Total calories in this photo",
+    "geprek_one": "About {{count}} geprek plate",
+    "geprek_other": "About {{count}} geprek plates",
+    "photoAlt": "Your original food photo",
+    "photoCaption": "Original photo and a cutout of each food",
+    "photoToggle": "Original photo and cutouts",
+    "cropsLabel": "Cutout of each food",
+    "cropLabel": "Cutout of {{name}}",
+    "keep_one": "Use this item",
+    "keep_other": "Use these {{count}} items",
+    "items": {
+      "label": "Recognized foods",
+      "title": "What the AI saw",
+      "editable": "Numbers are editable",
+      "confidence": "Confidence {{percent}}",
+      "confidenceShort": "{{percent}} sure",
+      "estimate": "AI estimate",
+      "kcalAria": "Calories for {{name}}"
+    },
+    "names": {
+      "more_one": "{{first}} +{{count}} more",
+      "more_other": "{{first}} +{{count}} more",
+      "andMore_one": "{{first}} and {{count}} more",
+      "andMore_other": "{{first}} and {{count}} more"
+    },
+    "info": {
+      "title": "About this result",
+      "retry": "The AI re-reads the same photo without a retake and without using your daily quota.",
+      "feedback": "Your answer helps improve future estimates."
+    },
+    "meal": {
+      "title": "Log as",
+      "label": "Meal"
+    },
+    "save": {
+      "toMeal": "Save to {{meal}}",
+      "saving": "Saving...",
+      "items_one": "Save {{count}} item",
+      "items_other": "Save {{count}} items",
+      "pickOne": "Select at least one item"
+    }
+  },
+  "feedback": {
+    "title": "Is this accurate?",
+    "aria": "Rate the AI result",
+    "skip": "Skip rating",
+    "accurate": "Accurate",
+    "lessAccurate": "Not quite",
+    "wrong": "Wrong",
+    "reasonsLabel": "Reasons",
+    "reason": {
+      "porsi": "Wrong portion",
+      "makanan": "Wrong food",
+      "kcal_tinggi": "Calories too high",
+      "kcal_rendah": "Calories too low"
+    },
+    "noteAria": "Additional note (optional)",
+    "notePlaceholder": "Short note (optional)",
+    "send": "Send"
+  },
+  "retry": {
+    "title": "Numbers look off?",
+    "left_one": "Free, {{count}} left",
+    "left_other": "Free, {{count}} left",
+    "exhausted": "No recounts left",
+    "exhaustedHint": "This photo has been recounted twice. Retake it.",
+    "hintLabel": "Quick correction (optional)",
+    "hintPlaceholder": "e.g. the rice is brown rice, half portion",
+    "action": "Recount",
+    "running": "Recounting...",
+    "keepPrevious": "The previous result is still shown.",
+    "failedKept": "The previous result is kept. {{message}}"
+  },
+  "plate": {
+    "section": "Plate price",
+    "price": "Price (Rp)",
+    "pricePlaceholder": "e.g. {{example}}"
+  },
+  "done": {
+    "title": "Logged!",
+    "text": "The food from the photo is in today's log.",
+    "list": "View food list",
+    "again": "Scan again"
+  },
+  "demo": {
+    "paywall": {
+      "title": "Your free try is used up",
+      "bodyUnlimited": "Sign up free to keep scanning with no daily limit, plus the diary, weight chart and your daily plan.",
+      "bodyLimit_one": "Sign up free to continue. A free account gets {{count}} photo a day, plus the diary, weight chart and your daily plan.",
+      "bodyLimit_other": "Sign up free to continue. A free account gets {{count}} photos a day, plus the diary, weight chart and your daily plan.",
+      "signup": "Sign up with Google"
+    },
+    "takePhoto": "Photograph your food",
+    "takeAgain": "Another photo",
+    "photoAlt": "The food photo you picked",
+    "busy": "Recognizing food, usually 8-15 seconds...",
+    "hint": "Photograph your plate from above, in good light.",
+    "empty": {
+      "title": "No food detected",
+      "hint": "Try a closer photo in brighter light."
+    },
+    "remaining_one": "Free photos left: {{count}}.",
+    "remaining_other": "Free photos left: {{count}}.",
+    "signupSave": "Sign up to save it",
+    "total": "Total for this photo",
+    "freeAnon_one": "{{count}} free photo, no sign-up.",
+    "freeAnon_other": "{{count}} free photos, no sign-up.",
+    "footer": "Photos are only used for analysis, then discarded.",
+    "notImage": "That file isn't an image.",
+    "failed": "Analysis failed."
   }
 }

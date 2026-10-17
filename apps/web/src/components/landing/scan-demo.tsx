@@ -2,12 +2,17 @@ import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Camera, ImageIcon, ScanSearch, ThumbsUp, TriangleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import { LOCALE_HEADER, i18n } from "@joyorogo/i18n";
+import { scanFailReason } from "@joyorogo/api/lib/scan-errors";
+import type { ScanFailReason } from "@joyorogo/api/lib/scan-errors";
 
 import { Button } from "@joyorogo/ui/components/button";
 import { ListGroup, ListRow } from "@/components/kit/surface";
 import { useAppConfig } from "@/lib/app-config";
 import { trackEvent } from "@/lib/analytics";
-import { fmtInt } from "@/lib/format";
+import { fmtInt, fmtKcalLabel } from "@/lib/format";
 import { env } from "../../env.public";
 
 type AnonItem = {
@@ -24,6 +29,12 @@ type AnonItem = {
 
 type ScanResult = { items: AnonItem[]; remaining: number };
 
+/** The endpoint's reason code selects the copy; without one its localized message is shown. */
+function failureOf(err: unknown) {
+  const reason = scanFailReason(err);
+  return { reason, message: reason ? null : err instanceof Error ? err.message : null };
+}
+
 const MAX_EDGE = 1024;
 
 async function fileToImageBase64(file: File) {
@@ -35,7 +46,7 @@ async function fileToImageBase64(file: File) {
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Browser ini tidak mendukung pengolahan gambar.");
+  if (!ctx) throw new Error(i18n.t("scan:flow.imageUnsupported"));
   // Flatten alpha onto white: the vision endpoint rejects transparent PNGs.
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, width, height);
@@ -58,12 +69,18 @@ const PICKER =
  * client-side and never stored.
  */
 export function ScanDemo() {
+  const { t } = useTranslation("scan");
   const config = useAppConfig();
   const freeDaily = config.data?.freeDailyScans ?? null;
   const [result, setResult] = useState<ScanResult | null>(null);
   const [paywall, setPaywall] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // A server reason code picks the copy from `fail.reason`; otherwise the
+  // (already localized) message the endpoint returned.
+  const [error, setError] = useState<{
+    reason: ScanFailReason | null;
+    message: string | null;
+  } | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(
@@ -77,18 +94,20 @@ export function ScanDemo() {
     mutationFn: async (input: { imageBase64: string; mimeType: string }) => {
       const r = await fetch(`${env.VITE_SERVER_URL}/ai/scan-anon`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", [LOCALE_HEADER]: i18n.language },
         body: JSON.stringify(input),
       });
       const body = (await r.json()) as {
         items?: AnonItem[];
         remaining?: number;
         error?: string;
+        reason?: string;
         paywall?: boolean;
       };
       if (!r.ok) {
-        throw Object.assign(new Error(body.error ?? "Gagal menganalisis."), {
+        throw Object.assign(new Error(body.error ?? ""), {
           paywall: body.paywall,
+          data: { reason: body.reason },
         });
       }
       return body as ScanResult;
@@ -101,7 +120,7 @@ export function ScanDemo() {
       if ((err as Error & { paywall?: boolean }).paywall) {
         setPaywall(true);
         trackEvent("demo_scan_limit");
-      } else setError(err.message);
+      } else setError(failureOf(err));
     },
   });
 
@@ -109,7 +128,7 @@ export function ScanDemo() {
     setError(null);
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setError("File itu bukan gambar.");
+      setError({ reason: null, message: t("demo.notImage") });
       return;
     }
     setResult(null);
@@ -119,7 +138,7 @@ export function ScanDemo() {
       const image = await fileToImageBase64(file);
       await analyze.mutateAsync({ imageBase64: image.base64, mimeType: image.mimeType });
     } catch (err) {
-      if (!(err as Error & { paywall?: boolean }).paywall) setError((err as Error).message);
+      if (!(err as Error & { paywall?: boolean }).paywall) setError(failureOf(err));
     } finally {
       setBusy(false);
     }
@@ -128,14 +147,14 @@ export function ScanDemo() {
   if (paywall) {
     return (
       <div className="rounded-[1.75rem] bg-card p-6 text-center shadow-float md:p-8">
-        <p className="text-lg font-extrabold tracking-tight">Coba gratis sudah terpakai</p>
+        <p className="text-lg font-extrabold tracking-tight">{t("demo.paywall.title")}</p>
         <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
           {freeDaily === null
-            ? "Daftar gratis untuk lanjut scan tanpa batas harian, plus diary, grafik berat, dan rencana harianmu."
-            : `Daftar gratis untuk lanjut. Akun gratis dapat ${freeDaily} foto setiap hari, plus diary, grafik berat, dan rencana harianmu.`}
+            ? t("demo.paywall.bodyUnlimited")
+            : t("demo.paywall.bodyLimit", { count: freeDaily })}
         </p>
         <div className="mt-5 flex justify-center">
-          <Button render={<Link to="/login" />}>Daftar dengan Google</Button>
+          <Button render={<Link to="/login" />}>{t("demo.paywall.signup")}</Button>
         </div>
       </div>
     );
@@ -143,12 +162,7 @@ export function ScanDemo() {
 
   const total = (result?.items ?? []).reduce((sum, item) => sum + item.kcal, 0);
   const heavy = total > 550;
-  const reaction =
-    total > 1100
-      ? "BUSSET, yakin makan segitu bro??"
-      : heavy
-        ? "Buset, yakin makan segitu bro??"
-        : "Aman, bro";
+  const reaction = t(`reaction.${total > 1100 ? "high" : heavy ? "mid" : "low"}`);
 
   const pickers = (
     <div
@@ -169,7 +183,7 @@ export function ScanDemo() {
           }}
         />
         <Camera className="size-[1.125rem]" aria-hidden />
-        {result ? "Foto lagi" : "Foto makananmu"}
+        {result ? t("demo.takeAgain") : t("demo.takePhoto")}
       </label>
       <label
         className={`${PICKER} bg-muted hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_6%)]`}
@@ -185,7 +199,7 @@ export function ScanDemo() {
           }}
         />
         <ImageIcon className="size-[1.125rem]" aria-hidden />
-        Pilih dari galeri
+        {t("idle.gallery")}
       </label>
     </div>
   );
@@ -196,13 +210,13 @@ export function ScanDemo() {
         <div className="relative bg-muted">
           <img
             src={previewUrl}
-            alt="Foto makanan yang kamu pilih"
+            alt={t("demo.photoAlt")}
             className="aspect-[4/3] w-full object-cover"
           />
           {busy && (
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4 pt-12">
               <p role="status" className="text-sm font-semibold text-white">
-                Mengenali makanan, umumnya 8-15 detik...
+                {t("demo.busy")}
               </p>
               <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/25">
                 <div className="h-full w-1/3 animate-[scan-progress_1.4s_ease-in-out_infinite] rounded-full bg-white motion-reduce:animate-none" />
@@ -216,7 +230,7 @@ export function ScanDemo() {
             <Camera className="size-6" aria-hidden />
           </span>
           <p className="max-w-xs text-[0.9375rem] font-semibold text-makan-ink">
-            Foto piring makananmu dari atas, dengan cahaya cukup.
+            {t("demo.hint")}
           </p>
         </div>
       )}
@@ -226,11 +240,10 @@ export function ScanDemo() {
           <div className="text-center">
             <p className="flex items-center justify-center gap-1.5 text-[0.9375rem] font-bold">
               <ScanSearch className="size-4 text-muted-foreground" aria-hidden />
-              Tidak ada makanan terdeteksi
+              {t("demo.empty.title")}
             </p>
             <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              Coba foto lebih dekat dengan cahaya lebih terang. Sisa foto gratis: {result.remaining}
-              .
+              {t("demo.empty.hint")} {t("demo.remaining", { count: result.remaining })}
             </p>
           </div>
         )}
@@ -239,7 +252,7 @@ export function ScanDemo() {
           <>
             <div className="flex items-end justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold text-muted-foreground">Total foto ini</p>
+                <p className="text-sm font-semibold text-muted-foreground">{t("demo.total")}</p>
                 <p className="text-[2.75rem] leading-none font-extrabold tracking-tighter tabular-nums">
                   {fmtInt(total)}
                   <span className="ml-1.5 text-base font-semibold tracking-normal text-muted-foreground">
@@ -264,14 +277,14 @@ export function ScanDemo() {
                   key={`${item.name}-${index}`}
                   title={item.name}
                   subtitle={item.portion}
-                  value={`${fmtInt(item.kcal)} kcal`}
+                  value={fmtKcalLabel(item.kcal)}
                 />
               ))}
             </ListGroup>
             <p className="text-center text-sm text-muted-foreground">
-              Sisa foto gratis: {result.remaining}.{" "}
+              {t("demo.remaining", { count: result.remaining })}{" "}
               <Link to="/login" className="font-semibold text-primary hover:underline">
-                Daftar untuk menyimpannya
+                {t("demo.signupSave")}
               </Link>
             </p>
           </>
@@ -281,12 +294,14 @@ export function ScanDemo() {
 
         {error && (
           <p role="alert" className="text-center text-sm font-semibold text-destructive">
-            {error}
+            {error.reason
+              ? t(`fail.reason.${error.reason}.message`)
+              : error.message || t("demo.failed")}
           </p>
         )}
         <p className="text-center text-xs text-muted-foreground">
-          {config.data?.anonScans ? `${config.data.anonScans} foto gratis tanpa daftar. ` : ""}
-          Foto hanya dipakai untuk analisis, lalu dibuang.
+          {config.data?.anonScans ? `${t("demo.freeAnon", { count: config.data.anonScans })} ` : ""}
+          {t("demo.footer")}
         </p>
       </div>
     </div>

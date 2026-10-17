@@ -1,6 +1,7 @@
 import {
   Camera,
   Check,
+  ChevronDown,
   Drumstick,
   Images,
   Lightbulb,
@@ -17,7 +18,10 @@ import confetti from "canvas-confetti";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import { fmtPercent, i18n } from "@joyorogo/i18n";
 
 import {
   MEAL_LABELS,
@@ -28,7 +32,7 @@ import {
 } from "@joyorogo/api/lib/engine";
 import { isHeavyDish } from "@joyorogo/api/lib/food-kind";
 import { randomFact } from "@joyorogo/api/lib/facts";
-import { SCAN_FAIL_COPY, TOO_MANY_PARTIAL_MESSAGE, scanFailReason } from "@joyorogo/api/lib/scan-errors";
+import { scanFailReason } from "@joyorogo/api/lib/scan-errors";
 import type { ScanFailReason } from "@joyorogo/api/lib/scan-errors";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { Meal } from "@joyorogo/api/lib/engine";
@@ -54,10 +58,11 @@ import { STICKER_FILTER, stickerUrl } from "@/components/sticker";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { cropItems } from "@/lib/crop";
 import type { ItemBox } from "@/lib/crop";
+import { MacroLine } from "@/components/macro-line";
 import type { AiFoodItem } from "@/lib/api-types";
 import { KindCycleChip, SnackAdviceCard, useSnackAdvice } from "@/components/makan/snack-advice";
 import { isPaywallError } from "@/lib/billing";
-import { fmtInt, parseNum } from "@/lib/format";
+import { fmtGramsLabel, fmtInt, parseNum } from "@/lib/format";
 import { usePlaceLocation } from "@/lib/location";
 import { client, orpc } from "@/utils/orpc";
 
@@ -74,20 +79,53 @@ export const Route = createFileRoute("/_auth/makan/ai")({
 const GEPREK_KCAL = 600;
 
 /** Optional chips for the negative answers of "Hasilnya akurat?". */
-const FEEDBACK_REASONS = [
-  ["porsi", "Porsi salah"],
-  ["makanan", "Makanan salah"],
-  ["kcal_tinggi", "Kalori kelewat tinggi"],
-  ["kcal_rendah", "Kalori kelewat rendah"],
-] as const;
+const FEEDBACK_REASONS = ["porsi", "makanan", "kcal_tinggi", "kcal_rendah"] as const;
 
-type FeedbackReason = (typeof FEEDBACK_REASONS)[number][0];
+type FeedbackReason = (typeof FEEDBACK_REASONS)[number];
 
-/** The signature reaction line — the gimmick people screenshot. */
-function reaction(totalKcal: number): string {
-  if (totalKcal > 1100) return "BUSSET, yakin makan segitu bro??";
-  if (totalKcal > 550) return "Buset, yakin makan segitu bro??";
-  return "Aman, bro";
+/**
+ * A failed scan call. A server reason code selects the copy from the
+ * `scan:fail.reason` keys; any other error keeps its (already localized)
+ * message.
+ */
+type ScanFailure = { reason: ScanFailReason | null; message: string | null };
+
+function failureOf(err: unknown, fallback: string): ScanFailure {
+  const reason = scanFailReason(err);
+  return { reason, message: reason ? null : err instanceof Error ? err.message : fallback };
+}
+
+/** Which line of the signature reaction fits this total (the gimmick people screenshot). */
+function reactionKey(totalKcal: number): "high" | "mid" | "low" {
+  if (totalKcal > 1100) return "high";
+  if (totalKcal > 550) return "mid";
+  return "low";
+}
+
+/** Collapsed-by-default block for explanations, so the numbers stay on one screen. */
+function Disclosure({
+  title,
+  children,
+  className,
+}: {
+  title: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <details className={cn("group rounded-3xl bg-card", className)}>
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-3xl px-5 text-sm font-bold select-none focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+        {title}
+        <ChevronDown
+          className="size-4 text-muted-foreground transition-transform duration-200 group-open:rotate-180"
+          aria-hidden
+        />
+      </summary>
+      <div className="space-y-2 px-5 pb-4 text-sm leading-relaxed text-muted-foreground">
+        {children}
+      </div>
+    </details>
+  );
 }
 const BRAND_COLORS = ["#2e7d46", "#7fd89b", "#f59e0b", "#ffffff"];
 
@@ -158,7 +196,7 @@ async function fileToImageBase64(file: File): Promise<SentImage> {
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     source.close();
-    throw new Error("Browser ini tidak mendukung pengolahan gambar.");
+    throw new Error(i18n.t("scan:flow.imageUnsupported"));
   }
   // Flatten alpha onto white — gallery cutouts/screenshots with transparency
   // get rejected by the vision model otherwise ("could not be decoded").
@@ -175,7 +213,7 @@ async function fileToImageBase64(file: File): Promise<SentImage> {
     return { base64, mimeType: "image/webp", blob: webp, resizeMs, encodeMs };
   }
   const jpeg = await canvasToBlob(canvas, "image/jpeg", 0.85);
-  if (!jpeg) throw new Error("Gagal memproses foto. Coba lagi.");
+  if (!jpeg) throw new Error(i18n.t("scan:flow.processFailed"));
   const base64 = await blobToBase64(jpeg);
   const encodeMs = Math.round(performance.now() - startedAt) - resizeMs;
   return { base64, mimeType: "image/jpeg", blob: jpeg, resizeMs, encodeMs };
@@ -252,6 +290,7 @@ function CutoutImage({
 }
 
 function AiFoodPage() {
+  const { t } = useTranslation(["scan", "makan", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   // The day the scan belongs to, forwarded from the makan page's DaySwitcher.
@@ -278,8 +317,7 @@ function AiFoodPage() {
   const [meal, setMeal] = useState<Meal>(suggestMealNow(new Date(), ramadan));
   // Once the user picks a slot, a rescan must not overwrite it.
   const mealPickedRef = useRef(false);
-  const [error, setError] = useState<string | null>(null);
-  const [errorReason, setErrorReason] = useState<ScanFailReason | null>(null);
+  const [scanError, setScanError] = useState<ScanFailure | null>(null);
   // The photo held more food than fit: the result keeps the most prominent
   // items and shows guidance until the user keeps them or reshoots.
   const [tooMany, setTooMany] = useState(false);
@@ -295,7 +333,7 @@ function AiFoodPage() {
   const [retriesLeft, setRetriesLeft] = useState(0);
   const [retryHint, setRetryHint] = useState("");
   const [retrying, setRetrying] = useState(false);
-  const [retryError, setRetryError] = useState<string | null>(null);
+  const [retryError, setRetryError] = useState<ScanFailure | null>(null);
   const retryAbortRef = useRef<AbortController | null>(null);
   // "Hasilnya akurat?" — shown when the server asks (every scan for the
   // first 3, then once per WIB day). Never blocks saving; answering or
@@ -337,7 +375,7 @@ function AiFoodPage() {
     slot: meal,
     name:
       items.length > 1
-        ? `${items[0]!.name} dan ${items.length - 1} lainnya`
+        ? t("result.names.andMore", { first: items[0]!.name, count: items.length - 1 })
         : items[0]?.name,
   });
 
@@ -421,11 +459,10 @@ function AiFoodPage() {
   );
 
   const pickFile = async (file: File | undefined) => {
-    setError(null);
-    setErrorReason(null);
+    setScanError(null);
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setError("File itu bukan gambar. Pilih foto makanan (JPG/PNG/WebP).");
+      setScanError({ reason: null, message: t("flow.notImage") });
       return;
     }
     // Show the shot immediately from the original file, before any resize
@@ -528,8 +565,7 @@ function AiFoodPage() {
         navigate({ to: "/pro", search: { from: "quota", next: "/makan/ai" } });
         return;
       }
-      setError(err instanceof Error ? err.message : "Gagal menganalisis foto. Coba lagi.");
-      setErrorReason(scanFailReason(err));
+      setScanError(failureOf(err, t("flow.analyzeFailed")));
       setPhase("idle");
     }
   };
@@ -604,8 +640,7 @@ function AiFoodPage() {
     setPlateName("");
     setPlatePlace("");
     setPlatePrice("");
-    setError(null);
-    setErrorReason(null);
+    setScanError(null);
     setTooMany(false);
     setPhotoId(null);
     setRetriesLeft(0);
@@ -681,7 +716,7 @@ function AiFoodPage() {
       setRetryCount((count) => count + 1);
       setTooMany(result.tooMany);
     } catch (err) {
-      setRetryError(err instanceof Error ? err.message : "Gagal menghitung ulang. Coba lagi.");
+      setRetryError(failureOf(err, t("flow.retryFailed")));
     } finally {
       if (retryAbortRef.current === controller) retryAbortRef.current = null;
       setRetrying(false);
@@ -693,13 +728,13 @@ function AiFoodPage() {
     const values = items.map((item, index) => parseNum(kcals[index] ?? String(item.kcal)));
     const invalid = values.findIndex((kcal) => kcal === null || kcal < 0);
     if (invalid !== -1) {
-      toast.error(`Kalori untuk "${items[invalid]?.name}" belum valid.`);
+      toast.error(t("flow.kcalInvalid", { name: items[invalid]?.name ?? "" }));
       return;
     }
     setSaving(true);
     const priceNum = parseIdrInput(platePrice);
     if (platePrice.trim() !== "" && priceNum === null) {
-      toast.error("Harga sepiring belum valid (angka rupiah).");
+      toast.error(t("flow.priceInvalid"));
       setSaving(false);
       return;
     }
@@ -749,7 +784,7 @@ function AiFoodPage() {
           })),
         })
         .catch(() => {});
-      toast.success(`${saved.items.length} makanan dicatat.`);
+      toast.success(t("toast.saved", { count: saved.items.length }));
       queryClient.invalidateQueries({ queryKey: orpc.food.key() });
       queryClient.invalidateQueries({ queryKey: orpc.day.key() });
       // The save already landed: results are safe in the diary. Only then
@@ -760,7 +795,7 @@ function AiFoodPage() {
           : { to: "/makan" },
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal menyimpan. Coba lagi.");
+      toast.error(err instanceof Error ? err.message : t("flow.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -770,19 +805,23 @@ function AiFoodPage() {
     // Measured pipeline: median ~3 s, worst ~9 s. Copy is staged so the wait
     // reads as progress, not as a frozen spinner.
     const steps = [
-      { label: "Foto disiapkan", done: true },
-      { label: "AI membaca piring", done: phase === "analyzing" },
-      { label: "Porsi & kalori dirapikan", done: false },
+      { label: t("analyzing.step.prepared"), done: true },
+      { label: t("analyzing.step.reading"), done: phase === "analyzing" },
+      { label: t("analyzing.step.tidying"), done: false },
     ];
     return (
       <Page className="md:max-w-3xl" role="status">
-        <PageHeader title="Menganalisis foto" subtitle="Sebentar ya, biasanya 8 sampai 15 detik." />
+        <PageHeader
+          className="pb-3"
+          title={t("analyzing.title")}
+          subtitle={t("analyzing.subtitle")}
+        />
         <Card className="overflow-hidden p-0">
           <div className="relative">
             {photoUrl && (
               <img
                 src={photoUrl}
-                alt="Foto makanan yang sedang dianalisis"
+                alt={t("analyzing.photoAlt")}
                 className="max-h-[26rem] w-full object-cover"
               />
             )}
@@ -816,143 +855,101 @@ function AiFoodPage() {
         </Card>
         {fact && (
           <div className="mt-3 rounded-2xl bg-card p-4 text-sm">
-            <span className="font-bold">Tahukah kamu? </span>
+            <span className="font-bold">{t("fact.title")} </span>
             <span className="text-muted-foreground">
-              {fact.text} = {fact.kcal.toLocaleString("id-ID")} kcal, setara {fact.move}
+              {t("fact.line", { text: fact.text, kcal: fmtInt(fact.kcal), move: fact.move })}
             </span>
           </div>
         )}
         <Button variant="secondary" className="mt-4 w-full" onClick={reset}>
-          Batalkan
+          {t("analyzing.cancel")}
         </Button>
       </Page>
     );
   }
 
   if (phase === "confirm") {
+    const reactionText = totalKcal > 0 ? t(`reaction.${reactionKey(totalKcal)}`) : null;
+    const showCrops = cropping || crops.some(Boolean) || stickers.some(Boolean);
     return (
       <Page className="md:max-w-3xl">
         <PageHeader
-          title="Cek hasil AI"
+          className="pb-3"
+          title={t("result.title")}
           action={
             <Button variant="ghost" size="sm" onClick={reset}>
-              Foto ulang
+              {t("result.retake")}
             </Button>
           }
         />
 
-        {photoUrl && (
-          <Card className="p-4">
-            <figure className="text-center">
-              <img
-                src={photoUrl}
-                alt="Foto asli makananmu"
-                className="mx-auto max-h-72 max-w-full rounded-2xl object-contain"
-              />
-              <figcaption className="sr-only">Foto asli dan potongan tiap makanan</figcaption>
-            </figure>
-            {(cropping || crops.some(Boolean) || stickers.some(Boolean)) && (
-              <ul
-                className="mt-4 flex flex-wrap justify-center gap-3"
-                aria-label="Potongan tiap makanan"
-                aria-busy={cropping}
-              >
-                {items.map((item, index) =>
-                  crops[index] || stickers[index] ? (
-                    <li
-                      key={`${item.name}-${index}`}
-                      className="chip-pop flex w-24 flex-col items-center gap-1 motion-reduce:animate-none"
-                      style={{ animationDelay: `${index * 70}ms` }}
-                    >
-                      <CutoutImage
-                        crop={crops[index]}
-                        sticker={stickers[index]}
-                        name={item.name}
-                        className="size-20 rounded-2xl"
-                      />
-                      <span className="w-full truncate text-center text-xs font-semibold">
-                        {item.name}
-                      </span>
-                    </li>
-                  ) : cropping && item.box ? (
-                    <li
-                      key={`${item.name}-${index}`}
-                      className="flex w-24 flex-col items-center gap-1"
-                      aria-hidden
-                    >
-                      <Skeleton className="size-20 rounded-2xl" />
-                      <span className="w-full truncate text-center text-xs font-semibold">
-                        {item.name}
-                      </span>
-                    </li>
-                  ) : null,
-                )}
-              </ul>
-            )}
-          </Card>
-        )}
-
         {tooMany && (
-          <Card className="mt-3" role="status">
-            <span className="flex size-9 items-center justify-center rounded-full bg-makan-soft">
-              <TriangleAlert className="size-[1.125rem] text-makan-ink" aria-hidden />
-            </span>
-            <p className="mt-3 text-[0.9375rem] font-bold">{SCAN_FAIL_COPY.too_many.title}</p>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              {TOO_MANY_PARTIAL_MESSAGE}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
+          <Card className="mb-3 p-4" role="status">
+            <div className="flex items-start gap-3">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-makan-soft">
+                <TriangleAlert className="size-4 text-makan-ink" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[0.9375rem] font-bold">{t("fail.reason.too_many.title")}</p>
+                <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
+                  {t("fail.tooManyPartial")}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
               <Button size="sm" onClick={() => setTooMany(false)}>
-                Pakai {items.length} item ini
+                {t("result.keep", { count: items.length })}
               </Button>
               <Button variant="secondary" size="sm" onClick={reset}>
-                Foto ulang
+                {t("result.retake")}
               </Button>
             </div>
           </Card>
         )}
 
-        <Card className="mt-3 text-center">
-          <p className="text-sm font-semibold text-muted-foreground">Total kalori foto ini</p>
-          <p className="mt-1 text-[3.5rem] leading-none font-extrabold tracking-tighter tabular-nums">
+        <Card className="px-4 py-4 text-center">
+          <p className="text-sm font-semibold text-muted-foreground">{t("result.total")}</p>
+          <p className="mt-1 text-[3rem] leading-none font-extrabold tracking-tighter tabular-nums">
             {fmtInt(totalKcal)}
+            <span className="ml-1.5 text-base font-semibold tracking-normal text-muted-foreground">
+              kcal
+            </span>
           </p>
-          <p className="mt-1 text-sm font-semibold text-muted-foreground">kcal</p>
-          {totalKcal > 0 && (
-            <p className="mt-3 flex items-center justify-center gap-1.5 text-lg font-bold text-primary">
-              {totalKcal > 550 ? (
-                <TriangleAlert className="size-5" aria-hidden />
-              ) : (
-                <ThumbsUp className="size-5" aria-hidden />
-              )}
-              {reaction(totalKcal)}
-            </p>
-          )}
-          {totalKcal > 0 && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              <Drumstick
-                strokeWidth={1.5}
-                className="mr-1 inline size-4 align-text-bottom"
-                aria-hidden
-              />
-              {fmtInt(Math.round(totalKcal / GEPREK_KCAL))} porsi geprek
-            </p>
+          {reactionText && (
+            <>
+              <p className="mt-2 flex items-center justify-center gap-1.5 text-base font-bold text-primary">
+                {totalKcal > 550 ? (
+                  <TriangleAlert className="size-5" aria-hidden />
+                ) : (
+                  <ThumbsUp className="size-5" aria-hidden />
+                )}
+                {reactionText}
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                <Drumstick
+                  strokeWidth={1.5}
+                  className="mr-1 inline size-4 align-text-bottom"
+                  aria-hidden
+                />
+                {t("result.geprek", { count: Math.round(totalKcal / GEPREK_KCAL) })}
+              </p>
+            </>
           )}
           {items.length > 0 && (
             <ShareStoryButton
               variant="secondary"
-              className="mt-4 w-full md:w-auto"
+              className="mt-3 w-full md:w-auto"
               story={{
                 kind: "meal",
                 name:
                   items.length > 1
-                    ? `${items[0]!.name} +${items.length - 1} lainnya`
+                    ? t("result.names.more", { first: items[0]!.name, count: items.length - 1 })
                     : items[0]!.name,
                 kcal: totalKcal,
                 protein: items.reduce((sum, item) => sum + (item.protein ?? 0), 0),
                 carbs: items.reduce((sum, item) => sum + (item.carbs ?? 0), 0),
                 fat: items.reduce((sum, item) => sum + (item.fat ?? 0), 0),
-                reaction: totalKcal > 0 ? reaction(totalKcal) : undefined,
+                reaction: reactionText ?? undefined,
                 photoSrc: photoUrl,
               }}
             />
@@ -960,18 +957,37 @@ function AiFoodPage() {
         </Card>
 
         {askFeedback && !feedbackAnswered && photoId && (
-          <Card className="mt-3 px-5 py-4" role="form" aria-label="Penilaian hasil AI">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold">Hasilnya akurat?</p>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                  Jawabanmu melatih perkiraan berikutnya.
-                </p>
-              </div>
+          <Card className="mt-3 px-4 py-3" role="form" aria-label={t("feedback.aria")}>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+              <p className="mr-auto text-sm font-bold">{t("feedback.title")}</p>
+              {feedbackRating === null && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => {
+                      sendFeedback("akurat");
+                      setFeedbackAnswered(true);
+                    }}
+                  >
+                    {t("feedback.accurate")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => setFeedbackRating("kurang_akurat")}
+                  >
+                    {t("feedback.lessAccurate")}
+                  </Button>
+                  <Button variant="outline" size="xs" onClick={() => setFeedbackRating("salah")}>
+                    {t("feedback.wrong")}
+                  </Button>
+                </>
+              )}
               <Button
                 variant="ghost"
                 size="icon-xs"
-                aria-label="Lewati penilaian"
+                aria-label={t("feedback.skip")}
                 onClick={() => {
                   sendFeedback("dilewati");
                   setFeedbackAnswered(true);
@@ -980,34 +996,14 @@ function AiFoodPage() {
                 <X className="size-4" aria-hidden />
               </Button>
             </div>
-            {feedbackRating === null ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    sendFeedback("akurat");
-                    setFeedbackAnswered(true);
-                  }}
-                >
-                  <ThumbsUp className="size-4" aria-hidden />
-                  Akurat
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setFeedbackRating("kurang_akurat")}
-                >
-                  Kurang akurat
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setFeedbackRating("salah")}>
-                  Salah
-                </Button>
-              </div>
-            ) : (
+            {feedbackRating !== null && (
               <div className="mt-3 space-y-3">
-                <div className="flex flex-wrap gap-2" role="group" aria-label="Alasan">
-                  {FEEDBACK_REASONS.map(([key, label]) => {
+                <div
+                  className="flex flex-wrap gap-2"
+                  role="group"
+                  aria-label={t("feedback.reasonsLabel")}
+                >
+                  {FEEDBACK_REASONS.map((key) => {
                     const active = feedbackReasons.includes(key);
                     return (
                       <button
@@ -1028,17 +1024,17 @@ function AiFoodPage() {
                             : "border-border text-muted-foreground hover:bg-muted",
                         )}
                       >
-                        {label}
+                        {t(`feedback.reason.${key}`)}
                       </button>
                     );
                   })}
                 </div>
                 <Input
-                  aria-label="Catatan tambahan (opsional)"
+                  aria-label={t("feedback.noteAria")}
                   value={feedbackNote}
                   maxLength={300}
                   onChange={(event) => setFeedbackNote(event.target.value)}
-                  placeholder="Catatan singkat (opsional)"
+                  placeholder={t("feedback.notePlaceholder")}
                   autoComplete="off"
                 />
                 <div className="flex gap-2">
@@ -1049,10 +1045,10 @@ function AiFoodPage() {
                       setFeedbackAnswered(true);
                     }}
                   >
-                    Kirim
+                    {t("feedback.send")}
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => setFeedbackRating(null)}>
-                    Kembali
+                    {t("common:actions.back")}
                   </Button>
                 </div>
               </div>
@@ -1060,52 +1056,57 @@ function AiFoodPage() {
           </Card>
         )}
 
-        <section className="mt-7" aria-label="Makanan yang dikenali">
+        <section className="mt-4" aria-label={t("result.items.label")}>
           <SectionTitle
+            className="mb-2"
             action={
               <span className="text-xs font-semibold text-muted-foreground">
-                Angkanya bisa dikoreksi
+                {t("result.items.editable")}
               </span>
             }
           >
-            Yang AI lihat
+            {t("result.items.title")}
           </SectionTitle>
           <ListGroup>
             {items.map((item, index) => (
               <li
                 key={`${item.name}-${index}`}
-                className="relative flex min-h-14 items-center gap-3 px-5 py-3"
+                className="relative flex min-h-12 items-center gap-2.5 px-4 py-2"
               >
                 {crops[index] || stickers[index] ? (
                   <CutoutImage
                     crop={crops[index]}
                     sticker={stickers[index]}
                     name=""
-                    className="chip-pop size-11 shrink-0 rounded-xl motion-reduce:animate-none"
+                    className="chip-pop size-10 shrink-0 rounded-xl motion-reduce:animate-none"
                   />
                 ) : cropping && item.box ? (
-                  <Skeleton className="size-11 shrink-0 rounded-xl" aria-hidden />
+                  <Skeleton className="size-10 shrink-0 rounded-xl" aria-hidden />
                 ) : null}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[0.9375rem] font-semibold">{item.name}</span>
-                  <span className="mt-0.5 block truncate text-[0.8125rem] text-muted-foreground">
+                  <span className="block truncate text-[0.8125rem] text-muted-foreground">
                     {[
                       item.portion,
-                      item.grams != null ? `± ${fmtInt(item.grams)} g` : null,
+                      item.grams != null ? `± ${fmtGramsLabel(item.grams)}` : null,
                       item.confidence != null
-                        ? `Keyakinan ${Math.round(item.confidence * 100)}%`
+                        ? t("result.items.confidence", {
+                            percent: fmtPercent(Math.round(item.confidence * 100)),
+                          })
                         : null,
                     ]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
-                  {(item.protein != null || item.carbs != null || item.fat != null) && (
-                    <span className="mt-0.5 block text-xs text-muted-foreground tabular-nums">
-                      P {fmtInt(item.protein ?? 0)} · K {fmtInt(item.carbs ?? 0)} · L{" "}
-                      {fmtInt(item.fat ?? 0)} · S {fmtInt(item.fiber ?? 0)} g
-                    </span>
-                  )}
-                  <span className="mt-1 block">
+                  <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <MacroLine
+                      compact
+                      protein={item.protein}
+                      carbs={item.carbs}
+                      fat={item.fat}
+                      fiber={item.fiber}
+                      className="text-xs text-muted-foreground tabular-nums"
+                    />
                     <KindCycleChip
                       value={kinds[index] ?? item.kind}
                       onChange={(next) => setKinds((current) => ({ ...current, [index]: next }))}
@@ -1114,7 +1115,7 @@ function AiFoodPage() {
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5">
                   <Input
-                    aria-label={`Kalori ${item.name}`}
+                    aria-label={t("result.items.kcalAria", { name: item.name })}
                     type="number"
                     min="0"
                     inputMode="numeric"
@@ -1122,7 +1123,7 @@ function AiFoodPage() {
                     onChange={(event) =>
                       setKcals((current) => ({ ...current, [index]: event.target.value }))
                     }
-                    className="h-11 w-24 text-right font-bold tabular-nums"
+                    className="h-10 w-20 text-right font-bold tabular-nums"
                   />
                   <span className="text-xs font-semibold text-muted-foreground">kcal</span>
                 </span>
@@ -1132,132 +1133,122 @@ function AiFoodPage() {
         </section>
 
         {photoId && (
-          <section className="mt-7" aria-label="Hitung ulang hasil AI">
+          <section className="mt-4" aria-label={t("retry.title")}>
             <SectionTitle
+              className="mb-2"
               action={
                 <span className="text-xs font-semibold text-muted-foreground">
-                  {retriesLeft > 0 ? `Gratis, sisa ${retriesLeft}x` : "Batas hitung ulang habis"}
+                  {retriesLeft > 0 ? t("retry.left", { count: retriesLeft }) : t("retry.exhausted")}
                 </span>
               }
             >
-              Angka kurang pas?
+              {t("retry.title")}
             </SectionTitle>
-            <Card className="mt-3 space-y-3 px-5 py-4">
-              <p className="text-sm text-muted-foreground">
-                AI membaca ulang foto yang sama tanpa foto ulang dan tanpa memakai kuota harian.
-              </p>
+            <Card className="space-y-2 px-4 py-3">
               {retriesLeft > 0 ? (
-                <>
-                  <div>
-                    <FieldLabel htmlFor="retry-hint">Koreksi singkat (opsional)</FieldLabel>
-                    <Input
-                      id="retry-hint"
-                      value={retryHint}
-                      maxLength={200}
-                      onChange={(event) => setRetryHint(event.target.value)}
-                      placeholder="mis. nasinya nasi merah, porsi setengah"
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      variant="secondary"
-                      onClick={() => void retryAnalysis()}
-                      disabled={retrying}
-                    >
-                      {retrying ? (
-                        <>
-                          <Loader2 className="size-4 animate-spin" aria-hidden />
-                          Menghitung ulang...
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="size-4" aria-hidden />
-                          Hitung ulang
-                        </>
-                      )}
-                    </Button>
-                    {retrying && (
-                      <p className="text-sm text-muted-foreground animate-pulse" role="status">
-                        Hasil sebelumnya masih ditampilkan.
-                      </p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="retry-hint"
+                    aria-label={t("retry.hintLabel")}
+                    value={retryHint}
+                    maxLength={200}
+                    onChange={(event) => setRetryHint(event.target.value)}
+                    placeholder={t("retry.hintPlaceholder")}
+                    autoComplete="off"
+                    className="min-w-0 flex-1"
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => void retryAnalysis()}
+                    disabled={retrying}
+                  >
+                    {retrying ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                        {t("retry.running")}
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="size-4" aria-hidden />
+                        {t("retry.action")}
+                      </>
                     )}
-                  </div>
-                </>
+                  </Button>
+                </div>
               ) : (
                 <p className="text-sm font-semibold text-muted-foreground">
-                  Foto ini sudah dihitung ulang dua kali. Foto ulang lewat tombol di atas ya.
+                  {t("retry.exhaustedHint")}
+                </p>
+              )}
+              {retrying && (
+                <p className="text-sm text-muted-foreground animate-pulse" role="status">
+                  {t("retry.keepPrevious")}
                 </p>
               )}
               {retryError && (
                 <p className="text-sm font-semibold text-destructive" role="alert">
-                  Hasil sebelumnya tetap terpakai. {retryError}
+                  {t("retry.failedKept", {
+                    message: retryError.reason
+                      ? t(`fail.reason.${retryError.reason}.message`)
+                      : retryError.message,
+                  })}
                 </p>
               )}
             </Card>
           </section>
         )}
 
-        <section className="mt-7" aria-label="Catat ke waktu makan">
-          <SectionTitle>Catat ke waktu makan</SectionTitle>
-          <Segmented
-            label="Waktu makan"
-            value={meal}
-            onChange={(value) => {
-              mealPickedRef.current = true;
-              setMeal(value);
-            }}
-            options={MEALS.map(([key, mealLabel]) => ({ value: key, label: mealLabel }))}
-          />
-        </section>
+        <Segmented
+          className="mt-4"
+          label={t("result.meal.label")}
+          value={meal}
+          onChange={(value) => {
+            mealPickedRef.current = true;
+            setMeal(value);
+          }}
+          options={MEALS.map(([key, mealLabel]) => ({ value: key, label: mealLabel }))}
+        />
 
         <SnackAdviceCard
-          className="mt-5"
+          className="mt-3"
           state={advice}
           onHalf={halve}
           halfApplied={fullItems !== null}
           onUndoHalf={undoHalf}
         />
 
-        <section className="mt-7" aria-label="Harga piring">
-          <SectionTitle
-            action={
-              <span className="text-xs font-semibold text-muted-foreground">
-                Opsional, sekali per piring
-              </span>
-            }
-          >
-            Harga sepiring
-          </SectionTitle>
-          <Card className="space-y-3 px-5 py-4">
+        <section className="mt-4" aria-label={t("plate.section")}>
+          <Card className="space-y-2 px-4 py-3">
             <div className="flex items-end gap-3">
-              <div className="w-36">
-                <FieldLabel htmlFor="plate-price">Harga (Rp)</FieldLabel>
+              <div className="w-32 shrink-0">
+                <FieldLabel htmlFor="plate-price">{t("plate.price")}</FieldLabel>
                 <IdrInput
                   id="plate-price"
                   value={platePrice}
                   onChange={setPlatePrice}
-                  placeholder="mis. 28.000"
+                  placeholder={t("plate.pricePlaceholder", { example: fmtInt(28000) })}
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <FieldLabel htmlFor="plate-name">Nama piring</FieldLabel>
+                <FieldLabel htmlFor="plate-name">{t("makan:plate.edit.name")}</FieldLabel>
                 <Input
                   id="plate-name"
                   value={plateName}
                   onChange={(event) => setPlateName(event.target.value)}
-                  placeholder="Nasi padang"
+                  placeholder={t("makan:plate.edit.namePlaceholder")}
                   autoComplete="off"
                 />
               </div>
             </div>
             <div>
-              <FieldLabel htmlFor="plate-place">Tempat (opsional)</FieldLabel>
+              <FieldLabel htmlFor="plate-place">{t("makan:plate.edit.place")}</FieldLabel>
               <Input
                 id="plate-place"
                 value={platePlace}
                 onChange={(event) => setPlatePlace(event.target.value)}
-                placeholder="RM Sederhana"
+                placeholder={t("makan:plate.edit.placePlaceholder")}
                 autoComplete="off"
               />
             </div>
@@ -1269,6 +1260,65 @@ function AiFoodPage() {
           </Card>
         </section>
 
+        <div className="mt-4 space-y-2">
+          {photoUrl && (
+            <Disclosure title={t("result.photoToggle")}>
+              <figure className="text-center">
+                <img
+                  src={photoUrl}
+                  alt={t("result.photoAlt")}
+                  className="mx-auto max-h-72 max-w-full rounded-2xl object-contain"
+                />
+                <figcaption className="sr-only">{t("result.photoCaption")}</figcaption>
+              </figure>
+              {showCrops && (
+                <ul
+                  className="flex flex-wrap justify-center gap-3 pt-2"
+                  aria-label={t("result.cropsLabel")}
+                  aria-busy={cropping}
+                >
+                  {items.map((item, index) =>
+                    crops[index] || stickers[index] ? (
+                      <li
+                        key={`${item.name}-${index}`}
+                        className="chip-pop flex w-24 flex-col items-center gap-1 motion-reduce:animate-none"
+                        style={{ animationDelay: `${index * 70}ms` }}
+                      >
+                        <CutoutImage
+                          crop={crops[index]}
+                          sticker={stickers[index]}
+                          name={item.name}
+                          className="size-20 rounded-2xl"
+                        />
+                        <span className="w-full truncate text-center text-xs font-semibold text-foreground">
+                          {item.name}
+                        </span>
+                      </li>
+                    ) : cropping && item.box ? (
+                      <li
+                        key={`${item.name}-${index}`}
+                        className="flex w-24 flex-col items-center gap-1"
+                        aria-hidden
+                      >
+                        <Skeleton className="size-20 rounded-2xl" />
+                        <span className="w-full truncate text-center text-xs font-semibold text-foreground">
+                          {item.name}
+                        </span>
+                      </li>
+                    ) : null,
+                  )}
+                </ul>
+              )}
+            </Disclosure>
+          )}
+          {photoId && (
+            <Disclosure title={t("result.info.title")}>
+              <p>{t("result.info.retry")}</p>
+              {askFeedback && !feedbackAnswered && <p>{t("result.info.feedback")}</p>}
+            </Disclosure>
+          )}
+        </div>
+
         {/* Mobile: the primary pill floats above the tab bar; desktop: inline. */}
         <div className="fixed inset-x-0 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-30 px-4 md:static md:mt-6 md:px-0">
           <div className="mx-auto flex max-w-[41rem] items-center gap-2 md:max-w-none">
@@ -1278,7 +1328,9 @@ function AiFoodPage() {
               onClick={() => void saveAll()}
               disabled={saving || retrying}
             >
-              {saving ? "Menyimpan..." : `Simpan ke ${MEAL_LABELS[meal]}`}
+              {saving
+                ? t("result.save.saving")
+                : t("result.save.toMeal", { meal: MEAL_LABELS[meal] })}
             </Button>
             <Button
               variant="ghost"
@@ -1287,7 +1339,7 @@ function AiFoodPage() {
               disabled={saving || retrying}
               className="hidden md:inline-flex"
             >
-              Batalkan
+              {t("common:actions.cancel")}
             </Button>
           </div>
         </div>
@@ -1300,63 +1352,61 @@ function AiFoodPage() {
   return (
     <Page className="md:max-w-3xl">
       <PageHeader
-        title="Pindai makanan"
-        subtitle="Foto piringmu, AI hitung kalorinya."
+        className="pb-3"
+        title={t("idle.title")}
         action={
           <Link to="/makan">
             <Button variant="ghost" size="sm">
-              Kembali
+              {t("common:actions.back")}
             </Button>
           </Link>
         }
       />
 
-      {error && (
-        <Card role="alert">
-          <span className="flex size-9 items-center justify-center rounded-full bg-destructive/10">
-            <TriangleAlert className="size-[1.125rem] text-destructive" aria-hidden />
-          </span>
-          <p className="mt-3 text-[0.9375rem] font-bold">
-            {SCAN_FAIL_COPY[errorReason ?? "failed"].title}
-          </p>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{error}</p>
-          <div className="mt-4 flex flex-wrap gap-2">
+      {scanError && (
+        <Card role="alert" className="mb-3 p-4">
+          <div className="flex items-start gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+              <TriangleAlert className="size-4 text-destructive" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[0.9375rem] font-bold">
+                {t(`fail.reason.${scanError.reason ?? "failed"}.title`)}
+              </p>
+              <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
+                {scanError.reason
+                  ? t(`fail.reason.${scanError.reason}.message`)
+                  : scanError.message}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
             <Button size="sm" onClick={() => cameraInputRef.current?.click()}>
-              Foto ulang
+              {t("result.retake")}
             </Button>
             <Button variant="secondary" size="sm" onClick={() => galleryInputRef.current?.click()}>
-              Pilih dari galeri
+              {t("idle.gallery")}
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setError(null);
-                setErrorReason(null);
-              }}
-            >
-              Tutup
+            <Button variant="ghost" size="sm" onClick={() => setScanError(null)}>
+              {t("common:actions.close")}
             </Button>
           </div>
         </Card>
       )}
 
-      <Card className={cn("flex flex-col items-center p-8 text-center", error && "mt-3")}>
+      <Card className="flex flex-col items-center px-5 py-6 text-center">
         <span
-          className="flex size-20 items-center justify-center rounded-full bg-makan-soft"
+          className="flex size-16 items-center justify-center rounded-full bg-makan-soft"
           aria-hidden
         >
-          <Camera className="size-8 text-makan-ink" />
+          <Camera className="size-7 text-makan-ink" />
         </span>
-        <h2 className="mt-5 text-xl font-bold tracking-tight">Arahkan ke piringmu</h2>
-        <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-muted-foreground">
-          AI mengenali masakan Indonesia dan menghitung kalorinya. Kamu bisa koreksi dulu sebelum
-          disimpan.
+        <h2 className="mt-3 text-xl font-bold tracking-tight">{t("idle.heading")}</h2>
+        <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-makan-soft px-3.5 py-1.5 text-sm font-semibold text-makan-ink">
+          <Lightbulb className="size-4 shrink-0" aria-hidden />
+          {t("idle.tip")}
         </p>
-        <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-makan-soft px-3.5 py-1.5 text-sm font-semibold text-makan-ink">
-          <Lightbulb className="size-4 shrink-0" aria-hidden />1 piring per foto, dari dekat
-        </p>
-        <div className="mt-6 flex w-full flex-col gap-2 sm:flex-row sm:w-auto">
+        <div className="mt-5 flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <label className={cn(buttonVariants(), "w-full cursor-pointer sm:w-auto")}>
             <input
               ref={cameraInputRef}
@@ -1372,7 +1422,7 @@ function AiFoodPage() {
               }}
             />
             <Camera className="size-4" aria-hidden />
-            Buka Kamera
+            {t("idle.camera")}
           </label>
           <label
             className={cn(
@@ -1393,44 +1443,39 @@ function AiFoodPage() {
               }}
             />
             <Images className="size-4" aria-hidden />
-            Pilih dari Galeri
+            {t("idle.gallery")}
           </label>
         </div>
-        <p className="mt-5 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-          <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
-          {profile.data?.profile?.keepPhotos
-            ? "Foto asli disimpan untukmu sendiri. Atur di Profil."
-            : "Foto hanya dipakai untuk analisis dan tidak disimpan."}
-        </p>
       </Card>
 
-      <Link
-        to="/makan"
-        search={{ cerita: true }}
-        className="mt-3 flex min-h-14 items-center gap-3 rounded-3xl bg-card px-5 py-3 transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-      >
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-bold">Lupa foto?</span>
-          <span className="block text-sm text-muted-foreground">
-            Ceritakan saja makananmu, ketik atau pakai suara.
-          </span>
-        </span>
-        <Mic className="size-5 shrink-0 text-primary" aria-hidden />
-      </Link>
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <Link
+          to="/makan"
+          search={{ cerita: true }}
+          className="flex min-h-12 items-center justify-between gap-2 rounded-3xl bg-card px-4 py-2 text-sm font-bold transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+        >
+          {t("idle.story")}
+          <Mic className="size-5 shrink-0 text-primary" aria-hidden />
+        </Link>
+        <Link
+          to="/makan/barcode"
+          search={scanDate ? { date: scanDate } : {}}
+          className="flex min-h-12 items-center justify-between gap-2 rounded-3xl bg-card px-4 py-2 text-sm font-bold transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+        >
+          {t("idle.barcode")}
+          <ScanBarcode className="size-5 shrink-0 text-primary" aria-hidden />
+        </Link>
+      </div>
 
-      <Link
-        to="/makan/barcode"
-        search={scanDate ? { date: scanDate } : {}}
-        className="mt-3 flex min-h-14 items-center gap-3 rounded-3xl bg-card px-5 py-3 transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-      >
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-bold">Makanan kemasan?</span>
-          <span className="block text-sm text-muted-foreground">
-            Pindai barcode-nya, angka gizi diambil dari Open Food Facts.
-          </span>
-        </span>
-        <ScanBarcode className="size-5 shrink-0 text-primary" aria-hidden />
-      </Link>
+      <Disclosure title={t("idle.info.title")} className="mt-3">
+        <p>{t("idle.info.how")}</p>
+        <p>{t("idle.info.story")}</p>
+        <p>{t("idle.info.barcode")}</p>
+        <p className="flex items-center gap-1.5 text-xs">
+          <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
+          {profile.data?.profile?.keepPhotos ? t("privacy.kept") : t("privacy.notKept")}
+        </p>
+      </Disclosure>
     </Page>
   );
 }

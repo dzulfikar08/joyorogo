@@ -1,42 +1,79 @@
 /**
  * Curated geprek-style calorie facts (Indonesian portions, rough averages).
  * Shared by web and native loading screens + the daily dashboard card.
+ * Text lives in the `scan` namespace (`fact.food.<id>`); a fact is built in
+ * the requested language by `pickFact` / `randomFact`.
  */
-export const FOOD_FACTS: Array<{ text: string; kcal: number; move: string }> = [
-  { text: "1 porsi ayam geprek + es teh", kcal: 600, move: "lari 55 menit" },
-  { text: "1 porsi nasi goreng", kcal: 640, move: "jalan 1,5 jam" },
-  { text: "1 slice martabak manis", kcal: 510, move: "sepeda 50 menit" },
-  { text: "1 bungkus indomie goreng", kcal: 400, move: "lari 35 menit" },
-  { text: "1 porsi sate ayam (10 tusuk)", kcal: 480, move: "jalan 1 jam" },
-  { text: "1 es kopi susu kekinian", kcal: 300, move: "jalan 45 menit" },
-  { text: "1 porsi bakso urat", kcal: 550, move: "lari 50 menit" },
-  { text: "1 soto ayam", kcal: 350, move: "jalan 50 menit" },
-  { text: "1 porsi mie ayam", kcal: 430, move: "sepeda 40 menit" },
-  { text: "1 roti bakar cokelat", kcal: 320, move: "jalan 40 menit" },
-  { text: "1 porsi nasi padang rendang", kcal: 720, move: "lari 1 jam" },
-  { text: "1 gorengan (tempe mendoan)", kcal: 150, move: "jalan 20 menit" },
-  { text: "1 porsi ayam McDonald's", kcal: 470, move: "lari 45 menit" },
-  { text: "1 teh tarik", kcal: 320, move: "jalan 40 menit" },
-  { text: "1 porsi kwetiau siram", kcal: 520, move: "lari 45 menit" },
-  { text: "3 risoles", kcal: 420, move: "sepeda 40 menit" },
-  { text: "1 porsi pempek lenjer", kcal: 350, move: "jalan 40 menit" },
-  { text: "1 gelas es cincau susu", kcal: 260, move: "jalan 30 menit" },
-  { text: "1 porsi pecel lele", kcal: 610, move: "lari 55 menit" },
-  { text: "1 mangkuk bubur ayam", kcal: 300, move: "jalan 35 menit" },
-  { text: "1 porsi ketoprak", kcal: 490, move: "sepeda 45 menit" },
-  { text: "1 batang pisang goreng", kcal: 230, move: "jalan 25 menit" },
-  { text: "1 porsi seblak level 3", kcal: 400, move: "lari 35 menit" },
-  { text: "1 cireng rujak (5 pcs)", kcal: 380, move: "jalan 45 menit" },
-];
+
+import { fmtNumber, getActiveLocale, getT } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+
+type FactSpec = {
+  id: string;
+  kcal: number;
+  kind: "run" | "walk" | "bike";
+  minutes: number;
+};
+
+export const FOOD_FACTS = [
+  { id: "gepreK", kcal: 600, kind: "run", minutes: 55 },
+  { id: "nasiGoreng", kcal: 640, kind: "walk", minutes: 90 },
+  { id: "martabak", kcal: 510, kind: "bike", minutes: 50 },
+  { id: "indomie", kcal: 400, kind: "run", minutes: 35 },
+  { id: "sate", kcal: 480, kind: "walk", minutes: 60 },
+  { id: "kopiSusu", kcal: 300, kind: "walk", minutes: 45 },
+  { id: "bakso", kcal: 550, kind: "run", minutes: 50 },
+  { id: "soto", kcal: 350, kind: "walk", minutes: 50 },
+  { id: "mieAyam", kcal: 430, kind: "bike", minutes: 40 },
+  { id: "rotiBakar", kcal: 320, kind: "walk", minutes: 40 },
+  { id: "nasiPadang", kcal: 720, kind: "run", minutes: 60 },
+  { id: "gorengan", kcal: 150, kind: "walk", minutes: 20 },
+  { id: "mcdChicken", kcal: 470, kind: "run", minutes: 45 },
+  { id: "tehTarik", kcal: 320, kind: "walk", minutes: 40 },
+  { id: "kwetiau", kcal: 520, kind: "run", minutes: 45 },
+  { id: "risoles", kcal: 420, kind: "bike", minutes: 40 },
+  { id: "pempek", kcal: 350, kind: "walk", minutes: 40 },
+  { id: "cincau", kcal: 260, kind: "walk", minutes: 30 },
+  { id: "pecelLele", kcal: 610, kind: "run", minutes: 55 },
+  { id: "bubur", kcal: 300, kind: "walk", minutes: 35 },
+  { id: "ketoprak", kcal: 490, kind: "bike", minutes: 45 },
+  { id: "pisangGoreng", kcal: 230, kind: "walk", minutes: 25 },
+  { id: "seblak", kcal: 400, kind: "run", minutes: 35 },
+  { id: "cireng", kcal: 380, kind: "walk", minutes: 45 },
+] as const satisfies readonly FactSpec[];
+
+export type FoodFact = {
+  /** Dish and portion, in the requested language. */
+  text: string;
+  kcal: number;
+  /** Equivalent effort, e.g. "lari 55 menit" / "55 minutes of running". */
+  move: string;
+};
+
+function localize(spec: (typeof FOOD_FACTS)[number], locale: Locale): FoodFact {
+  const t = getT(locale, "scan");
+  const duration =
+    spec.minutes < 60
+      ? t("fact.duration.minutes", { count: spec.minutes })
+      : t("fact.duration.hours", {
+          count: spec.minutes / 60,
+          value: fmtNumber(spec.minutes / 60, 1, locale),
+        });
+  return {
+    text: t(`fact.food.${spec.id}`),
+    kcal: spec.kcal,
+    move: t(`fact.move.${spec.kind}`, { duration }),
+  };
+}
 
 /** Stable pick by 'YYYY-MM-DD' — same fact all day, changes daily. */
-export function pickFact(date: string): (typeof FOOD_FACTS)[number] {
+export function pickFact(date: string, locale: Locale = getActiveLocale()): FoodFact {
   let hash = 0;
   for (const ch of date) hash = (hash * 31 + ch.charCodeAt(0)) % 100000;
-  return FOOD_FACTS[hash % FOOD_FACTS.length]!;
+  return localize(FOOD_FACTS[hash % FOOD_FACTS.length]!, locale);
 }
 
 /** Random fact — for loading screens where variety beats determinism. */
-export function randomFact(): (typeof FOOD_FACTS)[number] {
-  return FOOD_FACTS[Math.floor(Math.random() * FOOD_FACTS.length)]!;
+export function randomFact(locale: Locale = getActiveLocale()): FoodFact {
+  return localize(FOOD_FACTS[Math.floor(Math.random() * FOOD_FACTS.length)]!, locale);
 }

@@ -29,5 +29,217 @@
     "anonAiUnavailable": "Layanan AI belum tersedia.",
     "anonTrialUsed": "Coba gratis sudah habis. Daftar untuk lanjut scan.",
     "anonPhotoUnreadable": "Foto tidak terbaca."
+  },
+  "idle": {
+    "title": "Pindai makanan",
+    "heading": "Arahkan ke piringmu",
+    "tip": "1 piring per foto, dari dekat",
+    "camera": "Buka Kamera",
+    "gallery": "Pilih dari Galeri",
+    "story": "Ceritakan saja",
+    "barcode": "Pindai barcode",
+    "info": {
+      "title": "Cara kerja",
+      "how": "AI mengenali masakan Indonesia dan menghitung kalorinya. Kamu bisa koreksi dulu sebelum disimpan.",
+      "story": "Lupa foto? Ceritakan saja makananmu, ketik atau pakai suara.",
+      "barcode": "Makanan kemasan? Pindai barcode-nya, angka gizi diambil dari Open Food Facts."
+    }
+  },
+  "privacy": {
+    "kept": "Foto asli disimpan untukmu sendiri. Atur di Profil.",
+    "notKept": "Foto hanya dipakai untuk analisis dan tidak disimpan."
+  },
+  "camera": {
+    "permissionTitle": "Kamera dibutuhkan",
+    "permissionBody": "JoyoRogo butuh izin kamera untuk memotret makananmu dan menghitung kalorinya dengan AI.",
+    "grant": "Beri Izin Kamera",
+    "close": "Tutup kamera",
+    "hint": "Potret piringmu, AI hitung kalorinya",
+    "barcode": "Pindai barcode kemasan",
+    "shutter": "Potret makanan",
+    "dismissError": "Tutup pesan galat"
+  },
+  "flow": {
+    "notImage": "File itu bukan gambar. Pilih foto makanan (JPG/PNG/WebP).",
+    "imageUnsupported": "Browser ini tidak mendukung pengolahan gambar.",
+    "processFailed": "Gagal memproses foto. Coba lagi.",
+    "captureFailed": "Gagal mengambil foto. Coba lagi.",
+    "analyzeFailed": "Gagal menganalisis foto. Coba lagi.",
+    "retryFailed": "Gagal menghitung ulang. Coba lagi.",
+    "saveFailed": "Gagal menyimpan. Coba lagi.",
+    "kcalInvalid": "Kalori untuk \"{{name}}\" belum valid.",
+    "priceInvalid": "Harga sepiring belum valid (angka rupiah).",
+    "pickOne": "Pilih minimal satu makanan untuk dicatat.",
+    "photoLost": "Foto pemindaian hilang. Foto ulang dulu."
+  },
+  "toast": {
+    "saved_other": "{{count}} makanan dicatat."
+  },
+  "analyzing": {
+    "title": "Menganalisis foto",
+    "subtitle": "Sebentar ya, biasanya 8 sampai 15 detik.",
+    "photoAlt": "Foto makanan yang sedang dianalisis",
+    "cancel": "Batalkan",
+    "cancelLabel": "Batalkan analisis",
+    "step": {
+      "prepared": "Foto disiapkan",
+      "reading": "AI membaca piring",
+      "tidying": "Porsi & kalori dirapikan"
+    },
+    "stage": {
+      "sending": "Mengirim foto…",
+      "recognizing": "AI mengenali makananmu…",
+      "counting": "Menghitung kalori…",
+      "almost": "Hampir selesai…"
+    }
+  },
+  "fact": {
+    "title": "Tahukah kamu?",
+    "line": "{{text}} = {{kcal}} kcal, setara {{move}}",
+    "move": {
+      "run": "lari {{duration}}",
+      "walk": "jalan {{duration}}",
+      "bike": "sepeda {{duration}}"
+    },
+    "duration": {
+      "minutes_other": "{{count}} menit",
+      "hours_other": "{{value}} jam"
+    },
+    "food": {
+      "gepreK": "1 porsi ayam geprek + es teh",
+      "nasiGoreng": "1 porsi nasi goreng",
+      "martabak": "1 slice martabak manis",
+      "indomie": "1 bungkus indomie goreng",
+      "sate": "1 porsi sate ayam (10 tusuk)",
+      "kopiSusu": "1 es kopi susu kekinian",
+      "bakso": "1 porsi bakso urat",
+      "soto": "1 soto ayam",
+      "mieAyam": "1 porsi mie ayam",
+      "rotiBakar": "1 roti bakar cokelat",
+      "nasiPadang": "1 porsi nasi padang rendang",
+      "gorengan": "1 gorengan (tempe mendoan)",
+      "mcdChicken": "1 porsi ayam McDonald's",
+      "tehTarik": "1 teh tarik",
+      "kwetiau": "1 porsi kwetiau siram",
+      "risoles": "3 risoles",
+      "pempek": "1 porsi pempek lenjer",
+      "cincau": "1 gelas es cincau susu",
+      "pecelLele": "1 porsi pecel lele",
+      "bubur": "1 mangkuk bubur ayam",
+      "ketoprak": "1 porsi ketoprak",
+      "pisangGoreng": "1 batang pisang goreng",
+      "seblak": "1 porsi seblak level 3",
+      "cireng": "1 cireng rujak (5 pcs)"
+    }
+  },
+  "reaction": {
+    "high": "BUSSET, yakin makan segitu bro??",
+    "mid": "Buset, yakin makan segitu bro??",
+    "low": "Aman, bro"
+  },
+  "result": {
+    "title": "Cek hasil AI",
+    "retake": "Foto ulang",
+    "total": "Total kalori foto ini",
+    "geprek_other": "Setara {{count}} porsi geprek",
+    "photoAlt": "Foto asli makananmu",
+    "photoCaption": "Foto asli dan potongan tiap makanan",
+    "photoToggle": "Foto asli dan potongan",
+    "cropsLabel": "Potongan tiap makanan",
+    "cropLabel": "Potongan {{name}}",
+    "keep_other": "Pakai {{count}} item ini",
+    "items": {
+      "label": "Makanan yang dikenali",
+      "title": "Yang AI lihat",
+      "editable": "Angkanya bisa dikoreksi",
+      "confidence": "Keyakinan {{percent}}",
+      "confidenceShort": "yakin {{percent}}",
+      "estimate": "perkiraan AI",
+      "kcalAria": "Kalori {{name}}"
+    },
+    "names": {
+      "more_other": "{{first}} +{{count}} lainnya",
+      "andMore_other": "{{first}} dan {{count}} lainnya"
+    },
+    "info": {
+      "title": "Tentang hasil ini",
+      "retry": "AI membaca ulang foto yang sama tanpa foto ulang dan tanpa memakai kuota harian.",
+      "feedback": "Jawabanmu melatih perkiraan berikutnya."
+    },
+    "meal": {
+      "title": "Catat sebagai",
+      "label": "Waktu makan"
+    },
+    "save": {
+      "toMeal": "Simpan ke {{meal}}",
+      "saving": "Menyimpan...",
+      "items_other": "Simpan {{count}} item",
+      "pickOne": "Pilih minimal satu item"
+    }
+  },
+  "feedback": {
+    "title": "Hasilnya akurat?",
+    "aria": "Penilaian hasil AI",
+    "skip": "Lewati penilaian",
+    "accurate": "Akurat",
+    "lessAccurate": "Kurang akurat",
+    "wrong": "Salah",
+    "reasonsLabel": "Alasan",
+    "reason": {
+      "porsi": "Porsi salah",
+      "makanan": "Makanan salah",
+      "kcal_tinggi": "Kalori kelewat tinggi",
+      "kcal_rendah": "Kalori kelewat rendah"
+    },
+    "noteAria": "Catatan tambahan (opsional)",
+    "notePlaceholder": "Catatan singkat (opsional)",
+    "send": "Kirim"
+  },
+  "retry": {
+    "title": "Angka kurang pas?",
+    "left_other": "Gratis, sisa {{count}}x",
+    "exhausted": "Batas hitung ulang habis",
+    "exhaustedHint": "Foto ini sudah dihitung ulang dua kali. Foto ulang ya.",
+    "hintLabel": "Koreksi singkat (opsional)",
+    "hintPlaceholder": "mis. nasinya nasi merah, porsi setengah",
+    "action": "Hitung ulang",
+    "running": "Menghitung ulang...",
+    "keepPrevious": "Hasil sebelumnya masih ditampilkan.",
+    "failedKept": "Hasil sebelumnya tetap terpakai. {{message}}"
+  },
+  "plate": {
+    "section": "Harga piring",
+    "price": "Harga (Rp)",
+    "pricePlaceholder": "mis. {{example}}"
+  },
+  "done": {
+    "title": "Tercatat!",
+    "text": "Makanan dari foto sudah masuk ke catatan hari ini.",
+    "list": "Lihat Daftar Makanan",
+    "again": "Foto Lagi"
+  },
+  "demo": {
+    "paywall": {
+      "title": "Coba gratis sudah terpakai",
+      "bodyUnlimited": "Daftar gratis untuk lanjut scan tanpa batas harian, plus diary, grafik berat, dan rencana harianmu.",
+      "bodyLimit_other": "Daftar gratis untuk lanjut. Akun gratis dapat {{count}} foto setiap hari, plus diary, grafik berat, dan rencana harianmu.",
+      "signup": "Daftar dengan Google"
+    },
+    "takePhoto": "Foto makananmu",
+    "takeAgain": "Foto lagi",
+    "photoAlt": "Foto makanan yang kamu pilih",
+    "busy": "Mengenali makanan, umumnya 8-15 detik...",
+    "hint": "Foto piring makananmu dari atas, dengan cahaya cukup.",
+    "empty": {
+      "title": "Tidak ada makanan terdeteksi",
+      "hint": "Coba foto lebih dekat dengan cahaya lebih terang."
+    },
+    "remaining_other": "Sisa foto gratis: {{count}}.",
+    "signupSave": "Daftar untuk menyimpannya",
+    "total": "Total foto ini",
+    "freeAnon_other": "{{count}} foto gratis tanpa daftar.",
+    "footer": "Foto hanya dipakai untuk analisis, lalu dibuang.",
+    "notImage": "File itu bukan gambar.",
+    "failed": "Gagal menganalisis."
   }
 }
