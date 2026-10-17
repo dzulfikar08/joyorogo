@@ -23,6 +23,13 @@ export JAVA_HOME="${JAVA_HOME:-$HOME/jdk17}"
 export PATH="$JAVA_HOME/bin:$PATH"
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/android-sdk}"
 
+# ~/.gradle is a symlink to the SSD image (/run/media/dzul/ioswork/gradle-home); without the mount Gradle would fail on a dangling link.
+if [ -L "$HOME/.gradle" ] && [ ! -d "$HOME/.gradle/" ]; then
+  echo "~/.gradle -> $(readlink "$HOME/.gradle") is not there: the ioswork SSD image is not mounted." >&2
+  echo "mount it: udisksctl loop-setup -f /run/media/dzul/Data/dzul-offload/ios-work.ext4" >&2
+  exit 1
+fi
+
 # Release JS env. Set in the process so it beats apps/native/.env (local dev:
 # localhost API + dev login), which Expo's CLI otherwise loads for the bundle.
 export NODE_ENV=production
