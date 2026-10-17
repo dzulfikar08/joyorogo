@@ -34,6 +34,11 @@ describe("weekRangeLabel", () => {
     expect(weekRangeLabel(MON)).toBe("12–18 Okt");
     expect(weekRangeLabel("2026-09-28")).toBe("28 Sep–4 Okt");
   });
+
+  test("English puts the month first", () => {
+    expect(weekRangeLabel(MON, "en")).toBe("Oct 12–18");
+    expect(weekRangeLabel("2026-09-28", "en")).toBe("Sep 28–Oct 4");
+  });
 });
 
 describe("buildWeekRecap", () => {

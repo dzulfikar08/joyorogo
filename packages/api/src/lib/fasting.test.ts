@@ -55,6 +55,8 @@ describe("clock helpers", () => {
     expect(fmtCountdown(45)).toBe("45 mnt");
     expect(fmtCountdown(85)).toBe("1 j 25 mnt");
     expect(fmtCountdown(120)).toBe("2 j");
+    expect(fmtCountdown(85, "en")).toBe("1 h 25 min");
+    expect(fmtCountdown(0, "en")).toBe("<1 min");
   });
 });
 
