@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CalendarCheck, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
 import { weekRangeLabel, weekStartOf } from "@joyorogo/api/lib/recap";
@@ -13,6 +14,7 @@ import { orpc } from "@/utils/orpc";
  * that just ended. The full recap lives at /rekap and stays reachable from Lainnya.
  */
 export function RecapCard() {
+  const { t } = useTranslation("home");
   const today = jakartaToday();
   const isMonday = weekStartOf(today) === today;
   const weekStart = shiftDate(today, -7);
@@ -34,32 +36,34 @@ export function RecapCard() {
           <CalendarCheck className="size-5 text-primary" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-base font-bold tracking-tight">Rekap minggu ini</h2>
+          <h2 className="text-base font-bold tracking-tight">{t("recap.title")}</h2>
           <p className="text-sm text-muted-foreground">
-            Minggu lalu, {weekRangeLabel(weekStart)}
+            {t("recap.lastWeek", { range: weekRangeLabel(weekStart) })}
           </p>
         </div>
         <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
       </div>
       <dl className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-2xl bg-muted/60 px-4 py-3">
-          <dt className="text-xs font-semibold text-muted-foreground">Rata-rata per hari</dt>
+          <dt className="text-xs font-semibold text-muted-foreground">{t("recap.average")}</dt>
           <dd className="mt-0.5 text-xl font-extrabold tracking-tight tabular-nums">
             {fmtInt(data.avgKcal)}
             <span className="ml-1 text-sm font-semibold text-muted-foreground">kcal</span>
           </dd>
           <dd className="text-xs text-muted-foreground tabular-nums">
-            target {fmtInt(data.targetKcal)}
+            {t("recap.target", { kcal: fmtInt(data.targetKcal) })}
           </dd>
         </div>
         <div className="rounded-2xl bg-muted/60 px-4 py-3">
-          <dt className="text-xs font-semibold text-muted-foreground">Sesuai target</dt>
+          <dt className="text-xs font-semibold text-muted-foreground">{t("recap.onTarget")}</dt>
           <dd className="mt-0.5 text-xl font-extrabold tracking-tight tabular-nums">
             {data.daysOnTarget}
-            <span className="ml-1 text-sm font-semibold text-muted-foreground">hari</span>
+            <span className="ml-1 text-sm font-semibold text-muted-foreground">
+              {t("recap.daysUnit", { count: data.daysOnTarget })}
+            </span>
           </dd>
           <dd className="text-xs text-muted-foreground tabular-nums">
-            dari {data.loggedDays} hari tercatat
+            {t("recap.logged", { count: data.loggedDays })}
           </dd>
         </div>
       </dl>

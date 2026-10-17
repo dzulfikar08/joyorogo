@@ -1,6 +1,7 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { useState } from "react";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -10,18 +11,18 @@ import { errorMessage } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 
-// Penghitung gelas air per hari — data sama dengan kartu air di dashboard web.
-export function WaterCard({ date }: { date?: string }) {
-  const { theme } = useUnistyles();
+type WaterToday = { glasses: number; goal: number };
+type WaterInput = { date?: string };
+
+/** Glass count of the viewed day plus optimistic add/remove (with undo toast). */
+export function useWater(date?: string) {
+  const { t } = useTranslation("home");
   const today = useQuery(
     orpc.water.today.queryOptions({ input: date === undefined ? {} : { date } }),
   );
 
   const [error, setError] = useState<string | null>(null);
   const onError = (e: Error) => setError(errorMessage(e));
-
-  type WaterToday = { glasses: number; goal: number };
-  type WaterInput = { date?: string };
 
   const add = useOptimisticMutation<WaterInput, unknown>({
     mutationFn: (input) => client.water.add(input),
@@ -33,7 +34,7 @@ export function WaterCard({ date }: { date?: string }) {
       }));
     },
     success: (_input, _data) => ({
-      message: "+1 gelas dicatat",
+      message: t("water.added"),
       undo: () => remove.mutate(date === undefined ? {} : { date }),
     }),
     onError,
@@ -49,16 +50,29 @@ export function WaterCard({ date }: { date?: string }) {
       }));
     },
     success: (_input, _data) => ({
-      message: "1 gelas dihapus",
+      message: t("water.removed"),
       undo: () => add.mutate(date === undefined ? {} : { date }),
     }),
     onError,
     invalidate: () => [orpc.water.key(), orpc.day.key()],
   });
 
-  const glasses = today.data?.glasses ?? 0;
-  const goal = today.data?.goal ?? 8;
-  const busy = add.isPending || remove.isPending;
+  return {
+    glasses: today.data?.glasses ?? 0,
+    goal: today.data?.goal ?? 8,
+    busy: add.isPending || remove.isPending,
+    loadError: today.isError,
+    error,
+    add: () => add.mutate(date === undefined ? {} : { date }),
+    remove: () => remove.mutate(date === undefined ? {} : { date }),
+  };
+}
+
+// Penghitung gelas air per hari — data sama dengan kartu air di dashboard web.
+export function WaterCard({ date }: { date?: string }) {
+  const { theme } = useUnistyles();
+  const { t } = useTranslation("home");
+  const { glasses, goal, busy, loadError, error, add, remove } = useWater(date);
   const ratio = goal > 0 ? Math.min(1, glasses / goal) : 0;
 
   return (
@@ -68,14 +82,14 @@ export function WaterCard({ date }: { date?: string }) {
           <Ionicons name="water" size={16} color={theme.colors.tidurText} />
         </View>
         <View style={styles.headText}>
-          <Text style={styles.label}>Air minum</Text>
-          <Text style={styles.hint}>Segelas tiap habis makan bikin kenyang lebih lama.</Text>
+          <Text style={styles.label}>{t("water.title")}</Text>
+          <Text style={styles.hint}>{t("water.hint")}</Text>
         </View>
         <View style={styles.controls}>
           <Pressable
-            onPress={() => remove.mutate(date === undefined ? {} : { date })}
+            onPress={remove}
             disabled={busy || glasses <= 0}
-            accessibilityLabel="Kurangi gelas air"
+            accessibilityLabel={t("water.less")}
             accessibilityRole="button"
             hitSlop={4}
             style={({ pressed }) => [
@@ -87,9 +101,9 @@ export function WaterCard({ date }: { date?: string }) {
             <Ionicons name="remove" size={18} color={theme.colors.foreground} />
           </Pressable>
           <Pressable
-            onPress={() => add.mutate(date === undefined ? {} : { date })}
+            onPress={add}
             disabled={busy}
-            accessibilityLabel="Tambah gelas air"
+            accessibilityLabel={t("water.more")}
             accessibilityRole="button"
             hitSlop={4}
             style={({ pressed }) => [
@@ -104,7 +118,7 @@ export function WaterCard({ date }: { date?: string }) {
       </View>
       <View style={styles.valueRow}>
         <Num style={styles.value}>{glasses}</Num>
-        <Text style={styles.unit}>/ {goal} gelas</Text>
+        <Text style={styles.unit}>{t("water.ofGoal", { count: goal })}</Text>
         <View style={styles.track}>
           <View
             style={{
@@ -118,8 +132,8 @@ export function WaterCard({ date }: { date?: string }) {
       </View>
       {error ? (
         <Text style={styles.errorText}>{error}</Text>
-      ) : today.isError ? (
-        <Text style={styles.errorText}>Gagal memuat data air. Coba lagi dalam sesaat.</Text>
+      ) : loadError ? (
+        <Text style={styles.errorText}>{t("water.loadError")}</Text>
       ) : null}
     </Card>
   );

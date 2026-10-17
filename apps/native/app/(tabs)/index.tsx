@@ -1,6 +1,7 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
+import { Trans, useTranslation } from "react-i18next";
 import { Link, Redirect, router } from "expo-router";
 import { Dimensions, Platform, Pressable, Share, ScrollView, View } from "react-native";
 import { useEffect, useState } from "react";
@@ -46,7 +47,7 @@ import {
   Text,
 } from "@/components/ui";
 import { MetaLine } from "@/components/meta-line";
-import { WaterCard } from "@/components/water-card";
+import { WaterCard, useWater } from "@/components/water-card";
 import { FastingScheduleCard } from "@/components/fasting/schedule-card";
 import { DailyTipCard } from "@/components/tips/daily-tip-card";
 import { WeighInSheet } from "@/components/weigh-in-sheet";
@@ -68,7 +69,7 @@ type PlateItem = {
   photoId?: string | null;
 };
 
-function greetingId(date: Date): string {
+function greetingKey(date: Date): "morning" | "noon" | "afternoon" | "evening" {
   const h = Number(
     new Intl.DateTimeFormat("en", {
       hour: "numeric",
@@ -76,13 +77,13 @@ function greetingId(date: Date): string {
       timeZone: "Asia/Jakarta",
     }).format(date),
   );
-  if (h >= 4 && h < 11) return "Selamat pagi";
-  if (h >= 11 && h < 15) return "Selamat siang";
-  if (h >= 15 && h < 18) return "Selamat sore";
-  return "Selamat malam";
+  if (h >= 4 && h < 11) return "morning";
+  if (h >= 11 && h < 15) return "noon";
+  if (h >= 15 && h < 18) return "afternoon";
+  return "evening";
 }
 
-/** Trend line (smoothed) over raw scale dots — answers "ke mana arahku?". */
+/** Trend line (smoothed) over raw scale dots — answers "where am I heading?". */
 function TrendSpark({ points }: { points: TrendPoint[] }) {
   const { theme } = useUnistyles();
   if (points.length === 0) return null;
@@ -124,6 +125,7 @@ function TrendSpark({ points }: { points: TrendPoint[] }) {
 
 export default function Dashboard() {
   const { theme } = useUnistyles();
+  const { t } = useTranslation(["home", "common", "berat"]);
   const gate = useSessionGate();
   const today = jakartaToday();
   const [date, setDate] = useState(today);
@@ -136,6 +138,7 @@ export default function Dashboard() {
   // Shared cache with FastingScheduleCard below; also feeds the widget line.
   const fastingToday = useQuery(orpc.fasting.today.queryOptions({ input: {} }));
   const config = useAppConfig();
+  const water = useWater(date === today ? undefined : date);
   const { data: sessionData } = authClient.useSession();
   // Diari piring: today's scanned items with their sticker cutouts.
   const foods = useQuery(
@@ -233,7 +236,7 @@ export default function Dashboard() {
     PlateItem & { scanId: string }
   >;
   const fact = pickFact(data.date);
-  const displayName = sessionData?.user.name ?? "Kamu";
+  const displayName = sessionData?.user.name ?? t("header.fallbackName");
   const firstName = displayName.split(" ")[0];
   const slots = slotsFor(effectiveRamadan(profileQuery.data?.profile?.ramadanMode)) as Meal[];
   const trendPoints = data.trend?.points ?? [];
@@ -254,12 +257,12 @@ export default function Dashboard() {
       weightKg: number;
     }>;
     const txt = [
-      "Ringkasan Minggu Ini",
-      `Defisit: ${fmtInt(data.deficit.deficitKcal)} kkal`,
-      `Streak: ${data.streakDays} hari`,
-      `Rata-rata makan: ${fmtInt(Math.round(data.weekEatenKcal / 7))} kkal/hari`,
-      `Tren berat: ${pts.map((t) => t.weightKg.toFixed(1) + "kg").join(" → ")}`,
-      `Dibuat dengan JoyoRogo: ${shareUrl("/", "recap")}`,
+      t("recapShare.title"),
+      t("recapShare.deficit", { kcal: fmtInt(data.deficit.deficitKcal) }),
+      t("recapShare.streak", { count: data.streakDays }),
+      t("recapShare.average", { kcal: fmtInt(Math.round(data.weekEatenKcal / 7)) }),
+      t("recapShare.trend", { points: pts.map((p) => fmtKg(p.weightKg) + "kg").join(" → ") }),
+      t("recapShare.madeWith", { url: shareUrl("/", "recap") }),
     ].join("\n");
     Share.share({ message: txt }).catch(() => {
       // User dismissed the share sheet; nothing to surface.
@@ -272,14 +275,17 @@ export default function Dashboard() {
       <View style={styles.greetRow}>
         <View style={styles.greetText}>
           <Text style={styles.greetTitle}>
-            {greetingId(new Date())}, {firstName}
+            {t("greeting.named", {
+              greeting: t(`greeting.${greetingKey(new Date())}`),
+              name: firstName,
+            })}
           </Text>
           <Text style={styles.greetCaption}>{fmtDateMedium(jakartaToday())}</Text>
         </View>
         {data.streakDays > 0 ? (
           <View
             style={styles.streakChip}
-            accessibilityLabel={`Streak catat ${data.streakDays} hari beruntun`}
+            accessibilityLabel={t("header.streakLabel", { count: data.streakDays })}
           >
             <Ionicons name="flame" size={14} color={theme.colors.bakarText} />
             <Num style={styles.streakChipText}>{data.streakDays}</Num>
@@ -288,7 +294,7 @@ export default function Dashboard() {
         <Link href="/profil" asChild>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Buka profil ${displayName}`}
+            accessibilityLabel={t("header.openProfile", { name: displayName })}
             style={({ pressed }) => [pressed && styles.pressedSoft]}
           >
             <Avatar name={displayName} image={sessionData?.user.image ?? null} />
@@ -308,14 +314,14 @@ export default function Dashboard() {
       {showFounderBanner && configData ? (
         <Card style={styles.founderBanner}>
           <Text style={styles.founderBannerText} numberOfLines={1}>
-            Scan AI {configData.freeDailyScans}x/hari ·{" "}
+            {t("banner.scans", { n: configData.freeDailyScans })} ·{" "}
             {configData.founderDailyCap === null
-              ? "Pro tanpa batas"
-              : `Pro ${configData.founderDailyCap}/hari`}
+              ? t("banner.proUnlimited")
+              : t("banner.proCapped", { n: configData.founderDailyCap })}
           </Text>
           <Button
             size="sm"
-            label="Upgrade"
+            label={t("banner.upgrade")}
             onPress={() =>
               router.push({ pathname: "/founder", params: { from: "banner", next: "/" } })
             }
@@ -323,105 +329,124 @@ export default function Dashboard() {
         </Card>
       ) : null}
 
-      {/* Hero: sisa makan di ring */}
+      {/* Hero: sisa makan di ring + tiga angka di sebelahnya */}
       <Card style={styles.heroCard}>
-        <Ring
-          size={224}
-          stroke={14}
-          value={data.eatenKcal}
-          max={data.targets.eatKcal}
-          color={ringColor}
-          track={theme.colors.makanSoft}
-        >
-          <Text style={styles.heroLabel}>{over ? "Kelebihan" : "Masih boleh"}</Text>
-          <Num
-            style={[styles.heroNumber, over && { color: theme.colors.bakarText }]}
-            adjustsFontSizeToFit
-            numberOfLines={1}
+        <View style={styles.heroRow}>
+          <Ring
+            size={136}
+            stroke={12}
+            value={data.eatenKcal}
+            max={data.targets.eatKcal}
+            color={ringColor}
+            track={theme.colors.makanSoft}
           >
-            {fmtInt(Math.abs(data.targets.eatKcal - data.eatenKcal))}
-          </Num>
-          <Text style={styles.heroLabel}>kcal</Text>
-        </Ring>
-        <View style={styles.heroStats}>
-          <View style={styles.heroStat}>
-            <Text style={styles.heroStatLabel}>Target</Text>
-            <Num style={styles.heroStatValue}>{fmtInt(data.targets.eatKcal)}</Num>
-          </View>
-          <View style={[styles.heroStat, styles.heroStatMid]}>
-            <Text style={styles.heroStatLabel}>Dimakan</Text>
-            <Num style={styles.heroStatValue}>{fmtInt(data.eatenKcal)}</Num>
-          </View>
-          <View style={styles.heroStat}>
-            <Text style={styles.heroStatLabel}>Defisit</Text>
+            <Text style={styles.heroLabel}>{over ? t("eat.over") : t("eat.left")}</Text>
             <Num
-              style={[
-                styles.heroStatValue,
-                deficitKcal !== null && deficitKcal >= 0 && { color: theme.colors.makanText },
-              ]}
+              style={[styles.heroNumber, over && { color: theme.colors.bakarText }]}
+              adjustsFontSizeToFit
+              numberOfLines={1}
             >
-              {deficitKcal !== null ? fmtInt(deficitKcal) : "–"}
+              {fmtInt(Math.abs(data.targets.eatKcal - data.eatenKcal))}
             </Num>
+            <Text style={styles.heroLabel}>kcal</Text>
+          </Ring>
+          <View style={styles.heroStats}>
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatLabel}>{t("eat.target")}</Text>
+              <Num style={styles.heroStatValue}>{fmtInt(data.targets.eatKcal)}</Num>
+            </View>
+            <View style={[styles.heroStat, styles.heroStatMid]}>
+              <Text style={styles.heroStatLabel}>{t("eat.eaten")}</Text>
+              <Num style={styles.heroStatValue}>{fmtInt(data.eatenKcal)}</Num>
+            </View>
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatLabel}>{t("eat.deficit")}</Text>
+              <Num
+                style={[
+                  styles.heroStatValue,
+                  deficitKcal !== null && deficitKcal >= 0 && { color: theme.colors.makanText },
+                ]}
+              >
+                {deficitKcal !== null ? fmtInt(deficitKcal) : "–"}
+              </Num>
+            </View>
           </View>
         </View>
         {adaptive ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Info target adaptif"
+            accessibilityLabel={t("adaptive.info")}
             onPress={() => setAdaptiveOpen(true)}
             style={({ pressed }) => [styles.adaptiveRow, pressed && styles.pressedSoft]}
           >
             <Ionicons name="information-circle" size={14} color={theme.colors.mutedForeground} />
-            <Text style={styles.adaptiveText}>Target menyesuaikan datamu</Text>
+            <Text style={styles.adaptiveText}>{t("adaptive.link")}</Text>
           </Pressable>
         ) : null}
         {over ? (
           <Text style={styles.heroNote}>
-            Lewat {fmtInt(data.eatenKcal - data.targets.eatKcal)} kcal dari budget. Ringan saja
-            hari ini, besok jalan lagi.
+            {t("eat.overNote", { kcal: fmtInt(data.eatenKcal - data.targets.eatKcal) })}
           </Text>
         ) : null}
-        <ShareStoryButton
-          variant="secondary"
-          style={styles.heroShare}
-          story={{
-            kind: "progress",
-            eatenKcal: data.eatenKcal,
-            targetKcal: data.targets.eatKcal,
-            proteinG: data.protein?.eatenG ?? null,
-            proteinTargetG: data.protein?.targetG ?? null,
-            streakDays: data.streakDays,
-            weightLostKg: data.weightLostKg,
-            weekTrend: data.weekTrend,
-          }}
-        />
       </Card>
 
-      {/* Tiga angka harian */}
+      {/* Angka harian: bakar, tidur, protein */}
       <View style={styles.tileRow}>
         <StatTile
           icon="flame"
           tint="bakar"
-          label="Bakar"
+          label={t("tile.burn")}
           value={fmtInt(data.burnedKcal)}
-          sub={`dari ${fmtInt(data.targets.burnKcal)} kcal`}
+          sub={t("tile.burnOf", { kcal: fmtInt(data.targets.burnKcal) })}
           onPress={() => router.navigate("/olahraga")}
         />
         <StatTile
           icon="moon"
           tint="tidur"
-          label="Tidur"
+          label={t("tile.sleep")}
           value={data.sleepHoursLastNight !== null ? fmtKg(data.sleepHoursLastNight) : "–"}
-          sub={`dari ${fmtKg(data.targets.sleepHours)} jam`}
+          sub={
+            data.sleepHoursLastNight !== null
+              ? t("tile.sleepNeed", { hours: fmtKg(data.targets.sleepHours) })
+              : t("tile.sleepNone")
+          }
           onPress={() => router.navigate("/tidur")}
         />
         <StatTile
           macro="protein"
           tint="makan"
-          label="Protein"
+          label={t("tile.protein")}
           value={data.protein ? `${fmtInt(data.protein.eatenG)}g` : "–"}
-          sub={data.protein ? `dari ${fmtInt(data.protein.targetG)} g` : "catat makan dulu"}
+          sub={
+            data.protein
+              ? t("tile.proteinOf", { g: fmtInt(data.protein.targetG) })
+              : t("tile.proteinNone")
+          }
           onPress={() => router.navigate("/makan")}
+        />
+      </View>
+
+      {/* Air (ketuk = +1 gelas) dan berat tren */}
+      <View style={styles.tileRow}>
+        <StatTile
+          icon="water"
+          tint="tidur"
+          label={t("tile.water")}
+          value={String(water.glasses)}
+          sub={t("water.ofGoal", { count: water.goal })}
+          onPress={water.add}
+        />
+        <StatTile
+          icon="scale-outline"
+          tint="makan"
+          label={t("tile.weight")}
+          value={data.trend ? fmtKg(data.trend.weightKg) : data.latestWeightKg !== null ? fmtKg(data.latestWeightKg) : "–"}
+          sub={
+            data.trend?.weeklyRateKg != null
+              ? weeklyRateLabel(data.trend.weeklyRateKg)
+              : t("tile.weightNone")
+          }
+          onPress={() => router.navigate("/berat")}
         />
       </View>
 
@@ -434,7 +459,7 @@ export default function Dashboard() {
       {/* Masih muat: ide menu yang masih muat di sisa budget */}
       {data.ideas.length > 0 ? (
         <View style={styles.ideasWrap}>
-          <Text style={styles.ideasTitle}>Masih muat</Text>
+          <Text style={styles.ideasTitle}>{t("ideas.title")}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -446,7 +471,7 @@ export default function Dashboard() {
                   {idea.name}
                 </Text>
                 <MetaLine
-                  items={[`${fmtInt(idea.kcal)} kcal`, `${fmtInt(idea.proteinG)} g protein`]}
+                  items={[`${fmtInt(idea.kcal)} kcal`, t("ideas.protein", { g: fmtInt(idea.proteinG) })]}
                   itemStyle={styles.ideaChipMeta}
                 />
               </View>
@@ -457,8 +482,10 @@ export default function Dashboard() {
 
       {/* Makan hari ini per slot */}
       <SectionTitle
-        title={isToday ? "Makan hari ini" : `Makan ${relativeDayLabel(date, today)}`}
-        action={{ label: "Lihat semua", onPress: () => router.navigate("/makan") }}
+        title={
+          isToday ? t("meals.title") : t("meals.titleDay", { day: relativeDayLabel(date, today) })
+        }
+        action={{ label: t("meals.all"), onPress: () => router.navigate("/makan") }}
       />
       <ListGroup>
         {slots.map((slot) => {
@@ -467,7 +494,7 @@ export default function Dashboard() {
             <ListRow
               key={slot}
               title={MEAL_LABELS[slot]}
-              subtitle={kcal > 0 ? undefined : "Belum ada catatan"}
+              subtitle={kcal > 0 ? undefined : t("meals.empty")}
               value={kcal > 0 ? `${fmtInt(kcal)} kcal` : undefined}
               chevron
               onPress={() => router.navigate("/makan")}
@@ -479,7 +506,7 @@ export default function Dashboard() {
       {/* Diari piring: stiker hasil pindai hari ini */}
       {plates.length > 0 ? (
         <View style={styles.platesWrap}>
-          <Text style={styles.ideasTitle}>Diari piring</Text>
+          <Text style={styles.ideasTitle}>{t("plates.title")}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -515,7 +542,7 @@ export default function Dashboard() {
         <Card>
           <View style={styles.trendHead}>
             <View>
-              <Text style={styles.trendLabel}>Berat tren</Text>
+              <Text style={styles.trendLabel}>{t("weight.trend")}</Text>
               <View style={styles.trendValueRow}>
                 <Num style={styles.trendValue}>{fmtKg(data.trend.weightKg)}</Num>
                 <Text style={styles.trendUnit}>kg</Text>
@@ -528,7 +555,7 @@ export default function Dashboard() {
                 </Text>
                 {data.trend.projectedDate ? (
                   <Text style={styles.trendRateSub}>
-                    target {fmtDateMedium(data.trend.projectedDate)}
+                    {t("weight.projectedShort", { date: fmtDateMedium(data.trend.projectedDate) })}
                   </Text>
                 ) : null}
               </View>
@@ -537,19 +564,17 @@ export default function Dashboard() {
           {trendPoints.length > 1 ? <TrendSpark points={trendPoints} /> : null}
           {isToday ? (
             data.weightLoggedToday ? (
-              <Text style={styles.trendNote}>Sudah ditimbang hari ini. Mantap.</Text>
+              <Text style={styles.trendNote}>{t("weight.doneToday")}</Text>
             ) : (
               <>
                 <Text style={styles.trendNote}>
-                  {trendPoints.length === 0
-                    ? "Timbang dirimu agar angka tren mulai terbentuk."
-                    : "Belum timbang hari ini. Satu angka bikin rencana makin pas."}
+                  {trendPoints.length === 0 ? t("weight.startPrompt") : t("weight.missedToday")}
                 </Text>
                 <View>
                   <Button
                     variant="ghost"
                     size="sm"
-                    label="Timbang sekarang"
+                    label={t("weight.weighNow")}
                     icon="scale-outline"
                     onPress={() => setWeighOpen(true)}
                   />
@@ -568,9 +593,9 @@ export default function Dashboard() {
 
       {/* Lainnya: air, streak, lencana, share — collapsed by default */}
       <SectionTitle
-        title="Lainnya"
+        title={t("more.sectionTitle")}
         action={{
-          label: moreOpen ? "Sembunyikan" : "Tampilkan",
+          label: moreOpen ? t("more.hide") : t("more.show"),
           onPress: () => setMoreOpen((v) => !v),
         }}
       />
@@ -579,27 +604,48 @@ export default function Dashboard() {
           <WaterCard date={date} />
           <ListGroup>
             <View style={styles.factBox}>
-              <Text style={styles.factLabel}>Fakta kalori hari ini</Text>
+              <Text style={styles.factLabel}>{t("more.factLabel")}</Text>
               <Text style={styles.factText}>
-                {fact.text} = {fmtInt(fact.kcal)} kcal, setara {fact.move}
+                {t("more.fact", { text: fact.text, kcal: fmtInt(fact.kcal), move: fact.move })}
               </Text>
             </View>
             <ListRow
               icon="share-social"
               iconTint="makan"
-              title="Bagikan recap mingguan"
+              title={t("more.shareRecap")}
               chevron
               onPress={() => shareRecap()}
             />
           </ListGroup>
+          <Card>
+            <Text style={styles.milestoneTitle}>{t("more.shareTitle")}</Text>
+            <Text style={styles.moreHint}>{t("more.shareHint")}</Text>
+            <ShareStoryButton
+              variant="secondary"
+              story={{
+                kind: "progress",
+                eatenKcal: data.eatenKcal,
+                targetKcal: data.targets.eatKcal,
+                proteinG: data.protein?.eatenG ?? null,
+                proteinTargetG: data.protein?.targetG ?? null,
+                streakDays: data.streakDays,
+                weightLostKg: data.weightLostKg,
+                weekTrend: data.weekTrend,
+              }}
+            />
+          </Card>
           {data.milestones.length > 0 ? (
             <Card>
-              <Text style={styles.milestoneTitle}>Lencana</Text>
+              <Text style={styles.milestoneTitle}>{t("more.badges")}</Text>
               <View style={styles.milestoneRow}>
                 {data.milestones.map((badge) => (
-                  <View key={badge} style={styles.milestoneBadge}>
+                  <View key={`${badge.kind}-${badge.value}`} style={styles.milestoneBadge}>
                     <Ionicons name="trophy" size={13} color={theme.colors.makanText} />
-                    <Text style={styles.milestoneText}>{badge}</Text>
+                    <Text style={styles.milestoneText}>
+                      {badge.kind === "streak"
+                        ? t("milestone.streak", { days: badge.value })
+                        : t("milestone.lost", { kg: badge.value })}
+                    </Text>
                   </View>
                 ))}
               </View>
@@ -607,27 +653,31 @@ export default function Dashboard() {
           ) : null}
         </>
       ) : (
-        <Text style={styles.moreHint}>Air minum, streak, dan recap mingguan ada di sini.</Text>
+        <Text style={styles.moreHint}>{t("more.hint")}</Text>
       )}
 
       <WeighInSheet visible={weighOpen} onClose={() => setWeighOpen(false)} date={date} />
 
       {/* Info target adaptif */}
-      <Sheet visible={adaptiveOpen} onClose={() => setAdaptiveOpen(false)} title="Target adaptif">
+      <Sheet visible={adaptiveOpen} onClose={() => setAdaptiveOpen(false)} title={t("adaptive.title")}>
         <View style={styles.adaptiveBody}>
           <Text style={styles.adaptivePara}>
-            Rumus standar memperkirakan tubuhmu membakar{" "}
-            <Num style={styles.adaptiveStrong}>{fmtInt(data.targets.formulaTdee)} kcal</Num>{" "}
-            sehari.
+            <Trans
+              ns="home"
+              i18nKey="adaptive.formula"
+              values={{ kcal: fmtInt(data.targets.formulaTdee) }}
+              components={{ b: <Num style={styles.adaptiveStrong} /> }}
+            />
           </Text>
           <Text style={styles.adaptivePara}>
-            Dari catatan makan dan timbanganmu 4 minggu terakhir, pembakaran nyatamu sekitar{" "}
-            <Num style={styles.adaptiveStrong}>{fmtInt(data.targets.tdee)} kcal</Num>. Target makan
-            memakai angka ini supaya pas dengan tubuhmu, bukan rata-rata orang.
+            <Trans
+              ns="home"
+              i18nKey="adaptive.actual"
+              values={{ kcal: fmtInt(data.targets.tdee) }}
+              components={{ b: <Num style={styles.adaptiveStrong} /> }}
+            />
           </Text>
-          <Text style={styles.adaptiveMuted}>
-            Penyesuaian dibatasi 15% dari rumus, dan hari yang lupa dicatat tidak ikut dihitung.
-          </Text>
+          <Text style={styles.adaptiveMuted}>{t("adaptive.limit")}</Text>
         </View>
       </Sheet>
 
@@ -676,34 +726,39 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.mutedForeground,
   },
   heroCard: {
-    alignItems: "center",
-    paddingVertical: theme.spacing.xl,
+    paddingVertical: theme.spacing.lg,
   },
-  heroShare: { alignSelf: "stretch", marginTop: theme.spacing.lg },
+  heroRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.lg,
+  },
   heroLabel: {
     fontSize: theme.fontSize.sm,
     fontWeight: "600",
     color: theme.colors.mutedForeground,
   },
   heroNumber: {
-    fontSize: theme.fontSize.hero,
+    fontSize: 36,
     fontWeight: "800",
     letterSpacing: -1,
     color: theme.colors.foreground,
   },
   heroStats: {
-    flexDirection: "row",
-    width: "100%",
+    flex: 1,
+    gap: theme.spacing.sm,
   },
   heroStat: {
-    flex: 1,
-    alignItems: "center",
-    gap: 2,
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
   },
   heroStatMid: {
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderRightWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: theme.colors.muted,
+    paddingVertical: theme.spacing.sm,
   },
   heroStatLabel: {
     fontSize: theme.fontSize.xs,

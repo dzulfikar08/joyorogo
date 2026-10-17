@@ -15,9 +15,9 @@
     "fallbackName": "Kamu"
   },
   "banner": {
-    "scans": "Scan AI {{count}}x/hari",
+    "scans": "Scan AI {{n}}x/hari",
     "proUnlimited": "Pro tanpa batas",
-    "proCapped": "Pro {{count}}/hari",
+    "proCapped": "Pro {{n}}/hari",
     "upgrade": "Upgrade"
   },
   "eat": {
@@ -122,7 +122,7 @@
   "recapShare": {
     "title": "Ringkasan Minggu Ini",
     "deficit": "Defisit: {{kcal}} kkal",
-    "streak": "Streak: {{count}} hari",
+    "streak_other": "Streak: {{count}} hari",
     "average": "Rata-rata makan: {{kcal}} kkal/hari",
     "trend": "Tren berat: {{points}}",
     "madeWith": "Dibuat dengan JoyoRogo: {{url}}"

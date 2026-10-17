@@ -17,9 +17,9 @@
     "fallbackName": "You"
   },
   "banner": {
-    "scans": "AI scans {{count}}x/day",
+    "scans": "AI scans {{n}}x/day",
     "proUnlimited": "Pro unlimited",
-    "proCapped": "Pro {{count}}/day",
+    "proCapped": "Pro {{n}}/day",
     "upgrade": "Upgrade"
   },
   "eat": {

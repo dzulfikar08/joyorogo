@@ -5,13 +5,15 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { ChevronDown, Flame, Info, Mic, Moon, Plus, Sparkles, Trophy } from "lucide-react";
+import { ChevronDown, Flame, Info, Mic, Moon, Plus, Scale, Sparkles, Trophy } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { MACRO_META } from "@/lib/macro-icons";
 import { Ring } from "@/components/kit/ring";
-import { Card, Page, SectionTitle, StatTile } from "@/components/kit/surface";
+import { Card, Page, SectionTitle } from "@/components/kit/surface";
 import { MetaLine } from "@/components/meta-line";
 import { Avatar } from "@/components/avatar";
 import { DailyTipCard } from "@/components/tips/daily-tip-card";
@@ -23,7 +25,7 @@ import { RecapCard } from "@/components/recap-card";
 import { StravaRetentionNotice } from "@/components/strava-retention-notice";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { Sticker } from "@/components/sticker";
-import { WaterCard } from "@/components/water-card";
+import { WaterCard, WaterTile } from "@/components/water-card";
 import { WorkoutCard } from "@/components/workout/workout-card";
 import { pickFact } from "@/lib/facts";
 import { fmtDateLong, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
@@ -31,6 +33,7 @@ import { useWaistCheckIn, useWeightCheckIn } from "@/lib/optimistic";
 import { useAppConfig } from "@/lib/app-config";
 import type { DaySummary } from "@/lib/api-types";
 import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import type { Meal } from "@joyorogo/api/lib/engine";
 import { orpc } from "@/utils/orpc";
 
 import { DaySwitcher } from "@/components/day-switcher";
@@ -78,32 +81,35 @@ function BerandaPage() {
 /** Always-visible nudge for free users while billing is on. Not dismissible:
  * the whole point is that free scans run out every day. */
 function FounderBanner() {
+  const { t } = useTranslation("home");
   const navigate = useNavigate();
   const config = useAppConfig();
   const profile = useQuery(profileOptions);
   if (config.data?.billing !== true || profile.data?.tier !== "free") return null;
   const cap = config.data.founderDailyCap;
   return (
-    <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-makan-soft px-4 py-2.5">
+    <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-makan-soft px-4 py-2">
       <p className="min-w-0 text-[0.8125rem] font-semibold text-makan-ink tabular-nums">
-        Scan AI {config.data.freeDailyScans}x/hari
+        {t("banner.scans", { n: config.data.freeDailyScans })}
         <span aria-hidden className="mx-1 text-muted-foreground">
           ·
         </span>
-        <span className="font-normal">Pro {cap === null ? "tanpa batas" : `${cap}/hari`}</span>
+        <span className="font-normal">
+          {cap === null ? t("banner.proUnlimited") : t("banner.proCapped", { n: cap })}
+        </span>
       </p>
       <Button
         size="sm"
         className="shrink-0"
         onClick={() => navigate({ to: "/pro", search: { from: "banner", next: "/beranda" } })}
       >
-        Upgrade
+        {t("banner.upgrade")}
       </Button>
     </div>
   );
 }
 
-function greeting(): string {
+function greetingKey(): "morning" | "noon" | "afternoon" | "evening" {
   const hour = Number(
     new Intl.DateTimeFormat("en-GB", {
       hour: "numeric",
@@ -111,21 +117,62 @@ function greeting(): string {
       timeZone: "Asia/Jakarta",
     }).format(new Date()),
   );
-  if (hour < 11) return "Selamat pagi";
-  if (hour < 15) return "Selamat siang";
-  if (hour < 18) return "Selamat sore";
-  return "Selamat malam";
+  if (hour < 11) return "morning";
+  if (hour < 15) return "noon";
+  if (hour < 18) return "afternoon";
+  return "evening";
 }
 
-const SLOT_LABEL: Record<string, string> = {
-  sarapan: "Sarapan",
-  makan_siang: "Makan siang",
-  makan_malam: "Makan malam",
-  snack: "Camilan",
-  sahur: "Sahur",
-  berbuka: "Berbuka",
-};
-const DEFAULT_SLOTS = ["sarapan", "makan_siang", "makan_malam", "snack"];
+const DEFAULT_SLOTS: Meal[] = ["sarapan", "makan_siang", "makan_malam", "snack"];
+
+const TILE_TINT = {
+  makan: "bg-makan-soft text-makan-ink",
+  bakar: "bg-bakar-soft text-bakar-ink",
+  tidur: "bg-tidur-soft text-tidur-ink",
+} as const;
+
+/** Dense glance tile: icon + label on one line, value, one-line context. */
+function GlanceTile({
+  tint,
+  to,
+  icon,
+  label,
+  value,
+  unit,
+  sub,
+}: {
+  tint: keyof typeof TILE_TINT;
+  to: "/olahraga" | "/tidur" | "/makan" | "/berat";
+  icon: ReactNode;
+  label: string;
+  value: ReactNode;
+  unit?: string;
+  sub?: ReactNode;
+}) {
+  return (
+    <Link
+      to={to}
+      className={cn(
+        "pressable block min-w-0 rounded-2xl p-3 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
+        TILE_TINT[tint],
+      )}
+    >
+      <span className="flex items-center gap-1.5 text-[0.8125rem] font-semibold">
+        {icon}
+        <span className="truncate">{label}</span>
+      </span>
+      <span className="mt-1 block text-xl leading-tight font-extrabold tracking-tight text-foreground tabular-nums">
+        {value}
+        {unit && <span className="ml-1 text-xs font-semibold text-muted-foreground">{unit}</span>}
+      </span>
+      {sub && (
+        <span className="block truncate text-[0.6875rem] text-muted-foreground tabular-nums">
+          {sub}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 function Dashboard({
   summary,
@@ -136,6 +183,7 @@ function Dashboard({
   date: string;
   onChange: (date: string) => void;
 }) {
+  const { t } = useTranslation(["home", "berat"]);
   const { session } = Route.useRouteContext();
   const targets = summary.targets;
   const firstName = session.user.name?.split(" ")[0];
@@ -146,32 +194,43 @@ function Dashboard({
     (item): item is typeof item & { scanId: string } => item.scanId !== null,
   );
 
+  const trend = summary.trend;
+  const weightKg = trend?.weightKg ?? summary.latestWeightKg;
+  const rate = trend?.weeklyRateKg ?? null;
+  const weightSub =
+    rate === null
+      ? t("tile.weightNone")
+      : Math.abs(rate) <= 0.05
+        ? t("berat:trend.stable")
+        : t(rate < 0 ? "berat:trend.down" : "berat:trend.up", { kg: fmtKg(Math.abs(rate)) });
+
   return (
     <Page className="max-w-xl lg:max-w-5xl">
-      <header className="flex items-center justify-between gap-4 px-1 pt-2 pb-5">
+      <header className="flex items-center justify-between gap-4 px-1 pt-1 pb-3">
         <div className="min-w-0">
           <p className="text-sm font-medium text-muted-foreground">
-            {greeting()}
-            {firstName ? `, ${firstName}` : ""}
+            {firstName
+              ? t("greeting.named", { greeting: t(`greeting.${greetingKey()}`), name: firstName })
+              : t(`greeting.${greetingKey()}`)}
           </p>
-          <h1 className="mt-0.5 text-[1.75rem] leading-tight font-extrabold tracking-tight">
+          <h1 className="mt-0.5 text-2xl leading-tight font-extrabold tracking-tight">
             {fmtDateLong(summary.date).replace(/^\w+, /, "")}
           </h1>
         </div>
         <div className="flex items-center gap-2">
           {summary.streakDays > 0 && (
             <span
-              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-bakar-soft px-3 text-sm font-bold text-bakar-ink tabular-nums"
-              title="Hari berturut-turut kamu mencatat"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-bakar-soft px-3 text-sm font-bold text-bakar-ink tabular-nums"
+              title={t("header.streakTitle")}
             >
               <Flame className="size-4" aria-hidden />
               {summary.streakDays}
-              <span className="sr-only"> hari beruntun</span>
+              <span className="sr-only"> {t("header.streakDays", { count: summary.streakDays })}</span>
             </span>
           )}
           <Link
             to="/profil"
-            aria-label="Profil"
+            aria-label={t("header.profile")}
             className="rounded-full focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none md:hidden"
           >
             <Avatar
@@ -202,40 +261,52 @@ function Dashboard({
           per column on lg so Lingkar perut fills the empty slot next to the
           Berat badan cards; on phones the DOM order keeps Berat first. */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-5">
-        <div className="min-w-0 space-y-3 lg:col-start-1 lg:row-start-1">
+        <div className="min-w-0 space-y-2 lg:col-start-1 lg:row-start-1">
           <EatHero summary={summary} />
-          <div className="grid grid-cols-3 gap-3">
-            <StatTile
-              metric="bakar"
+          <div className="grid grid-cols-3 gap-2">
+            <GlanceTile
+              tint="bakar"
               to="/olahraga"
-              icon={<Flame className="size-[1.125rem]" aria-hidden />}
-              label="Bakar"
+              icon={<Flame className="size-4 shrink-0" aria-hidden />}
+              label={t("tile.burn")}
               value={fmtInt(summary.burnedKcal)}
-              sub={`dari ${fmtInt(targets.burnKcal)} kcal`}
+              sub={t("tile.burnOf", { kcal: fmtInt(targets.burnKcal) })}
             />
-            <StatTile
-              metric="tidur"
+            <GlanceTile
+              tint="tidur"
               to="/tidur"
-              icon={<Moon className="size-[1.125rem]" aria-hidden />}
-              label="Tidur"
+              icon={<Moon className="size-4 shrink-0" aria-hidden />}
+              label={t("tile.sleep")}
               value={
                 summary.sleepHoursLastNight === null ? "–" : fmtKg(summary.sleepHoursLastNight)
               }
-              unit={summary.sleepHoursLastNight === null ? undefined : "jam"}
+              unit={summary.sleepHoursLastNight === null ? undefined : t("tile.sleepUnit")}
               sub={
                 summary.sleepHoursLastNight === null
-                  ? "belum dicatat"
-                  : `butuh ${fmtInt(targets.sleepHours)} jam`
+                  ? t("tile.sleepNone")
+                  : t("tile.sleepNeed", { hours: fmtInt(targets.sleepHours) })
               }
             />
-            <StatTile
-              metric="makan"
+            <GlanceTile
+              tint="makan"
               to="/makan"
-              icon={<MACRO_META.protein.Icon className="size-[1.125rem]" aria-hidden />}
-              label="Protein"
+              icon={<MACRO_META.protein.Icon className="size-4 shrink-0" aria-hidden />}
+              label={t("tile.protein")}
               value={fmtInt(summary.protein?.eatenG ?? 0)}
               unit="g"
-              sub={`dari ${fmtInt(summary.protein?.targetG ?? 0)} g`}
+              sub={t("tile.proteinOf", { g: fmtInt(summary.protein?.targetG ?? 0) })}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <WaterTile date={isToday ? undefined : date} />
+            <GlanceTile
+              tint="makan"
+              to="/berat"
+              icon={<Scale className="size-4 shrink-0" aria-hidden />}
+              label={t("tile.weight")}
+              value={weightKg === null ? "–" : fmtKg(weightKg)}
+              unit={weightKg === null ? undefined : "kg"}
+              sub={weightSub}
             />
           </div>
         </div>
@@ -256,8 +327,8 @@ function Dashboard({
       </div>
 
       {stickers.length > 0 && (
-        <section aria-label="Diari piring" className="mt-7">
-          <SectionTitle>Diari piring</SectionTitle>
+        <section aria-label={t("plates.title")} className="mt-6">
+          <SectionTitle>{t("plates.title")}</SectionTitle>
           <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 no-scrollbar">
             {stickers.map((item) => (
               <figure key={item.id} className="w-28 shrink-0 rounded-2xl bg-card p-3 text-center">
@@ -286,6 +357,7 @@ function Dashboard({
 }
 
 function EatHero({ summary }: { summary: Summary }) {
+  const { t } = useTranslation("home");
   const targets = summary.targets;
   const remaining = targets.eatKcal - summary.eatenKcal;
   const over = remaining < 0;
@@ -293,50 +365,49 @@ function EatHero({ summary }: { summary: Summary }) {
   const deficit = summary.deficit;
 
   return (
-    <Card className="p-6">
-      <div className="flex flex-col items-center">
+    <Card className="p-4">
+      <div className="flex items-center gap-4">
         <Ring
           metric="makan"
           value={summary.eatenKcal}
           max={targets.eatKcal}
-          size={216}
-          stroke={16}
-          label={`Dimakan ${fmtInt(summary.eatenKcal)} dari ${fmtInt(targets.eatKcal)} kcal`}
+          size={132}
+          stroke={12}
+          label={t("eat.ringLabel", {
+            eaten: fmtInt(summary.eatenKcal),
+            target: fmtInt(targets.eatKcal),
+          })}
         >
           <div>
-            <p className="text-sm font-semibold text-muted-foreground">
-              {over ? "Kelebihan" : "Masih boleh"}
+            <p className="text-xs font-semibold text-muted-foreground">
+              {over ? t("eat.over") : t("eat.left")}
             </p>
             <p
               className={cn(
-                "text-[3.5rem] leading-none font-extrabold tracking-tighter tabular-nums",
+                "text-[2.25rem] leading-none font-extrabold tracking-tighter tabular-nums",
                 over && "text-bakar-ink",
               )}
             >
               {fmtInt(Math.abs(remaining))}
             </p>
-            <p className="mt-1 text-sm font-semibold text-muted-foreground">kcal</p>
+            <p className="mt-0.5 text-xs font-semibold text-muted-foreground">kcal</p>
           </div>
         </Ring>
 
-        <dl className="mt-5 grid w-full grid-cols-3 divide-x divide-border text-center">
-          <div>
-            <dt className="text-xs font-semibold text-muted-foreground">Target</dt>
-            <dd className="mt-0.5 text-lg font-extrabold tabular-nums">
-              {fmtInt(targets.eatKcal)}
-            </dd>
+        <dl className="min-w-0 flex-1 divide-y divide-border">
+          <div className="flex items-baseline justify-between gap-2 pb-2">
+            <dt className="text-xs font-semibold text-muted-foreground">{t("eat.target")}</dt>
+            <dd className="text-lg font-extrabold tabular-nums">{fmtInt(targets.eatKcal)}</dd>
           </div>
-          <div>
-            <dt className="text-xs font-semibold text-muted-foreground">Dimakan</dt>
-            <dd className="mt-0.5 text-lg font-extrabold tabular-nums">
-              {fmtInt(summary.eatenKcal)}
-            </dd>
+          <div className="flex items-baseline justify-between gap-2 py-2">
+            <dt className="text-xs font-semibold text-muted-foreground">{t("eat.eaten")}</dt>
+            <dd className="text-lg font-extrabold tabular-nums">{fmtInt(summary.eatenKcal)}</dd>
           </div>
-          <div>
-            <dt className="text-xs font-semibold text-muted-foreground">Defisit</dt>
+          <div className="flex items-baseline justify-between gap-2 pt-2">
+            <dt className="text-xs font-semibold text-muted-foreground">{t("eat.deficit")}</dt>
             <dd
               className={cn(
-                "mt-0.5 text-lg font-extrabold tabular-nums",
+                "text-lg font-extrabold tabular-nums",
                 deficit && deficit.deficitKcal >= 0 && "text-makan-ink",
               )}
             >
@@ -346,19 +417,56 @@ function EatHero({ summary }: { summary: Summary }) {
         </dl>
       </div>
 
+      {targets.notes.includes("ADAPTIVE") && (
+        <>
+          <button
+            type="button"
+            onClick={() => setAdaptiveOpen(true)}
+            className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+          >
+            <Info className="size-3.5" aria-hidden />
+            {t("adaptive.link")}
+          </button>
+          <Sheet open={adaptiveOpen} onOpenChange={setAdaptiveOpen} title={t("adaptive.title")}>
+            <div className="space-y-3 text-[0.9375rem] leading-relaxed">
+              <p>
+                <Trans
+                  ns="home"
+                  i18nKey="adaptive.formula"
+                  values={{ kcal: fmtInt(targets.formulaTdee) }}
+                  components={{ b: <strong className="tabular-nums" /> }}
+                />
+              </p>
+              <p>
+                <Trans
+                  ns="home"
+                  i18nKey="adaptive.actual"
+                  values={{ kcal: fmtInt(targets.tdee) }}
+                  components={{ b: <strong className="tabular-nums" /> }}
+                />
+              </p>
+              <p className="text-sm text-muted-foreground">{t("adaptive.limit")}</p>
+            </div>
+          </Sheet>
+        </>
+      )}
+
       {summary.ideas.length > 0 && (
-        <div className="mt-6 border-t pt-5">
+        <div className="mt-3 border-t pt-3">
           <p className="flex items-center gap-1.5 text-sm font-bold">
             <Sparkles className="size-4 text-makan" aria-hidden />
-            Masih muat
+            {t("ideas.title")}
           </p>
-          <ul className="-mx-6 mt-3 flex gap-2 overflow-x-auto px-6 no-scrollbar">
+          <ul className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 no-scrollbar">
             {summary.ideas.map((idea) => (
-              <li key={idea.name} className="w-44 shrink-0 rounded-2xl bg-makan-soft px-3.5 py-3">
+              <li key={idea.name} className="w-40 shrink-0 rounded-2xl bg-makan-soft px-3 py-2.5">
                 <p className="line-clamp-2 text-sm leading-snug font-semibold">{idea.name}</p>
-                <p className="mt-1.5 text-xs font-semibold text-makan-ink tabular-nums">
+                <p className="mt-1 text-xs font-semibold text-makan-ink tabular-nums">
                   <MetaLine
-                    items={[`${fmtInt(idea.kcal)} kcal`, `${fmtInt(idea.proteinG)} g protein`]}
+                    items={[
+                      `${fmtInt(idea.kcal)} kcal`,
+                      t("ideas.protein", { g: fmtInt(idea.proteinG) }),
+                    ]}
                   />
                 </p>
               </li>
@@ -366,51 +474,25 @@ function EatHero({ summary }: { summary: Summary }) {
           </ul>
         </div>
       )}
-
-      {targets.notes.includes("ADAPTIVE") && (
-        <>
-          <button
-            type="button"
-            onClick={() => setAdaptiveOpen(true)}
-            className="mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-          >
-            <Info className="size-3.5" aria-hidden />
-            Target menyesuaikan datamu
-          </button>
-          <Sheet open={adaptiveOpen} onOpenChange={setAdaptiveOpen} title="Target adaptif">
-            <div className="space-y-3 text-[0.9375rem] leading-relaxed">
-              <p>
-                Rumus standar memperkirakan tubuhmu membakar{" "}
-                <strong className="tabular-nums">{fmtInt(targets.formulaTdee)} kcal</strong> sehari.
-              </p>
-              <p>
-                Dari catatan makan dan timbanganmu 4 minggu terakhir, pembakaran nyatamu sekitar{" "}
-                <strong className="tabular-nums">{fmtInt(targets.tdee)} kcal</strong>. Target makan
-                memakai angka ini supaya pas dengan tubuhmu, bukan rata-rata orang.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Penyesuaian dibatasi 15% dari rumus, dan hari yang lupa dicatat tidak ikut dihitung.
-              </p>
-            </div>
-          </Sheet>
-        </>
-      )}
     </Card>
   );
 }
 
 function TodayMeals({ summary, isToday }: { summary: Summary; isToday: boolean }) {
-  const slots = [
+  const { t } = useTranslation(["home", "common"]);
+  const slots: Meal[] = [
     ...DEFAULT_SLOTS,
-    ...Object.keys(summary.eatenByMeal).filter(
-      (slot) =>
-        !DEFAULT_SLOTS.includes(slot) &&
-        summary.eatenByMeal[slot as keyof typeof summary.eatenByMeal] > 0,
+    ...(Object.keys(summary.eatenByMeal) as Meal[]).filter(
+      (slot) => !DEFAULT_SLOTS.includes(slot) && summary.eatenByMeal[slot] > 0,
     ),
   ];
+  const title = isToday
+    ? t("meals.title")
+    : t("meals.titleDay", { day: relativeDayLabel(summary.date, jakartaToday()) });
   return (
-    <section aria-label="Makan hari ini">
+    <section aria-label={title}>
       <SectionTitle
+        className="mb-1"
         action={
           <span className="flex items-center gap-3">
             <Link
@@ -419,30 +501,30 @@ function TodayMeals({ summary, isToday }: { summary: Summary; isToday: boolean }
               className="inline-flex min-h-11 items-center gap-1 px-1 text-sm font-semibold text-primary hover:underline"
             >
               <Mic className="size-4" aria-hidden />
-              Ceritakan
+              {t("meals.story")}
             </Link>
             <Link
               to="/makan"
               className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-muted-foreground hover:underline"
             >
-              Lihat semua
+              {t("meals.all")}
             </Link>
           </span>
         }
       >
-        {isToday ? "Makan hari ini" : `Makan ${relativeDayLabel(summary.date, jakartaToday())}`}
+        {title}
       </SectionTitle>
       <ul className="overflow-hidden rounded-3xl bg-card">
         {slots.map((slot, index) => {
-          const kcal = summary.eatenByMeal[slot as keyof typeof summary.eatenByMeal] ?? 0;
+          const kcal = summary.eatenByMeal[slot] ?? 0;
           return (
             <li key={slot} className={cn("relative", index > 0 && "border-t border-border/70")}>
               <Link
                 to="/makan"
-                className="flex min-h-14 items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/60 active:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+                className="flex min-h-11 items-center gap-3 px-5 py-2 transition-colors hover:bg-muted/60 active:bg-muted focus-visible:bg-muted focus-visible:outline-none"
               >
                 <span className="flex-1 text-[0.9375rem] font-semibold">
-                  {SLOT_LABEL[slot] ?? slot}
+                  {t(`common:meal.editLabel.${slot}`)}
                 </span>
                 {kcal > 0 ? (
                   <span className="text-[0.9375rem] font-bold tabular-nums">
@@ -452,7 +534,7 @@ function TodayMeals({ summary, isToday }: { summary: Summary; isToday: boolean }
                 ) : (
                   <span className="flex items-center gap-1 text-sm font-semibold text-primary">
                     <Plus className="size-4" aria-hidden />
-                    Catat
+                    {t("meals.log")}
                   </span>
                 )}
               </Link>
@@ -479,7 +561,7 @@ function Sparkline({ values, tone = "makan" }: { values: number[]; tone?: "makan
     })
     .join(" ");
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-16 w-full" aria-hidden>
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-12 w-full" aria-hidden>
       <path
         d={`${path} L${w},${h} L0,${h} Z`}
         className={tone === "makan" ? "fill-makan-soft" : "fill-primary/10"}
@@ -506,6 +588,7 @@ function WeightCard({
   date: string;
   isToday: boolean;
 }) {
+  const { t } = useTranslation(["home", "berat", "common"]);
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const trend = summary.trend;
@@ -514,24 +597,25 @@ function WeightCard({
   const flat = rate !== null && Math.abs(rate) <= 0.05;
 
   return (
-    <section aria-label="Berat badan">
+    <section aria-label={t("weight.title")}>
       <SectionTitle
+        className="mb-1"
         action={
           <Link
             to="/berat"
             className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-primary hover:underline"
           >
-            Grafik
+            {t("weight.chart")}
           </Link>
         }
       >
-        Berat badan
+        {t("weight.title")}
       </SectionTitle>
-      <Card>
+      <Card className="p-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold text-muted-foreground">Berat tren</p>
-            <p className="text-[2rem] leading-tight font-extrabold tracking-tight tabular-nums">
+            <p className="text-xs font-semibold text-muted-foreground">{t("weight.trend")}</p>
+            <p className="text-[1.75rem] leading-tight font-extrabold tracking-tight tabular-nums">
               {trend
                 ? fmtKg(trend.weightKg)
                 : summary.latestWeightKg !== null
@@ -547,8 +631,10 @@ function WeightCard({
                 )}
               >
                 {flat
-                  ? "Stabil minggu ini"
-                  : `${rate < 0 ? "Turun" : "Naik"} ${fmtKg(Math.abs(rate))} kg/minggu`}
+                  ? t("berat:trend.stable")
+                  : t(rate < 0 ? "berat:trend.down" : "berat:trend.up", {
+                      kg: fmtKg(Math.abs(rate)),
+                    })}
               </p>
             )}
           </div>
@@ -560,21 +646,22 @@ function WeightCard({
               setOpen(true);
             }}
           >
-            {isToday && summary.weightLoggedToday ? "Ubah" : "Timbang"}
+            {isToday && summary.weightLoggedToday ? t("common:actions.edit") : t("weight.weigh")}
           </Button>
         </div>
         {trend && (
           <>
-            <div className="mt-4">
+            <div className="mt-3">
               <Sparkline values={trend.points.map((p) => p.trendKg)} />
             </div>
             {trend.projectedDate && (
-              <p className="mt-3 text-sm text-muted-foreground">
-                Dengan ritme ini, target tercapai sekitar{" "}
-                <strong className="font-semibold text-foreground">
-                  {fmtDateLong(trend.projectedDate).replace(/^\w+, /, "")}
-                </strong>
-                .
+              <p className="mt-2 text-sm text-muted-foreground">
+                <Trans
+                  ns="home"
+                  i18nKey="weight.projected"
+                  values={{ date: fmtDateLong(trend.projectedDate).replace(/^\w+, /, "") }}
+                  components={{ b: <strong className="font-semibold text-foreground" /> }}
+                />
               </p>
             )}
           </>
@@ -584,15 +671,19 @@ function WeightCard({
       <Sheet
         open={open}
         onOpenChange={setOpen}
-        title={isToday ? "Timbang hari ini" : `Timbang ${relativeDayLabel(date, jakartaToday())}`}
-        description="Satu catatan per hari. Menyimpan lagi menimpa angka tadi."
+        title={
+          isToday
+            ? t("weight.sheetToday")
+            : t("weight.sheetDay", { day: relativeDayLabel(date, jakartaToday()) })
+        }
+        description={t("weight.sheetHint")}
       >
         <form
           onSubmit={(event) => {
             event.preventDefault();
             const kg = parseNum(value);
             if (kg === null || kg < 25 || kg > 400) {
-              toast.error("Isi berat antara 25 dan 400 kg.");
+              toast.error(t("weight.range"));
               return;
             }
             checkIn.mutate({ weightKg: kg, ...(isToday ? {} : { date }) });
@@ -602,7 +693,7 @@ function WeightCard({
         >
           <div className="relative">
             <Input
-              aria-label="Berat badan (kg)"
+              aria-label={t("weight.inputLabel")}
               autoFocus
               type="number"
               step="0.1"
@@ -618,7 +709,7 @@ function WeightCard({
             </span>
           </div>
           <Button type="submit" className="w-full" disabled={checkIn.isPending}>
-            {checkIn.isPending ? "Menyimpan..." : "Simpan"}
+            {checkIn.isPending ? t("weight.saving") : t("common:actions.save")}
           </Button>
         </form>
       </Sheet>
@@ -630,10 +721,11 @@ const waistHistoryOptions = orpc.waist.history.queryOptions({ input: { limit: 30
 
 /** Compact Lingkar perut summary mirroring the Berat card; full section lives on /berat. */
 function WaistCard({ date, isToday }: { date: string; isToday: boolean }) {
+  const { t } = useTranslation(["home", "common"]);
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const history = useQuery(waistHistoryOptions);
-  const checkIn = useWaistCheckIn((row) => `Tercatat ${fmtKg(row.waistCm)} cm`);
+  const checkIn = useWaistCheckIn((row) => t("waist.logged", { cm: fmtKg(row.waistCm) }));
 
   const entries = history.data?.entries ?? [];
   const latest = entries.length > 0 ? entries[entries.length - 1].waistCm : null;
@@ -647,45 +739,46 @@ function WaistCard({ date, isToday }: { date: string; isToday: boolean }) {
         ? {
             text:
               assessment.ratio !== null
-                ? `Rasio ${fmtRatio(assessment.ratio)} · risiko tinggi`
-                : "Di atas batas sehat",
+                ? t("waist.ratioHigh", { ratio: fmtRatio(assessment.ratio) })
+                : t("waist.aboveSafe"),
             tone: "text-destructive",
           }
         : assessment.band === "raised" || assessment.overCutoff
           ? {
               text:
                 assessment.ratio !== null
-                  ? `Rasio ${fmtRatio(assessment.ratio)} · di atas batas`
-                  : "Di atas batas sehat",
+                  ? t("waist.ratioRaised", { ratio: fmtRatio(assessment.ratio) })
+                  : t("waist.aboveSafe"),
               tone: "text-amber-600 dark:text-amber-400",
             }
           : {
               text:
                 assessment.ratio !== null
-                  ? `Rasio ${fmtRatio(assessment.ratio)} · di bawah batas sehat`
-                  : "Di bawah batas sehat",
+                  ? t("waist.ratioBelow", { ratio: fmtRatio(assessment.ratio) })
+                  : t("waist.belowSafe"),
               tone: "text-makan-ink",
             };
 
   return (
-    <section aria-label="Lingkar perut">
+    <section aria-label={t("waist.title")}>
       <SectionTitle
+        className="mb-1"
         action={
           <Link
             to="/berat"
             className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-primary hover:underline"
           >
-            Detail
+            {t("waist.detail")}
           </Link>
         }
       >
-        Lingkar perut
+        {t("waist.title")}
       </SectionTitle>
-      <Card>
+      <Card className="p-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold text-muted-foreground">Lingkar perut terbaru</p>
-            <p className="text-[2rem] leading-tight font-extrabold tracking-tight tabular-nums">
+            <p className="text-xs font-semibold text-muted-foreground">{t("waist.latest")}</p>
+            <p className="text-[1.75rem] leading-tight font-extrabold tracking-tight tabular-nums">
               {latest !== null ? fmtKg(latest) : "–"}
               <span className="ml-1 text-base font-semibold text-muted-foreground">cm</span>
             </p>
@@ -693,9 +786,7 @@ function WaistCard({ date, isToday }: { date: string; isToday: boolean }) {
               <p className={cn("mt-0.5 text-sm font-semibold", status.tone)}>{status.text}</p>
             ) : (
               <p className="mt-0.5 text-sm text-muted-foreground">
-                {latest !== null
-                  ? "Lengkapi tinggi di profil untuk status risiko"
-                  : "Belum ada catatan"}
+                {latest !== null ? t("waist.needHeight") : t("waist.none")}
               </p>
             )}
           </div>
@@ -707,10 +798,10 @@ function WaistCard({ date, isToday }: { date: string; isToday: boolean }) {
               setOpen(true);
             }}
           >
-            {isToday && loggedToday ? "Ubah" : "Ukur"}
+            {isToday && loggedToday ? t("common:actions.edit") : t("waist.measure")}
           </Button>
         </div>
-        <div className="mt-4">
+        <div className="mt-3">
           <Sparkline values={entries.slice(-30).map((entry) => entry.waistCm)} tone="primary" />
         </div>
       </Card>
@@ -718,15 +809,15 @@ function WaistCard({ date, isToday }: { date: string; isToday: boolean }) {
       <Sheet
         open={open}
         onOpenChange={setOpen}
-        title="Ukur lingkar perut"
-        description="Satu catatan per hari. Menyimpan lagi menimpa angka tadi."
+        title={t("waist.sheetTitle")}
+        description={t("waist.sheetHint")}
       >
         <form
           onSubmit={(event) => {
             event.preventDefault();
             const cm = parseNum(value);
             if (cm === null || cm < 40 || cm > 250) {
-              toast.error("Isi lingkar perut antara 40 dan 250 cm.");
+              toast.error(t("waist.range"));
               return;
             }
             checkIn.mutate({ waistCm: cm, ...(isToday ? {} : { date }) });
@@ -736,7 +827,7 @@ function WaistCard({ date, isToday }: { date: string; isToday: boolean }) {
         >
           <div className="relative">
             <Input
-              aria-label="Lingkar perut (cm)"
+              aria-label={t("waist.inputLabel")}
               autoFocus
               type="number"
               step="0.5"
@@ -752,7 +843,7 @@ function WaistCard({ date, isToday }: { date: string; isToday: boolean }) {
             </span>
           </div>
           <Button type="submit" className="w-full" disabled={checkIn.isPending}>
-            {checkIn.isPending ? "Menyimpan..." : "Simpan"}
+            {checkIn.isPending ? t("weight.saving") : t("common:actions.save")}
           </Button>
         </form>
       </Sheet>
@@ -769,11 +860,12 @@ function MoreSection({
   date: string;
   isToday: boolean;
 }) {
+  const { t } = useTranslation("home");
   const fact = pickFact(summary.date);
   return (
-    <details className="group mt-7 rounded-3xl bg-card">
+    <details className="group mt-6 rounded-3xl bg-card">
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between rounded-3xl px-5 select-none focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
-        <span className="text-[0.9375rem] font-bold">Air minum, gerak, dan lainnya</span>
+        <span className="text-[0.9375rem] font-bold">{t("more.title")}</span>
         <ChevronDown
           className="size-5 text-muted-foreground transition-transform duration-200 group-open:rotate-180"
           aria-hidden
@@ -785,9 +877,9 @@ function MoreSection({
         <MovementCard date={date} />
         {fact && (
           <div className="rounded-2xl bg-muted p-4">
-            <p className="text-xs font-semibold text-muted-foreground">Fakta kalori hari ini</p>
+            <p className="text-xs font-semibold text-muted-foreground">{t("more.factLabel")}</p>
             <p className="mt-1 text-sm font-semibold">
-              {fact.text} = {fmtInt(fact.kcal)} kcal, setara {fact.move}
+              {t("more.fact", { text: fact.text, kcal: fmtInt(fact.kcal), move: fact.move })}
             </p>
           </div>
         )}
@@ -795,19 +887,21 @@ function MoreSection({
           <div className="flex flex-wrap gap-2">
             {summary.milestones.map((badge) => (
               <span
-                key={badge}
+                key={`${badge.kind}-${badge.value}`}
                 className="inline-flex h-9 items-center gap-1.5 rounded-full bg-makan-soft px-3 text-xs font-bold text-makan-ink"
               >
                 <Trophy className="size-3.5" aria-hidden />
-                {badge}
+                {badge.kind === "streak"
+                  ? t("milestone.streak", { days: badge.value })
+                  : t("milestone.lost", { kg: badge.value })}
               </span>
             ))}
           </div>
         )}
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted p-4">
           <div>
-            <p className="text-sm font-bold">Bagikan progres</p>
-            <p className="text-xs text-muted-foreground">Kartu siap posting dari angka hari ini.</p>
+            <p className="text-sm font-bold">{t("more.shareTitle")}</p>
+            <p className="text-xs text-muted-foreground">{t("more.shareHint")}</p>
           </div>
           <ShareStoryButton
             size="sm"
@@ -829,22 +923,23 @@ function MoreSection({
 }
 
 function BerandaSkeleton() {
+  const { t } = useTranslation("home");
   return (
-    <Page className="max-w-xl" aria-busy="true" aria-label="Memuat ringkasan hari ini">
-      <div className="px-1 pt-2 pb-5">
+    <Page className="max-w-xl" aria-busy="true" aria-label={t("skeleton.label")}>
+      <div className="px-1 pt-1 pb-3">
         <Skeleton className="h-4 w-32 rounded-full" />
-        <Skeleton className="mt-2 h-8 w-48 rounded-full" />
+        <Skeleton className="mt-2 h-7 w-48 rounded-full" />
       </div>
-      <div className="flex flex-col items-center rounded-3xl bg-card p-6">
-        <Skeleton className="size-[216px] rounded-full" />
-        <Skeleton className="mt-5 h-10 w-full rounded-2xl" />
+      <div className="flex items-center gap-4 rounded-3xl bg-card p-4">
+        <Skeleton className="size-[132px] shrink-0 rounded-full" />
+        <Skeleton className="h-24 flex-1 rounded-2xl" />
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-3">
+      <div className="mt-2 grid grid-cols-3 gap-2">
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-32 rounded-2xl" />
+          <Skeleton key={i} className="h-20 rounded-2xl" />
         ))}
       </div>
-      <Skeleton className="mt-7 h-56 rounded-3xl" />
+      <Skeleton className="mt-6 h-56 rounded-3xl" />
     </Page>
   );
 }

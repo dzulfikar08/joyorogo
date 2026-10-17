@@ -2,7 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+
+import { warningMessage } from "@joyorogo/api/lib/workout";
 
 import { Card, Text } from "@/components/ui";
 import { orpc } from "@/utils/orpc";
@@ -10,6 +13,7 @@ import { orpc } from "@/utils/orpc";
 /** Compact Beranda card: missed-muscle warnings today + door to /latihan. */
 export function WorkoutCard() {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("home");
   const status = useQuery(orpc.workout.status.queryOptions({ input: {} }));
 
   // Silent while loading or failing: Beranda stays calm, /latihan owns errors.
@@ -21,7 +25,7 @@ export function WorkoutCard() {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Buka Latihan Beban"
+      accessibilityLabel={t("workout.openLabel")}
       onPress={() => router.push("/latihan")}
       style={({ pressed }) => [styles.press, pressed && styles.pressed]}
     >
@@ -30,22 +34,20 @@ export function WorkoutCard() {
           <View style={[styles.iconChip, { backgroundColor: theme.colors.bakarSoft }]}>
             <Ionicons name="barbell" size={15} color={theme.colors.bakarText} />
           </View>
-          <Text style={styles.label}>Latihan beban</Text>
+          <Text style={styles.label}>{t("workout.title")}</Text>
           <Ionicons name="chevron-forward" size={16} color={theme.colors.mutedForeground} />
         </View>
         {top.length > 0 ? (
           <View style={styles.warnings}>
             {top.map((warning) => (
               <Text key={warning.muscle} style={styles.warning} numberOfLines={2}>
-                {warning.message}
+                {warningMessage(warning)}
               </Text>
             ))}
           </View>
         ) : (
           <Text style={styles.hint}>
-            {sessionCount28d > 0
-              ? "Semua otot kebagian minggu ini, mantap."
-              : "Jaga otot saat defisit: catat latihan bebanmu."}
+            {sessionCount28d > 0 ? t("workout.allGood") : t("workout.keepMuscle")}
           </Text>
         )}
       </Card>

@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
@@ -18,6 +19,7 @@ import { orpc } from "@/utils/orpc";
  */
 export function RecapCard() {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("home");
   const today = jakartaToday();
   const isMonday = weekStartOf(today) === today;
   const weekStart = shiftDate(today, -7);
@@ -31,7 +33,7 @@ export function RecapCard() {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Rekap minggu ini, minggu lalu ${weekRangeLabel(weekStart)}. Buka rekap lengkap`}
+      accessibilityLabel={t("recap.open", { range: weekRangeLabel(weekStart) })}
       onPress={() => router.push({ pathname: "/rekap", params: { week: weekStart } })}
       style={({ pressed }) => [pressed && styles.pressed]}
     >
@@ -41,25 +43,26 @@ export function RecapCard() {
             <Ionicons name="calendar" size={20} color={theme.colors.primary} />
           </View>
           <View style={styles.headText}>
-            <Text style={styles.title}>Rekap minggu ini</Text>
-            <Text style={styles.caption}>Minggu lalu, {weekRangeLabel(weekStart)}</Text>
+            <Text style={styles.title}>{t("recap.title")}</Text>
+            <Text style={styles.caption}>{t("recap.lastWeek", { range: weekRangeLabel(weekStart) })}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.mutedForeground} />
         </View>
         <View style={styles.row}>
           <View style={styles.cell}>
-            <Text style={styles.cellLabel}>Rata-rata per hari</Text>
+            <Text style={styles.cellLabel}>{t("recap.average")}</Text>
             <Num style={styles.cellValue}>
               {fmtInt(data.avgKcal)} <Text style={styles.cellUnit}>kcal</Text>
             </Num>
-            <Text style={styles.cellSub}>target {fmtInt(data.targetKcal)}</Text>
+            <Text style={styles.cellSub}>{t("recap.target", { kcal: fmtInt(data.targetKcal) })}</Text>
           </View>
           <View style={styles.cell}>
-            <Text style={styles.cellLabel}>Sesuai target</Text>
+            <Text style={styles.cellLabel}>{t("recap.onTarget")}</Text>
             <Num style={styles.cellValue}>
-              {data.daysOnTarget} <Text style={styles.cellUnit}>hari</Text>
+              {data.daysOnTarget}{" "}
+              <Text style={styles.cellUnit}>{t("recap.daysUnit", { count: data.daysOnTarget })}</Text>
             </Num>
-            <Text style={styles.cellSub}>dari {data.loggedDays} hari tercatat</Text>
+            <Text style={styles.cellSub}>{t("recap.logged", { count: data.loggedDays })}</Text>
           </View>
         </View>
       </Card>
