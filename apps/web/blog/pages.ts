@@ -71,7 +71,7 @@ function jsonLd(siteUrl: string): object[] {
           url: `${siteUrl}/`,
           image: `${siteUrl}${OG_IMAGE.path}`,
           applicationCategory: "HealthApplication",
-          operatingSystem: "Web, Android",
+          operatingSystem: "Web, Android, iOS",
           inLanguage: "id",
           isAccessibleForFree: true,
           description: PAGES["/"].description,

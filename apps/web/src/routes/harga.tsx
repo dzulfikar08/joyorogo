@@ -48,7 +48,7 @@ function founderFeatures(config: AppConfig): string[] {
     "Saran makan dari skor JoyoFit",
     "Cadangan cloud JoyoFit (langkah, detak jantung, tidur, latihan dari jam)",
     "Badge Pro di profilmu",
-    "Harga terkunci saat perpanjang",
+    "Harga terkunci saat perpanjang (pembayaran web)",
   ];
 }
 
@@ -185,11 +185,11 @@ function pricingFaq(config: AppConfig): Array<{ q: string; a: string }> {
     },
     {
       q: "Apakah ini langganan otomatis?",
-      a: "Tidak. Satu pembayaran aktif selama periode yang kamu beli. Tidak ada kartu yang disimpan dan tidak ada tagihan mengikuti; perpanjang manual dari Profil kalau masih mau.",
+      a: "Tergantung tempat kamu membayar. Di web (QRIS atau transfer bank), satu pembayaran aktif selama periode yang kamu beli: tidak ada kartu yang disimpan dan tidak ada tagihan susulan, perpanjang manual dari Profil kalau masih mau. Di aplikasi iPhone, Pro berupa langganan otomatis lewat App Store, dan di aplikasi Android lewat Google Play. Langganan itu dikelola dan dibatalkan di pengaturan Apple atau Google.",
     },
     {
       q: "Hargaku ikut naik kalau daftar harga naik?",
-      a: `Tidak. Harga terkunci di harga terendah yang pernah kamu bayar. Mulai ${fmtRupiah(config.founderPriceIdr)}/bulan sekarang, dan perpanjangan tetap bayar harga itu walaupun harga penuh sudah naik.`,
+      a: `Tidak. Di pembayaran web, harga terkunci di harga terendah yang pernah kamu bayar. Mulai ${fmtRupiah(config.founderPriceIdr)}/bulan sekarang, dan perpanjangan tetap bayar harga itu walaupun harga penuh sudah naik.`,
     },
     {
       q: "Kalau beli lagi sebelum masa aktif habis?",
@@ -352,7 +352,7 @@ function HargaPage() {
                 name="Pro Bulanan"
                 price={fmtRupiah(config.data.founderPriceIdr)}
                 per="per bulan"
-                badge={promo ? "Founder (terbatas)" : undefined}
+                badge={promo ? "Harga perkenalan" : undefined}
                 features={founderFeatures(config.data)}
                 cta={
                   config.data.billing ? (
@@ -492,8 +492,8 @@ function HargaPage() {
             <div className="max-w-xl">
               <h2 className="text-2xl font-extrabold tracking-tight md:text-3xl">Cara bayar</h2>
               <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
-                Sekali bayar per periode di halaman pembayaran. Tidak ada langganan otomatis, jadi
-                tidak ada tagihan yang muncul sendiri.
+                Di web, kamu bayar sekali per periode di halaman pembayaran. Tidak ada langganan
+                otomatis di web, jadi tidak ada tagihan yang muncul sendiri.
               </p>
             </div>
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -510,8 +510,8 @@ function HargaPage() {
                 },
                 {
                   icon: CalendarX,
-                  title: "Tanpa perpanjang otomatis",
-                  body: "Aktif sampai periode habis; lanjutkan manual dari Profil.",
+                  title: "Web: tanpa perpanjang otomatis",
+                  body: "Aktif sampai periode habis; lanjutkan manual dari Profil. Langganan otomatis hanya ada di aplikasi (App Store, Google Play).",
                 },
               ].map((item) => (
                 <div key={item.title} className="rounded-3xl bg-card p-6">
@@ -531,7 +531,7 @@ function HargaPage() {
               </li>
               <li className="flex gap-2.5">
                 <span aria-hidden className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-muted-foreground/60" />
-                Harga Pro terkunci di harga pertama kali kamu bayar, termasuk saat perpanjang.
+                Harga Pro terkunci di harga pertama kali kamu bayar lewat web, termasuk saat perpanjang.
               </li>
             </ul>
           </section>
@@ -544,9 +544,9 @@ function HargaPage() {
           <div>
             <h2 className="text-xl font-extrabold tracking-tight md:text-2xl">Pakai di HP-mu</h2>
             <p className="mt-2 text-[0.9375rem] leading-relaxed text-muted-foreground">
-              Android: Google Play (tes tertutup, gabung sebagai tester) atau APK. iPhone: web app
-              yang dipasang ke Layar Utama, tanpa App Store.
-              Akun dan datanya sama di semua perangkat.
+              Android: Google Play (tes tertutup, gabung sebagai tester) atau APK. iPhone: aplikasi
+              beta publik lewat TestFlight (versi App Store 1.0 sedang menunggu review Apple), atau
+              web app yang dipasang ke Layar Utama. Akun dan datanya sama di semua perangkat.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">

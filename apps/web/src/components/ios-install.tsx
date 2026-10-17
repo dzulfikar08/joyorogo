@@ -173,7 +173,7 @@ function IosInstallSheet() {
       open={open}
       onOpenChange={(next) => !next && closeIosInstall()}
       title="Pasang di iPhone"
-      description="JoyoRogo jalan sebagai web app. Pasang ke Layar Utama supaya terbuka layar penuh seperti aplikasi, dengan akun dan data yang sama."
+      description="Coba aplikasi iPhone lewat TestFlight, atau pasang web app ke Layar Utama supaya terbuka layar penuh seperti aplikasi. Akun dan datanya sama."
     >
       {(wrongBrowser || notIphone) && (
         <div className="mb-4 rounded-3xl bg-makan-soft p-4 text-makan-ink">
@@ -198,7 +198,7 @@ function IosInstallSheet() {
         <div className="mb-5 rounded-3xl bg-primary/10 p-4">
           <p className="flex items-center gap-2 text-sm font-bold">
             <FlaskConical className="size-4 shrink-0 text-primary" aria-hidden />
-            Coba aplikasi iPhone (beta, TestFlight)
+            Coba aplikasi iPhone (beta publik, TestFlight)
           </p>
           <ol className="mt-3 space-y-2 text-sm leading-relaxed">
             <li className="flex gap-2.5">
@@ -229,10 +229,10 @@ function IosInstallSheet() {
             }
           >
             <ExternalLink aria-hidden />
-            Buka undangan TestFlight
+            Buka TestFlight
           </Button>
           <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground">
-            Masih beta, jadi mungkin ada yang belum rapi. Akunnya sama dengan versi web.
+            Masih beta, jadi mungkin ada yang belum rapi. Versi App Store 1.0 sedang menunggu review Apple. Akunnya sama dengan versi web.
           </p>
         </div>
       )}

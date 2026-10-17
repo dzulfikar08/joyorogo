@@ -165,7 +165,7 @@ const NUMBERS: Array<{
     center: "300",
     unit: "kcal",
     title: "Harus bakar",
-    body: "Dari langkah dan olahraga. Di Android terbaca otomatis dari Health Connect, dan Strava segera menyusul. Mau catat manual juga bisa.",
+    body: "Dari langkah dan olahraga. Di Android terbaca otomatis dari Health Connect, di iPhone dari Apple Health. Strava juga bisa disambung, tapi slotnya sedang penuh dan ada daftar tunggu. Mau catat manual juga bisa.",
   },
   {
     metric: "tidur",
@@ -174,7 +174,7 @@ const NUMBERS: Array<{
     center: "8",
     unit: "jam",
     title: "Butuh tidur",
-    body: "Target jam tidur setiap malam. Di Android, durasi tidurmu ikut terbaca dari Health Connect.",
+    body: "Target jam tidur setiap malam. Durasi tidurmu ikut terbaca dari Health Connect di Android atau Apple Health di iPhone.",
   },
 ];
 
@@ -505,9 +505,9 @@ function Landing() {
                   <Footprints className="size-5" aria-hidden />
                 </span>
                 <span>
-                  <span className="block text-[0.9375rem] font-bold">Health Connect</span>
+                  <span className="block text-[0.9375rem] font-bold">Health Connect dan Apple Health</span>
                   <span className="block text-sm text-muted-foreground">
-                    Langkah, olahraga, tidur. Android.
+                    Langkah, olahraga, tidur. Android lewat Health Connect, iPhone lewat Apple Health.
                   </span>
                 </span>
               </li>
@@ -519,11 +519,24 @@ function Landing() {
                   <span className="flex items-center gap-2 text-[0.9375rem] font-bold">
                     Strava
                     <span className="rounded-full bg-bakar-soft px-2 py-0.5 text-xs font-bold text-bakar-ink">
-                      Segera
+                      Slot penuh
                     </span>
                   </span>
                   <span className="block text-sm text-muted-foreground">
-                    Lari, sepeda, dan aktivitas lain masuk otomatis.
+                    Gratis, aktivitas masuk sebagai kalori terbakar. Strava membatasi aplikasi kami
+                    di 10 atlet dan semuanya sudah terpakai; pengajuan untuk menaikkan batas sudah
+                    dikirim.{" "}
+                    <a
+                      href="https://fit.joyorogo.com/strava"
+                      target="_blank"
+                      rel="noopener"
+                      className="font-semibold text-foreground underline underline-offset-4"
+                      data-revklik-goal="strava_waitlist_click"
+                      data-revklik-goal-location="integrations"
+                    >
+                      Masuk daftar tunggu Strava
+                    </a>{" "}
+                    (berlaku untuk JoyoRogo dan JoyoFit).
                   </span>
                 </span>
               </li>
@@ -563,15 +576,26 @@ function Landing() {
             <div className="rounded-2xl bg-muted/60 p-5">
               <p className="text-sm font-bold">Pakai jam Huawei atau Honor?</p>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Hubungkan dengan JoyoFit, aplikasi Android pendamping dari kami tanpa perlu Huawei
-                Health. Langkah, detak jantung, tidur, dan olahraga masuk ke Health Connect, dan
-                kalori makan dari JoyoRogo tampil di jammu. Sudah dicoba di Huawei Watch Fit 4 Pro;
+                Hubungkan dengan JoyoFit, aplikasi pendamping dari kami untuk Android dan iPhone,
+                tanpa perlu Huawei Health. Di Android, langkah, detak jantung, tidur, dan olahraga
+                masuk ke Health Connect; di iPhone, olahraga dan rute GPS masuk ke Apple Health.
+                Kalori makan dari JoyoRogo tampil di jammu. Sudah dicoba di Huawei Watch Fit 4 Pro;
                 model lain masih tahap uji.
               </p>
               {IOS_TESTFLIGHT_LIVE && (
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  JoyoFit sekarang juga punya versi iPhone beta lewat TestFlight, baru diuji dengan
-                  Huawei Watch Fit 4 Pro.
+                  Versi iPhone sudah bisa dicoba lewat{" "}
+                  <a
+                    href="https://testflight.apple.com/join/GXzrQ8GJ"
+                    target="_blank"
+                    rel="noopener"
+                    className="font-semibold text-foreground underline underline-offset-4"
+                    data-revklik-goal="joyofit_testflight_click"
+                    data-revklik-goal-location="smartwatch"
+                  >
+                    TestFlight (beta publik)
+                  </a>
+                  , dan versi App Store 1.0 sedang menunggu review Apple.
                 </p>
               )}
               <Button

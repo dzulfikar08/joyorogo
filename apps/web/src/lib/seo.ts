@@ -98,7 +98,7 @@ export const FAQ = [
   },
   {
     q: IPHONE_FAQ_Q,
-    a: "Ada, tapi bentuknya web app, bukan aplikasi dari App Store. Buka joyorogo.com di Safari, tap Bagikan, lalu Tambah ke Layar Utama. JoyoRogo muncul sebagai ikon dan terbuka layar penuh, dengan akun dan data yang sama seperti di Android dan laptop. Bedanya, langkah dan tidur dari Health Connect hanya terbaca di aplikasi Android, dan notifikasi pengingat di iPhone butuh iOS 16.4 ke atas.",
+    a: "Ada. Aplikasi iPhone-nya sudah bisa dicoba lewat TestFlight (beta publik), dan versi App Store 1.0 sedang menunggu review Apple. Aplikasinya membaca Apple Health. Kalau mau yang langsung, buka joyorogo.com di Safari, tap Bagikan, lalu Tambah ke Layar Utama: JoyoRogo muncul sebagai ikon dan terbuka layar penuh, dengan akun dan data yang sama seperti di Android dan laptop. Notifikasi pengingat di versi web iPhone butuh iOS 16.4 ke atas.",
   },
   {
     q: "Apakah JoyoRogo open source?",

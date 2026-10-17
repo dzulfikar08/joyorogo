@@ -4,7 +4,7 @@ import { ProgressBar } from "@/components/progress-bar";
 import { fmtRupiah, useAppConfig } from "@/lib/app-config";
 
 /**
- * Founder intro-price banner with slot progress. Hidden while the config
+ * Intro-price banner with slot progress. Hidden while the config
  * loads, when the promo is off, and once every slot is taken.
  */
 export function FounderPromo({ className }: { className?: string }) {
@@ -20,7 +20,7 @@ export function FounderPromo({ className }: { className?: string }) {
     >
       <p className="text-sm leading-relaxed">
         <span className="font-bold">
-          Harga Founder (terbatas): {fmtRupiah(config.data.founderPriceIdr)}/bulan
+          Harga perkenalan Pro: {fmtRupiah(config.data.founderPriceIdr)}/bulan
         </span>{" "}
         <span className="text-muted-foreground">
           cuma untuk {promo.slots} pembeli pertama, sisa{" "}
@@ -31,11 +31,11 @@ export function FounderPromo({ className }: { className?: string }) {
       <ProgressBar
         value={promo.taken}
         max={promo.slots}
-        ariaLabel={`${left} dari ${promo.slots} slot founder tersisa`}
+        ariaLabel={`${left} dari ${promo.slots} slot harga perkenalan tersisa`}
         className="mt-3 h-1.5"
       />
       <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-        Harga terkunci: Founder awal tetap bayar harga ini saat perpanjang.
+        Harga terkunci di pembayaran web: pembeli awal tetap bayar harga ini saat perpanjang.
       </p>
     </aside>
   );
