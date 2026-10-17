@@ -20,8 +20,9 @@ import {
   PageHeader,
   SectionTitle,
 } from "@/components/kit/surface";
+import { InfoAccordion } from "@/components/onboarding/info-accordion";
 import { StravaCard } from "@/components/strava-card";
-import { fmtDateLong, fmtInt, parseNum } from "@/lib/format";
+import { fmtDateLong, fmtDateMedium, fmtInt, fmtKcalLabel, parseNum } from "@/lib/format";
 import {
   OptimisticCache,
   useDelayedDelete,
@@ -50,9 +51,14 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import {
+  EXERCISE_MAX_DURATION,
+  EXERCISE_MIN_DURATION,
+} from "@joyorogo/api/lib/exercise-edit";
 import { estimateKcal } from "@joyorogo/api/lib/met";
 
 const listOptions = (date: string) => orpc.exercise.listByDate.queryOptions({ input: { date } });
@@ -76,8 +82,8 @@ export const Route = createFileRoute("/_auth/olahraga")({
   component: OlahragaPage,
 });
 
+// Brand names of import sources; "manual" is not shown as a pill.
 const SOURCE_LABELS: Record<string, string> = {
-  manual: "Manual",
   strava: "Strava",
   health_connect: "Health Connect",
   apple_health: "Apple Health",
@@ -115,6 +121,8 @@ function OlahragaScreen({
   list: { items: ExerciseItem[]; totalKcal: number };
   date: string;
 }) {
+  const { t } = useTranslation(["olahraga", "common"]);
+  const typeLabel = (key: ExerciseType["key"]) => t(`type.${key}`);
   const queryClient = useQueryClient();
   const navigate = Route.useNavigate();
   const isToday = date === jakartaToday();
@@ -204,7 +212,7 @@ function OlahragaScreen({
       if (tempId) swapTemp(tempId, row);
       setSheetOpen(false);
       return {
-        message: `${row.name} dicatat (+${fmtInt(row.kcal)} kcal)`,
+        message: t("toast.logged", { name: row.name, kcal: fmtKcalLabel(row.kcal) }),
         undo: () => {
           const cache = new OptimisticCache(queryClient);
           stripExercise(cache, row);
@@ -222,13 +230,13 @@ function OlahragaScreen({
       cache.summary({ date: row.date, burnKcal: -row.kcal });
     },
     label: (row) => row.name,
-    fallback: "Latihan",
+    fallback: t("toast.fallbackName"),
     invalidate: () => [orpc.exercise.key(), orpc.day.key()],
   });
 
   const setType = (type: ExerciseType) => {
     setTypeKey(type.key);
-    setName(type.label);
+    setName(typeLabel(type.key));
     const duration = parseNum(durationMin);
     if (duration !== null && duration > 0 && weightKg !== null) {
       setKcal(String(estimateKcal(type.met, weightKg, Math.round(duration))));
@@ -246,7 +254,7 @@ function OlahragaScreen({
 
   const openWithType = (type: ExerciseType) => {
     setTypeKey(type.key);
-    setName(type.label);
+    setName(typeLabel(type.key));
     setDurationMin("30");
     setKcal(weightKg !== null ? String(estimateKcal(type.met, weightKg, 30)) : "");
     setError(null);
@@ -267,15 +275,17 @@ function OlahragaScreen({
     const kcalNum = parseNum(kcal);
     const duration = parseNum(durationMin);
     if (nameClean.length === 0) {
-      setError("Isi nama aktivitas dulu.");
+      setError(t("form.error.nameRequired"));
       return;
     }
     if (kcalNum === null || kcalNum < 0) {
-      setError("Isi kalori terbakar (angka).");
+      setError(t("form.error.kcalRequired"));
       return;
     }
     if (duration !== null && (duration < 1 || duration > 1440)) {
-      setError("Durasi harus 1-1440 menit.");
+      setError(
+        t("form.error.durationRange", { min: EXERCISE_MIN_DURATION, max: EXERCISE_MAX_DURATION }),
+      );
       return;
     }
     setError(null);
@@ -313,194 +323,146 @@ function OlahragaScreen({
   return (
     <Page className="max-w-xl lg:max-w-5xl">
       <PageHeader
-        title="Olahraga"
+        title={t("screen.title")}
         subtitle={fmtDateLong(date)}
+        className="pb-3"
         action={
           <Button variant="secondary" onClick={openManual}>
-            Tulis manual
+            {t("screen.manual")}
           </Button>
         }
       />
 
-      {/* Day switcher */}
       <div className="mb-3 flex justify-center lg:justify-start">
         <DaySwitcher date={date} onChange={showDate} />
       </div>
 
       <div className="grid items-start gap-3 lg:grid-cols-2 lg:gap-5">
-        <Card className="p-6 lg:col-start-1 lg:row-start-1">
-          <div className="flex flex-col items-center text-center">
-            <Ring
-              metric="bakar"
-              value={totalKcal}
-              max={burnTarget ?? Math.max(totalKcal, 300)}
-              size={200}
-              stroke={16}
-              label={`Terbakar ${fmtInt(totalKcal)}${burnTarget !== null ? ` dari target ${fmtInt(burnTarget)} kcal` : ""}`}
-            >
-              <div>
-                <p className="text-sm font-semibold text-muted-foreground">Terbakar</p>
-                <p
-                  className={cn(
-                    "text-[3.25rem] leading-none font-extrabold tracking-tighter tabular-nums",
-                    over && "text-bakar-ink",
-                  )}
-                >
-                  {fmtInt(totalKcal)}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-muted-foreground">kcal</p>
-              </div>
-            </Ring>
-            <p className="mt-4 text-sm text-muted-foreground">
+        <Card className="flex items-center gap-4 p-4 lg:col-start-1 lg:row-start-1">
+          <Ring
+            metric="bakar"
+            value={totalKcal}
+            max={burnTarget ?? Math.max(totalKcal, 300)}
+            size={108}
+            stroke={11}
+            label={
+              burnTarget !== null
+                ? t("summary.ringTarget", {
+                    burned: fmtKcalLabel(totalKcal),
+                    target: fmtKcalLabel(burnTarget),
+                  })
+                : t("summary.ring", { burned: fmtKcalLabel(totalKcal) })
+            }
+          >
+            <div className="text-center">
+              <p
+                className={cn(
+                  "text-[1.75rem] leading-none font-extrabold tracking-tighter tabular-nums",
+                  over && "text-bakar-ink",
+                )}
+              >
+                {fmtInt(totalKcal)}
+              </p>
+              <p className="mt-0.5 text-xs font-semibold text-muted-foreground">kcal</p>
+            </div>
+          </Ring>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-muted-foreground">{t("summary.burned")}</p>
+            <p className={cn("mt-0.5 text-sm font-bold", over && "text-bakar-ink")}>
               {burnTarget === null
-                ? "Selesaikan onboarding untuk melihat target harian."
+                ? t("summary.noTarget")
                 : over
-                  ? `Melebihi target ${fmtInt(burnTarget)} kcal, mantap.`
-                  : `${items.length} aktivitas · target ${fmtInt(burnTarget)} kcal`}
+                  ? t("summary.over", { target: fmtKcalLabel(burnTarget) })
+                  : t("summary.progress", {
+                      count: items.length,
+                      target: fmtKcalLabel(burnTarget),
+                    })}
             </p>
           </div>
         </Card>
 
-        <section aria-label="Aktivitas hari ini" className="lg:col-start-2 lg:row-start-1">
+        <section aria-label={t("list.aria")} className="lg:col-start-2 lg:row-start-1">
           <SectionTitle
+            className="mb-2"
             action={
               <span className="text-sm font-bold text-muted-foreground tabular-nums">
-                {fmtInt(totalKcal)} kcal
+                {fmtKcalLabel(totalKcal)}
               </span>
             }
           >
-            {isToday ? "Hari ini" : relativeDayLabel(date, jakartaToday())}
+            {relativeDayLabel(date, wibToday)}
           </SectionTitle>
           {items.length === 0 ? (
-            <Card className="text-center">
-              <Mascot pose="gas" size="md" className="mb-3" />
-              <p className="text-sm font-bold">
-                {isToday ? "Belum ada aktivitas tercatat" : "Tidak ada aktivitas tercatat"}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Pilih jenis olahraga di bawah, atau hubungkan Strava biar masuk otomatis.
-              </p>
+            <Card className="flex items-center gap-3 p-3">
+              <Mascot pose="gas" size="sm" />
+              <div className="min-w-0">
+                <p className="text-sm font-bold">
+                  {isToday
+                    ? t("list.empty.today")
+                    : t("list.empty.day", { date: fmtDateMedium(date) })}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{t("list.empty.hintWeb")}</p>
+              </div>
             </Card>
           ) : (
             <ListGroup>
-              {items.map((item) => {
-                const Icon = TYPE_ICONS[item.type ?? ""] ?? Flame;
-                return (
-                  <ListRow
-                    key={item.id}
-                    onClick={() => setEditItem(item)}
-                    icon={
-                      <span className="flex size-9 items-center justify-center rounded-full bg-bakar-soft text-bakar">
-                        <Icon className="size-4" aria-hidden />
-                      </span>
-                    }
-                    title={
-                      <>
-                        {item.name}
-                        {item.source !== "manual" && (
-                          <span className="ml-2 rounded-full bg-muted px-2 py-0.5 align-middle text-[10px] font-bold text-muted-foreground">
-                            {SOURCE_LABELS[item.source] ?? item.source}
-                          </span>
-                        )}
-                      </>
-                    }
-                    subtitle={`${item.durationMin != null ? `${fmtInt(item.durationMin)} menit · ` : ""}${fmtInt(item.kcal)} kcal`}
-                    trailing={
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={`Bagikan ${item.name} ke feed`}
-                          className="text-muted-foreground hover:text-foreground"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setShareItem(item);
-                          }}
-                        >
-                          <Share2 aria-hidden />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={`Hapus ${item.name}`}
-                          className="text-muted-foreground hover:text-destructive"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            removeExercise(item);
-                          }}
-                        >
-                          <Trash2 aria-hidden />
-                        </Button>
-                      </>
-                    }
-                  />
-                );
-              })}
+              {items.map((item) => (
+                <ActivityRow
+                  key={item.id}
+                  item={item}
+                  onEdit={() => setEditItem(item)}
+                  trailing={
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("row.share", { name: item.name })}
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setShareItem(item);
+                        }}
+                      >
+                        <Share2 aria-hidden />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("row.remove", { name: item.name })}
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          removeExercise(item);
+                        }}
+                      >
+                        <Trash2 aria-hidden />
+                      </Button>
+                    </>
+                  }
+                />
+              ))}
             </ListGroup>
           )}
         </section>
 
-        {/* Recent history: Health Connect imports land on the workout's own
-            WIB day, so show the past week or they look lost. */}
-        {historyByDate.size > 0 && (
-          <section aria-label="Riwayat 7 hari terakhir" className="lg:col-start-2 lg:row-start-2">
-            <SectionTitle>7 hari terakhir</SectionTitle>
-            <ListGroup>
-              {[...historyByDate.entries()].map(([date, dayItems]) => (
-                <div key={date}>
-                  <p className="px-1 pt-2 pb-1 text-xs font-bold text-muted-foreground">
-                    {relativeDayLabel(date, wibToday)}
-                  </p>
-                  {dayItems.map((item) => {
-                    const Icon = TYPE_ICONS[item.type ?? ""] ?? Flame;
-                    return (
-                      <ListRow
-                        key={item.id}
-                        onClick={() => setEditItem(item)}
-                        icon={
-                          <span className="flex size-9 items-center justify-center rounded-full bg-bakar-soft text-bakar">
-                            <Icon className="size-4" aria-hidden />
-                          </span>
-                        }
-                        title={
-                          <>
-                            {item.name}
-                            {item.source !== "manual" && (
-                              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 align-middle text-[10px] font-bold text-muted-foreground">
-                                {SOURCE_LABELS[item.source] ?? item.source}
-                              </span>
-                            )}
-                          </>
-                        }
-                        subtitle={`${item.durationMin != null ? `${fmtInt(item.durationMin)} menit · ` : ""}${fmtInt(item.kcal)} kcal`}
-                        trailing={<span className="text-sm font-bold tabular-nums">{fmtInt(item.kcal)}</span>}
-                      />
-                    );
-                  })}
-                </div>
-              ))}
-            </ListGroup>
-          </section>
-        )}
-
         <section
-          aria-label="Pilih jenis aktivitas"
+          aria-label={t("picker.aria")}
           className={cn("lg:col-start-2", historyByDate.size > 0 ? "lg:row-start-3" : "lg:row-start-2")}
         >
-          <SectionTitle>Pilih aktivitas</SectionTitle>
+          <SectionTitle className="mb-2">{t("picker.title")}</SectionTitle>
           {types.isPending ? (
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-3 gap-2">
               {[0, 1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-24 rounded-2xl" />
+                <Skeleton key={i} className="h-20 rounded-2xl" />
               ))}
             </div>
           ) : types.error ? (
             <ErrorNote
-              message={`Gagal memuat jenis aktivitas: ${types.error.message}`}
+              message={t("picker.loadError", { error: types.error.message })}
               onRetry={() => types.refetch()}
             />
           ) : (
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-3 gap-2">
               {types.data.map((type) => {
                 const Icon = TYPE_ICONS[type.key] ?? Flame;
                 const per30 = weightKg !== null ? estimateKcal(type.met, weightKg, 30) : null;
@@ -509,47 +471,78 @@ function OlahragaScreen({
                     key={type.key}
                     type="button"
                     onClick={() => openWithType(type)}
-                    className="pressable min-h-24 rounded-2xl bg-bakar-soft p-3 text-left focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+                    className="pressable min-h-20 rounded-2xl bg-bakar-soft p-2.5 text-left focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                   >
-                    <span className="flex size-8 items-center justify-center rounded-full bg-card text-bakar">
+                    <span className="flex size-7 items-center justify-center rounded-full bg-card text-bakar">
                       <Icon className="size-4" aria-hidden />
                     </span>
-                    <span className="mt-2 block text-[0.8125rem] leading-tight font-bold">
-                      {type.label}
+                    <span className="mt-1.5 block text-[0.8125rem] leading-tight font-bold">
+                      {typeLabel(type.key)}
                     </span>
                     <span className="mt-0.5 block truncate text-[11px] leading-tight font-semibold text-bakar-ink tabular-nums">
-                      {per30 !== null ? `±${fmtInt(per30)} kcal` : "kalori manual"}
+                      {per30 !== null
+                        ? t("picker.estimate", { kcal: fmtKcalLabel(per30) })
+                        : t("picker.manualKcal")}
                     </span>
                   </button>
                 );
               })}
             </div>
           )}
-          <p className="mt-2 px-1 text-xs text-muted-foreground">
-            {weightKg !== null
-              ? "Estimasi kalori per 30 menit dengan berat badan terakhirmu."
-              : "Catat berat badanmu di halaman Berat agar estimasi kalori tampil."}
-          </p>
+          {weightKg === null && (
+            <p className="mt-2 px-1 text-xs text-muted-foreground">{t("picker.noWeight")}</p>
+          )}
         </section>
 
-        <div className="lg:col-start-1 lg:row-start-2">
-          <StravaCard />
+        {/* Health Connect imports land on the workout's own WIB day, so show the
+            past week or they look lost next to an empty "today". */}
+        {historyByDate.size > 0 && (
+          <section aria-label={t("history.aria")} className="lg:col-start-2 lg:row-start-2">
+            <SectionTitle className="mb-2">{t("history.title")}</SectionTitle>
+            <ListGroup>
+              {[...historyByDate.entries()].map(([day, dayItems]) => (
+                <div key={day}>
+                  <p className="px-1 pt-2 pb-1 text-xs font-bold text-muted-foreground">
+                    {relativeDayLabel(day, wibToday)}
+                  </p>
+                  {dayItems.map((item) => (
+                    <ActivityRow
+                      key={item.id}
+                      item={item}
+                      onEdit={() => setEditItem(item)}
+                      trailing={
+                        <span className="text-sm font-bold tabular-nums">{fmtInt(item.kcal)}</span>
+                      }
+                    />
+                  ))}
+                </div>
+              ))}
+            </ListGroup>
+          </section>
+        )}
+
+        <div className="space-y-2 lg:col-start-1 lg:row-start-2">
+          <InfoAccordion title="Strava">
+            <StravaCard />
+          </InfoAccordion>
+          <InfoAccordion title={t("about.title")}>
+            {weightKg !== null && <p>{t("about.estimate")}</p>}
+            <p>{t("about.strength")}</p>
+          </InfoAccordion>
         </div>
       </div>
 
-      <section aria-label="Latihan beban" className="mt-3 lg:mt-5">
+      <section aria-label={t("strength.title")} className="mt-3 lg:mt-5">
         <Link
           to="/latihan"
-          className="pressable flex items-center gap-3 rounded-3xl bg-card p-5 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+          className="pressable flex items-center gap-3 rounded-3xl bg-card p-4 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
         >
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-bakar-soft text-bakar">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bakar-soft text-bakar">
             <Dumbbell className="size-5" aria-hidden />
           </span>
           <span className="min-w-0">
-            <span className="block text-sm font-extrabold">Latihan beban</span>
-            <span className="block text-sm text-muted-foreground">
-              Catat gerakan, set, reps, dan beban. Jaga otot saat defisit.
-            </span>
+            <span className="block text-sm font-extrabold">{t("strength.title")}</span>
+            <span className="block text-xs text-muted-foreground">{t("strength.subtitle")}</span>
           </span>
           <ChevronRight className="ml-auto size-5 shrink-0 text-muted-foreground" aria-hidden />
         </Link>
@@ -561,8 +554,8 @@ function OlahragaScreen({
           setSheetOpen(open);
           if (!open) setError(null);
         }}
-        title={activeType ? `Catat ${activeType.label}` : "Catat aktivitas"}
-        description="Kalori terisi otomatis dari durasi dan berat terakhirmu."
+        title={activeType ? t("form.titleType", { type: typeLabel(activeType.key) }) : t("form.title")}
+        description={t("form.description")}
       >
         <form
           onSubmit={(event) => {
@@ -573,16 +566,16 @@ function OlahragaScreen({
         >
           <div>
             <p className="mb-1.5 px-1 text-[0.8125rem] font-semibold text-muted-foreground">
-              Jenis aktivitas
+              {t("form.type")}
             </p>
             {types.isPending ? (
-              <p className="px-1 text-sm text-muted-foreground">Memuat jenis aktivitas...</p>
+              <p className="px-1 text-sm text-muted-foreground">{t("form.typesLoading")}</p>
             ) : types.error ? (
               <p className="px-1 text-sm text-destructive">
-                Gagal memuat jenis: {types.error.message}
+                {t("form.typesError", { error: types.error.message })}
               </p>
             ) : (
-              <div role="group" aria-label="Jenis aktivitas" className="flex flex-wrap gap-2">
+              <div role="group" aria-label={t("form.type")} className="flex flex-wrap gap-2">
                 {types.data.map((type) => (
                   <Chip
                     key={type.key}
@@ -592,7 +585,7 @@ function OlahragaScreen({
                       typeKey === type.key && "border-transparent bg-bakar-soft text-bakar-ink",
                     )}
                   >
-                    {type.label}
+                    {typeLabel(type.key)}
                   </Chip>
                 ))}
               </div>
@@ -600,18 +593,18 @@ function OlahragaScreen({
           </div>
 
           <div>
-            <FieldLabel htmlFor="exercise-name">Nama aktivitas</FieldLabel>
+            <FieldLabel htmlFor="exercise-name">{t("form.name")}</FieldLabel>
             <Input
               id="exercise-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Jalan sore"
+              placeholder={t("form.namePlaceholder")}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <FieldLabel htmlFor="exercise-duration">Durasi (menit)</FieldLabel>
+              <FieldLabel htmlFor="exercise-duration">{t("form.duration")}</FieldLabel>
               <Input
                 id="exercise-duration"
                 type="number"
@@ -624,7 +617,7 @@ function OlahragaScreen({
               />
             </div>
             <div>
-              <FieldLabel htmlFor="exercise-kcal">Kalori (kcal)</FieldLabel>
+              <FieldLabel htmlFor="exercise-kcal">{t("form.kcal")}</FieldLabel>
               <Input
                 id="exercise-kcal"
                 type="number"
@@ -640,13 +633,11 @@ function OlahragaScreen({
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={add.isPending}>
-            {add.isPending ? "Menyimpan..." : "Simpan"}
+            {add.isPending ? t("form.saving") : t("common:actions.save")}
           </Button>
-          <p className="text-center text-xs text-muted-foreground">
-            {weightKg !== null
-              ? "Estimasi memakai berat badan terakhirmu."
-              : "Catat berat badanmu di halaman Berat agar estimasi kalori akurat."}
-          </p>
+          {weightKg === null && (
+            <p className="text-center text-xs text-muted-foreground">{t("picker.noWeight")}</p>
+          )}
         </form>
       </Sheet>
 
@@ -660,8 +651,8 @@ function OlahragaScreen({
           onOpenChange={(open) => {
             if (!open) setShareItem(null);
           }}
-          title="Bagikan aktivitas ini"
-          preview={`${shareItem.name} · ${fmtInt(shareItem.kcal)} kcal`}
+          title={t("row.shareTitle")}
+          preview={`${shareItem.name} · ${fmtKcalLabel(shareItem.kcal)}`}
           share={(input) =>
             client.social.createPost({
               kind: "latihan",
@@ -676,21 +667,62 @@ function OlahragaScreen({
   );
 }
 
-function OlahragaSkeleton() {
+/** One logged activity: icon, name (+ source pill for imports), "30 min · 120 kcal". */
+function ActivityRow({
+  item,
+  onEdit,
+  trailing,
+}: {
+  item: ExerciseItem;
+  onEdit: () => void;
+  trailing: ReactNode;
+}) {
+  const { t } = useTranslation("olahraga");
+  const Icon = TYPE_ICONS[item.type ?? ""] ?? Flame;
   return (
-    <Page className="max-w-xl lg:max-w-5xl" aria-busy="true" aria-label="Memuat aktivitas hari ini">
-      <div className="flex items-center justify-between gap-3 px-1 pt-2 pb-5">
+    <ListRow
+      onClick={onEdit}
+      icon={
+        <span className="flex size-9 items-center justify-center rounded-full bg-bakar-soft text-bakar">
+          <Icon className="size-4" aria-hidden />
+        </span>
+      }
+      title={
+        <>
+          {item.name}
+          {item.source !== "manual" && (
+            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 align-middle text-[10px] font-bold text-muted-foreground">
+              {SOURCE_LABELS[item.source] ?? item.source}
+            </span>
+          )}
+        </>
+      }
+      subtitle={
+        item.durationMin != null
+          ? t("row.detail", { minutes: fmtInt(item.durationMin), kcal: fmtKcalLabel(item.kcal) })
+          : fmtKcalLabel(item.kcal)
+      }
+      trailing={trailing}
+    />
+  );
+}
+
+function OlahragaSkeleton() {
+  const { t } = useTranslation("olahraga");
+  return (
+    <Page className="max-w-xl lg:max-w-5xl" aria-busy="true" aria-label={t("screen.loading")}>
+      <div className="flex items-center justify-between gap-3 px-1 pt-2 pb-3">
         <Skeleton className="h-9 w-36 rounded-full" />
         <Skeleton className="h-12 w-32 rounded-full" />
       </div>
-      <div className="flex flex-col items-center rounded-3xl bg-card p-6">
-        <Skeleton className="size-[200px] rounded-full" />
-        <Skeleton className="mt-4 h-5 w-44 rounded-full" />
+      <div className="flex items-center gap-4 rounded-3xl bg-card p-4">
+        <Skeleton className="size-[108px] rounded-full" />
+        <Skeleton className="h-5 w-32 rounded-full" />
       </div>
-      <Skeleton className="mt-7 h-44 rounded-3xl" />
-      <div className="mt-7 grid grid-cols-3 gap-2.5">
+      <Skeleton className="mt-3 h-36 rounded-3xl" />
+      <div className="mt-3 grid grid-cols-3 gap-2">
         {[0, 1, 2, 3, 4, 5].map((i) => (
-          <Skeleton key={i} className="h-24 rounded-2xl" />
+          <Skeleton key={i} className="h-20 rounded-2xl" />
         ))}
       </div>
     </Page>

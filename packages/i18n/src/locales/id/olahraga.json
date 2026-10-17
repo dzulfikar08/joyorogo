@@ -15,5 +15,498 @@
     "healthConnectUnavailable": "Health Connect tidak tersedia di perangkat ini. Pasang aplikasi Health Connect, lalu coba lagi.",
     "healthConnectPermission": "Izin membaca latihan dari Health Connect belum diberikan.",
     "appleHealthUnavailable": "Apple Health tidak tersedia di perangkat ini. Impor membutuhkan iPhone dengan aplikasi Health."
+  },
+  "screen": {
+    "title": "Olahraga",
+    "manual": "Tulis manual",
+    "loading": "Memuat aktivitas hari ini"
+  },
+  "summary": {
+    "burned": "Terbakar",
+    "ring": "Terbakar {{burned}}",
+    "ringTarget": "Terbakar {{burned}} dari target {{target}}",
+    "noTarget": "Lengkapi profil untuk melihat target harian.",
+    "over": "Melebihi target {{target}}, mantap.",
+    "progress_other": "{{count}} aktivitas · target {{target}}",
+    "steps": "langkah",
+    "km": "km",
+    "activeKcal": "kcal aktif"
+  },
+  "list": {
+    "aria": "Aktivitas",
+    "empty": {
+      "today": "Belum ada aktivitas hari ini",
+      "day": "Belum ada aktivitas pada {{date}}",
+      "hintWeb": "Pilih jenis olahraga di bawah, atau hubungkan Strava biar masuk otomatis.",
+      "hintNative": "Pilih aktivitas di bawah atau impor dari {{health}}."
+    }
+  },
+  "row": {
+    "detail": "{{minutes}} menit · {{kcal}}",
+    "detailSource": "{{detail}} · {{source}}",
+    "share": "Bagikan {{name}} ke feed",
+    "remove": "Hapus {{name}}",
+    "shareTitle": "Bagikan aktivitas ini"
+  },
+  "source": {
+    "manual": "Manual"
+  },
+  "toast": {
+    "logged": "{{name}} dicatat (+{{kcal}})",
+    "fallbackName": "Aktivitas",
+    "saveFailed": "Gagal menyimpan."
+  },
+  "history": {
+    "title": "7 hari terakhir",
+    "aria": "Riwayat 7 hari terakhir"
+  },
+  "picker": {
+    "title": "Tambah aktivitas",
+    "aria": "Pilih jenis aktivitas",
+    "loadError": "Gagal memuat jenis aktivitas: {{error}}",
+    "estimate": "±{{kcal}}",
+    "manualKcal": "kalori manual",
+    "tile": "Tambah {{type}}",
+    "tileEstimate": "Tambah {{type}}, sekitar {{kcal}} untuk 30 menit",
+    "noWeight": "Catat berat badan di halaman Berat untuk melihat estimasi kalori."
+  },
+  "about": {
+    "title": "Cara kerja",
+    "estimate": "Estimasi kalori per 30 menit memakai berat badan terakhirmu.",
+    "sources": "Semua sumber dihitung: manual, Strava, {{health}}.",
+    "strength": "Latihan beban: catat gerakan, set, reps, dan beban. Jaga otot saat defisit."
+  },
+  "strength": {
+    "title": "Latihan beban",
+    "subtitle": "Catat gerakan, set, dan beban"
+  },
+  "form": {
+    "title": "Catat aktivitas",
+    "titleType": "Catat {{type}}",
+    "description": "Kalori terisi otomatis dari durasi dan berat terakhirmu.",
+    "type": "Jenis aktivitas",
+    "typesLoading": "Memuat jenis aktivitas...",
+    "typesError": "Gagal memuat jenis: {{error}}",
+    "name": "Nama aktivitas",
+    "nameOptional": "Nama (opsional)",
+    "namePlaceholder": "Jalan sore",
+    "duration": "Durasi (menit)",
+    "kcal": "Kalori (kcal)",
+    "kcalHint": "Estimasi pakai berat terkinimu, {{kg}} kg.",
+    "defaultName": "Olahraga",
+    "saving": "Menyimpan...",
+    "error": {
+      "nameRequired": "Tulis nama aktivitasnya, contoh: Renang sore.",
+      "kcalRequired": "Isi jumlah kalori yang dibakar, contoh: 200.",
+      "durationRange": "Durasi harus antara {{min}} dan {{max}} menit."
+    }
+  },
+  "edit": {
+    "title": "Ubah aktivitas",
+    "name": "Nama",
+    "durationA11y": "Durasi dalam menit",
+    "kcalA11y": "Kalori dalam kkal",
+    "linked": "Terhubung",
+    "unlinked": "Terlepas",
+    "linkOn": "Durasi dan kalori terhubung, ketuk untuk melepas",
+    "linkOff": "Durasi dan kalori terlepas, ketuk untuk menghubungkan",
+    "invalid": "Kalori belum valid",
+    "summary": "{{kcal}} · {{minutes}} menit",
+    "hint": {
+      "unlinked": "Terlepas: durasi dan kalori diisi sendiri.",
+      "empty": "Isi durasi dan kalori dulu, lalu ubah salah satunya agar yang lain ikut.",
+      "linked": "Ubah durasi, kalori ikut menyesuaikan. Ketik kalori sendiri untuk mengatur ulang lajunya."
+    },
+    "fromSource": "Dari {{source}}. Perubahanmu tetap tersimpan saat sinkron ulang.",
+    "date": "Dicatat pada",
+    "pickDate": "Pilih tanggal, terpilih {{day}}",
+    "moveTo": "Akan dipindah ke {{date}}.",
+    "toast": {
+      "moved": "Dipindah ke {{day}}",
+      "updated": "{{name}} diperbarui"
+    }
+  },
+  "type": {
+    "jalan": "Jalan santai",
+    "jalan_cepat": "Jalan cepat",
+    "lari": "Lari",
+    "sepeda": "Sepeda santai",
+    "sepeda_cepat": "Sepeda cepat",
+    "berenang": "Berenang",
+    "yoga": "Yoga",
+    "angkat_beban": "Angkat beban",
+    "futsal": "Futsal / sepak bola",
+    "badminton": "Badminton"
+  },
+  "latihan": {
+    "title": "Latihan Beban",
+    "count": {
+      "exercises_other": "{{count}} gerakan",
+      "sets_other": "{{count}} set",
+      "minutes_other": "{{count}} menit"
+    },
+    "type": {
+      "weight_reps": "Beban × reps",
+      "bodyweight_reps": "Berat badan × reps",
+      "assisted": "Terbantu",
+      "duration": "Durasi",
+      "distance_duration": "Jarak + durasi"
+    },
+    "muscle": {
+      "dada": "Dada",
+      "punggung_atas": "Punggung atas",
+      "lats": "Lats",
+      "bahu_depan": "Bahu depan",
+      "bahu_samping": "Bahu samping",
+      "bahu_belakang": "Bahu belakang",
+      "biceps": "Biceps",
+      "triceps": "Triceps",
+      "lengan_bawah": "Lengan bawah",
+      "perut": "Perut",
+      "glutes": "Glutes",
+      "quadriceps": "Quadriceps",
+      "hamstring": "Hamstring",
+      "betis": "Betis"
+    },
+    "equipment": {
+      "barbell": "Barbell",
+      "dumbbell": "Dumbbell",
+      "mesin": "Mesin",
+      "kabel": "Kabel",
+      "bodyweight": "Tanpa alat"
+    },
+    "setType": {
+      "normal": "Normal",
+      "warmup": "Pemanasan",
+      "drop": "Drop set",
+      "failure": "Gagal",
+      "badge": {
+        "warmup": "P",
+        "drop": "D",
+        "failure": "G"
+      }
+    },
+    "set": {
+      "weighted": "{{kg}} kg × {{reps}}",
+      "reps_other": "{{count}} reps",
+      "seconds_other": "{{count}} dtk"
+    },
+    "record": {
+      "weighted": "{{reps}}× {{kg}} kg",
+      "bodyweight": "{{reps}}× tanpa beban",
+      "best": "Rekor: {{set}}",
+      "bestE1rm": "Rekor: {{set}} · e1RM {{kg}} kg"
+    },
+    "pr": {
+      "kind": {
+        "weight": "Beban terberat",
+        "one_rm": "e1RM terbaik",
+        "reps": "Reps terbanyak",
+        "set_volume": "Volume set terbaik"
+      },
+      "repsAtWeight": "Reps terbanyak @ {{kg}} kg"
+    },
+    "stat": {
+      "duration": "Durasi",
+      "minutes": "menit",
+      "volumeKg": "Volume (kg)",
+      "setsDone": "Set selesai"
+    },
+    "field": {
+      "sessionName": "Nama sesi",
+      "noteOptional": "Catatan (opsional)"
+    },
+    "action": {
+      "addExercise": "Tambah latihan",
+      "replaceExercise": "Ganti latihan",
+      "addSet": "Tambah set"
+    },
+    "unchecked": {
+      "title": "Ada set belum dicentang"
+    },
+    "list": {
+      "resume": {
+        "title": "Ada latihan yang belum selesai",
+        "continue": "Lanjutkan latihan",
+        "discard": "Buang latihan yang belum selesai",
+        "untitled": "Latihan bebas"
+      },
+      "start": {
+        "empty": "Latihan kosong",
+        "begin": "Mulai",
+        "repeat": "Ulangi: {{name}}"
+      },
+      "routines": {
+        "title": "Rutinitas",
+        "new": "Buat baru",
+        "empty": "Belum ada rutinitas. Simpan latihan favoritmu biar tinggal ulang.",
+        "edit": "Ubah rutinitas {{name}}",
+        "play": "Mulai rutinitas {{name}}"
+      },
+      "history": {
+        "title": "Riwayat sesi",
+        "emptyTitle": "Belum ada sesi",
+        "emptyHint": "Dua-tiga sesi seminggu cukup buat jaga otot.",
+        "shareStory": "Bagikan sesi {{name}} ke Story",
+        "shareFeed": "Bagikan sesi {{name}} ke feed",
+        "edit": "Ubah sesi {{name}}"
+      }
+    },
+    "map": {
+      "title": "Peta otot minggu ini",
+      "loading": "Menghitung volume otot…",
+      "sets_other": "{{sets}} set",
+      "try": "Coba: {{names}}",
+      "how": {
+        "title": "Cara menghitung",
+        "body": "Set efektif minggu ini: gerakan utama dihitung 1, gerakan pendukung 0,5."
+      }
+    },
+    "warning": {
+      "untrained": "{{muscle}} belum dilatih minggu ini",
+      "lowVolume_other": "{{muscle}} cuma {{sets}} set minggu ini, jauh di bawah otot lain"
+    },
+    "trend": {
+      "message": "Kekuatan {{name}} turun {{pct}}% dua minggu terakhir selagi berat turun cepat — tanda defisit terlalu besar. Perlambat saja target turunnya."
+    },
+    "progress": {
+      "title": "Progres kekuatan",
+      "empty": "Belum ada rekor. Selesaikan satu sesi, rekor gerakan muncul di sini.",
+      "history": "Riwayat {{name}}"
+    },
+    "template": {
+      "push": {
+        "name": "Push (Dorong)",
+        "summary": "Dada, bahu, triceps"
+      },
+      "pull": {
+        "name": "Pull (Tarik)",
+        "summary": "Punggung, biceps"
+      },
+      "legs": {
+        "name": "Legs (Kaki)",
+        "summary": "Quadriceps, glutes, hamstring, betis"
+      },
+      "fullbody": {
+        "name": "Full Body",
+        "summary": "Semua otot dalam satu sesi"
+      }
+    },
+    "card": {
+      "title": "Latihan beban",
+      "open": "Buka",
+      "openAria": "Buka Latihan Beban",
+      "allGood": "Semua otot kebagian minggu ini, mantap.",
+      "start": "Jaga otot saat defisit: catat latihan bebanmu."
+    },
+    "active": {
+      "screenTitle": "Latihan",
+      "none": "Tidak ada latihan berjalan.",
+      "empty": "Sesi masih kosong. Tambah latihan pertamamu di bawah.",
+      "namePlaceholder": "Nama sesi, mis. Push Senin",
+      "setsProgress_other": "{{done}}/{{total}} set",
+      "discard": "Buang latihan",
+      "discardShort": "Buang",
+      "unchecked": {
+        "warn": "Masih ada set yang belum dicentang. Tetap selesai?",
+        "review": "Periksa",
+        "confirm": "Tetap selesai",
+        "message_other": "{{count}} set belum ditandai selesai. Set yang tidak dicentang tidak akan disimpan.",
+        "save": "Simpan tanpa set itu"
+      },
+      "discardConfirm": {
+        "title": "Buang latihan?",
+        "message": "Semua set yang sudah dicatat akan hilang."
+      },
+      "menu": {
+        "note": "Catatan",
+        "supersetOn": "Superset dengan berikutnya",
+        "supersetOff": "Lepas superset",
+        "moveUp": "Naikkan urutan",
+        "moveDown": "Turunkan urutan",
+        "remove": "Hapus latihan",
+        "label": "Menu {{name}}"
+      },
+      "chip": {
+        "superset": "Superset",
+        "up": "Naik",
+        "down": "Turun"
+      },
+      "supersetLetter": "Superset {{letter}}",
+      "noteTitle": "Catatan latihan",
+      "notePlaceholder": "Mis. pegangan lebar, turun pelan",
+      "col": {
+        "set": "Set",
+        "previous": "Sebelumnya",
+        "kg": "Kg",
+        "reps": "Reps",
+        "seconds": "Detik",
+        "target": "Target"
+      },
+      "aria": {
+        "setType": "Jenis set {{n}}: {{type}}. Ganti jenis.",
+        "fillPrevious": "Isi dari sesi sebelumnya: {{value}}",
+        "setDuration": "Set {{n}} durasi detik",
+        "setWeight": "Set {{n}} beban kg",
+        "setReps": "Set {{n}} repetisi",
+        "markDone": "Tandai set {{n}} selesai",
+        "undoDone": "Batalkan set {{n}}",
+        "removeSet": "Hapus set {{n}}",
+        "removeLastSet": "Hapus set terakhir",
+        "rest": "Timer istirahat: {{value}}. Ketuk untuk ganti."
+      },
+      "rest": {
+        "title": "Waktu istirahat",
+        "off": "Mati",
+        "chip": "Istirahat {{time}}",
+        "chipOff": "Istirahat: mati",
+        "minus": "Kurangi 15 detik",
+        "plus": "Tambah 15 detik",
+        "skip": "Lewati istirahat",
+        "skipShort": "Lewati"
+      },
+      "toast": {
+        "noNext": "Tidak ada latihan berikutnya untuk dipasangkan.",
+        "checkOne": "Centang minimal satu set dulu sebelum selesai.",
+        "fillReps": "{{name}}: isi repetisi pada set yang dicentang.",
+        "fillDuration": "{{name}}: isi durasi (detik) pada set yang dicentang."
+      },
+      "notify": {
+        "title": "Istirahat selesai",
+        "body": "Waktunya set berikutnya."
+      }
+    },
+    "summary": {
+      "screenTitle": "Ringkasan",
+      "nothing": "Tidak ada latihan untuk disimpan.",
+      "done": "Latihan selesai!",
+      "records": "Rekor baru",
+      "noRecords": "Belum ada rekor baru kali ini. Tetap solid, sesi tercatat.",
+      "namePlaceholder": "Push Senin",
+      "notePlaceholder": "Naikkan beban minggu depan",
+      "save": "Simpan latihan",
+      "saving": "Menyimpan…",
+      "saveShare": "Simpan & bagikan ke feed",
+      "shareFeed": "Bagikan ke feed",
+      "saveRoutine": "Simpan sebagai rutinitas",
+      "discard": "Buang perubahan dan kembali",
+      "shareTitle": "Bagikan sesi ini",
+      "error": {
+        "name": "Beri nama sesinya dulu, mis. Push Senin.",
+        "incomplete": "Set yang dicentang belum lengkap. Isi repetisi atau durasinya.",
+        "saveFailed": "Gagal menyimpan latihan."
+      },
+      "toast": {
+        "saved": "Latihan tersimpan",
+        "savedPr_other": "Tersimpan. {{count}} rekor baru, mantap!"
+      },
+      "confirm": {
+        "unchecked_other": "{{count}} set tidak ikut tersimpan. Lanjutkan?",
+        "review": "Periksa lagi",
+        "droppedTitle": "Sebagian set dilewati",
+        "dropped_other": "{{count}} set dicentang tapi datanya kurang (tanpa repetisi/durasi), jadi tidak ikut disimpan.",
+        "continue": "Lanjutkan"
+      }
+    },
+    "routine": {
+      "fallbackName": "Rutinitas",
+      "name": "Nama rutinitas",
+      "namePlaceholder": "mis. Push Senin",
+      "notePlaceholder": "mis. 3× seminggu",
+      "titleNew": "Rutinitas baru",
+      "titleEdit": "Ubah rutinitas",
+      "notFound": "Rutinitas tidak ditemukan.",
+      "save": "Simpan rutinitas",
+      "delete": "Hapus rutinitas",
+      "removeExercise": "Hapus {{name}}",
+      "error": {
+        "name": "Beri nama rutinitasnya dulu.",
+        "exercise": "Tambahkan minimal satu latihan."
+      },
+      "toast": {
+        "saved": "Rutinitas tersimpan"
+      },
+      "confirmDelete": {
+        "title": "Hapus rutinitas?",
+        "message": "Rutinitas ini hilang dari daftar."
+      }
+    },
+    "picker": {
+      "search": "Cari gerakan…",
+      "searchLabel": "Cari gerakan",
+      "searchExample": "mis. bench",
+      "muscleGroup": "Filter kelompok otot",
+      "equipmentGroup": "Filter alat",
+      "allMuscles": "Semua otot",
+      "allEquipment": "Semua alat",
+      "all": "Semua",
+      "recent": "Baru dipakai",
+      "results": "Hasil",
+      "everything": "Semua latihan",
+      "empty": {
+        "title": "Tidak ketemu",
+        "hint": "Coba kata kunci lain atau buat gerakan sendiri."
+      },
+      "create": "Buat gerakan sendiri",
+      "customName": "{{name}} (buatanmu)",
+      "select": "Pilih {{name}}",
+      "add": "Tambah {{name}}",
+      "pick": "Pilih",
+      "picked": "Dipilih",
+      "replace": "Ganti",
+      "addCount": "Tambah ({{n}})",
+      "form": {
+        "title": "Gerakan baru",
+        "name": "Nama gerakan",
+        "namePlaceholder": "mis. Cable fly rendah",
+        "muscle": "Otot utama",
+        "equipment": "Alat",
+        "type": "Jenis",
+        "create": "Buat",
+        "creating": "Membuat…",
+        "hintDuration": "Gerakan seperti plank dicatat dalam detik."
+      },
+      "toast": {
+        "created": "Gerakan {{name}} dibuat"
+      },
+      "error": {
+        "name": "Nama gerakannya diisi dulu ya.",
+        "choose": "Pilih otot utama dan alatnya."
+      }
+    },
+    "editor": {
+      "title": "Sesi baru",
+      "duration": "Durasi (menit)",
+      "kcalHint": "Perkiraan {{kcal}} kcal masuk ke angka bakar saat disimpan.",
+      "kcalHintEmpty": "Isi durasi untuk perkiraan kalori.",
+      "save": "Simpan sesi",
+      "error": {
+        "reps": "Semua set butuh repetisi (angka)."
+      }
+    },
+    "detail": {
+      "screenTitle": "Riwayat gerakan",
+      "notFound": "Gerakan tidak ditemukan di katalog.",
+      "logThis": "Catat gerakan ini",
+      "bests": "Rekor terbaik",
+      "noData": "Belum ada data.",
+      "trend": "Tren e1RM",
+      "chartNeed": "Butuh minimal dua sesi dengan beban untuk grafik e1RM.",
+      "chartAria": "Grafik estimasi 1RM dari {{from}} ke {{to}}",
+      "how": {
+        "title": "Cara menghitung e1RM",
+        "body": "Estimasi 1RM (e1RM) memakai rumus Epley: beban × (1 + reps ÷ 30). Set pemanasan tidak dihitung."
+      },
+      "sessions": "Sesi sebelumnya",
+      "emptyTitle": "Belum pernah dicatat",
+      "emptyHint": "Selesaikan satu sesi, riwayat gerakan ini muncul di sini."
+    }
+  },
+  "movement": {
+    "aria": "Gerak hari ini",
+    "done": "Target gerak hari ini lunas. Mantap.",
+    "title": "Gerak dikit",
+    "line": "Sisa <kcal>{{kcal}}</kcal> = <steps>{{steps}} langkah</steps> (±{{km}} km / {{minutes}} menit jalan kaki)",
+    "hint": "Santai jalan sore aja udah kebayang habisnya."
   }
 }

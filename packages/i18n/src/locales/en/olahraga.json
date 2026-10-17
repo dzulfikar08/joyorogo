@@ -15,5 +15,511 @@
     "healthConnectUnavailable": "Health Connect isn't available on this device. Install the Health Connect app, then try again.",
     "healthConnectPermission": "Permission to read workouts from Health Connect hasn't been granted.",
     "appleHealthUnavailable": "Apple Health isn't available on this device. Importing needs an iPhone with the Health app."
+  },
+  "screen": {
+    "title": "Exercise",
+    "manual": "Log manually",
+    "loading": "Loading today's activity"
+  },
+  "summary": {
+    "burned": "Burned",
+    "ring": "Burned {{burned}}",
+    "ringTarget": "Burned {{burned}} of your {{target}} target",
+    "noTarget": "Finish your profile to see your daily target.",
+    "over": "Over your {{target}} target. Nice.",
+    "progress_one": "{{count}} activity · target {{target}}",
+    "progress_other": "{{count}} activities · target {{target}}",
+    "steps": "steps",
+    "km": "km",
+    "activeKcal": "active kcal"
+  },
+  "list": {
+    "aria": "Activities",
+    "empty": {
+      "today": "No activity yet today",
+      "day": "No activity on {{date}}",
+      "hintWeb": "Pick an exercise below, or connect Strava to import automatically.",
+      "hintNative": "Pick an activity below or import from {{health}}."
+    }
+  },
+  "row": {
+    "detail": "{{minutes}} min · {{kcal}}",
+    "detailSource": "{{detail}} · {{source}}",
+    "share": "Share {{name}} to the feed",
+    "remove": "Delete {{name}}",
+    "shareTitle": "Share this activity"
+  },
+  "source": {
+    "manual": "Manual"
+  },
+  "toast": {
+    "logged": "{{name}} logged (+{{kcal}})",
+    "fallbackName": "Activity",
+    "saveFailed": "Couldn't save."
+  },
+  "history": {
+    "title": "Last 7 days",
+    "aria": "Last 7 days of activity"
+  },
+  "picker": {
+    "title": "Add activity",
+    "aria": "Choose an activity type",
+    "loadError": "Couldn't load activity types: {{error}}",
+    "estimate": "±{{kcal}}",
+    "manualKcal": "enter kcal",
+    "tile": "Add {{type}}",
+    "tileEstimate": "Add {{type}}, about {{kcal}} for 30 minutes",
+    "noWeight": "Log your weight on the Weight page to see calorie estimates."
+  },
+  "about": {
+    "title": "How it works",
+    "estimate": "Calorie estimates per 30 minutes use your latest weight.",
+    "sources": "Every source counts: manual, Strava, {{health}}.",
+    "strength": "Strength training: log exercises, sets, reps and weight. Keep your muscle while you're in a deficit."
+  },
+  "strength": {
+    "title": "Strength training",
+    "subtitle": "Log exercises, sets and weight"
+  },
+  "form": {
+    "title": "Log activity",
+    "titleType": "Log {{type}}",
+    "description": "Calories fill in from the duration and your latest weight.",
+    "type": "Activity type",
+    "typesLoading": "Loading activity types...",
+    "typesError": "Couldn't load types: {{error}}",
+    "name": "Activity name",
+    "nameOptional": "Name (optional)",
+    "namePlaceholder": "Evening walk",
+    "duration": "Duration (min)",
+    "kcal": "Calories (kcal)",
+    "kcalHint": "Estimated from your latest weight, {{kg}} kg.",
+    "defaultName": "Exercise",
+    "saving": "Saving...",
+    "error": {
+      "nameRequired": "Enter an activity name, e.g. Evening swim.",
+      "kcalRequired": "Enter the calories burned, e.g. 200.",
+      "durationRange": "Duration must be between {{min}} and {{max}} minutes."
+    }
+  },
+  "edit": {
+    "title": "Edit activity",
+    "name": "Name",
+    "durationA11y": "Duration in minutes",
+    "kcalA11y": "Calories in kcal",
+    "linked": "Linked",
+    "unlinked": "Unlinked",
+    "linkOn": "Duration and calories are linked, tap to unlink",
+    "linkOff": "Duration and calories are unlinked, tap to link",
+    "invalid": "Calories not valid yet",
+    "summary": "{{kcal}} · {{minutes}} min",
+    "hint": {
+      "unlinked": "Unlinked: set duration and calories separately.",
+      "empty": "Enter a duration and calories first, then change one and the other follows.",
+      "linked": "Change the duration and calories follow. Type calories yourself to reset the pace."
+    },
+    "fromSource": "From {{source}}. Your changes are kept when it syncs again.",
+    "date": "Logged on",
+    "pickDate": "Pick a date, selected {{day}}",
+    "moveTo": "Will be moved to {{date}}.",
+    "toast": {
+      "moved": "Moved to {{day}}",
+      "updated": "{{name}} updated"
+    }
+  },
+  "type": {
+    "jalan": "Easy walk",
+    "jalan_cepat": "Brisk walk",
+    "lari": "Running",
+    "sepeda": "Easy cycling",
+    "sepeda_cepat": "Fast cycling",
+    "berenang": "Swimming",
+    "yoga": "Yoga",
+    "angkat_beban": "Weight lifting",
+    "futsal": "Futsal / soccer",
+    "badminton": "Badminton"
+  },
+  "latihan": {
+    "title": "Strength Training",
+    "count": {
+      "exercises_one": "{{count}} exercise",
+      "exercises_other": "{{count}} exercises",
+      "sets_one": "{{count}} set",
+      "sets_other": "{{count}} sets",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min"
+    },
+    "type": {
+      "weight_reps": "Weight × reps",
+      "bodyweight_reps": "Bodyweight × reps",
+      "assisted": "Assisted",
+      "duration": "Duration",
+      "distance_duration": "Distance + duration"
+    },
+    "muscle": {
+      "dada": "Chest",
+      "punggung_atas": "Upper back",
+      "lats": "Lats",
+      "bahu_depan": "Front delts",
+      "bahu_samping": "Side delts",
+      "bahu_belakang": "Rear delts",
+      "biceps": "Biceps",
+      "triceps": "Triceps",
+      "lengan_bawah": "Forearms",
+      "perut": "Abs",
+      "glutes": "Glutes",
+      "quadriceps": "Quads",
+      "hamstring": "Hamstrings",
+      "betis": "Calves"
+    },
+    "equipment": {
+      "barbell": "Barbell",
+      "dumbbell": "Dumbbell",
+      "mesin": "Machine",
+      "kabel": "Cable",
+      "bodyweight": "No equipment"
+    },
+    "setType": {
+      "normal": "Normal",
+      "warmup": "Warm-up",
+      "drop": "Drop set",
+      "failure": "Failure",
+      "badge": {
+        "warmup": "W",
+        "drop": "D",
+        "failure": "F"
+      }
+    },
+    "set": {
+      "weighted": "{{kg}} kg × {{reps}}",
+      "reps_one": "{{count}} rep",
+      "reps_other": "{{count}} reps",
+      "seconds_one": "{{count}} s",
+      "seconds_other": "{{count}} s"
+    },
+    "record": {
+      "weighted": "{{reps}}× {{kg}} kg",
+      "bodyweight": "{{reps}}× bodyweight",
+      "best": "Best: {{set}}",
+      "bestE1rm": "Best: {{set}} · e1RM {{kg}} kg"
+    },
+    "pr": {
+      "kind": {
+        "weight": "Heaviest weight",
+        "one_rm": "Best e1RM",
+        "reps": "Most reps",
+        "set_volume": "Best set volume"
+      },
+      "repsAtWeight": "Most reps @ {{kg}} kg"
+    },
+    "stat": {
+      "duration": "Time",
+      "minutes": "min",
+      "volumeKg": "Volume (kg)",
+      "setsDone": "Sets done"
+    },
+    "field": {
+      "sessionName": "Workout name",
+      "noteOptional": "Note (optional)"
+    },
+    "action": {
+      "addExercise": "Add exercise",
+      "replaceExercise": "Swap exercise",
+      "addSet": "Add set"
+    },
+    "unchecked": {
+      "title": "Some sets aren't checked"
+    },
+    "list": {
+      "resume": {
+        "title": "You have an unfinished workout",
+        "continue": "Resume workout",
+        "discard": "Discard unfinished workout",
+        "untitled": "Free workout"
+      },
+      "start": {
+        "empty": "Empty workout",
+        "begin": "Start",
+        "repeat": "Repeat: {{name}}"
+      },
+      "routines": {
+        "title": "Routines",
+        "new": "New",
+        "empty": "No routines yet. Save a favourite workout to repeat it in one tap.",
+        "edit": "Edit routine {{name}}",
+        "play": "Start routine {{name}}"
+      },
+      "history": {
+        "title": "Session history",
+        "emptyTitle": "No sessions yet",
+        "emptyHint": "Two or three sessions a week is enough to keep your muscle.",
+        "shareStory": "Share {{name}} to Story",
+        "shareFeed": "Share {{name}} to the feed",
+        "edit": "Edit session {{name}}"
+      }
+    },
+    "map": {
+      "title": "Muscles this week",
+      "loading": "Calculating muscle volume…",
+      "sets_one": "{{sets}} set",
+      "sets_other": "{{sets}} sets",
+      "try": "Try: {{names}}",
+      "how": {
+        "title": "How it's counted",
+        "body": "Effective sets this week: a main muscle counts 1, a supporting muscle 0.5."
+      }
+    },
+    "warning": {
+      "untrained": "{{muscle}} hasn't been trained this week",
+      "lowVolume_one": "{{muscle}} got just {{sets}} set this week, far below your other muscles",
+      "lowVolume_other": "{{muscle}} got just {{sets}} sets this week, far below your other muscles"
+    },
+    "trend": {
+      "message": "Your {{name}} strength is down {{pct}}% over the last two weeks while your weight is dropping fast. That's a sign the deficit is too big. Slow your weight-loss target."
+    },
+    "progress": {
+      "title": "Strength progress",
+      "empty": "No records yet. Finish a session and your records show up here.",
+      "history": "{{name}} history"
+    },
+    "template": {
+      "push": {
+        "name": "Push",
+        "summary": "Chest, shoulders, triceps"
+      },
+      "pull": {
+        "name": "Pull",
+        "summary": "Back, biceps"
+      },
+      "legs": {
+        "name": "Legs",
+        "summary": "Quads, glutes, hamstrings, calves"
+      },
+      "fullbody": {
+        "name": "Full Body",
+        "summary": "Every muscle in one session"
+      }
+    },
+    "card": {
+      "title": "Strength training",
+      "open": "Open",
+      "openAria": "Open Strength Training",
+      "allGood": "Every muscle got some work this week. Nice.",
+      "start": "Protect your muscle in a deficit: log your lifting."
+    },
+    "active": {
+      "screenTitle": "Workout",
+      "none": "No workout in progress.",
+      "empty": "This workout is empty. Add your first exercise below.",
+      "namePlaceholder": "Workout name, e.g. Push Monday",
+      "setsProgress_one": "{{done}}/{{total}} set",
+      "setsProgress_other": "{{done}}/{{total}} sets",
+      "discard": "Discard workout",
+      "discardShort": "Discard",
+      "unchecked": {
+        "warn": "Some sets aren't checked. Finish anyway?",
+        "review": "Review",
+        "confirm": "Finish anyway",
+        "message_one": "{{count}} set isn't marked done. Sets you don't check won't be saved.",
+        "message_other": "{{count}} sets aren't marked done. Sets you don't check won't be saved.",
+        "save": "Save without them"
+      },
+      "discardConfirm": {
+        "title": "Discard workout?",
+        "message": "Every set you logged will be lost."
+      },
+      "menu": {
+        "note": "Note",
+        "supersetOn": "Superset with next",
+        "supersetOff": "Remove superset",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "remove": "Remove exercise",
+        "label": "{{name}} menu"
+      },
+      "chip": {
+        "superset": "Superset",
+        "up": "Up",
+        "down": "Down"
+      },
+      "supersetLetter": "Superset {{letter}}",
+      "noteTitle": "Exercise note",
+      "notePlaceholder": "E.g. wide grip, lower slowly",
+      "col": {
+        "set": "Set",
+        "previous": "Previous",
+        "kg": "Kg",
+        "reps": "Reps",
+        "seconds": "Sec",
+        "target": "Target"
+      },
+      "aria": {
+        "setType": "Set {{n}} type: {{type}}. Change type.",
+        "fillPrevious": "Fill from last session: {{value}}",
+        "setDuration": "Set {{n}} duration in seconds",
+        "setWeight": "Set {{n}} weight in kg",
+        "setReps": "Set {{n}} reps",
+        "markDone": "Mark set {{n}} done",
+        "undoDone": "Undo set {{n}}",
+        "removeSet": "Remove set {{n}}",
+        "removeLastSet": "Remove last set",
+        "rest": "Rest timer: {{value}}. Tap to change."
+      },
+      "rest": {
+        "title": "Rest time",
+        "off": "Off",
+        "chip": "Rest {{time}}",
+        "chipOff": "Rest: off",
+        "minus": "15 seconds less",
+        "plus": "15 seconds more",
+        "skip": "Skip rest",
+        "skipShort": "Skip"
+      },
+      "toast": {
+        "noNext": "There's no next exercise to pair with.",
+        "checkOne": "Check at least one set before finishing.",
+        "fillReps": "{{name}}: enter reps for the sets you checked.",
+        "fillDuration": "{{name}}: enter the duration (seconds) for the sets you checked."
+      },
+      "notify": {
+        "title": "Rest over",
+        "body": "Time for your next set."
+      }
+    },
+    "summary": {
+      "screenTitle": "Summary",
+      "nothing": "There's no workout to save.",
+      "done": "Workout complete!",
+      "records": "New records",
+      "noRecords": "No new records this time. Still solid, the session is logged.",
+      "namePlaceholder": "Push Monday",
+      "notePlaceholder": "Add weight next week",
+      "save": "Save workout",
+      "saving": "Saving…",
+      "saveShare": "Save & share to feed",
+      "shareFeed": "Share to feed",
+      "saveRoutine": "Save as routine",
+      "discard": "Discard and go back",
+      "shareTitle": "Share this workout",
+      "error": {
+        "name": "Name the workout first, e.g. Push Monday.",
+        "incomplete": "Some checked sets are incomplete. Enter reps or duration.",
+        "saveFailed": "Couldn't save the workout."
+      },
+      "toast": {
+        "saved": "Workout saved",
+        "savedPr_one": "Saved. {{count}} new record, nice!",
+        "savedPr_other": "Saved. {{count}} new records, nice!"
+      },
+      "confirm": {
+        "unchecked_one": "{{count}} set won't be saved. Continue?",
+        "unchecked_other": "{{count}} sets won't be saved. Continue?",
+        "review": "Review",
+        "droppedTitle": "Some sets skipped",
+        "dropped_one": "{{count}} checked set is missing reps or duration, so it won't be saved.",
+        "dropped_other": "{{count}} checked sets are missing reps or duration, so they won't be saved.",
+        "continue": "Continue"
+      }
+    },
+    "routine": {
+      "fallbackName": "Routine",
+      "name": "Routine name",
+      "namePlaceholder": "e.g. Push Monday",
+      "notePlaceholder": "e.g. 3× a week",
+      "titleNew": "New routine",
+      "titleEdit": "Edit routine",
+      "notFound": "Routine not found.",
+      "save": "Save routine",
+      "delete": "Delete routine",
+      "removeExercise": "Remove {{name}}",
+      "error": {
+        "name": "Name the routine first.",
+        "exercise": "Add at least one exercise."
+      },
+      "toast": {
+        "saved": "Routine saved"
+      },
+      "confirmDelete": {
+        "title": "Delete routine?",
+        "message": "This routine will disappear from your list."
+      }
+    },
+    "picker": {
+      "search": "Search exercises…",
+      "searchLabel": "Search exercises",
+      "searchExample": "e.g. bench",
+      "muscleGroup": "Filter by muscle group",
+      "equipmentGroup": "Filter by equipment",
+      "allMuscles": "All muscles",
+      "allEquipment": "All equipment",
+      "all": "All",
+      "recent": "Recently used",
+      "results": "Results",
+      "everything": "All exercises",
+      "empty": {
+        "title": "Nothing found",
+        "hint": "Try another search or create your own exercise."
+      },
+      "create": "Create your own exercise",
+      "customName": "{{name}} (custom)",
+      "select": "Select {{name}}",
+      "add": "Add {{name}}",
+      "pick": "Select",
+      "picked": "Selected",
+      "replace": "Swap",
+      "addCount": "Add ({{n}})",
+      "form": {
+        "title": "New exercise",
+        "name": "Exercise name",
+        "namePlaceholder": "e.g. Low cable fly",
+        "muscle": "Main muscle",
+        "equipment": "Equipment",
+        "type": "Type",
+        "create": "Create",
+        "creating": "Creating…",
+        "hintDuration": "Holds like planks are logged in seconds."
+      },
+      "toast": {
+        "created": "Exercise {{name}} created"
+      },
+      "error": {
+        "name": "Please enter a name.",
+        "choose": "Choose a main muscle and equipment."
+      }
+    },
+    "editor": {
+      "title": "New session",
+      "duration": "Duration (minutes)",
+      "kcalHint": "About {{kcal}} kcal will count toward your burn when you save.",
+      "kcalHintEmpty": "Enter a duration to estimate calories.",
+      "save": "Save session",
+      "error": {
+        "reps": "Every set needs reps (a number)."
+      }
+    },
+    "detail": {
+      "screenTitle": "Exercise history",
+      "notFound": "Exercise not found in the catalog.",
+      "logThis": "Log this exercise",
+      "bests": "Personal bests",
+      "noData": "No data yet.",
+      "trend": "e1RM trend",
+      "chartNeed": "You need at least two weighted sessions for the e1RM chart.",
+      "chartAria": "Estimated 1RM chart from {{from}} to {{to}}",
+      "how": {
+        "title": "How e1RM is calculated",
+        "body": "Estimated 1RM (e1RM) uses the Epley formula: weight × (1 + reps ÷ 30). Warm-up sets don't count."
+      },
+      "sessions": "Previous sessions",
+      "emptyTitle": "Not logged yet",
+      "emptyHint": "Finish a session and this exercise's history shows up here."
+    }
+  },
+  "movement": {
+    "aria": "Today's movement",
+    "done": "Today's movement goal is done. Nice.",
+    "title": "Move a little",
+    "line": "<kcal>{{kcal}}</kcal> left = <steps>{{steps}} steps</steps> (about {{km}} km / {{minutes}} min of walking)",
+    "hint": "An easy evening walk covers it."
   }
 }

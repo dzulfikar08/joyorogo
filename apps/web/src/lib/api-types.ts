@@ -23,7 +23,7 @@ export type ExerciseItem = ExerciseListOutput["items"][number];
 
 type ExerciseTypesOutput = Awaited<ReturnType<AppRouterClient["exercise"]["types"]>>;
 
-/** One entry of the activity-type catalog ({ key, label, met }). */
+/** One entry of the activity-type catalog ({ key, met }); labels: exerciseTypeLabel(). */
 export type ExerciseType = ExerciseTypesOutput[number];
 
 type AiAnalyzeOutput = Awaited<ReturnType<AppRouterClient["ai"]["analyzeFood"]>>;

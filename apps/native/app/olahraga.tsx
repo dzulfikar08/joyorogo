@@ -5,16 +5,18 @@ import { Platform, Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
 import { Redirect, Stack, router } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { useTranslation } from "react-i18next";
 
-import { estimateKcal } from "@joyorogo/api/lib/met";
+import { EXERCISE_MAX_DURATION, EXERCISE_MIN_DURATION } from "@joyorogo/api/lib/exercise-edit";
+import { estimateKcal, type ExerciseTypeKey } from "@joyorogo/api/lib/met";
 import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import { fmtNumber } from "@joyorogo/i18n";
 
 import {
   BootLoader,
   Button,
   Card,
   Chip,
-  EmptyState,
   ErrorState,
   Field,
   Input,
@@ -29,17 +31,18 @@ import {
   Text,
 } from "@/components/ui";
 import { ExerciseEditSheet, type ExerciseEditRow } from "@/components/exercise-edit-sheet";
+import { Disclosure } from "@/components/disclosure";
 import { StravaCard } from "@/components/strava-card";
 import { DaySwitcher } from "@/components/day-switcher";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtDateMedium, fmtInt, fmtKg, parseNum } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtInt, fmtKcalLabel, fmtKg, parseNum } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import type { QueryKey } from "@tanstack/react-query";
 
+// Brand names of import sources; "manual" is translated (source.manual).
 const SOURCE_LABELS: Record<string, string> = {
-  manual: "Manual",
   strava: "Strava",
   health_connect: "Health Connect",
   apple_health: "Apple Health",
@@ -62,7 +65,15 @@ const TYPE_ICONS: Record<string, React.ComponentProps<typeof Ionicons>["name"]> 
 };
 
 export default function Olahraga() {
+  const { t } = useTranslation(["olahraga", "common"]);
   const { theme } = useUnistyles();
+  const typeLabel = (key: ExerciseTypeKey) => t(`type.${key}`);
+  const sourceName = (source: string) =>
+    source === "manual" ? t("source.manual") : (SOURCE_LABELS[source] ?? source);
+  const detailText = (item: { durationMin: number | null; kcal: number }) =>
+    item.durationMin != null
+      ? t("row.detail", { minutes: fmtInt(item.durationMin), kcal: fmtKcalLabel(item.kcal) })
+      : fmtKcalLabel(item.kcal);
   const gate = useSessionGate();
   const today = jakartaToday();
   const [date, setDate] = useState(today);
@@ -86,7 +97,7 @@ export default function Olahraga() {
   >(null);
   // Ubah aktivitas: baris yang sedang diedit.
   const [editRow, setEditRow] = useState<ExerciseEditRow | null>(null);
-  const [sheetType, setSheetType] = useState<string | null>(null);
+  const [sheetType, setSheetType] = useState<ExerciseTypeKey | null>(null);
   const [name, setName] = useState("");
   const [duration, setDuration] = useState("30");
   const [kcal, setKcal] = useState("");
@@ -127,7 +138,7 @@ export default function Olahraga() {
   >({
     mutationFn: async (input) => {
       const row = await client.exercise.add(input);
-      if (!row) throw new Error("Gagal menyimpan.");
+      if (!row) throw new Error(t("toast.saveFailed"));
       return row;
     },
     patch: (input, cache) => {
@@ -155,7 +166,7 @@ export default function Olahraga() {
       setSheetOpen(false);
       setSheetType(null);
       return {
-        message: `${input.name} dicatat`,
+        message: t("toast.logged", { name: input.name, kcal: fmtKcalLabel(input.kcal) }),
         undo: () => {
           void client.exercise.remove({ id: data.id }).then(() => {
             void queryClient.invalidateQueries({ queryKey: orpc.exercise.key() });
@@ -177,7 +188,7 @@ export default function Olahraga() {
       cache.summary({ date: row.date, burnKcal: -row.kcal });
     },
     label: (row) => row.name,
-    fallback: "Aktivitas",
+    fallback: t("toast.fallbackName"),
     invalidate: () => [orpc.exercise.key(), orpc.day.key()],
   });
 
@@ -185,7 +196,7 @@ export default function Olahraga() {
   // Skipped once the user types their own kcal.
   useEffect(() => {
     if (kcalEdited) return;
-    const met = typesQuery.data?.find((t) => t.key === sheetType)?.met;
+    const met = typesQuery.data?.find((type) => type.key === sheetType)?.met;
     const minutes = parseNum(duration);
     if (met && minutes && minutes > 0 && weightKg !== null) {
       setKcal(String(estimateKcal(met, weightKg, minutes)));
@@ -201,7 +212,7 @@ export default function Olahraga() {
   if (listQuery.isPending) {
     return (
       <Screen>
-        <PageHeader title="Olahraga" />
+        <PageHeader title={t("screen.title")} />
         <Skeleton width="100%" height={200} radius={24} />
         <Skeleton width="100%" height={180} radius={24} />
         <Skeleton width="100%" height={120} radius={24} />
@@ -211,7 +222,7 @@ export default function Olahraga() {
   if (listQuery.isError) {
     return (
       <Screen>
-        <PageHeader title="Olahraga" />
+        <PageHeader title={t("screen.title")} />
         <ErrorState message={errorMessage(listQuery.error)} onRetry={() => listQuery.refetch()} />
       </Screen>
     );
@@ -220,10 +231,10 @@ export default function Olahraga() {
   const items = listQuery.data.items;
   const totalKcal = listQuery.data.totalKcal;
 
-  const openSheet = (typeKey: string | null) => {
+  const openSheet = (typeKey: ExerciseTypeKey | null) => {
     setSheetType(typeKey);
     setSheetOpen(true);
-    setName(typeKey ? (typesQuery.data?.find((t) => t.key === typeKey)?.label ?? "") : "");
+    setName(typeKey ? typeLabel(typeKey) : "");
     setDuration("30");
     setKcal("");
     setKcalEdited(false);
@@ -231,28 +242,29 @@ export default function Olahraga() {
   };
 
   /** Switching activity inside the sheet mirrors web: label becomes the name. */
-  const pickType = (typeKey: string) => {
+  const pickType = (typeKey: ExerciseTypeKey) => {
     setSheetType(typeKey);
-    const label = typesQuery.data?.find((t) => t.key === typeKey)?.label;
-    if (label) setName(label);
+    setName(typeLabel(typeKey));
   };
 
   const submit = () => {
     const kcalNum = parseNum(kcal);
     const minutes = parseNum(duration);
     if (sheetType === null && name.trim() === "") {
-      setFormError("Tulis nama aktivitasnya, contoh: Renang sore.");
+      setFormError(t("form.error.nameRequired"));
       return;
     }
     if (kcalNum === null || kcalNum < 0) {
-      setFormError("Isi jumlah kalori yang dibakar, contoh: 200.");
+      setFormError(t("form.error.kcalRequired"));
       return;
     }
     if (minutes !== null && (minutes < 1 || minutes > 1440)) {
-      setFormError("Durasi harus antara 1 dan 1440 menit.");
+      setFormError(
+        t("form.error.durationRange", { min: EXERCISE_MIN_DURATION, max: EXERCISE_MAX_DURATION }),
+      );
       return;
     }
-    const label = typesQuery.data?.find((t) => t.key === sheetType)?.label ?? "Olahraga";
+    const label = sheetType ? typeLabel(sheetType) : t("form.defaultName");
     setFormError(null);
     addExercise.mutate({
       date,
@@ -265,135 +277,90 @@ export default function Olahraga() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Olahraga" }} />
+      <Stack.Screen options={{ title: t("screen.title") }} />
       <Screen>
       <PageHeader
-        title="Olahraga"
-        caption={`Semua sumber dihitung: manual, Strava, ${healthSourceName}`}
+        title={t("screen.title")}
         right={
           <Button
             variant="secondary"
             size="sm"
-            label="Tulis manual"
+            label={t("screen.manual")}
             onPress={() => openSheet(null)}
           />
         }
       />
 
-      {/* Day switcher */}
       <DaySwitcher date={date} onChange={setDate} />
 
-      {/* Burn ring */}
+      {/* Burn ring + target + device activity */}
       <Card style={styles.burnCard}>
         <Ring
-          size={168}
-          stroke={13}
+          size={112}
+          stroke={11}
           value={totalKcal}
           max={targetBurn ?? Math.max(totalKcal, 300)}
           color={theme.colors.bakar}
           track={theme.colors.bakarSoft}
         >
-          <Text style={styles.burnLabel}>Terbakar</Text>
           <Num style={styles.burnValue} adjustsFontSizeToFit numberOfLines={1}>
             {fmtInt(totalKcal)}
           </Num>
+          <Text style={styles.burnUnit}>kcal</Text>
         </Ring>
-        <Text style={styles.burnNote}>
-          {targetBurn === null
-            ? "Target burn muncul setelah profil lengkap."
-            : totalKcal > targetBurn
-              ? `Melebihi target ${fmtInt(targetBurn)} kcal, mantap.`
-              : `${items.length} aktivitas · target ${fmtInt(targetBurn)} kcal`}
-        </Text>
-        {summaryQuery.data?.dailyActivity ? (
-          <View style={styles.activityRow}>
-            <View style={styles.activityCell}>
-              <Num style={styles.activityValue}>
-                {fmtInt(summaryQuery.data.dailyActivity.steps)}
-              </Num>
-              <Text style={styles.activityLabel}>langkah</Text>
+        <View style={styles.burnInfo}>
+          <Text style={styles.burnLabel}>{t("summary.burned")}</Text>
+          <Text style={styles.burnNote}>
+            {targetBurn === null
+              ? t("summary.noTarget")
+              : totalKcal > targetBurn
+                ? t("summary.over", { target: fmtKcalLabel(targetBurn) })
+                : t("summary.progress", {
+                    count: items.length,
+                    target: fmtKcalLabel(targetBurn),
+                  })}
+          </Text>
+          {summaryQuery.data?.dailyActivity ? (
+            <View style={styles.activityRow}>
+              <View style={styles.activityCell}>
+                <Num style={styles.activityValue}>
+                  {fmtInt(summaryQuery.data.dailyActivity.steps)}
+                </Num>
+                <Text style={styles.activityLabel}>{t("summary.steps")}</Text>
+              </View>
+              <View style={styles.activityCell}>
+                <Num style={styles.activityValue}>
+                  {fmtNumber(summaryQuery.data.dailyActivity.distanceMeters / 1000, 1)}
+                </Num>
+                <Text style={styles.activityLabel}>{t("summary.km")}</Text>
+              </View>
+              <View style={styles.activityCell}>
+                <Num style={styles.activityValue}>
+                  {fmtInt(summaryQuery.data.dailyActivity.activeCalories)}
+                </Num>
+                <Text style={styles.activityLabel}>{t("summary.activeKcal")}</Text>
+              </View>
             </View>
-            <View style={styles.activityCell}>
-              <Num style={styles.activityValue}>
-                {(summaryQuery.data.dailyActivity.distanceMeters / 1000).toFixed(1)}
-              </Num>
-              <Text style={styles.activityLabel}>km</Text>
-            </View>
-            <View style={styles.activityCell}>
-              <Num style={styles.activityValue}>
-                {fmtInt(summaryQuery.data.dailyActivity.activeCalories)}
-              </Num>
-              <Text style={styles.activityLabel}>kcal aktif</Text>
-            </View>
-          </View>
-        ) : null}
+          ) : null}
+        </View>
       </Card>
 
-      {/* Activity type tiles → add sheet */}
-      <Text style={styles.sectionLabel}>Tambah aktivitas</Text>
-      {typesQuery.isPending ? (
-        <View style={styles.typeGrid}>
-          <Skeleton width="100%" height={84} radius={18} />
-          <Skeleton width="100%" height={84} radius={18} />
-          <Skeleton width="100%" height={84} radius={18} />
-          <Skeleton width="100%" height={84} radius={18} />
-        </View>
-      ) : typesQuery.isError ? (
-        <ErrorState message={errorMessage(typesQuery.error)} onRetry={() => typesQuery.refetch()} />
-      ) : (
-        <View style={styles.typeGrid}>
-          {typesQuery.data.map((type) => {
-            const per30 = weightKg !== null ? estimateKcal(type.met, weightKg, 30) : null;
-            return (
-              <Pressable
-                key={type.key}
-                accessibilityRole="button"
-                accessibilityLabel={`Tambah ${type.label}${per30 !== null ? `, sekitar ${fmtInt(per30)} kcal untuk 30 menit` : ""}`}
-                onPress={() => openSheet(type.key)}
-                style={({ pressed }) => [styles.typeTile, pressed && styles.pressedSoft]}
-              >
-                <Ionicons
-                  name={TYPE_ICONS[type.key] ?? "fitness"}
-                  size={22}
-                  color={theme.colors.bakar}
-                />
-                <Text style={styles.typeLabel} numberOfLines={2}>
-                  {type.label}
-                </Text>
-                <Text style={styles.typeEstimate} numberOfLines={1}>
-                  {per30 !== null ? `±${fmtInt(per30)} kcal` : "kalori manual"}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
-      <Text style={styles.gridCaption}>
-        {weightKg !== null
-          ? "Estimasi kalori per 30 menit dengan berat badan terakhirmu."
-          : "Catat berat badanmu di halaman Berat agar estimasi kalori tampil."}
-      </Text>
-
-      {/* Strength training: dedicated session logger */}
-      <ListGroup>
-        <ListRow
-          icon="barbell"
-          iconTint="bakar"
-          title="Latihan beban"
-          subtitle="Catat gerakan, set, reps, dan beban. Jaga otot saat defisit."
-          chevron
-          onPress={() => router.push("/latihan")}
-        />
-      </ListGroup>
-
       {/* Activity list */}
-      <Text style={styles.sectionLabel}>{isToday ? "Hari ini" : relativeDayLabel(date, today)}</Text>
+      <View style={styles.sectionHead}>
+        <Text style={styles.sectionLabel}>{relativeDayLabel(date, today)}</Text>
+        <Num style={styles.sectionTotal}>{fmtKcalLabel(totalKcal)}</Num>
+      </View>
       {items.length === 0 ? (
-        <EmptyState
-          icon="barbell-outline"
-          title={isToday ? "Belum ada olahraga hari ini" : `Belum ada olahraga ${fmtDateMedium(date)}`}
-          description={`Pilih aktivitas di atas atau impor dari ${healthSourceName}.`}
-        />
+        <Card style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>
+            {isToday
+              ? t("list.empty.today")
+              : t("list.empty.day", { date: fmtDateMedium(date) })}
+          </Text>
+          <Text style={styles.emptyText}>
+            {t("list.empty.hintNative", { health: healthSourceName })}
+          </Text>
+        </Card>
       ) : (
         <ListGroup>
           {items.map((item) => (
@@ -403,21 +370,22 @@ export default function Olahraga() {
               icon="flame"
               iconTint="bakar"
               title={item.name}
-              subtitle={`${item.durationMin != null ? `${fmtInt(item.durationMin)} menit · ` : ""}${fmtInt(item.kcal)} kcal · ${SOURCE_LABELS[item.source] ?? item.source}`}
+              subtitle={t("row.detailSource", {
+                detail: detailText(item),
+                source: sourceName(item.source),
+              })}
               value={fmtInt(item.kcal)}
               right={
                 <View style={styles.rowActions}>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Bagikan ${item.name} ke feed`}
+                    accessibilityLabel={t("row.share", { name: item.name })}
                     onPress={() =>
                       setShareTarget({
                         kind: "latihan",
                         refId: item.id,
                         title: item.name,
-                        preview: `${fmtInt(item.kcal)} kcal${
-                          item.durationMin != null ? ` · ${fmtInt(item.durationMin)} menit` : ""
-                        }`,
+                        preview: detailText(item),
                       })
                     }
                     style={({ pressed }) => [styles.deleteButton, pressed && styles.pressedSoft]}
@@ -426,7 +394,7 @@ export default function Olahraga() {
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Hapus ${item.name}`}
+                    accessibilityLabel={t("row.remove", { name: item.name })}
                     onPress={() => removeExercise(item)}
                     style={({ pressed }) => [styles.deleteButton, pressed && styles.pressedSoft]}
                   >
@@ -439,11 +407,71 @@ export default function Olahraga() {
         </ListGroup>
       )}
 
+      {/* Activity type tiles → add sheet */}
+      <Text style={styles.sectionLabel}>{t("picker.title")}</Text>
+      {typesQuery.isPending ? (
+        <View style={styles.typeGrid}>
+          <Skeleton width="100%" height={72} radius={18} />
+          <Skeleton width="100%" height={72} radius={18} />
+          <Skeleton width="100%" height={72} radius={18} />
+        </View>
+      ) : typesQuery.isError ? (
+        <ErrorState message={errorMessage(typesQuery.error)} onRetry={() => typesQuery.refetch()} />
+      ) : (
+        <View style={styles.typeGrid}>
+          {typesQuery.data.map((type) => {
+            const per30 = weightKg !== null ? estimateKcal(type.met, weightKg, 30) : null;
+            return (
+              <Pressable
+                key={type.key}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  per30 !== null
+                    ? t("picker.tileEstimate", {
+                        type: typeLabel(type.key),
+                        kcal: fmtKcalLabel(per30),
+                      })
+                    : t("picker.tile", { type: typeLabel(type.key) })
+                }
+                onPress={() => openSheet(type.key)}
+                style={({ pressed }) => [styles.typeTile, pressed && styles.pressedSoft]}
+              >
+                <Ionicons
+                  name={TYPE_ICONS[type.key] ?? "fitness"}
+                  size={20}
+                  color={theme.colors.bakar}
+                />
+                <Text style={styles.typeLabel} numberOfLines={2}>
+                  {typeLabel(type.key)}
+                </Text>
+                <Text style={styles.typeEstimate} numberOfLines={1}>
+                  {per30 !== null
+                    ? t("picker.estimate", { kcal: fmtKcalLabel(per30) })
+                    : t("picker.manualKcal")}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+      {weightKg === null ? <Text style={styles.gridCaption}>{t("picker.noWeight")}</Text> : null}
+
+      {/* Strength training: dedicated session logger */}
+      <ListGroup>
+        <ListRow
+          icon="barbell"
+          iconTint="bakar"
+          title={t("strength.title")}
+          subtitle={t("strength.subtitle")}
+          chevron
+          onPress={() => router.push("/latihan")}
+        />
+      </ListGroup>
+
       {/* Recent history: Health Connect / Apple Health imports land on the
           workout's own WIB day, so show the past week or they look lost. */}
       {(() => {
-        const wibToday = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        const pastItems = (recentQuery.data?.items ?? []).filter((item) => item.date !== wibToday);
+        const pastItems = (recentQuery.data?.items ?? []).filter((item) => item.date !== today);
         const byDate = new Map<string, typeof pastItems>();
         for (const item of pastItems) {
           const group = byDate.get(item.date);
@@ -453,7 +481,7 @@ export default function Olahraga() {
         if (byDate.size === 0) return null;
         return (
           <>
-            <Text style={styles.sectionLabel}>7 hari terakhir</Text>
+            <Text style={styles.sectionLabel}>{t("history.title")}</Text>
             {recentQuery.isError ? (
               <ErrorState
                 message={errorMessage(recentQuery.error)}
@@ -461,11 +489,9 @@ export default function Olahraga() {
               />
             ) : (
               <ListGroup>
-                {[...byDate.entries()].map(([date, dayItems]) => (
-                  <View key={date}>
-                    <Text style={styles.historyDate}>
-                      {relativeDayLabel(date, wibToday)}
-                    </Text>
+                {[...byDate.entries()].map(([day, dayItems]) => (
+                  <View key={day}>
+                    <Text style={styles.historyDate}>{relativeDayLabel(day, today)}</Text>
                     {dayItems.map((item) => (
                       <ListRow
                         key={item.id}
@@ -473,7 +499,10 @@ export default function Olahraga() {
                         icon="flame"
                         iconTint="bakar"
                         title={item.name}
-                        subtitle={`${item.durationMin != null ? `${fmtInt(item.durationMin)} menit · ` : ""}${fmtInt(item.kcal)} kcal · ${SOURCE_LABELS[item.source] ?? item.source}`}
+                        subtitle={t("row.detailSource", {
+                          detail: detailText(item),
+                          source: sourceName(item.source),
+                        })}
                         value={fmtInt(item.kcal)}
                       />
                     ))}
@@ -485,35 +514,40 @@ export default function Olahraga() {
         );
       })()}
 
-      <StravaCard />
+      <Disclosure title="Strava">
+        <StravaCard />
+      </Disclosure>
+      <Disclosure title={t("about.title")}>
+        <Text style={styles.aboutText}>{t("about.sources", { health: healthSourceName })}</Text>
+        {weightKg !== null ? <Text style={styles.aboutText}>{t("about.estimate")}</Text> : null}
+        <Text style={styles.aboutText}>{t("about.strength")}</Text>
+      </Disclosure>
 
       {/* Add form */}
       <Sheet
         visible={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        title={
-          sheetType === null
-            ? "Tulis manual"
-            : (typesQuery.data?.find((t) => t.key === sheetType)?.label ?? "Tambah Olahraga")
+        title={sheetType === null ? t("form.title") : t("form.titleType", { type: typeLabel(sheetType) })}
+        footer={
+          <Button label={t("common:actions.add")} onPress={submit} loading={addExercise.isPending} />
         }
-        footer={<Button label="Tambah" onPress={submit} loading={addExercise.isPending} />}
       >
-        <Field label="Jenis aktivitas">
+        <Field label={t("form.type")}>
           <View style={styles.chipRow}>
             {typesQuery.data?.map((type) => (
               <Chip
                 key={type.key}
-                label={type.label}
+                label={typeLabel(type.key)}
                 selected={sheetType === type.key}
                 onPress={() => pickType(type.key)}
               />
             ))}
           </View>
         </Field>
-        <Field label={sheetType === null ? "Nama aktivitas" : "Nama (opsional)"}>
-          <Input value={name} onChangeText={setName} placeholder="Jalan pagi" />
+        <Field label={sheetType === null ? t("form.name") : t("form.nameOptional")}>
+          <Input value={name} onChangeText={setName} placeholder={t("form.namePlaceholder")} />
         </Field>
-        <Field label="Durasi (menit)">
+        <Field label={t("form.duration")}>
           <Input
             value={duration}
             onChangeText={setDuration}
@@ -522,8 +556,8 @@ export default function Olahraga() {
           />
         </Field>
         <Field
-          label="Kalori (kcal)"
-          hint={latestKg ? `Estimasi pakai berat terkinimu, ${fmtKg(latestKg)} kg.` : undefined}
+          label={t("form.kcal")}
+          hint={latestKg ? t("form.kcalHint", { kg: fmtKg(latestKg) }) : undefined}
         >
           <Input
             value={kcal}
@@ -563,35 +597,46 @@ const styles = StyleSheet.create((theme) => ({
     opacity: 0.7,
   },
   burnCard: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingVertical: theme.spacing.xl,
+    gap: theme.spacing.lg,
+    paddingVertical: theme.spacing.lg,
+  },
+  burnValue: {
+    fontSize: theme.fontSize.xl,
+    fontWeight: "800",
+    color: theme.colors.bakarText,
+    maxWidth: 80,
+  },
+  burnUnit: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  burnInfo: {
+    flex: 1,
+    gap: theme.spacing.xs,
   },
   burnLabel: {
     fontSize: theme.fontSize.sm,
     fontWeight: "600",
     color: theme.colors.mutedForeground,
   },
-  burnValue: {
-    fontSize: theme.fontSize["2xl"],
-    fontWeight: "800",
-    color: theme.colors.bakarText,
-  },
   burnNote: {
     fontSize: theme.fontSize.sm,
-    color: theme.colors.mutedForeground,
-    textAlign: "center",
+    fontWeight: "700",
+    color: theme.colors.foreground,
   },
   activityRow: {
     flexDirection: "row",
-    justifyContent: "center",
-    gap: theme.spacing.xl,
+    gap: theme.spacing.lg,
+    marginTop: theme.spacing.xs,
   },
   activityCell: {
-    alignItems: "center",
-    gap: 2,
+    gap: 1,
   },
   activityValue: {
-    fontSize: theme.fontSize.lg,
+    fontSize: theme.fontSize.base,
     fontWeight: "700",
     color: theme.colors.foreground,
   },
@@ -599,11 +644,35 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
   },
+  sectionHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: theme.spacing.xs,
+  },
   sectionLabel: {
     fontSize: theme.fontSize.md,
     fontWeight: "700",
     color: theme.colors.foreground,
-    marginTop: theme.spacing.sm,
+    marginTop: theme.spacing.xs,
+  },
+  sectionTotal: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.mutedForeground,
+  },
+  emptyCard: {
+    gap: 2,
+    paddingVertical: theme.spacing.md,
+  },
+  emptyTitle: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  emptyText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
   },
   historyDate: {
     fontSize: theme.fontSize.sm,
@@ -616,22 +685,22 @@ const styles = StyleSheet.create((theme) => ({
   typeGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   typeTile: {
     flexGrow: 1,
-    flexBasis: "45%",
+    flexBasis: "30%",
     backgroundColor: theme.colors.bakarSoft,
     borderRadius: theme.radius.tile,
-    padding: 16,
-    gap: 8,
-    minHeight: 84,
+    padding: 12,
+    gap: 4,
+    minHeight: 72,
   },
   typeLabel: {
     fontSize: theme.fontSize.sm,
     fontWeight: "600",
     color: theme.colors.bakarText,
-    lineHeight: 18,
+    lineHeight: 17,
   },
   typeEstimate: {
     fontSize: theme.fontSize.xs,
@@ -641,8 +710,12 @@ const styles = StyleSheet.create((theme) => ({
   gridCaption: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
-    marginTop: -theme.spacing.sm,
     paddingHorizontal: 2,
+  },
+  aboutText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+    lineHeight: 19,
   },
   chipRow: {
     flexDirection: "row",

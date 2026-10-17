@@ -2,20 +2,36 @@
 // publication-grade averages (Ainsworth compendium, rounded); the estimate is
 // a planning aid, never a measurement. kcal/min = MET x 3.5 x kg / 200.
 
+import { getActiveLocale, getT } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+
+import { localizedLabels } from "./engine";
+
 export const EXERCISE_TYPES = [
-  { key: "jalan", label: "Jalan santai", met: 3.5 },
-  { key: "jalan_cepat", label: "Jalan cepat", met: 5.0 },
-  { key: "lari", label: "Lari", met: 9.8 },
-  { key: "sepeda", label: "Sepeda santai", met: 6.8 },
-  { key: "sepeda_cepat", label: "Sepeda cepat", met: 10.0 },
-  { key: "berenang", label: "Berenang", met: 8.3 },
-  { key: "yoga", label: "Yoga", met: 2.5 },
-  { key: "angkat_beban", label: "Angkat beban", met: 5.0 },
-  { key: "futsal", label: "Futsal / sepak bola", met: 7.0 },
-  { key: "badminton", label: "Badminton", met: 5.5 },
+  { key: "jalan", met: 3.5 },
+  { key: "jalan_cepat", met: 5.0 },
+  { key: "lari", met: 9.8 },
+  { key: "sepeda", met: 6.8 },
+  { key: "sepeda_cepat", met: 10.0 },
+  { key: "berenang", met: 8.3 },
+  { key: "yoga", met: 2.5 },
+  { key: "angkat_beban", met: 5.0 },
+  { key: "futsal", met: 7.0 },
+  { key: "badminton", met: 5.5 },
 ] as const;
 
 export type ExerciseTypeKey = (typeof EXERCISE_TYPES)[number]["key"];
+
+/** "Jalan santai" / "Easy walk". Pass `locale` on the server. */
+export function exerciseTypeLabel(key: ExerciseTypeKey, locale: Locale = getActiveLocale()): string {
+  return getT(locale, "olahraga")(`type.${key}`);
+}
+
+/** Lazy label table following the active language; server code uses exerciseTypeLabel(key, locale). */
+export const EXERCISE_TYPE_LABELS = localizedLabels(
+  EXERCISE_TYPES.map((type) => type.key),
+  exerciseTypeLabel,
+);
 
 /** Strava activity types → our MET keys. Unmapped types use DEFAULT_MET. */
 export const STRAVA_MET_MAP: Record<string, ExerciseTypeKey> = {

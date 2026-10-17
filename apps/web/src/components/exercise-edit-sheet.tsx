@@ -4,6 +4,7 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { useQueryClient } from "@tanstack/react-query";
 import { CalendarIcon, Link2, Link2Off } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import {
@@ -16,9 +17,10 @@ import {
 import { recentDayLabel } from "@joyorogo/api/lib/format";
 
 import { FieldLabel } from "@/components/kit/surface";
+import { InfoAccordion } from "@/components/onboarding/info-accordion";
 import { CalendarSheet, DayChips } from "@/components/plate/plate-group";
 import type { ExerciseItem } from "@/lib/api-types";
-import { fmtDateLong, fmtInt, parseNum } from "@/lib/format";
+import { fmtDateLong, fmtInt, fmtKcalLabel, parseNum } from "@/lib/format";
 import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
@@ -96,6 +98,7 @@ function patchExerciseEdit(cache: OptimisticCache, before: ExerciseItem, after: 
  * Imported rows keep their source and external id, so a resync leaves the edit alone.
  */
 export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose: () => void }) {
+  const { t } = useTranslation(["olahraga", "common"]);
   const queryClient = useQueryClient();
   const initialDuration = row.durationMin == null ? "" : fmtField(row.durationMin);
   const initialKcal = fmtField(row.kcal);
@@ -182,8 +185,8 @@ export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose
       const moved = input.date !== undefined && input.date !== row.date;
       return {
         message: moved
-          ? `Dipindah ke ${relativeDayLabel(input.date!, jakartaToday())}`
-          : `${input.name ?? row.name} diperbarui`,
+          ? t("edit.toast.moved", { day: relativeDayLabel(input.date!, jakartaToday()) })
+          : t("edit.toast.updated", { name: input.name ?? row.name }),
         undo: () => {
           patchExerciseEdit(new OptimisticCache(queryClient), edited(input), row);
           void client.exercise
@@ -213,7 +216,7 @@ export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose
 
   return (
     <>
-      <Sheet open onOpenChange={(open) => !open && onClose()} title="Ubah aktivitas">
+      <Sheet open onOpenChange={(open) => !open && onClose()} title={t("edit.title")}>
         <form
           className="space-y-4"
           onSubmit={(event) => {
@@ -222,7 +225,7 @@ export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose
           }}
         >
           <div>
-            <FieldLabel htmlFor="exercise-edit-name">Nama</FieldLabel>
+            <FieldLabel htmlFor="exercise-edit-name">{t("edit.name")}</FieldLabel>
             <Input
               id="exercise-edit-name"
               value={name}
@@ -233,7 +236,7 @@ export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose
 
           <div className="flex items-end gap-2">
             <div className="min-w-0 flex-1">
-              <FieldLabel htmlFor="exercise-edit-duration">Durasi (menit)</FieldLabel>
+              <FieldLabel htmlFor="exercise-edit-duration">{t("form.duration")}</FieldLabel>
               <Input
                 id="exercise-edit-duration"
                 inputMode="numeric"
@@ -247,19 +250,15 @@ export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose
               variant={linked ? "secondary" : "outline"}
               size="icon"
               aria-pressed={linked}
-              aria-label={
-                linked
-                  ? "Durasi dan kalori terhubung, ketuk untuk melepas"
-                  : "Durasi dan kalori terlepas, ketuk untuk menghubungkan"
-              }
-              title={linked ? "Terhubung" : "Terlepas"}
+              aria-label={linked ? t("edit.linkOn") : t("edit.linkOff")}
+              title={linked ? t("edit.linked") : t("edit.unlinked")}
               onClick={toggleLink}
               className="mb-0.5"
             >
               {linked ? <Link2 aria-hidden /> : <Link2Off aria-hidden />}
             </Button>
             <div className="min-w-0 flex-1">
-              <FieldLabel htmlFor="exercise-edit-kcal">Kalori (kcal)</FieldLabel>
+              <FieldLabel htmlFor="exercise-edit-kcal">{t("form.kcal")}</FieldLabel>
               <Input
                 id="exercise-edit-kcal"
                 inputMode="numeric"
@@ -272,27 +271,30 @@ export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose
 
           <div className="rounded-2xl bg-muted px-4 py-3 text-sm" aria-live="polite">
             <p className="font-semibold tabular-nums">
-              {shownKcal !== null ? `${fmtInt(shownKcal)} kcal` : "Kalori belum valid"}
-              {!durationBlank && durationOk && typedDuration !== null
-                ? ` · ${fmtInt(Math.round(typedDuration))} menit`
-                : ""}
+              {shownKcal === null
+                ? t("edit.invalid")
+                : !durationBlank && durationOk && typedDuration !== null
+                  ? t("edit.summary", {
+                      kcal: fmtKcalLabel(shownKcal),
+                      minutes: fmtInt(Math.round(typedDuration)),
+                    })
+                  : fmtKcalLabel(shownKcal)}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {!linked
-                ? "Terlepas: durasi dan kalori diisi sendiri."
-                : rate === null
-                  ? "Isi durasi dan kalori dulu, lalu ubah salah satunya agar yang lain ikut."
-                  : "Ubah durasi, kalori ikut menyesuaikan. Ketik kalori sendiri untuk mengatur ulang lajunya."}
-            </p>
-            {sourceName && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Dari {sourceName}. Perubahanmu tetap tersimpan saat sinkron ulang.
-              </p>
-            )}
           </div>
 
+          <InfoAccordion title={t("about.title")}>
+            <p>
+              {!linked
+                ? t("edit.hint.unlinked")
+                : rate === null
+                  ? t("edit.hint.empty")
+                  : t("edit.hint.linked")}
+            </p>
+            {sourceName && <p>{t("edit.fromSource", { source: sourceName })}</p>}
+          </InfoAccordion>
+
           <div>
-            <FieldLabel htmlFor="exercise-edit-date">Dicatat pada</FieldLabel>
+            <FieldLabel htmlFor="exercise-edit-date">{t("edit.date")}</FieldLabel>
             <div className="mt-1.5 space-y-2">
               <DayChips value={date} onChange={setDate} />
               <Button
@@ -301,7 +303,7 @@ export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose
                 variant={dateChanged ? "secondary" : "outline"}
                 size="sm"
                 aria-expanded={pickingDate}
-                aria-label={`Pilih tanggal, terpilih ${recentDayLabel(date, jakartaToday())}`}
+                aria-label={t("edit.pickDate", { day: recentDayLabel(date, jakartaToday()) })}
                 onClick={() => setPickingDate(true)}
               >
                 <CalendarIcon aria-hidden />
@@ -309,7 +311,7 @@ export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose
               </Button>
               {dateChanged && (
                 <p className="text-xs text-muted-foreground">
-                  Akan dipindah ke {fmtDateLong(date)}.
+                  {t("edit.moveTo", { date: fmtDateLong(date) })}
                 </p>
               )}
             </div>
@@ -320,7 +322,7 @@ export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose
             className="w-full"
             disabled={update.isPending || !valid || !changed}
           >
-            {update.isPending ? "Menyimpan..." : "Simpan"}
+            {update.isPending ? t("form.saving") : t("common:actions.save")}
           </Button>
         </form>
       </Sheet>

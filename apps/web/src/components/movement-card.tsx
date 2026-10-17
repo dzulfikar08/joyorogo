@@ -1,9 +1,10 @@
 import { Flame, Footprints } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Trans, useTranslation } from "react-i18next";
 
 import { movementFor } from "@joyorogo/api/lib/engine";
+import { fmtInt, fmtNumber } from "@joyorogo/i18n";
 
-import { fmtInt } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -11,6 +12,7 @@ import { orpc } from "@/utils/orpc";
  * equivalents (steps / km / minutes), so the number feels doable.
  */
 export default function MovementCard({ date }: { date?: string }) {
+  const { t } = useTranslation("home");
   const summary = useQuery(
     orpc.day.summary.queryOptions({ input: date === undefined ? {} : { date } }),
   );
@@ -19,10 +21,10 @@ export default function MovementCard({ date }: { date?: string }) {
   const remaining = Math.max(0, summary.data.targets.burnKcal - summary.data.burnedKcal);
   if (remaining <= 0) {
     return (
-      <section aria-label="Gerak hari ini" className="rounded-2xl bg-muted p-4">
+      <section aria-label={t("movement.label")} className="rounded-2xl bg-muted p-4">
         <p className="flex items-center gap-1.5 text-sm font-bold">
           <Flame className="size-4 text-makan" aria-hidden />
-          Target gerak hari ini lunas. Mantap.
+          {t("movement.done")}
         </p>
       </section>
     );
@@ -32,27 +34,33 @@ export default function MovementCard({ date }: { date?: string }) {
   const { steps, km, minutes } = movementFor(remaining, weight);
 
   return (
-    <section aria-label="Gerak hari ini" className="rounded-2xl bg-makan-soft p-4">
+    <section aria-label={t("movement.label")} className="rounded-2xl bg-makan-soft p-4">
       <div className="flex items-center gap-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-card text-makan">
           <Footprints className="size-[1.125rem]" aria-hidden />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-bold">Gerak dikit</p>
+          <p className="text-sm font-bold">{t("movement.title")}</p>
           <p className="mt-0.5 text-sm">
-            Sisa{" "}
-            <strong className="font-extrabold text-makan-ink tabular-nums">
-              {fmtInt(remaining)} kcal
-            </strong>{" "}
-            = <strong className="font-bold tabular-nums">{fmtInt(steps)} langkah</strong> (±{" "}
-            <span className="tabular-nums">{km.toLocaleString("id-ID")} km</span> /{" "}
-            <span className="tabular-nums">{minutes} menit</span> jalan kaki)
+            <Trans
+              ns="home"
+              i18nKey="movement.body"
+              values={{
+                kcal: fmtInt(remaining),
+                steps: fmtInt(steps),
+                km: fmtNumber(km, 1),
+                minutes,
+              }}
+              components={{
+                b: <strong className="font-extrabold text-makan-ink tabular-nums" />,
+                s: <strong className="font-bold tabular-nums" />,
+                n: <span className="tabular-nums" />,
+              }}
+            />
           </p>
         </div>
       </div>
-      <p className="mt-2 pl-12 text-xs text-muted-foreground">
-        Santai jalan sore aja udah kebayang habisnya.
-      </p>
+      <p className="mt-2 pl-12 text-xs text-muted-foreground">{t("movement.hint")}</p>
     </section>
   );
 }

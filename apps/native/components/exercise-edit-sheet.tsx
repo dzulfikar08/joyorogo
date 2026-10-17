@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { useTranslation } from "react-i18next";
 
 import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import {
@@ -15,10 +16,11 @@ import {
 } from "@joyorogo/api/lib/exercise-edit";
 import { recentDayLabel } from "@joyorogo/api/lib/format";
 
+import { Disclosure } from "@/components/disclosure";
 import { DateSheet, DayChips } from "@/components/plate/date-sheet";
 import { Button, Field, Input, Num, Sheet, Text } from "@/components/ui";
 import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
-import { fmtDateMedium, fmtInt, parseNum } from "@/utils/format";
+import { fmtDateMedium, fmtInt, fmtKcalLabel, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
 type ExerciseUpdateInput = Parameters<typeof client.exercise.update>[0];
@@ -118,6 +120,7 @@ export function ExerciseEditSheet({
   row: ExerciseEditRow;
   onClose: () => void;
 }) {
+  const { t } = useTranslation(["olahraga", "common"]);
   const { theme } = useUnistyles();
   const queryClient = useQueryClient();
   const initialDuration = row.durationMin == null ? "" : fmtField(row.durationMin);
@@ -204,8 +207,8 @@ export function ExerciseEditSheet({
       const moved = input.date !== undefined && input.date !== row.date;
       return {
         message: moved
-          ? `Dipindah ke ${relativeDayLabel(input.date!, jakartaToday())}`
-          : `${input.name ?? row.name} diperbarui`,
+          ? t("edit.toast.moved", { day: relativeDayLabel(input.date!, jakartaToday()) })
+          : t("edit.toast.updated", { name: input.name ?? row.name }),
         undo: () => {
           patchExerciseEdit(new OptimisticCache(queryClient), edited(input), row);
           void client.exercise
@@ -238,10 +241,10 @@ export function ExerciseEditSheet({
       <Sheet
         visible
         onClose={onClose}
-        title="Ubah aktivitas"
+        title={t("edit.title")}
         footer={
           <Button
-            label="Simpan"
+            label={t("common:actions.save")}
             onPress={submit}
             disabled={!valid || !changed}
             loading={update.isPending}
@@ -249,34 +252,30 @@ export function ExerciseEditSheet({
         }
       >
         <View style={styles.body}>
-          <Field label="Nama">
+          <Field label={t("edit.name")}>
             <Input
               value={name}
               onChangeText={setName}
               maxLength={200}
-              accessibilityLabel="Nama aktivitas"
+              accessibilityLabel={t("form.name")}
             />
           </Field>
 
           <View style={styles.pair}>
             <View style={styles.pairField}>
-              <Field label="Durasi (menit)">
+              <Field label={t("form.duration")}>
                 <Input
                   value={durationText}
                   onChangeText={onDuration}
                   keyboardType="number-pad"
-                  accessibilityLabel="Durasi dalam menit"
+                  accessibilityLabel={t("edit.durationA11y")}
                 />
               </Field>
             </View>
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ selected: linked }}
-              accessibilityLabel={
-                linked
-                  ? "Durasi dan kalori terhubung, ketuk untuk melepas"
-                  : "Durasi dan kalori terlepas, ketuk untuk menghubungkan"
-              }
+              accessibilityLabel={linked ? t("edit.linkOn") : t("edit.linkOff")}
               onPress={toggleLink}
               style={({ pressed }) => [
                 styles.link,
@@ -291,12 +290,12 @@ export function ExerciseEditSheet({
               />
             </Pressable>
             <View style={styles.pairField}>
-              <Field label="Kalori (kcal)">
+              <Field label={t("form.kcal")}>
                 <Input
                   value={kcalText}
                   onChangeText={onKcal}
                   keyboardType="number-pad"
-                  accessibilityLabel="Kalori dalam kkal"
+                  accessibilityLabel={t("edit.kcalA11y")}
                 />
               </Field>
             </View>
@@ -304,26 +303,31 @@ export function ExerciseEditSheet({
 
           <View style={styles.preview} accessibilityLiveRegion="polite">
             <Num style={styles.previewKcal}>
-              {shownKcal !== null ? `${fmtInt(shownKcal)} kcal` : "Kalori belum valid"}
-              {!durationBlank && durationOk && typedDuration !== null
-                ? ` · ${fmtInt(Math.round(typedDuration))} menit`
-                : ""}
+              {shownKcal === null
+                ? t("edit.invalid")
+                : !durationBlank && durationOk && typedDuration !== null
+                  ? t("edit.summary", {
+                      kcal: fmtKcalLabel(shownKcal),
+                      minutes: fmtInt(Math.round(typedDuration)),
+                    })
+                  : fmtKcalLabel(shownKcal)}
             </Num>
-            <Text style={styles.hint}>
-              {!linked
-                ? "Terlepas: durasi dan kalori diisi sendiri."
-                : rate === null
-                  ? "Isi durasi dan kalori dulu, lalu ubah salah satunya agar yang lain ikut."
-                  : "Ubah durasi, kalori ikut menyesuaikan. Ketik kalori sendiri untuk mengatur ulang lajunya."}
-            </Text>
-            {sourceName ? (
-              <Text style={styles.hint}>
-                Dari {sourceName}. Perubahanmu tetap tersimpan saat sinkron ulang.
-              </Text>
-            ) : null}
           </View>
 
-          <Field label="Dicatat pada">
+          <Disclosure title={t("about.title")} plain>
+            <Text style={styles.hint}>
+              {!linked
+                ? t("edit.hint.unlinked")
+                : rate === null
+                  ? t("edit.hint.empty")
+                  : t("edit.hint.linked")}
+            </Text>
+            {sourceName ? (
+              <Text style={styles.hint}>{t("edit.fromSource", { source: sourceName })}</Text>
+            ) : null}
+          </Disclosure>
+
+          <Field label={t("edit.date")}>
             <View style={styles.dateBox}>
               <DayChips value={date} onChange={setDate} />
               <Button
@@ -334,7 +338,7 @@ export function ExerciseEditSheet({
                 onPress={() => setPickingDate(true)}
               />
               {dateChanged ? (
-                <Text style={styles.hint}>Akan dipindah ke {fmtDateMedium(date)}.</Text>
+                <Text style={styles.hint}>{t("edit.moveTo", { date: fmtDateMedium(date) })}</Text>
               ) : null}
             </View>
           </Field>
