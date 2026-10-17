@@ -236,7 +236,8 @@ describe("sendBroadcast", () => {
     expect(outbox.map((m) => m.to).sort()).toEqual(["u00@test.id", "u01@test.id", "u02@test.id"]);
     expect(outbox.some((m) => m.to === "unv@test.id")).toBe(false);
 
-    const first = outbox[0]!;
+    // Sends run concurrently, so the outbox order is not the user order.
+    const first = outbox.find((m) => m.to === "u00@test.id")!;
     expect(first.from).toEqual({ email: BROADCAST_SENDER.email, name: BROADCAST_SENDER.name });
     expect(first.text.startsWith("Halo Orang,")).toBe(true);
     const token = await signUnsubscribeToken(SECRET, "u00");
