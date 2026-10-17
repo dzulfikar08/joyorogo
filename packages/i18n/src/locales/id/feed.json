@@ -289,10 +289,152 @@
     },
     "hrTitle": "Detak jantung",
     "routeTitle": "Rute",
-    "lockedTitle": "Detail detak jantung & rute untuk Pro",
-    "lockedBody": "Upgrade ke Pro untuk melihat detak jantung dan rute latihan yang dibagikan orang lain.",
+    "lockedTitle": "Analisis latihan untuk Pro",
+    "lockedBody": "Upgrade ke Pro untuk melihat peta, grafik, split, dan zona latihan yang dibagikan orang lain.",
     "lockedCta": "Lihat paket Pro",
     "loadFailed": "Detail latihan gagal dimuat."
+  },
+  "analysis": {
+    "distance": "Jarak",
+    "movingTime": "Waktu gerak",
+    "time": "Waktu",
+    "pace": "Pace",
+    "speed": "Kecepatan",
+    "avgPace": "Pace rata-rata",
+    "avgSpeed": "Kecepatan rata-rata",
+    "elevation": "Elevasi",
+    "elevationGain": "Tanjakan",
+    "calories": "Kalori",
+    "energy": "Energi",
+    "perHour": "Per jam",
+    "fat": "Lemak",
+    "carbs": "Karbo",
+    "avgHr": "HR rata-rata",
+    "maxHr": "HR maks",
+    "hr": "Detak jantung",
+    "cadence": "Kadens",
+    "power": "Daya",
+    "movingElapsed": "Bergerak {{moving}} / Total {{elapsed}}",
+    "map": {
+      "aria": "Peta rute",
+      "unavailable": "Peta tidak bisa ditampilkan di perangkat ini."
+    },
+    "chart": {
+      "metric": "Metrik grafik",
+      "hint": "Geser di grafik untuk lihat detailnya.",
+      "distance": "Jarak",
+      "time": "Waktu",
+      "aria": "Grafik {{metric}}, dari {{from}} sampai {{to}} {{unit}}. Pakai tombol panah kiri dan kanan untuk menelusuri latihan."
+    },
+    "splits": {
+      "title": "Split",
+      "km": "Km",
+      "elev": "Elev",
+      "hr": "HR",
+      "cad": "Kad"
+    },
+    "hrZones": {
+      "title": "Zona detak jantung",
+      "z1": "Z1 Pemulihan",
+      "z2": "Z2 Daya tahan",
+      "z3": "Z3 Tempo",
+      "z4": "Z4 Ambang",
+      "z5": "Z5 Anaerobik",
+      "range": "{{from}}-{{to}} bpm",
+      "below": "Di bawah {{bpm}} bpm: {{time}}",
+      "maxFromAge": "HR maks {{bpm}} bpm (dari usiamu)",
+      "maxFromSetting": "HR maks {{bpm}} bpm (pengaturanmu)"
+    },
+    "paceZones": {
+      "title": "Zona pace",
+      "recovery": "Pemulihan",
+      "endurance": "Daya tahan",
+      "tempo": "Tempo",
+      "threshold": "Ambang",
+      "vo2": "VO2 maks",
+      "range": "{{from}}-{{to}} /km",
+      "slower": "Lebih lambat dari {{pace}} /km",
+      "faster": "Lebih cepat dari {{pace}} /km",
+      "thresholdPace": "Perkiraan pace ambang {{pace}} /km"
+    },
+    "efforts": {
+      "title": "Usaha terbaik",
+      "names": {
+        "400m": "400 m",
+        "1k": "1 km",
+        "1mi": "1 mil",
+        "5k": "5 km",
+        "10k": "10 km",
+        "half": "Half marathon"
+      },
+      "pace": "{{pace}} /km",
+      "at": "di {{distance}}",
+      "pr": "PR",
+      "second": "ke-2",
+      "third": "ke-3",
+      "note": "Dibandingkan dengan latihan serupa milikmu dalam 120 hari terakhir."
+    },
+    "effort": {
+      "title": "Relative effort",
+      "outOf": "dari 21",
+      "aria": "Relative effort {{strain}} dari 21",
+      "band": {
+        "light": "Ringan",
+        "moderate": "Sedang",
+        "hard": "Berat",
+        "max": "Habis-habisan"
+      },
+      "addedToDay": "Menambah {{value}} ke strain hari ini",
+      "explain": "Relative Effort di sini adalah strain JoyoFit: skor 0 sampai 21 dari seberapa lama detak jantungmu berada di tiap zona."
+    },
+    "load": {
+      "title": "Beban latihan",
+      "thisWorkout": "Latihan ini",
+      "last7": "7 hari terakhir",
+      "weeklyAvg": "Rata-rata mingguan",
+      "wording": {
+        "under": "Rendah",
+        "steady": "Stabil",
+        "high": "Tinggi",
+        "spike": "Lonjakan"
+      },
+      "explain": {
+        "under": "7 hari terakhirmu lebih ringan dari minggu biasanya.",
+        "steady": "7 hari terakhirmu sama dengan minggu biasanya.",
+        "high": "7 hari terakhirmu lebih berat dari biasanya. Perhatikan pemulihanmu.",
+        "spike": "Lonjakan besar dari minggu biasanya. Santai dulu beberapa hari."
+      },
+      "noHistory": "Belum cukup latihan sebelumnya untuk dibandingkan dengan minggu biasamu.",
+      "aerobic": "Efek aerobik",
+      "anaerobic": "Efek anaerobik",
+      "recovery": "Pemulihan",
+      "hours": "{{hours}} jam",
+      "watchLoad": "Beban jam"
+    },
+    "laps": {
+      "title": "Lap",
+      "lap": "Lap",
+      "avgHr": "HR",
+      "maxHr": "Maks",
+      "cad": "Kad",
+      "gain": "Naik"
+    },
+    "comparison": {
+      "title": "Dibanding sebelumnya",
+      "byDistance": "Jarak serupa",
+      "byDuration": "Durasi serupa",
+      "date": "Tanggal",
+      "thisWorkout": "Yang ini",
+      "vsPrevious": "vs terakhir serupa",
+      "vsAverage": "vs rata-rata",
+      "faster": "{{value}} dtk/km lebih cepat",
+      "slower": "{{value}} dtk/km lebih lambat",
+      "fasterKmh": "{{value}} km/jam lebih cepat",
+      "slowerKmh": "{{value}} km/jam lebih lambat",
+      "samePace": "Pace sama",
+      "sameHr": "Detak jantung sama",
+      "hrDelta": "HR {{value}} bpm"
+    }
   },
   "postPage": {
     "title": "Postingan JoyoRogo",

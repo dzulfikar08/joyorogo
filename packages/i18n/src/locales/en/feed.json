@@ -293,10 +293,152 @@
     },
     "hrTitle": "Heart rate",
     "routeTitle": "Route",
-    "lockedTitle": "Heart rate & route detail is for Pro",
-    "lockedBody": "Upgrade to Pro to see heart rate and route of workouts shared by others.",
+    "lockedTitle": "Workout analysis is for Pro",
+    "lockedBody": "Upgrade to Pro to see the map, charts, splits and zones of workouts shared by others.",
     "lockedCta": "See Pro plans",
     "loadFailed": "Couldn't load workout detail."
+  },
+  "analysis": {
+    "distance": "Distance",
+    "movingTime": "Moving time",
+    "time": "Time",
+    "pace": "Pace",
+    "speed": "Speed",
+    "avgPace": "Avg pace",
+    "avgSpeed": "Avg speed",
+    "elevation": "Elevation",
+    "elevationGain": "Elev gain",
+    "calories": "Calories",
+    "energy": "Energy",
+    "perHour": "Per hour",
+    "fat": "Fat",
+    "carbs": "Carbs",
+    "avgHr": "Avg HR",
+    "maxHr": "Max HR",
+    "hr": "Heart rate",
+    "cadence": "Cadence",
+    "power": "Power",
+    "movingElapsed": "Moving {{moving}} / Elapsed {{elapsed}}",
+    "map": {
+      "aria": "Route map",
+      "unavailable": "The map can't be shown on this device."
+    },
+    "chart": {
+      "metric": "Chart metric",
+      "hint": "Slide across the chart to see details.",
+      "distance": "Distance",
+      "time": "Time",
+      "aria": "{{metric}} chart, from {{from}} to {{to}} {{unit}}. Use the left and right arrow keys to move through the workout."
+    },
+    "splits": {
+      "title": "Splits",
+      "km": "Km",
+      "elev": "Elev",
+      "hr": "HR",
+      "cad": "Cad"
+    },
+    "hrZones": {
+      "title": "Heart rate zones",
+      "z1": "Z1 Recovery",
+      "z2": "Z2 Endurance",
+      "z3": "Z3 Tempo",
+      "z4": "Z4 Threshold",
+      "z5": "Z5 Anaerobic",
+      "range": "{{from}}-{{to}} bpm",
+      "below": "Below {{bpm}} bpm: {{time}}",
+      "maxFromAge": "Max HR {{bpm}} bpm (from your age)",
+      "maxFromSetting": "Max HR {{bpm}} bpm (your setting)"
+    },
+    "paceZones": {
+      "title": "Pace zones",
+      "recovery": "Recovery",
+      "endurance": "Endurance",
+      "tempo": "Tempo",
+      "threshold": "Threshold",
+      "vo2": "VO2 max",
+      "range": "{{from}}-{{to}} /km",
+      "slower": "Slower than {{pace}} /km",
+      "faster": "Faster than {{pace}} /km",
+      "thresholdPace": "Estimated threshold pace {{pace}} /km"
+    },
+    "efforts": {
+      "title": "Best efforts",
+      "names": {
+        "400m": "400 m",
+        "1k": "1 km",
+        "1mi": "1 mile",
+        "5k": "5 km",
+        "10k": "10 km",
+        "half": "Half marathon"
+      },
+      "pace": "{{pace}} /km",
+      "at": "at {{distance}}",
+      "pr": "PR",
+      "second": "2nd",
+      "third": "3rd",
+      "note": "Ranked against your similar workouts from the last 120 days."
+    },
+    "effort": {
+      "title": "Relative effort",
+      "outOf": "of 21",
+      "aria": "Relative effort {{strain}} of 21",
+      "band": {
+        "light": "Light",
+        "moderate": "Moderate",
+        "hard": "Hard",
+        "max": "All out"
+      },
+      "addedToDay": "Added {{value}} to today's strain",
+      "explain": "Relative Effort here is JoyoFit's strain: a 0 to 21 score from how long your heart rate stayed in each zone."
+    },
+    "load": {
+      "title": "Training load",
+      "thisWorkout": "This workout",
+      "last7": "Last 7 days",
+      "weeklyAvg": "Weekly average",
+      "wording": {
+        "under": "Under",
+        "steady": "Steady",
+        "high": "High",
+        "spike": "Spike"
+      },
+      "explain": {
+        "under": "Your last 7 days are lighter than your usual week.",
+        "steady": "Your last 7 days match your usual week.",
+        "high": "Your last 7 days are heavier than usual. Keep an eye on recovery.",
+        "spike": "A big jump over your usual week. Take it easier for a few days."
+      },
+      "noHistory": "Not enough earlier workouts yet to compare with your usual week.",
+      "aerobic": "Aerobic effect",
+      "anaerobic": "Anaerobic effect",
+      "recovery": "Recovery",
+      "hours": "{{hours}} h",
+      "watchLoad": "Watch load"
+    },
+    "laps": {
+      "title": "Laps",
+      "lap": "Lap",
+      "avgHr": "HR",
+      "maxHr": "Max",
+      "cad": "Cad",
+      "gain": "Gain"
+    },
+    "comparison": {
+      "title": "Compared with before",
+      "byDistance": "Similar distance",
+      "byDuration": "Similar duration",
+      "date": "Date",
+      "thisWorkout": "This one",
+      "vsPrevious": "vs last similar",
+      "vsAverage": "vs average",
+      "faster": "{{value}} s/km faster",
+      "slower": "{{value}} s/km slower",
+      "fasterKmh": "{{value}} km/h faster",
+      "slowerKmh": "{{value}} km/h slower",
+      "samePace": "Same pace",
+      "sameHr": "Same heart rate",
+      "hrDelta": "HR {{value}} bpm"
+    }
   },
   "postPage": {
     "title": "JoyoRogo post",
