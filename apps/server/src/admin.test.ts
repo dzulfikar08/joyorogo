@@ -9,6 +9,8 @@ import { Hono } from "hono";
 import type { JoyoAuth } from "@joyorogo/auth";
 import type { Database } from "@joyorogo/db";
 
+import { RETRY_TAP_CUTOVER_MS } from "@joyorogo/api/lib/scan-outcome";
+
 import { registerAdminRoutes } from "./admin";
 
 const client = createClient({ url: ":memory:" });
@@ -256,9 +258,8 @@ describe("feedback", () => {
   const now = Date.now();
   const HOUR = 3_600_000;
   const DAY = 24 * HOUR;
-  // Mirrors RETRY_TAP_CUTOVER_MS in admin.ts.
-  const cutover = Date.parse("2026-10-18T00:00:00+07:00");
-  const legacyAt = Math.min(now, cutover) - 1000;
+  // One second before the production cutover: a legacy retry tap, whatever today's date is.
+  const legacyAt = RETRY_TAP_CUTOVER_MS - 1000;
   const legacyInWindow = now - legacyAt <= 90 * DAY;
   const wib = (ms: number) => new Date(ms + 7 * HOUR).toISOString().slice(0, 10);
   const diff = (aiKcal: number, savedKcal: number) => ({
