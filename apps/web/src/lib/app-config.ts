@@ -1,3 +1,4 @@
+import { fmtIdr } from "@joyorogo/i18n";
 import { useQuery } from "@tanstack/react-query";
 
 import { env } from "@/env.public";
@@ -67,7 +68,7 @@ export function useAppConfig() {
 }
 
 export function fmtRupiah(amount: number): string {
-  return `Rp${amount.toLocaleString("id-ID")}`;
+  return fmtIdr(amount);
 }
 
 /** Founder scan allowance as sold: the daily cap when the server sets one. */

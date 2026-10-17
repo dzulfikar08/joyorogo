@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef } from "react";
 
 import {
   DELETE_COMMIT_MS,
-  UNDO_LABEL,
+  undoLabel,
   UNDO_TOAST_MS,
   applySummaryDelta,
   applyWeightCheckIn,
@@ -145,7 +145,7 @@ export function useOptimisticMutation<TInput, TData, TContext = void>(config: {
         toast.success(
           feedback.message,
           undefined,
-          feedback.undo ? { label: UNDO_LABEL, onPress: feedback.undo } : undefined,
+          feedback.undo ? { label: undoLabel(), onPress: feedback.undo } : undefined,
         );
       }
     },
@@ -222,10 +222,10 @@ export function useDelayedDelete<TRow extends { id: string }>(config: {
       const restore = () => snapshot.restore();
 
       toast.success(
-        deletedMsg(configRef.current.label(row), configRef.current.fallback ?? "Catatan"),
+        deletedMsg(configRef.current.label(row), configRef.current.fallback),
         undefined,
         {
-          label: UNDO_LABEL,
+          label: undoLabel(),
           onPress: () => {
             const entry = pending.current.get(row.id);
             if (entry === undefined || entry.committed) return;
@@ -251,4 +251,4 @@ export function useDelayedDelete<TRow extends { id: string }>(config: {
   );
 }
 
-export { UNDO_LABEL, UNDO_TOAST_MS, DELETE_COMMIT_MS };
+export { undoLabel, UNDO_TOAST_MS, DELETE_COMMIT_MS };

@@ -9,13 +9,13 @@ import { recentDayLabel } from "@joyorogo/api/lib/format";
 import { formatDistance, visitAgeLabel } from "@joyorogo/api/lib/places";
 import type { PlaceSummary } from "@joyorogo/api/lib/places";
 
-import { fmtIdr } from "@/components/plate/belanja";
+import { fmtIdr } from "@/utils/format";
 import { PlaceThumb } from "@/components/places/place-thumb";
 import { StickerHero } from "@/components/sticker";
 import { Button, ErrorState, Num, Sheet, Skeleton, Text } from "@/components/ui";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
-import { fmtKcal } from "@/utils/format";
+import { fmtInt } from "@/utils/format";
 
 type RelogResult = { items: Array<{ id: string }>; meal: string };
 
@@ -139,7 +139,7 @@ export function PlaceDetailSheet({
                   </Text>
                   <View style={styles.visitMeta}>
                     <Ionicons name="flame" size={13} color={theme.colors.kcalText} />
-                    <Num style={styles.muted}>{fmtKcal(visit.kcal)} kkal</Num>
+                    <Num style={styles.muted}>{fmtInt(visit.kcal)} kkal</Num>
                     {visit.priceIdr != null ? (
                       <Text style={styles.muted}>{fmtIdr(visit.priceIdr)}</Text>
                     ) : null}

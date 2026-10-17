@@ -55,7 +55,7 @@ import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { pushDaySnapshot } from "@/src/lib/widgets/push";
 import { useHealthAutoSync } from "@/src/lib/use-health-sync";
-import { errorMessage, fmtDateId, fmtKcal, fmtKg, weeklyRateLabel } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtInt, fmtKg, weeklyRateLabel } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 type TrendPoint = { date: string; weightKg: number; trendKg: number };
@@ -255,9 +255,9 @@ export default function Dashboard() {
     }>;
     const txt = [
       "Ringkasan Minggu Ini",
-      `Defisit: ${fmtKcal(data.deficit.deficitKcal)} kkal`,
+      `Defisit: ${fmtInt(data.deficit.deficitKcal)} kkal`,
       `Streak: ${data.streakDays} hari`,
-      `Rata-rata makan: ${fmtKcal(Math.round(data.weekEatenKcal / 7))} kkal/hari`,
+      `Rata-rata makan: ${fmtInt(Math.round(data.weekEatenKcal / 7))} kkal/hari`,
       `Tren berat: ${pts.map((t) => t.weightKg.toFixed(1) + "kg").join(" → ")}`,
       `Dibuat dengan JoyoRogo: ${shareUrl("/", "recap")}`,
     ].join("\n");
@@ -274,7 +274,7 @@ export default function Dashboard() {
           <Text style={styles.greetTitle}>
             {greetingId(new Date())}, {firstName}
           </Text>
-          <Text style={styles.greetCaption}>{fmtDateId(jakartaToday())}</Text>
+          <Text style={styles.greetCaption}>{fmtDateMedium(jakartaToday())}</Text>
         </View>
         {data.streakDays > 0 ? (
           <View
@@ -339,18 +339,18 @@ export default function Dashboard() {
             adjustsFontSizeToFit
             numberOfLines={1}
           >
-            {fmtKcal(Math.abs(data.targets.eatKcal - data.eatenKcal))}
+            {fmtInt(Math.abs(data.targets.eatKcal - data.eatenKcal))}
           </Num>
           <Text style={styles.heroLabel}>kcal</Text>
         </Ring>
         <View style={styles.heroStats}>
           <View style={styles.heroStat}>
             <Text style={styles.heroStatLabel}>Target</Text>
-            <Num style={styles.heroStatValue}>{fmtKcal(data.targets.eatKcal)}</Num>
+            <Num style={styles.heroStatValue}>{fmtInt(data.targets.eatKcal)}</Num>
           </View>
           <View style={[styles.heroStat, styles.heroStatMid]}>
             <Text style={styles.heroStatLabel}>Dimakan</Text>
-            <Num style={styles.heroStatValue}>{fmtKcal(data.eatenKcal)}</Num>
+            <Num style={styles.heroStatValue}>{fmtInt(data.eatenKcal)}</Num>
           </View>
           <View style={styles.heroStat}>
             <Text style={styles.heroStatLabel}>Defisit</Text>
@@ -360,7 +360,7 @@ export default function Dashboard() {
                 deficitKcal !== null && deficitKcal >= 0 && { color: theme.colors.makanText },
               ]}
             >
-              {deficitKcal !== null ? fmtKcal(deficitKcal) : "–"}
+              {deficitKcal !== null ? fmtInt(deficitKcal) : "–"}
             </Num>
           </View>
         </View>
@@ -377,7 +377,7 @@ export default function Dashboard() {
         ) : null}
         {over ? (
           <Text style={styles.heroNote}>
-            Lewat {fmtKcal(data.eatenKcal - data.targets.eatKcal)} kcal dari budget. Ringan saja
+            Lewat {fmtInt(data.eatenKcal - data.targets.eatKcal)} kcal dari budget. Ringan saja
             hari ini, besok jalan lagi.
           </Text>
         ) : null}
@@ -403,8 +403,8 @@ export default function Dashboard() {
           icon="flame"
           tint="bakar"
           label="Bakar"
-          value={fmtKcal(data.burnedKcal)}
-          sub={`dari ${fmtKcal(data.targets.burnKcal)} kcal`}
+          value={fmtInt(data.burnedKcal)}
+          sub={`dari ${fmtInt(data.targets.burnKcal)} kcal`}
           onPress={() => router.navigate("/olahraga")}
         />
         <StatTile
@@ -419,8 +419,8 @@ export default function Dashboard() {
           macro="protein"
           tint="makan"
           label="Protein"
-          value={data.protein ? `${fmtKcal(data.protein.eatenG)}g` : "–"}
-          sub={data.protein ? `dari ${fmtKcal(data.protein.targetG)} g` : "catat makan dulu"}
+          value={data.protein ? `${fmtInt(data.protein.eatenG)}g` : "–"}
+          sub={data.protein ? `dari ${fmtInt(data.protein.targetG)} g` : "catat makan dulu"}
           onPress={() => router.navigate("/makan")}
         />
       </View>
@@ -446,7 +446,7 @@ export default function Dashboard() {
                   {idea.name}
                 </Text>
                 <MetaLine
-                  items={[`${fmtKcal(idea.kcal)} kcal`, `${fmtKcal(idea.proteinG)} g protein`]}
+                  items={[`${fmtInt(idea.kcal)} kcal`, `${fmtInt(idea.proteinG)} g protein`]}
                   itemStyle={styles.ideaChipMeta}
                 />
               </View>
@@ -468,7 +468,7 @@ export default function Dashboard() {
               key={slot}
               title={MEAL_LABELS[slot]}
               subtitle={kcal > 0 ? undefined : "Belum ada catatan"}
-              value={kcal > 0 ? `${fmtKcal(kcal)} kcal` : undefined}
+              value={kcal > 0 ? `${fmtInt(kcal)} kcal` : undefined}
               chevron
               onPress={() => router.navigate("/makan")}
             />
@@ -503,7 +503,7 @@ export default function Dashboard() {
                 <Text style={styles.plateName} numberOfLines={1}>
                   {item.name}
                 </Text>
-                <Text style={styles.plateKcal}>{fmtKcal(item.kcal)} kcal</Text>
+                <Text style={styles.plateKcal}>{fmtInt(item.kcal)} kcal</Text>
               </View>
             ))}
           </ScrollView>
@@ -528,7 +528,7 @@ export default function Dashboard() {
                 </Text>
                 {data.trend.projectedDate ? (
                   <Text style={styles.trendRateSub}>
-                    target {fmtDateId(data.trend.projectedDate)}
+                    target {fmtDateMedium(data.trend.projectedDate)}
                   </Text>
                 ) : null}
               </View>
@@ -581,7 +581,7 @@ export default function Dashboard() {
             <View style={styles.factBox}>
               <Text style={styles.factLabel}>Fakta kalori hari ini</Text>
               <Text style={styles.factText}>
-                {fact.text} = {fmtKcal(fact.kcal)} kcal, setara {fact.move}
+                {fact.text} = {fmtInt(fact.kcal)} kcal, setara {fact.move}
               </Text>
             </View>
             <ListRow
@@ -617,12 +617,12 @@ export default function Dashboard() {
         <View style={styles.adaptiveBody}>
           <Text style={styles.adaptivePara}>
             Rumus standar memperkirakan tubuhmu membakar{" "}
-            <Num style={styles.adaptiveStrong}>{fmtKcal(data.targets.formulaTdee)} kcal</Num>{" "}
+            <Num style={styles.adaptiveStrong}>{fmtInt(data.targets.formulaTdee)} kcal</Num>{" "}
             sehari.
           </Text>
           <Text style={styles.adaptivePara}>
             Dari catatan makan dan timbanganmu 4 minggu terakhir, pembakaran nyatamu sekitar{" "}
-            <Num style={styles.adaptiveStrong}>{fmtKcal(data.targets.tdee)} kcal</Num>. Target makan
+            <Num style={styles.adaptiveStrong}>{fmtInt(data.targets.tdee)} kcal</Num>. Target makan
             memakai angka ini supaya pas dengan tubuhmu, bukan rata-rata orang.
           </Text>
           <Text style={styles.adaptiveMuted}>

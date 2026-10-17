@@ -1,5 +1,6 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { Share2, Star, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 /**
  * Secondary actions at the bottom of the diary edit sheets: Favorit toggle,
@@ -17,6 +18,7 @@ export function SheetActions({
   onShare?: () => void;
   onDelete?: () => void;
 }) {
+  const { t } = useTranslation(["makan", "common"]);
   return (
     <div className="flex flex-wrap gap-2 border-t border-border pt-4">
       <Button
@@ -28,12 +30,12 @@ export function SheetActions({
         className={favorite ? "text-makan-ink" : undefined}
       >
         <Star className={favorite ? "fill-current" : undefined} aria-hidden />
-        {favorite ? "Hapus dari Favorit" : "Simpan ke Favorit"}
+        {favorite ? t("sheetActions.removeFavorite") : t("sheetActions.addFavorite")}
       </Button>
       {onShare && (
         <Button type="button" variant="outline" size="sm" onClick={onShare}>
           <Share2 aria-hidden />
-          Bagikan
+          {t("sheetActions.share")}
         </Button>
       )}
       {onDelete && (
@@ -45,7 +47,7 @@ export function SheetActions({
           className="text-destructive hover:text-destructive"
         >
           <Trash2 aria-hidden />
-          Hapus
+          {t("common:actions.delete")}
         </Button>
       )}
     </div>

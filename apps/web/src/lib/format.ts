@@ -1,33 +1,17 @@
-const numberFormat = new Intl.NumberFormat("id-ID");
-
-/** Integer with Indonesian separators (FR-10) — kcal and grams display. */
-export function fmtInt(n: number): string {
-  return numberFormat.format(Math.round(n));
-}
-
-/** kg with exactly one decimal and Indonesian comma (FR-10). */
-export function fmtKg(n: number): string {
-  return (Math.round(n * 10) / 10).toLocaleString("id-ID", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-}
-
-/** Waist-to-height ratio with up to two Indonesian decimals (0,53). */
-export function fmtRatio(ratio: number): string {
-  return ratio.toLocaleString("id-ID", { maximumFractionDigits: 2 });
-}
-
-/** 'YYYY-MM-DD' (WIB calendar day) -> "Minggu, 14 September 2026". */
-export function fmtDateIndo(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
+// Number and date formatting is shared with native and the server: see
+// @joyorogo/i18n (docs/i18n.md). Re-exported here so screens keep one import.
+export {
+  fmtDateLong,
+  fmtDateMedium,
+  fmtDateShort,
+  fmtGramsLabel,
+  fmtIdr,
+  fmtInt,
+  fmtKcalLabel,
+  fmtKg,
+  fmtRatio,
+  timeAgo,
+} from "@joyorogo/i18n";
 
 /** WIB date N days from now as 'YYYY-MM-DD' (fixed UTC+7, no DST). */
 export function jakartaDatePlusDays(days: number): string {
@@ -40,17 +24,4 @@ export function parseNum(value: string): number | null {
   if (normalized === "") return null;
   const n = Number(normalized);
   return Number.isFinite(n) ? n : null;
-}
-
-/** "baru saja", "5 menit lalu", "2 jam lalu", "3 hari lalu" — for feeds. */
-export function timeAgo(at: Date | string): string {
-  const seconds = Math.max(0, (Date.now() - new Date(at).getTime()) / 1000);
-  if (seconds < 60) return "baru saja";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} menit lalu`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} jam lalu`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} hari lalu`;
-  return new Date(at).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 }

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Pressable, Switch, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 
 import {
@@ -28,6 +29,7 @@ import { useOptimisticMutation } from "@/lib/optimistic";
  * visibility default, dan daftar blokir dengan buka blokir.
  */
 export function FeedSettingsCard() {
+  const { t } = useTranslation(["settings", "common"]);
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -55,11 +57,11 @@ export function FeedSettingsCard() {
       setEditOpen(false);
       const previous = context ?? null;
       return {
-        message: "Pengaturan feed tersimpan.",
+        message: t("feed.saved"),
         undo: previous === null ? undefined : () => update.mutate(previous),
       };
     },
-    onError: (e) => toast.error("Gagal menyimpan", errorMessage(e)),
+    onError: (e) => toast.error(t("feed.saveFailed"), errorMessage(e)),
     invalidate: () => [orpc.social.key()],
   });
 
@@ -72,7 +74,7 @@ export function FeedSettingsCard() {
 
   return (
     <>
-      <Text style={styles.sectionLabel}>Feed komunitas</Text>
+      <Text style={styles.sectionLabel}>{t("section.feed")}</Text>
       {profile.isPending ? (
         <Skeleton width="100%" height={160} radius={24} />
       ) : profile.isError ? (
@@ -84,26 +86,26 @@ export function FeedSettingsCard() {
           <ListRow
             icon="at"
             iconTint="makan"
-            title="Handle & bio"
-            subtitle={data?.handle ? `@${data.handle}` : "Belum ada handle"}
+            title={t("feed.handle.title")}
+            subtitle={data?.handle ? `@${data.handle}` : t("feed.handle.none")}
             chevron
             onPress={() => setEditOpen(true)}
           />
           <ListRow
             icon="globe-outline"
             iconTint="tidur"
-            title="Profil publik"
-            subtitle="Post publik tampil di Jelajah"
-            value={data?.publicProfile ? "Nyala" : "Mati"}
+            title={t("feed.public.title")}
+            subtitle={t("feed.public.subtitleNative")}
+            value={data?.publicProfile ? t("feed.public.on") : t("feed.public.off")}
           />
           <ListRow
             icon="lock-closed-outline"
             iconTint="bakar"
-            title="Blokir"
+            title={t("feed.blocked.rowNative")}
             subtitle={
               (blockList.data?.length ?? 0) > 0
-                ? `${blockList.data!.length} akun diblokir`
-                : "Belum ada yang diblokir"
+                ? t("feed.blocked.blockedCount", { count: blockList.data!.length })
+                : t("feed.blocked.none")
             }
             chevron
             onPress={() => setBlockOpen(true)}
@@ -130,21 +132,19 @@ export function FeedSettingsCard() {
       <Sheet
         visible={blockOpen}
         onClose={() => setBlockOpen(false)}
-        title="Akun diblokir"
+        title={t("feed.blocked.title")}
       >
         {blockList.isPending ? (
           <Skeleton width="100%" height={120} radius={24} />
         ) : (blockList.data?.length ?? 0) === 0 ? (
-          <Text style={styles.muted}>
-            Belum ada akun yang kamu blokir. Blokir menyembunyikan konten dua arah.
-          </Text>
+          <Text style={styles.muted}>{t("feed.blocked.emptyNative")}</Text>
         ) : (
           <View style={styles.peopleList}>
             {blockList.data!.map((person) => (
               <View key={person.id} style={styles.personRow}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Profil ${person.name}`}
+                  accessibilityLabel={t("feed.blocked.profileAria", { name: person.name })}
                   onPress={() => {
                     setBlockOpen(false);
                     openAuthor(person.handle);
@@ -160,7 +160,7 @@ export function FeedSettingsCard() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  label="Buka blokir"
+                  label={t("feed.blocked.unblock")}
                   loading={unblock.isPending && unblock.variables === person.id}
                   onPress={() => unblock.mutate(person.id)}
                 />
@@ -200,6 +200,7 @@ function FeedSettingsSheet({
     defaultVisibility?: Visibility;
   }) => void;
 }) {
+  const { t } = useTranslation(["settings", "common"]);
   const [handle, setHandle] = useState(initial.handle);
   const [bio, setBio] = useState(initial.bio);
   const [publicProfile, setPublicProfile] = useState(initial.publicProfile);
@@ -221,10 +222,10 @@ function FeedSettingsSheet({
     <Sheet
       visible={visible}
       onClose={onClose}
-      title="Pengaturan feed"
+      title={t("feed.sheetTitleNative")}
       footer={
         <Button
-          label="Simpan"
+          label={t("common:actions.save")}
           loading={pending}
           disabled={pending || !handleValid}
           onPress={() =>
@@ -238,60 +239,57 @@ function FeedSettingsSheet({
         />
       }
     >
-      <Field
-        label="Handle"
-        hint="Huruf kecil, angka, dan garis bawah; 3-20 karakter."
-      >
+      <Field label={t("feed.handle.label")} hint={t("feed.handle.hint")}>
         <Input
           value={handle}
           onChangeText={setHandle}
           autoCapitalize="none"
           autoCorrect={false}
-          placeholder="nama_kamu"
+          placeholder={t("feed.handle.placeholderNative")}
         />
       </Field>
-      {!handleValid ? (
-        <Text style={styles.error}>
-          Handle 3-20 karakter, hanya huruf kecil, angka, dan _.
-        </Text>
-      ) : null}
+      {!handleValid ? <Text style={styles.error}>{t("feed.handle.error")}</Text> : null}
 
-      <Field label={`Bio · ${bio.length}/${BIO_MAX}`}>
-        <Input value={bio} onChangeText={setBio} maxLength={BIO_MAX} multiline placeholder="Ceritakan perjalananmu" />
+      <Field label={t("feed.bio.labelCount", { length: bio.length, max: BIO_MAX })}>
+        <Input
+          value={bio}
+          onChangeText={setBio}
+          maxLength={BIO_MAX}
+          multiline
+          placeholder={t("feed.bio.placeholderNative")}
+        />
       </Field>
 
-      <Field label="Profil publik">
+      <Field label={t("feed.public.title")}>
         <ListRow
-          title="Profil publik"
-          subtitle="Wajib nyala untuk post publik di Jelajah"
+          title={t("feed.public.title")}
+          subtitle={t("feed.public.requiredNative")}
           right={
             <Switch
               value={publicProfile}
               onValueChange={setPublicProfile}
-              accessibilityLabel="Profil publik"
+              accessibilityLabel={t("feed.public.title")}
             />
           }
         />
       </Field>
 
-      <Field label="Visibility default">
+      <Field label={t("feed.visibility.label")}>
         <View style={styles.chipRow}>
           <Chip
-            label="Grup"
+            label={t("feed.visibility.groupShort")}
             selected={visibility === "grup"}
             onPress={() => setVisibility("grup")}
           />
           <Chip
-            label="Publik"
+            label={t("feed.visibility.public")}
             selected={visibility === "publik"}
             disabled={!publicProfile}
             onPress={() => setVisibility("publik")}
           />
         </View>
         {!publicProfile ? (
-          <Text style={styles.muted}>
-            Publik butuh Profil publik nyala; post grup tetap terlihat rekan tim.
-          </Text>
+          <Text style={styles.muted}>{t("feed.visibility.publicNeeded")}</Text>
         ) : null}
       </Field>
 

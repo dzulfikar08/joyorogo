@@ -1,5 +1,6 @@
 import type { ApiEnv } from "@joyorogo/api/context";
 import type { Context as ApiContext } from "@joyorogo/api/context";
+import { DEFAULT_LOCALE, LOCALE_HEADER, matchAcceptLanguage, matchLocale } from "@joyorogo/i18n";
 import type { Context as HonoContext } from "hono";
 
 import { createAuth, getDb } from "./services";
@@ -22,6 +23,10 @@ export async function createContext({ context }: CreateContextOptions): Promise<
     auth: null,
     session,
     env: workerEnv as unknown as ApiEnv,
+    locale:
+      matchLocale(context.req.header(LOCALE_HEADER)) ??
+      matchAcceptLanguage(context.req.header("Accept-Language")) ??
+      DEFAULT_LOCALE,
     clientIp: context.req.header("CF-Connecting-IP") ?? null,
     waitUntil: (promise) => context.executionCtx.waitUntil(promise),
   };

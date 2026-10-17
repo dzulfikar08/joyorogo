@@ -1,0 +1,23 @@
+{
+  "profile": {
+    "onboardingRequired": "Please finish setting up your profile first."
+  },
+  "ai": {
+    "unavailable": "The AI service isn't available right now. Please try again later.",
+    "storageUnavailable": "Photo storage isn't available right now.",
+    "photoNotFound": "We couldn't find that scan photo. Please take the photo again.",
+    "retriesExhausted_one": "You've used the {{count}} recalculation allowed for this photo. Please take a new photo.",
+    "retriesExhausted_other": "You've used all {{count}} recalculations allowed for this photo. Please take a new photo."
+  },
+  "quota": {
+    "proCapReached": "You've hit the Pro safety limit ({{count}} scans a day). Please try again tomorrow.",
+    "freeExhausted": "You've used today's AI scans ({{count}} a day). {{upsell}}",
+    "upsellUnlimited": "Pro gives you unlimited AI scans.",
+    "upsellCapped": "Pro gives you {{count}} a day."
+  },
+  "story": {
+    "empty": "We couldn't pick out any food from your story. Name the food, for example: 1 plate of fried rice.",
+    "failed": "The AI couldn't read your story. Please try again in a moment.",
+    "voiceEmpty": "We couldn't hear that clearly. Try recording again closer to the microphone."
+  }
+}

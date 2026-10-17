@@ -22,7 +22,7 @@ import { Mascot } from "@/components/mascot";
 import { Page } from "@/components/kit/surface";
 import { PlanNumbers, TargetNotesList } from "@/components/plan-numbers";
 import { trackConversion } from "@/lib/analytics";
-import { fmtDateIndo, fmtInt, fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
+import { fmtDateLong, fmtInt, fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
 import { InviteFriendsStep } from "@/components/onboarding/invite-step";
 import { useSession } from "@/lib/auth-client";
 import { orpc } from "@/utils/orpc";
@@ -458,7 +458,7 @@ function OnboardingPage() {
                     className="h-16 w-full justify-center rounded-xl text-lg font-extrabold tracking-tight"
                   >
                     <CalendarDays className="size-5 text-muted-foreground" aria-hidden />
-                    {fmtDateIndo(form.targetDate).replace(/^\w+, /, "")}
+                    {fmtDateLong(form.targetDate).replace(/^\w+, /, "")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">

@@ -1,3 +1,6 @@
+import { getActiveLocale, getT } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+
 import { shiftDate } from "./engine";
 import { daysInMonth, parseDateKey, weekdayIndex } from "./format";
 
@@ -7,43 +10,47 @@ import { daysInMonth, parseDateKey, weekdayIndex } from "./format";
  * math (no Date parsing, no Intl) so Hermes behaves like the browser.
  */
 
-export const MAKAN_VIEWS = [
-  { value: "daftar", label: "Daftar" },
-  { value: "kalender", label: "Kalender" },
-  { value: "stiker", label: "Stiker" },
-  { value: "tempat", label: "Tempat" },
-] as const;
+const MAKAN_VIEW_VALUES = ["daftar", "kalender", "stiker", "tempat"] as const;
 
-export type MakanView = (typeof MAKAN_VIEWS)[number]["value"];
+export type MakanView = (typeof MAKAN_VIEW_VALUES)[number];
+
+/** The views in switcher order; each `label` reads the active language when accessed. */
+export const MAKAN_VIEWS: ReadonlyArray<{ value: MakanView; readonly label: string }> =
+  MAKAN_VIEW_VALUES.map((value) => ({
+    value,
+    get label() {
+      return getT(getActiveLocale(), "makan")(`viewSwitcher.view.${value}`);
+    },
+  }));
 
 export const DEFAULT_MAKAN_VIEW: MakanView = "daftar";
 
 /** The view for a stored/URL value; undefined when it is not one of ours. */
 export function parseMakanView(value: unknown): MakanView | undefined {
-  return MAKAN_VIEWS.find((view) => view.value === value)?.value;
+  return MAKAN_VIEW_VALUES.find((view) => view === value);
 }
 
-const MONTHS_LONG = [
-  "Januari",
-  "Februari",
-  "Maret",
-  "April",
-  "Mei",
-  "Juni",
-  "Juli",
-  "Agustus",
-  "September",
-  "Oktober",
-  "November",
-  "Desember",
+const MONTH_KEYS = [
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "may",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "oct",
+  "nov",
+  "dec",
 ] as const;
 
-/** 'Oktober 2026' for a 'YYYY-MM' key. */
-export function monthLongLabel(monthKey: string): string {
+/** 'Oktober 2026' / 'October 2026' for a 'YYYY-MM' key. */
+export function monthLongLabel(monthKey: string, locale: Locale = getActiveLocale()): string {
   const year = Number(monthKey.slice(0, 4));
   const month = Number(monthKey.slice(5, 7));
   if (!Number.isInteger(year) || month < 1 || month > 12) return monthKey;
-  return `${MONTHS_LONG[month - 1]} ${year}`;
+  return `${getT(locale, "makan")(`calendar.monthLong.${MONTH_KEYS[month - 1]!}`)} ${year}`;
 }
 
 /** Month key `delta` months away from a 'YYYY-MM' key. */

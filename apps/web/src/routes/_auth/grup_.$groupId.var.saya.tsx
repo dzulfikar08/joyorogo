@@ -31,7 +31,7 @@ import type { VarHistory } from "@/lib/api-types";
 import { client, orpc } from "@/utils/orpc";
 import { removeById } from "@joyorogo/api/lib/optimistic";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
-import { UNDO_LABEL, UNDO_TOAST_MS, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
+import { undoLabel, UNDO_TOAST_MS, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 
 export const Route = createFileRoute("/_auth/grup_/$groupId/var/saya")({
   component: VarSayaPage,
@@ -196,7 +196,7 @@ function VarSayaPage() {
       toast.success(`Hasil baru: ${verdictStyle(scan.verdict).label}`, {
         duration: UNDO_TOAST_MS,
         action: {
-          label: UNDO_LABEL,
+          label: undoLabel(),
           onClick: () => {
             queryClient.setQueryData<VarHistory>(historyKey, (data) =>
               data

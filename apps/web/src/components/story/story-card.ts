@@ -1,5 +1,6 @@
 import { ON_TARGET_TOLERANCE, type RecapShare } from "@joyorogo/api/lib/recap";
 import { verificationLabel, type ChallengeShare, challengeShareText } from "@joyorogo/api/lib/challenge";
+import { fmtDate, fmtInt as intFmt, fmtNumber, i18n } from "@joyorogo/i18n";
 
 import { MACRO_META } from "@/lib/macro-icons";
 import { shareUrl } from "@/lib/share-links";
@@ -58,28 +59,11 @@ export type StoryTemplate = "photo" | "sticker" | "brand";
 
 export const STORY_TEMPLATES: Array<{
   id: StoryTemplate;
-  label: string;
-  hint: string;
   needsPhoto: boolean;
 }> = [
-  {
-    id: "photo",
-    label: "Foto",
-    hint: "Fotomu jadi latar, angka di bawah.",
-    needsPhoto: true,
-  },
-  {
-    id: "sticker",
-    label: "Stiker",
-    hint: "PNG transparan, tempel di atas foto storymu.",
-    needsPhoto: false,
-  },
-  {
-    id: "brand",
-    label: "Kartu",
-    hint: "Kartu JoyoRogo utuh, tinggal posting.",
-    needsPhoto: false,
-  },
+  { id: "photo", needsPhoto: true },
+  { id: "sticker", needsPhoto: false },
+  { id: "brand", needsPhoto: false },
 ];
 
 export type MealStory = {
@@ -307,14 +291,11 @@ const baselineIn = (top: number, lh: number, size: number) => top + lh / 2 + siz
 /** Natural line step for wrapped multi-line text. */
 const lineBox = (size: number) => Math.round(size * 1.3);
 
-const idFmt = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
-const intFmt = (value: number) => idFmt.format(Math.round(value));
-const dateFmt = new Intl.DateTimeFormat("id-ID", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-});
+/** Local calendar day of `date` as 'YYYY-MM-DD', for the shared date formatter. */
+function localDayKey(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${String(date.getDate()).padStart(2, "0")}`;
+}
 
 /** Hero number size: 232 px, shrunk so the digits stay under ~740 px wide. */
 function heroSize(text: string): number {
@@ -430,13 +411,9 @@ function drawContain(
 // Stats block shared by all templates.
 // ---------------------------------------------------------------------------
 
-const EYEBROWS = {
-  meal: "Makan hari ini",
-  workout: "Sesi latihan",
-  recap: "Rekap minggu",
-  progress: "Progres hari ini",
-  challenge: "Tantangan grup",
-} as const;
+function eyebrowFor(kind: StorySpec["kind"]): string {
+  return i18n.t(`makan:story.card.eyebrow.${kind}`);
+}
 
 type Row = { gap: number; height: number; paint: (top: number) => void };
 type Cell = {
@@ -465,15 +442,23 @@ type Metric = { value: string; unit: string; label?: string };
 
 function workoutMetrics(story: WorkoutStory) {
   const volume = story.volumeKg
-    ? { value: intFmt(story.volumeKg), unit: "kg", label: "Total volume" }
+    ? { value: intFmt(story.volumeKg), unit: "kg", label: i18n.t("makan:story.card.volume") }
     : null;
   const duration =
     story.durationMin != null
-      ? { value: `${Math.round(story.durationMin)}`, unit: "menit", label: "Durasi" }
+      ? {
+          value: `${Math.round(story.durationMin)}`,
+          unit: i18n.t("makan:story.card.unit.minutes"),
+          label: i18n.t("makan:story.card.duration"),
+        }
       : null;
   const sets =
     story.setsDone != null
-      ? { value: `${Math.round(story.setsDone)}`, unit: "set", label: "Set selesai" }
+      ? {
+          value: `${Math.round(story.setsDone)}`,
+          unit: i18n.t("makan:story.card.unit.sets", { count: Math.round(story.setsDone) }),
+          label: i18n.t("makan:story.card.setsDone"),
+        }
       : null;
   const hero: Metric | null = volume ?? duration ?? sets;
   const cells: Cell[] = [];
@@ -481,7 +466,7 @@ function workoutMetrics(story: WorkoutStory) {
     cells.push({
       icon: "clock",
       color: ACCENT,
-      label: "Durasi",
+      label: i18n.t("makan:story.card.duration"),
       value: duration.value,
       unit: duration.unit,
     });
@@ -490,14 +475,20 @@ function workoutMetrics(story: WorkoutStory) {
     cells.push({
       icon: "dumbbell",
       color: ACCENT,
-      label: "Set",
+      label: i18n.t("makan:story.card.sets"),
       value: sets.value,
       unit: sets.unit,
     });
   }
   const prCount = story.prs?.length ?? 0;
   if (prCount > 0) {
-    cells.push({ icon: "trophy", color: AMBER, label: "Rekor", value: `${prCount}`, unit: "baru" });
+    cells.push({
+      icon: "trophy",
+      color: AMBER,
+      label: i18n.t("makan:story.card.records"),
+      value: `${prCount}`,
+      unit: i18n.t("makan:story.card.unit.new"),
+    });
   }
   return { hero, cells };
 }
@@ -511,26 +502,28 @@ function progressCells(story: ProgressStory): Cell[] {
       label: MACRO_META.protein.label,
       value: intFmt(story.proteinG),
       unit: "g",
-      sub: story.proteinTargetG ? `dari ${intFmt(story.proteinTargetG)} g` : undefined,
+      sub: story.proteinTargetG
+        ? i18n.t("makan:story.card.ofValue", { value: `${intFmt(story.proteinTargetG)} g` })
+        : undefined,
     });
   }
   if ((story.streakDays ?? 0) > 0) {
     cells.push({
       icon: "flame",
       color: AMBER,
-      label: "Beruntun",
+      label: i18n.t("makan:story.card.streak"),
       value: `${story.streakDays}`,
-      unit: "hari",
+      unit: i18n.t("makan:story.card.unit.days", { count: story.streakDays ?? 0 }),
     });
   }
   if ((story.weightLostKg ?? 0) > 0) {
     cells.push({
       icon: "trendingDown",
       color: ACCENT,
-      label: "Turun",
-      value: idFmt.format(story.weightLostKg!),
+      label: i18n.t("makan:story.card.lost"),
+      value: fmtNumber(story.weightLostKg!, 1),
       unit: "kg",
-      sub: "dari berat awal",
+      sub: i18n.t("makan:story.card.fromStartWeight"),
     });
   }
   return cells;
@@ -558,10 +551,10 @@ function recapCells(story: RecapStory): Cell[] {
     {
       icon: "check",
       color: ACCENT,
-      label: "Sesuai target",
+      label: i18n.t("makan:story.card.onTarget"),
       value: `${story.daysOnTarget}`,
-      unit: "hari",
-      sub: `dari ${story.loggedDays} tercatat`,
+      unit: i18n.t("makan:story.card.unit.days", { count: story.daysOnTarget }),
+      sub: i18n.t("makan:story.card.ofLogged", { count: story.loggedDays }),
     },
   ];
   if (story.proteinAvgG != null) {
@@ -571,26 +564,34 @@ function recapCells(story: RecapStory): Cell[] {
       label: MACRO_META.protein.label,
       value: intFmt(story.proteinAvgG),
       unit: "g",
-      sub: story.proteinTargetG ? `target ${intFmt(story.proteinTargetG)} g` : undefined,
+      sub: story.proteinTargetG
+        ? i18n.t("makan:story.card.targetValue", { value: `${intFmt(story.proteinTargetG)} g` })
+        : undefined,
     });
   }
   if (story.streakDays > 0) {
     cells.push({
       icon: "flame",
       color: AMBER,
-      label: "Beruntun",
+      label: i18n.t("makan:story.card.streak"),
       value: `${story.streakDays}`,
-      unit: "hari",
+      unit: i18n.t("makan:story.card.unit.days", { count: story.streakDays }),
     });
   }
   if (story.exerciseKcal > 0) {
     cells.push({
       icon: "dumbbell",
       color: ACCENT,
-      label: "Olahraga",
+      label: i18n.t("makan:story.card.exercise"),
       value: intFmt(story.exerciseKcal),
       unit: "kcal",
-      sub: story.exerciseMin > 0 ? `${intFmt(story.exerciseMin)} menit` : undefined,
+      sub:
+        story.exerciseMin > 0
+          ? i18n.t("makan:story.card.minutesValue", {
+              count: Math.round(story.exerciseMin),
+              n: intFmt(story.exerciseMin),
+            })
+          : undefined,
     });
   }
   if (story.weightChangeKg != null) {
@@ -598,17 +599,17 @@ function recapCells(story: RecapStory): Cell[] {
     cells.push({
       icon: change < 0 ? "trendingDown" : change > 0 ? "trendingUp" : "minus",
       color: ACCENT,
-      label: "Berat",
-      value: `${change > 0 ? "+" : ""}${idFmt.format(change)}`,
+      label: i18n.t("makan:story.card.weight"),
+      value: `${change > 0 ? "+" : ""}${fmtNumber(change, 1)}`,
       unit: "kg",
-      sub: "tren mingguan",
+      sub: i18n.t("makan:story.card.weeklyTrend"),
     });
   }
   if (story.bestDay) {
     cells.push({
       icon: "trophy",
       color: AMBER,
-      label: "Hari terbaik",
+      label: i18n.t("makan:story.card.bestDay"),
       value: story.bestDay.label,
       unit: "",
       sub: `${intFmt(story.bestDay.kcal)} kcal`,
@@ -623,35 +624,39 @@ function challengeMetrics(share: ChallengeShare) {
   const hero: Metric = started
     ? {
         value: `${share.hitDays}/${share.judgedDays}`,
-        unit: "hari",
-        label: "Hari target tercapai",
+        unit: i18n.t("makan:story.card.unit.days", { count: share.judgedDays }),
+        label: i18n.t("makan:story.card.daysHit"),
       }
-    : { value: `${share.durationDays}`, unit: "hari", label: "Tantangan segera dimulai" };
+    : {
+        value: `${share.durationDays}`,
+        unit: i18n.t("makan:story.card.unit.days", { count: share.durationDays }),
+        label: i18n.t("makan:story.card.startingSoon"),
+      };
   const cells: Cell[] = [];
   if (started) {
     cells.push({
       icon: "flame",
       color: AMBER,
-      label: "Streak terbaik",
+      label: i18n.t("makan:story.card.bestStreak"),
       value: `${share.bestStreak}`,
-      unit: "hari",
+      unit: i18n.t("makan:story.card.unit.days", { count: share.bestStreak }),
     });
     if (share.rank !== null && share.participants > 1) {
       cells.push({
         icon: "trophy",
         color: AMBER,
-        label: "Peringkat",
+        label: i18n.t("makan:story.card.rank"),
         value: `${share.rank}`,
-        unit: `dari ${share.participants}`,
+        unit: i18n.t("makan:story.card.ofValue", { value: share.participants }),
       });
     }
   }
   cells.push({
     icon: "users",
     color: ACCENT,
-    label: "Peserta",
+    label: i18n.t("makan:story.card.participants"),
     value: `${share.participants}`,
-    unit: "orang",
+    unit: i18n.t("makan:story.card.unit.people", { count: share.participants }),
   });
   return { hero, cells };
 }
@@ -716,7 +721,7 @@ function layoutStats(
   ) => textOnBaseline(value, weight, size, color, left, baselineIn(top, lh, size), align);
 
   // Eyebrow
-  const eyebrow = (story.eyebrow ?? EYEBROWS[story.kind]).toUpperCase();
+  const eyebrow = (story.eyebrow ?? eyebrowFor(story.kind)).toUpperCase();
   rows.push({
     gap: 0,
     height: EYEBROW_LH,
@@ -760,7 +765,11 @@ function layoutStats(
     hero = { value: intFmt(story.eatenKcal), unit: "kcal" };
     cells = progressCells(story);
   } else if (story.kind === "recap") {
-    hero = { value: intFmt(story.avgKcal), unit: "kcal", label: "Rata-rata per hari" };
+    hero = {
+      value: intFmt(story.avgKcal),
+      unit: "kcal",
+      label: i18n.t("makan:story.card.avgPerDay"),
+    };
     cells = recapCells(story);
   } else {
     const metrics = challengeMetrics(story.share);
@@ -862,7 +871,10 @@ function layoutStats(
       paint: (top) =>
         withShadow(() => {
           text(
-            `dari ${intFmt(story.targetKcal)} kcal${story.kind === "recap" ? " target" : ""}`,
+            i18n.t(
+              story.kind === "recap" ? "makan:story.card.ofKcalTarget" : "makan:story.card.ofKcal",
+              { n: intFmt(story.targetKcal) },
+            ),
             600,
             36,
             soft,
@@ -928,7 +940,7 @@ function layoutStats(
       height: 48,
       paint: (top) => {
         drawIcon(ctx, "trophy", x, top + 2, 44, AMBER);
-        text("Rekor baru", 800, 36, AMBER, x + 60, top, 48);
+        text(i18n.t("makan:story.card.newRecords"), 800, 36, AMBER, x + 60, top, 48);
       },
     });
     story.prs!.slice(0, 3).forEach((pr, index) => {
@@ -955,10 +967,10 @@ function layoutStats(
     const chartH = 150;
     const label =
       delta < 0
-        ? `Turun ${idFmt.format(Math.abs(delta))} kg minggu ini`
+        ? i18n.t("makan:story.card.trend.down", { kg: fmtNumber(Math.abs(delta), 1) })
         : delta > 0
-          ? `Naik ${idFmt.format(delta)} kg minggu ini`
-          : "Stabil minggu ini";
+          ? i18n.t("makan:story.card.trend.up", { kg: fmtNumber(delta, 1) })
+          : i18n.t("makan:story.card.trend.steady");
     rows.push({
       gap: 52,
       height: 48,
@@ -1005,7 +1017,7 @@ function layoutStats(
   }
 
   // Footer: date on the left, brand pill (or site on the brand card) on the right.
-  const dateText = dateFmt.format(date);
+  const dateText = fmtDate(localDayKey(date), "long");
   rows.push({
     gap: 44,
     height: FOOTER_H,
@@ -1177,7 +1189,7 @@ export async function drawStoryCard(
   canvas.width = STORY_W;
   canvas.height = STORY_H;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Browser tidak mendukung canvas.");
+  if (!ctx) throw new Error(i18n.t("makan:story.card.canvasUnsupported"));
   ctx.clearRect(0, 0, STORY_W, STORY_H);
   await ensureFonts();
   const date = story.date ?? new Date();
@@ -1205,19 +1217,27 @@ export function defaultShareText(story: StorySpec): string {
 
 function shareBody(story: StorySpec): string {
   if (story.kind === "meal") {
-    return `${story.name}, ${idFmt.format(Math.round(story.kcal))} kcal. Tahu boleh makan apa hari ini? Cek JoyoRogo.`;
+    return i18n.t("makan:story.card.share.meal", {
+      name: story.name,
+      kcal: fmtNumber(Math.round(story.kcal), 1),
+    });
   }
   if (story.kind === "workout") {
-    return `Baru selesai latihan: ${story.name}. Catat latihanmu di JoyoRogo.`;
+    return i18n.t("makan:story.card.share.workout", { name: story.name });
   }
   if (story.kind === "recap") {
-    return `Rekapku ${story.name}: ${story.daysOnTarget} dari ${story.loggedDays} hari sesuai target, rata-rata ${idFmt.format(story.avgKcal)} kcal per hari. Catat makanmu di JoyoRogo.`;
+    return i18n.t("makan:story.card.share.recap", {
+      name: story.name,
+      on: story.daysOnTarget,
+      logged: story.loggedDays,
+      avg: fmtNumber(story.avgKcal, 1),
+    });
   }
   if (story.kind === "challenge") {
     return challengeShareText(story.share);
   }
   const lost = story.weightLostKg ?? 0;
   return lost > 0
-    ? `Sudah turun ${idFmt.format(lost)} kg. Turun berat pakai 3 angka aja di JoyoRogo.`
-    : "Turun berat pakai 3 angka aja: makan, bakar, tidur. JoyoRogo.";
+    ? i18n.t("makan:story.card.share.lost", { kg: fmtNumber(lost, 1) })
+    : i18n.t("makan:story.card.share.progress");
 }

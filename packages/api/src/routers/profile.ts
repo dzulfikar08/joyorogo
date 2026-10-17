@@ -2,6 +2,7 @@ import { and, eq, isNotNull } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { LOCALES } from "@joyorogo/i18n";
 import { user } from "@joyorogo/db/schema/auth";
 import { foodLog, profile, weightLog } from "@joyorogo/db/schema/fitness";
 
@@ -14,6 +15,7 @@ import { protectedProcedure } from "../index";
 import { computeTargets, jakartaToday } from "../lib/engine";
 import { dateSchema, profileInputSchema } from "../lib/schemas";
 import { buildPlan, planQueries } from "../lib/plan";
+import { serverT } from "../lib/messages";
 import { effectiveTier } from "../lib/tiers";
 
 /** Today's plan exactly as day.summary computes it (latest weigh-in + measured TDEE). */
@@ -65,7 +67,9 @@ export const profileRouter = {
         .where(eq(profile.userId, userId))
         .limit(1);
       if (!row) {
-        throw new ORPCError("NOT_FOUND", { message: "Lengkapi onboarding dulu ya." });
+        throw new ORPCError("NOT_FOUND", {
+          message: serverT(context.locale, "errors")("profile.onboardingRequired"),
+        });
       }
       const shareCode =
         input.enabled && !row.shareCode
@@ -130,11 +134,32 @@ export const profileRouter = {
         .where(eq(profile.userId, userId))
         .returning({ userId: profile.userId });
       if (updated.length === 0) {
-        throw new ORPCError("NOT_FOUND", { message: "Lengkapi onboarding dulu." });
+        throw new ORPCError("NOT_FOUND", {
+          message: serverT(context.locale, "errors")("profile.onboardingRequired"),
+        });
       }
       const { plan } = await loadPlan(context.db, userId);
-      if (!plan) throw new ORPCError("NOT_FOUND", { message: "Lengkapi onboarding dulu." });
+      if (!plan) {
+        throw new ORPCError("NOT_FOUND", {
+          message: serverT(context.locale, "errors")("profile.onboardingRequired"),
+        });
+      }
       return { targets: plan.targets };
+    }),
+  // Saved app language. Clients resolve saved > device choice > device language
+  // and send the result as x-locale; this stores the explicit choice so it
+  // follows the account across devices and drives push/email text. No profile
+  // row yet (before onboarding) is not an error: the device keeps the choice
+  // and syncs it once the profile exists.
+  setLocale: protectedProcedure
+    .input(z.object({ locale: z.enum(LOCALES) }))
+    .handler(async ({ context, input }) => {
+      const updated = await context.db
+        .update(profile)
+        .set({ locale: input.locale })
+        .where(eq(profile.userId, context.session.user.id))
+        .returning({ userId: profile.userId });
+      return { locale: input.locale, saved: updated.length > 0 };
     }),
   // Ramadan schedule toggle (US-022). 'auto' follows the Hijri calendar.
   setRamadanMode: protectedProcedure
@@ -159,7 +184,9 @@ export const profileRouter = {
         .where(eq(profile.userId, userId))
         .returning({ userId: profile.userId });
       if (updated.length === 0) {
-        throw new ORPCError("NOT_FOUND", { message: "Lengkapi onboarding dulu." });
+        throw new ORPCError("NOT_FOUND", {
+          message: serverT(context.locale, "errors")("profile.onboardingRequired"),
+        });
       }
       if (!input.keep) {
         await context.db

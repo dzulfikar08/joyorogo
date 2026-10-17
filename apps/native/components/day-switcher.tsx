@@ -1,5 +1,6 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -21,6 +22,7 @@ export function DaySwitcher({
   onChange: (date: string) => void;
   today?: string;
 }) {
+  const { t: tr } = useTranslation("makan");
   const { theme } = useUnistyles();
   const t = today ?? jakartaToday();
   const isToday = date === t;
@@ -28,7 +30,7 @@ export function DaySwitcher({
     <View style={styles.row}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Hari sebelumnya"
+        accessibilityLabel={tr("daySwitcher.prev")}
         onPress={() => onChange(shiftDate(date, -1))}
         style={({ pressed }) => [styles.arrow, pressed && styles.pressedSoft]}
       >
@@ -36,7 +38,7 @@ export function DaySwitcher({
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={isToday ? undefined : "Kembali ke hari ini"}
+        accessibilityLabel={isToday ? undefined : tr("daySwitcher.backToToday")}
         disabled={isToday}
         onPress={() => onChange(t)}
         hitSlop={8}
@@ -47,7 +49,7 @@ export function DaySwitcher({
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Hari berikutnya"
+        accessibilityLabel={tr("daySwitcher.next")}
         disabled={isToday}
         onPress={() => onChange(shiftDate(date, 1))}
         style={({ pressed }) => [styles.arrow, isToday && styles.disabled, pressed && styles.pressedSoft]}

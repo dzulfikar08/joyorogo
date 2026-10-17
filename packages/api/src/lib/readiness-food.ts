@@ -9,7 +9,9 @@
 // targets the guidance stays qualitative and suggests no foods.
 
 import type { FitnessDay } from "./fitness-hint";
-import { READINESS_ID, HARD_STRAIN, VERY_HARD_STRAIN, readinessFlags } from "./fitness-hint";
+import { fmtDecimal, fmtInt, getActiveLocale, getT } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+import { HARD_STRAIN, VERY_HARD_STRAIN, readinessFlags, readinessLabel } from "./fitness-hint";
 import { foodKind } from "./food-kind";
 import { mealIdeas } from "./ideas";
 import { round5 } from "./engine";
@@ -112,15 +114,6 @@ export function premiumUnlocked(
   return effectiveTier(row, now) === "founder" || !paywallEnabled(config);
 }
 
-/** 1800 -> "1.800" (id-ID grouping without depending on the runtime's ICU). */
-function fmt(n: number): string {
-  return Math.round(n)
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-}
-
-const fmtStrain = (strain: number) => strain.toFixed(1).replace(".", ",");
-
 function focusOf(day: FitnessDay): GuidanceFocus {
   const { hardDay, needsRest } = readinessFlags(day);
   if (hardDay && needsRest) return "fuel_recover";
@@ -129,20 +122,20 @@ function focusOf(day: FitnessDay): GuidanceFocus {
   return "steady";
 }
 
-const HEADLINES: Record<GuidanceFocus, string> = {
-  fuel: "Hari berat, karbohidrat perlu lebih",
-  recover: "Tubuhmu butuh pemulihan",
-  fuel_recover: "Hari berat dan tubuh belum pulih",
-  steady: "Skor hari ini seimbang",
-};
-
 /** What stands out, in the day's own numbers ("Pemulihan 28%, tidur 70% dari kebutuhan"). */
-function restReasons(day: FitnessDay): string {
+function restReasons(day: FitnessDay, locale: Locale): string {
+  const t = getT(locale, "makan");
   const { lowRecovery, shortSleep, strained } = readinessFlags(day);
   const reasons: string[] = [];
-  if (lowRecovery) reasons.push(`pemulihan ${day.recoveryPct}%`);
-  if (shortSleep) reasons.push(`tidur ${day.sleepPct}% dari kebutuhan`);
-  if (strained && day.readiness) reasons.push(`kondisi ${READINESS_ID[day.readiness].toLowerCase()}`);
+  if (lowRecovery) reasons.push(t("guidance.reason.recovery", { pct: day.recoveryPct }));
+  if (shortSleep) reasons.push(t("guidance.reason.sleep", { pct: day.sleepPct }));
+  if (strained && day.readiness) {
+    reasons.push(
+      t("guidance.reason.condition", {
+        state: readinessLabel(day.readiness, locale).toLowerCase(),
+      }),
+    );
+  }
   const text = reasons.join(", ");
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -309,28 +302,45 @@ function pickFoods(input: GuidanceInput, n: GuidanceNumbers, focus: GuidanceFocu
   return foods;
 }
 
-function basisText(input: GuidanceInput & { targets: GuidanceTargets }, n: GuidanceNumbers): string {
+function basisText(
+  input: GuidanceInput & { targets: GuidanceTargets },
+  n: GuidanceNumbers,
+  locale: Locale,
+): string {
   const { targets, day } = input;
-  const base = `Dasar: target harianmu ${fmt(targets.eatKcal)} kkal, protein ${fmt(targets.proteinG)} g, dan karbohidrat ${fmt(targets.carbsG)} g (angka yang sama dengan bar di diary), dikurangi yang sudah kamu catat hari ini.`;
+  const t = getT(locale, "makan");
+  const base = t("guidance.basis.base", {
+    kcal: fmtInt(targets.eatKcal, locale),
+    protein: fmtInt(targets.proteinG, locale),
+    carbs: fmtInt(targets.carbsG, locale),
+  });
   if (n.carbs.boostG === 0) return base;
   const pct = Math.round(carbBoostShare(day) * 100);
   const from = pct === CARB_BOOST_VERY_HARD * 100 ? VERY_HARD_STRAIN : HARD_STRAIN;
-  return `${base} Tambahan karbohidrat ${pct}% adalah aturan JoyoRogo untuk strain ${from} ke atas, bukan hitungan kalori dari jam tangan.`;
+  return `${base} ${t("guidance.basis.boost", { pct, from })}`;
 }
 
-/** The whole guidance for today; pure, so thresholds, scaling and picks are testable. */
-export function buildGuidance(input: GuidanceInput): ReadinessGuidance {
+/**
+ * The whole guidance for today; pure, so thresholds, scaling and picks are testable.
+ * Text follows `locale`: the server passes the request's language, clients the active one.
+ */
+export function buildGuidance(
+  input: GuidanceInput,
+  locale: Locale = getActiveLocale(),
+): ReadinessGuidance {
   const { day, targets } = input;
+  const t = getT(locale, "makan");
+  const fmt = (n: number) => fmtInt(n, locale);
   const focus = focusOf(day);
-  const headline = HEADLINES[focus];
+  const headline = t(`guidance.headline.${focus}`);
   const flags = readinessFlags(day);
-  const strain = day.strain === null ? "" : fmtStrain(day.strain);
+  const strain = day.strain === null ? "" : fmtDecimal(day.strain, 1, locale);
 
   if (focus === "steady" && !targets) {
     return {
       focus,
       headline,
-      lines: ["Tidak ada penyesuaian dari skor hari ini. Ikuti target harianmu."],
+      lines: [t("guidance.noAdjust")],
       basis: null,
       numbers: null,
       foods: [],
@@ -339,48 +349,58 @@ export function buildGuidance(input: GuidanceInput): ReadinessGuidance {
 
   if (!targets) {
     const lines: string[] = [];
-    if (flags.hardDay) {
-      lines.push(`Strain ${strain} tinggi: kebutuhan energi dan karbohidratmu lebih tinggi dari biasanya. Cukupi cairan juga.`);
-    }
+    if (flags.hardDay) lines.push(t("guidance.noTarget.hard", { strain }));
     if (flags.needsRest) {
-      lines.push(`${restReasons(day)}. Utamakan protein, cairan, dan istirahat hari ini.`);
+      lines.push(t("guidance.noTarget.rest", { reasons: restReasons(day, locale) }));
     }
-    lines.push("Isi profil dan target harianmu supaya porsi dan menu bisa dihitung dari angkamu sendiri.");
+    lines.push(t("guidance.noTarget.profile"));
     return { focus, headline, lines, basis: null, numbers: null, foods: [] };
   }
 
   const numbers = guidanceNumbers(day, targets, input.eaten);
   const lines: string[] = [];
 
-  if (focus === "steady") {
-    lines.push("Tidak ada penyesuaian dari skor hari ini. Ikuti target harianmu.");
-  }
+  if (focus === "steady") lines.push(t("guidance.noAdjust"));
 
   if (flags.needsRest) {
-    lines.push(
-      `${restReasons(day)}. Utamakan protein dan cairan. Tidak perlu memaksa defisit lebih besar hari ini.`,
-    );
+    lines.push(t("guidance.rest.main", { reasons: restReasons(day, locale) }));
     lines.push(
       numbers.protein.remainingG > 0
-        ? `Protein: sudah ${fmt(numbers.protein.eatenG)} g dari target ${fmt(numbers.protein.targetG)} g, sisa ${fmt(numbers.protein.remainingG)} g.`
-        : "Target protein hari ini sudah tercapai.",
+        ? t("guidance.rest.protein", {
+            eaten: fmt(numbers.protein.eatenG),
+            target: fmt(numbers.protein.targetG),
+            left: fmt(numbers.protein.remainingG),
+          })
+        : t("guidance.rest.proteinDone"),
     );
   }
 
   if (flags.hardDay) {
+    const carbs = {
+      strain,
+      goal: fmt(numbers.carbs.goalG),
+      target: fmt(numbers.carbs.targetG),
+      boost: fmt(numbers.carbs.boostG),
+      eaten: fmt(numbers.carbs.eatenG),
+      left: fmt(numbers.carbs.remainingG),
+    };
     lines.push(
-      `Strain ${strain}: target karbohidratmu hari ini ${fmt(numbers.carbs.goalG)} g (${fmt(numbers.carbs.targetG)} g + ${fmt(numbers.carbs.boostG)} g). ` +
-        (numbers.carbs.remainingG > 0
-          ? `Sudah ${fmt(numbers.carbs.eatenG)} g, sisa ${fmt(numbers.carbs.remainingG)} g. Cukupi cairan juga.`
-          : "Sudah tercapai. Cukupi cairan juga."),
+      numbers.carbs.remainingG > 0
+        ? t("guidance.hard.carbsLeft", carbs)
+        : t("guidance.hard.carbsDone", carbs),
     );
   }
 
   if (focus !== "steady") {
     lines.push(
-      numbers.roomKcal >= MIN_ROOM_KCAL
-        ? `Sisa kkal hari ini ${fmt(numbers.roomKcal)} kkal${numbers.carbs.boostG > 0 ? `, termasuk ${fmt(numbers.carbs.boostG * 4)} kkal dari tambahan karbohidrat` : ""}.`
-        : "Target kkal hari ini sudah terpenuhi, jadi tidak ada makanan tambahan yang disarankan.",
+      numbers.roomKcal < MIN_ROOM_KCAL
+        ? t("guidance.room.full")
+        : numbers.carbs.boostG > 0
+          ? t("guidance.room.withBoost", {
+              room: fmt(numbers.roomKcal),
+              boost: fmt(numbers.carbs.boostG * 4),
+            })
+          : t("guidance.room.plain", { room: fmt(numbers.roomKcal) }),
     );
   }
 
@@ -388,7 +408,7 @@ export function buildGuidance(input: GuidanceInput): ReadinessGuidance {
     focus,
     headline,
     lines,
-    basis: basisText({ ...input, targets }, numbers),
+    basis: basisText({ ...input, targets }, numbers, locale),
     numbers,
     foods: pickFoods(input, numbers, focus),
   };

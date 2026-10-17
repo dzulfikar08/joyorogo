@@ -1,20 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { dayKcalFill, monthLongLabel, monthWeeks, shiftMonth } from "@joyorogo/api/lib/diary-view";
+import { dayKcalFill, monthWeeks, shiftMonth } from "@joyorogo/api/lib/diary-view";
 import { eatTone, jakartaToday } from "@joyorogo/api/lib/engine";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
-import { shortDayLabel } from "@joyorogo/api/lib/format";
+import { fmtDate } from "@joyorogo/i18n";
 
 import { StickerMini } from "@/components/sticker";
 import { Card, Ring, Text } from "@/components/ui";
-import { fmtKcal } from "@/utils/format";
+import { fmtInt, fmtKcalLabel } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
-const WEEKDAYS = ["S", "S", "R", "K", "J", "S", "M"] as const;
+const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
 /**
  * Kalender view: month header with totals, a grid whose cells carry the day's
@@ -32,6 +33,7 @@ export function KalenderView({
   onSelect: (date: string) => void;
   children?: React.ReactNode;
 }) {
+  const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
   const today = jakartaToday();
   const [month, setMonth] = useState(date.slice(0, 7));
@@ -54,15 +56,16 @@ export function KalenderView({
     <View style={styles.wrap}>
       <View style={styles.header}>
         <View style={styles.headerText}>
-          <Text style={styles.month}>{monthLongLabel(month)}</Text>
+          <Text style={styles.month}>{fmtDate(`${month}-01`, "month")}</Text>
           <Text style={styles.counts}>
-            {fmtKcal(records)} catatan · {fmtKcal(days.length)} hari tercatat
+            {t("monthScrubber.records", { count: records, n: fmtInt(records) })} ·{" "}
+            {t("monthScrubber.daysLogged", { count: days.length, n: fmtInt(days.length) })}
           </Text>
         </View>
         <View style={styles.nav}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Bulan sebelumnya"
+            accessibilityLabel={t("calendar.prevMonth")}
             onPress={() => setMonth(shiftMonth(month, -1))}
             style={({ pressed }) => [styles.navButton, pressed && styles.pressed]}
           >
@@ -70,7 +73,7 @@ export function KalenderView({
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Bulan berikutnya"
+            accessibilityLabel={t("calendar.nextMonth")}
             disabled={!canNext}
             onPress={() => setMonth(shiftMonth(month, 1))}
             style={({ pressed }) => [
@@ -86,9 +89,9 @@ export function KalenderView({
 
       <Card style={styles.card}>
         <View style={styles.week}>
-          {WEEKDAYS.map((label, index) => (
-            <View key={`${label}-${index}`} style={styles.cellBox}>
-              <Text style={styles.weekday}>{label}</Text>
+          {WEEKDAY_KEYS.map((key) => (
+            <View key={key} style={styles.cellBox}>
+              <Text style={styles.weekday}>{t(`calendar.weekday.${key}`)}</Text>
             </View>
           ))}
         </View>
@@ -106,8 +109,12 @@ export function KalenderView({
                     accessibilityRole="button"
                     accessibilityLabel={
                       total
-                        ? `${shortDayLabel(cell.key)}, ${total.count} catatan, ${fmtKcal(total.kcal)} kcal`
-                        : `${shortDayLabel(cell.key)}, belum ada catatan`
+                        ? t("calendar.dayWithEntries", {
+                            count: total.count,
+                            date: fmtDate(cell.key, "weekday"),
+                            kcal: fmtKcalLabel(total.kcal),
+                          })
+                        : t("calendar.dayEmpty", { date: fmtDate(cell.key, "weekday") })
                     }
                     accessibilityState={{ selected, disabled: future }}
                     disabled={future}
@@ -160,9 +167,13 @@ export function KalenderView({
         ))}
         <View style={styles.footer}>
           <Ionicons name="calendar-outline" size={16} color={theme.colors.mutedForeground} />
-          <Text style={styles.footerText}>{fmtKcal(days.length)} hari tercatat bulan ini</Text>
+          <Text style={styles.footerText}>
+            {t("calendar.daysLoggedMonth", { count: days.length, n: fmtInt(days.length) })}
+          </Text>
           {targetKcal !== null ? (
-            <Text style={styles.budget}>Budget ±{fmtKcal(targetKcal)} kcal</Text>
+            <Text style={styles.budget}>
+              {t("calendar.budget", { kcal: fmtKcalLabel(targetKcal) })}
+            </Text>
           ) : null}
         </View>
       </Card>

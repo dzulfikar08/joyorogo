@@ -1,12 +1,14 @@
-import { FOOD_KIND_LABELS, foodKind } from "@joyorogo/api/lib/food-kind";
+import { foodKind } from "@joyorogo/api/lib/food-kind";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
+import { fmtClock } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Clock, Cookie, CupSoda, Shapes, Trash2, Utensils } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { MacroLine } from "@/components/macro-line";
 import { FoodThumb } from "@/components/sticker";
 import type { FoodItem } from "@/lib/api-types";
-import { fmtInt } from "@/lib/format";
+import { fmtInt, fmtKcalLabel } from "@/lib/format";
 import { MACRO_META } from "@/lib/macro-icons";
 
 const KIND_ICON = {
@@ -16,18 +18,13 @@ const KIND_ICON = {
   lainnya: Shapes,
 } as const;
 
-const timeFmt = new Intl.DateTimeFormat("id-ID", {
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "Asia/Jakarta",
-});
-
 function KindChip({ kind }: { kind: FoodKind }) {
+  const { t } = useTranslation("makan");
   const Icon = KIND_ICON[kind];
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-makan-soft px-2 py-0.5 text-xs font-semibold text-makan-ink">
       <Icon className="size-3.5 shrink-0" aria-hidden />
-      {FOOD_KIND_LABELS[kind]}
+      {t(`kind.${kind}`)}
     </span>
   );
 }
@@ -46,6 +43,7 @@ export function FoodRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation("makan");
   const hasMacros = [item.protein, item.carbs, item.fat, item.fiber].some((g) => (g ?? 0) > 0);
   const created = new Date(item.createdAt);
   return (
@@ -84,7 +82,7 @@ export function FoodRow({
             {Number.isNaN(created.getTime()) ? null : (
               <span className="inline-flex items-center gap-1 tabular-nums">
                 <Clock className="size-3.5 shrink-0" aria-hidden />
-                {timeFmt.format(created)}
+                {fmtClock(created)}
               </span>
             )}
           </span>
@@ -92,10 +90,10 @@ export function FoodRow({
           <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.8125rem] text-muted-foreground">
             <span
               className="inline-flex items-center gap-1.5 font-semibold text-kcal"
-              aria-label={`${MACRO_META.kcal.label} ${fmtInt(item.kcal)} kkal`}
+              aria-label={`${MACRO_META.kcal.label} ${fmtKcalLabel(item.kcal)}`}
             >
               <MACRO_META.kcal.Icon className="size-3.5 shrink-0" aria-hidden />
-              <span className="tabular-nums">{fmtInt(item.kcal)} kkal</span>
+              <span className="tabular-nums">{fmtKcalLabel(item.kcal)}</span>
             </span>
             {item.grams ? (
               <span
@@ -115,14 +113,14 @@ export function FoodRow({
                 fiber={item.fiber}
               />
             ) : item.source === "ai" ? (
-              <span>Dari pindai AI</span>
+              <span>{t("foodRow.fromAi")}</span>
             ) : null}
           </span>
         </span>
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label={`Hapus ${item.name}`}
+          aria-label={t("foodRow.delete", { name: item.name })}
           onClick={(event) => {
             event.stopPropagation();
             onDelete();

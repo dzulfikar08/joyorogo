@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 import Svg, { Path } from "react-native-svg";
 
@@ -18,6 +19,7 @@ import { client, orpc, queryClient } from "@/utils/orpc";
 export const STRAVA_REDIRECT_URI = "joyorogo://joyorogo.com/strava";
 
 export function StravaCard() {
+  const { t } = useTranslation(["settings", "common"]);
   const statusQuery = useQuery(orpc.strava.status.queryOptions());
   const sync = useMutation(
     orpc.strava.sync.mutationOptions({
@@ -37,7 +39,7 @@ export function StravaCard() {
       if (result.type === "success") {
         const code = new URL(result.url).searchParams.get("code");
         if (!code) {
-          throw new Error("Strava tidak mengembalikan kode otorisasi.");
+          throw new Error(t("strava.error.noCode"));
         }
         await client.strava.exchangeCode({ code, redirectUri });
         queryClient.invalidateQueries();
@@ -62,7 +64,7 @@ export function StravaCard() {
     }
   };
 
-  let subtitle = "Memuat status Strava…";
+  let subtitle = t("strava.status.loadingNative");
   let action: React.ReactNode = null;
   if (statusQuery.isError) {
     subtitle = errorMessage(statusQuery.error);
@@ -70,40 +72,47 @@ export function StravaCard() {
       <Button
         variant="secondary"
         size="sm"
-        label="Coba lagi"
+        label={t("common:actions.retry")}
         onPress={() => statusQuery.refetch()}
       />
     );
   } else if (statusQuery.data && !statusQuery.data.configured) {
-    subtitle = "Segera hadir: aktivitas Strava otomatis masuk ke angka bakar.";
+    subtitle = t("strava.status.comingSoon");
   } else if (statusQuery.data && !statusQuery.data.connected) {
-    subtitle = "Hubungkan akun Strava untuk mengimpor aktivitas olahragamu otomatis.";
+    subtitle = t("strava.status.connectHintNative");
     action = (
       <Button
         size="sm"
-        label="Hubungkan"
+        label={t("strava.action.connectNative")}
         icon="bicycle"
         onPress={() => void connect()}
         loading={busy}
       />
     );
   } else if (statusQuery.data) {
-    subtitle = `Terhubung${statusQuery.data.athleteId ? ` (atlet ${statusQuery.data.athleteId})` : ""}.${
-      sync.data ? ` ${sync.data.imported} diimpor, ${sync.data.skipped} dilewati.` : ""
-    }`;
+    const athleteId = statusQuery.data.athleteId;
+    const connectedLine = athleteId
+      ? t("strava.status.connectedAthlete", { id: athleteId })
+      : t("strava.status.connected");
+    subtitle = sync.data
+      ? `${connectedLine} ${t("strava.status.synced", {
+          imported: sync.data.imported,
+          skipped: sync.data.skipped,
+        })}`
+      : connectedLine;
     action = (
       <View style={styles.connectedActions}>
         <Button
           variant="secondary"
           size="sm"
-          label="Sinkronkan"
+          label={t("strava.action.syncNative")}
           onPress={() => sync.mutate({})}
           loading={sync.isPending || busy}
         />
         <Button
           variant="ghost"
           size="sm"
-          label="Putuskan"
+          label={t("strava.action.disconnect")}
           destructive
           onPress={() => void disconnect()}
           disabled={busy || sync.isPending}

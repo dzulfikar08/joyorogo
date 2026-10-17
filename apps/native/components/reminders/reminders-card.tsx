@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Switch, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { fmtHHMM, windowHoursFor, windowTimes } from "@joyorogo/api/lib/fasting";
@@ -14,7 +15,6 @@ import {
   getNotificationPermission,
   loadReminderConfig,
   MEAL_REMINDER_KEYS,
-  MEAL_REMINDER_LABELS,
   saveReminderConfig,
   waterSlotMinutes,
   type MealReminderKey,
@@ -29,12 +29,6 @@ type TimeTarget =
   | { kind: "weighIn" }
   | { kind: "waterStart" }
   | { kind: "waterEnd" };
-
-const INTERVAL_OPTIONS: Array<{ value: "2" | "3" | "4"; label: string }> = [
-  { value: "2", label: "2 jam" },
-  { value: "3", label: "3 jam" },
-  { value: "4", label: "4 jam" },
-];
 
 function anyEnabled(config: ReminderConfig): boolean {
   return (
@@ -53,6 +47,13 @@ function anyEnabled(config: ReminderConfig): boolean {
  * berubah — lihat src/lib/notifications.ts.
  */
 export function RemindersCard() {
+  const { t } = useTranslation(["settings", "common"]);
+  const intervalOptions: Array<{ value: "2" | "3" | "4"; label: string }> = [
+    { value: "2", label: t("reminders.water.interval", { count: 2 }) },
+    { value: "3", label: t("reminders.water.interval", { count: 3 }) },
+    { value: "4", label: t("reminders.water.interval", { count: 4 }) },
+  ];
+  const mealLabel = (key: MealReminderKey) => t(`common:meal.editLabel.${key}`);
   const { theme } = useUnistyles();
   const toast = useToast();
   const gate = useNotificationGate();
@@ -125,12 +126,12 @@ export function RemindersCard() {
     target === null
       ? ""
       : target.kind === "meal"
-        ? `Jam ${MEAL_REMINDER_LABELS[target.key].toLowerCase()}`
+        ? t("reminders.meal.sheetTitle", { meal: mealLabel(target.key).toLowerCase() })
         : target.kind === "weighIn"
-          ? "Jam timbang"
+          ? t("reminders.weighIn.sheetTitle")
           : target.kind === "waterStart"
-            ? "Mulai minum"
-            : "Selesai minum";
+            ? t("reminders.water.sheetStart")
+            : t("reminders.water.sheetEnd");
   const sheetValue =
     target === null
       ? "00:00"
@@ -145,11 +146,11 @@ export function RemindersCard() {
   const saveTime = (time: string) => {
     if (target === null) return;
     if (target.kind === "waterStart" && time > config.water.end) {
-      toast.error("Jam tidak valid", "Jam mulai harus sebelum jam selesai.");
+      toast.error(t("reminders.error.invalidTime"), t("reminders.error.startBeforeEnd"));
       return;
     }
     if (target.kind === "waterEnd" && time < config.water.start) {
-      toast.error("Jam tidak valid", "Jam selesai harus setelah jam mulai.");
+      toast.error(t("reminders.error.invalidTime"), t("reminders.error.endAfterStart"));
       return;
     }
     setTarget(null);
@@ -167,17 +168,15 @@ export function RemindersCard() {
 
   return (
     <>
-      <Text style={styles.sectionLabel}>Pengingat</Text>
+      <Text style={styles.sectionLabel}>{t("section.reminders")}</Text>
 
       {loaded && permission !== "granted" && anyEnabled(config) ? (
         <View style={styles.warning}>
-          <Text style={styles.warningText}>
-            Notifikasi JoyoRogo sedang dimatikan di sistem, jadi pengingat di bawah tidak muncul.
-          </Text>
+          <Text style={styles.warningText}>{t("reminders.permissionOff.message")}</Text>
           <Button
             variant="secondary"
             size="sm"
-            label="Aktifkan notifikasi"
+            label={t("reminders.permissionOff.action")}
             onPress={() => void fixPermission()}
           />
         </View>
@@ -191,8 +190,8 @@ export function RemindersCard() {
               key={key}
               icon="restaurant"
               iconTint="makan"
-              title={MEAL_REMINDER_LABELS[key]}
-              subtitle={fastingNotifyOn ? "Diganti jadwal puasa" : undefined}
+              title={mealLabel(key)}
+              subtitle={fastingNotifyOn ? t("reminders.meal.replacedByFasting") : undefined}
               value={meal.time}
               onPress={() => setTarget({ kind: "meal", key })}
               right={
@@ -202,7 +201,9 @@ export function RemindersCard() {
                   onValueChange={(value) =>
                     void toggle(value, (enabled) => setMeal(key, { enabled }))
                   }
-                  accessibilityLabel={`Pengingat ${MEAL_REMINDER_LABELS[key].toLowerCase()}`}
+                  accessibilityLabel={t("reminders.meal.aria", {
+                    meal: mealLabel(key).toLowerCase(),
+                  })}
                 />
               }
             />
@@ -210,20 +211,17 @@ export function RemindersCard() {
         })}
       </ListGroup>
       {fastingNotifyOn ? (
-        <Text style={styles.note}>
-          Notifikasi puasa intermiten aktif, jadi pengingat makan memakai jadwal puasa dan jam di
-          atas tidak dipakai.
-        </Text>
+        <Text style={styles.note}>{t("reminders.meal.fastingNote")}</Text>
       ) : null}
 
       <ListGroup>
         <ListRow
           icon="water"
           iconTint="tidur"
-          title="Air minum"
+          title={t("reminders.water.title")}
           subtitle={
             config.water.enabled
-              ? `${slots} kali sehari, tiap ${config.water.everyHours} jam`
+              ? t("reminders.water.summary", { count: slots, hours: config.water.everyHours })
               : undefined
           }
           right={
@@ -231,13 +229,13 @@ export function RemindersCard() {
               {...switchProps}
               value={config.water.enabled}
               onValueChange={(value) => void toggle(value, (enabled) => setWater({ enabled }))}
-              accessibilityLabel="Pengingat minum air"
+              accessibilityLabel={t("reminders.water.aria")}
             />
           }
         />
         {config.water.enabled ? (
           <ListRow
-            title="Mulai"
+            title={t("reminders.water.start")}
             value={config.water.start}
             onPress={() => setTarget({ kind: "waterStart" })}
             chevron
@@ -245,7 +243,7 @@ export function RemindersCard() {
         ) : null}
         {config.water.enabled ? (
           <ListRow
-            title="Selesai"
+            title={t("reminders.water.end")}
             value={config.water.end}
             onPress={() => setTarget({ kind: "waterEnd" })}
             chevron
@@ -254,7 +252,7 @@ export function RemindersCard() {
         {config.water.enabled ? (
           <View style={styles.segmentRow}>
             <Segmented
-              options={INTERVAL_OPTIONS}
+              options={intervalOptions}
               value={String(config.water.everyHours) as "2" | "3" | "4"}
               onChange={(value) => apply(setWater({ everyHours: Number(value) as 2 | 3 | 4 }))}
             />
@@ -266,7 +264,7 @@ export function RemindersCard() {
         <ListRow
           icon="scale"
           iconTint="bakar"
-          title="Timbang"
+          title={t("reminders.weighIn.title")}
           value={config.weighIn.time}
           onPress={() => setTarget({ kind: "weighIn" })}
           right={
@@ -279,7 +277,7 @@ export function RemindersCard() {
                   weighIn: { ...config.weighIn, enabled },
                 }))
               }
-              accessibilityLabel="Pengingat timbang"
+              accessibilityLabel={t("reminders.weighIn.aria")}
             />
           }
         />
@@ -289,8 +287,12 @@ export function RemindersCard() {
         <ListRow
           icon="timer"
           iconTint="makan"
-          title="Jendela makan buka"
-          subtitle={window === null ? "Pilih pola puasa dulu di Puasa Intermiten" : "Ikut jadwal puasa, WIB"}
+          title={t("reminders.window.openTitle")}
+          subtitle={
+            window === null
+              ? t("reminders.window.needPattern")
+              : t("reminders.window.openSubtitle")
+          }
           value={window === null ? undefined : fmtHHMM(window.startMin)}
           right={
             <Switch
@@ -300,15 +302,19 @@ export function RemindersCard() {
               onValueChange={(value) =>
                 void toggle(value, (open) => ({ ...config, window: { ...config.window, open } }))
               }
-              accessibilityLabel="Pengingat jendela makan buka"
+              accessibilityLabel={t("reminders.window.openAria")}
             />
           }
         />
         <ListRow
           icon="moon"
           iconTint="tidur"
-          title="Jendela makan tutup"
-          subtitle={window === null ? "Pilih pola puasa dulu di Puasa Intermiten" : "Puasa dimulai, WIB"}
+          title={t("reminders.window.closeTitle")}
+          subtitle={
+            window === null
+              ? t("reminders.window.needPattern")
+              : t("reminders.window.closeSubtitle")
+          }
           value={window === null ? undefined : fmtHHMM(window.endMin)}
           right={
             <Switch
@@ -318,24 +324,16 @@ export function RemindersCard() {
               onValueChange={(value) =>
                 void toggle(value, (close) => ({ ...config, window: { ...config.window, close } }))
               }
-              accessibilityLabel="Pengingat jendela makan tutup"
+              accessibilityLabel={t("reminders.window.closeAria")}
             />
           }
         />
       </ListGroup>
       {fastingNotifyOn && config.window.open ? (
-        <Text style={styles.note}>
-          Notifikasi puasa intermiten sudah mengingatkan saat jendela buka, jadi pengingat buka di
-          sini tidak dikirim dobel.
-        </Text>
+        <Text style={styles.note}>{t("reminders.window.openDuplicateNote")}</Text>
       ) : null}
 
-      <Text style={styles.note}>
-        Pengingat adalah notifikasi di perangkat ini, jadi tidak ikut pindah ke ponsel lain atau web.
-        Pengingat makan dan timbang dilewati kalau hari ini sudah tercatat saat JoyoRogo terakhir
-        dibuka atau kamu mencatat di aplikasi. Catatan dari perangkat lain baru terbaca setelah
-        aplikasi dibuka lagi. Pengingat minum selalu muncul sesuai jadwal.
-      </Text>
+      <Text style={styles.note}>{t("reminders.footnote")}</Text>
 
       <TimePickerSheet
         visible={target !== null}

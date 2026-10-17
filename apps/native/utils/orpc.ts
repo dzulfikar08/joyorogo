@@ -1,4 +1,5 @@
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
+import { LOCALE_HEADER, i18n } from "@joyorogo/i18n";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
@@ -70,10 +71,12 @@ export const link = new RPCLink({
     });
   },
   async headers() {
+    // The server writes errors in the language the UI shows.
+    const locale = { [LOCALE_HEADER]: i18n.language };
     if (Platform.OS === "web") {
-      return {};
+      return locale;
     }
-    const headers = new Map<string, string>();
+    const headers = new Map<string, string>(Object.entries(locale));
     const cookies = await authClient.getCookie();
     if (cookies) {
       headers.set("Cookie", cookies);

@@ -1,7 +1,7 @@
 import { jakartaToday } from "@joyorogo/api/lib/engine";
 import {
   DELETE_COMMIT_MS,
-  UNDO_LABEL,
+  undoLabel,
   UNDO_TOAST_MS,
   applySummaryDelta,
   applyWeightCheckIn,
@@ -11,7 +11,7 @@ import {
   type SummaryDelta,
 } from "@joyorogo/api/lib/optimistic";
 
-export { UNDO_LABEL, UNDO_TOAST_MS, DELETE_COMMIT_MS };
+export { undoLabel, UNDO_TOAST_MS, DELETE_COMMIT_MS };
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 import {
   useMutation,
@@ -225,7 +225,7 @@ export function useOptimisticMutation<TInput, TData>(config: {
       if (s.undo) {
         toast.success(s.message, {
           duration: UNDO_TOAST_MS,
-          action: { label: UNDO_LABEL, onClick: s.undo },
+          action: { label: undoLabel(), onClick: s.undo },
         });
       } else {
         toast.success(s.message);
@@ -300,7 +300,7 @@ export function useDelayedDelete<TRow extends { id: string }>(config: {
     toast.success(deletedMsg(configRef.current.label(row), configRef.current.fallback), {
       duration: UNDO_TOAST_MS,
       action: {
-        label: UNDO_LABEL,
+        label: undoLabel(),
         onClick: () => {
           const current = pending.current.get(row.id);
           if (!current || current !== entry) return;

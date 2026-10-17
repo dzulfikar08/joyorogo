@@ -5,9 +5,11 @@ import { ORPCError } from "@orpc/server";
 
 import { user } from "@joyorogo/db/schema/auth";
 import type { Database } from "@joyorogo/db";
+import type { Locale } from "@joyorogo/i18n";
 
 import type { AiBinding } from "../context";
 import { jakartaToday } from "./engine";
+import { serverT } from "./messages";
 import { dailyScanQuota, effectiveTier, paywallConfig, scansUsedToday } from "./tiers";
 import type { PaywallEnv } from "./tiers";
 
@@ -31,12 +33,12 @@ export async function requireAiQuota(
   db: Database,
   env: QuotaEnv,
   userId: string,
+  locale: Locale,
 ): Promise<{ ai: AiBinding; quotaReached: boolean }> {
+  const t = serverT(locale, "errors");
   const ai = env.AI;
   if (!ai) {
-    throw new ORPCError("SERVICE_UNAVAILABLE", {
-      message: "Layanan AI belum tersedia. Coba lagi nanti.",
-    });
+    throw new ORPCError("SERVICE_UNAVAILABLE", { message: t("ai.unavailable") });
   }
   const config = paywallConfig(env);
   const [[userRow], usedToday] = await Promise.all([
@@ -57,12 +59,14 @@ export async function requireAiQuota(
     throw new ORPCError("FORBIDDEN", {
       message:
         tier === "founder"
-          ? `Batas pengaman Pro tercapai (${quota} scan/hari). Coba lagi besok ya.`
-          : `Kuota AI hari ini habis (${quota}/hari). ${
-              config.founderDailyCap === null
-                ? "Pro buka AI tanpa batas."
-                : `Pro dapat ${config.founderDailyCap}/hari.`
-            }`,
+          ? t("quota.proCapReached", { count: quota })
+          : t("quota.freeExhausted", {
+              count: quota,
+              upsell:
+                config.founderDailyCap === null
+                  ? t("quota.upsellUnlimited")
+                  : t("quota.upsellCapped", { count: config.founderDailyCap }),
+            }),
       data: { paywall: true, tier },
     });
   }

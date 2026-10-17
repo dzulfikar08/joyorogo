@@ -4,10 +4,10 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { useQueryClient } from "@tanstack/react-query";
 import { CalendarIcon, Link2, Link2Off } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { MEAL_EDIT_LABELS, jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
-import { recentDayLabel } from "@joyorogo/api/lib/format";
 import { PORTION_MULTIPLIERS, scalePortion } from "@joyorogo/api/lib/portion";
 import type { PortionValues } from "@joyorogo/api/lib/portion";
 
@@ -19,7 +19,7 @@ import { CalendarSheet, DayChips } from "@/components/plate/plate-group";
 import { SheetActions } from "@/components/sheet-actions";
 import { StickerHero } from "@/components/sticker";
 import type { FoodItem } from "@/lib/api-types";
-import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
+import { fmtDateLong, fmtGramsLabel, fmtKcalLabel, parseNum } from "@/lib/format";
 import { MACRO_META } from "@/lib/macro-icons";
 import { OptimisticCache, insertFoodRow, stripFoodRow, useOptimisticMutation } from "@/lib/optimistic";
 import type { FoodListData } from "@/lib/optimistic";
@@ -155,6 +155,7 @@ export function FoodPortionSheet({
   onShare: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation(["makan", "common"]);
   const queryClient = useQueryClient();
   const base = portionOf(row);
   const hasGrams = base.grams !== null;
@@ -252,10 +253,10 @@ export function FoodPortionSheet({
       const slotMoved = input.meal !== undefined && input.meal !== row.meal;
       return {
         message: moved
-          ? `Dipindah ke ${relativeDayLabel(input.date!, jakartaToday())}`
+          ? t("portionSheet.toast.movedDay", { date: relativeDayLabel(input.date!, jakartaToday()) })
           : slotMoved
-            ? `Dipindah ke ${MEAL_EDIT_LABELS[input.meal!]}`
-            : `${input.name ?? row.name} diperbarui`,
+            ? t("portionSheet.toast.movedSlot", { meal: MEAL_EDIT_LABELS[input.meal!] })
+            : t("portionSheet.toast.updated", { name: input.name ?? row.name }),
         undo: () => {
           const cache = new OptimisticCache(queryClient);
           patchFoodEdit(
@@ -301,7 +302,7 @@ export function FoodPortionSheet({
 
   return (
     <>
-      <Sheet open onOpenChange={(open) => !open && onClose()} title="Ubah porsi">
+      <Sheet open onOpenChange={(open) => !open && onClose()} title={t("portionSheet.title")}>
         <form
           className="space-y-4"
           onSubmit={(event) => {
@@ -311,7 +312,7 @@ export function FoodPortionSheet({
         >
           <StickerHero scanId={row.scanId} photoId={row.photoId} name={row.name} kcal={row.kcal} />
           <div>
-            <FieldLabel htmlFor="food-name">Nama</FieldLabel>
+            <FieldLabel htmlFor="food-name">{t("portionSheet.name")}</FieldLabel>
             <Input id="food-name" value={name} onChange={(event) => setName(event.target.value)} />
           </div>
 
@@ -321,7 +322,7 @@ export function FoodPortionSheet({
                 <FieldLabel htmlFor="food-grams">
                   <span className="inline-flex items-center gap-1.5 text-gram">
                     <MACRO_META.grams.Icon className="size-3.5" aria-hidden />
-                    Berat (g)
+                    {t("portionSheet.weightLabel")}
                   </span>
                 </FieldLabel>
                 <Input
@@ -337,12 +338,8 @@ export function FoodPortionSheet({
                 variant={linked ? "secondary" : "outline"}
                 size="icon"
                 aria-pressed={linked}
-                aria-label={
-                  linked
-                    ? "Berat dan kalori terhubung, ketuk untuk melepas"
-                    : "Berat dan kalori terlepas, ketuk untuk menghubungkan"
-                }
-                title={linked ? "Terhubung" : "Terlepas"}
+                aria-label={linked ? t("portionSheet.link.linkedAria") : t("portionSheet.link.unlinkedAria")}
+                title={linked ? t("portionSheet.link.linked") : t("portionSheet.link.unlinked")}
                 onClick={toggleLink}
                 className="mb-0.5"
               >
@@ -352,7 +349,7 @@ export function FoodPortionSheet({
                 <FieldLabel htmlFor="food-kcal">
                   <span className="inline-flex items-center gap-1.5 text-kcal">
                     <MACRO_META.kcal.Icon className="size-3.5" aria-hidden />
-                    Kalori (kcal)
+                    {t("portionSheet.kcalLabel")}
                   </span>
                 </FieldLabel>
                 <Input
@@ -367,7 +364,7 @@ export function FoodPortionSheet({
           ) : (
             <>
               <div>
-                <FieldLabel htmlFor="food-mult">Porsi</FieldLabel>
+                <FieldLabel htmlFor="food-mult">{t("portionSheet.portion")}</FieldLabel>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   {PORTION_MULTIPLIERS.map((mult) => (
                     <Chip key={mult} active={ratio === mult} onClick={() => applyRatio(mult)}>
@@ -379,7 +376,7 @@ export function FoodPortionSheet({
                     inputMode="decimal"
                     value={multText}
                     onChange={(event) => onMult(event.target.value)}
-                    aria-label="Kelipatan porsi sendiri"
+                    aria-label={t("portionSheet.customMultiplier")}
                     className="w-24"
                   />
                 </div>
@@ -388,7 +385,7 @@ export function FoodPortionSheet({
                 <FieldLabel htmlFor="food-kcal">
                   <span className="inline-flex items-center gap-1.5 text-kcal">
                     <MACRO_META.kcal.Icon className="size-3.5" aria-hidden />
-                    Kalori (kcal)
+                    {t("portionSheet.kcalLabel")}
                   </span>
                 </FieldLabel>
                 <Input
@@ -406,12 +403,12 @@ export function FoodPortionSheet({
             <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-semibold tabular-nums">
               <span className="inline-flex items-center gap-1.5 text-kcal">
                 <MACRO_META.kcal.Icon className="size-3.5" aria-hidden />
-                {fmtInt(values.kcal)} kkal
+                {fmtKcalLabel(values.kcal)}
               </span>
               {hasGrams && values.grams !== null ? (
                 <span className="inline-flex items-center gap-1.5 text-gram">
                   <MACRO_META.grams.Icon className="size-3.5" aria-hidden />
-                  {fmtInt(values.grams)} g
+                  {fmtGramsLabel(values.grams)}
                 </span>
               ) : null}
             </p>
@@ -423,14 +420,12 @@ export function FoodPortionSheet({
               fiber={values.fiber}
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              {hasGrams && !linked
-                ? "Terlepas: berat dan kalori diisi sendiri, makro ikut kalori."
-                : "Makro ikut berubah sesuai porsi. Harga piring tidak ikut berubah."}
+              {hasGrams && !linked ? t("portionSheet.hint.unlinked") : t("portionSheet.hint.linked")}
             </p>
           </div>
 
           <div>
-            <FieldLabel htmlFor="food-date">Dicatat pada</FieldLabel>
+            <FieldLabel htmlFor="food-date">{t("portionSheet.loggedOn")}</FieldLabel>
             <div className="mt-1.5 space-y-2">
               <DayChips value={date} onChange={setDate} />
               <Button
@@ -438,15 +433,17 @@ export function FoodPortionSheet({
                 variant={dateChanged ? "secondary" : "outline"}
                 size="sm"
                 aria-expanded={pickingDate}
-                aria-label={`Pilih tanggal, terpilih ${recentDayLabel(date, jakartaToday())}`}
+                aria-label={t("portionSheet.pickDate", {
+                  date: relativeDayLabel(date, jakartaToday()),
+                })}
                 onClick={() => setPickingDate(true)}
               >
                 <CalendarIcon aria-hidden />
-                {recentDayLabel(date, jakartaToday())}
+                {relativeDayLabel(date, jakartaToday())}
               </Button>
               {dateChanged && (
                 <p className="text-xs text-muted-foreground">
-                  Akan dipindah ke {fmtDateIndo(date)}.
+                  {t("portionSheet.movedHint", { date: fmtDateLong(date) })}
                 </p>
               )}
             </div>
@@ -459,8 +456,8 @@ export function FoodPortionSheet({
             onChange={setMeal}
             hint={
               mealChanged
-                ? `Akan dipindah ke ${MEAL_EDIT_LABELS[meal]}.`
-                : "Pindahkan ke waktu makan lain bila salah slot."
+                ? t("portionSheet.slotMovedHint", { meal: MEAL_EDIT_LABELS[meal] })
+                : t("portionSheet.slotHint")
             }
           />
 
@@ -469,7 +466,7 @@ export function FoodPortionSheet({
             className="w-full"
             disabled={update.isPending || !valid || !changed}
           >
-            {update.isPending ? "Menyimpan..." : "Simpan"}
+            {update.isPending ? t("portionSheet.saving") : t("common:actions.save")}
           </Button>
 
           <SheetActions

@@ -6,14 +6,16 @@ import {
   hasFitnessData,
 } from "@joyorogo/api/lib/fitness-hint";
 import type { FoodPick, ReadinessGuidance } from "@joyorogo/api/lib/readiness-food";
+import type { TFunction } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Lock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Card } from "@/components/kit/surface";
 import { useAppConfig } from "@/lib/app-config";
-import { fmtInt } from "@/lib/format";
+import { fmtGramsLabel, fmtInt, fmtKcalLabel } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 
 function Metric({ label, value }: { label: string; value: string | null }) {
@@ -25,26 +27,38 @@ function Metric({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-/** "Sisa" figures that matter for the day's focus; a steady day shows none. */
-function remaining(guidance: ReadinessGuidance): Array<{ label: string; value: string }> {
+/** Remaining figures that matter for the day's focus; a steady day shows none. */
+function remaining(
+  guidance: ReadinessGuidance,
+  t: TFunction<"makan">,
+): Array<{ label: string; value: string }> {
   const { numbers, focus } = guidance;
   if (!numbers || focus === "steady") return [];
-  const rows = [{ label: "Sisa kkal", value: fmtInt(numbers.roomKcal) }];
-  if (focus !== "fuel") rows.push({ label: "Sisa protein", value: `${fmtInt(numbers.protein.remainingG)} g` });
-  if (focus !== "recover") rows.push({ label: "Sisa karbo", value: `${fmtInt(numbers.carbs.remainingG)} g` });
+  const rows = [{ label: t("fitnessCard.left.kcal"), value: fmtInt(numbers.roomKcal) }];
+  if (focus !== "fuel") {
+    rows.push({ label: t("fitnessCard.left.protein"), value: fmtGramsLabel(numbers.protein.remainingG) });
+  }
+  if (focus !== "recover") {
+    rows.push({ label: t("fitnessCard.left.carbs"), value: fmtGramsLabel(numbers.carbs.remainingG) });
+  }
   return rows;
 }
 
-function pickDetail(pick: FoodPick): string {
-  const parts = [`${fmtInt(pick.kcal)} kkal`];
-  if (pick.proteinG !== null) parts.push(`P ${fmtInt(pick.proteinG)} g`);
-  if (pick.carbsG !== null) parts.push(`K ${fmtInt(pick.carbsG)} g`);
-  parts.push(pick.source === "riwayat" ? `${pick.days}x di catatanmu` : "dari database JoyoRogo");
+function pickDetail(pick: FoodPick, t: TFunction<"makan">): string {
+  const parts = [fmtKcalLabel(pick.kcal)];
+  if (pick.proteinG !== null) parts.push(t("fitnessCard.pick.protein", { g: fmtGramsLabel(pick.proteinG) }));
+  if (pick.carbsG !== null) parts.push(t("fitnessCard.pick.carbs", { g: fmtGramsLabel(pick.carbsG) }));
+  parts.push(
+    pick.source === "riwayat"
+      ? t("fitnessCard.pick.history", { count: pick.days ?? 0, n: fmtInt(pick.days ?? 0) })
+      : t("fitnessCard.pick.database"),
+  );
   return parts.join(" · ");
 }
 
 function Guidance({ guidance }: { guidance: ReadinessGuidance }) {
-  const stats = remaining(guidance);
+  const { t } = useTranslation("makan");
+  const stats = remaining(guidance, t);
   return (
     <div className="space-y-2.5 border-t border-border pt-3">
       <p className="text-sm font-semibold">{guidance.headline}</p>
@@ -62,7 +76,7 @@ function Guidance({ guidance }: { guidance: ReadinessGuidance }) {
       ) : null}
       {guidance.foods.length > 0 ? (
         <div>
-          <p className="text-xs font-semibold text-muted-foreground">Pilihan untuk hari ini</p>
+          <p className="text-xs font-semibold text-muted-foreground">{t("fitnessCard.picksTitle")}</p>
           <ul className="mt-1 space-y-1.5">
             {guidance.foods.map((pick) => (
               <li key={pick.name}>
@@ -70,7 +84,7 @@ function Guidance({ guidance }: { guidance: ReadinessGuidance }) {
                   {pick.name}
                   {pick.portion ? ` (${pick.portion})` : ""}
                 </p>
-                <p className="text-xs text-muted-foreground">{pickDetail(pick)}</p>
+                <p className="text-xs text-muted-foreground">{pickDetail(pick, t)}</p>
               </li>
             ))}
           </ul>
@@ -107,6 +121,7 @@ function Teaser() {
  * no scores for, and nothing while loading or when the request fails.
  */
 export function FitnessCard({ date }: { date: string }) {
+  const { t } = useTranslation("makan");
   const { data } = useQuery(orpc.fitness.byDate.queryOptions({ input: { date } }));
   const config = useAppConfig();
   const hasScores = hasFitnessData(data);
@@ -122,17 +137,20 @@ export function FitnessCard({ date }: { date: string }) {
   const hints = ready ? [] : fitnessHints(data);
 
   return (
-    <Card className="mt-3 space-y-3" aria-label="Skor kebugaran dari JoyoFit">
+    <Card className="mt-3 space-y-3" aria-label={t("fitnessCard.aria")}>
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-muted-foreground">Kebugaran dari JoyoFit</p>
+        <p className="text-sm font-semibold text-muted-foreground">{t("fitnessCard.title")}</p>
         {data.readiness ? (
           <p className="text-sm font-bold text-tidur-ink">{READINESS_ID[data.readiness]}</p>
         ) : null}
       </div>
       <div className="flex gap-3">
-        <Metric label="Pemulihan" value={data.recoveryPct === null ? null : `${data.recoveryPct}%`} />
-        <Metric label="Strain" value={data.strain === null ? null : `${data.strain.toFixed(1)} / 21`} />
-        <Metric label="Tidur" value={data.sleepPct === null ? null : `${data.sleepPct}%`} />
+        <Metric
+          label={t("fitnessCard.metric.recovery")}
+          value={data.recoveryPct === null ? null : `${data.recoveryPct}%`}
+        />
+        <Metric label={t("fitnessCard.metric.strain")} value={data.strain === null ? null : `${data.strain.toFixed(1)} / 21`} />
+        <Metric label={t("fitnessCard.metric.sleep")} value={data.sleepPct === null ? null : `${data.sleepPct}%`} />
       </div>
       {hints.map((hint) => (
         <p key={hint} className="text-sm">

@@ -1,5 +1,5 @@
 import type { WorkoutStatus } from "@/lib/api-types";
-import { fmtDateIndo, fmtInt } from "@/lib/format";
+import { fmtDateLong, fmtInt } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Trophy } from "lucide-react";
@@ -78,7 +78,7 @@ export function ProgressCard({ status }: { status: WorkoutStatus }) {
                   return (
                     <li key={item.session.id} className="text-xs text-muted-foreground">
                       <span className="font-bold text-foreground">
-                        {fmtDateIndo(item.session.date)}
+                        {fmtDateLong(item.session.date)}
                       </span>
                       {" — "}
                       {sets

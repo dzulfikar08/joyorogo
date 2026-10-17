@@ -3,7 +3,8 @@ import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { HeadContent, Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { useEffect } from "react";
+import { Fragment, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 import { IosInstallHost } from "@/components/ios-install";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -37,14 +38,20 @@ function SignInReporter() {
 // Each layout owns its chrome: the signed-in shell (_auth) has the tab bar
 // and desktop top bar; public pages render their own slim header.
 function RootComponent() {
+  // Remount the tree on a language switch: strings read through the shared
+  // format helpers (dates, units) have no subscription of their own. The URL
+  // and the query cache live outside the tree and survive.
+  const { i18n } = useTranslation();
   return (
     <>
       <HeadContent />
       <ThemeProvider>
-        <Outlet />
-        {signInPending() && <SignInReporter />}
-        <IosInstallHost />
-        <Toaster position="top-center" />
+        <Fragment key={i18n.language}>
+          <Outlet />
+          {signInPending() && <SignInReporter />}
+          <IosInstallHost />
+          <Toaster position="top-center" />
+        </Fragment>
       </ThemeProvider>
       {import.meta.env.DEV && (
         <>

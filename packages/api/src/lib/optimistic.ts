@@ -1,3 +1,6 @@
+import { getActiveLocale, getT } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+
 import { shiftDate } from "./engine";
 
 /**
@@ -8,8 +11,11 @@ import { shiftDate } from "./engine";
  * will recompute — the settle-time refetch is the source of truth.
  */
 
-/** "Urungkan" toast stays up long enough to read and tap. */
-export const UNDO_LABEL = "Urungkan";
+/** "Urungkan" / "Undo": label of the undo action on a toast. */
+export function undoLabel(locale: Locale = getActiveLocale()): string {
+  return getT(locale)("actions.undo");
+}
+
 export const UNDO_TOAST_MS = 6000;
 /** Hidden rows are deleted for real only after the undo window passes. */
 export const DELETE_COMMIT_MS = 5000;
@@ -144,8 +150,15 @@ export function removeById<T extends { id: string }>(rows: T[], id: string): T[]
   return next;
 }
 
-/** "Nasi goreng dihapus" — trims and falls back when the name is blank. */
-export function deletedMsg(name: string | null | undefined, fallback = "Catatan"): string {
+/** "Nasi goreng dihapus" / "Nasi goreng deleted": trims, falls back to `fallback` (default "Catatan" / "Entry") when blank. */
+export function deletedMsg(
+  name: string | null | undefined,
+  fallback?: string,
+  locale: Locale = getActiveLocale(),
+): string {
+  const t = getT(locale);
   const clean = name?.trim();
-  return `${clean && clean.length > 0 ? clean : fallback} dihapus`;
+  return t("toast.deleted", {
+    name: clean && clean.length > 0 ? clean : (fallback ?? t("toast.entryFallback")),
+  });
 }

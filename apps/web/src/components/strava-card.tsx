@@ -2,6 +2,7 @@ import { Activity, Clock, HeartPulse } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@joyorogo/ui/components/button";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Card } from "@/components/kit/surface";
@@ -9,18 +10,13 @@ import { orpc } from "@/utils/orpc";
 
 const CALLBACK_PATH = "/profil/strava/callback";
 
-/** Strava API Policy 6.2: imported activities are a 7-day cache (docs/strava.md). Shown on every Strava surface. */
-export const STRAVA_RETENTION_TEXT =
-  "Sesuai aturan Strava, olahraga yang diimpor dari Strava hanya disimpan 7 hari, lalu dihapus otomatis. Kalori bakar untuk hari yang lebih lama tidak lagi menyertakannya.";
-export const HEALTH_ALTERNATIVE_TEXT =
-  "Biar kalori bakar tetap tersimpan, pakai Health Connect di Android atau Apple Health di iPhone lewat aplikasi JoyoRogo. Banyak aplikasi olahraga dan jam bisa menulis latihan ke sana, misalnya Strava, Garmin, Samsung Health, dan JoyoFit untuk jam Huawei. Cek pengaturan tiap aplikasi.";
-
 /**
  * One Strava integration implementation for every screen that needs it: the
  * status query, the three mutations (with toasts + cross-query refresh), and
  * flattened flags. `authorize()` redirects the browser to the OAuth page.
  */
 export function useStrava() {
+  const { t } = useTranslation(["settings", "common"]);
   const queryClient = useQueryClient();
   const status = useQuery(orpc.strava.status.queryOptions());
 
@@ -42,7 +38,7 @@ export function useStrava() {
   const sync = useMutation(
     orpc.strava.sync.mutationOptions({
       onSuccess: ({ imported, skipped }) => {
-        toast.success(`Strava: ${imported} aktivitas diimpor, ${skipped} dilewati.`);
+        toast.success(t("strava.toast.synced", { count: imported, skipped }));
         refreshData();
       },
       onError: (error) => toast.error(error.message),
@@ -52,7 +48,7 @@ export function useStrava() {
   const disconnect = useMutation(
     orpc.strava.disconnect.mutationOptions({
       onSuccess: () => {
-        toast.success("Strava diputuskan.");
+        toast.success(t("strava.toast.disconnected"));
         refreshData();
       },
       onError: (error) => toast.error(error.message),
@@ -84,27 +80,30 @@ export function useStrava() {
 
 /** Strava integration as one row-like card: status line + one main action. */
 export function StravaCard() {
+  const { t } = useTranslation(["settings", "common"]);
   const strava = useStrava();
 
-  let note = "Aktivitas Strava otomatis masuk ke Burn.";
+  let note = t("strava.status.idle");
   let actions: React.ReactNode = null;
   if (strava.isChecking) {
-    note = "Memeriksa status Strava...";
+    note = t("strava.status.checkingCard");
   } else if (strava.statusError) {
-    note = `Gagal memeriksa status: ${strava.statusError}`;
+    note = t("strava.status.error", { error: strava.statusError });
     actions = (
       <Button variant="secondary" size="sm" className="min-h-11" onClick={() => strava.recheck()}>
-        Coba lagi
+        {t("common:actions.retry")}
       </Button>
     );
   } else if (!strava.configured) {
-    note = "Segera hadir: aktivitas Strava otomatis masuk ke angka bakar.";
+    note = t("strava.status.comingSoon");
   } else if (strava.connected) {
-    note = `Terhubung${strava.athleteId ? ` (ID atlet ${strava.athleteId})` : ""}.`;
+    note = strava.athleteId
+      ? t("strava.status.connectedAthlete", { id: strava.athleteId })
+      : t("strava.status.connected");
     actions = (
       <>
         <Button size="sm" className="min-h-11" onClick={strava.sync} disabled={strava.isSyncing}>
-          {strava.isSyncing ? "Menyinkronkan..." : "Sinkron"}
+          {strava.isSyncing ? t("strava.action.syncing") : t("strava.action.sync")}
         </Button>
         <Button
           variant="ghost"
@@ -113,7 +112,7 @@ export function StravaCard() {
           onClick={strava.disconnect}
           disabled={strava.isDisconnecting}
         >
-          Putuskan
+          {t("strava.action.disconnect")}
         </Button>
       </>
     );
@@ -125,7 +124,7 @@ export function StravaCard() {
         onClick={strava.authorize}
         disabled={strava.isAuthorizing}
       >
-        {strava.isAuthorizing ? "Membuka Strava..." : "Sambungkan"}
+        {strava.isAuthorizing ? t("strava.action.connecting") : t("strava.action.connect")}
       </Button>
     );
   }
@@ -158,11 +157,11 @@ export function StravaCard() {
         <div className="basis-full space-y-2 rounded-2xl bg-muted p-3 text-xs leading-relaxed text-muted-foreground">
           <p className="flex items-start gap-2">
             <Clock className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span>{STRAVA_RETENTION_TEXT}</span>
+            <span>{t("strava.retention.text")}</span>
           </p>
           <p className="flex items-start gap-2">
             <HeartPulse className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span>{HEALTH_ALTERNATIVE_TEXT}</span>
+            <span>{t("strava.retention.healthAlternative")}</span>
           </p>
         </div>
       )}

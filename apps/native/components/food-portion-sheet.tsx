@@ -2,12 +2,12 @@ import "@/unistyles";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { MEAL_EDIT_LABELS, jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
-import { recentDayLabel } from "@joyorogo/api/lib/format";
 import { PORTION_MULTIPLIERS, scalePortion } from "@joyorogo/api/lib/portion";
 import type { PortionValues } from "@joyorogo/api/lib/portion";
 
@@ -19,7 +19,7 @@ import { StickerHero } from "@/components/sticker";
 import { MacroIcon } from "@/utils/macro-icons";
 import { Button, Chip, Field, Input, Num, Sheet, Text } from "@/components/ui";
 import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
-import { fmtDateId, fmtKcal, parseNum } from "@/utils/format";
+import { fmtDateMedium, fmtGramsLabel, fmtKcalLabel, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
 type FoodUpdateInput = Parameters<typeof client.food.update>[0];
@@ -196,6 +196,7 @@ export function FoodPortionSheet({
   onShare: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation(["makan", "common"]);
   const { theme } = useUnistyles();
   const queryClient = useQueryClient();
   const base = portionOf(row);
@@ -293,10 +294,10 @@ export function FoodPortionSheet({
       const slotMoved = input.meal !== undefined && input.meal !== row.meal;
       return {
         message: moved
-          ? `Dipindah ke ${relativeDayLabel(input.date!, jakartaToday())}`
+          ? t("portionSheet.toast.movedDay", { date: relativeDayLabel(input.date!, jakartaToday()) })
           : slotMoved
-            ? `Dipindah ke ${MEAL_EDIT_LABELS[input.meal!]}`
-            : `${input.name ?? row.name} diperbarui`,
+            ? t("portionSheet.toast.movedSlot", { meal: MEAL_EDIT_LABELS[input.meal!] })
+            : t("portionSheet.toast.updated", { name: input.name ?? row.name }),
         undo: () => {
           const cache = new OptimisticCache(queryClient);
           patchFoodEdit(
@@ -345,10 +346,10 @@ export function FoodPortionSheet({
       <Sheet
         visible
         onClose={onClose}
-        title="Ubah porsi"
+        title={t("portionSheet.title")}
         footer={
           <Button
-            label="Simpan"
+            label={t("common:actions.save")}
             onPress={submit}
             disabled={!valid || !changed}
             loading={update.isPending}
@@ -357,24 +358,24 @@ export function FoodPortionSheet({
       >
         <View style={styles.body}>
           <StickerHero scanId={row.scanId} name={row.name} />
-          <Field label="Nama">
+          <Field label={t("portionSheet.name")}>
             <Input
               value={name}
               onChangeText={setName}
               maxLength={200}
-              accessibilityLabel="Nama makanan"
+              accessibilityLabel={t("portionSheet.nameAria")}
             />
           </Field>
 
           {hasGrams ? (
             <View style={styles.pair}>
               <View style={styles.pairField}>
-                <Field label="Berat (g)" macro="grams">
+                <Field label={t("portionSheet.weightLabel")} macro="grams">
                   <Input
                     value={gramsText}
                     onChangeText={onGrams}
                     keyboardType="decimal-pad"
-                    accessibilityLabel="Berat dalam gram"
+                    accessibilityLabel={t("portionSheet.weightAria")}
                   />
                 </Field>
               </View>
@@ -382,9 +383,7 @@ export function FoodPortionSheet({
                 accessibilityRole="button"
                 accessibilityState={{ selected: linked }}
                 accessibilityLabel={
-                  linked
-                    ? "Berat dan kalori terhubung, ketuk untuk melepas"
-                    : "Berat dan kalori terlepas, ketuk untuk menghubungkan"
+                  linked ? t("portionSheet.link.linkedAria") : t("portionSheet.link.unlinkedAria")
                 }
                 onPress={toggleLink}
                 style={({ pressed }) => [
@@ -400,19 +399,19 @@ export function FoodPortionSheet({
                 />
               </Pressable>
               <View style={styles.pairField}>
-                <Field label="Kalori (kcal)" macro="kcal">
+                <Field label={t("portionSheet.kcalLabel")} macro="kcal">
                   <Input
                     value={kcalText}
                     onChangeText={onKcal}
                     keyboardType="decimal-pad"
-                    accessibilityLabel="Kalori dalam kkal"
+                    accessibilityLabel={t("portionSheet.kcalAria")}
                   />
                 </Field>
               </View>
             </View>
           ) : (
             <>
-              <Field label="Porsi">
+              <Field label={t("portionSheet.portion")}>
                 <View style={styles.chips}>
                   {PORTION_MULTIPLIERS.map((mult) => (
                     <Chip
@@ -426,17 +425,17 @@ export function FoodPortionSheet({
                     value={multText}
                     onChangeText={onMult}
                     keyboardType="decimal-pad"
-                    accessibilityLabel="Kelipatan porsi sendiri"
+                    accessibilityLabel={t("portionSheet.customMultiplier")}
                     style={styles.multInput}
                   />
                 </View>
               </Field>
-              <Field label="Kalori (kcal)" macro="kcal">
+              <Field label={t("portionSheet.kcalLabel")} macro="kcal">
                 <Input
                   value={kcalText}
                   onChangeText={onKcal}
                   keyboardType="decimal-pad"
-                  accessibilityLabel="Kalori dalam kkal"
+                  accessibilityLabel={t("portionSheet.kcalAria")}
                 />
               </Field>
             </>
@@ -446,13 +445,13 @@ export function FoodPortionSheet({
             <View style={styles.previewLine}>
               <View style={styles.previewItem}>
                 <MacroIcon macro="kcal" size={16} />
-                <Num style={styles.previewKcal}>{fmtKcal(values.kcal)} kkal</Num>
+                <Num style={styles.previewKcal}>{fmtKcalLabel(values.kcal)}</Num>
               </View>
               {hasGrams && values.grams !== null ? (
                 <View style={styles.previewItem}>
                   <MacroIcon macro="grams" size={16} />
                   <Num style={[styles.previewKcal, styles.previewGram]}>
-                    {fmtKcal(values.grams)} g
+                    {fmtGramsLabel(values.grams)}
                   </Num>
                 </View>
               ) : null}
@@ -464,23 +463,25 @@ export function FoodPortionSheet({
               fiber={values.fiber}
             />
             <Text style={styles.hint}>
-              {hasGrams && !linked
-                ? "Terlepas: berat dan kalori diisi sendiri, makro ikut kalori."
-                : "Makro ikut berubah sesuai porsi. Harga piring tidak ikut berubah."}
+              {hasGrams && !linked ? t("portionSheet.hint.unlinked") : t("portionSheet.hint.linked")}
             </Text>
           </View>
 
-          <Field label="Dicatat pada">
+          <Field label={t("portionSheet.loggedOn")}>
             <View style={styles.dateBox}>
               <DayChips value={date} onChange={setDate} />
               <Button
                 variant="ghost"
                 size="sm"
                 icon="calendar"
-                label={recentDayLabel(date, jakartaToday())}
+                label={relativeDayLabel(date, jakartaToday())}
                 onPress={() => setPickingDate(true)}
               />
-              {dateChanged ? <Text style={styles.hint}>Akan dipindah ke {fmtDateId(date)}.</Text> : null}
+              {dateChanged ? (
+                <Text style={styles.hint}>
+                  {t("portionSheet.movedHint", { date: fmtDateMedium(date) })}
+                </Text>
+              ) : null}
             </View>
           </Field>
 
@@ -490,8 +491,8 @@ export function FoodPortionSheet({
             onChange={setMeal}
             hint={
               mealChanged
-                ? `Akan dipindah ke ${MEAL_EDIT_LABELS[meal]}.`
-                : "Pindahkan ke waktu makan lain bila salah slot."
+                ? t("portionSheet.slotMovedHint", { meal: MEAL_EDIT_LABELS[meal] })
+                : t("portionSheet.slotHint")
             }
           />
 

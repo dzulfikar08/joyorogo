@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Text } from "@/components/ui";
 import { MacroLine } from "@/components/macro-line";
-import { fmtIdr } from "@/components/plate/belanja";
-import { fmtKcal } from "@/utils/format";
+import { fmtIdr, fmtKcalLabel } from "@/utils/format";
 
 /**
  * Diary plate header: "Piring: Nasi padang · Rp28.000" plus the plate's total
@@ -34,11 +34,12 @@ export function PlateHeader({
   onEdit: () => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Ubah piring ${name}`}
+      accessibilityLabel={t("plate.header.editAria", { name })}
       disabled={disabled}
       onPress={onEdit}
       style={({ pressed }) => [styles.bar, pressed && styles.pressed]}
@@ -46,14 +47,14 @@ export function PlateHeader({
       <View style={styles.barRow}>
         <Ionicons name="restaurant" size={14} color={theme.colors.makanText} />
         <Text style={styles.label} numberOfLines={1}>
-          Piring: {name}
+          {t("plate.header.title", { name })}
         </Text>
         {priceIdr !== null ? <Text style={styles.price}>{fmtIdr(priceIdr)}</Text> : null}
         <Ionicons name="pencil" size={12} color={theme.colors.mutedForeground} />
       </View>
       {kcal > 0 ? (
         <View style={styles.totals}>
-          <Text style={styles.kcal}>{fmtKcal(kcal)} kcal</Text>
+          <Text style={styles.kcal}>{fmtKcalLabel(kcal)}</Text>
           <MacroLine protein={protein} carbs={carbs} fat={fat} fiber={fiber} />
         </View>
       ) : null}

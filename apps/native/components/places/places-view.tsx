@@ -8,7 +8,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { formatDistance, sortPlaces, visitAgeLabel } from "@joyorogo/api/lib/places";
 import type { PlaceSort, PlaceSummary } from "@joyorogo/api/lib/places";
 
-import { fmtIdr } from "@/components/plate/belanja";
+import { fmtIdr } from "@/utils/format";
 import { SaveLocationToggle } from "@/components/places/location-toggle";
 import { PlaceDetailSheet } from "@/components/places/place-detail";
 import { PlaceThumb } from "@/components/places/place-thumb";

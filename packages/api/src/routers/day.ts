@@ -393,18 +393,21 @@ export const dayRouter = {
       carbsG: row.carbs,
       meals: row.meals ? row.meals.split(",") : [],
     }));
-    const guidance = buildGuidance({
-      day: fitnessDay,
-      targets,
-      eaten: {
-        kcal: todayRows.reduce((sum, row) => sum + row.kcal, 0),
-        proteinG: todayRows.reduce((sum, row) => sum + (row.protein ?? 0), 0),
-        carbsG: todayRows.reduce((sum, row) => sum + (row.carbs ?? 0), 0),
-        names: todayRows.map((row) => row.name),
+    const guidance = buildGuidance(
+      {
+        day: fitnessDay,
+        targets,
+        eaten: {
+          kcal: todayRows.reduce((sum, row) => sum + row.kcal, 0),
+          proteinG: todayRows.reduce((sum, row) => sum + (row.protein ?? 0), 0),
+          carbsG: todayRows.reduce((sum, row) => sum + (row.carbs ?? 0), 0),
+          names: todayRows.map((row) => row.name),
+        },
+        history,
+        slot: suggestMealNow(new Date(), effectiveRamadan(prof?.ramadanMode)),
       },
-      history,
-      slot: suggestMealNow(new Date(), effectiveRamadan(prof?.ramadanMode)),
-    });
+      context.locale,
+    );
     return { status: "ready" as const, guidance };
   }),
 };

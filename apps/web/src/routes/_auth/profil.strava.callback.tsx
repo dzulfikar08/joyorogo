@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CircleAlert, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Button } from "@joyorogo/ui/components/button";
@@ -17,11 +18,12 @@ export const Route = createFileRoute("/_auth/profil/strava/callback")({
 });
 
 function StravaCallbackPage() {
+  const { t } = useTranslation("settings");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { code, error: oauthError } = Route.useSearch();
   const [failed, setFailed] = useState<string | null>(
-    oauthError ? `Strava menolak sambungan: ${oauthError}` : null,
+    oauthError ? t("strava.callback.denied", { error: oauthError }) : null,
   );
   // OAuth callbacks must run exactly once, even under StrictMode remounts.
   const ran = useRef(false);
@@ -33,14 +35,14 @@ function StravaCallbackPage() {
     ran.current = true;
     if (oauthError) return;
     if (!code) {
-      setFailed("Strava tidak mengirim kode otorisasi. Coba hubungkan lagi dari halaman Profil.");
+      setFailed(t("strava.callback.noCode"));
       return;
     }
     exchange.mutate(
       { code, redirectUri: `${window.location.origin}/profil/strava/callback` },
       {
         onSuccess: () => {
-          toast.success("Strava terhubung.");
+          toast.success(t("strava.toast.connected"));
           queryClient.invalidateQueries({ queryKey: orpc.strava.key() });
           navigate({ to: "/profil" });
         },
@@ -57,10 +59,10 @@ function StravaCallbackPage() {
           <span className="flex size-9 items-center justify-center rounded-full bg-destructive/10">
             <CircleAlert className="size-[1.125rem] text-destructive" aria-hidden />
           </span>
-          <p className="mt-3 text-[0.9375rem] font-bold">Strava tidak terhubung</p>
+          <p className="mt-3 text-[0.9375rem] font-bold">{t("strava.callback.title")}</p>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{failed}</p>
           <Button variant="secondary" size="sm" className="mt-4" render={<Link to="/profil" />}>
-            Kembali ke Profil
+            {t("strava.callback.back")}
           </Button>
         </div>
       </Page>
@@ -71,7 +73,9 @@ function StravaCallbackPage() {
     <Page className="max-w-xl">
       <div className="flex flex-col items-center py-24 text-center" role="status">
         <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden />
-        <p className="mt-4 text-sm font-semibold text-muted-foreground">Menyambungkan Strava...</p>
+        <p className="mt-4 text-sm font-semibold text-muted-foreground">
+          {t("strava.callback.connecting")}
+        </p>
       </div>
     </Page>
   );

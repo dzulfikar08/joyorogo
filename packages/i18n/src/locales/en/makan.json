@@ -1,0 +1,703 @@
+{
+  "diary": {
+    "header": {
+      "caption": "Log your plate",
+      "loading": "Loading your food log"
+    },
+    "summary": {
+      "over": "+{{kcal}} over",
+      "ofTarget": "of {{kcal}}"
+    },
+    "macro": {
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "fiber": "Fiber"
+    },
+    "story": {
+      "title": "Tell us what you ate",
+      "subtitle": "Type or speak, and AI counts the calories.",
+      "sheetDescription": "Add several meals at once, even from yesterday. You can check everything before it's saved.",
+      "saved_one": "{{count}} food logged to {{days}}.",
+      "saved_other": "{{count}} foods logged to {{days}}.",
+      "daysJoin": " and ",
+      "dismiss": "Dismiss message"
+    },
+    "favorites": {
+      "title": "Favorites",
+      "hint": "Tap to log to {{meal}}",
+      "hintOnDate": "Tap to log to {{meal}}, {{date}}",
+      "inlineHint": "Favorites · tap to log to {{meal}}",
+      "inlineHintOnDate": "Favorites · tap to log to {{meal}}, {{date}}",
+      "sheetHint": "Tap to log straight to {{meal}}.",
+      "sheetInlineHint": "Favorites · tap to log to {{meal}}"
+    },
+    "empty": {
+      "titleToday": "Nothing logged today",
+      "titleDay": "Nothing logged on this day",
+      "description": "Tell us what you ate, or scan a photo of your plate and let AI count it.",
+      "log": "Log a meal",
+      "scan": "Scan a photo",
+      "nativeTitle": "No food yet",
+      "nativeDescriptionToday": "Log your first meal for today, or snap your plate with the camera button.",
+      "nativeDescriptionOnDate": "Log your first meal for {{date}}, or snap your plate with the camera button.",
+      "nativeAction": "Add food"
+    },
+    "list": {
+      "entries_one": "{{n}} entry",
+      "entries_other": "{{n}} entries",
+      "sectionAria": "{{meal}}, total {{kcal}} kcal",
+      "addTo": "Add {{meal}}",
+      "slotEmpty": "Nothing logged yet. Tap Add above, or scan a photo.",
+      "slotEmptyIcon": "Nothing logged yet. Tap the add button above, or scan a photo.",
+      "slotNoKind": "No {{kind}} in this meal.",
+      "dayEmpty": "Nothing logged on this day.",
+      "dayNoKind": "No {{kind}} on this day.",
+      "dayAria": "Log for {{date}}",
+      "openInList": "Open in List"
+    },
+    "kind": {
+      "makanan": "food",
+      "camilan": "snacks",
+      "minuman": "drinks",
+      "lainnya": "other items"
+    },
+    "mealShort": {
+      "sarapan": "Breakfast",
+      "makan_siang": "Lunch",
+      "makan_malam": "Dinner",
+      "snack": "Snack",
+      "sahur": "Suhoor",
+      "berbuka": "Iftar"
+    },
+    "sheet": {
+      "addTo": "Add to {{meal}}",
+      "addFood": "Add Food",
+      "descToday": "Goes into today's log.",
+      "descDate": "Goes into the log for {{date}}.",
+      "recentTitle": "Recently logged",
+      "quickAdd": "Quick add",
+      "manualToggle": "Know the calories? Enter them yourself",
+      "manualToggleShort": "Enter calories yourself",
+      "saving": "Saving...",
+      "field": {
+        "name": "Food name",
+        "namePlaceholder": "Fried rice",
+        "caloriesNative": "Calories (kcal)",
+        "protein": "Protein (g)",
+        "carbs": "Carbs (g)",
+        "fat": "Fat (g)",
+        "price": "Price of the plate (Rp, optional)",
+        "priceNative": "Price of this plate (Rp, optional)",
+        "pricePlaceholder": "e.g. {{example}}",
+        "priceA11y": "Price of this plate in rupiah",
+        "place": "Place (optional)",
+        "placePlaceholder": "Corner cafe",
+        "placePlaceholderNative": "Mama's Kitchen",
+        "placeA11y": "Where you bought it"
+      },
+      "macrosToggle": "+ Protein / carbs / fat (optional)",
+      "macrosToggleNative": "Add macro details (optional)",
+      "scanPhoto": {
+        "title": "Scan with a photo",
+        "subtitle": "AI counts the calories, you check them."
+      },
+      "scanBarcode": {
+        "title": "Scan a package barcode",
+        "subtitle": "Pull the nutrition facts from Open Food Facts."
+      },
+      "shareTitle": "Share this food",
+      "shareProtein": "P {{g}}g"
+    },
+    "error": {
+      "foodName": "Enter a food name first.",
+      "kcalNumber": "Enter the calories as a number.",
+      "priceNumber": "That price isn't valid (rupiah, numbers only).",
+      "nameMissing": "Enter the food name first.",
+      "kcalMissing": "Enter the calories, e.g. 350.",
+      "priceInvalid": "Enter the plate price as a whole number of rupiah, e.g. 28000.",
+      "saveFailed": "Couldn't save."
+    },
+    "toast": {
+      "logged": "{{name}} logged",
+      "movedTo": "Moved to {{target}}",
+      "plateUpdated": "Plate updated",
+      "entryFallback": "Entry"
+    }
+  },
+  "kind": {
+    "makanan": "Food",
+    "camilan": "Snacks",
+    "minuman": "Drinks",
+    "lainnya": "Other",
+    "all": "All"
+  },
+  "foodRow": {
+    "fromAi": "From AI scan",
+    "delete": "Delete {{name}}"
+  },
+  "viewSwitcher": {
+    "label": "Food views",
+    "view": {
+      "daftar": "List",
+      "kalender": "Calendar",
+      "stiker": "Stickers",
+      "tempat": "Places"
+    }
+  },
+  "kindChips": {
+    "label": "Entry type"
+  },
+  "monthScrubber": {
+    "records_other": "{{n}} entries",
+    "records_one": "{{n}} entry",
+    "daysLogged_other": "{{n}} days logged",
+    "daysLogged_one": "{{n}} day logged",
+    "jump": "Jump to a date this month",
+    "dayWithEntries": "{{date}}, has entries"
+  },
+  "calendar": {
+    "label": "Entries calendar",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "weekday": {
+      "mon": "M",
+      "tue": "T",
+      "wed": "W",
+      "thu": "T",
+      "fri": "F",
+      "sat": "S",
+      "sun": "S"
+    },
+    "dayWithEntries_other": "{{date}}, {{count}} entries, {{kcal}}",
+    "dayWithEntries_one": "{{date}}, {{count}} entry, {{kcal}}",
+    "dayEmpty": "{{date}}, no entries yet",
+    "daysLoggedMonth_other": "{{n}} days logged this month",
+    "daysLoggedMonth_one": "{{n}} day logged this month",
+    "budget": "Budget ±{{kcal}}",
+    "monthLong": {
+      "jan": "January",
+      "feb": "February",
+      "mar": "March",
+      "apr": "April",
+      "may": "May",
+      "jun": "June",
+      "jul": "July",
+      "aug": "August",
+      "sep": "September",
+      "oct": "October",
+      "nov": "November",
+      "dec": "December"
+    }
+  },
+  "stickers": {
+    "tile": {
+      "label": "{{name}}, {{kcal}}, {{date}}",
+      "meta": "{{kcal}} · {{date}}"
+    },
+    "range": "{{from}} – {{to}}",
+    "span": {
+      "label": "Sticker range",
+      "minggu": "Week",
+      "bulan": "Month"
+    },
+    "count_other": "{{n}} stickers",
+    "count_one": "{{n}} sticker",
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "loading": "Putting your stickers together...",
+    "empty": {
+      "title": "No stickers yet",
+      "body": "Snap your plate with Photo scan and the cutouts of your food will show up here."
+    }
+  },
+  "fitnessCard": {
+    "aria": "Fitness scores from JoyoFit",
+    "title": "Fitness from JoyoFit",
+    "metric": {
+      "recovery": "Recovery",
+      "strain": "Strain",
+      "sleep": "Sleep"
+    },
+    "left": {
+      "kcal": "Kcal left",
+      "protein": "Protein left",
+      "carbs": "Carbs left"
+    },
+    "pick": {
+      "protein": "P {{g}}",
+      "carbs": "C {{g}}",
+      "database": "from the JoyoRogo database",
+      "history_other": "{{n}}x in your log",
+      "history_one": "{{n}}x in your log"
+    },
+    "picksTitle": "Picks for today",
+    "readiness": {
+      "primed": "Primed",
+      "balanced": "Balanced",
+      "strained": "Strained",
+      "runDown": "Run down"
+    },
+    "hint": {
+      "hardDay": "Today is a hard one on your body, so your energy and carb needs are higher than usual. Drink enough fluids too.",
+      "rest": {
+        "lowRecovery": "Your recovery is low: prioritize protein, fluids and sleep tonight.",
+        "shortSleep": "You're short on sleep: prioritize protein, fluids and sleep tonight.",
+        "strained": "Your body is under strain: prioritize protein, fluids and sleep tonight."
+      }
+    },
+    "teaser": {
+      "title": "Food advice from your JoyoFit scores",
+      "body": "Pro gives you portion and menu advice for today, worked out from your scores, your daily targets and what you've already logged.",
+      "action": "Unlock with Pro"
+    }
+  },
+  "snackAdvice": {
+    "kcal": "{{n}} kcal",
+    "joinLast": "{{list}} and {{last}}",
+    "verdict": {
+      "aman": "Good to go",
+      "hati-hati": "Heads up",
+      "lewat": "Over target"
+    },
+    "spareNoun": {
+      "makanan": "eating now",
+      "camilan": "a snack",
+      "minuman": "a drink",
+      "lainnya": "this one"
+    },
+    "swap": {
+      "generic": {
+        "makanan": "Try half a portion of rice, grilled or boiled protein, and more vegetables.",
+        "camilan": "Try cut fruit, plain yogurt, or steamed tofu and tempeh.",
+        "minuman": "Try water, unsweetened tea, or coffee without sugar."
+      },
+      "label": "Swap for something lighter",
+      "idea": "Swap for {{name}} (about {{kcal}})."
+    },
+    "reason": {
+      "head": "{{name}} {{kcal}}.",
+      "windowClosed": "Your IF eating window ({{window}}) is closed right now, so this is off schedule.",
+      "overNoRoom": "You're already at {{eaten}} of your {{target}} target today, and this adds {{kcal}}.",
+      "overSome": "You have {{remaining}} left today, so the total goes up to {{total}} against a {{target}} target ({{over}} over).",
+      "surplus": "Today becomes a surplus.",
+      "thinDeficit": "Today's deficit gets thin, but you can still save it.",
+      "reserve": {
+        "safe": "You have {{remaining}} left today and about {{reserve}} is usually set aside for {{upcoming}}, so about {{room}} is free for {{noun}}.",
+        "some": "You have {{remaining}} left today and about {{reserve}} is usually set aside for {{upcoming}}, so only {{room}} is free for {{noun}}.",
+        "none": "You have {{remaining}} left today and about {{reserve}} is usually set aside for {{upcoming}}, so there's no room for {{noun}}."
+      },
+      "careful": "If you eat it anyway, {{upcoming}} is down to about {{after}}.",
+      "simple": "You have {{remaining}} left today, and {{after}} after this."
+    },
+    "half": {
+      "label": "Half portion"
+    },
+    "lighterNext": {
+      "label": "Make {{upcoming}} lighter"
+    },
+    "dayImpact": {
+      "noTarget": "That day's total becomes {{total}}.",
+      "withTarget": "That day's total becomes {{total}} against a {{target}} target."
+    },
+    "card": {
+      "lighterLine": "{{label}}, around {{kcal}}.",
+      "aria": "Advice before saving: {{title}}",
+      "ariaFull": "Advice before saving: {{title}}. {{reason}}",
+      "remainingToday": "Left today",
+      "needLater": "Needed later",
+      "mealsAhead": "Meals ahead",
+      "none": "none",
+      "afterThis": "After this",
+      "over": "{{kcal}} over",
+      "undoHalf": "Back to full portion",
+      "halfButton": "Half portion · {{kcal}}",
+      "halfResult": "That makes it: {{verdict}}",
+      "note": "Just a guide, you can still save it."
+    },
+    "kindCycle": {
+      "aria": "Type: {{current}}. Tap to switch to {{next}}."
+    },
+    "kindPicker": {
+      "label": "Food type"
+    }
+  },
+  "timeline": {
+    "entries_other": "{{n}} entries",
+    "entries_one": "{{n}} entry"
+  },
+  "daySwitcher": {
+    "label": "Choose a day",
+    "prev": "Previous day",
+    "next": "Next day",
+    "backToToday": "Back to today"
+  },
+  "sheetActions": {
+    "removeFavorite": "Remove from Favorites",
+    "addFavorite": "Save to Favorites",
+    "share": "Share"
+  },
+  "favorites": {
+    "toast": {
+      "saved": "{{name}} added to Favorites",
+      "relogged": "{{name}} logged to {{meal}}",
+      "nameEmpty": "Name can't be empty"
+    },
+    "deletedLabel": "{{name}} from Favorites",
+    "itemCount_other": "{{count}} items",
+    "itemCount_one": "{{count}} item",
+    "manage": "Manage",
+    "sheet": {
+      "title": "Manage Favorites",
+      "description": "Rename or delete. You can undo a delete for a few seconds.",
+      "empty": "No favorites yet. Tap the star on a food or plate to save it.",
+      "newName": "New name for {{name}}",
+      "saveName": "Save name for {{name}}",
+      "rename": "Rename {{name}}",
+      "remove": "Remove {{name}} from Favorites"
+    }
+  },
+  "portionSheet": {
+    "title": "Edit portion",
+    "name": "Name",
+    "weightLabel": "Weight (g)",
+    "kcalLabel": "Calories (kcal)",
+    "link": {
+      "linkedAria": "Weight and calories are linked, tap to unlink",
+      "unlinkedAria": "Weight and calories are unlinked, tap to link",
+      "linked": "Linked",
+      "unlinked": "Unlinked"
+    },
+    "portion": "Portion",
+    "customMultiplier": "Custom portion multiplier",
+    "hint": {
+      "unlinked": "Unlinked: you set weight and calories yourself, macros follow calories.",
+      "linked": "Macros change with the portion. The plate price stays the same."
+    },
+    "loggedOn": "Logged on",
+    "pickDate": "Pick a date, selected {{date}}",
+    "movedHint": "Will be moved to {{date}}.",
+    "slotMovedHint": "Will be moved to {{meal}}.",
+    "slotHint": "Move it to another meal if it's in the wrong slot.",
+    "saving": "Saving...",
+    "toast": {
+      "movedDay": "Moved to {{date}}",
+      "movedSlot": "Moved to {{meal}}",
+      "updated": "{{name}} updated"
+    },
+    "nameAria": "Food name",
+    "weightAria": "Weight in grams",
+    "kcalAria": "Calories in kcal"
+  },
+  "story": {
+    "joinLast": "{{list}} and {{last}}",
+    "error": {
+      "generic": "Couldn't reach the AI. Try again.",
+      "micDenied": "Microphone permission was denied. Just type your story, or allow the microphone in your browser settings.",
+      "micDeniedNative": "Microphone permission was denied. Just type your story, or allow the microphone in Settings.",
+      "tooShort": "The recording is too short. Tap the microphone, tell your story, then tap Done.",
+      "empty": "Write down what you ate first, for example: fried rice, 1 plate.",
+      "kcalInvalid": "The calories for \"{{name}}\" aren't valid yet.",
+      "priceInvalid": "The plate price isn't valid (a rupiah amount).",
+      "recordStopFailed": "Couldn't stop the recording. Try again.",
+      "recordProcessFailed": "Couldn't process the recording. Try again.",
+      "recordFailed": "The recording failed. Try again.",
+      "recordStartFailed": "Couldn't start recording. Try again.",
+      "saveFailed": "Couldn't save."
+    },
+    "toast": {
+      "saved_other": "{{count}} foods logged to {{days}}.",
+      "saved_one": "{{count}} food logged to {{days}}.",
+      "show": "View",
+      "savedShort_other": "{{count}} foods logged",
+      "savedShort_one": "{{count}} food logged"
+    },
+    "listening": "Listening to your recording…",
+    "thinking": "AI is counting calories…",
+    "eta": "Usually takes 2 to 6 seconds.",
+    "cancelRequest": "Cancel",
+    "youSaid": "You said",
+    "editStory": "Edit story",
+    "portionDefault": "1 serving",
+    "kcalAria": "Calories for {{name}}",
+    "plateName": "Plate name",
+    "priceLabel": "Price (Rp)",
+    "pricePlaceholder": "e.g. {{example}}",
+    "total": "Total",
+    "saving": "Saving...",
+    "saveAll_other": "Save {{count}} foods",
+    "saveAll_one": "Save {{count}} food",
+    "inputLabel": "Tell us what you ate",
+    "recording": "Recording {{time}}",
+    "recordingHint": "Mention the food, portion and time. One minute max.",
+    "placeholder": {
+      "meal": "Example: fried noodles 1 serving, cheese prawns 3 pcs",
+      "day": "Example: yesterday morning yellow rice with omelette, lunch nasi padang with rendang"
+    },
+    "record": "Record voice",
+    "calculate": "Count calories",
+    "plateTitle": "Plate: {{label}}",
+    "platePriceLabel": "Price of this plate (Rp)",
+    "card": {
+      "template": {
+        "photo": {
+          "label": "Photo",
+          "hint": "Your photo as the background, numbers below."
+        },
+        "sticker": {
+          "label": "Sticker",
+          "hint": "Transparent PNG, place it over your own story photo."
+        },
+        "brand": {
+          "label": "Card",
+          "hint": "A complete JoyoRogo card, ready to post."
+        }
+      },
+      "eyebrow": {
+        "meal": "Today's meal",
+        "workout": "Workout session",
+        "recap": "Weekly recap",
+        "progress": "Today's progress",
+        "challenge": "Group challenge"
+      },
+      "volume": "Total volume",
+      "duration": "Duration",
+      "setsDone": "Sets done",
+      "sets": "Sets",
+      "records": "Records",
+      "unit": {
+        "minutes": "min",
+        "sets_other": "sets",
+        "sets_one": "set",
+        "new": "new",
+        "days_other": "days",
+        "days_one": "day",
+        "people_other": "people",
+        "people_one": "person"
+      },
+      "ofValue": "of {{value}}",
+      "targetValue": "target {{value}}",
+      "streak": "Streak",
+      "lost": "Lost",
+      "fromStartWeight": "from starting weight",
+      "onTarget": "On target",
+      "ofLogged_other": "of {{count}} logged",
+      "ofLogged_one": "of {{count}} logged",
+      "exercise": "Exercise",
+      "minutesValue_other": "{{n}} min",
+      "minutesValue_one": "{{n}} min",
+      "weight": "Weight",
+      "weeklyTrend": "weekly trend",
+      "bestDay": "Best day",
+      "daysHit": "Days on target",
+      "startingSoon": "Challenge starts soon",
+      "bestStreak": "Best streak",
+      "rank": "Rank",
+      "participants": "Participants",
+      "avgPerDay": "Daily average",
+      "ofKcal": "of {{n}} kcal",
+      "ofKcalTarget": "of {{n}} kcal target",
+      "newRecords": "New records",
+      "trend": {
+        "down": "Down {{kg}} kg this week",
+        "up": "Up {{kg}} kg this week",
+        "steady": "Steady this week"
+      },
+      "canvasUnsupported": "This browser doesn't support canvas.",
+      "share": {
+        "meal": "{{name}}, {{kcal}} kcal. Want to know what you can eat today? Check out JoyoRogo.",
+        "workout": "Just finished a workout: {{name}}. Log yours on JoyoRogo.",
+        "recap": "My recap {{name}}: {{on}} of {{logged}} days on target, averaging {{avg}} kcal a day. Track your meals on JoyoRogo.",
+        "lost": "Down {{kg}} kg already. Lose weight with just 3 numbers on JoyoRogo.",
+        "progress": "Lose weight with just 3 numbers: eat, burn, sleep. JoyoRogo."
+      }
+    },
+    "share": {
+      "shareToStory": "Share to Story",
+      "makeImageFailed": "Couldn't create the image.",
+      "downloaded": "Image downloaded, send it manually. This browser doesn't support sharing directly.",
+      "shareFailed": "Couldn't share.",
+      "preparing": "Preparing…",
+      "pickTemplate": "Choose a story style",
+      "preview": "{{name}} preview",
+      "changePhoto": "Change photo",
+      "usePhoto": "Use my photo",
+      "share": "Share",
+      "shareFailedTitle": "Couldn't share",
+      "shareFailedBody": "Try again in a moment.",
+      "photoFailedTitle": "Photo failed to load",
+      "photoFailedBody": "Check your connection or pick another photo, then try again.",
+      "captureFailedTitle": "The story image isn't ready",
+      "captureFailedBody": "The preview is fine, but the image couldn't be created. Try again."
+    }
+  },
+  "plate": {
+    "belanja": {
+      "title": "Food spending",
+      "todayLine": "Food spending today: {{amount}}",
+      "budgetLeft": {
+        "day": "Daily budget left: {{amount}}",
+        "month": "Monthly budget left: {{amount}}"
+      },
+      "weekMeta": "This week {{amount}}",
+      "todayMeta": "Today {{amount}}",
+      "leftMeta": {
+        "day": "Daily left {{amount}}",
+        "month": "Monthly left {{amount}}"
+      },
+      "thisWeek": "This week",
+      "thisMonth": "This month",
+      "bestValue": "Best value",
+      "bestValueHint": "Protein per {{price}}, from plates you've logged a price for.",
+      "proteinOf": "{{g}} protein",
+      "perPrice": "{{g}} per {{price}}",
+      "empty": "Log your plate price when you scan or write down food, and the most affordable meals will show up here.",
+      "leftShort": "Left {{amount}}",
+      "overBudget": {
+        "day": "{{amount}} over the daily budget",
+        "month": "{{amount}} over the monthly budget"
+      },
+      "budgetNote": {
+        "day": "Budget left: {{amount}} (per day)",
+        "month": "Budget left: {{amount}} (per month)"
+      },
+      "avg30": "Average over the last 30 days",
+      "proteinPerPrice": "{{g}} protein per {{price}}",
+      "emptyNative": "No prices logged yet. Fill in \"Price per plate\" when you scan or log food.",
+      "compactOver": "over budget by {{amount}}",
+      "compactLeft": "budget left {{amount}}"
+    },
+    "budget": {
+      "title": "Food spending budget",
+      "hint": "A limit on what you spend on food. The budget left shows next to your remaining calories.",
+      "limit": "Limit (Rp)",
+      "placeholder": "e.g. {{example}}",
+      "periodLabel": "Budget period",
+      "period": {
+        "day": "Daily",
+        "month": "Monthly"
+      },
+      "saved": "Budget saved",
+      "invalid": "Enter a valid rupiah amount, or leave it empty.",
+      "saving": "Saving...",
+      "remove": "Remove budget",
+      "native": {
+        "note": "Optional. See how much of your food budget is left each day or month.",
+        "amount": "Amount (Rp)",
+        "amountHint": "Leave empty to turn the budget off.",
+        "amountAria": "Food spending budget amount",
+        "perDay": "Per day",
+        "perMonth": "Per month",
+        "invalid": "Enter a whole rupiah amount, for example: 30000.",
+        "save": "Save Budget"
+      }
+    },
+    "mealSlot": {
+      "label": "Meal"
+    },
+    "calendar": {
+      "title": "Pick a date",
+      "range": "Between {{from}} and today."
+    },
+    "header": {
+      "title": "Plate: {{name}}",
+      "noPrice": "No price",
+      "editPrice": "Edit price of {{name}}",
+      "editAria": "Edit plate {{name}}"
+    },
+    "toast": {
+      "movedDay": "Moved to {{date}}",
+      "movedSlot": "Moved to {{meal}}",
+      "updated": "Plate updated"
+    },
+    "edit": {
+      "title": "Edit plate",
+      "invalidPrice": "The price isn't valid.",
+      "name": "Plate name",
+      "namePlaceholder": "Nasi padang",
+      "place": "Place (optional)",
+      "placePlaceholder": "RM Sederhana",
+      "price": "Price per plate (Rp)",
+      "pricePlaceholder": "e.g. {{example}}",
+      "loggedOn": "Logged on",
+      "pickDate": "Pick a date, selected {{date}}",
+      "movedHint_other": "Will be moved to {{date}} along with its {{count}} entries.",
+      "movedHint_one": "Will be moved to {{date}} along with its {{count}} entry.",
+      "dateHint": "Move this plate to another day if it's on the wrong one.",
+      "slotMovedHint_other": "The plate and its {{count}} entries will move to {{meal}}.",
+      "slotMovedHint_one": "The plate and its {{count}} entry will move to {{meal}}.",
+      "slotHint": "Move this plate if it's under the wrong meal.",
+      "saving": "Saving...",
+      "move": "Move"
+    },
+    "dateSheet": {
+      "title": "Pick a date",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "weekday": {
+        "mon": "Mo",
+        "tue": "Tu",
+        "wed": "We",
+        "thu": "Th",
+        "fri": "Fr",
+        "sat": "Sa",
+        "sun": "Su"
+      },
+      "limit": "As far back as {{date}}, up to today."
+    },
+    "fields": {
+      "title": "This plate",
+      "priceAria": "Price per plate in rupiah",
+      "nameHint": "So you don't have to enter the same price again.",
+      "placePlaceholder": "Warung Bu Siti",
+      "placeAria": "Where you bought it"
+    },
+    "editNative": {
+      "priceAria": "Plate price in rupiah",
+      "movedHint": "Will be moved to {{date}} ({{relative}}).",
+      "slotMovedHint": "The plate and everything on it will move to {{meal}}.",
+      "hasLocation": "This plate has a saved location, only you can see it.",
+      "removeLocation": "Remove location",
+      "needPlace": "Enter a place name first so the location can be saved."
+    }
+  },
+  "guidance": {
+    "headline": {
+      "fuel": "Hard day, you need more carbs",
+      "recover": "Your body needs recovery",
+      "fuel_recover": "Hard day and your body hasn't recovered",
+      "steady": "Today's scores look balanced"
+    },
+    "reason": {
+      "recovery": "recovery {{pct}}%",
+      "sleep": "sleep {{pct}}% of what you need",
+      "condition": "condition {{state}}"
+    },
+    "noAdjust": "No adjustment from today's scores. Stick to your daily targets.",
+    "noTarget": {
+      "hard": "Strain {{strain}} is high: your energy and carb needs are higher than usual. Drink enough fluids too.",
+      "rest": "{{reasons}}. Prioritize protein, fluids and rest today.",
+      "profile": "Fill in your profile and daily targets so portions and menus can be worked out from your own numbers."
+    },
+    "rest": {
+      "main": "{{reasons}}. Prioritize protein and fluids. No need to push for a bigger deficit today.",
+      "protein": "Protein: {{eaten}} g so far of your {{target}} g target, {{left}} g left.",
+      "proteinDone": "You've hit today's protein target."
+    },
+    "hard": {
+      "carbsLeft": "Strain {{strain}}: your carb target today is {{goal}} g ({{target}} g + {{boost}} g). {{eaten}} g so far, {{left}} g left. Drink enough fluids too.",
+      "carbsDone": "Strain {{strain}}: your carb target today is {{goal}} g ({{target}} g + {{boost}} g). You've hit it. Drink enough fluids too."
+    },
+    "room": {
+      "withBoost": "{{room}} kcal left today, including {{boost}} kcal from the extra carbs.",
+      "plain": "{{room}} kcal left today.",
+      "full": "You've reached today's kcal target, so no extra food is suggested."
+    },
+    "basis": {
+      "base": "Basis: your daily target of {{kcal}} kcal, {{protein}} g protein and {{carbs}} g carbs (the same numbers as the bars in your diary), minus what you've logged today.",
+      "boost": "The extra {{pct}}% carbs is a JoyoRogo rule for strain {{from}} and up, not a calorie count from your watch."
+    }
+  }
+}

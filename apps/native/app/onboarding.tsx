@@ -28,7 +28,7 @@ import { Mascot } from "@/components/mascot";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
 import { InviteFriendsStep } from "@/components/onboarding/invite-step";
-import { errorMessage, fmtKcal, fmtKg, parseNum } from "@/utils/format";
+import { errorMessage, fmtInt, fmtKg, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
 type Gender = "male" | "female";
@@ -262,12 +262,12 @@ export default function Onboarding() {
           <Text style={styles.stepTitle}>Rencana harianmu</Text>
           <Card style={styles.resultCard}>
             <Text style={styles.resultLabel}>Boleh makan</Text>
-            <Num style={styles.resultValue}>{fmtKcal(targets.eatKcal)}</Num>
+            <Num style={styles.resultValue}>{fmtInt(targets.eatKcal)}</Num>
             <Text style={styles.resultHint}>kcal per hari, ini anggaran makanmu.</Text>
           </Card>
           <Card style={styles.resultCard}>
             <Text style={styles.resultLabel}>Harus dibakar</Text>
-            <Num style={styles.resultValue}>{fmtKcal(targets.burnKcal)}</Num>
+            <Num style={styles.resultValue}>{fmtInt(targets.burnKcal)}</Num>
             <Text style={styles.resultHint}>kcal lewat olahraga tiap hari.</Text>
           </Card>
           <Card style={styles.resultCard}>

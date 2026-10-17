@@ -17,6 +17,7 @@ import { lightTheme as brandTheme } from "@/theme";
 import { MACRO_META } from "@/utils/macro-icons";
 import { ON_TARGET_TOLERANCE, type RecapShare } from "@joyorogo/api/lib/recap";
 import { verificationLabel, type ChallengeShare } from "@joyorogo/api/lib/challenge";
+import { fmtDate, fmtInt as intFmt, fmtNumber, i18n } from "@joyorogo/i18n";
 
 /**
  * 1080x1920 story cards rendered as plain views. The share sheet mounts them
@@ -127,28 +128,11 @@ export type StorySpec = MealStory | WorkoutStory | ProgressStory | RecapStory | 
 
 export const STORY_TEMPLATES: Array<{
   id: StoryTemplate;
-  label: string;
-  hint: string;
   needsPhoto: boolean;
 }> = [
-  {
-    id: "photo",
-    label: "Foto",
-    hint: "Fotomu jadi latar, angka di bawah.",
-    needsPhoto: true,
-  },
-  {
-    id: "sticker",
-    label: "Stiker",
-    hint: "PNG transparan, tempel di atas foto storymu.",
-    needsPhoto: false,
-  },
-  {
-    id: "brand",
-    label: "Kartu",
-    hint: "Kartu JoyoRogo utuh, tinggal posting.",
-    needsPhoto: false,
-  },
+  { id: "photo", needsPhoto: true },
+  { id: "sticker", needsPhoto: false },
+  { id: "brand", needsPhoto: false },
 ];
 
 /** Default photo for the story; null when the story carries no photo. */
@@ -172,22 +156,15 @@ export function storyShowsPhoto(
   return template === "brand" && story.kind === "meal";
 }
 
-const EYEBROWS = {
-  meal: "Makan hari ini",
-  workout: "Sesi latihan",
-  recap: "Rekap minggu",
-  progress: "Progres hari ini",
-  challenge: "Tantangan grup",
-} as const;
+function eyebrowFor(kind: StorySpec["kind"]): string {
+  return i18n.t(`makan:story.card.eyebrow.${kind}`);
+}
 
-const idFmt = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
-const intFmt = (value: number) => idFmt.format(Math.round(value));
-const dateFmt = new Intl.DateTimeFormat("id-ID", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-});
+/** Local calendar day of `date` as 'YYYY-MM-DD', for the shared date formatter. */
+function localDayKey(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${String(date.getDate()).padStart(2, "0")}`;
+}
 
 // Design pixels -> density-independent pixels of the card view.
 const scale = 1 / PixelRatio.get();
@@ -338,15 +315,23 @@ function mealCells(story: MealStory): Cell[] {
 
 function workoutMetrics(story: WorkoutStory) {
   const volume = story.volumeKg
-    ? { value: intFmt(story.volumeKg), unit: "kg", label: "Total volume" }
+    ? { value: intFmt(story.volumeKg), unit: "kg", label: i18n.t("makan:story.card.volume") }
     : null;
   const duration =
     story.durationMin != null
-      ? { value: `${Math.round(story.durationMin)}`, unit: "menit", label: "Durasi" }
+      ? {
+          value: `${Math.round(story.durationMin)}`,
+          unit: i18n.t("makan:story.card.unit.minutes"),
+          label: i18n.t("makan:story.card.duration"),
+        }
       : null;
   const sets =
     story.setsDone != null
-      ? { value: `${Math.round(story.setsDone)}`, unit: "set", label: "Set selesai" }
+      ? {
+          value: `${Math.round(story.setsDone)}`,
+          unit: i18n.t("makan:story.card.unit.sets", { count: Math.round(story.setsDone) }),
+          label: i18n.t("makan:story.card.setsDone"),
+        }
       : null;
   const hero: Metric | null = volume ?? duration ?? sets;
   const cells: Cell[] = [];
@@ -354,7 +339,7 @@ function workoutMetrics(story: WorkoutStory) {
     cells.push({
       icon: "clock-outline",
       color: ACCENT,
-      label: "Durasi",
+      label: i18n.t("makan:story.card.duration"),
       value: duration.value,
       unit: duration.unit,
     });
@@ -363,14 +348,20 @@ function workoutMetrics(story: WorkoutStory) {
     cells.push({
       icon: "dumbbell",
       color: ACCENT,
-      label: "Set",
+      label: i18n.t("makan:story.card.sets"),
       value: sets.value,
       unit: sets.unit,
     });
   }
   const prCount = story.prs?.length ?? 0;
   if (prCount > 0) {
-    cells.push({ icon: "trophy", color: AMBER, label: "Rekor", value: `${prCount}`, unit: "baru" });
+    cells.push({
+      icon: "trophy",
+      color: AMBER,
+      label: i18n.t("makan:story.card.records"),
+      value: `${prCount}`,
+      unit: i18n.t("makan:story.card.unit.new"),
+    });
   }
   return { hero, cells };
 }
@@ -384,26 +375,28 @@ function progressCells(story: ProgressStory): Cell[] {
       label: MACRO_META.protein.label,
       value: intFmt(story.proteinG),
       unit: "g",
-      sub: story.proteinTargetG ? `dari ${intFmt(story.proteinTargetG)} g` : undefined,
+      sub: story.proteinTargetG
+        ? i18n.t("makan:story.card.ofValue", { value: `${intFmt(story.proteinTargetG)} g` })
+        : undefined,
     });
   }
   if ((story.streakDays ?? 0) > 0) {
     cells.push({
       icon: "fire",
       color: AMBER,
-      label: "Beruntun",
+      label: i18n.t("makan:story.card.streak"),
       value: `${story.streakDays}`,
-      unit: "hari",
+      unit: i18n.t("makan:story.card.unit.days", { count: story.streakDays ?? 0 }),
     });
   }
   if ((story.weightLostKg ?? 0) > 0) {
     cells.push({
       icon: "trending-down",
       color: ACCENT,
-      label: "Turun",
-      value: idFmt.format(story.weightLostKg!),
+      label: i18n.t("makan:story.card.lost"),
+      value: fmtNumber(story.weightLostKg!, 1),
       unit: "kg",
-      sub: "dari berat awal",
+      sub: i18n.t("makan:story.card.fromStartWeight"),
     });
   }
   return cells;
@@ -415,10 +408,10 @@ function recapCells(story: RecapStory): Cell[] {
     {
       icon: "check-circle-outline",
       color: ACCENT,
-      label: "Sesuai target",
+      label: i18n.t("makan:story.card.onTarget"),
       value: `${story.daysOnTarget}`,
-      unit: "hari",
-      sub: `dari ${story.loggedDays} tercatat`,
+      unit: i18n.t("makan:story.card.unit.days", { count: story.daysOnTarget }),
+      sub: i18n.t("makan:story.card.ofLogged", { count: story.loggedDays }),
     },
   ];
   if (story.proteinAvgG != null) {
@@ -428,26 +421,34 @@ function recapCells(story: RecapStory): Cell[] {
       label: MACRO_META.protein.label,
       value: intFmt(story.proteinAvgG),
       unit: "g",
-      sub: story.proteinTargetG ? `target ${intFmt(story.proteinTargetG)} g` : undefined,
+      sub: story.proteinTargetG
+        ? i18n.t("makan:story.card.targetValue", { value: `${intFmt(story.proteinTargetG)} g` })
+        : undefined,
     });
   }
   if (story.streakDays > 0) {
     cells.push({
       icon: "fire",
       color: AMBER,
-      label: "Beruntun",
+      label: i18n.t("makan:story.card.streak"),
       value: `${story.streakDays}`,
-      unit: "hari",
+      unit: i18n.t("makan:story.card.unit.days", { count: story.streakDays }),
     });
   }
   if (story.exerciseKcal > 0) {
     cells.push({
       icon: "dumbbell",
       color: ACCENT,
-      label: "Olahraga",
+      label: i18n.t("makan:story.card.exercise"),
       value: intFmt(story.exerciseKcal),
       unit: "kcal",
-      sub: story.exerciseMin > 0 ? `${intFmt(story.exerciseMin)} menit` : undefined,
+      sub:
+        story.exerciseMin > 0
+          ? i18n.t("makan:story.card.minutesValue", {
+              count: Math.round(story.exerciseMin),
+              n: intFmt(story.exerciseMin),
+            })
+          : undefined,
     });
   }
   if (story.weightChangeKg != null) {
@@ -455,17 +456,17 @@ function recapCells(story: RecapStory): Cell[] {
     cells.push({
       icon: change < 0 ? "trending-down" : change > 0 ? "trending-up" : "minus",
       color: ACCENT,
-      label: "Berat",
-      value: `${change > 0 ? "+" : ""}${idFmt.format(change)}`,
+      label: i18n.t("makan:story.card.weight"),
+      value: `${change > 0 ? "+" : ""}${fmtNumber(change, 1)}`,
       unit: "kg",
-      sub: "tren mingguan",
+      sub: i18n.t("makan:story.card.weeklyTrend"),
     });
   }
   if (story.bestDay) {
     cells.push({
       icon: "trophy",
       color: AMBER,
-      label: "Hari terbaik",
+      label: i18n.t("makan:story.card.bestDay"),
       value: story.bestDay.label,
       unit: "",
       sub: `${intFmt(story.bestDay.kcal)} kcal`,
@@ -481,26 +482,26 @@ function challengeCells(story: ChallengeStory): Cell[] {
     cells.push({
       icon: "fire",
       color: AMBER,
-      label: "Streak terbaik",
+      label: i18n.t("makan:story.card.bestStreak"),
       value: `${story.bestStreak}`,
-      unit: "hari",
+      unit: i18n.t("makan:story.card.unit.days", { count: story.bestStreak }),
     });
     if (story.rank !== null && story.participants > 1) {
       cells.push({
         icon: "trophy",
         color: AMBER,
-        label: "Peringkat",
+        label: i18n.t("makan:story.card.rank"),
         value: `${story.rank}`,
-        unit: `dari ${story.participants}`,
+        unit: i18n.t("makan:story.card.ofValue", { value: story.participants }),
       });
     }
   }
   cells.push({
     icon: "account-group-outline",
     color: ACCENT,
-    label: "Peserta",
+    label: i18n.t("makan:story.card.participants"),
     value: `${story.participants}`,
-    unit: "orang",
+    unit: i18n.t("makan:story.card.unit.people", { count: story.participants }),
   });
   return cells;
 }
@@ -613,16 +614,24 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
     hero = { value: intFmt(story.eatenKcal), unit: "kcal" };
     cells = progressCells(story);
   } else if (story.kind === "recap") {
-    hero = { value: intFmt(story.avgKcal), unit: "kcal", label: "Rata-rata per hari" };
+    hero = {
+      value: intFmt(story.avgKcal),
+      unit: "kcal",
+      label: i18n.t("makan:story.card.avgPerDay"),
+    };
     cells = recapCells(story);
   } else {
     hero =
       story.status === "upcoming"
-        ? { value: `${story.durationDays}`, unit: "hari", label: "Tantangan segera dimulai" }
+        ? {
+            value: `${story.durationDays}`,
+            unit: i18n.t("makan:story.card.unit.days", { count: story.durationDays }),
+            label: i18n.t("makan:story.card.startingSoon"),
+          }
         : {
             value: `${story.hitDays}/${story.judgedDays}`,
-            unit: "hari",
-            label: "Hari target tercapai",
+            unit: i18n.t("makan:story.card.unit.days", { count: story.judgedDays }),
+            label: i18n.t("makan:story.card.daysHit"),
           };
     cells = challengeCells(story);
   }
@@ -647,7 +656,7 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
     <CardTone.Provider value={tone}>
       <View style={styles.block}>
         <Txt size={32} weight={700} color="accent" lh={38} spacing={6} lines={1}>
-          {(story.eyebrow ?? EYEBROWS[story.kind]).toUpperCase()}
+          {(story.eyebrow ?? eyebrowFor(story.kind)).toUpperCase()}
         </Txt>
 
         {story.kind !== "progress" ? (
@@ -718,7 +727,12 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
             </View>
             <View style={styles.captionRow}>
               <Txt size={36} weight={600} color="soft" lh={46} lines={1}>
-                {`dari ${intFmt(story.targetKcal)} kcal${story.kind === "recap" ? " target" : ""}`}
+                {i18n.t(
+                  story.kind === "recap"
+                    ? "makan:story.card.ofKcalTarget"
+                    : "makan:story.card.ofKcal",
+                  { n: intFmt(story.targetKcal) },
+                )}
               </Txt>
               <Txt size={36} weight={800} color={pctColor === ACCENT ? WHITE : pctColor} lh={46}>
                 {`${Math.round(pct * 100)}%`}
@@ -747,7 +761,7 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
             <View style={styles.prHeader}>
               <Icon name="trophy" size={44} color={AMBER} />
               <Txt size={36} weight={800} color={AMBER} lh={48} style={{ marginLeft: px(16) }}>
-                Rekor baru
+                {i18n.t("makan:story.card.newRecords")}
               </Txt>
             </View>
             {story.prs!.slice(0, 3).map((pr, index) => (
@@ -788,10 +802,10 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
               ) : null}
               <Txt size={36} weight={700} lh={48} lines={1}>
                 {trend.delta < 0
-                  ? `Turun ${idFmt.format(Math.abs(trend.delta))} kg minggu ini`
+                  ? i18n.t("makan:story.card.trend.down", { kg: fmtNumber(Math.abs(trend.delta), 1) })
                   : trend.delta > 0
-                    ? `Naik ${idFmt.format(trend.delta)} kg minggu ini`
-                    : "Stabil minggu ini"}
+                    ? i18n.t("makan:story.card.trend.up", { kg: fmtNumber(trend.delta, 1) })
+                    : i18n.t("makan:story.card.trend.steady")}
               </Txt>
             </View>
             <Sparkline weights={trend.weights} />
@@ -800,7 +814,7 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
 
         <View style={styles.footer}>
           <Txt size={32} weight={600} color="soft" lines={1} style={{ flexShrink: 1 }}>
-            {dateFmt.format(date)}
+            {fmtDate(localDayKey(date), "long")}
           </Txt>
           {card ? (
             <Txt size={32} weight={700} color={ACCENT}>

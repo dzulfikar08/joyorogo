@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 
 import { Mascot } from "@/components/mascot";
@@ -15,13 +16,14 @@ type Mode = "ask" | "blocked";
 /**
  * Notification permission behind a styled pre-prompt. Android 13+ and iOS show
  * the system dialog once, so it only appears after the user agrees here
- * (a "Nanti saja" costs nothing). When the system already blocked the dialog,
+ * (a "Not now" costs nothing). When the system already blocked the dialog,
  * the sheet points to Settings instead of pretending a prompt will show.
  *
  * `ensure()` resolves true when reminders may be scheduled. Render `sheet`
  * anywhere in the screen's tree.
  */
 export function useNotificationGate() {
+  const { t } = useTranslation("settings");
   const [mode, setMode] = useState<Mode | null>(null);
   const [busy, setBusy] = useState(false);
   const pending = useRef<PromiseWithResolvers<boolean> | null>(null);
@@ -57,14 +59,29 @@ export function useNotificationGate() {
     <Sheet
       visible={mode !== null}
       onClose={() => settle(false)}
-      title={mode === "blocked" ? "Notifikasi dimatikan" : "Izinkan pengingat?"}
+      title={
+        mode === "blocked"
+          ? t("reminders.permission.blockedTitle")
+          : t("reminders.permission.askTitle")
+      }
       footer={
         <View style={styles.footer}>
-          <Button variant="secondary" label="Nanti saja" onPress={() => settle(false)} />
+          <Button
+            variant="secondary"
+            label={t("reminders.permission.later")}
+            onPress={() => settle(false)}
+          />
           {mode === "blocked" ? (
-            <Button label="Buka Pengaturan" onPress={() => void openSettings()} />
+            <Button
+              label={t("reminders.permission.openSettings")}
+              onPress={() => void openSettings()}
+            />
           ) : (
-            <Button label="Izinkan" loading={busy} onPress={() => void allow()} />
+            <Button
+              label={t("reminders.permission.allow")}
+              loading={busy}
+              onPress={() => void allow()}
+            />
           )}
         </View>
       }
@@ -74,8 +91,8 @@ export function useNotificationGate() {
       </View>
       <Text style={styles.message}>
         {mode === "blocked"
-          ? "Android atau iOS tidak lagi menampilkan permintaan izin untuk JoyoRogo. Nyalakan notifikasi JoyoRogo di Pengaturan, lalu kembali ke sini dan aktifkan pengingatnya lagi."
-          : "JoyoRogo mengirim pengingat catat makan, minum, timbang, dan jendela puasa di jam yang kamu pilih. Notifikasi hanya untuk itu, tidak ada iklan. Setelah ini sistem akan meminta izin sekali."}
+          ? t("reminders.permission.blockedMessage")
+          : t("reminders.permission.askMessage")}
       </Text>
     </Sheet>
   );

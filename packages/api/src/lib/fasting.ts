@@ -4,6 +4,9 @@
 // without dragging in a date library. The eating window may cross midnight
 // (e.g. 22:00 → 06:00); `endMin` above 1440 encodes that.
 
+import { fmtInt, getT } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+import { localizedLabels } from "./engine";
 import type { Meal } from "./engine";
 
 export type FastingPattern = "16:8" | "18:6" | "20:4" | "omad";
@@ -140,11 +143,10 @@ export function fastingElapsedFraction(
 
 export type MealKind = "buka" | "camilan" | "terakhir";
 
-export const MEAL_KIND_LABELS: Record<MealKind, string> = {
-  buka: "Buka puasa",
-  camilan: "Camilan",
-  terakhir: "Makan terakhir",
-};
+export const MEAL_KIND_LABELS = localizedLabels(
+  ["buka", "camilan", "terakhir"] as const satisfies readonly MealKind[],
+  (kind, locale) => getT(locale, "push")(`fasting.mealKind.${kind}`),
+);
 
 export type PlannedMeal = { kind: MealKind; atMin: number; share: number; meal: Meal };
 
@@ -234,9 +236,6 @@ const EMPTY_DAY: FastingDay = {
   outsideWindow: [],
   outsideWindowKcal: 0,
 };
-
-/** Indonesian thousand separators for notification copy ("1.450"). */
-const idInt = new Intl.NumberFormat("id-ID");
 
 /**
  * One IF day: schedule rebalanced by what's already eaten, current state,
@@ -410,15 +409,19 @@ export function dayReminders(input: {
   windowStart: string;
   dateKey: string;
   remainingKcal: number;
+  /** Language of the notification copy (the recipient's); default Indonesian. */
+  locale?: Locale;
 }): ReminderDraft[] {
+  const locale = input.locale ?? "id";
+  const t = getT(locale, "push");
   const plan = buildSchedule(input.pattern, input.windowStart);
   const window = windowTimes(input.windowStart, windowHoursFor(input.pattern));
-  const kcal = idInt.format(Math.round(input.remainingKcal));
+  const kcal = fmtInt(input.remainingKcal, locale);
   const drafts: ReminderDraft[] = [
     {
       key: `${input.dateKey}:open`,
-      title: "Jendela makan buka",
-      body: `Saatnya makan pertama. Sisa ${kcal} kcal untuk hari ini.`,
+      title: t("fasting.open.title"),
+      body: t("fasting.open.body", { kcal }),
       atMin: window.startMin,
     },
   ];
@@ -428,20 +431,21 @@ export function dayReminders(input: {
   const closingMin = window.endMin - 30;
   plan.slice(1).forEach((m, i) => {
     const isLastMeal = m.atMin === closingMin;
+    const meal = t(`fasting.mealKind.${m.kind}`);
     drafts.push({
       key: `${input.dateKey}:m${i + 1}`,
-      title: `Waktunya ${MEAL_KIND_LABELS[m.kind].toLowerCase()}`,
+      title: t("fasting.meal.title", { meal: meal.toLowerCase() }),
       body: isLastMeal
-        ? `30 menit lagi jendela tutup. Sisa ${kcal} kcal di jendela ini.`
-        : `${MEAL_KIND_LABELS[m.kind]} jam ${fmtHHMM(m.atMin)}. Sisa ${kcal} kcal di jendela ini.`,
+        ? t("fasting.lastMeal.body", { kcal })
+        : t("fasting.meal.body", { Meal: meal, time: fmtHHMM(m.atMin), kcal }),
       atMin: m.atMin % DAY_MINUTES,
     });
   });
   if (!drafts.some((d) => d.atMin === closingMin % DAY_MINUTES)) {
     drafts.push({
       key: `${input.dateKey}:close30`,
-      title: "30 menit lagi jendela tutup",
-      body: `Sisa ${kcal} kcal belum terpakai. Isi sekarang atau simpan untuk besok.`,
+      title: t("fasting.close30.title"),
+      body: t("fasting.close30.body", { kcal }),
       atMin: closingMin % DAY_MINUTES,
     });
   }
@@ -460,6 +464,7 @@ export function dueReminders(input: {
   remainingKcal: number;
   nowMin: number;
   tickMinutes?: number;
+  locale?: Locale;
 }): ReminderDraft[] {
   const tick = input.tickMinutes ?? 5;
   return dayReminders(input).filter((draft) => {

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { MEAL_EDIT_LABELS, MEALS, effectiveRamadan, slotsFor } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
@@ -26,14 +27,15 @@ export function MealSlotField({
   onChange: (meal: Meal) => void;
   hint: string;
 }) {
+  const { t } = useTranslation("makan");
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
   const active = slotsFor(effectiveRamadan(profile.data?.profile?.ramadanMode));
   const options = MEALS.filter((meal) => active.includes(meal) || meal === current);
   return (
     <div>
-      <FieldLabel htmlFor={id}>Waktu makan</FieldLabel>
+      <FieldLabel htmlFor={id}>{t("plate.mealSlot.label")}</FieldLabel>
       <div className="mt-1.5 space-y-2">
-        <div id={id} role="group" aria-label="Waktu makan" className="flex flex-wrap gap-2">
+        <div id={id} role="group" aria-label={t("plate.mealSlot.label")} className="flex flex-wrap gap-2">
           {options.map((meal) => (
             <Chip key={meal} active={value === meal} onClick={() => onChange(meal)}>
               {MEAL_EDIT_LABELS[meal]}

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
@@ -25,11 +26,12 @@ export function MealSlotField({
   onChange: (meal: Meal) => void;
   hint: string;
 }) {
+  const { t } = useTranslation("makan");
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
   const active = slotsFor(effectiveRamadan(profile.data?.profile?.ramadanMode));
   const options = MEALS.filter((meal) => active.includes(meal) || meal === current);
   return (
-    <Field label="Waktu makan">
+    <Field label={t("plate.mealSlot.label")}>
       <View style={styles.box}>
         <View style={styles.chips}>
           {options.map((meal) => (

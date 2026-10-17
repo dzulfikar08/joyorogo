@@ -8,27 +8,33 @@
  * and never used for calorie math.
  */
 
+import { getActiveLocale, getT } from "@joyorogo/i18n";
+
+import { localizedLabels } from "./engine";
+
 export const FOOD_KINDS = ["makanan", "camilan", "minuman", "lainnya"] as const;
 
 export type FoodKind = (typeof FOOD_KINDS)[number];
 
-export const FOOD_KIND_LABELS: Record<FoodKind, string> = {
-  makanan: "Makanan",
-  camilan: "Camilan",
-  minuman: "Minuman",
-  lainnya: "Lainnya",
-};
+/** Kind names in the active language ("Makanan" / "Food"); lazy, see `localizedLabels`. */
+export const FOOD_KIND_LABELS: Record<FoodKind, string> = localizedLabels(
+  FOOD_KINDS,
+  (kind, locale) => getT(locale, "makan")(`kind.${kind}`),
+);
 
 /** Filter chip values: every kind, or 'semua' for no filter. */
 export type FoodKindFilter = FoodKind | "semua";
 
-export const FOOD_KIND_FILTERS: ReadonlyArray<{ value: FoodKindFilter; label: string }> = [
-  { value: "semua", label: "Semua" },
-  { value: "makanan", label: FOOD_KIND_LABELS.makanan },
-  { value: "camilan", label: FOOD_KIND_LABELS.camilan },
-  { value: "minuman", label: FOOD_KIND_LABELS.minuman },
-  { value: "lainnya", label: FOOD_KIND_LABELS.lainnya },
-];
+/** Filter chips in order; each `label` reads the active language when accessed. */
+export const FOOD_KIND_FILTERS: ReadonlyArray<{ value: FoodKindFilter; label: string }> = (
+  ["semua", ...FOOD_KINDS] as const
+).map((value) => ({
+  value,
+  get label() {
+    const t = getT(getActiveLocale(), "makan");
+    return value === "semua" ? t("kind.all") : t(`kind.${value}`);
+  },
+}));
 
 export function parseFoodKindFilter(value: unknown): FoodKindFilter | undefined {
   return FOOD_KIND_FILTERS.find((filter) => filter.value === value)?.value;

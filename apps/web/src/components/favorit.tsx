@@ -1,6 +1,7 @@
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { foodSavedKey, plateSavedKey } from "@joyorogo/api/lib/saved-foods";
+import type { TFunction } from "@joyorogo/i18n";
 import { removeById } from "@joyorogo/api/lib/optimistic";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
@@ -8,6 +9,7 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Pencil, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Chip } from "@/components/chip";
@@ -15,7 +17,7 @@ import { ListGroup, ListRow } from "@/components/kit/surface";
 import { FoodThumb, STICKER_FILTER, stickerUrl } from "@/components/sticker";
 import type { FoodItem, SavedFood, SavedFoodRelog } from "@/lib/api-types";
 import { fmtRupiah } from "@/lib/app-config";
-import { fmtInt } from "@/lib/format";
+import { fmtKcalLabel } from "@/lib/format";
 import { insertFoodRow, OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
@@ -36,6 +38,7 @@ type SaveInput = { target: { foodId: string } | { plateId: string }; draft: Save
  * delayed delete. Mount once per page (pending deletes flush on unmount).
  */
 export function useFavorites() {
+  const { t } = useTranslation("makan");
   const queryClient = useQueryClient();
   const query = useQuery(orpc.savedFood.list.queryOptions());
   const items = query.data?.items ?? [];
@@ -51,7 +54,7 @@ export function useFavorites() {
     },
     invalidate: () => [orpc.savedFood.key()],
     success: (_input, row) => ({
-      message: `${row.name} masuk Favorit`,
+      message: t("favorites.toast.saved", { name: row.name }),
       undo: () => {
         const cache = new OptimisticCache(queryClient);
         cache.value<SavedList>(listKey(), (old) =>
@@ -70,7 +73,7 @@ export function useFavorites() {
       cache.value<SavedList>(listKey(), (old) =>
         old ? { ...old, items: removeById(old.items, row.id) } : old,
       ),
-    label: (row) => `${row.name} dari Favorit`,
+    label: (row) => t("favorites.deletedLabel", { name: row.name }),
     invalidate: () => [orpc.savedFood.key()],
   });
 
@@ -122,7 +125,7 @@ export function useFavorites() {
     },
     invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.savedFood.key()],
     success: ({ saved, meal }, result) => ({
-      message: `${saved.name} dicatat ke ${MEAL_LABELS[meal]}`,
+      message: t("favorites.toast.relogged", { name: saved.name, meal: MEAL_LABELS[meal] }),
       undo: () => {
         void Promise.all(result.items.map((row) => client.food.remove({ id: row.id }))).finally(
           () => {
@@ -209,13 +212,15 @@ export interface Favorites {
   relog: (saved: SavedFood, date: string, meal: Meal) => void;
   relogPending: boolean;
   rename: (id: string, name: string) => void;
-  /** Delayed delete with an Urungkan toast. */
+  /** Delayed delete with an undo toast. */
   remove: (saved: SavedFood) => void;
 }
 
-function describe(saved: SavedFood): string {
-  const parts = [`${fmtInt(saved.kcal)} kcal`];
-  if (saved.items.length > 1) parts.push(`${saved.items.length} item`);
+function describe(saved: SavedFood, t: TFunction<"makan">): string {
+  const parts = [fmtKcalLabel(saved.kcal)];
+  if (saved.items.length > 1) {
+    parts.push(t("favorites.itemCount", { count: saved.items.length }));
+  }
   return parts.join(" · ");
 }
 
@@ -231,6 +236,7 @@ export function FavoritChips({
   meal: Meal;
   onManage: () => void;
 }) {
+  const { t } = useTranslation("makan");
   if (favorites.items.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2">
@@ -253,12 +259,12 @@ export function FavoritChips({
             <Star className="mr-1.5 size-3.5 shrink-0 fill-current text-makan-ink" aria-hidden />
           )}
           <span className="truncate">
-            {saved.name} · {fmtInt(saved.kcal)} kcal
+            {saved.name} · {fmtKcalLabel(saved.kcal)}
           </span>
         </Chip>
       ))}
       <Chip onClick={onManage} className="bg-transparent text-muted-foreground">
-        Kelola
+        {t("favorites.manage")}
       </Chip>
     </div>
   );
@@ -272,6 +278,7 @@ export function FavoritManageSheet({
   favorites: Favorites;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("makan");
   const [editing, setEditing] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
 
@@ -279,7 +286,7 @@ export function FavoritManageSheet({
     const name = draftName.trim();
     setEditing(null);
     if (name.length === 0) {
-      toast.error("Nama tidak boleh kosong");
+      toast.error(t("favorites.toast.nameEmpty"));
       return;
     }
     if (name !== saved.name) favorites.rename(saved.id, name);
@@ -291,12 +298,12 @@ export function FavoritManageSheet({
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      title="Kelola Favorit"
-      description="Ganti nama atau hapus. Hapus bisa dibatalkan beberapa detik."
+      title={t("favorites.sheet.title")}
+      description={t("favorites.sheet.description")}
     >
       {favorites.items.length === 0 ? (
         <p className="rounded-2xl bg-muted px-4 py-5 text-center text-sm text-muted-foreground">
-          Belum ada favorit. Tekan bintang di makanan atau piring untuk menyimpannya.
+          {t("favorites.sheet.empty")}
         </p>
       ) : (
         <ListGroup className="bg-muted/50">
@@ -322,7 +329,7 @@ export function FavoritManageSheet({
                       autoFocus
                       value={draftName}
                       maxLength={200}
-                      aria-label={`Nama baru untuk ${saved.name}`}
+                      aria-label={t("favorites.sheet.newName", { name: saved.name })}
                       onChange={(event) => setDraftName(event.target.value)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") commit(saved);
@@ -336,7 +343,7 @@ export function FavoritManageSheet({
                 }
                 subtitle={
                   <span className="flex flex-col">
-                    <span className="tabular-nums">{describe(saved)}</span>
+                    <span className="tabular-nums">{describe(saved, t)}</span>
                     {saved.priceIdr != null && (
                       <span className="tabular-nums">{fmtRupiah(saved.priceIdr)}</span>
                     )}
@@ -347,7 +354,11 @@ export function FavoritManageSheet({
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label={isEditing ? `Simpan nama ${saved.name}` : `Ganti nama ${saved.name}`}
+                      aria-label={
+                        isEditing
+                          ? t("favorites.sheet.saveName", { name: saved.name })
+                          : t("favorites.sheet.rename", { name: saved.name })
+                      }
                       onClick={() => {
                         if (isEditing) {
                           commit(saved);
@@ -363,7 +374,7 @@ export function FavoritManageSheet({
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label={`Hapus ${saved.name} dari Favorit`}
+                      aria-label={t("favorites.sheet.remove", { name: saved.name })}
                       onClick={() => favorites.remove(saved)}
                       className="text-muted-foreground hover:text-destructive"
                     >

@@ -1,0 +1,119 @@
+{
+  "date": {
+    "today": "Hari ini",
+    "yesterday": "Kemarin"
+  },
+  "time": {
+    "justNow": "baru saja",
+    "minutesAgo_other": "{{count}} menit lalu",
+    "hoursAgo_other": "{{count}} jam lalu",
+    "daysAgo_other": "{{count}} hari lalu"
+  },
+  "meal": {
+    "label": {
+      "sarapan": "Sarapan",
+      "makan_siang": "Makan Siang",
+      "makan_malam": "Makan Malam",
+      "snack": "Snack",
+      "sahur": "Sahur",
+      "berbuka": "Berbuka"
+    },
+    "editLabel": {
+      "sarapan": "Sarapan",
+      "makan_siang": "Makan siang",
+      "makan_malam": "Makan malam",
+      "snack": "Camilan",
+      "sahur": "Sahur",
+      "berbuka": "Berbuka"
+    }
+  },
+  "activity": {
+    "low": "Jarang gerak",
+    "mid": "Sedang",
+    "high": "Sering gerak"
+  },
+  "actions": {
+    "save": "Simpan",
+    "cancel": "Batal",
+    "delete": "Hapus",
+    "edit": "Ubah",
+    "close": "Tutup",
+    "back": "Kembali",
+    "retry": "Coba lagi",
+    "done": "Selesai",
+    "add": "Tambah",
+    "undo": "Urungkan"
+  },
+  "state": {
+    "loading": "Memuat…",
+    "genericError": "Terjadi kesalahan. Coba lagi."
+  },
+  "toast": {
+    "deleted": "{{name}} dihapus",
+    "entryFallback": "Catatan"
+  },
+  "nav": {
+    "home": "Beranda",
+    "food": "Makan",
+    "feed": "Feed",
+    "more": "Lainnya",
+    "camera": "Foto makanan dengan AI",
+    "photo": "Foto makanan",
+    "exercise": "Olahraga",
+    "weight": "Berat",
+    "sleep": "Tidur",
+    "primary": "Navigasi utama",
+    "title": {
+      "scan": "Foto Makanan",
+      "barcode": "Pindai Barcode",
+      "pro": "Pro",
+      "inbox": "Kotak Masuk",
+      "tips": "Tips",
+      "post": "Post",
+      "notifications": "Notifikasi",
+      "profile": "Profil"
+    }
+  },
+  "errorScreen": {
+    "updateTitle": "Versi baru tersedia",
+    "updateBody": "JoyoRogo baru saja diperbarui. Muat ulang aplikasi untuk memakai versi terbaru, ya.",
+    "crashTitle": "Waduh, ada yang error",
+    "crashBody": "Ada yang salah di sisi kami. Tenang, datamu aman. Coba lagi dulu, yuk.",
+    "reload": "Muat ulang aplikasi"
+  },
+  "more": {
+    "title": "Lainnya",
+    "subtitleWeb": "Profil, grup, dan lain-lain.",
+    "subtitleNative": "Akun, grup, dan notifikasi.",
+    "loading": "Memuat menu",
+    "fallbackNameWeb": "Profil",
+    "fallbackNameNative": "Pengguna JoyoRogo",
+    "weight": {
+      "title": "Berat",
+      "subtitle": "Berat badan, lingkar perut, dan tren"
+    },
+    "recap": {
+      "title": "Rekap mingguan",
+      "subtitle": "Ringkasan makan, olahraga, dan berat per minggu"
+    },
+    "groups": {
+      "title": "Grup",
+      "subtitleWeb": "Colek, catatan, dan VAR perut bareng teman",
+      "subtitleNative": "Colek, catatan, dan VAR perut"
+    },
+    "inbox": {
+      "title": "Kotak masuk",
+      "subtitle": "Colek dan catatan untukmu"
+    },
+    "pricing": {
+      "title": "Harga",
+      "subtitleWeb": "Paket dan jatah scan AI harian",
+      "subtitleNative": "Jadi Pro, buka semua fitur"
+    },
+    "upgrade": {
+      "title": "Jadi Pro",
+      "subtitleUnlimited": "Pro: scan AI tanpa batas",
+      "subtitleCapped_other": "Pro: {{count}} scan AI per hari"
+    }
+  }
+}

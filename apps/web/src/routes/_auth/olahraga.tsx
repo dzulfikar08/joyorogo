@@ -21,7 +21,7 @@ import {
   SectionTitle,
 } from "@/components/kit/surface";
 import { StravaCard } from "@/components/strava-card";
-import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
+import { fmtDateLong, fmtInt, parseNum } from "@/lib/format";
 import {
   OptimisticCache,
   useDelayedDelete,
@@ -314,7 +314,7 @@ function OlahragaScreen({
     <Page className="max-w-xl lg:max-w-5xl">
       <PageHeader
         title="Olahraga"
-        subtitle={fmtDateIndo(date)}
+        subtitle={fmtDateLong(date)}
         action={
           <Button variant="secondary" onClick={openManual}>
             Tulis manual

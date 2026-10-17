@@ -29,9 +29,10 @@ import type {
 } from "../lib/sticker";
 
 import { protectedProcedure } from "../index";
+import { serverT } from "../lib/messages";
 import { MEALS, jakartaToday } from "../lib/engine";
 import { dateSchema, mealSchema } from "../lib/schemas";
-import { STORY_EMPTY_ERROR, TRANSCRIBE_MODEL, parseFoodStory, transcribeStory } from "../lib/story";
+import { TRANSCRIBE_MODEL, parseFoodStory, transcribeStory } from "../lib/story";
 import { MAX_SCAN_RETRIES, requireAiQuota } from "../lib/quota";
 import { wibDayBounds } from "../lib/tiers";
 import { DEFAULT_VISION_MODEL, FRIENDLY_ERROR, VisionError, analyzeFoodPhoto, normalizeBox } from "../lib/vision";
@@ -128,7 +129,12 @@ export const aiRouter = {
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
       const requestStartedAt = Date.now();
-      const { ai, quotaReached } = await requireAiQuota(context.db, context.env, userId);
+      const { ai, quotaReached } = await requireAiQuota(
+        context.db,
+        context.env,
+        userId,
+        context.locale,
+      );
       const quotaMs = Date.now() - requestStartedAt;
 
       // "Hasilnya akurat?" cadence: ask after every scan for a brand-new user
@@ -198,6 +204,7 @@ export const aiRouter = {
           imageBase64: input.imageBase64,
           mimeType: input.mimeType,
           model: context.env.AI_VISION_MODEL || undefined,
+          locale: context.locale,
         });
       } catch (error) {
         // No result, no retry target: drop the photo stored alongside inference.
@@ -333,30 +340,27 @@ export const aiRouter = {
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
+      const t = serverT(context.locale, "errors");
       const ai = context.env.AI;
       if (!ai) {
-        throw new ORPCError("SERVICE_UNAVAILABLE", {
-          message: "Layanan AI belum tersedia. Coba lagi nanti.",
-        });
+        throw new ORPCError("SERVICE_UNAVAILABLE", { message: t("ai.unavailable") });
       }
       const bucket = context.env.STICKERS;
       if (!bucket) {
-        throw new ORPCError("INTERNAL_SERVER_ERROR", {
-          message: "Penyimpanan foto belum tersedia.",
-        });
+        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: t("ai.storageUnavailable") });
       }
       // The key embeds the owner: another user's id 404s by construction.
       const key = scanSrcKey(userId, input.photoId);
       const photo = await bucket.get(key).catch(() => null);
       if (!photo) {
         throw new ORPCError("NOT_FOUND", {
-          message: "Foto pemindaian tidak ditemukan. Foto ulang dulu ya.",
+          message: t("ai.photoNotFound"),
         });
       }
       const used = Number.parseInt(photo.customMetadata?.n ?? "0", 10) || 0;
       if (used >= MAX_SCAN_RETRIES) {
         throw new ORPCError("FORBIDDEN", {
-          message: `Batas hitung ulang foto ini habis (${MAX_SCAN_RETRIES} kali). Foto ulang saja ya.`,
+          message: t("ai.retriesExhausted", { count: MAX_SCAN_RETRIES }),
           data: { retriesExhausted: true },
         });
       }
@@ -371,6 +375,7 @@ export const aiRouter = {
             mimeType === "image/png" || mimeType === "image/webp" ? mimeType : "image/jpeg",
           model: context.env.AI_VISION_MODEL || undefined,
           retry: { hint: input.hint },
+          locale: context.locale,
         });
       } catch (error) {
         context.waitUntil(logScanFailure(context.db, userId, error, startedAt, "retry"));
@@ -543,14 +548,19 @@ export const aiRouter = {
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
-      const { ai, quotaReached } = await requireAiQuota(context.db, context.env, userId);
+      const { ai, quotaReached } = await requireAiQuota(
+        context.db,
+        context.env,
+        userId,
+        context.locale,
+      );
       const startedAt = Date.now();
       let transcript = input.text ?? "";
       let transcribeUsage: Record<string, unknown> | null = null;
       let analysis;
       try {
         if (input.audioBase64 !== undefined) {
-          const heard = await transcribeStory(ai, input.audioBase64);
+          const heard = await transcribeStory(ai, input.audioBase64, context.locale);
           transcript = heard.text;
           transcribeUsage = heard.usage;
         }
@@ -560,11 +570,12 @@ export const aiRouter = {
           defaultMeal: input.meal,
           referenceDate: input.date,
           model: context.env.AI_VISION_MODEL || undefined,
+          locale: context.locale,
         });
       } catch (error) {
         // The transcript still helps the user fix what the AI misheard.
         throw new ORPCError("UNPROCESSABLE_CONTENT", {
-          message: error instanceof Error ? error.message : STORY_EMPTY_ERROR,
+          message: error instanceof Error ? error.message : serverT(context.locale, "errors")("story.empty"),
           data: { transcript: transcript || null },
         });
       }

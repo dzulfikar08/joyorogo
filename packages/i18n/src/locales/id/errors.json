@@ -1,0 +1,22 @@
+{
+  "profile": {
+    "onboardingRequired": "Lengkapi onboarding dulu ya."
+  },
+  "ai": {
+    "unavailable": "Layanan AI belum tersedia. Coba lagi nanti.",
+    "storageUnavailable": "Penyimpanan foto belum tersedia.",
+    "photoNotFound": "Foto pemindaian tidak ditemukan. Foto ulang dulu ya.",
+    "retriesExhausted_other": "Batas hitung ulang foto ini habis ({{count}} kali). Foto ulang saja ya."
+  },
+  "quota": {
+    "proCapReached": "Batas pengaman Pro tercapai ({{count}} scan/hari). Coba lagi besok ya.",
+    "freeExhausted": "Kuota AI hari ini habis ({{count}}/hari). {{upsell}}",
+    "upsellUnlimited": "Pro buka AI tanpa batas.",
+    "upsellCapped": "Pro dapat {{count}}/hari."
+  },
+  "story": {
+    "empty": "Belum ada makanan yang dikenali dari ceritamu. Sebut nama makanannya, misalnya: nasi goreng 1 piring.",
+    "failed": "AI belum berhasil membaca ceritamu. Coba lagi sebentar lagi.",
+    "voiceEmpty": "Suaranya kurang jelas. Coba rekam lagi lebih dekat ke mikrofon."
+  }
+}

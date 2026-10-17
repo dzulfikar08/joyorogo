@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 
 import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/format";
@@ -14,6 +15,7 @@ import { useOptimisticMutation } from "@/lib/optimistic";
  * An empty amount clears the budget (idr null).
  */
 export function BudgetSetting() {
+  const { t } = useTranslation("makan");
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
   type BudgetInput = { idr: number | null; period: "day" | "month" };
 
@@ -49,7 +51,7 @@ export function BudgetSetting() {
     success: (_input, _data, context) => {
       const previous = context ?? null;
       return {
-        message: "Anggaran disimpan",
+        message: t("plate.budget.saved"),
         undo: previous === null ? undefined : () => setBudget.mutate(previous),
       };
     },
@@ -74,7 +76,7 @@ export function BudgetSetting() {
   const save = () => {
     const value = parseIdrInput(amount);
     if (amount.trim() !== "" && value === null) {
-      setError("Isi angka rupiah bulat, contoh: 30000.");
+      setError(t("plate.budget.native.invalid"));
       return;
     }
     setBudget.mutate({ idr: value, period });
@@ -82,11 +84,12 @@ export function BudgetSetting() {
 
   return (
     <Card style={styles.gap}>
-      <Text style={styles.title}>Anggaran belanja makan</Text>
-      <Text style={styles.note}>
-        Opsional. Biar ketahuan sisa budget makanmu tiap hari atau tiap bulan.
-      </Text>
-      <Field label="Jumlah (Rp)" hint="Kosongkan untuk mematikan anggaran.">
+      <Text style={styles.title}>{t("plate.budget.title")}</Text>
+      <Text style={styles.note}>{t("plate.budget.native.note")}</Text>
+      <Field
+        label={t("plate.budget.native.amount")}
+        hint={t("plate.budget.native.amountHint")}
+      >
         <Input
           value={formatIdrInput(amount)}
           onChangeText={(text) =>
@@ -98,20 +101,20 @@ export function BudgetSetting() {
           keyboardType="number-pad"
           maxLength={13}
           placeholder="Rp0"
-          accessibilityLabel="Jumlah anggaran belanja makan"
+          accessibilityLabel={t("plate.budget.native.amountAria")}
         />
       </Field>
       <Segmented
         options={[
-          { value: "day", label: "Per hari" },
-          { value: "month", label: "Per bulan" },
+          { value: "day", label: t("plate.budget.native.perDay") },
+          { value: "month", label: t("plate.budget.native.perMonth") },
         ]}
         value={period}
         onChange={(value) => setPeriod(value)}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {setBudget.isError ? <Text style={styles.error}>{errorMessage(setBudget.error)}</Text> : null}
-      <Button label="Simpan Anggaran" onPress={save} loading={setBudget.isPending} />
+      <Button label={t("plate.budget.native.save")} onPress={save} loading={setBudget.isPending} />
     </Card>
   );
 }

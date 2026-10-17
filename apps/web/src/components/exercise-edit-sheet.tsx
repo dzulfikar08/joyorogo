@@ -18,7 +18,7 @@ import { recentDayLabel } from "@joyorogo/api/lib/format";
 import { FieldLabel } from "@/components/kit/surface";
 import { CalendarSheet, DayChips } from "@/components/plate/plate-group";
 import type { ExerciseItem } from "@/lib/api-types";
-import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
+import { fmtDateLong, fmtInt, parseNum } from "@/lib/format";
 import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
@@ -309,7 +309,7 @@ export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose
               </Button>
               {dateChanged && (
                 <p className="text-xs text-muted-foreground">
-                  Akan dipindah ke {fmtDateIndo(date)}.
+                  Akan dipindah ke {fmtDateLong(date)}.
                 </p>
               )}
             </div>

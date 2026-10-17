@@ -57,6 +57,9 @@ export const profile = sqliteTable("profile", {
   foodBudgetPeriod: text("food_budget_period", { enum: ["day", "month"] })
     .notNull()
     .default("month"),
+  // Saved app language ('id' | 'en' | ...; validated by @joyorogo/i18n in the
+  // API). Null = never chosen: clients fall back to their device language.
+  locale: text("locale"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),

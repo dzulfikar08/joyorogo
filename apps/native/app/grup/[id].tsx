@@ -36,7 +36,7 @@ import { ChallengesSection } from "@/components/challenge/challenges-section";
 import { useToast } from "@/components/toast";
 import type { GroupActivityEvent, GroupMember } from "@/src/lib/group";
 import { inviteMessage, timeAgoId } from "@/src/lib/group";
-import { errorMessage, fmtKcal, fmtKg } from "@/utils/format";
+import { errorMessage, fmtInt, fmtKg } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 
@@ -54,14 +54,14 @@ function activityRow(event: GroupActivityEvent): { icon: "restaurant" | "fitness
     return {
       icon: "restaurant",
       title: who,
-      subtitle: `${meal} • ${fmtKcal(event.kcal)} kcal${event.name === null ? " (disembunyikan)" : ` • ${event.name}`}`,
+      subtitle: `${meal} • ${fmtInt(event.kcal)} kcal${event.name === null ? " (disembunyikan)" : ` • ${event.name}`}`,
     };
   }
   if (event.type === "exercise") {
     return {
       icon: "fitness",
       title: who,
-      subtitle: `${event.name ?? "Olahraga"} • ${event.minutes ?? "?"} mnt • ${fmtKcal(event.kcal)} kcal`,
+      subtitle: `${event.name ?? "Olahraga"} • ${event.minutes ?? "?"} mnt • ${fmtInt(event.kcal)} kcal`,
     };
   }
   return { icon: "scale", title: who, subtitle: `Timbang • ${fmtKg(event.kg)} kg` };
@@ -121,7 +121,7 @@ function MemberCard({
       />
 
       <Text style={styles.memberStats}>
-        Bakar {fmtKcal(today.burnedKcal)} kcal • {today.mealsLogged} makan
+        Bakar {fmtInt(today.burnedKcal)} kcal • {today.mealsLogged} makan
         {today.exerciseMinutes !== null ? ` • ${today.exerciseMinutes} mnt olahraga` : ""}
         {today.weightKg !== null ? ` • ${fmtKg(today.weightKg)} kg` : ""}
         {today.weightKg !== null && delta !== null

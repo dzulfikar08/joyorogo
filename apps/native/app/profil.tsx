@@ -8,10 +8,12 @@ import { Image, Platform, Switch, View } from "react-native";
 import { useEffect, useState } from "react";
 import { Redirect, Stack, router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, UnistylesRuntime, useUnistyles } from "react-native-unistyles";
 
 import { ACTIVITY_LABELS, idealWeightRange } from "@joyorogo/api/lib/engine";
-import type { Gender } from "@joyorogo/api/lib/engine";
+import { i18n, LOCALES, LOCALE_NAMES } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
 
 import {
   Avatar,
@@ -46,25 +48,15 @@ import {
 } from "@/src/lib/apk-update";
 import { isHealthSyncSupported, syncHealthData } from "@/src/lib/health-sync";
 import { backfillNutritionToHealth, isNutritionMirrorSupported } from "@/src/lib/health-nutrition";
+import { setLocale } from "@/src/lib/i18n";
 import { teardownReminders } from "@/src/lib/notifications";
 import { saveThemePref } from "@/src/lib/theme-pref";
-import { errorMessage, fmtDateId, fmtKcal, fmtKg, fmtMb } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtInt, fmtKg, fmtMegabytes } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 
-const NOTE_EXPLANATIONS: Record<string, string> = {
-  MAINTENANCE: "Berat sudah mencapai target. Rencana sekarang menjaga berat.",
-  BELOW_HEALTHY_RANGE: "Target berat di bawah rentang sehat. Naikkan sedikit agar aman.",
-  PLAN_CLAMPED: "Rencana disesuaikan agar aman. Defisit kalori dibatasi.",
-  ADAPTIVE: "Disesuaikan dari data makan + timbanganmu 3 minggu terakhir.",
-};
-
-const GENDER_LABELS: Record<Gender, string> = {
-  male: "Pria",
-  female: "Wanita",
-};
-
 export default function Profil() {
+  const { t } = useTranslation(["settings", "common"]);
   const gate = useSessionGate();
   const toast = useToast();
   // refetch keeps every screen's avatar in sync right after ganti/hapus foto.
@@ -95,7 +87,7 @@ export default function Profil() {
       setSheet(null);
       const undoFrom = previous ?? null;
       return {
-        message: "Rencana diperbarui",
+        message: t("plan.toast.updated"),
         undo: undoFrom === null ? undefined : () => updateTargets.mutate(undoFrom),
       };
     },
@@ -125,7 +117,7 @@ export default function Profil() {
         await teardownReminders();
         router.replace("/login");
       },
-      onError: (e) => toast.error("Gagal menghapus akun", errorMessage(e)),
+      onError: (e) => toast.error(t("account.delete.failedTitle"), errorMessage(e)),
     }),
   );
   const [appleChecking, setAppleChecking] = useState(false);
@@ -150,7 +142,7 @@ export default function Profil() {
       }
       const credential = await AppleAuthentication.signInAsync({ requestedScopes: [] });
       if (!credential.authorizationCode) {
-        toast.error("Gagal menghapus akun", "Apple tidak mengirim kode otorisasi. Coba lagi.");
+        toast.error(t("account.delete.failedTitle"), t("account.delete.noAppleCode"));
         return;
       }
       setDeleteAccountOpen(false);
@@ -158,7 +150,7 @@ export default function Profil() {
     } catch (e) {
       const code = (e as { code?: string } | null)?.code;
       if (code === "ERR_REQUEST_CANCELED") return;
-      toast.error("Gagal menghapus akun", errorMessage(e));
+      toast.error(t("account.delete.failedTitle"), errorMessage(e));
     } finally {
       setAppleChecking(false);
     }
@@ -203,7 +195,7 @@ export default function Profil() {
   if (profileQuery.isPending) {
     return (
       <Screen>
-        <PageHeader title="Profil" />
+        <PageHeader title={t("common:nav.title.profile")} />
         <Skeleton width="100%" height={96} radius={24} />
         <Skeleton width="100%" height={180} radius={24} />
         <Skeleton width="100%" height={160} radius={24} />
@@ -213,7 +205,7 @@ export default function Profil() {
   if (profileQuery.isError) {
     return (
       <Screen>
-        <PageHeader title="Profil" />
+        <PageHeader title={t("common:nav.title.profile")} />
         <ErrorState
           message={errorMessage(profileQuery.error)}
           onRetry={() => profileQuery.refetch()}
@@ -229,7 +221,7 @@ export default function Profil() {
         await teardownReminders();
         router.replace("/onboarding");
       },
-      onError: (e) => toast.error("Gagal menghapus", errorMessage(e)),
+      onError: (e) => toast.error(t("privacy.wipe.failedTitle"), errorMessage(e)),
     }),
   );
 
@@ -242,18 +234,18 @@ export default function Profil() {
     try {
       const result = await syncHealthData(profileQuery.data?.latestWeightKg ?? null);
       const parts = [
-        `${result.workoutsImported} latihan diimpor (7 hari terakhir)`,
-        `${result.activityDays} hari aktivitas`,
-        `${result.sleepNights} malam tidur`,
+        t("health.summary.workouts", { count: result.workoutsImported }),
+        t("health.summary.activityDays", { count: result.activityDays }),
+        t("health.summary.sleepNights", { count: result.sleepNights }),
+        t("health.summary.skipped", { count: result.workoutsSkipped }),
       ];
-      let summary = `${parts.join(", ")}, ${result.workoutsSkipped} duplikat dilewati.`;
+      let summary = `${parts.join(", ")}.`;
       const empty =
         result.workoutsImported === 0 && result.activityDays === 0 && result.sleepNights === 0;
       // HealthKit menolak izin secara diam: kueri hanya kembali kosong, jadi
       // arahkan ke Setelan tanpa mengklaim tahu penyebabnya.
       if (Platform.OS === "ios" && empty) {
-        summary +=
-          " Tidak ada data terbaca. Cek izin di Pengaturan > Health > Akses Data & Perangkat, lalu coba lagi.";
+        summary += ` ${t("health.summary.iosEmpty")}`;
       }
       setHcMessage(summary);
       queryClient.invalidateQueries();
@@ -270,7 +262,7 @@ export default function Profil() {
     setHcMessage(null);
     try {
       const result = await backfillNutritionToHealth();
-      setHcMessage(`${result.meals} makanan 30 hari terakhir ditulis ke Health Connect.`);
+      setHcMessage(t("health.nutritionWritten", { count: result.meals }));
     } catch (e) {
       setHcError(errorMessage(e));
     } finally {
@@ -286,7 +278,7 @@ export default function Profil() {
   };
 
   const heightIdeal = prof ? idealWeightRange(prof.heightCm) : null;
-  const displayName = session.data?.user.name ?? "Pengguna JoyoRogo";
+  const displayName = session.data?.user.name ?? t("common:more.fallbackNameNative");
   const avatarImage = session.data?.user.image ?? null;
 
   // Foto profil: galeri atau kamera (potong persegi di picker), lalu
@@ -304,13 +296,13 @@ export default function Profil() {
     success: () => {
       void refreshAfterAvatar();
       return {
-        message: "Foto profil diperbarui",
+        message: t("profile.photo.updated"),
         undo: () => {
           void client.avatar.remove().then(() => refreshAfterAvatar());
         },
       };
     },
-    onError: (e) => toast.error("Ganti foto gagal", errorMessage(e)),
+    onError: (e) => toast.error(t("profile.photo.error.uploadFailed"), errorMessage(e)),
     invalidate: () => [orpc.profile.key()],
   });
 
@@ -331,7 +323,7 @@ export default function Profil() {
         );
       }
     },
-    label: () => "Foto profil",
+    label: () => t("profile.photo.label"),
     invalidate: () => [orpc.profile.key()],
   });
   const pickAvatar = async (source: "gallery" | "camera") => {
@@ -365,18 +357,18 @@ export default function Profil() {
         compress: 0.85,
         format: SaveFormat.JPEG,
       });
-      if (!out.base64) throw new Error("Foto kosong");
+      if (!out.base64) throw new Error(t("profile.photo.error.empty"));
       uploadAvatar.mutate({ imageBase64: out.base64, mimeType: "image/jpeg" });
     } catch (e) {
-      toast.error("Foto tidak bisa diproses", errorMessage(e));
+      toast.error(t("profile.photo.error.processFailed"), errorMessage(e));
     }
   };
 
   return (
     <>
-      <Stack.Screen options={{ title: "Profil" }} />
+      <Stack.Screen options={{ title: t("common:nav.title.profile") }} />
       <Screen>
-      <PageHeader title="Profil" />
+      <PageHeader title={t("common:nav.title.profile")} />
 
       {/* Account header */}
       <View style={styles.accountRow}>
@@ -390,7 +382,7 @@ export default function Profil() {
             </View>
           ) : config.data?.paywall ? (
             <View style={styles.freeBadge}>
-              <Text style={styles.freeText}>Gratis</Text>
+              <Text style={styles.freeText}>{t("profile.badge.free")}</Text>
             </View>
           ) : null}
         </View>
@@ -401,14 +393,14 @@ export default function Profil() {
         <Button
           variant="secondary"
           size="sm"
-          label="Kamera"
+          label={t("profile.photo.camera")}
           loading={uploadAvatar.isPending}
           onPress={() => void pickAvatar("camera")}
         />
         <Button
           variant="secondary"
           size="sm"
-          label="Galeri"
+          label={t("profile.photo.gallery")}
           loading={uploadAvatar.isPending}
           onPress={() => void pickAvatar("gallery")}
         />
@@ -416,7 +408,7 @@ export default function Profil() {
           <Button
             variant="secondary"
             size="sm"
-            label="Hapus foto"
+            label={t("profile.photo.remove")}
             disabled={uploadAvatar.isPending}
             onPress={() => setAvatarRemoveOpen(true)}
           />
@@ -432,25 +424,35 @@ export default function Profil() {
       {/* Android only: update section. useApkUpdate is null on iOS and web. */}
       {updateState && installed ? (
         <Card>
-          <Text style={styles.cardTitle}>Pembaruan aplikasi</Text>
+          <Text style={styles.cardTitle}>{t("update.title")}</Text>
           <Text style={styles.note}>
-            Versi terpasang: {installed.versionName} ({installed.versionCode})
+            {t("update.installed", {
+              name: installed.versionName,
+              code: installed.versionCode,
+            })}
           </Text>
           {/* Empat kondisi: memeriksa / terbaru / tersedia / gagal. */}
           {updateState.refreshing || updateResult === null ? (
-            <Text style={styles.note}>Memeriksa pembaruan…</Text>
+            <Text style={styles.note}>{t("update.checking")}</Text>
           ) : updateResult.state === "up-to-date" ? (
-            <Text style={styles.note}>Sudah versi terbaru.</Text>
+            <Text style={styles.note}>{t("update.upToDate")}</Text>
           ) : updateResult.state === "error" ? (
             <Text style={styles.error}>{updateResult.message}</Text>
           ) : (
             <>
               <Text style={styles.note}>
-                Versi {updateResult.update.versionName} ({updateResult.update.versionCode}) ·{" "}
-                {fmtMb(updateResult.update.size)} siap dipasang.
+                {t("update.available", {
+                  name: updateResult.update.versionName,
+                  code: updateResult.update.versionCode,
+                  size: fmtMegabytes(updateResult.update.size),
+                })}
               </Text>
               <Button
-                label={installing ? `Mengunduh ${installProgress}%` : "Perbarui"}
+                label={
+                  installing
+                    ? t("update.downloading", { percent: installProgress })
+                    : t("update.install")
+                }
                 onPress={() => void installUpdate()}
                 loading={installing}
               />
@@ -460,7 +462,7 @@ export default function Profil() {
           <Button
             variant="secondary"
             size="sm"
-            label={updateState.refreshing ? "Memeriksa…" : "Cek pembaruan"}
+            label={updateState.refreshing ? t("update.checkingShort") : t("update.check")}
             onPress={() => void updateState.refresh()}
             loading={updateState.refreshing}
             disabled={installing}
@@ -475,23 +477,23 @@ export default function Profil() {
             <StatTile
               icon="restaurant"
               tint="makan"
-              label="Makan"
-              value={fmtKcal(targets.eatKcal)}
-              sub="kcal/hari"
+              label={t("plan.numbers.eat")}
+              value={fmtInt(targets.eatKcal)}
+              sub={t("plan.numbers.perDay")}
             />
             <StatTile
               icon="flame"
               tint="bakar"
-              label="Bakar"
-              value={fmtKcal(targets.burnKcal)}
-              sub="kcal/hari"
+              label={t("plan.numbers.burn")}
+              value={fmtInt(targets.burnKcal)}
+              sub={t("plan.numbers.perDay")}
             />
             <StatTile
               icon="moon"
               tint="tidur"
-              label="Tidur"
+              label={t("plan.numbers.sleep")}
               value={fmtKg(targets.sleepHours)}
-              sub="jam/malam"
+              sub={t("plan.numbers.perNight")}
             />
           </View>
 
@@ -500,8 +502,8 @@ export default function Profil() {
             <ListRow
               icon="flag"
               iconTint="makan"
-              title="Target berat"
-              subtitle="Ubah angka targetmu"
+              title={t("plan.targetWeight.title")}
+              subtitle={t("plan.targetWeight.subtitle")}
               value={`${fmtKg(prof.targetWeightKg)} kg`}
               chevron
               onPress={() => setSheet("weight")}
@@ -509,71 +511,83 @@ export default function Profil() {
             <ListRow
               icon="calendar"
               iconTint="makan"
-              title="Tanggal target"
-              subtitle="Kapan kamu ingin sampai"
-              value={fmtDateId(prof.targetDate)}
+              title={t("plan.targetDate.title")}
+              subtitle={t("plan.targetDate.subtitle")}
+              value={fmtDateMedium(prof.targetDate)}
               chevron
               onPress={() => setSheet("date")}
             />
             <ListRow
               icon="walk"
               iconTint="makan"
-              title="Aktivitas harian"
-              subtitle="Di luar olahraga; diatur saat onboarding"
+              title={t("plan.activity.title")}
+              subtitle={t("plan.activity.subtitle")}
               value={ACTIVITY_LABELS[prof.activityLevel as "low" | "mid" | "high"]}
             />
           </ListGroup>
 
           {targets.notes.map((note) => (
             <Text key={note} style={styles.note}>
-              {NOTE_EXPLANATIONS[note] ?? note}
+              {t(`plan.noteShort.${note}`)}
             </Text>
           ))}
           {targets.notes.includes("ADAPTIVE") && targets.formulaTdee ? (
             <Text style={styles.note}>
-              Estimasi rumus {fmtKcal(targets.formulaTdee)} kcal/hari; rencana memakai{" "}
-              {fmtKcal(targets.tdee)} kcal karena lebih cocok dengan datamu.
+              {t("plan.formulaEstimate", {
+                formula: fmtInt(targets.formulaTdee),
+                tdee: fmtInt(targets.tdee),
+              })}
             </Text>
           ) : null}
           <Text style={styles.note}>
-            Target berat {fmtKg(prof.targetWeightKg)} kg pada {fmtDateId(prof.targetDate)}.
             {heightIdeal
-              ? ` Rentang sehat untuk tinggimu: ${fmtKg(heightIdeal.minKg)}–${fmtKg(heightIdeal.maxKg)} kg.`
-              : ""}
+              ? t("plan.summary.withRange", {
+                  kg: fmtKg(prof.targetWeightKg),
+                  date: fmtDateMedium(prof.targetDate),
+                  min: fmtKg(heightIdeal.minKg),
+                  max: fmtKg(heightIdeal.maxKg),
+                })
+              : t("plan.summary.target", {
+                  kg: fmtKg(prof.targetWeightKg),
+                  date: fmtDateMedium(prof.targetDate),
+                })}
           </Text>
-          <Text style={styles.caption}>Ubah target dan angka harian dihitung ulang otomatis.</Text>
+          <Text style={styles.caption}>{t("plan.recalcNote")}</Text>
 
           {/* Data diri (hanya baca) */}
           <ListGroup>
             <ListRow
-              title="Jenis kelamin"
-              value={GENDER_LABELS[prof.gender as Gender] ?? prof.gender}
+              title={t("profile.personal.gender")}
+              value={
+                prof.gender === "male" || prof.gender === "female"
+                  ? t(`profile.gender.${prof.gender}`)
+                  : prof.gender
+              }
             />
-            <ListRow title="Tahun lahir" value={String(prof.birthYear)} />
-            <ListRow title="Tinggi" value={`${Math.round(prof.heightCm)} cm`} />
-            <ListRow title="Berat awal" value={`${fmtKg(prof.startWeightKg)} kg`} />
+            <ListRow title={t("profile.personal.birthYear")} value={String(prof.birthYear)} />
+            <ListRow title={t("profile.personal.height")} value={`${fmtInt(prof.heightCm)} cm`} />
             <ListRow
-              title="Berat terkini"
+              title={t("profile.personal.startWeight")}
+              value={`${fmtKg(prof.startWeightKg)} kg`}
+            />
+            <ListRow
+              title={t("profile.personal.currentWeight")}
               value={
                 profileQuery.data?.latestWeightKg != null
                   ? `${fmtKg(profileQuery.data.latestWeightKg)} kg`
-                  : "belum ada"
+                  : t("profile.personal.currentWeightNone")
               }
             />
           </ListGroup>
-          <Text style={styles.caption}>
-            Data diri diatur waktu onboarding. Berat terkini mengikuti timbangmu di halaman Berat.
-          </Text>
+          <Text style={styles.caption}>{t("profile.personal.note")}</Text>
         </>
       ) : (
         <Card>
-          <Text style={styles.cardTitle}>Belum ada rencana</Text>
-          <Text style={styles.note}>
-            Kamu belum melengkapi data diri. Isi onboarding untuk mendapat rencana harian.
-          </Text>
+          <Text style={styles.cardTitle}>{t("plan.empty.title")}</Text>
+          <Text style={styles.note}>{t("plan.empty.body")}</Text>
           <Button
             variant="secondary"
-            label="Isi Onboarding"
+            label={t("plan.empty.cta")}
             onPress={() => router.replace("/onboarding")}
           />
         </Card>
@@ -584,6 +598,9 @@ export default function Profil() {
 
       {/* Tampilan */}
       <AppearanceList />
+
+      {/* Bahasa */}
+      <LanguageList />
 
       {/* Ramadan */}
       {prof ? <RamadanList mode={prof.ramadanMode} /> : null}
@@ -601,7 +618,7 @@ export default function Profil() {
       <FeedSettingsCard />
 
       {/* Integrasi */}
-      <Text style={styles.sectionLabel}>Integrasi</Text>
+      <Text style={styles.sectionLabel}>{t("section.integrations")}</Text>
       <StravaCard />
       {isHealthSyncSupported() ? (
         <Card>
@@ -621,26 +638,20 @@ export default function Profil() {
             </View>
           )}
           <Text style={styles.note}>
-            {Platform.OS === "ios"
-              ? "Sumber utama aktivitasmu: latihan, langkah, jarak, kalori aktif, dan tidur 7 hari terakhir dari aplikasi Health. Setelah izin diberikan lewat tombol di bawah, sinkron berjalan otomatis tiap kali kamu buka aplikasi."
-              : "Sumber utama aktivitasmu: latihan, langkah, jarak, kalori aktif, dan tidur 7 hari terakhir. Setelah izin diberikan, sinkron berjalan otomatis tiap kali kamu buka aplikasi."}
+            {Platform.OS === "ios" ? t("health.noteIos") : t("health.noteAndroid")}
           </Text>
           <Button
             variant="secondary"
-            label="Izinkan & Sinkronkan 7 Hari"
+            label={t("health.syncButton")}
             onPress={() => void importHealthData()}
             loading={hcBusy}
           />
           {isNutritionMirrorSupported() ? (
             <>
-              <Text style={styles.note}>
-                Tulis makananmu (kalori, protein, karbo, lemak, serat) ke Health Connect agar
-                terbaca aplikasi lain. Makanan baru, hasil edit, dan hapus ikut tersinkron otomatis
-                setelah izin diberikan.
-              </Text>
+              <Text style={styles.note}>{t("health.nutritionNote")}</Text>
               <Button
                 variant="secondary"
-                label="Izinkan & Tulis Nutrisi 30 Hari"
+                label={t("health.nutritionButton")}
                 onPress={() => void writeNutrition()}
                 loading={hcBusy}
               />
@@ -657,32 +668,40 @@ export default function Profil() {
         <ListRow
           icon="shield-checkmark"
           iconTint="makan"
-          title="Kebijakan privasi"
+          title={t("privacy.policy")}
           chevron
           onPress={() => void WebBrowser.openBrowserAsync(`${serverUrl()}/privasi`)}
         />
         <ListRow
           icon="trash"
           iconTint="muted"
-          title="Hapus semua data saya"
-          subtitle="Permanen: profil, berat, makanan, olahraga, tidur"
+          title={t("privacy.wipe.title")}
+          subtitle={t("privacy.wipe.subtitleNative")}
           destructive
           onPress={confirmWipe}
-          right={deleteData.isPending ? <Text style={styles.error}>Menghapus…</Text> : undefined}
+          right={
+            deleteData.isPending ? (
+              <Text style={styles.error}>{t("privacy.wipe.deletingNative")}</Text>
+            ) : undefined
+          }
         />
         <ListRow
           icon="person-remove"
           iconTint="muted"
-          title="Hapus akun"
-          subtitle="Permanen: akun dan semua datamu hilang"
+          title={t("account.delete.title")}
+          subtitle={t("account.delete.subtitle")}
           destructive
           onPress={() => setDeleteAccountOpen(true)}
-          right={deleteAccount.isPending ? <Text style={styles.error}>Menghapus…</Text> : undefined}
+          right={
+            deleteAccount.isPending ? (
+              <Text style={styles.error}>{t("privacy.wipe.deletingNative")}</Text>
+            ) : undefined
+          }
         />
         <ListRow
           icon="log-out"
           iconTint="muted"
-          title="Keluar"
+          title={t("account.signOut")}
           destructive
           onPress={() => void signOut()}
         />
@@ -725,9 +744,9 @@ export default function Profil() {
       <ConfirmSheet
         visible={wipeOpen}
         onClose={() => setWipeOpen(false)}
-        title="Hapus semua data?"
-        message="Profil, berat, makanan, olahraga, dan tidur dihapus permanen. Akunmu tetap bisa dipakai."
-        confirmLabel="Hapus"
+        title={t("privacy.wipe.confirmTitle")}
+        message={t("privacy.wipe.confirmMessageNative")}
+        confirmLabel={t("common:actions.delete")}
         loading={deleteData.isPending}
         onConfirm={() => {
           setWipeOpen(false);
@@ -738,10 +757,10 @@ export default function Profil() {
       <ConfirmSheet
         visible={deleteAccountOpen}
         onClose={() => setDeleteAccountOpen(false)}
-        title="Hapus akun?"
-        message="Akunmu dan semua datamu (profil, catatan, foto, postingan, grup) dihapus permanen dan tidak bisa dikembalikan. Kamu harus daftar lagi kalau mau pakai JoyoRogo."
-        confirmLabel="Hapus akun"
-        cancelLabel="Batal"
+        title={t("account.delete.confirmTitle")}
+        message={t("account.delete.confirmMessage")}
+        confirmLabel={t("account.delete.title")}
+        cancelLabel={t("common:actions.cancel")}
         loading={deleteAccount.isPending}
         onConfirm={() => void confirmDeleteAccount()}
       />
@@ -749,9 +768,9 @@ export default function Profil() {
       <ConfirmSheet
         visible={avatarRemoveOpen}
         onClose={() => setAvatarRemoveOpen(false)}
-        title="Hapus foto profil?"
-        message="Foto unggahanmu dihapus. Kalau akun Google-mu punya foto, foto itu yang dipakai lagi."
-        confirmLabel="Hapus"
+        title={t("profile.photo.removeConfirm.title")}
+        message={t("profile.photo.removeConfirm.message")}
+        confirmLabel={t("common:actions.delete")}
         onConfirm={() => {
           setAvatarRemoveOpen(false);
           removeAvatar({ id: "avatar" });
@@ -763,6 +782,7 @@ export default function Profil() {
 
 /** Share-progress public page toggle + copy link (profile.shareToggle). */
 function ShareRow() {
+  const { t } = useTranslation(["settings", "common"]);
   const { theme } = useUnistyles();
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   const toggle = useOptimisticMutation<
@@ -782,7 +802,7 @@ function ShareRow() {
       return previous;
     },
     success: (_input, _data, previous) => ({
-      message: "Pengaturan disimpan",
+      message: t("toast.saved"),
       undo:
         previous === undefined
           ? undefined
@@ -813,10 +833,8 @@ function ShareRow() {
       <Card>
         <View style={styles.switchRow}>
           <View style={styles.switchText}>
-            <Text style={styles.rowTitle}>Bagikan progres</Text>
-            <Text style={styles.note}>
-              Halaman publik ringan berisi tren beratmu; tanpa nama maupun email.
-            </Text>
+            <Text style={styles.rowTitle}>{t("privacy.share.titleNative")}</Text>
+            <Text style={styles.note}>{t("privacy.share.hintNative")}</Text>
           </View>
           <Switch
             value={enabled}
@@ -826,7 +844,7 @@ function ShareRow() {
             }}
             trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
             thumbColor={theme.colors.background}
-            accessibilityLabel="Bagikan progres"
+            accessibilityLabel={t("privacy.share.titleNative")}
           />
         </View>
         {toggle.isError ? <Text style={styles.error}>{errorMessage(toggle.error)}</Text> : null}
@@ -837,14 +855,14 @@ function ShareRow() {
             <ListRow
               icon="link"
               iconTint="muted"
-              title="Salin tautan"
+              title={t("privacy.share.copyLink")}
               value={`/u/${code}`}
               chevron
               onPress={() => void copyLink()}
             />
           </ListGroup>
           {copied ? (
-            <Text style={styles.copiedNote}>Tautan disalin, tinggal tempel di Threads.</Text>
+            <Text style={styles.copiedNote}>{t("privacy.share.copied")}</Text>
           ) : null}
         </>
       ) : null}
@@ -852,18 +870,18 @@ function ShareRow() {
   );
 }
 
-const THEME_OPTIONS = [
-  { value: "light", label: "Terang" },
-  { value: "dark", label: "Gelap" },
-  { value: "system", label: "Sistem" },
-] as const;
-
-type ThemeValue = (typeof THEME_OPTIONS)[number]["value"];
+type ThemeValue = "light" | "dark" | "system";
 
 function AppearanceList() {
+  const { t } = useTranslation(["settings", "common"]);
   const { rt } = useUnistyles();
   // rt.themeName is undefined while adaptive (following the OS).
   const current: ThemeValue = rt.themeName ?? "system";
+  const options: Array<{ value: ThemeValue; label: string }> = [
+    { value: "light", label: t("theme.light") },
+    { value: "dark", label: t("theme.dark") },
+    { value: "system", label: t("theme.system") },
+  ];
 
   const pick = (value: ThemeValue) => {
     if (value === "system") {
@@ -880,24 +898,56 @@ function AppearanceList() {
 
   return (
     <Card>
-      <Text style={styles.cardTitle}>Tampilan</Text>
-      <Segmented
-        options={THEME_OPTIONS.map(({ value, label }) => ({ value, label }))}
-        value={current}
-        onChange={pick}
-      />
-      <Text style={styles.note}>Mode gelap mengikuti setelan sistemmu bila memilih Sistem.</Text>
+      <Text style={styles.cardTitle}>{t("section.appearance")}</Text>
+      <Segmented options={options} value={current} onChange={pick} />
+      <Text style={styles.note}>{t("theme.hint")}</Text>
     </Card>
   );
 }
 
-const RAMADAN_OPTIONS: Array<{ value: "auto" | "on" | "off"; label: string }> = [
-  { value: "auto", label: "Otomatis" },
-  { value: "on", label: "Aktif" },
-  { value: "off", label: "Mati" },
-];
+/** App language: applies at once on this device, then saves on the account. */
+function LanguageList() {
+  const { t, i18n: instance } = useTranslation(["settings", "common"]);
+  const toast = useToast();
+  const save = useMutation(
+    orpc.profile.setLocale.mutationOptions({
+      onSuccess: () =>
+        queryClient.invalidateQueries({ queryKey: orpc.profile.myProfile.queryOptions().queryKey }),
+      onError: () => toast.error(i18n.t("settings:language.saveError")),
+    }),
+  );
+
+  const pick = (locale: Locale) => {
+    if (locale === instance.language) return;
+    // Patch the cached profile first so LocaleSync keeps the new choice instead
+    // of re-applying the old saved one while the request is in flight.
+    queryClient.setQueryData(orpc.profile.myProfile.queryOptions().queryKey, (data) =>
+      data?.profile ? ({ ...data, profile: { ...data.profile, locale } } as typeof data) : data,
+    );
+    void setLocale(locale);
+    save.mutate({ locale });
+  };
+
+  return (
+    <Card>
+      <Text style={styles.cardTitle}>{t("language.title")}</Text>
+      <Segmented
+        options={LOCALES.map((locale) => ({ value: locale, label: LOCALE_NAMES[locale] }))}
+        value={instance.language as Locale}
+        onChange={pick}
+      />
+      <Text style={styles.note}>{t("language.caption")}</Text>
+    </Card>
+  );
+}
 
 function RamadanList({ mode }: { mode: "auto" | "on" | "off" }) {
+  const { t } = useTranslation(["settings", "common"]);
+  const options: Array<{ value: "auto" | "on" | "off"; label: string }> = [
+    { value: "auto", label: t("ramadan.option.auto") },
+    { value: "on", label: t("ramadan.option.on") },
+    { value: "off", label: t("ramadan.option.off") },
+  ];
   const setMode = useOptimisticMutation<
     { mode: "auto" | "on" | "off" },
     unknown,
@@ -915,29 +965,28 @@ function RamadanList({ mode }: { mode: "auto" | "on" | "off" }) {
       return previous;
     },
     success: (_input, _data, previous) => ({
-      message: "Pengaturan disimpan",
+      message: t("toast.saved"),
       undo: previous === undefined ? undefined : () => setMode.mutate({ mode: previous }),
     }),
     invalidate: () => [orpc.profile.key()],
   });
   return (
     <Card>
-      <Text style={styles.cardTitle}>Mode Ramadan</Text>
+      <Text style={styles.cardTitle}>{t("section.ramadan")}</Text>
       <Segmented
-        options={RAMADAN_OPTIONS}
+        options={options}
         value={mode}
         onChange={(value) => setMode.mutate({ mode: value })}
         disabled={setMode.isPending}
       />
-      <Text style={styles.note}>
-        Slot makan ganti jadi sahur & berbuka; angka harian dibagi ke jendela makan.
-      </Text>
+      <Text style={styles.note}>{t("ramadan.hintNative")}</Text>
     </Card>
   );
 }
 
 /** "Simpan foto asli" (profile.setKeepPhotos); turning it off deletes stored originals. */
 function PrivacyList({ keepPhotos }: { keepPhotos: boolean }) {
+  const { t } = useTranslation(["settings", "common"]);
   const { theme } = useUnistyles();
   const [keepConfirm, setKeepConfirm] = useState(false);
   const setKeep = useOptimisticMutation<
@@ -957,7 +1006,7 @@ function PrivacyList({ keepPhotos }: { keepPhotos: boolean }) {
       return previous;
     },
     success: (_input, _data, previous) => ({
-      message: "Pengaturan disimpan",
+      message: t("toast.saved"),
       undo: previous === undefined ? undefined : () => setKeep.mutate({ keep: previous }),
     }),
     invalidate: () => [orpc.profile.key(), orpc.food.key()],
@@ -973,7 +1022,7 @@ function PrivacyList({ keepPhotos }: { keepPhotos: boolean }) {
         profile: { ...old?.profile, keepPhotos: false },
       }));
     },
-    label: () => "Pengaturan disimpan",
+    label: () => t("toast.saved"),
     invalidate: () => [orpc.profile.key(), orpc.food.key()],
   });
 
@@ -987,10 +1036,10 @@ function PrivacyList({ keepPhotos }: { keepPhotos: boolean }) {
 
   return (
     <Card>
-      <Text style={styles.cardTitle}>Privasi</Text>
+      <Text style={styles.cardTitle}>{t("section.privacy")}</Text>
       <View style={styles.switchRow}>
         <View style={styles.switchText}>
-          <Text style={styles.rowTitle}>Simpan foto asli</Text>
+          <Text style={styles.rowTitle}>{t("privacy.keepPhotos.title")}</Text>
         </View>
         <Switch
           value={keepPhotos}
@@ -998,22 +1047,20 @@ function PrivacyList({ keepPhotos }: { keepPhotos: boolean }) {
           disabled={setKeep.isPending}
           trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
           thumbColor={theme.colors.background}
-          accessibilityLabel="Simpan foto asli"
+          accessibilityLabel={t("privacy.keepPhotos.title")}
         />
       </View>
       <Text style={styles.note}>
-        {keepPhotos
-          ? "Foto asli tiap scan yang kamu simpan bisa dilihat lagi di diari. Hanya kamu yang bisa membukanya. Mematikan ini menghapus semua foto asli yang tersimpan."
-          : "Hanya potongan tiap makanan yang disimpan sebagai stiker. Foto aslinya dibuang setelah dianalisis."}
+        {keepPhotos ? t("privacy.keepPhotos.onNative") : t("privacy.keepPhotos.offNative")}
       </Text>
       {setKeep.isError ? <Text style={styles.error}>{errorMessage(setKeep.error)}</Text> : null}
 
       <ConfirmSheet
         visible={keepConfirm}
         onClose={() => setKeepConfirm(false)}
-        title="Matikan simpan foto asli?"
-        message="Foto asli yang sudah tersimpan ikut dihapus permanen. Catatan makan dan stiker tiap makanan tetap ada."
-        confirmLabel="Ya, matikan dan hapus"
+        title={t("privacy.keepPhotos.confirm.title")}
+        message={t("privacy.keepPhotos.confirm.messageNative")}
+        confirmLabel={t("privacy.keepPhotos.confirm.actionNative")}
         onConfirm={() => {
           setKeepConfirm(false);
           setKeepOff({ id: "keep-photos" });

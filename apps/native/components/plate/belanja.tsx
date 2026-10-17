@@ -1,34 +1,25 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import { fmtDecimal } from "@joyorogo/i18n";
 
 import { Card, ListGroup, ListRow, Num, Skeleton, Text } from "@/components/ui";
 import { MetaLine } from "@/components/meta-line";
+import { fmtIdr } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
-
-/** "Rp28.000" — one formatter shared by every plate-price UI. */
-export function fmtIdr(n: number): string {
-  return `Rp${new Intl.NumberFormat("id-ID").format(Math.round(n))}`;
-}
-
-/** Protein per Rp1.000, Indonesian decimal comma, e.g. "1,1 g". */
-function fmtProteinPer(n: number): string {
-  return `${new Intl.NumberFormat("id-ID", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).format(n)} g`;
-}
 
 /**
  * "Belanja makan": spending totals, budget left, average per meal slot,
  * and the best-value plates ranked by protein per Rp1.000.
  */
 export function BelanjaSection() {
+  const { t } = useTranslation(["makan", "common"]);
   const spending = useQuery(orpc.plate.spending.queryOptions());
   const best = useQuery(orpc.plate.bestValue.queryOptions());
   const { theme } = useUnistyles();
@@ -57,17 +48,17 @@ export function BelanjaSection() {
         onPress={() => setOpen((v) => !v)}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
-        accessibilityLabel="Belanja makan"
+        accessibilityLabel={t("plate.belanja.title")}
         style={styles.header}
       >
         <View style={styles.headerText}>
-          <Text style={styles.title}>Belanja makan</Text>
+          <Text style={styles.title}>{t("plate.belanja.title")}</Text>
           <MetaLine
             items={[
-              `Hari ini ${fmtIdr(s.today)}`,
+              t("plate.belanja.todayMeta", { amount: fmtIdr(s.today) }),
               s.budget?.remaining != null
-                ? `Sisa ${fmtIdr(s.budget.remaining)}`
-                : `Minggu ini ${fmtIdr(s.week)}`,
+                ? t("plate.belanja.leftShort", { amount: fmtIdr(s.budget.remaining) })
+                : t("plate.belanja.weekMeta", { amount: fmtIdr(s.week) }),
             ]}
             itemStyle={styles.empty}
           />
@@ -82,23 +73,27 @@ export function BelanjaSection() {
         <>
           <View style={styles.totalsRow}>
             <View style={styles.total}>
-              <Text style={styles.totalLabel}>Hari ini</Text>
+              <Text style={styles.totalLabel}>{t("common:date.today")}</Text>
               <Num style={styles.totalValue}>{fmtIdr(s.today)}</Num>
             </View>
             <View style={styles.total}>
-              <Text style={styles.totalLabel}>Minggu ini</Text>
+              <Text style={styles.totalLabel}>{t("plate.belanja.thisWeek")}</Text>
               <Num style={styles.totalValue}>{fmtIdr(s.week)}</Num>
             </View>
             <View style={styles.total}>
-              <Text style={styles.totalLabel}>Bulan ini</Text>
+              <Text style={styles.totalLabel}>{t("plate.belanja.thisMonth")}</Text>
               <Num style={styles.totalValue}>{fmtIdr(s.month)}</Num>
             </View>
           </View>
           {s.budget ? (
             <Text style={styles.budgetNote}>
               {s.budget.remaining !== null && s.budget.remaining < 0
-                ? `Lewat ${fmtIdr(Math.abs(s.budget.remaining))} dari anggaran ${s.budget.period === "day" ? "harian" : "bulanan"}`
-                : `Sisa anggaran: ${s.budget.remaining !== null ? fmtIdr(s.budget.remaining) : "–"} (${s.budget.period === "day" ? "per hari" : "per bulan"})`}
+                ? t(`plate.belanja.overBudget.${s.budget.period}`, {
+                    amount: fmtIdr(Math.abs(s.budget.remaining)),
+                  })
+                : t(`plate.belanja.budgetNote.${s.budget.period}`, {
+                    amount: s.budget.remaining !== null ? fmtIdr(s.budget.remaining) : "–",
+                  })}
             </Text>
           ) : null}
           {avgRows.length > 0 ? (
@@ -107,7 +102,7 @@ export function BelanjaSection() {
                 <ListRow
                   key={slot}
                   title={MEAL_LABELS[slot]}
-                  subtitle="Rata-rata 30 hari terakhir"
+                  subtitle={t("plate.belanja.avg30")}
                   value={fmtIdr(value)}
                 />
               ))}
@@ -115,7 +110,7 @@ export function BelanjaSection() {
           ) : null}
           {bestRows.length > 0 ? (
             <View style={styles.gap}>
-              <Text style={styles.subtitle}>Nilai terbaik</Text>
+              <Text style={styles.subtitle}>{t("plate.belanja.bestValue")}</Text>
               <ListGroup>
                 {bestRows.map((row) => (
                   <ListRow
@@ -125,7 +120,10 @@ export function BelanjaSection() {
                       <MetaLine
                         items={[
                           row.place ?? null,
-                          `${fmtProteinPer(row.proteinPer1000)} protein per Rp1.000`,
+                          t("plate.belanja.proteinPerPrice", {
+                            g: `${fmtDecimal(row.proteinPer1000, 1)} g`,
+                            price: fmtIdr(1000),
+                          }),
                         ]}
                       />
                     }
@@ -136,9 +134,7 @@ export function BelanjaSection() {
             </View>
           ) : null}
           {s.today === 0 && s.month === 0 && bestRows.length === 0 ? (
-            <Text style={styles.empty}>
-              Belum ada harga dicatat. Isi "Harga sepiring" saat memindai atau mencatat makanan.
-            </Text>
+            <Text style={styles.empty}>{t("plate.belanja.emptyNative")}</Text>
           ) : null}
         </>
       ) : null}
@@ -148,6 +144,7 @@ export function BelanjaSection() {
 
 /** One-line variant for Beranda; renders nothing until there is something to show. */
 export function BelanjaCompact() {
+  const { t } = useTranslation(["makan", "common"]);
   const spending = useQuery(orpc.plate.spending.queryOptions());
   if (spending.isPending || spending.isError) return null;
   const s = spending.data;
@@ -156,11 +153,11 @@ export function BelanjaCompact() {
     <Card>
       <MetaLine
         items={[
-          `Belanja makan hari ini: ${fmtIdr(s.today)}`,
+          t("plate.belanja.todayLine", { amount: fmtIdr(s.today) }),
           s.budget?.remaining != null
             ? s.budget.remaining < 0
-              ? `lewat anggaran ${fmtIdr(Math.abs(s.budget.remaining))}`
-              : `sisa anggaran ${fmtIdr(s.budget.remaining)}`
+              ? t("plate.belanja.compactOver", { amount: fmtIdr(Math.abs(s.budget.remaining)) })
+              : t("plate.belanja.compactLeft", { amount: fmtIdr(s.budget.remaining) })
             : null,
         ]}
         itemStyle={styles.compact}

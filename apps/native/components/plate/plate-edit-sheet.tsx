@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
 import { MEAL_EDIT_LABELS, jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
-import { formatIdrInput, idrKeystroke, parseIdrInput, recentDayLabel } from "@joyorogo/api/lib/format";
+import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/format";
 
 import { DateSheet, DayChips } from "@/components/plate/date-sheet";
 import { MealSlotField } from "@/components/plate/meal-slot-field";
@@ -13,7 +14,7 @@ import { SheetActions } from "@/components/sheet-actions";
 import { StickerHero } from "@/components/sticker";
 import { Button, Field, Input, Sheet, Text } from "@/components/ui";
 import { usePlaceLocation } from "@/src/lib/location";
-import { fmtDateId } from "@/utils/format";
+import { fmtDateMedium } from "@/utils/format";
 
 /** One plate as the diary shows it (plate.byDate), plus its cutout. */
 export type PlateEditTarget = {
@@ -62,6 +63,7 @@ export function PlateEditSheet({
   onSave: (input: PlateEditInput) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation(["makan", "common"]);
   const [name, setName] = useState(plate.name);
   const [place, setPlace] = useState(plate.place ?? "");
   const [price, setPrice] = useState(plate.priceIdr !== null ? String(plate.priceIdr) : "");
@@ -121,12 +123,17 @@ export function PlateEditSheet({
       <Sheet
         visible
         onClose={onClose}
-        title="Ubah piring"
+        title={t("plate.edit.title")}
         footer={
           <View style={styles.footer}>
-            <Button variant="ghost" label="Batal" onPress={onClose} style={styles.footerBtn} />
             <Button
-              label="Simpan"
+              variant="ghost"
+              label={t("common:actions.cancel")}
+              onPress={onClose}
+              style={styles.footerBtn}
+            />
+            <Button
+              label={t("common:actions.save")}
               onPress={submit}
               disabled={!valid || !changed}
               loading={saving}
@@ -138,27 +145,27 @@ export function PlateEditSheet({
         <View style={styles.body}>
           <StickerHero scanId={plate.scanId} name={plate.name} />
 
-          <Field label="Nama piring">
+          <Field label={t("plate.edit.name")}>
             <Input
               value={name}
               onChangeText={setName}
               maxLength={200}
-              placeholder="Nasi padang"
-              accessibilityLabel="Nama piring"
+              placeholder={t("plate.edit.namePlaceholder")}
+              accessibilityLabel={t("plate.edit.name")}
             />
           </Field>
 
-          <Field label="Tempat (opsional)">
+          <Field label={t("plate.edit.place")}>
             <Input
               value={place}
               onChangeText={setPlace}
               maxLength={200}
-              placeholder="Warung Bu Siti"
-              accessibilityLabel="Tempat membeli"
+              placeholder={t("plate.fields.placePlaceholder")}
+              accessibilityLabel={t("plate.fields.placeAria")}
             />
           </Field>
 
-          <Field label="Harga sepiring (Rp)">
+          <Field label={t("plate.edit.price")}>
             <Input
               value={formatIdrInput(price)}
               onChangeText={(text) =>
@@ -170,26 +177,29 @@ export function PlateEditSheet({
               keyboardType="number-pad"
               maxLength={13}
               placeholder="Rp0"
-              accessibilityLabel="Harga piring dalam rupiah"
+              accessibilityLabel={t("plate.editNative.priceAria")}
             />
           </Field>
 
-          <Field label="Dicatat pada">
+          <Field label={t("plate.edit.loggedOn")}>
             <View style={styles.dateBox}>
               <DayChips value={date} onChange={setDate} />
               <Button
                 variant="ghost"
                 size="sm"
                 icon="calendar"
-                label={recentDayLabel(date, jakartaToday())}
+                label={relativeDayLabel(date, jakartaToday())}
                 onPress={() => setPickingDate(true)}
               />
               {dateChanged ? (
                 <Text style={styles.hint}>
-                  Akan dipindah ke {fmtDateId(date)} ({relativeDayLabel(date, jakartaToday())}).
+                  {t("plate.editNative.movedHint", {
+                    date: fmtDateMedium(date),
+                    relative: relativeDayLabel(date, jakartaToday()),
+                  })}
                 </Text>
               ) : (
-                <Text style={styles.hint}>Pindahkan piring ini ke hari lain bila salah hari.</Text>
+                <Text style={styles.hint}>{t("plate.edit.dateHint")}</Text>
               )}
             </View>
           </Field>
@@ -200,8 +210,8 @@ export function PlateEditSheet({
             onChange={setMeal}
             hint={
               mealChanged
-                ? `Piring dan semua isinya dipindah ke ${MEAL_EDIT_LABELS[meal]}.`
-                : "Pindahkan piring ini bila salah waktu makan."
+                ? t("plate.editNative.slotMovedHint", { meal: MEAL_EDIT_LABELS[meal] })
+                : t("plate.edit.slotHint")
             }
           />
 
@@ -218,12 +228,12 @@ export function PlateEditSheet({
           />
           {hasLocation ? (
             <View style={styles.locationRow}>
-              <Text style={styles.hint}>Piring ini punya lokasi tersimpan, cuma kamu yang lihat.</Text>
+              <Text style={styles.hint}>{t("plate.editNative.hasLocation")}</Text>
               <Button
                 variant="ghost"
                 size="sm"
                 icon="trash-outline"
-                label="Hapus lokasi"
+                label={t("plate.editNative.removeLocation")}
                 destructive
                 onPress={() => {
                   setLocate(false);
@@ -233,7 +243,7 @@ export function PlateEditSheet({
             </View>
           ) : null}
           {locate && placeClean === "" ? (
-            <Text style={styles.hint}>Isi nama tempat dulu supaya lokasinya bisa disimpan.</Text>
+            <Text style={styles.hint}>{t("plate.editNative.needPlace")}</Text>
           ) : null}
 
           <SheetActions favorite={favorite} onFavorite={onFavorite} />

@@ -3,6 +3,7 @@ import type { MakanView } from "@joyorogo/api/lib/diary-view";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { CalendarDays, List, MapPin, Sticker } from "lucide-react";
 import type { ComponentType } from "react";
+import { useTranslation } from "react-i18next";
 
 const ICONS: Record<MakanView, ComponentType<{ className?: string; "aria-hidden"?: boolean }>> = {
   daftar: List,
@@ -22,10 +23,11 @@ export function MakanViewSwitcher({
   value: MakanView;
   onChange: (view: MakanView) => void;
 }) {
+  const { t } = useTranslation("makan");
   return (
     <div
       role="tablist"
-      aria-label="Tampilan Makan"
+      aria-label={t("viewSwitcher.label")}
       className="flex gap-1 rounded-full bg-muted p-1"
     >
       {MAKAN_VIEWS.map((view) => {
@@ -37,7 +39,7 @@ export function MakanViewSwitcher({
             type="button"
             role="tab"
             aria-selected={active}
-            aria-label={view.label}
+            aria-label={t(`viewSwitcher.view.${view.value}`)}
             onClick={() => onChange(view.value)}
             className={cn(
               "flex min-h-11 items-center justify-center gap-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition-[flex-grow,background-color,color,box-shadow] duration-200 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none md:min-h-10",
@@ -47,7 +49,7 @@ export function MakanViewSwitcher({
             )}
           >
             <Icon className="size-[1.125rem] shrink-0" aria-hidden />
-            {active && <span>{view.label}</span>}
+            {active && <span>{t(`viewSwitcher.view.${view.value}`)}</span>}
           </button>
         );
       })}

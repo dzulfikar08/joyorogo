@@ -1,0 +1,7 @@
+{
+  "trend": {
+    "stable": "Berat stabil",
+    "down": "Turun {{kg}} kg/minggu",
+    "up": "Naik {{kg}} kg/minggu"
+  }
+}

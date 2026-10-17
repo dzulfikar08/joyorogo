@@ -18,7 +18,7 @@ import { recentDayLabel } from "@joyorogo/api/lib/format";
 import { DateSheet, DayChips } from "@/components/plate/date-sheet";
 import { Button, Field, Input, Num, Sheet, Text } from "@/components/ui";
 import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
-import { fmtDateId, fmtKcal, parseNum } from "@/utils/format";
+import { fmtDateMedium, fmtInt, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
 type ExerciseUpdateInput = Parameters<typeof client.exercise.update>[0];
@@ -304,9 +304,9 @@ export function ExerciseEditSheet({
 
           <View style={styles.preview} accessibilityLiveRegion="polite">
             <Num style={styles.previewKcal}>
-              {shownKcal !== null ? `${fmtKcal(shownKcal)} kcal` : "Kalori belum valid"}
+              {shownKcal !== null ? `${fmtInt(shownKcal)} kcal` : "Kalori belum valid"}
               {!durationBlank && durationOk && typedDuration !== null
-                ? ` · ${fmtKcal(Math.round(typedDuration))} menit`
+                ? ` · ${fmtInt(Math.round(typedDuration))} menit`
                 : ""}
             </Num>
             <Text style={styles.hint}>
@@ -334,7 +334,7 @@ export function ExerciseEditSheet({
                 onPress={() => setPickingDate(true)}
               />
               {dateChanged ? (
-                <Text style={styles.hint}>Akan dipindah ke {fmtDateId(date)}.</Text>
+                <Text style={styles.hint}>Akan dipindah ke {fmtDateMedium(date)}.</Text>
               ) : null}
             </View>
           </Field>

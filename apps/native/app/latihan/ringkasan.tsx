@@ -34,7 +34,7 @@ import {
   type ActiveExercise,
   type ActiveSet,
 } from "@/lib/workout/active";
-import { errorMessage, fmtKcal } from "@/utils/format";
+import { errorMessage, fmtInt } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 
@@ -49,7 +49,7 @@ type SavePr = { exerciseId: string; kind: string; value: number; previous: numbe
 
 /** Formatted right-hand side of a PR bullet: kg for load PRs, reps for reps. */
 function prValueText(pr: SavePr): string {
-  return pr.kind === "reps" ? `${fmtKcal(pr.value)} reps` : `${fmtKcal(pr.value)} kg`;
+  return pr.kind === "reps" ? `${fmtInt(pr.value)} reps` : `${fmtInt(pr.value)} kg`;
 }
 
 /** Collapse per-kind PR rows into one bullet per exercise for the recap. */
@@ -242,7 +242,7 @@ export default function LatihanRingkasan() {
             <Text style={styles.statLabel}>Durasi</Text>
           </View>
           <View style={styles.stat}>
-            <Num style={styles.statValue}>{fmtKcal(volume)}</Num>
+            <Num style={styles.statValue}>{fmtInt(volume)}</Num>
             <Text style={styles.statLabel}>Volume (kg)</Text>
           </View>
           <View style={styles.stat}>
@@ -320,7 +320,7 @@ export default function LatihanRingkasan() {
         visible={shareOpen && saved !== null}
         onClose={() => setShareOpen(false)}
         title={saved !== null && name.trim().length > 0 ? name.trim() : "Latihan beban"}
-        preview={`${fmtKcal(volume)} kg volume · ${setsDone} set · ${fmtKcal(elapsedMin)} menit`}
+        preview={`${fmtInt(volume)} kg volume · ${setsDone} set · ${fmtInt(elapsedMin)} menit`}
         kind="latihan"
         refId={saved?.id ?? ""}
       />

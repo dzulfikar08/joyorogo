@@ -1,26 +1,24 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { monthLongLabel, monthRange, shiftMonth, weekRange } from "@joyorogo/api/lib/diary-view";
+import { monthRange, shiftMonth, weekRange } from "@joyorogo/api/lib/diary-view";
 import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 import type { StickerRow } from "@joyorogo/api/routers/diary";
-import { shortDayLabel } from "@joyorogo/api/lib/format";
+import { fmtDate } from "@joyorogo/i18n";
 
 import { FoodSticker } from "@/components/sticker";
 import { Card, Segmented, Text } from "@/components/ui";
-import { fmtKcal } from "@/utils/format";
+import { fmtInt, fmtKcalLabel } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 type Span = "minggu" | "bulan";
 
-const SPANS: Array<{ value: Span; label: string }> = [
-  { value: "minggu", label: "Minggu" },
-  { value: "bulan", label: "Bulan" },
-];
+const SPANS: ReadonlyArray<Span> = ["minggu", "bulan"];
 
 const COLUMNS = 3;
 /** Small fixed tilts so the grid reads like a sticker sheet. */
@@ -35,7 +33,7 @@ function useStickerQuery(from: string, to: string, kind: FoodKindFilter) {
 }
 
 function dayMonth(key: string): string {
-  return shortDayLabel(key).split(", ")[1] ?? key;
+  return fmtDate(key, "short");
 }
 
 /**
@@ -51,6 +49,7 @@ export function StikerView({
   kind: FoodKindFilter;
   onOpen: (item: StickerRow) => void;
 }) {
+  const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
   const today = jakartaToday();
   const [span, setSpan] = useState<Span>("minggu");
@@ -59,7 +58,9 @@ export function StikerView({
   const query = useStickerQuery(from, to, kind);
   const items = query.data?.items ?? [];
   const title =
-    span === "minggu" ? `${dayMonth(from)} – ${dayMonth(to)}` : monthLongLabel(anchor.slice(0, 7));
+    span === "minggu"
+      ? t("stickers.range", { from: dayMonth(from), to: dayMonth(to) })
+      : fmtDate(`${anchor.slice(0, 7)}-01`, "month");
   const step = (direction: 1 | -1) =>
     setAnchor(
       span === "minggu"
@@ -73,16 +74,22 @@ export function StikerView({
 
   return (
     <View style={styles.wrap}>
-      <Segmented options={SPANS} value={span} onChange={setSpan} />
+      <Segmented
+        options={SPANS.map((value) => ({ value, label: t(`stickers.span.${value}`) }))}
+        value={span}
+        onChange={setSpan}
+      />
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.counts}>{fmtKcal(items.length)} stiker</Text>
+          <Text style={styles.counts}>
+            {t("stickers.count", { count: items.length, n: fmtInt(items.length) })}
+          </Text>
         </View>
         <View style={styles.nav}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={span === "minggu" ? "Minggu sebelumnya" : "Bulan sebelumnya"}
+            accessibilityLabel={t(span === "minggu" ? "stickers.prevWeek" : "stickers.prevMonth")}
             onPress={() => step(-1)}
             style={({ pressed }) => [styles.navButton, pressed && styles.pressed]}
           >
@@ -90,7 +97,7 @@ export function StikerView({
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={span === "minggu" ? "Minggu berikutnya" : "Bulan berikutnya"}
+            accessibilityLabel={t(span === "minggu" ? "stickers.nextWeek" : "stickers.nextMonth")}
             disabled={!canNext}
             onPress={() => step(1)}
             style={({ pressed }) => [
@@ -112,7 +119,11 @@ export function StikerView({
                 <Pressable
                   key={item.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`${item.name}, ${fmtKcal(item.kcal)} kcal, ${shortDayLabel(item.date)}`}
+                  accessibilityLabel={t("stickers.tile.label", {
+                    name: item.name,
+                    kcal: fmtKcalLabel(item.kcal),
+                    date: fmtDate(item.date, "weekday"),
+                  })}
                   onPress={() => onOpen(item)}
                   style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
                 >
@@ -127,7 +138,10 @@ export function StikerView({
                     {item.name}
                   </Text>
                   <Text style={styles.meta} numberOfLines={1}>
-                    {fmtKcal(item.kcal)} kcal · {dayMonth(item.date)}
+                    {t("stickers.tile.meta", {
+                      kcal: fmtKcalLabel(item.kcal),
+                      date: dayMonth(item.date),
+                    })}
                   </Text>
                 </Pressable>
               ))}
@@ -145,11 +159,11 @@ export function StikerView({
             color={theme.colors.mutedForeground}
           />
           <Text style={styles.emptyTitle}>
-            {query.isPending ? "Menyusun stikermu..." : "Belum ada stiker"}
+            {query.isPending ? t("stickers.loading") : t("stickers.empty.title")}
           </Text>
           {query.isPending ? null : (
             <Text style={styles.emptyText}>
-              Foto piringmu lewat Pindai foto, nanti potongan makanannya muncul di sini.
+              {t("stickers.empty.body")}
             </Text>
           )}
         </Card>

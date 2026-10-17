@@ -9,6 +9,7 @@ import {
 } from "expo-audio";
 import { File } from "expo-file-system";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -20,11 +21,11 @@ import { Button, Input, ListGroup, ListRow, Text } from "@/components/ui";
 import { MetaLine } from "@/components/meta-line";
 import { PlateFields } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
-import { errorMessage, fmtKcal, parseNum } from "@/utils/format";
+import { errorMessage, fmtGramsLabel, fmtInt, parseNum } from "@/utils/format";
 import { client, isPaywallError, orpc, queryClient } from "@/utils/orpc";
 import { useToast } from "@/components/toast";
 import { useOptimisticMutation } from "@/lib/optimistic";
-import { UNDO_LABEL } from "@joyorogo/api/lib/optimistic";
+import { undoLabel } from "@joyorogo/api/lib/optimistic";
 
 /** One parsed story item as describeFood answers it: pinned to slot and day. */
 type StoryItem = {
@@ -48,9 +49,6 @@ export type CeritaPhase = "input" | "recording" | "working" | "review";
 const MAX_RECORD_MS = 60_000;
 /** Matches the server's audioBase64 floor; anything tinier never transcribes. */
 const MIN_AUDIO_BASE64 = 1_332;
-
-const MIC_DENIED =
-  "Izin mikrofon ditolak. Ketik saja ceritamu, atau izinkan mikrofon di Pengaturan.";
 
 function fmtClock(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -82,6 +80,7 @@ export function Cerita({
   onPhaseChange?: (phase: CeritaPhase) => void;
   onSaved: (result: { count: number; dates: string[] }) => void;
 }) {
+  const { t } = useTranslation(["makan", "common"]);
   const { theme } = useUnistyles();
   const router = useRouter();
   const toast = useToast();
@@ -116,7 +115,7 @@ export function Cerita({
   >({
     mutationFn: async (input) => {
       const row = await client.food.add(input);
-      if (!row) throw new Error("Gagal menyimpan.");
+      if (!row) throw new Error(t("story.error.saveFailed"));
       return { id: row.id, plateId: row.plateId };
     },
     invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key()],
@@ -147,7 +146,7 @@ export function Cerita({
         await recorder.stop();
         await setAudioModeAsync({ allowsRecording: false });
       } catch {
-        setError("Rekaman gagal dihentikan. Coba lagi.");
+        setError(t("story.error.recordStopFailed"));
         setPhase("input");
         return;
       }
@@ -163,18 +162,18 @@ export function Cerita({
             const audioBase64 = await file.base64();
             file.delete();
             if (audioBase64.length < MIN_AUDIO_BASE64) {
-              setError("Rekamannya terlalu pendek. Tekan mikrofon, ceritakan, lalu tekan Selesai.");
+              setError(t("story.error.tooShort"));
               setPhase("input");
             } else {
               await runDescribe({ audioBase64 }, true);
             }
           }
         } catch {
-          setError("Rekaman gagal diproses. Coba lagi.");
+          setError(t("story.error.recordProcessFailed"));
           setPhase("input");
         }
       } else if (!discarded) {
-        setError("Rekaman gagal. Coba lagi.");
+        setError(t("story.error.recordFailed"));
         setPhase("input");
       } else {
         setPhase("input");
@@ -248,7 +247,7 @@ export function Cerita({
       granted = false;
     }
     if (!granted) {
-      setError(MIC_DENIED);
+      setError(t("story.error.micDeniedNative"));
       return;
     }
     try {
@@ -261,7 +260,7 @@ export function Cerita({
       setPhase("recording");
     } catch {
       void setAudioModeAsync({ allowsRecording: false }).catch(() => {});
-      setError("Rekaman tidak bisa dimulai. Coba lagi.");
+      setError(t("story.error.recordStartFailed"));
     }
   };
 
@@ -279,7 +278,7 @@ export function Cerita({
   const submitText = () => {
     const clean = text.trim();
     if (clean.length < 2) {
-      setError("Tulis dulu makanannya, misalnya: nasi goreng 1 piring.");
+      setError(t("story.error.empty"));
       return;
     }
     void runDescribe({ text: clean }, false);
@@ -303,7 +302,7 @@ export function Cerita({
     const values = kcals.map((value) => parseNum(value));
     const invalid = values.findIndex((value) => value === null || value < 0);
     if (invalid !== -1) {
-      setError(`Kalori untuk "${items[invalid]?.name}" belum valid.`);
+      setError(t("story.error.kcalInvalid", { name: items[invalid]?.name }));
       return;
     }
     setSaving(true);
@@ -383,11 +382,11 @@ export function Cerita({
       // Undo deletes every row this story created; zero server calls skipped.
       const createdIds = createdIdsRef.current;
       toast.success(
-        `${saved} makanan dicatat`,
+        t("story.toast.savedShort", { count: saved }),
         undefined,
         createdIds.length > 0
           ? {
-              label: UNDO_LABEL,
+              label: undoLabel(),
               onPress: () => {
                 for (const id of createdIds) {
                   void client.food.remove({ id });
@@ -418,11 +417,11 @@ export function Cerita({
           <ActivityIndicator size="small" color={theme.colors.primary} />
           <View style={styles.workingText}>
             <Text style={styles.workingTitle}>
-              {listening ? "Mendengarkan rekaman…" : "AI menghitung kalori…"}
+              {listening ? t("story.listening") : t("story.thinking")}
             </Text>
-            <Text style={styles.workingHint}>Biasanya 2 sampai 6 detik.</Text>
+            <Text style={styles.workingHint}>{t("story.eta")}</Text>
           </View>
-          <Button variant="ghost" size="sm" label="Batalkan" onPress={cancelDescribe} />
+          <Button variant="ghost" size="sm" label={t("story.cancelRequest")} onPress={cancelDescribe} />
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
@@ -444,16 +443,16 @@ export function Cerita({
     return (
       <View style={styles.reviewGap}>
         <View style={styles.saidBox}>
-          <Text style={styles.saidLabel}>Kamu bilang</Text>
+          <Text style={styles.saidLabel}>{t("story.youSaid")}</Text>
           <Text style={styles.saidText}>{transcript}</Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Ubah cerita"
+            accessibilityLabel={t("story.editStory")}
             disabled={saving}
             onPress={backToInput}
             style={({ pressed }) => [styles.saidEdit, pressed && styles.pressedSoft]}
           >
-            <Text style={styles.saidEditText}>Ubah</Text>
+            <Text style={styles.saidEditText}>{t("common:actions.edit")}</Text>
           </Pressable>
         </View>
 
@@ -475,11 +474,11 @@ export function Cerita({
                         <MetaLine
                           items={[
                             item.portion,
-                            item.grams != null ? `± ${fmtKcal(item.grams)} g` : null,
+                            item.grams != null ? `± ${fmtGramsLabel(item.grams)}` : null,
                           ]}
                         />
                       ) : (
-                        "1 porsi"
+                        t("story.portionDefault")
                       )
                     }
                     right={
@@ -491,13 +490,13 @@ export function Cerita({
                           }
                           keyboardType="number-pad"
                           maxLength={6}
-                          accessibilityLabel={`Kalori ${item.name}`}
+                          accessibilityLabel={t("story.kcalAria", { name: item.name })}
                           style={styles.kcalInput}
                         />
                         <Text style={styles.kcalUnit}>kcal</Text>
                         <Pressable
                           accessibilityRole="button"
-                          accessibilityLabel={`Hapus ${item.name}`}
+                          accessibilityLabel={t("foodRow.delete", { name: item.name })}
                           disabled={saving}
                           onPress={() => remove(index)}
                           style={({ pressed }) => [styles.remove, pressed && styles.pressedSoft]}
@@ -510,8 +509,8 @@ export function Cerita({
                 ))}
               </ListGroup>
               <PlateFields
-                title={`Piring: ${label}`}
-                priceLabel="Harga piring ini (Rp)"
+                title={t("story.plateTitle", { label })}
+                priceLabel={t("story.platePriceLabel")}
                 values={
                   plates[key] ?? {
                     name: group[0]?.item.name ?? "",
@@ -526,20 +525,20 @@ export function Cerita({
         })}
 
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalLabel}>{t("story.total")}</Text>
           <Text style={styles.totalValue}>
-            {fmtKcal(total)} <Text style={styles.totalUnit}>kcal</Text>
+            {fmtInt(total)} <Text style={styles.totalUnit}>kcal</Text>
           </Text>
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <Button
-          label={`Simpan ${items.length} makanan`}
+          label={t("story.saveAll", { count: items.length })}
           onPress={() => void saveAll()}
           disabled={items.length === 0}
           loading={saving}
         />
-        <Button variant="secondary" label="Ubah cerita" onPress={backToInput} disabled={saving} />
+        <Button variant="secondary" label={t("story.editStory")} onPress={backToInput} disabled={saving} />
       </View>
     );
   }
@@ -551,10 +550,10 @@ export function Cerita({
         <View style={styles.recordPanel} accessibilityLiveRegion="polite">
           <View style={styles.recordRow}>
             <Ionicons name="mic" size={18} color={theme.colors.destructive} />
-            <Text style={styles.recordClock}>Merekam {fmtClock(elapsed)}</Text>
+            <Text style={styles.recordClock}>{t("story.recording", { time: fmtClock(elapsed) })}</Text>
           </View>
           <Text style={styles.recordHint}>
-            Sebut makanan, porsi, dan waktunya. Maksimal 1 menit.
+            {t("story.recordingHint")}
           </Text>
         </View>
       ) : (
@@ -563,12 +562,8 @@ export function Cerita({
           onChangeText={setText}
           multiline
           maxLength={1000}
-          placeholder={
-            meal
-              ? "Contoh: mie gacoan 1 porsi, udang keju 3 pcs"
-              : "Contoh: kemarin pagi nasi kuning pakai telur dadar, siang nasi padang lauk rendang"
-          }
-          accessibilityLabel="Ceritakan makananmu"
+          placeholder={meal ? t("story.placeholder.meal") : t("story.placeholder.day")}
+          accessibilityLabel={t("story.inputLabel")}
           style={styles.textArea}
         />
       )}
@@ -577,23 +572,23 @@ export function Cerita({
         <View style={styles.actionRow}>
           <Button
             variant="secondary"
-            label="Batal"
+            label={t("common:actions.cancel")}
             onPress={() => stopRecording(true)}
             style={styles.grow}
           />
-          <Button label="Selesai" onPress={() => stopRecording(false)} style={styles.grow} />
+          <Button label={t("common:actions.done")} onPress={() => stopRecording(false)} style={styles.grow} />
         </View>
       ) : (
         <View style={styles.actionRow}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Rekam suara"
+            accessibilityLabel={t("story.record")}
             onPress={() => void startRecording()}
             style={({ pressed }) => [styles.micButton, pressed && styles.pressedSoft]}
           >
             <Ionicons name="mic" size={20} color={theme.colors.primary} />
           </Pressable>
-          <Button label="Hitung kalori" onPress={submitText} style={styles.grow} />
+          <Button label={t("story.calculate")} onPress={submitText} style={styles.grow} />
         </View>
       )}
     </View>

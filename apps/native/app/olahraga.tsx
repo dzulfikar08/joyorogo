@@ -33,7 +33,7 @@ import { StravaCard } from "@/components/strava-card";
 import { DaySwitcher } from "@/components/day-switcher";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtDateId, fmtKcal, fmtKg, parseNum } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtInt, fmtKg, parseNum } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import type { QueryKey } from "@tanstack/react-query";
@@ -295,21 +295,21 @@ export default function Olahraga() {
         >
           <Text style={styles.burnLabel}>Terbakar</Text>
           <Num style={styles.burnValue} adjustsFontSizeToFit numberOfLines={1}>
-            {fmtKcal(totalKcal)}
+            {fmtInt(totalKcal)}
           </Num>
         </Ring>
         <Text style={styles.burnNote}>
           {targetBurn === null
             ? "Target burn muncul setelah profil lengkap."
             : totalKcal > targetBurn
-              ? `Melebihi target ${fmtKcal(targetBurn)} kcal, mantap.`
-              : `${items.length} aktivitas · target ${fmtKcal(targetBurn)} kcal`}
+              ? `Melebihi target ${fmtInt(targetBurn)} kcal, mantap.`
+              : `${items.length} aktivitas · target ${fmtInt(targetBurn)} kcal`}
         </Text>
         {summaryQuery.data?.dailyActivity ? (
           <View style={styles.activityRow}>
             <View style={styles.activityCell}>
               <Num style={styles.activityValue}>
-                {fmtKcal(summaryQuery.data.dailyActivity.steps)}
+                {fmtInt(summaryQuery.data.dailyActivity.steps)}
               </Num>
               <Text style={styles.activityLabel}>langkah</Text>
             </View>
@@ -321,7 +321,7 @@ export default function Olahraga() {
             </View>
             <View style={styles.activityCell}>
               <Num style={styles.activityValue}>
-                {fmtKcal(summaryQuery.data.dailyActivity.activeCalories)}
+                {fmtInt(summaryQuery.data.dailyActivity.activeCalories)}
               </Num>
               <Text style={styles.activityLabel}>kcal aktif</Text>
             </View>
@@ -348,7 +348,7 @@ export default function Olahraga() {
               <Pressable
                 key={type.key}
                 accessibilityRole="button"
-                accessibilityLabel={`Tambah ${type.label}${per30 !== null ? `, sekitar ${fmtKcal(per30)} kcal untuk 30 menit` : ""}`}
+                accessibilityLabel={`Tambah ${type.label}${per30 !== null ? `, sekitar ${fmtInt(per30)} kcal untuk 30 menit` : ""}`}
                 onPress={() => openSheet(type.key)}
                 style={({ pressed }) => [styles.typeTile, pressed && styles.pressedSoft]}
               >
@@ -361,7 +361,7 @@ export default function Olahraga() {
                   {type.label}
                 </Text>
                 <Text style={styles.typeEstimate} numberOfLines={1}>
-                  {per30 !== null ? `±${fmtKcal(per30)} kcal` : "kalori manual"}
+                  {per30 !== null ? `±${fmtInt(per30)} kcal` : "kalori manual"}
                 </Text>
               </Pressable>
             );
@@ -391,7 +391,7 @@ export default function Olahraga() {
       {items.length === 0 ? (
         <EmptyState
           icon="barbell-outline"
-          title={isToday ? "Belum ada olahraga hari ini" : `Belum ada olahraga ${fmtDateId(date)}`}
+          title={isToday ? "Belum ada olahraga hari ini" : `Belum ada olahraga ${fmtDateMedium(date)}`}
           description={`Pilih aktivitas di atas atau impor dari ${healthSourceName}.`}
         />
       ) : (
@@ -403,8 +403,8 @@ export default function Olahraga() {
               icon="flame"
               iconTint="bakar"
               title={item.name}
-              subtitle={`${item.durationMin != null ? `${fmtKcal(item.durationMin)} menit · ` : ""}${fmtKcal(item.kcal)} kcal · ${SOURCE_LABELS[item.source] ?? item.source}`}
-              value={fmtKcal(item.kcal)}
+              subtitle={`${item.durationMin != null ? `${fmtInt(item.durationMin)} menit · ` : ""}${fmtInt(item.kcal)} kcal · ${SOURCE_LABELS[item.source] ?? item.source}`}
+              value={fmtInt(item.kcal)}
               right={
                 <View style={styles.rowActions}>
                   <Pressable
@@ -415,8 +415,8 @@ export default function Olahraga() {
                         kind: "latihan",
                         refId: item.id,
                         title: item.name,
-                        preview: `${fmtKcal(item.kcal)} kcal${
-                          item.durationMin != null ? ` · ${fmtKcal(item.durationMin)} menit` : ""
+                        preview: `${fmtInt(item.kcal)} kcal${
+                          item.durationMin != null ? ` · ${fmtInt(item.durationMin)} menit` : ""
                         }`,
                       })
                     }
@@ -473,8 +473,8 @@ export default function Olahraga() {
                         icon="flame"
                         iconTint="bakar"
                         title={item.name}
-                        subtitle={`${item.durationMin != null ? `${fmtKcal(item.durationMin)} menit · ` : ""}${fmtKcal(item.kcal)} kcal · ${SOURCE_LABELS[item.source] ?? item.source}`}
-                        value={fmtKcal(item.kcal)}
+                        subtitle={`${item.durationMin != null ? `${fmtInt(item.durationMin)} menit · ` : ""}${fmtInt(item.kcal)} kcal · ${SOURCE_LABELS[item.source] ?? item.source}`}
+                        value={fmtInt(item.kcal)}
                       />
                     ))}
                   </View>

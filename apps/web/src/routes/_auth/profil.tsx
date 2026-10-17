@@ -19,6 +19,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import {
@@ -28,7 +29,9 @@ import {
   jakartaToday,
   KCAL_PER_KG_FAT,
 } from "@joyorogo/api/lib/engine";
-import type { ActivityLevel, Gender, Targets } from "@joyorogo/api/lib/engine";
+import type { ActivityLevel, Targets } from "@joyorogo/api/lib/engine";
+import { i18n, LOCALES, LOCALE_NAMES } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Calendar } from "@joyorogo/ui/components/calendar";
 import { Input } from "@joyorogo/ui/components/input";
@@ -63,9 +66,10 @@ import { APP_STORE_URL, PLAY_STORE_URL, founderScans, useAppConfig } from "@/lib
 import { checkOrder, fetchPendingOrder, fmtFounderDate } from "@/lib/billing";
 import { sessionQuery, signOut } from "@/lib/auth-client";
 import type { Session } from "@/lib/auth-client";
-import { fmtDateIndo, fmtInt, fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
+import { fmtDateLong, fmtInt, fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
 import { client, getServerUrl, orpc } from "@/utils/orpc";
 import { openIosInstall } from "@/lib/ios-install";
+import { setLocale } from "@/lib/i18n";
 import { usePlatform } from "@/lib/platform";
 
 type MyProfileData = Awaited<ReturnType<AppRouterClient["profile"]["myProfile"]>>;
@@ -83,7 +87,7 @@ async function fileToAvatarBase64(file: File): Promise<string> {
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     bitmap.close();
-    throw new Error("Browser ini tidak mendukung pengolahan gambar.");
+    throw new Error(i18n.t("settings:profile.photo.error.noCanvas"));
   }
   // Flatten alpha onto white — JPEG has no transparency anyway.
   ctx.fillStyle = "#FFFFFF";
@@ -99,11 +103,6 @@ export const Route = createFileRoute("/_auth/profil")({
   pendingComponent: ProfilSkeleton,
   component: ProfilPage,
 });
-
-const GENDER_LABELS: Record<Gender, string> = {
-  male: "Pria",
-  female: "Wanita",
-};
 
 function ProfilPage() {
   const profile = useQuery(profileOptions);
@@ -152,6 +151,7 @@ function ProfilContent({
   email: string | null;
   image: string | null;
 }) {
+  const { t } = useTranslation(["settings", "common"]);
   const platform = usePlatform();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -182,7 +182,7 @@ function ProfilContent({
       const swap = new OptimisticCache(queryClient);
       patchSessionImage(swap, data.image);
       return {
-        message: "Foto profil diperbarui",
+        message: t("profile.photo.updated"),
         undo: () => void client.avatar.remove({}),
       };
     },
@@ -199,19 +199,19 @@ function ProfilContent({
     patch: (_row, cache) => {
       patchSessionImage(cache, null);
     },
-    label: () => "Foto profil",
+    label: () => t("profile.photo.label"),
   });
   const pickAvatar = async (file: File | undefined) => {
     if (!file) return;
     if (file.size > 5_000_000) {
-      toast.error("Fotonya terlalu besar, maksimal 5 MB.");
+      toast.error(t("profile.photo.error.tooLarge"));
       return;
     }
     try {
       const imageBase64 = await fileToAvatarBase64(file);
       uploadAvatar.mutate({ imageBase64, mimeType: "image/jpeg" });
     } catch {
-      toast.error("Foto tidak bisa dibaca, coba yang lain.");
+      toast.error(t("profile.photo.error.unreadable"));
     }
   };
 
@@ -225,15 +225,15 @@ function ProfilContent({
   const checkPending = useMutation({
     mutationFn: () => {
       const orderId = pendingOrder.data?.orderId;
-      if (!orderId) throw new Error("Tidak ada pembayaran yang menunggu.");
+      if (!orderId) throw new Error(t("pro.pending.none"));
       return checkOrder(orderId);
     },
     onSuccess: (order) => {
       if (order.status !== "paid") {
-        toast.error("Belum ada pembayaran masuk. Coba lagi sebentar.");
+        toast.error(t("pro.pending.notPaid"));
         return;
       }
-      toast.success("Pembayaran masuk. Pro aktif!");
+      toast.success(t("pro.pending.paid"));
       queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
       queryClient.invalidateQueries({ queryKey: ["billing", "pending-order"] });
     },
@@ -266,9 +266,9 @@ function ProfilContent({
     success: () => {
       const prev = previousTargets.current;
       previousTargets.current = null;
-      if (!prev) return { message: "Rencana diperbarui" };
+      if (!prev) return { message: t("plan.toast.updated") };
       return {
-        message: "Rencana diperbarui",
+        message: t("plan.toast.updated"),
         undo: () =>
           void client.profile.updateTargets({
             targetWeightKg: prev.targetWeightKg,
@@ -302,14 +302,14 @@ function ProfilContent({
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error ?? "Penghapusan gagal. Coba lagi nanti.");
+        throw new Error(body?.error ?? t("privacy.wipe.failed"));
       }
-      toast.success("Semua data kamu sudah dihapus.");
+      toast.success(t("privacy.wipe.done"));
       setConfirmWipe(false);
       queryClient.clear();
       navigate({ to: "/onboarding" });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Penghapusan gagal. Coba lagi nanti.");
+      toast.error(error instanceof Error ? error.message : t("privacy.wipe.failed"));
     } finally {
       setWiping(false);
     }
@@ -322,7 +322,7 @@ function ProfilContent({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="truncate text-[1.375rem] leading-tight font-extrabold tracking-tight">
-              {name ?? "Profil"}
+              {name ?? t("common:more.fallbackNameWeb")}
             </h1>
             {(tier === "founder" || config.data?.paywall) && (
               <span
@@ -333,12 +333,12 @@ function ProfilContent({
                     : "bg-muted text-muted-foreground",
                 )}
               >
-                {tier === "founder" ? "Pro" : "Gratis"}
+                {tier === "founder" ? "Pro" : t("profile.badge.free")}
               </span>
             )}
           </div>
           <p className="mt-0.5 truncate text-sm text-muted-foreground">
-            {email ?? "Masuk lewat Google"}
+            {email ?? t("profile.emailFallback")}
           </p>
           <div className="mt-1.5 flex items-center gap-1">
             <Button
@@ -349,7 +349,7 @@ function ProfilContent({
               disabled={uploadAvatar.isPending}
             >
               <Camera />
-              Ganti foto
+              {t("profile.photo.change")}
             </Button>
             {image && (
               <Button
@@ -359,7 +359,7 @@ function ProfilContent({
                 onClick={() => removeAvatar({ id: "avatar" })}
                 disabled={uploadAvatar.isPending}
               >
-                Hapus foto
+                {t("profile.photo.remove")}
               </Button>
             )}
           </div>
@@ -381,10 +381,12 @@ function ProfilContent({
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[0.9375rem] font-bold text-makan-ink">
-                Scan AI {config.data?.freeDailyScans} kali sehari
+                {t("pro.free.scansPerDay", { count: config.data?.freeDailyScans ?? 0 })}
               </p>
               <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
-                Pro: {config.data ? founderScans(config.data).toLowerCase() : ""}.
+                {config.data?.founderDailyCap == null
+                  ? t("pro.free.proUnlimited")
+                  : t("pro.free.proCapped", { count: config.data.founderDailyCap })}
               </p>
             </div>
             <Button
@@ -394,13 +396,13 @@ function ProfilContent({
                 navigate({ to: "/pro", search: { from: "profile", next: "/profil" } })
               }
             >
-              Upgrade
+              {t("pro.free.upgrade")}
             </Button>
           </div>
           {pendingOrder.data && (
             <div className="mt-3 flex items-center justify-between gap-3">
               <p className="min-w-0 text-sm leading-snug text-muted-foreground">
-                Ada pembayaran Pro yang belum selesai.
+                {t("pro.pending.note")}
               </p>
               <Button
                 size="sm"
@@ -409,7 +411,7 @@ function ProfilContent({
                 disabled={checkPending.isPending}
                 onClick={() => checkPending.mutate()}
               >
-                {checkPending.isPending ? "Memeriksa..." : "Sudah bayar? Cek pembayaran"}
+                {checkPending.isPending ? t("pro.pending.checking") : t("pro.pending.check")}
               </Button>
             </div>
           )}
@@ -419,9 +421,9 @@ function ProfilContent({
       {tier === "founder" && founderUntil && (
         <div className="mb-3 flex items-center justify-between gap-3 rounded-3xl bg-card p-5">
           <div className="min-w-0">
-            <p className="text-[0.9375rem] font-bold">Pro aktif</p>
+            <p className="text-[0.9375rem] font-bold">{t("pro.active.title")}</p>
             <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
-              Sampai {fmtFounderDate(founderUntil)}. Tidak diperpanjang otomatis.
+              {t("pro.active.until", { date: fmtFounderDate(founderUntil) })}
             </p>
           </div>
           {billing && (
@@ -432,30 +434,30 @@ function ProfilContent({
               disabled={checkout.isPending}
               onClick={() => checkout.start((error) => toast.error(error.message))}
             >
-              {checkout.isPending ? "Membuka..." : "Perpanjang"}
+              {checkout.isPending ? t("pro.active.opening") : t("pro.active.renew")}
             </Button>
           )}
           {billing && checkout.sheet}
         </div>
       )}
 
-      <SectionTitle>Rencana</SectionTitle>
+      <SectionTitle>{t("section.plan")}</SectionTitle>
       <ListGroup>
         <ListButtonRow
           icon={<Flag className="size-5 text-makan" aria-hidden />}
-          title="Berat target"
+          title={t("plan.targetWeight.title")}
           value={`${fmtKg(row.targetWeightKg)} kg`}
           onClick={() => setSheet("weight")}
         />
         <ListButtonRow
           icon={<CalendarDays className="size-5 text-bakar" aria-hidden />}
-          title="Tanggal target"
-          value={fmtDateIndo(row.targetDate).replace(/^\w+, /, "")}
+          title={t("plan.targetDate.title")}
+          value={fmtDateLong(row.targetDate).replace(/^\w+, /, "")}
           onClick={() => setSheet("date")}
         />
         <ListRow
           icon={<Footprints className="size-5 text-tidur" aria-hidden />}
-          title="Aktivitas harian"
+          title={t("plan.activity.title")}
           value={ACTIVITY_LABELS[row.activityLevel as ActivityLevel] ?? row.activityLevel}
         />
       </ListGroup>
@@ -468,7 +470,7 @@ function ProfilContent({
         </div>
       )}
       <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">
-        Ubah target dan angka harian dihitung ulang otomatis.
+        {t("plan.recalcNote")}
       </p>
 
       <Sheet
@@ -476,8 +478,8 @@ function ProfilContent({
         onOpenChange={(open) => {
           if (!open) setSheet(null);
         }}
-        title="Berat target"
-        description="Angka harian dihitung ulang otomatis."
+        title={t("plan.targetWeight.title")}
+        description={t("plan.targetWeight.hint")}
       >
         <TargetWeightForm
           heightCm={row.heightCm}
@@ -497,8 +499,8 @@ function ProfilContent({
         onOpenChange={(open) => {
           if (!open) setSheet(null);
         }}
-        title="Tanggal target"
-        description="Kapan kamu ingin mencapai berat target."
+        title={t("plan.targetDate.title")}
+        description={t("plan.targetDate.hint")}
       >
         <TargetDateForm
           targetDate={row.targetDate}
@@ -514,51 +516,68 @@ function ProfilContent({
         />
       </Sheet>
 
-      <SectionTitle className="mt-7">Data diri</SectionTitle>
+      <SectionTitle className="mt-7">{t("section.personal")}</SectionTitle>
       <ListGroup>
-        <ListRow title="Jenis kelamin" value={GENDER_LABELS[row.gender as Gender] ?? row.gender} />
-        <ListRow title="Tahun lahir" value={String(row.birthYear)} />
-        <ListRow title="Tinggi" value={`${fmtInt(row.heightCm)} cm`} />
-        <ListRow title="Berat awal" value={`${fmtKg(row.startWeightKg)} kg`} />
         <ListRow
-          title="Berat terkini"
-          value={latestWeightKg !== null ? `${fmtKg(latestWeightKg)} kg` : "belum ada"}
+          title={t("profile.personal.gender")}
+          value={
+            row.gender === "male" || row.gender === "female"
+              ? t(`profile.gender.${row.gender}`)
+              : row.gender
+          }
+        />
+        <ListRow title={t("profile.personal.birthYear")} value={String(row.birthYear)} />
+        <ListRow title={t("profile.personal.height")} value={`${fmtInt(row.heightCm)} cm`} />
+        <ListRow
+          title={t("profile.personal.startWeight")}
+          value={`${fmtKg(row.startWeightKg)} kg`}
+        />
+        <ListRow
+          title={t("profile.personal.currentWeight")}
+          value={
+            latestWeightKg !== null
+              ? `${fmtKg(latestWeightKg)} kg`
+              : t("profile.personal.currentWeightNone")
+          }
         />
       </ListGroup>
       <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">
-        Data diri diatur waktu onboarding. Berat terkini mengikuti timbangmu di halaman Berat.
+        {t("profile.personal.note")}
       </p>
 
-      <SectionTitle className="mt-7">Feed komunitas</SectionTitle>
+      <SectionTitle className="mt-7">{t("section.feed")}</SectionTitle>
       <FeedSettingsSection />
 
-      <SectionTitle className="mt-7">Integrasi</SectionTitle>
+      <SectionTitle className="mt-7">{t("section.integrations")}</SectionTitle>
       <StravaSection />
 
-      <SectionTitle className="mt-7">Tampilan</SectionTitle>
+      <SectionTitle className="mt-7">{t("section.appearance")}</SectionTitle>
       <ThemeSection />
 
-      <SectionTitle className="mt-7">Mode Ramadan</SectionTitle>
+      <SectionTitle className="mt-7">{t("language.title")}</SectionTitle>
+      <LanguageSection />
+
+      <SectionTitle className="mt-7">{t("section.ramadan")}</SectionTitle>
       <RamadanSection mode={row.ramadanMode} />
 
-      <SectionTitle className="mt-7">Puasa Intermiten</SectionTitle>
+      <SectionTitle className="mt-7">{t("section.fasting")}</SectionTitle>
       <FastingSettingsSection />
 
-      <SectionTitle className="mt-7">Pengingat</SectionTitle>
+      <SectionTitle className="mt-7">{t("section.reminders")}</SectionTitle>
       <AppRemindersNote />
 
-      <SectionTitle className="mt-7">Belanja makan</SectionTitle>
+      <SectionTitle className="mt-7">{t("section.shopping")}</SectionTitle>
       <BudgetSetting />
 
       {platform.os === "ios" ? (
         !platform.standalone && (
           <>
-            <SectionTitle className="mt-7">Aplikasi iPhone</SectionTitle>
+            <SectionTitle className="mt-7">{t("section.appIphone")}</SectionTitle>
             <ListGroup>
               <ListButtonRow
                 icon={<Smartphone className="size-5 text-makan" aria-hidden />}
-                title="Pasang di layar utama"
-                subtitle="Web app dengan akun yang sama, terbuka layar penuh."
+                title={t("app.install.title")}
+                subtitle={t("app.install.subtitle")}
                 onClick={() => openIosInstall("profil")}
               />
             </ListGroup>
@@ -566,38 +585,38 @@ function ProfilContent({
         )
       ) : (
         <>
-          <SectionTitle className="mt-7">Aplikasi Android</SectionTitle>
+          <SectionTitle className="mt-7">{t("section.appAndroid")}</SectionTitle>
           <ListGroup>
             <ListAnchorRow
               href={PLAY_STORE_URL}
               icon={<Download className="size-5 text-makan" aria-hidden />}
-              title="JoyoRogo di Google Play"
-              subtitle="Pakai akun yang sama."
+              title={t("app.googlePlay.title")}
+              subtitle={t("app.googlePlay.subtitle")}
             />
             <ListAnchorRow
               href={APP_STORE_URL}
               icon={<Smartphone className="size-5 text-makan" aria-hidden />}
-              title="JoyoRogo di App Store"
-              subtitle="Untuk iPhone, akun yang sama."
+              title={t("app.appStore.title")}
+              subtitle={t("app.appStore.subtitle")}
             />
           </ListGroup>
         </>
       )}
 
-      <SectionTitle className="mt-7">Privasi</SectionTitle>
+      <SectionTitle className="mt-7">{t("section.privacy")}</SectionTitle>
       <ShareSection enabled={row.shareEnabled} code={row.shareCode} />
       <KeepPhotosSection keep={row.keepPhotos} />
       <ListGroup className="mt-3">
         <ListLinkRow
           to="/privasi"
           icon={<ShieldCheck className="size-5 text-makan" aria-hidden />}
-          title="Kebijakan privasi"
+          title={t("privacy.policy")}
         />
         <ListButtonRow
           destructive
           icon={<Trash2 className="size-5" aria-hidden />}
-          title="Hapus semua data saya"
-          subtitle="Profil, berat, makanan, olahraga, tidur. Permanen."
+          title={t("privacy.wipe.title")}
+          subtitle={t("privacy.wipe.subtitleWeb")}
           onClick={() => setConfirmWipe(true)}
         />
       </ListGroup>
@@ -605,14 +624,11 @@ function ProfilContent({
       <Sheet
         open={confirmWipe}
         onOpenChange={setConfirmWipe}
-        title="Hapus semua data?"
-        description="Tindakan ini permanen dan tidak bisa dibatalkan."
+        title={t("privacy.wipe.confirmTitle")}
+        description={t("privacy.wipe.confirmDescription")}
       >
         <div className="space-y-4">
-          <p className="text-[0.9375rem] leading-relaxed">
-            Semua catatan dihapus: profil, berat, makanan, olahraga, tidur. Akunmu tetap bisa
-            dipakai, tapi kamu mulai lagi dari nol.
-          </p>
+          <p className="text-[0.9375rem] leading-relaxed">{t("privacy.wipe.confirmBodyWeb")}</p>
           <div className="flex flex-col gap-2">
             <Button
               variant="destructive"
@@ -620,7 +636,7 @@ function ProfilContent({
               disabled={wiping}
               onClick={() => void wipeData()}
             >
-              {wiping ? "Menghapus..." : "Ya, hapus semua data saya"}
+              {wiping ? t("privacy.wipe.deleting") : t("privacy.wipe.confirmAction")}
             </Button>
             <Button
               variant="ghost"
@@ -628,7 +644,7 @@ function ProfilContent({
               disabled={wiping}
               onClick={() => setConfirmWipe(false)}
             >
-              Batal
+              {t("common:actions.cancel")}
             </Button>
           </div>
         </div>
@@ -638,7 +654,7 @@ function ProfilContent({
         <ListButtonRow
           destructive
           icon={<LogOut className="size-5" aria-hidden />}
-          title={signingOut ? "Keluar..." : "Keluar"}
+          title={signingOut ? t("account.signingOut") : t("account.signOut")}
           onClick={() => void handleSignOut()}
         />
       </ListGroup>
@@ -657,6 +673,7 @@ function TargetWeightForm({
   pending: boolean;
   onSave: (targetWeightKg: number) => void;
 }) {
+  const { t } = useTranslation(["settings", "common"]);
   const [weight, setWeight] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -672,7 +689,7 @@ function TargetWeightForm({
         event.preventDefault();
         const kg = parseNum(shownWeight);
         if (kg === null || kg < 25 || kg > 400) {
-          setError("Berat target harus 25-400 kg.");
+          setError(t("plan.targetWeight.error"));
           return;
         }
         setError(null);
@@ -681,7 +698,7 @@ function TargetWeightForm({
     >
       <div className="relative">
         <Input
-          aria-label="Berat target (kg)"
+          aria-label={t("plan.targetWeight.inputLabel")}
           autoFocus
           type="number"
           step="0.1"
@@ -700,16 +717,16 @@ function TargetWeightForm({
         </span>
       </div>
       <p className="text-sm text-muted-foreground tabular-nums">
-        Berat sehat untuk tinggimu: {fmtKg(ideal.minKg)}–{fmtKg(ideal.maxKg)} kg
+        {t("plan.targetWeight.healthyRange", { min: fmtKg(ideal.minKg), max: fmtKg(ideal.maxKg) })}
       </p>
       {belowRange && (
         <p className="text-sm leading-relaxed text-destructive">
-          Di bawah rentang berat sehat. Boleh dilanjutkan, perhatikan kesehatanmu.
+          {t("plan.targetWeight.belowRange")}
         </p>
       )}
       {error && <p className="text-sm font-semibold text-destructive">{error}</p>}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Menyimpan..." : "Simpan"}
+        {pending ? t("state.saving") : t("common:actions.save")}
       </Button>
     </form>
   );
@@ -728,6 +745,7 @@ function TargetDateForm({
   pending: boolean;
   onSave: (targetDate: string) => void;
 }) {
+  const { t } = useTranslation(["settings", "common"]);
   const [date, setDate] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -750,7 +768,7 @@ function TargetDateForm({
       onSubmit={(event) => {
         event.preventDefault();
         if (!/^\d{4}-\d{2}-\d{2}$/.test(shownDate) || shownDate < jakartaToday()) {
-          setError("Tanggal target harus belum lewat.");
+          setError(t("plan.targetDate.error"));
           return;
         }
         setError(null);
@@ -765,7 +783,7 @@ function TargetDateForm({
             className="h-16 w-full justify-center rounded-xl text-lg font-extrabold tracking-tight"
           >
             <CalendarDays className="size-5 text-muted-foreground" aria-hidden />
-            {fmtDateIndo(shownDate).replace(/^\w+, /, "")}
+            {fmtDateLong(shownDate).replace(/^\w+, /, "")}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -789,11 +807,13 @@ function TargetDateForm({
         <div className="rounded-2xl bg-bakar-soft p-4">
           <p className="flex items-start gap-1.5 text-sm leading-snug font-bold text-bakar-ink">
             <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-            Target ini menuntut defisit ~{fmtInt(tooFast.rawDeficit)} kkal/hari, di atas batas aman.
+            {t("plan.targetDate.tooFast.title", { deficit: fmtInt(tooFast.rawDeficit) })}
           </p>
           <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-            JoyoRogo membatasi defisit pada ~1.000 kkal/hari. Turun {fmtKg(tooFast.lossKg)} kg
-            dengan ritme itu butuh sekitar {tooFast.feasibleDays} hari.
+            {t("plan.targetDate.tooFast.body", {
+              kg: fmtKg(tooFast.lossKg),
+              count: tooFast.feasibleDays,
+            })}
           </p>
           <Button
             type="button"
@@ -805,19 +825,20 @@ function TargetDateForm({
               setError(null);
             }}
           >
-            Pakai tanggal realistis (+{tooFast.feasibleDays} hari)
+            {t("plan.targetDate.tooFast.useDate", { count: tooFast.feasibleDays })}
           </Button>
         </div>
       )}
       {error && <p className="text-sm font-semibold text-destructive">{error}</p>}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Menyimpan..." : "Simpan"}
+        {pending ? t("state.saving") : t("common:actions.save")}
       </Button>
     </form>
   );
 }
 
 function ShareSection({ enabled, code }: { enabled: boolean; code: string | null }) {
+  const { t } = useTranslation(["settings", "common"]);
   const queryClient = useQueryClient();
   const previous = useRef<boolean | null>(null);
   const toggle = useOptimisticMutation<
@@ -836,7 +857,7 @@ function ShareSection({ enabled, code }: { enabled: boolean; code: string | null
       const prev = previous.current;
       previous.current = null;
       return {
-        message: input.enabled ? "Halaman publik aktif." : "Halaman publik dimatikan.",
+        message: input.enabled ? t("privacy.share.toastOn") : t("privacy.share.toastOff"),
         undo:
           prev === null
             ? undefined
@@ -850,11 +871,11 @@ function ShareSection({ enabled, code }: { enabled: boolean; code: string | null
     <ListGroup>
       <ListRow
         icon={<Globe className="size-5 text-tidur" aria-hidden />}
-        title="Progres publik"
-        subtitle="Berat awal ke berat sekarang saja. Tanpa email, tanpa data makanan."
+        title={t("privacy.share.titleWeb")}
+        subtitle={t("privacy.share.hintWeb")}
         trailing={
           <Switch
-            label="Progres publik"
+            label={t("privacy.share.titleWeb")}
             checked={enabled}
             disabled={toggle.isPending}
             onCheckedChange={(next) => toggle.mutate({ enabled: next })}
@@ -864,11 +885,11 @@ function ShareSection({ enabled, code }: { enabled: boolean; code: string | null
       {enabled && link && (
         <ListButtonRow
           icon={<Link2 className="size-5 text-muted-foreground" aria-hidden />}
-          title="Salin tautan"
+          title={t("privacy.share.copyLink")}
           value={`/u/${code}`}
           onClick={() => {
             void navigator.clipboard.writeText(link);
-            toast.success("Tautan disalin, tinggal tempel di Threads.");
+            toast.success(t("privacy.share.copied"));
           }}
         />
       )}
@@ -888,6 +909,7 @@ function StravaLogo() {
 }
 
 function StravaSection() {
+  const { t } = useTranslation(["settings", "common"]);
   const {
     isChecking,
     statusError,
@@ -905,7 +927,7 @@ function StravaSection() {
   if (isChecking) {
     return (
       <ListGroup>
-        <ListRow icon={<StravaLogo />} title="Strava" subtitle="Memeriksa status..." />
+        <ListRow icon={<StravaLogo />} title="Strava" subtitle={t("strava.status.checking")} />
       </ListGroup>
     );
   }
@@ -915,10 +937,10 @@ function StravaSection() {
         <ListRow
           icon={<StravaLogo />}
           title="Strava"
-          subtitle={`Gagal memeriksa status: ${statusError}`}
+          subtitle={t("strava.status.error", { error: statusError })}
           trailing={
             <Button variant="secondary" size="xs" onClick={recheck}>
-              Coba lagi
+              {t("common:actions.retry")}
             </Button>
           }
         />
@@ -931,7 +953,7 @@ function StravaSection() {
         <ListRow
           icon={<StravaLogo />}
           title="Strava"
-          subtitle="Sambungan aktif setelah kredensial Strava disetel di server."
+          subtitle={t("strava.status.notConfiguredServer")}
         />
       </ListGroup>
     );
@@ -942,17 +964,25 @@ function StravaSection() {
         <ListRow
           icon={<StravaLogo />}
           title="Strava"
-          subtitle={`Terhubung${athleteId ? ` · ID atlet ${athleteId}` : ""}`}
+          subtitle={
+            athleteId
+              ? t("strava.status.sectionConnectedAthlete", { id: athleteId })
+              : t("strava.status.sectionConnected")
+          }
           trailing={
             <Button variant="secondary" size="sm" onClick={() => sync()} disabled={isSyncing}>
-              {isSyncing ? "Menyinkronkan..." : "Sinkron"}
+              {isSyncing ? t("strava.action.syncing") : t("strava.action.sync")}
             </Button>
           }
         />
         <ListButtonRow
           destructive
           icon={<StravaLogo />}
-          title={isDisconnecting ? "Memutuskan..." : "Putuskan Strava"}
+          title={
+            isDisconnecting
+              ? t("strava.action.disconnecting")
+              : t("strava.action.disconnectStrava")
+          }
           onClick={() => disconnect()}
         />
       </ListGroup>
@@ -963,7 +993,7 @@ function StravaSection() {
       <ListButtonRow
         icon={<StravaLogo />}
         title="Strava"
-        subtitle="Aktivitas Strava otomatis masuk ke Burn."
+        subtitle={t("strava.status.idle")}
         onClick={() => authorize()}
       />
     </ListGroup>
@@ -976,40 +1006,71 @@ function StravaSection() {
  * sync. Only the IF reminders above also reach the browser via Web Push.
  */
 function AppRemindersNote() {
+  const { t } = useTranslation(["settings", "common"]);
   return (
     <Card>
-      <p className="px-1 text-sm leading-relaxed text-muted-foreground">
-        Pengingat catat makan, minum air, dan timbang ada di aplikasi Android dan iOS: buka Profil
-        di aplikasi, lalu atur jam tiap pengingat di bagian Pengingat. Pengingat itu tersimpan di
-        ponselmu, bukan di akun, jadi tidak muncul di web. Notifikasi puasa intermiten di atas
-        tetap bisa dinyalakan di browser.
-      </p>
+      <p className="px-1 text-sm leading-relaxed text-muted-foreground">{t("reminders.webNote")}</p>
     </Card>
   );
 }
 
 function ThemeSection() {
+  const { t } = useTranslation(["settings", "common"]);
   const { theme, setTheme } = useTheme();
   return (
     <Card>
       <Segmented
-        label="Tema tampilan"
+        label={t("theme.label")}
         value={theme}
         onChange={setTheme}
         options={[
-          { value: "light", label: "Terang" },
-          { value: "dark", label: "Gelap" },
-          { value: "system", label: "Sistem" },
+          { value: "light", label: t("theme.light") },
+          { value: "dark", label: t("theme.dark") },
+          { value: "system", label: t("theme.system") },
         ]}
       />
+      <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">{t("theme.hint")}</p>
+    </Card>
+  );
+}
+
+/** App language: applies at once on this device, then saves on the account. */
+function LanguageSection() {
+  const { t, i18n: instance } = useTranslation(["settings", "common"]);
+  const queryClient = useQueryClient();
+  const save = useMutation(
+    orpc.profile.setLocale.mutationOptions({
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: profileOptions.queryKey }),
+      onError: () => toast.error(i18n.t("settings:language.saveError")),
+    }),
+  );
+  const pick = (locale: Locale) => {
+    if (locale === instance.language) return;
+    // Patch the cached profile first so LocaleSync keeps the new choice instead
+    // of re-applying the old saved one while the request is in flight.
+    queryClient.setQueryData<MyProfileData>(profileOptions.queryKey, (data) =>
+      data?.profile ? { ...data, profile: { ...data.profile, locale } } : data,
+    );
+    void setLocale(locale);
+    save.mutate({ locale });
+  };
+  return (
+    <Card>
+      <Segmented
+        label={t("language.groupLabel")}
+        value={instance.language as Locale}
+        onChange={pick}
+        options={LOCALES.map((locale) => ({ value: locale, label: LOCALE_NAMES[locale] }))}
+      />
       <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">
-        Mode gelap mengikuti setelan sistemmu bila memilih Sistem.
+        {t("language.caption")}
       </p>
     </Card>
   );
 }
 
 function RamadanSection({ mode }: { mode: "auto" | "on" | "off" }) {
+  const { t } = useTranslation(["settings", "common"]);
   const queryClient = useQueryClient();
   const previous = useRef<"auto" | "on" | "off" | null>(null);
   const setMode = useOptimisticMutation<
@@ -1029,26 +1090,26 @@ function RamadanSection({ mode }: { mode: "auto" | "on" | "off" }) {
       previous.current = null;
       if (prev === null) return undefined;
       return {
-        message: "Mode Ramadan diubah",
+        message: t("ramadan.toast"),
         undo: () => void client.profile.setRamadanMode({ mode: prev }),
       };
     },
   });
   const hint: Record<"auto" | "on" | "off", string> = {
-    auto: "Slot makan mengikuti kalender Hijriah.",
-    on: "Slot makan jadi sahur & berbuka.",
-    off: "Jadwal makan normal.",
+    auto: t("ramadan.hint.auto"),
+    on: t("ramadan.hint.on"),
+    off: t("ramadan.hint.off"),
   };
   return (
     <Card>
       <Segmented
-        label="Mode Ramadan"
+        label={t("section.ramadan")}
         value={mode}
         onChange={(value) => setMode.mutate({ mode: value })}
         options={[
-          { value: "auto", label: "Otomatis" },
-          { value: "on", label: "Aktif" },
-          { value: "off", label: "Mati" },
+          { value: "auto", label: t("ramadan.option.auto") },
+          { value: "on", label: t("ramadan.option.on") },
+          { value: "off", label: t("ramadan.option.off") },
         ]}
       />
       <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">{hint[mode]}</p>
@@ -1057,6 +1118,7 @@ function RamadanSection({ mode }: { mode: "auto" | "on" | "off" }) {
 }
 
 function KeepPhotosSection({ keep }: { keep: boolean }) {
+  const { t } = useTranslation(["settings", "common"]);
   const queryClient = useQueryClient();
   const patchKeep = (cache: OptimisticCache, value: boolean) => {
     cache.value<MyProfileData>(profileOptions.queryKey, (data) =>
@@ -1084,11 +1146,11 @@ function KeepPhotosSection({ keep }: { keep: boolean }) {
       previousKeep.current = null;
       if (prev === false) {
         return {
-          message: "Foto asli akan disimpan mulai scan berikutnya.",
+          message: t("privacy.keepPhotos.toast"),
           undo: () => void client.profile.setKeepPhotos({ keep: false }),
         };
       }
-      return { message: "Foto asli akan disimpan mulai scan berikutnya." };
+      return { message: t("privacy.keepPhotos.toast") };
     },
   });
   // Delayed commit for the destructive keep=false branch.
@@ -1097,8 +1159,8 @@ function KeepPhotosSection({ keep }: { keep: boolean }) {
     patch: (_row, cache) => {
       patchKeep(cache, false);
     },
-    label: () => "Foto asli",
-    fallback: "Foto asli",
+    label: () => t("privacy.keepPhotos.label"),
+    fallback: t("privacy.keepPhotos.label"),
     invalidate: () => [orpc.profile.key(), orpc.food.key()],
   });
   const [confirmOff, setConfirmOff] = useState(false);
@@ -1107,15 +1169,11 @@ function KeepPhotosSection({ keep }: { keep: boolean }) {
       <ListGroup className="mt-3">
         <ListRow
           icon={<ImageIcon className="size-5 text-makan-ink" aria-hidden />}
-          title="Simpan foto asli"
-          subtitle={
-            keep
-              ? "Bisa dilihat lagi di diari, hanya oleh kamu."
-              : "Mati: hanya potongan tiap makanan yang disimpan."
-          }
+          title={t("privacy.keepPhotos.title")}
+          subtitle={keep ? t("privacy.keepPhotos.onWeb") : t("privacy.keepPhotos.offWeb")}
           trailing={
             <Switch
-              label="Simpan foto asli"
+              label={t("privacy.keepPhotos.title")}
               checked={keep}
               onCheckedChange={(next) =>
                 next ? setKeep.mutate({ keep: true }) : setConfirmOff(true)
@@ -1127,12 +1185,12 @@ function KeepPhotosSection({ keep }: { keep: boolean }) {
       <Sheet
         open={confirmOff}
         onOpenChange={setConfirmOff}
-        title="Matikan simpan foto asli?"
-        description="Foto asli yang sudah tersimpan ikut dihapus permanen."
+        title={t("privacy.keepPhotos.confirm.title")}
+        description={t("privacy.keepPhotos.confirm.descriptionWeb")}
       >
         <div className="space-y-4">
           <p className="text-[0.9375rem] leading-relaxed">
-            Catatan makan dan stiker tiap makanan tetap ada. Hanya foto aslinya yang dihapus.
+            {t("privacy.keepPhotos.confirm.bodyWeb")}
           </p>
           <div className="flex flex-col gap-2">
             <Button
@@ -1143,7 +1201,7 @@ function KeepPhotosSection({ keep }: { keep: boolean }) {
                 disableKeep({ id: "keep-photos" });
               }}
             >
-              Ya, matikan dan hapus foto asli
+              {t("privacy.keepPhotos.confirm.actionWeb")}
             </Button>
             <Button
               variant="ghost"
@@ -1151,7 +1209,7 @@ function KeepPhotosSection({ keep }: { keep: boolean }) {
               disabled={setKeep.isPending}
               onClick={() => setConfirmOff(false)}
             >
-              Batal
+              {t("common:actions.cancel")}
             </Button>
           </div>
         </div>
@@ -1161,8 +1219,9 @@ function KeepPhotosSection({ keep }: { keep: boolean }) {
 }
 
 function ProfilSkeleton() {
+  const { t } = useTranslation(["settings", "common"]);
   return (
-    <Page className="max-w-xl" aria-busy="true" aria-label="Memuat profil">
+    <Page className="max-w-xl" aria-busy="true" aria-label={t("profile.loading")}>
       <div className="flex items-center gap-4 px-1 pt-2 pb-6">
         <Skeleton className="size-16 rounded-full" />
         <div className="flex-1 space-y-2">

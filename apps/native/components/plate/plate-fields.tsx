@@ -1,5 +1,6 @@
-import { View } from "react-native";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
 import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/format";
@@ -24,8 +25,8 @@ export type PlateValues = {
 export function PlateFields({
   values,
   onChange,
-  title = "Piring ini",
-  priceLabel = "Harga sepiring (Rp)",
+  title: titleProp,
+  priceLabel: priceLabelProp,
 }: {
   values: PlateValues;
   onChange: (next: PlateValues) => void;
@@ -33,6 +34,9 @@ export function PlateFields({
   title?: string;
   priceLabel?: string;
 }) {
+  const { t } = useTranslation("makan");
+  const title = titleProp ?? t("plate.fields.title");
+  const priceLabel = priceLabelProp ?? t("plate.edit.price");
   // Caret inside the price input, so backspacing a separator drops the digit.
   const priceCaret = useRef(0);
   // Opt-in location of the place: kept on the values so plateInput can send it.
@@ -60,25 +64,25 @@ export function PlateFields({
           keyboardType="number-pad"
           maxLength={13}
           placeholder="Rp0"
-          accessibilityLabel="Harga sepiring dalam rupiah"
+          accessibilityLabel={t("plate.fields.priceAria")}
         />
       </Field>
-      <Field label="Nama piring" hint="Biar harga yang sama tak perlu diisi ulang.">
+      <Field label={t("plate.edit.name")} hint={t("plate.fields.nameHint")}>
         <Input
           value={values.name}
           onChangeText={(name) => onChange({ ...values, name })}
           maxLength={200}
-          placeholder="Nasi padang"
-          accessibilityLabel="Nama piring"
+          placeholder={t("plate.edit.namePlaceholder")}
+          accessibilityLabel={t("plate.edit.name")}
         />
       </Field>
-      <Field label="Tempat (opsional)">
+      <Field label={t("plate.edit.place")}>
         <Input
           value={values.place}
           onChangeText={(place) => onChange({ ...values, place })}
           maxLength={200}
-          placeholder="Warung Bu Siti"
-          accessibilityLabel="Tempat membeli"
+          placeholder={t("plate.fields.placePlaceholder")}
+          accessibilityLabel={t("plate.fields.placeAria")}
         />
       </Field>
       <SaveLocationToggle

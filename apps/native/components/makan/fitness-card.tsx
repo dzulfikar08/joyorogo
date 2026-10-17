@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { Platform, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -12,10 +13,11 @@ import {
   hasFitnessData,
 } from "@joyorogo/api/lib/fitness-hint";
 import type { FoodPick, ReadinessGuidance } from "@joyorogo/api/lib/readiness-food";
+import type { TFunction } from "@joyorogo/i18n";
 
 import { useAppConfig } from "@/components/billing";
 import { Button, Card, Num, Text } from "@/components/ui";
-import { fmtKcal } from "@/utils/format";
+import { fmtGramsLabel, fmtInt, fmtKcalLabel } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -27,6 +29,7 @@ import { orpc } from "@/utils/orpc";
  * fails: it is an extra, not part of the diary.
  */
 export function FitnessCard({ date }: { date: string }) {
+  const { t } = useTranslation("makan");
   const { data } = useQuery(orpc.fitness.byDate.queryOptions({ input: { date } }));
   const config = useAppConfig();
   const hasScores = hasFitnessData(data);
@@ -48,13 +51,16 @@ export function FitnessCard({ date }: { date: string }) {
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>Kebugaran dari JoyoFit</Text>
+        <Text style={styles.title}>{t("fitnessCard.title")}</Text>
         {data.readiness ? <Text style={styles.readiness}>{READINESS_ID[data.readiness]}</Text> : null}
       </View>
       <View style={styles.row}>
-        <Metric label="Pemulihan" value={data.recoveryPct === null ? null : `${data.recoveryPct}%`} />
-        <Metric label="Strain" value={data.strain === null ? null : `${data.strain.toFixed(1)} / 21`} />
-        <Metric label="Tidur" value={data.sleepPct === null ? null : `${data.sleepPct}%`} />
+        <Metric
+          label={t("fitnessCard.metric.recovery")}
+          value={data.recoveryPct === null ? null : `${data.recoveryPct}%`}
+        />
+        <Metric label={t("fitnessCard.metric.strain")} value={data.strain === null ? null : `${data.strain.toFixed(1)} / 21`} />
+        <Metric label={t("fitnessCard.metric.sleep")} value={data.sleepPct === null ? null : `${data.sleepPct}%`} />
       </View>
       {hints.map((hint) => (
         <Text key={hint} style={styles.hint}>
@@ -78,26 +84,38 @@ function Metric({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-/** "Sisa" figures that matter for the day's focus; a steady day shows none. */
-function remaining(guidance: ReadinessGuidance): Array<{ label: string; value: string }> {
+/** Remaining figures that matter for the day's focus; a steady day shows none. */
+function remaining(
+  guidance: ReadinessGuidance,
+  t: TFunction<"makan">,
+): Array<{ label: string; value: string }> {
   const { numbers, focus } = guidance;
   if (!numbers || focus === "steady") return [];
-  const rows = [{ label: "Sisa kkal", value: fmtKcal(numbers.roomKcal) }];
-  if (focus !== "fuel") rows.push({ label: "Sisa protein", value: `${fmtKcal(numbers.protein.remainingG)} g` });
-  if (focus !== "recover") rows.push({ label: "Sisa karbo", value: `${fmtKcal(numbers.carbs.remainingG)} g` });
+  const rows = [{ label: t("fitnessCard.left.kcal"), value: fmtInt(numbers.roomKcal) }];
+  if (focus !== "fuel") {
+    rows.push({ label: t("fitnessCard.left.protein"), value: fmtGramsLabel(numbers.protein.remainingG) });
+  }
+  if (focus !== "recover") {
+    rows.push({ label: t("fitnessCard.left.carbs"), value: fmtGramsLabel(numbers.carbs.remainingG) });
+  }
   return rows;
 }
 
-function pickDetail(pick: FoodPick): string {
-  const parts = [`${fmtKcal(pick.kcal)} kkal`];
-  if (pick.proteinG !== null) parts.push(`P ${fmtKcal(pick.proteinG)} g`);
-  if (pick.carbsG !== null) parts.push(`K ${fmtKcal(pick.carbsG)} g`);
-  parts.push(pick.source === "riwayat" ? `${pick.days}x di catatanmu` : "dari database JoyoRogo");
+function pickDetail(pick: FoodPick, t: TFunction<"makan">): string {
+  const parts = [fmtKcalLabel(pick.kcal)];
+  if (pick.proteinG !== null) parts.push(t("fitnessCard.pick.protein", { g: fmtGramsLabel(pick.proteinG) }));
+  if (pick.carbsG !== null) parts.push(t("fitnessCard.pick.carbs", { g: fmtGramsLabel(pick.carbsG) }));
+  parts.push(
+    pick.source === "riwayat"
+      ? t("fitnessCard.pick.history", { count: pick.days ?? 0, n: fmtInt(pick.days ?? 0) })
+      : t("fitnessCard.pick.database"),
+  );
   return parts.join(" · ");
 }
 
 function Guidance({ guidance }: { guidance: ReadinessGuidance }) {
-  const stats = remaining(guidance);
+  const { t } = useTranslation("makan");
+  const stats = remaining(guidance, t);
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{guidance.headline}</Text>
@@ -115,14 +133,14 @@ function Guidance({ guidance }: { guidance: ReadinessGuidance }) {
       ) : null}
       {guidance.foods.length > 0 ? (
         <View style={styles.foods}>
-          <Text style={styles.label}>Pilihan untuk hari ini</Text>
+          <Text style={styles.label}>{t("fitnessCard.picksTitle")}</Text>
           {guidance.foods.map((pick) => (
             <View key={pick.name} style={styles.food}>
               <Text style={styles.foodName}>
                 {pick.name}
                 {pick.portion ? ` (${pick.portion})` : ""}
               </Text>
-              <Text style={styles.label}>{pickDetail(pick)}</Text>
+              <Text style={styles.label}>{pickDetail(pick, t)}</Text>
             </View>
           ))}
         </View>

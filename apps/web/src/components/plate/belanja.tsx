@@ -1,11 +1,12 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Wallet } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Card } from "@/components/kit/surface";
 import { MetaLine } from "@/components/meta-line";
 import { fmtRupiah } from "@/lib/app-config";
-import { fmtInt } from "@/lib/format";
+import { fmtGramsLabel, fmtIdr, fmtNumber } from "@joyorogo/i18n";
 import { orpc } from "@/utils/orpc";
 
 const spendingOptions = orpc.plate.spending.queryOptions();
@@ -18,6 +19,7 @@ const bestValueOptions = orpc.plate.bestValue.queryOptions();
  * version; the default renders the full Makan page section.
  */
 export function BelanjaCard({ variant = "full" }: { variant?: "full" | "line" }) {
+  const { t } = useTranslation(["makan", "common"]);
   const spending = useQuery(spendingOptions);
   const bestValue = useQuery(bestValueOptions);
   // Full section is a long list; collapsed by default, header keeps today's total.
@@ -38,11 +40,15 @@ export function BelanjaCard({ variant = "full" }: { variant?: "full" | "line" })
           <Wallet className="size-4 text-makan-ink" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-bold">Belanja makan hari ini: {fmtRupiah(today)}</span>
+          <span className="block font-bold">
+            {t("plate.belanja.todayLine", { amount: fmtRupiah(today) })}
+          </span>
           <span className="block text-xs text-muted-foreground">
             {budget
-              ? `Sisa anggaran ${budget.period === "day" ? "harian" : "bulanan"}: ${fmtRupiah(budget.remaining ?? 0)}`
-              : `Minggu ini ${fmtRupiah(week)}`}
+              ? t(`plate.belanja.budgetLeft.${budget.period}`, {
+                  amount: fmtRupiah(budget.remaining ?? 0),
+                })
+              : t("plate.belanja.weekMeta", { amount: fmtRupiah(week) })}
           </span>
         </span>
       </div>
@@ -50,7 +56,7 @@ export function BelanjaCard({ variant = "full" }: { variant?: "full" | "line" })
   }
 
   return (
-    <section className="mt-7" aria-label="Belanja makan">
+    <section className="mt-7" aria-label={t("plate.belanja.title")}>
       <Card className="px-5 py-4">
         <button
           type="button"
@@ -63,14 +69,16 @@ export function BelanjaCard({ variant = "full" }: { variant?: "full" | "line" })
             <Wallet className="size-4 text-makan-ink" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[0.9375rem] font-bold">Belanja makan</span>
+            <span className="block text-[0.9375rem] font-bold">{t("plate.belanja.title")}</span>
             <span className="block text-xs text-muted-foreground tabular-nums">
               <MetaLine
                 items={[
-                  `Hari ini ${fmtRupiah(today)}`,
+                  t("plate.belanja.todayMeta", { amount: fmtRupiah(today) }),
                   budget
-                    ? `Sisa ${budget.period === "day" ? "harian" : "bulanan"} ${fmtRupiah(budget.remaining ?? 0)}`
-                    : `Minggu ini ${fmtRupiah(week)}`,
+                    ? t(`plate.belanja.leftMeta.${budget.period}`, {
+                        amount: fmtRupiah(budget.remaining ?? 0),
+                      })
+                    : t("plate.belanja.weekMeta", { amount: fmtRupiah(week) }),
                 ]}
               />
             </span>
@@ -84,15 +92,19 @@ export function BelanjaCard({ variant = "full" }: { variant?: "full" | "line" })
           <div id="belanja-detail" className="mt-4">
             <div className="grid grid-cols-3 gap-2 text-center">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground">Hari ini</p>
+                <p className="text-xs font-semibold text-muted-foreground">{t("common:date.today")}</p>
                 <p className="text-base font-extrabold tabular-nums">{fmtRupiah(today)}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold text-muted-foreground">Minggu ini</p>
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {t("plate.belanja.thisWeek")}
+                </p>
                 <p className="text-base font-extrabold tabular-nums">{fmtRupiah(week)}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold text-muted-foreground">Bulan ini</p>
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {t("plate.belanja.thisMonth")}
+                </p>
                 <p className="text-base font-extrabold tabular-nums">{fmtRupiah(month)}</p>
               </div>
             </div>
@@ -104,15 +116,16 @@ export function BelanjaCard({ variant = "full" }: { variant?: "full" | "line" })
                     : "bg-muted text-muted-foreground"
                 }`}
               >
-                Sisa anggaran {budget.period === "day" ? "harian" : "bulanan"}:{" "}
-                {fmtRupiah(budget.remaining ?? 0)}
+                {t(`plate.belanja.budgetLeft.${budget.period}`, {
+                  amount: fmtRupiah(budget.remaining ?? 0),
+                })}
               </p>
             )}
             {priced && (
               <div className="mt-4">
-                <p className="text-sm font-bold">Nilai terbaik</p>
+                <p className="text-sm font-bold">{t("plate.belanja.bestValue")}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Protein tiap Rp1.000, dari piring yang pernah kamu catat harganya.
+                  {t("plate.belanja.bestValueHint", { price: fmtIdr(1000) })}
                 </p>
                 <ul className="mt-2 space-y-1.5">
                   {bestValue.data.slice(0, 3).map((entry) => (
@@ -125,10 +138,13 @@ export function BelanjaCard({ variant = "full" }: { variant?: "full" | "line" })
                         <MetaLine
                           items={[
                             fmtRupiah(entry.priceIdr),
-                            `${fmtInt(entry.nutrients.proteinG)} g protein`,
-                            `${entry.proteinPer1000.toLocaleString("id-ID", {
-                              maximumFractionDigits: 1,
-                            })} g per Rp1.000`,
+                            t("plate.belanja.proteinOf", {
+                              g: fmtGramsLabel(entry.nutrients.proteinG),
+                            }),
+                            t("plate.belanja.perPrice", {
+                              g: `${fmtNumber(entry.proteinPer1000, 1)} g`,
+                              price: fmtIdr(1000),
+                            }),
                           ]}
                         />
                       </span>
@@ -139,8 +155,7 @@ export function BelanjaCard({ variant = "full" }: { variant?: "full" | "line" })
             )}
             {!priced && (
               <p className="mt-3 text-xs text-muted-foreground">
-                Catat harga piringmu saat memindai atau menulis makanan, nanti muncul di sini menu
-                paling hemat.
+                {t("plate.belanja.empty")}
               </p>
             )}
           </div>

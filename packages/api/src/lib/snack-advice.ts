@@ -4,10 +4,12 @@
 // and never shames. All clock math is WIB minutes since midnight so server,
 // web and native agree (see fasting.ts).
 
-import { MEAL_LABELS, ramadanSplit } from "./engine";
+import { getActiveLocale, getT } from "@joyorogo/i18n";
+import type { Locale, TFunction } from "@joyorogo/i18n";
+
+import { localizedLabels, mealLabel, ramadanSplit } from "./engine";
 import type { Meal } from "./engine";
 import {
-  MEAL_KIND_LABELS,
   buildSchedule,
   fmtHHMM,
   insideWindow,
@@ -16,17 +18,15 @@ import {
   windowTimes,
 } from "./fasting";
 import type { FastingDay } from "./fasting";
-import { FOOD_KIND_LABELS } from "./food-kind";
 import type { FoodKind } from "./food-kind";
 import { mealIdeas } from "./ideas";
 
 export type AdviceVerdict = "aman" | "hati-hati" | "lewat";
 
-export const VERDICT_LABELS: Record<AdviceVerdict, string> = {
-  aman: "Aman",
-  "hati-hati": "Hati-hati",
-  lewat: "Lewat target",
-};
+export const VERDICT_LABELS: Record<AdviceVerdict, string> = localizedLabels(
+  ["aman", "hati-hati", "lewat"] as const satisfies readonly AdviceVerdict[],
+  (verdict, locale) => getT(locale, "makan")(`snackAdvice.verdict.${verdict}`),
+);
 
 /** Share of the eat target per meal on a normal (non-Ramadan) day. */
 export const NORMAL_SPLIT: Record<Meal, number> = {
@@ -125,15 +125,20 @@ export function dominantKind(kinds: FoodKind[]): FoodKind {
   return kinds[0] ?? "makanan";
 }
 
-const kcalText = (n: number) => `${Math.round(n)} kkal`;
+type MakanT = TFunction<"makan">;
 
-function joinLabels(labels: string[]): string {
+const kcalText = (n: number, t: MakanT) => t("snackAdvice.kcal", { n: Math.round(n) });
+
+function joinLabels(labels: string[], t: MakanT): string {
   if (labels.length <= 1) return labels[0] ?? "";
-  return `${labels.slice(0, -1).join(", ")} dan ${labels.at(-1)}`;
+  return t("snackAdvice.joinLast", { list: labels.slice(0, -1).join(", "), last: labels.at(-1) });
 }
 
 /** What each upcoming meal still needs, honouring Ramadan, IF and what is logged. */
-function upcomingMeals(input: SnackAdviceInput): {
+function upcomingMeals(
+  input: SnackAdviceInput,
+  locale: Locale,
+): {
   meals: UpcomingMeal[];
   outsideWindow: boolean;
   window: string | null;
@@ -155,7 +160,7 @@ function upcomingMeals(input: SnackAdviceInput): {
           .filter((m) => m.kind !== "camilan" || isMeal)
           .filter((m) => m.atMin - window.startMin > rel + (isMeal ? IF_MEAL_LEAD_MIN : 0))
           .map((m) => ({
-            label: MEAL_KIND_LABELS[m.kind].toLowerCase(),
+            label: getT(locale, "push")(`fasting.mealKind.${m.kind}`).toLowerCase(),
             needKcal: Math.round(m.share * input.eatKcal),
           }));
     return {
@@ -170,7 +175,7 @@ function upcomingMeals(input: SnackAdviceInput): {
     // a meal candidate is its own slot's meal; a snack sits on top of all of them
     .filter(({ meal, endMin }) => input.nowMin < endMin && !(isMeal && meal === input.slot))
     .map(({ meal }) => ({
-      label: MEAL_LABELS[meal].toLowerCase(),
+      label: mealLabel(meal, locale).toLowerCase(),
       needKcal: Math.max(
         0,
         Math.round((split[meal] ?? 0) * input.eatKcal - (input.eatenByMeal[meal] ?? 0)),
@@ -185,21 +190,15 @@ function verdictFor(kcal: number, remaining: number, spare: number): AdviceVerdi
   return kcal <= spare ? "aman" : "hati-hati";
 }
 
-const SPARE_NOUN: Record<FoodKind, string> = {
-  makanan: "makan sekarang",
-  camilan: "camilan",
-  minuman: "minuman",
-  lainnya: "yang ini",
-};
+const GENERIC_SWAP_KINDS = ["makanan", "camilan", "minuman"] as const;
 
-const GENERIC_SWAP: Record<FoodKind, string | null> = {
-  makanan: "Coba nasi setengah porsi, lauk yang dipanggang atau direbus, dan sayur lebih banyak.",
-  camilan: "Coba buah potong, yogurt plain, atau tahu dan tempe kukus.",
-  minuman: "Coba air putih, teh tawar, atau kopi tanpa gula.",
-  lainnya: null,
-};
-
-function swapSuggestion(kind: FoodKind, kcal: number, room: number): AdviceSuggestion | null {
+function swapSuggestion(
+  kind: FoodKind,
+  kcal: number,
+  room: number,
+  t: MakanT,
+): AdviceSuggestion | null {
+  const label = t("snackAdvice.swap.label");
   if (kind === "camilan") {
     // Catalog values are TKPI 2019 rounded (ideas.ts); only a lighter idea that
     // fits the room left is worth naming, otherwise the generic wording stands.
@@ -207,13 +206,16 @@ function swapSuggestion(kind: FoodKind, kcal: number, room: number): AdviceSugge
     if (idea) {
       return {
         type: "swap",
-        label: "Tukar yang lebih ringan",
-        text: `Tukar ke ${idea.name.toLowerCase()} (sekitar ${kcalText(idea.kcal)}).`,
+        label,
+        text: t("snackAdvice.swap.idea", {
+          name: idea.name.toLowerCase(),
+          kcal: kcalText(idea.kcal, t),
+        }),
       };
     }
   }
-  const generic = GENERIC_SWAP[kind];
-  return generic ? { type: "swap", label: "Tukar yang lebih ringan", text: generic } : null;
+  const generic = GENERIC_SWAP_KINDS.find((k) => k === kind);
+  return generic ? { type: "swap", label, text: t(`snackAdvice.swap.generic.${generic}`) } : null;
 }
 
 /**
@@ -224,11 +226,15 @@ function swapSuggestion(kind: FoodKind, kcal: number, room: number): AdviceSugge
  * An IF window that is closed or not yet open lifts `aman` to `hati-hati` and says so.
  * Returns null when there is nothing to compare against (no target, no kcal).
  */
-export function adviseSnack(input: SnackAdviceInput): SnackAdvice | null {
+export function adviseSnack(
+  input: SnackAdviceInput,
+  locale: Locale = getActiveLocale(),
+): SnackAdvice | null {
   const { kcal, eatenKcal, eatKcal } = input;
   if (!(eatKcal > 0) || !(kcal > 0)) return null;
 
-  const { meals, outsideWindow, window } = upcomingMeals(input);
+  const t = getT(locale, "makan");
+  const { meals, outsideWindow, window } = upcomingMeals(input, locale);
   const reserve = meals.reduce((sum, m) => sum + m.needKcal, 0);
   const remaining = Math.max(0, Math.round(eatKcal - eatenKcal));
   const spare = remaining - reserve;
@@ -238,43 +244,68 @@ export function adviseSnack(input: SnackAdviceInput): SnackAdvice | null {
   let verdict = verdictFor(kcal, remaining, spare);
   if (outsideWindow && verdict === "aman") verdict = "hati-hati";
 
-  const upcomingLabel = joinLabels(meals.map((m) => m.label));
-  const parts = [`${input.name?.trim() || FOOD_KIND_LABELS[input.kind]} ${kcalText(kcal)}.`];
+  const upcomingLabel = joinLabels(
+    meals.map((m) => m.label),
+    t,
+  );
+  const parts = [
+    t("snackAdvice.reason.head", {
+      name: input.name?.trim() || t(`kind.${input.kind}`),
+      kcal: kcalText(kcal, t),
+    }),
+  ];
   if (outsideWindow && window) {
-    parts.push(`Jendela makan IF kamu (${window}) sedang tutup, jadi ini di luar jadwal.`);
+    parts.push(t("snackAdvice.reason.windowClosed", { window }));
   }
 
   if (verdict === "lewat") {
     if (remaining === 0) {
       parts.push(
-        `Hari ini sudah ${kcalText(eatenKcal)} dari target ${kcalText(eatKcal)}, ini menambah ${kcalText(kcal)}.`,
+        t("snackAdvice.reason.overNoRoom", {
+          eaten: kcalText(eatenKcal, t),
+          target: kcalText(eatKcal, t),
+          kcal: kcalText(kcal, t),
+        }),
       );
     } else {
       parts.push(
-        `Sisa hari ini ${kcalText(remaining)}, jadi total naik ke ${kcalText(eatenKcal + kcal)} dari target ${kcalText(eatKcal)} (lebih ${kcalText(over)}).`,
+        t("snackAdvice.reason.overSome", {
+          remaining: kcalText(remaining, t),
+          total: kcalText(eatenKcal + kcal, t),
+          target: kcalText(eatKcal, t),
+          over: kcalText(over, t),
+        }),
       );
     }
     parts.push(
       input.tdeeKcal && eatenKcal + kcal > input.tdeeKcal
-        ? "Hari ini jadi surplus."
-        : "Defisit hari ini jadi menipis, tapi kamu tetap boleh simpan.",
+        ? t("snackAdvice.reason.surplus")
+        : t("snackAdvice.reason.thinDeficit"),
     );
   } else if (reserve > 0) {
     const room = Math.max(0, spare);
-    const roomText =
-      verdict === "aman"
-        ? `masih ada ruang sekitar ${room}`
-        : room > 0
-          ? `tinggal ${room}`
-          : "belum ada ruang";
+    const roomKey = verdict === "aman" ? "safe" : room > 0 ? "some" : "none";
     parts.push(
-      `Sisa hari ini ${kcalText(remaining)}, ${upcomingLabel} biasanya butuh sekitar ${Math.round(reserve)}, jadi ${roomText} buat ${SPARE_NOUN[input.kind]}.`,
+      t(`snackAdvice.reason.reserve.${roomKey}`, {
+        remaining: kcalText(remaining, t),
+        upcoming: upcomingLabel,
+        reserve: Math.round(reserve),
+        room,
+        noun: t(`snackAdvice.spareNoun.${input.kind}`),
+      }),
     );
     if (verdict === "hati-hati") {
-      parts.push(`Kalau tetap dimakan, ${upcomingLabel} tinggal sekitar ${after} kkal.`);
+      parts.push(
+        t("snackAdvice.reason.careful", { upcoming: upcomingLabel, after: kcalText(after, t) }),
+      );
     }
   } else {
-    parts.push(`Sisa hari ini ${kcalText(remaining)}, setelah ini tinggal ${kcalText(after)}.`);
+    parts.push(
+      t("snackAdvice.reason.simple", {
+        remaining: kcalText(remaining, t),
+        after: kcalText(after, t),
+      }),
+    );
   }
 
   const suggestions: AdviceSuggestion[] = [];
@@ -283,17 +314,17 @@ export function adviseSnack(input: SnackAdviceInput): SnackAdvice | null {
       const half = Math.round(kcal / 2);
       suggestions.push({
         type: "half",
-        label: "Setengah porsi",
+        label: t("snackAdvice.half.label"),
         kcal: half,
         verdict: verdictFor(half, remaining, spare),
       });
     }
-    const swap = swapSuggestion(input.kind, kcal, Math.max(spare, 0));
+    const swap = swapSuggestion(input.kind, kcal, Math.max(spare, 0), t);
     if (swap) suggestions.push(swap);
     if (verdict === "hati-hati" && meals.length > 0 && after > 0) {
       suggestions.push({
         type: "lighter-next",
-        label: `Jadikan ${upcomingLabel} lebih ringan`,
+        label: t("snackAdvice.lighterNext.label", { upcoming: upcomingLabel }),
         targetKcal: after,
       });
     }
@@ -301,7 +332,7 @@ export function adviseSnack(input: SnackAdviceInput): SnackAdvice | null {
 
   return {
     verdict,
-    title: VERDICT_LABELS[verdict],
+    title: t(`snackAdvice.verdict.${verdict}`),
     reason: parts.join(" "),
     numbers: {
       kcal,
@@ -320,9 +351,15 @@ export function adviseSnack(input: SnackAdviceInput): SnackAdvice | null {
 }
 
 /** Neutral one-liner for a past day: no verdict, just the effect on that day's total. */
-export function dayImpactLine(eatenKcal: number, eatKcal: number, kcal: number): string | null {
+export function dayImpactLine(
+  eatenKcal: number,
+  eatKcal: number,
+  kcal: number,
+  locale: Locale = getActiveLocale(),
+): string | null {
   if (!(kcal > 0)) return null;
-  const total = Math.round(eatenKcal + kcal);
-  if (!(eatKcal > 0)) return `Total hari itu jadi ${kcalText(total)}.`;
-  return `Total hari itu jadi ${kcalText(total)} dari target ${kcalText(eatKcal)}.`;
+  const t = getT(locale, "makan");
+  const total = kcalText(Math.round(eatenKcal + kcal), t);
+  if (!(eatKcal > 0)) return t("snackAdvice.dayImpact.noTarget", { total });
+  return t("snackAdvice.dayImpact.withTarget", { total, target: kcalText(eatKcal, t) });
 }

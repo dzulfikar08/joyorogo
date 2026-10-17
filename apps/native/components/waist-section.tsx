@@ -18,7 +18,7 @@ import {
   Skeleton,
   Text,
 } from "@/components/ui";
-import { errorMessage, fmtDateId, fmtKg, parseNum } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtKg, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 
@@ -223,7 +223,7 @@ export function WaistSection({
                 {recent.map((entry) => (
                   <ListRow
                     key={entry.id}
-                    title={entry.date === jakartaToday() ? "Hari ini" : fmtDateId(entry.date)}
+                    title={entry.date === jakartaToday() ? "Hari ini" : fmtDateMedium(entry.date)}
                     value={`${fmtKg(entry.waistCm)} cm`}
                   />
                 ))}

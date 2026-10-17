@@ -14,7 +14,7 @@ import {
   workoutFromSessionItem,
 } from "@/components/workout/active-store";
 import { workoutApi, workoutQueryPrefix } from "@/lib/workout-contract";
-import { fmtDateIndo, fmtInt } from "@/lib/format";
+import { fmtDateLong, fmtInt } from "@/lib/format";
 import type { WorkoutStatus } from "@/lib/api-types";
 import { useDelayedDelete } from "@/lib/optimistic";
 import { removeById } from "@joyorogo/api/lib/optimistic";
@@ -222,7 +222,7 @@ function LatihanScreen() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold">{item.session.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {fmtDateIndo(item.session.date)}
+                          {fmtDateLong(item.session.date)}
                           {item.session.durationMin != null
                             ? ` · ${fmtInt(item.session.durationMin)} menit`
                             : ""}

@@ -17,7 +17,7 @@ import {
   Sheet,
   Text,
 } from "@/components/ui";
-import { errorMessage, fmtKcal, parseNum } from "@/utils/format";
+import { errorMessage, fmtInt, parseNum } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 
@@ -303,7 +303,7 @@ export function SessionEditor({ draft, onClose }: { draft: SessionDraft; onClose
         label="Durasi (menit)"
         hint={
           kcalEstimate !== null
-            ? `Perkiraan ${fmtKcal(kcalEstimate)} kcal masuk ke angka bakar saat disimpan.`
+            ? `Perkiraan ${fmtInt(kcalEstimate)} kcal masuk ke angka bakar saat disimpan.`
             : "Isi durasi untuk perkiraan kalori."
         }
       >

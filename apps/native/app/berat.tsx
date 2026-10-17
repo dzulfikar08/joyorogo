@@ -46,7 +46,7 @@ import { WeighInSheet } from "@/components/weigh-in-sheet";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { WaistSection } from "@/components/waist-section";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtDateId, fmtKg } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtKg } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 type Range = "7" | "30" | "90" | "all";
@@ -1004,7 +1004,7 @@ export default function Berat() {
                 return (
                   <ListRow
                     key={entry.id}
-                    title={entry.date === today ? "Hari ini" : fmtDateId(entry.date)}
+                    title={entry.date === today ? "Hari ini" : fmtDateMedium(entry.date)}
                     value={`${fmtKg(entry.weightKg)} kg`}
                     subtitle={
                       delta !== null && Math.abs(delta) >= 0.05

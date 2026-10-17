@@ -25,7 +25,7 @@ import {
   Text,
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtDateId, fmtKg, parseNum } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtKg, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 
@@ -218,7 +218,7 @@ export default function Tidur() {
           color={theme.colors.tidur}
           track={theme.colors.tidurSoft}
         >
-          <Text style={styles.ringLabel}>{isToday ? "Semalam" : fmtDateId(sleepDate)}</Text>
+          <Text style={styles.ringLabel}>{isToday ? "Semalam" : fmtDateMedium(sleepDate)}</Text>
           <Num style={styles.ringValue} adjustsFontSizeToFit numberOfLines={1}>
             {logged !== null ? fmtKg(logged) : "–"}
           </Num>
@@ -269,7 +269,7 @@ export default function Tidur() {
         ) : (
           <SleepBars
             nights={nights}
-            lastLabel={isToday ? "Semalam" : fmtDateId(sleepDate)}
+            lastLabel={isToday ? "Semalam" : fmtDateMedium(sleepDate)}
           />
         )}
         <Text style={styles.note}>

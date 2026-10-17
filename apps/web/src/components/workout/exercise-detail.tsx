@@ -4,7 +4,7 @@ import {
   workoutApi,
   workoutQueryPrefix,
 } from "@/lib/workout-contract";
-import { fmtDateIndo, fmtInt } from "@/lib/format";
+import { fmtDateLong, fmtInt } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
@@ -48,12 +48,12 @@ function OneRmChart({ points }: { points: { date: string; oneRm: number }[] }) {
         viewBox={`0 0 ${CHART_W} ${CHART_H}`}
         className="w-full"
         role="img"
-        aria-label={`Grafik estimasi 1RM dari ${fmtDateIndo(points[0].date)} ke ${fmtDateIndo(points[points.length - 1].date)}`}
+        aria-label={`Grafik estimasi 1RM dari ${fmtDateLong(points[0].date)} ke ${fmtDateLong(points[points.length - 1].date)}`}
       >
         <path d={path!.d} fill="none" stroke="currentColor" strokeWidth="2.5" className="text-primary" />
         {path!.coords.map((coord) => (
           <circle key={coord.date + coord.x} cx={coord.x} cy={coord.y} r="3.5" className="fill-primary">
-            <title>{`${fmtDateIndo(coord.date)}: ${fmtInt(coord.oneRm)} kg`}</title>
+            <title>{`${fmtDateLong(coord.date)}: ${fmtInt(coord.oneRm)} kg`}</title>
           </circle>
         ))}
         <text x={CHART_PAD} y={12} className="fill-muted-foreground text-[10px]">
@@ -118,7 +118,7 @@ export function ExerciseDetail({ exercise }: { exercise: CatalogExercise }) {
             <ul className="divide-y divide-border">
               {(history.data?.sessions ?? []).slice(0, 10).map((session) => (
                 <li key={session.sessionId} className="py-2.5">
-                  <p className="text-sm font-bold">{fmtDateIndo(session.date)}</p>
+                  <p className="text-sm font-bold">{fmtDateLong(session.date)}</p>
                   <p className="text-xs text-muted-foreground">
                     {session.sets
                       .map((set) =>

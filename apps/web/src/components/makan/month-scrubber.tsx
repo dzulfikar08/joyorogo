@@ -1,9 +1,10 @@
-import { monthLongLabel } from "@joyorogo/api/lib/diary-view";
 import { jakartaToday } from "@joyorogo/api/lib/engine";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
-import { daysInMonth, shortDayLabel } from "@joyorogo/api/lib/format";
+import { daysInMonth } from "@joyorogo/api/lib/format";
+import { fmtDate } from "@joyorogo/i18n";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { fmtInt } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
@@ -23,6 +24,7 @@ export function MonthScrubber({
   kind: FoodKindFilter;
   onPick: (date: string) => void;
 }) {
+  const { t } = useTranslation("makan");
   const today = jakartaToday();
   const month = date.slice(0, 7);
   const totals = useQuery({
@@ -38,13 +40,14 @@ export function MonthScrubber({
     <div className="px-1">
       <div className="flex items-end justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl font-extrabold tracking-tight">{monthLongLabel(month)}</h2>
+          <h2 className="text-xl font-extrabold tracking-tight">{fmtDate(`${month}-01`, "month")}</h2>
           <p className="text-sm text-muted-foreground">
-            {fmtInt(records)} catatan · {fmtInt(logged.size)} hari tercatat
+            {t("monthScrubber.records", { count: records, n: fmtInt(records) })} ·{" "}
+            {t("monthScrubber.daysLogged", { count: logged.size, n: fmtInt(logged.size) })}
           </p>
         </div>
       </div>
-      <div role="group" aria-label="Loncat ke tanggal bulan ini" className="mt-2 flex items-center">
+      <div role="group" aria-label={t("monthScrubber.jump")} className="mt-2 flex items-center">
         {Array.from({ length: total }, (_, index) => {
           const key = `${month}-${String(index + 1).padStart(2, "0")}`;
           const isLogged = logged.has(key);
@@ -54,7 +57,11 @@ export function MonthScrubber({
               key={key}
               type="button"
               disabled={future}
-              aria-label={`${shortDayLabel(key)}${isLogged ? ", ada catatan" : ""}`}
+              aria-label={
+                isLogged
+                  ? t("monthScrubber.dayWithEntries", { date: fmtDate(key, "weekday") })
+                  : fmtDate(key, "weekday")
+              }
               aria-current={key === date ? "date" : undefined}
               onClick={() => onPick(key)}
               className="group flex h-8 min-w-0 flex-1 items-center justify-center focus-visible:outline-none disabled:pointer-events-none"

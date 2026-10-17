@@ -3,6 +3,7 @@ import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Coffee, Cookie, LayoutGrid, ShoppingBag, Utensils } from "lucide-react";
 import type { ComponentType } from "react";
+import { useTranslation } from "react-i18next";
 
 const ICONS: Record<FoodKindFilter, ComponentType<{ className?: string }>> = {
   semua: LayoutGrid,
@@ -20,10 +21,11 @@ export function KindChips({
   value: FoodKindFilter;
   onChange: (kind: FoodKindFilter) => void;
 }) {
+  const { t } = useTranslation("makan");
   return (
     <div
       role="group"
-      aria-label="Jenis catatan"
+      aria-label={t("kindChips.label")}
       className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1"
     >
       {FOOD_KIND_FILTERS.map((filter) => {
@@ -43,7 +45,7 @@ export function KindChips({
             )}
           >
             <Icon className="size-4" aria-hidden />
-            {filter.label}
+            {filter.value === "semua" ? t("kind.all") : t(`kind.${filter.value}`)}
           </button>
         );
       })}

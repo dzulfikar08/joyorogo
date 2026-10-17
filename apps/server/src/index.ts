@@ -1,5 +1,6 @@
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { appRouter } from "@joyorogo/api/routers/index";
+import { LOCALE_HEADER, isLocale } from "@joyorogo/i18n";
 import {
   effectiveRamadan,
   jakartaToday,
@@ -57,7 +58,7 @@ app.use(
   cors({
     origin: allowedOrigins,
     allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", LOCALE_HEADER],
     credentials: true,
   }),
 );
@@ -518,6 +519,7 @@ async function runFastingReminders(): Promise<void> {
       pattern: profileTable.fastingPattern,
       windowStart: profileTable.fastingWindowStart,
       ramadanMode: profileTable.ramadanMode,
+      locale: profileTable.locale,
     })
     .from(pushSubscriptionTable)
     .innerJoin(profileTable, eq(profileTable.userId, pushSubscriptionTable.userId))
@@ -550,6 +552,8 @@ async function runFastingReminders(): Promise<void> {
       dateKey,
       remainingKcal: Math.max(0, plan.targets.eatKcal - (eatenRow?.kcal ?? 0)),
       nowMin: wibMinutes(now),
+      // The recipient's saved language; users who never chose one get Indonesian.
+      locale: isLocale(row.locale) ? row.locale : undefined,
     });
     for (const draft of due) {
       if (row.lastSentKey === draft.key) continue;

@@ -1,20 +1,22 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pressable, ScrollView, View } from "react-native";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Pressable, ScrollView, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { foodSavedKey, plateSavedKey } from "@joyorogo/api/lib/saved-foods";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
+import type { TFunction } from "@joyorogo/i18n";
 
 import { Chip, Input, ListGroup, ListRow, Sheet, Text } from "@/components/ui";
 import { FoodSticker, StickerMini } from "@/components/sticker";
 import { MacroLine } from "@/components/macro-line";
 import { useToast } from "@/components/toast";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
-import { fmtKcal } from "@/utils/format";
+import { fmtIdr, fmtInt, fmtKcalLabel } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
 type SavedListOutput = Awaited<ReturnType<AppRouterClient["savedFood"]["list"]>>;
@@ -46,7 +48,7 @@ export interface Favorites {
   relog: (saved: SavedFood, date: string, meal: Meal) => void;
   relogPending: boolean;
   rename: (id: string, name: string) => void;
-  /** Delayed delete with an Urungkan toast. */
+  /** Delayed delete with an undo toast. */
   remove: (saved: SavedFood) => void;
 }
 
@@ -55,6 +57,7 @@ export interface Favorites {
  * shared optimistic helpers. Mount once per screen (pending deletes flush on unmount).
  */
 export function useFavorites(): Favorites {
+  const { t } = useTranslation("makan");
   const queryClient = useQueryClient();
   const query = useQuery(orpc.savedFood.list.queryOptions());
   const items = query.data?.items ?? [];
@@ -70,7 +73,7 @@ export function useFavorites(): Favorites {
     },
     invalidate: () => [orpc.savedFood.key()],
     success: (_input, row) => ({
-      message: `${row.name} masuk Favorit`,
+      message: t("favorites.toast.saved", { name: row.name }),
       undo: () => {
         new OptimisticCache(queryClient).value<SavedList>(listKey(), (old) =>
           old ? { ...old, items: old.items.filter((item) => item.id !== row.id) } : old,
@@ -88,7 +91,7 @@ export function useFavorites(): Favorites {
       cache.value<SavedList>(listKey(), (old) =>
         old ? { ...old, items: old.items.filter((item) => item.id !== row.id) } : old,
       ),
-    label: (row) => `${row.name} dari Favorit`,
+    label: (row) => t("favorites.deletedLabel", { name: row.name }),
     invalidate: () => [orpc.savedFood.key()],
   });
 
@@ -154,7 +157,7 @@ export function useFavorites(): Favorites {
     },
     invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.savedFood.key()],
     success: ({ saved, meal }, result) => ({
-      message: `${saved.name} dicatat ke ${MEAL_LABELS[meal]}`,
+      message: t("favorites.toast.relogged", { name: saved.name, meal: MEAL_LABELS[meal] }),
       undo: () => {
         void Promise.all(result.items.map((row) => client.food.remove({ id: row.id }))).finally(
           () => {
@@ -237,13 +240,14 @@ export function FavoritChips({
   meal: Meal;
   onManage: () => void;
 }) {
+  const { t } = useTranslation("makan");
   if (favorites.items.length === 0) return null;
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
       {favorites.items.map((saved) => (
         <Chip
           key={saved.id}
-          label={`${saved.name} · ${fmtKcal(saved.kcal)}`}
+          label={`${saved.name} · ${fmtInt(saved.kcal)}`}
           leading={
             saved.items[0]?.scanId ? (
               <StickerMini scanId={saved.items[0].scanId} size={32} />
@@ -253,15 +257,17 @@ export function FavoritChips({
           onPress={() => favorites.relog(saved, date, meal)}
         />
       ))}
-      <Chip label="Kelola" onPress={onManage} />
+      <Chip label={t("favorites.manage")} onPress={onManage} />
     </ScrollView>
   );
 }
 
-function describe(saved: SavedFood): string {
-  const parts = [`${fmtKcal(saved.kcal)} kcal`];
-  if (saved.items.length > 1) parts.push(`${saved.items.length} item`);
-  if (saved.priceIdr !== null) parts.push(`Rp${saved.priceIdr.toLocaleString("id-ID")}`);
+function describe(saved: SavedFood, t: TFunction<"makan">): string {
+  const parts = [fmtKcalLabel(saved.kcal)];
+  if (saved.items.length > 1) {
+    parts.push(t("favorites.itemCount", { count: saved.items.length }));
+  }
+  if (saved.priceIdr !== null) parts.push(fmtIdr(saved.priceIdr));
   return parts.join(" · ");
 }
 
@@ -275,6 +281,7 @@ export function FavoritManageSheet({
   favorites: Favorites;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
   const toast = useToast();
   const [editing, setEditing] = useState<string | null>(null);
@@ -284,17 +291,17 @@ export function FavoritManageSheet({
     const name = draftName.trim();
     setEditing(null);
     if (name.length === 0) {
-      toast.error("Nama tidak boleh kosong");
+      toast.error(t("favorites.toast.nameEmpty"));
       return;
     }
     if (name !== saved.name) favorites.rename(saved.id, name);
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose} title="Kelola Favorit">
+    <Sheet visible={visible} onClose={onClose} title={t("favorites.sheet.title")}>
       {favorites.items.length === 0 ? (
         <Text style={styles.empty}>
-          Belum ada favorit. Tekan bintang di makanan atau piring untuk menyimpannya.
+          {t("favorites.sheet.empty")}
         </Text>
       ) : (
         <ListGroup>
@@ -307,13 +314,13 @@ export function FavoritManageSheet({
                     onChangeText={setDraftName}
                     maxLength={200}
                     autoFocus
-                    accessibilityLabel={`Nama baru untuk ${saved.name}`}
+                    accessibilityLabel={t("favorites.sheet.newName", { name: saved.name })}
                     onSubmitEditing={() => commit(saved)}
                     style={styles.editInput}
                   />
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Simpan nama ${saved.name}`}
+                    accessibilityLabel={t("favorites.sheet.saveName", { name: saved.name })}
                     onPress={() => commit(saved)}
                     style={({ pressed }) => [styles.starButton, pressed && styles.pressed]}
                   >
@@ -328,7 +335,7 @@ export function FavoritManageSheet({
                 title={saved.name}
                 subtitle={
                   <View style={styles.subtitle}>
-                    <Text style={styles.subtitleText}>{describe(saved)}</Text>
+                    <Text style={styles.subtitleText}>{describe(saved, t)}</Text>
                     <MacroLine
                       compact
                       protein={saved.items.reduce((sum, i) => sum + (i.protein ?? 0), 0)}
@@ -343,7 +350,7 @@ export function FavoritManageSheet({
                   <View style={styles.actions}>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`Ganti nama ${saved.name}`}
+                      accessibilityLabel={t("favorites.sheet.rename", { name: saved.name })}
                       onPress={() => {
                         setDraftName(saved.name);
                         setEditing(saved.id);
@@ -354,7 +361,7 @@ export function FavoritManageSheet({
                     </Pressable>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`Hapus ${saved.name} dari Favorit`}
+                      accessibilityLabel={t("favorites.sheet.remove", { name: saved.name })}
                       onPress={() => favorites.remove(saved)}
                       style={({ pressed }) => [styles.starButton, pressed && styles.pressed]}
                     >

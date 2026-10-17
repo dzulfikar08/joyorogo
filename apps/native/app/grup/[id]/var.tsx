@@ -22,7 +22,7 @@ import { BootLoader, Button, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
 import type { VarScan } from "@/src/lib/group";
-import { errorMessage, fmtKcal } from "@/utils/format";
+import { errorMessage, fmtInt } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
 /** Fixed-length pause so the scanner beat always plays out on screen. */
@@ -70,7 +70,7 @@ function verdictCopy(
   }
   if (scan.verdict === "offside") {
     const over = Math.max(0, scan.eatenKcal - (scan.eatTargetKcal ?? 0));
-    return { icon: "flag", title: `OFFSIDE! +${fmtKcal(over)} kcal`, color: "#FF6A52" };
+    return { icon: "flag", title: `OFFSIDE! +${fmtInt(over)} kcal`, color: "#FF6A52" };
   }
   if (scan.verdict === "tanpa_target") {
     return { icon: "information-circle", title: "Belum ada target pembanding", color: "#C9C4BA" };
@@ -156,7 +156,7 @@ function FoodFloat({
         <Text style={styles.foodName} numberOfLines={1}>
           {name}
         </Text>
-        <Text style={styles.foodKcal}>{fmtKcal(kcal)} kcal</Text>
+        <Text style={styles.foodKcal}>{fmtInt(kcal)} kcal</Text>
       </View>
     </Animated.View>
   );
@@ -450,7 +450,7 @@ export default function VarPerut() {
                 <View style={styles.totalsRow}>
                   <Text style={styles.totalsLabel}>Asupan hari ini</Text>
                   <Text style={styles.totalsValue}>
-                    {fmtKcal(totalKcal)} / {targetKcal !== null ? fmtKcal(targetKcal) : "?"} kcal
+                    {fmtInt(totalKcal)} / {targetKcal !== null ? fmtInt(targetKcal) : "?"} kcal
                   </Text>
                 </View>
                 <View style={styles.totalTrack}>

@@ -1020,7 +1020,12 @@ export const groupRouter = {
       let quotaReached = false;
       if (previous && previousPhoto) {
         // Quota only for scans that actually call the model.
-        const { ai, quotaReached: reached } = await requireAiQuota(db, context.env, userId);
+        const { ai, quotaReached: reached } = await requireAiQuota(
+          db,
+          context.env,
+          userId,
+          context.locale,
+        );
         quotaReached = reached;
         const previousLabel = `scan ${previous.date}`;
         let analysis;

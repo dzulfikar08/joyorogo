@@ -16,6 +16,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Camera, ChevronRight, Mic, Plus, ScanBarcode } from "lucide-react";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Mascot } from "@/components/mascot";
 import { Cerita } from "@/components/cerita";
@@ -38,7 +39,7 @@ import { STICKER_FILTER, stickerUrl } from "@/components/sticker";
 import { FoodRow } from "@/components/makan/food-row";
 import { FitnessCard } from "@/components/makan/fitness-card";
 import type { FoodAddInput, FoodItem, FoodRecentItem } from "@/lib/api-types";
-import { fmtDateIndo, fmtInt, parseNum } from "@/lib/format";
+import { fmtDateLong, fmtInt, parseNum } from "@/lib/format";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import { upsertById, removeById } from "@joyorogo/api/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
@@ -55,12 +56,7 @@ import { usePlaceLocation } from "@/lib/location";
 import { saveKind, saveMakanView, storedKind, storedMakanView } from "@/lib/makan-prefs";
 import { parseMakanView } from "@joyorogo/api/lib/diary-view";
 import type { MakanView } from "@joyorogo/api/lib/diary-view";
-import {
-  FOOD_KIND_LABELS,
-  foodKind,
-  matchesKind,
-  parseFoodKindFilter,
-} from "@joyorogo/api/lib/food-kind";
+import { foodKind, matchesKind, parseFoodKindFilter } from "@joyorogo/api/lib/food-kind";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 
 // One options object per query, reused by the loader and the component so the
@@ -98,6 +94,7 @@ export const Route = createFileRoute("/_auth/makan/")({
 
 function MakanPage() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation(["makan", "common"]);
   const {
     date: paramDate,
     cerita: ceritaOpen,
@@ -277,7 +274,9 @@ function MakanPage() {
         // Swap the provisional (temp id) for the server row before refetch lands.
         cacheSwap(tempId, row);
       }
-      return row ? { message: `${row.name} dicatat`, undo: () => revertAdd(row) } : undefined;
+      return row
+        ? { message: t("diary.toast.logged", { name: row.name }), undo: () => revertAdd(row) }
+        : undefined;
     },
   });
   // Delayed-commit delete: row vanishes instantly, DELETE fires after the
@@ -307,7 +306,7 @@ function MakanPage() {
       }
     },
     label: (row) => row.name,
-    fallback: "Catatan",
+    fallback: t("diary.toast.entryFallback"),
     invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.diary.key()],
   });
 
@@ -323,7 +322,7 @@ function MakanPage() {
   return (
     <Page className="md:max-w-3xl">
       <PageHeader
-        title="Makan"
+        title={t("common:nav.food")}
         action={view === "daftar" ? <DaySwitcher date={date} onChange={showDate} /> : undefined}
       />
 
@@ -368,21 +367,25 @@ function MakanPage() {
               <Mic className="size-5" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[0.9375rem] font-bold">Ceritakan makananmu</span>
+              <span className="block text-[0.9375rem] font-bold">{t("diary.story.title")}</span>
               <span className="block text-sm text-muted-foreground">
-                Ketik atau ucapkan, AI yang hitung kalorinya.
+                {t("diary.story.subtitle")}
               </span>
             </span>
             <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
           </button>
 
           {favorites.items.length > 0 && (
-            <section className="mt-3 rounded-3xl bg-card p-5" aria-label="Favorit">
+            <section className="mt-3 rounded-3xl bg-card p-5" aria-label={t("diary.favorites.title")}>
               <div className="flex items-baseline justify-between gap-3">
-                <h2 className="text-base font-bold tracking-tight">Favorit</h2>
+                <h2 className="text-base font-bold tracking-tight">{t("diary.favorites.title")}</h2>
                 <span className="text-xs text-muted-foreground">
-                  Tap untuk catat ke {MEAL_LABELS[quickMeal]}
-                  {isToday ? "" : `, ${fmtDateIndo(date)}`}
+                  {isToday
+                    ? t("diary.favorites.hint", { meal: MEAL_LABELS[quickMeal] })
+                    : t("diary.favorites.hintOnDate", {
+                        meal: MEAL_LABELS[quickMeal],
+                        date: fmtDateLong(date),
+                      })}
                 </span>
               </div>
               <div className="mt-3">
@@ -400,20 +403,20 @@ function MakanPage() {
             <div className="mt-3 rounded-3xl bg-card p-6 text-center">
               <Mascot pose="ready" size="md" className="mb-3" />
               <p className="text-base font-bold">
-                Belum ada catatan {isToday ? "hari ini" : "di hari ini"}
+                {isToday ? t("diary.empty.titleToday") : t("diary.empty.titleDay")}
               </p>
               <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
-                Ceritakan apa yang kamu makan, atau pindai foto piringmu biar AI yang hitung.
+                {t("diary.empty.description")}
               </p>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                 <Button onClick={() => setSheetMeal(quickMeal)}>
                   <Plus className="size-4" aria-hidden />
-                  Catat makan
+                  {t("diary.empty.log")}
                 </Button>
                 <Link to="/makan/ai" search={isToday ? {} : { date }}>
                   <Button variant="secondary">
                     <Camera className="size-4" aria-hidden />
-                    Pindai foto
+                    {t("diary.empty.scan")}
                   </Button>
                 </Link>
               </div>
@@ -431,7 +434,7 @@ function MakanPage() {
                 {relativeDayLabel(date, jakartaToday())}
               </h2>
               <span className="shrink-0 rounded-full bg-card px-2.5 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
-                {fmtInt(visibleItems.length)} catatan
+                {t("diary.list.entries", { count: visibleItems.length, n: fmtInt(visibleItems.length) })}
               </span>
             </div>
             {MEALS.map(([meal, label]) => {
@@ -441,7 +444,7 @@ function MakanPage() {
                 <section
                   key={meal}
                   className="relative mt-5"
-                  aria-label={`${label}, total ${fmtInt(subtotal)} kcal`}
+                  aria-label={t("diary.list.sectionAria", { meal: label, kcal: fmtInt(subtotal) })}
                 >
                   <span
                     aria-hidden
@@ -455,7 +458,7 @@ function MakanPage() {
                         className="inline-flex min-h-11 items-center gap-1 px-1 text-sm font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                       >
                         <Plus className="size-4" aria-hidden />
-                        Tambah
+                        {t("common:actions.add")}
                       </button>
                     }
                   >
@@ -491,8 +494,8 @@ function MakanPage() {
                   ) : (
                     <div className="rounded-3xl bg-card px-5 py-4 text-sm text-muted-foreground">
                       {kind === "semua"
-                        ? "Belum ada catatan. Tekan Tambah di atas, atau pindai fotonya."
-                        : `Tidak ada ${FOOD_KIND_LABELS[kind].toLowerCase()} di waktu makan ini.`}
+                        ? t("diary.list.slotEmpty")
+                        : t("diary.list.slotNoKind", { kind: t(`diary.kind.${kind}`) })}
                     </div>
                   )}
                 </section>
@@ -504,7 +507,10 @@ function MakanPage() {
 
       {view === "kalender" && (
         <KalenderView date={date} kind={kind} onSelect={showDate}>
-          <section className="relative mt-6 pl-6" aria-label={`Catatan ${fmtDateIndo(date)}`}>
+          <section
+            className="relative mt-6 pl-6"
+            aria-label={t("diary.list.dayAria", { date: fmtDateLong(date) })}
+          >
             <span
               aria-hidden
               className="absolute top-3 left-0 size-3 rounded-full border-[3px] border-primary bg-background"
@@ -514,14 +520,14 @@ function MakanPage() {
                 {relativeDayLabel(date, jakartaToday())}
               </h2>
               <span className="shrink-0 rounded-full bg-card px-2.5 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
-                {fmtInt(visibleItems.length)} catatan
+                {t("diary.list.entries", { count: visibleItems.length, n: fmtInt(visibleItems.length) })}
               </span>
               <button
                 type="button"
                 onClick={() => openDaftar(date)}
                 className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-0.5 px-1 text-sm font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
               >
-                Buka di Daftar
+                {t("diary.list.openInList")}
                 <ChevronRight className="size-4" aria-hidden />
               </button>
             </div>
@@ -542,8 +548,8 @@ function MakanPage() {
               ) : (
                 <div className="rounded-3xl bg-card px-5 py-4 text-sm text-muted-foreground">
                   {kind === "semua"
-                    ? "Belum ada catatan di hari ini."
-                    : `Tidak ada ${FOOD_KIND_LABELS[kind].toLowerCase()} di hari ini.`}
+                    ? t("diary.list.dayEmpty")
+                    : t("diary.list.dayNoKind", { kind: t(`diary.kind.${kind}`) })}
                 </div>
               )}
             </div>
@@ -585,8 +591,8 @@ function MakanPage() {
           onOpenChange={(open) => {
             if (!open) setCeritaOpen(false);
           }}
-          title="Ceritakan makananmu"
-          description="Bisa beberapa waktu makan sekaligus, bahkan kemarin. Kamu cek dulu sebelum disimpan."
+          title={t("diary.story.title")}
+          description={t("diary.story.sheetDescription")}
         >
           <Cerita
             date={date}
@@ -626,7 +632,7 @@ function MakanPage() {
           onOpenChange={(open) => {
             if (!open) setShareItem(null);
           }}
-          title="Bagikan makanan ini"
+          title={t("diary.sheet.shareTitle")}
           preview={<MetaLine items={[shareItem.name, `${fmtInt(shareItem.kcal)} kcal`]} />}
           share={(input) =>
             client.social.createPost({
@@ -667,6 +673,7 @@ function AddFoodSheet({
   onShowDate: (date: string) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation(["makan", "common"]);
   const [ceritaPhase, setCeritaPhase] = useState<CeritaPhase>("input");
   const [showManual, setShowManual] = useState(false);
   const [name, setName] = useState("");
@@ -723,11 +730,11 @@ function AddFoodSheet({
     const nameClean = name.trim();
     const kcalNum = parseNum(kcal);
     if (nameClean.length === 0) {
-      setError("Isi nama makanan dulu.");
+      setError(t("diary.error.foodName"));
       return;
     }
     if (kcalNum === null || kcalNum < 0) {
-      setError("Isi jumlah kalori (angka).");
+      setError(t("diary.error.kcalNumber"));
       return;
     }
     const proteinNum = showMacros ? parseNum(protein) : null;
@@ -736,7 +743,7 @@ function AddFoodSheet({
     const priceNum = parseIdrInput(price);
     const placeClean = place.trim();
     if (price.trim() !== "" && priceNum === null) {
-      setError("Harga belum valid (angka rupiah).");
+      setError(t("diary.error.priceNumber"));
       return;
     }
     setError(null);
@@ -783,9 +790,11 @@ function AddFoodSheet({
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      title={`Tambah ke ${label}`}
+      title={t("diary.sheet.addTo", { meal: label })}
       description={
-        isToday ? "Masuk ke catatan hari ini." : `Masuk ke catatan ${fmtDateIndo(date)}.`
+        isToday
+          ? t("diary.sheet.descToday")
+          : t("diary.sheet.descDate", { date: fmtDateLong(date) })
       }
     >
       <div className="space-y-5">
@@ -800,9 +809,9 @@ function AddFoodSheet({
 
         {ceritaPhase === "input" && favorites.items.length > 0 && (
           <div>
-            <p className="text-sm font-bold">Favorit</p>
+            <p className="text-sm font-bold">{t("diary.favorites.title")}</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Tap untuk langsung masuk ke {label}.
+              {t("diary.favorites.sheetHint", { meal: label })}
             </p>
             <div className="mt-3">
               <FavoritChips favorites={favorites} date={date} meal={meal} onManage={onManage} />
@@ -812,9 +821,9 @@ function AddFoodSheet({
 
         {ceritaPhase === "input" && recent.length > 0 && (
           <div>
-            <p className="text-sm font-bold">Terakhir dicatat</p>
+            <p className="text-sm font-bold">{t("diary.sheet.recentTitle")}</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Tap untuk langsung masuk ke {label}.
+              {t("diary.favorites.sheetHint", { meal: label })}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {recent.map((food) => (
@@ -849,7 +858,7 @@ function AddFoodSheet({
             onClick={() => setShowManual(true)}
             className="min-h-11 px-1 text-sm font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
           >
-            Sudah tahu kalorinya? Isi sendiri
+            {t("diary.sheet.manualToggle")}
           </button>
         )}
 
@@ -863,12 +872,12 @@ function AddFoodSheet({
           >
             <div className="flex items-end gap-3">
               <div className="min-w-0 flex-1">
-                <FieldLabel htmlFor={`${meal}-name`}>Nama makanan</FieldLabel>
+                <FieldLabel htmlFor={`${meal}-name`}>{t("diary.sheet.field.name")}</FieldLabel>
                 <Input
                   id={`${meal}-name`}
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  placeholder="Nasi goreng"
+                  placeholder={t("diary.sheet.field.namePlaceholder")}
                   autoComplete="off"
                 />
               </div>
@@ -897,7 +906,7 @@ function AddFoodSheet({
             {showMacros ? (
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <FieldLabel htmlFor={`${meal}-protein`}>Protein (g)</FieldLabel>
+                  <FieldLabel htmlFor={`${meal}-protein`}>{t("diary.sheet.field.protein")}</FieldLabel>
                   <Input
                     id={`${meal}-protein`}
                     type="number"
@@ -908,7 +917,7 @@ function AddFoodSheet({
                   />
                 </div>
                 <div>
-                  <FieldLabel htmlFor={`${meal}-carbs`}>Karbo (g)</FieldLabel>
+                  <FieldLabel htmlFor={`${meal}-carbs`}>{t("diary.sheet.field.carbs")}</FieldLabel>
                   <Input
                     id={`${meal}-carbs`}
                     type="number"
@@ -919,7 +928,7 @@ function AddFoodSheet({
                   />
                 </div>
                 <div>
-                  <FieldLabel htmlFor={`${meal}-fat`}>Lemak (g)</FieldLabel>
+                  <FieldLabel htmlFor={`${meal}-fat`}>{t("diary.sheet.field.fat")}</FieldLabel>
                   <Input
                     id={`${meal}-fat`}
                     type="number"
@@ -936,27 +945,27 @@ function AddFoodSheet({
                 onClick={() => setShowMacros(true)}
                 className="px-1 text-sm font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
               >
-                + Protein / karbo / lemak (opsional)
+                {t("diary.sheet.macrosToggle")}
               </button>
             )}
 
             <div className="w-44">
-              <FieldLabel htmlFor={`${meal}-price`}>Harga sepiring (Rp, opsional)</FieldLabel>
+              <FieldLabel htmlFor={`${meal}-price`}>{t("diary.sheet.field.price")}</FieldLabel>
               <IdrInput
                 id={`${meal}-price`}
                 value={price}
                 onChange={setPrice}
-                placeholder="mis. 12.000"
+                placeholder={t("diary.sheet.field.pricePlaceholder", { example: fmtInt(12000) })}
               />
             </div>
 
             <div>
-              <FieldLabel htmlFor={`${meal}-place`}>Tempat (opsional)</FieldLabel>
+              <FieldLabel htmlFor={`${meal}-place`}>{t("diary.sheet.field.place")}</FieldLabel>
               <Input
                 id={`${meal}-place`}
                 value={place}
                 onChange={(event) => setPlace(event.target.value)}
-                placeholder="RM Sederhana"
+                placeholder={t("diary.sheet.field.placePlaceholder")}
                 autoComplete="off"
               />
             </div>
@@ -969,7 +978,7 @@ function AddFoodSheet({
             {error && <p className="px-1 text-sm text-destructive">{error}</p>}
 
             <Button type="submit" className="w-full" disabled={addPending}>
-              {addPending ? "Menyimpan..." : `Tambah ke ${label}`}
+              {addPending ? t("diary.sheet.saving") : t("diary.sheet.addTo", { meal: label })}
             </Button>
           </form>
         )}
@@ -987,9 +996,9 @@ function AddFoodSheet({
               <Camera className="size-5 text-makan-ink" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold">Pindai pakai foto</span>
+              <span className="block text-sm font-bold">{t("diary.sheet.scanPhoto.title")}</span>
               <span className="block text-xs text-muted-foreground">
-                AI hitung kalorinya, kamu cek dulu.
+                {t("diary.sheet.scanPhoto.subtitle")}
               </span>
             </span>
             <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
@@ -1009,9 +1018,9 @@ function AddFoodSheet({
               <ScanBarcode className="size-5 text-makan-ink" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold">Pindai barcode kemasan</span>
+              <span className="block text-sm font-bold">{t("diary.sheet.scanBarcode.title")}</span>
               <span className="block text-xs text-muted-foreground">
-                Ambil angka gizi dari Open Food Facts.
+                {t("diary.sheet.scanBarcode.subtitle")}
               </span>
             </span>
             <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
@@ -1023,8 +1032,9 @@ function AddFoodSheet({
 }
 
 function MakanSkeleton() {
+  const { t } = useTranslation(["makan", "common"]);
   return (
-    <Page className="md:max-w-3xl" aria-busy="true" aria-label="Memuat catatan makan">
+    <Page className="md:max-w-3xl" aria-busy="true" aria-label={t("diary.header.loading")}>
       <div className="flex items-center justify-between px-1 pt-2 pb-5">
         <Skeleton className="h-8 w-28 rounded-full" />
         <Skeleton className="h-12 w-44 rounded-full" />

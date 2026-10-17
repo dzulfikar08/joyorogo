@@ -26,7 +26,7 @@ import { Sticker } from "@/components/sticker";
 import { WaterCard } from "@/components/water-card";
 import { WorkoutCard } from "@/components/workout/workout-card";
 import { pickFact } from "@/lib/facts";
-import { fmtDateIndo, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
+import { fmtDateLong, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
 import { useWaistCheckIn, useWeightCheckIn } from "@/lib/optimistic";
 import { useAppConfig } from "@/lib/app-config";
 import type { DaySummary } from "@/lib/api-types";
@@ -155,7 +155,7 @@ function Dashboard({
             {firstName ? `, ${firstName}` : ""}
           </p>
           <h1 className="mt-0.5 text-[1.75rem] leading-tight font-extrabold tracking-tight">
-            {fmtDateIndo(summary.date).replace(/^\w+, /, "")}
+            {fmtDateLong(summary.date).replace(/^\w+, /, "")}
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -572,7 +572,7 @@ function WeightCard({
               <p className="mt-3 text-sm text-muted-foreground">
                 Dengan ritme ini, target tercapai sekitar{" "}
                 <strong className="font-semibold text-foreground">
-                  {fmtDateIndo(trend.projectedDate).replace(/^\w+, /, "")}
+                  {fmtDateLong(trend.projectedDate).replace(/^\w+, /, "")}
                 </strong>
                 .
               </p>

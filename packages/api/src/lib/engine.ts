@@ -1,6 +1,13 @@
-// Pure calorie engine shared by server and clients. No runtime dependencies:
-// the web app imports it into route modules, so it must stay tiny (zod
-// schemas for these shapes live in ./schemas).
+// Pure calorie engine shared by server and clients. The only runtime dependency
+// is @joyorogo/i18n (display labels follow the active language); the web app
+// imports it into route modules, so keep it tiny (zod schemas for these shapes
+// live in ./schemas).
+
+import { getActiveLocale, getT, relativeDayLabel } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+
+// One definition of "Hari ini / Kemarin / Sabtu, 10 Okt" for every caller.
+export { relativeDayLabel };
 
 export const GENDERS = ["male", "female"] as const;
 export const ACTIVITY_LEVELS = ["low", "mid", "high"] as const;
@@ -17,30 +24,44 @@ export type Gender = (typeof GENDERS)[number];
 export type ActivityLevel = (typeof ACTIVITY_LEVELS)[number];
 export type Meal = (typeof MEALS)[number];
 
-export const MEAL_LABELS: Record<Meal, string> = {
-  sarapan: "Sarapan",
-  makan_siang: "Makan Siang",
-  makan_malam: "Makan Malam",
-  snack: "Snack",
-  sahur: "Sahur",
-  berbuka: "Berbuka",
-};
+/**
+ * A label table whose values follow the app language: each property is a getter
+ * reading the active locale, so `LABELS[key]` keeps working at every call site
+ * and re-renders after a language switch. Server code must NOT read these (a
+ * Worker has no single active language): use `mealLabel(meal, locale)` instead.
+ */
+export function localizedLabels<K extends string>(
+  keys: readonly K[],
+  label: (key: K, locale: Locale) => string,
+): Record<K, string> {
+  const table = {} as Record<K, string>;
+  for (const key of keys) {
+    Object.defineProperty(table, key, {
+      enumerable: true,
+      get: () => label(key, getActiveLocale()),
+    });
+  }
+  return table;
+}
+
+/** "Sarapan" / "Breakfast". Pass `locale` on the server. */
+export function mealLabel(meal: Meal, locale: Locale = getActiveLocale()): string {
+  return getT(locale)(`meal.label.${meal}`);
+}
+
+/** Slot name on the edit chips; snack reads as "Camilan" there. */
+export function mealEditLabel(meal: Meal, locale: Locale = getActiveLocale()): string {
+  return getT(locale)(`meal.editLabel.${meal}`);
+}
+
+export const MEAL_LABELS = localizedLabels(MEALS, mealLabel);
 
 /** Slot names on the edit chips; snack reads as "Camilan" there. */
-export const MEAL_EDIT_LABELS: Record<Meal, string> = {
-  sarapan: "Sarapan",
-  makan_siang: "Makan siang",
-  makan_malam: "Makan malam",
-  snack: "Camilan",
-  sahur: "Sahur",
-  berbuka: "Berbuka",
-};
+export const MEAL_EDIT_LABELS = localizedLabels(MEALS, mealEditLabel);
 
-export const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
-  low: "Jarang gerak",
-  mid: "Sedang",
-  high: "Sering gerak",
-};
+export const ACTIVITY_LABELS = localizedLabels(ACTIVITY_LEVELS, (level, locale) =>
+  getT(locale)(`activity.${level}`),
+);
 
 const ACTIVITY_MULTIPLIER: Record<ActivityLevel, number> = {
   low: 1.25,
@@ -122,21 +143,14 @@ export function shiftDate(date: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** "Hari ini", "Kemarin", otherwise "Sabtu, 10 Okt". */
-export function relativeDayLabel(date: string, today: string): string {
-  if (date === today) return "Hari ini";
-  if (date === shiftDate(today, -1)) return "Kemarin";
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
-    weekday: "long",
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
-}
-
 /** Review-screen group header: "Kemarin · Sarapan". */
-export function storySlotLabel(date: string, meal: Meal, today: string): string {
-  return `${relativeDayLabel(date, today)} · ${MEAL_LABELS[meal]}`;
+export function storySlotLabel(
+  date: string,
+  meal: Meal,
+  today: string,
+  locale: Locale = getActiveLocale(),
+): string {
+  return `${relativeDayLabel(date, today, locale)} · ${mealLabel(meal, locale)}`;
 }
 
 /** Consecutive logged days ending today — or yesterday when today is not logged yet. */

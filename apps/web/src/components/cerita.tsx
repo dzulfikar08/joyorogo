@@ -1,6 +1,7 @@
 import { MEALS, jakartaToday, relativeDayLabel, storySlotLabel } from "@joyorogo/api/lib/engine";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import type { TFunction } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Textarea } from "@joyorogo/ui/components/textarea";
@@ -8,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Mic, Square, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import type { StoryFoodItem } from "@/lib/api-types";
@@ -16,8 +18,8 @@ import { removeById } from "@joyorogo/api/lib/optimistic";
 import { FieldLabel } from "@/components/kit/surface";
 import { MetaLine } from "@/components/meta-line";
 import { IdrInput } from "@/components/plate/idr-input";
-import { fmtInt, parseNum } from "@/lib/format";
-import { OptimisticCache, UNDO_LABEL, UNDO_TOAST_MS } from "@/lib/optimistic";
+import { fmtGramsLabel, fmtInt, parseNum } from "@/lib/format";
+import { OptimisticCache, undoLabel, UNDO_TOAST_MS } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
 /** Whisper reads these as-is: Chrome/Firefox record webm/opus, Safari mp4/aac. */
@@ -45,10 +47,18 @@ function fmtClock(ms: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+function joinDays(days: string[], t: TFunction<["makan", "common"]>): string {
+  if (days.length <= 1) return days[0] ?? "";
+  return t("story.joinLast", { list: days.slice(0, -1).join(", "), last: days.at(-1) });
+}
+
 /** Server errors carry user-facing copy; the transcript survives a failed parse. */
-function errorParts(err: unknown): { message: string; transcript: string | null } {
+function errorParts(
+  err: unknown,
+  t: TFunction<["makan", "common"]>,
+): { message: string; transcript: string | null } {
   const message =
-    err instanceof Error && err.message ? err.message : "Gagal menghubungi AI. Coba lagi.";
+    err instanceof Error && err.message ? err.message : t("story.error.generic");
   const data = (err as { data?: { transcript?: unknown } } | null)?.data;
   return { message, transcript: typeof data?.transcript === "string" ? data.transcript : null };
 }
@@ -76,6 +86,7 @@ export function Cerita({
   /** Offered as a toast action when items landed on a day other than `date`. */
   onShowDate?: (date: string) => void;
 }) {
+  const { t } = useTranslation(["makan", "common"]);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [phase, setPhaseState] = useState<CeritaPhase>("input");
@@ -176,7 +187,7 @@ export function Cerita({
         navigate({ to: "/pro", search: { from: "quota", next: "/makan" } });
         return;
       }
-      const parts = errorParts(err);
+      const parts = errorParts(err, t);
       if (parts.transcript) setText(parts.transcript);
       setError(parts.message);
       setPhase("input");
@@ -190,9 +201,7 @@ export function Cerita({
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      setError(
-        "Izin mikrofon ditolak. Ketik saja ceritamu, atau izinkan mikrofon di pengaturan browser.",
-      );
+      setError(t("story.error.micDenied"));
       return;
     }
     const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
@@ -210,7 +219,7 @@ export function Cerita({
       }
       const blob = new Blob(chunks, { type: recorder.mimeType || mime || "audio/webm" });
       if (blob.size < 1000) {
-        setError("Rekamannya terlalu pendek. Tekan mikrofon, ceritakan, lalu tekan Selesai.");
+        setError(t("story.error.tooShort"));
         setPhase("input");
         return;
       }
@@ -258,7 +267,7 @@ export function Cerita({
     const values = kcals.map((value) => parseNum(value));
     const invalid = values.findIndex((value) => value === null || value < 0);
     if (invalid !== -1) {
-      toast.error(`Kalori untuk "${items[invalid]?.name}" belum valid.`);
+      toast.error(t("story.error.kcalInvalid", { name: items[invalid]?.name }));
       return;
     }
     setSaving(true);
@@ -283,7 +292,7 @@ export function Cerita({
         const startsGroup = group !== plateGroup;
         const priceNum = plateForm ? parseIdrInput(plateForm.price) : null;
         if (priceNum !== null && priceNum < 0) {
-          throw new Error("Harga piring belum valid (angka rupiah).");
+          throw new Error(t("story.error.priceInvalid"));
         }
         const row = await client.food.add({
           date: item.date,
@@ -345,12 +354,18 @@ export function Cerita({
       // Undo removes every row this story created and reverses the summaries.
       const createdRows = created;
       toast.success(
-        `${saved} makanan dicatat ke ${dates.map((d) => relativeDayLabel(d, today)).join(" dan ")}.`,
+        t("story.toast.saved", {
+          count: saved,
+          days: joinDays(
+            dates.map((d) => relativeDayLabel(d, today)),
+            t,
+          ),
+        }),
         createdRows.length > 0
           ? {
               duration: UNDO_TOAST_MS,
               action: {
-                label: UNDO_LABEL,
+                label: undoLabel(),
                 onClick: () => {
                   const cache = new OptimisticCache(queryClient);
                   for (const row of createdRows) {
@@ -394,7 +409,7 @@ export function Cerita({
               },
             }
           : elsewhere && onShowDate
-            ? { action: { label: "Lihat", onClick: () => onShowDate(elsewhere) } }
+            ? { action: { label: t("story.toast.show"), onClick: () => onShowDate(elsewhere) } }
             : undefined,
       );
       queryClient.invalidateQueries({ queryKey: orpc.food.key() });
@@ -406,7 +421,7 @@ export function Cerita({
         navigate({ to: "/pro", search: { from: "quota", next: "/makan" } });
       }
     } catch (err) {
-      toast.error(errorParts(err).message);
+      toast.error(errorParts(err, t).message);
       // Keep only what did not make it, so a retry never double-logs.
       setItems((current) => current.slice(saved));
       setKcals((current) => current.slice(saved));
@@ -424,10 +439,10 @@ export function Cerita({
             className="size-2.5 animate-pulse rounded-full bg-primary motion-reduce:animate-none"
           />
           <p className="text-sm font-bold">
-            {phase === "listening" ? "Mendengarkan rekaman..." : "AI menghitung kalori..."}
+            {phase === "listening" ? t("story.listening") : t("story.thinking")}
           </p>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">Biasanya 2 sampai 6 detik.</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("story.eta")}</p>
         <Button
           variant="ghost"
           size="sm"
@@ -437,7 +452,7 @@ export function Cerita({
             setPhase("input");
           }}
         >
-          Batalkan
+          {t("story.cancelRequest")}
         </Button>
       </div>
     );
@@ -453,7 +468,7 @@ export function Cerita({
     return (
       <div className="space-y-4">
         <div className="rounded-2xl bg-muted px-4 py-3">
-          <p className="text-xs font-semibold text-muted-foreground">Kamu bilang</p>
+          <p className="text-xs font-semibold text-muted-foreground">{t("story.youSaid")}</p>
           <p className="mt-0.5 text-sm">{transcript}</p>
           <button
             type="button"
@@ -461,7 +476,7 @@ export function Cerita({
             disabled={saving}
             className="mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-primary focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
           >
-            Ubah cerita
+            {t("story.editStory")}
           </button>
         </div>
 
@@ -486,16 +501,16 @@ export function Cerita({
                           <MetaLine
                             items={[
                               item.portion,
-                              item.grams != null ? `± ${fmtInt(item.grams)} g` : null,
+                              item.grams != null ? `± ${fmtGramsLabel(item.grams)}` : null,
                             ]}
                           />
                         ) : (
-                          "1 porsi"
+                          t("story.portionDefault")
                         )}
                       </span>
                     </span>
                     <Input
-                      aria-label={`Kalori ${item.name}`}
+                      aria-label={t("story.kcalAria", { name: item.name })}
                       type="number"
                       min="0"
                       inputMode="numeric"
@@ -511,7 +526,7 @@ export function Cerita({
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label={`Hapus ${item.name}`}
+                      aria-label={t("foodRow.delete", { name: item.name })}
                       onClick={() => remove(index)}
                       disabled={saving}
                       className="size-11 shrink-0 text-muted-foreground hover:text-destructive"
@@ -523,7 +538,7 @@ export function Cerita({
               </ul>
               <div className="mt-2 flex items-end gap-2 rounded-2xl bg-card px-4 py-2">
                 <div className="min-w-0 flex-1">
-                  <FieldLabel htmlFor={`plate-${label}`}>Nama piring</FieldLabel>
+                  <FieldLabel htmlFor={`plate-${label}`}>{t("story.plateName")}</FieldLabel>
                   <Input
                     id={`plate-${label}`}
                     value={plates[order(first)]?.name ?? ""}
@@ -534,12 +549,12 @@ export function Cerita({
                   />
                 </div>
                 <div className="w-32">
-                  <FieldLabel htmlFor={`plate-price-${label}`}>Harga (Rp)</FieldLabel>
+                  <FieldLabel htmlFor={`plate-price-${label}`}>{t("story.priceLabel")}</FieldLabel>
                   <IdrInput
                     id={`plate-price-${label}`}
                     value={plates[order(first)]?.price ?? ""}
                     onChange={(price) => updatePlate(order(first), { price })}
-                    placeholder="mis. 28.000"
+                    placeholder={t("story.pricePlaceholder", { example: fmtInt(28000) })}
                     className="h-11 bg-muted text-right font-bold"
                   />
                 </div>
@@ -549,14 +564,14 @@ export function Cerita({
         })}
 
         <div className="flex items-center justify-between px-1">
-          <span className="text-sm font-semibold text-muted-foreground">Total</span>
+          <span className="text-sm font-semibold text-muted-foreground">{t("story.total")}</span>
           <span className="text-lg font-extrabold tabular-nums">
             {fmtInt(total)}{" "}
             <span className="text-xs font-semibold text-muted-foreground">kcal</span>
           </span>
         </div>
         <Button className="w-full" size="lg" onClick={() => void saveAll()} disabled={saving}>
-          {saving ? "Menyimpan..." : `Simpan ${items.length} makanan`}
+          {saving ? t("story.saving") : t("story.saveAll", { count: items.length })}
         </Button>
       </div>
     );
@@ -569,7 +584,7 @@ export function Cerita({
         event.preventDefault();
         const clean = text.trim();
         if (clean.length < 2) {
-          setError("Tulis dulu makanannya, misalnya: nasi goreng 1 piring.");
+          setError(t("story.error.empty"));
           return;
         }
         void describe({ text: clean });
@@ -577,7 +592,7 @@ export function Cerita({
       className="space-y-3"
     >
       <label htmlFor="cerita-text" className="sr-only">
-        Ceritakan makananmu
+        {t("story.inputLabel")}
       </label>
       {recording ? (
         <div
@@ -589,10 +604,10 @@ export function Cerita({
               aria-hidden
               className="size-2.5 animate-pulse rounded-full bg-destructive motion-reduce:animate-none"
             />
-            Merekam {fmtClock(elapsed)}
+            {t("story.recording", { time: fmtClock(elapsed) })}
           </span>
           <span className="text-xs text-muted-foreground">
-            Sebut makanan, porsi, dan waktunya. Maksimal 1 menit.
+            {t("story.recordingHint")}
           </span>
         </div>
       ) : (
@@ -604,8 +619,8 @@ export function Cerita({
           rows={3}
           placeholder={
             meal
-              ? "Contoh: mie gacoan 1 porsi, udang keju 3 pcs"
-              : "Contoh: kemarin pagi nasi kuning pakai telur dadar, siang nasi padang lauk rendang"
+              ? t("story.placeholder.meal")
+              : t("story.placeholder.day")
           }
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "cerita-error" : undefined}
@@ -622,11 +637,11 @@ export function Cerita({
           (recording ? (
             <>
               <Button type="button" variant="secondary" onClick={() => stopRecording(true)}>
-                Batal
+                {t("common:actions.cancel")}
               </Button>
               <Button type="button" className="flex-1" onClick={() => stopRecording(false)}>
                 <Square className="size-4" aria-hidden />
-                Selesai
+                {t("common:actions.done")}
               </Button>
             </>
           ) : (
@@ -634,7 +649,7 @@ export function Cerita({
               type="button"
               variant="secondary"
               size="icon"
-              aria-label="Rekam suara"
+              aria-label={t("story.record")}
               onClick={() => void startRecording()}
               className="size-12 shrink-0 rounded-full"
             >
@@ -643,7 +658,7 @@ export function Cerita({
           ))}
         {!recording && (
           <Button type="submit" className="flex-1">
-            Hitung kalori
+            {t("story.calculate")}
           </Button>
         )}
       </div>

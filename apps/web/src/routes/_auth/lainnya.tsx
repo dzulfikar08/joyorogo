@@ -2,12 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Bell, CalendarCheck, Scale, Sparkles, Tag, Users } from "lucide-react";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
+import { useTranslation } from "react-i18next";
 
 import { Avatar } from "@/components/avatar";
 import { ListGroup, ListLinkRow, Page, PageHeader } from "@/components/kit/surface";
 import { ScreenError } from "@/components/screen-state";
 import { useSession } from "@/lib/auth-client";
-import { founderScans, useAppConfig } from "@/lib/app-config";
+import { useAppConfig } from "@/lib/app-config";
 import { orpc } from "@/utils/orpc";
 
 const profileOptions = () => orpc.profile.myProfile.queryOptions();
@@ -19,8 +20,9 @@ export const Route = createFileRoute("/_auth/lainnya")({
 });
 
 function LainnyaSkeleton() {
+  const { t } = useTranslation();
   return (
-    <Page className="max-w-xl" aria-busy="true" aria-label="Memuat menu">
+    <Page className="max-w-xl" aria-busy="true" aria-label={t("more.loading")}>
       <div className="px-1 pt-2 pb-5">
         <Skeleton className="h-9 w-32 rounded-full" />
       </div>
@@ -41,6 +43,7 @@ function UnreadValue({ count }: { count: number }) {
 }
 
 function LainnyaPage() {
+  const { t } = useTranslation();
   const session = useSession();
   const unread = useQuery(orpc.group.unreadCount.queryOptions());
   const profile = useQuery(profileOptions());
@@ -53,11 +56,11 @@ function LainnyaPage() {
 
   const count = unread.data?.count ?? 0;
   const isFree = profile.data.tier === "free";
-  const name = session.data?.user.name ?? "Profil";
+  const name = session.data?.user.name ?? t("more.fallbackNameWeb");
 
   return (
     <Page className="max-w-xl">
-      <PageHeader title="Lainnya" subtitle="Profil, grup, dan lain-lain." />
+      <PageHeader title={t("more.title")} subtitle={t("more.subtitleWeb")} />
 
       <ListGroup className="mt-1">
         <ListLinkRow
@@ -73,8 +76,8 @@ function LainnyaPage() {
               <Scale className="size-5 text-tidur-ink" aria-hidden />
             </span>
           }
-          title="Berat"
-          subtitle="Berat badan, lingkar perut, dan tren"
+          title={t("more.weight.title")}
+          subtitle={t("more.weight.subtitle")}
         />
         <ListLinkRow
           to="/rekap"
@@ -83,8 +86,8 @@ function LainnyaPage() {
               <CalendarCheck className="size-5 text-primary" aria-hidden />
             </span>
           }
-          title="Rekap mingguan"
-          subtitle="Ringkasan makan, olahraga, dan berat per minggu"
+          title={t("more.recap.title")}
+          subtitle={t("more.recap.subtitle")}
         />
         <ListLinkRow
           to="/grup"
@@ -93,8 +96,8 @@ function LainnyaPage() {
               <Users className="size-5 text-primary" aria-hidden />
             </span>
           }
-          title="Grup"
-          subtitle="Colek, catatan, dan VAR perut bareng teman"
+          title={t("more.groups.title")}
+          subtitle={t("more.groups.subtitleWeb")}
           value={count > 0 ? <UnreadValue count={count} /> : undefined}
         />
         <ListLinkRow
@@ -104,8 +107,8 @@ function LainnyaPage() {
               <Bell className="size-5 text-makan-ink" aria-hidden />
             </span>
           }
-          title="Kotak masuk"
-          subtitle="Colek dan catatan untukmu"
+          title={t("more.inbox.title")}
+          subtitle={t("more.inbox.subtitle")}
           value={count > 0 ? <UnreadValue count={count} /> : undefined}
         />
         {isFree && config.data?.paywall && (
@@ -116,8 +119,8 @@ function LainnyaPage() {
                 <Tag className="size-5 text-muted-foreground" aria-hidden />
               </span>
             }
-            title="Harga"
-            subtitle="Paket dan jatah scan AI harian"
+            title={t("more.pricing.title")}
+            subtitle={t("more.pricing.subtitleWeb")}
           />
         )}
         {isFree && config.data?.billing && (
@@ -129,8 +132,12 @@ function LainnyaPage() {
                 <Sparkles className="size-5 text-bakar-ink" aria-hidden />
               </span>
             }
-            title="Jadi Pro"
-            subtitle={`Pro: ${config.data ? founderScans(config.data).toLowerCase() : ""}`}
+            title={t("more.upgrade.title")}
+            subtitle={
+              config.data.founderDailyCap === null
+                ? t("more.upgrade.subtitleUnlimited")
+                : t("more.upgrade.subtitleCapped", { count: config.data.founderDailyCap })
+            }
           />
         )}
       </ListGroup>

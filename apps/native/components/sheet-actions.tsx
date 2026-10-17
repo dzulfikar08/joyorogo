@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
@@ -18,13 +19,14 @@ export function SheetActions({
   onShare?: () => void;
   onDelete?: () => void;
 }) {
+  const { t } = useTranslation(["makan", "common"]);
   return (
     <View style={styles.row}>
       <Button
         variant="secondary"
         size="sm"
         icon={favorite ? "star" : "star-outline"}
-        label={favorite ? "Hapus dari Favorit" : "Simpan ke Favorit"}
+        label={favorite ? t("sheetActions.removeFavorite") : t("sheetActions.addFavorite")}
         onPress={onFavorite}
       />
       {onShare ? (
@@ -32,7 +34,7 @@ export function SheetActions({
           variant="secondary"
           size="sm"
           icon="share-social-outline"
-          label="Bagikan"
+          label={t("sheetActions.share")}
           onPress={onShare}
         />
       ) : null}
@@ -41,7 +43,7 @@ export function SheetActions({
           variant="secondary"
           size="sm"
           icon="trash-outline"
-          label="Hapus"
+          label={t("common:actions.delete")}
           destructive
           onPress={onDelete}
         />

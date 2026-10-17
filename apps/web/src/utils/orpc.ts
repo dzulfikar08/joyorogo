@@ -1,4 +1,5 @@
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
+import { LOCALE_HEADER, i18n } from "@joyorogo/i18n";
 import { ORPCError, createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
@@ -68,6 +69,8 @@ export function getServerUrl(url: string) {
 
 export const link = new RPCLink({
   url: `${getServerUrl(env.VITE_SERVER_URL)}/rpc`,
+  // The server writes errors in the language the UI shows.
+  headers: () => ({ [LOCALE_HEADER]: i18n.language }),
   fetch(url, options) {
     return fetch(url, {
       ...options,

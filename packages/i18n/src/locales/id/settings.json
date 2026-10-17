@@ -1,0 +1,521 @@
+{
+  "language": {
+    "title": "Bahasa",
+    "caption": "Bahasa tampilan aplikasi.",
+    "groupLabel": "Bahasa aplikasi",
+    "saveError": "Bahasa belum tersimpan di akunmu. Coba lagi nanti."
+  },
+  "section": {
+    "plan": "Rencana",
+    "personal": "Data diri",
+    "feed": "Feed komunitas",
+    "integrations": "Integrasi",
+    "appearance": "Tampilan",
+    "ramadan": "Mode Ramadan",
+    "fasting": "Puasa Intermiten",
+    "reminders": "Pengingat",
+    "shopping": "Belanja makan",
+    "appIphone": "Aplikasi iPhone",
+    "appAndroid": "Aplikasi Android",
+    "privacy": "Privasi"
+  },
+  "state": {
+    "saving": "Menyimpan..."
+  },
+  "toast": {
+    "saved": "Pengaturan disimpan"
+  },
+  "profile": {
+    "loading": "Memuat profil",
+    "emailFallback": "Masuk lewat Google",
+    "badge": {
+      "free": "Gratis"
+    },
+    "gender": {
+      "male": "Pria",
+      "female": "Wanita"
+    },
+    "personal": {
+      "gender": "Jenis kelamin",
+      "birthYear": "Tahun lahir",
+      "height": "Tinggi",
+      "startWeight": "Berat awal",
+      "currentWeight": "Berat terkini",
+      "currentWeightNone": "belum ada",
+      "note": "Data diri diatur waktu onboarding. Berat terkini mengikuti timbangmu di halaman Berat."
+    },
+    "photo": {
+      "label": "Foto profil",
+      "change": "Ganti foto",
+      "remove": "Hapus foto",
+      "camera": "Kamera",
+      "gallery": "Galeri",
+      "updated": "Foto profil diperbarui",
+      "removeConfirm": {
+        "title": "Hapus foto profil?",
+        "message": "Foto unggahanmu dihapus. Kalau akun Google-mu punya foto, foto itu yang dipakai lagi."
+      },
+      "error": {
+        "tooLarge": "Fotonya terlalu besar, maksimal 5 MB.",
+        "unreadable": "Foto tidak bisa dibaca, coba yang lain.",
+        "noCanvas": "Browser ini tidak mendukung pengolahan gambar.",
+        "uploadFailed": "Ganti foto gagal",
+        "processFailed": "Foto tidak bisa diproses",
+        "empty": "Foto kosong"
+      }
+    }
+  },
+  "pro": {
+    "free": {
+      "scansPerDay_other": "Scan AI {{count}} kali sehari",
+      "proUnlimited": "Pro: scan AI tanpa batas.",
+      "proCapped_other": "Pro: {{count}} scan AI per hari.",
+      "upgrade": "Upgrade"
+    },
+    "pending": {
+      "note": "Ada pembayaran Pro yang belum selesai.",
+      "check": "Sudah bayar? Cek pembayaran",
+      "checking": "Memeriksa...",
+      "none": "Tidak ada pembayaran yang menunggu.",
+      "notPaid": "Belum ada pembayaran masuk. Coba lagi sebentar.",
+      "paid": "Pembayaran masuk. Pro aktif!"
+    },
+    "active": {
+      "title": "Pro aktif",
+      "until": "Sampai {{date}}. Tidak diperpanjang otomatis.",
+      "renew": "Perpanjang",
+      "opening": "Membuka..."
+    }
+  },
+  "plan": {
+    "recalcNote": "Ubah target dan angka harian dihitung ulang otomatis.",
+    "targetWeight": {
+      "title": "Berat target",
+      "subtitle": "Ubah angka targetmu",
+      "hint": "Angka harian dihitung ulang otomatis.",
+      "inputLabel": "Berat target (kg)",
+      "healthyRange": "Berat sehat untuk tinggimu: {{min}}–{{max}} kg",
+      "belowRange": "Di bawah rentang berat sehat. Boleh dilanjutkan, perhatikan kesehatanmu.",
+      "error": "Berat target harus 25-400 kg."
+    },
+    "targetDate": {
+      "title": "Tanggal target",
+      "subtitle": "Kapan kamu ingin sampai",
+      "hint": "Kapan kamu ingin mencapai berat target.",
+      "error": "Tanggal target harus belum lewat.",
+      "tooFast": {
+        "title": "Target ini menuntut defisit ~{{deficit}} kkal/hari, di atas batas aman.",
+        "body_other": "JoyoRogo membatasi defisit pada sekitar 1.000 kkal/hari. Turun {{kg}} kg dengan ritme itu butuh sekitar {{count}} hari.",
+        "useDate_other": "Pakai tanggal realistis (+{{count}} hari)"
+      }
+    },
+    "activity": {
+      "title": "Aktivitas harian",
+      "subtitle": "Di luar olahraga; diatur saat onboarding"
+    },
+    "numbers": {
+      "eat": "Makan",
+      "burn": "Bakar",
+      "sleep": "Tidur",
+      "unitHours": "jam",
+      "perDay": "kcal/hari",
+      "perNight": "jam/malam"
+    },
+    "note": {
+      "MAINTENANCE": "Beratmu sudah di rentang sehat; rencananya menjaga berat, bukan menurun.",
+      "BELOW_HEALTHY_RANGE": "Target beratmu di bawah rentang berat sehat untuk tinggimu. Pertimbangkan menaikkannya.",
+      "PLAN_CLAMPED": "Rencana disesuaikan agar aman, defisit harian dibatasi.",
+      "ADAPTIVE": "Target disesuaikan dari data makan + timbanganmu 3 minggu terakhir."
+    },
+    "noteShort": {
+      "MAINTENANCE": "Berat sudah mencapai target. Rencana sekarang menjaga berat.",
+      "BELOW_HEALTHY_RANGE": "Target berat di bawah rentang sehat. Naikkan sedikit agar aman.",
+      "PLAN_CLAMPED": "Rencana disesuaikan agar aman. Defisit kalori dibatasi.",
+      "ADAPTIVE": "Disesuaikan dari data makan + timbanganmu 3 minggu terakhir."
+    },
+    "formulaEstimate": "Estimasi rumus {{formula}} kcal/hari; rencana memakai {{tdee}} kcal karena lebih cocok dengan datamu.",
+    "summary": {
+      "target": "Target berat {{kg}} kg pada {{date}}.",
+      "withRange": "Target berat {{kg}} kg pada {{date}}. Rentang sehat untuk tinggimu: {{min}}–{{max}} kg."
+    },
+    "empty": {
+      "title": "Belum ada rencana",
+      "body": "Kamu belum melengkapi data diri. Isi onboarding untuk mendapat rencana harian.",
+      "cta": "Isi Onboarding"
+    },
+    "toast": {
+      "updated": "Rencana diperbarui"
+    }
+  },
+  "theme": {
+    "label": "Tema tampilan",
+    "light": "Terang",
+    "dark": "Gelap",
+    "system": "Sistem",
+    "hint": "Mode gelap mengikuti setelan sistemmu bila memilih Sistem."
+  },
+  "ramadan": {
+    "option": {
+      "auto": "Otomatis",
+      "on": "Aktif",
+      "off": "Mati"
+    },
+    "hint": {
+      "auto": "Slot makan mengikuti kalender Hijriah.",
+      "on": "Slot makan jadi sahur & berbuka.",
+      "off": "Jadwal makan normal."
+    },
+    "hintNative": "Slot makan ganti jadi sahur & berbuka; angka harian dibagi ke jendela makan.",
+    "toast": "Mode Ramadan diubah"
+  },
+  "fasting": {
+    "pattern": {
+      "label": "Pola puasa intermiten",
+      "off": "Mati"
+    },
+    "window": {
+      "label": "Jendela makan buka"
+    },
+    "notify": {
+      "title": "Notifikasi pengingat",
+      "hint": "Web Push saat jendela buka, waktu makan, dan 30 menit sebelum tutup.",
+      "aria": "Notifikasi pengingat puasa intermiten"
+    },
+    "hint": {
+      "off": "Pilih pola 16:8, 18:6, 20:4, atau OMAD untuk mulai. Mode Ramadan tetap didahulukan.",
+      "window": "Puasa {{fast}} jam, makan dalam jendela {{eat}} jam.",
+      "omad": "Sekali makan sehari di dalam jendela ±1 jam.",
+      "nativeOn": "{{label}}: notifikasi muncul saat jendela buka, waktu makan, dan 30 menit sebelum tutup."
+    },
+    "error": {
+      "unsupported": "Browser ini belum mendukung notifikasi push.",
+      "denied": "Izin notifikasi tidak diberikan.",
+      "serverNotReady": "Server belum siap mengirim notifikasi. Coba lagi nanti.",
+      "noKeys": "Browser tidak mengirim kunci langganan.",
+      "failed": "Gagal memasang notifikasi."
+    },
+    "toast": {
+      "saved": "Pengaturan puasa disimpan"
+    }
+  },
+  "strava": {
+    "status": {
+      "checking": "Memeriksa status...",
+      "checkingCard": "Memeriksa status Strava...",
+      "loadingNative": "Memuat status Strava…",
+      "error": "Gagal memeriksa status: {{error}}",
+      "notConfiguredServer": "Sambungan aktif setelah kredensial Strava disetel di server.",
+      "comingSoon": "Segera hadir: aktivitas Strava otomatis masuk ke angka bakar.",
+      "idle": "Aktivitas Strava otomatis masuk ke Burn.",
+      "connectHintNative": "Hubungkan akun Strava untuk mengimpor aktivitas olahragamu otomatis.",
+      "connected": "Terhubung.",
+      "connectedAthlete": "Terhubung (ID atlet {{id}}).",
+      "sectionConnected": "Terhubung",
+      "sectionConnectedAthlete": "Terhubung · ID atlet {{id}}",
+      "synced": "{{imported}} diimpor, {{skipped}} dilewati."
+    },
+    "action": {
+      "sync": "Sinkron",
+      "syncing": "Menyinkronkan...",
+      "syncNative": "Sinkronkan",
+      "disconnect": "Putuskan",
+      "disconnectStrava": "Putuskan Strava",
+      "disconnecting": "Memutuskan...",
+      "connect": "Sambungkan",
+      "connecting": "Membuka Strava...",
+      "connectNative": "Hubungkan"
+    },
+    "toast": {
+      "synced_other": "Strava: {{count}} aktivitas diimpor, {{skipped}} dilewati.",
+      "disconnected": "Strava diputuskan.",
+      "connected": "Strava terhubung."
+    },
+    "callback": {
+      "title": "Strava tidak terhubung",
+      "denied": "Strava menolak sambungan: {{error}}",
+      "noCode": "Strava tidak mengirim kode otorisasi. Coba hubungkan lagi dari halaman Profil.",
+      "back": "Kembali ke Profil",
+      "connecting": "Menyambungkan Strava..."
+    },
+    "error": {
+      "noCode": "Strava tidak mengembalikan kode otorisasi."
+    },
+    "retention": {
+      "text": "Sesuai aturan Strava, olahraga yang diimpor dari Strava hanya disimpan 7 hari, lalu dihapus otomatis. Kalori bakar untuk hari yang lebih lama tidak lagi menyertakannya.",
+      "healthAlternative": "Biar kalori bakar tetap tersimpan, pakai Health Connect di Android atau Apple Health di iPhone lewat aplikasi JoyoRogo. Banyak aplikasi olahraga dan jam bisa menulis latihan ke sana, misalnya Strava, Garmin, Samsung Health, dan JoyoFit untuk jam Huawei. Cek pengaturan tiap aplikasi.",
+      "healthAlternativeNative": "Biar kalori bakar tetap tersimpan, hubungkan {{health}} di Profil. Banyak aplikasi olahraga dan jam bisa menulis latihan ke sana, misalnya Strava, Garmin, Samsung Health, dan JoyoFit untuk jam Huawei. Cek pengaturan tiap aplikasi.",
+      "connectHealth": "Hubungkan {{health}}",
+      "noticeTitle": "Impor Strava disimpan 7 hari",
+      "understood": "Mengerti"
+    }
+  },
+  "reminders": {
+    "permissionOff": {
+      "message": "Notifikasi JoyoRogo sedang dimatikan di sistem, jadi pengingat di bawah tidak muncul.",
+      "action": "Aktifkan notifikasi"
+    },
+    "meal": {
+      "replacedByFasting": "Diganti jadwal puasa",
+      "aria": "Pengingat {{meal}}",
+      "sheetTitle": "Jam {{meal}}",
+      "fastingNote": "Notifikasi puasa intermiten aktif, jadi pengingat makan memakai jadwal puasa dan jam di atas tidak dipakai."
+    },
+    "water": {
+      "title": "Air minum",
+      "summary_other": "{{count}} kali sehari, tiap {{hours}} jam",
+      "aria": "Pengingat minum air",
+      "start": "Mulai",
+      "end": "Selesai",
+      "sheetStart": "Mulai minum",
+      "sheetEnd": "Selesai minum",
+      "interval_other": "{{count}} jam"
+    },
+    "weighIn": {
+      "title": "Timbang",
+      "aria": "Pengingat timbang",
+      "sheetTitle": "Jam timbang"
+    },
+    "window": {
+      "openTitle": "Jendela makan buka",
+      "closeTitle": "Jendela makan tutup",
+      "needPattern": "Pilih pola puasa dulu di Puasa Intermiten",
+      "openSubtitle": "Ikut jadwal puasa, WIB",
+      "closeSubtitle": "Puasa dimulai, WIB",
+      "openAria": "Pengingat jendela makan buka",
+      "closeAria": "Pengingat jendela makan tutup",
+      "openDuplicateNote": "Notifikasi puasa intermiten sudah mengingatkan saat jendela buka, jadi pengingat buka di sini tidak dikirim dobel."
+    },
+    "footnote": "Pengingat adalah notifikasi di perangkat ini, jadi tidak ikut pindah ke ponsel lain atau web. Pengingat makan dan timbang dilewati kalau hari ini sudah tercatat saat JoyoRogo terakhir dibuka atau kamu mencatat di aplikasi. Catatan dari perangkat lain baru terbaca setelah aplikasi dibuka lagi. Pengingat minum selalu muncul sesuai jadwal.",
+    "webNote": "Pengingat catat makan, minum air, dan timbang ada di aplikasi Android dan iOS: buka Profil di aplikasi, lalu atur jam tiap pengingat di bagian Pengingat. Pengingat itu tersimpan di ponselmu, bukan di akun, jadi tidak muncul di web. Notifikasi puasa intermiten di atas tetap bisa dinyalakan di browser.",
+    "error": {
+      "invalidTime": "Jam tidak valid",
+      "startBeforeEnd": "Jam mulai harus sebelum jam selesai.",
+      "endAfterStart": "Jam selesai harus setelah jam mulai."
+    },
+    "permission": {
+      "askTitle": "Izinkan pengingat?",
+      "blockedTitle": "Notifikasi dimatikan",
+      "later": "Nanti saja",
+      "openSettings": "Buka Pengaturan",
+      "allow": "Izinkan",
+      "askMessage": "JoyoRogo mengirim pengingat catat makan, minum, timbang, dan jendela puasa di jam yang kamu pilih. Notifikasi hanya untuk itu, tidak ada iklan. Setelah ini sistem akan meminta izin sekali.",
+      "blockedMessage": "Android atau iOS tidak lagi menampilkan permintaan izin untuk JoyoRogo. Nyalakan notifikasi JoyoRogo di Pengaturan, lalu kembali ke sini dan aktifkan pengingatnya lagi."
+    },
+    "timePicker": {
+      "hour": "Jam",
+      "minute": "Menit",
+      "hourAria": "Jam {{value}}",
+      "minuteAria": "Menit {{value}}"
+    },
+    "notification": {
+      "channel": {
+        "meals": {
+          "name": "Pengingat makan",
+          "description": "Ingatkan catat sarapan, makan siang, makan malam."
+        },
+        "water": {
+          "name": "Pengingat minum",
+          "description": "Ingatkan minum air sepanjang hari."
+        },
+        "weighin": {
+          "name": "Pengingat timbang",
+          "description": "Ingatkan timbang berat badan."
+        },
+        "fasting": {
+          "name": "Puasa intermiten",
+          "description": "Jendela makan buka, tutup, dan waktu makan."
+        }
+      },
+      "meal": {
+        "sarapan": {
+          "title": "Sarapan dulu yuk",
+          "body": "Catat sarapanmu biar kalori harianmu tetap terpantau."
+        },
+        "makan_siang": {
+          "title": "Makan siang waktunya",
+          "body": "Jangan lupa catat makan siangmu sebelum lupa."
+        },
+        "makan_malam": {
+          "title": "Makan malam nih",
+          "body": "Catat makan malammu supaya rencana harianmu akurat."
+        }
+      },
+      "weighIn": {
+        "title": "Timbang pagi",
+        "body": "Satu langkah kecil: catat berat badanmu hari ini."
+      },
+      "water": {
+        "title": "Waktunya minum",
+        "body": "Segelas air sekarang. Catat di kartu Air minum kalau sudah."
+      },
+      "windowOpen": {
+        "title": "Jendela makan buka",
+        "body": "Kamu bisa mulai makan. Jendela tutup jam {{time}} WIB."
+      },
+      "windowClose": {
+        "title": "Jendela makan tutup",
+        "body": "Puasa dimulai. Jendela makan buka lagi jam {{time}} WIB."
+      }
+    }
+  },
+  "privacy": {
+    "policy": "Kebijakan privasi",
+    "share": {
+      "titleWeb": "Progres publik",
+      "titleNative": "Bagikan progres",
+      "hintWeb": "Berat awal ke berat sekarang saja. Tanpa email, tanpa data makanan.",
+      "hintNative": "Halaman publik ringan berisi tren beratmu; tanpa nama maupun email.",
+      "copyLink": "Salin tautan",
+      "copied": "Tautan disalin, tinggal tempel di Threads.",
+      "toastOn": "Halaman publik aktif.",
+      "toastOff": "Halaman publik dimatikan."
+    },
+    "keepPhotos": {
+      "title": "Simpan foto asli",
+      "label": "Foto asli",
+      "onWeb": "Bisa dilihat lagi di diari, hanya oleh kamu.",
+      "offWeb": "Mati: hanya potongan tiap makanan yang disimpan.",
+      "onNative": "Foto asli tiap scan yang kamu simpan bisa dilihat lagi di diari. Hanya kamu yang bisa membukanya. Mematikan ini menghapus semua foto asli yang tersimpan.",
+      "offNative": "Hanya potongan tiap makanan yang disimpan sebagai stiker. Foto aslinya dibuang setelah dianalisis.",
+      "toast": "Foto asli akan disimpan mulai scan berikutnya.",
+      "confirm": {
+        "title": "Matikan simpan foto asli?",
+        "descriptionWeb": "Foto asli yang sudah tersimpan ikut dihapus permanen.",
+        "bodyWeb": "Catatan makan dan stiker tiap makanan tetap ada. Hanya foto aslinya yang dihapus.",
+        "actionWeb": "Ya, matikan dan hapus foto asli",
+        "messageNative": "Foto asli yang sudah tersimpan ikut dihapus permanen. Catatan makan dan stiker tiap makanan tetap ada.",
+        "actionNative": "Ya, matikan dan hapus"
+      }
+    },
+    "wipe": {
+      "title": "Hapus semua data saya",
+      "subtitleWeb": "Profil, berat, makanan, olahraga, tidur. Permanen.",
+      "subtitleNative": "Permanen: profil, berat, makanan, olahraga, tidur",
+      "confirmTitle": "Hapus semua data?",
+      "confirmDescription": "Tindakan ini permanen dan tidak bisa dibatalkan.",
+      "confirmBodyWeb": "Semua catatan dihapus: profil, berat, makanan, olahraga, tidur. Akunmu tetap bisa dipakai, tapi kamu mulai lagi dari nol.",
+      "confirmMessageNative": "Profil, berat, makanan, olahraga, dan tidur dihapus permanen. Akunmu tetap bisa dipakai.",
+      "confirmAction": "Ya, hapus semua data saya",
+      "deleting": "Menghapus...",
+      "deletingNative": "Menghapus…",
+      "done": "Semua data kamu sudah dihapus.",
+      "failed": "Penghapusan gagal. Coba lagi nanti.",
+      "failedTitle": "Gagal menghapus"
+    }
+  },
+  "account": {
+    "signOut": "Keluar",
+    "signingOut": "Keluar...",
+    "delete": {
+      "title": "Hapus akun",
+      "subtitle": "Permanen: akun dan semua datamu hilang",
+      "confirmTitle": "Hapus akun?",
+      "confirmMessage": "Akunmu dan semua datamu (profil, catatan, foto, postingan, grup) dihapus permanen dan tidak bisa dikembalikan. Kamu harus daftar lagi kalau mau pakai JoyoRogo.",
+      "failedTitle": "Gagal menghapus akun",
+      "noAppleCode": "Apple tidak mengirim kode otorisasi. Coba lagi."
+    }
+  },
+  "app": {
+    "install": {
+      "title": "Pasang di layar utama",
+      "subtitle": "Web app dengan akun yang sama, terbuka layar penuh."
+    },
+    "googlePlay": {
+      "title": "JoyoRogo di Google Play",
+      "subtitle": "Pakai akun yang sama."
+    },
+    "appStore": {
+      "title": "JoyoRogo di App Store",
+      "subtitle": "Untuk iPhone, akun yang sama."
+    }
+  },
+  "feed": {
+    "handle": {
+      "title": "Handle & bio",
+      "none": "Belum ada handle",
+      "label": "Handle",
+      "placeholderWeb": "mis. budi_olahraga",
+      "placeholderNative": "nama_kamu",
+      "hint": "Huruf kecil, angka, dan garis bawah; 3-20 karakter.",
+      "description": "Tautan profilmu: joyorogo.com/u/handle",
+      "error": "Handle 3-20 karakter, hanya huruf kecil, angka, dan _."
+    },
+    "bio": {
+      "label": "Bio",
+      "labelCount": "Bio · {{length}}/{{max}}",
+      "placeholderWeb": "Ceritakan targetmu singkat...",
+      "placeholderNative": "Ceritakan perjalananmu"
+    },
+    "public": {
+      "title": "Profil publik",
+      "subtitleWeb": "Post publik tampil di Jelajah dan profil /u/handle",
+      "subtitleNative": "Post publik tampil di Jelajah",
+      "requiredNative": "Wajib nyala untuk post publik di Jelajah",
+      "on": "Nyala",
+      "off": "Mati",
+      "toastOn": "Profil publik dinyalakan.",
+      "toastOff": "Profil publik dimatikan."
+    },
+    "visibility": {
+      "labelWeb": "Penonton bawaan saat membagikan",
+      "aria": "Visibility default",
+      "label": "Visibility default",
+      "group": "Teman grup",
+      "groupShort": "Grup",
+      "public": "Publik",
+      "publicNeeded": "Publik butuh Profil publik nyala; post grup tetap terlihat rekan tim."
+    },
+    "blocked": {
+      "title": "Akun diblokir",
+      "rowNative": "Blokir",
+      "none": "Belum ada yang diblokir",
+      "hiddenCount_other": "{{count}} akun disembunyikan",
+      "blockedCount_other": "{{count}} akun diblokir",
+      "description": "Post dan komentar mereka disembunyikan, begitu juga sebaliknya.",
+      "emptyWeb": "Belum ada akun yang diblokir.",
+      "emptyNative": "Belum ada akun yang kamu blokir. Blokir menyembunyikan konten dua arah.",
+      "unblock": "Buka blokir",
+      "unblocked": "Blokir dibuka.",
+      "you": "{{name}} (kamu)",
+      "profileAria": "Profil {{name}}"
+    },
+    "sheetTitleNative": "Pengaturan feed",
+    "saved": "Pengaturan feed tersimpan.",
+    "saveFailed": "Gagal menyimpan"
+  },
+  "health": {
+    "noteIos": "Sumber utama aktivitasmu: latihan, langkah, jarak, kalori aktif, dan tidur 7 hari terakhir dari aplikasi Health. Setelah izin diberikan lewat tombol di bawah, sinkron berjalan otomatis tiap kali kamu buka aplikasi.",
+    "noteAndroid": "Sumber utama aktivitasmu: latihan, langkah, jarak, kalori aktif, dan tidur 7 hari terakhir. Setelah izin diberikan, sinkron berjalan otomatis tiap kali kamu buka aplikasi.",
+    "syncButton": "Izinkan & Sinkronkan 7 Hari",
+    "nutritionNote": "Tulis makananmu (kalori, protein, karbo, lemak, serat) ke Health Connect agar terbaca aplikasi lain. Makanan baru, hasil edit, dan hapus ikut tersinkron otomatis setelah izin diberikan.",
+    "nutritionButton": "Izinkan & Tulis Nutrisi 30 Hari",
+    "summary": {
+      "workouts_other": "{{count}} latihan diimpor (7 hari terakhir)",
+      "activityDays_other": "{{count}} hari aktivitas",
+      "sleepNights_other": "{{count}} malam tidur",
+      "skipped_other": "{{count}} duplikat dilewati",
+      "iosEmpty": "Tidak ada data terbaca. Cek izin di Pengaturan > Health > Akses Data & Perangkat, lalu coba lagi."
+    },
+    "nutritionWritten_other": "{{count}} makanan 30 hari terakhir ditulis ke Health Connect."
+  },
+  "update": {
+    "title": "Pembaruan aplikasi",
+    "installed": "Versi terpasang: {{name}} ({{code}})",
+    "checking": "Memeriksa pembaruan…",
+    "upToDate": "Sudah versi terbaru.",
+    "available": "Versi {{name}} ({{code}}) · {{size}} siap dipasang.",
+    "install": "Perbarui",
+    "downloading": "Mengunduh {{percent}}%",
+    "check": "Cek pembaruan",
+    "checkingShort": "Memeriksa…",
+    "error": {
+      "offline": "Tidak bisa terhubung ke server. Periksa koneksi internetmu.",
+      "rejected": "Server menolak permintaan pembaruan (HTTP {{status}}).",
+      "invalidResponse": "Balasan server tidak valid. Coba lagi.",
+      "checkFailed": "Pemeriksaan pembaruan gagal. Coba lagi.",
+      "downloadFailed": "Unduhan gagal. Periksa koneksi internetmu lalu coba lagi.",
+      "verifyFailed": "Gagal memeriksa berkas yang diunduh. Coba lagi.",
+      "invalidFile": "Berkas yang diunduh tidak valid. Coba lagi."
+    }
+  }
+}

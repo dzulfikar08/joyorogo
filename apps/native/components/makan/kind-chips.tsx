@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { FOOD_KIND_FILTERS } from "@joyorogo/api/lib/food-kind";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
+import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -22,6 +23,7 @@ export function KindChips({
   value: FoodKindFilter;
   onChange: (kind: FoodKindFilter) => void;
 }) {
+  const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
   return (
     <ScrollView
@@ -31,12 +33,13 @@ export function KindChips({
     >
       {FOOD_KIND_FILTERS.map((filter) => {
         const active = filter.value === value;
+        const label = filter.value === "semua" ? t("kind.all") : t(`kind.${filter.value}`);
         const ink = active ? theme.colors.primaryForeground : theme.colors.foreground;
         return (
           <Pressable
             key={filter.value}
             accessibilityRole="button"
-            accessibilityLabel={filter.label}
+            accessibilityLabel={label}
             accessibilityState={{ selected: active }}
             onPress={() => onChange(filter.value)}
             style={({ pressed }) => [
@@ -47,7 +50,7 @@ export function KindChips({
           >
             <Ionicons name={ICONS[filter.value]} size={16} color={ink} />
             <Text style={[styles.label, { color: ink }]} numberOfLines={1}>
-              {filter.label}
+              {label}
             </Text>
           </Pressable>
         );

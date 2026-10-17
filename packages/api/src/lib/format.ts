@@ -1,3 +1,6 @@
+import { getActiveLocale, getT } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+
 import { shiftDate } from "./engine";
 
 /**
@@ -40,46 +43,52 @@ export function daysInMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-/** Short Indonesian months, index 0 = Januari. */
-const MONTHS_SHORT = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "Mei",
-  "Jun",
-  "Jul",
-  "Agu",
-  "Sep",
-  "Okt",
-  "Nov",
-  "Des",
-] as const;
+/** Short month and weekday names per language; hand-rolled so Hermes never needs Intl for them. */
+const SHORT_NAMES: Record<
+  Locale,
+  { months: readonly string[]; weekdays: readonly string[]; format: (p: ShortDay) => string }
+> = {
+  id: {
+    months: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"],
+    // Indexed by Date#getUTCDay (0 = Minggu).
+    weekdays: ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"],
+    format: ({ weekday, day, month }) => `${weekday}, ${day} ${month}`,
+  },
+  en: {
+    months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    weekdays: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    format: ({ weekday, day, month }) => `${weekday}, ${month} ${day}`,
+  },
+};
 
-/** Short Indonesian weekdays, indexed by Date#getUTCDay (0 = Minggu). */
-const WEEKDAYS_SHORT = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"] as const;
+type ShortDay = { weekday: string; day: number; month: string };
 
-/** 'Sen, 6 Okt' — compact Indonesian label of a day key, no Intl. */
-export function shortDayLabel(key: string): string {
+/** 'Sen, 6 Okt' / 'Mon, Oct 6' — compact label of a day key, no Intl. */
+export function shortDayLabel(key: string, locale: Locale = getActiveLocale()): string {
   const parts = parseDateKey(key);
   if (!parts) return key;
+  const names = SHORT_NAMES[locale];
   const date = dateKeyToUtcDate(key)!;
-  return `${WEEKDAYS_SHORT[date.getUTCDay()]}, ${parts.day} ${MONTHS_SHORT[parts.month - 1]}`;
+  return names.format({
+    weekday: names.weekdays[date.getUTCDay()]!,
+    day: parts.day,
+    month: names.months[parts.month - 1]!,
+  });
 }
 
 /** 'Hari ini', 'Kemarin', otherwise 'Sen, 6 Okt' — for date-pick buttons. */
-export function recentDayLabel(date: string, today: string): string {
-  if (date === today) return "Hari ini";
-  if (date === shiftDate(today, -1)) return "Kemarin";
-  return shortDayLabel(date);
+export function recentDayLabel(date: string, today: string, locale: Locale = getActiveLocale()): string {
+  if (date === today) return getT(locale)("date.today");
+  if (date === shiftDate(today, -1)) return getT(locale)("date.yesterday");
+  return shortDayLabel(date, locale);
 }
 
-/** 'Okt 2026' — month caption for a 'YYYY-MM' key. */
-export function monthLabel(monthKey: string): string {
+/** 'Okt 2026' / 'Oct 2026' — month caption for a 'YYYY-MM' key. */
+export function monthLabel(monthKey: string, locale: Locale = getActiveLocale()): string {
   const year = Number(monthKey.slice(0, 4));
   const month = Number(monthKey.slice(5, 7));
   if (!Number.isInteger(year) || month < 1 || month > 12) return monthKey;
-  return `${MONTHS_SHORT[month - 1]} ${year}`;
+  return `${SHORT_NAMES[locale].months[month - 1]} ${year}`;
 }
 
 // --- Rupiah input -----------------------------------------------------------

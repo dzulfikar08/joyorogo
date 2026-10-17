@@ -17,7 +17,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { UNDO_LABEL, UNDO_TOAST_MS } from "@/lib/optimistic";
+import { undoLabel, UNDO_TOAST_MS } from "@/lib/optimistic";
 
 import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/kit/surface";
@@ -192,7 +192,7 @@ export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
         if (turningOn) {
           toast.success("Semangat terkirim", {
             duration: UNDO_TOAST_MS,
-            action: { label: UNDO_LABEL, onClick: () => toggleKudos.mutate(input) },
+            action: { label: undoLabel(), onClick: () => toggleKudos.mutate(input) },
           });
         }
         setKudos((prev) => ({

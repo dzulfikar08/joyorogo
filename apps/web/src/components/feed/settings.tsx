@@ -6,6 +6,7 @@ import { Textarea } from "@joyorogo/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AtSign, Globe, ShieldBan } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
@@ -28,6 +29,7 @@ type Visibility = "publik" | "grup";
  * components/feed/settings.tsx di native.
  */
 export function FeedSettingsSection() {
+  const { t } = useTranslation(["settings", "common"]);
   const queryClient = useQueryClient();
   const session = useSession();
   const profile = useQuery(orpc.social.myProfile.queryOptions());
@@ -57,7 +59,7 @@ export function FeedSettingsSection() {
       previousPublic.current = null;
       const nowOn = input.publicProfile === true;
       return {
-        message: nowOn ? "Profil publik dinyalakan." : "Profil publik dimatikan.",
+        message: nowOn ? t("feed.public.toastOn") : t("feed.public.toastOff"),
         undo:
           prev === null
             ? undefined
@@ -83,8 +85,8 @@ export function FeedSettingsSection() {
                 <AtSign className="size-5 text-makan-ink" aria-hidden />
               </span>
             }
-            title="Handle & bio"
-            subtitle={data?.handle ? `@${data.handle}` : "Belum ada handle"}
+            title={t("feed.handle.title")}
+            subtitle={data?.handle ? `@${data.handle}` : t("feed.handle.none")}
           />
           <ListRow
             icon={
@@ -92,14 +94,14 @@ export function FeedSettingsSection() {
                 <Globe className="size-5 text-tidur-ink" aria-hidden />
               </span>
             }
-            title="Profil publik"
-            subtitle="Post publik tampil di Jelajah dan profil /u/handle"
+            title={t("feed.public.title")}
+            subtitle={t("feed.public.subtitleWeb")}
             trailing={
               <Switch
                 checked={data?.publicProfile ?? true}
                 onCheckedChange={(checked) => togglePublic.mutate({ publicProfile: checked })}
                 disabled={togglePublic.isPending}
-                label="Profil publik"
+                label={t("feed.public.title")}
               />
             }
           />
@@ -110,11 +112,11 @@ export function FeedSettingsSection() {
                 <ShieldBan className="size-5 text-bakar-ink" aria-hidden />
               </span>
             }
-            title="Akun diblokir"
+            title={t("feed.blocked.title")}
             subtitle={
               (blockList.data?.length ?? 0) > 0
-                ? `${blockList.data?.length} akun disembunyikan`
-                : "Belum ada yang diblokir"
+                ? t("feed.blocked.hiddenCount", { count: blockList.data?.length ?? 0 })
+                : t("feed.blocked.none")
             }
           />
         </ListGroup>
@@ -136,8 +138,8 @@ export function FeedSettingsSection() {
       <Sheet
         open={blockOpen}
         onOpenChange={setBlockOpen}
-        title="Akun diblokir"
-        description="Post dan komentar mereka disembunyikan, begitu juga sebaliknya."
+        title={t("feed.blocked.title")}
+        description={t("feed.blocked.description")}
       >
         <BlockList
           myId={session.data?.user.id ?? null}
@@ -159,6 +161,7 @@ function EditSheet({
   initial: { handle: string; bio: string; defaultVisibility: Visibility };
   onSaved: () => void;
 }) {
+  const { t } = useTranslation(["settings", "common"]);
   const [handle, setHandle] = useState(initial.handle);
   const [bio, setBio] = useState(initial.bio);
   const [visibility, setVisibility] = useState<Visibility>(initial.defaultVisibility);
@@ -214,9 +217,9 @@ function EditSheet({
       onSaved();
       const prev = previousProfile.current;
       previousProfile.current = null;
-      if (!prev) return { message: "Pengaturan feed tersimpan." };
+      if (!prev) return { message: t("feed.saved") };
       return {
-        message: "Pengaturan feed tersimpan.",
+        message: t("feed.saved"),
         undo: () =>
           void client.social.updateProfile({
             handle: prev.handle || undefined,
@@ -231,7 +234,7 @@ function EditSheet({
   const submit = () => {
     const clean = handle.trim().toLowerCase();
     if (clean.length > 0 && !HANDLE_REGEX.test(clean)) {
-      setError("Handle 3-20 karakter, hanya huruf kecil, angka, dan _");
+      setError(t("feed.handle.error"));
       return;
     }
     setError(null);
@@ -246,39 +249,39 @@ function EditSheet({
     <Sheet
       open={open}
       onOpenChange={onOpenChange}
-      title="Handle & bio"
-      description="Tautan profilmu: joyorogo.com/u/handle"
+      title={t("feed.handle.title")}
+      description={t("feed.handle.description")}
     >
       <div className="space-y-4">
         <label className="block space-y-1.5">
-          <FieldLabel>Handle</FieldLabel>
+          <FieldLabel>{t("feed.handle.label")}</FieldLabel>
           <Input
             value={handle}
             onChange={(event) => setHandle(event.target.value.toLowerCase())}
             maxLength={20}
-            placeholder="mis. budi_olahraga"
-            aria-label="Handle"
+            placeholder={t("feed.handle.placeholderWeb")}
+            aria-label={t("feed.handle.label")}
           />
         </label>
         <label className="block space-y-1.5">
-          <FieldLabel>Bio</FieldLabel>
+          <FieldLabel>{t("feed.bio.label")}</FieldLabel>
           <Textarea
             value={bio}
             onChange={(event) => setBio(event.target.value)}
             maxLength={BIO_MAX}
             rows={2}
-            placeholder="Ceritakan targetmu singkat..."
+            placeholder={t("feed.bio.placeholderWeb")}
           />
         </label>
         <div className="space-y-1.5">
-          <FieldLabel>Penonton bawaan saat membagikan</FieldLabel>
+          <FieldLabel>{t("feed.visibility.labelWeb")}</FieldLabel>
           <Segmented<Visibility>
-            label="Visibility default"
+            label={t("feed.visibility.aria")}
             value={visibility}
             onChange={setVisibility}
             options={[
-              { value: "grup", label: "Teman grup" },
-              { value: "publik", label: "Publik" },
+              { value: "grup", label: t("feed.visibility.group") },
+              { value: "publik", label: t("feed.visibility.public") },
             ]}
           />
         </div>
@@ -288,7 +291,7 @@ function EditSheet({
           </p>
         )}
         <Button className="w-full" disabled={update.isPending} onClick={submit}>
-          {update.isPending ? "Menyimpan..." : "Simpan"}
+          {update.isPending ? t("state.saving") : t("common:actions.save")}
         </Button>
       </div>
     </Sheet>
@@ -296,11 +299,12 @@ function EditSheet({
 }
 
 function BlockList({ myId, onUnblock }: { myId: string | null; onUnblock: () => void }) {
+  const { t } = useTranslation(["settings", "common"]);
   const blockList = useQuery(orpc.social.blockList.queryOptions());
   const unblock = useMutation(
     orpc.social.unblock.mutationOptions({
       onSuccess: () => {
-        toast.success("Blokir dibuka.");
+        toast.success(t("feed.blocked.unblocked"));
         onUnblock();
       },
       onError: (error) => toast.error(error.message),
@@ -321,7 +325,7 @@ function BlockList({ myId, onUnblock }: { myId: string | null; onUnblock: () => 
   if (rows.length === 0) {
     return (
       <p className="py-6 text-center text-sm text-muted-foreground">
-        Belum ada akun yang diblokir.
+        {t("feed.blocked.emptyWeb")}
       </p>
     );
   }
@@ -331,7 +335,7 @@ function BlockList({ myId, onUnblock }: { myId: string | null; onUnblock: () => 
         <ListRow
           key={row.id}
           icon={<Avatar name={row.name} image={row.image} className="size-11" />}
-          title={row.id === myId ? `${row.name} (kamu)` : row.name}
+          title={row.id === myId ? t("feed.blocked.you", { name: row.name }) : row.name}
           subtitle={row.handle ? `@${row.handle}` : undefined}
           trailing={
             <Button
@@ -340,7 +344,7 @@ function BlockList({ myId, onUnblock }: { myId: string | null; onUnblock: () => 
               disabled={unblock.isPending}
               onClick={() => unblock.mutate({ userId: row.id })}
             >
-              Buka blokir
+              {t("feed.blocked.unblock")}
             </Button>
           }
         />

@@ -32,7 +32,7 @@ import {
 } from "@/components/ui";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtKcal, fmtKg } from "@/utils/format";
+import { errorMessage, fmtInt, fmtKg } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 const BAR_AREA_H = 120;
@@ -56,12 +56,12 @@ function RecapChart({ recap }: { recap: WeekRecap }) {
     pending: theme.colors.muted,
   };
   const label = (day: WeekRecap["days"][number]) =>
-    `${weekdayName(day.date)}: ${fmtKcal(day.eatenKcal)} kcal, ${STATUS_LABEL[day.status]}`;
+    `${weekdayName(day.date)}: ${fmtInt(day.eatenKcal)} kcal, ${STATUS_LABEL[day.status]}`;
   return (
     <View>
       <View
         accessible
-        accessibilityLabel={`Asupan harian dibanding target ${fmtKcal(recap.targetKcal)} kcal. ${recap.days.map(label).join(". ")}`}
+        accessibilityLabel={`Asupan harian dibanding target ${fmtInt(recap.targetKcal)} kcal. ${recap.days.map(label).join(". ")}`}
         style={styles.barArea}
       >
         <View
@@ -208,11 +208,11 @@ export default function Rekap() {
             <Card style={styles.heroCard}>
               <Text style={styles.heroLabel}>Rata-rata per hari</Text>
               <Num style={styles.heroValue}>
-                {fmtKcal(recap.avgKcal)} <Text style={styles.heroUnit}>kcal</Text>
+                {fmtInt(recap.avgKcal)} <Text style={styles.heroUnit}>kcal</Text>
               </Num>
               <View
                 accessibilityRole="progressbar"
-                accessibilityLabel={`Rata-rata ${fmtKcal(recap.avgKcal)} dari target ${fmtKcal(recap.targetKcal)} kcal`}
+                accessibilityLabel={`Rata-rata ${fmtInt(recap.avgKcal)} dari target ${fmtInt(recap.targetKcal)} kcal`}
                 accessibilityValue={{
                   min: 0,
                   max: Math.round(recap.targetKcal),
@@ -228,7 +228,7 @@ export default function Rekap() {
                 />
               </View>
               <Text style={styles.note}>
-                Targetmu {fmtKcal(recap.targetKcal)} kcal. Dihitung dari {recap.loggedDays} hari yang
+                Targetmu {fmtInt(recap.targetKcal)} kcal. Dihitung dari {recap.loggedDays} hari yang
                 kamu catat.
               </Text>
             </Card>
@@ -250,10 +250,10 @@ export default function Rekap() {
                 macro="protein"
                 tint="makan"
                 label="Protein"
-                value={recap.protein ? `${fmtKcal(recap.protein.avgG)} g` : "–"}
+                value={recap.protein ? `${fmtInt(recap.protein.avgG)} g` : "–"}
                 sub={
                   recap.protein
-                    ? `rata-rata, target ${fmtKcal(recap.protein.targetG)} g`
+                    ? `rata-rata, target ${fmtInt(recap.protein.targetG)} g`
                     : "belum ada data protein"
                 }
               />
@@ -270,10 +270,10 @@ export default function Rekap() {
                 icon="barbell"
                 tint="bakar"
                 label="Olahraga"
-                value={`${fmtKcal(recap.exercise.kcal)} kcal`}
+                value={`${fmtInt(recap.exercise.kcal)} kcal`}
                 sub={
                   recap.exercise.sessions > 0
-                    ? `${fmtKcal(recap.exercise.minutes)} menit, ${recap.exercise.sessions} sesi`
+                    ? `${fmtInt(recap.exercise.minutes)} menit, ${recap.exercise.sessions} sesi`
                     : "belum ada sesi"
                 }
               />
@@ -297,7 +297,7 @@ export default function Rekap() {
                 value={recap.bestDay ? weekdayName(recap.bestDay.date) : "–"}
                 sub={
                   recap.bestDay
-                    ? `${fmtKcal(recap.bestDay.eatenKcal)} kcal, paling dekat target`
+                    ? `${fmtInt(recap.bestDay.eatenKcal)} kcal, paling dekat target`
                     : "belum ada hari sesuai target"
                 }
               />

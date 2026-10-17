@@ -11,17 +11,17 @@ import {
   Utensils,
 } from "lucide-react";
 import type { ComponentType } from "react";
+import { useTranslation } from "react-i18next";
 
 import { effectiveRamadan, jakartaToday } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { wibMinutes } from "@joyorogo/api/lib/fasting";
-import { FOOD_KIND_LABELS } from "@joyorogo/api/lib/food-kind";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { VERDICT_LABELS, adviseSnack, dayImpactLine } from "@joyorogo/api/lib/snack-advice";
 import type { AdviceVerdict, SnackAdvice } from "@joyorogo/api/lib/snack-advice";
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
-import { fmtInt } from "@/lib/format";
+import { fmtInt, fmtKcalLabel } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 
 export type SnackAdviceState = { advice: SnackAdvice | null; impact: string | null };
@@ -108,6 +108,7 @@ export function SnackAdviceCard({
   onUndoHalf?: () => void;
   className?: string;
 }) {
+  const { t } = useTranslation("makan");
   const { advice, impact } = state;
   if (!advice) {
     return impact ? (
@@ -124,13 +125,16 @@ export function SnackAdviceCard({
   const lines = [
     swap?.type === "swap" ? swap.text : null,
     lighter?.type === "lighter-next"
-      ? `${lighter.label}, sekitar ${fmtInt(lighter.targetKcal)} kkal.`
+      ? t("snackAdvice.card.lighterLine", {
+          label: lighter.label,
+          kcal: fmtKcalLabel(lighter.targetKcal),
+        })
       : null,
   ].filter((line): line is string => line !== null);
   return (
     <section
       role="status"
-      aria-label={`Saran sebelum disimpan: ${advice.title}`}
+      aria-label={t("snackAdvice.card.aria", { title: advice.title })}
       data-verdict={advice.verdict}
       className={cn("rounded-3xl p-5", tone.card, className)}
     >
@@ -150,17 +154,28 @@ export function SnackAdviceCard({
       </div>
 
       <dl className="mt-4 grid grid-cols-3 gap-2">
-        <Stat label="Sisa hari ini" value={`${fmtInt(numbers.remainingKcal)} kkal`} />
         <Stat
-          label={advice.upcoming.length > 0 ? "Perlu nanti" : "Makan lagi"}
-          value={advice.upcoming.length > 0 ? `${fmtInt(numbers.reserveKcal)} kkal` : "tidak ada"}
+          label={t("snackAdvice.card.remainingToday")}
+          value={fmtKcalLabel(numbers.remainingKcal)}
         />
         <Stat
-          label="Setelah ini"
+          label={
+            advice.upcoming.length > 0
+              ? t("snackAdvice.card.needLater")
+              : t("snackAdvice.card.mealsAhead")
+          }
+          value={
+            advice.upcoming.length > 0
+              ? fmtKcalLabel(numbers.reserveKcal)
+              : t("snackAdvice.card.none")
+          }
+        />
+        <Stat
+          label={t("snackAdvice.card.afterThis")}
           value={
             numbers.afterKcal >= 0
-              ? `${fmtInt(numbers.afterKcal)} kkal`
-              : `lebih ${fmtInt(numbers.overKcal)}`
+              ? fmtKcalLabel(numbers.afterKcal)
+              : t("snackAdvice.card.over", { kcal: fmtInt(numbers.overKcal) })
           }
         />
       </dl>
@@ -170,18 +185,20 @@ export function SnackAdviceCard({
           {halfApplied ? (
             <Button type="button" variant="secondary" size="sm" onClick={onUndoHalf}>
               <Undo2 className="size-4" aria-hidden />
-              Kembalikan porsi penuh
+              {t("snackAdvice.card.undoHalf")}
             </Button>
           ) : (
             half?.type === "half" && (
               <>
                 <Button type="button" variant="secondary" size="sm" onClick={onHalf}>
                   <Slice className="size-4" aria-hidden />
-                  Setengah porsi · {fmtInt(half.kcal)} kkal
+                  {t("snackAdvice.card.halfButton", { kcal: fmtKcalLabel(half.kcal) })}
                 </Button>
                 {half.verdict !== advice.verdict && (
                   <span className="text-xs font-semibold text-foreground/70">
-                    Jadinya: {VERDICT_LABELS[half.verdict].toLowerCase()}
+                    {t("snackAdvice.card.halfResult", {
+                      verdict: VERDICT_LABELS[half.verdict].toLowerCase(),
+                    })}
                   </span>
                 )}
               </>
@@ -202,7 +219,7 @@ export function SnackAdviceCard({
       )}
 
       <p className="mt-3 text-xs text-foreground/70">
-        Cuma panduan, kamu tetap bisa menyimpannya.
+        {t("snackAdvice.card.note")}
       </p>
     </section>
   );
@@ -228,6 +245,7 @@ export function KindCycleChip({
   value: FoodKind;
   onChange: (next: PickableKind) => void;
 }) {
+  const { t } = useTranslation("makan");
   const current = pickable(value);
   const next = PICKABLE_KINDS[(PICKABLE_KINDS.indexOf(current) + 1) % PICKABLE_KINDS.length]!;
   const Icon = KIND_ICON[current];
@@ -235,11 +253,14 @@ export function KindCycleChip({
     <button
       type="button"
       onClick={() => onChange(next)}
-      aria-label={`Jenis: ${FOOD_KIND_LABELS[current]}. Ketuk untuk ganti ke ${FOOD_KIND_LABELS[next]}.`}
+      aria-label={t("snackAdvice.kindCycle.aria", {
+        current: t(`kind.${current}`),
+        next: t(`kind.${next}`),
+      })}
       className="inline-flex min-h-6 items-center gap-1 rounded-full bg-muted px-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-border focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
     >
       <Icon className="size-3.5" aria-hidden />
-      {FOOD_KIND_LABELS[current]}
+      {t(`kind.${current}`)}
     </button>
   );
 }
@@ -254,9 +275,14 @@ export function KindPicker({
   onChange: (next: PickableKind) => void;
   className?: string;
 }) {
+  const { t } = useTranslation("makan");
   const current = pickable(value);
   return (
-    <div role="radiogroup" aria-label="Jenis makanan" className={cn("flex flex-wrap gap-2", className)}>
+    <div
+      role="radiogroup"
+      aria-label={t("snackAdvice.kindPicker.label")}
+      className={cn("flex flex-wrap gap-2", className)}
+    >
       {PICKABLE_KINDS.map((kind) => {
         const Icon = KIND_ICON[kind];
         const active = kind === current;
@@ -273,7 +299,7 @@ export function KindPicker({
             )}
           >
             <Icon className="size-4" aria-hidden />
-            {FOOD_KIND_LABELS[kind]}
+            {t(`kind.${kind}`)}
           </button>
         );
       })}

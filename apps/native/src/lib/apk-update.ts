@@ -2,6 +2,7 @@ import * as Application from "expo-application";
 import * as Crypto from "expo-crypto";
 import { File, Paths } from "expo-file-system";
 import * as IntentLauncher from "expo-intent-launcher";
+import { i18n } from "@joyorogo/i18n";
 import { useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
@@ -49,7 +50,7 @@ const UPDATER_ENABLED = Platform.OS === "android" && !IS_PLAY_BUILD;
 const SERVER_ORIGIN = ENV.EXPO_PUBLIC_SERVER_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
 
 /**
- * Resolves only with a valid manifest; throws an Indonesian message on
+ * Resolves only with a valid manifest; throws a localized message on
  * network, HTTP or malformed-body failures. Callers decide whether the
  * failure stays silent (app start) or is surfaced (manual check).
  */
@@ -58,17 +59,17 @@ async function fetchLatestApk(): Promise<ApkUpdate> {
   try {
     res = await fetch(`${SERVER_ORIGIN}/downloads/latest-apk.json`);
   } catch {
-    throw new Error("Tidak bisa terhubung ke server. Periksa koneksi internetmu.");
+    throw new Error(i18n.t("settings:update.error.offline"));
   }
-  if (!res.ok) throw new Error(`Server menolak permintaan pembaruan (HTTP ${res.status}).`);
+  if (!res.ok) throw new Error(i18n.t("settings:update.error.rejected", { status: res.status }));
   let body: ApkUpdate;
   try {
     body = (await res.json()) as ApkUpdate;
   } catch {
-    throw new Error("Balasan server tidak valid. Coba lagi.");
+    throw new Error(i18n.t("settings:update.error.invalidResponse"));
   }
   if (typeof body.versionCode !== "number" || typeof body.sha256 !== "string") {
-    throw new Error("Balasan server tidak valid. Coba lagi.");
+    throw new Error(i18n.t("settings:update.error.invalidResponse"));
   }
   return body;
 }
@@ -107,7 +108,7 @@ async function runCheck(): Promise<ApkCheckResult> {
     result = {
       state: "error",
       message:
-        e instanceof Error && e.message ? e.message : "Pemeriksaan pembaruan gagal. Coba lagi.",
+        e instanceof Error && e.message ? e.message : i18n.t("settings:update.error.checkFailed"),
     };
   }
   cached = result;
@@ -180,7 +181,7 @@ const FLAG_GRANT_READ_URI_PERMISSION = 1;
 
 /**
  * Download the APK into cache with progress (0-100), verify its sha256, then
- * hand it to the system installer. Throws with an Indonesian message on
+ * hand it to the system installer. Throws with a localized message on
  * failure; if the user has not allowed installs from this app, Android shows
  * its own prompt and the promise resolves normally.
  */
@@ -202,7 +203,7 @@ export async function downloadAndInstallApk(
   } catch {
     file = null;
   }
-  if (!file) throw new Error("Unduhan gagal. Periksa koneksi internetmu lalu coba lagi.");
+  if (!file) throw new Error(i18n.t("settings:update.error.downloadFailed"));
 
   // Native streamed MD5: hashing the whole APK as a JS ArrayBuffer (sha256 via
   // expo-crypto) failed on device. HTTPS already covers tampering; this check
@@ -220,11 +221,11 @@ export async function downloadAndInstallApk(
       ok = hex === update.sha256;
     }
   } catch {
-    throw new Error("Gagal memeriksa berkas yang diunduh. Coba lagi.");
+    throw new Error(i18n.t("settings:update.error.verifyFailed"));
   }
   if (!ok) {
     file.delete();
-    throw new Error("Berkas yang diunduh tidak valid. Coba lagi.");
+    throw new Error(i18n.t("settings:update.error.invalidFile"));
   }
 
   // ActivityAction only lists settings screens; the installer is a plain VIEW.

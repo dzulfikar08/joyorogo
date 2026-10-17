@@ -1,5 +1,6 @@
 import type { AuthSession } from "@joyorogo/auth";
 import type { Database } from "@joyorogo/db";
+import type { Locale } from "@joyorogo/i18n";
 import type { RateLimitBinding } from "./lib/group-preview";
 import type { ImagesBinding, StickersBucket } from "./lib/sticker";
 import type { PaywallEnv } from "./lib/tiers";
@@ -44,6 +45,11 @@ export type Context = {
   env: ApiEnv;
   /** Caller IP (CF-Connecting-IP) for per-client limits; null when unknown. */
   clientIp: string | null;
+  /**
+   * Language the caller renders in (x-locale header, else Accept-Language, else `id`).
+   * Use it for every user-facing string the request produces.
+   */
+  locale: Locale;
   /** Keeps background work (sticker cutouts) alive after the response. */
   waitUntil: (promise: Promise<unknown>) => void;
 };

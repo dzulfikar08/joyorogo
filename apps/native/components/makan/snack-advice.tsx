@@ -1,18 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { effectiveRamadan, jakartaToday } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { wibMinutes } from "@joyorogo/api/lib/fasting";
-import { FOOD_KIND_LABELS } from "@joyorogo/api/lib/food-kind";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { VERDICT_LABELS, adviseSnack, dayImpactLine } from "@joyorogo/api/lib/snack-advice";
 import type { AdviceVerdict, SnackAdvice } from "@joyorogo/api/lib/snack-advice";
 
 import { Button, Text } from "@/components/ui";
-import { fmtKcal } from "@/utils/format";
+import { fmtInt, fmtKcalLabel } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 export type SnackAdviceState = { advice: SnackAdvice | null; impact: string | null };
@@ -100,6 +100,7 @@ export function SnackAdviceCard({
   halfApplied?: boolean;
   onUndoHalf?: () => void;
 }) {
+  const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
   const { advice, impact } = state;
   if (!advice) {
@@ -121,13 +122,19 @@ export function SnackAdviceCard({
   const lines = [
     swap?.type === "swap" ? swap.text : null,
     lighter?.type === "lighter-next"
-      ? `${lighter.label}, sekitar ${fmtKcal(lighter.targetKcal)} kkal.`
+      ? t("snackAdvice.card.lighterLine", {
+          label: lighter.label,
+          kcal: fmtKcalLabel(lighter.targetKcal),
+        })
       : null,
   ].filter((line): line is string => line !== null);
   return (
     <View
       accessibilityRole="summary"
-      accessibilityLabel={`Saran sebelum disimpan: ${advice.title}. ${advice.reason}`}
+      accessibilityLabel={t("snackAdvice.card.ariaFull", {
+        title: advice.title,
+        reason: advice.reason,
+      })}
       style={[styles.card, { backgroundColor: palette.bg }]}
     >
       <View style={styles.head}>
@@ -141,17 +148,28 @@ export function SnackAdviceCard({
       </View>
 
       <View style={styles.stats}>
-        <Stat label="Sisa hari ini" value={`${fmtKcal(numbers.remainingKcal)} kkal`} />
         <Stat
-          label={advice.upcoming.length > 0 ? "Perlu nanti" : "Makan lagi"}
-          value={advice.upcoming.length > 0 ? `${fmtKcal(numbers.reserveKcal)} kkal` : "tidak ada"}
+          label={t("snackAdvice.card.remainingToday")}
+          value={fmtKcalLabel(numbers.remainingKcal)}
         />
         <Stat
-          label="Setelah ini"
+          label={
+            advice.upcoming.length > 0
+              ? t("snackAdvice.card.needLater")
+              : t("snackAdvice.card.mealsAhead")
+          }
+          value={
+            advice.upcoming.length > 0
+              ? fmtKcalLabel(numbers.reserveKcal)
+              : t("snackAdvice.card.none")
+          }
+        />
+        <Stat
+          label={t("snackAdvice.card.afterThis")}
           value={
             numbers.afterKcal >= 0
-              ? `${fmtKcal(numbers.afterKcal)} kkal`
-              : `lebih ${fmtKcal(numbers.overKcal)}`
+              ? fmtKcalLabel(numbers.afterKcal)
+              : t("snackAdvice.card.over", { kcal: fmtInt(numbers.overKcal) })
           }
         />
       </View>
@@ -162,7 +180,7 @@ export function SnackAdviceCard({
             variant="secondary"
             size="sm"
             icon="arrow-undo"
-            label="Kembalikan porsi penuh"
+            label={t("snackAdvice.card.undoHalf")}
             onPress={onUndoHalf}
           />
         </View>
@@ -172,11 +190,15 @@ export function SnackAdviceCard({
             variant="secondary"
             size="sm"
             icon="cut-outline"
-            label={`Setengah porsi · ${fmtKcal(half.kcal)} kkal`}
+            label={t("snackAdvice.card.halfButton", { kcal: fmtKcalLabel(half.kcal) })}
             onPress={onHalf}
           />
           {half.verdict !== advice.verdict ? (
-            <Text style={styles.hint}>Jadinya: {VERDICT_LABELS[half.verdict].toLowerCase()}</Text>
+            <Text style={styles.hint}>
+              {t("snackAdvice.card.halfResult", {
+                verdict: VERDICT_LABELS[half.verdict].toLowerCase(),
+              })}
+            </Text>
           ) : null}
         </View>
       ) : null}
@@ -188,7 +210,7 @@ export function SnackAdviceCard({
         </View>
       ))}
 
-      <Text style={styles.hint}>Cuma panduan, kamu tetap bisa menyimpannya.</Text>
+      <Text style={styles.hint}>{t("snackAdvice.card.note")}</Text>
     </View>
   );
 }
@@ -217,19 +239,23 @@ export function KindCycleChip({
   value: FoodKind;
   onChange: (next: PickableKind) => void;
 }) {
+  const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
   const current = pickable(value);
   const next = PICKABLE_KINDS[(PICKABLE_KINDS.indexOf(current) + 1) % PICKABLE_KINDS.length]!;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Jenis: ${FOOD_KIND_LABELS[current]}. Ketuk untuk ganti ke ${FOOD_KIND_LABELS[next]}.`}
+      accessibilityLabel={t("snackAdvice.kindCycle.aria", {
+        current: t(`kind.${current}`),
+        next: t(`kind.${next}`),
+      })}
       hitSlop={8}
       onPress={() => onChange(next)}
       style={({ pressed }) => [styles.cycleChip, pressed && styles.pressed]}
     >
       <Ionicons name={KIND_ICON[current]} size={13} color={theme.colors.mutedForeground} />
-      <Text style={styles.cycleLabel}>{FOOD_KIND_LABELS[current]}</Text>
+      <Text style={styles.cycleLabel}>{t(`kind.${current}`)}</Text>
     </Pressable>
   );
 }
@@ -242,10 +268,15 @@ export function KindPicker({
   value: FoodKind;
   onChange: (next: PickableKind) => void;
 }) {
+  const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
   const current = pickable(value);
   return (
-    <View accessibilityRole="radiogroup" accessibilityLabel="Jenis makanan" style={styles.picker}>
+    <View
+      accessibilityRole="radiogroup"
+      accessibilityLabel={t("snackAdvice.kindPicker.label")}
+      style={styles.picker}
+    >
       {PICKABLE_KINDS.map((kind) => {
         const active = kind === current;
         const ink = active ? theme.colors.background : theme.colors.foreground;
@@ -253,7 +284,7 @@ export function KindPicker({
           <Pressable
             key={kind}
             accessibilityRole="radio"
-            accessibilityLabel={FOOD_KIND_LABELS[kind]}
+            accessibilityLabel={t(`kind.${kind}`)}
             accessibilityState={{ checked: active }}
             onPress={() => onChange(kind)}
             style={({ pressed }) => [
@@ -263,7 +294,7 @@ export function KindPicker({
             ]}
           >
             <Ionicons name={KIND_ICON[kind]} size={16} color={ink} />
-            <Text style={[styles.pillLabel, { color: ink }]}>{FOOD_KIND_LABELS[kind]}</Text>
+            <Text style={[styles.pillLabel, { color: ink }]}>{t(`kind.${kind}`)}</Text>
           </Pressable>
         );
       })}

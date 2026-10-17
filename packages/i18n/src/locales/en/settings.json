@@ -1,0 +1,535 @@
+{
+  "language": {
+    "title": "Language",
+    "caption": "The language the app is shown in.",
+    "groupLabel": "App language",
+    "saveError": "Your language wasn't saved to your account. Try again later."
+  },
+  "section": {
+    "plan": "Plan",
+    "personal": "Personal info",
+    "feed": "Community feed",
+    "integrations": "Integrations",
+    "appearance": "Appearance",
+    "ramadan": "Ramadan mode",
+    "fasting": "Intermittent fasting",
+    "reminders": "Reminders",
+    "shopping": "Food shopping",
+    "appIphone": "iPhone app",
+    "appAndroid": "Android app",
+    "privacy": "Privacy"
+  },
+  "state": {
+    "saving": "Saving..."
+  },
+  "toast": {
+    "saved": "Settings saved"
+  },
+  "profile": {
+    "loading": "Loading profile",
+    "emailFallback": "Signed in with Google",
+    "badge": {
+      "free": "Free"
+    },
+    "gender": {
+      "male": "Male",
+      "female": "Female"
+    },
+    "personal": {
+      "gender": "Gender",
+      "birthYear": "Birth year",
+      "height": "Height",
+      "startWeight": "Starting weight",
+      "currentWeight": "Current weight",
+      "currentWeightNone": "none yet",
+      "note": "Your personal info is set during onboarding. Your current weight follows your weigh-ins on the Weight page."
+    },
+    "photo": {
+      "label": "Profile photo",
+      "change": "Change photo",
+      "remove": "Remove photo",
+      "camera": "Camera",
+      "gallery": "Gallery",
+      "updated": "Profile photo updated",
+      "removeConfirm": {
+        "title": "Remove profile photo?",
+        "message": "Your uploaded photo is removed. If your Google account has a photo, that one is used again."
+      },
+      "error": {
+        "tooLarge": "That photo is too big. The limit is 5 MB.",
+        "unreadable": "Couldn't read that photo. Try another one.",
+        "noCanvas": "This browser can't process images.",
+        "uploadFailed": "Couldn't change photo",
+        "processFailed": "Couldn't process the photo",
+        "empty": "The photo is empty"
+      }
+    }
+  },
+  "pro": {
+    "free": {
+      "scansPerDay_one": "{{count}} AI scan a day",
+      "scansPerDay_other": "{{count}} AI scans a day",
+      "proUnlimited": "Pro: unlimited AI scans.",
+      "proCapped_one": "Pro: {{count}} AI scan per day.",
+      "proCapped_other": "Pro: {{count}} AI scans per day.",
+      "upgrade": "Upgrade"
+    },
+    "pending": {
+      "note": "You have a Pro payment that isn't finished yet.",
+      "check": "Already paid? Check payment",
+      "checking": "Checking...",
+      "none": "No payment is waiting.",
+      "notPaid": "No payment received yet. Try again in a moment.",
+      "paid": "Payment received. Pro is active!"
+    },
+    "active": {
+      "title": "Pro is active",
+      "until": "Until {{date}}. It doesn't renew automatically.",
+      "renew": "Renew",
+      "opening": "Opening..."
+    }
+  },
+  "plan": {
+    "recalcNote": "Change your target and your daily numbers are recalculated automatically.",
+    "targetWeight": {
+      "title": "Target weight",
+      "subtitle": "Change your target number",
+      "hint": "Your daily numbers are recalculated automatically.",
+      "inputLabel": "Target weight (kg)",
+      "healthyRange": "Healthy weight for your height: {{min}}–{{max}} kg",
+      "belowRange": "Below the healthy weight range. You can continue, just look after your health.",
+      "error": "Target weight must be 25-400 kg."
+    },
+    "targetDate": {
+      "title": "Target date",
+      "subtitle": "When you want to get there",
+      "hint": "When you want to reach your target weight.",
+      "error": "Target date can't be in the past.",
+      "tooFast": {
+        "title": "This target needs a deficit of ~{{deficit}} kcal/day, above the safe limit.",
+        "body_one": "JoyoRogo caps the deficit at about 1,000 kcal/day. Losing {{kg}} kg at that pace takes about {{count}} day.",
+        "body_other": "JoyoRogo caps the deficit at about 1,000 kcal/day. Losing {{kg}} kg at that pace takes about {{count}} days.",
+        "useDate_one": "Use a realistic date (+{{count}} day)",
+        "useDate_other": "Use a realistic date (+{{count}} days)"
+      }
+    },
+    "activity": {
+      "title": "Daily activity",
+      "subtitle": "Outside workouts; set during onboarding"
+    },
+    "numbers": {
+      "eat": "Eat",
+      "burn": "Burn",
+      "sleep": "Sleep",
+      "unitHours": "hrs",
+      "perDay": "kcal/day",
+      "perNight": "hrs/night"
+    },
+    "note": {
+      "MAINTENANCE": "Your weight is already in the healthy range, so your plan maintains it instead of losing.",
+      "BELOW_HEALTHY_RANGE": "Your target weight is below the healthy range for your height. Consider raising it.",
+      "PLAN_CLAMPED": "Your plan was adjusted to stay safe: the daily deficit is capped.",
+      "ADAPTIVE": "Your target is adjusted from your food and weigh-in data from the last 3 weeks."
+    },
+    "noteShort": {
+      "MAINTENANCE": "You've reached your target weight. Your plan now maintains your weight.",
+      "BELOW_HEALTHY_RANGE": "Your target weight is below the healthy range. Raise it a little to stay safe.",
+      "PLAN_CLAMPED": "Your plan was adjusted to stay safe. The calorie deficit is capped.",
+      "ADAPTIVE": "Adjusted from your food and weigh-in data from the last 3 weeks."
+    },
+    "formulaEstimate": "Formula estimate: {{formula}} kcal/day. Your plan uses {{tdee}} kcal because it fits your data better.",
+    "summary": {
+      "target": "Target: {{kg}} kg by {{date}}.",
+      "withRange": "Target: {{kg}} kg by {{date}}. Healthy range for your height: {{min}}–{{max}} kg."
+    },
+    "empty": {
+      "title": "No plan yet",
+      "body": "You haven't completed your personal info. Finish onboarding to get a daily plan.",
+      "cta": "Start onboarding"
+    },
+    "toast": {
+      "updated": "Plan updated"
+    }
+  },
+  "theme": {
+    "label": "Display theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "hint": "Dark mode follows your system setting when you pick System."
+  },
+  "ramadan": {
+    "option": {
+      "auto": "Auto",
+      "on": "On",
+      "off": "Off"
+    },
+    "hint": {
+      "auto": "Meal slots follow the Hijri calendar.",
+      "on": "Meal slots become suhoor & iftar.",
+      "off": "Normal meal schedule."
+    },
+    "hintNative": "Meal slots switch to suhoor & iftar; your daily numbers are split across the eating window.",
+    "toast": "Ramadan mode changed"
+  },
+  "fasting": {
+    "pattern": {
+      "label": "Intermittent fasting pattern",
+      "off": "Off"
+    },
+    "window": {
+      "label": "Eating window opens"
+    },
+    "notify": {
+      "title": "Reminder notifications",
+      "hint": "Web Push when the window opens, at mealtimes, and 30 minutes before it closes.",
+      "aria": "Intermittent fasting reminder notifications"
+    },
+    "hint": {
+      "off": "Pick 16:8, 18:6, 20:4, or OMAD to start. Ramadan mode still takes priority.",
+      "window": "Fast for {{fast}} hours, eat within a {{eat}}-hour window.",
+      "omad": "One meal a day, within a window of about 1 hour.",
+      "nativeOn": "{{label}}: notifications appear when the window opens, at mealtimes, and 30 minutes before it closes."
+    },
+    "error": {
+      "unsupported": "This browser doesn't support push notifications yet.",
+      "denied": "Notification permission wasn't granted.",
+      "serverNotReady": "The server isn't ready to send notifications. Try again later.",
+      "noKeys": "The browser didn't send subscription keys.",
+      "failed": "Couldn't set up notifications."
+    },
+    "toast": {
+      "saved": "Fasting settings saved"
+    }
+  },
+  "strava": {
+    "status": {
+      "checking": "Checking status...",
+      "checkingCard": "Checking Strava status...",
+      "loadingNative": "Loading Strava status…",
+      "error": "Couldn't check status: {{error}}",
+      "notConfiguredServer": "Connecting will work once Strava credentials are set on the server.",
+      "comingSoon": "Coming soon: Strava activities will go into your burn numbers automatically.",
+      "idle": "Strava activities are added to Burn automatically.",
+      "connectHintNative": "Connect your Strava account to import your workouts automatically.",
+      "connected": "Connected.",
+      "connectedAthlete": "Connected (athlete ID {{id}}).",
+      "sectionConnected": "Connected",
+      "sectionConnectedAthlete": "Connected · athlete ID {{id}}",
+      "synced": "{{imported}} imported, {{skipped}} skipped."
+    },
+    "action": {
+      "sync": "Sync",
+      "syncing": "Syncing...",
+      "syncNative": "Sync",
+      "disconnect": "Disconnect",
+      "disconnectStrava": "Disconnect Strava",
+      "disconnecting": "Disconnecting...",
+      "connect": "Connect",
+      "connecting": "Opening Strava...",
+      "connectNative": "Connect"
+    },
+    "toast": {
+      "synced_one": "Strava: {{count}} activity imported, {{skipped}} skipped.",
+      "synced_other": "Strava: {{count}} activities imported, {{skipped}} skipped.",
+      "disconnected": "Strava disconnected.",
+      "connected": "Strava connected."
+    },
+    "callback": {
+      "title": "Strava isn't connected",
+      "denied": "Strava declined the connection: {{error}}",
+      "noCode": "Strava didn't send an authorization code. Try connecting again from the Profile page.",
+      "back": "Back to Profile",
+      "connecting": "Connecting Strava..."
+    },
+    "error": {
+      "noCode": "Strava didn't return an authorization code."
+    },
+    "retention": {
+      "text": "Under Strava's rules, activities imported from Strava are kept for only 7 days, then deleted automatically. Burned calories for older days no longer include them.",
+      "healthAlternative": "To keep your burned calories saved, use Health Connect on Android or Apple Health on iPhone through the JoyoRogo app. Many workout apps and watches can write workouts there, for example Strava, Garmin, Samsung Health, and JoyoFit for Huawei watches. Check each app's settings.",
+      "healthAlternativeNative": "To keep your burned calories saved, connect {{health}} in Profile. Many workout apps and watches can write workouts there, for example Strava, Garmin, Samsung Health, and JoyoFit for Huawei watches. Check each app's settings.",
+      "connectHealth": "Connect {{health}}",
+      "noticeTitle": "Strava imports are kept for 7 days",
+      "understood": "Got it"
+    }
+  },
+  "reminders": {
+    "permissionOff": {
+      "message": "JoyoRogo notifications are turned off in your system settings, so the reminders below won't show up.",
+      "action": "Turn on notifications"
+    },
+    "meal": {
+      "replacedByFasting": "Replaced by your fasting schedule",
+      "aria": "{{meal}} reminder",
+      "sheetTitle": "Time for {{meal}}",
+      "fastingNote": "Intermittent fasting notifications are on, so meal reminders follow your fasting schedule and the times above aren't used."
+    },
+    "water": {
+      "title": "Drinking water",
+      "summary_one": "{{count}} time a day, every {{hours}} hours",
+      "summary_other": "{{count}} times a day, every {{hours}} hours",
+      "aria": "Water reminder",
+      "start": "Start",
+      "end": "End",
+      "sheetStart": "Start drinking",
+      "sheetEnd": "Stop drinking",
+      "interval_one": "{{count}} hour",
+      "interval_other": "{{count}} hours"
+    },
+    "weighIn": {
+      "title": "Weigh-in",
+      "aria": "Weigh-in reminder",
+      "sheetTitle": "Weigh-in time"
+    },
+    "window": {
+      "openTitle": "Eating window opens",
+      "closeTitle": "Eating window closes",
+      "needPattern": "Pick a fasting pattern first under Intermittent fasting",
+      "openSubtitle": "Follows your fasting schedule, WIB",
+      "closeSubtitle": "Fasting starts, WIB",
+      "openAria": "Eating window opens reminder",
+      "closeAria": "Eating window closes reminder",
+      "openDuplicateNote": "Intermittent fasting notifications already remind you when the window opens, so the opening reminder here isn't sent twice."
+    },
+    "footnote": "Reminders are notifications on this device, so they don't move to another phone or the web. Meal and weigh-in reminders are skipped if today is already logged when JoyoRogo was last opened or you log in the app. Entries from other devices are only picked up after the app is opened again. Water reminders always show on schedule.",
+    "webNote": "Reminders for logging meals, drinking water, and weighing in live in the Android and iOS apps: open Profile in the app, then set a time for each reminder under Reminders. They're stored on your phone, not your account, so they don't show up on the web. Intermittent fasting notifications above can still be turned on in your browser.",
+    "error": {
+      "invalidTime": "Invalid time",
+      "startBeforeEnd": "The start time must be before the end time.",
+      "endAfterStart": "The end time must be after the start time."
+    },
+    "permission": {
+      "askTitle": "Allow reminders?",
+      "blockedTitle": "Notifications are off",
+      "later": "Not now",
+      "openSettings": "Open Settings",
+      "allow": "Allow",
+      "askMessage": "JoyoRogo sends reminders to log meals, drink water, weigh in, and for your fasting window, at the times you choose. Notifications are only for that, no ads. After this, your system will ask for permission once.",
+      "blockedMessage": "Android or iOS no longer shows the permission prompt for JoyoRogo. Turn on JoyoRogo notifications in Settings, then come back here and turn the reminders on again."
+    },
+    "timePicker": {
+      "hour": "Hour",
+      "minute": "Minute",
+      "hourAria": "Hour {{value}}",
+      "minuteAria": "Minute {{value}}"
+    },
+    "notification": {
+      "channel": {
+        "meals": {
+          "name": "Meal reminders",
+          "description": "Reminds you to log breakfast, lunch, and dinner."
+        },
+        "water": {
+          "name": "Water reminders",
+          "description": "Reminds you to drink water through the day."
+        },
+        "weighin": {
+          "name": "Weigh-in reminders",
+          "description": "Reminds you to weigh yourself."
+        },
+        "fasting": {
+          "name": "Intermittent fasting",
+          "description": "Eating window opens, closes, and mealtimes."
+        }
+      },
+      "meal": {
+        "sarapan": {
+          "title": "Time for breakfast",
+          "body": "Log your breakfast so your daily calories stay on track."
+        },
+        "makan_siang": {
+          "title": "Lunchtime",
+          "body": "Don't forget to log your lunch before you forget."
+        },
+        "makan_malam": {
+          "title": "Dinner time",
+          "body": "Log your dinner so your daily plan stays accurate."
+        }
+      },
+      "weighIn": {
+        "title": "Morning weigh-in",
+        "body": "One small step: log your weight today."
+      },
+      "water": {
+        "title": "Time to drink",
+        "body": "A glass of water now. Log it on the Water card when you're done."
+      },
+      "windowOpen": {
+        "title": "Eating window opens",
+        "body": "You can start eating. The window closes at {{time}} WIB."
+      },
+      "windowClose": {
+        "title": "Eating window closes",
+        "body": "Fasting starts. The eating window opens again at {{time}} WIB."
+      }
+    }
+  },
+  "privacy": {
+    "policy": "Privacy policy",
+    "share": {
+      "titleWeb": "Public progress",
+      "titleNative": "Share progress",
+      "hintWeb": "Only your starting weight to your current weight. No email, no food data.",
+      "hintNative": "A light public page with your weight trend; no name or email.",
+      "copyLink": "Copy link",
+      "copied": "Link copied, just paste it into Threads.",
+      "toastOn": "Public page is on.",
+      "toastOff": "Public page is off."
+    },
+    "keepPhotos": {
+      "title": "Keep original photos",
+      "label": "Original photos",
+      "onWeb": "You can view them again in your diary, only you.",
+      "offWeb": "Off: only the cut-out of each food is kept.",
+      "onNative": "The original photo of each scan you save can be viewed again in your diary. Only you can open it. Turning this off deletes all stored original photos.",
+      "offNative": "Only the cut-out of each food is kept as a sticker. The original photo is discarded after analysis.",
+      "toast": "Original photos will be kept from your next scan.",
+      "confirm": {
+        "title": "Turn off keeping original photos?",
+        "descriptionWeb": "Original photos already stored are permanently deleted too.",
+        "bodyWeb": "Your food logs and each food's sticker stay. Only the original photos are deleted.",
+        "actionWeb": "Yes, turn off and delete original photos",
+        "messageNative": "Original photos already stored are permanently deleted too. Your food logs and each food's sticker stay.",
+        "actionNative": "Yes, turn off and delete"
+      }
+    },
+    "wipe": {
+      "title": "Delete all my data",
+      "subtitleWeb": "Profile, weight, food, exercise, sleep. Permanent.",
+      "subtitleNative": "Permanent: profile, weight, food, exercise, sleep",
+      "confirmTitle": "Delete all data?",
+      "confirmDescription": "This is permanent and can't be undone.",
+      "confirmBodyWeb": "All your records are deleted: profile, weight, food, exercise, sleep. Your account stays usable, but you start again from zero.",
+      "confirmMessageNative": "Your profile, weight, food, exercise, and sleep are permanently deleted. Your account stays usable.",
+      "confirmAction": "Yes, delete all my data",
+      "deleting": "Deleting...",
+      "deletingNative": "Deleting…",
+      "done": "All your data has been deleted.",
+      "failed": "Deletion failed. Try again later.",
+      "failedTitle": "Couldn't delete"
+    }
+  },
+  "account": {
+    "signOut": "Sign out",
+    "signingOut": "Signing out...",
+    "delete": {
+      "title": "Delete account",
+      "subtitle": "Permanent: your account and all your data are gone",
+      "confirmTitle": "Delete account?",
+      "confirmMessage": "Your account and all your data (profile, logs, photos, posts, groups) are permanently deleted and can't be restored. You'll need to sign up again to use JoyoRogo.",
+      "failedTitle": "Couldn't delete account",
+      "noAppleCode": "Apple didn't send an authorization code. Try again."
+    }
+  },
+  "app": {
+    "install": {
+      "title": "Add to Home Screen",
+      "subtitle": "The web app with the same account, opens full screen."
+    },
+    "googlePlay": {
+      "title": "JoyoRogo on Google Play",
+      "subtitle": "Use the same account."
+    },
+    "appStore": {
+      "title": "JoyoRogo on the App Store",
+      "subtitle": "For iPhone, same account."
+    }
+  },
+  "feed": {
+    "handle": {
+      "title": "Handle & bio",
+      "none": "No handle yet",
+      "label": "Handle",
+      "placeholderWeb": "e.g. budi_workout",
+      "placeholderNative": "your_name",
+      "hint": "Lowercase letters, numbers, and underscores; 3-20 characters.",
+      "description": "Your profile link: joyorogo.com/u/handle",
+      "error": "A handle is 3-20 characters, lowercase letters, numbers, and _ only."
+    },
+    "bio": {
+      "label": "Bio",
+      "labelCount": "Bio · {{length}}/{{max}}",
+      "placeholderWeb": "Tell us your goal in a line...",
+      "placeholderNative": "Tell us about your journey"
+    },
+    "public": {
+      "title": "Public profile",
+      "subtitleWeb": "Public posts show up in Explore and on your /u/handle profile",
+      "subtitleNative": "Public posts show up in Explore",
+      "requiredNative": "Must be on for public posts in Explore",
+      "on": "On",
+      "off": "Off",
+      "toastOn": "Public profile turned on.",
+      "toastOff": "Public profile turned off."
+    },
+    "visibility": {
+      "labelWeb": "Default audience when sharing",
+      "aria": "Default visibility",
+      "label": "Default visibility",
+      "group": "Group friends",
+      "groupShort": "Group",
+      "public": "Public",
+      "publicNeeded": "Public needs Public profile turned on; group posts stay visible to your teammates."
+    },
+    "blocked": {
+      "title": "Blocked accounts",
+      "rowNative": "Blocked",
+      "none": "No one blocked yet",
+      "hiddenCount_one": "{{count}} account hidden",
+      "hiddenCount_other": "{{count}} accounts hidden",
+      "blockedCount_one": "{{count}} account blocked",
+      "blockedCount_other": "{{count}} accounts blocked",
+      "description": "Their posts and comments are hidden, and the other way around.",
+      "emptyWeb": "No blocked accounts yet.",
+      "emptyNative": "You haven't blocked anyone. Blocking hides content both ways.",
+      "unblock": "Unblock",
+      "unblocked": "Unblocked.",
+      "you": "{{name}} (you)",
+      "profileAria": "{{name}}'s profile"
+    },
+    "sheetTitleNative": "Feed settings",
+    "saved": "Feed settings saved.",
+    "saveFailed": "Couldn't save"
+  },
+  "health": {
+    "noteIos": "The main source of your activity: workouts, steps, distance, active calories, and the last 7 days of sleep from the Health app. Once you grant permission with the button below, syncing runs automatically each time you open the app.",
+    "noteAndroid": "The main source of your activity: workouts, steps, distance, active calories, and the last 7 days of sleep. Once permission is granted, syncing runs automatically each time you open the app.",
+    "syncButton": "Allow & Sync 7 Days",
+    "nutritionNote": "Write your food (calories, protein, carbs, fat, fiber) to Health Connect so other apps can read it. New foods, edits, and deletes sync automatically once permission is granted.",
+    "nutritionButton": "Allow & Write 30 Days of Nutrition",
+    "summary": {
+      "workouts_one": "{{count}} workout imported (last 7 days)",
+      "workouts_other": "{{count}} workouts imported (last 7 days)",
+      "activityDays_one": "{{count}} day of activity",
+      "activityDays_other": "{{count}} days of activity",
+      "sleepNights_one": "{{count}} night of sleep",
+      "sleepNights_other": "{{count}} nights of sleep",
+      "skipped_one": "{{count}} duplicate skipped",
+      "skipped_other": "{{count}} duplicates skipped",
+      "iosEmpty": "No data could be read. Check permissions in Settings > Health > Data Access & Devices, then try again."
+    },
+    "nutritionWritten_one": "{{count}} meal from the last 30 days was written to Health Connect.",
+    "nutritionWritten_other": "{{count}} meals from the last 30 days were written to Health Connect."
+  },
+  "update": {
+    "title": "App update",
+    "installed": "Installed version: {{name}} ({{code}})",
+    "checking": "Checking for updates…",
+    "upToDate": "You're on the latest version.",
+    "available": "Version {{name}} ({{code}}) · {{size}} ready to install.",
+    "install": "Update",
+    "downloading": "Downloading {{percent}}%",
+    "check": "Check for updates",
+    "checkingShort": "Checking…",
+    "error": {
+      "offline": "Can't reach the server. Check your internet connection.",
+      "rejected": "The server rejected the update request (HTTP {{status}}).",
+      "invalidResponse": "The server's reply is invalid. Try again.",
+      "checkFailed": "The update check failed. Try again.",
+      "downloadFailed": "The download failed. Check your internet connection and try again.",
+      "verifyFailed": "Couldn't verify the downloaded file. Try again.",
+      "invalidFile": "The downloaded file is invalid. Try again."
+    }
+  }
+}

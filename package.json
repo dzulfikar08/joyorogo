@@ -42,7 +42,8 @@
     "deploy": "turbo run deploy -F @joyorogo/infra --",
     "destroy": "turbo run destroy -F @joyorogo/infra --",
     "env:generate": "varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./apps/native/ && varlock codegen --path ./packages/db/",
-    "check": "oxlint && oxfmt --write"
+    "check": "oxlint && oxfmt --write",
+    "i18n:check": "bun scripts/i18n-check.ts"
   },
   "dependencies": {
     "sharp": "0.34.5",

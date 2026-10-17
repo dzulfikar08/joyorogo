@@ -1,0 +1,14 @@
+{
+  "extends": "@joyorogo/config/tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["bun"],
+    "jsx": "react-jsx",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts", "src/**/*.json"],
+  "references": []
+}

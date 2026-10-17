@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
+import { useTranslation } from "react-i18next";
 
 import { jakartaToday } from "@joyorogo/api/lib/engine";
 
@@ -16,6 +17,8 @@ import { orpc } from "@/utils/orpc";
  * Renders nothing; mount once inside the QueryClientProvider.
  */
 export function ReminderSync() {
+  const { i18n } = useTranslation();
+  const language = i18n.language;
   const { data: session } = authClient.useSession();
   const signedIn = Boolean(session?.user.id);
   const summary = useQuery({ ...orpc.day.summary.queryOptions({ input: {} }), enabled: signedIn });
@@ -49,8 +52,21 @@ export function ReminderSync() {
       weighedToday: known ? weighedToday : null,
       fasting: pattern !== null && windowStart !== null ? { pattern, windowStart } : null,
     });
-    // `day` re-plans after midnight / app foreground even if the flags held.
-  }, [signedIn, settled, known, sarapan, makanSiang, makanMalam, weighedToday, pattern, windowStart, day]);
+    // `day` re-plans after midnight / app foreground even if the flags held;
+    // `language` re-plans so notification text follows a language switch.
+  }, [
+    signedIn,
+    settled,
+    known,
+    sarapan,
+    makanSiang,
+    makanMalam,
+    weighedToday,
+    pattern,
+    windowStart,
+    day,
+    language,
+  ]);
 
   return null;
 }

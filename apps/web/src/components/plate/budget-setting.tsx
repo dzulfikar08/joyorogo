@@ -2,12 +2,14 @@ import { Button } from "@joyorogo/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { FieldLabel } from "@/components/kit/surface";
 import { IdrInput } from "@/components/plate/idr-input";
+import { fmtInt } from "@/lib/format";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
@@ -17,6 +19,7 @@ import { client, orpc } from "@/utils/orpc";
  * and Makan.
  */
 export function BudgetSetting() {
+  const { t } = useTranslation(["makan", "common"]);
   const spending = useQuery(orpc.plate.spending.queryOptions());
   const [amount, setAmount] = useState<string | null>(null);
   const [period, setPeriod] = useState<"day" | "month" | null>(null);
@@ -43,9 +46,9 @@ export function BudgetSetting() {
     success: () => {
       const prev = previousBudget.current;
       previousBudget.current = null;
-      if (!prev) return { message: "Anggaran disimpan" };
+      if (!prev) return { message: t("plate.budget.saved") };
       return {
-        message: "Anggaran disimpan",
+        message: t("plate.budget.saved"),
         undo: () => void client.plate.setBudget({ idr: prev.idr, period: prev.period }),
       };
     },
@@ -58,16 +61,23 @@ export function BudgetSetting() {
 
   return (
     <div className="rounded-3xl bg-card px-5 py-4">
-      <p className="text-[0.9375rem] font-bold">Anggaran belanja makan</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">
-        Batas pengeluaran makan. Sisa anggarannya tampil di samping sisa kalori.
-      </p>
+      <p className="text-[0.9375rem] font-bold">{t("plate.budget.title")}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{t("plate.budget.hint")}</p>
       <div className="mt-3 flex items-end gap-2">
         <div className="w-36">
-          <FieldLabel htmlFor="food-budget">Batas (Rp)</FieldLabel>
-          <IdrInput id="food-budget" value={value} onChange={setAmount} placeholder="mis. 50.000" />
+          <FieldLabel htmlFor="food-budget">{t("plate.budget.limit")}</FieldLabel>
+          <IdrInput
+            id="food-budget"
+            value={value}
+            onChange={setAmount}
+            placeholder={t("plate.budget.placeholder", { example: fmtInt(50000) })}
+          />
         </div>
-        <div role="group" aria-label="Periode anggaran" className="flex rounded-full bg-muted p-1">
+        <div
+          role="group"
+          aria-label={t("plate.budget.periodLabel")}
+          className="flex rounded-full bg-muted p-1"
+        >
           {(["day", "month"] as const).map((option) => (
             <button
               key={option}
@@ -80,7 +90,7 @@ export function BudgetSetting() {
                   : "text-muted-foreground"
               }`}
             >
-              {option === "day" ? "Harian" : "Bulanan"}
+              {t(`plate.budget.period.${option}`)}
             </button>
           ))}
         </div>
@@ -92,13 +102,13 @@ export function BudgetSetting() {
           onClick={() => {
             const parsed = parseIdrInput(value);
             if (parsed === null) {
-              toast.error("Isi angka rupiah yang valid, atau kosongkan.");
+              toast.error(t("plate.budget.invalid"));
               return;
             }
             save(parsed);
           }}
         >
-          {setBudget.isPending ? "Menyimpan..." : "Simpan"}
+          {setBudget.isPending ? t("plate.budget.saving") : t("common:actions.save")}
         </Button>
         {current && (
           <Button
@@ -110,7 +120,7 @@ export function BudgetSetting() {
               save(null);
             }}
           >
-            Hapus anggaran
+            {t("plate.budget.remove")}
           </Button>
         )}
       </div>

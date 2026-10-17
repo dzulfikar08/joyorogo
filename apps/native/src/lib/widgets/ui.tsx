@@ -13,7 +13,7 @@ import { eatTone } from "@joyorogo/api/lib/engine";
 import { darkTheme, lightTheme } from "@/theme";
 import { timeAgoId } from "@/src/lib/group";
 import type { WidgetSnapshot } from "@/src/lib/widgets/snapshot";
-import { fmtKcal } from "@/utils/format";
+import { fmtInt } from "@/utils/format";
 
 /** Widget registry — names must match the config-plugin entries in app.json. */
 export const WIDGET_NAMES = {
@@ -129,8 +129,8 @@ function FastingLine({
 }) {
   const text =
     fasting.state === "jendela_makan"
-      ? `Jendela makan sampai ${fasting.windowClose} · sisa ${fmtKcal(fasting.remainingKcal)} kkal`
-      : `Makan lagi ${fasting.windowOpen} · sisa ${fmtKcal(fasting.remainingKcal)} kkal`;
+      ? `Jendela makan sampai ${fasting.windowClose} · sisa ${fmtInt(fasting.remainingKcal)} kkal`
+      : `Makan lagi ${fasting.windowOpen} · sisa ${fmtInt(fasting.remainingKcal)} kkal`;
   return (
     <FlexWidget style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
       <FlexWidget
@@ -176,7 +176,7 @@ function ProgressPanel({
       <Caption text="PROGRES HARI INI" c={c} />
       <FlexWidget style={{ flexDirection: "row", alignItems: "flex-end", marginTop: 6 }}>
         <TextWidget
-          text={over ? `+${fmtKcal(day.eatenKcal - day.eatKcal)}` : fmtKcal(day.eatKcal - day.eatenKcal)}
+          text={over ? `+${fmtInt(day.eatenKcal - day.eatKcal)}` : fmtInt(day.eatKcal - day.eatenKcal)}
           style={{ fontSize: 30, fontFamily: FONT_HEAVY, color: accent, lineHeight: 34 }}
         />
         <TextWidget
@@ -192,7 +192,7 @@ function ProgressPanel({
         c={c}
       />
       <TextWidget
-        text={`${fmtKcal(day.eatenKcal)} / ${fmtKcal(day.eatKcal)} kkal`}
+        text={`${fmtInt(day.eatenKcal)} / ${fmtInt(day.eatKcal)} kkal`}
         style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginTop: 6 }}
       />
       {fasting ? <FastingLine fasting={fasting} c={c} /> : null}

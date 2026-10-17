@@ -20,6 +20,7 @@
   "dependencies": {
     "@joyorogo/auth": "workspace:*",
     "@joyorogo/db": "workspace:*",
+    "@joyorogo/i18n": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",

@@ -1,24 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, View } from "react-native";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
-import {
-  daysInMonth,
-  monthLabel,
-  parseDateKey,
-  recentDayLabel,
-  weekdayIndex,
-  shortDayLabel,
-} from "@joyorogo/api/lib/format";
+import { jakartaToday, relativeDayLabel, shiftDate } from "@joyorogo/api/lib/engine";
+import { daysInMonth, parseDateKey, weekdayIndex } from "@joyorogo/api/lib/format";
+import { fmtDate } from "@joyorogo/i18n";
 
 import { Chip, Sheet, Text } from "@/components/ui";
 
 // How far back a log date may be moved: bounded recent window, WIB day keys.
 const WINDOW_DAYS = 30;
 
-const WEEKDAYS = ["Sn", "Sl", "R", "K", "J", "S", "M"] as const;
+const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
 /** Chip shortcuts for the three most recent days. */
 export function DayChips({ value, onChange }: { value: string; onChange: (date: string) => void }) {
@@ -29,7 +24,7 @@ export function DayChips({ value, onChange }: { value: string; onChange: (date: 
       {options.map((date) => (
         <Chip
           key={date}
-          label={recentDayLabel(date, today)}
+          label={relativeDayLabel(date, today)}
           selected={value === date}
           onPress={() => onChange(date)}
         />
@@ -53,6 +48,7 @@ function MonthGrid({
   onMonth: (month: string) => void;
   onPick: (date: string) => void;
 }) {
+  const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
   const today = jakartaToday();
   const min = shiftDate(today, -WINDOW_DAYS);
@@ -84,7 +80,7 @@ function MonthGrid({
       <View style={styles.monthRow}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Bulan sebelumnya"
+          accessibilityLabel={t("plate.dateSheet.prevMonth")}
           disabled={!canPrev}
           onPress={() => onMonth(prevMonth)}
           style={({ pressed }) => [
@@ -95,10 +91,10 @@ function MonthGrid({
         >
           <Ionicons name="chevron-back" size={18} color={theme.colors.foreground} />
         </Pressable>
-        <Text style={styles.monthLabel}>{monthLabel(month)}</Text>
+        <Text style={styles.monthLabel}>{fmtDate(`${month}-01`, "month")}</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Bulan berikutnya"
+          accessibilityLabel={t("plate.dateSheet.nextMonth")}
           disabled={!canNext}
           onPress={() => onMonth(nextMonth)}
           style={({ pressed }) => [
@@ -111,9 +107,9 @@ function MonthGrid({
         </Pressable>
       </View>
       <View style={styles.week}>
-        {WEEKDAYS.map((label) => (
-          <View key={label} style={styles.cell}>
-            <Text style={styles.weekday}>{label}</Text>
+        {WEEKDAY_KEYS.map((key) => (
+          <View key={key} style={styles.cell}>
+            <Text style={styles.weekday}>{t(`plate.dateSheet.weekday.${key}`)}</Text>
           </View>
         ))}
       </View>
@@ -130,7 +126,7 @@ function MonthGrid({
               <View key={cell.key} style={styles.cell}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={shortDayLabel(cell.key)}
+                  accessibilityLabel={fmtDate(cell.key, "weekday")}
                   accessibilityState={{ selected, disabled }}
                   disabled={disabled}
                   onPress={() => onPick(cell.key)}
@@ -172,6 +168,7 @@ export function DateSheet({
   onPick: (date: string) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("makan");
   const today = jakartaToday();
   // The grid opens on the chosen day's month; browsing stays independent of
   // the chip picks until one lands. Root cause of the dead calendar: the old
@@ -186,7 +183,7 @@ export function DateSheet({
       : jakartaToday().slice(0, 7);
   });
   return (
-    <Sheet visible={visible} onClose={onClose} title="Pilih tanggal">
+    <Sheet visible={visible} onClose={onClose} title={t("plate.dateSheet.title")}>
       <DayChips value={value} onChange={onPick} />
       <MonthGrid
         value={value}
@@ -198,7 +195,7 @@ export function DateSheet({
         }}
       />
       <Text style={styles.hint}>
-        Paling jauh {shortDayLabel(shiftDate(today, -WINDOW_DAYS))}, maksimal hari ini.
+        {t("plate.dateSheet.limit", { date: fmtDate(shiftDate(today, -WINDOW_DAYS), "weekday") })}
       </Text>
     </Sheet>
   );

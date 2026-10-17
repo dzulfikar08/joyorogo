@@ -25,7 +25,7 @@ import {
   type FeedItem,
 } from "@/src/lib/social";
 import { timeAgoId } from "@/src/lib/group";
-import { fmtKcal, fmtKg } from "@/utils/format";
+import { fmtInt, fmtKg } from "@/utils/format";
 
 /**
  * Feed post photo. Served through /post-photo/{postId}[/{index}], whose
@@ -216,15 +216,15 @@ function PostChips({ post }: { post: FeedItem }) {
     macro?: MacroKey;
     label: string;
   }[] = [];
-  if (post.kcal !== null) chips.push({ macro: "kcal", label: `${fmtKcal(post.kcal)} kcal` });
+  if (post.kcal !== null) chips.push({ macro: "kcal", label: `${fmtInt(post.kcal)} kcal` });
   if (post.durationMin !== null)
-    chips.push({ icon: "time-outline", label: `${fmtKcal(post.durationMin)} mnt` });
+    chips.push({ icon: "time-outline", label: `${fmtInt(post.durationMin)} mnt` });
   if (post.macros) {
     const { protein, carbs, fat, fiber } = post.macros;
-    if (protein !== null) chips.push({ macro: "protein", label: `P ${fmtKcal(protein)}g` });
-    if (carbs !== null) chips.push({ macro: "carbs", label: `K ${fmtKcal(carbs)}g` });
-    if (fat !== null) chips.push({ macro: "fat", label: `L ${fmtKcal(fat)}g` });
-    if (fiber !== null) chips.push({ macro: "fiber", label: `Serat ${fmtKcal(fiber)}g` });
+    if (protein !== null) chips.push({ macro: "protein", label: `P ${fmtInt(protein)}g` });
+    if (carbs !== null) chips.push({ macro: "carbs", label: `K ${fmtInt(carbs)}g` });
+    if (fat !== null) chips.push({ macro: "fat", label: `L ${fmtInt(fat)}g` });
+    if (fiber !== null) chips.push({ macro: "fiber", label: `Serat ${fmtInt(fiber)}g` });
   }
   if (post.stats) {
     const s = post.stats;

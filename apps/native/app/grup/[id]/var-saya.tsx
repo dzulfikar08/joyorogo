@@ -28,7 +28,7 @@ import { useSessionGate } from "@/lib/use-session-gate";
 import type { VarHistory } from "@/src/lib/group";
 import { errorMessage } from "@/utils/format";
 import { client, isPaywallError, orpc } from "@/utils/orpc";
-import { UNDO_LABEL, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
+import { undoLabel, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 
 type VarVerdict = VarHistory["scans"][number]["verdict"];
 type VarScanRow = VarHistory["scans"][number];
@@ -227,7 +227,7 @@ export default function VarSaya() {
     onSuccess: ({ scan, previous }) => {
       void queryClient.invalidateQueries({ queryKey: orpc.group.key() });
       toast.success(`Hasil baru: ${verdictCopy(scan.verdict).label}`, undefined, {
-        label: UNDO_LABEL,
+        label: undoLabel(),
         onPress: () => {
           const key = orpc.group.varHistory.queryOptions({ input: { groupId } }).queryKey;
           queryClient.setQueryData<VarHistory>(key, (old) =>

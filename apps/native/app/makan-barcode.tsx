@@ -28,7 +28,7 @@ import {
   Text,
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtKcal, parseNum } from "@/utils/format";
+import { errorMessage, fmtInt, parseNum } from "@/utils/format";
 import { KindPicker, SnackAdviceSection } from "@/components/makan/snack-advice";
 import type { PickableKind } from "@/components/makan/snack-advice";
 import { orpc, queryClient } from "@/utils/orpc";
@@ -148,7 +148,7 @@ export default function MakanBarcode() {
           </View>
           <Text style={styles.doneTitle}>Tercatat!</Text>
           <Text style={styles.doneText}>
-            {`${saved.name} (${fmtKcal(saved.kcal)} kcal) sudah masuk ke ${MEAL_LABELS[meal]}.`}
+            {`${saved.name} (${fmtInt(saved.kcal)} kcal) sudah masuk ke ${MEAL_LABELS[meal]}.`}
           </Text>
           <View style={styles.doneActions}>
             <Button label="Lihat Daftar Makanan" onPress={() => router.replace("/makan")} />
@@ -355,7 +355,7 @@ export default function MakanBarcode() {
 
           <Card style={styles.infoCard}>
             <Text style={styles.infoLabel}>{`Per 100 ${unit}`}</Text>
-            <Num style={styles.infoKcal}>{`${fmtKcal(base.kcal)} kcal`}</Num>
+            <Num style={styles.infoKcal}>{`${fmtInt(base.kcal)} kcal`}</Num>
             <MacroLine
               protein={base.protein}
               carbs={base.carbs}
@@ -365,9 +365,9 @@ export default function MakanBarcode() {
             {data.perServing && data.servingSize ? (
               <>
                 <Text style={[styles.infoLabel, styles.infoGap]}>
-                  {`Per sajian (${fmtKcal(data.servingSize)} ${unit})`}
+                  {`Per sajian (${fmtInt(data.servingSize)} ${unit})`}
                 </Text>
-                <Num style={styles.infoKcal}>{`${fmtKcal(data.perServing.kcal)} kcal`}</Num>
+                <Num style={styles.infoKcal}>{`${fmtInt(data.perServing.kcal)} kcal`}</Num>
                 <MacroLine
                   protein={data.perServing.protein}
                   carbs={data.perServing.carbs}
@@ -397,7 +397,7 @@ export default function MakanBarcode() {
           <View style={styles.chipRow}>
             {data.servingSize ? (
               <Chip
-                label={`1 sajian · ${fmtKcal(data.servingSize)} ${unit}`}
+                label={`1 sajian · ${fmtInt(data.servingSize)} ${unit}`}
                 selected={gramsNum === data.servingSize}
                 onPress={() => setGrams(String(data.servingSize))}
               />
@@ -412,7 +412,7 @@ export default function MakanBarcode() {
           {scaled ? (
             <View style={styles.totalBlock}>
               <Text style={styles.infoLabel}>Yang dicatat</Text>
-              <Num style={styles.totalValue}>{`${fmtKcal(scaled.kcal)} kcal`}</Num>
+              <Num style={styles.totalValue}>{`${fmtInt(scaled.kcal)} kcal`}</Num>
               <MacroLine
                 protein={scaled.protein}
                 carbs={scaled.carbs}

@@ -8,6 +8,11 @@
 // puts an hour of steady running at about 11 and two hard hours at about 18,
 // so 14 and up counts as a hard day here.
 
+import { getActiveLocale, getT } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+
+import { localizedLabels } from "./engine";
+
 export const READINESS_LABELS = ["Primed", "Balanced", "Strained", "Run down"] as const;
 export type Readiness = (typeof READINESS_LABELS)[number];
 
@@ -24,13 +29,23 @@ export const VERY_HARD_STRAIN = 18;
 export const LOW_RECOVERY_PCT = 34;
 export const SHORT_SLEEP_PCT = 75;
 
-/** Readiness word in Indonesian for the card; the stored label stays JoyoFit's English one. */
-export const READINESS_ID: Record<Readiness, string> = {
-  Primed: "Siap tancap",
-  Balanced: "Seimbang",
-  Strained: "Terbebani",
-  "Run down": "Kelelahan",
-};
+const READINESS_KEY = {
+  Primed: "primed",
+  Balanced: "balanced",
+  Strained: "strained",
+  "Run down": "runDown",
+} as const satisfies Record<Readiness, string>;
+
+/** Readiness word in the user's language for the card; the stored label stays JoyoFit's English one. */
+export function readinessLabel(readiness: Readiness, locale: Locale = getActiveLocale()): string {
+  return getT(locale, "makan")(`fitnessCard.readiness.${READINESS_KEY[readiness]}`);
+}
+
+/** Readiness words for the card, following the active language (lazy, see `localizedLabels`). */
+export const READINESS_ID: Record<Readiness, string> = localizedLabels(
+  READINESS_LABELS,
+  readinessLabel,
+);
 
 /** True when there is at least one number or word worth showing. */
 export function hasFitnessData(day: FitnessDay | null | undefined): day is FitnessDay {
@@ -53,31 +68,35 @@ export function readinessFlags(day: FitnessDay) {
 }
 
 /** Up to two short hints for the day's food; empty when nothing stands out. */
-export function fitnessHints(day: FitnessDay): string[] {
+export function fitnessHints(day: FitnessDay, locale: Locale = getActiveLocale()): string[] {
+  const t = getT(locale, "makan");
   const hints: string[] = [];
   const { hardDay, lowRecovery, strained, shortSleep, needsRest } = readinessFlags(day);
 
-  if (hardDay) {
-    hints.push(
-      "Hari ini berat untuk tubuhmu, jadi kebutuhan energi dan karbohidrat lebih tinggi dari biasanya. Cukupi cairan juga.",
-    );
-  }
+  if (hardDay) hints.push(t("fitnessCard.hint.hardDay"));
 
   if (needsRest) {
-    const why = lowRecovery
-      ? "Pemulihanmu rendah"
-      : shortSleep && !strained
-        ? "Tidurmu kurang"
-        : "Tubuhmu sedang terbebani";
-    hints.push(`${why}: utamakan protein, cairan, dan tidur malam ini.`);
+    hints.push(
+      lowRecovery
+        ? t("fitnessCard.hint.rest.lowRecovery")
+        : shortSleep && !strained
+          ? t("fitnessCard.hint.rest.shortSleep")
+          : t("fitnessCard.hint.rest.strained"),
+    );
   }
 
   return hints;
 }
 
-/** Locked teaser the free tier sees under the hints; the action opens the Founder paywall. */
+/** Locked teaser the free tier sees under the hints; the action opens the Founder paywall. Each field follows the active language. */
 export const FOOD_GUIDANCE_TEASER = {
-  title: "Saran makan dari skor JoyoFit",
-  body: "Pro dapat saran porsi dan menu hari ini, dihitung dari skormu, target harianmu, dan makanan yang sudah kamu catat.",
-  action: "Buka dengan Pro",
-} as const;
+  get title() {
+    return getT(getActiveLocale(), "makan")("fitnessCard.teaser.title");
+  },
+  get body() {
+    return getT(getActiveLocale(), "makan")("fitnessCard.teaser.body");
+  },
+  get action() {
+    return getT(getActiveLocale(), "makan")("fitnessCard.teaser.action");
+  },
+};

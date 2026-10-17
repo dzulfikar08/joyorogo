@@ -12,7 +12,7 @@ import {
   setActiveWorkout,
   SET_TYPE_LABEL,
 } from "@/lib/workout/active";
-import { errorMessage, fmtDateId, fmtKg } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtKg } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 const CHART_W = 300;
@@ -56,11 +56,11 @@ function OneRmChart({ points }: { points: Array<{ date: string; oneRm: number }>
         <Circle cx={last.x} cy={last.y} r={4} fill={theme.colors.primary} />
       </Svg>
       <View style={styles.chartAxis}>
-        <Text style={styles.chartAxisText}>{fmtDateId(points[0]!.date)}</Text>
+        <Text style={styles.chartAxisText}>{fmtDateMedium(points[0]!.date)}</Text>
         <Text style={styles.chartAxisText}>
           {fmtKg(min)}–{fmtKg(max)} kg
         </Text>
-        <Text style={styles.chartAxisText}>{fmtDateId(points[points.length - 1]!.date)}</Text>
+        <Text style={styles.chartAxisText}>{fmtDateMedium(points[points.length - 1]!.date)}</Text>
       </View>
     </View>
   );
@@ -155,7 +155,7 @@ export default function LatihanGerakan() {
           <Card style={styles.sessionList}>
             {(history.data?.sessions ?? []).map((session) => (
               <View key={session.sessionId} style={styles.sessionRow}>
-                <Text style={styles.sessionDate}>{fmtDateId(session.date)}</Text>
+                <Text style={styles.sessionDate}>{fmtDateMedium(session.date)}</Text>
                 <View style={styles.sessionSets}>
                   {session.sets.map((set, i) => (
                     <View key={i} style={styles.setTagRow}>

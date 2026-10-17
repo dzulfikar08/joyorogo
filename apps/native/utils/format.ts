@@ -1,33 +1,20 @@
-// FR-10: kcal integer, kg one decimal — always Indonesian-friendly.
-const idNumber = new Intl.NumberFormat("id-ID");
+import { fmtKg, i18n } from "@joyorogo/i18n";
 
-export function fmtKcal(n: number): string {
-  return idNumber.format(Math.round(n));
-}
-
-export function fmtKg(n: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).format(n);
-}
-
-/** "24,3 MB" — APK download size on the update card. */
-export function fmtMb(bytes: number): string {
-  return `${new Intl.NumberFormat("id-ID", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).format(bytes / (1024 * 1024))} MB`;
-}
-
-export function fmtDateId(date: string): string {
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${date}T00:00:00Z`));
-}
+// Number and date formatting is shared with web and the server: see
+// @joyorogo/i18n (docs/i18n.md). Re-exported here so screens keep one import.
+export {
+  fmtDateLong,
+  fmtDateMedium,
+  fmtDateShort,
+  fmtGramsLabel,
+  fmtIdr,
+  fmtInt,
+  fmtKcalLabel,
+  fmtKg,
+  fmtMegabytes,
+  fmtRatio,
+  timeAgo,
+} from "@joyorogo/i18n";
 
 /** Reads a numeric TextInput value: "68,5" and "68.5" both work. */
 export function parseNum(text: string): number | null {
@@ -39,7 +26,7 @@ export function parseNum(text: string): number | null {
 
 export function errorMessage(e: unknown): string {
   if (e instanceof Error && e.message) return e.message;
-  return "Terjadi kesalahan. Coba lagi.";
+  return i18n.t("common:state.genericError");
 }
 
 /** ±0.05 kg/week or flatter counts as stable, matching the web recap. */
@@ -47,6 +34,8 @@ const FLAT_WEEKLY_RATE_KG = 0.05;
 
 /** "Turun 0,6 kg/minggu" / "Naik …" / "Berat stabil" for a weekly trend rate. */
 export function weeklyRateLabel(rateKg: number): string {
-  if (Math.abs(rateKg) <= FLAT_WEEKLY_RATE_KG) return "Berat stabil";
-  return `${rateKg < 0 ? "Turun" : "Naik"} ${fmtKg(Math.abs(rateKg))} kg/minggu`;
+  if (Math.abs(rateKg) <= FLAT_WEEKLY_RATE_KG) return i18n.t("berat:trend.stable");
+  return i18n.t(rateKg < 0 ? "berat:trend.down" : "berat:trend.up", {
+    kg: fmtKg(Math.abs(rateKg)),
+  });
 }

@@ -232,6 +232,13 @@
       "when": 1792139826981,
       "tag": "0032_strava_shared_grant",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1792211830611,
+      "tag": "0033_profile_locale",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { DEFAULT_LOCALE } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+import { localNameRule, localNameShape } from "./ai-locale";
 import { resolveFoodKind } from "./food-kind";
 import type { FoodKind } from "./food-kind";
 import { SCAN_FAIL_COPY } from "./scan-errors";
@@ -16,14 +19,22 @@ export const DEFAULT_VISION_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 // into whitespace loops until max_tokens on busy plates.
 // A model-side "too many" flag proved unreliable (it dropped the donut next
 // to an americano), so the prompt only asks for a cap, not for a verdict.
-export const VISION_PROMPT = `Anda adalah ahli gizi. Identifikasi makanan pada foto ini (fokus masakan Indonesia). Sebutkan SETIAP makanan atau minuman berbeda yang terlihat, termasuk yang kecil (mis. donat di samping segelas kopi), urut dari yang paling menonjol, maksimal 10 item.
+/**
+ * Indonesian prompt; for other locales the model also returns `localName` (see
+ * ai-locale.ts) so food names and portions come back in the user's language.
+ */
+export function visionPrompt(locale: Locale = DEFAULT_LOCALE): string {
+  return `Anda adalah ahli gizi. Identifikasi makanan pada foto ini (fokus masakan Indonesia). Sebutkan SETIAP makanan atau minuman berbeda yang terlihat, termasuk yang kecil (mis. donat di samping segelas kopi), urut dari yang paling menonjol, maksimal 10 item.
 Jawab HANYA JSON valid satu baris (tanpa indentasi, tanpa \`\`\`) tanpa teks lain, dengan bentuk persis:
-{"items":[{"name":"nama masakan","kind":"makanan|camilan|minuman","portion":"porsi, maks 3 kata","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":number,"box":[ymin,xmin,ymax,xmax]}]}
+{"items":[{"name":"nama masakan",${localNameShape(locale)}"kind":"makanan|camilan|minuman","portion":"porsi, maks 3 kata","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":number,"box":[ymin,xmin,ymax,xmax]}]}
 Semua angka bulat kecuali confidence. Tidak ada makanan di foto: {"items":[],"problem":"bukan_makanan"}. Foto terlalu gelap atau buram sampai makanan tidak bisa dikenali: {"items":[],"problem":"gelap"} atau {"items":[],"problem":"buram"}.
 kind: "makanan" = makanan berat (nasi, lauk, sayur, mi, sup), "camilan" = gorengan, kue, keripik, martabak, es krim, jajanan ringan, "minuman" = semua yang diminum.
 box = kotak pembatas item itu di foto, skala 0-1000 relatif tinggi dan lebar foto.
 Satu hidangan = satu item: kuah, bumbu/saus, sayur, dan lontong/mi/bihun yang sudah bagian dari hidangan itu (mis. gado-gado, bakso, soto) TERMASUK di kcal hidangan, jangan dipisah. Pisahkan hanya yang berdiri sendiri: nasi, lauk terpisah, telur, kerupuk, gorengan, sambal, minuman.
-Aturan: ini bukan percakapan — jangan menjawab dengan tabel markdown. name dalam Bahasa Indonesia tanpa terjemahan. grams = perkiraan berat (1-5000); kcal, protein/carbs/fat (gram), fiber (gram) = estimasi realistis porsi umum; confidence 0-1.`;
+Aturan: ini bukan percakapan — jangan menjawab dengan tabel markdown. name dalam Bahasa Indonesia tanpa terjemahan. grams = perkiraan berat (1-5000); kcal, protein/carbs/fat (gram), fiber (gram) = estimasi realistis porsi umum; confidence 0-1.${localNameRule(locale)}`;
+}
+
+export const VISION_PROMPT = visionPrompt();
 
 /**
  * Room for ~12 single-line items incl. boxes: ~60-80 tokens each (measured
@@ -37,6 +48,8 @@ export const MAX_ITEMS = 10;
 
 export const visionItemSchema = z.object({
   name: z.string(),
+  // Name in the user's language when it is not Indonesian (see ai-locale.ts).
+  localName: z.string().optional(),
   // Model's own call; resolveFoodKind falls back to the name when it is missing or odd.
   kind: z.string().optional(),
   portion: z.string().optional(),
@@ -201,7 +214,7 @@ export function retryInstruction(hint?: string): string {
 export function runVisionOnce(
   ai: AiRunner,
   model: string,
-  opts: { imageBase64: string; mimeType: string; instruction?: string },
+  opts: { imageBase64: string; mimeType: string; instruction?: string; locale?: Locale },
   timeoutMs: number,
   schedule: ScheduleTimeout = defaultSchedule,
 ): Promise<unknown> {
@@ -210,7 +223,12 @@ export function runVisionOnce(
       {
         role: "user",
         content: [
-          { type: "text", text: opts.instruction ? `${VISION_PROMPT}\n\n${opts.instruction}` : VISION_PROMPT },
+          {
+            type: "text",
+            text: opts.instruction
+              ? `${visionPrompt(opts.locale)}\n\n${opts.instruction}`
+              : visionPrompt(opts.locale),
+          },
           {
             type: "image_url",
             image_url: { url: `data:${opts.mimeType};base64,${opts.imageBase64}` },
@@ -343,7 +361,11 @@ const MODEL_FLAG_MIN_ITEMS = 8;
  * tokens means the photo had more dishes than fit. So does a list that
  * reached MAX_ITEMS.
  */
-export function parseAnswer(text: string, finish: string | null): ParsedAnswer {
+export function parseAnswer(
+  text: string,
+  finish: string | null,
+  locale: Locale = DEFAULT_LOCALE,
+): ParsedAnswer {
   const cleaned = text.replace(/```(?:json)?/g, "");
   let rawItems: unknown[];
   let modelTooMany = false;
@@ -390,9 +412,14 @@ export function parseAnswer(text: string, finish: string | null): ParsedAnswer {
         ...item,
         box: raw[index]!.box,
         kind: resolveFoodKind(item.name, raw[index]!.kind),
+        localName: raw[index]!.localName,
       })),
     ),
-  );
+  ).map(({ localName, ...item }) => ({
+    ...item,
+    // Matching, broth and kind detection used the Indonesian name; the user sees theirs.
+    name: locale === DEFAULT_LOCALE ? item.name : localName?.trim().slice(0, 120) || item.name,
+  }));
   return {
     items,
     // Real evidence only: the answer was cut off, or it filled the cap. The
@@ -426,6 +453,8 @@ export async function analyzeFoodPhoto(
     model?: string;
     /** Present when this run re-checks a photo the user judged inaccurate. */
     retry?: { hint?: string };
+    /** Language of the item names and portions in the result; default Indonesian. */
+    locale?: Locale;
     /** Injectable for tests. */
     timeouts?: [number, number];
     /** Injectable for tests — deterministic deadlines without real timers. */
@@ -451,6 +480,7 @@ export async function analyzeFoodPhoto(
           imageBase64: opts.imageBase64,
           mimeType: opts.mimeType,
           instruction: opts.retry ? retryInstruction(opts.retry.hint) : undefined,
+          locale: opts.locale,
         },
         timeoutMs,
         opts.schedule,
@@ -459,7 +489,7 @@ export async function analyzeFoodPhoto(
       usage = extractUsage(result);
       const text = responseText(result);
       if (text === null) throw new Error("no text in response");
-      const answer = parseAnswer(text, finish);
+      const answer = parseAnswer(text, finish, opts.locale);
       found = answer.found;
       if (answer.items.length > 0) {
         if (answer.tooMany || answer.modelTooMany) {

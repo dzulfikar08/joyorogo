@@ -1,6 +1,7 @@
 import { ImagePlus, Share2, X } from "lucide-react";
 import type { ComponentProps } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Button } from "@joyorogo/ui/components/button";
@@ -44,7 +45,7 @@ const STICKER_STAGE =
  */
 export function ShareStoryButton({
   story,
-  label = "Bagikan ke Story",
+  label: labelProp,
   ariaLabel,
   text,
   fileName,
@@ -53,6 +54,8 @@ export function ShareStoryButton({
   className,
   disabled,
 }: ShareStoryButtonProps) {
+  const { t } = useTranslation(["makan", "common"]);
+  const label = labelProp ?? t("story.share.shareToStory");
   const [open, setOpen] = useState(false);
   const [template, setTemplate] = useState<StoryTemplate>("brand");
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
@@ -87,13 +90,13 @@ export function ShareStoryButton({
       const canvas = canvasRefs.current[candidate.id];
       if (!canvas) continue;
       drawStoryCard(canvas, story, candidate.id, photoSrc).catch((err: Error) => {
-        if (!cancelled) toast.error(err.message || "Gagal membuat gambar.");
+        if (!cancelled) toast.error(err.message || t("story.share.makeImageFailed"));
       });
     }
     return () => {
       cancelled = true;
     };
-  }, [open, templates, story, photoSrc]);
+  }, [open, templates, story, photoSrc, t]);
 
   useEffect(() => {
     if (!open) return;
@@ -112,7 +115,7 @@ export function ShareStoryButton({
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob((b) => resolve(b), "image/png"),
       );
-      if (!blob) throw new Error("Gagal membuat gambar.");
+      if (!blob) throw new Error(t("story.share.makeImageFailed"));
       const name = fileName ?? `joyorogo-${story.kind}-${activeTemplate?.id ?? "brand"}.png`;
       const file = new File([blob], name, { type: "image/png" });
 
@@ -129,11 +132,11 @@ export function ShareStoryButton({
         a.download = name;
         a.click();
         URL.revokeObjectURL(url);
-        toast.info("Gambar diunduh, kirim manual ya. Browser ini belum dukung share langsung.");
+        toast.info(t("story.share.downloaded"));
       }
     } catch (err) {
       if ((err as Error).name !== "AbortError") {
-        toast.error((err as Error).message || "Gagal membagikan.");
+        toast.error((err as Error).message || t("story.share.shareFailed"));
       }
     } finally {
       setBusy(false);
@@ -164,7 +167,7 @@ export function ShareStoryButton({
         }}
       >
         {busy && label ? (
-          "Menyiapkan..."
+          t("story.share.preparing")
         ) : (
           <>
             <Share2 className="size-4" aria-hidden />
@@ -177,7 +180,7 @@ export function ShareStoryButton({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Bagikan ke Story"
+          aria-label={t("story.share.shareToStory")}
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center"
           onClick={() => setOpen(false)}
         >
@@ -186,11 +189,11 @@ export function ShareStoryButton({
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 pl-1">
-              <h2 className="text-lg font-bold">Bagikan ke Story</h2>
+              <h2 className="text-lg font-bold">{t("story.share.shareToStory")}</h2>
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Tutup"
+                aria-label={t("common:actions.close")}
                 onClick={() => setOpen(false)}
               >
                 <X aria-hidden />
@@ -199,11 +202,11 @@ export function ShareStoryButton({
 
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
               <Segmented
-                label="Pilih tampilan story"
+                label={t("story.share.pickTemplate")}
                 value={activeTemplate?.id ?? "brand"}
                 options={templates.map((candidate) => ({
                   value: candidate.id,
-                  label: candidate.label,
+                  label: t(`story.card.template.${candidate.id}.label`),
                 }))}
                 onChange={(id) => {
                   setTemplate(id);
@@ -238,7 +241,9 @@ export function ShareStoryButton({
                             canvasRefs.current[candidate.id] = canvas;
                           }}
                           className="size-full object-contain"
-                          aria-label={`Pratinjau ${candidate.label}`}
+                          aria-label={t("story.share.preview", {
+                            name: t(`story.card.template.${candidate.id}.label`),
+                          })}
                         />
                       </div>
                     </div>
@@ -246,7 +251,9 @@ export function ShareStoryButton({
                 </div>
               </div>
 
-              <p className="text-center text-sm text-muted-foreground">{activeTemplate?.hint}</p>
+              <p className="text-center text-sm text-muted-foreground">
+                {activeTemplate ? t(`story.card.template.${activeTemplate.id}.hint`) : null}
+              </p>
 
               <label className="mx-auto inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-within:ring-[3px] focus-within:ring-ring/40">
                 <input
@@ -259,13 +266,13 @@ export function ShareStoryButton({
                   }}
                 />
                 <ImagePlus className="size-4" aria-hidden />
-                {hasPhoto ? "Ganti foto" : "Pakai fotoku"}
+                {hasPhoto ? t("story.share.changePhoto") : t("story.share.usePhoto")}
               </label>
             </div>
 
             <Button className="mt-3 w-full" disabled={busy} onClick={() => void share()}>
               <Share2 aria-hidden />
-              {busy ? "Menyiapkan..." : "Bagikan"}
+              {busy ? t("story.share.preparing") : t("story.share.share")}
             </Button>
           </div>
         </div>

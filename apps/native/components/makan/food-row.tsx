@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { FOOD_KIND_LABELS, foodKind } from "@joyorogo/api/lib/food-kind";
+import { foodKind } from "@joyorogo/api/lib/food-kind";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
+import { fmtClock } from "@joyorogo/i18n";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -8,7 +10,7 @@ import type { DiaryRow } from "@/components/favorit";
 import { MacroLine } from "@/components/macro-line";
 import { FoodSticker } from "@/components/sticker";
 import { Text } from "@/components/ui";
-import { fmtKcal } from "@/utils/format";
+import { fmtInt, fmtKcalLabel } from "@/utils/format";
 import { MacroIcon } from "@/utils/macro-icons";
 
 const KIND_ICON = {
@@ -17,12 +19,6 @@ const KIND_ICON = {
   minuman: "cafe",
   lainnya: "shapes",
 } as const satisfies Record<FoodKind, React.ComponentProps<typeof Ionicons>["name"]>;
-
-const timeFmt = new Intl.DateTimeFormat("id-ID", {
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "Asia/Jakarta",
-});
 
 /**
  * Sticker-first diary row: large cutout on the left, name (2 lines max), kind
@@ -41,6 +37,7 @@ export function FoodRow({
   /** Opens the full-size sticker viewer; only offered when the row has a cutout. */
   onViewSticker?: () => void;
 }) {
+  const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
   const kind = foodKind(item.name);
   const created = new Date(item.createdAt);
@@ -65,12 +62,12 @@ export function FoodRow({
         <View style={styles.chipLine}>
           <View style={styles.kindChip}>
             <Ionicons name={KIND_ICON[kind]} size={13} color={theme.colors.makanText} />
-            <Text style={styles.kindText}>{FOOD_KIND_LABELS[kind]}</Text>
+            <Text style={styles.kindText}>{t(`kind.${kind}`)}</Text>
           </View>
           {Number.isNaN(created.getTime()) ? null : (
             <View style={styles.timeItem}>
               <Ionicons name="time-outline" size={14} color={theme.colors.mutedForeground} />
-              <Text style={styles.timeText}>{timeFmt.format(created)}</Text>
+              <Text style={styles.timeText}>{fmtClock(created)}</Text>
             </View>
           )}
         </View>
@@ -78,12 +75,12 @@ export function FoodRow({
           <View style={styles.metaLine}>
             <View style={styles.metaItem}>
               <MacroIcon macro="kcal" size={14} />
-              <Text style={[styles.metaText, styles.kcalText]}>{fmtKcal(item.kcal)} kkal</Text>
+              <Text style={[styles.metaText, styles.kcalText]}>{fmtKcalLabel(item.kcal)}</Text>
             </View>
             {item.grams ? (
               <View style={styles.metaItem}>
                 <MacroIcon macro="grams" size={14} />
-                <Text style={[styles.metaText, styles.gramText]}>{fmtKcal(item.grams)} g</Text>
+                <Text style={[styles.metaText, styles.gramText]}>{fmtInt(item.grams)} g</Text>
               </View>
             ) : null}
           </View>
@@ -96,13 +93,13 @@ export function FoodRow({
               fiber={item.fiber}
             />
           ) : item.source === "ai" ? (
-            <Text style={styles.aiText}>Dari pindai AI</Text>
+            <Text style={styles.aiText}>{t("foodRow.fromAi")}</Text>
           ) : null}
         </View>
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Hapus ${item.name}`}
+        accessibilityLabel={t("foodRow.delete", { name: item.name })}
         onPress={onDelete}
         hitSlop={4}
         style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}

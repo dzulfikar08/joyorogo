@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Platform, View } from "react-native";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
+import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 
 import {
@@ -11,7 +12,7 @@ import {
 } from "@joyorogo/api/lib/engine";
 
 import { Button, Field, Input, Sheet, Text } from "@/components/ui";
-import { errorMessage, fmtDateId, fmtKcal, fmtKg, parseNum } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtInt, fmtKg, parseNum } from "@/utils/format";
 
 /** WIB date N days from now as 'YYYY-MM-DD' (fixed UTC+7, no DST). */
 function jakartaDatePlusDays(days: number): string {
@@ -43,6 +44,7 @@ export function TargetWeightSheet({
   pending: boolean;
   onSave: (targetWeightKg: number) => Promise<void>;
 }) {
+  const { t } = useTranslation(["settings", "common"]);
   const [weight, setWeight] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export function TargetWeightSheet({
 
   const submit = async () => {
     if (parsed === null || parsed < 25 || parsed > 400) {
-      setError("Berat target harus 25-400 kg.");
+      setError(t("plan.targetWeight.error"));
       return;
     }
     setError(null);
@@ -79,10 +81,12 @@ export function TargetWeightSheet({
     <Sheet
       visible={visible}
       onClose={onClose}
-      title="Berat target"
-      footer={<Button label="Simpan" onPress={() => void submit()} loading={pending} />}
+      title={t("plan.targetWeight.title")}
+      footer={
+        <Button label={t("common:actions.save")} onPress={() => void submit()} loading={pending} />
+      }
     >
-      <Field label="Berat target (kg)">
+      <Field label={t("plan.targetWeight.inputLabel")}>
         <Input
           value={shown}
           onChangeText={(text) => {
@@ -94,16 +98,14 @@ export function TargetWeightSheet({
         />
       </Field>
       <Text style={styles.note}>
-        Berat sehat untuk tinggimu: {fmtKg(ideal.minKg)}–{fmtKg(ideal.maxKg)} kg
+        {t("plan.targetWeight.healthyRange", { min: fmtKg(ideal.minKg), max: fmtKg(ideal.maxKg) })}
       </Text>
       {belowRange ? (
-        <Text style={styles.warnText}>
-          Di bawah rentang berat sehat. Boleh dilanjutkan, perhatikan kesehatanmu.
-        </Text>
+        <Text style={styles.warnText}>{t("plan.targetWeight.belowRange")}</Text>
       ) : null}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
-      <Text style={styles.note}>Angka harian dihitung ulang otomatis.</Text>
+      <Text style={styles.note}>{t("plan.targetWeight.hint")}</Text>
     </Sheet>
   );
 }
@@ -130,6 +132,7 @@ export function TargetDateSheet({
   pending: boolean;
   onSave: (targetDate: string) => Promise<void>;
 }) {
+  const { t } = useTranslation(["settings", "common"]);
   const [date, setDate] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -179,7 +182,7 @@ export function TargetDateSheet({
 
   const submit = async () => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(shown) || shown < jakartaToday()) {
-      setError("Tanggal target harus belum lewat.");
+      setError(t("plan.targetDate.error"));
       return;
     }
     setError(null);
@@ -195,14 +198,16 @@ export function TargetDateSheet({
     <Sheet
       visible={visible}
       onClose={onClose}
-      title="Tanggal target"
-      footer={<Button label="Simpan" onPress={() => void submit()} loading={pending} />}
+      title={t("plan.targetDate.title")}
+      footer={
+        <Button label={t("common:actions.save")} onPress={() => void submit()} loading={pending} />
+      }
     >
       {Platform.OS === "android" ? (
         <Button
           variant="secondary"
           icon="calendar"
-          label={fmtDateId(shown)}
+          label={fmtDateMedium(shown)}
           onPress={openPicker}
           style={styles.dateButton}
         />
@@ -218,17 +223,18 @@ export function TargetDateSheet({
       {tooFast ? (
         <View style={styles.warnBox}>
           <Text style={styles.warnTitle}>
-            Target ini menuntut defisit ~{fmtKcal(tooFast.rawDeficit)} kkal/hari, di atas batas
-            aman.
+            {t("plan.targetDate.tooFast.title", { deficit: fmtInt(tooFast.rawDeficit) })}
           </Text>
           <Text style={styles.warnBody}>
-            JoyoRogo membatasi defisit pada sekitar 1.000 kkal/hari. Turun {fmtKg(tooFast.lossKg)}{" "}
-            kg dengan ritme itu butuh sekitar {fmtKcal(tooFast.feasibleDays)} hari.
+            {t("plan.targetDate.tooFast.body", {
+              kg: fmtKg(tooFast.lossKg),
+              count: tooFast.feasibleDays,
+            })}
           </Text>
           <Button
             variant="secondary"
             size="sm"
-            label={`Pakai tanggal realistis (+${fmtKcal(tooFast.feasibleDays)} hari)`}
+            label={t("plan.targetDate.tooFast.useDate", { count: tooFast.feasibleDays })}
             onPress={() => {
               setDate(jakartaDatePlusDays(tooFast.feasibleDays));
               setError(null);
@@ -239,7 +245,7 @@ export function TargetDateSheet({
       ) : null}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
-      <Text style={styles.note}>Kapan kamu ingin mencapai berat target.</Text>
+      <Text style={styles.note}>{t("plan.targetDate.hint")}</Text>
     </Sheet>
   );
 }

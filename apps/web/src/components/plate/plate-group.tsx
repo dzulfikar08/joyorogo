@@ -6,11 +6,12 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarIcon, Pencil, Utensils } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { MEAL_EDIT_LABELS, jakartaToday, relativeDayLabel, shiftDate } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
-import { dateKeyToUtcDate, parseIdrInput, recentDayLabel } from "@joyorogo/api/lib/format";
+import { dateKeyToUtcDate, parseIdrInput } from "@joyorogo/api/lib/format";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { Chip } from "@/components/chip";
@@ -20,7 +21,7 @@ import { IdrInput } from "@/components/plate/idr-input";
 import { MealSlotField } from "@/components/plate/meal-slot-field";
 import { StickerHero } from "@/components/sticker";
 import { fmtRupiah } from "@/lib/app-config";
-import { fmtDateIndo, fmtInt } from "@/lib/format";
+import { fmtDateLong, fmtInt, fmtKcalLabel } from "@/lib/format";
 import { insertFoodRow, stripFoodRow, useOptimisticMutation } from "@/lib/optimistic";
 import type { FoodListData } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
@@ -72,6 +73,7 @@ export function CalendarSheet({
   onPick: (date: string) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation(["makan", "common"]);
   const today = jakartaToday();
   // Manual key parse: `new Date("2026-10-14")` is unreliable off-browser.
   const selected = dateKeyToUtcDate(value) ?? new Date();
@@ -81,8 +83,8 @@ export function CalendarSheet({
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      title="Pilih tanggal"
-      description={`Antara ${fmtDateIndo(shiftDate(today, -30))} dan hari ini.`}
+      title={t("plate.calendar.title")}
+      description={t("plate.calendar.range", { from: fmtDateLong(shiftDate(today, -30)) })}
     >
       <Calendar
         mode="single"
@@ -121,6 +123,7 @@ export function PlateDiary<T extends Item & FoodRowFields>({
   /** Secondary actions (Favorit) shown inside the plate edit sheet. */
   plateAction?: (plate: PlateRow, rows: T[]) => ReactNode;
 }) {
+  const { t } = useTranslation(["makan", "common"]);
   const plates = useQuery(orpc.plate.byDate.queryOptions({ input: { date } }));
   const byId = new Map((plates.data ?? []).map((plate) => [plate.id, plate]));
   const [editing, setEditing] = useState<string | null>(null);
@@ -151,7 +154,7 @@ export function PlateDiary<T extends Item & FoodRowFields>({
                 <div className="flex items-center gap-2">
                   <Utensils className="size-4 shrink-0 text-makan-ink" aria-hidden />
                   <span className="inline-flex min-w-0 flex-1 items-center gap-x-1.5 truncate font-semibold">
-                    <span className="truncate">Piring: {plate.name}</span>
+                    <span className="truncate">{t("plate.header.title", { name: plate.name })}</span>
                     {plate.place && (
                       <>
                         <span
@@ -165,12 +168,12 @@ export function PlateDiary<T extends Item & FoodRowFields>({
                     )}
                   </span>
                   <span className="shrink-0 font-bold tabular-nums">
-                    {plate.priceIdr != null ? fmtRupiah(plate.priceIdr) : "Tanpa harga"}
+                    {plate.priceIdr != null ? fmtRupiah(plate.priceIdr) : t("plate.header.noPrice")}
                   </span>
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`Ubah harga ${plate.name}`}
+                    aria-label={t("plate.header.editPrice", { name: plate.name })}
                     onClick={() => setEditing(plate.id)}
                     className="text-muted-foreground"
                   >
@@ -178,7 +181,7 @@ export function PlateDiary<T extends Item & FoodRowFields>({
                   </Button>
                 </div>
                 <p className="flex flex-wrap items-center gap-x-3 text-xs font-semibold text-muted-foreground">
-                  <span className="tabular-nums">{fmtInt(totalKcal)} kcal</span>
+                  <span className="tabular-nums">{fmtKcalLabel(totalKcal)}</span>
                   <MacroLine
                     protein={totalProtein}
                     carbs={totalCarbs}
@@ -222,6 +225,7 @@ function PlateEditSheet({
   onClose: () => void;
   action?: ReactNode;
 }) {
+  const { t } = useTranslation(["makan", "common"]);
   const [name, setName] = useState(plate.name);
   const [place, setPlace] = useState(plate.place ?? "");
   const [price, setPrice] = useState(plate.priceIdr != null ? String(plate.priceIdr) : "");
@@ -327,18 +331,18 @@ function PlateEditSheet({
       };
       if (input.date && input.date !== plate.date) {
         return {
-          message: `Dipindah ke ${relativeDayLabel(input.date, jakartaToday())}`,
+          message: t("plate.toast.movedDay", { date: relativeDayLabel(input.date, jakartaToday()) }),
           undo: () => void client.plate.update({ ...restore, date: plate.date }),
         };
       }
       if (input.meal && input.meal !== plate.meal) {
         return {
-          message: `Dipindah ke ${MEAL_EDIT_LABELS[input.meal]}`,
+          message: t("plate.toast.movedSlot", { meal: MEAL_EDIT_LABELS[input.meal] }),
           undo: () => void client.plate.update(restore),
         };
       }
       return {
-        message: "Piring diperbarui",
+        message: t("plate.toast.updated"),
         undo: () => void client.plate.update(restore),
       };
     },
@@ -347,7 +351,7 @@ function PlateEditSheet({
   const submit = () => {
     const priceNum = parseIdrInput(price);
     if (price.trim() !== "" && priceNum === null) {
-      toast.error("Harga belum valid.");
+      toast.error(t("plate.edit.invalidPrice"));
       return;
     }
     update.mutate({
@@ -362,7 +366,7 @@ function PlateEditSheet({
 
   return (
     <>
-      <Sheet open onOpenChange={(open) => !open && onClose()} title="Ubah piring">
+      <Sheet open onOpenChange={(open) => !open && onClose()} title={t("plate.edit.title")}>
         <form
           className="space-y-4"
           onSubmit={(event) => {
@@ -376,34 +380,34 @@ function PlateEditSheet({
             name={plate.name}
           />
           <div>
-            <FieldLabel htmlFor="plate-name">Nama piring</FieldLabel>
+            <FieldLabel htmlFor="plate-name">{t("plate.edit.name")}</FieldLabel>
             <Input
               id="plate-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Nasi padang"
+              placeholder={t("plate.edit.namePlaceholder")}
             />
           </div>
           <div>
-            <FieldLabel htmlFor="plate-place">Tempat (opsional)</FieldLabel>
+            <FieldLabel htmlFor="plate-place">{t("plate.edit.place")}</FieldLabel>
             <Input
               id="plate-place"
               value={place}
               onChange={(event) => setPlace(event.target.value)}
-              placeholder="RM Sederhana"
+              placeholder={t("plate.edit.placePlaceholder")}
             />
           </div>
           <div>
-            <FieldLabel htmlFor="plate-price">Harga sepiring (Rp)</FieldLabel>
+            <FieldLabel htmlFor="plate-price">{t("plate.edit.price")}</FieldLabel>
             <IdrInput
               id="plate-price"
               value={price}
               onChange={setPrice}
-              placeholder="mis. 28.000"
+              placeholder={t("plate.edit.pricePlaceholder", { example: fmtInt(28000) })}
             />
           </div>
           <div>
-            <FieldLabel htmlFor="plate-date">Dicatat pada</FieldLabel>
+            <FieldLabel htmlFor="plate-date">{t("plate.edit.loggedOn")}</FieldLabel>
             <div className="mt-1.5 space-y-2">
               <DayChips value={date} onChange={setDate} />
               <Button
@@ -411,16 +415,18 @@ function PlateEditSheet({
                 variant={dateChanged ? "secondary" : "outline"}
                 size="sm"
                 aria-expanded={pickingDate}
-                aria-label={`Pilih tanggal, terpilih ${recentDayLabel(date, jakartaToday())}`}
+                aria-label={t("plate.edit.pickDate", {
+                  date: relativeDayLabel(date, jakartaToday()),
+                })}
                 onClick={() => setPickingDate(true)}
               >
                 <CalendarIcon aria-hidden />
-                {recentDayLabel(date, jakartaToday())}
+                {relativeDayLabel(date, jakartaToday())}
               </Button>
               <p className="text-xs text-muted-foreground">
                 {dateChanged
-                  ? `Akan dipindah ke ${fmtDateIndo(date)} beserta ${rows.length} catatannya.`
-                  : "Pindahkan piring ini ke hari lain bila salah hari."}
+                  ? t("plate.edit.movedHint", { date: fmtDateLong(date), count: rows.length })
+                  : t("plate.edit.dateHint")}
               </p>
             </div>
           </div>
@@ -431,12 +437,19 @@ function PlateEditSheet({
             onChange={setMeal}
             hint={
               mealChanged
-                ? `Piring dan ${rows.length} catatannya dipindah ke ${MEAL_EDIT_LABELS[meal]}.`
-                : "Pindahkan piring ini bila salah waktu makan."
+                ? t("plate.edit.slotMovedHint", {
+                    meal: MEAL_EDIT_LABELS[meal],
+                    count: rows.length,
+                  })
+                : t("plate.edit.slotHint")
             }
           />
           <Button type="submit" className="w-full" disabled={update.isPending}>
-            {update.isPending ? "Menyimpan..." : dateChanged || mealChanged ? "Pindahkan" : "Simpan"}
+            {update.isPending
+              ? t("plate.edit.saving")
+              : dateChanged || mealChanged
+                ? t("plate.edit.move")
+                : t("common:actions.save")}
           </Button>
           {action}
         </form>

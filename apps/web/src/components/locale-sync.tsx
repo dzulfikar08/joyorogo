@@ -1,0 +1,30 @@
+import { i18n, isLocale } from "@joyorogo/i18n";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+
+import { setLocale, storedLocale } from "@/lib/i18n";
+import { orpc } from "@/utils/orpc";
+
+/**
+ * Reconciles the device language with the account once signed in: the saved
+ * profile choice wins and is applied here; with none saved, a choice made on
+ * this device before login (or before onboarding created the profile) is
+ * uploaded. Mounted in the signed-in shell only.
+ */
+export function LocaleSync() {
+  const profile = useQuery(orpc.profile.myProfile.queryOptions());
+  const save = useMutation(orpc.profile.setLocale.mutationOptions());
+  const row = profile.data?.profile;
+
+  useEffect(() => {
+    if (!row) return;
+    if (isLocale(row.locale)) {
+      if (row.locale !== i18n.language) void setLocale(row.locale);
+      return;
+    }
+    const device = storedLocale();
+    if (device && save.isIdle) save.mutate({ locale: device });
+  }, [row, save]);
+
+  return null;
+}

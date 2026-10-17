@@ -1,0 +1,28 @@
+{
+  "social": {
+    "kudos": "{{name}} sent you encouragement",
+    "comment": "{{name}} commented on your post"
+  },
+  "fasting": {
+    "open": {
+      "title": "Your eating window is open",
+      "body": "Time for your first meal. {{kcal}} kcal left for today."
+    },
+    "meal": {
+      "title": "Time for your {{meal}}",
+      "body": "{{Meal}} at {{time}}. {{kcal}} kcal left in this window."
+    },
+    "lastMeal": {
+      "body": "Your window closes in 30 minutes. {{kcal}} kcal left in this window."
+    },
+    "close30": {
+      "title": "Your window closes in 30 minutes",
+      "body": "You still have {{kcal}} kcal to use. Eat now or save it for tomorrow."
+    },
+    "mealKind": {
+      "buka": "First meal",
+      "camilan": "Snack",
+      "terakhir": "Last meal"
+    }
+  }
+}

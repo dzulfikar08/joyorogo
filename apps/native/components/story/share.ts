@@ -6,6 +6,7 @@ import { ENV } from "../../src/env";
 import { shareUrl } from "../../src/lib/share-links";
 import type { StorySpec, StoryTemplate } from "./story-card";
 import { challengeShareText } from "@joyorogo/api/lib/challenge";
+import { fmtNumber, i18n } from "@joyorogo/i18n";
 
 /**
  * Single place that knows how Instagram Stories direct sharing works. The
@@ -31,8 +32,6 @@ export function isShareCancel(error: unknown): boolean {
   return /cancel|User did not share|does not respond/i.test(message);
 }
 
-const idFmt = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
-
 /**
  * Caption that travels with the story PNG: casual copy per card kind plus a
  * tracked link back to the site. Mirror of defaultShareText on web.
@@ -43,21 +42,29 @@ export function storyShareText(story: StorySpec): string {
 
 function storyShareBody(story: StorySpec): string {
   if (story.kind === "meal") {
-    return `${story.name}, ${idFmt.format(Math.round(story.kcal))} kcal. Tahu boleh makan apa hari ini? Cek JoyoRogo.`;
+    return i18n.t("makan:story.card.share.meal", {
+      name: story.name,
+      kcal: fmtNumber(Math.round(story.kcal), 1),
+    });
   }
   if (story.kind === "workout") {
-    return `Baru selesai latihan: ${story.name}. Catat latihanmu di JoyoRogo.`;
+    return i18n.t("makan:story.card.share.workout", { name: story.name });
   }
   if (story.kind === "recap") {
-    return `Rekapku ${story.name}: ${story.daysOnTarget} dari ${story.loggedDays} hari sesuai target, rata-rata ${idFmt.format(story.avgKcal)} kcal per hari. Catat makanmu di JoyoRogo.`;
+    return i18n.t("makan:story.card.share.recap", {
+      name: story.name,
+      on: story.daysOnTarget,
+      logged: story.loggedDays,
+      avg: fmtNumber(story.avgKcal, 1),
+    });
   }
   if (story.kind === "challenge") {
     return challengeShareText(story);
   }
   const lost = story.weightLostKg ?? 0;
   return lost > 0
-    ? `Sudah turun ${idFmt.format(lost)} kg. Turun berat pakai 3 angka aja di JoyoRogo.`
-    : "Turun berat pakai 3 angka aja: makan, bakar, tidur. JoyoRogo.";
+    ? i18n.t("makan:story.card.share.lost", { kg: fmtNumber(lost, 1) })
+    : i18n.t("makan:story.card.share.progress");
 }
 
 /**

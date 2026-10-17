@@ -4,6 +4,9 @@ import { and, eq, gt, isNotNull, lte, or, sql } from "drizzle-orm";
 import { emailLog, googlePurchase, payment } from "@joyorogo/db/schema/billing";
 import { user } from "@joyorogo/db/schema/auth";
 import type { Database } from "@joyorogo/db";
+import { DEFAULT_LOCALE, fmtIdr, getT } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+import { userLocale } from "@joyorogo/api/lib/messages";
 
 /** Worker vars email needs; all optional so self-hosts run without email. */
 export type EmailEnv = {
@@ -26,11 +29,11 @@ const GREEN = "#16a34a";
 const INK = "#1f2937";
 const MUTED = "#6b7280";
 
-const formatIdr = (idr: number) => `Rp${idr.toLocaleString("id-ID")}`;
+const INTL_TAG: Record<Locale, string> = { id: "id-ID", en: "en-US" };
 
-/** '2026-10-13' style WIB date for a period end. */
-export function formatWibDate(date: Date): string {
-  return new Intl.DateTimeFormat("id-ID", {
+/** "13 Oktober 2026" / "October 13, 2026": the WIB calendar day of a period end. */
+export function formatWibDate(date: Date, locale: Locale = DEFAULT_LOCALE): string {
+  return new Intl.DateTimeFormat(INTL_TAG[locale], {
     timeZone: "Asia/Jakarta",
     day: "numeric",
     month: "long",
@@ -83,14 +86,14 @@ async function claimEmail(
 }
 
 /** Mobile-friendly shell: one column, inline styles, brand green, no images. */
-function shell(title: string, bodyHtml: string): string {
-  return `<!doctype html><html lang="id"><body style="margin:0;padding:24px 12px;background:#f3f4f6;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:${INK};">
+function shell(title: string, bodyHtml: string, locale: Locale): string {
+  return `<!doctype html><html lang="${locale}"><body style="margin:0;padding:24px 12px;background:#f3f4f6;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:${INK};">
 <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:28px 24px;">
 <p style="margin:0 0 16px;font-size:15px;font-weight:700;color:${GREEN};">JoyoRogo</p>
 <h1 style="margin:0 0 16px;font-size:19px;line-height:1.4;">${title}</h1>
 ${bodyHtml}
 </div>
-<p style="max-width:520px;margin:12px auto 0;font-size:12px;color:${MUTED};text-align:center;">JoyoRogo — asisten gizi keluarga</p>
+<p style="max-width:520px;margin:12px auto 0;font-size:12px;color:${MUTED};text-align:center;">${getT(locale, "email")("shell.footer")}</p>
 </body></html>`;
 }
 
@@ -106,28 +109,38 @@ type ReceiptInfo = {
   founderDailyCap: number | null;
 };
 
-function receiptDraft(info: ReceiptInfo): Draft {
-  const planLabel = info.plan === "yearly" ? "tahunan" : "bulanan";
-  const cap =
-    info.founderDailyCap === null
-      ? "scan AI tanpa batas harian"
-      : `hingga ${info.founderDailyCap} scan AI per hari`;
+const HOME_URL = "https://joyorogo.com/beranda";
+const RENEW_URL = "https://joyorogo.com/pro?from=profile&next=/profil";
+
+/** `<b>` in the HTML part, plain in the text part: one string serves both. */
+const bold = (html: boolean) => (value: string) => (html ? `<b>${value}</b>` : value);
+
+function receiptDraft(info: ReceiptInfo, locale: Locale): Draft {
+  const t = getT(locale, "email");
+  const part = (html: boolean) => {
+    const b = bold(html);
+    return {
+      intro: t("receipt.intro", {
+        name: info.name,
+        amount: b(fmtIdr(info.amountIdr, locale)),
+        plan: b(t(`plan.${info.plan}`)),
+      }),
+      active: t("receipt.active", { until: b(formatWibDate(info.founderUntil, locale)) }),
+      cap:
+        info.founderDailyCap === null
+          ? t("receipt.capUnlimited")
+          : t("receipt.capLimited", { count: info.founderDailyCap }),
+    };
+  };
+  const h = part(true);
   const html = shell(
-    "Terima kasih sudah jadi Pro!",
-    p(`Halo ${info.name}, pembayaran <b>${formatIdr(info.amountIdr)}</b> untuk langganan Pro <b>${planLabel}</b> sudah kami terima.`) +
-      p(`Status Pro kamu aktif sampai <b>${formatWibDate(info.founderUntil)}</b> (WIB).`) +
-      p(`Selama jadi Pro kamu bisa scan makanan ${cap}.`) +
-      button("https://joyorogo.com/beranda", "Mulai scan"),
+    t("receipt.title"),
+    p(h.intro) + p(h.active) + p(h.cap) + button(HOME_URL, t("receipt.cta")),
+    locale,
   );
-  const text = [
-    `Halo ${info.name}, terima kasih! Pembayaran ${formatIdr(info.amountIdr)} untuk langganan Pro ${planLabel} sudah kami terima.`,
-    `Status Pro kamu aktif sampai ${formatWibDate(info.founderUntil)} (WIB).`,
-    info.founderDailyCap === null
-      ? "Selama jadi Pro kamu bisa scan makanan tanpa batas harian."
-      : `Selama jadi Pro kamu bisa scan makanan hingga ${info.founderDailyCap} scan AI per hari.`,
-    "Buka https://joyorogo.com/beranda untuk mulai scan.",
-  ].join("\n\n");
-  return { to: "", subject: "Pembayaran Pro JoyoRogo diterima", html, text };
+  const x = part(false);
+  const text = [x.intro, x.active, x.cap, t("receipt.textLink", { url: HOME_URL })].join("\n\n");
+  return { to: "", subject: t("receipt.subject"), html, text };
 }
 
 type PaidOrderInfo = {
@@ -144,7 +157,7 @@ function adminDraft(info: PaidOrderInfo): Draft {
   const planLabel = info.months >= 12 ? "tahunan" : "bulanan";
   const rows: [string, string][] = [
     ["Pembeli", `${info.name} (${info.email})`],
-    ["Jumlah", formatIdr(info.amountIdr)],
+    ["Jumlah", fmtIdr(info.amountIdr, "id")],
     ["Paket", `Pro ${planLabel}`],
     ["Gateway", info.gateway],
     ["Order", info.orderId],
@@ -159,13 +172,14 @@ function adminDraft(info: PaidOrderInfo): Draft {
       )
       .join("")}</table>` +
       button("https://admin.joyorogo.com/#orders", "Lihat pesanan"),
+    "id",
   );
   const text = [
     "Pembayaran Pro masuk:",
     ...rows.map(([k, v]) => `${k}: ${v}`),
     "https://admin.joyorogo.com/#orders",
   ].join("\n");
-  return { to: "", subject: `Pro baru: ${formatIdr(info.amountIdr)} — ${info.name}`, html, text };
+  return { to: "", subject: `Pro baru: ${fmtIdr(info.amountIdr, "id")} — ${info.name}`, html, text };
 }
 
 /**
@@ -201,7 +215,8 @@ export async function sendOrderEmails(
       founderUntil: row.founderUntil ?? new Date(),
       founderDailyCap: config.founderDailyCap,
     };
-    await sendEmail(env, { ...receiptDraft(info), to: row.email });
+    const locale = await userLocale(db, order.userId);
+    await sendEmail(env, { ...receiptDraft(info, locale), to: row.email });
   }
 
   const admins = (env.ADMIN_EMAILS ?? "")
@@ -234,41 +249,40 @@ async function lockedMonthlyIdr(db: Database, userId: string): Promise<number | 
   return row?.lowest ?? null;
 }
 
-function endingDraft(name: string, until: Date, locked: number | null): Draft {
-  const price = locked === null ? "" : ` Harga terkunci kamu masih ${formatIdr(Math.round(locked))}/bulan.`;
+function endingDraft(name: string, until: Date, locked: number | null, locale: Locale): Draft {
+  const t = getT(locale, "email");
+  const part = (html: boolean) => {
+    const b = bold(html);
+    const price =
+      locked === null
+        ? ""
+        : ` ${t("ending.lockedPrice", { price: fmtIdr(Math.round(locked), locale) })}`;
+    return {
+      intro: t("ending.intro", { name, until: b(formatWibDate(until, locale)) }),
+      renew: `${t("ending.renew")}${price}`,
+    };
+  };
+  const h = part(true);
   const html = shell(
-    `Pro kamu berakhir ${formatWibDate(until)}`,
-    p(`Halo ${name}, masa Pro kamu akan berakhir pada <b>${formatWibDate(until)}</b> (WIB).`) +
-      p(`Perpanjang sekarang biar scan gizi harianmu tidak berhenti.${price}`) +
-      button(
-        "https://joyorogo.com/pro?from=profile&next=/profil",
-        "Perpanjang Pro",
-      ),
+    t("ending.subject", { until: formatWibDate(until, locale) }),
+    p(h.intro) + p(h.renew) + button(RENEW_URL, t("ending.cta")),
+    locale,
   );
-  const text = [
-    `Halo ${name}, masa Pro kamu berakhir ${formatWibDate(until)} (WIB).`,
-    `Perpanjang sekarang biar scan gizi harianmu tidak berhenti.${price}`,
-    "https://joyorogo.com/pro?from=profile&next=/profil",
-  ].join("\n\n");
-  return { to: "", subject: `Pro kamu berakhir ${formatWibDate(until)}`, html, text };
+  const x = part(false);
+  const text = [x.intro, x.renew, RENEW_URL].join("\n\n");
+  return { to: "", subject: t("ending.subject", { until: formatWibDate(until, locale) }), html, text };
 }
 
-function expiredDraft(name: string): Draft {
+function expiredDraft(name: string, locale: Locale): Draft {
+  const t = getT(locale, "email");
+  const intro = t("expired.intro", { name });
   const html = shell(
-    "Pro kamu sudah berakhir",
-    p(`Halo ${name}, masa Pro kamu sudah berakhir, jadi scan gizi harian kembali ke batas pengguna gratis.`) +
-      p("Aktifkan lagi Pro kapan saja untuk lanjut scan tanpa khawatir.") +
-      button(
-        "https://joyorogo.com/pro?from=profile&next=/profil",
-        "Aktifkan Pro",
-      ),
+    t("expired.subject"),
+    p(intro) + p(t("expired.reactivate")) + button(RENEW_URL, t("expired.cta")),
+    locale,
   );
-  const text = [
-    `Halo ${name}, masa Pro kamu sudah berakhir, jadi scan gizi harian kembali ke batas pengguna gratis.`,
-    "Aktifkan lagi Pro kapan saja untuk lanjut scan tanpa khawatir.",
-    "https://joyorogo.com/pro?from=profile&next=/profil",
-  ].join("\n\n");
-  return { to: "", subject: "Pro kamu sudah berakhir", html, text };
+  const text = [intro, t("expired.reactivate"), RENEW_URL].join("\n\n");
+  return { to: "", subject: t("expired.subject"), html, text };
 }
 
 /**
@@ -316,9 +330,10 @@ export async function runFounderEmails(env: EmailEnv, db: Database): Promise<voi
     const kind = expired ? ("founder_expired" as const) : ("founder_ending" as const);
     if (!(await claimEmail(db, row.id, kind, `${row.id}:${untilMs}`))) continue;
     const locked = expired ? null : await lockedMonthlyIdr(db, row.id);
+    const locale = await userLocale(db, row.id);
     const draft = expired
-      ? expiredDraft(row.name)
-      : endingDraft(row.name, new Date(untilMs), locked);
+      ? expiredDraft(row.name, locale)
+      : endingDraft(row.name, new Date(untilMs), locked, locale);
     await sendEmail(env, { ...draft, to: row.email });
     if (++sends >= 50) break;
   }

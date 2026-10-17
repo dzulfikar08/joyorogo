@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView, useWindowDimensions, View } from "react-native";
 import Svg, { Defs, Pattern, Rect } from "react-native-svg";
 import { captureRef } from "react-native-view-shot";
@@ -70,12 +71,14 @@ function StickerBackdrop() {
  */
 export function ShareStoryButton({
   story,
-  label = "Bagikan ke Story",
+  label: labelProp,
   variant = "primary",
   size,
   disabled,
   style,
 }: ShareStoryButtonProps) {
+  const { t } = useTranslation(["makan", "common"]);
+  const label = labelProp ?? t("story.share.shareToStory");
   const cardRefs = useRef<Partial<Record<StoryTemplate, View | null>>>({});
   const scrollRef = useRef<ScrollView>(null);
   const [open, setOpen] = useState(false);
@@ -83,7 +86,7 @@ export function ShareStoryButton({
   const [active, setActive] = useState(0);
   const [busy, setBusy] = useState(false);
   const [captureFailed, setCaptureFailed] = useState(false);
-  // Bumped by "Coba lagi" after a photo failure; remounts the cards so the image reloads.
+  // Bumped by the retry button after a photo failure; remounts the cards so the image reloads.
   const [attempt, setAttempt] = useState(0);
   const [photoStatus, setPhotoStatus] = useState<Record<string, StoryPhotoStatus>>({});
   const toast = useToast();
@@ -164,7 +167,7 @@ export function ShareStoryButton({
       setOpen(false);
     } catch (error) {
       if (!isShareCancel(error)) {
-        toast.error("Gagal membagikan", "Coba lagi sebentar ya.");
+        toast.error(t("story.share.shareFailedTitle"), t("story.share.shareFailedBody"));
       }
     } finally {
       setBusy(false);
@@ -173,14 +176,14 @@ export function ShareStoryButton({
 
   const failure = photoFailed
     ? {
-        title: "Foto gagal dimuat",
-        text: "Cek koneksimu atau pilih foto lain, lalu coba lagi.",
+        title: t("story.share.photoFailedTitle"),
+        text: t("story.share.photoFailedBody"),
         retry: () => setAttempt((count) => count + 1),
       }
     : captureFailed
       ? {
-          title: "Gambar story belum jadi",
-          text: "Pratinjau aman, tapi gambarnya gagal dibuat. Coba lagi ya.",
+          title: t("story.share.captureFailedTitle"),
+          text: t("story.share.captureFailedBody"),
           retry: () => void share(),
         }
       : null;
@@ -204,10 +207,10 @@ export function ShareStoryButton({
       <Sheet
         visible={open}
         onClose={() => setOpen(false)}
-        title="Bagikan ke Story"
+        title={t("story.share.shareToStory")}
         footer={
           <Button
-            label={busy ? "Menyiapkan…" : "Bagikan"}
+            label={busy ? t("story.share.preparing") : t("story.share.share")}
             icon="share-outline"
             loading={busy}
             disabled={!activeReady || photoFailed}
@@ -219,7 +222,7 @@ export function ShareStoryButton({
           <Segmented
             options={templates.map((candidate) => ({
               value: candidate.id,
-              label: candidate.label,
+              label: t(`story.card.template.${candidate.id}.label`),
             }))}
             value={activeTemplate.id}
             onChange={(id) => goTo(templates.findIndex((candidate) => candidate.id === id))}
@@ -283,7 +286,9 @@ export function ShareStoryButton({
           </ScrollView>
         </View>
 
-        {activeTemplate ? <Text style={styles.hint}>{activeTemplate.hint}</Text> : null}
+        {activeTemplate ? (
+          <Text style={styles.hint}>{t(`story.card.template.${activeTemplate.id}.hint`)}</Text>
+        ) : null}
 
         {failure ? (
           <View style={styles.errorBox} accessibilityRole="alert">
@@ -296,7 +301,7 @@ export function ShareStoryButton({
               <Button
                 variant="secondary"
                 size="sm"
-                label="Coba lagi"
+                label={t("common:actions.retry")}
                 icon="refresh"
                 onPress={failure.retry}
                 style={styles.errorRetry}
@@ -309,7 +314,7 @@ export function ShareStoryButton({
           <Button
             variant="ghost"
             size="sm"
-            label={effectivePhoto ? "Ganti foto" : "Pakai fotoku"}
+            label={effectivePhoto ? t("story.share.changePhoto") : t("story.share.usePhoto")}
             icon="images-outline"
             onPress={() => void pickPhoto()}
           />

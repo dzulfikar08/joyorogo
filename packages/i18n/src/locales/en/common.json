@@ -1,0 +1,123 @@
+{
+  "date": {
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "time": {
+    "justNow": "just now",
+    "minutesAgo_one": "{{count}} minute ago",
+    "minutesAgo_other": "{{count}} minutes ago",
+    "hoursAgo_one": "{{count}} hour ago",
+    "hoursAgo_other": "{{count}} hours ago",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago"
+  },
+  "meal": {
+    "label": {
+      "sarapan": "Breakfast",
+      "makan_siang": "Lunch",
+      "makan_malam": "Dinner",
+      "snack": "Snack",
+      "sahur": "Suhoor",
+      "berbuka": "Iftar"
+    },
+    "editLabel": {
+      "sarapan": "Breakfast",
+      "makan_siang": "Lunch",
+      "makan_malam": "Dinner",
+      "snack": "Snack",
+      "sahur": "Suhoor",
+      "berbuka": "Iftar"
+    }
+  },
+  "activity": {
+    "low": "Mostly sitting",
+    "mid": "Moderately active",
+    "high": "Very active"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "retry": "Try again",
+    "done": "Done",
+    "add": "Add",
+    "undo": "Undo"
+  },
+  "state": {
+    "loading": "Loading…",
+    "genericError": "Something went wrong. Please try again."
+  },
+  "toast": {
+    "deleted": "{{name}} deleted",
+    "entryFallback": "Entry"
+  },
+  "nav": {
+    "home": "Home",
+    "food": "Food",
+    "feed": "Feed",
+    "more": "More",
+    "camera": "Scan a meal with AI",
+    "photo": "Scan a meal",
+    "exercise": "Exercise",
+    "weight": "Weight",
+    "sleep": "Sleep",
+    "primary": "Main navigation",
+    "title": {
+      "scan": "Scan a Meal",
+      "barcode": "Scan Barcode",
+      "pro": "Pro",
+      "inbox": "Inbox",
+      "tips": "Tips",
+      "post": "Post",
+      "notifications": "Notifications",
+      "profile": "Profile"
+    }
+  },
+  "errorScreen": {
+    "updateTitle": "A new version is available",
+    "updateBody": "JoyoRogo was just updated. Reload the app to get the latest version.",
+    "crashTitle": "Oops, something broke",
+    "crashBody": "Something went wrong on our side. Don't worry, your data is safe. Please try again.",
+    "reload": "Reload the app"
+  },
+  "more": {
+    "title": "More",
+    "subtitleWeb": "Profile, groups, and more.",
+    "subtitleNative": "Account, groups, and notifications.",
+    "loading": "Loading menu",
+    "fallbackNameWeb": "Profile",
+    "fallbackNameNative": "JoyoRogo user",
+    "weight": {
+      "title": "Weight",
+      "subtitle": "Body weight, waist, and trends"
+    },
+    "recap": {
+      "title": "Weekly recap",
+      "subtitle": "Your food, exercise, and weight, week by week"
+    },
+    "groups": {
+      "title": "Groups",
+      "subtitleWeb": "Nudges, notes, and belly VAR with friends",
+      "subtitleNative": "Nudges, notes, and belly VAR"
+    },
+    "inbox": {
+      "title": "Inbox",
+      "subtitle": "Nudges and notes for you"
+    },
+    "pricing": {
+      "title": "Pricing",
+      "subtitleWeb": "Plans and daily AI scans",
+      "subtitleNative": "Go Pro and unlock everything"
+    },
+    "upgrade": {
+      "title": "Go Pro",
+      "subtitleUnlimited": "Pro: unlimited AI scans",
+      "subtitleCapped_one": "Pro: {{count}} AI scan per day",
+      "subtitleCapped_other": "Pro: {{count}} AI scans per day"
+    }
+  }
+}

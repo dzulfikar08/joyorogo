@@ -1,8 +1,9 @@
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
 import { Text } from "@/components/ui";
-import { fmtKcal } from "@/utils/format";
+import { fmtInt } from "@/utils/format";
 
 /**
  * One day on a vertical timeline: a dot and a rail down the left edge, the
@@ -20,6 +21,7 @@ export function Timeline({
   trailing?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation("makan");
   return (
     <View style={styles.wrap}>
       <View style={styles.rail} />
@@ -29,7 +31,7 @@ export function Timeline({
           {title}
         </Text>
         <View style={styles.pill}>
-          <Text style={styles.pillText}>{fmtKcal(count)} catatan</Text>
+          <Text style={styles.pillText}>{t("timeline.entries", { count, n: fmtInt(count) })}</Text>
         </View>
         {trailing}
       </View>

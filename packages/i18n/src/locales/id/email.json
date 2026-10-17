@@ -1,0 +1,32 @@
+{
+  "shell": {
+    "footer": "JoyoRogo — asisten gizi keluarga"
+  },
+  "plan": {
+    "monthly": "bulanan",
+    "yearly": "tahunan"
+  },
+  "receipt": {
+    "subject": "Pembayaran Pro JoyoRogo diterima",
+    "title": "Terima kasih sudah jadi Pro!",
+    "intro": "Halo {{name}}, pembayaran {{amount}} untuk langganan Pro {{plan}} sudah kami terima.",
+    "active": "Status Pro kamu aktif sampai {{until}} (WIB).",
+    "capUnlimited": "Selama jadi Pro kamu bisa scan makanan tanpa batas harian.",
+    "capLimited_other": "Selama jadi Pro kamu bisa scan makanan hingga {{count}} scan AI per hari.",
+    "cta": "Mulai scan",
+    "textLink": "Buka {{url}} untuk mulai scan."
+  },
+  "ending": {
+    "subject": "Pro kamu berakhir {{until}}",
+    "intro": "Halo {{name}}, masa Pro kamu akan berakhir pada {{until}} (WIB).",
+    "renew": "Perpanjang sekarang biar scan gizi harianmu tidak berhenti.",
+    "lockedPrice": "Harga terkunci kamu masih {{price}}/bulan.",
+    "cta": "Perpanjang Pro"
+  },
+  "expired": {
+    "subject": "Pro kamu sudah berakhir",
+    "intro": "Halo {{name}}, masa Pro kamu sudah berakhir, jadi scan gizi harian kembali ke batas pengguna gratis.",
+    "reactivate": "Aktifkan lagi Pro kapan saja untuk lanjut scan tanpa khawatir.",
+    "cta": "Aktifkan Pro"
+  }
+}

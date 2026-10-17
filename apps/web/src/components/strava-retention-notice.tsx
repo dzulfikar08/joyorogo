@@ -2,9 +2,9 @@ import { Button } from "@joyorogo/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { Clock, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Card } from "@/components/kit/surface";
-import { HEALTH_ALTERNATIVE_TEXT, STRAVA_RETENTION_TEXT } from "@/components/strava-card";
 import { useSession } from "@/lib/auth-client";
 import { orpc } from "@/utils/orpc";
 
@@ -16,6 +16,7 @@ const dismissKey = (userId: string) => `jrg-strava-7d-${userId}`;
  * Penutupan disimpan di perangkat ini per akun, jadi tidak muncul lagi.
  */
 export function StravaRetentionNotice({ className }: { className?: string }) {
+  const { t } = useTranslation(["settings", "common"]);
   const session = useSession();
   const userId = session.data?.user.id ?? null;
   const status = useQuery(orpc.strava.status.queryOptions());
@@ -43,21 +44,25 @@ export function StravaRetentionNotice({ className }: { className?: string }) {
   };
 
   return (
-    <Card className={className} aria-label="Impor Strava disimpan 7 hari">
+    <Card className={className} aria-label={t("strava.retention.noticeTitle")}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <Clock className="size-5 text-bakar" aria-hidden />
-          <h2 className="text-base font-bold">Impor Strava disimpan 7 hari</h2>
+          <h2 className="text-base font-bold">{t("strava.retention.noticeTitle")}</h2>
         </div>
-        <Button variant="ghost" size="icon" aria-label="Tutup" onClick={dismiss}>
+        <Button variant="ghost" size="icon" aria-label={t("common:actions.close")} onClick={dismiss}>
           <X className="size-4" aria-hidden />
         </Button>
       </div>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{STRAVA_RETENTION_TEXT}</p>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{HEALTH_ALTERNATIVE_TEXT}</p>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+        {t("strava.retention.text")}
+      </p>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+        {t("strava.retention.healthAlternative")}
+      </p>
       <div className="mt-3">
         <Button size="sm" className="min-h-11" onClick={dismiss}>
-          Mengerti
+          {t("strava.retention.understood")}
         </Button>
       </div>
     </Card>

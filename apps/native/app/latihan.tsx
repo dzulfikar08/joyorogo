@@ -38,7 +38,7 @@ import {
   type ActiveWorkout,
   type ExerciseType,
 } from "@/lib/workout/active";
-import { errorMessage, fmtDateId, fmtKcal } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtInt } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 type WorkoutStatus = Awaited<ReturnType<AppRouterClient["workout"]["status"]>>;
@@ -95,7 +95,7 @@ function MuscleMap({ status }: { status: WorkoutStatus }) {
             </View>
             <Num style={styles.volumeValue}>
               {muscle.sets > 0
-                ? `${muscle.sets % 1 === 0 ? fmtKcal(muscle.sets) : muscle.sets.toFixed(1)} set`
+                ? `${muscle.sets % 1 === 0 ? fmtInt(muscle.sets) : muscle.sets.toFixed(1)} set`
                 : "–"}
             </Num>
           </View>
@@ -358,9 +358,9 @@ export default function Latihan() {
                       {pr.bestSet
                         ? `Rekor: ${pr.bestSet.reps}× ${
                             pr.bestSet.weightKg != null
-                              ? `${fmtKcal(pr.bestSet.weightKg)} kg`
+                              ? `${fmtInt(pr.bestSet.weightKg)} kg`
                               : "tanpa beban"
-                          }${pr.best1RM ? ` · e1RM ${fmtKcal(pr.best1RM.e1rm ?? 0)} kg` : ""}`
+                          }${pr.best1RM ? ` · e1RM ${fmtInt(pr.best1RM.e1rm ?? 0)} kg` : ""}`
                         : "–"}
                     </Text>
                   </View>
@@ -396,9 +396,9 @@ export default function Latihan() {
                     {item.session.name}
                   </Text>
                   <Text style={styles.prSub} numberOfLines={1}>
-                    {fmtDateId(item.session.date)}
+                    {fmtDateMedium(item.session.date)}
                     {item.session.durationMin != null
-                      ? ` · ${fmtKcal(item.session.durationMin)} menit`
+                      ? ` · ${fmtInt(item.session.durationMin)} menit`
                       : ""}
                     {` · ${item.sets.length} set`}
                   </Text>
@@ -410,9 +410,9 @@ export default function Latihan() {
                     setShareTarget({
                       refId: item.session.id,
                       title: item.session.name,
-                      preview: `${fmtDateId(item.session.date)} · ${item.sets.length} set${
+                      preview: `${fmtDateMedium(item.session.date)} · ${item.sets.length} set${
                         item.session.durationMin != null
-                          ? ` · ${fmtKcal(item.session.durationMin)} menit`
+                          ? ` · ${fmtInt(item.session.durationMin)} menit`
                           : ""
                       }`,
                     })

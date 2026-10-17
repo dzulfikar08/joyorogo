@@ -19,7 +19,7 @@ import { authClient } from "@/lib/auth-client";
 // Must stay named `ENV`: varlock's babel plugin only inlines `ENV.X` reads;
 // anything else hits the runtime proxy, which throws in release builds.
 import { ENV } from "../src/env";
-import { fmtKcal } from "@/utils/format";
+import { fmtInt } from "@/utils/format";
 
 export function stickerUrl(scanId: string): string {
   return `${ENV.EXPO_PUBLIC_SERVER_URL}/sticker/${scanId}`;
@@ -281,7 +281,7 @@ export function StickerViewer({
           )}
           <View style={styles.viewerCaptionRow}>
             <MetaLine
-              items={[viewer?.name ?? null, `${fmtKcal(viewer?.kcal ?? 0)} kcal`]}
+              items={[viewer?.name ?? null, `${fmtInt(viewer?.kcal ?? 0)} kcal`]}
               itemStyle={styles.viewerCaption}
             />
             {viewer?.photoId ? (

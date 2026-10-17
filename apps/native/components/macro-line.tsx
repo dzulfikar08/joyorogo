@@ -2,7 +2,7 @@ import { View, type ViewStyle } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
 import { Text } from "@/components/ui";
-import { fmtKcal } from "@/utils/format";
+import { fmtInt } from "@/utils/format";
 import { MACRO_META, MacroIcon } from "@/utils/macro-icons";
 
 /**
@@ -36,13 +36,13 @@ export function MacroLine({
   return (
     <View
       style={[styles.row, style]}
-      accessibilityLabel={macros.map((m) => `${m.label} ${fmtKcal(m.grams)} g`).join(", ")}
+      accessibilityLabel={macros.map((m) => `${m.label} ${fmtInt(m.grams)} g`).join(", ")}
     >
       {macros.map((macro) => (
         <View key={macro.key} style={styles.item}>
           <MacroIcon macro={macro.key} size={14} />
           <Text style={styles.label}>
-            {compact ? `${fmtKcal(macro.grams)} g` : `${macro.label} ${fmtKcal(macro.grams)} g`}
+            {compact ? `${fmtInt(macro.grams)} g` : `${macro.label} ${fmtInt(macro.grams)} g`}
           </Text>
         </View>
       ))}

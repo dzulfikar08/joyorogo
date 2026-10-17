@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import { trackEvent } from "./analytics";
 import { apiUrl } from "./app-config";
 import type { PaymentMethod } from "./app-config";
+import { fmtDateLong } from "./format";
 
 /** Where the Pro paywall screen was opened from; picks its subhead. */
 export type PaywallFrom = "onboarding" | "quota" | "banner" | "profile" | "fitness" | "challenge" | "joyofit";
@@ -112,12 +113,8 @@ export async function checkOrder(orderId: string): Promise<OrderStatus> {
   return body;
 }
 
-/** "12 November 2026" in WIB. */
+/** "12 November 2026" / "November 12, 2026" in WIB, in the active language. */
 export function fmtFounderDate(value: string | Date): string {
-  return new Date(value).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "Asia/Jakarta",
-  });
+  const wibDay = new Date(new Date(value).getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
+  return fmtDateLong(wibDay).replace(/^\w+, /, "");
 }

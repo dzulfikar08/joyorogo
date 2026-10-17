@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 
 import { fmtHHMM, parseHHMM } from "@joyorogo/api/lib/fasting";
@@ -39,6 +40,7 @@ export function TimePickerSheet({
   value: string;
   onSave: (value: string) => void;
 }) {
+  const { t } = useTranslation(["settings", "common"]);
   const [minutes, setMinutes] = useState(parseHHMM(value) ?? 0);
 
   // Fresh draft per open: an unsaved pick must not leak into the next visit.
@@ -54,13 +56,15 @@ export function TimePickerSheet({
       visible={visible}
       onClose={onClose}
       title={title}
-      footer={<Button label="Simpan" onPress={() => onSave(fmtHHMM(minutes))} />}
+      footer={
+        <Button label={t("common:actions.save")} onPress={() => onSave(fmtHHMM(minutes))} />
+      }
     >
       <View style={styles.readout} accessibilityLiveRegion="polite">
         <Num style={styles.readoutText}>{fmtHHMM(minutes)}</Num>
       </View>
 
-      <Text style={styles.groupLabel}>Jam</Text>
+      <Text style={styles.groupLabel}>{t("reminders.timePicker.hour")}</Text>
       <View style={styles.grid}>
         {HOUR_ROWS.map((row) => (
           <View key={row[0]} style={styles.gridRow}>
@@ -69,7 +73,7 @@ export function TimePickerSheet({
                 key={h}
                 label={pad(h)}
                 selected={h === hour}
-                accessibilityLabel={`Jam ${pad(h)}`}
+                accessibilityLabel={t("reminders.timePicker.hourAria", { value: pad(h) })}
                 onPress={() => setMinutes(h * 60 + minute)}
               />
             ))}
@@ -77,7 +81,7 @@ export function TimePickerSheet({
         ))}
       </View>
 
-      <Text style={styles.groupLabel}>Menit</Text>
+      <Text style={styles.groupLabel}>{t("reminders.timePicker.minute")}</Text>
       <View style={styles.grid}>
         {MINUTE_ROWS.map((row) => (
           <View key={row[0]} style={styles.gridRow}>
@@ -86,7 +90,7 @@ export function TimePickerSheet({
                 key={m}
                 label={pad(m)}
                 selected={m === minute}
-                accessibilityLabel={`Menit ${pad(m)}`}
+                accessibilityLabel={t("reminders.timePicker.minuteAria", { value: pad(m) })}
                 onPress={() => setMinutes(hour * 60 + m)}
               />
             ))}

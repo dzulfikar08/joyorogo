@@ -1,0 +1,7 @@
+{
+  "trend": {
+    "stable": "Weight is steady",
+    "down": "Down {{kg}} kg/week",
+    "up": "Up {{kg}} kg/week"
+  }
+}

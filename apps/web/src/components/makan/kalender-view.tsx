@@ -1,16 +1,18 @@
-import { dayKcalFill, monthLongLabel, shiftMonth } from "@joyorogo/api/lib/diary-view";
+import { dayKcalFill, shiftMonth } from "@joyorogo/api/lib/diary-view";
 import { eatTone, jakartaToday } from "@joyorogo/api/lib/engine";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
-import { dateKeyToUtcDate, shortDayLabel } from "@joyorogo/api/lib/format";
+import { dateKeyToUtcDate } from "@joyorogo/api/lib/format";
+import { fmtDate } from "@joyorogo/i18n";
 import { Calendar } from "@joyorogo/ui/components/calendar";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { createContext, useContext, useMemo, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import { stickerUrl, STICKER_FILTER } from "@/components/sticker";
-import { fmtInt } from "@/lib/format";
+import { fmtInt, fmtKcalLabel } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 
 const RING = 34;
@@ -25,7 +27,7 @@ const TONE_STROKE = {
 } as const;
 const TONE_DOT = { ok: "bg-makan", near: "bg-amber-400", over: "bg-destructive" } as const;
 
-const WEEKDAYS = ["M", "S", "S", "R", "K", "J", "S"] as const;
+const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
 /** Props react-day-picker hands a custom day button (the package is a dep of ui only). */
 type DayButtonProps = Parameters<
@@ -55,6 +57,7 @@ function monthKeyOf(date: Date): string {
 /** One calendar cell: day number, the day's showcase cutout (+N for more
  * items), and a small tone dot for kcal against the budget. */
 function DayCell({ day, modifiers, className, ...props }: DayButtonProps) {
+  const { t } = useTranslation("makan");
   const state = useContext(KalenderContext);
   const [imageFailed, setImageFailed] = useState(false);
   if (!state) throw new Error("DayCell renders inside KalenderView only");
@@ -65,8 +68,12 @@ function DayCell({ day, modifiers, className, ...props }: DayButtonProps) {
   const fill = total ? dayKcalFill(total.kcal, state.targetKcal) : 0;
   const showSticker = total?.scanId && !imageFailed;
   const label = total
-    ? `${shortDayLabel(key)}, ${total.count} catatan, ${fmtInt(total.kcal)} kcal`
-    : `${shortDayLabel(key)}, belum ada catatan`;
+    ? t("calendar.dayWithEntries", {
+        count: total.count,
+        date: fmtDate(key, "weekday"),
+        kcal: fmtKcalLabel(total.kcal),
+      })
+    : t("calendar.dayEmpty", { date: fmtDate(key, "weekday") });
   return (
     <button
       {...props}
@@ -159,6 +166,7 @@ export function KalenderView({
   onSelect: (date: string) => void;
   children?: ReactNode;
 }) {
+  const { t } = useTranslation("makan");
   const today = jakartaToday();
   const [month, setMonth] = useState(date.slice(0, 7));
   const totals = useQuery({
@@ -186,15 +194,16 @@ export function KalenderView({
     <div className="mt-4">
       <div className="flex items-end justify-between gap-3 px-1">
         <div className="min-w-0">
-          <h2 className="text-xl font-extrabold tracking-tight">{monthLongLabel(month)}</h2>
+          <h2 className="text-xl font-extrabold tracking-tight">{fmtDate(`${month}-01`, "month")}</h2>
           <p className="text-sm text-muted-foreground">
-            {fmtInt(records)} catatan · {fmtInt(daysLogged)} hari tercatat
+            {t("monthScrubber.records", { count: records, n: fmtInt(records) })} ·{" "}
+            {t("monthScrubber.daysLogged", { count: daysLogged, n: fmtInt(daysLogged) })}
           </p>
         </div>
         <div className="flex shrink-0 gap-1">
           <button
             type="button"
-            aria-label="Bulan sebelumnya"
+            aria-label={t("calendar.prevMonth")}
             onClick={() => setMonth(shiftMonth(month, -1))}
             className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
           >
@@ -202,7 +211,7 @@ export function KalenderView({
           </button>
           <button
             type="button"
-            aria-label="Bulan berikutnya"
+            aria-label={t("calendar.nextMonth")}
             disabled={!canNext}
             onClick={() => setMonth(shiftMonth(month, 1))}
             className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30"
@@ -212,7 +221,7 @@ export function KalenderView({
         </div>
       </div>
 
-      <section aria-label="Kalender catatan" className="mt-3 rounded-3xl bg-card p-3 pb-4">
+      <section aria-label={t("calendar.label")} className="mt-3 rounded-3xl bg-card p-3 pb-4">
         <KalenderContext.Provider value={state}>
           <Calendar
             timeZone="UTC"
@@ -225,7 +234,8 @@ export function KalenderView({
             endMonth={todayUtc}
             disabled={{ after: todayUtc }}
             formatters={{
-              formatWeekdayName: (weekday) => WEEKDAYS[(weekday.getUTCDay() + 6) % 7] ?? "",
+              formatWeekdayName: (weekday) =>
+                t(`calendar.weekday.${WEEKDAY_KEYS[(weekday.getUTCDay() + 6) % 7] ?? "mon"}`),
             }}
             className="w-full p-0"
             classNames={{
@@ -248,9 +258,11 @@ export function KalenderView({
         </KalenderContext.Provider>
         <p className="mt-3 flex items-center gap-2 px-2 text-sm text-muted-foreground">
           <CalendarDays className="size-4 shrink-0" aria-hidden />
-          {fmtInt(daysLogged)} hari tercatat bulan ini
+          {t("calendar.daysLoggedMonth", { count: daysLogged, n: fmtInt(daysLogged) })}
           {targetKcal !== null && (
-            <span className="ml-auto text-xs">Budget ±{fmtInt(targetKcal)} kcal</span>
+            <span className="ml-auto text-xs">
+              {t("calendar.budget", { kcal: fmtKcalLabel(targetKcal) })}
+            </span>
           )}
         </p>
       </section>

@@ -8,6 +8,7 @@ import {
 
 import { IosInstallBanner } from "@/components/ios-install";
 import BottomNav, { DesktopBar } from "@/components/bottom-nav";
+import { LocaleSync } from "@/components/locale-sync";
 import { sessionQuery, useSession } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/_auth")({
@@ -36,6 +37,7 @@ function AuthLayout() {
   const showNav = pathname !== "/onboarding" && !pathname.includes("/var/");
   return (
     <div className="min-h-svh">
+      <LocaleSync />
       {showNav && <DesktopBar />}
       {showNav && <IosInstallBanner />}
       <main>

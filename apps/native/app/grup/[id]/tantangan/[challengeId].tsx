@@ -26,7 +26,7 @@ import {
   Text,
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtDateId } from "@/utils/format";
+import { errorMessage, fmtDateMedium } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
 export default function ChallengeDetailScreen() {
@@ -121,7 +121,7 @@ export default function ChallengeDetailScreen() {
           <Text style={styles.rule}>{c.rule}</Text>
           <Text style={styles.muted}>{c.source}</Text>
           <Text style={styles.dates}>
-            {fmtDateId(c.startDate)} sampai {fmtDateId(c.endDate)} • {c.durationDays} hari
+            {fmtDateMedium(c.startDate)} sampai {fmtDateMedium(c.endDate)} • {c.durationDays} hari
           </Text>
           {personalTarget !== null ? (
             <Text style={styles.personal}>
@@ -130,7 +130,7 @@ export default function ChallengeDetailScreen() {
           ) : null}
           {countedFrom !== null ? (
             <Text style={styles.muted}>
-              Harimu mulai dihitung dari {fmtDateId(countedFrom)}, saat kamu bergabung.
+              Harimu mulai dihitung dari {fmtDateMedium(countedFrom)}, saat kamu bergabung.
             </Text>
           ) : null}
         </Card>

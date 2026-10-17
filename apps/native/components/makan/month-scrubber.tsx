@@ -1,14 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { monthLongLabel } from "@joyorogo/api/lib/diary-view";
+import { fmtDate } from "@joyorogo/i18n";
 import { jakartaToday } from "@joyorogo/api/lib/engine";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
-import { daysInMonth, shortDayLabel } from "@joyorogo/api/lib/format";
+import { daysInMonth } from "@joyorogo/api/lib/format";
 
 import { Text } from "@/components/ui";
-import { fmtKcal } from "@/utils/format";
+import { fmtInt } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -26,6 +27,7 @@ export function MonthScrubber({
   kind: FoodKindFilter;
   onPick: (date: string) => void;
 }) {
+  const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
   const today = jakartaToday();
   const month = date.slice(0, 7);
@@ -40,9 +42,10 @@ export function MonthScrubber({
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.month}>{monthLongLabel(month)}</Text>
+      <Text style={styles.month}>{fmtDate(`${month}-01`, "month")}</Text>
       <Text style={styles.counts}>
-        {fmtKcal(records)} catatan · {fmtKcal(days.length)} hari tercatat
+        {t("monthScrubber.records", { count: records, n: fmtInt(records) })} ·{" "}
+        {t("monthScrubber.daysLogged", { count: days.length, n: fmtInt(days.length) })}
       </Text>
       <View style={styles.strip} accessibilityRole="toolbar">
         {Array.from({ length: total }, (_, index) => {
@@ -54,7 +57,11 @@ export function MonthScrubber({
             <Pressable
               key={key}
               accessibilityRole="button"
-              accessibilityLabel={`${shortDayLabel(key)}${logged ? ", ada catatan" : ""}`}
+              accessibilityLabel={
+                logged
+                  ? t("monthScrubber.dayWithEntries", { date: fmtDate(key, "weekday") })
+                  : fmtDate(key, "weekday")
+              }
               accessibilityState={{ selected: current, disabled: future }}
               disabled={future}
               onPress={() => onPick(key)}

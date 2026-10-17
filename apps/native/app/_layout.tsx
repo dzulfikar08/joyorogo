@@ -21,15 +21,18 @@ import { DefaultTheme } from "expo-router/build/react-navigation/native/theming/
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { Fragment, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { UnistylesRuntime, useUnistyles } from "react-native-unistyles";
 
 import { authClient } from "@/lib/auth-client";
+import { LocaleSync } from "@/components/locale-sync";
 import { ReminderSync } from "@/components/reminders/reminder-sync";
 import { ToastProvider } from "@/components/toast";
 import { useApkUpdate } from "@/src/lib/apk-update";
+import { loadStoredLocale, setLocale } from "@/src/lib/i18n";
 import { loadThemePref } from "@/src/lib/theme-pref";
 import { orpc, queryClient } from "@/utils/orpc";
 
@@ -43,6 +46,11 @@ export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
+function LocaleKeyed({ children }: { children: React.ReactElement }) {
+  const { i18n } = useTranslation();
+  return <Fragment key={i18n.language}>{children}</Fragment>;
+}
+
 export default function RootLayout() {
   const { theme } = useUnistyles();
   const [fontsLoaded] = useFonts({
@@ -52,6 +60,16 @@ export default function RootLayout() {
     PlusJakartaSans_800ExtraBold,
   });
   const { data: session } = authClient.useSession();
+  const { t } = useTranslation();
+
+  // The device's stored language choice replaces the device-language default
+  // before the first screen renders, so nothing flashes in the wrong language.
+  const [localeReady, setLocaleReady] = useState(false);
+  useEffect(() => {
+    void loadStoredLocale()
+      .then((stored) => (stored ? setLocale(stored, { remember: false }) : undefined))
+      .finally(() => setLocaleReady(true));
+  }, []);
 
   // Restore the persisted override. "system" (or nothing stored) keeps
   // unistyles' adaptiveThemes, which follows the OS color scheme.
@@ -82,7 +100,7 @@ export default function RootLayout() {
   // The result is shown as a card in Profil.
   useApkUpdate();
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !localeReady) {
     return null;
   }
 
@@ -110,10 +128,18 @@ export default function RootLayout() {
               keyboard position, Android edge-to-edge included. */}
           <KeyboardProvider>
           <ToastProvider>
+          <LocaleSync />
           <ReminderSync />
           {/* Follows the app theme (which can override the OS), not the OS. */}
           <StatusBar style={navTheme.dark ? "light" : "dark"} />
           <Stack
+            // Screens remount on a language switch (dates and units read through
+            // the shared format helpers, which have no subscription of their
+            // own); navigation state survives. The tab navigator keeps its own
+            // screens: wrapping it here would reset the selected tab.
+            screenLayout={({ route, children }) =>
+              route.name === "(tabs)" ? children : <LocaleKeyed>{children}</LocaleKeyed>
+            }
             screenOptions={{
               headerStyle: {
                 backgroundColor: theme.colors.background,
@@ -136,21 +162,21 @@ export default function RootLayout() {
             />
             <Stack.Screen
               name="makan-ai"
-              options={{ title: "Foto Makanan", presentation: "modal", headerShown: false }}
+              options={{ title: t("nav.title.scan"), presentation: "modal", headerShown: false }}
             />
             <Stack.Screen
               name="makan-barcode"
-              options={{ title: "Pindai Barcode", presentation: "modal", headerShown: false }}
+              options={{ title: t("nav.title.barcode"), presentation: "modal", headerShown: false }}
             />
             <Stack.Screen
               name="founder"
-              options={{ title: "Pro", presentation: "modal", headerShown: false }}
+              options={{ title: t("nav.title.pro"), presentation: "modal", headerShown: false }}
             />
-            <Stack.Screen name="inbox" options={{ title: "Kotak Masuk" }} />
-            <Stack.Screen name="tips/[slug]" options={{ title: "Tips" }} />
-            <Stack.Screen name="feed/[postId]" options={{ title: "Post" }} />
-            <Stack.Screen name="feed/notifikasi" options={{ title: "Notifikasi" }} />
-            <Stack.Screen name="u/[handle]" options={{ title: "Profil" }} />
+            <Stack.Screen name="inbox" options={{ title: t("nav.title.inbox") }} />
+            <Stack.Screen name="tips/[slug]" options={{ title: t("nav.title.tips") }} />
+            <Stack.Screen name="feed/[postId]" options={{ title: t("nav.title.post") }} />
+            <Stack.Screen name="feed/notifikasi" options={{ title: t("nav.title.notifications") }} />
+            <Stack.Screen name="u/[handle]" options={{ title: t("nav.title.profile") }} />
             <Stack.Screen name="gabung" options={{ headerShown: false }} />
           </Stack>
           </ToastProvider>
@@ -165,6 +191,7 @@ export default function RootLayout() {
 // outside every provider above, so it stays self-contained: no hooks into
 // auth, toast, or the query client.
 export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
+  const { t } = useTranslation();
   const chunkError = /failed to fetch dynamically imported module|loading chunk/i.test(
     error.message,
   );
@@ -174,12 +201,10 @@ export function ErrorBoundary({ error, retry }: { error: Error; retry: () => voi
       <View style={errStyles.content}>
         <Mascot pose="surprised" size="xl" style={errStyles.mascot} />
         <Text style={errStyles.title}>
-          {chunkError ? "Versi baru tersedia" : "Waduh, ada yang error"}
+          {chunkError ? t("errorScreen.updateTitle") : t("errorScreen.crashTitle")}
         </Text>
         <Text style={errStyles.description}>
-          {chunkError
-            ? "JoyoRogo baru saja diperbarui. Muat ulang aplikasi untuk memakai versi terbaru, ya."
-            : "Ada yang salah di sisi kami. Tenang, datamu aman. Coba lagi dulu, yuk."}
+          {chunkError ? t("errorScreen.updateBody") : t("errorScreen.crashBody")}
         </Text>
         <Pressable
           accessibilityRole="button"
@@ -187,7 +212,7 @@ export function ErrorBoundary({ error, retry }: { error: Error; retry: () => voi
           onPress={retry}
         >
           <Text style={errStyles.buttonText}>
-            {chunkError ? "Muat ulang aplikasi" : "Coba lagi"}
+            {chunkError ? t("errorScreen.reload") : t("actions.retry")}
           </Text>
         </Pressable>
         <Text style={errStyles.details} numberOfLines={4}>

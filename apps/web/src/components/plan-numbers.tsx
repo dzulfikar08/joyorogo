@@ -1,4 +1,5 @@
 import { Flame, Moon, Utensils } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import type { TargetNotes, Targets } from "@joyorogo/api/lib/engine";
 import { cn } from "@joyorogo/ui/lib/utils";
@@ -6,15 +7,8 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { StatTile } from "@/components/kit/surface";
 import { fmtInt } from "@/lib/format";
 
-const NOTE_TEXT: Record<TargetNotes, string> = {
-  MAINTENANCE: "Beratmu sudah di rentang sehat; rencananya menjaga berat, bukan menurun.",
-  BELOW_HEALTHY_RANGE:
-    "Target beratmu di bawah rentang berat sehat untuk tinggimu. Pertimbangkan menaikkannya.",
-  PLAN_CLAMPED: "Rencana disesuaikan agar aman, defisit harian dibatasi.",
-  ADAPTIVE: "Target disesuaikan dari data makan + timbanganmu 3 minggu terakhir.",
-};
-
 export function TargetNotesList({ notes }: { notes: TargetNotes[] }) {
+  const { t } = useTranslation("settings");
   if (notes.length === 0) return null;
   return (
     <ul className="space-y-2">
@@ -28,7 +22,7 @@ export function TargetNotesList({ notes }: { notes: TargetNotes[] }) {
               : "bg-muted text-muted-foreground",
           )}
         >
-          {NOTE_TEXT[note]}
+          {t(`plan.note.${note}`)}
         </li>
       ))}
     </ul>
@@ -37,28 +31,29 @@ export function TargetNotesList({ notes }: { notes: TargetNotes[] }) {
 
 /** The three daily numbers as tinted tiles, same language as beranda. */
 export function PlanNumbers({ targets }: { targets: Targets }) {
+  const { t } = useTranslation("settings");
   return (
     <div className="grid grid-cols-3 gap-3">
       <StatTile
         metric="makan"
         icon={<Utensils className="size-[1.125rem]" aria-hidden />}
-        label="Makan"
+        label={t("plan.numbers.eat")}
         value={fmtInt(targets.eatKcal)}
         unit="kcal"
       />
       <StatTile
         metric="bakar"
         icon={<Flame className="size-[1.125rem]" aria-hidden />}
-        label="Bakar"
+        label={t("plan.numbers.burn")}
         value={fmtInt(targets.burnKcal)}
         unit="kcal"
       />
       <StatTile
         metric="tidur"
         icon={<Moon className="size-[1.125rem]" aria-hidden />}
-        label="Tidur"
+        label={t("plan.numbers.sleep")}
         value={fmtInt(targets.sleepHours)}
-        unit="jam"
+        unit={t("plan.numbers.unitHours")}
       />
     </div>
   );

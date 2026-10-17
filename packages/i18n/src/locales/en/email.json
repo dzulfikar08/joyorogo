@@ -1,0 +1,33 @@
+{
+  "shell": {
+    "footer": "JoyoRogo — your family's nutrition assistant"
+  },
+  "plan": {
+    "monthly": "monthly",
+    "yearly": "yearly"
+  },
+  "receipt": {
+    "subject": "Your JoyoRogo Pro payment is confirmed",
+    "title": "Thanks for going Pro!",
+    "intro": "Hi {{name}}, we've received your {{amount}} payment for the {{plan}} Pro plan.",
+    "active": "Your Pro status is active until {{until}} (WIB).",
+    "capUnlimited": "With Pro you can scan meals with no daily limit.",
+    "capLimited_one": "With Pro you can scan up to {{count}} meal a day with AI.",
+    "capLimited_other": "With Pro you can scan up to {{count}} meals a day with AI.",
+    "cta": "Start scanning",
+    "textLink": "Open {{url}} to start scanning."
+  },
+  "ending": {
+    "subject": "Your Pro ends on {{until}}",
+    "intro": "Hi {{name}}, your Pro plan ends on {{until}} (WIB).",
+    "renew": "Renew now so your daily nutrition scans don't stop.",
+    "lockedPrice": "Your locked price is still {{price}}/month.",
+    "cta": "Renew Pro"
+  },
+  "expired": {
+    "subject": "Your Pro has ended",
+    "intro": "Hi {{name}}, your Pro plan has ended, so daily scans are back to the free limit.",
+    "reactivate": "You can turn Pro back on anytime to keep scanning without worrying about the limit.",
+    "cta": "Reactivate Pro"
+  }
+}

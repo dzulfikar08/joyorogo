@@ -1,0 +1,28 @@
+{
+  "social": {
+    "kudos": "{{name}} kasih semangat",
+    "comment": "{{name}} berkomentar"
+  },
+  "fasting": {
+    "open": {
+      "title": "Jendela makan buka",
+      "body": "Saatnya makan pertama. Sisa {{kcal}} kcal untuk hari ini."
+    },
+    "meal": {
+      "title": "Waktunya {{meal}}",
+      "body": "{{Meal}} jam {{time}}. Sisa {{kcal}} kcal di jendela ini."
+    },
+    "lastMeal": {
+      "body": "30 menit lagi jendela tutup. Sisa {{kcal}} kcal di jendela ini."
+    },
+    "close30": {
+      "title": "30 menit lagi jendela tutup",
+      "body": "Sisa {{kcal}} kcal belum terpakai. Isi sekarang atau simpan untuk besok."
+    },
+    "mealKind": {
+      "buka": "Buka puasa",
+      "camilan": "Camilan",
+      "terakhir": "Makan terakhir"
+    }
+  }
+}

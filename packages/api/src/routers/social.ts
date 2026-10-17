@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { user } from "@joyorogo/db/schema/auth";
 import type { Database } from "@joyorogo/db";
+import type { TFunction } from "@joyorogo/i18n";
 import {
   exerciseLog,
   foodLog,
@@ -26,6 +27,7 @@ import {
 import { publicProcedure, protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
 import { base64ToBytes } from "../lib/sticker";
+import { serverT, userLocale } from "../lib/messages";
 import { sendPush } from "../lib/webpush";
 
 // --- Batasan -----------------------------------------------------------------
@@ -205,7 +207,8 @@ function pushFeed(
     waitUntil: (promise: Promise<unknown>) => void;
   },
   toUserId: string,
-  payload: { title: string; body: string },
+  /** Written in the RECIPIENT's language, not the actor's. */
+  payload: (t: TFunction<"push">) => { title: string; body: string },
 ) {
   context.waitUntil(
     (async () => {
@@ -213,9 +216,11 @@ function pushFeed(
         .select()
         .from(pushSubscription)
         .where(eq(pushSubscription.userId, toUserId));
+      if (subs.length === 0) return;
+      const message = payload(serverT(await userLocale(context.db, toUserId), "push"));
       await Promise.all(
         subs.map(async (sub) => {
-          const result = await sendPush(context.env, sub, payload);
+          const result = await sendPush(context.env, sub, message);
           if (result.status === 404 || result.status === 410) {
             await context.db.delete(pushSubscription).where(eq(pushSubscription.id, sub.id));
           }
@@ -267,10 +272,10 @@ async function notifyKudos(
     });
   }
   if (shouldPush) {
-    pushFeed(context, authorId, {
-      title: `${actorName} kasih semangat`,
+    pushFeed(context, authorId, (t) => ({
+      title: t("social.kudos", { name: actorName }),
       body: postTitle,
-    });
+    }));
   }
 }
 
@@ -290,10 +295,10 @@ async function notifyComment(
     postId,
     excerpt: body.slice(0, 120),
   });
-  pushFeed(context, authorId, {
-    title: `${actorName} berkomentar`,
+  pushFeed(context, authorId, (t) => ({
+    title: t("social.comment", { name: actorName }),
     body: body.slice(0, 120),
-  });
+  }));
 }
 
 // --- Mapping baris → output --------------------------------------------------------

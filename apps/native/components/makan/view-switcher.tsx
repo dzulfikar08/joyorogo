@@ -1,6 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { MAKAN_VIEWS } from "@joyorogo/api/lib/diary-view";
 import type { MakanView } from "@joyorogo/api/lib/diary-view";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -25,16 +26,17 @@ export function MakanViewSwitcher({
   value: MakanView;
   onChange: (view: MakanView) => void;
 }) {
+  const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
   return (
-    <View style={styles.rail} accessibilityRole="tablist">
+    <View style={styles.rail} accessibilityRole="tablist" accessibilityLabel={t("viewSwitcher.label")}>
       {MAKAN_VIEWS.map((view) => {
         const active = view.value === value;
         return (
           <Pressable
             key={view.value}
             accessibilityRole="tab"
-            accessibilityLabel={view.label}
+            accessibilityLabel={t(`viewSwitcher.view.${view.value}`)}
             accessibilityState={{ selected: active }}
             onPress={() => onChange(view.value)}
             style={({ pressed }) => [
@@ -49,7 +51,7 @@ export function MakanViewSwitcher({
             />
             {active ? (
               <Text style={styles.label} numberOfLines={1}>
-                {view.label}
+                {t(`viewSwitcher.view.${view.value}`)}
               </Text>
             ) : null}
           </Pressable>

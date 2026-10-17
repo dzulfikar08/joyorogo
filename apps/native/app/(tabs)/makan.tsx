@@ -5,6 +5,7 @@ import { Pressable, ScrollView, View } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { Redirect, router } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { useTranslation } from "react-i18next";
 
 import {
   MEAL_EDIT_LABELS,
@@ -53,13 +54,13 @@ import {
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
-import { errorMessage, fmtDateId, fmtKcal, parseNum } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtInt, parseNum } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import type { QueryKey } from "@tanstack/react-query";
 import { FavoritChips, FavoritManageSheet, useFavorites } from "@/components/favorit";
 import type { SummaryDelta } from "@joyorogo/api/lib/optimistic";
-import { FOOD_KIND_LABELS, foodKind, matchesKind } from "@joyorogo/api/lib/food-kind";
+import { foodKind, matchesKind } from "@joyorogo/api/lib/food-kind";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 import type { MakanView } from "@joyorogo/api/lib/diary-view";
 import { KalenderView } from "@/components/makan/kalender-view";
@@ -77,16 +78,8 @@ import { usePlaceLocation } from "@/src/lib/location";
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
 
-const MEAL_SHORT: Record<Meal, string> = {
-  sarapan: "Sarapan",
-  makan_siang: "Siang",
-  makan_malam: "Malam",
-  snack: "Snack",
-  sahur: "Sahur",
-  berbuka: "Berbuka",
-};
-
 export default function Makan() {
+  const { t } = useTranslation(["makan", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const today = jakartaToday();
@@ -230,7 +223,7 @@ export default function Makan() {
   const addFood = useOptimisticMutation<Parameters<typeof client.food.add>[0], FoodRow>({
     mutationFn: async (input) => {
       const row = await client.food.add(input);
-      if (!row) throw new Error("Gagal menyimpan.");
+      if (!row) throw new Error(t("diary.error.saveFailed"));
       return row;
     },
     patch: (input, cache) => {
@@ -274,7 +267,7 @@ export default function Makan() {
       quickAddRef.current = false;
       setFormError(null);
       return {
-        message: `${input.name} dicatat`,
+        message: t("diary.toast.logged", { name: input.name }),
         undo: () => {
           // Undo deletes the just-created row; quiet, then targeted refetch.
           void client.food.remove({ id: data.id }).then(() => {
@@ -305,7 +298,7 @@ export default function Makan() {
       }
     },
     label: (row) => row.name,
-    fallback: "Catatan",
+    fallback: t("diary.toast.entryFallback"),
     invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.diary.key()],
   });
 
@@ -391,18 +384,18 @@ export default function Makan() {
         : null;
       if (input.date && previous && input.date !== previous.date) {
         return {
-          message: `Dipindah ke ${relativeDayLabel(input.date, today)}`,
+          message: t("diary.toast.movedTo", { target: relativeDayLabel(input.date, today) }),
           undo: () => void client.plate.update({ ...restore!, date: previous.date }),
         };
       }
       if (input.meal && previous && input.meal !== previous.meal) {
         return {
-          message: `Dipindah ke ${MEAL_EDIT_LABELS[input.meal]}`,
+          message: t("diary.toast.movedTo", { target: MEAL_EDIT_LABELS[input.meal] }),
           undo: () => void client.plate.update({ ...restore!, meal: previous.meal as Meal }),
         };
       }
       return {
-        message: "Piring diperbarui",
+        message: t("diary.toast.plateUpdated"),
         undo: restore === null ? undefined : () => void client.plate.update(restore),
       };
     },
@@ -462,7 +455,7 @@ export default function Makan() {
   if (view === "daftar" && listQuery.isPending) {
     return (
       <Screen>
-        <PageHeader title="Makan" />
+        <PageHeader title={t("common:nav.food")} />
         <Skeleton width="100%" height={52} radius={26} />
         <Skeleton width="100%" height={120} radius={24} />
         <Skeleton width="100%" height={160} radius={24} />
@@ -473,7 +466,7 @@ export default function Makan() {
   if (view === "daftar" && listQuery.isError) {
     return (
       <Screen>
-        <PageHeader title="Makan" />
+        <PageHeader title={t("common:nav.food")} />
         <ErrorState message={errorMessage(listQuery.error)} onRetry={() => listQuery.refetch()} />
       </Screen>
     );
@@ -513,11 +506,11 @@ export default function Makan() {
     if (meal === null) return;
     const kcalNum = parseNum(kcal);
     if (name.trim() === "") {
-      setFormError("Isi dulu nama makanannya.");
+      setFormError(t("diary.error.nameMissing"));
       return;
     }
     if (kcalNum === null || kcalNum < 0) {
-      setFormError("Isi jumlah kalorinya, contoh: 350.");
+      setFormError(t("diary.error.kcalMissing"));
       return;
     }
     const proteinNum = parseNum(protein);
@@ -525,7 +518,7 @@ export default function Makan() {
     const fatNum = parseNum(fat);
     const priceNum = parseIdrInput(platePriceManual);
     if (platePriceManual.trim() !== "" && priceNum === null) {
-      setFormError("Harga piringnya angka rupiah bulat, contoh: 28000.");
+      setFormError(t("diary.error.priceInvalid"));
       return;
     }
     const placeClean = manualPlace.trim();
@@ -554,10 +547,15 @@ export default function Makan() {
     });
   };
 
-  /** Day-named feedback after a story save, e.g. "2 makanan dicatat ke Hari ini dan Kemarin." */
+  /** Day-named feedback after a story save, e.g. "2 foods logged to Today and Yesterday." */
   const showFeedback = (result: { count: number; dates: string[] }) => {
     const labels = result.dates.map((d) => relativeDayLabel(d, today));
-    setCeritaFeedback(`${result.count} makanan dicatat ke ${labels.join(" dan ")}.`);
+    setCeritaFeedback(
+      t("diary.story.saved", {
+        count: result.count,
+        days: labels.join(t("diary.story.daysJoin")),
+      }),
+    );
     refreshDiary();
   };
 
@@ -603,10 +601,10 @@ export default function Makan() {
           <View style={styles.slotDot} />
           <Text style={styles.slotTitle}>{MEAL_LABELS[key]}</Text>
           <View style={styles.slotRight}>
-            {slotKcal > 0 ? <Num style={styles.slotKcal}>{fmtKcal(slotKcal)} kcal</Num> : null}
+            {slotKcal > 0 ? <Num style={styles.slotKcal}>{fmtInt(slotKcal)} kcal</Num> : null}
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Tambah ${MEAL_LABELS[key]}`}
+              accessibilityLabel={t("diary.list.addTo", { meal: MEAL_LABELS[key] })}
               onPress={() => {
                 setSheetMeal(key);
                 setFormError(null);
@@ -618,9 +616,7 @@ export default function Makan() {
           </View>
         </View>
         {slotItems.length === 0 ? (
-          <Text style={styles.slotEmpty}>
-            Belum ada catatan. Tekan tambah di atas, atau pindai fotonya.
-          </Text>
+          <Text style={styles.slotEmpty}>{t("diary.list.slotEmptyIcon")}</Text>
         ) : (
           <ListGroup>
             {slotItems
@@ -687,8 +683,8 @@ export default function Makan() {
   return (
     <Screen>
       <PageHeader
-        title="Makan"
-        caption={isToday && view === "daftar" ? "Catat piringmu" : undefined}
+        title={t("common:nav.food")}
+        caption={isToday && view === "daftar" ? t("diary.header.caption") : undefined}
       />
 
       <MakanViewSwitcher value={view} onChange={chooseView} />
@@ -721,7 +717,7 @@ export default function Makan() {
             >
               <View style={styles.ringCenter}>
                 <Num style={styles.ringKcal} adjustsFontSizeToFit numberOfLines={1}>
-                  {fmtKcal(eatenKcal)}
+                  {fmtInt(eatenKcal)}
                 </Num>
                 <Text style={styles.ringUnit}>kcal</Text>
                 {targets !== null && targets.eatKcal > 0 ? (
@@ -732,8 +728,8 @@ export default function Makan() {
                     ]}
                   >
                     {eatenKcal > targets.eatKcal
-                      ? `+${fmtKcal(eatenKcal - targets.eatKcal)} lebih`
-                      : `dari ${fmtKcal(targets.eatKcal)}`}
+                      ? t("diary.summary.over", { kcal: fmtInt(eatenKcal - targets.eatKcal) })
+                      : t("diary.summary.ofTarget", { kcal: fmtInt(targets.eatKcal) })}
                   </Text>
                 ) : null}
               </View>
@@ -741,25 +737,25 @@ export default function Makan() {
             <View style={styles.summaryInfo}>
               <MacroBar
                 macro="protein"
-                label="Protein"
+                label={t("diary.macro.protein")}
                 eaten={totals.protein}
                 budget={summaryQuery.data?.protein?.targetG ?? null}
               />
               <MacroBar
                 macro="carbs"
-                label="Karbo"
+                label={t("diary.macro.carbs")}
                 eaten={totals.carbs}
                 budget={macroBudgets?.carbsG ?? null}
               />
               <MacroBar
                 macro="fat"
-                label="Lemak"
+                label={t("diary.macro.fat")}
                 eaten={totals.fat}
                 budget={macroBudgets?.fatG ?? null}
               />
               <MacroBar
                 macro="fiber"
-                label="Serat"
+                label={t("diary.macro.fiber")}
                 eaten={totals.fiber}
                 budget={macroBudgets?.fiberG ?? null}
               />
@@ -775,7 +771,7 @@ export default function Makan() {
           {/* Global story entry: several meals, even another day, in one go */}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Ceritakan makananmu"
+            accessibilityLabel={t("diary.story.title")}
             onPress={() => {
               setCeritaFeedback(null);
               setCeritaOpen(true);
@@ -786,8 +782,8 @@ export default function Makan() {
               <Ionicons name="mic" size={20} color={theme.colors.primaryForeground} />
             </View>
             <View style={styles.ceritaTexts}>
-              <Text style={styles.ceritaTitle}>Ceritakan makananmu</Text>
-              <Text style={styles.ceritaSub}>Ketik atau ucapkan, AI yang hitung kalorinya.</Text>
+              <Text style={styles.ceritaTitle}>{t("diary.story.title")}</Text>
+              <Text style={styles.ceritaSub}>{t("diary.story.subtitle")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.colors.mutedForeground} />
           </Pressable>
@@ -798,7 +794,7 @@ export default function Makan() {
               <Text style={styles.feedbackText}>{ceritaFeedback}</Text>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Tutup pemberitahuan"
+                accessibilityLabel={t("diary.story.dismiss")}
                 onPress={() => setCeritaFeedback(null)}
                 style={({ pressed }) => [styles.feedbackClose, pressed && styles.pressedSoft]}
               >
@@ -810,8 +806,14 @@ export default function Makan() {
           {favorites.items.length > 0 ? (
             <Card style={styles.favCard}>
               <Text style={styles.recentLabel}>
-                Favorit · tap untuk catat ke {MEAL_LABELS[suggestMealNow(new Date(), ramadan)]}
-                {isToday ? "" : `, ${fmtDateId(date)}`}
+                {isToday
+                  ? t("diary.favorites.inlineHint", {
+                      meal: MEAL_LABELS[suggestMealNow(new Date(), ramadan)],
+                    })
+                  : t("diary.favorites.inlineHintOnDate", {
+                      meal: MEAL_LABELS[suggestMealNow(new Date(), ramadan)],
+                      date: fmtDateMedium(date),
+                    })}
               </Text>
               <FavoritChips
                 favorites={favorites}
@@ -825,11 +827,15 @@ export default function Makan() {
           {items.length === 0 ? (
             <EmptyState
               pose="ready"
-              title="Belum ada makanan"
-              description={`Catat makan pertamamu untuk ${isToday ? "hari ini" : fmtDateId(date)}, atau foto piringmu lewat tombol kamera.`}
+              title={t("diary.empty.nativeTitle")}
+              description={
+                isToday
+                  ? t("diary.empty.nativeDescriptionToday")
+                  : t("diary.empty.nativeDescriptionOnDate", { date: fmtDateMedium(date) })
+              }
               action={
                 <Button
-                  label="Tambah makanan"
+                  label={t("diary.empty.nativeAction")}
                   icon="add"
                   onPress={() => setSheetMeal(suggestMealNow(new Date(), ramadan))}
                 />
@@ -851,12 +857,12 @@ export default function Makan() {
             trailing={
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Buka di Daftar"
+                accessibilityLabel={t("diary.list.openInList")}
                 onPress={() => chooseView("daftar")}
                 hitSlop={8}
                 style={({ pressed }) => [styles.openDaftar, pressed && styles.pressedSoft]}
               >
-                <Text style={styles.openDaftarLabel}>Buka di Daftar</Text>
+                <Text style={styles.openDaftarLabel}>{t("diary.list.openInList")}</Text>
                 <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
               </Pressable>
             }
@@ -878,8 +884,8 @@ export default function Makan() {
             ) : (
               <Text style={styles.slotEmpty}>
                 {kind === "semua"
-                  ? "Belum ada catatan di hari ini."
-                  : `Tidak ada ${FOOD_KIND_LABELS[kind].toLowerCase()} di hari ini.`}
+                  ? t("diary.list.dayEmpty")
+                  : t("diary.list.dayNoKind", { kind: t(`diary.kind.${kind}`) })}
               </Text>
             )}
           </Timeline>
@@ -894,11 +900,11 @@ export default function Makan() {
       <Sheet
         visible={sheetMeal !== null}
         onClose={closeSheet}
-        title="Tambah Makanan"
+        title={t("diary.sheet.addFood")}
         footer={
           manualOpen ? (
             <Button
-              label="Tambah"
+              label={t("common:actions.add")}
               onPress={submit}
               loading={addFood.isPending}
               disabled={sheetMeal === null}
@@ -920,7 +926,7 @@ export default function Makan() {
         ) : null}
         {sheetMeal !== null && ceritaPhase === "input" && MEAL_KEYS.length > 1 ? (
           <Segmented
-            options={MEAL_KEYS.map((key) => ({ value: key, label: MEAL_SHORT[key] }))}
+            options={MEAL_KEYS.map((key) => ({ value: key, label: t(`diary.mealShort.${key}`) }))}
             value={sheetMeal}
             onChange={(value) => setSheetMeal(value)}
           />
@@ -928,7 +934,7 @@ export default function Makan() {
         {ceritaPhase === "input" && sheetMeal !== null && favorites.items.length > 0 ? (
           <View style={styles.recentBox}>
             <Text style={styles.recentLabel}>
-              Favorit · tap untuk masuk ke {MEAL_LABELS[sheetMeal]}
+              {t("diary.favorites.sheetInlineHint", { meal: MEAL_LABELS[sheetMeal] })}
             </Text>
             <FavoritChips
               favorites={favorites}
@@ -943,7 +949,7 @@ export default function Makan() {
         ) : null}
         {ceritaPhase === "input" && recentQuery.data && recentQuery.data.items.length > 0 ? (
           <View style={styles.recentBox}>
-            <Text style={styles.recentLabel}>Catat cepat</Text>
+            <Text style={styles.recentLabel}>{t("diary.sheet.quickAdd")}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -952,7 +958,7 @@ export default function Makan() {
               {recentQuery.data.items.map((food) => (
                 <Chip
                   key={food.name}
-                  label={`${food.name} · ${fmtKcal(food.kcal)}`}
+                  label={`${food.name} · ${fmtInt(food.kcal)}`}
                   leading={food.scanId ? <StickerMini scanId={food.scanId} size={32} /> : undefined}
                   disabled={addFood.isPending}
                   onPress={() => {
@@ -972,7 +978,7 @@ export default function Makan() {
         {ceritaPhase === "input" ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Pindai pakai foto"
+            accessibilityLabel={t("diary.sheet.scanPhoto.title")}
             onPress={() => {
               closeSheet();
               router.push(isToday ? "/makan-ai" : { pathname: "/makan-ai", params: { date } });
@@ -983,8 +989,8 @@ export default function Makan() {
               <Ionicons name="camera-outline" size={20} color={theme.colors.makanText} />
             </View>
             <View style={styles.ceritaTexts}>
-              <Text style={styles.photoTitle}>Pindai pakai foto</Text>
-              <Text style={styles.ceritaSub}>AI hitung kalorinya, kamu cek dulu.</Text>
+              <Text style={styles.photoTitle}>{t("diary.sheet.scanPhoto.title")}</Text>
+              <Text style={styles.ceritaSub}>{t("diary.sheet.scanPhoto.subtitle")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.colors.mutedForeground} />
           </Pressable>
@@ -992,7 +998,7 @@ export default function Makan() {
         {ceritaPhase === "input" ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Pindai barcode kemasan"
+            accessibilityLabel={t("diary.sheet.scanBarcode.title")}
             onPress={() => {
               const meal = sheetMeal;
               closeSheet();
@@ -1007,8 +1013,8 @@ export default function Makan() {
               <Ionicons name="barcode-outline" size={20} color={theme.colors.makanText} />
             </View>
             <View style={styles.ceritaTexts}>
-              <Text style={styles.photoTitle}>Pindai barcode kemasan</Text>
-              <Text style={styles.ceritaSub}>Ambil angka gizi dari Open Food Facts.</Text>
+              <Text style={styles.photoTitle}>{t("diary.sheet.scanBarcode.title")}</Text>
+              <Text style={styles.ceritaSub}>{t("diary.sheet.scanBarcode.subtitle")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.colors.mutedForeground} />
           </Pressable>
@@ -1017,17 +1023,21 @@ export default function Makan() {
           <Button
             variant="ghost"
             size="sm"
-            label="Isi kalori sendiri"
+            label={t("diary.sheet.manualToggleShort")}
             onPress={() => setManualOpen(true)}
             style={styles.manualToggle}
           />
         ) : null}
         {ceritaPhase === "input" && manualOpen ? (
           <View style={styles.manualBox}>
-            <Field label="Nama makanan">
-              <Input value={name} onChangeText={setName} placeholder="Nasi goreng" />
+            <Field label={t("diary.sheet.field.name")}>
+              <Input
+                value={name}
+                onChangeText={setName}
+                placeholder={t("diary.sheet.field.namePlaceholder")}
+              />
             </Field>
-            <Field label="Kalori (kcal)">
+            <Field label={t("diary.sheet.field.caloriesNative")}>
               <Input
                 value={kcal}
                 onChangeText={setKcal}
@@ -1046,7 +1056,7 @@ export default function Makan() {
               halfApplied={fullPortion !== null}
               onUndoHalf={undoHalfManual}
             />
-            <Field label="Harga piring ini (Rp, opsional)">
+            <Field label={t("diary.sheet.field.priceNative")}>
               <Input
                 value={formatIdrInput(platePriceManual)}
                 onChangeText={(text) =>
@@ -1060,16 +1070,16 @@ export default function Makan() {
                 keyboardType="number-pad"
                 maxLength={13}
                 placeholder="Rp0"
-                accessibilityLabel="Harga piring ini dalam rupiah"
+                accessibilityLabel={t("diary.sheet.field.priceA11y")}
               />
             </Field>
-            <Field label="Tempat (opsional)">
+            <Field label={t("diary.sheet.field.place")}>
               <Input
                 value={manualPlace}
                 onChangeText={setManualPlace}
                 maxLength={200}
-                placeholder="Warung Bu Siti"
-                accessibilityLabel="Tempat membeli"
+                placeholder={t("diary.sheet.field.placePlaceholderNative")}
+                accessibilityLabel={t("diary.sheet.field.placeA11y")}
               />
             </Field>
             <SaveLocationToggle
@@ -1083,21 +1093,21 @@ export default function Makan() {
                   value={protein}
                   onChangeText={setProtein}
                   keyboardType="decimal-pad"
-                  placeholder="Protein"
+                  placeholder={t("diary.macro.protein")}
                   style={styles.macroInput}
                 />
                 <Input
                   value={carbs}
                   onChangeText={setCarbs}
                   keyboardType="decimal-pad"
-                  placeholder="Karbo"
+                  placeholder={t("diary.macro.carbs")}
                   style={styles.macroInput}
                 />
                 <Input
                   value={fat}
                   onChangeText={setFat}
                   keyboardType="decimal-pad"
-                  placeholder="Lemak"
+                  placeholder={t("diary.macro.fat")}
                   style={styles.macroInput}
                 />
               </View>
@@ -1105,7 +1115,7 @@ export default function Makan() {
               <Button
                 variant="ghost"
                 size="sm"
-                label="Tambah detail makro (opsional)"
+                label={t("diary.sheet.macrosToggleNative")}
                 onPress={() => setMacrosOpen(true)}
               />
             )}
@@ -1136,8 +1146,10 @@ export default function Makan() {
               kind: "makan",
               refId: editRow.id,
               title: editRow.name,
-              preview: `${fmtKcal(editRow.kcal)} kcal${
-                editRow.protein !== null ? ` · P ${fmtKcal(editRow.protein ?? 0)}g` : ""
+              preview: `${fmtInt(editRow.kcal)} kcal${
+                editRow.protein !== null
+                  ? ` · ${t("diary.sheet.shareProtein", { g: fmtInt(editRow.protein ?? 0) })}`
+                  : ""
               }`,
             });
             setEditRow(null);
@@ -1172,7 +1184,11 @@ export default function Makan() {
       ) : null}
 
       {/* Global Ceritakan: cerita bebas, bisa beberapa waktu makan sekaligus */}
-      <Sheet visible={ceritaOpen} onClose={() => setCeritaOpen(false)} title="Ceritakan makananmu">
+      <Sheet
+        visible={ceritaOpen}
+        onClose={() => setCeritaOpen(false)}
+        title={t("diary.story.title")}
+      >
         <Cerita
           date={date}
           slots={MEAL_KEYS}

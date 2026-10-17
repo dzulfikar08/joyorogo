@@ -9,6 +9,7 @@ import {
   windowTimes,
   type FastingPattern,
 } from "@joyorogo/api/lib/fasting";
+import { i18n } from "@joyorogo/i18n";
 
 // --- Storage keys -------------------------------------------------------------
 
@@ -59,12 +60,6 @@ export type ReminderContext = {
 /** One IF reminder of the day; hours/minutes are WIB wall-clock. */
 export type FastingReminder = { hour: number; minute: number; title: string; body: string };
 
-export const MEAL_REMINDER_LABELS: Record<MealReminderKey, string> = {
-  sarapan: "Sarapan",
-  makan_siang: "Makan siang",
-  makan_malam: "Makan malam",
-};
-
 export const MEAL_REMINDER_KEYS: readonly MealReminderKey[] = [
   "sarapan",
   "makan_siang",
@@ -86,29 +81,26 @@ export const DEFAULT_REMINDER_CONFIG: ReminderConfig = {
 
 // --- Channels (Android) -----------------------------------------------------------
 
-type ChannelId = "meals" | "water" | "weighin" | "fasting";
+const CHANNEL_IDS = ["meals", "water", "weighin", "fasting"] as const;
+type ChannelId = (typeof CHANNEL_IDS)[number];
 
-const CHANNELS: Record<ChannelId, { name: string; description: string }> = {
-  meals: { name: "Pengingat makan", description: "Ingatkan catat sarapan, makan siang, makan malam." },
-  water: { name: "Pengingat minum", description: "Ingatkan minum air sepanjang hari." },
-  weighin: { name: "Pengingat timbang", description: "Ingatkan timbang berat badan." },
-  fasting: { name: "Puasa intermiten", description: "Jendela makan buka, tutup, dan waktu makan." },
-};
-
-let channelsReady: Promise<void> | null = null;
+/** Channel names are shown in system settings, so they follow the app language too. */
+let channelsReady: { locale: string; ready: Promise<void> } | null = null;
 
 /**
  * Android 13+ shows the permission dialog only after at least one channel
  * exists, and every scheduled reminder needs its channel, so this runs before
- * both. No-op elsewhere.
+ * both. No-op elsewhere. Runs again after a language switch to rename them.
  */
 export function ensureNotificationChannels(): Promise<void> {
   if (Platform.OS !== "android") return Promise.resolve();
-  channelsReady ??= (async () => {
-    for (const [id, meta] of Object.entries(CHANNELS)) {
+  const locale = i18n.language;
+  if (channelsReady?.locale === locale) return channelsReady.ready;
+  const ready = (async () => {
+    for (const id of CHANNEL_IDS) {
       await Notifications.setNotificationChannelAsync(id, {
-        name: meta.name,
-        description: meta.description,
+        name: i18n.t(`settings:reminders.notification.channel.${id}.name`),
+        description: i18n.t(`settings:reminders.notification.channel.${id}.description`),
         importance: Notifications.AndroidImportance.DEFAULT,
       });
     }
@@ -116,7 +108,8 @@ export function ensureNotificationChannels(): Promise<void> {
     channelsReady = null;
     throw e;
   });
-  return channelsReady;
+  channelsReady = { locale, ready };
+  return ready;
 }
 
 // Reminders must also appear when the app happens to be open at the
@@ -331,20 +324,12 @@ async function scheduleDailySkippable(
   }
 }
 
-const MEAL_COPY: Record<MealReminderKey, { title: string; body: string }> = {
-  sarapan: {
-    title: "Sarapan dulu yuk",
-    body: "Catat sarapanmu biar kalori harianmu tetap terpantau.",
-  },
-  makan_siang: {
-    title: "Makan siang waktunya",
-    body: "Jangan lupa catat makan siangmu sebelum lupa.",
-  },
-  makan_malam: {
-    title: "Makan malam nih",
-    body: "Catat makan malammu supaya rencana harianmu akurat.",
-  },
-};
+function mealCopy(key: MealReminderKey): { title: string; body: string } {
+  return {
+    title: i18n.t(`settings:reminders.notification.meal.${key}.title`),
+    body: i18n.t(`settings:reminders.notification.meal.${key}.body`),
+  };
+}
 
 export function waterSlotMinutes(water: Pick<WaterReminder, "start" | "end" | "everyHours">): number[] {
   const start = parseHHMM(water.start);
@@ -377,7 +362,7 @@ async function schedulePlan(
       if (!meal.enabled || minutes === null) continue;
       await scheduleDailySkippable(
         minutes,
-        { channel: "meals", kind: key, ...MEAL_COPY[key] },
+        { channel: "meals", kind: key, ...mealCopy(key) },
         ctx.eaten?.[key] === true,
       );
     }
@@ -390,8 +375,8 @@ async function schedulePlan(
       {
         channel: "weighin",
         kind: "weighin",
-        title: "Timbang pagi",
-        body: "Satu langkah kecil: catat berat badanmu hari ini.",
+        title: i18n.t("settings:reminders.notification.weighIn.title"),
+        body: i18n.t("settings:reminders.notification.weighIn.body"),
       },
       ctx.weighedToday === true,
     );
@@ -404,8 +389,8 @@ async function schedulePlan(
       await scheduleDaily(minutes, {
         channel: "water",
         kind: "water",
-        title: "Waktunya minum",
-        body: "Segelas air sekarang. Catat di kartu Air minum kalau sudah.",
+        title: i18n.t("settings:reminders.notification.water.title"),
+        body: i18n.t("settings:reminders.notification.water.body"),
       });
     }
   }
@@ -418,16 +403,18 @@ async function schedulePlan(
       await scheduleDaily(wibToLocalMinutes(window.startMin), {
         channel: "fasting",
         kind: "window-open",
-        title: "Jendela makan buka",
-        body: `Kamu bisa mulai makan. Jendela tutup jam ${closeLabel} WIB.`,
+        title: i18n.t("settings:reminders.notification.windowOpen.title"),
+        body: i18n.t("settings:reminders.notification.windowOpen.body", { time: closeLabel }),
       });
     }
     if (config.window.close) {
       await scheduleDaily(wibToLocalMinutes(window.endMin), {
         channel: "fasting",
         kind: "window-close",
-        title: "Jendela makan tutup",
-        body: `Puasa dimulai. Jendela makan buka lagi jam ${fmtHHMM(window.startMin)} WIB.`,
+        title: i18n.t("settings:reminders.notification.windowClose.title"),
+        body: i18n.t("settings:reminders.notification.windowClose.body", {
+          time: fmtHHMM(window.startMin),
+        }),
       });
     }
   }

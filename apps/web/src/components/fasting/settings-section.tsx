@@ -3,9 +3,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { BellRing } from "lucide-react";
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import type { FastingPattern } from "@joyorogo/api/lib/fasting";
+import { i18n } from "@joyorogo/i18n";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { Card, Segmented } from "@/components/kit/surface";
@@ -22,22 +24,6 @@ type FastingSettings = {
 type PushSubscriptionInput = {
   endpoint: string;
   keys: { p256dh: string; auth: string };
-};
-
-const PATTERN_OPTIONS: Array<{ value: FastingSettings["pattern"]; label: string }> = [
-  { value: "off", label: "Mati" },
-  { value: "16:8", label: "16:8" },
-  { value: "18:6", label: "18:6" },
-  { value: "20:4", label: "20:4" },
-  { value: "omad", label: "OMAD" },
-];
-
-const FASTING_HINT: Record<FastingSettings["pattern"], string> = {
-  off: "Pilih pola 16:8, 18:6, 20:4, atau OMAD untuk mulai. Mode Ramadan tetap didahulukan.",
-  "16:8": "Puasa 16 jam, makan dalam jendela 8 jam.",
-  "18:6": "Puasa 18 jam, makan dalam jendela 6 jam.",
-  "20:4": "Puasa 20 jam, makan dalam jendela 4 jam.",
-  omad: "Sekali makan sehari di dalam jendela ±1 jam.",
 };
 
 /** PushManager.applicationServerKey accepts a base64url string, but
@@ -62,18 +48,18 @@ async function subscribeBrowser(
       !("serviceWorker" in navigator) ||
       !("PushManager" in window)
     ) {
-      toast.error("Browser ini belum mendukung notifikasi push.");
+      toast.error(i18n.t("settings:fasting.error.unsupported"));
       return false;
     }
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
-      toast.error("Izin notifikasi tidak diberikan.");
+      toast.error(i18n.t("settings:fasting.error.denied"));
       return false;
     }
     const registration = await navigator.serviceWorker.register("/sw.js");
     const { key } = await queryClient.fetchQuery(orpc.fasting.vapidPublicKey.queryOptions());
     if (!key) {
-      toast.error("Server belum siap mengirim notifikasi. Coba lagi nanti.");
+      toast.error(i18n.t("settings:fasting.error.serverNotReady"));
       return false;
     }
     let subscription = await registration.pushManager.getSubscription();
@@ -83,7 +69,7 @@ async function subscribeBrowser(
     });
     const json = subscription.toJSON();
     if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
-      toast.error("Browser tidak mengirim kunci langganan.");
+      toast.error(i18n.t("settings:fasting.error.noKeys"));
       return false;
     }
     await subscribePush({
@@ -92,7 +78,7 @@ async function subscribeBrowser(
     });
     return true;
   } catch {
-    toast.error("Gagal memasang notifikasi.");
+    toast.error(i18n.t("settings:fasting.error.failed"));
     return false;
   }
 }
@@ -117,6 +103,7 @@ async function unsubscribeBrowser(
  * notifikasi Web Push (izin → /sw.js → langganan VAPID).
  */
 export function FastingSettingsSection() {
+  const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
   const settings = useQuery(orpc.fasting.settings.queryOptions());
 
@@ -136,9 +123,9 @@ export function FastingSettingsSection() {
     success: () => {
       const prev = previousSettings.current;
       previousSettings.current = null;
-      if (!prev) return { message: "Pengaturan puasa disimpan" };
+      if (!prev) return { message: t("fasting.toast.saved") };
       return {
-        message: "Pengaturan puasa disimpan",
+        message: t("fasting.toast.saved"),
         undo: () =>
           void client.fasting.setSettings({
             pattern: prev.pattern,
@@ -186,21 +173,35 @@ export function FastingSettingsSection() {
     change({ notify: false });
     await unsubscribeBrowser(unsubscribePush.mutateAsync);
   };
+  const patternOptions: Array<{ value: FastingSettings["pattern"]; label: string }> = [
+    { value: "off", label: t("fasting.pattern.off") },
+    { value: "16:8", label: "16:8" },
+    { value: "18:6", label: "18:6" },
+    { value: "20:4", label: "20:4" },
+    { value: "omad", label: "OMAD" },
+  ];
+  const [fastHours, eatHours] = pattern.split(":");
+  const hint =
+    pattern === "off"
+      ? t("fasting.hint.off")
+      : pattern === "omad"
+        ? t("fasting.hint.omad")
+        : t("fasting.hint.window", { fast: fastHours, eat: eatHours });
 
   return (
     <Card>
       <Segmented
-        label="Pola puasa intermiten"
+        label={t("fasting.pattern.label")}
         value={pattern}
         onChange={(value) => change({ pattern: value })}
-        options={PATTERN_OPTIONS}
+        options={patternOptions}
       />
       <div className="mt-4 flex items-center gap-3">
         <label
           htmlFor="fasting-window-start"
           className="shrink-0 text-sm font-semibold text-muted-foreground"
         >
-          Jendela makan buka
+          {t("fasting.window.label")}
         </label>
         <Input
           id="fasting-window-start"
@@ -218,22 +219,20 @@ export function FastingSettingsSection() {
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm font-semibold">
             <BellRing className="size-4 text-makan" aria-hidden />
-            Notifikasi pengingat
+            {t("fasting.notify.title")}
           </p>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Web Push saat jendela buka, waktu makan, dan 30 menit sebelum tutup.
+            {t("fasting.notify.hint")}
           </p>
         </div>
         <Switch
           checked={notify}
           onCheckedChange={(value) => void toggleNotify(value)}
           disabled={save.isPending || pattern === "off"}
-          label="Notifikasi pengingat puasa intermiten"
+          label={t("fasting.notify.aria")}
         />
       </div>
-      <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">
-        {FASTING_HINT[pattern]}
-      </p>
+      <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">{hint}</p>
     </Card>
   );
 }

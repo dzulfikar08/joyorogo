@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Switch, View } from "react-native";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { jakartaToday } from "@joyorogo/api/lib/engine";
@@ -24,14 +25,6 @@ type FastingSettings = {
   windowStart: string;
   notify: boolean;
 };
-
-const PATTERN_OPTIONS: Array<{ value: FastingSettings["pattern"]; label: string }> = [
-  { value: "off", label: "Mati" },
-  { value: "16:8", label: "16:8" },
-  { value: "18:6", label: "18:6" },
-  { value: "20:4", label: "20:4" },
-  { value: "omad", label: "OMAD" },
-];
 
 /** lib/fasting reminder drafts → expo-notifications calendar slots (WIB). */
 function buildNativeReminders(
@@ -57,6 +50,14 @@ function buildNativeReminders(
  * notifikasi lokal expo-notifications (menggantikan pengingat makan tetap).
  */
 export function FastingSettingsCard() {
+  const { t } = useTranslation("settings");
+  const patternOptions: Array<{ value: FastingSettings["pattern"]; label: string }> = [
+    { value: "off", label: t("fasting.pattern.off") },
+    { value: "16:8", label: "16:8" },
+    { value: "18:6", label: "18:6" },
+    { value: "20:4", label: "20:4" },
+    { value: "omad", label: "OMAD" },
+  ];
   const { theme } = useUnistyles();
   const settings = useQuery(orpc.fasting.settings.queryOptions());
   const today = useQuery(orpc.fasting.today.queryOptions({ input: {} }));
@@ -89,7 +90,7 @@ export function FastingSettingsCard() {
     success: (_input, _data, context) => {
       const previous = context ?? null;
       return {
-        message: "Pengaturan puasa disimpan",
+        message: t("fasting.toast.saved"),
         undo: previous === null ? undefined : () => save.mutate(previous),
       };
     },
@@ -146,15 +147,15 @@ export function FastingSettingsCard() {
 
   return (
     <Card>
-      <Text style={styles.cardTitle}>Puasa Intermiten</Text>
+      <Text style={styles.cardTitle}>{t("section.fasting")}</Text>
       <Segmented
-        options={PATTERN_OPTIONS}
+        options={patternOptions}
         value={data.pattern}
         onChange={(value) => commit({ pattern: value })}
         disabled={save.isPending}
       />
       <View style={styles.windowRow}>
-        <Text style={styles.windowLabel}>Jendela makan buka</Text>
+        <Text style={styles.windowLabel}>{t("fasting.window.label")}</Text>
         <Input
           value={windowText ?? data.windowStart}
           onChangeText={setWindowText}
@@ -168,7 +169,7 @@ export function FastingSettingsCard() {
       </View>
       <View style={styles.switchRow}>
         <View style={styles.switchText}>
-          <Text style={styles.rowTitle}>Notifikasi pengingat</Text>
+          <Text style={styles.rowTitle}>{t("fasting.notify.title")}</Text>
         </View>
         <Switch
           value={data.notify}
@@ -176,13 +177,13 @@ export function FastingSettingsCard() {
           disabled={save.isPending || data.pattern === "off"}
           trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
           thumbColor={theme.colors.background}
-          accessibilityLabel="Notifikasi pengingat puasa intermiten"
+          accessibilityLabel={t("fasting.notify.aria")}
         />
       </View>
       <Text style={styles.note}>
         {data.pattern === "off"
-          ? "Pilih pola 16:8, 18:6, 20:4, atau OMAD untuk mulai. Mode Ramadan tetap didahulukan."
-          : `${FASTING_LABELS[data.pattern]}: notifikasi muncul saat jendela buka, waktu makan, dan 30 menit sebelum tutup.`}
+          ? t("fasting.hint.off")
+          : t("fasting.hint.nativeOn", { label: FASTING_LABELS[data.pattern] })}
       </Text>
       {save.isError ? <Text style={styles.error}>{errorMessage(save.error)}</Text> : null}
       {gate.sheet}

@@ -5,6 +5,7 @@ import { router, usePathname } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Button, Card, Text } from "@/components/ui";
@@ -12,28 +13,22 @@ import { authClient } from "@/lib/auth-client";
 import { isHealthSyncSupported } from "@/src/lib/health-sync";
 import { orpc } from "@/utils/orpc";
 
-/** Strava API Policy 6.2: imported activities are a 7-day cache (docs/strava.md). Shown on every Strava surface. */
-const RETENTION_TEXT =
-  "Sesuai aturan Strava, olahraga yang diimpor dari Strava hanya disimpan 7 hari, lalu dihapus otomatis. Kalori bakar untuk hari yang lebih lama tidak lagi menyertakannya.";
-
-const WRITERS_TEXT =
-  "Banyak aplikasi olahraga dan jam bisa menulis latihan ke sana, misalnya Strava, Garmin, Samsung Health, dan JoyoFit untuk jam Huawei. Cek pengaturan tiap aplikasi.";
-
 const healthName = Platform.OS === "ios" ? "Apple Health" : "Health Connect";
 
 /** The two explanatory lines plus, where the Health card exists, a shortcut to it (Profil). */
 function RetentionLines() {
+  const { t } = useTranslation(["settings", "common"]);
   const { theme } = useUnistyles();
   const pathname = usePathname();
   const healthSupported = isHealthSyncSupported();
   const alternativeText = healthSupported
-    ? `Biar kalori bakar tetap tersimpan, hubungkan ${healthName} di Profil. ${WRITERS_TEXT}`
-    : `Biar kalori bakar tetap tersimpan, pakai Health Connect di Android atau Apple Health di iPhone lewat aplikasi JoyoRogo. ${WRITERS_TEXT}`;
+    ? t("strava.retention.healthAlternativeNative", { health: healthName })
+    : t("strava.retention.healthAlternative");
   return (
     <View style={styles.lines}>
       <View style={styles.line}>
         <Ionicons name="time-outline" size={18} color={theme.colors.mutedForeground} />
-        <Text style={styles.lineText}>{RETENTION_TEXT}</Text>
+        <Text style={styles.lineText}>{t("strava.retention.text")}</Text>
       </View>
       <View style={styles.line}>
         <Ionicons name="heart-outline" size={18} color={theme.colors.mutedForeground} />
@@ -43,7 +38,7 @@ function RetentionLines() {
         <Button
           variant="secondary"
           size="sm"
-          label={`Hubungkan ${healthName}`}
+          label={t("strava.retention.connectHealth", { health: healthName })}
           icon="heart"
           onPress={() => router.push("/profil")}
         />
@@ -66,6 +61,7 @@ export function StravaRetentionNote() {
  * Penutupan disimpan di perangkat ini (SecureStore, per akun) supaya tidak muncul lagi.
  */
 export function StravaRetentionNotice() {
+  const { t } = useTranslation(["settings", "common"]);
   const { theme } = useUnistyles();
   const { data: session } = authClient.useSession();
   const userId = session?.user.id ?? null;
@@ -98,10 +94,10 @@ export function StravaRetentionNotice() {
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>Impor Strava disimpan 7 hari</Text>
+        <Text style={styles.title}>{t("strava.retention.noticeTitle")}</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Tutup"
+          accessibilityLabel={t("common:actions.close")}
           hitSlop={10}
           onPress={dismiss}
         >
@@ -109,7 +105,7 @@ export function StravaRetentionNotice() {
         </Pressable>
       </View>
       <RetentionLines />
-      <Button label="Mengerti" onPress={dismiss} />
+      <Button label={t("strava.retention.understood")} onPress={dismiss} />
     </Card>
   );
 }
