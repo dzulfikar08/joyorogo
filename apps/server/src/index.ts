@@ -46,6 +46,7 @@ import { registerBenchRoutes } from "./bench";
 import { registerDatasetExportRoutes } from "./dataset-export";
 import { registerOgRoutes } from "./og";
 import { registerPrivacyRoutes } from "./privacy";
+import { registerFamilyRoutes } from "./family";
 import { registerStravaRoutes } from "./strava";
 import { registerUnsubscribeRoutes } from "./unsubscribe";
 import { scrubExpiredStravaRows } from "@joyorogo/api/lib/strava-retention";
@@ -401,6 +402,8 @@ registerPrivacyRoutes(app, {
 
 // JoyoFit's Worker reads and writes the shared Strava grant here (Basic auth with the Strava client credentials).
 registerStravaRoutes(app, { env, getDb });
+// JoyoFit family monitoring asks here for a user's Pro state, name, email and language (same Basic auth).
+registerFamilyRoutes(app, { env, getDb });
 
 // The Android app only knows the API origin; send its "Kebijakan privasi"
 // link on to the web page.

@@ -29,7 +29,7 @@ const sha256 = async (text: string) =>
   new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)));
 
 /** Compares equal-length digests, so the answer does not depend on where the strings first differ. */
-async function sameSecret(given: string, expected: string): Promise<boolean> {
+export async function sameSecret(given: string, expected: string): Promise<boolean> {
   const [a, b] = await Promise.all([sha256(given), sha256(expected)]);
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= (a[i] ?? 0) ^ (b[i] ?? 0);
