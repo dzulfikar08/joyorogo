@@ -1,0 +1,65 @@
+import type { AnalysisTextKey } from "./text";
+
+/**
+ * Analysis strings whose meaning matches an existing `feed:` key (the web analysis view shares them). Every other
+ * `AnalysisTextKey` lives under `analysis.ui.<key>` in the feed namespace.
+ */
+export const SHARED_KEYS: Partial<Record<AnalysisTextKey, string>> = {
+  "section.splits": "analysis.splits.title",
+  "section.hrZones": "analysis.hrZones.title",
+  "section.paceZones": "analysis.paceZones.title",
+  "section.bestEfforts": "analysis.efforts.title",
+  "section.effort": "analysis.effort.title",
+  "section.load": "analysis.load.title",
+  "section.laps": "analysis.laps.title",
+  "section.route": "watch.routeTitle",
+  "section.heartRate": "watch.hrTitle",
+  "summary.distance": "analysis.distance",
+  "summary.movingTime": "analysis.movingTime",
+  "summary.avgPace": "analysis.avgPace",
+  "summary.avgSpeed": "analysis.avgSpeed",
+  "summary.elevation": "analysis.elevation",
+  "summary.calories": "analysis.calories",
+  "summary.heartRate": "analysis.hr",
+  "summary.cadence": "analysis.cadence",
+  "metric.pace": "analysis.pace",
+  "metric.speed": "analysis.speed",
+  "metric.hr": "analysis.hr",
+  "metric.elevation": "analysis.elevation",
+  "metric.cadence": "analysis.cadence",
+  "metric.power": "analysis.power",
+  "splits.km": "analysis.splits.km",
+  "splits.elev": "analysis.splits.elev",
+  "splits.hr": "analysis.splits.hr",
+  "splits.cad": "analysis.splits.cad",
+  "best.400m": "analysis.efforts.names.400m",
+  "best.1k": "analysis.efforts.names.1k",
+  "best.1mi": "analysis.efforts.names.1mi",
+  "best.5k": "analysis.efforts.names.5k",
+  "best.10k": "analysis.efforts.names.10k",
+  "best.half": "analysis.efforts.names.half",
+  "best.pr": "analysis.efforts.pr",
+  "best.2nd": "analysis.efforts.second",
+  "best.3rd": "analysis.efforts.third",
+  "effort.band.light": "analysis.effort.band.light",
+  "effort.band.moderate": "analysis.effort.band.moderate",
+  "effort.band.hard": "analysis.effort.band.hard",
+  "effort.band.max": "analysis.effort.band.max",
+  "effort.outOf": "analysis.effort.outOf",
+  "load.thisWorkout": "analysis.load.thisWorkout",
+  "load.last7": "analysis.load.last7",
+  "load.weeklyAverage": "analysis.load.weeklyAvg",
+  "load.verdict.under": "analysis.load.wording.under",
+  "load.verdict.steady": "analysis.load.wording.steady",
+  "load.verdict.high": "analysis.load.wording.high",
+  "load.verdict.spike": "analysis.load.wording.spike",
+  "load.aerobic": "analysis.load.aerobic",
+  "load.anaerobic": "analysis.load.anaerobic",
+  "load.recovery": "analysis.load.recovery",
+  "load.watchLoad": "analysis.load.watchLoad",
+  "laps.lap": "analysis.laps.lap",
+};
+
+export function feedKey(key: AnalysisTextKey): string {
+  return SHARED_KEYS[key] ?? `analysis.ui.${key}`;
+}

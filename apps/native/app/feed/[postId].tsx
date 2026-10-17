@@ -158,6 +158,7 @@ export default function DetailPost() {
   });
 
   const [commentText, setCommentText] = useState("");
+  const [scrubbing, setScrubbing] = useState(false);
 
   if (gate === "loading") {
     return (
@@ -195,7 +196,7 @@ export default function DetailPost() {
   const isOwnPost = data.author.id === me;
 
   return (
-    <Screen>
+    <Screen scrollEnabled={!scrubbing}>
       <PageHeader
         title={t("common:nav.title.post")}
         right={
@@ -216,7 +217,7 @@ export default function DetailPost() {
         right={null}
       />
 
-      {data.stats?.source === "joyofit" && data.stats.hasDetail === 1 ? <WorkoutDetail postId={data.id} /> : null}
+      {data.stats?.source === "joyofit" && data.stats.hasDetail === 1 ? <WorkoutDetail postId={data.id} onScrubActive={setScrubbing} /> : null}
 
       <Text style={styles.sectionLabel}>{t("post.kudos.label")}</Text>
       {kudosList.isPending ? (

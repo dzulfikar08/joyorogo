@@ -434,6 +434,130 @@
       "samePace": "Pace sama",
       "sameHr": "Detak jantung sama",
       "hrDelta": "HR {{value}} bpm"
+    },
+    "ui": {
+      "section": {
+        "charts": "Grafik",
+        "comparison": "Dibanding latihan serupa"
+      },
+      "unit": {
+        "km": "km",
+        "m": "m",
+        "kmh": "km/jam",
+        "perKm": "/km",
+        "bpm": "bpm",
+        "spm": "spm",
+        "rpm": "rpm",
+        "w": "W",
+        "kcal": "kkal",
+        "kcalPerHour": "kkal/jam",
+        "hours": "jam",
+        "g": "g",
+        "time": "waktu"
+      },
+      "summary": {
+        "time": "Waktu",
+        "elapsed": "Total {{time}}",
+        "maxHr": "maks {{value}} bpm",
+        "maxCadence": "maks {{value}}",
+        "power": "Daya rata-rata",
+        "normalizedPower": "NP {{value}} W",
+        "fuel": "Perkiraan bahan bakar",
+        "fat": "lemak {{value}} g",
+        "carbs": "karbo {{value}} g",
+        "a11y": "Ringkasan latihan"
+      },
+      "chart": {
+        "hint": "Sentuh dan geser grafik untuk melihat detail latihan kamu",
+        "clear": "Hapus penanda",
+        "a11y": "Grafik {{metric}}. Geser ke atas atau bawah untuk memindahkan penanda.",
+        "noData": "Data belum cukup untuk grafik ini."
+      },
+      "splits": {
+        "pace": "Pace",
+        "speed": "Kecepatan",
+        "a11yRowPace": "Split {{label}}, {{value}} per kilometer",
+        "a11yRowSpeed": "Split {{label}}, {{value}} kilometer per jam",
+        "a11yHint": "Memindahkan penanda di grafik dan peta"
+      },
+      "zone": {
+        "recovery": "Pemulihan",
+        "endurance": "Daya tahan",
+        "tempo": "Tempo",
+        "threshold": "Ambang",
+        "vo2": "Anaerobik / VO2 max"
+      },
+      "zones": {
+        "maxHrAge": "HR maks {{value}} bpm (dari umur kamu)",
+        "maxHrSetting": "HR maks {{value}} bpm (pengaturan kamu)",
+        "hrNote": "Zona 1 sampai 5 adalah 50-60, 60-70, 70-80, 80-90, dan 90-100 persen dari detak jantung maksimal kamu. Persentase menunjukkan porsi waktu di tiap zona.",
+        "below": "Di bawah zona 1: {{time}}",
+        "thresholdPace": "Pace ambang {{pace}} /km",
+        "slowerThan": "lebih lambat dari {{pace}}",
+        "fasterThan": "lebih cepat dari {{pace}}",
+        "zoneLabel": "Z{{n}} {{name}}",
+        "a11yRow": "Zona {{n}}, {{name}}, {{range}}, {{time}}, {{percent}} persen"
+      },
+      "best": {
+        "note": "Bagian tercepat untuk tiap jarak di latihan ini. Diperingkat dengan latihan serupa kamu dalam 120 hari terakhir.",
+        "a11yRow": "{{label}}, {{time}}, {{pace}} per kilometer",
+        "a11yRank": "peringkat {{rank}}"
+      },
+      "effort": {
+        "addedToDay": "+{{value}} ke beban hari ini",
+        "explain": "Relative Effort adalah beban latihan ini di JoyoFit pada skala 0 sampai 21: makin lama jantung kamu bekerja di level tinggi, makin besar angkanya (TRIMP {{trimp}}).",
+        "a11y": "Relative effort {{value}} dari 21, {{band}}"
+      },
+      "load": {
+        "trimp": "TRIMP",
+        "verdictText": {
+          "under": "Lebih ringan dari minggu biasa kamu.",
+          "steady": "Sama seperti minggu biasa kamu.",
+          "high": "Lebih berat dari minggu biasa kamu.",
+          "spike": "Lonjakan besar dari minggu biasa kamu. Sisipkan beberapa hari santai."
+        },
+        "ratio": "{{percent}}% dari rata-rata mingguan kamu",
+        "recoveryHours": "{{value}} jam",
+        "a11y": "Beban latihan {{verdict}}"
+      },
+      "laps": {
+        "time": "Waktu",
+        "dist": "Jarak",
+        "pace": "Pace",
+        "speed": "Kecepatan",
+        "hr": "HR",
+        "cad": "Cad"
+      },
+      "compare": {
+        "thisWorkout": "Latihan ini",
+        "previous": "Sebelumnya",
+        "average": "Rata-rata {{n}}",
+        "vsPrevious": "vs sebelumnya",
+        "vsAverage": "vs rata-rata",
+        "dist": "Jarak",
+        "time": "Waktu",
+        "pace": "Pace",
+        "speed": "Kecepatan",
+        "hr": "HR rata-rata",
+        "basisDistance": "Dibanding {{n}} latihan terakhir kamu dengan jarak serupa (selisih maksimal 20%).",
+        "basisDistanceOne": "Dibanding latihan terakhir kamu dengan jarak serupa (selisih maksimal 20%).",
+        "basisDuration": "Dibanding {{n}} latihan terakhir kamu dengan durasi serupa (selisih maksimal 25%).",
+        "basisDurationOne": "Dibanding latihan terakhir kamu dengan durasi serupa (selisih maksimal 25%)."
+      },
+      "note": {
+        "effort": "Tiap menit detak jantung dihitung menurut zona tempatnya (Edwards TRIMP) lalu totalnya dipetakan ke skala 0 sampai 21. Hasilnya bergantung pada detak jantung maksimal kamu, jadi isi di profil agar lebih akurat.",
+        "load": "Beban memakai Edwards TRIMP: menit di tiap zona detak jantung dikali nomor zonanya. Total 7 hari terakhir sudah termasuk latihan ini; rata-rata mingguan adalah rerata 28 hari sebelumnya.",
+        "threshold": "Pace ambang diperkirakan dari usaha terbaik kamu di 1 mil, 5 km, 10 km, dan half marathon, lalu diperlambat ke usaha satu jam. Zona ditentukan sebagai porsi dari pace itu."
+      },
+      "empty": {
+        "noSeries": "Grafik, peta, dan split tidak tersedia untuk latihan ini karena tidak ada sampel detail yang terekam."
+      },
+      "basic": {
+        "noData": "Tidak ada detak jantung atau rute yang dibagikan bersama latihan ini.",
+        "hrChart": "Grafik detak jantung",
+        "hrRange": "{{min}} sampai {{max}} bpm",
+        "routeA11y": "Peta rute latihan"
+      }
     }
   },
   "postPage": {

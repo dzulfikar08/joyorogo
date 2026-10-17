@@ -1,66 +1,41 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { useMemo } from "react";
 import { View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
-import { Circle, Polyline, Svg } from "react-native-svg";
 
 import { Button, Card, Skeleton, Text } from "@/components/ui";
+import { BasicDetail, WorkoutAnalysisView } from "@/components/workout-analysis";
+import { useAnalysisMapTheme, useAnalysisPalette, useAnalysisT } from "@/components/workout-analysis/adapters";
 import { orpc } from "@/utils/orpc";
 
-const W = 320;
-const HR_H = 120;
-const ROUTE_H = 200;
-const PAD = 8;
-
-/** Titik bpm -> segmen polyline; nilai null (sensor putus) memutus garis. */
-function hrSegments(bpm: (number | null)[], min: number, max: number) {
-  const span = Math.max(max - min, 1);
-  const x = (i: number) => PAD + (i / Math.max(bpm.length - 1, 1)) * (W - 2 * PAD);
-  const y = (v: number) => HR_H - PAD - ((v - min) / span) * (HR_H - 2 * PAD);
-  const segments: string[] = [];
-  let current: string[] = [];
-  bpm.forEach((v, i) => {
-    if (v === null) {
-      if (current.length > 0) segments.push(current.join(" "));
-      current = [];
-    } else {
-      current.push(`${x(i)},${y(v)}`);
-    }
-  });
-  if (current.length > 0) segments.push(current.join(" "));
-  return segments;
-}
-
-/** Rute lat/lon -> titik SVG; bujur dikoreksi cos(lat) supaya bentuknya tidak melar. */
-function routePoints(route: [number, number][]) {
-  const lats = route.map(([lat]) => lat);
-  const lons = route.map(([, lon]) => lon);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLon = Math.min(...lons);
-  const maxLon = Math.max(...lons);
-  const k = Math.cos((((minLat + maxLat) / 2) * Math.PI) / 180);
-  const spanX = Math.max((maxLon - minLon) * k, 1e-6);
-  const spanY = Math.max(maxLat - minLat, 1e-6);
-  const scale = Math.min((W - 2 * PAD) / spanX, (ROUTE_H - 2 * PAD) / spanY);
-  const offX = (W - spanX * scale) / 2;
-  const offY = (ROUTE_H - spanY * scale) / 2;
-  return route.map(([lat, lon]) => ({
-    x: offX + (lon - minLon) * k * scale,
-    y: ROUTE_H - offY - (lat - minLat) * scale,
-  }));
-}
-
 /**
- * Detail latihan JoyoFit: grafik detak jantung + rute. Penulis dan viewer Pro
- * melihat datanya; viewer lain mendapat kartu upsell ke /founder.
+ * Detail latihan JoyoFit: peta, grafik, split, zona, dan analisis lainnya. Penulis
+ * dan viewer Pro melihat datanya; viewer lain mendapat kartu upsell ke /founder.
+ * `onScrubActive` memberi tahu halaman agar mengunci scroll saat grafik/peta disentuh.
  */
-export function WorkoutDetail({ postId }: { postId: string }) {
+export function WorkoutDetail({
+  postId,
+  onScrubActive,
+}: {
+  postId: string;
+  onScrubActive?: (active: boolean) => void;
+}) {
   const { t } = useTranslation("feed");
   const { theme } = useUnistyles();
+  const palette = useAnalysisPalette();
+  const mapTheme = useAnalysisMapTheme();
+  const analysisT = useAnalysisT();
   const detail = useQuery(orpc.social.workoutDetail.queryOptions({ input: { postId } }));
+  const legacyHr = useMemo(
+    () =>
+      detail.data?.hr
+        ? { intervalSec: detail.data.hr.intervalSec, bpm: detail.data.hr.bpm.map((v) => v ?? 0) }
+        : null,
+    [detail.data?.hr],
+  );
 
   if (detail.isPending) return <Skeleton width="100%" height={160} radius={24} />;
   if (detail.isError)
@@ -70,7 +45,7 @@ export function WorkoutDetail({ postId }: { postId: string }) {
       </Card>
     );
 
-  const { locked, hr, route } = detail.data;
+  const { locked, route, analysis } = detail.data;
   if (locked)
     return (
       <Card style={styles.upsell}>
@@ -87,57 +62,21 @@ export function WorkoutDetail({ postId }: { postId: string }) {
       </Card>
     );
 
-  const values = hr?.bpm.filter((v) => v !== null) ?? [];
-  const segments = hr && values.length > 1 ? hrSegments(hr.bpm, Math.min(...values), Math.max(...values)) : [];
-  const points = route && route.length > 1 ? routePoints(route) : [];
-  const first = points[0];
-  const last = points[points.length - 1];
+  if (analysis)
+    return (
+      <WorkoutAnalysisView
+        analysis={analysis}
+        palette={palette}
+        t={analysisT}
+        mapTheme={mapTheme}
+        onScrubActive={onScrubActive}
+      />
+    );
 
-  return (
-    <>
-      {segments.length > 0 ? (
-        <Card style={styles.chart}>
-          <Text style={styles.title}>{t("watch.hrTitle")}</Text>
-          <Svg width="100%" height={HR_H} viewBox={`0 0 ${W} ${HR_H}`}>
-            {segments.map((pts) => (
-              <Polyline
-                key={pts}
-                points={pts}
-                stroke={theme.colors.bakar}
-                strokeWidth={2}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                fill="none"
-              />
-            ))}
-          </Svg>
-        </Card>
-      ) : null}
-      {first && last ? (
-        <Card style={styles.chart}>
-          <Text style={styles.title}>{t("watch.routeTitle")}</Text>
-          <Svg width="100%" height={ROUTE_H} viewBox={`0 0 ${W} ${ROUTE_H}`}>
-            <Polyline
-              points={points.map((p) => `${p.x},${p.y}`).join(" ")}
-              stroke={theme.colors.tidur}
-              strokeWidth={3}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              fill="none"
-            />
-            <Circle cx={first.x} cy={first.y} r={5} fill={theme.colors.makan} />
-            <Circle cx={last.x} cy={last.y} r={5} fill={theme.colors.bakar} />
-          </Svg>
-        </Card>
-      ) : null}
-    </>
-  );
+  return <BasicDetail hr={legacyHr} route={route} palette={palette} t={analysisT} mapTheme={mapTheme} />;
 }
 
 const styles = StyleSheet.create((theme) => ({
-  chart: {
-    gap: theme.spacing.sm,
-  },
   title: {
     fontSize: theme.fontSize.sm,
     fontWeight: "700",

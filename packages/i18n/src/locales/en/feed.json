@@ -438,6 +438,130 @@
       "samePace": "Same pace",
       "sameHr": "Same heart rate",
       "hrDelta": "HR {{value}} bpm"
+    },
+    "ui": {
+      "section": {
+        "charts": "Charts",
+        "comparison": "Compared with similar workouts"
+      },
+      "unit": {
+        "km": "km",
+        "m": "m",
+        "kmh": "km/h",
+        "perKm": "/km",
+        "bpm": "bpm",
+        "spm": "spm",
+        "rpm": "rpm",
+        "w": "W",
+        "kcal": "kcal",
+        "kcalPerHour": "kcal/h",
+        "hours": "h",
+        "g": "g",
+        "time": "time"
+      },
+      "summary": {
+        "time": "Time",
+        "elapsed": "Elapsed {{time}}",
+        "maxHr": "max {{value}} bpm",
+        "maxCadence": "max {{value}}",
+        "power": "Avg power",
+        "normalizedPower": "NP {{value}} W",
+        "fuel": "Estimated fuel",
+        "fat": "fat {{value}} g",
+        "carbs": "carbs {{value}} g",
+        "a11y": "Workout summary"
+      },
+      "chart": {
+        "hint": "Touch and drag the chart to inspect the workout",
+        "clear": "Clear marker",
+        "a11y": "{{metric}} chart. Swipe up or down to move the marker.",
+        "noData": "Not enough data for this chart."
+      },
+      "splits": {
+        "pace": "Pace",
+        "speed": "Speed",
+        "a11yRowPace": "Split {{label}}, {{value}} per kilometre",
+        "a11yRowSpeed": "Split {{label}}, {{value}} kilometres per hour",
+        "a11yHint": "Moves the marker on the charts and the map"
+      },
+      "zone": {
+        "recovery": "Recovery",
+        "endurance": "Endurance",
+        "tempo": "Tempo",
+        "threshold": "Threshold",
+        "vo2": "Anaerobic / VO2 max"
+      },
+      "zones": {
+        "maxHrAge": "Max HR {{value}} bpm (from your age)",
+        "maxHrSetting": "Max HR {{value}} bpm (your setting)",
+        "hrNote": "Zones 1 to 5 are 50-60, 60-70, 70-80, 80-90 and 90-100 percent of your max heart rate. Percentages are shares of the time spent in a zone.",
+        "below": "Below zone 1: {{time}}",
+        "thresholdPace": "Threshold pace {{pace}} /km",
+        "slowerThan": "slower than {{pace}}",
+        "fasterThan": "faster than {{pace}}",
+        "zoneLabel": "Z{{n}} {{name}}",
+        "a11yRow": "Zone {{n}}, {{name}}, {{range}}, {{time}}, {{percent}} percent"
+      },
+      "best": {
+        "note": "Fastest stretch of each distance in this workout. Ranked against your similar workouts of the last 120 days.",
+        "a11yRow": "{{label}}, {{time}}, {{pace}} per kilometre",
+        "a11yRank": "rank {{rank}}"
+      },
+      "effort": {
+        "addedToDay": "+{{value}} to the day",
+        "explain": "Relative Effort is JoyoFit's strain for this workout on a 0 to 21 scale: the longer your heart works at a high level, the higher it goes (TRIMP {{trimp}}).",
+        "a11y": "Relative effort {{value}} of 21, {{band}}"
+      },
+      "load": {
+        "trimp": "TRIMP",
+        "verdictText": {
+          "under": "Lighter than your usual week.",
+          "steady": "In line with your usual week.",
+          "high": "Heavier than your usual week.",
+          "spike": "A big jump on your usual week. Plan some easy days."
+        },
+        "ratio": "{{percent}}% of your weekly average",
+        "recoveryHours": "{{value}} h",
+        "a11y": "Training load {{verdict}}"
+      },
+      "laps": {
+        "time": "Time",
+        "dist": "Dist",
+        "pace": "Pace",
+        "speed": "Speed",
+        "hr": "HR",
+        "cad": "Cad"
+      },
+      "compare": {
+        "thisWorkout": "This workout",
+        "previous": "Previous",
+        "average": "Average of {{n}}",
+        "vsPrevious": "vs previous",
+        "vsAverage": "vs average",
+        "dist": "Dist",
+        "time": "Time",
+        "pace": "Pace",
+        "speed": "Speed",
+        "hr": "Avg HR",
+        "basisDistance": "Compared with your last {{n}} workouts of similar distance (within 20%).",
+        "basisDistanceOne": "Compared with your last workout of similar distance (within 20%).",
+        "basisDuration": "Compared with your last {{n}} workouts of similar duration (within 25%).",
+        "basisDurationOne": "Compared with your last workout of similar duration (within 25%)."
+      },
+      "note": {
+        "effort": "Each minute of heart rate counts by the zone it falls in (Edwards TRIMP) and the total is mapped onto the 0 to 21 scale. It relies on your max heart rate, so set it in your profile for best results.",
+        "load": "Load is the Edwards TRIMP: minutes in each heart rate zone multiplied by the zone number. The last 7 days add up to this workout; the weekly average is the mean of the 28 days before it.",
+        "threshold": "Threshold pace is estimated from your best 1 mile, 5 km, 10 km and half marathon efforts, slowed to a one hour effort. Zones are set as shares of it."
+      },
+      "empty": {
+        "noSeries": "Charts, map and splits are not available for this workout because no detailed samples were recorded."
+      },
+      "basic": {
+        "noData": "No heart rate or route was shared with this workout.",
+        "hrChart": "Heart rate chart",
+        "hrRange": "{{min}} to {{max}} bpm",
+        "routeA11y": "Route map of the workout"
+      }
     }
   },
   "postPage": {

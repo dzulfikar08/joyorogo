@@ -127,11 +127,14 @@ export function Screen({
   style,
   refreshing = false,
   onRefresh,
+  scrollEnabled = true,
 }: {
   children: React.ReactNode;
   style?: ViewStyle;
   refreshing?: boolean;
   onRefresh?: () => void;
+  /** False while a child gesture (chart scrubbing) owns the touch. */
+  scrollEnabled?: boolean;
 }) {
   return (
     <Container>
@@ -141,6 +144,7 @@ export function Screen({
         contentContainerStyle={[styles.screenContent, style]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        scrollEnabled={scrollEnabled}
         refreshControl={
           onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined
         }
