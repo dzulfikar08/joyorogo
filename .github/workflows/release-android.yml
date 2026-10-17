@@ -89,6 +89,17 @@ jobs:
         with:
           cache-read-only: false
 
+      # The laptop has the same machine-wide file (~/.gradle/gradle.properties): the template's 2 GB heap
+      # runs out of memory in R8 on a release build (seen in CI: Java heap space in minifyReleaseWithR8).
+      - name: Gradle JVM settings
+        run: |
+          mkdir -p ~/.gradle
+          cat >> ~/.gradle/gradle.properties <<'EOF2'
+          org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -XX:+UseParallelGC
+          org.gradle.parallel=true
+          org.gradle.caching=true
+          EOF2
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
