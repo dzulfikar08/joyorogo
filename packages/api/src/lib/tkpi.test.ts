@@ -213,3 +213,28 @@ describe("condiment-tail guard and density bands", () => {
     expect(calibrateItems([{ name: "saus mayones", kcal: 100 }])[0]?.kcal).toBe(100);
   });
 });
+
+describe("compound dishes that start with an ingredient", () => {
+  const kcalOf = (name: string, kcal: number, grams: number) =>
+    calibrateItems([{ name, kcal, grams }])[0];
+
+  test("tahu tek 300 g is not clamped into the tahu band", () => {
+    const item = kcalOf("tahu tek", 450, 300);
+    expect(item?.kcal).toBe(450);
+    expect(item?.matched).toBe(false);
+    expect(kcalOf("tahu tek", 150, 300)?.kcal).toBe(150);
+  });
+
+  test("other compounds keep the model's kcal", () => {
+    for (const name of ["tahu campur", "tahu gejrot", "tahu telur", "tempe mendoan", "tempe bacem"]) {
+      expect(kcalOf(name, 380, 250)?.kcal).toBe(380);
+    }
+  });
+
+  test("the plain ingredient and its library aliases still use their band", () => {
+    expect(kcalOf("tahu", 900, 100)?.matched).toBe(true);
+    expect(kcalOf("tahu goreng", 900, 100)?.matched).toBe(true);
+    expect(kcalOf("tempe goreng", 60, 24)?.matched).toBe(true);
+    expect(kcalOf("orek tempe", 40, 100)?.matched).toBe(true);
+  });
+});

@@ -374,19 +374,37 @@ const INDEX = TKPI_DISHES.flatMap((dish) => [
 ]).filter((e) => e.key.length >= 4);
 
 function matchDish(name: string): TdpiDish | undefined {
+  return matchEntry(name)?.dish;
+}
+
+function matchEntry(name: string): { dish: TdpiDish; key: string } | undefined {
   const q = normalize(name);
-  let best: { dish: TdpiDish; len: number } | undefined;
+  let best: { dish: TdpiDish; key: string; len: number } | undefined;
   for (const entry of INDEX) {
     const key = entry.key;
     if (q.includes(key)) {
       // User/model named the dish (or a superset of it) — always safe.
-      if (!best || key.length > best.len) best = { dish: entry.dish, len: key.length };
+      if (!best || key.length > best.len) best = { dish: entry.dish, key, len: key.length };
     } else if (key.includes(q) && q.length >= 8 && q.length >= key.length / 2) {
       // "sambal" must NOT hit "sambal goreng ati"; "sayur asem campur" may.
-      if (!best || key.length > best.len) best = { dish: entry.dish, len: key.length };
+      if (!best || key.length > best.len) best = { dish: entry.dish, key, len: key.length };
     }
   }
-  return best?.dish;
+  return best && { dish: best.dish, key: best.key };
+}
+
+/**
+ * Single-ingredient library rows. A longer name that only matched one of these
+ * through its first word ("tahu tek", "tempe mendoan", "telur balado") is a
+ * different, usually bigger dish: clamping it into the ingredient's small band
+ * would cut a 300 g "tahu tek" to ~150 kcal.
+ */
+const BARE_INGREDIENT_KEYS = new Set(["tahu", "tempe", "kerupuk", "perkedel", "sambal"]);
+
+function isCompoundOfIngredient(name: string): boolean {
+  const q = normalize(name);
+  const hit = matchEntry(name);
+  return hit !== undefined && BARE_INGREDIENT_KEYS.has(hit.key) && q !== hit.key;
 }
 
 /**
@@ -544,7 +562,7 @@ export function calibrateItems(
 
 function calibrateOne(item: CalibratableItem, opts: { scaleBand?: boolean }): CalibratedItem {
   const combination = isCombination(item.name);
-  const generic = combination || isCondimentedDish(item.name);
+  const generic = combination || isCondimentedDish(item.name) || isCompoundOfIngredient(item.name);
   const dish = generic ? undefined : matchDish(item.name);
   if (!dish) {
     // Second stage: the full TKPI 2019 table (~1.1k bahan) — official
