@@ -1,25 +1,16 @@
-# Android release build for JoyoRogo: the same builds as `scripts/build-release-apk.sh` on the laptop.
+# Android release build for JoyoRogo: the same AAB as `scripts/build-release-apk.sh` on the laptop
+# (dist/joyorogo-play-<versionCode>.aab). There is no site APK any more.
 #
 # Manual only (Actions tab -> "Release Android" -> Run workflow). Nothing runs on push or pull
 # request. The job is bound to the `release` environment, which holds the signing secrets, needs
 # the owner's approval and is limited to the default branch and v* tags. Setup: docs/ci-release.md.
 #
-#   play-aab      scripts/build-release-apk.sh --play   -> dist/joyorogo-play-<versionCode>.aab
-#   site-apk      scripts/build-release-apk.sh          -> joyorogo-release.apk + joyorogo-latest.json
-#   both          the two above, one after the other
-#
-# Uploads are off by default: the Play upload needs a track, the site publish (R2, what the in-app
-# updater reads) needs `publish_site_apk`.
+# The Play upload is off by default: it needs a track.
 name: Release Android
 
 on:
   workflow_dispatch:
     inputs:
-      target:
-        description: "What to build"
-        type: choice
-        options: [play-aab, site-apk, both]
-        default: play-aab
       play_track:
         description: "Upload the AAB to this Play track (none = artifact only)"
         type: choice
@@ -30,10 +21,6 @@ on:
         type: choice
         options: [draft, completed]
         default: draft
-      publish_site_apk:
-        description: "Publish the site APK + manifest to R2 (joyorogo-downloads)"
-        type: boolean
-        default: false
   # To also build on version tags, uncomment. The `release` environment approval still applies.
   # push:
   #   tags: ["v*"]
@@ -51,13 +38,8 @@ jobs:
     timeout-minutes: 150
     environment: release
     env:
-      TARGET: ${{ inputs.target || 'play-aab' }}
       PLAY_TRACK: ${{ inputs.play_track || 'none' }}
       PLAY_STATUS: ${{ inputs.play_status || 'draft' }}
-      PUBLISH_SITE_APK: ${{ inputs.publish_site_apk && '1' || '0' }}
-      # Public fingerprint of the key the published sideload APKs are signed with (the Expo template
-      # debug key, see docs/play-store.md "Signing warning"). A different key would break in-app updates.
-      SIDELOAD_CERT_SHA256: fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -123,16 +105,14 @@ jobs:
           } > apps/native/keystore/keystore.properties
 
       - name: Build Play AAB
-        if: env.TARGET != 'site-apk'
         run: |
-          scripts/build-release-apk.sh --play
+          scripts/build-release-apk.sh
           mkdir -p dist
           cp apps/native/android/app/build/outputs/mapping/release/mapping.txt dist/mapping-play.txt
 
       # Play-only manifest rules (docs/play-store.md): no APK installer permission, no overlay, no SMS/call log/
       # contacts, no advertising ID.
       - name: Guard Play manifest permissions
-        if: env.TARGET != 'site-apk'
         run: |
           jar=$RUNNER_TEMP/bundletool.jar
           curl -fsSL -o "$jar" https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar
@@ -144,26 +124,10 @@ jobs:
           echo "Permissions in the Play AAB:"
           grep -o 'android:name="[^"]*"' <<<"$(grep -E '<uses-permission' <<<"$manifest")" | cut -d'"' -f2 | sort
 
-      - name: Build site APK
-        if: env.TARGET != 'play-aab'
-        run: scripts/build-release-apk.sh
-
-      # Android refuses an in-place update across signing keys: stop before anything is published.
-      - name: Guard site APK signing key
-        if: env.TARGET != 'play-aab'
-        run: |
-          apksigner="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
-          got="$("$apksigner" verify --print-certs joyorogo-release.apk | grep -oP 'certificate SHA-256 digest: \K\w+' | head -1)"
-          if [ "$got" != "$SIDELOAD_CERT_SHA256" ]; then
-            echo "site APK is signed with $got, installed copies expect $SIDELOAD_CERT_SHA256" >&2
-            exit 1
-          fi
-          echo "site APK signing key ok"
-
       - name: Checksums
         run: |
-          for f in dist/*.aab dist/mapping-play.txt joyorogo-release.apk joyorogo-latest.json; do
-            if [ -f "$f" ]; then ls -la "$f"; sha256sum "$f" | tee -a "$GITHUB_STEP_SUMMARY"; fi
+          for f in dist/*.aab dist/mapping-play.txt; do
+            ls -la "$f"; sha256sum "$f" | tee -a "$GITHUB_STEP_SUMMARY"
           done
 
       - name: Upload build artifact
@@ -173,13 +137,11 @@ jobs:
           path: |
             dist/*.aab
             dist/mapping-play.txt
-            joyorogo-release.apk
-            joyorogo-latest.json
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload to Google Play
-        if: env.PLAY_TRACK != 'none' && env.TARGET != 'site-apk'
+        if: env.PLAY_TRACK != 'none'
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
@@ -188,22 +150,6 @@ jobs:
           mappingFile: dist/mapping-play.txt
           track: ${{ env.PLAY_TRACK }}
           status: ${{ env.PLAY_STATUS }}
-
-      # Same two uploads as step 7 of scripts/build-release-apk.sh --publish: APK first, manifest last,
-      # so the manifest never points at a missing APK. Needs CLOUDFLARE_API_TOKEN (R2 edit).
-      - name: Publish site APK to R2
-        if: env.PUBLISH_SITE_APK == '1' && env.TARGET != 'play-aab'
-        working-directory: apps/server
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: b7e6f8457bd39fa37a7eea5249799754
-        run: |
-          bunx wrangler r2 object put "joyorogo-downloads/joyorogo-latest.apk" \
-            --file "$GITHUB_WORKSPACE/joyorogo-release.apk" \
-            --content-type "application/vnd.android.package-archive" --remote
-          bunx wrangler r2 object put "joyorogo-downloads/joyorogo-latest.json" \
-            --file "$GITHUB_WORKSPACE/joyorogo-latest.json" \
-            --content-type "application/json" --remote
 
       - name: Remove signing material
         if: always()

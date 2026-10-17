@@ -141,26 +141,16 @@ Catatan: self-host tanpa binding/`EMAIL_FROM` otomatis mematikan email.
 
 ## Aplikasi Android
 
-APK resmi di halaman depan JoyoRogo Cloud terhubung ke JoyoRogo Cloud. Untuk
-server sendiri, build dari source: ganti `EXPO_PUBLIC_SERVER_URL` di
+Aplikasi Android dirilis lewat Google Play (AAB), terhubung ke JoyoRogo Cloud.
+Untuk server sendiri, build dari source: ganti `EXPO_PUBLIC_SERVER_URL` di
 `scripts/build-release-apk.sh` dan package id di `apps/native/app.json`, lalu
-jalankan skrip itu (butuh Android SDK, JDK, dan Bun). Tanpa APK, aplikasi
-web tetap bisa dipasang ke layar utama HP.
+jalankan skrip itu (butuh Android SDK, JDK, dan Bun). Hasilnya
+`dist/joyorogo-play-<versionCode>.aab`; skrip tidak lagi membuat atau
+mengunggah APK ke situs. Aplikasi web tetap bisa dipasang ke layar utama HP.
 
 Setiap build memberi `versionCode` otomatis (menit sejak 2024-01-01 UTC), jadi
-selalu naik tanpa diubah manual, dan menulis `joyorogo-latest.json` di root
-repo: manifest berisi `versionCode`, `versionName`, `size`, `sha256`, dan
-`publishedAt`. Aplikasi Android memakai manifest itu untuk pembaruan dalam
-aplikasi: kartu "Versi baru tersedia" muncul di Profil, APK diunduh ke cache,
-diverifikasi sha256-nya, lalu dibuka lewat installer sistem. Tambahkan flag
-`--publish` untuk mengunggah keduanya ke R2 (APK dulu, manifest terakhir):
-
-```bash
-scripts/build-release-apk.sh --publish
-```
-
-APK pertama yang mendukung pembaruan dalam aplikasi harus dipasang manual satu
-kali; setelah itu pembaruan berikutnya bisa dari dalam aplikasi.
+selalu naik tanpa diubah manual. Pembaruan dalam aplikasi di Android memakai
+Google Play (lihat `docs/in-app-updates.md`).
 
 ## Latihan beban, puasa intermiten, dan harga makanan
 

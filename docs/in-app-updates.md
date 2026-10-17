@@ -9,7 +9,7 @@ Decided once at start from the installer package name (`react-native-device-info
 | Install | Installer | Path |
 | --- | --- | --- |
 | Play Store, any track (internal, closed, open, production, internal app sharing) | `com.android.vending` | Play In-App Updates, **flexible** flow |
-| Sideload APK from joyorogo.com (`JOYOROGO_DISTRIBUTION` unset) | anything else | `GET /downloads/latest-apk.json`, compare `versionCode` with `expo-application` `nativeBuildVersion`, banner installs `/downloads/latest-apk` |
+| Old site APK from joyorogo.com (`JOYOROGO_DISTRIBUTION` unset, no longer built) | anything else | `GET /downloads/latest-apk.json`, compare `versionCode` with `expo-application` `nativeBuildVersion`, banner installs `/downloads/latest-apk` (frozen at the last published APK) |
 | Play-flavoured build (`JOYOROGO_DISTRIBUTION=play`) not installed by Play | anything else | nothing (the published APK is signed with a different key and could not update it) |
 | iOS, web | n/a | nothing |
 
@@ -35,14 +35,14 @@ Decided once at start from the installer package name (`react-native-device-info
 
 In-App Updates only works for builds **installed by Google Play**, and only when Play has a **higher versionCode on the same track** that the tester is opted into. A local `expo run:android` or `adb install` build is never offered an update (installer is not `com.android.vending`, so the Play path is not even started).
 
-1. Build two Play bundles with `scripts/build-release-apk.sh --play`; versionCode is minutes since 2024-01-01, so the second is always higher (see `docs/play-store.md`).
+1. Build two Play bundles with `scripts/build-release-apk.sh`; versionCode is minutes since 2024-01-01, so the second is always higher (see `docs/play-store.md`).
 2. Upload build A and build B to the same track (internal testing is fastest, minutes). Install **A from the Play Store** on a tester device (opt-in link) and open it once.
 3. Make B available (release it on the track) and wait until the Play Store shows "Update" for JoyoRogo. In-App Updates sees the update only after the Play Store app itself knows about it, which can lag a few minutes to hours; opening the Play Store page for JoyoRogo or clearing Play Store cache helps.
 4. Open A. Expect the banner "Versi baru tersedia". Tap **Update**, accept Play's dialog, watch the progress bar, then tap **Mulai ulang**. The app relaunches as B.
 5. Tap **Nanti** instead: the banner must stay away for 24 h, even after killing and reopening the app (clear the app's storage to reset).
 6. Fastest loop, internal app sharing (Google's own test procedure, https://developer.android.com/guide/playcore/in-app-updates/test): install build A from an **internal app sharing link**; upload build B (higher versionCode) as a new internal sharing link; open B's link on the device but **do not install** from the Play page that appears; open JoyoRogo from the launcher. The update is then offered. Note: `inAppUpdatePriority` is not supported there (JoyoRogo does not use it).
 
-Sideload path: install an older sideload APK (older than `joyorogo-latest.json` `versionCode`, which is what `scripts/build-release-apk.sh` uploads to R2), open it, expect the banner; **Update** shows download percent and then Android's installer.
+Sideload path: the build script no longer produces or publishes a site APK, so `joyorogo-latest.json` on R2 is frozen at the last published build and nothing new can be tested here. APKs already installed still run this path against that frozen manifest.
 
 Google's troubleshooting list: the Play account on the device must have installed the app from Play at least once, application ID and signing key must match the Play version, and the installed versionCode must be lower than the update's.
 

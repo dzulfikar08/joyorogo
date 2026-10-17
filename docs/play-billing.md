@@ -67,7 +67,7 @@ To sell subscriptions you need a Google Payments profile linked to the developer
 
 ### 1.2 Publish a build that contains Play Billing
 
-Play only unlocks product creation after a published build includes the Billing Library. The AAB from `scripts/build-release-apk.sh --play` (this repo, versionCode higher than 1466923) has it.
+Play only unlocks product creation after a published build includes the Billing Library. The AAB from `scripts/build-release-apk.sh` (this repo, versionCode higher than 1466923) has it.
 
 1. Upload that AAB to a track (internal testing is enough), start the rollout.
 2. Wait for **Monetize with Play** to unlock Products.

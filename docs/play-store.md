@@ -9,19 +9,19 @@ Written 2026-10-15. Package `com.joyodigitama.joyorogo`. Everything here is for 
 | Item | Where |
 | --- | --- |
 | Play build flag | `JOYOROGO_DISTRIBUTION=play` (read by `apps/native/app.config.ts`, exposed to JS as `extra.distribution`, helper `apps/native/src/distribution.ts` -> `IS_PLAY_BUILD`) |
-| Build the upload bundle | `scripts/build-release-apk.sh --play` writes `dist/joyorogo-play-<versionCode>.aab` (gitignored). `--clean` forces a fresh prebuild. First build is ~30 min (arm64-v8a + armeabi-v7a native code); later ones reuse `android/`. |
+| Build the upload bundle | `scripts/build-release-apk.sh` writes `dist/joyorogo-play-<versionCode>.aab` (gitignored). `--clean` forces a fresh prebuild. First build is ~30 min (arm64-v8a + armeabi-v7a native code); later ones reuse `android/`. |
 | versionCode | minutes since 2024-01-01 UTC, computed at build time, so each new build is higher than the last. Play caps versionCode at 2100000000; this stays under it for thousands of years. |
 | Signing | The AAB is signed with `apps/native/keystore/joyorogo-release.jks` (password in the gitignored `keystore.properties` next to it). That key is the **upload key** (Play App Signing, section 2). Back both files up outside the repo. |
-| Sideload build | `scripts/build-release-apk.sh` (no flag) is unchanged: keeps `REQUEST_INSTALL_PACKAGES` and the in-app APK updater. See the signing warning below. |
+| Site APK | Retired. There is no sideload build any more, only the AAB. See "Site APK (retired)" below. |
 
 What the Play build removes compared with the sideload build:
 
 - `REQUEST_INSTALL_PACKAGES` is not in the manifest, and the APK self-updater never runs: no fetch of `latest-apk.json` at start, no "Pembaruan aplikasi" card in Profil (`useApkUpdate` returns `null`, same path iOS and web already take). Play installs get Google Play In-App Updates instead, shown as a banner with a flexible flow (`docs/in-app-updates.md`).
 - No web checkout. Play requires Google Play Billing for digital goods, so the DOKU/Pakasir checkout never shows in the Play build and nothing links to it. The Play build sells JoyoRogo Pro through Play Billing instead (subscription `pro`, base plans `monthly` and `yearly`); it stays hidden until the server has the Play service account (`useAppConfig` reports `billing: googlePlayBilling`). Setup, products and testing: `docs/play-billing.md`. Free-tier scan limits still apply, and Pro bought elsewhere keeps working on the account.
 
-### Signing warning (read before mixing sideload and Play)
+### Site APK (retired)
 
-The currently published sideload APK (`https://api.joyorogo.com/downloads/latest-apk`, versionCode 1466505 when checked) and the repo-root `joyorogo-release.apk` are signed with the **Android Debug** certificate (SHA-256 `fac61745...3b9c`), not with the release keystore. Cause: the SDK 57 Expo template has comment lines between `release {` and `signingConfig`, so the script's old string replace silently did nothing. `--play` now patches that block with a regex and fails the build if it cannot, and it signs the AAB with the release keystore. Sideload builds still use the debug key on purpose: switching them would make every installed APK refuse the update (Android rejects an in-place update across signing keys). Consequence: **an APK sideloaded from joyorogo.com cannot be updated by the Play version or vice versa; the user must uninstall first.** Tell testers who already sideloaded to uninstall before opting in.
+`scripts/build-release-apk.sh` no longer builds or publishes a site APK: the AAB is the only output and nothing is uploaded to R2. The last published APK (`https://api.joyorogo.com/downloads/latest-apk`, still served from R2) is signed with the **Android Debug** certificate (SHA-256 `fac61745...3b9c`), not with the release keystore, so a Play install cannot update it and the other way round; one has to be uninstalled before the other is installed. Copies that are still installed keep checking `latest-apk.json` and never see a newer build. The release script patches the `release` signing block with a regex and fails the build if it cannot, so the AAB is always signed with the release keystore.
 
 Release keystore fingerprints (public, compare with the Play Console upload-key screen after the first upload):
 
@@ -294,7 +294,7 @@ Removed in this change: `REQUEST_INSTALL_PACKAGES` (Play build only), `SYSTEM_AL
 
 ## 10. Update and release routine
 
-1. Bump nothing by hand: `scripts/build-release-apk.sh --play` computes versionCode.
+1. Bump nothing by hand: `scripts/build-release-apk.sh` computes versionCode.
 2. Console -> Closed testing -> **Create new release** -> upload the new AAB -> release notes -> rollout.
 3. Testers get the update from the Play Store (auto-update or the Update button), and the app itself shows a "Versi baru tersedia" banner with in-app Play updates (`docs/in-app-updates.md`, including how to test it). The app does not download APKs itself.
 4. Keep the `version` in `apps/native/app.json` as the user-visible name; versionCode is what Play orders by.
