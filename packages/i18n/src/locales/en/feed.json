@@ -284,6 +284,20 @@
     "noFollowing": "Not following anyone yet.",
     "open": "{{name}}'s profile"
   },
+  "watch": {
+    "badge": "JoyoFit",
+    "chip": {
+      "distance": "{{km}} km",
+      "avgHr": "Avg {{bpm}} bpm",
+      "maxHr": "Max {{bpm}} bpm"
+    },
+    "hrTitle": "Heart rate",
+    "routeTitle": "Route",
+    "lockedTitle": "Heart rate & route detail is for Pro",
+    "lockedBody": "Upgrade to Pro to see heart rate and route of workouts shared by others.",
+    "lockedCta": "See Pro plans",
+    "loadFailed": "Couldn't load workout detail."
+  },
   "postPage": {
     "title": "JoyoRogo post",
     "loading": "Loading post",

@@ -249,6 +249,12 @@ function PostChips({ post }: { post: FeedItem }) {
         label: `${n > 0 ? "+" : ""}${fmtKg(n)} kg`,
       });
     }
+    if (s.distanceM !== null && s.distanceM !== undefined)
+      chips.push({ icon: "navigate-outline", label: t("watch.chip.distance", { km: (Number(s.distanceM) / 1000).toFixed(2) }) });
+    if (s.avgHr !== null && s.avgHr !== undefined)
+      chips.push({ icon: "heart-outline", label: t("watch.chip.avgHr", { bpm: fmtInt(Number(s.avgHr)) }) });
+    if (s.maxHr !== null && s.maxHr !== undefined)
+      chips.push({ icon: "heart", label: t("watch.chip.maxHr", { bpm: fmtInt(Number(s.maxHr)) }) });
   }
   return (
     <View style={styles.chipRow}>
@@ -332,6 +338,12 @@ export function PostCard({
           </View>
         </Pressable>
         <View style={styles.headerRight}>
+          {post.kind === "latihan" && post.stats?.source === "joyofit" ? (
+            <View style={[styles.watchBadge, { backgroundColor: theme.colors.tidurSoft }]}>
+              <Ionicons name="watch-outline" size={12} color={theme.colors.tidurText} />
+              <Text style={[styles.watchBadgeText, { color: theme.colors.tidurText }]}>{t("watch.badge")}</Text>
+            </View>
+          ) : null}
           <View
             style={[styles.kindBadge, { backgroundColor: theme.colors[`${meta.tint}Soft`] }]}
             accessibilityLabel={meta.label}
@@ -456,6 +468,18 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+  },
+  watchBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: theme.spacing.sm,
+    height: 24,
+    borderRadius: theme.radius.pill,
+  },
+  watchBadgeText: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "700",
   },
   photo: {
     width: "100%",

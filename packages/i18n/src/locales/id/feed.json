@@ -280,6 +280,20 @@
     "noFollowing": "Belum mengikuti siapa pun.",
     "open": "Profil {{name}}"
   },
+  "watch": {
+    "badge": "JoyoFit",
+    "chip": {
+      "distance": "{{km}} km",
+      "avgHr": "Rata-rata {{bpm}} bpm",
+      "maxHr": "Maks {{bpm}} bpm"
+    },
+    "hrTitle": "Detak jantung",
+    "routeTitle": "Rute",
+    "lockedTitle": "Detail detak jantung & rute untuk Pro",
+    "lockedBody": "Upgrade ke Pro untuk melihat detak jantung dan rute latihan yang dibagikan orang lain.",
+    "lockedCta": "Lihat paket Pro",
+    "loadFailed": "Detail latihan gagal dimuat."
+  },
   "postPage": {
     "title": "Postingan JoyoRogo",
     "loading": "Memuat postingan",

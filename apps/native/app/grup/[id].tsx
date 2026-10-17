@@ -93,6 +93,15 @@ function MemberCard({
   const today = member.today;
   const lastActive = member.lastActiveAt ? t("member.active", { time: timeAgoId(member.lastActiveAt) }) : t("member.inactiveShort");
   const delta = today.weightDeltaKg7d;
+  const fitness = today.fitness;
+  const fitnessChips = fitness
+    ? [
+        fitness.recoveryPct !== null ? t("fitness.recovery", { pct: fmtInt(fitness.recoveryPct) }) : null,
+        fitness.strain !== null ? t("fitness.strain", { n: fitness.strain.toFixed(1) }) : null,
+        fitness.sleepPct !== null ? t("fitness.sleep", { pct: fmtInt(fitness.sleepPct) }) : null,
+        fitness.readiness !== null ? t(`fitness.readiness.${fitness.readiness}`) : null,
+      ].filter((label) => label !== null)
+    : [];
 
   return (
     <Card>
@@ -141,6 +150,17 @@ function MemberCard({
           .filter((part) => part !== null)
           .join(" • ")}
       </Text>
+
+      {fitnessChips.length > 0 ? (
+        <View style={styles.fitnessRow}>
+          {fitnessChips.map((label) => (
+            <View key={label} style={styles.fitnessChip}>
+              <Ionicons name="pulse" size={12} color={theme.colors.mutedForeground} />
+              <Text style={styles.fitnessChipText}>{label}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       {member.varStatus ? (
         <View style={styles.varChip}>
@@ -263,6 +283,36 @@ export default function GroupDetail() {
     success: (_input, _data, previous) => ({
       message: t("toast.settingsSaved"),
       undo: previous === undefined ? undefined : () => setShareVar.mutate({ groupId, shareVar: previous }),
+    }),
+    onError: (e) => toast.error(t("toast.shareFailed"), errorMessage(e)),
+    invalidate: () => [orpc.group.key()],
+  });
+  const setShareFitness = useOptimisticMutation<
+    { groupId: string; shareFitness: boolean },
+    unknown,
+    boolean | undefined
+  >({
+    mutationFn: (input) => client.group.setShareFitness(input),
+    patch: (input, cache) => {
+      const key = orpc.group.detail.queryOptions({ input: { groupId } }).queryKey;
+      const previous = (queryClient.getQueryData<DetailRow>(key)?.members ?? []).find(
+        (m) => m.userId === session?.user.id,
+      )?.shareFitness;
+      cache.value<DetailRow>(key, (old) =>
+        old === undefined
+          ? undefined
+          : {
+              ...old,
+              members: old.members.map((m) =>
+                m.userId === session?.user.id ? { ...m, shareFitness: input.shareFitness } : m,
+              ),
+            },
+      );
+      return previous;
+    },
+    success: (_input, _data, previous) => ({
+      message: t("toast.settingsSaved"),
+      undo: previous === undefined ? undefined : () => setShareFitness.mutate({ groupId, shareFitness: previous }),
     }),
     onError: (e) => toast.error(t("toast.shareFailed"), errorMessage(e)),
     invalidate: () => [orpc.group.key()],
@@ -551,6 +601,20 @@ export default function GroupDetail() {
               }
             />
             <ListRow
+              icon="pulse"
+              iconTint="tidur"
+              title={t("fitness.share.title")}
+              subtitle={t("fitness.share.hint")}
+              right={
+                <Switch
+                  value={me?.shareFitness ?? false}
+                  disabled={setShareFitness.isPending}
+                  onValueChange={(value) => setShareFitness.mutate({ groupId, shareFitness: value })}
+                  accessibilityLabel={t("fitness.share.label")}
+                />
+              }
+            />
+            <ListRow
               icon="log-out-outline"
               iconTint="muted"
               title={t("settings.leave.button")}
@@ -702,6 +766,26 @@ const styles = StyleSheet.create((theme) => ({
   varChipText: {
     fontSize: theme.fontSize.xs,
     fontWeight: "700",
+  },
+  fitnessRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+  },
+  fitnessChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 6,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.muted,
+  },
+  fitnessChipText: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "700",
+    color: theme.colors.mutedForeground,
   },
   emptyLine: {
     fontSize: theme.fontSize.sm,

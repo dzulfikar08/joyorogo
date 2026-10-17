@@ -20,6 +20,7 @@ import {
   weightLog,
 } from "@joyorogo/db/schema/fitness";
 import { pushSubscription } from "@joyorogo/db/schema/plans";
+import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 import { team, teamMember, teamNudge } from "@joyorogo/db/schema/social";
 
 import { protectedProcedure, publicProcedure } from "../index";
@@ -50,6 +51,7 @@ import {
 import { restoreVarVerdict, retryVarScan, varRetriesLeft } from "../lib/varretry";
 import { analyzeVarPhotos } from "../lib/varscan";
 import type { VarVerdict } from "../lib/varscan";
+import { READINESS_LABELS } from "../lib/fitness-hint";
 import { sendPush } from "../lib/webpush";
 
 const MAX_MEMBERS = 20;
@@ -311,6 +313,22 @@ export const groupRouter = {
       return { ok: true };
     }),
 
+  setShareFitness: protectedProcedure
+    .input(z.object({ groupId: z.string(), shareFitness: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      await requireMember(context.db, input.groupId, context.session.user.id, context.locale);
+      await context.db
+        .update(teamMember)
+        .set({ shareFitness: input.shareFitness })
+        .where(
+          and(
+            eq(teamMember.teamId, input.groupId),
+            eq(teamMember.userId, context.session.user.id),
+          ),
+        );
+      return { ok: true };
+    }),
+
   setShareFood: protectedProcedure
     .input(z.object({ groupId: z.string(), shareFood: z.boolean() }))
     .handler(async ({ context, input }) => {
@@ -351,6 +369,7 @@ export const groupRouter = {
           joinedAt: teamMember.joinedAt,
           shareFood: teamMember.shareFood,
           shareVar: teamMember.shareVar,
+          shareFitness: teamMember.shareFitness,
         })
         .from(teamMember)
         .innerJoin(user, eq(teamMember.userId, user.id))
@@ -375,6 +394,7 @@ export const groupRouter = {
         foodDates,
         lastActive,
         varRows,
+        fitnessRows,
       ] = await db.batch([
         db.select().from(profile).where(inArray(profile.userId, ids)),
         // Latest weigh-in ever (per member) via the group-by-max pattern.
@@ -497,7 +517,20 @@ export const groupRouter = {
           )
           .where(and(inArray(varScan.userId, ids), eq(teamMember.shareVar, true)))
           .groupBy(varScan.userId),
+        db
+          .select({
+            userId: fitnessScore.userId,
+            recoveryPct: fitnessScore.recoveryPct,
+            strain: fitnessScore.strain,
+            sleepPct: fitnessScore.sleepPct,
+            readiness: fitnessScore.readiness,
+          })
+          .from(fitnessScore)
+          .where(and(inArray(fitnessScore.userId, ids), eq(fitnessScore.date, date))),
       ]);
+
+      const fitnessByUser = new Map(fitnessRows.map((r) => [r.userId, r]));
+      const viewerId = context.session.user.id;
 
       const profileByUser = new Map(profiles.map((p) => [p.userId, p]));
       const intakeDayByUser = new Map(intakeDay.map((r) => [r.userId, r]));
@@ -528,6 +561,7 @@ export const groupRouter = {
         members: members.map((m) => {
           const prof = profileByUser.get(m.userId);
           const latest = latestByUser.get(m.userId);
+          const fitness = fitnessByUser.get(m.userId);
           const baseline = baselineByUser.get(m.userId);
           const dayIntake = intakeDayByUser.get(m.userId);
           const eatenKcal = Math.round(dayIntake?.kcal ?? 0);
@@ -577,6 +611,7 @@ export const groupRouter = {
             joinedAt: m.joinedAt,
             shareFood: m.shareFood,
             shareVar: m.shareVar,
+            shareFitness: m.shareFitness,
             // Verdict+tanggal VAR perut terakhir; foto tidak pernah ikut.
             varStatus: varStatusByUser.get(m.userId) ?? null,
             lastActiveAt: lastActiveByUser.get(m.userId) ?? null,
@@ -591,6 +626,16 @@ export const groupRouter = {
               waterMl: (waterByUser.get(m.userId)?.glasses ?? 0) * GLASS_ML || null,
               weightKg: weightNow,
               weightDeltaKg7d,
+              // Opt-in per grup; baris sendiri selalu tampil.
+              fitness:
+                fitness && (m.shareFitness || m.userId === viewerId)
+                  ? {
+                      recoveryPct: fitness.recoveryPct,
+                      strain: fitness.strain,
+                      sleepPct: fitness.sleepPct,
+                      readiness: READINESS_LABELS.find((label) => label === fitness.readiness) ?? null,
+                    }
+                  : null,
             },
             streakDays: streakFromDates(foodDatesByUser.get(m.userId) ?? [], today),
           };

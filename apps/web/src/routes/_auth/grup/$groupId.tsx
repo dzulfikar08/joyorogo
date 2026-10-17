@@ -157,14 +157,19 @@ function GrupDetailPage() {
   );
 
   // Optimistic flip of my member row's share flag; undo re-applies the old value.
-  const patchShare = (input: { groupId: string; shareFood: boolean } | { groupId: string; shareVar: boolean }, cache: OptimisticCache) => {
+  const patchShare = (
+    input:
+      | { groupId: string; shareFood: boolean }
+      | { groupId: string; shareVar: boolean }
+      | { groupId: string; shareFitness: boolean },
+    cache: OptimisticCache,
+  ) => {
+    const { groupId: _groupId, ...flag } = input;
     cache.value<GroupDetail>(detailKey, (data) =>
       data
         ? {
             ...data,
-            members: data.members.map((m) =>
-              m.userId === meId ? { ...m, ...("shareFood" in input ? { shareFood: input.shareFood } : { shareVar: input.shareVar }) } : m,
-            ),
+            members: data.members.map((m) => (m.userId === meId ? { ...m, ...flag } : m)),
           }
         : data,
     );
@@ -182,6 +187,14 @@ function GrupDetailPage() {
     unknown
   >({
     mutationFn: (input) => client.group.varSetShare(input),
+    patch: (input, cache) => patchShare(input, cache),
+    invalidate: () => [orpc.group.key()],
+  });
+  const setShareFitness = useOptimisticMutation<
+    Parameters<AppRouterClient["group"]["setShareFitness"]>[0],
+    unknown
+  >({
+    mutationFn: (input) => client.group.setShareFitness(input),
     patch: (input, cache) => patchShare(input, cache),
     invalidate: () => [orpc.group.key()],
   });
@@ -363,6 +376,18 @@ function GrupDetailPage() {
                     label={t("settings.privacy.var.label")}
                     disabled={setShareVar.isPending}
                     onCheckedChange={(shareVar) => setShareVar.mutate({ groupId, shareVar })}
+                  />
+                }
+              />
+              <ListRow
+                title={t("fitness.share.title")}
+                subtitle={t("fitness.share.hint")}
+                trailing={
+                  <Switch
+                    checked={me.shareFitness}
+                    label={t("fitness.share.label")}
+                    disabled={setShareFitness.isPending}
+                    onCheckedChange={(shareFitness) => setShareFitness.mutate({ groupId, shareFitness })}
                   />
                 }
               />
@@ -609,6 +634,25 @@ function MemberCard({
           )}
         </div>
       </div>
+
+      {/* Skor JoyoFit yang dibagikan anggota: chip ringkas. */}
+      {today.fitness && (
+        <ul className="mt-2 flex flex-wrap gap-1.5">
+          {[
+            today.fitness.recoveryPct !== null &&
+              t("fitness.recovery", { pct: fmtInt(today.fitness.recoveryPct) }),
+            today.fitness.strain !== null && t("fitness.strain", { n: today.fitness.strain.toFixed(1) }),
+            today.fitness.sleepPct !== null && t("fitness.sleep", { pct: fmtInt(today.fitness.sleepPct) }),
+            today.fitness.readiness && t(`fitness.readiness.${today.fitness.readiness}`),
+          ]
+            .filter((chip): chip is string => typeof chip === "string")
+            .map((chip) => (
+              <li key={chip} className="rounded-full bg-muted px-2.5 py-1 text-xs font-bold tabular-nums">
+                {chip}
+              </li>
+            ))}
+        </ul>
+      )}
 
       {/* Shared VAR perut status: verdict + date only, never a photo. */}
       {member.varStatus && (

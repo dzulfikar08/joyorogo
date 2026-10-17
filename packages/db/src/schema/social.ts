@@ -43,6 +43,8 @@ export const teamMember = sqliteTable(
     // Status VAR perut dibagikan ke tim ini? Default sembunyi. Yang ikut
     // dibagikan cuma verdict + tanggal — foto perut tidak pernah keluar.
     shareVar: integer("share_var", { mode: "boolean" }).notNull().default(false),
+    // Opt-in per grup: skor harian JoyoFit (recovery, strain, tidur, readiness).
+    shareFitness: integer("share_fitness", { mode: "boolean" }).notNull().default(false),
     joinedAt: integer("joined_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),
@@ -134,6 +136,20 @@ export const post = sqliteTable(
     index("post_visibility_created_idx").on(table.visibility, table.createdAt),
   ],
 );
+
+// Detail pos latihan dari jam (HR series + rute); ikut terhapus bersama pos.
+export const postWorkoutDetail = sqliteTable("post_workout_detail", {
+  postId: text("post_id")
+    .primaryKey()
+    .references(() => post.id, { onDelete: "cascade" }),
+  // JSON { intervalSec, bpm: (number|null)[] }
+  hrJson: text("hr_json"),
+  // JSON [lat, lon][]
+  routeJson: text("route_json"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
+});
 
 export const postKudos = sqliteTable(
   "post_kudos",

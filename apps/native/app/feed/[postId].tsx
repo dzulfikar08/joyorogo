@@ -24,6 +24,7 @@ import {
 import { ConfirmSheet } from "@/components/confirm-sheet";
 import { useToast } from "@/components/toast";
 import { PostCard, openAuthor } from "@/components/feed/post-card";
+import { WorkoutDetail } from "@/components/feed/workout-detail";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
 import { REPORT_REASONS, type FeedComment, type FeedItem, type ReportReason } from "@/src/lib/social";
@@ -214,6 +215,8 @@ export default function DetailPost() {
         onPressAuthor={(handle) => openAuthor(handle)}
         right={null}
       />
+
+      {data.stats?.source === "joyofit" && data.stats.hasDetail === 1 ? <WorkoutDetail postId={data.id} /> : null}
 
       <Text style={styles.sectionLabel}>{t("post.kudos.label")}</Text>
       {kudosList.isPending ? (

@@ -257,6 +257,22 @@
     "leaveBody": "{{name}} will disappear from your groups.",
     "leaveConfirm": "Leave"
   },
+  "fitness": {
+    "share": {
+      "title": "Share my JoyoFit scores",
+      "hint": "Recovery, strain, sleep and readiness show on your card in this group.",
+      "label": "Share JoyoFit scores"
+    },
+    "recovery": "Recovery {{pct}}%",
+    "strain": "Strain {{n}}",
+    "sleep": "Sleep {{pct}}%",
+    "readiness": {
+      "Primed": "Primed",
+      "Balanced": "Balanced",
+      "Strained": "Strained",
+      "Run down": "Run down"
+    }
+  },
   "time": {
     "never": "never"
   }

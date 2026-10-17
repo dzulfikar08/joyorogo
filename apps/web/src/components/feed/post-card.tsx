@@ -128,18 +128,30 @@ function MacroChips({ post }: { post: FeedPost }) {
 function WorkoutChips({ post }: { post: FeedPost }) {
   const { t } = useTranslation("feed");
   const stats = post.stats ?? {};
+  const fromWatch = stats.source === "joyofit";
   const chips: string[] = [];
   if (post.durationMin != null) chips.push(t("post.chip.minutes", { n: fmtInt(post.durationMin) }));
-  if (typeof stats.sets === "number")
-    chips.push(t("post.chip.sets", { count: stats.sets }));
-  if (typeof stats.reps === "number" && stats.reps > 0)
-    chips.push(t("post.chip.reps", { count: stats.reps }));
-  if (typeof stats.volumeKg === "number" && stats.volumeKg > 0)
-    chips.push(t("post.chip.volume", { kg: fmtInt(stats.volumeKg) }));
+  if (fromWatch) {
+    if (typeof stats.distanceM === "number" && stats.distanceM > 0)
+      chips.push(t("watch.chip.distance", { km: (stats.distanceM / 1000).toFixed(1) }));
+    if (typeof stats.avgHr === "number") chips.push(t("watch.chip.avgHr", { bpm: fmtInt(stats.avgHr) }));
+  } else {
+    if (typeof stats.sets === "number")
+      chips.push(t("post.chip.sets", { count: stats.sets }));
+    if (typeof stats.reps === "number" && stats.reps > 0)
+      chips.push(t("post.chip.reps", { count: stats.reps }));
+    if (typeof stats.volumeKg === "number" && stats.volumeKg > 0)
+      chips.push(t("post.chip.volume", { kg: fmtInt(stats.volumeKg) }));
+  }
   if (post.kcal != null) chips.push(fmtKcalLabel(post.kcal));
   if (chips.length === 0) return null;
   return (
     <ul className="flex flex-wrap gap-1.5">
+      {fromWatch && (
+        <li className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
+          {t("watch.badge")}
+        </li>
+      )}
       {chips.map((chip) => (
         <li
           key={chip}

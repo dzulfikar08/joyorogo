@@ -18,6 +18,7 @@ import {
   post as postTable,
   postComment,
   postKudos,
+  postWorkoutDetail,
   socialBlock,
   socialFollow,
   socialNotification,
@@ -29,6 +30,8 @@ import { jakartaToday } from "../lib/engine";
 import { base64ToBytes } from "../lib/sticker";
 import { serverT, userLocale } from "../lib/messages";
 import { sendPush } from "../lib/webpush";
+import { premiumUnlocked } from "../lib/readiness-food";
+import { paywallConfig } from "../lib/tiers";
 
 // --- Batasan -----------------------------------------------------------------
 
@@ -53,6 +56,8 @@ const handleSchema = z
   .regex(/^[a-z0-9_]{3,20}$/);
 
 const visibilitySchema = z.enum(["publik", "grup"]);
+
+const hrSchema = z.number().int().min(20).max(250);
 
 const cursorSchema = z.number().int().positive().optional();
 
@@ -149,6 +154,47 @@ async function loadVisiblePost(
   const visible = await canViewPost(db, row, row.authorPublic ?? true, viewerId);
   if (!visible) throw new ORPCError("NOT_FOUND", { message: t("server.error.postNotFound") });
   return row;
+}
+
+/**
+ * Pembuka bersama createPost/createWatchPost: kuota harian, onboarding, dan
+ * pagar profil publik. Mengembalikan profil + visibility yang berlaku.
+ */
+async function preparePost(
+  db: Database,
+  me: string,
+  requested: "publik" | "grup" | undefined,
+  t: TFunction<"feed">,
+) {
+  const todayCount = await countRow(
+    db
+      .select({ total: count() })
+      .from(postTable)
+      .where(and(eq(postTable.userId, me), gt(postTable.createdAt, new Date(dayStartWib())))),
+  );
+  if (todayCount >= MAX_POSTS_PER_DAY) {
+    throw new ORPCError("BAD_REQUEST", { message: t("server.error.postQuota") });
+  }
+
+  const [meProfile] = await db
+    .select({
+      publicProfile: profileTable.publicProfile,
+      defaultVisibility: profileTable.defaultVisibility,
+      startWeightKg: profileTable.startWeightKg,
+    })
+    .from(profileTable)
+    .where(eq(profileTable.userId, me))
+    .limit(1);
+  if (!meProfile) {
+    throw new ORPCError("FAILED_PRECONDITION", { message: t("server.error.onboardingRequired") });
+  }
+  const visibility = requested ?? meProfile.defaultVisibility;
+  if (visibility === "publik" && !meProfile.publicProfile) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: t("server.error.publicProfileRequired"),
+    });
+  }
+  return { meProfile, visibility };
 }
 
 // --- Helper identitas -----------------------------------------------------------
@@ -585,35 +631,7 @@ export const socialRouter = {
       const me = context.session.user.id;
       const db = context.db;
 
-      const todayCount = await countRow(
-        db
-          .select({ total: count() })
-          .from(postTable)
-          .where(and(eq(postTable.userId, me), gt(postTable.createdAt, new Date(dayStartWib())))),
-      );
-      if (todayCount >= MAX_POSTS_PER_DAY) {
-        throw new ORPCError("BAD_REQUEST", { message: t("server.error.postQuota") });
-      }
-
-      const [meProfile] = await db
-        .select({
-          publicProfile: profileTable.publicProfile,
-          defaultVisibility: profileTable.defaultVisibility,
-          startWeightKg: profileTable.startWeightKg,
-        })
-        .from(profileTable)
-        .where(eq(profileTable.userId, me))
-        .limit(1);
-      if (!meProfile) {
-        throw new ORPCError("FAILED_PRECONDITION", { message: t("server.error.onboardingRequired") });
-      }
-      const visibility = input.visibility ?? meProfile.defaultVisibility;
-      if (visibility === "publik" && !meProfile.publicProfile) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: t("server.error.publicProfileRequired"),
-        });
-      }
-
+      const { meProfile, visibility } = await preparePost(db, me, input.visibility, t);
       let snapshot: {
         title: string;
         kcal: number | null;
@@ -808,6 +826,116 @@ export const socialRouter = {
         ...snapshot,
       });
       return { id: postId, visibility };
+    }),
+
+  /** Latihan dari JoyoFit (jam): ringkasan + detail HR/rute opsional di tabel terpisah. */
+  createWatchPost: protectedProcedure
+    .input(
+      z.object({
+        workout: z.object({
+          sportName: z.string().trim().min(1).max(60),
+          startedAt: z.number().int().positive(),
+          durationMin: z.number().positive().max(1440),
+          kcal: z.number().min(0).nullish(),
+          distanceM: z.number().min(0).nullish(),
+          avgHr: hrSchema.nullish(),
+          maxHr: hrSchema.nullish(),
+        }),
+        detail: z
+          .object({
+            hr: z
+              .object({
+                intervalSec: z.number().int().min(1).max(600),
+                bpm: z.array(hrSchema.nullable()).max(600),
+              })
+              .nullish(),
+            route: z
+              .array(z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)]))
+              .max(1000)
+              .nullish(),
+          })
+          .optional(),
+        caption: z.string().trim().max(STORY_MAX).optional(),
+        visibility: visibilitySchema.optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
+      const me = context.session.user.id;
+      const db = context.db;
+      const { visibility } = await preparePost(db, me, input.visibility, t);
+
+      const { workout } = input;
+      const hr = input.detail?.hr?.bpm.length ? input.detail.hr : null;
+      const route = input.detail?.route?.length ? input.detail.route : null;
+      const postId = crypto.randomUUID();
+      const statements = [
+        db.insert(postTable).values({
+          id: postId,
+          userId: me,
+          kind: "latihan",
+          caption: input.caption?.length ? input.caption : null,
+          visibility,
+          title: workout.sportName,
+          kcal: workout.kcal ?? null,
+          durationMin: workout.durationMin,
+          statsJson: JSON.stringify({
+            source: "joyofit",
+            distanceM: workout.distanceM ?? null,
+            avgHr: workout.avgHr ?? null,
+            maxHr: workout.maxHr ?? null,
+            startedAt: workout.startedAt,
+            hasDetail: hr || route ? 1 : 0,
+          }),
+        }),
+        ...(hr || route
+          ? [
+              db.insert(postWorkoutDetail).values({
+                postId,
+                hrJson: hr ? JSON.stringify(hr) : null,
+                routeJson: route ? JSON.stringify(route) : null,
+              }),
+            ]
+          : []),
+      ];
+      await db.batch(statements as [(typeof statements)[0], ...typeof statements]);
+      return { id: postId, visibility };
+    }),
+
+  /**
+   * Detail HR/rute pos jam. Penulis selalu boleh; penonton lain cuma kalau Pro,
+   * selain itu `locked` (klien menampilkan upsell).
+   */
+  workoutDetail: protectedProcedure
+    .input(z.object({ postId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
+      const me = context.session.user.id;
+      const db = context.db;
+      const post = await loadVisiblePost(db, input.postId, me, t);
+      const [detail] = await db
+        .select({ hrJson: postWorkoutDetail.hrJson, routeJson: postWorkoutDetail.routeJson })
+        .from(postWorkoutDetail)
+        .where(eq(postWorkoutDetail.postId, post.id))
+        .limit(1);
+      if (!detail) throw new ORPCError("NOT_FOUND", { message: t("server.error.postNotFound") });
+      if (post.userId !== me) {
+        const [viewer] = await db
+          .select({ tier: user.tier, founderUntil: user.founderUntil })
+          .from(user)
+          .where(eq(user.id, me))
+          .limit(1);
+        if (!premiumUnlocked(viewer, paywallConfig(context.env))) {
+          return { locked: true, hr: null, route: null };
+        }
+      }
+      return {
+        locked: false,
+        hr: detail.hrJson
+          ? (JSON.parse(detail.hrJson) as { intervalSec: number; bpm: (number | null)[] })
+          : null,
+        route: detail.routeJson ? (JSON.parse(detail.routeJson) as [number, number][]) : null,
+      };
     }),
 
   /**

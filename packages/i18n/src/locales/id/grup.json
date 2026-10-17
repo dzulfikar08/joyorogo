@@ -250,6 +250,22 @@
     "leaveBody": "{{name}} akan hilang dari daftar grupmu.",
     "leaveConfirm": "Keluar"
   },
+  "fitness": {
+    "share": {
+      "title": "Bagikan skor JoyoFit-ku",
+      "hint": "Recovery, strain, tidur, dan kesiapan tampil di kartumu di grup ini.",
+      "label": "Bagikan skor JoyoFit"
+    },
+    "recovery": "Recovery {{pct}}%",
+    "strain": "Strain {{n}}",
+    "sleep": "Tidur {{pct}}%",
+    "readiness": {
+      "Primed": "Prima",
+      "Balanced": "Seimbang",
+      "Strained": "Tegang",
+      "Run down": "Kelelahan"
+    }
+  },
   "time": {
     "never": "belum pernah"
   }

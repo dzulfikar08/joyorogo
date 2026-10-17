@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { i18n } from "@joyorogo/i18n";
 import { PostCard } from "@/components/feed/post-card";
 import { PublicFooter } from "@/components/public-footer";
+import { WatchDetail } from "@/components/feed/watch-detail";
 import { PublicHeader } from "@/components/public-header";
 import { postPhotoUrl } from "@/components/sticker";
 import { orpc } from "@/utils/orpc";
@@ -60,7 +61,10 @@ function PostDetailPage() {
           </div>
         ) : (
           // Komentar dan aksi jalan lewat kartu yang sama seperti di feed.
-          <PostCard post={post.data} isOwn={false} />
+          <>
+            <PostCard post={post.data} isOwn={false} />
+            {post.data.stats?.hasDetail === 1 && <WatchDetail postId={post.data.id} />}
+          </>
         )}
       </main>
       <PublicFooter />

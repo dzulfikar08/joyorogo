@@ -253,6 +253,13 @@
       "when": 1792235183655,
       "tag": "0035_barcode_community",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1792248140994,
+      "tag": "0036_square_human_fly",
+      "breakpoints": true
     }
   ]
 }
