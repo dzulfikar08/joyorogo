@@ -148,11 +148,7 @@ export async function loadReportInput(db: Database, date: string, nowMs: number)
     db
       .select({ createdAt: aiUsage.createdAt, model: aiUsage.model, usageJson: aiUsage.usageJson })
       .from(aiUsage)
-      .where(
-        scanType === "user"
-          ? and(isSessionSql(), inDay(aiUsage.createdAt))
-          : and(eq(aiUsage.scanType, scanType), inDay(aiUsage.createdAt)),
-      );
+      .where(and(eq(aiUsage.scanType, scanType), inDay(aiUsage.createdAt)));
   const outcome = outcomeSql(nowMs);
   const day = wibDaySql(aiUsage.createdAt);
 

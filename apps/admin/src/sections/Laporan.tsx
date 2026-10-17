@@ -197,7 +197,15 @@ function Detail({ report }: { report: AccuracyReport }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label="Scan" value={fmtNum(scans.total)} hint={`${fmtNum(scans.resolved)} selesai, ${fmtNum(o.abandoned)} ditinggal`} />
+        <StatCard
+          label="Scan"
+          value={fmtNum(scans.total)}
+          hint={
+            scans.labelled > 0
+              ? `${fmtNum(scans.labelled)} berlabel, ${fmtNum(scans.resolved)} selesai, ${fmtNum(o.abandoned)} ditinggal`
+              : "belum ada yang berlabel (sebelum label koreksi dicatat)"
+          }
+        />
         <StatCard
           label="Tanpa koreksi"
           value={pct(scans.accurateRate)}
@@ -215,6 +223,10 @@ function Detail({ report }: { report: AccuracyReport }) {
         {!regression || regression.error ? (
           <p className="px-4 py-3 text-sm text-muted-foreground">
             Uji regresi tidak jalan{regression?.error ? `: ${regression.error}` : "."}
+          </p>
+        ) : regression.summary.cases + regression.summary.failed === 0 ? (
+          <p className="px-4 py-3 text-sm text-muted-foreground">
+            Belum ada foto berlabel untuk diuji (dataset pemilik atau foto feedback yang diizinkan).
           </p>
         ) : (
           <>

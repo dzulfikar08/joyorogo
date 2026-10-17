@@ -399,6 +399,7 @@ export interface AccuracyReportSummary {
   date: string;
   generatedAt: number;
   total: number;
+  labelled: number;
   resolved: number;
   accurateRate: number | null;
   weekRate: number | null;
@@ -436,6 +437,7 @@ export interface AccuracyReport {
   generatedAt: number;
   scans: {
     total: number;
+    labelled: number;
     outcomes: OutcomeCounts;
     resolved: number;
     accurateRate: number | null;

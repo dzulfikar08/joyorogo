@@ -336,3 +336,43 @@ describe("orderRegressionCandidates", () => {
     expect(caseId("dataset/u/1")).not.toContain("dataset");
   });
 });
+
+describe("buildAccuracyReport: scans without a session record", () => {
+  const legacy = (hour: number, aiMs: number): LedgerRow => ({
+    createdAt: at(hour),
+    model: "m",
+    usageJson: JSON.stringify({ serverTiming: { aiMs, totalMs: aiMs + 500 }, tooMany: hour === 9 }),
+  });
+  const mixed = buildAccuracyReport({
+    date: DATE,
+    nowMs: NOW,
+    scans: [legacy(9, 3000), legacy(10, 5000), ledger(sessions[0]!)],
+    priorDays: [],
+    weekDiffs: [],
+    failed: [],
+    corrections: [],
+    feedback: [],
+  });
+
+  test("count in the total, the latency and the health numbers, but have no outcome", () => {
+    expect(mixed.scans).toMatchObject({ total: 3, labelled: 1, resolved: 1 });
+    expect(mixed.scans.outcomes.accurate).toBe(1);
+    expect(mixed.latency.aiMs.n).toBe(3);
+    expect(mixed.health.tooMany).toBe(1);
+  });
+
+  test("a day of only such scans has no accurate rate", () => {
+    const only = buildAccuracyReport({
+      date: DATE,
+      nowMs: NOW,
+      scans: [legacy(9, 3000), legacy(10, 5000)],
+      priorDays: [],
+      weekDiffs: [],
+      failed: [],
+      corrections: [],
+      feedback: [],
+    });
+    expect(only.scans).toMatchObject({ total: 2, labelled: 0, resolved: 0, accurateRate: null });
+    expect(accuracyReportSummary(only)).toMatchObject({ total: 2, labelled: 0 });
+  });
+});

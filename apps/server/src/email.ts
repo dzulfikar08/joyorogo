@@ -362,9 +362,11 @@ export function accuracyDigestDraft(report: AccuracyReport): Draft {
   const flags = regression?.flags ?? [];
 
   const headline =
-    `${scans.total} scan. ${o.accurate} tanpa koreksi (${pct(scans.accurateRate)}), ${o.corrected} dikoreksi, ` +
-    `${o.retried} hitung ulang${o.abandoned > 0 ? `, ${o.abandoned} ditinggal` : ""}. ` +
-    `Rata-rata 7 hari: ${pct(scans.weekRate)} tanpa koreksi.`;
+    scans.labelled > 0
+      ? `${scans.total} scan (${scans.labelled} berlabel). ${o.accurate} tanpa koreksi (${pct(scans.accurateRate)}), ${o.corrected} dikoreksi, ` +
+        `${o.retried} hitung ulang${o.abandoned > 0 ? `, ${o.abandoned} ditinggal` : ""}. ` +
+        `Rata-rata 7 hari: ${pct(scans.weekRate)} tanpa koreksi.`
+      : `${scans.total} scan, tapi belum ada yang berlabel (scan dari sebelum label koreksi dicatat), jadi angka tanpa koreksi belum bisa dihitung.`;
   const rated =
     ratings.total > 0
       ? `Penilaian: ${ratings.total} (${ratings.akurat} akurat, ${ratings.kurang} kurang akurat, ${ratings.salah} salah), ${ratings.notes.length} catatan baru.`
@@ -375,6 +377,10 @@ export function accuracyDigestDraft(report: AccuracyReport): Draft {
     regressionLines = [`Uji regresi tidak jalan${regression?.error ? `: ${regression.error}` : ""}.`];
   } else if (flags.length > 0) {
     regressionLines = flags;
+  } else if (regression.summary.cases + regression.summary.failed === 0) {
+    regressionLines = [
+      "Uji regresi belum punya bahan: belum ada foto berlabel (dataset pemilik atau foto feedback yang diizinkan).",
+    ];
   } else {
     const s = regression.summary;
     regressionLines = [
@@ -390,7 +396,11 @@ export function accuracyDigestDraft(report: AccuracyReport): Draft {
     `Koreksi ketik/suara dipakai ${corrections.used}x.`;
   const suggestions = report.suggestions.slice(0, 3).map((s) => `${s.text} (${s.evidence})`);
 
-  const subject = `${flags.length > 0 ? "[Regresi] " : ""}Akurasi scan ${day}: ${pct(scans.accurateRate)} tanpa koreksi, ${scans.total} scan`;
+  const prefix = flags.length > 0 ? "[Regresi] " : "";
+  const subject =
+    scans.labelled > 0
+      ? `${prefix}Akurasi scan ${day}: ${pct(scans.accurateRate)} tanpa koreksi, ${scans.total} scan`
+      : `${prefix}Laporan scan ${day}: ${scans.total} scan, belum berlabel`;
 
   const textBlocks: string[] = [
     `Laporan akurasi scan, ${day}`,

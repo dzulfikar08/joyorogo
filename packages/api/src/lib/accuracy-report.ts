@@ -160,7 +160,10 @@ export type AccuracyReport = {
   date: string;
   generatedAt: number;
   scans: {
+    /** Every photo scan of the day. */
     total: number;
+    /** Of those, scans with a session record (outcome labels). Older clients and scans from before the labels have none. */
+    labelled: number;
     outcomes: Outcomes;
     /** accurate + corrected + retried. */
     resolved: number;
@@ -421,7 +424,9 @@ function suggestionsOf(week: DishTally): Suggestion[] {
 /** The accuracy report for one WIB day. Pure: every number comes from the rows given. */
 export function buildAccuracyReport(input: ReportInput): AccuracyReport {
   const { date, nowMs } = input;
-  const sessions = sessionsOf(input.scans);
+  const scans = sessionsOf(input.scans);
+  // Only scans with a photo id are sessions: they carry the labels (outcome, diff).
+  const sessions = scans.filter((s) => s.usage.photoId !== undefined);
 
   // Outcomes per WIB day over the trend window: the report day from its rows,
   // the days before it as counted by the same outcome SQL the admin tab uses.
@@ -487,7 +492,7 @@ export function buildAccuracyReport(input: ReportInput): AccuracyReport {
     TIMING_STAGES.map((stage) => [
       stage,
       stat(
-        sessions.flatMap((s) => {
+        scans.flatMap((s) => {
           const value = s.usage.serverTiming?.[stage];
           return typeof value === "number" && Number.isFinite(value) ? [value] : [];
         }),
@@ -501,7 +506,8 @@ export function buildAccuracyReport(input: ReportInput): AccuracyReport {
     date,
     generatedAt: nowMs,
     scans: {
-      total: sessions.length,
+      total: scans.length,
+      labelled: sessions.length,
       outcomes,
       resolved,
       accurateRate: ratio(outcomes.accurate, resolved),
@@ -530,8 +536,8 @@ export function buildAccuracyReport(input: ReportInput): AccuracyReport {
         total: Object.values(failedByReason).reduce((a, b) => a + b, 0),
         byReason: failedByReason,
       },
-      tooMany: sessions.filter((s) => s.usage.tooMany).length,
-      repaired: sessions.filter((s) => s.usage.repaired).length,
+      tooMany: scans.filter((s) => s.usage.tooMany).length,
+      repaired: scans.filter((s) => s.usage.repaired).length,
     },
     latency,
     corrections: {
@@ -694,6 +700,8 @@ export type AccuracyReportSummary = {
   date: string;
   generatedAt: number;
   total: number;
+  /** Scans with outcome labels (a session record). */
+  labelled: number;
   resolved: number;
   accurateRate: number | null;
   weekRate: number | null;
@@ -715,6 +723,7 @@ export function accuracyReportSummary(report: AccuracyReport): AccuracyReportSum
     date: report.date,
     generatedAt: report.generatedAt,
     total: report.scans.total,
+    labelled: report.scans.labelled,
     resolved: report.scans.resolved,
     accurateRate: report.scans.accurateRate,
     weekRate: report.scans.weekRate,

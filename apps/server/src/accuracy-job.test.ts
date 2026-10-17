@@ -363,7 +363,7 @@ describe("sendAccuracyDigest", () => {
       regression: { ...report.regression!, flags: ["Akurasi nama turun: 80% → 70% (12 foto sama dengan 2026-10-15)"] },
     });
     expect(draft.subject).toBe("[Regresi] Akurasi scan 16 Oktober 2026: 33% tanpa koreksi, 3 scan");
-    expect(draft.text).toContain("3 scan. 1 tanpa koreksi (33%), 2 dikoreksi, 0 hitung ulang.");
+    expect(draft.text).toContain("3 scan (3 berlabel). 1 tanpa koreksi (33%), 2 dikoreksi, 0 hitung ulang.");
     expect(draft.text).toContain("1. perkedel → rolade ×2");
     expect(draft.text).toContain("Akurasi nama turun: 80% → 70%");
     expect(draft.text).toContain("https://admin.joyorogo.com/#laporan?date=2026-10-16");
@@ -428,5 +428,22 @@ describe("admin Laporan routes and the manual run route", () => {
     expect(wrong.status).toBe(404);
     const bad = await app.request("/ai/accuracy/run?date=tomorrow", { method: "POST", headers: { "X-Bench-Key": "secret" } });
     expect(bad.status).toBe(400);
+  });
+});
+
+describe("a day of scans without session labels", () => {
+  test("still gets a report and a mail, with the scan count but no accuracy rate", async () => {
+    const r = fakeBucket();
+    await client.execute(
+      `INSERT INTO ai_usage (id, user_id, model, scan_type, latency_ms, usage_json, created_at) VALUES ('old1', 'u1', 'm', 'user', 100, '{"serverTiming":{"aiMs":7000,"totalMs":8000}}', ${Date.parse("2026-10-12T10:00:00+07:00")}), ('old2', 'u1', 'm', 'user', 100, '{"serverTiming":{"aiMs":9000,"totalMs":9500}}', ${Date.parse("2026-10-12T11:00:00+07:00")})`,
+    );
+    const result = await runDailyAccuracy(baseDeps(r), { date: "2026-10-12" });
+    const report = result.report!;
+    expect(report.scans).toMatchObject({ total: 2, labelled: 0, accurateRate: null });
+    expect(report.latency.aiMs).toMatchObject({ n: 2, p50: 7000, p95: 9000 });
+    expect(report.email?.status).toBe("sent");
+    const draft = accuracyDigestDraft(report);
+    expect(draft.subject).toBe("Laporan scan 12 Oktober 2026: 2 scan, belum berlabel");
+    expect(draft.text).toContain("2 scan, tapi belum ada yang berlabel");
   });
 });
