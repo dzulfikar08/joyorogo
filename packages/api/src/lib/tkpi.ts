@@ -492,6 +492,44 @@ export type CalibratableItem = {
 };
 
 /**
+ * A condiment word ("sambal", "kecap", "saus") at the tail of a protein or
+ * staple dish name is a modifier, not the dish. Left alone, matchDish finds the
+ * library row "sambal" (band 5-80 kcal) and clamps a whole "ayam penyet sambal
+ * ijo" to 80 kcal, or TKPI 2019 "Kecap" does the same to "telur rebus kuah
+ * kecap". Such names skip both lookups and keep the model's kcal under the
+ * generic band, like any unknown dish. Names the library knows are untouched.
+ */
+const CONDIMENT = /\b(sambal|kecap|saus|bumbu|mayones|kuah)\b/;
+const FOOD_HEAD =
+  /\b(ayam|bebek|daging|sapi|kambing|ikan|lele|udang|cumi|telur|tahu|tempe|nasi|mie|mi|bihun|terong|kangkung|sayur|kentang|jamur|ati|usus|teri|tongkol|kacang)\b/;
+const LIBRARY_KEYS = new Set(INDEX.map((e) => e.key));
+
+function isCondimentedDish(name: string): boolean {
+  const q = normalize(name);
+  if (LIBRARY_KEYS.has(q)) return false;
+  return CONDIMENT.test(q) && FOOD_HEAD.test(q);
+}
+
+/**
+ * Density bands (+-30% around kcal/100 g) for calorie-dense add-ons the model
+ * low-balls ("saus mayones 30 g, 100 kcal" is ~200). Unmatched dishes only have
+ * an upper cap, so nothing else stops an underestimate. Rounded TKPI/label values.
+ */
+const DENSITY_BANDS: Array<{ re: RegExp; per100: number }> = [
+  { re: /\b(mayones|mayonnaise|mayo)\b/, per100: 680 },
+  { re: /\b(bumbu|saus) kacang\b/, per100: 250 },
+  { re: /\bkacang tanah\b/, per100: 590 },
+  { re: /\bnugget\b/, per100: 260 },
+];
+
+function applyDensityBand(item: CalibratedItem): CalibratedItem {
+  const band = DENSITY_BANDS.find((b) => b.re.test(normalize(item.name)));
+  if (!band || !item.grams || item.grams <= 0) return item;
+  const base = (band.per100 * item.grams) / 100;
+  return { ...item, kcal: Math.round(clamp(item.kcal, base * 0.7, base * 1.3)) };
+}
+
+/**
  * Pure post-parse calibration against the TKPI library. `scaleBand` stretches a
  * dish's plausible kcal band by grams / typical portion (bounded), for items
  * whose portion the user changed on purpose: half a plate of rice is ~100 kcal,
@@ -501,48 +539,51 @@ export function calibrateItems(
   items: CalibratableItem[],
   opts: { scaleBand?: boolean } = {},
 ): CalibratedItem[] {
-  return items.map((item) => {
-    const combination = isCombination(item.name);
-    const dish = combination ? undefined : matchDish(item.name);
-    if (!dish) {
-      // Second stage: the full TKPI 2019 table (~1.1k bahan) — official
-      // per-100 g numbers from Kemenkes, recomputed for the estimated portion.
-      const raw = combination ? undefined : lookupTkpi2019(item.name);
-      if (raw && raw.kcalPer100g > 0) {
-        const grams = item.grams && item.grams > 0 ? item.grams : 100;
-        const portion = portionFromTkpi2019(raw, grams);
-        return atwaterAdjust({
-          ...item,
-          grams,
-          kcal: portion.kcal > 0 ? portion.kcal : item.kcal,
-          protein: portion.protein ?? item.protein,
-          carbs: portion.carbs ?? item.carbs,
-          fat: portion.fat ?? item.fat,
-          fiber: portion.fiber ?? item.fiber,
-          matched: true,
-        });
-      }
-      const densityCap =
-        item.grams && item.grams > 0 ? Math.max(400, item.grams * 7) : GENERIC_KCAL_RANGE[1];
+  return items.map((item) => applyDensityBand(calibrateOne(item, opts)));
+}
+
+function calibrateOne(item: CalibratableItem, opts: { scaleBand?: boolean }): CalibratedItem {
+  const combination = isCombination(item.name);
+  const generic = combination || isCondimentedDish(item.name);
+  const dish = generic ? undefined : matchDish(item.name);
+  if (!dish) {
+    // Second stage: the full TKPI 2019 table (~1.1k bahan) — official
+    // per-100 g numbers from Kemenkes, recomputed for the estimated portion.
+    const raw = generic ? undefined : lookupTkpi2019(item.name);
+    if (raw && raw.kcalPer100g > 0) {
+      const grams = item.grams && item.grams > 0 ? item.grams : 100;
+      const portion = portionFromTkpi2019(raw, grams);
       return atwaterAdjust({
         ...item,
-        kcal: clamp(item.kcal, GENERIC_KCAL_RANGE[0], Math.min(GENERIC_KCAL_RANGE[1], densityCap)),
-        matched: false,
+        grams,
+        kcal: portion.kcal > 0 ? portion.kcal : item.kcal,
+        protein: portion.protein ?? item.protein,
+        carbs: portion.carbs ?? item.carbs,
+        fat: portion.fat ?? item.fat,
+        fiber: portion.fiber ?? item.fiber,
+        matched: true,
       });
     }
-    const grams = item.grams && item.grams > 0 ? item.grams : dish.typicalPortionG;
-    const fiber =
-      item.fiber && item.fiber > 0
-        ? item.fiber
-        : Math.round(((dish.fiberPer100g * grams) / 100) * 10) / 10;
-    // TKPI kcal range first, then the Atwater guard (macro split can still be
-    // inflated even when total kcal landed in the plausible band).
+    const densityCap =
+      item.grams && item.grams > 0 ? Math.max(400, item.grams * 7) : GENERIC_KCAL_RANGE[1];
     return atwaterAdjust({
       ...item,
-      grams,
-      fiber,
-      kcal: clamp(item.kcal, ...bandFor(dish, grams, opts.scaleBand)),
-      matched: true,
+      kcal: clamp(item.kcal, GENERIC_KCAL_RANGE[0], Math.min(GENERIC_KCAL_RANGE[1], densityCap)),
+      matched: false,
     });
+  }
+  const grams = item.grams && item.grams > 0 ? item.grams : dish.typicalPortionG;
+  const fiber =
+    item.fiber && item.fiber > 0
+      ? item.fiber
+      : Math.round(((dish.fiberPer100g * grams) / 100) * 10) / 10;
+  // TKPI kcal range first, then the Atwater guard (macro split can still be
+  // inflated even when total kcal landed in the plausible band).
+  return atwaterAdjust({
+    ...item,
+    grams,
+    fiber,
+    kcal: clamp(item.kcal, ...bandFor(dish, grams, opts.scaleBand)),
+    matched: true,
   });
 }

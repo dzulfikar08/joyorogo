@@ -43,8 +43,10 @@ function round1(v: number): number {
 
 /**
  * Second-stage lookup into the full TKPI 2019 table (~1.1k bahan/pangan).
- * Conservative: exact normalized match, or containment with a length guard so
- * short generic queries ("sambal") do not latch onto long ingredient names.
+ * Conservative: exact normalized match, the query containing a row name, or a
+ * row that STARTS with a long enough query ("sayur asem" -> "sayur asem
+ * betawi"). A row that merely contains the query elsewhere does not count:
+ * "kacang tanah" is not "Oncom kacang tanah pepes".
  */
 export function lookupTkpi2019(name: string): Tkpi2019Item | undefined {
   const q = normalize(name);
@@ -52,7 +54,7 @@ export function lookupTkpi2019(name: string): Tkpi2019Item | undefined {
   for (const { key, item } of INDEX) {
     if (q === key) return item;
     if (q.includes(key) && key.length >= 5) return item;
-    if (key.includes(q) && q.length >= 8 && q.length >= key.length / 2) return item;
+    if (key.startsWith(q) && q.length >= 8 && q.length >= key.length / 2) return item;
   }
   return undefined;
 }

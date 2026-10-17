@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { atwaterAdjust, calibrateItems, TKPI_DISHES } from "./tkpi";
+import { lookupTkpi2019 } from "./tkpi2019";
 
 describe("calibrateItems", () => {
   test("clamps overrange kcal into the plausible band", () => {
@@ -168,5 +169,47 @@ describe("TKPI 2019 second-stage lookup", () => {
       { name: "Nasi Putih", grams: 150, kcal: 195, protein: 4, carbs: 150, fat: 0 },
     ]);
     expect(rice?.kcal).toBe(195); // dish band, not AP001's 180/100 g → 270
+  });
+});
+
+describe("condiment-tail guard and density bands", () => {
+  const kcalOf = (name: string, kcal: number, grams: number) =>
+    calibrateItems([{ name, kcal, grams }])[0];
+
+  test("a sambal tail does not clamp the whole dish into the sambal band", () => {
+    const item = kcalOf("ayam penyet sambal ijo", 350, 150);
+    expect(item?.kcal).toBe(350);
+    expect(item?.matched).toBe(false);
+    expect(kcalOf("ayam suwir sambal matah", 170, 100)?.kcal).toBe(170);
+  });
+
+  test("a kecap or kuah tail does not hit the TKPI 2019 condiment row", () => {
+    expect(kcalOf("daging sapi bumbu kecap", 220, 80)?.kcal).toBe(220);
+    expect(kcalOf("telur rebus kuah kecap", 190, 120)?.kcal).toBe(190);
+  });
+
+  test("a plain condiment (no protein or staple head) still uses the library band", () => {
+    const item = kcalOf("sambal", 300, 30);
+    expect(item?.matched).toBe(true);
+    expect(item?.kcal).toBeLessThanOrEqual(80);
+  });
+
+  test("TKPI 2019 reverse containment needs the row to start with the query", () => {
+    const item = kcalOf("kacang tanah", 230, 40);
+    expect(item?.kcal).toBeGreaterThan(200);
+    expect(item?.kcal).toBeLessThan(260);
+    expect(lookupTkpi2019("kacang tanah")?.name ?? "").not.toMatch(/^oncom/i);
+  });
+
+  test("density bands lift low-balled mayo, peanut sauce, peanuts and nuggets", () => {
+    expect(kcalOf("saus mayones", 100, 30)?.kcal).toBe(143);
+    expect(kcalOf("bumbu kacang", 60, 50)?.kcal).toBe(88);
+    expect(kcalOf("kacang tanah", 30, 40)?.kcal).toBeGreaterThanOrEqual(165);
+    expect(kcalOf("nugget ayam", 80, 50)?.kcal).toBe(91);
+  });
+
+  test("density bands cap inflated values too and skip items without grams", () => {
+    expect(kcalOf("saus mayones", 400, 30)?.kcal).toBe(265);
+    expect(calibrateItems([{ name: "saus mayones", kcal: 100 }])[0]?.kcal).toBe(100);
   });
 });
