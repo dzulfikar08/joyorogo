@@ -1,0 +1,206 @@
+{
+  "greeting": {
+    "morning": "Good morning",
+    "noon": "Good afternoon",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening",
+    "named": "{{greeting}}, {{name}}"
+  },
+  "header": {
+    "streakTitle": "Days in a row you've logged",
+    "streakDays_one": "{{count}}-day streak",
+    "streakDays_other": "{{count}}-day streak",
+    "streakLabel_one": "Logging streak: {{count}} day in a row",
+    "streakLabel_other": "Logging streak: {{count}} days in a row",
+    "profile": "Profile",
+    "openProfile": "Open {{name}}'s profile",
+    "fallbackName": "You"
+  },
+  "banner": {
+    "scans": "AI scans {{count}}x/day",
+    "proUnlimited": "Pro unlimited",
+    "proCapped": "Pro {{count}}/day",
+    "upgrade": "Upgrade"
+  },
+  "eat": {
+    "left": "Left to eat",
+    "over": "Over by",
+    "ringLabel": "Eaten {{eaten}} of {{target}} kcal",
+    "target": "Target",
+    "eaten": "Eaten",
+    "deficit": "Deficit",
+    "overNote": "{{kcal}} kcal over budget. Keep it light today and pick up again tomorrow."
+  },
+  "ideas": {
+    "title": "Still fits",
+    "protein": "{{g}} g protein"
+  },
+  "adaptive": {
+    "link": "Target adapts to your data",
+    "info": "About the adaptive target",
+    "title": "Adaptive target",
+    "formula": "The standard formula estimates you burn <b>{{kcal}} kcal</b> a day.",
+    "actual": "From your food and weight logs over the last 4 weeks, you actually burn about <b>{{kcal}} kcal</b>. Your eating target uses this number so it fits your body, not an average person.",
+    "limit": "The adjustment is capped at 15% from the formula, and days you forgot to log are left out."
+  },
+  "tile": {
+    "burn": "Burned",
+    "burnOf": "of {{kcal}} kcal",
+    "sleep": "Sleep",
+    "sleepUnit": "h",
+    "sleepNone": "not logged",
+    "sleepNeed": "need {{hours}} h",
+    "protein": "Protein",
+    "proteinOf": "of {{g}} g",
+    "proteinNone": "log food first",
+    "water": "Water",
+    "weight": "Weight",
+    "weightNone": "not weighed yet"
+  },
+  "meals": {
+    "title": "Today's meals",
+    "titleDay": "Meals {{day}}",
+    "story": "Tell it",
+    "all": "See all",
+    "log": "Log",
+    "empty": "Nothing logged"
+  },
+  "plates": {
+    "title": "Plate diary"
+  },
+  "weight": {
+    "title": "Weight",
+    "chart": "Chart",
+    "trend": "Trend weight",
+    "projected": "At this pace you'll reach your target around <b>{{date}}</b>.",
+    "projectedShort": "goal {{date}}",
+    "weigh": "Weigh in",
+    "sheetToday": "Weigh in today",
+    "sheetDay": "Weigh in {{day}}",
+    "sheetHint": "One entry per day. Saving again replaces the earlier number.",
+    "range": "Enter a weight between 25 and 400 kg.",
+    "inputLabel": "Weight (kg)",
+    "saving": "Saving...",
+    "doneToday": "Weighed in today. Nice.",
+    "startPrompt": "Weigh in so your trend line can start forming.",
+    "missedToday": "No weigh-in yet today. One number makes your plan fit better.",
+    "weighNow": "Weigh in now"
+  },
+  "waist": {
+    "title": "Waist",
+    "detail": "Details",
+    "latest": "Latest waist",
+    "ratioHigh": "Ratio {{ratio}} · high risk",
+    "aboveSafe": "Above the healthy limit",
+    "ratioRaised": "Ratio {{ratio}} · above the limit",
+    "ratioBelow": "Ratio {{ratio}} · below the healthy limit",
+    "belowSafe": "Below the healthy limit",
+    "needHeight": "Add your height in Profile to see your risk level",
+    "none": "No entries yet",
+    "measure": "Measure",
+    "sheetTitle": "Measure waist",
+    "sheetHint": "One entry per day. Saving again replaces the earlier number.",
+    "range": "Enter a waist between 40 and 250 cm.",
+    "inputLabel": "Waist (cm)",
+    "logged": "Logged {{cm}} cm"
+  },
+  "more": {
+    "title": "Water, movement and more",
+    "sectionTitle": "More",
+    "show": "Show",
+    "hide": "Hide",
+    "hint": "Water, streak and the weekly recap are in here.",
+    "factLabel": "Today's calorie fact",
+    "fact": "{{text}} = {{kcal}} kcal, about {{move}}",
+    "badges": "Badges",
+    "shareTitle": "Share progress",
+    "shareHint": "A ready-to-post card from today's numbers.",
+    "shareRecap": "Share weekly recap"
+  },
+  "milestone": {
+    "streak": "{{days}}-day streak",
+    "lost": "Down {{kg}} kg"
+  },
+  "recapShare": {
+    "title": "This Week's Summary",
+    "deficit": "Deficit: {{kcal}} kcal",
+    "streak_one": "Streak: {{count}} day",
+    "streak_other": "Streak: {{count}} days",
+    "average": "Average intake: {{kcal}} kcal/day",
+    "trend": "Weight trend: {{points}}",
+    "madeWith": "Made with JoyoRogo: {{url}}"
+  },
+  "skeleton": {
+    "label": "Loading today's summary"
+  },
+  "fasting": {
+    "title": "Meal timing guide",
+    "stateWindow": "Eating window {{open}}–{{close}}",
+    "stateFast": "Fasting",
+    "next": {
+      "open": "Eating window opens",
+      "close": "Eating window closes",
+      "in": "<b>{{label}}</b> in <b>{{time}}</b>"
+    },
+    "progress": "Today's fasting progress",
+    "detail": "Schedule and calories left",
+    "remaining": "Left in this window",
+    "lastMeal": "Last meal",
+    "noMeal": "none yet",
+    "scheduleKcal": "±{{kcal}} kcal",
+    "outside": "{{kcal}} kcal logged outside the eating window ({{list}})",
+    "week": "This week: {{kept}} of {{total}} days on your fasting schedule.",
+    "countdown": {
+      "underMinute": "<1 min",
+      "minutes": "{{m}} min",
+      "hours": "{{h}} h",
+      "hoursMinutes": "{{h}} h {{m}} min"
+    }
+  },
+  "water": {
+    "title": "Water",
+    "ofGoal_one": "/ {{count}} glass",
+    "ofGoal_other": "/ {{count}} glasses",
+    "group": "Water glasses, tap to fill",
+    "fill": "Fill glass {{n}}",
+    "empty": "Empty glass {{n}}",
+    "hint": "A glass of water after every meal keeps you full longer.",
+    "added": "+1 glass logged",
+    "removed": "1 glass removed",
+    "less": "Remove a glass",
+    "more": "Add a glass",
+    "loadError": "Couldn't load water data. Try again in a moment."
+  },
+  "movement": {
+    "label": "Movement today",
+    "done": "Today's movement goal is done. Nice.",
+    "title": "Move a little",
+    "body": "<b>{{kcal}} kcal</b> left = <s>{{steps}} steps</s> (about <n>{{km}} km</n> / <n>{{minutes}} min</n> of walking)",
+    "hint": "An easy evening walk covers it."
+  },
+  "recap": {
+    "title": "Weekly recap",
+    "lastWeek": "Last week, {{range}}",
+    "average": "Daily average",
+    "target": "target {{kcal}}",
+    "onTarget": "On target",
+    "daysUnit_one": "day",
+    "daysUnit_other": "days",
+    "logged_one": "of {{count}} day logged",
+    "logged_other": "of {{count}} days logged",
+    "open": "Weekly recap, last week {{range}}. Open full recap"
+  },
+  "workout": {
+    "title": "Strength training",
+    "open": "Open",
+    "openLabel": "Open strength training",
+    "allGood": "Every muscle got work this week. Nice.",
+    "keepMuscle": "Keep your muscle while cutting: log your strength workouts."
+  },
+  "weighIn": {
+    "done": "Weight logged",
+    "range": "Enter a weight between 25 and 400 kg.",
+    "hintToday": "One entry per day. Saving again replaces today's entry.",
+    "hintDay": "One entry per day. Saving again replaces the entry for {{day}}."
+  }
+}

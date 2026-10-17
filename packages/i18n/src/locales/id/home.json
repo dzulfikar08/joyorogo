@@ -1,0 +1,200 @@
+{
+  "greeting": {
+    "morning": "Selamat pagi",
+    "noon": "Selamat siang",
+    "afternoon": "Selamat sore",
+    "evening": "Selamat malam",
+    "named": "{{greeting}}, {{name}}"
+  },
+  "header": {
+    "streakTitle": "Hari berturut-turut kamu mencatat",
+    "streakDays_other": "{{count}} hari beruntun",
+    "streakLabel_other": "Streak catat {{count}} hari beruntun",
+    "profile": "Profil",
+    "openProfile": "Buka profil {{name}}",
+    "fallbackName": "Kamu"
+  },
+  "banner": {
+    "scans": "Scan AI {{count}}x/hari",
+    "proUnlimited": "Pro tanpa batas",
+    "proCapped": "Pro {{count}}/hari",
+    "upgrade": "Upgrade"
+  },
+  "eat": {
+    "left": "Masih boleh",
+    "over": "Kelebihan",
+    "ringLabel": "Dimakan {{eaten}} dari {{target}} kcal",
+    "target": "Target",
+    "eaten": "Dimakan",
+    "deficit": "Defisit",
+    "overNote": "Lewat {{kcal}} kcal dari budget. Ringan saja hari ini, besok jalan lagi."
+  },
+  "ideas": {
+    "title": "Masih muat",
+    "protein": "{{g}} g protein"
+  },
+  "adaptive": {
+    "link": "Target menyesuaikan datamu",
+    "info": "Info target adaptif",
+    "title": "Target adaptif",
+    "formula": "Rumus standar memperkirakan tubuhmu membakar <b>{{kcal}} kcal</b> sehari.",
+    "actual": "Dari catatan makan dan timbanganmu 4 minggu terakhir, pembakaran nyatamu sekitar <b>{{kcal}} kcal</b>. Target makan memakai angka ini supaya pas dengan tubuhmu, bukan rata-rata orang.",
+    "limit": "Penyesuaian dibatasi 15% dari rumus, dan hari yang lupa dicatat tidak ikut dihitung."
+  },
+  "tile": {
+    "burn": "Bakar",
+    "burnOf": "dari {{kcal}} kcal",
+    "sleep": "Tidur",
+    "sleepUnit": "jam",
+    "sleepNone": "belum dicatat",
+    "sleepNeed": "butuh {{hours}} jam",
+    "protein": "Protein",
+    "proteinOf": "dari {{g}} g",
+    "proteinNone": "catat makan dulu",
+    "water": "Air",
+    "weight": "Berat",
+    "weightNone": "belum ditimbang"
+  },
+  "meals": {
+    "title": "Makan hari ini",
+    "titleDay": "Makan {{day}}",
+    "story": "Ceritakan",
+    "all": "Lihat semua",
+    "log": "Catat",
+    "empty": "Belum ada catatan"
+  },
+  "plates": {
+    "title": "Diari piring"
+  },
+  "weight": {
+    "title": "Berat badan",
+    "chart": "Grafik",
+    "trend": "Berat tren",
+    "projected": "Dengan ritme ini, target tercapai sekitar <b>{{date}}</b>.",
+    "projectedShort": "target {{date}}",
+    "weigh": "Timbang",
+    "sheetToday": "Timbang hari ini",
+    "sheetDay": "Timbang {{day}}",
+    "sheetHint": "Satu catatan per hari. Menyimpan lagi menimpa angka tadi.",
+    "range": "Isi berat antara 25 dan 400 kg.",
+    "inputLabel": "Berat badan (kg)",
+    "saving": "Menyimpan...",
+    "doneToday": "Sudah ditimbang hari ini. Mantap.",
+    "startPrompt": "Timbang dirimu agar angka tren mulai terbentuk.",
+    "missedToday": "Belum timbang hari ini. Satu angka bikin rencana makin pas.",
+    "weighNow": "Timbang sekarang"
+  },
+  "waist": {
+    "title": "Lingkar perut",
+    "detail": "Detail",
+    "latest": "Lingkar perut terbaru",
+    "ratioHigh": "Rasio {{ratio}} · risiko tinggi",
+    "aboveSafe": "Di atas batas sehat",
+    "ratioRaised": "Rasio {{ratio}} · di atas batas",
+    "ratioBelow": "Rasio {{ratio}} · di bawah batas sehat",
+    "belowSafe": "Di bawah batas sehat",
+    "needHeight": "Lengkapi tinggi di profil untuk status risiko",
+    "none": "Belum ada catatan",
+    "measure": "Ukur",
+    "sheetTitle": "Ukur lingkar perut",
+    "sheetHint": "Satu catatan per hari. Menyimpan lagi menimpa angka tadi.",
+    "range": "Isi lingkar perut antara 40 dan 250 cm.",
+    "inputLabel": "Lingkar perut (cm)",
+    "logged": "Tercatat {{cm}} cm"
+  },
+  "more": {
+    "title": "Air minum, gerak, dan lainnya",
+    "sectionTitle": "Lainnya",
+    "show": "Tampilkan",
+    "hide": "Sembunyikan",
+    "hint": "Air minum, streak, dan recap mingguan ada di sini.",
+    "factLabel": "Fakta kalori hari ini",
+    "fact": "{{text}} = {{kcal}} kcal, setara {{move}}",
+    "badges": "Lencana",
+    "shareTitle": "Bagikan progres",
+    "shareHint": "Kartu siap posting dari angka hari ini.",
+    "shareRecap": "Bagikan recap mingguan"
+  },
+  "milestone": {
+    "streak": "Streak {{days}} hari",
+    "lost": "Turun {{kg}} kg"
+  },
+  "recapShare": {
+    "title": "Ringkasan Minggu Ini",
+    "deficit": "Defisit: {{kcal}} kkal",
+    "streak": "Streak: {{count}} hari",
+    "average": "Rata-rata makan: {{kcal}} kkal/hari",
+    "trend": "Tren berat: {{points}}",
+    "madeWith": "Dibuat dengan JoyoRogo: {{url}}"
+  },
+  "skeleton": {
+    "label": "Memuat ringkasan hari ini"
+  },
+  "fasting": {
+    "title": "Panduan jadwal makan",
+    "stateWindow": "Jendela makan {{open}}–{{close}}",
+    "stateFast": "Puasa",
+    "next": {
+      "open": "Jendela makan buka",
+      "close": "Jendela makan tutup",
+      "in": "<b>{{label}}</b> dalam <b>{{time}}</b>"
+    },
+    "progress": "Progres puasa hari ini",
+    "detail": "Jadwal dan sisa kalori",
+    "remaining": "Sisa jendela ini",
+    "lastMeal": "Makan terakhir",
+    "noMeal": "belum makan",
+    "scheduleKcal": "±{{kcal}} kcal",
+    "outside": "{{kcal}} kcal dicatat di luar jendela makan ({{list}})",
+    "week": "Minggu ini {{kept}} dari {{total}} hari sesuai jadwal puasa.",
+    "countdown": {
+      "underMinute": "<1 mnt",
+      "minutes": "{{m}} mnt",
+      "hours": "{{h}} j",
+      "hoursMinutes": "{{h}} j {{m}} mnt"
+    }
+  },
+  "water": {
+    "title": "Air minum",
+    "ofGoal_other": "/ {{count}} gelas",
+    "group": "Gelas air, ketuk untuk mengisi",
+    "fill": "Isi gelas ke-{{n}}",
+    "empty": "Kosongkan gelas ke-{{n}}",
+    "hint": "Segelas air tiap habis makan bikin kenyang lebih lama.",
+    "added": "+1 gelas dicatat",
+    "removed": "1 gelas dihapus",
+    "less": "Kurangi gelas air",
+    "more": "Tambah gelas air",
+    "loadError": "Gagal memuat data air. Coba lagi dalam sesaat."
+  },
+  "movement": {
+    "label": "Gerak hari ini",
+    "done": "Target gerak hari ini lunas. Mantap.",
+    "title": "Gerak dikit",
+    "body": "Sisa <b>{{kcal}} kcal</b> = <s>{{steps}} langkah</s> (± <n>{{km}} km</n> / <n>{{minutes}} menit</n> jalan kaki)",
+    "hint": "Santai jalan sore aja udah kebayang habisnya."
+  },
+  "recap": {
+    "title": "Rekap minggu ini",
+    "lastWeek": "Minggu lalu, {{range}}",
+    "average": "Rata-rata per hari",
+    "target": "target {{kcal}}",
+    "onTarget": "Sesuai target",
+    "daysUnit_other": "hari",
+    "logged_other": "dari {{count}} hari tercatat",
+    "open": "Rekap minggu ini, minggu lalu {{range}}. Buka rekap lengkap"
+  },
+  "workout": {
+    "title": "Latihan beban",
+    "open": "Buka",
+    "openLabel": "Buka Latihan Beban",
+    "allGood": "Semua otot kebagian minggu ini, mantap.",
+    "keepMuscle": "Jaga otot saat defisit: catat latihan bebanmu."
+  },
+  "weighIn": {
+    "done": "Berat dicatat",
+    "range": "Isi berat badan antara 25 dan 400 kg.",
+    "hintToday": "Satu catatan per hari. Menyimpan lagi akan menimpa catatan hari ini.",
+    "hintDay": "Satu catatan per hari. Menyimpan lagi akan menimpa catatan {{day}}."
+  }
+}

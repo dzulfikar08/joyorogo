@@ -2,8 +2,12 @@
 // router reads. Pure and tiny on purpose; the web app imports the label
 // helpers into route modules.
 
+import { getActiveLocale } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+
 import type { TrendPoint } from "./engine";
 import { shiftDate, streakFromDates } from "./engine";
+import { shortDateRange } from "./format";
 
 /** A logged day counts as on target up to 5% over the kcal target. */
 export const ON_TARGET_TOLERANCE = 1.05;
@@ -194,18 +198,11 @@ export function buildWeekRecap(input: WeekRecapInput): WeekRecap {
   };
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 const WEEKDAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
-const dayOfMonth = (date: string) => Number(date.slice(8));
-const monthLabel = (date: string) => MONTHS[Number(date.slice(5, 7)) - 1]!;
-
-/** "12–18 Okt", or "29 Sep–5 Okt" across a month boundary. */
-export function weekRangeLabel(weekStart: string): string {
-  const end = shiftDate(weekStart, 6);
-  return monthLabel(weekStart) === monthLabel(end)
-    ? `${dayOfMonth(weekStart)}–${dayOfMonth(end)} ${monthLabel(end)}`
-    : `${dayOfMonth(weekStart)} ${monthLabel(weekStart)}–${dayOfMonth(end)} ${monthLabel(end)}`;
+/** "12–18 Okt" / "Oct 12–18", or "29 Sep–5 Okt" / "Sep 29–Oct 5" across a month boundary. */
+export function weekRangeLabel(weekStart: string, locale: Locale = getActiveLocale()): string {
+  return shortDateRange(weekStart, shiftDate(weekStart, 6), locale);
 }
 
 export function weekdayName(date: string): string {

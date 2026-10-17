@@ -188,7 +188,7 @@ describe("fastingDay", () => {
     expect(morning.state).toBe("puasa");
     expect(morning.nextEvent).toMatchObject({
       kind: "meal",
-      label: "Buka puasa",
+      mealKind: "buka",
       time: "22:00",
       minutesAway: 840,
     });

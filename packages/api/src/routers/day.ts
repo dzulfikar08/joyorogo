@@ -50,14 +50,16 @@ const ZERO_MEALS: Record<Meal, number> = {
   berbuka: 0,
 };
 
-// Server-defined recap chips — the share card and home screen render these as-is.
-function buildMilestones(streakDays: number, weightLostKg: number): string[] {
+export type Milestone = { kind: "streak" | "lost"; value: number };
+
+// Recap chips as data: the home screen words them in the viewer's language.
+function buildMilestones(streakDays: number, weightLostKg: number): Milestone[] {
   return [
-    ...(streakDays >= 30 ? ["Streak 30 hari"] : []),
-    ...(streakDays >= 7 ? ["Streak 7 hari"] : []),
-    ...(weightLostKg >= 10 ? ["Turun 10 kg"] : []),
-    ...(weightLostKg >= 5 ? ["Turun 5 kg"] : []),
-    ...(weightLostKg >= 2 ? ["Turun 2 kg"] : []),
+    ...(streakDays >= 30 ? [{ kind: "streak" as const, value: 30 }] : []),
+    ...(streakDays >= 7 ? [{ kind: "streak" as const, value: 7 }] : []),
+    ...(weightLostKg >= 10 ? [{ kind: "lost" as const, value: 10 }] : []),
+    ...(weightLostKg >= 5 ? [{ kind: "lost" as const, value: 5 }] : []),
+    ...(weightLostKg >= 2 ? [{ kind: "lost" as const, value: 2 }] : []),
   ];
 }
 

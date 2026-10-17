@@ -4,7 +4,7 @@
 // without dragging in a date library. The eating window may cross midnight
 // (e.g. 22:00 → 06:00); `endMin` above 1440 encodes that.
 
-import { fmtInt, getT } from "@joyorogo/i18n";
+import { fmtInt, getActiveLocale, getT } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 import { localizedLabels } from "./engine";
 import type { Meal } from "./engine";
@@ -101,14 +101,15 @@ export function inactiveFastingDay(ramadan = false): FastingDay {
   return { ...EMPTY_DAY, ramadan };
 }
 
-/** '1 j 25 m', '45 mnt', '<1 mnt' — casual countdown text. */
-export function fmtCountdown(minutes: number): string {
+/** '1 j 25 mnt', '45 mnt', '<1 mnt' — casual countdown text. */
+export function fmtCountdown(minutes: number, locale: Locale = getActiveLocale()): string {
+  const t = getT(locale, "home");
   const m = Math.max(0, Math.ceil(minutes));
-  if (m < 1) return "<1 mnt";
-  if (m < 60) return `${m} mnt`;
+  if (m < 1) return t("fasting.countdown.underMinute");
+  if (m < 60) return t("fasting.countdown.minutes", { m });
   const h = Math.floor(m / 60);
   const rest = m % 60;
-  return rest === 0 ? `${h} j` : `${h} j ${rest} mnt`;
+  return rest === 0 ? t("fasting.countdown.hours", { h }) : t("fasting.countdown.hoursMinutes", { h, m: rest });
 }
 
 /** Existing meal slot that matches a wall-clock time, so logging keeps working. */
@@ -196,7 +197,8 @@ export type ScheduleEntry = {
 
 export type NextEvent = {
   kind: "open" | "close" | "meal";
-  label: string;
+  /** Which meal the event is for when `kind` is "meal"; clients label the event. */
+  mealKind: MealKind | null;
   /** 'HH:MM' of the event (wrapped). */
   time: string;
   minutesAway: number;
@@ -333,7 +335,7 @@ function pickNextEvent(plan: PlannedMeal[], window: WindowTimes, nowMin: number)
     if (away !== null) {
       candidates.push({
         kind: "meal",
-        label: MEAL_KIND_LABELS[m.kind],
+        mealKind: m.kind,
         time: fmtHHMM(m.atMin),
         minutesAway: away,
       });
@@ -343,7 +345,7 @@ function pickNextEvent(plan: PlannedMeal[], window: WindowTimes, nowMin: number)
   if (closeAway > 0) {
     candidates.push({
       kind: "close",
-      label: "Jendela makan tutup",
+      mealKind: null,
       time: fmtHHMM(window.endMin),
       minutesAway: closeAway,
     });
@@ -352,7 +354,7 @@ function pickNextEvent(plan: PlannedMeal[], window: WindowTimes, nowMin: number)
   if (openAway > 0) {
     candidates.push({
       kind: "open",
-      label: "Jendela makan buka",
+      mealKind: null,
       time: fmtHHMM(window.startMin),
       minutesAway: openAway,
     });

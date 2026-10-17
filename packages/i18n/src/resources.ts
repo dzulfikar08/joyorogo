@@ -16,6 +16,7 @@ import idVarperut from "./locales/id/varperut.json";
 import idFeed from "./locales/id/feed.json";
 import idPlace from "./locales/id/place.json";
 import idChallenge from "./locales/id/challenge.json";
+import idHome from "./locales/id/home.json";
 
 import enAuth from "./locales/en/auth.json";
 import enBerat from "./locales/en/berat.json";
@@ -35,6 +36,7 @@ import enVarperut from "./locales/en/varperut.json";
 import enFeed from "./locales/en/feed.json";
 import enPlace from "./locales/en/place.json";
 import enChallenge from "./locales/en/challenge.json";
+import enHome from "./locales/en/home.json";
 
 import type { Locale } from "./locale";
 
@@ -58,6 +60,7 @@ const id = {
   feed: idFeed,
   place: idPlace,
   challenge: idChallenge,
+  home: idHome,
 };
 
 /**
@@ -83,6 +86,7 @@ const en: typeof id = {
   feed: enFeed,
   place: enPlace,
   challenge: enChallenge,
+  home: enHome,
 };
 
 export const resources = { id, en } satisfies Record<Locale, typeof id>;

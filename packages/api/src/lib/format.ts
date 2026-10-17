@@ -46,22 +46,32 @@ export function daysInMonth(year: number, month: number): number {
 /** Short month and weekday names per language; hand-rolled so Hermes never needs Intl for them. */
 const SHORT_NAMES: Record<
   Locale,
-  { months: readonly string[]; weekdays: readonly string[]; format: (p: ShortDay) => string }
+  {
+    months: readonly string[];
+    weekdays: readonly string[];
+    format: (p: ShortDay) => string;
+    range: (a: DayMonth, b: DayMonth, sameMonth: boolean) => string;
+  }
 > = {
   id: {
     months: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"],
     // Indexed by Date#getUTCDay (0 = Minggu).
     weekdays: ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"],
     format: ({ weekday, day, month }) => `${weekday}, ${day} ${month}`,
+    range: (a, b, sameMonth) =>
+      sameMonth ? `${a.day}–${b.day} ${b.month}` : `${a.day} ${a.month}–${b.day} ${b.month}`,
   },
   en: {
     months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
     weekdays: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     format: ({ weekday, day, month }) => `${weekday}, ${month} ${day}`,
+    range: (a, b, sameMonth) =>
+      sameMonth ? `${a.month} ${a.day}–${b.day}` : `${a.month} ${a.day}–${b.month} ${b.day}`,
   },
 };
 
 type ShortDay = { weekday: string; day: number; month: string };
+type DayMonth = { day: number; month: string };
 
 /** 'Sen, 6 Okt' / 'Mon, Oct 6' — compact label of a day key, no Intl. */
 export function shortDayLabel(key: string, locale: Locale = getActiveLocale()): string {
@@ -74,6 +84,25 @@ export function shortDayLabel(key: string, locale: Locale = getActiveLocale()): 
     day: parts.day,
     month: names.months[parts.month - 1]!,
   });
+}
+
+/** '12–18 Okt' / 'Oct 12–18'; the month is repeated only when the range crosses one. */
+export function shortDateRange(
+  startKey: string,
+  endKey: string,
+  locale: Locale = getActiveLocale(),
+): string {
+  const start = parseDateKey(startKey);
+  const end = parseDateKey(endKey);
+  if (!start || !end) return `${startKey}–${endKey}`;
+  const names = SHORT_NAMES[locale];
+  const startMonth = names.months[start.month - 1]!;
+  const endMonth = names.months[end.month - 1]!;
+  return names.range(
+    { day: start.day, month: startMonth },
+    { day: end.day, month: endMonth },
+    start.month === end.month,
+  );
 }
 
 /** 'Hari ini', 'Kemarin', otherwise 'Sen, 6 Okt' — for date-pick buttons. */
