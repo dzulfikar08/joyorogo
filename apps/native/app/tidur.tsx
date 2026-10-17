@@ -2,17 +2,19 @@ import "@/unistyles";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { Dimensions, Platform, Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Redirect, Stack } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { SLEEP_NEED_HOURS, jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import { SLEEP_NEED_HOURS, jakartaToday } from "@joyorogo/api/lib/engine";
+import { getActiveLocale } from "@joyorogo/i18n";
 
 import { DaySwitcher } from "@/components/day-switcher";
+import { Disclosure } from "@/components/disclosure";
 import {
   BootLoader,
   Button,
   Card,
-  EmptyState,
   ErrorState,
   Field,
   Input,
@@ -25,7 +27,7 @@ import {
   Text,
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtDateMedium, fmtKg, parseNum } from "@/utils/format";
+import { errorMessage, fmtDateShort, fmtKg, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 
@@ -37,19 +39,13 @@ function shiftDate(date: string, days: number): string {
   return day.toISOString().slice(0, 10);
 }
 
-function weekdayShort(date: string): string {
-  return new Intl.DateTimeFormat("id-ID", { weekday: "short", timeZone: "UTC" }).format(
-    new Date(`${date}T00:00:00Z`),
-  );
-}
-
 /** Last 7 nights as mini bars; the viewed night's bar highlighted. */
 function SleepBars({
   nights,
-  lastLabel = "Semalam",
+  lastLabel,
 }: {
   nights: Array<{ date: string; hours: number | null }>;
-  lastLabel?: string;
+  lastLabel: string;
 }) {
   const { theme } = useUnistyles();
   const w = Math.min(320, Dimensions.get("window").width - 100);
@@ -57,6 +53,10 @@ function SleepBars({
   const gap = 8;
   const barW = (w - gap * (nights.length - 1)) / nights.length;
   const max = Math.max(SLEEP_NEED_HOURS, ...nights.map((n) => n.hours ?? 0));
+  const weekday = new Intl.DateTimeFormat(getActiveLocale(), {
+    weekday: "short",
+    timeZone: "UTC",
+  });
   return (
     <View style={styles.barsRow}>
       {nights.map((night, i) => {
@@ -80,8 +80,11 @@ function SleepBars({
                 }}
               />
             </View>
-            <Text style={[styles.barLabel, isLast && styles.barLabelActive]}>
-              {isLast ? lastLabel : weekdayShort(night.date)}
+            <Text
+              numberOfLines={1}
+              style={[styles.barLabel, isLast && styles.barLabelActive]}
+            >
+              {isLast ? lastLabel : weekday.format(new Date(`${night.date}T00:00:00Z`))}
             </Text>
           </View>
         );
@@ -91,6 +94,7 @@ function SleepBars({
 }
 
 export default function Tidur() {
+  const { t } = useTranslation(["tidur", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const today = jakartaToday();
@@ -134,7 +138,7 @@ export default function Tidur() {
       setHours("");
       const previous = sleepQuery.data?.hours;
       return {
-        message: "Tidur dicatat",
+        message: t("toast.logged"),
         undo:
           previous === null || previous === undefined
             ? undefined
@@ -164,8 +168,8 @@ export default function Tidur() {
   if (sleepQuery.isPending) {
     return (
       <Screen>
-        <PageHeader title="Tidur" />
-        <Skeleton width="100%" height={240} radius={24} />
+        <PageHeader title={t("title")} />
+        <Skeleton width="100%" height={140} radius={24} />
         <Skeleton width="100%" height={160} radius={24} />
       </Screen>
     );
@@ -173,13 +177,14 @@ export default function Tidur() {
   if (sleepQuery.isError) {
     return (
       <Screen>
-        <PageHeader title="Tidur" />
+        <PageHeader title={t("title")} />
         <ErrorState message={errorMessage(sleepQuery.error)} onRetry={() => sleepQuery.refetch()} />
       </Screen>
     );
   }
 
   const logged = sleepQuery.data?.hours ?? null;
+  const nightLabel = isToday ? t("ring.lastNight") : fmtDateShort(sleepDate);
 
   const logPreset = (value: number) => {
     setFormError(null);
@@ -189,7 +194,7 @@ export default function Tidur() {
   const submitManual = () => {
     const num = parseNum(hours);
     if (num === null || num < 0 || num > 24) {
-      setFormError("Isi jam tidur antara 0 dan 24.");
+      setFormError(t("error.range"));
       return;
     }
     setFormError(null);
@@ -198,115 +203,120 @@ export default function Tidur() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Tidur" }} />
+      <Stack.Screen options={{ title: t("title") }} />
       <Screen>
-      <PageHeader
-        title="Tidur"
-        caption={isToday ? "Jam tidur semalam (WIB)" : `Jam tidur ${relativeDayLabel(viewDate, today)} (WIB)`}
-      />
+        <PageHeader title={t("title")} />
 
-      {/* Day switcher */}
-      <DaySwitcher date={viewDate} onChange={setViewDate} />
+        {/* Day switcher */}
+        <DaySwitcher date={viewDate} onChange={setViewDate} />
 
-      {/* Last night ring */}
-      <Card style={styles.ringCard}>
-        <Ring
-          size={184}
-          stroke={13}
-          value={logged ?? 0}
-          max={SLEEP_NEED_HOURS}
-          color={theme.colors.tidur}
-          track={theme.colors.tidurSoft}
-        >
-          <Text style={styles.ringLabel}>{isToday ? "Semalam" : fmtDateMedium(sleepDate)}</Text>
-          <Num style={styles.ringValue} adjustsFontSizeToFit numberOfLines={1}>
-            {logged !== null ? fmtKg(logged) : "–"}
-          </Num>
-        </Ring>
-        <Text style={styles.ringNote}>
-          {logged === null
-            ? `Kebutuhan tidurmu ${SLEEP_NEED_HOURS} jam agar pemulihan terjaga.`
-            : logged < SLEEP_NEED_HOURS
-              ? `Kurang ${fmtKg(SLEEP_NEED_HOURS - logged)} jam dari kebutuhan ${SLEEP_NEED_HOURS} jam.`
-              : "Kebutuhan terpenuhi, mantap."}
-        </Text>
-      </Card>
-
-      {/* Preset hours: one tap logs */}
-      <Text style={styles.sectionLabel}>Catat cepat</Text>
-      <View style={styles.presetRow}>
-        {PRESETS.map((preset) => {
-          const active = logged === preset;
-          return (
-            <Pressable
-              key={preset}
-              accessibilityRole="button"
-              accessibilityLabel={`Catat ${preset} jam`}
-              accessibilityState={{ selected: active }}
-              disabled={logSleep.isPending}
-              onPress={() => logPreset(preset)}
-              style={({ pressed }) => [
-                styles.presetChip,
-                active && styles.presetChipActive,
-                pressed && styles.pressedSoft,
-              ]}
-            >
-              <Text style={[styles.presetText, active && styles.presetTextActive]}>
-                {preset} jam
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {/* Last 7 nights */}
-      <Text style={styles.sectionLabel}>7 malam terakhir</Text>
-      <Card>
-        {weekQueries.some((q) => q === undefined) ? (
-          <View style={styles.barsSkeleton}>
-            <Skeleton width="100%" height={96} radius={12} />
+        {/* Last night: ring beside the status line */}
+        <Card style={styles.ringCard}>
+          <Ring
+            size={116}
+            stroke={10}
+            value={logged ?? 0}
+            max={SLEEP_NEED_HOURS}
+            color={theme.colors.tidur}
+            track={theme.colors.tidurSoft}
+          >
+            <Num style={styles.ringValue} adjustsFontSizeToFit numberOfLines={1}>
+              {logged !== null ? fmtKg(logged) : "–"}
+            </Num>
+            <Text style={styles.ringUnit}>{t("unit.hours")}</Text>
+          </Ring>
+          <View style={styles.ringText}>
+            <Text style={styles.ringLabel}>{nightLabel}</Text>
+            <Text style={styles.ringNote}>
+              {logged === null
+                ? t("status.empty", { need: SLEEP_NEED_HOURS })
+                : logged < SLEEP_NEED_HOURS
+                  ? t("status.short", {
+                      count: SLEEP_NEED_HOURS - logged,
+                      hours: fmtKg(SLEEP_NEED_HOURS - logged),
+                      need: SLEEP_NEED_HOURS,
+                    })
+                  : t("status.met")}
+            </Text>
           </View>
-        ) : (
-          <SleepBars
-            nights={nights}
-            lastLabel={isToday ? "Semalam" : fmtDateMedium(sleepDate)}
-          />
-        )}
-        <Text style={styles.note}>
-          Satu catatan per malam. Hasil {Platform.OS === "ios" ? "Apple Health" : "Health Connect"}{" "}
-          ikut dihitung di sini.
-        </Text>
-      </Card>
+        </Card>
 
-      {logged === null ? (
-        <EmptyState
-          icon="moon-outline"
-          title="Belum dicatat"
-          description="Pilih jam tidur di atas supaya angka tidur di Beranda terisi."
-        />
-      ) : (
-        <Button variant="secondary" label="Isi jam manual" onPress={() => setSheetOpen(true)} />
-      )}
+        {/* Preset hours: one tap logs */}
+        <Text style={styles.sectionLabel}>{t("log.quick")}</Text>
+        <View style={styles.presetRow}>
+          {PRESETS.map((preset) => {
+            const active = logged === preset;
+            return (
+              <Pressable
+                key={preset}
+                accessibilityRole="button"
+                accessibilityLabel={t("log.preset", { count: preset })}
+                accessibilityState={{ selected: active }}
+                disabled={logSleep.isPending}
+                onPress={() => logPreset(preset)}
+                style={({ pressed }) => [
+                  styles.presetChip,
+                  active && styles.presetChipActive,
+                  pressed && styles.pressedSoft,
+                ]}
+              >
+                <Text style={[styles.presetText, active && styles.presetTextActive]}>
+                  {preset}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
-      {/* Manual entry sheet */}
-      <Sheet
-        visible={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        title="Isi jam tidur"
-        footer={<Button label="Simpan" onPress={submitManual} loading={logSleep.isPending} />}
-      >
-        <Field label="Jam tidur semalam" hint="Boleh pakai desimal, contoh 6,5">
-          <Input
-            value={hours}
-            onChangeText={setHours}
-            keyboardType="decimal-pad"
-            placeholder="7,5"
-            autoFocus
-          />
-        </Field>
-        {formError ? <Text style={styles.error}>{formError}</Text> : null}
-      </Sheet>
-    </Screen>
+        {/* Last 7 nights */}
+        <Text style={styles.sectionLabel}>{t("week.title")}</Text>
+        <Card>
+          {weekQueries.some((q) => q === undefined) ? (
+            <View style={styles.barsSkeleton}>
+              <Skeleton width="100%" height={96} radius={12} />
+            </View>
+          ) : (
+            <SleepBars nights={nights} lastLabel={nightLabel} />
+          )}
+        </Card>
+
+        <Button variant="secondary" label={t("log.manualButton")} onPress={() => setSheetOpen(true)} />
+
+        <Disclosure title={t("how.title")}>
+          <Text style={styles.note}>
+            {t("how.onePerNight", {
+              source: Platform.OS === "ios" ? "Apple Health" : "Health Connect",
+            })}
+          </Text>
+          <Text style={styles.note}>{t("how.home")}</Text>
+          <Text style={styles.note}>{t("how.wib")}</Text>
+        </Disclosure>
+
+        {/* Manual entry sheet */}
+        <Sheet
+          visible={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          title={t("sheet.title")}
+          footer={
+            <Button
+              label={t("common:actions.save")}
+              onPress={submitManual}
+              loading={logSleep.isPending}
+            />
+          }
+        >
+          <Field label={t("sheet.field")} hint={t("sheet.hint", { example: fmtKg(6.5) })}>
+            <Input
+              value={hours}
+              onChangeText={setHours}
+              keyboardType="decimal-pad"
+              placeholder={fmtKg(7.5)}
+              autoFocus
+            />
+          </Field>
+          {formError ? <Text style={styles.error}>{formError}</Text> : null}
+        </Sheet>
+      </Screen>
     </>
   );
 }
@@ -316,11 +326,22 @@ const styles = StyleSheet.create((theme) => ({
     opacity: 0.7,
   },
   ringCard: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingVertical: theme.spacing.xl,
+    gap: theme.spacing.lg,
+    paddingVertical: theme.spacing.lg,
+  },
+  ringText: {
+    flex: 1,
+    gap: 4,
   },
   ringLabel: {
-    fontSize: theme.fontSize.sm,
+    fontSize: theme.fontSize.md,
+    fontWeight: "700",
+    color: theme.colors.tidurText,
+  },
+  ringUnit: {
+    fontSize: theme.fontSize.xs,
     fontWeight: "600",
     color: theme.colors.mutedForeground,
   },
@@ -332,7 +353,6 @@ const styles = StyleSheet.create((theme) => ({
   ringNote: {
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
-    textAlign: "center",
   },
   sectionLabel: {
     fontSize: theme.fontSize.md,
@@ -342,17 +362,15 @@ const styles = StyleSheet.create((theme) => ({
   },
   presetRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: theme.spacing.sm,
   },
   presetChip: {
-    flexGrow: 1,
+    flex: 1,
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.tile,
-    minHeight: 56,
+    minHeight: 48,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 16,
   },
   presetChipActive: {
     backgroundColor: theme.colors.tidurSoft,

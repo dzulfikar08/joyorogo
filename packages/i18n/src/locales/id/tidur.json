@@ -1,1 +1,54 @@
-{}
+{
+  "title": "Tidur",
+  "unit": {
+    "hours": "jam"
+  },
+  "ring": {
+    "lastNight": "Semalam",
+    "aria": {
+      "logged": "Tidur {{hours}} dari kebutuhan {{need}} jam",
+      "empty": "Belum ada catatan tidur, kebutuhan {{need}} jam"
+    }
+  },
+  "status": {
+    "empty": "Belum dicatat. Kebutuhanmu {{need}} jam tiap malam.",
+    "met": "Kebutuhan terpenuhi, mantap.",
+    "short_other": "Kurang {{hours}} jam dari kebutuhan {{need}} jam."
+  },
+  "log": {
+    "titleLastNight": "Durasi tadi malam",
+    "titleDay": "Durasi {{day}}",
+    "quick": "Catat cepat (jam)",
+    "group": "Catat durasi tidur",
+    "presets": "Preset jam tidur",
+    "preset_other": "Catat {{count}} jam",
+    "manual": "Atau isi manual",
+    "manualButton": "Isi jam manual",
+    "saving": "Menyimpan..."
+  },
+  "week": {
+    "title": "7 malam terakhir"
+  },
+  "sheet": {
+    "title": "Isi jam tidur",
+    "field": "Jam tidur",
+    "hint": "Boleh pakai desimal, contoh {{example}}"
+  },
+  "toast": {
+    "lastNight_other": "Tidur tadi malam: {{hours}} jam.",
+    "savedTo": "Tersimpan ke {{day}}.",
+    "logged": "Tidur dicatat"
+  },
+  "error": {
+    "range": "Isi jam tidur antara 0 dan 24."
+  },
+  "how": {
+    "title": "Cara kerja",
+    "lastNight": "Catatan masuk untuk tadi malam. Menyimpan ulang menimpa nilai sebelumnya.",
+    "day": "Catatan masuk untuk tidur {{day}}. Menyimpan ulang menimpa nilai sebelumnya.",
+    "onePerNight": "Satu catatan per malam. Hasil {{source}} ikut dihitung di sini.",
+    "home": "Jam tidur yang kamu catat mengisi angka tidur di Beranda.",
+    "wib": "Malam dihitung menurut WIB."
+  },
+  "loading": "Memuat catatan tidur"
+}

@@ -4,7 +4,9 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { ChevronDown } from "lucide-react";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { SLEEP_NEED_HOURS, jakartaToday, relativeDayLabel, shiftDate } from "@joyorogo/api/lib/engine";
 
@@ -70,6 +72,7 @@ function TidurScreen({
   nightDate: string;
   onChange: (date: string) => void;
 }) {
+  const { t } = useTranslation(["tidur", "common"]);
   const today = jakartaToday();
   const isToday = viewDate === today;
   const dayLabel = relativeDayLabel(viewDate, today);
@@ -95,8 +98,8 @@ function TidurScreen({
       const prev = previousHours.current;
       previousHours.current = null;
       const message = isToday
-        ? `Tidur tadi malam: ${fmtKg(saved.hours)} jam.`
-        : `Tersimpan ke ${dayLabel}.`;
+        ? t("toast.lastNight", { count: saved.hours, hours: fmtKg(saved.hours) })
+        : t("toast.savedTo", { day: dayLabel });
       if (prev === null || prev === saved.hours) return { message };
       return {
         message,
@@ -108,7 +111,7 @@ function TidurScreen({
   const submitManual = () => {
     const value = parseNum(manual);
     if (value === null || value < 0 || value > 24) {
-      setError("Isi jam tidur antara 0 dan 24.");
+      setError(t("error.range"));
       return;
     }
     log.mutate({ date: nightDate, hours: value });
@@ -118,56 +121,64 @@ function TidurScreen({
 
   return (
     <Page className="max-w-xl lg:max-w-3xl">
-      <PageHeader title="Tidur" />
+      <PageHeader title={t("title")} />
 
       {/* Day switcher */}
       <div className="mb-3 flex justify-center lg:justify-start">
         <DaySwitcher date={viewDate} onChange={onChange} />
       </div>
 
-      <Card className="p-6">
+      <Card className="p-4">
         <div className="flex flex-col items-center text-center">
           <Ring
             metric="tidur"
             value={hours ?? 0}
             max={SLEEP_NEED_HOURS}
-            size={216}
-            stroke={16}
+            size={168}
+            stroke={14}
             label={
               hours !== null
-                ? `Tidur ${fmtKg(hours)} dari kebutuhan ${SLEEP_NEED_HOURS} jam`
-                : `Belum ada catatan tidur, kebutuhan ${SLEEP_NEED_HOURS} jam`
+                ? t("ring.aria.logged", { hours: fmtKg(hours), need: SLEEP_NEED_HOURS })
+                : t("ring.aria.empty", { need: SLEEP_NEED_HOURS })
             }
           >
             <div>
               <p className="text-sm font-semibold text-muted-foreground">
-                {isToday ? "Tadi malam" : dayLabel}
+                {isToday ? t("ring.lastNight") : dayLabel}
               </p>
               {hours !== null ? (
-                <p className="text-[3.5rem] leading-none font-extrabold tracking-tighter tabular-nums">
+                <p className="text-5xl leading-none font-extrabold tracking-tighter tabular-nums">
                   {fmtKg(hours)}
                 </p>
               ) : (
-                <p className="text-[3.5rem] leading-none font-extrabold tracking-tighter text-muted-foreground">
+                <p className="text-5xl leading-none font-extrabold tracking-tighter text-muted-foreground">
                   –
                 </p>
               )}
-              <p className="mt-1 text-sm font-semibold text-muted-foreground">jam</p>
+              <p className="mt-1 text-sm font-semibold text-muted-foreground">
+                {t("unit.hours")}
+              </p>
             </div>
           </Ring>
-          <p className="mt-4 max-w-xs text-sm text-muted-foreground">
+          <p className="mt-3 max-w-xs text-sm text-muted-foreground">
             {hours === null
-              ? `Belum dicatat. Kebutuhanmu ${SLEEP_NEED_HOURS} jam tiap malam.`
+              ? t("status.empty", { need: SLEEP_NEED_HOURS })
               : hours >= SLEEP_NEED_HOURS
-                ? "Kebutuhan terpenuhi, mantap."
-                : `Kurang ${fmtKg(SLEEP_NEED_HOURS - hours)} jam dari kebutuhan ${SLEEP_NEED_HOURS} jam.`}
+                ? t("status.met")
+                : t("status.short", {
+                    count: SLEEP_NEED_HOURS - hours,
+                    hours: fmtKg(SLEEP_NEED_HOURS - hours),
+                    need: SLEEP_NEED_HOURS,
+                  })}
           </p>
         </div>
       </Card>
 
-      <section aria-label="Catat durasi tidur" className="mt-7">
-        <SectionTitle>{isToday ? "Durasi tadi malam" : `Durasi ${dayLabel}`}</SectionTitle>
-        <div role="group" aria-label="Preset jam tidur" className="grid grid-cols-5 gap-2">
+      <section aria-label={t("log.group")} className="mt-5">
+        <SectionTitle>
+          {isToday ? t("log.titleLastNight") : t("log.titleDay", { day: dayLabel })}
+        </SectionTitle>
+        <div role="group" aria-label={t("log.presets")} className="grid grid-cols-5 gap-2">
           {PRESETS.map((preset) => {
             const active = hours === preset;
             return (
@@ -175,10 +186,11 @@ function TidurScreen({
                 key={preset}
                 type="button"
                 aria-pressed={active}
+                aria-label={t("log.preset", { count: preset })}
                 disabled={log.isPending}
                 onClick={() => log.mutate({ date: nightDate, hours: preset })}
                 className={cn(
-                  "pressable flex min-h-16 flex-col items-center justify-center rounded-2xl bg-card focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60",
+                  "pressable flex min-h-14 flex-col items-center justify-center rounded-2xl bg-card focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60",
                   active
                     ? "bg-tidur-soft text-tidur-ink ring-2 ring-inset ring-tidur"
                     : "hover:bg-muted/50",
@@ -191,7 +203,7 @@ function TidurScreen({
                     active ? "text-tidur-ink" : "text-muted-foreground",
                   )}
                 >
-                  jam
+                  {t("unit.hours")}
                 </span>
               </button>
             );
@@ -206,7 +218,7 @@ function TidurScreen({
           }}
         >
           <div className="flex-1">
-            <FieldLabel htmlFor="sleep-hours">Atau isi manual</FieldLabel>
+            <FieldLabel htmlFor="sleep-hours">{t("log.manual")}</FieldLabel>
             <Input
               id="sleep-hours"
               type="number"
@@ -216,37 +228,48 @@ function TidurScreen({
               inputMode="decimal"
               value={manual}
               onChange={(event) => setManual(event.target.value)}
-              placeholder="7,5"
+              placeholder={fmtKg(7.5)}
             />
           </div>
           <Button type="submit" disabled={log.isPending}>
-            {log.isPending ? "Menyimpan..." : "Simpan"}
+            {log.isPending ? t("log.saving") : t("common:actions.save")}
           </Button>
         </form>
         {error && <p className="mt-2 px-1 text-sm text-destructive">{error}</p>}
-        <p className="mt-2 px-1 text-xs text-muted-foreground">
-          {isToday
-            ? "Catatan masuk untuk tadi malam. Menyimpan ulang menimpa nilai sebelumnya."
-            : `Catatan masuk untuk malam ${dayLabel}. Menyimpan ulang menimpa nilai sebelumnya.`}
-        </p>
       </section>
+
+      <details className="group mt-4 rounded-2xl bg-card">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between rounded-2xl px-4 select-none focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+          <span className="text-sm font-bold">{t("how.title")}</span>
+          <ChevronDown
+            className="size-5 text-muted-foreground transition-transform duration-200 group-open:rotate-180"
+            aria-hidden
+          />
+        </summary>
+        <div className="space-y-1.5 px-4 pb-4 text-sm text-muted-foreground">
+          <p>{isToday ? t("how.lastNight") : t("how.day", { day: dayLabel })}</p>
+          <p>{t("how.home")}</p>
+          <p>{t("how.wib")}</p>
+        </div>
+      </details>
     </Page>
   );
 }
 
 function TidurSkeleton() {
+  const { t } = useTranslation("tidur");
   return (
-    <Page className="max-w-xl lg:max-w-3xl" aria-busy="true" aria-label="Memuat catatan tidur">
+    <Page className="max-w-xl lg:max-w-3xl" aria-busy="true" aria-label={t("loading")}>
       <div className="px-1 pt-2 pb-5">
         <Skeleton className="h-9 w-28 rounded-full" />
       </div>
-      <div className="flex flex-col items-center rounded-3xl bg-card p-6">
-        <Skeleton className="size-[216px] rounded-full" />
-        <Skeleton className="mt-4 h-5 w-48 rounded-full" />
+      <div className="flex flex-col items-center rounded-3xl bg-card p-4">
+        <Skeleton className="size-[168px] rounded-full" />
+        <Skeleton className="mt-3 h-5 w-48 rounded-full" />
       </div>
-      <div className="mt-7 grid grid-cols-5 gap-2">
+      <div className="mt-5 grid grid-cols-5 gap-2">
         {[0, 1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-16 rounded-2xl" />
+          <Skeleton key={i} className="h-14 rounded-2xl" />
         ))}
       </div>
       <Skeleton className="mt-3 h-12 rounded-xl" />

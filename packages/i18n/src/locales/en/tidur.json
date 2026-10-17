@@ -1,1 +1,57 @@
-{}
+{
+  "title": "Sleep",
+  "unit": {
+    "hours": "hours"
+  },
+  "ring": {
+    "lastNight": "Last night",
+    "aria": {
+      "logged": "Slept {{hours}} of the {{need}} hours you need",
+      "empty": "No sleep logged, you need {{need}} hours"
+    }
+  },
+  "status": {
+    "empty": "Not logged yet. You need {{need}} hours a night.",
+    "met": "Goal met, nice.",
+    "short_one": "{{hours}} hour short of your {{need}}-hour goal.",
+    "short_other": "{{hours}} hours short of your {{need}}-hour goal."
+  },
+  "log": {
+    "titleLastNight": "Last night's sleep",
+    "titleDay": "Sleep for {{day}}",
+    "quick": "Quick log (hours)",
+    "group": "Log sleep duration",
+    "presets": "Sleep hour presets",
+    "preset_one": "Log {{count}} hour",
+    "preset_other": "Log {{count}} hours",
+    "manual": "Or enter it yourself",
+    "manualButton": "Enter hours",
+    "saving": "Saving..."
+  },
+  "week": {
+    "title": "Last 7 nights"
+  },
+  "sheet": {
+    "title": "Log sleep",
+    "field": "Hours slept",
+    "hint": "Decimals are fine, e.g. {{example}}"
+  },
+  "toast": {
+    "lastNight_one": "Last night: {{hours}} hour.",
+    "lastNight_other": "Last night: {{hours}} hours.",
+    "savedTo": "Saved to {{day}}.",
+    "logged": "Sleep logged"
+  },
+  "error": {
+    "range": "Enter hours between 0 and 24."
+  },
+  "how": {
+    "title": "How it works",
+    "lastNight": "Saved for last night. Saving again replaces the previous value.",
+    "day": "Saved as sleep for {{day}}. Saving again replaces the previous value.",
+    "onePerNight": "One entry per night. {{source}} data counts here too.",
+    "home": "The hours you log fill in the sleep number on Home.",
+    "wib": "Nights follow Jakarta time (WIB)."
+  },
+  "loading": "Loading sleep log"
+}
