@@ -167,13 +167,13 @@ function PrivasiPage() {
                 "Dibaca dari tiap aktivitas: jenis, nama, waktu mulai, waktu bergerak, dan kalori. Kalau Strava tidak mencatat kalori, kami memperkirakannya dari jenis olahraga, durasi, dan beratmu.",
                 "Disimpan di akunmu sebagai olahraga, dengan nomor aktivitas Strava supaya tidak tercatat dua kali. Olahraga dari Strava hanya terlihat olehmu: tidak dihitung di grup, tantangan, dan feed, dan tidak dipakai untuk menyesuaikan targetmu.",
                 "Token akses dan ID atlet Strava disimpan di database JoyoRogo. JoyoRogo dan JoyoFit memakai satu aplikasi Strava, jadi sambungan itu dipakai bersama; olahraga yang diunggah JoyoFit ke Strava tidak diimpor lagi oleh JoyoRogo supaya tidak dobel.",
-                "Olahraga dari Strava tetap tersimpan di akunmu sampai kamu memutus Strava atau menghapus data.",
+                "Olahraga dari Strava hanya disimpan 7 hari sejak aktivitasnya, sesuai Kebijakan API Strava (bagian 6.2: data Strava tidak boleh disimpan di cache lebih dari tujuh hari). Setelah itu seluruh barisnya, termasuk kalori, dihapus otomatis tiap beberapa menit, jadi kalori terbakar untuk hari yang lebih lama tidak lagi menyertakannya. Aktivitas yang sudah lewat 7 hari tidak diimpor sama sekali. Untuk kalori yang tetap tersimpan, pakai Health Connect (Android) atau Apple Health (iPhone).",
               ]}
             />
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-              Memutus Strava di JoyoRogo menghapus olahraga yang diimpor dari Strava. Izinnya
-              dicabut di Strava hanya kalau JoyoFit juga tidak memakainya; kalau masih dipakai,
-              sambungan JoyoFit tetap jalan. Kalau kamu mencabut aplikasi di strava.com
+              Memutus Strava di JoyoRogo menghapus olahraga yang diimpor dari Strava lebih awal.
+              Izinnya dicabut di Strava hanya kalau JoyoFit juga tidak memakainya; kalau masih
+              dipakai, sambungan JoyoFit tetap jalan. Kalau kamu mencabut aplikasi di strava.com
               (Pengaturan, Aplikasi Saya), semua token dan semua olahraga hasil impor Strava ikut
               terhapus. Menghapus data atau akunmu mencabut izin Strava sepenuhnya. JoyoRogo tidak
               memakai data Strava untuk iklan atau analitik, dan tidak menjualnya.

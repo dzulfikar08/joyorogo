@@ -39,6 +39,7 @@ import { registerBenchRoutes } from "./bench";
 import { registerOgRoutes } from "./og";
 import { registerPrivacyRoutes } from "./privacy";
 import { registerStravaRoutes } from "./strava";
+import { scrubExpiredStravaRows } from "@joyorogo/api/lib/strava-retention";
 import { env } from "./env.server";
 import { createAuth, getDb } from "./services";
 
@@ -571,6 +572,13 @@ async function runFastingReminders(): Promise<void> {
   }
 }
 
+// Strava API Policy 6.2: imported Strava activities live at most 7 days (lib/strava-retention). The cron runs this
+// every tick (*/5): the delete matches nothing almost always, so it only reads the rows it checks.
+async function runStravaRetention(): Promise<void> {
+  const deleted = await scrubExpiredStravaRows(getDb());
+  if (deleted > 0) console.log(`strava retention: deleted ${deleted} expired rows`);
+}
+
 // Same Hono app as fetch; the scheduled handler runs beside it. `app.fetch`
 // is an arrow property, so detaching it stays bound to this app instance.
 export default {
@@ -579,5 +587,6 @@ export default {
     ctx.waitUntil(runFastingReminders());
     ctx.waitUntil(billing.reconcilePending());
     ctx.waitUntil(billing.runEmails());
+    ctx.waitUntil(runStravaRetention());
   },
 };

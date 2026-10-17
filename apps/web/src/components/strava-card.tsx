@@ -1,4 +1,4 @@
-import { Activity } from "lucide-react";
+import { Activity, Clock, HeartPulse } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@joyorogo/ui/components/button";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
@@ -8,6 +8,12 @@ import { Card } from "@/components/kit/surface";
 import { orpc } from "@/utils/orpc";
 
 const CALLBACK_PATH = "/profil/strava/callback";
+
+/** Strava API Policy 6.2: imported activities are a 7-day cache (docs/strava.md). Shown on every Strava surface. */
+export const STRAVA_RETENTION_TEXT =
+  "Sesuai aturan Strava, olahraga yang diimpor dari Strava hanya disimpan 7 hari, lalu dihapus otomatis. Kalori bakar untuk hari yang lebih lama tidak lagi menyertakannya.";
+export const HEALTH_ALTERNATIVE_TEXT =
+  "Biar kalori bakar tetap tersimpan, pakai Health Connect di Android atau Apple Health di iPhone lewat aplikasi JoyoRogo. Banyak aplikasi olahraga dan jam bisa menulis latihan ke sana, misalnya Strava, Garmin, Samsung Health, dan JoyoFit untuk jam Huawei. Cek pengaturan tiap aplikasi.";
 
 /**
  * One Strava integration implementation for every screen that needs it: the
@@ -124,6 +130,8 @@ export function StravaCard() {
     );
   }
 
+  const showRetention = strava.configured && !strava.isChecking && !strava.statusError;
+
   return (
     <Card aria-label="Strava" className="flex flex-wrap items-center gap-4">
       <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-bakar-soft text-bakar">
@@ -145,6 +153,18 @@ export function StravaCard() {
         <Skeleton className="h-10 w-28 rounded-full" />
       ) : (
         actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>
+      )}
+      {showRetention && (
+        <div className="basis-full space-y-2 rounded-2xl bg-muted p-3 text-xs leading-relaxed text-muted-foreground">
+          <p className="flex items-start gap-2">
+            <Clock className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>{STRAVA_RETENTION_TEXT}</span>
+          </p>
+          <p className="flex items-start gap-2">
+            <HeartPulse className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>{HEALTH_ALTERNATIVE_TEXT}</span>
+          </p>
+        </div>
       )}
     </Card>
   );

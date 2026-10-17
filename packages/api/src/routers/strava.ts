@@ -8,6 +8,7 @@ import type { Context } from "../context";
 
 import { protectedProcedure } from "../index";
 import { estimateKcal, metForStravaType } from "../lib/met";
+import { stravaRetentionCutoff } from "../lib/strava-retention";
 import {
   StravaGrantError,
   deleteImportedActivities,
@@ -128,8 +129,9 @@ export const stravaRouter = {
 
   // Strava API policy notes for imported rows (exercise_log.source = 'strava'):
   // owner-only display (excluded from groups, challenges, feed and shares), never
-  // sent to AI, not used in adaptive-plan analytics. The 7-day cache cap (6.2) is
-  // NOT enforced yet: rows persist until disconnect.
+  // sent to AI, not used in adaptive-plan analytics. Policy 6.2 caps the cache at
+  // 7 days: lib/strava-retention deletes older rows (cron), and sync below never
+  // imports an activity that is already past that window.
   sync: protectedProcedure.handler(async ({ context }) => {
     const accessToken = await getValidToken(context);
     const res = await fetch(STRAVA_ACTIVITIES_URL, {
@@ -148,7 +150,11 @@ export const stravaRouter = {
     const activities = (await res.json()) as StravaActivity[];
     // A workout JoyoFit uploaded reaches the diary through Health Connect / Apple Health
     // (source health_connect / apple_health); importing it from Strava too would count it twice.
-    const imports = activities.filter((activity) => !isJoyofitUpload(activity.external_id));
+    // An activity already past the 7-day window (policy 6.2) is not kept at all.
+    const cutoff = stravaRetentionCutoff();
+    const imports = activities.filter(
+      (activity) => !isJoyofitUpload(activity.external_id) && wibDate(activity.start_date) > cutoff,
+    );
 
     // One weight query for the whole batch instead of two per activity.
     const [weights, profileRows] = await Promise.all([

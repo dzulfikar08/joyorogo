@@ -40,9 +40,31 @@ full design, with the same reasoning, is in `watch-fit/docs/strava.md` section 1
    `rogo_linked_at` is the only link ever set. The `/internal/joyofit/strava/*` routes exist but need your own client credentials.
 
 Imported rows follow Strava's API policy: owner-only (excluded from groups, challenges, feed and shares), never sent to AI,
-not used in adaptive plans; they are deleted on disconnect and on deauthorization. The 7-day cache cap (6.2) is not enforced yet.
+not used in adaptive plans; they are deleted on disconnect and on deauthorization.
+
+## Retention: 7 days (API Policy 6.2)
+
+<https://www.strava.com/legal/api_policy>, section 6.2 (Cache and Retention): "You may not retain Strava Data in your cache for
+longer than seven (7) days." "Strava Data" is "all data you access or collect from the Strava API Materials" (Agreement 2.3(i)), and
+the policy has no exception for derived or diary data (5.4, 5.5 and 7.4 name "data derived from Strava Data" too). So an imported
+`source = 'strava'` row, calories included, lives at most 7 days; nothing is kept in a scrubbed form.
+
+- **Scrub:** `scrubExpiredStravaRows` (`packages/api/src/lib/strava-retention.ts`) deletes whole rows with `source = 'strava'`
+  whose WIB day is on or before `stravaRetentionCutoff()` (today minus 7 days), or whose `created_at` (fetch time, never changed
+  by an edit) is more than 7 days old; the second test stops a user from keeping a row by moving its date forward. It deletes in
+  batches of 200 (`DELETE ... WHERE id IN (SELECT id ... LIMIT 200)`), is idempotent, and needs no schema change. The server
+  Worker's existing `*/5 * * * *` cron runs it every tick (`runStravaRetention` in `apps/server/src/index.ts`). Reads do not scrub.
+- **No re-import:** `strava.sync` skips an activity whose WIB start day is on or before the same cutoff, so a scrubbed activity is
+  never fetched back; inside the window the unique index `(user_id, source, external_id)` still dedupes. Both sides use
+  `stravaRetentionCutoff()`, so what sync accepts is exactly what the scrub keeps.
+- **User-facing:** the Strava card (web and native) says imports are kept 7 days and recommends Health Connect (Android) or Apple
+  Health (iPhone) for lasting burned calories; users who already had Strava connected see a one-time dismissible notice on the home
+  screen (`StravaRetentionNotice`, dismissal stored per account on the device: localStorage on web, SecureStore on native). The
+  privacy page (`/privasi#strava`) states the same.
 
 ## Tests
 
 `bun test packages/api/src` includes `lib/strava-grant.test.ts` (scopes, exchange, refresh and rotation, the lost-refresh race,
 unlink and revoke rules, deauthorization, the `joyofit-` prefix) on an in-memory libsql database built from the real migrations.
+`lib/strava-retention.test.ts` covers the scrub (cutoff boundary, other sources and users untouched, idempotent, `created_at` guard,
+batching) and `strava.sync` after a scrub (no re-import, nothing past the window imported), with a mocked clock.

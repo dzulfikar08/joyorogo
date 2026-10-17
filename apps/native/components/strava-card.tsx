@@ -7,6 +7,7 @@ import { StyleSheet } from "react-native-unistyles";
 import Svg, { Path } from "react-native-svg";
 
 import { Button, Card, Text } from "@/components/ui";
+import { StravaRetentionNote } from "@/components/strava-retention-notice";
 import { errorMessage } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 
@@ -129,6 +130,7 @@ export function StravaCard() {
         </View>
       </View>
       {action}
+      {statusQuery.data?.configured ? <StravaRetentionNote /> : null}
       {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
       {sync.isError ? <Text style={styles.error}>{errorMessage(sync.error)}</Text> : null}
     </Card>

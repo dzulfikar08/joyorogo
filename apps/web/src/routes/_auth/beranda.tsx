@@ -20,6 +20,7 @@ import MovementCard from "@/components/movement-card";
 import { BelanjaCard } from "@/components/plate/belanja";
 import { ScreenError } from "@/components/screen-state";
 import { RecapCard } from "@/components/recap-card";
+import { StravaRetentionNotice } from "@/components/strava-retention-notice";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { Sticker } from "@/components/sticker";
 import { WaterCard } from "@/components/water-card";
@@ -182,6 +183,8 @@ function Dashboard({
       </header>
 
       <FounderBanner />
+
+      <StravaRetentionNotice className="mb-3" />
 
       {/* Day switcher */}
       <div className="mb-3 flex justify-center lg:justify-start">
