@@ -14,6 +14,13 @@ export type AiBinding = {
 export type ApiEnv = PaywallEnv & {
   AI?: AiBinding;
   AI_VISION_MODEL?: string;
+  /** Text model for ai.correctScan; unset = the vision model (Gemma 4, thinking off). */
+  AI_CORRECT_MODEL?: string;
+  /**
+   * Comma-separated user ids whose scans are kept as an internal accuracy dataset
+   * (R2 dataset/<userId>/<scanId>/, see lib/dataset.ts). Unset or empty = nobody.
+   */
+  DATASET_USER_IDS?: string;
   STRAVA_CLIENT_ID?: string;
   STRAVA_CLIENT_SECRET?: string;
   /** Images binding for dish sticker cutouts (BiRefNet segmentation). */
@@ -46,7 +53,7 @@ export type Context = {
   /** Caller IP (CF-Connecting-IP) for per-client limits; null when unknown. */
   clientIp: string | null;
   /**
-   * Language the caller renders in (x-locale header, else Accept-Language, else `id`).
+   * Language the caller renders in (x-locale header, else `id`).
    * Use it for every user-facing string the request produces.
    */
   locale: Locale;

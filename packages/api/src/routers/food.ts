@@ -22,6 +22,7 @@ import {
 } from "../lib/sticker";
 import { purgeUnreferencedMedia } from "./saved-food";
 import type { StickerJob } from "../lib/sticker";
+import { datasetEnabled, recordFinal } from "../lib/dataset";
 import { normalizeBox } from "../lib/vision";
 
 const scanItemSchema = z.object({
@@ -95,6 +96,9 @@ export const foodRouter = {
         mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
         items: z.array(scanItemSchema).min(1).max(15),
         itemsJson: z.string().max(10_000).optional(),
+        // Scan session id (ai.analyzeFood's photoId): lets the owner's dataset
+        // record the final saved items next to the AI answer. Ignored for everyone else.
+        scanPhotoId: z.string().regex(SCAN_ID_RE).optional(),
         plate: plateInput.optional(),
       }),
     )
@@ -184,6 +188,23 @@ export const foodRouter = {
       const queued = jobs.filter((job): job is StickerJob => job !== null);
       if (bucket && queued.length > 0) {
         context.waitUntil(storeStickers(images, bucket, bytes, queued));
+      }
+      if (input.scanPhotoId && bucket && datasetEnabled(context.env, userId)) {
+        context.waitUntil(
+          recordFinal(bucket, userId, input.scanPhotoId, {
+            meal: input.meal,
+            date,
+            items: rows.map((row) => ({
+              name: row.name,
+              grams: row.grams ?? undefined,
+              kcal: row.kcal,
+              protein: row.protein ?? undefined,
+              carbs: row.carbs ?? undefined,
+              fat: row.fat ?? undefined,
+              fiber: row.fiber ?? undefined,
+            })),
+          }),
+        );
       }
       return { items: rows, photoId };
     }),

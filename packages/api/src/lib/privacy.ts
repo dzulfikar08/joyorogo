@@ -34,6 +34,7 @@ import { teamChallengeMember } from "@joyorogo/db/schema/challenge";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 
 import { avatarPrefix } from "./avatar";
+import { datasetPrefix } from "./dataset";
 import { photoPrefix, postPhotoPrefix, scanSrcPrefix, stickerKey, varPhotoPrefix } from "./sticker";
 import { parseSavedItems } from "./saved-foods";
 import type { StickersBucket } from "./sticker";
@@ -53,8 +54,8 @@ export async function userStickerKeys(db: Database, userId: string): Promise<str
 }
 
 /**
- * Deletes the user's stickers, every original photo under their prefix, and
- * their avatar(s) (listing catches objects whose rows are already gone).
+ * Deletes the user's stickers, every original photo under their prefix, their
+ * dataset record (if any), and their avatar(s) (listing catches objects whose rows are already gone).
  * R2 deletes take at most 1000 keys per call.
  */
 export async function deleteUserMedia(
@@ -71,6 +72,8 @@ export async function deleteUserMedia(
     postPhotoPrefix(userId),
     // Pending-scan originals kept for "Hitung ulang".
     scanSrcPrefix(userId),
+    // Internal accuracy dataset (allowlisted accounts only): "delete on request".
+    datasetPrefix(userId),
   ]) {
     let cursor: string | undefined;
     do {

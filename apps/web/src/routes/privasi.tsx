@@ -77,6 +77,12 @@ function PrivasiPage() {
               dibuka lewat akunmu. Mematikan pengaturan itu, atau menghapus semua data, menghapus
               semua foto asli yang tersimpan.
             </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Satu pengecualian: akun yang ikut dataset akurasi internal (saat ini hanya akun milik
+              pembuat JoyoRogo sendiri) menyimpan foto scan, jawaban AI, koreksi, dan hasil akhir
+              yang disimpan, untuk mengevaluasi model. Foto itu tidak dipakai untuk melatih model,
+              dan bisa dihapus atas permintaan. Akun lain tidak terpengaruh.
+            </p>
           </section>
 
           <section className="rounded-3xl bg-card p-5">

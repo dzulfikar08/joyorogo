@@ -306,7 +306,8 @@ export const aiUsage = sqliteTable(
     userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
     model: text("model").notNull(),
     // "failed": a scan that returned nothing usable (reason in usage_json); never billed or counted.
-    scanType: text("scan_type", { enum: ["anon", "user", "retry", "failed"] }).notNull(),
+    // "correction": a typed/spoken fix of a scan result (ai.correctScan); free, only rate-limited.
+    scanType: text("scan_type", { enum: ["anon", "user", "retry", "failed", "correction"] }).notNull(),
     latencyMs: integer("latency_ms").notNull(),
     usageJson: text("usage_json"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })

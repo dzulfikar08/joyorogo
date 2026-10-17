@@ -241,5 +241,38 @@
     "footer": "Foto hanya dipakai untuk analisis, lalu dibuang.",
     "notImage": "File itu bukan gambar.",
     "failed": "Gagal menganalisis."
+  },
+  "correct": {
+    "title": "Ada yang kurang pas?",
+    "hint": "Ketik atau ucapkan koreksinya, mis. “nasinya setengah aja”.",
+    "placeholder": "Mis. “itu rolade bukan perkedel”",
+    "send": "Kirim koreksi",
+    "mic": "Ucapkan koreksi",
+    "micStop": "Selesai bicara",
+    "recording": "Merekam… ketuk lagi untuk mengirim",
+    "working": "Memperbaiki daftar…",
+    "heard": "Terdengar: “{{text}}”",
+    "micDenied": "Izin mikrofon belum diberikan. Aktifkan di pengaturan, atau ketik saja koreksinya.",
+    "micUnsupported": "Perangkat ini belum bisa merekam suara. Ketik saja koreksinya ya.",
+    "undo": "Urungkan koreksi",
+    "undone": "Koreksi diurungkan.",
+    "applied_other": "{{count}} item diperbarui.",
+    "removed": "Dihapus: {{names}}.",
+    "left_other": "Sisa {{count}} koreksi untuk foto ini.",
+    "badge": {
+      "renamed": "Diganti",
+      "portion": "Porsi diubah",
+      "added": "Baru"
+    },
+    "error": {
+      "unclear": "Koreksinya belum kebaca. Coba tulis lebih jelas, mis. “nasinya setengah aja”.",
+      "unknownReference": "Aku nggak nemu item yang kamu maksud. Sebut nama makanannya ya, mis. “nasinya setengah aja”.",
+      "emptyResult": "Koreksi ini bakal menghapus semua item. Kalau fotonya salah total, foto ulang aja.",
+      "failed": "Koreksinya belum berhasil diproses. Coba lagi sebentar.",
+      "voiceEmpty": "Suaranya belum terdengar jelas. Coba lagi atau ketik koreksinya.",
+      "inputRequired": "Kirim teks atau rekaman suara.",
+      "scanLimit_other": "Koreksi untuk foto ini sudah mentok ({{count}} kali). Edit manual saja, atau foto ulang.",
+      "dayLimit": "Batas koreksi hari ini tercapai. Edit manual saja, atau coba lagi besok."
+    }
   }
 }

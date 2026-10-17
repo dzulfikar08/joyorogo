@@ -56,6 +56,8 @@ import type { PlateValues } from "@/components/plate/plate-fields";
 import { MacroLine } from "@/components/macro-line";
 import { MetaLine } from "@/components/meta-line";
 import { ContextualTip } from "@/components/tips/contextual-tip";
+import { CorrectBox } from "@/components/scan/correct-box";
+import type { CorrectInput, CorrectOutcome } from "@/components/scan/correct-box";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { MealStory } from "@/components/story/story-card";
 import { useSessionGate } from "@/lib/use-session-gate";
@@ -77,6 +79,20 @@ type AnalyzedItem = {
   box?: number[];
   kind?: FoodKind;
 };
+
+/** Everything per-row that a correction rewrites; "Urungkan" restores one of these. */
+type CorrectSnapshot = {
+  items: AnalyzedItem[];
+  drafts: { kcal: string; include: boolean }[];
+  kinds: Record<number, FoodKind>;
+  fullPortion: { items: AnalyzedItem[]; drafts: { kcal: string; include: boolean }[] } | null;
+  crops: Array<string | null>;
+  stickers: Array<string | null>;
+  baseline: { items: AnalyzedItem[]; origin: Array<number | null> };
+};
+
+/** How a correction touched a row; the row is highlighted until the next edit. */
+type CorrectMark = "renamed" | "portion" | "added";
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
 
@@ -369,13 +385,34 @@ export default function MakanAi() {
     items: AnalyzedItem[];
     drafts: { kcal: string; include: boolean }[];
   } | null>(null);
-  // What the AI said, for the stored breakdown and the miss log.
-  const aiItems = fullPortion?.items ?? items;
+  // What the AI said, for the stored breakdown and the miss log: the original
+  // analyzeFood / retry answer, never rewritten by a correction. `origin[i]`
+  // is the baseline row that current row i descends from (null = added by a
+  // correction, no AI estimate to compare with).
+  const [baseline, setBaseline] = useState<{
+    items: AnalyzedItem[];
+    origin: Array<number | null>;
+  }>({ items: [], origin: [] });
+  const aiItems = baseline.items;
   const [plateValues, setPlateValues] = useState<PlateValues>({
     name: "",
     place: "",
     price: "",
   });
+  // "Ada yang kurang pas?": previous states for Urungkan, and the rows the
+  // last correction touched. The marks only count while the drafts and kinds
+  // arrays they were made with are still current, so any edit clears them.
+  const [undoStack, setUndoStack] = useState<CorrectSnapshot[]>([]);
+  const [flagged, setFlagged] = useState<{
+    marks: Map<number, CorrectMark>;
+    drafts: { kcal: string; include: boolean }[];
+    kinds: Record<number, FoodKind>;
+  } | null>(null);
+  const correct = useMutation(orpc.ai.correctScan.mutationOptions());
+  const correctRunRef = useRef(0);
+  // A correction answers seconds later: read the latest rows then, not the render it started in.
+  const live = useRef({ items, drafts, kinds, fullPortion, crops, stickers, baseline });
+  live.current = { items, drafts, kinds, fullPortion, crops, stickers, baseline };
 
   if (gate === "loading") {
     return <BootLoader />;
@@ -412,6 +449,11 @@ export default function MakanAi() {
     setFeedbackRating(null);
     setFeedbackReasons([]);
     setFeedbackNote("");
+    correctRunRef.current += 1;
+    setUndoStack([]);
+    setFlagged(null);
+    setBaseline({ items: [], origin: [] });
+    correct.reset();
     analyze.reset();
     retry.reset();
     setPhase("camera");
@@ -424,12 +466,15 @@ export default function MakanAi() {
     height: number,
     list: AnalyzedItem[],
     onDone?: () => void,
+    // Crops that are already cut and stay as they are (after a correction).
+    seed?: Array<string | null>,
   ) => {
     const run = ++cropRunRef.current;
-    setCrops(list.map(() => null));
+    setCrops(seed ?? list.map(() => null));
     setCropping(true);
     void Promise.all(
       list.map(async (item, index) => {
+        if (seed?.[index]) return;
         const cut = item.box
           ? await cropFromBox(uri, width, height, item.box).catch(() => null)
           : null;
@@ -548,6 +593,10 @@ export default function MakanAi() {
       setFeedbackReasons([]);
       setFeedbackNote("");
       setItems(result.items);
+      setBaseline({ items: result.items, origin: result.items.map((_, i) => i) });
+      correctRunRef.current += 1;
+      setUndoStack([]);
+      setFlagged(null);
       suggestSlotFor(result.items);
       // Plate fields: default name = first item, then autofill the last price.
       const firstName = result.items[0]?.name;
@@ -667,7 +716,7 @@ export default function MakanAi() {
 
   /** Hitung ulang: same photo, one more model pass; only the id travels. */
   const retryAnalysis = async () => {
-    if (!photoId || retry.isPending || retriesLeft <= 0) return;
+    if (!photoId || retry.isPending || correct.isPending || retriesLeft <= 0) return;
     // The tap itself is an implicit "kurang akurat" verdict on this result.
     if (askFeedback && !feedbackAnswered) {
       sendFeedback("kurang_akurat");
@@ -679,6 +728,10 @@ export default function MakanAi() {
         photoId,
         ...(retryHint.trim() ? { hint: retryHint.trim() } : {}),
       });
+      correctRunRef.current += 1;
+      setUndoStack([]);
+      setFlagged(null);
+      setBaseline({ items: result.items, origin: result.items.map((_, i) => i) });
       setItems(result.items);
       suggestSlotFor(result.items);
       setDrafts(
@@ -748,6 +801,7 @@ export default function MakanAi() {
           // cut by the server in the background.
           ...(stickers[index] ? { scanId: stickers[index] } : {}),
         })),
+        ...(photoId ? { scanPhotoId: photoId } : {}),
         itemsJson: JSON.stringify(aiItems),
         ...(plate ? { plate } : {}),
       });
@@ -755,14 +809,18 @@ export default function MakanAi() {
       void logCorrections
         .mutateAsync({
           source: "native",
-          items: chosen.map(({ item, draft }) => ({
-            meal,
-            dishName: item.name,
-            aiKcal: Math.round(aiItems[items.indexOf(item)]?.kcal ?? item.kcal),
-            savedKcal: parseNum(draft.kcal) ?? 0,
-            aiGrams: aiItems[items.indexOf(item)]?.grams ?? item.grams ?? null,
-            aiConfidence: item.confidence ?? null,
-          })),
+          items: chosen.map(({ item, draft, index }) => {
+            const origin = baseline.origin[index];
+            const ai = origin === null || origin === undefined ? undefined : aiItems[origin];
+            return {
+              meal,
+              dishName: item.name,
+              aiKcal: Math.round(ai?.kcal ?? item.kcal),
+              savedKcal: parseNum(draft.kcal) ?? 0,
+              aiGrams: ai?.grams ?? item.grams ?? null,
+              aiConfidence: item.confidence ?? null,
+            };
+          }),
         })
         .catch(() => {});
       queryClient.invalidateQueries();
@@ -812,6 +870,131 @@ export default function MakanAi() {
     setItems(fullPortion.items);
     setDrafts(fullPortion.drafts);
     setFullPortion(null);
+  };
+
+  /** Re-cuts only what a restored or corrected list is missing (crops and cutouts). */
+  const refreshTiles = (
+    list: AnalyzedItem[],
+    cropSeed: Array<string | null>,
+    stickerSeed: Array<string | null>,
+  ) => {
+    if (sentImage) {
+      cutCrops(sentImage.uri, sentImage.width, sentImage.height, list, undefined, cropSeed);
+    } else {
+      cropRunRef.current += 1;
+      setCrops(cropSeed);
+    }
+    cutStickers(photoId, list, stickerSeed);
+  };
+
+  /**
+   * "Ada yang kurang pas?": sends the list as it stands (with the user's kcal)
+   * and weaves the answer into every per-row state through `origins`: kept rows
+   * keep their draft, kind, crop and cutout; renamed / re-portioned rows take
+   * the new kcal but keep their include flag and, with the same box, their
+   * tiles; added rows start fresh. The AI baseline is never replaced, only
+   * re-pointed. Resolves null when a reset or retry made the answer stale.
+   */
+  const submitCorrection = async (input: CorrectInput): Promise<CorrectOutcome | null> => {
+    const run = ++correctRunRef.current;
+    const result = await correct.mutateAsync({
+      ...(photoId ? { photoId } : {}),
+      items: items.map((item, index) => ({
+        name: item.name,
+        portion: item.portion,
+        grams: item.grams,
+        kcal: Math.max(0, parseNum(drafts[index]?.kcal ?? "") ?? item.kcal),
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+        fiber: item.fiber,
+        confidence: item.confidence,
+        kind: kinds[index] ?? item.kind,
+        box: item.box,
+      })),
+      ...input,
+    });
+    if (correctRunRef.current !== run) return null;
+    // Rows may have been edited while the answer was on its way: merge into the latest.
+    const cur = live.current;
+    const marks = new Map<number, CorrectMark>(result.changes.map((c) => [c.index, c.kind]));
+    const origins = result.items.map((_, i) => {
+      const origin = result.origins[i];
+      return typeof origin === "number" && cur.items[origin] ? origin : null;
+    });
+    const nextItems = result.items.map((item, i) => {
+      const origin = origins[i];
+      return origin !== null && origin !== undefined && !marks.has(i) ? cur.items[origin]! : item;
+    });
+    const nextDrafts = result.items.map((item, i) => {
+      const origin = origins[i];
+      const old = origin === null || origin === undefined ? undefined : cur.drafts[origin];
+      if (old && !marks.has(i)) return old;
+      return { kcal: String(Math.round(item.kcal)), include: old?.include ?? true };
+    });
+    const nextKinds: Record<number, FoodKind> = {};
+    origins.forEach((origin, i) => {
+      const kind = origin !== null && !marks.has(i) ? cur.kinds[origin] : undefined;
+      if (kind) nextKinds[i] = kind;
+    });
+    // Tiles stay while the box does; a moved box (or an added row) gets a fresh cut.
+    const tileOrigins = result.items.map((item, i) => {
+      const origin = origins[i];
+      if (origin === null || origin === undefined) return null;
+      return !marks.has(i) || sameBox(cur.items[origin]!.box, item.box) ? origin : null;
+    });
+    const full = cur.fullPortion;
+    const nextFull = full
+      ? {
+          items: nextItems.map((item, i) => {
+            const origin = origins[i];
+            return origin !== null && origin !== undefined && !marks.has(i)
+              ? (full.items[origin] ?? item)
+              : item;
+          }),
+          drafts: nextDrafts.map((draft, i) => {
+            const origin = origins[i];
+            return origin !== null && origin !== undefined && !marks.has(i)
+              ? (full.drafts[origin] ?? draft)
+              : draft;
+          }),
+        }
+      : null;
+    setUndoStack((prev) => [...prev.slice(-9), cur]);
+    setItems(nextItems);
+    setDrafts(nextDrafts);
+    setKinds(nextKinds);
+    setFullPortion(nextFull);
+    setBaseline({
+      items: cur.baseline.items,
+      origin: origins.map((origin) => (origin === null ? null : (cur.baseline.origin[origin] ?? null))),
+    });
+    setFlagged({ marks, drafts: nextDrafts, kinds: nextKinds });
+    refreshTiles(
+      nextItems,
+      tileOrigins.map((origin) => (origin === null ? null : (cur.crops[origin] ?? null))),
+      tileOrigins.map((origin) => (origin === null ? null : (cur.stickers[origin] ?? null))),
+    );
+    return {
+      count: result.changes.length + result.removed.length,
+      removed: result.removed,
+      transcript: result.transcript,
+      correctionsLeft: result.correctionsLeft,
+    };
+  };
+
+  const undoCorrection = () => {
+    const snap = undoStack[undoStack.length - 1];
+    if (!snap) return;
+    correctRunRef.current += 1;
+    setUndoStack(undoStack.slice(0, -1));
+    setItems(snap.items);
+    setDrafts(snap.drafts);
+    setKinds(snap.kinds);
+    setFullPortion(snap.fullPortion);
+    setBaseline(snap.baseline);
+    setFlagged(null);
+    refreshTiles(snap.items, snap.crops, snap.stickers);
   };
 
   const flowErrorTitle = flowError?.reason ? t(`fail.reason.${flowError.reason}.title`) : null;
@@ -951,6 +1134,7 @@ export default function MakanAi() {
       0,
     );
     const includedItems = items.filter((_, index) => drafts[index]?.include);
+    const marks = flagged && flagged.drafts === drafts && flagged.kinds === kinds ? flagged.marks : null;
     const adviceKind = dominantKind(
       items.flatMap((item, index) =>
         drafts[index]?.include ? [kinds[index] ?? item.kind ?? foodKind(item.name)] : [],
@@ -1108,9 +1292,10 @@ export default function MakanAi() {
                 item.carbs !== undefined ||
                 item.fat !== undefined ||
                 item.fiber !== undefined;
+              const mark = marks?.get(index);
               return (
+                <View key={`${item.name}-${index}`} style={mark ? styles.correctedRow : undefined}>
                 <ListRow
-                  key={`${item.name}-${index}`}
                   icon={draft.include ? "checkmark-circle" : "ellipse-outline"}
                   iconTint={draft.include ? "makan" : "muted"}
                   thumb={
@@ -1127,6 +1312,11 @@ export default function MakanAi() {
                   title={item.name}
                   subtitle={
                     <View style={styles.itemMeta}>
+                      {mark ? (
+                        <View style={styles.correctBadge}>
+                          <Text style={styles.correctBadgeText}>{t(`correct.badge.${mark}`)}</Text>
+                        </View>
+                      ) : null}
                       <MetaLine
                         items={[
                           item.portion,
@@ -1177,12 +1367,23 @@ export default function MakanAi() {
                     )
                   }
                 />
+                </View>
               );
             })}
           </ListGroup>
 
           {/* Saran tips kalau ada minuman manis atau saus/gorengan */}
           <ContextualTip names={items.map((item) => item.name)} />
+
+          {/* Koreksi lewat ketikan atau suara; tersembunyi saat hitung ulang / simpan berjalan */}
+          {!retry.isPending && !addScan.isPending ? (
+            <CorrectBox
+              busy={correct.isPending}
+              canUndo={undoStack.length > 0}
+              onSubmit={submitCorrection}
+              onUndo={undoCorrection}
+            />
+          ) : null}
 
           {/* Hitung ulang: foto yang sama, tanpa foto ulang, tanpa kuota harian */}
           {photoId ? (
@@ -1211,7 +1412,7 @@ export default function MakanAi() {
                     label={retry.isPending ? t("retry.running") : t("retry.action")}
                     icon="refresh"
                     loading={retry.isPending}
-                    disabled={retry.isPending}
+                    disabled={retry.isPending || correct.isPending}
                     onPress={() => void retryAnalysis()}
                   />
                 </View>
@@ -1310,7 +1511,7 @@ export default function MakanAi() {
                   ? t("result.save.items", { count: includedCount })
                   : t("result.save.pickOne")
               }
-              disabled={includedCount === 0 || retry.isPending}
+              disabled={includedCount === 0 || retry.isPending || correct.isPending}
               onPress={() => void saveIncluded()}
               loading={addScan.isPending}
               style={styles.actionPrimary}
@@ -1768,6 +1969,21 @@ const styles = StyleSheet.create((theme) => ({
   },
   retryInput: {
     flex: 1,
+  },
+  correctedRow: {
+    backgroundColor: theme.colors.makanSoft,
+  },
+  correctBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: theme.colors.makan,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 2,
+  },
+  correctBadgeText: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "700",
+    color: theme.colors.primaryForeground,
   },
   infoText: {
     fontSize: theme.fontSize.sm,

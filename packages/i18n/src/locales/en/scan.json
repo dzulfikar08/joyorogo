@@ -253,5 +253,41 @@
     "footer": "Photos are only used for analysis, then discarded.",
     "notImage": "That file isn't an image.",
     "failed": "Analysis failed."
+  },
+  "correct": {
+    "title": "Something off?",
+    "hint": "Type or say the fix, e.g. “half the rice”.",
+    "placeholder": "E.g. “that's rolade, not perkedel”",
+    "send": "Send correction",
+    "mic": "Say your correction",
+    "micStop": "Done talking",
+    "recording": "Recording… tap again to send",
+    "working": "Fixing the list…",
+    "heard": "Heard: “{{text}}”",
+    "micDenied": "Microphone access isn't allowed. Turn it on in settings, or just type the correction.",
+    "micUnsupported": "This device can't record audio. Just type the correction.",
+    "undo": "Undo correction",
+    "undone": "Correction undone.",
+    "applied_one": "{{count}} item updated.",
+    "applied_other": "{{count}} items updated.",
+    "removed": "Removed: {{names}}.",
+    "left_one": "{{count}} correction left for this photo.",
+    "left_other": "{{count}} corrections left for this photo.",
+    "badge": {
+      "renamed": "Renamed",
+      "portion": "Portion changed",
+      "added": "New"
+    },
+    "error": {
+      "unclear": "I couldn't read that correction. Try phrasing it clearly, e.g. “half the rice”.",
+      "unknownReference": "I couldn't find the item you mean. Name the food, e.g. “half the rice”.",
+      "emptyResult": "That would remove every item. If the photo is totally wrong, retake it.",
+      "failed": "Couldn't process the correction. Try again in a moment.",
+      "voiceEmpty": "I couldn't hear that clearly. Try again or type the correction.",
+      "inputRequired": "Send text or a voice recording.",
+      "scanLimit_one": "You've used the correction limit for this photo ({{count}} time). Edit by hand or retake the photo.",
+      "scanLimit_other": "You've used the correction limit for this photo ({{count}} times). Edit by hand or retake the photo.",
+      "dayLimit": "Today's correction limit is reached. Edit by hand or try again tomorrow."
+    }
   }
 }

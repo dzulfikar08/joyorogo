@@ -1,5 +1,8 @@
 import type { Hono } from "hono";
 
+import { z } from "zod";
+
+import { correctScanItems, correctionItemSchema } from "@joyorogo/api/lib/scan-correct";
 import { analyzeFoodPhoto, DEFAULT_VISION_MODEL } from "@joyorogo/api/lib/vision";
 
 type AiRunner = { run(model: string, input: unknown): Promise<unknown> };
@@ -10,6 +13,13 @@ type BenchCase = {
   expectKcalMax: number;
   dish: string;
 };
+
+const benchCorrectSchema = z.object({
+  items: z.array(correctionItemSchema).min(1).max(15),
+  texts: z.array(z.string().min(2).max(300)).min(1).max(20),
+  model: z.string().optional(),
+  locale: z.enum(["id", "en"]).optional(),
+});
 
 type Deps = {
   ai: AiRunner | undefined;
@@ -88,6 +98,35 @@ export function registerBenchRoutes(app: Hono, deps: Deps) {
         medianLatencyMs: median,
       },
     });
+  });
+
+  // Correction latency on the real AI binding: POST /ai/bench-correct with
+  // X-Bench-Key and { items, texts: string[], model?, locale? }. Runs the
+  // production path (prompt, ops, patch, TKPI calibration) once per text.
+  app.post("/ai/bench-correct", async (c) => {
+    if (!deps.benchKey || c.req.header("X-Bench-Key") !== deps.benchKey) {
+      return c.text("Not Found", 404);
+    }
+    if (!deps.ai) return c.json({ error: "AI binding unavailable" }, 503);
+    const parsed = benchCorrectSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "items[] and texts[] required" }, 400);
+    const { items, texts, model, locale } = parsed.data;
+    const results = [];
+    for (const text of texts) {
+      const started = Date.now();
+      try {
+        const run = await correctScanItems(deps.ai, { items, text, model, locale });
+        results.push({ text, ok: true, ms: Date.now() - started, model: run.model, patch: run.patch });
+      } catch (error) {
+        results.push({
+          text,
+          ok: false,
+          ms: Date.now() - started,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    return c.json({ results });
   });
 }
 

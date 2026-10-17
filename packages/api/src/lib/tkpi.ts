@@ -439,6 +439,13 @@ export function atwaterAdjust<
   return item;
 }
 
+function bandFor(dish: TdpiDish, grams: number, scale: boolean | undefined): [number, number] {
+  const [min, max] = dish.plausibleKcalRange;
+  if (!scale) return [min, max];
+  const ratio = clamp(grams / dish.typicalPortionG, 0.2, 5);
+  return [Math.round(min * ratio), Math.round(max * ratio)];
+}
+
 export type CalibratedItem = {
   name: string;
   portion?: string;
@@ -473,8 +480,16 @@ export type CalibratableItem = {
   confidence?: number;
 };
 
-/** Pure post-parse calibration against the TKPI library. */
-export function calibrateItems(items: CalibratableItem[]): CalibratedItem[] {
+/**
+ * Pure post-parse calibration against the TKPI library. `scaleBand` stretches a
+ * dish's plausible kcal band by grams / typical portion (bounded), for items
+ * whose portion the user changed on purpose: half a plate of rice is ~100 kcal,
+ * which the band of a typical 150 g portion would clamp back up to 150.
+ */
+export function calibrateItems(
+  items: CalibratableItem[],
+  opts: { scaleBand?: boolean } = {},
+): CalibratedItem[] {
   return items.map((item) => {
     const combination = isCombination(item.name);
     const dish = combination ? undefined : matchDish(item.name);
@@ -515,7 +530,7 @@ export function calibrateItems(items: CalibratableItem[]): CalibratedItem[] {
       ...item,
       grams,
       fiber,
-      kcal: clamp(item.kcal, dish.plausibleKcalRange[0], dish.plausibleKcalRange[1]),
+      kcal: clamp(item.kcal, ...bandFor(dish, grams, opts.scaleBand)),
       matched: true,
     });
   });

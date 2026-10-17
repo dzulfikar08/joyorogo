@@ -54,6 +54,8 @@ import {
 } from "@/components/kit/surface";
 import { IdrInput } from "@/components/plate/idr-input";
 import { SaveLocationToggle } from "@/components/places/location-toggle";
+import { CORRECTED_ROW_CLASS, CorrectBadge, CorrectBox } from "@/components/scan/correct-box";
+import type { CorrectScanResult, CorrectionKind } from "@/components/scan/correct-box";
 import { STICKER_FILTER, stickerUrl } from "@/components/sticker";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { cropItems } from "@/lib/crop";
@@ -223,6 +225,26 @@ function sameBox(a: AiFoodItem["box"], b: AiFoodItem["box"]) {
   return !!a && !!b && a.length === b.length && a.every((value, i) => value === b[i]);
 }
 
+/** Items and kcal inputs as they were before "Setengah porsi". */
+type FullPortion = { items: AiFoodItem[]; kcals: Record<number, string> };
+
+/** The original AI answer and, per current row, the item that row descends from (null = added). */
+type AiBaseline = { list: AiFoodItem[]; rows: Array<AiFoodItem | null> };
+
+/** Everything per-row that a correction rewrites, so "Urungkan" restores it whole. */
+type CorrectionSnapshot = {
+  items: AiFoodItem[];
+  kcals: Record<number, string>;
+  kinds: Record<number, FoodKind>;
+  crops: Array<string | null>;
+  stickers: Array<string | null>;
+  fullPortion: FullPortion | null;
+  corrected: AiBaseline | null;
+};
+
+const NO_CHANGES: Record<number, CorrectionKind> = {};
+const MAX_UNDO = 10;
+
 /**
  * Rectangular crop as the instant placeholder; once the real background-removed
  * sticker has loaded it fades in and the crop fades out. A refined sticker that
@@ -361,13 +383,27 @@ function AiFoodPage() {
   // Item kind: the AI's call, or what the user tapped on the row. Advice only.
   const [kinds, setKinds] = useState<Record<number, FoodKind>>({});
   // Items and kcal inputs as they were before "Setengah porsi", so one tap restores them.
-  const [fullPortion, setFullPortion] = useState<{
-    items: AiFoodItem[];
-    kcals: Record<number, string>;
-  } | null>(null);
+  const [fullPortion, setFullPortion] = useState<FullPortion | null>(null);
   const fullItems = fullPortion?.items ?? null;
   // What the AI said, for the stored breakdown and the miss log.
   const aiItems = fullItems ?? items;
+  // Correction box ("Ada yang kurang pas?"). A correction reshapes the list but
+  // never the AI baseline: `corrected` keeps the original answer (`list`, what
+  // addScan stores) and, per current row, the baseline item that row descends
+  // from (`rows`, null for an added row) so the miss log keeps counting it.
+  const [corrected, setCorrected] = useState<AiBaseline | null>(null);
+  const baseList = corrected?.list ?? aiItems;
+  const baseRows: ReadonlyArray<AiFoodItem | null | undefined> = corrected?.rows ?? aiItems;
+  const [undoStack, setUndoStack] = useState<CorrectionSnapshot[]>([]);
+  // Rows the last correction touched; they stay highlighted until the next
+  // interaction with the list.
+  const [changed, setChanged] = useState<Record<number, CorrectionKind>>(NO_CHANGES);
+  const [correctionNote, setCorrectionNote] = useState<string | null>(null);
+  const [correctionsLeft, setCorrectionsLeft] = useState<number | null>(null);
+  const touchList = () => {
+    setChanged(NO_CHANGES);
+    setCorrectionNote(null);
+  };
   const advice = useSnackAdvice({
     date: scanDate,
     kcal: totalKcal,
@@ -387,6 +423,9 @@ function AiFoodPage() {
     setKcals(Object.fromEntries(next.map((item, index) => [index, String(item.kcal)])));
     setKinds({});
     setFullPortion(null);
+    setCorrected(null);
+    setUndoStack([]);
+    touchList();
   };
 
   const halve = () => {
@@ -412,6 +451,7 @@ function AiFoodPage() {
         fiber: half.fiber ?? undefined,
       };
     });
+    touchList();
     setFullPortion({ items, kcals });
     setItems(scaled);
     setKcals(Object.fromEntries(scaled.map((item, index) => [index, String(item.kcal)])));
@@ -419,9 +459,102 @@ function AiFoodPage() {
 
   const undoHalf = () => {
     if (!fullPortion) return;
+    touchList();
     setItems(fullPortion.items);
     setKcals(fullPortion.kcals);
     setFullPortion(null);
+  };
+
+  // Re-aligns the tiles (crops + cutouts) with a list whose rows moved: kept
+  // rows reuse theirs, only rows without one are cut.
+  const realignTiles = (
+    list: AiFoodItem[],
+    reuseCrops: Array<string | null>,
+    reuseStickers: Array<string | null>,
+  ) => {
+    if (!image) return;
+    setCrops(reuseCrops);
+    const boxes = list.map((item, index) => (reuseCrops[index] ? null : (item.box ?? null)));
+    if (boxes.some(Boolean)) {
+      const run = runRef.current;
+      const url = URL.createObjectURL(image.blob);
+      setCropping(true);
+      void cropItems(url, boxes)
+        .catch(() => boxes.map(() => null))
+        .then((cut) => {
+          URL.revokeObjectURL(url);
+          if (runRef.current !== run) return;
+          setCrops((prev) => prev.map((current, index) => current ?? cut[index] ?? null));
+          setCropping(false);
+        });
+    }
+    if (photoId) cutStickers(photoId, list, reuseStickers);
+    else setStickers(reuseStickers);
+  };
+
+  // Applies ai.correctScan in place. `origins` maps every new row to the row
+  // it came from, so the per-row state (kcal draft, tapped kind, crop, cutout,
+  // baseline) follows it; rows the server touched show their new kcal.
+  const applyCorrection = (result: CorrectScanResult, base: AiFoodItem[]): boolean => {
+    // The list moved on (Setengah porsi) while the request ran: its origins no longer line up.
+    if (base !== items) return false;
+    const origins = result.items.map((_, index) => {
+      const origin = result.origins[index];
+      return origin != null && origin >= 0 && origin < items.length ? origin : null;
+    });
+    const how = new Map(result.changes.map((change) => [change.index, change.kind]));
+    const nextKcals: Record<number, string> = {};
+    const nextKinds: Record<number, FoodKind> = {};
+    result.items.forEach((item, index) => {
+      const origin = origins[index];
+      const kind = how.get(index);
+      nextKcals[index] = (origin != null && !kind ? kcals[origin] : undefined) ?? String(item.kcal);
+      const picked =
+        origin != null && (kind === undefined || kind === "portion") ? kinds[origin] : undefined;
+      if (picked) nextKinds[index] = picked;
+    });
+    setUndoStack((stack) => [
+      ...stack.slice(-(MAX_UNDO - 1)),
+      { items, kcals, kinds, crops, stickers, fullPortion, corrected },
+    ]);
+    setCorrected({
+      list: baseList,
+      rows: origins.map((origin) => (origin === null ? null : (baseRows[origin] ?? null))),
+    });
+    setItems(result.items);
+    setKcals(nextKcals);
+    setKinds(nextKinds);
+    setFullPortion(null);
+    setChanged(Object.fromEntries(result.changes.map((change) => [change.index, change.kind])));
+    setCorrectionNote(
+      [
+        result.changes.length > 0 ? t("correct.applied", { count: result.changes.length }) : null,
+        result.removed.length > 0 ? t("correct.removed", { names: result.removed.join(", ") }) : null,
+      ]
+        .filter(Boolean)
+        .join(" ") || null,
+    );
+    setCorrectionsLeft(result.correctionsLeft);
+    realignTiles(
+      result.items,
+      origins.map((origin) => (origin === null ? null : (crops[origin] ?? null))),
+      origins.map((origin) => (origin === null ? null : (stickers[origin] ?? null))),
+    );
+    return true;
+  };
+
+  const undoCorrection = () => {
+    const snapshot = undoStack.at(-1);
+    if (!snapshot) return;
+    setUndoStack(undoStack.slice(0, -1));
+    setItems(snapshot.items);
+    setKcals(snapshot.kcals);
+    setKinds(snapshot.kinds);
+    setFullPortion(snapshot.fullPortion);
+    setCorrected(snapshot.corrected);
+    setChanged(NO_CHANGES);
+    setCorrectionNote(t("correct.undone"));
+    realignTiles(snapshot.items, snapshot.crops, snapshot.stickers);
   };
 
   // Rules of hooks: this must run on EVERY render, so it lives above the
@@ -505,6 +638,7 @@ function AiFoodPage() {
       setQuotaReached(result.quotaReached);
       setTooMany(result.tooMany);
       setPhotoId(result.photoId ?? null);
+      setCorrectionsLeft(null);
       setRetriesLeft(result.retriesLeft ?? 0);
       setRetryHint("");
       setRetryError(null);
@@ -643,6 +777,7 @@ function AiFoodPage() {
     setScanError(null);
     setTooMany(false);
     setPhotoId(null);
+    setCorrectionsLeft(null);
     setRetriesLeft(0);
     setRetryHint("");
     setRetryError(null);
@@ -754,7 +889,8 @@ function AiFoodPage() {
         meal,
         imageBase64: image.base64,
         mimeType: image.mimeType,
-        itemsJson: JSON.stringify(aiItems),
+        itemsJson: JSON.stringify(baseList),
+        ...(photoId ? { scanPhotoId: photoId } : {}),
         ...(plate.name || plate.place || plate.priceIdr != null ? { plate } : {}),
         items: items.map((item, index) => ({
           name: item.name,
@@ -777,9 +913,9 @@ function AiFoodPage() {
           items: items.map((item, index) => ({
             meal,
             dishName: item.name,
-            aiKcal: Math.round(aiItems[index]?.kcal ?? item.kcal),
+            aiKcal: Math.round(baseRows[index]?.kcal ?? item.kcal),
             savedKcal: values[index] ?? 0,
-            aiGrams: aiItems[index]?.grams ?? item.grams ?? null,
+            aiGrams: baseRows[index]?.grams ?? item.grams ?? null,
             aiConfidence: item.confidence ?? null,
           })),
         })
@@ -1071,7 +1207,10 @@ function AiFoodPage() {
             {items.map((item, index) => (
               <li
                 key={`${item.name}-${index}`}
-                className="relative flex min-h-12 items-center gap-2.5 px-4 py-2"
+                className={cn(
+                  "relative flex min-h-12 items-center gap-2.5 px-4 py-2",
+                  changed[index] && CORRECTED_ROW_CLASS,
+                )}
               >
                 {crops[index] || stickers[index] ? (
                   <CutoutImage
@@ -1084,7 +1223,12 @@ function AiFoodPage() {
                   <Skeleton className="size-10 shrink-0 rounded-xl" aria-hidden />
                 ) : null}
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[0.9375rem] font-semibold">{item.name}</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="min-w-0 truncate text-[0.9375rem] font-semibold">
+                      {item.name}
+                    </span>
+                    {changed[index] && <CorrectBadge kind={changed[index]} />}
+                  </span>
                   <span className="block truncate text-[0.8125rem] text-muted-foreground">
                     {[
                       item.portion,
@@ -1109,7 +1253,10 @@ function AiFoodPage() {
                     />
                     <KindCycleChip
                       value={kinds[index] ?? item.kind}
-                      onChange={(next) => setKinds((current) => ({ ...current, [index]: next }))}
+                      onChange={(next) => {
+                        touchList();
+                        setKinds((current) => ({ ...current, [index]: next }));
+                      }}
                     />
                   </span>
                 </span>
@@ -1120,9 +1267,10 @@ function AiFoodPage() {
                     min="0"
                     inputMode="numeric"
                     value={kcals[index] ?? String(item.kcal)}
-                    onChange={(event) =>
-                      setKcals((current) => ({ ...current, [index]: event.target.value }))
-                    }
+                    onChange={(event) => {
+                      touchList();
+                      setKcals((current) => ({ ...current, [index]: event.target.value }));
+                    }}
                     className="h-10 w-20 text-right font-bold tabular-nums"
                   />
                   <span className="text-xs font-semibold text-muted-foreground">kcal</span>
@@ -1131,6 +1279,20 @@ function AiFoodPage() {
             ))}
           </ListGroup>
         </section>
+
+        {!retrying && !saving && items.length > 0 && (
+          <CorrectBox
+            photoId={photoId}
+            items={items}
+            kcals={kcals}
+            kinds={kinds}
+            correctionsLeft={correctionsLeft}
+            notice={correctionNote}
+            canUndo={undoStack.length > 0}
+            onUndo={undoCorrection}
+            onApply={applyCorrection}
+          />
+        )}
 
         {photoId && (
           <section className="mt-4" aria-label={t("retry.title")}>

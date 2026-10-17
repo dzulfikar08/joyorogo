@@ -38,6 +38,7 @@ import { registerAdminRoutes } from "./admin";
 import { sendEmail } from "./email";
 import { createContext, requestLocale } from "./context";
 import { registerBenchRoutes } from "./bench";
+import { registerDatasetExportRoutes } from "./dataset-export";
 import { registerOgRoutes } from "./og";
 import { registerPrivacyRoutes } from "./privacy";
 import { registerStravaRoutes } from "./strava";
@@ -104,6 +105,13 @@ registerBenchRoutes(app, {
   benchKey:
     "AI_BENCH_KEY" in env && typeof env.AI_BENCH_KEY === "string" ? env.AI_BENCH_KEY : undefined,
   model: env.AI_VISION_MODEL || undefined,
+});
+
+// Owner dataset export (R2 dataset/ prefix), same key gate.
+registerDatasetExportRoutes(app, {
+  getBucket: () => ("STICKERS" in env ? env.STICKERS : undefined),
+  key:
+    "AI_BENCH_KEY" in env && typeof env.AI_BENCH_KEY === "string" ? env.AI_BENCH_KEY : undefined,
 });
 
 // Release APK download — served straight from the R2 bucket so the link

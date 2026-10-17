@@ -72,6 +72,7 @@
     "GOOGLE_CLIENT_ID": "915036968874-0ne1edkq0laljg6cdlnksor1hqpj9gfr.apps.googleusercontent.com",
     "DEV_LOGIN": "",
     "AI_VISION_MODEL": "@cf/google/gemma-4-26b-a4b-it",
+    "DATASET_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
     "APP_URL": "https://joyorogo.com",
     "FREE_DAILY_SCANS": "3",
     "FOUNDER_DAILY_CAP": "100",

@@ -39,6 +39,31 @@ import { MAX_SCAN_RETRIES, requireAiQuota } from "../lib/quota";
 import { wibDayBounds } from "../lib/tiers";
 import { DEFAULT_VISION_MODEL, VisionError, analyzeFoodPhoto, normalizeBox } from "../lib/vision";
 import type { ItemBox } from "../lib/vision";
+import { assertCorrectionAllowed, correctionsLeft, correctionsUsed } from "../lib/correct-limit";
+import {
+  datasetEnabled,
+  recordCorrection,
+  recordFeedback,
+  recordRetry,
+  recordScan,
+} from "../lib/dataset";
+import {
+  CorrectionError,
+  DEFAULT_CORRECT_MODEL,
+  MAX_CORRECTED_ITEMS,
+  correctScanItems,
+  correctionItemSchema,
+} from "../lib/scan-correct";
+import type { CorrectionReason, CorrectionRun } from "../lib/scan-correct";
+
+/** i18n key (scan namespace, correct.error.*) of each correction failure. */
+const CORRECTION_ERROR_KEY = {
+  unclear: "unclear",
+  unknown_reference: "unknownReference",
+  empty_result: "emptyResult",
+  failed: "failed",
+  voice_empty: "voiceEmpty",
+} as const satisfies Record<CorrectionReason, string>;
 
 /** Cutouts per photo: 12 items for the first pass plus each allowed retry. */
 const MAX_STICKERS_PER_PHOTO = 12 * (1 + MAX_SCAN_RETRIES);
@@ -272,6 +297,7 @@ export const aiRouter = {
       // `crops`) use the plate sticker.
       const boxes = stickers && images && input.crops ? distinctBoxes(analysis.items) : [];
       const stickerRun: { promise: Promise<ScanStickerTiming> | null } = { promise: null };
+      const datasetOn = stickers !== undefined && datasetEnabled(context.env, userId);
       const [scanId, photoId, [[scansEverRow], [askedTodayRow]]] = await Promise.all([
         storeSticker(),
         photoStored.then(async (id) => {
@@ -299,6 +325,22 @@ export const aiRouter = {
           return id;
         }),
         feedbackGate,
+        // Owner dataset: the photo and the model's first answer, in R2 beside
+        // the scan session. Runs in parallel with the cutouts; never fails the scan.
+        datasetOn && stickers
+          ? photoStored.then((id) =>
+              recordScan(stickers, {
+                userId,
+                scanId: id ?? newScanId(),
+                photo: photoBytes,
+                mimeType: input.mimeType,
+                model: analysis.model,
+                locale: context.locale,
+                items: analysis.items,
+                tooMany: analysis.tooMany,
+              }),
+            )
+          : undefined,
       ]);
       // Read the real numbers off prod: the ledger row gains stickerTiming
       // (ms since the request started) once the cuts settle.
@@ -423,6 +465,15 @@ export const aiRouter = {
           }),
         }),
       ]);
+      if (datasetEnabled(context.env, userId)) {
+        context.waitUntil(
+          recordRetry(bucket, userId, input.photoId, {
+            model: analysis.model,
+            hint: input.hint,
+            items: analysis.items,
+          }),
+        );
+      }
       if (images && claimedBoxes.length > 0) {
         context.waitUntil(
           Promise.all(
@@ -515,9 +566,20 @@ export const aiRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const bucket = context.env.STICKERS as StickersBucket | undefined;
+      if (bucket && datasetEnabled(context.env, userId)) {
+        context.waitUntil(
+          recordFeedback(bucket, userId, input.photoId, {
+            rating: input.rating,
+            reasons: input.reasons,
+            note: input.note,
+          }),
+        );
+      }
       await context.db.insert(scanFeedback).values({
         id: crypto.randomUUID(),
-        userId: context.session.user.id,
+        userId,
         photoId: input.photoId,
         rating: input.rating,
         reasonsJson: input.reasons?.length ? JSON.stringify(input.reasons) : null,
@@ -527,6 +589,117 @@ export const aiRouter = {
         source: input.source,
       });
       return { ok: true };
+    }),
+  // "Koreksi": the user types or says what the scan got wrong ("itu rolade
+  // bukan perkedel", "nasinya setengah aja") and gets the patched list back.
+  // Text-only model call (the photo never travels), so it answers in ~1 s.
+  // Never spends the daily scan quota; the ledger-backed caps in
+  // correct-limit.ts (per scan session and per day) are its only limit.
+  // Nothing is saved: the client applies the patch and keeps undo.
+  correctScan: protectedProcedure
+    .input(
+      z.object({
+        photoId: z.string().regex(SCAN_ID_RE).optional(),
+        items: z.array(correctionItemSchema).min(1).max(MAX_CORRECTED_ITEMS),
+        text: z.string().trim().min(2).max(300).optional(),
+        // Same ≤60 s voice notes as describeFood.
+        audioBase64: z.base64().min(100).max(3_000_000).optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const t = serverT(context.locale, "scan");
+      if ((input.text === undefined) === (input.audioBase64 === undefined)) {
+        throw new ORPCError("BAD_REQUEST", { message: t("correct.error.inputRequired") });
+      }
+      const ai = context.env.AI;
+      if (!ai) {
+        throw new ORPCError("SERVICE_UNAVAILABLE", {
+          message: serverT(context.locale, "errors")("ai.unavailable"),
+        });
+      }
+      const used = await correctionsUsed(context.db, userId, input.photoId);
+      assertCorrectionAllowed(used, context.locale);
+
+      const startedAt = Date.now();
+      const via = input.audioBase64 !== undefined ? "voice" : "text";
+      let transcript: string | null = null;
+      let transcribeUsage: Record<string, unknown> | null = null;
+      let run: CorrectionRun | null = null;
+      let failure: CorrectionError | null = null;
+      try {
+        if (input.audioBase64 !== undefined) {
+          const heard = await transcribeStory(ai, input.audioBase64, context.locale);
+          transcript = heard.text;
+          transcribeUsage = heard.usage;
+        }
+        run = await correctScanItems(ai, {
+          items: input.items,
+          text: (transcript ?? input.text ?? "").slice(0, 300),
+          model: context.env.AI_CORRECT_MODEL || undefined,
+          locale: context.locale,
+        });
+      } catch (error) {
+        failure =
+          error instanceof CorrectionError
+            ? error
+            : new CorrectionError(transcript === null && via === "voice" ? "voice_empty" : "failed");
+        if (!(error instanceof CorrectionError)) console.error("[correct] failed", error);
+      }
+      const latencyMs = Date.now() - startedAt;
+      // Every call that reached the AI counts toward the caps, answer or not.
+      context.waitUntil(
+        context.db
+          .insert(aiUsage)
+          .values({
+            id: crypto.randomUUID(),
+            userId,
+            model: run?.model ?? context.env.AI_CORRECT_MODEL ?? DEFAULT_CORRECT_MODEL,
+            scanType: "correction",
+            latencyMs,
+            usageJson: JSON.stringify({
+              kind: "correction",
+              via,
+              ...(input.photoId ? { photoId: input.photoId } : {}),
+              outcome: failure ? failure.reason : "ok",
+              itemCount: input.items.length,
+              ...(run ? { usage: run.usage } : {}),
+              ...(via === "voice" ? { transcribe: { model: TRANSCRIBE_MODEL, ...transcribeUsage } } : {}),
+            }),
+          })
+          .then(
+            () => undefined,
+            (error: unknown) => console.error("[correct] ledger insert failed", error),
+          ),
+      );
+      if (!run) {
+        const reason = failure?.reason ?? "failed";
+        throw new ORPCError("UNPROCESSABLE_CONTENT", {
+          message: t(`correct.error.${CORRECTION_ERROR_KEY[reason]}`),
+          data: { reason, transcript },
+        });
+      }
+      const bucket = context.env.STICKERS as StickersBucket | undefined;
+      if (input.photoId && bucket && datasetEnabled(context.env, userId)) {
+        context.waitUntil(
+          recordCorrection(bucket, userId, input.photoId, {
+            via,
+            text: (transcript ?? input.text ?? "").slice(0, 300),
+            ...(transcript ? { transcript } : {}),
+            model: run.model,
+            latencyMs,
+            before: input.items,
+            after: run.patch.items,
+            changes: run.patch.changes,
+            removed: run.patch.removed,
+          }),
+        );
+      }
+      return {
+        ...run.patch,
+        transcript,
+        correctionsLeft: input.photoId ? correctionsLeft(used) : null,
+      };
     }),
   // "Ceritakan": a typed or spoken story of what was eaten → items with meal
   // slot and date, for the client's review screen. Nothing is logged here.
