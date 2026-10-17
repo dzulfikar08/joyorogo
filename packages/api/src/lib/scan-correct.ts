@@ -126,6 +126,8 @@ const opSchema = z.discriminatedUnion("op", [
     i: index,
     scale: optionalNum,
     grams: optionalNum,
+    /** New number of pieces eaten ("cuma 2" of "5 pcs"). */
+    count: optionalNum,
     portion: z.string().optional().catch(undefined),
   }),
   z.object({ op: z.literal("remove"), i: index }),
@@ -160,7 +162,9 @@ ${list}
 Koreksi pengguna: "${text.replace(/"/g, "'")}"
 Jawab HANYA JSON valid satu baris (tanpa \`\`\`, tanpa teks lain): {"ops":[...]}. Jenis op:
 {"op":"rename","i":nomor,"name":"nama yang benar",${shape}"portion":"maks 3 kata","kcal100":number,"protein100":number,"carbs100":number,"fat100":number} = nama item salah. Isi kcal100/protein100/carbs100/fat100 = kalori dan gizi per 100 gram makanan yang BENAR (bukan angka item lama). Berat tidak usah diisi; tambahkan "grams":number hanya kalau pengguna menyebut beratnya.
-{"op":"portion","i":nomor,"scale":number} = porsi berubah relatif (setengah 0.5, dua kali 2, seperempat 0.25, sedikit lebih 1.3); atau {"op":"portion","i":nomor,"grams":number} kalau pengguna menyebut berat atau jumlah pasti.
+{"op":"portion","i":nomor,"scale":number} = porsi berubah relatif (setengah 0.5, dua kali 2, seperempat 0.25, sedikit lebih 1.3).
+{"op":"portion","i":nomor,"count":number} = item berhitung per buah (porsi atau namanya memuat "5 pcs", "3 potong", "4 buah") dan pengguna menyebut berapa yang DIMAKAN ("cuma 2", "yang dimakan 2", "aku makan 3 aja"). count = jumlah baru yang dimakan, bukan berat. Contoh: "pisang goreng | 5 pcs" dan pengguna bilang "cuma 2" jadi {"op":"portion","i":nomor,"count":2}.
+{"op":"portion","i":nomor,"grams":number} = HANYA kalau pengguna menyebut berat (gram, ons, kg); jangan isi grams dengan jumlah buah.
 {"op":"remove","i":nomor} = item tidak ada / tidak dimakan.
 {"op":"add","name":"nama","kind":"makanan|camilan|minuman",${shape}"portion":"maks 3 kata","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number} = makanan atau minuman yang ditambahkan.
 Satu koreksi boleh memuat beberapa op. Pengguna menyebut sesuatu yang tidak ada di daftar, atau tidak ada yang perlu diubah: {"ops":[]}. Semua angka bulat. name Bahasa Indonesia tanpa terjemahan; kcal dan gizi untuk porsi yang dimakan.${localNameRule(locale)}`;
@@ -226,8 +230,63 @@ function applyRename(row: Row, op: Extract<Op, { op: "rename" }>): Row | null {
   };
 }
 
+const COUNT_UNIT =
+  "pcs?|buah|biji|butir|potong|iris|lembar|slices?|pieces?|tusuk|batang|bungkus|bks|bulatan|keping";
+const COUNT_RE = new RegExp(`(\\d+(?:[.,]\\d+)?)\\s*(${COUNT_UNIT})\\b`, "i");
+
+/** "5 pcs" / "3 potong" in a portion or dish name: how many pieces the item stands for. */
+export function pieceCount(item: { name: string; portion?: string }): { n: number; unit: string } | undefined {
+  for (const text of [item.portion, item.name]) {
+    const match = text ? COUNT_RE.exec(text) : null;
+    const n = match ? Number(match[1]!.replace(",", ".")) : NaN;
+    if (match && n > 0) return { n, unit: match[2]! };
+  }
+  return undefined;
+}
+
+/** The same text with its piece count swapped for the new one. */
+function withCount(text: string | undefined, count: number): string | undefined {
+  return text?.replace(COUNT_RE, (_all, _n, unit: string) => `${count} ${unit}`);
+}
+
 function applyPortion(row: Row, op: Extract<Op, { op: "portion" }>): Row | null {
   const old = row.item;
+  const pieces = pieceCount(old);
+  // A count of pieces; or a "grams" that is really that count ("2" for 5 pcs
+  // of 50 g each is not 2 g of banana).
+  const count =
+    op.count !== undefined && op.count > 0
+      ? op.count
+      : op.grams !== undefined &&
+          op.grams > 0 &&
+          pieces !== undefined &&
+          pieces.n > 1 &&
+          op.grams <= pieces.n &&
+          (old.grams ?? 0) / pieces.n >= 10
+        ? op.grams
+        : undefined;
+  if (count !== undefined && pieces !== undefined) {
+    const eaten = Math.min(1000, Math.max(0.5, Math.round(count * 10) / 10));
+    const factor = eaten / pieces.n;
+    return {
+      ...row,
+      change: row.change ?? "portion",
+      item: {
+        ...old,
+        name: withCount(old.name, eaten) ?? old.name,
+        portion:
+          old.portion && COUNT_RE.test(old.portion)
+            ? withCount(old.portion, eaten)
+            : `${eaten} ${pieces.unit}`,
+        grams: old.grams ? bound(old.grams * factor, 1, 5000) : undefined,
+        kcal: bound(old.kcal * factor, 0, 5000) ?? old.kcal,
+        protein: scaled(old.protein, factor, 500),
+        carbs: scaled(old.carbs, factor, 500),
+        fat: scaled(old.fat, factor, 500),
+        fiber: scaled(old.fiber, factor, 200),
+      },
+    };
+  }
   let grams: number | undefined;
   let factor: number;
   if (op.grams !== undefined && op.grams > 0) {

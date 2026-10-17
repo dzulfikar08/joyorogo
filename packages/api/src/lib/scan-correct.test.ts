@@ -109,6 +109,62 @@ describe("applyCorrection", () => {
     expect(patch.items[2]?.kcal).toBe(480);
   });
 
+  describe("piece counts", () => {
+    const snacks: CorrectionItemInput[] = [
+      { name: "pisang goreng", portion: "5 pcs", grams: 250, kcal: 500, protein: 5, carbs: 70, fat: 22, kind: "camilan" },
+      { name: "teh manis", portion: "1 gelas", grams: 250, kcal: 90, kind: "minuman" },
+    ];
+
+    test("'cuma 2' of 5 pcs is 2 pieces, kcal and macros scaled to 2/5", () => {
+      const patch = applyCorrection(snacks, ops({ op: "portion", i: 1, count: 2 }));
+      expect(patch.items[0]).toMatchObject({ portion: "2 pcs", grams: 100, kcal: 200, protein: 2, carbs: 28, fat: 8.8 });
+      expect(patch.changes).toEqual([{ index: 0, kind: "portion" }]);
+      expect(patch.items[1]).toEqual(expect.objectContaining({ name: "teh manis", kcal: 90 }));
+    });
+
+    test("the count in the dish name follows the new number", () => {
+      const named = [{ name: "pisang goreng 5 pcs", grams: 250, kcal: 500 }];
+      const patch = applyCorrection(named, ops({ op: "portion", i: 1, count: 2 }));
+      expect(patch.items[0]).toMatchObject({ name: "pisang goreng 2 pcs", portion: "2 pcs", kcal: 200 });
+    });
+
+    test("a model that answers grams: 2 for the count still gets 2 pieces, not 2 g", () => {
+      const patch = applyCorrection(snacks, ops({ op: "portion", i: 1, grams: 2 }));
+      expect(patch.items[0]).toMatchObject({ portion: "2 pcs", grams: 100, kcal: 200 });
+    });
+
+    test("a real weight is still a weight", () => {
+      const patch = applyCorrection(snacks, ops({ op: "portion", i: 1, grams: 100 }));
+      expect(patch.items[0]).toMatchObject({ grams: 100, kcal: 200 });
+      expect(patch.items[0]?.portion).toBe("100 g");
+    });
+
+    test("a count on an item that is not counted by piece falls back to its other fields", () => {
+      const patch = applyCorrection(snacks, ops({ op: "portion", i: 2, count: 2, scale: 0.5 }));
+      expect(patch.items[1]).toMatchObject({ kcal: 45, grams: 125 });
+    });
+
+    test("eating more than listed scales up", () => {
+      const patch = applyCorrection(snacks, ops({ op: "portion", i: 1, count: 7 }));
+      expect(patch.items[0]).toMatchObject({ portion: "7 pcs", kcal: 700 });
+    });
+
+    test("end to end: the user says 'yang dimakan cuma 2' and the model's count op patches the list", async () => {
+      let prompt = "";
+      const ai = {
+        async run(_model: string, input: unknown) {
+          prompt = (input as { messages: Array<{ content: string }> }).messages[0]!.content;
+          return { response: ops({ op: "portion", i: 1, count: 2 }) };
+        },
+      };
+      const run = await correctScanItems(ai, { items: snacks, text: "yang dimakan cuma 2" });
+      expect(prompt).toContain("1. pisang goreng | 5 pcs | 250 g | 500 kcal");
+      expect(prompt).toContain("yang dimakan cuma 2");
+      expect(prompt).toContain('"count"');
+      expect(run.patch.items[0]).toMatchObject({ portion: "2 pcs", kcal: 200 });
+    });
+  });
+
   test("remove drops the item and reports its name", () => {
     const patch = applyCorrection(plate, ops({ op: "remove", i: 4 }));
     expect(patch.items.map((i) => i.name)).toEqual(["nasi putih", "perkedel", "ayam goreng"]);
