@@ -32,6 +32,20 @@ export const payment = sqliteTable(
 );
 
 /**
+ * email_log.kind. Plain text in D1 (no CHECK), so a new kind is a TS-only change.
+ * `broadcast:<campaignId>` (ref = userId) is one announcement mail per user;
+ * `broadcast_test:<campaignId>` (ref = "<userId>:<sentMs>-<random>") is an admin test send.
+ */
+export type EmailLogKind =
+  | "receipt"
+  | "admin"
+  | "founder_ending"
+  | "founder_expired"
+  | "accuracy_digest"
+  | `broadcast:${string}`
+  | `broadcast_test:${string}`;
+
+/**
  * One row per transactional email we decided to send, written (or ignored)
  * BEFORE the actual send so concurrent webhooks/crons never double-send.
  * ref is the order id for receipts/admin notices, "<userId>:<untilMs>" for
@@ -46,9 +60,7 @@ export const emailLog = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    kind: text("kind", {
-      enum: ["receipt", "admin", "founder_ending", "founder_expired", "accuracy_digest"],
-    }).notNull(),
+    kind: text("kind").$type<EmailLogKind>().notNull(),
     ref: text("ref").notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)

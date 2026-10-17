@@ -506,3 +506,29 @@ export interface AccuracyReport {
     detail?: string;
   } | null;
 }
+
+/** Announcement mail (/api/admin/broadcast): the console's starting text and the sender it goes out as. */
+export interface BroadcastConfig {
+  campaign: { id: string; subject: string; body: string };
+  sender: { email: string; name: string; replyTo?: string };
+  batchLimit: number;
+}
+
+export interface BroadcastStatus {
+  id: string;
+  state: "idle" | "sending" | "done";
+  eligible: number;
+  optedOut: number;
+  sent: number;
+  failed: number;
+  remaining: number;
+  startedAt: number | null;
+  finishedAt: number | null;
+  /** What a started campaign sends: frozen at the first confirmed send. */
+  campaign: { id: string; subject: string; body: string } | null;
+}
+
+export interface BroadcastSendResult {
+  batch: { sent: number; failed: number; stopped: string | null };
+  status: BroadcastStatus;
+}

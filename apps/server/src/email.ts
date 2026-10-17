@@ -73,7 +73,7 @@ export async function sendEmail(env: EmailEnv, draft: Draft): Promise<string> {
  * Claims the right to send one email: insert-or-ignore BEFORE the send, so
  * concurrent webhooks/crons dedupe on UNIQUE(kind, ref). True = we send.
  */
-async function claimEmail(
+export async function claimEmail(
   db: Database,
   userId: string,
   kind: (typeof emailLog.$inferInsert)["kind"],

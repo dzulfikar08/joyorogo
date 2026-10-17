@@ -37,6 +37,9 @@ import { registerGooglePlayRoutes } from "./google-billing";
 import { registerAdminRoutes } from "./admin";
 import { dailyAccuracyDue, runDailyAccuracy } from "./accuracy-job";
 import { registerAccuracyRoutes } from "./accuracy-routes";
+import { runBroadcastTick } from "./broadcast";
+import type { BroadcastDeps } from "./broadcast";
+import { registerBroadcastRoutes } from "./broadcast-routes";
 import { sendEmail } from "./email";
 import { createContext, requestLocale } from "./context";
 import { registerBenchRoutes } from "./bench";
@@ -44,6 +47,7 @@ import { registerDatasetExportRoutes } from "./dataset-export";
 import { registerOgRoutes } from "./og";
 import { registerPrivacyRoutes } from "./privacy";
 import { registerStravaRoutes } from "./strava";
+import { registerUnsubscribeRoutes } from "./unsubscribe";
 import { scrubExpiredStravaRows } from "@joyorogo/api/lib/strava-retention";
 import { env } from "./env.server";
 import { createAuth, getDb } from "./services";
@@ -99,6 +103,32 @@ registerAdminRoutes(app, {
       html: "<p>Email dari JoyoRogo berhasil terkirim.</p>",
       text: "Email dari JoyoRogo berhasil terkirim.",
     }),
+});
+
+// Announcement mail: console endpoints behind the admin gate above, key-gated CLI test/status
+// (AI_BENCH_KEY), and the public unsubscribe page the mails link to. Opt-outs and the
+// campaign state live in the STICKERS bucket (no D1 table).
+const broadcastDeps = (): BroadcastDeps | undefined =>
+  "STICKERS" in env
+    ? {
+        db: getDb(),
+        bucket: env.STICKERS,
+        email: env.EMAIL,
+        secret: env.BETTER_AUTH_SECRET,
+        baseUrl: env.BETTER_AUTH_URL,
+      }
+    : undefined;
+registerBroadcastRoutes(app, {
+  adminEmails: env.ADMIN_EMAILS,
+  getDb,
+  createAuth,
+  broadcast: broadcastDeps,
+  key:
+    "AI_BENCH_KEY" in env && typeof env.AI_BENCH_KEY === "string" ? env.AI_BENCH_KEY : undefined,
+});
+registerUnsubscribeRoutes(app, {
+  secret: env.BETTER_AUTH_SECRET,
+  getBucket: () => ("STICKERS" in env ? env.STICKERS : undefined),
 });
 
 // Blind accuracy benchmark — gated by the AI_BENCH_KEY secret.
@@ -628,6 +658,15 @@ export default {
       ctx.waitUntil(
         runDailyAccuracy(accuracyDeps()).catch((error: unknown) =>
           console.error("[accuracy] daily job failed", error),
+        ),
+      );
+    }
+    // A campaign left in "sending" (rate limit, closed tab) gets one more batch per tick.
+    const broadcast = broadcastDeps();
+    if (broadcast) {
+      ctx.waitUntil(
+        runBroadcastTick(broadcast).catch((error: unknown) =>
+          console.error("[broadcast] tick failed", error),
         ),
       );
     }

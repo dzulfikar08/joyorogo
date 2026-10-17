@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LogOut,
   Mail,
+  Megaphone,
   MessageSquareText,
   Moon,
   Receipt,
@@ -23,6 +24,7 @@ import { useAdminGate, useSignIn, useSignOut } from "./auth";
 import { Badge, Button } from "./ui";
 import { useTheme } from "./theme";
 import { OrdersSection } from "./sections/Orders";
+import { EmailSection } from "./sections/Email";
 import { FeedbackSection } from "./sections/Feedback";
 import { LaporanSection } from "./sections/Laporan";
 import { OverviewSection } from "./sections/Overview";
@@ -53,6 +55,7 @@ const TABS: { id: string; label: string; icon: LucideIcon }[] = [
   { id: "reports", label: "Reports", icon: Flag },
   { id: "feedback", label: "Feedback", icon: MessageSquareText },
   { id: "laporan", label: "Laporan", icon: FileText },
+  { id: "email", label: "Email", icon: Megaphone },
 ];
 type Tab = (typeof TABS)[number]["id"];
 
@@ -275,13 +278,14 @@ export default function App() {
           {tab === "reports" && <ReportsSection />}
           {tab === "feedback" && <FeedbackSection />}
           {tab === "laporan" && <LaporanSection />}
+          {tab === "email" && <EmailSection />}
         </main>
       </div>
 
       {/* Phones: bottom tabs. */}
       <nav
         aria-label="Bagian"
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         {TABS.map((t) => (
           <a
