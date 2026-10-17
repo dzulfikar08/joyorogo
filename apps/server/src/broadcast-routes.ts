@@ -17,7 +17,7 @@ type Deps = {
   createAuth: () => Promise<JoyoAuth>;
   /** Missing STICKERS bucket (opt-outs, state) = broadcast off. */
   broadcast: () => BroadcastDeps | undefined;
-  /** AI_BENCH_KEY for the CLI routes under /ai/broadcast; unset = they answer 404. */
+  /** BROADCAST_KEY secret for the CLI routes under /ai/broadcast; unset = they answer 404. */
   key: string | undefined;
 };
 
@@ -114,8 +114,8 @@ export function registerBroadcastRoutes(app: Hono, deps: Deps) {
     }
   });
 
-  // --- CLI (X-Bench-Key) --------------------------------------------------------
-  const keyed = (c: Context) => Boolean(deps.key) && c.req.header("X-Bench-Key") === deps.key;
+  // --- CLI (X-Broadcast-Key) --------------------------------------------------------
+  const keyed = (c: Context) => Boolean(deps.key) && c.req.header("X-Broadcast-Key") === deps.key;
 
   // Counts only; no mail.
   app.get("/ai/broadcast/status", async (c) => {

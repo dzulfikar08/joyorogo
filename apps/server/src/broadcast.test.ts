@@ -440,19 +440,19 @@ describe("broadcast routes", () => {
     const app = build();
     expect((await post(app, "/ai/broadcast/test", {})).status).toBe(404);
     expect((await app.request("/ai/broadcast/status")).status).toBe(404);
-    expect((await post(build(null), "/ai/broadcast/test", {}, { "X-Bench-Key": "k" })).status).toBe(404);
+    expect((await post(build(null), "/ai/broadcast/test", {}, { "X-Broadcast-Key": "k" })).status).toBe(404);
 
-    expect((await post(app, "/ai/broadcast/test", { to: "u00@test.id" }, { "X-Bench-Key": "k" })).status).toBe(403);
+    expect((await post(app, "/ai/broadcast/test", { to: "u00@test.id" }, { "X-Broadcast-Key": "k" })).status).toBe(403);
     expect(outbox).toHaveLength(0);
 
-    const ok = await post(app, "/ai/broadcast/test", {}, { "X-Bench-Key": "k" });
+    const ok = await post(app, "/ai/broadcast/test", {}, { "X-Broadcast-Key": "k" });
     expect(ok.status).toBe(200);
     expect(await ok.json()).toEqual({ to: ADMIN, ok: true, logged: true });
     expect(outbox.map((m) => m.to)).toEqual([ADMIN]);
     expect(outbox[0]!.subject).toBe(DEFAULT_CAMPAIGN.subject);
     expect(await logRows(`broadcast_test:${DEFAULT_CAMPAIGN.id}`)).toHaveLength(1);
 
-    const status = await app.request("/ai/broadcast/status", { headers: { "X-Bench-Key": "k" } });
+    const status = await app.request("/ai/broadcast/status", { headers: { "X-Broadcast-Key": "k" } });
     expect(await status.json()).toMatchObject({ state: "idle", eligible: 3, remaining: 3, sent: 0 });
   });
 

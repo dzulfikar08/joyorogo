@@ -106,7 +106,7 @@ registerAdminRoutes(app, {
 });
 
 // Announcement mail: console endpoints behind the admin gate above, key-gated CLI test/status
-// (AI_BENCH_KEY), and the public unsubscribe page the mails link to. Opt-outs and the
+// (BROADCAST_KEY), and the public unsubscribe page the mails link to. Opt-outs and the
 // campaign state live in the STICKERS bucket (no D1 table).
 const broadcastDeps = (): BroadcastDeps | undefined =>
   "STICKERS" in env
@@ -124,7 +124,7 @@ registerBroadcastRoutes(app, {
   createAuth,
   broadcast: broadcastDeps,
   key:
-    "AI_BENCH_KEY" in env && typeof env.AI_BENCH_KEY === "string" ? env.AI_BENCH_KEY : undefined,
+    "BROADCAST_KEY" in env && typeof env.BROADCAST_KEY === "string" ? env.BROADCAST_KEY : undefined,
 });
 registerUnsubscribeRoutes(app, {
   secret: env.BETTER_AUTH_SECRET,
