@@ -406,6 +406,17 @@ function isCombination(name: string): boolean {
   );
 }
 
+/**
+ * kcal of `grams` of the curated library dish that `name` names, or undefined
+ * when the library has no single dish for it. For callers that swapped a dish
+ * and need a number the model did not give (ai.correctScan renames).
+ */
+export function libraryKcal(name: string, grams: number): number | undefined {
+  if (isCombination(name)) return undefined;
+  const dish = matchDish(name);
+  return dish ? Math.round((dish.kcalPer100g * grams) / 100) : undefined;
+}
+
 function round1(v: number): number {
   return Math.round(v * 10) / 10;
 }

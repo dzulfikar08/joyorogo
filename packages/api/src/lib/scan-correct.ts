@@ -5,7 +5,7 @@ import type { Locale } from "@joyorogo/i18n";
 import { localNameRule, localNameShape } from "./ai-locale";
 import { resolveFoodKind } from "./food-kind";
 import type { FoodKind } from "./food-kind";
-import { calibrateItems } from "./tkpi";
+import { calibrateItems, libraryKcal } from "./tkpi";
 import type { CalibratedItem } from "./tkpi";
 import {
   DEFAULT_VISION_MODEL,
@@ -110,8 +110,16 @@ const newDishShape = {
   fiber: optionalNum,
 };
 
+/** A rename carries the new dish per 100 g; the server scales it to the item's weight. */
+const per100Shape = {
+  kcal100: optionalNum,
+  protein100: optionalNum,
+  carbs100: optionalNum,
+  fat100: optionalNum,
+};
+
 const opSchema = z.discriminatedUnion("op", [
-  z.object({ op: z.literal("rename"), i: index, ...newDishShape }),
+  z.object({ op: z.literal("rename"), i: index, ...newDishShape, ...per100Shape }),
   z.object({
     op: z.literal("portion"),
     i: index,
@@ -150,7 +158,7 @@ Daftar sekarang (nomor. nama | porsi | berat | kalori):
 ${list}
 Koreksi pengguna: "${text.replace(/"/g, "'")}"
 Jawab HANYA JSON valid satu baris (tanpa \`\`\`, tanpa teks lain): {"ops":[...]}. Jenis op:
-{"op":"rename","i":nomor,"name":"nama yang benar",${shape}"portion":"maks 3 kata","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number} = nama item salah; grams dan angka gizi untuk makanan yang benar (berat sama kalau tidak disebut).
+{"op":"rename","i":nomor,"name":"nama yang benar",${shape}"portion":"maks 3 kata","kcal100":number,"protein100":number,"carbs100":number,"fat100":number} = nama item salah. Isi kcal100/protein100/carbs100/fat100 = kalori dan gizi per 100 gram makanan yang BENAR (bukan angka item lama). Berat tidak usah diisi; tambahkan "grams":number hanya kalau pengguna menyebut beratnya.
 {"op":"portion","i":nomor,"scale":number} = porsi berubah relatif (setengah 0.5, dua kali 2, seperempat 0.25, sedikit lebih 1.3); atau {"op":"portion","i":nomor,"grams":number} kalau pengguna menyebut berat atau jumlah pasti.
 {"op":"remove","i":nomor} = item tidak ada / tidak dimakan.
 {"op":"add","name":"nama","kind":"makanan|camilan|minuman",${shape}"portion":"maks 3 kata","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number} = makanan atau minuman yang ditambahkan.
@@ -176,8 +184,17 @@ type Row = {
 
 function applyRename(row: Row, op: Extract<Op, { op: "rename" }>): Row | null {
   const old = row.item;
+  // The weight stays unless the user stated a new one; the dish is what changed.
   const grams = bound(op.grams, 1, 5000) ?? old.grams;
-  const kcal = bound(op.kcal, 0, 5000) ?? old.kcal;
+  const at = (grams ?? 100) / 100;
+  // Energy of the NEW dish at that weight: the model's per-100 g figure (or a
+  // total it volunteered), and what the curated TKPI library says for that
+  // name. When both exist the higher one wins: an unsure estimate should not
+  // under-count what the owner eats. Without either, the old kcal stands in
+  // and calibration bounds it by the new dish's band.
+  const fromModel = op.kcal100 !== undefined ? op.kcal100 * at : op.kcal;
+  const fromLibrary = libraryKcal(op.name, grams ?? 100);
+  const kcal = bound(Math.max(fromModel ?? 0, fromLibrary ?? 0) || old.kcal, 0, 5000) ?? old.kcal;
   if (kcal <= 0) return null;
   return {
     ...row,
@@ -190,9 +207,9 @@ function applyRename(row: Row, op: Extract<Op, { op: "rename" }>): Row | null {
       portion: op.portion?.trim().slice(0, 80) || (grams === old.grams ? old.portion : undefined),
       grams,
       kcal,
-      protein: bound(op.protein, 0, 500),
-      carbs: bound(op.carbs, 0, 500),
-      fat: bound(op.fat, 0, 500),
+      protein: bound(op.protein100 !== undefined ? op.protein100 * at : op.protein, 0, 500),
+      carbs: bound(op.carbs100 !== undefined ? op.carbs100 * at : op.carbs, 0, 500),
+      fat: bound(op.fat100 !== undefined ? op.fat100 * at : op.fat, 0, 500),
       fiber: bound(op.fiber, 0, 200),
       kind: op.kind?.trim().toLowerCase() || undefined,
       box: old.box,
