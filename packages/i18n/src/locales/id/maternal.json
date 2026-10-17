@@ -215,7 +215,7 @@
       "title": "Mengandung kafein",
       "body": "Perkiraan {{mg}} mg kafein per sajian. Batas harian yang umum dianjurkan 200 mg, sekitar dua cangkir kopi."
     },
-    "caffeineDay": "Kafein hari ini sekitar {{mg}} dari batas {{limit}} mg",
+    "caffeineDay": "Kafein hari ini sekitar {{mg}} mg dari batas {{limit}} mg",
     "caffeineOver": "Kafein hari ini sudah sekitar {{mg}} mg, di atas batas harian {{limit}} mg. Besok bisa dikurangi pelan-pelan.",
     "rawMeat": {
       "title": "Daging belum matang sempurna",

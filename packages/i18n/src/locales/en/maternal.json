@@ -215,7 +215,7 @@
       "title": "Contains caffeine",
       "body": "About {{mg}} mg of caffeine per serving. The commonly advised daily limit is 200 mg, around two cups of coffee."
     },
-    "caffeineDay": "Caffeine today is about {{mg}} of the {{limit}} mg limit",
+    "caffeineDay": "Caffeine today is about {{mg}} mg of the {{limit}} mg limit",
     "caffeineOver": "Caffeine today is already about {{mg}} mg, over the {{limit}} mg daily limit. You can ease off gently tomorrow.",
     "rawMeat": {
       "title": "Meat not fully cooked",
