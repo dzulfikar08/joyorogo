@@ -355,12 +355,18 @@ export function PostCard({
       </View>
 
       {post.kind === "cerita" ? (
-        <View style={styles.body}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("post.open", { title: post.title || post.caption?.slice(0, 40) || post.author.name })}
+          onPress={onPress}
+          disabled={!onPress}
+          style={styles.body}
+        >
           {post.caption ? <StoryText caption={post.caption} /> : null}
           {post.photoCount > 0 ? (
             <PhotoGrid postId={post.id} count={post.photoCount} />
           ) : null}
-        </View>
+        </Pressable>
       ) : (
         <Pressable
           accessibilityRole="button"
