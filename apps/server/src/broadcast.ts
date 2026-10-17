@@ -1,5 +1,5 @@
 import type { SendEmail } from "@cloudflare/workers-types";
-import { and, eq } from "drizzle-orm";
+import { and, eq, notInArray } from "drizzle-orm";
 
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
 import type { Database } from "@joyorogo/db";
@@ -10,6 +10,7 @@ import { BROADCAST_SENDER } from "./broadcast-campaign";
 import { renderBroadcast } from "./broadcast-render";
 import type { Campaign, RenderedMail } from "./broadcast-render";
 import { claimEmail } from "./email";
+import { INTERNAL_EMAILS } from "./internal-accounts";
 import { listOptedOut, signUnsubscribeToken } from "./unsubscribe";
 
 /**
@@ -158,7 +159,8 @@ async function audience(deps: BroadcastDeps, campaignId: string, state: Broadcas
     deps.db
       .select({ id: user.id, name: user.name, email: user.email })
       .from(user)
-      .where(eq(user.emailVerified, true))
+      // Our own logins (App Review, QA) never get campaigns, whatever their verified flag says.
+      .where(and(eq(user.emailVerified, true), notInArray(user.email, [...INTERNAL_EMAILS])))
       .orderBy(user.id),
     listOptedOut(deps.bucket),
     deps.db.select({ ref: emailLog.ref }).from(emailLog).where(eq(emailLog.kind, kind)),

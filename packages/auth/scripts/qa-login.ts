@@ -6,7 +6,7 @@
  *
  * - Sign-in goes through the REVIEW_LOGIN_EMAILS allowlist (sign-up stays off).
  * - email_verified = 0 keeps it out of broadcasts (they mail verified users only).
- * - admin.ts leaves QA_EMAIL out of the overview and signup series.
+ * - admin.ts and broadcast.ts leave it out through internal-accounts.ts (with review@).
  *
  * The password is generated once and stored ONLY in ~/.config/joyorogo/qa-login.txt
  * (mode 600); this script never prints it. Re-running re-applies it (idempotent);

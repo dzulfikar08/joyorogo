@@ -28,15 +28,9 @@ import { post as postTable, postComment, socialReport } from "@joyorogo/db/schem
 import type { Database } from "@joyorogo/db";
 
 import { listReportDates, readReport } from "./accuracy-job";
+import { internalEmailsSql } from "./internal-accounts";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-/**
- * Internal QA login (packages/auth/scripts/qa-login.ts): left out of the overview and
- * signup series so test runs never read as users. It stays in the users list for support.
- * Its email is also unverified, which keeps it out of broadcasts and digests.
- */
-const QA_EMAIL = "qa@joyorogo.com";
 
 type OutcomeCounts = Record<ScanOutcome, number>;
 // Abuse heuristics shared by the users filter and the console badges.
@@ -232,11 +226,11 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
     const [row] = await deps
       .getDb()
       .select({
-        users: sql<number>`(select count(*) from user where email != ${QA_EMAIL})`,
-        signupsToday: sql<number>`(select count(*) from user where email != ${QA_EMAIL} and created_at between ${startMs} and ${endMs})`,
-        signups7d: sql<number>`(select count(*) from user where email != ${QA_EMAIL} and created_at >= ${now - 7 * DAY_MS})`,
-        onboarded: sql<number>`(select count(*) from profile where user_id not in (select id from user where email = ${QA_EMAIL}))`,
-        activeToday: sql<number>`(select count(distinct user_id) from session where user_id not in (select id from user where email = ${QA_EMAIL}) and updated_at between ${startMs} and ${endMs})`,
+        users: sql<number>`(select count(*) from user where email not in (${internalEmailsSql}))`,
+        signupsToday: sql<number>`(select count(*) from user where email not in (${internalEmailsSql}) and created_at between ${startMs} and ${endMs})`,
+        signups7d: sql<number>`(select count(*) from user where email not in (${internalEmailsSql}) and created_at >= ${now - 7 * DAY_MS})`,
+        onboarded: sql<number>`(select count(*) from profile where user_id not in (select id from user where email in (${internalEmailsSql})))`,
+        activeToday: sql<number>`(select count(distinct user_id) from session where user_id not in (select id from user where email in (${internalEmailsSql})) and updated_at between ${startMs} and ${endMs})`,
         founders: sql<number>`(select count(*) from user where tier = 'founder' or founder_until > ${now})`,
         scansToday: sql<number>`(select count(*) from ai_usage where scan_type = 'user' and created_at between ${startMs} and ${endMs})`,
         scans7d: sql<number>`(select count(*) from ai_usage where scan_type = 'user' and created_at >= ${now - 7 * DAY_MS})`,
@@ -269,7 +263,7 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
       db
         .select({ day: wibDay(user.createdAt), signups: sql<number>`count(*)` })
         .from(user)
-        .where(sql`${user.createdAt} >= ${since} and ${user.email} != ${QA_EMAIL}`)
+        .where(sql`${user.createdAt} >= ${since} and ${user.email} not in (${internalEmailsSql})`)
         .groupBy(wibDay(user.createdAt)),
       db
         .select({
