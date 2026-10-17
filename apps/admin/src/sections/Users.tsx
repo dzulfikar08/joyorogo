@@ -1,18 +1,35 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { Check, Search, TriangleAlert } from "lucide-react";
+import { Check, SearchX, TriangleAlert } from "lucide-react";
 import { Checkbox } from "@joyorogo/ui/components/checkbox";
-import { Input } from "@joyorogo/ui/components/input";
-import { cn } from "@joyorogo/ui/lib/utils";
-import { fmtDate, fmtDateTime, get, type AdminUser, type PagedUsers } from "../api";
-import { useHashQuery } from "../hash";
+import {
+  fmtDate,
+  fmtDateTime,
+  fmtNum,
+  get,
+  type AdminUser,
+  type PagedUsers,
+} from "../api";
 import { SERVER_URL } from "../auth-client";
-import { Badge, Pagination, Select } from "../ui";
+import { useClampPage, useHashQuery, usePaging } from "../hash";
+import {
+  Badge,
+  CardFacts,
+  DataList,
+  Pagination,
+  QueryBoundary,
+  SearchBox,
+  Select,
+  type Column,
+} from "../ui";
 import { UserDetail } from "./UserDetail";
+
+// Same heuristics as the server (admin.ts ABUSE_TODAY / ABUSE_7D).
+const ABUSE_TODAY = 50;
+const ABUSE_7D = 300;
 
 function TierBadge({ user }: { user: AdminUser }) {
   return (
-    <span className="inline-flex flex-col gap-0.5">
+    <span className="inline-flex flex-wrap items-start gap-1">
       <Badge tone={user.tier === "founder" ? "green" : "muted"}>
         {user.tier === "founder" ? "Founder" : "Free"}
       </Badge>
@@ -22,29 +39,153 @@ function TierBadge({ user }: { user: AdminUser }) {
   );
 }
 
+function Avatar({ user }: { user: AdminUser }) {
+  return user.image ? (
+    <img
+      src={user.image.startsWith("/") ? `${SERVER_URL}${user.image}` : user.image}
+      alt=""
+      className="size-9 shrink-0 rounded-full object-cover md:size-6"
+      referrerPolicy="no-referrer"
+    />
+  ) : (
+    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-xs text-muted-foreground md:size-6 md:text-[0.625rem]">
+      {(user.name ?? "?").charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
+/** Scan count, flagged red when it crosses the abuse threshold. */
+function ScanCount({ value, flagAt }: { value: number; flagAt: number }) {
+  return value >= flagAt ? (
+    <Badge tone="red" className="tabular-nums">
+      <TriangleAlert className="size-3" />
+      {fmtNum(value)}
+    </Badge>
+  ) : (
+    <>{fmtNum(value)}</>
+  );
+}
+
+const founderUntilNote = (u: AdminUser) =>
+  u.tier === "founder" && u.manualTier !== "founder" && u.founderUntil !== null
+    ? `until ${fmtDate(u.founderUntil)}`
+    : null;
+
+const COLUMNS: Column<AdminUser>[] = [
+  {
+    key: "user",
+    header: "User",
+    cell: (u) => (
+      <div className="flex items-center gap-2">
+        <Avatar user={u} />
+        <div className="min-w-0">
+          <div className="font-medium">{u.name ?? "—"}</div>
+          <div className="text-muted-foreground">{u.email}</div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: "tier",
+    header: "Tier",
+    cell: (u) => (
+      <>
+        <TierBadge user={u} />
+        {founderUntilNote(u) && (
+          <div className="mt-0.5 text-[0.6875rem] text-muted-foreground">{founderUntilNote(u)}</div>
+        )}
+      </>
+    ),
+  },
+  {
+    key: "onboarded",
+    header: "Onboarded",
+    cell: (u) =>
+      u.onboarded ? <Check aria-label="Onboarded" className="size-4 text-primary" /> : "—",
+  },
+  {
+    key: "today",
+    header: "Scans today",
+    numeric: true,
+    cell: (u) => (
+      <ScanCount value={u.scansToday} flagAt={ABUSE_TODAY} />
+    ),
+  },
+  {
+    key: "7d",
+    header: "Scans 7d",
+    numeric: true,
+    cell: (u) => <ScanCount value={u.scans7d} flagAt={ABUSE_7D} />,
+  },
+  { key: "total", header: "Scans total", numeric: true, cell: (u) => fmtNum(u.scansTotal) },
+  { key: "food", header: "Food logs", numeric: true, cell: (u) => fmtNum(u.foodLogs) },
+  { key: "seen", header: "Last seen", nowrap: true, cell: (u) => fmtDateTime(u.lastSeen) },
+  { key: "created", header: "Created", nowrap: true, cell: (u) => fmtDate(u.createdAt) },
+  {
+    key: "orders",
+    header: "Orders",
+    nowrap: true,
+    cell: (u) => `${fmtNum(u.paidOrders)} paid · ${fmtNum(u.pendingOrders)} pending`,
+  },
+];
+
+function UserCard({ user: u }: { user: AdminUser }) {
+  return (
+    <>
+      <div className="flex items-center gap-3">
+        <Avatar user={u} />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium">{u.name ?? "—"}</div>
+          <div className="truncate text-xs text-muted-foreground">{u.email}</div>
+        </div>
+        <TierBadge user={u} />
+      </div>
+      <CardFacts
+        facts={[
+          {
+            label: "Scans hari ini / 7d",
+            value: (
+              <>
+                <ScanCount value={u.scansToday} flagAt={ABUSE_TODAY} /> /{" "}
+                <ScanCount value={u.scans7d} flagAt={ABUSE_7D} />
+              </>
+            ),
+          },
+          { label: "Scans total", value: fmtNum(u.scansTotal) },
+          { label: "Food logs", value: fmtNum(u.foodLogs) },
+          { label: "Onboarded", value: u.onboarded ? "Ya" : "Belum" },
+          { label: "Last seen", value: fmtDateTime(u.lastSeen) },
+          { label: "Created", value: fmtDate(u.createdAt) },
+          {
+            label: "Orders",
+            value: `${fmtNum(u.paidOrders)} paid · ${fmtNum(u.pendingOrders)} pending`,
+          },
+          ...(founderUntilNote(u) ? [{ label: "Founder", value: founderUntilNote(u) }] : []),
+        ]}
+      />
+    </>
+  );
+}
+
 type SortKey = "newest" | "lastSeen" | "scansToday" | "scans7d" | "scansTotal";
+const SORTS: SortKey[] = ["scans7d", "scansToday", "scansTotal", "lastSeen", "newest"];
 
 export function UsersSection() {
   const { params, set } = useHashQuery("users");
   const q = params.get("q") ?? "";
-  const tier = params.get("tier") ?? "";
+  const tier = params.get("tier") === "free" || params.get("tier") === "founder" ? params.get("tier")! : "";
   const abuse = params.get("abuse") === "1";
-  const sort = (params.get("sort") ?? "scans7d") as SortKey;
-  const page = Number(params.get("page") ?? 1) || 1;
-  const pageSize = Number(params.get("pageSize") ?? 50) || 50;
-  const [search, setSearch] = useState(q);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const sortParam = params.get("sort") as SortKey | null;
+  const sort: SortKey = sortParam && SORTS.includes(sortParam) ? sortParam : "scans7d";
+  const paging = usePaging(params, set);
+  const openId = params.get("user");
 
-  // Debounce the search box into the hash param so reloads keep state.
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (search !== q) set({ q: search || null, page: null });
-    }, 300);
-    return () => clearTimeout(t);
-  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const sp = new URLSearchParams({ sort, page: String(page), pageSize: String(pageSize) });
-  if (q.trim()) sp.set("q", q.trim());
+  const sp = new URLSearchParams({
+    sort,
+    page: String(paging.page),
+    pageSize: String(paging.pageSize),
+  });
+  if (q) sp.set("q", q);
   if (tier) sp.set("tier", tier);
   if (abuse) sp.set("abuse", "1");
 
@@ -53,165 +194,98 @@ export function UsersSection() {
     queryFn: () => get<PagedUsers>(`/api/admin/users?${sp}`),
     placeholderData: keepPreviousData,
   });
+  useClampPage(users.data?.total, paging, !users.isPlaceholderData);
 
-  const rows = users.data?.users ?? [];
-  const setFilter = (patch: Record<string, string | number | null>) => set({ ...patch, page: null });
+  const setFilter = (patch: Record<string, string | number | null>) =>
+    set({ ...patch, page: null });
+  const filtered = Boolean(q || tier || abuse);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-60 flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari nama atau email…"
-            className="pl-10"
+        <SearchBox
+          value={q}
+          onSearch={(v) => set({ q: v || null, page: null }, { replace: true })}
+          placeholder="Cari nama atau email…"
+          label="Cari user"
+        />
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+          <Select
+            value={tier}
+            onValueChange={(v) => setFilter({ tier: v || null })}
+            aria-label="Filter tier"
+            options={[
+              { value: "", label: "Tier: semua" },
+              { value: "free", label: "Tier: free" },
+              { value: "founder", label: "Tier: founder" },
+            ]}
           />
+          <Select
+            value={sort}
+            onValueChange={(v) => setFilter({ sort: v === "scans7d" ? null : v })}
+            aria-label="Urutkan"
+            options={[
+              { value: "scans7d", label: "Sort: scans 7d" },
+              { value: "scansToday", label: "Sort: scans today" },
+              { value: "scansTotal", label: "Sort: scans total" },
+              { value: "lastSeen", label: "Sort: last seen" },
+              { value: "newest", label: "Sort: newest" },
+            ]}
+          />
+          <label className="col-span-2 inline-flex h-12 cursor-pointer items-center gap-2 rounded-xl bg-muted px-3 text-base text-foreground">
+            <Checkbox
+              checked={abuse}
+              onCheckedChange={(checked) => setFilter({ abuse: checked ? "1" : null })}
+            />
+            Dugaan abuse
+          </label>
         </div>
-        <Select
-          value={tier}
-          onValueChange={(v) => setFilter({ tier: v || null })}
-          aria-label="Filter tier"
-          options={[
-            { value: "", label: "Tier: semua" },
-            { value: "free", label: "Tier: free" },
-            { value: "founder", label: "Tier: founder" },
-          ]}
-        />
-        <label className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-xl bg-muted px-3 text-base text-foreground">
-          <Checkbox
-            checked={abuse}
-            onCheckedChange={(checked) => setFilter({ abuse: checked ? "1" : null })}
-          />
-          Dugaan abuse
-        </label>
-        <Select
-          value={sort}
-          onValueChange={(v) => setFilter({ sort: v })}
-          aria-label="Urutkan"
-          options={[
-            { value: "scans7d", label: "Sort: scans 7d" },
-            { value: "scansToday", label: "Sort: scans today" },
-            { value: "scansTotal", label: "Sort: scans total" },
-            { value: "lastSeen", label: "Sort: last seen" },
-            { value: "newest", label: "Sort: newest" },
-          ]}
-        />
       </div>
 
-      <div className={cn("rounded-xl border border-border bg-card", users.isPlaceholderData && "opacity-60")}>
-        {users.isPending ? (
-          <p className="p-4 text-sm text-muted-foreground">Loading…</p>
-        ) : users.isError ? (
-          <p className="p-4 text-sm text-destructive">{String(users.error)}</p>
-        ) : (
-          <>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Tier</th>
-                    <th>Onboarded</th>
-                    <th>Scans today</th>
-                    <th>Scans 7d</th>
-                    <th>Scans total</th>
-                    <th>Food logs</th>
-                    <th>Last seen</th>
-                    <th>Created</th>
-                    <th>Orders</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((u) => (
-                    <tr key={u.id} className="cursor-pointer" onClick={() => setOpenId(u.id)}>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          {u.image ? (
-                            <img
-                              src={u.image.startsWith("/") ? `${SERVER_URL}${u.image}` : u.image}
-                              alt=""
-                              className="size-6 shrink-0 rounded-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-muted text-[0.625rem] text-muted-foreground">
-                              {(u.name ?? "?").charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                          <div className="min-w-0">
-                            <div className="font-medium">{u.name ?? "—"}</div>
-                            <div className="text-muted-foreground">{u.email}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <TierBadge user={u} />
-                        {u.tier === "founder" && u.manualTier !== "founder" && u.founderUntil !== null && (
-                          <div className="mt-0.5 text-[0.6875rem] text-muted-foreground">
-                            until {fmtDate(u.founderUntil)}
-                          </div>
-                        )}
-                      </td>
-                      <td>{u.onboarded ? <Check aria-label="Onboarded" className="size-4 text-primary" /> : "—"}</td>
-                      <td className="tabular-nums">
-                        {u.scansToday >= 50 || u.scans7d >= 300 ? (
-                          <Badge tone="red" className="tabular-nums">
-                            <TriangleAlert className="size-3" />
-                            {u.scansToday}
-                          </Badge>
-                        ) : (
-                          u.scansToday
-                        )}
-                      </td>
-                      <td className="tabular-nums">
-                        {u.scans7d >= 300 ? (
-                          <Badge tone="red" className="tabular-nums">
-                            <TriangleAlert className="size-3" />
-                            {u.scans7d}
-                          </Badge>
-                        ) : (
-                          u.scans7d
-                        )}
-                      </td>
-                      <td className="tabular-nums">{u.scansTotal}</td>
-                      <td className="tabular-nums">{u.foodLogs}</td>
-                      <td>{fmtDateTime(u.lastSeen)}</td>
-                      <td>{fmtDate(u.createdAt)}</td>
-                      <td className="tabular-nums">
-                        {u.paidOrders} paid · {u.pendingOrders} pending
-                      </td>
-                    </tr>
-                  ))}
-                  {rows.length === 0 && (
-                    <tr>
-                      <td colSpan={10} className="text-muted-foreground">
-                        No users match.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-3">
-              <Pagination
-                page={users.data.page}
-                pageSize={users.data.pageSize}
-                total={users.data.total}
-                onPage={(p) => set({ page: p === 1 ? null : p })}
-                onPageSize={(s) => set({ pageSize: s === 50 ? null : s, page: null })}
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <QueryBoundary
+          query={users}
+          isEmpty={(d) => d.users.length === 0}
+          empty={{
+            icon: SearchX,
+            title: "Tidak ada user",
+            description: filtered ? "Tidak ada yang cocok dengan pencarian atau filter ini." : undefined,
+          }}
+        >
+          {(d) => (
+            <>
+              <DataList
+                rows={d.users}
+                rowKey={(u) => u.id}
+                columns={COLUMNS}
+                card={(u) => <UserCard user={u} />}
+                onRowClick={(u) => set({ user: u.id })}
+                rowLabel={(u) => `Buka detail ${u.name ?? u.email}`}
               />
-            </div>
-          </>
-        )}
+              <Pagination
+                page={d.page}
+                pageSize={d.pageSize}
+                total={d.total}
+                onPage={paging.setPage}
+                onPageSize={paging.setPageSize}
+              />
+            </>
+          )}
+        </QueryBoundary>
       </div>
 
       {openId && (
         <UserDetail
           userId={openId}
           onClose={() => {
-            setOpenId(null);
+            set({
+              user: null,
+              callsPage: null,
+              foodsPage: null,
+              ordersPage: null,
+              sessionsPage: null,
+              detailSize: null,
+            });
             void users.refetch();
           }}
         />

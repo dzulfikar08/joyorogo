@@ -1,19 +1,39 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Button } from "@joyorogo/ui/components/button";
+import { Inbox, TriangleAlert, UserX } from "lucide-react";
 import { Sheet } from "@joyorogo/ui/components/sheet";
+import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import {
+  ApiError,
   api,
+  errorMessage,
   fmtDate,
   fmtDateTime,
-  fmtIdr,
+  fmtNum,
   get,
-  toDate,
-  type AdminUser,
   orderMethod,
-  type UserDetail,
+  toDate,
+  type AdminSession,
+  type AdminUser,
+  type AiCall,
+  type FoodLog,
+  type Paged,
+  type UserDetail as UserDetailData,
+  type UserOrder,
 } from "../api";
-import { Badge, ConfirmAction, DayBars, SectionCard } from "../ui";
+import { useClampPage, useHashQuery, usePaging } from "../hash";
+import { Amount, CheckOrderButton, OrderStatus } from "../order-parts";
+import {
+  Badge,
+  CardFacts,
+  ConfirmAction,
+  CardList,
+  DayBars,
+  Pagination,
+  QueryBoundary,
+  SectionCard,
+  StateMessage,
+} from "../ui";
 
 const MONTH = 30 * 24 * 60 * 60 * 1000;
 
@@ -39,7 +59,7 @@ function useTierMutation(
       void qc.invalidateQueries({ queryKey: ["user", userId] });
       void qc.invalidateQueries({ queryKey: ["users"] });
     },
-    onError: (err) => toast.error(String(err)),
+    onError: (err) => toast.error(errorMessage(err)),
   });
 }
 
@@ -109,34 +129,85 @@ function TierControls({ user }: { user: AdminUser }) {
   );
 }
 
-/** Asks the payment gateway about a pending order and settles it if paid. */
-function CheckOrderButton({ orderId }: { orderId: string }) {
-  const qc = useQueryClient();
-  const check = useMutation({
-    mutationFn: () =>
-      api<{ outcome: string }>(`/api/admin/orders/${orderId}/check`, {
-        method: "POST",
-      }),
-    onSuccess: (res) => {
-      toast.info(res.outcome);
-      void qc.invalidateQueries({ queryKey: ["user"] });
-    },
-    onError: (err) => toast.error(String(err)),
+/**
+ * One server-paged list inside the user sheet. Page state lives in the URL
+ * (`<kind>Page`, shared `detailSize`) so a reload reopens the same page.
+ */
+function DetailList<K extends string, T>({
+  kind,
+  title,
+  userId,
+  card,
+  rowKey,
+  emptyTitle,
+}: {
+  kind: K;
+  title: string;
+  userId: string;
+  card: (row: T) => React.ReactNode;
+  rowKey: (row: T, index: number) => string;
+  emptyTitle: string;
+}) {
+  const { params, set } = useHashQuery("users");
+  const paging = usePaging(params, set, { page: `${kind}Page`, pageSize: "detailSize" });
+  const sp = new URLSearchParams({
+    page: String(paging.page),
+    pageSize: String(paging.pageSize),
   });
+  const list = useQuery({
+    queryKey: ["user", userId, kind, sp.toString()],
+    queryFn: () => get<Paged<K, T>>(`/api/admin/users/${userId}/${kind}?${sp}`),
+    placeholderData: keepPreviousData,
+  });
+  useClampPage(list.data?.total, paging, !list.isPlaceholderData);
+
   return (
-    <Button size="xs" variant="outline" disabled={check.isPending} onClick={() => check.mutate()}>
-      {check.isPending ? "Checking…" : "Check with gateway"}
-    </Button>
+    <SectionCard
+      flush
+      title={
+        <>
+          {title}
+          {list.data && (
+            <span className="ml-1.5 font-normal text-muted-foreground tabular-nums">
+              ({fmtNum(list.data.total)})
+            </span>
+          )}
+        </>
+      }
+    >
+      <QueryBoundary
+        query={list}
+        skeletonRows={3}
+        isEmpty={(d) => d.total === 0}
+        empty={{ icon: Inbox, title: emptyTitle }}
+      >
+        {(d) => (
+          <>
+            <CardList rows={d[kind]} rowKey={rowKey} card={card} />
+            <Pagination
+              page={d.page}
+              pageSize={d.pageSize}
+              total={d.total}
+              onPage={paging.setPage}
+              onPageSize={paging.setPageSize}
+            />
+          </>
+        )}
+      </QueryBoundary>
+    </SectionCard>
   );
 }
 
 export function UserDetail({ userId, onClose }: { userId: string; onClose: () => void }) {
+  const qc = useQueryClient();
   const detail = useQuery({
     queryKey: ["user", userId],
-    queryFn: () => get<UserDetail>(`/api/admin/users/${userId}`),
+    queryFn: () => get<UserDetailData>(`/api/admin/users/${userId}`),
   });
   const u = detail.data?.user;
+  const notFound = detail.error instanceof ApiError && detail.error.status === 404;
   const d = detail.data;
+  const refreshUser = () => void qc.invalidateQueries({ queryKey: ["user"] });
 
   return (
     <Sheet
@@ -148,7 +219,24 @@ export function UserDetail({ userId, onClose }: { userId: string; onClose: () =>
       description={u?.email}
     >
       {!d || !u ? (
-        <p className="p-4 text-sm text-muted-foreground">Loading…</p>
+        detail.isError ? (
+          notFound ? (
+            <StateMessage icon={UserX} title="User tidak ditemukan" />
+          ) : (
+            <StateMessage
+              tone="error"
+              icon={TriangleAlert}
+              title="Gagal memuat detail user"
+              description={errorMessage(detail.error)}
+            />
+          )
+        ) : (
+          <div className="flex flex-col gap-3" role="status" aria-label="Memuat data" aria-busy>
+            <Skeleton className="h-8" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-40" />
+          </div>
+        )
       ) : (
         <div className="flex flex-col gap-4 pb-4">
           <div className="flex flex-wrap gap-2">
@@ -165,9 +253,9 @@ export function UserDetail({ userId, onClose }: { userId: string; onClose: () =>
             <Badge>joined {fmtDate(u.createdAt)}</Badge>
             <Badge>last seen {fmtDateTime(u.lastSeen)}</Badge>
             <Badge>
-              scans {u.scansToday}/d · {u.scans7d}/7d · {u.scansTotal} total
+              scans {fmtNum(u.scansToday)}/d · {fmtNum(u.scans7d)}/7d · {fmtNum(u.scansTotal)} total
             </Badge>
-            <Badge>{u.foodLogs} food logs</Badge>
+            <Badge>{fmtNum(u.foodLogs)} food logs</Badge>
           </div>
 
           <SectionCard title="Tier controls">
@@ -183,140 +271,108 @@ export function UserDetail({ userId, onClose }: { userId: string; onClose: () =>
             />
           </SectionCard>
 
-          <SectionCard title={`Recent AI calls (${d.calls.length})`}>
-            <div className="table-wrap max-h-64 overflow-y-auto">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Kind</th>
-                    <th>Type</th>
-                    <th>Model</th>
-                    <th>Latency</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.calls.slice(0, 50).map((c, i) => (
-                    <tr key={i}>
-                      <td>{fmtDateTime(c.createdAt)}</td>
-                      <td>{c.kind}</td>
-                      <td>{c.scanType}</td>
-                      <td className="text-muted-foreground">{c.model}</td>
-                      <td className="tabular-nums">{c.latencyMs} ms</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </SectionCard>
+          <DetailList<"calls", AiCall>
+            kind="calls"
+            title="AI calls"
+            userId={userId}
+            rowKey={(c, i) => `${c.createdAt}-${i}`}
+            emptyTitle="Belum ada panggilan AI"
+            card={(c) => (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5">
+                    <Badge>{c.kind}</Badge>
+                    <span className="text-xs">{c.scanType}</span>
+                  </span>
+                  <span className="text-xs text-muted-foreground">{fmtDateTime(c.createdAt)}</span>
+                </div>
+                <CardFacts
+                  facts={[
+                    { label: "Model", value: c.model },
+                    { label: "Latency", value: `${fmtNum(c.latencyMs)} ms` },
+                  ]}
+                />
+              </>
+            )}
+          />
 
-          <SectionCard title={`Food logs (${d.foods.length})`}>
-            <div className="table-wrap max-h-64 overflow-y-auto">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Logged</th>
-                    <th>Date</th>
-                    <th>Meal</th>
-                    <th>Name</th>
-                    <th>kcal</th>
-                    <th>Source</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.foods.slice(0, 50).map((f, i) => (
-                    <tr key={i}>
-                      <td>{fmtDateTime(f.createdAt)}</td>
-                      <td>{f.date}</td>
-                      <td>{f.meal}</td>
-                      <td>{f.name}</td>
-                      <td className="tabular-nums">{f.kcal}</td>
-                      <td className="text-muted-foreground">{f.source}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </SectionCard>
+          <DetailList<"foods", FoodLog>
+            kind="foods"
+            title="Food logs"
+            userId={userId}
+            rowKey={(f, i) => `${f.createdAt}-${i}`}
+            emptyTitle="Belum ada food log"
+            card={(f) => (
+              <>
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-sm font-medium">{f.name}</span>
+                  <span className="text-sm font-semibold tabular-nums">{fmtNum(f.kcal)} kcal</span>
+                </div>
+                <CardFacts
+                  facts={[
+                    { label: "Meal", value: f.meal },
+                    { label: "Date", value: f.date },
+                    { label: "Source", value: f.source },
+                    { label: "Logged", value: fmtDateTime(f.createdAt) },
+                  ]}
+                />
+              </>
+            )}
+          />
 
-          <SectionCard title={`Orders (${d.orders.length})`}>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Order</th>
-                    <th>Amount</th>
-                    <th>Method</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Paid</th>
-                    <th>Founder until</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.orders.map((o) => (
-                    <tr key={o.orderId}>
-                      <td className="font-mono text-[0.6875rem]">{o.orderId}</td>
-                      <td>{fmtIdr(o.amountIdr)}</td>
-                      <td className="whitespace-nowrap">{orderMethod(o)}</td>
-                      <td>
-                        <Badge
-                          tone={
-                            o.status === "paid"
-                              ? "green"
-                              : o.status === "pending"
-                                ? "amber"
-                                : "muted"
-                          }
-                        >
-                          {o.status}
-                        </Badge>
-                      </td>
-                      <td>{fmtDateTime(o.createdAt)}</td>
-                      <td>{fmtDateTime(o.paidAt)}</td>
-                      <td>{fmtDate(o.founderUntil)}</td>
-                      <td>{o.status === "pending" && <CheckOrderButton orderId={o.orderId} />}</td>
-                    </tr>
-                  ))}
-                  {d.orders.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="text-muted-foreground">
-                        No orders.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </SectionCard>
+          <DetailList<"orders", UserOrder>
+            kind="orders"
+            title="Orders"
+            userId={userId}
+            rowKey={(o) => o.orderId}
+            emptyTitle="Belum ada order"
+            card={(o) => (
+              <>
+                <div className="flex items-start justify-between gap-3">
+                  <span className="min-w-0 font-mono text-[0.6875rem] break-all">{o.orderId}</span>
+                  <span className="shrink-0 text-sm font-semibold">
+                    <Amount value={o.amountIdr} />
+                  </span>
+                </div>
+                <div className="mt-1.5 flex items-center gap-2 text-xs">
+                  <OrderStatus status={o.status} />
+                  <span className="text-muted-foreground">{orderMethod(o)}</span>
+                </div>
+                <CardFacts
+                  facts={[
+                    { label: "Created", value: fmtDateTime(o.createdAt) },
+                    { label: "Paid", value: fmtDateTime(o.paidAt) },
+                    { label: "Founder until", value: fmtDateTime(o.founderUntil) },
+                  ]}
+                />
+                {o.status === "pending" && (
+                  <div className="mt-3">
+                    <CheckOrderButton orderId={o.orderId} onDone={refreshUser} />
+                  </div>
+                )}
+              </>
+            )}
+          />
 
-          <SectionCard title={`Sessions (${d.sessions.length})`}>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Created</th>
-                    <th>Last active</th>
-                    <th>User agent</th>
-                    <th>IP</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.sessions.map((s, i) => (
-                    <tr key={i}>
-                      <td>{fmtDateTime(s.createdAt)}</td>
-                      <td>{fmtDateTime(s.updatedAt)}</td>
-                      <td className="max-w-80 break-all text-muted-foreground">
-                        {s.userAgent ?? "—"}
-                      </td>
-                      <td>{s.ipAddress ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </SectionCard>
+          <DetailList<"sessions", AdminSession>
+            kind="sessions"
+            title="Sessions"
+            userId={userId}
+            rowKey={(s, i) => `${s.createdAt}-${i}`}
+            emptyTitle="Belum ada sesi"
+            card={(s) => (
+              <>
+                <CardFacts
+                  facts={[
+                    { label: "Created", value: fmtDateTime(s.createdAt) },
+                    { label: "Last active", value: fmtDateTime(s.updatedAt) },
+                    { label: "IP", value: s.ipAddress ?? "—" },
+                  ]}
+                />
+                <p className="mt-1.5 text-xs break-all text-muted-foreground">{s.userAgent ?? "—"}</p>
+              </>
+            )}
+          />
         </div>
       )}
     </Sheet>

@@ -1,7 +1,8 @@
-import { and, desc, eq, isNotNull, isNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, ne, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import type { JoyoAuth } from "@joyorogo/auth";
-import type { Hono } from "hono";
+import type { Context, Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 
 import { jakartaToday } from "@joyorogo/api/lib/engine";
@@ -19,11 +20,48 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const ABUSE_TODAY = 50;
 const ABUSE_7D = 300;
 
-function paging(rawPage: string | undefined, rawSize: string | undefined) {
-  const page = Math.max(1, Math.floor(Number(rawPage)) || 1);
-  const pageSize = Math.min(200, Math.max(1, Math.floor(Number(rawSize)) || 50));
-  return { page, pageSize, offset: (page - 1) * pageSize };
+const PAGE_SIZES = [10, 25, 50, 100];
+const DEFAULT_PAGE_SIZE = 25;
+
+/** page + pageSize accepted by every paged admin list. */
+const pagingShape = {
+  page: z.coerce.number().int().min(1).max(100_000).default(1),
+  pageSize: z.coerce
+    .number()
+    .int()
+    .refine((n) => PAGE_SIZES.includes(n), {
+      message: `must be one of ${PAGE_SIZES.join(", ")}`,
+    })
+    .default(DEFAULT_PAGE_SIZE),
+};
+const pagingSchema = z.object(pagingShape);
+
+/** Optional enum filter; an empty value (cleared filter) counts as absent. */
+const filterEnum = <const T extends [string, ...string[]]>(values: T) =>
+  z.preprocess((v) => (v === "" ? undefined : v), z.enum(values).optional());
+const searchTerm = z.string().trim().max(100).optional();
+
+/** Parses the query string; a bad value is a 400 `{ error: "field: reason" }`, never a silent default. */
+function parseQuery<S extends z.ZodType>(c: Context, schema: S): z.output<S> {
+  const parsed = schema.safeParse(c.req.query());
+  if (parsed.success) return parsed.data;
+  const issue = parsed.error.issues[0];
+  const field = issue?.path.join(".");
+  const message = `${field ? `${field}: ` : ""}${issue?.message ?? "invalid query"}`;
+  throw new HTTPException(400, { res: c.json({ error: message }, 400) });
 }
+
+const offsetOf = ({ page, pageSize }: { page: number; pageSize: number }) => (page - 1) * pageSize;
+
+/** Case-insensitive substring match over any column; `%`, `_` and `\` in the term are literal. */
+const containsAny = (columns: unknown[], term: string) => {
+  const pattern = `%${term.toLowerCase().replace(/[\\%_]/g, "\\$&")}%`;
+  return sql`(${sql.join(
+    columns.map((column) => sql`lower(${column}) like ${pattern} escape '\\'`),
+    sql` or `,
+  )})`;
+};
+
 // Calendar day in WIB (UTC+7) for a ms timestamp column.
 const wibDay = (column: unknown) => sql<string>`date((${column} / 1000) + 25200, 'unixepoch')`;
 
@@ -76,11 +114,19 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
   app.get("/api/admin/me", (c) => c.json({ ok: true }));
 
   // Paged, filtered user list. Query: q (name/email), tier=free|founder,
-  // abuse=1, sort=newest|lastSeen|scansToday|scans7d|scansTotal, page, pageSize.
+  // abuse=1, sort=newest|lastSeen|scansToday|scans7d|scansTotal, page,
+  // pageSize. Every sort ends in created_at desc, id desc so pages are stable.
+  const usersQuery = pagingSchema.extend({
+    q: searchTerm,
+    tier: filterEnum(["free", "founder"]),
+    abuse: filterEnum(["1"]),
+    sort: z.enum(["newest", "lastSeen", "scansToday", "scans7d", "scansTotal"]).default("newest"),
+  });
   app.get("/api/admin/users", async (c) => {
     const { startMs, endMs } = wibDayBounds(jakartaToday());
     const now = Date.now();
-    const { page, pageSize, offset } = paging(c.req.query("page"), c.req.query("pageSize"));
+    const query = parseQuery(c, usersQuery);
+    const { page, pageSize } = query;
     // Correlated subqueries must name the outer table: drizzle renders a bare
     // column ref as "id", which the inner FROM would resolve to its own id.
     const uid = sql.raw(`"user"."id"`);
@@ -90,52 +136,72 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
     const lastSeenExpr = sql<number | null>`(select max(updated_at) from session where session.user_id = ${uid})`;
     const founderExpr = sql`(${user.tier} = 'founder' or ${user.founderUntil} > ${now})`;
 
-    const q = c.req.query("q")?.trim().toLowerCase();
-    const tier = c.req.query("tier");
     const filters = and(
-      q ? sql`(lower(${user.name}) like ${`%${q}%`} or lower(${user.email}) like ${`%${q}%`})` : undefined,
-      tier === "founder" ? founderExpr : tier === "free" ? sql`not ${founderExpr}` : undefined,
-      c.req.query("abuse") === "1"
+      query.q ? containsAny([user.name, user.email], query.q) : undefined,
+      query.tier === "founder"
+        ? founderExpr
+        : query.tier === "free"
+          ? sql`not ${founderExpr}`
+          : undefined,
+      query.abuse
         ? sql`(${scansTodayExpr} >= ${ABUSE_TODAY} or ${scans7dExpr} >= ${ABUSE_7D})`
         : undefined,
     );
-    const order = {
+    const primaryOrder = {
+      newest: undefined,
       lastSeen: sql`${lastSeenExpr} desc nulls last`,
       scansToday: sql`${scansTodayExpr} desc`,
       scans7d: sql`${scans7dExpr} desc`,
       scansTotal: sql`${scansTotalExpr} desc`,
-    }[c.req.query("sort") ?? ""] ?? desc(user.createdAt);
+    }[query.sort];
 
     const db = deps.getDb();
-    const [rows, [count]] = await Promise.all([
+    // Order + page on ids only: the per-row stats are correlated subqueries,
+    // so computing all of them for every user before the sort would scale with
+    // the whole table instead of the page.
+    const [pageIds, [count]] = await Promise.all([
       db
-        .select({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-          // Effective tier (paid period counts); manualTier is the raw comp column.
-          tier: sql<"free" | "founder">`case when ${founderExpr} then 'founder' else 'free' end`,
-          manualTier: user.tier,
-          founderUntil: user.founderUntil,
-          aiUnlimited: user.aiUnlimited,
-          createdAt: user.createdAt,
-          lastSeen: lastSeenExpr,
-          scansToday: scansTodayExpr,
-          scans7d: scans7dExpr,
-          scansTotal: scansTotalExpr,
-          foodLogs: sql<number>`(select count(*) from food_log where food_log.user_id = ${uid})`,
-          onboarded: sql<number>`(select count(*) from profile where profile.user_id = ${uid})`,
-          pendingOrders: sql<number>`(select count(*) from payment where payment.user_id = ${uid} and payment.status = 'pending')`,
-          paidOrders: sql<number>`(select count(*) from payment where payment.user_id = ${uid} and payment.status = 'paid')`,
-        })
+        .select({ id: user.id })
         .from(user)
         .where(filters)
-        .orderBy(order)
+        .orderBy(...(primaryOrder ? [primaryOrder] : []), desc(user.createdAt), desc(user.id))
         .limit(pageSize)
-        .offset(offset),
+        .offset(offsetOf(query)),
       db.select({ total: sql<number>`count(*)` }).from(user).where(filters),
     ]);
+    const details =
+      pageIds.length === 0
+        ? []
+        : await db
+            .select({
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              image: user.image,
+              // Effective tier (paid period counts); manualTier is the raw comp column.
+              tier: sql<"free" | "founder">`case when ${founderExpr} then 'founder' else 'free' end`,
+              manualTier: user.tier,
+              founderUntil: user.founderUntil,
+              aiUnlimited: user.aiUnlimited,
+              createdAt: user.createdAt,
+              lastSeen: lastSeenExpr,
+              scansToday: scansTodayExpr,
+              scans7d: scans7dExpr,
+              scansTotal: scansTotalExpr,
+              foodLogs: sql<number>`(select count(*) from food_log where food_log.user_id = ${uid})`,
+              onboarded: sql<number>`(select count(*) from profile where profile.user_id = ${uid})`,
+              pendingOrders: sql<number>`(select count(*) from payment where payment.user_id = ${uid} and payment.status = 'pending')`,
+              paidOrders: sql<number>`(select count(*) from payment where payment.user_id = ${uid} and payment.status = 'paid')`,
+            })
+            .from(user)
+            .where(
+              inArray(
+                user.id,
+                pageIds.map((row) => row.id),
+              ),
+            );
+    const byId = new Map(details.map((row) => [row.id, row]));
+    const rows = pageIds.flatMap(({ id }) => byId.get(id) ?? []);
     return c.json({ users: rows, total: count?.total ?? 0, page, pageSize });
   });
 
@@ -204,24 +270,13 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
     return c.json({ days: Object.values(byDay).sort((a, b) => a.day.localeCompare(b.day)) });
   });
 
-  // One user: recent AI calls (abuse check), food logs, orders, sessions.
+  // One user: profile + 30-day scan chart. The long lists (AI calls, food
+  // logs, orders, sessions) page through their own endpoints below.
   app.get("/api/admin/users/:id", async (c) => {
     const id = c.req.param("id");
     const db = deps.getDb();
-    const [[profile], calls, perDay, foods, orders, sessions] = await Promise.all([
+    const [[profile], perDay] = await Promise.all([
       db.select().from(user).where(eq(user.id, id)).limit(1),
-      db
-        .select({
-          createdAt: aiUsage.createdAt,
-          scanType: aiUsage.scanType,
-          model: aiUsage.model,
-          latencyMs: aiUsage.latencyMs,
-          kind: sql<string>`coalesce(json_extract(${aiUsage.usageJson}, '$.kind'), 'photo')`,
-        })
-        .from(aiUsage)
-        .where(eq(aiUsage.userId, id))
-        .orderBy(desc(aiUsage.createdAt))
-        .limit(100),
       db
         .select({ day: wibDay(aiUsage.createdAt), scans: sql<number>`count(*)` })
         .from(aiUsage)
@@ -234,6 +289,43 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
         )
         .groupBy(wibDay(aiUsage.createdAt))
         .orderBy(wibDay(aiUsage.createdAt)),
+    ]);
+    if (!profile) return c.json({ error: "user not found" }, 404);
+    return c.json({
+      user: { ...profile, effectiveTier: effectiveTier(profile) },
+      perDay,
+    });
+  });
+
+  // Paged per-user lists, newest first (id as the tiebreak): page, pageSize.
+  app.get("/api/admin/users/:id/calls", async (c) => {
+    const id = c.req.param("id");
+    const query = parseQuery(c, pagingSchema);
+    const db = deps.getDb();
+    const [calls, [count]] = await Promise.all([
+      db
+        .select({
+          createdAt: aiUsage.createdAt,
+          scanType: aiUsage.scanType,
+          model: aiUsage.model,
+          latencyMs: aiUsage.latencyMs,
+          kind: sql<string>`coalesce(json_extract(${aiUsage.usageJson}, '$.kind'), 'photo')`,
+        })
+        .from(aiUsage)
+        .where(eq(aiUsage.userId, id))
+        .orderBy(desc(aiUsage.createdAt), desc(aiUsage.id))
+        .limit(query.pageSize)
+        .offset(offsetOf(query)),
+      db.select({ total: sql<number>`count(*)` }).from(aiUsage).where(eq(aiUsage.userId, id)),
+    ]);
+    return c.json({ calls, total: count?.total ?? 0, page: query.page, pageSize: query.pageSize });
+  });
+
+  app.get("/api/admin/users/:id/foods", async (c) => {
+    const id = c.req.param("id");
+    const query = parseQuery(c, pagingSchema);
+    const db = deps.getDb();
+    const [foods, [count]] = await Promise.all([
       db
         .select({
           date: foodLog.date,
@@ -245,9 +337,36 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
         })
         .from(foodLog)
         .where(eq(foodLog.userId, id))
-        .orderBy(desc(foodLog.createdAt))
-        .limit(50),
-      db.select().from(payment).where(eq(payment.userId, id)).orderBy(desc(payment.createdAt)),
+        .orderBy(desc(foodLog.createdAt), desc(foodLog.id))
+        .limit(query.pageSize)
+        .offset(offsetOf(query)),
+      db.select({ total: sql<number>`count(*)` }).from(foodLog).where(eq(foodLog.userId, id)),
+    ]);
+    return c.json({ foods, total: count?.total ?? 0, page: query.page, pageSize: query.pageSize });
+  });
+
+  app.get("/api/admin/users/:id/orders", async (c) => {
+    const id = c.req.param("id");
+    const query = parseQuery(c, pagingSchema);
+    const db = deps.getDb();
+    const [orders, [count]] = await Promise.all([
+      db
+        .select()
+        .from(payment)
+        .where(eq(payment.userId, id))
+        .orderBy(desc(payment.createdAt), desc(payment.orderId))
+        .limit(query.pageSize)
+        .offset(offsetOf(query)),
+      db.select({ total: sql<number>`count(*)` }).from(payment).where(eq(payment.userId, id)),
+    ]);
+    return c.json({ orders, total: count?.total ?? 0, page: query.page, pageSize: query.pageSize });
+  });
+
+  app.get("/api/admin/users/:id/sessions", async (c) => {
+    const id = c.req.param("id");
+    const query = parseQuery(c, pagingSchema);
+    const db = deps.getDb();
+    const [sessions, [count]] = await Promise.all([
       db
         .select({
           createdAt: session.createdAt,
@@ -257,17 +376,16 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
         })
         .from(session)
         .where(eq(session.userId, id))
-        .orderBy(desc(session.updatedAt))
-        .limit(20),
+        .orderBy(desc(session.updatedAt), desc(session.id))
+        .limit(query.pageSize)
+        .offset(offsetOf(query)),
+      db.select({ total: sql<number>`count(*)` }).from(session).where(eq(session.userId, id)),
     ]);
-    if (!profile) return c.json({ error: "user not found" }, 404);
     return c.json({
-      user: { ...profile, effectiveTier: effectiveTier(profile) },
-      calls,
-      perDay,
-      foods,
-      orders,
       sessions,
+      total: count?.total ?? 0,
+      page: query.page,
+      pageSize: query.pageSize,
     });
   });
 
@@ -297,20 +415,21 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
     return c.json(updated[0]);
   });
 
-  // Paged orders. Query: status=pending|paid|failed, q (name/email/order id), page, pageSize.
+  // Paged orders. Query: status=pending|paid|failed, q (name/email/order id),
+  // page, pageSize. Newest first, order id as the tiebreak.
+  const ordersQuery = pagingSchema.extend({
+    status: filterEnum(["pending", "paid", "failed"]),
+    q: searchTerm,
+  });
   app.get("/api/admin/orders", async (c) => {
-    const { page, pageSize, offset } = paging(c.req.query("page"), c.req.query("pageSize"));
-    const q = c.req.query("q")?.trim().toLowerCase();
-    const status = c.req.query("status");
+    const query = parseQuery(c, ordersQuery);
+    const { page, pageSize } = query;
     const filters = and(
-      status === "pending" || status === "paid" || status === "failed"
-        ? eq(payment.status, status)
-        : undefined,
-      q
-        ? sql`(lower(${user.name}) like ${`%${q}%`} or lower(${user.email}) like ${`%${q}%`} or lower(${payment.orderId}) like ${`%${q}%`})`
-        : undefined,
+      query.status ? eq(payment.status, query.status) : undefined,
+      query.q ? containsAny([user.name, user.email, payment.orderId], query.q) : undefined,
     );
     const db = deps.getDb();
+    const counted = db.select({ total: sql<number>`count(*)` }).from(payment);
     const [rows, [count]] = await Promise.all([
       db
         .select({
@@ -328,14 +447,13 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
         .from(payment)
         .innerJoin(user, eq(user.id, payment.userId))
         .where(filters)
-        .orderBy(desc(payment.createdAt))
+        .orderBy(desc(payment.createdAt), desc(payment.orderId))
         .limit(pageSize)
-        .offset(offset),
-      db
-        .select({ total: sql<number>`count(*)` })
-        .from(payment)
-        .innerJoin(user, eq(user.id, payment.userId))
-        .where(filters),
+        .offset(offsetOf(query)),
+      // Only a search touches user columns; payment.user_id is a NOT NULL FK, so the join never drops rows.
+      query.q
+        ? counted.innerJoin(user, eq(user.id, payment.userId)).where(filters)
+        : counted.where(filters),
     ]);
     return c.json({ orders: rows, total: count?.total ?? 0, page, pageSize });
   });
@@ -359,8 +477,11 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
   const postAuthorProfile = alias(profile, "post_author_profile");
 
   app.get("/api/admin/reports", async (c) => {
-    const { page, pageSize, offset } = paging(c.req.query("page"), c.req.query("pageSize"));
-    const status = c.req.query("status") ?? "pending";
+    const query = parseQuery(
+      c,
+      pagingSchema.extend({ status: z.enum(["pending", "resolved", "all"]).default("pending") }),
+    );
+    const { page, pageSize, status } = query;
     const filters =
       status === "all"
         ? undefined
@@ -401,9 +522,9 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
         .leftJoin(commentAuthor, eq(commentAuthor.id, postComment.userId))
         .leftJoin(commentAuthorProfile, eq(commentAuthorProfile.userId, postComment.userId))
         .where(filters)
-        .orderBy(desc(socialReport.createdAt))
+        .orderBy(desc(socialReport.createdAt), desc(socialReport.id))
         .limit(pageSize)
-        .offset(offset),
+        .offset(offsetOf(query)),
       db.select({ total: sql<number>`count(*)` }).from(socialReport).where(filters),
     ]);
     return c.json({ reports: rows, total: count?.total ?? 0, page, pageSize });
@@ -432,8 +553,10 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
   });
 
   // Feedback scan ("Hasilnya akurat?"): accuracy per WIB day and per model,
-  // plus the recent negative results. Dismissals (`dilewati`) are excluded
-  // from every metric.
+  // plus how many results were negative. Dismissals (`dilewati`) are excluded
+  // from every metric. The negative results themselves page through
+  // /api/admin/feedback/negatives.
+  const negativeRating = inArray(scanFeedback.rating, ["kurang_akurat", "salah"]);
   app.get("/api/admin/feedback", async (c) => {
     const days = Math.min(90, Math.max(1, Number(c.req.query("days")) || 30));
     const since = Date.now() - days * DAY_MS;
@@ -448,7 +571,7 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
       kurang: sql<number>`sum(case when ${scanFeedback.rating} = 'kurang_akurat' then 1 else 0 end)`,
       salah: sql<number>`sum(case when ${scanFeedback.rating} = 'salah' then 1 else 0 end)`,
     };
-    const [byDay, byModel, recent] = await Promise.all([
+    const [byDay, byModel, [negatives]] = await Promise.all([
       db
         .select({ day: wibDay(scanFeedback.createdAt), ...accuracy })
         .from(scanFeedback)
@@ -459,6 +582,22 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
         .from(scanFeedback)
         .where(rated)
         .groupBy(scanFeedback.model),
+      db
+        .select({
+          total: sql<number>`count(*)`,
+          afterRetry: sql<number>`coalesce(sum(case when ${scanFeedback.afterRetry} = 1 then 1 else 0 end), 0)`,
+        })
+        .from(scanFeedback)
+        .where(negativeRating),
+    ]);
+    return c.json({ byDay, byModel, negatives: negatives ?? { total: 0, afterRetry: 0 } });
+  });
+
+  // Paged negative results, newest first (id as the tiebreak): page, pageSize.
+  app.get("/api/admin/feedback/negatives", async (c) => {
+    const query = parseQuery(c, pagingSchema);
+    const db = deps.getDb();
+    const [negatives, [count]] = await Promise.all([
       db
         .select({
           id: scanFeedback.id,
@@ -475,11 +614,18 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
         })
         .from(scanFeedback)
         .leftJoin(user, eq(user.id, scanFeedback.userId))
-        .where(and(ne(scanFeedback.rating, "akurat"), ne(scanFeedback.rating, "dilewati")))
-        .orderBy(desc(scanFeedback.createdAt))
-        .limit(50),
+        .where(negativeRating)
+        .orderBy(desc(scanFeedback.createdAt), desc(scanFeedback.id))
+        .limit(query.pageSize)
+        .offset(offsetOf(query)),
+      db.select({ total: sql<number>`count(*)` }).from(scanFeedback).where(negativeRating),
     ]);
-    return c.json({ byDay, byModel, recent });
+    return c.json({
+      negatives,
+      total: count?.total ?? 0,
+      page: query.page,
+      pageSize: query.pageSize,
+    });
   });
 
   // Thumbnail of a rated photo (scan-src/<userId>/<photoId>, ext-less — the

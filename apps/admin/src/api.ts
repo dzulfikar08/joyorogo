@@ -40,30 +40,77 @@ export function toDate(x: number | string | null | undefined): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-const dtf = new Intl.DateTimeFormat("id-ID", {
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-const df = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short" });
+/** Operators read WIB regardless of the browser's timezone. */
+const WIB = "Asia/Jakarta";
+const wibYear = (d: Date) =>
+  new Intl.DateTimeFormat("en", { timeZone: WIB, year: "numeric" }).format(d);
+const dateFormat = (withYear: boolean) =>
+  new Intl.DateTimeFormat("id-ID", {
+    timeZone: WIB,
+    day: "numeric",
+    month: "short",
+    ...(withYear ? { year: "numeric" } : {}),
+  });
+const dateTimeFormat = (withYear: boolean) =>
+  new Intl.DateTimeFormat("id-ID", {
+    timeZone: WIB,
+    day: "numeric",
+    month: "short",
+    ...(withYear ? { year: "numeric" } : {}),
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+const formats = {
+  date: [dateFormat(false), dateFormat(true)],
+  dateTime: [dateTimeFormat(false), dateTimeFormat(true)],
+} as const;
 
+/** "17 Okt 14.05 WIB"; the year shows only when it is not the current WIB year. */
 export function fmtDateTime(x: number | string | null | undefined): string {
   const d = toDate(x);
-  return d ? dtf.format(d) : "—";
+  if (!d) return "—";
+  return `${formats.dateTime[wibYear(d) === wibYear(new Date()) ? 0 : 1].format(d)} WIB`;
 }
 
+/** "17 Okt" (WIB calendar day); the year shows only when it is not the current WIB year. */
 export function fmtDate(x: number | string | null | undefined): string {
   const d = toDate(x);
-  return d ? df.format(d) : "—";
+  if (!d) return "—";
+  return formats.date[wibYear(d) === wibYear(new Date()) ? 0 : 1].format(d);
 }
 
-export function fmtIdr(n: number | null | undefined): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(n ?? 0);
+const numberFormat = new Intl.NumberFormat("id-ID");
+const compactFormat = new Intl.NumberFormat("id-ID", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+const idrFormat = new Intl.NumberFormat("id-ID", {
+  style: "currency",
+  currency: "IDR",
+  maximumFractionDigits: 0,
+});
+
+/** 1234567 -> "1.234.567" */
+export const fmtNum = (n: number | null | undefined) => numberFormat.format(n ?? 0);
+export const fmtCompact = (n: number) => compactFormat.format(n);
+/** 15000 -> "Rp 15.000" */
+export const fmtIdr = (n: number | null | undefined) => idrFormat.format(n ?? 0);
+
+/** Calendar day keys (YYYY-MM-DD, WIB) for the last `n` days, oldest first. */
+export function lastWibDays(n: number): string[] {
+  const dayMs = 24 * 60 * 60 * 1000;
+  const wibNow = Date.now() + 7 * 60 * 60 * 1000;
+  return Array.from({ length: n }, (_, i) =>
+    new Date(wibNow - (n - 1 - i) * dayMs).toISOString().slice(0, 10),
+  );
+}
+
+/** Message for a failed request, without the "Error:" prefix `String(err)` adds. */
+export function errorMessage(err: unknown): string {
+  if (err instanceof ApiError) return err.message;
+  if (err instanceof TypeError) return "Tidak bisa terhubung ke server.";
+  return err instanceof Error ? err.message : String(err);
 }
 
 // ---- response types (server API contract) ----
@@ -142,8 +189,8 @@ export interface FeedbackModelRow {
   salah: number;
 }
 
-/** One recent negative scan result; photo served by /api/admin/feedback-photo. */
-export interface FeedbackRecent {
+/** One negative scan result; photo served by /api/admin/feedback-photo. */
+export interface FeedbackNegative {
   id: string;
   createdAt: string | number;
   rating: "kurang_akurat" | "salah";
@@ -160,7 +207,8 @@ export interface FeedbackRecent {
 export interface FeedbackScan {
   byDay: FeedbackDay[];
   byModel: FeedbackModelRow[];
-  recent: FeedbackRecent[];
+  /** All-time negative results (the list pages through /api/admin/feedback/negatives). */
+  negatives: { total: number; afterRetry: number };
 }
 
 export interface FoodLog {
@@ -207,13 +255,12 @@ export interface AdminSession {
   ipAddress: string | null;
 }
 
+/** An order as listed under one user (the user is implied). */
+export type UserOrder = Omit<AdminOrder, "name" | "email">;
+
 export interface UserDetail {
   user: AdminUser;
-  calls: AiCall[];
   perDay: { day: string; scans: number }[];
-  foods: FoodLog[];
-  orders: AdminOrder[];
-  sessions: AdminSession[];
 }
 
 export const get = <T>(path: string) => api<T>(path);
@@ -241,26 +288,17 @@ export interface AdminReport {
   reporterEmail: string;
 }
 
-export interface PagedReports {
-  reports: AdminReport[];
+/** A server-paged list: the rows live under `K` (users, orders, ...) next to the totals. */
+export type Paged<K extends string, T> = Record<K, T[]> & {
   total: number;
   page: number;
   pageSize: number;
-}
+};
+
+export type PagedReports = Paged<"reports", AdminReport>;
 
 export const del = <T>(path: string) => api<T>(path, { method: "DELETE" });
 export const post = <T>(path: string) => api<T>(path, { method: "POST" });
 
-export interface PagedUsers {
-  users: AdminUser[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
-export interface PagedOrders {
-  orders: AdminOrder[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export type PagedUsers = Paged<"users", AdminUser>;
+export type PagedOrders = Paged<"orders", AdminOrder>;

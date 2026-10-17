@@ -13,7 +13,6 @@
   font-size: 0.8125rem;
 }
 .table-wrap th {
-  text-align: left;
   font-weight: 600;
   color: var(--muted-foreground);
   padding: 0.5rem 0.75rem;
@@ -48,4 +47,36 @@
   height: 100%;
   border-radius: 999px;
   background: var(--primary);
+}
+
+/* Row focus ring for clickable table rows. */
+.table-wrap tbody tr[role="button"]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+/* Numeric tables that stay tables on phones: scroll sideways, first column pinned. */
+.table-sticky th:first-child,
+.table-sticky td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--card);
+  box-shadow: 1px 0 0 var(--border);
+}
+.table-sticky td {
+  white-space: nowrap;
+}
+
+/* The page itself never scrolls sideways. */
+html,
+body {
+  overflow-x: clip;
+}
+
+/* Layered so a `text-right` utility on a numeric column header wins. */
+@layer components {
+  .table-wrap th {
+    text-align: start;
+  }
 }

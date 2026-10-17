@@ -1,52 +1,38 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
-import { Button } from "@joyorogo/ui/components/button";
-import { api, fmtIdr, get, type Overview, type UsageDay } from "../api";
-import { BarChart, SectionCard, StatCard } from "../ui";
-
-export function SendTestEmailButton() {
-  const [sending, setSending] = useState(false);
-  return (
-    <Button
-      size="sm"
-      variant="outline"
-      disabled={sending}
-      onClick={async () => {
-        setSending(true);
-        try {
-          const res = await api<{ outcome: string }>("/api/admin/test-email", { method: "POST" });
-          if (res.outcome === "sent") toast.success(res.outcome);
-          else toast.error(res.outcome);
-        } catch (err) {
-          toast.error(String(err));
-        } finally {
-          setSending(false);
-        }
-      }}
-    >
-      {sending ? "Sending…" : "Send test email"}
-    </Button>
-  );
-}
-
-/** Local-time YYYY-MM-DD keys for the last `n` days, oldest first. */
-function lastDays(n: number): string[] {
-  const keys: string[] = [];
-  const now = new Date();
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    keys.push(
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
-    );
-  }
-  return keys;
-}
+import { useMemo } from "react";
+import { CalendarX, RotateCw, TriangleAlert } from "lucide-react";
+import { Skeleton } from "@joyorogo/ui/components/skeleton";
+import {
+  errorMessage,
+  fmtCompact,
+  fmtIdr,
+  fmtNum,
+  get,
+  lastWibDays,
+  type Overview,
+  type UsageDay,
+} from "../api";
+import {
+  BarChart,
+  Button,
+  CardFacts,
+  DataList,
+  QueryBoundary,
+  SectionCard,
+  StatCard,
+  type Column,
+} from "../ui";
 
 const dayLabel = (day: string) => `${day.slice(8)}/${day.slice(5, 7)}`;
-const compactIdr = (v: number) =>
-  new Intl.NumberFormat("id-ID", { notation: "compact", maximumFractionDigits: 1 }).format(v);
+
+const DAY_COLUMNS: Column<UsageDay>[] = [
+  { key: "day", header: "Day", cell: (d) => d.day, className: "font-medium" },
+  { key: "scans", header: "Scans", numeric: true, cell: (d) => fmtNum(d.scans) },
+  { key: "scanUsers", header: "Scan users", numeric: true, cell: (d) => fmtNum(d.scanUsers) },
+  { key: "signups", header: "Signups", numeric: true, cell: (d) => fmtNum(d.signups) },
+  { key: "paid", header: "Paid", numeric: true, cell: (d) => fmtNum(d.paid) },
+  { key: "revenue", header: "Revenue", numeric: true, cell: (d) => fmtIdr(d.revenueIdr) },
+];
 
 export function OverviewSection() {
   const overview = useQuery({
@@ -59,12 +45,15 @@ export function OverviewSection() {
   });
 
   const o = overview.data;
+  const stat = (value: string | number | undefined) =>
+    value === undefined ? <Skeleton className="mt-1 h-7 w-16" /> : typeof value === "number" ? fmtNum(value) : value;
+  const hint = (text: string | undefined) => (o ? text : undefined);
 
-  // Continuous 30-day x-axis: server days may have gaps; missing days count 0.
+  // Continuous 30-day x-axis (WIB days, like the server): missing days count 0.
   const days = useMemo(() => {
     const byDay: Record<string, UsageDay> = {};
     for (const d of usage.data?.days ?? []) byDay[d.day] = d;
-    return lastDays(30).map(
+    return lastWibDays(30).map(
       (day) => byDay[day] ?? { day, scans: 0, scanUsers: 0, signups: 0, paid: 0, revenueIdr: 0 },
     );
   }, [usage.data]);
@@ -80,103 +69,122 @@ export function OverviewSection() {
 
   return (
     <div className="flex flex-col gap-4">
+      {overview.isError && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          <span className="flex items-center gap-2">
+            <TriangleAlert className="size-4 shrink-0" aria-hidden />
+            Gagal memuat ringkasan: {errorMessage(overview.error)}
+          </span>
+          <Button size="sm" variant="outline" onClick={() => void overview.refetch()}>
+            <RotateCw className="size-4" />
+            Coba lagi
+          </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard
           label="Users"
-          value={o?.users ?? "…"}
-          hint={o ? `${o.onboarded} onboarded` : undefined}
+          value={stat(o?.users)}
+          hint={hint(o && `${fmtNum(o.onboarded)} onboarded`)}
         />
         <StatCard
           label="Signups today"
-          value={o?.signupsToday ?? "…"}
-          hint={`7d: ${o?.signups7d ?? "…"}`}
+          value={stat(o?.signupsToday)}
+          hint={hint(o && `7d: ${fmtNum(o.signups7d)}`)}
         />
-        <StatCard label="Active today" value={o?.activeToday ?? "…"} />
-        <StatCard label="Founders" value={o?.founders ?? "…"} />
+        <StatCard label="Active today" value={stat(o?.activeToday)} />
+        <StatCard label="Founders" value={stat(o?.founders)} />
         <StatCard
           label="Scans today"
-          value={o?.scansToday ?? "…"}
-          hint={`7d: ${o?.scans7d ?? "…"} · anon: ${o?.anonScansToday ?? "…"}`}
+          value={stat(o?.scansToday)}
+          hint={hint(o && `7d: ${fmtNum(o.scans7d)} · anon: ${fmtNum(o.anonScansToday)}`)}
         />
         <StatCard
           label="Revenue"
-          value={fmtIdr(o?.revenueIdr)}
-          hint={`${o?.paidOrders ?? "…"} paid · ${o?.pendingOrders ?? "…"} pending`}
+          value={stat(o ? fmtIdr(o.revenueIdr) : undefined)}
+          hint={hint(o && `${fmtNum(o.paidOrders)} paid · ${fmtNum(o.pendingOrders)} pending`)}
         />
       </div>
 
       <SectionCard title="Last 30 days — scans per day">
-        <div className="overflow-x-auto">
-          <div className="min-w-[480px]">
+        <QueryBoundary
+          query={usage}
+          skeletonRows={2}
+          isEmpty={() => false}
+          empty={{ title: "" }}
+        >
+          {() => (
             <BarChart
+              formatValue={fmtNum}
               rows={days.map((d) => ({ key: d.day, label: dayLabel(d.day), value: d.scans }))}
             />
-          </div>
-        </div>
+          )}
+        </QueryBoundary>
       </SectionCard>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <SectionCard title="Last 30 days — signups per day">
-          <div className="overflow-x-auto">
-            <div className="min-w-[380px]">
+          <QueryBoundary query={usage} skeletonRows={2} isEmpty={() => false} empty={{ title: "" }}>
+            {() => (
               <BarChart
                 height={100}
+                formatValue={fmtNum}
                 rows={days.map((d) => ({ key: d.day, label: dayLabel(d.day), value: d.signups }))}
               />
-            </div>
-          </div>
+            )}
+          </QueryBoundary>
         </SectionCard>
         <SectionCard title="Last 30 days — revenue per day">
-          <div className="overflow-x-auto">
-            <div className="min-w-[380px]">
+          <QueryBoundary query={usage} skeletonRows={2} isEmpty={() => false} empty={{ title: "" }}>
+            {() => (
               <BarChart
                 height={100}
-                formatValue={compactIdr}
+                formatValue={fmtCompact}
                 rows={days.map((d) => ({
                   key: d.day,
                   label: dayLabel(d.day),
                   value: d.revenueIdr,
                 }))}
               />
-            </div>
-          </div>
+            )}
+          </QueryBoundary>
         </SectionCard>
       </div>
 
-      <SectionCard title="Daily usage">
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Day</th>
-                <th>Scans</th>
-                <th>Scan users</th>
-                <th>Signups</th>
-                <th>Paid</th>
-                <th>Revenue</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeDays.map((d) => (
-                <tr key={d.day}>
-                  <td className="font-medium">{d.day}</td>
-                  <td>{d.scans}</td>
-                  <td>{d.scanUsers}</td>
-                  <td>{d.signups}</td>
-                  <td>{d.paid}</td>
-                  <td>{fmtIdr(d.revenueIdr)}</td>
-                </tr>
-              ))}
-              {activeDays.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="text-muted-foreground">
-                    No activity in the last 30 days.
-                  </td>
-                </tr>
+      <SectionCard title="Daily usage" flush>
+        <QueryBoundary
+          query={usage}
+          skeletonRows={3}
+          isEmpty={() => activeDays.length === 0}
+          empty={{ icon: CalendarX, title: "Belum ada aktivitas", description: "Tidak ada aktivitas dalam 30 hari terakhir." }}
+        >
+          {() => (
+            <DataList
+              rows={activeDays}
+              rowKey={(d) => d.day}
+              columns={DAY_COLUMNS}
+              switchAt="xl"
+              card={(d) => (
+                <>
+                  <div className="text-sm font-medium">{d.day}</div>
+                  <CardFacts
+                    facts={[
+                      { label: "Scans", value: fmtNum(d.scans) },
+                      { label: "Scan users", value: fmtNum(d.scanUsers) },
+                      { label: "Signups", value: fmtNum(d.signups) },
+                      { label: "Paid", value: fmtNum(d.paid) },
+                      { label: "Revenue", value: fmtIdr(d.revenueIdr) },
+                    ]}
+                  />
+                </>
               )}
-            </tbody>
-          </table>
-        </div>
+            />
+          )}
+        </QueryBoundary>
       </SectionCard>
     </div>
   );

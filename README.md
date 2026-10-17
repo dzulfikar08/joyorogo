@@ -246,6 +246,11 @@ Konsol operator internal di `apps/admin`, dilindungi server lewat variabel
 cd apps/admin && VITE_SERVER_URL=http://localhost:3000 bun run dev  # http://localhost:3002
 ```
 
+Setiap daftar (Users, Orders, Reports, Feedback, dan daftar di detail user) dipaginasi di server
+(`page`, `pageSize` 10/25/50/100, default 25; urutan `created_at desc, id desc`; respons membawa
+`total`). State (halaman, pencarian, filter, user yang dibuka) tersimpan di hash URL, mis.
+`#users?q=budi&page=2`, sehingga reload dan tombol back tetap benar. Param tidak valid dijawab 400.
+
 Deploy: `scripts/deploy.sh` build + deploy ke `admin.joyorogo.com` setelah web.
 
 ```bash

@@ -1,9 +1,29 @@
 import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
-import { Button } from "@joyorogo/ui/components/button";
+import { Button as UiButton } from "@joyorogo/ui/components/button";
+import { Input } from "@joyorogo/ui/components/input";
+import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
-import { Check, ChevronDown } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import {
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Inbox,
+  RotateCw,
+  Search,
+  TriangleAlert,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import type { ComponentProps, KeyboardEvent, ReactNode } from "react";
+import { useEffect, useState } from "react";
+import { errorMessage } from "./api";
+
+/** Shared button with a 44px minimum tap target on touch and narrow screens. */
+export function Button({ className, ...props }: ComponentProps<typeof UiButton>) {
+  return <UiButton className={cn("max-md:min-h-11 pointer-coarse:min-h-11", className)} {...props} />;
+}
 
 /** Custom dropdown on the shared headless lib: filled trigger + styled popup. */
 export function Select({
@@ -28,12 +48,12 @@ export function Select({
       <SelectPrimitive.Trigger
         data-slot="select"
         className={cn(
-          "flex h-12 min-w-0 cursor-pointer items-center justify-between gap-2 rounded-xl border border-transparent bg-muted px-3 pr-9 text-base text-foreground transition-[border-color,box-shadow,background-color] outline-none focus-visible:border-ring/60 focus-visible:bg-card focus-visible:ring-[3px] focus-visible:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-50 data-popup-open:border-ring/60 data-popup-open:bg-card data-popup-open:ring-[3px] data-popup-open:ring-ring/25",
+          "flex h-12 min-w-0 cursor-pointer items-center justify-between gap-2 rounded-xl border border-transparent bg-muted px-3 text-[0.9375rem] whitespace-nowrap text-foreground transition-[border-color,box-shadow,background-color] outline-none focus-visible:border-ring/60 focus-visible:bg-card focus-visible:ring-[3px] focus-visible:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-50 data-popup-open:border-ring/60 data-popup-open:bg-card data-popup-open:ring-[3px] data-popup-open:ring-ring/25 sm:text-base",
           className,
         )}
         {...props}
       >
-        <SelectPrimitive.Value />
+        <SelectPrimitive.Value className="truncate" />
         <SelectPrimitive.Icon>
           <ChevronDown className="pointer-events-none size-4 text-muted-foreground" />
         </SelectPrimitive.Icon>
@@ -60,7 +80,7 @@ export function Select({
   );
 }
 
-/** Confirm dialog for destructive actions: trigger button + Batal/Ya popup. */
+/** Confirm dialog for consequential actions: trigger button + Batal/Ya popup. */
 export function ConfirmAction({
   trigger,
   triggerVariant = "outline",
@@ -92,15 +112,15 @@ export function ConfirmAction({
         }
       />
       <AlertDialogPrimitive.Portal>
-        <AlertDialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/50" />
-        <AlertDialogPrimitive.Popup className="fixed top-1/2 left-1/2 z-50 w-[min(26rem,calc(100dvw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-5 text-foreground shadow-lg outline-none">
+        <AlertDialogPrimitive.Backdrop className="fixed inset-0 z-[60] bg-black/50" />
+        <AlertDialogPrimitive.Popup className="fixed top-1/2 left-1/2 z-[60] w-[min(26rem,calc(100dvw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-5 text-foreground shadow-lg outline-none">
           <AlertDialogPrimitive.Title className="text-base font-semibold">
             {title}
           </AlertDialogPrimitive.Title>
           <AlertDialogPrimitive.Description className="mt-1 text-sm text-muted-foreground">
             {description}
           </AlertDialogPrimitive.Description>
-          <div className="mt-5 flex justify-end gap-2">
+          <div className="mt-5 flex justify-end gap-2 max-sm:[&>*]:flex-1">
             <AlertDialogPrimitive.Close
               render={<Button size="sm" variant="ghost">Batal</Button>}
             />
@@ -217,9 +237,9 @@ export function StatCard({
   hint?: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="min-w-0 rounded-xl border border-border bg-card p-4">
       <div className="text-xs font-medium text-muted-foreground">{label}</div>
-      <div className="mt-1 text-2xl font-bold tabular-nums text-foreground">{value}</div>
+      <div className="mt-1 text-xl font-bold tabular-nums text-foreground sm:text-2xl">{value}</div>
       {hint && <div className="mt-0.5 text-[0.6875rem] text-muted-foreground">{hint}</div>}
     </div>
   );
@@ -228,19 +248,22 @@ export function StatCard({
 export function SectionCard({
   title,
   action,
+  flush = false,
   children,
 }: {
-  title: string;
+  title: ReactNode;
   action?: ReactNode;
+  /** No body padding: for lists/tables that run edge to edge. */
+  flush?: boolean;
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-border bg-card">
+    <section className="min-w-0 rounded-xl border border-border bg-card">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">{title}</h2>
         {action}
       </header>
-      <div className="p-4">{children}</div>
+      <div className={flush ? undefined : "p-4"}>{children}</div>
     </section>
   );
 }
@@ -270,14 +293,332 @@ export function DayBars({
   );
 }
 
-/** Server-side pagination controls: page size select + prev/next + totals. */
+// ---- lists: states, responsive rows, search, pagination ----
+
+export function StateMessage({
+  icon: Icon = Inbox,
+  title,
+  description,
+  tone = "muted",
+  action,
+}: {
+  icon?: LucideIcon;
+  title: string;
+  description?: ReactNode;
+  tone?: "muted" | "error";
+  action?: ReactNode;
+}) {
+  return (
+    <div
+      role={tone === "error" ? "alert" : "status"}
+      className="flex flex-col items-center gap-2 px-4 py-10 text-center"
+    >
+      <span
+        className={cn(
+          "grid size-11 place-items-center rounded-full",
+          tone === "error" ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground",
+        )}
+      >
+        <Icon className="size-5" aria-hidden />
+      </span>
+      <p className="text-sm font-semibold text-foreground">{title}</p>
+      {description && <p className="max-w-sm text-sm text-muted-foreground">{description}</p>}
+      {action}
+    </div>
+  );
+}
+
+/** Loading placeholder shaped like list rows. */
+export function ListSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <div className="flex flex-col gap-3 p-4" role="status" aria-label="Memuat data" aria-busy>
+      {Array.from({ length: rows }, (_, i) => (
+        <Skeleton key={i} className="h-14" />
+      ))}
+    </div>
+  );
+}
+
+type QueryLike<T> = {
+  data: T | undefined;
+  isPending: boolean;
+  isError: boolean;
+  error: unknown;
+  isPlaceholderData?: boolean;
+  refetch: () => unknown;
+};
+
+/**
+ * One loading / error / empty treatment for every query-backed list. A failed
+ * background refresh keeps the last data on screen under a retry banner.
+ */
+export function QueryBoundary<T>({
+  query,
+  isEmpty,
+  empty,
+  skeletonRows,
+  children,
+}: {
+  query: QueryLike<T>;
+  isEmpty: (data: T) => boolean;
+  empty: { title: string; description?: ReactNode; icon?: LucideIcon };
+  skeletonRows?: number;
+  children: (data: T) => ReactNode;
+}) {
+  const retry = (
+    <Button size="sm" variant="outline" onClick={() => void query.refetch()}>
+      <RotateCw className="size-4" />
+      Coba lagi
+    </Button>
+  );
+  if (query.data === undefined) {
+    if (query.isError) {
+      return (
+        <StateMessage
+          tone="error"
+          icon={TriangleAlert}
+          title="Gagal memuat data"
+          description={errorMessage(query.error)}
+          action={retry}
+        />
+      );
+    }
+    return <ListSkeleton rows={skeletonRows} />;
+  }
+  if (isEmpty(query.data)) return <StateMessage {...empty} />;
+  return (
+    <div
+      aria-busy={query.isPlaceholderData || undefined}
+      className={cn("transition-opacity", query.isPlaceholderData && "opacity-60")}
+    >
+      {query.isError && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-destructive/10 px-4 py-2 text-sm text-destructive"
+        >
+          <span>Gagal memperbarui: {errorMessage(query.error)}</span>
+          {retry}
+        </div>
+      )}
+      {children(query.data)}
+    </div>
+  );
+}
+
+export type Column<T> = {
+  key: string;
+  header: ReactNode;
+  cell: (row: T) => ReactNode;
+  /** Right-aligned, no-wrap: amounts and counts. */
+  numeric?: boolean;
+  /** Keep the cell on one line: dates, ids, counts. */
+  nowrap?: boolean;
+  className?: string;
+};
+
+// Literal class names so Tailwind sees them: table at/above the container width, cards below.
+const SWITCH = {
+  md: { table: "hidden @md:block", cards: "@md:hidden" },
+  xl: { table: "hidden @xl:block", cards: "@xl:hidden" },
+  "3xl": { table: "hidden @3xl:block", cards: "@3xl:hidden" },
+  "5xl": { table: "hidden @5xl:block", cards: "@5xl:hidden" },
+} as const;
+
+const activateOnKey = (onActivate: () => void) => (e: KeyboardEvent) => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    onActivate();
+  }
+};
+
+/**
+ * Entity list that is a table when its container is wide and stacked cards
+ * when it is narrow (container queries, so the user sheet gets cards while
+ * the full page gets the table).
+ */
+export function DataList<T>({
+  rows,
+  rowKey,
+  columns,
+  card,
+  onRowClick,
+  rowLabel,
+  switchAt = "5xl",
+}: {
+  rows: T[];
+  rowKey: (row: T, index: number) => string;
+  columns: Column<T>[];
+  card: (row: T) => ReactNode;
+  onRowClick?: (row: T) => void;
+  /** Accessible name of a clickable row. */
+  rowLabel?: (row: T) => string;
+  switchAt?: keyof typeof SWITCH;
+}) {
+  const at = SWITCH[switchAt];
+  return (
+    <div className="@container">
+      <div className={cn("table-wrap", at.table)}>
+        <table>
+          <thead>
+            <tr>
+              {columns.map((c) => (
+                <th key={c.key} className={cn(c.numeric && "text-right")}>
+                  {c.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr
+                key={rowKey(row, i)}
+                {...(onRowClick && {
+                  role: "button",
+                  tabIndex: 0,
+                  "aria-label": rowLabel?.(row),
+                  className: "cursor-pointer",
+                  onClick: () => onRowClick(row),
+                  onKeyDown: activateOnKey(() => onRowClick(row)),
+                })}
+              >
+                {columns.map((c) => (
+                  <td
+                    key={c.key}
+                    className={cn(
+                      c.numeric && "text-right tabular-nums",
+                      (c.numeric || c.nowrap) && "whitespace-nowrap",
+                      c.className,
+                    )}
+                  >
+                    {c.cell(row)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <CardList
+        rows={rows}
+        rowKey={rowKey}
+        card={card}
+        onRowClick={onRowClick}
+        rowLabel={rowLabel}
+        className={at.cards}
+      />
+    </div>
+  );
+}
+
+/** Stacked cards: the narrow-screen half of DataList, also used alone where a table never fits (the user sheet). */
+export function CardList<T>({
+  rows,
+  rowKey,
+  card,
+  onRowClick,
+  rowLabel,
+  className,
+}: {
+  rows: T[];
+  rowKey: (row: T, index: number) => string;
+  card: (row: T) => ReactNode;
+  onRowClick?: (row: T) => void;
+  rowLabel?: (row: T) => string;
+  className?: string;
+}) {
+  return (
+    <ul className={cn("divide-y divide-border", className)}>
+      {rows.map((row, i) => (
+        <li key={rowKey(row, i)}>
+          {onRowClick ? (
+            <button
+              type="button"
+              aria-label={rowLabel?.(row)}
+              onClick={() => onRowClick(row)}
+              className="block min-h-11 w-full px-4 py-3 text-left transition-colors hover:bg-muted active:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+            >
+              {card(row)}
+            </button>
+          ) : (
+            <div className="px-4 py-3">{card(row)}</div>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Label/value pairs for card bodies. */
+export function CardFacts({ facts }: { facts: { label: string; value: ReactNode }[] }) {
+  return (
+    <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+      {facts.map((f) => (
+        <div key={f.label} className="min-w-0">
+          <dt className="text-muted-foreground">{f.label}</dt>
+          <dd className="font-medium break-words text-foreground tabular-nums">{f.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** Search field that writes to the URL 300ms after typing stops; follows URL changes (back/forward). */
+export function SearchBox({
+  value,
+  onSearch,
+  placeholder,
+  label,
+}: {
+  value: string;
+  onSearch: (value: string) => void;
+  placeholder: string;
+  label: string;
+}) {
+  const [text, setText] = useState(value);
+  useEffect(() => {
+    setText(value);
+  }, [value]);
+  useEffect(() => {
+    if (text.trim() === value) return;
+    const t = setTimeout(() => onSearch(text.trim()), 300);
+    return () => clearTimeout(t);
+  }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="relative min-w-0 flex-1 basis-60">
+      <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        type="search"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder={placeholder}
+        aria-label={label}
+        className="pr-12 pl-10 [&::-webkit-search-cancel-button]:hidden"
+      />
+      {text && (
+        <button
+          type="button"
+          aria-label="Hapus pencarian"
+          onClick={() => {
+            setText("");
+            onSearch("");
+          }}
+          className="absolute top-1/2 right-0.5 grid size-11 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:text-foreground"
+        >
+          <X className="size-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Server-side pagination controls: range + total, page size select, prev/next. */
 export function Pagination({
   page,
   pageSize,
   total,
   onPage,
   onPageSize,
-  sizes = [25, 50, 100],
+  sizes = [10, 25, 50, 100],
 }: {
   page: number;
   pageSize: number;
@@ -287,36 +628,49 @@ export function Pagination({
   sizes?: number[];
 }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(total, page * pageSize);
+  const fmt = new Intl.NumberFormat("id-ID");
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
+    <nav
+      aria-label="Halaman"
+      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-border px-4 py-3 text-xs text-muted-foreground"
+    >
       <span className="tabular-nums">
-        {total} data · halaman {page} dari {totalPages}
+        {fmt.format(from)}–{fmt.format(to)} dari {fmt.format(total)}
       </span>
       <div className="flex items-center gap-2">
         <Select
           value={String(pageSize)}
           onValueChange={(v) => onPageSize(Number(v))}
           aria-label="Baris per halaman"
-          className="h-8 rounded-lg px-2 pr-7 text-xs"
+          className="h-9 rounded-lg px-2 pr-7 text-xs max-md:h-11"
           options={sizes.map((s) => ({ value: String(s), label: `${s}/hal` }))}
         />
         <Button
-          size="xs"
+          size="icon-xs"
           variant="outline"
+          aria-label="Halaman sebelumnya"
           disabled={page <= 1}
           onClick={() => onPage(page - 1)}
+          className="max-md:size-11 pointer-coarse:size-11"
         >
-          Sebelumnya
+          <ChevronLeft />
         </Button>
+        <span className="min-w-14 text-center tabular-nums">
+          {fmt.format(page)} / {fmt.format(totalPages)}
+        </span>
         <Button
-          size="xs"
+          size="icon-xs"
           variant="outline"
+          aria-label="Halaman berikutnya"
           disabled={page >= totalPages}
           onClick={() => onPage(page + 1)}
+          className="max-md:size-11 pointer-coarse:size-11"
         >
-          Berikutnya
+          <ChevronRight />
         </Button>
       </div>
-    </div>
+    </nav>
   );
 }

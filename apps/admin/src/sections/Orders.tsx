@@ -1,109 +1,148 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { SearchX } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@joyorogo/ui/components/button";
-import { Input } from "@joyorogo/ui/components/input";
-import { cn } from "@joyorogo/ui/lib/utils";
 import {
   api,
+  errorMessage,
   fmtDateTime,
-  fmtIdr,
+  fmtNum,
   get,
   orderMethod,
   type AdminOrder,
   type PagedOrders,
 } from "../api";
-import { useHashQuery } from "../hash";
-import { Badge, Pagination, Select } from "../ui";
+import { useClampPage, useHashQuery, usePaging } from "../hash";
+import { Amount, CheckOrderButton, OrderStatus } from "../order-parts";
+import {
+  Button,
+  CardFacts,
+  DataList,
+  Pagination,
+  QueryBoundary,
+  SearchBox,
+  Select,
+  type Column,
+} from "../ui";
 
-function CheckButton({
-  orderId,
-  onDone,
-  label = "Check with gateway",
-}: {
-  orderId: string;
-  onDone?: (outcome: string) => void;
-  label?: string;
-}) {
-  const [pending, setPending] = useState(false);
+const STATUSES = ["pending", "paid", "failed"];
+
+const COLUMNS = (onDone: () => void): Column<AdminOrder>[] => [
+  { key: "order", header: "Order", cell: (o) => o.orderId, nowrap: true, className: "font-mono text-[0.6875rem]" },
+  {
+    key: "user",
+    header: "User",
+    cell: (o) => (
+      <>
+        <div className="font-medium">{o.name ?? "—"}</div>
+        <div className="text-muted-foreground">{o.email}</div>
+      </>
+    ),
+  },
+  { key: "amount", header: "Amount", numeric: true, cell: (o) => <Amount value={o.amountIdr} />, className: "w-32" },
+  { key: "method", header: "Method", cell: (o) => orderMethod(o), className: "whitespace-nowrap" },
+  { key: "status", header: "Status", cell: (o) => <OrderStatus status={o.status} /> },
+  { key: "created", header: "Created", nowrap: true, cell: (o) => fmtDateTime(o.createdAt) },
+  { key: "paid", header: "Paid", nowrap: true, cell: (o) => fmtDateTime(o.paidAt) },
+  { key: "until", header: "Founder until", nowrap: true, cell: (o) => fmtDateTime(o.founderUntil) },
+  {
+    key: "check",
+    header: "",
+    cell: (o) => o.status === "pending" && <CheckOrderButton orderId={o.orderId} onDone={onDone} />,
+  },
+];
+
+function OrderCard({ order: o, onDone }: { order: AdminOrder; onDone: () => void }) {
   return (
-    <Button
-      size="xs"
-      variant="outline"
-      disabled={pending}
-      onClick={async () => {
-        setPending(true);
-        try {
-          const res = await api<{ outcome: string }>(`/api/admin/orders/${orderId}/check`, {
-            method: "POST",
-          });
-          toast.info(res.outcome);
-          onDone?.(res.outcome);
-        } catch (err) {
-          toast.error(String(err));
-        } finally {
-          setPending(false);
-        }
-      }}
-    >
-      {pending ? "Checking…" : label}
-    </Button>
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-medium">{o.name ?? "—"}</div>
+          <div className="truncate text-xs text-muted-foreground">{o.email}</div>
+        </div>
+        <span className="shrink-0 text-sm font-semibold">
+          <Amount value={o.amountIdr} />
+        </span>
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        <OrderStatus status={o.status} />
+        <span className="text-muted-foreground">{orderMethod(o)}</span>
+      </div>
+      <p className="mt-1.5 font-mono text-[0.6875rem] break-all text-muted-foreground">{o.orderId}</p>
+      <CardFacts
+        facts={[
+          { label: "Created", value: fmtDateTime(o.createdAt) },
+          { label: "Paid", value: fmtDateTime(o.paidAt) },
+          { label: "Founder until", value: fmtDateTime(o.founderUntil) },
+        ]}
+      />
+      {o.status === "pending" && (
+        <div className="mt-3">
+          <CheckOrderButton orderId={o.orderId} onDone={onDone} />
+        </div>
+      )}
+    </>
   );
 }
 
 export function OrdersSection() {
   const { params, set } = useHashQuery("orders");
-  const status = params.get("status") ?? "";
+  const statusParam = params.get("status") ?? "";
+  const status = STATUSES.includes(statusParam) ? statusParam : "";
   const q = params.get("q") ?? "";
-  const page = Number(params.get("page") ?? 1) || 1;
-  const pageSize = Number(params.get("pageSize") ?? 50) || 50;
-  const [search, setSearch] = useState(q);
+  const paging = usePaging(params, set);
   const [checkingAll, setCheckingAll] = useState(0);
 
-  // Debounce the search box into the hash param so reloads keep state.
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (search !== q) set({ q: search || null, page: null });
-    }, 300);
-    return () => clearTimeout(t);
-  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const sp = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  const sp = new URLSearchParams({
+    page: String(paging.page),
+    pageSize: String(paging.pageSize),
+  });
   if (status) sp.set("status", status);
-  if (q.trim()) sp.set("q", q.trim());
+  if (q) sp.set("q", q);
 
   const orders = useQuery({
     queryKey: ["orders", sp.toString()],
     queryFn: () => get<PagedOrders>(`/api/admin/orders?${sp}`),
     placeholderData: keepPreviousData,
   });
+  useClampPage(orders.data?.total, paging, !orders.isPlaceholderData);
 
-  const rows = orders.data?.orders ?? [];
   const refetch = () => void orders.refetch();
-  const setFilter = (patch: Record<string, string | number | null>) => set({ ...patch, page: null });
+  const filtered = Boolean(q || status);
 
-  /** Page through ALL pending orders (server-side), checking each with the gateway. */
+  /**
+   * Check every pending order with the gateway. The pending ids are collected
+   * first (paging through the whole list): checking settles orders, which
+   * would otherwise shift later pages while we walk them.
+   */
   const checkAllPending = async () => {
     setCheckingAll(1);
     try {
       const pageSizeAll = 100;
+      const ids: string[] = [];
       for (let p = 1; ; p++) {
-        const qAll = new URLSearchParams({ status: "pending", page: String(p), pageSize: String(pageSizeAll) });
+        const qAll = new URLSearchParams({
+          status: "pending",
+          page: String(p),
+          pageSize: String(pageSizeAll),
+        });
         const res = await get<PagedOrders>(`/api/admin/orders?${qAll}`);
-        if (res.orders.length === 0) break;
-        for (const o of res.orders) {
-          try {
-            const r = await api<{ outcome: string }>(`/api/admin/orders/${o.orderId}/check`, {
-              method: "POST",
-            });
-            toast.info(`${o.orderId}: ${r.outcome}`);
-          } catch (err) {
-            toast.error(`${o.orderId}: ${String(err)}`);
-          }
-          setCheckingAll((n) => n + 1);
-        }
+        ids.push(...res.orders.map((o) => o.orderId));
         if (res.orders.length < pageSizeAll || p * pageSizeAll >= res.total) break;
       }
+      for (const orderId of ids) {
+        try {
+          const r = await api<{ outcome: string }>(`/api/admin/orders/${orderId}/check`, {
+            method: "POST",
+          });
+          toast.info(`${orderId}: ${r.outcome}`);
+        } catch (err) {
+          toast.error(`${orderId}: ${errorMessage(err)}`);
+        }
+        setCheckingAll((n) => n + 1);
+      }
+    } catch (err) {
+      toast.error(errorMessage(err));
     } finally {
       setCheckingAll(0);
       refetch();
@@ -113,97 +152,63 @@ export function OrdersSection() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-60 flex-1">
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari nama, email, atau order id…"
-          />
-        </div>
-        <Select
-          value={status}
-          onValueChange={(v) => setFilter({ status: v || null })}
-          aria-label="Filter status"
-          options={[
-            { value: "", label: "Status: semua" },
-            { value: "pending", label: "Status: pending" },
-            { value: "paid", label: "Status: paid" },
-            { value: "failed", label: "Status: failed" },
-          ]}
+        <SearchBox
+          value={q}
+          onSearch={(v) => set({ q: v || null, page: null }, { replace: true })}
+          placeholder="Cari nama, email, atau order id…"
+          label="Cari order"
         />
-        <Button
-          size="sm"
-          disabled={checkingAll > 0}
-          onClick={() => void checkAllPending()}
-        >
-          {checkingAll > 0 ? `Checking… (${checkingAll})` : "Check all pending"}
-        </Button>
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+          <Select
+            value={status}
+            onValueChange={(v) => set({ status: v || null, page: null })}
+            aria-label="Filter status"
+            options={[
+              { value: "", label: "Status: semua" },
+              { value: "pending", label: "Status: pending" },
+              { value: "paid", label: "Status: paid" },
+              { value: "failed", label: "Status: failed" },
+            ]}
+          />
+          <Button
+            size="sm"
+            className="h-12 sm:h-10"
+            disabled={checkingAll > 0}
+            onClick={() => void checkAllPending()}
+          >
+            {checkingAll > 0 ? `Checking… (${fmtNum(checkingAll)})` : "Check all pending"}
+          </Button>
+        </div>
       </div>
 
-      <div className={cn("rounded-xl border border-border bg-card", orders.isPlaceholderData && "opacity-60")}>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Order</th>
-                <th>User</th>
-                <th>Amount</th>
-                <th>Method</th>
-                <th>Status</th>
-                <th>Created</th>
-                <th>Paid</th>
-                <th>Founder until</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((o) => (
-                <tr key={o.orderId}>
-                  <td className="font-mono text-[0.6875rem]">{o.orderId}</td>
-                  <td>
-                    <div className="font-medium">{o.name ?? "—"}</div>
-                    <div className="text-muted-foreground">{o.email}</div>
-                  </td>
-                  <td className="tabular-nums">{fmtIdr(o.amountIdr)}</td>
-                  <td className="whitespace-nowrap">{orderMethod(o)}</td>
-                  <td>
-                    <Badge
-                      tone={
-                        o.status === "paid" ? "green" : o.status === "pending" ? "amber" : "muted"
-                      }
-                    >
-                      {o.status}
-                    </Badge>
-                  </td>
-                  <td>{fmtDateTime(o.createdAt)}</td>
-                  <td>{fmtDateTime(o.paidAt)}</td>
-                  <td>{fmtDateTime(o.founderUntil)}</td>
-                  <td>
-                    {o.status === "pending" && <CheckButton orderId={o.orderId} onDone={refetch} />}
-                  </td>
-                </tr>
-              ))}
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="text-muted-foreground">
-                    {orders.isPending ? "Loading…" : "No orders."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        {orders.data && (
-          <div className="p-3">
-            <Pagination
-              page={orders.data.page}
-              pageSize={orders.data.pageSize}
-              total={orders.data.total}
-              onPage={(p) => set({ page: p === 1 ? null : p })}
-              onPageSize={(s) => set({ pageSize: s === 50 ? null : s, page: null })}
-            />
-          </div>
-        )}
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <QueryBoundary
+          query={orders}
+          isEmpty={(d) => d.orders.length === 0}
+          empty={{
+            icon: SearchX,
+            title: "Tidak ada order",
+            description: filtered ? "Tidak ada yang cocok dengan pencarian atau filter ini." : undefined,
+          }}
+        >
+          {(d) => (
+            <>
+              <DataList
+                rows={d.orders}
+                rowKey={(o) => o.orderId}
+                columns={COLUMNS(refetch)}
+                card={(o) => <OrderCard order={o} onDone={refetch} />}
+              />
+              <Pagination
+                page={d.page}
+                pageSize={d.pageSize}
+                total={d.total}
+                onPage={paging.setPage}
+                onPageSize={paging.setPageSize}
+              />
+            </>
+          )}
+        </QueryBoundary>
       </div>
     </div>
   );
