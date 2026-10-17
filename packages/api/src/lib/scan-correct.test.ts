@@ -83,6 +83,12 @@ describe("applyCorrection", () => {
       expect(patch.items[1]?.grams).toBe(60);
       expect(patch.items[1]?.kcal).toBe(130);
     });
+
+    test("with a stated weight and no figure at all the old kcal scales with the weight", () => {
+      // perkedel 60 g / 130 kcal -> "rolade" at a weighed 120 g: 260, not 130.
+      const patch = applyCorrection(plate, ops({ op: "rename", i: 2, name: "rolade", grams: 120 }));
+      expect(patch.items[1]).toMatchObject({ grams: 120, kcal: 260 });
+    });
   });
 
   test("half the rice scales kcal and macros, and the TKPI band follows the portion", () => {

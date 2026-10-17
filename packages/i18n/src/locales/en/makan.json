@@ -373,7 +373,7 @@
     "portion": "Portion",
     "customMultiplier": "Custom portion multiplier",
     "hint": {
-      "unlinked": "Unlinked: you set weight and calories yourself, macros follow calories.",
+      "unlinked": "Unlinked: calories you type stay as typed, even if you change the weight. Macros follow calories.",
       "linked": "Macros change with the portion. The plate price stays the same."
     },
     "loggedOn": "Logged on",

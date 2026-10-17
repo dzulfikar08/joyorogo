@@ -41,6 +41,38 @@ export function portionFromGrams(base: PortionValues, grams: number): PortionVal
   return { ...scalePortion(base, grams / base.grams), grams: Math.round(grams) };
 }
 
+/** Fields a user can type into a portion edit besides the weight itself. */
+export type PortionField = "kcal" | "protein" | "carbs" | "fat" | "fiber";
+
+/**
+ * A manual weight change: kcal and macros follow by nextGrams / prev.grams so a
+ * weighed portion never keeps the energy of the old one. Fields in `edited` were
+ * typed by the user in the same edit and keep their `prev` value here (the caller
+ * overlays what was typed). kcal rounds to whole numbers, macros to one decimal.
+ *
+ * Without a usable baseline weight only the grams change (there is no ratio);
+ * an invalid new weight (NaN, <= 0) changes nothing.
+ */
+export function rescaleForGrams(
+  prev: PortionValues,
+  nextGrams: number,
+  edited: ReadonlySet<PortionField> | readonly PortionField[] = [],
+): PortionValues {
+  if (!Number.isFinite(nextGrams) || nextGrams <= 0) return { ...prev };
+  const grams = Math.min(MAX_GRAMS, Math.max(1, Math.round(nextGrams)));
+  if (prev.grams === null || !(prev.grams > 0)) return { ...prev, grams };
+  const keep = new Set<PortionField>(edited);
+  const scaled = scalePortion(prev, nextGrams / prev.grams);
+  return {
+    grams,
+    kcal: keep.has("kcal") ? prev.kcal : scaled.kcal,
+    protein: keep.has("protein") ? prev.protein : scaled.protein,
+    carbs: keep.has("carbs") ? prev.carbs : scaled.carbs,
+    fat: keep.has("fat") ? prev.fat : scaled.fat,
+    fiber: keep.has("fiber") ? prev.fiber : scaled.fiber,
+  };
+}
+
 /** New kcal: weight and macros follow by newKcal / baseKcal. Null when the baseline has 0 kcal. */
 export function portionFromKcal(base: PortionValues, kcal: number): PortionValues | null {
   if (base.kcal <= 0) return null;
@@ -66,7 +98,8 @@ export type PortionPatch = {
 export function resolvePortion(base: PortionValues, patch: PortionPatch): PortionValues {
   let next: PortionValues = { ...base };
   if (patch.grams !== undefined && patch.kcal === undefined) {
-    next = portionFromGrams(base, patch.grams) ?? { ...base, grams: Math.round(patch.grams) };
+    const edited = (["protein", "carbs", "fat", "fiber"] as const).filter((f) => patch[f] !== undefined);
+    next = rescaleForGrams(base, patch.grams, edited);
   } else if (patch.kcal !== undefined) {
     next = portionFromKcal(base, patch.kcal) ?? { ...base, kcal: Math.round(patch.kcal) };
     if (patch.grams !== undefined) next.grams = Math.round(patch.grams);

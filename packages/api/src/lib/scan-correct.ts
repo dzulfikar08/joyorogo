@@ -5,6 +5,7 @@ import type { Locale } from "@joyorogo/i18n";
 import { localNameRule, localNameShape } from "./ai-locale";
 import { resolveFoodKind } from "./food-kind";
 import type { FoodKind } from "./food-kind";
+import { rescaleForGrams } from "./portion";
 import { calibrateItems, libraryKcal } from "./tkpi";
 import type { CalibratedItem } from "./tkpi";
 import {
@@ -191,10 +192,18 @@ function applyRename(row: Row, op: Extract<Op, { op: "rename" }>): Row | null {
   // total it volunteered), and what the curated TKPI library says for that
   // name. When both exist the higher one wins: an unsure estimate should not
   // under-count what the owner eats. Without either, the old kcal stands in
-  // and calibration bounds it by the new dish's band.
+  // and calibration bounds it by the new dish's band. A weight the user stated
+  // still scales that stand-in (old kcal * grams / old grams), never left as is.
   const fromModel = op.kcal100 !== undefined ? op.kcal100 * at : op.kcal;
   const fromLibrary = libraryKcal(op.name, grams ?? 100);
-  const kcal = bound(Math.max(fromModel ?? 0, fromLibrary ?? 0) || old.kcal, 0, 5000) ?? old.kcal;
+  const carried =
+    grams !== undefined && grams !== old.grams && old.grams
+      ? rescaleForGrams(
+          { grams: old.grams, kcal: old.kcal, protein: null, carbs: null, fat: null, fiber: null },
+          grams,
+        ).kcal
+      : old.kcal;
+  const kcal = bound(Math.max(fromModel ?? 0, fromLibrary ?? 0) || carried, 0, 5000) ?? old.kcal;
   if (kcal <= 0) return null;
   return {
     ...row,

@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 
 import { MEAL_EDIT_LABELS, jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
-import { PORTION_MULTIPLIERS, scalePortion } from "@joyorogo/api/lib/portion";
+import { PORTION_MULTIPLIERS, rescaleForGrams, scalePortion } from "@joyorogo/api/lib/portion";
 import type { PortionValues } from "@joyorogo/api/lib/portion";
 
 import { Chip } from "@/components/chip";
@@ -169,6 +169,8 @@ export function FoodPortionSheet({
   const [gramsText, setGramsText] = useState(hasGrams ? fmtField(base.grams!) : "");
   const [kcalText, setKcalText] = useState(fmtField(base.kcal));
   const [multText, setMultText] = useState("1");
+  // The user typed kcal themselves: an unlinked weight edit must not overwrite it.
+  const [kcalTyped, setKcalTyped] = useState(false);
 
   const typedKcal = parseNum(kcalText);
   const typedGrams = parseNum(gramsText);
@@ -200,22 +202,25 @@ export function FoodPortionSheet({
     setRatio(next);
     setKcalText(fmtField(s.kcal));
     setMultText(fmtField(next, 2));
+    setKcalTyped(false);
     if (hasGrams) setGramsText(fmtField(s.grams!));
   };
 
   const onGrams = (text: string) => {
     setGramsText(text);
     const grams = parseNum(text);
-    if (linked && hasGrams && grams !== null && grams > 0) {
-      const next = grams / base.grams!;
-      const s = scalePortion(base, next);
-      setRatio(next);
-      setKcalText(fmtField(s.kcal));
-    }
+    if (!hasGrams || grams === null || grams <= 0) return;
+    // Linked: the weight leads. Unlinked: kcal follows the weight too, unless kcal was typed.
+    if (!linked && kcalTyped) return;
+    setKcalTyped(false);
+    const next = rescaleForGrams(base, grams);
+    if (base.grams! > 0) setRatio(grams / base.grams!);
+    setKcalText(fmtField(next.kcal));
   };
 
   const onKcal = (text: string) => {
     setKcalText(text);
+    setKcalTyped(true);
     const kcal = parseNum(text);
     if (kcal === null || kcal < 0 || base.kcal <= 0) return;
     const next = kcal / base.kcal;

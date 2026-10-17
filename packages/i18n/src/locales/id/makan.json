@@ -363,7 +363,7 @@
     "portion": "Porsi",
     "customMultiplier": "Kelipatan porsi sendiri",
     "hint": {
-      "unlinked": "Terlepas: berat dan kalori diisi sendiri, makro ikut kalori.",
+      "unlinked": "Terlepas: kalori yang kamu ketik tetap, walau berat diubah. Makro ikut kalori.",
       "linked": "Makro ikut berubah sesuai porsi. Harga piring tidak ikut berubah."
     },
     "loggedOn": "Dicatat pada",
