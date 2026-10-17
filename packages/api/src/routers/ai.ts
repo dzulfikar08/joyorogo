@@ -38,7 +38,10 @@ import { TRANSCRIBE_MODEL, parseFoodStory, transcribeStory } from "../lib/story"
 import { MAX_SCAN_RETRIES, requireAiQuota } from "../lib/quota";
 import { wibDayBounds } from "../lib/tiers";
 import { DEFAULT_VISION_MODEL, VisionError, analyzeFoodPhoto, normalizeBox } from "../lib/vision";
-import type { ItemBox } from "../lib/vision";
+import type { ItemBox, VisionAnalysis, VisionEvent } from "../lib/vision";
+import { EventChannel } from "../lib/event-channel";
+import type { ScanStreamEvent } from "../lib/scan-live";
+import type { Context } from "../context";
 import { assertCorrectionAllowed, correctionsLeft, correctionsUsed } from "../lib/correct-limit";
 import {
   datasetEnabled,
@@ -135,241 +138,327 @@ const clientTimingSchema = z.object({
   prevRoundTripMs: timingMs.optional(),
   prevRenderMs: timingMs.optional(),
   prevCropMs: timingMs.optional(),
+  // Streaming scans: previous scan's wait for the first item name / first complete item.
+  prevFirstNameMs: timingMs.optional(),
+  prevFirstItemMs: timingMs.optional(),
 });
 
-export const aiRouter = {
-  analyzeFood: protectedProcedure
-    .input(
-      z.object({
-        // Clients send ≤1024 px images (~0.2–0.5 MB base64); 8 MB caps abuse.
-        imageBase64: z.base64().min(50).max(8_000_000),
-        mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-        // Clients that crop per item from the boxes (and save via
-        // food.addScan) skip the legacy whole-plate sticker.
-        crops: z.boolean().optional(),
-        // Phase timings (ms) the client measured, stored in ai_usage.usage_json
-        // so prod data shows where the felt latency goes. Prev* describe the
-        // previous scan of this session, which finished after its own request.
-        clientTiming: clientTimingSchema.optional(),
-      }),
-    )
-    .handler(async ({ context, input }) => {
-      const userId = context.session.user.id;
-      const requestStartedAt = Date.now();
-      const { ai, quotaReached } = await requireAiQuota(
-        context.db,
-        context.env,
-        userId,
-        context.locale,
-      );
-      const quotaMs = Date.now() - requestStartedAt;
+const analyzeFoodInput = z.object({
+  // Clients send ≤1024 px images (~0.2–0.5 MB base64); 8 MB caps abuse.
+  imageBase64: z.base64().min(50).max(8_000_000),
+  mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  // Clients that crop per item from the boxes (and save via
+  // food.addScan) skip the legacy whole-plate sticker.
+  crops: z.boolean().optional(),
+  // Phase timings (ms) the client measured, stored in ai_usage.usage_json
+  // so prod data shows where the felt latency goes. Prev* describe the
+  // previous scan of this session, which finished after its own request.
+  clientTiming: clientTimingSchema.optional(),
+});
+type AnalyzeFoodInput = z.infer<typeof analyzeFoodInput>;
 
-      // "Hasilnya akurat?" cadence: ask after every scan for a brand-new user
-      // (first 3 scans ever), otherwise at most once per WIB day. Counted
-      // before this scan's ledger row lands; awaited after inference so the
-      // roundtrips hide behind the model call. A `dilewati` dismissal counts
-      // as asked — closing the card must not re-prompt all day.
-      const feedbackGate = Promise.all([
-        context.db
-          .select({ n: sql<number>`count(*)` })
-          .from(aiUsage)
-          .where(and(eq(aiUsage.userId, userId), eq(aiUsage.scanType, "user"))),
-        context.db
-          .select({ n: sql<number>`count(*)` })
-          .from(scanFeedback)
-          .where(
-            and(
-              eq(scanFeedback.userId, userId),
-              gte(scanFeedback.createdAt, new Date(wibDayBounds(jakartaToday()).startMs)),
-            ),
-          ),
-      ]);
+/** What a handler behind protectedProcedure sees. */
+type AuthedContext = Context & { session: NonNullable<Context["session"]> };
 
-      const startedAt = Date.now();
-      const stickers = context.env.STICKERS as StickersBucket | undefined;
-      const images = context.env.IMAGES as ImagesBinding | undefined;
-      // Legacy stiker piring (older app builds): segmentation runs
-      // concurrently with inference so it adds no latency. No bucket, no cutout.
-      const cutout =
-        stickers && !input.crops
-          ? makeSticker(
-              context.env.IMAGES as ImagesBinding | undefined,
-              base64ToBytes(input.imageBase64),
-            )
-          : Promise.resolve(null);
-      // Hitung ulang support: keep the exact photo the model saw so a retry
-      // sends only the id — no recapture, no reupload, no second scan of the
-      // daily quota. The counter metadata `n` (retries used) is the
-      // server-side cap; scan-src/ objects are short-lived via lifecycle.
-      // The put runs concurrently with inference: it hides entirely behind
-      // the model call instead of adding an R2 roundtrip after it.
-      const photoBytes = base64ToBytes(input.imageBase64);
-      // The whole photo starts segmenting now, in parallel with the vision call;
-      // the boxes it returns only need cropping out of this cutout afterwards.
-      const photoSize: Promise<PhotoSize> =
-        stickers && images && input.crops ? readPhotoSize(images, photoBytes) : Promise.resolve({});
-      const wholeCutout: Promise<WholeCutout | null> = photoSize.then((size) =>
-        stickers && images && input.crops ? makeWholeCutout(images, photoBytes, size) : null,
-      );
-      const photoStored: Promise<string | null> = stickers
-        ? (async () => {
-            const id = newScanId();
-            try {
-              await stickers.put(scanSrcKey(userId, id), photoBytes, {
-                httpMetadata: { contentType: input.mimeType },
-                customMetadata: { n: "0" },
-              });
-              return id;
-            } catch {
-              return null;
-            }
-          })()
-        : Promise.resolve(null);
-      let analysis;
-      try {
-        analysis = await analyzeFoodPhoto(ai, {
-          imageBase64: input.imageBase64,
-          mimeType: input.mimeType,
-          model: context.env.AI_VISION_MODEL || undefined,
-          locale: context.locale,
-        });
-      } catch (error) {
-        // No result, no retry target: drop the photo stored alongside inference.
-        if (stickers) {
-          context.waitUntil(
-            photoStored.then((id) => (id ? stickers.delete(scanSrcKey(userId, id)) : undefined)).catch(() => {}),
-          );
-        }
-        context.waitUntil(
-          logScanFailure(context.db, userId, error, startedAt, "photo", input.clientTiming),
-        );
-        throw scanFailure(error, context.locale);
-      }
-      const latencyMs = Date.now() - startedAt;
-      const sticker = await cutout;
-      const storeSticker = async (): Promise<string | null> => {
-        if (!stickers || !sticker) return null;
-        const scanId = newScanId();
+/** What analyzeFood answers, and what the closing `done` event of analyzeFoodStream carries. */
+export type AnalyzeFoodResult = {
+  items: VisionAnalysis["items"];
+  tooMany: boolean;
+  scanId: string | null;
+  photoId: string | null;
+  retriesLeft: number;
+  quotaReached: boolean;
+  model: string;
+  askFeedback: boolean;
+};
+
+/**
+ * One photo scan: quota, the model call, the ledger row, the photo kept for
+ * "Hitung ulang" and the sticker cutouts. Behind both analyzeFood (plain) and
+ * analyzeFoodStream, which passes `onEvent` to see items while the model is
+ * still writing; the returned result is the same either way.
+ */
+async function runAnalyzeFood(
+  context: AuthedContext,
+  input: AnalyzeFoodInput,
+  onEvent?: (event: VisionEvent) => void,
+): Promise<AnalyzeFoodResult> {
+  const userId = context.session.user.id;
+  const requestStartedAt = Date.now();
+  // Request start (createContext: session lookup, then the body upload as the
+  // worker saw it) to here. Absent outside the worker (tests).
+  const receiveMs =
+    context.requestStartedAt === undefined ? undefined : requestStartedAt - context.requestStartedAt;
+  const { ai, quotaReached } = await requireAiQuota(
+    context.db,
+    context.env,
+    userId,
+    context.locale,
+  );
+  const quotaMs = Date.now() - requestStartedAt;
+
+  // "Hasilnya akurat?" cadence: ask after every scan for a brand-new user
+  // (first 3 scans ever), otherwise at most once per WIB day. Counted
+  // before this scan's ledger row lands; awaited after inference so the
+  // roundtrips hide behind the model call. A `dilewati` dismissal counts
+  // as asked — closing the card must not re-prompt all day.
+  const feedbackGate = Promise.all([
+    context.db
+      .select({ n: sql<number>`count(*)` })
+      .from(aiUsage)
+      .where(and(eq(aiUsage.userId, userId), eq(aiUsage.scanType, "user"))),
+    context.db
+      .select({ n: sql<number>`count(*)` })
+      .from(scanFeedback)
+      .where(
+        and(
+          eq(scanFeedback.userId, userId),
+          gte(scanFeedback.createdAt, new Date(wibDayBounds(jakartaToday()).startMs)),
+        ),
+      ),
+  ]);
+
+  const startedAt = Date.now();
+  const stickers = context.env.STICKERS as StickersBucket | undefined;
+  const images = context.env.IMAGES as ImagesBinding | undefined;
+  // Legacy stiker piring (older app builds): segmentation runs
+  // concurrently with inference. The response waits for it only when it
+  // outlasts the model call; current clients send `crops` and never wait.
+  const cutout =
+    stickers && !input.crops
+      ? makeSticker(
+          context.env.IMAGES as ImagesBinding | undefined,
+          base64ToBytes(input.imageBase64),
+        )
+      : Promise.resolve(null);
+  // Hitung ulang support: keep the exact photo the model saw so a retry
+  // sends only the id — no recapture, no reupload, no second scan of the
+  // daily quota. The counter metadata `n` (retries used) is the
+  // server-side cap; scan-src/ objects are short-lived via lifecycle.
+  // The put runs concurrently with inference: it hides entirely behind
+  // the model call instead of adding an R2 roundtrip after it.
+  const photoBytes = base64ToBytes(input.imageBase64);
+  // The whole photo starts segmenting now, in parallel with the vision call;
+  // the boxes it returns only need cropping out of this cutout afterwards.
+  const photoSize: Promise<PhotoSize> =
+    stickers && images && input.crops ? readPhotoSize(images, photoBytes) : Promise.resolve({});
+  const wholeCutout: Promise<WholeCutout | null> = photoSize.then((size) =>
+    stickers && images && input.crops ? makeWholeCutout(images, photoBytes, size) : null,
+  );
+  const photoStored: Promise<string | null> = stickers
+    ? (async () => {
+        const id = newScanId();
         try {
-          await stickers.put(stickerKey(scanId), sticker, {
-            httpMetadata: { contentType: "image/png" },
+          await stickers.put(scanSrcKey(userId, id), photoBytes, {
+            httpMetadata: { contentType: input.mimeType },
+            customMetadata: { n: "0" },
           });
-          return scanId;
+          return id;
         } catch {
           return null;
         }
-      };
-      // Charge only successful analyses — quota counts these ledger rows. The
-      // insert is bookkeeping the user never sees, so it runs after the
-      // response instead of adding a DB roundtrip to the critical path.
-      const ledgerId = crypto.randomUUID();
-      const ledgerUsage = {
-        ...analysis.usage,
-        itemCount: analysis.items.length,
-        ...(analysis.tooMany ? { tooMany: true } : {}),
-        ...(analysis.modelTooMany ? { modelTooMany: true } : {}),
-        serverTiming: { quotaMs, aiMs: latencyMs, totalMs: Date.now() - requestStartedAt },
-        ...(input.clientTiming ? { clientTiming: input.clientTiming } : {}),
-      };
-      const ledger = context.db
-        .insert(aiUsage)
-        .values({
-          id: ledgerId,
-          userId,
-          model: analysis.model,
-          scanType: "user",
-          latencyMs,
-          usageJson: JSON.stringify(ledgerUsage),
-        })
-        .then(
-          () => true,
-          (error: unknown) => {
-            console.error("[ai] ledger insert failed", error);
-            return false;
-          },
-        );
-      context.waitUntil(ledger);
-      // Every detected box gets its sticker right away, in waitUntil: a quick
-      // crop of the whole-photo cutout that has been segmenting since the photo
-      // arrived, then the refined per-box cut. The pending markers are written
-      // before responding, so a scanSticker call that lands first waits on
-      // them instead of cutting the same box twice. Legacy clients (no
-      // `crops`) use the plate sticker.
-      const boxes = stickers && images && input.crops ? distinctBoxes(analysis.items) : [];
-      const stickerRun: { promise: Promise<ScanStickerTiming> | null } = { promise: null };
-      const datasetOn = stickers !== undefined && datasetEnabled(context.env, userId);
-      const [scanId, photoId, [[scansEverRow], [askedTodayRow]]] = await Promise.all([
-        storeSticker(),
-        photoStored.then(async (id) => {
-          if (id && stickers && images && boxes.length > 0) {
-            const photoKey = scanSrcKey(userId, id);
-            try {
-              await Promise.all(boxes.map((box) => markBoxPending(stickers, photoKey, box)));
-              stickerRun.promise = runScanStickers({
-                images,
-                bucket: stickers,
-                userId,
-                photoKey,
-                bytes: photoBytes,
-                boxes,
-                size: await photoSize,
-                whole: wholeCutout,
-                refine: context.env.STICKER_REFINE !== "0",
-                startedAt: requestStartedAt,
-              });
-              context.waitUntil(stickerRun.promise);
-            } catch {
-              // no markers, no background cut: scanSticker claims each box itself
-            }
-          }
-          return id;
-        }),
-        feedbackGate,
-        // Owner dataset: the photo and the model's first answer, in R2 beside
-        // the scan session. Runs in parallel with the cutouts; never fails the scan.
-        datasetOn && stickers
-          ? photoStored.then((id) =>
-              recordScan(stickers, {
-                userId,
-                scanId: id ?? newScanId(),
-                photo: photoBytes,
-                mimeType: input.mimeType,
-                model: analysis.model,
-                locale: context.locale,
-                items: analysis.items,
-                tooMany: analysis.tooMany,
-              }),
-            )
-          : undefined,
-      ]);
-      // Read the real numbers off prod: the ledger row gains stickerTiming
-      // (ms since the request started) once the cuts settle.
-      const responseMs = Date.now() - requestStartedAt;
-      if (stickerRun.promise) {
-        context.waitUntil(
-          Promise.all([ledger, stickerRun.promise])
-            .then(async ([inserted, timing]) => {
-              const stickerTiming = { responseMs, ...timing };
-              console.log("[sticker]", JSON.stringify(stickerTiming));
-              if (!inserted) return;
-              await context.db
-                .update(aiUsage)
-                .set({ usageJson: JSON.stringify({ ...ledgerUsage, stickerTiming }) })
-                .where(eq(aiUsage.id, ledgerId));
-            })
-            .catch((error: unknown) => console.error("[ai] sticker timing failed", error)),
-        );
+      })()
+    : Promise.resolve(null);
+  // Streaming scans: when the first name and the first finished item reached
+  // the client, in ms since this handler started.
+  const firstSeen: { firstNameMs?: number; firstItemMs?: number } = {};
+  const report = onEvent
+    ? (event: VisionEvent) => {
+        if (event.type === "name") firstSeen.firstNameMs ??= Date.now() - requestStartedAt;
+        if (event.type === "item") firstSeen.firstItemMs ??= Date.now() - requestStartedAt;
+        onEvent(event);
       }
-      return {
-        items: analysis.items,
-        tooMany: analysis.tooMany,
-        scanId,
-        photoId,
-        retriesLeft: photoId ? MAX_SCAN_RETRIES : 0,
-        quotaReached,
-        model: analysis.model,
-        askFeedback: (scansEverRow?.n ?? 0) < 3 || (askedTodayRow?.n ?? 0) === 0,
-      };
+    : undefined;
+  let analysis;
+  try {
+    analysis = await analyzeFoodPhoto(ai, {
+      imageBase64: input.imageBase64,
+      mimeType: input.mimeType,
+      model: context.env.AI_VISION_MODEL || undefined,
+      locale: context.locale,
+      onEvent: report,
+    });
+  } catch (error) {
+    // No result, no retry target: drop the photo stored alongside inference.
+    if (stickers) {
+      context.waitUntil(
+        photoStored.then((id) => (id ? stickers.delete(scanSrcKey(userId, id)) : undefined)).catch(() => {}),
+      );
+    }
+    context.waitUntil(
+      logScanFailure(context.db, userId, error, startedAt, "photo", input.clientTiming),
+    );
+    throw scanFailure(error, context.locale);
+  }
+  const latencyMs = Date.now() - startedAt;
+  const sticker = await cutout;
+  const storeSticker = async (): Promise<string | null> => {
+    if (!stickers || !sticker) return null;
+    const scanId = newScanId();
+    try {
+      await stickers.put(stickerKey(scanId), sticker, {
+        httpMetadata: { contentType: "image/png" },
+      });
+      return scanId;
+    } catch {
+      return null;
+    }
+  };
+  // Charge only successful analyses — quota counts these ledger rows. The
+  // insert is bookkeeping the user never sees, so it runs after the
+  // response instead of adding a DB roundtrip to the critical path.
+  const ledgerId = crypto.randomUUID();
+  const serverTiming = {
+    ...(receiveMs !== undefined ? { receiveMs } : {}),
+    quotaMs,
+    aiMs: latencyMs,
+    ...(analysis.timing.ttftMs !== undefined ? { ttftMs: analysis.timing.ttftMs } : {}),
+    attempts: analysis.timing.attempts,
+    ...(onEvent ? { streamed: true, ...firstSeen } : {}),
+    totalMs: Date.now() - requestStartedAt,
+  };
+  const ledgerUsage = {
+    ...analysis.usage,
+    itemCount: analysis.items.length,
+    ...(analysis.tooMany ? { tooMany: true } : {}),
+    ...(analysis.modelTooMany ? { modelTooMany: true } : {}),
+    serverTiming,
+    ...(input.clientTiming ? { clientTiming: input.clientTiming } : {}),
+  };
+  const ledger = context.db
+    .insert(aiUsage)
+    .values({
+      id: ledgerId,
+      userId,
+      model: analysis.model,
+      scanType: "user",
+      latencyMs,
+      usageJson: JSON.stringify(ledgerUsage),
+    })
+    .then(
+      () => true,
+      (error: unknown) => {
+        console.error("[ai] ledger insert failed", error);
+        return false;
+      },
+    );
+  context.waitUntil(ledger);
+  // Every detected box gets its sticker right away, in waitUntil: a quick
+  // crop of the whole-photo cutout that has been segmenting since the photo
+  // arrived, then the refined per-box cut. The pending markers are written
+  // before responding, so a scanSticker call that lands first waits on
+  // them instead of cutting the same box twice. Legacy clients (no
+  // `crops`) use the plate sticker.
+  const boxes = stickers && images && input.crops ? distinctBoxes(analysis.items) : [];
+  const stickerRun: { promise: Promise<ScanStickerTiming> | null } = { promise: null };
+  const datasetOn = stickers !== undefined && datasetEnabled(context.env, userId);
+  const [scanId, photoId, [[scansEverRow], [askedTodayRow]]] = await Promise.all([
+    storeSticker(),
+    photoStored.then(async (id) => {
+      if (id && stickers && images && boxes.length > 0) {
+        const photoKey = scanSrcKey(userId, id);
+        try {
+          await Promise.all(boxes.map((box) => markBoxPending(stickers, photoKey, box)));
+          stickerRun.promise = runScanStickers({
+            images,
+            bucket: stickers,
+            userId,
+            photoKey,
+            bytes: photoBytes,
+            boxes,
+            size: await photoSize,
+            whole: wholeCutout,
+            refine: context.env.STICKER_REFINE !== "0",
+            startedAt: requestStartedAt,
+          });
+          context.waitUntil(stickerRun.promise);
+        } catch {
+          // no markers, no background cut: scanSticker claims each box itself
+        }
+      }
+      return id;
+    }),
+    feedbackGate,
+    // Owner dataset: the photo and the model's first answer, in R2 beside
+    // the scan session. Runs in parallel with the cutouts; never fails the scan.
+    datasetOn && stickers
+      ? photoStored.then((id) =>
+          recordScan(stickers, {
+            userId,
+            scanId: id ?? newScanId(),
+            photo: photoBytes,
+            mimeType: input.mimeType,
+            model: analysis.model,
+            locale: context.locale,
+            items: analysis.items,
+            tooMany: analysis.tooMany,
+          }),
+        )
+      : undefined,
+  ]);
+  // Read the real numbers off prod: the ledger row gains stickerTiming
+  // (ms since the request started) once the cuts settle.
+  const responseMs = Date.now() - requestStartedAt;
+  if (stickerRun.promise) {
+    context.waitUntil(
+      Promise.all([ledger, stickerRun.promise])
+        .then(async ([inserted, timing]) => {
+          const stickerTiming = { responseMs, ...timing };
+          console.log("[sticker]", JSON.stringify(stickerTiming));
+          if (!inserted) return;
+          await context.db
+            .update(aiUsage)
+            .set({
+              usageJson: JSON.stringify({
+                ...ledgerUsage,
+                serverTiming: { ...serverTiming, responseMs },
+                stickerTiming,
+              }),
+            })
+            .where(eq(aiUsage.id, ledgerId));
+        })
+        .catch((error: unknown) => console.error("[ai] sticker timing failed", error)),
+    );
+  }
+  return {
+    items: analysis.items,
+    tooMany: analysis.tooMany,
+    scanId,
+    photoId,
+    retriesLeft: photoId ? MAX_SCAN_RETRIES : 0,
+    quotaReached,
+    model: analysis.model,
+    askFeedback: (scansEverRow?.n ?? 0) < 3 || (askedTodayRow?.n ?? 0) === 0,
+  };
+}
+
+export const aiRouter = {
+  analyzeFood: protectedProcedure
+    .input(analyzeFoodInput)
+    .handler(({ context, input }) => runAnalyzeFood(context, input)),
+  // The same scan as a stream of events: each item's name as soon as the model
+  // has written it, the item with its numbers and calibration once complete,
+  // then `done` carrying exactly what analyzeFood returns. The live items are
+  // provisional (dedupe, the broth rule and the item cap only exist in the
+  // final result), so clients show them while waiting and then swap in
+  // `done`. An error ends the stream like analyzeFood's throws. analyzeFood
+  // stays for builds that cannot read an event stream.
+  analyzeFoodStream: protectedProcedure
+    .input(analyzeFoodInput)
+    .handler(async function* ({ context, input }) {
+      const channel = new EventChannel<ScanStreamEvent<AnalyzeFoodResult>>();
+      const run = runAnalyzeFood(context, input, (event) => channel.push(event));
+      // Not kept alive with waitUntil: a client that drops the stream (Batalkan)
+      // cancels the request like it does for analyzeFood, so no ledger row is
+      // written and no scan is billed for an answer nobody sees.
+      run.then(
+        (result) => {
+          channel.push({ type: "done", result });
+          channel.close();
+        },
+        (error: unknown) => channel.fail(error),
+      );
+      yield* channel;
     }),
   // "Hitung ulang": re-run the model on the SAME photo after the user judged
   // the answer wrong. Sends only the photo id — the pixels never travel
@@ -384,6 +473,7 @@ export const aiRouter = {
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
+      const requestStartedAt = Date.now();
       const t = serverT(context.locale, "errors");
       const ai = context.env.AI;
       if (!ai) {
@@ -411,6 +501,8 @@ export const aiRouter = {
       const bytes = await photo.arrayBuffer();
       const mimeType = photo.httpMetadata?.contentType;
       const startedAt = Date.now();
+      // R2 read of the kept photo (before the model can start).
+      const loadMs = startedAt - requestStartedAt;
       let analysis;
       try {
         analysis = await analyzeFoodPhoto(ai, {
@@ -425,6 +517,7 @@ export const aiRouter = {
         context.waitUntil(logScanFailure(context.db, userId, error, startedAt, "retry"));
         throw scanFailure(error, context.locale);
       }
+      const aiMs = Date.now() - startedAt;
       // Both writes come after inference: a failed or abandoned attempt
       // never consumes the cap, and ledger rows marked "retry" stay outside
       // the daily quota count (scansUsedToday only counts "user").
@@ -462,6 +555,12 @@ export const aiRouter = {
             ...(analysis.tooMany ? { tooMany: true } : {}),
             ...(analysis.modelTooMany ? { modelTooMany: true } : {}),
             ...analysis.usage,
+            serverTiming: {
+              loadMs,
+              aiMs,
+              attempts: analysis.timing.attempts,
+              totalMs: Date.now() - requestStartedAt,
+            },
           }),
         }),
       ]);

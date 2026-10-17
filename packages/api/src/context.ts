@@ -59,4 +59,10 @@ export type Context = {
   locale: Locale;
   /** Keeps background work (sticker cutouts) alive after the response. */
   waitUntil: (promise: Promise<unknown>) => void;
+  /**
+   * Date.now() when the worker began building this context. Handlers subtract
+   * it from their own start to see how long auth and the body upload took
+   * (scan timing breakdown); unset in tests.
+   */
+  requestStartedAt?: number;
 };

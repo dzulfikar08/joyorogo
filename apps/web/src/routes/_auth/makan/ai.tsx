@@ -34,6 +34,8 @@ import { isHeavyDish } from "@joyorogo/api/lib/food-kind";
 import { randomFact } from "@joyorogo/api/lib/facts";
 import { scanFailReason } from "@joyorogo/api/lib/scan-errors";
 import type { ScanFailReason } from "@joyorogo/api/lib/scan-errors";
+import { analyzeStreaming } from "@joyorogo/api/lib/scan-live";
+import type { LiveRow } from "@joyorogo/api/lib/scan-live";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { scalePortion } from "@joyorogo/api/lib/portion";
@@ -56,6 +58,7 @@ import { IdrInput } from "@/components/plate/idr-input";
 import { SaveLocationToggle } from "@/components/places/location-toggle";
 import { CORRECTED_ROW_CLASS, CorrectBadge, CorrectBox } from "@/components/scan/correct-box";
 import type { CorrectScanResult, CorrectionKind } from "@/components/scan/correct-box";
+import { LiveRows } from "@/components/scan/live-rows";
 import { STICKER_FILTER, stickerUrl } from "@/components/sticker";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { cropItems } from "@/lib/crop";
@@ -149,7 +152,13 @@ const MAX_EDGE = 1024;
 
 // Phase timings of the previous scan (this session only), reported with the
 // next analyzeFood request; cleared once sent.
-let sessionTiming: { prevRoundTripMs?: number; prevRenderMs?: number; prevCropMs?: number } = {};
+let sessionTiming: {
+  prevRoundTripMs?: number;
+  prevRenderMs?: number;
+  prevCropMs?: number;
+  prevFirstNameMs?: number;
+  prevFirstItemMs?: number;
+} = {};
 
 type SentImage = {
   base64: string;
@@ -320,6 +329,8 @@ function AiFoodPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [phase, setPhase] = useState<"idle" | "preparing" | "analyzing" | "confirm">("idle");
+  // What the model has found so far while phase is "analyzing" (analyzeFoodStream).
+  const [liveRows, setLiveRows] = useState<LiveRow[]>([]);
   const [items, setItems] = useState<AiFoodItem[]>([]);
   const [kcals, setKcals] = useState<Record<number, string>>({});
   // The exact pixels the AI saw: boxes map onto this, and it is what gets saved.
@@ -609,29 +620,51 @@ function AiFoodPage() {
     try {
       const image = await fileToImageBase64(file);
       if (runRef.current !== run) return;
+      setLiveRows([]);
       setPhase("analyzing");
       // Prev* come from the previous scan of this session: its render and
       // crop finished after its own request had already been logged.
-      const { prevRoundTripMs, prevRenderMs, prevCropMs } = sessionTiming;
+      const { prevRoundTripMs, prevRenderMs, prevCropMs, prevFirstNameMs, prevFirstItemMs } =
+        sessionTiming;
       sessionTiming = {};
       const requestAt = performance.now();
-      const result = await client.ai.analyzeFood(
-        {
-          imageBase64: image.base64,
-          mimeType: image.mimeType,
-          crops: true,
-          clientTiming: {
-            resizeMs: image.resizeMs,
-            encodeMs: image.encodeMs,
-            payloadKb: Math.round(image.blob.size / 1024),
-            prevRoundTripMs,
-            prevRenderMs,
-            prevCropMs,
-          },
+      const request = {
+        imageBase64: image.base64,
+        mimeType: image.mimeType,
+        crops: true,
+        clientTiming: {
+          resizeMs: image.resizeMs,
+          encodeMs: image.encodeMs,
+          payloadKb: Math.round(image.blob.size / 1024),
+          prevRoundTripMs,
+          prevRenderMs,
+          prevCropMs,
+          prevFirstNameMs,
+          prevFirstItemMs,
         },
-        { signal: controller.signal },
-      );
+      };
+      // Names and items show as the model writes them; the plain call covers
+      // browsers or networks that cannot read the event stream.
+      const scan = await analyzeStreaming({
+        open: () => client.ai.analyzeFoodStream(request, { signal: controller.signal }),
+        fallback: () => client.ai.analyzeFood(request, { signal: controller.signal }),
+        onRows: (rows) => {
+          if (runRef.current === run) setLiveRows(rows);
+        },
+      });
+      const result = scan.result;
       sessionTiming.prevRoundTripMs = Math.round(performance.now() - requestAt);
+      sessionTiming.prevFirstNameMs = scan.timing.firstNameMs;
+      sessionTiming.prevFirstItemMs = scan.timing.firstItemMs;
+      if (import.meta.env.DEV) {
+        console.debug("[scan] timing", {
+          resizeMs: image.resizeMs,
+          encodeMs: image.encodeMs,
+          payloadKb: request.clientTiming.payloadKb,
+          streamed: scan.streamed,
+          ...scan.timing,
+        });
+      }
       if (runRef.current !== run) return;
       setImage(image);
       applyItems(result.items);
@@ -763,6 +796,7 @@ function AiFoodPage() {
     abortRef.current?.abort();
     retryAbortRef.current?.abort();
     setPhase("idle");
+    setLiveRows([]);
     applyItems([]);
     setImage(null);
     setCrops([]);
@@ -989,6 +1023,7 @@ function AiFoodPage() {
             </div>
           </div>
         </Card>
+        {phase === "analyzing" && <LiveRows rows={liveRows} />}
         {fact && (
           <div className="mt-3 rounded-2xl bg-card p-4 text-sm">
             <span className="font-bold">{t("fact.title")} </span>

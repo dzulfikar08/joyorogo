@@ -11,6 +11,7 @@ import {
   visionResultSchema,
   type AiRunner,
   type ScheduleTimeout,
+  type VisionEvent,
 } from "./vision";
 
 const PLATE = {
@@ -360,5 +361,162 @@ describe("soup broth", () => {
     expect(dropDuplicateBroth([{ name: "mie ayam" }, { name: "kuah" }])).toEqual([
       { name: "mie ayam" },
     ]);
+  });
+});
+
+/** The model's reply as a Workers AI chat stream, `size` characters per chunk. */
+function sseBytes(text: string, size: number, finish = "stop"): Uint8Array[] {
+  const encoder = new TextEncoder();
+  const frames: string[] = [];
+  for (let i = 0; i < text.length; i += size) {
+    const delta = { content: text.slice(i, i + size) };
+    const usage = { prompt_tokens: 0, completion_tokens: 1, neurons: 0.03 };
+    frames.push(`data: ${JSON.stringify({ choices: [{ delta, finish_reason: null }], usage })}\n\n`);
+  }
+  frames.push(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: finish }] })}\n\n`);
+  frames.push(
+    `data: ${JSON.stringify({ response: "", usage: { prompt_tokens: 300, completion_tokens: 9, neurons: 4 } })}\n\n`,
+  );
+  frames.push("data: [DONE]\n\n");
+  return frames.map((frame) => encoder.encode(frame));
+}
+
+function streamOf(parts: Uint8Array[], stall = false): ReadableStream<Uint8Array> {
+  let next = 0;
+  return new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (next < parts.length) controller.enqueue(parts[next++]);
+      else if (!stall) controller.close();
+      else return new Promise<void>(() => {});
+    },
+  });
+}
+
+function streamRunner(texts: string[], size = 6, stall = false): AiRunner {
+  let call = 0;
+  return {
+    run: (_model, body) => {
+      expect(body).toMatchObject({ stream: true });
+      const text = texts[Math.min(call++, texts.length - 1)]!;
+      const parts = sseBytes(text, size);
+      // A stalled stream goes quiet after a few chunks, before [DONE].
+      return Promise.resolve(streamOf(stall ? parts.slice(0, 4) : parts, stall));
+    },
+  };
+}
+
+const STREAM_PLATE = JSON.stringify({
+  items: [
+    { name: "nasi goreng", kind: "makanan", kcal: 350, grams: 200, box: [100, 100, 600, 600] },
+    { name: "telur dadar", kind: "makanan", kcal: 130, grams: 60, box: [0, 0, 300, 300] },
+    { name: "kuah kaldu", kcal: 40, grams: 100 },
+  ],
+});
+
+describe("streaming scan", () => {
+  test("reports names before items, and the final analysis equals the plain run", async () => {
+    const events: VisionEvent[] = [];
+    const streamed = await analyzeFoodPhoto(streamRunner([STREAM_PLATE]), {
+      ...OPTS,
+      onEvent: (event) => events.push(event),
+    });
+    const plain = await analyzeFoodPhoto(jsonRunner(JSON.parse(STREAM_PLATE)), OPTS);
+
+    expect(streamed.items).toEqual(plain.items);
+    expect(streamed.tooMany).toBe(plain.tooMany);
+    expect(streamed.usage).toEqual({ prompt_tokens: 300, completion_tokens: 9, neurons: 4 });
+    expect(streamed.timing.ttftMs).toBeNumber();
+
+    expect(events.map((event) => `${event.type}${"index" in event ? event.index : ""}`)).toEqual([
+      "name0",
+      "item0",
+      "name1",
+      "item1",
+      "name2",
+      "item2",
+    ]);
+    const first = events.find((event) => event.type === "item");
+    expect(first).toMatchObject({ item: { name: "nasi goreng", kind: "makanan" } });
+  });
+
+  test("a streamed item is calibrated like its final counterpart", async () => {
+    const events: VisionEvent[] = [];
+    const streamed = await analyzeFoodPhoto(streamRunner([STREAM_PLATE], 1), {
+      ...OPTS,
+      onEvent: (event) => events.push(event),
+    });
+    for (const event of events) {
+      if (event.type !== "item") continue;
+      expect(streamed.items.find((item) => item.name === event.item.name)).toEqual(event.item);
+    }
+  });
+
+  test("dedupe and the broth rule apply only to the final answer", async () => {
+    const answer = JSON.stringify({
+      items: [
+        { name: "bakso", kcal: 380, grams: 350 },
+        { name: "kuah kaldu", kcal: 50, grams: 150 },
+      ],
+    });
+    const events: VisionEvent[] = [];
+    const streamed = await analyzeFoodPhoto(streamRunner([answer]), {
+      ...OPTS,
+      onEvent: (event) => events.push(event),
+    });
+    expect(events.filter((event) => event.type === "item")).toHaveLength(2);
+    expect(streamed.items.map((item) => item.name)).toEqual(["bakso"]);
+  });
+
+  test("a cut-off stream keeps its complete items and is flagged tooMany", async () => {
+    const cut = STREAM_PLATE.slice(0, STREAM_PLATE.indexOf("telur dadar") + 20);
+    const result = await analyzeFoodPhoto(streamRunner([cut]), { ...OPTS, onEvent: () => {} });
+    expect(result.items.map((item) => item.name)).toEqual(["nasi goreng"]);
+    expect(result.tooMany).toBe(true);
+  });
+
+  test("an unusable answer resets the display, then the retry streams a good one", async () => {
+    const events: VisionEvent[] = [];
+    const result = await analyzeFoodPhoto(
+      streamRunner(["Maaf, tidak bisa membantu.", STREAM_PLATE]),
+      { ...OPTS, onEvent: (event) => events.push(event), schedule: microtaskSchedule },
+    );
+    expect(result.items).toHaveLength(3);
+    expect(result.timing.attempts).toBe(2);
+    expect(events[0]).toEqual({ type: "reset" });
+  });
+
+  test("a stream that stalls mid-answer times out", async () => {
+    const stalled = streamRunner([STREAM_PLATE], 6, true);
+    const timer: ScheduleTimeout = (fn) => {
+      const handle = setTimeout(fn, 20);
+      return () => clearTimeout(handle);
+    };
+    await expect(
+      analyzeFoodPhoto(stalled, { ...OPTS, onEvent: () => {}, schedule: timer }),
+    ).rejects.toMatchObject({ reason: "timeout" });
+  });
+
+  test("a runner that ignores stream and answers plainly still works, without events", async () => {
+    const events: VisionEvent[] = [];
+    const result = await analyzeFoodPhoto(jsonRunner(JSON.parse(STREAM_PLATE)), {
+      ...OPTS,
+      onEvent: (event) => events.push(event),
+    });
+    expect(result.items).toHaveLength(3);
+    expect(events).toEqual([]);
+  });
+
+  test("other languages report the localName as the name", async () => {
+    const answer = JSON.stringify({
+      items: [{ name: "nasi goreng", localName: "Fried rice", kcal: 350, grams: 200 }],
+    });
+    const events: VisionEvent[] = [];
+    const result = await analyzeFoodPhoto(streamRunner([answer]), {
+      ...OPTS,
+      locale: "en",
+      onEvent: (event) => events.push(event),
+    });
+    expect(events[0]).toEqual({ type: "name", index: 0, name: "Fried rice" });
+    expect(result.items[0]?.name).toBe("Fried rice");
   });
 });

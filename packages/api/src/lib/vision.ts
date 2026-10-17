@@ -2,8 +2,10 @@ import { z } from "zod";
 import { DEFAULT_LOCALE } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 import { localNameRule, localNameShape } from "./ai-locale";
+import { ChatStreamDecoder } from "./chat-stream";
 import { resolveFoodKind } from "./food-kind";
 import type { FoodKind } from "./food-kind";
+import { ItemScanner, scanItems } from "./item-stream";
 import type { ScanFailReason } from "./scan-errors";
 import { calibrateItems } from "./tkpi";
 import type { CalibratedItem } from "./tkpi";
@@ -121,6 +123,8 @@ export type VisionAnalysis = {
   tooMany: boolean;
   /** The model set its own tooMany flag (logged for tuning; does not drive the UI). */
   modelTooMany?: boolean;
+  /** Where the model call's time went (ms): the whole attempt, and for a stream the wait for the first token. */
+  timing: { modelMs: number; ttftMs?: number; attempts: number };
 };
 
 /** Handles every Workers AI response shape: text, {response}, {result}, chat. */
@@ -205,20 +209,15 @@ export function retryInstruction(hint?: string): string {
   return hint ? `${base} Catatan pengguna: "${hint}".` : base;
 }
 
-/**
- * One inference call with a hard wall-clock deadline. Workers AI cannot be
- * cancelled, so timing out only stops OUR wait — the underlying run keeps
- * burning tokens until it finishes. That is still the right trade: the user
- * gets an error at the deadline instead of an open-ended spinner.
- */
-export function runVisionOnce(
-  ai: AiRunner,
-  model: string,
-  opts: { imageBase64: string; mimeType: string; instruction?: string; locale?: Locale },
-  timeoutMs: number,
-  schedule: ScheduleTimeout = defaultSchedule,
-): Promise<unknown> {
-  const run = ai.run(model, {
+type VisionRunOptions = {
+  imageBase64: string;
+  mimeType: string;
+  instruction?: string;
+  locale?: Locale;
+};
+
+function visionRequest(opts: VisionRunOptions) {
+  return {
     messages: [
       {
         role: "user",
@@ -239,13 +238,121 @@ export function runVisionOnce(
     max_tokens: MAX_COMPLETION_TOKENS,
     // Thinking quintuples latency for no measurable accuracy gain on plates.
     chat_template_kwargs: { enable_thinking: false },
-  });
+  };
+}
+
+/**
+ * One inference call with a hard wall-clock deadline. Workers AI cannot be
+ * cancelled, so timing out only stops OUR wait — the underlying run keeps
+ * burning tokens until it finishes. That is still the right trade: the user
+ * gets an error at the deadline instead of an open-ended spinner.
+ */
+export function runVisionOnce(
+  ai: AiRunner,
+  model: string,
+  opts: VisionRunOptions,
+  timeoutMs: number,
+  schedule: ScheduleTimeout = defaultSchedule,
+): Promise<unknown> {
+  const run = ai.run(model, visionRequest(opts));
   // The losing run must never surface as an unhandled rejection after the
   // race has settled on the timeout.
   run.catch(() => {});
   const { promise: deadline, reject } = Promise.withResolvers<never>();
   const cancel = schedule(() => reject(new Error("vision-timeout")), timeoutMs);
   return Promise.race([run, deadline]).finally(cancel);
+}
+
+function isReadableStream(value: unknown): value is ReadableStream<Uint8Array | string> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "getReader" in value &&
+    typeof value.getReader === "function"
+  );
+}
+
+/** What a streaming scan shows before the final answer is parsed. */
+export type VisionEvent =
+  /** A new attempt starts (the previous one failed): drop what was shown. */
+  | { type: "reset" }
+  /** An item's name is known; its numbers are still being written. */
+  | { type: "name"; index: number; name: string }
+  /** An item is complete: numbers, box and calibration. */
+  | { type: "item"; index: number; item: StreamedItem };
+
+/** Wall-clock marks of one streaming attempt, ms since the run started. */
+export type StreamTiming = { ttftMs?: number };
+
+/**
+ * Like runVisionOnce, but asks Workers AI for `stream: true` and reports the
+ * items as the single-line JSON grows. Resolves to a chat-completion-shaped
+ * object (content, finish_reason, usage) so the caller's parsing is the same
+ * as for a plain run. The deadline covers the whole stream: a model that
+ * stalls mid-answer times out like one that never started. A runner that
+ * ignores `stream` and answers with a plain object passes straight through,
+ * with no events.
+ */
+export async function runVisionStream(
+  ai: AiRunner,
+  model: string,
+  opts: VisionRunOptions,
+  timeoutMs: number,
+  onEvent: (event: VisionEvent) => void,
+  timing: StreamTiming = {},
+  schedule: ScheduleTimeout = defaultSchedule,
+): Promise<unknown> {
+  const startedAt = Date.now();
+  const run = ai.run(model, { ...visionRequest(opts), stream: true });
+  run.catch(() => {});
+  const { promise: deadline, reject } = Promise.withResolvers<never>();
+  deadline.catch(() => {});
+  const cancel = schedule(() => reject(new Error("vision-timeout")), timeoutMs);
+  const locale = opts.locale ?? DEFAULT_LOCALE;
+  try {
+    const stream = await Promise.race([run, deadline]);
+    const reader = isReadableStream(stream) ? stream.getReader() : null;
+    if (!reader) return stream;
+    const bytes = new TextDecoder();
+    const sse = new ChatStreamDecoder();
+    const scanner = new ItemScanner(locale !== DEFAULT_LOCALE);
+    const report = (added: string) => {
+      if (!added) return;
+      timing.ttftMs ??= Date.now() - startedAt;
+      for (const event of scanner.push(added)) {
+        if (event.index >= MAX_ITEMS) continue;
+        if (event.kind === "name") {
+          const name = (locale === DEFAULT_LOCALE ? event.name : event.localName)?.trim();
+          if (name) onEvent({ type: "name", index: event.index, name: name.slice(0, 120) });
+        } else {
+          const item = previewItem(event.raw, locale);
+          if (item) onEvent({ type: "item", index: event.index, item });
+        }
+      }
+    };
+    try {
+      while (!sse.done) {
+        const { done, value } = await Promise.race([reader.read(), deadline]);
+        if (done) break;
+        report(sse.push(typeof value === "string" ? value : bytes.decode(value, { stream: true })));
+      }
+      report(sse.flush());
+    } catch (error) {
+      reader.cancel().catch(() => {});
+      throw error;
+    }
+    return {
+      choices: [
+        {
+          message: { content: sse.text, reasoning: sse.reasoning },
+          finish_reason: sse.finish,
+        },
+      ],
+      usage: sse.usage,
+    };
+  } finally {
+    cancel();
+  }
 }
 
 /** Bound model numbers and round to one decimal. */
@@ -314,45 +421,78 @@ function problemReason(problem: string | undefined): ScanFailReason | null {
  * Braces inside strings do not count; the unfinished last object is dropped.
  */
 export function salvageItems(text: string): unknown[] {
-  const key = text.search(/"items"\s*:\s*\[/);
-  if (key === -1) return [];
-  const out: unknown[] = [];
-  let depth = 0;
-  let start = -1;
-  let inString = false;
-  let escaped = false;
-  for (let i = text.indexOf("[", key) + 1; i < text.length; i++) {
-    const ch = text[i];
-    if (inString) {
-      if (escaped) escaped = false;
-      else if (ch === "\\") escaped = true;
-      else if (ch === '"') inString = false;
-    } else if (ch === '"') {
-      inString = true;
-    } else if (ch === "{") {
-      if (depth === 0) start = i;
-      depth += 1;
-    } else if (ch === "}") {
-      depth -= 1;
-      if (depth === 0 && start !== -1) {
-        try {
-          out.push(JSON.parse(text.slice(start, i + 1)));
-        } catch {
-          // a malformed object is skipped, the rest still counts
-        }
-        start = -1;
-      } else if (depth < 0) {
-        break;
-      }
-    } else if (ch === "]" && depth === 0) {
-      break;
-    }
-  }
-  return out;
+  return scanItems(text);
 }
 
 /** The model's tooMany flag is believed only with at least this many items. */
 const MODEL_FLAG_MIN_ITEMS = 8;
+
+type ParsedItem = z.infer<typeof visionItemSchema>;
+
+/** A model item with bounded numbers and a validated box; `kcal` is gone when it was not a number. */
+type BoundItem = Omit<ParsedItem, "box" | "kind" | "kcal"> & {
+  box: ItemBox | undefined;
+  kind: string | undefined;
+  kcal: number | undefined;
+};
+type UsableItem = BoundItem & { kcal: number };
+
+function boundItem({ box, kind, ...item }: ParsedItem): BoundItem {
+  return {
+    ...item,
+    box: normalizeBox(box),
+    kind,
+    kcal: clamp(item.kcal, 0, 5000),
+    grams: clamp(item.grams, 1, 5000),
+    protein: clamp(item.protein, 0, 500),
+    carbs: clamp(item.carbs, 0, 500),
+    fat: clamp(item.fat, 0, 500),
+    fiber: clamp(item.fiber, 0, 200),
+    confidence: clamp(item.confidence, 0, 1),
+  };
+}
+
+function isUsable(item: BoundItem): item is UsableItem {
+  return item.kcal !== undefined && item.kcal > 0 && item.name.length > 0;
+}
+
+/** Calibrates against TKPI item by item; boxes, kinds and local names re-attach by index. */
+function calibrateRaw(raw: UsableItem[]) {
+  const calibrated = calibrateItems(raw.map(({ box: _box, kind: _kind, ...item }) => item));
+  return calibrated.map((item, index) => ({
+    ...item,
+    box: raw[index]!.box,
+    kind: resolveFoodKind(item.name, raw[index]!.kind),
+    localName: raw[index]!.localName,
+  }));
+}
+
+/** Matching, broth and kind detection use the Indonesian name; the user sees theirs. */
+function localizeName<T extends { name: string; localName?: string }>(
+  { localName, ...item }: T,
+  locale: Locale,
+): Omit<T, "localName"> {
+  return {
+    ...item,
+    name: locale === DEFAULT_LOCALE ? item.name : localName?.trim().slice(0, 120) || item.name,
+  };
+}
+
+/** An item as it appears on screen: calibrated, before dedupe and the broth rule. */
+export type StreamedItem = VisionAnalysis["items"][number];
+
+/**
+ * One finished item of a streaming answer, calibrated exactly like the final
+ * result (calibration is per item) but without the whole-plate dedupe and
+ * broth rules, which need every item. Null for a malformed or empty item.
+ */
+export function previewItem(entry: unknown, locale: Locale = DEFAULT_LOCALE): StreamedItem | null {
+  const parsed = visionItemSchema.safeParse(entry);
+  if (!parsed.success) return null;
+  const bounded = boundItem(parsed.data);
+  if (!isUsable(bounded)) return null;
+  return localizeName(calibrateRaw([bounded])[0]!, locale);
+}
 
 /**
  * Parse, bound, calibrate against TKPI, and dedupe one model answer. A
@@ -386,40 +526,10 @@ export function parseAnswer(
     const parsed = visionItemSchema.safeParse(entry);
     return parsed.success ? [parsed.data] : [];
   });
-  const raw = valid
-    .slice(0, MAX_ITEMS)
-    .map(({ box, kind, ...item }) => ({
-      ...item,
-      box: normalizeBox(box),
-      kind,
-      kcal: clamp(item.kcal, 0, 5000),
-      grams: clamp(item.grams, 1, 5000),
-      protein: clamp(item.protein, 0, 500),
-      carbs: clamp(item.carbs, 0, 500),
-      fat: clamp(item.fat, 0, 500),
-      fiber: clamp(item.fiber, 0, 200),
-      confidence: clamp(item.confidence, 0, 1),
-    }))
-    .filter(
-      (item): item is typeof item & { kcal: number } =>
-        item.kcal !== undefined && item.kcal > 0 && item.name.length > 0,
-    );
-  // calibrateItems maps 1:1, so boxes and kinds re-attach by index.
-  const calibrated = calibrateItems(raw.map(({ box: _box, kind: _kind, ...item }) => item));
-  const items = dropDuplicateBroth(
-    dedupeItems(
-      calibrated.map((item, index) => ({
-        ...item,
-        box: raw[index]!.box,
-        kind: resolveFoodKind(item.name, raw[index]!.kind),
-        localName: raw[index]!.localName,
-      })),
-    ),
-  ).map(({ localName, ...item }) => ({
-    ...item,
-    // Matching, broth and kind detection used the Indonesian name; the user sees theirs.
-    name: locale === DEFAULT_LOCALE ? item.name : localName?.trim().slice(0, 120) || item.name,
-  }));
+  const raw = valid.slice(0, MAX_ITEMS).map(boundItem).filter(isUsable);
+  const items = dropDuplicateBroth(dedupeItems(calibrateRaw(raw))).map((item) =>
+    localizeName(item, locale),
+  );
   return {
     items,
     // Real evidence only: the answer was cut off, or it filled the cap. The
@@ -454,6 +564,11 @@ export async function analyzeFoodPhoto(
     retry?: { hint?: string };
     /** Language of the item names and portions in the result; default Indonesian. */
     locale?: Locale;
+    /**
+     * Stream the answer and report items as they complete. The returned
+     * analysis is parsed from the whole text, identical to a plain run.
+     */
+    onEvent?: (event: VisionEvent) => void;
     /** Injectable for tests. */
     timeouts?: [number, number];
     /** Injectable for tests — deterministic deadlines without real timers. */
@@ -471,19 +586,27 @@ export async function analyzeFoodPhoto(
   for (const [attempt, timeoutMs] of deadlines.entries()) {
     const attemptStartedAt = Date.now();
     attempts = attempt + 1;
+    const streamTiming: StreamTiming = {};
     try {
-      const result = await runVisionOnce(
-        ai,
-        model,
-        {
-          imageBase64: opts.imageBase64,
-          mimeType: opts.mimeType,
-          instruction: opts.retry ? retryInstruction(opts.retry.hint) : undefined,
-          locale: opts.locale,
-        },
-        timeoutMs,
-        opts.schedule,
-      );
+      if (opts.onEvent && attempt > 0) opts.onEvent({ type: "reset" });
+      const runOptions = {
+        imageBase64: opts.imageBase64,
+        mimeType: opts.mimeType,
+        instruction: opts.retry ? retryInstruction(opts.retry.hint) : undefined,
+        locale: opts.locale,
+      };
+      const result = opts.onEvent
+        ? await runVisionStream(
+            ai,
+            model,
+            runOptions,
+            timeoutMs,
+            opts.onEvent,
+            streamTiming,
+            opts.schedule,
+          )
+        : await runVisionOnce(ai, model, runOptions, timeoutMs, opts.schedule);
+      const modelMs = Date.now() - attemptStartedAt;
       finish = finishReasonOf(result);
       usage = extractUsage(result);
       const text = responseText(result);
@@ -502,6 +625,7 @@ export async function analyzeFoodPhoto(
           usage,
           tooMany: answer.tooMany,
           ...(answer.modelTooMany ? { modelTooMany: true } : {}),
+          timing: { modelMs, ...streamTiming, attempts },
         };
       }
       // The model's own verdict, or a valid empty list: the same photo gives

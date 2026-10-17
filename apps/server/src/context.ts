@@ -20,6 +20,7 @@ export type CreateContextOptions = {
 };
 
 export async function createContext({ context }: CreateContextOptions): Promise<ApiContext> {
+  const requestStartedAt = Date.now();
   // Verified from the signed session_data cookie while it is fresh (see the
   // cookieCache note in @joyorogo/auth); otherwise one D1 session lookup.
   const session = await (
@@ -35,6 +36,7 @@ export async function createContext({ context }: CreateContextOptions): Promise<
     locale: requestLocale(context),
     clientIp: context.req.header("CF-Connecting-IP") ?? null,
     waitUntil: (promise) => context.executionCtx.waitUntil(promise),
+    requestStartedAt,
   };
 }
 export type Context = ApiContext;

@@ -63,6 +63,9 @@ import type { MealStory } from "@/components/story/story-card";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtGramsLabel, fmtInt, parseNum } from "@/utils/format";
 import { client, isPaywallError, orpc, queryClient } from "@/utils/orpc";
+import { LiveRows } from "@/components/scan/live-rows";
+import { analyzeStreaming } from "@joyorogo/api/lib/scan-live";
+import type { LiveRow } from "@joyorogo/api/lib/scan-live";
 import { StickerMini } from "@/components/sticker";
 
 type AnalyzedItem = {
@@ -101,7 +104,13 @@ const MAX_SIDE = 1024;
 
 // Phase timings of the previous scan (this session only), reported with the
 // next analyzeFood request; cleared once sent.
-let sessionTiming: { prevRoundTripMs?: number; prevRenderMs?: number; prevCropMs?: number } = {};
+let sessionTiming: {
+  prevRoundTripMs?: number;
+  prevRenderMs?: number;
+  prevCropMs?: number;
+  prevFirstNameMs?: number;
+  prevFirstItemMs?: number;
+} = {};
 
 /** Fun portion stat, same as the web confirm card: 600 kcal = one geprek. */
 const GEPREK_KCAL = 600;
@@ -277,7 +286,15 @@ function sameBox(a: number[] | undefined, b: number[] | undefined) {
   return !!a && !!b && a.length === b.length && a.every((value, i) => value === b[i]);
 }
 
-function AnalyzingOverlay({ previewUri, onCancel }: { previewUri: string; onCancel: () => void }) {
+function AnalyzingOverlay({
+  previewUri,
+  rows,
+  onCancel,
+}: {
+  previewUri: string;
+  rows: LiveRow[];
+  onCancel: () => void;
+}) {
   const { t } = useTranslation("scan");
   const [stage, setStage] = useState(0);
   useEffect(() => {
@@ -293,6 +310,7 @@ function AnalyzingOverlay({ previewUri, onCancel }: { previewUri: string; onCanc
       <View style={styles.analyzingShade}>
         <ActivityIndicator size="large" color="#FFFFFF" />
         <Text style={styles.analyzingText}>{t(`analyzing.stage.${ANALYZE_STAGES[stage]}`)}</Text>
+        <LiveRows rows={rows} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("analyzing.cancelLabel")}
@@ -338,6 +356,12 @@ export default function MakanAi() {
   const [cropping, setCropping] = useState(false);
   const cropRunRef = useRef(0);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+  // The scan request: running flag, what the model has found so far, and the
+  // handle that lets "Batal" drop the answer (and the stream) of an old run.
+  const [analyzing, setAnalyzing] = useState(false);
+  const [liveRows, setLiveRows] = useState<LiveRow[]>([]);
+  const scanRunRef = useRef(0);
+  const scanAbortRef = useRef<AbortController | null>(null);
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
   const ramadan = effectiveRamadan(profile.data?.profile?.ramadanMode);
   const MEAL_KEYS = ALL_MEAL_KEYS.filter((key) => slotsFor(ramadan).includes(key));
@@ -355,7 +379,6 @@ export default function MakanAi() {
   // items and shows guidance until the user keeps them or reshoots.
   const [tooMany, setTooMany] = useState(false);
 
-  const analyze = useMutation(orpc.ai.analyzeFood.mutationOptions());
   const retry = useMutation(orpc.ai.analyzeFoodRetry.mutationOptions());
   const saveFeedback = useMutation(orpc.ai.saveScanFeedback.mutationOptions());
   const addScan = useMutation(orpc.food.addScan.mutationOptions());
@@ -454,7 +477,10 @@ export default function MakanAi() {
     setFlagged(null);
     setBaseline({ items: [], origin: [] });
     correct.reset();
-    analyze.reset();
+    scanRunRef.current += 1;
+    scanAbortRef.current?.abort();
+    setAnalyzing(false);
+    setLiveRows([]);
     retry.reset();
     setPhase("camera");
   };
@@ -562,12 +588,18 @@ export default function MakanAi() {
       }
       // Prev* come from the previous scan of this session: its render and
       // crop finished after its own request had already been logged.
-      const { prevRoundTripMs, prevRenderMs, prevCropMs } = sessionTiming;
+      const { prevRoundTripMs, prevRenderMs, prevCropMs, prevFirstNameMs, prevFirstItemMs } =
+        sessionTiming;
       sessionTiming = {};
+      const run = ++scanRunRef.current;
+      const abort = new AbortController();
+      scanAbortRef.current = abort;
+      setLiveRows([]);
+      setAnalyzing(true);
       const requestAt = performance.now();
-      const result = await analyze.mutateAsync({
+      const request = {
         imageBase64: saved.base64,
-        mimeType: "image/jpeg",
+        mimeType: "image/jpeg" as const,
         crops: true,
         clientTiming: {
           ...(captureMs !== undefined ? { captureMs } : {}),
@@ -577,9 +609,40 @@ export default function MakanAi() {
           prevRoundTripMs,
           prevRenderMs,
           prevCropMs,
+          prevFirstNameMs,
+          prevFirstItemMs,
         },
-      });
+      };
+      let scan;
+      try {
+        // Names and items show as the model writes them; the plain call
+        // covers builds or networks that cannot read the event stream.
+        scan = await analyzeStreaming({
+          open: () => client.ai.analyzeFoodStream(request, { signal: abort.signal }),
+          fallback: () => client.ai.analyzeFood(request, { signal: abort.signal }),
+          onRows: (rows) => {
+            if (scanRunRef.current === run) setLiveRows(rows);
+          },
+        });
+      } finally {
+        if (scanRunRef.current === run) setAnalyzing(false);
+      }
+      // Batal while the model was working: drop the answer.
+      if (scanRunRef.current !== run) return;
+      const result = scan.result;
       sessionTiming.prevRoundTripMs = Math.round(performance.now() - requestAt);
+      sessionTiming.prevFirstNameMs = scan.timing.firstNameMs;
+      sessionTiming.prevFirstItemMs = scan.timing.firstItemMs;
+      if (__DEV__) {
+        console.log("[scan] timing", {
+          captureMs,
+          resizeMs,
+          encodeMs,
+          payloadKb: request.clientTiming.payloadKb,
+          streamed: scan.streamed,
+          ...scan.timing,
+        });
+      }
       setQuotaReached(result.quotaReached);
       setPhotoId(result.photoId ?? null);
       setRetriesLeft(result.retriesLeft ?? 0);
@@ -646,6 +709,8 @@ export default function MakanAi() {
         result.items.map(() => null),
       );
     } catch (e) {
+      // Batal aborts the request on purpose; the screen is already back on the camera.
+      if (e instanceof Error && e.name === "AbortError") return;
       // Out of free scans: paywall now, not just an error line.
       if (isPaywallError(e)) {
         router.replace({ pathname: "/founder", params: { from: "quota" } });
@@ -1041,8 +1106,8 @@ export default function MakanAi() {
         >
           <Ionicons name="close" size={24} color="#FFFFFF" />
         </Pressable>
-        {analyze.isPending && previewUri ? (
-          <AnalyzingOverlay previewUri={previewUri} onCancel={resetToCamera} />
+        {analyzing && previewUri ? (
+          <AnalyzingOverlay previewUri={previewUri} rows={liveRows} onCancel={resetToCamera} />
         ) : (
           <>
             <View style={styles.shutterRow}>
@@ -1067,11 +1132,11 @@ export default function MakanAi() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={t("idle.gallery")}
-                  disabled={analyze.isPending}
+                  disabled={analyzing}
                   onPress={() => void pickFromGallery()}
                   style={({ pressed }) => [
                     styles.galleryButton,
-                    analyze.isPending && styles.disabled,
+                    analyzing && styles.disabled,
                     pressed && styles.shutterPressed,
                   ]}
                 >
@@ -1080,7 +1145,7 @@ export default function MakanAi() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={t("camera.shutter")}
-                  disabled={analyze.isPending}
+                  disabled={analyzing}
                   onPress={() => void capture()}
                   style={({ pressed }) => [styles.shutterOuter, pressed && styles.shutterPressed]}
                 >
