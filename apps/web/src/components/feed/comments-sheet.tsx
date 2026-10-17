@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Send, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 import { removeById, upsertById } from "@joyorogo/api/lib/optimistic";
@@ -40,6 +41,7 @@ export function CommentsSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation("feed");
   const queryClient = useQueryClient();
   const session = useSession();
   const myId = session.data?.user.id ?? null;
@@ -93,7 +95,7 @@ export function CommentsSheet({
         });
       }
       return {
-        message: "Komentar terkirim",
+        message: t("comments.toast.sent"),
         undo: () => {
           queryClient.setQueryData<{ items: FeedComment[] }>(commentsKey, (old) =>
             old ? { ...old, items: removeById(old.items, row.id) } : old,
@@ -110,7 +112,7 @@ export function CommentsSheet({
         old ? { ...old, items: removeById(old.items, row.id) } : old,
       );
     },
-    label: () => "Komentar",
+    label: () => t("comments.undoLabel"),
     invalidate: () => [orpc.social.key()],
   });
 
@@ -120,8 +122,8 @@ export function CommentsSheet({
     <Sheet
       open={open}
       onOpenChange={onOpenChange}
-      title="Komentar"
-      description={isOwn ? "Komentar di postinganmu" : `Di postingan ${post.author.name}`}
+      title={t("comments.title")}
+      description={isOwn ? t("comments.own") : t("comments.other", { name: post.author.name })}
     >
       <div className="space-y-3">
         {comments.isPending ? (
@@ -132,11 +134,11 @@ export function CommentsSheet({
         ) : comments.error ? (
           <ScreenError message={comments.error.message} onRetry={() => comments.refetch()} />
         ) : items.length === 0 ? (
-          <EmptyHint title="Belum ada komentar" pose="wink">
-            Jadi yang pertama memberi semangat lewat komentar.
+          <EmptyHint title={t("comments.empty.title")} pose="wink">
+            {t("comments.empty.body")}
           </EmptyHint>
         ) : (
-          <ul className="space-y-3" aria-label="Daftar komentar">
+          <ul className="space-y-3" aria-label={t("comments.list")}>
             {items.map((comment) => (
               <li key={comment.id} className="flex items-start gap-2.5">
                 <span className="shrink-0">
@@ -162,7 +164,7 @@ export function CommentsSheet({
                 {(isOwn || comment.author.id === myId) && (
                   <button
                     type="button"
-                    aria-label="Hapus komentar"
+                    aria-label={t("comments.delete")}
                     className="-mr-1 flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                     onClick={() => removeComment(comment)}
                   >
@@ -188,24 +190,27 @@ export function CommentsSheet({
               value={body}
               onChange={(event) => setBody(event.target.value)}
               maxLength={280}
-              placeholder="Tulis komentar..."
-              aria-label="Tulis komentar"
+              placeholder={t("comments.placeholder")}
+              aria-label={t("comments.label")}
             />
             <Button
               type="submit"
               size="icon"
               disabled={add.isPending || body.trim().length === 0}
-              aria-label="Kirim komentar"
+              aria-label={t("comments.send")}
             >
               <Send className="size-4" aria-hidden />
             </Button>
           </form>
         ) : (
           <p className="text-center text-sm text-muted-foreground">
-            <Link to="/login" className="font-bold text-primary hover:underline">
-              Masuk
-            </Link>{" "}
-            untuk ikut berkomentar.
+            <Trans
+              ns="feed"
+              i18nKey="comments.signIn"
+              components={{
+                link: <Link to="/login" className="font-bold text-primary hover:underline" />,
+              }}
+            />
           </p>
         )}
       </div>

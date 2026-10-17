@@ -3,6 +3,7 @@ import { Input } from "@joyorogo/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AtSign, Check, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Card } from "@/components/kit/surface";
@@ -17,6 +18,7 @@ const dismissKey = (userId: string) => `jrg-handle-prompt-${userId}`;
  * di perangkat ini supaya tidak muncul lagi.
  */
 export function HandlePrompt({ className }: { className?: string }) {
+  const { t } = useTranslation(["feed", "common"]);
   const queryClient = useQueryClient();
   const session = useSession();
   const userId = session.data?.user.id ?? null;
@@ -49,7 +51,7 @@ export function HandlePrompt({ className }: { className?: string }) {
   const save = useMutation({
     mutationFn: (handle: string) => client.social.updateProfile({ handle }),
     onSuccess: async () => {
-      toast.success("Nama pengguna tersimpan.");
+      toast.success(t("handle.toast.saved"));
       await queryClient.invalidateQueries({ queryKey: orpc.social.key() });
     },
     onError: (error) => toast.error(error.message),
@@ -68,19 +70,18 @@ export function HandlePrompt({ className }: { className?: string }) {
   };
 
   return (
-    <Card className={className} aria-label="Pilih nama pengguna">
+    <Card className={className} aria-label={t("handle.title")}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <AtSign className="size-5 text-makan" aria-hidden />
-          <h2 className="text-base font-bold">Pilih nama pengguna</h2>
+          <h2 className="text-base font-bold">{t("handle.title")}</h2>
         </div>
-        <Button variant="ghost" size="icon" aria-label="Tutup" onClick={dismiss}>
+        <Button variant="ghost" size="icon" aria-label={t("common:actions.close")} onClick={dismiss}>
           <X className="size-4" aria-hidden />
         </Button>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        Namamu di feed masih sementara ({profile.data?.handle}). Pilih yang kamu suka, ini jadi
-        tautan profilmu.
+        {t("handle.body", { handle: profile.data?.handle })}
       </p>
 
       <Input
@@ -88,8 +89,8 @@ export function HandlePrompt({ className }: { className?: string }) {
         value={value}
         onChange={(event) => setValue(event.target.value.toLowerCase())}
         maxLength={20}
-        placeholder="mis. budi_olahraga"
-        aria-label="Nama pengguna"
+        placeholder={t("handle.placeholder")}
+        aria-label={t("handle.label")}
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
@@ -108,13 +109,13 @@ export function HandlePrompt({ className }: { className?: string }) {
         {clean.length === 0 ? (
           ""
         ) : !settled ? (
-          "Mengecek..."
+          t("handle.checking")
         ) : status?.status === "free" ? (
           <span className="inline-flex items-center gap-1">
-            <Check className="size-4" aria-hidden /> Tersedia
+            <Check className="size-4" aria-hidden /> {t("handle.free")}
           </span>
         ) : status?.status === "own" ? (
-          "Ini sudah jadi namamu."
+          t("handle.own")
         ) : (
           status?.message
         )}
@@ -137,10 +138,10 @@ export function HandlePrompt({ className }: { className?: string }) {
 
       <div className="mt-4 flex gap-2">
         <Button className="flex-1" disabled={!canSave} onClick={() => save.mutate(clean)}>
-          {save.isPending ? "Menyimpan..." : "Simpan"}
+          {save.isPending ? t("handle.saving") : t("common:actions.save")}
         </Button>
         <Button variant="ghost" onClick={dismiss}>
-          Nanti saja
+          {t("handle.later")}
         </Button>
       </div>
     </Card>

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Button, Card, Chip, Input, Text } from "@/components/ui";
@@ -17,6 +18,7 @@ import { errorMessage } from "@/utils/format";
  * perangkat ini (SecureStore, per akun) supaya tidak muncul lagi.
  */
 export function HandlePrompt() {
+  const { t } = useTranslation(["feed", "common"]);
   const { theme } = useUnistyles();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -63,10 +65,10 @@ export function HandlePrompt() {
   const save = useMutation({
     mutationFn: (handle: string) => client.social.updateProfile({ handle }),
     onSuccess: async () => {
-      toast.success("Nama pengguna tersimpan");
+      toast.success(t("handle.toast.saved"));
       await queryClient.invalidateQueries({ queryKey: orpc.social.key() });
     },
-    onError: (error) => toast.error("Gagal menyimpan", errorMessage(error)),
+    onError: (error) => toast.error(t("handle.error.save"), errorMessage(error)),
   });
 
   if (!needsPrompt || dismissed) return null;
@@ -85,11 +87,11 @@ export function HandlePrompt() {
     clean.length === 0
       ? ""
       : !settled
-        ? "Mengecek..."
+        ? t("handle.checking")
         : status?.status === "free"
-          ? "Tersedia"
+          ? t("handle.free")
           : status?.status === "own"
-            ? "Ini sudah jadi namamu."
+            ? t("handle.own")
             : (status?.message ?? "");
   const statusColor =
     status?.status === "free"
@@ -101,26 +103,23 @@ export function HandlePrompt() {
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>Pilih nama pengguna</Text>
+        <Text style={styles.title}>{t("handle.title")}</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Tutup"
+          accessibilityLabel={t("common:actions.close")}
           hitSlop={10}
           onPress={dismiss}
         >
           <Ionicons name="close" size={20} color={theme.colors.mutedForeground} />
         </Pressable>
       </View>
-      <Text style={styles.body}>
-        Namamu di feed masih sementara ({profile.data?.handle}). Pilih yang kamu suka, ini jadi
-        tautan profilmu.
-      </Text>
+      <Text style={styles.body}>{t("handle.body", { handle: profile.data?.handle })}</Text>
       <Input
         value={value}
         onChangeText={(text) => setValue(text.toLowerCase())}
         maxLength={20}
-        placeholder="mis. budi_olahraga"
-        accessibilityLabel="Nama pengguna"
+        placeholder={t("handle.placeholder")}
+        accessibilityLabel={t("handle.label")}
         autoCapitalize="none"
         autoCorrect={false}
       />
@@ -141,13 +140,13 @@ export function HandlePrompt() {
       ) : null}
       <View style={styles.actions}>
         <Button
-          label={save.isPending ? "Menyimpan..." : "Simpan"}
+          label={save.isPending ? t("handle.saving") : t("common:actions.save")}
           onPress={() => save.mutate(clean)}
           disabled={!canSave}
           loading={save.isPending}
           style={styles.save}
         />
-        <Button variant="ghost" label="Nanti saja" onPress={dismiss} />
+        <Button variant="ghost" label={t("handle.later")} onPress={dismiss} />
       </View>
     </Card>
   );

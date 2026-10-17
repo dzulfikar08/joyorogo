@@ -5,6 +5,7 @@ import { Redirect, router } from "expo-router";
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, RefreshControl, Text as RNText, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { useTranslation } from "react-i18next";
 
 import {
   EmptyState,
@@ -35,6 +36,7 @@ type Row = { key: string; post?: FeedItem; tip?: Tip };
  * social notification list, separate from the group inbox.
  */
 export default function Feed() {
+  const { t } = useTranslation(["feed", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const queryClient = useQueryClient();
@@ -80,7 +82,7 @@ export default function Feed() {
   if (gate === "loading") {
     return (
       <Screen>
-        <PageHeader title="Feed" />
+        <PageHeader title={t("common:nav.feed")} />
         <Skeleton width="100%" height={200} radius={24} />
         <Skeleton width="100%" height={200} radius={24} />
       </Screen>
@@ -100,13 +102,12 @@ export default function Feed() {
         }}
       />
       <PageHeader
-        title="Feed"
-        caption="Semangat bareng teman satu grup."
+        title={t("common:nav.feed")}
         right={
           <View style={styles.headerActions}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Buat post"
+              accessibilityLabel={t("header.compose")}
               onPress={() => setComposerOpen(true)}
               style={({ pressed }) => [styles.bell, pressed && styles.pressed]}
             >
@@ -114,7 +115,7 @@ export default function Feed() {
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Notifikasi"
+              accessibilityLabel={t("header.notifications")}
               onPress={() => router.push("/feed/notifikasi")}
               style={({ pressed }) => [styles.bell, pressed && styles.pressed]}
             >
@@ -137,9 +138,9 @@ export default function Feed() {
 
       <Segmented<Tab>
         options={[
-          { value: "mengikuti", label: "Mengikuti" },
-          { value: "jelajah", label: "Jelajah" },
-          { value: "tips", label: "Tips" },
+          { value: "mengikuti", label: t("tab.following") },
+          { value: "jelajah", label: t("tab.explore") },
+          { value: "tips", label: t("tab.tips") },
         ]}
         value={tab}
         onChange={setTab}
@@ -179,17 +180,21 @@ export default function Feed() {
                 <Skeleton width="100%" height={160} radius={24} />
               </>
             ) : !feed.hasNextPage && items.length > 0 ? (
-              <Text style={styles.endText}>Kamu sudah sampai ujung feed.</Text>
+              <Text style={styles.endText}>{t("list.end")}</Text>
             ) : null
           }
           ListEmptyComponent={
             <EmptyState
               pose={tab === "mengikuti" ? "peek" : "relax"}
-              title={tab === "mengikuti" ? "Feed masih sepi" : "Belum ada post publik"}
+              title={
+                tab === "mengikuti"
+                  ? t("list.empty.following.title")
+                  : t("list.empty.explore.title")
+              }
               description={
                 tab === "mengikuti"
-                  ? "Ikuti orang dari profilnya, atau bagikan log pertamamu lewat tombol Bagikan ke feed."
-                  : "Post publik dari semua pengguna muncul di sini."
+                  ? t("list.empty.following.body")
+                  : t("list.empty.explore.body")
               }
             />
           }

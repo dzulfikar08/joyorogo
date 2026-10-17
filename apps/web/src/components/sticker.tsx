@@ -1,11 +1,12 @@
 import { Utensils, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { MetaLine } from "@/components/meta-line";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { env } from "@/env.public";
-import { fmtInt } from "@/lib/format";
+import { fmtInt, fmtKcalLabel } from "@/lib/format";
 import { getServerUrl } from "@/utils/orpc";
 
 export function stickerUrl(scanId: string): string {
@@ -70,6 +71,7 @@ export function Sticker({
   className,
   fallback,
 }: StickerProps) {
+  const { t } = useTranslation(["feed", "common"]);
   const [open, setOpen] = useState(false);
   const [showPhoto, setShowPhoto] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -107,7 +109,7 @@ export function Sticker({
           setOpen(true);
         }}
         disabled={!loaded}
-        aria-label={`Lihat stiker ${name}`}
+        aria-label={t("sticker.view", { name })}
         className={`relative cursor-zoom-in disabled:cursor-default ${className ?? ""}`}
       >
         {!loaded && fallback ? (
@@ -128,7 +130,7 @@ export function Sticker({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={showPhoto ? `Foto asli ${name}` : `Stiker ${name}`}
+          aria-label={showPhoto ? t("sticker.photo", { name }) : t("sticker.sticker", { name })}
           className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-6"
           onClick={() => setOpen(false)}
         >
@@ -139,7 +141,7 @@ export function Sticker({
             {showPhoto && photoId ? (
               <img
                 src={photoUrl(photoId)}
-                alt={`Foto asli ${name}`}
+                alt={t("sticker.photo", { name })}
                 className="max-h-[70vh] max-w-full rounded-2xl object-contain"
               />
             ) : (
@@ -152,7 +154,7 @@ export function Sticker({
             )}
             <figcaption className="mt-3 flex flex-wrap items-center justify-center gap-2">
               <span className="rounded-full bg-card px-4 py-2 text-sm font-semibold shadow-float">
-                <MetaLine items={[name, kcal != null ? `${fmtInt(kcal)} kcal` : null]} />
+                <MetaLine items={[name, kcal != null ? fmtKcalLabel(kcal) : null]} />
               </span>
               {photoId && (
                 <button
@@ -160,7 +162,7 @@ export function Sticker({
                   onClick={() => setShowPhoto((v) => !v)}
                   className="min-h-11 rounded-full bg-card px-4 text-sm font-semibold text-primary shadow-float focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                 >
-                  {showPhoto ? "Lihat stiker" : "Lihat foto asli"}
+                  {showPhoto ? t("sticker.toSticker") : t("sticker.toPhoto")}
                 </button>
               )}
               {kcal != null && (
@@ -182,7 +184,7 @@ export function Sticker({
             <button
               type="button"
               onClick={() => setOpen(false)}
-              aria-label="Tutup"
+              aria-label={t("common:actions.close")}
               className="absolute -right-2 -top-2 flex size-10 cursor-pointer items-center justify-center rounded-full bg-card shadow-float transition-transform duration-150 ease-out active:scale-95 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
             >
               <X className="size-4" aria-hidden />

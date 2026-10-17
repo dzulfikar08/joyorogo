@@ -5,6 +5,7 @@ import { Textarea } from "@joyorogo/ui/components/textarea";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Globe, Users2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { HandlePrompt } from "@/components/feed/handle-prompt";
@@ -34,6 +35,7 @@ export function ShareToFeedSheet({
   share: (input: { caption: string; visibility: Visibility }) => Promise<unknown>;
   onShared?: () => void;
 }) {
+  const { t } = useTranslation("feed");
   const queryClient = useQueryClient();
   const [caption, setCaption] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("grup");
@@ -58,24 +60,19 @@ export function ShareToFeedSheet({
     setBusy(true);
     try {
       await share({ caption: caption.trim(), visibility });
-      toast.success("Muncul di feed, semangat!");
+      toast.success(t("share.toast.shared"));
       queryClient.invalidateQueries({ queryKey: orpc.social.key() });
       onOpenChange(false);
       onShared?.();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Gagal membagikan.");
+      toast.error(error instanceof Error ? error.message : t("share.error"));
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Sheet
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Bagikan ke feed"
-      description="Teman satu grup atau semua orang bisa memberi semangat."
-    >
+    <Sheet open={open} onOpenChange={onOpenChange} title={t("share.title")}>
       <div className="space-y-4">
         <div className="flex items-center gap-3 rounded-2xl bg-muted px-4 py-3">
           <div className="min-w-0 text-sm">
@@ -87,13 +84,13 @@ export function ShareToFeedSheet({
         {open && <HandlePrompt className="bg-muted" />}
 
         <label className="block space-y-1.5">
-          <FieldLabel>Caption (opsional)</FieldLabel>
+          <FieldLabel>{t("share.caption")}</FieldLabel>
           <Textarea
             value={caption}
             onChange={(event) => setCaption(event.target.value)}
             maxLength={280}
             rows={3}
-            placeholder="Ceritakan prosesnya..."
+            placeholder={t("share.captionPlaceholder")}
           />
           <p className="text-right text-xs text-muted-foreground tabular-nums">
             {caption.length}/280
@@ -101,12 +98,12 @@ export function ShareToFeedSheet({
         </label>
 
         <div className="space-y-1.5">
-          <FieldLabel>Siapa yang bisa lihat</FieldLabel>
+          <FieldLabel>{t("share.audience")}</FieldLabel>
           {profile.isPending ? (
             <Skeleton className="h-11 rounded-full" />
           ) : (
             <Segmented<Visibility>
-              label="Penonton postingan"
+              label={t("share.audienceLabel")}
               value={visibility}
               onChange={setVisibility}
               options={[
@@ -115,7 +112,7 @@ export function ShareToFeedSheet({
                   label: (
                     <span className="inline-flex items-center gap-1.5">
                       <Users2 className="size-4" aria-hidden />
-                      Teman grup
+                      {t("visibility.friends")}
                     </span>
                   ),
                 },
@@ -124,7 +121,7 @@ export function ShareToFeedSheet({
                   label: (
                     <span className="inline-flex items-center gap-1.5">
                       <Globe className="size-4" aria-hidden />
-                      Publik
+                      {t("visibility.publik")}
                     </span>
                   ),
                 },
@@ -132,14 +129,12 @@ export function ShareToFeedSheet({
             />
           )}
           <p className="text-xs text-muted-foreground">
-            {visibility === "grup"
-              ? "Hanya teman satu Grup dan kamu."
-              : "Semua orang di tab Jelajah dan profil publikmu."}
+            {t(visibility === "grup" ? "share.hint.grup" : "share.hint.publik")}
           </p>
         </div>
 
         <Button className="w-full" disabled={busy} onClick={() => void run()}>
-          {busy ? "Membagikan..." : "Bagikan"}
+          {busy ? t("composer.busy.sharing") : t("share.submit")}
         </Button>
       </div>
     </Sheet>

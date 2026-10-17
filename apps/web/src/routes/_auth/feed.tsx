@@ -1,3 +1,4 @@
+import type { TFunction } from "@joyorogo/i18n";
 import { FEED_TIP_EVERY, TIPS, feedTipIndex, type Tip } from "@joyorogo/api/lib/tips";
 import { Button } from "@joyorogo/ui/components/button";
 import { Sheet } from "@joyorogo/ui/components/sheet";
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import { Avatar } from "@/components/avatar";
 import { FeedComposerSheet } from "@/components/feed/composer";
@@ -35,11 +37,13 @@ export const Route = createFileRoute("/_auth/feed")({
 
 type FeedTab = "mengikuti" | "jelajah" | "tips";
 
-const TAB_OPTIONS = [
-  { value: "mengikuti" as const, label: "Mengikuti" },
-  { value: "jelajah" as const, label: "Jelajah" },
-  { value: "tips" as const, label: "Tips" },
-];
+function tabOptions(t: TFunction<"feed">) {
+  return [
+    { value: "mengikuti" as const, label: t("tab.following") },
+    { value: "jelajah" as const, label: t("tab.explore") },
+    { value: "tips" as const, label: t("tab.tips") },
+  ];
+}
 
 type FeedRow = { kind: "post"; post: FeedPost } | { kind: "tip"; tip: Tip };
 
@@ -59,8 +63,9 @@ function withTipCards(posts: FeedPost[]): FeedRow[] {
 }
 
 function FeedSkeleton() {
+  const { t } = useTranslation("feed");
   return (
-    <Page className="max-w-xl" aria-busy="true" aria-label="Memuat feed">
+    <Page className="max-w-xl" aria-busy="true" aria-label={t("list.loading")}>
       <div className="px-1 pt-2 pb-5">
         <Skeleton className="h-9 w-32 rounded-full" />
       </div>
@@ -85,13 +90,13 @@ const NOTIF_ICON = {
   follow: UserPlus,
 } as const;
 
-const NOTIF_TEXT: Record<SocialNotificationItem["kind"], (item: SocialNotificationItem) => string> =
-  {
-    kudos: (item) => `${item.actorName} kasih semangat`,
-    comment: (item) =>
-      item.excerpt ? `${item.actorName}: ${item.excerpt}` : `${item.actorName} berkomentar`,
-    follow: (item) => `${item.actorName} mulai mengikuti kamu`,
-  };
+function notifText(t: TFunction<"feed">, item: SocialNotificationItem): string {
+  if (item.kind === "kudos") return t("notif.text.kudos", { name: item.actorName });
+  if (item.kind === "follow") return t("notif.text.follow", { name: item.actorName });
+  return item.excerpt
+    ? t("notif.text.commentExcerpt", { name: item.actorName, excerpt: item.excerpt })
+    : t("notif.text.comment", { name: item.actorName });
+}
 
 function NotificationsSheet({
   open,
@@ -100,6 +105,7 @@ function NotificationsSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation("feed");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const notifications = useQuery({
@@ -120,8 +126,7 @@ function NotificationsSheet({
     <Sheet
       open={open}
       onOpenChange={onOpenChange}
-      title="Notifikasi"
-      description="Semangat, komentar, dan pengikut baru."
+      title={t("notif.title")}
     >
       <div className="space-y-3">
         {unread.length > 0 && (
@@ -133,7 +138,7 @@ function NotificationsSheet({
               onClick={() => markRead.mutate({})}
             >
               <CheckCheck className="size-4" aria-hidden />
-              Tandai dibaca
+              {t("notif.markRead")}
             </Button>
           </div>
         )}
@@ -148,11 +153,11 @@ function NotificationsSheet({
             onRetry={() => notifications.refetch()}
           />
         ) : items.length === 0 ? (
-          <EmptyHint title="Belum ada notifikasi" pose="sleepy">
-            Saat ada yang memberi semangat atau komentar, kabarnya muncul di sini.
+          <EmptyHint title={t("notif.empty.title")} pose="sleepy">
+            {t("notif.empty.body")}
           </EmptyHint>
         ) : (
-          <ul className="space-y-2" aria-label="Daftar notifikasi">
+          <ul className="space-y-2" aria-label={t("notif.list")}>
             {items.map((item) => {
               const Icon = NOTIF_ICON[item.kind];
               return (
@@ -174,7 +179,7 @@ function NotificationsSheet({
                       <Icon className="size-4 text-foreground" aria-hidden />
                     </span>
                   }
-                  title={NOTIF_TEXT[item.kind](item)}
+                  title={notifText(t, item)}
                   subtitle={
                     <MetaLine
                       items={[item.postTitle, timeAgo(item.createdAt)]}
@@ -195,6 +200,7 @@ function NotificationsSheet({
 }
 
 function FeedPage() {
+  const { t } = useTranslation(["feed", "common"]);
   const session = useSession();
   const [tab, setTab] = useState<FeedTab>("mengikuti");
   const [notifOpen, setNotifOpen] = useState(false);
@@ -222,14 +228,13 @@ function FeedPage() {
   return (
     <Page className="max-w-xl">
       <PageHeader
-        title="Feed"
-        subtitle="Progres makan, latihan, dan berat yang dibagikan."
+        title={t("common:nav.feed")}
         action={
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Buat post"
+              aria-label={t("header.compose")}
               onClick={() => setComposerOpen(true)}
             >
               <PlusCircle className="size-5" aria-hidden />
@@ -237,7 +242,11 @@ function FeedPage() {
             <Button
               variant="ghost"
               size="icon"
-              aria-label={`Notifikasi${unreadCount > 0 ? `, ${unreadCount} belum dibaca` : ""}`}
+              aria-label={
+                unreadCount > 0
+                  ? t("header.notificationsUnread", { count: unreadCount })
+                  : t("header.notifications")
+              }
               onClick={() => setNotifOpen(true)}
               className="relative"
             >
@@ -253,10 +262,10 @@ function FeedPage() {
       <HandlePrompt className="mb-3" />
 
       <Segmented<FeedTab>
-        label="Pilih tab feed"
+        label={t("tab.label")}
         value={tab}
         onChange={setTab}
-        options={TAB_OPTIONS}
+        options={tabOptions(t)}
       />
 
       <div className="mt-3 space-y-3">
@@ -269,16 +278,13 @@ function FeedPage() {
         ) : posts.length === 0 ? (
           <EmptyHint
             pose={tab === "mengikuti" ? "peek" : "relax"}
-            title={tab === "mengikuti" ? "Feed-mu masih sepi" : "Belum ada postingan publik"}
+            title={
+              tab === "mengikuti"
+                ? t("list.empty.following.title")
+                : t("list.empty.explore.title")
+            }
           >
-            {tab === "mengikuti" ? (
-              <>
-                Ikuti orang dari profil publik mereka, atau bagikan makanan, latihan, dan progres
-                beratmu lewat tombol Bagikan ke feed.
-              </>
-            ) : (
-              <>Postingan publik dari semua pengguna muncul di sini.</>
-            )}
+            {tab === "mengikuti" ? t("list.empty.following.body") : t("list.empty.explore.body")}
           </EmptyHint>
         ) : (
           withTipCards(posts).map((row) =>
@@ -297,7 +303,7 @@ function FeedPage() {
             disabled={feed.isFetchingNextPage}
             onClick={() => void feed.fetchNextPage()}
           >
-            {feed.isFetchingNextPage ? "Memuat..." : "Muat lebih banyak"}
+            {feed.isFetchingNextPage ? t("common:state.loading") : t("list.more")}
           </Button>
         )}
       </div>

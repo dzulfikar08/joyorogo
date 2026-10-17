@@ -15,6 +15,7 @@ import {
   Users2,
 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { undoLabel, UNDO_TOAST_MS } from "@/lib/optimistic";
@@ -27,13 +28,14 @@ import { PostMenuSheet } from "@/components/feed/post-menu";
 import { MacroLine } from "@/components/macro-line";
 import { Sticker, postPhotoUrl, stickerUrl } from "@/components/sticker";
 import type { FeedPost } from "@/lib/api-types";
-import { fmtInt, timeAgo } from "@/lib/format";
+import { fmtInt, fmtKcalLabel, fmtKg, timeAgo } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 
 const STORY_PREVIEW = 280;
 
 /** Teks pos cerita; lebih dari ~280 karakter dipangkas dengan Selengkapnya. */
 function StoryText({ caption }: { caption: string }) {
+  const { t } = useTranslation("feed");
   const [expanded, setExpanded] = useState(false);
   if (caption.length <= STORY_PREVIEW) {
     return <p className="text-sm whitespace-pre-wrap text-foreground/90">{caption}</p>;
@@ -46,7 +48,7 @@ function StoryText({ caption }: { caption: string }) {
         className="ml-1.5 text-sm font-bold text-primary hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
         onClick={() => setExpanded((prev) => !prev)}
       >
-        {expanded ? "Tutup" : "Selengkapnya"}
+        {expanded ? t("post.showLess") : t("post.showMore")}
       </button>
     </p>
   );
@@ -60,14 +62,15 @@ const KIND_ICON = {
 } as const;
 
 function VisibilityTag({ visibility }: { visibility: FeedPost["visibility"] }) {
+  const { t } = useTranslation("feed");
   const Publik = visibility === "publik" ? Globe : Users2;
   return (
     <span
       className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[0.625rem] font-bold text-muted-foreground"
-      aria-label={visibility === "publik" ? "Postingan publik" : "Hanya teman grup"}
+      aria-label={t(`visibility.label.${visibility}`)}
     >
       <Publik className="size-3" aria-hidden />
-      {visibility === "publik" ? "Publik" : "Grup"}
+      {t(`visibility.${visibility}`)}
     </span>
   );
 }
@@ -123,14 +126,17 @@ function MacroChips({ post }: { post: FeedPost }) {
 }
 
 function WorkoutChips({ post }: { post: FeedPost }) {
+  const { t } = useTranslation("feed");
   const stats = post.stats ?? {};
   const chips: string[] = [];
-  if (post.durationMin != null) chips.push(`${fmtInt(post.durationMin)} menit`);
-  if (typeof stats.sets === "number") chips.push(`${fmtInt(stats.sets)} set`);
-  if (typeof stats.reps === "number" && stats.reps > 0) chips.push(`${fmtInt(stats.reps)} rep`);
+  if (post.durationMin != null) chips.push(t("post.chip.minutes", { n: fmtInt(post.durationMin) }));
+  if (typeof stats.sets === "number")
+    chips.push(t("post.chip.sets", { count: stats.sets }));
+  if (typeof stats.reps === "number" && stats.reps > 0)
+    chips.push(t("post.chip.reps", { count: stats.reps }));
   if (typeof stats.volumeKg === "number" && stats.volumeKg > 0)
-    chips.push(`${fmtInt(stats.volumeKg)} kg volume`);
-  if (post.kcal != null) chips.push(`${fmtInt(post.kcal)} kcal`);
+    chips.push(t("post.chip.volume", { kg: fmtInt(stats.volumeKg) }));
+  if (post.kcal != null) chips.push(fmtKcalLabel(post.kcal));
   if (chips.length === 0) return null;
   return (
     <ul className="flex flex-wrap gap-1.5">
@@ -147,13 +153,14 @@ function WorkoutChips({ post }: { post: FeedPost }) {
 }
 
 function WeightChips({ post }: { post: FeedPost }) {
+  const { t } = useTranslation("feed");
   const stats = post.stats ?? {};
   if (typeof stats.weightKg !== "number") return null;
   const delta = typeof stats.deltaKg === "number" ? stats.deltaKg : null;
   return (
     <ul className="flex flex-wrap gap-1.5">
       <li className="rounded-full bg-muted px-2.5 py-1 text-xs font-bold">
-        {fmtInt(stats.weightKg)} kg
+        {fmtKg(stats.weightKg)} kg
       </li>
       {delta !== null && delta !== 0 && (
         <li
@@ -164,7 +171,9 @@ function WeightChips({ post }: { post: FeedPost }) {
               : "bg-amber-500/15 text-amber-600 dark:text-amber-400",
           )}
         >
-          {delta < 0 ? `Turun ${fmtInt(Math.abs(delta))} kg` : `Naik ${fmtInt(delta)} kg`}
+          {delta < 0
+            ? t("post.chip.down", { kg: fmtKg(Math.abs(delta)) })
+            : t("post.chip.up", { kg: fmtKg(delta) })}
         </li>
       )}
     </ul>
@@ -176,6 +185,7 @@ function WeightChips({ post }: { post: FeedPost }) {
  * interaksi lokal (optimistic) lalu invalidasi query social.
  */
 export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
+  const { t } = useTranslation("feed");
   const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -190,7 +200,7 @@ export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
       onMutate: (input) => {
         const turningOn = !kudos.active;
         if (turningOn) {
-          toast.success("Semangat terkirim", {
+          toast.success(t("post.kudos.sent"), {
             duration: UNDO_TOAST_MS,
             action: { label: undoLabel(), onClick: () => toggleKudos.mutate(input) },
           });
@@ -237,7 +247,7 @@ export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Aksi postingan"
+            aria-label={t("post.actions")}
             onClick={() => setMenuOpen(true)}
           >
             <Ellipsis className="size-4" aria-hidden />
@@ -254,11 +264,13 @@ export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
         <div className="flex items-center gap-3">
           <PostMedia post={post} />
           <div className="min-w-0 flex-1 space-y-1">
-            <p className="truncate text-sm font-extrabold">{post.title}</p>
+            <p className="truncate text-sm font-extrabold">
+              {post.kind === "berat" ? t("post.weightTitle") : post.title}
+            </p>
             {post.kind === "makan" && post.kcal != null && (
               <p className="flex items-center gap-1 text-sm font-bold text-makan-ink">
                 <Flame className="size-3.5" aria-hidden />
-                {fmtInt(post.kcal)} kcal
+                {fmtKcalLabel(post.kcal)}
                 <MacroChips post={post} />
               </p>
             )}
@@ -280,7 +292,7 @@ export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
           disabled={toggleKudos.isPending}
           onClick={() => toggleKudos.mutate({ postId: post.id })}
           aria-pressed={kudos.active}
-          aria-label={kudos.active ? "Batalkan semangat" : "Kasih semangat"}
+          aria-label={kudos.active ? t("post.kudos.remove") : t("post.kudos.give")}
         >
           <Heart className={cn("size-4", kudos.active && "fill-current")} aria-hidden />
           {fmtInt(kudos.count)}
@@ -290,7 +302,7 @@ export function PostCard({ post, isOwn }: { post: FeedPost; isOwn: boolean }) {
           size="sm"
           className="gap-1.5 text-muted-foreground"
           onClick={() => setCommentsOpen(true)}
-          aria-label="Lihat komentar"
+          aria-label={t("post.comments.view")}
         >
           <MessageCircle className="size-4" aria-hidden />
           {fmtInt(post.commentCount)}

@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@joyorogo/ui/lib/utils";
 
@@ -27,6 +28,7 @@ function Viewer({
   onClose: () => void;
   onMove: (next: number) => void;
 }) {
+  const { t } = useTranslation("feed");
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -41,13 +43,13 @@ function Viewer({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`Foto ${index + 1} dari ${count}`}
+      aria-label={t("photo.viewer", { n: index + 1, total: count })}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
       onClick={onClose}
     >
       <button
         type="button"
-        aria-label="Tutup penampil"
+        aria-label={t("photo.close")}
         className="absolute top-3 right-3 grid size-11 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:ring-[3px] focus-visible:ring-white/50 focus-visible:outline-none"
         onClick={onClose}
       >
@@ -57,7 +59,7 @@ function Viewer({
         <>
           <button
             type="button"
-            aria-label="Foto sebelumnya"
+            aria-label={t("photo.prev")}
             disabled={index === 0}
             className="absolute top-1/2 left-2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 disabled:opacity-30 focus-visible:ring-[3px] focus-visible:ring-white/50 focus-visible:outline-none"
             onClick={(event) => {
@@ -69,7 +71,7 @@ function Viewer({
           </button>
           <button
             type="button"
-            aria-label="Foto berikutnya"
+            aria-label={t("photo.next")}
             disabled={index === count - 1}
             className="absolute top-1/2 right-2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 disabled:opacity-30 focus-visible:ring-[3px] focus-visible:ring-white/50 focus-visible:outline-none"
             onClick={(event) => {
@@ -83,7 +85,7 @@ function Viewer({
       )}
       <img
         src={photoAt(postId, index)}
-        alt={`Foto ${index + 1} dari ${count}`}
+        alt={t("photo.viewer", { n: index + 1, total: count })}
         className="max-h-full max-w-full rounded-lg object-contain"
         onClick={(event) => event.stopPropagation()}
       />
@@ -101,6 +103,7 @@ function Viewer({
  * (foto pertama melebar saat ganjil). Klik membuka penampil layar penuh.
  */
 export function PhotoGrid({ postId, count }: { postId: string; count: number }) {
+  const { t } = useTranslation("feed");
   const [open, setOpen] = useState<number | null>(null);
   if (count <= 0) return null;
 
@@ -118,13 +121,13 @@ export function PhotoGrid({ postId, count }: { postId: string; count: number }) 
           <figure key={index} className="m-0">
             <button
               type="button"
-              aria-label={`Buka foto ${index + 1}`}
+              aria-label={t("photo.open", { n: index + 1 })}
               className="block w-full focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
               onClick={() => setOpen(index)}
             >
               <img
                 src={photoAt(postId, index)}
-                alt={`Foto ${index + 1} dari post`}
+                alt={t("photo.alt", { n: index + 1 })}
                 loading="lazy"
                 className={cn(
                   "w-full bg-muted object-cover",

@@ -2,7 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Redirect, router } from "expo-router";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
+import type { TFunction } from "@joyorogo/i18n";
 import {
   Avatar,
   EmptyState,
@@ -17,21 +19,22 @@ import { MetaLine } from "@/components/meta-line";
 import { openAuthor } from "@/components/feed/post-card";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { client, orpc } from "@/utils/orpc";
-import { errorMessage } from "@/utils/format";
+import { errorMessage, timeAgo } from "@/utils/format";
 import { KIND_META, type NotificationItem } from "@/src/lib/social";
-import { timeAgoId } from "@/src/lib/group";
 
-const KIND_COPY = {
-  kudos: { icon: "heart", text: "memberi semangat" },
-  comment: { icon: "chatbubble", text: "komentar di" },
-  follow: { icon: "person-add", text: "mulai mengikuti kamu" },
-} as const;
+const KIND_ICON = { kudos: "heart", comment: "chatbubble", follow: "person-add" } as const;
 
 /** Row label; tap targets the post when there is one, else the actor profile. */
-function rowTitle(item: NotificationItem): string {
-  if (item.kind === "follow") return `${item.actorName} mulai mengikuti kamu`;
-  const target = item.postTitle ?? "sebuah post yang sudah dihapus";
-  return `${item.actorName} ${KIND_COPY[item.kind].text} "${target}"`;
+function rowTitle(item: NotificationItem, t: TFunction<"feed">): string {
+  if (item.kind === "follow") return t("notif.text.follow", { name: item.actorName });
+  const post =
+    item.postKind === "berat"
+      ? t("post.weightTitle")
+      : (item.postTitle ?? t("notif.deletedPost"));
+  return t(item.kind === "kudos" ? "notif.onPost.kudos" : "notif.onPost.comment", {
+    name: item.actorName,
+    post,
+  });
 }
 
 /**
@@ -39,6 +42,7 @@ function rowTitle(item: NotificationItem): string {
  * everything read optimistically so the Feed bell clears right away.
  */
 export default function Notifikasi() {
+  const { t } = useTranslation("feed");
   const gate = useSessionGate();
   const queryClient = useQueryClient();
 
@@ -65,7 +69,7 @@ export default function Notifikasi() {
   if (gate === "loading") {
     return (
       <Screen>
-        <PageHeader title="Notifikasi" />
+        <PageHeader title={t("notif.title")} />
         <Skeleton width="100%" height={200} radius={24} />
       </Screen>
     );
@@ -84,7 +88,7 @@ export default function Notifikasi() {
 
   return (
     <Screen>
-      <PageHeader title="Notifikasi" caption="Semangat, komentar, dan pengikut baru." />
+      <PageHeader title={t("notif.title")} />
       {notif.isPending ? (
         <Skeleton width="100%" height={200} radius={24} />
       ) : notif.isError ? (
@@ -92,26 +96,26 @@ export default function Notifikasi() {
       ) : notif.data.items.length === 0 ? (
         <EmptyState
           icon="notifications-outline"
-          title="Belum ada notifikasi"
-          description="Saat ada yang memberi semangat atau mengikuti kamu, kabarnya muncul di sini."
+          title={t("notif.empty.title")}
+          description={t("notif.empty.body")}
         />
       ) : (
         <ListGroup>
           {notif.data.items.map((item) => {
-            const copy = KIND_COPY[item.kind];
+            const icon = KIND_ICON[item.kind];
             return (
               <ListRow
                 key={item.id}
                 thumb={<Avatar name={item.actorName} image={item.actorImage} size={32} />}
-                icon={copy.icon}
+                icon={icon}
                 iconTint={item.readAt === null ? "bakar" : undefined}
-                title={rowTitle(item)}
+                title={rowTitle(item, t)}
                 subtitle={
                   <MetaLine
                     items={[
                       item.excerpt ?? null,
                       item.postKind ? KIND_META[item.postKind].label : null,
-                      timeAgoId(item.createdAt),
+                      timeAgo(item.createdAt),
                     ]}
                   />
                 }

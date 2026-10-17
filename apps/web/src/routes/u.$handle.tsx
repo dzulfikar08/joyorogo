@@ -4,7 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Link2, UserCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
+import { i18n } from "@joyorogo/i18n";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { Avatar } from "@/components/avatar";
@@ -20,12 +22,13 @@ import { client, orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/u/$handle")({
   component: PublicProfilePage,
-  head: () => ({ meta: [{ title: "Profil JoyoRogo" }] }),
+  head: () => ({ meta: [{ title: i18n.t("feed:profile.pageTitle") }] }),
 });
 
 function Skeletons() {
+  const { t } = useTranslation("feed");
   return (
-    <div className="mx-auto max-w-xl space-y-3 px-4 py-6" aria-busy="true" aria-label="Memuat profil">
+    <div className="mx-auto max-w-xl space-y-3 px-4 py-6" aria-busy="true" aria-label={t("profile.loading")}>
       <Skeleton className="h-24 rounded-3xl" />
       <Skeleton className="h-40 rounded-3xl" />
       <Skeleton className="h-40 rounded-3xl" />
@@ -34,6 +37,7 @@ function Skeletons() {
 }
 
 function FollowButton({ profile }: { profile: PublicProfileData }) {
+  const { t } = useTranslation("feed");
   const queryClient = useQueryClient();
   const profileKey = orpc.social.publicProfile
     .queryOptions({ input: { handle: profile.handle ?? "", limit: 10 } })
@@ -61,11 +65,11 @@ function FollowButton({ profile }: { profile: PublicProfileData }) {
     success: (input) =>
       input.follow
         ? {
-            message: `Kamu mengikuti ${profile.name}`,
+            message: t("profile.toast.followed", { name: profile.name }),
             undo: () => void client.social.setFollow({ userId: profile.userId, follow: false }),
           }
         : {
-            message: `Berhenti mengikuti ${profile.name}`,
+            message: t("profile.toast.unfollowed", { name: profile.name }),
             undo: () => void client.social.setFollow({ userId: profile.userId, follow: true }),
           },
   });
@@ -81,20 +85,21 @@ function FollowButton({ profile }: { profile: PublicProfileData }) {
       ) : (
         <UserPlus className="size-4" aria-hidden />
       )}
-      {active ? "Mengikuti" : "Ikuti"}
+      {active ? t("profile.following") : t("profile.follow")}
     </Button>
   );
 }
 
 function CopyLinkButton({ handle }: { handle: string }) {
+  const { t } = useTranslation("feed");
   return (
     <Button
       size="sm"
       variant="secondary"
-      aria-label="Salin tautan profil"
+      aria-label={t("profile.copyLink")}
       onClick={() => {
         void navigator.clipboard.writeText(shareUrl(`/u/${handle}`, "profile"));
-        toast.success("Tautan disalin.");
+        toast.success(t("profile.linkCopied"));
       }}
     >
       <Link2 className="size-4" aria-hidden />
@@ -103,6 +108,7 @@ function CopyLinkButton({ handle }: { handle: string }) {
 }
 
 function PublicProfilePage() {
+  const { t } = useTranslation("feed");
   const { handle } = Route.useParams();
   const session = useSession();
   const profile = useQuery(
@@ -126,10 +132,8 @@ function PublicProfilePage() {
         <PublicHeader />
         <main className="flex-1">
           <div className="mx-auto max-w-xl px-4 py-16 text-center">
-            <p className="text-lg font-extrabold">Profil tidak ditemukan</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Tautannya salah, atau pemiliknya menutup profilnya.
-            </p>
+            <p className="text-lg font-extrabold">{t("profile.notFound.title")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("profile.notFound.body")}</p>
           </div>
         </main>
         <PublicFooter />
@@ -163,15 +167,15 @@ function PublicProfilePage() {
           {data.stats && (
             <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
               <div>
-                <dt className="text-xs text-muted-foreground">Postingan</dt>
+                <dt className="text-xs text-muted-foreground">{t("profile.stats.posts")}</dt>
                 <dd className="text-lg font-extrabold tabular-nums">{data.stats.postCount}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">Pengikut</dt>
+                <dt className="text-xs text-muted-foreground">{t("profile.stats.followers")}</dt>
                 <dd className="text-lg font-extrabold tabular-nums">{data.stats.followerCount}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">Mengikuti</dt>
+                <dt className="text-xs text-muted-foreground">{t("profile.stats.following")}</dt>
                 <dd className="text-lg font-extrabold tabular-nums">{data.stats.followingCount}</dd>
               </div>
             </dl>
@@ -179,14 +183,12 @@ function PublicProfilePage() {
         </section>
 
         {!data.publicProfile ? (
-          <EmptyHint title="Profil ini privat" pose="peek">
-            {data.name} tidak membagikan progresnya ke publik.
+          <EmptyHint title={t("profile.private.title")} pose="peek">
+            {t("profile.private.web", { name: data.name })}
           </EmptyHint>
         ) : posts.length === 0 ? (
-          <EmptyHint title="Belum ada postingan publik" pose="relax">
-            {data.isSelf
-              ? "Bagikan makanan, latihan, atau progres beratmu lewat tombol Bagikan ke feed."
-              : "Postingan publiknya akan muncul di sini."}
+          <EmptyHint title={t("profile.empty.title")} pose="relax">
+            {data.isSelf ? t("profile.empty.self") : t("profile.empty.other")}
           </EmptyHint>
         ) : (
           posts.map((post) => (

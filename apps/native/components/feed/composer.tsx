@@ -5,8 +5,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Image, Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { useTranslation } from "react-i18next";
 
 import { Button, Field, Input, Sheet, Segmented, Text } from "@/components/ui";
+import { i18n } from "@joyorogo/i18n";
 import { useToast } from "@/components/toast";
 import { errorMessage } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
@@ -33,7 +35,7 @@ async function compress(asset: ImagePicker.ImagePickerAsset): Promise<Pending> {
     compress: 0.8,
     format: SaveFormat.JPEG,
   });
-  if (!out.base64) throw new Error("Foto kosong");
+  if (!out.base64) throw new Error(i18n.t("feed:composer.error.emptyPhoto"));
   return { localUri: out.uri, base64: out.base64 };
 }
 
@@ -51,6 +53,7 @@ export function FeedComposer({
   onClose: () => void;
   onPosted: () => void;
 }) {
+  const { t } = useTranslation("feed");
   const { theme } = useUnistyles();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -67,7 +70,7 @@ export function FeedComposer({
 
   const addPhotos = async () => {
     if (photos.length >= PHOTOS_MAX) {
-      toast.error(`Maksimal ${PHOTOS_MAX} foto per post.`);
+      toast.error(t("composer.error.maxPhotos", { count: PHOTOS_MAX }));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -79,11 +82,11 @@ export function FeedComposer({
     if (result.canceled) return;
     for (const asset of result.assets) {
       try {
-        setBusy("Memproses foto...");
+        setBusy(t("composer.busy.processing"));
         const pending = await compress(asset);
         setPhotos((prev) => [...prev, pending]);
       } catch (e) {
-        toast.error("Foto tidak bisa diproses", errorMessage(e));
+        toast.error(t("composer.error.processFailed"), errorMessage(e));
       }
     }
     setBusy(null);
@@ -92,33 +95,33 @@ export function FeedComposer({
   const submit = async () => {
     const text = caption.trim();
     if (text.length === 0 && photos.length === 0) {
-      toast.error("Tulis cerita dulu atau lampirkan satu foto.");
+      toast.error(t("composer.error.empty"));
       return;
     }
     try {
       const photoIds: string[] = [];
       for (let i = 0; i < photos.length; i++) {
-        setBusy(`Mengunggah foto ${i + 1}/${photos.length}...`);
+        setBusy(t("composer.busy.uploading", { n: i + 1, total: photos.length }));
         const uploaded = await client.social.uploadPostPhoto({
           imageBase64: photos[i].base64,
           mimeType: "image/jpeg",
         });
         photoIds.push(uploaded.photoId);
       }
-      setBusy("Membagikan...");
+      setBusy(t("composer.busy.sharing"));
       await client.social.createPost({
         kind: "cerita",
         caption: text || undefined,
         photoIds: photoIds.length > 0 ? photoIds : undefined,
         visibility,
       });
-      toast.success("Post kamu muncul di feed.");
+      toast.success(t("composer.toast.posted"));
       void queryClient.invalidateQueries({ queryKey: orpc.social.key() });
       reset();
       onClose();
       onPosted();
     } catch (e) {
-      toast.error("Post gagal dibagikan", errorMessage(e));
+      toast.error(t("composer.error.shareFailed"), errorMessage(e));
       setBusy(null);
     }
   };
@@ -129,10 +132,10 @@ export function FeedComposer({
       onClose={() => {
         if (busy === null) onClose();
       }}
-      title="Buat post"
+      title={t("composer.title")}
       footer={
         <Button
-          label={busy ?? "Posting"}
+          label={busy ?? t("composer.submit")}
           onPress={() => void submit()}
           disabled={busy !== null}
           loading={busy !== null}
@@ -140,14 +143,14 @@ export function FeedComposer({
         />
       }
     >
-      <Field label="Ceritamu">
+      <Field label={t("composer.storyLabel")}>
         <Input
           value={caption}
           onChangeText={setCaption}
           multiline
           maxLength={STORY_MAX}
-          placeholder="Ada cerita hari ini? Ceritakan perjalananmu..."
-          accessibilityLabel="Tulis post"
+          placeholder={t("composer.placeholder")}
+          accessibilityLabel={t("composer.label")}
         />
         <Text style={styles.counter}>
           {caption.length}/{STORY_MAX}
@@ -158,10 +161,10 @@ export function FeedComposer({
         <View style={styles.thumbRow}>
           {photos.map((photo, index) => (
             <View key={photo.localUri} style={styles.thumbWrap}>
-              <Image source={{ uri: photo.localUri }} style={styles.thumb} accessibilityLabel={`Foto ${index + 1}`} />
+              <Image source={{ uri: photo.localUri }} style={styles.thumb} accessibilityLabel={t("composer.photo", { n: index + 1 })} />
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Buang foto ${index + 1}`}
+                accessibilityLabel={t("composer.removePhoto", { n: index + 1 })}
                 onPress={() => setPhotos((prev) => prev.filter((p) => p !== photo))}
                 style={({ pressed }) => [styles.thumbRemove, pressed && styles.pressed]}
               >
@@ -174,7 +177,7 @@ export function FeedComposer({
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Tambah foto dari galeri"
+        accessibilityLabel={t("composer.addFromGallery")}
         onPress={() => void addPhotos()}
         disabled={photos.length >= PHOTOS_MAX || busy !== null}
         style={({ pressed }) => [
@@ -185,14 +188,16 @@ export function FeedComposer({
       >
         <Ionicons name="image-outline" size={18} color={theme.colors.mutedForeground} />
         <Text style={styles.addPhotoText}>
-          Foto{photos.length > 0 ? ` (${photos.length}/${PHOTOS_MAX})` : ""}
+          {photos.length > 0
+            ? t("composer.addPhotoCount", { n: photos.length, max: PHOTOS_MAX })
+            : t("composer.addPhoto")}
         </Text>
       </Pressable>
 
       <Segmented<"publik" | "grup">
         options={[
-          { value: "grup", label: "Teman grup" },
-          { value: "publik", label: "Publik" },
+          { value: "grup", label: t("visibility.friends") },
+          { value: "publik", label: t("visibility.publik") },
         ]}
         value={visibility}
         onChange={setVisibility}

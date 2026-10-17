@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { useTranslation } from "react-i18next";
 import { File, Paths } from "expo-file-system";
 
 import { Avatar, Card, Text } from "@/components/ui";
@@ -24,8 +25,7 @@ import {
   postStickerUrl,
   type FeedItem,
 } from "@/src/lib/social";
-import { timeAgoId } from "@/src/lib/group";
-import { fmtInt, fmtKg } from "@/utils/format";
+import { fmtInt, fmtKcalLabel, fmtKg, timeAgo } from "@/utils/format";
 
 /**
  * Feed post photo. Served through /post-photo/{postId}[/{index}], whose
@@ -41,6 +41,7 @@ export function PostPhoto({
   index?: number;
   style?: object;
 }) {
+  const { t } = useTranslation("feed");
   const { theme } = useUnistyles();
   const [uri, setUri] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -88,7 +89,7 @@ export function PostPhoto({
       </View>
     );
   }
-  return <Image source={{ uri }} style={[styles.photo, style]} accessibilityLabel="Foto makanan" />;
+  return <Image source={{ uri }} style={[styles.photo, style]} accessibilityLabel={t("post.photoAlt")} />;
 }
 
 /** Opens any author's profile by handle; no-op when the handle is null. */
@@ -101,6 +102,7 @@ const STORY_PREVIEW_LINES = 6;
 
 /** Teks pos cerita; lebih dari enam baris dipangkas dengan Selengkapnya. */
 function StoryText({ caption }: { caption: string }) {
+  const { t } = useTranslation("feed");
   const [expanded, setExpanded] = useState(false);
   return (
     <View>
@@ -110,11 +112,11 @@ function StoryText({ caption }: { caption: string }) {
       {caption.length > 180 ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={expanded ? "Tutup teks" : "Baca selengkapnya"}
+          accessibilityLabel={expanded ? t("post.showLess") : t("post.showMore")}
           onPress={() => setExpanded((prev) => !prev)}
           style={({ pressed }) => [styles.moreWrap, pressed && styles.pressed]}
         >
-          <Text style={styles.moreText}>{expanded ? "Tutup" : "Selengkapnya"}</Text>
+          <Text style={styles.moreText}>{expanded ? t("post.showLess") : t("post.showMore")}</Text>
         </Pressable>
       ) : null}
     </View>
@@ -133,13 +135,14 @@ function PhotoViewer({
   initialIndex: number;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("feed");
   const [index, setIndex] = useState(initialIndex);
   return (
-    <Modal transparent animationType="fade" onRequestClose={onClose} accessibilityLabel="Penampil foto">
+    <Modal transparent animationType="fade" onRequestClose={onClose} accessibilityLabel={t("photo.viewerNative")}>
       <Pressable
         style={styles.viewerBackdrop}
         accessibilityRole="button"
-        accessibilityLabel="Tutup penampil foto"
+        accessibilityLabel={t("photo.close")}
         onPress={onClose}
       >
         <Pressable style={styles.viewerInner} onPress={() => {}}>
@@ -174,6 +177,7 @@ function PhotoViewer({
 
 /** Grid foto pos 'cerita': 1 penuh, 2 berdampingan, 3-4 grid (pertama melebar). */
 function PhotoGrid({ postId, count }: { postId: string; count: number }) {
+  const { t } = useTranslation("feed");
   const [open, setOpen] = useState<number | null>(null);
   const shown = Math.min(count, 4);
   return (
@@ -183,7 +187,7 @@ function PhotoGrid({ postId, count }: { postId: string; count: number }) {
           <Pressable
             key={index}
             accessibilityRole="button"
-            accessibilityLabel={`Buka foto ${index + 1}`}
+            accessibilityLabel={t("photo.open", { n: index + 1 })}
             onPress={() => setOpen(index)}
             style={({ pressed }) => [
               styles.gridCell,
@@ -210,31 +214,32 @@ function PhotoGrid({ postId, count }: { postId: string; count: number }) {
 
 /** Kudos meta chips: macros for meals, stats for workouts, delta for weight. */
 function PostChips({ post }: { post: FeedItem }) {
+  const { t } = useTranslation("feed");
   const { theme } = useUnistyles();
   const chips: {
     icon?: ComponentProps<typeof Ionicons>["name"];
     macro?: MacroKey;
     label: string;
   }[] = [];
-  if (post.kcal !== null) chips.push({ macro: "kcal", label: `${fmtInt(post.kcal)} kcal` });
+  if (post.kcal !== null) chips.push({ macro: "kcal", label: fmtKcalLabel(post.kcal) });
   if (post.durationMin !== null)
-    chips.push({ icon: "time-outline", label: `${fmtInt(post.durationMin)} mnt` });
+    chips.push({ icon: "time-outline", label: t("post.chip.minutesShort", { n: fmtInt(post.durationMin) }) });
   if (post.macros) {
     const { protein, carbs, fat, fiber } = post.macros;
-    if (protein !== null) chips.push({ macro: "protein", label: `P ${fmtInt(protein)}g` });
-    if (carbs !== null) chips.push({ macro: "carbs", label: `K ${fmtInt(carbs)}g` });
-    if (fat !== null) chips.push({ macro: "fat", label: `L ${fmtInt(fat)}g` });
-    if (fiber !== null) chips.push({ macro: "fiber", label: `Serat ${fmtInt(fiber)}g` });
+    if (protein !== null) chips.push({ macro: "protein", label: t("post.chip.protein", { g: fmtInt(protein) }) });
+    if (carbs !== null) chips.push({ macro: "carbs", label: t("post.chip.carbs", { g: fmtInt(carbs) }) });
+    if (fat !== null) chips.push({ macro: "fat", label: t("post.chip.fat", { g: fmtInt(fat) }) });
+    if (fiber !== null) chips.push({ macro: "fiber", label: t("post.chip.fiber", { g: fmtInt(fiber) }) });
   }
   if (post.stats) {
     const s = post.stats;
     if (typeof s.type === "string") chips.push({ icon: "barbell-outline", label: s.type });
     if (s.sets !== null && s.sets !== undefined)
-      chips.push({ icon: "repeat-outline", label: `${String(s.sets)} set` });
+      chips.push({ icon: "repeat-outline", label: t("post.chip.sets", { count: Number(s.sets) }) });
     if (s.reps !== null && s.reps !== undefined)
-      chips.push({ icon: "body-outline", label: `${String(s.reps)} reps` });
+      chips.push({ icon: "body-outline", label: t("post.chip.reps", { count: Number(s.reps) }) });
     if (s.volumeKg !== null && s.volumeKg !== undefined)
-      chips.push({ icon: "trending-up-outline", label: `${fmtKg(Number(s.volumeKg))} kg total` });
+      chips.push({ icon: "trending-up-outline", label: t("post.chip.volume", { kg: fmtKg(Number(s.volumeKg)) }) });
     if (s.weightKg !== null && s.weightKg !== undefined)
       chips.push({ icon: "scale-outline", label: `${fmtKg(Number(s.weightKg))} kg` });
     if (s.deltaKg !== null && s.deltaKg !== undefined) {
@@ -278,6 +283,7 @@ export function PostCard({
   /** Extra header action (detail screen's overflow menu). */
   right?: ReactNode;
 }) {
+  const { t } = useTranslation("feed");
   const { theme } = useUnistyles();
   const meta = KIND_META[post.kind];
   const [kudos, setKudos] = useState({
@@ -301,7 +307,7 @@ export function PostCard({
       setKudos({ byMe: result.kudos, count: result.kudosCount });
       // Only giving kudos is undoable; taking it back is a plain tap.
       if (!result.kudos) return undefined;
-      return { message: "Semangat terkirim", undo: () => toggleKudos.mutate() };
+      return { message: t("post.kudos.sent"), undo: () => toggleKudos.mutate() };
     },
   });
 
@@ -310,7 +316,7 @@ export function PostCard({
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Profil ${post.author.name}`}
+          accessibilityLabel={t("post.openProfile", { name: post.author.name })}
           onPress={() => onPressAuthor?.(post.author.handle)}
           style={({ pressed }) => [styles.authorRow, pressed && styles.pressed]}
         >
@@ -321,7 +327,7 @@ export function PostCard({
             </Text>
             <Text style={styles.authorSub} numberOfLines={1}>
               {post.author.handle ? `@${post.author.handle} · ` : ""}
-              {timeAgoId(post.createdAt)}
+              {timeAgo(post.createdAt)}
             </Text>
           </View>
         </Pressable>
@@ -346,7 +352,7 @@ export function PostCard({
       ) : (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Buka post ${post.title}`}
+          accessibilityLabel={t("post.open", { title: post.kind === "berat" ? t("post.weightTitle") : post.title })}
           onPress={onPress}
           disabled={!onPress}
         >
@@ -356,7 +362,7 @@ export function PostCard({
           ) : null}
           <View style={styles.body}>
             <Text style={styles.title} numberOfLines={2}>
-              {post.title}
+              {post.kind === "berat" ? t("post.weightTitle") : post.title}
             </Text>
             <PostChips post={post} />
             {post.caption ? (
@@ -369,7 +375,7 @@ export function PostCard({
       <View style={styles.actionRow}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={kudos.byMe ? "Batalkan semangat" : "Beri semangat"}
+          accessibilityLabel={kudos.byMe ? t("post.kudos.remove") : t("post.kudos.give")}
           accessibilityState={{ selected: kudos.byMe }}
           onPress={() => !toggleKudos.isPending && toggleKudos.mutate()}
           style={({ pressed }) => [styles.actionButton, pressed && styles.pressed]}
@@ -380,13 +386,13 @@ export function PostCard({
             color={kudos.byMe ? theme.colors.bakar : theme.colors.mutedForeground}
           />
           <Text style={[styles.actionText, kudos.byMe && styles.actionTextActive]}>
-            Semangat{kudos.count > 0 ? ` · ${kudos.count}` : ""}
+            {t("post.kudos.label")}{kudos.count > 0 ? ` · ${fmtInt(kudos.count)}` : ""}
           </Text>
         </Pressable>
         <View style={styles.actionButton}>
           <Ionicons name="chatbubble-outline" size={18} color={theme.colors.mutedForeground} />
           <Text style={styles.actionText}>
-            Komentar{post.commentCount > 0 ? ` · ${post.commentCount}` : ""}
+            {t("comments.title")}{post.commentCount > 0 ? ` · ${fmtInt(post.commentCount)}` : ""}
           </Text>
         </View>
       </View>
@@ -396,6 +402,7 @@ export function PostCard({
 
 /** Plain public sticker image used when a post has no food photo. */
 function StickerPostImage({ uri }: { uri: string }) {
+  const { t } = useTranslation("feed");
   const [failed, setFailed] = useState(false);
   if (failed) return null;
   return (
@@ -403,7 +410,7 @@ function StickerPostImage({ uri }: { uri: string }) {
       source={{ uri }}
       style={[styles.photo, styles.photoSpacing]}
       onError={() => setFailed(true)}
-      accessibilityLabel="Stiker makanan"
+      accessibilityLabel={t("post.stickerAlt")}
     />
   );
 }

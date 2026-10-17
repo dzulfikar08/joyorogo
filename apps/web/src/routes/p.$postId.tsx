@@ -2,7 +2,9 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
+import { i18n } from "@joyorogo/i18n";
 import { PostCard } from "@/components/feed/post-card";
 import { PublicFooter } from "@/components/public-footer";
 import { PublicHeader } from "@/components/public-header";
@@ -11,15 +13,16 @@ import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/p/$postId")({
   component: PostDetailPage,
-  head: () => ({ meta: [{ title: "Postingan JoyoRogo" }] }),
+  head: () => ({ meta: [{ title: i18n.t("feed:postPage.title") }] }),
 });
 
 function DetailSkeleton() {
+  const { t } = useTranslation("feed");
   return (
     <div
       className="mx-auto max-w-xl space-y-3 px-4 py-6"
       aria-busy="true"
-      aria-label="Memuat postingan"
+      aria-label={t("postPage.loading")}
     >
       <Skeleton className="h-48 rounded-3xl" />
     </div>
@@ -28,6 +31,7 @@ function DetailSkeleton() {
 
 /** Detail satu postingan; publik kalau visibility-nya 'publik'. */
 function PostDetailPage() {
+  const { t } = useTranslation("feed");
   const { postId } = Route.useParams();
   const post = useQuery(orpc.social.post.queryOptions({ input: { id: postId } }));
 
@@ -51,10 +55,8 @@ function PostDetailPage() {
           <DetailSkeleton />
         ) : post.error ? (
           <div className="py-16 text-center">
-            <p className="text-lg font-extrabold">Postingan tidak ditemukan</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Mungkin sudah dihapus, atau cuma terlihat oleh teman grupnya.
-            </p>
+            <p className="text-lg font-extrabold">{t("postPage.notFound.title")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("postPage.notFound.body")}</p>
           </div>
         ) : (
           // Komentar dan aksi jalan lewat kartu yang sama seperti di feed.

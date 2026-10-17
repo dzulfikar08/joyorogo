@@ -4,6 +4,7 @@ import { useLocalSearchParams, Redirect, router } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { useTranslation } from "react-i18next";
 
 import {
   Avatar,
@@ -38,6 +39,7 @@ function countOf(value: number | { total: number } | null | undefined): number {
  * Kalau penulisnya non-publik, hanya nama yang tampil (kontrak server).
  */
 export default function ProfilPublik() {
+  const { t } = useTranslation(["feed", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const queryClient = useQueryClient();
@@ -86,8 +88,8 @@ export default function ProfilPublik() {
       const undo = () => setFollow.mutate(!follow);
       return {
         message: follow
-          ? `Kamu mengikuti ${profile.data?.name ?? "akun ini"}`
-          : `Berhenti mengikuti ${profile.data?.name ?? "akun ini"}`,
+          ? t("profile.toast.followed", { name: profile.data?.name ?? t("profile.fallbackName") })
+          : t("profile.toast.unfollowed", { name: profile.data?.name ?? t("profile.fallbackName") }),
         undo,
       };
     },
@@ -104,7 +106,7 @@ export default function ProfilPublik() {
   if (gate === "loading") {
     return (
       <Screen>
-        <PageHeader title="Profil" />
+        <PageHeader title={t("common:nav.title.profile")} />
         <Skeleton width="100%" height={160} radius={24} />
       </Screen>
     );
@@ -115,7 +117,7 @@ export default function ProfilPublik() {
   if (profile.isPending) {
     return (
       <Screen>
-        <PageHeader title="Profil" />
+        <PageHeader title={t("common:nav.title.profile")} />
         <Skeleton width="100%" height={160} radius={24} />
         <Skeleton width="100%" height={220} radius={24} />
       </Screen>
@@ -124,7 +126,7 @@ export default function ProfilPublik() {
   if (profile.isError) {
     return (
       <Screen>
-        <PageHeader title="Profil" />
+        <PageHeader title={t("common:nav.title.profile")} />
         <ErrorState message={errorMessage(profile.error)} onRetry={() => void profile.refetch()} />
       </Screen>
     );
@@ -141,7 +143,7 @@ export default function ProfilPublik() {
           !isSelf && data.stats !== null ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Menu lainnya"
+              accessibilityLabel={t("common:nav.more")}
               onPress={() => setBlockOpen(true)}
               style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
             >
@@ -157,9 +159,7 @@ export default function ProfilPublik() {
             <Avatar name={data.name} image={null} size={44} />
             <View style={styles.limitedText}>
               <Text style={styles.name}>{data.name}</Text>
-              <Text style={styles.muted}>
-                Akun ini privat. Hanya rekan satu grup yang bisa melihat aktivitasnya.
-              </Text>
+              <Text style={styles.muted}>{t("profile.private.native")}</Text>
             </View>
           </View>
         </Card>
@@ -182,7 +182,7 @@ export default function ProfilPublik() {
                 style={styles.stat}
               >
                 <Text style={styles.statValue}>{countOf(data.stats?.followerCount)}</Text>
-                <Text style={styles.statLabel}>Pengikut</Text>
+                <Text style={styles.statLabel}>{t("profile.stats.followers")}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -190,18 +190,18 @@ export default function ProfilPublik() {
                 style={styles.stat}
               >
                 <Text style={styles.statValue}>{countOf(data.stats?.followingCount)}</Text>
-                <Text style={styles.statLabel}>Mengikuti</Text>
+                <Text style={styles.statLabel}>{t("profile.stats.following")}</Text>
               </Pressable>
               <View style={styles.stat}>
                 <Text style={styles.statValue}>{countOf(data.stats?.postCount)}</Text>
-                <Text style={styles.statLabel}>Post</Text>
+                <Text style={styles.statLabel}>{t("profile.stats.posts")}</Text>
               </View>
             </View>
 
             {!isSelf && data.isFollowing !== null ? (
               <Button
                 variant={data.isFollowing ? "secondary" : "primary"}
-                label={data.isFollowing ? "Berhenti ikuti" : "Ikuti"}
+                label={data.isFollowing ? t("profile.unfollow") : t("profile.follow")}
                 size="sm"
                 loading={setFollow.isPending}
                 onPress={() => setFollow.mutate(!data.isFollowing)}
@@ -215,8 +215,8 @@ export default function ProfilPublik() {
           {data.posts.items.length === 0 ? (
             <EmptyState
               icon="newspaper-outline"
-              title="Belum ada post"
-              description="Post yang dibagikan akan tampil di sini."
+              title={t("profile.empty.title")}
+              description={isSelf ? t("profile.empty.self") : t("profile.empty.other")}
             />
           ) : (
             <View style={styles.postList}>
@@ -229,7 +229,7 @@ export default function ProfilPublik() {
                 />
               ))}
               {data.posts.nextCursor !== null ? (
-                <Text style={styles.endText}>Post yang lebih lama bisa dibuka dari feed.</Text>
+                <Text style={styles.endText}>{t("profile.older")}</Text>
               ) : null}
             </View>
           )}
@@ -254,10 +254,10 @@ export default function ProfilPublik() {
       <ConfirmSheet
         visible={blockOpen}
         onClose={() => setBlockOpen(false)}
-        title={`Blokir ${data.name}?`}
-        message="Konten kalian saling disembunyikan dan follow diputus. Bisa dibuka lewat daftar blokir di Profil."
-        confirmLabel="Blokir"
-        cancelLabel="Batal"
+        title={t("confirm.block.title", { name: data.name })}
+        message={t("confirm.block.message")}
+        confirmLabel={t("confirm.block.action")}
+        cancelLabel={t("common:actions.cancel")}
         loading={block.isPending}
         onConfirm={() => block.mutate()}
       />
@@ -280,18 +280,19 @@ function PeopleListSheet({
   pending: boolean;
   people: { id: string; name: string; image: string | null; handle: string | null }[];
 }) {
+  const { t } = useTranslation("feed");
   const { theme } = useUnistyles();
   return (
     <Sheet
       visible={visible}
       onClose={onClose}
-      title={tab === "followers" ? "Pengikut" : "Mengikuti"}
+      title={tab === "followers" ? t("profile.stats.followers") : t("profile.stats.following")}
     >
       {pending ? (
         <Skeleton width="100%" height={120} radius={24} />
       ) : people.length === 0 ? (
         <Text style={styles.muted}>
-          {tab === "followers" ? "Belum ada pengikut." : "Belum mengikuti siapa pun."}
+          {tab === "followers" ? t("profile.noFollowers") : t("profile.noFollowing")}
         </Text>
       ) : (
         <View style={styles.peopleList}>
@@ -299,7 +300,7 @@ function PeopleListSheet({
             <Pressable
               key={person.id}
               accessibilityRole="button"
-              accessibilityLabel={`Profil ${person.name}`}
+              accessibilityLabel={t("profile.open", { name: person.name })}
               onPress={() => {
                 onClose();
                 openAuthor(person.handle);

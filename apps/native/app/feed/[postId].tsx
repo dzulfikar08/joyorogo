@@ -4,6 +4,7 @@ import { useLocalSearchParams, Redirect, router } from "expo-router";
 import { useEffect, useState, type ComponentProps } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { useTranslation } from "react-i18next";
 
 import {
   Avatar,
@@ -25,17 +26,17 @@ import { useToast } from "@/components/toast";
 import { PostCard, openAuthor } from "@/components/feed/post-card";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
-import { REPORT_REASONS, type FeedComment, type FeedItem } from "@/src/lib/social";
+import { REPORT_REASONS, type FeedComment, type FeedItem, type ReportReason } from "@/src/lib/social";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
-import { timeAgoId } from "@/src/lib/group";
 import { client, orpc } from "@/utils/orpc";
-import { errorMessage } from "@/utils/format";
+import { errorMessage, timeAgo } from "@/utils/format";
 
 const COMMENT_MAX = 280;
 const NOTE_MAX = 200;
 
 /** Detail satu post: kartu, daftar semangat, komentar, dan menu lainnya. */
 export default function DetailPost() {
+  const { t } = useTranslation(["feed", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const queryClient = useQueryClient();
@@ -83,7 +84,7 @@ export default function DetailPost() {
         );
       }
     },
-    label: () => "Postingan",
+    label: () => t("menu.undoLabel"),
     invalidate: () => [orpc.social.key()],
   });
   const block = useMutation({
@@ -94,11 +95,11 @@ export default function DetailPost() {
     },
   });
   const report = useMutation({
-    mutationFn: (input: { reason: (typeof REPORT_REASONS)[number]["value"]; note?: string }) =>
+    mutationFn: (input: { reason: ReportReason; note?: string }) =>
       client.social.report({ postId: id, ...input }),
     onSuccess: () => {
       setReportOpen(false);
-      toast.success("Laporan terkirim. Terima kasih.");
+      toast.success(t("menu.toast.reported"));
     },
   });
   type CommentRow = NonNullable<NonNullable<typeof comments.data>["items"]>[number];
@@ -130,7 +131,7 @@ export default function DetailPost() {
         createdAt: new Date(),
         author: {
           id: me ?? "",
-          name: session?.user.name ?? "Kamu",
+          name: session?.user.name ?? t("composer.fallbackName"),
           handle: null,
           image: session?.user.image ?? null,
         },
@@ -139,7 +140,7 @@ export default function DetailPost() {
     success: (_input, data) => {
       setCommentText("");
       return {
-        message: "Komentar terkirim",
+        message: t("comments.toast.sent"),
         undo: () => void client.social.deleteComment({ id: data.id }),
       };
     },
@@ -151,7 +152,7 @@ export default function DetailPost() {
       stripCommentRow(cache, row.id);
     },
     label: (row) => row.body,
-    fallback: "Komentar",
+    fallback: t("comments.undoLabel"),
     invalidate: () => [orpc.social.key()],
   });
 
@@ -160,7 +161,7 @@ export default function DetailPost() {
   if (gate === "loading") {
     return (
       <Screen>
-        <PageHeader title="Post" />
+        <PageHeader title={t("common:nav.title.post")} />
         <Skeleton width="100%" height={240} radius={24} />
       </Screen>
     );
@@ -171,7 +172,7 @@ export default function DetailPost() {
   if (post.isPending) {
     return (
       <Screen>
-        <PageHeader title="Post" />
+        <PageHeader title={t("common:nav.title.post")} />
         <Skeleton width="100%" height={240} radius={24} />
         <Skeleton width="100%" height={120} radius={24} />
       </Screen>
@@ -180,7 +181,7 @@ export default function DetailPost() {
   if (post.isError) {
     return (
       <Screen>
-        <PageHeader title="Post" />
+        <PageHeader title={t("common:nav.title.post")} />
         <ErrorState
           message={errorMessage(post.error)}
           onRetry={() => void post.refetch()}
@@ -195,11 +196,11 @@ export default function DetailPost() {
   return (
     <Screen>
       <PageHeader
-        title="Post"
+        title={t("common:nav.title.post")}
         right={
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Menu lainnya"
+            accessibilityLabel={t("common:nav.more")}
             onPress={() => setMenuOpen(true)}
             style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
           >
@@ -214,14 +215,12 @@ export default function DetailPost() {
         right={null}
       />
 
-      <Text style={styles.sectionLabel}>Semangat</Text>
+      <Text style={styles.sectionLabel}>{t("post.kudos.label")}</Text>
       {kudosList.isPending ? (
         <Skeleton width="100%" height={80} radius={24} />
       ) : (kudosList.data?.length ?? 0) === 0 ? (
         <Card>
-          <Text style={styles.muted}>
-            Belum ada yang memberi semangat. Jadilah yang pertama.
-          </Text>
+          <Text style={styles.muted}>{t("post.kudos.empty")}</Text>
         </Card>
       ) : (
         <Card style={styles.listCard}>
@@ -229,7 +228,7 @@ export default function DetailPost() {
             <Pressable
               key={person.id}
               accessibilityRole="button"
-              accessibilityLabel={`Profil ${person.name}`}
+              accessibilityLabel={t("post.openProfile", { name: person.name })}
               onPress={() => openAuthor(person.handle)}
               style={({ pressed }) => [styles.personRow, pressed && styles.pressed]}
             >
@@ -241,12 +240,12 @@ export default function DetailPost() {
         </Card>
       )}
 
-      <Text style={styles.sectionLabel}>Komentar</Text>
+      <Text style={styles.sectionLabel}>{t("comments.title")}</Text>
       {comments.isPending ? (
         <Skeleton width="100%" height={80} radius={24} />
       ) : (comments.data?.items.length ?? 0) === 0 ? (
         <Card>
-          <Text style={styles.muted}>Belum ada komentar. Mulai percakapannya.</Text>
+          <Text style={styles.muted}>{t("comments.empty.short")}</Text>
         </Card>
       ) : (
         <View style={styles.commentList}>
@@ -257,18 +256,18 @@ export default function DetailPost() {
                 <View style={styles.commentHeader}>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Profil ${comment.author.name}`}
+                    accessibilityLabel={t("post.openProfile", { name: comment.author.name })}
                     onPress={() => openAuthor(comment.author.handle)}
                     style={({ pressed }) => [styles.commentAuthor, pressed && styles.pressed]}
                   >
                     <Avatar name={comment.author.name} image={comment.author.image} size={24} />
                     <Text style={styles.personName}>{comment.author.name}</Text>
-                    <Text style={styles.muted}>{timeAgoId(comment.createdAt)}</Text>
+                    <Text style={styles.muted}>{timeAgo(comment.createdAt)}</Text>
                   </Pressable>
                   {canDelete ? (
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel="Hapus komentar"
+                      accessibilityLabel={t("comments.delete")}
                       onPress={() => setConfirm({ comment })}
                       style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
                     >
@@ -285,20 +284,20 @@ export default function DetailPost() {
       {comments.isError ? <Text style={styles.error}>{errorMessage(comments.error)}</Text> : null}
 
       <Card style={styles.commentForm}>
-        <Field label={`Komentar · ${commentText.length}/${COMMENT_MAX}`}>
+        <Field label={t("comments.field", { n: commentText.length, max: COMMENT_MAX })}>
           <Input
             value={commentText}
             onChangeText={setCommentText}
             maxLength={COMMENT_MAX}
             multiline
-            placeholder="Tulis komentar..."
+            placeholder={t("comments.placeholder")}
           />
         </Field>
         {addComment.isError ? (
           <Text style={styles.error}>{errorMessage(addComment.error)}</Text>
         ) : null}
         <Button
-          label="Kirim"
+          label={t("comments.sendShort")}
           size="sm"
           disabled={commentText.trim().length === 0 || addComment.isPending}
           loading={addComment.isPending}
@@ -307,13 +306,13 @@ export default function DetailPost() {
       </Card>
 
       {/* Overflow menu */}
-      <Sheet visible={menuOpen} onClose={() => setMenuOpen(false)} title="Lainnya">
+      <Sheet visible={menuOpen} onClose={() => setMenuOpen(false)} title={t("common:nav.more")}>
         <Card style={styles.menuCard}>
           <ListRow
             icon="flag-outline"
             iconTint="bakar"
-            title="Laporkan post"
-            subtitle="Kirimi laporan ke tim JoyoRogo"
+            title={t("menu.report.title")}
+            subtitle={t("menu.report.subtitle")}
             onPress={() => {
               setMenuOpen(false);
               setReportOpen(true);
@@ -323,8 +322,8 @@ export default function DetailPost() {
             <ListRow
               icon="ban-outline"
               iconTint="tidur"
-              title={`Blokir ${data.author.name}`}
-              subtitle="Sembunyikan konten satu sama lain"
+              title={t("menu.block.title", { name: data.author.name })}
+              subtitle={t("menu.block.subtitle")}
               onPress={() => {
                 setMenuOpen(false);
                 setConfirm("block");
@@ -335,7 +334,7 @@ export default function DetailPost() {
             <ListRow
               icon="trash-outline"
               iconTint="bakar"
-              title="Hapus post"
+              title={t("menu.delete.title")}
               destructive
               onPress={() => {
                 setMenuOpen(false);
@@ -358,10 +357,10 @@ export default function DetailPost() {
       <ConfirmSheet
         visible={confirm === "deletePost"}
         onClose={() => setConfirm(null)}
-        title="Hapus post ini?"
-        message="Post, semangat, dan komentarnya akan hilang untuk semua orang."
-        confirmLabel="Hapus"
-        cancelLabel="Batal"
+        title={t("confirm.deletePost.title")}
+        message={t("confirm.deletePost.message")}
+        confirmLabel={t("common:actions.delete")}
+        cancelLabel={t("common:actions.cancel")}
         onConfirm={() => {
           setConfirm(null);
           deletePostCommit({ id });
@@ -370,20 +369,20 @@ export default function DetailPost() {
       <ConfirmSheet
         visible={confirm === "block"}
         onClose={() => setConfirm(null)}
-        title={`Blokir ${data.author.name}?`}
-        message="Konten kalian saling disembunyikan dan follow diputus. Bisa dibuka lewat daftar blokir di Profil."
-        confirmLabel="Blokir"
-        cancelLabel="Batal"
+        title={t("confirm.block.title", { name: data.author.name })}
+        message={t("confirm.block.message")}
+        confirmLabel={t("confirm.block.action")}
+        cancelLabel={t("common:actions.cancel")}
         loading={block.isPending}
         onConfirm={() => block.mutate()}
       />
       <ConfirmSheet
         visible={confirm !== null && confirm !== "block" && confirm !== "deletePost"}
         onClose={() => setConfirm(null)}
-        title="Hapus komentar ini?"
-        message="Komentar akan dihapus untuk semua orang."
-        confirmLabel="Hapus"
-        cancelLabel="Batal"
+        title={t("confirm.deleteComment.title")}
+        message={t("confirm.deleteComment.message")}
+        confirmLabel={t("common:actions.delete")}
+        cancelLabel={t("common:actions.cancel")}
         onConfirm={() => {
           const target = confirm;
           if (target && target !== "block" && target !== "deletePost") {
@@ -408,9 +407,10 @@ function ReportSheet({
   onClose: () => void;
   pending: boolean;
   error: string | null;
-  onSubmit: (reason: (typeof REPORT_REASONS)[number]["value"], note: string) => void;
+  onSubmit: (reason: ReportReason, note: string) => void;
 }) {
-  const [reason, setReason] = useState<(typeof REPORT_REASONS)[number]["value"] | null>(null);
+  const { t } = useTranslation("feed");
+  const [reason, setReason] = useState<ReportReason | null>(null);
   const [note, setNote] = useState("");
   useEffect(() => {
     if (visible) {
@@ -423,30 +423,30 @@ function ReportSheet({
     <Sheet
       visible={visible}
       onClose={onClose}
-      title="Laporkan post"
+      title={t("menu.report.title")}
       footer={
         <Button
-          label="Kirim laporan"
+          label={t("report.send")}
           disabled={reason === null || pending}
           loading={pending}
           onPress={() => reason !== null && onSubmit(reason, note)}
         />
       }
     >
-      <Field label="Alasan">
+      <Field label={t("report.reasonLabel")}>
         <View style={styles.chipRow}>
           {REPORT_REASONS.map((item) => (
             <Chip
-              key={item.value}
-              label={item.label}
-              selected={reason === item.value}
-              onPress={() => setReason(item.value)}
+              key={item}
+              label={t(`report.reason.${item}`)}
+              selected={reason === item}
+              onPress={() => setReason(item)}
             />
           ))}
         </View>
       </Field>
-      <Field label={`Catatan (opsional) · ${note.length}/${NOTE_MAX}`}>
-        <Input value={note} onChangeText={setNote} maxLength={NOTE_MAX} multiline placeholder="Tambahkan detail kalau perlu" />
+      <Field label={t("report.noteCount", { n: note.length, max: NOTE_MAX })}>
+        <Input value={note} onChangeText={setNote} maxLength={NOTE_MAX} multiline placeholder={t("report.noteDetail")} />
       </Field>
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </Sheet>

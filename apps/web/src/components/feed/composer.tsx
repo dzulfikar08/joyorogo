@@ -5,8 +5,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, Loader2, Send, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
+import { i18n } from "@joyorogo/i18n";
 
 import { Segmented } from "@/components/kit/surface";
 import type { FeedPost } from "@/lib/api-types";
@@ -33,7 +35,7 @@ async function compressImage(file: File): Promise<Pending> {
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("Browser tidak mendukung pengolahan gambar.");
+  if (!context) throw new Error(i18n.t("feed:composer.error.noCanvas"));
   context.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
   const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
@@ -53,6 +55,7 @@ export function FeedComposerSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation("feed");
   const queryClient = useQueryClient();
   const session = useSession();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -65,17 +68,17 @@ export function FeedComposerSheet({
     if (!files?.length) return;
     const room = PHOTOS_MAX - photos.length;
     if (room <= 0) {
-      toast.error(`Maksimal ${PHOTOS_MAX} foto per post.`);
+      toast.error(t("composer.error.maxPhotos", { count: PHOTOS_MAX }));
       return;
     }
     const picked = Array.from(files).slice(0, room);
     for (const file of picked) {
       try {
-        setBusy("Memproses foto...");
+        setBusy(t("composer.busy.processing"));
         const pending = await compressImage(file);
         setPhotos((prev) => [...prev, pending]);
       } catch {
-        toast.error(`Gagal memproses ${file.name}.`);
+        toast.error(t("composer.error.processFile", { name: file.name }));
       }
     }
     setBusy(null);
@@ -96,14 +99,14 @@ export function FeedComposerSheet({
     mutationFn: async (input) => {
       const photoIds: string[] = [];
       for (let i = 0; i < input.photos.length; i++) {
-        setBusy(`Mengunggah foto ${i + 1}/${input.photos.length}...`);
+        setBusy(t("composer.busy.uploading", { n: i + 1, total: input.photos.length }));
         const uploaded = await client.social.uploadPostPhoto({
           imageBase64: input.photos[i].base64,
           mimeType: input.photos[i].mimeType,
         });
         photoIds.push(uploaded.photoId);
       }
-      setBusy("Membagikan...");
+      setBusy(t("composer.busy.sharing"));
       return client.social.createPost({
         kind: "cerita",
         caption: input.caption || undefined,
@@ -141,7 +144,7 @@ export function FeedComposerSheet({
                     createdAt: new Date(),
                     author: {
                       id: author?.id ?? "",
-                      name: author?.name ?? "Kamu",
+                      name: author?.name ?? t("composer.fallbackName"),
                       handle: null,
                       image: author?.image ?? null,
                     },
@@ -158,7 +161,7 @@ export function FeedComposerSheet({
       feedCache.matching(orpc.social.feed.key(), prepend);
       feedCache.matching(orpc.social.myPosts.key(), prepend);
       return {
-        message: "Postingan dibagikan",
+        message: t("composer.toast.posted"),
         undo: () => {
           const revert = new OptimisticCache(queryClient);
           const drop = (data: { pages: Array<{ items: FeedPost[] }> }) => ({
@@ -179,10 +182,10 @@ export function FeedComposerSheet({
   const submit = async () => {
     const text = caption.trim();
     if (text.length === 0 && photos.length === 0) {
-      toast.error("Tulis cerita dulu atau lampirkan satu foto.");
+      toast.error(t("composer.error.empty"));
       return;
     }
-    setBusy("Menyiapkan...");
+    setBusy(t("composer.busy.preparing"));
     try {
       await createPost.mutateAsync({ caption: text, visibility, photos });
       onOpenChange(false);
@@ -192,36 +195,32 @@ export function FeedComposerSheet({
   };
 
   return (
-    <Sheet
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Buat post"
-    >
+    <Sheet open={open} onOpenChange={onOpenChange} title={t("composer.title")}>
       <div className="space-y-3">
         <Textarea
           value={caption}
           onChange={(event) => setCaption(event.target.value)}
           maxLength={STORY_MAX}
           rows={4}
-          placeholder="Ada cerita hari ini? Ceritakan perjalananmu..."
-          aria-label="Tulis post"
+          placeholder={t("composer.placeholder")}
+          aria-label={t("composer.label")}
         />
         <p className="text-right text-xs text-muted-foreground tabular-nums" aria-live="polite">
           {caption.length}/{STORY_MAX}
         </p>
 
         {photos.length > 0 && (
-          <ul className="grid grid-cols-4 gap-2" aria-label="Foto terlampir">
+          <ul className="grid grid-cols-4 gap-2" aria-label={t("composer.photos")}>
             {photos.map((photo, index) => (
               <li key={photo.localUrl} className="relative">
                 <img
                   src={photo.localUrl}
-                  alt={`Foto ${index + 1}`}
+                  alt={t("composer.photo", { n: index + 1 })}
                   className="aspect-square w-full rounded-xl bg-muted object-cover"
                 />
                 <button
                   type="button"
-                  aria-label={`Buang foto ${index + 1}`}
+                  aria-label={t("composer.removePhoto", { n: index + 1 })}
                   className="absolute -top-1.5 -right-1.5 grid size-6 place-items-center rounded-full bg-foreground text-background shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                   onClick={() => setPhotos((prev) => prev.filter((p) => p !== photo))}
                 >
@@ -249,16 +248,18 @@ export function FeedComposerSheet({
           onClick={() => fileInput.current?.click()}
         >
           <ImagePlus className="size-4" aria-hidden />
-          Foto{photos.length > 0 ? ` (${photos.length}/${PHOTOS_MAX})` : ""}
+          {photos.length > 0
+            ? t("composer.addPhotoCount", { n: photos.length, max: PHOTOS_MAX })
+            : t("composer.addPhoto")}
         </Button>
 
         <Segmented<"publik" | "grup">
-          label="Penonton post"
+          label={t("composer.audience")}
           value={visibility}
           onChange={setVisibility}
           options={[
-            { value: "grup", label: "Teman grup" },
-            { value: "publik", label: "Publik" },
+            { value: "grup", label: t("visibility.friends") },
+            { value: "publik", label: t("visibility.publik") },
           ]}
         />
 
@@ -271,7 +272,7 @@ export function FeedComposerSheet({
           ) : (
             <>
               <Send className="size-4" aria-hidden />
-              Posting
+              {t("composer.submit")}
             </>
           )}
         </Button>

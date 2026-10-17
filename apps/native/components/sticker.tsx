@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Platform } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { useTranslation } from "react-i18next";
 import { File, Paths } from "expo-file-system";
 
 import { Text } from "@/components/ui";
@@ -19,7 +20,7 @@ import { authClient } from "@/lib/auth-client";
 // Must stay named `ENV`: varlock's babel plugin only inlines `ENV.X` reads;
 // anything else hits the runtime proxy, which throws in release builds.
 import { ENV } from "../src/env";
-import { fmtInt } from "@/utils/format";
+import { fmtKcalLabel } from "@/utils/format";
 
 export function stickerUrl(scanId: string): string {
   return `${ENV.EXPO_PUBLIC_SERVER_URL}/sticker/${scanId}`;
@@ -153,6 +154,7 @@ export function FoodSticker({
   onPress?: () => void;
   size?: number;
 }) {
+  const { t } = useTranslation("feed");
   const { theme } = useUnistyles();
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
@@ -191,7 +193,7 @@ export function FoodSticker({
   return (
     <Pressable
       accessibilityRole={onPress ? "imagebutton" : "image"}
-      accessibilityLabel={onPress ? `Lihat stiker ${name}` : name}
+      accessibilityLabel={onPress ? t("sticker.view", { name }) : name}
       disabled={!onPress}
       onPress={onPress}
       style={({ pressed }) => [{ width: size, height: size }, pressed && styles.pressed]}
@@ -252,6 +254,7 @@ export function StickerViewer({
   viewer: StickerViewerTarget | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("feed");
   const [showPhoto, setShowPhoto] = useState(false);
   useEffect(() => {
     setShowPhoto(false);
@@ -281,18 +284,18 @@ export function StickerViewer({
           )}
           <View style={styles.viewerCaptionRow}>
             <MetaLine
-              items={[viewer?.name ?? null, `${fmtInt(viewer?.kcal ?? 0)} kcal`]}
+              items={[viewer?.name ?? null, fmtKcalLabel(viewer?.kcal ?? 0)]}
               itemStyle={styles.viewerCaption}
             />
             {viewer?.photoId ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={showPhoto ? "Lihat stiker" : "Lihat foto asli"}
+                accessibilityLabel={showPhoto ? t("sticker.toSticker") : t("sticker.toPhoto")}
                 onPress={() => setShowPhoto((value) => !value)}
                 style={({ pressed }) => [styles.photoToggle, pressed && styles.pressed]}
               >
                 <Text style={styles.photoToggleText}>
-                  {showPhoto ? "Lihat stiker" : "Lihat foto asli"}
+                  {showPhoto ? t("sticker.toSticker") : t("sticker.toPhoto")}
                 </Text>
               </Pressable>
             ) : null}
@@ -321,6 +324,7 @@ export function StickerViewer({
 
 /** Downloads the private original photo with the session cookie, then shows it. */
 function AuthedPhoto({ photoId, name }: { photoId: string; name: string }) {
+  const { t } = useTranslation("feed");
   const { theme } = useUnistyles();
   const [uri, setUri] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -352,7 +356,7 @@ function AuthedPhoto({ photoId, name }: { photoId: string; name: string }) {
   }, [photoId]);
 
   if (failed) {
-    return <Text style={styles.viewerCaption}>Foto asli gagal dimuat.</Text>;
+    return <Text style={styles.viewerCaption}>{t("sticker.photoFailed")}</Text>;
   }
   if (!uri) {
     return (
@@ -366,7 +370,7 @@ function AuthedPhoto({ photoId, name }: { photoId: string; name: string }) {
       source={{ uri }}
       style={styles.viewerImage}
       resizeMode="contain"
-      accessibilityLabel={`Foto asli ${name}`}
+      accessibilityLabel={t("sticker.photo", { name })}
     />
   );
 }

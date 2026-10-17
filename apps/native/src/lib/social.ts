@@ -5,6 +5,7 @@
 // Must stay named `ENV`: varlock's babel plugin only inlines `ENV.X` reads;
 // anything else hits the runtime proxy, which throws in release builds.
 import { ENV } from "../env";
+import { i18n } from "@joyorogo/i18n";
 
 export type Visibility = "publik" | "grup";
 export type PostKind = "makan" | "latihan" | "berat" | "cerita";
@@ -108,27 +109,48 @@ export function postPhotoUrl(postId: string, index?: number): string {
   return `${ENV.EXPO_PUBLIC_SERVER_URL}/post-photo/${postId}${suffix}`;
 }
 
+/** `label` is a getter so it follows the active language at read time. */
 export const KIND_META: Record<
   PostKind,
   { icon: string; outline: string; label: string; tint: "makan" | "bakar" | "tidur" }
 > = {
-  makan: { icon: "restaurant", outline: "restaurant-outline", label: "Makan", tint: "makan" },
-  latihan: { icon: "barbell", outline: "barbell-outline", label: "Latihan", tint: "bakar" },
-  berat: { icon: "scale", outline: "scale-outline", label: "Berat", tint: "tidur" },
+  makan: {
+    icon: "restaurant",
+    outline: "restaurant-outline",
+    get label() {
+      return i18n.t("feed:kind.makan");
+    },
+    tint: "makan",
+  },
+  latihan: {
+    icon: "barbell",
+    outline: "barbell-outline",
+    get label() {
+      return i18n.t("feed:kind.latihan");
+    },
+    tint: "bakar",
+  },
+  berat: {
+    icon: "scale",
+    outline: "scale-outline",
+    get label() {
+      return i18n.t("feed:kind.berat");
+    },
+    tint: "tidur",
+  },
   cerita: {
     icon: "chatbubble-ellipses",
     outline: "chatbubble-ellipses-outline",
-    label: "Cerita",
+    get label() {
+      return i18n.t("feed:kind.cerita");
+    },
     tint: "makan",
   },
 };
 
 export const HANDLE_REGEX = /^[a-z0-9_]{3,20}$/;
 
-/** Human labels for the report reasons. */
-export const REPORT_REASONS = [
-  { value: "spam", label: "Spam" },
-  { value: "kasar", label: "Bahasa kasar" },
-  { value: "salah_info", label: "Informasi menyesatkan" },
-  { value: "lainnya", label: "Lainnya" },
-] as const;
+/** Report reasons; labels are `feed:report.reason.<value>`. */
+export const REPORT_REASONS = ["spam", "kasar", "salah_info", "lainnya"] as const;
+
+export type ReportReason = (typeof REPORT_REASONS)[number];

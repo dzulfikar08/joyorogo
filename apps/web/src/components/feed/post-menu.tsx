@@ -5,20 +5,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Flag, ShieldOff, Trash2, UserX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import { ListButtonRow, ListGroup } from "@/components/kit/surface";
 import type { FeedPost } from "@/lib/api-types";
 import { useDelayedDelete } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
-const REASONS = [
-  { value: "spam", label: "Spam atau promosi" },
-  { value: "kasar", label: "Konten kasar" },
-  { value: "salah_info", label: "Informasi menyesatkan" },
-  { value: "lainnya", label: "Lainnya" },
-] as const;
+const REASONS = ["spam", "kasar", "salah_info", "lainnya"] as const;
 
-type Reason = (typeof REASONS)[number]["value"];
+type Reason = (typeof REASONS)[number];
 
 /**
  * Menu "..." pada kartu postingan: lapor, blokir penulis, atau hapus
@@ -37,6 +33,7 @@ export function PostMenuSheet({
   onOpenChange: (open: boolean) => void;
   onDeleted?: () => void;
 }) {
+  const { t } = useTranslation(["feed", "common"]);
   const queryClient = useQueryClient();
   const [reportOpen, setReportOpen] = useState(false);
   const [reason, setReason] = useState<Reason>("spam");
@@ -53,7 +50,7 @@ export function PostMenuSheet({
   const report = useMutation(
     orpc.social.report.mutationOptions({
       onSuccess: () => {
-        toast.success("Laporan terkirim, terima kasih.");
+        toast.success(t("menu.toast.reported"));
         onOpenChange(false);
       },
       onError: (error) => toast.error(error.message),
@@ -62,7 +59,7 @@ export function PostMenuSheet({
   const block = useMutation(
     orpc.social.block.mutationOptions({
       onSuccess: () => {
-        toast.success("Pengguna diblokir.");
+        toast.success(t("menu.toast.blocked"));
         queryClient.invalidateQueries({ queryKey: orpc.social.key() });
         onOpenChange(false);
       },
@@ -95,28 +92,28 @@ export function PostMenuSheet({
         }),
       );
     },
-    label: () => "Postingan",
+    label: () => t("menu.undoLabel"),
     invalidate: () => [orpc.social.key()],
   });
 
   if (!post) return null;
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} title="Aksi postingan">
+    <Sheet open={open} onOpenChange={onOpenChange} title={t("post.actions")}>
       {reportOpen ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Kenapa kamu melaporkan postingan ini?
+              {t("report.ask")}
             </p>
             <ListGroup>
               {REASONS.map((option) => (
                 <ListButtonRow
-                  key={option.value}
-                  onClick={() => setReason(option.value)}
-                  title={option.label}
+                  key={option}
+                  onClick={() => setReason(option)}
+                  title={t(`report.reason.${option}`)}
                   icon={
                     <span
                       className={
-                        reason === option.value
+                        reason === option
                           ? "grid size-9 shrink-0 place-items-center rounded-full bg-foreground text-background"
                           : "grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground"
                       }
@@ -128,13 +125,13 @@ export function PostMenuSheet({
               ))}
             </ListGroup>
             <label className="block space-y-1.5">
-              <p className="text-sm font-bold">Catatan tambahan (opsional)</p>
+              <p className="text-sm font-bold">{t("report.note")}</p>
               <Textarea
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 maxLength={200}
                 rows={2}
-                placeholder="Jelaskan singkat..."
+                placeholder={t("report.notePlaceholder")}
               />
             </label>
             <div className="flex gap-2">
@@ -143,7 +140,7 @@ export function PostMenuSheet({
                 className="flex-1"
                 onClick={() => setReportOpen(false)}
               >
-                Kembali
+                {t("common:actions.back")}
               </Button>
               <Button
                 className="flex-1"
@@ -156,7 +153,7 @@ export function PostMenuSheet({
                   })
                 }
               >
-                {report.isPending ? "Mengirim..." : "Kirim laporan"}
+                {report.isPending ? t("report.sending") : t("report.send")}
               </Button>
             </div>
           </div>
@@ -171,8 +168,8 @@ export function PostMenuSheet({
                       <Flag className="size-5 text-muted-foreground" aria-hidden />
                     </span>
                   }
-                  title="Laporkan postingan"
-                  subtitle="Konten diperiksa admin"
+                  title={t("menu.report.title")}
+                  subtitle={t("menu.report.subtitle")}
                 />
               )}
               {!isOwn && (
@@ -184,8 +181,8 @@ export function PostMenuSheet({
                       <UserX className="size-5 text-destructive" aria-hidden />
                     </span>
                   }
-                  title={`Blokir ${post.author.name}`}
-                  subtitle="Sembunyikan konten satu sama lain"
+                  title={t("menu.block.title", { name: post.author.name })}
+                  subtitle={t("menu.block.subtitle")}
                 />
               )}
               {isOwn && (
@@ -201,15 +198,15 @@ export function PostMenuSheet({
                       <Trash2 className="size-5 text-destructive" aria-hidden />
                     </span>
                   }
-                  title="Hapus postingan"
-                  subtitle="Semangat dan komentar ikut hilang"
+                  title={t("menu.delete.title")}
+                  subtitle={t("menu.delete.subtitle")}
                 />
               )}
             </ListGroup>
             {!isOwn && (
               <p className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
                 <ShieldOff className="size-3.5" aria-hidden />
-                Blokir juga memutus hubungan mengikuti dua arah.
+                {t("menu.block.note")}
               </p>
             )}
           </div>
