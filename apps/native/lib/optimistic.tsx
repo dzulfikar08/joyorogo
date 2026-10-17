@@ -17,6 +17,7 @@ import {
   type SummaryDelta,
 } from "@joyorogo/api/lib/optimistic";
 import { jakartaToday } from "@joyorogo/api/lib/engine";
+import { i18n } from "@joyorogo/i18n";
 
 import { useToast } from "@/components/toast";
 import { errorMessage } from "@/utils/format";
@@ -136,7 +137,7 @@ export function useOptimisticMutation<TInput, TData, TContext = void>(config: {
     },
     onError: (error, input, rawContext) => {
       (rawContext as MutateContext | undefined)?.snapshot?.restore();
-      toast.error("Gagal menyimpan", errorMessage(error));
+      toast.error(i18n.t("misc:optimistic.saveFailed"), errorMessage(error));
       config.onError?.(error, input);
     },
     onSuccess: (data, input, rawContext) => {
@@ -189,7 +190,7 @@ export function useDelayedDelete<TRow extends { id: string }>(config: {
       })
       .catch((error: unknown) => {
         entry.restore();
-        toast.error("Gagal menghapus", errorMessage(error));
+        toast.error(i18n.t("misc:optimistic.deleteFailed"), errorMessage(error));
       });
   }, [queryClient, toast]);
 

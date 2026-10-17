@@ -197,12 +197,13 @@ function swapSuggestion(
   kcal: number,
   room: number,
   t: MakanT,
+  locale: Locale,
 ): AdviceSuggestion | null {
   const label = t("snackAdvice.swap.label");
   if (kind === "camilan") {
     // Catalog values are TKPI 2019 rounded (ideas.ts); only a lighter idea that
     // fits the room left is worth naming, otherwise the generic wording stands.
-    const idea = mealIdeas(room, "snack", 6).find((i) => i.kcal < kcal);
+    const idea = mealIdeas(room, "snack", 6, undefined, locale).find((i) => i.kcal < kcal);
     if (idea) {
       return {
         type: "swap",
@@ -319,7 +320,7 @@ export function adviseSnack(
         verdict: verdictFor(half, remaining, spare),
       });
     }
-    const swap = swapSuggestion(input.kind, kcal, Math.max(spare, 0), t);
+    const swap = swapSuggestion(input.kind, kcal, Math.max(spare, 0), t, locale);
     if (swap) suggestions.push(swap);
     if (verdict === "hati-hati" && meals.length > 0 && after > 0) {
       suggestions.push({

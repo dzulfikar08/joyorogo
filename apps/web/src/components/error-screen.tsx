@@ -1,6 +1,7 @@
 import { Link, useRouter } from "@tanstack/react-router";
 import { ChevronDown, Home, RefreshCw } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Mascot } from "@/components/mascot";
 
@@ -60,6 +61,7 @@ function Shell({
  * when the query client or theme context itself is what broke. */
 export function ErrorScreen({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
+  const { t } = useTranslation(["misc", "common"]);
   const [showDetails, setShowDetails] = useState(false);
   const chunkError = isChunkLoadError(error);
 
@@ -67,19 +69,17 @@ export function ErrorScreen({ error, reset }: ErrorComponentProps) {
     <Shell status={chunkError ? undefined : "500"}>
       <Mascot pose="surprised" size="xl" eager />
       <h1 className="mt-6 text-2xl font-extrabold tracking-tight">
-        {chunkError ? "Versi baru tersedia" : "Waduh, ada yang error"}
+        {chunkError ? t("common:errorScreen.updateTitle") : t("common:errorScreen.crashTitle")}
       </h1>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-        {chunkError
-          ? "JoyoRogo baru saja diperbarui. Muat ulang halaman untuk memakai versi terbaru, ya."
-          : "Ada yang salah di sisi kami. Tenang, datangmu aman. Coba lagi, atau muat ulang halaman kalau masih error."}
+        {chunkError ? t("errorScreen.updateBody") : t("errorScreen.crashBody")}
       </p>
 
       <Actions>
         {chunkError ? (
           <button type="button" className={primaryButton} onClick={() => window.location.reload()}>
             <RefreshCw className="size-4" aria-hidden />
-            Muat ulang sekarang
+            {t("errorScreen.reloadNow")}
           </button>
         ) : (
           <button
@@ -93,17 +93,17 @@ export function ErrorScreen({ error, reset }: ErrorComponentProps) {
             }}
           >
             <RefreshCw className="size-4" aria-hidden />
-            Coba lagi
+            {t("common:actions.retry")}
           </button>
         )}
         {!chunkError ? (
           <button type="button" className={secondaryButton} onClick={() => window.location.reload()}>
-            Muat ulang halaman
+            {t("errorScreen.reloadPage")}
           </button>
         ) : null}
         <Link to="/" className={homeLink}>
           <Home className="size-4" aria-hidden />
-          Ke Beranda
+          {t("errorScreen.home")}
         </Link>
       </Actions>
 
@@ -113,7 +113,7 @@ export function ErrorScreen({ error, reset }: ErrorComponentProps) {
         onClick={() => setShowDetails((v) => !v)}
         aria-expanded={showDetails}
       >
-        Detail teknis
+        {t("errorScreen.details")}
         <ChevronDown
           className={`size-3.5 transition-transform ${showDetails ? "rotate-180" : ""}`}
           aria-hidden
@@ -130,19 +130,18 @@ export function ErrorScreen({ error, reset }: ErrorComponentProps) {
 
 /** Router-level 404 screen. */
 export function NotFoundScreen(_props: NotFoundRouteProps) {
+  const { t } = useTranslation("misc");
   return (
     <Shell status="404">
       <Mascot pose="peek" size="xl" eager />
-      <h1 className="mt-6 text-2xl font-extrabold tracking-tight">
-        Halaman tidak ditemukan
-      </h1>
+      <h1 className="mt-6 text-2xl font-extrabold tracking-tight">{t("notFound.title")}</h1>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-        Halaman yang kamu cari tidak ada atau sudah dipindah. Yuk kembali ke Beranda.
+        {t("notFound.body")}
       </p>
       <Actions>
         <Link to="/" className={primaryButton}>
           <Home className="size-4" aria-hidden />
-          Ke Beranda
+          {t("notFound.home")}
         </Link>
       </Actions>
     </Shell>

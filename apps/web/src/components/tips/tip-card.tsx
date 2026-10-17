@@ -1,5 +1,6 @@
-import type { Tip } from "@joyorogo/api/lib/tips";
-import { BookOpen } from "lucide-react";
+import { localizeTip, type Tip } from "@joyorogo/api/lib/tips";
+import { ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { TipIconGlyph } from "@/components/tips/tip-icon";
 
@@ -12,29 +13,31 @@ export function blogTipUrl(slug: string): string {
 }
 
 /** Kartu tips ringkas untuk feed; seluruh kartu jadi tautan ke artikelnya. */
-export function TipCard({ tip }: { tip: Tip }) {
+export function TipCard({ tip: meta }: { tip: Tip }) {
+  const { t } = useTranslation("tips");
+  const tip = localizeTip(meta);
   return (
     <a
       href={blogTipUrl(tip.slug)}
-      aria-label={`Tips: ${tip.title}. Baca artikelnya.`}
-      className={`block rounded-2xl bg-muted p-4 transition-colors hover:bg-card ${FOCUS}`}
+      aria-label={t("card.aria", { title: tip.title })}
+      className={`flex items-center gap-3 rounded-2xl bg-muted p-3.5 transition-colors hover:bg-card ${FOCUS}`}
     >
-      <div className="flex items-start gap-3">
-        <span
-          aria-hidden
-          className="grid size-10 shrink-0 place-items-center rounded-full bg-makan-soft text-makan-ink"
-        >
-          <TipIconGlyph icon={tip.icon} className="size-5" />
-        </span>
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-makan-ink">Tips</p>
-          <h3 className="mt-0.5 font-bold leading-snug">{tip.title}</h3>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{tip.summary}</p>
-        </div>
+      <span
+        aria-hidden
+        className="grid size-10 shrink-0 place-items-center rounded-full bg-makan-soft text-makan-ink"
+      >
+        <TipIconGlyph icon={tip.icon} className="size-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-bold text-makan-ink">{t("card.kicker")}</p>
+        <h3 className="mt-0.5 line-clamp-2 leading-snug font-bold">{tip.title}</h3>
+        <p className="mt-0.5 line-clamp-2 text-sm leading-snug text-muted-foreground">
+          {tip.summary}
+        </p>
       </div>
-      <span className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-full bg-card px-4 text-sm font-semibold">
-        <BookOpen className="size-4" aria-hidden />
-        Baca
+      <span className="flex shrink-0 items-center text-sm font-semibold text-muted-foreground">
+        {t("card.read")}
+        <ChevronRight className="size-4" aria-hidden />
       </span>
     </a>
   );

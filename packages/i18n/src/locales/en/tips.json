@@ -1,0 +1,651 @@
+{
+  "card": {
+    "kicker": "Tip",
+    "read": "Read",
+    "aria": "Tip: {{title}}. Read the article.",
+    "readAria": "Read {{title}}"
+  },
+  "daily": {
+    "title": "Today's tip"
+  },
+  "context": {
+    "sugaryDrink": "There's a sugary drink on your plate",
+    "sauceFried": "There's sauce or fried food on your plate"
+  },
+  "article": {
+    "notFound": "Tip not found.",
+    "tryThis": "Try this",
+    "more": "Read more",
+    "sourcesTitle": "Sources & notes",
+    "sources": "Sources",
+    "openSource": "Open source: {{title}}",
+    "photo": "Photo",
+    "photoBy": "Photo: {{author}} · {{source}} · {{page}}",
+    "photoCredit": "Photo · {{source}} · {{page}}",
+    "disclaimer": "These tips are general information, not a substitute for advice from a doctor or dietitian."
+  },
+  "credit": {
+    "jeremyEthier": "Ideas in this article were inspired by a video by Jeremy Ethier (Built with Science)"
+  },
+  "ideas": {
+    "ayamBakarLalapan": "Grilled chicken + ½ rice + fresh veg",
+    "ikanBakarSayurAsem": "Grilled fish + ½ rice + sayur asem",
+    "pepesIkan": "Steamed fish in banana leaf (pepes) + ½ rice + fresh veg",
+    "pindangTongkol": "Pindang tongkol + ½ rice + stir-fried water spinach",
+    "sateAyam": "Chicken satay, 10 skewers, light sauce",
+    "ayamGeprek": "Ayam geprek, skinless + ½ rice",
+    "supAyam": "Chicken soup + ½ rice",
+    "sotoAyam": "Clear chicken soto + ½ rice",
+    "baksoKuah": "Bakso in broth, no noodles",
+    "tahuTempeBacem": "Tofu + sweet braised tempeh + clear veg soup + ½ rice",
+    "gadoGado": "Gado-gado, half the peanut sauce",
+    "omelet": "2-egg omelet + veg + ½ rice",
+    "rotiGandumTelur": "2 slices wholewheat bread + 2 boiled eggs",
+    "buburAyam": "Chicken porridge, no crackers",
+    "oatmeal": "Oatmeal + milk + banana",
+    "telurRebus": "2 boiled eggs",
+    "tempeKukus": "2 pieces steamed tempeh",
+    "tahuKukus": "2 pieces steamed tofu",
+    "edamame": "1 small bowl of edamame",
+    "yogurt": "Plain yogurt + fruit",
+    "susuKedelai": "1 glass unsweetened soy milk",
+    "kacangRebus": "1 handful of boiled peanuts",
+    "buahPotong": "1 bowl of cut fruit"
+  },
+  "items": {
+    "kenyang-dengan-porsi-banyak": {
+      "title": "Feel full on big portions: the volume eating trick",
+      "summary": "Big portions without big calories: fill your plate with high-volume foods so a calorie deficit doesn't feel like hunger.",
+      "image": {
+        "alt": "A bowl of clear vegetable soup with a transparent broth"
+      },
+      "figure": {
+        "alt": "Bar chart of calories per 100 grams: boiled spinach 23, watermelon 28, papaya 46, rice 180, fried shrimp crackers 477 kcal.",
+        "caption": "Watery vegetables and fruit fill you up for far fewer calories than dense snacks. Figures: TKPI 2019."
+      },
+      "sections": [
+        {
+          "heading": "Low calories, big volume",
+          "paragraphs": [
+            "Two bowls of clear vegetable soup can have fewer calories than a handful of crackers, yet your stomach feels just as full. That is the idea behind volume eating: choose foods rich in water and fiber, so the portion weighs a lot but carries few calories.",
+            "It has been tested over a long time. In a one-year Penn State trial, the group taught to lower the calorie density of their food (more vegetables and fruit, not just smaller portions) lost more weight than the group that only cut fat. They stayed fuller because the amount of food they ate stayed large."
+          ]
+        },
+        {
+          "heading": "It fits Indonesian food",
+          "paragraphs": [
+            "Clear vegetable soup, sop with a clear broth, lightly oiled stir-fried vegetables, watermelon, melon, papaya and guava are all high-volume. Boiled egg whites and skinless chicken add protein without many calories. For a snack, 20 grams of plain popcorn is about 75 kcal.",
+            "The trap is what goes on top: coconut milk, oil, crackers and peanut sauce turn low-calorie vegetables into high-calorie ones in no time. Fresh sambal and clear broth are safe; lodeh and gado-gado with thick peanut sauce are not."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Start your meal with a bowl of clear vegetable soup or sop.",
+        "Fill half your plate with vegetables before adding rice.",
+        "Keep watery fruit (watermelon, melon, papaya) in the fridge for snacking.",
+        "Swap fried snacks for plain popcorn or fruit.",
+        "Cut back the coconut milk and oil in vegetable dishes, not the vegetables."
+      ],
+      "sources": [
+        "Ello-Martin et al. (2007), one-year calorie density trial, Am J Clin Nutr"
+      ]
+    },
+    "protein-kenyang-jaga-otot": {
+      "title": "Protein: stay full longer and keep your muscle",
+      "summary": "Protein is the most filling macronutrient and helps make sure the weight you lose is fat, not muscle.",
+      "image": {
+        "alt": "Boiled eggs arranged on a tray"
+      },
+      "figure": {
+        "alt": "Bar chart of protein per 100 grams: egg white 10.8 g, tofu 10.9 g, chicken egg 12.4 g, chicken 18.2 g, soy tempeh 20.8 g.",
+        "caption": "You can get enough protein from market staples: eggs, tofu, tempeh and chicken. Figures: TKPI 2019."
+      },
+      "sections": [
+        {
+          "heading": "Why protein wins on a diet",
+          "paragraphs": [
+            "Of carbs, fat and protein, protein fills you up the most. A review in the American Journal of Clinical Nutrition concluded that protein increases fullness and helps manage weight. In practice: an egg breakfast keeps you going until lunch, while a sweet, oily breakfast often leaves you hungry again by 10."
+          ]
+        },
+        {
+          "heading": "A shield for your muscle as weight drops",
+          "paragraphs": [
+            "In a calorie deficit your body can burn muscle too. In athletes on a deficit, about 2.3 g of protein per kg of body weight per day preserved muscle mass, while low protein did not. A more extreme study found that 2.4 g/kg plus weight training meant almost all the weight lost was fat.",
+            "Researchers often use a range of about 1.6-2.4 g per kg of body weight per day when dieting. For 70 kg, that is roughly 112-168 g of protein."
+          ]
+        },
+        {
+          "heading": "It doesn't have to be expensive",
+          "paragraphs": [
+            "Eggs, chicken, mackerel, tempeh, tofu and egg whites all count. Bakso counts too, but watch the broth, sauces and portion. What changes the numbers is how you cook: boiling and steaming keep protein low in calories, thick-oil frying does not."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Add a protein source to every main meal, not just dinner.",
+        "Boiled eggs or steamed tempeh make a good protein snack.",
+        "Rough target: about 1.6-2.4 g of protein per kg of body weight per day.",
+        "Choose boiled, steamed or grilled over heavily fried."
+      ],
+      "sources": [
+        "Paddon-Jones et al. (2008), protein, weight management and satiety",
+        "Mettler et al. (2009), high protein preserves muscle mass in a deficit",
+        "Longland et al. (2016), 2.4 g/kg protein + weight training in a deficit"
+      ]
+    },
+    "protein-dibagi-empat-momen": {
+      "title": "Spread your protein across meals",
+      "summary": "Protein spread evenly over 3-4 meals supports muscle better than piling it all into dinner.",
+      "image": {
+        "alt": "Close-up of fried tempeh slices"
+      },
+      "figure": {
+        "alt": "Stacked bar chart: an even 30-30-30-30 gram pattern versus an uneven 10-15-20-65 gram pattern with the same total.",
+        "caption": "Same total protein, but an even spread stimulates muscle protein synthesis more (Mamerow et al., 2014)."
+      },
+      "sections": [
+        {
+          "heading": "The problem with lopsided days",
+          "paragraphs": [
+            "Many people go light on protein in the morning and make up for it at night. A study in the Journal of Nutrition found that an even pattern (about 30 g per meal) raised 24-hour muscle protein synthesis more than an uneven one (10 g in the morning, 65 g at night), even though total protein was the same."
+          ]
+        },
+        {
+          "heading": "A protein breakfast also curbs snacking",
+          "paragraphs": [
+            "In teens who usually skip breakfast, a high-protein breakfast (35 g) increased fullness and reduced late-night snacking cravings compared with a normal-protein breakfast. Unplanned late-night snacking is often the biggest source of extra calories."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Breakfast: eggs + milk, or tofu/tempeh left over from yesterday.",
+        "Keep boiled egg whites or shredded chicken in the fridge.",
+        "If a meal is plain, add a boiled egg.",
+        "Aim for roughly 25-40 g of protein at each main meal."
+      ],
+      "sources": [
+        "Mamerow et al. (2014), protein distribution and 24-hour muscle synthesis",
+        "Leidy et al. (2013), high-protein breakfast and late-night snacking"
+      ]
+    },
+    "serat-kenyang-lama": {
+      "title": "Fiber: cheap, filling, and often missing",
+      "summary": "Fiber slows digestion and keeps you full longer; about 14 g more per day is linked to lower calorie intake.",
+      "image": {
+        "alt": "A market stall with vegetables and fruit"
+      },
+      "figure": {
+        "alt": "Stat panel: about 14 grams more fiber per day is linked to roughly 10 percent lower energy intake; examples of fiber in spinach, guava and mung beans.",
+        "caption": "A modest fiber boost already shifts intake. Fiber sources: TKPI 2019; effect: Howarth et al. (2001)."
+      },
+      "sections": [
+        {
+          "heading": "How it works",
+          "paragraphs": [
+            "Fiber makes food take longer to digest and keeps your stomach fuller for longer. A review in Nutrition Reviews estimated that about 14 g more fiber per day is linked to roughly 10% lower energy intake and weight loss, without any other complicated diet changes."
+          ]
+        },
+        {
+          "heading": "Realistic local sources",
+          "paragraphs": [
+            "Vegetables like spinach, water spinach and long beans; fruit like papaya, guava and banana; boiled mung beans; oats; brown rice. Clear vegetable soup at two meals plus two pieces of fruit gets you close to half the commonly recommended daily amount (about 25-30 g).",
+            "One note: peanuts and jengkol taste great but are calorie-dense. Their fiber is good; it's the portion you need to watch."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Have vegetables at every meal, not just dinner.",
+        "Whole fruit instead of juice: the fiber stays, and you stay full longer.",
+        "Swap some white rice for brown rice or oats.",
+        "Boiled mung beans as a snack, not fried."
+      ],
+      "sources": [
+        "Howarth et al. (2001), fiber and body weight regulation, Nutrition Reviews"
+      ]
+    },
+    "segelas-air-sebelum-makan": {
+      "title": "A glass of water before meals helps shrink portions",
+      "summary": "RCT: 500 ml of water before each main meal led to 44% more weight loss over 12 weeks in middle-aged and older adults.",
+      "image": {
+        "alt": "A glass of water on a table"
+      },
+      "figure": {
+        "alt": "Bar chart: the deficit group that drank 500 ml of water before meals lost 44 percent more weight in 12 weeks.",
+        "caption": "44% more weight loss with a water preload (Dennis et al., 2010; middle-aged to older adults)."
+      },
+      "sections": [
+        {
+          "heading": "The evidence",
+          "paragraphs": [
+            "In a randomized controlled trial (Obesity, 2010), middle-aged and older adults on a calorie deficit who drank 500 ml of water before their three main meals lost 44% more weight over 12 weeks than those on the deficit alone. The logic is simple: your stomach is partly filled before you eat, so your portion shrinks too."
+          ]
+        },
+        {
+          "heading": "The honest caveat",
+          "paragraphs": [
+            "The participants were 55-75 years old; in younger people the evidence is not as strong. Water isn't a fat burner either: the effect comes purely through portion size. But of all diet \"tricks\", this one is the cheapest and carries the least risk."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Drink 500 ml of water 20-30 minutes before a main meal.",
+        "Keep a bottle on the dining table as a reminder.",
+        "Swap sweet iced tea at mealtime for plain water or unsweetened iced tea."
+      ],
+      "sources": [
+        "Dennis et al. (2010), 500 ml water preload before meals, Obesity"
+      ]
+    },
+    "air-berkarbonasi-fakta": {
+      "title": "Does sugar-free sparkling water help a diet? The honest answer",
+      "summary": "Carbonation may give a brief feeling of fullness, but the evidence for weight loss is thin; its biggest value is replacing sugary drinks.",
+      "image": {
+        "alt": "Sparkling water with a slice of lemon"
+      },
+      "figure": {
+        "alt": "Bar chart: sweet iced tea 60-100 kcal per glass versus sugar-free soda 0 kcal.",
+        "caption": "Plain soda wins because of zero calories, not the bubbles (iced tea: typical sugar amounts; carbonation evidence: Eweis 2017, Harper 2007)."
+      },
+      "sections": [
+        {
+          "heading": "What the research says",
+          "paragraphs": [
+            "Many people feel sugar-free soda holds back snack cravings. But the evidence is mixed. A study in rats found that the CO2 in carbonated drinks raised the hormone ghrelin and their food intake. In humans, comparing carbonated drinks with other drinks found no reduction in later eating. There is no strong evidence that sparkling water on its own lowers body weight."
+          ]
+        },
+        {
+          "heading": "Where the value is",
+          "paragraphs": [
+            "As a replacement for sweet iced tea or sugary soda, the choice is clear: zero calories versus tens to hundreds of kcal. That is the main benefit, not some magic effect of the gas. Think of it as a bridge, not a destination."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Plain or sugar-free soda as a bridge away from sugary drinks.",
+        "Squeeze in some lime for flavor without calories.",
+        "Don't let \"I already had a diet soda\" become a reason to snack more."
+      ],
+      "sources": [
+        "Eweis et al. (2017), carbonated CO2, ghrelin and eating (animal study)",
+        "Harper et al. (2007), brief satiety from carbonated drinks, no effect on later eating"
+      ]
+    },
+    "makan-pelan-kenyang-cepat": {
+      "title": "Eat slowly: fullness arrives before your plate is empty",
+      "summary": "Fullness signals take about 20 minutes; chewing more has been shown to reduce how much you eat.",
+      "image": {
+        "alt": "A plate of rice with assorted side dishes"
+      },
+      "figure": {
+        "alt": "A 20-minute timeline: the fullness signal reaches the brain about twenty minutes after the first bite.",
+        "caption": "Fullness takes time; a rushed meal is over before the signal arrives (about 20 min; Zhu & Hollis, 2014)."
+      },
+      "sections": [
+        {
+          "heading": "Fullness signals are slow",
+          "paragraphs": [
+            "It takes about 20 minutes for fullness signals from the stomach and hormones to really reach the brain. A five-minute meal is often finished before that signal shows up, so the portion ends up bigger than you needed. A study of lean, overweight and obese people found that chewing more before swallowing reduced how much they ate in all three groups."
+          ]
+        },
+        {
+          "heading": "If you usually eat in a rush",
+          "paragraphs": [
+            "Finishing a bowl of bakso in five minutes is normal. What helps isn't counting chews but adding small friction: sit at a table, put your spoon down between bites, drink during the meal, and wait five minutes before seconds. If you're still hungry after that, add vegetables or broth, not more rice."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Put your spoon down after every bite.",
+        "Simple goal: take at least 15-20 minutes for a main meal.",
+        "Drink water in the middle of the meal.",
+        "Wait five minutes before a second helping of rice."
+      ],
+      "sources": [
+        "Zhu & Hollis (2014), number of chews and meal size"
+      ]
+    },
+    "makanan-ultra-proses": {
+      "title": "Why packaged food makes calories leak in",
+      "summary": "An NIH metabolic ward RCT: an ultra-processed menu made people eat about 500 kcal more per day and gain weight within two weeks.",
+      "image": {
+        "alt": "A block of raw instant noodles in its packaging"
+      },
+      "figure": {
+        "alt": "Bar chart of the Hall 2019 study: the ultra-processed menu added about 500 kcal per day and 0.9 kg of weight; the minimally processed menu lost 0.9 kg.",
+        "caption": "The ultra-processed menu made people eat about 500 kcal more per day (Hall et al., 2019)."
+      },
+      "sections": [
+        {
+          "heading": "The experiment everyone talks about",
+          "paragraphs": [
+            "Kevin Hall et al. (2019) kept 20 adults in a metabolic ward for a month. For two weeks they got an ultra-processed menu, for two weeks a minimally processed one; the menus were deliberately matched in composition and participants could eat as much as they liked. The result: on the ultra-processed menu they ate about 500 kcal more per day and gained about 0.9 kg. On the minimally processed menu they lost about 0.9 kg."
+          ]
+        },
+        {
+          "heading": "Why this happens",
+          "paragraphs": [
+            "Ultra-processed food is usually calorie-dense, quick to chew through, and designed to be hard to stop eating. It isn't \"poison\", but it makes it easy to overshoot without noticing. The Indonesian version: packaged snacks, biscuits, sweet bread, sugary bottled drinks, and instant noodles eaten with nothing else."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Swap one packaged snack a day for fruit or a boiled egg.",
+        "Cook simple food at home: eggs, tempeh, vegetables, rice.",
+        "Shop with a list so the snack aisle doesn't end up in your basket.",
+        "If you buy packaged, put it in a bowl first; don't eat from the bag."
+      ],
+      "sources": [
+        "Hall et al. (2019), RCT of ultra-processed vs minimally processed diets, Cell Metabolism"
+      ]
+    },
+    "kalori-cair-es-teh-kopi": {
+      "title": "Liquid calories: sweet iced tea and palm sugar milk coffee",
+      "summary": "Calories from drinks fill you up less; sweet iced tea and milk coffee can add 100-300 kcal without you noticing.",
+      "image": {
+        "alt": "A glass of sweet iced tea with a straw"
+      },
+      "figure": {
+        "alt": "Bar chart of calories per glass: plain iced water 0, sweet iced tea 60-100 kcal, palm sugar milk coffee 200-300 kcal.",
+        "caption": "Three sugary drinks can wipe out a daily deficit without you feeling it (typical serving ranges)."
+      },
+      "sections": [
+        {
+          "heading": "Why liquid calories slip by",
+          "paragraphs": [
+            "A classic study compared liquid soda with a solid snack of equal calories. The soda group didn't automatically eat less later, and their weight went up; the solid snack group's did not. A large meta-analysis also links sugary drinks to weight gain. The calories arrive without making you feel full, so there is no compensation at the next meal."
+          ]
+        },
+        {
+          "heading": "The Indonesian version",
+          "paragraphs": [
+            "Sweet iced tea is about 60-100 kcal per glass depending on the sugar. Palm sugar milk coffee easily passes 200 kcal. Three glasses a day, and your calorie deficit quietly disappears without you ever feeling like you ate a lot."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Make unsweetened iced tea or plain water your default; sweet is the exception.",
+        "Ask for half the sugar, then half of that next week.",
+        "Coffee: skip the palm sugar, or measure it.",
+        "Save trendy sweet drinks for occasions, not routine."
+      ],
+      "sources": [
+        "DiMeglio & Mattes (2000), liquid vs solid calories",
+        "Malik et al. (2013), meta-analysis of sugary drinks and body weight"
+      ]
+    },
+    "saus-minyak-porsi-kecil": {
+      "title": "Sauces and oil: small portions, big calories",
+      "summary": "One tablespoon of oil is about 120 kcal, one tablespoon of mayonnaise about 90 kcal; seasonings and sides are often the biggest hidden calories.",
+      "image": {
+        "alt": "White rice with clam sambal and bean sprouts"
+      },
+      "figure": {
+        "alt": "Bar chart of calories per tablespoon: cooking oil about 115 kcal, mayonnaise about 90 kcal, fresh sambal about 15 kcal.",
+        "caption": "Two or three extra spoonfuls of oil plus sauce can add 300-400 kcal without you noticing (oil: TKPI 2019)."
+      },
+      "sections": [
+        {
+          "heading": "Numbers that rarely get counted",
+          "paragraphs": [
+            "Fat has about 9 kcal per gram. One tablespoon of cooking oil is about 120 kcal, one tablespoon of mayonnaise about 90 kcal, and bottled sweet sauce a few dozen kcal per tablespoon from the sugar. Two or three extra spoonfuls of oil when frying, plus sauce, can add 300-400 kcal you never feel."
+          ]
+        },
+        {
+          "heading": "On an Indonesian plate",
+          "paragraphs": [
+            "Ayam geprek with mayo sambal, fritters dunked in sauce, karedok with thick peanut sauce, cheese-and-butter martabak. The main dish looks ordinary, but it's the sauce and oil that push the calories up. Fresh sambal without oil and pickles are the lightest choices."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Measure oil with a spoon; don't pour straight from the bottle.",
+        "Serve sauce and mayo in a small dish and dip lightly.",
+        "Fresh sambal or pickles as your default side.",
+        "Clear broth instead of coconut milk broth when you're in a deficit."
+      ],
+      "sources": [
+        "USDA FoodData Central, nutrition values for oil and mayonnaise"
+      ]
+    },
+    "tidur-cukup-lapar-turun": {
+      "title": "Short on sleep, hungrier tomorrow",
+      "summary": "Short sleep raises hunger hormones and lowers fullness hormones; in a deficit, poor sleep makes more of the weight you lose come from muscle.",
+      "image": {
+        "alt": "A person sleeping soundly in bed"
+      },
+      "figure": {
+        "alt": "Bar chart of the Nedeltcheva 2010 study: with 5.5 hours of sleep, the share of weight loss from fat dropped 55 percent and lean mass loss rose 60 percent.",
+        "caption": "Staying up late changes what you lose: less fat, more muscle (Nedeltcheva et al., 2010)."
+      },
+      "sections": [
+        {
+          "heading": "Hunger hormones stay up late too",
+          "paragraphs": [
+            "In sleep restriction experiments, leptin (the hormone that signals fullness) fell, ghrelin (the hunger hormone) rose, and hunger increased. No wonder the day after a late night often starts with strange cravings."
+          ]
+        },
+        {
+          "heading": "A deficit plus late nights: a worse mix",
+          "paragraphs": [
+            "An RCT in the Annals of Internal Medicine limited the sleep of people on a calorie deficit to 5.5 hours versus 8.5 hours a night. Total weight lost was similar, but the makeup was very different: in the sleep-deprived group, the share of weight loss from fat fell 55%, and lean mass loss rose 60%. Same deficit, worse result."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Set a consistent bedtime and wake-up time, aiming for 7-9 hours.",
+        "Cut back on caffeine after the afternoon.",
+        "Remember: midnight cravings are usually a late-night effect, not real hunger.",
+        "If a late night is unavoidable, keep your protein up and don't chase a big deficit that day."
+      ],
+      "sources": [
+        "Spiegel et al. (2004), short sleep, leptin, ghrelin and hunger",
+        "Nedeltcheva et al. (2010), insufficient sleep undermines fat loss"
+      ]
+    },
+    "langkah-harian-neat": {
+      "title": "Daily steps: calories that don't feel like exercise",
+      "summary": "NEAT, all the movement outside exercise, varies a lot between people and helps decide who gains weight easily.",
+      "image": {
+        "alt": "Feet walking on a sidewalk"
+      },
+      "figure": {
+        "alt": "Stat panel: 6,000 daily steps equal about 300 kcal, with advice to add steps gradually.",
+        "caption": "A rough estimate for average body weight; NEAT differs between people (Levine et al., 1999)."
+      },
+      "sections": [
+        {
+          "heading": "What is NEAT",
+          "paragraphs": [
+            "NEAT (non-exercise activity thermogenesis) is all the movement outside exercise: walking to the warung, climbing stairs, hanging laundry, pacing while on the phone. A classic study in Science overfed 16 people by about 1,000 kcal a day for 8 weeks; changes in their NEAT explained most of the difference between those who gained a lot of fat and those who barely gained any."
+          ]
+        },
+        {
+          "heading": "Why steps last longer",
+          "paragraphs": [
+            "300 kcal on a treadmill feels hard; 300 kcal from 6,000 steps spread over the day is barely noticeable. A deficit from daily movement is easier to sustain than one that only comes from workout sessions."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Get off one stop early, or park farther away.",
+        "Walk 5-10 minutes after a big meal.",
+        "Take the stairs instead of the elevator for one or two floors.",
+        "Add 1,000 steps to your usual first; 8,000-10,000 is a direction, not a requirement."
+      ],
+      "sources": [
+        "Levine et al. (1999), NEAT and resistance to fat gain, Science"
+      ]
+    },
+    "angkat-beban-saat-diet": {
+      "title": "In a deficit, lift weights",
+      "summary": "Weight training plus enough protein makes the weight you lose come from fat, not muscle.",
+      "image": {
+        "alt": "Dumbbells and weight plates in a gym"
+      },
+      "figure": {
+        "alt": "Stat panel: protein target in a deficit is 1.6-2.4 grams per kg of body weight per day; for 70 kg that is 112-168 grams.",
+        "caption": "The range used in deficit research (Longland et al., 2016; Mettler et al., 2009)."
+      },
+      "sections": [
+        {
+          "heading": "The problem with dieting without training",
+          "paragraphs": [
+            "A calorie deficit alone does lower your weight, but some of that weight is muscle. Lost muscle means you burn less each day and your body changes less the way you hoped. Your body keeps what you use; if your muscles are never given a load, it treats them as spare stock."
+          ]
+        },
+        {
+          "heading": "Evidence from the lab",
+          "paragraphs": [
+            "In athletes on a deficit, high protein plus weight training preserved muscle mass. An even more striking study: a large calorie deficit, 2.4 g/kg of protein and weight training six days a week meant almost all the weight lost was fat, and lean mass even rose slightly. The program was extreme; the point isn't the schedule but the signal: these muscles are still in use."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Two or three weight sessions a week; basic lifts are enough.",
+        "Don't cut protein on training days.",
+        "Start with a simple routine and add weight gradually.",
+        "The scale can slow down when you start lifting; that's normal, check your measurements and the mirror."
+      ],
+      "sources": [
+        "Mettler et al. (2009), high protein and muscle mass in a deficit",
+        "Longland et al. (2016), deficit + high protein + weight training"
+      ]
+    },
+    "jeda-diet-yang-terencana": {
+      "title": "Diet breaks: a two-week pause that actually helps",
+      "summary": "The MATADOR study: two weeks of deficit then two weeks off led to more weight loss than a continuous deficit of the same length.",
+      "image": {
+        "alt": "A full plate of food with side dishes and an egg"
+      },
+      "figure": {
+        "alt": "Timeline of the MATADOR study: two-week deficit blocks alternating with two-week maintenance breaks, repeated over 30 weeks.",
+        "caption": "A planned 2-week break at maintenance level (Byrne et al., 2018; needs more research)."
+      },
+      "sections": [
+        {
+          "heading": "The MATADOR study",
+          "paragraphs": [
+            "Australian researchers split 51 men with obesity into two groups: a 16-week deficit without a break, or 2 weeks of deficit alternating with 2 weeks of eating normally, repeated up to 30 weeks in total. The group that alternated lost more weight and lost it more efficiently. The guess is that breaks reduce metabolic adaptation and diet fatigue."
+          ]
+        },
+        {
+          "heading": "Read this before trying it",
+          "paragraphs": [
+            "This is one study, in men with obesity, and the result still needs to be repeated. A break here means eating at maintenance level, not eating freely for a whole week. Misunderstood, a diet break quickly turns into an excuse."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Schedule breaks around busy moments (Eid, holidays) so you don't feel like you failed.",
+        "During a break, eat at maintenance and keep logging.",
+        "After a break, your weight may rise a little from water; that isn't failure.",
+        "If two weeks is too much, start with one or two maintenance days."
+      ],
+      "sources": [
+        "Byrne et al. (2018), the MATADOR study, International Journal of Obesity"
+      ]
+    },
+    "timbangan-naik-turun-normal": {
+      "title": "Scale up 1 kg overnight? Check the trend",
+      "summary": "Daily weight moves with water, salt and what's in your gut; the weekly average tells the truth.",
+      "image": {
+        "alt": "Feet on a bathroom scale"
+      },
+      "figure": {
+        "alt": "Illustrative line chart: daily scale readings bounce up and down while the weekly trend line goes down.",
+        "caption": "An illustration of the usual pattern; regular weighing is linked to better results without bad psychological effects (Zheng et al., 2015)."
+      },
+      "sections": [
+        {
+          "heading": "Why the daily number is noisy",
+          "paragraphs": [
+            "Salty food, a bigger carb portion, hard workouts, your menstrual cycle and going to the toilet all shift your weight through water. A kilogram of fat takes a surplus of about 7,700 kcal; gaining 1 kg in a day is almost certainly not fat. What kills motivation is usually not the scale but misreading it."
+          ]
+        },
+        {
+          "heading": "Weigh in, but read the trend",
+          "paragraphs": [
+            "A review of 17 studies found that regular weighing is linked to more weight loss, without bad psychological effects. Two things matter: the same weighing conditions every day, and judging by the weekly average, not a single number."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Weigh every morning, after the toilet, before eating or drinking.",
+        "Compare this week's 7-day average with last week's.",
+        "JoyoRogo judges the trend, not the daily number; let the app do the math.",
+        "One odd number: note it, don't panic, carry on."
+      ],
+      "sources": [
+        "Zheng et al. (2015), review of regular weighing in weight management"
+      ]
+    },
+    "sup-bening-pembuka": {
+      "title": "Start your meal with a clear soup",
+      "summary": "A starter soup lowers your total intake at that meal by about 20%, and it pairs perfectly with our clear vegetable soups.",
+      "image": {
+        "alt": "A bowl of chicken soto from a food stall"
+      },
+      "figure": {
+        "alt": "Bar chart: eating a starter soup lowers total intake by about 20 percent compared with no soup.",
+        "caption": "A starter soup lowers total food intake at that meal by about 20% (Flood & Rolls, 2007)."
+      },
+      "sections": [
+        {
+          "heading": "The starter soup effect",
+          "paragraphs": [
+            "At Penn State, participants who had soup before the main course ate about 20% less in total at that meal than without soup, and the effect showed up across soup types: from clear broth to chunky soup. Plain water of the same volume wasn't as effective; the texture and flavor of soup add to the fullness."
+          ]
+        },
+        {
+          "heading": "The Indonesian version",
+          "paragraphs": [
+            "Clear spinach-and-corn soup, sop with a clear broth, or chicken broth with vegetables. Bakso works too: clear broth, vegetables and a smaller portion of rice. What cancels the benefit is the coconut milk versions like lodeh, because coconut milk changes the calories completely."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Serve a clear soup as the first course at dinner.",
+        "Cook it clear without coconut milk; salt and shallots are enough.",
+        "Bakso: clear broth plus vegetables, small rice.",
+        "Don't swap the starter soup for a sweet drink; that's liquid calories."
+      ],
+      "sources": [
+        "Flood & Rolls (2007), starter soup reduces meal intake"
+      ]
+    },
+    "defisit-fleksibel-8020": {
+      "title": "Flexible restraint beats a rigid diet",
+      "summary": "All-or-nothing diets tend to end in overeating; a flexible approach leaves room for favorites without wrecking your results.",
+      "image": {
+        "alt": "Sweet martabak on a table"
+      },
+      "figure": {
+        "alt": "An 80/20 donut chart: about 80 percent of food supports your goal and 20 percent is room for favorite foods.",
+        "caption": "A practical 80/20 view; rigid restraint is linked to disordered eating (Westenhoefer et al., 1999)."
+      },
+      "sections": [
+        {
+          "heading": "Rigid versus flexible",
+          "paragraphs": [
+            "Researchers distinguish two styles of restraint: rigid (lists of forbidden foods, absolute rules) and flexible (total intake kept in check, but with room to move). Rigid restraint is linked to disordered eating and overeating after a \"slip\", while flexible is not. One cake over the line and the whole day written off: that all-or-nothing mindset does the most damage."
+          ]
+        },
+        {
+          "heading": "80/20 in practice",
+          "paragraphs": [
+            "A healthy rule of thumb: about 80% of your food supports your goal (rice, side dishes, vegetables, fruit, eggs), 20% is room for favorites like martabak or sweet iced tea, as long as they count. A calorie deficit is the weekly total, not the purity of every bite."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "No forbidden foods; there are only portions and frequency.",
+        "Plan your favorite food once or twice a week and count it in.",
+        "After a big meal, go back to normal at the next one, not \"I'll start again tomorrow\".",
+        "If a day is packed with events, run a relaxed deficit for the rest of the week."
+      ],
+      "sources": [
+        "Westenhoefer et al. (1999), validation of flexible and rigid restraint"
+      ]
+    }
+  }
+}

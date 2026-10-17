@@ -1,18 +1,20 @@
+import { useTranslation } from "react-i18next";
 import { Image, type ImageSourcePropType, type StyleProp, type ImageStyle } from "react-native";
 
 // Metro bundles exactly the poses listed here, so add a pose only when a
-// screen uses it. Sources and notes: assets/mascot/README.md.
+// screen uses it. Sources and notes: assets/mascot/README.md. Captions:
+// `misc:mascot.alt.<pose>`.
 const POSES = {
-  cheer: { source: require("@/assets/mascot/cheer.webp"), label: "Joyo mengepalkan tangan, semangat" },
-  determined: { source: require("@/assets/mascot/determined.webp"), label: "Joyo dengan tatapan penuh tekad" },
-  hero: { source: require("@/assets/mascot/hero.webp"), label: "Joyo berdiri gagah" },
-  mantap: { source: require("@/assets/mascot/mantap.webp"), label: "Joyo mengacungkan jempol dengan tulisan Mantap" },
-  peek: { source: require("@/assets/mascot/peek.webp"), label: "Joyo mengintip dari bawah" },
-  ready: { source: require("@/assets/mascot/ready.webp"), label: "Joyo berdiri siap beraksi" },
-  relax: { source: require("@/assets/mascot/relax.webp"), label: "Joyo bersantai" },
-  sleepy: { source: require("@/assets/mascot/sleepy.webp"), label: "Joyo tidur meringkuk" },
-  surprised: { source: require("@/assets/mascot/surprised.webp"), label: "Joyo terkejut" },
-} as const satisfies Record<string, { source: ImageSourcePropType; label: string }>;
+  cheer: { source: require("@/assets/mascot/cheer.webp") },
+  determined: { source: require("@/assets/mascot/determined.webp") },
+  hero: { source: require("@/assets/mascot/hero.webp") },
+  mantap: { source: require("@/assets/mascot/mantap.webp") },
+  peek: { source: require("@/assets/mascot/peek.webp") },
+  ready: { source: require("@/assets/mascot/ready.webp") },
+  relax: { source: require("@/assets/mascot/relax.webp") },
+  sleepy: { source: require("@/assets/mascot/sleepy.webp") },
+  surprised: { source: require("@/assets/mascot/surprised.webp") },
+} as const satisfies Record<string, { source: ImageSourcePropType }>;
 
 export type MascotPose = keyof typeof POSES;
 export type MascotSize = "sm" | "md" | "lg" | "xl";
@@ -47,13 +49,14 @@ export function Mascot({
   label?: string;
   style?: StyleProp<ImageStyle>;
 }) {
+  const { t } = useTranslation("misc");
   const entry = POSES[pose];
   return (
     <Image
       source={entry.source}
       accessible
       accessibilityRole="image"
-      accessibilityLabel={label ?? entry.label}
+      accessibilityLabel={label ?? t(`mascot.alt.${pose}`)}
       resizeMode="contain"
       style={[dimensions(pose, size), { maxWidth: "100%" }, style]}
     />

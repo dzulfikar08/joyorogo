@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useReducedMotion } from "react-native-reanimated";
 import { MACRO_META, MacroIcon, type MacroKey } from "@/utils/macro-icons";
 import React, { Fragment, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Animated,
@@ -27,6 +28,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { darkTheme, lightTheme } from "@/theme";
 
 import { ENV } from "@/src/env";
+import { fmtInt } from "@/utils/format";
 
 import { Container } from "@/components/container";
 import { Mascot, type MascotPose } from "@/components/mascot";
@@ -325,17 +327,17 @@ export function MacroBar({
   unit?: string;
 }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("misc");
   const over = budget !== null && eaten > budget;
   const pct =
     budget !== null && budget > 0 ? Math.min(100, Math.max(0, (eaten / budget) * 100)) : 0;
-  const fmt = (n: number) => Math.round(n).toLocaleString("id-ID");
-  const budgetText = budget !== null ? fmt(budget) : "?";
+  const budgetText = budget !== null ? fmtInt(budget) : "?";
   return (
     <View
       style={styles.macroRow}
       accessible
       accessibilityRole="progressbar"
-      accessibilityLabel={`${label}: ${fmt(eaten)} dari ${budgetText} ${unit}`}
+      accessibilityLabel={t("macro.progress", { label, eaten: fmtInt(eaten), budget: budgetText, unit })}
       accessibilityValue={{
         min: 0,
         max: Math.round(budget ?? 0),
@@ -357,7 +359,7 @@ export function MacroBar({
       <Num
         style={[styles.macroValue, over && { color: theme.colors.bakarText, fontWeight: "700" }]}
       >
-        {fmt(eaten)}/{budgetText} {unit}
+        {fmtInt(eaten)}/{budgetText} {unit}
       </Num>
     </View>
   );
@@ -547,6 +549,7 @@ export function Sheet({
 }) {
   const insets = useSafeAreaInsets();
   const { theme } = useUnistyles();
+  const { t } = useTranslation("common");
   return (
     <Modal
       visible={visible}
@@ -558,7 +561,7 @@ export function Sheet({
     >
       <View style={styles.sheetRoot}>
         <Pressable
-          accessibilityLabel="Tutup"
+          accessibilityLabel={t("actions.close")}
           accessibilityRole="button"
           onPress={onClose}
           style={StyleSheet.absoluteFill}
@@ -574,7 +577,7 @@ export function Sheet({
               <Text style={styles.sheetTitle}>{title}</Text>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Tutup"
+                accessibilityLabel={t("actions.close")}
                 onPress={onClose}
                 hitSlop={8}
                 style={({ pressed }) => [styles.sheetClose, pressed && styles.pressedSoft]}
@@ -873,12 +876,13 @@ export function BootLoader() {
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const { t } = useTranslation(["misc", "common"]);
   return (
     <View style={styles.stateBox}>
       <Mascot pose="surprised" size="sm" />
-      <Text style={styles.stateTitle}>Gagal memuat</Text>
+      <Text style={styles.stateTitle}>{t("misc:state.loadFailed")}</Text>
       <Text style={styles.stateText}>{message}</Text>
-      <Button variant="secondary" size="sm" label="Coba lagi" onPress={onRetry} />
+      <Button variant="secondary" size="sm" label={t("common:actions.retry")} onPress={onRetry} />
     </View>
   );
 }

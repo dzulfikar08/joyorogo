@@ -1,0 +1,100 @@
+{
+  "errorScreen": {
+    "updateBody": "JoyoRogo baru saja diperbarui. Muat ulang halaman untuk memakai versi terbaru, ya.",
+    "crashBody": "Ada yang salah di sisi kami. Tenang, datamu aman. Coba lagi, atau muat ulang halaman kalau masih error.",
+    "reloadNow": "Muat ulang sekarang",
+    "reloadPage": "Muat ulang halaman",
+    "home": "Ke Beranda",
+    "details": "Detail teknis"
+  },
+  "notFound": {
+    "title": "Halaman tidak ditemukan",
+    "body": "Halaman yang kamu cari tidak ada atau sudah dipindah. Yuk kembali ke Beranda.",
+    "home": "Ke Beranda"
+  },
+  "state": {
+    "loadFailed": "Gagal memuat",
+    "loadFailedData": "Gagal memuat data"
+  },
+  "optimistic": {
+    "saveFailed": "Gagal menyimpan",
+    "deleteFailed": "Gagal menghapus"
+  },
+  "macro": {
+    "kcal": "Kalori",
+    "grams": "Berat",
+    "progress": "{{label}}: {{eaten}} dari {{budget}} {{unit}}",
+    "summaryTitle": "Ringkasan kalori hari ini",
+    "eatenOf": "Dimakan {{eaten}} dari {{budget}} kcal",
+    "over": "+{{kcal}} lebih",
+    "ofTarget": "dari {{kcal}}"
+  },
+  "mascot": {
+    "alt": {
+      "alert": "Joyo kaget dengan mata terbelalak",
+      "cheer": "Joyo mengepalkan tangan, semangat",
+      "determined": "Joyo dengan tatapan penuh tekad",
+      "gas": "Joyo mengepal tangan dengan tulisan Gas",
+      "happy": "Joyo tertawa senang",
+      "head": "Kepala Joyo",
+      "hero": "Joyo berdiri gagah",
+      "icon": "Ikon JoyoRogo",
+      "love": "Joyo memeluk hati",
+      "mantap": "Joyo mengacungkan jempol dengan tulisan Mantap",
+      "on-it": "Joyo mengetik di laptop dengan tulisan On it",
+      "peek": "Joyo mengintip dari bawah",
+      "ready": "Joyo berdiri siap beraksi",
+      "relax": "Joyo bersantai",
+      "sleepy": "Joyo tidur meringkuk",
+      "surprised": "Joyo terkejut",
+      "wink": "Joyo mengedip",
+      "working": "Joyo bekerja dengan laptop"
+    }
+  },
+  "iosInstall": {
+    "title": "Pasang di iPhone",
+    "description": "Coba aplikasi iPhone lewat TestFlight, atau pasang web app ke Layar Utama supaya terbuka layar penuh seperti aplikasi. Akun dan datanya sama.",
+    "copy": "Salin link",
+    "copied": "Tersalin",
+    "copiedStatus": "Link tersalin",
+    "addToHome": "Tambah ke Layar Utama",
+    "wrongBrowser": {
+      "title": "Buka dulu di Safari",
+      "body": "Kamu sedang di browser lain atau di dalam aplikasi (Instagram, TikTok, dan sejenisnya). Menu pasang ke Layar Utama paling lengkap di Safari. Salin link ini, buka Safari, tempel di kolom alamat."
+    },
+    "notIphone": {
+      "title": "Panduan ini untuk iPhone",
+      "body": "Buka link ini dari iPhone-mu, di Safari. Kirim ke dirimu sendiri lewat WhatsApp atau salin dulu."
+    },
+    "testflight": {
+      "title": "Coba aplikasi iPhone (beta publik, TestFlight)",
+      "step1": "Pasang TestFlight dari App Store, kalau belum ada.",
+      "step2": "Buka link undangan di iPhone, ketuk Terima, lalu Pasang JoyoRogo.",
+      "open": "Buka TestFlight",
+      "note": "Masih beta, jadi mungkin ada yang belum rapi. Versi App Store 1.0 sedang menunggu review Apple. Akunnya sama dengan versi web.",
+      "orWeb": "Atau pakai versi web"
+    },
+    "steps": {
+      "safari": {
+        "title": "Buka di Safari",
+        "body": "Buka joyorogo.com di Safari. Browser di dalam aplikasi seperti Instagram atau TikTok tidak punya menu pasang."
+      },
+      "share": {
+        "title": "Tap Bagikan",
+        "body": "Tap ikon Bagikan, kotak dengan panah ke atas, di bar bawah Safari. Di iPad ada di bar atas. Tidak kelihatan? Tap tombol titik tiga dulu."
+      },
+      "add": {
+        "title": "Tambah ke Layar Utama",
+        "body": "Geser menu ke bawah sampai ketemu Tambah ke Layar Utama, tap, lalu tap Tambah di pojok kanan atas."
+      }
+    },
+    "doneNote": "Selesai. Buka JoyoRogo dari ikonnya di Layar Utama; kalau diminta masuk, pakai akun Google yang sama. Pengingat lewat notifikasi di iPhone butuh iOS 16.4 ke atas dan JoyoRogo dibuka dari Layar Utama.",
+    "notesTitle": "Catatan",
+    "gotIt": "Mengerti",
+    "signUp": "Daftar dengan Google",
+    "banner": {
+      "title": "Pasang JoyoRogo di layar utama",
+      "body": "Terbuka layar penuh, tanpa bar Safari."
+    }
+  }
+}

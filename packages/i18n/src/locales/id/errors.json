@@ -41,5 +41,19 @@
     "googleUnavailable": "Pembayaran Google Play tidak tersedia di server ini.",
     "googleUnreachable": "Google Play belum bisa dihubungi. Coba lagi sebentar.",
     "googleLinkedOtherAccount": "Langganan Google Play ini sudah terhubung ke akun JoyoRogo lain."
+  },
+  "misc": {
+    "avatar": {
+      "saveFailed": "Gagal menyimpan foto profil.",
+      "formatUnsupported": "Format foto tidak didukung."
+    },
+    "savedFood": {
+      "entryNotFound": "Catatan tidak ditemukan",
+      "plateNotFound": "Piring tidak ditemukan",
+      "plateEmpty": "Piring kosong",
+      "saveFailed": "Gagal menyimpan favorit",
+      "notFound": "Favorit tidak ditemukan",
+      "empty": "Favorit ini kosong"
+    }
   }
 }

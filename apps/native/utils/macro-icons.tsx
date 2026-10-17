@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { i18n } from "@joyorogo/i18n";
 import type { ComponentProps } from "react";
 import { useUnistyles } from "react-native-unistyles";
 
@@ -16,12 +17,12 @@ export const MACRO_META: Record<
   MacroKey,
   { label: string; icon: McIconName; color: keyof ThemeColors }
 > = {
-  protein: { label: "Protein", icon: "food-drumstick", color: "makanText" },
-  carbs: { label: "Karbo", icon: "barley", color: "bakarText" },
-  fat: { label: "Lemak", icon: "water", color: "tidurText" },
-  fiber: { label: "Serat", icon: "leaf", color: "mutedForeground" },
-  kcal: { label: "Kalori", icon: "fire", color: "kcalText" },
-  grams: { label: "Berat", icon: "scale", color: "gramText" },
+  protein: { get label() { return i18n.t("makan:diary.macro.protein"); }, icon: "food-drumstick", color: "makanText" },
+  carbs: { get label() { return i18n.t("makan:diary.macro.carbs"); }, icon: "barley", color: "bakarText" },
+  fat: { get label() { return i18n.t("makan:diary.macro.fat"); }, icon: "water", color: "tidurText" },
+  fiber: { get label() { return i18n.t("makan:diary.macro.fiber"); }, icon: "leaf", color: "mutedForeground" },
+  kcal: { get label() { return i18n.t("misc:macro.kcal"); }, icon: "fire", color: "kcalText" },
+  grams: { get label() { return i18n.t("misc:macro.grams"); }, icon: "scale", color: "gramText" },
 };
 
 export function MacroIcon({ macro, size = 14 }: { macro: MacroKey; size?: number }) {

@@ -42,5 +42,19 @@
     "googleUnavailable": "Google Play payments aren't available on this server.",
     "googleUnreachable": "Couldn't reach Google Play. Try again in a moment.",
     "googleLinkedOtherAccount": "This Google Play subscription is already linked to another JoyoRogo account."
+  },
+  "misc": {
+    "avatar": {
+      "saveFailed": "Couldn't save your profile photo.",
+      "formatUnsupported": "That photo format isn't supported."
+    },
+    "savedFood": {
+      "entryNotFound": "Entry not found",
+      "plateNotFound": "Plate not found",
+      "plateEmpty": "This plate is empty",
+      "saveFailed": "Couldn't save the favorite",
+      "notFound": "Favorite not found",
+      "empty": "This favorite is empty"
+    }
   }
 }

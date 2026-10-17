@@ -1,4 +1,5 @@
 import { jakartaToday } from "@joyorogo/api/lib/engine";
+import { i18n } from "@joyorogo/i18n";
 import {
   DELETE_COMMIT_MS,
   undoLabel,
@@ -23,6 +24,7 @@ import {
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
+import { fmtKg } from "@/lib/format";
 import { client } from "@/utils/orpc";
 
 export type Snapshot = { restore(): void };
@@ -356,7 +358,8 @@ function upsertWeightEntries(
  * the upserted row, every day.summary gets latestWeight/weightLoggedToday.
  * Undo re-checks-in the previous kg when the cache had one for that date. */
 export function useWeightCheckIn(
-  message: string | ((row: NonNullable<WeightCheckInRow>) => string) = "Berat dicatat",
+  message: string | ((row: NonNullable<WeightCheckInRow>) => string) = (row) =>
+    i18n.t("berat:toast.logged", { kg: fmtKg(row.weightKg) }),
 ): UseMutationResult<WeightCheckInRow, Error, WeightCheckInInput> {
   const queryClient = useQueryClient();
   const previousKg = useRef<number | null>(null);
@@ -415,7 +418,8 @@ function upsertWaistEntries(
 
 /** Optimistic waist check-in, mirroring useWeightCheckIn (undo = previous cm). */
 export function useWaistCheckIn(
-  message: string | ((row: NonNullable<WaistCheckInRow>) => string) = "Lingkar perut dicatat",
+  message: string | ((row: NonNullable<WaistCheckInRow>) => string) = (row) =>
+    i18n.t("berat:toast.waistLogged", { cm: fmtKg(row.waistCm) }),
 ): UseMutationResult<WaistCheckInRow, Error, WaistCheckInInput> {
   const queryClient = useQueryClient();
   const previousCm = useRef<number | null>(null);

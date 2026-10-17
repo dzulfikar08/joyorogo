@@ -1,9 +1,11 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Image, Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import type { Tip } from "@joyorogo/api/lib/tips";
+import { localizeTip, type Tip } from "@joyorogo/api/lib/tips";
 
 import { Card, Text } from "@/components/ui";
 import { TipIconGlyph } from "@/components/tips/tip-icon";
@@ -14,14 +16,16 @@ import { tipImageUrl } from "@/src/lib/tips-img";
  * artikel /tips/<slug> yang merender konten statis yang sama dengan blog.
  * Foto hero diambil dari origin web; kalau gagal dimuat, fallback ikon.
  */
-export function TipCard({ tip, style }: { tip: Tip; style?: object }) {
+export function TipCard({ tip: meta, style }: { tip: Tip; style?: object }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("tips");
+  const tip = localizeTip(meta);
   const [imgFailed, setImgFailed] = useState(false);
   return (
     <Card style={style}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Tips: ${tip.title}. Baca artikelnya.`}
+        accessibilityLabel={t("card.aria", { title: tip.title })}
         onPress={() => router.push(`/tips/${tip.slug}`)}
         style={({ pressed }) => [styles.row, pressed && styles.pressed]}
       >
@@ -39,18 +43,15 @@ export function TipCard({ tip, style }: { tip: Tip; style?: object }) {
           </View>
         )}
         <View style={styles.body}>
-          <Text style={styles.kicker}>Tips</Text>
-          <Text style={styles.title}>{tip.title}</Text>
-          <Text style={styles.summary}>{tip.summary}</Text>
+          <Text style={styles.kicker}>{t("card.kicker")}</Text>
+          <Text style={styles.title} numberOfLines={2}>
+            {tip.title}
+          </Text>
+          <Text style={styles.summary} numberOfLines={2}>
+            {tip.summary}
+          </Text>
         </View>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Baca ${tip.title}`}
-        onPress={() => router.push(`/tips/${tip.slug}`)}
-        style={({ pressed }) => [styles.readRow, pressed && styles.pressed]}
-      >
-        <Text style={styles.readLabel}>Baca</Text>
+        <Ionicons name="chevron-forward" size={16} color={theme.colors.mutedForeground} />
       </Pressable>
     </Card>
   );
@@ -59,6 +60,7 @@ export function TipCard({ tip, style }: { tip: Tip; style?: object }) {
 const styles = StyleSheet.create((theme) => ({
   row: {
     flexDirection: "row",
+    alignItems: "center",
     gap: theme.spacing.md,
   },
   pressed: {
@@ -96,18 +98,5 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: 13,
     lineHeight: 19,
     color: theme.colors.mutedForeground,
-  },
-  readRow: {
-    marginTop: theme.spacing.sm,
-    alignSelf: "flex-start",
-    borderRadius: 999,
-    backgroundColor: theme.colors.muted,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  readLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.foreground,
   },
 }));

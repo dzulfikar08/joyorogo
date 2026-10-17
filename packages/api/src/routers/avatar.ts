@@ -11,6 +11,7 @@ import {
   avatarPublicUrl,
   customAvatarKey,
 } from "../lib/avatar";
+import { serverT } from "../lib/messages";
 import { base64ToBytes, newScanId } from "../lib/sticker";
 
 import type { Context } from "../context";
@@ -39,13 +40,14 @@ export const avatarRouter = {
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
+      const t = serverT(context.locale, "errors");
       const bucket = context.env.STICKERS;
       if (!bucket) {
-        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Penyimpanan foto belum tersedia." });
+        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: t("ai.storageUnavailable") });
       }
       const ext = avatarExt(input.mimeType);
       if (!ext) {
-        throw new ORPCError("BAD_REQUEST", { message: "Format foto tidak didukung." });
+        throw new ORPCError("BAD_REQUEST", { message: t("misc.avatar.formatUnsupported") });
       }
       const previousImage = await currentUserImage(context.db, userId);
       // Foto Google terakhir: diwariskan dari metadata avatar lama, atau
@@ -58,7 +60,7 @@ export const avatarRouter = {
           customMetadata: { g: googleImage ?? "" },
         });
       } catch {
-        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Gagal menyimpan foto profil." });
+        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: t("misc.avatar.saveFailed") });
       }
       await context.db
         .update(user)
@@ -86,7 +88,9 @@ export const avatarRouter = {
     }
     const bucket = context.env.STICKERS;
     if (!bucket) {
-      throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Penyimpanan foto belum tersedia." });
+      throw new ORPCError("INTERNAL_SERVER_ERROR", {
+        message: serverT(context.locale, "errors")("ai.storageUnavailable"),
+      });
     }
     const old = await bucket.get(previousKey);
     const googleImage = old?.customMetadata?.g || null;

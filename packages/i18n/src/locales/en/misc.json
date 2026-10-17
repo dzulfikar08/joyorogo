@@ -1,0 +1,100 @@
+{
+  "errorScreen": {
+    "updateBody": "JoyoRogo was just updated. Reload the page to get the latest version.",
+    "crashBody": "Something went wrong on our side. Your data is safe. Try again, or reload the page if it keeps happening.",
+    "reloadNow": "Reload now",
+    "reloadPage": "Reload page",
+    "home": "Go to Home",
+    "details": "Technical details"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The page you're looking for doesn't exist or has moved. Head back Home.",
+    "home": "Go to Home"
+  },
+  "state": {
+    "loadFailed": "Couldn't load",
+    "loadFailedData": "Couldn't load data"
+  },
+  "optimistic": {
+    "saveFailed": "Couldn't save",
+    "deleteFailed": "Couldn't delete"
+  },
+  "macro": {
+    "kcal": "Calories",
+    "grams": "Weight",
+    "progress": "{{label}}: {{eaten}} of {{budget}} {{unit}}",
+    "summaryTitle": "Today's calorie summary",
+    "eatenOf": "Eaten {{eaten}} of {{budget}} kcal",
+    "over": "+{{kcal}} over",
+    "ofTarget": "of {{kcal}}"
+  },
+  "mascot": {
+    "alt": {
+      "alert": "Joyo looks startled, eyes wide",
+      "cheer": "Joyo pumps a fist, cheering",
+      "determined": "Joyo with a determined look",
+      "gas": "Joyo pumps a fist with the text Gas",
+      "happy": "Joyo laughing happily",
+      "head": "Joyo's head",
+      "hero": "Joyo standing proudly",
+      "icon": "JoyoRogo icon",
+      "love": "Joyo hugging a heart",
+      "mantap": "Joyo giving a thumbs up with the text Mantap",
+      "on-it": "Joyo typing on a laptop with the text On it",
+      "peek": "Joyo peeking up from below",
+      "ready": "Joyo standing ready for action",
+      "relax": "Joyo relaxing",
+      "sleepy": "Joyo curled up asleep",
+      "surprised": "Joyo looking surprised",
+      "wink": "Joyo winking",
+      "working": "Joyo working on a laptop"
+    }
+  },
+  "iosInstall": {
+    "title": "Install on iPhone",
+    "description": "Try the iPhone app through TestFlight, or add the web app to your Home Screen so it opens full screen like an app. Same account, same data.",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "copiedStatus": "Link copied",
+    "addToHome": "Add to Home Screen",
+    "wrongBrowser": {
+      "title": "Open in Safari first",
+      "body": "You're in another browser or inside an app (Instagram, TikTok and the like). The Add to Home Screen option works best in Safari. Copy this link, open Safari and paste it in the address bar."
+    },
+    "notIphone": {
+      "title": "This guide is for iPhone",
+      "body": "Open this link on your iPhone, in Safari. Send it to yourself on WhatsApp or copy it first."
+    },
+    "testflight": {
+      "title": "Try the iPhone app (public beta, TestFlight)",
+      "step1": "Install TestFlight from the App Store if you don't have it.",
+      "step2": "Open the invite link on your iPhone, tap Accept, then Install JoyoRogo.",
+      "open": "Open TestFlight",
+      "note": "Still in beta, so some things may be rough. App Store version 1.0 is waiting for Apple's review. Same account as the web version.",
+      "orWeb": "Or use the web version"
+    },
+    "steps": {
+      "safari": {
+        "title": "Open in Safari",
+        "body": "Open joyorogo.com in Safari. Browsers inside apps like Instagram or TikTok don't have the install option."
+      },
+      "share": {
+        "title": "Tap Share",
+        "body": "Tap the Share icon, a box with an arrow pointing up, in Safari's bottom bar. On iPad it's in the top bar. Can't see it? Tap the three-dot button first."
+      },
+      "add": {
+        "title": "Add to Home Screen",
+        "body": "Scroll down the menu to Add to Home Screen, tap it, then tap Add in the top-right corner."
+      }
+    },
+    "doneNote": "Done. Open JoyoRogo from its icon on your Home Screen; if asked to sign in, use the same Google account. Reminder notifications on iPhone need iOS 16.4 or later and JoyoRogo opened from the Home Screen.",
+    "notesTitle": "Notes",
+    "gotIt": "Got it",
+    "signUp": "Sign up with Google",
+    "banner": {
+      "title": "Add JoyoRogo to your Home Screen",
+      "body": "Opens full screen, no Safari bar."
+    }
+  }
+}

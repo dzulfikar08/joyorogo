@@ -219,6 +219,7 @@ function pickRole(
   input: GuidanceInput,
   n: GuidanceNumbers,
   taken: Set<string>,
+  locale: Locale,
 ): FoodPick[] {
   const picks: FoodPick[] = [];
   const take = (pick: FoodPick) => {
@@ -264,7 +265,7 @@ function pickRole(
   if (picks.length < count) {
     const database: FoodPick[] =
       role === "protein"
-        ? mealIdeas(n.roomKcal, input.slot, 6)
+        ? mealIdeas(n.roomKcal, input.slot, 6, undefined, locale)
             .filter((idea) => idea.proteinG >= MIN_PICK_PROTEIN_G)
             .map((idea) => ({
               name: idea.name,
@@ -289,7 +290,12 @@ const FOCUS_ROLES: Record<GuidanceFocus, Role[]> = {
   steady: [],
 };
 
-function pickFoods(input: GuidanceInput, n: GuidanceNumbers, focus: GuidanceFocus): FoodPick[] {
+function pickFoods(
+  input: GuidanceInput,
+  n: GuidanceNumbers,
+  focus: GuidanceFocus,
+  locale: Locale,
+): FoodPick[] {
   if (n.roomKcal < MIN_ROOM_KCAL) return [];
   const taken = new Set(input.eaten.names.map((name) => plateKey(name)));
   const wanted = FOCUS_ROLES[focus].filter(
@@ -297,7 +303,7 @@ function pickFoods(input: GuidanceInput, n: GuidanceNumbers, focus: GuidanceFocu
   );
   const foods: FoodPick[] = [];
   for (const role of new Set(wanted)) {
-    foods.push(...pickRole(role, wanted.filter((r) => r === role).length, input, n, taken));
+    foods.push(...pickRole(role, wanted.filter((r) => r === role).length, input, n, taken, locale));
   }
   return foods;
 }
@@ -410,6 +416,6 @@ export function buildGuidance(
     lines,
     basis: basisText({ ...input, targets }, numbers, locale),
     numbers,
-    foods: pickFoods(input, numbers, focus),
+    foods: pickFoods(input, numbers, focus, locale),
   };
 }

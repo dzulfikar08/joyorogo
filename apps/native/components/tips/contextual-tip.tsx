@@ -1,23 +1,24 @@
 import { TIPS, type Tip, type TipTag } from "@joyorogo/api/lib/tips";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
 import { Text } from "@/components/ui";
 import { TipCard } from "@/components/tips/tip-card";
 
-type Trigger = { test: RegExp; tags: TipTag[]; label: string };
+type Trigger = { test: RegExp; tags: TipTag[]; label: "context.sugaryDrink" | "context.sauceFried" };
 
-/** Pemicu murah dari nama item hasil scan; tidak ada panggilan jaringan. */
+/** Pemicu murah dari nama item hasil scan (Indonesia atau Inggris); tidak ada panggilan jaringan. */
 const TRIGGERS: Trigger[] = [
   {
-    test: /es teh|teh manis|soda|jus|syrup|sirup|gula aren|minuman manis/i,
+    test: /es teh|teh manis|soda|jus|syrup|sirup|gula aren|minuman manis|sweet(ened)? (iced )?tea|iced tea|juice|palm sugar|sugary|sweet(ened)? drink/i,
     tags: ["sugary-drink"],
-    label: "Ada minuman manis di piringmu",
+    label: "context.sugaryDrink",
   },
   {
-    test: /saus|mayones|mayo|kecap|minyak|goreng|mentega/i,
+    test: /saus|mayones|mayo|kecap|minyak|goreng|mentega|sauce|ketchup|\boil\b|fried|butter/i,
     tags: ["sauce", "fried"],
-    label: "Ada saus atau gorengan di piringmu",
+    label: "context.sauceFried",
   },
 ];
 
@@ -27,6 +28,7 @@ const TRIGGERS: Trigger[] = [
  * @joyorogo/api/lib/tips.
  */
 export function ContextualTip({ names }: { names: string[] }) {
+  const { t } = useTranslation("tips");
   const joined = names.join(" ");
   const trigger = TRIGGERS.find((candidate) => candidate.test.test(joined));
   if (!trigger) return null;
@@ -36,7 +38,7 @@ export function ContextualTip({ names }: { names: string[] }) {
   if (!tip) return null;
   return (
     <View style={styles.wrap}>
-      <Text style={styles.note}>{trigger.label}</Text>
+      <Text style={styles.note}>{t(trigger.label)}</Text>
       <TipCard tip={tip} />
     </View>
   );

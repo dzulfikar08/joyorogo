@@ -1,28 +1,29 @@
 import { cn } from "@joyorogo/ui/lib/utils";
+import { useTranslation } from "react-i18next";
 
-/** Cut-outs in `public/mascot/*.webp`. Sources and notes: `assets/mascot/README.md`. */
-const ALT = {
-  alert: "Joyo kaget dengan mata terbelalak",
-  cheer: "Joyo mengepalkan tangan, semangat",
-  determined: "Joyo dengan tatapan penuh tekad",
-  gas: "Joyo mengepal tangan dengan tulisan Gas",
-  happy: "Joyo tertawa senang",
-  head: "Kepala Joyo",
-  hero: "Joyo berdiri gagah",
-  icon: "Ikon JoyoRogo",
-  love: "Joyo memeluk hati",
-  mantap: "Joyo mengacungkan jempol dengan tulisan Mantap",
-  "on-it": "Joyo mengetik di laptop dengan tulisan On it",
-  peek: "Joyo mengintip dari bawah",
-  ready: "Joyo berdiri siap beraksi",
-  relax: "Joyo bersantai",
-  sleepy: "Joyo tidur meringkuk",
-  surprised: "Joyo terkejut",
-  wink: "Joyo mengedip",
-  working: "Joyo bekerja dengan laptop",
-} as const;
+/** Cut-outs in `public/mascot/*.webp`. Sources and notes: `assets/mascot/README.md`. Alt text: `misc:mascot.alt.<pose>`. */
+const POSES = [
+  "alert",
+  "cheer",
+  "determined",
+  "gas",
+  "happy",
+  "head",
+  "hero",
+  "icon",
+  "love",
+  "mantap",
+  "on-it",
+  "peek",
+  "ready",
+  "relax",
+  "sleepy",
+  "surprised",
+  "wink",
+  "working",
+] as const;
 
-export type MascotPose = keyof typeof ALT;
+export type MascotPose = (typeof POSES)[number];
 export type MascotSize = "sm" | "md" | "lg" | "xl";
 
 // Fixed class maps: Tailwind only emits classes it can see as literals.
@@ -69,12 +70,13 @@ export function Mascot({
   eager?: boolean;
   className?: string;
 }) {
+  const { t } = useTranslation("misc");
   const [width, height] = INTRINSIC[pose] ?? [512, 512];
   const sizeClass = pose === "peek" ? PEEK[size] : pose === "hero" ? TALL[size] : SQUARE[size];
   return (
     <img
       src={`/mascot/${pose}.webp`}
-      alt={alt ?? ALT[pose]}
+      alt={alt ?? t(`mascot.alt.${pose}`)}
       width={width}
       height={height}
       loading={eager ? "eager" : "lazy"}

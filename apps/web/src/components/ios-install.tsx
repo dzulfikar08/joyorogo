@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { trackConversion } from "@/lib/analytics";
 import {
@@ -53,6 +54,7 @@ async function copyText(text: string): Promise<boolean> {
 }
 
 function CopyLink({ url }: { url: string }) {
+  const { t } = useTranslation("misc");
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;
@@ -71,10 +73,10 @@ function CopyLink({ url }: { url: string }) {
         onClick={() => void copyText(url).then((ok) => ok && setCopied(true))}
       >
         {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
-        {copied ? "Tersalin" : "Salin link"}
+        {copied ? t("iosInstall.copied") : t("iosInstall.copy")}
       </Button>
       <span role="status" className="sr-only">
-        {copied ? "Link tersalin" : ""}
+        {copied ? t("iosInstall.copiedStatus") : ""}
       </span>
     </div>
   );
@@ -103,6 +105,7 @@ function SafariToolbar() {
 
 /** The "Tambah ke Layar Utama" row of the share sheet, marked. */
 function ShareSheetRow() {
+  const { t } = useTranslation("misc");
   return (
     <div
       aria-hidden
@@ -111,7 +114,7 @@ function ShareSheetRow() {
         TAP,
       )}
     >
-      Tambah ke Layar Utama
+      {t("iosInstall.addToHome")}
       <SquarePlus className="size-5" />
     </div>
   );
@@ -160,6 +163,7 @@ function Step({
 
 /** The one install sheet; mounted once in the root route. */
 function IosInstallSheet() {
+  const { t } = useTranslation(["misc", "common"]);
   const open = useIosInstallOpen();
   const platform = usePlatform();
   const session = useQuery({ ...sessionQuery, enabled: open });
@@ -172,8 +176,8 @@ function IosInstallSheet() {
     <Sheet
       open={open}
       onOpenChange={(next) => !next && closeIosInstall()}
-      title="Pasang di iPhone"
-      description="Coba aplikasi iPhone lewat TestFlight, atau pasang web app ke Layar Utama supaya terbuka layar penuh seperti aplikasi. Akun dan datanya sama."
+      title={t("iosInstall.title")}
+      description={t("iosInstall.description")}
     >
       {(wrongBrowser || notIphone) && (
         <div className="mb-4 rounded-3xl bg-makan-soft p-4 text-makan-ink">
@@ -183,12 +187,10 @@ function IosInstallSheet() {
             ) : (
               <Smartphone className="size-4 shrink-0" aria-hidden />
             )}
-            {wrongBrowser ? "Buka dulu di Safari" : "Panduan ini untuk iPhone"}
+            {wrongBrowser ? t("iosInstall.wrongBrowser.title") : t("iosInstall.notIphone.title")}
           </p>
           <p className="mt-1.5 text-sm leading-relaxed">
-            {wrongBrowser
-              ? "Kamu sedang di browser lain atau di dalam aplikasi (Instagram, TikTok, dan sejenisnya). Menu pasang ke Layar Utama paling lengkap di Safari. Salin link ini, buka Safari, tempel di kolom alamat."
-              : "Buka link ini dari iPhone-mu, di Safari. Kirim ke dirimu sendiri lewat WhatsApp atau salin dulu."}
+            {wrongBrowser ? t("iosInstall.wrongBrowser.body") : t("iosInstall.notIphone.body")}
           </p>
           <CopyLink url={url} />
         </div>
@@ -198,22 +200,20 @@ function IosInstallSheet() {
         <div className="mb-5 rounded-3xl bg-primary/10 p-4">
           <p className="flex items-center gap-2 text-sm font-bold">
             <FlaskConical className="size-4 shrink-0 text-primary" aria-hidden />
-            Coba aplikasi iPhone (beta publik, TestFlight)
+            {t("iosInstall.testflight.title")}
           </p>
           <ol className="mt-3 space-y-2 text-sm leading-relaxed">
             <li className="flex gap-2.5">
               <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground">
                 1
               </span>
-              <span className="pt-0.5">Pasang TestFlight dari App Store, kalau belum ada.</span>
+              <span className="pt-0.5">{t("iosInstall.testflight.step1")}</span>
             </li>
             <li className="flex gap-2.5">
               <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground">
                 2
               </span>
-              <span className="pt-0.5">
-                Buka link undangan di iPhone, ketuk Terima, lalu Pasang JoyoRogo.
-              </span>
+              <span className="pt-0.5">{t("iosInstall.testflight.step2")}</span>
             </li>
           </ol>
           <Button
@@ -229,40 +229,39 @@ function IosInstallSheet() {
             }
           >
             <ExternalLink aria-hidden />
-            Buka TestFlight
+            {t("iosInstall.testflight.open")}
           </Button>
           <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground">
-            Masih beta, jadi mungkin ada yang belum rapi. Versi App Store 1.0 sedang menunggu review Apple. Akunnya sama dengan versi web.
+            {t("iosInstall.testflight.note")}
           </p>
         </div>
       )}
 
-      {IOS_TESTFLIGHT_LIVE && <p className="mb-3 text-sm font-bold">Atau pakai versi web</p>}
+      {IOS_TESTFLIGHT_LIVE && <p className="mb-3 text-sm font-bold">{t("iosInstall.testflight.orWeb")}</p>}
 
       <ol className="space-y-3">
-        <Step n={1} title="Buka di Safari" illustration={<SafariMark />}>
-          Buka joyorogo.com di Safari. Browser di dalam aplikasi seperti Instagram atau TikTok tidak
-          punya menu pasang.
+        <Step n={1} title={t("iosInstall.steps.safari.title")} illustration={<SafariMark />}>
+          {t("iosInstall.steps.safari.body")}
         </Step>
-        <Step n={2} title="Tap Bagikan" illustration={<SafariToolbar />}>
-          Tap ikon Bagikan, kotak dengan panah ke atas, di bar bawah Safari. Di iPad ada di bar
-          atas. Tidak kelihatan? Tap tombol titik tiga dulu.
+        <Step n={2} title={t("iosInstall.steps.share.title")} illustration={<SafariToolbar />}>
+          {t("iosInstall.steps.share.body")}
         </Step>
-        <Step n={3} title="Tambah ke Layar Utama" illustration={<ShareSheetRow />}>
-          Geser menu ke bawah sampai ketemu Tambah ke Layar Utama, tap, lalu tap Tambah di pojok
-          kanan atas.
+        <Step n={3} title={t("iosInstall.steps.add.title")} illustration={<ShareSheetRow />}>
+          {t("iosInstall.steps.add.body")}
         </Step>
       </ol>
 
-      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-        Selesai. Buka JoyoRogo dari ikonnya di Layar Utama; kalau diminta masuk, pakai akun Google
-        yang sama. Pengingat lewat notifikasi di iPhone butuh iOS 16.4 ke atas dan JoyoRogo dibuka
-        dari Layar Utama.
-      </p>
+      <details className="group mt-4 text-sm text-muted-foreground">
+        <summary className="flex cursor-pointer list-none items-center gap-1.5 font-semibold select-none [&::-webkit-details-marker]:hidden">
+          <ChevronRight className="size-4 transition-transform group-open:rotate-90" aria-hidden />
+          {t("iosInstall.notesTitle")}
+        </summary>
+        <p className="mt-1.5 pl-5.5 leading-relaxed">{t("iosInstall.doneNote")}</p>
+      </details>
 
       {signedIn ? (
         <Button className="mt-5 w-full" variant="secondary" onClick={closeIosInstall}>
-          Mengerti
+          {t("iosInstall.gotIt")}
         </Button>
       ) : (
         <Button
@@ -276,7 +275,7 @@ function IosInstallSheet() {
             />
           }
         >
-          Daftar dengan Google
+          {t("iosInstall.signUp")}
         </Button>
       )}
     </Sheet>
@@ -300,6 +299,7 @@ export function IosInstallHost() {
 
 /** One-time prompt inside the signed-in app: iOS, in a browser tab, not yet on the Home Screen. */
 export function IosInstallBanner() {
+  const { t } = useTranslation(["misc", "common"]);
   const platform = usePlatform();
   const visible = useIosInstallBannerVisible();
   if (platform.os !== "ios" || platform.standalone || !visible) return null;
@@ -318,13 +318,13 @@ export function IosInstallBanner() {
         >
           <Smartphone className="size-5 shrink-0" aria-hidden />
           <span className="min-w-0 text-sm leading-snug font-bold">
-            Pasang JoyoRogo di layar utama
-            <span className="block text-xs font-medium opacity-80">Terbuka layar penuh, tanpa bar Safari.</span>
+            {t("iosInstall.banner.title")}
+            <span className="block text-xs font-medium opacity-80">{t("iosInstall.banner.body")}</span>
           </span>
         </button>
         <button
           type="button"
-          aria-label="Tutup"
+          aria-label={t("common:actions.close")}
           onClick={dismissIosInstallBanner}
           className="flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-black/5 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none dark:hover:bg-white/10"
         >

@@ -9,6 +9,7 @@ import { savedFood } from "@joyorogo/db/schema/saved-foods";
 
 import { protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
+import { serverT } from "../lib/messages";
 import { dateSchema, mealSchema } from "../lib/schemas";
 import { foodSavedKey, parseSavedItems, plateSavedKey } from "../lib/saved-foods";
 import type { SavedItem } from "../lib/saved-foods";
@@ -126,7 +127,7 @@ export const savedFoodRouter = {
           .from(foodLog)
           .where(and(eq(foodLog.id, input.foodId), eq(foodLog.userId, userId)))
           .limit(1);
-        if (!row) throw new ORPCError("NOT_FOUND", { message: "Catatan tidak ditemukan" });
+        if (!row) throw new ORPCError("NOT_FOUND", { message: serverT(context.locale, "errors")("misc.savedFood.entryNotFound") });
         name = row.name;
         items = [toItem(row)];
         key = foodSavedKey(row.name, row.kcal);
@@ -154,13 +155,13 @@ export const savedFoodRouter = {
           .from(plate)
           .where(and(eq(plate.id, plateId), eq(plate.userId, userId)))
           .limit(1);
-        if (!owner) throw new ORPCError("NOT_FOUND", { message: "Piring tidak ditemukan" });
+        if (!owner) throw new ORPCError("NOT_FOUND", { message: serverT(context.locale, "errors")("misc.savedFood.plateNotFound") });
         const rows = await context.db
           .select()
           .from(foodLog)
           .where(and(eq(foodLog.userId, userId), eq(foodLog.plateId, plateId)))
           .orderBy(asc(foodLog.createdAt));
-        if (rows.length === 0) throw new ORPCError("NOT_FOUND", { message: "Piring kosong" });
+        if (rows.length === 0) throw new ORPCError("NOT_FOUND", { message: serverT(context.locale, "errors")("misc.savedFood.plateEmpty") });
         name = owner.name;
         place = owner.place;
         priceIdr = owner.priceIdr;
@@ -186,7 +187,7 @@ export const savedFoodRouter = {
         .from(savedFood)
         .where(and(eq(savedFood.userId, userId), eq(savedFood.key, key)))
         .limit(1);
-      if (!saved) throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Gagal menyimpan favorit" });
+      if (!saved) throw new ORPCError("INTERNAL_SERVER_ERROR", { message: serverT(context.locale, "errors")("misc.savedFood.saveFailed") });
       return present(saved);
     }),
 
@@ -201,10 +202,10 @@ export const savedFoodRouter = {
         .from(savedFood)
         .where(and(eq(savedFood.id, input.id), eq(savedFood.userId, userId)))
         .limit(1);
-      if (!saved) throw new ORPCError("NOT_FOUND", { message: "Favorit tidak ditemukan" });
+      if (!saved) throw new ORPCError("NOT_FOUND", { message: serverT(context.locale, "errors")("misc.savedFood.notFound") });
       const items = parseSavedItems(saved.itemsJson);
       if (items.length === 0) {
-        throw new ORPCError("UNPROCESSABLE_CONTENT", { message: "Favorit ini kosong" });
+        throw new ORPCError("UNPROCESSABLE_CONTENT", { message: serverT(context.locale, "errors")("misc.savedFood.empty") });
       }
       const date = input.date ?? jakartaToday();
       let plateId: string | null = null;

@@ -1,5 +1,6 @@
 import { eatTone, macroTargets } from "@joyorogo/api/lib/engine";
 import { cn } from "@joyorogo/ui/lib/utils";
+import { useTranslation } from "react-i18next";
 
 import { Ring } from "@/components/kit/ring";
 import { Card } from "@/components/kit/surface";
@@ -14,13 +15,14 @@ export type MacroTotals = {
 };
 
 function MacroBar({ macro, eaten, budget }: { macro: MacroKey; eaten: number; budget: number }) {
+  const { t } = useTranslation("misc");
   const { label, Icon, tone } = MACRO_META[macro];
   const over = eaten > budget;
   const pct = budget > 0 ? Math.min(100, Math.max(0, (eaten / budget) * 100)) : 0;
   return (
     <div
       className="grid grid-cols-[4.75rem_1fr_auto] items-center gap-2"
-      title={`${label}: ${fmtInt(eaten)} dari ${fmtInt(budget)} g`}
+      title={t("macro.progress", { label, eaten: fmtInt(eaten), budget: fmtInt(budget), unit: "g" })}
     >
       <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
         <Icon className={cn("size-3.5 shrink-0", tone)} aria-hidden />
@@ -70,12 +72,13 @@ export function MakanSummaryCard({
   proteinTargetG: number;
   totals: MacroTotals;
 }) {
+  const { t } = useTranslation("misc");
   // carb/fat/fiber floors from the engine; protein target comes from the server
   const budgets = macroTargets(eatKcal, 70);
   const over = eatenKcal > eatKcal;
 
   return (
-    <Card className="p-6" aria-label="Ringkasan kalori hari ini">
+    <Card className="p-6" aria-label={t("macro.summaryTitle")}>
       <div className="flex items-center gap-6">
         <Ring
           metric="makan"
@@ -84,7 +87,7 @@ export function MakanSummaryCard({
           size={124}
           stroke={12}
           tone={eatTone(eatenKcal, eatKcal)}
-          label={`Dimakan ${fmtInt(eatenKcal)} dari ${fmtInt(eatKcal)} kcal`}
+          label={t("macro.eatenOf", { eaten: fmtInt(eatenKcal), budget: fmtInt(eatKcal) })}
         >
           <div>
             <p className="text-[1.375rem] leading-none font-extrabold tracking-tight tabular-nums">
@@ -97,7 +100,9 @@ export function MakanSummaryCard({
                 over ? "text-bakar-ink" : "text-muted-foreground",
               )}
             >
-              {over ? `+${fmtInt(eatenKcal - eatKcal)} lebih` : `dari ${fmtInt(eatKcal)}`}
+              {over
+                ? t("macro.over", { kcal: fmtInt(eatenKcal - eatKcal) })
+                : t("macro.ofTarget", { kcal: fmtInt(eatKcal) })}
             </p>
           </div>
         </Ring>

@@ -1,4 +1,5 @@
 import { Link, Stack } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
@@ -7,19 +8,18 @@ import { Mascot } from "@/components/mascot";
 import { Text } from "@/components/ui";
 
 export default function NotFoundScreen() {
+  const { t } = useTranslation("misc");
   return (
     <>
-      <Stack.Screen options={{ title: "Halaman tidak ditemukan" }} />
+      <Stack.Screen options={{ title: t("notFound.title") }} />
       <Container>
         <View style={styles.container}>
           <View style={styles.content}>
             <Mascot pose="peek" size="xl" style={styles.mascot} />
-            <Text style={styles.title}>Halaman tidak ditemukan</Text>
-            <Text style={styles.description}>
-              Halaman yang kamu cari tidak ada atau sudah dipindah. Yuk kembali ke Beranda.
-            </Text>
+            <Text style={styles.title}>{t("notFound.title")}</Text>
+            <Text style={styles.description}>{t("notFound.body")}</Text>
             <Link href="/" style={styles.button}>
-              <Text style={styles.buttonText}>Ke Beranda</Text>
+              <Text style={styles.buttonText}>{t("notFound.home")}</Text>
             </Link>
           </View>
         </View>

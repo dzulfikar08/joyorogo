@@ -25,4 +25,11 @@ describe("mealIdeas", () => {
     expect(ideas.length).toBeGreaterThan(0);
     for (const idea of ideas) expect(idea.kcal).toBeLessThanOrEqual(170);
   });
+
+  test("names follow the locale, ranking does not", () => {
+    const id = mealIdeas(450, "makan_malam", 3, undefined, "id");
+    const en = mealIdeas(450, "makan_malam", 3, undefined, "en");
+    expect(en.map((i) => i.kcal)).toEqual(id.map((i) => i.kcal));
+    expect(en.map((i) => i.name)).not.toEqual(id.map((i) => i.name));
+  });
 });

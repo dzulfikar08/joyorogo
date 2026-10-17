@@ -244,6 +244,7 @@ export const dayRouter = {
                 suggestMealNow(new Date(), effectiveRamadan(prof.ramadanMode)),
                 3,
                 (await loadIdeaValues(context.db, userId)) ?? undefined,
+                context.locale,
               )
             : [],
         date,

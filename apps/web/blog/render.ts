@@ -6,7 +6,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { TKPI_2019, type Tkpi2019Row } from "@joyorogo/api/lib/tkpi2019-data";
-import { TIPS, tipImagePath, type Tip } from "@joyorogo/api/lib/tips";
+import { TIPS, localizeTip, tipImagePath, type LocalizedTip } from "@joyorogo/api/lib/tips";
 import { Marked } from "marked";
 
 import { OG_IMAGE, PAGES } from "../src/lib/seo.ts";
@@ -239,7 +239,9 @@ export function loadPosts(): Post[] {
       return linkable(post, pinned, text);
     });
   items.push(
-    ...TIPS.map((tip) => {
+    ...TIPS.map((meta) => {
+      // The static blog is Indonesian-only.
+      const tip = localizeTip(meta, "id");
       const post = tipToPost(tip);
       return linkable(post, [], `${tip.title} ${tip.summary}`);
     }),
@@ -265,7 +267,7 @@ export function loadPosts(): Post[] {
  * Tips statis dari @joyorogo/api dirender jadi postingan blog yang sama,
  * supaya web dan native memakai satu sumber konten tanpa duplikasi.
  */
-function tipToPost(tip: Tip): Post {
+function tipToPost(tip: LocalizedTip): Post {
   const sectionsMd = tip.sections
     .flatMap((section) => [`## ${section.heading}`, section.paragraphs.join("\n\n")])
     .join("\n\n");

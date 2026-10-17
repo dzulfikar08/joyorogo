@@ -1,23 +1,37 @@
 import { describe, expect, test } from "bun:test";
 
-import { FEED_TIP_EVERY, TIPS, dailyTip, feedTipIndex, tipRotationOffset } from "./tips";
+import { LOCALES } from "@joyorogo/i18n";
+
+import { FEED_TIP_EVERY, TIPS, dailyTip, feedTipIndex, localizeTip, tipRotationOffset } from "./tips";
 
 describe("tips", () => {
-  test("slug unik dan field inti terisi", () => {
+  test("slug unik dan field inti terisi di setiap bahasa", () => {
     const seenSlugs: Record<string, string> = {};
-    for (const tip of TIPS) {
-      expect(seenSlugs[tip.slug]).toBeUndefined();
-      seenSlugs[tip.slug] = tip.slug;
-      expect(tip.title.length).toBeGreaterThan(0);
-      expect(tip.summary.length).toBeGreaterThan(0);
-      expect(tip.sections.length).toBeGreaterThan(0);
-      expect(tip.cobaIni.length).toBeGreaterThan(0);
-      expect(tip.sources.length).toBeGreaterThan(0);
-      expect(tip.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      for (const source of tip.sources) {
-        expect(source.url).toMatch(/^https:\/\//);
+    for (const meta of TIPS) {
+      expect(seenSlugs[meta.slug]).toBeUndefined();
+      seenSlugs[meta.slug] = meta.slug;
+      expect(meta.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      for (const locale of LOCALES) {
+        const tip = localizeTip(meta, locale);
+        expect(tip.title.length).toBeGreaterThan(0);
+        expect(tip.summary.length).toBeGreaterThan(0);
+        expect(tip.sections.length).toBeGreaterThan(0);
+        expect(tip.cobaIni.length).toBeGreaterThan(0);
+        expect(tip.sources.length).toBe(meta.sources.length);
+        for (const source of tip.sources) {
+          expect(source.title.length).toBeGreaterThan(0);
+          expect(source.url).toMatch(/^https:\/\//);
+        }
+        expect(Boolean(tip.image)).toBe(Boolean(meta.image));
+        expect(Boolean(tip.figure)).toBe(Boolean(meta.figure));
+        expect(Boolean(tip.credit)).toBe(Boolean(meta.credit));
       }
     }
+  });
+
+  test("teks mengikuti bahasa", () => {
+    const [meta] = TIPS;
+    expect(localizeTip(meta!, "id").title).not.toBe(localizeTip(meta!, "en").title);
   });
 
   test("tip harian deterministik per hari dan berputar", () => {
