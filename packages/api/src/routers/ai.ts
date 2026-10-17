@@ -338,6 +338,7 @@ async function runAnalyzeFood(
     itemCount: analysis.items.length,
     ...(analysis.tooMany ? { tooMany: true } : {}),
     ...(analysis.modelTooMany ? { modelTooMany: true } : {}),
+    ...(analysis.repaired ? { repaired: true } : {}),
     serverTiming,
     ...(input.clientTiming ? { clientTiming: input.clientTiming } : {}),
     // Implicit outcome labels (lib/scan-outcome.ts) build on these two.
@@ -570,6 +571,7 @@ export const aiRouter = {
             itemCount: analysis.items.length,
             ...(analysis.tooMany ? { tooMany: true } : {}),
             ...(analysis.modelTooMany ? { modelTooMany: true } : {}),
+            ...(analysis.repaired ? { repaired: true } : {}),
             ...analysis.usage,
             serverTiming: {
               loadMs,

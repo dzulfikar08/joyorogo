@@ -7,6 +7,8 @@ import type { Database } from "@joyorogo/db";
 import { DEFAULT_LOCALE, fmtIdr, getT } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 import { userLocale } from "@joyorogo/api/lib/messages";
+import { dayStartMs } from "@joyorogo/api/lib/accuracy-report";
+import type { AccuracyReport, EmailState } from "@joyorogo/api/lib/accuracy-report";
 
 /** Worker vars email needs; all optional so self-hosts run without email. */
 export type EmailEnv = {
@@ -74,7 +76,7 @@ export async function sendEmail(env: EmailEnv, draft: Draft): Promise<string> {
 async function claimEmail(
   db: Database,
   userId: string,
-  kind: "receipt" | "admin" | "founder_ending" | "founder_expired",
+  kind: (typeof emailLog.$inferInsert)["kind"],
   ref: string,
 ): Promise<boolean> {
   const claimed = await db
@@ -337,4 +339,135 @@ export async function runFounderEmails(env: EmailEnv, db: Database): Promise<voi
     await sendEmail(env, { ...draft, to: row.email });
     if (++sends >= 50) break;
   }
+}
+
+const ADMIN_URL = "https://admin.joyorogo.com";
+
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const pct = (rate: number | null) => (rate === null ? "-" : `${Math.round(rate * 100)}%`);
+const seconds = (ms: number | null) => (ms === null ? "-" : `${(ms / 1000).toFixed(1)} dtk`);
+
+/**
+ * Daily accuracy digest for the admins. Short, plain Indonesian: headline
+ * numbers, the top problems with counts, regressions, a link. Dish names and
+ * counts only; no user data. `report.scans.total` is never 0 here (the caller
+ * skips quiet days).
+ */
+export function accuracyDigestDraft(report: AccuracyReport): Draft {
+  const { scans, ratings, health, latency, corrections, regression } = report;
+  const o = scans.outcomes;
+  const day = formatWibDate(new Date(dayStartMs(report.date) + 12 * 60 * 60 * 1000), "id");
+  const link = `${ADMIN_URL}/#laporan?date=${report.date}`;
+  const flags = regression?.flags ?? [];
+
+  const headline =
+    `${scans.total} scan. ${o.accurate} tanpa koreksi (${pct(scans.accurateRate)}), ${o.corrected} dikoreksi, ` +
+    `${o.retried} hitung ulang${o.abandoned > 0 ? `, ${o.abandoned} ditinggal` : ""}. ` +
+    `Rata-rata 7 hari: ${pct(scans.weekRate)} tanpa koreksi.`;
+  const rated =
+    ratings.total > 0
+      ? `Penilaian: ${ratings.total} (${ratings.akurat} akurat, ${ratings.kurang} kurang akurat, ${ratings.salah} salah), ${ratings.notes.length} catatan baru.`
+      : "Belum ada penilaian pengguna.";
+  const problems = report.problems.map((problem) => problem.text);
+  let regressionLines: string[];
+  if (!regression || regression.error) {
+    regressionLines = [`Uji regresi tidak jalan${regression?.error ? `: ${regression.error}` : ""}.`];
+  } else if (flags.length > 0) {
+    regressionLines = flags;
+  } else {
+    const s = regression.summary;
+    regressionLines = [
+      `Tidak ada regresi (${s.cases} foto uji, nama cocok ${pct(s.f1)}, kalori kurang rata-rata ${s.shortfallPct ?? "-"}%${
+        regression.comparison ? "" : "; belum ada hari pembanding"
+      }).`,
+    ];
+  }
+  const failedText = health.failed.total > 0 ? `${health.failed.total} gagal` : "tidak ada gagal";
+  const healthLine =
+    `Kesehatan: ${failedText}, ${health.tooMany} terlalu banyak item, ${health.repaired} JSON diperbaiki. ` +
+    `Waktu AI p50 ${seconds(latency.aiMs.p50)}, p95 ${seconds(latency.aiMs.p95)}. ` +
+    `Koreksi ketik/suara dipakai ${corrections.used}x.`;
+  const suggestions = report.suggestions.slice(0, 3).map((s) => `${s.text} (${s.evidence})`);
+
+  const subject = `${flags.length > 0 ? "[Regresi] " : ""}Akurasi scan ${day}: ${pct(scans.accurateRate)} tanpa koreksi, ${scans.total} scan`;
+
+  const textBlocks: string[] = [
+    `Laporan akurasi scan, ${day}`,
+    headline,
+    rated,
+    problems.length > 0
+      ? ["Masalah teratas:", ...problems.map((t, i) => `${i + 1}. ${t}`)].join("\n")
+      : "Tidak ada koreksi dish hari ini.",
+    ["Regresi:", ...regressionLines.map((t) => `- ${t}`)].join("\n"),
+    healthLine,
+    ...(suggestions.length > 0
+      ? [["Saran (tidak ada yang diubah otomatis):", ...suggestions.map((t) => `- ${t}`)].join("\n")]
+      : []),
+    `Detail: ${link}`,
+  ];
+
+  const list = (items: string[], ordered: boolean) => {
+    const tag = ordered ? "ol" : "ul";
+    return `<${tag} style="margin:0 0 14px;padding-left:20px;font-size:14px;line-height:1.6;">${items
+      .map((item) => `<li>${escapeHtml(item)}</li>`)
+      .join("")}</${tag}>`;
+  };
+  const heading = (text: string) =>
+    `<p style="margin:0 0 6px;font-size:13px;font-weight:700;color:${INK};">${text}</p>`;
+  const html = shell(
+    escapeHtml(`Laporan akurasi scan, ${day}`),
+    p(escapeHtml(headline)) +
+      p(escapeHtml(rated)) +
+      (problems.length > 0
+        ? heading("Masalah teratas") + list(problems, true)
+        : p("Tidak ada koreksi dish hari ini.")) +
+      heading("Regresi") +
+      list(regressionLines, false) +
+      p(escapeHtml(healthLine)) +
+      (suggestions.length > 0
+        ? heading("Saran (tidak ada yang diubah otomatis)") + list(suggestions, false)
+        : "") +
+      button(link, "Buka laporan"),
+    "id",
+  );
+  return { to: "", subject, html, text: textBlocks.join("\n\n") };
+}
+
+/**
+ * Sends the digest to ADMIN_EMAILS once per report day (email_log kind
+ * "accuracy_digest", ref = the report date). Quiet days (no scans) send nothing.
+ * A failed send releases its claim so the next attempt can retry.
+ */
+export async function sendAccuracyDigest(
+  env: EmailEnv,
+  db: Database,
+  report: AccuracyReport,
+): Promise<Pick<EmailState, "status" | "detail">> {
+  if (report.scans.total === 0) return { status: "skipped_no_scans" };
+  const admins = (env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+  if (admins.length === 0 || !env.EMAIL || !env.EMAIL_FROM) {
+    return { status: "off", detail: "no ADMIN_EMAILS, EMAIL binding or EMAIL_FROM" };
+  }
+  // email_log rows belong to a user: the first admin who has an account.
+  const [owner] = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(sql`lower(${user.email}) in (${sql.join(admins.map((email) => sql`${email}`), sql`, `)})`)
+    .limit(1);
+  if (!owner) return { status: "failed", detail: "no user account for ADMIN_EMAILS" };
+  if (!(await claimEmail(db, owner.id, "accuracy_digest", report.date))) {
+    return { status: "sent", detail: "already in email_log" };
+  }
+  const result = await sendEmail(env, { ...accuracyDigestDraft(report), to: admins });
+  if (result !== "sent") {
+    await db
+      .delete(emailLog)
+      .where(and(eq(emailLog.kind, "accuracy_digest"), eq(emailLog.ref, report.date)));
+    return { status: "failed", detail: result };
+  }
+  return { status: "sent" };
 }

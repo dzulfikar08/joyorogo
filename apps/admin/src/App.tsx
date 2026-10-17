@@ -3,6 +3,7 @@ import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
 import {
+  FileText,
   Flag,
   LayoutDashboard,
   LogOut,
@@ -23,6 +24,7 @@ import { Badge, Button } from "./ui";
 import { useTheme } from "./theme";
 import { OrdersSection } from "./sections/Orders";
 import { FeedbackSection } from "./sections/Feedback";
+import { LaporanSection } from "./sections/Laporan";
 import { OverviewSection } from "./sections/Overview";
 import { ReportsSection } from "./sections/Reports";
 import { UsersSection } from "./sections/Users";
@@ -50,6 +52,7 @@ const TABS: { id: string; label: string; icon: LucideIcon }[] = [
   { id: "orders", label: "Orders", icon: Receipt },
   { id: "reports", label: "Reports", icon: Flag },
   { id: "feedback", label: "Feedback", icon: MessageSquareText },
+  { id: "laporan", label: "Laporan", icon: FileText },
 ];
 type Tab = (typeof TABS)[number]["id"];
 
@@ -271,6 +274,7 @@ export default function App() {
           {tab === "orders" && <OrdersSection />}
           {tab === "reports" && <ReportsSection />}
           {tab === "feedback" && <FeedbackSection />}
+          {tab === "laporan" && <LaporanSection />}
         </main>
       </div>
 

@@ -396,3 +396,36 @@ export function buildFeedbackReasons(reasons: readonly string[], marks: readonly
   const all = [...reasons, ...marks];
   return all.length > 0 ? JSON.stringify(all) : null;
 }
+
+/**
+ * Moment of the deploy that stopped treating the "Hitung ulang" tap as an
+ * explicit rating. Older kurang_akurat rows with no reasons and no note are
+ * retry taps in disguise. Set to the planned deploy time (2026-10-17 14:30 WIB).
+ */
+export const RETRY_TAP_CUTOVER_MS = Date.parse("2026-10-17T14:30:00+07:00");
+
+/** scan_feedback rows that only record a "Hitung ulang" tap, not a rating. */
+export function retryDerivedSql(): SQL<boolean> {
+  return sql<boolean>`(coalesce(${scanFeedback.reasonsJson} like '%"${sql.raw(FEEDBACK_MARK.retryTap)}"%', 0) or (${scanFeedback.rating} = 'kurang_akurat' and coalesce(${scanFeedback.reasonsJson}, '') in ('', '[]') and coalesce(${scanFeedback.note}, '') = '' and ${scanFeedback.createdAt} < ${RETRY_TAP_CUTOVER_MS}))`;
+}
+
+/** Mirror of retryDerivedSql for one scan_feedback row. */
+export function isRetryDerivedFeedback(row: {
+  rating: string;
+  reasonsJson: string | null;
+  note: string | null;
+  createdAt: number;
+}): boolean {
+  const reasons = row.reasonsJson ?? "";
+  return (
+    parseFeedbackReasons(row.reasonsJson).retryTap ||
+    (row.rating === "kurang_akurat" &&
+      (reasons === "" || reasons === "[]") &&
+      !row.note &&
+      row.createdAt < RETRY_TAP_CUTOVER_MS)
+  );
+}
+
+/** Calendar day in WIB (UTC+7) for a ms timestamp column. */
+export const wibDaySql = (column: unknown) =>
+  sql<string>`date((${column} / 1000) + 25200, 'unixepoch')`;

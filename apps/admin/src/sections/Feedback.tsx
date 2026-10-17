@@ -23,6 +23,7 @@ import {
   QueryBoundary,
   SectionCard,
   StatCard,
+  StatTable,
   type Column,
 } from "../ui";
 
@@ -88,26 +89,6 @@ const NEGATIVE_COLUMNS: Column<FeedbackNegative>[] = [
   { key: "model", header: "Model", cell: (r) => r.model ?? "—", className: "text-muted-foreground" },
   { key: "at", header: "Waktu", cell: (r) => fmtDateTime(r.createdAt), className: "whitespace-nowrap" },
 ];
-
-/** Compact numeric table: scrolls sideways on phones with the first column pinned. */
-function StatTable({ head, children }: { head: string[]; children: ReactNode }) {
-  return (
-    <div className="table-wrap table-sticky">
-      <table>
-        <thead>
-          <tr>
-            {head.map((h, i) => (
-              <th key={h} className={i > 0 ? "text-right" : undefined}>
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>{children}</tbody>
-      </table>
-    </div>
-  );
-}
 
 const num = "text-right tabular-nums";
 

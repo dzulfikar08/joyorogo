@@ -124,6 +124,8 @@ export type VisionAnalysis = {
   tooMany: boolean;
   /** The model set its own tooMany flag (logged for tuning; does not drive the UI). */
   modelTooMany?: boolean;
+  /** The model's JSON needed key repair or item salvage before it parsed (logged for tuning). */
+  repaired?: boolean;
   /** Where the model call's time went (ms): the whole attempt, and for a stream the wait for the first token. */
   timing: { modelMs: number; ttftMs?: number; attempts: number };
 };
@@ -415,6 +417,8 @@ type ParsedAnswer = {
   empty: boolean;
   /** Valid items in the answer before the cap. */
   found: number;
+  /** Key repair or item salvage was needed before the answer parsed. */
+  repaired: boolean;
 };
 
 /** The model reports why it found nothing as a short Indonesian/English tag. */
@@ -517,11 +521,13 @@ export function parseAnswer(
   finish: string | null,
   locale: Locale = DEFAULT_LOCALE,
 ): ParsedAnswer {
-  const cleaned = repairKeys(text.replace(/```(?:json)?/g, ""));
+  const unfenced = text.replace(/```(?:json)?/g, "");
+  const cleaned = repairKeys(unfenced);
   let rawItems: unknown[];
   let modelTooMany = false;
   let problem: ScanFailReason | null = null;
   let truncated = finish === "length";
+  let repaired = cleaned !== unfenced;
   try {
     const answer = visionResultSchema.parse(extractJson(cleaned));
     rawItems = answer.items;
@@ -531,6 +537,7 @@ export function parseAnswer(
     rawItems = salvageItems(cleaned);
     if (rawItems.length === 0) throw error;
     truncated = true;
+    if (finish !== "length") repaired = true;
   }
   // One malformed item must not sink the plate.
   const valid = rawItems.flatMap((entry) => {
@@ -554,6 +561,7 @@ export function parseAnswer(
     problem,
     empty: rawItems.length === 0,
     found: valid.length,
+    repaired,
   };
 }
 
@@ -643,6 +651,7 @@ export async function analyzeFoodPhoto(
           usage,
           tooMany: answer.tooMany,
           ...(answer.modelTooMany ? { modelTooMany: true } : {}),
+          ...(answer.repaired ? { repaired: true } : {}),
           timing: { modelMs, ...streamTiming, attempts },
         };
       }

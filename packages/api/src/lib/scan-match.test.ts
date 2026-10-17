@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { nameScore, pairItems } from "./eval-scans";
+import { nameScore, pairItems } from "./scan-match";
 
 describe("eval name matching", () => {
   test("same TKPI dish through an alias matches, different dishes never do", () => {

@@ -7,12 +7,15 @@ import { z } from "zod";
 
 import { jakartaToday } from "@joyorogo/api/lib/engine";
 import { feedbackPhotoKey } from "@joyorogo/api/lib/feedback-keep";
+import { accuracyReportSummary } from "@joyorogo/api/lib/accuracy-report";
 import {
-  FEEDBACK_MARK,
+  RETRY_TAP_CUTOVER_MS,
   isSessionSql,
   outcomeSql,
   parseFeedbackReasons,
   parseSession,
+  retryDerivedSql,
+  wibDaySql as wibDay,
 } from "@joyorogo/api/lib/scan-outcome";
 import type { ScanOutcome, ScanSession } from "@joyorogo/api/lib/scan-outcome";
 import { effectiveTier, wibDayBounds } from "@joyorogo/api/lib/tiers";
@@ -24,12 +27,7 @@ import { aiUsage, foodLog, profile, scanFeedback } from "@joyorogo/db/schema/fit
 import { post as postTable, postComment, socialReport } from "@joyorogo/db/schema/social";
 import type { Database } from "@joyorogo/db";
 
-/**
- * Moment of the deploy that stopped treating the "Hitung ulang" tap as an
- * explicit rating. Older kurang_akurat rows with no reasons and no note are
- * retry taps in disguise. Set to the planned deploy time (2026-10-17 14:30 WIB).
- */
-const RETRY_TAP_CUTOVER_MS = Date.parse("2026-10-17T14:30:00+07:00");
+import { listReportDates, readReport } from "./accuracy-job";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -79,9 +77,6 @@ const containsAny = (columns: unknown[], term: string) => {
     sql` or `,
   )})`;
 };
-
-// Calendar day in WIB (UTC+7) for a ms timestamp column.
-const wibDay = (column: unknown) => sql<string>`date((${column} / 1000) + 25200, 'unixepoch')`;
 
 const userPatchSchema = z
   .object({
@@ -579,7 +574,7 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
   // Dismissals (`dilewati`) are excluded from every metric. The negative
   // results themselves page through /api/admin/feedback/negatives.
   const negativeRating = inArray(scanFeedback.rating, ["kurang_akurat", "salah"]);
-  const retryDerived = sql`(coalesce(${scanFeedback.reasonsJson} like '%"${sql.raw(FEEDBACK_MARK.retryTap)}"%', 0) or (${scanFeedback.rating} = 'kurang_akurat' and coalesce(${scanFeedback.reasonsJson}, '') in ('', '[]') and coalesce(${scanFeedback.note}, '') = '' and ${scanFeedback.createdAt} < ${RETRY_TAP_CUTOVER_MS}))`;
+  const retryDerived = retryDerivedSql();
   app.get("/api/admin/feedback", async (c) => {
     const days = Math.min(90, Math.max(1, Number(c.req.query("days")) || 30));
     const now = Date.now();
@@ -877,5 +872,28 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
         "Cache-Control": "private, no-store",
       },
     });
+  });
+
+  // Laporan: the daily accuracy reports (R2 reports/accuracy/<date>.json, built by
+  // accuracy-job.ts), newest first. The list carries the headline numbers; the
+  // detail is the whole stored report.
+  app.get("/api/admin/accuracy", async (c) => {
+    const query = parseQuery(c, pagingSchema);
+    const bucket = deps.getBucket();
+    const dates = bucket ? await listReportDates(bucket) : [];
+    const page = dates.slice(offsetOf(query), offsetOf(query) + query.pageSize);
+    const reports = bucket
+      ? (await Promise.all(page.map((date) => readReport(bucket, date)))).flatMap((report) =>
+          report ? [accuracyReportSummary(report)] : [],
+        )
+      : [];
+    return c.json({ reports, total: dates.length, page: query.page, pageSize: query.pageSize });
+  });
+
+  app.get("/api/admin/accuracy/:date", async (c) => {
+    const date = c.req.param("date");
+    const bucket = deps.getBucket();
+    const report = bucket && /^\d{4}-\d{2}-\d{2}$/.test(date) ? await readReport(bucket, date) : null;
+    return report ? c.json(report) : c.json({ error: "Laporan tidak ditemukan." }, 404);
   });
 }

@@ -268,6 +268,26 @@ export function SectionCard({
   );
 }
 
+/** Compact numeric table: scrolls sideways on phones with the first column pinned. */
+export function StatTable({ head, children }: { head: string[]; children: ReactNode }) {
+  return (
+    <div className="table-wrap table-sticky">
+      <table>
+        <thead>
+          <tr>
+            {head.map((h, i) => (
+              <th key={h} className={i > 0 ? "text-right" : undefined}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    </div>
+  );
+}
+
 /** Horizontal usage bars, one row per day. */
 export function DayBars({
   rows,

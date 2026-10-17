@@ -46,7 +46,9 @@ export const emailLog = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    kind: text("kind", { enum: ["receipt", "admin", "founder_ending", "founder_expired"] }).notNull(),
+    kind: text("kind", {
+      enum: ["receipt", "admin", "founder_ending", "founder_expired", "accuracy_digest"],
+    }).notNull(),
     ref: text("ref").notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)

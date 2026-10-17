@@ -35,6 +35,8 @@ import { registerAnonScanRoutes } from "./anon";
 import { registerBillingRoutes } from "./billing";
 import { registerGooglePlayRoutes } from "./google-billing";
 import { registerAdminRoutes } from "./admin";
+import { dailyAccuracyDue, runDailyAccuracy } from "./accuracy-job";
+import { registerAccuracyRoutes } from "./accuracy-routes";
 import { sendEmail } from "./email";
 import { createContext, requestLocale } from "./context";
 import { registerBenchRoutes } from "./bench";
@@ -594,6 +596,24 @@ async function runStravaRetention(): Promise<void> {
   if (deleted > 0) console.log(`strava retention: deleted ${deleted} expired rows`);
 }
 
+// Daily accuracy digest (accuracy-job.ts): the report for yesterday's WIB day.
+const accuracyDeps = () => ({
+  db: getDb(),
+  bucket: "STICKERS" in env ? env.STICKERS : undefined,
+  ai: env.AI,
+  model: env.AI_VISION_MODEL || undefined,
+  email: env,
+});
+
+// Manual trigger for the daily job (same key-gate style as /ai/bench).
+registerAccuracyRoutes(app, {
+  key:
+    "ACCURACY_RUN_KEY" in env && typeof env.ACCURACY_RUN_KEY === "string"
+      ? env.ACCURACY_RUN_KEY
+      : undefined,
+  run: (opts) => runDailyAccuracy(accuracyDeps(), opts),
+});
+
 // Same Hono app as fetch; the scheduled handler runs beside it. `app.fetch`
 // is an arrow property, so detaching it stays bound to this app instance.
 export default {
@@ -603,5 +623,13 @@ export default {
     ctx.waitUntil(billing.reconcilePending());
     ctx.waitUntil(billing.runEmails());
     ctx.waitUntil(runStravaRetention());
+    // From 07:00 WIB every tick checks (one R2 read) whether yesterday's report is done.
+    if (dailyAccuracyDue(Date.now())) {
+      ctx.waitUntil(
+        runDailyAccuracy(accuracyDeps()).catch((error: unknown) =>
+          console.error("[accuracy] daily job failed", error),
+        ),
+      );
+    }
   },
 };

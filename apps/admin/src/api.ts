@@ -393,3 +393,114 @@ export const post = <T>(path: string) => api<T>(path, { method: "POST" });
 
 export type PagedUsers = Paged<"users", AdminUser>;
 export type PagedOrders = Paged<"orders", AdminOrder>;
+
+/** Daily accuracy reports (R2, built by the server's accuracy job); one row of /api/admin/accuracy. */
+export interface AccuracyReportSummary {
+  date: string;
+  generatedAt: number;
+  total: number;
+  resolved: number;
+  accurateRate: number | null;
+  weekRate: number | null;
+  outcomes: OutcomeCounts;
+  ratings: number;
+  flags: string[];
+  problems: string[];
+  suggestions: number;
+  regressionF1: number | null;
+  failed: number;
+  email: "sent" | "skipped_no_scans" | "off" | "failed" | null;
+}
+
+export interface AccuracyStat {
+  n: number;
+  p50: number | null;
+  p95: number | null;
+}
+
+export interface RegressionCaseResult {
+  id: string;
+  group: "owner" | "feedback";
+  ok: boolean;
+  tp: number;
+  ai: number;
+  truth: number;
+  aiKcal: number;
+  truthKcal: number;
+  ms: number;
+}
+
+export interface AccuracyReport {
+  version: number;
+  date: string;
+  generatedAt: number;
+  scans: {
+    total: number;
+    outcomes: OutcomeCounts;
+    resolved: number;
+    accurateRate: number | null;
+    trend: Array<{ day: string; resolved: number; accurate: number; rate: number | null }>;
+    weekRate: number | null;
+  };
+  ratings: {
+    total: number;
+    akurat: number;
+    kurang: number;
+    salah: number;
+    retryTaps: number;
+    notes: Array<{ rating: string; reasons: string[]; note: string }>;
+  };
+  dishes: {
+    renames: Array<{ from: string; to: string; n: number }>;
+    removed: Array<{ name: string; n: number }>;
+    added: Array<{ name: string; n: number }>;
+  };
+  bias: {
+    kcal: { n: number; over: number; under: number; meanPct: number | null };
+    dishes: Array<{
+      name: string;
+      n: number;
+      over: number;
+      under: number;
+      gramsPct: number | null;
+      kcalPct: number | null;
+    }>;
+  };
+  health: { failed: { total: number; byReason: Record<string, number> }; tooMany: number; repaired: number };
+  latency: Record<"receiveMs" | "quotaMs" | "aiMs" | "ttftMs" | "totalMs", AccuracyStat>;
+  corrections: { used: number; failed: number; sessions: number };
+  problems: Array<{ kind: "rename" | "removed" | "added" | "bias"; text: string; n: number }>;
+  suggestions: Array<{ kind: "alias" | "grams" | "missed" | "false_item"; text: string; evidence: string }>;
+  regression: {
+    cap: number;
+    candidates: number;
+    summary: {
+      cases: number;
+      failed: number;
+      precision: number | null;
+      recall: number | null;
+      f1: number | null;
+      shortfallPct: number | null;
+      signedPct: number | null;
+      p50Ms: number | null;
+      p95Ms: number | null;
+    };
+    results: RegressionCaseResult[];
+    comparison: {
+      prevDate: string;
+      common: number;
+      f1Prev: number;
+      f1Now: number;
+      shortfallPrev: number;
+      shortfallNow: number;
+    } | null;
+    flags: string[];
+    error?: string;
+  } | null;
+  email: {
+    status: "sent" | "skipped_no_scans" | "off" | "failed";
+    attempts: number;
+    at: number;
+    detail?: string;
+  } | null;
+}
