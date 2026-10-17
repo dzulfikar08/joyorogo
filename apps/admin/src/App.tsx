@@ -281,7 +281,7 @@ export default function App() {
       {/* Phones: bottom tabs. */}
       <nav
         aria-label="Bagian"
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         {TABS.map((t) => (
           <a

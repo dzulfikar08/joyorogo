@@ -249,27 +249,41 @@ function Detail({ report }: { report: AccuracyReport }) {
                 </span>
               </p>
             )}
-            <StatTable head={["Ukuran", "Hari ini", "Pembanding"]}>
+            <StatTable head={["Ukuran", "Hari ini", "Sebelumnya"]}>
               <tr>
                 <td>Foto dijalankan</td>
                 <td className={num}>
                   {fmtNum(regression.summary.cases)}
                   {regression.summary.failed > 0 ? ` (+${regression.summary.failed} gagal)` : ""}
                 </td>
-                <td className={num}>maks {fmtNum(regression.cap)} / dari {fmtNum(regression.candidates)}</td>
+                <td className={num}>—</td>
               </tr>
               <tr>
-                <td>Nama cocok (F1)</td>
+                <td>Nama cocok (F1), semua foto</td>
                 <td className={`${num} font-semibold`}>{pct(regression.summary.f1)}</td>
-                <td className={num}>{regression.comparison ? pct(regression.comparison.f1Prev) : "—"}</td>
+                <td className={num}>—</td>
               </tr>
               <tr>
-                <td>Kalori kurang (rata-rata)</td>
+                <td>Kalori kurang, rata-rata</td>
                 <td className={`${num} font-semibold`}>
                   {regression.summary.shortfallPct === null ? "—" : `${regression.summary.shortfallPct}%`}
                 </td>
-                <td className={num}>{regression.comparison ? `${regression.comparison.shortfallPrev}%` : "—"}</td>
+                <td className={num}>—</td>
               </tr>
+              {regression.comparison && (
+                <>
+                  <tr>
+                    <td>Nama cocok (F1), {regression.comparison.common} foto sama</td>
+                    <td className={`${num} font-semibold`}>{pct(regression.comparison.f1Now)}</td>
+                    <td className={num}>{pct(regression.comparison.f1Prev)}</td>
+                  </tr>
+                  <tr>
+                    <td>Kalori kurang, {regression.comparison.common} foto sama</td>
+                    <td className={`${num} font-semibold`}>{regression.comparison.shortfallNow}%</td>
+                    <td className={num}>{regression.comparison.shortfallPrev}%</td>
+                  </tr>
+                </>
+              )}
               <tr>
                 <td>Selisih kalori (bertanda)</td>
                 <td className={num}>{signedPct(regression.summary.signedPct)}</td>
@@ -283,6 +297,10 @@ function Detail({ report }: { report: AccuracyReport }) {
                 <td className={num}>—</td>
               </tr>
             </StatTable>
+            <p className="px-4 py-3 text-xs text-muted-foreground">
+              Maksimal {fmtNum(regression.cap)} foto per hari, dari {fmtNum(regression.candidates)} foto di dataset pemilik
+              dan foto feedback yang diizinkan (yang belum disimpan ke catatan dilewati). Setengahnya tetap, setengahnya bergilir.
+            </p>
           </>
         )}
       </SectionCard>
