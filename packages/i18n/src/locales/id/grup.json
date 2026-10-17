@@ -193,13 +193,6 @@
       "sama": "belum beda",
       "beda": "foto beda",
       "pertama": "scan pertama"
-    },
-    "belly": {
-      "turun": "Perut mengecil",
-      "naik": "Terlihat lebih penuh",
-      "sama": "Belum kelihatan beda",
-      "beda": "Kondisi foto beda",
-      "pertama": "Scan pertama"
     }
   },
   "activity": {
@@ -227,119 +220,6 @@
     "exerciseFallback": "Olahraga",
     "weightLine": "Timbang • {{kg}} kg",
     "emptyNative": "Belum ada aktivitas. Waktunya logging makan pertama!"
-  },
-  "watch": {
-    "they": "dia",
-    "friend": "Teman",
-    "close": "Tutup VAR",
-    "foodsLabel": "Makanan {{name}} hari ini",
-    "hidden": "{{name}} menyembunyikan isi perutnya",
-    "hiddenHint": "Total kalori tetap terlihat di kartu anggotanya.",
-    "aim": "Arahkan ke perut {{name}}",
-    "scanning": "MEMINDAI…",
-    "progress": "beeping… {{percent}}%",
-    "errorTitle": "VAR gagal memindai",
-    "scanFailed": "Gagal memindai.",
-    "scanFailedOffline": "Gagal memindai. Cek koneksimu lalu coba lagi.",
-    "rescan": "Scan ulang",
-    "backToGroup": "Kembali ke grup",
-    "scan": "Scan",
-    "scanningShort": "Memindai…",
-    "noCamera": "Kamera tidak tersedia. Overlay tetap jalan, coba izinkan kamera di pengaturan browser.",
-    "verdict": {
-      "aman": "AMAN, lanjutkan!",
-      "offside": "OFFSIDE! +{{kcal}} kcal",
-      "tanpaTarget": "Belum ada target pembanding",
-      "kosong": "Perut kosong… belum makan?"
-    },
-    "total": "Total hari ini {{eaten}} kcal",
-    "totalOf": "Total hari ini {{eaten}} dari {{target}} kcal",
-    "basis": "Berdasarkan catatan makan {{name}} hari ini, bukan foto asli.",
-    "belly": "VAR perut {{name}} ({{date}}): {{verdict}}"
-  },
-  "mine": {
-    "title": "VAR Perut",
-    "subtitle": "Perkembangan perutmu dilihat AI secara visual — bukan alat ukur.",
-    "loading": "Memuat riwayat VAR",
-    "loadFailed": "Riwayat gagal dimuat",
-    "thisGroup": "grup ini",
-    "scan": "Scan",
-    "scanFallback": "Scan perut",
-    "toast": {
-      "shared": "Scan perut dibagikan ke grup.",
-      "hidden": "Scan perut disembunyikan."
-    },
-    "verdict": {
-      "turun": "Perut mengecil",
-      "naik": "Terlihat lebih penuh",
-      "sama": "Belum kelihatan beda",
-      "beda": "Kondisi foto beda, ulangi",
-      "pertama": "Scan pertama tersimpan"
-    },
-    "retry": {
-      "newResult": "Hasil baru: {{verdict}}",
-      "restoreFailed": "Gagal mengembalikan hasil.",
-      "failed": "Hasil sebelumnya tetap dipakai. {{message}}",
-      "rereading": "AI membaca ulang kedua foto...",
-      "title": "Hasilnya kurang pas?",
-      "left_other": "Gratis, sisa {{count}}x",
-      "limit": "Batas hitung ulang habis",
-      "howTitle": "Cara kerja",
-      "how": "AI membandingkan ulang kedua foto yang sama, tanpa foto ulang dan tanpa memakai kuota scan harian.",
-      "howShared": "Status yang dibagikan ke {{group}} ikut diperbarui.",
-      "hintLabel": "Koreksi singkat (opsional)",
-      "hintPlaceholder": "mis. pose kedua foto sebenarnya sama",
-      "retrying": "Menghitung ulang...",
-      "button": "Hitung ulang",
-      "exhausted": "Scan ini sudah dihitung ulang sampai batasnya. Scan lagi di lain hari ya."
-    },
-    "capture": {
-      "failed": "Gagal mengambil foto.",
-      "processFailed": "Gagal memproses fotonya.",
-      "cameraLabel": "Kamera untuk foto perut",
-      "frame": "Perutmu di dalam garis putus-putus",
-      "justTaken": "Foto yang baru diambil",
-      "comparing": "AI membandingkan dengan scan sebelumnya…",
-      "savingFirst": "Menyimpan scan pertamamu…",
-      "wait": "Biasanya 5-20 detik. Foto asli cuma tersimpan untukmu.",
-      "noCamera": "Kamera tidak tersedia di perangkat ini. Pakai tombol galeri di bawah, atau izinkan kamera di pengaturan browser.",
-      "tipsTitle": "Tips foto & privasi",
-      "tip": {
-        "same": "Pose dan jarak yang sama tiap scan",
-        "light": "Cahaya terang, kamera sejajar perut",
-        "stand": "Berdiri tegak, napas biasa"
-      },
-      "privacy": "Foto perutmu privat: tidak pernah masuk feed, dan hanya kamu yang bisa membukanya.",
-      "saved_other": "{{count}} scan tersimpan.",
-      "firstBaseline": "Scan pertama jadi pembanding awal.",
-      "timerOn": "Timer {{seconds}} dtk nyala",
-      "timerOff": "Timer {{seconds}} dtk mati",
-      "shutter": "Ambil foto perut",
-      "gallery": "Galeri"
-    },
-    "confidence": "Keyakinan visual ~{{percent}}% — perkiraan dari foto, bukan pengukuran.",
-    "historyConfidence": "yakin ~{{percent}}%",
-    "photo": {
-      "before": "Sebelumnya",
-      "now": "Sekarang",
-      "alt": "Foto perut: {{caption}}",
-      "none": "Belum ada",
-      "comparedAlt": "Pembanding: {{date}}",
-      "comparedWith": "Dibandingkan dengan {{date}}"
-    },
-    "waist": {
-      "title": "Angka yang lebih jujur: lingkar perut",
-      "last": "Terakhir {{date}}: <b>{{cm}} cm</b>",
-      "note": "Foto cuma perkiraan visual — meteran yang mengukur.",
-      "none": "Belum ada catatan meteran. <link>Catat lingkar perut di Berat</link> — itu sinyal objektifnya, foto hanya pelengkap."
-    },
-    "share": {
-      "title": "Bagikan status ke {{group}}",
-      "hint": "Yang ikut terlihat cuma verdict + tanggal. Foto perutmu tidak pernah dibagikan."
-    },
-    "rescan": "Scan lagi",
-    "delete": "Hapus scan ini",
-    "history": "Riwayat scan"
   },
   "server": {
     "error": {

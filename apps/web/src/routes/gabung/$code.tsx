@@ -3,6 +3,7 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CircleAlert, Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { useSession } from "@/lib/auth-client";
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/gabung/$code")({
 });
 
 function GabungPage() {
+  const { t } = useTranslation("grup");
   const { code } = Route.useParams();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -33,7 +35,7 @@ function GabungPage() {
     orpc.group.join.mutationOptions({
       onSuccess: ({ groupId }) => {
         queryClient.invalidateQueries({ queryKey: orpc.group.key() });
-        toast.success("Berhasil gabung!");
+        toast.success(t("join.toast"));
         void navigate({ to: "/grup/$groupId", params: { groupId } });
       },
       onError: (error) => toast.error(error.message),
@@ -50,16 +52,16 @@ function GabungPage() {
           {!valid ? (
             <>
               <CircleAlert className="mx-auto size-8 text-destructive" aria-hidden />
-              <h1 className="mt-3 text-lg font-extrabold tracking-tight">Kode undangan tidak valid</h1>
+              <h1 className="mt-3 text-lg font-extrabold tracking-tight">{t("invite.invalidTitle")}</h1>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Periksa lagi tautan atau kodenya, lalu coba buka sekali lagi.
+                {t("invite.invalidBody")}
               </p>
               <Button render={<Link to="/" />} variant="secondary" className="mt-5 w-full">
-                Buka JoyoRogo
+                {t("invite.openApp")}
               </Button>
             </>
           ) : preview.isPending ? (
-            <div aria-busy="true" aria-label="Memeriksa undangan">
+            <div aria-busy="true" aria-label={t("invite.checking")}>
               <Skeleton className="mx-auto h-12 w-12 rounded-full" />
               <Skeleton className="mx-auto mt-3 h-6 w-40" />
               <Skeleton className="mx-auto mt-2 h-4 w-24" />
@@ -72,7 +74,7 @@ function GabungPage() {
                 {preview.error.message}
               </h1>
               <Button render={<Link to="/" />} variant="secondary" className="mt-5 w-full">
-                Buka JoyoRogo
+                {t("invite.openApp")}
               </Button>
             </>
           ) : (
@@ -81,16 +83,16 @@ function GabungPage() {
                 <Users className="size-6 text-primary" aria-hidden />
               </span>
               <p className="mt-3 text-sm font-semibold text-muted-foreground">
-                {preview.data.alreadyMember ? "Grupmu" : "Kamu diundang ke"}
+                {preview.data.alreadyMember ? t("invite.yourGroup") : t("invite.invitedTo")}
               </p>
               <h1 className="mt-0.5 text-xl font-extrabold tracking-tight text-balance">
                 {preview.data.name}
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                {preview.data.memberCount} anggota
+                {t("members", { count: preview.data.memberCount })}
               </p>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Gabung buat pantau kalori bareng, colek yang malas catat, dan intip perut lewat VAR.
+                {t("invite.pitch")}
               </p>
               {session.isPending ? (
                 <Skeleton className="mt-5 h-12 w-full rounded-full" />
@@ -102,10 +104,10 @@ function GabungPage() {
                   onClick={() => join.mutate({ code })}
                 >
                   {join.isPending
-                    ? "Membuka grup…"
+                    ? t("invite.opening")
                     : preview.data.alreadyMember
-                      ? "Buka grup"
-                      : "Gabung"}
+                      ? t("invite.open")
+                      : t("join.submit")}
                 </Button>
               ) : (
                 <>
@@ -114,10 +116,10 @@ function GabungPage() {
                     className="mt-5 w-full"
                     render={<Link to="/login" search={{ redirect: `/gabung/${code}` }} />}
                   >
-                    Masuk untuk gabung
+                    {t("invite.signIn")}
                   </Button>
                   <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                    Masuk dengan Google, lalu kamu balik ke sini dan tinggal ketuk Gabung.
+                    {t("invite.signInHint")}
                   </p>
                 </>
               )}

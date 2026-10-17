@@ -3,11 +3,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Share, Switch, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import type { TFunction } from "@joyorogo/i18n";
 
 import {
   Avatar,
@@ -36,35 +38,37 @@ import { ChallengesSection } from "@/components/challenge/challenges-section";
 import { useToast } from "@/components/toast";
 import type { GroupActivityEvent, GroupMember } from "@/src/lib/group";
 import { inviteMessage, timeAgoId } from "@/src/lib/group";
-import { errorMessage, fmtInt, fmtKg } from "@/utils/format";
+import { errorMessage, fmtDateShort, fmtInt, fmtKg } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 
-const NOTE_SUGGESTIONS = [
-  "Ayo jalan 10 menit!",
-  "Jangan lupa minum air",
-  "Jangan lupa sarapan",
-  "Semangat catat kalorinya!",
-];
+const NOTE_SUGGESTION_KEYS = ["s1", "s2", "s3", "s4"] as const;
 
-function activityRow(event: GroupActivityEvent): { icon: "restaurant" | "fitness" | "scale"; title: string; subtitle: string } {
-  const who = event.userName ?? "Teman";
+function activityRow(
+  event: GroupActivityEvent,
+  t: TFunction<"grup">,
+): { icon: "restaurant" | "fitness" | "scale"; title: string; subtitle: string } {
+  const who = event.userName ?? t("activity.someone");
   if (event.type === "food") {
-    const meal = MEAL_LABELS[event.meal as Meal] ?? "Makan";
+    const meal = MEAL_LABELS[event.meal as Meal] ?? t("activity.mealFallback");
     return {
       icon: "restaurant",
       title: who,
-      subtitle: `${meal} • ${fmtInt(event.kcal)} kcal${event.name === null ? " (disembunyikan)" : ` • ${event.name}`}`,
+      subtitle: `${meal} • ${fmtInt(event.kcal)} kcal${event.name === null ? ` (${t("activity.hidden")})` : ` • ${event.name}`}`,
     };
   }
   if (event.type === "exercise") {
     return {
       icon: "fitness",
       title: who,
-      subtitle: `${event.name ?? "Olahraga"} • ${event.minutes ?? "?"} mnt • ${fmtInt(event.kcal)} kcal`,
+      subtitle: t("activity.exerciseLine", {
+        name: event.name ?? t("activity.exerciseFallback"),
+        minutes: event.minutes ?? "?",
+        kcal: fmtInt(event.kcal),
+      }),
     };
   }
-  return { icon: "scale", title: who, subtitle: `Timbang • ${fmtKg(event.kg)} kg` };
+  return { icon: "scale", title: who, subtitle: t("activity.weightLine", { kg: fmtKg(event.kg) }) };
 }
 
 function MemberCard({
@@ -85,8 +89,9 @@ function MemberCard({
   onRemove: () => void;
 }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("grup");
   const today = member.today;
-  const lastActive = member.lastActiveAt ? `aktif ${timeAgoId(member.lastActiveAt)}` : "belum aktif";
+  const lastActive = member.lastActiveAt ? t("member.active", { time: timeAgoId(member.lastActiveAt) }) : t("member.inactiveShort");
   const delta = today.weightDeltaKg7d;
 
   return (
@@ -96,10 +101,10 @@ function MemberCard({
         <View style={styles.memberName}>
           <Text style={styles.memberTitle}>
             {member.name}
-            {isMe ? " (kamu)" : ""}
+            {isMe ? ` (${t("member.you")})` : ""}
           </Text>
           <Text style={styles.memberSub}>
-            {member.role === "owner" ? "Pemilik • " : ""}
+            {member.role === "owner" ? `${t("member.ownerCap")} • ` : ""}
             {lastActive}
           </Text>
         </View>
@@ -114,75 +119,63 @@ function MemberCard({
       </View>
 
       <MacroBar
-        label="Asupan hari ini"
+        label={t("member.intake")}
         eaten={today.eatenKcal}
         budget={today.eatTargetKcal}
         unit="kcal"
       />
 
       <Text style={styles.memberStats}>
-        Bakar {fmtInt(today.burnedKcal)} kcal • {today.mealsLogged} makan
-        {today.exerciseMinutes !== null ? ` • ${today.exerciseMinutes} mnt olahraga` : ""}
-        {today.weightKg !== null ? ` • ${fmtKg(today.weightKg)} kg` : ""}
-        {today.weightKg !== null && delta !== null
-          ? ` (${delta <= 0 ? "−" : "+"}${fmtKg(Math.abs(delta))}/7hr)`
-          : ""}
+        {[
+          t("member.statBurn", { kcal: fmtInt(today.burnedKcal) }),
+          t("member.statMeals", { count: today.mealsLogged }),
+          today.exerciseMinutes !== null ? t("member.statExercise", { minutes: today.exerciseMinutes }) : null,
+          today.weightKg !== null
+            ? `${fmtKg(today.weightKg)} kg${
+                delta !== null
+                  ? ` ${t("member.statDelta", { value: `${delta <= 0 ? "−" : "+"}${fmtKg(Math.abs(delta))}` })}`
+                  : ""
+              }`
+            : null,
+        ]
+          .filter((part) => part !== null)
+          .join(" • ")}
       </Text>
 
       {member.varStatus ? (
         <View style={styles.varChip}>
           <Ionicons name="tv" size={12} color={theme.colors.primary} />
           <Text style={[styles.varChipText, { color: theme.colors.primary }]} numberOfLines={1}>
-            VAR perut {isMe ? "kamu" : (member.name.split(" ")[0] ?? "")}:{" "}
-            {bellyChipLabel(member.varStatus.verdict)} • {chipDate(member.varStatus.date)}
+            {t(isMe ? "var.chip.self" : "var.chip.other", {
+              name: member.name.split(" ")[0] ?? "",
+              verdict: t(`var.verdict.${member.varStatus.verdict}`),
+              date: fmtDateShort(member.varStatus.date),
+            })}
           </Text>
         </View>
       ) : null}
 
       {!isMe ? (
         <View style={styles.memberActions}>
-          <Button size="sm" variant="secondary" icon="hand-left" label="Colek" onPress={onPoke} />
-          <Button size="sm" variant="secondary" icon="pencil" label="Catatan" onPress={onNote} />
-          <Button size="sm" icon="tv" label="VAR" onPress={onVar} />
+          <Button size="sm" variant="secondary" icon="hand-left" label={t("member.poke")} onPress={onPoke} />
+          <Button size="sm" variant="secondary" icon="pencil" label={t("member.note")} onPress={onNote} />
+          <Button size="sm" icon="tv" label={t("member.var")} onPress={onVar} />
           {isOwner ? (
-            <Button size="sm" variant="ghost" destructive label="Keluarkan" onPress={onRemove} />
+            <Button size="sm" variant="ghost" destructive label={t("settings.members.remove")} onPress={onRemove} />
           ) : null}
         </View>
       ) : (
         <View style={styles.memberActions}>
-          <Button size="sm" icon="tv" label="Scan VAR perut" onPress={onVar} />
+          <Button size="sm" icon="tv" label={t("member.scanVar")} onPress={onVar} />
         </View>
       )}
     </Card>
   );
 }
 
-/** Salinan label chip VAR perut (mirror lib/varscan.ts untuk klien). */
-function bellyChipLabel(verdict: NonNullable<GroupMember["varStatus"]>["verdict"]): string {
-  switch (verdict) {
-    case "turun":
-      return "mengecil";
-    case "naik":
-      return "lebih penuh";
-    case "sama":
-      return "belum beda";
-    case "beda":
-      return "foto beda";
-    case "pertama":
-      return "scan pertama";
-  }
-}
-
-/** "12 Okt" untuk chip status VAR. */
-function chipDate(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
-}
 
 export default function GroupDetail() {
+  const { t } = useTranslation(["grup", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const router = useRouter();
@@ -209,7 +202,7 @@ export default function GroupDetail() {
   const nudge = useMutation(
     orpc.group.nudge.mutationOptions({
       onSuccess: invalidate,
-      onError: (e) => toast.error("Gagal mengirim", errorMessage(e)),
+      onError: (e) => toast.error(t("toast.sendFailed"), errorMessage(e)),
     }),
   );
   type DetailRow = NonNullable<typeof detail.data>;
@@ -238,10 +231,10 @@ export default function GroupDetail() {
       return previous;
     },
     success: (_input, _data, previous) => ({
-      message: "Pengaturan grup disimpan",
+      message: t("toast.settingsSaved"),
       undo: previous === undefined ? undefined : () => setShareFood.mutate({ groupId, shareFood: previous }),
     }),
-    onError: (e) => toast.error("Gagal mengubah bagikan", errorMessage(e)),
+    onError: (e) => toast.error(t("toast.shareFailed"), errorMessage(e)),
     invalidate: () => [orpc.group.key()],
   });
   const setShareVar = useOptimisticMutation<
@@ -268,10 +261,10 @@ export default function GroupDetail() {
       return previous;
     },
     success: (_input, _data, previous) => ({
-      message: "Pengaturan grup disimpan",
+      message: t("toast.settingsSaved"),
       undo: previous === undefined ? undefined : () => setShareVar.mutate({ groupId, shareVar: previous }),
     }),
-    onError: (e) => toast.error("Gagal mengubah bagikan", errorMessage(e)),
+    onError: (e) => toast.error(t("toast.shareFailed"), errorMessage(e)),
     invalidate: () => [orpc.group.key()],
   });
   const rename = useOptimisticMutation<
@@ -291,18 +284,18 @@ export default function GroupDetail() {
     success: (_input, _data, previous) => {
       setRenameOpen(false);
       return {
-        message: "Nama grup diganti",
+        message: t("toast.renamed"),
         undo:
           previous === undefined ? undefined : () => rename.mutate({ groupId, name: previous }),
       };
     },
-    onError: (e) => toast.error("Gagal mengubah nama", errorMessage(e)),
+    onError: (e) => toast.error(t("toast.renameFailed"), errorMessage(e)),
     invalidate: () => [orpc.group.key()],
   });
   const rotateInvite = useMutation(
     orpc.group.rotateInvite.mutationOptions({
       onSuccess: invalidate,
-      onError: (e) => toast.error("Gagal ganti kode", errorMessage(e)),
+      onError: (e) => toast.error(t("toast.rotateFailed"), errorMessage(e)),
     }),
   );
   const removeMember = useMutation(
@@ -311,7 +304,7 @@ export default function GroupDetail() {
         setConfirm(null);
         await invalidate();
       },
-      onError: (e) => toast.error("Gagal mengeluarkan", errorMessage(e)),
+      onError: (e) => toast.error(t("toast.removeFailed"), errorMessage(e)),
     }),
   );
   const leave = useMutation(
@@ -320,14 +313,14 @@ export default function GroupDetail() {
         await invalidate();
         router.replace("/grup");
       },
-      onError: (e) => toast.error("Gagal keluar", errorMessage(e)),
+      onError: (e) => toast.error(t("toast.leaveFailed"), errorMessage(e)),
     }),
   );
 
   if (gate === "loading") {
     return (
       <Screen>
-        <PageHeader title="Grup" />
+        <PageHeader title={t("list.title")} />
         <Skeleton width="100%" height={180} radius={24} />
         <Skeleton width="100%" height={140} radius={24} />
       </Screen>
@@ -340,7 +333,7 @@ export default function GroupDetail() {
   if (detail.isPending) {
     return (
       <Screen>
-        <PageHeader title="Grup" />
+        <PageHeader title={t("list.title")} />
         <Skeleton width="100%" height={180} radius={24} />
         <Skeleton width="100%" height={140} radius={24} />
       </Screen>
@@ -349,7 +342,7 @@ export default function GroupDetail() {
   if (detail.isError) {
     return (
       <Screen>
-        <PageHeader title="Grup" />
+        <PageHeader title={t("list.title")} />
         <ErrorState message={errorMessage(detail.error)} onRetry={() => detail.refetch()} />
       </Screen>
     );
@@ -379,7 +372,7 @@ export default function GroupDetail() {
       {
         onSuccess: () => {
           setNoteTarget(null);
-          toast.success("Catatan terkirim", `Catatan untuk ${noteTarget.name} sudah dikirim.`);
+          toast.success(t("toast.noteSent"), t("toast.noteSentBody", { name: noteTarget.name }));
         },
       },
     );
@@ -401,15 +394,15 @@ export default function GroupDetail() {
       <Screen>
         <PageHeader
           title={group.name}
-          caption={`${members.length} anggota • kode ${group.inviteCode}`}
+          caption={t("detail.subtitle", { count: members.length, code: group.inviteCode })}
           right={
             <View style={styles.headActions}>
-              <Button size="sm" variant="secondary" icon="share-social" label="Undang" onPress={shareInvite} />
+              <Button size="sm" variant="secondary" icon="share-social" label={t("detail.invite")} onPress={shareInvite} />
               <Button
                 size="sm"
                 variant="secondary"
                 icon="settings-outline"
-                label="Setelan"
+                label={t("detail.settings")}
                 onPress={() => setSettingsOpen(true)}
               />
             </View>
@@ -418,9 +411,9 @@ export default function GroupDetail() {
 
         <Segmented
           options={[
-            { value: "anggota", label: "Anggota" },
-            { value: "aktivitas", label: "Aktivitas" },
-            { value: "tantangan", label: "Tantangan" },
+            { value: "anggota", label: t("detail.tab.members") },
+            { value: "aktivitas", label: t("detail.tab.activity") },
+            { value: "tantangan", label: t("detail.tab.challenges") },
           ]}
           value={tab}
           onChange={setTab}
@@ -461,7 +454,7 @@ export default function GroupDetail() {
           </View>
         ) : tab === "aktivitas" ? (
           <View style={styles.stack}>
-            <SectionTitle title="Aktivitas 7 hari terakhir" />
+            <SectionTitle title={t("activity.listLabel")} />
             {activityQuery.isPending ? (
               <Skeleton width="100%" height={220} radius={24} />
             ) : activityQuery.isError ? (
@@ -471,12 +464,12 @@ export default function GroupDetail() {
               />
             ) : (activityQuery.data ?? []).length === 0 ? (
               <Text style={styles.emptyLine}>
-                Belum ada aktivitas. Waktunya logging makan pertama!
+                {t("activity.emptyNative")}
               </Text>
             ) : (
               <ListGroup>
                 {activityQuery.data.map((event, index) => {
-                  const row = activityRow(event);
+                  const row = activityRow(event, t);
                   return (
                     <ListRow
                       key={`${event.userId}-${event.at instanceof Date ? event.at.getTime() : String(event.at)}-${index}`}
@@ -496,13 +489,13 @@ export default function GroupDetail() {
         )}
 
         {/* Settings sheet: invite, owner tools, privacy, leave. */}
-        <Sheet visible={settingsOpen} onClose={() => setSettingsOpen(false)} title="Setelan Grup">
+        <Sheet visible={settingsOpen} onClose={() => setSettingsOpen(false)} title={t("settings.title")}>
           <ListGroup>
             <ListRow
               icon="share-social"
               iconTint="makan"
-              title="Bagikan undangan"
-              subtitle={`Kode ${group.inviteCode}`}
+              title={t("settings.shareInvite")}
+              subtitle={t("settings.codeLine", { code: group.inviteCode })}
               chevron
               onPress={() => {
                 setSettingsOpen(false);
@@ -513,8 +506,8 @@ export default function GroupDetail() {
               <ListRow
                 icon="refresh"
                 iconTint="makan"
-                title="Ganti kode undangan"
-                subtitle={rotateInvite.isPending ? "Mengganti…" : "Kode lama tidak berlaku"}
+                title={t("settings.rotate")}
+                subtitle={rotateInvite.isPending ? t("settings.rotating") : t("settings.rotateHint")}
                 onPress={() => rotateInvite.mutate({ groupId })}
               />
             ) : null}
@@ -522,7 +515,7 @@ export default function GroupDetail() {
               <ListRow
                 icon="pencil"
                 iconTint="makan"
-                title="Ubah nama grup"
+                title={t("settings.rename")}
                 chevron
                 onPress={() => {
                   setNewName(group.name);
@@ -534,8 +527,8 @@ export default function GroupDetail() {
             <ListRow
               icon="eye"
               iconTint="tidur"
-              title="Tampilkan makananku ke grup"
-              subtitle="Total kalorimu tetap terlihat apapun pilihanmu"
+              title={t("settings.privacy.food.titleNative")}
+              subtitle={t("settings.privacy.food.hintNative")}
               right={
                 <Switch
                   value={me?.shareFood ?? false}
@@ -547,8 +540,8 @@ export default function GroupDetail() {
             <ListRow
               icon="tv"
               iconTint="bakar"
-              title="Status VAR perut"
-              subtitle="Verdict + tanggal scan terakhirmu terlihat di grup ini. Foto perut tidak pernah ikut."
+              title={t("settings.privacy.var.title")}
+              subtitle={t("settings.privacy.var.hint")}
               right={
                 <Switch
                   value={me?.shareVar ?? false}
@@ -560,7 +553,7 @@ export default function GroupDetail() {
             <ListRow
               icon="log-out-outline"
               iconTint="muted"
-              title="Keluar dari grup"
+              title={t("settings.leave.button")}
               destructive
               onPress={confirmLeave}
             />
@@ -570,13 +563,13 @@ export default function GroupDetail() {
         <ConfirmSheet
           visible={confirm !== null}
           onClose={() => setConfirm(null)}
-          title={confirm?.kind === "remove" ? "Keluarkan anggota?" : "Keluar dari grup?"}
+          title={confirm?.kind === "remove" ? t("confirm.removeTitle") : t("confirm.leaveTitle")}
           message={
             confirm?.kind === "remove"
-              ? `${confirm.member.name} tidak bisa lihat grup ini lagi.`
-              : `${group.name} akan hilang dari daftar grupmu.`
+              ? t("confirm.removeBody", { name: confirm.member.name })
+              : t("confirm.leaveBody", { name: group.name })
           }
-          confirmLabel={confirm?.kind === "remove" ? "Keluarkan" : "Keluar"}
+          confirmLabel={confirm?.kind === "remove" ? t("settings.members.remove") : t("confirm.leaveConfirm")}
           loading={removeMember.isPending || leave.isPending}
           onConfirm={() => {
             if (confirm?.kind === "remove") {
@@ -591,17 +584,17 @@ export default function GroupDetail() {
         <Sheet
           visible={renameOpen}
           onClose={() => setRenameOpen(false)}
-          title="Ubah Nama Grup"
+          title={t("settings.rename")}
           footer={
             <Button
-              label="Simpan"
+              label={t("common:actions.save")}
               disabled={newName.trim().length === 0}
               loading={rename.isPending}
               onPress={() => rename.mutate({ groupId, name: newName.trim() })}
             />
           }
         >
-          <Field label="Nama grup">
+          <Field label={t("create.nameLabel")}>
             <Input value={newName} onChangeText={setNewName} maxLength={40} />
           </Field>
         </Sheet>
@@ -609,10 +602,10 @@ export default function GroupDetail() {
         <Sheet
           visible={noteTarget !== null}
           onClose={() => setNoteTarget(null)}
-          title={noteTarget ? `Catatan untuk ${noteTarget.name}` : "Catatan"}
+          title={noteTarget ? t("note.title", { name: noteTarget.name }) : t("member.note")}
           footer={
             <Button
-              label={`Kirim (${noteText.trim().length}/140)`}
+              label={t("note.sendCount", { count: noteText.trim().length })}
               disabled={noteText.trim().length === 0 || noteText.trim().length > 140}
               loading={nudge.isPending}
               onPress={sendNote}
@@ -620,7 +613,7 @@ export default function GroupDetail() {
           }
         >
           <View style={styles.chips}>
-            {NOTE_SUGGESTIONS.map((suggestion) => (
+            {NOTE_SUGGESTION_KEYS.map((key) => t(`note.suggestion.${key}`)).map((suggestion) => (
               <Chip
                 key={suggestion}
                 label={suggestion}
@@ -629,13 +622,13 @@ export default function GroupDetail() {
               />
             ))}
           </View>
-          <Field label="Pesan" hint="Maksimal 140 huruf, dikirim lewat notifikasi.">
+          <Field label={t("note.messageLabel")} hint={t("note.hintNative")}>
             <Input
               value={noteText}
               onChangeText={setNoteText}
               maxLength={140}
               multiline
-              placeholder="mis. Ayo jalan 10 menit!"
+              placeholder={t("note.placeholderNative")}
             />
           </Field>
         </Sheet>
@@ -657,7 +650,7 @@ const styles = StyleSheet.create((theme) => ({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.md,
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
   },
   memberName: {
     flex: 1,

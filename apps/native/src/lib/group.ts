@@ -1,3 +1,4 @@
+import { i18n, timeAgo } from "@joyorogo/i18n";
 import { useQuery } from "@tanstack/react-query";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
@@ -25,10 +26,6 @@ export type VarScan = Awaited<ReturnType<AppRouterClient["group"]["varScan"]>>;
 /** varHistory output: own VAR perut scans, share flag, and the latest tape entry. */
 export type VarHistory = Awaited<ReturnType<AppRouterClient["group"]["varHistory"]>>;
 
-const MINUTE_MS = 60_000;
-const HOUR_MS = 60 * MINUTE_MS;
-const DAY_MS = 24 * HOUR_MS;
-
 /** Public share link for an invite code (same shape as the web /gabung route), with UTM. */
 export function inviteLink(code: string): string {
   return shareUrl(`/gabung/${code}`, "invite");
@@ -36,7 +33,7 @@ export function inviteLink(code: string): string {
 
 /** WhatsApp-ready invite: group name, code, link, and one sentence on why. */
 export function inviteMessage(groupName: string, code: string): string {
-  return `Ayo gabung grup "${groupName}" di JoyoRogo, biar kita saling catat kalori dan colek yang lupa.\nKode: ${code}\n${inviteLink(code)}`;
+  return `${i18n.t("grup:invite.shareText", { name: groupName, code })}\n${inviteLink(code)}`;
 }
 
 /**
@@ -49,15 +46,10 @@ export function extractInviteCode(raw: string): string {
   return fromLink ? fromLink[1] : text.replace(/\s+/g, "");
 }
 
-/** "baru saja", "5 mnt lalu", "2 jam lalu", "3 hari lalu", "2 mgg lalu". */
+/** Relative time in the active language ("5 menit lalu" / "5 minutes ago"); "never" for null. */
 export function timeAgoId(input: string | Date | null | undefined): string {
-  if (input === null || input === undefined) return "belum pernah";
-  const diff = Date.now() - new Date(input).getTime();
-  if (diff < MINUTE_MS) return "baru saja";
-  if (diff < HOUR_MS) return `${Math.floor(diff / MINUTE_MS)} mnt lalu`;
-  if (diff < DAY_MS) return `${Math.floor(diff / HOUR_MS)} jam lalu`;
-  if (diff < 14 * DAY_MS) return `${Math.floor(diff / DAY_MS)} hari lalu`;
-  return `${Math.floor(diff / (7 * DAY_MS))} mgg lalu`;
+  if (input === null || input === undefined) return i18n.t("grup:time.never");
+  return timeAgo(input);
 }
 
 /** Unread colek/catatan count for badges; off until the session exists. */

@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { session, user } from "@joyorogo/db/schema/auth";
 import type { Database } from "@joyorogo/db";
+import type { Locale, TFunction } from "@joyorogo/i18n";
 import {
   aiUsage,
   dailyActivity,
@@ -35,7 +36,7 @@ import {
   varVerdict,
 } from "../lib/group";
 import { leaveTeamChallenges } from "../lib/challenge-db";
-import { serverT } from "../lib/messages";
+import { serverT, userLocale } from "../lib/messages";
 import { loadPublicGroupPreview, previewAllowed } from "../lib/group-preview";
 import { requireAiQuota } from "../lib/quota";
 import { buildPlan } from "../lib/plan";
@@ -73,14 +74,22 @@ async function memberRow(db: Database, groupId: string, userId: string) {
   return row ?? null;
 }
 
+/** Translator for the caller's language (API errors). */
+function errT(context: { locale: Locale }) {
+  return serverT(context.locale, "grup");
+}
+
 /** Loads the caller's membership; NOT_FOUND when they are not in the group. */
-async function requireMember(db: Database, groupId: string, userId: string) {
+async function requireMember(db: Database, groupId: string, userId: string, locale: Locale) {
   const row = await memberRow(db, groupId, userId);
-  if (!row) throw new ORPCError("NOT_FOUND", { message: "Tim tidak ditemukan." });
+  if (!row) throw new ORPCError("NOT_FOUND", { message: serverT(locale, "grup")("server.error.notFound") });
   return row;
 }
 
-/** Fire-and-forget Web Push; dead endpoints (404/410) are deleted on the spot. */
+/**
+ * Fire-and-forget Web Push; dead endpoints (404/410) are deleted on the spot.
+ * The text is written in the RECIPIENT's language, not the sender's.
+ */
 function pushNudge(
   context: {
     db: Database;
@@ -88,7 +97,7 @@ function pushNudge(
     waitUntil: (promise: Promise<unknown>) => void;
   },
   toUserId: string,
-  payload: { title: string; body: string },
+  payload: (t: TFunction<"grup">) => { title: string; body: string },
 ) {
   context.waitUntil(
     (async () => {
@@ -96,9 +105,11 @@ function pushNudge(
         .select()
         .from(pushSubscription)
         .where(eq(pushSubscription.userId, toUserId));
+      if (subs.length === 0) return;
+      const message = payload(serverT(await userLocale(context.db, toUserId), "grup"));
       await Promise.all(
         subs.map(async (sub) => {
-          const result = await sendPush(context.env, sub, payload);
+          const result = await sendPush(context.env, sub, message);
           if (result.status === 404 || result.status === 410) {
             await context.db.delete(pushSubscription).where(eq(pushSubscription.id, sub.id));
           }
@@ -145,7 +156,7 @@ export const groupRouter = {
         .where(eq(teamMember.userId, userId));
       if ((mine?.total ?? 0) >= MAX_GROUPS) {
         throw new ORPCError("BAD_REQUEST", {
-          message: `Maksimal ${MAX_GROUPS} tim per akun.`,
+          message: errT(context)("server.error.tooManyGroups", { max: MAX_GROUPS }),
         });
       }
       const teamId = crypto.randomUUID();
@@ -172,11 +183,11 @@ export const groupRouter = {
     .handler(async ({ context, input }) => {
       if (!(await previewAllowed(context.env.INVITE_PREVIEW_LIMITER, context.clientIp))) {
         throw new ORPCError("TOO_MANY_REQUESTS", {
-          message: "Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.",
+          message: errT(context)("server.error.tooManyAttempts"),
         });
       }
       const found = await loadPublicGroupPreview(context.db, input.code);
-      if (!found) throw new ORPCError("NOT_FOUND", { message: "Kode undangan tidak valid." });
+      if (!found) throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.invalidCode") });
       const viewerId = context.session?.user.id;
       const existing = viewerId ? await memberRow(context.db, found.id, viewerId) : null;
       return {
@@ -195,7 +206,7 @@ export const groupRouter = {
         .from(team)
         .where(eq(team.inviteCode, code))
         .limit(1);
-      if (!row) throw new ORPCError("NOT_FOUND", { message: "Kode undangan tidak valid." });
+      if (!row) throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.invalidCode") });
       const existing = await memberRow(context.db, row.id, context.session.user.id);
       if (existing) return { groupId: row.id };
       const [members] = await context.db
@@ -203,7 +214,7 @@ export const groupRouter = {
         .from(teamMember)
         .where(eq(teamMember.teamId, row.id));
       if ((members?.total ?? 0) >= MAX_MEMBERS) {
-        throw new ORPCError("BAD_REQUEST", { message: "Tim ini sudah penuh." });
+        throw new ORPCError("BAD_REQUEST", { message: errT(context)("server.error.full") });
       }
       await context.db
         .insert(teamMember)
@@ -216,14 +227,14 @@ export const groupRouter = {
     .handler(async ({ context, input }) => {
       const db = context.db;
       const userId = context.session.user.id;
-      const me = await requireMember(db, input.groupId, userId);
+      const me = await requireMember(db, input.groupId, userId, context.locale);
       await leaveTeamChallenges(db, input.groupId, userId);
       const [team_] = await db
         .select({ ownerId: team.ownerId })
         .from(team)
         .where(eq(team.id, input.groupId))
         .limit(1);
-      if (!team_) throw new ORPCError("NOT_FOUND", { message: "Tim tidak ditemukan." });
+      if (!team_) throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.notFound") });
 
       const rest = await db
         .select({ userId: teamMember.userId, joinedAt: teamMember.joinedAt })
@@ -257,12 +268,12 @@ export const groupRouter = {
   removeMember: protectedProcedure
     .input(z.object({ groupId: z.string(), userId: z.string() }))
     .handler(async ({ context, input }) => {
-      const me = await requireMember(context.db, input.groupId, context.session.user.id);
+      const me = await requireMember(context.db, input.groupId, context.session.user.id, context.locale);
       if (me.role !== "owner") {
-        throw new ORPCError("FORBIDDEN", { message: "Hanya pemilik tim." });
+        throw new ORPCError("FORBIDDEN", { message: errT(context)("server.error.ownerOnly") });
       }
       if (input.userId === context.session.user.id) {
-        throw new ORPCError("BAD_REQUEST", { message: "Gunakan keluar tim." });
+        throw new ORPCError("BAD_REQUEST", { message: errT(context)("server.error.useLeave") });
       }
       await leaveTeamChallenges(context.db, input.groupId, input.userId);
       await context.db
@@ -274,9 +285,9 @@ export const groupRouter = {
   rotateInvite: protectedProcedure
     .input(z.object({ groupId: z.string() }))
     .handler(async ({ context, input }) => {
-      const me = await requireMember(context.db, input.groupId, context.session.user.id);
+      const me = await requireMember(context.db, input.groupId, context.session.user.id, context.locale);
       if (me.role !== "owner") {
-        throw new ORPCError("FORBIDDEN", { message: "Hanya pemilik tim." });
+        throw new ORPCError("FORBIDDEN", { message: errT(context)("server.error.ownerOnly") });
       }
       const inviteCode = newInviteCode();
       await context.db
@@ -289,9 +300,9 @@ export const groupRouter = {
   rename: protectedProcedure
     .input(z.object({ groupId: z.string(), name: nameSchema }))
     .handler(async ({ context, input }) => {
-      const me = await requireMember(context.db, input.groupId, context.session.user.id);
+      const me = await requireMember(context.db, input.groupId, context.session.user.id, context.locale);
       if (me.role !== "owner") {
-        throw new ORPCError("FORBIDDEN", { message: "Hanya pemilik tim." });
+        throw new ORPCError("FORBIDDEN", { message: errT(context)("server.error.ownerOnly") });
       }
       await context.db
         .update(team)
@@ -303,7 +314,7 @@ export const groupRouter = {
   setShareFood: protectedProcedure
     .input(z.object({ groupId: z.string(), shareFood: z.boolean() }))
     .handler(async ({ context, input }) => {
-      await requireMember(context.db, input.groupId, context.session.user.id);
+      await requireMember(context.db, input.groupId, context.session.user.id, context.locale);
       await context.db
         .update(teamMember)
         .set({ shareFood: input.shareFood })
@@ -322,14 +333,14 @@ export const groupRouter = {
       const db = context.db;
       const today = jakartaToday();
       const date = input.date ?? today;
-      await requireMember(db, input.groupId, context.session.user.id);
+      await requireMember(db, input.groupId, context.session.user.id, context.locale);
 
       const [group] = await db
         .select({ id: team.id, name: team.name, inviteCode: team.inviteCode })
         .from(team)
         .where(eq(team.id, input.groupId))
         .limit(1);
-      if (!group) throw new ORPCError("NOT_FOUND", { message: "Tim tidak ditemukan." });
+      if (!group) throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.notFound") });
 
       const members = await db
         .select({
@@ -591,7 +602,7 @@ export const groupRouter = {
     .input(z.object({ groupId: z.string(), limit: z.number().int().min(1).max(50).default(20) }))
     .handler(async ({ context, input }) => {
       const db = context.db;
-      await requireMember(db, input.groupId, context.session.user.id);
+      await requireMember(db, input.groupId, context.session.user.id, context.locale);
 
       const memberRows = await db
         .select({ userId: teamMember.userId, shareFood: teamMember.shareFood })
@@ -695,11 +706,11 @@ export const groupRouter = {
       const db = context.db;
       const fromUserId = context.session.user.id;
       if (input.toUserId === fromUserId) {
-        throw new ORPCError("BAD_REQUEST", { message: "Tidak bisa mencolek diri sendiri." });
+        throw new ORPCError("BAD_REQUEST", { message: errT(context)("server.error.pokeSelf") });
       }
-      await requireMember(db, input.groupId, fromUserId);
+      await requireMember(db, input.groupId, fromUserId, context.locale);
       const target = await memberRow(db, input.groupId, input.toUserId);
-      if (!target) throw new ORPCError("NOT_FOUND", { message: "Teman tidak ada di tim ini." });
+      if (!target) throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.notInGroup") });
 
       const now = Date.now();
       if (input.kind === "poke") {
@@ -717,12 +728,12 @@ export const groupRouter = {
           .limit(1);
         if (rateLimited(last?.at?.getTime() ?? null, now, POKE_WINDOW_MS)) {
           throw new ORPCError("BAD_REQUEST", {
-            message: "Colek lagi satu jam lagi, ya.",
+            message: errT(context)("server.error.pokeLimit"),
           });
         }
       } else {
         if (input.message === undefined) {
-          throw new ORPCError("BAD_REQUEST", { message: "Catatan tidak boleh kosong." });
+          throw new ORPCError("BAD_REQUEST", { message: errT(context)("server.error.noteEmpty") });
         }
         const dayStart = new Date(`${jakartaToday()}T00:00:00+07:00`).getTime();
         const [sent] = await db
@@ -736,7 +747,7 @@ export const groupRouter = {
             ),
           );
         if ((sent?.total ?? 0) >= MAX_NOTES_PER_DAY) {
-          throw new ORPCError("BAD_REQUEST", { message: "Kuota catatan hari ini habis." });
+          throw new ORPCError("BAD_REQUEST", { message: errT(context)("server.error.noteQuota") });
         }
       }
 
@@ -754,13 +765,14 @@ export const groupRouter = {
         .from(user)
         .where(eq(user.id, fromUserId))
         .limit(1);
-      const senderName = sender?.name ?? "Teman";
-      const title =
-        input.kind === "poke"
-          ? `${senderName} mencolekmu`
-          : `Catatan dari ${senderName}`;
-      const body = input.message ?? "Semangat catat kalorinya hari ini!";
-      pushNudge(context, input.toUserId, { title, body });
+      const senderName = sender?.name;
+      pushNudge(context, input.toUserId, (t) => {
+        const name = senderName ?? t("server.push.friend");
+        return {
+          title: input.kind === "poke" ? t("server.push.pokeTitle", { name }) : t("server.push.noteTitle", { name }),
+          body: input.message ?? t("server.push.defaultBody"),
+        };
+      });
       return { ok: true };
     }),
 
@@ -823,9 +835,9 @@ export const groupRouter = {
     .handler(async ({ context, input }) => {
       const db = context.db;
       const date = input.date ?? jakartaToday();
-      await requireMember(db, input.groupId, context.session.user.id);
+      await requireMember(db, input.groupId, context.session.user.id, context.locale);
       const target = await memberRow(db, input.groupId, input.userId);
-      if (!target) throw new ORPCError("NOT_FOUND", { message: "Teman tidak ada di tim ini." });
+      if (!target) throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.notInGroup") });
 
       const [targetUser] = await db
         .select({ name: user.name, image: user.image })
@@ -921,7 +933,7 @@ export const groupRouter = {
     .handler(async ({ context, input }) => {
       const db = context.db;
       const userId = context.session.user.id;
-      await requireMember(db, input.groupId, userId);
+      await requireMember(db, input.groupId, userId, context.locale);
       const [rows, [membership], waistRows] = await Promise.all([
         db
           .select()
@@ -989,7 +1001,7 @@ export const groupRouter = {
       const db = context.db;
       const userId = context.session.user.id;
       const tVar = serverT(context.locale, "varperut");
-      await requireMember(db, input.groupId, userId);
+      await requireMember(db, input.groupId, userId, context.locale);
       const bucket = context.env.STICKERS;
       if (!bucket) {
         throw new ORPCError("SERVICE_UNAVAILABLE", {
@@ -1161,7 +1173,7 @@ export const groupRouter = {
   varSetShare: protectedProcedure
     .input(z.object({ groupId: z.string(), shareVar: z.boolean() }))
     .handler(async ({ context, input }) => {
-      await requireMember(context.db, input.groupId, context.session.user.id);
+      await requireMember(context.db, input.groupId, context.session.user.id, context.locale);
       await context.db
         .update(teamMember)
         .set({ shareVar: input.shareVar })

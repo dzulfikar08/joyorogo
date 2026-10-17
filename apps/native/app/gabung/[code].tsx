@@ -2,6 +2,7 @@ import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -20,6 +21,7 @@ import { orpc, queryClient } from "@/utils/orpc";
  * through login and back here via the `next` param.
  */
 export default function GabungInvite() {
+  const { t } = useTranslation(["grup", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const toast = useToast();
@@ -38,7 +40,7 @@ export default function GabungInvite() {
         await queryClient.invalidateQueries({ queryKey: orpc.group.key() });
         router.replace(`/grup/${res.groupId}`);
       },
-      onError: (e) => toast.error("Gagal gabung", errorMessage(e)),
+      onError: (e) => toast.error(t("invite.joinFailed"), errorMessage(e)),
     }),
   );
 
@@ -58,7 +60,7 @@ export default function GabungInvite() {
       <SafeAreaView style={styles.safe}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Kembali"
+          accessibilityLabel={t("common:actions.back")}
           onPress={close}
           hitSlop={8}
           style={({ pressed }) => [styles.close, pressed && styles.pressed]}
@@ -69,10 +71,10 @@ export default function GabungInvite() {
         {code === "" || preview.isError ? (
           <View style={styles.center}>
             <ErrorState
-              message={code === "" ? "Tautan undangan tidak lengkap." : errorMessage(preview.error)}
+              message={code === "" ? t("invite.incomplete") : errorMessage(preview.error)}
               onRetry={() => preview.refetch()}
             />
-            <Button variant="secondary" label="Kembali" onPress={close} style={styles.action} />
+            <Button variant="secondary" label={t("common:actions.back")} onPress={close} style={styles.action} />
           </View>
         ) : preview.isPending ? (
           <View style={styles.center}>
@@ -85,25 +87,26 @@ export default function GabungInvite() {
             <View style={[styles.iconChip, { backgroundColor: theme.colors.makanSoft }]}>
               <Ionicons name="people" size={30} color={theme.colors.makan} />
             </View>
-            <Text style={styles.caption}>Kamu diundang ke grup</Text>
+            <Text style={styles.caption}>{t("invite.invitedToGroup")}</Text>
             <Text style={styles.name}>{preview.data.name}</Text>
             <Text style={styles.meta}>
-              {preview.data.memberCount} anggota
-              {preview.data.alreadyMember ? " • kamu sudah di dalam" : ""}
+              {preview.data.alreadyMember
+                ? t("invite.membersAlready", { count: preview.data.memberCount })
+                : t("members", { count: preview.data.memberCount })}
             </Text>
             <Button
               label={
                 gate === "anon"
-                  ? "Masuk untuk gabung"
+                  ? t("invite.signIn")
                   : preview.data.alreadyMember
-                    ? "Buka Grup"
-                    : "Gabung Grup"
+                    ? t("invite.open")
+                    : t("invite.join")
               }
               loading={join.isPending}
               onPress={() => (gate === "anon" ? signIn() : join.mutate({ code }))}
               style={styles.action}
             />
-            <Button variant="ghost" label="Nanti dulu" onPress={close} style={styles.action} />
+            <Button variant="ghost" label={t("invite.later")} onPress={close} style={styles.action} />
           </View>
         )}
       </SafeAreaView>

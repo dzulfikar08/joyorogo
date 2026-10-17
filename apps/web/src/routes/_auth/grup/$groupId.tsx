@@ -24,6 +24,7 @@ import {
   Utensils,
 } from "lucide-react";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { ChallengeSection } from "@/components/challenge/challenge-section";
@@ -46,7 +47,7 @@ import type { GroupActivityEvent, GroupDetail, GroupMember } from "@/lib/api-typ
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
-import { fmtInt, fmtKg, timeAgo } from "@/lib/format";
+import { fmtDateShort, fmtInt, fmtKg, timeAgo } from "@/lib/format";
 import { client, orpc } from "@/utils/orpc";
 
 const detailOptions = (groupId: string) => orpc.group.detail.queryOptions({ input: { groupId } });
@@ -65,8 +66,9 @@ export const Route = createFileRoute("/_auth/grup/$groupId")({
 type Member = GroupMember;
 
 function DetailSkeleton() {
+  const { t } = useTranslation("grup");
   return (
-    <Page className="max-w-xl" aria-busy="true" aria-label="Memuat grup">
+    <Page className="max-w-xl" aria-busy="true" aria-label={t("list.loading")}>
       <div className="flex items-center justify-between gap-3 px-1 pt-2 pb-5">
         <Skeleton className="h-9 w-40 rounded-full" />
         <Skeleton className="size-11 rounded-full" />
@@ -79,6 +81,7 @@ function DetailSkeleton() {
 }
 
 function GrupDetailPage() {
+  const { t } = useTranslation(["grup", "common"]);
   const { groupId } = Route.useParams();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -104,7 +107,7 @@ function GrupDetailPage() {
   const nudge = useMutation(
     orpc.group.nudge.mutationOptions({
       onSuccess: (_data, input) => {
-        toast.success(input.kind === "poke" ? "Colek terkirim" : "Catatan terkirim");
+        toast.success(input.kind === "poke" ? t("toast.poked") : t("toast.noteSent"));
         if (input.kind === "note") {
           setNoteTarget(null);
           setNoteMessage("");
@@ -134,9 +137,9 @@ function GrupDetailPage() {
       setNewName("");
       const prev = previousName.current;
       previousName.current = null;
-      if (prev === null) return { message: "Nama grup diganti" };
+      if (prev === null) return { message: t("toast.renamed") };
       return {
-        message: "Nama grup diganti",
+        message: t("toast.renamed"),
         undo: () => void client.group.rename({ groupId, name: prev }),
       };
     },
@@ -146,7 +149,7 @@ function GrupDetailPage() {
   const rotate = useMutation(
     orpc.group.rotateInvite.mutationOptions({
       onSuccess: ({ inviteCode }) => {
-        toast.success(`Kode baru: ${inviteCode}`);
+        toast.success(t("toast.newCode", { code: inviteCode }));
         invalidate();
       },
       onError: (error) => toast.error(error.message),
@@ -187,7 +190,7 @@ function GrupDetailPage() {
     orpc.group.removeMember.mutationOptions({
       onSuccess: (_data, input) => {
         const name = detail.data?.members.find((m) => m.userId === input.userId)?.name;
-        toast.success(`${name ?? "Anggota"} dikeluarkan.`);
+        toast.success(t("toast.removed", { name: name ?? t("toast.memberFallback") }));
         invalidate();
       },
       onError: (error) => toast.error(error.message),
@@ -197,7 +200,7 @@ function GrupDetailPage() {
   const leave = useMutation(
     orpc.group.leave.mutationOptions({
       onSuccess: () => {
-        toast.success("Kamu keluar dari grup.");
+        toast.success(t("toast.left"));
         invalidate();
         void navigate({ to: "/grup" });
       },
@@ -209,7 +212,7 @@ function GrupDetailPage() {
   if (detail.isError || !group || !me) {
     return (
       <ScreenError
-        message={detail.error?.message ?? "Grup tidak ditemukan."}
+        message={detail.error?.message ?? t("detail.notFound")}
         onRetry={() => void detail.refetch()}
       />
     );
@@ -230,12 +233,12 @@ function GrupDetailPage() {
     <Page className="max-w-xl">
       <PageHeader
         title={group.name}
-        subtitle={`${detail.data.members.length} anggota · kode ${group.inviteCode}`}
+        subtitle={t("detail.subtitle", { count: detail.data.members.length, code: group.inviteCode })}
         action={
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Pengaturan grup"
+            aria-label={t("settings.title")}
             onClick={() => setSettingsOpen(true)}
           >
             <Settings2 className="size-5" aria-hidden />
@@ -247,17 +250,17 @@ function GrupDetailPage() {
 
       <Segmented
         className="mt-1"
-        label="Tampilan grup"
+        label={t("detail.viewLabel")}
         value={tab}
         onChange={setTab}
         options={[
-          { value: "anggota", label: "Anggota" },
-          { value: "aktivitas", label: "Aktivitas" },
+          { value: "anggota", label: t("detail.tab.members") },
+          { value: "aktivitas", label: t("detail.tab.activity") },
         ]}
       />
 
       {tab === "anggota" ? (
-        <div className="mt-4 space-y-3">
+        <div className="mt-3 space-y-2">
           {members.map((member) => (
             <MemberCard
               key={member.userId}
@@ -286,12 +289,12 @@ function GrupDetailPage() {
       <Sheet
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
-        title="Pengaturan grup"
-        description="Undangan, privasi, dan keanggotaan."
+        title={t("settings.title")}
+        description={t("settings.hint")}
       >
         <div className="space-y-5">
           <section>
-            <SectionTitle>Undangan</SectionTitle>
+            <SectionTitle>{t("settings.invite.title")}</SectionTitle>
             <div className="mt-2 rounded-2xl bg-muted p-4">
               <p className="text-sm font-bold">{group.name}</p>
               <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -302,12 +305,12 @@ function GrupDetailPage() {
                   size="sm"
                   onClick={() => {
                     void shareInvite(group.name, group.inviteCode).then((result) => {
-                      if (result === "copied") toast.success("Tautan disalin");
+                      if (result === "copied") toast.success(t("toast.linkCopied"));
                     });
                   }}
                 >
                   <Share2 className="size-4" aria-hidden />
-                  Bagikan
+                  {t("settings.invite.share")}
                 </Button>
                 <Button
                   size="sm"
@@ -315,11 +318,11 @@ function GrupDetailPage() {
                   onClick={() => {
                     void navigator.clipboard
                       .writeText(inviteLink(group.inviteCode))
-                      .then(() => toast.success("Tautan disalin"));
+                      .then(() => toast.success(t("toast.linkCopied")));
                   }}
                 >
                   <Copy className="size-4" aria-hidden />
-                  Salin
+                  {t("settings.invite.copy")}
                 </Button>
                 {isOwner && (
                   <Button
@@ -329,7 +332,7 @@ function GrupDetailPage() {
                     onClick={() => rotate.mutate({ groupId })}
                   >
                     <RefreshCw className="size-4" aria-hidden />
-                    Putar kode
+                    {t("settings.invite.rotate")}
                   </Button>
                 )}
               </div>
@@ -337,27 +340,27 @@ function GrupDetailPage() {
           </section>
 
           <section>
-            <SectionTitle>Privasiku</SectionTitle>
+            <SectionTitle>{t("settings.privacy.title")}</SectionTitle>
             <ListGroup className="mt-2">
               <ListRow
-                title="Tampilkan makananku"
-                subtitle="Total kalori tetap terlihat anggota tim, hanya nama makananmu yang disembunyikan."
+                title={t("settings.privacy.food.title")}
+                subtitle={t("settings.privacy.food.hint")}
                 trailing={
                   <Switch
                     checked={me.shareFood}
-                    label="Tampilkan makananku"
+                    label={t("settings.privacy.food.title")}
                     disabled={setShareFood.isPending}
                     onCheckedChange={(shareFood) => setShareFood.mutate({ groupId, shareFood })}
                   />
                 }
               />
               <ListRow
-                title="Status VAR perut"
-                subtitle="Verdict + tanggal scan terakhirmu terlihat di tim ini. Foto perut tidak pernah ikut."
+                title={t("settings.privacy.var.title")}
+                subtitle={t("settings.privacy.var.hint")}
                 trailing={
                   <Switch
                     checked={me.shareVar}
-                    label="Bagikan status VAR perut"
+                    label={t("settings.privacy.var.label")}
                     disabled={setShareVar.isPending}
                     onCheckedChange={(shareVar) => setShareVar.mutate({ groupId, shareVar })}
                   />
@@ -368,7 +371,7 @@ function GrupDetailPage() {
 
           {isOwner && (
             <section>
-              <SectionTitle>Nama grup</SectionTitle>
+              <SectionTitle>{t("settings.name.title")}</SectionTitle>
               <form
                 onSubmit={(event) => {
                   event.preventDefault();
@@ -377,7 +380,7 @@ function GrupDetailPage() {
                 className="mt-2 flex gap-2"
               >
                 <Input
-                  aria-label="Nama grup baru"
+                  aria-label={t("settings.name.label")}
                   placeholder={group.name}
                   maxLength={40}
                   value={newName}
@@ -385,7 +388,7 @@ function GrupDetailPage() {
                 />
                 <Button type="submit" disabled={rename.isPending || newName.trim() === ""}>
                   <Pencil className="size-4" aria-hidden />
-                  Ganti
+                  {t("settings.name.submit")}
                 </Button>
               </form>
             </section>
@@ -393,14 +396,14 @@ function GrupDetailPage() {
 
           {isOwner && others.length > 0 && (
             <section>
-              <SectionTitle>Anggota</SectionTitle>
+              <SectionTitle>{t("settings.members.title")}</SectionTitle>
               <ListGroup className="mt-2">
                 {others.map((member) => (
                   <ListRow
                     key={member.userId}
                     icon={<Avatar name={member.name} image={member.image} />}
                     title={member.name}
-                    subtitle={member.role === "owner" ? "pemilik" : "anggota"}
+                    subtitle={member.role === "owner" ? t("member.owner") : t("member.member")}
                     trailing={
                       <Button
                         variant="ghost"
@@ -410,7 +413,7 @@ function GrupDetailPage() {
                         onClick={() => removeMember.mutate({ groupId, userId: member.userId })}
                       >
                         <UserMinus className="size-4" aria-hidden />
-                        Keluarkan
+                        {t("settings.members.remove")}
                       </Button>
                     }
                   />
@@ -423,7 +426,7 @@ function GrupDetailPage() {
             {confirmLeave ? (
               <div className="rounded-2xl bg-destructive/10 p-4">
                 <p className="text-sm font-bold text-destructive">
-                  Keluar dari {group.name}{isOwner ? "? Grup pindah ke anggota lain." : "?"}
+                  {isOwner ? t("settings.leave.confirmOwner", { name: group.name }) : t("settings.leave.confirm", { name: group.name })}
                 </p>
                 <div className="mt-3 flex gap-2">
                   <Button
@@ -432,10 +435,10 @@ function GrupDetailPage() {
                     disabled={leave.isPending}
                     onClick={() => leave.mutate({ groupId })}
                   >
-                    Ya, keluar
+                    {t("settings.leave.yes")}
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => setConfirmLeave(false)}>
-                    Batal
+                    {t("common:actions.cancel")}
                   </Button>
                 </div>
               </div>
@@ -446,7 +449,7 @@ function GrupDetailPage() {
                 onClick={() => setConfirmLeave(true)}
               >
                 <LogOut className="size-4" aria-hidden />
-                Keluar dari grup
+                {t("settings.leave.button")}
               </Button>
             )}
           </section>
@@ -459,8 +462,8 @@ function GrupDetailPage() {
         onOpenChange={(open) => {
           if (!open) setNoteTarget(null);
         }}
-        title={`Catatan untuk ${noteTarget?.name ?? ""}`}
-        description="Maksimal 20 catatan per hari, 140 karakter."
+        title={t("note.title", { name: noteTarget?.name ?? "" })}
+        description={t("note.hint")}
       >
         <form
           onSubmit={(event) => {
@@ -476,7 +479,7 @@ function GrupDetailPage() {
           className="space-y-3"
         >
           <div className="flex flex-wrap gap-2">
-            {["Ayo jalan 10 menit!", "Jangan lupa minum air", "Catat sarapannya", "Semangat, hampir sampai!"].map(
+            {(["s1", "s2", "s3", "s4"] as const).map((key) => t(`note.suggestion.${key}`)).map(
               (suggestion) => (
                 <button
                   key={suggestion}
@@ -491,10 +494,10 @@ function GrupDetailPage() {
           </div>
           <div className="relative">
             <textarea
-              aria-label="Isi catatan"
+              aria-label={t("note.label")}
               rows={3}
               maxLength={140}
-              placeholder="Tulis catatan semangat…"
+              placeholder={t("note.placeholder")}
               value={noteMessage}
               onChange={(event) => setNoteMessage(event.target.value)}
               className="w-full resize-none rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40"
@@ -504,7 +507,7 @@ function GrupDetailPage() {
             </span>
           </div>
           <Button type="submit" className="w-full" disabled={nudge.isPending || noteMessage.trim() === ""}>
-            {nudge.isPending ? "Mengirim…" : "Kirim catatan"}
+            {nudge.isPending ? t("note.sending") : t("note.send")}
           </Button>
         </form>
       </Sheet>
@@ -530,11 +533,12 @@ function MemberCard({
   onNote: () => void;
   pokePending: boolean;
 }) {
+  const { t } = useTranslation("grup");
   const { today } = member;
   const delta = today.weightDeltaKg7d;
   const firstName = member.name.split(" ")[0] ?? member.name;
   return (
-    <Card className="p-4">
+    <Card className="p-3">
       <div className="flex items-center gap-3">
         <Avatar name={member.name} image={member.image} />
         <div className="min-w-0 flex-1">
@@ -542,20 +546,20 @@ function MemberCard({
             {member.name}
             {member.role === "owner" && (
               <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 align-middle text-[0.625rem] font-bold text-primary">
-                pemilik
+                {t("member.owner")}
               </span>
             )}
           </p>
           <p className="text-xs text-muted-foreground">
             {member.lastActiveAt
-              ? `aktif ${timeAgo(member.lastActiveAt)}`
-              : "belum aktif minggu ini"}
+              ? t("member.active", { time: timeAgo(member.lastActiveAt) })
+              : t("member.inactive")}
           </p>
         </div>
         {member.streakDays > 0 && (
           <span
             className="inline-flex shrink-0 items-center gap-1 rounded-full bg-bakar-soft px-2.5 py-1 text-xs font-bold text-bakar-ink tabular-nums"
-            title={`${member.streakDays} hari beruntun`}
+            title={t("member.streak", { count: member.streakDays })}
           >
             <Flame className="size-3.5" aria-hidden />
             {member.streakDays}
@@ -563,12 +567,12 @@ function MemberCard({
         )}
       </div>
 
-      <div className="mt-3">
+      <div className="mt-2">
         {today.eatTargetKcal !== null ? (
           <ProgressBar
             value={today.eatenKcal}
             max={today.eatTargetKcal}
-            ariaLabel={`Makan ${fmtInt(today.eatenKcal)} dari ${fmtInt(today.eatTargetKcal)} kcal`}
+            ariaLabel={t("member.eatenLabel", { eaten: fmtInt(today.eatenKcal), target: fmtInt(today.eatTargetKcal) })}
           />
         ) : (
           <div className="h-2 w-full rounded-full bg-muted" />
@@ -580,9 +584,9 @@ function MemberCard({
           </span>
           <span className="inline-flex items-center gap-1">
             <Flame className="size-3.5" aria-hidden />
-            {fmtInt(today.burnedKcal)} dibakar
+            {t("member.burned", { kcal: fmtInt(today.burnedKcal) })}
           </span>
-          <span>{today.mealsLogged}x catat makan</span>
+          <span>{t("member.meals", { count: today.mealsLogged })}</span>
           {today.weightKg !== null && (
             <span>
               {fmtKg(today.weightKg)} kg
@@ -611,23 +615,18 @@ function MemberCard({
         <Link
           to="/grup/$groupId/var/$userId"
           params={{ groupId, userId: member.userId }}
-          className="mt-3 flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/15 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+          className="mt-2 flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary transition-colors hover:bg-primary/15 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
         >
           <Tv className="size-3.5 shrink-0" aria-hidden />
-          VAR perut {isSelf ? "kamu" : firstName} · {member.varStatus.verdict === "turun"
-            ? "mengecil"
-            : member.varStatus.verdict === "naik"
-              ? "lebih penuh"
-              : member.varStatus.verdict === "sama"
-                ? "belum beda"
-                : member.varStatus.verdict === "beda"
-                  ? "foto beda"
-                  : "scan pertama"}{" "}
-          · {varChipDate(member.varStatus.date)}
+          {t(isSelf ? "var.chip.self" : "var.chip.other", {
+            name: firstName,
+            verdict: t(`var.verdict.${member.varStatus.verdict}`),
+            date: fmtDateShort(member.varStatus.date),
+          })}
         </Link>
       )}
 
-      <div className="mt-3 flex gap-2">
+      <div className="mt-2 flex gap-2">
         {isSelf ? (
           <Link
             to="/grup/$groupId/var/saya"
@@ -635,7 +634,7 @@ function MemberCard({
             className={cn(CARD_ACTION, "bg-primary text-primary-foreground")}
           >
             <Tv className="size-4" aria-hidden />
-            Scan VAR perut
+            {t("member.scanVar")}
           </Link>
         ) : (
           <>
@@ -646,7 +645,7 @@ function MemberCard({
               className={cn(CARD_ACTION, "bg-muted hover:bg-accent")}
             >
               <Hand className="size-4" aria-hidden />
-              Colek
+              {t("member.poke")}
             </button>
             <button
               type="button"
@@ -654,7 +653,7 @@ function MemberCard({
               className={cn(CARD_ACTION, "bg-muted hover:bg-accent")}
             >
               <PenLine className="size-4" aria-hidden />
-              Catatan
+              {t("member.note")}
             </button>
             <Link
               to="/grup/$groupId/var/$userId"
@@ -662,7 +661,7 @@ function MemberCard({
               className={cn(CARD_ACTION, "bg-primary text-primary-foreground")}
             >
               <Tv className="size-4" aria-hidden />
-              VAR
+              {t("member.var")}
             </Link>
           </>
         )}
@@ -671,14 +670,6 @@ function MemberCard({
   );
 }
 
-/** "12 Okt" untuk chip tanggal status VAR. */
-function varChipDate(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
-}
 
 function ActivityFeed({
   status,
@@ -691,9 +682,10 @@ function ActivityFeed({
   events: GroupActivityEvent[] | undefined;
   onRetry: () => void;
 }) {
+  const { t } = useTranslation(["grup", "common"]);
   if (status === "pending") {
     return (
-      <div className="mt-4 space-y-3" aria-busy="true" aria-label="Memuat aktivitas">
+      <div className="mt-4 space-y-3" aria-busy="true" aria-label={t("activity.loading")}>
         <Skeleton className="h-16 rounded-3xl" />
         <Skeleton className="h-16 rounded-3xl" />
         <Skeleton className="h-16 rounded-3xl" />
@@ -703,9 +695,9 @@ function ActivityFeed({
   if (status === "error") {
     return (
       <div className="mt-4">
-        <EmptyHint title="Aktivitas gagal dimuat">{error?.message}</EmptyHint>
+        <EmptyHint title={t("activity.errorTitle")}>{error?.message}</EmptyHint>
         <Button variant="secondary" className="mt-3 w-full" onClick={onRetry}>
-          Coba lagi
+          {t("common:actions.retry")}
         </Button>
       </div>
     );
@@ -714,14 +706,14 @@ function ActivityFeed({
   if (feed.length === 0) {
     return (
       <div className="mt-4">
-        <EmptyHint title="Belum ada aktivitas">
-          Catat makan, olahraga, atau timbangan — aktivitas 7 hari terakhir muncul di sini.
+        <EmptyHint title={t("activity.empty.title")}>
+          {t("activity.empty.body")}
         </EmptyHint>
       </div>
     );
   }
   return (
-    <ul className="mt-4 space-y-2" aria-label="Aktivitas 7 hari terakhir">
+    <ul className="mt-4 space-y-2" aria-label={t("activity.listLabel")}>
       {feed.map((event, index) => (
         <li key={`${event.at instanceof Date ? event.at.getTime() : String(event.at)}-${index}`}>
           {event.type === "food" && (
@@ -730,8 +722,8 @@ function ActivityFeed({
               who={event.userName}
               what={
                 event.name
-                  ? `${event.name} (${fmtInt(event.kcal ?? 0)} kcal)`
-                  : `makan (${fmtInt(event.kcal ?? 0)} kcal)`
+                  ? t("activity.food.named", { name: event.name, kcal: fmtInt(event.kcal ?? 0) })
+                  : t("activity.food.plain", { kcal: fmtInt(event.kcal ?? 0) })
               }
               at={event.at}
             />
@@ -740,7 +732,11 @@ function ActivityFeed({
             <ActivityRow
               icon={<Dumbbell className="size-4" aria-hidden />}
               who={event.userName}
-              what={`${event.name ?? "olahraga"}${event.minutes ? ` ${event.minutes} menit` : ""} (${fmtInt(event.kcal ?? 0)} kcal)`}
+              what={
+                event.minutes
+                  ? t("activity.exercise.timed", { name: event.name ?? t("activity.exercise.fallback"), minutes: event.minutes, kcal: fmtInt(event.kcal ?? 0) })
+                  : t("activity.exercise.plain", { name: event.name ?? t("activity.exercise.fallback"), kcal: fmtInt(event.kcal ?? 0) })
+              }
               at={event.at}
             />
           )}
@@ -748,7 +744,7 @@ function ActivityFeed({
             <ActivityRow
               icon={<Scale className="size-4" aria-hidden />}
               who={event.userName}
-              what={`timbangan: ${fmtKg(event.kg)} kg`}
+              what={t("activity.weight", { kg: fmtKg(event.kg) })}
               at={event.at}
             />
           )}
@@ -769,13 +765,14 @@ function ActivityRow({
   what: string;
   at: Date | string;
 }) {
+  const { t } = useTranslation("grup");
   return (
     <div className="flex items-center gap-3 rounded-3xl bg-card px-4 py-3">
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted" aria-hidden>
         {icon}
       </span>
       <p className="min-w-0 flex-1 text-sm">
-        <span className="font-bold">{who ?? "Seseorang"}</span>{" "}
+        <span className="font-bold">{who ?? t("activity.someone")}</span>{" "}
         <span className="text-muted-foreground">{what}</span>
       </p>
       <span className="shrink-0 text-xs text-muted-foreground">{timeAgo(at)}</span>

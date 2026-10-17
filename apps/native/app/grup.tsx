@@ -2,9 +2,11 @@ import "@/unistyles";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Redirect, Stack, router } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
+import { Disclosure } from "@/components/disclosure";
 import {
   Button,
   EmptyState,
@@ -26,6 +28,7 @@ import { orpc, queryClient } from "@/utils/orpc";
 
 /** Grup list screen: my groups + create / join by invite code. */
 export default function GrupList() {
+  const { t } = useTranslation("grup");
   const gate = useSessionGate();
   const listQuery = useQuery(orpc.group.list.queryOptions());
 
@@ -62,7 +65,7 @@ export default function GrupList() {
   if (gate === "loading") {
     return (
       <Screen>
-        <PageHeader title="Grup" />
+        <PageHeader title={t("list.title")} />
         <Skeleton width="100%" height={64} radius={20} />
         <Skeleton width="100%" height={180} radius={24} />
       </Screen>
@@ -75,7 +78,7 @@ export default function GrupList() {
   const submitJoin = () => {
     const invite = extractInviteCode(code);
     if (invite === "") {
-      setFormError("Tempel kode atau tautan undangannya dulu, ya.");
+      setFormError(t("join.pasteFirst"));
       return;
     }
     setFormError(null);
@@ -86,11 +89,11 @@ export default function GrupList() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Grup" }} />
+      <Stack.Screen options={{ title: t("list.title") }} />
       <Screen>
       <PageHeader
-        title="Grup"
-        caption="Semangat bareng teman — colek yang kemakan terus"
+        title={t("list.title")}
+        caption={t("list.subtitle")}
       />
 
       {listQuery.isError ? (
@@ -100,8 +103,8 @@ export default function GrupList() {
       ) : groups.length === 0 ? (
         <EmptyState
           pose="cheer"
-          title="Belum ada grup"
-          description="Buat grup sendiri atau gabung pakai kode undangan teman biar semangatnya bareng."
+          title={t("list.empty.title")}
+          description={t("list.empty.body")}
         />
       ) : (
         <ListGroup>
@@ -111,7 +114,7 @@ export default function GrupList() {
               icon="people"
               iconTint="makan"
               title={group.name}
-              subtitle={`${group.memberCount} anggota${group.role === "owner" ? " • kamu pemilik" : ""}`}
+              subtitle={group.role === "owner" ? t("list.row.owner", { count: group.memberCount }) : t("members", { count: group.memberCount })}
               chevron
               onPress={() => router.push(`/grup/${group.id}`)}
             />
@@ -120,44 +123,52 @@ export default function GrupList() {
       )}
 
       <View style={styles.actions}>
-        <Button
-          label="Buat Grup"
-          icon="add"
-          onPress={() => {
-            setFormError(null);
-            setCreateOpen(true);
-          }}
-        />
-        <Button
-          variant="secondary"
-          label="Gabung dengan Kode"
-          icon="keypad"
-          onPress={() => {
-            setFormError(null);
-            setJoinOpen(true);
-          }}
-        />
+        <View style={styles.action}>
+          <Button
+            label={t("list.create")}
+            icon="add"
+            onPress={() => {
+              setFormError(null);
+              setCreateOpen(true);
+            }}
+          />
+        </View>
+        <View style={styles.action}>
+          <Button
+            variant="secondary"
+            label={t("list.join")}
+            icon="keypad"
+            onPress={() => {
+              setFormError(null);
+              setJoinOpen(true);
+            }}
+          />
+        </View>
       </View>
+
+      <Disclosure title={t("how.title")}>
+        <Text style={styles.how}>{t("how.body")}</Text>
+      </Disclosure>
 
       <Sheet
         visible={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Buat Grup"
+        title={t("create.title")}
         footer={
           <Button
-            label="Buat Grup"
+            label={t("create.title")}
             disabled={name.trim().length === 0}
             loading={create.isPending}
             onPress={() => create.mutate({ name: name.trim() })}
           />
         }
       >
-        <Field label="Nama grup" hint="1–40 huruf, bebas kreasinya.">
+        <Field label={t("create.nameLabel")} hint={t("create.nameHint")}>
           <Input
             value={name}
             onChangeText={setName}
             maxLength={40}
-            placeholder="mis. Tim Sehat Kampus"
+            placeholder={t("create.namePlaceholder")}
           />
         </Field>
         {formError ? <Text style={styles.formError}>{formError}</Text> : null}
@@ -166,12 +177,12 @@ export default function GrupList() {
       <Sheet
         visible={joinOpen}
         onClose={() => setJoinOpen(false)}
-        title="Gabung Grup"
+        title={t("join.title")}
         footer={
-          <Button label="Gabung" loading={join.isPending} onPress={submitJoin} />
+          <Button label={t("join.submit")} loading={join.isPending} onPress={submitJoin} />
         }
       >
-        <Field label="Kode undangan" hint="Tempel kode atau tautan undangannya di sini.">
+        <Field label={t("join.codeLabel")} hint={t("join.codeHint")}>
           <Input
             value={code}
             onChangeText={(text) => {
@@ -180,7 +191,7 @@ export default function GrupList() {
             }}
             autoCapitalize="none"
             autoCorrect={false}
-            placeholder="mis. ABC123 atau tautan undangan"
+            placeholder={t("join.linkPlaceholder")}
           />
         </Field>
         {formError ? <Text style={styles.formError}>{formError}</Text> : null}
@@ -192,8 +203,16 @@ export default function GrupList() {
 
 const styles = StyleSheet.create((theme) => ({
   actions: {
+    flexDirection: "row",
     gap: theme.spacing.sm,
     marginTop: theme.spacing.md,
+  },
+  action: {
+    flex: 1,
+  },
+  how: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
   },
   formError: {
     fontSize: theme.fontSize.sm,

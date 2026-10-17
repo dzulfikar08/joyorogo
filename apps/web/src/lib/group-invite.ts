@@ -1,3 +1,5 @@
+import { i18n } from "@joyorogo/i18n";
+
 import { shareUrl } from "@/lib/share-links";
 
 /** Invite link for a group; the code is case-insensitive server-side. */
@@ -5,9 +7,9 @@ export function inviteLink(code: string): string {
   return shareUrl(`/gabung/${code}`, "invite");
 }
 
-/** What lands in the chat: group name, code, link, and one sentence on why. */
+/** What lands in the chat: group name, code and one sentence on why (the link rides separately). */
 export function inviteText(groupName: string, code: string): string {
-  return `Ayo gabung grup "${groupName}" di JoyoRogo, biar kita saling catat kalori dan colek yang lupa.\nKode: ${code}`;
+  return i18n.t("grup:invite.shareText", { name: groupName, code });
 }
 
 /**

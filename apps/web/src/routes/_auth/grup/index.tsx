@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Bell, ChevronRight, KeyRound, Plus, Users } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { EmptyHint } from "@/components/screen-state";
@@ -21,8 +22,9 @@ export const Route = createFileRoute("/_auth/grup/")({
 });
 
 function GrupSkeleton() {
+  const { t } = useTranslation("grup");
   return (
-    <Page className="max-w-xl" aria-busy="true" aria-label="Memuat grup">
+    <Page className="max-w-xl" aria-busy="true" aria-label={t("list.loading")}>
       <div className="flex items-center justify-between gap-3 px-1 pt-2 pb-5">
         <Skeleton className="h-9 w-28 rounded-full" />
         <Skeleton className="size-11 rounded-full" />
@@ -34,6 +36,7 @@ function GrupSkeleton() {
 }
 
 function GrupPage() {
+  const { t } = useTranslation("grup");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const groups = useQuery(listOptions);
@@ -57,7 +60,7 @@ function GrupPage() {
   const create = useMutation(
     orpc.group.create.mutationOptions({
       onSuccess: () => {
-        toast.success("Grup dibuat. Bagikan kode undangannya!");
+        toast.success(t("create.toast"));
         setCreateOpen(false);
         setName("");
         invalidate();
@@ -69,7 +72,7 @@ function GrupPage() {
   const join = useMutation(
     orpc.group.join.mutationOptions({
       onSuccess: ({ groupId }) => {
-        toast.success("Berhasil gabung!");
+        toast.success(t("join.toast"));
         setJoinOpen(false);
         setCode("");
         setPreviewCode(null);
@@ -83,7 +86,7 @@ function GrupPage() {
   const checkCode = () => {
     const trimmed = code.trim();
     if (trimmed.length < 4 || trimmed.length > 20) {
-      toast.error("Kode undangan 4–20 karakter.");
+      toast.error(t("join.codeLength"));
       return;
     }
     setPreviewCode(trimmed);
@@ -92,12 +95,16 @@ function GrupPage() {
   return (
     <Page className="max-w-xl">
       <PageHeader
-        title="Grup"
-        subtitle="Semangat bareng, curi perhatian ala VAR."
+        title={t("list.title")}
+        subtitle={t("list.subtitle")}
         action={
           <Link
             to="/inbox"
-            aria-label={`Kotak masuk${unread.data?.count ? `, ${unread.data.count} belum dibaca` : ""}`}
+            aria-label={
+              unread.data?.count
+                ? t("list.inboxUnread", { count: unread.data.count })
+                : t("list.inbox")
+            }
             className="relative flex size-11 items-center justify-center rounded-full bg-card focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
           >
             <Bell className="size-5" aria-hidden />
@@ -111,7 +118,7 @@ function GrupPage() {
       />
 
       {groups.data && groups.data.length > 0 && (
-        <section aria-label="Daftar grup" className="mt-1">
+        <section aria-label={t("list.listLabel")} className="mt-1">
           <ListGroup className="p-0">
             {groups.data.map((group) => (
               <ListLinkRow
@@ -122,8 +129,8 @@ function GrupPage() {
                 title={group.name}
                 subtitle={
                   group.role === "owner"
-                    ? `Kamu pemilik · ${group.memberCount} anggota`
-                    : `${group.memberCount} anggota`
+                    ? t("list.row.owner", { count: group.memberCount })
+                    : t("members", { count: group.memberCount })
                 }
               />
             ))}
@@ -133,29 +140,28 @@ function GrupPage() {
 
       {groups.data && groups.data.length === 0 && (
         <div className="mt-1">
-          <EmptyHint title="Belum ada grup" pose="cheer">
-            Buat grup untuk teman sekantor atau sekeluarga, lalu bagikan kode undangannya.
+          <EmptyHint title={t("list.empty.title")} pose="cheer">
+            {t("list.empty.body")}
           </EmptyHint>
         </div>
       )}
 
-      <SectionTitle className="mt-6">Mulai</SectionTitle>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="mt-5 grid grid-cols-2 gap-3">
         <Button variant="secondary" size="lg" onClick={() => setCreateOpen(true)}>
           <Plus className="size-4" aria-hidden />
-          Buat grup
+          {t("list.create")}
         </Button>
         <Button variant="secondary" size="lg" onClick={() => setJoinOpen(true)}>
           <KeyRound className="size-4" aria-hidden />
-          Gabung pakai kode
+          {t("list.join")}
         </Button>
       </div>
 
       <Sheet
         open={createOpen}
         onOpenChange={setCreateOpen}
-        title="Buat grup"
-        description="Maksimal 5 grup per akun, 20 anggota per grup."
+        title={t("create.title")}
+        description={t("create.limits")}
       >
         <form
           onSubmit={(event) => {
@@ -165,14 +171,14 @@ function GrupPage() {
           className="space-y-4"
         >
           <Input
-            aria-label="Nama grup"
-            placeholder="mis. Tim Sehat Kantor"
+            aria-label={t("create.nameLabel")}
+            placeholder={t("create.namePlaceholder")}
             maxLength={40}
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
           <Button type="submit" className="w-full" disabled={create.isPending || name.trim() === ""}>
-            {create.isPending ? "Membuat..." : "Buat"}
+            {create.isPending ? t("create.pending") : t("create.submit")}
           </Button>
         </form>
       </Sheet>
@@ -186,8 +192,8 @@ function GrupPage() {
             setPreviewCode(null);
           }
         }}
-        title="Gabung grup"
-        description="Minta kode ke temanmu, atau buka tautan undangannya."
+        title={t("join.title")}
+        description={t("join.hint")}
       >
         <form
           onSubmit={(event) => {
@@ -197,20 +203,20 @@ function GrupPage() {
           className="space-y-4"
         >
           <Input
-            aria-label="Kode undangan"
-            placeholder="mis. JOYO1234"
+            aria-label={t("join.codeLabel")}
+            placeholder={t("join.codePlaceholder")}
             autoCapitalize="characters"
             maxLength={20}
             value={code}
             onChange={(event) => setCode(event.target.value.toUpperCase())}
           />
           <Button type="submit" variant="secondary" className="w-full" disabled={code.trim() === ""}>
-            Cek kode
+            {t("join.check")}
           </Button>
         </form>
         {previewCode !== null && (
           <div className="mt-4 rounded-2xl bg-muted p-4">
-            {preview.isPending && <p className="text-sm text-muted-foreground">Memeriksa kode…</p>}
+            {preview.isPending && <p className="text-sm text-muted-foreground">{t("join.checking")}</p>}
             {preview.isError && (
               <p className="text-sm font-semibold text-destructive">{preview.error.message}</p>
             )}
@@ -219,16 +225,16 @@ function GrupPage() {
                 <div>
                   <p className="text-sm font-bold">{preview.data.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {preview.data.memberCount} anggota
+                    {t("members", { count: preview.data.memberCount })}
                   </p>
                 </div>
                 {preview.data.alreadyMember ? (
                   <p className="max-w-[10rem] text-right text-xs font-semibold text-muted-foreground">
-                    Kamu sudah anggota grup ini.
+                    {t("join.alreadyMember")}
                   </p>
                 ) : (
                   <Button onClick={() => join.mutate({ code: previewCode })} disabled={join.isPending}>
-                    {join.isPending ? "Gabung…" : "Gabung"}
+                    {join.isPending ? t("join.pending") : t("join.submit")}
                   </Button>
                 )}
               </div>
@@ -237,10 +243,13 @@ function GrupPage() {
         )}
       </Sheet>
 
-      <p className="mt-8 flex items-center gap-2 px-2 text-xs text-muted-foreground">
-        <ChevronRight className="size-3.5" aria-hidden />
-        Colek teman yang malas catat, atau intip isi perutnya lewat VAR.
-      </p>
+      <details className="group mt-6 px-2 text-xs text-muted-foreground">
+        <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold select-none [&::-webkit-details-marker]:hidden">
+          <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" aria-hidden />
+          {t("how.title")}
+        </summary>
+        <p className="mt-1.5 pl-5.5">{t("how.body")}</p>
+      </details>
     </Page>
   );
 }

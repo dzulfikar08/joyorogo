@@ -200,13 +200,6 @@
       "sama": "no change",
       "beda": "photo differs",
       "pertama": "first scan"
-    },
-    "belly": {
-      "turun": "Belly looks smaller",
-      "naik": "Looks fuller",
-      "sama": "No visible change",
-      "beda": "Photo conditions differ",
-      "pertama": "First scan"
     }
   },
   "activity": {
@@ -234,121 +227,6 @@
     "exerciseFallback": "Workout",
     "weightLine": "Weigh-in • {{kg}} kg",
     "emptyNative": "No activity yet. Time to log the first meal!"
-  },
-  "watch": {
-    "they": "your friend",
-    "friend": "Your friend",
-    "close": "Close VAR",
-    "foodsLabel": "{{name}}'s food today",
-    "hidden": "{{name}} is hiding their belly",
-    "hiddenHint": "Their calorie total is still visible on their member card.",
-    "aim": "Aim at {{name}}'s belly",
-    "scanning": "SCANNING…",
-    "progress": "beeping… {{percent}}%",
-    "errorTitle": "VAR scan failed",
-    "scanFailed": "Scan failed.",
-    "scanFailedOffline": "Scan failed. Check your connection and try again.",
-    "rescan": "Scan again",
-    "backToGroup": "Back to group",
-    "scan": "Scan",
-    "scanningShort": "Scanning…",
-    "noCamera": "Camera unavailable. The overlay still works; allow camera access in your browser settings.",
-    "verdict": {
-      "aman": "SAFE, keep going!",
-      "offside": "OFFSIDE! +{{kcal}} kcal",
-      "tanpaTarget": "No target to compare with",
-      "kosong": "Empty belly… no meals yet?"
-    },
-    "total": "Total today {{eaten}} kcal",
-    "totalOf": "Total today {{eaten}} of {{target}} kcal",
-    "basis": "Based on {{name}}'s food log today, not a real photo.",
-    "belly": "{{name}}'s belly VAR ({{date}}): {{verdict}}"
-  },
-  "mine": {
-    "title": "Belly VAR",
-    "subtitle": "AI looks at your belly progress visually — it's not a measuring tool.",
-    "loading": "Loading VAR history",
-    "loadFailed": "Couldn't load history",
-    "thisGroup": "this group",
-    "scan": "Scan",
-    "scanFallback": "Belly scan",
-    "toast": {
-      "shared": "Belly scan shared with the group.",
-      "hidden": "Belly scan hidden."
-    },
-    "verdict": {
-      "turun": "Belly looks smaller",
-      "naik": "Looks fuller",
-      "sama": "No visible change",
-      "beda": "Photo conditions differ, retake",
-      "pertama": "First scan saved"
-    },
-    "retry": {
-      "newResult": "New result: {{verdict}}",
-      "restoreFailed": "Couldn't restore the result.",
-      "failed": "Kept the previous result. {{message}}",
-      "rereading": "AI is re-reading both photos...",
-      "title": "Not quite right?",
-      "left_one": "Free, {{count}} left",
-      "left_other": "Free, {{count}} left",
-      "limit": "Recalculation limit reached",
-      "howTitle": "How it works",
-      "how": "AI compares the same two photos again. No new photo and no daily scan quota used.",
-      "howShared": "The status shared with {{group}} is updated too.",
-      "hintLabel": "Quick correction (optional)",
-      "hintPlaceholder": "e.g. both photos are actually the same pose",
-      "retrying": "Recalculating...",
-      "button": "Recalculate",
-      "exhausted": "This scan hit its recalculation limit. Scan again another day."
-    },
-    "capture": {
-      "failed": "Couldn't take the photo.",
-      "processFailed": "Couldn't process the photo.",
-      "cameraLabel": "Camera for the belly photo",
-      "frame": "Keep your belly inside the dashed line",
-      "justTaken": "Photo just taken",
-      "comparing": "AI is comparing with your previous scan…",
-      "savingFirst": "Saving your first scan…",
-      "wait": "Usually 5-20 seconds. The original photo is only stored for you.",
-      "noCamera": "Camera isn't available on this device. Use the gallery button below, or allow camera access in your browser settings.",
-      "tipsTitle": "Photo tips & privacy",
-      "tip": {
-        "same": "Same pose and distance every scan",
-        "light": "Bright light, camera level with your belly",
-        "stand": "Stand straight, breathe normally"
-      },
-      "privacy": "Your belly photos are private: never in the feed, and only you can open them.",
-      "saved_one": "{{count}} scan saved.",
-      "saved_other": "{{count}} scans saved.",
-      "firstBaseline": "Your first scan becomes the baseline.",
-      "timerOn": "{{seconds}}s timer on",
-      "timerOff": "{{seconds}}s timer off",
-      "shutter": "Take belly photo",
-      "gallery": "Gallery"
-    },
-    "confidence": "Visual confidence ~{{percent}}% — an estimate from the photo, not a measurement.",
-    "historyConfidence": "~{{percent}}% sure",
-    "photo": {
-      "before": "Before",
-      "now": "Now",
-      "alt": "Belly photo: {{caption}}",
-      "none": "None yet",
-      "comparedAlt": "Compared with: {{date}}",
-      "comparedWith": "Compared with {{date}}"
-    },
-    "waist": {
-      "title": "A more honest number: waist",
-      "last": "Last {{date}}: <b>{{cm}} cm</b>",
-      "note": "The photo is only a visual estimate — the tape measure does the measuring.",
-      "none": "No tape measurements yet. <link>Log your waist in Weight</link> — that's the objective signal, the photo just adds to it."
-    },
-    "share": {
-      "title": "Share status with {{group}}",
-      "hint": "Only the verdict and date are visible. Your belly photo is never shared."
-    },
-    "rescan": "Scan again",
-    "delete": "Delete this scan",
-    "history": "Scan history"
   },
   "server": {
     "error": {
