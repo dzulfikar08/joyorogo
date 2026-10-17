@@ -9,6 +9,17 @@
       "retry": "Gagal menghubungi Strava. Coba lagi nanti.",
       "connectFirst": "Hubungkan Strava dulu di halaman profil.",
       "expired": "Sambungan Strava kedaluwarsa. Hubungkan ulang di halaman profil."
+    },
+    "workout": {
+      "unknownExercise": "Gerakan tidak dikenal: {{id}}",
+      "needsDuration": "{{name}} butuh durasi.",
+      "needsReps": "{{name}} butuh repetisi.",
+      "invalidStart": "Waktu mulai tidak valid.",
+      "saveFailed": "Sesi gagal tersimpan.",
+      "exerciseCreateFailed": "Gerakan gagal dibuat.",
+      "exerciseNotFound": "Gerakan tidak ditemukan.",
+      "sessionNotFound": "Sesi tidak ditemukan.",
+      "routineNotFound": "Rutinitas tidak ditemukan."
     }
   },
   "healthSync": {

@@ -9,6 +9,17 @@
       "retry": "Couldn't reach Strava. Try again later.",
       "connectFirst": "Connect Strava first, from your profile.",
       "expired": "Your Strava connection expired. Reconnect it from your profile."
+    },
+    "workout": {
+      "unknownExercise": "Unknown exercise: {{id}}",
+      "needsDuration": "{{name}} needs a duration.",
+      "needsReps": "{{name}} needs reps.",
+      "invalidStart": "The start time is not valid.",
+      "saveFailed": "The workout couldn't be saved.",
+      "exerciseCreateFailed": "The exercise couldn't be created.",
+      "exerciseNotFound": "Exercise not found.",
+      "sessionNotFound": "Workout not found.",
+      "routineNotFound": "Routine not found."
     }
   },
   "healthSync": {
