@@ -1,11 +1,12 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { jakartaToday, relativeDayLabel, shiftDate } from "@joyorogo/api/lib/engine";
 
+import { PressableScale } from "@/components/motion";
 import { Text } from "@/components/ui";
 
 /**
@@ -28,34 +29,38 @@ export function DaySwitcher({
   const isToday = date === t;
   return (
     <View style={styles.row}>
-      <Pressable
+      <PressableScale
         accessibilityRole="button"
         accessibilityLabel={tr("daySwitcher.prev")}
         onPress={() => onChange(shiftDate(date, -1))}
-        style={({ pressed }) => [styles.arrow, pressed && styles.pressedSoft]}
+        scaleTo={0.88}
+        style={styles.arrow}
       >
         <Ionicons name="chevron-back" size={20} color={theme.colors.foreground} />
-      </Pressable>
-      <Pressable
+      </PressableScale>
+      <PressableScale
         accessibilityRole="button"
         accessibilityLabel={isToday ? undefined : tr("daySwitcher.backToToday")}
         disabled={isToday}
         onPress={() => onChange(t)}
         hitSlop={8}
+        scaleTo={1}
+        dimTo={0.7}
       >
         <Text style={styles.label} numberOfLines={1}>
           {relativeDayLabel(date, t)}
         </Text>
-      </Pressable>
-      <Pressable
+      </PressableScale>
+      <PressableScale
         accessibilityRole="button"
         accessibilityLabel={tr("daySwitcher.next")}
         disabled={isToday}
         onPress={() => onChange(shiftDate(date, 1))}
-        style={({ pressed }) => [styles.arrow, isToday && styles.disabled, pressed && styles.pressedSoft]}
+        scaleTo={0.88}
+        style={[styles.arrow, isToday && styles.disabled]}
       >
         <Ionicons name="chevron-forward" size={20} color={theme.colors.foreground} />
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }
@@ -82,9 +87,6 @@ const styles = StyleSheet.create((theme) => ({
     fontVariant: ["tabular-nums"],
     minWidth: 120,
     textAlign: "center",
-  },
-  pressedSoft: {
-    opacity: 0.7,
   },
   disabled: {
     opacity: 0.35,

@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Share, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 
+import { useEnter } from "@/components/motion";
 import { Button, Card, Field, Input, Text } from "@/components/ui";
 import { Disclosure } from "@/components/disclosure";
 import { Mascot } from "@/components/mascot";
@@ -13,6 +15,16 @@ import { errorMessage } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 type CreatedGroup = { id: string; name: string; inviteCode: string };
+
+/** Keyed branch of the step: fades and rises in when the form swaps for the created group. */
+function Branch({ children }: { children: ReactNode }) {
+  const enter = useEnter();
+  return (
+    <Animated.View entering={enter} style={styles.branch}>
+      {children}
+    </Animated.View>
+  );
+}
 
 /**
  * Optional step after the plan-ready screen: start a group and send its
@@ -64,7 +76,7 @@ export function InviteFriendsStep({
       {created ? <Text style={styles.caption}>{t("invite.createdCaption")}</Text> : null}
 
       {created ? (
-        <>
+        <Branch key="created">
           <Card>
             <Text style={styles.groupName}>{created.name}</Text>
             <Text style={styles.caption}>{t("invite.code", { code: created.inviteCode })}</Text>
@@ -80,9 +92,9 @@ export function InviteFriendsStep({
             onPress={() => onOpenGroup(created.id)}
           />
           <Button variant="ghost" label={t("invite.later")} onPress={onSkip} />
-        </>
+        </Branch>
       ) : (
-        <>
+        <Branch key="form">
           <Field label={t("invite.nameLabel")}>
             <Input value={name} onChangeText={setName} maxLength={40} />
           </Field>
@@ -114,13 +126,16 @@ export function InviteFriendsStep({
             <Text style={styles.caption}>{t("invite.why")}</Text>
           </Disclosure>
           <Button variant="ghost" label={t("invite.skip")} onPress={onSkip} />
-        </>
+        </Branch>
       )}
     </>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
+  branch: {
+    gap: theme.spacing.md,
+  },
   mascot: {
     alignSelf: "center",
   },

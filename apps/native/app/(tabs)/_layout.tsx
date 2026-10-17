@@ -6,8 +6,11 @@ import { Fragment } from "react";
 import type { ComponentProps } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View, type ColorValue } from "react-native";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUnistyles } from "react-native-unistyles";
+
+import { PressableScale, useActivePop, usePressFeedback } from "@/components/motion";
 
 import { useUnreadCount } from "@/src/lib/group";
 import { orpc } from "@/utils/orpc";
@@ -27,7 +30,28 @@ function TabIcon({
   size: number;
   color: ColorValue;
 }) {
-  return <Ionicons name={focused ? name : outline} size={size} color={color} />;
+  const pop = useActivePop(focused);
+  return (
+    <Animated.View style={pop}>
+      <Ionicons name={focused ? name : outline} size={size} color={color} />
+    </Animated.View>
+  );
+}
+
+/** Tab bar button: icon and label dip on press; the active icon pops in TabIcon. */
+function TabButton({
+  children,
+  ...props
+}: Pick<
+  ComponentProps<typeof Pressable>,
+  "onPress" | "onLongPress" | "testID" | "style" | "role" | "aria-label" | "aria-selected"
+> & { children: React.ReactNode }) {
+  const press = usePressFeedback(0.9);
+  return (
+    <Pressable {...props} onPressIn={press.onPressIn} onPressOut={press.onPressOut}>
+      <Animated.View style={[{ alignItems: "center" }, press.style]}>{children}</Animated.View>
+    </Pressable>
+  );
 }
 
 /** Remounts a tab's screen on a language switch; the tab navigator itself keeps its state. */
@@ -57,6 +81,19 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: theme.colors.foreground,
         tabBarInactiveTintColor: theme.colors.mutedForeground,
+        tabBarButton: (props) => (
+          <TabButton
+            onPress={props.onPress}
+            onLongPress={props.onLongPress}
+            testID={props.testID}
+            style={props.style}
+            role={props.role}
+            aria-label={props["aria-label"]}
+            aria-selected={props["aria-selected"]}
+          >
+            {props.children}
+          </TabButton>
+        ),
         tabBarStyle: {
           backgroundColor: theme.colors.card,
           borderTopColor: theme.colors.hairline,
@@ -112,16 +149,12 @@ export default function TabLayout() {
           headerShown: false,
           tabBarLabel: "",
           tabBarButton: () => (
-            <Pressable
+            <PressableScale
               accessibilityRole="button"
               accessibilityLabel={t("nav.camera")}
               onPress={() => router.navigate("/makan-ai")}
-              style={({ pressed }) => ({
-                flex: 1,
-                alignItems: "center",
-                justifyContent: "flex-start",
-                opacity: pressed ? 0.8 : 1,
-              })}
+              scaleTo={0.92}
+              style={{ flex: 1, alignItems: "center", justifyContent: "flex-start" }}
             >
               <View
                 style={{
@@ -141,7 +174,7 @@ export default function TabLayout() {
               >
                 <Ionicons name="camera" size={26} color={theme.colors.primaryForeground} />
               </View>
-            </Pressable>
+            </PressableScale>
           ),
         }}
       />

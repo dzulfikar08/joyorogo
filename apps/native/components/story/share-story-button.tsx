@@ -9,15 +9,16 @@ import {
   ActivityIndicator,
   Linking,
   Platform,
-  Pressable,
   ScrollView,
   useWindowDimensions,
   View,
 } from "react-native";
+import Animated from "react-native-reanimated";
 import Svg, { Defs, Pattern, Rect } from "react-native-svg";
 import { captureRef } from "react-native-view-shot";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
+import { PressableScale, useEnter } from "@/components/motion";
 import { Button, Segmented, Sheet, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { InstagramGlyph } from "@/components/story/instagram-glyph";
@@ -112,17 +113,14 @@ function TargetTile({
 }) {
   const { theme } = useUnistyles();
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled, busy }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.tile,
-        disabled && !busy && styles.tileDisabled,
-        pressed && styles.tilePressed,
-      ]}
+      scaleTo={0.95}
+      style={[styles.tile, disabled && !busy && styles.tileDisabled]}
     >
       <View style={styles.tileIcon}>
         {busy ? <ActivityIndicator color={theme.colors.foreground} /> : children}
@@ -130,7 +128,7 @@ function TargetTile({
       <Text style={styles.tileLabel} numberOfLines={1}>
         {label}
       </Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -183,6 +181,7 @@ export function ShareStoryButton({
   const toast = useToast();
   const { theme } = useUnistyles();
   const screen = useWindowDimensions();
+  const enter = useEnter();
 
   const effectivePhoto = photoUri ?? storyPhotoUri(story);
   const templates = useMemo(
@@ -388,7 +387,7 @@ export function ShareStoryButton({
     <>
       <View style={style}>
         {iconOnly ? (
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel={label}
             disabled={disabled}
@@ -397,10 +396,12 @@ export function ShareStoryButton({
               setActionFailure(null);
               setOpen(true);
             }}
-            style={({ pressed }) => [styles.iconButton, pressed && styles.tilePressed]}
+            style={styles.iconButton}
+            dimTo={0.75}
+            scaleTo={0.94}
           >
             <Ionicons name="share-outline" size={22} color={theme.colors.foreground} />
-          </Pressable>
+          </PressableScale>
         ) : (
           <Button
             label={label}
@@ -450,7 +451,10 @@ export function ShareStoryButton({
         {prompt ? <Text style={styles.promptBody}>{promptBody}</Text> : null}
 
         {/* Hidden, not unmounted, while the pre-prompt shows: the cards keep their loaded photos. */}
-        <View style={[styles.content, prompt ? styles.contentHidden : null]}>
+        <Animated.View
+          entering={enter}
+          style={[styles.content, prompt ? styles.contentHidden : null]}
+        >
           {activeTemplate ? (
             <Segmented
               options={templates.map((candidate) => ({
@@ -527,7 +531,7 @@ export function ShareStoryButton({
           ) : null}
 
           {failure ? (
-            <View style={styles.errorBox} accessibilityRole="alert">
+            <Animated.View entering={enter} style={styles.errorBox} accessibilityRole="alert">
               <View style={styles.errorIcon}>
                 <Ionicons name="alert" size={18} color={theme.colors.destructiveForeground} />
               </View>
@@ -543,7 +547,7 @@ export function ShareStoryButton({
                   style={styles.errorRetry}
                 />
               </View>
-            </View>
+            </Animated.View>
           ) : null}
 
           <View style={styles.photoRow}>
@@ -593,7 +597,7 @@ export function ShareStoryButton({
               <Ionicons name="ellipsis-horizontal" size={26} color={theme.colors.foreground} />
             </TargetTile>
           </View>
-        </View>
+        </Animated.View>
       </Sheet>
     </>
   );
@@ -654,7 +658,6 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.muted,
   },
   tileDisabled: { opacity: 0.45 },
-  tilePressed: { opacity: 0.75 },
   iconButton: {
     width: 44,
     height: 44,

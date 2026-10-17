@@ -6,6 +6,7 @@ import type { Href } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppState, Linking, Platform, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import {
@@ -36,6 +37,7 @@ import { Disclosure } from "@/components/disclosure";
 import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtIdr } from "@/utils/format";
+import { useEnter } from "@/components/motion";
 import { orpc } from "@/utils/orpc";
 
 /** Why the paywall opened; picks the subhead and nothing else. */
@@ -50,9 +52,20 @@ const PAYWALL_FROM = [
 ] as const;
 type PaywallFrom = (typeof PAYWALL_FROM)[number];
 
+/** One benefit line; the check icon staggers in with its row on first mount only. */
+function BenefitRow({ index, text }: { index: number; text: string }) {
+  const { theme } = useUnistyles();
+  const enter = useEnter(index);
+  return (
+    <Animated.View entering={enter} style={styles.benefitRow}>
+      <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
+      <Text style={styles.benefitText}>{text}</Text>
+    </Animated.View>
+  );
+}
+
 export default function FounderPaywall() {
   const { t } = useTranslation("billing");
-  const { theme } = useUnistyles();
   const gate = useSessionGate();
   const toast = useToast();
   const { next, from } = useLocalSearchParams<{ next?: string; from?: string }>();
@@ -77,6 +90,10 @@ export default function FounderPaywall() {
   const playPrices = usePlayPrices(PLAY_ACTIVE && billing);
   usePlayReplay(PLAY_ACTIVE && billing);
   const tier = profileQuery.data?.tier ?? null;
+  const heroEnter = useEnter(0);
+  const priceEnter = useEnter(1);
+  const detailsEnter = useEnter(5);
+  const actionsEnter = useEnter(6);
 
   // Android: coming back from the payment browser is when payment lands; refetch
   // the profile so this screen continues on its own after paying.
@@ -209,26 +226,30 @@ export default function FounderPaywall() {
 
   return (
     <Screen>
-      <PageHeader title={t("paywall.title")} caption={t(`paywall.subhead.${subheadFrom}`)} />
+      <Animated.View entering={heroEnter}>
+        <PageHeader title={t("paywall.title")} caption={t(`paywall.subhead.${subheadFrom}`)} />
+      </Animated.View>
 
       {!ios && <FounderPromoCard />}
 
-      <Card style={styles.priceCard}>
-        <Segmented
-          options={[
-            { value: "yearly", label: t("plan.yearly") },
-            { value: "monthly", label: t("plan.monthly") },
-          ]}
-          value={plan}
-          onChange={setPlan}
-        />
-        <View style={styles.priceRow}>
-          <Text style={styles.price}>{priceLabel}</Text>
-          <Text style={styles.pricePer}>{yearly ? t("plan.perYear") : t("plan.perMonth")}</Text>
-        </View>
-        {webYearly ? <Text style={styles.priceNote}>{equivalent}</Text> : null}
-        <Text style={styles.priceNote}>{renewalNote}</Text>
-      </Card>
+      <Animated.View entering={priceEnter}>
+        <Card style={styles.priceCard}>
+          <Segmented
+            options={[
+              { value: "yearly", label: t("plan.yearly") },
+              { value: "monthly", label: t("plan.monthly") },
+            ]}
+            value={plan}
+            onChange={setPlan}
+          />
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>{priceLabel}</Text>
+            <Text style={styles.pricePer}>{yearly ? t("plan.perYear") : t("plan.perMonth")}</Text>
+          </View>
+          {webYearly ? <Text style={styles.priceNote}>{equivalent}</Text> : null}
+          <Text style={styles.priceNote}>{renewalNote}</Text>
+        </Card>
+      </Animated.View>
 
       <Card style={styles.benefitsCard}>
         <Text style={styles.bundle}>{t("paywall.bundle")}</Text>
@@ -238,11 +259,8 @@ export default function FounderPaywall() {
           t("benefits.backup"),
           t("benefits.badge"),
           t("benefits.support"),
-        ].map((benefit) => (
-          <View key={benefit} style={styles.benefitRow}>
-            <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
-            <Text style={styles.benefitText}>{benefit}</Text>
-          </View>
+        ].map((benefit, index) => (
+          <BenefitRow key={benefit} index={index + 2} text={benefit} />
         ))}
         {config.data.freeDailyScans !== null ? (
           <Text style={styles.freeNote}>
@@ -251,23 +269,25 @@ export default function FounderPaywall() {
         ) : null}
       </Card>
 
-      <Disclosure title={t("details.title")}>
-        <Text style={styles.howTitle}>{t("details.stepsTitle")}</Text>
-        {paySteps.map((step, index) => (
-          <View key={step} style={styles.stepRow}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>{index + 1}</Text>
+      <Animated.View entering={detailsEnter}>
+        <Disclosure title={t("details.title")}>
+          <Text style={styles.howTitle}>{t("details.stepsTitle")}</Text>
+          {paySteps.map((step, index) => (
+            <View key={step} style={styles.stepRow}>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberText}>{index + 1}</Text>
+              </View>
+              <Text style={styles.stepText}>{step}</Text>
             </View>
-            <Text style={styles.stepText}>{step}</Text>
-          </View>
-        ))}
-        <Text style={styles.detailText}>{t("details.backup")}</Text>
-        {webYearly ? <Text style={styles.detailText}>{t("details.stacks")}</Text> : null}
-        {renewalDetail ? <Text style={styles.detailText}>{renewalDetail}</Text> : null}
-        <Text style={styles.detailText}>{t("details.later")}</Text>
-      </Disclosure>
+          ))}
+          <Text style={styles.detailText}>{t("details.backup")}</Text>
+          {webYearly ? <Text style={styles.detailText}>{t("details.stacks")}</Text> : null}
+          {renewalDetail ? <Text style={styles.detailText}>{renewalDetail}</Text> : null}
+          <Text style={styles.detailText}>{t("details.later")}</Text>
+        </Disclosure>
+      </Animated.View>
 
-      <View style={styles.actions}>
+      <Animated.View entering={actionsEnter} style={styles.actions}>
         <Button
           label={PLAY_ACTIVE || ios ? t("paywall.buyStore") : t("paywall.buy")}
           onPress={() => void buy()}
@@ -331,7 +351,7 @@ export default function FounderPaywall() {
           label={t("paywall.later")}
           onPress={() => router.replace(destination)}
         />
-      </View>
+      </Animated.View>
     </Screen>
   );
 }

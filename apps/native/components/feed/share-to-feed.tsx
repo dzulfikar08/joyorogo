@@ -4,6 +4,9 @@ import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
+import Animated from "react-native-reanimated";
+
+import { useEnter } from "@/components/motion";
 import { Button, Chip, Field, Input, Sheet, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { HandlePrompt } from "@/components/feed/handle-prompt";
@@ -74,6 +77,9 @@ export function ShareToFeedSheet({
     invalidate: () => [orpc.social.key()],
   });
 
+  const enter = useEnter();
+  const hintEnter = useEnter();
+
   return (
     <Sheet
       visible={visible}
@@ -88,10 +94,10 @@ export function ShareToFeedSheet({
         />
       }
     >
-      <View style={styles.preview}>
+      <Animated.View entering={enter} style={styles.preview}>
         <Text style={styles.previewTitle}>{title}</Text>
         <Text style={styles.previewSub}>{preview}</Text>
-      </View>
+      </Animated.View>
 
       {visible ? <HandlePrompt /> : null}
 
@@ -120,9 +126,12 @@ export function ShareToFeedSheet({
           />
         </View>
         {!publicProfile ? (
-          <Text style={[styles.hint, { color: theme.colors.warning }]}>
+          <Animated.Text
+            entering={hintEnter}
+            style={[styles.hint, { color: theme.colors.warning }]}
+          >
             {t("share.needPublic")}
-          </Text>
+          </Animated.Text>
         ) : null}
       </Field>
     </Sheet>

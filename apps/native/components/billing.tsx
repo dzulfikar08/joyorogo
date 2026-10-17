@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { Linking, Platform, Pressable, View } from "react-native";
+import { Linking, Platform, View } from "react-native";
 import * as Crypto from "expo-crypto";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -14,6 +14,8 @@ import { appleIap } from "@/modules/apple-iap";
 import { authClient } from "@/lib/auth-client";
 import { Disclosure } from "@/components/disclosure";
 import { Button, Card, Sheet, Text } from "@/components/ui";
+import { PressableScale, useEnter } from "@/components/motion";
+import Animated from "react-native-reanimated";
 import { useToast } from "@/components/toast";
 import { errorMessage, fmtDateLong, fmtIdr } from "@/utils/format";
 import { IS_PLAY_BUILD } from "@/src/distribution";
@@ -210,7 +212,7 @@ export function useCheckoutPicker(plan: CheckoutPlan = "monthly") {
         const label = t(`picker.${method}.label`);
         const note = t(`picker.${method}.note`);
         return (
-          <Pressable
+          <PressableScale
             key={method}
             accessibilityRole="button"
             accessibilityLabel={`${label}. ${note}`}
@@ -219,7 +221,9 @@ export function useCheckoutPicker(plan: CheckoutPlan = "monthly") {
               setOpen(false);
               checkout.mutate(method, { onError: onErrorRef.current });
             }}
-            style={({ pressed }) => [styles.methodOption, pressed && styles.methodPressed]}
+            scaleTo={0.98}
+            dimTo={0.8}
+            style={styles.methodOption}
           >
             <View style={styles.methodIcon}>
               <Ionicons name={icon} size={26} color={theme.colors.primary} />
@@ -229,7 +233,7 @@ export function useCheckoutPicker(plan: CheckoutPlan = "monthly") {
               <Text style={styles.cardNote}>{note}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.colors.mutedForeground} />
-          </Pressable>
+          </PressableScale>
         );
       })}
     </Sheet>
@@ -273,38 +277,41 @@ export function FounderPromoCard() {
   const { t } = useTranslation("billing");
   const config = useAppConfig();
   const promo = config.data?.promo;
+  const enter = useEnter(1);
   if (!config.data || !promo || promo.slots - promo.taken <= 0) return null;
   const left = promo.slots - promo.taken;
   const nextPriceIdr = promo.nextPriceIdr ?? null;
   return (
-    <Card style={styles.promoCard}>
-      <Text style={styles.promoHeadline}>
-        {t("promo.headline", { price: fmtIdr(config.data.founderPriceIdr) })}
-      </Text>
-      <Text style={styles.promoText}>
-        <Trans
-          ns="billing"
-          i18nKey="promo.slots"
-          count={left}
-          values={{ total: promo.slots, left }}
-          components={{ b: <Text style={styles.promoBold} /> }}
-        />
-      </Text>
-      <View style={styles.promoTrack}>
-        <View
-          style={[
-            styles.promoFill,
-            { width: `${Math.min(100, Math.max(0, (promo.taken / promo.slots) * 100))}%` },
-          ]}
-        />
-      </View>
-      <Disclosure plain title={t("promo.details")}>
-        {nextPriceIdr !== null ? (
-          <Text style={styles.promoNote}>{t("promo.then", { price: fmtIdr(nextPriceIdr) })}</Text>
-        ) : null}
-        <Text style={styles.promoNote}>{t("promo.locked")}</Text>
-      </Disclosure>
-    </Card>
+    <Animated.View entering={enter}>
+      <Card style={styles.promoCard}>
+        <Text style={styles.promoHeadline}>
+          {t("promo.headline", { price: fmtIdr(config.data.founderPriceIdr) })}
+        </Text>
+        <Text style={styles.promoText}>
+          <Trans
+            ns="billing"
+            i18nKey="promo.slots"
+            count={left}
+            values={{ total: promo.slots, left }}
+            components={{ b: <Text style={styles.promoBold} /> }}
+          />
+        </Text>
+        <View style={styles.promoTrack}>
+          <View
+            style={[
+              styles.promoFill,
+              { width: `${Math.min(100, Math.max(0, (promo.taken / promo.slots) * 100))}%` },
+            ]}
+          />
+        </View>
+        <Disclosure plain title={t("promo.details")}>
+          {nextPriceIdr !== null ? (
+            <Text style={styles.promoNote}>{t("promo.then", { price: fmtIdr(nextPriceIdr) })}</Text>
+          ) : null}
+          <Text style={styles.promoNote}>{t("promo.locked")}</Text>
+        </Disclosure>
+      </Card>
+    </Animated.View>
   );
 }
 
@@ -845,9 +852,6 @@ const styles = StyleSheet.create((theme) => ({
     borderWidth: 1,
     borderColor: theme.colors.hairline,
     backgroundColor: theme.colors.background,
-  },
-  methodPressed: {
-    backgroundColor: theme.colors.muted,
   },
   methodIcon: {
     width: 48,

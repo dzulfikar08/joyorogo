@@ -35,6 +35,7 @@ import {
   BootLoader,
   Button,
   Card,
+  CountNum,
   ErrorState,
   ListGroup,
   ListRow,
@@ -48,6 +49,7 @@ import {
   Text,
 } from "@/components/ui";
 import { MetaLine } from "@/components/meta-line";
+import { PressableScale, Reveal } from "@/components/motion";
 import { WaterCard, useWater } from "@/components/water-card";
 import { FastingScheduleCard } from "@/components/fasting/schedule-card";
 import { DailyTipCard } from "@/components/tips/daily-tip-card";
@@ -345,73 +347,81 @@ export default function Dashboard() {
       ) : null}
 
       {/* Hero: sisa makan di ring + tiga angka di sebelahnya */}
-      <Card style={styles.heroCard}>
-        <View style={styles.heroRow}>
-          <Ring
-            size={136}
-            stroke={12}
-            value={data.eatenKcal}
-            max={data.targets.eatKcal}
-            color={ringColor}
-            track={theme.colors.makanSoft}
-          >
-            <Text style={styles.heroLabel}>{over ? t("eat.over") : t("eat.left")}</Text>
-            <Num
-              style={[styles.heroNumber, over && { color: theme.colors.bakarText }]}
-              adjustsFontSizeToFit
-              numberOfLines={1}
+      <Reveal index={0}>
+        <Card style={styles.heroCard}>
+          <View style={styles.heroRow}>
+            <Ring
+              size={136}
+              stroke={12}
+              value={data.eatenKcal}
+              max={data.targets.eatKcal}
+              color={ringColor}
+              track={theme.colors.makanSoft}
             >
-              {fmtInt(leftKcal)}
-            </Num>
-            <Text style={styles.heroLabel}>kcal</Text>
-          </Ring>
-          <View style={styles.heroStats}>
-            <View style={styles.heroStat}>
-              <Text style={styles.heroStatLabel}>{t("eat.target")}</Text>
-              <Num style={styles.heroStatValue}>{fmtInt(data.targets.eatKcal)}</Num>
+              <Text style={styles.heroLabel}>{over ? t("eat.over") : t("eat.left")}</Text>
+              <CountNum
+                value={leftKcal}
+                style={[styles.heroNumber, over && { color: theme.colors.bakarText }]}
+                adjustsFontSizeToFit
+                numberOfLines={1}
+              />
+              <Text style={styles.heroLabel}>kcal</Text>
+            </Ring>
+            <View style={styles.heroStats}>
+              <View style={styles.heroStat}>
+                <Text style={styles.heroStatLabel}>{t("eat.target")}</Text>
+                <CountNum value={data.targets.eatKcal} style={styles.heroStatValue} />
+              </View>
+              <View style={[styles.heroStat, styles.heroStatMid]}>
+                <Text style={styles.heroStatLabel}>{t("eat.eaten")}</Text>
+                <CountNum value={data.eatenKcal} style={styles.heroStatValue} />
+              </View>
+              <PressableScale
+                accessibilityRole="button"
+                accessibilityLabel={t("eat.help")}
+                onPress={() => setExplainOpen(true)}
+                scaleTo={1}
+                dimTo={0.7}
+                style={styles.helpButton}
+              >
+                <Ionicons
+                  name="help-circle-outline"
+                  size={20}
+                  color={theme.colors.mutedForeground}
+                />
+                <Text style={styles.adaptiveText} numberOfLines={1}>
+                  {t("eat.help")}
+                </Text>
+              </PressableScale>
             </View>
-            <View style={[styles.heroStat, styles.heroStatMid]}>
-              <Text style={styles.heroStatLabel}>{t("eat.eaten")}</Text>
-              <Num style={styles.heroStatValue}>{fmtInt(data.eatenKcal)}</Num>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("eat.help")}
-              onPress={() => setExplainOpen(true)}
-              style={({ pressed }) => [styles.helpButton, pressed && styles.pressedSoft]}
-            >
-              <Ionicons name="help-circle-outline" size={20} color={theme.colors.mutedForeground} />
-              <Text style={styles.adaptiveText} numberOfLines={1}>
-                {t("eat.help")}
-              </Text>
-            </Pressable>
           </View>
-        </View>
-        {adaptive ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("adaptive.info")}
-            onPress={() => setAdaptiveOpen(true)}
-            style={({ pressed }) => [styles.adaptiveRow, pressed && styles.pressedSoft]}
-          >
-            <Ionicons name="information-circle" size={14} color={theme.colors.mutedForeground} />
-            <Text style={styles.adaptiveText}>{t("adaptive.link")}</Text>
-          </Pressable>
-        ) : null}
-        {over ? (
-          <Text style={styles.heroNote}>
-            {t("eat.overNote", { kcal: fmtInt(leftKcal) })}
-          </Text>
-        ) : null}
-      </Card>
+          {adaptive ? (
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityLabel={t("adaptive.info")}
+              onPress={() => setAdaptiveOpen(true)}
+              scaleTo={1}
+              dimTo={0.7}
+              style={styles.adaptiveRow}
+            >
+              <Ionicons name="information-circle" size={14} color={theme.colors.mutedForeground} />
+              <Text style={styles.adaptiveText}>{t("adaptive.link")}</Text>
+            </PressableScale>
+          ) : null}
+          {over ? (
+            <Text style={styles.heroNote}>{t("eat.overNote", { kcal: fmtInt(leftKcal) })}</Text>
+          ) : null}
+        </Card>
+      </Reveal>
 
       {/* Angka harian: bakar, tidur, protein */}
-      <View style={styles.tileRow}>
+      <Reveal index={1} style={styles.tileRow}>
         <StatTile
           icon="flame"
           tint="bakar"
           label={t("tile.burn")}
           value={fmtInt(data.burnedKcal)}
+          count={data.burnedKcal}
           sub={t("tile.burnOf", { kcal: fmtInt(data.targets.burnKcal) })}
           onPress={() => router.navigate("/olahraga")}
         />
@@ -432,6 +442,8 @@ export default function Dashboard() {
           tint="makan"
           label={t("tile.protein")}
           value={data.protein ? `${fmtInt(data.protein.eatenG)}g` : "–"}
+          count={data.protein ? data.protein.eatenG : undefined}
+          countSuffix="g"
           sub={
             data.protein
               ? t("tile.proteinOf", { g: fmtInt(data.protein.targetG) })
@@ -439,15 +451,16 @@ export default function Dashboard() {
           }
           onPress={() => router.navigate("/makan")}
         />
-      </View>
+      </Reveal>
 
       {/* Air (ketuk = +1 gelas) dan berat tren */}
-      <View style={styles.tileRow}>
+      <Reveal index={2} style={styles.tileRow}>
         <StatTile
           icon="water"
           tint="tidur"
           label={t("tile.water")}
           value={String(water.glasses)}
+          count={water.glasses}
           sub={t("water.ofGoal", { count: water.goal })}
           onPress={water.add}
         />
@@ -463,7 +476,7 @@ export default function Dashboard() {
           }
           onPress={() => router.navigate("/berat")}
         />
-      </View>
+      </Reveal>
 
       {/* Latihan beban: peringatan otot terlewat + pintu ke /latihan */}
       <WorkoutCard />
@@ -502,21 +515,23 @@ export default function Dashboard() {
         }
         action={{ label: t("meals.all"), onPress: () => router.navigate("/makan") }}
       />
-      <ListGroup>
-        {slots.map((slot) => {
-          const kcal = data.eatenByMeal[slot] ?? 0;
-          return (
-            <ListRow
-              key={slot}
-              title={MEAL_LABELS[slot]}
-              subtitle={kcal > 0 ? undefined : t("meals.empty")}
-              value={kcal > 0 ? `${fmtInt(kcal)} kcal` : undefined}
-              chevron
-              onPress={() => router.navigate("/makan")}
-            />
-          );
-        })}
-      </ListGroup>
+      <Reveal index={3}>
+        <ListGroup>
+          {slots.map((slot) => {
+            const kcal = data.eatenByMeal[slot] ?? 0;
+            return (
+              <ListRow
+                key={slot}
+                title={MEAL_LABELS[slot]}
+                subtitle={kcal > 0 ? undefined : t("meals.empty")}
+                value={kcal > 0 ? `${fmtInt(kcal)} kcal` : undefined}
+                chevron
+                onPress={() => router.navigate("/makan")}
+              />
+            );
+          })}
+        </ListGroup>
+      </Reveal>
 
       {/* Diari piring: stiker hasil pindai hari ini */}
       {plates.length > 0 ? (
@@ -527,8 +542,8 @@ export default function Dashboard() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.platesRow}
           >
-            {plates.map((item) => (
-              <View key={item.id} style={styles.plateCard}>
+            {plates.map((item, index) => (
+              <Reveal key={item.id} index={index} style={styles.plateCard}>
                 <FoodSticker
                   scanId={item.scanId}
                   name={item.name}
@@ -546,7 +561,7 @@ export default function Dashboard() {
                   {item.name}
                 </Text>
                 <Text style={styles.plateKcal}>{fmtInt(item.kcal)} kcal</Text>
-              </View>
+              </Reveal>
             ))}
           </ScrollView>
         </View>

@@ -2,9 +2,11 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { MAKAN_VIEWS } from "@joyorogo/api/lib/diary-view";
 import type { MakanView } from "@joyorogo/api/lib/diary-view";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
+import { EASE_OUT, PressableScale } from "@/components/motion";
 import { Text } from "@/components/ui";
 
 function ViewIcon({ view, color }: { view: MakanView; color: string }) {
@@ -33,28 +35,27 @@ export function MakanViewSwitcher({
       {MAKAN_VIEWS.map((view) => {
         const active = view.value === value;
         return (
-          <Pressable
+          <PressableScale
             key={view.value}
             accessibilityRole="tab"
             accessibilityLabel={t(`viewSwitcher.view.${view.value}`)}
             accessibilityState={{ selected: active }}
             onPress={() => onChange(view.value)}
-            style={({ pressed }) => [
-              styles.segment,
-              active ? styles.segmentActive : styles.segmentIdle,
-              pressed && !active && styles.pressed,
-            ]}
+            scaleTo={0.94}
+            style={[styles.segment, active ? styles.segmentActive : styles.segmentIdle]}
           >
             <ViewIcon
               view={view.value}
               color={active ? theme.colors.foreground : theme.colors.mutedForeground}
             />
             {active ? (
-              <Text style={styles.label} numberOfLines={1}>
-                {t(`viewSwitcher.view.${view.value}`)}
-              </Text>
+              <Animated.View entering={FadeIn.duration(180).easing(EASE_OUT)}>
+                <Text style={styles.label} numberOfLines={1}>
+                  {t(`viewSwitcher.view.${view.value}`)}
+                </Text>
+              </Animated.View>
             ) : null}
-          </Pressable>
+          </PressableScale>
         );
       })}
     </View>
@@ -89,8 +90,5 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     fontWeight: "700",
     color: theme.colors.foreground,
-  },
-  pressed: {
-    opacity: 0.6,
   },
 }));

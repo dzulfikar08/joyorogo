@@ -1,9 +1,11 @@
 import { useEffect, useRef } from "react";
 import { AccessibilityInfo, Animated, View } from "react-native";
+import Reanimated from "react-native-reanimated";
 import { StyleSheet } from "react-native-unistyles";
 
 import type { LiveRow } from "@joyorogo/api/lib/scan-live";
 
+import { useEnter } from "@/components/motion";
 import { Text } from "@/components/ui";
 import { fmtInt } from "@/utils/format";
 
@@ -16,20 +18,9 @@ function SkeletonBar({ pulse, width }: { pulse: Animated.Value; width: number })
 
 /** One finished or in-progress item; fades in when the model first writes it. */
 function Row({ row, pulse }: { row: LiveRow; pulse: Animated.Value }) {
-  const enter = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(enter, { toValue: 1, duration: 220, useNativeDriver: true }).start();
-  }, [enter]);
+  const enter = useEnter();
   return (
-    <Animated.View
-      style={[
-        styles.row,
-        {
-          opacity: enter,
-          transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }],
-        },
-      ]}
-    >
+    <Reanimated.View entering={enter} style={styles.row}>
       <Text style={styles.name} numberOfLines={1}>
         {row.name}
       </Text>
@@ -38,7 +29,7 @@ function Row({ row, pulse }: { row: LiveRow; pulse: Animated.Value }) {
       ) : (
         <SkeletonBar pulse={pulse} width={48} />
       )}
-    </Animated.View>
+    </Reanimated.View>
   );
 }
 

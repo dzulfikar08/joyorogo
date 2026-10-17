@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { Pressable, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { Redirect, router } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -43,7 +43,7 @@ import {
   Input,
   ListGroup,
   MacroBar,
-  Num,
+  CountNum,
   PageHeader,
   Ring,
   Screen,
@@ -52,6 +52,7 @@ import {
   Skeleton,
   Text,
 } from "@/components/ui";
+import { PopIn, PressableScale, Reveal } from "@/components/motion";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { errorMessage, fmtDateMedium, fmtInt, parseNum } from "@/utils/format";
@@ -601,18 +602,25 @@ export default function Makan() {
           <View style={styles.slotDot} />
           <Text style={styles.slotTitle}>{MEAL_LABELS[key]}</Text>
           <View style={styles.slotRight}>
-            {slotKcal > 0 ? <Num style={styles.slotKcal}>{fmtInt(slotKcal)} kcal</Num> : null}
-            <Pressable
+            {slotKcal > 0 ? (
+              <CountNum
+                value={slotKcal}
+                format={(n) => `${fmtInt(n)} kcal`}
+                style={styles.slotKcal}
+              />
+            ) : null}
+            <PressableScale
               accessibilityRole="button"
               accessibilityLabel={t("diary.list.addTo", { meal: MEAL_LABELS[key] })}
               onPress={() => {
                 setSheetMeal(key);
                 setFormError(null);
               }}
-              style={({ pressed }) => [styles.slotAdd, pressed && styles.pressedSoft]}
+              scaleTo={0.88}
+              style={styles.slotAdd}
             >
               <Ionicons name="add" size={20} color={theme.colors.primary} />
-            </Pressable>
+            </PressableScale>
           </View>
         </View>
         {slotItems.length === 0 ? (
@@ -716,9 +724,12 @@ export default function Makan() {
               track={theme.colors.makanSoft}
             >
               <View style={styles.ringCenter}>
-                <Num style={styles.ringKcal} adjustsFontSizeToFit numberOfLines={1}>
-                  {fmtInt(eatenKcal)}
-                </Num>
+                <CountNum
+                  value={eatenKcal}
+                  style={styles.ringKcal}
+                  adjustsFontSizeToFit
+                  numberOfLines={1}
+                />
                 <Text style={styles.ringUnit}>kcal</Text>
                 {targets !== null && targets.eatKcal > 0 ? (
                   <Text
@@ -769,14 +780,15 @@ export default function Makan() {
           {isToday ? <BelanjaSection /> : null}
 
           {/* Global story entry: several meals, even another day, in one go */}
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel={t("diary.story.title")}
             onPress={() => {
               setCeritaFeedback(null);
               setCeritaOpen(true);
             }}
-            style={({ pressed }) => [styles.ceritaBar, pressed && styles.pressedSoft]}
+            scaleTo={0.98}
+            style={styles.ceritaBar}
           >
             <View style={styles.ceritaMic}>
               <Ionicons name="mic" size={20} color={theme.colors.primaryForeground} />
@@ -786,21 +798,24 @@ export default function Makan() {
               <Text style={styles.ceritaSub}>{t("diary.story.subtitle")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.colors.mutedForeground} />
-          </Pressable>
+          </PressableScale>
 
           {ceritaFeedback ? (
-            <View style={styles.feedbackBox}>
-              <Ionicons name="checkmark-circle" size={20} color={theme.colors.makanText} />
+            <Reveal style={styles.feedbackBox}>
+              <PopIn>
+                <Ionicons name="checkmark-circle" size={20} color={theme.colors.makanText} />
+              </PopIn>
               <Text style={styles.feedbackText}>{ceritaFeedback}</Text>
-              <Pressable
+              <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel={t("diary.story.dismiss")}
                 onPress={() => setCeritaFeedback(null)}
-                style={({ pressed }) => [styles.feedbackClose, pressed && styles.pressedSoft]}
+                scaleTo={0.88}
+                style={styles.feedbackClose}
               >
                 <Ionicons name="close" size={18} color={theme.colors.makanText} />
-              </Pressable>
-            </View>
+              </PressableScale>
+            </Reveal>
           ) : null}
 
           {favorites.items.length > 0 ? (
@@ -855,16 +870,18 @@ export default function Makan() {
             title={relativeDayLabel(date, today)}
             count={visibleItems.length}
             trailing={
-              <Pressable
+              <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel={t("diary.list.openInList")}
                 onPress={() => chooseView("daftar")}
                 hitSlop={8}
-                style={({ pressed }) => [styles.openDaftar, pressed && styles.pressedSoft]}
+                scaleTo={1}
+                dimTo={0.7}
+                style={styles.openDaftar}
               >
                 <Text style={styles.openDaftarLabel}>{t("diary.list.openInList")}</Text>
                 <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
-              </Pressable>
+              </PressableScale>
             }
           >
             {listQuery.isPending ? (
@@ -976,14 +993,15 @@ export default function Makan() {
           </View>
         ) : null}
         {ceritaPhase === "input" ? (
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel={t("diary.sheet.scanPhoto.title")}
             onPress={() => {
               closeSheet();
               router.push(isToday ? "/makan-ai" : { pathname: "/makan-ai", params: { date } });
             }}
-            style={({ pressed }) => [styles.photoLink, pressed && styles.pressedSoft]}
+            scaleTo={0.98}
+            style={styles.photoLink}
           >
             <View style={styles.photoIcon}>
               <Ionicons name="camera-outline" size={20} color={theme.colors.makanText} />
@@ -993,10 +1011,10 @@ export default function Makan() {
               <Text style={styles.ceritaSub}>{t("diary.sheet.scanPhoto.subtitle")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.colors.mutedForeground} />
-          </Pressable>
+          </PressableScale>
         ) : null}
         {ceritaPhase === "input" ? (
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel={t("diary.sheet.scanBarcode.title")}
             onPress={() => {
@@ -1007,7 +1025,8 @@ export default function Makan() {
                 params: { ...(isToday ? {} : { date }), ...(meal ? { meal } : {}) },
               });
             }}
-            style={({ pressed }) => [styles.photoLink, pressed && styles.pressedSoft]}
+            scaleTo={0.98}
+            style={styles.photoLink}
           >
             <View style={styles.photoIcon}>
               <Ionicons name="barcode-outline" size={20} color={theme.colors.makanText} />
@@ -1017,7 +1036,7 @@ export default function Makan() {
               <Text style={styles.ceritaSub}>{t("diary.sheet.scanBarcode.subtitle")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.colors.mutedForeground} />
-          </Pressable>
+          </PressableScale>
         ) : null}
         {ceritaPhase === "input" && !manualOpen ? (
           <Button
@@ -1214,9 +1233,6 @@ export default function Makan() {
 }
 
 const styles = StyleSheet.create((theme) => ({
-  pressedSoft: {
-    opacity: 0.7,
-  },
   summaryCard: {
     flexDirection: "row",
     alignItems: "center",

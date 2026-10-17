@@ -1,12 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useReducedMotion } from "react-native-reanimated";
+import Reanimated, {
+  cancelAnimation,
+  useAnimatedProps,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { MACRO_META, MacroIcon, type MacroKey } from "@/utils/macro-icons";
 import React, { Fragment, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  Animated,
-  Easing,
   Image,
   Modal,
   Pressable,
@@ -32,6 +39,9 @@ import { fmtInt } from "@/utils/format";
 
 import { Container } from "@/components/container";
 import { Mascot, type MascotPose } from "@/components/mascot";
+import { EASE_OUT, PressableScale, useCountUp } from "@/components/motion";
+
+const AnimatedCircle = Reanimated.createAnimatedComponent(Circle);
 
 // JoyoRogo v2 kit. Paper canvas, borderless white cards, one leaf-green
 // primary; the data colors (makan/bakar/tidur) only ever tell the three
@@ -85,6 +95,25 @@ export function Num({ style, ...rest }: TextProps) {
       : [...(base.fontVariant ?? []), "tabular-nums"],
   };
   return <RNText style={[{ color: theme.colors.foreground }, styled]} {...rest} />;
+}
+
+/**
+ * Num that counts up to `value` (kcal, scores). Eases from what is on screen, so
+ * a changed total animates the delta; snaps under reduced motion. The a11y label
+ * always carries the final number.
+ */
+export function CountNum({
+  value,
+  format = fmtInt,
+  style,
+  ...rest
+}: Omit<TextProps, "children"> & { value: number; format?: (n: number) => string }) {
+  const shown = useCountUp(value);
+  return (
+    <Num style={style} accessibilityLabel={format(value)} {...rest}>
+      {format(shown)}
+    </Num>
+  );
 }
 
 // --- Layout ----------------------------------------------------------------
@@ -155,15 +184,17 @@ export function SectionTitle({
     <View style={styles.sectionRow}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {action ? (
-        <Pressable
+        <PressableScale
           accessibilityRole="button"
           accessibilityLabel={action.label}
           onPress={action.onPress}
           hitSlop={8}
-          style={({ pressed }) => [styles.sectionAction, pressed && styles.pressedSoft]}
+          scaleTo={1}
+          dimTo={0.7}
+          style={styles.sectionAction}
         >
           <Text style={styles.sectionActionLabel}>{action.label}</Text>
-        </Pressable>
+        </PressableScale>
       ) : null}
     </View>
   );
@@ -252,38 +283,24 @@ export function Ring({
 }) {
   const reduceMotion = useReducedMotion();
   const ratio = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;
-  const progress = useRef(new Animated.Value(0)).current;
-  const [shown, setShown] = useState(0);
+  const progress = useSharedValue(0);
 
+  // Runs on the UI thread. A changed value sweeps from the current arc to the
+  // new one instead of replaying from empty.
   useEffect(() => {
-    const id = progress.addListener(({ value: v }) => setShown(v));
-    return () => progress.removeListener(id);
-  }, [progress]);
-
-  useEffect(() => {
-    if (reduceMotion) {
-      progress.stopAnimation();
-      setShown(ratio);
-      return;
-    }
-    progress.setValue(0);
-    Animated.timing(progress, {
-      toValue: ratio,
-      duration: 600,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
+    progress.value = reduceMotion ? ratio : withTiming(ratio, { duration: 500, easing: EASE_OUT });
   }, [progress, ratio, reduceMotion]);
 
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const half = size / 2;
+  const arc = useAnimatedProps(() => ({ strokeDashoffset: c * (1 - progress.value) }), [c]);
 
   return (
     <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
       <Svg width={size} height={size}>
         <Circle cx={half} cy={half} r={r} stroke={track} strokeWidth={stroke} fill="none" />
-        <Circle
+        <AnimatedCircle
           cx={half}
           cy={half}
           r={r}
@@ -292,7 +309,7 @@ export function Ring({
           strokeLinecap="round"
           fill="none"
           strokeDasharray={c}
-          strokeDashoffset={c * (1 - shown)}
+          animatedProps={arc}
           transform={`rotate(-90 ${half} ${half})`}
         />
       </Svg>
@@ -306,6 +323,23 @@ export function Ring({
 }
 
 // --- MacroBar --------------------------------------------------------------
+
+/** Bar fill that slides to `pct` on the UI thread (full-width bar, translated inside the clipped track). */
+function BarFill({ pct, color }: { pct: number; color: string }) {
+  const reduceMotion = useReducedMotion();
+  const fraction = useSharedValue(0);
+  useEffect(() => {
+    fraction.value = reduceMotion
+      ? pct / 100
+      : withTiming(pct / 100, { duration: 400, easing: EASE_OUT });
+  }, [fraction, pct, reduceMotion]);
+  const slide = useAnimatedStyle(() => ({
+    transform: [{ translateX: `${(fraction.value - 1) * 100}%` }],
+  }));
+  return (
+    <Reanimated.View style={[styles.macroFill, { width: "100%", backgroundColor: color }, slide]} />
+  );
+}
 
 /**
  * One nutrient against its daily budget: label, thin track/fill, "eaten/budget g".
@@ -349,12 +383,7 @@ export function MacroBar({
         <Text style={styles.macroLabel}>{label}</Text>
       </View>
       <View style={styles.macroTrack}>
-        <View
-          style={[
-            styles.macroFill,
-            { width: `${pct}%`, backgroundColor: over ? theme.colors.bakar : theme.colors.makan },
-          ]}
-        />
+        <BarFill pct={pct} color={over ? theme.colors.bakar : theme.colors.makan} />
       </View>
       <Num
         style={[styles.macroValue, over && { color: theme.colors.bakarText, fontWeight: "700" }]}
@@ -380,6 +409,8 @@ export function StatTile({
   tint,
   label,
   value,
+  count,
+  countSuffix = "",
   sub,
   onPress,
 }: {
@@ -388,7 +419,11 @@ export function StatTile({
   macro?: MacroKey;
   tint: Tint;
   label: string;
+  /** Display text; also the fallback when `count` is absent. */
   value: string;
+  /** Whole number that counts up instead of showing `value`. */
+  count?: number;
+  countSuffix?: string;
   sub?: string;
   onPress?: () => void;
 }) {
@@ -404,7 +439,15 @@ export function StatTile({
         ) : null}
       </View>
       <Text style={[styles.tileLabel, { color: theme.colors[c.text] }]}>{label}</Text>
-      <Num style={[styles.tileValue, { color: theme.colors[c.text] }]}>{value}</Num>
+      {count !== undefined ? (
+        <CountNum
+          value={count}
+          format={(n) => `${fmtInt(n)}${countSuffix}`}
+          style={[styles.tileValue, { color: theme.colors[c.text] }]}
+        />
+      ) : (
+        <Num style={[styles.tileValue, { color: theme.colors[c.text] }]}>{value}</Num>
+      )}
       {sub ? <Text style={[styles.tileSub, { color: theme.colors[c.text] }]}>{sub}</Text> : null}
     </>
   );
@@ -412,18 +455,14 @@ export function StatTile({
     return <View style={[styles.statTile, { backgroundColor: theme.colors[c.soft] }]}>{body}</View>;
   }
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.statTile,
-        { backgroundColor: theme.colors[c.soft] },
-        pressed && styles.pressedSoft,
-      ]}
+      style={[styles.statTile, { backgroundColor: theme.colors[c.soft] }]}
     >
       {body}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -520,14 +559,16 @@ export function ListRow({
     return <View style={styles.listRow}>{content}</View>;
   }
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={title}
       onPress={onPress}
-      style={({ pressed }) => [styles.listRow, pressed && styles.pressedSoft]}
+      scaleTo={1}
+      dimTo={0.7}
+      style={styles.listRow}
     >
       {content}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -575,15 +616,16 @@ export function Sheet({
           <View style={[styles.sheetPanel, { paddingBottom: Math.max(insets.bottom, 16) }]}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>{title}</Text>
-              <Pressable
+              <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel={t("actions.close")}
                 onPress={onClose}
                 hitSlop={8}
-                style={({ pressed }) => [styles.sheetClose, pressed && styles.pressedSoft]}
+                scaleTo={0.9}
+                style={styles.sheetClose}
               >
                 <Ionicons name="close" size={22} color={theme.colors.mutedForeground} />
-              </Pressable>
+              </PressableScale>
             </View>
             <KeyboardAwareScrollView
               style={styles.sheetScroll}
@@ -614,30 +656,59 @@ export function Segmented<T extends string>({
   onChange: (value: T) => void;
   disabled?: boolean;
 }) {
+  const reduceMotion = useReducedMotion();
+  const [width, setWidth] = useState(0);
+  const active = Math.max(
+    0,
+    options.findIndex((option) => option.value === value),
+  );
+  const slot = options.length > 0 ? (width - 6 - 2 * (options.length - 1)) / options.length : 0;
+  const x = useSharedValue(0);
+  const placed = useRef(false);
+
+  // The active pill slides under the labels; first layout places it without motion.
+  useEffect(() => {
+    if (slot <= 0) return;
+    const target = active * (slot + 2);
+    x.value =
+      placed.current && !reduceMotion
+        ? withTiming(target, { duration: 200, easing: EASE_OUT })
+        : target;
+    placed.current = true;
+  }, [active, slot, reduceMotion, x]);
+
+  const pill = useAnimatedStyle(
+    () => ({ width: slot, transform: [{ translateX: x.value }] }),
+    [slot],
+  );
+
   return (
-    <View style={[styles.segmented, disabled && styles.disabled]} accessibilityRole="tablist">
+    <View
+      style={[styles.segmented, disabled && styles.disabled]}
+      accessibilityRole="tablist"
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+    >
+      {slot > 0 ? (
+        <Reanimated.View pointerEvents="none" style={[styles.segmentPill, pill]} />
+      ) : null}
       {options.map((option) => {
-        const active = option.value === value;
+        const selected = option.value === value;
         return (
-          <Pressable
+          <PressableScale
             key={option.value}
             accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
+            accessibilityState={{ selected }}
             disabled={disabled}
             onPress={() => onChange(option.value)}
-            style={({ pressed }) => [
-              styles.segmentOption,
-              active && styles.segmentOptionActive,
-              pressed && !active && styles.pressedSoft,
-            ]}
+            style={styles.segmentOption}
           >
             <Text
-              style={[styles.segmentLabel, active && styles.segmentLabelActive]}
+              style={[styles.segmentLabel, selected && styles.segmentLabelActive]}
               numberOfLines={1}
             >
               {option.label}
             </Text>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </View>
@@ -686,17 +757,16 @@ export function Button({
           ? theme.colors.foreground
           : theme.colors.primary;
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={label}
       disabled={inactive}
       onPress={onPress}
-      style={({ pressed }) => [
+      style={[
         styles.button,
         size === "lg" ? styles.buttonLg : styles.buttonSm,
         { backgroundColor: bg },
         variant === "ghost" && { backgroundColor: "transparent" },
-        pressed && !inactive && styles.buttonPressed,
         disabled && styles.disabled,
         style,
       ]}
@@ -713,7 +783,7 @@ export function Button({
           </Text>
         </>
       )}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -736,17 +806,18 @@ export function Chip({
 }) {
   const { theme } = useUnistyles();
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected: !!selected }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
+      scaleTo={0.96}
+      style={[
         styles.chip,
         leading ? styles.chipWithLeading : null,
         { backgroundColor: selected ? theme.colors.foreground : theme.colors.muted },
-        (pressed || disabled) && styles.pressedSoft,
+        disabled && styles.pressedSoft,
       ]}
     >
       {leading}
@@ -759,7 +830,7 @@ export function Chip({
       >
         {label}
       </Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -829,37 +900,26 @@ export function Skeleton({
   style?: ViewStyle;
 }) {
   const reduceMotion = useReducedMotion();
-  const opacity = useRef(new Animated.Value(1)).current;
+  const opacity = useSharedValue(1);
   useEffect(() => {
     if (reduceMotion) {
-      opacity.setValue(0.55);
+      opacity.value = 0.55;
       return;
     }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.55,
-          duration: 700,
-          easing: Easing.ease,
-          useNativeDriver: false,
-        }),
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 700,
-          easing: Easing.ease,
-          useNativeDriver: false,
-        }),
-      ]),
+    opacity.value = withRepeat(
+      withSequence(withTiming(0.55, { duration: 700 }), withTiming(1, { duration: 700 })),
+      -1,
     );
-    loop.start();
-    return () => loop.stop();
+    return () => cancelAnimation(opacity);
   }, [opacity, reduceMotion]);
+  const pulse = useAnimatedStyle(() => ({ opacity: opacity.value }));
   return (
-    <Animated.View
+    <Reanimated.View
       style={[
         styles.skeleton,
         { width, height, borderRadius: circle ? height / 2 : (radius ?? 8) },
         style,
+        pulse,
       ]}
     />
   );
@@ -1179,7 +1239,12 @@ const styles = StyleSheet.create((theme) => ({
     justifyContent: "center",
     paddingHorizontal: 8,
   },
-  segmentOptionActive: {
+  segmentPill: {
+    position: "absolute",
+    top: 3,
+    bottom: 3,
+    left: 3,
+    borderRadius: theme.radius.pill,
     backgroundColor: theme.colors.card,
     shadowColor: "#1D1A15",
     shadowOpacity: 0.08,
@@ -1211,10 +1276,6 @@ const styles = StyleSheet.create((theme) => ({
     minHeight: 40,
     paddingHorizontal: theme.spacing.md,
     alignSelf: "flex-start",
-  },
-  buttonPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.98 }],
   },
   buttonLabelLg: {
     fontSize: theme.fontSize.base,

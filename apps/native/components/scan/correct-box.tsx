@@ -8,9 +8,11 @@ import {
 import { File } from "expo-file-system";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
+import Reanimated from "react-native-reanimated";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
+import { PressableScale, useEnter, usePopIn } from "@/components/motion";
 import { Button, Input, Text } from "@/components/ui";
 
 /** A correction is a short sentence; thirty seconds is plenty and keeps the upload small. */
@@ -39,6 +41,25 @@ function fmtClock(ms: number): string {
 function errorTranscript(err: unknown): string | null {
   const data = (err as { data?: { transcript?: unknown } } | null)?.data;
   return typeof data?.transcript === "string" && data.transcript ? data.transcript : null;
+}
+
+/** Result line under the box; fades up, with a popped check once a correction landed. */
+function Summary({ check = false, children }: { check?: boolean; children: React.ReactNode }) {
+  const { theme } = useUnistyles();
+  const enter = useEnter();
+  const pop = usePopIn();
+  return (
+    <Reanimated.View entering={enter} style={styles.summaryRow}>
+      {check ? (
+        <Reanimated.View entering={pop}>
+          <Ionicons name="checkmark-circle" size={18} color={theme.colors.makanText} />
+        </Reanimated.View>
+      ) : null}
+      <Text style={styles.summary} accessibilityLiveRegion="polite">
+        {children}
+      </Text>
+    </Reanimated.View>
+  );
 }
 
 /**
@@ -265,32 +286,28 @@ export function CorrectBox({
             onSubmitEditing={send}
             style={styles.input}
           />
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel={t("correct.mic")}
             disabled={working}
             onPress={() => void startRecording()}
-            style={({ pressed }) => [
-              styles.roundButton,
-              styles.micButton,
-              (pressed || working) && styles.pressedSoft,
-            ]}
+            dimTo={0.6}
+            scaleTo={0.94}
+            style={[styles.roundButton, styles.micButton, working && styles.pressedSoft]}
           >
             <Ionicons name="mic" size={20} color={theme.colors.primary} />
-          </Pressable>
-          <Pressable
+          </PressableScale>
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel={t("correct.send")}
             disabled={!canSend}
             onPress={send}
-            style={({ pressed }) => [
-              styles.roundButton,
-              styles.sendButton,
-              (pressed || !canSend) && styles.pressedSoft,
-            ]}
+            dimTo={0.6}
+            scaleTo={0.94}
+            style={[styles.roundButton, styles.sendButton, !canSend && styles.pressedSoft]}
           >
             <Ionicons name="send" size={18} color={theme.colors.primaryForeground} />
-          </Pressable>
+          </PressableScale>
         </View>
       )}
 
@@ -304,18 +321,14 @@ export function CorrectBox({
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {heard ? <Text style={styles.status}>{t("correct.heard", { text: heard })}</Text> : null}
       {outcome ? (
-        <Text style={styles.summary} accessibilityLiveRegion="polite">
+        <Summary check>
           {t("correct.applied", { count: outcome.count })}
           {outcome.removed.length > 0
             ? ` ${t("correct.removed", { names: outcome.removed.join(", ") })}`
             : ""}
-        </Text>
+        </Summary>
       ) : null}
-      {undone ? (
-        <Text style={styles.summary} accessibilityLiveRegion="polite">
-          {t("correct.undone")}
-        </Text>
-      ) : null}
+      {undone ? <Summary>{t("correct.undone")}</Summary> : null}
       {left !== null && left <= 3 ? (
         <Text style={styles.status}>{t("correct.left", { count: left })}</Text>
       ) : null}
@@ -416,7 +429,13 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
   },
+  summaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.xs,
+  },
   summary: {
+    flexShrink: 1,
     fontSize: theme.fontSize.sm,
     fontWeight: "600",
     color: theme.colors.makanText,

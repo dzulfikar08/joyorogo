@@ -2,9 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { FOOD_KIND_FILTERS } from "@joyorogo/api/lib/food-kind";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView } from "react-native";
+import { ScrollView } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
+import { PressableScale } from "@/components/motion";
 import { Text } from "@/components/ui";
 
 const ICONS = {
@@ -36,23 +37,23 @@ export function KindChips({
         const label = filter.value === "semua" ? t("kind.all") : t(`kind.${filter.value}`);
         const ink = active ? theme.colors.primaryForeground : theme.colors.foreground;
         return (
-          <Pressable
+          <PressableScale
             key={filter.value}
             accessibilityRole="button"
             accessibilityLabel={label}
             accessibilityState={{ selected: active }}
             onPress={() => onChange(filter.value)}
-            style={({ pressed }) => [
+            scaleTo={0.96}
+            style={[
               styles.chip,
               { backgroundColor: active ? theme.colors.primary : theme.colors.muted },
-              pressed && styles.pressed,
             ]}
           >
             <Ionicons name={ICONS[filter.value]} size={16} color={ink} />
             <Text style={[styles.label, { color: ink }]} numberOfLines={1}>
               {label}
             </Text>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </ScrollView>
@@ -75,8 +76,5 @@ const styles = StyleSheet.create((theme) => ({
   label: {
     fontSize: theme.fontSize.sm,
     fontWeight: "700",
-  },
-  pressed: {
-    opacity: 0.6,
   },
 }));

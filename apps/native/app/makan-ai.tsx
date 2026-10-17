@@ -3,6 +3,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
+import Reanimated, {
+  FadeIn,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -12,7 +20,7 @@ import {
   ScrollView,
   View,
 } from "react-native";
-import type { StyleProp, ViewStyle } from "react-native";
+import type { StyleProp, TextStyle, ViewStyle } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -45,10 +53,11 @@ import {
   Input,
   ListGroup,
   ListRow,
-  Num,
+  CountNum,
   Segmented,
   Text,
 } from "@/components/ui";
+import { EASE_OUT, PressableScale, useEnter, usePopIn } from "@/components/motion";
 import { Disclosure } from "@/components/disclosure";
 import { KindCycleChip, SnackAdviceSection } from "@/components/makan/snack-advice";
 import { PlateFields, plateInput } from "@/components/plate/plate-fields";
@@ -61,7 +70,7 @@ import type { CorrectInput, CorrectOutcome } from "@/components/scan/correct-box
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { MealStory } from "@/components/story/story-card";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtGramsLabel, fmtInt, parseNum } from "@/utils/format";
+import { errorMessage, fmtGramsLabel, parseNum } from "@/utils/format";
 import { client, isPaywallError, orpc, queryClient } from "@/utils/orpc";
 import { LiveRows } from "@/components/scan/live-rows";
 import { analyzeStreaming } from "@joyorogo/api/lib/scan-live";
@@ -114,6 +123,9 @@ let sessionTiming: {
 
 /** Fun portion stat, same as the web confirm card: 600 kcal = one geprek. */
 const GEPREK_KCAL = 600;
+
+/** Opacity of a result row the user left out of the save. */
+const EXCLUDED_OPACITY = 0.55;
 
 /** Optional chips for the negative answers of "Hasilnya akurat?". */
 const FEEDBACK_REASONS = ["porsi", "makanan", "kcal_tinggi", "kcal_rendah"] as const;
@@ -286,6 +298,119 @@ function sameBox(a: number[] | undefined, b: number[] | undefined) {
   return !!a && !!b && a.length === b.length && a.every((value, i) => value === b[i]);
 }
 
+/** White flash over the viewfinder each time `tick` increments; skipped under reduced motion. */
+function ShutterFlash({ tick }: { tick: number }) {
+  const reduced = useReducedMotion();
+  const opacity = useSharedValue(0);
+  useEffect(() => {
+    if (tick === 0 || reduced) return;
+    opacity.value = withSequence(
+      withTiming(0.5, { duration: 50, easing: EASE_OUT }),
+      withTiming(0, { duration: 110, easing: EASE_OUT }),
+    );
+  }, [tick, reduced, opacity]);
+  const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return <Reanimated.View pointerEvents="none" style={[styles.shutterFlash, style]} />;
+}
+
+/** Big kcal total of the result panel: enters with the panel and counts to every new total. */
+function TotalBlock({
+  totalKcal,
+  reactionText,
+}: {
+  totalKcal: number;
+  reactionText: string | null;
+}) {
+  const { t } = useTranslation("scan");
+  const enter = useEnter();
+  return (
+    <Reanimated.View entering={enter} style={styles.totalBlock}>
+      <Text style={styles.totalLabel}>{t("result.total")}</Text>
+      <View style={styles.totalRow}>
+        <CountNum
+          value={totalKcal}
+          style={styles.totalValue}
+          adjustsFontSizeToFit
+          numberOfLines={1}
+        />
+        <Text style={styles.totalUnit}>kcal</Text>
+      </View>
+      {reactionText ? <Text style={styles.totalReaction}>{reactionText}</Text> : null}
+      {totalKcal > 0 ? (
+        <Text style={styles.totalGeprek}>
+          {t("result.geprek", { count: Math.round(totalKcal / GEPREK_KCAL) })}
+        </Text>
+      ) : null}
+    </Reanimated.View>
+  );
+}
+
+/** One result row: staggered enter (capped by the kit) and a soft dim while excluded. */
+function ItemCard({
+  index,
+  include,
+  corrected,
+  children,
+}: {
+  index: number;
+  include: boolean;
+  corrected: boolean;
+  children: React.ReactNode;
+}) {
+  const enter = useEnter(index + 1);
+  const dim = useSharedValue(include ? 1 : EXCLUDED_OPACITY);
+  useEffect(() => {
+    dim.value = withTiming(include ? 1 : EXCLUDED_OPACITY, { duration: 160, easing: EASE_OUT });
+  }, [include, dim]);
+  const style = useAnimatedStyle(() => ({ opacity: dim.value }));
+  return (
+    <Reanimated.View entering={enter}>
+      <Reanimated.View style={[corrected && styles.correctedRow, style]}>
+        {children}
+      </Reanimated.View>
+    </Reanimated.View>
+  );
+}
+
+function DoneMark() {
+  const { theme } = useUnistyles();
+  const pop = usePopIn();
+  return (
+    <Reanimated.View
+      entering={pop}
+      style={[styles.doneIcon, { backgroundColor: theme.colors.makanSoft }]}
+    >
+      <Ionicons name="checkmark" size={34} color={theme.colors.makanText} />
+    </Reanimated.View>
+  );
+}
+
+function DoneLine({
+  index,
+  style,
+  children,
+}: {
+  index: number;
+  style: StyleProp<TextStyle>;
+  children: React.ReactNode;
+}) {
+  const enter = useEnter(index);
+  return (
+    <Reanimated.View entering={enter}>
+      <Text style={style}>{children}</Text>
+    </Reanimated.View>
+  );
+}
+
+function DoneActions({ children }: { children: React.ReactNode }) {
+  const enter = useEnter(3);
+  return (
+    <Reanimated.View entering={enter} style={styles.doneActions}>
+      {children}
+    </Reanimated.View>
+  );
+}
+
 function AnalyzingOverlay({
   previewUri,
   rows,
@@ -305,22 +430,27 @@ function AnalyzingOverlay({
     return () => clearInterval(timer);
   }, []);
   return (
-    <View style={styles.analyzingOverlay}>
+    <Reanimated.View
+      entering={FadeIn.duration(200).easing(EASE_OUT)}
+      style={styles.analyzingOverlay}
+    >
       <Image source={{ uri: previewUri }} style={styles.analyzingPreview} resizeMode="cover" />
       <View style={styles.analyzingShade}>
         <ActivityIndicator size="large" color="#FFFFFF" />
         <Text style={styles.analyzingText}>{t(`analyzing.stage.${ANALYZE_STAGES[stage]}`)}</Text>
         <LiveRows rows={rows} />
-        <Pressable
+        <PressableScale
           accessibilityRole="button"
           accessibilityLabel={t("analyzing.cancelLabel")}
           onPress={onCancel}
-          style={({ pressed }) => [styles.analyzingCancel, pressed && styles.shutterPressed]}
+          scaleTo={0.96}
+          dimTo={0.7}
+          style={styles.analyzingCancel}
         >
           <Text style={styles.analyzingCancelText}>{t("analyzing.cancel")}</Text>
-        </Pressable>
+        </PressableScale>
       </View>
-    </View>
+    </Reanimated.View>
   );
 }
 
@@ -359,6 +489,7 @@ export default function MakanAi() {
   // The scan request: running flag, what the model has found so far, and the
   // handle that lets "Batal" drop the answer (and the stream) of an old run.
   const [analyzing, setAnalyzing] = useState(false);
+  const [flashTick, setFlashTick] = useState(0);
   const [liveRows, setLiveRows] = useState<LiveRow[]>([]);
   const scanRunRef = useRef(0);
   const scanAbortRef = useRef<AbortController | null>(null);
@@ -725,6 +856,7 @@ export default function MakanAi() {
   };
 
   const capture = async () => {
+    setFlashTick((n) => n + 1);
     try {
       // skipProcessing stays off: it returns the sensor's raw orientation and
       // the preview/crops/model would see rotated photos on some devices.
@@ -1100,14 +1232,14 @@ export default function MakanAi() {
       <View style={styles.cameraWrap}>
         {/* 4:3 portrait, the sensor's native shape: what you frame is what gets sent. */}
         <CameraView ref={cameraRef} style={styles.camera} facing="back" ratio="4:3" />
-        <Pressable
+        <PressableScale
           accessibilityRole="button"
           accessibilityLabel={t("camera.close")}
           onPress={() => router.back()}
           style={styles.closeButton}
         >
           <Ionicons name="close" size={24} color="#FFFFFF" />
-        </Pressable>
+        </PressableScale>
         {analyzing && previewUri ? (
           <AnalyzingOverlay previewUri={previewUri} rows={liveRows} onCancel={resetToCamera} />
         ) : (
@@ -1115,7 +1247,7 @@ export default function MakanAi() {
             <View style={styles.shutterRow}>
               <Text style={styles.shutterHint}>{t("camera.hint")}</Text>
               <Text style={styles.shutterTip}>{t("idle.tip")}</Text>
-              <Pressable
+              <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel={t("camera.barcode")}
                 onPress={() =>
@@ -1125,36 +1257,36 @@ export default function MakanAi() {
                       : "/makan-barcode",
                   )
                 }
-                style={({ pressed }) => [styles.barcodeLink, pressed && styles.shutterPressed]}
+                dimTo={0.7}
+                style={styles.barcodeLink}
               >
                 <Ionicons name="barcode-outline" size={18} color="#FFFFFF" />
                 <Text style={styles.barcodeLinkText}>{t("camera.barcode")}</Text>
-              </Pressable>
+              </PressableScale>
               <View style={styles.shutterActions}>
-                <Pressable
+                <PressableScale
                   accessibilityRole="button"
                   accessibilityLabel={t("idle.gallery")}
                   disabled={analyzing}
                   onPress={() => void pickFromGallery()}
-                  style={({ pressed }) => [
-                    styles.galleryButton,
-                    analyzing && styles.disabled,
-                    pressed && styles.shutterPressed,
-                  ]}
+                  scaleTo={0.94}
+                  dimTo={0.7}
+                  style={[styles.galleryButton, analyzing && styles.disabled]}
                 >
                   <Ionicons name="images-outline" size={26} color="#FFFFFF" />
-                </Pressable>
-                <Pressable
+                </PressableScale>
+                <PressableScale
                   accessibilityRole="button"
                   accessibilityLabel={t("camera.shutter")}
                   disabled={analyzing}
                   onPress={() => void capture()}
-                  style={({ pressed }) => [styles.shutterOuter, pressed && styles.shutterPressed]}
+                  scaleTo={0.94}
+                  style={styles.shutterOuter}
                 >
                   <View style={styles.shutter}>
                     <View style={styles.shutterInner} />
                   </View>
-                </Pressable>
+                </PressableScale>
               </View>
             </View>
             {flowErrorMessage ? (
@@ -1164,17 +1296,15 @@ export default function MakanAi() {
                 ) : null}
                 <Text style={styles.cameraErrorText}>{flowErrorMessage}</Text>
                 <View style={styles.cameraErrorActions}>
-                  <Pressable
+                  <PressableScale
                     accessibilityRole="button"
                     accessibilityLabel={t("common:actions.retry")}
                     onPress={() => void capture()}
-                    style={({ pressed }) => [
-                      styles.cameraRetry,
-                      pressed && styles.cameraRetryPressed,
-                    ]}
+                    dimTo={0.7}
+                    style={styles.cameraRetry}
                   >
                     <Text style={styles.cameraRetryText}>{t("common:actions.retry")}</Text>
-                  </Pressable>
+                  </PressableScale>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={t("camera.dismissError")}
@@ -1188,6 +1318,7 @@ export default function MakanAi() {
             ) : null}
           </>
         )}
+        <ShutterFlash tick={flashTick} />
       </View>
     );
   }
@@ -1222,21 +1353,7 @@ export default function MakanAi() {
           contentContainerStyle={styles.confirmContent}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.totalBlock}>
-            <Text style={styles.totalLabel}>{t("result.total")}</Text>
-            <View style={styles.totalRow}>
-              <Num style={styles.totalValue} adjustsFontSizeToFit numberOfLines={1}>
-                {fmtInt(totalKcal)}
-              </Num>
-              <Text style={styles.totalUnit}>kcal</Text>
-            </View>
-            {reactionText ? <Text style={styles.totalReaction}>{reactionText}</Text> : null}
-            {totalKcal > 0 ? (
-              <Text style={styles.totalGeprek}>
-                {t("result.geprek", { count: Math.round(totalKcal / GEPREK_KCAL) })}
-              </Text>
-            ) : null}
-          </View>
+          <TotalBlock totalKcal={totalKcal} reactionText={reactionText} />
 
           {tooMany ? (
             <View style={styles.feedbackCard}>
@@ -1290,7 +1407,7 @@ export default function MakanAi() {
                     />
                   </View>
                 ) : null}
-                <Pressable
+                <PressableScale
                   accessibilityRole="button"
                   accessibilityLabel={t("feedback.skip")}
                   hitSlop={8}
@@ -1298,10 +1415,12 @@ export default function MakanAi() {
                     sendFeedback("dilewati");
                     setFeedbackAnswered(true);
                   }}
-                  style={({ pressed }) => [styles.feedbackClose, pressed && styles.disabled]}
+                  scaleTo={1}
+                  dimTo={0.35}
+                  style={styles.feedbackClose}
                 >
                   <Ionicons name="close" size={20} color={theme.colors.mutedForeground} />
-                </Pressable>
+                </PressableScale>
               </View>
               {feedbackRating !== null ? (
                 <View style={styles.feedbackDetail}>
@@ -1328,12 +1447,14 @@ export default function MakanAi() {
                     accessibilityLabel={t("feedback.noteAria")}
                     maxLength={300}
                   />
-                  <Pressable
+                  <PressableScale
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: feedbackKeepPhoto }}
                     accessibilityLabel={t("feedback.keepPhoto.label")}
                     onPress={() => setFeedbackKeepPhoto((current) => !current)}
-                    style={({ pressed }) => [styles.keepPhotoRow, pressed && styles.disabled]}
+                    scaleTo={1}
+                    dimTo={0.35}
+                    style={styles.keepPhotoRow}
                   >
                     <View style={[styles.keepPhotoBox, feedbackKeepPhoto && styles.keepPhotoBoxOn]}>
                       {feedbackKeepPhoto ? (
@@ -1348,7 +1469,7 @@ export default function MakanAi() {
                       <Text style={styles.keepPhotoLabel}>{t("feedback.keepPhoto.label")}</Text>
                       <Text style={styles.keepPhotoHint}>{t("feedback.keepPhoto.hint")}</Text>
                     </View>
-                  </Pressable>
+                  </PressableScale>
                   <View style={styles.feedbackRow}>
                     <Button
                       size="sm"
@@ -1387,7 +1508,7 @@ export default function MakanAi() {
                 item.fiber !== undefined;
               const mark = marks?.get(index);
               return (
-                <View key={`${item.name}-${index}`} style={mark ? styles.correctedRow : undefined}>
+                <ItemCard key={`${item.name}-${index}`} index={index} include={draft.include} corrected={!!mark}>
                 <ListRow
                   icon={draft.include ? "checkmark-circle" : "ellipse-outline"}
                   iconTint={draft.include ? "makan" : "muted"}
@@ -1460,7 +1581,7 @@ export default function MakanAi() {
                     )
                   }
                 />
-                </View>
+                </ItemCard>
               );
             })}
           </ListGroup>
@@ -1653,16 +1774,18 @@ export default function MakanAi() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.doneBody}>
-        <View style={[styles.doneIcon, { backgroundColor: theme.colors.makanSoft }]}>
-          <Ionicons name="checkmark" size={34} color={theme.colors.makanText} />
-        </View>
-        <Text style={styles.doneTitle}>{t("done.title")}</Text>
-        <Text style={styles.doneText}>{t("done.text")}</Text>
-        <View style={styles.doneActions}>
+        <DoneMark />
+        <DoneLine index={1} style={styles.doneTitle}>
+          {t("done.title")}
+        </DoneLine>
+        <DoneLine index={2} style={styles.doneText}>
+          {t("done.text")}
+        </DoneLine>
+        <DoneActions>
           <Button label={t("done.list")} onPress={() => router.replace("/makan")} />
           {mealStory ? <ShareStoryButton story={mealStory} variant="secondary" /> : null}
           <Button variant="secondary" label={t("done.again")} onPress={resetToCamera} />
-        </View>
+        </DoneActions>
       </View>
     </SafeAreaView>
   );
@@ -1791,8 +1914,13 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: 25,
     backgroundColor: theme.colors.primary,
   },
-  shutterPressed: {
-    opacity: 0.7,
+  shutterFlash: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#FFFFFF",
   },
   disabled: {
     opacity: 0.35,
@@ -1885,9 +2013,6 @@ const styles = StyleSheet.create((theme) => ({
   cameraRetry: {
     minHeight: 44,
     justifyContent: "center",
-  },
-  cameraRetryPressed: {
-    opacity: 0.7,
   },
   cameraRetryText: {
     color: theme.colors.primary,

@@ -2,11 +2,12 @@ import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { useState } from "react";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { Card, Num, Text } from "@/components/ui";
+import { PressableScale } from "@/components/motion";
+import { Card, CountNum, Text } from "@/components/ui";
 import { errorMessage } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
@@ -86,38 +87,36 @@ export function WaterCard({ date }: { date?: string }) {
           <Text style={styles.hint}>{t("water.hint")}</Text>
         </View>
         <View style={styles.controls}>
-          <Pressable
+          <PressableScale
             onPress={remove}
             disabled={busy || glasses <= 0}
             accessibilityLabel={t("water.less")}
             accessibilityRole="button"
             hitSlop={4}
-            style={({ pressed }) => [
+            scaleTo={0.88}
+            style={[
               styles.roundButton,
               { backgroundColor: theme.colors.muted },
-              (pressed || glasses <= 0) && styles.pressedSoft,
+              glasses <= 0 && styles.pressedSoft,
             ]}
           >
             <Ionicons name="remove" size={18} color={theme.colors.foreground} />
-          </Pressable>
-          <Pressable
+          </PressableScale>
+          <PressableScale
             onPress={add}
             disabled={busy}
             accessibilityLabel={t("water.more")}
             accessibilityRole="button"
             hitSlop={4}
-            style={({ pressed }) => [
-              styles.roundButton,
-              { backgroundColor: theme.colors.primary },
-              pressed && styles.pressedSoft,
-            ]}
+            scaleTo={0.88}
+            style={[styles.roundButton, { backgroundColor: theme.colors.primary }]}
           >
             <Ionicons name="add" size={18} color={theme.colors.primaryForeground} />
-          </Pressable>
+          </PressableScale>
         </View>
       </View>
       <View style={styles.valueRow}>
-        <Num style={styles.value}>{glasses}</Num>
+        <CountNum value={glasses} format={String} style={styles.value} />
         <Text style={styles.unit}>{t("water.ofGoal", { count: goal })}</Text>
         <View style={styles.track}>
           <View

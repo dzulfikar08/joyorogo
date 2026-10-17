@@ -2,8 +2,14 @@ import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Redirect, router } from "expo-router";
-import { Pressable, View } from "react-native";
-import { useState } from "react";
+import { View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -26,6 +32,7 @@ import {
   Text,
 } from "@/components/ui";
 import { Mascot } from "@/components/mascot";
+import { EASE_OUT, PressableScale, useActivePop, useEnter } from "@/components/motion";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
 import { InviteFriendsStep } from "@/components/onboarding/invite-step";
@@ -44,6 +51,33 @@ function defaultTargetDate(): string {
   return day.toISOString().slice(0, 10);
 }
 
+/** One progress segment: the fill scales in from the left when it becomes reached. */
+function ProgressSegment({ filled }: { filled: boolean }) {
+  const reduceMotion = useReducedMotion();
+  const p = useSharedValue(filled ? 1 : 0);
+  useEffect(() => {
+    p.value = withTiming(filled ? 1 : 0, { duration: 260, easing: EASE_OUT });
+  }, [filled, p]);
+  const fillStyle = useAnimatedStyle(() =>
+    reduceMotion ? { opacity: p.value } : { opacity: 1, transform: [{ scaleX: p.value }] },
+  );
+  return (
+    <View style={styles.progressTrack}>
+      <Animated.View style={[styles.progressFill, fillStyle]} />
+    </View>
+  );
+}
+
+/** Keyed wrapper: remounts per step so the content fades and rises in. */
+function StepView({ children }: { children: ReactNode }) {
+  const enter = useEnter();
+  return (
+    <Animated.View entering={enter} style={styles.stepView}>
+      {children}
+    </Animated.View>
+  );
+}
+
 /** Big single-select choice row for onboarding questions. */
 function ChoiceRow({
   label,
@@ -57,17 +91,21 @@ function ChoiceRow({
   onPress: () => void;
 }) {
   const { theme } = useUnistyles();
+  const iconPop = useActivePop(selected);
+  const fill = useSharedValue(selected ? 1 : 0);
+  useEffect(() => {
+    fill.value = withTiming(selected ? 1 : 0, { duration: 200, easing: EASE_OUT });
+  }, [selected, fill]);
+  const fillStyle = useAnimatedStyle(() => ({ opacity: fill.value }));
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.choice,
-        { backgroundColor: selected ? theme.colors.makanSoft : theme.colors.muted },
-        pressed && styles.pressedSoft,
-      ]}
+      scaleTo={0.98}
+      style={[styles.choice, { backgroundColor: theme.colors.muted }]}
     >
+      <Animated.View pointerEvents="none" style={[styles.choiceFill, fillStyle]} />
       <View style={styles.choiceText}>
         <Text
           style={[
@@ -88,12 +126,14 @@ function ChoiceRow({
           </Text>
         ) : null}
       </View>
-      <Ionicons
-        name={selected ? "checkmark-circle" : "ellipse-outline"}
-        size={24}
-        color={selected ? theme.colors.primary : theme.colors.mutedForeground}
-      />
-    </Pressable>
+      <Animated.View style={iconPop}>
+        <Ionicons
+          name={selected ? "checkmark-circle" : "ellipse-outline"}
+          size={24}
+          color={selected ? theme.colors.primary : theme.colors.mutedForeground}
+        />
+      </Animated.View>
+    </PressableScale>
   );
 }
 
@@ -245,251 +285,267 @@ export default function Onboarding() {
       {/* Progress bar */}
       <View style={styles.progressRow}>
         {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.progressSegment,
-              {
-                backgroundColor: i <= step && !targets ? theme.colors.primary : theme.colors.muted,
-              },
-            ]}
-          />
+          <ProgressSegment key={i} filled={i <= step && !targets} />
         ))}
       </View>
 
-      {targets && inviting ? (
-        <InviteFriendsStep
-          defaultName={
-            firstName
-              ? t("invite.defaultName", { name: firstName }).slice(0, 40)
-              : t("invite.defaultNameBare")
-          }
-          onSkip={startApp}
-          onOpenGroup={(groupId) => openAfterOnboarding(() => router.replace(`/grup/${groupId}`))}
-        />
-      ) : targets ? (
-        <>
-          <Mascot pose="cheer" size="sm" style={styles.resultMascot} />
-          <Text style={styles.stepTitle}>{t("result.title")}</Text>
-          <View style={styles.planTiles}>
-            <StatTile
-              icon="restaurant"
-              tint="makan"
-              label={t("settings:plan.numbers.eat")}
-              value={fmtInt(targets.eatKcal)}
-              sub={t("settings:plan.numbers.perDay")}
-            />
-            <StatTile
-              icon="flame"
-              tint="bakar"
-              label={t("settings:plan.numbers.burn")}
-              value={fmtInt(targets.burnKcal)}
-              sub={t("settings:plan.numbers.perDay")}
-            />
-            <StatTile
-              icon="moon"
-              tint="tidur"
-              label={t("settings:plan.numbers.sleep")}
-              value={fmtKg(targets.sleepHours)}
-              sub={t("settings:plan.numbers.perNight")}
-            />
-          </View>
-          {targets.notes.includes("BELOW_HEALTHY_RANGE") ? (
-            <Text style={styles.warning}>
-              {t("result.belowRange", {
-                min: fmtKg(targets.idealMinKg),
-                max: fmtKg(targets.idealMaxKg),
-              })}
-            </Text>
-          ) : null}
-          {targets.notes.includes("PLAN_CLAMPED") ? (
-            <Text style={styles.warning}>{t("settings:plan.noteShort.PLAN_CLAMPED")}</Text>
-          ) : null}
-          <Disclosure title={t("result.aboutTitle")}>
-            <Text style={styles.hint}>{t("result.meaning.eat")}</Text>
-            <Text style={styles.hint}>{t("result.meaning.burn")}</Text>
-            <Text style={styles.hint}>{t("result.meaning.sleep")}</Text>
-            {targets.notes.includes("MAINTENANCE") ? (
-              <Text style={styles.hint}>{t("settings:plan.noteShort.MAINTENANCE")}</Text>
-            ) : null}
-          </Disclosure>
-          <Button label={t("action.openHome")} onPress={startApp} />
-          <Button
-            variant="secondary"
-            icon="people-outline"
-            label={t("action.inviteFriends")}
-            onPress={() => setInviting(true)}
+      <StepView key={targets ? (inviting ? "invite" : "result") : step}>
+        {targets && inviting ? (
+          <InviteFriendsStep
+            defaultName={
+              firstName
+                ? t("invite.defaultName", { name: firstName }).slice(0, 40)
+                : t("invite.defaultNameBare")
+            }
+            onSkip={startApp}
+            onOpenGroup={(groupId) => openAfterOnboarding(() => router.replace(`/grup/${groupId}`))}
           />
-        </>
-      ) : (
-        <>
-          {step > 0 ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("common:actions.back")}
-              onPress={goBack}
-              hitSlop={8}
-              style={({ pressed }) => [styles.backButton, pressed && styles.pressedSoft]}
-            >
-              <Ionicons name="chevron-back" size={24} color={theme.colors.foreground} />
-            </Pressable>
-          ) : null}
+        ) : targets ? (
+          <>
+            <Mascot pose="cheer" size="sm" style={styles.resultMascot} />
+            <Text style={styles.stepTitle}>{t("result.title")}</Text>
+            <View style={styles.planTiles}>
+              <StatTile
+                icon="restaurant"
+                tint="makan"
+                label={t("settings:plan.numbers.eat")}
+                value={fmtInt(targets.eatKcal)}
+                sub={t("settings:plan.numbers.perDay")}
+              />
+              <StatTile
+                icon="flame"
+                tint="bakar"
+                label={t("settings:plan.numbers.burn")}
+                value={fmtInt(targets.burnKcal)}
+                sub={t("settings:plan.numbers.perDay")}
+              />
+              <StatTile
+                icon="moon"
+                tint="tidur"
+                label={t("settings:plan.numbers.sleep")}
+                value={fmtKg(targets.sleepHours)}
+                sub={t("settings:plan.numbers.perNight")}
+              />
+            </View>
+            {targets.notes.includes("BELOW_HEALTHY_RANGE") ? (
+              <Text style={styles.warning}>
+                {t("result.belowRange", {
+                  min: fmtKg(targets.idealMinKg),
+                  max: fmtKg(targets.idealMaxKg),
+                })}
+              </Text>
+            ) : null}
+            {targets.notes.includes("PLAN_CLAMPED") ? (
+              <Text style={styles.warning}>{t("settings:plan.noteShort.PLAN_CLAMPED")}</Text>
+            ) : null}
+            <Disclosure title={t("result.aboutTitle")}>
+              <Text style={styles.hint}>{t("result.meaning.eat")}</Text>
+              <Text style={styles.hint}>{t("result.meaning.burn")}</Text>
+              <Text style={styles.hint}>{t("result.meaning.sleep")}</Text>
+              {targets.notes.includes("MAINTENANCE") ? (
+                <Text style={styles.hint}>{t("settings:plan.noteShort.MAINTENANCE")}</Text>
+              ) : null}
+            </Disclosure>
+            <Button label={t("action.openHome")} onPress={startApp} />
+            <Button
+              variant="secondary"
+              icon="people-outline"
+              label={t("action.inviteFriends")}
+              onPress={() => setInviting(true)}
+            />
+          </>
+        ) : (
+          <>
+            {step > 0 ? (
+              <PressableScale
+                accessibilityRole="button"
+                accessibilityLabel={t("common:actions.back")}
+                onPress={goBack}
+                hitSlop={8}
+                scaleTo={0.94}
+                dimTo={0.7}
+                style={styles.backButton}
+              >
+                <Ionicons name="chevron-back" size={24} color={theme.colors.foreground} />
+              </PressableScale>
+            ) : null}
 
-          {step === 0 ? (
-            <>
-              <Text style={styles.stepTitle}>{t("question.birth.title")}</Text>
-              <Text style={styles.stepCaption}>{t("question.birth.hint")}</Text>
-              <Card>
-                <Field label={t("question.birth.label")}>
-                  <Input
-                    value={birthYear}
-                    onChangeText={setBirthYear}
-                    keyboardType="number-pad"
-                    placeholder="1995"
-                    maxLength={4}
-                  />
-                </Field>
-                {formError ? <Text style={styles.error}>{formError}</Text> : null}
-                <Button label={t("action.next")} onPress={submitBirth} />
-              </Card>
-            </>
-          ) : null}
+            {step === 0 ? (
+              <>
+                <Text style={styles.stepTitle}>{t("question.birth.title")}</Text>
+                <Text style={styles.stepCaption}>{t("question.birth.hint")}</Text>
+                <Card>
+                  <Field label={t("question.birth.label")}>
+                    <Input
+                      value={birthYear}
+                      onChangeText={setBirthYear}
+                      keyboardType="number-pad"
+                      placeholder="1995"
+                      maxLength={4}
+                    />
+                  </Field>
+                  {formError ? <Text style={styles.error}>{formError}</Text> : null}
+                  <Button label={t("action.next")} onPress={submitBirth} />
+                </Card>
+              </>
+            ) : null}
 
-          {step === 1 ? (
-            <>
-              <Text style={styles.stepTitle}>{t("question.gender.title")}</Text>
-              <Text style={styles.stepCaption}>{t("question.gender.hint")}</Text>
-              <View style={styles.choiceList}>
-                <ChoiceRow
-                  label={t("settings:profile.gender.male")}
-                  selected={gender === "male"}
-                  onPress={() => setGender("male")}
-                />
-                <ChoiceRow
-                  label={t("settings:profile.gender.female")}
-                  selected={gender === "female"}
-                  onPress={() => setGender("female")}
-                />
-              </View>
-              {formError ? <Text style={styles.error}>{formError}</Text> : null}
-              <Button label={t("action.next")} onPress={nextStep} />
-            </>
-          ) : null}
-
-          {step === 2 ? (
-            <>
-              <Text style={styles.stepTitle}>{t("question.height.title")}</Text>
-              <Card>
-                <Field label={t("question.height.label")}>
-                  <Input
-                    value={heightCm}
-                    onChangeText={setHeightCm}
-                    keyboardType="decimal-pad"
-                    placeholder="170"
-                  />
-                </Field>
-                {formError ? <Text style={styles.error}>{formError}</Text> : null}
-                <Button label={t("action.next")} onPress={submitHeight} />
-              </Card>
-            </>
-          ) : null}
-
-          {step === 3 ? (
-            <>
-              <Text style={styles.stepTitle}>{t("question.weight.title")}</Text>
-              <Text style={styles.stepCaption}>{t("question.weight.hint")}</Text>
-              <Card>
-                <Field label={t("question.weight.label")}>
-                  <Input
-                    value={weightKg}
-                    onChangeText={setWeightKg}
-                    keyboardType="decimal-pad"
-                    placeholder="80"
-                  />
-                </Field>
-                {formError ? <Text style={styles.error}>{formError}</Text> : null}
-                <Button label={t("action.next")} onPress={submitWeight} />
-              </Card>
-              <Disclosure title={t("info.title")}>
-                <Text style={styles.hint}>{t("question.weight.why")}</Text>
-              </Disclosure>
-            </>
-          ) : null}
-
-          {step === 4 ? (
-            <>
-              <Text style={styles.stepTitle}>{t("question.goal.title")}</Text>
-              <Card>
-                <Field
-                  label={t("question.target.label")}
-                  hint={
-                    ideal
-                      ? t("question.target.healthyRange", {
-                          min: fmtKg(ideal.minKg),
-                          max: fmtKg(ideal.maxKg),
-                        })
-                      : undefined
-                  }
-                >
-                  <Input
-                    value={targetWeightKg}
-                    onChangeText={setTargetWeightKg}
-                    keyboardType="decimal-pad"
-                    placeholder="70"
-                  />
-                </Field>
-                {ideal && target !== null && target < ideal.minKg ? (
-                  <Text style={styles.warning}>{t("question.target.belowRange")}</Text>
-                ) : null}
-                <Field label={t("question.date.label")} hint={t("question.date.hint")}>
-                  <Input value={targetDate} onChangeText={setTargetDate} placeholder="2026-12-15" />
-                </Field>
-                {formError ? <Text style={styles.error}>{formError}</Text> : null}
-                <Button label={t("action.next")} onPress={submitTarget} />
-              </Card>
-              <Disclosure title={t("info.title")}>
-                <Text style={styles.hint}>{t("question.date.why")}</Text>
-              </Disclosure>
-            </>
-          ) : null}
-
-          {step === 5 ? (
-            <>
-              <Text style={styles.stepTitle}>{t("question.activity.title")}</Text>
-              <Text style={styles.stepCaption}>{t("question.activity.hint")}</Text>
-              <View style={styles.choiceList}>
-                {(Object.keys(ACTIVITY_LABELS) as ActivityLevel[]).map((key) => (
+            {step === 1 ? (
+              <>
+                <Text style={styles.stepTitle}>{t("question.gender.title")}</Text>
+                <Text style={styles.stepCaption}>{t("question.gender.hint")}</Text>
+                <View style={styles.choiceList}>
                   <ChoiceRow
-                    key={key}
-                    label={ACTIVITY_LABELS[key]}
-                    selected={activityLevel === key}
-                    onPress={() => setActivityLevel(key)}
+                    label={t("settings:profile.gender.male")}
+                    selected={gender === "male"}
+                    onPress={() => setGender("male")}
                   />
-                ))}
-              </View>
-              {formError ? <Text style={styles.error}>{formError}</Text> : null}
-              <Button label={t("action.save")} onPress={() => void submitAll()} loading={saving} />
-            </>
-          ) : null}
-        </>
-      )}
+                  <ChoiceRow
+                    label={t("settings:profile.gender.female")}
+                    selected={gender === "female"}
+                    onPress={() => setGender("female")}
+                  />
+                </View>
+                {formError ? <Text style={styles.error}>{formError}</Text> : null}
+                <Button label={t("action.next")} onPress={nextStep} />
+              </>
+            ) : null}
+
+            {step === 2 ? (
+              <>
+                <Text style={styles.stepTitle}>{t("question.height.title")}</Text>
+                <Card>
+                  <Field label={t("question.height.label")}>
+                    <Input
+                      value={heightCm}
+                      onChangeText={setHeightCm}
+                      keyboardType="decimal-pad"
+                      placeholder="170"
+                    />
+                  </Field>
+                  {formError ? <Text style={styles.error}>{formError}</Text> : null}
+                  <Button label={t("action.next")} onPress={submitHeight} />
+                </Card>
+              </>
+            ) : null}
+
+            {step === 3 ? (
+              <>
+                <Text style={styles.stepTitle}>{t("question.weight.title")}</Text>
+                <Text style={styles.stepCaption}>{t("question.weight.hint")}</Text>
+                <Card>
+                  <Field label={t("question.weight.label")}>
+                    <Input
+                      value={weightKg}
+                      onChangeText={setWeightKg}
+                      keyboardType="decimal-pad"
+                      placeholder="80"
+                    />
+                  </Field>
+                  {formError ? <Text style={styles.error}>{formError}</Text> : null}
+                  <Button label={t("action.next")} onPress={submitWeight} />
+                </Card>
+                <Disclosure title={t("info.title")}>
+                  <Text style={styles.hint}>{t("question.weight.why")}</Text>
+                </Disclosure>
+              </>
+            ) : null}
+
+            {step === 4 ? (
+              <>
+                <Text style={styles.stepTitle}>{t("question.goal.title")}</Text>
+                <Card>
+                  <Field
+                    label={t("question.target.label")}
+                    hint={
+                      ideal
+                        ? t("question.target.healthyRange", {
+                            min: fmtKg(ideal.minKg),
+                            max: fmtKg(ideal.maxKg),
+                          })
+                        : undefined
+                    }
+                  >
+                    <Input
+                      value={targetWeightKg}
+                      onChangeText={setTargetWeightKg}
+                      keyboardType="decimal-pad"
+                      placeholder="70"
+                    />
+                  </Field>
+                  {ideal && target !== null && target < ideal.minKg ? (
+                    <Text style={styles.warning}>{t("question.target.belowRange")}</Text>
+                  ) : null}
+                  <Field label={t("question.date.label")} hint={t("question.date.hint")}>
+                    <Input
+                      value={targetDate}
+                      onChangeText={setTargetDate}
+                      placeholder="2026-12-15"
+                    />
+                  </Field>
+                  {formError ? <Text style={styles.error}>{formError}</Text> : null}
+                  <Button label={t("action.next")} onPress={submitTarget} />
+                </Card>
+                <Disclosure title={t("info.title")}>
+                  <Text style={styles.hint}>{t("question.date.why")}</Text>
+                </Disclosure>
+              </>
+            ) : null}
+
+            {step === 5 ? (
+              <>
+                <Text style={styles.stepTitle}>{t("question.activity.title")}</Text>
+                <Text style={styles.stepCaption}>{t("question.activity.hint")}</Text>
+                <View style={styles.choiceList}>
+                  {(Object.keys(ACTIVITY_LABELS) as ActivityLevel[]).map((key) => (
+                    <ChoiceRow
+                      key={key}
+                      label={ACTIVITY_LABELS[key]}
+                      selected={activityLevel === key}
+                      onPress={() => setActivityLevel(key)}
+                    />
+                  ))}
+                </View>
+                {formError ? <Text style={styles.error}>{formError}</Text> : null}
+                <Button
+                  label={t("action.save")}
+                  onPress={() => void submitAll()}
+                  loading={saving}
+                />
+              </>
+            ) : null}
+          </>
+        )}
+      </StepView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
-  pressedSoft: {
-    opacity: 0.7,
+  stepView: {
+    gap: theme.spacing.md,
+  },
+  choiceFill: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: theme.radius.tile,
+    backgroundColor: theme.colors.makanSoft,
+  },
+  progressTrack: {
+    flex: 1,
+    height: 4,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.muted,
+    overflow: "hidden",
+  },
+  progressFill: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: theme.colors.primary,
+    transformOrigin: "left center",
   },
   progressRow: {
     flexDirection: "row",
     gap: 6,
     marginTop: theme.spacing.md,
-  },
-  progressSegment: {
-    flex: 1,
-    height: 4,
-    borderRadius: theme.radius.pill,
   },
   backButton: {
     width: 44,
