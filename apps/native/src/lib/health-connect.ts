@@ -31,6 +31,7 @@ import type {
 
 import { sleepNightKey } from "@joyorogo/api/lib/healthkit";
 import { estimateKcal, metForStravaType } from "@joyorogo/api/lib/met";
+import { i18n } from "@joyorogo/i18n";
 
 import { client } from "@/utils/orpc";
 
@@ -358,13 +359,11 @@ export async function syncHealthConnect(
   }
   const ready = await initialize();
   if (!ready) {
-    throw new Error(
-      "Health Connect tidak tersedia di perangkat ini. Pasang aplikasi Health Connect, lalu coba lagi.",
-    );
+    throw new Error(i18n.t("olahraga:healthSync.healthConnectUnavailable"));
   }
   const { canReadExercise, canReadDailyMetrics, canReadSleep } = await requestReadPermissions();
   if (!canReadExercise) {
-    throw new Error("Izin membaca latihan dari Health Connect belum diberikan.");
+    throw new Error(i18n.t("olahraga:healthSync.healthConnectPermission"));
   }
 
   const endTime = new Date();

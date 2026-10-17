@@ -12,6 +12,7 @@ import {
   EXERCISE_MAX_KCAL,
   EXERCISE_MIN_DURATION,
 } from "../lib/exercise-edit";
+import { serverT } from "../lib/messages";
 import { dateSchema, pastDateSchema } from "../lib/schemas";
 import { EXERCISE_TYPES } from "../lib/met";
 
@@ -67,19 +68,15 @@ export const exerciseRouter = {
           // edit sheets themselves enforce whole minutes from 1.
           durationMin: z.number().positive().max(EXERCISE_MAX_DURATION).nullable().optional(),
           kcal: z.number().min(0).max(EXERCISE_MAX_KCAL).optional(),
-        })
-        .refine(
-          (input) =>
-            input.date !== undefined ||
-            input.name !== undefined ||
-            input.durationMin !== undefined ||
-            input.kcal !== undefined,
-          "Tidak ada yang diubah",
-        ),
+        }),
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
       const { id, date, name, durationMin, kcal } = input;
+      const t = serverT(context.locale, "olahraga");
+      if (date === undefined && name === undefined && durationMin === undefined && kcal === undefined) {
+        throw new ORPCError("BAD_REQUEST", { message: t("server.nothingChanged") });
+      }
       // A strength session mirrors itself into one exercise_log row and
       // rewrites it on every save; editing the mirror here would be lost.
       const [session] = await context.db
@@ -88,9 +85,7 @@ export const exerciseRouter = {
         .where(and(eq(workoutSession.exerciseLogId, id), eq(workoutSession.userId, userId)))
         .limit(1);
       if (session) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "Latihan beban diubah lewat halaman Latihan beban.",
-        });
+        throw new ORPCError("BAD_REQUEST", { message: t("server.strengthEditedElsewhere") });
       }
       const [row] = await context.db
         .update(exerciseLog)

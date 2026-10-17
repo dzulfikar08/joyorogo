@@ -3,10 +3,12 @@ import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { exerciseLog, profile, weightLog } from "@joyorogo/db/schema/fitness";
+import type { Locale } from "@joyorogo/i18n";
 
 import type { Context } from "../context";
 
 import { protectedProcedure } from "../index";
+import { serverT } from "../lib/messages";
 import { estimateKcal, metForStravaType } from "../lib/met";
 import { stravaRetentionCutoff } from "../lib/strava-retention";
 import {
@@ -44,25 +46,23 @@ type StravaActivity = {
 function requireStravaConfig(context: Context): void {
   if (!stravaConfigured(context.env)) {
     throw new ORPCError("NOT_FOUND", {
-      message: "Strava belum dikonfigurasi di server.",
+      message: serverT(context.locale, "olahraga")("server.strava.notConfigured"),
     });
   }
 }
 
-const RECONNECT_MESSAGE = "Sambungan Strava ditolak. Hubungkan ulang di halaman profil.";
-const RETRY_MESSAGE = "Gagal menghubungi Strava. Coba lagi nanti.";
-
 /** Strava failures as the user should read them: only a refused grant may tell them to reconnect. */
-function toOrpcError(error: unknown): ORPCError<string, unknown> {
+function toOrpcError(error: unknown, locale: Locale): ORPCError<string, unknown> {
+  const t = serverT(locale, "olahraga");
   if (error instanceof StravaGrantError) {
-    if (error.failure === "rejected") return new ORPCError("UNAUTHORIZED", { message: RECONNECT_MESSAGE });
+    if (error.failure === "rejected") return new ORPCError("UNAUTHORIZED", { message: t("server.strava.rejected") });
     if (error.failure === "scope_missing") {
       return new ORPCError("BAD_REQUEST", {
-        message: "Izinkan JoyoRogo membaca aktivitasmu di halaman Strava, lalu hubungkan lagi.",
+        message: t("server.strava.scopeMissing"),
       });
     }
   }
-  return new ORPCError("INTERNAL_SERVER_ERROR", { message: RETRY_MESSAGE, cause: error });
+  return new ORPCError("INTERNAL_SERVER_ERROR", { message: t("server.strava.retry"), cause: error });
 }
 
 async function getValidToken(context: AuthedContext): Promise<string> {
@@ -70,11 +70,11 @@ async function getValidToken(context: AuthedContext): Promise<string> {
   try {
     token = await freshAccessToken(context.db, context.env, context.session.user.id, "rogo");
   } catch (error) {
-    throw toOrpcError(error);
+    throw toOrpcError(error, context.locale);
   }
   if (!token) {
     throw new ORPCError("NOT_FOUND", {
-      message: "Hubungkan Strava dulu di halaman profil.",
+      message: serverT(context.locale, "olahraga")("server.strava.connectFirst"),
     });
   }
   return token.accessToken;
@@ -123,7 +123,7 @@ export const stravaRouter = {
         });
         return { connected: true, athleteId };
       } catch (error) {
-        throw toOrpcError(error);
+        throw toOrpcError(error, context.locale);
       }
     }),
 
@@ -139,12 +139,12 @@ export const stravaRouter = {
     });
     if (res.status === 401) {
       throw new ORPCError("UNAUTHORIZED", {
-        message: "Sambungan Strava kedaluwarsa. Hubungkan ulang di halaman profil.",
+        message: serverT(context.locale, "olahraga")("server.strava.expired"),
       });
     }
     if (!res.ok) {
       throw new ORPCError("INTERNAL_SERVER_ERROR", {
-        message: RETRY_MESSAGE,
+        message: serverT(context.locale, "olahraga")("server.strava.retry"),
       });
     }
     const activities = (await res.json()) as StravaActivity[];

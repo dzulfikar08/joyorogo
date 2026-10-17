@@ -4,6 +4,7 @@
 // rows). The Swift module only reads raw data; normalizing happens here.
 import { estimateKcal, metForStravaType } from "@joyorogo/api/lib/met";
 import { sleepHoursByWibDay } from "@joyorogo/api/lib/healthkit";
+import { i18n } from "@joyorogo/i18n";
 import * as SecureStore from "expo-secure-store";
 
 import { getAppleHealthModule } from "@/modules/apple-health";
@@ -251,9 +252,7 @@ export async function syncAppleHealth(latestWeightKg: number | null): Promise<He
     return ZERO_RESULT;
   }
   if (!(await mod.isAvailable())) {
-    throw new Error(
-      "Apple Health tidak tersedia di perangkat ini. Impor membutuhkan iPhone dengan aplikasi Health.",
-    );
+    throw new Error(i18n.t("olahraga:healthSync.appleHealthUnavailable"));
   }
 
   await mod.requestAuthorization();

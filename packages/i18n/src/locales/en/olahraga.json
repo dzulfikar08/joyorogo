@@ -1,1 +1,19 @@
-{}
+{
+  "server": {
+    "nothingChanged": "Nothing was changed.",
+    "strengthEditedElsewhere": "Strength workouts are edited on the Strength workouts screen.",
+    "strava": {
+      "notConfigured": "Strava is not set up on the server.",
+      "rejected": "Strava refused the connection. Reconnect it from your profile.",
+      "scopeMissing": "Let JoyoRogo read your activities on the Strava page, then connect again.",
+      "retry": "Couldn't reach Strava. Try again later.",
+      "connectFirst": "Connect Strava first, from your profile.",
+      "expired": "Your Strava connection expired. Reconnect it from your profile."
+    }
+  },
+  "healthSync": {
+    "healthConnectUnavailable": "Health Connect isn't available on this device. Install the Health Connect app, then try again.",
+    "healthConnectPermission": "Permission to read workouts from Health Connect hasn't been granted.",
+    "appleHealthUnavailable": "Apple Health isn't available on this device. Importing needs an iPhone with the Health app."
+  }
+}

@@ -1,1 +1,19 @@
-{}
+{
+  "server": {
+    "nothingChanged": "Tidak ada yang diubah.",
+    "strengthEditedElsewhere": "Latihan beban diubah lewat halaman Latihan beban.",
+    "strava": {
+      "notConfigured": "Strava belum dikonfigurasi di server.",
+      "rejected": "Sambungan Strava ditolak. Hubungkan ulang di halaman profil.",
+      "scopeMissing": "Izinkan JoyoRogo membaca aktivitasmu di halaman Strava, lalu hubungkan lagi.",
+      "retry": "Gagal menghubungi Strava. Coba lagi nanti.",
+      "connectFirst": "Hubungkan Strava dulu di halaman profil.",
+      "expired": "Sambungan Strava kedaluwarsa. Hubungkan ulang di halaman profil."
+    }
+  },
+  "healthSync": {
+    "healthConnectUnavailable": "Health Connect tidak tersedia di perangkat ini. Pasang aplikasi Health Connect, lalu coba lagi.",
+    "healthConnectPermission": "Izin membaca latihan dari Health Connect belum diberikan.",
+    "appleHealthUnavailable": "Apple Health tidak tersedia di perangkat ini. Impor membutuhkan iPhone dengan aplikasi Health."
+  }
+}
