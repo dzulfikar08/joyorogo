@@ -5,7 +5,8 @@ import { localNameRule, localNameShape } from "./ai-locale";
 import { ChatStreamDecoder } from "./chat-stream";
 import { resolveFoodKind } from "./food-kind";
 import type { FoodKind } from "./food-kind";
-import { ItemScanner, scanItems } from "./item-stream";
+import { ItemScanner, repairKeys, scanItems } from "./item-stream";
+import type { ItemScanEvent } from "./item-stream";
 import type { ScanFailReason } from "./scan-errors";
 import { calibrateItems } from "./tkpi";
 import type { CalibratedItem } from "./tkpi";
@@ -316,10 +317,8 @@ export async function runVisionStream(
     const bytes = new TextDecoder();
     const sse = new ChatStreamDecoder();
     const scanner = new ItemScanner(locale !== DEFAULT_LOCALE);
-    const report = (added: string) => {
-      if (!added) return;
-      timing.ttftMs ??= Date.now() - startedAt;
-      for (const event of scanner.push(added)) {
+    const emit = (events: ItemScanEvent[]) => {
+      for (const event of events) {
         if (event.index >= MAX_ITEMS) continue;
         if (event.kind === "name") {
           const name = (locale === DEFAULT_LOCALE ? event.name : event.localName)?.trim();
@@ -330,6 +329,11 @@ export async function runVisionStream(
         }
       }
     };
+    const report = (added: string) => {
+      if (!added) return;
+      timing.ttftMs ??= Date.now() - startedAt;
+      emit(scanner.push(added));
+    };
     try {
       while (!sse.done) {
         const { done, value } = await Promise.race([reader.read(), deadline]);
@@ -337,6 +341,8 @@ export async function runVisionStream(
         report(sse.push(typeof value === "string" ? value : bytes.decode(value, { stream: true })));
       }
       report(sse.flush());
+      // A last item the token limit cut off still counts (see ItemScanner.end).
+      emit(scanner.end());
     } catch (error) {
       reader.cancel().catch(() => {});
       throw error;
@@ -506,7 +512,7 @@ export function parseAnswer(
   finish: string | null,
   locale: Locale = DEFAULT_LOCALE,
 ): ParsedAnswer {
-  const cleaned = text.replace(/```(?:json)?/g, "");
+  const cleaned = repairKeys(text.replace(/```(?:json)?/g, ""));
   let rawItems: unknown[];
   let modelTooMany = false;
   let problem: ScanFailReason | null = null;
