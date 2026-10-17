@@ -220,5 +220,22 @@
       "water": "Jangan lupa minum air, ya.",
       "walk": "Ayo jalan 10 menit bareng!"
     }
+  },
+  "widget": {
+    "progress": "PROGRES HARI INI",
+    "protein": "PROTEIN",
+    "inbox": "KOTAK MASUK",
+    "over": " kkal lebih",
+    "left": " kkal tersisa",
+    "eaten": "{{eaten}} / {{target}} kkal",
+    "noNews": "Belum ada kabar baru",
+    "signIn": "Masuk dulu",
+    "signInBody": "Buka JoyoRogo untuk melihat progresmu di sini.",
+    "setTarget": "Atur targetmu dulu di aplikasi.",
+    "joinGroup": "Gabung grup dulu di aplikasi.",
+    "fasting": {
+      "window": "Jendela makan sampai {{close}} · sisa {{kcal}} kkal",
+      "next": "Makan lagi {{open}} · sisa {{kcal}} kkal"
+    }
   }
 }

@@ -9,6 +9,7 @@ import { FlexWidget, SvgWidget, TextWidget } from "react-native-android-widget";
 import type { ColorProp, WidgetInfo, WidgetRepresentation } from "react-native-android-widget";
 
 import { eatTone } from "@joyorogo/api/lib/engine";
+import { i18n } from "@joyorogo/i18n";
 
 import { darkTheme, lightTheme } from "@/theme";
 import { timeAgoId } from "@/src/lib/group";
@@ -129,8 +130,14 @@ function FastingLine({
 }) {
   const text =
     fasting.state === "jendela_makan"
-      ? `Jendela makan sampai ${fasting.windowClose} · sisa ${fmtInt(fasting.remainingKcal)} kkal`
-      : `Makan lagi ${fasting.windowOpen} · sisa ${fmtInt(fasting.remainingKcal)} kkal`;
+      ? i18n.t("misc:widget.fasting.window", {
+          close: fasting.windowClose,
+          kcal: fmtInt(fasting.remainingKcal),
+        })
+      : i18n.t("misc:widget.fasting.next", {
+          open: fasting.windowOpen,
+          kcal: fmtInt(fasting.remainingKcal),
+        });
   return (
     <FlexWidget style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
       <FlexWidget
@@ -173,14 +180,14 @@ function ProgressPanel({
   const over = day.eatenKcal > day.eatKcal;
   return (
     <FlexWidget style={{ flexDirection: "column", width: "match_parent" }}>
-      <Caption text="PROGRES HARI INI" c={c} />
+      <Caption text={i18n.t("misc:widget.progress")} c={c} />
       <FlexWidget style={{ flexDirection: "row", alignItems: "flex-end", marginTop: 6 }}>
         <TextWidget
           text={over ? `+${fmtInt(day.eatenKcal - day.eatKcal)}` : fmtInt(day.eatKcal - day.eatenKcal)}
           style={{ fontSize: 30, fontFamily: FONT_HEAVY, color: accent, lineHeight: 34 }}
         />
         <TextWidget
-          text={over ? " kkal lebih" : " kkal tersisa"}
+          text={over ? i18n.t("misc:widget.over") : i18n.t("misc:widget.left")}
           style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginLeft: 6, marginBottom: 5 }}
         />
       </FlexWidget>
@@ -192,7 +199,10 @@ function ProgressPanel({
         c={c}
       />
       <TextWidget
-        text={`${fmtInt(day.eatenKcal)} / ${fmtInt(day.eatKcal)} kkal`}
+        text={i18n.t("misc:widget.eaten", {
+          eaten: fmtInt(day.eatenKcal),
+          target: fmtInt(day.eatKcal),
+        })}
         style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginTop: 6 }}
       />
       {fasting ? <FastingLine fasting={fasting} c={c} /> : null}
@@ -217,7 +227,7 @@ function ProgressPanel({
                 svg={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="${String(c.pillText)}" d="${DRUMSTICK_PATH}"/></svg>`}
                 style={{ width: 14, height: 14, marginRight: 6 }}
               />
-              <TextWidget text="PROTEIN" style={{ ...CAPTION, color: c.mutedForeground }} />
+              <TextWidget text={i18n.t("misc:widget.protein")} style={{ ...CAPTION, color: c.mutedForeground }} />
             </FlexWidget>
             <TextWidget
               text={`${day.proteinEatenG ?? 0} / ${day.proteinTargetG} g`}
@@ -275,7 +285,11 @@ function InboxRow({
         />
       </FlexWidget>
       <TextWidget
-        text={poke ? "mencolek kamu" : (item.message ?? "mengirim catatan")}
+        text={
+          poke
+            ? i18n.t("misc:inbox.item.pokeSubtitle")
+            : (item.message ?? i18n.t("misc:inbox.item.noteSubtitle"))
+        }
         maxLines={1}
         truncate="END"
         style={{
@@ -309,7 +323,7 @@ function InboxPanel({
           alignItems: "center",
         }}
       >
-        <Caption text="KOTAK MASUK" c={c} />
+        <Caption text={i18n.t("misc:widget.inbox")} c={c} />
         {inbox.unread > 0 ? (
           <FlexWidget
             style={{
@@ -354,7 +368,7 @@ function InboxPanel({
             />
           </FlexWidget>
           <TextWidget
-            text="Belum ada kabar baru"
+            text={i18n.t("misc:widget.noNews")}
             style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground }}
           />
         </FlexWidget>
@@ -370,11 +384,11 @@ function SignedOutBody({ c }: { c: WidgetPalette }) {
   return (
     <FlexWidget style={{ flexDirection: "column", width: "match_parent" }}>
       <TextWidget
-        text="Masuk dulu"
+        text={i18n.t("misc:widget.signIn")}
         style={{ fontSize: 18, fontFamily: FONT_BOLD, color: c.foreground }}
       />
       <TextWidget
-        text="Buka JoyoRogo untuk melihat progresmu di sini."
+        text={i18n.t("misc:widget.signInBody")}
         style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginTop: 6 }}
       />
     </FlexWidget>
@@ -417,9 +431,9 @@ function ProgressWidget({ snapshot, c, width }: { snapshot: WidgetSnapshot; c: W
         <ProgressPanel day={snapshot.day} fasting={snapshot.fasting} c={c} contentWidth={width - CARD_PADDING * 2} />
       ) : snapshot.signedIn ? (
         <FlexWidget style={{ flexDirection: "column", width: "match_parent" }}>
-          <Caption text="PROGRES HARI INI" c={c} />
+          <Caption text={i18n.t("misc:widget.progress")} c={c} />
           <TextWidget
-            text="Atur targetmu dulu di aplikasi."
+            text={i18n.t("misc:widget.setTarget")}
             style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginTop: 10 }}
           />
         </FlexWidget>
@@ -437,9 +451,9 @@ function InboxWidget({ snapshot, c }: { snapshot: WidgetSnapshot; c: WidgetPalet
         <InboxPanel inbox={snapshot.inbox} c={c} />
       ) : snapshot.signedIn ? (
         <FlexWidget style={{ flexDirection: "column", width: "match_parent" }}>
-          <Caption text="KOTAK MASUK" c={c} />
+          <Caption text={i18n.t("misc:widget.inbox")} c={c} />
           <TextWidget
-            text="Gabung grup dulu di aplikasi."
+            text={i18n.t("misc:widget.joinGroup")}
             style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginTop: 10 }}
           />
         </FlexWidget>

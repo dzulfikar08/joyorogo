@@ -224,5 +224,22 @@
       "water": "Don't forget to drink water.",
       "walk": "Let's go for a 10-minute walk!"
     }
+  },
+  "widget": {
+    "progress": "TODAY'S PROGRESS",
+    "protein": "PROTEIN",
+    "inbox": "INBOX",
+    "over": " kcal over",
+    "left": " kcal left",
+    "eaten": "{{eaten}} / {{target}} kcal",
+    "noNews": "No news yet",
+    "signIn": "Sign in first",
+    "signInBody": "Open JoyoRogo to see your progress here.",
+    "setTarget": "Set your target in the app first.",
+    "joinGroup": "Join a group in the app first.",
+    "fasting": {
+      "window": "Eating window until {{close}} · {{kcal}} kcal left",
+      "next": "Eat again at {{open}} · {{kcal}} kcal left"
+    }
   }
 }

@@ -1,5 +1,6 @@
 import type { WidgetTaskHandlerProps } from "react-native-android-widget";
 
+import { loadStoredLocale, setLocale } from "@/src/lib/i18n";
 import { refreshSnapshotFromApi } from "@/src/lib/widgets/refresh";
 import { readSnapshot } from "@/src/lib/widgets/snapshot";
 import { buildWidgetElement } from "@/src/lib/widgets/ui";
@@ -21,6 +22,10 @@ const SHOULD_REFRESH: Record<WidgetTaskHandlerProps["widgetAction"], true | unde
 export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
   const { widgetAction, widgetInfo, renderWidget } = props;
   if (!SHOULD_REFRESH[widgetAction]) return;
+
+  // The headless run starts before the UI applies the saved language.
+  const stored = await loadStoredLocale();
+  if (stored) await setLocale(stored, { remember: false });
 
   // Paint the stored snapshot first so the widget never blanks while
   // the (optional, timeout-bounded) headless fetch runs.
