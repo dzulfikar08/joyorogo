@@ -5,26 +5,25 @@ import { Smartphone, Users } from "lucide-react";
 import { TESTER_SECTION_HREF } from "@/lib/app-config";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
+import { IOS_TESTFLIGHT_LIVE, JOYOROGO_TESTFLIGHT_URL } from "@/lib/testflight";
 
 const ON_PRIMARY =
   "border-primary-foreground/35 text-primary-foreground hover:bg-primary-foreground/10 focus-visible:ring-primary-foreground/50";
 
 /**
- * Get-the-app buttons that follow the visitor's platform.
+ * Get-the-app buttons for both phones. Both are always rendered, so the
+ * prerendered HTML carries both; the visitor's platform only reorders them and
+ * gives theirs the stronger style.
  *
- * Android goes to the Google Play closed test (the landing's tester section).
- *
- * - Before the platform is known (prerender, first paint) and on desktop:
- *   iPhone web app and Android tester.
- * - iOS: "Pakai di iPhone" opens the install sheet; Android tester is a small
- *   secondary text link.
- * - Android: the tester button.
+ * - Android: the Google Play closed test (the landing's tester section).
+ * - iPhone: the public TestFlight beta (the install sheet while the beta flag
+ *   is off), with the web app on the Home Screen as a small secondary link.
  *
  * Renders a fragment so it drops into the caller's button row.
  */
 export function AppDownload({
   location,
-  iphoneLabel = "Pakai di iPhone",
+  iphoneLabel = "Coba di iPhone",
   androidLabel = "Gabung tester Android",
   onPrimary = false,
   align = "start",
@@ -38,19 +37,19 @@ export function AppDownload({
   align?: "start" | "center";
 }) {
   const { os, standalone } = usePlatform();
+  const variantFor = (own: boolean) => (onPrimary ? "ghost" : own ? "secondary" : "outline");
   const buttonClass = onPrimary ? ON_PRIMARY : undefined;
-  const variant = onPrimary ? "ghost" : "secondary";
   const smallLink = cn(
     "basis-full rounded-md text-sm font-semibold underline underline-offset-4 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
     align === "center" && "text-center",
     onPrimary ? "text-primary-foreground/80" : "text-muted-foreground",
   );
 
-  const tester = (
+  const android = (
     <Button
       size="lg"
-      variant={variant}
-      className={buttonClass}
+      variant={variantFor(os === "android")}
+      className={cn(buttonClass, os === "ios" && "order-last")}
       render={
         <a
           href={TESTER_SECTION_HREF}
@@ -64,11 +63,29 @@ export function AppDownload({
     </Button>
   );
 
-  const iphone = !standalone && (
+  const iphone = IOS_TESTFLIGHT_LIVE ? (
     <Button
       size="lg"
-      variant={variant}
-      className={buttonClass}
+      variant={variantFor(os === "ios")}
+      className={cn(buttonClass, os === "android" && "order-last")}
+      render={
+        <a
+          href={JOYOROGO_TESTFLIGHT_URL}
+          target="_blank"
+          rel="noopener"
+          data-revklik-goal="ios_testflight_click"
+          data-revklik-goal-location={location}
+        />
+      }
+    >
+      <Smartphone aria-hidden />
+      {iphoneLabel}
+    </Button>
+  ) : (
+    <Button
+      size="lg"
+      variant={variantFor(os === "ios")}
+      className={cn(buttonClass, os === "android" && "order-last")}
       data-revklik-goal="ios_cta_click"
       data-revklik-goal-location={location}
       onClick={() => openIosInstall(location)}
@@ -78,30 +95,21 @@ export function AppDownload({
     </Button>
   );
 
-  if (os === "android") {
-    return tester;
-  }
-
-  if (os === "ios") {
-    return (
-      <>
-        {iphone}
-        <a
-          href={TESTER_SECTION_HREF}
-          data-revklik-goal="tester_cta_click"
-          data-revklik-goal-location={location}
-          className={smallLink}
-        >
-          Punya HP Android? Gabung tester di Google Play
-        </a>
-      </>
-    );
-  }
-
   return (
     <>
+      {android}
       {iphone}
-      {tester}
+      {IOS_TESTFLIGHT_LIVE && !standalone && (
+        <button
+          type="button"
+          data-revklik-goal="ios_cta_click"
+          data-revklik-goal-location={location}
+          onClick={() => openIosInstall(location)}
+          className={cn(smallLink, "order-last text-left", align === "center" && "text-center")}
+        >
+          iPhone tanpa TestFlight? Pasang web app ke Layar Utama
+        </button>
+      )}
     </>
   );
 }

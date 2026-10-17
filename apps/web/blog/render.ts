@@ -10,6 +10,7 @@ import { TIPS, localizeTip, tipImagePath, type LocalizedTip } from "@joyorogo/ap
 import { Marked } from "marked";
 
 import { OG_IMAGE, PAGES } from "../src/lib/seo.ts";
+import { JOYOROGO_TESTFLIGHT_URL } from "../src/lib/testflight.ts";
 import { ogImageTags, PUBLIC_PATHS, type ShareImage } from "./pages.ts";
 import {
   CATEGORIES,
@@ -402,6 +403,7 @@ ${opts.main}
           <a href="/blog/" class="inline-flex min-h-11 items-center hover:text-primary">Blog</a>
           <a href="/privasi" class="inline-flex min-h-11 items-center hover:text-primary">Privasi</a>
           <a href="${esc(cfg.apkUrl)}" class="inline-flex min-h-11 items-center hover:text-primary">Unduh Android</a>
+          <a href="${JOYOROGO_TESTFLIGHT_URL}" class="inline-flex min-h-11 items-center hover:text-primary">iPhone (TestFlight)</a>
           <a href="${SOURCE_URL}" class="inline-flex min-h-11 items-center hover:text-primary">Kode sumber</a>
         </nav>
         <p class="text-muted-foreground">Artikel di blog ini informasi umum, bukan pengganti saran dokter atau ahli gizi.</p>

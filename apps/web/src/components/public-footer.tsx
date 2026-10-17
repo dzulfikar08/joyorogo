@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ShieldCheck } from "lucide-react";
 
 import { PLAY_STORE_URL, useAppConfig } from "@/lib/app-config";
+import { IOS_TESTFLIGHT_LIVE, JOYOROGO_TESTFLIGHT_URL } from "@/lib/testflight";
 
 const SOURCE_URL = "https://github.com/dzulfikar08/joyorogo";
 
@@ -44,6 +45,18 @@ export function PublicFooter() {
           >
             Google Play
           </a>
+          {IOS_TESTFLIGHT_LIVE && (
+            <a
+              href={JOYOROGO_TESTFLIGHT_URL}
+              target="_blank"
+              rel="noopener"
+              data-revklik-goal="ios_testflight_click"
+              data-revklik-goal-location="footer"
+              className="inline-flex min-h-11 items-center hover:text-primary"
+            >
+              iPhone (TestFlight)
+            </a>
+          )}
           <a
             href={SOURCE_URL}
             className="inline-flex min-h-11 items-center hover:text-primary"

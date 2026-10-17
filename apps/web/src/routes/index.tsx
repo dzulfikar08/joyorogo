@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, isRedirect, Link, Navigate, redirect } from "@tanstack/react-router";
 import {
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@joyorogo/ui/components/button";
+import { cn } from "@joyorogo/ui/lib/utils";
 import { Ring, type Metric } from "@/components/kit/ring";
 import { AppDownload } from "@/components/app-download";
 import { ScanDemo } from "@/components/landing/scan-demo";
@@ -32,14 +34,16 @@ import {
   founderScans,
   TESTER_GROUP_URL,
   TESTER_OPTIN_URL,
+  apiUrl,
   useAppConfig,
 } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { sessionQuery } from "@/lib/auth-client";
 import { openIosInstall } from "@/lib/ios-install";
+import { usePlatform } from "@/lib/platform";
 import { TESTIMONIALS } from "@/lib/testimonials";
 import { FAQ, IPHONE_FAQ_Q, pageHead } from "@/lib/seo";
-import { IOS_TESTFLIGHT_LIVE } from "@/lib/testflight";
+import { IOS_TESTFLIGHT_LIVE, JOYOROGO_TESTFLIGHT_URL } from "@/lib/testflight";
 import { CACHE_OWNER_KEY } from "@/utils/orpc";
 
 export const Route = createFileRoute("/")({
@@ -68,73 +72,209 @@ const FACTS = [
   { value: "TKPI 2019", label: "data kalori dari Kemenkes" },
 ] as const;
 
-const TESTER_STEPS = [
+const ANDROID_STEPS = [
   "Gabung grup Google joyorogo-testers dengan akun Google yang kamu pakai di Play Store. Grup inilah yang membuka akses ke tes tertutup.",
   "Buka halaman tes di Play lalu ketuk Become a tester. Kalau halamannya belum bisa dibuka, tunggu beberapa menit lalu coba lagi.",
   "Pasang JoyoRogo dari Play Store dan masuk dengan akun Google yang sama seperti di web. Diary-mu ikut pindah.",
 ] as const;
 
-/** Google Play closed test signup. AppDownload links here (`/#tester`). */
-function TesterJoin() {
+const IOS_STEPS = [
+  "Pasang TestFlight dari App Store, kalau belum ada di iPhone-mu.",
+  "Buka link TestFlight JoyoRogo di iPhone dan ketuk Terima.",
+  "Ketuk Pasang di TestFlight, lalu masuk dengan akun yang sama seperti di web. Diary-mu ikut pindah. Di iPhone, JoyoRogo membaca Apple Health.",
+] as const;
+
+type InstallTab = "android" | "ios";
+
+function InstallSteps({ steps }: { steps: readonly string[] }) {
+  return (
+    <ol className="space-y-4">
+      {steps.map((step, i) => (
+        <li key={step} className="flex gap-3.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-card text-sm font-extrabold text-makan-ink tabular-nums">
+            {i + 1}
+          </span>
+          <p className="pt-0.5 text-[0.9375rem] leading-relaxed text-makan-ink/90">{step}</p>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/**
+ * Android (Google Play closed test) and iPhone (public TestFlight beta) install
+ * steps behind a segmented switch. Both panels are always in the HTML (the
+ * inactive one is `hidden`) so the prerender carries both; the visitor's phone
+ * decides which tab opens first. AppDownload links here (`/#tester`).
+ */
+function InstallApp() {
+  const { os } = usePlatform();
+  const [picked, setPicked] = useState<InstallTab | null>(null);
+  const tab: InstallTab = picked ?? (os === "ios" ? "ios" : "android");
+
+  useEffect(() => {
+    const fromHash = () => {
+      const id = window.location.hash.slice(1);
+      if (id !== "iphone-beta" && id !== "tester") return;
+      setPicked(id === "iphone-beta" ? "ios" : "android");
+      // The panel was hidden when the browser tried to scroll to it.
+      requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView());
+    };
+    fromHash();
+    window.addEventListener("hashchange", fromHash);
+    return () => window.removeEventListener("hashchange", fromHash);
+  }, []);
+
+  const tabs: { id: InstallTab; label: string }[] = [
+    { id: "android", label: "Android" },
+    { id: "ios", label: "iPhone" },
+  ];
+
   return (
     <section
-      id="tester"
-      data-section="tester"
+      id="pasang"
+      data-section="install"
       className="mx-auto w-full max-w-6xl scroll-mt-20 px-4 pb-16 md:px-6"
     >
-      <div className="grid gap-8 rounded-[1.75rem] bg-makan-soft p-6 md:grid-cols-[1fr_1.1fr] md:items-start md:p-8">
-        <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-makan-ink md:text-3xl">
-            JoyoRogo di Google Play: gabung tester
-          </h2>
-          <p className="mt-3 max-w-md text-[0.9375rem] leading-relaxed text-makan-ink/85">
-            Versi Android di Play Store masih tes tertutup. Google baru mengizinkan rilis untuk
-            semua orang setelah 12 tester memakainya selama 14 hari, jadi tiap tester sangat
-            membantu. Gratis.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button
-              size="lg"
-              render={
-                <a
-                  href={TESTER_GROUP_URL}
-                  target="_blank"
-                  rel="noopener"
-                  data-revklik-goal="tester_group_click"
-                  data-revklik-goal-location="tester"
-                />
-              }
+      <div className="rounded-[1.75rem] bg-makan-soft p-6 md:p-8">
+        <div role="tablist" aria-label="Pilih HP-mu" className="inline-flex rounded-full bg-card p-1">
+          {tabs.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              id={`install-tab-${id}`}
+              aria-selected={tab === id}
+              aria-controls={`${id === "android" ? "tester" : "iphone-beta"}`}
+              onClick={() => setPicked(id)}
+              className={cn(
+                "inline-flex min-h-11 items-center rounded-full px-5 text-sm font-bold transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
+                tab === id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
             >
-              <Users aria-hidden />
-              1. Gabung grup Google
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              render={
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div
+          id="tester"
+          role="tabpanel"
+          aria-labelledby="install-tab-android"
+          data-section="tester"
+          hidden={tab !== "android"}
+          className="mt-6 scroll-mt-20"
+        >
+          <div className="grid gap-8 md:grid-cols-[1fr_1.1fr] md:items-start">
+            <div>
+              <h2 className="text-2xl font-extrabold tracking-tight text-makan-ink md:text-3xl">
+                JoyoRogo di Android: gabung tester
+              </h2>
+              <p className="mt-3 max-w-md text-[0.9375rem] leading-relaxed text-makan-ink/85">
+                Versi Android di Play Store masih tes tertutup. Google baru mengizinkan rilis untuk
+                semua orang setelah 12 tester memakainya selama 14 hari, jadi tiap tester sangat
+                membantu. Gratis, butuh Android 8 ke atas.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Button
+                  size="lg"
+                  render={
+                    <a
+                      href={TESTER_GROUP_URL}
+                      target="_blank"
+                      rel="noopener"
+                      data-revklik-goal="tester_group_click"
+                      data-revklik-goal-location="tester"
+                    />
+                  }
+                >
+                  <Users aria-hidden />
+                  1. Gabung grup Google
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  render={
+                    <a
+                      href={TESTER_OPTIN_URL}
+                      target="_blank"
+                      rel="noopener"
+                      data-revklik-goal="tester_optin_click"
+                      data-revklik-goal-location="tester"
+                    />
+                  }
+                >
+                  2. Become a tester di Play
+                </Button>
+              </div>
+              <p className="mt-4 text-sm text-makan-ink/85">
                 <a
-                  href={TESTER_OPTIN_URL}
-                  target="_blank"
-                  rel="noopener"
-                  data-revklik-goal="tester_optin_click"
+                  href={apiUrl("/downloads/latest-apk")}
+                  data-revklik-goal="apk_download"
                   data-revklik-goal-location="tester"
-                />
-              }
-            >
-              2. Become a tester di Play
-            </Button>
+                  className="font-semibold underline underline-offset-4"
+                >
+                  Tidak bisa pakai Play? Unduh APK
+                </a>
+              </p>
+            </div>
+            <InstallSteps steps={ANDROID_STEPS} />
           </div>
         </div>
-        <ol className="space-y-4">
-          {TESTER_STEPS.map((step, i) => (
-            <li key={step} className="flex gap-3.5">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-card text-sm font-extrabold text-makan-ink tabular-nums">
-                {i + 1}
-              </span>
-              <p className="pt-0.5 text-[0.9375rem] leading-relaxed text-makan-ink/90">{step}</p>
-            </li>
-          ))}
-        </ol>
+
+        {IOS_TESTFLIGHT_LIVE && (
+          <div
+            id="iphone-beta"
+            role="tabpanel"
+            aria-labelledby="install-tab-ios"
+            data-section="iphone-beta"
+            hidden={tab !== "ios"}
+            className="mt-6 scroll-mt-20"
+          >
+            <div className="grid gap-8 md:grid-cols-[1fr_1.1fr] md:items-start">
+              <div>
+                <h2 className="text-2xl font-extrabold tracking-tight text-makan-ink md:text-3xl">
+                  JoyoRogo di iPhone: beta publik
+                </h2>
+                <p className="mt-3 max-w-md text-[0.9375rem] leading-relaxed text-makan-ink/85">
+                  Aplikasi iPhone sudah bisa dicoba lewat TestFlight, dan versi App Store 1.0 sedang
+                  menunggu review Apple. Gratis, butuh iOS 16.4 ke atas.
+                </p>
+                <div className="mt-6">
+                  <Button
+                    size="lg"
+                    render={
+                      <a
+                        href={JOYOROGO_TESTFLIGHT_URL}
+                        target="_blank"
+                        rel="noopener"
+                        data-revklik-goal="ios_testflight_click"
+                        data-revklik-goal-location="tester"
+                      />
+                    }
+                  >
+                    <Smartphone aria-hidden />
+                    Buka TestFlight
+                  </Button>
+                </div>
+                <p className="mt-4 text-sm text-makan-ink/85">
+                  Belum mau memasang aplikasi?{" "}
+                  <button
+                    type="button"
+                    data-revklik-goal="ios_cta_click"
+                    data-revklik-goal-location="tester"
+                    onClick={() => openIosInstall("tester")}
+                    className="font-semibold underline underline-offset-4"
+                  >
+                    Pasang web app ke Layar Utama
+                  </button>
+                  .
+                </p>
+              </div>
+              <InstallSteps steps={IOS_STEPS} />
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -804,7 +944,7 @@ function Landing() {
           </div>
         </section>
 
-        <TesterJoin />
+        <InstallApp />
 
         {/* Open source */}
         <section data-section="opensource" className="mx-auto w-full max-w-6xl px-4 pb-16 md:px-6">
