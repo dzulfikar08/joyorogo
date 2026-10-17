@@ -10,16 +10,6 @@ function summary() {
     eatenKcal: 1000,
     eatenByMeal: { sarapan: 400, makan_siang: 600, makan_malam: 0, snack: 0, sahur: 0, berbuka: 0 },
     burnedKcal: 2000,
-    deficit: {
-      bmrKcal: 1500,
-      activityKcal: 300,
-      exerciseKcal: 200,
-      burnKcal: 2000,
-      eatenKcal: 1000,
-      deficitKcal: 1000,
-      targetGap: 3000,
-    },
-    targets: { eatKcal: 2000 },
     weekEatenKcal: 14000,
     weekBurnedKcal: 20000,
     weekMeals: 20,
@@ -34,7 +24,7 @@ function summary() {
 }
 
 describe("applySummaryDelta", () => {
-  test("food add patches same-day totals, deficit and week rollups", () => {
+  test("food add patches same-day totals and week rollups", () => {
     const s = applySummaryDelta(summary(), { date: TODAY, meal: "sarapan", kcal: 250, protein: 10, meals: 1 }, TODAY);
     expect(s.eatenKcal).toBe(1250);
     expect(s.eatenByMeal.sarapan).toBe(650);
@@ -42,9 +32,6 @@ describe("applySummaryDelta", () => {
     expect(s.weekMeals).toBe(21);
     expect(s.weekProtein).toBe(710);
     expect(s.protein?.eatenG).toBe(70);
-    expect(s.deficit?.eatenKcal).toBe(1250);
-    expect(s.deficit?.deficitKcal).toBe(750);
-    expect(s.deficit?.targetGap).toBe(2750);
     expect(s.burnedKcal).toBe(2000);
   });
 
@@ -52,16 +39,12 @@ describe("applySummaryDelta", () => {
     const s = applySummaryDelta(summary(), { date: TODAY, meal: "snack", kcal: -250, protein: -10, meals: -1 }, TODAY);
     expect(s.eatenKcal).toBe(750);
     expect(s.weekMeals).toBe(19);
-    expect(s.deficit?.deficitKcal).toBe(1250);
   });
 
   test("exercise delta moves burn side only", () => {
     const s = applySummaryDelta(summary(), { date: TODAY, burnKcal: 150 }, TODAY);
     expect(s.eatenKcal).toBe(1000);
     expect(s.burnedKcal).toBe(2150);
-    expect(s.deficit?.exerciseKcal).toBe(350);
-    expect(s.deficit?.burnKcal).toBe(2150);
-    expect(s.deficit?.deficitKcal).toBe(1150);
     expect(s.weekBurnedKcal).toBe(20150);
   });
 
@@ -70,7 +53,6 @@ describe("applySummaryDelta", () => {
     expect(s.eatenKcal).toBe(1000);
     expect(s.weekEatenKcal).toBe(14300);
     expect(s.weekMeals).toBe(21);
-    expect(s.deficit?.eatenKcal).toBe(1000);
   });
 
   test("rows outside the 7-day window are ignored", () => {

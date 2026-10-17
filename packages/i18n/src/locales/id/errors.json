@@ -6,7 +6,10 @@
     "mediaDeleteFailed": "Foto belum bisa dihapus. Coba lagi sebentar."
   },
   "profile": {
-    "onboardingRequired": "Lengkapi onboarding dulu ya."
+    "onboardingRequired": "Lengkapi onboarding dulu ya.",
+    "targetDatePast": "Tanggal target harus besok atau setelahnya.",
+    "targetDateInvalid": "Tanggal target tidak valid.",
+    "targetDateTooFar": "Tanggal target paling jauh 5 tahun dari sekarang."
   },
   "ai": {
     "unavailable": "Layanan AI belum tersedia. Coba lagi nanti.",

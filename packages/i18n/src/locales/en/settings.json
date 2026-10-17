@@ -103,15 +103,39 @@
     "targetDate": {
       "title": "Target date",
       "subtitle": "When you want to get there",
-      "hint": "When you want to reach your target weight.",
-      "error": "Target date can't be in the past.",
+      "hint": "Pick a date and your daily eating target adjusts with it.",
+      "error": "Pick tomorrow or a later date.",
       "tooFast": {
-        "title": "This target needs a deficit of ~{{deficit}} kcal/day, above the safe limit.",
-        "body_one": "JoyoRogo caps the deficit at about 1,000 kcal/day. Losing {{kg}} kg at that pace takes about {{count}} day.",
-        "body_other": "JoyoRogo caps the deficit at about 1,000 kcal/day. Losing {{kg}} kg at that pace takes about {{count}} days.",
+        "title": "This date needs a deficit of ~{{deficit}} kcal a day, above the safe limit.",
+        "body_one": "JoyoRogo caps the deficit at about 1,000 kcal a day. Losing {{kg}} kg at that pace takes about {{count}} day.",
+        "body_other": "JoyoRogo caps the deficit at about 1,000 kcal a day. Losing {{kg}} kg at that pace takes about {{count}} days.",
         "useDate_one": "Use a realistic date (+{{count}} day)",
         "useDate_other": "Use a realistic date (+{{count}} days)"
-      }
+      },
+      "pickLabel": "Pick the target date",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "quick": {
+        "month1": "1 month",
+        "month3": "3 months",
+        "month6": "6 months",
+        "year1": "1 year"
+      },
+      "daysAway_one": "{{count}} day away",
+      "daysAway_other": "{{count}} days away",
+      "preview": {
+        "changed": "Eating target becomes {{next}} kcal a day (now {{current}}).",
+        "same": "Eating target stays {{kcal}} kcal a day."
+      },
+      "ok_one": "Good. Losing {{kg}} kg in {{count}} day, {{perWeek}} kg a week, is a safe pace.",
+      "ok_other": "Good. Losing {{kg}} kg in {{count}} days, {{perWeek}} kg a week, is a safe pace.",
+      "slow": {
+        "title": "That date is quite far out.",
+        "body": "That pace is relaxed, so JoyoRogo still uses a minimum deficit of {{deficit}} kcal a day. At that rate you reach your target around {{date}}.",
+        "useDate": "Use {{date}}"
+      },
+      "maintenance": "You're already at your target weight, so this date doesn't change your daily numbers yet. A new date matters once your target weight is below your current weight.",
+      "previewFailed": "Couldn't work out the daily numbers. You can still save the date."
     },
     "activity": {
       "title": "Daily activity",
@@ -149,6 +173,46 @@
     },
     "toast": {
       "updated": "Plan updated"
+    },
+    "needs": {
+      "title": "Your daily needs",
+      "row": "Your daily needs",
+      "rowValue": "TDEE {{kcal}} kcal",
+      "subtitle": "Where your eating target comes from",
+      "intro": "Step by step, from your body to today's eating target.",
+      "unit": "kcal per day",
+      "bmr": {
+        "label": "BMR",
+        "name": "Body at rest",
+        "body": "The energy your body uses at complete rest: breathing, heartbeat, staying warm. Worked out from your weight, height, age and sex."
+      },
+      "activity": {
+        "label": "Daily activity",
+        "name": "Everyday movement",
+        "body": "Extra from walking, work and chores outside of workouts. Based on the activity level you chose: {{level}}."
+      },
+      "tdee": {
+        "label": "TDEE",
+        "name": "Total needs",
+        "body": "The total energy your body burns in a day. Eat this much and your weight stays the same."
+      },
+      "cut": {
+        "label": "Minus for weight loss",
+        "name": "Food cut",
+        "body": "A cut from what you eat so your body draws on fat stores. Its size comes from the gap between your weight and your target, and your target date."
+      },
+      "cutNone": {
+        "label": "No cut",
+        "name": "Holding weight",
+        "body": "You're already at your target weight, so you eat as much as your TDEE to hold it."
+      },
+      "target": {
+        "label": "Eating target",
+        "name": "Your allowance",
+        "body": "The number you see on Beranda."
+      },
+      "burnNote": "The rest of your deficit, {{burn}} kcal, comes from your planned exercise (Burn). Your plan's total deficit is about {{deficit}} kcal a day.",
+      "adaptive": "This TDEE is measured from your food and weigh-in logs over the last 4 weeks, not from the standard formula ({{formula}} kcal)."
     }
   },
   "theme": {

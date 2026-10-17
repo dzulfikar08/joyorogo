@@ -48,7 +48,7 @@ describe("adviseSnack", () => {
     });
     expect(advice?.verdict).toBe("lewat");
     expect(advice?.numbers).toMatchObject({ remainingKcal: 300, afterKcal: -100, overKcal: 100 });
-    expect(advice?.reason).toContain("lebih 100 kkal");
+    expect(advice?.reason).toContain("lewat 100 kkal");
     expect(advice?.reason).toContain("boleh simpan");
   });
 
@@ -67,10 +67,12 @@ describe("adviseSnack", () => {
     expect(advice?.reason).toContain("sudah 1900 kkal dari target 1800 kkal");
   });
 
-  test("beyond tdee says surplus, below it only says the deficit thins", () => {
+  test("beyond tdee the day passes daily needs, below it only passes the target", () => {
     const over = { ...base, eatenKcal: 2000, tdeeKcal: 2100, kcal: 300, nowMin: at(21) };
-    expect(adviseSnack(over)?.reason).toContain("surplus");
-    expect(adviseSnack({ ...over, tdeeKcal: 2600 })?.reason).not.toContain("surplus");
+    expect(adviseSnack(over)?.reason).toContain("melewati kebutuhan harianmu");
+    const under = adviseSnack({ ...over, tdeeKcal: 2600 })?.reason;
+    expect(under).toContain("masih di bawah kebutuhan harianmu");
+    expect(under).not.toContain("melewati");
   });
 
   test("half portion is offered with its kcal and the verdict it would get", () => {

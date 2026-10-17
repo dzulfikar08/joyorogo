@@ -14,7 +14,8 @@
     "streakLabel_other": "Logging streak: {{count}} days in a row",
     "profile": "Profile",
     "openProfile": "Open {{name}}'s profile",
-    "fallbackName": "You"
+    "fallbackName": "You",
+    "share": "Share progress"
   },
   "banner": {
     "scans": "AI scans {{n}}x/day",
@@ -23,13 +24,13 @@
     "upgrade": "Upgrade"
   },
   "eat": {
-    "left": "Left to eat",
-    "over": "Over by",
-    "ringLabel": "Eaten {{eaten}} of {{target}} kcal",
-    "target": "Target",
-    "eaten": "Eaten",
-    "deficit": "Deficit",
-    "overNote": "{{kcal}} kcal over budget. Keep it light today and pick up again tomorrow."
+    "left": "Left",
+    "over": "Over",
+    "ringLabel": "Eaten {{eaten}} of {{target}} kcal target",
+    "target": "Eating target",
+    "eaten": "Eaten so far",
+    "overNote": "{{kcal}} kcal over target. Keep it light today and pick up again tomorrow.",
+    "help": "How to read these numbers"
   },
   "ideas": {
     "title": "Still fits",
@@ -45,7 +46,7 @@
   },
   "tile": {
     "burn": "Burned",
-    "burnOf": "of {{kcal}} kcal",
+    "burnOf": "target {{kcal}}",
     "sleep": "Sleep",
     "sleepUnit": "h",
     "sleepNone": "not logged",
@@ -113,8 +114,6 @@
     "factLabel": "Today's calorie fact",
     "fact": "{{text}} = {{kcal}} kcal, about {{move}}",
     "badges": "Badges",
-    "shareTitle": "Share progress",
-    "shareHint": "A ready-to-post card from today's numbers.",
     "shareRecap": "Share weekly recap"
   },
   "milestone": {
@@ -123,7 +122,6 @@
   },
   "recapShare": {
     "title": "This Week's Summary",
-    "deficit": "Deficit: {{kcal}} kcal",
     "streak_one": "Streak: {{count}} day",
     "streak_other": "Streak: {{count}} days",
     "average": "Average intake: {{kcal}} kcal/day",
@@ -175,7 +173,7 @@
     "label": "Movement today",
     "done": "Today's movement goal is done. Nice.",
     "title": "Move a little",
-    "body": "<b>{{kcal}} kcal</b> left = <s>{{steps}} steps</s> (about <n>{{km}} km</n> / <n>{{minutes}} min</n> of walking)",
+    "body": "Burn <b>{{kcal}} kcal</b> more = <s>{{steps}} steps</s> (about <n>{{km}} km</n> / <n>{{minutes}} min</n> of walking)",
     "hint": "An easy evening walk covers it."
   },
   "recap": {
@@ -202,5 +200,33 @@
     "range": "Enter a weight between 25 and 400 kg.",
     "hintToday": "One entry per day. Saving again replaces today's entry.",
     "hintDay": "One entry per day. Saving again replaces the entry for {{day}}."
+  },
+  "explain": {
+    "title": "How to read today's numbers",
+    "formula": "Left = eating target − eaten so far",
+    "example": "Today: {{target}} − {{eaten}} = {{left}} kcal left",
+    "exampleOver": "Today: {{target}} − {{eaten}} = {{over}} kcal over",
+    "target": {
+      "title": "Eating target",
+      "body": "Your calorie allowance for the day, worked out from your body, activity and target weight."
+    },
+    "eaten": {
+      "title": "Eaten so far",
+      "body": "All the food and drinks you logged today."
+    },
+    "left": {
+      "title": "Left",
+      "body": "What still fits until tonight. Once you go past it, the number turns into Over. No stress, start again tomorrow."
+    },
+    "burn": {
+      "title": "Burned",
+      "body": "Calories burned from exercise. Your eating target already counts on it, so a workout doesn't add to what's left to eat, and a quiet day doesn't take any away."
+    },
+    "deficit": {
+      "title": "What does deficit mean?",
+      "body": "A deficit is the gap between the calories your body needs and the calories you eat. That gap is what lowers your weight. You don't have to calculate it, just eat around your target. Your plan is about {{kcal}} kcal a day.",
+      "bodyMaintenance": "Your plan is to hold your weight right now, so there is no deficit. Just eat around your target."
+    },
+    "needs": "See your daily needs in detail"
   }
 }

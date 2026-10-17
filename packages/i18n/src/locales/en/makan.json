@@ -5,7 +5,7 @@
       "loading": "Loading your food log"
     },
     "summary": {
-      "over": "+{{kcal}} over",
+      "over": "Over by {{kcal}}",
       "ofTarget": "of {{kcal}}"
     },
     "macro": {
@@ -282,8 +282,8 @@
       "windowClosed": "Your IF eating window ({{window}}) is closed right now, so this is off schedule.",
       "overNoRoom": "You're already at {{eaten}} of your {{target}} target today, and this adds {{kcal}}.",
       "overSome": "You have {{remaining}} left today, so the total goes up to {{total}} against a {{target}} target ({{over}} over).",
-      "surplus": "Today becomes a surplus.",
-      "thinDeficit": "Today's deficit gets thin, but you can still save it.",
+      "surplus": "Today's total goes past your daily needs (TDEE), so your weight won't drop today.",
+      "thinDeficit": "That's over your target, but still under your daily needs (TDEE). You can still save it.",
       "reserve": {
         "safe": "You have {{remaining}} left today and about {{reserve}} is usually set aside for {{upcoming}}, so about {{room}} is free for {{noun}}.",
         "some": "You have {{remaining}} left today and about {{reserve}} is usually set aside for {{upcoming}}, so only {{room}} is free for {{noun}}.",
@@ -701,7 +701,7 @@
       "profile": "Fill in your profile and daily targets so portions and menus can be worked out from your own numbers."
     },
     "rest": {
-      "main": "{{reasons}}. Prioritize protein and fluids. No need to push for a bigger deficit today.",
+      "main": "{{reasons}}. Prioritize protein and fluids. Don't try to eat less than your target today.",
       "protein": "Protein: {{eaten}} g so far of your {{target}} g target, {{left}} g left.",
       "proteinDone": "You've hit today's protein target."
     },

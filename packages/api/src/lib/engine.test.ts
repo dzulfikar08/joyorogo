@@ -5,6 +5,7 @@ import {
   MEAL_LABELS,
   adaptiveTdee,
   bmrMifflin,
+  checkTargetDate,
   computeBurn,
   computeDeficit,
   computeTargets,
@@ -14,8 +15,10 @@ import {
   idealWeightRange,
   isRamadanDate,
   jakartaToday,
+  needsBreakdown,
   proteinTargetG,
   ramadanSplit,
+  remainingKcal,
   shiftDate,
   slotsFor,
   streakFromDates,
@@ -232,10 +235,10 @@ describe("computeBurn", () => {
   });
 });
 
-describe("computeDeficit", () => {
+describe("computeDeficit (legacy day.summary field)", () => {
   const NOON_WIB = new Date("2026-09-13T05:00:00Z");
 
-  test("positive deficit when burn beats eaten; gap counts from eat budget", () => {
+  test("burn minus eaten, gap from the eat budget", () => {
     const burn = computeBurn({
       profile: baseProfile,
       exerciseLogs: [
@@ -245,20 +248,13 @@ describe("computeDeficit", () => {
       now: NOON_WIB,
     });
     const d = computeDeficit(1200, burn, 1565);
-    expect(d.eatenKcal).toBe(1200);
-    expect(d.burnKcal).toBeCloseTo(1430.9375);
-    expect(d.deficitKcal).toBe(231); // 1430.9375 - 1200
-    // 1565 - (1200 - 1430.9375)
+    expect(d.deficitKcal).toBe(231);
     expect(d.targetGap).toBe(1796);
   });
 
-  test("negative deficit marks surplus", () => {
+  test("a negative figure means more eaten than burned", () => {
     const burn = computeBurn({ profile: baseProfile, exerciseLogs: [], now: NOON_WIB });
-    const d = computeDeficit(2000, burn, 1565);
-    // 1135.9375 - 2000
-    expect(d.deficitKcal).toBe(-864);
-    // 1565 - (2000 - 1135.9375)
-    expect(d.targetGap).toBe(701);
+    expect(computeDeficit(2000, burn, 1565).deficitKcal).toBe(-864);
   });
 });
 
@@ -481,5 +477,95 @@ describe("eatTone", () => {
   });
   test("no target yet stays neutral", () => {
     expect(eatTone(500, 0)).toBe("ok");
+  });
+});
+
+describe("checkTargetDate", () => {
+  const base = { weightNowKg: 80, targetWeightKg: 70, today: TODAY };
+
+  test("future dates only: today, the past and non-dates are refused", () => {
+    expect(checkTargetDate({ ...base, targetDate: TODAY }).status).toBe("past");
+    expect(checkTargetDate({ ...base, targetDate: "2026-09-01" }).status).toBe("past");
+    expect(checkTargetDate({ ...base, targetDate: "2026-02-30" }).status).toBe("invalid");
+    expect(checkTargetDate({ ...base, targetDate: "besok" }).status).toBe("invalid");
+    expect(checkTargetDate({ ...base, targetDate: "2026-09-14" }).status).toBe("fast");
+  });
+
+  test("a date beyond five years is refused", () => {
+    expect(checkTargetDate({ ...base, targetDate: "2032-01-01" }).status).toBe("tooFar");
+  });
+
+  test("a pace inside 250-1000 kcal/day is ok and matches computeTargets", () => {
+    const check = checkTargetDate({ ...base, targetDate: "2026-12-12" }); // 90 days
+    expect(check).toMatchObject({ status: "ok", days: 90, rawDeficitKcal: 856, deficitKcal: 856 });
+    const targets = computeTargets({ ...baseProfile, weightKg: 80 }, { today: TODAY });
+    expect(targets.deficitKcal).toBe(856);
+  });
+
+  test("more than 1000 kcal/day is fast and offers the realistic length", () => {
+    const check = checkTargetDate({ ...base, targetDate: "2026-10-13" }); // 30 days
+    expect(check).toMatchObject({ status: "fast", rawDeficitKcal: 2567, deficitKcal: 1000 });
+    if (check.status !== "fast") throw new Error("unreachable");
+    expect(check.feasibleDays).toBe(77); // 10 kg * 7700 / 1000
+  });
+
+  test("under 250 kcal/day is slow: the plan holds the floor and finishes earlier", () => {
+    const check = checkTargetDate({ ...base, targetDate: "2029-09-13" }); // 1096 days
+    if (check.status !== "slow") throw new Error(`expected slow, got ${check.status}`);
+    expect(check.rawDeficitKcal).toBe(70);
+    expect(check.deficitKcal).toBe(250);
+    expect(check.feasibleDays).toBe(308);
+  });
+
+  test("already at the goal weight: the date changes nothing", () => {
+    expect(checkTargetDate({ ...base, weightNowKg: 70, targetDate: "2026-12-12" }).status).toBe(
+      "maintenance",
+    );
+  });
+
+  test("moving the date moves the daily target inside the safe window", () => {
+    const at = (targetDate: string) =>
+      computeTargets({ ...baseProfile, weightKg: 80, targetDate }, { today: TODAY });
+    expect(at("2026-11-12").eatKcal).toBeLessThan(at("2027-01-12").eatKcal);
+    expect(at("2026-11-12").deficitKcal).toBeGreaterThan(at("2027-01-12").deficitKcal);
+  });
+});
+
+describe("remainingKcal", () => {
+  test("remaining is target minus eaten, never reduced or topped up by exercise", () => {
+    expect(remainingKcal(2000, 800)).toEqual({ kcal: 1200, over: false });
+    expect(remainingKcal(2000, 2000)).toEqual({ kcal: 0, over: false });
+  });
+
+  test("past the target the number stays positive and flags over", () => {
+    expect(remainingKcal(2000, 2350)).toEqual({ kcal: 350, over: true });
+  });
+});
+
+describe("needsBreakdown", () => {
+  test("BMR + activity = TDEE, TDEE - food cut = target; the rest of the deficit is planned burn", () => {
+    const targets = computeTargets({ ...baseProfile, weightKg: 80 }, { today: TODAY });
+    const needs = needsBreakdown(targets);
+    expect(needs.bmrKcal + needs.activityKcal).toBe(needs.tdeeKcal);
+    expect(needs.cutKcal).toBeGreaterThan(0);
+    expect(needs.tdeeKcal - needs.cutKcal - needs.targetKcal).toBeLessThanOrEqual(2);
+    expect(needs.plannedBurnKcal + needs.cutKcal).toBeCloseTo(needs.deficitKcal, -1);
+    expect(needs.maintenance).toBe(false);
+  });
+
+  test("holding weight has no cut", () => {
+    const targets = computeTargets({ ...baseProfile, weightKg: 70 }, { today: TODAY });
+    const needs = needsBreakdown(targets);
+    expect(needs.maintenance).toBe(true);
+    expect(needs.cutKcal).toBe(0);
+    expect(needs.deficitKcal).toBe(0);
+  });
+
+  test("a measured TDEE is flagged so the sheet can say it is not the textbook number", () => {
+    const targets = computeTargets(baseProfile, { today: TODAY, adaptiveTdee: 2600 });
+    const needs = needsBreakdown(targets);
+    expect(needs.adaptive).toBe(true);
+    expect(needs.tdeeKcal).toBe(targets.tdee);
+    expect(needs.formulaTdeeKcal).toBe(targets.formulaTdee);
   });
 });

@@ -101,13 +101,35 @@
     "targetDate": {
       "title": "Tanggal target",
       "subtitle": "Kapan kamu ingin sampai",
-      "hint": "Kapan kamu ingin mencapai berat target.",
-      "error": "Tanggal target harus belum lewat.",
+      "hint": "Pilih tanggalnya, target makan harianmu ikut menyesuaikan.",
+      "error": "Pilih tanggal besok atau setelahnya.",
       "tooFast": {
-        "title": "Target ini menuntut defisit ~{{deficit}} kkal/hari, di atas batas aman.",
-        "body_other": "JoyoRogo membatasi defisit pada sekitar 1.000 kkal/hari. Turun {{kg}} kg dengan ritme itu butuh sekitar {{count}} hari.",
+        "title": "Tanggal ini menuntut defisit ~{{deficit}} kcal per hari, di atas batas aman.",
+        "body_other": "JoyoRogo membatasi defisit di sekitar 1.000 kcal per hari. Turun {{kg}} kg dengan ritme itu butuh sekitar {{count}} hari.",
         "useDate_other": "Pakai tanggal realistis (+{{count}} hari)"
-      }
+      },
+      "pickLabel": "Pilih tanggal target",
+      "prevMonth": "Bulan sebelumnya",
+      "nextMonth": "Bulan berikutnya",
+      "quick": {
+        "month1": "1 bulan",
+        "month3": "3 bulan",
+        "month6": "6 bulan",
+        "year1": "1 tahun"
+      },
+      "daysAway_other": "{{count}} hari lagi",
+      "preview": {
+        "changed": "Target makan jadi {{next}} kcal per hari (sekarang {{current}}).",
+        "same": "Target makan tetap {{kcal}} kcal per hari."
+      },
+      "slow": {
+        "title": "Tanggalnya cukup jauh.",
+        "body": "Ritmenya santai, jadi JoyoRogo tetap memakai defisit minimal {{deficit}} kcal per hari. Dengan itu targetmu tercapai sekitar {{date}}.",
+        "useDate": "Pakai {{date}}"
+      },
+      "maintenance": "Beratmu sudah di target, jadi tanggal ini belum mengubah angka harianmu. Tanggal baru dipakai kalau berat targetmu lebih rendah dari berat sekarang.",
+      "previewFailed": "Belum bisa menghitung angka harian. Kamu tetap bisa menyimpan tanggalnya.",
+      "ok_other": "Pas. Turun {{kg}} kg dalam {{count}} hari, ritme {{perWeek}} kg per minggu, aman."
     },
     "activity": {
       "title": "Aktivitas harian",
@@ -145,6 +167,46 @@
     },
     "toast": {
       "updated": "Rencana diperbarui"
+    },
+    "needs": {
+      "title": "Kebutuhan harianmu",
+      "row": "Kebutuhan harianmu",
+      "rowValue": "TDEE {{kcal}} kcal",
+      "subtitle": "Dari mana target makanmu datang",
+      "intro": "Langkah demi langkah, dari tubuhmu sampai target makan hari ini.",
+      "unit": "kcal per hari",
+      "bmr": {
+        "label": "BMR",
+        "name": "Tubuh diam",
+        "body": "Energi yang dipakai tubuhmu saat istirahat total: napas, jantung, menjaga suhu. Dihitung dari berat, tinggi, umur, dan jenis kelamin."
+      },
+      "activity": {
+        "label": "Aktivitas harian",
+        "name": "Gerak sehari-hari",
+        "body": "Tambahan dari jalan, kerja, dan beres-beres di luar olahraga. Sesuai pilihan aktivitasmu: {{level}}."
+      },
+      "tdee": {
+        "label": "TDEE",
+        "name": "Total kebutuhan",
+        "body": "Total energi yang dibakar tubuhmu sehari. Makan sebanyak ini, berat badanmu tetap."
+      },
+      "cut": {
+        "label": "Dikurangi buat turun berat",
+        "name": "Potongan makan",
+        "body": "Potongan dari makan supaya tubuh memakai simpanan lemak. Besarnya dihitung dari selisih berat dan tanggal targetmu."
+      },
+      "cutNone": {
+        "label": "Tidak ada potongan",
+        "name": "Menjaga berat",
+        "body": "Beratmu sudah di target, jadi kamu makan sebanyak TDEE untuk menjaga."
+      },
+      "target": {
+        "label": "Target makan",
+        "name": "Jatah makanmu",
+        "body": "Angka yang kamu lihat di Beranda."
+      },
+      "burnNote": "Sisa defisitmu, {{burn}} kcal, datang dari olahraga yang direncanakan (Bakar). Total defisit rencanamu sekitar {{deficit}} kcal per hari.",
+      "adaptive": "TDEE ini diukur dari catatan makan dan timbanganmu 4 minggu terakhir, bukan dari rumus standar ({{formula}} kcal)."
     }
   },
   "theme": {

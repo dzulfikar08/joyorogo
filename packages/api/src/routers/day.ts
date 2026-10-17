@@ -210,6 +210,7 @@ export const dayRouter = {
       return {
         hasProfile: true,
         targets,
+        // Legacy: see computeDeficit. Not read by the current clients.
         deficit: computeDeficit(eatenKcal, burn, targets.eatKcal),
         eatenKcal,
         eatenByMeal,

@@ -26,7 +26,7 @@
     "progress": "{{label}}: {{eaten}} of {{budget}} {{unit}}",
     "summaryTitle": "Today's calorie summary",
     "eatenOf": "Eaten {{eaten}} of {{budget}} kcal",
-    "over": "+{{kcal}} over",
+    "over": "Over {{kcal}}",
     "ofTarget": "of {{kcal}}"
   },
   "mascot": {
@@ -112,8 +112,8 @@
     "avg": {
       "label": "Daily average",
       "aria": "Average {{avg}} of a {{target}} kcal target",
-      "note_one": "Your target is {{target}} kcal. Based on {{count}} day you logged.",
-      "note_other": "Your target is {{target}} kcal. Based on {{count}} days you logged."
+      "note_one": "Your eat target is {{target}} kcal. Based on {{count}} day you logged.",
+      "note_other": "Your eat target is {{target}} kcal. Based on {{count}} days you logged."
     },
     "daily": "Daily",
     "unit": {

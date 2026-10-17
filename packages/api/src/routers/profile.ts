@@ -12,7 +12,7 @@ import type { Database } from "@joyorogo/db";
 import type { Targets } from "../lib/engine";
 
 import { protectedProcedure } from "../index";
-import { computeTargets, jakartaToday } from "../lib/engine";
+import { checkTargetDate, computeTargets, jakartaToday } from "../lib/engine";
 import { dateSchema, profileInputSchema } from "../lib/schemas";
 import { buildPlan, planQueries } from "../lib/plan";
 import { serverT } from "../lib/messages";
@@ -128,23 +128,79 @@ export const profileRouter = {
     )
     .handler(async ({ context, input }): Promise<{ targets: Targets }> => {
       const userId = context.session.user.id;
+      const t = serverT(context.locale, "errors");
+      const { row, plan: current } = await loadPlan(context.db, userId);
+      if (!row || !current) {
+        throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+      }
+      // A weight edit re-sends the stored date, which may have lapsed; only a
+      // date the user is actually changing has to be in the future.
+      if (input.targetDate !== row.targetDate) {
+        const check = checkTargetDate({
+          weightNowKg: current.weightNowKg,
+          targetWeightKg: input.targetWeightKg,
+          targetDate: input.targetDate,
+        });
+        if (check.status === "invalid" || check.status === "past" || check.status === "tooFar") {
+          const key = {
+            invalid: "profile.targetDateInvalid",
+            past: "profile.targetDatePast",
+            tooFar: "profile.targetDateTooFar",
+          } as const;
+          throw new ORPCError("BAD_REQUEST", { message: t(key[check.status]) });
+        }
+      }
       const updated = await context.db
         .update(profile)
         .set({ targetWeightKg: input.targetWeightKg, targetDate: input.targetDate })
         .where(eq(profile.userId, userId))
         .returning({ userId: profile.userId });
       if (updated.length === 0) {
-        throw new ORPCError("NOT_FOUND", {
-          message: serverT(context.locale, "errors")("profile.onboardingRequired"),
-        });
+        throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
       }
       const { plan } = await loadPlan(context.db, userId);
       if (!plan) {
+        throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+      }
+      return { targets: plan.targets };
+    }),
+
+  // What the plan would be for a candidate target, without saving: the date
+  // sheet shows the daily numbers move before the user commits.
+  previewTargets: protectedProcedure
+    .input(
+      z.object({
+        targetWeightKg: z.number().min(25).max(400),
+        targetDate: dateSchema,
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const today = jakartaToday();
+      const [[row], [latest], weighIns, intake, exercise] = await context.db.batch(
+        planQueries(context.db, userId, today),
+      );
+      if (!row) {
         throw new ORPCError("NOT_FOUND", {
           message: serverT(context.locale, "errors")("profile.onboardingRequired"),
         });
       }
-      return { targets: plan.targets };
+      const history = { latestWeightKg: latest?.weightKg ?? null, weighIns, intake, exercise };
+      const now = buildPlan(row, history, today);
+      const next = buildPlan(
+        { ...row, targetWeightKg: input.targetWeightKg, targetDate: input.targetDate },
+        history,
+        today,
+      );
+      return {
+        check: checkTargetDate({
+          weightNowKg: next.weightNowKg,
+          targetWeightKg: input.targetWeightKg,
+          targetDate: input.targetDate,
+        }),
+        current: now.targets,
+        next: next.targets,
+      };
     }),
   // Saved app language. Clients resolve saved > device choice > device language
   // and send the result as x-locale; this stores the explicit choice so it

@@ -12,7 +12,8 @@
     "streakLabel_other": "Streak catat {{count}} hari beruntun",
     "profile": "Profil",
     "openProfile": "Buka profil {{name}}",
-    "fallbackName": "Kamu"
+    "fallbackName": "Kamu",
+    "share": "Bagikan progres"
   },
   "banner": {
     "scans": "Scan AI {{n}}x/hari",
@@ -21,13 +22,13 @@
     "upgrade": "Upgrade"
   },
   "eat": {
-    "left": "Masih boleh",
-    "over": "Kelebihan",
-    "ringLabel": "Dimakan {{eaten}} dari {{target}} kcal",
-    "target": "Target",
-    "eaten": "Dimakan",
-    "deficit": "Defisit",
-    "overNote": "Lewat {{kcal}} kcal dari budget. Ringan saja hari ini, besok jalan lagi."
+    "left": "Sisa",
+    "over": "Lewat",
+    "ringLabel": "Sudah dimakan {{eaten}} dari target {{target}} kcal",
+    "target": "Target makan",
+    "eaten": "Sudah dimakan",
+    "overNote": "Lewat {{kcal}} kcal dari target. Ringan saja hari ini, besok jalan lagi.",
+    "help": "Cara baca angka ini"
   },
   "ideas": {
     "title": "Masih muat",
@@ -43,7 +44,7 @@
   },
   "tile": {
     "burn": "Bakar",
-    "burnOf": "dari {{kcal}} kcal",
+    "burnOf": "target {{kcal}}",
     "sleep": "Tidur",
     "sleepUnit": "jam",
     "sleepNone": "belum dicatat",
@@ -111,8 +112,6 @@
     "factLabel": "Fakta kalori hari ini",
     "fact": "{{text}} = {{kcal}} kcal, setara {{move}}",
     "badges": "Lencana",
-    "shareTitle": "Bagikan progres",
-    "shareHint": "Kartu siap posting dari angka hari ini.",
     "shareRecap": "Bagikan recap mingguan"
   },
   "milestone": {
@@ -121,7 +120,6 @@
   },
   "recapShare": {
     "title": "Ringkasan Minggu Ini",
-    "deficit": "Defisit: {{kcal}} kkal",
     "streak_other": "Streak: {{count}} hari",
     "average": "Rata-rata makan: {{kcal}} kkal/hari",
     "trend": "Tren berat: {{points}}",
@@ -171,7 +169,7 @@
     "label": "Gerak hari ini",
     "done": "Target gerak hari ini lunas. Mantap.",
     "title": "Gerak dikit",
-    "body": "Sisa <b>{{kcal}} kcal</b> = <s>{{steps}} langkah</s> (± <n>{{km}} km</n> / <n>{{minutes}} menit</n> jalan kaki)",
+    "body": "Bakar <b>{{kcal}} kcal</b> lagi = <s>{{steps}} langkah</s> (± <n>{{km}} km</n> / <n>{{minutes}} menit</n> jalan kaki)",
     "hint": "Santai jalan sore aja udah kebayang habisnya."
   },
   "recap": {
@@ -196,5 +194,33 @@
     "range": "Isi berat badan antara 25 dan 400 kg.",
     "hintToday": "Satu catatan per hari. Menyimpan lagi akan menimpa catatan hari ini.",
     "hintDay": "Satu catatan per hari. Menyimpan lagi akan menimpa catatan {{day}}."
+  },
+  "explain": {
+    "title": "Cara baca angka hari ini",
+    "formula": "Sisa = target makan − sudah dimakan",
+    "example": "Hari ini: {{target}} − {{eaten}} = {{left}} kcal sisa",
+    "exampleOver": "Hari ini: {{target}} − {{eaten}} = lewat {{over}} kcal",
+    "target": {
+      "title": "Target makan",
+      "body": "Jatah kalori makanmu sehari. Sudah dihitung dari tubuh, aktivitas, dan target beratmu."
+    },
+    "eaten": {
+      "title": "Sudah dimakan",
+      "body": "Semua makanan dan minuman yang kamu catat hari ini."
+    },
+    "left": {
+      "title": "Sisa",
+      "body": "Yang masih muat sampai malam. Kalau sudah lewat, angkanya berubah jadi Lewat. Tenang, besok mulai lagi."
+    },
+    "burn": {
+      "title": "Bakar",
+      "body": "Kalori yang terbakar dari olahraga. Target makanmu sudah memperhitungkannya, jadi olahraga tidak menambah sisa makan, dan bakar yang kurang tidak mengurangi sisa."
+    },
+    "deficit": {
+      "title": "Kok ada kata defisit?",
+      "body": "Defisit itu selisih antara kalori yang tubuhmu butuhkan dan yang kamu makan. Selisih inilah yang menurunkan berat. Kamu tidak perlu menghitungnya, cukup makan sekitar target. Rencanamu sekitar {{kcal}} kcal per hari.",
+      "bodyMaintenance": "Rencanamu sekarang menjaga berat, jadi tidak ada defisit. Makan sekitar target saja."
+    },
+    "needs": "Lihat rincian kebutuhan harianmu"
   }
 }

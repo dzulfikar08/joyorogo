@@ -29,16 +29,6 @@ export type DaySummaryLike = {
   eatenKcal: number;
   eatenByMeal: Record<string, number>;
   burnedKcal: number;
-  deficit?: {
-    bmrKcal: number;
-    activityKcal: number;
-    exerciseKcal: number;
-    burnKcal: number;
-    eatenKcal: number;
-    deficitKcal: number;
-    targetGap: number;
-  } | null;
-  targets?: { eatKcal: number } | null;
   weekEatenKcal: number;
   weekBurnedKcal: number;
   weekMeals: number;
@@ -61,7 +51,7 @@ export type SummaryDelta = {
   meal?: string;
   /** Food-row count delta (+1 add / -1 delete) for weekMeals. */
   meals?: number;
-  /** Exercise kcal delta; also shifts burnedKcal and the deficit burn side. */
+  /** Exercise kcal delta; also shifts burnedKcal. */
   burnKcal?: number;
   /** Sleep hours to set (not a delta) on the summary of date + 1. */
   sleepHours?: number | null;
@@ -69,7 +59,7 @@ export type SummaryDelta = {
 
 /**
  * Patch one cached day summary with a food/exercise/sleep delta:
- * same-day totals (eaten, burned, eatenByMeal, deficit) when the cache's
+ * same-day totals (eaten, burned, eatenByMeal) when the cache's
  * date matches, rolling week totals whenever the row's date falls in the
  * cache's 7-day window. Returns the same object untouched when nothing
  * applies, so setQueryData updaters can return it as-is.
@@ -97,17 +87,6 @@ export function applySummaryDelta<T extends DaySummaryLike>(
   if (week && delta.fat !== undefined) s.weekFat = Math.round((s.weekFat ?? 0) + delta.fat);
   if (sameDay && delta.protein !== undefined && s.protein) {
     s.protein = { ...s.protein, eatenG: Math.max(0, Math.round(s.protein.eatenG + delta.protein)) };
-  }
-
-  const burn = delta.burnKcal ?? 0;
-  if ((sameDay && (delta.kcal !== undefined || delta.burnKcal !== undefined)) && s.deficit && s.targets) {
-    const d = { ...s.deficit };
-    if (delta.kcal !== undefined) d.eatenKcal += delta.kcal;
-    d.exerciseKcal = Math.max(0, d.exerciseKcal + burn);
-    d.burnKcal = Math.max(0, d.burnKcal + burn);
-    d.deficitKcal = Math.round(d.burnKcal - d.eatenKcal);
-    d.targetGap = Math.round(s.targets.eatKcal - (d.eatenKcal - d.burnKcal));
-    s.deficit = d;
   }
 
   if (delta.sleepHours !== undefined && summary.date === shiftDate(delta.date, 1)) {

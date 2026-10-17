@@ -74,7 +74,7 @@ export type SnackAdviceInput = {
   /** Today's eaten kcal and the day's eat target. */
   eatenKcal: number;
   eatKcal: number;
-  /** Today's tdee, when known: tells "defisit menipis" from "surplus". */
+  /** Today's tdee, when known: tells "past the target" from "past daily needs". */
   tdeeKcal?: number | null;
   /** Kcal already logged per slot today. */
   eatenByMeal: Partial<Record<Meal, number>>;
@@ -223,7 +223,7 @@ function swapSuggestion(
  * Verdict for one candidate item.
  * - aman: fits without touching what upcoming meals usually need.
  * - hati-hati: fits the day, but only by eating into an upcoming meal's share.
- * - lewat: would push the day over the eat target (no deficit left, or a surplus).
+ * - lewat: would push the day over the eat target (nothing left, or past daily needs too).
  * An IF window that is closed or not yet open lifts `aman` to `hati-hati` and says so.
  * Returns null when there is nothing to compare against (no target, no kcal).
  */

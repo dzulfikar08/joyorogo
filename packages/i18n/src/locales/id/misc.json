@@ -26,7 +26,7 @@
     "progress": "{{label}}: {{eaten}} dari {{budget}} {{unit}}",
     "summaryTitle": "Ringkasan kalori hari ini",
     "eatenOf": "Dimakan {{eaten}} dari {{budget}} kcal",
-    "over": "+{{kcal}} lebih",
+    "over": "Lewat {{kcal}}",
     "ofTarget": "dari {{kcal}}"
   },
   "mascot": {
@@ -112,7 +112,7 @@
     "avg": {
       "label": "Rata-rata per hari",
       "aria": "Rata-rata {{avg}} dari target {{target}} kcal",
-      "note_other": "Targetmu {{target}} kcal. Dihitung dari {{count}} hari yang kamu catat."
+      "note_other": "Target makanmu {{target}} kcal. Dihitung dari {{count}} hari yang kamu catat."
     },
     "daily": "Harian",
     "unit": {
@@ -149,7 +149,7 @@
     "share": "Bagikan rekap ke Story",
     "note": {
       "title": "Cara menghitung",
-      "body": "Hitungan dari catatanmu sendiri, bukan penilaian medis. Sesuai target berarti asupan sehari tidak lebih dari 5% di atas targetmu dan tidak kurang dari separuhnya. Berat memakai tren (rata-rata bergerak), jadi tidak ikut naik turun timbangan harian.",
+      "body": "Hitungan dari catatanmu sendiri, bukan penilaian medis. Sesuai target berarti asupan sehari ada di antara separuh target dan 5% di atas target. Berat memakai tren (rata-rata bergerak), jadi tidak ikut naik turun timbangan harian.",
       "ongoing": "Minggu ini dihitung sampai kemarin; hari ini belum ikut dinilai."
     },
     "chart": {
@@ -157,14 +157,14 @@
       "day": "{{day}}: {{kcal}} kcal, {{status}}",
       "status": {
         "on_target": "sesuai target",
-        "over": "di atas target",
+        "over": "lewat target",
         "under": "jauh di bawah target, mungkin belum lengkap dicatat",
         "empty": "tidak ada catatan makan",
         "pending": "belum dinilai"
       },
       "legend": {
         "onTarget": "Sesuai target",
-        "over": "Di atas",
+        "over": "Lewat target",
         "under": "Kurang dari separuh target",
         "target": "Target"
       }

@@ -6,7 +6,10 @@
     "mediaDeleteFailed": "We couldn't delete your photos yet. Please try again in a moment."
   },
   "profile": {
-    "onboardingRequired": "Please finish setting up your profile first."
+    "onboardingRequired": "Please finish setting up your profile first.",
+    "targetDatePast": "The target date must be tomorrow or later.",
+    "targetDateInvalid": "That target date isn't valid.",
+    "targetDateTooFar": "The target date can be at most 5 years from now."
   },
   "ai": {
     "unavailable": "The AI service isn't available right now. Please try again later.",

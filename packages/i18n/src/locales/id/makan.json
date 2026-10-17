@@ -5,7 +5,7 @@
       "loading": "Memuat catatan makan"
     },
     "summary": {
-      "over": "+{{kcal}} lebih",
+      "over": "Lewat {{kcal}}",
       "ofTarget": "dari {{kcal}}"
     },
     "macro": {
@@ -273,9 +273,9 @@
       "head": "{{name}} {{kcal}}.",
       "windowClosed": "Jendela makan IF kamu ({{window}}) sedang tutup, jadi ini di luar jadwal.",
       "overNoRoom": "Hari ini sudah {{eaten}} dari target {{target}}, ini menambah {{kcal}}.",
-      "overSome": "Sisa hari ini {{remaining}}, jadi total naik ke {{total}} dari target {{target}} (lebih {{over}}).",
-      "surplus": "Hari ini jadi surplus.",
-      "thinDeficit": "Defisit hari ini jadi menipis, tapi kamu tetap boleh simpan.",
+      "overSome": "Sisa hari ini {{remaining}}, jadi total naik ke {{total}} dari target {{target}} (lewat {{over}}).",
+      "surplus": "Total hari ini melewati kebutuhan harianmu (TDEE), jadi berat belum turun hari ini.",
+      "thinDeficit": "Memang lewat dari target, tapi masih di bawah kebutuhan harianmu (TDEE). Kamu tetap boleh simpan.",
       "reserve": {
         "safe": "Sisa hari ini {{remaining}}, {{upcoming}} biasanya butuh sekitar {{reserve}}, jadi masih ada ruang sekitar {{room}} buat {{noun}}.",
         "some": "Sisa hari ini {{remaining}}, {{upcoming}} biasanya butuh sekitar {{reserve}}, jadi tinggal {{room}} buat {{noun}}.",
@@ -303,7 +303,7 @@
       "mealsAhead": "Makan lagi",
       "none": "tidak ada",
       "afterThis": "Setelah ini",
-      "over": "lebih {{kcal}}",
+      "over": "lewat {{kcal}}",
       "undoHalf": "Kembalikan porsi penuh",
       "halfButton": "Setengah porsi · {{kcal}}",
       "halfResult": "Jadinya: {{verdict}}",
@@ -681,7 +681,7 @@
       "profile": "Isi profil dan target harianmu supaya porsi dan menu bisa dihitung dari angkamu sendiri."
     },
     "rest": {
-      "main": "{{reasons}}. Utamakan protein dan cairan. Tidak perlu memaksa defisit lebih besar hari ini.",
+      "main": "{{reasons}}. Utamakan protein dan cairan. Jangan makan di bawah target hari ini.",
       "protein": "Protein: sudah {{eaten}} g dari target {{target}} g, sisa {{left}} g.",
       "proteinDone": "Target protein hari ini sudah tercapai."
     },

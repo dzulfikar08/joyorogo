@@ -81,6 +81,11 @@ export const KCAL_PER_KG_FAT = 7700;
 const EAT_FLOOR: Record<Gender, number> = { male: 1500, female: 1200 };
 export const SLEEP_NEED_HOURS = 8;
 export const BURN_BASE_PER_KG = 3.3;
+/** Safe daily deficit window: below the floor the date no longer moves the plan, above the cap it is unsafe. */
+export const MIN_DEFICIT_KCAL = 250;
+export const MAX_DEFICIT_KCAL = 1000;
+/** Furthest target date the plan accepts (5 years). */
+export const MAX_TARGET_DAYS = 1826;
 
 export type ProfileInput = {
   birthYear: number;
@@ -551,8 +556,10 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
     : ((weightNow - profile.targetWeightKg) * KCAL_PER_KG_FAT) /
       Math.max(1, daysBetween(today, profile.targetDate));
 
-  const totalDeficit = maintenance ? 0 : Math.min(1000, Math.max(250, rawDeficit));
-  if (!maintenance && rawDeficit > 1000) {
+  const totalDeficit = maintenance
+    ? 0
+    : Math.min(MAX_DEFICIT_KCAL, Math.max(MIN_DEFICIT_KCAL, rawDeficit));
+  if (!maintenance && rawDeficit > MAX_DEFICIT_KCAL) {
     notes.push("PLAN_CLAMPED");
   }
 
@@ -637,11 +644,17 @@ export function computeBurn(input: BurnInput): BurnResult {
   };
 }
 
+/**
+ * Live burn-minus-eaten figure. No screen shows it any more (the home model is
+ * remaining = target - eaten), but day.summary still returns it: app builds
+ * from before that change read `deficit.deficitKcal` (and the native recap
+ * share dereferences it). Drop it once those builds are gone.
+ */
 export type DeficitResult = BurnResult & {
   eatenKcal: number;
-  /** positive = burned more than eaten (deficit); negative = surplus */
+  /** positive = burned more than eaten; negative = ate more */
   deficitKcal: number;
-  /** eat budget minus net intake — how many kcal of room the day has left */
+  /** eat budget minus net intake */
   targetGap: number;
 };
 
@@ -656,5 +669,111 @@ export function computeDeficit(
     eatenKcal,
     deficitKcal: Math.round(burn.burnKcal - eatenKcal),
     targetGap: Math.round(targetKcal - net),
+  };
+}
+
+export type TargetDateCheck =
+  /** not a real YYYY-MM-DD day */
+  | { status: "invalid" }
+  /** today or earlier */
+  | { status: "past" }
+  /** further than MAX_TARGET_DAYS */
+  | { status: "tooFar"; days: number }
+  /** weight already at/below the goal: the date does not move the plan */
+  | { status: "maintenance"; days: number }
+  | {
+      /** ok: inside the safe window; fast: needs more than the cap; slow: less than the floor */
+      status: "ok" | "fast" | "slow";
+      days: number;
+      lossKg: number;
+      /** what the date asks for, before the clamp */
+      rawDeficitKcal: number;
+      /** what the plan will use (clamped) */
+      deficitKcal: number;
+      /** days the clamped deficit needs; the date to offer when status is "fast" */
+      feasibleDays: number;
+    };
+
+/**
+ * One verdict for a candidate target date, shared by the server (which rejects
+ * past dates) and both clients (which warn about an unsafe pace). Future only:
+ * today already leaves no time.
+ */
+export function checkTargetDate(input: {
+  weightNowKg: number;
+  targetWeightKg: number;
+  targetDate: string;
+  today?: string;
+}): TargetDateCheck {
+  const today = input.today ?? jakartaToday();
+  const { targetDate } = input;
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(targetDate) ||
+    Number.isNaN(Date.parse(`${targetDate}T00:00:00Z`)) ||
+    shiftDate(targetDate, 0) !== targetDate
+  ) {
+    return { status: "invalid" };
+  }
+  const days = daysBetween(today, targetDate);
+  if (days < 1) return { status: "past" };
+  if (days > MAX_TARGET_DAYS) return { status: "tooFar", days };
+  if (input.weightNowKg <= input.targetWeightKg) return { status: "maintenance", days };
+  const lossKg = input.weightNowKg - input.targetWeightKg;
+  const rawDeficitKcal = Math.round((lossKg * KCAL_PER_KG_FAT) / days);
+  const deficitKcal = Math.min(MAX_DEFICIT_KCAL, Math.max(MIN_DEFICIT_KCAL, rawDeficitKcal));
+  return {
+    status:
+      rawDeficitKcal > MAX_DEFICIT_KCAL ? "fast" : rawDeficitKcal < MIN_DEFICIT_KCAL ? "slow" : "ok",
+    days,
+    lossKg,
+    rawDeficitKcal,
+    deficitKcal,
+    feasibleDays: Math.ceil((lossKg * KCAL_PER_KG_FAT) / deficitKcal),
+  };
+}
+
+/**
+ * The day's one calorie model: remaining = target - eaten. Exercise is not
+ * added back: the eat target already assumes the planned Bakar (see
+ * computeTargets), so a workout never opens extra room to eat.
+ */
+export function remainingKcal(targetKcal: number, eatenKcal: number): { kcal: number; over: boolean } {
+  const left = Math.round(targetKcal - eatenKcal);
+  return { kcal: Math.abs(left), over: left < 0 };
+}
+
+export type NeedsBreakdown = {
+  bmrKcal: number;
+  /** daily-life movement on top of rest: tdee - bmr */
+  activityKcal: number;
+  tdeeKcal: number;
+  /** what the plan takes off the TDEE through food; 0 when holding weight */
+  cutKcal: number;
+  targetKcal: number;
+  /** planned exercise (Bakar) that covers the rest of the daily deficit */
+  plannedBurnKcal: number;
+  /** whole planned daily deficit: food cut + planned exercise */
+  deficitKcal: number;
+  maintenance: boolean;
+  /** tdee is measured from the logs, not the textbook formula */
+  adaptive: boolean;
+  formulaTdeeKcal: number;
+};
+
+/** BMR -> activity -> TDEE -> minus deficit -> target, from numbers computeTargets already made. */
+export function needsBreakdown(targets: Targets): NeedsBreakdown {
+  const cut = targets.tdee - targets.eatKcal;
+  return {
+    bmrKcal: targets.bmr,
+    activityKcal: targets.tdee - targets.bmr,
+    tdeeKcal: targets.tdee,
+    // under 5 kcal is round5 noise, not a cut
+    cutKcal: cut < 5 ? 0 : cut,
+    targetKcal: targets.eatKcal,
+    plannedBurnKcal: targets.burnKcal,
+    deficitKcal: targets.deficitKcal,
+    maintenance: targets.notes.includes("MAINTENANCE"),
+    adaptive: targets.notes.includes("ADAPTIVE"),
+    formulaTdeeKcal: targets.formulaTdee,
   };
 }
