@@ -51,8 +51,10 @@ echo "== 3/4 deploy server =="
 echo "== 4/4 build + deploy web =="
 (
   cd "$WEB_DIR"
+  # --configLoader runner: the blog plugin imports workspace TS packages (@joyorogo/api, @joyorogo/i18n)
+  # whose extensionless imports Node's native loader cannot resolve.
   VITE_SERVER_URL="https://api.joyorogo.com" VITE_REVKLIK_SITE_ID="88069ee9-6eac-4dc9-a23b-f5757a4b948e" \
-    bunx vite build
+    bunx vite build --configLoader runner
   bunx wrangler deploy
   # Old/www hosts 301 to joyorogo.com; deployed after the web worker so the
   # canonical host is already serving when the redirect goes live.
