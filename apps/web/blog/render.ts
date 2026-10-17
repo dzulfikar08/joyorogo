@@ -10,6 +10,7 @@ import { TIPS, localizeTip, tipImagePath, type LocalizedTip } from "@joyorogo/ap
 import { Marked } from "marked";
 
 import { OG_IMAGE, PAGES } from "../src/lib/seo.ts";
+import { ANDROID_ROBOT_PATH, ANDROID_ROBOT_VIEWBOX } from "../src/lib/android-robot.ts";
 import { ANDROID_ROBOT_CREDIT } from "../src/lib/credits.ts";
 import { JOYOROGO_TESTFLIGHT_URL } from "../src/lib/testflight.ts";
 import { ogImageTags, PUBLIC_PATHS, type ShareImage } from "./pages.ts";
@@ -61,8 +62,8 @@ export type Post = {
 
 const POSTS_DIR = join(import.meta.dirname, "posts");
 const SOURCE_URL = "https://github.com/dzulfikar08/joyorogo";
-/** Inline icons for the static pages: the Android robot head (src/components/android-mark.tsx) and lucide's Smartphone. */
-const ANDROID_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" class="size-4 shrink-0"><path fill="currentColor" fill-rule="evenodd" d="M3 18a9 9 0 0 1 18 0ZM7.4 14.2a1.1 1.1 0 1 0 2.2 0 1.1 1.1 0 1 0-2.2 0ZM14.4 14.2a1.1 1.1 0 1 0 2.2 0 1.1 1.1 0 1 0-2.2 0Z"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="m7.2 4.8 2 3.4m7.6-3.4-2 3.4"/></svg>`;
+/** Inline icons for the static pages: the official Android robot head (src/lib/android-robot.ts) and lucide's Smartphone. */
+const ANDROID_ICON = `<svg viewBox="${ANDROID_ROBOT_VIEWBOX}" aria-hidden="true" focusable="false" class="size-4 shrink-0"><path fill="currentColor" fill-rule="evenodd" d="${ANDROID_ROBOT_PATH}"/></svg>`;
 const PHONE_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" class="size-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>`;
 const TKPI_NOTE =
   "Sumber angka: Tabel Komposisi Pangan Indonesia (TKPI) 2019, Kementerian Kesehatan RI. Nilai per 100 g bagian yang dapat dimakan. Berat porsi di artikel ini contoh, porsimu bisa berbeda.";
