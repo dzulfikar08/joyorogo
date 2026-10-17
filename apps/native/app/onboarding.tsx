@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Redirect, router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import {
@@ -20,14 +21,15 @@ import {
   ErrorState,
   Field,
   Input,
-  Num,
   Screen,
+  StatTile,
   Text,
 } from "@/components/ui";
 import { Mascot } from "@/components/mascot";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
 import { InviteFriendsStep } from "@/components/onboarding/invite-step";
+import { Disclosure } from "@/components/disclosure";
 import { errorMessage, fmtInt, fmtKg, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
@@ -97,6 +99,7 @@ function ChoiceRow({
 
 export default function Onboarding() {
   const gate = useSessionGate();
+  const { t } = useTranslation(["onboarding", "common", "settings"]);
   const { theme } = useUnistyles();
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   const queryClient = useQueryClient();
@@ -148,7 +151,7 @@ export default function Onboarding() {
   const submitBirth = () => {
     const year = parseNum(birthYear);
     if (year === null || !Number.isInteger(year) || year < 1930 || year > 2020) {
-      setFormError("Tahun lahir harus berupa angka antara 1930 dan 2020.");
+      setFormError(t("error.birthYear"));
       return;
     }
     nextStep();
@@ -156,7 +159,7 @@ export default function Onboarding() {
 
   const submitHeight = () => {
     if (height === null || height < 100 || height > 250) {
-      setFormError("Tinggi badan harus antara 100 dan 250 cm.");
+      setFormError(t("error.height"));
       return;
     }
     nextStep();
@@ -164,7 +167,7 @@ export default function Onboarding() {
 
   const submitWeight = () => {
     if (weight === null || weight < 25 || weight > 400) {
-      setFormError("Berat badan harus antara 25 dan 400 kg.");
+      setFormError(t("error.weight"));
       return;
     }
     nextStep();
@@ -172,11 +175,15 @@ export default function Onboarding() {
 
   const submitTarget = () => {
     if (target === null || target < 25 || target > 400) {
-      setFormError("Target berat harus antara 25 dan 400 kg.");
+      setFormError(t("error.targetWeight"));
       return;
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate) || targetDate < jakartaToday()) {
-      setFormError("Isi tanggal target dengan format TAHUN-BULAN-TANGGAL dan belum lewat.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
+      setFormError(t("error.targetDateFormat"));
+      return;
+    }
+    if (targetDate < jakartaToday()) {
+      setFormError(t("error.targetDatePast"));
       return;
     }
     nextStep();
@@ -185,7 +192,7 @@ export default function Onboarding() {
   const submitAll = async () => {
     const year = parseNum(birthYear);
     if (year === null || height === null || weight === null || target === null) {
-      setFormError("Ada data yang belum lengkap. Ulangi langkah sebelumnya.");
+      setFormError(t("error.incomplete"));
       return;
     }
     setSaving(true);
@@ -222,7 +229,7 @@ export default function Onboarding() {
     go();
   };
 
-  // Skippable Founder paywall; "Nanti saja" lands on Beranda.
+  // Skippable Founder paywall; "Later" lands on Beranda.
   const startApp = () =>
     openAfterOnboarding(() =>
       router.replace({ pathname: "/founder", params: { from: "onboarding" } }),
@@ -252,50 +259,65 @@ export default function Onboarding() {
 
       {targets && inviting ? (
         <InviteFriendsStep
-          defaultName={firstName ? `Diet bareng ${firstName}`.slice(0, 40) : "Diet bareng"}
+          defaultName={
+            firstName
+              ? t("invite.defaultName", { name: firstName }).slice(0, 40)
+              : t("invite.defaultNameBare")
+          }
           onSkip={startApp}
           onOpenGroup={(groupId) => openAfterOnboarding(() => router.replace(`/grup/${groupId}`))}
         />
       ) : targets ? (
         <>
-          <Mascot pose="cheer" size="md" style={styles.resultMascot} />
-          <Text style={styles.stepTitle}>Rencana harianmu</Text>
-          <Card style={styles.resultCard}>
-            <Text style={styles.resultLabel}>Boleh makan</Text>
-            <Num style={styles.resultValue}>{fmtInt(targets.eatKcal)}</Num>
-            <Text style={styles.resultHint}>kcal per hari, ini anggaran makanmu.</Text>
-          </Card>
-          <Card style={styles.resultCard}>
-            <Text style={styles.resultLabel}>Harus dibakar</Text>
-            <Num style={styles.resultValue}>{fmtInt(targets.burnKcal)}</Num>
-            <Text style={styles.resultHint}>kcal lewat olahraga tiap hari.</Text>
-          </Card>
-          <Card style={styles.resultCard}>
-            <Text style={styles.resultLabel}>Jam tidur</Text>
-            <Num style={styles.resultValue}>{fmtKg(targets.sleepHours)}</Num>
-            <Text style={styles.resultHint}>jam tiap malam agar pemulihan terjaga.</Text>
-          </Card>
+          <Mascot pose="cheer" size="sm" style={styles.resultMascot} />
+          <Text style={styles.stepTitle}>{t("result.title")}</Text>
+          <View style={styles.planTiles}>
+            <StatTile
+              icon="restaurant"
+              tint="makan"
+              label={t("settings:plan.numbers.eat")}
+              value={fmtInt(targets.eatKcal)}
+              sub={t("settings:plan.numbers.perDay")}
+            />
+            <StatTile
+              icon="flame"
+              tint="bakar"
+              label={t("settings:plan.numbers.burn")}
+              value={fmtInt(targets.burnKcal)}
+              sub={t("settings:plan.numbers.perDay")}
+            />
+            <StatTile
+              icon="moon"
+              tint="tidur"
+              label={t("settings:plan.numbers.sleep")}
+              value={fmtKg(targets.sleepHours)}
+              sub={t("settings:plan.numbers.perNight")}
+            />
+          </View>
           {targets.notes.includes("BELOW_HEALTHY_RANGE") ? (
             <Text style={styles.warning}>
-              Target beratmu di bawah rentang sehat ({fmtKg(targets.idealMinKg)}–
-              {fmtKg(targets.idealMaxKg)} kg). Ubah kapan saja di menu Profil.
+              {t("result.belowRange", {
+                min: fmtKg(targets.idealMinKg),
+                max: fmtKg(targets.idealMaxKg),
+              })}
             </Text>
           ) : null}
           {targets.notes.includes("PLAN_CLAMPED") ? (
-            <Text style={styles.warning}>
-              Rencana disesuaikan agar aman, defisit kalorimu dibatasi.
-            </Text>
+            <Text style={styles.warning}>{t("settings:plan.noteShort.PLAN_CLAMPED")}</Text>
           ) : null}
-          {targets.notes.includes("MAINTENANCE") ? (
-            <Text style={styles.hint}>
-              Beratmu sudah di target. Rencana sekarang menjaga berat, bukan menurunkan.
-            </Text>
-          ) : null}
-          <Button label="Mulai di Beranda" onPress={startApp} />
+          <Disclosure title={t("result.aboutTitle")}>
+            <Text style={styles.hint}>{t("result.meaning.eat")}</Text>
+            <Text style={styles.hint}>{t("result.meaning.burn")}</Text>
+            <Text style={styles.hint}>{t("result.meaning.sleep")}</Text>
+            {targets.notes.includes("MAINTENANCE") ? (
+              <Text style={styles.hint}>{t("settings:plan.noteShort.MAINTENANCE")}</Text>
+            ) : null}
+          </Disclosure>
+          <Button label={t("action.openHome")} onPress={startApp} />
           <Button
             variant="secondary"
             icon="people-outline"
-            label="Ajak teman"
+            label={t("action.inviteFriends")}
             onPress={() => setInviting(true)}
           />
         </>
@@ -304,7 +326,7 @@ export default function Onboarding() {
           {step > 0 ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Kembali"
+              accessibilityLabel={t("common:actions.back")}
               onPress={goBack}
               hitSlop={8}
               style={({ pressed }) => [styles.backButton, pressed && styles.pressedSoft]}
@@ -315,9 +337,10 @@ export default function Onboarding() {
 
           {step === 0 ? (
             <>
-              <Text style={styles.stepTitle}>Kapan kamu lahir?</Text>
+              <Text style={styles.stepTitle}>{t("question.birth.title")}</Text>
+              <Text style={styles.stepCaption}>{t("question.birth.hint")}</Text>
               <Card>
-                <Field label="Tahun lahir">
+                <Field label={t("question.birth.label")}>
                   <Input
                     value={birthYear}
                     onChangeText={setBirthYear}
@@ -327,36 +350,37 @@ export default function Onboarding() {
                   />
                 </Field>
                 {formError ? <Text style={styles.error}>{formError}</Text> : null}
-                <Button label="Lanjut" onPress={submitBirth} />
+                <Button label={t("action.next")} onPress={submitBirth} />
               </Card>
             </>
           ) : null}
 
           {step === 1 ? (
             <>
-              <Text style={styles.stepTitle}>Jenis kelaminmu?</Text>
+              <Text style={styles.stepTitle}>{t("question.gender.title")}</Text>
+              <Text style={styles.stepCaption}>{t("question.gender.hint")}</Text>
               <View style={styles.choiceList}>
                 <ChoiceRow
-                  label="Laki-laki"
+                  label={t("settings:profile.gender.male")}
                   selected={gender === "male"}
                   onPress={() => setGender("male")}
                 />
                 <ChoiceRow
-                  label="Perempuan"
+                  label={t("settings:profile.gender.female")}
                   selected={gender === "female"}
                   onPress={() => setGender("female")}
                 />
               </View>
               {formError ? <Text style={styles.error}>{formError}</Text> : null}
-              <Button label="Lanjut" onPress={nextStep} />
+              <Button label={t("action.next")} onPress={nextStep} />
             </>
           ) : null}
 
           {step === 2 ? (
             <>
-              <Text style={styles.stepTitle}>Berapa tinggimu?</Text>
+              <Text style={styles.stepTitle}>{t("question.height.title")}</Text>
               <Card>
-                <Field label="Tinggi badan (cm)">
+                <Field label={t("question.height.label")}>
                   <Input
                     value={heightCm}
                     onChangeText={setHeightCm}
@@ -365,23 +389,17 @@ export default function Onboarding() {
                   />
                 </Field>
                 {formError ? <Text style={styles.error}>{formError}</Text> : null}
-                <Button label="Lanjut" onPress={submitHeight} />
+                <Button label={t("action.next")} onPress={submitHeight} />
               </Card>
             </>
           ) : null}
 
           {step === 3 ? (
             <>
-              <Text style={styles.stepTitle}>Berapa beratmu sekarang?</Text>
+              <Text style={styles.stepTitle}>{t("question.weight.title")}</Text>
+              <Text style={styles.stepCaption}>{t("question.weight.hint")}</Text>
               <Card>
-                <Field
-                  label="Berat badan (kg)"
-                  hint={
-                    ideal
-                      ? `Berat sehat untuk tinggimu: ${fmtKg(ideal.minKg)}–${fmtKg(ideal.maxKg)} kg`
-                      : undefined
-                  }
-                >
+                <Field label={t("question.weight.label")}>
                   <Input
                     value={weightKg}
                     onChangeText={setWeightKg}
@@ -389,24 +407,27 @@ export default function Onboarding() {
                     placeholder="80"
                   />
                 </Field>
-                <Text style={styles.hint}>
-                  Angka ini jadi titik awal perjalananmu dan timbangan pertamamu.
-                </Text>
                 {formError ? <Text style={styles.error}>{formError}</Text> : null}
-                <Button label="Lanjut" onPress={submitWeight} />
+                <Button label={t("action.next")} onPress={submitWeight} />
               </Card>
+              <Disclosure title={t("info.title")}>
+                <Text style={styles.hint}>{t("question.weight.why")}</Text>
+              </Disclosure>
             </>
           ) : null}
 
           {step === 4 ? (
             <>
-              <Text style={styles.stepTitle}>Apa targetmu?</Text>
+              <Text style={styles.stepTitle}>{t("question.goal.title")}</Text>
               <Card>
                 <Field
-                  label="Target berat (kg)"
+                  label={t("question.target.label")}
                   hint={
                     ideal
-                      ? `Berat sehat untuk tinggimu: ${fmtKg(ideal.minKg)}–${fmtKg(ideal.maxKg)} kg`
+                      ? t("question.target.healthyRange", {
+                          min: fmtKg(ideal.minKg),
+                          max: fmtKg(ideal.maxKg),
+                        })
                       : undefined
                   }
                 >
@@ -418,24 +439,24 @@ export default function Onboarding() {
                   />
                 </Field>
                 {ideal && target !== null && target < ideal.minKg ? (
-                  <Text style={styles.warning}>
-                    Target di bawah rentang sehat. Boleh dilanjutkan, tapi pertimbangkan naikkan
-                    sedikit agar tubuhmu tetap terjaga.
-                  </Text>
+                  <Text style={styles.warning}>{t("question.target.belowRange")}</Text>
                 ) : null}
-                <Field label="Tanggal target" hint="Format TAHUN-BULAN-TANGGAL, contoh 2026-12-15">
+                <Field label={t("question.date.label")} hint={t("question.date.hint")}>
                   <Input value={targetDate} onChangeText={setTargetDate} placeholder="2026-12-15" />
                 </Field>
                 {formError ? <Text style={styles.error}>{formError}</Text> : null}
-                <Button label="Lanjut" onPress={submitTarget} />
+                <Button label={t("action.next")} onPress={submitTarget} />
               </Card>
+              <Disclosure title={t("info.title")}>
+                <Text style={styles.hint}>{t("question.date.why")}</Text>
+              </Disclosure>
             </>
           ) : null}
 
           {step === 5 ? (
             <>
-              <Text style={styles.stepTitle}>Seberapa aktif harimu?</Text>
-              <Text style={styles.stepCaption}>Di luar olahraga: kerja, jalan kaki, rumah.</Text>
+              <Text style={styles.stepTitle}>{t("question.activity.title")}</Text>
+              <Text style={styles.stepCaption}>{t("question.activity.hint")}</Text>
               <View style={styles.choiceList}>
                 {(Object.keys(ACTIVITY_LABELS) as ActivityLevel[]).map((key) => (
                   <ChoiceRow
@@ -447,11 +468,7 @@ export default function Onboarding() {
                 ))}
               </View>
               {formError ? <Text style={styles.error}>{formError}</Text> : null}
-              <Button
-                label="Simpan & Lihat Hasil"
-                onPress={() => void submitAll()}
-                loading={saving}
-              />
+              <Button label={t("action.save")} onPress={() => void submitAll()} loading={saving} />
             </>
           ) : null}
         </>
@@ -521,23 +538,9 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     lineHeight: 19,
   },
-  resultCard: {
-    alignItems: "flex-start",
-  },
-  resultLabel: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: "600",
-    color: theme.colors.mutedForeground,
-  },
-  resultValue: {
-    fontSize: theme.fontSize.hero,
-    fontWeight: "800",
-    letterSpacing: -1.5,
-    color: theme.colors.foreground,
-  },
-  resultHint: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.mutedForeground,
+  planTiles: {
+    flexDirection: "row",
+    gap: theme.spacing.md,
   },
   hint: {
     fontSize: theme.fontSize.sm,

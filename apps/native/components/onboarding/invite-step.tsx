@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Share, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 
 import { Button, Card, Field, Input, Text } from "@/components/ui";
+import { Disclosure } from "@/components/disclosure";
 import { Mascot } from "@/components/mascot";
 import { useToast } from "@/components/toast";
 import { inviteMessage } from "@/src/lib/group";
@@ -16,7 +18,7 @@ type CreatedGroup = { id: string; name: string; inviteCode: string };
  * Optional step after the plan-ready screen: start a group and send its
  * invite, or share one the person already belongs to. Reuses group.create,
  * the group list and the same invite message as the group screen. Never
- * gates anything; "Lewati" goes straight on.
+ * gates anything; "Skip" goes straight on.
  */
 export function InviteFriendsStep({
   defaultName,
@@ -28,6 +30,7 @@ export function InviteFriendsStep({
   onSkip: () => void;
   onOpenGroup: (groupId: string) => void;
 }) {
+  const { t } = useTranslation("onboarding");
   const queryClient = useQueryClient();
   const toast = useToast();
   const [name, setName] = useState(defaultName);
@@ -41,7 +44,7 @@ export function InviteFriendsStep({
         void queryClient.invalidateQueries({ queryKey: orpc.group.key() });
         setCreated({ id: group.id, name: group.name, inviteCode: group.inviteCode });
       },
-      onError: (error) => toast.error("Gagal membuat grup", errorMessage(error)),
+      onError: (error) => toast.error(t("invite.toast.createFailed"), errorMessage(error)),
     }),
   );
 
@@ -56,42 +59,42 @@ export function InviteFriendsStep({
 
   return (
     <>
-      <Mascot pose="cheer" size="md" style={styles.mascot} />
-      <Text style={styles.title}>{created ? "Grupmu sudah jadi" : "Ajak teman"}</Text>
-      <Text style={styles.caption}>
-        {created
-          ? "Kirim undangannya sekarang, teman yang gabung langsung kelihatan di grup."
-          : "Catat kalori lebih gampang kalau ada yang ngecek. Bikin grup kecil, kirim tautannya, dan saling colek kalau ada yang lupa."}
-      </Text>
+      <Mascot pose="cheer" size="sm" style={styles.mascot} />
+      <Text style={styles.title}>{created ? t("invite.createdTitle") : t("invite.title")}</Text>
+      {created ? <Text style={styles.caption}>{t("invite.createdCaption")}</Text> : null}
 
       {created ? (
         <>
           <Card>
             <Text style={styles.groupName}>{created.name}</Text>
-            <Text style={styles.caption}>Kode {created.inviteCode}</Text>
+            <Text style={styles.caption}>{t("invite.code", { code: created.inviteCode })}</Text>
           </Card>
-          <Button label="Bagikan undangan" icon="share-outline" onPress={() => share(created)} />
+          <Button
+            label={t("invite.shareInvite")}
+            icon="share-outline"
+            onPress={() => share(created)}
+          />
           <Button
             variant="secondary"
-            label="Buka grup"
+            label={t("invite.openGroup")}
             onPress={() => onOpenGroup(created.id)}
           />
-          <Button variant="ghost" label="Nanti saja, ke Beranda" onPress={onSkip} />
+          <Button variant="ghost" label={t("invite.later")} onPress={onSkip} />
         </>
       ) : (
         <>
-          <Field label="Nama grup">
+          <Field label={t("invite.nameLabel")}>
             <Input value={name} onChangeText={setName} maxLength={40} />
           </Field>
           <Button
-            label="Buat grup"
+            label={t("invite.create")}
             disabled={trimmed.length === 0}
             loading={create.isPending}
             onPress={() => create.mutate({ name: trimmed })}
           />
           {existing.length > 0 ? (
             <View style={styles.existing}>
-              <Text style={styles.caption}>Atau bagikan grup yang sudah kamu ikuti</Text>
+              <Text style={styles.caption}>{t("invite.existingTitle")}</Text>
               {existing.slice(0, 3).map((group) => (
                 <View key={group.id} style={styles.existingRow}>
                   <Text style={styles.existingName} numberOfLines={1}>
@@ -100,14 +103,17 @@ export function InviteFriendsStep({
                   <Button
                     size="sm"
                     variant="secondary"
-                    label="Bagikan"
+                    label={t("invite.share")}
                     onPress={() => share(group)}
                   />
                 </View>
               ))}
             </View>
           ) : null}
-          <Button variant="ghost" label="Lewati, ke Beranda" onPress={onSkip} />
+          <Disclosure title={t("invite.whyTitle")}>
+            <Text style={styles.caption}>{t("invite.why")}</Text>
+          </Disclosure>
+          <Button variant="ghost" label={t("invite.skip")} onPress={onSkip} />
         </>
       )}
     </>

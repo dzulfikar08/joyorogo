@@ -1,0 +1,106 @@
+{
+  "action": {
+    "next": "Lanjut",
+    "save": "Simpan & lihat hasil",
+    "saving": "Menyimpan...",
+    "openHome": "Buka Beranda",
+    "inviteFriends": "Ajak teman"
+  },
+  "loading": "Memeriksa profil",
+  "progress": "Langkah {{step}} dari {{total}}",
+  "info": {
+    "title": "Selengkapnya"
+  },
+  "question": {
+    "birth": {
+      "title": "Kapan kamu lahir?",
+      "hint": "Untuk menghitung kebutuhan kalorimu.",
+      "label": "Tahun lahir",
+      "unit": "tahun"
+    },
+    "gender": {
+      "title": "Jenis kelaminmu?",
+      "hint": "Kebutuhan kalori pria dan wanita beda."
+    },
+    "height": {
+      "title": "Berapa tinggimu?",
+      "label": "Tinggi badan (cm)"
+    },
+    "weight": {
+      "title": "Berat badanmu sekarang?",
+      "hint": "Jadi timbangan awalmu.",
+      "label": "Berat badan (kg)",
+      "why": "Angka ini jadi titik awal perjalananmu dan timbangan pertamamu. Kamu bisa memperbaruinya tiap hari di halaman Berat."
+    },
+    "activity": {
+      "title": "Seberapa aktif hari-harimu?",
+      "hint": "Di luar olahraga."
+    },
+    "target": {
+      "title": "Berat targetmu?",
+      "label": "Berat target (kg)",
+      "healthyRange": "Berat sehat untuk tinggimu: {{min}}–{{max}} kg",
+      "belowRange": "Di bawah rentang berat sehat. Boleh lanjut, tapi perhatikan kesehatanmu."
+    },
+    "date": {
+      "title": "Kapan mau mencapainya?",
+      "label": "Tanggal target",
+      "hint": "Format TAHUN-BULAN-TANGGAL, contoh 2026-12-15",
+      "why": "Turun berat yang aman itu sekitar 0,5 sampai 1 kg per minggu."
+    },
+    "goal": {
+      "title": "Apa targetmu?"
+    }
+  },
+  "error": {
+    "birthYear": "Tahun lahir harus antara 1930 dan 2020.",
+    "gender": "Pilih jenis kelamin dulu.",
+    "height": "Tinggi badan harus 100-250 cm.",
+    "weight": "Berat badan harus 25-400 kg.",
+    "targetWeight": "Berat target harus 25-400 kg.",
+    "targetDatePast": "Tanggal target harus belum lewat.",
+    "targetDateFormat": "Isi tanggal dengan format TAHUN-BULAN-TANGGAL, contoh 2026-12-15.",
+    "incomplete": "Ada data yang belum lengkap. Ulangi langkah sebelumnya."
+  },
+  "tooFast": {
+    "title": "Defisit ~{{kcal}}/hari, di atas batas aman.",
+    "detail_other": "JoyoRogo membatasi defisit pada ~{{cap}}/hari. Turun {{kg}} kg dengan ritme itu butuh sekitar {{count}} hari (baru ±{{reach}} kg sampai {{date}}).",
+    "cta_other": "Pakai tanggal realistis (+{{count}} hari)"
+  },
+  "result": {
+    "title": "Rencana harianmu siap",
+    "subtitle": "Timbangan awalmu sudah tercatat hari ini.",
+    "belowRange": "Target beratmu di bawah rentang sehat ({{min}}–{{max}} kg). Ubah kapan saja di Profil.",
+    "aboutTitle": "Tentang rencanamu",
+    "meaning": {
+      "eat": "Makan: anggaran makanmu per hari.",
+      "burn": "Bakar: kcal yang dibakar lewat olahraga tiap hari.",
+      "sleep": "Tidur: jam tidur tiap malam agar pemulihan terjaga."
+    }
+  },
+  "invite": {
+    "title": "Ajak teman",
+    "createdTitle": "Grupmu sudah jadi",
+    "createdCaption": "Kirim undangannya, teman yang gabung langsung terlihat di grup.",
+    "whyTitle": "Kenapa ajak teman?",
+    "why": "Catat kalori lebih gampang kalau ada yang ngecek. Bikin grup kecil, kirim tautannya, dan saling colek kalau ada yang lupa.",
+    "nameLabel": "Nama grup",
+    "create": "Buat grup",
+    "creating": "Membuat grup…",
+    "existingLabel": "Grup yang sudah ada",
+    "existingTitle": "Atau bagikan grup yang sudah kamu ikuti",
+    "share": "Bagikan",
+    "shareInvite": "Bagikan undangan",
+    "openGroup": "Buka grup",
+    "later": "Nanti saja, buka Beranda",
+    "skip": "Lewati, buka Beranda",
+    "code": "Kode {{code}}",
+    "defaultName": "Diet bareng {{name}}",
+    "defaultNameBare": "Diet bareng",
+    "toast": {
+      "copied": "Teks undangan disalin, tinggal tempel di WhatsApp.",
+      "shareFailed": "Gagal membagikan. Coba lagi sebentar ya.",
+      "createFailed": "Gagal membuat grup"
+    }
+  }
+}

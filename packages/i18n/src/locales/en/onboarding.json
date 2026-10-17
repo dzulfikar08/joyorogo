@@ -1,0 +1,108 @@
+{
+  "action": {
+    "next": "Continue",
+    "save": "Save & see results",
+    "saving": "Saving...",
+    "openHome": "Open Home",
+    "inviteFriends": "Invite friends"
+  },
+  "loading": "Checking your profile",
+  "progress": "Step {{step}} of {{total}}",
+  "info": {
+    "title": "More info"
+  },
+  "question": {
+    "birth": {
+      "title": "When were you born?",
+      "hint": "Used to work out your calorie needs.",
+      "label": "Birth year",
+      "unit": "years"
+    },
+    "gender": {
+      "title": "What's your gender?",
+      "hint": "Men and women need different calories."
+    },
+    "height": {
+      "title": "How tall are you?",
+      "label": "Height (cm)"
+    },
+    "weight": {
+      "title": "What do you weigh now?",
+      "hint": "This is your starting weight.",
+      "label": "Weight (kg)",
+      "why": "This number becomes your starting point and your first weigh-in. You can update it any day on the Weight page."
+    },
+    "activity": {
+      "title": "How active are your days?",
+      "hint": "Not counting workouts."
+    },
+    "target": {
+      "title": "What's your target weight?",
+      "label": "Target weight (kg)",
+      "healthyRange": "Healthy weight for your height: {{min}}–{{max}} kg",
+      "belowRange": "That's below the healthy range. You can continue, but look after your health."
+    },
+    "date": {
+      "title": "When do you want to get there?",
+      "label": "Target date",
+      "hint": "Format YYYY-MM-DD, e.g. 2026-12-15",
+      "why": "A safe pace is about 0.5 to 1 kg per week."
+    },
+    "goal": {
+      "title": "What's your goal?"
+    }
+  },
+  "error": {
+    "birthYear": "Birth year must be between 1930 and 2020.",
+    "gender": "Pick a gender first.",
+    "height": "Height must be 100-250 cm.",
+    "weight": "Weight must be 25-400 kg.",
+    "targetWeight": "Target weight must be 25-400 kg.",
+    "targetDatePast": "The target date can't be in the past.",
+    "targetDateFormat": "Enter the date as YYYY-MM-DD, e.g. 2026-12-15.",
+    "incomplete": "Some answers are missing. Go back and check the earlier steps."
+  },
+  "tooFast": {
+    "title": "A ~{{kcal}}/day deficit is above the safe limit.",
+    "detail_one": "JoyoRogo caps the deficit at ~{{cap}}/day. Losing {{kg}} kg at that pace takes about {{count}} day (only ~{{reach}} kg by {{date}}).",
+    "detail_other": "JoyoRogo caps the deficit at ~{{cap}}/day. Losing {{kg}} kg at that pace takes about {{count}} days (only ~{{reach}} kg by {{date}}).",
+    "cta_one": "Use a realistic date (+{{count}} day)",
+    "cta_other": "Use a realistic date (+{{count}} days)"
+  },
+  "result": {
+    "title": "Your daily plan is ready",
+    "subtitle": "Your starting weight is logged for today.",
+    "belowRange": "Your target is below the healthy range ({{min}}–{{max}} kg). You can change it any time in Profile.",
+    "aboutTitle": "About your plan",
+    "meaning": {
+      "eat": "Eat: your daily food budget.",
+      "burn": "Burn: kcal to burn through exercise each day.",
+      "sleep": "Sleep: hours each night to keep you recovered."
+    }
+  },
+  "invite": {
+    "title": "Invite friends",
+    "createdTitle": "Your group is ready",
+    "createdCaption": "Send the invite now. Friends who join show up in the group right away.",
+    "whyTitle": "Why invite friends?",
+    "why": "Logging is easier when someone checks in. Start a small group, send the link, and nudge each other when someone forgets.",
+    "nameLabel": "Group name",
+    "create": "Create group",
+    "creating": "Creating group…",
+    "existingLabel": "Your groups",
+    "existingTitle": "Or share a group you're already in",
+    "share": "Share",
+    "shareInvite": "Share invite",
+    "openGroup": "Open group",
+    "later": "Maybe later, open Home",
+    "skip": "Skip, open Home",
+    "code": "Code {{code}}",
+    "defaultName": "Diet with {{name}}",
+    "defaultNameBare": "Diet together",
+    "toast": {
+      "copied": "Invite text copied. Just paste it into WhatsApp.",
+      "shareFailed": "Couldn't share. Please try again in a moment.",
+      "createFailed": "Couldn't create the group"
+    }
+  }
+}

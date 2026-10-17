@@ -3,12 +3,14 @@ import { Input } from "@joyorogo/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Share2, Users } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Mascot } from "@/components/mascot";
 import { Page } from "@/components/kit/surface";
 import { trackConversion } from "@/lib/analytics";
 import { shareInvite } from "@/lib/group-invite";
+import { InfoAccordion } from "@/components/onboarding/info-accordion";
 import { orpc } from "@/utils/orpc";
 
 type CreatedGroup = { id: string; name: string; inviteCode: string };
@@ -17,7 +19,7 @@ type CreatedGroup = { id: string; name: string; inviteCode: string };
  * Optional step after the plan-ready screen: start a group and send its
  * invite, or share one the person is already in. Reuses group.create, the
  * group list and the same share helper as the group screen. Never gates
- * anything: "Lewati" goes straight on.
+ * anything: "Skip" goes straight on.
  */
 export function InviteFriendsStep({
   defaultName,
@@ -29,6 +31,7 @@ export function InviteFriendsStep({
   onSkip: () => void;
   onOpenGroup: (groupId: string) => void;
 }) {
+  const { t } = useTranslation("onboarding");
   const queryClient = useQueryClient();
   const [name, setName] = useState(defaultName);
   const [created, setCreated] = useState<CreatedGroup | null>(null);
@@ -49,9 +52,9 @@ export function InviteFriendsStep({
   const share = (group: { name: string; inviteCode: string }) => {
     shareInvite(group.name, group.inviteCode).then(
       (result) => {
-        if (result === "copied") toast.success("Teks undangan disalin, tinggal tempel di WhatsApp.");
+        if (result === "copied") toast.success(t("invite.toast.copied"));
       },
-      () => toast.error("Gagal membagikan. Coba lagi sebentar ya."),
+      () => toast.error(t("invite.toast.shareFailed")),
     );
   };
 
@@ -60,16 +63,16 @@ export function InviteFriendsStep({
 
   return (
     <Page className="max-w-xl">
-      <header className="px-1 pt-2 pb-6">
-        <Mascot pose="cheer" size="md" eager className="mx-0 mb-3" />
+      <header className="px-1 pt-2 pb-4">
+        <Mascot pose="cheer" size="sm" eager className="mx-0 mb-2" />
         <h1 className="text-[1.75rem] leading-tight font-extrabold tracking-tight">
-          {created ? "Grupmu sudah jadi" : "Ajak teman"}
+          {created ? t("invite.createdTitle") : t("invite.title")}
         </h1>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-          {created
-            ? "Kirim undangannya sekarang, teman yang gabung langsung kelihatan di grup."
-            : "Catat kalori lebih gampang kalau ada yang ngecek. Bikin grup kecil, kirim tautannya, dan saling colek kalau ada yang lupa."}
-        </p>
+        {created && (
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            {t("invite.createdCaption")}
+          </p>
+        )}
       </header>
 
       {created ? (
@@ -80,18 +83,20 @@ export function InviteFriendsStep({
             </span>
             <div className="min-w-0">
               <p className="truncate font-bold">{created.name}</p>
-              <p className="text-sm text-muted-foreground">Kode {created.inviteCode}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("invite.code", { code: created.inviteCode })}
+              </p>
             </div>
           </div>
           <Button className="w-full" size="lg" onClick={() => share(created)}>
             <Share2 aria-hidden />
-            Bagikan undangan
+            {t("invite.shareInvite")}
           </Button>
           <Button variant="secondary" className="w-full" onClick={() => onOpenGroup(created.id)}>
-            Buka grup
+            {t("invite.openGroup")}
           </Button>
           <Button variant="ghost" className="w-full" onClick={onSkip}>
-            Nanti saja, buka Beranda
+            {t("invite.later")}
           </Button>
         </div>
       ) : (
@@ -103,12 +108,12 @@ export function InviteFriendsStep({
           }}
         >
           <label className="block space-y-1.5">
-            <span className="px-1 text-sm font-semibold">Nama grup</span>
+            <span className="px-1 text-sm font-semibold">{t("invite.nameLabel")}</span>
             <Input
               value={name}
               onChange={(event) => setName(event.target.value)}
               maxLength={40}
-              aria-label="Nama grup"
+              aria-label={t("invite.nameLabel")}
             />
           </label>
           <Button
@@ -117,13 +122,13 @@ export function InviteFriendsStep({
             className="w-full"
             disabled={trimmed.length === 0 || create.isPending}
           >
-            {create.isPending ? "Membuat grup…" : "Buat grup"}
+            {create.isPending ? t("invite.creating") : t("invite.create")}
           </Button>
 
           {existing.length > 0 && (
-            <section aria-label="Grup yang sudah ada" className="pt-3">
+            <section aria-label={t("invite.existingLabel")} className="pt-2">
               <p className="px-1 pb-2 text-sm font-semibold text-muted-foreground">
-                Atau bagikan grup yang sudah kamu ikuti
+                {t("invite.existingTitle")}
               </p>
               <ul className="space-y-2">
                 {existing.slice(0, 3).map((group) => (
@@ -134,7 +139,7 @@ export function InviteFriendsStep({
                     <span className="min-w-0 truncate font-semibold">{group.name}</span>
                     <Button type="button" size="sm" variant="secondary" onClick={() => share(group)}>
                       <Share2 aria-hidden />
-                      Bagikan
+                      {t("invite.share")}
                     </Button>
                   </li>
                 ))}
@@ -142,8 +147,12 @@ export function InviteFriendsStep({
             </section>
           )}
 
+          <InfoAccordion title={t("invite.whyTitle")}>
+            <p>{t("invite.why")}</p>
+          </InfoAccordion>
+
           <Button type="button" variant="ghost" className="w-full" onClick={onSkip}>
-            Lewati, buka Beranda
+            {t("invite.skip")}
           </Button>
         </form>
       )}

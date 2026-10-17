@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, isRedirect, redirect, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, CalendarDays, CircleAlert, Users } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import {
@@ -20,9 +21,17 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Mascot } from "@/components/mascot";
 import { Page } from "@/components/kit/surface";
-import { PlanNumbers, TargetNotesList } from "@/components/plan-numbers";
+import { PlanNumbers } from "@/components/plan-numbers";
 import { trackConversion } from "@/lib/analytics";
-import { fmtDateLong, fmtInt, fmtKg, jakartaDatePlusDays, parseNum } from "@/lib/format";
+import {
+  fmtDateLong,
+  fmtDateMedium,
+  fmtKcalLabel,
+  fmtKg,
+  jakartaDatePlusDays,
+  parseNum,
+} from "@/lib/format";
+import { InfoAccordion } from "@/components/onboarding/info-accordion";
 import { InviteFriendsStep } from "@/components/onboarding/invite-step";
 import { useSession } from "@/lib/auth-client";
 import { orpc } from "@/utils/orpc";
@@ -56,25 +65,7 @@ type FormState = {
 /** Seven questions, one per screen; the eighth view is the result. */
 const STEP_COUNT = 7;
 
-const QUESTION_TITLE: Record<number, string> = {
-  1: "Kapan kamu lahir?",
-  2: "Jenis kelaminmu?",
-  3: "Berapa tinggimu?",
-  4: "Berat badanmu sekarang?",
-  5: "Seberapa aktif hari-harimu?",
-  6: "Berat targetmu?",
-  7: "Kapan mau mencapainya?",
-};
-
-const QUESTION_HINT: Record<number, string | null> = {
-  1: "Dipakai menghitung kebutuhan kalorimu.",
-  2: "Kebutuhan kalori pria dan wanita memang beda.",
-  3: null,
-  4: "Sekalian jadi timbangan awalmu. Bisa diperbarui tiap hari di halaman Berat.",
-  5: "Aktivitas di luar olahraga.",
-  6: null,
-  7: "Turun berat yang aman itu sekitar 0,5 sampai 1 kg per minggu.",
-};
+const DEFICIT_CAP_KCAL = 1000;
 
 /** Big tappable answer tile; selected state uses the brand tint. */
 function ChoiceTile({
@@ -138,6 +129,7 @@ function BigNumberField({
 }
 
 function OnboardingPage() {
+  const { t } = useTranslation(["onboarding", "common", "settings"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
@@ -195,31 +187,31 @@ function OnboardingPage() {
           birthYear < 1930 ||
           birthYear > 2020
         ) {
-          setError("Tahun lahir harus di antara 1930-2020.");
+          setError(t("error.birthYear"));
           return false;
         }
         return true;
       case 2:
         if (form.gender === "") {
-          setError("Pilih jenis kelamin dulu.");
+          setError(t("error.gender"));
           return false;
         }
         return true;
       case 3:
         if (height === null || height < 100 || height > 250) {
-          setError("Tinggi badan harus 100-250 cm.");
+          setError(t("error.height"));
           return false;
         }
         return true;
       case 4:
         if (weight === null || weight < 25 || weight > 400) {
-          setError("Berat badan harus 25-400 kg.");
+          setError(t("error.weight"));
           return false;
         }
         return true;
       case 6:
         if (targetWeight === null || targetWeight < 25 || targetWeight > 400) {
-          setError("Berat target harus 25-400 kg.");
+          setError(t("error.targetWeight"));
           return false;
         }
         return true;
@@ -231,11 +223,11 @@ function OnboardingPage() {
   const next = () => {
     if (step === 7) {
       if (targetWeight === null || targetWeight < 25 || targetWeight > 400) {
-        setError("Berat target harus 25-400 kg.");
+        setError(t("error.targetWeight"));
         return;
       }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(form.targetDate) || form.targetDate < jakartaToday()) {
-        setError("Tanggal target harus belum lewat.");
+        setError(t("error.targetDatePast"));
         return;
       }
       if (birthYear === null || form.gender === "" || height === null || weight === null) {
@@ -271,7 +263,11 @@ function OnboardingPage() {
     const firstName = session.data?.user.name?.trim().split(/\s+/)[0];
     return (
       <InviteFriendsStep
-        defaultName={firstName ? `Diet bareng ${firstName}`.slice(0, 40) : "Diet bareng"}
+        defaultName={
+          firstName
+            ? t("invite.defaultName", { name: firstName }).slice(0, 40)
+            : t("invite.defaultNameBare")
+        }
         onSkip={openApp}
         onOpenGroup={(groupId) => navigate({ to: "/grup/$groupId", params: { groupId } })}
       />
@@ -279,29 +275,46 @@ function OnboardingPage() {
   }
 
   if (done && save.data?.targets) {
+    const { targets } = save.data;
+    const infoNotes = targets.notes.filter((note) => note === "MAINTENANCE" || note === "ADAPTIVE");
     return (
       <Page className="max-w-xl">
-        <header className="px-1 pt-2 pb-6">
-          <Mascot pose="cheer" size="md" eager className="mx-0 mb-3" />
+        <header className="px-1 pt-2 pb-4">
+          <Mascot pose="cheer" size="sm" eager className="mx-0 mb-2" />
           <h1 className="text-[1.75rem] leading-tight font-extrabold tracking-tight">
-            Rencana harianmu siap
+            {t("result.title")}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Timbangan awalmu juga sudah tercatat hari ini.
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("result.subtitle")}</p>
         </header>
-        <PlanNumbers targets={save.data.targets} />
-        {save.data.targets.notes.length > 0 && (
+        <PlanNumbers targets={targets} />
+        {targets.notes.includes("BELOW_HEALTHY_RANGE") && (
+          <p className="mt-3 rounded-2xl bg-destructive/10 px-4 py-3 text-sm leading-snug font-medium text-destructive">
+            {t("result.belowRange", {
+              min: fmtKg(targets.idealMinKg),
+              max: fmtKg(targets.idealMaxKg),
+            })}
+          </p>
+        )}
+        {targets.notes.includes("PLAN_CLAMPED") && (
+          <p className="mt-3 rounded-2xl bg-muted px-4 py-3 text-sm leading-snug font-medium text-muted-foreground">
+            {t("settings:plan.noteShort.PLAN_CLAMPED")}
+          </p>
+        )}
+        {infoNotes.length > 0 && (
           <div className="mt-3">
-            <TargetNotesList notes={save.data.targets.notes} />
+            <InfoAccordion title={t("result.aboutTitle")}>
+              {infoNotes.map((note) => (
+                <p key={note}>{t(`settings:plan.noteShort.${note}`)}</p>
+              ))}
+            </InfoAccordion>
           </div>
         )}
         <Button className="mt-6 w-full" onClick={openApp}>
-          Buka Beranda
+          {t("action.openHome")}
         </Button>
         <Button variant="secondary" className="mt-2 w-full" onClick={() => setInviting(true)}>
           <Users aria-hidden />
-          Ajak teman
+          {t("action.inviteFriends")}
         </Button>
       </Page>
     );
@@ -313,10 +326,32 @@ function OnboardingPage() {
     if (days < 1) return null;
     const lossKg = weight - targetWeight;
     const rawDeficit = Math.round((lossKg * KCAL_PER_KG_FAT) / days);
-    if (rawDeficit <= 1000) return null;
-    const feasibleDays = Math.ceil((lossKg * KCAL_PER_KG_FAT) / 1000);
+    if (rawDeficit <= DEFICIT_CAP_KCAL) return null;
+    const feasibleDays = Math.ceil((lossKg * KCAL_PER_KG_FAT) / DEFICIT_CAP_KCAL);
     return { days, lossKg, rawDeficit, feasibleDays };
   })();
+
+  const titles = [
+    "",
+    t("question.birth.title"),
+    t("question.gender.title"),
+    t("question.height.title"),
+    t("question.weight.title"),
+    t("question.activity.title"),
+    t("question.target.title"),
+    t("question.date.title"),
+  ];
+  const hints = [
+    "",
+    t("question.birth.hint"),
+    t("question.gender.hint"),
+    "",
+    t("question.weight.hint"),
+    t("question.activity.hint"),
+    "",
+    "",
+  ];
+  const hint = hints[step];
 
   return (
     <Page className="max-w-xl">
@@ -332,7 +367,7 @@ function OnboardingPage() {
           aria-valuemin={1}
           aria-valuemax={STEP_COUNT}
           aria-valuenow={step}
-          aria-label={`Langkah ${step} dari ${STEP_COUNT}`}
+          aria-label={t("progress", { step, total: STEP_COUNT })}
           className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted"
         >
           <div
@@ -342,22 +377,20 @@ function OnboardingPage() {
         </div>
       </header>
 
-      <div className="mt-10">
+      <div className="mt-8">
         <h1 className="text-[1.75rem] leading-tight font-extrabold tracking-tight">
-          {QUESTION_TITLE[step]}
+          {titles[step]}
         </h1>
-        {QUESTION_HINT[step] && (
-          <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
-            {QUESTION_HINT[step]}
-          </p>
+        {hint && (
+          <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">{hint}</p>
         )}
 
-        <div className="mt-8">
+        <div className="mt-6">
           {step === 1 && (
             <div className="relative">
               <Input
                 id="birth-year"
-                aria-label="Tahun lahir"
+                aria-label={t("question.birth.label")}
                 autoFocus
                 type="number"
                 inputMode="numeric"
@@ -368,7 +401,7 @@ function OnboardingPage() {
                 className="h-16 pr-14 text-center text-3xl font-extrabold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
               <span className="pointer-events-none absolute top-1/2 right-5 -translate-y-1/2 text-base font-semibold text-muted-foreground">
-                tahun
+                {t("question.birth.unit")}
               </span>
             </div>
           )}
@@ -376,13 +409,13 @@ function OnboardingPage() {
           {step === 2 && (
             <div className="grid grid-cols-2 gap-3">
               <ChoiceTile active={form.gender === "male"} onClick={() => set({ gender: "male" })}>
-                Pria
+                {t("settings:profile.gender.male")}
               </ChoiceTile>
               <ChoiceTile
                 active={form.gender === "female"}
                 onClick={() => set({ gender: "female" })}
               >
-                Wanita
+                {t("settings:profile.gender.female")}
               </ChoiceTile>
             </div>
           )}
@@ -390,7 +423,7 @@ function OnboardingPage() {
           {step === 3 && (
             <BigNumberField
               id="height"
-              label="Tinggi (cm)"
+              label={t("question.height.label")}
               value={form.heightCm}
               onValueChange={(value) => set({ heightCm: value })}
               unit="cm"
@@ -400,7 +433,7 @@ function OnboardingPage() {
           {step === 4 && (
             <BigNumberField
               id="weight-now"
-              label="Berat saat ini (kg)"
+              label={t("question.weight.label")}
               value={form.weightKg}
               onValueChange={(value) => set({ weightKg: value })}
               unit="kg"
@@ -428,7 +461,7 @@ function OnboardingPage() {
             <div className="space-y-3">
               <BigNumberField
                 id="target-weight"
-                label="Berat target (kg)"
+                label={t("question.target.label")}
                 value={form.targetWeightKg}
                 onValueChange={(value) => set({ targetWeightKg: value })}
                 unit="kg"
@@ -436,13 +469,15 @@ function OnboardingPage() {
               />
               {ideal && (
                 <p className="text-sm text-muted-foreground tabular-nums">
-                  Berat sehat untuk tinggimu: {fmtKg(ideal.minKg)}–{fmtKg(ideal.maxKg)} kg
+                  {t("question.target.healthyRange", {
+                    min: fmtKg(ideal.minKg),
+                    max: fmtKg(ideal.maxKg),
+                  })}
                 </p>
               )}
               {ideal && targetWeight !== null && targetWeight < ideal.minKg && (
-                <p className="text-sm leading-relaxed text-destructive">
-                  Target di bawah rentang berat sehat. Boleh dilanjutkan, tapi perhatikan
-                  kesehatanmu.
+                <p className="text-sm leading-snug text-destructive">
+                  {t("question.target.belowRange")}
                 </p>
               )}
             </div>
@@ -454,6 +489,7 @@ function OnboardingPage() {
                 <PopoverTrigger asChild>
                   <Button
                     id="target-date"
+                    aria-label={t("question.date.label")}
                     variant="secondary"
                     className="h-16 w-full justify-center rounded-xl text-lg font-extrabold tracking-tight"
                   >
@@ -479,26 +515,19 @@ function OnboardingPage() {
               </Popover>
 
               {tooFast && (
-                <div className="rounded-2xl bg-bakar-soft p-4">
+                <div className="rounded-2xl bg-bakar-soft p-3.5">
                   <p className="flex items-start gap-1.5 text-sm leading-snug font-bold text-bakar-ink">
                     <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-                    Target ini menuntut defisit ~{fmtInt(tooFast.rawDeficit)} kkal/hari, di atas
-                    batas aman.
-                  </p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    JoyoRogo membatasi defisit pada ~1.000 kkal/hari. Turun {fmtKg(tooFast.lossKg)}{" "}
-                    kg dengan ritme itu butuh sekitar {tooFast.feasibleDays} hari (±{" "}
-                    {fmtKg(Math.round(((1000 * tooFast.days) / KCAL_PER_KG_FAT) * 10) / 10)} kg saja
-                    sampai {form.targetDate}).
+                    {t("tooFast.title", { kcal: fmtKcalLabel(tooFast.rawDeficit) })}
                   </p>
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className="mt-3"
+                    className="mt-2.5"
                     onClick={() => set({ targetDate: jakartaDatePlusDays(tooFast.feasibleDays) })}
                   >
-                    Pakai tanggal realistis (+{tooFast.feasibleDays} hari)
+                    {t("tooFast.cta", { count: tooFast.feasibleDays })}
                   </Button>
                 </div>
               )}
@@ -511,17 +540,49 @@ function OnboardingPage() {
             {error}
           </p>
         )}
+
+        {step === 4 && (
+          <div className="mt-4">
+            <InfoAccordion title={t("info.title")}>
+              <p>{t("question.weight.why")}</p>
+            </InfoAccordion>
+          </div>
+        )}
+        {step === 7 && (
+          <div className="mt-4">
+            <InfoAccordion title={t("info.title")}>
+              <p>{t("question.date.why")}</p>
+              {tooFast && (
+                <p>
+                  {t("tooFast.detail", {
+                    count: tooFast.feasibleDays,
+                    cap: fmtKcalLabel(DEFICIT_CAP_KCAL),
+                    kg: fmtKg(tooFast.lossKg),
+                    reach: fmtKg(
+                      Math.round(((DEFICIT_CAP_KCAL * tooFast.days) / KCAL_PER_KG_FAT) * 10) / 10,
+                    ),
+                    date: fmtDateMedium(form.targetDate),
+                  })}
+                </p>
+              )}
+            </InfoAccordion>
+          </div>
+        )}
       </div>
 
-      <div className="mt-10 flex items-center gap-3">
+      <div className="mt-8 flex items-center gap-3">
         {step > 1 && (
           <Button variant="secondary" onClick={back} disabled={save.isPending}>
             <ArrowLeft className="size-[1.125rem]" aria-hidden />
-            Kembali
+            {t("common:actions.back")}
           </Button>
         )}
         <Button className="flex-1" onClick={next} disabled={save.isPending}>
-          {step === 7 ? (save.isPending ? "Menyimpan..." : "Simpan & lihat hasil") : "Lanjut"}
+          {step === 7
+            ? save.isPending
+              ? t("action.saving")
+              : t("action.save")
+            : t("action.next")}
         </Button>
       </div>
     </Page>
@@ -529,19 +590,20 @@ function OnboardingPage() {
 }
 
 function OnboardingSkeleton() {
+  const { t } = useTranslation("onboarding");
   return (
-    <Page className="max-w-xl" aria-busy="true" aria-label="Memeriksa profil">
+    <Page className="max-w-xl" aria-busy="true" aria-label={t("loading")}>
       <div className="flex items-center justify-between px-1 pt-2">
         <Skeleton className="h-7 w-28 rounded-full" />
         <Skeleton className="h-4 w-10 rounded-full" />
       </div>
       <Skeleton className="mt-4 h-1.5 rounded-full" />
-      <div className="mt-10 px-1">
+      <div className="mt-8 px-1">
         <Skeleton className="h-8 w-64 rounded-full" />
         <Skeleton className="mt-2 h-4 w-52 rounded-full" />
       </div>
-      <Skeleton className="mt-8 h-16 rounded-xl" />
-      <div className="mt-10 flex gap-3">
+      <Skeleton className="mt-6 h-16 rounded-xl" />
+      <div className="mt-8 flex gap-3">
         <Skeleton className="h-12 flex-1 rounded-full" />
       </div>
     </Page>
