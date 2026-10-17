@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import {
+  Avatar,
   Button,
   Chip,
   EmptyState,
@@ -159,6 +160,7 @@ export default function Inbox() {
             return (
               <ListRow
                 key={item.id}
+                thumb={<Avatar name={item.senderName} image={item.senderImage ?? null} size={32} />}
                 icon={item.kind === "poke" ? "hand-left" : "pencil"}
                 iconTint={item.kind === "poke" ? "bakar" : "tidur"}
                 title={item.senderName}
