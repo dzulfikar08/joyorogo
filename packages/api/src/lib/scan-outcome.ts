@@ -13,6 +13,10 @@
 //   savedItems  what the diary got, compact
 //   diff        compact summary AI answer -> saved items (ScanDiff)
 //   keep        1 once the user opted in to keeping the photo (feedback consent)
+//   shadow      silent A/B on a sample of first scans (lib/shadow-scan.ts): what the
+//               shadow prompt variant answered for the same photo, beside aiItems.
+//               Never shown to the user and never charged to the quota. { variant,
+//               at, ms, model, items } or { variant, at, ms, error } when it failed.
 //
 // Outcome of a session (scanOutcome / outcomeSql):
 //   retried    any retry, whatever got saved: the first answer was not enough
@@ -69,9 +73,22 @@ export type ScanDiff = {
   savedKcal: number;
 };
 
+/** One shadow-variant answer for a scan (see lib/shadow-scan.ts). */
+export type ShadowRun = {
+  variant: string;
+  at: number;
+  /** Model call time, ms. */
+  ms: number;
+  model?: string;
+  items?: CompactItem[];
+  /** Failure reason (a ScanFailReason, or "error"); no items then. */
+  error?: string;
+};
+
 export type ScanSession = {
   photoId?: string;
   aiItems?: CompactItem[];
+  shadow?: ShadowRun;
   retries?: number;
   retryAt?: number;
   retryItems?: CompactItem[];
@@ -333,6 +350,16 @@ export function recordSessionCorrection(
     photoId,
     setSql([["$.corrections", sql`coalesce(json_extract(${aiUsage.usageJson}, '$.corrections'), 0) + 1`]]),
   );
+}
+
+/** The shadow variant's answer for this scan, stored beside the production answer. */
+export function recordSessionShadow(
+  db: Database,
+  userId: string,
+  photoId: string,
+  run: ShadowRun,
+): Promise<unknown> {
+  return patchSession(db, userId, photoId, setSql([["$.shadow", jsonArg(run)]]));
 }
 
 /** The user opted in to keeping the photo (see feedback-keep.ts). */

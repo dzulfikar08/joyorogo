@@ -8,7 +8,7 @@ import { DEFAULT_LOCALE, fmtIdr, getT } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 import { userLocale } from "@joyorogo/api/lib/messages";
 import { dayStartMs } from "@joyorogo/api/lib/accuracy-report";
-import type { AccuracyReport, EmailState } from "@joyorogo/api/lib/accuracy-report";
+import type { AccuracyReport, EmailState, ShadowReport } from "@joyorogo/api/lib/accuracy-report";
 
 /** Worker vars email needs; all optional so self-hosts run without email. */
 export type EmailEnv = {
@@ -348,6 +348,29 @@ const escapeHtml = (value: string) =>
 const pct = (rate: number | null) => (rate === null ? "-" : `${Math.round(rate * 100)}%`);
 const seconds = (ms: number | null) => (ms === null ? "-" : `${(ms / 1000).toFixed(1)} dtk`);
 
+const decimal = (n: number) => String(n).replace(".", ",");
+
+/**
+ * The shadow test (prompt identitas + suhu 0,1 pada sebagian scan pertama,
+ * tanpa efek ke pengguna) against what users saved. Empty when nothing was sampled.
+ */
+export function shadowDigestLines(shadow: ShadowReport | null): string[] {
+  if (!shadow) return [];
+  const head = `${shadow.sampled} scan disampel${shadow.failed > 0 ? ` (${shadow.failed} gagal)` : ""}, ${shadow.scored} disimpan pengguna (${shadow.corrected} dikoreksi).`;
+  if (shadow.scored === 0) return [`${head} Belum ada yang bisa dibandingkan.`];
+  const arm = (a: ShadowReport["prod"]) =>
+    `nama cocok ${pct(a.f1)}, kalori kurang ${a.shortfallPct === null ? "-" : decimal(a.shortfallPct)}% (${a.over} lebih, ${a.under} kurang)`;
+  return [
+    head,
+    `Produksi: ${arm(shadow.prod)}.`,
+    `Bayangan: ${arm(shadow.shadow)}.`,
+    `Lebih dekat ke simpanan: bayangan ${shadow.shadowCloser}, produksi ${shadow.prodCloser}, seri ${shadow.tie}` +
+      (shadow.corrected > 0
+        ? `; pada yang dikoreksi bayangan ${shadow.correctedShadowCloser}, produksi ${shadow.correctedProdCloser}.`
+        : "."),
+  ];
+}
+
 /**
  * Daily accuracy digest for the admins. Short, plain Indonesian: headline
  * numbers, the top problems with counts, regressions, a link. Dish names and
@@ -389,6 +412,7 @@ export function accuracyDigestDraft(report: AccuracyReport): Draft {
       }).`,
     ];
   }
+  const shadowLines = shadowDigestLines(report.shadow ?? null);
   const failedText = health.failed.total > 0 ? `${health.failed.total} gagal` : "tidak ada gagal";
   const healthLine =
     `Kesehatan: ${failedText}, ${health.tooMany} terlalu banyak item, ${health.repaired} JSON diperbaiki. ` +
@@ -410,6 +434,7 @@ export function accuracyDigestDraft(report: AccuracyReport): Draft {
       ? ["Masalah teratas:", ...problems.map((t, i) => `${i + 1}. ${t}`)].join("\n")
       : "Tidak ada koreksi dish hari ini.",
     ["Regresi:", ...regressionLines.map((t) => `- ${t}`)].join("\n"),
+    ...(shadowLines.length > 0 ? [["Uji bayangan:", ...shadowLines.map((t) => `- ${t}`)].join("\n")] : []),
     healthLine,
     ...(suggestions.length > 0
       ? [["Saran (tidak ada yang diubah otomatis):", ...suggestions.map((t) => `- ${t}`)].join("\n")]
@@ -434,6 +459,7 @@ export function accuracyDigestDraft(report: AccuracyReport): Draft {
         : p("Tidak ada koreksi dish hari ini.")) +
       heading("Regresi") +
       list(regressionLines, false) +
+      (shadowLines.length > 0 ? heading("Uji bayangan") + list(shadowLines, false) : "") +
       p(escapeHtml(healthLine)) +
       (suggestions.length > 0
         ? heading("Saran (tidak ada yang diubah otomatis)") + list(suggestions, false)

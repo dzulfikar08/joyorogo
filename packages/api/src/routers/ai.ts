@@ -37,6 +37,7 @@ import { dateSchema, mealSchema } from "../lib/schemas";
 import { TRANSCRIBE_MODEL, parseFoodStory, transcribeStory } from "../lib/story";
 import { MAX_SCAN_RETRIES, requireAiQuota } from "../lib/quota";
 import { wibDayBounds } from "../lib/tiers";
+import { runShadowScan, sampledForShadow, shadowDailyCap } from "../lib/shadow-scan";
 import { DEFAULT_VISION_MODEL, VisionError, analyzeFoodPhoto, normalizeBox } from "../lib/vision";
 import type { ItemBox, VisionAnalysis, VisionEvent } from "../lib/vision";
 import { EventChannel } from "../lib/event-channel";
@@ -362,6 +363,25 @@ async function runAnalyzeFood(
       },
     );
   context.waitUntil(ledger);
+  // Shadow test (lib/shadow-scan.ts): after the response, a sample of scans is
+  // answered again with the shadow variant and stored in this scan's session.
+  // No ledger row, no quota, no effect on the result above.
+  if (storedPhotoId && sampledForShadow(context.env)) {
+    context.waitUntil(
+      runShadowScan({
+        db: context.db,
+        ai,
+        userId,
+        photoId: storedPhotoId,
+        imageBase64: input.imageBase64,
+        mimeType: input.mimeType,
+        model: context.env.AI_VISION_MODEL || undefined,
+        locale: context.locale,
+        ledgerReady: ledger,
+        dailyCap: shadowDailyCap(context.env),
+      }),
+    );
+  }
   // Every detected box gets its sticker right away, in waitUntil: a quick
   // crop of the whole-photo cutout that has been segmenting since the photo
   // arrived, then the refined per-box cut. The pending markers are written

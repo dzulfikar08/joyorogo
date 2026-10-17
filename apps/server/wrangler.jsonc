@@ -73,6 +73,8 @@
     "DEV_LOGIN": "",
     "AI_VISION_MODEL": "@cf/google/gemma-4-26b-a4b-it",
     "DATASET_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
+    "SHADOW_SAMPLE_RATE": "0.2",
+    "SHADOW_DAILY_CAP": "60",
     "APP_URL": "https://joyorogo.com",
     "FREE_DAILY_SCANS": "3",
     "FOUNDER_DAILY_CAP": "100",

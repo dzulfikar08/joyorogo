@@ -16,7 +16,7 @@ import {
   parseSession,
   scanOutcome,
 } from "./scan-outcome";
-import type { ScanDiff, ScanOutcome, ScanSession } from "./scan-outcome";
+import type { CompactItem, ScanDiff, ScanOutcome, ScanSession } from "./scan-outcome";
 
 export const REPORT_VERSION = 1;
 export const REPORT_PREFIX = "reports/accuracy/";
@@ -147,6 +147,40 @@ export type RegressionReport = {
   error?: string;
 };
 
+/** One side of the shadow comparison, over the scans where the user saved a diary entry. */
+export type ShadowArm = {
+  /** Micro name F1 against the saved items, 0..1. */
+  f1: number | null;
+  /** Mean kcal shortfall, % of the saved plate (0 when at or above it): the under-estimate. */
+  shortfallPct: number | null;
+  /** Mean signed plate kcal error, %; positive = ran high. */
+  signedPct: number | null;
+  /** Plates more than SHADOW_CLOSE_PCT over / under the saved kcal. */
+  over: number;
+  under: number;
+};
+
+/** Shadow test (lib/shadow-scan.ts): did the variant land closer to what users saved than production? */
+export type ShadowReport = {
+  variant: string;
+  /** Scans of the day that carry a shadow answer, and how many of those failed. */
+  sampled: number;
+  failed: number;
+  /** Shadow answered and the user saved (as answered or edited): the scans that can be scored. */
+  scored: number;
+  /** Of the scored scans, those the user edited before or after saving. */
+  corrected: number;
+  prod: ShadowArm;
+  shadow: ShadowArm;
+  /** Per scored scan: more saved names matched, else kcal closer to the saved plate (beyond SHADOW_TIE_PCT points). */
+  shadowCloser: number;
+  prodCloser: number;
+  tie: number;
+  /** The same comparison on the corrected scans only. */
+  correctedShadowCloser: number;
+  correctedProdCloser: number;
+};
+
 export type EmailState = {
   status: "sent" | "skipped_no_scans" | "off" | "failed";
   attempts: number;
@@ -209,6 +243,8 @@ export type AccuracyReport = {
   };
   problems: Problem[];
   suggestions: Suggestion[];
+  /** Absent in reports from before the shadow test; null when no scan of the day was sampled. */
+  shadow?: ShadowReport | null;
   regression: RegressionReport | null;
   email: EmailState | null;
 };
@@ -548,8 +584,100 @@ export function buildAccuracyReport(input: ReportInput): AccuracyReport {
     },
     problems: problemsOf(dayTally, bias),
     suggestions: suggestionsOf(weekTally),
+    shadow: shadowReport(sessions.map((s) => s.usage)),
     regression: null,
     email: null,
+  };
+}
+
+// ----------------------------------------------------------------- shadow
+
+/** A plate within this share of the saved kcal is neither over nor under. */
+export const SHADOW_CLOSE_PCT = 5;
+/** Kcal errors closer than this many percentage points do not decide which side was closer. */
+export const SHADOW_TIE_PCT = 2;
+
+const asMatch = (items: readonly CompactItem[]): MatchItem[] =>
+  items.map((item) => ({ name: item.n, ...(item.g !== undefined ? { grams: item.g } : {}), kcal: item.k }));
+
+type ShadowScore = { tp: number; ai: number; truth: number; errPct: number | null };
+
+function scoreAgainst(answer: readonly CompactItem[], saved: readonly CompactItem[]): ShadowScore {
+  const a = asMatch(answer);
+  const t = asMatch(saved);
+  const savedKcal = plateKcal(t);
+  return {
+    tp: pairItems(a, t).length,
+    ai: a.length,
+    truth: t.length,
+    errPct: savedKcal > 0 ? ((plateKcal(a) - savedKcal) * 100) / savedKcal : null,
+  };
+}
+
+function shadowArm(scores: readonly ShadowScore[]): ShadowArm {
+  const tp = scores.reduce((sum, s) => sum + s.tp, 0);
+  const ai = scores.reduce((sum, s) => sum + s.ai, 0);
+  const truth = scores.reduce((sum, s) => sum + s.truth, 0);
+  const precision = ratio(tp, ai);
+  const recall = ratio(tp, truth);
+  const f1 =
+    precision === null || recall === null ? null : precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
+  const errs = scores.flatMap((s) => (s.errPct === null ? [] : [s.errPct]));
+  const signed = meanOf(errs);
+  const shortfall = meanOf(errs.map((e) => Math.max(0, -e)));
+  return {
+    f1,
+    shortfallPct: shortfall === null ? null : round1(shortfall),
+    signedPct: signed === null ? null : round1(signed),
+    over: errs.filter((e) => e > SHADOW_CLOSE_PCT).length,
+    under: errs.filter((e) => e < -SHADOW_CLOSE_PCT).length,
+  };
+}
+
+/** "shadow" | "prod" | "tie": more name matches first, then the smaller kcal error. */
+function closer(prod: ShadowScore, shadow: ShadowScore): "shadow" | "prod" | "tie" {
+  if (shadow.tp !== prod.tp) return shadow.tp > prod.tp ? "shadow" : "prod";
+  if (prod.errPct === null || shadow.errPct === null) return "tie";
+  const gap = Math.abs(prod.errPct) - Math.abs(shadow.errPct);
+  if (Math.abs(gap) < SHADOW_TIE_PCT) return "tie";
+  return gap > 0 ? "shadow" : "prod";
+}
+
+/**
+ * Production answer (the first pass) and shadow answer of every sampled scan,
+ * each scored against the diary items the user saved. Null when no scan of
+ * the day was sampled.
+ */
+export function shadowReport(sessions: readonly ScanSession[]): ShadowReport | null {
+  const sampled = sessions.filter((s) => s.shadow);
+  if (sampled.length === 0) return null;
+  const pairs = sampled.flatMap((s) => {
+    if (!s.shadow?.items || !s.aiItems || !s.savedItems || s.savedItems.length === 0) return [];
+    return [
+      {
+        corrected: s.savedLabel === "corrected",
+        prod: scoreAgainst(s.aiItems, s.savedItems),
+        shadow: scoreAgainst(s.shadow.items, s.savedItems),
+      },
+    ];
+  });
+  const verdicts = pairs.map((pair) => ({ ...pair, verdict: closer(pair.prod, pair.shadow) }));
+  const count = (list: typeof verdicts, v: "shadow" | "prod" | "tie") =>
+    list.filter((x) => x.verdict === v).length;
+  const corrected = verdicts.filter((x) => x.corrected);
+  return {
+    variant: sampled[0]!.shadow!.variant,
+    sampled: sampled.length,
+    failed: sampled.filter((s) => s.shadow!.error !== undefined).length,
+    scored: pairs.length,
+    corrected: corrected.length,
+    prod: shadowArm(pairs.map((x) => x.prod)),
+    shadow: shadowArm(pairs.map((x) => x.shadow)),
+    shadowCloser: count(verdicts, "shadow"),
+    prodCloser: count(verdicts, "prod"),
+    tie: count(verdicts, "tie"),
+    correctedShadowCloser: count(corrected, "shadow"),
+    correctedProdCloser: count(corrected, "prod"),
   };
 }
 

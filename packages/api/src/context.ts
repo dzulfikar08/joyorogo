@@ -3,6 +3,7 @@ import type { Database } from "@joyorogo/db";
 import type { Locale } from "@joyorogo/i18n";
 import type { RateLimitBinding } from "./lib/group-preview";
 import type { ImagesBinding, StickersBucket } from "./lib/sticker";
+import type { ShadowEnv } from "./lib/shadow-scan";
 import type { PaywallEnv } from "./lib/tiers";
 
 /** Minimal Workers AI surface — keeps this package usable outside Workers. */
@@ -11,7 +12,7 @@ export type AiBinding = {
 };
 
 /** Worker bindings the API layer may read. All optional: features degrade loudly. */
-export type ApiEnv = PaywallEnv & {
+export type ApiEnv = PaywallEnv & ShadowEnv & {
   AI?: AiBinding;
   AI_VISION_MODEL?: string;
   /** Text model for ai.correctScan; unset = the vision model (Gemma 4, thinking off). */

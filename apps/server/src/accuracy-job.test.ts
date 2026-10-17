@@ -371,6 +371,34 @@ describe("sendAccuracyDigest", () => {
     expect(draft.html).toContain("Buka laporan");
   });
 
+  test("the shadow section reports prod against shadow, and is absent without a sample", () => {
+    expect(accuracyDigestDraft({ ...report, shadow: null }).text).not.toContain("Uji bayangan");
+    const arm = (f1: number, shortfallPct: number, over: number, under: number) => ({ f1, shortfallPct, signedPct: -shortfallPct, over, under });
+    const draft = accuracyDigestDraft({
+      ...report,
+      shadow: {
+        variant: "identity-t01",
+        sampled: 5,
+        failed: 1,
+        scored: 3,
+        corrected: 2,
+        prod: arm(0.4, 12.5, 0, 2),
+        shadow: arm(0.7, 6, 1, 1),
+        shadowCloser: 2,
+        prodCloser: 1,
+        tie: 0,
+        correctedShadowCloser: 1,
+        correctedProdCloser: 1,
+      },
+    });
+    expect(draft.text).toContain("Uji bayangan:");
+    expect(draft.text).toContain("5 scan disampel (1 gagal), 3 disimpan pengguna (2 dikoreksi).");
+    expect(draft.text).toContain("Produksi: nama cocok 40%, kalori kurang 12,5% (0 lebih, 2 kurang).");
+    expect(draft.text).toContain("Bayangan: nama cocok 70%, kalori kurang 6% (1 lebih, 1 kurang).");
+    expect(draft.text).toContain("bayangan 2, produksi 1, seri 0; pada yang dikoreksi bayangan 1, produksi 1.");
+    expect(draft.html).toContain("Uji bayangan");
+  });
+
   test("dish names are HTML-escaped in the mail", () => {
     const draft = accuracyDigestDraft({
       ...report,
