@@ -1,0 +1,27 @@
+{
+  "fail": {
+    "reason": {
+      "too_many": {
+        "title": "Too much food in the photo",
+        "message": "There's too much food in this photo. Try one plate, or at most 3-4 items per photo, from closer up, with only the food you want to log in the frame."
+      },
+      "unclear": {
+        "title": "Photo isn't clear",
+        "message": "The photo is blurry or too dark, so the food is hard to recognize. Retake it in brighter light and hold the camera still until it focuses."
+      },
+      "not_food": {
+        "title": "No food in sight",
+        "message": "The AI couldn't find any food in this photo. Point the camera straight at the food, fill the frame with it, and try again."
+      },
+      "timeout": {
+        "title": "AI took too long",
+        "message": "The AI took too long to read the photo. Try again in a moment, or shoot one plate from closer up so it finishes faster."
+      },
+      "failed": {
+        "title": "Couldn't analyze the photo",
+        "message": "The AI couldn't recognize this photo. Try another photo with better lighting."
+      }
+    },
+    "tooManyPartial": "There was too much food in the photo, so the AI only logged the most prominent items. Use these, or retake one plate (3-4 items max) from closer up."
+  }
+}

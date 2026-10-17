@@ -7,6 +7,9 @@ import idTidur from "./locales/id/tidur.json";
 import idOlahraga from "./locales/id/olahraga.json";
 import idPush from "./locales/id/push.json";
 import idSettings from "./locales/id/settings.json";
+import idScan from "./locales/id/scan.json";
+import idBarcode from "./locales/id/barcode.json";
+import idVarperut from "./locales/id/varperut.json";
 
 import enBerat from "./locales/en/berat.json";
 import enCommon from "./locales/en/common.json";
@@ -17,6 +20,9 @@ import enTidur from "./locales/en/tidur.json";
 import enOlahraga from "./locales/en/olahraga.json";
 import enPush from "./locales/en/push.json";
 import enSettings from "./locales/en/settings.json";
+import enScan from "./locales/en/scan.json";
+import enBarcode from "./locales/en/barcode.json";
+import enVarperut from "./locales/en/varperut.json";
 
 import type { Locale } from "./locale";
 
@@ -31,6 +37,9 @@ const id = {
   olahraga: idOlahraga,
   push: idPush,
   settings: idSettings,
+  scan: idScan,
+  barcode: idBarcode,
+  varperut: idVarperut,
 };
 
 /**
@@ -47,6 +56,9 @@ const en: typeof id = {
   olahraga: enOlahraga,
   push: enPush,
   settings: enSettings,
+  scan: enScan,
+  barcode: enBarcode,
+  varperut: enVarperut,
 };
 
 export const resources = { id, en } satisfies Record<Locale, typeof id>;
