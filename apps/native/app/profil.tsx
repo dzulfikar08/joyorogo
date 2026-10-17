@@ -36,6 +36,10 @@ import { useToast } from "@/components/toast";
 import { BudgetSetting } from "@/components/plate/budget-setting";
 import { NeedsSheet } from "@/components/needs-sheet";
 import { TargetDateSheet, TargetWeightSheet } from "@/components/target-sheets";
+import {
+  EndPregnancySheet,
+} from "@/components/maternal/end-pregnancy-sheet";
+import { MaternalEditSheet, MaternalSettingsSheet, useSetMaternal } from "@/components/maternal/maternal-sheets";
 import { StravaCard } from "@/components/strava-card";
 import { FastingSettingsCard } from "@/components/fasting/settings-card";
 import { RemindersCard } from "@/components/reminders/reminders-card";
@@ -56,8 +60,10 @@ import { errorMessage, fmtDateMedium, fmtInt, fmtKg, fmtMegabytes } from "@/util
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 
+const SHEET_SWAP_MS = 350;
+
 export default function Profil() {
-  const { t } = useTranslation(["settings", "common"]);
+  const { t } = useTranslation(["settings", "common", "maternal"]);
   const gate = useSessionGate();
   const toast = useToast();
   // refetch keeps every screen's avatar in sync right after ganti/hapus foto.
@@ -97,11 +103,23 @@ export default function Profil() {
 
   // Focused editors: "weight" and "date" open separately; "needs" is the TDEE
   // breakdown, also opened from Beranda via ?needs=1.
-  const [sheet, setSheet] = useState<null | "weight" | "date" | "needs">(null);
+  const [sheet, setSheet] = useState<
+    null | "weight" | "date" | "needs" | "maternal" | "maternalEdit" | "end"
+  >(null);
   const { needs: needsParam } = useLocalSearchParams<{ needs?: string }>();
   useEffect(() => {
     if (needsParam === "1") setSheet("needs");
   }, [needsParam]);
+  const [turnOffOpen, setTurnOffOpen] = useState(false);
+  const turnOff = useSetMaternal(() => {
+    setTurnOffOpen(false);
+    setSheet(null);
+  });
+  /** One Modal at a time: let the leaving sheet finish its slide before the next one opens. */
+  const swapTo = (next: "maternal" | "maternalEdit" | "end") => {
+    setSheet(null);
+    setTimeout(() => setSheet(next), SHEET_SWAP_MS);
+  };
 
   const [hcBusy, setHcBusy] = useState(false);
   const [hcMessage, setHcMessage] = useState<string | null>(null);
@@ -191,6 +209,7 @@ export default function Profil() {
 
   const prof = profileQuery.data?.profile ?? null;
   const targets = profileQuery.data?.targets ?? null;
+  const maternal = targets?.maternal ?? null;
 
   if (gate === "loading") {
     return <BootLoader />;
@@ -487,13 +506,15 @@ export default function Profil() {
               value={fmtInt(targets.eatKcal)}
               sub={t("plan.numbers.perDay")}
             />
-            <StatTile
-              icon="flame"
-              tint="bakar"
-              label={t("plan.numbers.burn")}
-              value={fmtInt(targets.burnKcal)}
-              sub={t("plan.numbers.perDay")}
-            />
+            {maternal ? null : (
+              <StatTile
+                icon="flame"
+                tint="bakar"
+                label={t("plan.numbers.burn")}
+                value={fmtInt(targets.burnKcal)}
+                sub={t("plan.numbers.perDay")}
+              />
+            )}
             <StatTile
               icon="moon"
               tint="tidur"
@@ -515,26 +536,51 @@ export default function Profil() {
             />
           </ListGroup>
 
+          {/* Hamil dan menyusui: perempuan saja */}
+          {prof.gender === "female" ? (
+            <ListGroup>
+              <ListRow
+                icon="heart"
+                iconTint="makan"
+                title={t("maternal:settings.title")}
+                subtitle={
+                  maternal
+                    ? maternal.mode === "pregnant"
+                      ? t("maternal:settings.rowPregnant", { week: maternal.gestation?.weeks ?? 0 })
+                      : t("maternal:settings.rowBreastfeeding", { months: maternal.babyMonths ?? 0 })
+                    : t("maternal:settings.rowOff")
+                }
+                wrapTitle
+                chevron
+                onPress={() => setSheet("maternal")}
+              />
+            </ListGroup>
+          ) : null}
+
           {/* Rencana rows → sheet editors */}
           <ListGroup>
-            <ListRow
-              icon="flag"
-              iconTint="makan"
-              title={t("plan.targetWeight.title")}
-              subtitle={t("plan.targetWeight.subtitle")}
-              value={`${fmtKg(prof.targetWeightKg)} kg`}
-              chevron
-              onPress={() => setSheet("weight")}
-            />
-            <ListRow
-              icon="calendar"
-              iconTint="makan"
-              title={t("plan.targetDate.title")}
-              subtitle={t("plan.targetDate.subtitle")}
-              value={fmtDateMedium(prof.targetDate)}
-              chevron
-              onPress={() => setSheet("date")}
-            />
+            {maternal ? null : (
+              <ListRow
+                icon="flag"
+                iconTint="makan"
+                title={t("plan.targetWeight.title")}
+                subtitle={t("plan.targetWeight.subtitle")}
+                value={`${fmtKg(prof.targetWeightKg)} kg`}
+                chevron
+                onPress={() => setSheet("weight")}
+              />
+            )}
+            {maternal ? null : (
+              <ListRow
+                icon="calendar"
+                iconTint="makan"
+                title={t("plan.targetDate.title")}
+                subtitle={t("plan.targetDate.subtitle")}
+                value={fmtDateMedium(prof.targetDate)}
+                chevron
+                onPress={() => setSheet("date")}
+              />
+            )}
             <ListRow
               icon="walk"
               iconTint="makan"
@@ -544,12 +590,14 @@ export default function Profil() {
             />
           </ListGroup>
 
-          {targets.notes.map((note) => (
-            <Text key={note} style={styles.note}>
-              {t(`plan.noteShort.${note}`)}
-            </Text>
-          ))}
-          {targets.notes.includes("ADAPTIVE") && targets.formulaTdee ? (
+          {targets.notes
+            .filter((note) => note !== "MATERNAL")
+            .map((note) => (
+              <Text key={note} style={styles.note}>
+                {t(`plan.noteShort.${note}`)}
+              </Text>
+            ))}
+          {!maternal && targets.notes.includes("ADAPTIVE") && targets.formulaTdee ? (
             <Text style={styles.note}>
               {t("plan.formulaEstimate", {
                 formula: fmtInt(targets.formulaTdee),
@@ -557,20 +605,26 @@ export default function Profil() {
               })}
             </Text>
           ) : null}
-          <Text style={styles.note}>
-            {heightIdeal
-              ? t("plan.summary.withRange", {
-                  kg: fmtKg(prof.targetWeightKg),
-                  date: fmtDateMedium(prof.targetDate),
-                  min: fmtKg(heightIdeal.minKg),
-                  max: fmtKg(heightIdeal.maxKg),
-                })
-              : t("plan.summary.target", {
-                  kg: fmtKg(prof.targetWeightKg),
-                  date: fmtDateMedium(prof.targetDate),
-                })}
-          </Text>
-          <Text style={styles.caption}>{t("plan.recalcNote")}</Text>
+          {maternal ? (
+            <Text style={styles.note}>{t("maternal:settings.hiddenNote")}</Text>
+          ) : (
+            <>
+              <Text style={styles.note}>
+                {heightIdeal
+                  ? t("plan.summary.withRange", {
+                      kg: fmtKg(prof.targetWeightKg),
+                      date: fmtDateMedium(prof.targetDate),
+                      min: fmtKg(heightIdeal.minKg),
+                      max: fmtKg(heightIdeal.maxKg),
+                    })
+                  : t("plan.summary.target", {
+                      kg: fmtKg(prof.targetWeightKg),
+                      date: fmtDateMedium(prof.targetDate),
+                    })}
+              </Text>
+              <Text style={styles.caption}>{t("plan.recalcNote")}</Text>
+            </>
+          )}
 
           {/* Data diri (hanya baca) */}
           <ListGroup>
@@ -621,10 +675,10 @@ export default function Profil() {
       <LanguageList />
 
       {/* Ramadan */}
-      {prof ? <RamadanList mode={prof.ramadanMode} /> : null}
+      {prof ? <RamadanList mode={prof.ramadanMode} maternal={maternal !== null} /> : null}
 
       {/* Puasa intermiten */}
-      {prof ? <FastingSettingsCard /> : null}
+      {prof && !maternal ? <FastingSettingsCard /> : null}
 
       {/* Anggaran belanja makan */}
       <BudgetSetting />
@@ -681,7 +735,7 @@ export default function Profil() {
       ) : null}
 
       {/* Data & privasi */}
-      {prof ? <ShareRow /> : null}
+      {prof && !maternal ? <ShareRow /> : null}
       <ListGroup>
         <ListRow
           icon="shield-checkmark"
@@ -728,40 +782,70 @@ export default function Profil() {
       {/* Target editors: dua sheet terpisah, seperti web */}
       {prof ? (
         <>
-          <TargetWeightSheet
-            visible={sheet === "weight"}
-            onClose={() => setSheet(null)}
-            heightCm={prof.heightCm}
-            targetWeightKg={prof.targetWeightKg}
-            pending={updateTargets.isPending}
-            onSave={async (kg) => {
-              await updateTargets.mutateAsync({
-                targetWeightKg: kg,
-                targetDate: prof.targetDate,
-              });
-            }}
-          />
-          <TargetDateSheet
-            visible={sheet === "date"}
-            onClose={() => setSheet(null)}
-            targetDate={prof.targetDate}
-            weightNowKg={profileQuery.data?.latestWeightKg ?? prof.startWeightKg}
-            targetWeightKg={prof.targetWeightKg}
-            pending={updateTargets.isPending}
-            onSave={async (date) => {
-              await updateTargets.mutateAsync({
-                targetWeightKg: prof.targetWeightKg,
-                targetDate: date,
-              });
-            }}
-          />
+          {maternal ? null : (
+            <>
+              <TargetWeightSheet
+                visible={sheet === "weight"}
+                onClose={() => setSheet(null)}
+                heightCm={prof.heightCm}
+                targetWeightKg={prof.targetWeightKg}
+                pending={updateTargets.isPending}
+                onSave={async (kg) => {
+                  await updateTargets.mutateAsync({
+                    targetWeightKg: kg,
+                    targetDate: prof.targetDate,
+                  });
+                }}
+              />
+              <TargetDateSheet
+                visible={sheet === "date"}
+                onClose={() => setSheet(null)}
+                targetDate={prof.targetDate}
+                weightNowKg={profileQuery.data?.latestWeightKg ?? prof.startWeightKg}
+                targetWeightKg={prof.targetWeightKg}
+                pending={updateTargets.isPending}
+                onSave={async (date) => {
+                  await updateTargets.mutateAsync({
+                    targetWeightKg: prof.targetWeightKg,
+                    targetDate: date,
+                  });
+                }}
+              />
+            </>
+          )}
           {targets ? (
             <NeedsSheet visible={sheet === "needs"} onClose={() => setSheet(null)} targets={targets} />
           ) : null}
+          <MaternalSettingsSheet
+            visible={sheet === "maternal"}
+            onClose={() => setSheet(null)}
+            onEdit={() => swapTo("maternalEdit")}
+            onEnd={() => swapTo("end")}
+            onTurnOff={() => {
+              setSheet(null);
+              setTimeout(() => setTurnOffOpen(true), SHEET_SWAP_MS);
+            }}
+          />
+          <MaternalEditSheet
+            visible={sheet === "maternalEdit"}
+            onClose={() => (maternal ? swapTo("maternal") : setSheet(null))}
+          />
+          <EndPregnancySheet visible={sheet === "end"} onClose={() => setSheet(null)} />
         </>
       ) : null}
       </Screen>
 
+      <ConfirmSheet
+        visible={turnOffOpen}
+        onClose={() => setTurnOffOpen(false)}
+        title={t("maternal:settings.turnOffTitle")}
+        message={t("maternal:settings.turnOffBody")}
+        confirmLabel={t("maternal:settings.turnOffConfirm")}
+        cancelLabel={t("common:actions.cancel")}
+        destructive={false}
+        loading={turnOff.isPending}
+        onConfirm={() => turnOff.mutate({ mode: "none" })}
+      />
       <ConfirmSheet
         visible={wipeOpen}
         onClose={() => setWipeOpen(false)}
@@ -962,8 +1046,8 @@ function LanguageList() {
   );
 }
 
-function RamadanList({ mode }: { mode: "auto" | "on" | "off" }) {
-  const { t } = useTranslation(["settings", "common"]);
+function RamadanList({ mode, maternal }: { mode: "auto" | "on" | "off"; maternal: boolean }) {
+  const { t } = useTranslation(["settings", "common", "maternal"]);
   const options: Array<{ value: "auto" | "on" | "off"; label: string }> = [
     { value: "auto", label: t("ramadan.option.auto") },
     { value: "on", label: t("ramadan.option.on") },
@@ -1001,6 +1085,7 @@ function RamadanList({ mode }: { mode: "auto" | "on" | "off" }) {
         disabled={setMode.isPending}
       />
       <Text style={styles.note}>{t("ramadan.hintNative")}</Text>
+      {maternal ? <Text style={styles.note}>{t("maternal:settings.ramadanNote")}</Text> : null}
     </Card>
   );
 }

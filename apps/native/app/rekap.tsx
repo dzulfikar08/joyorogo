@@ -1,4 +1,5 @@
 import "@/unistyles";
+import { useMaternal } from "@/components/maternal/use-maternal";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Redirect, Stack, useLocalSearchParams } from "expo-router";
@@ -129,6 +130,8 @@ export default function Rekap() {
     placeholderData: (prev) => prev,
   });
 
+  const maternal = useMaternal().mode !== "none";
+
   if (gate === "loading") return <BootLoader />;
   if (gate === "anon") return <Redirect href="/login" />;
   if (query.isPending) {
@@ -240,13 +243,15 @@ export default function Rekap() {
             </Card>
 
             <View style={styles.tileRow}>
-              <StatTile
-                icon="checkmark-circle"
-                tint="makan"
-                label={t("recap.stat.onTarget.label")}
-                value={`${recap.daysOnTarget} ${t("recap.unit.day", { count: recap.daysOnTarget })}`}
-                sub={t("recap.stat.onTarget.sub", { count: recap.loggedDays })}
-              />
+              {maternal ? null : (
+                <StatTile
+                  icon="checkmark-circle"
+                  tint="makan"
+                  label={t("recap.stat.onTarget.label")}
+                  value={`${recap.daysOnTarget} ${t("recap.unit.day", { count: recap.daysOnTarget })}`}
+                  sub={t("recap.stat.onTarget.sub", { count: recap.loggedDays })}
+                />
+              )}
               <StatTile
                 macro="protein"
                 tint="makan"
@@ -260,13 +265,15 @@ export default function Rekap() {
               />
             </View>
             <View style={styles.tileRow}>
-              <StatTile
-                icon="flame"
-                tint="bakar"
-                label={t("recap.stat.streak.label")}
-                value={`${recap.streakDays} ${t("recap.unit.day", { count: recap.streakDays })}`}
-                sub={t("recap.stat.streak.sub")}
-              />
+              {maternal ? null : (
+                <StatTile
+                  icon="flame"
+                  tint="bakar"
+                  label={t("recap.stat.streak.label")}
+                  value={`${recap.streakDays} ${t("recap.unit.day", { count: recap.streakDays })}`}
+                  sub={t("recap.stat.streak.sub")}
+                />
+              )}
               <StatTile
                 icon="barbell"
                 tint="bakar"
@@ -283,6 +290,7 @@ export default function Rekap() {
               />
             </View>
             <View style={styles.tileRow}>
+              {maternal ? null : (
               <StatTile
                 icon="scale"
                 tint="tidur"
@@ -297,6 +305,7 @@ export default function Rekap() {
                       })
                 }
               />
+              )}
               <StatTile
                 icon="trophy"
                 tint="tidur"
@@ -310,7 +319,7 @@ export default function Rekap() {
               />
             </View>
 
-            {share ? (
+            {share && !maternal ? (
               <ShareStoryButton
                 variant="secondary"
                 label={t("recap.share")}

@@ -1,4 +1,5 @@
 import "@/unistyles";
+import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -501,6 +502,8 @@ export function FoodPortionSheet({
                 : t("portionSheet.slotHint")
             }
           />
+
+          <FoodSafetyNotes names={[row.name]} />
 
           <SheetActions
             favorite={favorite}

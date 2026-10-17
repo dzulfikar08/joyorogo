@@ -33,9 +33,10 @@ export function NeedsSheet({
   onClose: () => void;
   targets: Targets;
 }) {
-  const { t } = useTranslation("settings");
+  const { t } = useTranslation(["settings", "maternal"]);
   const profile = useQuery({ ...orpc.profile.myProfile.queryOptions(), enabled: visible });
   const needs = needsBreakdown(targets);
+  const maternal = targets.maternal ?? null;
   const level = profile.data?.profile?.activityLevel as "low" | "mid" | "high" | undefined;
 
   const steps: Step[] = [
@@ -58,29 +59,38 @@ export function NeedsSheet({
     {
       key: "tdee",
       label: t("plan.needs.tdee.label"),
-      name: t("plan.needs.tdee.name"),
-      body: t("plan.needs.tdee.body"),
+      name: maternal ? t("maternal:needs.baseName") : t("plan.needs.tdee.name"),
+      body: maternal ? t("maternal:needs.baseBody") : t("plan.needs.tdee.body"),
       sign: "=",
       kcal: needs.tdeeKcal,
       strong: true,
     },
-    needs.cutKcal > 0
+    maternal
       ? {
-          key: "cut",
-          label: t("plan.needs.cut.label"),
-          name: t("plan.needs.cut.name"),
-          body: t("plan.needs.cut.body"),
-          sign: "−",
-          kcal: needs.cutKcal,
+          key: "add",
+          label: t("maternal:target.add"),
+          name: t(`maternal:needs.add.${maternal.stage}`),
+          body: t("maternal:needs.addBody"),
+          sign: "+",
+          kcal: needs.addKcal,
         }
-      : {
-          key: "cut",
-          label: t("plan.needs.cutNone.label"),
-          name: t("plan.needs.cutNone.name"),
-          body: t("plan.needs.cutNone.body"),
-          sign: "",
-          kcal: 0,
-        },
+      : needs.cutKcal > 0
+        ? {
+            key: "cut",
+            label: t("plan.needs.cut.label"),
+            name: t("plan.needs.cut.name"),
+            body: t("plan.needs.cut.body"),
+            sign: "−",
+            kcal: needs.cutKcal,
+          }
+        : {
+            key: "cut",
+            label: t("plan.needs.cutNone.label"),
+            name: t("plan.needs.cutNone.name"),
+            body: t("plan.needs.cutNone.body"),
+            sign: "",
+            kcal: 0,
+          },
     {
       key: "target",
       label: t("plan.needs.target.label"),
@@ -113,7 +123,8 @@ export function NeedsSheet({
           <Text style={styles.stepBody}>{step.body}</Text>
         </View>
       ))}
-      {needs.plannedBurnKcal > 0 && !needs.maintenance ? (
+      {maternal ? <Text style={styles.note}>{t("maternal:needs.noDeficit")}</Text> : null}
+      {!maternal && needs.plannedBurnKcal > 0 && !needs.maintenance ? (
         <Text style={styles.note}>
           {t("plan.needs.burnNote", {
             burn: fmtInt(needs.plannedBurnKcal),
@@ -121,7 +132,7 @@ export function NeedsSheet({
           })}
         </Text>
       ) : null}
-      {needs.adaptive ? (
+      {!maternal && needs.adaptive ? (
         <Text style={styles.note}>
           {t("plan.needs.adaptive", { formula: fmtInt(needs.formulaTdeeKcal) })}
         </Text>

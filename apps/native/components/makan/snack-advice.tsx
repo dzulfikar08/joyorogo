@@ -11,6 +11,7 @@ import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { VERDICT_LABELS, adviseSnack, dayImpactLine } from "@joyorogo/api/lib/snack-advice";
 import type { AdviceVerdict, SnackAdvice } from "@joyorogo/api/lib/snack-advice";
 
+import { useMaternal } from "@/components/maternal/use-maternal";
 import { Button, Text } from "@/components/ui";
 import { fmtInt, fmtKcalLabel } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
@@ -435,5 +436,8 @@ export function SnackAdviceSection({
   onUndoHalf?: () => void;
 }) {
   const state = useSnackAdvice({ date, kcal, kind, slot, name });
+  // Hamil / Menyusui: a need to meet, so no "left today / over" verdicts.
+  const { mode } = useMaternal();
+  if (mode !== "none") return null;
   return <SnackAdviceCard state={state} {...card} />;
 }

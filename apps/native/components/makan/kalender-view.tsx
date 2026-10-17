@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useMaternal } from "@/components/maternal/use-maternal";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -43,6 +44,7 @@ export function KalenderView({
     placeholderData: (previous) => previous,
   });
   const targetKcal = totals.data?.targetKcal ?? null;
+  const maternal = useMaternal().mode !== "none";
   const days = totals.data?.days ?? [];
   const records = days.reduce((sum, day) => sum + day.count, 0);
   const canNext = month < today.slice(0, 7);
@@ -102,7 +104,7 @@ export function KalenderView({
               const total = days.find((day) => day.date === cell.key);
               const future = cell.key > today;
               const selected = cell.key === date;
-              const tone = total ? eatTone(total.kcal, targetKcal ?? 0) : "ok";
+              const tone = total && !maternal ? eatTone(total.kcal, targetKcal ?? 0) : "ok";
               return (
                 <View key={cell.key} style={styles.cellBox}>
                   <Pressable
@@ -170,7 +172,7 @@ export function KalenderView({
           <Text style={styles.footerText}>
             {t("calendar.daysLoggedMonth", { count: days.length, n: fmtInt(days.length) })}
           </Text>
-          {targetKcal !== null ? (
+          {targetKcal !== null && !maternal ? (
             <Text style={styles.budget}>
               {t("calendar.budget", { kcal: fmtKcalLabel(targetKcal) })}
             </Text>

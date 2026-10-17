@@ -46,6 +46,8 @@ import { Mascot } from "@/components/mascot";
 import { WeighInSheet } from "@/components/weigh-in-sheet";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { WaistSection } from "@/components/waist-section";
+import { WeightGainCard } from "@/components/maternal/weight-gain-chart";
+import { useMaternal } from "@/components/maternal/use-maternal";
 import { Disclosure } from "@/components/disclosure";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { fmtDate, fmtDecimal, fmtNumber } from "@joyorogo/i18n";
@@ -577,6 +579,7 @@ export default function Berat() {
     }),
   );
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
+  const maternal = useMaternal().mode !== "none";
   const trend = dayQuery.data?.trend ?? null;
   // Chart line: client-side 7-day EMA over the raw entries, so every range —
   // including "Semua" — gets a full trend (day.summary only ships 30 days).
@@ -625,7 +628,7 @@ export default function Berat() {
   const rangeShort =
     range === "all" ? t("chart.sinceStart") : t("chart.rangeDays", { count: Number(range) });
   const domainStart = cutoff ?? rangeEntries[0]?.date ?? today;
-  const targetKcal = dayQuery.data?.targets?.eatKcal ?? null;
+  const targetKcal = maternal ? null : (dayQuery.data?.targets?.eatKcal ?? null);
   const kcalRange = kcalQuery.data ?? [];
   const { bars: kcalBarList, weekly: kcalWeekly } = kcalBars(kcalRange, domainStart, today);
   const kcalStats = kcalSummary(kcalRange, domainStart, today);
@@ -676,6 +679,9 @@ export default function Berat() {
           }
         />
 
+        {/* Hamil: kenaikan berat per minggu dibanding rentang IOM */}
+        {maternal ? <WeightGainCard onWeighIn={() => setSheetOpen(true)} /> : null}
+
         {hasData ? (
           <>
             {/* Big trend number + rate + start/now/change/remaining */}
@@ -691,7 +697,7 @@ export default function Berat() {
                   </View>
                 </View>
                 <View style={styles.badgeCol}>
-                  {bmi !== null && bmiCategory !== null ? (
+                  {!maternal && bmi !== null && bmiCategory !== null ? (
                     <View
                       style={[
                         styles.pill,
@@ -722,7 +728,7 @@ export default function Berat() {
                   </View>
                 </View>
               </View>
-              {trend?.weeklyRateKg != null ? (
+              {maternal ? null : trend?.weeklyRateKg != null ? (
                 <View style={styles.rateBadge}>
                   <Text style={styles.rateText}>{weeklyRateLabel(trend.weeklyRateKg)}</Text>
                 </View>
@@ -760,14 +766,16 @@ export default function Berat() {
                     {summary.deltaKg !== null ? signed(summary.deltaKg) : "-"}
                   </Num>
                 </View>
-                <View style={styles.miniCell}>
-                  <Text style={styles.chartStatLabel} numberOfLines={1}>
-                    {t("summary.remaining")}
-                  </Text>
-                  <Num style={styles.chartStatValue} adjustsFontSizeToFit numberOfLines={1}>
-                    {summary.remainingKg !== null ? fmtKg(summary.remainingKg) : "-"}
-                  </Num>
-                </View>
+                {maternal ? null : (
+                  <View style={styles.miniCell}>
+                    <Text style={styles.chartStatLabel} numberOfLines={1}>
+                      {t("summary.remaining")}
+                    </Text>
+                    <Num style={styles.chartStatValue} adjustsFontSizeToFit numberOfLines={1}>
+                      {summary.remainingKg !== null ? fmtKg(summary.remainingKg) : "-"}
+                    </Num>
+                  </View>
+                )}
               </View>
               {!dayQuery.isPending && dayQuery.data?.weightLoggedToday ? (
                 <Text style={styles.note}>{t("hero.loggedToday")}</Text>
@@ -803,6 +811,7 @@ export default function Berat() {
                 </View>
               ) : (
                 <>
+                  {maternal ? null : (
                   <View style={styles.chartStats}>
                     <View style={styles.chartStatCell}>
                       <Text style={styles.chartStatLabel} numberOfLines={1}>
@@ -868,6 +877,7 @@ export default function Berat() {
                       </Text>
                     </View>
                   </View>
+                  )}
 
                   {rangeEntries.length === 1 ? (
                     <Text style={styles.chartHint}>{t("chart.tomorrow")}</Text>
@@ -955,7 +965,7 @@ export default function Berat() {
                 <Text style={styles.chartCaption}>
                   {t("detail.trustTrend")} {t("detail.legend")}
                   {kcalWeekly ? ` ${t("detail.weekly")}` : ""}
-                  {summary.deltaKg !== null
+                  {!maternal && summary.deltaKg !== null
                     ? ` ${t(summary.deltaKg < 0 ? "detail.totalDown" : "detail.totalUp", {
                         kg: fmtKg(Math.abs(summary.deltaKg)),
                       })}`
@@ -977,11 +987,13 @@ export default function Berat() {
         {entries.length > 0 ? (
           <Card style={styles.historyCard}>
             <Text style={styles.historyTitle}>{t("history.title")}</Text>
-            <Button
-              variant="secondary"
-              label={t("page.share")}
-              onPress={() => setShareOpen(true)}
-            />
+            {maternal ? null : (
+              <Button
+                variant="secondary"
+                label={t("page.share")}
+                onPress={() => setShareOpen(true)}
+              />
+            )}
             <ListGroup style={styles.historyGroup}>
               {(showAllHistory ? newestEntries : newestEntries.slice(0, 10)).map((entry, index) => {
                 const newer = index > 0 ? newestEntries[index - 1] : null;

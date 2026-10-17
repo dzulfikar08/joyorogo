@@ -19,6 +19,7 @@ import {
   idealWeightRange,
   type Targets,
 } from "@joyorogo/api/lib/engine";
+import type { MaternalInfo } from "@joyorogo/api/lib/maternal";
 
 import {
   BootLoader,
@@ -37,13 +38,23 @@ import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
 import { InviteFriendsStep } from "@/components/onboarding/invite-step";
 import { Disclosure } from "@/components/disclosure";
+import { MaternalDisclaimer } from "@/components/maternal/disclaimer";
+import { MaternalFlagNotes } from "@/components/maternal/flag-notes";
+import {
+  draftToInput,
+  emptyDraft,
+  MaternalForm,
+  type MaternalDraft,
+} from "@/components/maternal/maternal-form";
+import { useStageText } from "@/components/maternal/use-maternal";
 import { errorMessage, fmtInt, fmtKg, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
 type Gender = "male" | "female";
 type ActivityLevel = "low" | "mid" | "high";
 
-const TOTAL_STEPS = 6;
+type StepId = "birth" | "gender" | "maternalEntry" | "maternalForm" | "height" | "weight" | "goal" | "activity";
+type MaternalChoice = "none" | "pregnant" | "breastfeeding";
 
 function defaultTargetDate(): string {
   const day = new Date(`${jakartaToday()}T00:00:00Z`);
@@ -137,9 +148,138 @@ function ChoiceRow({
   );
 }
 
+/** Result of onboarding: deficit plan summary, or the Hamil / Menyusui numbers (no deficit). */
+function ResultView({
+  targets,
+  onStart,
+  onInvite,
+}: {
+  targets: Targets;
+  onStart: () => void;
+  onInvite: () => void;
+}) {
+  const { t } = useTranslation(["onboarding", "common", "settings", "maternal"]);
+  return (
+    <>
+      <Mascot pose="cheer" size="sm" style={styles.resultMascot} />
+      <Text style={styles.stepTitle}>{t("result.title")}</Text>
+      {targets.maternal ? (
+        <MaternalResult targets={targets} info={targets.maternal} />
+      ) : (
+        <>
+          <View style={styles.planTiles}>
+            <StatTile
+              icon="restaurant"
+              tint="makan"
+              label={t("settings:plan.numbers.eat")}
+              value={fmtInt(targets.eatKcal)}
+              sub={t("settings:plan.numbers.perDay")}
+            />
+            <StatTile
+              icon="flame"
+              tint="bakar"
+              label={t("settings:plan.numbers.burn")}
+              value={fmtInt(targets.burnKcal)}
+              sub={t("settings:plan.numbers.perDay")}
+            />
+            <StatTile
+              icon="moon"
+              tint="tidur"
+              label={t("settings:plan.numbers.sleep")}
+              value={fmtKg(targets.sleepHours)}
+              sub={t("settings:plan.numbers.perNight")}
+            />
+          </View>
+          {targets.notes.includes("BELOW_HEALTHY_RANGE") ? (
+            <Text style={styles.warning}>
+              {t("result.belowRange", {
+                min: fmtKg(targets.idealMinKg),
+                max: fmtKg(targets.idealMaxKg),
+              })}
+            </Text>
+          ) : null}
+          {targets.notes.includes("PLAN_CLAMPED") ? (
+            <Text style={styles.warning}>{t("settings:plan.noteShort.PLAN_CLAMPED")}</Text>
+          ) : null}
+          <Disclosure title={t("result.aboutTitle")}>
+            <Text style={styles.hint}>{t("result.meaning.eat")}</Text>
+            <Text style={styles.hint}>{t("result.meaning.burn")}</Text>
+            <Text style={styles.hint}>{t("result.meaning.sleep")}</Text>
+            {targets.notes.includes("MAINTENANCE") ? (
+              <Text style={styles.hint}>{t("settings:plan.noteShort.MAINTENANCE")}</Text>
+            ) : null}
+          </Disclosure>
+        </>
+      )}
+      <Button label={t("action.openHome")} onPress={onStart} />
+      <Button
+        variant="secondary"
+        icon="people-outline"
+        label={t("action.inviteFriends")}
+        onPress={onInvite}
+      />
+    </>
+  );
+}
+
+function MaternalResult({ targets, info }: { targets: Targets; info: MaternalInfo }) {
+  const { t } = useTranslation(["settings", "maternal"]);
+  const stage = useStageText(info);
+  const protein = info.nutrients.find((n) => n.key === "protein");
+  return (
+    <>
+      <Text style={styles.stepCaption}>
+        {stage.detail ? `${stage.line} · ${stage.detail}` : stage.line}
+      </Text>
+      <View style={styles.planTiles}>
+        <StatTile
+          icon="restaurant"
+          tint="makan"
+          label={t("maternal:target.total")}
+          value={fmtInt(targets.eatKcal)}
+          sub={t("settings:plan.numbers.perDay")}
+        />
+        {protein ? (
+          <StatTile
+            macro="protein"
+            tint="makan"
+            label={t("maternal:nutrients.protein.name")}
+            value={`${fmtInt(protein.target)} ${t("maternal:nutrients.unit.g")}`}
+            sub={t("settings:plan.numbers.perDay")}
+          />
+        ) : null}
+        <StatTile
+          icon="moon"
+          tint="tidur"
+          label={t("settings:plan.numbers.sleep")}
+          value={fmtKg(targets.sleepHours)}
+          sub={t("settings:plan.numbers.perNight")}
+        />
+      </View>
+      <Card>
+        <View style={styles.maternalLine}>
+          <Text style={styles.hint}>{t("maternal:target.base")}</Text>
+          <Text style={styles.maternalValue}>
+            {fmtInt(info.baseKcal)} {t("maternal:target.kcal")}
+          </Text>
+        </View>
+        <View style={styles.maternalLine}>
+          <Text style={styles.hint}>{t("maternal:target.add")}</Text>
+          <Text style={styles.maternalValue}>
+            + {fmtInt(info.addKcal)} {t("maternal:target.kcal")}
+          </Text>
+        </View>
+        <Text style={styles.hint}>{t("maternal:target.noDeficit")}</Text>
+      </Card>
+      <MaternalFlagNotes info={info} />
+      <MaternalDisclaimer />
+    </>
+  );
+}
+
 export default function Onboarding() {
   const gate = useSessionGate();
-  const { t } = useTranslation(["onboarding", "common", "settings"]);
+  const { t } = useTranslation(["onboarding", "common", "settings", "maternal"]);
   const { theme } = useUnistyles();
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   const queryClient = useQueryClient();
@@ -157,6 +297,8 @@ export default function Onboarding() {
   const [targetDate, setTargetDate] = useState(defaultTargetDate);
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>("mid");
   const [formError, setFormError] = useState<string | null>(null);
+  const [maternalChoice, setMaternalChoice] = useState<MaternalChoice>("none");
+  const [draft, setDraft] = useState<MaternalDraft>(() => emptyDraft("pregnant"));
 
   if (gate === "loading" || profileQuery.isPending) {
     return <BootLoader />;
@@ -182,6 +324,33 @@ export default function Onboarding() {
   const weight = parseNum(weightKg);
   const ideal = height ? idealWeightRange(height) : null;
   const target = parseNum(targetWeightKg);
+  // Female profiles are asked about Hamil / Menyusui; that path skips the weight-loss goal.
+  const isMaternal = gender === "female" && maternalChoice !== "none";
+  const steps: StepId[] = [
+    "birth",
+    "gender",
+    ...(gender === "female" ? (["maternalEntry"] as const) : []),
+    ...(isMaternal ? (["maternalForm"] as const) : []),
+    "height",
+    "weight",
+    ...(isMaternal ? [] : (["goal"] as const)),
+    "activity",
+  ];
+  const stepId = steps[step] ?? "activity";
+
+  const chooseMaternal = (choice: MaternalChoice) => {
+    setMaternalChoice(choice);
+    if (choice !== "none") setDraft((d) => ({ ...d, mode: choice }));
+  };
+
+  const submitMaternal = () => {
+    const result = draftToInput(draft);
+    if (!result.ok) {
+      setFormError(t(`maternal:${result.error}`));
+      return;
+    }
+    nextStep();
+  };
 
   const nextStep = () => {
     setFormError(null);
@@ -231,7 +400,13 @@ export default function Onboarding() {
 
   const submitAll = async () => {
     const year = parseNum(birthYear);
-    if (year === null || height === null || weight === null || target === null) {
+    const maternalResult = isMaternal ? draftToInput(draft) : null;
+    if (
+      year === null ||
+      height === null ||
+      weight === null ||
+      (maternalResult ? !maternalResult.ok : target === null)
+    ) {
       setFormError(t("error.incomplete"));
       return;
     }
@@ -244,9 +419,10 @@ export default function Onboarding() {
         gender,
         heightCm: height,
         weightKg: weight,
-        targetWeightKg: target,
-        targetDate,
         activityLevel,
+        ...(maternalResult?.ok
+          ? { maternal: maternalResult.input }
+          : { targetWeightKg: target ?? undefined, targetDate }),
       })) as unknown as { targets: Targets };
       setSavedTargets(result.targets);
     } catch (e) {
@@ -284,7 +460,7 @@ export default function Onboarding() {
     <Screen>
       {/* Progress bar */}
       <View style={styles.progressRow}>
-        {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+        {steps.map((id, i) => (
           <ProgressSegment key={i} filled={i <= step && !targets} />
         ))}
       </View>
@@ -301,59 +477,7 @@ export default function Onboarding() {
             onOpenGroup={(groupId) => openAfterOnboarding(() => router.replace(`/grup/${groupId}`))}
           />
         ) : targets ? (
-          <>
-            <Mascot pose="cheer" size="sm" style={styles.resultMascot} />
-            <Text style={styles.stepTitle}>{t("result.title")}</Text>
-            <View style={styles.planTiles}>
-              <StatTile
-                icon="restaurant"
-                tint="makan"
-                label={t("settings:plan.numbers.eat")}
-                value={fmtInt(targets.eatKcal)}
-                sub={t("settings:plan.numbers.perDay")}
-              />
-              <StatTile
-                icon="flame"
-                tint="bakar"
-                label={t("settings:plan.numbers.burn")}
-                value={fmtInt(targets.burnKcal)}
-                sub={t("settings:plan.numbers.perDay")}
-              />
-              <StatTile
-                icon="moon"
-                tint="tidur"
-                label={t("settings:plan.numbers.sleep")}
-                value={fmtKg(targets.sleepHours)}
-                sub={t("settings:plan.numbers.perNight")}
-              />
-            </View>
-            {targets.notes.includes("BELOW_HEALTHY_RANGE") ? (
-              <Text style={styles.warning}>
-                {t("result.belowRange", {
-                  min: fmtKg(targets.idealMinKg),
-                  max: fmtKg(targets.idealMaxKg),
-                })}
-              </Text>
-            ) : null}
-            {targets.notes.includes("PLAN_CLAMPED") ? (
-              <Text style={styles.warning}>{t("settings:plan.noteShort.PLAN_CLAMPED")}</Text>
-            ) : null}
-            <Disclosure title={t("result.aboutTitle")}>
-              <Text style={styles.hint}>{t("result.meaning.eat")}</Text>
-              <Text style={styles.hint}>{t("result.meaning.burn")}</Text>
-              <Text style={styles.hint}>{t("result.meaning.sleep")}</Text>
-              {targets.notes.includes("MAINTENANCE") ? (
-                <Text style={styles.hint}>{t("settings:plan.noteShort.MAINTENANCE")}</Text>
-              ) : null}
-            </Disclosure>
-            <Button label={t("action.openHome")} onPress={startApp} />
-            <Button
-              variant="secondary"
-              icon="people-outline"
-              label={t("action.inviteFriends")}
-              onPress={() => setInviting(true)}
-            />
-          </>
+          <ResultView targets={targets} onStart={startApp} onInvite={() => setInviting(true)} />
         ) : (
           <>
             {step > 0 ? (
@@ -370,7 +494,7 @@ export default function Onboarding() {
               </PressableScale>
             ) : null}
 
-            {step === 0 ? (
+            {stepId === "birth" ? (
               <>
                 <Text style={styles.stepTitle}>{t("question.birth.title")}</Text>
                 <Text style={styles.stepCaption}>{t("question.birth.hint")}</Text>
@@ -390,7 +514,7 @@ export default function Onboarding() {
               </>
             ) : null}
 
-            {step === 1 ? (
+            {stepId === "gender" ? (
               <>
                 <Text style={styles.stepTitle}>{t("question.gender.title")}</Text>
                 <Text style={styles.stepCaption}>{t("question.gender.hint")}</Text>
@@ -411,7 +535,41 @@ export default function Onboarding() {
               </>
             ) : null}
 
-            {step === 2 ? (
+            {stepId === "maternalEntry" ? (
+              <>
+                <Text style={styles.stepTitle}>{t("maternal:entry.question")}</Text>
+                <Text style={styles.stepCaption}>{t("maternal:entry.hint")}</Text>
+                <View style={styles.choiceList}>
+                  <ChoiceRow
+                    label={t("maternal:entry.pregnant")}
+                    description={t("maternal:entry.pregnantHint")}
+                    selected={maternalChoice === "pregnant"}
+                    onPress={() => chooseMaternal("pregnant")}
+                  />
+                  <ChoiceRow
+                    label={t("maternal:entry.breastfeeding")}
+                    description={t("maternal:entry.breastfeedingHint")}
+                    selected={maternalChoice === "breastfeeding"}
+                    onPress={() => chooseMaternal("breastfeeding")}
+                  />
+                  <ChoiceRow
+                    label={t("maternal:entry.neither")}
+                    selected={maternalChoice === "none"}
+                    onPress={() => chooseMaternal("none")}
+                  />
+                </View>
+                <Button label={t("action.next")} onPress={nextStep} />
+              </>
+            ) : null}
+
+            {stepId === "maternalForm" ? (
+              <>
+                <MaternalForm draft={draft} onChange={setDraft} error={formError} />
+                <Button label={t("maternal:form.continue")} onPress={submitMaternal} />
+              </>
+            ) : null}
+
+            {stepId === "height" ? (
               <>
                 <Text style={styles.stepTitle}>{t("question.height.title")}</Text>
                 <Card>
@@ -429,7 +587,7 @@ export default function Onboarding() {
               </>
             ) : null}
 
-            {step === 3 ? (
+            {stepId === "weight" ? (
               <>
                 <Text style={styles.stepTitle}>{t("question.weight.title")}</Text>
                 <Text style={styles.stepCaption}>{t("question.weight.hint")}</Text>
@@ -451,7 +609,7 @@ export default function Onboarding() {
               </>
             ) : null}
 
-            {step === 4 ? (
+            {stepId === "goal" ? (
               <>
                 <Text style={styles.stepTitle}>{t("question.goal.title")}</Text>
                 <Card>
@@ -492,7 +650,7 @@ export default function Onboarding() {
               </>
             ) : null}
 
-            {step === 5 ? (
+            {stepId === "activity" ? (
               <>
                 <Text style={styles.stepTitle}>{t("question.activity.title")}</Text>
                 <Text style={styles.stepCaption}>{t("question.activity.hint")}</Text>
@@ -602,6 +760,17 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
     lineHeight: 20,
+  },
+  maternalLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.md,
+  },
+  maternalValue: {
+    fontSize: theme.fontSize.base,
+    fontWeight: "700",
+    color: theme.colors.foreground,
   },
   warning: {
     fontSize: theme.fontSize.sm,

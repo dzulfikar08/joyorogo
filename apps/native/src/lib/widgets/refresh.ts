@@ -69,6 +69,7 @@ export async function refreshSnapshotFromApi(
             proteinEatenG: summary.protein?.eatenG ?? null,
             proteinTargetG: summary.protein?.targetG ?? null,
             streakDays: summary.streakDays,
+            maternal: summary.targets.maternal != null,
           }
         : null;
     // Absolute window times only: the launcher redraws every 30 minutes, so

@@ -46,6 +46,7 @@ export function Calendar({
   onChange,
   minDate,
   maxDate,
+  initialMonth,
   prevLabel,
   nextLabel,
 }: {
@@ -53,13 +54,13 @@ export function Calendar({
   onChange: (iso: string) => void;
   minDate: string;
   maxDate: string;
+  /** Day whose month opens first while nothing is selected; defaults to minDate. */
+  initialMonth?: string;
   prevLabel: string;
   nextLabel: string;
 }) {
   const { theme } = useUnistyles();
-  const [month, setMonth] = useState(() => monthStart(value ?? minDate));
-
-  // Follow the selection when it jumps to another month (quick chips).
+  const [month, setMonth] = useState(() => monthStart(value ?? initialMonth ?? minDate));
   useEffect(() => {
     if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) setMonth(monthStart(value));
   }, [value]);

@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
@@ -530,6 +531,8 @@ export function Cerita({
             {fmtInt(total)} <Text style={styles.totalUnit}>kcal</Text>
           </Text>
         </View>
+
+        <FoodSafetyNotes names={items.map((item) => item.name)} addToDay />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <Button

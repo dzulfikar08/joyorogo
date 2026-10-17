@@ -175,19 +175,33 @@ function ProgressPanel({
   c: WidgetPalette;
   contentWidth: number;
 }) {
-  const tone = eatTone(day.eatenKcal, day.eatKcal);
+  const maternal = day.maternal === true;
+  // Hamil / Menyusui: neutral ring, the number is what was eaten (no left/over).
+  const tone = maternal ? "ok" : eatTone(day.eatenKcal, day.eatKcal);
   const accent = tone === "over" ? c.over : tone === "near" ? c.near : c.ok;
-  const over = day.eatenKcal > day.eatKcal;
+  const over = !maternal && day.eatenKcal > day.eatKcal;
   return (
     <FlexWidget style={{ flexDirection: "column", width: "match_parent" }}>
       <Caption text={i18n.t("misc:widget.progress")} c={c} />
       <FlexWidget style={{ flexDirection: "row", alignItems: "flex-end", marginTop: 6 }}>
         <TextWidget
-          text={over ? `+${fmtInt(day.eatenKcal - day.eatKcal)}` : fmtInt(day.eatKcal - day.eatenKcal)}
+          text={
+            maternal
+              ? fmtInt(day.eatenKcal)
+              : over
+                ? `+${fmtInt(day.eatenKcal - day.eatKcal)}`
+                : fmtInt(day.eatKcal - day.eatenKcal)
+          }
           style={{ fontSize: 30, fontFamily: FONT_HEAVY, color: accent, lineHeight: 34 }}
         />
         <TextWidget
-          text={over ? i18n.t("misc:widget.over") : i18n.t("misc:widget.left")}
+          text={
+            maternal
+              ? i18n.t("maternal:target.eaten")
+              : over
+                ? i18n.t("misc:widget.over")
+                : i18n.t("misc:widget.left")
+          }
           style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginLeft: 6, marginBottom: 5 }}
         />
       </FlexWidget>

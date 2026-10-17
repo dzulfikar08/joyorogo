@@ -16,6 +16,8 @@ export type WidgetDaySnapshot = {
   proteinEatenG: number | null;
   proteinTargetG: number | null;
   streakDays: number;
+  /** Hamil / Menyusui: no "left/over" budget wording, the day is a need to meet. Absent in old snapshots. */
+  maternal?: boolean;
 };
 
 /**

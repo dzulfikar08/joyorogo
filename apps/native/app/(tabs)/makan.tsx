@@ -477,6 +477,8 @@ export default function Makan() {
   const totals = listQuery.data?.totals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
   const visibleItems = items.filter((item) => matchesKind(item.name, kind));
   const targets = summaryQuery.data?.targets ?? null;
+  // Hamil / Menyusui: a need to meet, so never an "over" tone or wording.
+  const maternal = targets?.maternal != null;
   const eatenKcal = summaryQuery.data?.eatenKcal ?? totals.kcal;
   // Carb/fat/fiber floors from the engine; same reference as the web card.
   const macroBudgets = targets ? macroTargets(targets.eatKcal, 70) : null;
@@ -719,7 +721,7 @@ export default function Makan() {
                   ok: theme.colors.makan,
                   near: theme.colors.eatNear,
                   over: theme.colors.destructive,
-                }[eatTone(eatenKcal, targets?.eatKcal ?? 0)]
+                }[maternal ? "ok" : eatTone(eatenKcal, targets?.eatKcal ?? 0)]
               }
               track={theme.colors.makanSoft}
             >
@@ -735,10 +737,10 @@ export default function Makan() {
                   <Text
                     style={[
                       styles.ringTarget,
-                      eatenKcal > targets.eatKcal && { color: theme.colors.bakarText },
+                      !maternal && eatenKcal > targets.eatKcal && { color: theme.colors.bakarText },
                     ]}
                   >
-                    {eatenKcal > targets.eatKcal
+                    {!maternal && eatenKcal > targets.eatKcal
                       ? t("diary.summary.over", { kcal: fmtInt(eatenKcal - targets.eatKcal) })
                       : t("diary.summary.ofTarget", { kcal: fmtInt(targets.eatKcal) })}
                   </Text>

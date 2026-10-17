@@ -65,6 +65,7 @@ import type { PlateValues } from "@/components/plate/plate-fields";
 import { MacroLine } from "@/components/macro-line";
 import { MetaLine } from "@/components/meta-line";
 import { ContextualTip } from "@/components/tips/contextual-tip";
+import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
 import { CorrectBox } from "@/components/scan/correct-box";
 import type { CorrectInput, CorrectOutcome } from "@/components/scan/correct-box";
 import { ShareStoryButton } from "@/components/story/share-story-button";
@@ -1588,6 +1589,12 @@ export default function MakanAi() {
 
           {/* Saran tips kalau ada minuman manis atau saus/gorengan */}
           <ContextualTip names={items.map((item) => item.name)} />
+
+          {/* Hamil / Menyusui: catatan keamanan makanan, tidak pernah memblokir simpan */}
+          <FoodSafetyNotes
+            names={items.filter((_, i) => drafts[i]?.include ?? true).map((item) => item.name)}
+            addToDay
+          />
 
           {/* Koreksi lewat ketikan atau suara; tersembunyi saat hitung ulang / simpan berjalan */}
           {!retry.isPending && !addScan.isPending ? (

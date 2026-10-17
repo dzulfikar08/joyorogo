@@ -32,6 +32,7 @@ import {
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtInt, fmtKcalLabel, parseNum } from "@/utils/format";
+import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
 import { KindPicker, SnackAdviceSection } from "@/components/makan/snack-advice";
 import type { PickableKind } from "@/components/makan/snack-advice";
 import { orpc, queryClient } from "@/utils/orpc";
@@ -254,6 +255,7 @@ export default function MakanBarcode() {
               halfApplied={halfUndo !== null}
               onUndoHalf={undoHalf}
             />
+            <FoodSafetyNotes names={manualName.trim() ? [manualName.trim()] : []} addToDay />
             {mealPicker}
             {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
             {addFood.isError ? (
@@ -470,6 +472,7 @@ export default function MakanBarcode() {
             halfApplied={halfUndo !== null}
             onUndoHalf={undoHalf}
           />
+          <FoodSafetyNotes names={[data.product.name]} addToDay />
           <Button variant="ghost" label={t("fallback.scanAnother")} onPress={reset} />
           <Disclosure plain title={t("result.notes")}>
             <View style={styles.block}>
