@@ -96,5 +96,78 @@
       "title": "Pasang JoyoRogo di layar utama",
       "body": "Terbuka layar penuh, tanpa bar Safari."
     }
+  },
+  "recap": {
+    "title": "Rekap mingguan",
+    "subtitleOngoing": "{{range}} · masih berjalan",
+    "prevWeek": "Minggu sebelumnya",
+    "nextWeek": "Minggu berikutnya",
+    "loading": "Memuat rekap mingguan",
+    "empty": {
+      "titleNone": "Belum ada catatan di minggu ini",
+      "titleNoFood": "Belum ada makanan yang dicatat",
+      "bodyPast": "Rekap dihitung dari hari yang sudah lewat. Cek lagi besok.",
+      "bodyLog": "Catat makananmu beberapa hari, nanti rekapnya muncul di sini."
+    },
+    "avg": {
+      "label": "Rata-rata per hari",
+      "aria": "Rata-rata {{avg}} dari target {{target}} kcal",
+      "note_other": "Targetmu {{target}} kcal. Dihitung dari {{count}} hari yang kamu catat."
+    },
+    "daily": "Harian",
+    "unit": {
+      "day_other": "hari"
+    },
+    "stat": {
+      "onTarget": {
+        "label": "Sesuai target",
+        "sub_other": "dari {{count}} hari tercatat"
+      },
+      "protein": {
+        "sub": "rata-rata, target {{target}} g",
+        "none": "belum ada data protein"
+      },
+      "streak": {
+        "label": "Beruntun",
+        "sub": "mencatat tanpa putus"
+      },
+      "exercise": {
+        "sub_other": "{{minutes}} menit, {{count}} sesi",
+        "none": "belum ada sesi"
+      },
+      "weight": {
+        "label": "Berat (tren)",
+        "none": "perlu 2 kali timbang",
+        "range": "{{from}} ke {{to}} kg"
+      },
+      "bestDay": {
+        "label": "Hari terbaik",
+        "sub": "{{kcal}} kcal, paling dekat target",
+        "none": "belum ada hari sesuai target"
+      }
+    },
+    "share": "Bagikan rekap ke Story",
+    "note": {
+      "title": "Cara menghitung",
+      "body": "Hitungan dari catatanmu sendiri, bukan penilaian medis. Sesuai target berarti asupan sehari tidak lebih dari 5% di atas targetmu dan tidak kurang dari separuhnya. Berat memakai tren (rata-rata bergerak), jadi tidak ikut naik turun timbangan harian.",
+      "ongoing": "Minggu ini dihitung sampai kemarin; hari ini belum ikut dinilai."
+    },
+    "chart": {
+      "aria": "Asupan harian dibanding target {{target}} kcal",
+      "day": "{{day}}: {{kcal}} kcal, {{status}}",
+      "status": {
+        "on_target": "sesuai target",
+        "over": "di atas target",
+        "under": "jauh di bawah target, mungkin belum lengkap dicatat",
+        "empty": "tidak ada catatan makan",
+        "pending": "belum dinilai"
+      },
+      "legend": {
+        "onTarget": "Sesuai target",
+        "over": "Di atas",
+        "under": "Kurang dari separuh target",
+        "target": "Target"
+      }
+    }
   }
 }

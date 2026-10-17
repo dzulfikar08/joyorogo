@@ -198,20 +198,24 @@ export function buildWeekRecap(input: WeekRecapInput): WeekRecap {
   };
 }
 
-const WEEKDAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+// Hand-written like lib/format.ts: Hermes Intl is unreliable for day names.
+const WEEKDAYS: Record<Locale, string[]> = {
+  id: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
+  en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+};
 
 /** "12–18 Okt" / "Oct 12–18", or "29 Sep–5 Okt" / "Sep 29–Oct 5" across a month boundary. */
 export function weekRangeLabel(weekStart: string, locale: Locale = getActiveLocale()): string {
   return shortDateRange(weekStart, shiftDate(weekStart, 6), locale);
 }
 
-export function weekdayName(date: string): string {
-  return WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()]!;
+export function weekdayName(date: string, locale: Locale = getActiveLocale()): string {
+  return WEEKDAYS[locale][new Date(`${date}T00:00:00Z`).getUTCDay()]!;
 }
 
-/** Short weekday for chart axes: "Sen", "Sel", ... */
-export function weekdayShort(date: string): string {
-  return weekdayName(date).slice(0, 3);
+/** Short weekday for chart axes: "Sen", "Sel", ... / "Mon", "Tue", ... */
+export function weekdayShort(date: string, locale: Locale = getActiveLocale()): string {
+  return weekdayName(date, locale).slice(0, 3);
 }
 
 /** Fields of the story card's "recap" kind, shared by the web and native cards. */

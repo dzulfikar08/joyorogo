@@ -1,4 +1,5 @@
 import { cn } from "@joyorogo/ui/lib/utils";
+import { useTranslation } from "react-i18next";
 
 import type { DayStatus, RecapDay } from "@joyorogo/api/lib/recap";
 import { weekdayName, weekdayShort } from "@joyorogo/api/lib/recap";
@@ -13,23 +14,22 @@ const BAR_TONE: Record<DayStatus, string> = {
   pending: "bg-muted",
 };
 
-const STATUS_LABEL: Record<DayStatus, string> = {
-  on_target: "sesuai target",
-  over: "di atas target",
-  under: "jauh di bawah target, mungkin belum lengkap dicatat",
-  empty: "tidak ada catatan makan",
-  pending: "belum dinilai",
-};
-
 /** Seven day bars with the kcal target as a dashed line. */
 export function RecapChart({ days, targetKcal }: { days: RecapDay[]; targetKcal: number }) {
+  const { t } = useTranslation("misc");
+  const dayLabel = (day: RecapDay) =>
+    t("recap.chart.day", {
+      day: weekdayName(day.date),
+      kcal: fmtInt(day.eatenKcal),
+      status: t(`recap.chart.status.${day.status}`),
+    });
   const top = Math.max(targetKcal * 1.25, ...days.map((day) => day.eatenKcal));
   const targetPct = (targetKcal / top) * 100;
   return (
     <div>
       <div
         role="img"
-        aria-label={`Asupan harian dibanding target ${fmtInt(targetKcal)} kcal`}
+        aria-label={t("recap.chart.aria", { target: fmtInt(targetKcal) })}
         className="relative flex h-32 items-end gap-2"
       >
         <div
@@ -40,7 +40,7 @@ export function RecapChart({ days, targetKcal }: { days: RecapDay[]; targetKcal:
         {days.map((day) => (
           <div key={day.date} className="flex h-full flex-1 items-end">
             <div
-              title={`${weekdayName(day.date)}: ${fmtInt(day.eatenKcal)} kcal, ${STATUS_LABEL[day.status]}`}
+              title={dayLabel(day)}
               className={cn("w-full rounded-t-lg", BAR_TONE[day.status])}
               style={{ height: `${Math.max(4, (day.eatenKcal / top) * 100)}%` }}
             />
@@ -59,25 +59,23 @@ export function RecapChart({ days, targetKcal }: { days: RecapDay[]; targetKcal:
       </div>
       <ul className="sr-only">
         {days.map((day) => (
-          <li key={day.date}>
-            {weekdayName(day.date)}: {fmtInt(day.eatenKcal)} kcal, {STATUS_LABEL[day.status]}
-          </li>
+          <li key={day.date}>{dayLabel(day)}</li>
         ))}
       </ul>
       <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden className="size-2.5 rounded-full bg-primary" /> Sesuai target
+          <span aria-hidden className="size-2.5 rounded-full bg-primary" /> {t("recap.chart.legend.onTarget")}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden className="size-2.5 rounded-full bg-bakar" /> Di atas
+          <span aria-hidden className="size-2.5 rounded-full bg-bakar" /> {t("recap.chart.legend.over")}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden className="size-2.5 rounded-full bg-muted-foreground/40" /> Kurang dari
-          separuh target
+          <span aria-hidden className="size-2.5 rounded-full bg-muted-foreground/40" />{" "}
+          {t("recap.chart.legend.under")}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden className="h-0 w-4 border-t border-dashed border-foreground/40" />{" "}
-          Target
+          {t("recap.chart.legend.target")}
         </span>
       </p>
     </div>

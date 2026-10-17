@@ -96,5 +96,82 @@
       "title": "Add JoyoRogo to your Home Screen",
       "body": "Opens full screen, no Safari bar."
     }
+  },
+  "recap": {
+    "title": "Weekly recap",
+    "subtitleOngoing": "{{range}} · in progress",
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "loading": "Loading weekly recap",
+    "empty": {
+      "titleNone": "Nothing logged this week",
+      "titleNoFood": "No food logged yet",
+      "bodyPast": "The recap covers days that have already passed. Check back tomorrow.",
+      "bodyLog": "Log your food for a few days and your recap will show up here."
+    },
+    "avg": {
+      "label": "Daily average",
+      "aria": "Average {{avg}} of a {{target}} kcal target",
+      "note_one": "Your target is {{target}} kcal. Based on {{count}} day you logged.",
+      "note_other": "Your target is {{target}} kcal. Based on {{count}} days you logged."
+    },
+    "daily": "Daily",
+    "unit": {
+      "day_one": "day",
+      "day_other": "days"
+    },
+    "stat": {
+      "onTarget": {
+        "label": "On target",
+        "sub_one": "of {{count}} day logged",
+        "sub_other": "of {{count}} days logged"
+      },
+      "protein": {
+        "sub": "avg, target {{target}} g",
+        "none": "no protein data yet"
+      },
+      "streak": {
+        "label": "Streak",
+        "sub": "days logged in a row"
+      },
+      "exercise": {
+        "sub_one": "{{minutes}} min, {{count}} session",
+        "sub_other": "{{minutes}} min, {{count}} sessions",
+        "none": "no sessions yet"
+      },
+      "weight": {
+        "label": "Weight (trend)",
+        "none": "needs 2 weigh-ins",
+        "range": "{{from}} to {{to}} kg"
+      },
+      "bestDay": {
+        "label": "Best day",
+        "sub": "{{kcal}} kcal, closest to target",
+        "none": "no day on target yet"
+      }
+    },
+    "share": "Share recap to Story",
+    "note": {
+      "title": "How it's calculated",
+      "body": "Based on your own logs, not a medical assessment. On target means a day's intake is no more than 5% above your target and no less than half of it. Weight uses the trend (moving average), so daily scale swings don't count.",
+      "ongoing": "This week is counted up to yesterday; today isn't scored yet."
+    },
+    "chart": {
+      "aria": "Daily intake against your {{target}} kcal target",
+      "day": "{{day}}: {{kcal}} kcal, {{status}}",
+      "status": {
+        "on_target": "on target",
+        "over": "over target",
+        "under": "well under target, maybe not fully logged",
+        "empty": "no food logged",
+        "pending": "not scored yet"
+      },
+      "legend": {
+        "onTarget": "On target",
+        "over": "Over",
+        "under": "Under half the target",
+        "target": "Target"
+      }
+    }
   }
 }

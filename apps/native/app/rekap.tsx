@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Redirect, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
@@ -30,23 +31,18 @@ import {
   StatTile,
   Text,
 } from "@/components/ui";
+import { Disclosure } from "@/components/disclosure";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtInt, fmtKg } from "@/utils/format";
+import { MACRO_META } from "@/utils/macro-icons";
 import { orpc } from "@/utils/orpc";
 
 const BAR_AREA_H = 120;
 
-const STATUS_LABEL: Record<DayStatus, string> = {
-  on_target: "sesuai target",
-  over: "di atas target",
-  under: "jauh di bawah target, mungkin belum lengkap dicatat",
-  empty: "tidak ada catatan makan",
-  pending: "belum dinilai",
-};
-
 function RecapChart({ recap }: { recap: WeekRecap }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("misc");
   const top = Math.max(recap.targetKcal * 1.25, ...recap.days.map((day) => day.eatenKcal));
   const tone: Record<DayStatus, string> = {
     on_target: theme.colors.primary,
@@ -56,12 +52,16 @@ function RecapChart({ recap }: { recap: WeekRecap }) {
     pending: theme.colors.muted,
   };
   const label = (day: WeekRecap["days"][number]) =>
-    `${weekdayName(day.date)}: ${fmtInt(day.eatenKcal)} kcal, ${STATUS_LABEL[day.status]}`;
+    t("recap.chart.day", {
+      day: weekdayName(day.date),
+      kcal: fmtInt(day.eatenKcal),
+      status: t(`recap.chart.status.${day.status}`),
+    });
   return (
     <View>
       <View
         accessible
-        accessibilityLabel={`Asupan harian dibanding target ${fmtInt(recap.targetKcal)} kcal. ${recap.days.map(label).join(". ")}`}
+        accessibilityLabel={`${t("recap.chart.aria", { target: fmtInt(recap.targetKcal) })}. ${recap.days.map(label).join(". ")}`}
         style={styles.barArea}
       >
         <View
@@ -93,9 +93,9 @@ function RecapChart({ recap }: { recap: WeekRecap }) {
         ))}
       </View>
       <View style={styles.legend}>
-        <LegendDot color={theme.colors.primary} label="Sesuai target" />
-        <LegendDot color={theme.colors.bakar} label="Di atas" />
-        <LegendDot color={theme.colors.mutedForeground} label="Kurang dari separuh target" faded />
+        <LegendDot color={theme.colors.primary} label={t("recap.chart.legend.onTarget")} />
+        <LegendDot color={theme.colors.bakar} label={t("recap.chart.legend.over")} />
+        <LegendDot color={theme.colors.mutedForeground} label={t("recap.chart.legend.under")} faded />
       </View>
     </View>
   );
@@ -112,6 +112,7 @@ function LegendDot({ color, label, faded }: { color: string; label: string; fade
 
 export default function Rekap() {
   const { theme } = useUnistyles();
+  const { t } = useTranslation(["misc", "common"]);
   const gate = useSessionGate();
   const params = useLocalSearchParams<{ week?: string }>();
   const today = jakartaToday();
@@ -133,7 +134,7 @@ export default function Rekap() {
   if (query.isPending) {
     return (
       <Screen>
-        <PageHeader title="Rekap mingguan" />
+        <PageHeader title={t("recap.title")} />
         <Skeleton width="100%" height={170} radius={24} />
         <Skeleton width="100%" height={220} radius={24} />
       </Screen>
@@ -142,7 +143,7 @@ export default function Rekap() {
   if (query.isError) {
     return (
       <Screen>
-        <PageHeader title="Rekap mingguan" />
+        <PageHeader title={t("recap.title")} />
         <ErrorState message={errorMessage(query.error)} onRetry={() => query.refetch()} />
       </Screen>
     );
@@ -158,7 +159,7 @@ export default function Rekap() {
     <View style={styles.nav}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Minggu sebelumnya"
+        accessibilityLabel={t("recap.prevWeek")}
         hitSlop={8}
         onPress={() => setWeekStart(shiftDate(recap.weekStart, -7))}
         style={({ pressed }) => [styles.navBtn, pressed && styles.pressed]}
@@ -167,7 +168,7 @@ export default function Rekap() {
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Minggu berikutnya"
+        accessibilityLabel={t("recap.nextWeek")}
         accessibilityState={{ disabled: !canNext }}
         disabled={!canNext}
         hitSlop={8}
@@ -181,14 +182,14 @@ export default function Rekap() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Rekap mingguan" }} />
+      <Stack.Screen options={{ title: t("recap.title") }} />
       <Screen>
         <PageHeader
-          title="Rekap mingguan"
+          title={t("recap.title")}
           caption={
             recap.complete
               ? weekRangeLabel(recap.weekStart)
-              : `${weekRangeLabel(recap.weekStart)} · masih berjalan`
+              : t("recap.subtitleOngoing", { range: weekRangeLabel(recap.weekStart) })
           }
           right={nav}
         />
@@ -196,23 +197,24 @@ export default function Rekap() {
         {recap.avgKcal === null ? (
           <EmptyState
             pose="determined"
-            title={recap.empty ? "Belum ada catatan di minggu ini" : "Belum ada makanan yang dicatat"}
+            title={recap.empty ? t("recap.empty.titleNone") : t("recap.empty.titleNoFood")}
             description={
-              recap.evaluatedDays === 0
-                ? "Rekap dihitung dari hari yang sudah lewat. Cek lagi besok."
-                : "Catat makananmu beberapa hari, nanti rekapnya muncul di sini."
+              recap.evaluatedDays === 0 ? t("recap.empty.bodyPast") : t("recap.empty.bodyLog")
             }
           />
         ) : (
           <>
             <Card style={styles.heroCard}>
-              <Text style={styles.heroLabel}>Rata-rata per hari</Text>
+              <Text style={styles.heroLabel}>{t("recap.avg.label")}</Text>
               <Num style={styles.heroValue}>
                 {fmtInt(recap.avgKcal)} <Text style={styles.heroUnit}>kcal</Text>
               </Num>
               <View
                 accessibilityRole="progressbar"
-                accessibilityLabel={`Rata-rata ${fmtInt(recap.avgKcal)} dari target ${fmtInt(recap.targetKcal)} kcal`}
+                accessibilityLabel={t("recap.avg.aria", {
+                  avg: fmtInt(recap.avgKcal),
+                  target: fmtInt(recap.targetKcal),
+                })}
                 accessibilityValue={{
                   min: 0,
                   max: Math.round(recap.targetKcal),
@@ -228,12 +230,11 @@ export default function Rekap() {
                 />
               </View>
               <Text style={styles.note}>
-                Targetmu {fmtInt(recap.targetKcal)} kcal. Dihitung dari {recap.loggedDays} hari yang
-                kamu catat.
+                {t("recap.avg.note", { count: recap.loggedDays, target: fmtInt(recap.targetKcal) })}
               </Text>
             </Card>
 
-            <SectionTitle title="Harian" />
+            <SectionTitle title={t("recap.daily")} />
             <Card>
               <RecapChart recap={recap} />
             </Card>
@@ -242,19 +243,19 @@ export default function Rekap() {
               <StatTile
                 icon="checkmark-circle"
                 tint="makan"
-                label="Sesuai target"
-                value={`${recap.daysOnTarget} hari`}
-                sub={`dari ${recap.loggedDays} hari tercatat`}
+                label={t("recap.stat.onTarget.label")}
+                value={`${recap.daysOnTarget} ${t("recap.unit.day", { count: recap.daysOnTarget })}`}
+                sub={t("recap.stat.onTarget.sub", { count: recap.loggedDays })}
               />
               <StatTile
                 macro="protein"
                 tint="makan"
-                label="Protein"
+                label={MACRO_META.protein.label}
                 value={recap.protein ? `${fmtInt(recap.protein.avgG)} g` : "–"}
                 sub={
                   recap.protein
-                    ? `rata-rata, target ${fmtInt(recap.protein.targetG)} g`
-                    : "belum ada data protein"
+                    ? t("recap.stat.protein.sub", { target: fmtInt(recap.protein.targetG) })
+                    : t("recap.stat.protein.none")
                 }
               />
             </View>
@@ -262,19 +263,22 @@ export default function Rekap() {
               <StatTile
                 icon="flame"
                 tint="bakar"
-                label="Beruntun"
-                value={`${recap.streakDays} hari`}
-                sub="mencatat tanpa putus"
+                label={t("recap.stat.streak.label")}
+                value={`${recap.streakDays} ${t("recap.unit.day", { count: recap.streakDays })}`}
+                sub={t("recap.stat.streak.sub")}
               />
               <StatTile
                 icon="barbell"
                 tint="bakar"
-                label="Olahraga"
+                label={t("common:nav.exercise")}
                 value={`${fmtInt(recap.exercise.kcal)} kcal`}
                 sub={
                   recap.exercise.sessions > 0
-                    ? `${fmtInt(recap.exercise.minutes)} menit, ${recap.exercise.sessions} sesi`
-                    : "belum ada sesi"
+                    ? t("recap.stat.exercise.sub", {
+                        count: recap.exercise.sessions,
+                        minutes: fmtInt(recap.exercise.minutes),
+                      })
+                    : t("recap.stat.exercise.none")
                 }
               />
             </View>
@@ -282,23 +286,26 @@ export default function Rekap() {
               <StatTile
                 icon="scale"
                 tint="tidur"
-                label="Berat (tren)"
+                label={t("recap.stat.weight.label")}
                 value={change === null ? "–" : `${change > 0 ? "+" : ""}${fmtKg(change)} kg`}
                 sub={
                   change === null
-                    ? "perlu 2 kali timbang"
-                    : `${fmtKg(recap.weight!.startKg)} ke ${fmtKg(recap.weight!.endKg)} kg`
+                    ? t("recap.stat.weight.none")
+                    : t("recap.stat.weight.range", {
+                        from: fmtKg(recap.weight!.startKg),
+                        to: fmtKg(recap.weight!.endKg),
+                      })
                 }
               />
               <StatTile
                 icon="trophy"
                 tint="tidur"
-                label="Hari terbaik"
+                label={t("recap.stat.bestDay.label")}
                 value={recap.bestDay ? weekdayName(recap.bestDay.date) : "–"}
                 sub={
                   recap.bestDay
-                    ? `${fmtInt(recap.bestDay.eatenKcal)} kcal, paling dekat target`
-                    : "belum ada hari sesuai target"
+                    ? t("recap.stat.bestDay.sub", { kcal: fmtInt(recap.bestDay.eatenKcal) })
+                    : t("recap.stat.bestDay.none")
                 }
               />
             </View>
@@ -306,7 +313,7 @@ export default function Rekap() {
             {share ? (
               <ShareStoryButton
                 variant="secondary"
-                label="Bagikan rekap ke Story"
+                label={t("recap.share")}
                 story={{
                   kind: "recap",
                   ...share,
@@ -315,12 +322,12 @@ export default function Rekap() {
               />
             ) : null}
 
-            <Text style={styles.footnote}>
-              Hitungan dari catatanmu sendiri, bukan penilaian medis. Sesuai target berarti asupan
-              sehari tidak lebih dari 5% di atas targetmu dan tidak kurang dari separuhnya. Berat
-              memakai tren (rata-rata bergerak), jadi tidak ikut naik turun timbangan harian.
-              {recap.complete ? "" : " Minggu ini dihitung sampai kemarin; hari ini belum ikut dinilai."}
-            </Text>
+            <Disclosure title={t("recap.note.title")}>
+              <Text style={styles.footnote}>
+                {t("recap.note.body")}
+                {recap.complete ? "" : ` ${t("recap.note.ongoing")}`}
+              </Text>
+            </Disclosure>
           </>
         )}
       </Screen>
@@ -346,7 +353,7 @@ const styles = StyleSheet.create((theme) => ({
     fontWeight: "600",
     color: theme.colors.mutedForeground,
   },
-  heroValue: { fontSize: 48, fontWeight: "800", color: theme.colors.foreground },
+  heroValue: { fontSize: 40, fontWeight: "800", color: theme.colors.foreground },
   heroUnit: { fontSize: theme.fontSize.lg, fontWeight: "600", color: theme.colors.mutedForeground },
   track: {
     height: 8,
@@ -394,6 +401,5 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
     lineHeight: 18,
-    paddingHorizontal: theme.spacing.xs,
   },
 }));

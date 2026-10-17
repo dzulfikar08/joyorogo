@@ -11,6 +11,7 @@ import {
   Scale,
   Trophy,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
 import {
@@ -48,6 +49,7 @@ export const Route = createFileRoute("/_auth/rekap")({
 });
 
 function RekapPage() {
+  const { t } = useTranslation(["misc", "common"]);
   const { week } = Route.useSearch();
   const navigate = Route.useNavigate();
   const today = jakartaToday();
@@ -69,18 +71,18 @@ function RekapPage() {
   return (
     <Page className="max-w-xl lg:max-w-3xl">
       <PageHeader
-        title="Rekap mingguan"
+        title={t("recap.title")}
         subtitle={
           recap.complete
             ? weekRangeLabel(recap.weekStart)
-            : `${weekRangeLabel(recap.weekStart)} · masih berjalan`
+            : t("recap.subtitleOngoing", { range: weekRangeLabel(recap.weekStart) })
         }
         action={
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Minggu sebelumnya"
+              aria-label={t("recap.prevWeek")}
               onClick={() => go(shiftDate(recap.weekStart, -7))}
             >
               <ChevronLeft aria-hidden />
@@ -88,7 +90,7 @@ function RekapPage() {
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Minggu berikutnya"
+              aria-label={t("recap.nextWeek")}
               disabled={recap.weekStart >= thisWeek}
               onClick={() => go(shiftDate(recap.weekStart, 7))}
             >
@@ -101,16 +103,14 @@ function RekapPage() {
       {recap.avgKcal === null ? (
         <EmptyHint
           pose="determined"
-          title={recap.empty ? "Belum ada catatan di minggu ini" : "Belum ada makanan yang dicatat"}
+          title={recap.empty ? t("recap.empty.titleNone") : t("recap.empty.titleNoFood")}
         >
-          {recap.evaluatedDays === 0
-            ? "Rekap dihitung dari hari yang sudah lewat. Cek lagi besok."
-            : "Catat makananmu beberapa hari, nanti rekapnya muncul di sini."}
+          {recap.evaluatedDays === 0 ? t("recap.empty.bodyPast") : t("recap.empty.bodyLog")}
         </EmptyHint>
       ) : (
         <div className="space-y-3">
-          <Card className="p-6">
-            <p className="text-sm font-semibold text-muted-foreground">Rata-rata per hari</p>
+          <Card className="p-5">
+            <p className="text-sm font-semibold text-muted-foreground">{t("recap.avg.label")}</p>
             <p className="mt-1 text-[3rem] leading-none font-extrabold tracking-tighter tabular-nums">
               {fmtInt(recap.avgKcal)}
               <span className="ml-1.5 text-lg font-semibold tracking-normal text-muted-foreground">
@@ -121,16 +121,15 @@ function RekapPage() {
               className="mt-4"
               value={recap.avgKcal}
               max={recap.targetKcal}
-              ariaLabel={`Rata-rata ${fmtInt(recap.avgKcal)} dari target ${fmtInt(recap.targetKcal)} kcal`}
+              ariaLabel={t("recap.avg.aria", { avg: fmtInt(recap.avgKcal), target: fmtInt(recap.targetKcal) })}
             />
             <p className="mt-2 text-sm text-muted-foreground tabular-nums">
-              Targetmu {fmtInt(recap.targetKcal)} kcal. Dihitung dari {recap.loggedDays} hari
-              yang kamu catat.
+              {t("recap.avg.note", { count: recap.loggedDays, target: fmtInt(recap.targetKcal) })}
             </p>
           </Card>
 
           <Card>
-            <SectionTitle className="mb-4 px-0">Harian</SectionTitle>
+            <SectionTitle className="mb-4 px-0">{t("recap.daily")}</SectionTitle>
             <RecapChart days={recap.days} targetKcal={recap.targetKcal} />
           </Card>
 
@@ -138,64 +137,70 @@ function RekapPage() {
             <StatTile
               metric="makan"
               icon={<CircleCheck className="size-[1.125rem]" aria-hidden />}
-              label="Sesuai target"
+              label={t("recap.stat.onTarget.label")}
               value={recap.daysOnTarget}
-              unit="hari"
-              sub={`dari ${recap.loggedDays} hari tercatat`}
+              unit={t("recap.unit.day", { count: recap.daysOnTarget })}
+              sub={t("recap.stat.onTarget.sub", { count: recap.loggedDays })}
             />
             <StatTile
               metric="makan"
               icon={<MACRO_META.protein.Icon className="size-[1.125rem]" aria-hidden />}
-              label="Protein"
+              label={MACRO_META.protein.label}
               value={recap.protein ? fmtInt(recap.protein.avgG) : "–"}
               unit={recap.protein ? "g" : undefined}
               sub={
                 recap.protein
-                  ? `rata-rata, target ${fmtInt(recap.protein.targetG)} g`
-                  : "belum ada data protein"
+                  ? t("recap.stat.protein.sub", { target: fmtInt(recap.protein.targetG) })
+                  : t("recap.stat.protein.none")
               }
             />
             <StatTile
               metric="bakar"
               icon={<Flame className="size-[1.125rem]" aria-hidden />}
-              label="Beruntun"
+              label={t("recap.stat.streak.label")}
               value={recap.streakDays}
-              unit="hari"
-              sub="mencatat tanpa putus"
+              unit={t("recap.unit.day", { count: recap.streakDays })}
+              sub={t("recap.stat.streak.sub")}
             />
             <StatTile
               metric="bakar"
               icon={<Dumbbell className="size-[1.125rem]" aria-hidden />}
-              label="Olahraga"
+              label={t("common:nav.exercise")}
               value={fmtInt(recap.exercise.kcal)}
               unit="kcal"
               sub={
                 recap.exercise.sessions > 0
-                  ? `${fmtInt(recap.exercise.minutes)} menit, ${recap.exercise.sessions} sesi`
-                  : "belum ada sesi"
+                  ? t("recap.stat.exercise.sub", {
+                      count: recap.exercise.sessions,
+                      minutes: fmtInt(recap.exercise.minutes),
+                    })
+                  : t("recap.stat.exercise.none")
               }
             />
             <StatTile
               metric="tidur"
               icon={<Scale className="size-[1.125rem]" aria-hidden />}
-              label="Berat (tren)"
+              label={t("recap.stat.weight.label")}
               value={change === null ? "–" : `${change > 0 ? "+" : ""}${fmtKg(change)}`}
               unit={change === null ? undefined : "kg"}
               sub={
                 change === null
-                  ? "perlu 2 kali timbang"
-                  : `${fmtKg(recap.weight!.startKg)} ke ${fmtKg(recap.weight!.endKg)} kg`
+                  ? t("recap.stat.weight.none")
+                  : t("recap.stat.weight.range", {
+                      from: fmtKg(recap.weight!.startKg),
+                      to: fmtKg(recap.weight!.endKg),
+                    })
               }
             />
             <StatTile
               metric="tidur"
               icon={<Trophy className="size-[1.125rem]" aria-hidden />}
-              label="Hari terbaik"
+              label={t("recap.stat.bestDay.label")}
               value={recap.bestDay ? weekdayName(recap.bestDay.date) : "–"}
               sub={
                 recap.bestDay
-                  ? `${fmtInt(recap.bestDay.eatenKcal)} kcal, paling dekat target`
-                  : "belum ada hari sesuai target"
+                  ? t("recap.stat.bestDay.sub", { kcal: fmtInt(recap.bestDay.eatenKcal) })
+                  : t("recap.stat.bestDay.none")
               }
             />
           </div>
@@ -204,7 +209,7 @@ function RekapPage() {
             <ShareStoryButton
               className="w-full"
               variant="secondary"
-              label="Bagikan rekap ke Story"
+              label={t("recap.share")}
               story={{
                 kind: "recap",
                 ...share,
@@ -213,14 +218,16 @@ function RekapPage() {
             />
           ) : null}
 
-          <p className="px-1 pt-2 text-xs leading-relaxed text-muted-foreground">
-            Hitungan dari catatanmu sendiri, bukan penilaian medis. Sesuai target berarti asupan
-            sehari tidak lebih dari 5% di atas targetmu dan tidak kurang dari separuhnya. Berat
-            memakai tren (rata-rata bergerak), jadi tidak ikut naik turun timbangan harian.
-            {recap.complete
-              ? ""
-              : " Minggu ini dihitung sampai kemarin; hari ini belum ikut dinilai."}
-          </p>
+          <details className="group px-1 pt-1 text-xs text-muted-foreground">
+            <summary className="flex cursor-pointer list-none items-center gap-1.5 font-semibold select-none [&::-webkit-details-marker]:hidden">
+              <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" aria-hidden />
+              {t("recap.note.title")}
+            </summary>
+            <p className="mt-1.5 pl-5 leading-relaxed">
+              {t("recap.note.body")}
+              {recap.complete ? "" : ` ${t("recap.note.ongoing")}`}
+            </p>
+          </details>
         </div>
       )}
     </Page>
@@ -228,8 +235,9 @@ function RekapPage() {
 }
 
 function RekapSkeleton() {
+  const { t } = useTranslation("misc");
   return (
-    <Page className="max-w-xl lg:max-w-3xl" aria-busy="true" aria-label="Memuat rekap mingguan">
+    <Page className="max-w-xl lg:max-w-3xl" aria-busy="true" aria-label={t("recap.loading")}>
       <div className="px-1 pt-2 pb-5">
         <Skeleton className="h-8 w-44 rounded-full" />
         <Skeleton className="mt-2 h-4 w-28 rounded-full" />
