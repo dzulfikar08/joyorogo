@@ -27,7 +27,7 @@
     "proteinHint": "Protein yang cukup, plus latihan beban, membantu tambahan berat jadi otot dan bukan cuma lemak.",
     "leanNote": "Sebagian tambahan berat tetap lemak. Ritme pelan dan latihan beban membuat porsi ototnya lebih besar.",
     "estimate": "Satu kg berat badan dihitung 7.700 kkal, itu perkiraan umum. Hasil tiap orang beda, jadi lihat tren timbanganmu 2 sampai 3 minggu lalu sesuaikan.",
-    "burnNote": "Olahraga tidak ditambahkan ke target makan. Kalau kamu rutin latihan berat dan beratmu belum naik setelah 2 sampai 3 minggu, tambah makan sedikit.",
+    "burnNote": "Olahraga yang kamu catat ditambahkan ke sisa makan hari itu. Kalau kamu rutin latihan berat dan beratmu belum naik setelah 2 sampai 3 minggu, tambah makan sedikit.",
     "needs": {
       "cutNone": "Tidak ada potongan",
       "surplusRow": "Surplus"

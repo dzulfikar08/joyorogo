@@ -12,6 +12,7 @@ import { protectedProcedure } from "../index";
 import { effectiveRamadan, jakartaToday, shiftDate } from "../lib/engine";
 import { dateSchema } from "../lib/schemas";
 import { buildPlan, planQueries } from "../lib/plan";
+import { loadDayCredit } from "../lib/exercise-credit-store";
 import { serverT } from "../lib/messages";
 import {
   adherenceWeek,
@@ -113,15 +114,18 @@ export const fastingRouter = {
         meal: row.meal as Meal,
         min: wibMinutes(row.createdAt),
       }));
+      // Same budget as day.summary: the plan plus the counted exercise.
+      const credit = await loadDayCredit(context.db, userId, date, plan.weightNowKg);
+      const eatKcal = plan.targets.eatKcal + credit.countedKcal;
       const day = fastingDay({
         pattern: prof.fastingPattern,
         windowStart: prof.fastingWindowStart,
-        eatKcal: plan.targets.eatKcal,
+        eatKcal,
         logs,
         nowMin: wibMinutes(now),
         ramadan: effectiveRamadan(prof.ramadanMode, now),
       });
-      return { date, eatKcal: plan.targets.eatKcal, ...day };
+      return { date, eatKcal, ...day };
     }),
 
   /** Last 7 WIB days: did all food fall inside the window? */

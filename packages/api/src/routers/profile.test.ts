@@ -48,8 +48,8 @@ describe("profile.updateTargets target date", () => {
     );
     const after = await call(profileRouter.myProfile, undefined, as("cut"));
     expect(after.profile?.targetDate).toBe(shiftDate(today, 60));
-    // 10 kg in 60 days asks for more than 120 days did, so the plan eats less.
-    expect(out.targets.eatKcal).toBeLessThan(before.targets!.eatKcal);
+    // 10 kg in 60 days asks for more than 120 days did, so the plan eats less (or sits on the floor).
+    expect(out.targets.eatKcal).toBeLessThanOrEqual(before.targets!.eatKcal);
     expect(out.targets.deficitKcal).toBeGreaterThan(before.targets!.deficitKcal);
   });
 

@@ -17,6 +17,12 @@
     "fallbackName": "You",
     "share": "Share progress"
   },
+  "addBackNotice": {
+    "title": "How what is left is counted changed",
+    "body": "How your remaining calories are counted has changed: the base target no longer includes exercise, and the exercise you log is added on top ({{pct}}%). Adjust it in Profile.",
+    "action": "Open Profile",
+    "dismiss": "Close"
+  },
   "banner": {
     "scans": "AI scans {{n}}x/day",
     "proUnlimited": "Pro unlimited",
@@ -45,8 +51,16 @@
     "limit": "The adjustment is capped at 15% from the formula, and days you forgot to log are left out."
   },
   "tile": {
-    "burn": "Burned",
-    "burnOf": "target {{kcal}}",
+    "burn": "Exercise today",
+    "burnSub": "from {{sources}}",
+    "burnNone": "no exercise yet",
+    "source": {
+      "manual": "manual entries",
+      "joyofit": "JoyoFit",
+      "health_connect": "Health Connect",
+      "apple_health": "Apple Health",
+      "strava": "Strava"
+    },
     "sleep": "Sleep",
     "sleepUnit": "h",
     "sleepNone": "not logged",
@@ -196,12 +210,15 @@
   },
   "explain": {
     "title": "How to read today's numbers",
-    "formula": "Left = eating target − eaten so far",
+    "formula": "Left = eating target − eaten so far + counted exercise",
+    "exampleAdd": "Today: {{target}} + {{exercise}} exercise − {{eaten}} = {{left}} kcal left",
+    "exampleAddOver": "Today: {{target}} + {{exercise}} exercise − {{eaten}} = {{over}} kcal over",
+    "added": "+{{kcal}} kcal from exercise ({{pct}}%)",
     "example": "Today: {{target}} − {{eaten}} = {{left}} kcal left",
     "exampleOver": "Today: {{target}} − {{eaten}} = {{over}} kcal over",
     "target": {
       "title": "Eating target",
-      "body": "Your calorie allowance for the day, worked out from your body, activity and target weight."
+      "body": "Your calorie allowance for the day, worked out from your body and target weight. Exercise is not in this number: what you log is added separately."
     },
     "clamped": {
       "lose": "This target is worked out with a deficit of at most 1,000 kcal a day. Your target date asks for more than that, so you get there around {{date}}.",
@@ -218,8 +235,17 @@
       "body": "What still fits until tonight. Once you go past it, the number turns into Over. No stress, start again tomorrow."
     },
     "burn": {
-      "title": "Burned",
-      "body": "Calories burned from exercise. Your eating target already counts on it, so a workout doesn't add to what's left to eat, and a quiet day doesn't take any away."
+      "title": "Exercise today",
+      "body": "Calories from the exercise logged today: your watch, Health Connect or Apple Health, Strava and manual entries. {{pct}}% of this is added to what you can still eat, so moving more means eating more."
+    },
+    "addBack": {
+      "title": "Counted exercise",
+      "body": "Of {{workout}} kcal of logged exercise, {{pct}}% ({{kcal}} kcal) is added to today's allowance.",
+      "steps": "Plus {{steps}} steps above {{threshold}} steps, about {{stepKcal}} kcal.",
+      "capped": "The daily cap of {{cap}} kcal was reached.",
+      "off": "This is turned off in Profile, so exercise does not add to what is left. What is left comes from the base target only.",
+      "none": "No exercise logged today, so nothing has been added.",
+      "setting": "Change it in Profile > Target & body"
     },
     "deficit": {
       "title": "What does deficit mean?",

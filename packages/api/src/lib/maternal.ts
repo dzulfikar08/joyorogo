@@ -650,7 +650,8 @@ export function computeMaternalTargets(
   const basisKg = state.prePregnancyWeightKg ?? weightNow;
 
   const bmr = bmrMifflin(basisKg, profile.heightCm, age, "female");
-  // Rounded to 5 like every plan number, so base + addition is exactly the target.
+  // Rounded to 5 like every plan number, so base + addition is exactly the target. Keeps the profile's activity
+  // multiplier (the normal plan moved to a sedentary base): the AKG-based target must never drop.
   const baseKcal = round5(bmr * ACTIVITY_MULTIPLIER[profile.activityLevel]);
 
   const flags: MaternalFlag[] = [];
@@ -686,6 +687,7 @@ export function computeMaternalTargets(
     tdee: baseKcal,
     formulaTdee: baseKcal,
     eatKcal: baseKcal + add,
+    exerciseKcal: 0,
     burnKcal: 0,
     sleepHours: SLEEP_NEED_HOURS,
     deficitKcal: 0,

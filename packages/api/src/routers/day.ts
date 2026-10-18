@@ -25,6 +25,8 @@ import {
   streakFromDates,
   suggestMealNow,
 } from "../lib/engine";
+import { exerciseCredit, showAddBackNotice } from "../lib/exercise-credit";
+import { addBackPrefQuery, loadDayCredit, readAddBackPrefs } from "../lib/exercise-credit-store";
 import { READINESS_LABELS, hasFitnessData } from "../lib/fitness-hint";
 import { dateSchema } from "../lib/schemas";
 import { loadIdeaValues } from "./plate";
@@ -49,6 +51,9 @@ const ZERO_MEALS: Record<Meal, number> = {
   sahur: 0,
   berbuka: 0,
 };
+
+/** The sources a recorded workout can come from, in the order the "Olahraga hari ini" tile lists them. */
+const EXERCISE_SOURCES = ["manual", "joyofit", "health_connect", "apple_health", "strava"] as const;
 
 export type Milestone = { kind: "streak" | "lost" | "gained"; value: number };
 
@@ -103,6 +108,7 @@ export const dayRouter = {
         weightDates,
         activityRows,
         workoutRows,
+        prefRows,
       ] = await context.db.batch([
         ...planQueries(context.db, userId, date),
         context.db
@@ -117,7 +123,12 @@ export const dayRouter = {
           .where(and(eq(foodLog.userId, userId), eq(foodLog.date, date)))
           .groupBy(foodLog.meal),
         context.db
-          .select({ kcal: exerciseLog.kcal, source: exerciseLog.source })
+          .select({
+            kcal: exerciseLog.kcal,
+            source: exerciseLog.source,
+            type: exerciseLog.type,
+            durationMin: exerciseLog.durationMin,
+          })
           .from(exerciseLog)
           .where(and(eq(exerciseLog.userId, userId), eq(exerciseLog.date, date))),
         context.db
@@ -165,6 +176,8 @@ export const dayRouter = {
           .limit(1),
         // Strength training on this day (legacy session or a JoyoFit strength row) bumps the protein target (1.6 g/kg).
         trainingDayQuery(context.db, userId, date),
+        // "Kalori olahraga" settings and the notice dismissal, from the synced account preferences.
+        addBackPrefQuery(context.db, userId),
       ]);
 
       const prof = profileRows[0];
@@ -176,6 +189,9 @@ export const dayRouter = {
         return {
           hasProfile: false,
           targets: null,
+          exerciseCredit: null,
+          exerciseSources: [],
+          addBackNotice: false,
           eatenKcal: 0,
           eatenByMeal: { ...ZERO_MEALS },
           burnedKcal: 0,
@@ -201,7 +217,21 @@ export const dayRouter = {
         { latestWeightKg: latestRows[0]?.weightKg ?? null, weighIns, intake, exercise },
         date,
       );
-      const { targets } = plan;
+      const { targets: planTargets } = plan;
+      // Sisa = budget - eaten, the budget being the plan's base plus the counted exercise (lib/exercise-credit). Every
+      // client and the MCP read this one number; `exerciseKcal` tells how much of `eatKcal` came from exercise.
+      const { settings, noticeDismissed } = readAddBackPrefs(prefRows);
+      const credit = exerciseCredit({
+        settings,
+        rows: exerciseRows,
+        steps: activityRows[0]?.steps ?? null,
+        weightKg: plan.weightNowKg,
+      });
+      const targets = {
+        ...planTargets,
+        eatKcal: planTargets.eatKcal + credit.countedKcal,
+        exerciseKcal: credit.countedKcal,
+      };
 
       const eatenByMeal = { ...ZERO_MEALS };
       let eatenKcal = 0;
@@ -221,7 +251,7 @@ export const dayRouter = {
       const gaining = targets.gain !== null;
       const weightGainedKg = gaining ? gainedKg(prof, plan.weightNowKg) : 0;
       const planStreakDays = gaining
-        ? gainStreak(foodDates, targets.eatKcal, today)
+        ? gainStreak(foodDates, planTargets.eatKcal, today)
         : streakDays;
       // Pregnant and breastfeeding users are exempt from fasting: "auto" Ramadan stays off for them.
       const ramadanPref = maternal && prof.ramadanMode === "auto" ? "off" : prof.ramadanMode;
@@ -245,6 +275,14 @@ export const dayRouter = {
       return {
         hasProfile: true,
         targets,
+        exerciseCredit: credit,
+        // Where today's recorded exercise came from (for the "Olahraga hari ini" tile); rest rows are not movement.
+        exerciseSources: EXERCISE_SOURCES.filter((source) => exerciseRows.some((row) => row.source === source)),
+        // The one-time notice that Sisa is counted differently now: accounts made before the change, until closed.
+        addBackNotice: showAddBackNotice({
+          accountCreatedAtMs: new Date(context.session.user.createdAt).getTime(),
+          dismissed: noticeDismissed,
+        }),
         // Legacy: see computeDeficit. Not read by the current clients.
         deficit: computeDeficit(eatenKcal, burn, targets.eatKcal),
         eatenKcal,
@@ -437,11 +475,13 @@ export const dayRouter = {
         { latestWeightKg: latestRows[0]?.weightKg ?? null, weighIns, intake, exercise },
         today,
       );
-      const plan = builtPlan.targets;
+      // The diary's bar and Sisa use the plan plus the counted exercise; guidance reads the same budget.
+      const credit = await loadDayCredit(context.db, userId, today, builtPlan.weightNowKg);
+      const eatKcal = builtPlan.targets.eatKcal + credit.countedKcal;
       targets = {
-        eatKcal: plan.eatKcal,
+        eatKcal,
         proteinG: proteinGoalG(builtPlan, prof.heightCm, workoutRows.length > 0),
-        carbsG: macroTargets(plan.eatKcal, DIARY_MACRO_REFERENCE_KG).carbsG,
+        carbsG: macroTargets(eatKcal, DIARY_MACRO_REFERENCE_KG).carbsG,
       };
     }
 

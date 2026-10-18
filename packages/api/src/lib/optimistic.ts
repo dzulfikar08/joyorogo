@@ -2,6 +2,8 @@ import { getActiveLocale, getT } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
 import { shiftDate } from "./engine";
+import { shiftWorkoutKcal } from "./exercise-credit";
+import type { ExerciseCredit } from "./exercise-credit";
 
 /**
  * Pure cache math for optimistic mutations, shared by the web and native
@@ -39,6 +41,9 @@ export type DaySummaryLike = {
   sleepHoursLastNight?: number | null;
   latestWeightKg?: number | null;
   weightLoggedToday?: boolean;
+  /** The day's eat budget (base plus counted exercise) and the counted part; both move with a logged workout. */
+  targets?: { eatKcal: number; exerciseKcal: number } | null;
+  exerciseCredit?: ExerciseCredit | null;
 };
 
 export type SummaryDelta = {
@@ -78,7 +83,15 @@ export function applySummaryDelta<T extends DaySummaryLike>(
   if (sameDay && delta.meal !== undefined && delta.kcal !== undefined) {
     s.eatenByMeal = { ...s.eatenByMeal, [delta.meal]: (s.eatenByMeal[delta.meal] ?? 0) + delta.kcal };
   }
-  if (sameDay && delta.burnKcal !== undefined) s.burnedKcal += delta.burnKcal;
+  if (sameDay && delta.burnKcal !== undefined) {
+    s.burnedKcal += delta.burnKcal;
+    if (s.exerciseCredit && s.targets) {
+      const next = shiftWorkoutKcal(s.exerciseCredit, delta.burnKcal);
+      const added = next.countedKcal - s.exerciseCredit.countedKcal;
+      s.exerciseCredit = next;
+      s.targets = { ...s.targets, eatKcal: s.targets.eatKcal + added, exerciseKcal: s.targets.exerciseKcal + added };
+    }
+  }
   if (week && delta.kcal !== undefined) s.weekEatenKcal += delta.kcal;
   if (week && delta.burnKcal !== undefined) s.weekBurnedKcal += delta.burnKcal;
   if (week && delta.meals !== undefined && delta.meals !== 0) s.weekMeals += delta.meals;

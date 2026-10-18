@@ -17,6 +17,7 @@ import { THEME_STORAGE_KEY } from "@/components/theme-provider";
 import { client } from "@/utils/orpc";
 
 import { dismissalStoreKey, writeDismissal } from "./dismissals";
+import { readAddBackPref, writeAddBackPref } from "./exercise-credit-prefs";
 import { storedKind, storedMakanView, writeMakanPref } from "./makan-prefs";
 import { STORY_PREFS_KEY } from "./story-prefs";
 
@@ -94,7 +95,14 @@ function readDevice(key: RogoPrefKey, userId: string): unknown | undefined {
       return readJson(STORY_PREFS_KEY) ?? undefined;
     case "dismissed.handlePrompt":
     case "dismissed.stravaRetention7d":
+    case "dismissed.addBackNotice":
       return localStorage.getItem(dismissalStoreKey(key, userId)) === "1" ? true : undefined;
+    case "exercise.addBack.enabled":
+    case "exercise.addBack.pct":
+    case "exercise.addBack.source":
+    case "exercise.addBack.stepThreshold":
+    case "exercise.addBack.cap":
+      return readAddBackPref(key);
     case "reminders":
       return undefined;
   }
@@ -119,7 +127,15 @@ function writeDevice(key: RogoPrefKey, userId: string, value: unknown | undefine
         return;
       case "dismissed.handlePrompt":
       case "dismissed.stravaRetention7d":
+      case "dismissed.addBackNotice":
         writeDismissal(key, userId, value === true);
+        return;
+      case "exercise.addBack.enabled":
+      case "exercise.addBack.pct":
+      case "exercise.addBack.source":
+      case "exercise.addBack.stepThreshold":
+      case "exercise.addBack.cap":
+        writeAddBackPref(key, value);
         return;
       case "reminders":
         return;

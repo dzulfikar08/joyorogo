@@ -13,6 +13,7 @@ import { dueReminders, isFastingPattern, wibDateKey, wibMinutes } from "@joyorog
 import { pendingStickerKey } from "@joyorogo/api/lib/sticker";
 import { isGainGap } from "@joyorogo/api/lib/gain";
 import { buildPlan, gainedKg, planQueries } from "@joyorogo/api/lib/plan";
+import { loadDayCredit } from "@joyorogo/api/lib/exercise-credit-store";
 import { sendPush, vapidConfigured } from "@joyorogo/api/lib/webpush";
 import { paywallConfig } from "@joyorogo/api/lib/tiers";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
@@ -670,12 +671,13 @@ async function runFastingReminders(): Promise<void> {
       .select({ kcal: sql<number | null>`sum(${foodLogTable.kcal})` })
       .from(foodLogTable)
       .where(and(eq(foodLogTable.userId, row.userId), eq(foodLogTable.date, today)));
+    const credit = await loadDayCredit(db, row.userId, today, plan.weightNowKg);
 
     const due = dueReminders({
       pattern: row.pattern,
       windowStart: row.windowStart,
       dateKey,
-      remainingKcal: Math.max(0, plan.targets.eatKcal - (eatenRow?.kcal ?? 0)),
+      remainingKcal: Math.max(0, plan.targets.eatKcal + credit.countedKcal - (eatenRow?.kcal ?? 0)),
       nowMin: wibMinutes(now),
       // The recipient's saved language; users who never chose one get Indonesian.
       locale: isLocale(row.locale) ? row.locale : undefined,

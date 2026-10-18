@@ -33,6 +33,7 @@ import {
   planForGoal,
   settleableGoal,
 } from "@/components/gain/goal-plan";
+import { ExerciseCreditSection } from "@/components/profil/exercise-credit-section";
 import { profileOptions } from "@/components/profil/shared";
 import type { ProfilCtx } from "@/components/profil/shared";
 import type { MyProfileData } from "@/lib/api-types";
@@ -198,6 +199,7 @@ export function TargetScreen({
           onClick={() => setSheet("needs")}
         />
       </ListGroup>
+      <ExerciseCreditSection />
       {targets.notes.some((note) => note !== "MATERNAL") && (
         <div className="mt-3">
           <TargetNotesList notes={targets.notes} />

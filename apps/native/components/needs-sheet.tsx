@@ -142,13 +142,8 @@ export function NeedsSheet({
           <Text style={styles.note}>{t("gain:estimate.body")}</Text>
         </>
       ) : null}
-      {!maternal && !gain && needs.plannedBurnKcal > 0 && !needs.maintenance ? (
-        <Text style={styles.note}>
-          {t("plan.needs.burnNote", {
-            burn: fmtInt(needs.plannedBurnKcal),
-            deficit: fmtInt(needs.deficitKcal),
-          })}
-        </Text>
+      {!maternal && !gain && !needs.maintenance && needs.deficitKcal > 0 ? (
+        <Text style={styles.note}>{t("plan.needs.burnNote", { deficit: fmtInt(needs.deficitKcal) })}</Text>
       ) : null}
       {!maternal && needs.adaptive ? (
         <Text style={styles.note}>

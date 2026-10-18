@@ -18,6 +18,7 @@ import { Button, Card, ListGroup, ListRow, StatTile, Text } from "@/components/u
 import { ConfirmSheet } from "@/components/confirm-sheet";
 import { ProfilDataPage, type ProfileData } from "@/components/profil/page";
 import { NeedsSheet } from "@/components/needs-sheet";
+import { ExerciseCreditSection } from "@/components/profil/exercise-credit-section";
 import { TargetPaceNotice } from "@/components/target-pace-notice";
 import { TargetDateSheet, TargetWeightSheet } from "@/components/target-sheets";
 import { EndPregnancySheet } from "@/components/maternal/end-pregnancy-sheet";
@@ -251,6 +252,7 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
               value={ACTIVITY_LABELS[prof.activityLevel as "low" | "mid" | "high"]}
             />
           </ListGroup>
+          <ExerciseCreditSection />
           {!maternal ? <TargetPaceNotice pace={targets.datePace} /> : null}
 
           {targets.notes

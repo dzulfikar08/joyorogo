@@ -36,6 +36,7 @@ import { BelanjaCard } from "@/components/plate/belanja";
 import { ScreenError } from "@/components/screen-state";
 import { RecapCard } from "@/components/recap-card";
 import { StravaRetentionNotice } from "@/components/strava-retention-notice";
+import { AddBackNotice } from "@/components/add-back-notice";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { StorySpec } from "@/components/story/story-spec";
 import { Sticker } from "@/components/sticker";
@@ -56,6 +57,7 @@ import { useFirstVisit } from "@/lib/motion";
 import { useWaistCheckIn, useWeightCheckIn } from "@/lib/optimistic";
 import { useAppConfig } from "@/lib/app-config";
 import type { DaySummary } from "@/lib/api-types";
+import { DEFAULT_ADD_BACK_SETTINGS } from "@joyorogo/api/lib/exercise-credit";
 import { datePaceExplainKey, jakartaToday, relativeDayLabel, remainingKcal } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { orpc } from "@/utils/orpc";
@@ -316,6 +318,7 @@ function Dashboard({
       <FounderBanner />
 
       <StravaRetentionNotice className="mb-3" />
+      <AddBackNotice show={summary.addBackNotice} className="mb-3" />
 
       {/* Day switcher */}
       <div className="mb-3 flex justify-center lg:justify-start">
@@ -349,7 +352,14 @@ function Dashboard({
                 icon={<Flame className="size-4 shrink-0" aria-hidden />}
                 label={t("tile.burn")}
                 value={<CountUp value={summary.burnedKcal} />}
-                sub={t("tile.burnOf", { kcal: fmtInt(targets.burnKcal) })}
+                unit="kcal"
+                sub={
+                  summary.exerciseSources.length === 0
+                    ? t("tile.burnNone")
+                    : t("tile.burnSub", {
+                        sources: summary.exerciseSources.map((source) => t(`tile.source.${source}`)).join(", "),
+                      })
+                }
               />
             )}
             <GlanceTile
@@ -451,6 +461,9 @@ function EatHero({ summary }: { summary: Summary }) {
   const [adaptiveOpen, setAdaptiveOpen] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const maintenance = targets.notes.includes("MAINTENANCE") || targets.deficitKcal <= 0;
+  const credit = summary.exerciseCredit;
+  const exercise = targets.exerciseKcal;
+  const pct = credit?.pct ?? DEFAULT_ADD_BACK_SETTINGS.pct;
 
   return (
     <Card className="p-4">
@@ -540,6 +553,12 @@ function EatHero({ summary }: { summary: Summary }) {
         )
       )}
 
+      {exercise > 0 && (
+        <p className="mt-2 text-xs font-semibold text-muted-foreground tabular-nums">
+          {t("explain.added", { kcal: fmtInt(exercise), pct })}
+        </p>
+      )}
+
       <Sheet open={explainOpen} onOpenChange={setExplainOpen} title={t("explain.title")}>
         <div className="space-y-4">
           <div className="rounded-2xl bg-makan-soft p-4">
@@ -553,17 +572,24 @@ function EatHero({ summary }: { summary: Summary }) {
                     eaten: fmtInt(summary.eatenKcal),
                     left: fmtInt(intake.kcal),
                   })
-                : over
-                  ? t("explain.exampleOver", {
-                      target: fmtInt(targets.eatKcal),
+                : exercise > 0
+                  ? t(over ? "explain.exampleAddOver" : "explain.exampleAdd", {
+                      target: fmtInt(targets.eatKcal - exercise),
+                      exercise: fmtInt(exercise),
                       eaten: fmtInt(summary.eatenKcal),
-                      over: fmtInt(leftKcal),
+                      ...(over ? { over: fmtInt(leftKcal) } : { left: fmtInt(leftKcal) }),
                     })
-                  : t("explain.example", {
-                      target: fmtInt(targets.eatKcal),
-                      eaten: fmtInt(summary.eatenKcal),
-                      left: fmtInt(leftKcal),
-                    })}
+                  : over
+                    ? t("explain.exampleOver", {
+                        target: fmtInt(targets.eatKcal),
+                        eaten: fmtInt(summary.eatenKcal),
+                        over: fmtInt(leftKcal),
+                      })
+                    : t("explain.example", {
+                        target: fmtInt(targets.eatKcal),
+                        eaten: fmtInt(summary.eatenKcal),
+                        left: fmtInt(leftKcal),
+                      })}
             </p>
           </div>
           <dl className="space-y-3">
@@ -581,7 +607,7 @@ function EatHero({ summary }: { summary: Summary }) {
                     ? key === "left"
                       ? t("gain:webToday.explain.left")
                       : key === "burn"
-                        ? t("gain:plan.burnNote")
+                        ? t("explain.burn.body", { pct })
                         : key === "deficit"
                           ? t("gain:coach.surplusExplainer.body")
                           : t(`explain.${key}.body`)
@@ -589,7 +615,9 @@ function EatHero({ summary }: { summary: Summary }) {
                       ? maintenance
                         ? t("explain.deficit.bodyMaintenance")
                         : t("explain.deficit.body", { kcal: fmtInt(targets.deficitKcal) })
-                      : t(`explain.${key}.body`)}
+                      : key === "burn"
+                        ? t("explain.burn.body", { pct })
+                        : t(`explain.${key}.body`)}
                   {key === "target" && targets.datePace && (
                     <span className="mt-1.5 block">
                       {t(`explain.clamped.${datePaceExplainKey(targets.datePace)}`, {
@@ -601,6 +629,52 @@ function EatHero({ summary }: { summary: Summary }) {
               </div>
             ))}
           </dl>
+          {credit && (
+            <div className="rounded-2xl bg-bakar-soft p-4 text-sm leading-relaxed">
+              <p className="font-bold text-bakar-ink">{t("explain.addBack.title")}</p>
+              <div className="mt-1 space-y-1.5 text-muted-foreground">
+                {!credit.enabled ? (
+                  <p>{t("explain.addBack.off")}</p>
+                ) : credit.workoutKcal === 0 && credit.countedSteps === 0 ? (
+                  <p>{t("explain.addBack.none")}</p>
+                ) : (
+                  <>
+                    <p>
+                      {t("explain.addBack.body", {
+                        workout: fmtInt(credit.workoutKcal),
+                        pct: credit.pct,
+                        kcal: fmtInt(credit.countedKcal),
+                      })}
+                    </p>
+                    {credit.countedSteps > 0 && (
+                      <p>
+                        {t("explain.addBack.steps", {
+                          steps: fmtInt(credit.countedSteps),
+                          threshold: fmtInt(credit.stepThreshold),
+                          stepKcal: fmtInt(credit.stepKcal),
+                        })}
+                      </p>
+                    )}
+                    {credit.capped && (
+                      <p>
+                        {t("explain.addBack.capped", {
+                          cap: credit.cap === "none" ? "" : fmtInt(credit.cap),
+                        })}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+              <Link
+                to="/profil/target"
+                search={{}}
+                className="mt-2 inline-flex min-h-11 items-center gap-1 font-semibold text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+              >
+                {t("explain.addBack.setting")}
+                <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+              </Link>
+            </div>
+          )}
           <Link
             to="/profil/target"
             search={{ needs: true }}

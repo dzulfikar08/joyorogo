@@ -1,0 +1,87 @@
+import { and, eq, inArray, isNull } from "drizzle-orm";
+
+import type { Database } from "@joyorogo/db";
+import { dailyActivity, exerciseLog } from "@joyorogo/db/schema/fitness";
+import { syncRecord } from "@joyorogo/db/schema/sync";
+
+import { ADD_BACK_PREF_KEYS, addBackSettings, exerciseCredit } from "./exercise-credit";
+import type { AddBackPrefKey, AddBackSettings, ExerciseCredit } from "./exercise-credit";
+
+// Server side of "Kalori olahraga": reads the person's settings from their synced preferences (sync_record ns 'rogo',
+// kind 'pref', id = the key, json `{"value": ...}`; a tombstone or a missing row means the default) and builds the
+// day's credit. The settings follow the account, so every client and the MCP connector see the same Sisa.
+
+const NOTICE_KEY = "dismissed.addBackNotice";
+
+/** The `value` of a stored pref document, or undefined when it is not `{"value": ...}`. */
+function docValue(json: string): unknown {
+  try {
+    const doc: unknown = JSON.parse(json);
+    return typeof doc === "object" && doc !== null && "value" in doc ? doc.value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Query shaped for `db.batch`: the live (not deleted) rows of the preferences the day's budget reads. */
+export function addBackPrefQuery(db: Database, userId: string) {
+  return db
+    .select({ id: syncRecord.id, json: syncRecord.json })
+    .from(syncRecord)
+    .where(
+      and(
+        eq(syncRecord.userId, userId),
+        eq(syncRecord.ns, "rogo"),
+        eq(syncRecord.kind, "pref"),
+        inArray(syncRecord.id, [...ADD_BACK_PREF_KEYS, NOTICE_KEY]),
+        isNull(syncRecord.deletedAt),
+      ),
+    );
+}
+
+export type AddBackPrefRows = { id: string; json: string }[];
+
+/** Settings and notice state from the rows of `addBackPrefQuery`. */
+export function readAddBackPrefs(rows: AddBackPrefRows): { settings: AddBackSettings; noticeDismissed: boolean } {
+  const values: Partial<Record<AddBackPrefKey, unknown>> = {};
+  let noticeDismissed = false;
+  for (const row of rows) {
+    if (row.id === NOTICE_KEY) noticeDismissed = docValue(row.json) === true;
+    else values[row.id as AddBackPrefKey] = docValue(row.json);
+  }
+  return { settings: addBackSettings(values), noticeDismissed };
+}
+
+/** Queries for the exercise rows and the step count of one day, shaped for `db.batch`. */
+export function creditDayQueries(db: Database, userId: string, date: string) {
+  return [
+    db
+      .select({
+        kcal: exerciseLog.kcal,
+        source: exerciseLog.source,
+        type: exerciseLog.type,
+        durationMin: exerciseLog.durationMin,
+      })
+      .from(exerciseLog)
+      .where(and(eq(exerciseLog.userId, userId), eq(exerciseLog.date, date))),
+    db
+      .select({ steps: dailyActivity.steps })
+      .from(dailyActivity)
+      .where(and(eq(dailyActivity.userId, userId), eq(dailyActivity.date, date)))
+      .limit(1),
+  ] as const;
+}
+
+/** The day's credit on its own, for callers that do not already hold the rows (reminders, fasting day, coach). */
+export async function loadDayCredit(db: Database, userId: string, date: string, weightKg: number): Promise<ExerciseCredit> {
+  const [prefs, [rows, activity]] = await Promise.all([
+    addBackPrefQuery(db, userId),
+    db.batch(creditDayQueries(db, userId, date)),
+  ]);
+  return exerciseCredit({
+    settings: readAddBackPrefs(prefs).settings,
+    rows,
+    steps: activity[0]?.steps ?? null,
+    weightKg,
+  });
+}

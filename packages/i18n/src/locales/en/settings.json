@@ -234,7 +234,7 @@
     },
     "activity": {
       "title": "Daily activity",
-      "subtitle": "Outside workouts; set during onboarding"
+      "subtitle": "Does not change the eating target; exercise is counted from what you log"
     },
     "numbers": {
       "eat": "Eat",
@@ -285,7 +285,7 @@
       "activity": {
         "label": "Daily activity",
         "name": "Everyday movement",
-        "body": "Extra from walking, work and chores outside of workouts. Based on the activity level you chose: {{level}}."
+        "body": "A small extra for the lightest everyday movement (BMR × 1.2). Exercise is not included: what you log is added to what is left that day."
       },
       "tdee": {
         "label": "TDEE",
@@ -307,8 +307,40 @@
         "name": "Your allowance",
         "body": "The number you see on Beranda."
       },
-      "burnNote": "The rest of your deficit, {{burn}} kcal, comes from your planned exercise (Burn). Your plan's total deficit is about {{deficit}} kcal a day.",
+      "burnNote": "Your whole planned deficit, about {{deficit}} kcal a day, comes out of food. The exercise you log is added to what is left that day.",
       "adaptive": "This TDEE is measured from your food and weigh-in logs over the last 4 weeks, not from the standard formula ({{formula}} kcal)."
+    }
+  },
+  "exerciseCredit": {
+    "title": "Exercise calories",
+    "enabled": {
+      "title": "Add exercise calories",
+      "hint": "Logged exercise adds to what you can eat that day. Your base target does not count exercise."
+    },
+    "pct": {
+      "title": "How much is counted",
+      "hint": "Watches and apps often overestimate calories. 75% is a safe middle.",
+      "value": "{{pct}}%",
+      "aria": "Share of exercise that is counted"
+    },
+    "source": {
+      "title": "What counts",
+      "workouts": "Logged workouts",
+      "workoutsSteps": "Workouts + steps",
+      "hint": "Steps are counted apart from workouts you already logged, with no double counting."
+    },
+    "stepThreshold": {
+      "title": "Steps above",
+      "hint": "Ordinary daily walking is already in the base target. Only steps above this number count.",
+      "value": "{{steps}} steps",
+      "aria": "Daily step threshold"
+    },
+    "cap": {
+      "title": "Daily cap",
+      "hint": "Exercise never adds more than this.",
+      "kcal": "{{kcal}} kcal",
+      "none": "No cap",
+      "aria": "Daily cap on added exercise calories"
     }
   },
   "theme": {

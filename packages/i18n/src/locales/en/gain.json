@@ -27,7 +27,7 @@
     "proteinHint": "Enough protein, plus strength training, helps the extra weight become muscle rather than only fat.",
     "leanNote": "Some of the extra weight is still fat. A slow pace and strength training make more of it muscle.",
     "estimate": "One kg of body weight is counted as 7,700 kcal, a common approximation. Real results vary, so watch your weight trend for 2 to 3 weeks, then adjust.",
-    "burnNote": "Exercise is not added to the eating target. If you train hard and your weight has not risen after 2 to 3 weeks, eat a little more.",
+    "burnNote": "The exercise you log is added to what you can still eat that day. If you train hard and your weight has not risen after 2 to 3 weeks, eat a little more.",
     "needs": {
       "cutNone": "No cut",
       "surplusRow": "Surplus"

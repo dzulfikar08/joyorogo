@@ -14,6 +14,11 @@ const GARBAGE = [undefined, null, 0, 1, "", "nope", NaN, [], {}, [1, 2], () => 1
 describe("the registry", () => {
   test("lists every synced key, each short enough for a sync record id", () => {
     expect(ROGO_PREF_KEYS).toEqual([
+      "exercise.addBack.enabled",
+      "exercise.addBack.pct",
+      "exercise.addBack.source",
+      "exercise.addBack.stepThreshold",
+      "exercise.addBack.cap",
       "theme",
       "reminders",
       "makan.view",
@@ -21,6 +26,7 @@ describe("the registry", () => {
       "sticker",
       "dismissed.handlePrompt",
       "dismissed.stravaRetention7d",
+      "dismissed.addBackNotice",
     ]);
     for (const key of ROGO_PREF_KEYS) expect(key.length).toBeLessThanOrEqual(64);
   });
@@ -31,6 +37,42 @@ describe("the registry", () => {
     expect(isRogoPrefKey("constructor")).toBe(false);
     expect(isRogoPrefKey("__proto__")).toBe(false);
     expect(sanitizeRogoPref("toString", "x")).toBeUndefined();
+  });
+});
+
+describe("exercise.addBack.*", () => {
+  test("accept the offered values only", () => {
+    expect(sanitizeRogoPref("exercise.addBack.enabled", false)).toBe(false);
+    expect(sanitizeRogoPref("exercise.addBack.pct", 50)).toBe(50);
+    expect(sanitizeRogoPref("exercise.addBack.pct", 100)).toBe(100);
+    expect(sanitizeRogoPref("exercise.addBack.source", "workouts+steps")).toBe("workouts+steps");
+    expect(sanitizeRogoPref("exercise.addBack.stepThreshold", 3000)).toBe(3000);
+    expect(sanitizeRogoPref("exercise.addBack.stepThreshold", 10000)).toBe(10000);
+    for (const cap of [500, 1000, 1500, "none"]) expect(sanitizeRogoPref("exercise.addBack.cap", cap)).toBe(cap);
+  });
+
+  test("reject out-of-range, off-step and other types", () => {
+    for (const value of [...GARBAGE, "yes", "true"]) expect(sanitizeRogoPref("exercise.addBack.enabled", value)).toBeUndefined();
+    for (const value of [...GARBAGE, 45, 105, 72, 75.5, "75"]) expect(sanitizeRogoPref("exercise.addBack.pct", value)).toBeUndefined();
+    for (const value of [...GARBAGE, "steps", "Workouts"]) expect(sanitizeRogoPref("exercise.addBack.source", value)).toBeUndefined();
+    for (const value of [...GARBAGE, 2500, 10500, 5100]) expect(sanitizeRogoPref("exercise.addBack.stepThreshold", value)).toBeUndefined();
+    for (const value of [...GARBAGE, 750, 2000, "None", null]) expect(sanitizeRogoPref("exercise.addBack.cap", value)).toBeUndefined();
+  });
+
+  test("the defaults are on, 75%, workouts, 5000 steps, 1000 kcal: stored as tombstones", () => {
+    expect(isRogoPrefDefault("exercise.addBack.enabled", true)).toBe(true);
+    expect(isRogoPrefDefault("exercise.addBack.enabled", false)).toBe(false);
+    expect(isRogoPrefDefault("exercise.addBack.pct", 75)).toBe(true);
+    expect(isRogoPrefDefault("exercise.addBack.pct", 80)).toBe(false);
+    expect(isRogoPrefDefault("exercise.addBack.source", "workouts")).toBe(true);
+    expect(isRogoPrefDefault("exercise.addBack.stepThreshold", 5000)).toBe(true);
+    expect(isRogoPrefDefault("exercise.addBack.cap", 1000)).toBe(true);
+    expect(isRogoPrefDefault("exercise.addBack.cap", "none")).toBe(false);
+  });
+
+  test("the notice dismissal is only ever true", () => {
+    expect(sanitizeRogoPref("dismissed.addBackNotice", true)).toBe(true);
+    for (const value of [...GARBAGE, false]) expect(sanitizeRogoPref("dismissed.addBackNotice", value)).toBeUndefined();
   });
 });
 

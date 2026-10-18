@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import { DEFAULT_ADD_BACK_SETTINGS, exerciseCredit } from "./exercise-credit";
 import { applySummaryDelta, applyWeightCheckIn, deletedMsg, removeById, upsertById } from "./optimistic";
 
 const TODAY = "2026-10-14";
@@ -46,6 +47,21 @@ describe("applySummaryDelta", () => {
     expect(s.eatenKcal).toBe(1000);
     expect(s.burnedKcal).toBe(2150);
     expect(s.weekBurnedKcal).toBe(20150);
+  });
+
+  test("a workout raises the day's budget by the counted share, within the cap", () => {
+    const credited = {
+      ...summary(),
+      targets: { eatKcal: 2000, exerciseKcal: 0 },
+      exerciseCredit: exerciseCredit({ settings: DEFAULT_ADD_BACK_SETTINGS, rows: [], steps: null, weightKg: 70 }),
+    };
+    const added = applySummaryDelta(credited, { date: TODAY, burnKcal: 400 }, TODAY);
+    expect(added.targets).toEqual({ eatKcal: 2300, exerciseKcal: 300 });
+    expect(added.exerciseCredit?.workoutKcal).toBe(400);
+    const capped = applySummaryDelta(added, { date: TODAY, burnKcal: 2000 }, TODAY);
+    expect(capped.targets).toEqual({ eatKcal: 3000, exerciseKcal: 1000 });
+    const removed = applySummaryDelta(capped, { date: TODAY, burnKcal: -2400 }, TODAY);
+    expect(removed.targets).toEqual({ eatKcal: 2000, exerciseKcal: 0 });
   });
 
   test("other-date rows only touch week rollups", () => {

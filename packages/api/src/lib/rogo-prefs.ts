@@ -1,3 +1,4 @@
+import { ADD_BACK_SANITIZERS, DEFAULT_ADD_BACK_SETTINGS } from "./exercise-credit";
 import { DEFAULT_MAKAN_VIEW, parseMakanView } from "./diary-view";
 import { parseFoodKindFilter } from "./food-kind";
 import { DEFAULT_REMINDER_CONFIG, sanitizeConfig } from "./reminder-config";
@@ -58,7 +59,18 @@ const dismissal: RogoPrefSpec = {
   isDefault: () => false,
 };
 
+/** "Kalori olahraga" (lib/exercise-credit): how much recorded exercise is added to Sisa. Read by the server too. */
+const addBack = (field: keyof typeof DEFAULT_ADD_BACK_SETTINGS, key: keyof typeof ADD_BACK_SANITIZERS): RogoPrefSpec => ({
+  sanitize: ADD_BACK_SANITIZERS[key],
+  isDefault: (value) => value === DEFAULT_ADD_BACK_SETTINGS[field],
+});
+
 const SPECS = {
+  "exercise.addBack.enabled": addBack("enabled", "exercise.addBack.enabled"),
+  "exercise.addBack.pct": addBack("pct", "exercise.addBack.pct"),
+  "exercise.addBack.source": addBack("source", "exercise.addBack.source"),
+  "exercise.addBack.stepThreshold": addBack("stepThreshold", "exercise.addBack.stepThreshold"),
+  "exercise.addBack.cap": addBack("cap", "exercise.addBack.cap"),
   theme: {
     sanitize: (value) => THEMES.find((theme) => theme === value),
     isDefault: (value) => value === "system",
@@ -84,6 +96,8 @@ const SPECS = {
   // the record's owner.
   "dismissed.handlePrompt": dismissal,
   "dismissed.stravaRetention7d": dismissal,
+  /** The one-time "how Sisa is counted changed" notice on Beranda (accounts made before the change). */
+  "dismissed.addBackNotice": dismissal,
 } satisfies Record<string, RogoPrefSpec>;
 
 export type RogoPrefKey = keyof typeof SPECS;

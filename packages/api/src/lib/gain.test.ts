@@ -40,7 +40,7 @@ import { buildWeekRecap, dayStatus } from "./recap";
 
 const TODAY = "2026-10-18";
 
-// Male, 170 cm, 60 kg: BMI 20.8, formula TDEE (mid) = (10*60 + 6.25*170 - 5*30 + 5) * 1.35 = 2048.6
+// Male, 170 cm, 60 kg: BMI 20.8, sedentary TDEE = (10*60 + 6.25*170 - 5*30 + 5) * 1.2 = 1821
 const lean: ProfileInput = {
   birthYear: 1996, // 30 on TODAY
   gender: "male",
@@ -203,8 +203,8 @@ describe("computeTargets in gain mode", () => {
     expect(t.gain).not.toBeNull();
     expect(t.notes).toContain("GAIN");
     expect(t.notes).not.toContain("MAINTENANCE");
-    // TDEE 2048.6 -> 2050; 6 kg in 180 days -> +255
-    expect(t.tdee).toBe(2050);
+    // TDEE 1517.5 * 1.2 = 1821 -> 1820; 6 kg in 180 days -> +255
+    expect(t.tdee).toBe(1820);
     expect(t.gain!.surplusKcal).toBe(255);
     expect(t.eatKcal).toBe(t.tdee + t.gain!.surplusKcal);
     expect(t.deficitKcal).toBe(0);
@@ -263,7 +263,7 @@ describe("computeTargets in gain mode", () => {
   test("measured TDEE moves the base within 15%, the surplus sits on top", () => {
     const t = computeTargets(lean, { today: TODAY, adaptiveTdee: 5000 });
     expect(t.notes).toContain("ADAPTIVE");
-    expect(t.tdee).toBe(Math.round((2048.625 * 1.15) / 5) * 5);
+    expect(t.tdee).toBe(Math.round((1517.5 * 1.2 * 1.15) / 5) * 5);
     expect(t.eatKcal).toBe(t.tdee + t.gain!.surplusKcal);
   });
 

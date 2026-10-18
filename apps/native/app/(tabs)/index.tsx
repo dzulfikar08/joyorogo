@@ -21,7 +21,9 @@ import {
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { pickFact } from "@joyorogo/api/lib/facts";
 import { gainEatTone, gainRemaining } from "@joyorogo/api/lib/gain";
+import { DEFAULT_ADD_BACK_SETTINGS } from "@joyorogo/api/lib/exercise-credit";
 
+import { AddBackNotice } from "@/components/add-back-notice";
 import { BelanjaCompact } from "@/components/plate/belanja";
 import {
   GainCard,
@@ -266,6 +268,8 @@ export default function Dashboard() {
   // Hamil / Menyusui: a need to meet, never a budget to stay under.
   const { kcal: leftKcal, over: overBudget } = remainingKcal(data.targets.eatKcal, data.eatenKcal);
   const over = maternal || gain ? false : overBudget;
+  const credit = data.exerciseCredit;
+  const baseKcal = data.targets.eatKcal - data.targets.exerciseKcal;
   const tone = maternal
     ? "ok"
     : gain
@@ -411,6 +415,8 @@ export default function Dashboard() {
       {isToday && !maternal ? <RecapCard /> : null}
 
       <StravaRetentionNotice />
+      <AddBackNotice show={data.addBackNotice} />
+
 
       {/* Pro banner: kuota gratis vs Pro, ketuk Upgrade → paywall */}
       {showFounderBanner && configData ? (
@@ -545,6 +551,11 @@ export default function Dashboard() {
               ) : null}
             </View>
           ) : null}
+          {data.targets.exerciseKcal > 0 && credit ? (
+            <Text style={styles.heroNote}>
+              {t("explain.added", { kcal: fmtInt(data.targets.exerciseKcal), pct: credit.pct })}
+            </Text>
+          ) : null}
         </Card>
       </Reveal>
 
@@ -581,7 +592,13 @@ export default function Dashboard() {
             label={t("tile.burn")}
             value={fmtInt(data.burnedKcal)}
             count={data.burnedKcal}
-            sub={t("tile.burnOf", { kcal: fmtInt(data.targets.burnKcal) })}
+            sub={
+              data.exerciseSources.length > 0
+                ? t("tile.burnSub", {
+                    sources: data.exerciseSources.map((source) => t(`tile.source.${source}`)).join(", "),
+                  })
+                : t("tile.burnNone")
+            }
             onPress={() => router.navigate("/olahraga")}
           />
         )}
@@ -899,20 +916,34 @@ export default function Dashboard() {
                       target: fmtInt(data.targets.eatKcal),
                       eaten: fmtInt(data.eatenKcal),
                     })
-                : over
-                  ? t("explain.exampleOver", {
-                      target: fmtInt(data.targets.eatKcal),
-                      eaten: fmtInt(data.eatenKcal),
-                      over: fmtInt(leftKcal),
-                    })
-                  : t("explain.example", {
-                      target: fmtInt(data.targets.eatKcal),
-                      eaten: fmtInt(data.eatenKcal),
-                      left: fmtInt(leftKcal),
-                    })}
+                : data.targets.exerciseKcal > 0
+                  ? over
+                    ? t("explain.exampleAddOver", {
+                        target: fmtInt(baseKcal),
+                        exercise: fmtInt(data.targets.exerciseKcal),
+                        eaten: fmtInt(data.eatenKcal),
+                        over: fmtInt(leftKcal),
+                      })
+                    : t("explain.exampleAdd", {
+                        target: fmtInt(baseKcal),
+                        exercise: fmtInt(data.targets.exerciseKcal),
+                        eaten: fmtInt(data.eatenKcal),
+                        left: fmtInt(leftKcal),
+                      })
+                  : over
+                    ? t("explain.exampleOver", {
+                        target: fmtInt(data.targets.eatKcal),
+                        eaten: fmtInt(data.eatenKcal),
+                        over: fmtInt(leftKcal),
+                      })
+                    : t("explain.example", {
+                        target: fmtInt(data.targets.eatKcal),
+                        eaten: fmtInt(data.eatenKcal),
+                        left: fmtInt(leftKcal),
+                      })}
             </Num>
           </View>
-          {(["target", "eaten", "left", "burn"] as const).map((key) => (
+          {(["target", "eaten", "left"] as const).map((key) => (
             <View key={key} style={styles.explainItem}>
               <Text style={styles.explainTitle}>
                 {gainLeft && key === "left"
@@ -934,6 +965,46 @@ export default function Dashboard() {
             </View>
           ))}
           <View style={styles.explainItem}>
+            <Text style={styles.explainTitle}>{t("explain.burn.title")}</Text>
+            <Text style={styles.adaptiveMuted}>{t("explain.burn.body", { pct: credit?.pct ?? DEFAULT_ADD_BACK_SETTINGS.pct })}</Text>
+          </View>
+          {credit ? (
+            <View style={styles.explainItem}>
+              <Text style={styles.explainTitle}>{t("explain.addBack.title")}</Text>
+              {!credit.enabled ? (
+                <Text style={styles.adaptiveMuted}>{t("explain.addBack.off")}</Text>
+              ) : credit.workoutKcal === 0 && credit.countedSteps === 0 ? (
+                <Text style={styles.adaptiveMuted}>{t("explain.addBack.none")}</Text>
+              ) : (
+                <>
+                  <Text style={styles.adaptiveMuted}>
+                    {t("explain.addBack.body", {
+                      workout: fmtInt(credit.workoutKcal),
+                      pct: credit.pct,
+                      kcal: fmtInt(credit.countedKcal),
+                    })}
+                  </Text>
+                  {credit.countedSteps > 0 ? (
+                    <Text style={styles.adaptiveMuted}>
+                      {t("explain.addBack.steps", {
+                        steps: fmtInt(credit.countedSteps),
+                        threshold: fmtInt(credit.stepThreshold),
+                        stepKcal: fmtInt(credit.stepKcal),
+                      })}
+                    </Text>
+                  ) : null}
+                  {credit.capped ? (
+                    <Text style={styles.adaptiveMuted}>
+                      {t("explain.addBack.capped", {
+                        cap: credit.cap === "none" ? "" : fmtInt(credit.cap),
+                      })}
+                    </Text>
+                  ) : null}
+                </>
+              )}
+            </View>
+          ) : null}
+          <View style={styles.explainItem}>
             <Text style={styles.explainTitle}>
               {gain ? t("gain:coach.surplusExplainer.title") : t("explain.deficit.title")}
             </Text>
@@ -945,6 +1016,19 @@ export default function Dashboard() {
                   : t("explain.deficit.body", { kcal: fmtInt(data.targets.deficitKcal) })}
             </Text>
           </View>
+          <ListGroup>
+            <ListRow
+              icon="flame"
+              iconTint="bakar"
+              title={t("explain.addBack.setting")}
+              wrapTitle
+              chevron
+              onPress={() => {
+                setExplainOpen(false);
+                router.push("/profil/target");
+              }}
+            />
+          </ListGroup>
           <ListGroup>
             <ListRow
               icon="flash"

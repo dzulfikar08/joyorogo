@@ -128,13 +128,8 @@ export function NeedsSheet({
       <div className="mt-3 space-y-3 text-sm leading-relaxed text-muted-foreground">
         {maternal && <p>{t("maternal:needs.noDeficit")}</p>}
         {gain && <p>{t("gain:plan.burnNote")}</p>}
-        {!maternal && !gain && needs.plannedBurnKcal > 0 && (
-          <p>
-            {t("plan.needs.burnNote", {
-              burn: fmtInt(needs.plannedBurnKcal),
-              deficit: fmtInt(needs.deficitKcal),
-            })}
-          </p>
+        {!maternal && !gain && !needs.maintenance && needs.deficitKcal > 0 && (
+          <p>{t("plan.needs.burnNote", { deficit: fmtInt(needs.deficitKcal) })}</p>
         )}
         {gain && <p>{t("gain:plan.estimate")}</p>}
         {gain && (

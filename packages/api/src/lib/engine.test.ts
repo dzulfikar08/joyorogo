@@ -97,14 +97,15 @@ describe("idealWeightRange", () => {
 describe("computeTargets", () => {
   test("aggressive plan is clamped: deficit capped", () => {
     const t = computeTargets(baseProfile, { today: TODAY });
-    // bmr 1817.5 (at 90kg), tdee 2271.875, needed deficit 1711 -> 1000
+    // bmr 1817.5 (at 90kg), sedentary tdee 1817.5 * 1.2 = 2181, needed deficit 1711 -> 1000
     expect(t.bmr).toBe(1818);
     expect(t.rawDeficitKcal).toBe(1711);
     expect(t.deficitKcal).toBe(1000);
-    // burn = round5(3.3*90) = 295
+    // burn = round5(3.3*90) = 295: a movement goal, no longer part of the eat target
     expect(t.burnKcal).toBe(295);
-    // eat = round5(2271.875 - 705) = 1565
-    expect(t.eatKcal).toBe(1565);
+    // the whole deficit is a food cut now: 2181 - 1000 = 1181, under the male floor of 1500
+    expect(t.eatKcal).toBe(1500);
+    expect(t.exerciseKcal).toBe(0);
     expect(t.notes).toContain("PLAN_CLAMPED");
     expect(t.notes).not.toContain("BELOW_HEALTHY_RANGE");
     expect(t.sleepHours).toBe(8);
@@ -152,13 +153,23 @@ describe("computeTargets", () => {
 
   test("uses latest known weight when provided", () => {
     const t = computeTargets(baseProfile, { today: TODAY, weightNow: 80 });
-    // bmr at 80kg = 1717.5, tdee 2146.875
+    // bmr at 80kg = 1717.5, tdee 2061
     expect(t.bmr).toBe(1718);
     expect(t.burnKcal).toBe(265); // round5(3.3*80) = 264 -> 265
     // needed deficit (80-70)*7700/90 = 856, inside clamp window
     expect(t.deficitKcal).toBe(856);
+    // 2061 - 856 = 1205 is under the male floor: the floor holds and the note says so
+    expect(t.eatKcal).toBe(1500);
+    expect(t.notes).toContain("PLAN_CLAMPED");
+  });
+
+  test("a heavier body keeps the whole food cut above the floor: target = round5(tdee - deficit)", () => {
+    const t = computeTargets({ ...baseProfile, weightKg: 130, targetWeightKg: 120 }, { today: TODAY });
+    // bmr 2217.5, tdee 2661, deficit 10 * 7700 / 90 = 856
+    expect(t.tdee).toBe(2661);
+    expect(t.deficitKcal).toBe(856);
+    expect(t.eatKcal).toBe(1805);
     expect(t.notes).not.toContain("PLAN_CLAMPED");
-    expect(t.eatKcal).toBe(1555);
   });
 
   test("past target date clamps to 1-day plan, not a crash", () => {
@@ -446,11 +457,11 @@ describe("adaptiveTdee", () => {
 describe("computeTargets with measured TDEE", () => {
   test("measured TDEE moves the plan at most 15% from the formula", () => {
     const t = computeTargets(baseProfile, { today: TODAY, adaptiveTdee: 4000 });
-    expect(t.formulaTdee).toBe(2272); // 1817.5 * 1.25
-    expect(t.tdee).toBe(Math.round(2271.875 * 1.15));
+    expect(t.formulaTdee).toBe(2181); // 1817.5 * 1.2
+    expect(t.tdee).toBe(Math.round(2181 * 1.15));
     expect(t.notes).toContain("ADAPTIVE");
     const low = computeTargets(baseProfile, { today: TODAY, adaptiveTdee: 1000 });
-    expect(low.tdee).toBe(Math.round(2271.875 * 0.85));
+    expect(low.tdee).toBe(Math.round(2181 * 0.85));
   });
 
   test("formula plan carries no ADAPTIVE note and tdee equals formulaTdee", () => {
@@ -525,7 +536,7 @@ describe("checkTargetDate", () => {
 
   test("moving the date moves the daily target inside the safe window", () => {
     const at = (targetDate: string) =>
-      computeTargets({ ...baseProfile, weightKg: 80, targetDate }, { today: TODAY });
+      computeTargets({ ...baseProfile, weightKg: 130, targetWeightKg: 120, targetDate }, { today: TODAY });
     expect(at("2026-11-12").eatKcal).toBeLessThan(at("2027-01-12").eatKcal);
     expect(at("2026-11-12").deficitKcal).toBeGreaterThan(at("2027-01-12").deficitKcal);
   });
@@ -543,13 +554,15 @@ describe("remainingKcal", () => {
 });
 
 describe("needsBreakdown", () => {
-  test("BMR + activity = TDEE, TDEE - food cut = target; the rest of the deficit is planned burn", () => {
-    const targets = computeTargets({ ...baseProfile, weightKg: 80 }, { today: TODAY });
+  test("BMR + activity = TDEE, TDEE - food cut = target; the whole deficit is the food cut", () => {
+    const targets = computeTargets({ ...baseProfile, weightKg: 130, targetWeightKg: 120 }, { today: TODAY });
     const needs = needsBreakdown(targets);
     expect(needs.bmrKcal + needs.activityKcal).toBe(needs.tdeeKcal);
     expect(needs.cutKcal).toBeGreaterThan(0);
     expect(needs.tdeeKcal - needs.cutKcal - needs.targetKcal).toBeLessThanOrEqual(2);
-    expect(needs.plannedBurnKcal + needs.cutKcal).toBeCloseTo(needs.deficitKcal, -1);
+    expect(needs.cutKcal).toBeCloseTo(needs.deficitKcal, -1);
+    expect(needs.exerciseKcal).toBe(0);
+    expect(needs.budgetKcal).toBe(needs.targetKcal);
     expect(needs.maintenance).toBe(false);
   });
 
@@ -597,7 +610,8 @@ describe("datePace: the verdict on a stored target", () => {
     const first = computeTargets(owner, { today });
     const moved = computeTargets({ ...owner, targetDate: first.datePace!.reachDate }, { today });
     expect(moved.datePace).toBeNull();
-    expect(moved.notes).not.toContain("PLAN_CLAMPED");
+    // 2392 - 997 = 1395 is under the floor, so the floor still holds (the date, not the food cut, is what is safe)
+    expect(moved.deficitKcal).toBeLessThan(1000);
   });
 
   test("a reachable date, a slow date and a held weight carry no notice", () => {

@@ -182,7 +182,7 @@ function createMcpServer(
     "get_daily_totals",
     {
       title: "Daily totals against targets",
-      description: `One row per day of a range: eaten kcal and macros (g), meals logged, logged exercise kcal, steps and kcal remaining against the eat target, plus the current targets and the average of the logged days. The targets are today's plan applied to every day of the range. Days with nothing logged have logged=false and null totals. Dates are WIB YYYY-MM-DD; default is the last 7 days; at most ${FIT_LIMITS.totalsDays} days.`,
+      description: `One row per day of a range: eaten kcal and macros (g), meals logged, logged exercise kcal (Strava excluded), steps, the exercise kcal added to that day's budget under the person's own "Kalori olahraga" settings (exerciseAddedKcal; the settings are returned as exerciseAddBack) and kcal remaining against the eat target plus that addition, plus the current targets and the average of the logged days. The targets are today's plan applied to every day of the range. Days with nothing logged have logged=false and null totals. Dates are WIB YYYY-MM-DD; default is the last 7 days; at most ${FIT_LIMITS.totalsDays} days.`,
       inputSchema: {
         from: dayArg("First day, YYYY-MM-DD (WIB). Default: 6 days before `to`."),
         to: dayArg("Last day, YYYY-MM-DD (WIB). Default: today."),

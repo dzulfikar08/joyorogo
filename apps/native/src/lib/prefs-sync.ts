@@ -16,6 +16,7 @@ import { DEFAULT_STICKER_PREFS, loadStickerPrefs, writeStickerPrefs } from "@/co
 import { client, orpc, queryClient } from "@/utils/orpc";
 
 import { readDismissal, writeDismissal } from "./dismissals";
+import { readAddBackPref, writeAddBackPref } from "./exercise-credit-prefs";
 import { setLocale } from "./i18n";
 import { loadMakanPrefs, writeMakanPref } from "./makan-prefs";
 import { readStoredReminderConfig, rescheduleAll, writeReminderConfig } from "./notifications";
@@ -93,8 +94,15 @@ async function readDevice(key: RogoPrefKey, userId: string): Promise<unknown | u
       return (await loadMakanPrefs()).kind;
     case "sticker":
       return loadStickerPrefs();
+    case "exercise.addBack.enabled":
+    case "exercise.addBack.pct":
+    case "exercise.addBack.source":
+    case "exercise.addBack.stepThreshold":
+    case "exercise.addBack.cap":
+      return readAddBackPref(key);
     case "dismissed.handlePrompt":
     case "dismissed.stravaRetention7d":
+    case "dismissed.addBackNotice":
       return (await readDismissal(key, userId)) ? true : undefined;
   }
 }
@@ -112,8 +120,15 @@ async function writeDevice(key: RogoPrefKey, userId: string, value: unknown | un
       return writeMakanPref("kind", value as string | undefined);
     case "sticker":
       return writeStickerPrefs((value as typeof DEFAULT_STICKER_PREFS | undefined) ?? DEFAULT_STICKER_PREFS);
+    case "exercise.addBack.enabled":
+    case "exercise.addBack.pct":
+    case "exercise.addBack.source":
+    case "exercise.addBack.stepThreshold":
+    case "exercise.addBack.cap":
+      return writeAddBackPref(key, value);
     case "dismissed.handlePrompt":
     case "dismissed.stravaRetention7d":
+    case "dismissed.addBackNotice":
       return writeDismissal(key, userId, value === true);
   }
 }
