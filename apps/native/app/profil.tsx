@@ -51,6 +51,7 @@ import { MaternalEditSheet, MaternalSettingsSheet, useSetMaternal } from "@/comp
 import { GainDisclaimer, GainNotes } from "@/components/gain/gain-notes";
 import { GoalChooser } from "@/components/gain/goal-chooser";
 import { StravaCard } from "@/components/strava-card";
+import { KoneksiRow } from "@/components/koneksi-row";
 import { FastingSettingsCard } from "@/components/fasting/settings-card";
 import { RemindersCard } from "@/components/reminders/reminders-card";
 import { FeedSettingsCard } from "@/components/feed/settings";
@@ -778,6 +779,7 @@ export default function Profil() {
       {/* Integrasi */}
       <Text style={styles.sectionLabel}>{t("section.integrations")}</Text>
       <StravaCard />
+      <KoneksiRow />
       {isHealthSyncSupported() ? (
         <Card>
           {Platform.OS === "ios" ? (

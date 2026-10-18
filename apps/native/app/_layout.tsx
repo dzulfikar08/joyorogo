@@ -171,6 +171,7 @@ export default function RootLayout() {
               options={{ title: t("nav.title.pro"), presentation: "modal", headerShown: false }}
             />
             <Stack.Screen name="inbox" options={{ title: t("nav.title.inbox") }} />
+            <Stack.Screen name="koneksi" options={{ title: t("title", { ns: "koneksi" }) }} />
             <Stack.Screen name="tips/[slug]" options={{ title: t("nav.title.tips") }} />
             <Stack.Screen name="feed/[postId]" options={{ title: t("nav.title.post") }} />
             <Stack.Screen name="feed/notifikasi" options={{ title: t("nav.title.notifications") }} />
