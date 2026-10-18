@@ -4,6 +4,7 @@ import { createFileRoute, isRedirect, Link, Navigate, redirect } from "@tanstack
 import {
   Activity,
   Baby,
+  TrendingUp,
   CalendarDays,
   CameraOff,
   Check,
@@ -352,6 +353,12 @@ const NEW_FEATURES = [
     title: "Mode Hamil dan Menyusui",
     body: "Tanpa defisit dan tanpa target turun berat. Target kalori dan gizi mengikuti AKG 2019 menurut trimester atau usia bayi, lengkap dengan pita kenaikan berat dari IOM.",
     href: "/blog/panduan-mode-hamil-menyusui/",
+  },
+  {
+    icon: TrendingUp,
+    title: "Mode Naikin BB",
+    body: "Berat target di atas berat badanmu? Target makan jadi TDEE ditambah surplus kecil dari ritme naik, protein 1,6 sampai 2,2 g per kg, dan \"Kurang X kkal lagi\" menggantikan sisa kalori.",
+    href: "/blog/panduan-mode-naikin-bb/",
   },
   {
     icon: RefreshCw,
