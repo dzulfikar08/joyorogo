@@ -128,6 +128,10 @@ describe("input schema", () => {
     const parsed = coachChatInputSchema.parse({ ...ok, snapshot: { ...snapshot, junk: 1 } });
     expect("junk" in parsed.snapshot).toBe(false);
   });
+  test("accepts real unix-second timestamps", () => {
+    const real = { ...snapshot, generatedAt: 1_792_300_000, workouts: [{ start: 1_792_200_000, sport: "Run", durationMin: 30, distanceKm: 5, avgHr: 140, strain: 8, matchedPlan: false }] };
+    expect(coachChatInputSchema.safeParse({ ...ok, snapshot: real }).success).toBe(true);
+  });
   test("last must be user, 1..12 messages, 2000 chars", () => {
     expect(coachChatInputSchema.safeParse({ ...ok, messages: [{ role: "assistant", content: "x" }] }).success).toBe(false);
     expect(coachChatInputSchema.safeParse({ ...ok, messages: [] }).success).toBe(false);

@@ -28,9 +28,10 @@ export const COACH_LIMITS = {
 const short = (max: number) => z.string().max(max);
 const num = z.number().finite().min(-1_000_000).max(1_000_000);
 const nn = num.nullable();
+const unixSeconds = z.number().int().min(0).max(4_102_444_800);
 
 export const coachSnapshotSchema = z.object({
-  generatedAt: z.number().int().min(0),
+  generatedAt: unixSeconds,
   today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   readiness: z.object({ headline: z.enum(["Primed", "Balanced", "Strained", "Run down"]).nullable() }).nullable(),
   load: z
@@ -58,7 +59,7 @@ export const coachSnapshotSchema = z.object({
   workouts: z
     .array(
       z.object({
-        start: num,
+        start: unixSeconds,
         sport: short(40),
         durationMin: num,
         distanceKm: nn,
