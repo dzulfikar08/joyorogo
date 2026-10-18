@@ -1,0 +1,32 @@
+CREATE TABLE `watch_workout` (
+	`user_id` text NOT NULL,
+	`start` integer NOT NULL,
+	`workout_number` integer NOT NULL,
+	`sport_name` text NOT NULL,
+	`sport_kind` text NOT NULL,
+	`elapsed_sec` integer NOT NULL,
+	`moving_sec` integer NOT NULL,
+	`distance_m` real,
+	`elev_gain_m` real,
+	`elev_loss_m` real,
+	`avg_hr` integer,
+	`max_hr` integer,
+	`calories` integer DEFAULT 0 NOT NULL,
+	`steps` integer DEFAULT 0 NOT NULL,
+	`point_count` integer DEFAULT 0 NOT NULL,
+	`has_gps` integer DEFAULT false NOT NULL,
+	`has_analysis` integer DEFAULT false NOT NULL,
+	`imported` integer DEFAULT false NOT NULL,
+	`complete` integer DEFAULT true NOT NULL,
+	`engine_rev` integer DEFAULT 0 NOT NULL,
+	`blob_bytes` integer DEFAULT 0 NOT NULL,
+	`content_hash` text NOT NULL,
+	`version` integer DEFAULT 1 NOT NULL,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	`deleted_at` integer,
+	PRIMARY KEY(`user_id`, `start`),
+	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `watch_workout_user_updated_idx` ON `watch_workout` (`user_id`,`updated_at`,`start`);

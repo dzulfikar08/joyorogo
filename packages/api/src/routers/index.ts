@@ -22,6 +22,7 @@ import { sleepRouter } from "./sleep";
 import { socialRouter } from "./social";
 import { statsRouter } from "./stats";
 import { stravaRouter } from "./strava";
+import { watchWorkoutRouter } from "./watch-workout";
 import { waterRouter } from "./water";
 import { waistRouter } from "./waist";
 import { weightRouter } from "./weight";
@@ -52,6 +53,7 @@ export const appRouter = {
   privacy: privacyRouter,
   water: waterRouter,
   workout: workoutRouter,
+  watchWorkout: watchWorkoutRouter,
   fasting: fastingRouter,
   plate: plateRouter,
   place: placeRouter,

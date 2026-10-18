@@ -51,6 +51,7 @@ import { registerPrivacyRoutes } from "./privacy";
 import { registerFamilyRoutes } from "./family";
 import { registerStravaRoutes } from "./strava";
 import { registerUnsubscribeRoutes } from "./unsubscribe";
+import { registerWatchWorkoutRoutes } from "./watch-workout";
 import { scrubExpiredStravaRows } from "@joyorogo/api/lib/strava-retention";
 import { env } from "./env.server";
 import { createAuth, getDb } from "./services";
@@ -400,6 +401,14 @@ registerPrivacyRoutes(app, {
   strava: env,
   createAuth,
   stickers: () => ("STICKERS" in env ? env.STICKERS : undefined),
+});
+
+// JoyoFit cloud workouts: the gzip document upload (Pro) and download; the rest is oRPC watchWorkout.*.
+registerWatchWorkoutRoutes(app, {
+  getDb,
+  createAuth,
+  env,
+  bucket: () => ("STICKERS" in env ? env.STICKERS : undefined),
 });
 
 // JoyoFit's Worker reads and writes the shared Strava grant here (Basic auth with the Strava client credentials).

@@ -281,6 +281,13 @@
       "when": 1792283370404,
       "tag": "0039_goal_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "6",
+      "when": 1792286362837,
+      "tag": "0040_watch_workout",
+      "breakpoints": true
     }
   ]
 }

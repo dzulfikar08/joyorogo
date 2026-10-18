@@ -34,6 +34,7 @@ import { savedFood } from "@joyorogo/db/schema/saved-foods";
 import { barcodeContribution } from "@joyorogo/db/schema/barcode";
 import { teamChallengeMember } from "@joyorogo/db/schema/challenge";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
+import { watchWorkout } from "@joyorogo/db/schema/watch-workout";
 
 import { avatarPrefix } from "./avatar";
 import { datasetPrefix } from "./dataset";
@@ -41,6 +42,7 @@ import { feedbackPrefix } from "./feedback-keep";
 import { photoPrefix, postPhotoPrefix, scanSrcPrefix, stickerKey, varPhotoPrefix } from "./sticker";
 import { parseSavedItems } from "./saved-foods";
 import type { StickersBucket } from "./sticker";
+import { watchBlobPrefix } from "./watch-workout";
 
 /** Sticker keys of the user's diary; read BEFORE the rows are wiped. */
 export async function userStickerKeys(db: Database, userId: string): Promise<string[]> {
@@ -79,6 +81,8 @@ export async function deleteUserMedia(
     datasetPrefix(userId),
     // Photos the user opted in to keep with negative feedback.
     feedbackPrefix(userId),
+    // JoyoFit cloud workouts (Pro): one document per workout.
+    watchBlobPrefix(userId),
   ]) {
     let cursor: string | undefined;
     do {
@@ -129,6 +133,7 @@ export function deleteAllUserData(db: Database, userId: string) {
     db.delete(exerciseLog).where(eq(exerciseLog.userId, userId)),
     db.delete(sleepLog).where(eq(sleepLog.userId, userId)),
     db.delete(fitnessScore).where(eq(fitnessScore.userId, userId)),
+    db.delete(watchWorkout).where(eq(watchWorkout.userId, userId)),
     db.delete(stravaAccount).where(eq(stravaAccount.userId, userId)),
     db.delete(waterLog).where(eq(waterLog.userId, userId)),
     db.delete(dailyActivity).where(eq(dailyActivity.userId, userId)),
