@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Pressable, ScrollView, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -96,7 +95,7 @@ function ExercisePicker({
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t("latihan.action.addExercise")}>
-      <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 480 }}>
+      <View>
         <Field label={t("latihan.picker.searchLabel")}>
           <Input
             value={query}
@@ -144,7 +143,7 @@ function ExercisePicker({
             <Text style={pickerStyles.empty}>{t("latihan.picker.empty.hint")}</Text>
           ) : null}
         </View>
-      </KeyboardAwareScrollView>
+      </View>
     </Sheet>
   );
 }

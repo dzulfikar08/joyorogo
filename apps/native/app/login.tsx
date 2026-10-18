@@ -6,7 +6,8 @@ import { Redirect, Stack, useLocalSearchParams } from "expo-router";
 import type { Href } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Platform, ScrollView, View } from "react-native";
+import { Platform, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Container } from "@/components/container";
@@ -139,7 +140,7 @@ export default function Login() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <Container>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <KeyboardAwareScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
             <Mascot pose="hero" size="md" />
             <Text style={styles.logo}>JoyoRogo</Text>
@@ -210,7 +211,7 @@ export default function Login() {
             )}
             {signInError ? <Text style={styles.errorText}>{signInError}</Text> : null}
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </Container>
     </>
   );
