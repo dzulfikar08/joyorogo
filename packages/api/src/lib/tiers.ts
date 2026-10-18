@@ -11,12 +11,17 @@ export type PaywallEnv = {
   FOUNDER_DAILY_CAP?: string;
   ANON_SCANS?: string;
   FOUNDER_PRICE_IDR?: string;
-  /** Empty = 10x the monthly price. When set it applies to every ladder step. */
+  /**
+   * Flat yearly price and the store fallback (Apple/Play orders not billed in IDR).
+   * Empty = 10x the monthly price. Ladder steps without an explicit "/yearly" use it
+   * (capped at 10x their monthly); explicit step yearly prices always win.
+   */
   FOUNDER_YEARLY_PRICE_IDR?: string;
   /**
-   * Urgency ladder "buyers:monthlyIdr" steps, e.g. "10:15000,110:29000,:49000"
-   * (first 10 buyers Rp15k, buyers 11-110 Rp29k, then Rp49k). The last step
-   * may be open-ended (":49000"). Empty = flat FOUNDER_PRICE_IDR, no promo.
+   * Urgency ladder "buyers:monthlyIdr[/yearlyIdr]" steps, e.g.
+   * "10:15000/149000,110:29000/199000,:49000/349000" (first 10 buyers Rp15k or
+   * Rp149k a year, buyers 11-110 Rp29k / Rp199k, then Rp49k / Rp349k). The last
+   * step may be open-ended. Empty = flat FOUNDER_PRICE_IDR, no promo.
    */
   FOUNDER_PRICE_LADDER?: string;
 };
@@ -26,6 +31,8 @@ export type LadderStep = {
   /** Cumulative buyers this price covers; null = open-ended (last step). */
   upToBuyers: number | null;
   monthlyIdr: number;
+  /** Price of the yearly plan while this step is current. */
+  yearlyIdr: number;
 };
 
 export type PromoState = {
@@ -81,9 +88,11 @@ export function paywallConfig(env: PaywallEnv): PaywallConfig {
 }
 
 /**
- * Parses "10:15000,110:29000,:49000". Loud on purpose: a typo must not
- * silently sell Founder at the wrong rung. `yearlyOverride` (FOUNDER_YEARLY_PRICE_IDR)
- * is validated up front so it applies to every step.
+ * Parses "10:15000/149000,110:29000/199000,:49000/349000" (buyers:monthly/yearly).
+ * The "/yearly" part is optional per step; without it yearly falls back to
+ * `yearlyOverride` (FOUNDER_YEARLY_PRICE_IDR, capped at 10x that step's monthly)
+ * or 10x monthly. Loud on purpose: a typo must not silently sell Founder at
+ * the wrong rung. `yearlyOverride` is validated up front.
  */
 export function parseLadder(
   raw: string | undefined,
@@ -91,23 +100,33 @@ export function parseLadder(
 ): LadderStep[] | null {
   const value = raw?.trim();
   if (!value) return null;
-  const steps = value.split(",").map((part): LadderStep => {
-    const chunk = part.trim();
-    const [buyersRaw, priceRaw] = chunk.split(":");
-    const monthly = Number(priceRaw);
-    if (!priceRaw || !Number.isInteger(monthly) || monthly <= 0) {
-      throw new Error(`FOUNDER_PRICE_LADDER step "${chunk}" must be "<buyers>:<monthlyIdr>"`);
-    }
-    if ((buyersRaw ?? "") === "") return { upToBuyers: null, monthlyIdr: monthly };
-    if (!/^\d+$/.test(buyersRaw!.trim())) {
-      throw new Error(`FOUNDER_PRICE_LADDER step "${chunk}" needs a whole buyer cap or "" for open-ended`);
-    }
-    return { upToBuyers: Number(buyersRaw), monthlyIdr: monthly };
-  });
-  if (steps.length === 0) throw new Error("FOUNDER_PRICE_LADDER needs at least one step");
   if (yearlyOverride !== null && yearlyOverride <= 0) {
     throw new Error("FOUNDER_YEARLY_PRICE_IDR must be > 0");
   }
+  const steps = value.split(",").map((part): LadderStep => {
+    const chunk = part.trim();
+    const colon = chunk.indexOf(":");
+    const buyersRaw = colon === -1 ? chunk : chunk.slice(0, colon);
+    const pricesRaw = colon === -1 ? "" : chunk.slice(colon + 1);
+    const [monthlyRaw, yearlyRaw, ...extra] = pricesRaw.split("/");
+    const bad = () =>
+      new Error(`FOUNDER_PRICE_LADDER step "${chunk}" must be "<buyers>:<monthlyIdr>[/<yearlyIdr>]"`);
+    if (extra.length > 0 || !/^\d+$/.test(monthlyRaw!.trim())) throw bad();
+    const monthly = Number(monthlyRaw);
+    if (monthly <= 0) throw bad();
+    let yearly: number;
+    if (yearlyRaw !== undefined) {
+      if (!/^\d+$/.test(yearlyRaw.trim()) || Number(yearlyRaw) <= 0) throw bad();
+      yearly = Number(yearlyRaw);
+    } else {
+      yearly = yearlyOverride === null ? monthly * 10 : Math.min(yearlyOverride, monthly * 10);
+    }
+    if (buyersRaw.trim() === "") return { upToBuyers: null, monthlyIdr: monthly, yearlyIdr: yearly };
+    if (!/^\d+$/.test(buyersRaw.trim())) {
+      throw new Error(`FOUNDER_PRICE_LADDER step "${chunk}" needs a whole buyer cap or "" for open-ended`);
+    }
+    return { upToBuyers: Number(buyersRaw), monthlyIdr: monthly, yearlyIdr: yearly };
+  });
   let previousCap: number | null | undefined = undefined;
   for (const step of steps) {
     if (previousCap === null) {
@@ -119,6 +138,24 @@ export function parseLadder(
     previousCap = step.upToBuyers;
   }
   return steps;
+}
+
+/**
+ * What a checkout charges on this rung. A returning buyer's lowest paid
+ * monthly-equivalent (`lockedMonthlyIdr`, see grandfatheredMonthlyIdr) wins
+ * when it beats the rung: monthly = that price, yearly = at most 10x of it.
+ */
+export function checkoutAmountIdr(
+  step: LadderStep,
+  plan: FounderPlan,
+  lockedMonthlyIdr: number | null,
+): number {
+  const locked =
+    lockedMonthlyIdr !== null && lockedMonthlyIdr < step.monthlyIdr
+      ? Math.round(lockedMonthlyIdr)
+      : null;
+  if (plan === "monthly") return locked ?? step.monthlyIdr;
+  return locked === null ? step.yearlyIdr : Math.min(step.yearlyIdr, locked * 10);
 }
 
 /**

@@ -46,6 +46,7 @@ import {
 } from "@joyorogo/api/lib/pakasir";
 import type { PakasirConfig } from "@joyorogo/api/lib/pakasir";
 import {
+  checkoutAmountIdr,
   grandfatheredMonthlyIdr,
   ladderStep,
   nextFounderUntil,
@@ -263,10 +264,6 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       .where(and(eq(payment.status, "paid"), gt(payment.amountIdr, 0)));
     return row?.taken ?? 0;
   };
-  const yearlyOverride = env.FOUNDER_YEARLY_PRICE_IDR?.trim() ? config.founderYearlyPriceIdr : null;
-  // Yearly = the override when set, but never more than 10x the buyer's monthly.
-  const yearlyFor = (monthlyIdr: number) =>
-    yearlyOverride === null ? monthlyIdr * 10 : Math.min(yearlyOverride, monthlyIdr * 10);
 
   // Public: lets the web hide pricing and upgrade prompts on self-hosts.
   app.get("/api/config", async (c) => {
@@ -286,7 +283,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       freeDailyScans: config.freeDailyScans,
       founderDailyCap: config.founderDailyCap,
       founderPriceIdr: step ? step.monthlyIdr : config.founderPriceIdr,
-      founderYearlyPriceIdr: step ? yearlyFor(step.monthlyIdr) : config.founderYearlyPriceIdr,
+      founderYearlyPriceIdr: step ? step.yearlyIdr : config.founderYearlyPriceIdr,
       promo,
       anonScans: config.anonScans,
     });
@@ -314,7 +311,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     // Urgency ladder price for this buyer, then grandfathering: anyone who
     // has paid before renews at their lowest monthly-equivalent price when
     // that beats the current rung ("harga terkunci").
-    let basePriceIdr: number;
+    let amountIdr: number;
     if (config.founderLadder) {
       const [taken, paid] = await Promise.all([
         ladderBuyers(db),
@@ -323,19 +320,14 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
           .from(payment)
           .where(and(eq(payment.userId, me.id), eq(payment.status, "paid"), gt(payment.amountIdr, 0))),
       ]);
-      const step = ladderStep(config.founderLadder, taken);
-      const locked = grandfatheredMonthlyIdr(paid);
-      basePriceIdr =
-        locked !== null && locked < step.monthlyIdr ? Math.round(locked) : step.monthlyIdr;
+      amountIdr = checkoutAmountIdr(
+        ladderStep(config.founderLadder, taken),
+        plan,
+        grandfatheredMonthlyIdr(paid),
+      );
     } else {
-      basePriceIdr = config.founderPriceIdr;
+      amountIdr = plan === "yearly" ? config.founderYearlyPriceIdr : config.founderPriceIdr;
     }
-    const amountIdr =
-      plan === "yearly"
-        ? config.founderLadder
-          ? yearlyFor(basePriceIdr)
-          : config.founderYearlyPriceIdr
-        : basePriceIdr;
 
     const orderId = buildOrderId();
     const returnUrl = `${appUrl}/pembayaran?order=${encodeURIComponent(orderId)}`;

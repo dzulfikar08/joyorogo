@@ -41,7 +41,7 @@ export type AppConfig = {
   freeDailyScans: number | null;
   founderDailyCap: number | null;
   founderPriceIdr: number;
-  /** Yearly Pro price (FOUNDER_YEARLY_PRICE_IDR, Rp199.000 in production). */
+  /** Yearly Pro price of the current ladder step (Rp199.000 at buyers 11-110). */
   founderYearlyPriceIdr: number;
   /**
    * Founder intro-price ladder; null when the promo is off. `slots` = buyers

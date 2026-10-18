@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   addMonths,
+  checkoutAmountIdr,
   appleFounderGrant,
   dailyScanQuota,
   effectiveTier,
@@ -164,6 +165,8 @@ describe("apple founder grant", () => {
 
 describe("founder price ladder", () => {
   const LADDER = parseLadder("10:15000,110:29000,:49000")!;
+  const LADDER_OVERRIDE = parseLadder("10:15000,110:29000,:49000", 250_000)!;
+  const YEARLY_LADDER = "10:15000/149000,110:29000/199000,:49000/349000";
 
   test("empty var means flat pricing", () => {
     expect(parseLadder(undefined)).toBeNull();
@@ -213,12 +216,69 @@ describe("founder price ladder", () => {
       FOUNDER_PRICE_LADDER: "10:15000,110:29000,:49000",
       FOUNDER_YEARLY_PRICE_IDR: "250000",
     });
-    expect(config.founderLadder).toEqual(LADDER);
+    expect(config.founderLadder).toEqual(LADDER_OVERRIDE);
     expect(ladderStep(config.founderLadder!, 0).monthlyIdr).toBe(15_000);
-    // Override applies to every step instead of 10x monthly.
     expect(promoFor(config.founderLadder, 0)?.nextPriceIdr).toBe(29_000);
     expect(config.founderPriceIdr).toBe(15_000);
     expect(config.founderYearlyPriceIdr).toBe(250_000);
+  });
+
+  test("explicit per-step yearly prices", () => {
+    const ladder = parseLadder(YEARLY_LADDER)!;
+    expect(ladder).toEqual([
+      { upToBuyers: 10, monthlyIdr: 15_000, yearlyIdr: 149_000 },
+      { upToBuyers: 110, monthlyIdr: 29_000, yearlyIdr: 199_000 },
+      { upToBuyers: null, monthlyIdr: 49_000, yearlyIdr: 349_000 },
+    ]);
+    expect(ladderStep(ladder, 9).yearlyIdr).toBe(149_000);
+    expect(ladderStep(ladder, 12).yearlyIdr).toBe(199_000);
+    expect(ladderStep(ladder, 110).yearlyIdr).toBe(349_000);
+  });
+
+  test("legacy syntax: yearly is 10x monthly, or the override capped at 10x", () => {
+    expect(LADDER.map((s) => s.yearlyIdr)).toEqual([150_000, 290_000, 490_000]);
+    expect(LADDER_OVERRIDE.map((s) => s.yearlyIdr)).toEqual([150_000, 250_000, 250_000]);
+  });
+
+  test("steps may mix explicit and implicit yearly", () => {
+    const ladder = parseLadder("10:15000/149000,:29000", 199_000)!;
+    expect(ladder.map((s) => s.yearlyIdr)).toEqual([149_000, 199_000]);
+  });
+
+  test("malformed yearly parts fail loudly", () => {
+    expect(() => parseLadder("10:15000/")).toThrow("FOUNDER_PRICE_LADDER");
+    expect(() => parseLadder("10:15000/abc")).toThrow("FOUNDER_PRICE_LADDER");
+    expect(() => parseLadder("10:15000/0")).toThrow("FOUNDER_PRICE_LADDER");
+    expect(() => parseLadder("10:15000/-5")).toThrow("FOUNDER_PRICE_LADDER");
+    expect(() => parseLadder("10:15000/1/2")).toThrow("FOUNDER_PRICE_LADDER");
+    expect(() => parseLadder("10:15000.5")).toThrow("FOUNDER_PRICE_LADDER");
+    expect(() => parseLadder("10:15000/149000,5:29000/199000")).toThrow("strictly increase");
+    expect(() => parseLadder("10:15000", 0)).toThrow("FOUNDER_YEARLY_PRICE_IDR");
+  });
+
+  test("checkout amounts follow the current step", () => {
+    const ladder = parseLadder(YEARLY_LADDER)!;
+    const first = ladderStep(ladder, 0);
+    const current = ladderStep(ladder, 12);
+    const open = ladderStep(ladder, 200);
+    expect(checkoutAmountIdr(first, "monthly", null)).toBe(15_000);
+    expect(checkoutAmountIdr(first, "yearly", null)).toBe(149_000);
+    expect(checkoutAmountIdr(current, "monthly", null)).toBe(29_000);
+    expect(checkoutAmountIdr(current, "yearly", null)).toBe(199_000);
+    expect(checkoutAmountIdr(open, "monthly", null)).toBe(49_000);
+    expect(checkoutAmountIdr(open, "yearly", null)).toBe(349_000);
+  });
+
+  test("grandfathered buyers never pay above their locked price", () => {
+    const ladder = parseLadder(YEARLY_LADDER)!;
+    const step3 = ladderStep(ladder, 200);
+    // Paid a Rp149k yearly before: monthly-equivalent 14.9k.
+    const locked = grandfatheredMonthlyIdr([{ amountIdr: 149_000, months: 12 }]);
+    expect(checkoutAmountIdr(step3, "yearly", locked)).toBe(149_000);
+    expect(checkoutAmountIdr(step3, "monthly", locked)).toBe(14_900);
+    // A locked price above the rung is ignored.
+    expect(checkoutAmountIdr(ladderStep(ladder, 0), "yearly", 29_000)).toBe(149_000);
+    expect(checkoutAmountIdr(ladderStep(ladder, 0), "monthly", 29_000)).toBe(15_000);
   });
 });
 

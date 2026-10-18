@@ -81,7 +81,7 @@
     "ANON_SCANS": "2",
     "FOUNDER_PRICE_IDR": "15000",
     "FOUNDER_YEARLY_PRICE_IDR": "199000",
-    "FOUNDER_PRICE_LADDER": "10:15000,110:29000,:49000",
+    "FOUNDER_PRICE_LADDER": "10:15000/149000,110:29000/199000,:49000/349000",
     "ADMIN_EMAILS": "dzulfikar.at@gmail.com",
     "REVIEW_LOGIN_EMAILS": "review@joyorogo.com,qa@joyorogo.com",
     "EMAIL_FROM": "halo@mail.joyorogo.com",
