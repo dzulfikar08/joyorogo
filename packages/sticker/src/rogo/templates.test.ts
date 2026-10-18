@@ -328,3 +328,31 @@ describe("images reach the native painter as top-level nodes", () => {
     }
   });
 });
+
+describe("entry points offer every format", () => {
+  // A plain progress story as the Beranda builds it, without any of the optional server extras.
+  const plain: StorySpec = {
+    kind: "progress",
+    eatenKcal: 1394,
+    targetKcal: 1885,
+    proteinG: 50,
+    proteinTargetG: 100,
+    streakDays: 7,
+    weightGoalProgress: 0.4,
+    weekTrend: [
+      { date: "2026-10-12", weightKg: 80 },
+      { date: "2026-10-18", weightKg: 78.7 },
+    ],
+  };
+
+  test("streak and weight come in story, square and sticker", () => {
+    const sel = (kind: string) => selectTemplates(availableTemplates(plain, {}), { kind }).canvases;
+    expect(sel("streak")).toEqual(["story", "square", "sticker"]);
+    expect(sel("weight")).toEqual(["story", "square", "sticker"]);
+  });
+
+  test("without goal progress the weight kind loses its sticker and square, so entry points must derive it", () => {
+    const { weightGoalProgress: _drop, ...noGoal } = plain as Extract<StorySpec, { kind: "progress" }>;
+    expect(selectTemplates(availableTemplates(noGoal, {}), { kind: "weight" }).canvases).toEqual(["story"]);
+  });
+});

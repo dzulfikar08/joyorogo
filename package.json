@@ -46,7 +46,8 @@
     "destroy": "turbo run destroy -F @joyorogo/infra --",
     "env:generate": "varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./apps/native/ && varlock codegen --path ./packages/db/",
     "check": "oxlint && oxfmt --write",
-    "i18n:check": "bun scripts/i18n-check.ts"
+    "i18n:check": "bun scripts/i18n-check.ts",
+    "lint:hooks": "oxlint --react-plugin -D react/rules-of-hooks apps/native/app apps/native/components apps/web/src"
   },
   "dependencies": {
     "sharp": "0.34.5",

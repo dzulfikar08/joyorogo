@@ -39,6 +39,7 @@ import type { StickerViewerTarget } from "@/components/sticker";
 import { ShareStoryButton, StoryShareSheet } from "@/components/story/share-story-button";
 import type { StorySpec } from "@/components/story/types";
 import { defaultRecapWeek, recapShare } from "@joyorogo/api/lib/recap";
+import { weightGoalProgress } from "@joyorogo/sticker";
 import { shareUrl } from "@/src/lib/share-links";
 
 import {
@@ -86,6 +87,15 @@ type PlateItem = {
   carbs?: number | null;
   fat?: number | null;
 };
+
+/** Day total of one macro from the diary rows, or null when no row carries it. */
+function sumMacro(
+  items: ReadonlyArray<{ protein?: number | null; carbs?: number | null; fat?: number | null }> | undefined,
+  key: "carbs" | "fat",
+): number | null {
+  const values = (items ?? []).map((item) => item[key]).filter((v): v is number => typeof v === "number");
+  return values.length ? Math.round(values.reduce((sum, v) => sum + v, 0)) : null;
+}
 
 function greetingKey(date: Date): "morning" | "noon" | "afternoon" | "evening" {
   const h = Number(
@@ -209,6 +219,11 @@ export default function Dashboard() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [adaptiveOpen, setAdaptiveOpen] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
+  // Share entry points. Hooks live above the early returns below: Dashboard renders loading, then loaded.
+  const queryClient = useQueryClient();
+  const [streakOpen, setStreakOpen] = useState(false);
+  const [weightOpen, setWeightOpen] = useState(false);
+  const [recapStory, setRecapStory] = useState<StorySpec | null>(null);
   const [viewer, setViewer] = useState<StickerViewerTarget | null>(null);
 
   if (gate === "loading") {
@@ -285,6 +300,11 @@ export default function Dashboard() {
     configData.freeDailyScans !== null;
 
   // One progress story feeds the header icon, the streak pill and (as the weekly fallback) nothing else.
+  const weightNowKg = data.latestWeightKg;
+  const weight =
+    !maternal && profileRow && weightNowKg !== null && weightNowKg !== undefined
+      ? { startKg: profileRow.startWeightKg, nowKg: weightNowKg, goalKg: profileRow.targetWeightKg }
+      : null;
   const progressStory: StorySpec = {
     kind: "progress",
     eatenKcal: data.eatenKcal,
@@ -296,18 +316,14 @@ export default function Dashboard() {
     weightGainedKg: data.weightGainedKg,
     gain: gain != null,
     weekTrend: data.weekTrend,
-    carbsG: data.carbsEatenG,
-    fatG: data.fatEatenG,
-    weightGoalProgress: data.weightGoalProgress,
-    weight:
-      data.weightStartKg != null && data.weightNowKg != null
-        ? { startKg: data.weightStartKg, nowKg: data.weightNowKg, goalKg: data.weightGoalKg }
-        : null,
+    // The server fields come with a backend deploy; the client derives the same numbers so the stickers never depend on it.
+    carbsG: data.carbsEatenG ?? sumMacro(foods.data?.items, "carbs"),
+    fatG: data.fatEatenG ?? sumMacro(foods.data?.items, "fat"),
+    weightGoalProgress: data.weightGoalProgress ?? (weight ? weightGoalProgress(weight.startKg, weight.nowKg, weight.goalKg) : null),
+    weight: weight ?? (data.weightStartKg != null && data.weightNowKg != null
+      ? { startKg: data.weightStartKg, nowKg: data.weightNowKg, goalKg: data.weightGoalKg }
+      : null),
   };
-  const queryClient = useQueryClient();
-  const [streakOpen, setStreakOpen] = useState(false);
-  const [weightOpen, setWeightOpen] = useState(false);
-  const [recapStory, setRecapStory] = useState<StorySpec | null>(null);
 
   /** The last finished week as a sticker; the plain text share stays as the fallback when nothing was logged. */
   const openRecapSticker = async () => {

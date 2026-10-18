@@ -198,7 +198,7 @@ export default function RootLayout() {
             <Stack.Screen name="feed/[postId]" options={{ title: t("nav.title.post") }} />
             <Stack.Screen name="feed/notifikasi" options={{ title: t("nav.title.notifications") }} />
             <Stack.Screen name="u/[handle]" options={{ title: t("nav.title.profile") }} />
-            <Stack.Screen name="gabung" options={{ headerShown: false }} />
+            <Stack.Screen name="gabung/[code]" options={{ headerShown: false }} />
           </Stack>
           </ToastProvider>
           </KeyboardProvider>
