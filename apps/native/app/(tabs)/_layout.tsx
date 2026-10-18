@@ -69,10 +69,11 @@ export default function TabLayout() {
   // from the group inbox badge on Lainnya.
   const social = useQuery(orpc.social.notificationsUnreadCount.queryOptions());
   const socialBadge = (social.data?.count ?? 0) > 0 ? social.data!.count : undefined;
-  // Labels need clear space above the bottom edge. The bar must be exactly
-  // content (6 padding + icon + label + slack) + the bottom inset — any extra
-  // height just shows as dead space below the labels on gesture nav.
+  // The bottom inset (gesture pill, 3-button nav, iOS home indicator) is added
+  // once, to both height and paddingBottom, so icon + label sit fully above the
+  // system bar. The extra 6 is breathing room under the labels.
   const insets = useSafeAreaInsets();
+  const bottomPad = insets.bottom + 6;
 
   return (
     <Tabs
@@ -97,9 +98,9 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: theme.colors.card,
           borderTopColor: theme.colors.hairline,
-          height: 54 + insets.bottom,
+          height: 58 + bottomPad,
           paddingTop: 6,
-          paddingBottom: insets.bottom,
+          paddingBottom: bottomPad,
           shadowColor: "#1D1A15",
           shadowOpacity: 0.06,
           shadowRadius: 12,
