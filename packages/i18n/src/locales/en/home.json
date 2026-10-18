@@ -210,6 +210,10 @@
       "title": "Eating target",
       "body": "Your calorie allowance for the day, worked out from your body, activity and target weight."
     },
+    "clamped": {
+      "lose": "This target is worked out with a deficit of at most 1,000 kcal a day. Your target date asks for more than that, so you get there around {{date}}.",
+      "gain": "This target is worked out with a safe gaining pace. Your target date asks for faster than that, so you get there around {{date}}."
+    },
     "eaten": {
       "title": "Eaten so far",
       "body": "All the food and drinks you logged today."

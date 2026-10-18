@@ -204,6 +204,10 @@
       "title": "Target makan",
       "body": "Jatah kalori makanmu sehari. Sudah dihitung dari tubuh, aktivitas, dan target beratmu."
     },
+    "clamped": {
+      "lose": "Target makan ini dihitung dengan defisit maksimal 1.000 kcal per hari. Tanggal targetmu menuntut lebih dari itu, jadi targetmu baru tercapai sekitar {{date}}.",
+      "gain": "Target makan ini dihitung dengan ritme naik yang aman. Tanggal targetmu menuntut lebih cepat dari itu, jadi targetmu baru tercapai sekitar {{date}}."
+    },
     "eaten": {
       "title": "Sudah dimakan",
       "body": "Semua makanan dan minuman yang kamu catat hari ini."

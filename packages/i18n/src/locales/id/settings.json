@@ -98,6 +98,17 @@
       "belowRange": "Di bawah rentang berat sehat. Boleh dilanjutkan, perhatikan kesehatanmu.",
       "error": "Berat target harus 25-400 kg."
     },
+    "datePace": {
+      "title": "Tanggal targetmu belum terkejar dengan ritme aman",
+      "lose": {
+        "body_other": "Turun {{kg}} kg butuh sekitar {{count}} hari dengan defisit aman maksimal 1.000 kcal per hari. Dengan ritme itu kamu sampai sekitar {{date}}."
+      },
+      "gain": {
+        "body_other": "Naik {{kg}} kg dengan ritme aman butuh sekitar {{count}} hari. Dengan ritme itu kamu sampai sekitar {{date}}."
+      },
+      "use": "Pakai tanggal {{date}}",
+      "saved": "Tanggal target diperbarui."
+    },
     "targetDate": {
       "title": "Tanggal target",
       "subtitle": "Kapan kamu ingin sampai",

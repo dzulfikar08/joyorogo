@@ -153,6 +153,11 @@ export type Targets = {
   maternal: MaternalInfo | null;
   /** Naikin BB detail while a surplus is active; null otherwise (also once the target weight is reached) */
   gain: GainInfo | null;
+  /**
+   * Set when the stored target date cannot be reached at the safe pace (the clamp is
+   * what the plan really follows): the realistic date to offer. Null otherwise.
+   */
+  datePace: DatePace | null;
 };
 
 export function round5(n: number): number {
@@ -667,6 +672,17 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
     gain: gainNums
       ? { ...gainNums, reachDate: shiftDate(today, gainNums.daysToTarget) }
       : null,
+    datePace: datePaceOf(
+      checkTargetDate({
+        weightNowKg: weightNow,
+        targetWeightKg: profile.targetWeightKg,
+        targetDate: profile.targetDate,
+        today,
+        goal,
+        heightCm: profile.heightCm,
+      }),
+      { targetWeightKg: profile.targetWeightKg, today },
+    ),
   };
 }
 
@@ -912,5 +928,37 @@ export function needsBreakdown(targets: Targets): NeedsBreakdown {
     maintenance: targets.notes.includes("MAINTENANCE"),
     adaptive: targets.notes.includes("ADAPTIVE"),
     formulaTdeeKcal: targets.formulaTdee,
+  };
+}
+
+/** The stored date is out of reach at the safe pace; `reachDate` is where the safe pace actually lands. */
+export type DatePace = {
+  direction: "lose" | "gain";
+  targetWeightKg: number;
+  /** kg still to lose / gain */
+  kg: number;
+  /** days from today at the safe pace, capped at MAX_TARGET_DAYS so the date stays savable */
+  feasibleDays: number;
+  reachDate: string;
+};
+
+/**
+ * Verdict on a STORED target date: a "fast" / "gainFast" check becomes the notice
+ * Beranda and Profil show, with the later date to offer. Anything else is null.
+ */
+export function datePaceOf(
+  check: TargetDateCheck,
+  input: { targetWeightKg: number; today: string },
+): DatePace | null {
+  if (check.status !== "fast" && check.status !== "gainFast") return null;
+  const feasibleDays = Math.min(check.feasibleDays, MAX_TARGET_DAYS);
+  const lose = check.status === "fast";
+  const kg = "gainKg" in check ? check.gainKg : "lossKg" in check ? check.lossKg : 0;
+  return {
+    direction: lose ? "lose" : "gain",
+    targetWeightKg: input.targetWeightKg,
+    kg: Math.round(kg * 100) / 100,
+    feasibleDays,
+    reachDate: shiftDate(input.today, feasibleDays),
   };
 }

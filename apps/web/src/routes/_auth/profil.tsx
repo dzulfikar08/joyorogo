@@ -56,6 +56,7 @@ import { Switch } from "@/components/kit/switch";
 import { PlanNumbers, TargetNotesList } from "@/components/plan-numbers";
 import { NeedsSheet } from "@/components/needs-sheet";
 import { TargetDateForm } from "@/components/target-date-form";
+import { TargetPaceNotice } from "@/components/target-pace-notice";
 import { GainDateVerdict, isGainCheck } from "@/components/gain/gain-date-verdict";
 import { GainNotes } from "@/components/gain/gain-notes";
 import { GoalChooser } from "@/components/gain/goal-chooser";
@@ -528,6 +529,7 @@ function ProfilContent({
           value={ACTIVITY_LABELS[row.activityLevel as ActivityLevel] ?? row.activityLevel}
         />
       </ListGroup>
+      {!targets.maternal && <TargetPaceNotice pace={targets.datePace} className="mt-3" />}
       <div className="mt-3">
         <PlanNumbers targets={targets} />
       </div>

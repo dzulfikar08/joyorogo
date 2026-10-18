@@ -42,6 +42,7 @@ import { ConfirmSheet } from "@/components/confirm-sheet";
 import { useToast } from "@/components/toast";
 import { BudgetSetting } from "@/components/plate/budget-setting";
 import { NeedsSheet } from "@/components/needs-sheet";
+import { TargetPaceNotice } from "@/components/target-pace-notice";
 import { TargetDateSheet, TargetWeightSheet } from "@/components/target-sheets";
 import {
   EndPregnancySheet,
@@ -659,6 +660,7 @@ export default function Profil() {
               value={ACTIVITY_LABELS[prof.activityLevel as "low" | "mid" | "high"]}
             />
           </ListGroup>
+          {!maternal ? <TargetPaceNotice pace={targets.datePace} /> : null}
 
           {targets.notes
             .filter((note) => note !== "MATERNAL")

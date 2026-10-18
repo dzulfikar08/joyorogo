@@ -67,6 +67,7 @@ import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { pushDaySnapshot } from "@/src/lib/widgets/push";
 import { useHealthAutoSync } from "@/src/lib/use-health-sync";
+import { TargetPaceNotice } from "@/components/target-pace-notice";
 import { errorMessage, fmtDateMedium, fmtInt, fmtKg, weeklyRateLabel } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
@@ -493,6 +494,8 @@ export default function Dashboard() {
         </Card>
       </Reveal>
 
+      {!maternal && isToday ? <TargetPaceNotice pace={data.targets.datePace} /> : null}
+
       {maternal ? (
         <MaternalCard
           info={maternal}
@@ -859,6 +862,13 @@ export default function Dashboard() {
                   ? t("gain:nativeToday.explain.leftBody")
                   : t(`explain.${key}.body`)}
               </Text>
+              {key === "target" && data.targets.datePace ? (
+                <Text style={styles.adaptiveMuted}>
+                  {t(`explain.clamped.${data.targets.datePace.direction}`, {
+                    date: fmtDateMedium(data.targets.datePace.reachDate),
+                  })}
+                </Text>
+              ) : null}
             </View>
           ))}
           <View style={styles.explainItem}>

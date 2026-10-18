@@ -40,6 +40,7 @@ import { ShareStoryButton } from "@/components/story/share-story-button";
 import { Sticker } from "@/components/sticker";
 import { MaternalCard } from "@/components/maternal/maternal-card";
 import { MaternalEatHero } from "@/components/maternal/eat-hero";
+import { TargetPaceNotice } from "@/components/target-pace-notice";
 import {
   GainDailyTip,
   GainIntakeNote,
@@ -318,6 +319,7 @@ function Dashboard({
       >
         <div className="min-w-0 space-y-2 lg:col-start-1 lg:row-start-1">
           {maternal ? <MaternalEatHero summary={summary} /> : <EatHero summary={summary} />}
+          {!maternal && isToday && <TargetPaceNotice pace={targets.datePace} />}
           <div className={cn("grid gap-2", maternal ? "grid-cols-2" : "grid-cols-3")}>
             {!maternal && (
               <GlanceTile
@@ -567,6 +569,13 @@ function EatHero({ summary }: { summary: Summary }) {
                         ? t("explain.deficit.bodyMaintenance")
                         : t("explain.deficit.body", { kcal: fmtInt(targets.deficitKcal) })
                       : t(`explain.${key}.body`)}
+                  {key === "target" && targets.datePace && (
+                    <span className="mt-1.5 block">
+                      {t(`explain.clamped.${targets.datePace.direction}`, {
+                        date: fmtDateLong(targets.datePace.reachDate).replace(/^\w+, /, ""),
+                      })}
+                    </span>
+                  )}
                 </dd>
               </div>
             ))}

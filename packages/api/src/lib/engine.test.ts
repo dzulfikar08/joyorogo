@@ -569,3 +569,74 @@ describe("needsBreakdown", () => {
     expect(needs.formulaTdeeKcal).toBe(targets.formulaTdee);
   });
 });
+
+describe("datePace: the verdict on a stored target", () => {
+  const owner = {
+    ...baseProfile,
+    weightKg: 107.6,
+    targetWeightKg: 65,
+    targetDate: "2026-12-13", // 56 days from 2026-10-18
+  };
+  const today = "2026-10-18";
+
+  test("an unreachable stored date is flagged with the date the clamped pace reaches", () => {
+    const t = computeTargets(owner, { today });
+    expect(t.notes).toContain("PLAN_CLAMPED");
+    expect(t.deficitKcal).toBe(1000);
+    expect(t.datePace).toEqual({
+      direction: "lose",
+      targetWeightKg: 65,
+      kg: 42.6,
+      feasibleDays: 329, // 42.6 kg * 7700 / 1000, rounded up
+      reachDate: shiftDate(today, 329),
+    });
+  });
+
+  test("the offered date clears the verdict once it is stored", () => {
+    const first = computeTargets(owner, { today });
+    const moved = computeTargets({ ...owner, targetDate: first.datePace!.reachDate }, { today });
+    expect(moved.datePace).toBeNull();
+    expect(moved.notes).not.toContain("PLAN_CLAMPED");
+  });
+
+  test("a reachable date, a slow date and a held weight carry no notice", () => {
+    expect(computeTargets({ ...baseProfile, weightKg: 80 }, { today: TODAY }).datePace).toBeNull();
+    expect(
+      computeTargets({ ...baseProfile, weightKg: 80, targetDate: "2029-09-13" }, { today: TODAY }).datePace,
+    ).toBeNull();
+    expect(computeTargets({ ...owner, goal: "maintain" }, { today }).datePace).toBeNull();
+    expect(computeTargets({ ...owner, targetWeightKg: 110 }, { today }).datePace).toBeNull();
+  });
+
+  test("a reversed verdict for gain: too hurried a gain offers the lean-pace date", () => {
+    const t = computeTargets(
+      {
+        birthYear: 1996,
+        gender: "male",
+        heightCm: 170,
+        weightKg: 60,
+        targetWeightKg: 66,
+        targetDate: shiftDate(today, 28),
+        activityLevel: "mid",
+        goal: "gain",
+      },
+      { today },
+    );
+    expect(t.datePace).toEqual({
+      direction: "gain",
+      targetWeightKg: 66,
+      kg: 6,
+      feasibleDays: 140,
+      reachDate: shiftDate(today, 140),
+    });
+  });
+
+  test("a stored date whose pace is past the five-year window stays savable", () => {
+    const t = computeTargets(
+      { ...owner, weightKg: 400, targetWeightKg: 25, targetDate: shiftDate(today, 30) },
+      { today },
+    );
+    expect(t.datePace!.feasibleDays).toBe(1826);
+    expect(t.datePace!.reachDate).toBe(shiftDate(today, 1826));
+  });
+});

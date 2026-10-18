@@ -100,6 +100,19 @@
       "belowRange": "Below the healthy weight range. You can continue, just look after your health.",
       "error": "Target weight must be 25-400 kg."
     },
+    "datePace": {
+      "title": "Your target date is out of reach at a safe pace",
+      "lose": {
+        "body_one": "Losing {{kg}} kg takes about {{count}} day at a safe deficit of at most 1,000 kcal a day. At that pace you get there around {{date}}.",
+        "body_other": "Losing {{kg}} kg takes about {{count}} days at a safe deficit of at most 1,000 kcal a day. At that pace you get there around {{date}}."
+      },
+      "gain": {
+        "body_one": "Gaining {{kg}} kg at a safe pace takes about {{count}} day. At that pace you get there around {{date}}.",
+        "body_other": "Gaining {{kg}} kg at a safe pace takes about {{count}} days. At that pace you get there around {{date}}."
+      },
+      "use": "Use {{date}}",
+      "saved": "Target date updated."
+    },
     "targetDate": {
       "title": "Target date",
       "subtitle": "When you want to get there",
