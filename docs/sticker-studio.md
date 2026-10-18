@@ -18,16 +18,19 @@ packages/sticker/src/
     parse.ts       lenient parse: drop bad layers, fall back, report issues
     expr.ts        {path|filter} bindings and filters
     format.ts      locale number/date/duration formatting (no Intl)
-    text.ts        sanitize + font-metric measuring + fit
-    metrics.ts     generated advance-width tables (Plus Jakarta Sans, mono)
-    resolve.ts     template + data -> Scene
+    text.ts        sanitize + measuring over a FontMetrics interface + fit
+    color.ts       color tokens, rgba mixing
+    resolve.ts     template + data -> Scene (layout, stacks, text/stat/image/brand/icon/shape)
+    draw.ts        geometry of ring, chart and route layers
     scene.ts       Scene node types
+    lint.ts        authoring checks (safe area, min size, unknown filters)
     emit-svg.ts    Scene -> SVG string
     emit-canvas.ts Scene -> Canvas2D calls
     route.ts       polyline projection, privacy trim
     icons.ts       built-in icon paths
     studio.ts      editor ops, undo history, TemplateStore interface
-  <app>/         app specific (JoyoRogo: rogo/): data builders, templates, brand marks
+  <app>/         app specific (JoyoRogo: rogo/): font tables (metrics.ts, generated),
+                 fonts.ts, brand marks, data builders, templates, fixtures
 ```
 
 The native painter (react-native-svg) lives in the app because it imports RN.
@@ -66,7 +69,8 @@ portrait 1350, wide 608 (+-1); `free` is anything in range (stickers are `free`)
 ```ts
 Theme = {
   colors: { bg, bg2, fg, fgSoft, fgMuted, accent, accent2, surface, surfaceStrong,
-            line, good, warn, bad },        // all optional, defaulted; hex #rgb #rrggbb #rrggbbaa or rgba()
+            line, good, warn, bad,
+            data1, data2, data3 },          // data1..3 = categorical hues (macros, zones); all optional, defaulted; hex #rgb #rrggbb #rrggbbaa or rgba()
   fonts?: { display?: FontRef, body?: FontRef, mono?: FontRef }  // usually omitted: host font map decides
 }
 ```
@@ -74,10 +78,14 @@ Theme = {
 Color strings accepted everywhere a color is: `#hex`, `rgb()/rgba()`, a token
 `$accent`, a token with percent alpha `$fg/60` (alpha 0..100), or `transparent`.
 
-Fonts are logical: `"display"|"body"|"mono"`. The host maps each to real
-family names per weight (JoyoRogo: Plus Jakarta Sans 500/600/700/800 for display and
-body, a mono for receipts). Weights are 400..900 in steps of 100; the host maps a
-requested weight to the nearest it has. Measuring uses `metrics.ts`, so layout is
+Fonts are logical: `"display"|"body"|"mono"`. The host supplies a `FontMap`:
+`metrics(role, weight) -> {asc, desc, cap, xh, advance(cp)}` (advance tables generated
+from the real font files by `scripts/gen-metrics.ts`; `createTableMetrics` /
+`createMonoMetrics` build them) and `paint(role, weight) -> {family, weight?}` for
+painters (native encodes weight in the family name, web passes a numeric weight).
+Weights are 100..900 in steps of 100; the host maps a requested weight to the
+nearest it has. JoyoRogo: Plus Jakarta Sans 500-800 (display and body), IBM Plex Mono
+400/500/700 (receipts). Layout never asks the platform text engine, so it is
 identical in Node tests, the web and native.
 
 ### Background
@@ -110,11 +118,11 @@ Common fields on every layer:
 
 | type | purpose | extra fields |
 |---|---|---|
-| `text` | one text run | `value: Expr`, `size`, `weight`, `font`, `color`, `align`, `letterSpacing` (px), `lineHeight` (x size, default 1.15), `case?: "upper"|"none"`, `fit: {mode:"shrink"|"ellipsis"|"wrap", minSize?, maxLines?}`, `shadow?: boolean`, `tabular?: boolean` |
-| `stat` | value + unit + label block | `value: Expr`, `unit?: Expr`, `label?: Expr`, `valueSize`, `unitSize?`, `labelSize?`, `valueWeight`, `color`, `labelColor?`, `align`, `arrange: "stacked"|"inline"` , `fit` as text; value shrinks to fit `box.w` |
-| `ring` | progress ring / gauge | `progress: NumRef`, `segments?: [{value: NumRef, color}]`, `thickness`, `startAngle` (default -90), `sweep` (default 360, gauge 270), `track?: color`, `color`, `overColor?`, `cap: "round"|"butt"`, `max?: number` (progress clamp, default 1; ring shows overflow in `overColor` when progress>1) |
-| `chart` | `kind: "bars"|"line"|"area"|"spark"|"stack"` | `series?: {bind}` (a number[]); `labels?: {bind}` (string[]); `color`, `color2?`, `highlight?: "max"|"last"|number`, `baseline?: NumRef`, `strokeWidth`, `barRadius`, `showLabels`, `labelSize`, `min?`, `max?`; `stack` uses `segments: [{value: NumRef, color}]` and draws one proportional bar |
-| `route` | GPS polyline | `points: {bind}` (array of `[lat,lng]` or encoded polyline string), `color`, `color2?` (gradient along path), `strokeWidth`, `markers?: boolean`, `padding`, `trim?: "privacy"|number` (meters off BOTH ends, default `"privacy"` = `options.privacy.routeTrimMeters`, 200 unless disabled), `dash?: [on,off]` |
+| `text` | one text run | `value: Expr`, `size`, `weight`, `font`, `color`, `align`, `letterSpacing` (px), `lineHeight` (x size, default 1.15), `case?: "upper"|"none"`, `trim?: "none"|"cap"` (single line: box height = cap height, baseline at its bottom, for tight big numerals), `valign?: "top"|"middle"|"bottom"` (inside a numeric `box.h`), `fit: {mode:"shrink"|"ellipsis"|"wrap", minSize?, maxLines?}`, `shadow?: boolean` (two soft dark copies behind, for text over photos) |
+| `stat` | value + unit + label block | `value: Expr`, `unit?: Expr`, `label?: Expr`, `valueSize`, `unitSize?`, `labelSize?`, `valueWeight`, `color`, `labelColor?`, `align`, `labelPos: "above"|"below"|"none"`, `gap`, `trim` (default `"cap"`), `fit` as text; value+unit shrink together to fit `box.w` (unit sits on the value baseline) |
+| `ring` | progress ring / gauge | `progress?: NumRef`, `segments?: [{value: NumRef, color}]`, `thickness`, `startAngle` (default -90), `sweep` (default 360, gauge 270), `track?: color`, `color`, `overColor?`, `cap: "round"|"butt"`, `max?: number` (progress denominator, default 1; progress > max draws a second lap in `overColor`, default `$warn`). With `segments` (fractions of the sweep, drawn in order with butt caps) `progress` is ignored; a ring with neither is hidden |
+| `chart` | `kind: "bars"|"line"|"area"|"spark"|"stack"` | `series?: {bind}` (a number[]); `labels?: {bind}` (string[]); `colors?: {bind}` (string[] per bar, falls back to `color`); `color`, `color2?` (non-highlighted bars, default `color` at 40%), `highlight?: "max"|"min"|"last"|index`, `horizontal?: boolean` (bars as rows with labels on the left), `baseline?: NumRef`, `strokeWidth`, `barRadius`, `showLabels`, `labelSize`, `min?`, `max?`; `stack` uses `segments: [{value: NumRef, color}]` and draws one proportional bar |
+| `route` | GPS polyline | `points: {bind}` (array of `[lat,lng]` or encoded polyline string), `color`, `color2?` (gradient along path), `strokeWidth`, `halo?: boolean` (wider 28% duplicate stroke under the line, no filters), `markers?: boolean`, `padding`, `trim?: "privacy"|number` (meters off BOTH ends, default `"privacy"` = `options.privacy.routeTrimMeters`, 200 unless disabled), `dash?: [on,off]` |
 | `image` | photo, asset | `src: {bind} | {asset}`, `fit: "cover"|"contain"`, `radius?`, `mask?: "circle"|"rounded"`, `border?: {color,width}` |
 | `brand` | app mark, wordmark, link | `mark: "logo"|"wordmark"|"lockup"|"link"`, `tone: "auto"|"light"|"dark"|"mono"`, `size?` |
 | `icon` | built-in icon | `name: IconName`, `color`, (size = box) |
@@ -162,8 +170,9 @@ Expr = string | { t: "ns:key", args?: Record<string, string> }
 - Paths read `StickerData.data`, with `opt.*` (options), `app.*` and `date` injected.
   Dots index objects and arrays: `week.days.0.kcal`.
 
-`NumRef = number | { bind: string, div?: string|number, mul?: number, clamp?: [min,max] }`
-(`div` is a path or constant; division by zero = missing).
+`NumRef = number | { bind: string, div?: string|number, mul?: number, add?: number, clamp?: [min,max] }`
+evaluated as `clamp(bind / div * mul + add)` (`div` is a path or constant; division by
+zero = missing; `{bind:"x", mul:-1, add:1}` is `1 - x`).
 
 ### Filters
 
@@ -201,7 +210,9 @@ StickerData = {
 ImageRef = { uri: string, width?: number, height?: number }
 ```
 
-`ctx` = `{ locale: "id"|"en", mode: "dark"|"light", t(key,args), fonts: FontMap, imageSize?: (uri)=>{w,h} }`.
+`ctx` = `{ locale: "id"|"en", mode: "dark"|"light", t(key,args), fonts: FontMap, brand: BrandMarks }`.
+`BrandMarks = { name, link, logo(tone: "light"|"dark"|"mono") -> { viewBox:[x,y,w,h], items: [{d, fill?, stroke?, transform?}] } }`
+is the host's vector logo and app name/link (read back as `app.name`, `app.link`).
 
 ## 4. Scene (the one thing painters see)
 
@@ -213,7 +224,9 @@ Scene = { width: 1080, height, background nodes first, nodes: Node[], issues: Is
 Node = rect | ellipse | path | text | image | group(clip, opacity)
   rect    {x,y,w,h,rx?, fill?: Paint, stroke?, opacity?}
   ellipse {cx,cy,rx,ry, fill?, stroke?, opacity?}
-  path    {d, fill?, stroke?, transform?, opacity?}     // absolute coordinates, d is SVG path syntax
+  path    {d, fill?, stroke?, fillRule?, transform?: {x,y,scale,rotate?}, opacity?}
+          // d is SVG path syntax; with `transform` it is translate(x y) rotate(r) scale(s) and
+          // stroke.width is in the path's local units (so it scales too), otherwise absolute
   text    {x, y(baseline), text, size, weight, font, fill, anchor:"start"|"middle"|"end", letterSpacing?, shadow?}
   image   {x,y,w,h, uri, fit, rx?, opacity?}
   group   {children, clip?: {x,y,w,h,rx}, opacity?}
