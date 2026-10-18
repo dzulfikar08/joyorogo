@@ -665,6 +665,12 @@
       "you": "{{name}} (kamu)",
       "profileAria": "Profil {{name}}"
     },
+    "maps": {
+      "title": "Peta rute di postingan",
+      "subtitle": "Latihan ber-GPS tampil dengan peta rute. Garis disederhanakan dan 200 m awal dan akhir dipotong.",
+      "toastOn": "Peta rute tampil di postinganmu.",
+      "toastOff": "Peta rute disembunyikan dari semua postinganmu."
+    },
     "sheetTitleNative": "Pengaturan feed",
     "saved": "Pengaturan feed tersimpan.",
     "saveFailed": "Gagal menyimpan"

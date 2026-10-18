@@ -11,6 +11,7 @@ import type { Database } from "@joyorogo/db";
 
 import type { Context } from "../context";
 import { jakartaToday } from "../lib/engine";
+import { MAP_TRIM_M, type LatLon, feedMapPoints, haversineM } from "../lib/feed-route";
 import type { WorkoutAnalysis } from "../lib/workout-analysis";
 import { workoutAnalysisSchema } from "../lib/workout-analysis-schema";
 import { fitnessRouter } from "./fitness";
@@ -236,13 +237,18 @@ describe("watch posts", () => {
 
     const post = await client.execute({ sql: "SELECT * FROM post WHERE id = ?", args: [id] });
     expect(post.rows[0]).toMatchObject({ kind: "latihan", title: "Lari", kcal: 410, duration_min: 42.5 });
-    expect(JSON.parse(String(post.rows[0]?.stats_json))).toEqual({
+    expect(JSON.parse(String(post.rows[0]?.stats_json))).toMatchObject({
       source: "joyofit",
       distanceM: 6200,
       avgHr: 151,
       maxHr: 178,
       startedAt: workout.startedAt,
       hasDetail: 1,
+      sportKind: "run",
+      movingSec: null,
+      elevGainM: null,
+      hasMap: 1,
+      showMap: 1,
     });
     const row = await client.execute({ sql: "SELECT * FROM post_workout_detail WHERE post_id = ?", args: [id] });
     expect(JSON.parse(String(row.rows[0]?.hr_json))).toEqual(detail.hr);
@@ -267,9 +273,16 @@ describe("watch posts", () => {
       as("author"),
     );
     const full = { locked: false, hr: detail.hr, route: detail.route, analysis: analysisFor(workout) };
-
     expect(await call(socialRouter.workoutDetail, { postId: id }, as("author"))).toEqual(full);
-    expect(await call(socialRouter.workoutDetail, { postId: id }, as("pro"))).toEqual(full);
+
+    // Another person never gets the full-resolution track: the analysis loses its per-sample track and the
+    // route is the shared (trimmed, simplified) line.
+    const forPro = await call(socialRouter.workoutDetail, { postId: id }, as("pro"));
+    expect(forPro.locked).toBe(false);
+    expect(forPro.analysis?.series?.track).toBeNull();
+    expect({ ...forPro.analysis, series: null }).toEqual({ ...analysisFor(workout), series: null });
+    expect(forPro.route).not.toBeNull();
+    expect(forPro.route).not.toEqual(detail.route);
     expect(await call(socialRouter.workoutDetail, { postId: id }, as("mate"))).toEqual({
       locked: true,
       hr: null,
@@ -278,16 +291,29 @@ describe("watch posts", () => {
     });
   });
 
+  test("the analysis track: its author keeps it, nobody else ever receives it", async () => {
+    const analysis = analysisFor(workout);
+    const { id } = await call(
+      socialRouter.createWatchPost,
+      { workout, detail: { analysis }, visibility: "grup" },
+      as("author"),
+    );
+    const mine = await call(socialRouter.workoutDetail, { postId: id }, as("author"));
+    expect(mine.analysis?.series?.track).toEqual(analysis.series!.track);
+    const stored = await client.execute({ sql: "SELECT analysis_json FROM post_workout_detail WHERE post_id = ?", args: [id] });
+    const theirs = await call(socialRouter.workoutDetail, { postId: id }, as("pro"));
+    expect(JSON.stringify(theirs)).not.toContain(JSON.stringify(analysis.series!.track![5]));
+    expect(String(stored.rows[0]?.analysis_json)).toContain(JSON.stringify(analysis.series!.track![5]));
+  });
+
   test("legacy hr/route-only posts still work and have a null analysis", async () => {
     const { id } = await call(socialRouter.createWatchPost, { workout, detail, visibility: "grup" }, as("author"));
     const row = await client.execute({ sql: "SELECT analysis_json FROM post_workout_detail WHERE post_id = ?", args: [id] });
     expect(row.rows[0]?.analysis_json).toBeNull();
-    expect(await call(socialRouter.workoutDetail, { postId: id }, as("pro"))).toEqual({
-      locked: false,
-      hr: detail.hr,
-      route: detail.route,
-      analysis: null,
-    });
+    const legacy = await call(socialRouter.workoutDetail, { postId: id }, as("pro"));
+    const stored = await client.execute({ sql: "SELECT stats_json FROM post WHERE id = ?", args: [id] });
+    expect(legacy).toMatchObject({ locked: false, hr: detail.hr, analysis: null });
+    expect(legacy.route).toEqual(feedMapPoints(JSON.parse(String(stored.rows[0]?.stats_json)).mapLine));
   });
 
   test("an analysis-only post stores analysis_json, nothing in hr/route, and sets hasDetail", async () => {
@@ -380,5 +406,101 @@ describe("watch posts", () => {
     await expect(call(socialRouter.workoutDetail, { postId: id }, as("out"))).rejects.toMatchObject({
       code: "NOT_FOUND",
     });
+  });
+});
+
+describe("route map on a workout post: privacy", () => {
+  const workout = {
+    sportName: "Lari",
+    startedAt: Date.now() - 7_200_000,
+    durationMin: 30,
+    kcal: 300,
+    distanceM: 5000,
+    avgHr: 150,
+    maxHr: 170,
+  };
+  // A 2.2 km north-south route of 23 fixes: 200 m are cut from each end, about 1.8 km remain.
+  const route: [number, number][] = Array.from({ length: 23 }, (_, i) => [-6.2 - i * 0.001, 106.8]);
+  const start = route[0] as LatLon;
+  const end = route.at(-1) as LatLon;
+  const post = (input: Record<string, unknown> = {}) =>
+    call(
+      socialRouter.createWatchPost,
+      { workout, detail: { route }, visibility: "grup", ...input } as never,
+      as("author"),
+    );
+  const item = (id: string, viewer = "mate") => call(socialRouter.post, { id }, as(viewer));
+
+  test("a teammate gets a trimmed, simplified line and never the stored fields", async () => {
+    const { id } = await post();
+    const seen = await item(id);
+    const points = feedMapPoints(seen.mapLine)!;
+    expect(points.length).toBeGreaterThanOrEqual(2);
+    expect(points.length).toBeLessThanOrEqual(100);
+    expect(haversineM(start, points[0]!)).toBeGreaterThan(MAP_TRIM_M - 5);
+    expect(haversineM(end, points.at(-1)!)).toBeGreaterThan(MAP_TRIM_M - 5);
+    for (const p of points) {
+      expect(haversineM(start, p)).toBeGreaterThan(MAP_TRIM_M - 5);
+      expect(haversineM(end, p)).toBeGreaterThan(MAP_TRIM_M - 5);
+    }
+    expect(seen.stats).not.toHaveProperty("mapLine");
+    expect(seen.stats).toMatchObject({ hasMap: 1, showMap: 1, sportKind: "run" });
+  });
+
+  test("the per-post switch: off at creation hides the map, setPostMap brings it back, only the author may flip it", async () => {
+    const { id } = await post({ showMap: false });
+    expect((await item(id)).mapLine).toBeUndefined();
+    expect((await item(id, "author")).mapLine).toBeUndefined();
+    expect((await item(id, "author")).stats).toMatchObject({ hasMap: 1, showMap: 0 });
+
+    await expect(call(socialRouter.setPostMap, { postId: id, show: true }, as("mate"))).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+    expect((await item(id)).mapLine).toBeUndefined();
+
+    expect(await call(socialRouter.setPostMap, { postId: id, show: true }, as("author"))).toEqual({ showMap: 1 });
+    expect((await item(id)).mapLine).toEqual(expect.any(String));
+    await call(socialRouter.setPostMap, { postId: id, show: false }, as("author"));
+    expect((await item(id)).mapLine).toBeUndefined();
+  });
+
+  test("the author's account switch hides every map of theirs, in the post and in the detail", async () => {
+    const { id } = await post({ detail: { route, analysis: analysisFor(workout) } });
+    expect((await item(id)).mapLine).toEqual(expect.any(String));
+    expect((await call(socialRouter.workoutDetail, { postId: id }, as("pro"))).route).not.toBeNull();
+
+    await call(socialRouter.updateProfile, { shareMaps: false }, as("author"));
+    try {
+      expect((await call(socialRouter.myProfile, {}, as("author"))).shareMaps).toBe(false);
+      expect((await item(id)).mapLine).toBeUndefined();
+      expect((await item(id, "author")).mapLine).toBeUndefined();
+      expect((await call(socialRouter.workoutDetail, { postId: id }, as("pro"))).route).toBeNull();
+      const feed = await call(socialRouter.feed, { tab: "mengikuti" }, as("mate"));
+      expect(feed.items.every((p) => p.mapLine === undefined)).toBe(true);
+    } finally {
+      await call(socialRouter.updateProfile, { shareMaps: true }, as("author"));
+    }
+    expect((await item(id)).mapLine).toEqual(expect.any(String));
+  });
+
+  test("a route too short for the trim, or no route, has no map and no switch", async () => {
+    const short = route.slice(0, 4);
+    const a = await post({ detail: { route: short } });
+    expect((await item(a.id)).mapLine).toBeUndefined();
+    expect((await item(a.id)).stats).not.toHaveProperty("hasMap");
+    const b = await post({ detail: undefined });
+    expect((await item(b.id)).mapLine).toBeUndefined();
+    await expect(call(socialRouter.setPostMap, { postId: b.id, show: true }, as("author"))).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+  });
+
+  test("the analysis track feeds the map when there is one, and the stats carry sport, moving time and elevation", async () => {
+    const analysis = analysisFor(workout);
+    analysis.series!.track = Array.from({ length: analysis.series!.n }, (_, i) => [-6.2 - i * 0.0012, 106.8] as [number, number]);
+    const { id } = await post({ detail: { analysis } });
+    const seen = await item(id);
+    expect(feedMapPoints(seen.mapLine)).not.toBeNull();
+    expect(seen.stats).toMatchObject({ sportKind: "run", movingSec: analysis.movingSec, elevGainM: 48 });
   });
 });

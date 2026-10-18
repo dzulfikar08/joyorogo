@@ -132,7 +132,17 @@
     "undoLabel": "Postingan",
     "toast": {
       "reported": "Laporan terkirim, terima kasih.",
-      "blocked": "Pengguna diblokir."
+      "blocked": "Pengguna diblokir.",
+      "mapShown": "Peta ditampilkan.",
+      "mapHidden": "Peta disembunyikan."
+    },
+    "mapShow": {
+      "title": "Tampilkan peta",
+      "subtitle": "Rute disederhanakan, 200 m awal dan akhir dipotong"
+    },
+    "mapHide": {
+      "title": "Sembunyikan peta",
+      "subtitle": "Postingan ini tampil tanpa peta rute"
     }
   },
   "report": {
@@ -285,14 +295,24 @@
     "chip": {
       "distance": "{{km}} km",
       "avgHr": "Rata-rata {{bpm}} bpm",
-      "maxHr": "Maks {{bpm}} bpm"
+      "maxHr": "Maks {{bpm}} bpm",
+      "pace": "{{pace}} /km",
+      "speed": "{{kmh}} km/j",
+      "elev": "Naik {{m}} m"
     },
     "hrTitle": "Detak jantung",
     "routeTitle": "Rute",
     "lockedTitle": "Analisis latihan untuk Pro",
-    "lockedBody": "Upgrade ke Pro untuk melihat peta, grafik, split, dan zona latihan yang dibagikan orang lain.",
+    "lockedBody": "Upgrade ke Pro untuk melihat grafik, split, dan zona latihan yang dibagikan orang lain.",
     "lockedCta": "Lihat paket Pro",
-    "loadFailed": "Detail latihan gagal dimuat."
+    "loadFailed": "Detail latihan gagal dimuat.",
+    "map": {
+      "alt": "Peta rute {{title}}",
+      "title": "Rute",
+      "start": "Mulai",
+      "finish": "Selesai",
+      "hint": "Garis disederhanakan. 200 m pertama dan terakhir tidak ditampilkan."
+    }
   },
   "analysis": {
     "distance": "Jarak",

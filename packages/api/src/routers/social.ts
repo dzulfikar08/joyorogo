@@ -32,6 +32,12 @@ import { serverT, userLocale } from "../lib/messages";
 import { sendPush } from "../lib/webpush";
 import { premiumUnlocked } from "../lib/readiness-food";
 import { paywallConfig } from "../lib/tiers";
+import {
+  buildFeedMapLine,
+  feedMapPoints,
+  mapAllowed,
+  sportKindFromName,
+} from "../lib/feed-route";
 import { parseStoredAnalysis, workoutAnalysisSchema } from "../lib/workout-analysis-schema";
 
 // --- Batasan -----------------------------------------------------------------
@@ -155,6 +161,7 @@ async function loadVisiblePost(
       authorImage: user.image,
       authorHandle: profileTable.handle,
       authorPublic: profileTable.publicProfile,
+      authorShareMaps: profileTable.shareMaps,
     })
     .from(postTable)
     .innerJoin(user, eq(user.id, postTable.userId))
@@ -389,6 +396,22 @@ function parseJson(raw: string | null): Record<string, unknown> | undefined {
   }
 }
 
+/**
+ * `stats` and the route map of a feed item. The stored shared line (`mapLine`, already trimmed and simplified when
+ * the post was made) leaves only when both the post's switch and the author's account switch allow it; it is never
+ * part of `stats`. `hasMap` / `showMap` stay in `stats` so the author's menu can show the switch.
+ */
+function feedStats(statsJson: string | null, authorShareMaps: boolean | null | undefined) {
+  const stats = parseJson(statsJson);
+  if (!stats || !("mapLine" in stats)) {
+    return { stats: stats as PostSnapshot["stats"] };
+  }
+  const { mapLine, ...rest } = stats;
+  const line =
+    typeof mapLine === "string" && mapLine.length > 0 && mapAllowed(stats.showMap, authorShareMaps) ? mapLine : null;
+  return { stats: rest as PostSnapshot["stats"], ...(line ? { mapLine: line } : {}) };
+}
+
 function toFeedItem(row: {
   id: string;
   userId: string;
@@ -408,6 +431,7 @@ function toFeedItem(row: {
   authorName: string;
   authorImage: string | null;
   authorHandle: string | null;
+  authorShareMaps?: boolean | null;
   kudosCount: number;
   commentCount: number;
   kudosByMe?: boolean;
@@ -421,7 +445,7 @@ function toFeedItem(row: {
     photoId: row.photoId,
     scanId: row.scanId,
     macros: parseJson(row.macroJson) as PostSnapshot["macros"],
-    stats: parseJson(row.statsJson) as PostSnapshot["stats"],
+    ...feedStats(row.statsJson, row.authorShareMaps),
     photoCount: parseStringArray(row.photosJson).length || (row.photoId ? 1 : 0),
     caption: row.caption,
     visibility: row.visibility,
@@ -459,6 +483,7 @@ const postColumns = {
   authorName: user.name,
   authorImage: user.image,
   authorHandle: profileTable.handle,
+  authorShareMaps: profileTable.shareMaps,
 } as const;
 
 /** Kudos milik `me` untuk halaman postingan; false untuk anon. */
@@ -491,6 +516,7 @@ export const socialRouter = {
           handle: profileTable.handle,
           bio: profileTable.bio,
           publicProfile: profileTable.publicProfile,
+          shareMaps: profileTable.shareMaps,
           defaultVisibility: profileTable.defaultVisibility,
         })
         .from(profileTable)
@@ -511,6 +537,7 @@ export const socialRouter = {
       handleIsPlaceholder: /^jr-[0-9a-f]{8}$/.test(row?.handle ?? handle ?? ""),
       bio: row?.bio ?? null,
       publicProfile: row?.publicProfile ?? true,
+      shareMaps: row?.shareMaps ?? true,
       defaultVisibility: row?.defaultVisibility ?? "grup",
       followerCount: followers?.total ?? 0,
       followingCount: following?.total ?? 0,
@@ -524,6 +551,7 @@ export const socialRouter = {
         handle: z.string().max(40).optional(),
         bio: z.string().trim().max(BIO_MAX).optional(),
         publicProfile: z.boolean().optional(),
+        shareMaps: z.boolean().optional(),
         defaultVisibility: visibilitySchema.optional(),
       }),
     )
@@ -534,6 +562,7 @@ export const socialRouter = {
         handle: string;
         bio: string | null;
         publicProfile: boolean;
+        shareMaps: boolean;
         defaultVisibility: "publik" | "grup";
       }> = {};
       if (input.handle !== undefined) {
@@ -551,6 +580,7 @@ export const socialRouter = {
         // publicProfile diterapkan saat membaca) dan fotonya ikut terkunci.
       }
       if (input.defaultVisibility !== undefined) patch.defaultVisibility = input.defaultVisibility;
+      if (input.shareMaps !== undefined) patch.shareMaps = input.shareMaps;
       if (Object.keys(patch).length === 0) return { ok: true };
       if (patch.handle !== undefined) {
         const [current] = await context.db
@@ -879,6 +909,8 @@ export const socialRouter = {
           .optional(),
         caption: z.string().trim().max(STORY_MAX).optional(),
         visibility: visibilitySchema.optional(),
+        // "Tampilkan peta": default menyala untuk latihan ber-GPS. Garis yang dibagikan sudah dipotong 200 m.
+        showMap: z.boolean().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -898,6 +930,9 @@ export const socialRouter = {
 
       const hr = input.detail?.hr?.bpm.length ? input.detail.hr : null;
       const route = input.detail?.route?.length ? input.detail.route : null;
+      // The only route other people ever get: trimmed, simplified, encoded (lib/feed-route). The author's own
+      // full-resolution route stays in post_workout_detail.
+      const mapLine = buildFeedMapLine(analysis?.series?.track ?? route);
       const postId = crypto.randomUUID();
       const statements = [
         db.insert(postTable).values({
@@ -916,6 +951,10 @@ export const socialRouter = {
             maxHr: workout.maxHr ?? null,
             startedAt: workout.startedAt,
             hasDetail: hr || route || analysis ? 1 : 0,
+            sportKind: analysis?.sport.kind ?? sportKindFromName(workout.sportName),
+            movingSec: analysis ? Math.round(analysis.movingSec) : null,
+            elevGainM: analysis?.elevation ? Math.round(analysis.elevation.gainM) : null,
+            ...(mapLine ? { hasMap: 1, showMap: input.showMap === false ? 0 : 1, mapLine } : {}),
           }),
         }),
         ...(hr || route || analysis
@@ -954,6 +993,8 @@ export const socialRouter = {
         .where(eq(postWorkoutDetail.postId, post.id))
         .limit(1);
       if (!detail) throw new ORPCError("NOT_FOUND", { message: t("server.error.postNotFound") });
+      let route = parseJsonOrNull<[number, number][]>(detail.routeJson);
+      let analysis = parseStoredAnalysis(detail.analysisJson);
       if (post.userId !== me) {
         const [viewer] = await db
           .select({ tier: user.tier, founderUntil: user.founderUntil })
@@ -963,13 +1004,42 @@ export const socialRouter = {
         if (!premiumUnlocked(viewer, paywallConfig(context.env))) {
           return { locked: true, hr: null, route: null, analysis: null };
         }
+        // Other people never get the full-resolution track: the route is the shared line (trimmed, simplified) and
+        // only when the post and the author's account both allow a map; the analysis loses its per-sample track.
+        const stats = parseJson(post.statsJson);
+        route = mapAllowed(stats?.showMap, post.authorShareMaps)
+          ? (feedMapPoints(typeof stats?.mapLine === "string" ? stats.mapLine : null) as [number, number][] | null)
+          : null;
+        if (analysis?.series?.track) analysis = { ...analysis, series: { ...analysis.series, track: null } };
       }
       return {
         locked: false,
         hr: parseJsonOrNull<{ intervalSec: number; bpm: (number | null)[] }>(detail.hrJson),
-        route: parseJsonOrNull<[number, number][]>(detail.routeJson),
-        analysis: parseStoredAnalysis(detail.analysisJson),
+        route,
+        analysis,
       };
+    }),
+
+  /** The author's per-post "Tampilkan peta" switch (the map itself stays computed at post time). */
+  setPostMap: protectedProcedure
+    .input(z.object({ postId: z.string(), show: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
+      const me = context.session.user.id;
+      const [row] = await context.db
+        .select({ statsJson: postTable.statsJson })
+        .from(postTable)
+        .where(and(eq(postTable.id, input.postId), eq(postTable.userId, me), eq(postTable.kind, "latihan")))
+        .limit(1);
+      const stats = parseJson(row?.statsJson ?? null);
+      if (!stats || stats.hasMap !== 1) {
+        throw new ORPCError("NOT_FOUND", { message: t("server.error.postNotFound") });
+      }
+      await context.db
+        .update(postTable)
+        .set({ statsJson: JSON.stringify({ ...stats, showMap: input.show ? 1 : 0 }) })
+        .where(and(eq(postTable.id, input.postId), eq(postTable.userId, me)));
+      return { showMap: input.show ? 1 : 0 };
     }),
 
   /**

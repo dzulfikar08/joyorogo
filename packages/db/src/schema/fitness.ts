@@ -26,6 +26,9 @@ export const profile = sqliteTable("profile", {
   bio: text("bio"),
   // Off: halaman publik cuma menampilkan nama dan postingan tidak bisa 'publik'.
   publicProfile: integer("public_profile", { mode: "boolean" }).notNull().default(true),
+  // Peta rute di postingan latihan (polyline sederhana, 200 m awal/akhir dipotong).
+  // Off: tidak ada postingan milik pengguna ini yang menampilkan peta, untuk siapa pun.
+  shareMaps: integer("share_maps", { mode: "boolean" }).notNull().default(true),
   // Visibility default saat membagikan ke feed: 'grup' | 'publik'.
   defaultVisibility: text("default_visibility", { enum: ["grup", "publik"] })
     .notNull()

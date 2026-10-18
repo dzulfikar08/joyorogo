@@ -135,7 +135,17 @@
     "undoLabel": "Post",
     "toast": {
       "reported": "Report sent, thank you.",
-      "blocked": "User blocked."
+      "blocked": "User blocked.",
+      "mapShown": "Map shown.",
+      "mapHidden": "Map hidden."
+    },
+    "mapShow": {
+      "title": "Show map",
+      "subtitle": "Simplified route, first and last 200 m cut"
+    },
+    "mapHide": {
+      "title": "Hide map",
+      "subtitle": "This post shows without a route map"
     }
   },
   "report": {
@@ -289,14 +299,24 @@
     "chip": {
       "distance": "{{km}} km",
       "avgHr": "Avg {{bpm}} bpm",
-      "maxHr": "Max {{bpm}} bpm"
+      "maxHr": "Max {{bpm}} bpm",
+      "pace": "{{pace}} /km",
+      "speed": "{{kmh}} km/h",
+      "elev": "{{m}} m up"
     },
     "hrTitle": "Heart rate",
     "routeTitle": "Route",
     "lockedTitle": "Workout analysis is for Pro",
-    "lockedBody": "Upgrade to Pro to see the map, charts, splits and zones of workouts shared by others.",
+    "lockedBody": "Upgrade to Pro to see the charts, splits and zones of workouts shared by others.",
     "lockedCta": "See Pro plans",
-    "loadFailed": "Couldn't load workout detail."
+    "loadFailed": "Couldn't load workout detail.",
+    "map": {
+      "alt": "Route map of {{title}}",
+      "title": "Route",
+      "start": "Start",
+      "finish": "Finish",
+      "hint": "Simplified line. The first and last 200 m are not shown."
+    }
   },
   "analysis": {
     "distance": "Distance",

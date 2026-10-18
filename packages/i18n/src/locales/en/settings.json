@@ -680,6 +680,12 @@
       "you": "{{name}} (you)",
       "profileAria": "{{name}}'s profile"
     },
+    "maps": {
+      "title": "Route map on posts",
+      "subtitle": "Workouts with GPS show a route map. The line is simplified and the first and last 200 m are cut.",
+      "toastOn": "Route maps show on your posts.",
+      "toastOff": "Route maps are hidden from all your posts."
+    },
     "sheetTitleNative": "Feed settings",
     "saved": "Feed settings saved.",
     "saveFailed": "Couldn't save"

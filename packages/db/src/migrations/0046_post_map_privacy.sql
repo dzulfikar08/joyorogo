@@ -1,0 +1,1 @@
+ALTER TABLE `profile` ADD `share_maps` integer DEFAULT true NOT NULL;
