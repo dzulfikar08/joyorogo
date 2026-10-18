@@ -1,0 +1,160 @@
+{
+  "goal": {
+    "title": "Tujuanmu",
+    "lose": "Turunin BB",
+    "maintain": "Jaga BB",
+    "gain": "Naikin BB",
+    "hint": {
+      "lose": "Target di bawah berat badanmu sekarang.",
+      "maintain": "Makan sebanyak kebutuhan harianmu supaya berat stabil.",
+      "gain": "Target di atas berat badanmu sekarang. Kamu makan sedikit di atas kebutuhan harian."
+    },
+    "derivedGain": "Targetmu di atas berat sekarang, jadi JoyoRogo memakai mode Naikin BB.",
+    "maintainNote": "Target berat mengikuti berat badanmu sekarang.",
+    "maternalOff": "Mode Naikin BB mati selama kamu hamil atau menyusui."
+  },
+  "plan": {
+    "intro": "Target makanmu = kebutuhan harian (TDEE) ditambah surplus kalori. Surplusnya dihitung dari ritme naik berat yang kamu pilih lewat tanggal target.",
+    "surplus": {
+      "label": "Surplus buat naik BB",
+      "name": "Tambahan makan",
+      "body": "Tambahan di atas TDEE supaya berat naik pelan. Besarnya dihitung dari selisih berat dan tanggal targetmu, dibatasi {{min}} sampai {{max}} kkal per hari."
+    },
+    "perDay": "+{{kcal}} kkal per hari",
+    "pace": "Sekitar {{kg}} kg per minggu ({{pct}}% berat badan)",
+    "reach": "Di ritme ini targetmu tercapai sekitar {{date}}.",
+    "protein": "Protein {{min}} sampai {{max}} g per hari. Targetnya {{target}} g.",
+    "proteinHint": "Protein yang cukup, plus latihan beban, membantu tambahan berat jadi otot dan bukan cuma lemak.",
+    "leanNote": "Sebagian tambahan berat tetap lemak. Ritme pelan dan latihan beban membuat porsi ototnya lebih besar.",
+    "estimate": "Satu kg berat badan dihitung 7.700 kkal, itu perkiraan umum. Hasil tiap orang beda, jadi lihat tren timbanganmu 2 sampai 3 minggu lalu sesuaikan.",
+    "burnNote": "Olahraga tidak ditambahkan ke target makan. Kalau kamu rutin latihan berat dan beratmu belum naik setelah 2 sampai 3 minggu, tambah makan sedikit.",
+    "needs": {
+      "cutNone": "Tidak ada potongan",
+      "surplusRow": "Surplus"
+    }
+  },
+  "today": {
+    "short": "Kurang {{kcal}} kkal lagi",
+    "reached": "Target tercapai",
+    "over": "Lebih {{kcal}} kkal dari target",
+    "overHint": "Gak apa-apa, sesekali lebih masih wajar. Besok balik ke target saja.",
+    "shortLabel": "Masih perlu",
+    "eatenOf": "{{eaten}} dari {{target}} kkal",
+    "ringLabel": "Makan",
+    "tipShort": "Kalau susah habis, bagi jadi 5 atau 6 kali makan kecil. Tambah nasi, telur, tempe, atau alpukat.",
+    "tipReached": "Mantap, kebutuhanmu hari ini sudah terpenuhi.",
+    "tipOver": "Targetmu sudah lewat. Santai, tubuhmu bisa memakainya.",
+    "ideasTitle": "Ide buat nambah kalori",
+    "ideasHint": "Makanan biasa yang padat kalori dan gizi.",
+    "streak_other": "{{count}} hari berturut-turut makan sampai target",
+    "streakRule": "Satu hari dihitung kalau kamu makan minimal 90% dari target.",
+    "progress": "Naik {{kg}} kg dari {{start}} kg",
+    "toGo": "{{kg}} kg lagi ke target",
+    "protein": "Protein",
+    "proteinOf": "{{eaten}} dari {{target}} g",
+    "cardTitle": "Rencana Naikin BB",
+    "cardSummary": "Target {{target}} kkal per hari: TDEE {{tdee}} ditambah {{surplus}}."
+  },
+  "date": {
+    "hint": "Pilih tanggalnya, surplus dan target makan harianmu ikut menyesuaikan.",
+    "ok": {
+      "lean_other": "Pas. Naik {{kg}} kg dalam {{count}} hari, ritme {{perWeek}} kg per minggu ({{pct}}% berat badan), santai dan aman.",
+      "brisk_other": "Boleh. Naik {{kg}} kg dalam {{count}} hari, ritme {{perWeek}} kg per minggu ({{pct}}%). Ini di atas jalur lean bulk (0,25 sampai 0,5% per minggu), jadi sebagian tambahannya bisa jadi lemak. Masih wajar buat pemula atau kamu yang berat badannya kurang."
+    },
+    "fast": {
+      "title": "Tanggal ini menuntut naik {{perWeek}} kg per minggu ({{pct}}% berat badan), terlalu cepat.",
+      "titleSurplus": "Tanggal ini menuntut tambahan ~{{surplus}} kkal per hari, di atas batas {{max}} kkal.",
+      "body_other": "Di atas 1% berat badan per minggu, sebagian besar tambahannya jadi lemak dan perut bisa tidak nyaman. Naik {{kg}} kg dengan ritme yang lebih pelan butuh sekitar {{count}} hari.",
+      "useDate": "Pakai tanggal yang lebih santai ({{date}})"
+    },
+    "slow": {
+      "title": "Tanggalnya cukup jauh.",
+      "body": "Ritmenya pelan, jadi JoyoRogo tetap memakai surplus minimal {{surplus}} kkal per hari. Dengan itu targetmu tercapai sekitar {{date}}.",
+      "useDate": "Pakai {{date}}"
+    },
+    "preview": {
+      "changed": "Target makan jadi {{next}} kkal per hari (sekarang {{current}}), surplus +{{surplus}}.",
+      "same": "Target makan tetap {{kcal}} kkal per hari."
+    }
+  },
+  "target": {
+    "hint": "Di atas berat sekarang, jadi rencananya naikin BB.",
+    "aboveHealthy": "Berat target ini di atas rentang berat sehat ({{min}} sampai {{max}} kg). Boleh dilanjutkan, tapi sebaiknya ngobrol dulu dengan dokter atau ahli gizi."
+  },
+  "notes": {
+    "disclaimer": "JoyoRogo bukan alat medis. Angkanya perkiraan umum dari rekomendasi gizi olahraga, bukan saran dokter.",
+    "bmiLow": {
+      "title": "Berat badanmu di bawah rentang yang disarankan",
+      "body": "BMI kamu sekitar {{bmi}}. Sebaiknya konsultasi ke dokter atau ahli gizi untuk memastikan tidak ada penyebab medis dan menyusun rencana naik berat yang aman."
+    },
+    "rapidLoss": {
+      "title": "Beratmu turun belakangan ini",
+      "body": "Tren berat badanmu turun cukup cepat padahal rencanamu naik. Kalau tidak disengaja, konsultasi ke dokter ya. Sambil itu, coba makan teratur sampai target kkal tiap hari."
+    },
+    "aboveHealthy": {
+      "title": "Targetmu di atas rentang berat sehat",
+      "body": "BMI target sekitar {{bmi}}, di atas batas sehat 25. Kamu tetap bisa lanjut. Kalau tujuanmu menambah otot, ngobrol dengan pelatih atau ahli gizi supaya naiknya tepat."
+    }
+  },
+  "coach": {
+    "scanTitle": "Cocok buat targetmu",
+    "scanShort": "Kamu masih butuh {{kcal}} kkal hari ini, jadi ini membantu.",
+    "scanReached": "Target hari ini sudah tercapai. Ini bonus kalau kamu memang lapar.",
+    "dayImpact": "Total hari ini {{total}} dari target {{target}} kkal",
+    "dense": "Kalau porsinya terasa banyak, pilih yang padat kalori: nasi, telur, tempe, kacang, alpukat, atau susu.",
+    "strength": "Latihan beban: catat gerakan, set, reps, dan beban. Beban yang naik membantu tambahan berat jadi otot.",
+    "keepMuscle": "Latihan beban dan protein cukup membuat berat yang naik lebih banyak jadi otot: catat latihanmu.",
+    "surplusExplainer": {
+      "title": "Kok ada kata surplus?",
+      "body": "Surplus itu tambahan kalori di atas yang tubuhmu butuhkan. Selisih inilah yang menaikkan berat. Kamu tidak perlu menghitungnya, cukup makan sekitar target."
+    },
+    "dailyTip": "Makan sedikit demi sedikit tapi sering lebih gampang daripada tiga kali makan besar."
+  },
+  "chart": {
+    "target": "Target",
+    "band": "Jalur naik pelan",
+    "bandRange": "{{min}} sampai {{max}} kg per minggu",
+    "start": "Mulai",
+    "title": "Jalur naik berat",
+    "toGo": "{{kg}} kg lagi",
+    "gained": "Sudah naik {{kg}} kg"
+  },
+  "recap": {
+    "weightUp": "Naik {{kg}} kg minggu ini",
+    "weightDown": "Turun {{kg}} kg minggu ini. Cek lagi apakah makanmu sudah sampai target.",
+    "weightSteady": "Berat stabil minggu ini",
+    "daysOnTarget": "{{on}} dari {{total}} hari makan sampai target",
+    "dayUnder": "Belum sampai target",
+    "celebrate": {
+      "great": "Minggu yang kuat: kamu makan cukup hampir tiap hari.",
+      "some": "Sudah ada kemajuan. Tambah satu camilan padat gizi supaya lebih sering sampai target.",
+      "low": "Minggu ini masih sering kurang dari target. Coba pasang pengingat makan malam."
+    },
+    "shareLine": "Rekapku {{name}}: {{on}} dari {{logged}} hari makan sampai target, rata-rata {{avg}} kkal per hari. Naikin BB bareng JoyoRogo."
+  },
+  "milestone": {
+    "gained": "Naik {{kg}} kg"
+  },
+  "share": {
+    "gained": "Sudah naik {{kg}} kg. Naikin BB pakai 3 angka aja di JoyoRogo.",
+    "progress": "Naikin BB pakai 3 angka aja: makan, bakar, tidur. JoyoRogo.",
+    "publicTitle": "Aku sudah naik {{kg}} kg dengan JoyoRogo",
+    "publicStart": "Aku lagi naikin berat badan bareng JoyoRogo"
+  },
+  "group": {
+    "gained": "naik {{kg}} kg",
+    "weekGained": "naik {{kg}} kg minggu ini",
+    "streak": "Makan sampai target {{count}} hari berturut-turut"
+  },
+  "reminder": {
+    "label": "Pengingat kalau masih kurang",
+    "hint": "Muncul sore hari hanya kalau kamu masih di bawah target kalori hari ini.",
+    "title": "Masih kurang {{kcal}} kkal hari ini",
+    "body": "Makan malam yang cukup membantu targetmu. Coba tambah nasi, telur, atau tempe.",
+    "bodyShort": "Makan malam yang cukup membantu targetmu."
+  },
+  "estimate": {
+    "title": "Soal estimasi kalori dari foto",
+    "body": "Kalori dari foto itu perkiraan, bisa meleset ke atas atau ke bawah. Kalau kamu naikin BB, angka yang terlalu tinggi bikin kamu makan kurang dari yang dicatat. Lihat tren timbanganmu 2 sampai 3 minggu, bukan satu hari, lalu sesuaikan porsinya."
+  }
+}

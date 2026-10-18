@@ -147,13 +147,15 @@
       "MAINTENANCE": "Beratmu sudah di rentang sehat; rencananya menjaga berat, bukan menurun.",
       "BELOW_HEALTHY_RANGE": "Target beratmu di bawah rentang berat sehat untuk tinggimu. Pertimbangkan menaikkannya.",
       "PLAN_CLAMPED": "Rencana disesuaikan agar aman, defisit harian dibatasi.",
-      "ADAPTIVE": "Target disesuaikan dari data makan + timbanganmu 3 minggu terakhir."
+      "ADAPTIVE": "Target disesuaikan dari data makan + timbanganmu 3 minggu terakhir.",
+      "GAIN": "Rencananya naikin berat: kamu makan sedikit di atas kebutuhan harian (TDEE plus surplus)."
     },
     "noteShort": {
       "MAINTENANCE": "Berat sudah mencapai target. Rencana sekarang menjaga berat.",
       "BELOW_HEALTHY_RANGE": "Target berat di bawah rentang sehat. Naikkan sedikit agar aman.",
       "PLAN_CLAMPED": "Rencana disesuaikan agar aman. Defisit kalori dibatasi.",
-      "ADAPTIVE": "Disesuaikan dari data makan + timbanganmu 3 minggu terakhir."
+      "ADAPTIVE": "Disesuaikan dari data makan + timbanganmu 3 minggu terakhir.",
+      "GAIN": "Rencana naikin berat: target makan = TDEE plus surplus."
     },
     "formulaEstimate": "Estimasi rumus {{formula}} kcal/hari; rencana memakai {{tdee}} kcal karena lebih cocok dengan datamu.",
     "summary": {

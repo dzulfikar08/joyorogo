@@ -153,13 +153,15 @@
       "MAINTENANCE": "Your weight is already in the healthy range, so your plan maintains it instead of losing.",
       "BELOW_HEALTHY_RANGE": "Your target weight is below the healthy range for your height. Consider raising it.",
       "PLAN_CLAMPED": "Your plan was adjusted to stay safe: the daily deficit is capped.",
-      "ADAPTIVE": "Your target is adjusted from your food and weigh-in data from the last 3 weeks."
+      "ADAPTIVE": "Your target is adjusted from your food and weigh-in data from the last 3 weeks.",
+      "GAIN": "Your plan is to gain weight: you eat a little above your daily needs (TDEE plus a surplus)."
     },
     "noteShort": {
       "MAINTENANCE": "You've reached your target weight. Your plan now maintains your weight.",
       "BELOW_HEALTHY_RANGE": "Your target weight is below the healthy range. Raise it a little to stay safe.",
       "PLAN_CLAMPED": "Your plan was adjusted to stay safe. The calorie deficit is capped.",
-      "ADAPTIVE": "Adjusted from your food and weigh-in data from the last 3 weeks."
+      "ADAPTIVE": "Adjusted from your food and weigh-in data from the last 3 weeks.",
+      "GAIN": "Gain weight plan: eating target = TDEE plus a surplus."
     },
     "formulaEstimate": "Formula estimate: {{formula}} kcal/day. Your plan uses {{tdee}} kcal because it fits your data better.",
     "summary": {

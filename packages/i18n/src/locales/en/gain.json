@@ -1,0 +1,164 @@
+{
+  "goal": {
+    "title": "Your goal",
+    "lose": "Lose weight",
+    "maintain": "Maintain",
+    "gain": "Gain weight",
+    "hint": {
+      "lose": "A target below your current weight.",
+      "maintain": "Eat what your body needs each day so your weight stays steady.",
+      "gain": "A target above your current weight. You eat a little above your daily needs."
+    },
+    "derivedGain": "Your target is above your current weight, so JoyoRogo uses Gain weight mode.",
+    "maintainNote": "The target weight follows your current weight.",
+    "maternalOff": "Gain weight mode is off while you are pregnant or breastfeeding."
+  },
+  "plan": {
+    "intro": "Your eating target = daily needs (TDEE) plus a calorie surplus. The surplus comes from the pace of gain your target date implies.",
+    "surplus": {
+      "label": "Surplus to gain weight",
+      "name": "Extra food",
+      "body": "Extra on top of TDEE so your weight rises slowly. It is worked out from the gap to your target weight and your target date, kept between {{min}} and {{max}} kcal a day."
+    },
+    "perDay": "+{{kcal}} kcal a day",
+    "pace": "About {{kg}} kg a week ({{pct}}% of body weight)",
+    "reach": "At this pace you reach your target around {{date}}.",
+    "protein": "Protein {{min}} to {{max}} g a day. The target is {{target}} g.",
+    "proteinHint": "Enough protein, plus strength training, helps the extra weight become muscle rather than only fat.",
+    "leanNote": "Some of the extra weight is still fat. A slow pace and strength training make more of it muscle.",
+    "estimate": "One kg of body weight is counted as 7,700 kcal, a common approximation. Real results vary, so watch your weight trend for 2 to 3 weeks, then adjust.",
+    "burnNote": "Exercise is not added to the eating target. If you train hard and your weight has not risen after 2 to 3 weeks, eat a little more.",
+    "needs": {
+      "cutNone": "No cut",
+      "surplusRow": "Surplus"
+    }
+  },
+  "today": {
+    "short": "{{kcal}} kcal still to go",
+    "reached": "Target reached",
+    "over": "{{kcal}} kcal over target",
+    "overHint": "That's fine, a bit more now and then is normal. Back to the target tomorrow.",
+    "shortLabel": "Still needed",
+    "eatenOf": "{{eaten}} of {{target}} kcal",
+    "ringLabel": "Eat",
+    "tipShort": "If it is hard to finish, split it into 5 or 6 small meals. Add rice, eggs, tempeh, or avocado.",
+    "tipReached": "Nice, today's needs are covered.",
+    "tipOver": "You are past your target. Relax, your body can use it.",
+    "ideasTitle": "Ideas to add calories",
+    "ideasHint": "Everyday food that is dense in calories and nutrients.",
+    "streak_one": "{{count}} day in a row eating up to target",
+    "streak_other": "{{count}} days in a row eating up to target",
+    "streakRule": "A day counts when you eat at least 90% of your target.",
+    "progress": "Up {{kg}} kg from {{start}} kg",
+    "toGo": "{{kg}} kg to go",
+    "protein": "Protein",
+    "proteinOf": "{{eaten}} of {{target}} g",
+    "cardTitle": "Gain weight plan",
+    "cardSummary": "Target {{target}} kcal a day: TDEE {{tdee}} plus {{surplus}}."
+  },
+  "date": {
+    "hint": "Pick the date and your surplus and daily eating target adjust with it.",
+    "ok": {
+      "lean_one": "Just right. Gain {{kg}} kg in {{count}} day, {{perWeek}} kg a week ({{pct}}% of body weight), easy and safe.",
+      "lean_other": "Just right. Gain {{kg}} kg in {{count}} days, {{perWeek}} kg a week ({{pct}}% of body weight), easy and safe.",
+      "brisk_one": "Fine. Gain {{kg}} kg in {{count}} day, {{perWeek}} kg a week ({{pct}}%). That is above the lean bulk range (0.25 to 0.5% a week), so more of it may be fat. Still reasonable for beginners or if you are underweight.",
+      "brisk_other": "Fine. Gain {{kg}} kg in {{count}} days, {{perWeek}} kg a week ({{pct}}%). That is above the lean bulk range (0.25 to 0.5% a week), so more of it may be fat. Still reasonable for beginners or if you are underweight."
+    },
+    "fast": {
+      "title": "This date needs {{perWeek}} kg a week ({{pct}}% of body weight), which is too fast.",
+      "titleSurplus": "This date needs about +{{surplus}} kcal a day, above the {{max}} kcal limit.",
+      "body_one": "Above 1% of body weight a week, most of the gain turns into fat and your stomach may feel uncomfortable. Gaining {{kg}} kg at a gentler pace takes about {{count}} day.",
+      "body_other": "Above 1% of body weight a week, most of the gain turns into fat and your stomach may feel uncomfortable. Gaining {{kg}} kg at a gentler pace takes about {{count}} days.",
+      "useDate": "Use the gentler date ({{date}})"
+    },
+    "slow": {
+      "title": "That date is quite far away.",
+      "body": "The pace is slow, so JoyoRogo still uses a surplus of at least {{surplus}} kcal a day. At that rate you reach your target around {{date}}.",
+      "useDate": "Use {{date}}"
+    },
+    "preview": {
+      "changed": "Eating target becomes {{next}} kcal a day (now {{current}}), surplus +{{surplus}}.",
+      "same": "Eating target stays {{kcal}} kcal a day."
+    }
+  },
+  "target": {
+    "hint": "Above your current weight, so the plan is to gain.",
+    "aboveHealthy": "This target weight is above the healthy range ({{min}} to {{max}} kg). You can go ahead, but talk to a doctor or dietitian first."
+  },
+  "notes": {
+    "disclaimer": "JoyoRogo is not a medical tool. The numbers are general estimates from sports nutrition recommendations, not medical advice.",
+    "bmiLow": {
+      "title": "Your weight is below the recommended range",
+      "body": "Your BMI is around {{bmi}}. Please see a doctor or dietitian to rule out medical causes and plan a safe way to gain weight."
+    },
+    "rapidLoss": {
+      "title": "Your weight has been dropping lately",
+      "body": "Your weight trend is falling fairly fast while your plan is to gain. If that is not on purpose, please see a doctor. Meanwhile, try to eat regularly up to the kcal target each day."
+    },
+    "aboveHealthy": {
+      "title": "Your target is above the healthy weight range",
+      "body": "The target BMI is around {{bmi}}, above the healthy limit of 25. You can still continue. If you want to build muscle, talk to a coach or dietitian so the gain is on track."
+    }
+  },
+  "coach": {
+    "scanTitle": "Fits your target",
+    "scanShort": "You still need {{kcal}} kcal today, so this helps.",
+    "scanReached": "Today's target is already reached. This is a bonus if you are hungry.",
+    "dayImpact": "Today's total {{total}} of the {{target}} kcal target",
+    "dense": "If portions feel big, pick calorie-dense food: rice, eggs, tempeh, nuts, avocado, or milk.",
+    "strength": "Strength training: log exercises, sets, reps, and weight. Rising weights help the extra gain become muscle.",
+    "keepMuscle": "Strength training and enough protein make more of the weight you gain muscle: log your workouts.",
+    "surplusExplainer": {
+      "title": "Why the word surplus?",
+      "body": "A surplus is the extra calories above what your body needs. That gap is what raises your weight. You don't need to calculate it, just eat around your target."
+    },
+    "dailyTip": "Eating a little, often, is easier than three big meals."
+  },
+  "chart": {
+    "target": "Target",
+    "band": "Gentle gain band",
+    "bandRange": "{{min}} to {{max}} kg a week",
+    "start": "Start",
+    "title": "Weight gain path",
+    "toGo": "{{kg}} kg to go",
+    "gained": "Up {{kg}} kg so far"
+  },
+  "recap": {
+    "weightUp": "Up {{kg}} kg this week",
+    "weightDown": "Down {{kg}} kg this week. Check whether your meals reached the target.",
+    "weightSteady": "Weight steady this week",
+    "daysOnTarget": "{{on}} of {{total}} days eating up to target",
+    "dayUnder": "Below target",
+    "celebrate": {
+      "great": "A strong week: you ate enough almost every day.",
+      "some": "Some progress. Add one nutritious, dense snack to reach the target more often.",
+      "low": "Still often below the target this week. Try setting a dinner reminder."
+    },
+    "shareLine": "My recap {{name}}: {{on}} of {{logged}} days eating up to target, averaging {{avg}} kcal a day. Gaining with JoyoRogo."
+  },
+  "milestone": {
+    "gained": "Up {{kg}} kg"
+  },
+  "share": {
+    "gained": "Up {{kg}} kg already. Gaining weight with just 3 numbers on JoyoRogo.",
+    "progress": "Gaining weight with just 3 numbers: eat, burn, sleep. JoyoRogo.",
+    "publicTitle": "I've gained {{kg}} kg with JoyoRogo",
+    "publicStart": "I'm gaining weight with JoyoRogo"
+  },
+  "group": {
+    "gained": "up {{kg}} kg",
+    "weekGained": "up {{kg}} kg this week",
+    "streak": "Ate up to target {{count}} days in a row"
+  },
+  "reminder": {
+    "label": "Reminder when still short",
+    "hint": "Shows in the evening only if you are still under today's calorie target.",
+    "title": "{{kcal}} kcal still to go today",
+    "body": "A good dinner helps your target. Try adding rice, eggs, or tempeh.",
+    "bodyShort": "A good dinner helps your target."
+  },
+  "estimate": {
+    "title": "About calorie estimates from photos",
+    "body": "Calories from a photo are an estimate and can be off in either direction. When you are gaining, a number that is too high means you ate less than you logged. Watch your weight trend over 2 to 3 weeks, not one day, then adjust portions."
+  }
+}
