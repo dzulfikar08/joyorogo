@@ -50,6 +50,7 @@ export const PAGES: Record<PublicPath, PageMeta> = {
     title: "Privasi | JoyoRogo",
     description:
       "Data apa yang JoyoRogo simpan dan untuk apa. Foto makanan hanya dipakai untuk analisis lalu dibuang, data tidak dijual, dan semuanya bisa kamu hapus.",
+    lastmod: "2026-10-18",
   },
   "/login": {
     title: "Masuk | JoyoRogo",

@@ -48,6 +48,9 @@ function PrivasiPage() {
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
               Satu akun = satu data. Kami tidak menyimpan apa pun yang tidak kamu masukkan sendiri.
             </p>
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Semua yang dikirim antara aplikasi atau browser dan server JoyoRogo memakai HTTPS (TLS).
+            </p>
           </section>
 
           <section className="rounded-3xl bg-card p-5">
@@ -231,13 +234,13 @@ function PrivasiPage() {
               items={[
                 "Disimpan: ringkasan latihan, rute GPS, detak jantung, ketinggian, kecepatan, irama langkah atau kayuhan, daya, dan analisis turunannya (jarak, waktu bergerak, tanjakan, zona, split).",
                 "Tempat: penyimpanan Cloudflare milik JoyoRogo, terhubung ke akunmu dan tidak bisa dibuka tanpa masuk.",
-                "Siapa yang bisa melihat: hanya kamu. Latihan yang kamu bagikan ke feed atau grup adalah salinan terpisah yang sudah disaring (misalnya tanpa rute atau detak jantung bila kamu menyembunyikannya), bukan data cloud ini.",
+                "Siapa yang bisa melihat: hanya kamu. Latihan yang kamu bagikan ke feed atau grup adalah salinan terpisah yang sudah disaring (misalnya tanpa rute atau detak jantung bila kamu menyembunyikannya), bukan data cloud ini. Lihat bagian Komunitas.",
                 "Tidak dipakai untuk iklan atau melatih model, dan tidak dijual.",
               ]}
             />
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
               Hapus satu latihan atau semuanya dari halaman Latihan JoyoFit di web, atau lewat
-              Pengaturan, Sinkron cloud di aplikasi. Menghapus latihan juga menghapusnya dari
+              Settings, Health Connect and cloud (di iPhone: Apple Health and cloud), bagian Sinkron cloud, Delete cloud data, di aplikasi. Menghapus latihan juga menghapusnya dari
               ponsel yang menyinkronkannya pada sinkron berikutnya. Menghapus semua data atau akun
               juga menghapus semua latihan cloud. Kalau Pro berakhir, latihan yang sudah tersimpan
               tetap bisa dibaca dan dihapus; latihan baru tidak diunggah sampai Pro aktif lagi.
@@ -256,12 +259,63 @@ function PrivasiPage() {
               postinganmu kapan saja.
             </p>
             <p className="mt-3 text-sm leading-relaxed">
+              Latihan dari jam yang kamu posting lewat JoyoFit (Share to JoyoRogo) bisa membawa rute
+              GPS, grafik detak jantung, dan analisis latihan, sesuai saklar yang kamu pilih saat
+              memposting. Ringkasan latihannya terlihat oleh audiens yang kamu pilih (grup atau
+              publik); detailnya (peta, grafik, split, zona) terlihat oleh kamu dan anggota JoyoRogo
+              Pro. Postingan itu salinan terpisah: menghapus latihan di ponsel atau di cloud tidak
+              menghapus postingannya, dan menghapus postingan menghapus kudos, komentar, rute, dan
+              grafiknya. Postingan dan komentar disimpan sampai kamu menghapusnya atau akunmu
+              dihapus.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
               Ikut tantangan grup berarti anggota grup itu bisa melihat apakah targetmu tercapai
               tiap hari, streakmu, dan angka langkah, strain, tidur, atau jumlah latihanmu untuk
               tantangan tersebut. Angka makananmu (kalori dan protein) hanya terlihat olehmu,
               teman hanya melihat tercapai atau tidak. Kamu bisa keluar dari tantangan kapan saja
               dan datamu di papan peringkatnya ikut hilang.
             </p>
+          </section>
+
+          <section className="rounded-3xl bg-card p-5" id="keluarga">
+            <h2 className="text-base font-bold tracking-tight">Keluarga di JoyoFit (opsional)</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Di aplikasi JoyoFit ada fitur Keluarga yang mati sampai orang yang dipantau menerima
+              undangan. Pemantau perlu masuk dengan akun JoyoRogo, dan nama JoyoRogo tiap orang
+              ditampilkan ke orang yang terhubung dengannya.
+            </p>
+            <CheckList
+              items={[
+                "Yang dikirim hanya ringkasan harian: langkah, detak jantung istirahat, tidur semalam, kadar oksigen (SpO2) bila dinyalakan, serta kapan jam terakhir tersambung dan baterainya. Tidak pernah dikirim: lokasi, rute, detak jantung per menit, makanan, dan foto.",
+                "Tempat: server cloud JoyoFit di akun Cloudflare pengembang, terpisah dari database JoyoRogo dan terhubung ke ID akun JoyoRogo-mu. Riwayat ringkasan disimpan 30 hari untuk pemantau Gratis dan 90 hari untuk pemantau Pro, lalu dihapus otomatis.",
+                "Orang yang dipantau mengatur tiap kategori, bisa menjeda atau berhenti kapan saja (pemantau langsung tidak bisa melihat apa pun dan ringkasan yang terkirim dihapus), dan selalu bisa melihat siapa yang memantau.",
+                "Menghapus akun JoyoRogo menghapus semua tautan Keluarga, ringkasan, dan token push, sebagai yang dipantau maupun sebagai pemantau.",
+              ]}
+            />
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Rincian lengkap ada di{" "}
+              <a
+                href="https://fit.joyorogo.com/privasi#keluarga"
+                className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+              >
+                fit.joyorogo.com/privasi
+              </a>
+              .
+            </p>
+          </section>
+
+          <section className="rounded-3xl bg-card p-5" id="notifikasi">
+            <h2 className="text-base font-bold tracking-tight">Notifikasi push</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Notifikasi mati sampai kamu sendiri mengizinkannya. Ada dua jenis, dan keduanya hanya
+              dipakai untuk memberimu kabar, bukan untuk iklan.
+            </p>
+            <CheckList
+              items={[
+                "Di browser (web): bila kamu mengizinkan notifikasi, kami menyimpan langganan push browsermu (alamat endpoint dan kunci enkripsinya) untuk pengingat puasa, kudos dan komentar di feed, dan colekan grup. Pemberitahuan dikirim lewat layanan push milik browsermu. Langganan yang sudah tidak berlaku dihapus otomatis, dan menghapus semua data atau akun juga menghapusnya.",
+                "Di aplikasi JoyoFit (Keluarga): token push HP-mu (token Expo) disimpan di server JoyoFit dan dipakai untuk memberi tahu pemantau saat data terlihat tidak biasa. Pemberitahuan dikirim lewat layanan push Expo, lalu Google Firebase Cloud Messaging (Android) atau Apple Push Notification service (iPhone). Token dihapus saat kamu keluar dari akun di JoyoFit dan saat akun dihapus.",
+              ]}
+            />
           </section>
 
           <section className="rounded-3xl bg-card p-5">
@@ -335,7 +389,7 @@ function PrivasiPage() {
             <h2 className="text-base font-bold tracking-tight">Hapus akun dan data</h2>
             <p className="mt-3 text-sm leading-relaxed">
               Kamu bisa menghapus seluruh catatan (profil, berat, makanan, olahraga, tidur,
-              postingan feed, foto, lokasi, dan latihan JoyoFit di cloud) secara permanen lewat tombol <span className="font-semibold">Hapus semua data saya</span> di
+              postingan feed, foto, lokasi, langganan notifikasi browser, dan latihan JoyoFit di cloud) secara permanen lewat tombol <span className="font-semibold">Hapus semua data saya</span> di
               halaman{" "}
               <Link
                 to="/profil"
@@ -353,6 +407,19 @@ function PrivasiPage() {
               nama, email, dan riwayat pembayaran. Pro tidak bisa dipulihkan setelahnya.
               Langganan App Store atau Google Play tetap harus kamu batalkan sendiri di pengaturan
               Apple atau Google.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Di aplikasi JoyoFit, tombol <span className="font-semibold">Delete JoyoRogo account</span>{" "}
+              (Settings, Health Connect and cloud, atau Apple Health and cloud di iPhone, bagian
+              Sinkron cloud) menghapus akun JoyoRogo yang sama beserta data JoyoFit-nya, termasuk
+              latihan cloud, tautan Keluarga, dan token push. Rinciannya ada di{" "}
+              <a
+                href="https://fit.joyorogo.com/privasi#hapus"
+                className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+              >
+                fit.joyorogo.com/privasi
+              </a>
+              .
             </p>
             <p className="mt-3 text-sm leading-relaxed">
               Dari web, atau kalau kamu tidak punya aplikasinya, kirim email dari
