@@ -25,6 +25,7 @@ import { socialRouter } from "./social";
 import { statsRouter } from "./stats";
 import { stravaRouter } from "./strava";
 import { strengthRouter } from "./strength";
+import { syncRouter } from "./sync";
 import { watchWorkoutRouter } from "./watch-workout";
 import { waterRouter } from "./water";
 import { waistRouter } from "./waist";
@@ -69,6 +70,7 @@ export const appRouter = {
   fitness: fitnessRouter,
   coach: coachRouter,
   strength: strengthRouter,
+  sync: syncRouter,
   mcpConnection: mcpConnectionRouter,
 };
 export type AppRouter = typeof appRouter;
