@@ -24,8 +24,11 @@ export function installJoyoFit(): Promise<void> {
  * other apps' schemes without a manifest <queries> entry (native config is
  * frozen), so it would report "not installed" for an installed app. openURL
  * rejects when no app handles the scheme (iOS: unsupported URL, Android:
- * ActivityNotFoundException), so try strength link, then the app link
- * (older JoyoFit without the strength route), then the store.
+ * ActivityNotFoundException), so try the strength link, then the plain app
+ * link, then the store. The strength link is `joyofit://?open=strength`, not
+ * `joyofit://strength`: an open of an unknown route succeeds (JoyoFit shows
+ * its own "Unmatched Route" page) and so never reaches the next target, while a
+ * JoyoFit without the strength route just shows its home for the query form.
  * Resolves true when JoyoFit opened, false when it is not installed (the store
  * page was opened instead), so callers can show an install button only then.
  */
