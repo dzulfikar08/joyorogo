@@ -10,7 +10,7 @@ import Reanimated, {
   withTiming,
 } from "react-native-reanimated";
 import { MACRO_META, MacroIcon, type MacroKey } from "@/utils/macro-icons";
-import React, { Fragment, useEffect, useRef, useState } from "react";
+import React, { Fragment, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -18,8 +18,10 @@ import {
   Modal,
   Pressable,
   RefreshControl,
+  ScrollView,
   TextInput,
   View,
+  type TextInputProps,
   Text as RNText,
   StyleSheet as RNStyleSheet,
   type TextProps,
@@ -581,7 +583,21 @@ export function ListRow({
 
 // --- Sheet -----------------------------------------------------------------
 
-/** Bottom sheet (RN Modal, slide) hosting every add/edit form. */
+type SheetScrollApi = {
+  /** An input in the sheet took focus: keep it inside the visible part of the scroll area. */
+  focus: (input: TextInput) => void;
+  blur: (input: TextInput) => void;
+};
+const SheetScrollContext = createContext<SheetScrollApi | null>(null);
+
+/**
+ * Bottom sheet (RN Modal, slide) hosting every add/edit form. keyboard-controller's
+ * KeyboardAvoidingView lifts the whole panel above the keyboard, so the panel's scroll area
+ * already ends above it. Do NOT use KeyboardAwareScrollView in here: it pads and scrolls for a
+ * viewport that reaches under the keyboard, and in this auto-height scroll area that pushed the
+ * content out of view (blank sheet with only the title and the footer button). Inputs scroll
+ * into view through `Input` -> SheetScrollContext instead.
+ */
 export function Sheet({
   visible,
   onClose,
@@ -596,6 +612,47 @@ export function Sheet({
   footer?: React.ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
+  const focused = useRef<TextInput | null>(null);
+  const revealSeq = useRef(0);
+
+  // Scrolls the focused input into the viewport. Re-run when the viewport or content resizes:
+  // the viewport only reaches its final height once the keyboard animation has settled.
+  // Both rects are measured in window coordinates, so the Modal's own offset cancels out.
+  const reveal = useCallback(() => {
+    const input = focused.current;
+    const scroll = scrollRef.current;
+    if (!input || !scroll) return;
+    const seq = ++revealSeq.current;
+    // ScrollView's ref is a host component at runtime (NativeMethods) but its typings omit them.
+    (scroll as unknown as View).measureInWindow((_sx, sy, _sw, sh) => {
+      if (seq !== revealSeq.current || sh <= 0) return;
+      input.measureInWindow((_x, y, _w, h) => {
+        if (seq !== revealSeq.current) return;
+        const margin = 12;
+        const rel = y - sy;
+        if (rel - margin < 0) {
+          scroll.scrollTo({ y: Math.max(0, scrollY.current + rel - margin), animated: true });
+        } else if (rel + h + margin > sh) {
+          scroll.scrollTo({ y: scrollY.current + rel + h + margin - sh, animated: true });
+        }
+      });
+    });
+  }, []);
+
+  const scrollApi = useMemo<SheetScrollApi>(
+    () => ({
+      focus: (input) => {
+        focused.current = input;
+        reveal();
+      },
+      blur: (input) => {
+        if (focused.current === input) focused.current = null;
+      },
+    }),
+    [reveal],
+  );
   const { theme } = useUnistyles();
   const { t } = useTranslation("common");
   return (
@@ -634,13 +691,20 @@ export function Sheet({
                 <Ionicons name="close" size={22} color={theme.colors.mutedForeground} />
               </PressableScale>
             </View>
-            <KeyboardAwareScrollView
+            <ScrollView
+              ref={scrollRef}
               style={styles.sheetScroll}
               contentContainerStyle={styles.sheetContent}
               keyboardShouldPersistTaps="handled"
+              scrollEventThrottle={16}
+              onScroll={(e) => {
+                scrollY.current = e.nativeEvent.contentOffset.y;
+              }}
+              onLayout={reveal}
+              onContentSizeChange={reveal}
             >
-              {children}
-            </KeyboardAwareScrollView>
+              <SheetScrollContext.Provider value={scrollApi}>{children}</SheetScrollContext.Provider>
+            </ScrollView>
             {footer ? <View style={styles.sheetFooter}>{footer}</View> : null}
           </View>
         </KeyboardAvoidingView>
@@ -874,13 +938,36 @@ export function Field({
   );
 }
 
-/** 48px borderless input on the muted fill; focus ring in primary. */
-export function Input(props: ComponentProps<typeof TextInput>) {
+/**
+ * 48px borderless input on the muted fill; focus ring in primary. Inside a Sheet it also asks the
+ * sheet to scroll it into view above the keyboard.
+ */
+export function Input({
+  ref,
+  onFocus,
+  onBlur,
+  ...props
+}: TextInputProps & { ref?: React.Ref<TextInput> }) {
   const { theme } = useUnistyles();
+  const sheet = useContext(SheetScrollContext);
+  const own = useRef<TextInput | null>(null);
   return (
     <TextInput
       placeholderTextColor={theme.colors.mutedForeground}
       {...props}
+      ref={(node) => {
+        own.current = node;
+        if (typeof ref === "function") ref(node);
+        else if (ref) ref.current = node;
+      }}
+      onFocus={(e) => {
+        if (own.current) sheet?.focus(own.current);
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        if (own.current) sheet?.blur(own.current);
+        onBlur?.(e);
+      }}
       style={[
         styles.input,
         { fontFamily: theme.fonts.regular, color: theme.colors.foreground },

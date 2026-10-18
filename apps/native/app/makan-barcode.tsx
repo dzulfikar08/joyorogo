@@ -6,7 +6,7 @@ import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Image, Linking, Pressable, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
 import type { KeyboardAwareScrollViewRef } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -623,11 +623,12 @@ export default function MakanBarcode() {
       <View style={styles.finderWrap} pointerEvents="none">
         <View style={styles.finder} />
       </View>
-      <View style={styles.bottomPanel}>
+      {/* The panel is absolutely positioned at the bottom of the full-screen camera: it rides on top of
+          the keyboard. A KeyboardAwareScrollView here (auto-height, not reaching under the keyboard)
+          padded and scrolled its content out of view, leaving a blank panel. */}
+      <KeyboardStickyView style={styles.bottomPanel} offset={{ closed: 0, opened: 24 }}>
         {typing ? (
-          <KeyboardAwareScrollView keyboardShouldPersistTaps="handled">
-            {typedPanel}
-          </KeyboardAwareScrollView>
+          typedPanel
         ) : (
           <>
             <Text style={styles.hint}>{scanError ?? t("camera.aim")}</Text>
@@ -639,7 +640,7 @@ export default function MakanBarcode() {
             />
           </>
         )}
-      </View>
+      </KeyboardStickyView>
     </View>
   );
 }
