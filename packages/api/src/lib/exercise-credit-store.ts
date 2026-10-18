@@ -68,7 +68,7 @@ export function dayReadings(
 export function creditDayQueries(db: Database, userId: string, date: string) {
   return [
     db
-      .select({ kcal: exerciseLog.kcal, source: exerciseLog.source })
+      .select({ kcal: exerciseLog.kcal, source: exerciseLog.source, externalId: exerciseLog.externalId })
       .from(exerciseLog)
       .where(and(eq(exerciseLog.userId, userId), eq(exerciseLog.date, date))),
     db

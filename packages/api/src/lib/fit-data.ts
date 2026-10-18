@@ -310,7 +310,7 @@ export async function getDailyTotals(db: Database, userId: string, from: string,
       .where(and(eq(foodLog.userId, userId), gte(foodLog.date, from), lte(foodLog.date, to)))
       .groupBy(foodLog.date),
     db
-      .select({ date: exerciseLog.date, kcal: exerciseLog.kcal, source: exerciseLog.source })
+      .select({ date: exerciseLog.date, kcal: exerciseLog.kcal, source: exerciseLog.source, externalId: exerciseLog.externalId })
       .from(exerciseLog)
       .where(
         and(

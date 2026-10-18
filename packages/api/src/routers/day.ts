@@ -127,6 +127,7 @@ export const dayRouter = {
           .select({
             kcal: exerciseLog.kcal,
             source: exerciseLog.source,
+            externalId: exerciseLog.externalId,
             type: exerciseLog.type,
             durationMin: exerciseLog.durationMin,
           })

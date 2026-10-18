@@ -30,11 +30,14 @@ Real data only.
   the larger valid one counts. A reading is **ignored** when it is empty, above 6000 kcal, or absurdly low for the day's
   steps (under 0.01 kcal per step from 3000 steps, e.g. 0 active on a day with 15 000 steps).
 - **Recorded workouts** (`exercise_log`, `source = 'rest'` excluded) fall in two buckets:
-  - *inside all-day*: `joyofit` (watch workouts `watch:`, phone recordings, strength rows) and `health_connect` /
-    `apple_health` imports. A watch's all-day energy already contains them.
+  - *replaced by all-day*: the watch's workouts (`joyofit` `watch:` rows) and the health store's imports
+    (`health_connect`, `apple_health`). When a valid all-day total exists it **is trusted over these entries**: they are
+    inside it, and an imported workout can carry an inflated estimate (15 Okt: all-day 254, two Apple Health walks of 471
+    and 650 kcal → active 254). JoyoFit strength and phone-recorded rows (`strength:`, `phone:`) are in this bucket only
+    when the all-day total is the watch's own (JoyoFit); with a health-store total they add on top.
   - *never inside all-day*: `manual` and `strava`.
-- `active = max(allDay, sum(inside-all-day workouts)) + sum(other workouts)`. Without all-day data this is simply all
-  workouts. A watch workout reaching JoyoRogo twice (from JoyoFit and from Health Connect) is already one row
+- `active = allDay + sum(other workouts)` on a day with a valid all-day total; without one, `active = sum(every workout)`.
+  A watch workout reaching JoyoRogo twice (from JoyoFit and from Health Connect) is already one row
   (`import-dedupe.ts`). Known approximation: a manual or Strava row for something the watch also measured is counted
   twice (delete it, or turn it off).
 - `counted = min(cap, pct × active)` (or 0 when the switch is off).

@@ -98,14 +98,22 @@ export interface CreditExerciseRow {
   kcal: number;
   /** 'rest' rows mark a planned day off, never movement */
   source?: string | null;
+  /** `watch:<start>`, `strength:<id>`, `phone:<start>` for JoyoFit rows */
+  externalId?: string | null;
 }
 
 /**
- * Sources whose energy a device already measures all day: the watch's own workouts and strength rows (joyofit) and the
- * health store's (health_connect, apple_health). When all-day data exists they are inside it. 'manual' and 'strava' are
- * never inside it: the person typed them, or Strava recorded them without the watch.
+ * Whether a recorded workout is already inside the day's all-day total, so the total replaces it. The watch's workouts
+ * (`joyofit` `watch:` rows) and the health store's imports are. JoyoFit strength and phone recordings are inside only
+ * when the all-day total is the watch's own: with a health-store total (a phone, or another watch) a strength session
+ * logged in JoyoFit is not in it. 'manual' and 'strava' are never inside: the person typed them, or Strava recorded
+ * them without the watch.
  */
-const INSIDE_ALL_DAY = new Set(["joyofit", "health_connect", "apple_health"]);
+function insideAllDay(row: CreditExerciseRow, allDaySource: AllDaySource | null): boolean {
+  if (row.source === "health_connect" || row.source === "apple_health") return true;
+  if (row.source !== "joyofit") return false;
+  return (row.externalId ?? "").startsWith("watch:") || allDaySource === "joyofit" || allDaySource === null;
+}
 
 export interface ExerciseCredit {
   enabled: boolean;
@@ -114,11 +122,11 @@ export interface ExerciseCredit {
   /** the day's trusted all-day active energy; null when there is none */
   allDayKcal: number | null;
   allDaySource: AllDaySource | null;
-  /** recorded workouts of the watch and health stores (inside the all-day total when there is one) */
+  /** recorded workouts of the watch and health stores: replaced by the all-day total when there is one, counted when not */
   deviceWorkoutKcal: number;
-  /** recorded workouts that are never inside the all-day total (manual, Strava) */
+  /** recorded workouts that are never inside the all-day total (manual, Strava, JoyoFit strength without the watch's total) */
   otherWorkoutKcal: number;
-  /** the day's activity: max(all-day, device workouts) + other workouts; what pct is taken of */
+  /** the day's activity: (all-day total, else the device workouts) + other workouts; what pct is taken of */
   activeKcal: number;
   /** added to the base on a day without all-day data (not multiplied by pct); 0 on a day with it */
   assumedKcal: number;
@@ -129,9 +137,11 @@ export interface ExerciseCredit {
 }
 
 /**
- * activeKcal = max(allDay, device workouts) + other workouts; counted = min(cap, pct x activeKcal).
- * Without all-day data the same sum is device workouts + other workouts, and the assumed activity of the setting
- * is added to the base instead. A watch's all-day energy contains the watch's workouts, so they are never added to it.
+ * activeKcal = (allDay, or the device workouts when there is no all-day total) + other workouts;
+ * counted = min(cap, pct x activeKcal). A valid all-day total is trusted over the separate workout entries of the watch
+ * and the health stores: it already contains them and is the better measure (an imported workout can carry
+ * an inflated estimate). Without one the workouts count and the assumed activity of the setting is added to the
+ * base instead.
  */
 export function exerciseCredit(input: {
   settings: AddBackSettings;
@@ -146,10 +156,10 @@ export function exerciseCredit(input: {
   let otherWorkoutKcal = 0;
   for (const row of input.rows) {
     if (row.source === "rest") continue;
-    if (INSIDE_ALL_DAY.has(row.source ?? "")) deviceWorkoutKcal += row.kcal;
+    if (insideAllDay(row, allDay?.source ?? null)) deviceWorkoutKcal += row.kcal;
     else otherWorkoutKcal += row.kcal;
   }
-  const activeKcal = Math.max(allDay?.kcal ?? 0, deviceWorkoutKcal) + otherWorkoutKcal;
+  const activeKcal = (allDay?.kcal ?? deviceWorkoutKcal) + otherWorkoutKcal;
   const share = (activeKcal * settings.pct) / 100;
   const limit = settings.cap === "none" ? Infinity : settings.cap;
   return {
@@ -178,7 +188,7 @@ export function budgetKcal(baseEatKcal: number, credit: Pick<ExerciseCredit, "as
  */
 export function shiftWorkoutKcal(credit: ExerciseCredit, deltaKcal: number): ExerciseCredit {
   const otherWorkoutKcal = Math.max(0, credit.otherWorkoutKcal + deltaKcal);
-  const activeKcal = Math.max(credit.allDayKcal ?? 0, credit.deviceWorkoutKcal) + otherWorkoutKcal;
+  const activeKcal = (credit.allDayKcal ?? credit.deviceWorkoutKcal) + otherWorkoutKcal;
   const share = (activeKcal * credit.pct) / 100;
   const limit = credit.cap === "none" ? Infinity : credit.cap;
   return {

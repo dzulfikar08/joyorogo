@@ -19,7 +19,7 @@ import type { MaternalState } from "./maternal";
 
 const TODAY = "2026-10-18";
 const settings = (patch: Partial<AddBackSettings> = {}): AddBackSettings => ({ ...DEFAULT_ADD_BACK_SETTINGS, ...patch });
-type Row = { kcal: number; source?: string };
+type Row = { kcal: number; source?: string; externalId?: string };
 const credit = (patch: Partial<AddBackSettings>, rows: Row[], watch: number | null = null, steps: number | null = null, extra: AllDayReading[] = []) =>
   exerciseCredit({
     settings: settings(patch),
@@ -37,9 +37,26 @@ describe("the watch's all-day energy against recorded workouts", () => {
     expect(c.countedKcal).toBe(525);
   });
 
-  test("workouts bigger than the all-day total win (the watch lagged behind a sync)", () => {
-    const c = credit({}, [{ kcal: 300, source: "joyofit" }, { kcal: 100, source: "joyofit" }], 250);
-    expect(c.activeKcal).toBe(400);
+  test("a valid all-day total is trusted over bigger workout entries (the 15 Okt case)", () => {
+    // Apple Health: all-day 254, two imported walks of 471 and 650 kcal: the walks are not added and do not win
+    const c = credit({}, [{ kcal: 471, source: "apple_health" }, { kcal: 650, source: "apple_health" }], null, 4972, [{ source: "apple_health", kcal: 254 }]);
+    expect(c.allDayKcal).toBe(254);
+    expect(c.deviceWorkoutKcal).toBe(1121);
+    expect(c.activeKcal).toBe(254);
+    expect(c.countedKcal).toBe(Math.round(254 * 0.75));
+  });
+
+  test("bigger watch workouts do not beat the watch's all-day total either", () => {
+    const c = credit({}, [{ kcal: 300, source: "joyofit", externalId: "watch:1" }, { kcal: 100, source: "joyofit", externalId: "watch:2" }], 250);
+    expect(c.activeKcal).toBe(250);
+  });
+
+  test("JoyoFit strength rows are inside the watch's all-day total but add on top of a health-store total", () => {
+    const strength = [{ kcal: 200, source: "joyofit", externalId: "strength:9" }];
+    expect(credit({}, strength, 700).activeKcal).toBe(700);
+    const hc = credit({}, strength, null, null, [{ source: "health_connect", kcal: 500 }]);
+    expect(hc.otherWorkoutKcal).toBe(200);
+    expect(hc.activeKcal).toBe(700);
   });
 
   test("the health store's workouts are inside all-day too", () => {
