@@ -1,0 +1,9 @@
+{
+  "extends": "@joyorogo/config/tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["bun"],
+    "lib": ["ESNext", "DOM"],
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "scripts/**/*.ts"]
+}

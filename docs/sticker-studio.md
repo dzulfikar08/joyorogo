@@ -7,8 +7,10 @@ all the code.
 
 **This file is the shared spec.** JoyoRogo owns it (`docs/sticker-studio.md`);
 JoyoFit mirrors it verbatim and adds only its own binding namespaces (section 5).
-The `core/` directory of `packages/sticker` is byte-identical in both repos; the
-test `core/core-hash.test.ts` pins its hash so drift is a red test, not a surprise.
+The `core/` directory of `packages/sticker` is byte-identical in both repos. The test
+`src/core-hash.test.ts` (outside core) compares a SHA-256 of every non-test core file with
+`src/core.sha256`; after an intentional change run `bun scripts/core-hash.ts`, then copy
+`core/` and `core.sha256` to the other repo. Drift is a red test, not a surprise.
 
 ```
 packages/sticker/src/
@@ -190,6 +192,7 @@ zero = missing; `{bind:"x", mul:-1, add:1}` is `1 - x`).
 | `km` / `km:d` | meters -> km, default 2 decimals |
 | `m` | meters -> integer meters |
 | `date:style` | ISO date or ms -> `short` `12 Okt`, `medium` `12 Okt 2026`, `weekday` `Senin`, `weekdayShort` `Sen`, `day`, `month` |
+| `time` | ISO timestamp (with a time part) or epoch ms -> clock time in the device's local timezone: id `22.30` (24 h, dot), en `10:30 PM` |
 | `upper` `lower` `title` | case |
 | `ellipsis:n` | cut to n chars + `...` |
 | `first` | first word (first names) |
@@ -202,6 +205,7 @@ Unknown filter = missing binding for that placeholder (and an issue in lint).
 
 ```ts
 StickerData = {
+  date?: string | number,                  // the subject's date (YYYY-MM-DD, ISO timestamp or epoch ms), bound as {date}
   data: Record<string, JSON | ImageRef>,   // flat or nested; namespaces below
   assets?: Record<string, ImageRef>,       // "photo", "mapImage", brand art by id
   options: { watermark: boolean, hideNumbers: boolean, showName: boolean,
@@ -246,7 +250,7 @@ Shared by both apps:
 |---|---|
 | `photo`, `mapImage` | image refs live in `assets`, not `data`; `image` layers and photo/map backgrounds bind them with `{bind:"photo"}` (assets are looked up first, then `data`) |
 | `app.name` / `app.link` | `JoyoRogo` / `joyorogo.com` (JoyoFit: `JoyoFit` / `fit.joyorogo.com`) |
-| `date` | ISO date or ms of the sticker's subject |
+| `date` | `StickerData.date` (not under `data`); `{date|date:medium}` / `{date|time}` |
 | `user.name` | only present when `options.showName`; first name only unless the host passes a full one |
 | `opt.hideNumbers`, `opt.showName`, `opt.watermark` | booleans from options |
 

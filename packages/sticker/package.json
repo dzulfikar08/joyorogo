@@ -1,0 +1,29 @@
+{
+  "name": "@joyorogo/sticker",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "types": "./src/*.ts",
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "bun test src",
+    "stickers:sheet": "bun scripts/contact-sheet.ts",
+    "stickers:goldens": "bun scripts/contact-sheet.ts --update"
+  },
+  "dependencies": {
+    "@joyorogo/i18n": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@joyorogo/config": "workspace:*",
+    "@types/bun": "^1.4.2",
+    "typescript": "^6.0.3"
+  }
+}
