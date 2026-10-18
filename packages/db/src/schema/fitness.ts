@@ -36,6 +36,17 @@ export const profile = sqliteTable("profile", {
   startWeightKg: real("start_weight_kg").notNull(),
   targetWeightKg: real("target_weight_kg").notNull(),
   targetDate: text("target_date").notNull(),
+  // The plan's direction, derived from the target vs the weight at the moment it was
+  // set (api lib/gain.ts goalOf): 'lose' = deficit toward a lower target (and the
+  // implicit hold once reached), 'maintain' = hold, 'gain' = TDEE + surplus toward a
+  // higher target. Stored so a later weigh-in below a reached loss target never
+  // turns the plan into a gain.
+  goal: text("goal", { enum: ["lose", "maintain", "gain"] })
+    .notNull()
+    .default("lose"),
+  // Weight (kg) on the day the goal became 'gain': the baseline of "naik X kg". Null for
+  // every other goal, where progress counts from startWeightKg.
+  goalStartKg: real("goal_start_kg"),
   activityLevel: text("activity_level").notNull(),
   // Ramadan schedule: 'auto' follows the Hijri calendar, on/off force it.
   ramadanMode: text("ramadan_mode", { enum: ["auto", "on", "off"] })

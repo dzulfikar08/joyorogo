@@ -50,7 +50,16 @@
     "yogurt": "Plain yogurt + fruit",
     "susuKedelai": "1 glass unsweetened soy milk",
     "kacangRebus": "1 handful of boiled peanuts",
-    "buahPotong": "1 bowl of cut fruit"
+    "buahPotong": "1 bowl of cut fruit",
+    "gainNasiTelurTempe": "1 plate of rice + 2-egg omelet + 2 pieces fried tempeh",
+    "gainNasiAyamTahu": "1 plate of rice + 1 fried chicken thigh + 2 pieces fried tofu",
+    "gainNasiTempeSayur": "1 plate of rice + 3 pieces fried tempeh + clear veg soup",
+    "gainRotiTelurSusu": "3 slices of bread + 2-egg omelet + 1 glass of milk",
+    "gainUbiTelur": "1 large steamed sweet potato + 2 boiled eggs",
+    "gainTempeTahuGoreng": "3 pieces fried tempeh + 2 pieces fried tofu",
+    "gainJusAlpukatSusu": "Avocado juice + 1 glass of milk",
+    "gainSusuPisang": "1 glass of milk + 2 ambon bananas",
+    "gainKacangPisang": "1 handful of fried peanuts + 1 ambon banana"
   },
   "items": {
     "kenyang-dengan-porsi-banyak": {

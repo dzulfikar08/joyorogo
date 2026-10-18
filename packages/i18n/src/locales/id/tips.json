@@ -50,7 +50,16 @@
     "yogurt": "Yogurt plain + buah",
     "susuKedelai": "Susu kedelai tawar 1 gelas",
     "kacangRebus": "Kacang rebus 1 genggam",
-    "buahPotong": "Buah potong 1 mangkuk"
+    "buahPotong": "Buah potong 1 mangkuk",
+    "gainNasiTelurTempe": "Nasi 1 porsi + 2 telur dadar + tempe goreng 2 potong",
+    "gainNasiAyamTahu": "Nasi 1 porsi + ayam goreng paha 1 potong + tahu goreng 2 potong",
+    "gainNasiTempeSayur": "Nasi 1 porsi + tempe goreng 3 potong + sayur bening",
+    "gainRotiTelurSusu": "Roti 3 lembar + 2 telur dadar + susu 1 gelas",
+    "gainUbiTelur": "Ubi jalar kukus 1 buah besar + 2 telur rebus",
+    "gainTempeTahuGoreng": "Tempe goreng 3 potong + tahu goreng 2 potong",
+    "gainJusAlpukatSusu": "Jus alpukat + susu 1 gelas",
+    "gainSusuPisang": "Susu sapi 1 gelas + pisang ambon 2 buah",
+    "gainKacangPisang": "Kacang tanah goreng 1 genggam + pisang ambon 1 buah"
   },
   "items": {
     "kenyang-dengan-porsi-banyak": {

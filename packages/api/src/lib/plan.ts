@@ -20,6 +20,7 @@ import {
   shiftDate,
   weightTrend,
 } from "./engine";
+import { isRapidLoss } from "./gain";
 import { computeMaternalTargets, maternalFromRow, maternalNutrient } from "./maternal";
 import type { MaternalState } from "./maternal";
 
@@ -110,6 +111,7 @@ export function buildPlan(
     targetWeightKg: row.targetWeightKg,
     targetDate: row.targetDate,
     activityLevel: row.activityLevel as ActivityLevel,
+    goal: row.goal,
   };
   const weightNowKg = history.latestWeightKg ?? row.startWeightKg;
   // Hamil / Menyusui: no deficit, no weight target, no measured-TDEE drift.
@@ -134,23 +136,30 @@ export function buildPlan(
     // A day logged under half the budget is a forgotten day, not a fast.
     minDayKcal: formula.eatKcal * 0.5,
   });
+  const targets =
+    measured === null
+      ? formula
+      : computeTargets(profileInput, { weightNow: weightNowKg, adaptiveTdee: measured });
+  const trend = weightTrend(history.weighIns, row.targetWeightKg, date);
+  // A fast fall while the plan is to gain gets the see-a-doctor note (the one flag that needs the trend).
+  if (targets.gain && isRapidLoss(trend?.weeklyRateKg ?? null, weightNowKg)) {
+    targets.gain.flags.push("RAPID_LOSS");
+  }
   return {
     profileInput,
     latestWeightKg: history.latestWeightKg,
     weightNowKg,
     weighIns: history.weighIns,
-    targets:
-      measured === null
-        ? formula
-        : computeTargets(profileInput, { weightNow: weightNowKg, adaptiveTdee: measured }),
-    trend: weightTrend(history.weighIns, row.targetWeightKg, date),
+    targets,
+    trend,
     maternal: null,
   };
 }
 
 /**
  * Daily protein goal of a plan: the AKG 2019 figure (with the stage's addition)
- * for Hamil / Menyusui, else the weight-based cut target.
+ * for Hamil / Menyusui, the ISSN / Iraki target while gaining, else the
+ * weight-based cut target.
  */
 export function proteinGoalG(
   plan: Pick<Plan, "targets" | "weightNowKg">,
@@ -159,6 +168,15 @@ export function proteinGoalG(
 ): number {
   return (
     maternalNutrient(plan.targets, "protein")?.target ??
+    plan.targets.gain?.protein.targetG ??
     proteinTargetG(plan.weightNowKg, heightCm, trainingDay)
   );
+}
+
+/** Kg gained since a gain plan began (the stored baseline, else the onboarding weight); never negative. */
+export function gainedKg(
+  row: Pick<ProfileRow, "goalStartKg" | "startWeightKg">,
+  weightNowKg: number,
+): number {
+  return Math.max(0, Math.round((weightNowKg - (row.goalStartKg ?? row.startWeightKg)) * 10) / 10);
 }

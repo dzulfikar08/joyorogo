@@ -16,7 +16,10 @@
     "notPregnant": "Pregnancy mode isn't active.",
     "birthDateInvalid": "The birth date must be today or earlier, within the last 2 years.",
     "fastingMaternal": "Intermittent fasting isn't available while pregnant or breastfeeding.",
-    "shareMaternal": "The public progress page isn't available while pregnant or breastfeeding."
+    "shareMaternal": "The public progress page isn't available while pregnant or breastfeeding.",
+    "goalGainTarget": "To gain weight, the target must be above your current weight.",
+    "goalLoseTarget": "To lose weight, the target must be below your current weight.",
+    "gainMaternal": "Weight-gain mode isn't available while pregnant or breastfeeding."
   },
   "ai": {
     "unavailable": "The AI service isn't available right now. Please try again later.",

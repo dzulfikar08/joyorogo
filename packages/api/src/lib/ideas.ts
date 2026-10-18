@@ -2,6 +2,7 @@ import { getActiveLocale, getT, resources } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
 import type { Meal } from "./engine";
+import { REACHED_MARGIN_KCAL } from "./gain";
 import { plateKey } from "./plates";
 
 export type MealIdea = { name: string; kcal: number; proteinG: number };
@@ -87,6 +88,56 @@ export function mealIdeas(
       : fitting.toSorted(byProteinDensity);
   const t = getT(locale, "tips");
   return ranked
+    .slice(0, limit)
+    .map(({ id, kcal, proteinG }) => ({ name: t(`ideas.${id}`), kcal, proteinG }));
+}
+
+// Naikin BB ideas: calorie-dense and still ordinary food (nasi, telur, tempe, ayam, susu,
+// kacang, alpukat). Home portions from TKPI 2019 per-100 g values: nasi 180 kcal (200 g is
+// one plate), telur dadar 251, tempe goreng pasar 336, ayam goreng kalasan paha 275, tahu
+// goreng 115, susu sapi 61, kacang tanah goreng 564, pisang ambon 108, ubi jalar kuning
+// kukus 100, alpukat 85, roti putih 248.
+const GAIN_CATALOG: CatalogIdea[] = [
+  { id: "gainNasiTelurTempe", kcal: 780, proteinG: 32, slots: LUNCH_DINNER },
+  { id: "gainNasiAyamTahu", kcal: 730, proteinG: 51, slots: LUNCH_DINNER },
+  { id: "gainNasiTempeSayur", kcal: 640, proteinG: 22, slots: MAIN },
+  { id: "gainRotiTelurSusu", kcal: 590, proteinG: 30, slots: BREAKFAST },
+  { id: "gainUbiTelur", kcal: 350, proteinG: 14, slots: SNACK },
+  { id: "gainTempeTahuGoreng", kcal: 345, proteinG: 23, slots: SNACK },
+  { id: "gainJusAlpukatSusu", kcal: 300, proteinG: 8, slots: SNACK },
+  { id: "gainSusuPisang", kcal: 285, proteinG: 9, slots: SNACK },
+  { id: "gainKacangPisang", kcal: 235, proteinG: 8, slots: SNACK },
+];
+
+/** Under this much still to eat, "Target tercapai" is the answer, not another idea. */
+const MIN_GAIN_REMAINING_KCAL = 100;
+
+/**
+ * Up to `limit` calorie-dense ideas for `slot` that fill what is still to eat (a little
+ * over is fine, up to the same margin as "Target tercapai"), the biggest first. A main
+ * meal must cover at least 35% of what is left (capped at 250 kcal); when no meal does,
+ * the snacks answer.
+ */
+export function gainMealIdeas(
+  remainingKcal: number,
+  slot: Meal,
+  limit = 3,
+  locale: Locale = getActiveLocale(),
+): MealIdea[] {
+  if (remainingKcal < MIN_GAIN_REMAINING_KCAL) return [];
+  const floor = slot === "snack" ? 0 : Math.min(250, remainingKcal * 0.35);
+  const fitting = GAIN_CATALOG.filter(
+    (idea) =>
+      idea.slots.includes(slot) &&
+      idea.kcal <= remainingKcal + REACHED_MARGIN_KCAL &&
+      idea.kcal >= floor,
+  );
+  if (fitting.length === 0 && slot !== "snack") {
+    return gainMealIdeas(remainingKcal, "snack", limit, locale);
+  }
+  const t = getT(locale, "tips");
+  return fitting
+    .toSorted((a, b) => b.kcal - a.kcal)
     .slice(0, limit)
     .map(({ id, kcal, proteinG }) => ({ name: t(`ideas.${id}`), kcal, proteinG }));
 }

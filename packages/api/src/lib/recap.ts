@@ -8,6 +8,7 @@ import type { Locale } from "@joyorogo/i18n";
 import type { TrendPoint } from "./engine";
 import { shiftDate, streakFromDates } from "./engine";
 import { shortDateRange } from "./format";
+import { gainDayHit } from "./gain";
 
 /** A logged day counts as on target up to 5% over the kcal target. */
 export const ON_TARGET_TOLERANCE = 1.05;
@@ -66,6 +67,8 @@ export type WeekRecap = {
     weighIns: number;
   } | null;
   streakDays: number;
+  /** Naikin BB week: a day counts from 90% of the target, "over" does not exist, and the clients word the weight change as a gain. */
+  gain: boolean;
   /** On-target day nearest the kcal target; null when no day was on target. */
   bestDay: { date: string; eatenKcal: number; proteinG: number | null } | null;
   protein: { avgG: number; targetG: number; days: number } | null;
@@ -83,10 +86,14 @@ export type WeekRecapInput = {
   trendPoints: TrendPoint[];
   /** Distinct WIB days with a food or weight log, for the streak. */
   loggedDates: string[];
+  /** A Naikin BB plan: day status and the streak follow the gain rules (lib/gain). */
+  gain?: { streakDays: number };
 };
 
-export function dayStatus(eatenKcal: number, targetKcal: number): DayStatus {
+export function dayStatus(eatenKcal: number, targetKcal: number, gain = false): DayStatus {
   if (eatenKcal <= 0) return "empty";
+  // Naikin BB: under-eating is the miss, so a day is on target from 90% and never "over".
+  if (gain) return gainDayHit(eatenKcal, targetKcal) ? "on_target" : "under";
   if (eatenKcal < targetKcal * MIN_COMPLETE_DAY) return "under";
   return eatenKcal <= targetKcal * ON_TARGET_TOLERANCE ? "on_target" : "over";
 }
@@ -105,7 +112,7 @@ export function buildWeekRecap(input: WeekRecapInput): WeekRecap {
     const eatenKcal = Math.round(foodByDate.get(date)?.kcal ?? 0);
     days.push({
       date,
-      status: date < today ? dayStatus(eatenKcal, targetKcal) : "pending",
+      status: date < today ? dayStatus(eatenKcal, targetKcal, input.gain !== undefined) : "pending",
       eatenKcal,
       exerciseKcal: Math.round(exerciseByDate.get(date)?.kcal ?? 0),
     });
@@ -157,10 +164,12 @@ export function buildWeekRecap(input: WeekRecapInput): WeekRecap {
       : null;
 
   const streakRef = weekEnd < today ? weekEnd : today;
-  const streakDays = streakFromDates(
-    input.loggedDates.filter((date) => date <= streakRef),
-    streakRef,
-  );
+  const streakDays =
+    input.gain?.streakDays ??
+    streakFromDates(
+      input.loggedDates.filter((date) => date <= streakRef),
+      streakRef,
+    );
 
   return {
     weekStart,
@@ -176,6 +185,7 @@ export function buildWeekRecap(input: WeekRecapInput): WeekRecap {
     exercise,
     weight,
     streakDays,
+    gain: input.gain !== undefined,
     bestDay: bestDay
       ? {
           date: bestDay.date,
@@ -232,6 +242,8 @@ export type RecapShare = {
   exerciseMin: number;
   weightChangeKg: number | null;
   bestDay: { label: string; kcal: number } | null;
+  /** Naikin BB week: the card words the weight change as a gain and drops the "over" reading. */
+  gain: boolean;
 };
 
 /** Story-card numbers for a recap; null when nothing was logged to share. */
@@ -252,5 +264,6 @@ export function recapShare(recap: WeekRecap): RecapShare | null {
     bestDay: recap.bestDay
       ? { label: weekdayName(recap.bestDay.date), kcal: recap.bestDay.eatenKcal }
       : null,
+    gain: recap.gain,
   };
 }

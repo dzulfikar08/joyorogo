@@ -26,6 +26,7 @@ import { team, teamMember, teamNudge } from "@joyorogo/db/schema/social";
 import { protectedProcedure, publicProcedure } from "../index";
 import {
   computeBurn,
+  gainStreak,
   jakartaToday,
   shiftDate,
   streakFromDates,
@@ -569,6 +570,8 @@ export const groupRouter = {
           let eatTargetKcal: number | null = null;
           let burnTargetKcal: number | null = null;
           let burnedKcal = 0;
+          // Naikin BB: the clients say "naik X kg" and count streak days at 90% of the target.
+          let gaining = false;
           if (prof) {
             const plan = buildPlan(
               prof,
@@ -597,6 +600,7 @@ export const groupRouter = {
               eatTargetKcal = Math.round(plan.targets.eatKcal);
               burnTargetKcal = Math.round(plan.targets.tdee);
             }
+            gaining = plan.targets.gain !== null;
             burnedKcal = Math.round(burn.exerciseKcal);
           }
 
@@ -630,6 +634,7 @@ export const groupRouter = {
               waterMl: (waterByUser.get(m.userId)?.glasses ?? 0) * GLASS_ML || null,
               weightKg: weightNow,
               weightDeltaKg7d,
+              gaining,
               // Opt-in per grup; baris sendiri selalu tampil.
               fitness:
                 fitness && (m.shareFitness || m.userId === viewerId)
@@ -641,7 +646,19 @@ export const groupRouter = {
                     }
                   : null,
             },
-            streakDays: streakFromDates(foodDatesByUser.get(m.userId) ?? [], today),
+            streakDays:
+              gaining && eatTargetKcal !== null
+                ? gainStreak(
+                    [
+                      ...intakeWindow
+                        .filter((r) => r.userId === m.userId)
+                        .map((r) => ({ date: r.date, kcal: r.kcal })),
+                      { date, kcal: eatenKcal },
+                    ],
+                    eatTargetKcal,
+                    date,
+                  )
+                : streakFromDates(foodDatesByUser.get(m.userId) ?? [], today),
           };
         }),
       };

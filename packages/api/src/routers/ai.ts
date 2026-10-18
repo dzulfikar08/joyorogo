@@ -1,10 +1,10 @@
 import { ORPCError } from "@orpc/server";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@joyorogo/db";
 import type { Locale } from "@joyorogo/i18n";
-import { aiUsage, profile, scanCorrection, scanFeedback } from "@joyorogo/db/schema/fitness";
+import { aiUsage, profile, scanCorrection, scanFeedback, weightLog } from "@joyorogo/db/schema/fitness";
 import {
   SCAN_ID_RE,
   base64ToBytes,
@@ -33,6 +33,7 @@ import { protectedProcedure } from "../index";
 import { serverT } from "../lib/messages";
 import { scanFailMessage } from "../lib/scan-fail-message";
 import { MEALS, jakartaToday } from "../lib/engine";
+import { GAIN_PROMPT_NOTE, isGainGap } from "../lib/gain";
 import { maternalFromRow, maternalNoteFor } from "../lib/maternal";
 import { dateSchema, mealSchema } from "../lib/schemas";
 import { TRANSCRIBE_MODEL, parseFoodStory, transcribeStory } from "../lib/story";
@@ -174,10 +175,23 @@ type AnalyzeFoodInput = z.infer<typeof analyzeFoodInput>;
 /** What a handler behind protectedProcedure sees. */
 type AuthedContext = Context & { session: NonNullable<Context["session"]> };
 
-/** The scan-prompt line for a Hamil / Menyusui user (see maternalPromptNote); null for everyone else. */
-async function loadMaternalNote(db: Database, userId: string): Promise<string | null> {
+/**
+ * The scan-prompt line about the person: Hamil / Menyusui first (maternalPromptNote), else a
+ * Naikin BB plan that still has weight to gain (GAIN_PROMPT_NOTE); null for everyone else.
+ */
+async function loadUserNote(db: Database, userId: string): Promise<string | null> {
   const [row] = await db.select().from(profile).where(eq(profile.userId, userId)).limit(1);
-  return row ? maternalNoteFor(maternalFromRow(row)) : null;
+  if (!row) return null;
+  const maternal = maternalNoteFor(maternalFromRow(row));
+  if (maternal !== null || row.goal !== "gain") return maternal;
+  const [latest] = await db
+    .select({ weightKg: weightLog.weightKg })
+    .from(weightLog)
+    .where(eq(weightLog.userId, userId))
+    .orderBy(desc(weightLog.date))
+    .limit(1);
+  const gapKg = row.targetWeightKg - (latest?.weightKg ?? row.startWeightKg);
+  return isGainGap(gapKg) ? GAIN_PROMPT_NOTE : null;
 }
 
 /** What analyzeFood answers, and what the closing `done` event of analyzeFoodStream carries. */
@@ -218,7 +232,7 @@ async function runAnalyzeFood(
   const quotaMs = Date.now() - requestStartedAt;
 
   // Hamil / Menyusui: one context line for the prompt, read beside the model call's setup.
-  const maternalNote = loadMaternalNote(context.db, userId);
+  const userNote = loadUserNote(context.db, userId);
   // "Hasilnya akurat?" cadence: ask after every scan for a brand-new user
   // (first 3 scans ever), otherwise at most once per WIB day. Counted
   // before this scan's ledger row lands; awaited after inference so the
@@ -298,7 +312,7 @@ async function runAnalyzeFood(
       mimeType: input.mimeType,
       model: context.env.AI_VISION_MODEL || undefined,
       locale: context.locale,
-      userContext: (await maternalNote) ?? undefined,
+      userContext: (await userNote) ?? undefined,
       onEvent: report,
     });
   } catch (error) {
@@ -521,7 +535,7 @@ export const aiRouter = {
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
       const requestStartedAt = Date.now();
-      const maternalNote = loadMaternalNote(context.db, userId);
+      const userNote = loadUserNote(context.db, userId);
       const t = serverT(context.locale, "errors");
       const ai = context.env.AI;
       if (!ai) {
@@ -560,7 +574,7 @@ export const aiRouter = {
           model: context.env.AI_VISION_MODEL || undefined,
           retry: { hint: input.hint },
           locale: context.locale,
-          userContext: (await maternalNote) ?? undefined,
+          userContext: (await userNote) ?? undefined,
         });
       } catch (error) {
         context.waitUntil(logScanFailure(context.db, userId, error, startedAt, "retry"));

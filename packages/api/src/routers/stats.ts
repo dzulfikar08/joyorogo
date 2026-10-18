@@ -4,7 +4,7 @@ import { z } from "zod";
 import { exerciseLog, foodLog, weightLog } from "@joyorogo/db/schema/fitness";
 
 import { protectedProcedure } from "../index";
-import { jakartaToday, shiftDate } from "../lib/engine";
+import { gainStreak, jakartaToday, shiftDate } from "../lib/engine";
 import { buildPlan, planQueries, proteinGoalG } from "../lib/plan";
 import { buildWeekRecap, weekStartOf } from "../lib/recap";
 import { dateSchema } from "../lib/schemas";
@@ -64,8 +64,9 @@ export const statsRouter = {
               ),
             )
             .groupBy(exerciseLog.date),
+          // One row per logged day with its kcal: the normal streak reads the dates, a gain plan the totals.
           context.db
-            .selectDistinct({ date: foodLog.date })
+            .select({ date: foodLog.date, kcal: sql<number>`sum(${foodLog.kcal})` })
             .from(foodLog)
             .where(
               and(
@@ -73,7 +74,8 @@ export const statsRouter = {
                 gte(foodLog.date, shiftDate(refDay, -STREAK_WINDOW_DAYS)),
                 lte(foodLog.date, refDay),
               ),
-            ),
+            )
+            .groupBy(foodLog.date),
           context.db
             .selectDistinct({ date: weightLog.date })
             .from(weightLog)
@@ -94,6 +96,7 @@ export const statsRouter = {
         refDay,
       );
 
+      const streakRef = weekEnd < today ? weekEnd : today;
       return buildWeekRecap({
         weekStart,
         today,
@@ -104,6 +107,10 @@ export const statsRouter = {
         trendPoints: plan.trend?.points ?? [],
         // No streak pressure in Hamil / Menyusui.
         loggedDates: plan.maternal ? [] : [...foodDates, ...weightDates].map((row) => row.date),
+        // Naikin BB: days at 90% or more of the target, not days with any log.
+        gain: plan.targets.gain
+          ? { streakDays: gainStreak(foodDates, plan.targets.eatKcal, streakRef) }
+          : undefined,
       });
     }),
 };

@@ -16,7 +16,10 @@
     "notPregnant": "Mode hamil tidak sedang aktif.",
     "birthDateInvalid": "Tanggal melahirkan harus hari ini atau sebelumnya, dalam 2 tahun terakhir.",
     "fastingMaternal": "Puasa intermiten tidak tersedia selama hamil atau menyusui.",
-    "shareMaternal": "Halaman progres publik tidak tersedia selama hamil atau menyusui."
+    "shareMaternal": "Halaman progres publik tidak tersedia selama hamil atau menyusui.",
+    "goalGainTarget": "Buat naikin BB, target harus di atas berat badanmu sekarang.",
+    "goalLoseTarget": "Buat turunin BB, target harus di bawah berat badanmu sekarang.",
+    "gainMaternal": "Mode naikin BB tidak tersedia selama hamil atau menyusui."
   },
   "ai": {
     "unavailable": "Layanan AI belum tersedia. Coba lagi nanti.",

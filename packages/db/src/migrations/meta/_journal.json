@@ -274,6 +274,13 @@
       "when": 1792259123706,
       "tag": "0038_maternal_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "6",
+      "when": 1792283370404,
+      "tag": "0039_goal_mode",
+      "breakpoints": true
     }
   ]
 }

@@ -693,6 +693,7 @@ export function computeMaternalTargets(
     idealMinKg: ideal.minKg,
     idealMaxKg: ideal.maxKg,
     notes: ["MATERNAL"],
+    gain: null,
     maternal: {
       mode: state.mode,
       stage,

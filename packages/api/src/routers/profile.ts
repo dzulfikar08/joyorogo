@@ -3,6 +3,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { LOCALES } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
 import { user } from "@joyorogo/db/schema/auth";
 import { foodLog, profile, weightLog } from "@joyorogo/db/schema/fitness";
 
@@ -13,6 +14,8 @@ import type { Targets } from "../lib/engine";
 
 import { protectedProcedure } from "../index";
 import { checkTargetDate, computeTargets, jakartaToday, shiftDate } from "../lib/engine";
+import { GOALS, goalTargetError, resolveGoal } from "../lib/gain";
+import type { Goal } from "../lib/gain";
 import { FEEDING_TYPES, NO_MATERNAL, computeMaternalTargets, maternalFromRow, maternalToRow, resolveMaternalInput } from "../lib/maternal";
 import type { MaternalState } from "../lib/maternal";
 import { dateSchema, maternalInputSchema, profileInputSchema } from "../lib/schemas";
@@ -21,22 +24,69 @@ import { serverT } from "../lib/messages";
 import { effectiveTier } from "../lib/tiers";
 
 /**
- * Entering Hamil / Menyusui: fasting reminders and the public progress page go off.
+ * Entering Hamil / Menyusui: fasting reminders and the public progress page go off, and
+ * the plan holds weight (a gain goal is off while these modes are on).
  * Fasting is not part of these modes, and health data is never shared by default.
  */
 const MATERNAL_DEFAULTS = {
   fastingPattern: "off",
   fastingNotify: false,
   shareEnabled: false,
+  goal: "maintain",
+  goalStartKg: null,
 } as const;
 
 /**
  * Hamil / Menyusui compute no weight target, but the columns are NOT NULL: they
  * hold a maintenance target (today's weight) one year out, the plan that applies
- * if the mode ends. No deficit comes from it.
+ * if the mode ends. No deficit comes from it. A held weight is the "maintain" goal.
  */
 function holdWeight(weightKg: number, today: string) {
-  return { targetWeightKg: weightKg, targetDate: shiftDate(today, 365) };
+  return {
+    targetWeightKg: weightKg,
+    targetDate: shiftDate(today, 365),
+    goal: "maintain",
+    goalStartKg: null,
+  } as const;
+}
+
+/**
+ * The goal, target weight and date a target edit stores. An explicit goal wins and has to
+ * sit on the right side of the target ("Jaga BB" holds today's weight); otherwise the goal
+ * is derived from the target vs the weight, or kept while the target is unchanged (lib/gain
+ * resolveGoal).
+ */
+function settleTarget(
+  locale: Locale,
+  args: {
+    explicit: Goal | undefined;
+    stored: Goal;
+    /** the stored gain baseline; null when none */
+    storedStartKg: number | null;
+    weightNowKg: number;
+    /** the stored target; null when there is none yet (onboarding) */
+    currentTargetKg: number | null;
+    targetWeightKg: number;
+    targetDate: string;
+    today: string;
+  },
+): { goal: Goal; goalStartKg: number | null; targetWeightKg: number; targetDate: string } {
+  if (args.explicit === "maintain") return holdWeight(args.weightNowKg, args.today);
+  if (args.explicit) {
+    const error = goalTargetError(args.explicit, args.weightNowKg, args.targetWeightKg);
+    if (error) throw new ORPCError("BAD_REQUEST", { message: serverT(locale, "errors")(`profile.${error}`) });
+  }
+  const goal = resolveGoal({
+    explicit: args.explicit,
+    stored: args.stored,
+    weightNowKg: args.weightNowKg,
+    currentTargetKg: args.currentTargetKg ?? Number.NaN,
+    nextTargetKg: args.targetWeightKg,
+  });
+  // The "naik X kg" baseline is the weight when the plan became a gain; it stays while it remains one.
+  const goalStartKg =
+    goal !== "gain" ? null : args.stored === "gain" && args.storedStartKg !== null ? args.storedStartKg : args.weightNowKg;
+  return { goal, goalStartKg, targetWeightKg: args.targetWeightKg, targetDate: args.targetDate };
 }
 
 /** Today's plan exactly as day.summary computes it (latest weigh-in + measured TDEE). */
@@ -115,6 +165,8 @@ export const profileRouter = {
         targetWeightKg: z.number().min(25).max(400).optional(),
         targetDate: dateSchema.optional(),
         maternal: maternalInputSchema.optional(),
+        // "Turunin BB / Jaga BB / Naikin BB". Absent: derived from the target vs the weight.
+        goal: z.enum(GOALS).optional(),
       }),
     )
     .handler(async ({ context, input }): Promise<{ targets: Targets }> => {
@@ -133,11 +185,22 @@ export const profileRouter = {
         maternal.mode === "none"
           ? null
           : holdWeight(maternal.prePregnancyWeightKg ?? input.weightKg, today);
-      const targetWeightKg = held?.targetWeightKg ?? input.targetWeightKg;
-      const targetDate = held?.targetDate ?? input.targetDate;
-      if (targetWeightKg === undefined || targetDate === undefined) {
+      if (held === null && (input.targetWeightKg === undefined || input.targetDate === undefined)) {
         throw new ORPCError("BAD_REQUEST", { message: t("profile.targetDateInvalid") });
       }
+      const settled =
+        held ??
+        settleTarget(context.locale, {
+          explicit: input.goal,
+          stored: "lose",
+          storedStartKg: null,
+          weightNowKg: input.weightKg,
+          currentTargetKg: null,
+          targetWeightKg: input.targetWeightKg!,
+          targetDate: input.targetDate!,
+          today,
+        });
+      const { targetWeightKg, targetDate, goal, goalStartKg } = settled;
       const fields = {
         birthYear: input.birthYear,
         gender: input.gender,
@@ -145,6 +208,8 @@ export const profileRouter = {
         startWeightKg: input.weightKg,
         targetWeightKg,
         targetDate,
+        goal,
+        goalStartKg,
         activityLevel: input.activityLevel,
         ...maternalToRow(maternal),
         ...(maternal.mode !== "none" ? MATERNAL_DEFAULTS : {}),
@@ -176,6 +241,7 @@ export const profileRouter = {
         targetWeightKg,
         targetDate,
         activityLevel: input.activityLevel,
+        goal,
       };
       return {
         targets:
@@ -192,22 +258,40 @@ export const profileRouter = {
       z.object({
         targetWeightKg: z.number().min(25).max(400),
         targetDate: dateSchema,
+        goal: z.enum(GOALS).optional(),
       }),
     )
     .handler(async ({ context, input }): Promise<{ targets: Targets }> => {
       const userId = context.session.user.id;
       const t = serverT(context.locale, "errors");
+      const today = jakartaToday();
       const { row, plan: current } = await loadPlan(context.db, userId);
       if (!row || !current) {
         throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
       }
+      const settled = settleTarget(context.locale, {
+        explicit: input.goal,
+        stored: row.goal,
+        storedStartKg: row.goalStartKg,
+        weightNowKg: current.weightNowKg,
+        currentTargetKg: row.targetWeightKg,
+        targetWeightKg: input.targetWeightKg,
+        targetDate: input.targetDate,
+        today,
+      });
+      // Gain is off while Hamil / Menyusui are on.
+      if (settled.goal === "gain" && row.maternalMode !== "none") {
+        throw new ORPCError("BAD_REQUEST", { message: t("profile.gainMaternal") });
+      }
       // A weight edit re-sends the stored date, which may have lapsed; only a
       // date the user is actually changing has to be in the future.
-      if (input.targetDate !== row.targetDate) {
+      if (settled.targetDate !== row.targetDate) {
         const check = checkTargetDate({
           weightNowKg: current.weightNowKg,
-          targetWeightKg: input.targetWeightKg,
-          targetDate: input.targetDate,
+          targetWeightKg: settled.targetWeightKg,
+          targetDate: settled.targetDate,
+          goal: settled.goal,
+          heightCm: row.heightCm,
         });
         if (check.status === "invalid" || check.status === "past" || check.status === "tooFar") {
           const key = {
@@ -220,7 +304,12 @@ export const profileRouter = {
       }
       const updated = await context.db
         .update(profile)
-        .set({ targetWeightKg: input.targetWeightKg, targetDate: input.targetDate })
+        .set({
+          targetWeightKg: settled.targetWeightKg,
+          targetDate: settled.targetDate,
+          goal: settled.goal,
+          goalStartKg: settled.goalStartKg,
+        })
         .where(eq(profile.userId, userId))
         .returning({ userId: profile.userId });
       if (updated.length === 0) {
@@ -240,6 +329,7 @@ export const profileRouter = {
       z.object({
         targetWeightKg: z.number().min(25).max(400),
         targetDate: dateSchema,
+        goal: z.enum(GOALS).optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -255,17 +345,26 @@ export const profileRouter = {
       }
       const history = { latestWeightKg: latest?.weightKg ?? null, weighIns, intake, exercise };
       const now = buildPlan(row, history, today);
-      const next = buildPlan(
-        { ...row, targetWeightKg: input.targetWeightKg, targetDate: input.targetDate },
-        history,
+      const settled = settleTarget(context.locale, {
+        explicit: input.goal,
+        stored: row.goal,
+        storedStartKg: row.goalStartKg,
+        weightNowKg: now.weightNowKg,
+        currentTargetKg: row.targetWeightKg,
+        targetWeightKg: input.targetWeightKg,
+        targetDate: input.targetDate,
         today,
-      );
+      });
+      const next = buildPlan({ ...row, ...settled }, history, today);
       return {
         check: checkTargetDate({
           weightNowKg: next.weightNowKg,
-          targetWeightKg: input.targetWeightKg,
-          targetDate: input.targetDate,
+          targetWeightKg: settled.targetWeightKg,
+          targetDate: settled.targetDate,
+          goal: settled.goal,
+          heightCm: row.heightCm,
         }),
+        goal: settled.goal,
         current: now.targets,
         next: next.targets,
       };

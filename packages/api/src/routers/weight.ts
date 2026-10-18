@@ -5,7 +5,9 @@ import { profile, weightLog } from "@joyorogo/db/schema/fitness";
 
 import { protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
+import { isGainGap, paceBandKgPerWeek } from "../lib/gain";
 import { maternalFromRow, weightGainChart } from "../lib/maternal";
+import { gainedKg } from "../lib/plan";
 import { dateSchema } from "../lib/schemas";
 
 export const weightRouter = {
@@ -55,6 +57,7 @@ export const weightRouter = {
             deltaKg: null,
             remainingKg: null,
             targetKg: null,
+            gain: null,
           },
         };
       }
@@ -66,6 +69,17 @@ export const weightRouter = {
       const startKg = prof?.startWeightKg ?? first.weightKg;
       // Hamil / Menyusui have no weight target, so no "remaining" either.
       const target = prof && prof.maternalMode === "none" ? prof.targetWeightKg : null;
+      // Naikin BB: the chart draws an upward target line from where the gain began and the weekly pace band.
+      const gain =
+        prof && target !== null && prof.goal === "gain" && isGainGap(target - latest.weightKg)
+          ? {
+              startKg: prof.goalStartKg ?? prof.startWeightKg,
+              gainedKg: gainedKg(prof, latest.weightKg),
+              toGoKg: Math.round((target - latest.weightKg) * 10) / 10,
+              targetDate: prof.targetDate,
+              pace: paceBandKgPerWeek(latest.weightKg, prof.heightCm),
+            }
+          : null;
       return {
         entries,
         summary: {
@@ -74,6 +88,7 @@ export const weightRouter = {
           deltaKg: Math.round((latest.weightKg - startKg) * 10) / 10,
           remainingKg: target === null ? null : Math.round((latest.weightKg - target) * 10) / 10,
           targetKg: target,
+          gain,
         },
       };
     }),

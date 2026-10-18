@@ -22,14 +22,15 @@ import {
   jakartaToday,
   macroTargets,
   shiftDate,
+  gainStreak,
   streakFromDates,
   suggestMealNow,
 } from "../lib/engine";
 import { READINESS_LABELS, hasFitnessData } from "../lib/fitness-hint";
 import { dateSchema } from "../lib/schemas";
 import { loadIdeaValues } from "./plate";
-import { mealIdeas } from "../lib/ideas";
-import { buildPlan, planQueries, proteinGoalG } from "../lib/plan";
+import { gainMealIdeas, mealIdeas } from "../lib/ideas";
+import { buildPlan, gainedKg, planQueries, proteinGoalG } from "../lib/plan";
 import { caffeineOfDay } from "../lib/maternal";
 import {
   DIARY_MACRO_REFERENCE_KG,
@@ -50,16 +51,23 @@ const ZERO_MEALS: Record<Meal, number> = {
   berbuka: 0,
 };
 
-export type Milestone = { kind: "streak" | "lost"; value: number };
+export type Milestone = { kind: "streak" | "lost" | "gained"; value: number };
 
 // Recap chips as data: the home screen words them in the viewer's language.
-function buildMilestones(streakDays: number, weightLostKg: number): Milestone[] {
+function buildMilestones(
+  streakDays: number,
+  weightLostKg: number,
+  weightGainedKg: number,
+): Milestone[] {
   return [
     ...(streakDays >= 30 ? [{ kind: "streak" as const, value: 30 }] : []),
     ...(streakDays >= 7 ? [{ kind: "streak" as const, value: 7 }] : []),
     ...(weightLostKg >= 10 ? [{ kind: "lost" as const, value: 10 }] : []),
     ...(weightLostKg >= 5 ? [{ kind: "lost" as const, value: 5 }] : []),
     ...(weightLostKg >= 2 ? [{ kind: "lost" as const, value: 2 }] : []),
+    ...(weightGainedKg >= 5 ? [{ kind: "gained" as const, value: 5 }] : []),
+    ...(weightGainedKg >= 3 ? [{ kind: "gained" as const, value: 3 }] : []),
+    ...(weightGainedKg >= 1 ? [{ kind: "gained" as const, value: 1 }] : []),
   ];
 }
 
@@ -127,10 +135,12 @@ export const dayRouter = {
           .select({ total: sql<number | null>`sum(${exerciseLog.kcal})` })
           .from(exerciseLog)
           .where(and(eq(exerciseLog.userId, userId), gte(exerciseLog.date, weekStart))),
+        // One row per logged day with its kcal: the normal streak reads the dates, a gain plan the totals.
         context.db
-          .selectDistinct({ date: foodLog.date })
+          .select({ date: foodLog.date, kcal: sql<number>`sum(${foodLog.kcal})` })
           .from(foodLog)
-          .where(and(eq(foodLog.userId, userId), gte(foodLog.date, streakStart))),
+          .where(and(eq(foodLog.userId, userId), gte(foodLog.date, streakStart)))
+          .groupBy(foodLog.date),
         context.db
           .selectDistinct({ date: weightLog.date })
           .from(weightLog)
@@ -199,6 +209,12 @@ export const dayRouter = {
       }
       const maternal = plan.maternal !== null;
       const weightLostKg = Math.round((prof.startWeightKg - plan.weightNowKg) * 10) / 10;
+      // Naikin BB: the recap speaks of kg gained, never "lost"; the streak counts days at 90% of the target.
+      const gaining = targets.gain !== null;
+      const weightGainedKg = gaining ? gainedKg(prof, plan.weightNowKg) : 0;
+      const planStreakDays = gaining
+        ? gainStreak(foodDates, targets.eatKcal, today)
+        : streakDays;
       // Pregnant and breastfeeding users are exempt from fasting: "auto" Ramadan stays off for them.
       const ramadanPref = maternal && prof.ramadanMode === "auto" ? "off" : prof.ramadanMode;
       const loggedNames = async () =>
@@ -232,8 +248,9 @@ export const dayRouter = {
         latestWeightKg: plan.latestWeightKg,
         weightLoggedToday: (loggedRows[0]?.logged ?? 0) > 0,
         // No streak pressure or weight-loss recap in Hamil / Menyusui.
-        streakDays: maternal ? 0 : streakDays,
-        weightLostKg: maternal ? 0 : weightLostKg,
+        streakDays: maternal ? 0 : planStreakDays,
+        weightLostKg: maternal || gaining ? 0 : weightLostKg,
+        weightGainedKg,
         weekEatenKcal: Math.round(eatenWeek[0]?.kcal ?? 0),
         weekTrend: plan.weighIns
           .filter((w) => w.date >= weekTrendStart)
@@ -244,7 +261,9 @@ export const dayRouter = {
         weekProtein: Math.round(eatenWeek[0]?.protein ?? 0),
         weekCarbs: Math.round(eatenWeek[0]?.carbs ?? 0),
         weekFat: Math.round(eatenWeek[0]?.fat ?? 0),
-        milestones: maternal ? [] : buildMilestones(streakDays, weightLostKg),
+        milestones: maternal
+          ? []
+          : buildMilestones(planStreakDays, gaining ? 0 : weightLostKg, weightGainedKg),
         trend: plan.trend,
         protein: {
           eatenG: Math.round(eatenProteinG),
@@ -253,15 +272,23 @@ export const dayRouter = {
         // Hamil / Menyusui: caffeine against the daily limit, estimated from the logged names.
         maternal: plan.maternal ? { caffeine: caffeineOfDay(await loggedNames()) } : null,
         ideas:
-          date === today
-            ? mealIdeas(
-                targets.eatKcal - eatenKcal,
-                suggestMealNow(new Date(), effectiveRamadan(ramadanPref)),
-                3,
-                (await loadIdeaValues(context.db, userId)) ?? undefined,
-                context.locale,
-              )
-            : [],
+          date !== today
+            ? []
+            : targets.gain
+              ? // Naikin BB: calorie-dense ideas for what is still to eat.
+                gainMealIdeas(
+                  targets.eatKcal - eatenKcal,
+                  suggestMealNow(new Date(), effectiveRamadan(ramadanPref)),
+                  3,
+                  context.locale,
+                )
+              : mealIdeas(
+                  targets.eatKcal - eatenKcal,
+                  suggestMealNow(new Date(), effectiveRamadan(ramadanPref)),
+                  3,
+                  (await loadIdeaValues(context.db, userId)) ?? undefined,
+                  context.locale,
+                ),
         date,
       };
     }),

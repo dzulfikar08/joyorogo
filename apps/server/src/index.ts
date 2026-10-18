@@ -6,11 +6,13 @@ import {
   effectiveRamadan,
   jakartaToday,
   shiftDate,
+  gainStreak,
   streakFromDates,
 } from "@joyorogo/api/lib/engine";
 import { dueReminders, isFastingPattern, wibDateKey, wibMinutes } from "@joyorogo/api/lib/fasting";
 import { pendingStickerKey } from "@joyorogo/api/lib/sticker";
-import { buildPlan, planQueries } from "@joyorogo/api/lib/plan";
+import { isGainGap } from "@joyorogo/api/lib/gain";
+import { buildPlan, gainedKg, planQueries } from "@joyorogo/api/lib/plan";
 import { sendPush, vapidConfigured } from "@joyorogo/api/lib/webpush";
 import { paywallConfig } from "@joyorogo/api/lib/tiers";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
@@ -468,18 +470,47 @@ app.get("/u/:code", async (c) => {
         and(eq(exerciseLogTable.userId, row.userId), sql`${exerciseLogTable.date} >= ${weekStart}`),
       ),
   ]);
+  const latestKg = weighed?.latest ?? row.startWeightKg;
   // Same streak semantics as day.summary: any food or weight entry per WIB day.
-  const streakDays = streakFromDates(
+  let streakDays = streakFromDates(
     [...foodDates.map((r) => r.date), ...weightDates.map((r) => r.date)],
     today,
   );
+  // Naikin BB: "naik X kg", and the streak counts days at 90% of the target (as in day.summary).
+  const gaining = row.goal === "gain" && isGainGap(row.targetWeightKg - latestKg);
+  const gained = gaining ? gainedKg(row, latestKg) : 0;
+  if (gaining) {
+    const [, , weighIns, intake, exercise] = await db.batch(planQueries(db, row.userId, today));
+    const plan = buildPlan(row, { latestWeightKg: latestKg, weighIns, intake, exercise }, today);
+    const eatenDays = await db
+      .select({ date: foodLogTable.date, kcal: sql<number>`sum(${foodLogTable.kcal})` })
+      .from(foodLogTable)
+      .where(
+        and(
+          eq(foodLogTable.userId, row.userId),
+          sql`${foodLogTable.date} >= ${shiftDate(today, -45)}`,
+        ),
+      )
+      .groupBy(foodLogTable.date);
+    if (plan.targets.gain) streakDays = gainStreak(eatenDays, plan.targets.eatKcal, today);
+  }
   const geprek = Math.floor((burnedWeek[0]?.total ?? 0) / 600);
-  const lost = Math.round((row.startWeightKg - (weighed?.latest ?? row.startWeightKg)) * 10) / 10;
-  const title =
-    lost > 0
+  const lost = Math.round((row.startWeightKg - latestKg) * 10) / 10;
+  const title = gaining
+    ? gained > 0
+      ? `Aku sudah naik ${gained.toLocaleString("id-ID")} kg dengan JoyoRogo`
+      : "Aku lagi naikin berat badan bareng JoyoRogo"
+    : lost > 0
       ? `Aku sudah turun ${lost.toLocaleString("id-ID")} kg dengan JoyoRogo`
       : "Aku lagi diet bareng JoyoRogo";
   const description = `Tiga angka tiap hari: boleh makan, harus bakar, butuh tidur. Foto makanan, AI yang hitung.`;
+  const progress = gaining
+    ? gained > 0
+      ? `<p>Berat awal ${(row.goalStartKg ?? row.startWeightKg).toLocaleString("id-ID")} kg → sekarang ${latestKg.toLocaleString("id-ID")} kg</p>`
+      : `<p>Baru mulai perjalanan naik berat badannya.</p>`
+    : lost > 0
+      ? `<p>Berat awal ${row.startWeightKg.toLocaleString("id-ID")} kg → sekarang ${latestKg.toLocaleString("id-ID")} kg</p>`
+      : `<p>Baru mulai perjalanan dietnya.</p>`;
   return c.html(
     `<!doctype html><html lang="id"><head><meta charset="utf-8">` +
       `<meta property="og:title" content="${title}">` +
@@ -489,9 +520,7 @@ app.get("/u/:code", async (c) => {
       `<meta name="robots" content="noindex">` +
       `<style>body{font-family:Inter,system-ui,sans-serif;background:linear-gradient(160deg,#0d1f12,#123420);color:#fff;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center;padding:2rem}main{max-width:26rem}.brand{letter-spacing:.14em;text-transform:uppercase;font-size:.75rem;color:#7fd89b;margin:0 0 1rem}h1{font-size:1.9rem;margin:0 0 .75rem;line-height:1.25}p{color:#c9dccf;margin:.35rem 0}a{display:inline-block;margin-top:1.5rem;background:#2e7d46;color:#fff;padding:.8rem 1.6rem;border-radius:9999px;text-decoration:none;font-weight:600}</style></head><body><main>` +
       `<p class="brand">JoyoRogo</p><h1>${title}</h1>` +
-      (lost > 0
-        ? `<p>Berat awal ${row.startWeightKg.toLocaleString("id-ID")} kg → sekarang ${(weighed?.latest ?? row.startWeightKg).toLocaleString("id-ID")} kg</p>`
-        : `<p>Baru mulai perjalanan dietnya.</p>`) +
+      progress +
       `<p>Streak ${streakDays} hari</p>` +
       `<p>≈ ${geprek} geprek dibakar minggu ini</p>` +
       `<p>Tiga angka tiap hari: boleh makan, harus bakar, butuh tidur.</p>` +

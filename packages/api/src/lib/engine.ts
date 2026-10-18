@@ -7,6 +7,24 @@ import { getActiveLocale, getT, relativeDayLabel } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
 import type { MaternalInfo } from "./maternal";
+import {
+  MAX_SURPLUS_KCAL,
+  MIN_SURPLUS_KCAL,
+  PACE_PCT,
+  UNDERWEIGHT_BMI,
+  bmiOf,
+  clampSurplus,
+  daysAtSurplus,
+  gainDayHit,
+  gainNumbers,
+  isGainGap,
+  goalOf,
+  paceBand,
+  pacePctOf,
+  rawSurplusKcal,
+  suggestedDays,
+} from "./gain";
+import type { GainBand, GainInfo, Goal } from "./gain";
 
 // One definition of "Hari ini / Kemarin / Sabtu, 10 Okt" for every caller.
 export { relativeDayLabel };
@@ -98,6 +116,11 @@ export type ProfileInput = {
   /** WIB calendar day, YYYY-MM-DD */
   targetDate: string;
   activityLevel: ActivityLevel;
+  /**
+   * What the plan works toward (lib/gain Goal). Absent means "lose", the plan as it
+   * always was: a deficit toward a lower target, holding once the weight is there.
+   */
+  goal?: Goal;
 };
 
 export type TargetNotes =
@@ -106,7 +129,9 @@ export type TargetNotes =
   | "PLAN_CLAMPED"
   | "ADAPTIVE"
   /** Hamil / Menyusui plan (lib/maternal): no deficit, AKG additions */
-  | "MATERNAL";
+  | "MATERNAL"
+  /** Naikin BB plan (lib/gain): TDEE plus a surplus */
+  | "GAIN";
 
 export type Targets = {
   bmr: number;
@@ -126,6 +151,8 @@ export type Targets = {
   notes: TargetNotes[];
   /** Hamil / Menyusui detail; null for everyone else */
   maternal: MaternalInfo | null;
+  /** Naikin BB detail while a surplus is active; null otherwise (also once the target weight is reached) */
+  gain: GainInfo | null;
 };
 
 export function round5(n: number): number {
@@ -178,6 +205,17 @@ export function streakFromDates(dates: string[], today: string): number {
     cursor = shiftDate(cursor, -1);
   }
   return streak;
+}
+
+/**
+ * Naikin BB streak: consecutive days at 90% or more of the target (lib/gain
+ * STREAK_FRACTION), ending today, or yesterday while today has not got there yet.
+ */
+export function gainStreak(days: DayKcal[], targetKcal: number, today: string): number {
+  return streakFromDates(
+    days.filter((day) => gainDayHit(day.kcal, targetKcal)).map((day) => day.date),
+    today,
+  );
 }
 
 export function bmrMifflin(
@@ -308,8 +346,9 @@ export function weightTrend(
   const weeklyRateKg = slope === null ? null : Math.round(slope * 7 * 100) / 100;
 
   let projectedDate: string | null = null;
-  if (slope !== null && slope < 0 && latest.trendKg > targetKg) {
-    const days = Math.ceil((latest.trendKg - targetKg) / -slope);
+  // Heading toward the target, down for a cut and up for a gain.
+  if (slope !== null && slope !== 0 && (targetKg - latest.trendKg) * slope > 0) {
+    const days = Math.ceil((targetKg - latest.trendKg) / slope);
     if (days <= PROJECTION_MAX_DAYS) projectedDate = shiftDate(date, days);
   }
 
@@ -555,34 +594,58 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
 
   const ideal = idealWeightRange(profile.heightCm);
   const notes: TargetNotes[] = [];
-  if (profile.targetWeightKg < ideal.minKg) {
+
+  // Naikin BB: TDEE plus a surplus toward a higher target. Only while the weight is
+  // still below the target; once it is there the plan holds ("MAINTENANCE").
+  const goal = profile.goal ?? "lose";
+  const gapKg = profile.targetWeightKg - weightNow;
+  const gaining = goal === "gain" && isGainGap(gapKg);
+  const gainNums = gaining
+    ? gainNumbers({
+        weightNowKg: weightNow,
+        targetKg: profile.targetWeightKg,
+        heightCm: profile.heightCm,
+        days: daysBetween(today, profile.targetDate),
+        idealMaxKg: ideal.maxKg,
+      })
+    : null;
+
+  if (!gaining && profile.targetWeightKg < ideal.minKg) {
     notes.push("BELOW_HEALTHY_RANGE");
   }
 
-  // weightNow <= target: nothing to lose, hold weight instead
-  const maintenance = weightNow <= profile.targetWeightKg;
-  const rawDeficit = maintenance
-    ? 0
-    : ((weightNow - profile.targetWeightKg) * KCAL_PER_KG_FAT) /
-      Math.max(1, daysBetween(today, profile.targetDate));
+  // Nothing to lose (weight at or below the target, or the goal is to hold): hold weight instead
+  const losing = goal === "lose" && weightNow > profile.targetWeightKg;
+  const maintenance = !losing && !gaining;
+  const rawDeficit = losing
+    ? ((weightNow - profile.targetWeightKg) * KCAL_PER_KG_FAT) /
+      Math.max(1, daysBetween(today, profile.targetDate))
+    : 0;
 
-  const totalDeficit = maintenance
-    ? 0
-    : Math.min(MAX_DEFICIT_KCAL, Math.max(MIN_DEFICIT_KCAL, rawDeficit));
-  if (!maintenance && rawDeficit > MAX_DEFICIT_KCAL) {
+  const totalDeficit = losing
+    ? Math.min(MAX_DEFICIT_KCAL, Math.max(MIN_DEFICIT_KCAL, rawDeficit))
+    : 0;
+  if (losing && rawDeficit > MAX_DEFICIT_KCAL) {
     notes.push("PLAN_CLAMPED");
   }
 
   const burn = Math.min(400, Math.max(200, round5(BURN_BASE_PER_KG * weightNow)));
   const dietDeficit = Math.max(totalDeficit - burn, 0);
   const floor = EAT_FLOOR[profile.gender];
-  const eat = Math.max(round5(tdee - dietDeficit), floor);
-  if (eat === floor && round5(tdee - dietDeficit) < floor && !notes.includes("PLAN_CLAMPED")) {
+  // Gain rounds the TDEE to 5 first, so TDEE + surplus is exactly the target on screen.
+  const baseKcal = gainNums ? round5(tdee) : tdee;
+  const eat = gainNums
+    ? baseKcal + gainNums.surplusKcal
+    : Math.max(round5(tdee - dietDeficit), floor);
+  if (!gainNums && eat === floor && round5(tdee - dietDeficit) < floor && !notes.includes("PLAN_CLAMPED")) {
     notes.push("PLAN_CLAMPED");
   }
 
   if (maintenance) {
     notes.push("MAINTENANCE");
+  }
+  if (gainNums) {
+    notes.push("GAIN");
   }
   if (options.adaptiveTdee !== undefined) {
     notes.push("ADAPTIVE");
@@ -590,7 +653,7 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
 
   return {
     bmr: Math.round(bmr),
-    tdee: Math.round(tdee),
+    tdee: Math.round(baseKcal),
     formulaTdee: Math.round(formulaTdee),
     eatKcal: eat,
     burnKcal: burn,
@@ -601,6 +664,9 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
     idealMaxKg: ideal.maxKg,
     notes,
     maternal: null,
+    gain: gainNums
+      ? { ...gainNums, reachDate: shiftDate(today, gainNums.daysToTarget) }
+      : null,
   };
 }
 
@@ -690,7 +756,7 @@ export type TargetDateCheck =
   | { status: "past" }
   /** further than MAX_TARGET_DAYS */
   | { status: "tooFar"; days: number }
-  /** weight already at/below the goal: the date does not move the plan */
+  /** weight already at/below the goal (or the goal is to hold): the date does not move the plan */
   | { status: "maintenance"; days: number }
   | {
       /** ok: inside the safe window; fast: needs more than the cap; slow: less than the floor */
@@ -703,18 +769,47 @@ export type TargetDateCheck =
       deficitKcal: number;
       /** days the clamped deficit needs; the date to offer when status is "fast" */
       feasibleDays: number;
+    }
+  | {
+      /**
+       * The same verdicts for a higher target (lib/gain). gainOk: inside the surplus window
+       * and not past 1% of body weight a week; gainFast: past either; gainSlow: under the
+       * surplus floor, so the plan holds the floor and finishes earlier than the date.
+       */
+      status: "gainOk" | "gainFast" | "gainSlow";
+      days: number;
+      gainKg: number;
+      /** what the date asks for, before the clamp */
+      rawSurplusKcal: number;
+      /** what the plan will use (clamped) */
+      surplusKcal: number;
+      /** kg/week the date asks for */
+      weeklyKg: number;
+      /** the same, as percent of the current body weight per week */
+      pacePct: number;
+      /** lean / brisk (above 0.5%/week, beginner pace) / fast, of the pace the date asks for */
+      band: GainBand;
+      /**
+       * Days to offer: for gainFast the later date at a lean pace (top of the lean band,
+       * never past the surplus cap); otherwise the days the applied surplus needs.
+       */
+      feasibleDays: number;
     };
 
 /**
  * One verdict for a candidate target date, shared by the server (which rejects
  * past dates) and both clients (which warn about an unsafe pace). Future only:
- * today already leaves no time.
+ * today already leaves no time. `goal` is the plan's direction; absent, it is
+ * derived from the weight and the target (a higher target is a gain).
  */
 export function checkTargetDate(input: {
   weightNowKg: number;
   targetWeightKg: number;
   targetDate: string;
   today?: string;
+  goal?: Goal;
+  /** lets the gain verdict know an underweight body (no "brisk" band); omitted = not underweight */
+  heightCm?: number;
 }): TargetDateCheck {
   const today = input.today ?? jakartaToday();
   const { targetDate } = input;
@@ -728,7 +823,32 @@ export function checkTargetDate(input: {
   const days = daysBetween(today, targetDate);
   if (days < 1) return { status: "past" };
   if (days > MAX_TARGET_DAYS) return { status: "tooFar", days };
-  if (input.weightNowKg <= input.targetWeightKg) return { status: "maintenance", days };
+  const goal = input.goal ?? goalOf(input.weightNowKg, input.targetWeightKg);
+  const gapKg = input.targetWeightKg - input.weightNowKg;
+  if (goal === "gain" && isGainGap(gapKg)) {
+    const gainKg = Math.round(gapKg * 100) / 100;
+    const underweight =
+      input.heightCm !== undefined && bmiOf(input.weightNowKg, input.heightCm) < UNDERWEIGHT_BMI;
+    const raw = rawSurplusKcal(gainKg, days);
+    const surplusKcal = clampSurplus(raw);
+    const pacePct = pacePctOf(gainKg, days, input.weightNowKg);
+    const tooFast = raw > MAX_SURPLUS_KCAL || pacePct > PACE_PCT.ceiling;
+    const status = tooFast ? "gainFast" : raw < MIN_SURPLUS_KCAL ? "gainSlow" : "gainOk";
+    return {
+      status,
+      days,
+      gainKg,
+      rawSurplusKcal: Math.round(raw),
+      surplusKcal,
+      weeklyKg: Math.round((gainKg / (days / 7)) * 100) / 100,
+      pacePct: Math.round(pacePct * 100) / 100,
+      band: paceBand(pacePct, underweight),
+      feasibleDays: tooFast
+        ? suggestedDays(gainKg, input.weightNowKg, underweight)
+        : daysAtSurplus(gainKg, surplusKcal),
+    };
+  }
+  if (goal !== "lose" || input.weightNowKg <= input.targetWeightKg) return { status: "maintenance", days };
   const lossKg = input.weightNowKg - input.targetWeightKg;
   const rawDeficitKcal = Math.round((lossKg * KCAL_PER_KG_FAT) / days);
   const deficitKcal = Math.min(MAX_DEFICIT_KCAL, Math.max(MIN_DEFICIT_KCAL, rawDeficitKcal));
@@ -762,6 +882,8 @@ export type NeedsBreakdown = {
   cutKcal: number;
   /** Hamil / Menyusui: the AKG 2019 addition on top of the TDEE; 0 otherwise */
   addKcal: number;
+  /** Naikin BB: the daily surplus on top of the TDEE; 0 otherwise */
+  surplusKcal: number;
   targetKcal: number;
   /** planned exercise (Bakar) that covers the rest of the daily deficit */
   plannedBurnKcal: number;
@@ -783,6 +905,7 @@ export function needsBreakdown(targets: Targets): NeedsBreakdown {
     // under 5 kcal is round5 noise, not a cut
     cutKcal: cut < 5 ? 0 : cut,
     addKcal: targets.maternal?.addKcal ?? 0,
+    surplusKcal: targets.gain?.surplusKcal ?? 0,
     targetKcal: targets.eatKcal,
     plannedBurnKcal: targets.burnKcal,
     deficitKcal: targets.deficitKcal,
