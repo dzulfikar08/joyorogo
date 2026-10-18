@@ -62,6 +62,7 @@
     "expo-updates": "~57.0.26",
     "expo-web-browser": "~57.0.2",
     "i18next": "^26.4.7",
+    "intl-pluralrules": "^2.0.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-i18next": "^17.0.20",

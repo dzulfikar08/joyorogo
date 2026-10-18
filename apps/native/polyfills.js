@@ -1,3 +1,8 @@
+// Hermes also has no Intl.PluralRules, which i18next uses to pick plural
+// suffixes: without it, "result.save.items" with count 1 resolved to the raw
+// key. The package installs itself only when Intl.PluralRules is missing.
+import "intl-pluralrules";
+
 // ES2023 array methods and Promise.withResolvers for Hermes. The shared
 // packages/api/src/lib code (ideas.ts, plates.ts, places.ts, recap.ts) uses
 // toSorted/findLast; Hermes lacks them, so calls crashed with "undefined is
