@@ -28,14 +28,29 @@ Web (DOKU/Pakasir) checkout amounts, `/api/config`, `/harga`, the landing page, 
 
 Apple and Google Play charge a fixed price per product. The server records whatever the store reports (`priceIdr` of the receipt), so ledger revenue is always right, but store buyers pay the store price, not the step price. Store prices are changed by hand.
 
-Store prices checked 2026-10-18 (read-only):
+Store prices checked 2026-10-18 (read back after the change):
 
 | Store | Product | Monthly | Yearly |
 | --- | --- | --- | --- |
 | App Store Connect (IDN) | auto-renewable `com.joyodigitama.joyorogo.founder.monthly` / `.yearly` | Rp29.000 | **Rp199.000** |
-| Google Play | subscription `pro`, base plans `monthly` / `yearly` (ID region) | Rp29.000 | **Rp199.000** |
+| Google Play | subscription `pro`, base plans `monthly` / `yearly` (ID region, the only region configured) | Rp29.000 | **Rp199.000** |
 
-The current step (buyers 11-110) matches both stores. The server accepts only the two auto-renewable Apple products (`DEFAULT_APPLE_SUB_*_PRODUCT_ID` in `packages/api/src/lib/apple.ts`).
+The current step (buyers 11-110) matches both stores in Indonesia. The server accepts only the two auto-renewable Apple products (`DEFAULT_APPLE_SUB_*_PRODUCT_ID` in `packages/api/src/lib/apple.ts`).
+
+Outside Indonesia the price follows the web USD price (US$9.99/month, US$59.99/year), not the founder ladder. Apple, changed 2026-10-18 with `preserveCurrentPrice: true` (existing subscribers keep their old price): USA price point 9.99 / 59.99, every other territory on Apple's equalized price point of it, except Indonesia (unchanged) and 53 low/lower-middle-income territories (World Bank LIC/LMC) held at the old price pending an owner decision. Full territory list: `store-prices-plan.md` (outside the repo).
+
+| Territory (Apple) | Monthly before | Monthly now | Yearly before | Yearly now |
+| --- | --- | --- | --- | --- |
+| USA | $2.99 | $9.99 | $19.99 | $59.99 |
+| GBR | £2.99 | £9.99 | £19.99 | £59.99 |
+| DEU (EUR) | €2.99 | €9.99 | €22.99 | €69.99 |
+| AUS | A$4.99 | A$14.99 | A$29.99 | A$99.99 |
+| SGP | S$3.98 | S$14.98 | S$29.98 | S$89.98 |
+| MYS | RM14.90 | RM49.90 | RM99.90 | RM299.90 |
+| IND (held) | ₹299 | ₹299 | ₹1,999 | ₹1,999 |
+| IDN | Rp29.000 | Rp29.000 | Rp199.000 | Rp199.000 |
+
+Google Play has no non-ID price: the subscription is sold in Indonesia only. Selling elsewhere is a Play Console decision (the service account has no monetization write permission).
 
 Legacy non-renewing IAPs (removed 2026-10-18): `.founder.1y` was deleted in App Store Connect (it was never submitted). `.founder.1m` could not be deleted (`IAP_DELETE_NOT_ALLOWED`, state READY_TO_SUBMIT); it is cleared for sale in every territory (availability: no territories, not in new territories) and stays at Rp29.000. Neither is referenced by the app or the server. Four zero-revenue sandbox `apple:` payments from earlier tests remain in D1 as history.
 
