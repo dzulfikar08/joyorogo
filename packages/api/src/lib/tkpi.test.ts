@@ -52,7 +52,7 @@ describe("calibrateItems", () => {
     const [combo] = calibrateItems([{ name: "Nasi goreng telur ceplok", kcal: 620, grams: 330 }]);
     expect(combo?.kcal).toBe(620);
     expect(combo?.matched).toBe(false);
-    const [single] = calibrateItems([{ name: "Telur ceplok", kcal: 620, grams: 330 }]);
+    const [single] = calibrateItems([{ name: "Telur ceplok", kcal: 620, grams: 60 }]);
     expect(single?.kcal).toBeLessThan(620);
   });
 
@@ -191,7 +191,7 @@ describe("condiment-tail guard and density bands", () => {
   test("a plain condiment (no protein or staple head) still uses the library band", () => {
     const item = kcalOf("sambal", 300, 30);
     expect(item?.matched).toBe(true);
-    expect(item?.kcal).toBeLessThanOrEqual(80);
+    expect(item?.kcal).toBeLessThanOrEqual(160); // the 15 g band (80) doubled for 30 g
   });
 
   test("TKPI 2019 reverse containment needs the row to start with the query", () => {
@@ -236,5 +236,57 @@ describe("compound dishes that start with an ingredient", () => {
     expect(kcalOf("tahu goreng", 900, 100)?.matched).toBe(true);
     expect(kcalOf("tempe goreng", 60, 24)?.matched).toBe(true);
     expect(kcalOf("orek tempe", 40, 100)?.matched).toBe(true);
+  });
+});
+
+// Regression: "martabak telur 50 g (1 potong)" was logged at 300 kcal (6 kcal/g,
+// table 250 kcal/100 g = 125). The 150 g portion's band minimum clamped it up.
+describe("band follows grams, not the typical portion", () => {
+  const kcalOf = (name: string, kcal: number, grams: number) =>
+    calibrateItems([{ name, kcal, grams }])[0];
+
+  test("martabak telur 50 g stays near per-100 g x grams", () => {
+    const item = kcalOf("martabak telur", 145, 50);
+    expect(item?.matched).toBe(true);
+    expect(item?.kcal).toBe(145);
+    expect(kcalOf("martabak telur", 20, 50)?.kcal).toBe(100);
+    expect(kcalOf("martabak telur", 600, 50)?.kcal).toBe(200);
+  });
+
+  test("a typical portion keeps the library band", () => {
+    expect(kcalOf("martabak telur", 20, 150)?.kcal).toBe(300);
+    expect(kcalOf("martabak telur", 900, 150)?.kcal).toBe(600);
+  });
+
+  test("larger than typical raises the band too", () => {
+    expect(kcalOf("nasi goreng", 800, 500)?.kcal).toBe(800);
+  });
+
+  test("every library dish at any portion stays near its per-100 g reference", () => {
+    for (const dish of TKPI_DISHES) {
+      for (const grams of [dish.typicalPortionG / 3, dish.typicalPortionG, dish.typicalPortionG * 2]) {
+        const ref = (dish.kcalPer100g * grams) / 100;
+        for (const modelKcal of [0, 5000]) {
+          const item = kcalOf(dish.name, modelKcal, grams);
+          if (!item?.matched) continue;
+          // Library bands span 0.25x..5.5x of the per-100 g reference at worst (sambal, kerupuk).
+          expect(item.kcal).toBeLessThanOrEqual(Math.max(ref * 5.5, 25));
+          expect(item.kcal).toBeGreaterThanOrEqual(ref * 0.25 - 1);
+        }
+      }
+    }
+  });
+
+  test("no output exceeds 9 kcal per gram, matched or not", () => {
+    for (const [name, grams] of [
+      ["makanan adb3f2", 10],
+      ["makanan adb3f2", 30],
+      ["pizza margherita", 5],
+      ["martabak telur", 20],
+      ["sambal", 3],
+    ] as const) {
+      const item = kcalOf(name, 5000, grams);
+      expect((item?.kcal ?? 0) / grams).toBeLessThanOrEqual(9);
+    }
   });
 });

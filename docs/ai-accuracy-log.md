@@ -1,8 +1,18 @@
 # AI scan accuracy log
 
-Running notes on how accurate the photo scan is, what the data says, and what to change next. Newest entry first. Numbers come from prod D1 (read-only) and from `scripts/eval-scans.ts`; no user ids, emails, names or photos appear here. Proposals are proposals: nothing in `vision.ts` or `tkpi.ts` behavior was changed for this entry (the only code change is the optional, prod-neutral `promptTransform` hook the harness uses).
+Running notes on how accurate the photo scan is, what the data says, and what to change next. Newest entry first. Numbers come from prod D1 (read-only) and from `scripts/eval-scans.ts`; no user ids, emails, names or photos appear here. Proposals are proposals: nothing in `vision.ts` or `tkpi.ts` behavior was changed for the first entry (the only code change is the optional, prod-neutral `promptTransform` hook the harness uses).
 
 Owner preference to keep in mind: an over-estimated kcal is acceptable, an under-estimate is the worse error, yet users do write "kalori kelewat tinggi". Over and under are always reported separately.
+
+## 2026-10-18: small portions clamped up to the typical portion's minimum
+
+Owner report: "martabak telur 50 g (1 potong)" logged as 300 kcal (6 kcal/g; the library has 250 kcal/100 g, so 125). The row's own macros (4 P, 12 C, 9 F) add up to about 145 kcal.
+
+Root cause: not the data row and not the model. `calibrateOne` clamped a library-matched dish into `plausibleKcalRange`, which is written for `typicalPortionG` (150 g here: 300-600 kcal), without scaling it to the item's grams; only the scan-correct (portion edit) path scaled the band. Any matched item smaller than the typical portion was lifted to the portion's minimum, any larger one cut to its maximum. The library rows themselves are consistent (per-100 g x typical portion falls inside the band for every dish).
+
+Fix: the band always scales with grams (`grams / typicalPortionG`, `scaleBand` option removed), and every item is capped at 9 kcal per gram of its weight (pure fat), also for unmatched dishes (the old 400 kcal floor allowed a 10 g item 400 kcal). Tests in `tkpi.test.ts`.
+
+Prod audit (read-only, AI rows with a gram weight): 461 rows, 196 matched to a library dish; about 90-105 of those (31 users) sit exactly on an unscaled band edge for a portion well off the typical one (nasi putih, ayam goreng, tempe, telur dadar, tempe orek, ...), so they are inflated (or, for big portions, deflated). Not rewritten.
 
 ## 2026-10-18: drinks (zero-calorie, plain water, a cup whose contents are hidden)
 

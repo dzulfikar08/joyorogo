@@ -399,7 +399,6 @@ export function applyCorrection(
       ...item,
       drink: resolveFoodKind(item.name, kind) === "minuman",
     })),
-    { scaleBand: true },
   );
   const calibrated = new Map(touched.map((row, i) => [row, fixed[i]!]));
   const local = locale !== DEFAULT_LOCALE;
