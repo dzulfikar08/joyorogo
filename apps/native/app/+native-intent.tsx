@@ -8,6 +8,6 @@ export function redirectSystemPath({ path }: { path: string; initial: boolean })
   if (gabung) return `/gabung/${gabung[1]}`;
   // Removed strength logger screens now live in JoyoFit; /latihan is the archive.
   if (/latihan\/(aktif|pilih|ringkasan|rutinitas)/i.test(path)) return "/latihan";
-  if (path.includes("joyorogo.com/strava")) return "/profil";
+  if (path.includes("joyorogo.com/strava")) return "/profil/strava";
   return path;
 }

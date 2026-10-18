@@ -493,7 +493,7 @@ export function ListGroup({ children, style }: { children: React.ReactNode; styl
   );
 }
 
-/** 52px-min grouped row: icon chip, title/subtitle, value, chevron. */
+/** 56px-min grouped row: leading tile (icon chip or `thumb`, e.g. BrandMark), title/subtitle, value, chevron. `destructive` tints the chip and title red. */
 export function ListRow({
   icon,
   iconTint,
@@ -523,27 +523,28 @@ export function ListRow({
 }) {
   const { theme } = useUnistyles();
   const tintColors = iconTint && iconTint !== "muted" ? TINT_COLORS[iconTint] : null;
+  const chipBg = destructive
+    ? theme.colors.destructiveSoft
+    : tintColors
+      ? theme.colors[tintColors.soft]
+      : theme.colors.muted;
+  const chipFg = destructive
+    ? theme.colors.destructiveText
+    : tintColors
+      ? theme.colors[tintColors.icon]
+      : theme.colors.mutedForeground;
   const content = (
     <>
       {thumb ? (
         thumb
       ) : icon ? (
-        <View
-          style={[
-            styles.rowChip,
-            { backgroundColor: tintColors ? theme.colors[tintColors.soft] : theme.colors.muted },
-          ]}
-        >
-          <Ionicons
-            name={icon}
-            size={16}
-            color={tintColors ? theme.colors[tintColors.icon] : theme.colors.mutedForeground}
-          />
+        <View style={[styles.rowChip, { backgroundColor: chipBg }]}>
+          <Ionicons name={icon} size={18} color={chipFg} />
         </View>
       ) : null}
       <View style={styles.rowText}>
         <Text
-          style={[styles.rowTitle, destructive && { color: theme.colors.destructive }]}
+          style={[styles.rowTitle, destructive && { color: theme.colors.destructiveText }]}
           numberOfLines={wrapTitle ? 2 : 1}
         >
           {title}
@@ -1228,12 +1229,12 @@ const styles = StyleSheet.create((theme) => ({
     gap: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: 12,
-    minHeight: 52,
+    minHeight: 56,
   },
   rowChip: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },

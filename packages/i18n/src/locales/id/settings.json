@@ -54,6 +54,18 @@
       "about": { "title": "Tentang", "subtitle": "Versi, pembaruan, kebijakan privasi" }
     }
   },
+  "hubNative": {
+    "signOut": {
+      "confirmTitle": "Keluar dari JoyoRogo?",
+      "confirmMessage": "Kamu perlu masuk lagi untuk membuka datamu. Datamu tetap aman di akunmu."
+    },
+    "about": { "version": "Versi" },
+    "strava": {
+      "connectLabel": "Hubungkan dengan Strava",
+      "poweredByLabel": "Powered by Strava"
+    },
+    "health": { "unsupported": "Sinkron kesehatan belum tersedia di perangkat ini." }
+  },
   "hubWeb": {
     "title": "Profil",
     "back": "Profil",

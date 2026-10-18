@@ -2,11 +2,11 @@ import "@/unistyles";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
-import { View } from "react-native";
+import { Image, Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
-import Svg, { Path } from "react-native-svg";
 
+import { BrandMark } from "@/components/brand-mark";
 import { Button, Card, Text } from "@/components/ui";
 import { Disclosure } from "@/components/disclosure";
 import { StravaRetentionNote } from "@/components/strava-retention-notice";
@@ -82,13 +82,21 @@ export function StravaCard({ compact = false }: { compact?: boolean }) {
   } else if (statusQuery.data && !statusQuery.data.connected) {
     subtitle = t("strava.status.connectHintNative");
     action = (
-      <Button
-        size="sm"
-        label={t("strava.action.connectNative")}
-        icon="bicycle"
+      // Official "Connect with Strava" artwork, unmodified (docs/brand-marks.md); the 2x file is
+      // picked automatically. A busy request dims it and ignores taps instead of swapping the art.
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("hubNative.strava.connectLabel")}
+        disabled={busy}
         onPress={() => void connect()}
-        loading={busy}
-      />
+        style={[styles.connectButton, busy && styles.connectBusy]}
+      >
+        <Image
+          source={require("@/assets/images/brand/connect-with-strava.png")}
+          style={styles.connectImage}
+          accessibilityIgnoresInvertColors
+        />
+      </Pressable>
     );
   } else if (statusQuery.data) {
     const athleteId = statusQuery.data.athleteId;
@@ -125,15 +133,7 @@ export function StravaCard({ compact = false }: { compact?: boolean }) {
   return (
     <Card>
       <View style={styles.headRow}>
-        {/* Strava's app-icon mark: white glyph on Strava orange, per their brand guide. */}
-        <View style={styles.logo}>
-          <Svg width={20} height={20} viewBox="0 0 24 24">
-            <Path
-              fill="#FFFFFF"
-              d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"
-            />
-          </Svg>
-        </View>
+        <BrandMark brand="strava" />
         <View style={styles.headText}>
           <Text style={styles.title}>Strava</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
@@ -163,13 +163,15 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     gap: theme.spacing.md,
   },
-  logo: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: "#FC4C02",
-    alignItems: "center",
-    justifyContent: "center",
+  connectButton: {
+    alignSelf: "flex-start",
+  },
+  connectBusy: {
+    opacity: 0.5,
+  },
+  connectImage: {
+    width: 237,
+    height: 48,
   },
   headText: {
     flex: 1,

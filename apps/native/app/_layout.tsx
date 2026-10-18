@@ -7,7 +7,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { Stack } from "expo-router";
-import { Pressable, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native-unistyles";
 
@@ -172,6 +172,28 @@ export default function RootLayout() {
             />
             <Stack.Screen name="inbox" options={{ title: t("nav.title.inbox") }} />
             <Stack.Screen name="koneksi" options={{ title: t("title", { ns: "koneksi" }) }} />
+            <Stack.Screen name="profil/index" options={{ title: t("nav.title.profile") }} />
+            <Stack.Screen name="profil/akun" options={{ title: t("hub.rows.account.title", { ns: "settings" }) }} />
+            <Stack.Screen name="profil/langganan" options={{ title: t("hub.rows.subscription.title", { ns: "settings" }) }} />
+            <Stack.Screen name="profil/target" options={{ title: t("hub.rows.body.title", { ns: "settings" }) }} />
+            <Stack.Screen name="profil/makan" options={{ title: t("hub.rows.meals.title", { ns: "settings" }) }} />
+            <Stack.Screen name="profil/strava" options={{ title: t("hub.rows.strava.title", { ns: "settings" }) }} />
+            <Stack.Screen
+              name="profil/kesehatan"
+              options={{
+                title: t(
+                  Platform.OS === "ios"
+                    ? "hub.rows.healthIos.title"
+                    : "hub.rows.healthAndroid.title",
+                  { ns: "settings" },
+                ),
+              }}
+            />
+            <Stack.Screen name="profil/pengingat" options={{ title: t("hub.rows.reminders.title", { ns: "settings" }) }} />
+            <Stack.Screen name="profil/feed" options={{ title: t("hub.rows.feed.title", { ns: "settings" }) }} />
+            <Stack.Screen name="profil/tampilan" options={{ title: t("hub.rows.display.title", { ns: "settings" }) }} />
+            <Stack.Screen name="profil/privasi" options={{ title: t("hub.rows.privacy.title", { ns: "settings" }) }} />
+            <Stack.Screen name="profil/tentang" options={{ title: t("hub.rows.about.title", { ns: "settings" }) }} />
             <Stack.Screen name="tips/[slug]" options={{ title: t("nav.title.tips") }} />
             <Stack.Screen name="feed/[postId]" options={{ title: t("nav.title.post") }} />
             <Stack.Screen name="feed/notifikasi" options={{ title: t("nav.title.notifications") }} />

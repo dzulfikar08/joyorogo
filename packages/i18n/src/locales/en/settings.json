@@ -54,6 +54,18 @@
       "about": { "title": "About", "subtitle": "Version, updates, privacy policy" }
     }
   },
+  "hubNative": {
+    "signOut": {
+      "confirmTitle": "Sign out of JoyoRogo?",
+      "confirmMessage": "You'll need to sign in again to open your data. Your data stays safe on your account."
+    },
+    "about": { "version": "Version" },
+    "strava": {
+      "connectLabel": "Connect with Strava",
+      "poweredByLabel": "Powered by Strava"
+    },
+    "health": { "unsupported": "Health sync isn't available on this device." }
+  },
   "hubWeb": {
     "title": "Profile",
     "back": "Profile",

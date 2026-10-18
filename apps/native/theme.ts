@@ -25,6 +25,9 @@ export const lightTheme = {
     mutedForeground: "#66635C",
     hairline: "rgba(29,26,21,0.10)",
     overlay: "rgba(29,26,21,0.45)",
+    // Destructive rows: soft tint behind the icon chip, readable red on it.
+    destructiveSoft: "#FDE7E4",
+    destructiveText: "#B42318",
     // Brand
     primary: "#137D41",
     primaryForeground: "#FFFFFF",
@@ -87,6 +90,8 @@ export const darkTheme = {
     mutedForeground: "#9C9890",
     hairline: "rgba(241,238,233,0.10)",
     overlay: "rgba(8,7,4,0.6)",
+    destructiveSoft: "#41201E",
+    destructiveText: "#FF8A80",
     primary: "#5EBC7B",
     primaryForeground: "#0A1F12",
     makan: "#5EBC7B",

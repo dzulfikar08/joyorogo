@@ -34,13 +34,13 @@ function RetentionLines() {
         <Ionicons name="heart-outline" size={18} color={theme.colors.mutedForeground} />
         <Text style={styles.lineText}>{alternativeText}</Text>
       </View>
-      {healthSupported && !pathname.startsWith("/profil") ? (
+      {healthSupported && pathname !== "/profil/kesehatan" ? (
         <Button
           variant="secondary"
           size="sm"
           label={t("strava.retention.connectHealth", { health: healthName })}
           icon="heart"
-          onPress={() => router.push("/profil")}
+          onPress={() => router.push("/profil/kesehatan")}
         />
       ) : null}
     </View>
