@@ -100,6 +100,11 @@ describe("text layout", () => {
     expect(texts(scene)[2]!.fill).toBe("#ffffff");
   });
 
+  test("shadow is skipped for dark ink", () => {
+    const scene = sceneOf([text("a", "hi", { shadow: true, color: "#101010" })]);
+    expect(texts(scene)).toHaveLength(1);
+  });
+
   test("wrap mode emits one text node per line", () => {
     const scene = sceneOf([text("a", "satu dua tiga empat lima enam", { fit: { mode: "wrap", maxLines: 3 }, box: { x: 0, y: 0, w: 300 } })]);
     expect(texts(scene).length).toBeGreaterThan(1);

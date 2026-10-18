@@ -374,7 +374,7 @@ function measureTextLayer(state: State, layer: TextLayer, avail: Avail): Placed 
           anchor,
           ...(layer.letterSpacing ? { letterSpacing: layer.letterSpacing } : {}),
         };
-        if (layer.shadow) nodes.push(...textShadow(base, fitted.size));
+        if (layer.shadow) nodes.push(...textShadow(base, fitted.size, fill));
         nodes.push({ ...base, fill });
       });
       return nodes;
@@ -382,7 +382,15 @@ function measureTextLayer(state: State, layer: TextLayer, avail: Avail): Placed 
   };
 }
 
-function textShadow(base: Omit<Extract<SceneNode, { k: "text" }>, "fill">, size: number): SceneNode[] {
+/** Perceived brightness 0..1 of a resolved `#rrggbb[aa]`. */
+function brightness(color: string): number {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16) / 255);
+  return 0.299 * r! + 0.587 * g! + 0.114 * b!;
+}
+
+/** Soft dark copies behind light text; dark ink never gets a smudge. */
+function textShadow(base: Omit<Extract<SceneNode, { k: "text" }>, "fill">, size: number, ink: string): SceneNode[] {
+  if (brightness(ink) < 0.55) return [];
   return [
     { ...base, y: r2(base.y + size * 0.05), fill: "#00000038" },
     { ...base, y: r2(base.y + size * 0.025), fill: "#0000004d" },
@@ -445,7 +453,7 @@ function measureStat(state: State, layer: StatLayer, avail: Avail): Placed | nul
       const baseline = valueTop + (layer.trim === "cap" ? vMetrics.cap * vs : vs * 0.85);
       const textNode = (text: string, tx: number, size: number, weight: number, color: string, role: "display" | "body" | "mono", anchorTo: "start" | "middle" | "end"): SceneNode[] => {
         const node = { k: "text" as const, x: r2(tx), y: r2(baseline), text, size, weight, font: role, anchor: anchorTo };
-        return layer.shadow ? [...textShadow(node, size), { ...node, fill: color }] : [{ ...node, fill: color }];
+        return layer.shadow ? [...textShadow(node, size, color), { ...node, fill: color }] : [{ ...node, fill: color }];
       };
       nodes.push(...textNode(valueText, x + rowStart, vs, layer.valueWeight, fill, layer.font, "start"));
       if (unit) {

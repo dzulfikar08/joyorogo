@@ -120,7 +120,7 @@ Common fields on every layer:
 
 | type | purpose | extra fields |
 |---|---|---|
-| `text` | one text run | `value: Expr`, `size`, `weight`, `font`, `color`, `align`, `letterSpacing` (px), `lineHeight` (x size, default 1.15), `case?: "upper"|"none"`, `trim?: "none"|"cap"` (single line: box height = cap height, baseline at its bottom, for tight big numerals), `valign?: "top"|"middle"|"bottom"` (inside a numeric `box.h`), `fit: {mode:"shrink"|"ellipsis"|"wrap", minSize?, maxLines?}`, `shadow?: boolean` (two soft dark copies behind, for text over photos) |
+| `text` | one text run | `value: Expr`, `size`, `weight`, `font`, `color`, `align`, `letterSpacing` (px), `lineHeight` (x size, default 1.15), `case?: "upper"|"none"`, `trim?: "none"|"cap"` (single line: box height = cap height, baseline at its bottom, for tight big numerals), `valign?: "top"|"middle"|"bottom"` (inside a numeric `box.h`), `fit: {mode:"shrink"|"ellipsis"|"wrap", minSize?, maxLines?}`, `shadow?: boolean` (two soft dark copies behind, for text over photos; skipped automatically when the ink is dark, brightness < 0.55) |
 | `stat` | value + unit + label block | `value: Expr`, `unit?: Expr`, `label?: Expr`, `valueSize`, `unitSize?`, `labelSize?`, `valueWeight`, `color`, `labelColor?`, `align`, `labelPos: "above"|"below"|"none"`, `gap`, `trim` (default `"cap"`), `fit` as text; value+unit shrink together to fit `box.w` (unit sits on the value baseline) |
 | `ring` | progress ring / gauge | `progress?: NumRef`, `segments?: [{value: NumRef, color}]`, `thickness`, `startAngle` (default -90), `sweep` (default 360, gauge 270), `track?: color`, `color`, `overColor?`, `cap: "round"|"butt"`, `max?: number` (progress denominator, default 1; progress > max draws a second lap in `overColor`, default `$warn`). With `segments` (fractions of the sweep, drawn in order with butt caps) `progress` is ignored; a ring with neither is hidden |
 | `chart` | `kind: "bars"|"line"|"area"|"spark"|"stack"` | `series?: {bind}` (a number[]); `labels?: {bind}` (string[]); `colors?: {bind}` (string[] per bar, falls back to `color`); `color`, `color2?` (non-highlighted bars, default `color` at 40%), `highlight?: "max"|"min"|"last"|index`, `horizontal?: boolean` (bars as rows with labels on the left), `baseline?: NumRef`, `strokeWidth`, `barRadius`, `showLabels`, `labelSize`, `min?`, `max?`; `stack` uses `segments: [{value: NumRef, color}]` and draws one proportional bar |
@@ -231,7 +231,7 @@ Node = rect | ellipse | path | text | image | group(clip, opacity)
   path    {d, fill?, stroke?, fillRule?, transform?: {x,y,scale,rotate?}, opacity?}
           // d is SVG path syntax; with `transform` it is translate(x y) rotate(r) scale(s) and
           // stroke.width is in the path's local units (so it scales too), otherwise absolute
-  text    {x, y(baseline), text, size, weight, font, fill, anchor:"start"|"middle"|"end", letterSpacing?, shadow?}
+  text    {x, y(baseline), text, size, weight, font, fill, anchor:"start"|"middle"|"end", letterSpacing?}   // shadows are emitted as extra text nodes
   image   {x,y,w,h, uri, fit, rx?, opacity?}
   group   {children, clip?: {x,y,w,h,rx}, opacity?}
 Paint = color(rgba string) | {linear:{x1,y1,x2,y2,stops}} | {radial:{cx,cy,r,stops}}
