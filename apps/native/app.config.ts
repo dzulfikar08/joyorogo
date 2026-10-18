@@ -9,6 +9,10 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
  * - "play": Google Play build. Play forbids REQUEST_INSTALL_PACKAGES for
  *   self-updating apps, so the permission is dropped and the app reads
  *   extra.distribution === "play" to disable the updater and external checkout.
+ *
+ * JOYOROGO_QA=1 is for on-device QA builds only (scripts/build-qa-apk.sh, the "QA Android"
+ * workflow): the Android package gets a ".qa" suffix and the scheme and name change, so the
+ * build installs next to the real app and never replaces it.
  */
 const DISTRIBUTIONS = ["sideload", "play"] as const;
 type Distribution = (typeof DISTRIBUTIONS)[number];
@@ -28,12 +32,15 @@ function distributionFromEnv(): Distribution {
 export default ({ config }: ConfigContext): ExpoConfig => {
   const distribution = distributionFromEnv();
   const android = config.android ?? {};
+  const qa = process.env.JOYOROGO_QA === "1";
   return {
     ...config,
-    name: config.name ?? "JoyoRogo",
+    name: qa ? "JoyoRogo QA" : (config.name ?? "JoyoRogo"),
     slug: config.slug ?? "joyorogo",
+    scheme: qa ? "joyorogo-qa" : config.scheme,
     android: {
       ...android,
+      package: qa ? `${android.package}.qa` : android.package,
       permissions:
         distribution === "play"
           ? (android.permissions ?? []).filter((p) => !PLAY_REMOVED_PERMISSIONS.includes(p))
