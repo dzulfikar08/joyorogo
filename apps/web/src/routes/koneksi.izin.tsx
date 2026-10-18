@@ -16,11 +16,18 @@ import { orpc } from "@/utils/orpc";
 export const Route = createFileRoute("/koneksi/izin")({
   component: ConsentPage,
   head: () => ({
-    meta: [{ title: "Izinkan Akses | JoyoRogo" }, { name: "robots", content: "noindex" }],
+    meta: [
+      { title: "Izinkan Akses | JoyoRogo" },
+      { name: "robots", content: "noindex" },
+    ],
   }),
 });
 
-type PublicClient = { client_name?: string; client_uri?: string; logo_uri?: string };
+type PublicClient = {
+  client_name?: string;
+  client_uri?: string;
+  logo_uri?: string;
+};
 
 function hostOf(url: string | undefined): string | null {
   if (!url) return null;
@@ -42,10 +49,16 @@ function Shell({ children }: { children: React.ReactNode }) {
         </p>
         {children}
         <p className="mt-6 flex items-center justify-center gap-4 text-xs text-muted-foreground">
-          <Link to="/panduan/ai" className="underline underline-offset-4 hover:text-foreground">
+          <Link
+            to="/panduan/ai"
+            className="underline underline-offset-4 hover:text-foreground"
+          >
             {t("footer.guide")}
           </Link>
-          <Link to="/privasi" className="underline underline-offset-4 hover:text-foreground">
+          <Link
+            to="/privasi"
+            className="underline underline-offset-4 hover:text-foreground"
+          >
             {t("footer.privacy")}
           </Link>
         </p>
@@ -54,7 +67,15 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Notice({ title, body, showGuide }: { title: string; body: string; showGuide?: boolean }) {
+function Notice({
+  title,
+  body,
+  showGuide,
+}: {
+  title: string;
+  body: string;
+  showGuide?: boolean;
+}) {
   const { t } = useTranslation("izin");
   return (
     <Card role="alert">
@@ -62,9 +83,16 @@ function Notice({ title, body, showGuide }: { title: string; body: string; showG
         <CircleAlert className="size-[1.125rem] text-destructive" aria-hidden />
       </span>
       <h1 className="mt-3 text-xl font-extrabold tracking-tight">{title}</h1>
-      <p className="mt-2 text-[0.9375rem] leading-relaxed text-muted-foreground">{body}</p>
+      <p className="mt-2 text-[0.9375rem] leading-relaxed text-muted-foreground">
+        {body}
+      </p>
       {showGuide && (
-        <Button variant="secondary" size="sm" className="mt-4" render={<Link to="/panduan/ai" />}>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-4"
+          render={<Link to="/panduan/ai" />}
+        >
           <BookOpen className="size-4" aria-hidden />
           {t("invalid.guide")}
         </Button>
@@ -83,8 +111,16 @@ function ConsentPage() {
     return (
       <Shell>
         <Notice
-          title={request.reason === "expired" ? t("invalid.expiredTitle") : t("invalid.title")}
-          body={request.reason === "expired" ? t("invalid.expiredBody") : t("invalid.body")}
+          title={
+            request.reason === "expired"
+              ? t("invalid.expiredTitle")
+              : t("invalid.title")
+          }
+          body={
+            request.reason === "expired"
+              ? t("invalid.expiredBody")
+              : t("invalid.body")
+          }
           showGuide
         />
       </Shell>
@@ -107,21 +143,7 @@ function ConsentPage() {
   if (!session.data) {
     return (
       <Shell>
-        <Card>
-          <h1 className="text-xl font-extrabold tracking-tight">{t("signedOut.title")}</h1>
-          <p className="mt-2 text-[0.9375rem] leading-relaxed text-muted-foreground">
-            {t("signedOut.body", { host: request.redirectHost })}
-          </p>
-          <Button
-            size="lg"
-            className="mt-5 w-full"
-            render={
-              <Link to="/login" search={{ redirect: `/koneksi/izin?${request.query}` }} />
-            }
-          >
-            {t("signedOut.cta")}
-          </Button>
-        </Card>
+        <SignedOut request={request} />
       </Shell>
     );
   }
@@ -130,6 +152,71 @@ function ConsentPage() {
     <Shell>
       <Consent request={request} email={session.data.user.email} />
     </Shell>
+  );
+}
+
+function SignedOut({
+  request,
+}: {
+  request: Extract<ReturnType<typeof parseOAuthRequest>, { ok: true }>;
+}) {
+  const { t } = useTranslation("izin");
+  // Names the app before sign-in; the server verifies the signature and answers 400 for a forged or expired query.
+  const client = useQuery({
+    queryKey: ["oauth-public-client-prelogin", request.query],
+    queryFn: async (): Promise<PublicClient> => {
+      const { data, error } = await authClient.$fetch<PublicClient>(
+        "/oauth2/public-client-prelogin",
+        {
+          method: "POST",
+          body: { client_id: request.clientId, oauth_query: request.query },
+        },
+      );
+      if (error || !data)
+        throw Object.assign(new Error("client"), { status: error?.status });
+      return data;
+    },
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+  });
+
+  if (client.isPending) {
+    return (
+      <Card aria-busy="true" aria-label={t("loading")}>
+        <Skeleton className="h-6 w-2/3" />
+        <Skeleton className="mt-4 h-4 w-full" />
+        <Skeleton className="mt-6 h-11 w-full rounded-full" />
+      </Card>
+    );
+  }
+  if (client.isError && (client.error as { status?: number }).status === 400) {
+    return (
+      <Notice title={t("invalid.title")} body={t("invalid.body")} showGuide />
+    );
+  }
+  const name = client.data?.client_name?.trim() || t("client.unknown");
+  return (
+    <Card>
+      <h1 className="text-xl font-extrabold tracking-tight">
+        {t("signedOut.title")}
+      </h1>
+      <p className="mt-2 text-[0.9375rem] leading-relaxed text-muted-foreground">
+        {t("signedOut.body", { name, host: request.redirectHost })}
+      </p>
+      <Button
+        size="lg"
+        className="mt-5 w-full"
+        render={
+          <Link
+            to="/login"
+            search={{ redirect: `/koneksi/izin?${request.query}` }}
+          />
+        }
+      >
+        {t("signedOut.cta")}
+      </Button>
+    </Card>
   );
 }
 
@@ -159,19 +246,28 @@ function Consent({
     staleTime: 0,
     gcTime: 0,
   });
-  const info = useQuery({ ...orpc.mcpConnection.info.queryOptions(), retry: false });
+  const info = useQuery({
+    ...orpc.mcpConnection.info.queryOptions(),
+    retry: false,
+  });
 
   const submit = async (accept: boolean) => {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusy(accept ? "allow" : "deny");
     setError(null);
-    const { data, error: failure } = await authClient.$fetch<{ redirect?: boolean; url?: string }>(
-      "/oauth2/consent",
-      { method: "POST", body: { accept, oauth_query: request.query } },
-    );
+    const { data, error: failure } = await authClient.$fetch<{
+      redirect?: boolean;
+      url?: string;
+    }>("/oauth2/consent", {
+      method: "POST",
+      body: { accept, oauth_query: request.query },
+    });
     if (failure || !data?.url) {
-      const expired = failure?.status === 401 || failure?.status === 403 || failure?.status === 400;
+      const expired =
+        failure?.status === 401 ||
+        failure?.status === 403 ||
+        failure?.status === 400;
       setError(expired ? t("izin:error.expired") : t("izin:error.consent"));
       setBusy(null);
       inFlight.current = false;
@@ -200,8 +296,15 @@ function Consent({
   if (client.isError) {
     return (
       <Card role="alert">
-        <h1 className="text-xl font-extrabold tracking-tight">{t("izin:client.loadError")}</h1>
-        <Button variant="secondary" size="sm" className="mt-4" onClick={() => void client.refetch()}>
+        <h1 className="text-xl font-extrabold tracking-tight">
+          {t("izin:client.loadError")}
+        </h1>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-4"
+          onClick={() => void client.refetch()}
+        >
           {t("izin:client.retry")}
         </Button>
       </Card>
@@ -237,7 +340,11 @@ function Consent({
         <p className="font-semibold break-all text-foreground">
           {t("izin:client.via", { hosts: request.redirectHost })}
         </p>
-        {siteHost && <p className="break-all">{t("izin:client.site", { host: siteHost })}</p>}
+        {siteHost && (
+          <p className="break-all">
+            {t("izin:client.site", { host: siteHost })}
+          </p>
+        )}
         <p className="mt-1">{t("izin:client.verify")}</p>
       </div>
 
@@ -246,7 +353,10 @@ function Consent({
         <ul className="mt-2 space-y-3">
           {scopes.map((scope) => (
             <li key={scope} className="flex gap-2.5">
-              <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+              <Check
+                className="mt-0.5 size-4 shrink-0 text-primary"
+                aria-hidden
+              />
               <span className="text-sm leading-snug">
                 <span className="font-semibold">
                   {t(`koneksi:scope.${scopeKey(scope)}.label`)}
@@ -259,7 +369,9 @@ function Consent({
           ))}
         </ul>
       ) : (
-        <p className="mt-2 text-sm text-muted-foreground">{t("izin:scopes.none")}</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t("izin:scopes.none")}
+        </p>
       )}
       {offline && (
         <p className="mt-3 flex gap-2.5 text-sm text-muted-foreground">
@@ -270,8 +382,13 @@ function Consent({
 
       <ul className="mt-5 space-y-2 text-sm leading-relaxed text-muted-foreground">
         <li className="flex gap-2.5">
-          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-          <span className="font-semibold text-foreground">{t("izin:notes.readOnly")}</span>
+          <ShieldCheck
+            className="mt-0.5 size-4 shrink-0 text-primary"
+            aria-hidden
+          />
+          <span className="font-semibold text-foreground">
+            {t("izin:notes.readOnly")}
+          </span>
         </li>
         <li>{t("izin:notes.dataFlow")}</li>
         <li>{t("izin:notes.disconnect")}</li>
@@ -281,7 +398,10 @@ function Consent({
       {info.data && !info.data.unlocked && (
         <div className="mt-4 rounded-2xl bg-bakar-soft p-3 text-sm leading-relaxed text-bakar-ink">
           <p>{t("izin:pro.body")}</p>
-          <Link to="/harga" className="mt-1 inline-block font-semibold underline underline-offset-4">
+          <Link
+            to="/harga"
+            className="mt-1 inline-block font-semibold underline underline-offset-4"
+          >
             {t("izin:pro.cta")}
           </Link>
         </div>
@@ -294,8 +414,15 @@ function Consent({
       )}
 
       <div className="mt-5 flex flex-col gap-2">
-        <Button size="lg" className="w-full" disabled={busy !== null} onClick={() => void submit(true)}>
-          {busy === "allow" ? t("izin:actions.working") : t("izin:actions.allow")}
+        <Button
+          size="lg"
+          className="w-full"
+          disabled={busy !== null}
+          onClick={() => void submit(true)}
+        >
+          {busy === "allow"
+            ? t("izin:actions.working")
+            : t("izin:actions.allow")}
         </Button>
         <Button
           variant="ghost"

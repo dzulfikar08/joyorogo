@@ -3,7 +3,7 @@
   "loading": "Memeriksa permintaan",
   "signedOut": {
     "title": "Masuk dulu untuk melanjutkan",
-    "body": "Sebuah aplikasi AI ({{host}}) minta izin membaca datamu di JoyoRogo. Masuk ke akun JoyoRogo-mu, lalu kamu bisa melihat apa saja yang diminta sebelum mengizinkan.",
+    "body": "{{name}} ({{host}}) minta izin membaca datamu di JoyoRogo. Masuk ke akun JoyoRogo-mu, lalu kamu bisa melihat apa saja yang diminta sebelum mengizinkan.",
     "cta": "Masuk ke JoyoRogo"
   },
   "invalid": {

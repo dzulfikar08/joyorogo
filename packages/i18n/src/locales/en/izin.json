@@ -3,7 +3,7 @@
   "loading": "Checking the request",
   "signedOut": {
     "title": "Sign in to continue",
-    "body": "An AI app ({{host}}) is asking to read your data in JoyoRogo. Sign in to your JoyoRogo account, then you can see exactly what it asks for before you allow it.",
+    "body": "{{name}} ({{host}}) is asking to read your data in JoyoRogo. Sign in to your JoyoRogo account, then you can see exactly what it asks for before you allow it.",
     "cta": "Sign in to JoyoRogo"
   },
   "invalid": {
