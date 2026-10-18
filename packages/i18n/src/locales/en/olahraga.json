@@ -528,5 +528,17 @@
   },
   "strava": {
     "notesTitle": "Strava notes"
+  },
+  "moved": {
+    "title": "Train now in JoyoFit",
+    "body": "Log strength workouts, routines, history and progress charts in JoyoFit. The calories you burn still reach JoyoRogo.",
+    "open": "Open JoyoFit",
+    "install": "Get JoyoFit",
+    "site": "About JoyoFit",
+    "archive": "Your old strength history stays here to look at, but it can no longer be changed. JoyoFit can bring it over for you.",
+    "quickEntry": "Quick exercise calorie entry is still below.",
+    "blocked": "Strength training moved to JoyoFit",
+    "draftNotice": "A workout that was not saved on this device cannot be continued any more. Start a new one in JoyoFit.",
+    "privacy": "History you bring into JoyoFit is stored in JoyoFit (on your phone, and in the JoyoFit cloud for Pro). Deleting your data in JoyoRogo does not delete that copy."
   }
 }

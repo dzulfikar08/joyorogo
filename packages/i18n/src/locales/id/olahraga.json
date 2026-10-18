@@ -515,5 +515,17 @@
   },
   "strava": {
     "notesTitle": "Catatan Strava"
+  },
+  "moved": {
+    "title": "Latihan sekarang di JoyoFit",
+    "body": "Catat latihan beban, rutinitas, riwayat, dan grafik kemajuan di JoyoFit. Kalori yang terbakar tetap masuk ke JoyoRogo.",
+    "open": "Buka JoyoFit",
+    "install": "Pasang JoyoFit",
+    "site": "Tentang JoyoFit",
+    "archive": "Riwayat latihan beban lama tetap bisa kamu lihat di sini, tapi tidak bisa diubah lagi. JoyoFit bisa membawanya sendiri.",
+    "quickEntry": "Catat kalori olahraga cepat tetap ada di bawah.",
+    "blocked": "Latihan beban pindah ke JoyoFit",
+    "draftNotice": "Latihan yang belum disimpan di perangkat ini tidak bisa dilanjutkan lagi. Mulai latihan baru di JoyoFit.",
+    "privacy": "Riwayat yang kamu bawa ke JoyoFit tersimpan di JoyoFit (di ponselmu, dan di cloud JoyoFit untuk Pro). Menghapus data di JoyoRogo tidak menghapus salinan itu."
   }
 }
