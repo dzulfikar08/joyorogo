@@ -21,6 +21,10 @@ declare module "cloudflare:workers" {
       INVITE_PREVIEW_LIMITER?: RateLimitBinding;
       // Per-IP budget for review-login password guesses; unset = no limit.
       REVIEW_LOGIN_LIMITER?: RateLimitBinding;
+      // Per-user budget of MCP tool calls per minute; unset = no per-minute limit.
+      MCP_LIMITER?: RateLimitBinding;
+      // Per-IP budget of dynamic OAuth client registrations; unset = no limit.
+      OAUTH_REGISTER_LIMITER?: RateLimitBinding;
       // Optional Cloudflare Email Service binding; unset = email off.
       EMAIL?: SendEmail;
       // Wrangler-deployed vars/secrets (see .env.schema); unset = feature off.
@@ -53,6 +57,8 @@ declare module "cloudflare:workers" {
       APPLE_SIWA_PRIVATE_KEY?: string;
       APPLE_SANDBOX_EMAILS?: string;
       TESTFLIGHT_PURCHASE_EMAIL?: string;
+      // MCP tool calls per account per rolling 24 hours; empty = 1000.
+      MCP_DAILY_CAP?: string;
       GOOGLE_PLAY_SERVICE_ACCOUNT_JSON?: string;
       GOOGLE_PLAY_PACKAGE_NAME?: string;
       GOOGLE_PLAY_TEST_EMAILS?: string;

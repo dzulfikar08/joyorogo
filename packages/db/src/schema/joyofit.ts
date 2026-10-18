@@ -27,6 +27,24 @@ export const fitnessScore = sqliteTable(
     sleepPct: integer("sleep_pct"),
     // 'Primed' | 'Balanced' | 'Strained' | 'Run down' — JoyoFit's readiness word.
     readiness: text("readiness"),
+    // Daily body metrics JoyoFit computes on the phone (Kebugaran): shown to the owner's AI assistants through
+    // the MCP connector (docs/mcp-connector.md). Every one is nullable and a null never erases a stored value.
+    // Hours of sleep of the night that ended on this day.
+    sleepHours: real("sleep_hours"),
+    // Resting heart rate of the day, bpm.
+    restingHr: integer("resting_hr"),
+    // Average overnight HRV (RMSSD), milliseconds.
+    hrvMs: real("hrv_ms"),
+    // 'balanced' | 'unbalanced' | 'low': last 7 nights against the 60-day baseline.
+    hrvStatus: text("hrv_status"),
+    // Estimated VO2max, ml/kg/min.
+    vo2max: real("vo2max"),
+    // 'productive' | 'maintaining' | 'recovery' | 'overreaching' | 'detraining'.
+    trainingStatus: text("training_status"),
+    // Acute (7 day) to chronic (28 day) training load ratio.
+    loadRatio: real("load_ratio"),
+    // Hours of recovery time still left after the last hard workout.
+    recoveryHours: integer("recovery_hours"),
     source: text("source").notNull().default("joyofit"),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)

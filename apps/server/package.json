@@ -12,6 +12,7 @@
   "dependencies": {
     "@joyorogo/api": "workspace:*",
     "@joyorogo/auth": "workspace:*",
+    "@modelcontextprotocol/sdk": "catalog:",
     "@joyorogo/db": "workspace:*",
     "@joyorogo/i18n": "workspace:*",
     "@orpc/openapi": "catalog:",

@@ -14,6 +14,7 @@ import { fastingRouter } from "./fasting";
 import { fitnessRouter } from "./fitness";
 import { foodRouter } from "./food";
 import { groupRouter } from "./group";
+import { mcpConnectionRouter } from "./mcp-connection";
 import { plateRouter } from "./plate";
 import { placeRouter } from "./place";
 import { profileRouter } from "./profile";
@@ -66,6 +67,7 @@ export const appRouter = {
   barcode: barcodeRouter,
   fitness: fitnessRouter,
   coach: coachRouter,
+  mcpConnection: mcpConnectionRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

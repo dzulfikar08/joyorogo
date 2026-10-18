@@ -46,6 +46,8 @@ import { sendEmail } from "./email";
 import { createContext, requestLocale } from "./context";
 import { registerBenchRoutes } from "./bench";
 import { registerDatasetExportRoutes } from "./dataset-export";
+import { registerMcpPublicCors, registerMcpRoutes } from "./mcp";
+import type { McpEnv } from "./mcp";
 import { registerOgRoutes } from "./og";
 import { registerPrivacyRoutes } from "./privacy";
 import { registerFamilyRoutes } from "./family";
@@ -53,6 +55,7 @@ import { registerStravaRoutes } from "./strava";
 import { runTestflightNoticeSweep, sendTestflightNotice, testflightNoticeConfig } from "./testflight-notice";
 import { registerUnsubscribeRoutes } from "./unsubscribe";
 import { registerWatchWorkoutRoutes } from "./watch-workout";
+import { sweepMcp } from "@joyorogo/api/lib/mcp-connections";
 import { scrubExpiredStravaRows } from "@joyorogo/api/lib/strava-retention";
 import { env } from "./env.server";
 import { createAuth, getDb } from "./services";
@@ -66,6 +69,8 @@ const allowedOrigins = env.CORS_ORIGIN.split(",")
   .filter(Boolean);
 
 app.use(logger());
+// Open CORS (no cookies) for the endpoints MCP clients call from a browser; before the credentialed CORS below.
+registerMcpPublicCors(app);
 app.use(
   "/*",
   cors({
@@ -425,6 +430,15 @@ registerWatchWorkoutRoutes(app, {
   bucket: () => ("STICKERS" in env ? env.STICKERS : undefined),
 });
 
+// MCP connector (docs/mcp-connector.md): Claude / ChatGPT read the account's data at /mcp with an OAuth token from
+// /api/auth/oauth2/*. Before the /api/auth/* catch-all so the registration limiter runs first.
+registerMcpRoutes(app, {
+  env: env as unknown as McpEnv,
+  getDb,
+  createAuth,
+  bucket: () => ("STICKERS" in env ? env.STICKERS : undefined),
+});
+
 // JoyoFit's Worker reads and writes the shared Strava grant here (Basic auth with the Strava client credentials).
 registerStravaRoutes(app, { env, getDb });
 // JoyoFit family monitoring asks here for a user's Pro state, name, email and language (same Basic auth).
@@ -687,6 +701,13 @@ async function runFastingReminders(): Promise<void> {
   }
 }
 
+// Abandoned dynamic OAuth clients and audit rows past their retention (lib/mcp-connections). Every tick (*/5): the
+// selects match nothing almost always.
+async function runMcpSweep(): Promise<void> {
+  const swept = await sweepMcp(getDb());
+  if (swept.audit + swept.clients > 0) console.log(`mcp sweep: ${swept.audit} audit rows, ${swept.clients} clients`);
+}
+
 // Strava API Policy 6.2: imported Strava activities live at most 7 days (lib/strava-retention). The cron runs this
 // every tick (*/5): the delete matches nothing almost always, so it only reads the rows it checks.
 async function runStravaRetention(): Promise<void> {
@@ -721,6 +742,7 @@ export default {
     ctx.waitUntil(billing.reconcilePending());
     ctx.waitUntil(billing.runEmails());
     ctx.waitUntil(runStravaRetention());
+    ctx.waitUntil(runMcpSweep().catch((error: unknown) => console.error("[mcp] sweep failed", error)));
     // From 07:00 WIB every tick checks (one R2 read) whether yesterday's report is done.
     if (dailyAccuracyDue(Date.now())) {
       ctx.waitUntil(

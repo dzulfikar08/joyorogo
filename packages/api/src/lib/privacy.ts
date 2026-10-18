@@ -40,6 +40,7 @@ import { watchWorkout } from "@joyorogo/db/schema/watch-workout";
 import { avatarPrefix } from "./avatar";
 import { datasetPrefix } from "./dataset";
 import { feedbackPrefix } from "./feedback-keep";
+import { deleteUserMcpData } from "./mcp-connections";
 import { photoPrefix, postPhotoPrefix, scanSrcPrefix, stickerKey, varPhotoPrefix } from "./sticker";
 import { parseSavedItems } from "./saved-foods";
 import type { StickersBucket } from "./sticker";
@@ -136,6 +137,8 @@ export function deleteAllUserData(db: Database, userId: string) {
     db.delete(fitnessScore).where(eq(fitnessScore.userId, userId)),
     db.delete(watchWorkout).where(eq(watchWorkout.userId, userId)),
     db.delete(coachDoc).where(eq(coachDoc.userId, userId)),
+    // AI apps connected through the MCP connector: consent, tokens and the audit log (they would read an empty account).
+    ...deleteUserMcpData(db, userId),
     db.delete(stravaAccount).where(eq(stravaAccount.userId, userId)),
     db.delete(waterLog).where(eq(waterLog.userId, userId)),
     db.delete(dailyActivity).where(eq(dailyActivity.userId, userId)),

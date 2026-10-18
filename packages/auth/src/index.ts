@@ -1,13 +1,17 @@
 import { expo } from "@better-auth/expo";
+import { mcp } from "@better-auth/mcp";
 import type { Database } from "@joyorogo/db";
 import * as schema from "@joyorogo/db/schema/auth";
+import * as oauthSchema from "@joyorogo/db/schema/oauth";
 import type { BetterAuthPlugin } from "better-auth";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthEndpoint, createAuthMiddleware } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { jwt } from "better-auth/plugins";
 
 import { appleAudiences } from "./apple-audience";
+import { MCP_OFFLINE_SCOPE, MCP_PATH, MCP_SCOPES } from "./mcp-scopes";
 
 const DEFAULT_APPLE_BUNDLE_ID = "com.joyodigitama.joyorogo";
 
@@ -15,6 +19,8 @@ export type AuthConfig = {
   BETTER_AUTH_URL: string;
   BETTER_AUTH_SECRET: string;
   CORS_ORIGIN: string;
+  /** Public web origin: the login and consent pages of the MCP connector live there. Empty = BETTER_AUTH_URL. */
+  APP_URL?: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   /** iOS bundle id, the audience of native Sign in with Apple identity tokens. */
@@ -149,6 +155,105 @@ export function reviewLoginOptions(allowedEmails: readonly string[], limiter?: R
   };
 }
 
+/** Where the connector's access tokens are accepted: the MCP endpoint, which is the `aud` of every token. */
+export function mcpResourceUrl(authUrl: string): string {
+  return `${authUrl.replace(/\/$/, "")}${MCP_PATH}`;
+}
+
+/**
+ * OAuth 2.1 authorization server for the MCP connector (Claude, ChatGPT and other MCP clients; docs/mcp-connector.md):
+ * authorization code + PKCE (S256 only), dynamic client registration (RFC 7591, no account needed to register, the
+ * user's consent is what grants anything), resource-bound JWT access tokens (RFC 8707) and rotating refresh tokens.
+ * Login and consent are one page of the web app (`/koneksi/izin`); the signed query the plugin appends carries the
+ * request through it.
+ *
+ * `offline_access` is added to every authorization request that names scopes: the clients read the scope list from
+ * metadata and may leave it out, and without it no refresh token is issued, which would sign the user out of the
+ * connector every hour.
+ */
+export function mcpPlugins(env: Pick<AuthConfig, "BETTER_AUTH_URL" | "APP_URL">): BetterAuthPlugin[] {
+  const appUrl = (env.APP_URL || env.BETTER_AUTH_URL).replace(/\/$/, "");
+  const page = `${appUrl}/koneksi/izin`;
+  const provider = mcp({
+    loginPage: page,
+    consentPage: page,
+    resource: mcpResourceUrl(env.BETTER_AUTH_URL),
+    scopes: [...MCP_SCOPES],
+    allowDynamicClientRegistration: true,
+    allowUnauthenticatedClientRegistration: true,
+    // Better Auth 1.7.3 has no way to infer the application type of a registration (see nativeRegistration below).
+    accessTokenExpiresIn: 60 * 60,
+    refreshTokenExpiresIn: 30 * 24 * 60 * 60,
+    // Per client IP and endpoint. The AI apps call from a few shared addresses (Anthropic, OpenAI), so the defaults
+    // (20 token calls a minute) would throttle every user of one app together.
+    rateLimit: {
+      token: { window: 60, max: 120 },
+      authorize: { window: 60, max: 120 },
+      register: { window: 60, max: 60 },
+      revoke: { window: 60, max: 60 },
+    },
+  });
+  return [
+    jwt(),
+    {
+      ...provider,
+      hooks: {
+        ...provider.hooks,
+        before: [
+          ...(provider.hooks?.before ?? []),
+          {
+            matcher: (ctx) => ctx.path === "/oauth2/authorize",
+            handler: createAuthMiddleware(async (ctx) => {
+              const query = (ctx.query ?? {}) as { scope?: unknown; resource?: unknown };
+              const scope = typeof query.scope === "string" ? query.scope : undefined;
+              const needsScope = scope !== undefined && !scope.split(" ").includes(MCP_OFFLINE_SCOPE);
+              const needsResource = query.resource === undefined;
+              if (!needsScope && !needsResource) return;
+              return {
+                context: {
+                  query: {
+                    ...query,
+                    ...(needsScope ? { scope: `${scope} ${MCP_OFFLINE_SCOPE}` } : {}),
+                    // A client that leaves the RFC 8707 resource out would get an opaque token the MCP endpoint cannot read.
+                    ...(needsResource ? { resource: mcpResourceUrl(env.BETTER_AUTH_URL) } : {}),
+                  },
+                },
+              };
+            }),
+          },
+          {
+            matcher: (ctx) => ctx.path === "/oauth2/register",
+            handler: createAuthMiddleware(async (ctx) => {
+              const body = ctx.body as { application_type?: unknown; redirect_uris?: unknown } | undefined;
+              if (!body || body.application_type !== undefined || !nativeRegistration(body.redirect_uris)) return;
+              return { context: { body: { ...body, application_type: "native" } } };
+            }),
+          },
+        ],
+      },
+    },
+  ];
+}
+
+/**
+ * Whether a registration without `application_type` is a native app: a callback on localhost / 127.0.0.1 / [::1] or
+ * a custom scheme (Claude Code, Cursor and other desktop clients). Plugin versions after 1.7.3 do this themselves
+ * (`clientRegistrationDefaultApplicationType: "infer"`); a web client with only https callbacks stays `web`.
+ */
+function nativeRegistration(redirectUris: unknown): boolean {
+  if (!Array.isArray(redirectUris)) return false;
+  return redirectUris.some((uri) => {
+    try {
+      const url = new URL(String(uri));
+      if (url.protocol === "https:") return false;
+      if (url.protocol !== "http:") return true;
+      return ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    } catch {
+      return false;
+    }
+  });
+}
+
 export function createAuth(
   env: AuthConfig,
   database: Database,
@@ -163,7 +268,7 @@ export function createAuth(
     ...review,
     database: drizzleAdapter(database, {
       provider: "sqlite",
-      schema,
+      schema: { ...schema, ...oauthSchema },
     }),
     trustedOrigins: [
       // CORS_ORIGIN accepts a comma-separated list: local + deployed web app
@@ -242,6 +347,8 @@ export function createAuth(
         httpOnly: true,
       },
     },
-    plugins: [expo(), devLogin(Boolean(env.DEV_LOGIN))],
+    // The jwt plugin's own /token (a JWT for a session) is not wanted; the OAuth token endpoint is /oauth2/token.
+    disabledPaths: ["/token"],
+    plugins: [expo(), devLogin(Boolean(env.DEV_LOGIN)), ...mcpPlugins(env)],
   });
 }

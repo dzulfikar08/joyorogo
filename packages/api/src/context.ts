@@ -50,6 +50,8 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
   APPLE_BUNDLE_ID?: string;
   /** Workers Rate Limiting binding for the public invite preview; unset = no limit. */
   INVITE_PREVIEW_LIMITER?: RateLimitBinding;
+  /** Public origin of the API (also the OAuth issuer origin); the MCP connector address is derived from it. */
+  BETTER_AUTH_URL?: string;
 };
 
 export type Context = {

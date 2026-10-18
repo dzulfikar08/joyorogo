@@ -49,6 +49,22 @@
         "limit": 5,
         "period": 60
       }
+    },
+    {
+      "name": "MCP_LIMITER",
+      "namespace_id": "1003",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    },
+    {
+      "name": "OAUTH_REGISTER_LIMITER",
+      "namespace_id": "1004",
+      "simple": {
+        "limit": 30,
+        "period": 60
+      }
     }
   ],
   "send_email": [
