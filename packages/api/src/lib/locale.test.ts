@@ -1,12 +1,13 @@
 import { afterEach, describe, expect, test } from "bun:test";
 
-import { setActiveLocale } from "@joyorogo/i18n";
+import { matchLocale, setActiveLocale } from "@joyorogo/i18n";
 
 import { MEAL_LABELS, mealLabel, relativeDayLabel, storySlotLabel } from "./engine";
 import { dayReminders } from "./fasting";
 import { serverT } from "./messages";
 import { storyItemsFromText, storyPrompt } from "./story";
-import { VISION_PROMPT, parseAnswer, visionPrompt } from "./vision";
+import { correctionPrompt } from "./scan-correct";
+import { DRINK_RULE, VISION_PROMPT, parseAnswer, visionPrompt } from "./vision";
 
 afterEach(() => setActiveLocale("id"));
 
@@ -97,6 +98,52 @@ describe("AI output language", () => {
         locale: "en",
       }),
     ).toContain('"localName"');
+  });
+
+  // Prod 2026-10-18: scans sent with x-locale en came back as "Corn rice" /
+  // "Fried tempeh" while the owner's saved language is id. The name language is
+  // decided by this instruction alone, so both prompts must carry theirs.
+  describe("every AI prompt states its output language", () => {
+    const story = (locale: "id" | "en") =>
+      storyPrompt({ text: "x", today: "2026-10-17", clock: "08:00", slots: ["sarapan"], locale });
+    const correction = (locale: "id" | "en") =>
+      correctionPrompt([{ name: "nasi putih", kcal: 195 }], "bukan nasi", locale);
+
+    test("id: names stay Indonesian, no English instruction, no localName", () => {
+      for (const prompt of [visionPrompt("id"), story("id"), correction("id")]) {
+        expect(prompt).toContain("Bahasa Indonesia");
+        expect(prompt).not.toContain("localName");
+        expect(prompt).not.toContain("User language");
+        expect(prompt).not.toContain("English");
+      }
+      expect(visionPrompt("id")).toContain("name dalam Bahasa Indonesia tanpa terjemahan");
+    });
+
+    test("en: asks for an English localName and portion, name stays Indonesian", () => {
+      for (const prompt of [visionPrompt("en"), story("en"), correction("en")]) {
+        expect(prompt).toContain("User language: English");
+        expect(prompt).toContain('"localName"');
+        expect(prompt).toContain('"portion" juga dalam English');
+      }
+    });
+
+    test("the drink rule does not touch the language rule in either locale", () => {
+      for (const locale of ["id", "en"] as const) {
+        const prompt = visionPrompt(locale);
+        expect(prompt).toContain(DRINK_RULE);
+        expect(prompt).toContain("name dalam Bahasa Indonesia tanpa terjemahan");
+      }
+      expect(DRINK_RULE).not.toMatch(/English|inggris|translate|terjemah/i);
+    });
+
+    test("the locale a request carries is the one that picks the prompt", () => {
+      expect(matchLocale("en")).toBe("en");
+      expect(matchLocale("en-US")).toBe("en");
+      expect(matchLocale("id")).toBe("id");
+      expect(matchLocale("in")).toBe("id");
+      // No header (clients before i18n) is Indonesian, never English.
+      expect(matchLocale(undefined) ?? "id").toBe("id");
+    });
   });
 
   const answer = JSON.stringify({
