@@ -193,12 +193,7 @@
       "url": "https://u.expo.dev/808b0d66-86af-4b95-835d-904c89803103",
       "enabled": true,
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0,
-      "codeSigningCertificate": "./code-signing/certificate.pem",
-      "codeSigningMetadata": {
-        "keyid": "main",
-        "alg": "rsa-v1_5-sha256"
-      }
+      "fallbackToCacheTimeout": 0
     },
     "extra": {
       "eas": {

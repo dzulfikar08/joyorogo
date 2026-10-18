@@ -6,21 +6,20 @@
 #   scripts/ota.sh --channel preview "Try the new notice"          preview channel, android QA build only
 #
 # Steps: typecheck + unit tests + i18n check, then per platform a release-env `expo export` (same env as the store
-# builds, bundle sanity checks), then `eas update` with the bundle, signed with the OTA code-signing key. Prints the
+# builds, bundle sanity checks), then `eas update` with the bundle. Prints the
 # update group id of each platform. Nothing is uploaded to a store.
 #
 # JS and asset changes only. A change that touches native code, native config, permissions, app.json, plugins or a
 # native dependency changes the fingerprint runtimeVersion: the update would then target a runtimeVersion that no
 # installed binary has, so nobody receives it. Ship a new binary for those (docs/ota.md "When OTA is not enough").
 #
-# Needs: bun, jq, an EAS login (`bunx eas-cli login`) or EXPO_TOKEN, and the private key
-# ~/.config/joyorogo/ota/private-key.pem (OTA_PRIVATE_KEY_PATH overrides; the CI workflow writes it from a secret).
+# Needs: bun, jq and an EAS login (`bunx eas-cli login`) or EXPO_TOKEN. EAS Update code signing needs a paid EAS plan the account
+# does not have, so updates are unsigned.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$PWD
 NATIVE=apps/native
 EAS=(bunx "eas-cli@${EAS_CLI_VERSION:-25.1.1}")
-KEY=${OTA_PRIVATE_KEY_PATH:-$HOME/.config/joyorogo/ota/private-key.pem}
 
 usage() { sed -n '2,8p' "$0" >&2; exit 2; }
 
@@ -30,6 +29,7 @@ while [ $# -gt 0 ]; do
     --channel) channel=${2:?--channel needs production or preview}; shift ;;
     --platform) platform=${2:?--platform needs android, ios or all}; shift ;;
     -h|--help) usage ;;
+    --) shift; message=${message:+$message }$*; break ;;
     -*) echo "unknown option: $1" >&2; usage ;;
     *) message=${message:+$message }$1 ;;
   esac
@@ -43,7 +43,6 @@ if [ "$channel" = preview ]; then
   [ "$platform" != ios ] || { echo "the preview channel only has an Android QA build" >&2; exit 2; }
   platform=android
 fi
-[ -f "$KEY" ] || { echo "no OTA signing key at $KEY (docs/ota.md: Signing)" >&2; exit 1; }
 command -v jq > /dev/null || { echo "jq is required" >&2; exit 1; }
 
 step() { printf '\n== %s ==\n' "$*"; }
@@ -90,7 +89,7 @@ publish() {
 
   step "3. $p: eas update --channel $channel (runtimeVersion $runtime)"
   (cd "$NATIVE" && "${EAS[@]}" update --channel "$channel" --platform "$p" --message "$message" \
-    --skip-bundler --input-dir "$out" --private-key-path "$KEY" --environment "$channel" \
+    --skip-bundler --input-dir "$out" --environment "$channel" \
     --non-interactive --json) > "$json"
   local group
   group=$(jq -r '[.[]? | .group] | map(select(. != null)) | .[0] // empty' "$json")

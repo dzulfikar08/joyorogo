@@ -1,0 +1,71 @@
+# Over-the-air JS update for JoyoRogo (EAS Update): the same thing as `scripts/ota.sh` on the laptop.
+# Policy, rollback and setup: docs/ota.md.
+#
+# Manual only (Actions tab -> "OTA update" -> Run workflow). The job is bound to the `release` environment,
+# which holds EXPO_TOKEN (an Expo access token of the owner),
+# needs the owner's approval and is limited to the default branch. Nothing is uploaded to a store.
+#
+# JS and asset changes only: anything that touches native code or native config changes the fingerprint
+# runtimeVersion, and the update would then reach nobody. See docs/ota.md "When OTA is not enough".
+name: OTA update
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Update message (shows in the EAS dashboard and `eas update:list`)"
+        type: string
+        required: true
+      channel:
+        description: "production = store, TestFlight and Play builds; preview = the QA Android build"
+        type: choice
+        options: [production, preview]
+        default: production
+      platform:
+        description: "Platform to publish (preview is Android only)"
+        type: choice
+        options: [all, android, ios]
+        default: all
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ota-${{ inputs.channel }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      CHANNEL: ${{ inputs.channel }}
+      PLATFORM: ${{ inputs.platform }}
+      MESSAGE: ${{ inputs.message }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check the token is there
+        run: '[ -n "$EXPO_TOKEN" ] || { echo "EXPO_TOKEN is not set in the release environment (docs/ota.md)" >&2; exit 1; }'
+
+      - name: Publish
+        run: scripts/ota.sh --channel "$CHANNEL" --platform "$PLATFORM" -- "$MESSAGE" | tee -a "$GITHUB_STEP_SUMMARY"
