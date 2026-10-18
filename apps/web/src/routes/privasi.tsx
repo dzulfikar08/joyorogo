@@ -247,6 +247,24 @@ function PrivasiPage() {
             </p>
           </section>
 
+          <section className="rounded-3xl bg-card p-5" id="coach-joyofit">
+            <h2 className="text-base font-bold tracking-tight">Coach JoyoFit (Pro)</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Coach di aplikasi JoyoFit punya dua bagian yang menyentuh server: dokumen rencana dan
+              fitur Tanya coach. Keduanya hanya untuk akun Pro. Coach bukan dokter dan jawabannya
+              bukan saran medis.
+            </p>
+            <CheckList
+              items={[
+                "Dokumen rencana: pilihan rencana latihanmu (jenis, tingkat, hari, tanggal mulai), sesi yang kamu centang atau lewati, dan repetisi serta beban yang kamu catat. Disimpan di database JoyoRogo, terhubung ke akunmu, supaya sama di semua ponselmu dan bisa dipulihkan. Hanya kamu yang bisa membacanya. Dihapus saat kamu memakai Hapus semua data saya atau menghapus akun.",
+                "Tanya coach: pesan yang kamu ketik, ringkasan data kebugaran dari ponselmu (kesiapan, tidur, beban latihan, latihan terakhir, rencana), dan sedikit data akunmu (profil, berat terakhir, ringkasan makan) dikirim ke penyedia AI, yaitu Cloudflare Workers AI, untuk dijawab.",
+                "Pesan dan jawaban Tanya coach tidak disimpan di server kami. Yang dicatat hanya jumlah pesan per hari (untuk batas harian) dan pemakaian token.",
+                "Pesan yang menyebut cedera, nyeri, gejala, obat, atau gangguan makan dijawab dengan anjuran menemui dokter atau fisioterapis, tanpa saran latihan atau diet.",
+                "Tidak dipakai untuk iklan atau melatih model, dan tidak dijual.",
+              ]}
+            />
+          </section>
+
           <section className="rounded-3xl bg-card p-5">
             <h2 className="text-base font-bold tracking-tight">Komunitas: feed dan grup</h2>
             <p className="mt-3 text-sm leading-relaxed">
@@ -389,7 +407,7 @@ function PrivasiPage() {
             <h2 className="text-base font-bold tracking-tight">Hapus akun dan data</h2>
             <p className="mt-3 text-sm leading-relaxed">
               Kamu bisa menghapus seluruh catatan (profil, berat, makanan, olahraga, tidur,
-              postingan feed, foto, lokasi, langganan notifikasi browser, dan latihan JoyoFit di cloud) secara permanen lewat tombol <span className="font-semibold">Hapus semua data saya</span> di
+              postingan feed, foto, lokasi, langganan notifikasi browser, latihan JoyoFit di cloud, dan dokumen rencana Coach) secara permanen lewat tombol <span className="font-semibold">Hapus semua data saya</span> di
               halaman{" "}
               <Link
                 to="/profil"
