@@ -155,7 +155,9 @@
       "confidence": "Keyakinan {{percent}}",
       "confidenceShort": "yakin {{percent}}",
       "estimate": "perkiraan AI",
-      "kcalAria": "Kalori {{name}}"
+      "kcalAria": "Kalori {{name}}",
+      "cupWhich": "Isi gelasnya tidak terlihat. Pilih yang sesuai:",
+      "cupSize": "Ukuran gelas"
     },
     "names": {
       "more_other": "{{first}} +{{count}} lainnya",

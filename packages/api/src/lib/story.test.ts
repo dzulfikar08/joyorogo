@@ -100,13 +100,73 @@ describe("storyItemsFromText", () => {
     const items = storyItemsFromText(
       answer([
         { name: "", kcal: 100 },
-        { name: "Air putih", kcal: 0 },
+        { name: "Nasi putih", kcal: 0 },
         { name: "Tempe goreng", kcal: 120, meal: "snack", day: 0 },
         "garbage",
       ]),
       CTX,
     );
     expect(items.map((i) => i.name)).toEqual(["Tempe goreng"]);
+  });
+
+  // Drinks (prod 2026-10-18: "air putih", "minum coke zero" and "es teh tawar"
+  // answered "no food"; "coke zero" logged 20 kcal): zero kcal is a valid answer
+  // for a drink. It used to drop the item, or the generic band floored it at 20.
+  describe("drinks", () => {
+    const story = (name: string, kcal: number, grams?: number, extra: object = {}) =>
+      storyItemsFromText(answer([{ name, kcal, grams, meal: "snack", day: 0, ...extra }]), CTX);
+
+    test("Coke Zero at 0 kcal is logged as 0, 330 ml", () => {
+      const [item] = story("Coke Zero", 0, 330, { protein: 0, carbs: 0, fat: 0 });
+      expect(item).toMatchObject({ name: "Coke Zero", grams: 330 });
+      expect(item!.kcal).toBeLessThanOrEqual(1);
+    });
+
+    test("the model's 140 kcal for Coke Zero is pulled down to the zero band", () => {
+      const [item] = story("Coke Zero", 140, 330);
+      expect(item!.kcal).toBeLessThanOrEqual(5);
+    });
+
+    test("regular Coca-Cola keeps its sugar kcal", () => {
+      const [item] = story("Coca-Cola", 140, 330, { carbs: 35, protein: 0, fat: 0 });
+      expect(item!.kcal).toBeGreaterThanOrEqual(100);
+      expect(item!.carbs).toBeGreaterThan(20);
+    });
+
+    test("air putih is kept at 0 kcal", () => {
+      const [item] = story("Air putih", 0, 250);
+      expect(item).toMatchObject({ name: "Air putih", kcal: 0, grams: 250 });
+    });
+
+    test("teh tawar and kopi hitam stay near zero, not floored at 20", () => {
+      expect(story("Teh tawar", 2, 250)[0]!.kcal).toBeLessThanOrEqual(10);
+      expect(story("Kopi hitam", 0, 200)[0]!.kcal).toBeLessThanOrEqual(10);
+    });
+
+    test("sweet drinks keep their sugar kcal", () => {
+      expect(story("Teh manis", 100, 250)[0]!.kcal).toBeGreaterThanOrEqual(50);
+      expect(story("Kopi susu gula aren", 180, 250)[0]!.kcal).toBeGreaterThanOrEqual(100);
+    });
+
+    test("a zero-kcal drink in a longer story does not drop its neighbours", () => {
+      const items = storyItemsFromText(
+        answer([
+          { name: "Nasi goreng", kcal: 500, meal: "makan_siang", day: 0 },
+          { name: "Coke Zero", kcal: 0, grams: 330, meal: "makan_siang", day: 0 },
+        ]),
+        CTX,
+      );
+      expect(items.map((i) => i.name)).toEqual(["Nasi goreng", "Coke Zero"]);
+    });
+
+    test("parseFoodStory answers a lone zero-calorie drink instead of the empty error", async () => {
+      const result = await parseFoodStory(
+        chatRunner(answer([{ name: "Coke Zero", portion: "1 kaleng", grams: 330, kcal: 0, meal: "snack" }])),
+        { text: "coke zero 1 kaleng", slots: CTX.slots },
+      );
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]!.name).toBe("Coke Zero");
+    });
   });
 
   test("the same dish at two meals stays two entries", () => {

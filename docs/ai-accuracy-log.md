@@ -4,6 +4,26 @@ Running notes on how accurate the photo scan is, what the data says, and what to
 
 Owner preference to keep in mind: an over-estimated kcal is acceptable, an under-estimate is the worse error, yet users do write "kalori kelewat tinggi". Over and under are always reported separately.
 
+## 2026-10-18: drinks (zero-calorie, plain water, a cup whose contents are hidden)
+
+Owner report: logging a Coke Zero failed by photo and by text; the photo was a McDonald's paper cup with a lid.
+
+Reproduced on prod (qa account, Pro granted for the run and reverted):
+
+| Input | Before |
+|---|---|
+| typed "coke zero 1 kaleng" | 20 kcal (the generic band floors any drink at 20) |
+| typed "coke zero" / "Coca-Cola Zero 330 ml" | 20 kcal, or the "Belum ada makanan yang dikenali" error when the model answered 0 |
+| typed "air putih", "minum coke zero", "es teh tawar" | the same "no food" error (0 kcal dropped) |
+| photo: Coke Zero can | "AI tidak menemukan makanan" (the model answered `bukan_makanan`) |
+| photo: lidded McD-style cup | one guess ("minuman bersoda" 210 kcal, 500 g) the user could only fix by hand |
+
+Root causes: (photo) the scan prompt only knew food: for a Coke Zero can and for a lidded cup the model answered `{"items":[],"problem":"bukan_makanan"}` (read locally with the old prompt against Workers AI, 2026-10-18), so the scan failed with "no food" before any parser ran; (text and photo) `storyItemsFromText` and `parseAnswer` dropped every item with `kcal <= 0` (a unit test even pinned "Air putih 0 kcal is dropped"); `calibrateOne` floored any unmatched item at 20 kcal; the library had no rows for zero-calorie drinks, so "teh tawar" was an alias of es teh (20-90 kcal band); `applyCorrection` ignored a zero for a drink and kept the previous item's kcal.
+
+Changes: zero is valid for drinks (name or the model's `kind`), anywhere else it is still a miss. New library rows (`teh tawar`, `kopi hitam`, `air putih`, `minuman zero`, `minuman soda`) pull a wrong guess back to the real value, and an exact library name is no longer taken over by a longer name that contains it. The scan prompt now says drinks are items, 0 kcal is correct for zero drinks and the unit is ml. A lidded cup whose contents are not visible comes back with `cup: S|M|L`; the server then builds the item from `lib/drink-options.ts` (Coca-Cola by default, 35% confidence) and the result screens show chips for Coca-Cola / Coke Zero / Sprite / es teh manis / es kopi susu / air mineral and S / M / L (250 / 350 / 450 ml). Cup volumes and per-100 ml values are estimates, not McDonald's Indonesia menu data. "Hitung ulang" with a hint and the correction box ("coke zero") override the guess.
+
+Fixtures: `packages/api/src/lib/fixtures/vision-drinks.json` (live answers for the can and the cup, constructed ones for the rest), tests in `lib/drink.test.ts`.
+
 ## 2026-10-17: first analysis
 
 ### What data exists (and what it cannot say)

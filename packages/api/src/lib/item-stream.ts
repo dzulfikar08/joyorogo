@@ -25,7 +25,7 @@ const LOCAL_NAME_VALUE = /"localName"\s*:\s*("(?:[^"\\]|\\.)*")/;
 
 const NUM = String.raw`-?\d+(?:\.\d+)?`;
 const NUMERIC_KEYS = ["grams", "kcal", "protein", "carbs", "fat", "fiber", "confidence"] as const;
-const STRING_KEYS = ["name", "localName", "kind", "portion"] as const;
+const STRING_KEYS = ["name", "localName", "kind", "portion", "cup"] as const;
 const NUMERIC_KEY_ALTERNATIVES = NUMERIC_KEYS.join("|");
 
 // A key position (after `{` or `,`) holding `"key` with no closing quote is
@@ -43,7 +43,7 @@ const GARBLED_NO_VALUE = new RegExp(
   String.raw`([{,])\s*"(?:${NUMERIC_KEY_ALTERNATIVES})(?!")[^\d{}\[\],":]{0,400}(?:,|(?=\}))`,
   "g",
 );
-const ANY_KEY = ["name", "localName", "kind", "portion", "box", ...NUMERIC_KEYS].join("|");
+const ANY_KEY = ["name", "localName", "kind", "portion", "cup", "box", ...NUMERIC_KEYS].join("|");
 /** `,"protein Too many items, limit 10","carbs":70`: free text instead of a value, up to the next real key. */
 const GARBLED_SPAN = new RegExp(
   String.raw`([{,])\s*"(?:${NUMERIC_KEY_ALTERNATIVES})(?!")[^{}\[\]]{0,300}?,\s*(?="(?:${ANY_KEY})"\s*:)`,

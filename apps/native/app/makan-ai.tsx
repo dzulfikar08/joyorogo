@@ -42,7 +42,9 @@ import { foodKind, isHeavyDish } from "@joyorogo/api/lib/food-kind";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { scalePortion } from "@joyorogo/api/lib/portion";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
-import { fmtPercent } from "@joyorogo/i18n";
+import { cupPick } from "@joyorogo/api/lib/drink-options";
+import type { CupChoice } from "@joyorogo/api/lib/drink-options";
+import { fmtPercent, getActiveLocale } from "@joyorogo/i18n";
 import { scanFailReason } from "@joyorogo/api/lib/scan-errors";
 import type { ScanFailReason } from "@joyorogo/api/lib/scan-errors";
 
@@ -68,6 +70,7 @@ import { MetaLine } from "@/components/meta-line";
 import { ContextualTip } from "@/components/tips/contextual-tip";
 import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
 import { CorrectBox } from "@/components/scan/correct-box";
+import { CupChoices } from "@/components/scan/cup-choices";
 import type { CorrectInput, CorrectOutcome } from "@/components/scan/correct-box";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { MealStory } from "@/components/story/story-card";
@@ -89,6 +92,8 @@ type AnalyzedItem = {
   fat?: number;
   fiber?: number;
   confidence?: number;
+  /** Set on a cup whose contents the photo hides: which drink and size the row stands for. */
+  cup?: CupChoice;
   /** [ymin, xmin, ymax, xmax] on 0-1000 relative to the image we sent. */
   box?: number[];
   kind?: FoodKind;
@@ -1068,6 +1073,17 @@ export default function MakanAi() {
     setDrafts(drafts.map((draft, index) => ({ ...draft, kcal: String(scaled[index]!.kcal) })));
   };
 
+  /** A cup whose contents the photo hides: the user's drink / size pick replaces the row's numbers. */
+  const pickCup = (index: number, next: CupChoice) => {
+    const picked = cupPick(next, getActiveLocale());
+    setItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, ...picked } : item)),
+    );
+    setDrafts((prev) =>
+      prev.map((draft, i) => (i === index ? { ...draft, kcal: String(picked.kcal) } : draft)),
+    );
+  };
+
   const undoHalf = () => {
     if (!fullPortion) return;
     setItems(fullPortion.items);
@@ -1546,6 +1562,9 @@ export default function MakanAi() {
                             : t("result.items.estimate"),
                         ]}
                       />
+                      {item.cup ? (
+                        <CupChoices choice={item.cup} onPick={(next) => pickCup(index, next)} />
+                      ) : null}
                       <View style={styles.itemChips}>
                         {hasMacros ? (
                           <MacroLine

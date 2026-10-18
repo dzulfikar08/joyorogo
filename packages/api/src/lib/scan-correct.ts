@@ -207,8 +207,12 @@ function applyRename(row: Row, op: Extract<Op, { op: "rename" }>): Row | null {
           grams,
         ).kcal
       : old.kcal;
-  const kcal = bound(Math.max(fromModel ?? 0, fromLibrary ?? 0) || carried, 0, 5000) ?? old.kcal;
-  if (kcal <= 0) return null;
+  // A drink the model or library puts at 0 (Coke Zero, air putih) is 0, not the old drink's kcal.
+  const drink = resolveFoodKind(op.name, op.kind) === "minuman";
+  const known = fromModel !== undefined || fromLibrary !== undefined;
+  const estimate = Math.max(fromModel ?? 0, fromLibrary ?? 0);
+  const kcal = bound(estimate || (known && drink ? 0 : carried), 0, 5000) ?? old.kcal;
+  if (kcal <= 0 && !drink) return null;
   return {
     ...row,
     // A rename that already was an add stays an add.
@@ -347,7 +351,10 @@ export function applyCorrection(
     const op = parsed.data;
     if (op.op === "add") {
       const kcal = bound(op.kcal, 0, 5000);
-      if (kcal === undefined || kcal <= 0) continue;
+      // Zero is a real answer for a drink (Coke Zero, air putih).
+      if (kcal === undefined || (kcal <= 0 && resolveFoodKind(op.name, op.kind) !== "minuman")) {
+        continue;
+      }
       if (rows.filter((r) => !r.removed).length >= MAX_CORRECTED_ITEMS) continue;
       rows.push({
         from: null,
@@ -388,7 +395,10 @@ export function applyCorrection(
   // Only touched rows go through calibration; the rest stay exactly as sent.
   const touched = kept.filter((row) => row.change !== undefined);
   const fixed = calibrateItems(
-    touched.map(({ item: { localName: _l, kind: _k, box: _b, ...item } }) => item),
+    touched.map(({ item: { localName: _l, kind, box: _b, ...item } }) => ({
+      ...item,
+      drink: resolveFoodKind(item.name, kind) === "minuman",
+    })),
     { scaleBand: true },
   );
   const calibrated = new Map(touched.map((row, i) => [row, fixed[i]!]));

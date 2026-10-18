@@ -160,7 +160,9 @@
       "confidence": "Confidence {{percent}}",
       "confidenceShort": "{{percent}} sure",
       "estimate": "AI estimate",
-      "kcalAria": "Calories for {{name}}"
+      "kcalAria": "Calories for {{name}}",
+      "cupWhich": "The cup's contents aren't visible. Pick what it is:",
+      "cupSize": "Cup size"
     },
     "names": {
       "more_one": "{{first}} +{{count}} more",

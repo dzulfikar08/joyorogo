@@ -4,6 +4,7 @@ import type { Locale } from "@joyorogo/i18n";
 
 import { localNameRule, localNameShape, transcriptionLanguage } from "./ai-locale";
 import { MEALS, jakartaToday, shiftDate, suggestMealNow } from "./engine";
+import { foodKind } from "./food-kind";
 import type { Meal } from "./engine";
 import { serverT } from "./messages";
 import { calibrateItems } from "./tkpi";
@@ -69,7 +70,7 @@ Aturan:
 - Jumlah yang disebut (mis. "3 pcs", "2 porsi", "setengah piring") sudah termasuk di grams dan kcal. Tanpa jumlah = 1 porsi umum.
 - Merek/menu restoran (mis. Mie Gacoan, McD, Richeese) pakai porsi standar restoran itu; name tetap tulis mereknya.
 - Lauk yang disebut ("pakai telur dadar", "lauk rendang") jadi item sendiri. "Nasi padang/warteg/rames lauk X" = item nasi putih (porsi warung, termasuk kuah dan sayur) + item X; jangan hitung lauk dua kali. Hidangan satu kesatuan (nasi goreng, nasi kuning, nasi uduk, bubur, soto, bakso) tetap satu item.
-- Minuman dicatat juga (es teh manis, kopi susu).
+- Minuman dicatat juga (es teh manis, kopi susu). Minuman tanpa kalori (Coke Zero, Diet Coke, air putih, teh tawar, kopi hitam tanpa gula) tetap dicatat dengan kcal 0 atau 1, itu jawaban yang benar. Untuk minuman grams = volume ml (kaleng 330, gelas 250). Merek atau varian yang disebut pengguna dipakai apa adanya (mis. "coke zero" bukan "coca cola").
 - Abaikan yang bukan makanan. Kalau tidak ada makanan sama sekali, jawab {"items":[]}.
 - name dalam Bahasa Indonesia, huruf awal kapital. kcal, protein/carbs/fat/fiber (gram) = estimasi realistis.${localNameRule(locale)}
 Cerita pengguna: """${ctx.text}"""`;
@@ -150,7 +151,9 @@ export function storyItemsFromText(text: string, ctx: StoryContext): StoryItem[]
     const raw = result.data;
     const kcal = bound(raw.kcal, 0, 5000);
     const name = raw.name.trim();
-    if (kcal === undefined || kcal <= 0 || name.length === 0) continue;
+    // Zero is a real answer for a drink (Coke Zero, air putih); any other 0 is a miss.
+    if (kcal === undefined || name.length === 0) continue;
+    if (kcal <= 0 && foodKind(name) !== "minuman") continue;
     const meal =
       raw.meal && (ctx.slots as readonly string[]).includes(raw.meal)
         ? (raw.meal as Meal)

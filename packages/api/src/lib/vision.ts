@@ -8,6 +8,8 @@ import type { FoodKind } from "./food-kind";
 import { ItemScanner, repairKeys, scanItems } from "./item-stream";
 import type { ItemScanEvent } from "./item-stream";
 import type { ScanFailReason } from "./scan-errors";
+import { CUP_CONFIDENCE, cupItem, guessCupChoice } from "./drink-options";
+import type { CupChoice } from "./drink-options";
 import { calibrateItems } from "./tkpi";
 import type { CalibratedItem } from "./tkpi";
 
@@ -29,13 +31,22 @@ export function visionPrompt(locale: Locale = DEFAULT_LOCALE): string {
   return `Anda adalah ahli gizi. Identifikasi makanan pada foto ini (fokus masakan Indonesia). Sebutkan SETIAP makanan atau minuman berbeda yang terlihat, termasuk yang kecil (mis. donat di samping segelas kopi), urut dari yang paling menonjol, maksimal 10 item.
 Jawab HANYA JSON valid satu baris (tanpa indentasi, tanpa \`\`\`) tanpa teks lain, dengan bentuk persis:
 {"items":[{"name":"nama masakan",${localNameShape(locale)}"kind":"makanan|camilan|minuman","portion":"porsi, maks 3 kata","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":number,"box":[ymin,xmin,ymax,xmax]}]}
-Semua angka bulat kecuali confidence. Tidak ada makanan di foto: {"items":[],"problem":"bukan_makanan"}. Foto terlalu gelap atau buram sampai makanan tidak bisa dikenali: {"items":[],"problem":"gelap"} atau {"items":[],"problem":"buram"}.
+Semua angka bulat kecuali confidence. Tidak ada makanan atau minuman di foto: {"items":[],"problem":"bukan_makanan"}. Foto terlalu gelap atau buram sampai makanan tidak bisa dikenali: {"items":[],"problem":"gelap"} atau {"items":[],"problem":"buram"}.
 kind: "makanan" = makanan berat (nasi, lauk, sayur, mi, sup), "camilan" = gorengan, kue, keripik, martabak, es krim, jajanan ringan, "minuman" = semua yang diminum.
 box = kotak pembatas item itu di foto, skala 0-1000 relatif tinggi dan lebar foto.
 Satu hidangan = satu item: kuah, bumbu/saus, sayur, dan lontong/mi/bihun yang sudah bagian dari hidangan itu (mis. gado-gado, bakso, soto) TERMASUK di kcal hidangan, jangan dipisah. Pisahkan hanya yang berdiri sendiri: nasi, lauk terpisah, telur, kerupuk, gorengan, sambal, minuman.
 Aturan: ini bukan percakapan — jangan menjawab dengan tabel markdown. name dalam Bahasa Indonesia tanpa terjemahan. grams = perkiraan berat (1-5000); kcal, protein/carbs/fat (gram), fiber (gram) = estimasi realistis porsi umum; confidence 0-1.${localNameRule(locale)}
+${DRINK_RULE}
 ${SAUCE_RULE}`;
 }
+
+/**
+ * Drinks need their own rules: a zero-calorie drink is a valid 0 (not "nothing
+ * found"), grams are ml, and a lidded branded cup with unseen contents is
+ * still a drink (the scan then offers the usual options, see drink-options.ts).
+ */
+export const DRINK_RULE =
+  'Minuman (kaleng, botol, gelas, cup) selalu dicatat sebagai item minuman, bukan "bukan_makanan". Untuk minuman grams = volume dalam ml (kaleng 330, botol kecil 500, gelas 250-350). Minuman tanpa kalori (Coke Zero, Diet Coke, teh tawar, kopi hitam tanpa gula, air putih) kcal 0 atau 1 dan protein/carbs/fat 0: itu jawaban yang benar, jangan dinaikkan. Minuman manis ikut gulanya (Coca-Cola 330 ml = 140 kcal, es teh manis 350 ml = 100 kcal).\nGelas atau cup bermerek bertutup (McDonald\'s, KFC, Starbucks, Chatime, Kopi Kenangan) yang isinya TIDAK terlihat: jangan jawab bukan_makanan. Beri satu item minuman, name = tebakan isi yang paling mungkin (cup McDonald\'s biasanya Coca-Cola) dan tambahkan field "cup":"S" atau "M" atau "L" (ukuran gelas; ragu = "M"). Field "cup" hanya untuk kasus ini.';
 
 /**
  * Reference kcal for the add-ons the model low-balls most (A/B 2026-10-17,
@@ -95,6 +106,8 @@ export const visionItemSchema = z.object({
   fat: modelNumber.optional(),
   fiber: modelNumber.optional(),
   confidence: z.preprocess(quotedNumber, z.number().min(0).max(1)).optional(),
+  // Only on a cup whose contents are not visible: its size letter (S/M/L).
+  cup: z.string().optional().catch(undefined),
   // Bounding box [ymin, xmin, ymax, xmax] on a 0-1000 grid; validated by normalizeBox.
   box: z.unknown().optional(),
 });
@@ -149,7 +162,7 @@ export function extractUsage(result: unknown): Record<string, unknown> | null {
 }
 
 export type VisionAnalysis = {
-  items: Array<CalibratedItem & { box?: ItemBox; kind: FoodKind }>;
+  items: Array<CalibratedItem & { box?: ItemBox; kind: FoodKind; cup?: CupChoice }>;
   /** Model actually used — callers pass `model` through unresolved. */
   model: string;
   usage: Record<string, unknown> | null;
@@ -242,7 +255,9 @@ export const defaultSchedule: ScheduleTimeout = (fn, ms) => {
 export function retryInstruction(hint?: string): string {
   const base =
     "Koreksi: jawabanmu sebelumnya untuk foto ini dinilai tidak akurat oleh pengguna. Periksa ulang nama, porsi, dan angka kalorinya, lalu jawab dengan bentuk JSON yang sama.";
-  return hint ? `${base} Catatan pengguna: "${hint}".` : base;
+  return hint
+    ? `${base} Catatan pengguna: "${hint}". Isi atau nama yang disebut pengguna dipakai apa adanya (mis. gelas yang kata pengguna Coke Zero adalah Coke Zero, tanpa field "cup").`
+    : base;
 }
 
 type VisionRunOptions = {
@@ -481,19 +496,23 @@ const MODEL_FLAG_MIN_ITEMS = 8;
 type ParsedItem = z.infer<typeof visionItemSchema>;
 
 /** A model item with bounded numbers and a validated box; `kcal` is gone when it was not a number. */
-type BoundItem = Omit<ParsedItem, "box" | "kind" | "kcal"> & {
+type BoundItem = Omit<ParsedItem, "box" | "kind" | "kcal" | "cup"> & {
   box: ItemBox | undefined;
   kind: string | undefined;
   kcal: number | undefined;
+  /** Cup size the model read off a cup whose contents it could not see; set = contents hidden. */
+  cup: string | undefined;
 };
 type UsableItem = BoundItem & { kcal: number };
 
-function boundItem({ box, kind, ...item }: ParsedItem): BoundItem {
+function boundItem({ box, kind, cup, ...item }: ParsedItem): BoundItem {
   return {
     ...item,
     box: normalizeBox(box),
     kind,
-    kcal: clamp(item.kcal, 0, 5000),
+    cup: cup?.trim() || undefined,
+    // A hidden cup needs no number from the model: its numbers come from the cup table.
+    kcal: clamp(item.kcal, 0, 5000) ?? (cup?.trim() ? 0 : undefined),
     grams: clamp(item.grams, 1, 5000),
     protein: clamp(item.protein, 0, 500),
     carbs: clamp(item.carbs, 0, 500),
@@ -503,19 +522,58 @@ function boundItem({ box, kind, ...item }: ParsedItem): BoundItem {
   };
 }
 
+/**
+ * Zero kcal is a real answer for a drink (Coke Zero, water, black coffee), so
+ * a drink may be 0; any other item at 0 is the model giving up on it.
+ */
 function isUsable(item: BoundItem): item is UsableItem {
-  return item.kcal !== undefined && item.kcal > 0 && item.name.length > 0;
+  if (item.name.length === 0 || item.kcal === undefined) return false;
+  return (
+    item.kcal > 0 || item.cup !== undefined || resolveFoodKind(item.name, item.kind) === "minuman"
+  );
 }
 
-/** Calibrates against TKPI item by item; boxes, kinds and local names re-attach by index. */
-function calibrateRaw(raw: UsableItem[]) {
-  const calibrated = calibrateItems(raw.map(({ box: _box, kind: _kind, ...item }) => item));
-  return calibrated.map((item, index) => ({
-    ...item,
-    box: raw[index]!.box,
-    kind: resolveFoodKind(item.name, raw[index]!.kind),
-    localName: raw[index]!.localName,
-  }));
+/** Detected item as it leaves calibration; `cup` marks a drink whose contents the photo hides. */
+type CalibratedRaw = CalibratedItem & {
+  box: ItemBox | undefined;
+  kind: FoodKind;
+  localName: string | undefined;
+  cup?: CupChoice;
+};
+
+/**
+ * Calibrates against TKPI item by item; boxes, kinds and local names re-attach by index.
+ * A hidden cup skips calibration: its numbers are the cup table's, for the pick it stands for.
+ */
+function calibrateRaw(raw: UsableItem[], locale: Locale): CalibratedRaw[] {
+  const visible = raw.filter((item) => item.cup === undefined);
+  const calibrated = calibrateItems(
+    visible.map(({ box: _box, kind, cup: _cup, ...item }) => ({
+      ...item,
+      drink: resolveFoodKind(item.name, kind) === "minuman",
+    })),
+  );
+  let next = 0;
+  return raw.map((entry) => {
+    if (entry.cup !== undefined) {
+      const cup = guessCupChoice(entry.name, entry.cup);
+      return {
+        ...cupItem(cup, locale),
+        confidence: CUP_CONFIDENCE,
+        matched: true,
+        box: entry.box,
+        kind: "minuman",
+        cup,
+      };
+    }
+    const item = calibrated[next++]!;
+    return {
+      ...item,
+      box: entry.box,
+      kind: resolveFoodKind(item.name, entry.kind),
+      localName: entry.localName,
+    };
+  });
 }
 
 /** Matching, broth and kind detection use the Indonesian name; the user sees theirs. */
@@ -542,7 +600,7 @@ export function previewItem(entry: unknown, locale: Locale = DEFAULT_LOCALE): St
   if (!parsed.success) return null;
   const bounded = boundItem(parsed.data);
   if (!isUsable(bounded)) return null;
-  return localizeName(calibrateRaw([bounded])[0]!, locale);
+  return localizeName(calibrateRaw([bounded], locale)[0]!, locale);
 }
 
 /**
@@ -581,7 +639,7 @@ export function parseAnswer(
     return parsed.success ? [parsed.data] : [];
   });
   const raw = valid.slice(0, MAX_ITEMS).map(boundItem).filter(isUsable);
-  const items = dropDuplicateBroth(dedupeItems(calibrateRaw(raw))).map((item) =>
+  const items = dropDuplicateBroth(dedupeItems(calibrateRaw(raw, locale))).map((item) =>
     localizeName(item, locale),
   );
   return {

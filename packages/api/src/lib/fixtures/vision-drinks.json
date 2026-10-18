@@ -1,0 +1,12 @@
+{
+  "_note": "Raw Gemma 4 answers. 'live' ones were captured from Workers AI on 2026-10-18 for the photos named in the key; 'constructed' ones follow the same shape for cases no photo was run for.",
+  "live/coke-zero-can": "{\"items\":[{\"name\":\"Coca-Cola Zero\",\"kind\":\"minuman\",\"portion\":\"1 kaleng\",\"grams\":150,\"kcal\":0,\"protein\":0,\"carbs\":0,\"fat\":0,\"fiber\":0,\"confidence\":0.95,\"box\":[0,253,939,808]}]}",
+  "live/mcd-cup-lidded-red": "{\"items\":[{\"name\":\"Coca-Cola\",\"kind\":\"minuman\",\"portion\":\"satu cup\",\"grams\":350,\"kcal\":140,\"protein\":0,\"carbs\":35,\"fat\":0,\"fiber\":0,\"confidence\":0.9,\"box\":[223,285,920,715],\"cup\":\"M\"}]}",
+  "live/mcd-hot-cup-lid-top": "{\"items\":[{\"name\":\"kopi panas\",\"kind\":\"minuman\",\"portion\":\"satu cup\",\"grams\":350,\"kcal\":150,\"protein\":2,\"carbs\":20,\"fat\":7,\"fiber\":0,\"confidence\":0.6,\"box\":[328,125,996,821]}]}",
+  "constructed/mcd-cup-large-unknown-contents": "{\"items\":[{\"name\":\"Minuman bersoda\",\"kind\":\"minuman\",\"portion\":\"1 gelas besar\",\"grams\":450,\"kcal\":180,\"confidence\":0.5,\"box\":[100,200,950,800],\"cup\":\"L\"}]}",
+  "constructed/water-bottle": "{\"items\":[{\"name\":\"Air putih\",\"kind\":\"minuman\",\"portion\":\"1 botol\",\"grams\":600,\"kcal\":0,\"protein\":0,\"carbs\":0,\"fat\":0,\"fiber\":0,\"confidence\":0.95,\"box\":[50,300,980,700]}]}",
+  "constructed/teh-tawar-glass": "{\"items\":[{\"name\":\"Es teh tawar\",\"kind\":\"minuman\",\"portion\":\"1 gelas\",\"grams\":250,\"kcal\":2,\"protein\":0,\"carbs\":0,\"fat\":0,\"fiber\":0,\"confidence\":0.8,\"box\":[200,250,900,750]}]}",
+  "constructed/kopi-hitam": "{\"items\":[{\"name\":\"Kopi hitam\",\"kind\":\"minuman\",\"portion\":\"1 cangkir\",\"grams\":200,\"kcal\":0,\"protein\":0,\"carbs\":0,\"fat\":0,\"confidence\":0.85}]}",
+  "constructed/sweet-tea-glass": "{\"items\":[{\"name\":\"Teh manis\",\"kind\":\"minuman\",\"portion\":\"1 gelas\",\"grams\":250,\"kcal\":90,\"protein\":0,\"carbs\":22,\"fat\":0,\"fiber\":0,\"confidence\":0.8}]}",
+  "constructed/coke-zero-can-plus-fries": "{\"items\":[{\"name\":\"Kentang goreng\",\"kind\":\"camilan\",\"portion\":\"1 porsi\",\"grams\":110,\"kcal\":340,\"protein\":4,\"carbs\":44,\"fat\":16,\"fiber\":4,\"confidence\":0.9},{\"name\":\"Coke Zero\",\"kind\":\"minuman\",\"portion\":\"1 kaleng\",\"grams\":330,\"kcal\":1,\"protein\":0,\"carbs\":0,\"fat\":0,\"fiber\":0,\"confidence\":0.9}]}"
+}

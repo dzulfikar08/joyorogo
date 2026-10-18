@@ -21,7 +21,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { fmtPercent, i18n } from "@joyorogo/i18n";
+import { fmtPercent, getActiveLocale, i18n } from "@joyorogo/i18n";
 
 import {
   MEAL_LABELS,
@@ -41,6 +41,9 @@ import type { Meal } from "@joyorogo/api/lib/engine";
 import { scalePortion } from "@joyorogo/api/lib/portion";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
+import { cupPick } from "@joyorogo/api/lib/drink-options";
+import type { CupChoice } from "@joyorogo/api/lib/drink-options";
+import { CupChoices } from "@/components/scan/cup-choices";
 import { Button, buttonVariants } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
@@ -482,6 +485,14 @@ function AiFoodPage() {
     setItems(fullPortion.items);
     setKcals(fullPortion.kcals);
     setFullPortion(null);
+  };
+
+  /** A cup whose contents the photo hides: the user's drink / size pick replaces the row's numbers. */
+  const pickCup = (index: number, next: CupChoice) => {
+    touchList();
+    const picked = cupPick(next, getActiveLocale());
+    setItems((current) => current.map((item, i) => (i === index ? { ...item, ...picked } : item)));
+    setKcals((current) => ({ ...current, [index]: String(picked.kcal) }));
   };
 
   // Re-aligns the tiles (crops + cutouts) with a list whose rows moved: kept
@@ -1318,6 +1329,7 @@ function AiFoodPage() {
                       }}
                     />
                   </span>
+                  {item.cup && <CupChoices choice={item.cup} onPick={(next) => pickCup(index, next)} />}
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5">
                   <Input

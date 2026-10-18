@@ -2,6 +2,7 @@
 // kcal/fiber values are rounded from TKPI (Tabel Komposisi Pangan Indonesia)
 // style food-composition data plus pubchem-class nutrient entries; the point
 // is a plausible band per dish, not lab precision.
+import { foodKind } from "./food-kind";
 import { lookupTkpi2019, portionFromTkpi2019 } from "./tkpi2019";
 
 export type TdpiDish = {
@@ -336,11 +337,67 @@ export const TKPI_DISHES: TdpiDish[] = [
   },
   {
     name: "es teh",
-    aliases: ["esteh", "teh manis", "teh tawar"],
+    aliases: ["esteh", "teh manis", "es teh manis", "teh botol"],
     typicalPortionG: 250,
     kcalPer100g: 30,
     fiberPer100g: 0,
     plausibleKcalRange: [20, 90],
+  },
+  // Drinks with (almost) no energy. Without their own rows the generic band
+  // floors them at 20 kcal and "teh tawar" used to land in es teh's 20-90.
+  {
+    name: "teh tawar",
+    aliases: ["es teh tawar", "teh pahit", "teh hijau tawar", "green tea tawar", "unsweetened tea"],
+    typicalPortionG: 250,
+    kcalPer100g: 0.4,
+    fiberPer100g: 0,
+    plausibleKcalRange: [0, 10],
+  },
+  {
+    name: "kopi hitam",
+    aliases: ["kopi tubruk", "kopi tanpa gula", "kopi pahit", "black coffee", "es kopi hitam"],
+    typicalPortionG: 200,
+    kcalPer100g: 1,
+    fiberPer100g: 0,
+    plausibleKcalRange: [0, 10],
+  },
+  {
+    name: "air putih",
+    aliases: ["air mineral", "air minum", "air biasa", "aqua", "mineral water"],
+    typicalPortionG: 250,
+    kcalPer100g: 0,
+    fiberPer100g: 0,
+    plausibleKcalRange: [0, 0],
+  },
+  {
+    name: "minuman zero",
+    aliases: [
+      "coke zero",
+      "coca cola zero",
+      "coca-cola zero",
+      "diet coke",
+      "coke light",
+      "pepsi max",
+      "pepsi zero",
+      "sprite zero",
+      "fanta zero",
+      "soda zero",
+      "cola zero",
+      "zero sugar",
+    ],
+    typicalPortionG: 330,
+    kcalPer100g: 0.3,
+    fiberPer100g: 0,
+    plausibleKcalRange: [0, 5],
+  },
+  {
+    name: "minuman soda",
+    // Not "coke"/"soda": as substrings they would also hit cokelat and soda gembira.
+    aliases: ["coca cola", "coca-cola", "pepsi", "sprite", "fanta", "minuman bersoda"],
+    typicalPortionG: 330,
+    kcalPer100g: 42,
+    fiberPer100g: 0,
+    plausibleKcalRange: [100, 200],
   },
   {
     name: "kopi susu",
@@ -379,6 +436,10 @@ function matchDish(name: string): TdpiDish | undefined {
 
 function matchEntry(name: string): { dish: TdpiDish; key: string } | undefined {
   const q = normalize(name);
+  // A name that is itself a library key ("coca cola") must not be pulled to a
+  // longer key that merely contains it ("coca cola zero").
+  const exact = INDEX.find((entry) => entry.key === q);
+  if (exact) return { dish: exact.dish, key: exact.key };
   let best: { dish: TdpiDish; key: string; len: number } | undefined;
   for (const entry of INDEX) {
     const key = entry.key;
@@ -507,6 +568,8 @@ export type CalibratableItem = {
   fat?: number;
   fiber?: number;
   confidence?: number;
+  /** The caller knows this is a drink (model kind); otherwise the name decides. Zero-calorie drinks stay near 0. */
+  drink?: boolean;
 };
 
 /**
@@ -560,7 +623,10 @@ export function calibrateItems(
   return items.map((item) => applyDensityBand(calibrateOne(item, opts)));
 }
 
-function calibrateOne(item: CalibratableItem, opts: { scaleBand?: boolean }): CalibratedItem {
+function calibrateOne(
+  { drink, ...item }: CalibratableItem,
+  opts: { scaleBand?: boolean },
+): CalibratedItem {
   const combination = isCombination(item.name);
   const generic = combination || isCondimentedDish(item.name) || isCompoundOfIngredient(item.name);
   const dish = generic ? undefined : matchDish(item.name);
@@ -586,7 +652,11 @@ function calibrateOne(item: CalibratableItem, opts: { scaleBand?: boolean }): Ca
       item.grams && item.grams > 0 ? Math.max(400, item.grams * 7) : GENERIC_KCAL_RANGE[1];
     return atwaterAdjust({
       ...item,
-      kcal: clamp(item.kcal, GENERIC_KCAL_RANGE[0], Math.min(GENERIC_KCAL_RANGE[1], densityCap)),
+      kcal: clamp(
+        item.kcal,
+        (drink ?? foodKind(item.name) === "minuman") ? 0 : GENERIC_KCAL_RANGE[0],
+        Math.min(GENERIC_KCAL_RANGE[1], densityCap),
+      ),
       matched: false,
     });
   }
