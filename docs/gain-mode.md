@@ -190,3 +190,14 @@ BMI, flags), `day.summary` returns `weightGainedKg`, gain milestones, gain ideas
 - The streak counts diary kcal, so under-logging breaks it without meaning under-eating.
 - No web push for the evening reminder (see Nudges). The reminder and every native screen need a native build to
   be seen on a device; the web and server parts are live without one.
+
+## Production check (2026-10-18, qa@joyorogo.com, web, English UI, headless Chromium)
+
+Female, 160 cm, 62 kg. Goal chooser to Gain weight, target 66 kg, date 2026-12-03: eating target 2,320 = TDEE 1,650
++ 670 (4 kg x 7700 / 46 days); the target-above-healthy note showed (BMI 25.8). Sisa states with logged food:
+1,300 eaten "1,020 kcal still to go"; 2,320 and 2,620 "Target reached"; 2,720 "400 kcal over target" with the
+reassurance line; the ring was never red. Target-date sheet, 1 month: "too fast" at 0.9 kg a week (1.5%), suggested
+later date 2027-01-17 (91 days), preview surplus +700. Weight page: upward dashed target line and the "Gentle gain
+band" (0.2 to 0.3 kg a week). Weekly recap: "Up 0.2 kg this week", "5 of 6 days eating up to target", streak 2
+days, no loss wording. Screenshots: `~/.cache/gain-verify/`. The qa profile and its test food rows were reset
+afterwards. Not run: native screens (need a native build), the first-run onboarding on a fresh account.
