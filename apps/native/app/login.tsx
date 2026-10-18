@@ -140,7 +140,11 @@ export default function Login() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <Container>
-        <KeyboardAwareScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <KeyboardAwareScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          bottomOffset={24}
+        >
           <View style={styles.hero}>
             <Mascot pose="hero" size="md" />
             <Text style={styles.logo}>JoyoRogo</Text>

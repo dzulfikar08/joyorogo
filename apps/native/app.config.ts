@@ -11,8 +11,9 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
  *   extra.distribution === "play" to disable the updater and external checkout.
  *
  * JOYOROGO_QA=1 is for on-device QA builds only (scripts/build-qa-apk.sh, the "QA Android"
- * workflow): the Android package gets a ".qa" suffix and the scheme and name change, so the
- * build installs next to the real app and never replaces it.
+ * workflow): the Android package gets a ".qa" suffix and the name changes, so the build
+ * installs next to the real app and never replaces it. The scheme stays "joyorogo" on purpose: Better
+ * Auth only trusts that origin, so a different scheme makes every email sign-in fail with INVALID_ORIGIN.
  *
  * OTA (expo-updates, docs/ota.md): the build listens to one EAS Update channel, set through the
  * expo-channel-name request header. Default "production"; QA builds default to "preview" so a test
@@ -55,7 +56,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name: qa ? "JoyoRogo QA" : (config.name ?? "JoyoRogo"),
     slug: config.slug ?? "joyorogo",
-    scheme: qa ? "joyorogo-qa" : config.scheme,
     android: {
       ...android,
       package: qa ? `${android.package}.qa` : android.package,

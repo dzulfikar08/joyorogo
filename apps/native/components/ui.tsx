@@ -145,6 +145,7 @@ export function Screen({
       <KeyboardAwareScrollView
         contentContainerStyle={[styles.screenContent, style]}
         keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
         showsVerticalScrollIndicator={false}
         scrollEnabled={scrollEnabled}
         refreshControl={
