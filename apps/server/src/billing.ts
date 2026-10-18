@@ -60,6 +60,7 @@ import { aiUsage } from "@joyorogo/db/schema/fitness";
 import type { Database } from "@joyorogo/db";
 import { requestLocale } from "./context";
 import { runFounderEmails, sendOrderEmails } from "./email";
+import { INTERNAL_EMAILS } from "./internal-accounts";
 
 export type BillingEnv = PaywallEnv & GooglePlayEnv & {
   BETTER_AUTH_URL: string;
@@ -83,6 +84,8 @@ export type BillingEnv = PaywallEnv & GooglePlayEnv & {
   APPLE_SIWA_KEY_ID?: string;
   APPLE_SIWA_PRIVATE_KEY?: string;
   APPLE_SANDBOX_EMAILS?: string;
+  /** Review/QA logins (comma separated): never told a purchase was a sandbox test. */
+  REVIEW_LOGIN_EMAILS?: string;
   /** Transactional email (Cloudflare Email Service binding). Unset = off. */
   EMAIL?: SendEmail;
   EMAIL_FROM?: string;
@@ -510,11 +513,15 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       }
       return c.json({ error: t(c)("billing.processing") }, 409);
     }
-    // A Sandbox transaction credited at Rp0 is the TestFlight trial: the app
-    // tells the buyer nothing was charged.
+    // A Sandbox transaction credited at Rp0 is Apple's simulation: the app tells
+    // the buyer nothing was charged. App Review sees no such wording, so the flag
+    // stays off for the review and QA logins.
     const ledgerId = appleLedgerId(transaction.transactionId);
+    const reviewAccounts = [...INTERNAL_EMAILS, ...(env.REVIEW_LOGIN_EMAILS ?? "").split(",")].map(
+      (email) => email.trim().toLowerCase(),
+    );
     let sandbox = false;
-    if (transaction.environment === "Sandbox") {
+    if (transaction.environment === "Sandbox" && !reviewAccounts.includes(me.email.toLowerCase())) {
       if (result.status === "granted") {
         sandbox = result.amountIdr === 0;
       } else {

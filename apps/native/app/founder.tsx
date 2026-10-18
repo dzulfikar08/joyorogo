@@ -36,7 +36,6 @@ import {
 import { Disclosure } from "@/components/disclosure";
 import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { isTestFlightBuild } from "@/src/lib/testflight";
 import { errorMessage, fmtIdr } from "@/utils/format";
 import { useEnter } from "@/components/motion";
 import { orpc } from "@/utils/orpc";
@@ -62,18 +61,6 @@ function BenefitRow({ index, text }: { index: number; text: string }) {
       <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
       <Text style={styles.benefitText}>{text}</Text>
     </Animated.View>
-  );
-}
-
-/** TestFlight only: its purchases run in Apple's Sandbox. Plain notice, no link or action. */
-function TestFlightNotice() {
-  const { t } = useTranslation("billing");
-  const { theme } = useUnistyles();
-  return (
-    <Card style={styles.noticeCard}>
-      <Ionicons name="information-circle-outline" size={20} color={theme.colors.mutedForeground} />
-      <Text style={styles.noticeText}>{t("testflight.notice")}</Text>
-    </Card>
   );
 }
 
@@ -301,7 +288,6 @@ export default function FounderPaywall() {
       </Animated.View>
 
       <Animated.View entering={actionsEnter} style={styles.actions}>
-        {ios && isTestFlightBuild() ? <TestFlightNotice /> : null}
         <Button
           label={PLAY_ACTIVE || ios ? t("paywall.buyStore") : t("paywall.buy")}
           onPress={() => void buy()}
@@ -483,16 +469,5 @@ const styles = StyleSheet.create((theme) => ({
     textAlign: "center",
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
-  },
-  noticeCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: theme.spacing.sm,
-  },
-  noticeText: {
-    flex: 1,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.mutedForeground,
-    lineHeight: 19,
   },
 }));

@@ -350,8 +350,8 @@ class AppleRejectedError extends Error {}
 
 /**
  * Sends the StoreKit JWS for crediting; the server is idempotent per transaction.
- * `sandbox` is the server's verdict that this was Apple's Sandbox (TestFlight)
- * and nothing was charged: Pro then lasts 24 hours.
+ * `sandbox` is the server's verdict that this was Apple's Sandbox and nothing
+ * was charged: Pro then lasts 24 hours. The server omits it for review accounts.
  */
 async function postAppleJws(signedTransaction: string): Promise<{ sandbox: boolean }> {
   const res = await fetch(`${serverUrl()}/api/billing/apple`, {
@@ -402,10 +402,10 @@ export function useAppleFounderPurchase() {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries();
-      // TestFlight purchases are Apple's simulation: say so on the success screen so nobody thinks they paid.
-      // An Alert outlives the paywall closing behind it.
+      // Sandbox purchases are Apple's simulation: say so, so nobody thinks they paid.
+      // An Alert outlives the paywall closing behind it. No store-build wording (guideline 2.2).
       if (result === "trial") {
-        Alert.alert(i18n.t("billing:testflight.trialTitle"), i18n.t("billing:testflight.trialBody"));
+        Alert.alert(i18n.t("billing:sandbox.title"), i18n.t("billing:sandbox.body"));
       }
     },
   });

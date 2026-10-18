@@ -185,9 +185,8 @@
     "playAlready": "You already have a Pro subscription on Google Play. Tap \"Restore purchases\".",
     "playInactive": "The purchase isn't active yet. Try again in a moment or tap \"Restore purchases\"."
   },
-  "testflight": {
-    "notice": "In the TestFlight version, purchases are an Apple test: you are not charged, and Pro stays active for 24 hours.",
-    "trialTitle": "TestFlight trial",
-    "trialBody": "This purchase is an Apple test in the TestFlight version: you were not charged, and Pro stays active for 24 hours."
+  "sandbox": {
+    "title": "Test purchase",
+    "body": "This is a test purchase from Apple (sandbox), so you were not charged. Pro stays active for 24 hours."
   }
 }
