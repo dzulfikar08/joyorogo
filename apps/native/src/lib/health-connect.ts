@@ -217,14 +217,20 @@ async function importWorkouts(
   latestWeightKg: number | null,
 ): Promise<{ imported: number; skipped: number }> {
   const existing = new Set<string>();
+  // The other phone's source (Health Connect vs Apple Health) may already hold this very workout.
+  const otherSourceRows: ImportedWorkoutRow[] = [];
   for (const day of wibDaysBack(SYNC_WINDOW_DAYS + 1)) {
     const { items } = await client.exercise.listByDate({ date: day });
     for (const item of items) {
       if (item.source === "health_connect" && item.externalId) {
         existing.add(item.externalId);
       }
+      if (item.source === "apple_health") {
+        otherSourceRows.push({ date: day, type: item.type, durationMin: item.durationMin });
+      }
     }
   }
+  const otherSource = crossSourceMatcher(otherSourceRows);
 
   let imported = 0;
   let skipped = 0;
@@ -241,6 +247,10 @@ async function importWorkouts(
     }
     const activity = ACTIVITY_BY_EXERCISE_TYPE[record.exerciseType] ?? "OtherWorkout";
     const duration = Math.round(durationMin);
+    if (otherSource.claim({ date: wibDateOf(record.startTime), type: activity, durationMin: duration })) {
+      skipped++;
+      continue;
+    }
     const recordedKcal = await sessionKcal(record);
     const kcal =
       recordedKcal > 0

@@ -4,6 +4,7 @@
 // rows). The Swift module only reads raw data; normalizing happens here.
 import { estimateKcal, metForStravaType } from "@joyorogo/api/lib/met";
 import { sleepHoursByWibDay } from "@joyorogo/api/lib/healthkit";
+import { crossSourceMatcher, type ImportedWorkoutRow } from "@joyorogo/api/lib/import-dedupe";
 import { i18n } from "@joyorogo/i18n";
 import * as SecureStore from "expo-secure-store";
 
@@ -122,14 +123,20 @@ async function importWorkouts(
   latestWeightKg: number | null,
 ): Promise<{ imported: number; skipped: number }> {
   const existing = new Set<string>();
+  // The other phone's source (Health Connect vs Apple Health) may already hold this very workout.
+  const otherSourceRows: ImportedWorkoutRow[] = [];
   for (const day of wibDaysBack(SYNC_WINDOW_DAYS + 1)) {
     const { items } = await client.exercise.listByDate({ date: day });
     for (const item of items) {
       if (item.source === "apple_health" && item.externalId) {
         existing.add(item.externalId);
       }
+      if (item.source === "health_connect") {
+        otherSourceRows.push({ date: day, type: item.type, durationMin: item.durationMin });
+      }
     }
   }
+  const otherSource = crossSourceMatcher(otherSourceRows);
 
   let imported = 0;
   let skipped = 0;
@@ -145,6 +152,10 @@ async function importWorkouts(
     }
     const activity = ACTIVITY_BY_ACTIVITY_TYPE[workout.activityType] ?? "OtherWorkout";
     const duration = Math.round(durationMin);
+    if (otherSource.claim({ date: wibDateOf(workout.start), type: activity, durationMin: duration })) {
+      skipped++;
+      continue;
+    }
     const recordedKcal = workout.kcal != null ? Math.round(workout.kcal) : 0;
     const kcal =
       recordedKcal > 0
