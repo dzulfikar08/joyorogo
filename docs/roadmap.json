@@ -1,0 +1,29 @@
+{
+  "product": "JoyoRogo",
+  "updated": "2026-10-18",
+  "groups": [
+    {
+      "id": "doing",
+      "title": "Sedang dikerjakan",
+      "items": [
+        "Kartu dan stiker share baru untuk rekap harian, makanan, streak, dan progres berat",
+        "Bayar dengan USD (kartu internasional) untuk pengguna di luar Indonesia. Sudah bisa di web.",
+        "Tersedia di lebih banyak negara"
+      ]
+    },
+    {
+      "id": "next",
+      "title": "Berikutnya",
+      "items": [
+        "Sticker Studio: bikin stiker share sendiri",
+        "JoyoRogo di App Store (sedang direview Apple)",
+        "Daftar resmi di direktori konektor Claude dan ChatGPT"
+      ]
+    },
+    {
+      "id": "later",
+      "title": "Nanti",
+      "items": ["Tantangan \"Balik rutin\" setelah Lebaran"]
+    }
+  ]
+}

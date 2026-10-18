@@ -9,18 +9,22 @@ import {
   CameraOff,
   Check,
   ChevronDown,
+  CupSoda,
   Footprints,
+  Globe,
   Hand,
   ListChecks,
   MegaphoneOff,
   Mic,
   NotebookPen,
   PencilLine,
+  Plug,
   Radar,
   RefreshCw,
   ScanBarcode,
   Share2,
   Trash2,
+  UserRound,
   Users,
   Watch,
 } from "lucide-react";
@@ -31,6 +35,7 @@ import { Ring, type Metric } from "@/components/kit/ring";
 import { AppDownload } from "@/components/app-download";
 import { AndroidMark } from "@/components/android-mark";
 import { AppleMark } from "@/components/apple-mark";
+import { Roadmap } from "@/components/landing/roadmap";
 import { ScanDemo } from "@/components/landing/scan-demo";
 import { GroupPeek, HeroPhone, ScanExample, WeightTrendDemo } from "@/components/landing/visuals";
 import { GITHUB_URL, GithubMark, PublicHeader } from "@/components/public-header";
@@ -39,6 +44,7 @@ import { FounderPromo } from "@/components/founder-promo";
 import { Testimonials } from "@/components/testimonials";
 import {
   fmtRupiah,
+  fmtUsd,
   founderScans,
   TESTER_GROUP_URL,
   TESTER_OPTIN_URL,
@@ -349,21 +355,19 @@ const NEW_FEATURES = [
     href: "/blog/panduan-grup-dan-skor-joyofit/",
   },
   {
-    icon: Baby,
-    title: "Mode Hamil dan Menyusui",
-    body: "Tanpa defisit dan tanpa target turun berat. Target kalori dan gizi mengikuti AKG 2019 menurut trimester atau usia bayi, lengkap dengan pita kenaikan berat dari IOM.",
-    href: "/blog/panduan-mode-hamil-menyusui/",
+    icon: CupSoda,
+    title: "Catat minuman",
+    body: "Minuman 0 kkal tercatat 0, air putih tidak lagi ditebak, dan gelas yang isinya tertutup menawarkan pilihan jenis dan ukuran.",
   },
   {
-    icon: TrendingUp,
-    title: "Mode Naikin BB",
-    body: "Berat target di atas berat badanmu? Target makan jadi TDEE ditambah surplus kecil dari ritme naik, protein 1,6 sampai 2,2 g per kg, dan \"Kurang X kkal lagi\" menggantikan sisa kalori.",
-    href: "/blog/panduan-mode-naikin-bb/",
+    icon: UserRound,
+    title: "Profil yang dirapikan",
+    body: "Akun, langganan, target, makan, Strava, kesehatan, pengingat, tampilan, privasi, dan Koneksi AI sekarang punya layar sendiri, bukan satu halaman panjang.",
   },
   {
     icon: RefreshCw,
-    title: "Pembaruan di dalam aplikasi",
-    body: "Di Android, versi baru muncul sebagai banner. Ketuk Update, lalu mulai ulang kalau sudah selesai diunduh.",
+    title: "Pembaruan cepat",
+    body: "Perbaikan kecil sampai ke aplikasimu tanpa menunggu toko, dan di Android versi baru muncul sebagai banner. Perubahan besar tetap lewat pembaruan toko.",
   },
 ] as const;
 
@@ -420,7 +424,7 @@ function pricingFaq(config: AppConfig | undefined): Array<{ q: string; a: string
   return [
     {
       q: "Gratisnya sampai kapan?",
-      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Pro ${fmtRupiah(config.founderPriceIdr)} per bulan: ${founderScans(config).toLowerCase()}. Paket tahunan ${fmtRupiah(config.founderYearlyPriceIdr)}, setara ${fmtRupiah(Math.round(config.founderYearlyPriceIdr / 12))} per bulan.`,
+      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Pro ${fmtRupiah(config.founderPriceIdr)} per bulan: ${founderScans(config).toLowerCase()}. Paket tahunan ${fmtRupiah(config.founderYearlyPriceIdr)}, setara ${fmtRupiah(Math.round(config.founderYearlyPriceIdr / 12))} per bulan.${config.usd?.preferred ? ` Di luar Indonesia harganya dalam dolar: ${fmtUsd(config.usd.monthlyCents)} per bulan atau ${fmtUsd(config.usd.yearlyCents)} per tahun, dibayar dengan kartu lewat Polar.` : ""}`,
     },
   ];
 }
@@ -430,6 +434,8 @@ function Landing() {
   // Background check for visitors the beforeLoad gate let through.
   const { data: session } = useQuery(sessionQuery);
   if (session) return <Navigate to="/beranda" replace />;
+  // Visitors outside Indonesia (known country, not ID) see Pro in dollars.
+  const showUsd = Boolean(config.data?.usd?.preferred);
 
   return (
     <div className="marketing min-h-svh">
@@ -611,11 +617,19 @@ function Landing() {
                   </li>
                 </ul>
               </div>
-              <p className="mt-4 rounded-2xl bg-muted p-4 text-[0.9375rem] leading-relaxed text-muted-foreground">
+              <p className="mt-6 rounded-2xl bg-muted p-4 text-[0.9375rem] leading-relaxed text-muted-foreground">
                 <span className="font-bold text-foreground">Lupa foto?</span> Ceritakan saja. Ketik
                 atau ucapkan "kemarin pagi nasi kuning pakai telur dadar, siang nasi padang", AI
                 yang menghitung dan menaruhnya di waktu makan dan hari yang tepat.
               </p>
+              <div className="mt-4 flex gap-3.5 rounded-2xl bg-muted p-4">
+                <CupSoda className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
+                <p className="text-[0.9375rem] leading-relaxed text-muted-foreground">
+                  <span className="font-bold text-foreground">Minuman juga.</span> Air putih dan
+                  Coke Zero dicatat 0 kkal, bukan ditebak. Gelas yang isinya tidak kelihatan dari
+                  foto menawarkan pilihan jenis dan ukuran.
+                </p>
+              </div>
             </div>
             <div>
               <p className="mb-3 text-sm font-bold text-primary">Coba sekarang, tanpa daftar</p>
@@ -655,6 +669,51 @@ function Landing() {
           <div className="md:order-1">
             <WeightTrendDemo />
           </div>
+        </section>
+
+        {/* Two modes that change the whole target. */}
+        <section
+          data-section="modes"
+          className="mx-auto grid w-full max-w-6xl gap-4 px-4 pb-20 md:grid-cols-2 md:px-6 md:pb-28"
+        >
+          <article className="rounded-[1.75rem] bg-bakar-soft p-6 md:p-8">
+            <TrendingUp className="size-7 text-bakar-ink" aria-hidden />
+            <h3 className="mt-4 text-2xl font-extrabold tracking-tight text-bakar-ink">
+              Mau naik berat badan? Ada mode Naikin BB.
+            </h3>
+            <p className="mt-2 text-[0.9375rem] leading-relaxed text-bakar-ink/85">
+              Kalau berat targetmu di atas berat sekarang, target makan jadi kebutuhan harianmu
+              ditambah surplus kecil dari ritme naik yang kamu pilih. Protein 1,6 sampai 2,2 g per
+              kg. Angka di Beranda berbunyi "Kurang X kkal lagi", bukan sisa kalori.
+            </p>
+            <a
+              href="/blog/panduan-mode-naikin-bb/"
+              data-revklik-goal="feature_guide_click"
+              data-revklik-goal-location="modes"
+              className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-bakar-ink underline underline-offset-4 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+            >
+              Baca panduan Naikin BB
+            </a>
+          </article>
+          <article className="rounded-[1.75rem] bg-tidur-soft p-6 md:p-8">
+            <Baby className="size-7 text-tidur-ink" aria-hidden />
+            <h3 className="mt-4 text-2xl font-extrabold tracking-tight text-tidur-ink">
+              Hamil atau menyusui? Tanpa defisit.
+            </h3>
+            <p className="mt-2 text-[0.9375rem] leading-relaxed text-tidur-ink/85">
+              Tidak ada target turun berat. Kalori dan gizi mengikuti AKG 2019 menurut trimester
+              atau usia bayi, grafik kenaikan berat memakai pita rekomendasi IOM, dan ada catatan
+              keamanan pangan. Angkanya perkiraan, bukan saran dokter.
+            </p>
+            <a
+              href="/blog/panduan-mode-hamil-menyusui/"
+              data-revklik-goal="feature_guide_click"
+              data-revklik-goal-location="modes"
+              className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-tidur-ink underline underline-offset-4 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+            >
+              Baca panduan Hamil dan Menyusui
+            </a>
+          </article>
         </section>
 
         {/* Two supporting features, sized by weight */}
@@ -758,7 +817,7 @@ function Landing() {
               Baru di versi tes
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-              Fitur yang sudah bisa dipakai tester Android hari ini.
+              Fitur yang sudah bisa dipakai tester Android dan iPhone hari ini.
             </p>
           </div>
           <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -795,12 +854,14 @@ function Landing() {
               </span>
               <div>
                 <h2 className="text-xl font-extrabold tracking-tight md:text-2xl">
-                  Punya smartwatch? Angka bakarmu jadi lebih pas.
+                  Latihan dicatat di JoyoFit. Hasilnya masuk ke angka bakarmu.
                 </h2>
                 <p className="mt-1 max-w-xl text-[0.9375rem] leading-relaxed text-muted-foreground">
-                  JoyoRogo membaca olahraga dan tidur dari Health Connect di Android dan Apple Health
-                  di iPhone, jadi kalori yang terbakar dihitung dari data jam tanganmu, bukan
-                  tebakan.
+                  JoyoFit, aplikasi pendamping JoyoRogo, punya pelatih harian, rencana lari dan
+                  beban, pencatat beban ala Hevy, dan riwayat latihan. Bisa dipakai tanpa jam
+                  tangan. JoyoRogo membaca latihan dan tidurmu dari Health Connect di Android dan
+                  Apple Health di iPhone, jadi kalori terbakar dihitung dari data nyata. Pencatat
+                  beban di JoyoRogo sudah pindah ke JoyoFit; log lamamu tetap bisa dibaca.
                 </p>
               </div>
             </div>
@@ -848,6 +909,52 @@ function Landing() {
               </Button>
             </div>
           </div>
+        </section>
+
+        {/* Claude / ChatGPT connector (Pro, read only). Guide: /panduan/ai. */}
+        <section data-section="ai" className="mx-auto w-full max-w-6xl px-4 pb-16 md:px-6">
+          <div className="grid gap-8 rounded-[1.75rem] bg-makan-soft p-6 md:grid-cols-[1.1fr_1fr] md:items-center md:gap-12 md:p-10">
+            <div>
+              <h2 className="text-2xl font-extrabold tracking-tight text-makan-ink md:text-4xl md:leading-[1.1]">
+                Tanya Claude atau ChatGPT soal datamu sendiri
+              </h2>
+              <p className="mt-3 max-w-lg text-[0.9375rem] leading-relaxed text-makan-ink/85 md:text-base">
+                Sambungkan JoyoRogo sekali lewat Koneksi AI, lalu tanyakan hal seperti "Kenapa
+                beratku mandek minggu ini?" atau "Tidurku cukup nggak minggu ini?". AI membaca
+                catatan makan, total harian, riwayat berat, latihan, dan data pemulihan JoyoFit.
+              </p>
+              <div className="mt-6">
+                <Button
+                  size="lg"
+                  render={
+                    <Link
+                      to="/panduan/ai"
+                      data-revklik-goal="ai_guide_click"
+                      data-revklik-goal-location="ai"
+                    />
+                  }
+                >
+                  <Plug aria-hidden />
+                  Pakai dengan Claude/ChatGPT
+                </Button>
+              </div>
+            </div>
+            <ul className="space-y-3 text-[0.9375rem] leading-relaxed text-makan-ink/90">
+              <li className="rounded-2xl bg-card px-4 py-3.5">
+                Hanya baca. AI tidak bisa mencatat, mengubah, atau menghapus apa pun di akunmu.
+              </li>
+              <li className="rounded-2xl bg-card px-4 py-3.5">
+                Fitur JoyoRogo Pro. Tanpa Pro, AI hanya menjawab bahwa Pro dibutuhkan.
+              </li>
+              <li className="rounded-2xl bg-card px-4 py-3.5">
+                Kamu bisa melihat aktivitasnya dan mencabut sambungan kapan saja dari Profil.
+              </li>
+            </ul>
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Daftar resmi di direktori konektor Claude dan ChatGPT ada di roadmap. Sampai itu
+            selesai, alamat konektornya kamu tempel sendiri; langkahnya ada di panduan.
+          </p>
         </section>
 
         {/* Together: groups, colek, VAR perut. The playful section. */}
@@ -917,6 +1024,57 @@ function Landing() {
           </p>
         </section>
 
+        {/* Outside Indonesia: USD via Polar. Numbers come from /api/config. */}
+        <section
+          data-section="internasional"
+          className="mx-auto w-full max-w-6xl px-4 py-16 md:px-6 md:py-24"
+        >
+          <div className="grid gap-8 md:grid-cols-[1fr_1.1fr] md:items-center md:gap-16">
+            <div>
+              <h2 className="text-3xl font-extrabold tracking-tight text-balance md:text-[2.75rem] md:leading-[1.1]">
+                Di luar Indonesia? Bayar dalam dolar.
+              </h2>
+              <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+                Pengunjung dari luar Indonesia melihat harga Pro dalam USD dan membayar dengan kartu
+                lewat Polar. Di Indonesia tetap QRIS dan transfer bank dalam rupiah. Aplikasinya
+                tersedia dalam bahasa Indonesia dan English.
+              </p>
+            </div>
+            <div className="rounded-[1.75rem] bg-card p-6 md:p-8">
+              <p className="flex items-center gap-2 font-bold">
+                <Globe className="size-5 text-primary" aria-hidden />
+                Pro in US dollars
+              </p>
+              {config.data?.usd && (
+                <p className="mt-3 text-2xl font-extrabold tracking-tight tabular-nums">
+                  {fmtUsd(config.data.usd.monthlyCents)}
+                  <span className="text-base font-semibold text-muted-foreground"> / month</span>
+                  <span className="mx-2 text-muted-foreground">·</span>
+                  {fmtUsd(config.data.usd.yearlyCents)}
+                  <span className="text-base font-semibold text-muted-foreground"> / year</span>
+                </p>
+              )}
+              <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
+                Paid by card through Polar, which handles tax as merchant of record. Renews
+                automatically until you cancel; manage or cancel it from your profile.
+              </p>
+              <Button
+                variant="outline"
+                className="mt-5"
+                render={
+                  <Link
+                    to="/harga"
+                    data-revklik-goal="pricing_click"
+                    data-revklik-goal-location="internasional"
+                  />
+                }
+              >
+                See pricing
+              </Button>
+            </div>
+          </div>
+        </section>
+
         {/* Pricing, short; the full page has checkout. Hidden without a paywall. */}
         {config.data?.paywall && (
           <section data-section="pricing" className="border-t border-border/70 py-20 md:py-24">
@@ -961,7 +1119,9 @@ function Landing() {
                 <div className="card-lift flex flex-col rounded-[1.75rem] bg-makan-soft p-6">
                   <p className="font-bold text-makan-ink">Pro</p>
                   <p className="mt-2 text-4xl font-extrabold tracking-tight">
-                    {fmtRupiah(config.data.founderPriceIdr)}
+                    {showUsd
+                      ? fmtUsd(config.data.usd!.monthlyCents)
+                      : fmtRupiah(config.data.founderPriceIdr)}
                   </p>
                   <p className="text-sm text-muted-foreground">per bulan</p>
                   <ul className="mt-5 space-y-2 text-sm">
@@ -975,9 +1135,16 @@ function Landing() {
                     </li>
                     <li className="flex gap-2">
                       <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
-                      Paket tahunan {fmtRupiah(config.data.founderYearlyPriceIdr)}/tahun, setara{" "}
-                      {fmtRupiah(Math.round(config.data.founderYearlyPriceIdr / 12))}/bulan
+                      {showUsd
+                        ? `Paket tahunan ${fmtUsd(config.data.usd!.yearlyCents)}/tahun, setara ${fmtUsd(Math.round(config.data.usd!.yearlyCents / 12))}/bulan`
+                        : `Paket tahunan ${fmtRupiah(config.data.founderYearlyPriceIdr)}/tahun, setara ${fmtRupiah(Math.round(config.data.founderYearlyPriceIdr / 12))}/bulan`}
                     </li>
+                    {showUsd && (
+                      <li className="flex gap-2">
+                        <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
+                        Kartu internasional lewat Polar, diperpanjang otomatis
+                      </li>
+                    )}
                   </ul>
                   <Button
                     className="mt-6 w-full"
@@ -996,6 +1163,8 @@ function Landing() {
             </div>
           </section>
         )}
+
+        <Roadmap fitUrl="https://fit.joyorogo.com" />
 
         {/* FAQ */}
         <section

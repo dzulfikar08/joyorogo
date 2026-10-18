@@ -136,6 +136,18 @@ export const FAQ = [
     a: "Ada. Aplikasi iPhone-nya sudah bisa dicoba lewat TestFlight (beta publik), dan versi App Store 1.0 sedang menunggu review Apple. Aplikasinya membaca Apple Health. Kalau mau yang langsung, buka joyorogo.com di Safari, tap Bagikan, lalu Tambah ke Layar Utama: JoyoRogo muncul sebagai ikon dan terbuka layar penuh, dengan akun dan data yang sama seperti di Android dan laptop. Notifikasi pengingat di versi web iPhone butuh iOS 16.4 ke atas.",
   },
   {
+    q: "Latihan beban dicatat di mana?",
+    a: "Di JoyoFit, aplikasi pendamping JoyoRogo: pencatat beban ala Hevy, rencana lari dan beban, pelatih harian, dan latihan dari jam tangan. JoyoRogo membaca hasilnya untuk angka bakar. Log beban lama di JoyoRogo tetap bisa dibaca.",
+  },
+  {
+    q: "Bisa dipakai bersama Claude atau ChatGPT?",
+    a: "Bisa, untuk pengguna Pro. Sambungkan lewat Koneksi AI di Profil, lalu tanyakan datamu sendiri: catatan makan, berat, latihan, dan tidur. Sifatnya hanya baca dan bisa kamu cabut kapan saja. Langkahnya ada di joyorogo.com/panduan/ai.",
+  },
+  {
+    q: "Apakah ada mode untuk naik berat atau hamil?",
+    a: "Ada dua. Naikin BB menghitung target makan sebagai kebutuhan harian ditambah surplus kecil. Hamil dan Menyusui tanpa defisit, dengan target menurut AKG 2019 dan pita kenaikan berat dari IOM. Keduanya perkiraan, bukan pengganti saran dokter atau ahli gizi.",
+  },
+  {
     q: "Apakah JoyoRogo open source?",
     a: "Ya. Kodenya terbuka di GitHub dengan lisensi AGPL-3.0. Mau server sendiri untuk keluarga, klinik, atau gym? Deploy lewat CloudAgni, atau jalankan di akun Cloudflare-mu.",
   },

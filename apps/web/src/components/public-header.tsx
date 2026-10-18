@@ -42,6 +42,9 @@ export function PublicHeader() {
           <Link to="/" hash="coba" className={NAV_LINK}>
             Coba gratis
           </Link>
+          <Link to="/" hash="roadmap" className={NAV_LINK}>
+            Roadmap
+          </Link>
           {config.data?.paywall && (
             <Link to="/harga" className={NAV_LINK} activeProps={{ className: "text-foreground!" }}>
               Harga
