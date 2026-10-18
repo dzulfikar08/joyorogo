@@ -51,6 +51,13 @@ declare module "cloudflare:workers" {
       PAKASIR_API_KEY?: string;
       PAKASIR_WEBHOOK_SECRET?: string;
       PAKASIR_SANDBOX?: string;
+      POLAR_ACCESS_TOKEN?: string;
+      POLAR_WEBHOOK_SECRET?: string;
+      POLAR_SERVER?: string;
+      POLAR_PRODUCT_MONTHLY_ID?: string;
+      POLAR_PRODUCT_YEARLY_ID?: string;
+      POLAR_PRICE_MONTHLY_USD_CENTS?: string;
+      POLAR_PRICE_YEARLY_USD_CENTS?: string;
       APPLE_BUNDLE_ID?: string;
       APPLE_TEAM_ID?: string;
       APPLE_SIWA_KEY_ID?: string;

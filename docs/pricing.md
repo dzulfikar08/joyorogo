@@ -49,6 +49,35 @@ A purchase in a TestFlight build runs in Apple's Sandbox and charges nothing. Th
 
 **Switch it off when App Store 1.0 is live:** the mail is gated by the server var `TESTFLIGHT_PURCHASE_EMAIL`. Set it to anything but `on` (e.g. `off`) in `apps/server/wrangler.jsonc` `vars`, then `cd apps/server && CLOUDFLARE_ACCOUNT_ID=3268f27664d77716b648b00c8850469e bunx wrangler deploy`. That stops both the after-grant mail and the sweep. The in-app alert needs no switch: real App Store purchases are not Sandbox and never raise it.
 
+## Polar (USD, web only)
+
+Polar (polar.sh) is the merchant of record for USD card subscriptions on the web, for buyers outside Indonesia. Polar is the seller, collects and remits VAT/GST/sales tax, mails its own receipt, and handles refunds and chargebacks. Org "Joyo Digitama Solusi" (`b9fe0372-66f4-4590-9d2d-8c8c733ea73f`, production; it also sells Paparan AI). Tax behaviour is inclusive, so the displayed price is the price charged.
+
+| Plan | Polar product | Price |
+| --- | --- | --- |
+| Monthly | `0eccddaa-1f8d-404c-b68c-7bfc99026f0c` | US$9.99 |
+| Yearly | `52630e7f-e269-4998-8064-f1b375a200a8` | US$59.99 |
+
+**Price is config.** `POLAR_PRICE_MONTHLY_USD_CENTS` / `POLAR_PRICE_YEARLY_USD_CENTS` (default 999 / 5999) only drive what `/api/config` shows (`usd`). What is charged is the Polar product price: to change the price create a new price on the Polar product (existing subscribers keep theirs) and change both vars to match, then deploy the server.
+
+**Vars and secrets** (`apps/server/wrangler.jsonc` vars unless marked secret): `POLAR_PRODUCT_MONTHLY_ID`, `POLAR_PRODUCT_YEARLY_ID`, `POLAR_PRICE_*_USD_CENTS`, `POLAR_SERVER` (`sandbox` = sandbox-api.polar.sh, empty = production), secrets `POLAR_ACCESS_TOKEN` (organization access token: `checkouts:write`, `customer_sessions:write`) and `POLAR_WEBHOOK_SECRET`. USD checkout is off until the token, webhook secret and both product ids are set and the paywall is on.
+
+**Webhook:** `https://api.joyorogo.com/api/billing/polar/webhook`, format raw, events `order.paid`, `order.refunded`, `subscription.active`, `subscription.updated`, `subscription.canceled`, `subscription.uncanceled`, `subscription.revoked`, `subscription.past_due`. Standard Webhooks signature (`webhook-id`, `webhook-timestamp`, `webhook-signature`, 5 minute replay window; both the Standard Webhooks key and the older Polar HMAC key are accepted). Wrong signature = 403. Everything else answers 200 (Polar disables an endpoint after 10 failed deliveries): events of other products in the org, unknown accounts and unreadable payloads are logged and acknowledged; only a lost race on `founder_until` answers 409 so Polar retries. Code: `packages/api/src/lib/polar.ts` (client, signature), `polar-billing.ts` (ledger), routes in `apps/server/src/billing.ts`.
+
+**Flow:**
+
+- `POST /api/billing/polar/checkout {plan}` (signed in) creates a Polar checkout with `external_customer_id` = user id and metadata `{app, user_id, plan}`, success URL `/pro?polar=success`, and answers `{url}`. A user with a live Polar subscription gets 409 (manage it instead).
+- `POST /api/billing/polar/portal` answers a customer-portal link (cancel, change plan, card, invoices); `GET /api/billing/polar/subscription` feeds the Profile page (state, renewal date, cancel-at-period-end).
+- `/api/config` carries `usd: {monthlyCents, yearlyCents, preferred, country} | null`. `preferred` is true when `CF-IPCountry` is known and not `ID`: the web shows USD first on `/harga`, `/pro` and the picker. Indonesian visitors keep QRIS/bank transfer first and can pick USD manually. `paymentMethods` never contains USD, and no native app surface mentions Polar or USD.
+
+**Ledger.** Same `payment` table, one row per paid order, `order_id` = `polar:<polarOrderId>`. `amount_usd_cents` holds the net USD charged (before tax); `amount_idr` holds the IDR equivalent, priced like an Apple transaction not billed in IDR: the plan's IDR price from `FOUNDER_PRICE_IDR` / `FOUNDER_YEARLY_PRICE_IDR` (scaled down when a discount code lowered the USD price, Rp0 for a free order). So Polar buyers take a ladder seat and set a grandfathered IDR price like every other gateway, and revenue sums stay in rupiah. `months` is 1 or 12; a plan-change proration charge (`billing_reason subscription_update`) is recorded with `months` 0 and Rp0 and grants no time.
+
+**Grants.** `order.paid` for one of the two products credits 1 or 12 months on top of the remaining Pro period, in one D1 batch guarded on `founder_until` (same pattern as Apple). Idempotent twice: `polar_event` stores each `webhook-id`, and the `polar:<orderId>` ledger row stops the same order crediting twice under a new delivery id. `order.refunded` (full refund) flips the row to `failed` and takes its months back off `founder_until` (never below now); a refund that arrives before its payment blocks the payment from granting. `subscription.canceled` only turns off auto-renew: Pro stays until the period end. `subscription.revoked` after the period ended changes nothing; an immediate revoke cuts Polar-granted time to now unless the user holds time from another purchase or another live Polar subscription. `polar_subscription` keeps the latest state per subscription (older `modified_at` never overwrites newer). Events of products that are not the two Pro products are ignored.
+
+**Emails.** No JoyoRogo receipt for Polar orders (Polar mails its own); the admin notice shows the USD amount and its IDR ledger value. Admin orders list the method as "Polar (USD)".
+
+**Go-live checklist:** (1) deploy the server with the vars above; (2) create the Polar webhook for the URL above and store its secret as `POLAR_WEBHOOK_SECRET`; (3) store the organization access token as `POLAR_ACCESS_TOKEN`; (4) buy the monthly plan once from a non-Indonesian IP or via the picker, confirm Pro turns on and `/api/billing/polar/subscription` shows it, then refund/cancel it in the Polar dashboard.
+
 ## Runbook: buyer count crosses 110 (step 2 to step 3)
 
 Check the count: `/api/config` returns `promo` while on a step with a cap; once `promo` is `null` and `founderPriceIdr` is 49000, step 3 is live. Web prices change by themselves. Then:

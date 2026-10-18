@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, gte, like, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, like, lte, sql } from "drizzle-orm";
 import type { SendEmail } from "@cloudflare/workers-types";
 import type { JoyoAuth } from "@joyorogo/auth";
 import type { Context, Hono } from "hono";
@@ -44,6 +44,15 @@ import {
 } from "@joyorogo/api/lib/pakasir";
 import type { PakasirConfig } from "@joyorogo/api/lib/pakasir";
 import {
+  WEBHOOK_PATH as POLAR_WEBHOOK_PATH,
+  createCheckout as createPolarCheckout,
+  createPortalSession,
+  polarConfig,
+  verifyWebhook,
+} from "@joyorogo/api/lib/polar";
+import type { PolarEnv } from "@joyorogo/api/lib/polar";
+import { processPolarEvent } from "@joyorogo/api/lib/polar-billing";
+import {
   checkoutAmountIdr,
   grandfatheredMonthlyIdr,
   ladderStep,
@@ -55,14 +64,14 @@ import {
 } from "@joyorogo/api/lib/tiers";
 import type { FounderPlan, PaywallEnv } from "@joyorogo/api/lib/tiers";
 import { user } from "@joyorogo/db/schema/auth";
-import { payment } from "@joyorogo/db/schema/billing";
+import { payment, polarSubscription } from "@joyorogo/db/schema/billing";
 import { aiUsage } from "@joyorogo/db/schema/fitness";
 import type { Database } from "@joyorogo/db";
 import { requestLocale } from "./context";
 import { runFounderEmails, sendOrderEmails } from "./email";
 import { INTERNAL_EMAILS } from "./internal-accounts";
 
-export type BillingEnv = PaywallEnv & GooglePlayEnv & {
+export type BillingEnv = PaywallEnv & GooglePlayEnv & PolarEnv & {
   BETTER_AUTH_URL: string;
   /** Public web app origin; defaults to BETTER_AUTH_URL (single-worker deploys). */
   APP_URL?: string;
@@ -160,6 +169,8 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   const doku = paywallEnabled(config) ? dokuConfig(env) : null;
   const pakasir = paywallEnabled(config) ? pakasirConfig(env) : null;
   const configured: Record<Provider, boolean> = { doku: doku !== null, pakasir: pakasir !== null };
+  // Polar (USD, merchant of record): web only, never advertised to the store builds.
+  const polar = paywallEnabled(config) ? polarConfig(env) : null;
   const provider = defaultProvider(env.BILLING_PROVIDER, configured);
   const paymentMethods = PAYMENT_METHODS.filter((method) => configured[METHOD_GATEWAY[method]]);
   const appUrl = (env.APP_URL || env.BETTER_AUTH_URL).replace(/\/$/, "");
@@ -269,6 +280,11 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   // Public: lets the web hide pricing and upgrade prompts on self-hosts.
   app.get("/api/config", async (c) => {
     const db = deps.getDb();
+    // The answer depends on the visitor's country: never share it between visitors.
+    c.header("Cache-Control", "private, no-store");
+    const cfCountry = c.req.header("CF-IPCountry")?.toUpperCase() ?? "";
+    // "XX" = unknown, "T1" = Tor: neither says the visitor is outside Indonesia.
+    const country = /^[A-Z]{2}$/.test(cfCountry) && cfCountry !== "XX" ? cfCountry : null;
     let buyers: number | null = null;
     if (config.founderLadder !== null && provider !== null) buyers = await ladderBuyers(db);
     const step = config.founderLadder && buyers !== null ? ladderStep(config.founderLadder, buyers) : null;
@@ -287,6 +303,15 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       founderYearlyPriceIdr: step ? step.yearlyIdr : config.founderYearlyPriceIdr,
       promo,
       anonScans: config.anonScans,
+      // USD option (Polar): prices in cents; `preferred` = the visitor's Cloudflare country is known and not Indonesia.
+      usd: polar
+        ? {
+            monthlyCents: polar.priceUsdCents.monthly,
+            yearlyCents: polar.priceUsdCents.yearly,
+            preferred: country !== null && country !== "ID",
+            country,
+          }
+        : null,
     });
   });
 
@@ -442,6 +467,132 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       return c.json({ error: "amount mismatch" }, 400);
     }
     return settle(c, db, order, "pakasir");
+  });
+
+  // Polar checkout for the signed-in user. Body: { plan: "monthly" | "yearly" }.
+  // external_customer_id = user id, so webhooks and the portal find the account.
+  app.post("/api/billing/polar/checkout", async (c) => {
+    if (!polar) return c.json({ error: "USD checkout is not available." }, 404);
+    const me = await sessionUser(c.req.raw.headers);
+    if (!me) return c.json({ error: t(c)("billing.signInToSubscribe") }, 401);
+    const body = (await c.req.json().catch(() => null)) as { plan?: unknown } | null;
+    const plan: FounderPlan = body?.plan === "yearly" ? "yearly" : "monthly";
+    const db = deps.getDb();
+    const [live] = await db
+      .select({ subscriptionId: polarSubscription.subscriptionId })
+      .from(polarSubscription)
+      .where(and(eq(polarSubscription.userId, me.id), inArray(polarSubscription.state, ["active", "canceled", "past_due"])))
+      .limit(1);
+    if (live) {
+      return c.json({ error: "You already have a USD subscription. Manage it from Profile." }, 409);
+    }
+    try {
+      const { url } = await createPolarCheckout(polar, {
+        plan,
+        userId: me.id,
+        email: me.email,
+        name: me.name,
+        successUrl: `${appUrl}/pro?polar=success`,
+        returnUrl: `${appUrl}/pro`,
+      });
+      return c.json({ url });
+    } catch (error) {
+      console.error(`polar checkout for ${me.id} failed:`, error);
+      return c.json({ error: "Could not open the checkout. Try again in a moment." }, 502);
+    }
+  });
+
+  // Customer portal (cancel, change plan, card, invoices) for a user who bought through Polar.
+  app.post("/api/billing/polar/portal", async (c) => {
+    if (!polar) return c.json({ error: "USD checkout is not available." }, 404);
+    const me = await sessionUser(c.req.raw.headers);
+    if (!me) return c.json({ error: t(c)("billing.signIn") }, 401);
+    const [owned] = await deps
+      .getDb()
+      .select({ subscriptionId: polarSubscription.subscriptionId })
+      .from(polarSubscription)
+      .where(eq(polarSubscription.userId, me.id))
+      .limit(1);
+    if (!owned) return c.json({ error: "No USD subscription on this account." }, 404);
+    try {
+      const { url } = await createPortalSession(polar, { userId: me.id, returnUrl: `${appUrl}/profil` });
+      return c.json({ url });
+    } catch (error) {
+      console.error(`polar portal for ${me.id} failed:`, error);
+      return c.json({ error: "Could not open the subscription portal. Try again in a moment." }, 502);
+    }
+  });
+
+  // The account's most relevant Polar subscription (live ones first), for the profile page.
+  app.get("/api/billing/polar/subscription", async (c) => {
+    const me = await sessionUser(c.req.raw.headers);
+    if (!me) return c.json({ error: t(c)("billing.signIn") }, 401);
+    const rows = await deps
+      .getDb()
+      .select()
+      .from(polarSubscription)
+      .where(eq(polarSubscription.userId, me.id))
+      .orderBy(desc(polarSubscription.updatedAt))
+      .limit(5);
+    const row = rows.find((r) => ["active", "canceled", "past_due"].includes(r.state)) ?? rows[0];
+    return c.json({
+      subscription: row
+        ? {
+            plan: row.plan,
+            state: row.state,
+            currentPeriodEnd: row.currentPeriodEnd?.getTime() ?? null,
+            cancelAtPeriodEnd: row.cancelAtPeriodEnd,
+          }
+        : null,
+    });
+  });
+
+  // Polar webhook (Standard Webhooks signature over the raw body). The org also
+  // sells other products: their events are acknowledged and ignored. Only a lost
+  // race answers non-2xx (Polar disables an endpoint after 10 failed deliveries).
+  app.post(POLAR_WEBHOOK_PATH, async (c) => {
+    if (!polar) return c.json({ error: "billing disabled" }, 404);
+    const raw = await c.req.text();
+    const eventId = c.req.header("webhook-id") ?? "";
+    const valid = await verifyWebhook(
+      raw,
+      {
+        id: eventId,
+        timestamp: c.req.header("webhook-timestamp") ?? "",
+        signature: c.req.header("webhook-signature") ?? "",
+      },
+      polar.webhookSecret,
+    );
+    if (!valid) return c.json({ error: "invalid signature" }, 403);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return c.json({ error: "invalid json" }, 400);
+    }
+    const db = deps.getDb();
+    const result = await processPolarEvent(
+      {
+        db,
+        config: polar,
+        fallbackPriceIdr: { monthly: config.founderPriceIdr, yearly: config.founderYearlyPriceIdr },
+      },
+      eventId,
+      parsed,
+    );
+    if (result.outcome === "busy") return c.json({ error: "concurrent update, retry" }, 409);
+    if (result.granted && result.granted.amountIdr > 0) {
+      const { granted } = result;
+      c.executionCtx.waitUntil(
+        sendOrderEmails(
+          env,
+          db,
+          { orderId: granted.orderId, userId: granted.userId, gateway: "polar" },
+          { founderDailyCap: config.founderDailyCap },
+        ).catch((error: unknown) => console.error(`order emails ${granted.orderId}:`, error)),
+      );
+    }
+    return c.json({ received: true, outcome: result.outcome });
   });
 
   const appleProductConfig = () => ({

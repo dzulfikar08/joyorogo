@@ -333,6 +333,7 @@ export interface AdminOrder {
  */
 export function orderMethod(o: Pick<AdminOrder, "orderId" | "paymentUrl" | "amountIdr">): string {
   if (o.orderId.startsWith("apple:")) return o.amountIdr === 0 ? "TestFlight (uji)" : "Apple";
+  if (o.orderId.startsWith("polar:")) return "Polar (USD)";
   if (!o.paymentUrl) return "—";
   if (o.paymentUrl.includes("app.pakasir.com")) {
     return o.paymentUrl.includes("qris_only=1") ? "QRIS (Pakasir)" : "Pakasir";

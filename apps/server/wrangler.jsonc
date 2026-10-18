@@ -109,6 +109,11 @@
     "DOKU_CLIENT_ID": "BRN-0177-1790860845392",
     "DOKU_BASE_URL": "https://api.doku.com",
     "PAKASIR_SLUG": "joyorogo",
+    // Polar USD checkout (docs/pricing.md). Secrets POLAR_ACCESS_TOKEN and POLAR_WEBHOOK_SECRET are set with wrangler secret put.
+    "POLAR_PRODUCT_MONTHLY_ID": "0eccddaa-1f8d-404c-b68c-7bfc99026f0c",
+    "POLAR_PRODUCT_YEARLY_ID": "52630e7f-e269-4998-8064-f1b375a200a8",
+    "POLAR_PRICE_MONTHLY_USD_CENTS": "999",
+    "POLAR_PRICE_YEARLY_USD_CENTS": "5999",
     "APPLE_BUNDLE_ID": "com.joyodigitama.joyorogo",
     "APPLE_SANDBOX_EMAILS": "",
     "TESTFLIGHT_PURCHASE_EMAIL": "on"

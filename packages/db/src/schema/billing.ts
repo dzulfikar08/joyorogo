@@ -19,8 +19,11 @@ export const payment = sqliteTable(
       .default("pending")
       .notNull(),
     paymentUrl: text("payment_url"),
-    // Founder months this order buys: 1 = monthly, 12 = yearly.
+    // Founder months this order buys: 1 = monthly, 12 = yearly (0 = a plan-change proration charge that grants no time).
     months: integer("months").default(1).notNull(),
+    // What a Polar order actually charged, in US cents before tax (null on every other gateway).
+    // amount_idr is then the IDR equivalent the ledger counts, priced like a non-IDR Apple transaction.
+    amountUsdCents: integer("amount_usd_cents"),
     // Founder period end this payment produced (set on the paid flip).
     founderUntil: integer("founder_until", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
@@ -136,3 +139,45 @@ export const appleSubscription = sqliteTable(
     index("apple_subscription_token_idx").on(table.appAccountToken),
   ],
 );
+
+/**
+ * Polar (USD, merchant of record) subscriptions, each linked to the one account
+ * that bought it. Pro time itself is credited per paid order in `payment` as
+ * `polar:<orderId>`; this row carries what the account page needs (state, renewal
+ * date, cancel-at-period-end) and lets an event without a customer external id
+ * find its user. `modified_at` is Polar's own modified time: an older event never
+ * overwrites a newer state.
+ */
+export const polarSubscription = sqliteTable(
+  "polar_subscription",
+  {
+    subscriptionId: text("subscription_id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    customerId: text("customer_id").notNull(),
+    productId: text("product_id").notNull(),
+    plan: text("plan", { enum: ["monthly", "yearly"] }).notNull(),
+    // active, canceled (auto-renew off, Pro until the period end), past_due, paused, revoked.
+    state: text("state").notNull(),
+    currentPeriodEnd: integer("current_period_end", { mode: "timestamp_ms" }),
+    cancelAtPeriodEnd: integer("cancel_at_period_end", { mode: "boolean" }).default(false).notNull(),
+    polarModifiedAt: integer("polar_modified_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [index("polar_subscription_user_idx").on(table.userId)],
+);
+
+/** Polar webhook deliveries already processed, by Standard Webhooks `webhook-id`. */
+export const polarEvent = sqliteTable("polar_event", {
+  eventId: text("event_id").primaryKey(),
+  type: text("type").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
+});

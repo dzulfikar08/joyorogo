@@ -152,14 +152,23 @@ type PaidOrderInfo = {
   email: string;
   months: number;
   amountIdr: number;
+  /** US cents a Polar order charged (before tax); null on IDR gateways and store orders. */
+  amountUsdCents: number | null;
   founderUntil: Date | null;
 };
+
+/** "Rp29.000", or "US$9.99 (setara Rp29.000 di ledger)" for a Polar order. */
+function amountLabel(info: Pick<PaidOrderInfo, "amountIdr" | "amountUsdCents">): string {
+  const idr = fmtIdr(info.amountIdr, "id");
+  if (info.amountUsdCents === null) return idr;
+  return `US$${(info.amountUsdCents / 100).toFixed(2)} (setara ${idr} di ledger)`;
+}
 
 function adminDraft(info: PaidOrderInfo): Draft {
   const planLabel = info.months >= 12 ? "tahunan" : "bulanan";
   const rows: [string, string][] = [
     ["Pembeli", `${info.name} (${info.email})`],
-    ["Jumlah", fmtIdr(info.amountIdr, "id")],
+    ["Jumlah", amountLabel(info)],
     ["Paket", `Pro ${planLabel}`],
     ["Gateway", info.gateway],
     ["Order", info.orderId],
@@ -181,7 +190,7 @@ function adminDraft(info: PaidOrderInfo): Draft {
     ...rows.map(([k, v]) => `${k}: ${v}`),
     "https://admin.joyorogo.com/#orders",
   ].join("\n");
-  return { to: "", subject: `Pro baru: ${fmtIdr(info.amountIdr, "id")} — ${info.name}`, html, text };
+  return { to: "", subject: `Pro baru: ${amountLabel(info)} — ${info.name}`, html, text };
 }
 
 /**
@@ -200,6 +209,7 @@ export async function sendOrderEmails(
       name: user.name,
       email: user.email,
       amountIdr: payment.amountIdr,
+      amountUsdCents: payment.amountUsdCents,
       months: payment.months,
       founderUntil: payment.founderUntil,
     })
@@ -209,7 +219,8 @@ export async function sendOrderEmails(
     .limit(1);
   if (!row) return;
 
-  if (await claimEmail(db, order.userId, "receipt", order.orderId)) {
+  // Polar is the merchant of record and mails its own receipt; ours would show the IDR ledger equivalent.
+  if (order.gateway !== "polar" && (await claimEmail(db, order.userId, "receipt", order.orderId))) {
     const info: ReceiptInfo = {
       name: row.name,
       plan: row.months >= 12 ? "yearly" : "monthly",
@@ -234,6 +245,7 @@ export async function sendOrderEmails(
       email: row.email,
       months: row.months,
       amountIdr: row.amountIdr,
+      amountUsdCents: row.amountUsdCents,
       founderUntil: row.founderUntil,
     });
     await sendEmail(env, { ...draft, to: admins });
