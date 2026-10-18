@@ -10,8 +10,10 @@ import {
   availableTemplates,
   renderSticker,
   rogoWebFonts,
+  selectTemplates,
+  templateShowsName,
+  type CanvasKind,
   type StickerPrefs,
-  type Template,
 } from "@joyorogo/sticker";
 
 import { Segmented } from "@/components/kit/surface";
@@ -41,9 +43,15 @@ type ShareStoryButtonProps = {
   size?: ComponentProps<typeof Button>["size"];
   className?: string;
   disabled?: boolean;
+  /** Open on this kind (e.g. "streak") instead of the first one. */
+  initialKind?: string;
+  /** Offer only these kinds (e.g. the weight screen offers just "weight"). */
+  kinds?: string[];
+  /** Replaces the default button; call `open` to show the sheet. */
+  renderTrigger?: (open: () => void) => ReactNode;
 };
 
-type Canvas = "story" | "square" | "sticker";
+type Canvas = CanvasKind;
 
 type Target = "instagram" | "copy" | "save" | "more";
 
@@ -64,11 +72,6 @@ function loadPrefs(): Prefs {
   } catch {
     return DEFAULT_PREFS;
   }
-}
-
-function canvasOf(template: Template): Canvas {
-  if (template.meta?.transparent) return "sticker";
-  return template.canvas.aspect === "square" ? "square" : "story";
 }
 
 /** Checkerboard stage: a transparent sticker needs a backdrop that shows its transparency. */
@@ -152,12 +155,16 @@ export function ShareStoryButton({
   size,
   className,
   disabled,
+  initialKind,
+  kinds: onlyKinds,
+  renderTrigger,
 }: ShareStoryButtonProps) {
   const { t, i18n } = useTranslation(["makan", "common", "sticker"]);
   const { os } = usePlatform();
   const label = labelProp ?? t("story.share.shareToStory");
   const [open, setOpen] = useState(false);
-  const [canvasKind, setCanvasKind] = useState<Canvas>("story");
+  const [kind, setKind] = useState<string | null>(null);
+  const [canvasKind, setCanvasKind] = useState<Canvas | null>(null);
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
@@ -191,13 +198,12 @@ export function ShareStoryButton({
   );
 
   const templates = useMemo(() => (open ? availableTemplates(spec, stickerPrefs) : []), [open, spec, stickerPrefs]);
-  const canvases = useMemo(
-    () => (["story", "square", "sticker"] as const).filter((c) => templates.some((tpl) => canvasOf(tpl) === c)),
-    [templates],
+  // Kind first (Hari ini, Beruntun, ...), then its format, then its styles; see selectTemplates.
+  const selection = useMemo(
+    () => selectTemplates(templates, { kind, canvas: canvasKind, templateId }, onlyKinds),
+    [templates, kind, canvasKind, templateId, onlyKinds],
   );
-  const activeCanvas = canvases.includes(canvasKind) ? canvasKind : (canvases[0] ?? "story");
-  const inCanvas = useMemo(() => templates.filter((tpl) => canvasOf(tpl) === activeCanvas), [templates, activeCanvas]);
-  const active = inCanvas.find((tpl) => tpl.id === templateId) ?? inCanvas[0] ?? null;
+  const { kinds, activeKind, canvases, activeCanvas, styles: inCanvas, active } = selection;
 
   const scene = useMemo(
     () =>
@@ -209,6 +215,7 @@ export function ShareStoryButton({
 
   const showMore = canShareFiles;
   const showInstagram = canShareFiles && os !== "desktop";
+  const showsName = active !== null && templateShowsName(active);
   const hasWeight = story.kind === "progress" && !story.maternal && story.weightGoalProgress != null;
 
   const cacheKey = scene && active ? `${active.id}|${mode}|${locale}|${JSON.stringify(stickerPrefs)}` : "";
@@ -341,27 +348,35 @@ export function ShareStoryButton({
     setPhotoSrc(url);
     setCanvasKind("story");
     setTemplateId(null);
+    setKind(null);
+  };
+
+  const openSheet = () => {
+    setKind(initialKind ?? null);
+    setCanvasKind(null);
+    setTemplateId(null);
+    setOpen(true);
   };
 
   const stage = scene?.transparent ? (mode === "light" ? STICKER_STAGE_LIGHT : STICKER_STAGE_DARK) : "bg-card";
 
   return (
     <>
-      <Button
-        variant={variant}
-        size={size}
-        className={className}
-        disabled={disabled}
-        aria-label={label ? undefined : (ariaLabel ?? label)}
-        onClick={() => {
-          setCanvasKind("story");
-          setTemplateId(null);
-          setOpen(true);
-        }}
-      >
-        <Share2 className="size-4" aria-hidden />
-        {label}
-      </Button>
+      {renderTrigger ? (
+        renderTrigger(openSheet)
+      ) : (
+        <Button
+          variant={variant}
+          size={size}
+          className={className}
+          disabled={disabled}
+          aria-label={label ? undefined : (ariaLabel ?? label)}
+          onClick={openSheet}
+        >
+          <Share2 className="size-4" aria-hidden />
+          {label}
+        </Button>
+      )}
 
       {open && (
         <div
@@ -388,9 +403,21 @@ export function ShareStoryButton({
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-              {canvases.length > 1 && (
+              {kinds.length > 1 && (
                 <Segmented
-                  label={t("sticker:sheet.pickTemplate")}
+                  label={t("sticker:sheet.kind")}
+                  value={activeKind}
+                  options={kinds.map((k) => ({ value: k, label: t(`sticker:kind.${k}`, { defaultValue: k }) }))}
+                  onChange={(next) => {
+                    setKind(next);
+                    setTemplateId(null);
+                  }}
+                />
+              )}
+
+              {canvases.length > 0 && (
+                <Segmented
+                  label={t("sticker:sheet.format")}
                   value={activeCanvas}
                   options={canvases.map((c) => ({ value: c, label: t(`sticker:canvas.${c}`) }))}
                   onChange={(next) => {
@@ -400,10 +427,10 @@ export function ShareStoryButton({
                 />
               )}
 
-              <div className="flex justify-center rounded-2xl bg-muted py-3">
+              <div className="flex h-[calc(min(38dvh,360px)+1.5rem)] shrink-0 items-center justify-center rounded-2xl bg-muted">
                 {scene ? (
                   <div
-                    className={`relative max-h-[min(38dvh,360px)] max-w-full overflow-hidden rounded-xl ${stage}`}
+                    className={`relative max-h-full max-w-full overflow-hidden rounded-xl ${stage}`}
                     style={{ aspectRatio: `${scene.width} / ${scene.height}`, height: "min(38dvh, 360px)" }}
                   >
                     <canvas
@@ -432,9 +459,9 @@ export function ShareStoryButton({
                 )}
               </div>
 
-              {inCanvas.length > 1 && (
+              {inCanvas.length > 0 && (
                 <Segmented
-                  label={t("sticker:sheet.pickTemplate")}
+                  label={t("sticker:sheet.style")}
                   value={active?.id ?? ""}
                   options={inCanvas.map((tpl) => ({
                     value: tpl.id,
@@ -464,9 +491,13 @@ export function ShareStoryButton({
                   </OptionRow>
                 )}
                 {firstName && (
-                  <OptionRow label={t("sticker:sheet.showName")}>
+                  <OptionRow
+                    label={t("sticker:sheet.showName")}
+                    hint={showsName ? undefined : t("sticker:sheet.nameUnavailable")}
+                  >
                     <Switch
                       label={t("sticker:sheet.showName")}
+                      disabled={!showsName}
                       checked={prefs.showName}
                       onCheckedChange={(value) => updatePrefs({ showName: value })}
                     />

@@ -1,6 +1,6 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trans, useTranslation } from "react-i18next";
 import { Link, Redirect, router } from "expo-router";
 import { Dimensions, Platform, Pressable, Share, ScrollView, View } from "react-native";
@@ -36,7 +36,9 @@ import { StravaRetentionNotice } from "@/components/strava-retention-notice";
 import { useAppConfig } from "@/components/billing";
 import { FoodSticker, StickerViewer, stickerUrl } from "@/components/sticker";
 import type { StickerViewerTarget } from "@/components/sticker";
-import { ShareStoryButton } from "@/components/story/share-story-button";
+import { ShareStoryButton, StoryShareSheet } from "@/components/story/share-story-button";
+import type { StorySpec } from "@/components/story/types";
+import { defaultRecapWeek, recapShare } from "@joyorogo/api/lib/recap";
 import { shareUrl } from "@/src/lib/share-links";
 
 import {
@@ -80,6 +82,9 @@ type PlateItem = {
   kcal: number;
   scanId: string | null;
   photoId?: string | null;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
 };
 
 function greetingKey(date: Date): "morning" | "noon" | "afternoon" | "evening" {
@@ -279,6 +284,47 @@ export default function Dashboard() {
     profileQuery.data?.tier === "free" &&
     configData.freeDailyScans !== null;
 
+  // One progress story feeds the header icon, the streak pill and (as the weekly fallback) nothing else.
+  const progressStory: StorySpec = {
+    kind: "progress",
+    eatenKcal: data.eatenKcal,
+    targetKcal: data.targets.eatKcal,
+    proteinG: data.protein?.eatenG ?? null,
+    proteinTargetG: data.protein?.targetG ?? null,
+    streakDays: data.streakDays,
+    weightLostKg: data.weightLostKg,
+    weightGainedKg: data.weightGainedKg,
+    gain: gain != null,
+    weekTrend: data.weekTrend,
+    carbsG: data.carbsEatenG,
+    fatG: data.fatEatenG,
+    weightGoalProgress: data.weightGoalProgress,
+    weight:
+      data.weightStartKg != null && data.weightNowKg != null
+        ? { startKg: data.weightStartKg, nowKg: data.weightNowKg, goalKg: data.weightGoalKg }
+        : null,
+  };
+  const queryClient = useQueryClient();
+  const [streakOpen, setStreakOpen] = useState(false);
+  const [weightOpen, setWeightOpen] = useState(false);
+  const [recapStory, setRecapStory] = useState<StorySpec | null>(null);
+
+  /** The last finished week as a sticker; the plain text share stays as the fallback when nothing was logged. */
+  const openRecapSticker = async () => {
+    try {
+      const weekStart = defaultRecapWeek(today);
+      const recap = await queryClient.fetchQuery(orpc.stats.weekRecap.queryOptions({ input: { weekStart } }));
+      const share = recap ? recapShare(recap) : null;
+      if (share) {
+        setRecapStory({ kind: "recap", ...share, date: new Date(`${recap!.weekEnd}T12:00:00+07:00`) });
+        return;
+      }
+    } catch {
+      // Offline or failed: fall through to the text share.
+    }
+    shareRecap();
+  };
+
   const shareRecap = () => {
     const pts = (data.weekTrend ?? []).filter((t) => t.weightKg != null) as Array<{
       date: string;
@@ -310,41 +356,25 @@ export default function Dashboard() {
           <Text style={styles.greetCaption}>{fmtDateMedium(jakartaToday())}</Text>
         </View>
         {!maternal && data.streakDays > 0 ? (
-          <View
-            style={styles.streakChip}
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.streakChip, pressed && styles.pressedSoft]}
             accessibilityLabel={
               gain
                 ? t("gain:today.streak", { count: data.streakDays })
                 : t("header.streakLabel", { count: data.streakDays })
             }
+            onPress={() => setStreakOpen(true)}
           >
             <Ionicons name="flame" size={14} color={theme.colors.bakarText} />
             <Num style={styles.streakChipText}>{data.streakDays}</Num>
-          </View>
+          </Pressable>
         ) : null}
         {maternal ? null : (
           <ShareStoryButton
             iconOnly
             label={t("header.share")}
-            story={{
-              kind: "progress",
-              eatenKcal: data.eatenKcal,
-              targetKcal: data.targets.eatKcal,
-              proteinG: data.protein?.eatenG ?? null,
-              proteinTargetG: data.protein?.targetG ?? null,
-              streakDays: data.streakDays,
-              weightLostKg: data.weightLostKg,
-              weightGainedKg: data.weightGainedKg,
-              gain: gain != null,
-              weekTrend: data.weekTrend,
-              carbsG: data.carbsEatenG,
-              fatG: data.fatEatenG,
-              weightGoalProgress: data.weightGoalProgress,
-              weight:
-                data.weightStartKg != null && data.weightNowKg != null
-                  ? { startKg: data.weightStartKg, nowKg: data.weightNowKg, goalKg: data.weightGoalKg }
-                  : null,
-            }}
+            story={progressStory}
           />
         )}
         <Link href="/profil" asChild>
@@ -678,6 +708,9 @@ export default function Dashboard() {
                       name: item.name,
                       kcal: item.kcal,
                       photoId: item.photoId,
+                      protein: item.protein,
+                      carbs: item.carbs,
+                      fat: item.fat,
                     })
                   }
                 />
@@ -772,7 +805,7 @@ export default function Dashboard() {
               iconTint="makan"
               title={t("more.shareRecap")}
               chevron
-              onPress={() => shareRecap()}
+              onPress={() => void openRecapSticker()}
             />
           </ListGroup>
           {data.milestones.length > 0 ? (
@@ -780,7 +813,12 @@ export default function Dashboard() {
               <Text style={styles.milestoneTitle}>{t("more.badges")}</Text>
               <View style={styles.milestoneRow}>
                 {data.milestones.map((badge) => (
-                  <View key={`${badge.kind}-${badge.value}`} style={styles.milestoneBadge}>
+                  <Pressable
+                    key={`${badge.kind}-${badge.value}`}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [styles.milestoneBadge, pressed && styles.pressedSoft]}
+                    onPress={() => (badge.kind === "streak" ? setStreakOpen(true) : setWeightOpen(true))}
+                  >
                     <Ionicons name="trophy" size={13} color={theme.colors.makanText} />
                     <Text style={styles.milestoneText}>
                       {badge.kind === "streak"
@@ -789,7 +827,7 @@ export default function Dashboard() {
                           ? t("gain:milestone.gained", { kg: badge.value })
                           : t("milestone.lost", { kg: badge.value })}
                     </Text>
-                  </View>
+                  </Pressable>
                 ))}
               </View>
             </Card>
@@ -909,6 +947,13 @@ export default function Dashboard() {
 
       {/* Stiker penuh dari Diari piring */}
       <StickerViewer viewer={viewer} onClose={() => setViewer(null)} />
+
+      {/* Streak dan rekap mingguan: lembar bagikan terbuka langsung di jenis yang dituju */}
+      <StoryShareSheet story={progressStory} open={streakOpen} onClose={() => setStreakOpen(false)} initialKind="streak" />
+      <StoryShareSheet story={progressStory} open={weightOpen} onClose={() => setWeightOpen(false)} initialKind="weight" />
+      {recapStory ? (
+        <StoryShareSheet story={recapStory} open onClose={() => setRecapStory(null)} initialKind="week" />
+      ) : null}
     </Screen>
   );
 }

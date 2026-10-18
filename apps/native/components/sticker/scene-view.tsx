@@ -1,5 +1,5 @@
-import { memo, useMemo, type ReactElement } from "react";
-import { PixelRatio } from "react-native";
+import { memo, useEffect, useMemo, type ReactElement } from "react";
+import { Image, PixelRatio, StyleSheet, View } from "react-native";
 import Svg, {
   ClipPath,
   Defs,
@@ -14,6 +14,7 @@ import Svg, {
   Text as SvgText,
 } from "react-native-svg";
 
+import { nestedImageUris, splitSceneLayers } from "@/src/lib/scene-layers";
 import {
   rogoNativeFonts,
   splitColor,
@@ -34,7 +35,6 @@ import {
 
 export type ImageStatus = "loaded" | "error";
 
-/** react-native-svg's Image has no error callback, so failures are detected separately (see ImageProbe). */
 
 type Ids = { next(prefix: string): string };
 
@@ -230,20 +230,71 @@ export const SceneView = memo(function SceneView({
   scene: Scene;
   onImage?: (uri: string, status: ImageStatus) => void;
 }) {
-  const body = useMemo(() => {
+  const layers = useMemo(() => {
     let count = 0;
-    const ctx: Ctx = { defs: [], ids: { next: (prefix) => `${prefix}${count++}` }, onImage };
-    const nodes = scene.nodes.map((node, i) => renderNode(node, `n${i}`, ctx));
-    return { defs: ctx.defs, nodes };
+    const ids: Ids = { next: (prefix) => `${prefix}${count++}` };
+    return splitSceneLayers(scene.nodes).map((layer, li) => {
+      if (layer.kind === "image") return { kind: "image" as const, node: layer.node, key: `l${li}` };
+      const ctx: Ctx = { defs: [], ids, onImage };
+      const nodes = layer.nodes.map((node, i) => renderNode(node, `l${li}n${i}`, ctx));
+      return { kind: "svg" as const, defs: ctx.defs, nodes, key: `l${li}` };
+    });
   }, [scene, onImage]);
+
+  // Images nested in groups are painted by the Svg, which cannot report loads: treat them as ready.
+  useEffect(() => {
+    for (const uri of nestedImageUris(scene.nodes)) onImage?.(uri, "loaded");
+  }, [scene, onImage]);
+
+  const w = designToDp(scene.width);
+  const h = designToDp(scene.height);
   return (
-    <Svg
-      width={designToDp(scene.width)}
-      height={designToDp(scene.height)}
-      viewBox={`0 0 ${scene.width} ${scene.height}`}
-    >
-      {body.defs.length ? <Defs>{body.defs}</Defs> : null}
-      {body.nodes}
-    </Svg>
+    <View style={{ width: w, height: h }}>
+      {layers.map((layer) =>
+        layer.kind === "svg" ? (
+          <Svg
+            key={layer.key}
+            width={w}
+            height={h}
+            viewBox={`0 0 ${scene.width} ${scene.height}`}
+            style={StyleSheet.absoluteFill}
+          >
+            {layer.defs.length ? <Defs>{layer.defs}</Defs> : null}
+            {layer.nodes}
+          </Svg>
+        ) : (
+          <SceneImage key={layer.key} node={layer.node} onImage={onImage} />
+        ),
+      )}
+    </View>
   );
 });
+
+function SceneImage({
+  node,
+  onImage,
+}: {
+  node: Extract<SceneNode, { k: "image" }>;
+  onImage?: (uri: string, status: ImageStatus) => void;
+}) {
+  const radius = node.rx ? designToDp(Math.min(node.rx, Math.min(node.w, node.h) / 2)) : 0;
+  return (
+    <Image
+      source={{ uri: node.uri }}
+      resizeMode={node.fit}
+      onLoad={() => onImage?.(node.uri, "loaded")}
+      onError={() => onImage?.(node.uri, "error")}
+      fadeDuration={0}
+      style={{
+        position: "absolute",
+        left: designToDp(node.x),
+        top: designToDp(node.y),
+        width: designToDp(node.w),
+        height: designToDp(node.h),
+        borderRadius: radius,
+        opacity: node.opacity,
+        overflow: "hidden",
+      }}
+    />
+  );
+}

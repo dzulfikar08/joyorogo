@@ -130,6 +130,13 @@ function localDayKey(date: Date): string {
   return `${date.getFullYear()}-${month}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+/** 0..1 share of the way from the start weight to the goal weight; null without a gap to cover. */
+export function weightGoalProgress(startKg: number, nowKg: number, goalKg: number): number | null {
+  const span = goalKg - startKg;
+  if (Math.abs(span) < 0.5) return null;
+  return Math.min(1, Math.max(0, (nowKg - startKg) / span));
+}
+
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 function dayData(spec: ProgressStory): Record<string, unknown> {

@@ -250,6 +250,20 @@ const dateText = (id: string, at: { x: number; y: number; w: number }, o: { alig
   box: { x: at.x, y: at.y, w: at.w },
 });
 
+/** First name, hidden without `user.name`. Quiet line for headers and sticker bodies. */
+const nameText = (id: string, o: { w: number | "auto"; size?: number; align?: "left" | "center" | "right"; color?: string; shadow?: boolean }): LayerInput => ({
+  id,
+  type: "text",
+  value: "{user.name}",
+  size: o.size ?? 34,
+  weight: 700,
+  color: o.color ?? "$fgSoft",
+  align: o.align ?? "left",
+  shadow: o.shadow ?? false,
+  fit: { mode: "shrink", minSize: 24 },
+  box: { x: 0, y: 0, w: o.w },
+});
+
 /** The streak line, hidden without a streak. */
 const streakRow = (id: string, o: { icon: number; size: number; color?: string; iconColor?: string; shadow?: boolean }): LayerInput => ({
   id,
@@ -326,7 +340,16 @@ const dayBoldStory = defineTemplate({
           layout: { kind: "stack", dir: "row", gap: 24, align: "center", justify: "between" },
           children: [
             { ...eyebrowText("eyebrow", { x: 0, y: 0, w: 480 }), box: { x: 0, y: 0, w: "auto" } },
-            { ...dateText("date", { x: 0, y: 0, w: 500 }), box: { x: 0, y: 0, w: "auto" } },
+            {
+              id: "head-end",
+              type: "group",
+              box: { x: 0, y: 0, w: "auto", h: "auto" },
+              layout: { kind: "stack", dir: "column", gap: 8, align: "end" },
+              children: [
+                { ...dateText("date", { x: 0, y: 0, w: 500 }), box: { x: 0, y: 0, w: "auto" } },
+                nameText("name", { w: 420, align: "right" }),
+              ],
+            },
           ],
         },
         {
@@ -468,6 +491,7 @@ const dayMinimalSticker = defineTemplate({
       box: { x: 570, y: 40, w: 420, h: 440 },
       layout: { kind: "stack", dir: "column", gap: 34, align: "start", justify: "center" },
       children: [
+        nameText("name", { w: 420, size: 36, shadow: true }),
         ...statusStat("status", { x: 0, y: 0, w: 420 }, { size: 124, label: 36, shadow: true, gap: 16, labelColor: "$fgSoft" }),
         {
           id: "macro-rows",
@@ -515,6 +539,7 @@ const dayRingSquare = defineTemplate({
           children: [
             eyebrowText("eyebrow", { x: 0, y: 0, w: 600 }, { align: "center", size: 32 }),
             dateText("date", { x: 0, y: 0, w: 600 }, { align: "center", size: 30 }),
+            nameText("name", { w: 600, size: 32, align: "center" }),
           ],
         },
         {
@@ -610,6 +635,19 @@ const dayReceiptStory = defineTemplate({
                   case: "upper",
                   color: INK_SOFT,
                   align: "center",
+                  box: { x: 0, y: 0, w: RECEIPT_W },
+                },
+                {
+                  id: "cashier",
+                  type: "text",
+                  value: "{user.name}",
+                  font: "mono",
+                  size: 34,
+                  weight: 700,
+                  case: "upper",
+                  color: INK,
+                  align: "center",
+                  fit: { mode: "shrink", minSize: 24 },
                   box: { x: 0, y: 0, w: RECEIPT_W },
                 },
                 receiptRule("head-rule", 0, 0, RECEIPT_W),
@@ -836,6 +874,7 @@ const dayPosterStory = defineTemplate({
   layers: [
     eyebrowText("eyebrow", { x: 72, y: 280, w: 480 }, { color: "$fg" }),
     dateText("date", { x: 508, y: 282, w: 500 }, { color: "$fgSoft" }),
+    { ...nameText("name", { w: 500, align: "right", color: "$fgMuted" }), box: { x: 508, y: 328, w: 500 } },
     {
       id: "body",
       type: "group",
@@ -900,6 +939,7 @@ const dayGlassStory = defineTemplate({
   layers: [
     eyebrowText("eyebrow", { x: 72, y: 280, w: 480 }, { color: "$fg" }),
     { ...dateText("date", { x: 508, y: 282, w: 500 }, { color: "$fgSoft", shadow: true }) },
+    { ...nameText("name", { w: 500, align: "right", shadow: true }), box: { x: 508, y: 328, w: 500 } },
     {
       id: "dock",
       type: "group",

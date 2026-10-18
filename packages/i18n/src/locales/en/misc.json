@@ -146,7 +146,7 @@
       },
       "bestDay": {
         "label": "Best day",
-        "sub": "{{kcal}} kcal, closest to target",
+        "sub": "{{kcal}} kcal, closest to target among on-target days",
         "none": "no day on target yet"
       }
     },

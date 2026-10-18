@@ -48,6 +48,9 @@ import {
 import { useWeightCheckIn } from "@/lib/optimistic";
 import type { WeightHistory } from "@/lib/api-types";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
+import { ShareStoryButton } from "@/components/story/share-story-button";
+import type { StorySpec } from "@/components/story/story-spec";
+import { weightGoalProgress } from "@joyorogo/sticker";
 import { client, orpc } from "@/utils/orpc";
 
 // 365 = the API cap, so the "Semua" range really shows everything.
@@ -766,6 +769,31 @@ function StatCell({
   );
 }
 
+type WeightSummary = WeightHistory["summary"];
+
+/** The progress story the weight stickers read: goal progress, a normalized trend, and (opt-in only) the kg values. */
+function weightStory(
+  summary: WeightSummary,
+  entries: WeightHistory["entries"],
+  day: { eatenKcal: number; targets: { eatKcal: number } | null } | undefined,
+): StorySpec {
+  const start = summary.startKg;
+  const now = summary.latestKg;
+  const lost = !summary.gain && summary.deltaKg !== null && summary.deltaKg < 0 ? -summary.deltaKg : 0;
+  return {
+    kind: "progress",
+    eatenKcal: day?.eatenKcal ?? 0,
+    targetKcal: day?.targets?.eatKcal ?? 0,
+    gain: summary.gain !== null,
+    weightLostKg: lost,
+    weightGainedKg: summary.gain?.gainedKg ?? 0,
+    weekTrend: entries.slice(-14).map((e) => ({ date: e.date, weightKg: e.weightKg })),
+    weightGoalProgress:
+      start !== null && now !== null && summary.targetKg !== null ? weightGoalProgress(start, now, summary.targetKg) : null,
+    weight: start !== null && now !== null ? { startKg: start, nowKg: now, goalKg: summary.targetKg } : null,
+  };
+}
+
 function BeratPage() {
   const history = useQuery(historyOptions);
   if (history.isPending) return <BeratSkeleton />;
@@ -917,6 +945,16 @@ function BeratScreen({ history }: { history: WeightHistory }) {
         className="pb-3"
         action={
           <span className="flex items-center gap-2">
+            {weightSummary.latestKg !== null && !maternal && (
+              <ShareStoryButton
+                label=""
+                ariaLabel={t("page.shareSticker")}
+                variant="secondary"
+                size="icon"
+                kinds={["weight"]}
+                story={weightStory(weightSummary, entries, summary.data)}
+              />
+            )}
             {weightSummary.latestKg !== null && !maternal && (
               <Button variant="secondary" onClick={() => setShareOpen(true)}>
                 <Share2 className="size-4" aria-hidden />

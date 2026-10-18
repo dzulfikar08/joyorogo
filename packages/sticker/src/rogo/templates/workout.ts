@@ -212,6 +212,17 @@ const workoutBoldStory = defineTemplate({
       ],
     },
     watermark("wm", { x: 72, y: 1510, w: 936 }, "start"),
+    {
+      id: "name-user",
+      type: "text",
+      value: "{user.name}",
+      size: 34,
+      weight: 700,
+      color: "$fgMuted",
+      align: "right",
+      fit: { mode: "shrink", minSize: 24 },
+      box: { x: 608, y: 1518, w: 400 },
+    },
   ],
 });
 
@@ -233,7 +244,16 @@ function receiptBody(): LayerInput {
       mono("r-brand", "JoyoRogo", 30, 700, { letterSpacing: 8, color: INK_SOFT, case: "upper" }),
       mono("r-title", { t: "sticker:workout.receipt.title" }, 44, 800, { case: "upper", letterSpacing: 2 }),
       mono("r-name", "{workout.name}", 52, 700, { fit: { mode: "shrink", minSize: 28 } }),
-      mono("r-date", "{date|date:medium}", 30, 500, { color: INK_SOFT }),
+      {
+        id: "r-when",
+        type: "group",
+        box: { x: 0, y: 0, w: W, h: "auto" },
+        layout: { kind: "stack", dir: "row", gap: 24, align: "center", justify: "center" },
+        children: [
+          mono("r-user", "{user.name}", 30, 700, { box: { x: 0, y: 0, w: "auto" }, fit: { mode: "shrink", minSize: 24 } }),
+          mono("r-date", "{date|date:medium}", 30, 500, { color: INK_SOFT, box: { x: 0, y: 0, w: "auto" } }),
+        ],
+      },
       receiptRule("r-rule1", 0, 0, W),
       row("r-duration", { t: "sticker:workout.duration" }, MINUTES, DURATION),
       row("r-sets", { t: "sticker:workout.sets" }, "{workout.sets|int}", SETS),
@@ -406,6 +426,18 @@ const workoutGlassStory = defineTemplate({
         { id: "wm-link", type: "brand", mark: "link", tone: "light", size: 30, box: { x: 0, y: 0 } },
       ],
     } as LayerInput,
+    {
+      id: "name-user",
+      type: "text",
+      value: "{user.name}",
+      size: 34,
+      weight: 700,
+      color: "$fgMuted",
+      align: "right",
+      shadow: true,
+      fit: { mode: "shrink", minSize: 24 },
+      box: { x: 608, y: 1518, w: 400 },
+    },
   ],
 });
 

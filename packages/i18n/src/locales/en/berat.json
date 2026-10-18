@@ -9,6 +9,7 @@
     "titleShort": "Weight",
     "weigh": "Weigh in",
     "weighNow": "Weigh in now",
+    "shareSticker": "Share weight sticker",
     "share": "Share progress",
     "loading": "Loading weight history"
   },
@@ -18,6 +19,7 @@
     "bodyNative": "Save your first weigh-in to see your trend and goal projection."
   },
   "hero": {
+    "share": "Share weight progress",
     "trendLabel": "Trend weight",
     "scale": "Scale {{kg}} kg · {{date}}",
     "steadyWeek": "Steady this week",

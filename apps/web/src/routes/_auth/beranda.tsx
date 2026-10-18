@@ -37,6 +37,7 @@ import { ScreenError } from "@/components/screen-state";
 import { RecapCard } from "@/components/recap-card";
 import { StravaRetentionNotice } from "@/components/strava-retention-notice";
 import { ShareStoryButton } from "@/components/story/share-story-button";
+import type { StorySpec } from "@/components/story/story-spec";
 import { Sticker } from "@/components/sticker";
 import { MaternalCard } from "@/components/maternal/maternal-card";
 import { MaternalEatHero } from "@/components/maternal/eat-hero";
@@ -211,6 +212,29 @@ function Dashboard({
   const targets = summary.targets;
   const maternal = targets.maternal;
   const gain = targets.gain ?? null;
+  const progressStory: StorySpec = {
+    kind: "progress",
+    eatenKcal: summary.eatenKcal,
+    targetKcal: summary.targets.eatKcal,
+    proteinG: summary.protein.eatenG,
+    proteinTargetG: summary.protein.targetG,
+    streakDays: summary.streakDays,
+    weightLostKg: summary.weightLostKg,
+    gain: gain !== null,
+    weightGainedKg: summary.weightGainedKg,
+    weekTrend: summary.weekTrend,
+    carbsG: summary.carbsEatenG,
+    fatG: summary.fatEatenG,
+    weightGoalProgress: summary.weightGoalProgress,
+    weight:
+      summary.weightStartKg != null && summary.weightNowKg != null
+        ? {
+            startKg: summary.weightStartKg,
+            nowKg: summary.weightNowKg,
+            goalKg: summary.weightGoalKg,
+          }
+        : null,
+  };
   const firstName = session.user.name?.split(" ")[0];
   const isToday = date === jakartaToday();
   const firstVisit = useFirstVisit("beranda");
@@ -250,45 +274,31 @@ function Dashboard({
               ariaLabel={t("header.share")}
               variant="secondary"
               size="icon"
-              story={{
-                kind: "progress",
-                eatenKcal: summary.eatenKcal,
-                targetKcal: summary.targets.eatKcal,
-                proteinG: summary.protein.eatenG,
-                proteinTargetG: summary.protein.targetG,
-                streakDays: summary.streakDays,
-                weightLostKg: summary.weightLostKg,
-                gain: gain !== null,
-                weightGainedKg: summary.weightGainedKg,
-                weekTrend: summary.weekTrend,
-                carbsG: summary.carbsEatenG,
-                fatG: summary.fatEatenG,
-                weightGoalProgress: summary.weightGoalProgress,
-                weight:
-                  summary.weightStartKg != null && summary.weightNowKg != null
-                    ? {
-                        startKg: summary.weightStartKg,
-                        nowKg: summary.weightNowKg,
-                        goalKg: summary.weightGoalKg,
-                      }
-                    : null,
-              }}
+              story={progressStory}
             />
           )}
           {summary.streakDays > 0 && (
-            <span
-              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-bakar-soft px-3 text-sm font-bold text-bakar-ink tabular-nums"
-              title={gain ? t("gain:today.streakRule") : t("header.streakTitle")}
-            >
-              <Flame className="size-4" aria-hidden />
-              {summary.streakDays}
-              <span className="sr-only">
-                {" "}
-                {gain
-                  ? t("gain:today.streak", { count: summary.streakDays })
-                  : t("header.streakDays", { count: summary.streakDays })}
-              </span>
-            </span>
+            <ShareStoryButton
+              story={progressStory}
+              initialKind="streak"
+              renderTrigger={(open) => (
+                <button
+                  type="button"
+                  onClick={open}
+                  className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-bakar-soft px-3 text-sm font-bold text-bakar-ink tabular-nums outline-none transition-transform active:scale-95 focus-visible:ring-[3px] focus-visible:ring-ring/40 motion-reduce:transition-none"
+                  title={gain ? t("gain:today.streakRule") : t("header.streakTitle")}
+                >
+                  <Flame className="size-4" aria-hidden />
+                  {summary.streakDays}
+                  <span className="sr-only">
+                    {" "}
+                    {gain
+                      ? t("gain:today.streak", { count: summary.streakDays })
+                      : t("header.streakDays", { count: summary.streakDays })}
+                  </span>
+                </button>
+              )}
+            />
           )}
           <Link
             to="/profil"

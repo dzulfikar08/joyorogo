@@ -2,7 +2,18 @@ import { describe, expect, test } from "bun:test";
 
 import { lintTemplate, type Scene, type SceneNode, type Template } from "../core";
 import { resources } from "@joyorogo/i18n";
-import { availableTemplates, buildStickerData, rogoTemplates, renderSticker, rogoWebFonts, streakMilestone, type StorySpec } from "./index";
+import {
+  availableTemplates,
+  buildStickerData,
+  canvasOf,
+  rogoTemplates,
+  renderSticker,
+  rogoWebFonts,
+  selectTemplates,
+  streakMilestone,
+  templateShowsName,
+  type StorySpec,
+} from "./index";
 import { FIXTURES, fixtureFor, type FixtureId } from "./fixtures";
 import { ROGO_TEMPLATE_SOURCES } from "./templates";
 
@@ -225,5 +236,95 @@ describe("data builders", () => {
     expect(offered).toContain("meal.cutout.sticker");
     const plain = availableTemplates(FIXTURES["meal-plain"].spec, {}).map((t) => t.id);
     expect(plain).not.toContain("meal.cutout.story");
+  });
+});
+
+describe("share sheet selection", () => {
+  const all = templates;
+
+  test("a format switch never changes the kind", () => {
+    for (const kind of new Set(all.map((t) => t.kind))) {
+      const own = all.filter((t) => t.kind === kind);
+      for (const canvas of ["story", "square", "sticker"] as const) {
+        const sel = selectTemplates(own, { kind, canvas });
+        expect(sel.activeKind).toBe(kind);
+        expect(sel.styles.every((t) => t.kind === kind)).toBe(true);
+      }
+    }
+  });
+
+  test("offered formats and styles belong to the active kind", () => {
+    const sel = selectTemplates(all, { kind: "streak", canvas: "square" });
+    expect(sel.activeKind).toBe("streak");
+    expect(sel.canvases).toEqual(["story", "square", "sticker"]);
+    expect(sel.styles.map((t) => t.id)).toEqual(["streak.poster.square"]);
+    const meal = selectTemplates(all, { kind: "meal", canvas: "story" });
+    expect(meal.canvases).toContain("sticker");
+  });
+
+  test("switching kind keeps the format when the new kind has it, else its first", () => {
+    const keep = selectTemplates(all, { kind: "weight", canvas: "sticker" });
+    expect(keep.activeCanvas).toBe("sticker");
+    const fallback = selectTemplates(all.filter((t) => t.kind !== "weight" || canvasOf(t) !== "sticker"), { kind: "weight", canvas: "sticker" });
+    expect(fallback.activeKind).toBe("weight");
+    expect(fallback.activeCanvas).toBe(fallback.canvases[0]!);
+  });
+
+  test("unknown picks fall back, kinds can be restricted", () => {
+    const sel = selectTemplates(all, { kind: "nope", canvas: "square", templateId: "ghost" });
+    expect(sel.activeKind).toBe(sel.kinds[0]!);
+    expect(sel.active).not.toBeNull();
+    const only = selectTemplates(all, { kind: "day" }, ["weight"]);
+    expect(only.kinds).toEqual(["weight"]);
+    expect(only.activeKind).toBe("weight");
+  });
+
+  test("within a kind and format every style label is unique", () => {
+    for (const kind of new Set(all.map((t) => t.kind))) {
+      for (const canvas of ["story", "square", "sticker"] as const) {
+        const styles = selectTemplates(all, { kind, canvas }).styles.map((t) => t.style);
+        expect({ kind, canvas, styles }).toEqual({ kind, canvas, styles: [...new Set(styles)] });
+      }
+    }
+  });
+});
+
+describe("images reach the native painter as top-level nodes", () => {
+  // React Native's own Image paints top-level image nodes and reports their load; an image buried in a
+  // group would be drawn by react-native-svg, which cannot report it (this broke the meal photo styles).
+  test("no template nests an image inside a group", () => {
+    const nested = (nodes: SceneNode[], inGroup: boolean): string[] =>
+      nodes.flatMap((n) => (n.k === "group" ? nested(n.children, true) : n.k === "image" && inGroup ? [n.uri] : []));
+    for (const [fid, f] of Object.entries(FIXTURES) as Array<[FixtureId, (typeof FIXTURES)[FixtureId]]>) {
+      const photo = (f as { photo?: string }).photo ? { uri: `fixture:${(f as { photo?: string }).photo}` } : null;
+      for (const t of availableTemplates(f.spec, { photo })) {
+        expect({ t: t.id, fid, nested: nested(render(t, fid).nodes, false) }).toEqual({ t: t.id, fid, nested: [] });
+      }
+    }
+  });
+
+  test("a photo-less meal is not offered the full-bleed photo style, a cutout meal gets the cutout styles", () => {
+    const plain = availableTemplates(FIXTURES["meal-plain"].spec, {}).map((t) => t.id);
+    expect(plain).not.toContain("meal.photo.story");
+    const cutout = availableTemplates(FIXTURES["meal-cutout"].spec, {}).map((t) => t.id);
+    expect(cutout).not.toContain("meal.photo.story");
+    expect(cutout).toContain("meal.cutout.story");
+    const withPhoto = availableTemplates(FIXTURES["meal-photo"].spec, { photo: { uri: "fixture:meal.jpg" } }).map((t) => t.id);
+    expect(withPhoto).toContain("meal.photo.story");
+  });
+
+  test("a meal with a private original photo and a cutout fills both slots", () => {
+    const data = buildStickerData(FIXTURES["meal-cutout"].spec, { photo: { uri: "file:///cache/photo-1.jpg" } });
+    expect(data.assets?.photo?.uri).toBe("file:///cache/photo-1.jpg");
+    expect(data.assets?.cutout?.uri).toBe("fixture:cutout.png");
+  });
+
+  test("name toggle: styles that bind the name show it, the sticker mark chip carries it", () => {
+    const showers = templates.filter((t) => templateShowsName(t));
+    expect(showers.length).toBeGreaterThanOrEqual(templates.length - 2);
+    for (const t of showers) {
+      const withName = textsOf(render(t, fixtureFor(t), { userName: "Rani", options: { showName: true } })).join(" ");
+      expect({ id: t.id, shown: /rani/i.test(withName) }).toEqual({ id: t.id, shown: true });
+    }
   });
 });

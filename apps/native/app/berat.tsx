@@ -47,6 +47,9 @@ import {
 import { Mascot } from "@/components/mascot";
 import { WeighInSheet } from "@/components/weigh-in-sheet";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
+import { ShareStoryButton } from "@/components/story/share-story-button";
+import type { StorySpec } from "@/components/story/types";
+import { weightGoalProgress } from "@joyorogo/sticker";
 import { WaistSection } from "@/components/waist-section";
 import { WeightGainCard } from "@/components/maternal/weight-gain-chart";
 import { useMaternal } from "@/components/maternal/use-maternal";
@@ -670,6 +673,39 @@ function WeightChart({
   );
 }
 
+type WeightSummary = {
+  startKg: number | null;
+  latestKg: number | null;
+  deltaKg: number | null;
+  targetKg: number | null;
+  gain: { gainedKg: number } | null;
+};
+
+/** The progress story the weight stickers read: goal progress, a normalized trend, and (opt-in only) the kg values. */
+function weightStory(
+  summary: WeightSummary,
+  entries: Array<{ date: string; weightKg: number }>,
+  day: { eatenKcal: number; targets: { eatKcal: number } | null } | undefined,
+): StorySpec {
+  const start = summary.startKg;
+  const now = summary.latestKg;
+  const lost = !summary.gain && summary.deltaKg !== null && summary.deltaKg < 0 ? -summary.deltaKg : 0;
+  return {
+    kind: "progress",
+    eatenKcal: day?.eatenKcal ?? 0,
+    targetKcal: day?.targets?.eatKcal ?? 0,
+    gain: summary.gain !== null,
+    weightLostKg: lost,
+    weightGainedKg: summary.gain?.gainedKg ?? 0,
+    weekTrend: entries.slice(-14).map((e) => ({ date: e.date, weightKg: e.weightKg })),
+    weightGoalProgress:
+      start !== null && now !== null && summary.targetKg !== null
+        ? weightGoalProgress(start, now, summary.targetKg)
+        : null,
+    weight: start !== null && now !== null ? { startKg: start, nowKg: now, goalKg: summary.targetKg } : null,
+  };
+}
+
 export default function Berat() {
   const { theme } = useUnistyles();
   const { t } = useTranslation(["berat", "common", "gain"]);
@@ -821,12 +857,22 @@ export default function Berat() {
           title={t("page.titleShort")}
           right={
             hasData ? (
-              <Button
-                size="sm"
-                icon="scale-outline"
-                label={t("hero.weighToday")}
-                onPress={() => setSheetOpen(true)}
-              />
+              <View style={styles.headerActions}>
+                {maternal || summary.latestKg === null ? null : (
+                  <ShareStoryButton
+                    iconOnly
+                    label={t("hero.share")}
+                    story={weightStory(summary, entries, dayQuery.data)}
+                    kinds={["weight"]}
+                  />
+                )}
+                <Button
+                  size="sm"
+                  icon="scale-outline"
+                  label={t("hero.weighToday")}
+                  onPress={() => setSheetOpen(true)}
+                />
+              </View>
             ) : undefined
           }
         />
@@ -1245,6 +1291,7 @@ export default function Berat() {
 }
 
 const styles = StyleSheet.create((theme) => ({
+  headerActions: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
   trendLabel: {
     fontSize: theme.fontSize.sm,
     fontWeight: "600",

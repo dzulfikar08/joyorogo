@@ -20,15 +20,11 @@ import { authClient } from "@/lib/auth-client";
 // Must stay named `ENV`: varlock's babel plugin only inlines `ENV.X` reads;
 // anything else hits the runtime proxy, which throws in release builds.
 import { ENV } from "../src/env";
+import { photoUrl } from "@/components/sticker/private-photo";
 import { fmtKcalLabel } from "@/utils/format";
 
 export function stickerUrl(scanId: string): string {
   return `${ENV.EXPO_PUBLIC_SERVER_URL}/sticker/${scanId}`;
-}
-
-/** Original scan photo; the server only serves it to its owner's session. */
-function photoUrl(photoId: string): string {
-  return `${ENV.EXPO_PUBLIC_SERVER_URL}/photo/${photoId}`;
 }
 
 /** Cutouts are made in the background after saving: retry briefly, then give up. */
@@ -311,6 +307,7 @@ export function StickerViewer({
                 fat: viewer.fat,
                 photoUri: viewer.uri,
                 photoCutout: true,
+                photoId: viewer.photoId,
               }}
               variant="secondary"
               style={styles.viewerShare}

@@ -142,7 +142,7 @@
       },
       "bestDay": {
         "label": "Hari terbaik",
-        "sub": "{{kcal}} kcal, paling dekat target",
+        "sub": "{{kcal}} kcal, terdekat target di antara hari sesuai target",
         "none": "belum ada hari sesuai target"
       }
     },

@@ -8,7 +8,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  Image,
   Linking,
   Platform,
   ScrollView,
@@ -26,6 +25,7 @@ import { Button, Chip, Segmented, Sheet, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { InstagramGlyph } from "@/components/story/instagram-glyph";
 import { ensureStickerFonts } from "@/components/sticker/fonts";
+import { fetchPrivatePhoto } from "@/components/sticker/private-photo";
 import { downscalePhoto } from "@/components/sticker/photo";
 import {
   DEFAULT_STICKER_PREFS,
@@ -51,8 +51,10 @@ import {
   availableTemplates,
   renderSticker,
   rogoNativeFonts,
+  selectTemplates,
+  templateShowsName,
+  type CanvasKind,
   type StickerPrefs,
-  type Template,
 } from "@joyorogo/sticker";
 
 type ShareStoryButtonProps = {
@@ -64,9 +66,13 @@ type ShareStoryButtonProps = {
   size?: "lg" | "sm";
   disabled?: boolean;
   style?: object;
+  /** Open on this kind (e.g. "streak") instead of the first one. */
+  initialKind?: string;
+  /** Offer only these kinds (e.g. the weight screen offers just "weight"). */
+  kinds?: string[];
 };
 
-type Canvas = "story" | "square" | "sticker";
+type Canvas = CanvasKind;
 
 type Target = "instagram" | "copy" | "save" | "more";
 
@@ -94,17 +100,16 @@ function nextFrame(): Promise<void> {
 
 const EXPORT_WIDTH = 1080;
 
-function canvasOf(template: Template): Canvas {
-  if (template.meta?.transparent) return "sticker";
-  return template.canvas.aspect === "square" ? "square" : "story";
-}
-
-/** Checkerboard: a transparent sticker needs a stage that shows the transparency in both themes. */
-function StickerBackdrop({ light }: { light: boolean }) {
+/**
+ * Checkerboard: a transparent sticker needs a stage that shows the transparency in both themes.
+ * Explicit pixel size: react-native-svg keeps a percentage size from its first layout, so a
+ * "100%" backdrop stayed the size of the previous sticker when the style changed.
+ */
+function StickerBackdrop({ light, width, height }: { light: boolean; width: number; height: number }) {
   const a = light ? "#d9d6cf" : "#1a1d1b";
   const b = light ? "#eceae4" : "#262a28";
   return (
-    <Svg width="100%" height="100%" style={styles.backdrop}>
+    <Svg width={width} height={height} style={styles.backdrop}>
       <Defs>
         <Pattern id="checker" width={20} height={20} patternUnits="userSpaceOnUse">
           <Rect width={20} height={20} fill={a} />
@@ -112,7 +117,7 @@ function StickerBackdrop({ light }: { light: boolean }) {
           <Rect x={10} y={10} width={10} height={10} fill={b} />
         </Pattern>
       </Defs>
-      <Rect width="100%" height="100%" fill="url(#checker)" />
+      <Rect width={width} height={height} fill="url(#checker)" />
     </Svg>
   );
 }
@@ -203,23 +208,30 @@ function OptionRow({
  * The sheet is a Modal, which covers the toast layer: successful copy/save close it
  * first and then toast, failures stay inline in the sheet.
  */
-export function ShareStoryButton({
+export function StoryShareSheet({
   story,
-  label: labelProp,
-  iconOnly = false,
-  variant = "primary",
-  size,
-  disabled,
-  style,
-}: ShareStoryButtonProps) {
+  open,
+  onClose,
+  initialKind,
+  kinds: onlyKinds,
+}: {
+  story: StorySpec;
+  open: boolean;
+  onClose: () => void;
+  /** The kind (day, streak, weight, ...) to open on, when the entry point is specific. */
+  initialKind?: string;
+  /** Offer only these kinds. */
+  kinds?: string[];
+}) {
   const { t, i18n } = useTranslation(["makan", "common", "sticker"]);
-  const label = labelProp ?? t("story.share.shareToStory");
   const cardRef = useRef<View>(null);
   const promptDecision = useRef<PromiseWithResolvers<boolean> | null>(null);
-  const [open, setOpen] = useState(false);
   const [pickedPhoto, setPickedPhoto] = useState<string | null>(null);
-  const [canvas, setCanvas] = useState<Canvas>("story");
+  const [kind, setKind] = useState<string | null>(initialKind ?? null);
+  const [canvas, setCanvas] = useState<Canvas | null>(null);
   const [templateId, setTemplateId] = useState<string | null>(null);
+  // The private original photo of a meal, fetched with the session; "failed" just drops the photo styles.
+  const [original, setOriginal] = useState<string | "failed" | null>(null);
   const [busyTarget, setBusyTarget] = useState<Target | null>(null);
   const [actionFailure, setActionFailure] = useState<ActionFailure | null>(null);
   const [igInstalled, setIgInstalled] = useState(false);
@@ -251,30 +263,27 @@ export function ShareStoryButton({
   const stickerPrefs: StickerPrefs = useMemo(
     () => ({
       userName: effective.showName ? firstName : null,
-      photo: pickedPhoto ? { uri: pickedPhoto } : null,
+      photo: pickedPhoto ? { uri: pickedPhoto } : original && original !== "failed" ? { uri: original } : null,
       options: {
         hideNumbers: effective.hideNumbers,
         showName: effective.showName && firstName !== null,
         watermark: effective.watermark,
       },
     }),
-    [effective.hideNumbers, effective.showName, effective.watermark, firstName, pickedPhoto],
+    [effective.hideNumbers, effective.showName, effective.watermark, firstName, pickedPhoto, original],
   );
 
   const templates = useMemo(
     () => (open ? availableTemplates(story, stickerPrefs) : []),
     [open, story, stickerPrefs],
   );
-  const canvases = useMemo(
-    () => (["story", "square", "sticker"] as const).filter((c) => templates.some((tpl) => canvasOf(tpl) === c)),
-    [templates],
+  // Kind first (Hari ini, Beruntun, ...), then the format it comes in, then its styles; see selectTemplates.
+  const selection = useMemo(
+    () => selectTemplates(templates, { kind, canvas, templateId }, onlyKinds),
+    [templates, kind, canvas, templateId, onlyKinds],
   );
-  const activeCanvas = canvases.includes(canvas) ? canvas : (canvases[0] ?? "story");
-  const inCanvas = useMemo(
-    () => templates.filter((tpl) => canvasOf(tpl) === activeCanvas),
-    [templates, activeCanvas],
-  );
-  const activeTemplate = inCanvas.find((tpl) => tpl.id === templateId) ?? inCanvas[0] ?? null;
+  const { kinds, activeKind, canvases, activeCanvas, styles: inCanvas } = selection;
+  const activeTemplate = selection.active;
 
   const scene = useMemo(
     () =>
@@ -307,37 +316,42 @@ export function ShareStoryButton({
     [sceneKey],
   );
 
-  // react-native-svg's Image reports loads but not failures: probe each image so a bad or
-  // missing file shows the retry box, and give up when it never reports a load.
+  // A load that never reports (a hung connection) must not leave the sheet spinning forever.
   const needsImages = scene?.needsImages.join("\n") ?? "";
   useEffect(() => {
     if (!open || !needsImages) return;
+    const timer = setTimeout(() => {
+      setImageStatus((prev) => {
+        const next = { ...prev };
+        for (const uri of needsImages.split("\n")) next[`${sceneKey}|${uri}`] ??= "error";
+        return next;
+      });
+    }, 20_000);
+    return () => clearTimeout(timer);
+  }, [open, needsImages, sceneKey]);
+
+  // The meal's private original photo: fetched with the session, then handed to the renderer as a file.
+  const photoId = story.kind === "meal" ? (story.photoId ?? null) : null;
+  useEffect(() => {
+    if (!open || photoId === null || original !== null) return;
     let current = true;
-    const timers: Array<ReturnType<typeof setTimeout>> = [];
-    for (const uri of needsImages.split("\n")) {
-      Image.getSize(
-        uri,
-        () => {
-          timers.push(
-            setTimeout(() => {
-              if (current) setImageStatus((prev) => (prev[`${sceneKey}|${uri}`] ? prev : { ...prev, [`${sceneKey}|${uri}`]: "error" }));
-            }, 8000),
-          );
-        },
-        () => current && setImageStatus((prev) => ({ ...prev, [`${sceneKey}|${uri}`]: "error" })),
+    fetchPrivatePhoto(photoId)
+      .then(async (uri) => (await downscalePhoto(uri)).uri)
+      .then(
+        (uri) => current && setOriginal(uri),
+        () => current && setOriginal("failed"),
       );
-    }
     return () => {
       current = false;
-      for (const timer of timers) clearTimeout(timer);
     };
-  }, [open, needsImages, sceneKey]);
+  }, [open, photoId, original]);
 
   // Fixed 9:16-or-whatever frame sized from the window; the scene keeps its real
   // 1080/PixelRatio dp layout and is shrunk visually by `frameScale`.
   const sceneW = designToDp(EXPORT_WIDTH);
   const sceneH = scene ? designToDp(scene.height) : designToDp(1920);
   const maxFrameH = Math.min(Math.max(screen.height * 0.36, 220), 400);
+  const stagePad = theme.spacing.md;
   const maxFrameW = screen.width - theme.spacing.lg * 4;
   const frameScale = Math.min(maxFrameH / sceneH, maxFrameW / sceneW);
   const frameW = Math.round(sceneW * frameScale);
@@ -383,6 +397,7 @@ export function ShareStoryButton({
       setActionFailure(null);
       setCanvas("story");
       setTemplateId(null);
+      setKind(null);
     } finally {
       setShrinking(false);
     }
@@ -462,14 +477,14 @@ export function ShareStoryButton({
     try {
       if (target === "copy") {
         await Clipboard.setImageAsync(await captureCard("base64"));
-        setOpen(false);
+        onClose();
         toast.success(t("story.share.copied"));
         return;
       }
       const fileUri = await captureCard("tmpfile");
       if (target === "more") {
         await shareImageSystem(fileUri, story);
-        setOpen(false);
+        onClose();
       } else if (target === "instagram") {
         const appId = instagramFbAppId();
         // iOS's plain Instagram target saves to the library and opens it by asset id,
@@ -481,11 +496,11 @@ export function ShareStoryButton({
         if (access === "declined") return;
         if (access === "denied") await shareImageSystem(fileUri, story);
         else await shareToInstagram(fileUri, transparent, appId, story);
-        setOpen(false);
+        onClose();
       } else {
         if ((await ensurePhotoAccess("add", "save")) !== "granted") return;
         await Asset.create(fileUri);
-        setOpen(false);
+        onClose();
         toast.success(t("story.share.saved"), t("story.share.savedNativeBody"));
       }
     } catch (error) {
@@ -550,40 +565,26 @@ export function ShareStoryButton({
         : t("story.share.saveAskBody")
     : "";
 
-  const openSheet = () => {
-    setCanvas("story");
+  // Every opening starts from the entry point's kind with nothing remembered from the last one.
+  useEffect(() => {
+    if (!open) return;
+    setKind(initialKind ?? null);
+    setCanvas(null);
     setTemplateId(null);
+    setOriginal(null);
     setActionFailure(null);
     setFontsReady(false);
     setImageStatus({});
-    setOpen(true);
-  };
+  }, [open, initialKind]);
 
+  const showsName = activeTemplate !== null && templateShowsName(activeTemplate);
   const hasWeight = story.kind === "progress" && !story.maternal && story.weightGoalProgress != null;
 
   return (
     <>
-      <View style={style}>
-        {iconOnly ? (
-          <PressableScale
-            accessibilityRole="button"
-            accessibilityLabel={label}
-            disabled={disabled}
-            onPress={openSheet}
-            style={styles.iconButton}
-            dimTo={0.75}
-            scaleTo={0.94}
-          >
-            <Ionicons name="share-outline" size={22} color={theme.colors.foreground} />
-          </PressableScale>
-        ) : (
-          <Button label={label} variant={variant} size={size} disabled={disabled} onPress={openSheet} />
-        )}
-      </View>
-
       <Sheet
         visible={open}
-        onClose={() => (prompt ? closePrompt() : setOpen(false))}
+        onClose={() => (prompt ? closePrompt() : onClose())}
         title={promptTitle}
         footer={
           prompt ? (
@@ -619,7 +620,30 @@ export function ShareStoryButton({
           entering={enter}
           style={[styles.content, prompt ? styles.contentHidden : null]}
         >
-          {canvases.length > 1 ? (
+          {kinds.length > 1 ? (
+            <ScrollView
+              key={`kinds|${kinds.join(",")}`}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.styleRow}
+              accessibilityLabel={t("sticker:sheet.kind")}
+            >
+              {kinds.map((k) => (
+                <Chip
+                  key={k}
+                  label={t(`sticker:kind.${k}`, { defaultValue: k })}
+                  selected={k === activeKind}
+                  onPress={() => {
+                    setKind(k);
+                    setTemplateId(null);
+                    setActionFailure(null);
+                  }}
+                />
+              ))}
+            </ScrollView>
+          ) : null}
+
+          {canvases.length > 0 ? (
             <Segmented
               options={canvases.map((c) => ({ value: c, label: t(`sticker:canvas.${c}`) }))}
               value={activeCanvas}
@@ -631,9 +655,11 @@ export function ShareStoryButton({
             />
           ) : null}
 
-          <View style={styles.stage}>
+          <View style={[styles.stage, { height: maxFrameH + stagePad * 2 }]}>
             <View style={[styles.frame, { width: frameW, height: frameH }]}>
-              {scene?.transparent ? <StickerBackdrop light={mode === "light"} /> : null}
+              {scene?.transparent ? (
+                <StickerBackdrop key={`${frameW}x${frameH}`} light={mode === "light"} width={frameW} height={frameH} />
+              ) : null}
               {scene ? (
                 <View pointerEvents="none" style={[styles.scaler, { width: sceneW, height: sceneH, transform: [{ scale: frameScale }] }]}>
                   <View
@@ -658,8 +684,9 @@ export function ShareStoryButton({
             </View>
           </View>
 
-          {inCanvas.length > 1 ? (
+          {inCanvas.length > 0 ? (
             <ScrollView
+              key={`styles|${activeKind}|${activeCanvas}`}
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.styleRow}
@@ -718,7 +745,9 @@ export function ShareStoryButton({
             {firstName ? (
               <OptionRow
                 label={t("sticker:sheet.showName")}
+                hint={showsName ? undefined : t("sticker:sheet.nameUnavailable")}
                 value={prefs.showName}
+                disabled={!showsName}
                 onChange={(value) => updatePrefs({ showName: value })}
               />
             ) : null}
@@ -784,6 +813,45 @@ export function ShareStoryButton({
   );
 }
 
+export function ShareStoryButton({
+  story,
+  label: labelProp,
+  iconOnly = false,
+  variant = "primary",
+  size,
+  disabled,
+  style,
+  initialKind,
+  kinds,
+}: ShareStoryButtonProps) {
+  const { t } = useTranslation(["makan"]);
+  const { theme } = useUnistyles();
+  const [open, setOpen] = useState(false);
+  const label = labelProp ?? t("story.share.shareToStory");
+  return (
+    <>
+      <View style={style}>
+        {iconOnly ? (
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            disabled={disabled}
+            onPress={() => setOpen(true)}
+            style={styles.iconButton}
+            dimTo={0.75}
+            scaleTo={0.94}
+          >
+            <Ionicons name="share-outline" size={22} color={theme.colors.foreground} />
+          </PressableScale>
+        ) : (
+          <Button label={label} variant={variant} size={size} disabled={disabled} onPress={() => setOpen(true)} />
+        )}
+      </View>
+      <StoryShareSheet story={story} open={open} onClose={() => setOpen(false)} initialKind={initialKind} kinds={kinds} />
+    </>
+  );
+}
+
 const styles = StyleSheet.create((theme) => ({
   content: { gap: theme.spacing.md },
   contentHidden: { display: "none" },
@@ -792,7 +860,7 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: theme.radius.tile,
     overflow: "hidden",
     backgroundColor: theme.colors.muted,
-    paddingVertical: theme.spacing.md,
+    justifyContent: "center",
   },
   frame: { borderRadius: theme.radius.input, overflow: "hidden" },
   backdrop: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },

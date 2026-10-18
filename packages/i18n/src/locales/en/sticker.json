@@ -23,7 +23,7 @@
   "canvas": {
     "story": "Story 9:16",
     "square": "Square 1:1",
-    "sticker": "Transparent sticker"
+    "sticker": "Sticker"
   },
   "common": {
     "madeWith": "Tracked with JoyoRogo",
@@ -186,11 +186,16 @@
   "sheet": {
     "empty": "No style fits this data yet.",
     "pickTemplate": "Pick a style",
-    "inkDark": "Dark ink",
-    "inkLight": "Light ink",
+    "inkDark": "Dark background",
+    "inkLight": "Light background",
     "hideNumbers": "Hide weight numbers",
     "showName": "Show my name",
     "watermark": "JoyoRogo mark",
-    "proOnly": "Pro only"
+    "proOnly": "Pro only",
+    "kind": "Type",
+    "format": "Format",
+    "style": "Style",
+    "downloadingPhoto": "Getting the original photo...",
+    "nameUnavailable": "This style does not show a name"
   }
 }

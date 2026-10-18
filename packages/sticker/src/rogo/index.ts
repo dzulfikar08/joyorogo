@@ -3,7 +3,8 @@ import type { Locale } from "../core/format";
 import { parseTemplate } from "../core/parse";
 import { isAvailable, resolve, type StickerData } from "../core/resolve";
 import type { Issue, Scene } from "../core/scene";
-import type { Template } from "../core/schema";
+import { exprPaths } from "../core/expr";
+import type { Layer, Template } from "../core/schema";
 import type { FontMap } from "../core/text";
 import { rogoBrand } from "./brand";
 import { buildStickerData, type StickerPrefs, type StorySpec } from "./data";
@@ -11,6 +12,7 @@ import { rogoTranslate } from "./translate";
 import { ROGO_TEMPLATE_SOURCES } from "./templates";
 
 export * from "./data";
+export * from "./selection";
 export { rogoBrand } from "./brand";
 export { rogoNativeFonts, rogoWebFonts, NATIVE_FAMILIES, WEB_MONO_FAMILY, WEB_SANS_FAMILY } from "./fonts";
 export { rogoTranslate } from "./translate";
@@ -39,6 +41,22 @@ export function availableTemplates(spec: StorySpec, prefs: StickerPrefs = {}): T
   return rogoTemplates().templates.filter(
     (template) => isAvailable(template, data, rogoBrand) && !(template.meta?.needsPhoto && !data.assets?.photo),
   );
+}
+
+function layerBindsName(layers: Layer[]): boolean {
+  return layers.some((layer) => {
+    if (layer.type === "group" && layerBindsName(layer.children)) return true;
+    if (layer.type === "text" || layer.type === "stat") {
+      const exprs = layer.type === "text" ? [layer.value] : [layer.value, ...(layer.unit ? [layer.unit] : []), ...(layer.label ? [layer.label] : [])];
+      return exprs.some((e) => exprPaths(e).includes("user.name"));
+    }
+    return false;
+  });
+}
+
+/** Whether "show my name" changes anything in this template (it binds `user.name`). */
+export function templateShowsName(template: Template): boolean {
+  return layerBindsName(template.layers);
 }
 
 export type RenderRequest = {

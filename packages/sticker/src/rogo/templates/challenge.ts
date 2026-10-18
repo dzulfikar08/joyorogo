@@ -194,6 +194,17 @@ const challengeBoldStory = defineTemplate({
       ],
     },
     watermark("wm", { x: 72, y: 1510, w: 936 }, "start"),
+    {
+      id: "name",
+      type: "text",
+      value: "{user.name}",
+      size: 34,
+      weight: 700,
+      color: "$fgMuted",
+      align: "right",
+      fit: { mode: "shrink", minSize: 24 },
+      box: { x: 608, y: 1518, w: 400 },
+    },
   ],
 });
 

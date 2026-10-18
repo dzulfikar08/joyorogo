@@ -23,7 +23,7 @@
   "canvas": {
     "story": "Story 9:16",
     "square": "Kotak 1:1",
-    "sticker": "Stiker transparan"
+    "sticker": "Stiker"
   },
   "common": {
     "madeWith": "Dicatat dengan JoyoRogo",
@@ -172,11 +172,16 @@
   "sheet": {
     "empty": "Belum ada gaya yang cocok untuk data ini.",
     "pickTemplate": "Pilih gaya",
-    "inkDark": "Teks gelap",
-    "inkLight": "Teks terang",
+    "inkDark": "Latar gelap",
+    "inkLight": "Latar terang",
     "hideNumbers": "Sembunyikan angka berat",
     "showName": "Tampilkan namaku",
     "watermark": "Tanda JoyoRogo",
-    "proOnly": "Khusus Pro"
+    "proOnly": "Khusus Pro",
+    "kind": "Jenis",
+    "format": "Format",
+    "style": "Gaya",
+    "downloadingPhoto": "Mengambil foto asli...",
+    "nameUnavailable": "Gaya ini tidak menampilkan nama"
   }
 }

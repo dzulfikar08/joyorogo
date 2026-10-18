@@ -9,6 +9,7 @@
     "titleShort": "Berat",
     "weigh": "Timbang",
     "weighNow": "Timbang sekarang",
+    "shareSticker": "Bagikan stiker berat",
     "share": "Bagikan progres",
     "loading": "Memuat riwayat berat"
   },
@@ -18,6 +19,7 @@
     "bodyNative": "Simpan timbangan pertamamu untuk mulai melihat tren dan proyeksi target."
   },
   "hero": {
+    "share": "Bagikan progres berat",
     "trendLabel": "Berat tren",
     "scale": "Timbangan {{kg}} kg · {{date}}",
     "steadyWeek": "Stabil minggu ini",

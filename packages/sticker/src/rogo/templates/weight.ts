@@ -67,7 +67,7 @@ const weightMinimalSticker = defineTemplate({
   id: "weight.minimal.sticker",
   kind: "weight",
   style: "minimal",
-  canvas: { sticker: 640 },
+  canvas: { sticker: 680 },
   requires: ["weight.goalPct"],
   layers: [
     { id: "ring", type: "ring", progress: { bind: "weight.goalPct", clamp: [0, 1] }, thickness: 30, track: "$fg/28", color: "$accent", box: { x: 390, y: 30, w: 300, h: 300 } },
@@ -93,7 +93,27 @@ const weightMinimalSticker = defineTemplate({
       layout: { kind: "stack", dir: "column", gap: 10, align: "center" },
       children: [...reading("r", { size: 64, w: 900, align: "center", shadow: true }), fromStart("r-from", { size: 30, w: 900, align: "center", shadow: true, color: "$fgSoft" })],
     },
-    watermark("wm", { x: 90, y: 560, w: 900 }, "center"),
+    {
+      id: "foot",
+      type: "group",
+      box: { x: 90, y: 540, w: 900, h: "auto" },
+      layout: { kind: "stack", dir: "column", gap: 14, align: "center" },
+      children: [
+        {
+          id: "user",
+          type: "text",
+          value: "{user.name}",
+          size: 36,
+          weight: 700,
+          color: "$fgSoft",
+          shadow: true,
+          align: "center",
+          fit: { mode: "shrink", minSize: 24 },
+          box: { x: 0, y: 0, w: 900 },
+        },
+        watermark("wm", { x: 0, y: 0, w: 900 }, "center"),
+      ],
+    },
   ],
 });
 
@@ -123,8 +143,28 @@ const weightTrendStory = defineTemplate({
   background: BRAND_GRADIENT,
   requires: ["weight.trend"],
   layers: [
-    { id: "eyebrow", type: "text", value: { t: "sticker:weight.eyebrow" }, size: 36, weight: 800, color: "$accent", box: { x: 72, y: 280, w: 620 } },
-    { id: "date", type: "text", value: "{date|date:medium}", size: 34, weight: 600, color: "$fgMuted", align: "right", box: { x: 608, y: 282, w: 400 } },
+    {
+      id: "head",
+      type: "group",
+      box: { x: 72, y: 280, w: 936, h: "auto" },
+      layout: { kind: "stack", dir: "row", gap: 24, align: "center" },
+      children: [
+        { id: "eyebrow", type: "text", value: { t: "sticker:weight.eyebrow" }, size: 36, weight: 800, color: "$accent", box: { x: 0, y: 0, w: "auto" } },
+        {
+          id: "user",
+          type: "text",
+          value: "{user.name}",
+          size: 34,
+          weight: 700,
+          color: "$fgSoft",
+          align: "right",
+          fit: { mode: "shrink", minSize: 24 },
+          box: { x: 0, y: 0, w: "fill" },
+        },
+        { id: "date", type: "text", value: "{date|date:medium}", size: 34, weight: 600, color: "$fgMuted", when: { bind: "user.name", exists: true }, box: { x: 0, y: 0, w: "auto" } },
+        { id: "date-solo", type: "text", value: "{date|date:medium}", size: 34, weight: 600, color: "$fgMuted", align: "right", when: { bind: "user.name", exists: false }, box: { x: 0, y: 0, w: "fill" } },
+      ],
+    },
     {
       id: "body",
       type: "group",
@@ -202,7 +242,26 @@ const weightPosterSquare = defineTemplate({
   background: { kind: "color", color: "$bg2" },
   requires: ["weight.goalPct"],
   layers: [
-    { id: "eyebrow", type: "text", value: { t: "sticker:weight.eyebrow" }, size: 38, weight: 700, color: "$fgSoft", box: { x: 72, y: 96, w: 936 } },
+    {
+      id: "head",
+      type: "group",
+      box: { x: 72, y: 96, w: 936, h: "auto" },
+      layout: { kind: "stack", dir: "row", gap: 24, align: "center" },
+      children: [
+        { id: "eyebrow", type: "text", value: { t: "sticker:weight.eyebrow" }, size: 38, weight: 700, color: "$fgSoft", box: { x: 0, y: 0, w: "fill" } },
+        {
+          id: "user",
+          type: "text",
+          value: "{user.name}",
+          size: 34,
+          weight: 700,
+          color: "$fgMuted",
+          align: "right",
+          fit: { mode: "shrink", minSize: 24 },
+          box: { x: 0, y: 0, w: 320 },
+        },
+      ],
+    },
     {
       id: "pct",
       type: "stat",

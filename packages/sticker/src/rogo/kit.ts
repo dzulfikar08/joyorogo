@@ -152,8 +152,9 @@ export const STICKER_MARK_H = 120;
 
 /**
  * A transparent sticker lands on someone's photo, so its mark is a small dark chip that
- * reads on any background. Stickers that already carry a watermark layer are left alone;
- * the rest get the chip centered under their content, on a canvas made taller to fit it.
+ * reads on any background; it also carries the first name when the user shows it.
+ * Stickers that already carry a watermark layer are left alone; the rest get the chip
+ * centered under their content, on a canvas made taller to fit it.
  */
 export function withStickerMark(template: TemplateInput): TemplateInput {
   if (!template.meta?.transparent || hasWatermark(template.layers)) return template;
@@ -173,6 +174,16 @@ export function withStickerMark(template: TemplateInput): TemplateInput {
         radius: 40,
         layout: { kind: "stack", dir: "row", gap: 20, align: "center", padding: 22 },
         children: [
+          {
+            id: "wm-name",
+            type: "text",
+            value: "{user.name}",
+            size: 28,
+            weight: 800,
+            color: "#ffffff",
+            fit: { mode: "shrink", minSize: 22 },
+            box: { x: 0, y: 0, w: "auto" },
+          },
           { id: "wm-logo", type: "brand", mark: "lockup", size: 40, tone: "light", box: { x: 0, y: 0 } },
           { id: "wm-link", type: "brand", mark: "link", tone: "light", size: 28, box: { x: 0, y: 0 } },
         ],
