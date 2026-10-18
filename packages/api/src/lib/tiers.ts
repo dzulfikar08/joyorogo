@@ -247,38 +247,11 @@ export function nextFounderUntil(current: Date | null, now = new Date(), months 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Founder time an App Store transaction grants. Production and allowlisted
- * sandbox buyers (owner, review demo) get the paid month. Any other Sandbox
- * transaction (App Review and TestFlight, often a private-relay email) gets a
- * 24h trial at zero revenue, so review passes without minting free months.
- */
-export function appleFounderGrant(
-  environment: "Sandbox" | "Production",
-  buyerEmail: string,
-  sandboxAllowlist: string | undefined,
-  priceIdr: number,
-  current: Date | null,
-  now = new Date(),
-  months = 1,
-): { until: Date; amountIdr: number } {
-  if (environment === "Sandbox") {
-    const allowed = (sandboxAllowlist ?? "")
-      .split(",")
-      .map((email) => email.trim().toLowerCase())
-      .filter(Boolean);
-    if (!allowed.includes(buyerEmail.toLowerCase())) {
-      const base = current && current.getTime() > now.getTime() ? current : now;
-      return { until: new Date(base.getTime() + DAY_MS), amountIdr: 0 };
-    }
-  }
-  return { until: nextFounderUntil(current, now, months), amountIdr: priceIdr };
-}
-
-/**
  * Founder time one auto-renewable App Store transaction grants: the store's
  * own period end (`expiresDate`), never less than what the user already has.
- * Sandbox buyers off the allowlist get the same 24h trial at zero revenue as
- * appleFounderGrant, so review and TestFlight renewals never mint months.
+ * Sandbox buyers off the allowlist (App Review and TestFlight, often a
+ * private-relay email) get a 24h trial at zero revenue instead, so review and
+ * TestFlight renewals never mint months.
  * Returns null when the period already ended (a replayed old transaction).
  */
 export function appleSubscriptionGrant(

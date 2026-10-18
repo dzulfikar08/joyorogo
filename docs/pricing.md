@@ -34,9 +34,10 @@ Store prices checked 2026-10-18 (read-only):
 | --- | --- | --- | --- |
 | App Store Connect (IDN) | auto-renewable `com.joyodigitama.joyorogo.founder.monthly` / `.yearly` | Rp29.000 | **Rp199.000** |
 | Google Play | subscription `pro`, base plans `monthly` / `yearly` (ID region) | Rp29.000 | **Rp199.000** |
-| App Store Connect (IDN) | legacy non-renewing `.founder.1m` / `.founder.1y` (never submitted, not sold by the app) | Rp29.000 | **Rp199.000** (`.1y`, fixed from Rp290.000 on 2026-10-18) |
 
-The current step (buyers 11-110) matches all store products. The legacy non-renewing products are not referenced by the native app (it only sells `.founder.monthly` / `.founder.yearly`) and are not submitted, so no customer can buy them. The server still accepts them so sandbox/TestFlight receipts and notifications from earlier tests (4 zero-revenue `apple:` payments) stay valid; their ASC prices now match the live step, so they can never sell at a wrong price. They must be repriced alongside the live products at each ladder step.
+The current step (buyers 11-110) matches both stores. The server accepts only the two auto-renewable Apple products (`DEFAULT_APPLE_SUB_*_PRODUCT_ID` in `packages/api/src/lib/apple.ts`).
+
+Legacy non-renewing IAPs (removed 2026-10-18): `.founder.1y` was deleted in App Store Connect (it was never submitted). `.founder.1m` could not be deleted (`IAP_DELETE_NOT_ALLOWED`, state READY_TO_SUBMIT); it is cleared for sale in every territory (availability: no territories, not in new territories) and stays at Rp29.000. Neither is referenced by the app or the server. Four zero-revenue sandbox `apple:` payments from earlier tests remain in D1 as history.
 
 ## Runbook: buyer count crosses 110 (step 2 to step 3)
 

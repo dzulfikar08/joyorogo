@@ -13,8 +13,6 @@ import type { Database } from "@joyorogo/db";
 
 import {
   DEFAULT_APPLE_BUNDLE_ID,
-  DEFAULT_APPLE_FOUNDER_PRODUCT_ID,
-  DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID,
   DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID,
   DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID,
   appleAccountToken,
@@ -48,12 +46,7 @@ beforeAll(async () => {
   opts = {
     rootSha256: chain.rootSha256,
     bundleId: DEFAULT_APPLE_BUNDLE_ID,
-    productIds: [
-      MONTHLY,
-      DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID,
-      DEFAULT_APPLE_FOUNDER_PRODUCT_ID,
-      DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID,
-    ],
+    productIds: [MONTHLY, DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID],
   };
 });
 
@@ -67,12 +60,8 @@ beforeEach(async () => {
     now: () => NOW,
     config: {
       subscriptionIds: { monthly: MONTHLY, yearly: DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID },
-      legacyIds: {
-        monthly: DEFAULT_APPLE_FOUNDER_PRODUCT_ID,
-        yearly: DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID,
-      },
       sandboxAllowlist: "u1@test.id",
-      fallbackPriceIdr: { monthly: 29_000, yearly: 290_000 },
+      fallbackPriceIdr: { monthly: 29_000, yearly: 199_000 },
     },
   };
 });
@@ -220,16 +209,6 @@ describe("redeemAppleTransaction", () => {
   test("allowlisted sandbox buyer gets the full period", async () => {
     await redeemFor("u1", { environment: "Sandbox" });
     expect((await founderUntil("u1"))?.getTime()).toBe(NOW.getTime() + 30 * DAY);
-  });
-
-  test("legacy non-renewing product still stacks a month", async () => {
-    await redeemFor("u1", {
-      productId: DEFAULT_APPLE_FOUNDER_PRODUCT_ID,
-      expiresDate: undefined,
-      price: 15_000_000,
-    });
-    expect((await founderUntil("u1"))!.getTime()).toBeGreaterThan(NOW.getTime() + 27 * DAY);
-    expect(await db.select().from(appleSubscription)).toHaveLength(0);
   });
 
   test("an already-expired subscription transaction grants nothing", async () => {

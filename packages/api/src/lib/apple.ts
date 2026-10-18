@@ -10,9 +10,7 @@ import { z } from "zod";
 export const APPLE_ROOT_CA_G3_SHA256 =
   "63343abfb89a6a03ebb57e9b3f5fa7be7c4f5c756f3017b3a8c488c3653e9179";
 export const DEFAULT_APPLE_BUNDLE_ID = "com.joyodigitama.joyorogo";
-export const DEFAULT_APPLE_FOUNDER_PRODUCT_ID = "com.joyodigitama.joyorogo.founder.1m";
-export const DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID = "com.joyodigitama.joyorogo.founder.1y";
-/** Auto-renewable subscriptions in the "JoyoRogo Founder" group. The 1m/1y ids above are the legacy non-renewing IAPs. */
+/** Auto-renewable subscriptions in the "JoyoRogo Founder" group. */
 export const DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID = "com.joyodigitama.joyorogo.founder.monthly";
 export const DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID = "com.joyodigitama.joyorogo.founder.yearly";
 

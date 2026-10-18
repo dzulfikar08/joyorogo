@@ -6,12 +6,7 @@ import type { Database } from "@joyorogo/db";
 
 import { appleAccountToken } from "./apple";
 import type { AppleNotification, AppleTransaction } from "./apple";
-import {
-  addMonths,
-  appleFounderGrant,
-  appleSubscriptionGrant,
-  planMonths,
-} from "./tiers";
+import { appleSubscriptionGrant, planMonths } from "./tiers";
 import type { FounderPlan } from "./tiers";
 
 const CREDIT_ATTEMPTS = 3;
@@ -21,8 +16,6 @@ export type AppleBillingDeps = {
   config: {
     /** Auto-renewable subscription product ids. */
     subscriptionIds: Record<FounderPlan, string>;
-    /** Legacy non-renewing product ids; still credited when replayed. */
-    legacyIds: Record<FounderPlan, string>;
     sandboxAllowlist?: string;
     /** Plan prices in IDR for transactions Apple does not bill in IDR. */
     fallbackPriceIdr: Record<FounderPlan, number>;
@@ -30,17 +23,13 @@ export type AppleBillingDeps = {
   now?: () => Date;
 };
 
-export type AppleProductInfo = { plan: FounderPlan; subscription: boolean };
-
-/** Which plan a product id sells, and whether it renews. null = not a Founder product. */
-export function appleProductInfo(
+/** Which plan a product id sells. null = not a Founder product. */
+export function appleProductPlan(
   config: AppleBillingDeps["config"],
   productId: string,
-): AppleProductInfo | null {
-  if (productId === config.subscriptionIds.monthly) return { plan: "monthly", subscription: true };
-  if (productId === config.subscriptionIds.yearly) return { plan: "yearly", subscription: true };
-  if (productId === config.legacyIds.monthly) return { plan: "monthly", subscription: false };
-  if (productId === config.legacyIds.yearly) return { plan: "yearly", subscription: false };
+): FounderPlan | null {
+  if (productId === config.subscriptionIds.monthly) return "monthly";
+  if (productId === config.subscriptionIds.yearly) return "yearly";
   return null;
 }
 
@@ -66,14 +55,14 @@ async function creditTransaction(
     userId: string;
     email: string;
     transaction: AppleTransaction;
-    info: AppleProductInfo;
+    plan: FounderPlan;
   },
 ): Promise<CreditResult> {
   const { db, config } = deps;
-  const { transaction, info } = input;
+  const { transaction, plan } = input;
   const ledgerId = appleLedgerId(transaction.transactionId);
-  const months = planMonths(info.plan);
-  const priceIdr = transaction.priceIdr ?? config.fallbackPriceIdr[info.plan];
+  const months = planMonths(plan);
+  const priceIdr = transaction.priceIdr ?? config.fallbackPriceIdr[plan];
 
   for (let attempt = 0; attempt < CREDIT_ATTEMPTS; attempt++) {
     const [existing] = await db
@@ -95,30 +84,17 @@ async function creditTransaction(
 
     const now = deps.now?.() ?? new Date();
     const previousMs = owner.founderUntil?.getTime() ?? null;
-    let grant: { until: Date; amountIdr: number } | null;
-    if (info.subscription) {
-      grant = transaction.expiresDate
-        ? appleSubscriptionGrant(
-            transaction.environment,
-            input.email,
-            config.sandboxAllowlist,
-            priceIdr,
-            transaction.expiresDate,
-            owner.founderUntil,
-            now,
-          )
-        : null;
-    } else {
-      grant = appleFounderGrant(
-        transaction.environment,
-        input.email,
-        config.sandboxAllowlist,
-        priceIdr,
-        owner.founderUntil,
-        now,
-        months,
-      );
-    }
+    const grant = transaction.expiresDate
+      ? appleSubscriptionGrant(
+          transaction.environment,
+          input.email,
+          config.sandboxAllowlist,
+          priceIdr,
+          transaction.expiresDate,
+          owner.founderUntil,
+          now,
+        )
+      : null;
     if (!grant) return { outcome: "expired" };
     const { until, amountIdr } = grant;
 
@@ -225,25 +201,23 @@ export async function redeemAppleTransaction(
   input: { userId: string; email: string; transaction: AppleTransaction },
 ): Promise<AppleRedeemResult> {
   const { transaction } = input;
-  const info = appleProductInfo(deps.config, transaction.productId);
-  if (!info) return { ok: false, error: "wrong-product" };
+  const plan = appleProductPlan(deps.config, transaction.productId);
+  if (!plan) return { ok: false, error: "wrong-product" };
 
-  if (info.subscription) {
-    if (
-      transaction.appAccountToken &&
-      transaction.appAccountToken.toLowerCase() !== (await appleAccountToken(input.userId))
-    ) {
-      return { ok: false, error: "other-account" };
-    }
-    const linkedUser = await linkSubscription(deps, input.userId, transaction);
-    if (linkedUser !== input.userId) return { ok: false, error: "other-account" };
+  if (
+    transaction.appAccountToken &&
+    transaction.appAccountToken.toLowerCase() !== (await appleAccountToken(input.userId))
+  ) {
+    return { ok: false, error: "other-account" };
   }
+  const linkedUser = await linkSubscription(deps, input.userId, transaction);
+  if (linkedUser !== input.userId) return { ok: false, error: "other-account" };
 
-  const credit = await creditTransaction(deps, { ...input, info });
+  const credit = await creditTransaction(deps, { ...input, plan });
   if (credit.outcome === "no-user") return { ok: false, error: "no-user" };
   if (credit.outcome === "busy") return { ok: false, error: "busy" };
 
-  if (info.subscription && credit.outcome !== "refunded") {
+  if (credit.outcome !== "refunded") {
     await setSubscriptionState(
       deps,
       transaction.originalTransactionId,
@@ -266,8 +240,7 @@ export async function redeemAppleTransaction(
  * Ledger rows flip paid -> failed once, so duplicate notifications do nothing.
  * A subscription period gives up only when it is the current one: founder_until
  * drops to now unless the user holds time beyond that period (another
- * purchase). A legacy non-renewing month is subtracted. Zero-revenue sandbox
- * trials are left to lapse on their own.
+ * purchase). Zero-revenue sandbox trials are left to lapse on their own.
  */
 export async function revokeAppleTransaction(
   deps: Pick<AppleBillingDeps, "db" | "now">,
@@ -279,7 +252,6 @@ export async function revokeAppleTransaction(
     const [row] = await db
       .select({
         userId: payment.userId,
-        months: payment.months,
         amountIdr: payment.amountIdr,
         status: payment.status,
       })
@@ -292,13 +264,9 @@ export async function revokeAppleTransaction(
     const owner = { founderUntil: await founderUntilOf(db, row.userId) };
     const previousMs = owner.founderUntil?.getTime() ?? null;
     let reduced: Date | null = owner.founderUntil;
-    if (owner.founderUntil) {
-      if (transaction.expiresDate) {
-        const current = owner.founderUntil.getTime() <= transaction.expiresDate.getTime();
-        if (current && owner.founderUntil.getTime() > now.getTime()) reduced = now;
-      } else {
-        reduced = addMonths(owner.founderUntil, -row.months);
-      }
+    if (owner.founderUntil && transaction.expiresDate) {
+      const current = owner.founderUntil.getTime() <= transaction.expiresDate.getTime();
+      if (current && owner.founderUntil.getTime() > now.getTime()) reduced = now;
     }
 
     const [flipped] = await db.batch([
@@ -361,19 +329,15 @@ export async function handleAppleNotification(
   const { notificationType: type, subtype, transaction } = notification;
   if (type === "TEST") return { kind: "test", granted: null };
   if (!transaction) return ignored;
-  const info = appleProductInfo(deps.config, transaction.productId);
-  if (!info) return ignored;
+  const plan = appleProductPlan(deps.config, transaction.productId);
+  if (!plan) return ignored;
 
-  // Refunds hit the ledger by transaction id: no subscription link needed,
-  // and legacy non-renewing purchases are covered too.
+  // Refunds hit the ledger by transaction id: no subscription link needed.
   if (REVOKE_TYPES[type] === true) {
     const revoked = await revokeAppleTransaction(deps, transaction);
-    if (info.subscription) {
-      await setSubscriptionState(deps, transaction.originalTransactionId, "revoked");
-    }
+    await setSubscriptionState(deps, transaction.originalTransactionId, "revoked");
     return revoked === "revoked" ? { kind: "revoked", granted: null } : ignored;
   }
-  if (!info.subscription) return ignored;
 
   const [linked] = await deps.db
     .select({ userId: appleSubscription.userId })
@@ -410,7 +374,7 @@ export async function handleAppleNotification(
       userId,
       email: owner.email,
       transaction,
-      info,
+      plan,
     });
     // A concurrent credit still settling: let Apple redeliver.
     if (credit.outcome === "busy") throw new Error("apple credit busy");

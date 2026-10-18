@@ -6,8 +6,6 @@ import type { Context, Hono } from "hono";
 import {
   APPLE_ROOT_CA_G3_SHA256,
   DEFAULT_APPLE_BUNDLE_ID,
-  DEFAULT_APPLE_FOUNDER_PRODUCT_ID,
-  DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID,
   DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID,
   DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID,
   verifyAppleNotificationJws,
@@ -84,8 +82,6 @@ export type BillingEnv = PaywallEnv & GooglePlayEnv & {
   APPLE_TEAM_ID?: string;
   APPLE_SIWA_KEY_ID?: string;
   APPLE_SIWA_PRIVATE_KEY?: string;
-  APPLE_FOUNDER_PRODUCT_ID?: string;
-  APPLE_FOUNDER_YEARLY_PRODUCT_ID?: string;
   APPLE_SANDBOX_EMAILS?: string;
   /** Transactional email (Cloudflare Email Service binding). Unset = off. */
   EMAIL?: SendEmail;
@@ -448,19 +444,10 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       monthly: DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID,
       yearly: DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID,
     },
-    legacyIds: {
-      monthly: env.APPLE_FOUNDER_PRODUCT_ID || DEFAULT_APPLE_FOUNDER_PRODUCT_ID,
-      yearly: env.APPLE_FOUNDER_YEARLY_PRODUCT_ID || DEFAULT_APPLE_FOUNDER_YEARLY_PRODUCT_ID,
-    },
   });
   const appleProductIds = () => {
-    const { subscriptionIds, legacyIds } = appleProductConfig();
-    return [
-      subscriptionIds.monthly,
-      subscriptionIds.yearly,
-      legacyIds.monthly,
-      legacyIds.yearly,
-    ];
+    const { subscriptionIds } = appleProductConfig();
+    return [subscriptionIds.monthly, subscriptionIds.yearly];
   };
   const appleBillingDeps = (db: Database): AppleBillingDeps => ({
     db,
@@ -503,7 +490,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     // TestFlight and App Review purchases are Sandbox with unknown buyer
     // emails (often Apple private relay). Allowlisted buyers (owner, review
     // demo) get the full period; any other Sandbox buyer gets one day at zero
-    // revenue (appleFounderGrant / appleSubscriptionGrant), so review works
+    // revenue (appleSubscriptionGrant), so review works
     // without free months. Subscriptions are credited up to the store's own
     // expiresDate and linked to the account by originalTransactionId.
     const result = await redeemAppleTransaction(billing, {
