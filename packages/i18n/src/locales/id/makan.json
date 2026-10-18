@@ -660,6 +660,17 @@
       "hasLocation": "Piring ini punya lokasi tersimpan, cuma kamu yang lihat.",
       "removeLocation": "Hapus lokasi",
       "needPlace": "Isi nama tempat dulu supaya lokasinya bisa disimpan."
+    },
+    "recalc": {
+      "action": "Hitung ulang kalori",
+      "title": "Hitung ulang kalori",
+      "description": "Kalori tiap makanan dihitung lagi dari nama dan beratnya. Yang kamu ubah sendiri tidak disentuh.",
+      "loading": "Menghitung ulang…",
+      "change": "{{from}} → {{to}} kcal",
+      "total": "Total piring",
+      "saving": "Menyimpan…",
+      "done": "Kalori piring diperbarui",
+      "error": "Belum bisa menghitung ulang. Coba lagi sebentar lagi."
     }
   },
   "guidance": {

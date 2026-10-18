@@ -1,3 +1,4 @@
+import { ORPCError } from "@orpc/server";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
@@ -9,6 +10,8 @@ import { plate } from "@joyorogo/db/schema/plans";
 import { protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
 import { MAX_GRAMS, MAX_KCAL, resolvePortion } from "../lib/portion";
+import { recalcRow } from "../lib/plate-recalc";
+import type { RecalcValues } from "../lib/plate-recalc";
 import { toStoredCoords } from "../lib/places";
 import { dateSchema, mealSchema, pastDateSchema } from "../lib/schemas";
 import {
@@ -359,6 +362,66 @@ export const foodRouter = {
         }
       }
       return updated ?? null;
+    }),
+
+  // "Hitung ulang kalori" on a plate: re-derives each AI row's kcal from its name
+  // and weight (lib/plate-recalc.ts). Without `apply` it only previews the
+  // before/after of the rows that would change; with it, the same rows are written.
+  // Manual, barcode and user-edited rows are never touched.
+  recalculatePlate: protectedProcedure
+    .input(z.object({ plateId: z.string(), apply: z.boolean().default(false) }))
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const [owned] = await context.db
+        .select({ id: plate.id })
+        .from(plate)
+        .where(and(eq(plate.id, input.plateId), eq(plate.userId, userId)))
+        .limit(1);
+      if (!owned) throw new ORPCError("NOT_FOUND", { message: "Piring tidak ditemukan" });
+      const rows = await context.db
+        .select()
+        .from(foodLog)
+        .where(and(eq(foodLog.userId, userId), eq(foodLog.plateId, input.plateId)))
+        .orderBy(asc(foodLog.createdAt));
+      const items: Array<{
+        id: string;
+        name: string;
+        grams: number | null;
+        before: RecalcValues;
+        after: RecalcValues;
+      }> = [];
+      for (const row of rows) {
+        const next = recalcRow(row);
+        if (typeof next === "string") continue;
+        items.push({
+          id: row.id,
+          name: row.name,
+          grams: row.grams,
+          before: {
+            kcal: row.kcal,
+            protein: row.protein,
+            carbs: row.carbs,
+            fat: row.fat,
+            fiber: row.fiber,
+          },
+          after: next,
+        });
+      }
+      // Written rows come back whole so the native app can re-mirror them to Health Connect.
+      const updated: Array<typeof foodLog.$inferSelect> = [];
+      if (input.apply) {
+        for (const item of items) {
+          const [row] = await context.db
+            .update(foodLog)
+            .set(item.after)
+            .where(and(eq(foodLog.id, item.id), eq(foodLog.userId, userId)))
+            .returning();
+          if (row) updated.push(row);
+        }
+      }
+      const before = rows.reduce((sum, row) => sum + row.kcal, 0);
+      const after = items.reduce((sum, item) => sum + item.after.kcal - item.before.kcal, before);
+      return { applied: input.apply, items, updated, totals: { before, after } };
     }),
 
   remove: protectedProcedure

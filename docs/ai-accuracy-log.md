@@ -12,7 +12,7 @@ Root cause: not the data row and not the model. `calibrateOne` clamped a library
 
 Fix: the band always scales with grams (`grams / typicalPortionG`, `scaleBand` option removed), and every item is capped at 9 kcal per gram of its weight (pure fat), also for unmatched dishes (the old 400 kcal floor allowed a 10 g item 400 kcal). Tests in `tkpi.test.ts`.
 
-Prod audit (read-only, AI rows with a gram weight): 461 rows, 196 matched to a library dish; about 90-105 of those (31 users) sit exactly on an unscaled band edge for a portion well off the typical one (nasi putih, ayam goreng, tempe, telur dadar, tempe orek, ...), so they are inflated (or, for big portions, deflated). Not rewritten.
+Prod audit (read-only, AI rows with a gram weight): 461 rows, 196 matched to a library dish; about 90-105 of those (31 users) sit exactly on an unscaled band edge for a portion well off the typical one (nasi putih, ayam goreng, tempe, telur dadar, tempe orek, ...), so they are inflated (or, for big portions, deflated). Not rewritten in bulk; instead each plate's edit sheet (web and native) has "Hitung ulang kalori": `food.recalculatePlate` previews old -> new kcal per item, plate total included, and "Simpan" applies it (`lib/plate-recalc.ts`: AI rows with a weight only; manual, barcode and rows whose name, weight or kcal no longer match the saved `items_json` are skipped; a kcal the calibration moves becomes the library's per-100 g value x grams, macros follow only when they no longer fit it). The action is hidden when nothing would change.
 
 ## 2026-10-18: drinks (zero-calorie, plain water, a cup whose contents are hidden)
 

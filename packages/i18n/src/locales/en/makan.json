@@ -680,6 +680,17 @@
       "hasLocation": "This plate has a saved location, only you can see it.",
       "removeLocation": "Remove location",
       "needPlace": "Enter a place name first so the location can be saved."
+    },
+    "recalc": {
+      "action": "Recalculate calories",
+      "title": "Recalculate calories",
+      "description": "Each food's calories are worked out again from its name and weight. Anything you edited yourself stays as it is.",
+      "loading": "Recalculating…",
+      "change": "{{from}} → {{to}} kcal",
+      "total": "Plate total",
+      "saving": "Saving…",
+      "done": "Plate calories updated",
+      "error": "Couldn't recalculate right now. Try again in a moment."
     }
   },
   "guidance": {

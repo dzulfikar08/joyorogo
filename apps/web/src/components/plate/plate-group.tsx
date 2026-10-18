@@ -19,6 +19,7 @@ import { FieldLabel, ListGroup } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
 import { IdrInput } from "@/components/plate/idr-input";
 import { MealSlotField } from "@/components/plate/meal-slot-field";
+import { RecalcPlateAction } from "@/components/plate/recalc-plate";
 import { StickerHero } from "@/components/sticker";
 import { fmtRupiah } from "@/lib/app-config";
 import { fmtDateLong, fmtInt, fmtKcalLabel } from "@/lib/format";
@@ -451,6 +452,7 @@ function PlateEditSheet({
                 ? t("plate.edit.move")
                 : t("common:actions.save")}
           </Button>
+          <RecalcPlateAction plateId={plate.id} />
           {action}
         </form>
       </Sheet>

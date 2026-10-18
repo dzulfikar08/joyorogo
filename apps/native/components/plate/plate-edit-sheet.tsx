@@ -9,6 +9,7 @@ import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/f
 
 import { DateSheet, DayChips } from "@/components/plate/date-sheet";
 import { MealSlotField } from "@/components/plate/meal-slot-field";
+import { RecalcSheet, useRecalcPlate } from "@/components/plate/recalc-plate";
 import { SaveLocationToggle } from "@/components/places/location-toggle";
 import { SheetActions } from "@/components/sheet-actions";
 import { StickerHero } from "@/components/sticker";
@@ -70,6 +71,8 @@ export function PlateEditSheet({
   const [date, setDate] = useState(plate.date);
   const [meal, setMeal] = useState<Meal>(plate.meal);
   const [pickingDate, setPickingDate] = useState(false);
+  const [recalcOpen, setRecalcOpen] = useState(false);
+  const recalc = useRecalcPlate(plate.id, () => setRecalcOpen(false));
   // "Simpan lokasi di sini" only applies when switched on in this sheet: an
   // edit from home must not overwrite where the plate was eaten.
   const [locate, setLocate] = useState(false);
@@ -246,9 +249,30 @@ export function PlateEditSheet({
             <Text style={styles.hint}>{t("plate.editNative.needPlace")}</Text>
           ) : null}
 
+          {recalc.data && recalc.data.items.length > 0 ? (
+            <View style={styles.actionRow}>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon="calculator-outline"
+                label={t("plate.recalc.action")}
+                onPress={() => setRecalcOpen(true)}
+              />
+            </View>
+          ) : null}
+
           <SheetActions favorite={favorite} onFavorite={onFavorite} />
         </View>
       </Sheet>
+      {recalc.data && recalc.data.items.length > 0 ? (
+        <RecalcSheet
+          visible={recalcOpen}
+          data={recalc.data}
+          saving={recalc.saving}
+          onSave={recalc.save}
+          onClose={() => setRecalcOpen(false)}
+        />
+      ) : null}
       <DateSheet
         visible={pickingDate}
         value={date}
@@ -270,6 +294,9 @@ const styles = StyleSheet.create((theme) => ({
   },
   footerBtn: {
     flex: 1,
+  },
+  actionRow: {
+    flexDirection: "row",
   },
   dateBox: {
     gap: theme.spacing.sm,

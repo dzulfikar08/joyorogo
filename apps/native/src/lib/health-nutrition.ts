@@ -20,7 +20,7 @@ export async function backfillNutritionToHealth() {
 }
 
 /**
- * Called by the oRPC link after food.add / addScan / update / remove succeed.
+ * Called by the oRPC link after food.add / addScan / update / recalculatePlate (applied) / remove succeed.
  * Fire-and-forget: a Health Connect failure must never break meal logging.
  */
 export function mirrorFoodCall(path: readonly string[], input: unknown, output: unknown): void {
@@ -34,6 +34,9 @@ export function mirrorFoodCall(path: readonly string[], input: unknown, output: 
   } else if (op === "addScan") {
     const items = (output as { items?: Nutrition.MealRow[] } | null)?.items;
     if (items?.length) job = mod.writeMeals(items);
+  } else if (op === "recalculatePlate") {
+    const updated = (output as { updated?: Nutrition.MealRow[] } | null)?.updated;
+    if (updated?.length) job = mod.writeMeals(updated);
   } else if (op === "remove") {
     const id = (input as { id?: string } | null)?.id;
     if (id) job = mod.deleteMeal(id);
