@@ -54,6 +54,18 @@ before the item leaves; it is a top-level `mapLine` and only when the gate allow
 Posts made before this change have no line. `post.stats_json` of the existing watch posts was backfilled once from their stored route or
 analysis (same function), so they gained a map the same way new ones get it.
 
+## Screenshots
+
+Taken on the deployed web with the QA account (`qa@joyorogo.com`), test posts deleted afterwards: `docs/img/feed-maps-web-feed.png` (cards: a ride and a run
+with their map, an indoor run without one), `feed-maps-web-menu.png` (own-post menu, "Hide map"), `feed-maps-web-settings.png` (account switch),
+`feed-maps-web-post.png` (post page as its author: the analysis draws its own tile map, so the shared line is not drawn twice) and
+`feed-maps-web-post-public.png` (the same page for a signed-out visitor: the larger map, start and finish, the hint and the Pro card). JoyoFit's
+renders are in `watch-fit/docs/screenshots/social-route-map-{light,dark}.png`.
+
+A signed-out visitor of a public workout post used to be sent to `/login`: the post's detail query answers 401 for them and the global
+`onUnauthorized` handler treats any 401 as an ended session. `WatchDetail` now marks that query `meta.allowAnonymous`, so the visitor stays on the page and
+sees the map and the Pro card.
+
 ## Tests
 
 `packages/api/src/lib/feed-route.test.ts` (trim at 200 m, simplification and point cap, polyline codec, `buildFeedMapLine`, the gate, pace and

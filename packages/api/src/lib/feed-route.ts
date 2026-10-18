@@ -90,7 +90,7 @@ function toLocalMetres(points: readonly LatLon[]): XY[] {
 }
 
 function rdp(points: readonly XY[], epsilon: number): boolean[] {
-  const keep = new Array<boolean>(points.length).fill(false);
+  const keep = Array.from({ length: points.length }, () => false);
   keep[0] = true;
   keep[points.length - 1] = true;
   const stack: [number, number][] = [[0, points.length - 1]];
