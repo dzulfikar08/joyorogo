@@ -20,6 +20,11 @@ const str = (max: number) => z.string().trim().min(1).max(max);
 
 const hr = num(20, 250);
 const pace = num(60, 3600);
+/**
+ * Whole-segment pace (splits, laps, comparison, averages). A split that includes a long stop, a hike up a
+ * steep trail or a short trailing split can be slower than an hour per km; that is real data, not a bad doc.
+ */
+const segmentPace = num(60, MAX_SEC);
 const cad = num(0, 400);
 const sec = num(0, MAX_SEC);
 const distM = num(0, MAX_DIST_M);
@@ -62,7 +67,7 @@ const split = z.strictObject({
   n: int(1, ANALYSIS_LIMITS.splits),
   distM,
   sec,
-  paceSecKm: nullable(pace),
+  paceSecKm: nullable(segmentPace),
   hr: nullable(hr),
   gainM: nullable(gain),
   lossM: nullable(gain),
@@ -74,7 +79,7 @@ const lap = z.strictObject({
   startSec: sec,
   sec,
   distM: nullable(distM),
-  paceSecKm: nullable(pace),
+  paceSecKm: nullable(segmentPace),
   avgHr: nullable(hr),
   maxHr: nullable(hr),
   avgCad: nullable(cad),
@@ -132,7 +137,7 @@ const comparisonItem = z.strictObject({
   startedAt: z.number().int().positive(),
   distM: nullable(distM),
   sec,
-  paceSecKm: nullable(pace),
+  paceSecKm: nullable(segmentPace),
   avgHr: nullable(hr),
   gainM: nullable(gain),
 });
@@ -141,7 +146,7 @@ const stats = z.strictObject({
   avgHr: nullable(hr),
   maxHr: nullable(hr),
   minHr: nullable(hr),
-  avgPaceSecKm: nullable(pace),
+  avgPaceSecKm: nullable(segmentPace),
   bestPaceSecKm: nullable(pace),
   avgSpeedMs: nullable(num(0, 100)),
   maxSpeedMs: nullable(num(0, 100)),

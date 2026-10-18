@@ -220,6 +220,14 @@ describe("document", () => {
     await expect(readDoc(await pack(doc({ analysis: analysis(START + 9999) })))).rejects.toMatchObject({ code: "analysis_mismatch" });
   });
 
+  test("a split slower than an hour per km (a long stop inside it) is real data and is kept", async () => {
+    const slow = analysis(START, {
+      splits: [{ n: 1, distM: 1000, sec: 4210, paceSecKm: 4210, hr: 98, gainM: 3, lossM: 2, cad: null }],
+    });
+    const read = await readDoc(await pack(doc({ analysis: slow })));
+    expect(read.analysis?.splits[0]?.paceSecKm).toBe(4210);
+  });
+
   test("a document that expands past the ceiling is stopped while reading", async () => {
     const huge = await gzip(" ".repeat(31_000_000));
     expect(huge.byteLength).toBeLessThan(200_000);
