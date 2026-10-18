@@ -6,7 +6,6 @@ import { useTranslation } from "react-i18next";
 
 import { i18n } from "@joyorogo/i18n";
 import { PostCard } from "@/components/feed/post-card";
-import { RouteMapPreview } from "@/components/feed/route-map-preview";
 import { PublicFooter } from "@/components/public-footer";
 import { WatchDetail } from "@/components/feed/watch-detail";
 import { PublicHeader } from "@/components/public-header";
@@ -64,15 +63,9 @@ function PostDetailPage() {
           // Komentar dan aksi jalan lewat kartu yang sama seperti di feed.
           <>
             <PostCard post={post.data} isOwn={false} hideMap={!!post.data.mapLine} />
-            {post.data.kind === "latihan" && post.data.mapLine && (
-              <RouteMapPreview
-                line={post.data.mapLine}
-                title={post.data.title}
-                size="detail"
-                className="mt-4"
-              />
+            {post.data.stats?.hasDetail === 1 && (
+              <WatchDetail postId={post.data.id} mapLine={post.data.mapLine} title={post.data.title} />
             )}
-            {post.data.stats?.hasDetail === 1 && <WatchDetail postId={post.data.id} />}
           </>
         )}
       </main>
