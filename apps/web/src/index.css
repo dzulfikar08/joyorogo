@@ -500,3 +500,136 @@
     display: none;
   }
 }
+
+/*
+ * Footer panorama (components/footer-landscape.tsx). Light is a hazy Malang
+ * morning, dark the same hills at night: one drawing, two palettes.
+ */
+.scape {
+  --scape-sky-a: #f4d2ab;
+  --scape-sky-b: #f1ecdc;
+  --scape-sky-c: #d6d5ec;
+  --scape-sun: #f0a35e;
+  --scape-sun-op: 1;
+  --scape-moon: #fbf6e6;
+  --scape-moon-op: 0.7;
+  --scape-star-op: 0;
+  --scape-cloud: #fffaf0;
+  --scape-mtn-far: #a7b4c8;
+  --scape-mtn-light: #cdd5e2;
+  --scape-mtn-shade: #8f9bb3;
+  --scape-canvas-op: 0.55;
+  --scape-mtn-mid: #8fa5a3;
+  --scape-smoke: #e9e6e4;
+  --scape-word-a: #2f7d4a;
+  --scape-word-b: #1d5a34;
+  --scape-hill-1: #8fb56c;
+  --scape-terrace: #c4da95;
+  --scape-hill-2: #6e9d52;
+  --scape-paddy: #9cc25f;
+  --scape-rice: #5f8f3a;
+  --scape-wall: #efe1c4;
+  --scape-window: #8a6a48;
+  --scape-roof: #b8562f;
+  --scape-roof-dark: #8e3f22;
+  --scape-trunk: #6f5a42;
+  --scape-palm: #3f6f36;
+  --scape-palm-light: #8dbb64;
+  --scape-path: #dcc59a;
+  --scape-runner: #2f2a26;
+  --scape-shirt: #e2683a;
+  --scape-watch: #2f2a26;
+  --scape-fg-1: #4c7c3a;
+  --scape-grass-a: #3a6a30;
+  --scape-grass-b: #5d9442;
+  --scape-grass-c: #86b85a;
+  --scape-flower-a: #f2a23c;
+  --scape-flower-b: #fdf4dc;
+  --scape-flower-c: #e46a4a;
+  --scape-tikar: #d9b77a;
+}
+.dark .scape {
+  --scape-sky-a: #1f2440;
+  --scape-sky-b: #20284a;
+  --scape-sky-c: #2a2758;
+  --scape-sun-op: 0;
+  --scape-moon: #f7efcf;
+  --scape-moon-op: 1;
+  --scape-star-op: 0.9;
+  --scape-cloud: #3a3f66;
+  --scape-mtn-far: #3a4470;
+  --scape-mtn-light: #475178;
+  --scape-mtn-shade: #262d4a;
+  --scape-canvas-op: 0.22;
+  --scape-mtn-mid: #2a3a4a;
+  --scape-smoke: #4a4f72;
+  --scape-word-a: #cfe8c4;
+  --scape-word-b: #8fc58f;
+  --scape-hill-1: #233f30;
+  --scape-terrace: #36573f;
+  --scape-hill-2: #1d3628;
+  --scape-paddy: #26442e;
+  --scape-rice: #3f6a45;
+  --scape-wall: #5b5246;
+  --scape-window: #f4c36a;
+  --scape-roof: #5d2f22;
+  --scape-roof-dark: #45231a;
+  --scape-trunk: #2b2722;
+  --scape-palm: #172c20;
+  --scape-palm-light: #2f4d36;
+  --scape-path: #4b4537;
+  --scape-runner: #0f1112;
+  --scape-shirt: #e2683a;
+  --scape-watch: #7ee0a0;
+  --scape-fg-1: #1a2e22;
+  --scape-grass-a: #142619;
+  --scape-grass-b: #24402b;
+  --scape-grass-c: #36583c;
+  --scape-flower-a: #b97a34;
+  --scape-flower-b: #cfc7b4;
+  --scape-flower-c: #a5523c;
+  --scape-tikar: #6d5a3c;
+}
+
+/* Narrow phones see only the middle of the panorama; shrink the wordmark into it. */
+@media (max-width: 560px) {
+  .scape-word {
+    transform-box: view-box;
+    transform-origin: 800px 320px;
+    transform: translateY(-18px) scale(0.72);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .scape-drift {
+    animation: scape-drift 60s ease-in-out infinite alternate;
+  }
+  .scape-smoke {
+    transform-box: fill-box;
+    transform-origin: 0% 100%;
+    animation: scape-smoke 9s ease-in-out infinite alternate;
+  }
+  .scape-twinkle {
+    animation: scape-twinkle 3.2s ease-in-out infinite alternate;
+  }
+}
+@keyframes scape-drift {
+  to {
+    transform: translateX(60px);
+  }
+}
+@keyframes scape-smoke {
+  from {
+    transform: scale(0.92) translate(-6px, 4px);
+    opacity: 0.75;
+  }
+  to {
+    transform: scale(1.06) translate(6px, -6px);
+    opacity: 1;
+  }
+}
+@keyframes scape-twinkle {
+  to {
+    opacity: 0.35;
+  }
+}
