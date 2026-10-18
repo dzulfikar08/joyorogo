@@ -1,7 +1,8 @@
 import { ORPCError } from "@orpc/server";
-import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { z } from "zod";
 
+import type { Database } from "@joyorogo/db";
 import { exerciseLog } from "@joyorogo/db/schema/fitness";
 import { workoutSession } from "@joyorogo/db/schema/plans";
 
@@ -14,7 +15,40 @@ import {
 } from "../lib/exercise-edit";
 import { serverT } from "../lib/messages";
 import { dateSchema, pastDateSchema } from "../lib/schemas";
+import { absorbingRow, isWatchExternalId } from "../lib/import-dedupe";
 import { EXERCISE_TYPES } from "../lib/met";
+
+/**
+ * The row that already stands for a workout arriving from `from` (see `absorbingRow`), read from the candidate's day. Used so
+ * a watch workout that reaches the diary twice, as JoyoFit's own row (`watch:<start>`) and as a Health Connect / Apple Health
+ * import, is stored once. The absorbed side is not stored; the caller returns the row that stands for it instead.
+ */
+async function workoutAbsorbedBy(
+  db: Database,
+  userId: string,
+  from: "watch" | "imported",
+  candidate: { date: string; type?: string | undefined; durationMin?: number | undefined },
+): Promise<typeof exerciseLog.$inferSelect | null> {
+  if (candidate.type === undefined || candidate.durationMin === undefined) return null;
+  const rows = await db
+    .select()
+    .from(exerciseLog)
+    .where(
+      and(
+        eq(exerciseLog.userId, userId),
+        eq(exerciseLog.date, candidate.date),
+        inArray(exerciseLog.source, ["joyofit", "health_connect", "apple_health"]),
+      ),
+    );
+  const watchRows = rows.filter((row) => row.source === "joyofit" && isWatchExternalId(row.externalId));
+  const importedRows = rows.filter((row) => row.source !== "joyofit");
+  return absorbingRow(
+    { date: candidate.date, type: candidate.type, durationMin: candidate.durationMin },
+    from,
+    watchRows,
+    importedRows,
+  );
+}
 
 export const exerciseRouter = {
   add: protectedProcedure
@@ -32,12 +66,22 @@ export const exerciseRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const date = input.date ?? jakartaToday();
+      if (input.source !== "manual") {
+        const absorber = await workoutAbsorbedBy(context.db, userId, "imported", {
+          date,
+          type: input.type,
+          durationMin: input.durationMin,
+        });
+        if (absorber) return absorber;
+      }
       const [row] = await context.db
         .insert(exerciseLog)
         .values({
           id: crypto.randomUUID(),
-          userId: context.session.user.id,
-          date: input.date ?? jakartaToday(),
+          userId,
+          date,
           type: input.type,
           name: input.name,
           durationMin: input.durationMin ?? null,
@@ -63,11 +107,29 @@ export const exerciseRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      if (isWatchExternalId(input.externalId)) {
+        const [existing] = await context.db
+          .select({ id: exerciseLog.id })
+          .from(exerciseLog)
+          .where(
+            and(
+              eq(exerciseLog.userId, userId),
+              eq(exerciseLog.source, "joyofit"),
+              eq(exerciseLog.externalId, input.externalId),
+            ),
+          )
+          .limit(1);
+        if (!existing) {
+          const absorber = await workoutAbsorbedBy(context.db, userId, "watch", input);
+          if (absorber) return absorber;
+        }
+      }
       const [row] = await context.db
         .insert(exerciseLog)
         .values({
           id: crypto.randomUUID(),
-          userId: context.session.user.id,
+          userId,
           date: input.date,
           type: input.type,
           name: input.name,

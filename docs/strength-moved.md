@@ -38,6 +38,13 @@ To extend the grace period, move `STRENGTH_WRITES_LOCKED_AT` (and the date in th
 JoyoFit mirrors each strength workout into `exercise_log` through `exercise.upsertJoyofit`: `source = 'joyofit'`,
 `type = 'angkat_beban'`, `external_id = strength:<workout id>`.
 
+JoyoFit also sends the energy of every watch workout (`external_id = watch:<start>`, types `lari`, `jalan_cepat`, `sepeda`, ...), so the
+diary does not depend on JoyoRogo's read access to Health Connect / Apple Health. The same workout read from the health store is stored
+once: `exercise.upsertJoyofit` (`watch:` ids) and `exercise.add` (`health_connect` / `apple_health`) consult `absorbingRow`
+(`lib/import-dedupe.ts`): same WIB day, same workout class, length within 2 minutes, one row for both, in either order. Tested in
+`routers/exercise-watch-dedupe.test.ts`. Limit: the absorbed side is not stored, so a second, different workout of the same class and
+length on the same day from the other source is absorbed as long as a free `watch:` row is left.
+
 - **Verified source for challenges**: `joyofit` is in `VERIFIED_EXERCISE_SOURCES` (`lib/challenge-db.ts`) next to
   `health_connect` and `apple_health`. It comes from the owner's own tracked workout, so a `workouts` challenge day counts as
   device-backed when verified rows reach the target. `strava` stays excluded from challenges.

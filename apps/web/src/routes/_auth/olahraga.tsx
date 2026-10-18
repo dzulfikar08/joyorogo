@@ -88,6 +88,7 @@ const SOURCE_LABELS: Record<string, string> = {
   strava: "Strava",
   health_connect: "Health Connect",
   apple_health: "Apple Health",
+  joyofit: "JoyoFit",
 };
 
 // Icon per activity-type key; catalog entries without a match fall back to Flame.

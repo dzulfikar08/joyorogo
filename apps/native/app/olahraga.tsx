@@ -47,6 +47,7 @@ const SOURCE_LABELS: Record<string, string> = {
   strava: "Strava",
   health_connect: "Health Connect",
   apple_health: "Apple Health",
+  joyofit: "JoyoFit",
 };
 
 // Captions name the on-device store this install actually reads.
