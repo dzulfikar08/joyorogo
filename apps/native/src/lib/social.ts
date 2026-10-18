@@ -31,6 +31,8 @@ export type FeedItem = {
     | { protein: number | null; carbs: number | null; fat: number | null; fiber: number | null }
     | undefined;
   stats?: Record<string, number | string | null> | undefined;
+  /** Encoded polyline (precision 5) of a JoyoFit workout's shared route; absent when no map is shown. */
+  mapLine?: string | undefined;
   caption: string | null;
   visibility: Visibility;
   createdAt: Date;

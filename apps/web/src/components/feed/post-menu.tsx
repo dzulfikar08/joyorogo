@@ -2,7 +2,7 @@ import { Button } from "@joyorogo/ui/components/button";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Textarea } from "@joyorogo/ui/components/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Flag, ShieldOff, Trash2, UserX } from "lucide-react";
+import { Flag, Map as MapIcon, MapPinOff, ShieldOff, Trash2, UserX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -56,6 +56,16 @@ export function PostMenuSheet({
       onError: (error) => toast.error(error.message),
     }),
   );
+  const setPostMap = useMutation(
+    orpc.social.setPostMap.mutationOptions({
+      onSuccess: (data) => {
+        toast.success(data.showMap === 1 ? t("menu.toast.mapShown") : t("menu.toast.mapHidden"));
+        queryClient.invalidateQueries({ queryKey: orpc.social.key() });
+        onOpenChange(false);
+      },
+      onError: (error) => toast.error(error.message),
+    }),
+  );
   const block = useMutation(
     orpc.social.block.mutationOptions({
       onSuccess: () => {
@@ -96,6 +106,7 @@ export function PostMenuSheet({
     invalidate: () => [orpc.social.key()],
   });
 
+  const mapShown = post?.stats?.showMap !== 0;
   if (!post) return null;
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title={t("post.actions")}>
@@ -183,6 +194,22 @@ export function PostMenuSheet({
                   }
                   title={t("menu.block.title", { name: post.author.name })}
                   subtitle={t("menu.block.subtitle")}
+                />
+              )}
+              {isOwn && post.stats?.hasMap === 1 && (
+                <ListButtonRow
+                  onClick={() => setPostMap.mutate({ postId: post.id, show: !mapShown })}
+                  icon={
+                    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-muted">
+                      {mapShown ? (
+                        <MapPinOff className="size-5 text-muted-foreground" aria-hidden />
+                      ) : (
+                        <MapIcon className="size-5 text-muted-foreground" aria-hidden />
+                      )}
+                    </span>
+                  }
+                  title={mapShown ? t("menu.mapHide.title") : t("menu.mapShow.title")}
+                  subtitle={mapShown ? t("menu.mapHide.subtitle") : t("menu.mapShow.subtitle")}
                 />
               )}
               {isOwn && (

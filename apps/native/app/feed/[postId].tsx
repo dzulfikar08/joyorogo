@@ -24,6 +24,7 @@ import {
 import { ConfirmSheet } from "@/components/confirm-sheet";
 import { useToast } from "@/components/toast";
 import { PostCard, openAuthor } from "@/components/feed/post-card";
+import { RouteMapPreview } from "@/components/feed/route-map-preview";
 import { WorkoutDetail } from "@/components/feed/workout-detail";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
@@ -94,6 +95,23 @@ export default function DetailPost() {
       refresh();
       router.replace("/feed");
     },
+  });
+  const postKey = orpc.social.post.queryOptions({ input: { id } }).queryKey;
+  const setPostMap = useOptimisticMutation<{ show: boolean }, { showMap: number }>({
+    mutationFn: ({ show }) => client.social.setPostMap({ postId: id, show }),
+    patch: ({ show }, cache) => {
+      cache.value<FeedItem>(postKey, (old) =>
+        old
+          ? {
+              ...old,
+              mapLine: show ? old.mapLine : undefined,
+              stats: { ...old.stats, showMap: show ? 1 : 0 },
+            }
+          : old,
+      );
+    },
+    success: ({ show }) => ({ message: show ? t("menu.toast.mapShown") : t("menu.toast.mapHidden") }),
+    invalidate: () => [orpc.social.key()],
   });
   const report = useMutation({
     mutationFn: (input: { reason: ReportReason; note?: string }) =>
@@ -215,7 +233,14 @@ export default function DetailPost() {
         post={data}
         onPressAuthor={(handle) => openAuthor(handle)}
         right={null}
+        hideMap
       />
+
+      {data.mapLine ? (
+        <Card>
+          <RouteMapPreview line={data.mapLine} title={data.title} size="detail" />
+        </Card>
+      ) : null}
 
       {data.stats?.source === "joyofit" && data.stats.hasDetail === 1 ? <WorkoutDetail postId={data.id} onScrubActive={setScrubbing} /> : null}
 
@@ -331,6 +356,18 @@ export default function DetailPost() {
               onPress={() => {
                 setMenuOpen(false);
                 setConfirm("block");
+              }}
+            />
+          ) : null}
+          {isOwnPost && data.stats?.hasMap === 1 ? (
+            <ListRow
+              icon={data.stats.showMap === 0 ? "map-outline" : "eye-off-outline"}
+              iconTint="tidur"
+              title={data.stats.showMap === 0 ? t("menu.mapShow.title") : t("menu.mapHide.title")}
+              subtitle={data.stats.showMap === 0 ? t("menu.mapShow.subtitle") : t("menu.mapHide.subtitle")}
+              onPress={() => {
+                setMenuOpen(false);
+                setPostMap.mutate({ show: data.stats?.showMap === 0 });
               }}
             />
           ) : null}

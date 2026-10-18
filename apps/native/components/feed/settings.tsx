@@ -65,6 +65,16 @@ export function FeedSettingsCard() {
     invalidate: () => [orpc.social.key()],
   });
 
+  const setShareMaps = useOptimisticMutation<boolean, unknown>({
+    mutationFn: (shareMaps) => client.social.updateProfile({ shareMaps }),
+    patch: (shareMaps, cache) => {
+      const key = orpc.social.myProfile.queryOptions().queryKey;
+      cache.value(key, (old) => (old === undefined ? undefined : { ...old, shareMaps }));
+    },
+    success: (shareMaps) => ({ message: shareMaps ? t("feed.maps.toastOn") : t("feed.maps.toastOff") }),
+    invalidate: () => [orpc.social.key()],
+  });
+
   const unblock = useMutation({
     mutationFn: (userId: string) => client.social.unblock({ userId }),
     onSuccess: refresh,
@@ -97,6 +107,19 @@ export function FeedSettingsCard() {
             title={t("feed.public.title")}
             subtitle={t("feed.public.subtitleNative")}
             value={data?.publicProfile ? t("feed.public.on") : t("feed.public.off")}
+          />
+          <ListRow
+            icon="map-outline"
+            iconTint="makan"
+            title={t("feed.maps.title")}
+            subtitle={t("feed.maps.subtitle")}
+            right={
+              <Switch
+                value={data?.shareMaps ?? true}
+                onValueChange={(next) => setShareMaps.mutate(next)}
+                accessibilityLabel={t("feed.maps.title")}
+              />
+            }
           />
           <ListRow
             icon="lock-closed-outline"

@@ -4,7 +4,7 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { Textarea } from "@joyorogo/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AtSign, Globe, ShieldBan } from "lucide-react";
+import { AtSign, Globe, Map as MapIcon, ShieldBan } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -68,6 +68,34 @@ export function FeedSettingsSection() {
     },
   });
 
+  // Same optimistic switch for the account-wide route map setting.
+  const previousMaps = useRef<boolean | null>(null);
+  const toggleMaps = useOptimisticMutation<
+    Parameters<AppRouterClient["social"]["updateProfile"]>[0],
+    unknown
+  >({
+    mutationFn: (input) => client.social.updateProfile(input),
+    patch: (input, cache) => {
+      previousMaps.current = profile.data?.shareMaps ?? null;
+      cache.value(myProfileKey, (old) =>
+        old && input.shareMaps !== undefined ? { ...old, shareMaps: input.shareMaps } : old,
+      );
+    },
+    invalidate: () => [orpc.social.key()],
+    success: (input) => {
+      const prev = previousMaps.current;
+      previousMaps.current = null;
+      const nowOn = input.shareMaps === true;
+      return {
+        message: nowOn ? t("feed.maps.toastOn") : t("feed.maps.toastOff"),
+        undo:
+          prev === null
+            ? undefined
+            : () => void client.social.updateProfile({ shareMaps: !prev }),
+      };
+    },
+  });
+
   const data = profile.data;
 
   return (
@@ -102,6 +130,23 @@ export function FeedSettingsSection() {
                 onCheckedChange={(checked) => togglePublic.mutate({ publicProfile: checked })}
                 disabled={togglePublic.isPending}
                 label={t("feed.public.title")}
+              />
+            }
+          />
+          <ListRow
+            icon={
+              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-bakar-soft">
+                <MapIcon className="size-5 text-bakar-ink" aria-hidden />
+              </span>
+            }
+            title={t("feed.maps.title")}
+            subtitle={t("feed.maps.subtitle")}
+            trailing={
+              <Switch
+                checked={data?.shareMaps ?? true}
+                onCheckedChange={(checked) => toggleMaps.mutate({ shareMaps: checked })}
+                disabled={toggleMaps.isPending}
+                label={t("feed.maps.title")}
               />
             }
           />

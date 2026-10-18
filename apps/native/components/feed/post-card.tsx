@@ -15,7 +15,11 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
 import { File, Paths } from "expo-file-system";
 
+import { formatDuration, formatPace } from "@joyorogo/api/lib/workout-analysis";
+import { paceOrSpeed, sportKindFromName } from "@joyorogo/api/lib/feed-route";
+
 import { Avatar, Card, Text } from "@/components/ui";
+import { RouteMapPreview } from "@/components/feed/route-map-preview";
 import { authClient } from "@/lib/auth-client";
 import { client } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
@@ -221,9 +225,35 @@ function PostChips({ post }: { post: FeedItem }) {
     macro?: MacroKey;
     label: string;
   }[] = [];
-  if (post.kcal !== null) chips.push({ macro: "kcal", label: fmtKcalLabel(post.kcal) });
-  if (post.durationMin !== null)
-    chips.push({ icon: "time-outline", label: t("post.chip.minutesShort", { n: fmtInt(post.durationMin) }) });
+  const joyofit = post.stats?.source === "joyofit";
+  if (joyofit && post.stats) {
+    const s = post.stats;
+    const distanceM = typeof s.distanceM === "number" ? s.distanceM : null;
+    const movingSec = typeof s.movingSec === "number" ? s.movingSec : null;
+    const elevGainM = typeof s.elevGainM === "number" ? s.elevGainM : null;
+    const timeSec = movingSec ?? (post.durationMin !== null ? post.durationMin * 60 : null);
+    if (distanceM !== null)
+      chips.push({
+        icon: "navigate-outline",
+        label: t("watch.chip.distance", { km: (distanceM / 1000).toFixed(distanceM < 10000 ? 2 : 1) }),
+      });
+    if (movingSec !== null) chips.push({ icon: "time-outline", label: formatDuration(movingSec) });
+    else if (post.durationMin !== null)
+      chips.push({ icon: "time-outline", label: t("post.chip.minutesShort", { n: fmtInt(post.durationMin) }) });
+    const kind = typeof s.sportKind === "string" ? s.sportKind : sportKindFromName(post.title);
+    const pace = paceOrSpeed(kind, distanceM, timeSec);
+    if (pace?.kind === "pace")
+      chips.push({ icon: "speedometer-outline", label: t("watch.chip.pace", { pace: formatPace(pace.secPerKm) }) });
+    else if (pace?.kind === "speed")
+      chips.push({ icon: "speedometer-outline", label: t("watch.chip.speed", { kmh: pace.kmh.toFixed(1) }) });
+    if (elevGainM !== null && elevGainM > 0)
+      chips.push({ icon: "trending-up-outline", label: t("watch.chip.elev", { m: fmtInt(elevGainM) }) });
+    if (post.kcal !== null) chips.push({ macro: "kcal", label: fmtKcalLabel(post.kcal) });
+  } else {
+    if (post.kcal !== null) chips.push({ macro: "kcal", label: fmtKcalLabel(post.kcal) });
+    if (post.durationMin !== null)
+      chips.push({ icon: "time-outline", label: t("post.chip.minutesShort", { n: fmtInt(post.durationMin) }) });
+  }
   if (post.macros) {
     const { protein, carbs, fat, fiber } = post.macros;
     if (protein !== null) chips.push({ macro: "protein", label: t("post.chip.protein", { g: fmtInt(protein) }) });
@@ -249,7 +279,7 @@ function PostChips({ post }: { post: FeedItem }) {
         label: `${n > 0 ? "+" : ""}${fmtKg(n)} kg`,
       });
     }
-    if (s.distanceM !== null && s.distanceM !== undefined)
+    if (!joyofit && s.distanceM !== null && s.distanceM !== undefined)
       chips.push({ icon: "navigate-outline", label: t("watch.chip.distance", { km: (Number(s.distanceM) / 1000).toFixed(2) }) });
     if (s.avgHr !== null && s.avgHr !== undefined)
       chips.push({ icon: "heart-outline", label: t("watch.chip.avgHr", { bpm: fmtInt(Number(s.avgHr)) }) });
@@ -282,12 +312,15 @@ export function PostCard({
   onPress,
   onPressAuthor,
   right,
+  hideMap,
 }: {
   post: FeedItem;
   onPress?: () => void;
   onPressAuthor?: (handle: string | null) => void;
   /** Extra header action (detail screen's overflow menu). */
   right?: ReactNode;
+  /** The detail screen draws its own larger route map above the workout detail. */
+  hideMap?: boolean;
 }) {
   const { t } = useTranslation("feed");
   const { theme } = useUnistyles();
@@ -383,6 +416,7 @@ export function PostCard({
               {post.kind === "berat" ? t("post.weightTitle") : post.title}
             </Text>
             <PostChips post={post} />
+            {!hideMap && post.mapLine ? <RouteMapPreview line={post.mapLine} title={post.title} size="card" /> : null}
             {post.caption ? (
               <Text style={styles.caption}>{post.caption}</Text>
             ) : null}

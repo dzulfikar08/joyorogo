@@ -19,6 +19,9 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+import { formatDuration, formatPace } from "@joyorogo/api/lib/workout-analysis";
+import { paceOrSpeed, sportKindFromName } from "@joyorogo/api/lib/feed-route";
+
 import { undoLabel, UNDO_TOAST_MS } from "@/lib/optimistic";
 
 import { Avatar } from "@/components/avatar";
@@ -26,6 +29,7 @@ import { Card } from "@/components/kit/surface";
 import { CommentsSheet } from "@/components/feed/comments-sheet";
 import { PhotoGrid } from "@/components/feed/photo-grid";
 import { PostMenuSheet } from "@/components/feed/post-menu";
+import { RouteMapPreview } from "@/components/feed/route-map-preview";
 import { MacroLine } from "@/components/macro-line";
 import { Sticker, postPhotoUrl, stickerUrl } from "@/components/sticker";
 import type { FeedPost } from "@/lib/api-types";
@@ -131,12 +135,27 @@ function WorkoutChips({ post }: { post: FeedPost }) {
   const stats = post.stats ?? {};
   const fromWatch = stats.source === "joyofit";
   const chips: string[] = [];
-  if (post.durationMin != null) chips.push(t("post.chip.minutes", { n: fmtInt(post.durationMin) }));
   if (fromWatch) {
-    if (typeof stats.distanceM === "number" && stats.distanceM > 0)
-      chips.push(t("watch.chip.distance", { km: (stats.distanceM / 1000).toFixed(1) }));
-    if (typeof stats.avgHr === "number") chips.push(t("watch.chip.avgHr", { bpm: fmtInt(stats.avgHr) }));
+    const distanceM = typeof stats.distanceM === "number" && stats.distanceM > 0 ? stats.distanceM : null;
+    const movingSec = typeof stats.movingSec === "number" && stats.movingSec > 0 ? stats.movingSec : null;
+    if (distanceM !== null) {
+      const km = distanceM / 1000;
+      chips.push(t("watch.chip.distance", { km: km.toFixed(km < 10 ? 2 : 1) }));
+    }
+    if (movingSec !== null) chips.push(formatDuration(movingSec));
+    else if (post.durationMin != null) chips.push(t("post.chip.minutes", { n: fmtInt(post.durationMin) }));
+    const sportKind = typeof stats.sportKind === "string" ? stats.sportKind : sportKindFromName(post.title);
+    const pace = paceOrSpeed(
+      sportKind,
+      distanceM,
+      movingSec ?? (post.durationMin != null ? post.durationMin * 60 : null),
+    );
+    if (pace?.kind === "pace") chips.push(t("watch.chip.pace", { pace: formatPace(pace.secPerKm) }));
+    else if (pace?.kind === "speed") chips.push(t("watch.chip.speed", { kmh: pace.kmh.toFixed(1) }));
+    if (typeof stats.elevGainM === "number" && stats.elevGainM > 0)
+      chips.push(t("watch.chip.elev", { m: fmtInt(Math.round(stats.elevGainM)) }));
   } else {
+    if (post.durationMin != null) chips.push(t("post.chip.minutes", { n: fmtInt(post.durationMin) }));
     if (typeof stats.sets === "number")
       chips.push(t("post.chip.sets", { count: stats.sets }));
     if (typeof stats.reps === "number" && stats.reps > 0)
@@ -145,6 +164,8 @@ function WorkoutChips({ post }: { post: FeedPost }) {
       chips.push(t("post.chip.volume", { kg: fmtInt(stats.volumeKg) }));
   }
   if (post.kcal != null) chips.push(fmtKcalLabel(post.kcal));
+  if (fromWatch && typeof stats.avgHr === "number")
+    chips.push(t("watch.chip.avgHr", { bpm: fmtInt(stats.avgHr) }));
   if (chips.length === 0) return null;
   return (
     <ul className="flex flex-wrap gap-1.5">
@@ -197,7 +218,18 @@ function WeightChips({ post }: { post: FeedPost }) {
  * Kartu postingan feed: penulis + snapshot log + semangat/komentar. Semua
  * interaksi lokal (optimistic) lalu invalidasi query social.
  */
-export function PostCard({ post, isOwn, index = 0 }: { post: FeedPost; isOwn: boolean; index?: number }) {
+export function PostCard({
+  post,
+  isOwn,
+  index = 0,
+  hideMap = false,
+}: {
+  post: FeedPost;
+  isOwn: boolean;
+  index?: number;
+  /** The post page draws the larger map itself. */
+  hideMap?: boolean;
+}) {
   const { t } = useTranslation("feed");
   const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -296,6 +328,10 @@ export function PostCard({ post, isOwn, index = 0 }: { post: FeedPost; isOwn: bo
             {post.kind === "berat" && <WeightChips post={post} />}
           </div>
         </div>
+      )}
+
+      {post.kind === "latihan" && post.mapLine && !hideMap && (
+        <RouteMapPreview line={post.mapLine} title={post.title} size="card" />
       )}
 
       {post.kind !== "cerita" && post.caption && (
