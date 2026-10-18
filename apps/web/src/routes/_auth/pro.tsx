@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
-import { Check, ChevronDown, CircleHelp } from "lucide-react";
-import { useState } from "react";
+import { Check, ChevronDown, CircleCheck, CircleHelp, Loader } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -12,9 +12,10 @@ import { Mascot } from "@/components/mascot";
 import { FounderPromo } from "@/components/founder-promo";
 import { Page, Segmented } from "@/components/kit/surface";
 import { ScreenError } from "@/components/screen-state";
-import { fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
+import { fmtRupiah, fmtUsd, founderScans, useAppConfig } from "@/lib/app-config";
 import { validatePaywallSearch } from "@/lib/billing";
 import type { CheckoutPlan } from "@/lib/billing";
+import { useEnglishBilling } from "@/lib/usd-copy";
 import { orpc } from "@/utils/orpc";
 
 const profileOptions = orpc.profile.myProfile.queryOptions();
@@ -24,8 +25,73 @@ export const Route = createFileRoute("/_auth/pro")({
   validateSearch: validatePaywallSearch,
   loader: ({ context }) => context.queryClient.ensureQueryData(profileOptions),
   pendingComponent: FounderSkeleton,
-  component: FounderPage,
+  component: ProRoute,
 });
+
+/** Back from Polar (`?polar=success`): confirm the payment instead of selling again. */
+function ProRoute() {
+  const { polar } = Route.useSearch();
+  return polar === "success" ? <PolarSuccess /> : <FounderPage />;
+}
+
+const CONFIRM_POLL_MS = 2_000;
+const CONFIRM_TIMEOUT_MS = 60_000;
+
+function PolarSuccess() {
+  const te = useEnglishBilling();
+  const navigate = useNavigate();
+  const { next } = Route.useSearch();
+  const [timedOut, setTimedOut] = useState(false);
+  const profile = useQuery({
+    ...profileOptions,
+    refetchInterval: timedOut ? false : CONFIRM_POLL_MS,
+  });
+  const confirmed = profile.data?.tier === "founder";
+
+  useEffect(() => {
+    if (confirmed) {
+      void navigate({ to: next ?? "/beranda", replace: true });
+      return;
+    }
+    const timer = setTimeout(() => setTimedOut(true), CONFIRM_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [confirmed, navigate, next]);
+
+  return (
+    <Page className="max-w-md">
+      <section
+        lang="en"
+        aria-labelledby="polar-success-title"
+        className="rounded-3xl bg-card p-6 text-center"
+      >
+        <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-makan-soft text-makan-ink">
+          <CircleCheck className="size-6" aria-hidden />
+        </span>
+        <h1 id="polar-success-title" className="mt-4 text-2xl font-extrabold tracking-tight">
+          {te("usd.success.title")}
+        </h1>
+        {timedOut ? (
+          <>
+            <p role="status" className="mt-2 text-sm leading-snug text-muted-foreground">
+              {te("usd.success.timeout")}
+            </p>
+            <Button className="mt-5 w-full" onClick={() => window.location.reload()}>
+              {te("usd.success.refresh")}
+            </Button>
+          </>
+        ) : (
+          <p
+            role="status"
+            className="mt-2 flex items-center justify-center gap-2 text-sm leading-snug text-muted-foreground"
+          >
+            <Loader className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />
+            {te("usd.success.confirming")}
+          </p>
+        )}
+      </section>
+    </Page>
+  );
+}
 
 function FounderPage() {
   const { t } = useTranslation("billing");
@@ -53,6 +119,8 @@ function FounderPage() {
   const standardMonthly = config.data.promo?.nextPriceIdr ?? config.data.founderPriceIdr;
   const yearlySaving = standardMonthly * 12 - config.data.founderYearlyPriceIdr;
   const yearly = plan === "yearly";
+  const usd = config.data.usd?.preferred ? config.data.usd : null;
+  const usdSaving = usd ? usd.monthlyCents * 12 - usd.yearlyCents : 0;
   const steps = [
     t("details.step.web.one"),
     t("details.step.web.two"),
@@ -91,9 +159,11 @@ function FounderPage() {
               label: (
                 <>
                   {t("plan.yearly")}{" "}
-                  {yearlySaving > 0 && (
+                  {(usd ? usdSaving > 0 : yearlySaving > 0) && (
                     <span className="text-xs font-bold text-primary">
-                      {t("plan.save", { amount: fmtRupiah(yearlySaving) })}
+                      {usd
+                        ? t("plan.save", { amount: fmtUsd(usdSaving), lng: "en" })
+                        : t("plan.save", { amount: fmtRupiah(yearlySaving) })}
                     </span>
                   )}
                 </>
@@ -104,17 +174,25 @@ function FounderPage() {
         />
         <div className="mt-3 flex flex-wrap items-baseline justify-between gap-x-3">
           <p className="text-3xl font-extrabold tracking-tight tabular-nums">
-            {fmtRupiah(yearly ? config.data.founderYearlyPriceIdr : config.data.founderPriceIdr)}
+            {usd
+              ? fmtUsd(yearly ? usd.yearlyCents : usd.monthlyCents)
+              : fmtRupiah(yearly ? config.data.founderYearlyPriceIdr : config.data.founderPriceIdr)}
             <span className="text-sm font-semibold text-muted-foreground">
               {" "}
-              {yearly ? t("plan.perYear") : t("plan.perMonth")}
+              {usd
+                ? t(yearly ? "plan.perYear" : "plan.perMonth", { lng: "en" })
+                : yearly
+                  ? t("plan.perYear")
+                  : t("plan.perMonth")}
             </span>
           </p>
           {yearly && (
             <p className="text-sm text-muted-foreground tabular-nums">
-              {t("plan.equivalent", {
-                price: fmtRupiah(Math.round(config.data.founderYearlyPriceIdr / 12)),
-              })}
+              {usd
+                ? t("plan.equivalent", { price: fmtUsd(Math.round(usd.yearlyCents / 12)), lng: "en" })
+                : t("plan.equivalent", {
+                    price: fmtRupiah(Math.round(config.data.founderYearlyPriceIdr / 12)),
+                  })}
             </p>
           )}
         </div>
@@ -153,9 +231,15 @@ function FounderPage() {
         >
           {t("paywall.later")}
         </Button>
-        <p className="mt-2 text-center text-xs text-muted-foreground">
-          {t("paywall.noAutoRenew")}
-        </p>
+        {usd ? (
+          <p lang="en" className="mt-2 text-center text-xs text-muted-foreground">
+            {t("usd.paywall.disclosure", { lng: "en" })}
+          </p>
+        ) : (
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            {t("paywall.noAutoRenew")}
+          </p>
+        )}
 
         <details className="group mt-2 rounded-2xl bg-muted">
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-2xl px-4 text-sm font-bold select-none focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">

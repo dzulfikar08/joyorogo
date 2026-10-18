@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   CalendarX,
   Check,
@@ -15,9 +17,10 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { useCheckoutPicker } from "@/components/checkout-picker";
 import { PublicFooter } from "@/components/public-footer";
 import { PublicHeader } from "@/components/public-header";
+import { UsdPlans } from "@/components/usd-plans";
 import { FounderPromo } from "@/components/founder-promo";
 import { ProgressBar } from "@/components/progress-bar";
-import { fmtRupiah, founderScans, useAppConfig } from "@/lib/app-config";
+import { fmtRupiah, fmtUsd, founderScans, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { pageHead } from "@/lib/seo";
 
@@ -185,7 +188,11 @@ function pricingFaq(config: AppConfig): Array<{ q: string; a: string }> {
     },
     {
       q: "Apakah ini langganan otomatis?",
-      a: "Tergantung tempat kamu membayar. Di web (QRIS atau transfer bank), satu pembayaran aktif selama periode yang kamu beli: tidak ada kartu yang disimpan dan tidak ada tagihan susulan, perpanjang manual dari Profil kalau masih mau. Di aplikasi iPhone, Pro berupa langganan otomatis lewat App Store, dan di aplikasi Android lewat Google Play. Langganan itu dikelola dan dibatalkan di pengaturan Apple atau Google.",
+      a: "Tergantung tempat dan cara kamu membayar. Di web, QRIS atau transfer bank berlaku sekali untuk periode yang kamu beli: tidak ada kartu yang disimpan dan tidak ada tagihan susulan, perpanjang manual dari Profil kalau masih mau. Pembayaran dolar AS dengan kartu (lewat Polar) adalah langganan otomatis: diperpanjang tiap bulan atau tahun sampai kamu membatalkan, dan bisa dibatalkan kapan saja dari Profil atau portal pelanggan Polar. Di aplikasi iPhone, Pro berupa langganan otomatis lewat App Store, dan di aplikasi Android lewat Google Play, dikelola dan dibatalkan di pengaturan Apple atau Google.",
+    },
+    {
+      q: "Bisa bayar dengan dolar?",
+      a: "Bisa, kalau pembayaran dolar dibuka di server ini. Pembayaran dalam dolar AS dengan kartu diproses oleh Polar (polar.sh), merchant of record yang menjadi penjual untuk transaksi itu, jadi pajak seperti PPN atau GST bisa ditambahkan di halaman pembayaran. Ini langganan otomatis yang bisa dibatalkan kapan saja. Detailnya ada di Syarat dan Kebijakan pengembalian dana.",
     },
     {
       q: "Hargaku ikut naik kalau daftar harga naik?",
@@ -203,9 +210,12 @@ function pricingFaq(config: AppConfig): Array<{ q: string; a: string }> {
 }
 
 function HargaPage() {
+  const { t } = useTranslation("billing");
   const config = useAppConfig();
   const checkout = useCheckoutPicker("monthly");
   const checkoutYearly = useCheckoutPicker("yearly");
+  const [showUsd, setShowUsd] = useState(false);
+  const usd = config.data?.usd ?? null;
 
   // Sticky mobile CTA only when checkout actually exists on this server.
   const stickyCta = config.data?.paywall === true && config.data.billing === true;
@@ -307,6 +317,50 @@ function HargaPage() {
 
         {config.data?.paywall && (
           <>
+            {usd && usd.preferred && (
+              <UsdPlans
+                usd={usd}
+                config={config.data}
+                yearly={{ start: () => checkoutYearly.startUsd(), pending: checkoutYearly.isPending }}
+                monthly={{ start: () => checkout.startUsd(), pending: checkout.isPending }}
+                className="mb-12"
+              />
+            )}
+            {usd && !usd.preferred && (
+              <div className="mb-8">
+                {showUsd ? (
+                  <>
+                    <UsdPlans
+                      usd={usd}
+                      config={config.data}
+                      yearly={{
+                        start: () => checkoutYearly.startUsd(),
+                        pending: checkoutYearly.isPending,
+                      }}
+                      monthly={{ start: () => checkout.startUsd(), pending: checkout.isPending }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowUsd(false)}
+                      lang="en"
+                      className="mt-3 inline-flex min-h-11 items-center text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                    >
+                      {t("usd.section.hide", { lng: "en" })}
+                    </button>
+                  </>
+                ) : (
+                  <p className="text-center text-sm text-muted-foreground" lang="en">
+                    <button
+                      type="button"
+                      onClick={() => setShowUsd(true)}
+                      className="inline-flex min-h-11 items-center underline underline-offset-4 hover:text-foreground"
+                    >
+                      {t("usd.section.outsideLink", { lng: "en" })}
+                    </button>
+                  </p>
+                )}
+              </div>
+            )}
             <div className="mt-10 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1.12fr_1fr]">
               <TierCard
                 name="Gratis"
@@ -492,8 +546,9 @@ function HargaPage() {
             <div className="max-w-xl">
               <h2 className="text-2xl font-extrabold tracking-tight md:text-3xl">Cara bayar</h2>
               <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
-                Di web, kamu bayar sekali per periode di halaman pembayaran. Tidak ada langganan
-                otomatis di web, jadi tidak ada tagihan yang muncul sendiri.
+                Pembayaran rupiah di web (QRIS atau transfer bank) berlaku sekali per periode:
+                tidak ada perpanjangan otomatis, jadi tidak ada tagihan yang muncul sendiri.
+                Langganan otomatis hanya ada di pembayaran kartu dolar AS (Polar) dan di aplikasi.
               </p>
             </div>
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -510,8 +565,8 @@ function HargaPage() {
                 },
                 {
                   icon: CalendarX,
-                  title: "Web: tanpa perpanjang otomatis",
-                  body: "Aktif sampai periode habis; lanjutkan manual dari Profil. Langganan otomatis hanya ada di aplikasi (App Store, Google Play).",
+                  title: "Rupiah di web: tanpa perpanjang otomatis",
+                  body: "Aktif sampai periode habis; lanjutkan manual dari Profil. Kartu dolar AS (Polar) dan aplikasi (App Store, Google Play) berupa langganan otomatis yang bisa dibatalkan kapan saja.",
                 },
               ].map((item) => (
                 <div key={item.title} className="rounded-3xl bg-card p-6">
@@ -585,8 +640,10 @@ function HargaPage() {
             <div className="min-w-0">
               <p className="text-xs font-semibold text-muted-foreground">Pro bulanan</p>
               <p className="text-sm font-extrabold tabular-nums">
-                {fmtRupiah(config.data.founderPriceIdr)}
-                <span className="font-semibold text-muted-foreground">/bulan</span>
+                {usd?.preferred ? fmtUsd(usd.monthlyCents) : fmtRupiah(config.data.founderPriceIdr)}
+                <span className="font-semibold text-muted-foreground">
+                  {usd?.preferred ? "/month" : "/bulan"}
+                </span>
               </p>
             </div>
             <Button

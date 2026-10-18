@@ -12,7 +12,7 @@ import { fmtDateLong } from "./format";
 /** Where the Pro paywall screen was opened from; picks its subhead. */
 export type PaywallFrom = "onboarding" | "quota" | "banner" | "profile" | "fitness" | "challenge" | "joyofit";
 
-export type PaywallSearch = { next?: string; from?: PaywallFrom };
+export type PaywallSearch = { next?: string; from?: PaywallFrom; polar?: "success" };
 
 /** Search params of the paywall route: `next` must be an in-app path. */
 export function validatePaywallSearch(search: Record<string, unknown>): PaywallSearch {
@@ -26,6 +26,7 @@ export function validatePaywallSearch(search: Record<string, unknown>): PaywallS
     from: (["onboarding", "quota", "banner", "profile", "fitness", "challenge", "joyofit"] as const).find(
       (value) => search.from === value,
     ),
+    polar: search.polar === "success" ? ("success" as const) : undefined,
   };
 }
 
@@ -75,6 +76,75 @@ export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
       trackEvent("checkout_start");
       window.location.assign(body.paymentUrl);
       return body.paymentUrl;
+    },
+  });
+}
+
+/**
+ * Start a Polar (USD, card, auto-renewing) checkout. Same sign-in handling
+ * as useFounderCheckout. Messages stay English: the USD flow is English-only.
+ */
+export function useUsdCheckout(plan: CheckoutPlan = "monthly") {
+  const navigate = useNavigate();
+  const location = useLocation();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch(apiUrl("/api/billing/polar/checkout"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...localeHeader() },
+        body: JSON.stringify({ plan }),
+      });
+      if (res.status === 401) {
+        navigate({ to: "/login", search: { redirect: location.pathname } });
+        return null;
+      }
+      const body = (await res.json().catch(() => null)) as { url?: string; error?: string } | null;
+      if (!res.ok || !body?.url) {
+        throw new Error(body?.error ?? i18n.t("billing:usd.error.checkoutFailed", { lng: "en" }));
+      }
+      trackEvent("checkout_start");
+      window.location.assign(body.url);
+      return body.url;
+    },
+  });
+}
+
+export type PolarSubscription = {
+  plan: CheckoutPlan;
+  /** "active" | "canceled" (still Pro until period end) | "past_due" | "revoked" */
+  state: string;
+  /** Epoch ms. */
+  currentPeriodEnd: number | null;
+  cancelAtPeriodEnd: boolean;
+};
+
+/** The caller's Polar subscription, or null when there is none. */
+export async function fetchPolarSubscription(): Promise<PolarSubscription | null> {
+  const res = await fetch(apiUrl("/api/billing/polar/subscription"), {
+    credentials: "include",
+    headers: localeHeader(),
+  });
+  if (!res.ok) throw new Error(`polar subscription ${res.status}`);
+  const body = (await res.json()) as { subscription?: PolarSubscription | null };
+  return body.subscription ?? null;
+}
+
+/** Open Polar's customer portal (cancel, manage, invoices). */
+export function usePolarPortal() {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch(apiUrl("/api/billing/polar/portal"), {
+        method: "POST",
+        credentials: "include",
+        headers: localeHeader(),
+      });
+      const body = (await res.json().catch(() => null)) as { url?: string; error?: string } | null;
+      if (!res.ok || !body?.url) {
+        throw new Error(body?.error ?? i18n.t("billing:usd.error.portalFailed", { lng: "en" }));
+      }
+      window.location.assign(body.url);
+      return body.url;
     },
   });
 }

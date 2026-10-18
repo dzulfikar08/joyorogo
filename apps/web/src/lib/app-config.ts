@@ -15,6 +15,11 @@ export type AppConfig = {
    * "transfer" (DOKU). Missing on servers older than the picker.
    */
   paymentMethods?: PaymentMethod[];
+  /**
+   * Polar USD subscription; null = not configured. `preferred` = the
+   * visitor's country is known and is not Indonesia. Prices in US cents.
+   */
+  usd?: UsdConfig | null;
   freeDailyScans: number | null;
   founderDailyCap: number | null;
   founderPriceIdr: number;
@@ -31,6 +36,32 @@ export type AppConfig = {
 
 /** Buyer-facing payment choice; the server maps each to its gateway. */
 export type PaymentMethod = "qris" | "transfer";
+
+export type UsdConfig = {
+  monthlyCents: number;
+  yearlyCents: number;
+  preferred: boolean;
+  country: string | null;
+};
+
+/** US cents as "$9.99" (always English formatting). */
+export function fmtUsd(cents: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+  }).format(cents / 100);
+}
+
+/** Epoch ms as "November 12, 2026" (English, UTC day). */
+export function fmtUsdDate(epochMs: number): string {
+  return new Date(epochMs).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
 
 export function apiUrl(path: string): string {
   return `${getServerUrl(env.VITE_SERVER_URL)}${path}`;

@@ -83,6 +83,16 @@ export function PublicFooter() {
                 Privasi
               </Link>
             </li>
+            <li>
+              <Link to="/syarat" className={linkClass}>
+                Syarat
+              </Link>
+            </li>
+            <li>
+              <Link to="/pengembalian-dana" className={linkClass}>
+                Pengembalian dana
+              </Link>
+            </li>
           </Column>
           <Column title="Unduh">
             <li>

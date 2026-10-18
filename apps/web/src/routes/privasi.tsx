@@ -355,6 +355,23 @@ function PrivasiPage() {
               digitalmu; itu ditangani penyedia pembayaran. Bukti pembayaran dikirim ke emailmu.
             </p>
             <p className="mt-3 text-sm leading-relaxed">
+              Pembelian dalam dolar AS (USD) di web diproses oleh Polar (polar.sh, Polar Software
+              Inc.), merchant of record untuk transaksi itu. Polar mengumpulkan data kartu, nama,
+              email, negara atau alamat penagihan, dan nomor pajak (bila ada) untuk menghitung
+              pajak dan memeriksa penipuan. JoyoRogo menerima nomor pesanan, jumlah, status,
+              status langganan, dan ID pelanggan Polar. JoyoRogo tidak pernah melihat nomor
+              kartumu. Kebijakan privasi Polar:{" "}
+              <a
+                href="https://polar.sh/legal/privacy"
+                target="_blank"
+                rel="noopener"
+                className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+              >
+                polar.sh/legal/privacy
+              </a>
+              .
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
               Di aplikasi, Pro adalah langganan otomatis lewat App Store (iPhone) atau Google Play
               (Android). Pembayarannya ditangani Apple atau Google; kami tidak menerima nomor
               kartu atau data pembayaranmu. Yang kami simpan untuk mengaitkan langganan dengan
@@ -370,6 +387,23 @@ function PrivasiPage() {
             />
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
               Langganan dikelola dan dibatalkan di pengaturan Apple atau Google, bukan di JoyoRogo.
+            </p>
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Syarat pembelian ada di{" "}
+              <Link
+                to="/syarat"
+                className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+              >
+                Syarat Layanan
+              </Link>{" "}
+              dan{" "}
+              <Link
+                to="/pengembalian-dana"
+                className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+              >
+                Pengembalian Dana
+              </Link>
+              .
             </p>
           </section>
 

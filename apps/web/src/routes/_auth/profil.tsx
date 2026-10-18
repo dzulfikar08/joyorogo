@@ -72,13 +72,14 @@ import { FastingSettingsSection } from "@/components/fasting/settings-section";
 import { useTheme } from "@/components/theme-provider";
 import { Avatar } from "@/components/avatar";
 import { useCheckoutPicker } from "@/components/checkout-picker";
+import { PolarSubscriptionCard } from "@/components/polar-subscription";
 import { FeedSettingsSection } from "@/components/feed/settings";
 import { ScreenError } from "@/components/screen-state";
 import { useStrava } from "@/components/strava-card";
 import { env } from "@/env.public";
 import type { ProfileRow } from "@/lib/api-types";
 import { APP_STORE_URL, PLAY_STORE_URL, founderScans, useAppConfig } from "@/lib/app-config";
-import { checkOrder, fetchPendingOrder, fmtFounderDate } from "@/lib/billing";
+import { checkOrder, fetchPendingOrder, fetchPolarSubscription, fmtFounderDate } from "@/lib/billing";
 import { sessionQuery, signOut } from "@/lib/auth-client";
 import type { Session } from "@/lib/auth-client";
 import { fmtDateLong, fmtInt, fmtKg, parseNum } from "@/lib/format";
@@ -244,6 +245,15 @@ function ProfilContent({
     queryFn: fetchPendingOrder,
     enabled: tier === "free" && billing,
   });
+  // Polar (USD) subscribers manage renewal in Polar's portal. Errors mean
+  // "none" (older server, signed out): the card just stays hidden.
+  const polarSubscription = useQuery({
+    queryKey: ["billing", "polar-subscription"],
+    queryFn: () => fetchPolarSubscription().catch(() => null),
+    staleTime: 5 * 60_000,
+  });
+  const polarRenewsItself =
+    polarSubscription.data?.state === "active" || polarSubscription.data?.state === "past_due";
   const checkPending = useMutation({
     mutationFn: () => {
       const orderId = pendingOrder.data?.orderId;
@@ -471,7 +481,7 @@ function ProfilContent({
               {t("pro.active.until", { date: fmtFounderDate(founderUntil) })}
             </p>
           </div>
-          {billing && (
+          {billing && !polarRenewsItself && (
             <Button
               size="sm"
               variant="secondary"
@@ -482,9 +492,11 @@ function ProfilContent({
               {checkout.isPending ? t("pro.active.opening") : t("pro.active.renew")}
             </Button>
           )}
-          {billing && checkout.sheet}
+          {billing && !polarRenewsItself && checkout.sheet}
         </div>
       )}
+
+      {polarSubscription.data && <PolarSubscriptionCard subscription={polarSubscription.data} />}
 
       <SectionTitle>{t("section.plan")}</SectionTitle>
       <ListGroup>

@@ -179,6 +179,52 @@
     "playAlready": "Kamu sudah berlangganan Pro di Google Play. Ketuk \"Pulihkan pembelian\".",
     "playInactive": "Pembelian belum aktif. Coba lagi sebentar atau ketuk \"Pulihkan pembelian\"."
   },
+  "usd": {
+    "optionLabel": "Card, in US dollars",
+    "noteMonthly": "{{price}} per month, renews automatically. Cancel any time.",
+    "noteYearly": "{{price}} per year, renews automatically. Cancel any time.",
+    "section": {
+      "eyebrow": "USD",
+      "title": "Pay in US dollars",
+      "subtitle": "One card subscription, billed by Polar. Same Pro as the rupiah plans.",
+      "yearly": "Yearly",
+      "monthly": "Monthly",
+      "perYear": "per year",
+      "perMonth": "per month",
+      "equivalent": "That's {{price}}/month",
+      "save": "Save {{amount}} ({{percent}}%)",
+      "buyYearly": "Subscribe yearly",
+      "buyMonthly": "Subscribe monthly",
+      "opening": "Opening checkout...",
+      "note": "Billed in USD by Polar, our merchant of record. Taxes may be added at checkout. Renews automatically until you cancel; cancel any time from Profile or the Polar customer portal.",
+      "rupiahHint": "Paying in rupiah instead? QRIS and bank transfer are below.",
+      "outsideLink": "Paying from outside Indonesia? Pay in US dollars",
+      "hide": "Hide US dollar prices"
+    },
+    "paywall": {
+      "disclosure": "USD payments are billed monthly or yearly by Polar and renew until you cancel."
+    },
+    "success": {
+      "title": "Payment received",
+      "confirming": "Turning on Pro. This takes a few seconds.",
+      "timeout": "Still confirming. Pro turns on within a minute. Refresh to check.",
+      "refresh": "Refresh"
+    },
+    "manage": {
+      "button": "Manage subscription",
+      "opening": "Opening...",
+      "renews": "Pro renews on {{date}}",
+      "renewsNoDate": "Pro renews automatically",
+      "canceled": "Cancelled: Pro stays active until {{date}}",
+      "canceledNoDate": "Cancelled: Pro stays active until the period ends",
+      "pastDue": "Payment failed: update your card in the portal",
+      "revoked": "This subscription has ended"
+    },
+    "error": {
+      "checkoutFailed": "Couldn't start the checkout. Try again later.",
+      "portalFailed": "Couldn't open the subscription portal. Try again later."
+    }
+  },
   "sandbox": {
     "title": "Pembelian uji coba",
     "body": "Ini pembelian uji coba dari Apple (sandbox), jadi tidak ditagih. Pro aktif 24 jam."
