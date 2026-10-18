@@ -14,7 +14,7 @@ import { StatusChip } from "@/components/challenge/challenge-parts";
 import { Card, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
 import { ScreenError } from "@/components/screen-state";
 import { ShareStoryButton } from "@/components/story/share-story-button";
-import type { StorySpec } from "@/components/story/story-card";
+import type { StorySpec } from "@/components/story/story-spec";
 import { fmtInt } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 

@@ -1,15 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import * as ImagePicker from "expo-image-picker";
 import { Asset } from "expo-media-library";
 import type { ComponentProps } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Image,
   Linking,
   Platform,
   ScrollView,
+  Switch,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -19,20 +22,19 @@ import { captureRef } from "react-native-view-shot";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { PressableScale, useEnter } from "@/components/motion";
-import { Button, Segmented, Sheet, Text } from "@/components/ui";
+import { Button, Chip, Segmented, Sheet, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { InstagramGlyph } from "@/components/story/instagram-glyph";
+import { ensureStickerFonts } from "@/components/sticker/fonts";
+import { downscalePhoto } from "@/components/sticker/photo";
 import {
-  CARD_H,
-  CARD_W,
-  STORY_TEMPLATES,
-  StoryCard,
-  storyPhotoUri,
-  storyShowsPhoto,
-  type StoryPhotoStatus,
-  type StorySpec,
-  type StoryTemplate,
-} from "@/components/story/story-card";
+  DEFAULT_STICKER_PREFS,
+  loadStickerPrefs,
+  saveStickerPrefs,
+  type StickerPrefsState,
+} from "@/components/sticker/prefs";
+import { designToDp, SceneView, type ImageStatus } from "@/components/sticker/scene-view";
+import type { StorySpec } from "@/components/story/types";
 import {
   getPhotoAccess,
   instagramFbAppId,
@@ -43,6 +45,15 @@ import {
   shareToInstagram,
   type PhotoAccessLevel,
 } from "@/components/story/share";
+import { authClient } from "@/lib/auth-client";
+import { orpc } from "@/utils/orpc";
+import {
+  availableTemplates,
+  renderSticker,
+  rogoNativeFonts,
+  type StickerPrefs,
+  type Template,
+} from "@joyorogo/sticker";
 
 type ShareStoryButtonProps = {
   story: StorySpec;
@@ -55,7 +66,7 @@ type ShareStoryButtonProps = {
   style?: object;
 };
 
-type PhotoState = StoryPhotoStatus | "loading";
+type Canvas = "story" | "square" | "sticker";
 
 type Target = "instagram" | "copy" | "save" | "more";
 
@@ -81,15 +92,24 @@ function nextFrame(): Promise<void> {
   return promise;
 }
 
-/** Dark checkerboard: the sticker is white text on transparent, so it needs a dark stage in both themes. */
-function StickerBackdrop() {
+const EXPORT_WIDTH = 1080;
+
+function canvasOf(template: Template): Canvas {
+  if (template.meta?.transparent) return "sticker";
+  return template.canvas.aspect === "square" ? "square" : "story";
+}
+
+/** Checkerboard: a transparent sticker needs a stage that shows the transparency in both themes. */
+function StickerBackdrop({ light }: { light: boolean }) {
+  const a = light ? "#d9d6cf" : "#1a1d1b";
+  const b = light ? "#eceae4" : "#262a28";
   return (
     <Svg width="100%" height="100%" style={styles.backdrop}>
       <Defs>
         <Pattern id="checker" width={20} height={20} patternUnits="userSpaceOnUse">
-          <Rect width={20} height={20} fill="#1a1d1b" />
-          <Rect width={10} height={10} fill="#262a28" />
-          <Rect x={10} y={10} width={10} height={10} fill="#262a28" />
+          <Rect width={20} height={20} fill={a} />
+          <Rect width={10} height={10} fill={b} />
+          <Rect x={10} y={10} width={10} height={10} fill={b} />
         </Pattern>
       </Defs>
       <Rect width="100%" height="100%" fill="url(#checker)" />
@@ -132,26 +152,56 @@ function TargetTile({
   );
 }
 
+function OptionRow({
+  label,
+  hint,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  value: boolean;
+  disabled?: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  const { theme } = useUnistyles();
+  return (
+    <View style={styles.optionRow}>
+      <View style={styles.optionText}>
+        <Text style={styles.optionLabel}>{label}</Text>
+        {hint ? <Text style={styles.optionHint}>{hint}</Text> : null}
+      </View>
+      <Switch
+        value={value}
+        disabled={disabled}
+        onValueChange={onChange}
+        accessibilityLabel={label}
+        trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+        thumbColor="#ffffff"
+      />
+    </View>
+  );
+}
+
 /**
- * Strava-style share sheet: a preview of the story card, a template switcher
- * (photo + stats, transparent stats sticker, branded card), a photo swap, and
- * four big targets: Instagram, Copy, Save and More.
+ * The share sheet. Screens hand over a `StorySpec`; the sticker engine
+ * (packages/sticker) turns it into a Scene for each template that fits the data, and
+ * one painter (react-native-svg) draws it. The preview is the real 1080 px scene,
+ * mounted live and scaled down inside a frame, and view-shot captures that same view at
+ * a fixed 1080 px width only when a target is tapped, after fonts and images are ready.
+ * Only the selected template is mounted, so memory stays flat however many styles exist.
  *
- * - Instagram: direct to the Story composer when a Facebook App ID is
- *   configured, otherwise the PNG goes to Instagram's own share target (see
- *   share.ts). Hidden when the Instagram app is not installed.
- * - Copy puts the PNG on the clipboard, Save adds it to the gallery behind a
- *   styled pre-prompt ("Continue", then the system dialog), More opens the
- *   system share sheet.
+ * - Canvas switch (Story 9:16, Kotak 1:1, Stiker transparan), then a row of styles.
+ * - Options: hide weight numbers (default on), show my name (default off), the
+ *   JoyoRogo mark (removable with Pro), light or dark ink.
+ * - Instagram: Story composer with the transparent sticker as an overlay and cards as
+ *   background when a Facebook App ID is configured; otherwise the PNG goes to
+ *   Instagram's own target (see share.ts). Hidden when Instagram is not installed.
+ * - Copy, Save (behind the styled "Lanjut" pre-prompt) and More (system share sheet).
  *
- * Pure data in: screens own their queries, the social feed can reuse the same
- * cards. The preview is the real 1080x1920 card, mounted live and scaled down
- * with a transform inside a 9:16 frame, so it is always visible. view-shot
- * captures that same mounted view only when a target is tapped, after the photo
- * has fired onLoad and one more frame has passed.
- *
- * The sheet is a Modal, which covers the toast layer: successful copy/save
- * close it first and then toast, failures stay inline in the sheet.
+ * The sheet is a Modal, which covers the toast layer: successful copy/save close it
+ * first and then toast, failures stay inline in the sheet.
  */
 export function ShareStoryButton({
   story,
@@ -162,49 +212,136 @@ export function ShareStoryButton({
   disabled,
   style,
 }: ShareStoryButtonProps) {
-  const { t } = useTranslation(["makan", "common"]);
+  const { t, i18n } = useTranslation(["makan", "common", "sticker"]);
   const label = labelProp ?? t("story.share.shareToStory");
-  const cardRefs = useRef<Partial<Record<StoryTemplate, View | null>>>({});
-  const scrollRef = useRef<ScrollView>(null);
+  const cardRef = useRef<View>(null);
   const promptDecision = useRef<PromiseWithResolvers<boolean> | null>(null);
   const [open, setOpen] = useState(false);
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [active, setActive] = useState(0);
+  const [pickedPhoto, setPickedPhoto] = useState<string | null>(null);
+  const [canvas, setCanvas] = useState<Canvas>("story");
+  const [templateId, setTemplateId] = useState<string | null>(null);
   const [busyTarget, setBusyTarget] = useState<Target | null>(null);
   const [actionFailure, setActionFailure] = useState<ActionFailure | null>(null);
   const [igInstalled, setIgInstalled] = useState(false);
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [promptBusy, setPromptBusy] = useState(false);
-  // Bumped by the retry button after a photo failure; remounts the cards so the image reloads.
-  const [attempt, setAttempt] = useState(0);
-  const [photoStatus, setPhotoStatus] = useState<Record<string, StoryPhotoStatus>>({});
+  const [prefs, setPrefs] = useState<StickerPrefsState>(DEFAULT_STICKER_PREFS);
+  const [fontsReady, setFontsReady] = useState(false);
+  const [fontsFailed, setFontsFailed] = useState(false);
+  const [shrinking, setShrinking] = useState(false);
   const toast = useToast();
-  const { theme } = useUnistyles();
+  const { theme, rt } = useUnistyles();
   const screen = useWindowDimensions();
   const enter = useEnter();
+  const [ink, setInk] = useState<"dark" | "light" | null>(null);
+  const mode = ink ?? (rt.themeName === "light" ? "light" : "dark");
+  // Bumped by the retry button after an image failure; remounts the scene so images reload.
+  const [attempt, setAttempt] = useState(0);
+  const [imageStatus, setImageStatus] = useState<Record<string, ImageStatus>>({});
 
-  const effectivePhoto = photoUri ?? storyPhotoUri(story);
-  const templates = useMemo(
-    () => STORY_TEMPLATES.filter((candidate) => !candidate.needsPhoto || effectivePhoto != null),
-    [effectivePhoto],
+  const { data: session } = authClient.useSession();
+  const profile = useQuery({ ...orpc.profile.myProfile.queryOptions(), enabled: open });
+  const isPro = profile.data?.tier === "founder";
+  const firstName = session?.user.name?.trim().split(/\s+/)[0] || null;
+  const locale = i18n.language === "en" ? "en" : "id";
+
+  // Pro removes the mark; a free user always gets it, whatever was saved.
+  const effective: StickerPrefsState = { ...prefs, watermark: isPro ? prefs.watermark : true };
+
+  const stickerPrefs: StickerPrefs = useMemo(
+    () => ({
+      userName: effective.showName ? firstName : null,
+      photo: pickedPhoto ? { uri: pickedPhoto } : null,
+      options: {
+        hideNumbers: effective.hideNumbers,
+        showName: effective.showName && firstName !== null,
+        watermark: effective.watermark,
+      },
+    }),
+    [effective.hideNumbers, effective.showName, effective.watermark, firstName, pickedPhoto],
   );
 
-  // Fixed 9:16 frame sized from the window; the card inside keeps its real
-  // 1080/PixelRatio dp layout and is shrunk visually by `scale`.
+  const templates = useMemo(
+    () => (open ? availableTemplates(story, stickerPrefs) : []),
+    [open, story, stickerPrefs],
+  );
+  const canvases = useMemo(
+    () => (["story", "square", "sticker"] as const).filter((c) => templates.some((tpl) => canvasOf(tpl) === c)),
+    [templates],
+  );
+  const activeCanvas = canvases.includes(canvas) ? canvas : (canvases[0] ?? "story");
+  const inCanvas = useMemo(
+    () => templates.filter((tpl) => canvasOf(tpl) === activeCanvas),
+    [templates, activeCanvas],
+  );
+  const activeTemplate = inCanvas.find((tpl) => tpl.id === templateId) ?? inCanvas[0] ?? null;
+
+  const scene = useMemo(
+    () =>
+      activeTemplate
+        ? renderSticker({
+            template: activeTemplate,
+            spec: story,
+            prefs: stickerPrefs,
+            locale,
+            mode,
+            fonts: rogoNativeFonts,
+          })
+        : null,
+    [activeTemplate, story, stickerPrefs, locale, mode],
+  );
+
+  const sceneKey = scene && activeTemplate ? `${activeTemplate.id}|${attempt}|${mode}|${scene.needsImages.join(",")}` : "";
+  const imageState = (uri: string): ImageStatus | "loading" => imageStatus[`${sceneKey}|${uri}`] ?? "loading";
+  const imagesLoading = scene?.needsImages.some((uri) => imageState(uri) === "loading") ?? false;
+  const imagesFailed = scene?.needsImages.some((uri) => imageState(uri) === "error") ?? false;
+  const ready = scene !== null && fontsReady && !imagesLoading && !imagesFailed && !shrinking;
+  const targetsDisabled = !ready || busyTarget != null;
+
+  const onImage = useCallback(
+    (uri: string, status: ImageStatus) =>
+      setImageStatus((prev) => {
+        const key = `${sceneKey}|${uri}`;
+        return prev[key] === "error" ? prev : { ...prev, [key]: status };
+      }),
+    [sceneKey],
+  );
+
+  // react-native-svg's Image reports loads but not failures: probe each image so a bad or
+  // missing file shows the retry box, and give up when it never reports a load.
+  const needsImages = scene?.needsImages.join("\n") ?? "";
+  useEffect(() => {
+    if (!open || !needsImages) return;
+    let current = true;
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    for (const uri of needsImages.split("\n")) {
+      Image.getSize(
+        uri,
+        () => {
+          timers.push(
+            setTimeout(() => {
+              if (current) setImageStatus((prev) => (prev[`${sceneKey}|${uri}`] ? prev : { ...prev, [`${sceneKey}|${uri}`]: "error" }));
+            }, 8000),
+          );
+        },
+        () => current && setImageStatus((prev) => ({ ...prev, [`${sceneKey}|${uri}`]: "error" })),
+      );
+    }
+    return () => {
+      current = false;
+      for (const timer of timers) clearTimeout(timer);
+    };
+  }, [open, needsImages, sceneKey]);
+
+  // Fixed 9:16-or-whatever frame sized from the window; the scene keeps its real
+  // 1080/PixelRatio dp layout and is shrunk visually by `frameScale`.
+  const sceneW = designToDp(EXPORT_WIDTH);
+  const sceneH = scene ? designToDp(scene.height) : designToDp(1920);
   const maxFrameH = Math.min(Math.max(screen.height * 0.36, 220), 400);
-  const frameW = Math.round((maxFrameH * CARD_W) / CARD_H);
-  const frameH = (frameW * CARD_H) / CARD_W;
-  const scale = frameW / CARD_W;
-  const [pageW, setPageW] = useState(Math.max(screen.width - theme.spacing.lg * 2, frameW));
-
-  const cardKey = (id: StoryTemplate) => `${id}|${effectivePhoto}|${attempt}`;
-  const photoState = (id: StoryTemplate): PhotoState =>
-    storyShowsPhoto(story, id, effectivePhoto) ? (photoStatus[cardKey(id)] ?? "loading") : "ready";
-
-  const activeTemplate = templates[active];
-  const activeReady = activeTemplate != null && photoState(activeTemplate.id) === "ready";
-  const photoFailed = templates.some((candidate) => photoState(candidate.id) === "error");
-  const targetsDisabled = !activeReady || photoFailed || busyTarget != null;
+  const maxFrameW = screen.width - theme.spacing.lg * 4;
+  const frameScale = Math.min(maxFrameH / sceneH, maxFrameW / sceneW);
+  const frameW = Math.round(sceneW * frameScale);
+  const frameH = Math.round(sceneH * frameScale);
 
   useEffect(() => {
     if (!open) return;
@@ -212,48 +349,66 @@ export function ShareStoryButton({
     void instagramInstalled().then((installed) => {
       if (current) setIgInstalled(installed);
     });
+    void loadStickerPrefs().then((saved) => {
+      if (current) setPrefs(saved);
+    });
+    ensureStickerFonts().then(
+      () => current && setFontsReady(true),
+      () => {
+        if (!current) return;
+        setFontsFailed(true);
+        // The system font is a worse sticker than none: let the user retry instead of capturing it.
+      },
+    );
     return () => {
       current = false;
     };
-  }, [open]);
+  }, [open, attempt]);
+
+  const updatePrefs = (patch: Partial<StickerPrefsState>) => {
+    const next = { ...prefs, ...patch };
+    setPrefs(next);
+    void saveStickerPrefs(next);
+    setActionFailure(null);
+  };
 
   const pickPhoto = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 1,
-    });
-    if (!result.canceled && result.assets[0]?.uri) {
-      setPhotoUri(result.assets[0].uri);
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
+    const uri = result.canceled ? undefined : result.assets[0]?.uri;
+    if (!uri) return;
+    setShrinking(true);
+    try {
+      const small = await downscalePhoto(uri);
+      setPickedPhoto(small.uri);
       setActionFailure(null);
-      // The photo template appears at index 0; jump to it so the pick is visible.
-      setActive(0);
-      scrollRef.current?.scrollTo({ x: 0, animated: false });
+      setCanvas("story");
+      setTemplateId(null);
+    } finally {
+      setShrinking(false);
     }
   };
 
-  /** Segmented control tap: page the preview to the template at `index`. */
-  const goTo = (index: number) => {
-    if (index < 0 || index === active) return;
-    setActive(index);
-    setActionFailure(null);
-    scrollRef.current?.scrollTo({ x: index * pageW, animated: true });
-  };
-
   /**
-   * Captures the mounted card: a PNG file URI, or raw base64 for the clipboard.
-   * Throws CaptureError when the view is gone or view-shot fails.
+   * Captures the mounted scene at a fixed 1080 px width: a PNG file URI, or raw base64
+   * for the clipboard. Throws CaptureError when the view is gone or view-shot fails.
    */
-  const captureCard = async (id: StoryTemplate, result: "tmpfile" | "base64"): Promise<string> => {
+  const captureCard = async (result: "tmpfile" | "base64"): Promise<string> => {
     try {
-      // The photo's onLoad already fired (the targets are gated on it); one more
-      // frame lets Android draw the decoded bitmap before view.draw().
+      // Targets are gated on fonts and image loads; two more frames let Android draw the
+      // decoded bitmaps before view.draw().
       await nextFrame();
       await nextFrame();
-      const view = cardRefs.current[id];
-      if (!view) throw new Error("story card is not mounted");
-      return await captureRef(view, { format: "png", result, quality: 1 });
+      const view = cardRef.current;
+      if (!view || !scene) throw new Error("sticker is not mounted");
+      return await captureRef(view, {
+        format: "png",
+        result,
+        quality: 1,
+        width: EXPORT_WIDTH,
+        height: scene.height,
+      });
     } catch (error) {
-      console.warn("story capture failed", id, error);
+      console.warn("sticker capture failed", error);
       throw new CaptureError("capture failed", { cause: error });
     }
   };
@@ -300,18 +455,18 @@ export function ShareStoryButton({
   };
 
   const runTarget = async (target: Target) => {
-    if (!activeTemplate || busyTarget) return;
-    const id = activeTemplate.id;
+    if (!scene || busyTarget) return;
+    const transparent = scene.transparent;
     setBusyTarget(target);
     setActionFailure(null);
     try {
       if (target === "copy") {
-        await Clipboard.setImageAsync(await captureCard(id, "base64"));
+        await Clipboard.setImageAsync(await captureCard("base64"));
         setOpen(false);
         toast.success(t("story.share.copied"));
         return;
       }
-      const fileUri = await captureCard(id, "tmpfile");
+      const fileUri = await captureCard("tmpfile");
       if (target === "more") {
         await shareImageSystem(fileUri, story);
         setOpen(false);
@@ -325,7 +480,7 @@ export function ShareStoryButton({
             : "granted";
         if (access === "declined") return;
         if (access === "denied") await shareImageSystem(fileUri, story);
-        else await shareToInstagram(fileUri, id, appId, story);
+        else await shareToInstagram(fileUri, transparent, appId, story);
         setOpen(false);
       } else {
         if ((await ensurePhotoAccess("add", "save")) !== "granted") return;
@@ -360,13 +515,25 @@ export function ShareStoryButton({
     }
   };
 
-  const failure: ActionFailure | null = photoFailed
+  const failure: ActionFailure | null = imagesFailed
     ? {
         title: t("story.share.photoFailedTitle"),
         text: t("story.share.photoFailedBody"),
-        retry: () => setAttempt((count) => count + 1),
+        retry: () => {
+          setImageStatus({});
+          setAttempt((count) => count + 1);
+        },
       }
-    : actionFailure;
+    : fontsFailed
+      ? {
+          title: t("story.share.captureFailedTitle"),
+          text: t("story.share.captureFailedBody"),
+          retry: () => {
+            setFontsFailed(false);
+            setAttempt((count) => count + 1);
+          },
+        }
+      : actionFailure;
 
   const promptTitle = prompt
     ? prompt.mode === "blocked"
@@ -383,6 +550,17 @@ export function ShareStoryButton({
         : t("story.share.saveAskBody")
     : "";
 
+  const openSheet = () => {
+    setCanvas("story");
+    setTemplateId(null);
+    setActionFailure(null);
+    setFontsReady(false);
+    setImageStatus({});
+    setOpen(true);
+  };
+
+  const hasWeight = story.kind === "progress" && !story.maternal && story.weightGoalProgress != null;
+
   return (
     <>
       <View style={style}>
@@ -391,11 +569,7 @@ export function ShareStoryButton({
             accessibilityRole="button"
             accessibilityLabel={label}
             disabled={disabled}
-            onPress={() => {
-              setActive(0);
-              setActionFailure(null);
-              setOpen(true);
-            }}
+            onPress={openSheet}
             style={styles.iconButton}
             dimTo={0.75}
             scaleTo={0.94}
@@ -403,17 +577,7 @@ export function ShareStoryButton({
             <Ionicons name="share-outline" size={22} color={theme.colors.foreground} />
           </PressableScale>
         ) : (
-          <Button
-            label={label}
-            variant={variant}
-            size={size}
-            disabled={disabled}
-            onPress={() => {
-              setActive(0);
-              setActionFailure(null);
-              setOpen(true);
-            }}
-          />
+          <Button label={label} variant={variant} size={size} disabled={disabled} onPress={openSheet} />
         )}
       </View>
 
@@ -450,84 +614,69 @@ export function ShareStoryButton({
       >
         {prompt ? <Text style={styles.promptBody}>{promptBody}</Text> : null}
 
-        {/* Hidden, not unmounted, while the pre-prompt shows: the cards keep their loaded photos. */}
+        {/* Hidden, not unmounted, while the pre-prompt shows: the scene keeps its loaded photo. */}
         <Animated.View
           entering={enter}
           style={[styles.content, prompt ? styles.contentHidden : null]}
         >
-          {activeTemplate ? (
+          {canvases.length > 1 ? (
             <Segmented
-              options={templates.map((candidate) => ({
-                value: candidate.id,
-                label: t(`story.card.template.${candidate.id}.label`),
-              }))}
-              value={activeTemplate.id}
-              onChange={(id) => goTo(templates.findIndex((candidate) => candidate.id === id))}
+              options={canvases.map((c) => ({ value: c, label: t(`sticker:canvas.${c}`) }))}
+              value={activeCanvas}
+              onChange={(next) => {
+                setCanvas(next);
+                setTemplateId(null);
+                setActionFailure(null);
+              }}
             />
           ) : null}
 
-          <View
-            style={styles.stage}
-            onLayout={(event) => {
-              const width = event.nativeEvent.layout.width;
-              if (width > 0) setPageW(width);
-            }}
-          >
-            <ScrollView
-              ref={scrollRef}
-              horizontal
-              pagingEnabled
-              removeClippedSubviews={false}
-              showsHorizontalScrollIndicator={false}
-              style={{ height: frameH, flexGrow: 0 }}
-              onMomentumScrollEnd={(event) => {
-                const page = Math.round(event.nativeEvent.contentOffset.x / pageW);
-                const next = Math.min(Math.max(page, 0), templates.length - 1);
-                if (next !== active) setActionFailure(null);
-                setActive(next);
-              }}
-            >
-              {templates.map((candidate) => (
-                <View
-                  key={cardKey(candidate.id)}
-                  style={[styles.page, { width: pageW, height: frameH }]}
-                >
-                  <View style={[styles.frame, { width: frameW, height: frameH }]}>
-                    {candidate.id === "sticker" ? <StickerBackdrop /> : null}
-                    <View pointerEvents="none" style={[styles.scaler, { transform: [{ scale }] }]}>
-                      <View
-                        ref={(view) => {
-                          cardRefs.current[candidate.id] = view;
-                        }}
-                        collapsable={false}
-                        style={styles.card}
-                      >
-                        <StoryCard
-                          story={story}
-                          template={candidate.id}
-                          photoUri={effectivePhoto}
-                          onPhotoStatus={(status) =>
-                            setPhotoStatus((prev) => ({
-                              ...prev,
-                              [cardKey(candidate.id)]: status,
-                            }))
-                          }
-                        />
-                      </View>
-                    </View>
-                    {photoState(candidate.id) === "loading" ? (
-                      <View style={styles.frameOverlay}>
-                        <ActivityIndicator size="large" color="#ffffff" />
-                      </View>
-                    ) : null}
+          <View style={styles.stage}>
+            <View style={[styles.frame, { width: frameW, height: frameH }]}>
+              {scene?.transparent ? <StickerBackdrop light={mode === "light"} /> : null}
+              {scene ? (
+                <View pointerEvents="none" style={[styles.scaler, { width: sceneW, height: sceneH, transform: [{ scale: frameScale }] }]}>
+                  <View
+                    key={sceneKey}
+                    ref={cardRef}
+                    collapsable={false}
+                    style={{ width: sceneW, height: sceneH }}
+                  >
+                    <SceneView scene={scene} onImage={onImage} />
                   </View>
                 </View>
-              ))}
-            </ScrollView>
+              ) : (
+                <View style={styles.frameOverlay}>
+                  <Text style={styles.hint}>{t("sticker:sheet.empty")}</Text>
+                </View>
+              )}
+              {scene && (!fontsReady || imagesLoading || shrinking) ? (
+                <View style={styles.frameOverlay}>
+                  <ActivityIndicator size="large" color="#ffffff" />
+                </View>
+              ) : null}
+            </View>
           </View>
 
-          {activeTemplate ? (
-            <Text style={styles.hint}>{t(`story.card.template.${activeTemplate.id}.hint`)}</Text>
+          {inCanvas.length > 1 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.styleRow}
+              accessibilityLabel={t("sticker:sheet.pickTemplate")}
+            >
+              {inCanvas.map((tpl) => (
+                <Chip
+                  key={tpl.id}
+                  label={t(`sticker:style.${tpl.style}`, { defaultValue: tpl.name })}
+                  selected={tpl.id === activeTemplate?.id}
+                  onPress={() => {
+                    setTemplateId(tpl.id);
+                    setActionFailure(null);
+                  }}
+                />
+              ))}
+            </ScrollView>
           ) : null}
 
           {failure ? (
@@ -550,11 +699,43 @@ export function ShareStoryButton({
             </Animated.View>
           ) : null}
 
+          <View style={styles.options}>
+            <Segmented
+              options={[
+                { value: "dark", label: t("sticker:sheet.inkDark") },
+                { value: "light", label: t("sticker:sheet.inkLight") },
+              ]}
+              value={mode}
+              onChange={setInk}
+            />
+            {hasWeight ? (
+              <OptionRow
+                label={t("sticker:sheet.hideNumbers")}
+                value={prefs.hideNumbers}
+                onChange={(value) => updatePrefs({ hideNumbers: value })}
+              />
+            ) : null}
+            {firstName ? (
+              <OptionRow
+                label={t("sticker:sheet.showName")}
+                value={prefs.showName}
+                onChange={(value) => updatePrefs({ showName: value })}
+              />
+            ) : null}
+            <OptionRow
+              label={t("sticker:sheet.watermark")}
+              hint={isPro ? undefined : t("sticker:sheet.proOnly")}
+              value={effective.watermark}
+              disabled={!isPro}
+              onChange={(value) => updatePrefs({ watermark: value })}
+            />
+          </View>
+
           <View style={styles.photoRow}>
             <Button
               variant="ghost"
               size="sm"
-              label={effectivePhoto ? t("story.share.changePhoto") : t("story.share.usePhoto")}
+              label={pickedPhoto ? t("story.share.changePhoto") : t("story.share.usePhoto")}
               icon="images-outline"
               onPress={() => void pickPhoto()}
             />
@@ -607,25 +788,22 @@ const styles = StyleSheet.create((theme) => ({
   content: { gap: theme.spacing.md },
   contentHidden: { display: "none" },
   stage: {
+    alignItems: "center",
     borderRadius: theme.radius.tile,
     overflow: "hidden",
     backgroundColor: theme.colors.muted,
     paddingVertical: theme.spacing.md,
   },
-  page: { alignItems: "center", justifyContent: "center" },
   frame: { borderRadius: theme.radius.input, overflow: "hidden" },
   backdrop: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
-  // The card keeps its real CARD_W x CARD_H layout (so a 1:1 capture is 1080x1920 px)
-  // and is shrunk visually from the top-left corner to exactly fill the frame.
+  // The scene keeps its real design-px layout (so a 1:1 capture is 1080 px wide) and is
+  // shrunk visually from the top-left corner to exactly fill the frame.
   scaler: {
     position: "absolute",
     top: 0,
     left: 0,
-    width: CARD_W,
-    height: CARD_H,
     transformOrigin: "top left",
   },
-  card: { width: CARD_W, height: CARD_H },
   frameOverlay: {
     position: "absolute",
     top: 0,
@@ -636,8 +814,28 @@ const styles = StyleSheet.create((theme) => ({
     justifyContent: "center",
     backgroundColor: "rgba(0, 0, 0, 0.4)",
   },
+  styleRow: { gap: theme.spacing.sm, paddingVertical: theme.spacing.xs },
   hint: {
     textAlign: "center",
+    fontFamily: theme.fonts.regular,
+    fontSize: theme.fontSize.sm,
+    color: "#ffffff",
+    paddingHorizontal: theme.spacing.md,
+  },
+  options: { gap: theme.spacing.sm },
+  optionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.md,
+  },
+  optionText: { flex: 1, gap: 2 },
+  optionLabel: {
+    fontFamily: theme.fonts.medium,
+    fontSize: theme.fontSize.base,
+    color: theme.colors.foreground,
+  },
+  optionHint: {
     fontFamily: theme.fonts.regular,
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,

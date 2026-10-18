@@ -53,6 +53,7 @@
         "@expo/vector-icons": "^15.0.2",
         "@joyorogo/api": "workspace:*",
         "@joyorogo/i18n": "workspace:*",
+        "@joyorogo/sticker": "workspace:*",
         "@orpc/client": "catalog:",
         "@orpc/tanstack-query": "catalog:",
         "@tanstack/react-form": "catalog:",
@@ -160,6 +161,7 @@
         "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
         "@joyorogo/api": "workspace:*",
         "@joyorogo/i18n": "workspace:*",
+        "@joyorogo/sticker": "workspace:*",
         "@joyorogo/ui": "workspace:*",
         "@orpc/client": "catalog:",
         "@orpc/server": "catalog:",
@@ -277,6 +279,18 @@
         "effect": "4.0.0-rc.112",
         "typescript": "^6.0.3",
         "varlock": "catalog:",
+      },
+    },
+    "packages/sticker": {
+      "name": "@joyorogo/sticker",
+      "dependencies": {
+        "@joyorogo/i18n": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@joyorogo/config": "workspace:*",
+        "@types/bun": "^1.4.2",
+        "typescript": "^6.0.3",
       },
     },
     "packages/ui": {
@@ -841,6 +855,8 @@
     "@joyorogo/infra": ["@joyorogo/infra@workspace:packages/infra"],
 
     "@joyorogo/selfhost": ["@joyorogo/selfhost@workspace:apps/selfhost"],
+
+    "@joyorogo/sticker": ["@joyorogo/sticker@workspace:packages/sticker"],
 
     "@joyorogo/ui": ["@joyorogo/ui@workspace:packages/ui"],
 

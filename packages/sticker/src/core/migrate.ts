@@ -9,6 +9,11 @@ import { SCHEMA_VERSION } from "./schema";
 export type RawTemplate = Record<string, unknown>;
 export type Migration = (raw: RawTemplate) => RawTemplate;
 
+/** Deep copy of plain JSON (structuredClone does not exist in Hermes). */
+export function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export const MIGRATIONS: Record<number, Migration> = {};
 
 export type MigrateResult =
@@ -35,7 +40,7 @@ export function migrate(
     const step = table[v];
     if (!step) return { status: "failed", from, message: `no migration from ${v}` };
     try {
-      raw = { ...step(structuredClone(raw)), schemaVersion: v + 1 };
+      raw = { ...step(cloneJson(raw)), schemaVersion: v + 1 };
     } catch (error) {
       return {
         status: "failed",

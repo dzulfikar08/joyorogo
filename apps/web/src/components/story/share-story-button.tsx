@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { Copy, Download, Ellipsis, ImagePlus, Loader2, Share2, X } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -5,18 +6,28 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Button } from "@joyorogo/ui/components/button";
+import {
+  availableTemplates,
+  renderSticker,
+  rogoWebFonts,
+  type StickerPrefs,
+  type Template,
+} from "@joyorogo/sticker";
 
 import { Segmented } from "@/components/kit/surface";
-import { usePlatform } from "@/lib/platform";
+import { Switch } from "@/components/kit/switch";
 import { InstagramGlyph } from "@/components/story/instagram-glyph";
 import {
-  defaultShareText,
-  drawStoryCard,
-  storyPhoto,
-  STORY_TEMPLATES,
-  type StorySpec,
-  type StoryTemplate,
-} from "@/components/story/story-card";
+  drawScene,
+  ensureStickerFonts,
+  loadBitmap,
+  loadSceneImages,
+  type SceneImages,
+} from "@/components/story/paint";
+import { defaultShareText, toRogoSpec, type StorySpec } from "@/components/story/story-spec";
+import { useSession } from "@/lib/auth-client";
+import { usePlatform } from "@/lib/platform";
+import { orpc } from "@/utils/orpc";
 
 type ShareStoryButtonProps = {
   story: StorySpec;
@@ -32,11 +43,39 @@ type ShareStoryButtonProps = {
   disabled?: boolean;
 };
 
+type Canvas = "story" | "square" | "sticker";
+
 type Target = "instagram" | "copy" | "save" | "more";
 
-/** Dark checkerboard: the sticker is light text on transparent, so it needs a dark stage in both themes. */
-const STICKER_STAGE =
+type Prefs = { hideNumbers: boolean; showName: boolean; watermark: boolean };
+
+const PREFS_KEY = "joyorogo.sticker.prefs";
+const DEFAULT_PREFS: Prefs = { hideNumbers: true, showName: false, watermark: true };
+
+function loadPrefs(): Prefs {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(PREFS_KEY) ?? "null");
+    if (parsed === null || typeof parsed !== "object") return DEFAULT_PREFS;
+    const read = (key: keyof Prefs) => {
+      const value = (parsed as Record<string, unknown>)[key];
+      return typeof value === "boolean" ? value : DEFAULT_PREFS[key];
+    };
+    return { hideNumbers: read("hideNumbers"), showName: read("showName"), watermark: read("watermark") };
+  } catch {
+    return DEFAULT_PREFS;
+  }
+}
+
+function canvasOf(template: Template): Canvas {
+  if (template.meta?.transparent) return "sticker";
+  return template.canvas.aspect === "square" ? "square" : "story";
+}
+
+/** Checkerboard stage: a transparent sticker needs a backdrop that shows its transparency. */
+const STICKER_STAGE_DARK =
   "bg-[conic-gradient(#1a1d1b_25%,#262a28_0_50%,#1a1d1b_0_75%,#262a28_0)] bg-[length:20px_20px]";
+const STICKER_STAGE_LIGHT =
+  "bg-[conic-gradient(#d9d6cf_25%,#eceae4_0_50%,#d9d6cf_0_75%,#eceae4_0)] bg-[length:20px_20px]";
 
 /** Whether this browser can hand a PNG to the OS share sheet (Web Share API level 2). */
 function canShareImageFile(): boolean {
@@ -86,23 +125,22 @@ function TargetTile({
 }
 
 /**
- * Strava-style share sheet: a preview of the story card, a template switcher
- * (photo + stats, transparent stats sticker, branded card; swipe works too), a
- * photo swap, and the share targets.
+ * The share sheet. A story is turned into a Scene by the sticker engine (packages/sticker)
+ * for every template that fits the data; one canvas painter draws it at a fixed
+ * 1080 px width whatever the screen is. Canvas switch (Story, Kotak, Stiker transparan),
+ * a row of styles, options (hide weight numbers, show my name, the JoyoRogo mark that Pro
+ * can remove, light or dark ink), "Pakai fotoku", then the targets.
  *
- * - Instagram and More hand the picked render to the OS share sheet via the
- *   Web Share API with the file (mobile Chrome/Safari list Instagram > Story
- *   there). A browser cannot aim at one app, so Instagram only differs from
- *   More by leaving the caption out; it is hidden on desktop, and both hide
- *   where the browser cannot share files.
- * - Copy writes the PNG to the clipboard (a fallback message where the browser
- *   cannot), Save downloads it. Both are always shown.
+ * - Instagram and More hand the PNG to the OS share sheet via the Web Share API with the
+ *   file. A browser cannot aim at one app, so Instagram only differs from More by leaving
+ *   the caption out; it is hidden on desktop, and both hide where the browser cannot
+ *   share files.
+ * - Copy writes the PNG to the clipboard (a fallback message where the browser cannot),
+ *   Save downloads it. Both are always shown.
  *
- * Renders are cached per template and photo, and the active one is prepared
- * while the sheet is open, so a tap reaches navigator.share / clipboard.write
- * while the user gesture is still alive (Safari is strict about that).
- * Pure data in: screens own their queries, the social feed can reuse the same
- * painters.
+ * Renders are cached per template, photo and options, and the active one is prepared
+ * while the sheet is open, so a tap reaches navigator.share / clipboard.write while the
+ * user gesture is still alive (Safari is strict about that).
  */
 export function ShareStoryButton({
   story,
@@ -115,88 +153,113 @@ export function ShareStoryButton({
   className,
   disabled,
 }: ShareStoryButtonProps) {
-  const { t } = useTranslation(["makan", "common"]);
+  const { t, i18n } = useTranslation(["makan", "common", "sticker"]);
   const { os } = usePlatform();
   const label = labelProp ?? t("story.share.shareToStory");
   const [open, setOpen] = useState(false);
-  const [template, setTemplate] = useState<StoryTemplate>("brand");
+  const [canvasKind, setCanvasKind] = useState<Canvas>("story");
+  const [templateId, setTemplateId] = useState<string | null>(null);
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
+  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
+  const [ink, setInk] = useState<"dark" | "light" | null>(null);
   const [busyTarget, setBusyTarget] = useState<Target | null>(null);
   const [canShareFiles, setCanShareFiles] = useState(false);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const canvasRefs = useRef<Partial<Record<StoryTemplate, HTMLCanvasElement | null>>>({});
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [attempt, setAttempt] = useState(0);
+  const previewRef = useRef<HTMLCanvasElement>(null);
+  const images = useRef<SceneImages>(new Map());
   const blobs = useRef(new Map<string, Promise<Blob>>());
-  /** Ignore scroll events until this time: a segmented tap animates the track. */
-  const scrollLockUntil = useRef(0);
 
-  const hasPhoto = photoSrc != null || storyPhoto(story) != null;
-  const templates = useMemo(
-    () => STORY_TEMPLATES.filter((candidate) => !candidate.needsPhoto || hasPhoto),
-    [hasPhoto],
+  const session = useSession();
+  const profile = useQuery({ ...orpc.profile.myProfile.queryOptions(), enabled: open });
+  const isPro = profile.data?.tier === "founder";
+  const firstName = session.data?.user.name?.trim().split(/\s+/)[0] || null;
+  const locale = i18n.language === "en" ? "en" : "id";
+  const mode = ink ?? (document.documentElement.classList.contains("dark") ? "dark" : "light");
+  const watermark = isPro ? prefs.watermark : true;
+
+  const { spec, images: storyImages } = useMemo(() => toRogoSpec(story), [story]);
+
+  const stickerPrefs: StickerPrefs = useMemo(
+    () => ({
+      userName: prefs.showName ? firstName : null,
+      photo: photoSrc ?? storyImages.photo ? { uri: (photoSrc ?? storyImages.photo)! } : null,
+      cutout: storyImages.cutout ? { uri: storyImages.cutout } : null,
+      options: { hideNumbers: prefs.hideNumbers, showName: prefs.showName && firstName !== null, watermark },
+    }),
+    [prefs.hideNumbers, prefs.showName, firstName, watermark, photoSrc, storyImages],
   );
-  const activeTemplate = templates.find((candidate) => candidate.id === template) ?? templates[0];
-  const activeId = activeTemplate?.id ?? "brand";
-  const showMore = canShareFiles;
-  const showInstagram = canShareFiles && os !== "desktop";
 
-  const scrollToTemplate = useCallback(
-    (id: StoryTemplate, behavior: ScrollBehavior) => {
-      const track = trackRef.current;
-      const index = templates.findIndex((candidate) => candidate.id === id);
-      if (!track || index < 0) return;
-      scrollLockUntil.current = behavior === "smooth" ? Date.now() + 500 : 0;
-      track.scrollTo({ left: index * track.clientWidth, behavior });
-    },
+  const templates = useMemo(() => (open ? availableTemplates(spec, stickerPrefs) : []), [open, spec, stickerPrefs]);
+  const canvases = useMemo(
+    () => (["story", "square", "sticker"] as const).filter((c) => templates.some((tpl) => canvasOf(tpl) === c)),
     [templates],
   );
+  const activeCanvas = canvases.includes(canvasKind) ? canvasKind : (canvases[0] ?? "story");
+  const inCanvas = useMemo(() => templates.filter((tpl) => canvasOf(tpl) === activeCanvas), [templates, activeCanvas]);
+  const active = inCanvas.find((tpl) => tpl.id === templateId) ?? inCanvas[0] ?? null;
 
-  /** The finished PNG for a template, rendered once per story + photo. */
-  const renderBlob = useCallback(
-    (id: StoryTemplate): Promise<Blob> => {
-      const key = `${id}|${photoSrc ?? ""}`;
-      const cached = blobs.current.get(key);
-      if (cached) return cached;
-      const pending = (async () => {
-        const canvas = document.createElement("canvas");
-        await drawStoryCard(canvas, story, id, photoSrc);
-        const blob = await new Promise<Blob | null>((resolve) =>
-          canvas.toBlob((b) => resolve(b), "image/png"),
-        );
-        if (!blob) throw new Error(t("story.share.makeImageFailed"));
-        return blob;
-      })();
-      blobs.current.set(key, pending);
-      pending.catch(() => blobs.current.delete(key));
-      return pending;
-    },
-    [story, photoSrc, t],
+  const scene = useMemo(
+    () =>
+      active
+        ? renderSticker({ template: active, spec, prefs: stickerPrefs, locale, mode, fonts: rogoWebFonts })
+        : null,
+    [active, spec, stickerPrefs, locale, mode],
   );
+
+  const showMore = canShareFiles;
+  const showInstagram = canShareFiles && os !== "desktop";
+  const hasWeight = story.kind === "progress" && !story.maternal && story.weightGoalProgress != null;
+
+  const cacheKey = scene && active ? `${active.id}|${mode}|${locale}|${JSON.stringify(stickerPrefs)}` : "";
+
+  /** The finished PNG, rendered once per template, photo and options. */
+  const renderBlob = useCallback((): Promise<Blob> => {
+    const cached = blobs.current.get(cacheKey);
+    if (cached) return cached;
+    const pending = (async () => {
+      if (!scene) throw new Error(t("story.share.makeImageFailed"));
+      await ensureStickerFonts();
+      await loadSceneImages(scene, images.current);
+      const canvas = document.createElement("canvas");
+      drawScene(canvas, scene, images.current);
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
+      if (!blob) throw new Error(t("story.share.makeImageFailed"));
+      return blob;
+    })();
+    blobs.current.set(cacheKey, pending);
+    pending.catch(() => blobs.current.delete(cacheKey));
+    return pending;
+  }, [cacheKey, scene, t]);
 
   useEffect(() => {
     if (!open) return;
     setCanShareFiles(canShareImageFile());
+    setPrefs(loadPrefs());
   }, [open]);
 
+  // Draw the live preview (same painter as the export) once fonts and images are ready.
   useEffect(() => {
-    if (!open) return;
+    if (!open || !scene) return;
     let cancelled = false;
-    blobs.current.clear();
-    for (const candidate of templates) {
-      const canvas = canvasRefs.current[candidate.id];
-      if (!canvas) continue;
-      drawStoryCard(canvas, story, candidate.id, photoSrc).catch((err: Error) => {
-        if (!cancelled) toast.error(err.message || t("story.share.makeImageFailed"));
-      });
-    }
+    setStatus("loading");
+    (async () => {
+      await ensureStickerFonts();
+      await loadSceneImages(scene, images.current);
+      const canvas = previewRef.current;
+      if (cancelled || !canvas) return;
+      drawScene(canvas, scene, images.current);
+      setStatus("ready");
+      // Warm the PNG so the first tap does not wait on rendering.
+      renderBlob().catch(() => {});
+    })().catch((err: unknown) => {
+      console.warn("sticker preview failed", err);
+      if (!cancelled) setStatus("error");
+    });
     return () => {
       cancelled = true;
     };
-  }, [open, templates, story, photoSrc, t]);
-
-  // Warm the active template's PNG so the first tap does not wait on rendering.
-  useEffect(() => {
-    if (open) renderBlob(activeId).catch(() => {});
-  }, [open, activeId, renderBlob]);
+  }, [open, scene, renderBlob, attempt]);
 
   useEffect(() => {
     if (!open) return;
@@ -207,10 +270,21 @@ export function ShareStoryButton({
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const imageName = fileName ?? `joyorogo-${story.kind}-${activeId}.png`;
+  const updatePrefs = (patch: Partial<Prefs>) => {
+    const next = { ...prefs, ...patch };
+    setPrefs(next);
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(next));
+    } catch {
+      // Best-effort: the session keeps the choice either way.
+    }
+  };
+
+  const imageName = fileName ?? `joyorogo-${spec.kind}-${active?.id ?? "sticker"}.png`;
+  const ready = status === "ready" && scene !== null;
 
   const runTarget = async (target: Target) => {
-    if (busyTarget) return;
+    if (busyTarget || !ready) return;
     setBusyTarget(target);
     try {
       if (target === "copy") {
@@ -220,9 +294,7 @@ export function ShareStoryButton({
         }
         try {
           // The promise form keeps the user gesture alive while the PNG finishes (Safari).
-          await navigator.clipboard.write([
-            new ClipboardItem({ "image/png": renderBlob(activeId) }),
-          ]);
+          await navigator.clipboard.write([new ClipboardItem({ "image/png": renderBlob() })]);
         } catch (err) {
           console.warn("story copy failed", err);
           toast.error(t("story.share.copyFailed"));
@@ -230,7 +302,7 @@ export function ShareStoryButton({
         }
         toast.success(t("story.share.copied"));
       } else if (target === "save") {
-        const url = URL.createObjectURL(await renderBlob(activeId));
+        const url = URL.createObjectURL(await renderBlob());
         const a = document.createElement("a");
         a.href = url;
         a.download = imageName;
@@ -238,7 +310,7 @@ export function ShareStoryButton({
         setTimeout(() => URL.revokeObjectURL(url), 10_000);
         toast.success(t("story.share.saved"), { description: t("story.share.savedWebBody") });
       } else {
-        const file = new File([await renderBlob(activeId)], imageName, { type: "image/png" });
+        const file = new File([await renderBlob()], imageName, { type: "image/png" });
         await navigator.share({
           files: [file],
           ...(target === "more" ? { text: text ?? defaultShareText(story) } : {}),
@@ -254,14 +326,24 @@ export function ShareStoryButton({
     }
   };
 
-  const pickPhoto = (file: File | undefined) => {
+  const pickPhoto = async (file: File | undefined) => {
     if (!file) return;
+    const url = URL.createObjectURL(file);
+    try {
+      // Fail early (not at export time) for files the browser cannot decode.
+      (await loadBitmap(url)).close();
+    } catch {
+      URL.revokeObjectURL(url);
+      toast.error(t("story.share.photoFailedTitle"), { description: t("story.share.photoFailedBody") });
+      return;
+    }
     if (photoSrc) URL.revokeObjectURL(photoSrc);
-    setPhotoSrc(URL.createObjectURL(file));
-    setTemplate("photo");
-    // The photo template is always first; the track exists once the sheet is open.
-    requestAnimationFrame(() => scrollToTemplate("photo", "smooth"));
+    setPhotoSrc(url);
+    setCanvasKind("story");
+    setTemplateId(null);
   };
+
+  const stage = scene?.transparent ? (mode === "light" ? STICKER_STAGE_LIGHT : STICKER_STAGE_DARK) : "bg-card";
 
   return (
     <>
@@ -272,8 +354,8 @@ export function ShareStoryButton({
         disabled={disabled}
         aria-label={label ? undefined : (ariaLabel ?? label)}
         onClick={() => {
-          // Open on the first template (photo when the story has one).
-          setTemplate(templates[0]?.id ?? "brand");
+          setCanvasKind("story");
+          setTemplateId(null);
           setOpen(true);
         }}
       >
@@ -306,59 +388,99 @@ export function ShareStoryButton({
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-              <Segmented
-                label={t("story.share.pickTemplate")}
-                value={activeId}
-                options={templates.map((candidate) => ({
-                  value: candidate.id,
-                  label: t(`story.card.template.${candidate.id}.label`),
-                }))}
-                onChange={(id) => {
-                  setTemplate(id);
-                  scrollToTemplate(id, "smooth");
-                }}
-              />
-
-              <div className="rounded-2xl bg-muted py-3">
-                <div
-                  ref={trackRef}
-                  className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto"
-                  onScroll={(event) => {
-                    if (Date.now() < scrollLockUntil.current) return;
-                    const track = event.currentTarget;
-                    const slide = Math.round(track.scrollLeft / track.clientWidth);
-                    const next = templates[Math.min(Math.max(slide, 0), templates.length - 1)];
-                    if (next) setTemplate(next.id);
+              {canvases.length > 1 && (
+                <Segmented
+                  label={t("sticker:sheet.pickTemplate")}
+                  value={activeCanvas}
+                  options={canvases.map((c) => ({ value: c, label: t(`sticker:canvas.${c}`) }))}
+                  onChange={(next) => {
+                    setCanvasKind(next);
+                    setTemplateId(null);
                   }}
-                >
-                  {templates.map((candidate) => (
-                    <div
-                      key={candidate.id}
-                      className="flex w-full shrink-0 snap-center justify-center"
-                    >
-                      <div
-                        className={`aspect-[9/16] h-[min(38dvh,360px)] overflow-hidden rounded-xl ${
-                          candidate.id === "sticker" ? STICKER_STAGE : "bg-card"
-                        }`}
-                      >
-                        <canvas
-                          ref={(canvas) => {
-                            canvasRefs.current[candidate.id] = canvas;
-                          }}
-                          className="size-full object-contain"
-                          aria-label={t("story.share.preview", {
-                            name: t(`story.card.template.${candidate.id}.label`),
-                          })}
-                        />
+                />
+              )}
+
+              <div className="flex justify-center rounded-2xl bg-muted py-3">
+                {scene ? (
+                  <div
+                    className={`relative max-h-[min(38dvh,360px)] max-w-full overflow-hidden rounded-xl ${stage}`}
+                    style={{ aspectRatio: `${scene.width} / ${scene.height}`, height: "min(38dvh, 360px)" }}
+                  >
+                    <canvas
+                      ref={previewRef}
+                      className="size-full object-contain"
+                      aria-label={t("story.share.preview", {
+                        name: active ? t(`sticker:style.${active.style}`, { defaultValue: active.name }) : "",
+                      })}
+                    />
+                    {status === "loading" && (
+                      <div className="absolute inset-0 grid place-items-center bg-black/40">
+                        <Loader2 className="size-7 animate-spin text-white motion-reduce:animate-none" aria-hidden />
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    )}
+                    {status === "error" && (
+                      <div role="alert" className="absolute inset-0 grid place-items-center gap-2 bg-black/60 p-4 text-center text-sm text-white">
+                        <p>{t("story.share.photoFailedBody")}</p>
+                        <Button variant="secondary" size="sm" onClick={() => setAttempt((n) => n + 1)}>
+                          {t("common:actions.retry")}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="px-4 py-10 text-center text-sm text-muted-foreground">{t("sticker:sheet.empty")}</p>
+                )}
               </div>
 
-              <p className="text-center text-sm text-muted-foreground">
-                {activeTemplate ? t(`story.card.template.${activeTemplate.id}.hint`) : null}
-              </p>
+              {inCanvas.length > 1 && (
+                <Segmented
+                  label={t("sticker:sheet.pickTemplate")}
+                  value={active?.id ?? ""}
+                  options={inCanvas.map((tpl) => ({
+                    value: tpl.id,
+                    label: t(`sticker:style.${tpl.style}`, { defaultValue: tpl.name }),
+                  }))}
+                  onChange={setTemplateId}
+                />
+              )}
+
+              <div className="flex flex-col gap-3">
+                <Segmented
+                  label={t("sticker:sheet.inkDark")}
+                  value={mode}
+                  options={[
+                    { value: "dark", label: t("sticker:sheet.inkDark") },
+                    { value: "light", label: t("sticker:sheet.inkLight") },
+                  ]}
+                  onChange={setInk}
+                />
+                {hasWeight && (
+                  <OptionRow label={t("sticker:sheet.hideNumbers")}>
+                    <Switch
+                      label={t("sticker:sheet.hideNumbers")}
+                      checked={prefs.hideNumbers}
+                      onCheckedChange={(value) => updatePrefs({ hideNumbers: value })}
+                    />
+                  </OptionRow>
+                )}
+                {firstName && (
+                  <OptionRow label={t("sticker:sheet.showName")}>
+                    <Switch
+                      label={t("sticker:sheet.showName")}
+                      checked={prefs.showName}
+                      onCheckedChange={(value) => updatePrefs({ showName: value })}
+                    />
+                  </OptionRow>
+                )}
+                <OptionRow label={t("sticker:sheet.watermark")} hint={isPro ? undefined : t("sticker:sheet.proOnly")}>
+                  <Switch
+                    label={t("sticker:sheet.watermark")}
+                    checked={watermark}
+                    disabled={!isPro}
+                    onCheckedChange={(value) => updatePrefs({ watermark: value })}
+                  />
+                </OptionRow>
+              </div>
 
               <label className="mx-auto inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-within:ring-[3px] focus-within:ring-ring/40">
                 <input
@@ -366,25 +488,21 @@ export function ShareStoryButton({
                   accept="image/*"
                   className="sr-only"
                   onChange={(event) => {
-                    pickPhoto(event.target.files?.[0]);
+                    void pickPhoto(event.target.files?.[0]);
                     event.target.value = "";
                   }}
                 />
                 <ImagePlus className="size-4" aria-hidden />
-                {hasPhoto ? t("story.share.changePhoto") : t("story.share.usePhoto")}
+                {photoSrc ? t("story.share.changePhoto") : t("story.share.usePhoto")}
               </label>
             </div>
 
-            <div
-              role="group"
-              aria-label={t("story.share.targets")}
-              className="mt-3 flex justify-center gap-1"
-            >
+            <div role="group" aria-label={t("story.share.targets")} className="mt-3 flex justify-center gap-1">
               {showInstagram && (
                 <TargetTile
                   label={t("story.share.instagram")}
                   busy={busyTarget === "instagram"}
-                  disabled={busyTarget != null}
+                  disabled={busyTarget != null || !ready}
                   onClick={() => void runTarget("instagram")}
                 >
                   <InstagramGlyph className="size-6" />
@@ -393,7 +511,7 @@ export function ShareStoryButton({
               <TargetTile
                 label={t("story.share.copy")}
                 busy={busyTarget === "copy"}
-                disabled={busyTarget != null}
+                disabled={busyTarget != null || !ready}
                 onClick={() => void runTarget("copy")}
               >
                 <Copy className="size-6" aria-hidden />
@@ -401,7 +519,7 @@ export function ShareStoryButton({
               <TargetTile
                 label={t("story.share.save")}
                 busy={busyTarget === "save"}
-                disabled={busyTarget != null}
+                disabled={busyTarget != null || !ready}
                 onClick={() => void runTarget("save")}
               >
                 <Download className="size-6" aria-hidden />
@@ -410,7 +528,7 @@ export function ShareStoryButton({
                 <TargetTile
                   label={t("story.share.more")}
                   busy={busyTarget === "more"}
-                  disabled={busyTarget != null}
+                  disabled={busyTarget != null || !ready}
                   onClick={() => void runTarget("more")}
                 >
                   <Ellipsis className="size-6" aria-hidden />
@@ -421,5 +539,17 @@ export function ShareStoryButton({
         </div>
       )}
     </>
+  );
+}
+
+function OptionRow({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-1">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold">{label}</p>
+        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      </div>
+      {children}
+    </div>
   );
 }

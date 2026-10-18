@@ -337,6 +337,13 @@ export default function Dashboard() {
               weightGainedKg: data.weightGainedKg,
               gain: gain != null,
               weekTrend: data.weekTrend,
+              carbsG: data.carbsEatenG,
+              fatG: data.fatEatenG,
+              weightGoalProgress: data.weightGoalProgress,
+              weight:
+                data.weightStartKg != null && data.weightNowKg != null
+                  ? { startKg: data.weightStartKg, nowKg: data.weightNowKg, goalKg: data.weightGoalKg }
+                  : null,
             }}
           />
         )}

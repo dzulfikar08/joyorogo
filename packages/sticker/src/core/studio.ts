@@ -1,3 +1,4 @@
+import { cloneJson } from "./migrate";
 import { LAYER_SCHEMAS, SCHEMA_VERSION, templateHeader, type Background, type Layer, type Template } from "./schema";
 
 /**
@@ -40,7 +41,7 @@ export function createUserTemplate(
     name,
     baseId: base.id,
     kind: base.kind,
-    template: { ...structuredClone(base), id, name },
+    template: { ...cloneJson(base), id, name },
     createdAt: now,
     updatedAt: now,
     sync: "local",
@@ -105,7 +106,7 @@ function uniqueId(base: string, taken: Set<string>): string {
 }
 
 export function applyOp(current: Template, op: Op): OpResult {
-  const template = structuredClone(current);
+  const template = cloneJson(current);
   const fail = (reason: string): OpResult => ({ ok: false, reason });
   switch (op.op) {
     case "addLayer": {

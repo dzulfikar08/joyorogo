@@ -25,6 +25,7 @@
     "@expo/vector-icons": "^15.0.2",
     "@joyorogo/api": "workspace:*",
     "@joyorogo/i18n": "workspace:*",
+    "@joyorogo/sticker": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/tanstack-query": "catalog:",
     "@tanstack/react-form": "catalog:",

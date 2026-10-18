@@ -70,6 +70,13 @@ function buildMilestones(
   ];
 }
 
+/** 0..1 share of the way from the start weight to the goal weight; null without a gap to cover. */
+function weightGoalProgress(startKg: number, nowKg: number, targetKg: number): number | null {
+  const span = targetKg - startKg;
+  if (Math.abs(span) < 0.5) return null;
+  return Math.min(1, Math.max(0, (nowKg - startKg) / span));
+}
+
 export const dayRouter = {
   summary: protectedProcedure
     .input(z.object({ date: dateSchema.optional() }))
@@ -103,6 +110,8 @@ export const dayRouter = {
             meal: foodLog.meal,
             kcal: sql<number | null>`sum(${foodLog.kcal})`,
             protein: sql<number | null>`sum(${foodLog.protein})`,
+            carbs: sql<number | null>`sum(${foodLog.carbs})`,
+            fat: sql<number | null>`sum(${foodLog.fat})`,
           })
           .from(foodLog)
           .where(and(eq(foodLog.userId, userId), eq(foodLog.date, date)))
@@ -197,7 +206,11 @@ export const dayRouter = {
       const eatenByMeal = { ...ZERO_MEALS };
       let eatenKcal = 0;
       let eatenProteinG = 0;
+      let eatenCarbsG = 0;
+      let eatenFatG = 0;
       for (const row of eatenRows) {
+        eatenCarbsG += row.carbs ?? 0;
+        eatenFatG += row.fat ?? 0;
         eatenByMeal[row.meal as Meal] = row.kcal ?? 0;
         eatenKcal += row.kcal ?? 0;
         eatenProteinG += row.protein ?? 0;
@@ -264,6 +277,16 @@ export const dayRouter = {
           eatenG: Math.round(eatenProteinG),
           targetG: proteinGoalG(plan, prof.heightCm, workoutRows.length > 0),
         },
+        // The other two macros of the day and the progress toward the goal weight, for the share stickers.
+        carbsEatenG: Math.round(eatenCarbsG),
+        fatEatenG: Math.round(eatenFatG),
+        weightGoalProgress: maternal
+          ? null
+          : weightGoalProgress(prof.startWeightKg, plan.weightNowKg, prof.targetWeightKg),
+        // Exact weights: they only reach a sticker when the user turns "hide numbers" off.
+        weightStartKg: maternal ? null : prof.startWeightKg,
+        weightNowKg: maternal ? null : plan.weightNowKg,
+        weightGoalKg: maternal ? null : prof.targetWeightKg,
         // Hamil / Menyusui: caffeine against the daily limit, estimated from the logged names.
         maternal: plan.maternal ? { caffeine: caffeineOfDay(await loggedNames()) } : null,
         ideas:

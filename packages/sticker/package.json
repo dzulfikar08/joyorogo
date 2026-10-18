@@ -6,16 +6,21 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./*": {
-      "types": "./src/*.ts",
-      "default": "./src/*.ts"
+    "./core": {
+      "types": "./src/core/index.ts",
+      "default": "./src/core/index.ts"
+    },
+    "./rogo": {
+      "types": "./src/rogo/index.ts",
+      "default": "./src/rogo/index.ts"
     }
   },
   "scripts": {
     "check-types": "tsc --noEmit",
     "test": "bun test src",
     "stickers:sheet": "bun scripts/contact-sheet.ts",
-    "stickers:goldens": "bun scripts/contact-sheet.ts --update"
+    "stickers:goldens": "bun scripts/contact-sheet.ts --update",
+    "test:golden": "bun test test/golden.test.ts"
   },
   "dependencies": {
     "@joyorogo/i18n": "workspace:*",

@@ -73,7 +73,7 @@ import { CorrectBox } from "@/components/scan/correct-box";
 import { CupChoices } from "@/components/scan/cup-choices";
 import type { CorrectInput, CorrectOutcome } from "@/components/scan/correct-box";
 import { ShareStoryButton } from "@/components/story/share-story-button";
-import type { MealStory } from "@/components/story/story-card";
+import type { MealStory } from "@/components/story/types";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtGramsLabel, parseNum } from "@/utils/format";
 import { client, isPaywallError, orpc, queryClient } from "@/utils/orpc";

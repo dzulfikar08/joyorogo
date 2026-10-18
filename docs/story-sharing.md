@@ -13,8 +13,11 @@ story has one), "Pakai fotoku", and four targets.
 | More      | `navigator.share({files, text})`; only where the browser can share files             | `react-native-share` system sheet with the caption                                       |
 
 Code: `apps/web/src/components/story/share-story-button.tsx`,
-`apps/native/components/story/share-story-button.tsx` and `share.ts`. The card
-painters (`story-card`) are unchanged. The Instagram glyph is
+`apps/native/components/story/share-story-button.tsx` and `share.ts`. The cards are
+templates drawn by the sticker engine: see [sticker-studio.md](sticker-studio.md). The
+sheet's template switcher is now canvas (Story, Kotak, Stiker transparan) plus a style
+row; "photo" and "sticker" below refer to the full-bleed photo and the transparent
+templates. The Instagram glyph is
 `packages/api/src/lib/instagram-glyph.ts` (source and terms in the file).
 
 ## Instagram on native: with and without the Facebook App ID

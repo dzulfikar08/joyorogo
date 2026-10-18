@@ -152,7 +152,7 @@ Unknown layer `type`, a layer failing validation, an unknown icon, or a bad box 
 authoring `size` below it is raised, a `fit.minSize` below it is raised).
 `maxTextChars` (default 140): longer text is cut with an ellipsis before measuring.
 `safe`: the lint (`lintTemplate`) reports layers whose box leaves the safe area;
-`resolve` does not move them, so transparent stickers can ignore `safe`.
+`resolve` does not move them, so transparent stickers can ignore `safe`; `style: "poster"` templates are exempt (they bleed on purpose).
 
 ## 2. Expressions (`Expr`)
 
@@ -367,4 +367,81 @@ only validates `schemaVersion` and size, it never renders.
 
 ## 12. JoyoRogo catalog
 
-See the end of this file (filled when templates land).
+Built-ins live in `packages/sticker/src/rogo/templates/*.ts` (authored with `rogo/kit.ts`
+helpers, parsed once by `rogoTemplates()`; a built-in that fails to parse is excluded and
+reported, never swapped for the fallback card). Transparent stickers that carry no watermark
+get the shared dark chip mark appended by `withStickerMark`.
+
+| id | kind | style | canvas | background | requires |
+|---|---|---|---|---|---|
+| `day.bold.story` | day | bold | story 1080x1920 | gradient | day.kcal |
+| `day.minimal.sticker` | day | minimal | sticker 1080x620 | transparent | day.kcal, day.target |
+| `day.ring.square` | day | ring | square 1080x1080 | gradient | day.kcal, day.target |
+| `day.receipt.story` | day | receipt | story 1080x1920 | gradient | day.kcal |
+| `day.poster.story` | day | poster | story 1080x1920 | color | day.kcal |
+| `day.glass.story` | day | glass | story 1080x1920 | photo | day.kcal |
+| `meal.photo.story` | meal | photo | story 1080x1920 | photo | meal.kcal |
+| `meal.glass.story` | meal | glass | story 1080x1920 | photo | meal.kcal |
+| `meal.minimal.sticker` | meal | minimal | sticker 1080x550 | transparent | meal.kcal |
+| `meal.receipt.story` | meal | receipt | story 1080x1920 | gradient | meal.kcal |
+| `meal.bold.square` | meal | bold | square 1080x1080 | gradient | meal.kcal |
+| `meal.cutout.story` | meal | poster | story 1080x1920 | gradient | meal.kcal, cutout |
+| `meal.cutout.sticker` | meal | badge | sticker 1080x980 | transparent | meal.kcal, cutout |
+| `streak.badge.sticker` | streak | badge | sticker 1080x880 | transparent | streak.days |
+| `streak.bold.story` | streak | bold | story 1080x1920 | gradient | streak.days |
+| `streak.poster.square` | streak | poster | square 1080x1080 | color | streak.days |
+| `weight.minimal.sticker` | weight | minimal | sticker 1080x640 | transparent | weight.goalPct |
+| `weight.trend.story` | weight | trend | story 1080x1920 | gradient | weight.trend |
+| `weight.poster.square` | weight | poster | square 1080x1080 | color | weight.goalPct |
+| `week.poster.story` | week | poster | story 1080x1920 | gradient | week.avgKcal |
+| `week.bold.story` | week | bold | story 1080x1920 | gradient | week.avgKcal |
+| `week.minimal.sticker` | week | minimal | sticker 1080x680 | transparent | week.avgKcal |
+| `week.receipt.square` | week | receipt | square 1080x1080 | gradient | week.avgKcal |
+| `challenge.bold.story` | challenge | bold | story 1080x1920 | gradient | challenge.title |
+| `challenge.badge.sticker` | challenge | badge | sticker 1080x1000 | transparent | challenge.title |
+| `workout.bold.story` | workout | bold | story 1080x1920 | gradient | workout.name |
+| `workout.receipt.story` | workout | receipt | story 1080x1920 | gradient | workout.name |
+| `workout.minimal.sticker` | workout | minimal | sticker 1080x540 | transparent | workout.name |
+| `workout.glass.story` | workout | glass | story 1080x1920 | photo | workout.name |
+| `milestone.badge.sticker` | milestone | badge | sticker 1080x980 | transparent | milestone.kind |
+| `milestone.poster.story` | milestone | poster | story 1080x1920 | color | milestone.kind |
+| `milestone.bold.square` | milestone | bold | square 1080x1080 | gradient | milestone.kind |
+
+Data builders (`rogo/data.ts`, `buildStickerData(spec, prefs)`):
+
+- `day.*`: `kcal`, `target`, `ratio`, `remaining`, `overBy`, `over`, `gain`, `protein`, `proteinTarget`,
+  `proteinRatio`, `carbs`, `fat`, `segProtein|segCarbs|segFat` (kcal share of the target, ring segments), `streak`.
+  Without a target (pregnancy) `target`, `ratio`, `remaining` are absent.
+- `meal.*`: `name`, `kcal`, `protein`, `carbs`, `fat`, `reaction`; images `photo` (full-bleed) and `cutout`
+  (transparent PNG of the food, never used as a background).
+- `streak.*`: `days`, `week` (7 x 1/0, last 7 days ending on the sticker day), `weekDates`, `total`, `next`, `toNext`, `milestone`.
+- `weight.*`: `goalPct`, `direction`, `trend` (normalized 0..1, no kg), `dates`, `gain`, `moved`; the kg values
+  `lostKg`, `gainedKg`, `deltaKg`, `startKg`, `nowKg`, `goalKg` exist only when `options.hideNumbers` is false.
+- `week.*`: `name`, `start`, `end`, `avgKcal`, `targetKcal`, `daysOnTarget`, `loggedDays`, `proteinAvg`, `proteinTarget`, `streak`,
+  `exerciseKcal`, `exerciseMin`, `weightChangeKg`, `bestDayLabel`, `bestDayKcal`, `gain`, `kcalDays` (Mon-first), `dayDates`, `onTargetRatio`.
+- `challenge.*`: `title`, `status`, `hitDays`, `judgedDays`, `durationDays`, `streak`, `bestStreak`, `rank` (absent when
+  upcoming or alone), `participants`, `upcoming`.
+- `workout.*`: `name`, `durationMin`, `volumeKg`, `sets`, `prCount`, `pr0..pr2` (`exercise`, `label`, `value`).
+- `milestone.*`: `kind` (`streak|pr|week|podium`), `value`, `detail`.
+
+### Inventory: what the engine replaced
+
+| Before | After |
+|---|---|
+| native `components/story/story-card.tsx` (view painter, 3 templates: photo, sticker, brand), web `components/story/story-card.ts` (canvas painter, same 3) | deleted; `packages/sticker` + `components/sticker/scene-view.tsx` (native) / `components/story/paint.ts` (web) |
+| 5 card kinds hard-coded in the painters: meal, workout, progress (beranda), recap, challenge | the `StorySpec` kinds are unchanged, so every caller (beranda, makan-ai, scan result, sticker viewer, rekap, tantangan, latihan) keeps its call; `buildStickerData` maps each to the bindings above |
+| 3 looks per kind | 32 templates: 8 kinds x styles (bold, minimal, poster, receipt, glass, badge, ring, trend, photo) x canvases (story 9:16, square 1:1, transparent sticker) |
+| share sheet: template segmented + scroll pager, 3 targets | `share-story-button.tsx` (both apps): canvas switch, style row, light/dark ink, options (hide weight numbers default on, show name default off, watermark removable with Pro), photo, same four targets and pre-permission flow |
+
+### Native build needs
+
+Nothing new: `react-native-svg`, `react-native-view-shot`, `expo-font`, `expo-media-library`, `expo-image-manipulator`,
+`expo-image-picker`, `react-native-share` were already installed. IBM Plex Mono ships as JS assets
+(`apps/native/assets/fonts`) and is loaded with `expo-font` at share time, so it goes out over the air.
+
+### Known limits
+
+- Receipt rows cannot vary their leader dots by value width; a very long label shrinks instead.
+- `shadow` is two soft copies, not a blur; on bright photos a sticker may need the dark ink switch.
+- Canvas export on web uses the browser's text shaper with the same fonts; golden tests allow a small pixel tolerance for it.
+- JoyoRogo has no GPS route sticker; route layers are exercised by JoyoFit and the unit tests only.

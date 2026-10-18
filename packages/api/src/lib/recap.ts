@@ -244,6 +244,10 @@ export type RecapShare = {
   bestDay: { label: string; kcal: number } | null;
   /** Naikin BB week: the card words the weight change as a gain and drops the "over" reading. */
   gain: boolean;
+  /** Week bounds and Monday-first eaten kcal per day, for the weekly recap stickers. */
+  weekStart: string;
+  weekEnd: string;
+  days: Array<{ date: string; kcal: number }>;
 };
 
 /** Story-card numbers for a recap; null when nothing was logged to share. */
@@ -265,5 +269,8 @@ export function recapShare(recap: WeekRecap): RecapShare | null {
       ? { label: weekdayName(recap.bestDay.date), kcal: recap.bestDay.eatenKcal }
       : null,
     gain: recap.gain,
+    weekStart: recap.weekStart,
+    weekEnd: recap.weekEnd,
+    days: recap.days.map((day) => ({ date: day.date, kcal: day.eatenKcal })),
   };
 }

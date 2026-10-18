@@ -27,6 +27,7 @@ import idJam from "./locales/id/jam.json";
 import idKoneksi from "./locales/id/koneksi.json";
 import idIzin from "./locales/id/izin.json";
 import idPanduanAi from "./locales/id/panduanAi.json";
+import idSticker from "./locales/id/sticker.json";
 
 import enAuth from "./locales/en/auth.json";
 import enBerat from "./locales/en/berat.json";
@@ -57,6 +58,7 @@ import enJam from "./locales/en/jam.json";
 import enKoneksi from "./locales/en/koneksi.json";
 import enIzin from "./locales/en/izin.json";
 import enPanduanAi from "./locales/en/panduanAi.json";
+import enSticker from "./locales/en/sticker.json";
 
 import type { Locale } from "./locale";
 
@@ -91,6 +93,7 @@ const id = {
   koneksi: idKoneksi,
   izin: idIzin,
   panduanAi: idPanduanAi,
+  sticker: idSticker,
 };
 
 /**
@@ -127,6 +130,7 @@ const en: typeof id = {
   koneksi: enKoneksi,
   izin: enIzin,
   panduanAi: enPanduanAi,
+  sticker: enSticker,
 };
 
 export const resources = { id, en } satisfies Record<Locale, typeof id>;

@@ -77,19 +77,19 @@ export function nearestWeight<T>(tables: Record<number, T>, weight: number): T {
 
 const SAFETY = 1.015;
 
-// Emoji, pictographs, variation selectors, joiners, tags, private use, controls.
-const STRIP =
-  /[\p{Extended_Pictographic}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Cc}\p{Cf}\p{Co}\p{Cs}\u200B-\u200F\u2028\u2029\uFE00-\uFE0F\u20E3\u{E0000}-\u{E007F}\u{1F1E6}-\u{1F1FF}]/gu;
+// What the fonts can draw: Basic Latin, Latin-1 and Latin Extended-A/B, general punctuation
+// (without the emoji-capable "!!" and "!?"), currency symbols and the four arrows. Everything else,
+// emoji, joiners, variation selectors, controls and foreign scripts, is dropped instead of drawn as
+// tofu. Written as plain ranges: Hermes does not implement Unicode property escapes reliably.
+const UNSUPPORTED =
+  /[^\u0020-\u007E\u00A1-\u00AC\u00AE-\u024F\u2010-\u2027\u2030-\u203B\u203D-\u2048\u204A-\u205E\u20A0-\u20BF\u2190-\u2193\u2212\u00D7]/gu;
 
 /**
  * User text is stripped of emoji and anything the fonts cannot draw (rather than
  * painting tofu), whitespace collapsed, then cut to `maxChars` with an ellipsis.
  */
 export function sanitizeText(input: string, maxChars = 140): string {
-  let text = input.normalize("NFC").replace(STRIP, "").replace(/\s+/gu, " ").trim();
-  // Unsupported scripts: keep Latin, punctuation, symbols, digits.
-  text = text.replace(/[^\u0020-\u024F\u2010-\u2027\u2030-\u205E\u20A0-\u20BF\u2190-\u2193\u2212\u00D7]/gu, "");
-  text = text.replace(/\s+/gu, " ").trim();
+  let text = input.normalize("NFC").replace(/\s+/g, " ").replace(UNSUPPORTED, "").replace(/ +/g, " ").trim();
   const cps = Array.from(text);
   if (cps.length > maxChars) text = `${cps.slice(0, maxChars - 1).join("").trimEnd()}\u2026`;
   return text;

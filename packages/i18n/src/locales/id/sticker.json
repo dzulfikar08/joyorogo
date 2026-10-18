@@ -1,0 +1,182 @@
+{
+  "style": {
+    "minimal": "Minimal",
+    "bold": "Angka besar",
+    "receipt": "Struk",
+    "poster": "Poster",
+    "glass": "Kaca",
+    "badge": "Lencana",
+    "ring": "Cincin",
+    "trend": "Tren",
+    "photo": "Foto"
+  },
+  "kind": {
+    "day": "Hari ini",
+    "meal": "Makanan",
+    "streak": "Beruntun",
+    "weight": "Berat badan",
+    "week": "Rekap minggu",
+    "challenge": "Tantangan",
+    "workout": "Latihan",
+    "milestone": "Pencapaian"
+  },
+  "canvas": {
+    "story": "Story 9:16",
+    "square": "Kotak 1:1",
+    "sticker": "Stiker transparan"
+  },
+  "common": {
+    "madeWith": "Dicatat dengan JoyoRogo",
+    "kcal": "kcal",
+    "kg": "kg",
+    "g": "g",
+    "protein": "Protein",
+    "carbs": "Karbo",
+    "fat": "Lemak",
+    "days_other": "{{count}} hari",
+    "minutes": "menit"
+  },
+  "day": {
+    "eyebrow": "Hari ini",
+    "eaten": "Sudah masuk",
+    "ofTarget": "dari {{target}} kcal",
+    "remaining": "Sisa {{kcal}} kcal",
+    "overBy": "Lewat {{kcal}} kcal",
+    "gainLeft": "Kurang {{kcal}} kcal lagi",
+    "left": "Sisa",
+    "over": "Lewat",
+    "gainShort": "Kurang",
+    "macros": "Makro",
+    "onTrack": "Sesuai target",
+    "kcalEaten": "kcal sudah masuk",
+    "posterEaten": "Sudah",
+    "streak_other": "{{count}} hari beruntun",
+    "receipt": {
+      "title": "Struk hari ini",
+      "energy": "Energi",
+      "target": "Target",
+      "left": "Sisa",
+      "total": "Total",
+      "streak": "Beruntun",
+      "thanks": "Makasih sudah mencatat"
+    }
+  },
+  "meal": {
+    "eyebrow": "Makanku",
+    "energy": "Energi",
+    "receipt": {
+      "title": "Struk makan",
+      "itemKcal": "{{kcal}} kcal",
+      "item": "Item",
+      "total": "Total",
+      "thanks": "Makasih sudah mencatat"
+    }
+  },
+  "streak": {
+    "eyebrow": "Beruntun",
+    "title": "Konsisten nyatat",
+    "days_other": "hari beruntun",
+    "tracked_other": "{{count}} hari tercatat",
+    "toNext_other": "{{count}} hari lagi ke {{next}}",
+    "lastSeven": "7 hari terakhir",
+    "daysShort": "hari"
+  },
+  "weight": {
+    "eyebrow": "Progres berat badan",
+    "towardGoal": "menuju target",
+    "lost": "Turun {{kg}} kg",
+    "gained": "Naik {{kg}} kg",
+    "fromStart": "dari berat awal",
+    "hiddenDown": "Bergerak turun",
+    "hiddenUp": "Bergerak naik",
+    "hiddenSteady": "Stabil",
+    "trend": "Tren minggu ini",
+    "start": "Awal",
+    "now": "Sekarang",
+    "goal": "Target",
+    "numbersHidden": "Angka berat disembunyikan",
+    "progressToGoal": "{{pct}} menuju target kamu"
+  },
+  "week": {
+    "eyebrow": "Rekap minggu",
+    "avgPerDay": "Rata-rata per hari",
+    "onTarget": "Hari sesuai target",
+    "ofLogged_other": "dari {{count}} hari tercatat",
+    "protein": "Protein",
+    "streak": "Beruntun",
+    "exercise": "Olahraga",
+    "bestDay": "Hari terbaik",
+    "perDay": "Kalori per hari",
+    "target": "target",
+    "weight": "Berat",
+    "weeklyTrend": "tren mingguan",
+    "targetLine": "Target {{kcal}} kcal",
+    "daysUnit": "hari",
+    "bestDayOf": "Terbaik, {{day}}"
+  },
+  "challenge": {
+    "eyebrow": "Tantangan grup",
+    "rank": "Peringkat",
+    "ofPeople_other": "dari {{count}} peserta",
+    "bestStreak": "Streak terbaik",
+    "hitDays": "Hari tercapai",
+    "ofJudged_other": "dari {{count}} hari",
+    "participants": "Peserta",
+    "upcoming": "Segera dimulai",
+    "done": "Selesai",
+    "active": "Sedang jalan",
+    "podium": "Di podium",
+    "streak": "Streak sekarang",
+    "duration": "Durasi",
+    "daysUnit": "hari"
+  },
+  "workout": {
+    "eyebrow": "Sesi latihan",
+    "volume": "Total volume",
+    "duration": "Durasi",
+    "sets": "Set",
+    "records": "Rekor baru",
+    "recordsTitle": "Rekor pribadi",
+    "prNew": "Rekor baru",
+    "minutesValue": "{{min}} menit",
+    "receipt": {
+      "title": "Struk latihan",
+      "total": "Total",
+      "thanks": "Makasih sudah latihan"
+    },
+    "volumeValue": "{{kg}} kg"
+  },
+  "milestone": {
+    "eyebrow": "Pencapaian",
+    "streak": {
+      "title_other": "{{count}} hari beruntun",
+      "sub": "Konsisten mencatat",
+      "unit_other": "hari beruntun"
+    },
+    "pr": {
+      "title_other": "{{count}} rekor baru",
+      "sub": "Latihan tembus rekor",
+      "unit_other": "rekor baru"
+    },
+    "week": {
+      "title_other": "{{count}} hari sesuai target",
+      "sub": "Minggu yang rapi",
+      "unit_other": "hari sesuai target"
+    },
+    "podium": {
+      "title": "Peringkat {{rank}}",
+      "sub": "Tantangan grup",
+      "unit": "Peringkat"
+    }
+  },
+  "sheet": {
+    "empty": "Belum ada gaya yang cocok untuk data ini.",
+    "pickTemplate": "Pilih gaya",
+    "inkDark": "Teks gelap",
+    "inkLight": "Teks terang",
+    "hideNumbers": "Sembunyikan angka berat",
+    "showName": "Tampilkan namaku",
+    "watermark": "Tanda JoyoRogo",
+    "proOnly": "Khusus Pro"
+  }
+}

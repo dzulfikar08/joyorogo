@@ -6,8 +6,8 @@ import Share, { Social } from "react-native-share";
 // anything else hits the runtime proxy, which throws in release builds.
 import { ENV } from "../../src/env";
 import { shareUrl } from "../../src/lib/share-links";
-import type { StorySpec, StoryTemplate } from "./story-card";
 import { challengeShareText } from "@joyorogo/api/lib/challenge";
+import type { StorySpec } from "./types";
 import { fmtNumber, i18n } from "@joyorogo/i18n";
 
 /**
@@ -16,7 +16,7 @@ import { fmtNumber, i18n } from "@joyorogo/i18n";
  *
  * Instagram has two paths. With a Facebook App ID (EXPO_PUBLIC_FB_APP_ID) the
  * com.instagram.share.ADD_TO_STORY intent / instagram-stories:// URL opens the
- * Story composer directly, and the transparent "sticker" template is passed as
+ * Story composer directly, and the transparent sticker templates is passed as
  * stickerImage so it lands as an overlay on the user's own camera/photo, while
  * photo/brand render as the full-bleed backgroundImage. Without an ID that
  * direct path is not allowed, so the PNG goes to the Instagram app through
@@ -111,7 +111,7 @@ export async function shareImageSystem(fileUri: string, story: StorySpec): Promi
  */
 export async function shareToInstagram(
   fileUri: string,
-  template: StoryTemplate,
+  transparent: boolean,
   appId: string | null,
   story: StorySpec,
 ): Promise<void> {
@@ -120,7 +120,7 @@ export async function shareToInstagram(
       await Share.shareSingle({
         social: Social.InstagramStories,
         appId,
-        ...(template === "sticker" ? { stickerImage: fileUri } : { backgroundImage: fileUri }),
+        ...(transparent ? { stickerImage: fileUri } : { backgroundImage: fileUri }),
       });
     } else {
       await Share.shareSingle({ social: Social.Instagram, url: fileUri, type: "image/png" });

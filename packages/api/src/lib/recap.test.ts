@@ -158,6 +158,10 @@ describe("buildWeekRecap", () => {
       proteinAvgG: 95,
       weightChangeKg: null,
       bestDay: { label: "Rabu", kcal: 2000 },
+      weekStart: "2026-10-12",
+      weekEnd: "2026-10-18",
     });
+    expect(share?.days).toHaveLength(7);
+    expect(share?.days[2]).toEqual({ date: "2026-10-14", kcal: 2000 });
   });
 });

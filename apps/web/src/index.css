@@ -1,6 +1,26 @@
 @import "@fontsource-variable/plus-jakarta-sans/wght.css";
 @import "@joyorogo/ui/globals.css";
 
+/* Receipt sticker mono; fetched only when the share sheet loads it. */
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/IBMPlexMono_400Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/IBMPlexMono_500Medium.ttf") format("truetype");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/IBMPlexMono_700Bold.ttf") format("truetype");
+}
+
 /*
  * App-level additions only. Design tokens live in @joyorogo/ui/globals.css.
  */

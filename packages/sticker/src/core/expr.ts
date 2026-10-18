@@ -196,7 +196,7 @@ function applyFilter(value: unknown, name: string, args: string[], locale: Local
     case "lower":
       return text?.toLowerCase();
     case "title":
-      return text?.toLowerCase().replace(/(^|\s)(\p{L})/gu, (_, sp: string, c: string) => sp + c.toUpperCase());
+      return text?.toLowerCase().replace(/(^|\s)(\S)/g, (_, sp: string, c: string) => sp + c.toUpperCase());
     case "ellipsis": {
       const max = Number(args[0]);
       if (text === null || !Number.isInteger(max) || max < 1) return undefined;

@@ -17,7 +17,8 @@ function exprs(layer: Layer): Expr[] {
 
 export function lintTemplate(template: Template): Issue[] {
   const issues: Issue[] = [];
-  const safe = template.safe ?? (template.canvas.aspect === "story" ? DEFAULT_STORY_SAFE : undefined);
+  // Posters bleed: giant numerals and color fields run to the edge on purpose.
+  const safe = template.style === "poster" ? undefined : (template.safe ?? (template.canvas.aspect === "story" ? DEFAULT_STORY_SAFE : undefined));
   const { width, height } = template.canvas;
   const minFont = template.constraints.minFontSize;
   const visit = (layers: Layer[], ox: number, oy: number, absolute: boolean) => {

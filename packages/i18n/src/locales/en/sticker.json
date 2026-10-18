@@ -1,0 +1,196 @@
+{
+  "style": {
+    "minimal": "Minimal",
+    "bold": "Big numbers",
+    "receipt": "Receipt",
+    "poster": "Poster",
+    "glass": "Glass",
+    "badge": "Badge",
+    "ring": "Ring",
+    "trend": "Trend",
+    "photo": "Photo"
+  },
+  "kind": {
+    "day": "Today",
+    "meal": "Meal",
+    "streak": "Streak",
+    "weight": "Weight",
+    "week": "Weekly recap",
+    "challenge": "Challenge",
+    "workout": "Workout",
+    "milestone": "Milestone"
+  },
+  "canvas": {
+    "story": "Story 9:16",
+    "square": "Square 1:1",
+    "sticker": "Transparent sticker"
+  },
+  "common": {
+    "madeWith": "Tracked with JoyoRogo",
+    "kcal": "kcal",
+    "kg": "kg",
+    "g": "g",
+    "protein": "Protein",
+    "carbs": "Carbs",
+    "fat": "Fat",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "minutes": "min"
+  },
+  "day": {
+    "eyebrow": "Today",
+    "eaten": "Eaten",
+    "ofTarget": "of {{target}} kcal",
+    "remaining": "{{kcal}} kcal left",
+    "overBy": "{{kcal}} kcal over",
+    "gainLeft": "{{kcal}} kcal to go",
+    "left": "Left",
+    "over": "Over",
+    "gainShort": "To go",
+    "macros": "Macros",
+    "onTrack": "On target",
+    "kcalEaten": "kcal eaten",
+    "posterEaten": "Eaten",
+    "streak_one": "{{count}} day streak",
+    "streak_other": "{{count}} day streak",
+    "receipt": {
+      "title": "Today's receipt",
+      "energy": "Energy",
+      "target": "Target",
+      "left": "Left",
+      "total": "Total",
+      "streak": "Streak",
+      "thanks": "Thanks for tracking"
+    }
+  },
+  "meal": {
+    "eyebrow": "My meal",
+    "energy": "Energy",
+    "receipt": {
+      "title": "Meal receipt",
+      "itemKcal": "{{kcal}} kcal",
+      "item": "Item",
+      "total": "Total",
+      "thanks": "Thanks for tracking"
+    }
+  },
+  "streak": {
+    "eyebrow": "Streak",
+    "title": "Showing up every day",
+    "days_one": "day streak",
+    "days_other": "day streak",
+    "tracked_one": "{{count}} day tracked",
+    "tracked_other": "{{count}} days tracked",
+    "toNext_one": "{{count}} day to {{next}}",
+    "toNext_other": "{{count}} days to {{next}}",
+    "lastSeven": "Last 7 days",
+    "daysShort": "days"
+  },
+  "weight": {
+    "eyebrow": "Weight progress",
+    "towardGoal": "toward goal",
+    "lost": "Down {{kg}} kg",
+    "gained": "Up {{kg}} kg",
+    "fromStart": "from starting weight",
+    "hiddenDown": "Trending down",
+    "hiddenUp": "Trending up",
+    "hiddenSteady": "Steady",
+    "trend": "This week's trend",
+    "start": "Start",
+    "now": "Now",
+    "goal": "Goal",
+    "numbersHidden": "Weight numbers hidden",
+    "progressToGoal": "{{pct}} of the way to your goal"
+  },
+  "week": {
+    "eyebrow": "Weekly recap",
+    "avgPerDay": "Average per day",
+    "onTarget": "Days on target",
+    "ofLogged_one": "of {{count}} day logged",
+    "ofLogged_other": "of {{count}} days logged",
+    "protein": "Protein",
+    "streak": "Streak",
+    "exercise": "Exercise",
+    "bestDay": "Best day",
+    "perDay": "Calories per day",
+    "target": "target",
+    "weight": "Weight",
+    "weeklyTrend": "weekly trend",
+    "targetLine": "Target {{kcal}} kcal",
+    "daysUnit": "days",
+    "bestDayOf": "Best, {{day}}"
+  },
+  "challenge": {
+    "eyebrow": "Group challenge",
+    "rank": "Rank",
+    "ofPeople_one": "of {{count}} participant",
+    "ofPeople_other": "of {{count}} participants",
+    "bestStreak": "Best streak",
+    "hitDays": "Days hit",
+    "ofJudged_one": "of {{count}} day",
+    "ofJudged_other": "of {{count}} days",
+    "participants": "Participants",
+    "upcoming": "Starting soon",
+    "done": "Finished",
+    "active": "In progress",
+    "podium": "On the podium",
+    "streak": "Current streak",
+    "duration": "Duration",
+    "daysUnit": "days"
+  },
+  "workout": {
+    "eyebrow": "Workout",
+    "volume": "Total volume",
+    "duration": "Duration",
+    "sets": "Sets",
+    "records": "New records",
+    "recordsTitle": "Personal records",
+    "prNew": "New record",
+    "minutesValue": "{{min}} min",
+    "receipt": {
+      "title": "Workout receipt",
+      "total": "Total",
+      "thanks": "Thanks for training"
+    },
+    "volumeValue": "{{kg}} kg"
+  },
+  "milestone": {
+    "eyebrow": "Milestone",
+    "streak": {
+      "title_one": "{{count}} day streak",
+      "title_other": "{{count}} day streak",
+      "sub": "Staying consistent",
+      "unit_one": "day streak",
+      "unit_other": "day streak"
+    },
+    "pr": {
+      "title_one": "{{count}} new record",
+      "title_other": "{{count}} new records",
+      "sub": "Workout broke records",
+      "unit_one": "new record",
+      "unit_other": "new records"
+    },
+    "week": {
+      "title_one": "{{count}} day on target",
+      "title_other": "{{count}} days on target",
+      "sub": "A tidy week",
+      "unit_one": "day on target",
+      "unit_other": "days on target"
+    },
+    "podium": {
+      "title": "Rank {{rank}}",
+      "sub": "Group challenge",
+      "unit": "Rank"
+    }
+  },
+  "sheet": {
+    "empty": "No style fits this data yet.",
+    "pickTemplate": "Pick a style",
+    "inkDark": "Dark ink",
+    "inkLight": "Light ink",
+    "hideNumbers": "Hide weight numbers",
+    "showName": "Show my name",
+    "watermark": "JoyoRogo mark",
+    "proOnly": "Pro only"
+  }
+}

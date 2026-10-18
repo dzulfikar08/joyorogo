@@ -261,6 +261,17 @@ function Dashboard({
                 gain: gain !== null,
                 weightGainedKg: summary.weightGainedKg,
                 weekTrend: summary.weekTrend,
+                carbsG: summary.carbsEatenG,
+                fatG: summary.fatEatenG,
+                weightGoalProgress: summary.weightGoalProgress,
+                weight:
+                  summary.weightStartKg != null && summary.weightNowKg != null
+                    ? {
+                        startKg: summary.weightStartKg,
+                        nowKg: summary.weightNowKg,
+                        goalKg: summary.weightGoalKg,
+                      }
+                    : null,
               }}
             />
           )}

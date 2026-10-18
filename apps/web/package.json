@@ -16,6 +16,7 @@
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
     "@joyorogo/api": "workspace:*",
     "@joyorogo/i18n": "workspace:*",
+    "@joyorogo/sticker": "workspace:*",
     "@joyorogo/ui": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/server": "catalog:",
