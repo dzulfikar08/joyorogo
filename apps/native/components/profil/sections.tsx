@@ -4,7 +4,7 @@ import * as Clipboard from "expo-clipboard";
 import { Switch, View } from "react-native";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, UnistylesRuntime, useUnistyles } from "react-native-unistyles";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { i18n, LOCALES, LOCALE_NAMES } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
@@ -14,7 +14,7 @@ import { serverUrl } from "@/components/billing";
 import { ConfirmSheet } from "@/components/confirm-sheet";
 import { useToast } from "@/components/toast";
 import { setLocale } from "@/src/lib/i18n";
-import { saveThemePref } from "@/src/lib/theme-pref";
+import { applyThemePref, saveThemePref } from "@/src/lib/theme-pref";
 import { errorMessage } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
@@ -123,15 +123,7 @@ export function AppearanceList() {
   ];
 
   const pick = (value: ThemeValue) => {
-    if (value === "system") {
-      // Hand control back to the OS scheme; the stored pref re-enables
-      // adaptive themes on the next launch.
-      UnistylesRuntime.setAdaptiveThemes(true);
-    } else {
-      // setTheme throws while adaptiveThemes is enabled.
-      UnistylesRuntime.setAdaptiveThemes(false);
-      UnistylesRuntime.setTheme(value);
-    }
+    applyThemePref(value);
     void saveThemePref(value);
   };
 

@@ -6,14 +6,13 @@ import { useTranslation } from "react-i18next";
 
 import { Card } from "@/components/kit/surface";
 import { useSession } from "@/lib/auth-client";
+import { dismissalStoreKey, saveDismissal } from "@/lib/dismissals";
 import { orpc } from "@/utils/orpc";
-
-const dismissKey = (userId: string) => `jrg-strava-7d-${userId}`;
 
 /**
  * Pemberitahuan sekali tampil untuk pengguna yang sudah menyambungkan Strava: impor
  * Strava sekarang dihapus setelah 7 hari (aturan API Strava, docs/strava.md).
- * Penutupan disimpan di perangkat ini per akun, jadi tidak muncul lagi.
+ * Penutupan disimpan per akun (ikut ke perangkat lain), jadi tidak muncul lagi.
  */
 export function StravaRetentionNotice({ className }: { className?: string }) {
   const { t } = useTranslation(["settings", "common"]);
@@ -25,7 +24,7 @@ export function StravaRetentionNotice({ className }: { className?: string }) {
   useEffect(() => {
     if (!userId) return;
     try {
-      setDismissed(localStorage.getItem(dismissKey(userId)) === "1");
+      setDismissed(localStorage.getItem(dismissalStoreKey("dismissed.stravaRetention7d", userId)) === "1");
     } catch {
       // Storage blocked (private mode): treat as seen rather than nagging every visit.
       setDismissed(true);
@@ -35,11 +34,8 @@ export function StravaRetentionNotice({ className }: { className?: string }) {
   if (!status.data?.connected || dismissed) return null;
 
   const dismiss = () => {
-    try {
-      if (userId) localStorage.setItem(dismissKey(userId), "1");
-    } catch {
-      // Nothing to persist to; the state below still hides it for this visit.
-    }
+    // Without storage the state below still hides it for this visit.
+    if (userId) saveDismissal("dismissed.stravaRetention7d", userId);
     setDismissed(true);
   };
 

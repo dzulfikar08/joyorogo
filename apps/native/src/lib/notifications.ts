@@ -3,13 +3,22 @@ import * as SecureStore from "expo-secure-store";
 import { Linking, Platform } from "react-native";
 
 import {
-  parseHHMM,
+  type FastingPattern,
   fmtHHMM,
+  parseHHMM,
   windowHoursFor,
   windowTimes,
-  type FastingPattern,
 } from "@joyorogo/api/lib/fasting";
 import { gainRemaining } from "@joyorogo/api/lib/gain";
+import {
+  DEFAULT_REMINDER_CONFIG,
+  MEAL_REMINDER_KEYS,
+  sanitizeConfig,
+  type MealReminderKey,
+  type ReminderConfig,
+  type WaterReminder,
+} from "@joyorogo/api/lib/reminder-config";
+import { notePrefChanged } from "@joyorogo/api/lib/rogo-prefs-sync";
 import { i18n } from "@joyorogo/i18n";
 
 // --- Storage keys -------------------------------------------------------------
@@ -29,26 +38,6 @@ const REMINDER_TAG = "reminder";
 
 // --- Types ----------------------------------------------------------------------
 
-export type MealReminderKey = "sarapan" | "makan_siang" | "makan_malam";
-
-export type TimedReminder = { enabled: boolean; time: string };
-
-export type WaterReminder = {
-  enabled: boolean;
-  start: string;
-  end: string;
-  everyHours: 2 | 3 | 4;
-};
-
-export type ReminderConfig = {
-  meals: Record<MealReminderKey, TimedReminder>;
-  water: WaterReminder;
-  weighIn: TimedReminder;
-  /** Naikin BB only: evening nudge while today's intake is still short of the target. */
-  gainEvening: TimedReminder;
-  /** Eating-window start/end of the IF schedule; times come from the IF settings. */
-  window: { open: boolean; close: boolean };
-};
 
 /**
  * What the app knows locally at schedule time. `null` means unknown (not
@@ -68,25 +57,7 @@ export type ReminderContext = {
 /** One IF reminder of the day; hours/minutes are WIB wall-clock. */
 export type FastingReminder = { hour: number; minute: number; title: string; body: string };
 
-export const MEAL_REMINDER_KEYS: readonly MealReminderKey[] = [
-  "sarapan",
-  "makan_siang",
-  "makan_malam",
-];
 
-export const WATER_INTERVALS = [2, 3, 4] as const;
-
-export const DEFAULT_REMINDER_CONFIG: ReminderConfig = {
-  meals: {
-    sarapan: { enabled: false, time: "07:30" },
-    makan_siang: { enabled: false, time: "12:30" },
-    makan_malam: { enabled: false, time: "19:00" },
-  },
-  water: { enabled: false, start: "08:00", end: "20:00", everyHours: 2 },
-  weighIn: { enabled: false, time: "07:00" },
-  gainEvening: { enabled: false, time: "20:00" },
-  window: { open: false, close: false },
-};
 
 // --- Channels (Android) -----------------------------------------------------------
 
@@ -164,47 +135,15 @@ export function openNotificationSettings(): Promise<void> {
 
 // --- Config persistence -----------------------------------------------------------
 
-function sanitizeTimed(raw: unknown, fallback: TimedReminder): TimedReminder {
-  const item = (raw ?? {}) as Partial<TimedReminder>;
-  return {
-    enabled: item.enabled === true,
-    time:
-      typeof item.time === "string" && parseHHMM(item.time) !== null
-        ? fmtHHMM(parseHHMM(item.time)!)
-        : fallback.time,
-  };
-}
 
-function sanitizeConfig(raw: unknown): ReminderConfig {
-  const base = DEFAULT_REMINDER_CONFIG;
-  const value = (raw ?? {}) as Partial<Record<keyof ReminderConfig, unknown>>;
-  const meals = (value.meals ?? {}) as Partial<Record<MealReminderKey, unknown>>;
-  const water = (value.water ?? {}) as Partial<WaterReminder>;
-  const window = (value.window ?? {}) as Partial<ReminderConfig["window"]>;
-  const start =
-    typeof water.start === "string" && parseHHMM(water.start) !== null
-      ? fmtHHMM(parseHHMM(water.start)!)
-      : base.water.start;
-  const end =
-    typeof water.end === "string" && parseHHMM(water.end) !== null
-      ? fmtHHMM(parseHHMM(water.end)!)
-      : base.water.end;
-  return {
-    meals: {
-      sarapan: sanitizeTimed(meals.sarapan, base.meals.sarapan),
-      makan_siang: sanitizeTimed(meals.makan_siang, base.meals.makan_siang),
-      makan_malam: sanitizeTimed(meals.makan_malam, base.meals.makan_malam),
-    },
-    water: {
-      enabled: water.enabled === true,
-      start,
-      end,
-      everyHours: WATER_INTERVALS.find((n) => n === water.everyHours) ?? base.water.everyHours,
-    },
-    weighIn: sanitizeTimed(value.weighIn, base.weighIn),
-    gainEvening: sanitizeTimed(value.gainEvening, base.gainEvening),
-    window: { open: window.open === true, close: window.close === true },
-  };
+/** The config this phone has stored, or undefined while the person never saved one (the legacy flags do not count). */
+export async function readStoredReminderConfig(): Promise<ReminderConfig | undefined> {
+  try {
+    const raw = await SecureStore.getItemAsync(CONFIG_KEY);
+    return raw ? sanitizeConfig(JSON.parse(raw)) : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export async function loadReminderConfig(): Promise<ReminderConfig> {
@@ -231,10 +170,16 @@ export async function loadReminderConfig(): Promise<ReminderConfig> {
   };
 }
 
-/** Persists the config and reschedules with the last known local context. */
+/** Stores the config without telling the account or rescheduling (used when the config came from the account). */
+export function writeReminderConfig(config: ReminderConfig): Promise<void> {
+  return writeJson(CONFIG_KEY, config);
+}
+
+/** Persists the config, reschedules with the last known local context and tells the account. */
 export async function saveReminderConfig(config: ReminderConfig): Promise<void> {
-  await writeJson(CONFIG_KEY, config);
+  await writeReminderConfig(config);
   await rescheduleAll();
+  await notePrefChanged("reminders", config);
 }
 
 // --- IF notifications (settings-card) ---------------------------------------------
@@ -469,7 +414,8 @@ function enqueue(job: () => Promise<void>): Promise<void> {
   return run;
 }
 
-function rescheduleAll(): Promise<void> {
+/** Re-plans every reminder from the stored config; schedules nothing without notification permission. */
+export function rescheduleAll(): Promise<void> {
   return enqueue(doReschedule);
 }
 

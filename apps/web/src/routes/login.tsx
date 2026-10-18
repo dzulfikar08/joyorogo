@@ -8,6 +8,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { Mascot } from "@/components/mascot";
 import { markSignInStart } from "@/lib/analytics";
 import { authClient, sessionQuery } from "@/lib/auth-client";
+import { restoreAccountPrefs } from "@/lib/prefs-sync";
 import { pageHead } from "@/lib/seo";
 import { orpc } from "@/utils/orpc";
 import { env } from "@/env.public";
@@ -31,6 +32,8 @@ export const Route = createFileRoute("/login")({
     try {
       const session = await context.queryClient.fetchQuery({ ...sessionQuery, staleTime: 0 });
       if (session) {
+        // The account's theme and other choices are in place before the app opens (bounded, never blocks long).
+        await restoreAccountPrefs(session.user.id);
         // A return path with its own query (the AI consent page) must not pass through router
         // search parsing, which would rewrite the signed values.
         if (search.redirect?.includes("?")) {

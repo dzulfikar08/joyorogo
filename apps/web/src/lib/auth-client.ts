@@ -2,6 +2,7 @@ import { queryOptions, useQuery } from "@tanstack/react-query";
 import { createAuthClient } from "better-auth/react";
 
 import { env } from "../env.public";
+import { flushPrefsSync, forgetPrefsSync } from "./prefs-sync";
 import { CACHE_OWNER_KEY, getServerUrl, persister, queryClient } from "../utils/orpc";
 
 export const authClient = createAuthClient({
@@ -47,7 +48,9 @@ export function useSession() {
 
 /** Signs out and wipes every cached and persisted query (diary data included). */
 export async function signOut() {
+  await flushPrefsSync();
   await authClient.signOut();
+  forgetPrefsSync();
   localStorage.removeItem(CACHE_OWNER_KEY);
   queryClient.clear();
   persister.removeClient();

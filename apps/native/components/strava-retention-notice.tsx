@@ -2,7 +2,6 @@ import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router, usePathname } from "expo-router";
-import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -10,6 +9,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Button, Card, Text } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
+import { readDismissal, saveDismissal } from "@/src/lib/dismissals";
 import { isHealthSyncSupported } from "@/src/lib/health-sync";
 import { orpc } from "@/utils/orpc";
 
@@ -58,7 +58,7 @@ export function StravaRetentionNote() {
 
 /**
  * Pemberitahuan sekali tampil untuk pengguna yang sudah menyambungkan Strava.
- * Penutupan disimpan di perangkat ini (SecureStore, per akun) supaya tidak muncul lagi.
+ * Penutupan disimpan per akun (SecureStore) dan ikut akun ke perangkat lain.
  */
 export function StravaRetentionNotice() {
   const { t } = useTranslation(["settings", "common"]);
@@ -67,28 +67,23 @@ export function StravaRetentionNotice() {
   const userId = session?.user.id ?? null;
   const status = useQuery(orpc.strava.status.queryOptions());
   const [dismissed, setDismissed] = useState(true);
-  const storeKey = `joyorogo.stravaRetention7d.${userId}`;
 
   useEffect(() => {
     if (!userId) return;
     let live = true;
-    SecureStore.getItemAsync(storeKey)
-      .then((stored) => {
-        if (live) setDismissed(stored === "1");
-      })
-      .catch(() => {
-        if (live) setDismissed(false);
-      });
+    void readDismissal("dismissed.stravaRetention7d", userId).then((stored) => {
+      if (live) setDismissed(stored);
+    });
     return () => {
       live = false;
     };
-  }, [userId, storeKey]);
+  }, [userId]);
 
   if (!status.data?.connected || dismissed) return null;
 
   const dismiss = () => {
     setDismissed(true);
-    void SecureStore.setItemAsync(storeKey, "1").catch(() => undefined);
+    if (userId) void saveDismissal("dismissed.stravaRetention7d", userId);
   };
 
   return (

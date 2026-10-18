@@ -10,6 +10,7 @@ import { ConfirmSheet } from "@/components/confirm-sheet";
 import { useToast } from "@/components/toast";
 import { authClient } from "@/lib/auth-client";
 import { teardownReminders } from "@/src/lib/notifications";
+import { flushPrefsSync, forgetPrefsSync } from "@/src/lib/prefs-sync";
 import { errorMessage } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
@@ -52,6 +53,7 @@ export function useAccountActions(): AccountActions {
           // the server session is already gone
         }
         queryClient.clear();
+        forgetPrefsSync();
         await teardownReminders();
         router.replace("/login");
       },
@@ -74,8 +76,10 @@ export function useAccountActions(): AccountActions {
     if (signingOut) return;
     setSigningOut(true);
     try {
+      await flushPrefsSync();
       await authClient.signOut();
       queryClient.clear();
+      forgetPrefsSync();
       await teardownReminders();
       router.replace("/login");
     } finally {

@@ -8,14 +8,13 @@ import { toast } from "sonner";
 
 import { Card } from "@/components/kit/surface";
 import { useSession } from "@/lib/auth-client";
+import { dismissalStoreKey, saveDismissal } from "@/lib/dismissals";
 import { client, orpc } from "@/utils/orpc";
-
-const dismissKey = (userId: string) => `jrg-handle-prompt-${userId}`;
 
 /**
  * Kartu sekali tampil untuk pengguna yang masih memakai handle sementara
  * (jr-xxxxxxxx). Cek ketersediaan langsung ke server; "Nanti saja" disimpan
- * di perangkat ini supaya tidak muncul lagi.
+ * per akun (ikut ke perangkat lain) supaya tidak muncul lagi.
  */
 export function HandlePrompt({ className }: { className?: string }) {
   const { t } = useTranslation(["feed", "common"]);
@@ -30,7 +29,7 @@ export function HandlePrompt({ className }: { className?: string }) {
   const needsPrompt = profile.data?.handleIsPlaceholder === true;
 
   useEffect(() => {
-    if (userId) setDismissed(localStorage.getItem(dismissKey(userId)) === "1");
+    if (userId) setDismissed(localStorage.getItem(dismissalStoreKey("dismissed.handlePrompt", userId)) === "1");
   }, [userId]);
 
   useEffect(() => {
@@ -65,7 +64,7 @@ export function HandlePrompt({ className }: { className?: string }) {
   const canSave = status?.status === "free" && !save.isPending;
 
   const dismiss = () => {
-    if (userId) localStorage.setItem(dismissKey(userId), "1");
+    if (userId) saveDismissal("dismissed.handlePrompt", userId);
     setDismissed(true);
   };
 

@@ -12,6 +12,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 export type Theme = "light" | "dark" | "system";
 
+/**
+ * Dispatched on `window` after something other than `setTheme` rewrote the stored choice (the account's synced
+ * preference arriving): the provider reads it again. Other tabs arrive through the native `storage` event.
+ */
+export const THEME_REREAD_EVENT = "jr-theme-reread";
+
 type ThemeContextValue = {
   theme: Theme;
   resolvedTheme: "light" | "dark";
@@ -32,18 +38,35 @@ export function ThemeProvider({
   children,
   defaultTheme = "system",
   storageKey = "theme",
+  onThemeChange,
 }: {
   children: React.ReactNode;
   defaultTheme?: Theme;
   storageKey?: string;
+  /** Called after the person picks a theme (not when the stored choice is re-read). */
+  onThemeChange?: (theme: Theme) => void;
 }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
+  const readStored = useCallback((): Theme => {
     try {
       return (localStorage.getItem(storageKey) as Theme | null) ?? defaultTheme;
     } catch {
       return defaultTheme;
     }
-  });
+  }, [storageKey, defaultTheme]);
+  const [theme, setThemeState] = useState<Theme>(readStored);
+
+  useEffect(() => {
+    const reread = () => setThemeState(readStored());
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === storageKey || event.key === null) reread();
+    };
+    window.addEventListener(THEME_REREAD_EVENT, reread);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(THEME_REREAD_EVENT, reread);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [readStored, storageKey]);
   const [system, setSystem] = useState<"light" | "dark">(systemTheme);
 
   useEffect(() => {
@@ -69,8 +92,9 @@ export function ThemeProvider({
       } catch {
         // Private mode: keep the choice for this session only.
       }
+      onThemeChange?.(next);
     },
-    [storageKey],
+    [storageKey, onThemeChange],
   );
 
   const value = useMemo(

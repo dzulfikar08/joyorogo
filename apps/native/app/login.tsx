@@ -12,8 +12,9 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Container } from "@/components/container";
 import { Mascot } from "@/components/mascot";
-import { Button, Field, Input, Text } from "@/components/ui";
+import { BootLoader, Button, Field, Input, Text } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
+import { restoreAccountPrefs } from "@/src/lib/prefs-sync";
 import { queryClient } from "@/utils/orpc";
 
 // Must stay named `ENV`: varlock's babel plugin only inlines `ENV.X` reads;
@@ -39,13 +40,29 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailBusy, setEmailBusy] = useState(false);
+  // Every sign-in path (Apple, Google deep link, email, dev) ends with a session here. The account's preferences and
+  // language are restored first, bounded, so the app opens in the language and theme the person chose elsewhere.
+  const userId = !isPending && session ? session.user.id : null;
+  const [restoredFor, setRestoredFor] = useState<string | null>(null);
+  useEffect(() => {
+    if (!userId) return;
+    let live = true;
+    void restoreAccountPrefs(userId)
+      .catch(() => undefined)
+      .then(() => {
+        if (live) setRestoredFor(userId);
+      });
+    return () => {
+      live = false;
+    };
+  }, [userId]);
   useEffect(() => {
     if (Platform.OS !== "ios") return;
     void AppleAuthentication.isAvailableAsync().then(setAppleAvailable, () => setAppleAvailable(false));
   }, []);
 
-  if (!isPending && session) {
-    return <Redirect href={destination} />;
+  if (userId) {
+    return restoredFor === userId ? <Redirect href={destination} /> : <BootLoader />;
   }
 
   const handleGoogleSignIn = () => {

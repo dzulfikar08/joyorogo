@@ -5,6 +5,13 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { fmtHHMM, windowHoursFor, windowTimes } from "@joyorogo/api/lib/fasting";
+import {
+  DEFAULT_REMINDER_CONFIG,
+  MEAL_REMINDER_KEYS,
+  type MealReminderKey,
+  type ReminderConfig,
+  type WaterReminder,
+} from "@joyorogo/api/lib/reminder-config";
 
 import { useGain } from "@/components/gain/use-gain";
 import { Button, ListGroup, ListRow, Segmented, Text } from "@/components/ui";
@@ -12,16 +19,11 @@ import { useNotificationGate } from "@/components/reminders/permission-sheet";
 import { TimePickerSheet } from "@/components/reminders/time-picker-sheet";
 import { useToast } from "@/components/toast";
 import {
-  DEFAULT_REMINDER_CONFIG,
   getNotificationPermission,
   loadReminderConfig,
-  MEAL_REMINDER_KEYS,
   saveReminderConfig,
   waterSlotMinutes,
-  type MealReminderKey,
   type NotificationPermission,
-  type ReminderConfig,
-  type WaterReminder,
 } from "@/src/lib/notifications";
 import { orpc } from "@/utils/orpc";
 

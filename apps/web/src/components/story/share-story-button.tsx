@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+import { notePrefChanged } from "@joyorogo/api/lib/rogo-prefs-sync";
 import { Button } from "@joyorogo/ui/components/button";
 import {
   availableTemplates,
@@ -28,6 +29,7 @@ import {
 } from "@/components/story/paint";
 import { defaultShareText, toRogoSpec, type StorySpec } from "@/components/story/story-spec";
 import { useSession } from "@/lib/auth-client";
+import { STORY_PREFS_KEY } from "@/lib/story-prefs";
 import { usePlatform } from "@/lib/platform";
 import { orpc } from "@/utils/orpc";
 
@@ -57,12 +59,11 @@ type Target = "instagram" | "copy" | "save" | "more";
 
 type Prefs = { hideNumbers: boolean; showName: boolean; watermark: boolean };
 
-const PREFS_KEY = "joyorogo.sticker.prefs";
 const DEFAULT_PREFS: Prefs = { hideNumbers: true, showName: false, watermark: true };
 
 function loadPrefs(): Prefs {
   try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(PREFS_KEY) ?? "null");
+    const parsed: unknown = JSON.parse(localStorage.getItem(STORY_PREFS_KEY) ?? "null");
     if (parsed === null || typeof parsed !== "object") return DEFAULT_PREFS;
     const read = (key: keyof Prefs) => {
       const value = (parsed as Record<string, unknown>)[key];
@@ -281,10 +282,11 @@ export function ShareStoryButton({
     const next = { ...prefs, ...patch };
     setPrefs(next);
     try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify(next));
+      localStorage.setItem(STORY_PREFS_KEY, JSON.stringify(next));
     } catch {
       // Best-effort: the session keeps the choice either way.
     }
+    void notePrefChanged("sticker", next);
   };
 
   const imageName = fileName ?? `joyorogo-${spec.kind}-${active?.id ?? "sticker"}.png`;

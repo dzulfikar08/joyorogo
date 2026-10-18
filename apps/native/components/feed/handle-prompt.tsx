@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -10,12 +9,13 @@ import { Button, Card, Chip, Input, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { authClient } from "@/lib/auth-client";
 import { client, orpc } from "@/utils/orpc";
+import { readDismissal, saveDismissal } from "@/src/lib/dismissals";
 import { errorMessage } from "@/utils/format";
 
 /**
  * Kartu sekali tampil untuk pengguna yang masih memakai handle sementara
- * (jr-xxxxxxxx). Cek ketersediaan langsung ke server; penutupan disimpan di
- * perangkat ini (SecureStore, per akun) supaya tidak muncul lagi.
+ * (jr-xxxxxxxx). Cek ketersediaan langsung ke server; penutupan disimpan per
+ * akun (SecureStore) dan ikut akun ke perangkat lain, supaya tidak muncul lagi.
  */
 export function HandlePrompt() {
   const { t } = useTranslation(["feed", "common"]);
@@ -30,22 +30,17 @@ export function HandlePrompt() {
   const [debounced, setDebounced] = useState("");
 
   const needsPrompt = profile.data?.handleIsPlaceholder === true;
-  const storeKey = `joyorogo.handlePrompt.${userId}`;
-
+  
   useEffect(() => {
     if (!userId) return;
     let live = true;
-    SecureStore.getItemAsync(storeKey)
-      .then((stored) => {
-        if (live) setDismissed(stored === "1");
-      })
-      .catch(() => {
-        if (live) setDismissed(false);
-      });
+    void readDismissal("dismissed.handlePrompt", userId).then((stored) => {
+      if (live) setDismissed(stored);
+    });
     return () => {
       live = false;
     };
-  }, [userId, storeKey]);
+  }, [userId]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(value.trim().toLowerCase()), 350);
@@ -80,7 +75,7 @@ export function HandlePrompt() {
 
   const dismiss = () => {
     setDismissed(true);
-    void SecureStore.setItemAsync(storeKey, "1").catch(() => undefined);
+    if (userId) void saveDismissal("dismissed.handlePrompt", userId);
   };
 
   const statusText =

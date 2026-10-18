@@ -1,6 +1,7 @@
+import { notePrefChanged } from "@joyorogo/api/lib/rogo-prefs-sync";
 import * as SecureStore from "expo-secure-store";
 
-/** Sticker options kept on this device. Defaults are the privacy-safe ones. */
+/** Sticker options; they follow the account (rogo-prefs.ts). Defaults are the privacy-safe ones. */
 export type StickerPrefsState = {
   hideNumbers: boolean;
   showName: boolean;
@@ -31,10 +32,16 @@ export async function loadStickerPrefs(): Promise<StickerPrefsState> {
   }
 }
 
-export async function saveStickerPrefs(prefs: StickerPrefsState): Promise<void> {
+/** Stores the options without telling the account (they came from there). */
+export async function writeStickerPrefs(prefs: StickerPrefsState): Promise<void> {
   try {
     await SecureStore.setItemAsync(KEY, JSON.stringify(prefs));
   } catch {
     // Best-effort: the session keeps the choice either way.
   }
+}
+
+export async function saveStickerPrefs(prefs: StickerPrefsState): Promise<void> {
+  await writeStickerPrefs(prefs);
+  await notePrefChanged("sticker", prefs);
 }

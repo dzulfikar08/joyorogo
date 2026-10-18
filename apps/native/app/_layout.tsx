@@ -25,15 +25,16 @@ import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { UnistylesRuntime, useUnistyles } from "react-native-unistyles";
+import { useUnistyles } from "react-native-unistyles";
 
 import { authClient } from "@/lib/auth-client";
 import { LocaleSync } from "@/components/locale-sync";
+import { PrefsSync } from "@/components/prefs-sync";
 import { ReminderSync } from "@/components/reminders/reminder-sync";
 import { ToastProvider } from "@/components/toast";
 import { UpdateBanner } from "@/components/update-banner";
 import { loadStoredLocale, setLocale } from "@/src/lib/i18n";
-import { loadThemePref } from "@/src/lib/theme-pref";
+import { applyThemePref, loadThemePref } from "@/src/lib/theme-pref";
 import { orpc, queryClient } from "@/utils/orpc";
 
 const darkCanvas = "#110F0A";
@@ -74,13 +75,7 @@ export default function RootLayout() {
   // Restore the persisted override. "system" (or nothing stored) keeps
   // unistyles' adaptiveThemes, which follows the OS color scheme.
   useEffect(() => {
-    void loadThemePref().then((pref) => {
-      if (pref === "light" || pref === "dark") {
-        // setTheme throws while adaptiveThemes is enabled.
-        UnistylesRuntime.setAdaptiveThemes(false);
-        UnistylesRuntime.setTheme(pref);
-      }
-    });
+    void loadThemePref().then(applyThemePref);
   }, []);
 
   useEffect(() => {
@@ -125,6 +120,7 @@ export default function RootLayout() {
           <KeyboardProvider>
           <ToastProvider>
           <LocaleSync />
+          <PrefsSync />
           <ReminderSync />
           {/* Android only: Play in-app update or sideload APK update. */}
           <UpdateBanner />
