@@ -99,6 +99,10 @@
       "title": "Weekly recap",
       "subtitle": "Your food, exercise, and weight, week by week"
     },
+    "workouts": {
+      "title": "JoyoFit workouts",
+      "subtitle": "JoyoFit workouts stored in the cloud"
+    },
     "groups": {
       "title": "Groups",
       "subtitleWeb": "Nudges, notes, and belly VAR with friends",

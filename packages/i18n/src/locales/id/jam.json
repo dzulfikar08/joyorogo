@@ -1,0 +1,58 @@
+{
+  "title": "Latihan JoyoFit",
+  "subtitle": "Latihan dari aplikasi JoyoFit yang tersimpan di akunmu.",
+  "loading": "Memuat latihan",
+  "back": "Latihan JoyoFit",
+  "listLabel": "Daftar latihan di cloud",
+  "summary_other": "{{count}} latihan di cloud · {{size}} · terakhir berubah {{when}}",
+  "more": "Muat lagi",
+  "moreFailed": "Latihan berikutnya gagal dimuat.",
+  "free": {
+    "title": "Simpan semua latihanmu di cloud",
+    "body": "Pro menyimpan tiap latihan JoyoFit lengkap dengan rute GPS dan detak jantung, memulihkannya di ponsel baru, dan menampilkannya di sini.",
+    "cta": "Lihat harga Pro",
+    "localOnly": "Tanpa Pro, latihanmu tetap tersimpan di ponsel."
+  },
+  "lapsed": "Pro-mu tidak aktif, jadi latihan baru tidak diunggah sampai Pro aktif lagi. Latihan yang sudah tersimpan tetap bisa dibuka dan dihapus.",
+  "empty": {
+    "title": "Belum ada latihan di cloud",
+    "body": "Di aplikasi JoyoFit buka Pengaturan, lalu Sinkron cloud, dan nyalakan sinkron. Latihan di ponselmu mulai terunggah dari sana."
+  },
+  "row": {
+    "elevation": "+{{value}} m",
+    "heartRate": "{{value}} bpm",
+    "distance": "{{value}} km"
+  },
+  "detail": {
+    "loading": "Memuat latihan",
+    "notFoundTitle": "Latihan tidak ditemukan",
+    "notFoundBody": "Latihan ini sudah dihapus dari cloud atau tidak ada di akunmu.",
+    "toList": "Ke daftar latihan",
+    "sizeNote": "Tersimpan di cloud: {{size}}",
+    "noAnalysisTitle": "Ringkasan latihan",
+    "noAnalysisNote": "Analisis lengkap latihan ini tidak bisa ditampilkan. Angka di atas tetap benar.",
+    "distance": "Jarak",
+    "movingTime": "Waktu bergerak",
+    "elapsedTime": "Waktu total",
+    "elevation": "Tanjakan",
+    "avgHr": "Detak jantung rata-rata",
+    "calories": "Kalori",
+    "steps": "Langkah"
+  },
+  "remove": {
+    "button": "Hapus latihan ini",
+    "title": "Hapus latihan dari cloud?",
+    "body": "Latihan ini dihapus dari cloud dan dari ponsel yang menyinkronkannya pada sinkron berikutnya. Ini tidak bisa dibatalkan.",
+    "confirm": "Hapus",
+    "toast": "Latihan dihapus dari cloud."
+  },
+  "wipe": {
+    "heading": "Data cloud latihan",
+    "body": "Menghapus semua latihan di cloud. Setelah itu aplikasi JoyoFit berhenti menyinkronkan otomatis; nyalakan lagi di Pengaturan, Sinkron cloud, kalau mau.",
+    "button": "Hapus semua data cloud latihan",
+    "title": "Hapus semua data cloud latihan?",
+    "confirmBody": "Semua latihan di cloud dihapus permanen. Latihan di ponselmu tidak ikut terhapus, dan aplikasi berhenti menyinkronkan otomatis.",
+    "confirm": "Hapus semua",
+    "toast": "Semua data cloud latihan dihapus."
+  }
+}

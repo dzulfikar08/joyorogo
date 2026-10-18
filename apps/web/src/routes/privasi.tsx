@@ -212,6 +212,38 @@ function PrivasiPage() {
             </p>
           </section>
 
+          <section className="rounded-3xl bg-card p-5" id="latihan-joyofit">
+            <h2 className="text-base font-bold tracking-tight">Latihan JoyoFit di cloud (Pro)</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Kalau akunmu Pro dan kamu masuk ke JoyoRogo di aplikasi JoyoFit, latihan yang direkam
+              JoyoFit disimpan di akunmu supaya bisa dipulihkan di ponsel baru dan dilihat di
+              halaman{" "}
+              <Link
+                to="/jam"
+                className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+              >
+                Latihan JoyoFit
+              </Link>
+              . Akun Free dan akun yang belum masuk di JoyoFit tidak mengunggah apa pun; latihannya
+              tetap hanya di ponselmu.
+            </p>
+            <CheckList
+              items={[
+                "Disimpan: ringkasan latihan, rute GPS, detak jantung, ketinggian, kecepatan, irama langkah atau kayuhan, daya, dan analisis turunannya (jarak, waktu bergerak, tanjakan, zona, split).",
+                "Tempat: penyimpanan Cloudflare milik JoyoRogo, terhubung ke akunmu dan tidak bisa dibuka tanpa masuk.",
+                "Siapa yang bisa melihat: hanya kamu. Latihan yang kamu bagikan ke feed atau grup adalah salinan terpisah yang sudah disaring (misalnya tanpa rute atau detak jantung bila kamu menyembunyikannya), bukan data cloud ini.",
+                "Tidak dipakai untuk iklan atau melatih model, dan tidak dijual.",
+              ]}
+            />
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Hapus satu latihan atau semuanya dari halaman Latihan JoyoFit di web, atau lewat
+              Pengaturan, Sinkron cloud di aplikasi. Menghapus latihan juga menghapusnya dari
+              ponsel yang menyinkronkannya pada sinkron berikutnya. Menghapus semua data atau akun
+              juga menghapus semua latihan cloud. Kalau Pro berakhir, latihan yang sudah tersimpan
+              tetap bisa dibaca dan dihapus; latihan baru tidak diunggah sampai Pro aktif lagi.
+            </p>
+          </section>
+
           <section className="rounded-3xl bg-card p-5">
             <h2 className="text-base font-bold tracking-tight">Komunitas: feed dan grup</h2>
             <p className="mt-3 text-sm leading-relaxed">
@@ -303,7 +335,7 @@ function PrivasiPage() {
             <h2 className="text-base font-bold tracking-tight">Hapus akun dan data</h2>
             <p className="mt-3 text-sm leading-relaxed">
               Kamu bisa menghapus seluruh catatan (profil, berat, makanan, olahraga, tidur,
-              postingan feed, foto, dan lokasi) secara permanen lewat tombol <span className="font-semibold">Hapus semua data saya</span> di
+              postingan feed, foto, lokasi, dan latihan JoyoFit di cloud) secara permanen lewat tombol <span className="font-semibold">Hapus semua data saya</span> di
               halaman{" "}
               <Link
                 to="/profil"
@@ -316,7 +348,7 @@ function PrivasiPage() {
             </p>
             <p className="mt-3 text-sm leading-relaxed">
               Di aplikasi iPhone dan Android, tombol <span className="font-semibold">Hapus akun</span> di
-              Profil menghapus akun itu sendiri: seluruh catatan, foto, dan lokasi di atas,
+              Profil menghapus akun itu sendiri: seluruh catatan, foto, lokasi, dan latihan cloud di atas,
               sambungan Strava (izinnya dicabut di Strava), tautan masuk Google dan Apple, sesi,
               nama, email, dan riwayat pembayaran. Pro tidak bisa dipulihkan setelahnya.
               Langganan App Store atau Google Play tetap harus kamu batalkan sendiri di pengaturan

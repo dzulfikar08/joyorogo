@@ -96,6 +96,10 @@
       "title": "Rekap mingguan",
       "subtitle": "Ringkasan makan, olahraga, dan berat per minggu"
     },
+    "workouts": {
+      "title": "Latihan JoyoFit",
+      "subtitle": "Latihan dari JoyoFit yang tersimpan di cloud"
+    },
     "groups": {
       "title": "Grup",
       "subtitleWeb": "Colek, catatan, dan VAR perut bareng teman",

@@ -1,0 +1,59 @@
+{
+  "title": "JoyoFit workouts",
+  "subtitle": "Workouts from the JoyoFit app, stored in your account.",
+  "loading": "Loading workouts",
+  "back": "JoyoFit workouts",
+  "listLabel": "Cloud workouts",
+  "summary_one": "{{count}} workout in the cloud · {{size}} · last changed {{when}}",
+  "summary_other": "{{count}} workouts in the cloud · {{size}} · last changed {{when}}",
+  "more": "Load more",
+  "moreFailed": "Could not load the next workouts.",
+  "free": {
+    "title": "Keep every workout in the cloud",
+    "body": "Pro stores each JoyoFit workout with its GPS route and heart rate, restores them on a new phone, and shows them here.",
+    "cta": "See Pro pricing",
+    "localOnly": "Without Pro, your workouts stay on your phone."
+  },
+  "lapsed": "Your Pro is not active, so new workouts are not uploaded until Pro is back. Workouts already stored can still be opened and deleted.",
+  "empty": {
+    "title": "No workouts in the cloud yet",
+    "body": "In the JoyoFit app open Settings, then Cloud sync, and turn sync on. The workouts on your phone start uploading from there."
+  },
+  "row": {
+    "elevation": "+{{value}} m",
+    "heartRate": "{{value}} bpm",
+    "distance": "{{value}} km"
+  },
+  "detail": {
+    "loading": "Loading workout",
+    "notFoundTitle": "Workout not found",
+    "notFoundBody": "This workout was deleted from the cloud or is not in your account.",
+    "toList": "Back to workouts",
+    "sizeNote": "Stored in the cloud: {{size}}",
+    "noAnalysisTitle": "Workout summary",
+    "noAnalysisNote": "The full analysis of this workout cannot be shown. The numbers above are still correct.",
+    "distance": "Distance",
+    "movingTime": "Moving time",
+    "elapsedTime": "Elapsed time",
+    "elevation": "Elevation gain",
+    "avgHr": "Average heart rate",
+    "calories": "Calories",
+    "steps": "Steps"
+  },
+  "remove": {
+    "button": "Delete this workout",
+    "title": "Delete workout from the cloud?",
+    "body": "This workout is removed from the cloud and from phones that sync it on their next sync. This cannot be undone.",
+    "confirm": "Delete",
+    "toast": "Workout deleted from the cloud."
+  },
+  "wipe": {
+    "heading": "Workout cloud data",
+    "body": "Deletes every workout in the cloud. After that the JoyoFit app stops syncing automatically; turn it back on in Settings, Cloud sync, if you want.",
+    "button": "Delete all workout cloud data",
+    "title": "Delete all workout cloud data?",
+    "confirmBody": "Every workout in the cloud is deleted permanently. The workouts on your phone stay, and the app stops syncing automatically.",
+    "confirm": "Delete all",
+    "toast": "All workout cloud data deleted."
+  }
+}

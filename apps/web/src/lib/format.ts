@@ -1,13 +1,17 @@
 // Number and date formatting is shared with native and the server: see
 // @joyorogo/i18n (docs/i18n.md). Re-exported here so screens keep one import.
 export {
+  fmtClock,
   fmtDateLong,
   fmtDateMedium,
   fmtDateShort,
   fmtGramsLabel,
+  fmtDecimal,
   fmtIdr,
   fmtInt,
   fmtKcalLabel,
+  fmtMegabytes,
+  fmtNumber,
   fmtKg,
   fmtRatio,
   timeAgo,

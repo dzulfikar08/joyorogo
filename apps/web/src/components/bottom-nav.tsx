@@ -14,7 +14,7 @@ const TABS = [
 ] as const;
 
 /** Routes the Lainnya tab/desktop link stands in for. */
-const LAINNYA_GROUP = ["/lainnya", "/profil", "/grup", "/inbox", "/berat", "/rekap"] as const;
+const LAINNYA_GROUP = ["/lainnya", "/profil", "/grup", "/inbox", "/berat", "/rekap", "/jam"] as const;
 
 function inLainnyaGroup(pathname: string, to: string): boolean {
   return to === "/lainnya" && LAINNYA_GROUP.some((p) => pathname === p || pathname.startsWith(`${p}/`));

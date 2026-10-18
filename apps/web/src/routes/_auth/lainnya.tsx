@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Bell, CalendarCheck, Scale, Sparkles, Tag, Users } from "lucide-react";
+import { Bell, CalendarCheck, Scale, Sparkles, Tag, Users, Watch } from "lucide-react";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useTranslation } from "react-i18next";
 
@@ -88,6 +88,16 @@ function LainnyaPage() {
           }
           title={t("more.recap.title")}
           subtitle={t("more.recap.subtitle")}
+        />
+        <ListLinkRow
+          to="/jam"
+          icon={
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-bakar-soft">
+              <Watch className="size-5 text-bakar-ink" aria-hidden />
+            </span>
+          }
+          title={t("more.workouts.title")}
+          subtitle={t("more.workouts.subtitle")}
         />
         <ListLinkRow
           to="/grup"
