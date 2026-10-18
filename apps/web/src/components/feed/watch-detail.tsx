@@ -18,7 +18,8 @@ import { BasicWorkoutView, WorkoutAnalysisView } from "./workout-analysis/workou
  */
 export function WatchDetail({ postId, mapLine, title }: { postId: string; mapLine?: string; title: string }) {
   const { t } = useTranslation("feed");
-  const detail = useQuery(orpc.social.workoutDetail.queryOptions({ input: { postId } }));
+  // A signed-out visitor of a public post gets 401 here and sees the sign-in prompt below, not a redirect to /login.
+  const detail = useQuery(orpc.social.workoutDetail.queryOptions({ input: { postId }, meta: { allowAnonymous: true } }));
   const sharedMap = mapLine ? (
     <RouteMapPreview line={mapLine} title={title} size="detail" className="mt-4" />
   ) : null;

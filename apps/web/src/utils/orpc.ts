@@ -15,7 +15,10 @@ export const CACHE_OWNER_KEY = "jrg-user";
  * Session ended mid-use (expired or revoked): wipe every cached and persisted
  * query before leaving, so nothing of this account survives for the next.
  */
-function onUnauthorized(error: unknown) {
+function onUnauthorized(error: unknown, query?: { meta?: Record<string, unknown> }) {
+  // A query a signed-out visitor may legitimately run (the detail of a public post) answers 401 for them: its screen shows
+  // the sign-in prompt itself, so it does not end the session or leave the page.
+  if (query?.meta?.allowAnonymous) return;
   if (error instanceof ORPCError && error.code === "UNAUTHORIZED") {
     localStorage.removeItem(CACHE_OWNER_KEY);
     queryClient.clear();
@@ -29,7 +32,7 @@ function onUnauthorized(error: unknown) {
 // freshness window kills refetches on tab switches without showing stale
 // numbers after a write.
 export const queryClient = new QueryClient({
-  queryCache: new QueryCache({ onError: onUnauthorized }),
+  queryCache: new QueryCache({ onError: (error, query) => onUnauthorized(error, query) }),
   defaultOptions: {
     queries: {
       staleTime: 2 * 60 * 1000,
