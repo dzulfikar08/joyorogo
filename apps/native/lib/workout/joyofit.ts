@@ -26,15 +26,18 @@ export function installJoyoFit(): Promise<void> {
  * rejects when no app handles the scheme (iOS: unsupported URL, Android:
  * ActivityNotFoundException), so try strength link, then the app link
  * (older JoyoFit without the strength route), then the store.
+ * Resolves true when JoyoFit opened, false when it is not installed (the store
+ * page was opened instead), so callers can show an install button only then.
  */
-export async function openJoyoFit(): Promise<void> {
+export async function openJoyoFit(): Promise<boolean> {
   for (const url of [JOYOFIT_STRENGTH_LINK, JOYOFIT_APP_LINK]) {
     try {
       await Linking.openURL(url);
-      return;
+      return true;
     } catch {
       // Not installed or no such route: try the next target.
     }
   }
   await installJoyoFit().catch(() => {});
+  return false;
 }

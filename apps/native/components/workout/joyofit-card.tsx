@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -10,6 +11,8 @@ import { installJoyoFit, openJoyoFit } from "@/lib/workout/joyofit";
 export function JoyoFitCard() {
   const { theme } = useUnistyles();
   const { t } = useTranslation("olahraga");
+  // Install detection needs a manifest <queries> entry (native config is frozen), so "Pasang" appears only after an open failed.
+  const [missing, setMissing] = useState(false);
 
   return (
     <Card>
@@ -21,13 +24,15 @@ export function JoyoFitCard() {
       </View>
       <Text style={styles.hint}>{t("moved.body")}</Text>
       <View style={styles.actions}>
-        <Button size="sm" label={t("moved.open")} onPress={() => void openJoyoFit()} />
-        <Button
-          size="sm"
-          variant="secondary"
-          label={t("moved.install")}
-          onPress={() => void installJoyoFit().catch(() => {})}
-        />
+        <Button size="sm" label={t("moved.open")} onPress={() => void openJoyoFit().then((opened) => setMissing(!opened))} />
+        {missing ? (
+          <Button
+            size="sm"
+            variant="secondary"
+            label={t("moved.install")}
+            onPress={() => void installJoyoFit().catch(() => {})}
+          />
+        ) : null}
       </View>
     </Card>
   );
