@@ -194,7 +194,8 @@ export function mcpPlugins(env: Pick<AuthConfig, "BETTER_AUTH_URL" | "APP_URL">)
     },
   });
   return [
-    jwt(),
+    // No set-auth-jwt header on session calls: tokens here are only ever minted by the OAuth token endpoint.
+    jwt({ disableSettingJwtHeader: true }),
     {
       ...provider,
       hooks: {
