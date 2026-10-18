@@ -30,6 +30,7 @@ import type {
 } from "react-native-health-connect";
 
 import { sleepNightKey } from "@joyorogo/api/lib/healthkit";
+import { crossSourceMatcher, type ImportedWorkoutRow } from "@joyorogo/api/lib/import-dedupe";
 import { estimateKcal, metForStravaType } from "@joyorogo/api/lib/met";
 import { i18n } from "@joyorogo/i18n";
 
