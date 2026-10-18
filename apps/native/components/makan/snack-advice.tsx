@@ -56,7 +56,8 @@ export function useSnackAdvice(input: {
       slot: input.slot,
       eatenKcal: summary.data.eatenKcal,
       eatKcal: targets.eatKcal,
-      tdeeKcal: targets.tdee,
+      // What today really burns: the base (BMR) plus the activity measured so far (the old daily-needs line).
+      tdeeKcal: targets.tdee + targets.assumedKcal + (summary.data.exerciseCredit?.activeKcal ?? 0),
       eatenByMeal: summary.data.eatenByMeal,
       nowMin: wibMinutes(new Date()),
       ramadan: effectiveRamadan(profile.data?.profile?.ramadanMode),

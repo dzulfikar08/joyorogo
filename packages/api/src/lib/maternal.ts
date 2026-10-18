@@ -687,6 +687,7 @@ export function computeMaternalTargets(
     tdee: baseKcal,
     formulaTdee: baseKcal,
     eatKcal: baseKcal + add,
+    assumedKcal: 0,
     exerciseKcal: 0,
     burnKcal: 0,
     sleepHours: SLEEP_NEED_HOURS,

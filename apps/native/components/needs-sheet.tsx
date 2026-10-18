@@ -22,8 +22,9 @@ type Step = {
 };
 
 /**
- * Sheet "Kebutuhan harianmu": BMR -> aktivitas -> TDEE -> potongan -> target
- * makan, straight from needsBreakdown (no formula of its own).
+ * Sheet "Kebutuhan harianmu", straight from needsBreakdown (no formula of its own). Normal plan: BMR -> potongan ->
+ * target makan (no activity is assumed; counted exercise is added on Beranda). Hamil / Menyusui: BMR -> aktivitas ->
+ * TDEE -> tambahan AKG -> target.
  */
 export function NeedsSheet({
   visible,
@@ -35,83 +36,90 @@ export function NeedsSheet({
   targets: Targets;
 }) {
   const { t } = useTranslation(["settings", "maternal", "gain"]);
-  const profile = useQuery({ ...orpc.profile.myProfile.queryOptions(), enabled: visible });
+  const profile = useQuery({ ...orpc.profile.myProfile.queryOptions(), enabled: visible && !!targets.maternal });
   const needs = needsBreakdown(targets);
   const maternal = targets.maternal ?? null;
   const gain = targets.gain ?? null;
   const level = profile.data?.profile?.activityLevel as "low" | "mid" | "high" | undefined;
 
-  const steps: Step[] = [
-    {
-      key: "bmr",
-      label: t("plan.needs.bmr.label"),
-      name: t("plan.needs.bmr.name"),
-      body: t("plan.needs.bmr.body"),
-      sign: "",
-      kcal: needs.bmrKcal,
-    },
-    {
-      key: "activity",
-      label: t("plan.needs.activity.label"),
-      name: t("plan.needs.activity.name"),
-      body: t("plan.needs.activity.body", { level: level ? ACTIVITY_LABELS[level] : "" }),
-      sign: "+",
-      kcal: needs.activityKcal,
-    },
-    {
-      key: "tdee",
-      label: t("plan.needs.tdee.label"),
-      name: maternal ? t("maternal:needs.baseName") : t("plan.needs.tdee.name"),
-      body: maternal ? t("maternal:needs.baseBody") : t("plan.needs.tdee.body"),
-      sign: "=",
-      kcal: needs.tdeeKcal,
-      strong: true,
-    },
-    maternal
-      ? {
+  const bmrStep: Step = {
+    key: "bmr",
+    label: t("plan.needs.bmr.label"),
+    name: t("plan.needs.bmr.name"),
+    body: t("plan.needs.bmr.body"),
+    sign: "",
+    kcal: needs.bmrKcal,
+  };
+  const targetStep: Step = {
+    key: "target",
+    label: t("plan.needs.target.label"),
+    name: t("plan.needs.target.name"),
+    body: t("plan.needs.target.body"),
+    sign: "=",
+    kcal: needs.targetKcal,
+    strong: true,
+  };
+
+  const steps: Step[] = maternal
+    ? [
+        bmrStep,
+        {
+          key: "activity",
+          label: t("plan.needs.activity.label"),
+          name: t("plan.needs.activity.name"),
+          body: t("plan.needs.activity.body", { level: level ? ACTIVITY_LABELS[level] : "" }),
+          sign: "+",
+          kcal: needs.activityKcal,
+        },
+        {
+          key: "tdee",
+          label: t("plan.needs.tdee.label"),
+          name: t("maternal:needs.baseName"),
+          body: t("maternal:needs.baseBody"),
+          sign: "=",
+          kcal: needs.tdeeKcal,
+          strong: true,
+        },
+        {
           key: "add",
           label: t("maternal:target.add"),
           name: t(`maternal:needs.add.${maternal.stage}`),
           body: t("maternal:needs.addBody"),
           sign: "+",
           kcal: needs.addKcal,
-        }
-      : gain
-        ? {
-            key: "surplus",
-            label: t("gain:plan.surplus.label"),
-            name: t("gain:plan.surplus.name"),
-            body: t("gain:plan.surplus.body", { min: MIN_SURPLUS_KCAL, max: MAX_SURPLUS_KCAL }),
-            sign: "+",
-            kcal: needs.surplusKcal,
-          }
-        : needs.cutKcal > 0
-        ? {
-            key: "cut",
-            label: t("plan.needs.cut.label"),
-            name: t("plan.needs.cut.name"),
-            body: t("plan.needs.cut.body"),
-            sign: "−",
-            kcal: needs.cutKcal,
-          }
-        : {
-            key: "cut",
-            label: t("plan.needs.cutNone.label"),
-            name: t("plan.needs.cutNone.name"),
-            body: t("plan.needs.cutNone.body"),
-            sign: "",
-            kcal: 0,
-          },
-    {
-      key: "target",
-      label: t("plan.needs.target.label"),
-      name: t("plan.needs.target.name"),
-      body: t("plan.needs.target.body"),
-      sign: "=",
-      kcal: needs.targetKcal,
-      strong: true,
-    },
-  ];
+        },
+        targetStep,
+      ]
+    : [
+        bmrStep,
+        gain
+          ? {
+              key: "surplus",
+              label: t("gain:plan.surplus.label"),
+              name: t("gain:plan.surplus.name"),
+              body: t("gain:plan.surplus.body", { min: MIN_SURPLUS_KCAL, max: MAX_SURPLUS_KCAL }),
+              sign: "+",
+              kcal: needs.surplusKcal,
+            }
+          : needs.cutKcal > 0
+            ? {
+                key: "cut",
+                label: t("plan.needs.cut.label"),
+                name: t("plan.needs.cut.name"),
+                body: t("plan.needs.cut.body"),
+                sign: "−",
+                kcal: needs.cutKcal,
+              }
+            : {
+                key: "cut",
+                label: t("plan.needs.cutNone.label"),
+                name: t("plan.needs.cutNone.name"),
+                body: t("plan.needs.cutNone.body"),
+                sign: "",
+                kcal: 0,
+              },
+        targetStep,
+      ];
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t("plan.needs.title")}>

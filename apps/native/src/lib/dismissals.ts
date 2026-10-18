@@ -3,12 +3,12 @@ import * as SecureStore from "expo-secure-store";
 
 // Notices the person closed for good. They follow the account (rogo-prefs.ts), but this phone can hold several
 // accounts, so the local key carries the user id; the synced key does not.
-export type DismissalKey = "dismissed.handlePrompt" | "dismissed.stravaRetention7d" | "dismissed.addBackNotice";
+export type DismissalKey = "dismissed.handlePrompt" | "dismissed.stravaRetention7d" | "dismissed.addBackNotice2";
 
 const LOCAL_KEYS: Record<DismissalKey, (userId: string) => string> = {
   "dismissed.handlePrompt": (userId) => `joyorogo.handlePrompt.${userId}`,
   "dismissed.stravaRetention7d": (userId) => `joyorogo.stravaRetention7d.${userId}`,
-  "dismissed.addBackNotice": (userId) => `joyorogo.addBackNotice.${userId}`,
+  "dismissed.addBackNotice2": (userId) => `joyorogo.addBackNotice2.${userId}`,
 };
 
 export const dismissalStoreKey = (key: DismissalKey, userId: string): string => LOCAL_KEYS[key](userId);

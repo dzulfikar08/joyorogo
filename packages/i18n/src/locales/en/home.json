@@ -18,8 +18,8 @@
     "share": "Share progress"
   },
   "addBackNotice": {
-    "title": "How what is left is counted changed",
-    "body": "How your remaining calories are counted has changed: the base target no longer includes exercise, and the exercise you log is added on top ({{pct}}%). Adjust it in Profile.",
+    "title": "How what is left is counted changed again",
+    "body": "How your remaining calories are counted has changed: the base target is now just your BMR less the deficit, with no guess about activity. Active energy from your watch and the workouts you log are added on top ({{pct}}%). Adjust it in Profile.",
     "action": "Open Profile",
     "dismiss": "Close"
   },
@@ -51,9 +51,14 @@
     "limit": "The adjustment is capped at 15% from the formula, and days you forgot to log are left out."
   },
   "tile": {
-    "burn": "Exercise today",
+    "burn": "Activity today",
     "burnSub": "from {{sources}}",
-    "burnNone": "no exercise yet",
+    "burnNone": "no activity yet",
+    "activeFrom": {
+      "joyofit": "from your watch",
+      "health_connect": "from Health Connect",
+      "apple_health": "from Apple Health"
+    },
     "source": {
       "manual": "manual entries",
       "joyofit": "JoyoFit",
@@ -177,7 +182,7 @@
     "fill": "Fill glass {{n}}",
     "empty": "Empty glass {{n}}",
     "hint": "A glass of water after every meal keeps you full longer.",
-    "added": "+1 glass logged",
+    "added": "+{{kcal}} kcal from activity ({{pct}}%)",
     "removed": "1 glass removed",
     "less": "Remove a glass",
     "more": "Add a glass",
@@ -210,15 +215,15 @@
   },
   "explain": {
     "title": "How to read today's numbers",
-    "formula": "Left = eating target − eaten so far + counted exercise",
-    "exampleAdd": "Today: {{target}} + {{exercise}} exercise − {{eaten}} = {{left}} kcal left",
-    "exampleAddOver": "Today: {{target}} + {{exercise}} exercise − {{eaten}} = {{over}} kcal over",
+    "formula": "Left = BMR − deficit + counted activity − eaten so far",
+    "exampleAdd": "Today: {{target}} + {{exercise}} activity − {{eaten}} = {{left}} kcal left",
+    "exampleAddOver": "Today: {{target}} + {{exercise}} activity − {{eaten}} = {{over}} kcal over",
     "added": "+{{kcal}} kcal from exercise ({{pct}}%)",
     "example": "Today: {{target}} − {{eaten}} = {{left}} kcal left",
     "exampleOver": "Today: {{target}} − {{eaten}} = {{over}} kcal over",
     "target": {
       "title": "Eating target",
-      "body": "Your calorie allowance for the day, worked out from your body and target weight. Exercise is not in this number: what you log is added separately."
+      "body": "Your calorie allowance for the day: your BMR (what your body needs at rest) less the deficit for your target weight. No activity is guessed here; real movement is added separately."
     },
     "clamped": {
       "lose": "This target is worked out with a deficit of at most 1,000 kcal a day. Your target date asks for more than that, so you get there around {{date}}.",
@@ -235,16 +240,33 @@
       "body": "What still fits until tonight. Once you go past it, the number turns into Over. No stress, start again tomorrow."
     },
     "burn": {
-      "title": "Exercise today",
-      "body": "Calories from the exercise logged today: your watch, Health Connect or Apple Health, Strava and manual entries. {{pct}}% of this is added to what you can still eat, so moving more means eating more."
+      "title": "Activity today",
+      "body": "The movement that was really measured today: active energy from your watch (or Health Connect / Apple Health) plus logged workouts that are not on the watch. {{pct}}% is added to what you can still eat, so moving more means eating more."
+    },
+    "sum": {
+      "title": "Today's maths",
+      "bmr": "BMR (body at rest)",
+      "cut": "Deficit",
+      "surplus": "Weight-gain surplus",
+      "add": "Pregnancy / breastfeeding addition",
+      "floor": "Minimum eating floor",
+      "assumed": "Estimated daily activity",
+      "activity": "Activity today",
+      "activityOf": "{{pct}}% of {{kcal}} kcal",
+      "target": "Eating target today",
+      "eaten": "Eaten so far",
+      "left": "Left"
     },
     "addBack": {
-      "title": "Counted exercise",
-      "body": "Of {{workout}} kcal of logged exercise, {{pct}}% ({{kcal}} kcal) is added to today's allowance.",
-      "steps": "Plus {{steps}} steps above {{threshold}} steps, about {{stepKcal}} kcal.",
+      "title": "Counted activity",
+      "body": "Of {{active}} kcal of activity today, {{pct}}% ({{kcal}} kcal) is added to your allowance.",
+      "watch": "Active energy from your watch is {{kcal}} kcal; the watch's workouts are inside it and are not counted twice.",
+      "healthStore": "Active energy from {{source}} is {{kcal}} kcal; workouts there are included.",
+      "other": "Workouts outside the watch (manual, Strava) add {{kcal}} kcal.",
+      "assumed": "There is no active data from the watch today, so your estimated daily activity is used: +{{kcal}} kcal (not multiplied by the percentage).",
       "capped": "The daily cap of {{cap}} kcal was reached.",
-      "off": "This is turned off in Profile, so exercise does not add to what is left. What is left comes from the base target only.",
-      "none": "No exercise logged today, so nothing has been added.",
+      "off": "This is turned off in Profile, so activity does not add to what is left. What is left comes from the base target only.",
+      "none": "No measured activity today, so nothing has been added.",
       "setting": "Change it in Profile > Target & body"
     },
     "deficit": {

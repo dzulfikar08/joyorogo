@@ -59,7 +59,7 @@ const dismissal: RogoPrefSpec = {
   isDefault: () => false,
 };
 
-/** "Kalori olahraga" (lib/exercise-credit): how much recorded exercise is added to Sisa. Read by the server too. */
+/** "Kalori olahraga" (lib/exercise-credit): how much of the day's activity is added to Sisa. Read by the server too. */
 const addBack = (field: keyof typeof DEFAULT_ADD_BACK_SETTINGS, key: keyof typeof ADD_BACK_SANITIZERS): RogoPrefSpec => ({
   sanitize: ADD_BACK_SANITIZERS[key],
   isDefault: (value) => value === DEFAULT_ADD_BACK_SETTINGS[field],
@@ -68,9 +68,8 @@ const addBack = (field: keyof typeof DEFAULT_ADD_BACK_SETTINGS, key: keyof typeo
 const SPECS = {
   "exercise.addBack.enabled": addBack("enabled", "exercise.addBack.enabled"),
   "exercise.addBack.pct": addBack("pct", "exercise.addBack.pct"),
-  "exercise.addBack.source": addBack("source", "exercise.addBack.source"),
-  "exercise.addBack.stepThreshold": addBack("stepThreshold", "exercise.addBack.stepThreshold"),
   "exercise.addBack.cap": addBack("cap", "exercise.addBack.cap"),
+  "exercise.assumedActive": addBack("assumedKcal", "exercise.assumedActive"),
   theme: {
     sanitize: (value) => THEMES.find((theme) => theme === value),
     isDefault: (value) => value === "system",
@@ -96,8 +95,11 @@ const SPECS = {
   // the record's owner.
   "dismissed.handlePrompt": dismissal,
   "dismissed.stravaRetention7d": dismissal,
-  /** The one-time "how Sisa is counted changed" notice on Beranda (accounts made before the change). */
-  "dismissed.addBackNotice": dismissal,
+  // The one-time "how Sisa is counted changed" notice on Beranda (accounts made before the change). The id carries a
+  // number: it was bumped when the base changed again, which shows the notice once more to everybody who had closed it.
+  // The earlier `dismissed.addBackNotice` and the removed `exercise.addBack.source` / `.stepThreshold` records may still
+  // be in an account (older builds write them); no build reads them any more.
+  "dismissed.addBackNotice2": dismissal,
 } satisfies Record<string, RogoPrefSpec>;
 
 export type RogoPrefKey = keyof typeof SPECS;

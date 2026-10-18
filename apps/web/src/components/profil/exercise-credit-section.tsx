@@ -1,17 +1,16 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Flame, Footprints, Minus, Percent, Plus } from "lucide-react";
+import { Flame, Minus, Percent, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
   ADD_BACK_CAPS,
   ADD_BACK_PCT,
-  ADD_BACK_SOURCES,
-  ADD_BACK_STEP_THRESHOLD,
+  ASSUMED_ACTIVITY_KCAL,
   type AddBackCap,
   type AddBackPrefKey,
   type AddBackSettings,
-  type AddBackSource,
+  type AssumedActivityKcal,
 } from "@joyorogo/api/lib/exercise-credit";
 import { Card, FieldLabel, IconChip, ListGroup, ListRow, SectionTitle, Segmented } from "@/components/kit/surface";
 import { Switch } from "@/components/kit/switch";
@@ -19,6 +18,13 @@ import { saveAddBackPref, storedAddBackSettings } from "@/lib/exercise-credit-pr
 import { fmtInt } from "@/lib/format";
 import { syncPrefs } from "@/lib/prefs-sync";
 import { orpc } from "@/utils/orpc";
+
+const ASSUMED_LABEL_KEYS = {
+  0: "exerciseCredit.assumed.none",
+  150: "exerciseCredit.assumed.light",
+  300: "exerciseCredit.assumed.moderate",
+  500: "exerciseCredit.assumed.active",
+} as const satisfies Record<AssumedActivityKcal, string>;
 
 function Stepper({
   label,
@@ -74,10 +80,6 @@ export function ExerciseCreditSection() {
     const pct = settings.pct + direction * ADD_BACK_PCT.step;
     save("exercise.addBack.pct", pct, { pct });
   };
-  const stepThreshold = (direction: -1 | 1) => {
-    const stepThreshold = settings.stepThreshold + direction * ADD_BACK_STEP_THRESHOLD.step;
-    save("exercise.addBack.stepThreshold", stepThreshold, { stepThreshold });
-  };
 
   return (
     <>
@@ -119,44 +121,11 @@ export function ExerciseCreditSection() {
                 />
               }
             />
-            {settings.source === "workouts+steps" && (
-              <ListRow
-                icon={
-                  <IconChip tone="tidur">
-                    <Footprints />
-                  </IconChip>
-                }
-                title={t("exerciseCredit.stepThreshold.title")}
-                subtitle={t("exerciseCredit.stepThreshold.hint")}
-                trailing={
-                  <Stepper
-                    label={t("exerciseCredit.stepThreshold.aria")}
-                    text={t("exerciseCredit.stepThreshold.value", { steps: fmtInt(settings.stepThreshold) })}
-                    canDecrease={settings.stepThreshold > ADD_BACK_STEP_THRESHOLD.min}
-                    canIncrease={settings.stepThreshold < ADD_BACK_STEP_THRESHOLD.max}
-                    onStep={stepThreshold}
-                  />
-                }
-              />
-            )}
           </>
         )}
       </ListGroup>
       {settings.enabled && (
         <Card className="mt-3 space-y-4">
-          <div className="space-y-2">
-            <FieldLabel>{t("exerciseCredit.source.title")}</FieldLabel>
-            <Segmented<AddBackSource>
-              label={t("exerciseCredit.source.title")}
-              value={settings.source}
-              onChange={(source) => save("exercise.addBack.source", source, { source })}
-              options={ADD_BACK_SOURCES.map((source) => ({
-                value: source,
-                label: t(source === "workouts" ? "exerciseCredit.source.workouts" : "exerciseCredit.source.workoutsSteps"),
-              }))}
-            />
-            <p className="px-1 text-xs leading-relaxed text-muted-foreground">{t("exerciseCredit.source.hint")}</p>
-          </div>
           <div className="space-y-2">
             <FieldLabel>{t("exerciseCredit.cap.title")}</FieldLabel>
             <Segmented<`${AddBackCap}`>
@@ -175,6 +144,23 @@ export function ExerciseCreditSection() {
           </div>
         </Card>
       )}
+      <Card className="mt-3 space-y-2">
+        <FieldLabel>{t("exerciseCredit.assumed.title")}</FieldLabel>
+        <Segmented<`${AssumedActivityKcal}`>
+          label={t("exerciseCredit.assumed.aria")}
+          value={`${settings.assumedKcal}`}
+          onChange={(value) => {
+            const assumedKcal =
+              ASSUMED_ACTIVITY_KCAL.find((candidate) => `${candidate}` === value) ?? settings.assumedKcal;
+            save("exercise.assumedActive", assumedKcal, { assumedKcal });
+          }}
+          options={ASSUMED_ACTIVITY_KCAL.map((kcal) => ({
+            value: `${kcal}` as `${AssumedActivityKcal}`,
+            label: t(ASSUMED_LABEL_KEYS[kcal], { kcal }),
+          }))}
+        />
+        <p className="px-1 text-xs leading-relaxed text-muted-foreground">{t("exerciseCredit.assumed.hint")}</p>
+      </Card>
     </>
   );
 }

@@ -29,7 +29,7 @@ await client.executeMultiple(`
     ('cut', 'cut', 'cut@test.id', 'founder'),
     ('lapsed', 'lapsed', 'lapsed@test.id', 'founder');
   INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level) VALUES
-    ('cut', 1990, 'male', 170, 80, 70, '${shiftDate(today, 120)}', 'mid'),
+    ('cut', 1990, 'male', 170, 160, 150, '${shiftDate(today, 120)}', 'mid'),
     ('lapsed', 1990, 'male', 170, 80, 70, '${lapsedDate}', 'mid');
 `);
 
@@ -43,7 +43,7 @@ describe("profile.updateTargets target date", () => {
     const before = await call(profileRouter.myProfile, undefined, as("cut"));
     const out = await call(
       profileRouter.updateTargets,
-      { targetWeightKg: 70, targetDate: shiftDate(today, 60) },
+      { targetWeightKg: 150, targetDate: shiftDate(today, 60) },
       as("cut"),
     );
     const after = await call(profileRouter.myProfile, undefined, as("cut"));
@@ -57,7 +57,7 @@ describe("profile.updateTargets target date", () => {
     const saved = shiftDate(today, 60);
     for (const targetDate of [today, shiftDate(today, -3), "2026-02-30", shiftDate(today, 4000)]) {
       await expect(
-        call(profileRouter.updateTargets, { targetWeightKg: 70, targetDate }, as("cut")),
+        call(profileRouter.updateTargets, { targetWeightKg: 150, targetDate }, as("cut")),
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     }
     const row = await call(profileRouter.myProfile, undefined, as("cut"));
@@ -91,7 +91,7 @@ describe("profile.previewTargets", () => {
     const stored = (await call(profileRouter.myProfile, undefined, as("cut"))).profile!.targetDate;
     const out = await call(
       profileRouter.previewTargets,
-      { targetWeightKg: 70, targetDate: shiftDate(today, 150) },
+      { targetWeightKg: 150, targetDate: shiftDate(today, 150) },
       as("cut"),
     );
     // stored: 60 days (clamped at 1000/day); 150 days asks for ~513/day.

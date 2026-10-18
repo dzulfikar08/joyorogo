@@ -13,6 +13,7 @@ import {
   effectiveRamadan,
   jakartaToday,
   MEAL_LABELS,
+  needsBreakdown,
   relativeDayLabel,
   remainingKcal,
   slotsFor,
@@ -76,6 +77,8 @@ import { useHealthAutoSync } from "@/src/lib/use-health-sync";
 import { TargetPaceNotice } from "@/components/target-pace-notice";
 import { errorMessage, fmtDateMedium, fmtInt, fmtKg, weeklyRateLabel } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
+
+type SumRow = { key: string; label: string; value: string | null; sub?: string; strong?: boolean };
 
 type TrendPoint = { date: string; weightKg: number; trendKg: number };
 
@@ -269,7 +272,40 @@ export default function Dashboard() {
   const { kcal: leftKcal, over: overBudget } = remainingKcal(data.targets.eatKcal, data.eatenKcal);
   const over = maternal || gain ? false : overBudget;
   const credit = data.exerciseCredit;
-  const baseKcal = data.targets.eatKcal - data.targets.exerciseKcal;
+  const needs = needsBreakdown(data.targets);
+  const baseKcal = needs.targetKcal + needs.assumedKcal;
+  // "Cara baca angka ini": the day's budget step by step, every number from needsBreakdown.
+  const sumRows: SumRow[] = [
+    maternal
+      ? { key: "bmr", label: t("maternal:needs.baseName"), value: fmtInt(needs.tdeeKcal) }
+      : { key: "bmr", label: t("explain.sum.bmr"), value: fmtInt(needs.bmrKcal) },
+    ...(needs.cutKcal > 0
+      ? [{ key: "cut", label: t("explain.sum.cut"), value: `−${fmtInt(needs.cutKcal)}` }]
+      : []),
+    ...(needs.surplusKcal > 0
+      ? [{ key: "surplus", label: t("explain.sum.surplus"), value: `+${fmtInt(needs.surplusKcal)}` }]
+      : []),
+    ...(needs.addKcal > 0 ? [{ key: "add", label: t("explain.sum.add"), value: `+${fmtInt(needs.addKcal)}` }] : []),
+    ...(data.targets.notes.includes("PLAN_CLAMPED") && needs.cutKcal < needs.deficitKcal
+      ? [{ key: "floor", label: t("explain.sum.floor"), value: null }]
+      : []),
+    ...(needs.assumedKcal > 0
+      ? [{ key: "assumed", label: t("explain.sum.assumed"), value: `+${fmtInt(needs.assumedKcal)}` }]
+      : []),
+    ...(needs.exerciseKcal > 0
+      ? [
+          {
+            key: "activity",
+            label: t("explain.sum.activity"),
+            sub: credit ? t("explain.sum.activityOf", { pct: credit.pct, kcal: fmtInt(credit.activeKcal) }) : undefined,
+            value: `+${fmtInt(needs.exerciseKcal)}`,
+          },
+        ]
+      : []),
+    { key: "target", label: t("explain.sum.target"), value: fmtInt(needs.budgetKcal), strong: true },
+    { key: "eaten", label: t("explain.sum.eaten"), value: `−${fmtInt(data.eatenKcal)}` },
+    { key: "left", label: t("explain.sum.left"), value: `${over ? "−" : ""}${fmtInt(leftKcal)}`, strong: true },
+  ];
   const tone = maternal
     ? "ok"
     : gain
@@ -575,7 +611,7 @@ export default function Dashboard() {
       {gain ? (
         <GainCard
           gain={gain}
-          targetKcal={data.targets.eatKcal}
+          targetKcal={needs.targetKcal}
           tdee={data.targets.tdee}
           streakDays={data.streakDays}
           gainedKg={data.weightGainedKg}
@@ -590,14 +626,16 @@ export default function Dashboard() {
             icon="flame"
             tint="bakar"
             label={t("tile.burn")}
-            value={fmtInt(data.burnedKcal)}
-            count={data.burnedKcal}
+            value={fmtInt(credit?.activeKcal ?? 0)}
+            count={credit?.activeKcal ?? 0}
             sub={
-              data.exerciseSources.length > 0
-                ? t("tile.burnSub", {
-                    sources: data.exerciseSources.map((source) => t(`tile.source.${source}`)).join(", "),
-                  })
-                : t("tile.burnNone")
+              credit?.allDaySource
+                ? t(`tile.activeFrom.${credit.allDaySource}`)
+                : data.exerciseSources.length > 0
+                  ? t("tile.burnSub", {
+                      sources: data.exerciseSources.map((source) => t(`tile.source.${source}`)).join(", "),
+                    })
+                  : t("tile.burnNone")
             }
             onPress={() => router.navigate("/olahraga")}
           />
@@ -943,6 +981,24 @@ export default function Dashboard() {
                       })}
             </Num>
           </View>
+          <View style={styles.explainItem}>
+            <Text style={styles.explainTitle}>{t("explain.sum.title")}</Text>
+            {sumRows.map((row) =>
+              row.value === null ? (
+                <Text key={row.key} style={styles.adaptiveMuted}>
+                  {row.label}
+                </Text>
+              ) : (
+                <View key={row.key} style={styles.sumRow}>
+                  <View style={styles.sumLabel}>
+                    <Text style={row.strong ? styles.sumLabelStrong : styles.adaptiveMuted}>{row.label}</Text>
+                    {row.sub ? <Text style={styles.sumSub}>{row.sub}</Text> : null}
+                  </View>
+                  <Num style={row.strong ? styles.sumValueStrong : styles.sumValue}>{row.value}</Num>
+                </View>
+              ),
+            )}
+          </View>
           {(["target", "eaten", "left"] as const).map((key) => (
             <View key={key} style={styles.explainItem}>
               <Text style={styles.explainTitle}>
@@ -971,37 +1027,47 @@ export default function Dashboard() {
           {credit ? (
             <View style={styles.explainItem}>
               <Text style={styles.explainTitle}>{t("explain.addBack.title")}</Text>
-              {!credit.enabled ? (
-                <Text style={styles.adaptiveMuted}>{t("explain.addBack.off")}</Text>
-              ) : credit.workoutKcal === 0 && credit.countedSteps === 0 ? (
+              {!credit.enabled ? <Text style={styles.adaptiveMuted}>{t("explain.addBack.off")}</Text> : null}
+              {credit.activeKcal === 0 && credit.assumedKcal === 0 ? (
                 <Text style={styles.adaptiveMuted}>{t("explain.addBack.none")}</Text>
-              ) : (
-                <>
-                  <Text style={styles.adaptiveMuted}>
-                    {t("explain.addBack.body", {
-                      workout: fmtInt(credit.workoutKcal),
-                      pct: credit.pct,
-                      kcal: fmtInt(credit.countedKcal),
-                    })}
-                  </Text>
-                  {credit.countedSteps > 0 ? (
-                    <Text style={styles.adaptiveMuted}>
-                      {t("explain.addBack.steps", {
-                        steps: fmtInt(credit.countedSteps),
-                        threshold: fmtInt(credit.stepThreshold),
-                        stepKcal: fmtInt(credit.stepKcal),
-                      })}
-                    </Text>
-                  ) : null}
-                  {credit.capped ? (
-                    <Text style={styles.adaptiveMuted}>
-                      {t("explain.addBack.capped", {
-                        cap: credit.cap === "none" ? "" : fmtInt(credit.cap),
-                      })}
-                    </Text>
-                  ) : null}
-                </>
-              )}
+              ) : null}
+              {credit.countedKcal > 0 ? (
+                <Text style={styles.adaptiveMuted}>
+                  {t("explain.addBack.body", {
+                    active: fmtInt(credit.activeKcal),
+                    pct: credit.pct,
+                    kcal: fmtInt(credit.countedKcal),
+                  })}
+                </Text>
+              ) : null}
+              {credit.allDaySource === "joyofit" ? (
+                <Text style={styles.adaptiveMuted}>
+                  {t("explain.addBack.watch", { kcal: fmtInt(credit.allDayKcal ?? 0) })}
+                </Text>
+              ) : null}
+              {credit.allDaySource === "health_connect" || credit.allDaySource === "apple_health" ? (
+                <Text style={styles.adaptiveMuted}>
+                  {t("explain.addBack.healthStore", {
+                    source: t(`tile.source.${credit.allDaySource}`),
+                    kcal: fmtInt(credit.allDayKcal ?? 0),
+                  })}
+                </Text>
+              ) : null}
+              {credit.otherWorkoutKcal > 0 ? (
+                <Text style={styles.adaptiveMuted}>
+                  {t("explain.addBack.other", { kcal: fmtInt(credit.otherWorkoutKcal) })}
+                </Text>
+              ) : null}
+              {credit.assumedKcal > 0 ? (
+                <Text style={styles.adaptiveMuted}>
+                  {t("explain.addBack.assumed", { kcal: fmtInt(credit.assumedKcal) })}
+                </Text>
+              ) : null}
+              {credit.capped ? (
+                <Text style={styles.adaptiveMuted}>
+                  {t("explain.addBack.capped", { cap: credit.cap === "none" ? "" : fmtInt(credit.cap) })}
+                </Text>
+              ) : null}
             </View>
           ) : null}
           <View style={styles.explainItem}>
@@ -1168,6 +1234,36 @@ const styles = StyleSheet.create((theme) => ({
   explainTitle: {
     fontSize: theme.fontSize.base,
     fontWeight: "700",
+  },
+  sumRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: theme.spacing.md,
+    paddingVertical: 3,
+  },
+  sumLabel: {
+    flex: 1,
+    gap: 1,
+  },
+  sumLabelStrong: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  sumSub: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.mutedForeground,
+  },
+  sumValue: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.foreground,
+  },
+  sumValueStrong: {
+    fontSize: theme.fontSize.base,
+    fontWeight: "800",
+    color: theme.colors.foreground,
   },
   adaptiveRow: {
     flexDirection: "row",

@@ -234,7 +234,7 @@
     },
     "activity": {
       "title": "Daily activity",
-      "subtitle": "Does not change the eating target; exercise is counted from what you log"
+      "subtitle": "Only used for the pregnancy and breastfeeding target"
     },
     "numbers": {
       "eat": "Eat",
@@ -275,6 +275,7 @@
       "title": "Your daily needs",
       "row": "Your daily needs",
       "rowValue": "TDEE {{kcal}}",
+      "rowValueBmr": "BMR {{kcal}}",
       "intro": "Step by step, from your body to today's eating target.",
       "unit": "kcal per day",
       "bmr": {
@@ -285,7 +286,7 @@
       "activity": {
         "label": "Daily activity",
         "name": "Everyday movement",
-        "body": "A small extra for the lightest everyday movement (BMR × 1.2). Exercise is not included: what you log is added to what is left that day."
+        "body": "Extra from walking, work and chores outside of workouts. Based on the activity level you chose: {{level}}."
       },
       "tdee": {
         "label": "TDEE",
@@ -295,12 +296,12 @@
       "cut": {
         "label": "Minus for weight loss",
         "name": "Food cut",
-        "body": "A cut from what you eat so your body draws on fat stores. Its size comes from the gap between your weight and your target, and your target date."
+        "body": "A cut from your BMR so your body draws on fat stores. Its size comes from the gap between your weight and your target, and your target date. The whole cut comes out of food."
       },
       "cutNone": {
         "label": "No cut",
         "name": "Holding weight",
-        "body": "You're already at your target weight, so you eat as much as your TDEE to hold it."
+        "body": "You're already at your target weight, so you eat as much as your BMR to hold it. Real activity is added on top."
       },
       "target": {
         "label": "Eating target",
@@ -314,33 +315,30 @@
   "exerciseCredit": {
     "title": "Exercise calories",
     "enabled": {
-      "title": "Add exercise calories",
-      "hint": "Logged exercise adds to what you can eat that day. Your base target does not count exercise."
+      "title": "Add activity calories",
+      "hint": "Active energy from your watch and the workouts you log add to what you can eat that day. Your base target is just your BMR less the deficit."
     },
     "pct": {
       "title": "How much is counted",
       "hint": "Watches and apps often overestimate calories. 75% is a safe middle.",
       "value": "{{pct}}%",
-      "aria": "Share of exercise that is counted"
-    },
-    "source": {
-      "title": "What counts",
-      "workouts": "Logged workouts",
-      "workoutsSteps": "Workouts + steps",
-      "hint": "Steps are counted apart from workouts you already logged, with no double counting."
-    },
-    "stepThreshold": {
-      "title": "Steps above",
-      "hint": "Ordinary daily walking is already in the base target. Only steps above this number count.",
-      "value": "{{steps}} steps",
-      "aria": "Daily step threshold"
+      "aria": "Share of activity that is counted"
     },
     "cap": {
       "title": "Daily cap",
-      "hint": "Exercise never adds more than this.",
+      "hint": "Activity never adds more than this.",
       "kcal": "{{kcal}} kcal",
       "none": "No cap",
-      "aria": "Daily cap on added exercise calories"
+      "aria": "Daily cap on added activity calories"
+    },
+    "assumed": {
+      "title": "Daily activity (estimate)",
+      "hint": "Only used on days without active data from your watch. Added to the base target, not multiplied by the percentage.",
+      "none": "None",
+      "light": "Light +{{kcal}}",
+      "moderate": "Moderate +{{kcal}}",
+      "active": "Active +{{kcal}}",
+      "aria": "Estimated daily activity for days without watch data"
     }
   },
   "theme": {

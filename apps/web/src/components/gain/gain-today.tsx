@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Lightbulb, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { needsBreakdown } from "@joyorogo/api/lib/engine";
 import { gainEatTone, gainRemaining, type GainInfo } from "@joyorogo/api/lib/gain";
 import type { WeekRecap } from "@joyorogo/api/lib/recap";
 
@@ -71,7 +72,7 @@ export function GainProgressLines({ summary, gain }: { summary: DaySummary; gain
 /** Beranda plan card for Naikin BB, in the place the Hamil card takes. */
 export function GainPlanCard({ gain, summary }: { gain: GainInfo; summary: DaySummary }) {
   const { t } = useTranslation("gain");
-  const targets = summary.targets;
+  const plan = needsBreakdown(summary.targets);
   const proteinTarget = summary.protein?.targetG ?? gain.protein.targetG;
   return (
     <section aria-label={t("today.cardTitle")}>
@@ -84,8 +85,8 @@ export function GainPlanCard({ gain, summary }: { gain: GainInfo; summary: DaySu
             <h2 className="text-base leading-tight font-bold tracking-tight">{t("today.cardTitle")}</h2>
             <p className="text-xs text-muted-foreground tabular-nums">
               {t("today.cardSummary", {
-                target: fmtInt(targets.eatKcal),
-                tdee: fmtInt(targets.tdee),
+                target: fmtInt(plan.targetKcal),
+                tdee: fmtInt(plan.bmrKcal),
                 surplus: `+${fmtInt(gain.surplusKcal)}`,
               })}
             </p>

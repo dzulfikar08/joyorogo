@@ -185,7 +185,11 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
               icon="flash"
               iconTint="makan"
               title={t("plan.needs.row")}
-              value={t("plan.needs.rowValue", { kcal: fmtInt(targets.tdee) })}
+              value={
+                maternal
+                  ? t("plan.needs.rowValue", { kcal: fmtInt(targets.tdee) })
+                  : t("plan.needs.rowValueBmr", { kcal: fmtInt(targets.bmr) })
+              }
               chevron
               onPress={() => setSheet("needs")}
             />
@@ -244,13 +248,15 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
                 onPress={() => setSheet("date")}
               />
             )}
-            <ListRow
-              icon="walk"
-              iconTint="makan"
-              title={t("plan.activity.title")}
-              subtitle={t("plan.activity.subtitle")}
-              value={ACTIVITY_LABELS[prof.activityLevel as "low" | "mid" | "high"]}
-            />
+            {maternal ? (
+              <ListRow
+                icon="walk"
+                iconTint="makan"
+                title={t("plan.activity.title")}
+                subtitle={t("plan.activity.subtitle")}
+                value={ACTIVITY_LABELS[prof.activityLevel as "low" | "mid" | "high"]}
+              />
+            ) : null}
           </ListGroup>
           <ExerciseCreditSection />
           {!maternal ? <TargetPaceNotice pace={targets.datePace} /> : null}

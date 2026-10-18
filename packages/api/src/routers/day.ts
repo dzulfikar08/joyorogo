@@ -25,8 +25,8 @@ import {
   streakFromDates,
   suggestMealNow,
 } from "../lib/engine";
-import { exerciseCredit, showAddBackNotice } from "../lib/exercise-credit";
-import { addBackPrefQuery, loadDayCredit, readAddBackPrefs } from "../lib/exercise-credit-store";
+import { budgetKcal, exerciseCredit, showAddBackNotice } from "../lib/exercise-credit";
+import { addBackPrefQuery, dayReadings, loadDayCredit, readAddBackPrefs } from "../lib/exercise-credit-store";
 import { READINESS_LABELS, hasFitnessData } from "../lib/fitness-hint";
 import { dateSchema } from "../lib/schemas";
 import { loadIdeaValues } from "./plate";
@@ -109,6 +109,7 @@ export const dayRouter = {
         activityRows,
         workoutRows,
         prefRows,
+        scoreRows,
       ] = await context.db.batch([
         ...planQueries(context.db, userId, date),
         context.db
@@ -170,6 +171,7 @@ export const dayRouter = {
             distanceMeters: dailyActivity.distanceMeters,
             activeCalories: dailyActivity.activeCalories,
             exerciseMinutes: dailyActivity.exerciseMinutes,
+            source: dailyActivity.source,
           })
           .from(dailyActivity)
           .where(and(eq(dailyActivity.userId, userId), eq(dailyActivity.date, date)))
@@ -178,6 +180,12 @@ export const dayRouter = {
         trainingDayQuery(context.db, userId, date),
         // "Kalori olahraga" settings and the notice dismissal, from the synced account preferences.
         addBackPrefQuery(context.db, userId),
+        // The watch's all-day active energy (JoyoFit) of the day, the main input of the activity credit.
+        context.db
+          .select({ activeKcal: fitnessScore.activeKcal })
+          .from(fitnessScore)
+          .where(and(eq(fitnessScore.userId, userId), eq(fitnessScore.date, date)))
+          .limit(1),
       ]);
 
       const prof = profileRows[0];
@@ -218,18 +226,20 @@ export const dayRouter = {
         date,
       );
       const { targets: planTargets } = plan;
-      // Sisa = budget - eaten, the budget being the plan's base plus the counted exercise (lib/exercise-credit). Every
-      // client and the MCP read this one number; `exerciseKcal` tells how much of `eatKcal` came from exercise.
+      // Sisa = budget - eaten, the budget being the plan's base (BMR less the deficit) plus the assumed activity of a day
+      // without watch data and the counted activity (lib/exercise-credit). Every client and the MCP read this one
+      // number; `assumedKcal` and `exerciseKcal` tell how much of `eatKcal` came from each.
       const { settings, noticeDismissed } = readAddBackPrefs(prefRows);
       const credit = exerciseCredit({
         settings,
         rows: exerciseRows,
+        readings: dayReadings(activityRows[0], scoreRows[0]),
         steps: activityRows[0]?.steps ?? null,
-        weightKg: plan.weightNowKg,
       });
       const targets = {
         ...planTargets,
-        eatKcal: planTargets.eatKcal + credit.countedKcal,
+        eatKcal: budgetKcal(planTargets.eatKcal, credit),
+        assumedKcal: credit.assumedKcal,
         exerciseKcal: credit.countedKcal,
       };
 
@@ -476,8 +486,8 @@ export const dayRouter = {
         today,
       );
       // The diary's bar and Sisa use the plan plus the counted exercise; guidance reads the same budget.
-      const credit = await loadDayCredit(context.db, userId, today, builtPlan.weightNowKg);
-      const eatKcal = builtPlan.targets.eatKcal + credit.countedKcal;
+      const credit = await loadDayCredit(context.db, userId, today);
+      const eatKcal = budgetKcal(builtPlan.targets.eatKcal, credit);
       targets = {
         eatKcal,
         proteinG: proteinGoalG(builtPlan, prof.heightCm, workoutRows.length > 0),

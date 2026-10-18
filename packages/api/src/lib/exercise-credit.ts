@@ -1,177 +1,193 @@
-// "Sisa" adds back exercise. The eat target is built on a sedentary TDEE (engine.ts computeTargets), so the movement
-// of the day is not in it; the part of the recorded exercise the person chooses to count is added on top. This file
-// is the one place that decides how much. Pure: no i18n, no database. Settings live in the account preferences
-// (rogo-prefs.ts) and are read by the server (exercise-credit-store.ts). Contract for humans: docs/energy-model.md.
-
-export const ADD_BACK_SOURCES = ["workouts", "workouts+steps"] as const;
-export type AddBackSource = (typeof ADD_BACK_SOURCES)[number];
+// "Sisa" adds back real activity. The eat target is BMR less the plan's deficit (engine.ts computeTargets): no daily
+// movement is assumed, so what the person really moved is added on top. This file is the one place that decides how
+// much. Pure: no i18n, no database. Settings live in the account preferences (rogo-prefs.ts) and are read by the server
+// (exercise-credit-store.ts). Contract for humans: docs/energy-model.md.
 
 /** 500 / 1000 / 1500 kcal a day, or no cap. */
 export const ADD_BACK_CAPS = [500, 1000, 1500, "none"] as const;
 export type AddBackCap = (typeof ADD_BACK_CAPS)[number];
 
-/** Share of the exercise that is counted, in percent. */
+/** Share of the day's activity that is counted, in percent. */
 export const ADD_BACK_PCT = { min: 50, max: 100, step: 5 } as const;
-/** Steps a day below which walking is not counted as exercise. */
-export const ADD_BACK_STEP_THRESHOLD = { min: 3000, max: 10000, step: 500 } as const;
+
+/** "Aktivitas harian (perkiraan)": kcal for a day with no all-day data. None / light / moderate / active. */
+export const ASSUMED_ACTIVITY_KCAL = [0, 150, 300, 500] as const;
+export type AssumedActivityKcal = (typeof ASSUMED_ACTIVITY_KCAL)[number];
 
 export interface AddBackSettings {
   enabled: boolean;
   pct: number;
-  source: AddBackSource;
-  stepThreshold: number;
   cap: AddBackCap;
+  /** added to the base on days without all-day data; not multiplied by `pct` */
+  assumedKcal: AssumedActivityKcal;
 }
 
 export const DEFAULT_ADD_BACK_SETTINGS: AddBackSettings = {
   enabled: true,
   pct: 75,
-  source: "workouts",
-  stepThreshold: 5000,
   cap: 1000,
+  assumedKcal: 0,
 };
 
 /** The preference keys behind the settings (rogo-prefs.ts SPECS), one record each. */
 export const ADD_BACK_PREF_KEYS = [
   "exercise.addBack.enabled",
   "exercise.addBack.pct",
-  "exercise.addBack.source",
-  "exercise.addBack.stepThreshold",
   "exercise.addBack.cap",
+  "exercise.assumedActive",
 ] as const;
 export type AddBackPrefKey = (typeof ADD_BACK_PREF_KEYS)[number];
 
-const isStepOf = (value: unknown, range: { min: number; max: number; step: number }): value is number =>
+const isPct = (value: unknown): value is number =>
   typeof value === "number" &&
   Number.isInteger(value) &&
-  value >= range.min &&
-  value <= range.max &&
-  (value - range.min) % range.step === 0;
+  value >= ADD_BACK_PCT.min &&
+  value <= ADD_BACK_PCT.max &&
+  (value - ADD_BACK_PCT.min) % ADD_BACK_PCT.step === 0;
 
 /** Per-key sanitizers: the value or undefined when it is not one this build accepts. */
 export const ADD_BACK_SANITIZERS: Record<AddBackPrefKey, (value: unknown) => unknown | undefined> = {
   "exercise.addBack.enabled": (value) => (typeof value === "boolean" ? value : undefined),
-  "exercise.addBack.pct": (value) => (isStepOf(value, ADD_BACK_PCT) ? value : undefined),
-  "exercise.addBack.source": (value) => ADD_BACK_SOURCES.find((source) => source === value),
-  "exercise.addBack.stepThreshold": (value) => (isStepOf(value, ADD_BACK_STEP_THRESHOLD) ? value : undefined),
+  "exercise.addBack.pct": (value) => (isPct(value) ? value : undefined),
   "exercise.addBack.cap": (value) => ADD_BACK_CAPS.find((cap) => cap === value),
+  "exercise.assumedActive": (value) => ASSUMED_ACTIVITY_KCAL.find((kcal) => kcal === value),
 };
 
 /** Settings from the stored preference values: a missing or malformed one falls back to its default. */
 export function addBackSettings(values: Partial<Record<AddBackPrefKey, unknown>>): AddBackSettings {
-  const pick = <K extends AddBackPrefKey>(key: K) => ADD_BACK_SANITIZERS[key](values[key]);
-  const enabled = pick("exercise.addBack.enabled");
-  const pct = pick("exercise.addBack.pct");
-  const source = pick("exercise.addBack.source");
-  const stepThreshold = pick("exercise.addBack.stepThreshold");
-  const cap = pick("exercise.addBack.cap");
+  const pick = (key: AddBackPrefKey) => ADD_BACK_SANITIZERS[key](values[key]);
   return {
-    enabled: (enabled as boolean | undefined) ?? DEFAULT_ADD_BACK_SETTINGS.enabled,
-    pct: (pct as number | undefined) ?? DEFAULT_ADD_BACK_SETTINGS.pct,
-    source: (source as AddBackSource | undefined) ?? DEFAULT_ADD_BACK_SETTINGS.source,
-    stepThreshold: (stepThreshold as number | undefined) ?? DEFAULT_ADD_BACK_SETTINGS.stepThreshold,
-    cap: (cap as AddBackCap | undefined) ?? DEFAULT_ADD_BACK_SETTINGS.cap,
+    enabled: (pick("exercise.addBack.enabled") as boolean | undefined) ?? DEFAULT_ADD_BACK_SETTINGS.enabled,
+    pct: (pick("exercise.addBack.pct") as number | undefined) ?? DEFAULT_ADD_BACK_SETTINGS.pct,
+    cap: (pick("exercise.addBack.cap") as AddBackCap | undefined) ?? DEFAULT_ADD_BACK_SETTINGS.cap,
+    assumedKcal: (pick("exercise.assumedActive") as AssumedActivityKcal | undefined) ?? DEFAULT_ADD_BACK_SETTINGS.assumedKcal,
   };
 }
 
-/**
- * Net kcal one step costs per kg of body weight. Walking on the flat costs about 0.5 kcal per kg per km
- * (ACSM walking equation at 3 km/h: ~0.1 ml O2/kg/m above rest, 5 kcal per litre); a step is 0.7 to 0.8 m,
- * so 0.0004 kcal/kg/step. 0.0005 rounds up for brisker walking and stairs.
- */
-export const STEP_KCAL_PER_KG = 0.0005;
+/** Where a day's all-day active energy came from. */
+export const ALL_DAY_SOURCES = ["joyofit", "health_connect", "apple_health"] as const;
+export type AllDaySource = (typeof ALL_DAY_SOURCES)[number];
+
+/** A total above this is a glitch (a Huawei or Health Connect double write), not a person: it is ignored. */
+export const ALL_DAY_MAX_KCAL = 6000;
+/** A day with at least this many steps cannot have less than STEP_FLOOR_KCAL_PER_STEP of active energy. */
+const STEP_CHECK_FROM = 3000;
+const STEP_FLOOR_KCAL_PER_STEP = 0.01;
+
+export interface AllDayReading {
+  source: AllDaySource;
+  kcal: number | null | undefined;
+}
 
 /**
- * Steps per minute a recorded walking or running workout already contains, by exercise type (lib/met.ts). The
- * steps counter does not know which steps belong to a workout; subtracting these keeps a recorded walk from being
- * counted twice. Workouts of other types (cycling, gym, swim) and rows without a type or duration subtract nothing.
+ * The day's trusted all-day active energy: the largest valid reading. Two readings are two views of the same energy (the
+ * watch and the health store it also writes to), so they are never added. A reading is not valid when it is empty, above
+ * ALL_DAY_MAX_KCAL, or absurdly low for the day's steps (0 active on a day with 15 000 steps).
  */
-export const WORKOUT_CADENCE_SPM: Record<string, number> = { jalan: 100, jalan_cepat: 115, lari: 160 };
+export function allDayActive(readings: readonly AllDayReading[], steps: number | null): { kcal: number; source: AllDaySource } | null {
+  let best: { kcal: number; source: AllDaySource } | null = null;
+  for (const { source, kcal } of readings) {
+    if (typeof kcal !== "number" || !Number.isFinite(kcal) || kcal <= 0 || kcal > ALL_DAY_MAX_KCAL) continue;
+    if (steps !== null && steps >= STEP_CHECK_FROM && kcal < steps * STEP_FLOOR_KCAL_PER_STEP) continue;
+    if (best === null || kcal > best.kcal) best = { kcal, source };
+  }
+  return best;
+}
 
 export interface CreditExerciseRow {
   kcal: number;
   /** 'rest' rows mark a planned day off, never movement */
   source?: string | null;
-  type?: string | null;
-  durationMin?: number | null;
 }
+
+/**
+ * Sources whose energy a device already measures all day: the watch's own workouts and strength rows (joyofit) and the
+ * health store's (health_connect, apple_health). When all-day data exists they are inside it. 'manual' and 'strava' are
+ * never inside it: the person typed them, or Strava recorded them without the watch.
+ */
+const INSIDE_ALL_DAY = new Set(["joyofit", "health_connect", "apple_health"]);
 
 export interface ExerciseCredit {
   enabled: boolean;
   pct: number;
-  source: AddBackSource;
-  stepThreshold: number;
   cap: AddBackCap;
-  /** recorded exercise of the day (every source but 'rest') */
-  workoutKcal: number;
-  /** the steps above the threshold as kcal; 0 unless the source includes steps */
-  stepKcal: number;
-  /** steps that count: the day's steps minus those inside recorded walks and runs, above the threshold */
-  countedSteps: number;
-  /** what is added to the day's budget; 0 while the setting is off */
+  /** the day's trusted all-day active energy; null when there is none */
+  allDayKcal: number | null;
+  allDaySource: AllDaySource | null;
+  /** recorded workouts of the watch and health stores (inside the all-day total when there is one) */
+  deviceWorkoutKcal: number;
+  /** recorded workouts that are never inside the all-day total (manual, Strava) */
+  otherWorkoutKcal: number;
+  /** the day's activity: max(all-day, device workouts) + other workouts; what pct is taken of */
+  activeKcal: number;
+  /** added to the base on a day without all-day data (not multiplied by pct); 0 on a day with it */
+  assumedKcal: number;
+  /** what is added to the day's budget for activity; 0 while the setting is off */
   countedKcal: number;
   /** the cap cut the amount */
   capped: boolean;
 }
 
-/** Recorded exercise (plus steps above the threshold when asked) times the share, capped. */
+/**
+ * activeKcal = max(allDay, device workouts) + other workouts; counted = min(cap, pct x activeKcal).
+ * Without all-day data the same sum is device workouts + other workouts, and the assumed activity of the setting
+ * is added to the base instead. A watch's all-day energy contains the watch's workouts, so they are never added to it.
+ */
 export function exerciseCredit(input: {
   settings: AddBackSettings;
   rows: readonly CreditExerciseRow[];
+  readings: readonly AllDayReading[];
   /** the day's step count; null when no step source synced */
   steps: number | null;
-  weightKg: number;
 }): ExerciseCredit {
   const { settings } = input;
-  const workouts = input.rows.filter((row) => row.source !== "rest");
-  const workoutKcal = workouts.reduce((sum, row) => sum + row.kcal, 0);
-
-  let stepKcal = 0;
-  let countedSteps = 0;
-  if (settings.source === "workouts+steps" && input.steps !== null) {
-    const inWorkouts = workouts.reduce(
-      (sum, row) => sum + (WORKOUT_CADENCE_SPM[row.type ?? ""] ?? 0) * (row.durationMin ?? 0),
-      0,
-    );
-    countedSteps = Math.max(0, Math.round(input.steps - inWorkouts) - settings.stepThreshold);
-    stepKcal = countedSteps * STEP_KCAL_PER_KG * input.weightKg;
+  const allDay = allDayActive(input.readings, input.steps);
+  let deviceWorkoutKcal = 0;
+  let otherWorkoutKcal = 0;
+  for (const row of input.rows) {
+    if (row.source === "rest") continue;
+    if (INSIDE_ALL_DAY.has(row.source ?? "")) deviceWorkoutKcal += row.kcal;
+    else otherWorkoutKcal += row.kcal;
   }
-
-  return applyShare({
-    ...settings,
-    workoutKcal: Math.round(workoutKcal),
-    stepKcal: Math.round(stepKcal),
-    countedSteps,
-  });
-}
-
-type CreditInputs = Omit<ExerciseCredit, "countedKcal" | "capped">;
-
-/** The share of workouts plus step kcal, capped: the one place `countedKcal` and `capped` are decided. */
-function applyShare(credit: CreditInputs): ExerciseCredit {
-  const share = ((credit.workoutKcal + credit.stepKcal) * credit.pct) / 100;
-  const limit = credit.cap === "none" ? Infinity : credit.cap;
+  const activeKcal = Math.max(allDay?.kcal ?? 0, deviceWorkoutKcal) + otherWorkoutKcal;
+  const share = (activeKcal * settings.pct) / 100;
+  const limit = settings.cap === "none" ? Infinity : settings.cap;
   return {
-    ...credit,
-    countedKcal: credit.enabled ? Math.round(Math.min(limit, share)) : 0,
-    capped: credit.enabled && share > limit,
+    enabled: settings.enabled,
+    pct: settings.pct,
+    cap: settings.cap,
+    allDayKcal: allDay ? Math.round(allDay.kcal) : null,
+    allDaySource: allDay?.source ?? null,
+    deviceWorkoutKcal: Math.round(deviceWorkoutKcal),
+    otherWorkoutKcal: Math.round(otherWorkoutKcal),
+    activeKcal: Math.round(activeKcal),
+    assumedKcal: allDay ? 0 : settings.assumedKcal,
+    countedKcal: settings.enabled ? Math.round(Math.min(limit, share)) : 0,
+    capped: settings.enabled && share > limit,
   };
 }
 
-/**
- * The credit after a workout of `deltaKcal` was added (or removed, negative): what a client shows between an
- * optimistic edit and the refetch. Step kcal stay as they were; the server recomputes the exact figure.
- */
-export function shiftWorkoutKcal(credit: ExerciseCredit, deltaKcal: number): ExerciseCredit {
-  return applyShare({ ...credit, workoutKcal: Math.max(0, credit.workoutKcal + deltaKcal) });
+/** The day's budget: the plan's base eat target plus the assumed activity (days without all-day data) and the counted activity. */
+export function budgetKcal(baseEatKcal: number, credit: Pick<ExerciseCredit, "assumedKcal" | "countedKcal">): number {
+  return baseEatKcal + credit.assumedKcal + credit.countedKcal;
 }
 
 /**
- * The day's budget: the base eat target plus the counted exercise. Sisa is this minus what was eaten
- * (engine.ts remainingKcal). Hamil / Menyusui and Naikin BB use the same sum: more movement only ever raises it.
+ * The credit after a workout of `deltaKcal` was added (or removed, negative) by hand: what a client shows between an
+ * optimistic edit and the refetch. A manual row always adds on top; the server recomputes the exact figure.
  */
-export function dayBudgetKcal(baseEatKcal: number, credit: Pick<ExerciseCredit, "countedKcal">): number {
-  return baseEatKcal + credit.countedKcal;
+export function shiftWorkoutKcal(credit: ExerciseCredit, deltaKcal: number): ExerciseCredit {
+  const otherWorkoutKcal = Math.max(0, credit.otherWorkoutKcal + deltaKcal);
+  const activeKcal = Math.max(credit.allDayKcal ?? 0, credit.deviceWorkoutKcal) + otherWorkoutKcal;
+  const share = (activeKcal * credit.pct) / 100;
+  const limit = credit.cap === "none" ? Infinity : credit.cap;
+  return {
+    ...credit,
+    otherWorkoutKcal,
+    activeKcal,
+    countedKcal: credit.enabled ? Math.round(Math.min(limit, share)) : 0,
+    capped: credit.enabled && share > limit,
+  };
 }
 
 /** Whether the one-time "how Sisa is counted changed" notice shows: an account made before the change, not yet closed. */
@@ -179,5 +195,5 @@ export function showAddBackNotice(input: { accountCreatedAtMs: number; dismissed
   return !input.dismissed && input.accountCreatedAtMs < ADD_BACK_NOTICE_BEFORE_MS;
 }
 
-/** Accounts created before this moment (the deploy of the change) see the notice. */
-export const ADD_BACK_NOTICE_BEFORE_MS = Date.UTC(2026, 9, 18, 12, 30, 0);
+/** Accounts created before this moment (the deploy of the second change) see the notice. */
+export const ADD_BACK_NOTICE_BEFORE_MS = Date.UTC(2026, 9, 18, 13, 30, 0);

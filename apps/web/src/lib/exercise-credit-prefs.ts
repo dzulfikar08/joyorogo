@@ -12,9 +12,8 @@ import { notePrefChanged } from "@joyorogo/api/lib/rogo-prefs-sync";
 const STORE_KEYS: Record<AddBackPrefKey, string> = {
   "exercise.addBack.enabled": "jrg-addback-enabled",
   "exercise.addBack.pct": "jrg-addback-pct",
-  "exercise.addBack.source": "jrg-addback-source",
-  "exercise.addBack.stepThreshold": "jrg-addback-step-threshold",
   "exercise.addBack.cap": "jrg-addback-cap",
+  "exercise.assumedActive": "jrg-assumed-active",
 };
 
 /** The stored value, or undefined when none is stored or it is not one this build accepts. */

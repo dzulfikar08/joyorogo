@@ -8,7 +8,7 @@ import { MAX_SURPLUS_KCAL, MIN_SURPLUS_KCAL } from "@joyorogo/api/lib/gain";
 
 import { fmtInt } from "@/lib/format";
 
-/** "Kebutuhan harianmu": BMR -> activity -> TDEE -> minus cut -> eating target. */
+/** "Kebutuhan harianmu": BMR -> minus cut -> eating target. Hamil/Menyusui: BMR -> activity -> TDEE -> AKG addition -> target. */
 export function NeedsSheet({
   open,
   onOpenChange,
@@ -26,7 +26,8 @@ export function NeedsSheet({
   const gain = targets.gain;
   const cutKey = needs.cutKcal > 0 ? "cut" : "cutNone";
   const step = (
-    key: "bmr" | "activity" | "tdee" | "cut" | "cutNone" | "target",     value: string,
+    key: "bmr" | "activity" | "cut" | "cutNone" | "target",
+    value: string,
     body: string,
   ) => ({
     key,
@@ -38,13 +39,13 @@ export function NeedsSheet({
 
   const steps = [
     step("bmr", fmtInt(needs.bmrKcal), t("settings:plan.needs.bmr.body")),
-    step(
-      "activity",
-      `+ ${fmtInt(needs.activityKcal)}`,
-      t("settings:plan.needs.activity.body", { level: activityLabel }),
-    ),
     ...(maternal
       ? [
+          step(
+            "activity",
+            `+ ${fmtInt(needs.activityKcal)}`,
+            t("settings:plan.needs.activity.body", { level: activityLabel }),
+          ),
           {
             key: "base",
             label: t("settings:plan.needs.tdee.label"),
@@ -62,7 +63,6 @@ export function NeedsSheet({
         ]
       : gain
         ? [
-            step("tdee", fmtInt(needs.tdeeKcal), t("settings:plan.needs.tdee.body")),
             {
               key: "surplus",
               label: t("gain:plan.surplus.label"),
@@ -72,7 +72,6 @@ export function NeedsSheet({
             },
           ]
         : [
-            step("tdee", fmtInt(needs.tdeeKcal), t("settings:plan.needs.tdee.body")),
             step(
               cutKey,
               needs.cutKcal > 0 ? `− ${fmtInt(needs.cutKcal)}` : "0",
@@ -92,7 +91,7 @@ export function NeedsSheet({
       <ol className="space-y-2">
         {steps.map((step) => {
           const final = step.key === "target";
-          const total = step.key === "tdee" || step.key === "base";
+          const total = step.key === "base";
           return (
             <li
               key={step.key}
@@ -136,9 +135,6 @@ export function NeedsSheet({
           <p>
             <span className="font-semibold">{t("gain:estimate.title")}.</span> {t("gain:estimate.body")}
           </p>
-        )}
-        {!maternal && needs.adaptive && (
-          <p>{t("plan.needs.adaptive", { formula: fmtInt(needs.formulaTdeeKcal) })}</p>
         )}
       </div>
     </Sheet>

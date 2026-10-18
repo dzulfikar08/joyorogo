@@ -45,6 +45,9 @@ export const fitnessScore = sqliteTable(
     loadRatio: real("load_ratio"),
     // Hours of recovery time still left after the last hard workout.
     recoveryHours: integer("recovery_hours"),
+    // The watch's own active-energy total of the day (kcal, everything above resting: walking, chores, workouts), from
+    // the minute step frames. It feeds the diary's calorie budget (api lib/exercise-credit.ts, docs/energy-model.md).
+    activeKcal: real("active_kcal"),
     source: text("source").notNull().default("joyofit"),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)

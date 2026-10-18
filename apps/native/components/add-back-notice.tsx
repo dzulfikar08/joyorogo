@@ -11,7 +11,7 @@ import { Button, Card, Text } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
 import { readDismissal, saveDismissal } from "@/src/lib/dismissals";
 
-/** One-time note that Sisa now adds back exercise. `show` is the server's verdict (`day.summary.addBackNotice`). */
+/** One-time note that how Sisa counts exercise changed. `show` is the server's verdict (`day.summary.addBackNotice`). */
 export function AddBackNotice({ show }: { show: boolean }) {
   const { t } = useTranslation("home");
   const { data: session } = authClient.useSession();
@@ -21,7 +21,7 @@ export function AddBackNotice({ show }: { show: boolean }) {
   useEffect(() => {
     if (!userId) return;
     let live = true;
-    void readDismissal("dismissed.addBackNotice", userId).then((stored) => {
+    void readDismissal("dismissed.addBackNotice2", userId).then((stored) => {
       if (live) setDismissed(stored);
     });
     return () => {
@@ -33,7 +33,7 @@ export function AddBackNotice({ show }: { show: boolean }) {
 
   const dismiss = () => {
     setDismissed(true);
-    if (userId) void saveDismissal("dismissed.addBackNotice", userId);
+    if (userId) void saveDismissal("dismissed.addBackNotice2", userId);
   };
 
   return (

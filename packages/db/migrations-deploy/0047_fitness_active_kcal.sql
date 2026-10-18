@@ -1,0 +1,1 @@
+ALTER TABLE `fitness_score` ADD `active_kcal` real;

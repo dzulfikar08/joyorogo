@@ -242,16 +242,16 @@ function ResultView({
   );
 }
 
-/** Naikin BB result: TDEE + surplus = target, then pace, reach date and protein. */
+/** Naikin BB result: BMR + surplus = target, then pace, reach date and protein. */
 function GainResult({ targets, gain }: { targets: Targets; gain: GainInfo }) {
   const { t } = useTranslation(["gain", "settings"]);
   return (
     <>
       <Card>
         <View style={styles.maternalLine}>
-          <Text style={styles.hint}>{t("settings:plan.needs.tdee.label")}</Text>
+          <Text style={styles.hint}>{t("settings:plan.needs.bmr.label")}</Text>
           <Text style={styles.maternalValue}>
-            {fmtInt(targets.tdee)} {t("settings:plan.needs.unit")}
+            {fmtInt(targets.bmr)} {t("settings:plan.needs.unit")}
           </Text>
         </View>
         <View style={styles.maternalLine}>

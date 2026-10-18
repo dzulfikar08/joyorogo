@@ -16,8 +16,8 @@
     "share": "Bagikan progres"
   },
   "addBackNotice": {
-    "title": "Cara hitung sisa berubah",
-    "body": "Cara hitung sisa kalori berubah: target dasar sekarang tanpa olahraga, dan olahraga yang tercatat ditambahkan ({{pct}}%). Atur di Profil.",
+    "title": "Cara hitung sisa berubah lagi",
+    "body": "Cara hitung sisa kalori berubah: target dasar sekarang hanya BMR dikurangi defisit, tanpa tebakan aktivitas. Energi aktif dari jam-mu dan latihan yang tercatat ditambahkan ({{pct}}%). Atur di Profil.",
     "action": "Atur di Profil",
     "dismiss": "Tutup"
   },
@@ -49,9 +49,14 @@
     "limit": "Penyesuaian dibatasi 15% dari rumus, dan hari yang lupa dicatat tidak ikut dihitung."
   },
   "tile": {
-    "burn": "Olahraga hari ini",
+    "burn": "Aktivitas hari ini",
     "burnSub": "dari {{sources}}",
-    "burnNone": "belum ada olahraga",
+    "burnNone": "belum ada aktivitas",
+    "activeFrom": {
+      "joyofit": "dari jam-mu",
+      "health_connect": "dari Health Connect",
+      "apple_health": "dari Apple Health"
+    },
     "source": {
       "manual": "catatan manual",
       "joyofit": "JoyoFit",
@@ -173,7 +178,7 @@
     "fill": "Isi gelas ke-{{n}}",
     "empty": "Kosongkan gelas ke-{{n}}",
     "hint": "Segelas air tiap habis makan bikin kenyang lebih lama.",
-    "added": "+1 gelas dicatat",
+    "added": "+{{kcal}} kkal dari aktivitas ({{pct}}%)",
     "removed": "1 gelas dihapus",
     "less": "Kurangi gelas air",
     "more": "Tambah gelas air",
@@ -204,15 +209,15 @@
   },
   "explain": {
     "title": "Cara baca angka hari ini",
-    "formula": "Sisa = target makan − sudah dimakan + olahraga yang dihitung",
-    "exampleAdd": "Hari ini: {{target}} + {{exercise}} olahraga − {{eaten}} = {{left}} kcal sisa",
-    "exampleAddOver": "Hari ini: {{target}} + {{exercise}} olahraga − {{eaten}} = lewat {{over}} kcal",
+    "formula": "Sisa = BMR − defisit + aktivitas yang dihitung − sudah dimakan",
+    "exampleAdd": "Hari ini: {{target}} + {{exercise}} aktivitas − {{eaten}} = {{left}} kcal sisa",
+    "exampleAddOver": "Hari ini: {{target}} + {{exercise}} aktivitas − {{eaten}} = lewat {{over}} kcal",
     "added": "+{{kcal}} kkal dari olahraga ({{pct}}%)",
     "example": "Hari ini: {{target}} − {{eaten}} = {{left}} kcal sisa",
     "exampleOver": "Hari ini: {{target}} − {{eaten}} = lewat {{over}} kcal",
     "target": {
       "title": "Target makan",
-      "body": "Jatah kalori makanmu sehari, dihitung dari tubuh dan target beratmu. Olahraga belum ada di angka ini: yang kamu catat ditambahkan terpisah."
+      "body": "Jatah kalori makanmu sehari: BMR (kebutuhan tubuh saat diam) dikurangi defisit untuk target beratmu. Tidak ada tebakan aktivitas di sini; gerak yang nyata ditambahkan terpisah."
     },
     "clamped": {
       "lose": "Target makan ini dihitung dengan defisit maksimal 1.000 kcal per hari. Tanggal targetmu menuntut lebih dari itu, jadi targetmu baru tercapai sekitar {{date}}.",
@@ -229,16 +234,33 @@
       "body": "Yang masih muat sampai malam. Kalau sudah lewat, angkanya berubah jadi Lewat. Tenang, besok mulai lagi."
     },
     "burn": {
-      "title": "Olahraga hari ini",
-      "body": "Kalori dari olahraga yang tercatat hari ini: jam, Health Connect atau Apple Health, Strava, dan catatan manual. {{pct}}% dari angka ini ditambahkan ke sisa makanmu, jadi bergerak lebih banyak berarti boleh makan lebih banyak."
+      "title": "Aktivitas hari ini",
+      "body": "Gerak yang benar-benar terukur hari ini: energi aktif dari jam-mu (atau Health Connect / Apple Health) ditambah latihan tercatat yang tidak ada di jam. {{pct}}% ditambahkan ke sisa makanmu, jadi bergerak lebih banyak berarti boleh makan lebih banyak."
+    },
+    "sum": {
+      "title": "Hitungan hari ini",
+      "bmr": "BMR (tubuh diam)",
+      "cut": "Defisit",
+      "surplus": "Surplus naik berat",
+      "add": "Tambahan Hamil / Menyusui",
+      "floor": "Batas minimal makan",
+      "assumed": "Perkiraan aktivitas harian",
+      "activity": "Aktivitas hari ini",
+      "activityOf": "{{pct}}% dari {{kcal}} kkal",
+      "target": "Target makan hari ini",
+      "eaten": "Sudah dimakan",
+      "left": "Sisa"
     },
     "addBack": {
-      "title": "Olahraga yang dihitung",
-      "body": "Dari {{workout}} kkal olahraga tercatat, {{pct}}% ({{kcal}} kkal) ditambahkan ke jatah makanmu hari ini.",
-      "steps": "Ditambah {{steps}} langkah di atas {{threshold}} langkah, sekitar {{stepKcal}} kkal.",
+      "title": "Aktivitas yang dihitung",
+      "body": "Dari {{active}} kkal aktivitas hari ini, {{pct}}% ({{kcal}} kkal) ditambahkan ke jatah makanmu.",
+      "watch": "Energi aktif dari jam-mu {{kcal}} kkal; latihan jam sudah termasuk di dalamnya, tidak dihitung dua kali.",
+      "healthStore": "Energi aktif dari {{source}} {{kcal}} kkal; latihan di sana sudah termasuk.",
+      "other": "Latihan di luar jam (manual, Strava) menambah {{kcal}} kkal.",
+      "assumed": "Hari ini belum ada data aktif dari jam, jadi dipakai perkiraan aktivitas harianmu: +{{kcal}} kkal (tidak dikali persen).",
       "capped": "Batas tambahan {{cap}} kkal per hari tercapai.",
-      "off": "Fitur ini mati di Profil, jadi olahraga tidak menambah sisa. Sisa hanya dari target dasar.",
-      "none": "Belum ada olahraga tercatat hari ini, jadi belum ada yang ditambahkan.",
+      "off": "Fitur ini mati di Profil, jadi aktivitas tidak menambah sisa. Sisa hanya dari target dasar.",
+      "none": "Belum ada aktivitas terukur hari ini, jadi belum ada yang ditambahkan.",
       "setting": "Atur di Profil > Target & tubuh"
     },
     "deficit": {

@@ -84,14 +84,9 @@ export const ACTIVITY_LABELS = localizedLabels(ACTIVITY_LEVELS, (level, locale) 
 );
 
 /**
- * Daily-life multiplier of the eat target's base: BMR x 1.2 (sedentary, Harris-Benedict/FAO "little or no exercise").
- * Movement is not in it: recorded exercise is added to the day's budget afterwards (lib/exercise-credit).
- */
-export const SEDENTARY_MULTIPLIER = 1.2;
-
-/**
- * The profile's old three-level multiplier. No longer behind the eat target; Hamil / Menyusui keep it so their
- * AKG-based target never drops, and computeBurn's legacy fallback reads it.
+ * The profile's three-level activity multiplier. The normal plan no longer uses it (its base is the BMR: no daily
+ * movement is assumed, real activity is added on top, lib/exercise-credit). Hamil / Menyusui keep it so their AKG-based
+ * target never drops, and computeBurn's legacy fallback reads it.
  */
 export const ACTIVITY_MULTIPLIER: Record<ActivityLevel, number> = {
   low: 1.25,
@@ -147,14 +142,16 @@ export type Targets = {
   bmr: number;
   /** TDEE the plan uses: measured (ADAPTIVE) when enough data, else formula */
   tdee: number;
-  /** Mifflin-St Jeor x sedentary multiplier */
+  /** Mifflin-St Jeor BMR: the normal plan assumes no daily movement */
   formulaTdee: number;
   /**
-   * The day's eat budget. computeTargets / computeMaternalTargets return the base (sedentary TDEE less the deficit,
-   * plus surplus or AKG addition); day.summary adds `exerciseKcal` to it. Sisa = eatKcal - eaten.
+   * The day's eat budget. computeTargets / computeMaternalTargets return the base (BMR less the deficit, plus surplus
+   * or AKG addition); day.summary adds `assumedKcal` and `exerciseKcal` to it. Sisa = eatKcal - eaten.
    */
   eatKcal: number;
-  /** Part of `eatKcal` that came from counted exercise (lib/exercise-credit); 0 in the plan itself */
+  /** Part of `eatKcal` that is the assumed activity of a day without all-day data (lib/exercise-credit); 0 in the plan itself */
+  assumedKcal: number;
+  /** Part of `eatKcal` that came from counted activity (lib/exercise-credit); 0 in the plan itself */
   exerciseKcal: number;
   /** Daily movement goal for the exercise screens. It is not part of the eat budget. */
   burnKcal: number;
@@ -603,7 +600,7 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
   const age = ageFromBirthYear(profile.birthYear, today);
 
   const bmr = bmrMifflin(weightNow, profile.heightCm, age, profile.gender);
-  const formulaTdee = bmr * SEDENTARY_MULTIPLIER;
+  const formulaTdee = bmr;
   // Measured TDEE may only move the plan within ±15% of the textbook value:
   // under-logged weeks must not crash the budget, nor binge weeks inflate it.
   const tdee =
@@ -677,6 +674,7 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
     tdee: Math.round(baseKcal),
     formulaTdee: Math.round(formulaTdee),
     eatKcal: eat,
+    assumedKcal: 0,
     exerciseKcal: 0,
     burnKcal: burn,
     sleepHours: SLEEP_NEED_HOURS,
@@ -894,8 +892,8 @@ export function checkTargetDate(input: {
 }
 
 /**
- * The day's one calorie model: remaining = budget - eaten, where the budget is the base eat target plus the
- * exercise the person counts (lib/exercise-credit, added by day.summary into `Targets.eatKcal`).
+ * The day's one calorie model: remaining = budget - eaten, where the budget is the base eat target plus the assumed
+ * and counted activity (lib/exercise-credit, added by day.summary into `Targets.eatKcal`).
  */
 export function remainingKcal(targetKcal: number, eatenKcal: number): { kcal: number; over: boolean } {
   const left = Math.round(targetKcal - eatenKcal);
@@ -904,7 +902,7 @@ export function remainingKcal(targetKcal: number, eatenKcal: number): { kcal: nu
 
 export type NeedsBreakdown = {
   bmrKcal: number;
-  /** daily-life movement on top of rest: tdee - bmr */
+  /** daily-life movement on top of rest: tdee - bmr; 0 in the normal plan (no movement is assumed), set for Hamil / Menyusui */
   activityKcal: number;
   tdeeKcal: number;
   /** what the plan takes off the TDEE through food; 0 when holding weight */
@@ -915,9 +913,11 @@ export type NeedsBreakdown = {
   surplusKcal: number;
   /** the plan's target before counted exercise */
   targetKcal: number;
-  /** counted exercise added on top for today (Targets.exerciseKcal); 0 when the setting is off or nothing was recorded */
+  /** assumed daily activity of a day without all-day data (Targets.assumedKcal) */
+  assumedKcal: number;
+  /** counted activity added on top for today (Targets.exerciseKcal); 0 when the setting is off or nothing was recorded */
   exerciseKcal: number;
-  /** the day's budget: targetKcal + exerciseKcal */
+  /** the day's budget: targetKcal + assumedKcal + exerciseKcal */
   budgetKcal: number;
   /** whole planned daily deficit; all of it is the food cut */
   deficitKcal: number;
@@ -929,7 +929,7 @@ export type NeedsBreakdown = {
 
 /** BMR -> activity -> TDEE -> minus deficit -> target, from numbers computeTargets already made. */
 export function needsBreakdown(targets: Targets): NeedsBreakdown {
-  const base = targets.eatKcal - targets.exerciseKcal;
+  const base = targets.eatKcal - targets.assumedKcal - targets.exerciseKcal;
   const cut = targets.tdee - base;
   return {
     bmrKcal: targets.bmr,
@@ -940,6 +940,7 @@ export function needsBreakdown(targets: Targets): NeedsBreakdown {
     addKcal: targets.maternal?.addKcal ?? 0,
     surplusKcal: targets.gain?.surplusKcal ?? 0,
     targetKcal: base,
+    assumedKcal: targets.assumedKcal,
     exerciseKcal: targets.exerciseKcal,
     budgetKcal: targets.eatKcal,
     deficitKcal: targets.deficitKcal,

@@ -17,9 +17,9 @@ import { workoutCustomExercise, workoutSession, workoutSet } from "@joyorogo/db/
 import { watchWorkout } from "@joyorogo/db/schema/watch-workout";
 
 import { ageFromBirthYear, jakartaToday, shiftDate } from "./engine";
-import { exerciseCredit } from "./exercise-credit";
+import { budgetKcal, exerciseCredit } from "./exercise-credit";
 import type { AddBackSettings } from "./exercise-credit";
-import { addBackPrefQuery, readAddBackPrefs } from "./exercise-credit-store";
+import { addBackPrefQuery, dayReadings, readAddBackPrefs } from "./exercise-credit-store";
 import { exerciseById } from "./exercises";
 import { gestationalAge, maternalFromRow } from "./maternal";
 import { buildPlan, planQueries, proteinGoalG } from "./plan";
@@ -270,9 +270,15 @@ export interface DayTotalsView {
   /** Exercise logged by hand or imported from Health Connect / Apple Health (never Strava). */
   exerciseKcal: number;
   steps: number | null;
-  /** Kcal of exercise added to the day's budget under the person's "Kalori olahraga" settings (0 when off). */
+  /** The day's activity that counts: the watch's all-day active energy (or the health store's) and logged workouts, deduplicated (docs/energy-model.md). */
+  activeKcal: number;
+  /** Where the all-day energy came from; null when there was none. */
+  activeSource: string | null;
+  /** Kcal added to the day's budget for that activity under the person's "Kalori olahraga" settings (0 when off). */
   exerciseAddedKcal: number;
-  /** eatKcal target plus exerciseAddedKcal, minus eaten; negative = over. Null when nothing was logged or there is no profile. */
+  /** Assumed daily activity added to the base on a day without all-day data (the "Aktivitas harian (perkiraan)" setting). */
+  assumedKcal: number;
+  /** eatKcal target plus assumedKcal and exerciseAddedKcal, minus eaten; negative = over. Null when nothing was logged or there is no profile. */
   remainingKcal: number | null;
 }
 
@@ -289,7 +295,7 @@ export interface TotalsView {
 
 /** Eaten and burned totals per day against the current targets; one row for every day of the window. */
 export async function getDailyTotals(db: Database, userId: string, from: string, to: string): Promise<TotalsView> {
-  const [food, exercise, activity, view, prefRows] = await Promise.all([
+  const [food, exercise, activity, view, prefRows, scores] = await Promise.all([
     db
       .select({
         date: foodLog.date,
@@ -304,12 +310,7 @@ export async function getDailyTotals(db: Database, userId: string, from: string,
       .where(and(eq(foodLog.userId, userId), gte(foodLog.date, from), lte(foodLog.date, to)))
       .groupBy(foodLog.date),
     db
-      .select({
-        date: exerciseLog.date,
-        kcal: exerciseLog.kcal,
-        type: exerciseLog.type,
-        durationMin: exerciseLog.durationMin,
-      })
+      .select({ date: exerciseLog.date, kcal: exerciseLog.kcal, source: exerciseLog.source })
       .from(exerciseLog)
       .where(
         and(
@@ -321,16 +322,26 @@ export async function getDailyTotals(db: Database, userId: string, from: string,
         ),
       ),
     db
-      .select({ date: dailyActivity.date, steps: dailyActivity.steps })
+      .select({
+        date: dailyActivity.date,
+        steps: dailyActivity.steps,
+        activeCalories: dailyActivity.activeCalories,
+        source: dailyActivity.source,
+      })
       .from(dailyActivity)
       .where(and(eq(dailyActivity.userId, userId), gte(dailyActivity.date, from), lte(dailyActivity.date, to))),
     getProfileView(db, userId),
     addBackPrefQuery(db, userId),
+    db
+      .select({ date: fitnessScore.date, activeKcal: fitnessScore.activeKcal })
+      .from(fitnessScore)
+      .where(and(eq(fitnessScore.userId, userId), gte(fitnessScore.date, from), lte(fitnessScore.date, to))),
   ]);
   const { settings } = readAddBackPrefs(prefRows);
   const foodByDay = new Map(food.map((row) => [row.date, row]));
   const exerciseByDay = Map.groupBy(exercise, (row) => row.date);
-  const stepsByDay = new Map(activity.map((row) => [row.date, row.steps]));
+  const activityByDay = new Map(activity.map((row) => [row.date, row]));
+  const scoreByDay = new Map(scores.map((row) => [row.date, row]));
   const eatTarget = view.dailyTargets?.eatKcal ?? null;
 
   const days: DayTotalsView[] = [];
@@ -347,8 +358,8 @@ export async function getDailyTotals(db: Database, userId: string, from: string,
     const credit = exerciseCredit({
       settings,
       rows: exerciseByDay.get(date) ?? [],
-      steps: stepsByDay.get(date) ?? null,
-      weightKg: view.weight?.currentKg ?? 70,
+      readings: dayReadings(activityByDay.get(date), scoreByDay.get(date)),
+      steps: activityByDay.get(date)?.steps ?? null,
     });
     days.push({
       date,
@@ -359,10 +370,13 @@ export async function getDailyTotals(db: Database, userId: string, from: string,
       fatG: row ? roundOrNull(row.fat, 1) : null,
       fiberG: row ? roundOrNull(row.fiber, 1) : null,
       meals: row?.meals ?? 0,
-      exerciseKcal: credit.workoutKcal,
-      steps: stepsByDay.get(date) ?? null,
+      exerciseKcal: credit.deviceWorkoutKcal + credit.otherWorkoutKcal,
+      steps: activityByDay.get(date)?.steps ?? null,
+      activeKcal: credit.activeKcal,
+      activeSource: credit.allDaySource,
       exerciseAddedKcal: credit.countedKcal,
-      remainingKcal: row && eatTarget !== null ? round(eatTarget + credit.countedKcal - row.kcal) : null,
+      assumedKcal: credit.assumedKcal,
+      remainingKcal: row && eatTarget !== null ? round(budgetKcal(eatTarget, credit) - row.kcal) : null,
     });
   }
   return {

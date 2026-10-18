@@ -15,7 +15,6 @@ import type {
 } from "./engine";
 import {
   ADAPTIVE_WINDOW_DAYS,
-  adaptiveTdee,
   computeTargets,
   proteinTargetG,
   shiftDate,
@@ -120,7 +119,7 @@ export type Plan = {
   maternal: MaternalState | null;
 };
 
-/** The 3 numbers for `date`: formula first, then measured TDEE when the data supports it. */
+/** The 3 numbers for `date`: BMR less the deficit (gain: plus the surplus), Hamil / Menyusui from AKG. */
 export function buildPlan(
   row: ProfileRow,
   history: {
@@ -155,19 +154,10 @@ export function buildPlan(
       maternal,
     };
   }
-  const formula = computeTargets(profileInput, { weightNow: weightNowKg });
-  const measured = adaptiveTdee({
-    date,
-    weighIns: history.weighIns,
-    intake: history.intake,
-    exercise: history.exercise,
-    // A day logged under half the budget is a forgotten day, not a fast.
-    minDayKcal: formula.eatKcal * 0.5,
-  });
-  const targets =
-    measured === null
-      ? formula
-      : computeTargets(profileInput, { weightNow: weightNowKg, adaptiveTdee: measured });
+  // The base is the BMR less the deficit. The measured TDEE (adaptiveTdee) is not applied: it measures everything the
+  // person burns outside logged workouts, which is the daily movement that now comes from real data (the watch's
+  // all-day energy, lib/exercise-credit) and would be counted twice.
+  const targets = computeTargets(profileInput, { weightNow: weightNowKg });
   const trend = weightTrend(history.weighIns, row.targetWeightKg, date);
   // A fast fall while the plan is to gain gets the see-a-doctor note (the one flag that needs the trend).
   if (targets.gain && isRapidLoss(trend?.weeklyRateKg ?? null, weightNowKg)) {

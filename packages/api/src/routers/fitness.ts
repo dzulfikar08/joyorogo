@@ -39,6 +39,8 @@ const dayInput = z.object({
   trainingStatus: z.enum(["productive", "maintaining", "recovery", "overreaching", "detraining"]).nullish(),
   loadRatio: z.number().min(0).max(10).nullish(),
   recoveryHours: z.number().int().min(0).max(240).nullish(),
+  // The watch's active-energy total of the day, kcal: counted in the diary's budget (lib/exercise-credit.ts).
+  activeKcal: z.number().min(0).max(20_000).nullish(),
 });
 
 export const fitnessRouter = {
@@ -89,6 +91,7 @@ export const fitnessRouter = {
             trainingStatus: day.trainingStatus ?? null,
             loadRatio: day.loadRatio ?? null,
             recoveryHours: day.recoveryHours ?? null,
+            activeKcal: day.activeKcal ?? null,
             source: "joyofit",
             updatedAt: new Date(),
           })
@@ -107,6 +110,8 @@ export const fitnessRouter = {
               trainingStatus: sql`coalesce(excluded.training_status, ${fitnessScore.trainingStatus})`,
               loadRatio: sql`coalesce(excluded.load_ratio, ${fitnessScore.loadRatio})`,
               recoveryHours: sql`coalesce(excluded.recovery_hours, ${fitnessScore.recoveryHours})`,
+              // A day's total only grows while it runs: an older push never lowers what a newer one stored.
+              activeKcal: sql`max(coalesce(excluded.active_kcal, 0), coalesce(${fitnessScore.activeKcal}, 0))`,
               source: "joyofit",
               updatedAt: new Date(),
             },

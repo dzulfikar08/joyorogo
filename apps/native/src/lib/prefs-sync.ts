@@ -96,13 +96,12 @@ async function readDevice(key: RogoPrefKey, userId: string): Promise<unknown | u
       return loadStickerPrefs();
     case "exercise.addBack.enabled":
     case "exercise.addBack.pct":
-    case "exercise.addBack.source":
-    case "exercise.addBack.stepThreshold":
     case "exercise.addBack.cap":
+    case "exercise.assumedActive":
       return readAddBackPref(key);
     case "dismissed.handlePrompt":
     case "dismissed.stravaRetention7d":
-    case "dismissed.addBackNotice":
+    case "dismissed.addBackNotice2":
       return (await readDismissal(key, userId)) ? true : undefined;
   }
 }
@@ -122,13 +121,12 @@ async function writeDevice(key: RogoPrefKey, userId: string, value: unknown | un
       return writeStickerPrefs((value as typeof DEFAULT_STICKER_PREFS | undefined) ?? DEFAULT_STICKER_PREFS);
     case "exercise.addBack.enabled":
     case "exercise.addBack.pct":
-    case "exercise.addBack.source":
-    case "exercise.addBack.stepThreshold":
     case "exercise.addBack.cap":
+    case "exercise.assumedActive":
       return writeAddBackPref(key, value);
     case "dismissed.handlePrompt":
     case "dismissed.stravaRetention7d":
-    case "dismissed.addBackNotice":
+    case "dismissed.addBackNotice2":
       return writeDismissal(key, userId, value === true);
   }
 }

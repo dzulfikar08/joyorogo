@@ -7,13 +7,11 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import {
   ADD_BACK_CAPS,
   ADD_BACK_PCT,
-  ADD_BACK_SOURCES,
-  ADD_BACK_STEP_THRESHOLD,
+  ASSUMED_ACTIVITY_KCAL,
   DEFAULT_ADD_BACK_SETTINGS,
   type AddBackCap,
   type AddBackPrefKey,
   type AddBackSettings,
-  type AddBackSource,
 } from "@joyorogo/api/lib/exercise-credit";
 
 import { PressableScale } from "@/components/motion";
@@ -22,6 +20,14 @@ import { loadAddBackSettings, saveAddBackPref } from "@/src/lib/exercise-credit-
 import { syncPrefs } from "@/src/lib/prefs-sync";
 import { fmtInt } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
+
+// The synced preference behind each field of the settings.
+const PREF_KEY: Record<keyof AddBackSettings, AddBackPrefKey> = {
+  enabled: "exercise.addBack.enabled",
+  pct: "exercise.addBack.pct",
+  cap: "exercise.addBack.cap",
+  assumedKcal: "exercise.assumedActive",
+};
 
 type Range = { min: number; max: number; step: number };
 
@@ -87,7 +93,7 @@ export function ExerciseCreditSection() {
   // Stores and queues the edit, pushes it (the server reads the synced record), then refreshes what depends on Sisa.
   const commit = async <K extends keyof AddBackSettings>(field: K, value: AddBackSettings[K]) => {
     setSettings({ ...settings, [field]: value });
-    const key = `exercise.addBack.${field}` as AddBackPrefKey;
+    const key = PREF_KEY[field];
     await saveAddBackPref(key, value);
     await syncPrefs().catch(() => null);
     await Promise.all([
@@ -129,31 +135,6 @@ export function ExerciseCreditSection() {
           />
           <Text style={styles.note}>{t("exerciseCredit.pct.hint")}</Text>
 
-          <Text style={styles.rowTitleBlock}>{t("exerciseCredit.source.title")}</Text>
-          <Segmented<AddBackSource>
-            options={ADD_BACK_SOURCES.map((source) => ({
-              value: source,
-              label: t(source === "workouts" ? "exerciseCredit.source.workouts" : "exerciseCredit.source.workoutsSteps"),
-            }))}
-            value={settings.source}
-            onChange={(next) => void commit("source", next)}
-          />
-          <Text style={styles.note}>{t("exerciseCredit.source.hint")}</Text>
-
-          {settings.source === "workouts+steps" ? (
-            <>
-              <Text style={styles.rowTitleBlock}>{t("exerciseCredit.stepThreshold.title")}</Text>
-              <Stepper
-                value={settings.stepThreshold}
-                range={ADD_BACK_STEP_THRESHOLD}
-                label={t("exerciseCredit.stepThreshold.aria")}
-                display={t("exerciseCredit.stepThreshold.value", { steps: fmtInt(settings.stepThreshold) })}
-                onChange={(next) => void commit("stepThreshold", next)}
-              />
-              <Text style={styles.note}>{t("exerciseCredit.stepThreshold.hint")}</Text>
-            </>
-          ) : null}
-
           <Text style={styles.rowTitleBlock}>{t("exerciseCredit.cap.title")}</Text>
           <Segmented<string>
             options={ADD_BACK_CAPS.map((cap) => ({ value: String(cap), label: capLabel(cap) }))}
@@ -166,6 +147,27 @@ export function ExerciseCreditSection() {
           <Text style={styles.note}>{t("exerciseCredit.cap.hint")}</Text>
         </>
       ) : null}
+
+      <Text style={styles.rowTitleBlock}>{t("exerciseCredit.assumed.title")}</Text>
+      <Segmented<string>
+        options={ASSUMED_ACTIVITY_KCAL.map((kcal) => ({
+          value: String(kcal),
+          label:
+            kcal === 0
+              ? t("exerciseCredit.assumed.none")
+              : kcal === 150
+                ? t("exerciseCredit.assumed.light", { kcal })
+                : kcal === 300
+                  ? t("exerciseCredit.assumed.moderate", { kcal })
+                  : t("exerciseCredit.assumed.active", { kcal }),
+        }))}
+        value={String(settings.assumedKcal)}
+        onChange={(next) => {
+          const kcal = ASSUMED_ACTIVITY_KCAL.find((candidate) => String(candidate) === next);
+          void commit("assumedKcal", kcal ?? DEFAULT_ADD_BACK_SETTINGS.assumedKcal);
+        }}
+      />
+      <Text style={styles.note}>{t("exerciseCredit.assumed.hint")}</Text>
     </Card>
   );
 }

@@ -23,7 +23,7 @@ export function AddBackNotice({ show, className }: { show: boolean; className?: 
   useEffect(() => {
     if (!userId) return;
     try {
-      setDismissed(localStorage.getItem(dismissalStoreKey("dismissed.addBackNotice", userId)) === "1");
+      setDismissed(localStorage.getItem(dismissalStoreKey("dismissed.addBackNotice2", userId)) === "1");
     } catch {
       // Storage blocked (private mode): treat as seen rather than nagging every visit.
       setDismissed(true);
@@ -34,7 +34,7 @@ export function AddBackNotice({ show, className }: { show: boolean; className?: 
 
   const dismiss = () => {
     // Without storage the state below still hides it for this visit.
-    if (userId) saveDismissal("dismissed.addBackNotice", userId);
+    if (userId) saveDismissal("dismissed.addBackNotice2", userId);
     setDismissed(true);
   };
 

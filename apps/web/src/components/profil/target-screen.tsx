@@ -173,15 +173,17 @@ export function TargetScreen({
             )}
           </>
         )}
-        <ListRow
-          icon={
-            <IconChip tone="tidur">
-              <Footprints />
-            </IconChip>
-          }
-          title={t("plan.activity.title")}
-          value={ACTIVITY_LABELS[row.activityLevel as ActivityLevel] ?? row.activityLevel}
-        />
+        {targets.maternal && (
+          <ListRow
+            icon={
+              <IconChip tone="tidur">
+                <Footprints />
+              </IconChip>
+            }
+            title={t("plan.activity.title")}
+            value={ACTIVITY_LABELS[row.activityLevel as ActivityLevel] ?? row.activityLevel}
+          />
+        )}
       </ListGroup>
       {!targets.maternal && <TargetPaceNotice pace={targets.datePace} className="mt-3" />}
       <div className="mt-3">
@@ -195,7 +197,11 @@ export function TargetScreen({
             </IconChip>
           }
           title={t("plan.needs.row")}
-          value={t("plan.needs.rowValue", { kcal: fmtInt(targets.tdee) })}
+          value={
+            targets.maternal
+              ? t("plan.needs.rowValue", { kcal: fmtInt(targets.tdee) })
+              : t("plan.needs.rowValueBmr", { kcal: fmtInt(targets.bmr) })
+          }
           onClick={() => setSheet("needs")}
         />
       </ListGroup>

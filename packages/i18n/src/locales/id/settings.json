@@ -224,7 +224,7 @@
     },
     "activity": {
       "title": "Aktivitas harian",
-      "subtitle": "Tidak memengaruhi target makan; olahraga dihitung dari catatanmu"
+      "subtitle": "Hanya untuk target Hamil dan Menyusui"
     },
     "numbers": {
       "eat": "Makan",
@@ -265,6 +265,7 @@
       "title": "Kebutuhan harianmu",
       "row": "Kebutuhan harianmu",
       "rowValue": "TDEE {{kcal}}",
+      "rowValueBmr": "BMR {{kcal}}",
       "intro": "Langkah demi langkah, dari tubuhmu sampai target makan hari ini.",
       "unit": "kcal per hari",
       "bmr": {
@@ -275,7 +276,7 @@
       "activity": {
         "label": "Aktivitas harian",
         "name": "Gerak sehari-hari",
-        "body": "Tambahan kecil dari gerak harian yang paling ringan (BMR × 1,2). Olahraga tidak termasuk: yang kamu catat ditambahkan ke sisa makan hari itu."
+        "body": "Tambahan dari jalan, kerja, dan beres-beres di luar olahraga. Sesuai pilihan aktivitasmu: {{level}}."
       },
       "tdee": {
         "label": "TDEE",
@@ -285,12 +286,12 @@
       "cut": {
         "label": "Dikurangi buat turun berat",
         "name": "Potongan makan",
-        "body": "Potongan dari makan supaya tubuh memakai simpanan lemak. Besarnya dihitung dari selisih berat dan tanggal targetmu."
+        "body": "Potongan dari BMR supaya tubuh memakai simpanan lemak. Besarnya dihitung dari selisih berat dan tanggal targetmu. Seluruh potongan diambil dari makan."
       },
       "cutNone": {
         "label": "Tidak ada potongan",
         "name": "Menjaga berat",
-        "body": "Beratmu sudah di target, jadi kamu makan sebanyak TDEE untuk menjaga."
+        "body": "Beratmu sudah di target, jadi kamu makan sebanyak BMR untuk menjaga. Aktivitas yang nyata ditambahkan di atasnya."
       },
       "target": {
         "label": "Target makan",
@@ -304,33 +305,30 @@
   "exerciseCredit": {
     "title": "Kalori olahraga",
     "enabled": {
-      "title": "Tambahkan kalori olahraga",
-      "hint": "Olahraga yang tercatat menambah jatah makanmu hari itu. Target dasarmu tidak menghitung olahraga."
+      "title": "Tambahkan kalori aktivitas",
+      "hint": "Energi aktif dari jam-mu dan latihan yang tercatat menambah jatah makanmu hari itu. Target dasarmu hanya BMR dikurangi defisit."
     },
     "pct": {
       "title": "Berapa persen dihitung",
       "hint": "Jam dan aplikasi sering melebih-lebihkan kalori. 75% adalah titik tengah yang aman.",
       "value": "{{pct}}%",
-      "aria": "Persentase olahraga yang dihitung"
-    },
-    "source": {
-      "title": "Yang dihitung",
-      "workouts": "Latihan tercatat",
-      "workoutsSteps": "Latihan + langkah",
-      "hint": "Langkah dihitung terpisah dari latihan yang sudah tercatat, tanpa dobel."
-    },
-    "stepThreshold": {
-      "title": "Langkah di atas",
-      "hint": "Jalan kaki biasa sehari-hari sudah ada di target dasar. Hanya langkah di atas angka ini yang dihitung.",
-      "value": "{{steps}} langkah",
-      "aria": "Batas langkah per hari"
+      "aria": "Persentase aktivitas yang dihitung"
     },
     "cap": {
       "title": "Batas tambahan per hari",
-      "hint": "Tambahan olahraga tidak akan melewati angka ini.",
+      "hint": "Tambahan aktivitas tidak akan melewati angka ini.",
       "kcal": "{{kcal}} kkal",
       "none": "Tanpa batas",
-      "aria": "Batas tambahan olahraga per hari"
+      "aria": "Batas tambahan aktivitas per hari"
+    },
+    "assumed": {
+      "title": "Aktivitas harian (perkiraan)",
+      "hint": "Hanya dipakai di hari tanpa data aktif dari jam. Ditambahkan ke target dasar, tidak dikali persen.",
+      "none": "Tidak ada",
+      "light": "Ringan +{{kcal}}",
+      "moderate": "Sedang +{{kcal}}",
+      "active": "Aktif +{{kcal}}",
+      "aria": "Perkiraan aktivitas harian tanpa data jam"
     }
   },
   "theme": {

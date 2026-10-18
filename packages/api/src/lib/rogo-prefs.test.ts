@@ -16,9 +16,8 @@ describe("the registry", () => {
     expect(ROGO_PREF_KEYS).toEqual([
       "exercise.addBack.enabled",
       "exercise.addBack.pct",
-      "exercise.addBack.source",
-      "exercise.addBack.stepThreshold",
       "exercise.addBack.cap",
+      "exercise.assumedActive",
       "theme",
       "reminders",
       "makan.view",
@@ -26,7 +25,7 @@ describe("the registry", () => {
       "sticker",
       "dismissed.handlePrompt",
       "dismissed.stravaRetention7d",
-      "dismissed.addBackNotice",
+      "dismissed.addBackNotice2",
     ]);
     for (const key of ROGO_PREF_KEYS) expect(key.length).toBeLessThanOrEqual(64);
   });
@@ -40,39 +39,42 @@ describe("the registry", () => {
   });
 });
 
-describe("exercise.addBack.*", () => {
+describe("exercise.addBack.* and exercise.assumedActive", () => {
   test("accept the offered values only", () => {
     expect(sanitizeRogoPref("exercise.addBack.enabled", false)).toBe(false);
     expect(sanitizeRogoPref("exercise.addBack.pct", 50)).toBe(50);
     expect(sanitizeRogoPref("exercise.addBack.pct", 100)).toBe(100);
-    expect(sanitizeRogoPref("exercise.addBack.source", "workouts+steps")).toBe("workouts+steps");
-    expect(sanitizeRogoPref("exercise.addBack.stepThreshold", 3000)).toBe(3000);
-    expect(sanitizeRogoPref("exercise.addBack.stepThreshold", 10000)).toBe(10000);
     for (const cap of [500, 1000, 1500, "none"]) expect(sanitizeRogoPref("exercise.addBack.cap", cap)).toBe(cap);
+    for (const kcal of [0, 150, 300, 500]) expect(sanitizeRogoPref("exercise.assumedActive", kcal)).toBe(kcal);
   });
 
   test("reject out-of-range, off-step and other types", () => {
     for (const value of [...GARBAGE, "yes", "true"]) expect(sanitizeRogoPref("exercise.addBack.enabled", value)).toBeUndefined();
     for (const value of [...GARBAGE, 45, 105, 72, 75.5, "75"]) expect(sanitizeRogoPref("exercise.addBack.pct", value)).toBeUndefined();
-    for (const value of [...GARBAGE, "steps", "Workouts"]) expect(sanitizeRogoPref("exercise.addBack.source", value)).toBeUndefined();
-    for (const value of [...GARBAGE, 2500, 10500, 5100]) expect(sanitizeRogoPref("exercise.addBack.stepThreshold", value)).toBeUndefined();
     for (const value of [...GARBAGE, 750, 2000, "None", null]) expect(sanitizeRogoPref("exercise.addBack.cap", value)).toBeUndefined();
+    for (const value of [...GARBAGE.filter((v) => v !== 0), 100, 200, 600, "150"]) expect(sanitizeRogoPref("exercise.assumedActive", value)).toBeUndefined();
   });
 
-  test("the defaults are on, 75%, workouts, 5000 steps, 1000 kcal: stored as tombstones", () => {
+  test("the removed step settings and the first notice id are not keys any more", () => {
+    for (const key of ["exercise.addBack.source", "exercise.addBack.stepThreshold", "dismissed.addBackNotice"]) {
+      expect(isRogoPrefKey(key)).toBe(false);
+    }
+  });
+
+  test("the defaults are on, 75%, 1000 kcal, no assumed activity: stored as tombstones", () => {
     expect(isRogoPrefDefault("exercise.addBack.enabled", true)).toBe(true);
     expect(isRogoPrefDefault("exercise.addBack.enabled", false)).toBe(false);
     expect(isRogoPrefDefault("exercise.addBack.pct", 75)).toBe(true);
     expect(isRogoPrefDefault("exercise.addBack.pct", 80)).toBe(false);
-    expect(isRogoPrefDefault("exercise.addBack.source", "workouts")).toBe(true);
-    expect(isRogoPrefDefault("exercise.addBack.stepThreshold", 5000)).toBe(true);
     expect(isRogoPrefDefault("exercise.addBack.cap", 1000)).toBe(true);
     expect(isRogoPrefDefault("exercise.addBack.cap", "none")).toBe(false);
+    expect(isRogoPrefDefault("exercise.assumedActive", 0)).toBe(true);
+    expect(isRogoPrefDefault("exercise.assumedActive", 150)).toBe(false);
   });
 
   test("the notice dismissal is only ever true", () => {
-    expect(sanitizeRogoPref("dismissed.addBackNotice", true)).toBe(true);
-    for (const value of [...GARBAGE, false]) expect(sanitizeRogoPref("dismissed.addBackNotice", value)).toBeUndefined();
+    expect(sanitizeRogoPref("dismissed.addBackNotice2", true)).toBe(true);
+    for (const value of [...GARBAGE, false]) expect(sanitizeRogoPref("dismissed.addBackNotice2", value)).toBeUndefined();
   });
 });
 

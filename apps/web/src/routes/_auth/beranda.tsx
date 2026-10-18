@@ -58,7 +58,7 @@ import { useWaistCheckIn, useWeightCheckIn } from "@/lib/optimistic";
 import { useAppConfig } from "@/lib/app-config";
 import type { DaySummary } from "@/lib/api-types";
 import { DEFAULT_ADD_BACK_SETTINGS } from "@joyorogo/api/lib/exercise-credit";
-import { datePaceExplainKey, jakartaToday, relativeDayLabel, remainingKcal } from "@joyorogo/api/lib/engine";
+import { datePaceExplainKey, jakartaToday, needsBreakdown, relativeDayLabel, remainingKcal } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { orpc } from "@/utils/orpc";
 
@@ -351,14 +351,16 @@ function Dashboard({
                 to="/olahraga"
                 icon={<Flame className="size-4 shrink-0" aria-hidden />}
                 label={t("tile.burn")}
-                value={<CountUp value={summary.burnedKcal} />}
+                value={<CountUp value={summary.exerciseCredit?.activeKcal ?? 0} />}
                 unit="kcal"
                 sub={
-                  summary.exerciseSources.length === 0
-                    ? t("tile.burnNone")
-                    : t("tile.burnSub", {
-                        sources: summary.exerciseSources.map((source) => t(`tile.source.${source}`)).join(", "),
-                      })
+                  summary.exerciseCredit?.allDaySource
+                    ? t(`tile.activeFrom.${summary.exerciseCredit.allDaySource}`)
+                    : summary.exerciseSources.length > 0
+                      ? t("tile.burnSub", {
+                          sources: summary.exerciseSources.map((source) => t(`tile.source.${source}`)).join(", "),
+                        })
+                      : t("tile.burnNone")
                 }
               />
             )}
@@ -592,6 +594,7 @@ function EatHero({ summary }: { summary: Summary }) {
                       })}
             </p>
           </div>
+          <BudgetSum summary={summary} leftKcal={leftKcal} over={over} />
           <dl className="space-y-3">
             {(["target", "eaten", "left", "burn", "deficit"] as const).map((key) => (
               <div key={key}>
@@ -633,36 +636,42 @@ function EatHero({ summary }: { summary: Summary }) {
             <div className="rounded-2xl bg-bakar-soft p-4 text-sm leading-relaxed">
               <p className="font-bold text-bakar-ink">{t("explain.addBack.title")}</p>
               <div className="mt-1 space-y-1.5 text-muted-foreground">
-                {!credit.enabled ? (
-                  <p>{t("explain.addBack.off")}</p>
-                ) : credit.workoutKcal === 0 && credit.countedSteps === 0 ? (
+                {!credit.enabled && <p>{t("explain.addBack.off")}</p>}
+                {credit.enabled && credit.activeKcal === 0 && credit.assumedKcal === 0 && (
                   <p>{t("explain.addBack.none")}</p>
-                ) : (
-                  <>
-                    <p>
-                      {t("explain.addBack.body", {
-                        workout: fmtInt(credit.workoutKcal),
-                        pct: credit.pct,
-                        kcal: fmtInt(credit.countedKcal),
-                      })}
-                    </p>
-                    {credit.countedSteps > 0 && (
-                      <p>
-                        {t("explain.addBack.steps", {
-                          steps: fmtInt(credit.countedSteps),
-                          threshold: fmtInt(credit.stepThreshold),
-                          stepKcal: fmtInt(credit.stepKcal),
-                        })}
-                      </p>
-                    )}
-                    {credit.capped && (
-                      <p>
-                        {t("explain.addBack.capped", {
-                          cap: credit.cap === "none" ? "" : fmtInt(credit.cap),
-                        })}
-                      </p>
-                    )}
-                  </>
+                )}
+                {credit.countedKcal > 0 && (
+                  <p>
+                    {t("explain.addBack.body", {
+                      active: fmtInt(credit.activeKcal),
+                      pct: credit.pct,
+                      kcal: fmtInt(credit.countedKcal),
+                    })}
+                  </p>
+                )}
+                {credit.allDaySource === "joyofit" && (
+                  <p>{t("explain.addBack.watch", { kcal: fmtInt(credit.allDayKcal ?? 0) })}</p>
+                )}
+                {(credit.allDaySource === "health_connect" || credit.allDaySource === "apple_health") && (
+                  <p>
+                    {t("explain.addBack.healthStore", {
+                      source: t(`tile.source.${credit.allDaySource}`),
+                      kcal: fmtInt(credit.allDayKcal ?? 0),
+                    })}
+                  </p>
+                )}
+                {credit.otherWorkoutKcal > 0 && (
+                  <p>{t("explain.addBack.other", { kcal: fmtInt(credit.otherWorkoutKcal) })}</p>
+                )}
+                {credit.assumedKcal > 0 && (
+                  <p>{t("explain.addBack.assumed", { kcal: fmtInt(credit.assumedKcal) })}</p>
+                )}
+                {credit.capped && (
+                  <p>
+                    {t("explain.addBack.capped", {
+                      cap: credit.cap === "none" ? "" : fmtInt(credit.cap),
+                    })}
+                  </p>
                 )}
               </div>
               <Link
@@ -747,6 +756,67 @@ function EatHero({ summary }: { summary: Summary }) {
         </div>
       )}
     </Card>
+  );
+}
+
+/** "Hitungan hari ini": the day's budget in the user's own numbers, from needsBreakdown (no formulas of our own). */
+function BudgetSum({ summary, leftKcal, over }: { summary: Summary; leftKcal: number; over: boolean }) {
+  const { t } = useTranslation(["home", "maternal"]);
+  const targets = summary.targets;
+  const needs = needsBreakdown(targets);
+  const credit = summary.exerciseCredit;
+  const maternal = targets.maternal !== null;
+  const rows: Array<{ key: string; label: string; value?: string; sub?: string; strong?: boolean }> = [
+    {
+      key: "bmr",
+      label: maternal ? t("maternal:needs.baseName") : t("explain.sum.bmr"),
+      value: fmtInt(maternal ? needs.tdeeKcal : needs.bmrKcal),
+    },
+  ];
+  if (needs.cutKcal > 0) rows.push({ key: "cut", label: t("explain.sum.cut"), value: `−${fmtInt(needs.cutKcal)}` });
+  if (targets.gain) rows.push({ key: "surplus", label: t("explain.sum.surplus"), value: `+${fmtInt(needs.surplusKcal)}` });
+  if (maternal) rows.push({ key: "add", label: t("explain.sum.add"), value: `+${fmtInt(needs.addKcal)}` });
+  if (targets.notes.includes("PLAN_CLAMPED") && needs.cutKcal < needs.deficitKcal) {
+    rows.push({ key: "floor", label: t("explain.sum.floor") });
+  }
+  if (needs.assumedKcal > 0) {
+    rows.push({ key: "assumed", label: t("explain.sum.assumed"), value: `+${fmtInt(needs.assumedKcal)}` });
+  }
+  if (needs.exerciseKcal > 0) {
+    rows.push({
+      key: "activity",
+      label: t("explain.sum.activity"),
+      value: `+${fmtInt(needs.exerciseKcal)}`,
+      sub: credit
+        ? t("explain.sum.activityOf", { pct: credit.pct, kcal: fmtInt(credit.activeKcal) })
+        : undefined,
+    });
+  }
+  rows.push(
+    { key: "target", label: t("explain.sum.target"), value: fmtInt(targets.eatKcal), strong: true },
+    { key: "eaten", label: t("explain.sum.eaten"), value: fmtInt(summary.eatenKcal) },
+    { key: "left", label: t("explain.sum.left"), value: `${over ? "−" : ""}${fmtInt(leftKcal)}`, strong: true },
+  );
+
+  return (
+    <section aria-label={t("explain.sum.title")}>
+      <h3 className="text-sm font-bold">{t("explain.sum.title")}</h3>
+      <ul className="mt-1 divide-y divide-border">
+        {rows.map((row) => (
+          <li key={row.key} className="flex items-baseline justify-between gap-3 py-2 text-sm">
+            <div className="min-w-0">
+              <p className={cn(row.strong ? "font-bold" : "font-medium", row.value === undefined && "text-muted-foreground")}>
+                {row.label}
+              </p>
+              {row.sub && <p className="text-xs text-muted-foreground tabular-nums">{row.sub}</p>}
+            </div>
+            {row.value !== undefined && (
+              <p className={cn("shrink-0 tabular-nums", row.strong ? "font-extrabold" : "font-semibold")}>{row.value}</p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

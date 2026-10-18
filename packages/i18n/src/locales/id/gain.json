@@ -14,11 +14,11 @@
     "maternalOff": "Mode Naikin BB mati selama kamu hamil atau menyusui."
   },
   "plan": {
-    "intro": "Target makanmu = kebutuhan harian (TDEE) ditambah surplus kalori. Surplusnya dihitung dari ritme naik berat yang kamu pilih lewat tanggal target.",
+    "intro": "Target makanmu = kebutuhan dasar tubuh (BMR) ditambah surplus kalori. Aktivitas yang nyata ditambahkan di atasnya. Surplusnya dihitung dari ritme naik berat yang kamu pilih lewat tanggal target.",
     "surplus": {
       "label": "Surplus buat naik BB",
       "name": "Tambahan makan",
-      "body": "Tambahan di atas TDEE supaya berat naik pelan. Besarnya dihitung dari selisih berat dan tanggal targetmu, dibatasi {{min}} sampai {{max}} kkal per hari."
+      "body": "Tambahan di atas BMR supaya berat naik pelan. Besarnya dihitung dari selisih berat dan tanggal targetmu, dibatasi {{min}} sampai {{max}} kkal per hari."
     },
     "perDay": "+{{kcal}} kkal per hari",
     "pace": "Sekitar {{kg}} kg per minggu ({{pct}}% berat badan)",
@@ -53,7 +53,7 @@
     "protein": "Protein",
     "proteinOf": "{{eaten}} dari {{target}} g",
     "cardTitle": "Rencana Naikin BB",
-    "cardSummary": "Target {{target}} kkal per hari: TDEE {{tdee}} ditambah {{surplus}}."
+    "cardSummary": "Target {{target}} kkal per hari: BMR {{tdee}} ditambah {{surplus}}."
   },
   "date": {
     "hint": "Pilih tanggalnya, surplus dan target makan harianmu ikut menyesuaikan.",

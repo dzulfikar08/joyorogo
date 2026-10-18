@@ -12,6 +12,7 @@ import { protectedProcedure } from "../index";
 import { effectiveRamadan, jakartaToday, shiftDate } from "../lib/engine";
 import { dateSchema } from "../lib/schemas";
 import { buildPlan, planQueries } from "../lib/plan";
+import { budgetKcal } from "../lib/exercise-credit";
 import { loadDayCredit } from "../lib/exercise-credit-store";
 import { serverT } from "../lib/messages";
 import {
@@ -115,8 +116,8 @@ export const fastingRouter = {
         min: wibMinutes(row.createdAt),
       }));
       // Same budget as day.summary: the plan plus the counted exercise.
-      const credit = await loadDayCredit(context.db, userId, date, plan.weightNowKg);
-      const eatKcal = plan.targets.eatKcal + credit.countedKcal;
+      const credit = await loadDayCredit(context.db, userId, date);
+      const eatKcal = budgetKcal(plan.targets.eatKcal, credit);
       const day = fastingDay({
         pattern: prof.fastingPattern,
         windowStart: prof.fastingWindowStart,

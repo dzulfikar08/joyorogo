@@ -7,7 +7,7 @@ import { GainDisclaimer, GainNotes } from "@/components/gain/gain-notes";
 import { PlanNumbers } from "@/components/plan-numbers";
 import { fmtDateLong, fmtInt, fmtKg } from "@/lib/format";
 
-/** Onboarding result card of a Naikin BB plan: TDEE + surplus = target, pace, protein, notes. */
+/** Onboarding result card of a Naikin BB plan: BMR + surplus = target, pace, protein, notes. */
 export function GainOnboardingResult({ targets, gain }: { targets: Targets; gain: GainInfo }) {
   const { t } = useTranslation("gain");
   return (
@@ -17,7 +17,7 @@ export function GainOnboardingResult({ targets, gain }: { targets: Targets; gain
         <p className="font-semibold tabular-nums">
           {t("today.cardSummary", {
             target: fmtInt(targets.eatKcal),
-            tdee: fmtInt(targets.tdee),
+            tdee: fmtInt(targets.bmr),
             surplus: `+${fmtInt(gain.surplusKcal)}`,
           })}
         </p>

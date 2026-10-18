@@ -14,11 +14,11 @@
     "maternalOff": "Gain weight mode is off while you are pregnant or breastfeeding."
   },
   "plan": {
-    "intro": "Your eating target = daily needs (TDEE) plus a calorie surplus. The surplus comes from the pace of gain your target date implies.",
+    "intro": "Your eating target = your body's base needs (BMR) plus a calorie surplus. Real activity is added on top. The surplus comes from the pace of gain your target date implies.",
     "surplus": {
       "label": "Surplus to gain weight",
       "name": "Extra food",
-      "body": "Extra on top of TDEE so your weight rises slowly. It is worked out from the gap to your target weight and your target date, kept between {{min}} and {{max}} kcal a day."
+      "body": "Extra on top of BMR so your weight rises slowly. It is worked out from the gap to your target weight and your target date, kept between {{min}} and {{max}} kcal a day."
     },
     "perDay": "+{{kcal}} kcal a day",
     "pace": "About {{kg}} kg a week ({{pct}}% of body weight)",
@@ -54,7 +54,7 @@
     "protein": "Protein",
     "proteinOf": "{{eaten}} of {{target}} g",
     "cardTitle": "Gain weight plan",
-    "cardSummary": "Target {{target}} kcal a day: TDEE {{tdee}} plus {{surplus}}."
+    "cardSummary": "Target {{target}} kcal a day: BMR {{tdee}} plus {{surplus}}."
   },
   "date": {
     "hint": "Pick the date and your surplus and daily eating target adjust with it.",
