@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -43,6 +43,14 @@ import {
   type WorkoutPR,
 } from "../lib/workout";
 import { planQueries, buildPlan } from "../lib/plan";
+import {
+  EXPORT_MAX_SIDE_ROWS,
+  exportInputSchema,
+  splitExportPage,
+  toExportCustomExercise,
+  toExportRoutine,
+  toExportSessions,
+} from "../lib/workout-export";
 
 const STRENGTH_TYPE = "angkat_beban";
 
@@ -889,6 +897,83 @@ export const workoutRouter = {
       lastSessionDate: sessions[0]?.session.date ?? null,
       sessionCount28d: asSessions.filter((s) => s.date >= shiftDate(today, -27))
         .length,
+    };
+  }),
+
+  /**
+   * Read-only export of the account's whole strength history for JoyoFit's one-time import (JoyoFit shows it as
+   * its own history). Newest first, 50 sessions a page by keyset on (date, created_at, id); routines, custom
+   * exercises and the totals go out on the first page only. Not Pro gated: what an account stored stays readable.
+   */
+  exportAll: protectedProcedure.input(exportInputSchema).handler(async ({ context, input }) => {
+    const userId = context.session.user.id;
+    const db = context.db;
+    const after = input.cursor ?? null;
+
+    const rows = await db
+      .select({
+        id: workoutSession.id,
+        userId: workoutSession.userId,
+        date: workoutSession.date,
+        name: workoutSession.name,
+        startedAt: workoutSession.startedAt,
+        durationMin: workoutSession.durationMin,
+        note: workoutSession.note,
+        exerciseLogId: workoutSession.exerciseLogId,
+        createdAt: workoutSession.createdAt,
+        kcal: exerciseLog.kcal,
+      })
+      .from(workoutSession)
+      .leftJoin(
+        exerciseLog,
+        and(eq(exerciseLog.id, workoutSession.exerciseLogId), eq(exerciseLog.userId, userId)),
+      )
+      .where(
+        and(
+          eq(workoutSession.userId, userId),
+          after
+            ? sql`(${workoutSession.date}, ${workoutSession.createdAt}, ${workoutSession.id}) < (${after.date}, ${after.createdAt}, ${after.id})`
+            : undefined,
+        ),
+      )
+      .orderBy(desc(workoutSession.date), desc(workoutSession.createdAt), desc(workoutSession.id))
+      .limit(input.limit + 1);
+    const { page, nextCursor } = splitExportPage(rows, input.limit);
+
+    // At most 50 ids and the user: D1 allows 100 bound parameters per statement.
+    const sets =
+      page.length === 0
+        ? []
+        : await db
+            .select()
+            .from(workoutSet)
+            .where(and(eq(workoutSet.userId, userId), inArray(workoutSet.sessionId, page.map((s) => s.id))))
+            .orderBy(asc(workoutSet.sessionId), asc(workoutSet.position));
+    const sessions = toExportSessions(page, sets);
+    if (after) return { sessions, nextCursor };
+
+    const [routines, customExercises, [sessionTotal], [setTotal]] = await Promise.all([
+      db
+        .select()
+        .from(workoutRoutine)
+        .where(eq(workoutRoutine.userId, userId))
+        .orderBy(desc(workoutRoutine.updatedAt))
+        .limit(EXPORT_MAX_SIDE_ROWS),
+      db
+        .select()
+        .from(workoutCustomExercise)
+        .where(eq(workoutCustomExercise.userId, userId))
+        .orderBy(asc(workoutCustomExercise.createdAt))
+        .limit(EXPORT_MAX_SIDE_ROWS),
+      db.select({ n: sql<number>`count(*)` }).from(workoutSession).where(eq(workoutSession.userId, userId)),
+      db.select({ n: sql<number>`count(*)` }).from(workoutSet).where(eq(workoutSet.userId, userId)),
+    ]);
+    return {
+      sessions,
+      nextCursor,
+      routines: routines.map(toExportRoutine),
+      customExercises: customExercises.map(toExportCustomExercise),
+      total: { sessions: sessionTotal?.n ?? 0, sets: setTotal?.n ?? 0 },
     };
   }),
 };

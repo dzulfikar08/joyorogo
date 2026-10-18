@@ -216,7 +216,8 @@ export const exerciseLog = sqliteTable(
     name: text("name").notNull(),
     durationMin: real("duration_min"),
     kcal: real("kcal").notNull(),
-    // 'manual' | 'strava' | 'health_connect' | 'apple_health'
+    // 'manual' | 'strava' | 'health_connect' | 'apple_health' | 'joyofit' (a strength workout logged in JoyoFit;
+    // external_id is `strength:<workout id>`, see exercise.upsertJoyofit)
     source: text("source").notNull().default("manual"),
     externalId: text("external_id"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })

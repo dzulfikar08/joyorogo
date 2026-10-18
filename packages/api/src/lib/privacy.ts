@@ -35,6 +35,7 @@ import { barcodeContribution } from "@joyorogo/db/schema/barcode";
 import { teamChallengeMember } from "@joyorogo/db/schema/challenge";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 import { coachDoc } from "@joyorogo/db/schema/coach";
+import { strengthRecord } from "@joyorogo/db/schema/strength";
 import { watchWorkout } from "@joyorogo/db/schema/watch-workout";
 
 import { avatarPrefix } from "./avatar";
@@ -137,6 +138,7 @@ export function deleteAllUserData(db: Database, userId: string) {
     db.delete(fitnessScore).where(eq(fitnessScore.userId, userId)),
     db.delete(watchWorkout).where(eq(watchWorkout.userId, userId)),
     db.delete(coachDoc).where(eq(coachDoc.userId, userId)),
+    db.delete(strengthRecord).where(eq(strengthRecord.userId, userId)),
     // AI apps connected through the MCP connector: consent, tokens and the audit log (they would read an empty account).
     ...deleteUserMcpData(db, userId),
     db.delete(stravaAccount).where(eq(stravaAccount.userId, userId)),

@@ -49,6 +49,56 @@ export const exerciseRouter = {
       return row;
     }),
 
+  // Strength workouts logged in JoyoFit: one row per workout, `strength:<workout id>` as externalId, so a re-sent or
+  // edited workout updates its row instead of adding a second one. Not Pro gated (same as Health Connect rows).
+  upsertJoyofit: protectedProcedure
+    .input(
+      z.object({
+        externalId: z.string().min(1).max(100),
+        date: dateSchema,
+        name: z.string().min(1).max(200),
+        durationMin: z.number().min(EXERCISE_MIN_DURATION).max(EXERCISE_MAX_DURATION),
+        kcal: z.number().min(0).max(EXERCISE_MAX_KCAL),
+        type: z.string().max(50).default("angkat_beban"),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const [row] = await context.db
+        .insert(exerciseLog)
+        .values({
+          id: crypto.randomUUID(),
+          userId: context.session.user.id,
+          date: input.date,
+          type: input.type,
+          name: input.name,
+          durationMin: input.durationMin,
+          kcal: input.kcal,
+          source: "joyofit",
+          externalId: input.externalId,
+        })
+        .onConflictDoUpdate({
+          target: [exerciseLog.userId, exerciseLog.source, exerciseLog.externalId],
+          set: { date: input.date, name: input.name, durationMin: input.durationMin, kcal: input.kcal },
+        })
+        .returning();
+      return row;
+    }),
+
+  removeJoyofit: protectedProcedure
+    .input(z.object({ externalId: z.string().min(1).max(100) }))
+    .handler(async ({ context, input }) => {
+      await context.db
+        .delete(exerciseLog)
+        .where(
+          and(
+            eq(exerciseLog.userId, context.session.user.id),
+            eq(exerciseLog.source, "joyofit"),
+            eq(exerciseLog.externalId, input.externalId),
+          ),
+        );
+      return { ok: true };
+    }),
+
   // Edits one logged activity: name, duration, kcal and/or day (WIB key).
   // Every field is optional but at least one must be present; durationMin
   // null clears the duration. The row keeps source and externalId, so an
