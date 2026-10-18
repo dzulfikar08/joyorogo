@@ -1,4 +1,4 @@
-import { orpc } from "@/utils/orpc";
+import { client } from "@/utils/orpc";
 
 /**
  * Typed view of the read-only workout archive. Strength logging moved to JoyoFit;
@@ -44,7 +44,8 @@ export type ExerciseHistory = {
   oneRmByDate: { date: string; oneRm: number }[];
 };
 
-const rawWorkout = orpc.workout as unknown as Record<string, (input?: unknown) => Promise<unknown>>;
+// The plain client, not the TanStack utils: the utils object is not callable.
+const rawWorkout = client.workout as unknown as Record<string, (input?: unknown) => Promise<unknown>>;
 
 export const workoutApi = {
   catalog: () => rawWorkout.catalog() as Promise<Catalog>,
