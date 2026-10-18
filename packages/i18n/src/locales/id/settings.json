@@ -12,12 +12,47 @@
     "integrations": "Integrasi",
     "appearance": "Tampilan",
     "ramadan": "Mode Ramadan",
-    "fasting": "Puasa Intermiten",
+    "fasting": "Puasa intermiten",
     "reminders": "Pengingat",
     "shopping": "Belanja makan",
     "appIphone": "Aplikasi iPhone",
     "appAndroid": "Aplikasi Android",
     "privacy": "Privasi"
+  },
+  "hub": {
+    "groups": {
+      "account": "Akun",
+      "body": "Target & tubuh",
+      "connections": "Koneksi",
+      "community": "Notifikasi & komunitas",
+      "app": "Aplikasi"
+    },
+    "summary": {
+      "proUntil": "Pro aktif sampai {{date}}",
+      "pro": "Pro aktif",
+      "freeScans": "Gratis · {{count}} scan AI per hari",
+      "free": "Gratis"
+    },
+    "rows": {
+      "account": { "title": "Akun", "subtitle": "Foto profil dan email" },
+      "subscription": {
+        "title": "Langganan",
+        "subtitle": "Kuota scan AI dan Pro",
+        "valuePro": "Pro",
+        "valueFree": "Gratis"
+      },
+      "body": { "title": "Target & tubuh", "subtitle": "Tujuan, target berat, kebutuhan harian, data diri" },
+      "meals": { "title": "Makan & puasa", "subtitle": "Puasa intermiten, Ramadan, anggaran belanja" },
+      "strava": { "title": "Strava", "subtitle": "Impor aktivitas ke jurnal", "valueConnected": "Terhubung" },
+      "healthAndroid": { "title": "Health Connect", "subtitle": "Langkah, tidur, olahraga, dan nutrisi" },
+      "healthIos": { "title": "Apple Health", "subtitle": "Langkah, tidur, olahraga, dan nutrisi" },
+      "ai": { "subtitle": "Pakai data JoyoRogo di Claude atau ChatGPT" },
+      "reminders": { "title": "Pengingat", "subtitle": "Makan, minum, timbang" },
+      "feed": { "title": "Feed komunitas", "subtitle": "Nama pengguna, profil publik, akun diblokir" },
+      "display": { "title": "Tampilan & bahasa", "subtitle": "Tema terang atau gelap, bahasa aplikasi" },
+      "privacy": { "title": "Privasi & data", "subtitle": "Bagikan progres, foto asli, hapus data" },
+      "about": { "title": "Tentang", "subtitle": "Versi, pembaruan, kebijakan privasi" }
+    }
   },
   "state": {
     "saving": "Menyimpan..."
@@ -569,9 +604,9 @@
   "health": {
     "noteIos": "Sumber utama aktivitasmu: latihan, langkah, jarak, kalori aktif, dan tidur 7 hari terakhir dari aplikasi Health. Setelah izin diberikan lewat tombol di bawah, sinkron berjalan otomatis tiap kali kamu buka aplikasi.",
     "noteAndroid": "Sumber utama aktivitasmu: latihan, langkah, jarak, kalori aktif, dan tidur 7 hari terakhir. Setelah izin diberikan, sinkron berjalan otomatis tiap kali kamu buka aplikasi.",
-    "syncButton": "Izinkan & Sinkronkan 7 Hari",
+    "syncButton": "Izinkan & sinkronkan 7 hari",
     "nutritionNote": "Tulis makananmu (kalori, protein, karbo, lemak, serat) ke Health Connect agar terbaca aplikasi lain. Makanan baru, hasil edit, dan hapus ikut tersinkron otomatis setelah izin diberikan.",
-    "nutritionButton": "Izinkan & Tulis Nutrisi 30 Hari",
+    "nutritionButton": "Izinkan & tulis nutrisi 30 hari",
     "summary": {
       "workouts_other": "{{count}} latihan diimpor (7 hari terakhir)",
       "activityDays_other": "{{count}} hari aktivitas",

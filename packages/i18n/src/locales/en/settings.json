@@ -19,6 +19,41 @@
     "appAndroid": "Android app",
     "privacy": "Privacy"
   },
+  "hub": {
+    "groups": {
+      "account": "Account",
+      "body": "Goals & body",
+      "connections": "Connections",
+      "community": "Notifications & community",
+      "app": "App"
+    },
+    "summary": {
+      "proUntil": "Pro active until {{date}}",
+      "pro": "Pro active",
+      "freeScans": "Free · {{count}} AI scans per day",
+      "free": "Free"
+    },
+    "rows": {
+      "account": { "title": "Account", "subtitle": "Profile photo and email" },
+      "subscription": {
+        "title": "Subscription",
+        "subtitle": "AI scan quota and Pro",
+        "valuePro": "Pro",
+        "valueFree": "Free"
+      },
+      "body": { "title": "Goals & body", "subtitle": "Goal, target weight, daily needs, personal details" },
+      "meals": { "title": "Meals & fasting", "subtitle": "Intermittent fasting, Ramadan, shopping budget" },
+      "strava": { "title": "Strava", "subtitle": "Import activities into your diary", "valueConnected": "Connected" },
+      "healthAndroid": { "title": "Health Connect", "subtitle": "Steps, sleep, workouts and nutrition" },
+      "healthIos": { "title": "Apple Health", "subtitle": "Steps, sleep, workouts and nutrition" },
+      "ai": { "subtitle": "Use your JoyoRogo data in Claude or ChatGPT" },
+      "reminders": { "title": "Reminders", "subtitle": "Meals, water, weigh-in" },
+      "feed": { "title": "Community feed", "subtitle": "Handle, public profile, blocked accounts" },
+      "display": { "title": "Appearance & language", "subtitle": "Light or dark theme, app language" },
+      "privacy": { "title": "Privacy & data", "subtitle": "Share progress, original photos, delete data" },
+      "about": { "title": "About", "subtitle": "Version, updates, privacy policy" }
+    }
+  },
   "state": {
     "saving": "Saving..."
   },
@@ -584,9 +619,9 @@
   "health": {
     "noteIos": "The main source of your activity: workouts, steps, distance, active calories, and the last 7 days of sleep from the Health app. Once you grant permission with the button below, syncing runs automatically each time you open the app.",
     "noteAndroid": "The main source of your activity: workouts, steps, distance, active calories, and the last 7 days of sleep. Once permission is granted, syncing runs automatically each time you open the app.",
-    "syncButton": "Allow & Sync 7 Days",
+    "syncButton": "Allow & sync 7 days",
     "nutritionNote": "Write your food (calories, protein, carbs, fat, fiber) to Health Connect so other apps can read it. New foods, edits, and deletes sync automatically once permission is granted.",
-    "nutritionButton": "Allow & Write 30 Days of Nutrition",
+    "nutritionButton": "Allow & write 30 days of nutrition",
     "summary": {
       "workouts_one": "{{count}} workout imported (last 7 days)",
       "workouts_other": "{{count}} workouts imported (last 7 days)",
