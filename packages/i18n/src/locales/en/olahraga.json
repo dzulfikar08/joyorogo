@@ -88,10 +88,6 @@
     "sources": "Every source counts: manual, Strava, {{health}}.",
     "strength": "Strength training: log exercises, sets, reps and weight. Keep your muscle while you're in a deficit."
   },
-  "strength": {
-    "title": "Strength training",
-    "subtitle": "Log exercises, sets and weight"
-  },
   "form": {
     "title": "Log activity",
     "titleType": "Log {{type}}",
@@ -223,50 +219,13 @@
       },
       "repsAtWeight": "Most reps @ {{kg}} kg"
     },
-    "stat": {
-      "duration": "Time",
-      "minutes": "min",
-      "volumeKg": "Volume (kg)",
-      "setsDone": "Sets done"
-    },
-    "field": {
-      "sessionName": "Workout name",
-      "noteOptional": "Note (optional)"
-    },
-    "action": {
-      "addExercise": "Add exercise",
-      "replaceExercise": "Swap exercise",
-      "addSet": "Add set"
-    },
-    "unchecked": {
-      "title": "Some sets aren't checked"
-    },
     "list": {
-      "resume": {
-        "title": "You have an unfinished workout",
-        "continue": "Resume workout",
-        "discard": "Discard unfinished workout",
-        "untitled": "Free workout"
-      },
-      "start": {
-        "empty": "Empty workout",
-        "begin": "Start",
-        "repeat": "Repeat: {{name}}"
-      },
-      "routines": {
-        "title": "Routines",
-        "new": "New",
-        "empty": "No routines yet. Save a favourite workout to repeat it in one tap.",
-        "edit": "Edit routine {{name}}",
-        "play": "Start routine {{name}}"
-      },
       "history": {
         "title": "Session history",
         "emptyTitle": "No sessions yet",
         "emptyHint": "Two or three sessions a week is enough to keep your muscle.",
         "shareStory": "Share {{name}} to Story",
-        "shareFeed": "Share {{name}} to the feed",
-        "edit": "Edit session {{name}}"
+        "shareFeed": "Share {{name}} to the feed"
       }
     },
     "map": {
@@ -311,200 +270,9 @@
         "summary": "Every muscle in one session"
       }
     },
-    "active": {
-      "screenTitle": "Workout",
-      "none": "No workout in progress.",
-      "empty": "This workout is empty. Add your first exercise below.",
-      "namePlaceholder": "Workout name, e.g. Push Monday",
-      "setsProgress_one": "{{done}}/{{total}} set",
-      "setsProgress_other": "{{done}}/{{total}} sets",
-      "discard": "Discard workout",
-      "discardShort": "Discard",
-      "unchecked": {
-        "warn": "Some sets aren't checked. Finish anyway?",
-        "review": "Review",
-        "confirm": "Finish anyway",
-        "message_one": "{{count}} set isn't marked done. Sets you don't check won't be saved.",
-        "message_other": "{{count}} sets aren't marked done. Sets you don't check won't be saved.",
-        "save": "Save without them"
-      },
-      "discardConfirm": {
-        "title": "Discard workout?",
-        "message": "Every set you logged will be lost."
-      },
-      "menu": {
-        "note": "Note",
-        "supersetOn": "Superset with next",
-        "supersetOff": "Remove superset",
-        "moveUp": "Move up",
-        "moveDown": "Move down",
-        "remove": "Remove exercise",
-        "label": "{{name}} menu"
-      },
-      "chip": {
-        "superset": "Superset",
-        "up": "Up",
-        "down": "Down"
-      },
-      "supersetLetter": "Superset {{letter}}",
-      "noteTitle": "Exercise note",
-      "notePlaceholder": "E.g. wide grip, lower slowly",
-      "col": {
-        "set": "Set",
-        "previous": "Previous",
-        "kg": "Kg",
-        "reps": "Reps",
-        "seconds": "Sec",
-        "target": "Target"
-      },
-      "aria": {
-        "setType": "Set {{n}} type: {{type}}. Change type.",
-        "fillPrevious": "Fill from last session: {{value}}",
-        "setDuration": "Set {{n}} duration in seconds",
-        "setWeight": "Set {{n}} weight in kg",
-        "setReps": "Set {{n}} reps",
-        "markDone": "Mark set {{n}} done",
-        "undoDone": "Undo set {{n}}",
-        "removeSet": "Remove set {{n}}",
-        "removeLastSet": "Remove last set",
-        "rest": "Rest timer: {{value}}. Tap to change."
-      },
-      "rest": {
-        "title": "Rest time",
-        "off": "Off",
-        "chip": "Rest {{time}}",
-        "chipOff": "Rest: off",
-        "minus": "15 seconds less",
-        "plus": "15 seconds more",
-        "skip": "Skip rest",
-        "skipShort": "Skip"
-      },
-      "toast": {
-        "noNext": "There's no next exercise to pair with.",
-        "checkOne": "Check at least one set before finishing.",
-        "fillReps": "{{name}}: enter reps for the sets you checked.",
-        "fillDuration": "{{name}}: enter the duration (seconds) for the sets you checked."
-      },
-      "notify": {
-        "title": "Rest over",
-        "body": "Time for your next set."
-      }
-    },
-    "summary": {
-      "screenTitle": "Summary",
-      "nothing": "There's no workout to save.",
-      "done": "Workout complete!",
-      "records": "New records",
-      "noRecords": "No new records this time. Still solid, the session is logged.",
-      "namePlaceholder": "Push Monday",
-      "notePlaceholder": "Add weight next week",
-      "save": "Save workout",
-      "saving": "Saving…",
-      "saveShare": "Save & share to feed",
-      "shareFeed": "Share to feed",
-      "saveRoutine": "Save as routine",
-      "discard": "Discard and go back",
-      "shareTitle": "Share this workout",
-      "error": {
-        "name": "Name the workout first, e.g. Push Monday.",
-        "incomplete": "Some checked sets are incomplete. Enter reps or duration.",
-        "saveFailed": "Couldn't save the workout."
-      },
-      "toast": {
-        "saved": "Workout saved",
-        "savedPr_one": "Saved. {{count}} new record, nice!",
-        "savedPr_other": "Saved. {{count}} new records, nice!"
-      },
-      "confirm": {
-        "unchecked_one": "{{count}} set won't be saved. Continue?",
-        "unchecked_other": "{{count}} sets won't be saved. Continue?",
-        "review": "Review",
-        "droppedTitle": "Some sets skipped",
-        "dropped_one": "{{count}} checked set is missing reps or duration, so it won't be saved.",
-        "dropped_other": "{{count}} checked sets are missing reps or duration, so they won't be saved.",
-        "continue": "Continue"
-      }
-    },
-    "routine": {
-      "fallbackName": "Routine",
-      "name": "Routine name",
-      "namePlaceholder": "e.g. Push Monday",
-      "notePlaceholder": "e.g. 3× a week",
-      "titleNew": "New routine",
-      "titleEdit": "Edit routine",
-      "notFound": "Routine not found.",
-      "save": "Save routine",
-      "delete": "Delete routine",
-      "removeExercise": "Remove {{name}}",
-      "error": {
-        "name": "Name the routine first.",
-        "exercise": "Add at least one exercise."
-      },
-      "toast": {
-        "saved": "Routine saved"
-      },
-      "confirmDelete": {
-        "title": "Delete routine?",
-        "message": "This routine will disappear from your list."
-      }
-    },
-    "picker": {
-      "search": "Search exercises…",
-      "searchLabel": "Search exercises",
-      "searchExample": "e.g. bench",
-      "muscleGroup": "Filter by muscle group",
-      "equipmentGroup": "Filter by equipment",
-      "allMuscles": "All muscles",
-      "allEquipment": "All equipment",
-      "all": "All",
-      "recent": "Recently used",
-      "results": "Results",
-      "everything": "All exercises",
-      "empty": {
-        "title": "Nothing found",
-        "hint": "Try another search or create your own exercise."
-      },
-      "create": "Create your own exercise",
-      "customName": "{{name}} (custom)",
-      "select": "Select {{name}}",
-      "add": "Add {{name}}",
-      "pick": "Select",
-      "picked": "Selected",
-      "replace": "Swap",
-      "addCount": "Add ({{n}})",
-      "form": {
-        "title": "New exercise",
-        "name": "Exercise name",
-        "namePlaceholder": "e.g. Low cable fly",
-        "muscle": "Main muscle",
-        "equipment": "Equipment",
-        "type": "Type",
-        "create": "Create",
-        "creating": "Creating…",
-        "hintDuration": "Holds like planks are logged in seconds."
-      },
-      "toast": {
-        "created": "Exercise {{name}} created"
-      },
-      "error": {
-        "name": "Please enter a name.",
-        "choose": "Choose a main muscle and equipment."
-      }
-    },
-    "editor": {
-      "title": "New session",
-      "duration": "Duration (minutes)",
-      "kcalHint": "About {{kcal}} kcal will count toward your burn when you save.",
-      "kcalHintEmpty": "Enter a duration to estimate calories.",
-      "save": "Save session",
-      "error": {
-        "reps": "Every set needs reps (a number)."
-      }
-    },
     "detail": {
       "screenTitle": "Exercise history",
       "notFound": "Exercise not found in the catalog.",
-      "logThis": "Log this exercise",
       "bests": "Personal bests",
       "noData": "No data yet.",
       "trend": "e1RM trend",
@@ -533,10 +301,11 @@
     "title": "Train now in JoyoFit",
     "body": "Log strength workouts, routines, history and progress charts in JoyoFit. The calories you burn still reach JoyoRogo.",
     "open": "Open JoyoFit",
+    "android": "Android",
+    "ios": "iPhone",
     "install": "Get JoyoFit",
     "site": "About JoyoFit",
     "archive": "Your old strength history stays here to look at, but it can no longer be changed. JoyoFit can bring it over for you.",
-    "quickEntry": "Quick exercise calorie entry is still below.",
     "blocked": "Strength training moved to JoyoFit",
     "draftNotice": "A workout that was not saved on this device cannot be continued any more. Start a new one in JoyoFit.",
     "privacy": "History you bring into JoyoFit is stored in JoyoFit (on your phone, and in the JoyoFit cloud for Pro). Deleting your data in JoyoRogo does not delete that copy."

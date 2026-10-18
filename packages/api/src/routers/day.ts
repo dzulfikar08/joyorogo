@@ -10,7 +10,6 @@ import {
   weightLog,
 } from "@joyorogo/db/schema/fitness";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
-import { workoutSession } from "@joyorogo/db/schema/plans";
 
 import type { Meal } from "../lib/engine";
 
@@ -30,7 +29,7 @@ import { READINESS_LABELS, hasFitnessData } from "../lib/fitness-hint";
 import { dateSchema } from "../lib/schemas";
 import { loadIdeaValues } from "./plate";
 import { gainMealIdeas, mealIdeas } from "../lib/ideas";
-import { buildPlan, gainedKg, planQueries, proteinGoalG } from "../lib/plan";
+import { buildPlan, gainedKg, planQueries, proteinGoalG, trainingDayQuery } from "../lib/plan";
 import { caffeineOfDay } from "../lib/maternal";
 import {
   DIARY_MACRO_REFERENCE_KG,
@@ -155,12 +154,8 @@ export const dayRouter = {
           .from(dailyActivity)
           .where(and(eq(dailyActivity.userId, userId), eq(dailyActivity.date, date)))
           .limit(1),
-        // Strength session on this day bumps the protein target (1.6 g/kg).
-        context.db
-          .select({ id: workoutSession.id })
-          .from(workoutSession)
-          .where(and(eq(workoutSession.userId, userId), eq(workoutSession.date, date)))
-          .limit(1),
+        // Strength training on this day (legacy session or a JoyoFit strength row) bumps the protein target (1.6 g/kg).
+        trainingDayQuery(context.db, userId, date),
       ]);
 
       const prof = profileRows[0];
@@ -400,11 +395,7 @@ export const dayRouter = {
         .having(sql`${dayCount} >= ${MIN_HISTORY_DAYS}`)
         .orderBy(desc(dayCount))
         .limit(80),
-      context.db
-        .select({ id: workoutSession.id })
-        .from(workoutSession)
-        .where(and(eq(workoutSession.userId, userId), eq(workoutSession.date, today)))
-        .limit(1),
+      trainingDayQuery(context.db, userId, today),
     ]);
 
     const score = scoreRows[0];

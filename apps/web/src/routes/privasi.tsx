@@ -247,6 +247,15 @@ function PrivasiPage() {
             </p>
           </section>
 
+          <section className="rounded-3xl bg-card p-5" id="riwayat-beban">
+            <h2 className="text-base font-bold tracking-tight">Riwayat latihan beban lama</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Latihan beban sekarang dicatat di JoyoFit. Riwayat lama di JoyoRogo tetap bisa dilihat,
+              tidak bisa diubah. Riwayat yang kamu bawa ke JoyoFit tersimpan di JoyoFit (di ponselmu,
+              dan di cloud JoyoFit untuk Pro). Menghapus data di JoyoRogo tidak menghapus salinan itu.
+            </p>
+          </section>
+
           <section className="rounded-3xl bg-card p-5" id="coach-joyofit">
             <h2 className="text-base font-bold tracking-tight">Coach JoyoFit (Pro)</h2>
             <p className="mt-3 text-sm leading-relaxed">

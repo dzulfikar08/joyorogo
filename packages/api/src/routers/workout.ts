@@ -11,8 +11,10 @@ import {
 } from "@joyorogo/db/schema/plans";
 
 import type { Database } from "@joyorogo/db";
+import type { Locale } from "@joyorogo/i18n";
 
 import { serverT } from "../lib/messages";
+import { strengthWritesLocked } from "../lib/strength-lock";
 import { protectedProcedure } from "../index";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import { dateSchema } from "../lib/schemas";
@@ -259,6 +261,18 @@ function normalizeSets(
   });
 }
 
+/**
+ * Strength logging moved to JoyoFit: after the grace period the legacy writes reject, with the localized message
+ * old app builds surface as `error.message`. Called first in each write handler, before any DB work.
+ */
+function assertStrengthWritable(locale: Locale): void {
+  if (!strengthWritesLocked()) return;
+  throw new ORPCError("FORBIDDEN", {
+    message: serverT(locale, "olahraga")("moved.blocked"),
+    data: { reason: "moved_to_joyofit" },
+  });
+}
+
 export const workoutRouter = {
   catalog: protectedProcedure.handler(async ({ context }) => {
     const custom = await context.db
@@ -305,6 +319,7 @@ export const workoutRouter = {
   saveSession: protectedProcedure
     .input(saveSchema)
     .handler(async ({ context, input }) => {
+      assertStrengthWritable(context.locale);
       const userId = context.session.user.id;
       const date = input.date ?? jakartaToday();
 
@@ -654,6 +669,7 @@ export const workoutRouter = {
   createCustomExercise: protectedProcedure
     .input(customExerciseSchema)
     .handler(async ({ context, input }) => {
+      assertStrengthWritable(context.locale);
       const [row] = await context.db
         .insert(workoutCustomExercise)
         .values({
@@ -679,6 +695,7 @@ export const workoutRouter = {
   deleteCustomExercise: protectedProcedure
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
+      assertStrengthWritable(context.locale);
       const [row] = await context.db
         .select({ id: workoutCustomExercise.id })
         .from(workoutCustomExercise)
@@ -727,6 +744,7 @@ export const workoutRouter = {
     saveRoutine: protectedProcedure
       .input(routineSchema)
       .handler(async ({ context, input }) => {
+        assertStrengthWritable(context.locale);
         const userId = context.session.user.id;
         const catalog = await loadCatalog(context.db, userId);
         const knownIds = new Set(catalog.map((exercise) => exercise.id));
@@ -803,6 +821,7 @@ export const workoutRouter = {
     deleteRoutine: protectedProcedure
       .input(z.object({ id: z.string() }))
       .handler(async ({ context, input }) => {
+        assertStrengthWritable(context.locale);
         const userId = context.session.user.id;
         const [owned] = await context.db
           .select({ id: workoutRoutine.id })

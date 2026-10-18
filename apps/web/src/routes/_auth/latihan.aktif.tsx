@@ -1,13 +1,8 @@
-import { ActiveWorkoutScreen } from "@/components/workout/active-workout";
-import { loadActive } from "@/components/workout/active-store";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+/** The logger moved to JoyoFit; old links land on the read-only archive. */
 export const Route = createFileRoute("/_auth/latihan/aktif")({
-  component: AktifPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/latihan", replace: true });
+  },
 });
-
-/** The live workout. Resumes a locally persisted draft when there is one. */
-function AktifPage() {
-  const resume = loadActive();
-  return <ActiveWorkoutScreen resume={resume} />;
-}

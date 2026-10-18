@@ -63,7 +63,7 @@ import { WaterCard, useWater } from "@/components/water-card";
 import { FastingScheduleCard } from "@/components/fasting/schedule-card";
 import { DailyTipCard } from "@/components/tips/daily-tip-card";
 import { WeighInSheet } from "@/components/weigh-in-sheet";
-import { WorkoutCard } from "@/components/workout/workout-card";
+import { JoyoFitCard } from "@/components/workout/joyofit-card";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { pushDaySnapshot } from "@/src/lib/widgets/push";
@@ -594,8 +594,8 @@ export default function Dashboard() {
         />
       </Reveal>
 
-      {/* Latihan beban: peringatan otot terlewat + pintu ke /latihan */}
-      <WorkoutCard />
+      {/* Latihan beban pindah ke JoyoFit */}
+      <JoyoFitCard />
 
       {/* Belanja makan hari ini, satu baris — angkanya selalu hari ini */}
       {isToday ? <BelanjaCompact /> : null}

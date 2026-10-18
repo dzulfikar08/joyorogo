@@ -107,7 +107,6 @@
     "dayImpact": "Today's total {{total}} of the {{target}} kcal target",
     "dense": "If portions feel big, pick calorie-dense food: rice, eggs, tempeh, nuts, avocado, or milk.",
     "strength": "Strength training: log exercises, sets, reps, and weight. Rising weights help the extra gain become muscle.",
-    "keepMuscle": "Strength training and enough protein make more of the weight you gain muscle: log your workouts.",
     "surplusExplainer": {
       "title": "Why the word surplus?",
       "body": "A surplus is the extra calories above what your body needs. That gap is what raises your weight. You don't need to calculate it, just eat around your target."

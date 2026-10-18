@@ -87,10 +87,6 @@
     "sources": "Semua sumber dihitung: manual, Strava, {{health}}.",
     "strength": "Latihan beban: catat gerakan, set, reps, dan beban. Jaga otot saat defisit."
   },
-  "strength": {
-    "title": "Latihan beban",
-    "subtitle": "Catat gerakan, set, dan beban"
-  },
   "form": {
     "title": "Catat aktivitas",
     "titleType": "Catat {{type}}",
@@ -217,50 +213,13 @@
       },
       "repsAtWeight": "Reps terbanyak @ {{kg}} kg"
     },
-    "stat": {
-      "duration": "Durasi",
-      "minutes": "menit",
-      "volumeKg": "Volume (kg)",
-      "setsDone": "Set selesai"
-    },
-    "field": {
-      "sessionName": "Nama sesi",
-      "noteOptional": "Catatan (opsional)"
-    },
-    "action": {
-      "addExercise": "Tambah latihan",
-      "replaceExercise": "Ganti latihan",
-      "addSet": "Tambah set"
-    },
-    "unchecked": {
-      "title": "Ada set belum dicentang"
-    },
     "list": {
-      "resume": {
-        "title": "Ada latihan yang belum selesai",
-        "continue": "Lanjutkan latihan",
-        "discard": "Buang latihan yang belum selesai",
-        "untitled": "Latihan bebas"
-      },
-      "start": {
-        "empty": "Latihan kosong",
-        "begin": "Mulai",
-        "repeat": "Ulangi: {{name}}"
-      },
-      "routines": {
-        "title": "Rutinitas",
-        "new": "Buat baru",
-        "empty": "Belum ada rutinitas. Simpan latihan favoritmu biar tinggal ulang.",
-        "edit": "Ubah rutinitas {{name}}",
-        "play": "Mulai rutinitas {{name}}"
-      },
       "history": {
         "title": "Riwayat sesi",
         "emptyTitle": "Belum ada sesi",
         "emptyHint": "Dua-tiga sesi seminggu cukup buat jaga otot.",
         "shareStory": "Bagikan sesi {{name}} ke Story",
-        "shareFeed": "Bagikan sesi {{name}} ke feed",
-        "edit": "Ubah sesi {{name}}"
+        "shareFeed": "Bagikan sesi {{name}} ke feed"
       }
     },
     "map": {
@@ -303,195 +262,9 @@
         "summary": "Semua otot dalam satu sesi"
       }
     },
-    "active": {
-      "screenTitle": "Latihan",
-      "none": "Tidak ada latihan berjalan.",
-      "empty": "Sesi masih kosong. Tambah latihan pertamamu di bawah.",
-      "namePlaceholder": "Nama sesi, mis. Push Senin",
-      "setsProgress_other": "{{done}}/{{total}} set",
-      "discard": "Buang latihan",
-      "discardShort": "Buang",
-      "unchecked": {
-        "warn": "Masih ada set yang belum dicentang. Tetap selesai?",
-        "review": "Periksa",
-        "confirm": "Tetap selesai",
-        "message_other": "{{count}} set belum ditandai selesai. Set yang tidak dicentang tidak akan disimpan.",
-        "save": "Simpan tanpa set itu"
-      },
-      "discardConfirm": {
-        "title": "Buang latihan?",
-        "message": "Semua set yang sudah dicatat akan hilang."
-      },
-      "menu": {
-        "note": "Catatan",
-        "supersetOn": "Superset dengan berikutnya",
-        "supersetOff": "Lepas superset",
-        "moveUp": "Naikkan urutan",
-        "moveDown": "Turunkan urutan",
-        "remove": "Hapus latihan",
-        "label": "Menu {{name}}"
-      },
-      "chip": {
-        "superset": "Superset",
-        "up": "Naik",
-        "down": "Turun"
-      },
-      "supersetLetter": "Superset {{letter}}",
-      "noteTitle": "Catatan latihan",
-      "notePlaceholder": "Mis. pegangan lebar, turun pelan",
-      "col": {
-        "set": "Set",
-        "previous": "Sebelumnya",
-        "kg": "Kg",
-        "reps": "Reps",
-        "seconds": "Detik",
-        "target": "Target"
-      },
-      "aria": {
-        "setType": "Jenis set {{n}}: {{type}}. Ganti jenis.",
-        "fillPrevious": "Isi dari sesi sebelumnya: {{value}}",
-        "setDuration": "Set {{n}} durasi detik",
-        "setWeight": "Set {{n}} beban kg",
-        "setReps": "Set {{n}} repetisi",
-        "markDone": "Tandai set {{n}} selesai",
-        "undoDone": "Batalkan set {{n}}",
-        "removeSet": "Hapus set {{n}}",
-        "removeLastSet": "Hapus set terakhir",
-        "rest": "Timer istirahat: {{value}}. Ketuk untuk ganti."
-      },
-      "rest": {
-        "title": "Waktu istirahat",
-        "off": "Mati",
-        "chip": "Istirahat {{time}}",
-        "chipOff": "Istirahat: mati",
-        "minus": "Kurangi 15 detik",
-        "plus": "Tambah 15 detik",
-        "skip": "Lewati istirahat",
-        "skipShort": "Lewati"
-      },
-      "toast": {
-        "noNext": "Tidak ada latihan berikutnya untuk dipasangkan.",
-        "checkOne": "Centang minimal satu set dulu sebelum selesai.",
-        "fillReps": "{{name}}: isi repetisi pada set yang dicentang.",
-        "fillDuration": "{{name}}: isi durasi (detik) pada set yang dicentang."
-      },
-      "notify": {
-        "title": "Istirahat selesai",
-        "body": "Waktunya set berikutnya."
-      }
-    },
-    "summary": {
-      "screenTitle": "Ringkasan",
-      "nothing": "Tidak ada latihan untuk disimpan.",
-      "done": "Latihan selesai!",
-      "records": "Rekor baru",
-      "noRecords": "Belum ada rekor baru kali ini. Tetap solid, sesi tercatat.",
-      "namePlaceholder": "Push Senin",
-      "notePlaceholder": "Naikkan beban minggu depan",
-      "save": "Simpan latihan",
-      "saving": "Menyimpan…",
-      "saveShare": "Simpan & bagikan ke feed",
-      "shareFeed": "Bagikan ke feed",
-      "saveRoutine": "Simpan sebagai rutinitas",
-      "discard": "Buang perubahan dan kembali",
-      "shareTitle": "Bagikan sesi ini",
-      "error": {
-        "name": "Beri nama sesinya dulu, mis. Push Senin.",
-        "incomplete": "Set yang dicentang belum lengkap. Isi repetisi atau durasinya.",
-        "saveFailed": "Gagal menyimpan latihan."
-      },
-      "toast": {
-        "saved": "Latihan tersimpan",
-        "savedPr_other": "Tersimpan. {{count}} rekor baru, mantap!"
-      },
-      "confirm": {
-        "unchecked_other": "{{count}} set tidak ikut tersimpan. Lanjutkan?",
-        "review": "Periksa lagi",
-        "droppedTitle": "Sebagian set dilewati",
-        "dropped_other": "{{count}} set dicentang tapi datanya kurang (tanpa repetisi/durasi), jadi tidak ikut disimpan.",
-        "continue": "Lanjutkan"
-      }
-    },
-    "routine": {
-      "fallbackName": "Rutinitas",
-      "name": "Nama rutinitas",
-      "namePlaceholder": "mis. Push Senin",
-      "notePlaceholder": "mis. 3× seminggu",
-      "titleNew": "Rutinitas baru",
-      "titleEdit": "Ubah rutinitas",
-      "notFound": "Rutinitas tidak ditemukan.",
-      "save": "Simpan rutinitas",
-      "delete": "Hapus rutinitas",
-      "removeExercise": "Hapus {{name}}",
-      "error": {
-        "name": "Beri nama rutinitasnya dulu.",
-        "exercise": "Tambahkan minimal satu latihan."
-      },
-      "toast": {
-        "saved": "Rutinitas tersimpan"
-      },
-      "confirmDelete": {
-        "title": "Hapus rutinitas?",
-        "message": "Rutinitas ini hilang dari daftar."
-      }
-    },
-    "picker": {
-      "search": "Cari gerakan…",
-      "searchLabel": "Cari gerakan",
-      "searchExample": "mis. bench",
-      "muscleGroup": "Filter kelompok otot",
-      "equipmentGroup": "Filter alat",
-      "allMuscles": "Semua otot",
-      "allEquipment": "Semua alat",
-      "all": "Semua",
-      "recent": "Baru dipakai",
-      "results": "Hasil",
-      "everything": "Semua latihan",
-      "empty": {
-        "title": "Tidak ketemu",
-        "hint": "Coba kata kunci lain atau buat gerakan sendiri."
-      },
-      "create": "Buat gerakan sendiri",
-      "customName": "{{name}} (buatanmu)",
-      "select": "Pilih {{name}}",
-      "add": "Tambah {{name}}",
-      "pick": "Pilih",
-      "picked": "Dipilih",
-      "replace": "Ganti",
-      "addCount": "Tambah ({{n}})",
-      "form": {
-        "title": "Gerakan baru",
-        "name": "Nama gerakan",
-        "namePlaceholder": "mis. Cable fly rendah",
-        "muscle": "Otot utama",
-        "equipment": "Alat",
-        "type": "Jenis",
-        "create": "Buat",
-        "creating": "Membuat…",
-        "hintDuration": "Gerakan seperti plank dicatat dalam detik."
-      },
-      "toast": {
-        "created": "Gerakan {{name}} dibuat"
-      },
-      "error": {
-        "name": "Nama gerakannya diisi dulu ya.",
-        "choose": "Pilih otot utama dan alatnya."
-      }
-    },
-    "editor": {
-      "title": "Sesi baru",
-      "duration": "Durasi (menit)",
-      "kcalHint": "Perkiraan {{kcal}} kcal masuk ke angka bakar saat disimpan.",
-      "kcalHintEmpty": "Isi durasi untuk perkiraan kalori.",
-      "save": "Simpan sesi",
-      "error": {
-        "reps": "Semua set butuh repetisi (angka)."
-      }
-    },
     "detail": {
       "screenTitle": "Riwayat gerakan",
       "notFound": "Gerakan tidak ditemukan di katalog.",
-      "logThis": "Catat gerakan ini",
       "bests": "Rekor terbaik",
       "noData": "Belum ada data.",
       "trend": "Tren e1RM",
@@ -520,10 +293,11 @@
     "title": "Latihan sekarang di JoyoFit",
     "body": "Catat latihan beban, rutinitas, riwayat, dan grafik kemajuan di JoyoFit. Kalori yang terbakar tetap masuk ke JoyoRogo.",
     "open": "Buka JoyoFit",
+    "android": "Android",
+    "ios": "iPhone",
     "install": "Pasang JoyoFit",
     "site": "Tentang JoyoFit",
     "archive": "Riwayat latihan beban lama tetap bisa kamu lihat di sini, tapi tidak bisa diubah lagi. JoyoFit bisa membawanya sendiri.",
-    "quickEntry": "Catat kalori olahraga cepat tetap ada di bawah.",
     "blocked": "Latihan beban pindah ke JoyoFit",
     "draftNotice": "Latihan yang belum disimpan di perangkat ini tidak bisa dilanjutkan lagi. Mulai latihan baru di JoyoFit.",
     "privacy": "Riwayat yang kamu bawa ke JoyoFit tersimpan di JoyoFit (di ponselmu, dan di cloud JoyoFit untuk Pro). Menghapus data di JoyoRogo tidak menghapus salinan itu."

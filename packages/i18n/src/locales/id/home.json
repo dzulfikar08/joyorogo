@@ -182,13 +182,6 @@
     "logged_other": "dari {{count}} hari tercatat",
     "open": "Rekap minggu ini, minggu lalu {{range}}. Buka rekap lengkap"
   },
-  "workout": {
-    "title": "Latihan beban",
-    "open": "Buka",
-    "openLabel": "Buka Latihan Beban",
-    "allGood": "Semua otot kebagian minggu ini, mantap.",
-    "keepMuscle": "Jaga otot saat defisit: catat latihan bebanmu."
-  },
   "weighIn": {
     "done": "Berat dicatat",
     "range": "Isi berat badan antara 25 dan 400 kg.",

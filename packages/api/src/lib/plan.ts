@@ -2,6 +2,7 @@ import { and, asc, desc, eq, gte, lt, lte, ne, sql } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
 import { exerciseLog, foodLog, profile, weightLog } from "@joyorogo/db/schema/fitness";
+import { workoutSession } from "@joyorogo/db/schema/plans";
 
 import type {
   ActivityLevel,
@@ -75,6 +76,33 @@ export function planQueries(db: Database, userId: string, date: string) {
       )
       .groupBy(exerciseLog.date),
   ] as const;
+}
+
+/**
+ * One row when `date` was a training day, none otherwise: a legacy `workout_session` that day, or a
+ * strength row JoyoFit mirrored (`source = 'joyofit'`, `type = 'angkat_beban'`). Manual quick entries
+ * never count. Both halves use an index on (user_id, date) / the session user+date lookup; a single
+ * UNION ALL keeps it one statement for `db.batch`.
+ */
+export function trainingDayQuery(db: Database, userId: string, date: string) {
+  return db
+    .select({ id: workoutSession.id })
+    .from(workoutSession)
+    .where(and(eq(workoutSession.userId, userId), eq(workoutSession.date, date)))
+    .unionAll(
+      db
+        .select({ id: exerciseLog.id })
+        .from(exerciseLog)
+        .where(
+          and(
+            eq(exerciseLog.userId, userId),
+            eq(exerciseLog.date, date),
+            eq(exerciseLog.source, "joyofit"),
+            eq(exerciseLog.type, "angkat_beban"),
+          ),
+        ),
+    )
+    .limit(1);
 }
 
 export type ProfileRow = typeof profile.$inferSelect;

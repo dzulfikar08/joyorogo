@@ -48,7 +48,7 @@ import {
   useGainIntake,
 } from "@/components/gain/gain-today";
 import { WaterCard, WaterTile } from "@/components/water-card";
-import { WorkoutCard } from "@/components/workout/workout-card";
+import { JoyoFitCard } from "@/components/workout/joyofit-card";
 import { pickFact } from "@/lib/facts";
 import { fmtDateLong, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
 import { useFirstVisit } from "@/lib/motion";
@@ -383,7 +383,7 @@ function Dashboard({
 
         <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-2 lg:space-y-5">
           <WeightCard summary={summary} date={date} isToday={isToday} />
-          {!maternal && <WorkoutCard />}
+          {!maternal && <JoyoFitCard />}
         </div>
 
         <div className="min-w-0 lg:col-start-1 lg:row-start-2">

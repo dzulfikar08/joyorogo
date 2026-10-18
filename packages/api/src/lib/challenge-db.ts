@@ -14,8 +14,11 @@ import type { DayFacts } from "./challenge";
 /** userId -> date -> facts for one challenge span. */
 export type FactsByUser = Map<string, Map<string, DayFacts>>;
 
-/** exercise_log sources written by a device, as opposed to typed in. Strava is excluded from challenges entirely (Strava API policy: owner-only display). */
-const VERIFIED_EXERCISE_SOURCES = ["health_connect", "apple_health"];
+/**
+ * exercise_log sources written by a device or tracked workout, as opposed to typed in. `joyofit` is a strength
+ * workout the owner tracked in JoyoFit. Strava is excluded from challenges entirely (Strava API policy: owner-only display).
+ */
+const VERIFIED_EXERCISE_SOURCES = ["health_connect", "apple_health", "joyofit"];
 
 function put(out: FactsByUser, userId: string, date: string, facts: DayFacts | undefined) {
   if (!facts) return;

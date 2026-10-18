@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Platform, Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
-import { Redirect, Stack, router } from "expo-router";
+import { Redirect, Stack } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
 
@@ -36,6 +36,7 @@ import { StravaCard } from "@/components/strava-card";
 import { DaySwitcher } from "@/components/day-switcher";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { useSessionGate } from "@/lib/use-session-gate";
+import { openJoyoFit } from "@/lib/workout/joyofit";
 import { errorMessage, fmtDateMedium, fmtInt, fmtKcalLabel, fmtKg, parseNum } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
@@ -456,15 +457,15 @@ export default function Olahraga() {
       )}
       {weightKg === null ? <Text style={styles.gridCaption}>{t("picker.noWeight")}</Text> : null}
 
-      {/* Strength training: dedicated session logger */}
+      {/* Strength training moved to JoyoFit */}
       <ListGroup>
         <ListRow
           icon="barbell"
           iconTint="bakar"
-          title={t("strength.title")}
-          subtitle={t("strength.subtitle")}
+          title={t("moved.title")}
+          subtitle={t("moved.body")}
           chevron
-          onPress={() => router.push("/latihan")}
+          onPress={() => void openJoyoFit()}
         />
       </ListGroup>
 

@@ -382,6 +382,17 @@ describe("workouts, strain and sleep", () => {
     expect(me.hitsByBasis).toEqual({ device: 1, photo: 0, manual: 1 });
   });
 
+  test("a JoyoFit strength row is a verified device session", async () => {
+    await seed("c-work-fit", "t1", "workouts", 1, 2, [{ userId: "free" }]);
+    await Promise.all([workout("free", 2, 1, "joyofit"), workout("free", 1, 1, "manual")]);
+    const me = (await detail("free", "c-work-fit")).leaderboard[0]!;
+    expect(me.days.map((d) => [d.status, d.basis])).toEqual([
+      ["hit", "device"],
+      ["hit", "manual"],
+      ["pending", null],
+    ]);
+  });
+
   test("strain and sleep read the JoyoFit scores", async () => {
     await seed("c-strain", "t1", "strain", 10, 2, [{ userId: "comp" }]);
     await seed("c-sleep", "t1", "sleep", 90, 2, [{ userId: "comp" }, { userId: "free" }]);

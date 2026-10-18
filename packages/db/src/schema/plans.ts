@@ -6,8 +6,11 @@ import { exerciseLog } from "./fitness";
 
 // Tables for strength training (workout_*), food prices (plate), and web push
 // reminders (push_subscription). Dates are WIB calendar days 'YYYY-MM-DD'.
+//
+// workout_*: strength logging moved to JoyoFit. These tables are a read-only archive of what was logged in
+// JoyoRogo; nothing is deleted, and new writes are rejected after the grace period (api lib/strength-lock.ts).
 
-/** One strength-training session; its kcal is mirrored into exercise_log for Burn. */
+/** One legacy strength-training session (archive); its kcal is mirrored into exercise_log for Burn. */
 export const workoutSession = sqliteTable(
   "workout_session",
   {

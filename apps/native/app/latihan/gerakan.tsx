@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { router, useLocalSearchParams, Stack } from "expo-router";
+import { useLocalSearchParams, Stack } from "expo-router";
 import { ScrollView, View } from "react-native";
 import { Circle, Polyline, Svg } from "react-native-svg";
 import { useTranslation } from "react-i18next";
@@ -12,10 +12,9 @@ import {
   type SetType,
 } from "@joyorogo/api/lib/workout";
 
-import { Button, Card, Num, SectionTitle, Text } from "@/components/ui";
+import { Card, Num, SectionTitle, Text } from "@/components/ui";
 import { Disclosure } from "@/components/disclosure";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { newExercise, setActiveWorkout } from "@/lib/workout/active";
 import { errorMessage, fmtDateMedium, fmtKg } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
@@ -104,25 +103,6 @@ export default function LatihanGerakan() {
     <>
       <Stack.Screen options={{ title: exercise?.name ?? t("latihan.detail.screenTitle") }} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Button
-          variant="secondary"
-          size="sm"
-          label={t("latihan.detail.logThis")}
-          icon="add"
-          style={styles.startButton}
-          onPress={() => {
-            if (exercise) {
-              setActiveWorkout({
-                name: "",
-                note: "",
-                startedAt: Date.now(),
-                exercises: [newExercise(exercise)],
-              });
-              router.push("/latihan/aktif");
-            }
-          }}
-        />
-
         <SectionTitle title={t("latihan.detail.bests")} />
         <Card>
           {history.isPending ? (
@@ -192,7 +172,6 @@ export default function LatihanGerakan() {
 
 const styles = StyleSheet.create((theme) => ({
   content: { padding: theme.spacing.lg, gap: theme.spacing.md },
-  startButton: { alignSelf: "flex-start" },
   empty: { color: theme.colors.mutedForeground, fontSize: theme.fontSize.sm },
   emptyTitle: { color: theme.colors.foreground, fontSize: theme.fontSize.base, fontWeight: "700" },
   bestGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md },

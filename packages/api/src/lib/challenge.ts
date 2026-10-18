@@ -382,9 +382,10 @@ export function foodFacts(
 }
 
 /**
- * Workouts: `verified` counts sessions that came from Strava, Health Connect
- * or Apple Health. The day is device-backed only when the verified sessions
- * alone reach the target; otherwise it is manual.
+ * Workouts: `verified` counts sessions that came from Health Connect, Apple
+ * Health or a JoyoFit workout (Strava never reaches a challenge). The day is
+ * device-backed only when the verified sessions alone reach the target;
+ * otherwise it is manual.
  */
 export function workoutFacts(
   row: { total: number; verified: number } | undefined,

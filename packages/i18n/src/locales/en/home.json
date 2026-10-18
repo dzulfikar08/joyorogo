@@ -188,13 +188,6 @@
     "logged_other": "of {{count}} days logged",
     "open": "Weekly recap, last week {{range}}. Open full recap"
   },
-  "workout": {
-    "title": "Strength training",
-    "open": "Open",
-    "openLabel": "Open strength training",
-    "allGood": "Every muscle got work this week. Nice.",
-    "keepMuscle": "Keep your muscle while cutting: log your strength workouts."
-  },
   "weighIn": {
     "done": "Weight logged",
     "range": "Enter a weight between 25 and 400 kg.",

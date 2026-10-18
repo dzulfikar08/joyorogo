@@ -37,7 +37,7 @@
       "label": "Logged workouts",
       "lower": "logged workouts",
       "blurb": "Log a workout every day.",
-      "source": "Workouts in JoyoRogo, Strava, Health Connect or Apple Health.",
+      "source": "Workouts in JoyoRogo, JoyoFit, Health Connect or Apple Health.",
       "unit": "sessions",
       "rule": "Log a workout every day",
       "ruleTarget": "Log at least {{target}} workouts a day"

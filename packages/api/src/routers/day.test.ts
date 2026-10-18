@@ -169,3 +169,34 @@ describe("day.kcalSeries", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("day.summary protein boost on a training day", () => {
+  const ids = ["t_none", "t_joyofit", "t_manual", "t_session", "t_cardio", "t_other_day"];
+
+  test("only a legacy session or a JoyoFit strength row raises the target", async () => {
+    const yesterday = shiftDate(today, -1);
+    await client.executeMultiple(`
+      INSERT INTO "user" (id, name, email, tier) VALUES
+        ${ids.map((id) => `('${id}', '${id}', '${id}@test.id', 'free')`).join(",")};
+      INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level)
+        SELECT id, 1990, 'male', 170, 80, 72, '2030-01-01', 'mid' FROM "user" WHERE id IN (${ids.map((id) => `'${id}'`).join(",")});
+      INSERT INTO exercise_log (id, user_id, date, type, name, kcal, source, external_id) VALUES
+        ('pb-1', 't_joyofit', '${today}', 'angkat_beban', 'Push', 200, 'joyofit', 'strength:1'),
+        ('pb-2', 't_manual', '${today}', 'angkat_beban', 'Angkat beban', 200, 'manual', NULL),
+        ('pb-3', 't_cardio', '${today}', 'lari', 'Lari', 200, 'joyofit', 'strength:3'),
+        ('pb-4', 't_other_day', '${yesterday}', 'angkat_beban', 'Push', 200, 'joyofit', 'strength:4');
+      INSERT INTO workout_session (id, user_id, date, name) VALUES ('pb-s', 't_session', '${today}', 'Legacy');
+    `);
+
+    const target = async (id: string) =>
+      (await call(dayRouter.summary, { date: today }, as(id))).protein?.targetG;
+    const base = await target("t_none");
+    expect(base).toBeGreaterThan(0);
+    expect(await target("t_manual")).toBe(base);
+    expect(await target("t_cardio")).toBe(base);
+    expect(await target("t_other_day")).toBe(base);
+    const boosted = await target("t_session");
+    expect(boosted).toBeGreaterThan(base!);
+    expect(await target("t_joyofit")).toBe(boosted);
+  });
+});

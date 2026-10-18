@@ -1,213 +1,67 @@
-import { Button } from "@joyorogo/ui/components/button";
 import { Card, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
 import { ScreenError } from "@/components/screen-state";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { MuscleMap } from "@/components/workout/muscle-map";
 import { ProgressCard } from "@/components/workout/progress-card";
-import {
-  type ActiveWorkout,
-  clearActive,
-  loadActive,
-  rememberExercises,
-  saveActive,
-  workoutFromRoutine,
-  workoutFromSessionItem,
-} from "@/components/workout/active-store";
+import { JoyoFitCard } from "@/components/workout/joyofit-card";
 import { workoutApi, workoutQueryPrefix } from "@/lib/workout-contract";
 import { fmtDateMedium, fmtInt } from "@/lib/format";
-import type { WorkoutStatus } from "@/lib/api-types";
-import { useDelayedDelete } from "@/lib/optimistic";
-import { removeById } from "@joyorogo/api/lib/optimistic";
-import type { Routine } from "@/lib/workout-contract";
 import { orpc } from "@/utils/orpc";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, createFileRoute } from "@tanstack/react-router";
-import { Dumbbell, History, Pencil, Play, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { History } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+const DRAFT_KEY = "jrg-active-workout";
 
 export const Route = createFileRoute("/_auth/latihan/")({
   component: LatihanPage,
 });
 
-/** Hub: resume banner, start options, routines, history, weekly progress. */
+/** Read-only archive of old strength logs; training itself lives in JoyoFit. */
 function LatihanScreen() {
   const { t } = useTranslation(["olahraga", "common"]);
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const catalog = useQuery({
     queryKey: [...workoutQueryPrefix, "catalog"],
     queryFn: () => workoutApi.catalog(),
   });
-  const routines = useQuery({
-    queryKey: [...workoutQueryPrefix, "routines"],
-    queryFn: () => workoutApi.listRoutines(),
-  });
-  const last = useQuery(orpc.workout.lastSession.queryOptions());
   const history = useQuery(orpc.workout.listSessions.queryOptions({ input: { limit: 20 } }));
   const status = useQuery(orpc.workout.status.queryOptions({ input: {} }));
 
-  // Resume banner reflects localStorage; re-check after returning from /aktif.
-  const [resumable, setResumable] = useState<ActiveWorkout | null>(null);
+  // A draft from the removed logger: tell the user once, then drop it.
+  const [draftNotice, setDraftNotice] = useState(false);
   useEffect(() => {
-    setResumable(loadActive());
-    return () => undefined;
+    try {
+      if (localStorage.getItem(DRAFT_KEY) !== null) {
+        localStorage.removeItem(DRAFT_KEY);
+        setDraftNotice(true);
+      }
+    } catch {
+      // storage unavailable: nothing to migrate
+    }
   }, []);
 
   const catalogById = new Map((catalog.data?.exercises ?? []).map((exercise) => [exercise.id, exercise]));
-  const typeOf = (exerciseId: string) => catalogById.get(exerciseId)?.type ?? "weight_reps";
-
-  const startWorkout = (workout: ActiveWorkout) => {
-    saveActive(workout);
-    void navigate({ to: "/latihan/aktif" });
-  };
-
-  // Delayed-commit delete: gone from the list instantly, DELETE after the
-  // undo window; undo restores and never calls the server.
-  const deleteRoutine = useDelayedDelete<Routine>({
-    remove: (row) => workoutApi.deleteRoutine({ id: row.id }),
-    patch: (row, cache) => {
-      cache.list<Routine>(["workout", "routines"], (rows) => removeById(rows, row.id));
-    },
-    label: (row) => row.name,
-    fallback: t("latihan.routine.fallbackName"),
-    invalidate: () => [orpc.workout.key()],
-  });
-
   const nameOf = (exerciseId: string) => catalogById.get(exerciseId)?.name ?? exerciseId;
-
-  const startEmpty = () => {
-    startWorkout({
-      name: "",
-      note: "",
-      startedAt: new Date().toISOString(),
-      exercises: [],
-    });
-  };
-
-  const startFromLast = () => {
-    if (!last.data) return;
-    const workout = workoutFromSessionItem({
-      session: last.data.session,
-      sets: last.data.sets,
-      typeOf,
-    });
-    rememberExercises([...new Set(last.data.sets.map((set) => set.exerciseId))]);
-    startWorkout(workout);
-  };
-
-  const startFromRoutine = (routineId: string) => {
-    const routine = (routines.data ?? []).find((item) => item.id === routineId);
-    if (!routine) return;
-    startWorkout(workoutFromRoutine(routine, typeOf));
-  };
 
   return (
     <Page className="max-w-xl lg:max-w-3xl">
       <PageHeader title={t("latihan.title")} />
 
-      {resumable && (
-        <Card className="mb-4 flex items-center gap-3 border-primary/40 bg-primary/5">
-          <Dumbbell className="size-5 shrink-0 text-primary" aria-hidden />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-extrabold">{t("latihan.list.resume.title")}</p>
-            <p className="text-xs text-muted-foreground">
-              {[
-                resumable.name || t("latihan.list.resume.untitled"),
-                t("latihan.count.exercises", { count: resumable.exercises.length }),
-              ].join(" · ")}
-            </p>
-          </div>
-          <Link
-            to="/latihan/aktif"
-            className="rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-          >
-            {t("latihan.list.resume.continue")}
-          </Link>
-          <button
-            type="button"
-            aria-label={t("latihan.list.resume.discard")}
-            onClick={() => {
-              clearActive();
-              setResumable(null);
-            }}
-            className="rounded-full p-2 text-muted-foreground hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-          >
-            <Trash2 className="size-4" aria-hidden />
-          </button>
-        </Card>
+      {draftNotice && (
+        <p role="status" className="mb-3 rounded-2xl bg-muted px-4 py-3 text-sm">
+          {t("moved.draftNotice")}
+        </p>
       )}
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Button onClick={startEmpty} disabled={resumable !== null}>
-          <Plus className="size-4" aria-hidden /> {t("latihan.list.start.empty")}
-        </Button>
-        {last.data && (
-          <Button
-            variant="secondary"
-            onClick={startFromLast}
-            disabled={resumable !== null}
-          >
-            <RotateCcw className="size-4" aria-hidden />{" "}
-            {t("latihan.list.start.repeat", { name: last.data.session.name })}
-          </Button>
-        )}
+      <div className="mb-3 space-y-3 lg:mb-5">
+        <JoyoFitCard />
+        <p className="px-1 text-xs text-muted-foreground">{t("moved.archive")}</p>
       </div>
 
       <div className="grid items-start gap-3 lg:grid-cols-2 lg:gap-5">
         <div className="min-w-0 space-y-3 lg:space-y-5">
-          <Card className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <SectionTitle>{t("latihan.list.routines.title")}</SectionTitle>
-              <Link
-                to="/latihan/rutinitas/$id"
-                params={{ id: "baru" }}
-                className="rounded-full bg-muted px-3 py-1.5 text-xs font-bold focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-              >
-                {t("latihan.list.routines.new")}
-              </Link>
-            </div>
-            {routines.isPending ? (
-              <p className="text-sm text-muted-foreground">{t("common:state.loading")}</p>
-            ) : (routines.data?.length ?? 0) === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("latihan.list.routines.empty")}</p>
-            ) : (
-              <ul className="divide-y divide-border">
-                {(routines.data ?? []).map((routine) => (
-                  <li key={routine.id} className="flex items-center gap-2 py-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold">{routine.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {[
-                          t("latihan.count.exercises", { count: routine.exercises.length }),
-                          t("latihan.count.sets", {
-                            count: routine.exercises.reduce((sum, item) => sum + item.sets.length, 0),
-                          }),
-                        ].join(" · ")}
-                      </p>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => startFromRoutine(routine.id)}
-                      disabled={resumable !== null}
-                    >
-                      <Play className="size-4" aria-hidden /> {t("latihan.list.start.begin")}
-                    </Button>
-                    <Link
-                      to="/latihan/rutinitas/$id"
-                      params={{ id: routine.id }}
-                      aria-label={t("latihan.list.routines.edit", { name: routine.name })}
-                      className="rounded-full p-2 text-muted-foreground hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-                    >
-                      <Pencil className="size-4" aria-hidden />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-
           <Card className="space-y-3">
             <SectionTitle>{t("latihan.list.history.title")}</SectionTitle>
             {history.isPending ? (

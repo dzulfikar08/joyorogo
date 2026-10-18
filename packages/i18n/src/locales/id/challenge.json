@@ -37,7 +37,7 @@
       "label": "Latihan tercatat",
       "lower": "latihan tercatat",
       "blurb": "Catat sesi latihan tiap hari.",
-      "source": "Sesi latihan di JoyoRogo, Strava, Health Connect atau Apple Health.",
+      "source": "Sesi latihan di JoyoRogo, JoyoFit, Health Connect atau Apple Health.",
       "unit": "sesi",
       "rule": "Catat latihan tiap hari",
       "ruleTarget": "Catat minimal {{target}} sesi latihan per hari"

@@ -29,6 +29,7 @@ import {
   useDelayedDelete,
   useOptimisticMutation,
 } from "@/lib/optimistic";
+import { JoyoFitCard } from "@/components/workout/joyofit-card";
 import type { ExerciseItem, ExerciseType } from "@/lib/api-types";
 import { removeById, upsertById } from "@joyorogo/api/lib/optimistic";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
@@ -37,7 +38,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Bike,
-  ChevronRight,
   Droplets,
   Dumbbell,
   Flame,
@@ -533,20 +533,8 @@ function OlahragaScreen({
         </div>
       </div>
 
-      <section aria-label={t("strength.title")} className="mt-3 lg:mt-5">
-        <Link
-          to="/latihan"
-          className="pressable flex items-center gap-3 rounded-3xl bg-card p-4 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-        >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bakar-soft text-bakar">
-            <Dumbbell className="size-5" aria-hidden />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-sm font-extrabold">{t("strength.title")}</span>
-            <span className="block text-xs text-muted-foreground">{t("strength.subtitle")}</span>
-          </span>
-          <ChevronRight className="ml-auto size-5 shrink-0 text-muted-foreground" aria-hidden />
-        </Link>
+      <section aria-label={t("moved.title")} className="mt-3 lg:mt-5">
+        <JoyoFitCard />
       </section>
 
       <Sheet
