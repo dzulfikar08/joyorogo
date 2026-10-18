@@ -178,5 +178,10 @@
     "playNoOffer": "Langganan belum tersedia di Google Play.",
     "playAlready": "Kamu sudah berlangganan Pro di Google Play. Ketuk \"Pulihkan pembelian\".",
     "playInactive": "Pembelian belum aktif. Coba lagi sebentar atau ketuk \"Pulihkan pembelian\"."
+  },
+  "testflight": {
+    "notice": "Di versi TestFlight, pembelian adalah uji coba dari Apple: tidak ditagih, dan Pro aktif 24 jam.",
+    "trialTitle": "Uji coba TestFlight",
+    "trialBody": "Pembelian ini uji coba dari Apple di versi TestFlight: tidak ditagih, dan Pro aktif 24 jam."
   }
 }

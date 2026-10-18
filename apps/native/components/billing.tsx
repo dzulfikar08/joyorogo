@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { Linking, Platform, View } from "react-native";
+import { Alert, Linking, Platform, View } from "react-native";
 import * as Crypto from "expo-crypto";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -348,19 +348,24 @@ async function appleAccountToken(userId: string): Promise<string> {
  */
 class AppleRejectedError extends Error {}
 
-/** Sends the StoreKit JWS for crediting; the server is idempotent per transaction. */
-async function postAppleJws(signedTransaction: string): Promise<void> {
+/**
+ * Sends the StoreKit JWS for crediting; the server is idempotent per transaction.
+ * `sandbox` is the server's verdict that this was Apple's Sandbox (TestFlight)
+ * and nothing was charged: Pro then lasts 24 hours.
+ */
+async function postAppleJws(signedTransaction: string): Promise<{ sandbox: boolean }> {
   const res = await fetch(`${serverUrl()}/api/billing/apple`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(await checkoutHeaders()) },
     body: JSON.stringify({ signedTransaction }),
   });
-  const body = (await res.json().catch(() => null)) as { error?: string } | null;
+  const body = (await res.json().catch(() => null)) as { error?: string; sandbox?: boolean } | null;
   if (res.status === 401) throw new Error(i18n.t("billing:error.signIn"));
   if (res.status === 400 || res.status === 403) {
     throw new AppleRejectedError(body?.error ?? i18n.t("billing:error.receiptInvalid"));
   }
   if (!res.ok) throw new Error(body?.error ?? i18n.t("billing:error.purchaseFailed"));
+  return { sandbox: body?.sandbox === true };
 }
 
 /**
@@ -385,16 +390,24 @@ export function useAppleFounderPurchase() {
       if (result.status === "pending") {
         throw new Error(i18n.t("billing:error.applePending"));
       }
+      let sandbox: boolean;
       try {
-        await postAppleJws(result.signedTransaction);
+        ({ sandbox } = await postAppleJws(result.signedTransaction));
       } catch (error) {
         if (error instanceof AppleRejectedError) await appleIap.finish(result.transactionId);
         throw error;
       }
       await appleIap.finish(result.transactionId);
-      return "bought";
+      return sandbox ? "trial" : "bought";
     },
-    onSuccess: () => queryClient.invalidateQueries(),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries();
+      // TestFlight purchases are Apple's simulation: say so on the success screen so nobody thinks they paid.
+      // An Alert outlives the paywall closing behind it.
+      if (result === "trial") {
+        Alert.alert(i18n.t("billing:testflight.trialTitle"), i18n.t("billing:testflight.trialBody"));
+      }
+    },
   });
 }
 
