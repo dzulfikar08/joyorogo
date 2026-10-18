@@ -33,7 +33,7 @@ Store prices checked 2026-10-18 (read back after the change):
 | Store | Product | Monthly | Yearly |
 | --- | --- | --- | --- |
 | App Store Connect (IDN) | auto-renewable `com.joyodigitama.joyorogo.founder.monthly` / `.yearly` | Rp29.000 | **Rp199.000** |
-| Google Play | subscription `pro`, base plans `monthly` / `yearly` (ID region, the only region configured) | Rp29.000 | **Rp199.000** |
+| Google Play | subscription `pro`, base plans `monthly` / `yearly` (ID region, Indonesia price shown; other regions below) | Rp29.000 | **Rp199.000** |
 
 The current step (buyers 11-110) matches both stores in Indonesia. The server accepts only the two auto-renewable Apple products (`DEFAULT_APPLE_SUB_*_PRODUCT_ID` in `packages/api/src/lib/apple.ts`).
 
@@ -50,7 +50,19 @@ Outside Indonesia the price follows the web USD price (US$9.99/month, US$59.99/y
 | IND (held) | ₹299 | ₹299 | ₹1,999 | ₹1,999 |
 | IDN | Rp29.000 | Rp29.000 | Rp199.000 | Rp199.000 |
 
-Google Play has no non-ID price: the subscription is sold in Indonesia only. Selling elsewhere is a Play Console decision (the service account has no monetization write permission).
+Google Play, changed 2026-10-18 in Play Console (new subscribers only, no "apply to existing" option; Indonesia untouched): `pro` base plans `monthly` (US$9.99) and `yearly` (US$59.99) now carry 128 regions each (Indonesia plus 127), priced by Play's "Set prices" conversion from USD, and none of the 53 excluded low/lower-middle-income territories is present. Before: ID only (Rp29.000 / Rp199.000). "New countries / regions" was left off. Read back with `play.call('GET', play.B + 'com.joyodigitama.joyorogo/subscriptions')`, `basePlans[].regionalConfigs`:
+
+| Region (Play) | Monthly now | Yearly now |
+| --- | --- | --- |
+| US | US$9.99 | US$59.99 |
+| GB | £8.99 | £53.99 |
+| DE (EUR) | €10.99 | €64.99 |
+| AU | A$15.99 | A$94.99 |
+| SG | S$13.98 | S$83.98 |
+| MY | RM43.99 | RM264.99 |
+| ID | Rp29.000 | Rp199.000 |
+
+Closed testing track (`alpha`) countries went from Indonesia only to 131 (all Play-listed countries except the excluded ones; "Rest of World" left off), sent for review in Publishing overview as the only pending change. Of the 53 excluded territories, 46 are in Play's track list and were left unticked; AFG, BTN, MDG, MRT, MWI, STP and SWZ are not offered there. Production was not touched.
 
 Legacy non-renewing IAPs (removed 2026-10-18): `.founder.1y` was deleted in App Store Connect (it was never submitted). `.founder.1m` could not be deleted (`IAP_DELETE_NOT_ALLOWED`, state READY_TO_SUBMIT); it is cleared for sale in every territory (availability: no territories, not in new territories) and stays at Rp29.000. Neither is referenced by the app or the server. Four zero-revenue sandbox `apple:` payments from earlier tests remain in D1 as history.
 
