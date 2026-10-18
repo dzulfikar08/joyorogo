@@ -54,6 +54,30 @@
       "about": { "title": "About", "subtitle": "Version, updates, privacy policy" }
     }
   },
+  "hubWeb": {
+    "title": "Profile",
+    "back": "Profile",
+    "groups": {
+      "community": "Community"
+    },
+    "rows": {
+      "about": {
+        "subtitle": "Install the app, privacy policy, terms"
+      }
+    },
+    "account": {
+      "email": "Email"
+    },
+    "signOut": {
+      "confirmTitle": "Sign out of JoyoRogo?",
+      "confirmBody": "You'll need to sign in again to open your data on this device."
+    },
+    "about": {
+      "legal": "Rules and policies",
+      "terms": "Terms of use",
+      "refund": "Refund policy"
+    }
+  },
   "state": {
     "saving": "Saving..."
   },

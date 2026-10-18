@@ -52,7 +52,7 @@ export function MaternalEatHero({ summary }: { summary: DaySummary }) {
           </p>
           <div className="-mr-2.5 -mb-2.5 mt-1 flex justify-end">
             <Link
-              to="/profil"
+              to="/profil/target"
               search={{ needs: true }}
               aria-label={t("home:eat.help")}
               className="flex size-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"

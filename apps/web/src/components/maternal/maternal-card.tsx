@@ -70,7 +70,7 @@ export function MaternalCard({ info, summary }: { info: MaternalInfo; summary: D
             </p>
           </div>
           <Link
-            to="/profil"
+            to="/profil/target"
             search={{ maternal: true }}
             aria-label={t("maternal:home.seeAll")}
             className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"

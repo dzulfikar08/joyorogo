@@ -82,20 +82,60 @@ type RowContent = {
   /** Wrap the title up to 2 lines instead of truncating to 1. */
   wrapTitle?: boolean;
   subtitle?: ReactNode;
+  /** Truncate the subtitle to one line instead of wrapping to two (dense hubs). */
+  oneLineSubtitle?: boolean;
   value?: ReactNode;
 };
+
+const CHIP_TONE = {
+  makan: "bg-makan-soft text-makan-ink",
+  bakar: "bg-bakar-soft text-bakar-ink",
+  tidur: "bg-tidur-soft text-tidur-ink",
+  muted: "bg-muted text-muted-foreground",
+  destructive: "bg-destructive-soft text-destructive",
+} as const;
+
+/** Round tinted icon chip, the leading tile of a row for our own features (36px). */
+export function IconChip({
+  tone,
+  className,
+  children,
+}: {
+  tone: keyof typeof CHIP_TONE;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "grid size-9 shrink-0 place-items-center rounded-full [&>svg]:size-[1.125rem]",
+        CHIP_TONE[tone],
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
+}
 
 function RowInner({
   icon,
   title,
   wrapTitle,
   subtitle,
+  oneLineSubtitle,
   value,
   chevron,
-}: RowContent & { chevron?: boolean }) {
+  destructive,
+}: RowContent & { chevron?: boolean; destructive?: boolean }) {
   return (
     <>
-      {icon && <span className="shrink-0">{icon}</span>}
+      {icon && (
+        <span className="shrink-0">
+          {destructive ? <IconChip tone="destructive">{icon}</IconChip> : icon}
+        </span>
+      )}
       <span className="min-w-0 flex-1">
         <span
           className={cn(
@@ -106,20 +146,27 @@ function RowInner({
           {title}
         </span>
         {subtitle && (
-          <span className="mt-0.5 block truncate text-[0.8125rem] text-muted-foreground">
+          <span
+            className={cn(
+              "mt-0.5 block text-[0.8125rem] leading-snug text-muted-foreground",
+              oneLineSubtitle ? "truncate" : "line-clamp-2",
+            )}
+          >
             {subtitle}
           </span>
         )}
       </span>
       {value !== undefined && (
-        <span className="shrink-0 text-[0.9375rem] font-semibold tabular-nums">{value}</span>
+        <span className="shrink-0 text-[0.9375rem] font-medium tabular-nums text-muted-foreground">
+          {value}
+        </span>
       )}
-      {chevron && <ChevronRight className="size-5 shrink-0 text-muted-foreground/70" aria-hidden />}
+      {chevron && <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
     </>
   );
 }
 
-const ROW = "flex min-h-[3.5rem] w-full items-center gap-3 px-5 py-3 text-left";
+const ROW = "flex min-h-[3.5rem] w-full items-center gap-3 px-5 py-2.5 text-left";
 
 /** A static row; pass `trailing` for an inline control (switch, delete button).
  * Pass `onClick` to make the whole row clickable (controls in `trailing` must stop propagation). */
@@ -217,7 +264,7 @@ export function ListButtonRow({
           destructive && "text-destructive",
         )}
       >
-        <RowInner {...content} chevron={!destructive} />
+        <RowInner {...content} chevron={!destructive} destructive={destructive} />
       </button>
     </li>
   );

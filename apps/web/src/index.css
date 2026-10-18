@@ -5,6 +5,20 @@
  * App-level additions only. Design tokens live in @joyorogo/ui/globals.css.
  */
 
+/*
+ * Soft destructive tile (Keluar, Hapus akun rows). Values mirror JoyoFit's
+ * destructiveSoft for light and dark so both apps read the same.
+ */
+:root {
+  --destructive-soft: #fde7e4;
+}
+.dark {
+  --destructive-soft: #41201e;
+}
+@theme inline {
+  --color-destructive-soft: var(--destructive-soft);
+}
+
 /* Progress rings fill once from empty when a screen first shows real data. */
 @media (prefers-reduced-motion: no-preference) {
   .ring-fill {

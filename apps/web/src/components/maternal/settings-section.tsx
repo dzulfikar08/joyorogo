@@ -8,7 +8,7 @@ import type { MaternalInfo } from "@joyorogo/api/lib/maternal";
 import { Button } from "@joyorogo/ui/components/button";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 
-import { ListButtonRow } from "@/components/kit/surface";
+import { ListButtonRow, IconChip } from "@/components/kit/surface";
 import type { ProfileRow } from "@/lib/api-types";
 import { fmtDateLong } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
@@ -111,7 +111,11 @@ export function MaternalSettings({
   return (
     <>
       <ListButtonRow
-        icon={<Baby className="size-5 text-makan" aria-hidden />}
+        icon={
+          <IconChip tone="makan">
+            <Baby />
+          </IconChip>
+        }
         title={t("maternal:settings.title")}
         subtitle={rowSubtitle}
         onClick={() => setOpen(true)}

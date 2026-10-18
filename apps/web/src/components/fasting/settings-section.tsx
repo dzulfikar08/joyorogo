@@ -99,7 +99,7 @@ async function unsubscribeBrowser(
 }
 
 /**
- * "Puasa intermiten" setelan di /profil: pola, jam buka jendela, dan toggle
+ * "Puasa intermiten" setelan di /profil/makan: pola, jam buka jendela, dan toggle
  * notifikasi Web Push (izin → /sw.js → langganan VAPID).
  */
 export function FastingSettingsSection() {

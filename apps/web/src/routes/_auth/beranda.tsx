@@ -581,7 +581,7 @@ function EatHero({ summary }: { summary: Summary }) {
             ))}
           </dl>
           <Link
-            to="/profil"
+            to="/profil/target"
             search={{ needs: true }}
             className="flex min-h-11 items-center justify-between gap-2 rounded-2xl bg-muted px-4 text-sm font-semibold hover:bg-muted/70 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
           >

@@ -1,10 +1,11 @@
-import { Activity, ChevronDown, Clock, HeartPulse } from "lucide-react";
+import { ChevronDown, Clock, HeartPulse } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@joyorogo/ui/components/button";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+import { BrandMark } from "@/components/kit/brand-mark";
 import { Card } from "@/components/kit/surface";
 import { orpc } from "@/utils/orpc";
 
@@ -81,6 +82,69 @@ export function useStrava() {
   };
 }
 
+/**
+ * Official "Connect with Strava" button (developers.strava.com/guidelines):
+ * the SVG is used unmodified at its native 48px height and starts the
+ * strava.com/oauth/authorize flow through `useStrava().authorize`.
+ */
+export function ConnectWithStravaButton({
+  onClick,
+  busy = false,
+}: {
+  onClick: () => void;
+  busy?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-busy={busy}
+      className={`inline-block rounded-md focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none ${busy ? "pointer-events-none" : ""}`}
+    >
+      <img
+        src="/brand/connect-with-strava.svg"
+        alt="Connect with Strava"
+        width={237}
+        height={48}
+        className="block h-12 w-auto"
+      />
+    </button>
+  );
+}
+
+/**
+ * Official "Powered by Strava" logo, unmodified, shown where Strava data is
+ * displayed. Kept small and apart from the JoyoRogo brand.
+ */
+export function PoweredByStrava({ className }: { className?: string }) {
+  return (
+    <img
+      src="/brand/powered-by-strava.svg"
+      alt="Powered by Strava"
+      width={365}
+      height={37}
+      className={className ?? "mx-auto block h-5 w-auto"}
+    />
+  );
+}
+
+/** Strava's 7-day retention rule and the Health Connect / Apple Health alternative. */
+export function StravaRetentionNotes() {
+  const { t } = useTranslation("settings");
+  return (
+    <div className="basis-full space-y-2 rounded-2xl bg-muted p-3 text-xs leading-relaxed text-muted-foreground">
+      <p className="flex items-start gap-2">
+        <Clock className="mt-0.5 size-4 shrink-0" aria-hidden />
+        <span>{t("strava.retention.text")}</span>
+      </p>
+      <p className="flex items-start gap-2">
+        <HeartPulse className="mt-0.5 size-4 shrink-0" aria-hidden />
+        <span>{t("strava.retention.healthAlternative")}</span>
+      </p>
+    </div>
+  );
+}
+
 /** Strava integration as one row-like card: status line + one main action. */
 export function StravaCard({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation(["settings", "common", "olahraga"]);
@@ -132,40 +196,16 @@ export function StravaCard({ compact = false }: { compact?: boolean }) {
       </>
     );
   } else {
-    actions = (
-      <Button
-        size="sm"
-        className="min-h-11"
-        onClick={strava.authorize}
-        disabled={strava.isAuthorizing}
-      >
-        {strava.isAuthorizing
-          ? t("strava.action.connecting")
-          : t("strava.action.connect")}
-      </Button>
-    );
+    actions = <ConnectWithStravaButton onClick={strava.authorize} busy={strava.isAuthorizing} />;
   }
 
   const showRetention =
     strava.configured && !strava.isChecking && !strava.statusError;
-  const notes = (
-    <div className="basis-full space-y-2 rounded-2xl bg-muted p-3 text-xs leading-relaxed text-muted-foreground">
-      <p className="flex items-start gap-2">
-        <Clock className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <span>{t("strava.retention.text")}</span>
-      </p>
-      <p className="flex items-start gap-2">
-        <HeartPulse className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <span>{t("strava.retention.healthAlternative")}</span>
-      </p>
-    </div>
-  );
+  const notes = <StravaRetentionNotes />;
 
   return (
     <Card aria-label="Strava" className="flex flex-wrap items-center gap-4">
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-bakar-soft text-bakar">
-        <Activity className="size-5" aria-hidden />
-      </span>
+      <BrandMark brand="strava" />
       <div className="min-w-0 flex-1 basis-52">
         <p className="text-[0.9375rem] font-bold">Strava</p>
         <p

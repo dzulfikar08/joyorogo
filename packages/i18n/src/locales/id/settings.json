@@ -54,6 +54,30 @@
       "about": { "title": "Tentang", "subtitle": "Versi, pembaruan, kebijakan privasi" }
     }
   },
+  "hubWeb": {
+    "title": "Profil",
+    "back": "Profil",
+    "groups": {
+      "community": "Komunitas"
+    },
+    "rows": {
+      "about": {
+        "subtitle": "Pasang aplikasi, kebijakan privasi, syarat"
+      }
+    },
+    "account": {
+      "email": "Email"
+    },
+    "signOut": {
+      "confirmTitle": "Keluar dari JoyoRogo?",
+      "confirmBody": "Kamu perlu masuk lagi untuk membuka datamu di perangkat ini."
+    },
+    "about": {
+      "legal": "Aturan dan kebijakan",
+      "terms": "Syarat penggunaan",
+      "refund": "Kebijakan pengembalian dana"
+    }
+  },
   "state": {
     "saving": "Menyimpan..."
   },

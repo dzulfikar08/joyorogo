@@ -24,7 +24,7 @@ const BIO_MAX = 160;
 type Visibility = "publik" | "grup";
 
 /**
- * Pengaturan feed komunitas di /profil: handle & bio, toggle profil publik,
+ * Pengaturan feed komunitas di /profil/feed: handle & bio, toggle profil publik,
  * visibility default, dan daftar blokir dengan buka blokir. Cermin dari
  * components/feed/settings.tsx di native.
  */

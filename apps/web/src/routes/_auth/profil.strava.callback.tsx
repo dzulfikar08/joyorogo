@@ -44,7 +44,7 @@ function StravaCallbackPage() {
         onSuccess: () => {
           toast.success(t("strava.toast.connected"));
           queryClient.invalidateQueries({ queryKey: orpc.strava.key() });
-          navigate({ to: "/profil" });
+          navigate({ to: "/profil/strava" });
         },
         onError: (error) => setFailed(error.message),
       },
