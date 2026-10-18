@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { sleepLog } from "@joyorogo/db/schema/fitness";
@@ -35,7 +35,16 @@ export const sleepRouter = {
           set: { hours: input.hours, source: input.source },
           // Manual rows are only ever replaced by the user's own manual
           // edit; an import sync may refresh rows of its own source.
-          ...(input.source === "manual" ? {} : { setWhere: eq(sleepLog.source, input.source) }),
+          // A reading from the other import source (Health Connect vs Apple Health, two phones) replaces it only
+          // when it is longer: one body sleeps once, and the fuller night is the better record.
+          ...(input.source === "manual"
+            ? {}
+            : {
+                setWhere: or(
+                  eq(sleepLog.source, input.source),
+                  and(ne(sleepLog.source, "manual"), sql`${input.hours} > ${sleepLog.hours}`),
+                ),
+              }),
         })
         .returning();
       // Empty when the conflict target was a manual row that imports must not clobber.

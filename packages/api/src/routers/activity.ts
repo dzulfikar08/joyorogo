@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { dailyActivity } from "@joyorogo/db/schema/fitness";
@@ -46,9 +46,18 @@ export const activityRouter = {
             exerciseMinutes: input.exerciseMinutes,
             source: input.source,
           },
+          // Two phones can import the same day: Android (Health Connect) and iPhone (Apple Health). The two sources
+          // are never merged, so a reading from the other source replaces the row only when it counts at least as
+          // many steps (a day's total only grows); the same source always refreshes its own row.
+          setWhere: sql`${dailyActivity.source} = ${input.source} OR ${input.steps} >= ${dailyActivity.steps}`,
         })
         .returning();
-      return row;
+      if (row) return row;
+      const [kept] = await context.db
+        .select()
+        .from(dailyActivity)
+        .where(and(eq(dailyActivity.userId, context.session.user.id), eq(dailyActivity.date, input.date ?? jakartaToday())));
+      return kept;
     }),
 
   byDate: protectedProcedure
