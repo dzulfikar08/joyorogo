@@ -20,6 +20,7 @@ import idMisc from "./locales/id/misc.json";
 import idTips from "./locales/id/tips.json";
 import idHome from "./locales/id/home.json";
 import idGrup from "./locales/id/grup.json";
+import idCoach from "./locales/id/coach.json";
 import idMaternal from "./locales/id/maternal.json";
 import idGain from "./locales/id/gain.json";
 import idJam from "./locales/id/jam.json";
@@ -46,6 +47,7 @@ import enMisc from "./locales/en/misc.json";
 import enTips from "./locales/en/tips.json";
 import enHome from "./locales/en/home.json";
 import enGrup from "./locales/en/grup.json";
+import enCoach from "./locales/en/coach.json";
 import enMaternal from "./locales/en/maternal.json";
 import enGain from "./locales/en/gain.json";
 import enJam from "./locales/en/jam.json";
@@ -76,6 +78,7 @@ const id = {
   tips: idTips,
   home: idHome,
   grup: idGrup,
+  coach: idCoach,
   maternal: idMaternal,
   gain: idGain,
   jam: idJam,
@@ -108,6 +111,7 @@ const en: typeof id = {
   tips: enTips,
   home: enHome,
   grup: enGrup,
+  coach: enCoach,
   maternal: enMaternal,
   gain: enGain,
   jam: enJam,

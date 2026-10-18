@@ -26,6 +26,8 @@ declare module "cloudflare:workers" {
       // Wrangler-deployed vars/secrets (see .env.schema); unset = feature off.
       APP_URL?: string;
       FREE_DAILY_SCANS?: string;
+      COACH_DAILY_CAP?: string;
+      AI_COACH_MODEL?: string;
       FOUNDER_DAILY_CAP?: string;
       ANON_SCANS?: string;
       FOUNDER_PRICE_IDR?: string;

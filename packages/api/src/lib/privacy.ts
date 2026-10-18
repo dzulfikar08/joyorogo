@@ -34,6 +34,7 @@ import { savedFood } from "@joyorogo/db/schema/saved-foods";
 import { barcodeContribution } from "@joyorogo/db/schema/barcode";
 import { teamChallengeMember } from "@joyorogo/db/schema/challenge";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
+import { coachDoc } from "@joyorogo/db/schema/coach";
 import { watchWorkout } from "@joyorogo/db/schema/watch-workout";
 
 import { avatarPrefix } from "./avatar";
@@ -134,6 +135,7 @@ export function deleteAllUserData(db: Database, userId: string) {
     db.delete(sleepLog).where(eq(sleepLog.userId, userId)),
     db.delete(fitnessScore).where(eq(fitnessScore.userId, userId)),
     db.delete(watchWorkout).where(eq(watchWorkout.userId, userId)),
+    db.delete(coachDoc).where(eq(coachDoc.userId, userId)),
     db.delete(stravaAccount).where(eq(stravaAccount.userId, userId)),
     db.delete(waterLog).where(eq(waterLog.userId, userId)),
     db.delete(dailyActivity).where(eq(dailyActivity.userId, userId)),

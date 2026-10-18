@@ -1,0 +1,16 @@
+{
+  "disclaimer": "Ini bukan saran medis.",
+  "docTooLarge": "Data coach terlalu besar untuk disimpan.",
+  "locked": "Tanya coach khusus pengguna Pro.",
+  "disabled": "Tanya coach lagi dimatikan di server ini.",
+  "capReached": "Kamu sudah memakai {{cap}} pesan Tanya coach hari ini. Coba lagi besok.",
+  "failed": "Coach lagi tidak bisa menjawab. Coba lagi sebentar lagi.",
+  "timeout": "Coach terlalu lama menjawab. Coba kirim lagi.",
+  "refuseLeak": "Itu di luar yang bisa kubantu. Tanyakan soal latihan, pemulihan, tidur, atau makan, ya.",
+  "safe": {
+    "injury": "Kalau ada cedera atau nyeri yang tajam atau tidak hilang, berhenti dulu dan jangan dipaksa latihan. Periksakan ke dokter atau fisioterapis sebelum lanjut. Aku tidak bisa menyusun latihan di sekitar cedera, jadi tunggu arahan mereka dulu.",
+    "medical": "Gejala seperti nyeri dada, sesak napas, pusing berat, atau pingsan perlu diperiksa dokter, bukan ditebak lewat aplikasi. Berhenti latihan dulu dan temui dokter. Kalau gejalanya berat atau mendadak, segera ke IGD atau hubungi layanan darurat. Soal obat dan dosis, tanyakan ke dokter atau apoteker.",
+    "eatingDisorder": "Terima kasih sudah cerita. Aku tidak akan memberi saran membatasi makan. Pola makan seperti ini sebaiknya dibicarakan dengan dokter, psikolog, atau orang dewasa yang kamu percaya. Kamu tidak sendirian, dan bantuan itu ada.",
+    "minorDiet": "Untuk usia di bawah 18 tahun, aku tidak memberi saran diet atau membatasi makan. Tubuh yang sedang tumbuh butuh makan cukup. Kalau kamu khawatir soal berat badan, bicarakan dengan orang tua atau dokter."
+  }
+}

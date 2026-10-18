@@ -6,6 +6,7 @@ import { aiRouter } from "./ai";
 import { avatarRouter } from "./avatar";
 import { barcodeRouter } from "./barcode";
 import { challengeRouter } from "./challenge";
+import { coachRouter } from "./coach";
 import { dayRouter } from "./day";
 import { diaryRouter } from "./diary";
 import { exerciseRouter } from "./exercise";
@@ -64,6 +65,7 @@ export const appRouter = {
   savedFood: savedFoodRouter,
   barcode: barcodeRouter,
   fitness: fitnessRouter,
+  coach: coachRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

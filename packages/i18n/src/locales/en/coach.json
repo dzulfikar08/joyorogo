@@ -1,0 +1,16 @@
+{
+  "disclaimer": "This is not medical advice.",
+  "docTooLarge": "The coach data is too large to save.",
+  "locked": "Ask coach is for Pro members.",
+  "disabled": "Ask coach is turned off on this server.",
+  "capReached": "You've used {{cap}} Ask coach messages today. Try again tomorrow.",
+  "failed": "The coach can't answer right now. Please try again in a moment.",
+  "timeout": "The coach took too long to answer. Please send it again.",
+  "refuseLeak": "That's outside what I can help with. Ask me about training, recovery, sleep, or food.",
+  "safe": {
+    "injury": "If you have an injury, or pain that is sharp or doesn't go away, stop for now and don't push through. Get it checked by a doctor or physiotherapist before you continue. I can't plan training around an injury, so wait for their guidance first.",
+    "medical": "Symptoms like chest pain, trouble breathing, severe dizziness, or fainting need a doctor, not a guess from an app. Stop training for now and see a doctor. If it's severe or sudden, go to the emergency room or call emergency services. For medication and doses, ask your doctor or pharmacist.",
+    "eatingDisorder": "Thank you for telling me. I won't give advice on restricting food. This is best talked through with a doctor, a psychologist, or an adult you trust. You're not alone, and help is available.",
+    "minorDiet": "At under 18, I don't give diet or food-restriction advice. A growing body needs enough food. If you're worried about your weight, talk to a parent or a doctor."
+  }
+}
