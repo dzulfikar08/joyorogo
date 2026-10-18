@@ -5,7 +5,9 @@
 // - times are the phone's, shifted by the push's clock skew and capped at the server clock (`normalizeTimes`).
 // - `server_at` of every row stored by a push is later than anything the account already has and strictly increases
 //   inside the push, so a pull by (server_at, kind, id) never skips a row.
-// - an account keeps at most SYNC_LIMITS.perUser records; a push over the cap stores what fits.
+// - an account keeps at most SYNC_LIMITS.perUser records and SYNC_LIMITS.perUserBytes of documents; a push over a cap
+//   stores what fits (a record that already exists may always shrink or keep its size) and rejects the rest as `full`
+//   (record count) or `quota` (bytes), which the phone keeps waiting.
 
 import { and, asc, eq, gt, inArray, sql } from "drizzle-orm";
 
@@ -32,7 +34,7 @@ const KEYS_PER_LOOKUP = 40;
 export interface SyncRejected {
   kind: string;
   id: string;
-  reason: SyncInvalidReason | "full";
+  reason: SyncInvalidReason | "full" | "quota";
 }
 
 export interface SyncPushOutcome {
@@ -44,12 +46,19 @@ export interface SyncPushOutcome {
   rejected: SyncRejected[];
 }
 
-export async function syncTotals(db: Database, userId: string): Promise<{ count: number; maxServerAt: number | null }> {
+export async function syncTotals(
+  db: Database,
+  userId: string,
+): Promise<{ count: number; bytes: number; maxServerAt: number | null }> {
   const [row] = await db
-    .select({ count: sql<number>`count(*)`, maxServerAt: sql<number | null>`max(${syncRecord.serverAt})` })
+    .select({
+      count: sql<number>`count(*)`,
+      bytes: sql<number>`coalesce(sum(length(cast(${syncRecord.json} as blob))), 0)`,
+      maxServerAt: sql<number | null>`max(${syncRecord.serverAt})`,
+    })
     .from(syncRecord)
     .where(eq(syncRecord.userId, userId));
-  return { count: row?.count ?? 0, maxServerAt: row?.maxServerAt ?? null };
+  return { count: row?.count ?? 0, bytes: row?.bytes ?? 0, maxServerAt: row?.maxServerAt ?? null };
 }
 
 export async function syncCount(db: Database, userId: string, ns: SyncNs): Promise<number> {
@@ -84,17 +93,22 @@ export async function readSyncPage(
   return buildSyncPage(rows, since, limit);
 }
 
-async function existingKeys(
+/** The stored size in bytes of each of `records` that already exists, by `kind\0id`. */
+async function existingSizes(
   db: Database,
   userId: string,
   ns: SyncNs,
   records: readonly SyncRecordInput[],
-): Promise<Set<string>> {
-  const found = new Set<string>();
+): Promise<Map<string, number>> {
+  const found = new Map<string, number>();
   for (let i = 0; i < records.length; i += KEYS_PER_LOOKUP) {
     const pairs = records.slice(i, i + KEYS_PER_LOOKUP).map((r) => sql`(${r.kind}, ${r.id})`);
     const rows = await db
-      .select({ kind: syncRecord.kind, id: syncRecord.id })
+      .select({
+        kind: syncRecord.kind,
+        id: syncRecord.id,
+        bytes: sql<number>`length(cast(${syncRecord.json} as blob))`,
+      })
       .from(syncRecord)
       .where(
         and(
@@ -103,7 +117,7 @@ async function existingKeys(
           sql`(${syncRecord.kind}, ${syncRecord.id}) in (values ${sql.join(pairs, sql`, `)})`,
         ),
       );
-    for (const row of rows) found.add(`${row.kind}\u0000${row.id}`);
+    for (const row of rows) found.set(`${row.kind}\u0000${row.id}`, row.bytes);
   }
   return found;
 }
@@ -135,19 +149,32 @@ export async function pushSyncRecords(
 
   const totals = await syncTotals(db, userId);
   const room = Math.max(0, SYNC_LIMITS.perUser - totals.count);
-  if (accepted.length > room) {
-    // Rows that already exist never grow the account; new ones are taken in order while there is room.
-    const existing = await existingKeys(db, userId, ns, accepted);
-    let free = room;
-    accepted = accepted.filter((record) => {
-      if (existing.has(`${record.kind}\u0000${record.id}`)) return true;
-      if (free > 0) {
-        free -= 1;
-        return true;
+  const incoming = accepted.map((record) => new TextEncoder().encode(record.json).length);
+  const incomingBytes = incoming.reduce((sum, n) => sum + n, 0);
+  if (accepted.length > room || totals.bytes + incomingBytes > SYNC_LIMITS.perUserBytes) {
+    // Rows that already exist never grow the record count and may always shrink or keep their size; new rows and
+    // growth are taken in order while there is room in both the count and the bytes.
+    const existing = await existingSizes(db, userId, ns, accepted);
+    let freeRecords = room;
+    let freeBytes = Math.max(0, SYNC_LIMITS.perUserBytes - totals.bytes);
+    const kept: SyncRecordInput[] = [];
+    accepted.forEach((record, index) => {
+      const size = incoming[index]!;
+      const stored = existing.get(`${record.kind}\u0000${record.id}`);
+      const growth = Math.max(0, size - (stored ?? 0));
+      if (stored === undefined && freeRecords <= 0) {
+        rejected.push({ kind: record.kind, id: record.id, reason: "full" });
+        return;
       }
-      rejected.push({ kind: record.kind, id: record.id, reason: "full" });
-      return false;
+      if (growth > freeBytes) {
+        rejected.push({ kind: record.kind, id: record.id, reason: "quota" });
+        return;
+      }
+      if (stored === undefined) freeRecords -= 1;
+      freeBytes -= growth;
+      kept.push(record);
     });
+    accepted = kept;
     if (accepted.length === 0) return { stored: 0, skipped: 0, rejected };
   }
 

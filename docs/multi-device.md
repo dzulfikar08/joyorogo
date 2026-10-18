@@ -28,7 +28,7 @@ This file is identical in the `joyorogo` and `watch-fit` repos (`docs/multi-devi
 
 **Idempotent.** Records have stable ids (preference key, template id, route id, `<start>:<source>`, `<type>:<day>`); pushing the same batch twice stores one row per record and a pull of its own acknowledged record changes nothing.
 
-**Limits.** A record is capped by kind (table in `packages/api/src/lib/sync-record.ts`); 100 records and 2 MB per push; 100 000 records per account (a push over the cap stores what fits and answers `full`). Unknown kinds, oversized and non-object documents are rejected and not retried.
+**Limits.** A record is capped by kind (table in `packages/api/src/lib/sync-record.ts`); 100 records and 2 MB per push; 100 000 records and **50 MB of documents** per account across both namespaces (a push over a cap stores what fits, always lets an existing record shrink, and answers `full` for the record count or `quota` for the bytes; those records stay waiting on the phone, JoyoFit shows "Penyimpanan cloud akunmu penuh"). `sync/status` returns `bytes` and `quotaBytes`. Unknown kinds, oversized and non-object documents are rejected and not retried.
 
 ## 2. JoyoRogo (`apps/native`, `apps/web`)
 
@@ -112,7 +112,7 @@ Measured on production (2026-10-18): JoyoRogo D1 101 users, `watch_workout` 2, `
 | Steps and sleep (existing, now also restorable) | 1 100 to 1 400 rows per day at about 200 bytes | about 85 MB per account per year. 100 watch-Pro accounts is about 8.5 GB after a year, about $2.6 per month beyond D1's 5 GB included ($0.75 per GB-month) |
 | Restore on a new phone (90 days) | about 108 000 step rows plus sleep, 7 to 8 MB of JSON in 2 000-row pages | rows read are far below D1's 25 billion free reads per month; no R2 cost (routes and templates are inline in D1) |
 
-New `sync_record` data is a small fraction of the steps data that is already stored. No R2 storage is added.
+New `sync_record` data is a small fraction of the steps data that is already stored. No R2 storage is added. The 50 MB quota per account bounds the new data (steps and sleep are separate tables).
 
 ## 6. Tests
 

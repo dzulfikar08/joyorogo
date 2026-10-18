@@ -6,7 +6,7 @@ import {
   syncPushSchema,
   syncWipeSchema,
 } from "../lib/sync-record";
-import { pushSyncRecords, readSyncPage, syncCount, wipeSync } from "../lib/sync-record-store";
+import { pushSyncRecords, readSyncPage, syncCount, syncTotals, wipeSync } from "../lib/sync-record-store";
 import { cloudUnlocked } from "../lib/watch-workout-store";
 
 /**
@@ -15,14 +15,15 @@ import { cloudUnlocked } from "../lib/watch-workout-store";
  * lib/sync-record.ts.
  */
 export const syncRouter = {
-  /** `unlocked` says whether this account's writes to `ns` are accepted. */
+  /** `unlocked` says whether this account's writes to `ns` are accepted; `bytes` of `quotaBytes` are used across all namespaces. */
   status: protectedProcedure.input(syncPullSchema.pick({ ns: true })).handler(async ({ context, input }) => {
     const userId = context.session.user.id;
-    const [unlocked, records] = await Promise.all([
+    const [unlocked, records, totals] = await Promise.all([
       SYNC_PRO_NAMESPACES.includes(input.ns) ? cloudUnlocked(context.db, context.env, userId) : true,
       syncCount(context.db, userId, input.ns),
+      syncTotals(context.db, userId),
     ]);
-    return { unlocked, records };
+    return { unlocked, records, bytes: totals.bytes, quotaBytes: SYNC_LIMITS.perUserBytes };
   }),
 
   /**

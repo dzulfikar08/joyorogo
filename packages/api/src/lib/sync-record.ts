@@ -49,6 +49,8 @@ export const SYNC_LIMITS = {
   pushBytes: 2_000_000,
   /** Records one account may hold. */
   perUser: 100_000,
+  /** Serialized documents one account may hold, all namespaces together (50 MB). */
+  perUserBytes: 50 * 1024 * 1024,
   /** Records in one pull page. */
   pullPage: 200,
   /** Serialized size of one pull page; at least one record always goes out. */

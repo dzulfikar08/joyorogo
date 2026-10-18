@@ -327,7 +327,8 @@ describe("two phones, JoyoFit documents (Pro writes)", () => {
     // Reads are open: a lapsed account still restores what it uploaded while Pro.
     await call(syncRouter.status, { ns: "fit" }, as("free")).then((s) => expect(s.unlocked).toBe(false));
     const status = await call(syncRouter.status, { ns: "fit" }, as("pro"));
-    expect(status).toEqual({ unlocked: true, records: 1 });
+    expect(status).toMatchObject({ unlocked: true, records: 1, quotaBytes: SYNC_LIMITS.perUserBytes });
+    expect(status.bytes).toBeGreaterThan(0);
   });
 
   test("routes, stickers and cycle days restore on a second phone; a route delete is a tombstone", async () => {
@@ -427,6 +428,72 @@ describe("two phones, JoyoFit documents (Pro writes)", () => {
     );
     if (rogo.status !== "ok") throw new Error("locked");
     expect(rogo.rejected[0]?.reason).toBe("unknown_kind");
+  });
+});
+
+describe("account size quota", () => {
+  /** Rows written directly (a push is capped at 2 MB) until exactly `freeBytes` of the quota are left. */
+  async function fillTo(userId: string, freeBytes: number) {
+    await client.execute({ sql: 'INSERT INTO "user" (id, name, email, tier, founder_until) VALUES (?, ?, ?, \'founder\', NULL)', args: [userId, userId, `${userId}@test.id`] });
+    const insert = (id: string, pad: number, serverAt: number) =>
+      client.execute({
+        sql: "INSERT INTO sync_record (user_id, ns, kind, id, json, updated_at, deleted_at, rank, server_at) VALUES (?, 'fit', 'route', ?, ?, 1, NULL, 0, ?)",
+        args: [userId, id, JSON.stringify({ pad: "x".repeat(pad) }), serverAt],
+      });
+    const chunk = 1_000_000;
+    let used = 0;
+    let n = 0;
+    while (SYNC_LIMITS.perUserBytes - used - freeBytes > chunk + 20) {
+      await insert(`fill${n}`, chunk, ++n);
+      used += chunk + 10;
+    }
+    const last = SYNC_LIMITS.perUserBytes - used - freeBytes - 10;
+    await insert("fill-last", last, ++n);
+    const [row] = (await client.execute({ sql: "SELECT sum(length(cast(json as blob))) AS n FROM sync_record WHERE user_id = ?", args: [userId] })).rows;
+    expect(SYNC_LIMITS.perUserBytes - Number(row?.n)).toBe(freeBytes);
+  }
+
+  const record = (kind: string, id: string, doc: unknown, t: number) => ({ kind, id, json: JSON.stringify(doc), updatedAt: t, deletedAt: null, rank: 0 });
+
+  test("a push over the byte quota stores what fits, rejects the rest as quota, and a rewrite that shrinks always fits", async () => {
+    clock(at(3000));
+    await fillTo("quota", 10_000);
+    const small = record("pref", "small", { value: 1 }, at(3000));
+    const big = record("sticker", "big", { pad: "y".repeat(30_000) }, at(3000));
+    const result = await call(syncRouter.push, { ns: "fit", clientNow: at(3000), records: [big, small] }, as("quota"));
+    if (result.status !== "ok") throw new Error("locked");
+    expect(result.stored).toBe(1);
+    expect(result.rejected).toEqual([{ kind: "sticker", id: "big", reason: "quota" }]);
+    expect((await rows("quota", "fit")).some((r) => r.id === "big")).toBe(false);
+
+    const shrink = record("route", "fill0", { pad: "z" }, at(3010));
+    const again = await call(syncRouter.push, { ns: "fit", clientNow: at(3010), records: [shrink] }, as("quota"));
+    if (again.status !== "ok") throw new Error("locked");
+    expect(again.stored).toBe(1);
+    expect(again.rejected).toEqual([]);
+
+    // The shrink freed about 1 MB: the big record now fits.
+    const retry = await call(syncRouter.push, { ns: "fit", clientNow: at(3020), records: [{ ...big, updatedAt: at(3020) }] }, as("quota"));
+    if (retry.status !== "ok") throw new Error("locked");
+    expect(retry.stored).toBe(1);
+
+    const status = await call(syncRouter.status, { ns: "fit" }, as("quota"));
+    expect(status.quotaBytes).toBe(SYNC_LIMITS.perUserBytes);
+    expect(status.bytes).toBeLessThanOrEqual(SYNC_LIMITS.perUserBytes);
+  });
+
+  test("the engine keeps quota-rejected records dirty and reports quota", async () => {
+    clock(at(3100));
+    await fillTo("quota2", 5_000);
+    const a = new Phone("quota2", "fit", 0, ["pref", "sticker"]);
+    a.adapters.sticker!.edit("huge", { pad: "h".repeat(40_000) });
+    a.adapters.pref!.edit("tiny", true);
+    const report = await a.sync();
+    expect(report.quota).toBe(true);
+    expect(report.full).toBe(false);
+    expect(report.pushed).toBe(1);
+    expect(a.adapters.sticker!.rows.get("huge")?.dirty).toBe(true);
+    expect(a.adapters.pref!.rows.get("tiny")?.dirty).toBe(false);
   });
 });
 

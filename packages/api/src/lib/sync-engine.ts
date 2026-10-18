@@ -81,8 +81,10 @@ export interface SyncReport {
   rejected: PushRejected[];
   /** Pro is needed to upload; nothing was pushed (pulling still ran). */
   locked: boolean;
-  /** At least one record could not be stored because the account is full; it stays waiting. */
+  /** At least one record could not be stored because the account holds the most records it may; it stays waiting. */
   full: boolean;
+  /** At least one record could not be stored because the account's documents are at the size quota; it stays waiting. */
+  quota: boolean;
 }
 
 /** Records in one push; the server accepts at most this many. */
@@ -118,7 +120,7 @@ export function remoteWins(local: LocalState | null, remote: WireRecord, skew: n
 }
 
 export async function runSync(io: SyncIo, adapters: readonly RecordAdapter[]): Promise<SyncReport> {
-  const report: SyncReport = { pulled: 0, applied: 0, pushed: 0, skipped: 0, rejected: [], locked: false, full: false };
+  const report: SyncReport = { pulled: 0, applied: 0, pushed: 0, skipped: 0, rejected: [], locked: false, full: false, quota: false };
   const byKind = new Map(adapters.map((adapter) => [adapter.kind, adapter]));
 
   let since = Math.max(0, (await io.getCursor()) - PULL_OVERLAP_MS);
@@ -159,14 +161,19 @@ export async function runSync(io: SyncIo, adapters: readonly RecordAdapter[]): P
     }
     report.pushed += answer.stored;
     report.skipped += answer.skipped;
-    const full = new Set(answer.rejected.filter((r) => r.reason === "full").map((r) => `${r.kind}\u0000${r.id}`));
+    // `full` (record count) and `quota` (bytes) are not the record's fault: it keeps waiting, dirty, and is not retried
+    // in this run.
+    const held = new Set<string>();
     for (const rejected of answer.rejected) {
       report.rejected.push(rejected);
       if (rejected.reason === "full") report.full = true;
+      else if (rejected.reason === "quota") report.quota = true;
+      else continue;
+      held.add(`${rejected.kind}\u0000${rejected.id}`);
     }
-    for (const key of full) waiting.add(key);
+    for (const key of held) waiting.add(key);
 
-    const acknowledged = batch.filter((entry) => !full.has(`${entry.record.kind}\u0000${entry.record.id}`));
+    const acknowledged = batch.filter((entry) => !held.has(`${entry.record.kind}\u0000${entry.record.id}`));
     for (const adapter of adapters) {
       const sent = acknowledged.filter((entry) => entry.adapter === adapter).map((entry) => entry.record);
       if (sent.length > 0) await adapter.markPushed(sent, (record) => toServerTime(record, clientNow, answer.now));
