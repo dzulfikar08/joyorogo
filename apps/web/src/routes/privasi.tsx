@@ -274,6 +274,29 @@ function PrivasiPage() {
             />
           </section>
 
+          <section className="rounded-3xl bg-card p-5" id="beberapa-ponsel">
+            <h2 className="text-base font-bold tracking-tight">Pengaturan di semua ponselmu</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Supaya dua atau tiga ponsel (Android dan iPhone) menampilkan hal yang sama, pilihan
+              kecil yang kamu atur disimpan di akunmu dan ikut ke ponsel lain setelah kamu masuk.
+              Ini berlaku untuk semua akun di JoyoRogo; di JoyoFit hanya untuk akun Pro.
+            </p>
+            <CheckList
+              items={[
+                "JoyoRogo (semua akun): tema, pengingat (jam dan hari), tampilan dan filter di tab Makan, pilihan privasi stiker (sembunyikan angka, tampilkan nama, watermark), dan pengumuman yang sudah kamu tutup. Bahasa tersimpan di profilmu.",
+                "JoyoFit (Pro): pengaturan yang ikut akun (profil, target harian, tema, bahasa, satuan suhu dan nama kota cuaca, saklar siklus dan pengingatnya, laporan tidur), template stiker buatanmu, rute yang kamu simpan, HRV, skor tidur, metrik kesehatan yang dilaporkan jam, serta langkah dan tidur 90 hari terakhir untuk dipulihkan di ponsel baru.",
+                "Data siklus (periode dan catatan harian) adalah data kesehatan. Ia hanya ikut akun Pro dan punya saklar sendiri, Sinkron data siklus, yang menyala secara bawaan. Mematikannya menghapus salinan siklus di cloud.",
+                "Tidak ikut akun: izin notifikasi, saklar lokasi, koneksi Health Connect atau Apple Health, pilihan kamera, interval detak mentah, dan kunci pairing jam. Jam harus dipasangkan sendiri di tiap ponsel.",
+                "Data Health Connect (Android) dan Apple Health (iPhone) tidak pernah dicampur. Kalau dua ponsel melaporkan hari yang sama, angka langkah tidak turun dan tidur yang lebih panjang yang dipakai, dan olahraga yang sama tidak dicatat dua kali.",
+              ]}
+            />
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Disimpan di database JoyoRogo, terhubung ke akunmu, dan hanya kamu yang bisa membacanya.
+              Tidak dipakai untuk iklan atau melatih model, dan tidak dijual. Dihapus saat kamu memakai
+              Hapus semua data saya atau menghapus akun, dan di JoyoFit lewat Delete cloud data.
+            </p>
+          </section>
+
           <section className="rounded-3xl bg-card p-5">
             <h2 className="text-base font-bold tracking-tight">Komunitas: feed dan grup</h2>
             <p className="mt-3 text-sm leading-relaxed">
