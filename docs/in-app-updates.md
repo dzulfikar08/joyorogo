@@ -52,3 +52,7 @@ Debug helpers: `adb logcat | grep -i "InAppUpdates\|AppUpdate"` shows the Play C
 
 - Flexible flow only. Immediate updates and update priority are not used.
 - Unknown on a cold start with an accepted-but-unfinished update: the banner shows "Mulai ulang" first (Play exposes no downloaded flag outside the status events). Tapping it while bytes are still downloading does nothing until the download completes.
+
+## Over-the-air JS updates
+
+Binary updates (above) are one channel; JS-only fixes also arrive through EAS Update (`expo-updates`, `docs/ota.md`). They download in the background and apply on the next cold start; once one is downloaded, the banner shows "Pembaruan siap dipasang" with **Mulai ulang**, and Profil has a "Pembaruan cepat" card next to "Pembaruan aplikasi". The OTA banner wins over the Play and APK prompts, and the same 6 h foreground throttle applies.

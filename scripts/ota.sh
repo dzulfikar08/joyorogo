@@ -4,6 +4,7 @@
 #   scripts/ota.sh "Fix keyboard overlap in the food sheet"        production, android + ios
 #   scripts/ota.sh --platform android "Copy fix"                   one platform only
 #   scripts/ota.sh --channel preview "Try the new notice"          preview channel, android QA build only
+#   scripts/ota.sh --runtime                                       print the runtimeVersion of this commit, publish nothing
 #
 # Steps: typecheck + unit tests + i18n check, then per platform a release-env `expo export` (same env as the store
 # builds, bundle sanity checks), then `eas update` with the bundle. Prints the
@@ -21,13 +22,14 @@ ROOT=$PWD
 NATIVE=apps/native
 EAS=(bunx "eas-cli@${EAS_CLI_VERSION:-25.1.1}")
 
-usage() { sed -n '2,8p' "$0" >&2; exit 2; }
+usage() { sed -n '2,9p' "$0" >&2; exit 2; }
 
-channel=production platform=all message=
+channel=production platform=all message= runtime_only=0
 while [ $# -gt 0 ]; do
   case $1 in
     --channel) channel=${2:?--channel needs production or preview}; shift ;;
     --platform) platform=${2:?--platform needs android, ios or all}; shift ;;
+    --runtime) runtime_only=1 ;;
     -h|--help) usage ;;
     --) shift; message=${message:+$message }$*; break ;;
     -*) echo "unknown option: $1" >&2; usage ;;
@@ -35,7 +37,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-[ -n "$message" ] || { echo "an update message is required" >&2; usage; }
+[ "$runtime_only" = 1 ] || [ -n "$message" ] || { echo "an update message is required" >&2; usage; }
 case $channel in production|preview) ;; *) echo "channel must be production or preview" >&2; exit 2 ;; esac
 case $platform in android|ios|all) ;; *) echo "platform must be android, ios or all" >&2; exit 2 ;; esac
 # The preview channel is what the QA Android build (JOYOROGO_QA=1) listens to; there is no QA iOS binary.
@@ -47,6 +49,24 @@ command -v jq > /dev/null || { echo "jq is required" >&2; exit 1; }
 
 step() { printf '\n== %s ==\n' "$*"; }
 fail() { echo "ota: $*" >&2; exit 1; }
+
+# Android store builds are the Play flavour (JOYOROGO_DISTRIBUTION=play: no APK self-updater, no external
+# checkout); iOS store builds leave it unset. The manifest carries extra.distribution and the fingerprint depends
+# on it, so each platform is published with the value its binary was built with.
+platform_env() {
+  if [ "$1" = android ]; then export JOYOROGO_DISTRIBUTION=play; else unset JOYOROGO_DISTRIBUTION; fi
+  if [ "$channel" = preview ]; then export JOYOROGO_QA=1; else unset JOYOROGO_QA; fi
+}
+runtime_of() { (cd "$NATIVE" && bunx expo-updates runtimeversion:resolve --platform "$1" | tail -n 1 | jq -r .runtimeVersion); }
+
+if [ "$runtime_only" = 1 ]; then
+  for p in android ios; do
+    [ "$platform" = all ] || [ "$platform" = "$p" ] || continue
+    platform_env "$p"
+    echo "$p  $(runtime_of "$p")"
+  done
+  exit 0
+fi
 
 step "1. checks"
 (cd "$NATIVE" && bun run check-types)
@@ -63,11 +83,7 @@ export EXPO_PUBLIC_FB_APP_ID=1016598258111944
 publish() {
   local p=$1 out=$ROOT/$NATIVE/dist/ota-$1 json
   json=$(mktemp)
-  # Android store builds are the Play flavour (JOYOROGO_DISTRIBUTION=play: no APK self-updater, no external
-  # checkout); iOS store builds leave it unset. The manifest carries extra.distribution, so each platform
-  # is published with the value its binary was built with. The fingerprint depends on it too.
-  if [ "$p" = android ]; then export JOYOROGO_DISTRIBUTION=play; else unset JOYOROGO_DISTRIBUTION; fi
-  if [ "$channel" = preview ]; then export JOYOROGO_QA=1; else unset JOYOROGO_QA; fi
+  platform_env "$p"
 
   step "2. $p: export (release env, distribution=${JOYOROGO_DISTRIBUTION:-default}, qa=${JOYOROGO_QA:-0})"
   rm -rf "$out"
@@ -84,7 +100,7 @@ publish() {
   echo "   bundle $(basename "$bundle") $(stat -c %s "$bundle") bytes, API URL inlined"
 
   local runtime
-  runtime=$(cd "$NATIVE" && bunx expo-updates runtimeversion:resolve --platform "$p" | tail -n 1 | jq -r .runtimeVersion)
+  runtime=$(runtime_of "$p")
   [ -n "$runtime" ] && [ "$runtime" != null ] || fail "$p: runtimeVersion did not resolve"
 
   step "3. $p: eas update --channel $channel (runtimeVersion $runtime)"
@@ -109,4 +125,4 @@ fi
 step "published"
 printf '%s\n' "${RESULTS[@]}"
 echo "view:     bunx eas-cli update:view <group>   (dashboard: https://expo.dev/accounts/dzulfikar08/projects/joyorogo/updates)"
-echo "rollback: bunx eas-cli update:rollback --channel $channel   (docs/ota.md)"
+echo "rollback: bunx eas-cli update:rollback <group> --non-interactive   (the group must be the latest of its runtimeVersion; docs/ota.md)"

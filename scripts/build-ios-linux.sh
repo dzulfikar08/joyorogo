@@ -20,6 +20,14 @@
 #   - CocoaPods gem, ninja, rcodesign, ld64.lld, llvm-ar, rsync
 #   - App Store Connect API key              ASC_KEY_PATH ASC_KEY_ID ASC_ISSUER_ID
 set -euo pipefail
+
+# expo-updates (OTA, docs/ota.md) needs Xcode's "Generate updates resources" build phase: the embedded app.manifest and the
+# runtimeVersion in Expo.plist. This Xcode-free pipeline does not run it, so its IPA would start with updates enabled and
+# no embedded update. Build iOS with scripts/build-ios-mac.sh or the Release iOS workflow.
+if [ "${JOYO_ALLOW_IOS_LINUX_WITHOUT_UPDATES:-0}" != 1 ]; then
+  echo "build-ios-linux.sh cannot embed the expo-updates resources; use scripts/build-ios-mac.sh or the Release iOS workflow (docs/ota.md)." >&2
+  exit 1
+fi
 cd "$(dirname "$0")/.."
 ROOT=$PWD
 NATIVE=$ROOT/apps/native
