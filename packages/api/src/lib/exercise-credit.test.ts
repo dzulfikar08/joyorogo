@@ -9,6 +9,7 @@ import {
   addBackSettings,
   allDayActive,
   budgetKcal,
+  dayActiveKcal,
   exerciseCredit,
   shiftWorkoutKcal,
   showAddBackNotice,
@@ -324,5 +325,43 @@ describe("the one-time notice", () => {
 
   test("an unknown creation time does not show it", () => {
     expect(showAddBackNotice({ accountCreatedAtMs: Number.NaN, dismissed: false })).toBe(false);
+  });
+});
+
+describe("dayActiveKcal: the ring of the exercise screens", () => {
+  const rowsKcal = (rows: Row[]) => rows.reduce((sum, row) => sum + row.kcal, 0);
+
+  test("18 Okt (JoyoFit pushed 4 watch workouts and the day's 418 kcal, Apple Health read 13): the ring is the all-day total, not the 269 of the rows", () => {
+    const rows = [
+      { kcal: 143, source: "joyofit", externalId: "watch:1792283744" },
+      { kcal: 17, source: "joyofit", externalId: "watch:1792316333" },
+      { kcal: 27, source: "joyofit", externalId: "watch:1792318308" },
+      { kcal: 82, source: "joyofit", externalId: "watch:1792318704" },
+    ];
+    const c = credit({}, rows, 418, 586, [{ source: "apple_health", kcal: 13 }]);
+    expect(rowsKcal(rows)).toBe(269);
+    expect(c.allDaySource).toBe("joyofit");
+    expect(dayActiveKcal(c, rowsKcal(rows))).toBe(418);
+    expect(c.countedKcal).toBe(314);
+  });
+
+  test("15 Okt: the ring is the 254 measured, not the 1121 of the two imported walks", () => {
+    const rows = [{ kcal: 471, source: "apple_health" }, { kcal: 650, source: "apple_health" }];
+    const c = credit({}, rows, null, 4972, [{ source: "apple_health", kcal: 254 }]);
+    expect(dayActiveKcal(c, rowsKcal(rows))).toBe(254);
+  });
+
+  test("a manual row the watch does not know about adds to the ring, like it adds to the budget", () => {
+    const rows = [{ kcal: 143, source: "joyofit", externalId: "watch:1" }, { kcal: 100, source: "manual" }];
+    expect(dayActiveKcal(credit({}, rows, 418), rowsKcal(rows))).toBe(518);
+  });
+
+  test("without the day's credit (loading, no profile) it is the sum of the rows", () => {
+    expect(dayActiveKcal(null, 269)).toBe(269);
+    expect(dayActiveKcal(undefined, 0)).toBe(0);
+  });
+
+  test("nothing recorded and no all-day data: zero", () => {
+    expect(dayActiveKcal(credit({}, []), 0)).toBe(0);
   });
 });

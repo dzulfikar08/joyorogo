@@ -56,6 +56,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import { dayActiveKcal } from "@joyorogo/api/lib/exercise-credit";
 import {
   EXERCISE_MAX_DURATION,
   EXERCISE_MIN_DURATION,
@@ -311,6 +312,9 @@ function OlahragaScreen({
   };
 
   const { items, totalKcal } = list;
+  // The ring is the day's activity as Sisa reads it (all-day total + workouts it does not contain), not the sum of the
+  // listed rows, which overlap the all-day total.
+  const burnedKcal = dayActiveKcal(summary.data?.exerciseCredit, totalKcal);
   // Health Connect imports land on the workout's own WIB day, so surface the
   // past week or they look lost next to an empty "Hari ini".
   const wibToday = jakartaToday();
@@ -321,7 +325,7 @@ function OlahragaScreen({
     if (group) group.push(item);
     else historyByDate.set(item.date, [item]);
   }
-  const over = burnTarget !== null && totalKcal > burnTarget;
+  const over = burnTarget !== null && burnedKcal > burnTarget;
   const activeType = types.data?.find((type) => type.key === typeKey);
 
   return (
@@ -345,17 +349,17 @@ function OlahragaScreen({
         <Card className="flex items-center gap-4 p-4 lg:col-start-1 lg:row-start-1">
           <Ring
             metric="bakar"
-            value={totalKcal}
-            max={burnTarget ?? Math.max(totalKcal, 300)}
+            value={burnedKcal}
+            max={burnTarget ?? Math.max(burnedKcal, 300)}
             size={108}
             stroke={11}
             label={
               burnTarget !== null
                 ? t("summary.ringTarget", {
-                    burned: fmtKcalLabel(totalKcal),
+                    burned: fmtKcalLabel(burnedKcal),
                     target: fmtKcalLabel(burnTarget),
                   })
-                : t("summary.ring", { burned: fmtKcalLabel(totalKcal) })
+                : t("summary.ring", { burned: fmtKcalLabel(burnedKcal) })
             }
           >
             <div className="text-center">
@@ -365,7 +369,7 @@ function OlahragaScreen({
                   over && "text-bakar-ink",
                 )}
               >
-                {fmtInt(totalKcal)}
+                {fmtInt(burnedKcal)}
               </p>
               <p className="mt-0.5 text-xs font-semibold text-muted-foreground">kcal</p>
             </div>

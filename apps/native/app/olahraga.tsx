@@ -8,6 +8,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
 
 import { EXERCISE_MAX_DURATION, EXERCISE_MIN_DURATION } from "@joyorogo/api/lib/exercise-edit";
+import { dayActiveKcal } from "@joyorogo/api/lib/exercise-credit";
 import { estimateKcal, type ExerciseTypeKey } from "@joyorogo/api/lib/met";
 import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import { fmtNumber } from "@joyorogo/i18n";
@@ -232,6 +233,9 @@ export default function Olahraga() {
 
   const items = listQuery.data.items;
   const totalKcal = listQuery.data.totalKcal;
+  // The ring is the day's activity as Sisa reads it (all-day total + workouts it does not contain), not the sum of the
+  // listed rows: the summary kept from another day while a new one loads must not stand in for this one.
+  const burnedKcal = dayActiveKcal(summaryQuery.data?.date === date ? summaryQuery.data.exerciseCredit : null, totalKcal);
 
   const openSheet = (typeKey: ExerciseTypeKey | null) => {
     setSheetType(typeKey);
@@ -300,13 +304,13 @@ export default function Olahraga() {
         <Ring
           size={112}
           stroke={11}
-          value={totalKcal}
-          max={targetBurn ?? Math.max(totalKcal, 300)}
+          value={burnedKcal}
+          max={targetBurn ?? Math.max(burnedKcal, 300)}
           color={theme.colors.bakar}
           track={theme.colors.bakarSoft}
         >
           <Num style={styles.burnValue} adjustsFontSizeToFit numberOfLines={1}>
-            {fmtInt(totalKcal)}
+            {fmtInt(burnedKcal)}
           </Num>
           <Text style={styles.burnUnit}>kcal</Text>
         </Ring>
@@ -315,7 +319,7 @@ export default function Olahraga() {
           <Text style={styles.burnNote}>
             {targetBurn === null
               ? t("summary.noTarget")
-              : totalKcal > targetBurn
+              : burnedKcal > targetBurn
                 ? t("summary.over", { target: fmtKcalLabel(targetBurn) })
                 : t("summary.progress", {
                     count: items.length,

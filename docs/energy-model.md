@@ -65,6 +65,23 @@ bar and room), and the MCP `get_daily_totals` (`activeKcal`, `activeSource`, `ex
 **Strava rows never count there** because Strava's API terms keep that data out of AI). Gain streaks, challenge and group
 targets and diary day colours still use the base plan target: they are per-plan, not per-day.
 
+The ring and number "Terbakar" on the Olahraga screens (web and native) is `activeKcal` of `day.summary`'s credit
+(`dayActiveKcal`), not the sum of the listed rows: the rows overlap the all-day total and an imported one can be an
+estimate (15 Okt: 471 + 650 listed, 254 counted). The list below it still shows every row. Without the summary (no
+profile yet, loading) the ring falls back to the sum of the rows.
+
+**Seeing it.** Another app writes these numbers while JoyoRogo sits in the background (JoyoFit sends the watch's
+workouts and its all-day energy to the account). The native app refetches its stale queries (older than 2 minutes) when
+it returns to the foreground (`src/lib/query-focus.ts`, AppState); before that a screen left open kept showing what it
+fetched earlier, "Terbakar 0" with no JoyoFit row. The web keeps its query cache in localStorage and drops it when the
+build, the WIB day or the account changes (`src/lib/cache-buster.ts`), so a new deploy never restores answers shaped
+for the old one.
+
+**Why an imported row can be high.** An Apple Health / Health Connect workout without recorded energy (JoyoFit's
+exporter writes the per-minute active energy and leaves the workout's own total empty) is imported as a MET estimate,
+`MET x 3.5 x kg x minutes / 200` at the latest weight, gross of resting energy: a 50 min walk (`jalan_cepat`, 5.0 MET)
+at 107.7 kg is 471 kcal, 9.4 kcal a minute; the watch measured 188 for that same walk, and the phone's whole day 254.
+
 ## Notice
 
 Accounts created before the change (`ADD_BACK_NOTICE_BEFORE_MS`) see a dismissible Beranda card once

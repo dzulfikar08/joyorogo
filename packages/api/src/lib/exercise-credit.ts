@@ -183,6 +183,16 @@ export function budgetKcal(baseEatKcal: number, credit: Pick<ExerciseCredit, "as
 }
 
 /**
+ * The "terbakar" of the exercise screens' ring: the day's activity as the budget reads it (the all-day total plus the
+ * workouts it does not contain), not the sum of the listed rows. The rows overlap the all-day total and an imported one
+ * can carry an inflated estimate (15 Okt: two listed walks of 471 and 650 kcal, 254 measured). Without the day's credit
+ * (still loading, no profile yet) it is the sum of the rows.
+ */
+export function dayActiveKcal(credit: Pick<ExerciseCredit, "activeKcal"> | null | undefined, rowsKcal: number): number {
+  return credit ? credit.activeKcal : rowsKcal;
+}
+
+/**
  * The credit after a workout of `deltaKcal` was added (or removed, negative) by hand: what a client shows between an
  * optimistic edit and the refetch. A manual row always adds on top; the server recomputes the exact figure.
  */

@@ -3,11 +3,12 @@ import { LOCALE_HEADER, i18n } from "@joyorogo/i18n";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
-import { QueryCache, QueryClient } from "@tanstack/react-query";
-import { Platform } from "react-native";
+import { QueryCache, QueryClient, focusManager } from "@tanstack/react-query";
+import { AppState, Platform } from "react-native";
 
 import { authClient } from "@/lib/auth-client";
 import { mirrorFoodCall } from "@/src/lib/health-nutrition";
+import { APP_QUERY_DEFAULTS, bindAppStateFocus } from "@/src/lib/query-focus";
 
 // Must stay named `ENV`: varlock's babel plugin only inlines `ENV.X` reads;
 // anything else hits the runtime proxy, which throws in release builds.
@@ -19,15 +20,11 @@ export const queryClient = new QueryClient({
       console.log(error);
     },
   }),
-  defaultOptions: {
-    queries: {
-      staleTime: 2 * 60 * 1000,
-      gcTime: 30 * 60 * 1000,
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
+  defaultOptions: { queries: APP_QUERY_DEFAULTS },
 });
+
+// Coming back to the app refetches the stale queries of the screens that stayed mounted.
+bindAppStateFocus(focusManager, AppState);
 
 async function expoFetch(request: Request, init?: RequestInit) {
   const { fetch } = await import("expo/fetch");

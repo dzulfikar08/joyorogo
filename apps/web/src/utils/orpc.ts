@@ -6,6 +6,7 @@ import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 
+import { cacheBusterKey } from "../lib/cache-buster";
 import { env } from "../env.public";
 
 /** localStorage key holding the user id that owns the persisted cache. */
@@ -48,8 +49,8 @@ export const queryClient = new QueryClient({
 /**
  * The query cache survives reloads in localStorage, so opening the app shows
  * the last known numbers instantly and refreshes them in the background.
- * The buster ties a saved cache to one WIB day (yesterday's "today" must
- * never render as today's) and to the account that wrote it.
+ * The buster ties a saved cache to one build, one WIB day and the account that
+ * wrote it (lib/cache-buster.ts).
  */
 export const persister = createSyncStoragePersister({
   storage: typeof window === "undefined" ? undefined : window.localStorage,
@@ -58,8 +59,11 @@ export const persister = createSyncStoragePersister({
 });
 
 export function cacheBuster(): string {
-  const wibToday = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  return `${wibToday}:${localStorage.getItem(CACHE_OWNER_KEY) ?? "anon"}`;
+  return cacheBusterKey({
+    build: import.meta.env.VITE_BUILD_ID,
+    wibToday: new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    owner: localStorage.getItem(CACHE_OWNER_KEY),
+  });
 }
 
 /** Absolute API origin. "/" (or any path) means the API shares this origin,
