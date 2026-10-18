@@ -74,6 +74,11 @@ export function PublicFooter() {
               </a>
             </li>
             <li>
+              <Link to="/panduan/ai" className={linkClass}>
+                Panduan Claude/ChatGPT
+              </Link>
+            </li>
+            <li>
               <Link to="/privasi" className={linkClass}>
                 Privasi
               </Link>

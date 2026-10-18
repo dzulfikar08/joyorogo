@@ -403,6 +403,40 @@ function PrivasiPage() {
             </p>
           </section>
 
+          <section className="rounded-3xl bg-card p-5" id="koneksi-ai">
+            <h2 className="text-base font-bold tracking-tight">Koneksi AI (Claude dan ChatGPT)</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Fitur JoyoRogo Pro ini membiarkan aplikasi AI yang kamu pilih, misalnya Claude dari
+              Anthropic atau ChatGPT dari OpenAI, membaca datamu. Tidak ada yang tersambung kecuali
+              kamu sendiri menambahkan penyambungnya di aplikasi AI itu, masuk ke JoyoRogo, dan
+              menekan Izinkan di layar izin yang menyebut data apa saja yang diminta.
+            </p>
+            <CheckList
+              items={[
+                "Yang dibagikan: hanya data yang izinnya kamu setujui (profil dan target, catatan makan, berat badan, latihan, tidur dan pemulihan), dan hanya dibaca. Aplikasi AI tidak bisa mencatat, mengubah, atau menghapus apa pun di akunmu.",
+                "Kapan dan ke siapa: data dikirim dari JoyoRogo ke aplikasi AI itu dan penyedianya, dan hanya saat kamu mengajukan pertanyaan di akunmu di sana. JoyoRogo tidak mengirim datamu ke mana pun atas inisiatif sendiri lewat koneksi ini.",
+                "Setelah sampai di penyedia AI, aturan privasi, penyimpanan, dan pengaturan pelatihan model mereka yang berlaku. JoyoRogo tidak bisa mengendalikannya, jadi cek pengaturan di akunmu di sana.",
+                "Log audit: kami mencatat alat yang dipakai dan rentang tanggalnya (bukan isi datanya), disimpan 90 hari, dan bisa kamu lihat di Koneksi AI.",
+                "Pencabutan: kamu bisa memutuskan aplikasi kapan saja di Koneksi AI dan aksesnya berhenti seketika. Menghapus datamu di JoyoRogo memutuskan semua aplikasi yang tersambung.",
+                "Penyimpanan token: token akses berlaku satu jam, dan token penyegarnya sampai 30 hari atau sampai kamu memutuskan aplikasinya, mana yang lebih dulu.",
+                "Tidak pernah dibagikan: rute GPS dan data yang diimpor dari Strava.",
+              ]}
+            />
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Data kesehatan di sini bukan nasihat medis, dan jawaban AI bisa keliru.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Langkah menyambungkan dan rinciannya ada di{" "}
+              <Link
+                to="/panduan/ai"
+                className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+              >
+                panduan Claude dan ChatGPT
+              </Link>
+              .
+            </p>
+          </section>
+
           <section className="rounded-3xl bg-card p-5" id="hapus-akun">
             <h2 className="text-base font-bold tracking-tight">Hapus akun dan data</h2>
             <p className="mt-3 text-sm leading-relaxed">

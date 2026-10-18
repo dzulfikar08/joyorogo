@@ -6,12 +6,14 @@ import ReactDOM from "react-dom/client";
 import Loader from "./components/loader";
 import { ErrorScreen, NotFoundScreen } from "./components/error-screen";
 import { captureFrom } from "./lib/analytics";
+import { captureOAuthQuery } from "./lib/oauth-query";
 import "./lib/i18n";
 import { sessionQuery } from "./lib/auth-client";
 import { routeTree } from "./routeTree.gen";
 import { cacheBuster, orpc, persister, queryClient } from "./utils/orpc";
 
 captureFrom(window.location.search);
+captureOAuthQuery(window.location);
 
 const router = createRouter({
   routeTree,

@@ -1,1 +1,107 @@
-{}
+{
+  "title": "Pakai Claude/ChatGPT dengan data JoyoRogo",
+  "subtitle": "Tanya AI soal catatan makan, latihan, berat, dan tidurmu sendiri. Hanya membaca, butuh JoyoRogo Pro.",
+  "toc": "Di halaman ini",
+  "what": {
+    "title": "Apa ini",
+    "p1": "JoyoRogo punya penyambung (connector) yang membiarkan Claude atau ChatGPT membaca datamu di JoyoRogo dan JoyoFit, lalu menjawab pertanyaanmu dengan data itu. Misalnya: \"Kenapa berat badanku stagnan?\" atau \"Seminggu ini tidurku cukup nggak?\"",
+    "p2": "Sifatnya hanya membaca. AI-nya tidak bisa mencatat, mengubah, atau menghapus apa pun di akunmu. Fiturnya bagian dari JoyoRogo Pro."
+  },
+  "need": {
+    "title": "Yang kamu butuhkan",
+    "pro": "JoyoRogo Pro yang aktif. Tanpa Pro kamu tetap bisa menyambungkan, tapi setiap pertanyaan dijawab bahwa Pro dibutuhkan.",
+    "claude": "Untuk Claude: akun claude.ai dengan penyambung kustom (custom connector). Saat ini tersedia di paket Free (satu penyambung), Pro, Max, Team, dan Enterprise. Di Team dan Enterprise, Owner organisasi yang menambahkannya.",
+    "chatgpt": "Untuk ChatGPT: paket yang membolehkan server MCP kustom. Saat ini OpenAI mencantumkan Business dan Enterprise/Edu, dan Pro untuk akses baca saja, hanya di ChatGPT web. Di sebagian paket, admin workspace yang harus mengizinkannya.",
+    "note": "Paket dan menu di aplikasi AI sering berubah. Kalau langkah di bawah berbeda dengan yang kamu lihat, cek halaman bantuan penyedianya: Anthropic (support.claude.com) atau OpenAI (help.openai.com)."
+  },
+  "address": {
+    "title": "Alamat penyambung",
+    "body": "Alamat yang ditempel di aplikasi AI:",
+    "copy": "Salin alamat",
+    "copied": "Tersalin"
+  },
+  "claude": {
+    "title": "Langkah di Claude",
+    "intro": "Lakukan penyambungannya di claude.ai (web) atau Claude Desktop. Menu di aplikasi ponsel bisa berbeda, jadi kalau tidak menemukannya di sana, pakai versi web.",
+    "s1": "Buka claude.ai, lalu Customize, lalu Connectors.",
+    "s2": "Pilih Add custom connector.",
+    "s3": "Isi nama dengan JoyoRogo dan URL server MCP dengan https://api.joyorogo.com/mcp. Kalau ada pilihan OAuth client, pakai Register automatically atau biarkan bawaannya, dan jangan isi client ID atau secret.",
+    "s4": "Pilih Add, lalu Connect di penyambung JoyoRogo.",
+    "s5": "Browser membuka halaman JoyoRogo. Masuk dengan akunmu, cek izin yang diminta, lalu tekan Izinkan.",
+    "s6": "Di sebuah chat, tekan tombol +, pilih Connectors, lalu nyalakan JoyoRogo untuk chat itu.",
+    "s7": "Tanya sesuatu, misalnya \"Ringkas makanku 7 hari terakhir\". Claude akan menunjukkan saat memakai alat JoyoRogo.",
+    "teamNote": "Di Team dan Enterprise, Owner menambahkan penyambungnya di Organization settings, lalu tiap anggota menekan Connect dengan akunnya sendiri."
+  },
+  "chatgpt": {
+    "title": "Langkah di ChatGPT",
+    "intro": "Penyambung server MCP kustom hanya bisa ditambah di ChatGPT web (chatgpt.com), tidak di aplikasi ponsel.",
+    "s1": "Buka chatgpt.com/plugins (menu Plugins).",
+    "s2": "Tekan tombol plus, lalu pilih Add custom MCP server.",
+    "s3": "Isi nama JoyoRogo dan, kalau mau, deskripsi singkat.",
+    "s4": "Di Connection, isi https://api.joyorogo.com/mcp. Untuk Authentication pilih OAuth.",
+    "s5": "Baca peringatan risikonya, centang I understand and want to continue, lalu pilih Create as a plugin.",
+    "s6": "Browser membuka halaman JoyoRogo. Masuk dengan akunmu, cek izin yang diminta, lalu tekan Izinkan.",
+    "s7": "Di chat baru, ketik @ lalu pilih JoyoRogo, kemudian tanyakan sesuatu.",
+    "legacy": "Di tampilan lama, jalurnya Settings, lalu Apps (atau Connectors), lalu Advanced settings, nyalakan Developer mode, lalu tekan Create dan isi alamat server MCP dengan autentikasi OAuth. Kalau menu yang kamu lihat berbeda, ikuti panduan OpenAI di help.openai.com."
+  },
+  "try": {
+    "title": "Coba tanyakan",
+    "hint": "Tulis pertanyaannya dengan bahasamu sendiri. AI-nya memilih alat yang pas.",
+    "q1": "Ringkas makanku 7 hari terakhir. Hari mana yang paling jauh dari targetku?",
+    "q2": "Berat badanku turun atau stagnan dalam sebulan ini, dan kapan kira-kira sampai target?",
+    "q3": "Bandingkan tidur dan pemulihanku minggu ini dengan minggu lalu.",
+    "q4": "Apa saja latihanku bulan ini, dan seberapa berat sesi beban terakhir?",
+    "q5": "Dari catatan makanku, protein cukup nggak dan apa yang bisa ditambah?"
+  },
+  "tools": {
+    "title": "Apa yang bisa dibaca",
+    "intro": "Tujuh alat, semuanya hanya membaca, dan tiap alat butuh izin yang kamu setujui di layar Izinkan.",
+    "get_profile": "Profil dan target: mode (turun, jaga, naik, hamil), tinggi, umur, berat awal dan target, target kalori dan protein.",
+    "get_food_log": "Catatan makan: tiap makanan per hari dengan kalori dan makronya.",
+    "get_daily_totals": "Total harian: kalori dan makro per hari dibanding target, untuk rentang panjang.",
+    "get_weight_history": "Riwayat berat: timbangan, lingkar perut, tren, dan perkiraan tanggal sampai target.",
+    "list_workouts": "Daftar latihan: latihan dari jam JoyoFit dan sesi latihan beban.",
+    "get_workout": "Detail satu latihan: detak jantung, zona, set dan beban, tanpa rute GPS.",
+    "get_recovery_metrics": "Tidur dan pemulihan: jam tidur, pemulihan, detak jantung istirahat, HRV, VO2max, dan langkah, dari JoyoFit atau Health Connect/Apple Health."
+  },
+  "limits": {
+    "title": "Pembatasan",
+    "l1": "Hanya membaca: tidak ada yang bisa dicatat, diubah, atau dihapus lewat koneksi ini.",
+    "l2": "Hanya untuk JoyoRogo Pro. Di akun Free setiap pertanyaan dijawab bahwa Pro dibutuhkan.",
+    "l3": "Catatan makan dibaca paling banyak 31 hari sekali panggil. Untuk rentang lebih panjang, AI memakai total harian.",
+    "l4": "Ada batas pemanggilan per menit dan per 24 jam. Kalau tercapai, tunggu sebentar atau coba lagi besok.",
+    "l5": "Rute GPS tidak pernah dibagikan, dan data yang diimpor dari Strava juga tidak.",
+    "l6": "Datamu dibaca sesuai zona waktu WIB, dan data dari jam atau Health Connect hanya ada kalau sudah tersinkron."
+  },
+  "trouble": {
+    "title": "Kalau ada masalah",
+    "loop": {
+      "q": "Masuk berulang tanpa hasil",
+      "a": "Pastikan browser mengizinkan cookie dari api.joyorogo.com, dan jangan pakai mode yang memblokir cookie lintas situs. Kalau halaman bilang permintaan kedaluwarsa, mulai lagi dari aplikasi AI-nya."
+    },
+    "pro": {
+      "q": "Muncul pesan JoyoRogo Pro dibutuhkan",
+      "a": "Penyambungannya berhasil, tapi akunmu belum Pro. Aktifkan Pro, lalu tanya lagi tanpa menyambung ulang."
+    },
+    "reconnect": {
+      "q": "Sudah kuputuskan, bagaimana menyambung lagi",
+      "a": "Tekan Connect lagi di penyambung JoyoRogo pada aplikasi AI-nya. Kalau gagal, hapus penyambungnya di sana, tambahkan lagi dengan alamat yang sama, lalu izinkan."
+    },
+    "scope": {
+      "q": "AI bilang tidak punya akses ke sebagian data",
+      "a": "Itu berarti izin untuk data itu belum diberikan. Hapus penyambungnya di aplikasi AI, tambahkan lagi, dan setujui semua izin di layar Izinkan."
+    }
+  },
+  "privacy": {
+    "title": "Privasi",
+    "p1": "Datamu berpindah dari JoyoRogo ke penyedia AI yang kamu pilih (Anthropic, OpenAI, atau lainnya) hanya saat kamu mengajukan pertanyaan di akunmu di sana. Setelah sampai, aturan privasi dan penyimpanan mereka yang berlaku. Kami tidak bisa mengendalikannya, jadi cek pengaturan di akunmu, termasuk pilihan untuk tidak dipakai melatih model.",
+    "p2": "JoyoRogo tidak mengirim datamu ke mana pun atas inisiatif sendiri lewat koneksi ini.",
+    "p3": "Kami mencatat apa yang dibaca: alat yang dipakai dan rentang tanggalnya, bukan isi datanya. Catatan itu disimpan 90 hari dan bisa kamu lihat di Koneksi AI.",
+    "p4": "Kamu bisa memutuskan aplikasi kapan saja di Koneksi AI, dan akses berhenti seketika.",
+    "p5": "Menghapus datamu di JoyoRogo memutuskan semua aplikasi yang tersambung.",
+    "p6": "Data Strava dan rute GPS tidak pernah dibagikan.",
+    "p7": "Jawaban AI bisa keliru. Data kesehatan di sini bukan nasihat medis; untuk keputusan kesehatan, bicaralah dengan tenaga kesehatan.",
+    "policy": "Baca kebijakan privasi lengkap",
+    "manage": "Kelola koneksi di Koneksi AI"
+  }
+}

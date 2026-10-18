@@ -31,6 +31,11 @@ export const Route = createFileRoute("/login")({
     try {
       const session = await context.queryClient.fetchQuery({ ...sessionQuery, staleTime: 0 });
       if (session) {
+        // A return path with its own query (the AI consent page) must not pass through router
+        // search parsing, which would rewrite the signed values.
+        if (search.redirect?.includes("?")) {
+          throw redirect({ href: `${window.location.origin}${search.redirect}` });
+        }
         throw redirect({ to: search.redirect ?? "/beranda" });
       }
     } catch (error) {

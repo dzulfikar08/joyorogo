@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Bell, CalendarCheck, Scale, Sparkles, Tag, Users, Watch } from "lucide-react";
+import { Bell, CalendarCheck, Plug, Scale, Sparkles, Tag, Users, Watch } from "lucide-react";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useTranslation } from "react-i18next";
 
@@ -43,7 +43,7 @@ function UnreadValue({ count }: { count: number }) {
 }
 
 function LainnyaPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["common", "koneksi"]);
   const session = useSession();
   const unread = useQuery(orpc.group.unreadCount.queryOptions());
   const profile = useQuery(profileOptions());
@@ -120,6 +120,16 @@ function LainnyaPage() {
           title={t("more.inbox.title")}
           subtitle={t("more.inbox.subtitle")}
           value={count > 0 ? <UnreadValue count={count} /> : undefined}
+        />
+        <ListLinkRow
+          to="/koneksi"
+          icon={
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-tidur-soft">
+              <Plug className="size-5 text-tidur-ink" aria-hidden />
+            </span>
+          }
+          title={t("koneksi:title")}
+          subtitle={t("koneksi:list.title")}
         />
         {isFree && config.data?.paywall && (
           <ListLinkRow

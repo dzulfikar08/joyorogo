@@ -1,1 +1,107 @@
-{}
+{
+  "title": "Use Claude or ChatGPT with your JoyoRogo data",
+  "subtitle": "Ask an AI about your own food diary, workouts, weight and sleep. Read only, needs JoyoRogo Pro.",
+  "toc": "On this page",
+  "what": {
+    "title": "What this is",
+    "p1": "JoyoRogo has a connector that lets Claude or ChatGPT read your data in JoyoRogo and JoyoFit and answer your questions with it. For example: \"Why has my weight stalled?\" or \"Did I sleep enough this week?\"",
+    "p2": "It is read only. The AI can't log, change or delete anything in your account. The feature is part of JoyoRogo Pro."
+  },
+  "need": {
+    "title": "What you need",
+    "pro": "An active JoyoRogo Pro. Without Pro you can still connect, but every question is answered with a note that Pro is required.",
+    "claude": "For Claude: a claude.ai account with custom connectors. Today that is the Free plan (one connector), Pro, Max, Team and Enterprise. On Team and Enterprise an organization Owner adds it.",
+    "chatgpt": "For ChatGPT: a plan that allows custom MCP servers. Today OpenAI lists Business and Enterprise/Edu, and Pro for read-only access, on ChatGPT web only. On some plans a workspace admin has to allow it.",
+    "note": "Plans and menus in the AI apps change often. If the steps below differ from what you see, check the provider's help pages: Anthropic (support.claude.com) or OpenAI (help.openai.com)."
+  },
+  "address": {
+    "title": "Connector address",
+    "body": "The address to paste into the AI app:",
+    "copy": "Copy address",
+    "copied": "Copied"
+  },
+  "claude": {
+    "title": "Steps in Claude",
+    "intro": "Do the setup on claude.ai (web) or Claude Desktop. Menus in the phone apps can differ, so if you can't find it there, use the web version.",
+    "s1": "Open claude.ai, then Customize, then Connectors.",
+    "s2": "Choose Add custom connector.",
+    "s3": "Set the name to JoyoRogo and the MCP server URL to https://api.joyorogo.com/mcp. If there is an OAuth client choice, use Register automatically or keep the default, and leave client ID and secret empty.",
+    "s4": "Choose Add, then Connect on the JoyoRogo connector.",
+    "s5": "Your browser opens a JoyoRogo page. Sign in, check the permissions it asks for, then tap Allow (Izinkan).",
+    "s6": "In a chat, tap the + button, choose Connectors, and switch JoyoRogo on for that chat.",
+    "s7": "Ask something, like \"Summarize my food for the last 7 days\". Claude shows when it uses a JoyoRogo tool.",
+    "teamNote": "On Team and Enterprise an Owner adds the connector in Organization settings, then each member taps Connect with their own account."
+  },
+  "chatgpt": {
+    "title": "Steps in ChatGPT",
+    "intro": "Custom MCP server connectors can only be added in ChatGPT on the web (chatgpt.com), not in the phone app.",
+    "s1": "Open chatgpt.com/plugins (the Plugins menu).",
+    "s2": "Tap the plus button, then choose Add custom MCP server.",
+    "s3": "Enter the name JoyoRogo and, if you like, a short description.",
+    "s4": "Under Connection, enter https://api.joyorogo.com/mcp. For Authentication choose OAuth.",
+    "s5": "Read the risk warning, tick I understand and want to continue, then choose Create as a plugin.",
+    "s6": "Your browser opens a JoyoRogo page. Sign in, check the permissions it asks for, then tap Allow (Izinkan).",
+    "s7": "In a new chat, type @ and pick JoyoRogo, then ask something.",
+    "legacy": "In the older layout the path is Settings, then Apps (or Connectors), then Advanced settings, turn on Developer mode, then tap Create and enter the MCP server address with OAuth authentication. If your menus differ, follow OpenAI's guide at help.openai.com."
+  },
+  "try": {
+    "title": "Try asking",
+    "hint": "Write the question in your own words. The AI picks the right tool.",
+    "q1": "Summarize my food for the last 7 days. Which day was furthest from my target?",
+    "q2": "Is my weight going down or stalled over this month, and roughly when will I reach my goal?",
+    "q3": "Compare my sleep and recovery this week with last week.",
+    "q4": "What workouts did I do this month, and how heavy was my last strength session?",
+    "q5": "From my food log, am I getting enough protein and what could I add?"
+  },
+  "tools": {
+    "title": "What it can read",
+    "intro": "Seven tools, all read only, and each needs a permission you agree to on the Allow screen.",
+    "get_profile": "Profile and targets: mode (lose, maintain, gain, pregnancy), height, age, start and target weight, calorie and protein targets.",
+    "get_food_log": "Food log: every food per day with calories and macros.",
+    "get_daily_totals": "Daily totals: calories and macros per day against your target, for long ranges.",
+    "get_weight_history": "Weight history: weigh-ins, waist, trend, and a projected date to reach your goal.",
+    "list_workouts": "Workout list: JoyoFit watch workouts and strength sessions.",
+    "get_workout": "One workout in detail: heart rate, zones, sets and weights, no GPS route.",
+    "get_recovery_metrics": "Sleep and recovery: hours slept, recovery, resting heart rate, HRV, VO2max and steps, from JoyoFit or Health Connect/Apple Health."
+  },
+  "limits": {
+    "title": "Limits",
+    "l1": "Read only: nothing can be logged, changed or deleted through this connection.",
+    "l2": "JoyoRogo Pro only. On a Free account every question is answered with a note that Pro is required.",
+    "l3": "Food logs are read for at most 31 days per call. For longer ranges the AI uses daily totals.",
+    "l4": "There are limits per minute and per 24 hours. If you hit one, wait a moment or try again tomorrow.",
+    "l5": "GPS routes are never shared, and neither is data imported from Strava.",
+    "l6": "Dates follow Jakarta time (WIB), and watch or Health Connect data only exists once it has synced."
+  },
+  "trouble": {
+    "title": "Troubleshooting",
+    "loop": {
+      "q": "Signing in again and again",
+      "a": "Make sure the browser allows cookies from api.joyorogo.com and isn't blocking cross-site cookies. If the page says the request expired, start again from the AI app."
+    },
+    "pro": {
+      "q": "A message says JoyoRogo Pro is required",
+      "a": "Connecting worked, but your account isn't Pro yet. Activate Pro, then ask again without reconnecting."
+    },
+    "reconnect": {
+      "q": "I disconnected it, how do I connect again",
+      "a": "Tap Connect again on the JoyoRogo connector in the AI app. If that fails, remove the connector there, add it again with the same address, then allow."
+    },
+    "scope": {
+      "q": "The AI says it can't access some of my data",
+      "a": "That means the permission for that data wasn't granted. Remove the connector in the AI app, add it again, and approve every permission on the Allow screen."
+    }
+  },
+  "privacy": {
+    "title": "Privacy",
+    "p1": "Your data goes from JoyoRogo to the AI provider you chose (Anthropic, OpenAI or another) only when you ask a question in your account there. Once it arrives, their privacy terms and retention apply. We can't control that, so check the settings in your account there, including the option to keep your chats out of model training.",
+    "p2": "JoyoRogo doesn't send your data anywhere on its own through this connection.",
+    "p3": "We keep an audit log of what was read: the tool and the date range, never the data itself. It is kept for 90 days and you can see it in AI connections.",
+    "p4": "You can disconnect an app any time in AI connections, and its access stops at once.",
+    "p5": "Deleting your data in JoyoRogo disconnects every connected app.",
+    "p6": "Strava data and GPS routes are never shared.",
+    "p7": "AI answers can be wrong. Health data here is not medical advice; talk to a health professional for health decisions.",
+    "policy": "Read the full privacy policy",
+    "manage": "Manage connections in AI connections"
+  }
+}

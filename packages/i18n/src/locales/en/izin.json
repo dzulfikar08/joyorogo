@@ -1,1 +1,54 @@
-{}
+{
+  "meta": "Allow access to JoyoRogo",
+  "loading": "Checking the request",
+  "signedOut": {
+    "title": "Sign in to continue",
+    "body": "An AI app ({{host}}) is asking to read your data in JoyoRogo. Sign in to your JoyoRogo account, then you can see exactly what it asks for before you allow it.",
+    "cta": "Sign in to JoyoRogo"
+  },
+  "invalid": {
+    "title": "This request can't be used",
+    "body": "The address of this page is incomplete or not valid. Start again from the AI app: remove the JoyoRogo connector there, add it again, then tap Connect.",
+    "expiredTitle": "This request has expired",
+    "expiredBody": "A permission request is only valid for 10 minutes. Start again from the AI app by tapping Connect on the JoyoRogo connector.",
+    "guide": "See the connection guide"
+  },
+  "client": {
+    "asks": "{{name}} wants to read your data",
+    "unknown": "AI app",
+    "via": "It will return to {{hosts}}",
+    "site": "App website: {{host}}",
+    "verify": "The name is sent by the app itself. Only allow it if the address above is the app you actually use.",
+    "loadError": "We couldn't load the app's details. Try again.",
+    "retry": "Try again"
+  },
+  "account": "Signed in as {{email}}",
+  "scopes": {
+    "title": "What it can read",
+    "offline": "Stays connected for 30 days, until you disconnect it.",
+    "none": "This app isn't asking to read any data."
+  },
+  "notes": {
+    "readOnly": "Read only: it can't change or delete anything in your account.",
+    "dataFlow": "Your data goes to this AI app and the provider you chose, only when you ask a question in your account there. Their privacy terms apply to that data.",
+    "disconnect": "You can disconnect it any time in AI connections, and its access stops at once.",
+    "health": "Health data here is not medical advice."
+  },
+  "pro": {
+    "body": "AI connections are a JoyoRogo Pro feature. You can connect now, but the AI app can only read your data once Pro is active.",
+    "cta": "See JoyoRogo Pro"
+  },
+  "actions": {
+    "allow": "Allow",
+    "deny": "Deny",
+    "working": "One moment"
+  },
+  "error": {
+    "consent": "We couldn't save your choice. Try again, or start over from the AI app.",
+    "expired": "This request has expired. Start again from the AI app."
+  },
+  "footer": {
+    "guide": "AI connection guide",
+    "privacy": "Privacy"
+  }
+}

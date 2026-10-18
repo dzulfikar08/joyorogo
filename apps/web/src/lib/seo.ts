@@ -16,6 +16,8 @@ export type PublicPath =
   | "/"
   | "/harga"
   | "/privasi"
+  | "/panduan/ai"
+  | "/koneksi/izin"
   | "/login"
   | "/pembayaran"
   | "/gabung"
@@ -51,6 +53,17 @@ export const PAGES: Record<PublicPath, PageMeta> = {
     description:
       "Data apa yang JoyoRogo simpan dan untuk apa. Foto makanan hanya dipakai untuk analisis lalu dibuang, data tidak dijual, dan semuanya bisa kamu hapus.",
     lastmod: "2026-10-18",
+  },
+  "/panduan/ai": {
+    title: "Pakai Claude/ChatGPT dengan Data JoyoRogo | JoyoRogo",
+    description:
+      "Tanya Claude atau ChatGPT soal catatan makan, latihan, berat, dan tidurmu sendiri. Hanya membaca, butuh JoyoRogo Pro. Langkah penyambungan dan privasinya.",
+    lastmod: "2026-10-18",
+  },
+  "/koneksi/izin": {
+    title: "Izinkan Akses | JoyoRogo",
+    description: "Izinkan atau tolak akses aplikasi AI ke datamu di JoyoRogo.",
+    noindex: true,
   },
   "/login": {
     title: "Masuk | JoyoRogo",

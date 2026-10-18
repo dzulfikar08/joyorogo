@@ -12,6 +12,7 @@ import {
   Footprints,
   Globe,
   Link2,
+  Plug,
   Image as ImageIcon,
   LogOut,
   ShieldCheck,
@@ -170,7 +171,7 @@ function ProfilContent({
   email: string | null;
   image: string | null;
 }) {
-  const { t } = useTranslation(["settings", "common", "maternal", "gain"]);
+  const { t } = useTranslation(["settings", "common", "maternal", "gain", "koneksi"]);
   const platform = usePlatform();
   const navigate = useNavigate();
   const { needs, maternal: openMaternalParam } = Route.useSearch();
@@ -744,6 +745,12 @@ function ProfilContent({
       {!targets.maternal && <ShareSection enabled={row.shareEnabled} code={row.shareCode} />}
       <KeepPhotosSection keep={row.keepPhotos} />
       <ListGroup className="mt-3">
+        <ListLinkRow
+          to="/koneksi"
+          icon={<Plug className="size-5 text-makan" aria-hidden />}
+          title={t("koneksi:title")}
+          subtitle={t("koneksi:list.title")}
+        />
         <ListLinkRow
           to="/privasi"
           icon={<ShieldCheck className="size-5 text-makan" aria-hidden />}

@@ -1,1 +1,54 @@
-{}
+{
+  "meta": "Izinkan akses ke JoyoRogo",
+  "loading": "Memeriksa permintaan",
+  "signedOut": {
+    "title": "Masuk dulu untuk melanjutkan",
+    "body": "Sebuah aplikasi AI ({{host}}) minta izin membaca datamu di JoyoRogo. Masuk ke akun JoyoRogo-mu, lalu kamu bisa melihat apa saja yang diminta sebelum mengizinkan.",
+    "cta": "Masuk ke JoyoRogo"
+  },
+  "invalid": {
+    "title": "Permintaan ini tidak bisa dipakai",
+    "body": "Alamat halaman ini tidak lengkap atau tidak sah. Mulai lagi dari aplikasi AI-nya: hapus penyambung JoyoRogo di sana, tambahkan lagi, lalu tekan Connect.",
+    "expiredTitle": "Permintaan ini sudah kedaluwarsa",
+    "expiredBody": "Permintaan izin hanya berlaku 10 menit. Mulai lagi dari aplikasi AI-nya dengan menekan Connect di penyambung JoyoRogo.",
+    "guide": "Lihat panduan penyambungan"
+  },
+  "client": {
+    "asks": "{{name}} minta izin membaca datamu",
+    "unknown": "Aplikasi AI",
+    "via": "Akan kembali ke {{hosts}}",
+    "site": "Situs aplikasi: {{host}}",
+    "verify": "Namanya dikirim oleh aplikasinya sendiri. Izinkan hanya kalau alamat tujuan di atas memang aplikasi yang kamu pakai.",
+    "loadError": "Info aplikasinya belum bisa dimuat. Coba lagi.",
+    "retry": "Coba lagi"
+  },
+  "account": "Masuk sebagai {{email}}",
+  "scopes": {
+    "title": "Yang boleh dibaca",
+    "offline": "Tetap tersambung 30 hari, sampai kamu memutuskannya.",
+    "none": "Aplikasi ini tidak meminta izin membaca data apa pun."
+  },
+  "notes": {
+    "readOnly": "Hanya membaca, tidak bisa mengubah atau menghapus apa pun di akunmu.",
+    "dataFlow": "Datamu dikirim ke aplikasi AI ini dan penyedianya yang kamu pilih, hanya saat kamu bertanya di akunmu di sana. Aturan privasi mereka berlaku untuk data itu.",
+    "disconnect": "Kamu bisa memutuskannya kapan saja di Koneksi AI, dan aksesnya langsung berhenti.",
+    "health": "Data kesehatan di sini bukan nasihat medis."
+  },
+  "pro": {
+    "body": "Koneksi AI adalah fitur JoyoRogo Pro. Kamu tetap bisa menyambungkannya sekarang, tapi aplikasi AI baru bisa membaca datamu setelah Pro aktif.",
+    "cta": "Lihat JoyoRogo Pro"
+  },
+  "actions": {
+    "allow": "Izinkan",
+    "deny": "Tolak",
+    "working": "Sebentar"
+  },
+  "error": {
+    "consent": "Izinnya belum bisa disimpan. Coba lagi, atau mulai lagi dari aplikasi AI-nya.",
+    "expired": "Permintaan ini sudah kedaluwarsa. Mulai lagi dari aplikasi AI-nya."
+  },
+  "footer": {
+    "guide": "Panduan koneksi AI",
+    "privacy": "Privasi"
+  }
+}
