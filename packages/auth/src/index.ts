@@ -181,6 +181,8 @@ export function mcpPlugins(env: Pick<AuthConfig, "BETTER_AUTH_URL" | "APP_URL">)
     scopes: [...MCP_SCOPES],
     // Only what the connector uses: client_credentials would also be advertised otherwise (it stays fail closed).
     grantTypes: ["authorization_code", "refresh_token"],
+    // The consent page names the app before the user signs in (POST /oauth2/public-client-prelogin with the signed query).
+    allowPublicClientPrelogin: true,
     allowDynamicClientRegistration: true,
     allowUnauthenticatedClientRegistration: true,
     // Better Auth 1.7.3 has no way to infer the application type of a registration (see nativeRegistration below).

@@ -272,6 +272,20 @@ async function connect(email: string, scope = MCP_DATA_SCOPES.join(" ")) {
   expect(authorize.status).toBe(302);
   const consentUrl = new URL(authorize.headers.get("location") ?? "");
   expect(consentUrl.origin + consentUrl.pathname).toBe(`${APP}/koneksi/izin`);
+  // The page names the app before sign-in: the signed query is the key to the prelogin lookup.
+  const prelogin = await app.request("/api/auth/oauth2/public-client-prelogin", {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: APP },
+    body: JSON.stringify({ client_id: clientId, oauth_query: consentUrl.search.slice(1) }),
+  });
+  expect(prelogin.status).toBe(200);
+  expect(await prelogin.json()).toMatchObject({ client_id: clientId, client_name: "Claude" });
+  const forged = await app.request("/api/auth/oauth2/public-client-prelogin", {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: APP },
+    body: JSON.stringify({ client_id: clientId, oauth_query: `${consentUrl.search.slice(1)}&x=1` }),
+  });
+  expect(forged.status).toBe(400);
   const consent = await app.request("/api/auth/oauth2/consent", {
     method: "POST",
     headers: { "content-type": "application/json", cookie: session.cookie, origin: APP },
