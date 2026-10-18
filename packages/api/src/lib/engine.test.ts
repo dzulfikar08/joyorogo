@@ -584,6 +584,7 @@ describe("datePace: the verdict on a stored target", () => {
     expect(t.notes).toContain("PLAN_CLAMPED");
     expect(t.deficitKcal).toBe(1000);
     expect(t.datePace).toEqual({
+      reason: "fast",
       direction: "lose",
       targetWeightKg: 65,
       kg: 42.6,
@@ -623,12 +624,49 @@ describe("datePace: the verdict on a stored target", () => {
       { today },
     );
     expect(t.datePace).toEqual({
+      reason: "fast",
       direction: "gain",
       targetWeightKg: 66,
       kg: 6,
       feasibleDays: 140,
       reachDate: shiftDate(today, 140),
     });
+  });
+
+  test("a stored date that has passed is flagged with the date the safe pace reaches", () => {
+    const t = computeTargets({ ...owner, targetDate: "2026-09-01" }, { today });
+    expect(t.datePace).toEqual({
+      reason: "passed",
+      direction: "lose",
+      targetWeightKg: 65,
+      kg: 42.6,
+      feasibleDays: 329,
+      reachDate: shiftDate(today, 329),
+    });
+    // today itself is also "passed": no time is left
+    expect(computeTargets({ ...owner, targetDate: today }, { today }).datePace?.reason).toBe("passed");
+    // moving to the offered date clears it
+    const moved = computeTargets({ ...owner, targetDate: t.datePace!.reachDate }, { today });
+    expect(moved.datePace).toBeNull();
+  });
+
+  test("a passed gain date offers the lean-pace date; a passed date at the goal weight carries no notice", () => {
+    const gain = computeTargets(
+      {
+        birthYear: 1996,
+        gender: "male",
+        heightCm: 170,
+        weightKg: 60,
+        targetWeightKg: 66,
+        targetDate: "2026-10-01",
+        activityLevel: "mid",
+        goal: "gain",
+      },
+      { today },
+    );
+    expect(gain.datePace).toMatchObject({ reason: "passed", direction: "gain", kg: 6, feasibleDays: 140 });
+    expect(computeTargets({ ...owner, targetDate: "2026-09-01", targetWeightKg: 110 }, { today }).datePace).toBeNull();
+    expect(computeTargets({ ...owner, targetDate: "2026-09-01", goal: "maintain" }, { today }).datePace).toBeNull();
   });
 
   test("a stored date whose pace is past the five-year window stays savable", () => {

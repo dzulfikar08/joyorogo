@@ -16,6 +16,7 @@ import {
   relativeDayLabel,
   remainingKcal,
   slotsFor,
+  datePaceExplainKey,
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { pickFact } from "@joyorogo/api/lib/facts";
@@ -864,7 +865,7 @@ export default function Dashboard() {
               </Text>
               {key === "target" && data.targets.datePace ? (
                 <Text style={styles.adaptiveMuted}>
-                  {t(`explain.clamped.${data.targets.datePace.direction}`, {
+                  {t(`explain.clamped.${datePaceExplainKey(data.targets.datePace)}`, {
                     date: fmtDateMedium(data.targets.datePace.reachDate),
                   })}
                 </Text>

@@ -212,7 +212,9 @@
     },
     "clamped": {
       "lose": "This target is worked out with a deficit of at most 1,000 kcal a day. Your target date asks for more than that, so you get there around {{date}}.",
-      "gain": "This target is worked out with a safe gaining pace. Your target date asks for faster than that, so you get there around {{date}}."
+      "gain": "This target is worked out with a safe gaining pace. Your target date asks for faster than that, so you get there around {{date}}.",
+      "passedLose": "Your target date has passed, so this target uses a safe deficit of at most 1,000 kcal a day. At that pace you get there around {{date}}.",
+      "passedGain": "Your target date has passed, so this target uses a safe gaining pace. At that pace you get there around {{date}}."
     },
     "eaten": {
       "title": "Eaten so far",

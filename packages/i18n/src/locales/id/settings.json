@@ -107,7 +107,16 @@
         "body_other": "Naik {{kg}} kg dengan ritme aman butuh sekitar {{count}} hari. Dengan ritme itu kamu sampai sekitar {{date}}."
       },
       "use": "Pakai tanggal {{date}}",
-      "saved": "Tanggal target diperbarui."
+      "saved": "Tanggal target diperbarui.",
+      "passed": {
+        "title": "Tanggal targetmu sudah lewat",
+        "lose": {
+          "body_other": "Masih ada {{kg}} kg lagi untuk turun. Dengan defisit aman maksimal 1.000 kcal per hari butuh sekitar {{count}} hari, jadi kamu sampai sekitar {{date}}."
+        },
+        "gain": {
+          "body_other": "Masih ada {{kg}} kg lagi untuk naik. Dengan ritme aman butuh sekitar {{count}} hari, jadi kamu sampai sekitar {{date}}."
+        }
+      }
     },
     "targetDate": {
       "title": "Tanggal target",

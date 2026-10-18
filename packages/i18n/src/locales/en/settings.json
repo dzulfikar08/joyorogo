@@ -111,7 +111,18 @@
         "body_other": "Gaining {{kg}} kg at a safe pace takes about {{count}} days. At that pace you get there around {{date}}."
       },
       "use": "Use {{date}}",
-      "saved": "Target date updated."
+      "saved": "Target date updated.",
+      "passed": {
+        "title": "Your target date has passed",
+        "lose": {
+          "body_one": "{{kg}} kg still to lose. At a safe deficit of at most 1,000 kcal a day that takes about {{count}} day, so you get there around {{date}}.",
+          "body_other": "{{kg}} kg still to lose. At a safe deficit of at most 1,000 kcal a day that takes about {{count}} days, so you get there around {{date}}."
+        },
+        "gain": {
+          "body_one": "{{kg}} kg still to gain. At a safe pace that takes about {{count}} day, so you get there around {{date}}.",
+          "body_other": "{{kg}} kg still to gain. At a safe pace that takes about {{count}} days, so you get there around {{date}}."
+        }
+      }
     },
     "targetDate": {
       "title": "Target date",

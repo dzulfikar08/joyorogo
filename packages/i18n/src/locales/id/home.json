@@ -206,7 +206,9 @@
     },
     "clamped": {
       "lose": "Target makan ini dihitung dengan defisit maksimal 1.000 kcal per hari. Tanggal targetmu menuntut lebih dari itu, jadi targetmu baru tercapai sekitar {{date}}.",
-      "gain": "Target makan ini dihitung dengan ritme naik yang aman. Tanggal targetmu menuntut lebih cepat dari itu, jadi targetmu baru tercapai sekitar {{date}}."
+      "gain": "Target makan ini dihitung dengan ritme naik yang aman. Tanggal targetmu menuntut lebih cepat dari itu, jadi targetmu baru tercapai sekitar {{date}}.",
+      "passedLose": "Tanggal targetmu sudah lewat, jadi target makan ini memakai defisit aman maksimal 1.000 kcal per hari. Dengan itu targetmu tercapai sekitar {{date}}.",
+      "passedGain": "Tanggal targetmu sudah lewat, jadi target makan ini memakai ritme naik yang aman. Dengan itu targetmu tercapai sekitar {{date}}."
     },
     "eaten": {
       "title": "Sudah dimakan",

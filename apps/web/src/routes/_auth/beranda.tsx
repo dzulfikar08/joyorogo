@@ -55,7 +55,7 @@ import { useFirstVisit } from "@/lib/motion";
 import { useWaistCheckIn, useWeightCheckIn } from "@/lib/optimistic";
 import { useAppConfig } from "@/lib/app-config";
 import type { DaySummary } from "@/lib/api-types";
-import { jakartaToday, relativeDayLabel, remainingKcal } from "@joyorogo/api/lib/engine";
+import { datePaceExplainKey, jakartaToday, relativeDayLabel, remainingKcal } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { orpc } from "@/utils/orpc";
 
@@ -571,7 +571,7 @@ function EatHero({ summary }: { summary: Summary }) {
                       : t(`explain.${key}.body`)}
                   {key === "target" && targets.datePace && (
                     <span className="mt-1.5 block">
-                      {t(`explain.clamped.${targets.datePace.direction}`, {
+                      {t(`explain.clamped.${datePaceExplainKey(targets.datePace)}`, {
                         date: fmtDateLong(targets.datePace.reachDate).replace(/^\w+, /, ""),
                       })}
                     </span>

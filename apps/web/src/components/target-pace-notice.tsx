@@ -45,10 +45,10 @@ export function TargetPaceNotice({
     <div className={cn("rounded-2xl bg-bakar-soft p-4", className)} data-testid="target-pace-notice">
       <p className="flex items-start gap-1.5 text-sm leading-snug font-bold text-bakar-ink">
         <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-        {t("plan.datePace.title")}
+        {t(pace.reason === "passed" ? "plan.datePace.passed.title" : "plan.datePace.title")}
       </p>
       <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-        {t(`plan.datePace.${pace.direction}.body`, {
+        {t(`plan.datePace.${pace.reason === "passed" ? "passed." : ""}${pace.direction}.body`, {
           kg: fmtKg(pace.kg),
           count: pace.feasibleDays,
           date,

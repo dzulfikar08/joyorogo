@@ -672,17 +672,14 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
     gain: gainNums
       ? { ...gainNums, reachDate: shiftDate(today, gainNums.daysToTarget) }
       : null,
-    datePace: datePaceOf(
-      checkTargetDate({
-        weightNowKg: weightNow,
-        targetWeightKg: profile.targetWeightKg,
-        targetDate: profile.targetDate,
-        today,
-        goal,
-        heightCm: profile.heightCm,
-      }),
-      { targetWeightKg: profile.targetWeightKg, today },
-    ),
+    datePace: storedDatePace({
+      weightNowKg: weightNow,
+      targetWeightKg: profile.targetWeightKg,
+      targetDate: profile.targetDate,
+      today,
+      goal,
+      heightCm: profile.heightCm,
+    }),
   };
 }
 
@@ -933,6 +930,8 @@ export function needsBreakdown(targets: Targets): NeedsBreakdown {
 
 /** The stored date is out of reach at the safe pace; `reachDate` is where the safe pace actually lands. */
 export type DatePace = {
+  /** fast: the date asks for more than the safe pace; passed: the date is today or earlier */
+  reason: "fast" | "passed";
   direction: "lose" | "gain";
   targetWeightKg: number;
   /** kg still to lose / gain */
@@ -943,19 +942,38 @@ export type DatePace = {
 };
 
 /**
- * Verdict on a STORED target date: a "fast" / "gainFast" check becomes the notice
- * Beranda and Profil show, with the later date to offer. Anything else is null.
+ * Verdict on a STORED target date, as the notice Beranda and Profil show: "fast" (the date
+ * asks for more than the safe pace) or "passed" (the date is today or earlier while there is
+ * still weight to move). Both carry the later date the safe pace reaches; otherwise null.
  */
-export function datePaceOf(
+export function storedDatePace(input: Parameters<typeof checkTargetDate>[0]): DatePace | null {
+  const today = input.today ?? jakartaToday();
+  const check = checkTargetDate({ ...input, today });
+  if (check.status === "past") {
+    // Same maths as a one-day-out date: the days the safe pace needs from today.
+    const next = checkTargetDate({ ...input, today, targetDate: shiftDate(today, 1) });
+    return datePaceOf(next, { targetWeightKg: input.targetWeightKg, today, reason: "passed" });
+  }
+  return datePaceOf(check, { targetWeightKg: input.targetWeightKg, today, reason: "fast" });
+}
+
+/** home:explain.clamped.<key> that matches the notice. */
+export function datePaceExplainKey(pace: DatePace): "lose" | "gain" | "passedLose" | "passedGain" {
+  if (pace.reason === "passed") return pace.direction === "gain" ? "passedGain" : "passedLose";
+  return pace.direction;
+}
+
+function datePaceOf(
   check: TargetDateCheck,
-  input: { targetWeightKg: number; today: string },
+  input: { targetWeightKg: number; today: string; reason: DatePace["reason"] },
 ): DatePace | null {
-  if (check.status !== "fast" && check.status !== "gainFast") return null;
+  if (!("feasibleDays" in check)) return null;
+  if (input.reason === "fast" && check.status !== "fast" && check.status !== "gainFast") return null;
   const feasibleDays = Math.min(check.feasibleDays, MAX_TARGET_DAYS);
-  const lose = check.status === "fast";
-  const kg = "gainKg" in check ? check.gainKg : "lossKg" in check ? check.lossKg : 0;
+  const kg = "gainKg" in check ? check.gainKg : check.lossKg;
   return {
-    direction: lose ? "lose" : "gain",
+    reason: input.reason,
+    direction: "gainKg" in check ? "gain" : "lose",
     targetWeightKg: input.targetWeightKg,
     kg: Math.round(kg * 100) / 100,
     feasibleDays,

@@ -37,9 +37,9 @@ export function TargetPaceNotice({ pace }: { pace: DatePace | null | undefined }
   const date = fmtDateMedium(pace.reachDate);
   return (
     <View style={styles.box} testID="target-pace-notice">
-      <Text style={styles.title}>{t("plan.datePace.title")}</Text>
+      <Text style={styles.title}>{t(pace.reason === "passed" ? "plan.datePace.passed.title" : "plan.datePace.title")}</Text>
       <Text style={styles.body}>
-        {t(`plan.datePace.${pace.direction}.body`, {
+        {t(`plan.datePace.${pace.reason === "passed" ? "passed." : ""}${pace.direction}.body`, {
           kg: fmtKg(pace.kg),
           count: pace.feasibleDays,
           date,
