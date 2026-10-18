@@ -612,6 +612,20 @@
       "downloadFailed": "Unduhan gagal. Periksa koneksi internetmu lalu coba lagi.",
       "verifyFailed": "Gagal memeriksa berkas yang diunduh. Coba lagi.",
       "invalidFile": "Berkas yang diunduh tidak valid. Coba lagi."
+    },
+    "ota": {
+      "title": "Pembaruan cepat",
+      "running": "Berjalan: pembaruan {{id}} ({{date}})",
+      "embedded": "Berjalan: versi bawaan aplikasi",
+      "emergency": "Berjalan: versi bawaan (pembaruan terakhir gagal dimuat)",
+      "detail": "Kanal {{channel}} · runtime {{runtime}}",
+      "upToDate": "Pembaruan cepat sudah yang terbaru.",
+      "checking": "Memeriksa pembaruan cepat…",
+      "downloading": "Mengunduh pembaruan cepat {{percent}}%",
+      "downloadingPlain": "Mengunduh pembaruan cepat…",
+      "ready": "Pembaruan cepat siap. Mulai ulang untuk memakainya, atau akan aktif saat aplikasi dibuka lagi.",
+      "restart": "Mulai ulang",
+      "error": "Gagal memeriksa pembaruan cepat. Aplikasi tetap memakai versi yang sekarang."
     }
   }
 }

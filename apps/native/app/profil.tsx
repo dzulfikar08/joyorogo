@@ -54,6 +54,7 @@ import { StravaCard } from "@/components/strava-card";
 import { FastingSettingsCard } from "@/components/fasting/settings-card";
 import { RemindersCard } from "@/components/reminders/reminders-card";
 import { FeedSettingsCard } from "@/components/feed/settings";
+import { OtaUpdateCard } from "@/components/ota-update-card";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
 import {
@@ -557,6 +558,9 @@ export default function Profil() {
           />
         </Card>
       ) : null}
+
+      {/* Over-the-air JS updates (expo-updates); renders nothing where OTA is off. */}
+      <OtaUpdateCard />
 
       {prof && targets ? (
         <>

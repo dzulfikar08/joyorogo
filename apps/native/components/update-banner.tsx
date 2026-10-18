@@ -9,10 +9,10 @@ import { Button, Text } from "@/components/ui";
 import { useAppUpdate } from "@/src/lib/use-app-update";
 
 /**
- * Android-only banner for a newer JoyoRogo build. Play installs use Play's
- * flexible in-app update (download in the background, then "Mulai ulang");
- * sideload installs use the latest-apk.json updater. Renders nothing on iOS,
- * web, or when there is no update.
+ * Banner for a newer JoyoRogo. A downloaded over-the-air JS update (expo-updates, all native
+ * platforms) shows "Mulai ulang" and wins over everything else. Android binaries also get Play's
+ * flexible in-app update (download in the background, then "Mulai ulang") or, for sideload
+ * installs, the latest-apk.json updater. Renders nothing when there is nothing to offer.
  */
 export function UpdateBanner() {
   const { t } = useTranslation("settings");

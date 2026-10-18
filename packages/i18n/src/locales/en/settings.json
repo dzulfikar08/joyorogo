@@ -632,6 +632,20 @@
       "downloadFailed": "The download failed. Check your internet connection and try again.",
       "verifyFailed": "Couldn't verify the downloaded file. Try again.",
       "invalidFile": "The downloaded file is invalid. Try again."
+    },
+    "ota": {
+      "title": "Quick update",
+      "running": "Running: update {{id}} ({{date}})",
+      "embedded": "Running: the version built into the app",
+      "emergency": "Running: the built-in version (the last update failed to load)",
+      "detail": "Channel {{channel}} · runtime {{runtime}}",
+      "upToDate": "Quick updates are up to date.",
+      "checking": "Checking for a quick update…",
+      "downloading": "Downloading quick update {{percent}}%",
+      "downloadingPlain": "Downloading quick update…",
+      "ready": "Quick update ready. Restart to use it, or it applies the next time the app opens.",
+      "restart": "Restart",
+      "error": "Couldn't check for a quick update. The app keeps the version it has."
     }
   }
 }

@@ -42,3 +42,6 @@ yarn-error.*
 
 !.env.schema
 /src/env.ts
+
+# OTA code signing: the certificate is public and ships in the app; the private key lives in ~/.config/joyorogo/ota, never in git
+!/code-signing/certificate.pem

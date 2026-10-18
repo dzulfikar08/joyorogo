@@ -13,9 +13,17 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
  * JOYOROGO_QA=1 is for on-device QA builds only (scripts/build-qa-apk.sh, the "QA Android"
  * workflow): the Android package gets a ".qa" suffix and the scheme and name change, so the
  * build installs next to the real app and never replaces it.
+ *
+ * OTA (expo-updates, docs/ota.md): the build listens to one EAS Update channel, set through the
+ * expo-channel-name request header. Default "production"; QA builds default to "preview" so a test
+ * update never reaches real users. JOYOROGO_UPDATE_CHANNEL overrides it. Note JOYOROGO_DISTRIBUTION and
+ * JOYOROGO_QA change the native config, so each combination gets its own fingerprint runtimeVersion;
+ * scripts/ota.sh publishes with the same variables the binary was built with.
  */
 const DISTRIBUTIONS = ["sideload", "play"] as const;
 type Distribution = (typeof DISTRIBUTIONS)[number];
+
+const UPDATE_CHANNELS = ["production", "preview"] as const;
 
 const PLAY_REMOVED_PERMISSIONS = ["android.permission.REQUEST_INSTALL_PACKAGES"];
 
@@ -27,6 +35,16 @@ function distributionFromEnv(): Distribution {
     );
   }
   return value as Distribution;
+}
+
+function updateChannelFromEnv(qa: boolean): string {
+  const value = process.env.JOYOROGO_UPDATE_CHANNEL ?? (qa ? "preview" : "production");
+  if (!(UPDATE_CHANNELS as readonly string[]).includes(value)) {
+    throw new Error(
+      `JOYOROGO_UPDATE_CHANNEL must be one of ${UPDATE_CHANNELS.join(", ")} (got "${value}")`,
+    );
+  }
+  return value;
 }
 
 export default ({ config }: ConfigContext): ExpoConfig => {
@@ -45,6 +63,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         distribution === "play"
           ? (android.permissions ?? []).filter((p) => !PLAY_REMOVED_PERMISSIONS.includes(p))
           : android.permissions,
+    },
+    updates: {
+      ...config.updates,
+      requestHeaders: { "expo-channel-name": updateChannelFromEnv(qa) },
     },
     extra: { ...config.extra, distribution },
   };

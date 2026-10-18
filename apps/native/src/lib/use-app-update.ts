@@ -11,6 +11,7 @@ import {
   parseTimestamp,
   shouldCheck,
 } from "@/src/lib/update-policy";
+import { OTA_ENABLED, restartOta, useOtaUpdate } from "@/src/lib/use-ota-update";
 
 /**
  * Which update path this install uses:
@@ -58,6 +59,10 @@ export function useAppUpdate() {
   const apkResult = channel === "apk" ? (apk?.result ?? null) : null;
   const apkUpdate = apkResult?.state === "available" ? apkResult.update : null;
   const refreshApk = apk?.refresh;
+  const { phase: otaState, check: checkOta } = useOtaUpdate();
+  const [otaHidden, setOtaHidden] = useState(false);
+  const lastOtaCheckAt = useRef<number | null>(Date.now());
+  const otaBannerShown = otaState === "ready" && !otaHidden;
 
   useEffect(() => {
     let live = true;
@@ -120,6 +125,17 @@ export function useAppUpdate() {
     });
   }, [channel]);
 
+  // OTA resume re-check, throttled. The launch check is expo-updates' own (ON_LOAD).
+  useEffect(() => {
+    if (!OTA_ENABLED) return;
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active" || !shouldCheck(lastOtaCheckAt.current, Date.now())) return;
+      lastOtaCheckAt.current = Date.now();
+      void checkOta();
+    });
+    return () => sub.remove();
+  }, [checkOta]);
+
   // Resume, throttled.
   useEffect(() => {
     if (channel === null) return;
@@ -133,6 +149,10 @@ export function useAppUpdate() {
   }, [channel, checkPlay, refreshApk]);
 
   const dismiss = useCallback(() => {
+    if (otaBannerShown) {
+      setOtaHidden(true);
+      return;
+    }
     if (playPhase.step === "ready") {
       setReadyHidden(true);
       return;
@@ -140,7 +160,7 @@ export function useAppUpdate() {
     const now = Date.now();
     setDismissedAt(now);
     void SecureStore.setItemAsync(DISMISSED_KEY, String(now)).catch(() => {});
-  }, [playPhase.step]);
+  }, [otaBannerShown, playPhase.step]);
 
   const update = useCallback(async () => {
     if (channel === "play" && playUpdates) {
@@ -166,11 +186,15 @@ export function useAppUpdate() {
   }, [channel, apkUpdate]);
 
   const restart = useCallback(() => {
-    playUpdates?.restart();
-  }, []);
+    if (otaBannerShown) void restartOta();
+    else playUpdates?.restart();
+  }, [otaBannerShown]);
 
   let banner: UpdateBannerModel | null = null;
-  if (channel === "play") {
+  if (otaBannerShown) {
+    // A downloaded OTA update beats every other prompt: one tap and the fix is live.
+    banner = { kind: "ready" };
+  } else if (channel === "play") {
     if (playPhase.step === "downloading") {
       banner = { kind: "downloading", percent: playPhase.percent };
     } else if (playPhase.step === "ready") {
