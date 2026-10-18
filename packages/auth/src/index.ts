@@ -179,6 +179,8 @@ export function mcpPlugins(env: Pick<AuthConfig, "BETTER_AUTH_URL" | "APP_URL">)
     consentPage: page,
     resource: mcpResourceUrl(env.BETTER_AUTH_URL),
     scopes: [...MCP_SCOPES],
+    // Only what the connector uses: client_credentials would also be advertised otherwise (it stays fail closed).
+    grantTypes: ["authorization_code", "refresh_token"],
     allowDynamicClientRegistration: true,
     allowUnauthenticatedClientRegistration: true,
     // Better Auth 1.7.3 has no way to infer the application type of a registration (see nativeRegistration below).
