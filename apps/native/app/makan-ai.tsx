@@ -60,6 +60,7 @@ import {
 import { EASE_OUT, PressableScale, useEnter, usePopIn } from "@/components/motion";
 import { Disclosure } from "@/components/disclosure";
 import { KindCycleChip, SnackAdviceSection } from "@/components/makan/snack-advice";
+import { useGain } from "@/components/gain/use-gain";
 import { PlateFields, plateInput } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
 import { MacroLine } from "@/components/macro-line";
@@ -458,6 +459,8 @@ function AnalyzingOverlay({
 export default function MakanAi() {
   const { theme } = useUnistyles();
   const { t } = useTranslation(["scan", "makan", "common"]);
+  // Naikin BB: no "too much" jokes or sweet/fried warnings, the plan asks for more food.
+  const { gain } = useGain();
   const gate = useSessionGate();
   // Day forwarded from the makan screen when its DaySwitcher sits on a past
   // day: the scan then saves to that day instead of hari ini.
@@ -1346,7 +1349,7 @@ export default function MakanAi() {
             count: includedItems.length - 1,
           })
         : includedItems[0]?.name;
-    const reactionText = totalKcal > 0 ? t(`reaction.${reactionKey(totalKcal)}`) : null;
+    const reactionText = totalKcal > 0 && !gain ? t(`reaction.${reactionKey(totalKcal)}`) : null;
     return (
       <>
       <SafeAreaView style={styles.safeArea}>
@@ -1588,7 +1591,7 @@ export default function MakanAi() {
           </ListGroup>
 
           {/* Saran tips kalau ada minuman manis atau saus/gorengan */}
-          <ContextualTip names={items.map((item) => item.name)} />
+          {gain ? null : <ContextualTip names={items.map((item) => item.name)} />}
 
           {/* Hamil / Menyusui: catatan keamanan makanan, tidak pernah memblokir simpan */}
           <FoodSafetyNotes
@@ -1774,7 +1777,7 @@ export default function MakanAi() {
           protein: included.reduce((sum, entry) => sum + (entry.item.protein ?? 0), 0),
           carbs: included.reduce((sum, entry) => sum + (entry.item.carbs ?? 0), 0),
           fat: included.reduce((sum, entry) => sum + (entry.item.fat ?? 0), 0),
-          reaction: savedKcal > 0 ? t(`reaction.${reactionKey(savedKcal)}`) : undefined,
+          reaction: savedKcal > 0 && !gain ? t(`reaction.${reactionKey(savedKcal)}`) : undefined,
           photoUri: previewUri,
         }
       : null;

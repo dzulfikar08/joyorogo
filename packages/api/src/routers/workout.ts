@@ -874,9 +874,10 @@ export const workoutRouter = {
       today,
     );
     const prs: ExercisePR[] = personalRecords(asSessions).slice(0, 30);
+    // "Slow the cut" has no meaning under a Naikin BB plan (and Hamil / Menyusui have no trend at all).
     const trendHint: StrengthTrendHint | null = strengthTrendHint(asSessions, {
       today,
-      weeklyWeightChangeKg: plan?.trend?.weeklyRateKg ?? null,
+      weeklyWeightChangeKg: plan?.targets.gain ? null : (plan?.trend?.weeklyRateKg ?? null),
     });
 
     return {

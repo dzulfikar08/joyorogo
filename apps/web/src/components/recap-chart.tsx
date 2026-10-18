@@ -15,13 +15,22 @@ const BAR_TONE: Record<DayStatus, string> = {
 };
 
 /** Seven day bars with the kcal target as a dashed line. */
-export function RecapChart({ days, targetKcal }: { days: RecapDay[]; targetKcal: number }) {
-  const { t } = useTranslation("misc");
+export function RecapChart({
+  days,
+  targetKcal,
+  gain = false,
+}: {
+  days: RecapDay[];
+  targetKcal: number;
+  /** Naikin BB week: "under" reads "Belum sampai target" and nothing is ever over. */
+  gain?: boolean;
+}) {
+  const { t } = useTranslation(["misc", "gain"]);
   const dayLabel = (day: RecapDay) =>
     t("recap.chart.day", {
       day: weekdayName(day.date),
       kcal: fmtInt(day.eatenKcal),
-      status: t(`recap.chart.status.${day.status}`),
+      status: day.status === "under" && gain ? t("gain:recap.dayUnder") : t(`recap.chart.status.${day.status}`),
     });
   const top = Math.max(targetKcal * 1.25, ...days.map((day) => day.eatenKcal));
   const targetPct = (targetKcal / top) * 100;
@@ -66,12 +75,15 @@ export function RecapChart({ days, targetKcal }: { days: RecapDay[]; targetKcal:
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden className="size-2.5 rounded-full bg-primary" /> {t("recap.chart.legend.onTarget")}
         </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden className="size-2.5 rounded-full bg-bakar" /> {t("recap.chart.legend.over")}
-        </span>
+        {!gain && (
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden className="size-2.5 rounded-full bg-bakar" />{" "}
+            {t("recap.chart.legend.over")}
+          </span>
+        )}
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden className="size-2.5 rounded-full bg-muted-foreground/40" />{" "}
-          {t("recap.chart.legend.under")}
+          {gain ? t("gain:recap.dayUnder") : t("recap.chart.legend.under")}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden className="h-0 w-4 border-t border-dashed border-foreground/40" />{" "}

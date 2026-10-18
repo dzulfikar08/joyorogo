@@ -5,6 +5,7 @@ import { StyleSheet } from "react-native-unistyles";
 
 import { ACTIVITY_LABELS, needsBreakdown } from "@joyorogo/api/lib/engine";
 import type { Targets } from "@joyorogo/api/lib/engine";
+import { MAX_SURPLUS_KCAL, MIN_SURPLUS_KCAL } from "@joyorogo/api/lib/gain";
 
 import { Num, Sheet, Text } from "@/components/ui";
 import { fmtInt } from "@/utils/format";
@@ -33,10 +34,11 @@ export function NeedsSheet({
   onClose: () => void;
   targets: Targets;
 }) {
-  const { t } = useTranslation(["settings", "maternal"]);
+  const { t } = useTranslation(["settings", "maternal", "gain"]);
   const profile = useQuery({ ...orpc.profile.myProfile.queryOptions(), enabled: visible });
   const needs = needsBreakdown(targets);
   const maternal = targets.maternal ?? null;
+  const gain = targets.gain ?? null;
   const level = profile.data?.profile?.activityLevel as "low" | "mid" | "high" | undefined;
 
   const steps: Step[] = [
@@ -74,7 +76,16 @@ export function NeedsSheet({
           sign: "+",
           kcal: needs.addKcal,
         }
-      : needs.cutKcal > 0
+      : gain
+        ? {
+            key: "surplus",
+            label: t("gain:plan.surplus.label"),
+            name: t("gain:plan.surplus.name"),
+            body: t("gain:plan.surplus.body", { min: MIN_SURPLUS_KCAL, max: MAX_SURPLUS_KCAL }),
+            sign: "+",
+            kcal: needs.surplusKcal,
+          }
+        : needs.cutKcal > 0
         ? {
             key: "cut",
             label: t("plan.needs.cut.label"),
@@ -124,7 +135,14 @@ export function NeedsSheet({
         </View>
       ))}
       {maternal ? <Text style={styles.note}>{t("maternal:needs.noDeficit")}</Text> : null}
-      {!maternal && needs.plannedBurnKcal > 0 && !needs.maintenance ? (
+      {gain ? (
+        <>
+          <Text style={styles.note}>{t("gain:plan.burnNote")}</Text>
+          <Text style={styles.note}>{t("gain:plan.estimate")}</Text>
+          <Text style={styles.note}>{t("gain:estimate.body")}</Text>
+        </>
+      ) : null}
+      {!maternal && !gain && needs.plannedBurnKcal > 0 && !needs.maintenance ? (
         <Text style={styles.note}>
           {t("plan.needs.burnNote", {
             burn: fmtInt(needs.plannedBurnKcal),

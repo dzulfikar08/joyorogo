@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useGain } from "@/components/gain/use-gain";
 import { useMaternal } from "@/components/maternal/use-maternal";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -8,6 +9,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { dayKcalFill, monthWeeks, shiftMonth } from "@joyorogo/api/lib/diary-view";
 import { eatTone, jakartaToday } from "@joyorogo/api/lib/engine";
+import { gainEatTone } from "@joyorogo/api/lib/gain";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 import { fmtDate } from "@joyorogo/i18n";
 
@@ -34,7 +36,7 @@ export function KalenderView({
   onSelect: (date: string) => void;
   children?: React.ReactNode;
 }) {
-  const { t } = useTranslation("makan");
+  const { t } = useTranslation(["makan", "gain"]);
   const { theme } = useUnistyles();
   const today = jakartaToday();
   const [month, setMonth] = useState(date.slice(0, 7));
@@ -45,6 +47,8 @@ export function KalenderView({
   });
   const targetKcal = totals.data?.targetKcal ?? null;
   const maternal = useMaternal().mode !== "none";
+  // Naikin BB: a day above the target is never red; amber only past the reached margin.
+  const gainPlan = useGain().gain !== null;
   const days = totals.data?.days ?? [];
   const records = days.reduce((sum, day) => sum + day.count, 0);
   const canNext = month < today.slice(0, 7);
@@ -104,7 +108,12 @@ export function KalenderView({
               const total = days.find((day) => day.date === cell.key);
               const future = cell.key > today;
               const selected = cell.key === date;
-              const tone = total && !maternal ? eatTone(total.kcal, targetKcal ?? 0) : "ok";
+              const tone =
+                total && !maternal
+                  ? gainPlan
+                    ? gainEatTone(total.kcal, targetKcal ?? 0)
+                    : eatTone(total.kcal, targetKcal ?? 0)
+                  : "ok";
               return (
                 <View key={cell.key} style={styles.cellBox}>
                   <Pressable
@@ -174,7 +183,9 @@ export function KalenderView({
           </Text>
           {targetKcal !== null && !maternal ? (
             <Text style={styles.budget}>
-              {t("calendar.budget", { kcal: fmtKcalLabel(targetKcal) })}
+              {gainPlan
+                ? t("gain:nativeToday.calendarTarget", { kcal: fmtKcalLabel(targetKcal) })
+                : t("calendar.budget", { kcal: fmtKcalLabel(targetKcal) })}
             </Text>
           ) : null}
         </View>

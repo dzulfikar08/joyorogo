@@ -41,6 +41,11 @@ export function ReminderSync() {
   const makanSiang = (data?.eatenByMeal.makan_siang ?? 0) > 0;
   const makanMalam = (data?.eatenByMeal.makan_malam ?? 0) > 0;
   const weighedToday = data?.weightLoggedToday === true;
+  // Naikin BB: kcal still to eat today; null for every other plan (and while unknown).
+  const gainRemainingKcal =
+    data?.targets && data.targets.maternal == null && data.targets.gain != null
+      ? Math.round(data.targets.eatKcal - data.eatenKcal)
+      : null;
   const pattern = fasting.data && fasting.data.pattern !== "off" ? fasting.data.pattern : null;
   const windowStart = fasting.data?.windowStart ?? null;
   const settled = !summary.isPending && !fasting.isPending;
@@ -51,6 +56,7 @@ export function ReminderSync() {
       eaten: known ? { sarapan, makan_siang: makanSiang, makan_malam: makanMalam } : null,
       weighedToday: known ? weighedToday : null,
       fasting: pattern !== null && windowStart !== null ? { pattern, windowStart } : null,
+      gain: gainRemainingKcal !== null ? { remainingKcal: gainRemainingKcal } : null,
     });
     // `day` re-plans after midnight / app foreground even if the flags held;
     // `language` re-plans so notification text follows a language switch.
@@ -64,6 +70,7 @@ export function ReminderSync() {
     weighedToday,
     pattern,
     windowStart,
+    gainRemainingKcal,
     day,
     language,
   ]);

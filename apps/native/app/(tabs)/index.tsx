@@ -19,8 +19,15 @@ import {
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { pickFact } from "@joyorogo/api/lib/facts";
+import { gainEatTone, gainRemaining } from "@joyorogo/api/lib/gain";
 
 import { BelanjaCompact } from "@/components/plate/belanja";
+import {
+  GainCard,
+  GainDailyTip,
+  gainRemainingLabel,
+  gainTipLabel,
+} from "@/components/gain/gain-today";
 import { DaySwitcher } from "@/components/day-switcher";
 import { RecapCard } from "@/components/recap-card";
 import { MaternalCard } from "@/components/maternal/maternal-card";
@@ -129,7 +136,7 @@ function TrendSpark({ points }: { points: TrendPoint[] }) {
 
 export default function Dashboard() {
   const { theme } = useUnistyles();
-  const { t } = useTranslation(["home", "common", "berat", "maternal"]);
+  const { t } = useTranslation(["home", "common", "berat", "maternal", "gain"]);
   const gate = useSessionGate();
   const today = jakartaToday();
   const [date, setDate] = useState(today);
@@ -174,6 +181,7 @@ export default function Dashboard() {
         proteinTargetG: summaryData.protein?.targetG ?? null,
         streakDays: summaryData.streakDays,
         maternal: summaryData.targets.maternal != null,
+        gain: summaryData.targets.maternal == null && summaryData.targets.gain != null,
       },
       // undefined (query pending) keeps the snapshot's current IF line so it
       // doesn't flicker off; null clears it when IF is off or Ramadan owns the day.
@@ -230,15 +238,24 @@ export default function Dashboard() {
   }
 
   const maternal = data.targets.maternal ?? null;
+  // Naikin BB: under-eating is the problem, so Sisa flips to what is still to eat.
+  const gain = maternal ? null : (data.targets.gain ?? null);
+  const gainLeft = gain ? gainRemaining(data.targets.eatKcal, data.eatenKcal) : null;
   // Hamil / Menyusui: a need to meet, never a budget to stay under.
   const { kcal: leftKcal, over: overBudget } = remainingKcal(data.targets.eatKcal, data.eatenKcal);
-  const over = maternal ? false : overBudget;
-  const tone = maternal ? "ok" : eatTone(data.eatenKcal, data.targets.eatKcal);
+  const over = maternal || gain ? false : overBudget;
+  const tone = maternal
+    ? "ok"
+    : gain
+      ? gainEatTone(data.eatenKcal, data.targets.eatKcal)
+      : eatTone(data.eatenKcal, data.targets.eatKcal);
   const ringColor = {
     ok: theme.colors.makan,
     near: theme.colors.eatNear,
     over: theme.colors.destructive,
   }[tone];
+  const profileRow = profileQuery.data?.profile ?? null;
+  const gainStartKg = profileRow ? (profileRow.goalStartKg ?? profileRow.startWeightKg) : null;
   const maintenance = data.targets.notes?.includes("MAINTENANCE") || data.targets.deficitKcal === 0;
   const adaptive = data.targets.notes?.includes("ADAPTIVE") ?? false;
   const plates = (foods.data?.items ?? []).filter((item) => item.scanId != null) as Array<
@@ -293,7 +310,11 @@ export default function Dashboard() {
         {!maternal && data.streakDays > 0 ? (
           <View
             style={styles.streakChip}
-            accessibilityLabel={t("header.streakLabel", { count: data.streakDays })}
+            accessibilityLabel={
+              gain
+                ? t("gain:today.streak", { count: data.streakDays })
+                : t("header.streakLabel", { count: data.streakDays })
+            }
           >
             <Ionicons name="flame" size={14} color={theme.colors.bakarText} />
             <Num style={styles.streakChipText}>{data.streakDays}</Num>
@@ -311,6 +332,8 @@ export default function Dashboard() {
               proteinTargetG: data.protein?.targetG ?? null,
               streakDays: data.streakDays,
               weightLostKg: data.weightLostKg,
+              weightGainedKg: data.weightGainedKg,
+              gain: gain != null,
               weekTrend: data.weekTrend,
             }}
           />
@@ -367,10 +390,26 @@ export default function Dashboard() {
               track={theme.colors.makanSoft}
             >
               <Text style={styles.heroLabel}>
-                {maternal ? t("maternal:target.eaten") : over ? t("eat.over") : t("eat.left")}
+                {maternal
+                  ? t("maternal:target.eaten")
+                  : gainLeft
+                    ? gainLeft.state === "short"
+                      ? t("gain:today.shortLabel")
+                      : t("gain:today.ringLabel")
+                    : over
+                      ? t("eat.over")
+                      : t("eat.left")}
               </Text>
               <CountNum
-                value={maternal ? data.eatenKcal : leftKcal}
+                value={
+                  maternal
+                    ? data.eatenKcal
+                    : gainLeft
+                      ? gainLeft.state === "short"
+                        ? gainLeft.kcal
+                        : data.eatenKcal
+                      : leftKcal
+                }
                 style={[styles.heroNumber, over && { color: theme.colors.bakarText }]}
                 adjustsFontSizeToFit
                 numberOfLines={1}
@@ -436,6 +475,21 @@ export default function Dashboard() {
           {maternal && data.eatenKcal >= data.targets.eatKcal ? (
             <Text style={styles.heroNote}>{t("maternal:target.reached")}</Text>
           ) : null}
+          {gainLeft ? (
+            <View style={styles.gainNote}>
+              <Text style={styles.gainStatus}>{gainRemainingLabel(gainLeft)}</Text>
+              <Text style={styles.gainHint}>
+                {t("gain:today.eatenOf", {
+                  eaten: fmtInt(data.eatenKcal),
+                  target: fmtInt(data.targets.eatKcal),
+                })}
+              </Text>
+              <Text style={styles.gainHint}>{gainTipLabel(gainLeft)}</Text>
+              {gainLeft.state === "over" ? (
+                <Text style={styles.gainHint}>{t("gain:today.overHint")}</Text>
+              ) : null}
+            </View>
+          ) : null}
         </Card>
       </Reveal>
 
@@ -447,6 +501,17 @@ export default function Dashboard() {
           waterGlasses={water.glasses}
           waterGoal={water.goal}
           caffeine={data.maternal?.caffeine ?? null}
+        />
+      ) : null}
+
+      {gain ? (
+        <GainCard
+          gain={gain}
+          targetKcal={data.targets.eatKcal}
+          tdee={data.targets.tdee}
+          streakDays={data.streakDays}
+          gainedKg={data.weightGainedKg}
+          startKg={gainStartKg}
         />
       ) : null}
 
@@ -478,13 +543,18 @@ export default function Dashboard() {
         <StatTile
           macro="protein"
           tint="makan"
-          label={t("tile.protein")}
+          label={gain ? t("gain:today.protein") : t("tile.protein")}
           value={data.protein ? `${fmtInt(data.protein.eatenG)}g` : "–"}
           count={data.protein ? data.protein.eatenG : undefined}
           countSuffix="g"
           sub={
             data.protein
-              ? t("tile.proteinOf", { g: fmtInt(data.protein.targetG) })
+              ? gain
+                ? t("gain:today.proteinOf", {
+                    eaten: fmtInt(data.protein.eatenG),
+                    target: fmtInt(data.protein.targetG),
+                  })
+                : t("tile.proteinOf", { g: fmtInt(data.protein.targetG) })
               : t("tile.proteinNone")
           }
           onPress={() => router.navigate("/makan")}
@@ -529,7 +599,8 @@ export default function Dashboard() {
       {/* Masih muat: ide menu yang masih muat di sisa budget */}
       {data.ideas.length > 0 && !maternal ? (
         <View style={styles.ideasWrap}>
-          <Text style={styles.ideasTitle}>{t("ideas.title")}</Text>
+          <Text style={styles.ideasTitle}>{gain ? t("gain:today.ideasTitle") : t("ideas.title")}</Text>
+          {gain ? <Text style={styles.adaptiveMuted}>{t("gain:today.ideasHint")}</Text> : null}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -661,7 +732,7 @@ export default function Dashboard() {
       {isToday && !maternal ? <FastingScheduleCard /> : null}
 
       {/* Tips hari ini: artikel berbasis bukti (fat-loss), tidak untuk Hamil / Menyusui */}
-      {isToday && !maternal ? <DailyTipCard /> : null}
+      {isToday && !maternal ? gain ? <GainDailyTip /> : <DailyTipCard /> : null}
 
       {maternal ? (
         <WaterCard date={date} />
@@ -703,7 +774,9 @@ export default function Dashboard() {
                     <Text style={styles.milestoneText}>
                       {badge.kind === "streak"
                         ? t("milestone.streak", { days: badge.value })
-                        : t("milestone.lost", { kg: badge.value })}
+                        : badge.kind === "gained"
+                          ? t("gain:milestone.gained", { kg: badge.value })
+                          : t("milestone.lost", { kg: badge.value })}
                     </Text>
                   </View>
                 ))}
@@ -746,33 +819,58 @@ export default function Dashboard() {
       <Sheet visible={explainOpen} onClose={() => setExplainOpen(false)} title={t("explain.title")}>
         <View style={styles.adaptiveBody}>
           <View style={styles.explainFormula}>
-            <Text style={styles.explainFormulaText}>{t("explain.formula")}</Text>
+            <Text style={styles.explainFormulaText}>
+              {gainLeft ? t("gain:nativeToday.explain.formula") : t("explain.formula")}
+            </Text>
             <Num style={styles.explainExample}>
-              {over
-                ? t("explain.exampleOver", {
-                    target: fmtInt(data.targets.eatKcal),
-                    eaten: fmtInt(data.eatenKcal),
-                    over: fmtInt(leftKcal),
-                  })
-                : t("explain.example", {
-                    target: fmtInt(data.targets.eatKcal),
-                    eaten: fmtInt(data.eatenKcal),
-                    left: fmtInt(leftKcal),
-                  })}
+              {gainLeft
+                ? gainLeft.state === "short"
+                  ? t("gain:nativeToday.explain.example", {
+                      target: fmtInt(data.targets.eatKcal),
+                      eaten: fmtInt(data.eatenKcal),
+                      left: fmtInt(gainLeft.kcal),
+                    })
+                  : t("gain:nativeToday.explain.exampleDone", {
+                      target: fmtInt(data.targets.eatKcal),
+                      eaten: fmtInt(data.eatenKcal),
+                    })
+                : over
+                  ? t("explain.exampleOver", {
+                      target: fmtInt(data.targets.eatKcal),
+                      eaten: fmtInt(data.eatenKcal),
+                      over: fmtInt(leftKcal),
+                    })
+                  : t("explain.example", {
+                      target: fmtInt(data.targets.eatKcal),
+                      eaten: fmtInt(data.eatenKcal),
+                      left: fmtInt(leftKcal),
+                    })}
             </Num>
           </View>
           {(["target", "eaten", "left", "burn"] as const).map((key) => (
             <View key={key} style={styles.explainItem}>
-              <Text style={styles.explainTitle}>{t(`explain.${key}.title`)}</Text>
-              <Text style={styles.adaptiveMuted}>{t(`explain.${key}.body`)}</Text>
+              <Text style={styles.explainTitle}>
+                {gainLeft && key === "left"
+                  ? t("gain:nativeToday.explain.leftTitle")
+                  : t(`explain.${key}.title`)}
+              </Text>
+              <Text style={styles.adaptiveMuted}>
+                {gainLeft && key === "left"
+                  ? t("gain:nativeToday.explain.leftBody")
+                  : t(`explain.${key}.body`)}
+              </Text>
             </View>
           ))}
           <View style={styles.explainItem}>
-            <Text style={styles.explainTitle}>{t("explain.deficit.title")}</Text>
+            <Text style={styles.explainTitle}>
+              {gain ? t("gain:coach.surplusExplainer.title") : t("explain.deficit.title")}
+            </Text>
             <Text style={styles.adaptiveMuted}>
-              {maintenance
-                ? t("explain.deficit.bodyMaintenance")
-                : t("explain.deficit.body", { kcal: fmtInt(data.targets.deficitKcal) })}
+              {gain
+                ? t("gain:coach.surplusExplainer.body")
+                : maintenance
+                  ? t("explain.deficit.bodyMaintenance")
+                  : t("explain.deficit.body", { kcal: fmtInt(data.targets.deficitKcal) })}
             </Text>
           </View>
           <ListGroup>
@@ -940,6 +1038,22 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.bakarText,
     textAlign: "center",
     lineHeight: 20,
+  },
+  gainNote: {
+    alignItems: "center",
+    gap: 2,
+  },
+  gainStatus: {
+    fontSize: theme.fontSize.base,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+    textAlign: "center",
+  },
+  gainHint: {
+    fontSize: theme.fontSize.sm,
+    lineHeight: 19,
+    color: theme.colors.mutedForeground,
+    textAlign: "center",
   },
   tileRow: {
     flexDirection: "row",

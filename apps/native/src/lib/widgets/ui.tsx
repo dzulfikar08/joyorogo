@@ -9,6 +9,7 @@ import { FlexWidget, SvgWidget, TextWidget } from "react-native-android-widget";
 import type { ColorProp, WidgetInfo, WidgetRepresentation } from "react-native-android-widget";
 
 import { eatTone } from "@joyorogo/api/lib/engine";
+import { gainEatTone, gainRemaining } from "@joyorogo/api/lib/gain";
 import { i18n } from "@joyorogo/i18n";
 
 import { darkTheme, lightTheme } from "@/theme";
@@ -176,35 +177,51 @@ function ProgressPanel({
   contentWidth: number;
 }) {
   const maternal = day.maternal === true;
+  // Naikin BB: the line says what is still to eat; the ring is never red.
+  const gain = !maternal && day.gain === true;
   // Hamil / Menyusui: neutral ring, the number is what was eaten (no left/over).
-  const tone = maternal ? "ok" : eatTone(day.eatenKcal, day.eatKcal);
+  const tone = maternal
+    ? "ok"
+    : gain
+      ? gainEatTone(day.eatenKcal, day.eatKcal)
+      : eatTone(day.eatenKcal, day.eatKcal);
   const accent = tone === "over" ? c.over : tone === "near" ? c.near : c.ok;
-  const over = !maternal && day.eatenKcal > day.eatKcal;
+  const over = !maternal && !gain && day.eatenKcal > day.eatKcal;
+  const remaining = gain ? gainRemaining(day.eatKcal, day.eatenKcal) : null;
   return (
     <FlexWidget style={{ flexDirection: "column", width: "match_parent" }}>
       <Caption text={i18n.t("misc:widget.progress")} c={c} />
-      <FlexWidget style={{ flexDirection: "row", alignItems: "flex-end", marginTop: 6 }}>
+      {remaining ? (
         <TextWidget
-          text={
-            maternal
-              ? fmtInt(day.eatenKcal)
-              : over
-                ? `+${fmtInt(day.eatenKcal - day.eatKcal)}`
-                : fmtInt(day.eatKcal - day.eatenKcal)
-          }
-          style={{ fontSize: 30, fontFamily: FONT_HEAVY, color: accent, lineHeight: 34 }}
+          text={i18n.t(`gain:today.${remaining.state}`, { kcal: fmtInt(remaining.kcal) })}
+          maxLines={1}
+          truncate="END"
+          style={{ fontSize: 20, fontFamily: FONT_HEAVY, color: accent, lineHeight: 28, marginTop: 6, marginBottom: 6 }}
         />
-        <TextWidget
-          text={
-            maternal
-              ? i18n.t("maternal:target.eaten")
-              : over
-                ? i18n.t("misc:widget.over")
-                : i18n.t("misc:widget.left")
-          }
-          style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginLeft: 6, marginBottom: 5 }}
-        />
-      </FlexWidget>
+      ) : (
+        <FlexWidget style={{ flexDirection: "row", alignItems: "flex-end", marginTop: 6 }}>
+          <TextWidget
+            text={
+              maternal
+                ? fmtInt(day.eatenKcal)
+                : over
+                  ? `+${fmtInt(day.eatenKcal - day.eatKcal)}`
+                  : fmtInt(day.eatKcal - day.eatenKcal)
+            }
+            style={{ fontSize: 30, fontFamily: FONT_HEAVY, color: accent, lineHeight: 34 }}
+          />
+          <TextWidget
+            text={
+              maternal
+                ? i18n.t("maternal:target.eaten")
+                : over
+                  ? i18n.t("misc:widget.over")
+                  : i18n.t("misc:widget.left")
+            }
+            style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginLeft: 6, marginBottom: 5 }}
+          />
+        </FlexWidget>
+      )}
       <Bar
         fraction={day.eatKcal > 0 ? day.eatenKcal / day.eatKcal : 0}
         color={accent}

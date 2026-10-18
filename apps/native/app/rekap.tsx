@@ -40,10 +40,12 @@ import { MACRO_META } from "@/utils/macro-icons";
 import { orpc } from "@/utils/orpc";
 
 const BAR_AREA_H = 120;
+/** ±0.05 kg or flatter counts as steady, matching weeklyRateLabel. */
+const FLAT_CHANGE_KG = 0.05;
 
 function RecapChart({ recap }: { recap: WeekRecap }) {
   const { theme } = useUnistyles();
-  const { t } = useTranslation("misc");
+  const { t } = useTranslation(["misc", "gain"]);
   const top = Math.max(recap.targetKcal * 1.25, ...recap.days.map((day) => day.eatenKcal));
   const tone: Record<DayStatus, string> = {
     on_target: theme.colors.primary,
@@ -56,7 +58,10 @@ function RecapChart({ recap }: { recap: WeekRecap }) {
     t("recap.chart.day", {
       day: weekdayName(day.date),
       kcal: fmtInt(day.eatenKcal),
-      status: t(`recap.chart.status.${day.status}`),
+      status:
+        recap.gain && day.status === "under"
+          ? t("gain:recap.dayUnder")
+          : t(`recap.chart.status.${day.status}`),
     });
   return (
     <View>
@@ -95,8 +100,14 @@ function RecapChart({ recap }: { recap: WeekRecap }) {
       </View>
       <View style={styles.legend}>
         <LegendDot color={theme.colors.primary} label={t("recap.chart.legend.onTarget")} />
-        <LegendDot color={theme.colors.bakar} label={t("recap.chart.legend.over")} />
-        <LegendDot color={theme.colors.mutedForeground} label={t("recap.chart.legend.under")} faded />
+        {recap.gain ? null : (
+          <LegendDot color={theme.colors.bakar} label={t("recap.chart.legend.over")} />
+        )}
+        <LegendDot
+          color={theme.colors.mutedForeground}
+          label={recap.gain ? t("gain:recap.dayUnder") : t("recap.chart.legend.under")}
+          faded
+        />
       </View>
     </View>
   );
@@ -113,7 +124,7 @@ function LegendDot({ color, label, faded }: { color: string; label: string; fade
 
 export default function Rekap() {
   const { theme } = useUnistyles();
-  const { t } = useTranslation(["misc", "common"]);
+  const { t } = useTranslation(["misc", "common", "gain"]);
   const gate = useSessionGate();
   const params = useLocalSearchParams<{ week?: string }>();
   const today = jakartaToday();
@@ -156,6 +167,16 @@ export default function Rekap() {
 
   const share = recapShare(recap);
   const change = recap.weight?.changeKg ?? null;
+  const gainWeightLine =
+    change === null
+      ? null
+      : change > FLAT_CHANGE_KG
+        ? t("gain:recap.weightUp", { kg: fmtKg(change) })
+        : change < -FLAT_CHANGE_KG
+          ? t("gain:recap.weightDown", { kg: fmtKg(Math.abs(change)) })
+          : t("gain:recap.weightSteady");
+  const gainCelebrate =
+    recap.daysOnTarget >= 5 ? "great" : recap.daysOnTarget >= 3 ? "some" : "low";
   const canNext = recap.weekStart < thisWeek;
 
   const nav = (
@@ -237,6 +258,18 @@ export default function Rekap() {
               </Text>
             </Card>
 
+            {recap.gain ? (
+              <Card style={styles.gainSummary}>
+                <Text style={styles.gainLine}>
+                  {t("gain:recap.daysOnTarget", {
+                    on: recap.daysOnTarget,
+                    total: recap.loggedDays,
+                  })}
+                </Text>
+                {gainWeightLine ? <Text style={styles.note}>{gainWeightLine}</Text> : null}
+                <Text style={styles.note}>{t(`gain:recap.celebrate.${gainCelebrate}`)}</Text>
+              </Card>
+            ) : null}
             <SectionTitle title={t("recap.daily")} />
             <Card>
               <RecapChart recap={recap} />
@@ -271,7 +304,7 @@ export default function Rekap() {
                   tint="bakar"
                   label={t("recap.stat.streak.label")}
                   value={`${recap.streakDays} ${t("recap.unit.day", { count: recap.streakDays })}`}
-                  sub={t("recap.stat.streak.sub")}
+                  sub={recap.gain ? t("gain:nativeToday.recap.streakSub") : t("recap.stat.streak.sub")}
                 />
               )}
               <StatTile
@@ -333,7 +366,7 @@ export default function Rekap() {
 
             <Disclosure title={t("recap.note.title")}>
               <Text style={styles.footnote}>
-                {t("recap.note.body")}
+                {recap.gain ? t("gain:nativeToday.recap.note") : t("recap.note.body")}
                 {recap.complete ? "" : ` ${t("recap.note.ongoing")}`}
               </Text>
             </Disclosure>
@@ -372,6 +405,8 @@ const styles = StyleSheet.create((theme) => ({
   },
   fill: { height: 8, borderRadius: 4, backgroundColor: theme.colors.primary },
   note: { fontSize: theme.fontSize.sm, color: theme.colors.mutedForeground, lineHeight: 20 },
+  gainSummary: { gap: theme.spacing.sm },
+  gainLine: { fontSize: theme.fontSize.base, fontWeight: "700", color: theme.colors.foreground },
   barArea: {
     height: BAR_AREA_H,
     flexDirection: "row",

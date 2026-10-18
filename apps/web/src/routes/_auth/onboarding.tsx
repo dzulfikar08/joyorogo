@@ -7,12 +7,16 @@ import { toast } from "sonner";
 
 import {
   ACTIVITY_LABELS,
-  daysBetween,
+  checkTargetDate,
   idealWeightRange,
   jakartaToday,
   KCAL_PER_KG_FAT,
+  MAX_DEFICIT_KCAL,
+  MAX_TARGET_DAYS,
 } from "@joyorogo/api/lib/engine";
 import type { ActivityLevel, Gender } from "@joyorogo/api/lib/engine";
+import { goalTargetError } from "@joyorogo/api/lib/gain";
+import type { Goal } from "@joyorogo/api/lib/gain";
 import { Button } from "@joyorogo/ui/components/button";
 import { Calendar } from "@joyorogo/ui/components/calendar";
 import { Input } from "@joyorogo/ui/components/input";
@@ -42,6 +46,10 @@ import {
   maternalDraftToInput,
 } from "@/components/maternal/maternal-form";
 import type { MaternalDraft } from "@/components/maternal/maternal-form";
+import { GainDateVerdict, isGainCheck } from "@/components/gain/gain-date-verdict";
+import { GoalChooser } from "@/components/gain/goal-chooser";
+import { GOAL_ERROR_KEY, planForGoal, typedGoal } from "@/components/gain/goal-plan";
+import { GainOnboardingResult } from "@/components/gain/onboarding-result";
 import { orpc } from "@/utils/orpc";
 
 const profileOptions = orpc.profile.myProfile.queryOptions();
@@ -71,6 +79,8 @@ type FormState = {
   /** answer to "Sedang hamil atau menyusui?" (only asked of women) */
   maternalChoice: "pregnant" | "breastfeeding" | "none";
   maternal: MaternalDraft;
+  /** the chooser's pick; null = follows the target (above the weight is gain) */
+  goal: Goal | null;
 };
 
 type StepKey =
@@ -83,8 +93,6 @@ type StepKey =
   | "activity"
   | "target"
   | "date";
-
-const DEFICIT_CAP_KCAL = 1000;
 
 /** Big tappable answer tile; selected state uses the brand tint. */
 function ChoiceTile({
@@ -148,7 +156,7 @@ function BigNumberField({
 }
 
 function OnboardingPage() {
-  const { t } = useTranslation(["onboarding", "common", "settings", "maternal"]);
+  const { t } = useTranslation(["onboarding", "common", "settings", "maternal", "gain"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
@@ -165,6 +173,7 @@ function OnboardingPage() {
     targetDate: jakartaDatePlusDays(90),
     maternalChoice: "none",
     maternal: emptyMaternalDraft("pregnant"),
+    goal: null,
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -195,6 +204,8 @@ function OnboardingPage() {
   const birthYear = parseNum(form.birthYear);
   const targetWeight = parseNum(form.targetWeightKg);
   const ideal = height !== null && height >= 100 && height <= 250 ? idealWeightRange(height) : null;
+  const effectiveGoal: Goal = form.goal ?? typedGoal(weight, targetWeight);
+  const derivedGain = form.goal === null && effectiveGoal === "gain";
 
   // Hamil / Menyusui: only asked of women. The maternal path swaps the two
   // target-weight questions for the maternal form (no deficit, no target).
@@ -211,7 +222,11 @@ function OnboardingPage() {
     "height",
     "weight",
     "activity",
-    ...(maternalMode ? [] : (["target", "date"] as const)),
+    ...(maternalMode
+      ? []
+      : effectiveGoal === "maintain"
+        ? (["target"] as const)
+        : (["target", "date"] as const)),
   ];
   const STEP_COUNT = steps.length;
   const key: StepKey = steps[step - 1] ?? "birth";
@@ -262,12 +277,19 @@ function OnboardingPage() {
           return false;
         }
         return true;
-      case "target":
+      case "target": {
+        if (effectiveGoal === "maintain") return true;
         if (targetWeight === null || targetWeight < 25 || targetWeight > 400) {
           setError(t("error.targetWeight"));
           return false;
         }
+        const goalError = weight === null ? null : goalTargetError(effectiveGoal, weight, targetWeight);
+        if (goalError) {
+          setError(t(GOAL_ERROR_KEY[goalError]));
+          return false;
+        }
         return true;
+      }
       default:
         return true;
     }
@@ -297,8 +319,28 @@ function OnboardingPage() {
         });
         return;
       }
+      if (effectiveGoal === "maintain") {
+        setError(null);
+        save.mutate({
+          birthYear,
+          gender: form.gender,
+          heightCm: height,
+          weightKg: weight,
+          goal: "maintain",
+          targetWeightKg: weight,
+          targetDate: jakartaDatePlusDays(365),
+          activityLevel: form.activityLevel,
+        });
+        return;
+      }
       if (targetWeight === null || targetWeight < 25 || targetWeight > 400) {
         setError(t("error.targetWeight"));
+        return;
+      }
+      const goalError = goalTargetError(effectiveGoal, weight, targetWeight);
+      if (goalError) {
+        setError(t(GOAL_ERROR_KEY[goalError]));
+        setStep(steps.indexOf("target") + 1);
         return;
       }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(form.targetDate) || form.targetDate < jakartaToday()) {
@@ -311,6 +353,7 @@ function OnboardingPage() {
         gender: form.gender,
         heightCm: height,
         weightKg: weight,
+        goal: effectiveGoal,
         targetWeightKg: targetWeight,
         targetDate: form.targetDate,
         activityLevel: form.activityLevel,
@@ -359,6 +402,8 @@ function OnboardingPage() {
         </header>
         {targets.maternal ? (
           <MaternalOnboardingResult targets={targets} info={targets.maternal} />
+        ) : targets.gain ? (
+          <GainOnboardingResult targets={targets} gain={targets.gain} />
         ) : (
           <>
             <PlanNumbers targets={targets} />
@@ -397,16 +442,33 @@ function OnboardingPage() {
     );
   }
 
-  const tooFast = (() => {
-    if (weight === null || targetWeight === null || targetWeight >= weight) return null;
-    const days = daysBetween(jakartaToday(), form.targetDate);
-    if (days < 1) return null;
-    const lossKg = weight - targetWeight;
-    const rawDeficit = Math.round((lossKg * KCAL_PER_KG_FAT) / days);
-    if (rawDeficit <= DEFICIT_CAP_KCAL) return null;
-    const feasibleDays = Math.ceil((lossKg * KCAL_PER_KG_FAT) / DEFICIT_CAP_KCAL);
-    return { days, lossKg, rawDeficit, feasibleDays };
-  })();
+  const dateCheck =
+    weight !== null && targetWeight !== null && height !== null
+      ? checkTargetDate({
+          weightNowKg: weight,
+          targetWeightKg: targetWeight,
+          targetDate: form.targetDate,
+          goal: effectiveGoal,
+          heightCm: height,
+        })
+      : null;
+  const lossCheck = dateCheck?.status === "fast" ? dateCheck : null;
+  const tooFast = lossCheck && {
+    days: lossCheck.days,
+    lossKg: lossCheck.lossKg,
+    rawDeficit: lossCheck.rawDeficitKcal,
+    feasibleDays: lossCheck.feasibleDays,
+  };
+  const gainCheck = dateCheck && isGainCheck(dateCheck) ? dateCheck : null;
+
+  const chooseGoal = (goal: Goal) => {
+    const plan = goal === effectiveGoal || weight === null ? null : planForGoal(goal, weight, height);
+    set(
+      plan
+        ? { goal, targetWeightKg: String(plan.targetKg), targetDate: jakartaDatePlusDays(plan.days) }
+        : { goal },
+    );
+  };
 
   const titles: Record<StepKey, string> = {
     birth: t("question.birth.title"),
@@ -578,26 +640,48 @@ function OnboardingPage() {
 
           {key === "target" && (
             <div className="space-y-3">
-              <BigNumberField
-                id="target-weight"
-                label={t("question.target.label")}
-                value={form.targetWeightKg}
-                onValueChange={(value) => set({ targetWeightKg: value })}
-                unit="kg"
-                step="0.1"
-              />
-              {ideal && (
-                <p className="text-sm text-muted-foreground tabular-nums">
-                  {t("question.target.healthyRange", {
-                    min: fmtKg(ideal.minKg),
-                    max: fmtKg(ideal.maxKg),
-                  })}
+              <GoalChooser value={effectiveGoal} onChange={chooseGoal} />
+              {derivedGain && (
+                <p className="px-1 text-sm leading-snug text-muted-foreground">
+                  {t("gain:goal.derivedGain")}
                 </p>
               )}
-              {ideal && targetWeight !== null && targetWeight < ideal.minKg && (
-                <p className="text-sm leading-snug text-destructive">
-                  {t("question.target.belowRange")}
+              {effectiveGoal === "maintain" ? (
+                <p className="px-1 text-sm leading-snug text-muted-foreground">
+                  {t("gain:goal.maintainNote")}
                 </p>
+              ) : (
+                <>
+                  <BigNumberField
+                    id="target-weight"
+                    label={t("question.target.label")}
+                    value={form.targetWeightKg}
+                    onValueChange={(value) => set({ targetWeightKg: value, goal: null })}
+                    unit="kg"
+                    step="0.1"
+                  />
+                  {ideal && (
+                    <p className="text-sm text-muted-foreground tabular-nums">
+                      {t("question.target.healthyRange", {
+                        min: fmtKg(ideal.minKg),
+                        max: fmtKg(ideal.maxKg),
+                      })}
+                    </p>
+                  )}
+                  {ideal && effectiveGoal === "lose" && targetWeight !== null && targetWeight < ideal.minKg && (
+                    <p className="text-sm leading-snug text-destructive">
+                      {t("question.target.belowRange")}
+                    </p>
+                  )}
+                  {ideal && effectiveGoal === "gain" && targetWeight !== null && targetWeight > ideal.maxKg && (
+                    <p className="text-sm leading-snug text-muted-foreground">
+                      {t("gain:target.aboveHealthy", {
+                        min: fmtKg(ideal.minKg),
+                        max: fmtKg(ideal.maxKg),
+                      })}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -650,6 +734,16 @@ function OnboardingPage() {
                   </Button>
                 </div>
               )}
+
+              {gainCheck && (
+                <GainDateVerdict
+                  check={gainCheck}
+                  today={jakartaToday()}
+                  onUseDate={(days) =>
+                    set({ targetDate: jakartaDatePlusDays(Math.min(days, MAX_TARGET_DAYS)) })
+                  }
+                />
+              )}
             </div>
           )}
         </div>
@@ -675,10 +769,10 @@ function OnboardingPage() {
                 <p>
                   {t("tooFast.detail", {
                     count: tooFast.feasibleDays,
-                    cap: fmtKcalLabel(DEFICIT_CAP_KCAL),
+                    cap: fmtKcalLabel(MAX_DEFICIT_KCAL),
                     kg: fmtKg(tooFast.lossKg),
                     reach: fmtKg(
-                      Math.round(((DEFICIT_CAP_KCAL * tooFast.days) / KCAL_PER_KG_FAT) * 10) / 10,
+                      Math.round(((MAX_DEFICIT_KCAL * tooFast.days) / KCAL_PER_KG_FAT) * 10) / 10,
                     ),
                     date: fmtDateMedium(form.targetDate),
                   })}

@@ -18,6 +18,8 @@ export type WidgetDaySnapshot = {
   streakDays: number;
   /** Hamil / Menyusui: no "left/over" budget wording, the day is a need to meet. Absent in old snapshots. */
   maternal?: boolean;
+  /** Naikin BB: "Kurang X kkal lagi" instead of left/over, ring never red. Absent in old snapshots. */
+  gain?: boolean;
 };
 
 /**

@@ -160,5 +160,44 @@
   "estimate": {
     "title": "About calorie estimates from photos",
     "body": "Calories from a photo are an estimate and can be off in either direction. When you are gaining, a number that is too high means you ate less than you logged. Watch your weight trend over 2 to 3 weeks, not one day, then adjust portions."
+  },
+  "nativeSetup": {
+    "needGainTarget": "To gain weight, set a target above your current weight.",
+    "needLoseTarget": "To lose weight, set a target below your current weight."
+  },
+  "webToday": {
+    "explain": {
+      "formula": "To go = eating target − eaten",
+      "example": "Today: {{target}} − {{eaten}} = {{left}} kcal to go",
+      "left": "What you still need to eat today to reach your target. Once you are there or past it, there is nothing to chase."
+    },
+    "chart": {
+      "up": "Up"
+    }
+  },
+  "nativeToday": {
+    "explain": {
+      "formula": "To go = eating target − eaten",
+      "example": "Today: {{target}} − {{eaten}} = {{left}} kcal to go",
+      "exampleDone": "Today: {{eaten}} of {{target}} kcal, target reached",
+      "leftTitle": "To go",
+      "leftBody": "What you still need to eat today to reach your target. Once you are there or past it, there is nothing to chase."
+    },
+    "story": {
+      "gained": "Up"
+    },
+    "recap": {
+      "streakSub": "eating up to target without a break",
+      "note": "Based on your own logs, not a medical assessment. Up to target means you ate at least 90% of your daily target. Weight uses the trend (a moving average), so it ignores day-to-day scale swings."
+    },
+    "reminder": {
+      "titleReached": "Check in on dinner",
+      "sheetTitle": "Reminder time when still short"
+    },
+    "calendarTarget": "Target {{kcal}}",
+    "chart": {
+      "up": "Up",
+      "detailLegend": "Line = trend (7-day moving average), dots = daily weigh-ins. Bars = logged daily calories (dark = reached the target, light = not yet); hatched area = days not logged. Light green area = gentle gain band."
+    }
   }
 }

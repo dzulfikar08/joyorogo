@@ -5,12 +5,14 @@ import { useTranslation } from "react-i18next";
 
 import { warningMessage } from "@joyorogo/api/lib/workout";
 
+import { useGain } from "@/components/gain/use-gain";
 import { Card } from "@/components/kit/surface";
 import { orpc } from "@/utils/orpc";
 
 /** Compact Beranda card: missed-muscle warnings today + door to /latihan. */
 export function WorkoutCard() {
-  const { t } = useTranslation("home");
+  const { t } = useTranslation(["home", "gain"]);
+  const { gain } = useGain();
   const status = useQuery(orpc.workout.status.queryOptions({ input: {} }));
 
   // Silent while loading or failing: Beranda stays calm, /latihan owns errors.
@@ -44,7 +46,11 @@ export function WorkoutCard() {
         </ul>
       ) : (
         <p className="text-sm text-muted-foreground">
-          {sessionCount28d > 0 ? t("workout.allGood") : t("workout.keepMuscle")}
+          {sessionCount28d > 0
+            ? t("workout.allGood")
+            : gain
+              ? t("gain:coach.keepMuscle")
+              : t("workout.keepMuscle")}
         </p>
       )}
     </Card>

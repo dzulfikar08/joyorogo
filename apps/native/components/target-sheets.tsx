@@ -11,6 +11,8 @@ import {
   MAX_TARGET_DAYS,
   shiftDate,
 } from "@joyorogo/api/lib/engine";
+import { bmiOf, HEALTHY_BMI_MAX, MAX_SURPLUS_KCAL, type Goal } from "@joyorogo/api/lib/gain";
+import { fmtNumber } from "@joyorogo/i18n";
 
 import { Calendar } from "@/components/calendar";
 import { Button, Chip, Field, Input, Sheet, Text } from "@/components/ui";
@@ -25,6 +27,7 @@ export function TargetWeightSheet({
   visible,
   onClose,
   heightCm,
+  weightNowKg,
   targetWeightKg,
   pending,
   onSave,
@@ -32,11 +35,12 @@ export function TargetWeightSheet({
   visible: boolean;
   onClose: () => void;
   heightCm: number;
+  weightNowKg: number;
   targetWeightKg: number;
   pending: boolean;
   onSave: (targetWeightKg: number) => Promise<void>;
 }) {
-  const { t } = useTranslation(["settings", "common"]);
+  const { t } = useTranslation(["settings", "common", "gain"]);
   const [weight, setWeight] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -54,6 +58,8 @@ export function TargetWeightSheet({
   const ideal = idealWeightRange(heightCm);
   const parsed = parseNum(shown);
   const belowRange = parsed !== null && parsed < ideal.minKg;
+  const aboveHealthy =
+    parsed !== null && parsed > weightNowKg && bmiOf(parsed, heightCm) > HEALTHY_BMI_MAX;
 
   const submit = async () => {
     if (parsed === null || parsed < 25 || parsed > 400) {
@@ -95,6 +101,7 @@ export function TargetWeightSheet({
       {belowRange ? (
         <Text style={styles.warnText}>{t("plan.targetWeight.belowRange")}</Text>
       ) : null}
+      {aboveHealthy ? <Text style={styles.note}>{t("gain:target.aboveHealthy", { min: fmtKg(ideal.minKg), max: fmtKg(ideal.maxKg) })}</Text> : null}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
       <Text style={styles.note}>{t("plan.targetWeight.hint")}</Text>
@@ -113,6 +120,8 @@ export function TargetDateSheet({
   targetDate,
   weightNowKg,
   targetWeightKg,
+  goal,
+  heightCm,
   pending,
   onSave,
 }: {
@@ -121,10 +130,12 @@ export function TargetDateSheet({
   targetDate: string;
   weightNowKg: number;
   targetWeightKg: number;
+  goal: Goal;
+  heightCm: number;
   pending: boolean;
   onSave: (targetDate: string) => Promise<void>;
 }) {
-  const { t } = useTranslation(["settings", "common"]);
+  const { t } = useTranslation(["settings", "common", "gain"]);
   const [date, setDate] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -140,14 +151,11 @@ export function TargetDateSheet({
   const maxDate = shiftDate(today, MAX_TARGET_DAYS);
   const shown = date ?? targetDate;
   const check = useMemo(
-    () => checkTargetDate({ weightNowKg, targetWeightKg, targetDate: shown, today }),
-    [weightNowKg, targetWeightKg, shown, today],
+    () => checkTargetDate({ weightNowKg, targetWeightKg, targetDate: shown, today, goal, heightCm }),
+    [weightNowKg, targetWeightKg, shown, today, goal, heightCm],
   );
-  const valid =
-    check.status === "ok" ||
-    check.status === "fast" ||
-    check.status === "slow" ||
-    check.status === "maintenance";
+  const gaining = check.status === "gainOk" || check.status === "gainFast" || check.status === "gainSlow";
+  const valid = gaining || check.status === "ok" || check.status === "fast" || check.status === "slow" || check.status === "maintenance";
 
   const preview = useQuery({
     ...orpc.profile.previewTargets.queryOptions({
@@ -273,6 +281,63 @@ export function TargetDateSheet({
           })}
         </Text>
       ) : null}
+      {check.status === "gainOk" ? (
+        <Text style={styles.note}>
+          {t(check.band === "lean" ? "gain:date.ok.lean" : "gain:date.ok.brisk", {
+            kg: fmtKg(check.gainKg),
+            count: check.days,
+            perWeek: fmtNumber(check.weeklyKg, 2),
+            pct: fmtNumber(check.pacePct, 2),
+          })}
+        </Text>
+      ) : null}
+      {check.status === "gainFast" ? (
+        <View style={styles.warnBox}>
+          <Text style={styles.warnTitle}>
+            {check.rawSurplusKcal > MAX_SURPLUS_KCAL
+              ? t("gain:date.fast.titleSurplus", {
+                  surplus: fmtInt(check.rawSurplusKcal),
+                  max: MAX_SURPLUS_KCAL,
+                })
+              : t("gain:date.fast.title", {
+                  perWeek: fmtNumber(check.weeklyKg, 2),
+                  pct: fmtNumber(check.pacePct, 2),
+                })}
+          </Text>
+          <Text style={styles.warnBody}>
+            {t("gain:date.fast.body", { kg: fmtKg(check.gainKg), count: check.feasibleDays })}
+          </Text>
+          <Button
+            variant="secondary"
+            size="sm"
+            label={t("gain:date.fast.useDate", {
+              date: fmtDateMedium(shiftDate(today, check.feasibleDays)),
+            })}
+            onPress={() => pick(shiftDate(today, check.feasibleDays))}
+            style={styles.warnAction}
+          />
+        </View>
+      ) : null}
+      {check.status === "gainSlow" ? (
+        <View style={styles.infoBox}>
+          <Text style={styles.infoTitle}>{t("gain:date.slow.title")}</Text>
+          <Text style={styles.warnBody}>
+            {t("gain:date.slow.body", {
+              surplus: fmtInt(check.surplusKcal),
+              date: fmtDateMedium(shiftDate(today, check.feasibleDays)),
+            })}
+          </Text>
+          <Button
+            variant="secondary"
+            size="sm"
+            label={t("gain:date.slow.useDate", {
+              date: fmtDateMedium(shiftDate(today, check.feasibleDays)),
+            })}
+            onPress={() => pick(shiftDate(today, check.feasibleDays))}
+            style={styles.warnAction}
+          />
+        </View>
+      ) : null}
       {check.status === "maintenance" ? (
         <Text style={styles.note}>{t("plan.targetDate.maintenance")}</Text>
       ) : null}
@@ -281,10 +346,13 @@ export function TargetDateSheet({
       {valid && preview.data ? (
         <Text style={styles.previewText}>
           {preview.data.next.eatKcal === preview.data.current.eatKcal
-            ? t("plan.targetDate.preview.same", { kcal: fmtInt(preview.data.next.eatKcal) })
-            : t("plan.targetDate.preview.changed", {
+            ? t(gaining ? "gain:date.preview.same" : "plan.targetDate.preview.same", {
+                kcal: fmtInt(preview.data.next.eatKcal),
+              })
+            : t(gaining ? "gain:date.preview.changed" : "plan.targetDate.preview.changed", {
                 next: fmtInt(preview.data.next.eatKcal),
                 current: fmtInt(preview.data.current.eatKcal),
+                surplus: fmtInt(preview.data.next.gain?.surplusKcal ?? 0),
               })}
         </Text>
       ) : null}
@@ -292,7 +360,7 @@ export function TargetDateSheet({
         <Text style={styles.note}>{t("plan.targetDate.previewFailed")}</Text>
       ) : null}
       {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
-      <Text style={styles.note}>{t("plan.targetDate.hint")}</Text>
+      <Text style={styles.note}>{t(gaining ? "gain:date.hint" : "plan.targetDate.hint")}</Text>
     </Sheet>
   );
 }

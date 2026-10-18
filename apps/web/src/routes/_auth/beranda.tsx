@@ -40,6 +40,12 @@ import { ShareStoryButton } from "@/components/story/share-story-button";
 import { Sticker } from "@/components/sticker";
 import { MaternalCard } from "@/components/maternal/maternal-card";
 import { MaternalEatHero } from "@/components/maternal/eat-hero";
+import {
+  GainDailyTip,
+  GainIntakeNote,
+  GainPlanCard,
+  useGainIntake,
+} from "@/components/gain/gain-today";
 import { WaterCard, WaterTile } from "@/components/water-card";
 import { WorkoutCard } from "@/components/workout/workout-card";
 import { pickFact } from "@/lib/facts";
@@ -199,10 +205,11 @@ function Dashboard({
   date: string;
   onChange: (date: string) => void;
 }) {
-  const { t } = useTranslation(["home", "berat"]);
+  const { t } = useTranslation(["home", "berat", "gain"]);
   const { session } = Route.useRouteContext();
   const targets = summary.targets;
   const maternal = targets.maternal;
+  const gain = targets.gain ?? null;
   const firstName = session.user.name?.split(" ")[0];
   const isToday = date === jakartaToday();
   const firstVisit = useFirstVisit("beranda");
@@ -250,6 +257,8 @@ function Dashboard({
                 proteinTargetG: summary.protein.targetG,
                 streakDays: summary.streakDays,
                 weightLostKg: summary.weightLostKg,
+                gain: gain !== null,
+                weightGainedKg: summary.weightGainedKg,
                 weekTrend: summary.weekTrend,
               }}
             />
@@ -257,11 +266,16 @@ function Dashboard({
           {summary.streakDays > 0 && (
             <span
               className="inline-flex h-9 items-center gap-1.5 rounded-full bg-bakar-soft px-3 text-sm font-bold text-bakar-ink tabular-nums"
-              title={t("header.streakTitle")}
+              title={gain ? t("gain:today.streakRule") : t("header.streakTitle")}
             >
               <Flame className="size-4" aria-hidden />
               {summary.streakDays}
-              <span className="sr-only"> {t("header.streakDays", { count: summary.streakDays })}</span>
+              <span className="sr-only">
+                {" "}
+                {gain
+                  ? t("gain:today.streak", { count: summary.streakDays })
+                  : t("header.streakDays", { count: summary.streakDays })}
+              </span>
             </span>
           )}
           <Link
@@ -362,6 +376,7 @@ function Dashboard({
           <TodayMeals summary={summary} isToday={isToday} />
           {isToday && !maternal ? <FastingScheduleCard /> : null}
           {maternal && <MaternalCard info={maternal} summary={summary} />}
+          {gain && <GainPlanCard gain={gain} summary={summary} />}
         </div>
 
         <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-2 lg:space-y-5">
@@ -397,7 +412,7 @@ function Dashboard({
         </section>
       )}
 
-      {isToday && !maternal ? <DailyTipCard /> : null}
+      {isToday && !maternal ? gain ? <GainDailyTip /> : <DailyTipCard /> : null}
 
       <MoreSection summary={summary} date={date} isToday={isToday} />
     </Page>
@@ -405,9 +420,11 @@ function Dashboard({
 }
 
 function EatHero({ summary }: { summary: Summary }) {
-  const { t } = useTranslation("home");
+  const { t } = useTranslation(["home", "gain"]);
   const targets = summary.targets;
   const { kcal: leftKcal, over } = remainingKcal(targets.eatKcal, summary.eatenKcal);
+  const gaining = targets.gain != null;
+  const intake = useGainIntake(targets.eatKcal, summary.eatenKcal);
   const [adaptiveOpen, setAdaptiveOpen] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const maintenance = targets.notes.includes("MAINTENANCE") || targets.deficitKcal <= 0;
@@ -421,25 +438,45 @@ function EatHero({ summary }: { summary: Summary }) {
           max={targets.eatKcal}
           size={132}
           stroke={12}
-          label={t("eat.ringLabel", {
-            eaten: fmtInt(summary.eatenKcal),
-            target: fmtInt(targets.eatKcal),
-          })}
+          tone={gaining ? intake.tone : "ok"}
+          label={
+            gaining
+              ? t("gain:today.eatenOf", {
+                  eaten: fmtInt(summary.eatenKcal),
+                  target: fmtInt(targets.eatKcal),
+                })
+              : t("eat.ringLabel", {
+                  eaten: fmtInt(summary.eatenKcal),
+                  target: fmtInt(targets.eatKcal),
+                })
+          }
         >
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground">
-              {over ? t("eat.over") : t("eat.left")}
-            </p>
-            <p
-              className={cn(
-                "text-[2.25rem] leading-none font-extrabold tracking-tighter tabular-nums",
-                over && "text-bakar-ink",
-              )}
-            >
-              <CountUp value={leftKcal} />
-            </p>
-            <p className="mt-0.5 text-xs font-semibold text-muted-foreground">kcal</p>
-          </div>
+          {gaining ? (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground">
+                {intake.state === "short" ? t("gain:today.shortLabel") : t("gain:today.ringLabel")}
+              </p>
+              <p className="text-[2.25rem] leading-none font-extrabold tracking-tighter tabular-nums">
+                <CountUp value={intake.state === "short" ? intake.kcal : summary.eatenKcal} />
+              </p>
+              <p className="mt-0.5 text-xs font-semibold text-muted-foreground">kcal</p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground">
+                {over ? t("eat.over") : t("eat.left")}
+              </p>
+              <p
+                className={cn(
+                  "text-[2.25rem] leading-none font-extrabold tracking-tighter tabular-nums",
+                  over && "text-bakar-ink",
+                )}
+              >
+                <CountUp value={leftKcal} />
+              </p>
+              <p className="mt-0.5 text-xs font-semibold text-muted-foreground">kcal</p>
+            </div>
+          )}
         </Ring>
 
         <div className="min-w-0 flex-1">
@@ -470,40 +507,66 @@ function EatHero({ summary }: { summary: Summary }) {
         </div>
       </div>
 
-      {over && (
-        <p className="mt-2 text-sm leading-snug font-semibold text-bakar-ink">
-          {t("eat.overNote", { kcal: fmtInt(leftKcal) })}
-        </p>
+      {gaining ? (
+        <GainIntakeNote targetKcal={targets.eatKcal} eatenKcal={summary.eatenKcal} />
+      ) : (
+        over && (
+          <p className="mt-2 text-sm leading-snug font-semibold text-bakar-ink">
+            {t("eat.overNote", { kcal: fmtInt(leftKcal) })}
+          </p>
+        )
       )}
 
       <Sheet open={explainOpen} onOpenChange={setExplainOpen} title={t("explain.title")}>
         <div className="space-y-4">
           <div className="rounded-2xl bg-makan-soft p-4">
-            <p className="text-[0.9375rem] font-extrabold text-makan-ink">{t("explain.formula")}</p>
+            <p className="text-[0.9375rem] font-extrabold text-makan-ink">
+              {gaining ? t("gain:webToday.explain.formula") : t("explain.formula")}
+            </p>
             <p className="mt-1 text-sm font-semibold tabular-nums">
-              {over
-                ? t("explain.exampleOver", {
+              {gaining
+                ? t("gain:webToday.explain.example", {
                     target: fmtInt(targets.eatKcal),
                     eaten: fmtInt(summary.eatenKcal),
-                    over: fmtInt(leftKcal),
+                    left: fmtInt(intake.kcal),
                   })
-                : t("explain.example", {
-                    target: fmtInt(targets.eatKcal),
-                    eaten: fmtInt(summary.eatenKcal),
-                    left: fmtInt(leftKcal),
-                  })}
+                : over
+                  ? t("explain.exampleOver", {
+                      target: fmtInt(targets.eatKcal),
+                      eaten: fmtInt(summary.eatenKcal),
+                      over: fmtInt(leftKcal),
+                    })
+                  : t("explain.example", {
+                      target: fmtInt(targets.eatKcal),
+                      eaten: fmtInt(summary.eatenKcal),
+                      left: fmtInt(leftKcal),
+                    })}
             </p>
           </div>
           <dl className="space-y-3">
             {(["target", "eaten", "left", "burn", "deficit"] as const).map((key) => (
               <div key={key}>
-                <dt className="text-sm font-bold">{t(`explain.${key}.title`)}</dt>
+                <dt className="text-sm font-bold">
+                  {gaining && key === "left"
+                    ? t("gain:today.shortLabel")
+                    : gaining && key === "deficit"
+                      ? t("gain:coach.surplusExplainer.title")
+                      : t(`explain.${key}.title`)}
+                </dt>
                 <dd className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
-                  {key === "deficit"
-                    ? maintenance
-                      ? t("explain.deficit.bodyMaintenance")
-                      : t("explain.deficit.body", { kcal: fmtInt(targets.deficitKcal) })
-                    : t(`explain.${key}.body`)}
+                  {gaining
+                    ? key === "left"
+                      ? t("gain:webToday.explain.left")
+                      : key === "burn"
+                        ? t("gain:plan.burnNote")
+                        : key === "deficit"
+                          ? t("gain:coach.surplusExplainer.body")
+                          : t(`explain.${key}.body`)
+                    : key === "deficit"
+                      ? maintenance
+                        ? t("explain.deficit.bodyMaintenance")
+                        : t("explain.deficit.body", { kcal: fmtInt(targets.deficitKcal) })
+                      : t(`explain.${key}.body`)}
                 </dd>
               </div>
             ))}
@@ -557,8 +620,11 @@ function EatHero({ summary }: { summary: Summary }) {
         <div className="mt-3 border-t pt-3">
           <p className="flex items-center gap-1.5 text-sm font-bold">
             <Sparkles className="size-4 text-makan" aria-hidden />
-            {t("ideas.title")}
+            {gaining ? t("gain:today.ideasTitle") : t("ideas.title")}
           </p>
+          {gaining && (
+            <p className="mt-0.5 text-xs text-muted-foreground">{t("gain:today.ideasHint")}</p>
+          )}
           <ul className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 no-scrollbar">
             {summary.ideas.map((idea) => (
               <li key={idea.name} className="w-40 shrink-0 rounded-2xl bg-makan-soft px-3 py-2.5">
@@ -697,6 +763,8 @@ function WeightCard({
   const checkIn = useWeightCheckIn();
   const rate = trend?.weeklyRateKg ?? null;
   const flat = rate !== null && Math.abs(rate) <= 0.05;
+  // Under a gain plan weight going up is the point: never painted as a warning.
+  const gaining = summary.targets.gain != null;
 
   return (
     <section aria-label={t("weight.title")}>
@@ -731,7 +799,15 @@ function WeightCard({
               <p
                 className={cn(
                   "mt-0.5 text-sm font-semibold",
-                  !flat && rate < 0 ? "text-makan-ink" : "text-muted-foreground",
+                  flat
+                    ? "text-muted-foreground"
+                    : gaining
+                      ? rate > 0
+                        ? "text-makan-ink"
+                        : "text-amber-600 dark:text-amber-400"
+                      : rate < 0
+                        ? "text-makan-ink"
+                        : "text-muted-foreground",
                 )}
               >
                 {flat
@@ -964,7 +1040,7 @@ function MoreSection({
   date: string;
   isToday: boolean;
 }) {
-  const { t } = useTranslation("home");
+  const { t } = useTranslation(["home", "gain"]);
   const fact = pickFact(summary.date);
   return (
     <details className="group mt-6 rounded-3xl bg-card">
@@ -979,7 +1055,7 @@ function MoreSection({
         {isToday ? <BelanjaCard variant="line" /> : null}
         <WaterCard date={date} />
         {!summary.targets.maternal && <MovementCard date={date} />}
-        {fact && !summary.targets.maternal && (
+        {fact && !summary.targets.maternal && !summary.targets.gain && (
           <div className="rounded-2xl bg-muted p-4">
             <p className="text-xs font-semibold text-muted-foreground">{t("more.factLabel")}</p>
             <p className="mt-1 text-sm font-semibold">
@@ -997,7 +1073,9 @@ function MoreSection({
                 <Trophy className="size-3.5" aria-hidden />
                 {badge.kind === "streak"
                   ? t("milestone.streak", { days: badge.value })
-                  : t("milestone.lost", { kg: badge.value })}
+                  : badge.kind === "gained"
+                    ? t("gain:milestone.gained", { kg: badge.value })
+                    : t("milestone.lost", { kg: badge.value })}
               </span>
             ))}
           </div>

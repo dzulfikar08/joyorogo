@@ -1,4 +1,5 @@
 import { ON_TARGET_TOLERANCE, type RecapShare } from "@joyorogo/api/lib/recap";
+import { gainEatTone } from "@joyorogo/api/lib/gain";
 import { verificationLabel, type ChallengeShare, challengeShareText } from "@joyorogo/api/lib/challenge";
 import { fmtDate, fmtInt as intFmt, fmtNumber, i18n } from "@joyorogo/i18n";
 
@@ -105,6 +106,9 @@ export type ProgressStory = {
   proteinTargetG?: number | null;
   streakDays?: number | null;
   weightLostKg?: number | null;
+  /** Naikin BB: the card shows the gain ("naik X kg") and never a loss. */
+  weightGainedKg?: number | null;
+  gain?: boolean;
   /** Newest-last weigh-ins for the sparkline; drawn from 2 points up. */
   weekTrend?: Array<{ date: string; weightKg: number }>;
   eyebrow?: string;
@@ -516,7 +520,16 @@ function progressCells(story: ProgressStory): Cell[] {
       unit: i18n.t("makan:story.card.unit.days", { count: story.streakDays ?? 0 }),
     });
   }
-  if ((story.weightLostKg ?? 0) > 0) {
+  if (story.gain && (story.weightGainedKg ?? 0) > 0) {
+    cells.push({
+      icon: "trendingUp",
+      color: ACCENT,
+      label: i18n.t("gain:webToday.chart.up"),
+      value: fmtNumber(story.weightGainedKg!, 1),
+      unit: "kg",
+      sub: i18n.t("makan:story.card.fromStartWeight"),
+    });
+  } else if (!story.gain && (story.weightLostKg ?? 0) > 0) {
     cells.push({
       icon: "trendingDown",
       color: ACCENT,
@@ -843,16 +856,21 @@ function layoutStats(
     const eaten = story.kind === "progress" ? story.eatenKcal : story.avgKcal;
     const pct = story.targetKcal > 0 ? eaten / story.targetKcal : 0;
     // A recap average is judged like a day: within tolerance of the target is on target.
+    // Naikin BB never reads as over: amber only past the reached margin.
     const color =
       story.kind === "recap"
-        ? pct > ON_TARGET_TOLERANCE
+        ? !story.gain && pct > ON_TARGET_TOLERANCE
           ? OVER
           : ACCENT
-        : pct > 1
-          ? OVER
-          : pct >= 0.9
+        : story.gain
+          ? gainEatTone(story.eatenKcal, story.targetKcal) === "near"
             ? AMBER
-            : ACCENT;
+            : ACCENT
+          : pct > 1
+            ? OVER
+            : pct >= 0.9
+              ? AMBER
+              : ACCENT;
     rows.push({
       gap: 28,
       height: 22,
@@ -965,8 +983,10 @@ function layoutStats(
   if (trend) {
     const { weights, delta } = trend;
     const chartH = 150;
+    const gaining = story.kind === "progress" && story.gain === true;
+    // A gain user's drop is not broadcast as a loss: the card reads steady.
     const label =
-      delta < 0
+      delta < 0 && !gaining
         ? i18n.t("makan:story.card.trend.down", { kg: fmtNumber(Math.abs(delta), 1) })
         : delta > 0
           ? i18n.t("makan:story.card.trend.up", { kg: fmtNumber(delta, 1) })
@@ -975,8 +995,8 @@ function layoutStats(
       gap: 52,
       height: 48,
       paint: (top) => {
-        if (delta < 0) {
-          drawIcon(ctx, "trendingDown", x, top + 2, 44, ACCENT);
+        if (delta !== 0 && (gaining ? delta > 0 : delta < 0)) {
+          drawIcon(ctx, delta < 0 ? "trendingDown" : "trendingUp", x, top + 2, 44, ACCENT);
           text(label, 700, 36, WHITE, x + 60, top, 48);
         } else {
           text(label, 700, 36, WHITE, x, top, 48);
@@ -1226,7 +1246,7 @@ function shareBody(story: StorySpec): string {
     return i18n.t("makan:story.card.share.workout", { name: story.name });
   }
   if (story.kind === "recap") {
-    return i18n.t("makan:story.card.share.recap", {
+    return i18n.t(story.gain ? "gain:recap.shareLine" : "makan:story.card.share.recap", {
       name: story.name,
       on: story.daysOnTarget,
       logged: story.loggedDays,
@@ -1235,6 +1255,12 @@ function shareBody(story: StorySpec): string {
   }
   if (story.kind === "challenge") {
     return challengeShareText(story.share);
+  }
+  if (story.gain) {
+    const gained = story.weightGainedKg ?? 0;
+    return gained > 0
+      ? i18n.t("gain:share.gained", { kg: fmtNumber(gained, 1) })
+      : i18n.t("gain:share.progress");
   }
   const lost = story.weightLostKg ?? 0;
   return lost > 0

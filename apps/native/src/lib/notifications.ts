@@ -9,6 +9,7 @@ import {
   windowTimes,
   type FastingPattern,
 } from "@joyorogo/api/lib/fasting";
+import { gainRemaining } from "@joyorogo/api/lib/gain";
 import { i18n } from "@joyorogo/i18n";
 
 // --- Storage keys -------------------------------------------------------------
@@ -43,6 +44,8 @@ export type ReminderConfig = {
   meals: Record<MealReminderKey, TimedReminder>;
   water: WaterReminder;
   weighIn: TimedReminder;
+  /** Naikin BB only: evening nudge while today's intake is still short of the target. */
+  gainEvening: TimedReminder;
   /** Eating-window start/end of the IF schedule; times come from the IF settings. */
   window: { open: boolean; close: boolean };
 };
@@ -55,6 +58,11 @@ export type ReminderContext = {
   eaten: Record<MealReminderKey, boolean> | null;
   weighedToday: boolean | null;
   fasting: { pattern: FastingPattern; windowStart: string } | null;
+  /**
+   * Naikin BB plan only: kcal still to eat today. `null` = unknown (not loaded yet) or not a
+   * gain plan; the evening reminder is not scheduled then.
+   */
+  gain: { remainingKcal: number } | null;
 };
 
 /** One IF reminder of the day; hours/minutes are WIB wall-clock. */
@@ -76,6 +84,7 @@ export const DEFAULT_REMINDER_CONFIG: ReminderConfig = {
   },
   water: { enabled: false, start: "08:00", end: "20:00", everyHours: 2 },
   weighIn: { enabled: false, time: "07:00" },
+  gainEvening: { enabled: false, time: "20:00" },
   window: { open: false, close: false },
 };
 
@@ -193,6 +202,7 @@ function sanitizeConfig(raw: unknown): ReminderConfig {
       everyHours: WATER_INTERVALS.find((n) => n === water.everyHours) ?? base.water.everyHours,
     },
     weighIn: sanitizeTimed(value.weighIn, base.weighIn),
+    gainEvening: sanitizeTimed(value.gainEvening, base.gainEvening),
     window: { open: window.open === true, close: window.close === true },
   };
 }
@@ -382,6 +392,29 @@ async function schedulePlan(
     );
   }
 
+  // Naikin BB: one evening nudge, only while the target is still not reached today. Skipped
+  // for today (when its time is still ahead) as soon as the day reaches the target.
+  const gainMinutes = parseHHMM(config.gainEvening.time);
+  if (config.gainEvening.enabled && gainMinutes !== null && ctx.gain) {
+    // Same state rule as the day ring: remaining = target - eaten, so (remaining, 0) classifies alike.
+    const left = gainRemaining(ctx.gain.remainingKcal, 0);
+    const short = left.state === "short";
+    await scheduleDailySkippable(
+      gainMinutes,
+      {
+        channel: "meals",
+        kind: "gain-evening",
+        // The kcal in the title is the number at schedule time; once reached it would read 0, so
+        // the other weekdays carry the plain title until the next sync finds the day short again.
+        title: short
+          ? i18n.t("gain:reminder.title", { kcal: Math.max(10, Math.round(left.kcal / 10) * 10) })
+          : i18n.t("gain:nativeToday.reminder.titleReached"),
+        body: i18n.t("gain:reminder.body"),
+      },
+      !short,
+    );
+  }
+
   // Water has no smart skip: the glass count is not known to a repeating
   // trigger, and 12 slots x 7 weekdays would blow iOS's 64-pending limit.
   if (config.water.enabled) {
@@ -425,7 +458,7 @@ async function schedulePlan(
 // so concurrent triggers cannot interleave cancel/schedule steps and
 // double-schedule the same reminder.
 let rescheduleQueue: Promise<void> = Promise.resolve();
-let lastContext: ReminderContext = { eaten: null, weighedToday: null, fasting: null };
+let lastContext: ReminderContext = { eaten: null, weighedToday: null, fasting: null, gain: null };
 
 function enqueue(job: () => Promise<void>): Promise<void> {
   const run = rescheduleQueue.then(job);

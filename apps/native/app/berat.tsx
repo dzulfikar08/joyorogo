@@ -9,6 +9,7 @@ import {
   Defs,
   Line,
   Pattern,
+  Polygon,
   Polyline,
   Rect,
   Svg,
@@ -25,6 +26,7 @@ import {
   type RangeStats,
 } from "@joyorogo/api/lib/engine";
 import { kcalBars, kcalSummary, type KcalBar } from "@joyorogo/api/lib/kcal-bars";
+import { gainDayHit } from "@joyorogo/api/lib/gain";
 
 import {
   BootLoader,
@@ -48,6 +50,8 @@ import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { WaistSection } from "@/components/waist-section";
 import { WeightGainCard } from "@/components/maternal/weight-gain-chart";
 import { useMaternal } from "@/components/maternal/use-maternal";
+import { GainNotes } from "@/components/gain/gain-notes";
+import { useGain } from "@/components/gain/use-gain";
 import { Disclosure } from "@/components/disclosure";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { fmtDate, fmtDecimal, fmtNumber } from "@joyorogo/i18n";
@@ -63,6 +67,18 @@ import {
 import { orpc } from "@/utils/orpc";
 
 type Range = "7" | "30" | "90" | "all";
+
+/** Naikin BB plan drawn on the chart: upward target line plus the weekly pace fan. */
+type GainPlanLine = {
+  startKg: number;
+  startDate: string;
+  targetKg: number;
+  targetDate: string;
+  paceMinKg: number;
+  paceMaxKg: number;
+  /** latest trend point, the origin of the pace fan */
+  base: { date: string; kg: number } | null;
+};
 
 
 const KG_LADDER = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50] as const;
@@ -115,6 +131,7 @@ function WeightChart({
   bars,
   weekly,
   targetKcal,
+  gainPlan,
 }: {
   /** raw scale weigh-ins in the range, oldest first */
   entries: Array<{ date: string; weightKg: number }>;
@@ -131,8 +148,10 @@ function WeightChart({
   bars: KcalBar[];
   weekly: boolean;
   targetKcal: number | null;
+  /** Naikin BB plan (upward target line + pace fan); null for every other mode */
+  gainPlan: GainPlanLine | null;
 }) {
-  const { t } = useTranslation("berat");
+  const { t } = useTranslation(["berat", "gain"]);
   const { theme } = useUnistyles();
   const { width: winW } = useWindowDimensions();
   // Screen (20) + Card (20) padding on each side.
@@ -162,20 +181,63 @@ function WeightChart({
   const rawHi = Math.max(...values);
   const valSpan = Math.max(rawHi - rawLo, 1);
   const near = (kg: number) => kg >= rawLo - valSpan && kg <= rawHi + valSpan;
-  const target = targetKg !== null && near(targetKg) ? targetKg : null;
+  // Naikin BB draws one diagonal plan line instead of flat target/start lines. The x domain
+  // already reaches (at most a capped stretch toward) the target date, so its ends stay close.
+  const planDays = gainPlan ? Math.max(daysBetween(gainPlan.startDate, gainPlan.targetDate), 1) : 1;
+  const planKgAt = (date: string) =>
+    gainPlan
+      ? gainPlan.startKg +
+        ((gainPlan.targetKg - gainPlan.startKg) *
+          Math.min(Math.max(daysBetween(gainPlan.startDate, date), 0), planDays)) /
+          planDays
+      : 0;
+  const planFrom = gainPlan && gainPlan.startDate > domainStart ? gainPlan.startDate : domainStart;
+  const planTo = gainPlan && gainPlan.targetDate < domainEnd ? gainPlan.targetDate : domainEnd;
+  const planLine =
+    gainPlan && planFrom <= planTo
+      ? [
+          { date: planFrom, kg: planKgAt(planFrom) },
+          { date: planTo, kg: planKgAt(planTo) },
+        ]
+      : null;
+  // The fan: the weekly pace band from the latest trend point, capped at the target.
+  const planFan: Array<[string, number]> | null =
+    gainPlan && gainPlan.base && gainPlan.base.date < domainEnd
+      ? ((): Array<[string, number]> => {
+          const base = gainPlan.base!;
+          const days = daysBetween(base.date, domainEnd);
+          const at = (kgPerWeek: number) =>
+            Math.min(base.kg + (kgPerWeek / 7) * days, Math.max(gainPlan.targetKg, base.kg));
+          return [
+            [base.date, base.kg],
+            [domainEnd, at(gainPlan.paceMaxKg)],
+            [domainEnd, at(gainPlan.paceMinKg)],
+          ];
+        })()
+      : null;
+  const planKgs = [
+    ...(planLine ? planLine.map((p) => p.kg) : []),
+    ...(planFan ? planFan.map(([, kg]) => kg) : []),
+  ];
+  const target = !gainPlan && targetKg !== null && near(targetKg) ? targetKg : null;
   const start =
-    startKg !== null && near(startKg) && (target === null || Math.abs(startKg - target) > 0.01)
+    !gainPlan &&
+    startKg !== null &&
+    near(startKg) &&
+    (target === null || Math.abs(startKg - target) > 0.01)
       ? startKg
       : null;
   // Step is chosen from the FULL domain (lines included) so the tick count
   // stays ~5 no matter how much the reference lines stretch the view.
   const dataLo = Math.min(
     rawLo,
+    ...planKgs,
     ...(target !== null ? [target] : []),
     ...(start !== null ? [start] : []),
   );
   const dataHi = Math.max(
     rawHi,
+    ...planKgs,
     ...(target !== null ? [target] : []),
     ...(start !== null ? [start] : []),
   );
@@ -229,12 +291,17 @@ function WeightChart({
   const scrubTrend = scrubEntry ? trendPoints.find((p) => p.date === scrubEntry.date) : undefined;
   const scrubPrev = scrubEntry && scrubIdx > 0 ? entries[scrubIdx - 1] : undefined;
   const scrubDelta = scrubEntry && scrubPrev ? scrubEntry.weightKg - scrubPrev.weightKg : null;
+  // Gain plan: weight up is good, a drop is just neutral information.
   const deltaColor =
     scrubDelta === null || scrubDelta === 0
       ? theme.colors.mutedForeground
-      : scrubDelta < 0
-        ? theme.colors.makanText
-        : theme.colors.bakarText;
+      : gainPlan
+        ? scrubDelta > 0
+          ? theme.colors.makanText
+          : theme.colors.mutedForeground
+        : scrubDelta < 0
+          ? theme.colors.makanText
+          : theme.colors.bakarText;
 
   const TIP_W = 196;
   const TIP_H = 132;
@@ -309,7 +376,10 @@ function WeightChart({
             const { left, w: bw } = barGeom(b);
             const barH = b.avgKcal === null ? 0 : baseY - ky(b.avgKcal);
             const ghostH = zoneH * GHOST_SHARE * (b.untrackedDays / b.days);
-            const over = targetKcal !== null && b.avgKcal !== null && b.avgKcal > targetKcal;
+            // Gain plan: the darker bars are the days that reached the target, never a warning.
+            const over = gainPlan
+              ? targetKcal !== null && b.avgKcal !== null && gainDayHit(b.avgKcal, targetKcal)
+              : targetKcal !== null && b.avgKcal !== null && b.avgKcal > targetKcal;
             return (
               <Fragment key={b.from}>
                 {b.avgKcal !== null ? (
@@ -435,6 +505,50 @@ function WeightChart({
               {t("chart.start", { kg: fmtKg(start) })}
             </SvgText>
           ) : null}
+          {gainPlan && planLine ? (
+            <>
+              {planFan ? (
+                <Polygon
+                  points={planFan.map(([date, kg]) => `${x(date)},${y(kg)}`).join(" ")}
+                  fill={theme.colors.makan}
+                  fillOpacity={0.15}
+                />
+              ) : null}
+              <Line
+                x1={x(planLine[0].date)}
+                y1={y(planLine[0].kg)}
+                x2={x(planLine[1].date)}
+                y2={y(planLine[1].kg)}
+                stroke={theme.colors.makan}
+                strokeOpacity={0.6}
+                strokeWidth={1.75}
+                strokeDasharray="4 5"
+              />
+              {planLine[0].date === gainPlan.startDate ? (
+                <SvgText
+                  x={x(planLine[0].date)}
+                  y={y(planLine[0].kg) + 15}
+                  fontSize={10}
+                  fontWeight="600"
+                  fill={labelColor}
+                >
+                  {`${t("gain:chart.start")} ${fmtKg(gainPlan.startKg)}`}
+                </SvgText>
+              ) : null}
+              {planLine[1].date === gainPlan.targetDate ? (
+                <SvgText
+                  x={x(planLine[1].date)}
+                  y={y(planLine[1].kg) - 6}
+                  textAnchor="end"
+                  fontSize={10}
+                  fontWeight="600"
+                  fill={theme.colors.makanText}
+                >
+                  {`${t("gain:chart.target")} ${fmtKg(gainPlan.targetKg)}`}
+                </SvgText>
+              ) : null}
+            </>
+          ) : null}
 
           <Polyline
             points={trendPts.map((p) => `${p.x},${p.y}`).join(" ")}
@@ -558,7 +672,7 @@ function WeightChart({
 
 export default function Berat() {
   const { theme } = useUnistyles();
-  const { t } = useTranslation(["berat", "common"]);
+  const { t } = useTranslation(["berat", "common", "gain"]);
   const gate = useSessionGate();
   const [range, setRange] = useState<Range>("30");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -580,6 +694,7 @@ export default function Berat() {
   );
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   const maternal = useMaternal().mode !== "none";
+  const { gain: gainInfo } = useGain();
   const trend = dayQuery.data?.trend ?? null;
   // Chart line: client-side 7-day EMA over the raw entries, so every range —
   // including "Semua" — gets a full trend (day.summary only ships 30 days).
@@ -616,6 +731,7 @@ export default function Berat() {
   const summary = historyQuery.data.summary;
   const entries = historyQuery.data.entries;
   const hasData = summary.latestKg !== null;
+  const gain = summary.gain;
 
   const today = jakartaToday();
   const rangeDays = range === "all" ? null : Number(range);
@@ -628,6 +744,37 @@ export default function Berat() {
   const rangeShort =
     range === "all" ? t("chart.sinceStart") : t("chart.rangeDays", { count: Number(range) });
   const domainStart = cutoff ?? rangeEntries[0]?.date ?? today;
+  // Naikin BB: the plan line starts where the gain began (the latest earlier weigh-in at the
+  // gain's starting weight, else the first weigh-in) and the x axis reaches toward the target date.
+  const latestTrend = allTrend.at(-1);
+  const gainStartDate = gain
+    ? ([...entries]
+        .reverse()
+        .find((e, i) => i > 0 && Math.abs(e.weightKg - gain.startKg) <= 0.5)?.date ??
+      entries[0]?.date ??
+      today)
+    : null;
+  const gainPlan: GainPlanLine | null =
+    gain && gainStartDate && summary.targetKg !== null
+      ? {
+          startKg: gain.startKg,
+          startDate: gainStartDate,
+          targetKg: summary.targetKg,
+          targetDate: gain.targetDate,
+          paceMinKg: gain.pace.minKg,
+          paceMaxKg: gain.pace.maxKg,
+          base: latestTrend ? { date: latestTrend.date, kg: latestTrend.trendKg } : null,
+        }
+      : null;
+  const chartEnd = gainPlan
+    ? shiftDate(
+        today,
+        Math.min(
+          Math.max(daysBetween(today, gainPlan.targetDate), 0),
+          Math.max(14, daysBetween(domainStart, today)),
+        ),
+      )
+    : today;
   const targetKcal = maternal ? null : (dayQuery.data?.targets?.eatKcal ?? null);
   const kcalRange = kcalQuery.data ?? [];
   const { bars: kcalBarList, weekly: kcalWeekly } = kcalBars(kcalRange, domainStart, today);
@@ -637,6 +784,8 @@ export default function Berat() {
     summary.targetKg === null || summary.targetKg <= (summary.startKg ?? Number.POSITIVE_INFINITY);
   const toneFor = (delta: number | null): "makan" | "bakar" | null => {
     if (delta === null || Math.abs(delta) < 0.05) return null;
+    // Gain plan: weight up is good, a drop is just neutral information.
+    if (gain) return delta > 0 ? "makan" : null;
     return (wantDown ? delta < 0 : delta > 0) ? "makan" : "bakar";
   };
 
@@ -647,7 +796,10 @@ export default function Berat() {
     bmi === null ? null : bmi < 18.5 ? "under" : bmi < 25 ? "ideal" : bmi < 30 ? "over" : "obese";
 
   const trendKg = trend?.weightKg ?? null;
-  const goalReached = trendKg !== null && summary.targetKg !== null && trendKg <= summary.targetKg;
+  const goalReached =
+    trendKg !== null &&
+    summary.targetKg !== null &&
+    (gain ? trendKg >= summary.targetKg : trendKg <= summary.targetKg);
   const newestEntries = entries.slice().toReversed();
 
   /** Friendly sub-caption for the projection stat, per reason it is (not) shown. */
@@ -760,19 +912,27 @@ export default function Berat() {
                 </View>
                 <View style={styles.miniCell}>
                   <Text style={styles.chartStatLabel} numberOfLines={1}>
-                    {t("summary.changed")}
+                    {gain ? t("gain:nativeToday.chart.up") : t("summary.changed")}
                   </Text>
                   <Num style={styles.chartStatValue} adjustsFontSizeToFit numberOfLines={1}>
-                    {summary.deltaKg !== null ? signed(summary.deltaKg) : "-"}
+                    {gain
+                      ? fmtKg(gain.gainedKg)
+                      : summary.deltaKg !== null
+                        ? signed(summary.deltaKg)
+                        : "-"}
                   </Num>
                 </View>
                 {maternal ? null : (
                   <View style={styles.miniCell}>
                     <Text style={styles.chartStatLabel} numberOfLines={1}>
-                      {t("summary.remaining")}
+                      {gain ? t("summary.remainingToGoal") : t("summary.remaining")}
                     </Text>
                     <Num style={styles.chartStatValue} adjustsFontSizeToFit numberOfLines={1}>
-                      {summary.remainingKg !== null ? fmtKg(summary.remainingKg) : "-"}
+                      {gain
+                        ? fmtKg(gain.toGoKg)
+                        : summary.remainingKg !== null
+                          ? fmtKg(summary.remainingKg)
+                          : "-"}
                     </Num>
                   </View>
                 )}
@@ -781,6 +941,8 @@ export default function Berat() {
                 <Text style={styles.note}>{t("hero.loggedToday")}</Text>
               ) : null}
             </Card>
+
+            {gainInfo && gainInfo.flags.length > 0 ? <GainNotes gain={gainInfo} /> : null}
 
             {/* Chart */}
             <Card>
@@ -888,12 +1050,13 @@ export default function Berat() {
                     targetKg={summary.targetKg}
                     startKg={summary.startKg}
                     domainStart={domainStart}
-                    domainEnd={today}
+                    domainEnd={chartEnd}
                     rangeKey={range}
                     rangeLabel={rangeLabel}
                     bars={kcalBarList}
                     weekly={kcalWeekly}
                     targetKcal={targetKcal}
+                    gainPlan={gainPlan}
                   />
                   <View style={styles.legendRow}>
                     <View style={styles.legendItem}>
@@ -947,6 +1110,29 @@ export default function Berat() {
                         <Text style={styles.legendText}>{t("legend.kcalTarget")}</Text>
                       </View>
                     ) : null}
+                  {gainPlan ? (
+                    <>
+                      <View style={styles.legendItem}>
+                        <View
+                          style={[styles.legendLine, { backgroundColor: theme.colors.makan, opacity: 0.6 }]}
+                        />
+                        <Text style={styles.legendText}>
+                          {`${t("gain:chart.target")} ${fmtKg(gainPlan.targetKg)}`}
+                        </Text>
+                      </View>
+                      <View style={styles.legendItem}>
+                        <View
+                          style={[styles.legendSquare, { backgroundColor: theme.colors.makan, opacity: 0.2 }]}
+                        />
+                        <Text style={styles.legendText}>
+                          {`${t("gain:chart.band")}: ${t("gain:chart.bandRange", {
+                            min: fmtKg(gainPlan.paceMinKg),
+                            max: fmtKg(gainPlan.paceMaxKg),
+                          })}`}
+                        </Text>
+                      </View>
+                    </>
+                  ) : null}
                   </View>
                   {kcalQuery.data ? (
                     <Num style={styles.kcalSummary}>
@@ -963,13 +1149,15 @@ export default function Berat() {
               )}
               <Disclosure plain title={t("detail.title")}>
                 <Text style={styles.chartCaption}>
-                  {t("detail.trustTrend")} {t("detail.legend")}
+                  {t("detail.trustTrend")} {gain ? t("gain:nativeToday.chart.detailLegend") : t("detail.legend")}
                   {kcalWeekly ? ` ${t("detail.weekly")}` : ""}
-                  {!maternal && summary.deltaKg !== null
-                    ? ` ${t(summary.deltaKg < 0 ? "detail.totalDown" : "detail.totalUp", {
-                        kg: fmtKg(Math.abs(summary.deltaKg)),
-                      })}`
-                    : ""}
+                  {!maternal && gain
+                    ? ` ${t("gain:chart.gained", { kg: fmtKg(gain.gainedKg) })}`
+                    : !maternal && summary.deltaKg !== null
+                      ? ` ${t(summary.deltaKg < 0 ? "detail.totalDown" : "detail.totalUp", {
+                          kg: fmtKg(Math.abs(summary.deltaKg)),
+                        })}`
+                      : ""}
                 </Text>
               </Disclosure>
             </Card>

@@ -56,7 +56,7 @@ function storyShareBody(story: StorySpec): string {
     return i18n.t("makan:story.card.share.workout", { name: story.name });
   }
   if (story.kind === "recap") {
-    return i18n.t("makan:story.card.share.recap", {
+    return i18n.t(story.gain ? "gain:recap.shareLine" : "makan:story.card.share.recap", {
       name: story.name,
       on: story.daysOnTarget,
       logged: story.loggedDays,
@@ -65,6 +65,12 @@ function storyShareBody(story: StorySpec): string {
   }
   if (story.kind === "challenge") {
     return challengeShareText(story);
+  }
+  if (story.gain) {
+    const gained = story.weightGainedKg ?? 0;
+    return gained > 0
+      ? i18n.t("gain:share.gained", { kg: fmtNumber(gained, 1) })
+      : i18n.t("gain:share.progress");
   }
   const lost = story.weightLostKg ?? 0;
   return lost > 0

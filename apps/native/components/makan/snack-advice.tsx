@@ -11,6 +11,8 @@ import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { VERDICT_LABELS, adviseSnack, dayImpactLine } from "@joyorogo/api/lib/snack-advice";
 import type { AdviceVerdict, SnackAdvice } from "@joyorogo/api/lib/snack-advice";
 
+import { GainScanAdvice } from "@/components/gain/gain-today";
+import { useGain } from "@/components/gain/use-gain";
 import { useMaternal } from "@/components/maternal/use-maternal";
 import { Button, Text } from "@/components/ui";
 import { fmtInt, fmtKcalLabel } from "@/utils/format";
@@ -438,6 +440,9 @@ export function SnackAdviceSection({
   const state = useSnackAdvice({ date, kcal, kind, slot, name });
   // Hamil / Menyusui: a need to meet, so no "left today / over" verdicts.
   const { mode } = useMaternal();
+  // Naikin BB: eating more is the goal, so the verdict card gives way to a positive line.
+  const { gain } = useGain();
   if (mode !== "none") return null;
+  if (gain) return <GainScanAdvice date={date} kcal={kcal} />;
   return <SnackAdviceCard state={state} {...card} />;
 }

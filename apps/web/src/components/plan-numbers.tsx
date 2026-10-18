@@ -33,7 +33,7 @@ export function TargetNotesList({ notes }: { notes: TargetNotes[] }) {
 
 /** The three daily numbers as tinted tiles, same language as beranda. */
 export function PlanNumbers({ targets }: { targets: Targets }) {
-  const { t } = useTranslation("settings");
+  const { t } = useTranslation(["settings", "gain"]);
   // Hamil / Menyusui has no burn target: the eating need and sleep only.
   const maternal = targets.maternal !== null;
   return (
@@ -41,15 +41,16 @@ export function PlanNumbers({ targets }: { targets: Targets }) {
       <StatTile
         metric="makan"
         icon={<Utensils className="size-[1.125rem]" aria-hidden />}
-        label={t("plan.numbers.eat")}
+        label={t("settings:plan.numbers.eat")}
         value={fmtInt(targets.eatKcal)}
         unit="kcal"
+        sub={targets.gain ? t("gain:plan.perDay", { kcal: fmtInt(targets.gain.surplusKcal) }) : undefined}
       />
       {!maternal && (
         <StatTile
           metric="bakar"
           icon={<Flame className="size-[1.125rem]" aria-hidden />}
-          label={t("plan.numbers.burn")}
+          label={t("settings:plan.numbers.burn")}
           value={fmtInt(targets.burnKcal)}
           unit="kcal"
         />
@@ -57,9 +58,9 @@ export function PlanNumbers({ targets }: { targets: Targets }) {
       <StatTile
         metric="tidur"
         icon={<Moon className="size-[1.125rem]" aria-hidden />}
-        label={t("plan.numbers.sleep")}
+        label={t("settings:plan.numbers.sleep")}
         value={fmtInt(targets.sleepHours)}
-        unit={t("plan.numbers.unitHours")}
+        unit={t("settings:plan.numbers.unitHours")}
       />
     </div>
   );

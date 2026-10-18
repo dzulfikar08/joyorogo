@@ -156,5 +156,44 @@
   "estimate": {
     "title": "Soal estimasi kalori dari foto",
     "body": "Kalori dari foto itu perkiraan, bisa meleset ke atas atau ke bawah. Kalau kamu naikin BB, angka yang terlalu tinggi bikin kamu makan kurang dari yang dicatat. Lihat tren timbanganmu 2 sampai 3 minggu, bukan satu hari, lalu sesuaikan porsinya."
+  },
+  "nativeSetup": {
+    "needGainTarget": "Buat Naikin BB, isi target di atas berat badanmu sekarang.",
+    "needLoseTarget": "Buat Turunin BB, isi target di bawah berat badanmu sekarang."
+  },
+  "webToday": {
+    "explain": {
+      "formula": "Kurang = target makan − sudah dimakan",
+      "example": "Hari ini: {{target}} − {{eaten}} = kurang {{left}} kkal",
+      "left": "Yang masih perlu kamu makan hari ini supaya sampai target. Kalau sudah sampai atau lewat, tidak ada yang perlu dikejar."
+    },
+    "chart": {
+      "up": "Naik"
+    }
+  },
+  "nativeToday": {
+    "explain": {
+      "formula": "Masih perlu = target makan − sudah dimakan",
+      "example": "Hari ini: {{target}} − {{eaten}} = kurang {{left}} kkal",
+      "exampleDone": "Hari ini: {{eaten}} dari {{target}} kkal, target tercapai",
+      "leftTitle": "Masih perlu",
+      "leftBody": "Yang masih perlu kamu makan hari ini supaya sampai target. Kalau sudah sampai atau lewat, tidak ada yang perlu dikejar."
+    },
+    "story": {
+      "gained": "Naik"
+    },
+    "recap": {
+      "streakSub": "makan sampai target tanpa putus",
+      "note": "Hitungan dari catatanmu sendiri, bukan penilaian medis. Sampai target berarti kamu makan minimal 90% dari target harian. Berat memakai tren (rata-rata bergerak), jadi tidak ikut naik turun timbangan harian."
+    },
+    "reminder": {
+      "titleReached": "Cek makan malammu",
+      "sheetTitle": "Jam pengingat kalau masih kurang"
+    },
+    "calendarTarget": "Target {{kcal}}",
+    "chart": {
+      "up": "Naik",
+      "detailLegend": "Garis = tren (rata-rata bergerak 7 hari), titik = timbangan harian. Batang = kalori harian yang dicatat (gelap = sudah sampai target, terang = belum); area garis-garis = hari yang belum dicatat. Area hijau muda = jalur naik pelan."
+    }
   }
 }

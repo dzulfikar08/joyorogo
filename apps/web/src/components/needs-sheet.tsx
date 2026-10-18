@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { needsBreakdown } from "@joyorogo/api/lib/engine";
 import type { Targets } from "@joyorogo/api/lib/engine";
+import { MAX_SURPLUS_KCAL, MIN_SURPLUS_KCAL } from "@joyorogo/api/lib/gain";
 
 import { fmtInt } from "@/lib/format";
 
@@ -19,9 +20,10 @@ export function NeedsSheet({
   targets: Targets;
   activityLabel: string;
 }) {
-  const { t } = useTranslation(["settings", "maternal"]);
+  const { t } = useTranslation(["settings", "maternal", "gain"]);
   const needs = needsBreakdown(targets);
   const maternal = targets.maternal;
+  const gain = targets.gain;
   const cutKey = needs.cutKcal > 0 ? "cut" : "cutNone";
   const step = (
     key: "bmr" | "activity" | "tdee" | "cut" | "cutNone" | "target",     value: string,
@@ -58,14 +60,25 @@ export function NeedsSheet({
             body: t("maternal:needs.addBody"),
           },
         ]
-      : [
-          step("tdee", fmtInt(needs.tdeeKcal), t("settings:plan.needs.tdee.body")),
-          step(
-            cutKey,
-            needs.cutKcal > 0 ? `− ${fmtInt(needs.cutKcal)}` : "0",
-            t(`settings:plan.needs.${cutKey}.body`),
-          ),
-        ]),
+      : gain
+        ? [
+            step("tdee", fmtInt(needs.tdeeKcal), t("settings:plan.needs.tdee.body")),
+            {
+              key: "surplus",
+              label: t("gain:plan.surplus.label"),
+              name: t("gain:plan.surplus.name"),
+              value: `+ ${fmtInt(needs.surplusKcal)}`,
+              body: t("gain:plan.surplus.body", { min: MIN_SURPLUS_KCAL, max: MAX_SURPLUS_KCAL }),
+            },
+          ]
+        : [
+            step("tdee", fmtInt(needs.tdeeKcal), t("settings:plan.needs.tdee.body")),
+            step(
+              cutKey,
+              needs.cutKcal > 0 ? `− ${fmtInt(needs.cutKcal)}` : "0",
+              t(`settings:plan.needs.${cutKey}.body`),
+            ),
+          ]),
     step("target", fmtInt(needs.targetKcal), t("settings:plan.needs.target.body")),
   ];
 
@@ -114,12 +127,19 @@ export function NeedsSheet({
 
       <div className="mt-3 space-y-3 text-sm leading-relaxed text-muted-foreground">
         {maternal && <p>{t("maternal:needs.noDeficit")}</p>}
-        {!maternal && needs.plannedBurnKcal > 0 && (
+        {gain && <p>{t("gain:plan.burnNote")}</p>}
+        {!maternal && !gain && needs.plannedBurnKcal > 0 && (
           <p>
             {t("plan.needs.burnNote", {
               burn: fmtInt(needs.plannedBurnKcal),
               deficit: fmtInt(needs.deficitKcal),
             })}
+          </p>
+        )}
+        {gain && <p>{t("gain:plan.estimate")}</p>}
+        {gain && (
+          <p>
+            <span className="font-semibold">{t("gain:estimate.title")}.</span> {t("gain:estimate.body")}
           </p>
         )}
         {!maternal && needs.adaptive && (

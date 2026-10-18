@@ -355,6 +355,7 @@ export function MacroBar({
   eaten,
   budget,
   unit = "g",
+  neutral = false,
 }: {
   /** Shows the shared macro icon before the label. */
   macro?: MacroKey;
@@ -363,10 +364,12 @@ export function MacroBar({
   /** null while the target is unknown (no profile yet): bar stays empty, shows "?". */
   budget: number | null;
   unit?: string;
+  /** Never tint the bar as "over" (Naikin BB: eating past the number is not a problem). */
+  neutral?: boolean;
 }) {
   const { theme } = useUnistyles();
   const { t } = useTranslation("misc");
-  const over = budget !== null && eaten > budget;
+  const over = !neutral && budget !== null && eaten > budget;
   const pct =
     budget !== null && budget > 0 ? Math.min(100, Math.max(0, (eaten / budget) * 100)) : 0;
   const budgetText = budget !== null ? fmtInt(budget) : "?";

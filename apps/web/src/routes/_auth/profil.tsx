@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Smartphone,
   Trash2,
+  TrendingUp,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -24,9 +25,14 @@ import { toast } from "sonner";
 
 import {
   ACTIVITY_LABELS,
+  checkTargetDate,
   idealWeightRange,
+  jakartaToday,
+  shiftDate,
 } from "@joyorogo/api/lib/engine";
 import type { ActivityLevel, Targets } from "@joyorogo/api/lib/engine";
+import { bmiOf, goalOf, goalTargetError, HEALTHY_BMI_MAX } from "@joyorogo/api/lib/gain";
+import type { Goal } from "@joyorogo/api/lib/gain";
 import { i18n, LOCALES, LOCALE_NAMES } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
@@ -50,6 +56,15 @@ import { Switch } from "@/components/kit/switch";
 import { PlanNumbers, TargetNotesList } from "@/components/plan-numbers";
 import { NeedsSheet } from "@/components/needs-sheet";
 import { TargetDateForm } from "@/components/target-date-form";
+import { GainDateVerdict, isGainCheck } from "@/components/gain/gain-date-verdict";
+import { GainNotes } from "@/components/gain/gain-notes";
+import { GoalChooser } from "@/components/gain/goal-chooser";
+import {
+  GOAL_ERROR_KEY,
+  leanPaceDays,
+  planForGoal,
+  settleableGoal,
+} from "@/components/gain/goal-plan";
 import { BudgetSetting } from "@/components/plate/budget-setting";
 import { FastingSettingsSection } from "@/components/fasting/settings-section";
 import { useTheme } from "@/components/theme-provider";
@@ -154,7 +169,7 @@ function ProfilContent({
   email: string | null;
   image: string | null;
 }) {
-  const { t } = useTranslation(["settings", "common", "maternal"]);
+  const { t } = useTranslation(["settings", "common", "maternal", "gain"]);
   const platform = usePlatform();
   const navigate = useNavigate();
   const { needs, maternal: openMaternalParam } = Route.useSearch();
@@ -246,7 +261,12 @@ function ProfilContent({
   });
 
   // Optimistic targets patch; undo re-applies the previous target values.
-  const previousTargets = useRef<{ targetWeightKg: number; targetDate: string } | null>(null);
+  const previousTargets = useRef<{
+    targetWeightKg: number;
+    targetDate: string;
+    goal: Goal;
+    weightNowKg: number;
+  } | null>(null);
   const edit = useOptimisticMutation<
     Parameters<AppRouterClient["profile"]["updateTargets"]>[0],
     unknown
@@ -256,13 +276,23 @@ function ProfilContent({
       const old = queryClient.getQueryData<MyProfileData>(profileOptions.queryKey);
       previousTargets.current =
         old?.profile?.targetWeightKg != null && old.profile.targetDate != null
-          ? { targetWeightKg: old.profile.targetWeightKg, targetDate: old.profile.targetDate }
+          ? {
+              targetWeightKg: old.profile.targetWeightKg,
+              targetDate: old.profile.targetDate,
+              goal: old.profile.goal,
+              weightNowKg: old.latestWeightKg ?? row.startWeightKg,
+            }
           : null;
       cache.value<MyProfileData>(profileOptions.queryKey, (data) =>
         data?.profile
           ? {
               ...data,
-              profile: { ...data.profile, targetWeightKg: input.targetWeightKg, targetDate: input.targetDate },
+              profile: {
+                ...data.profile,
+                targetWeightKg: input.targetWeightKg,
+                targetDate: input.targetDate,
+                goal: input.goal ?? data.profile.goal,
+              },
             }
           : data,
       );
@@ -278,12 +308,14 @@ function ProfilContent({
           void client.profile.updateTargets({
             targetWeightKg: prev.targetWeightKg,
             targetDate: prev.targetDate,
+            goal: settleableGoal(prev.goal, prev.weightNowKg, prev.targetWeightKg),
           }),
       };
     },
   });
 
-  const [sheet, setSheet] = useState<null | "weight" | "date" | "needs">(needs ? "needs" : null);
+  const [sheet, setSheet] = useState<null | "goal" | "weight" | "date" | "needs">(needs ? "needs" : null);
+  const weightNowKg = latestWeightKg ?? row.startWeightKg;
   const [dateError, setDateError] = useState<string | null>(null);
   const closeSheet = () => {
     setSheet(null);
@@ -467,17 +499,27 @@ function ProfilContent({
         {!targets.maternal && (
           <>
             <ListButtonRow
-              icon={<Flag className="size-5 text-makan" aria-hidden />}
-              title={t("plan.targetWeight.title")}
-              value={`${fmtKg(row.targetWeightKg)} kg`}
-              onClick={() => setSheet("weight")}
+              icon={<TrendingUp className="size-5 text-makan" aria-hidden />}
+              title={t("gain:goal.title")}
+              value={t(`gain:goal.${row.goal}`)}
+              onClick={() => setSheet("goal")}
             />
-            <ListButtonRow
-              icon={<CalendarDays className="size-5 text-bakar" aria-hidden />}
-              title={t("plan.targetDate.title")}
-              value={fmtDateLong(row.targetDate).replace(/^\w+, /, "")}
-              onClick={() => setSheet("date")}
-            />
+            {row.goal !== "maintain" && (
+              <>
+                <ListButtonRow
+                  icon={<Flag className="size-5 text-makan" aria-hidden />}
+                  title={t("plan.targetWeight.title")}
+                  value={`${fmtKg(row.targetWeightKg)} kg`}
+                  onClick={() => setSheet("weight")}
+                />
+                <ListButtonRow
+                  icon={<CalendarDays className="size-5 text-bakar" aria-hidden />}
+                  title={t("plan.targetDate.title")}
+                  value={fmtDateLong(row.targetDate).replace(/^\w+, /, "")}
+                  onClick={() => setSheet("date")}
+                />
+              </>
+            )}
           </>
         )}
         <ListRow
@@ -502,11 +544,37 @@ function ProfilContent({
           <TargetNotesList notes={targets.notes} />
         </div>
       )}
+      {targets.gain && <GainNotes gain={targets.gain} className="mt-3" />}
       {!targets.maternal && (
         <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">
           {t("plan.recalcNote")}
         </p>
       )}
+
+      <Sheet
+        open={sheet === "goal"}
+        onOpenChange={(open) => {
+          if (!open) closeSheet();
+        }}
+        title={t("gain:goal.title")}
+      >
+        <GoalForm
+          goal={row.goal}
+          weightNowKg={weightNowKg}
+          heightCm={row.heightCm}
+          targetWeightKg={row.targetWeightKg}
+          targetDate={row.targetDate}
+          pending={edit.isPending}
+          serverError={dateError}
+          onSave={(input) => {
+            setDateError(null);
+            edit.mutate(input, {
+              onSuccess: () => setSheet(null),
+              onError: (error) => setDateError(error.message),
+            });
+          }}
+        />
+      </Sheet>
 
       <Sheet
         open={sheet === "weight"}
@@ -518,14 +586,17 @@ function ProfilContent({
       >
         <TargetWeightForm
           heightCm={row.heightCm}
+          weightNowKg={weightNowKg}
           targetWeightKg={row.targetWeightKg}
           pending={edit.isPending}
-          onSave={(kg) =>
-            edit.mutate(
-              { targetWeightKg: kg, targetDate: row.targetDate },
-              { onSuccess: () => setSheet(null) },
-            )
-          }
+          onSave={(kg) => {
+            const goal = kg === row.targetWeightKg ? undefined : goalOf(weightNowKg, kg);
+            const targetDate =
+              goal === "gain" && row.goal !== "gain"
+                ? shiftDate(jakartaToday(), leanPaceDays(weightNowKg, kg, row.heightCm))
+                : row.targetDate;
+            edit.mutate({ targetWeightKg: kg, targetDate, goal }, { onSuccess: () => setSheet(null) });
+          }}
         />
       </Sheet>
 
@@ -539,14 +610,20 @@ function ProfilContent({
       >
         <TargetDateForm
           targetDate={row.targetDate}
-          weightNowKg={latestWeightKg ?? row.startWeightKg}
+          weightNowKg={weightNowKg}
           targetWeightKg={row.targetWeightKg}
+          heightCm={row.heightCm}
+          goal={row.goal}
           pending={edit.isPending}
           serverError={dateError}
           onSave={(date) => {
             setDateError(null);
             edit.mutate(
-              { targetWeightKg: row.targetWeightKg, targetDate: date },
+              {
+                targetWeightKg: row.targetWeightKg,
+                targetDate: date,
+                goal: settleableGoal(row.goal, weightNowKg, row.targetWeightKg),
+              },
               {
                 onSuccess: () => setSheet(null),
                 onError: (error) => setDateError(error.message),
@@ -722,23 +799,27 @@ function ProfilContent({
 
 function TargetWeightForm({
   heightCm,
+  weightNowKg,
   targetWeightKg,
   pending,
   onSave,
 }: {
   heightCm: number;
+  weightNowKg: number;
   targetWeightKg: number;
   pending: boolean;
   onSave: (targetWeightKg: number) => void;
 }) {
-  const { t } = useTranslation(["settings", "common"]);
+  const { t } = useTranslation(["settings", "common", "gain"]);
   const [weight, setWeight] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const shownWeight = weight ?? String(targetWeightKg);
   const ideal = idealWeightRange(heightCm);
   const parsedWeight = parseNum(shownWeight);
-  const belowRange = parsedWeight !== null && parsedWeight < ideal.minKg;
+  const gaining = parsedWeight !== null && goalOf(weightNowKg, parsedWeight) === "gain";
+  const belowRange = parsedWeight !== null && !gaining && parsedWeight < ideal.minKg;
+  const aboveHealthy = gaining && bmiOf(parsedWeight, heightCm) > HEALTHY_BMI_MAX;
 
   return (
     <form
@@ -782,7 +863,151 @@ function TargetWeightForm({
           {t("plan.targetWeight.belowRange")}
         </p>
       )}
+      {gaining && (
+        <p className="text-sm leading-relaxed text-muted-foreground">{t("gain:target.hint")}</p>
+      )}
+      {aboveHealthy && (
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          {t("gain:target.aboveHealthy", { min: fmtKg(ideal.minKg), max: fmtKg(ideal.maxKg) })}
+        </p>
+      )}
       {error && <p className="text-sm font-semibold text-destructive">{error}</p>}
+      <Button type="submit" className="w-full" disabled={pending}>
+        {pending ? t("state.saving") : t("common:actions.save")}
+      </Button>
+    </form>
+  );
+}
+
+/** Goal chooser sheet: Turunin / Jaga / Naikin BB with the same rules as onboarding. */
+function GoalForm({
+  goal: storedGoal,
+  weightNowKg,
+  heightCm,
+  targetWeightKg,
+  targetDate,
+  pending,
+  serverError,
+  onSave,
+}: {
+  goal: Goal;
+  weightNowKg: number;
+  heightCm: number;
+  targetWeightKg: number;
+  targetDate: string;
+  pending: boolean;
+  serverError: string | null;
+  onSave: (input: { goal: Goal; targetWeightKg: number; targetDate: string }) => void;
+}) {
+  const { t } = useTranslation(["settings", "common", "gain"]);
+  const today = jakartaToday();
+  const [draft, setDraft] = useState({
+    goal: storedGoal,
+    target: String(targetWeightKg),
+    date: targetDate,
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  const target = parseNum(draft.target);
+  const ideal = idealWeightRange(heightCm);
+  const gainCheck =
+    draft.goal === "gain" && target !== null
+      ? checkTargetDate({
+          weightNowKg,
+          targetWeightKg: target,
+          targetDate: draft.date,
+          today,
+          goal: "gain",
+          heightCm,
+        })
+      : null;
+
+  const choose = (goal: Goal) => {
+    const plan = goal === draft.goal ? null : planForGoal(goal, weightNowKg, heightCm);
+    setDraft(
+      plan
+        ? { goal, target: String(plan.targetKg), date: shiftDate(today, plan.days) }
+        : { ...draft, goal },
+    );
+    setError(null);
+  };
+
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (draft.goal === "maintain") {
+          onSave({ goal: "maintain", targetWeightKg: weightNowKg, targetDate: shiftDate(today, 365) });
+          return;
+        }
+        if (target === null || target < 25 || target > 400) {
+          setError(t("plan.targetWeight.error"));
+          return;
+        }
+        const goalError = goalTargetError(draft.goal, weightNowKg, target);
+        if (goalError) {
+          setError(t(GOAL_ERROR_KEY[goalError]));
+          return;
+        }
+        setError(null);
+        onSave({ goal: draft.goal, targetWeightKg: target, targetDate: draft.date });
+      }}
+    >
+      <GoalChooser value={draft.goal} onChange={choose} />
+
+      {draft.goal === "maintain" ? (
+        <p className="px-1 text-sm leading-relaxed text-muted-foreground">{t("gain:goal.maintainNote")}</p>
+      ) : (
+        <>
+          <div className="relative">
+            <Input
+              aria-label={t("plan.targetWeight.inputLabel")}
+              type="number"
+              step="0.1"
+              min="25"
+              max="400"
+              inputMode="decimal"
+              value={draft.target}
+              onChange={(event) => {
+                const value = event.target.value;
+                const typed = parseNum(value);
+                setDraft({
+                  ...draft,
+                  target: value,
+                  goal: typed === null ? draft.goal : goalOf(weightNowKg, typed) === "gain" ? "gain" : "lose",
+                });
+                setError(null);
+              }}
+              className="h-16 pr-14 text-center text-3xl font-extrabold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+            <span className="pointer-events-none absolute top-1/2 right-5 -translate-y-1/2 text-base font-semibold text-muted-foreground">
+              kg
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground tabular-nums">
+            {t("plan.targetWeight.healthyRange", { min: fmtKg(ideal.minKg), max: fmtKg(ideal.maxKg) })}
+          </p>
+          {draft.goal === "gain" && target !== null && bmiOf(target, heightCm) > HEALTHY_BMI_MAX && (
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {t("gain:target.aboveHealthy", { min: fmtKg(ideal.minKg), max: fmtKg(ideal.maxKg) })}
+            </p>
+          )}
+          <p className="text-sm text-muted-foreground tabular-nums">
+            {t("plan.targetDate.title")}: {fmtDateLong(draft.date).replace(/^\w+, /, "")}
+          </p>
+          {gainCheck && isGainCheck(gainCheck) && (
+            <GainDateVerdict
+              check={gainCheck}
+              today={today}
+              onUseDate={(days) => setDraft({ ...draft, date: shiftDate(today, days) })}
+            />
+          )}
+        </>
+      )}
+
+      {error && <p className="text-sm font-semibold text-destructive">{error}</p>}
+      {serverError && <p className="text-sm font-semibold text-destructive">{serverError}</p>}
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? t("state.saving") : t("common:actions.save")}
       </Button>

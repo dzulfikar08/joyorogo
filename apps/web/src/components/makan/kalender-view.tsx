@@ -2,6 +2,7 @@ import { dayKcalFill, shiftMonth } from "@joyorogo/api/lib/diary-view";
 import { eatTone, jakartaToday } from "@joyorogo/api/lib/engine";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 import { dateKeyToUtcDate } from "@joyorogo/api/lib/format";
+import { gainEatTone } from "@joyorogo/api/lib/gain";
 import { fmtDate } from "@joyorogo/i18n";
 import { Calendar } from "@joyorogo/ui/components/calendar";
 import { cn } from "@joyorogo/ui/lib/utils";
@@ -11,6 +12,7 @@ import { createContext, useContext, useMemo, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useGain } from "@/components/gain/use-gain";
 import { stickerUrl, STICKER_FILTER } from "@/components/sticker";
 import { fmtInt, fmtKcalLabel } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
@@ -59,12 +61,17 @@ function monthKeyOf(date: Date): string {
 function DayCell({ day, modifiers, className, ...props }: DayButtonProps) {
   const { t } = useTranslation("makan");
   const state = useContext(KalenderContext);
+  const { gain } = useGain();
   const [imageFailed, setImageFailed] = useState(false);
   if (!state) throw new Error("DayCell renders inside KalenderView only");
   const key = day.isoDate;
   const total = state.byDate[key];
   const selected = key === state.selected;
-  const tone = total ? eatTone(total.kcal, state.targetKcal ?? 0) : "ok";
+  const tone = total
+    ? gain
+      ? gainEatTone(total.kcal, state.targetKcal ?? 0)
+      : eatTone(total.kcal, state.targetKcal ?? 0)
+    : "ok";
   const fill = total ? dayKcalFill(total.kcal, state.targetKcal) : 0;
   const showSticker = total?.scanId && !imageFailed;
   const label = total

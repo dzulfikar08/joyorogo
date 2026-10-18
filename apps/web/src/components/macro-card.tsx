@@ -2,6 +2,8 @@ import { eatTone, macroTargets } from "@joyorogo/api/lib/engine";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useTranslation } from "react-i18next";
 
+import { useGainIntake } from "@/components/gain/gain-today";
+import { useGain } from "@/components/gain/use-gain";
 import { Ring } from "@/components/kit/ring";
 import { Card } from "@/components/kit/surface";
 import { fmtInt } from "@/lib/format";
@@ -76,7 +78,7 @@ export function MakanSummaryCard({
   eatenKcal,
   proteinTargetG,
   totals,
-  neutral = false,
+  neutral: neutralProp = false,
 }: {
   eatKcal: number;
   eatenKcal: number;
@@ -86,6 +88,11 @@ export function MakanSummaryCard({
   neutral?: boolean;
 }) {
   const { t } = useTranslation("misc");
+  const { gain } = useGain();
+  const gaining = gain !== null;
+  // Under a gain plan nothing is "over": progress toward a need, like Hamil / Menyusui.
+  const neutral = neutralProp || gaining;
+  const intake = useGainIntake(eatKcal, eatenKcal);
   // carb/fat/fiber floors from the engine; protein target comes from the server
   const budgets = macroTargets(eatKcal, 70);
   const over = !neutral && eatenKcal > eatKcal;
@@ -99,7 +106,7 @@ export function MakanSummaryCard({
           max={eatKcal}
           size={124}
           stroke={12}
-          tone={neutral ? "ok" : eatTone(eatenKcal, eatKcal)}
+          tone={gaining ? intake.tone : neutral ? "ok" : eatTone(eatenKcal, eatKcal)}
           label={t("macro.eatenOf", { eaten: fmtInt(eatenKcal), budget: fmtInt(eatKcal) })}
         >
           <div>
@@ -126,6 +133,9 @@ export function MakanSummaryCard({
           <MacroBar macro="fiber" eaten={totals.fiber} budget={budgets.fiberG} neutral={neutral} />
         </div>
       </div>
+      {gaining && (
+        <p className="mt-4 text-sm leading-snug font-semibold text-makan-ink">{intake.line}</p>
+      )}
     </Card>
   );
 }

@@ -8,6 +8,7 @@ import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { Chip } from "@/components/chip";
 import { ExerciseEditSheet } from "@/components/exercise-edit-sheet";
 import { DaySwitcher } from "@/components/day-switcher";
+import { useGain } from "@/components/gain/use-gain";
 import { Ring } from "@/components/kit/ring";
 import { ErrorNote } from "@/components/kit/error-note";
 import { ScreenError } from "@/components/screen-state";
@@ -121,7 +122,8 @@ function OlahragaScreen({
   list: { items: ExerciseItem[]; totalKcal: number };
   date: string;
 }) {
-  const { t } = useTranslation(["olahraga", "common"]);
+  const { t } = useTranslation(["olahraga", "common", "gain"]);
+  const { gain } = useGain();
   const typeLabel = (key: ExerciseType["key"]) => t(`type.${key}`);
   const queryClient = useQueryClient();
   const navigate = Route.useNavigate();
@@ -526,7 +528,7 @@ function OlahragaScreen({
           <StravaCard compact />
           <InfoAccordion title={t("about.title")}>
             {weightKg !== null && <p>{t("about.estimate")}</p>}
-            <p>{t("about.strength")}</p>
+            <p>{gain ? t("gain:coach.strength") : t("about.strength")}</p>
           </InfoAccordion>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { fmtHHMM, windowHoursFor, windowTimes } from "@joyorogo/api/lib/fasting";
 
+import { useGain } from "@/components/gain/use-gain";
 import { Button, ListGroup, ListRow, Segmented, Text } from "@/components/ui";
 import { useNotificationGate } from "@/components/reminders/permission-sheet";
 import { TimePickerSheet } from "@/components/reminders/time-picker-sheet";
@@ -27,14 +28,16 @@ import { orpc } from "@/utils/orpc";
 type TimeTarget =
   | { kind: "meal"; key: MealReminderKey }
   | { kind: "weighIn" }
+  | { kind: "gainEvening" }
   | { kind: "waterStart" }
   | { kind: "waterEnd" };
 
-function anyEnabled(config: ReminderConfig): boolean {
+function anyEnabled(config: ReminderConfig, gain: boolean): boolean {
   return (
     MEAL_REMINDER_KEYS.some((key) => config.meals[key].enabled) ||
     config.water.enabled ||
     config.weighIn.enabled ||
+    (gain && config.gainEvening.enabled) ||
     config.window.open ||
     config.window.close
   );
@@ -47,7 +50,8 @@ function anyEnabled(config: ReminderConfig): boolean {
  * berubah — lihat src/lib/notifications.ts.
  */
 export function RemindersCard() {
-  const { t } = useTranslation(["settings", "common"]);
+  const { t } = useTranslation(["settings", "common", "gain"]);
+  const gainPlan = useGain().gain !== null;
   const intervalOptions: Array<{ value: "2" | "3" | "4"; label: string }> = [
     { value: "2", label: t("reminders.water.interval", { count: 2 }) },
     { value: "3", label: t("reminders.water.interval", { count: 3 }) },
@@ -127,8 +131,10 @@ export function RemindersCard() {
       ? ""
       : target.kind === "meal"
         ? t("reminders.meal.sheetTitle", { meal: mealLabel(target.key).toLowerCase() })
-        : target.kind === "weighIn"
-          ? t("reminders.weighIn.sheetTitle")
+        : target.kind === "gainEvening"
+          ? t("gain:nativeToday.reminder.sheetTitle")
+          : target.kind === "weighIn"
+            ? t("reminders.weighIn.sheetTitle")
           : target.kind === "waterStart"
             ? t("reminders.water.sheetStart")
             : t("reminders.water.sheetEnd");
@@ -137,8 +143,10 @@ export function RemindersCard() {
       ? "00:00"
       : target.kind === "meal"
         ? config.meals[target.key].time
-        : target.kind === "weighIn"
-          ? config.weighIn.time
+        : target.kind === "gainEvening"
+          ? config.gainEvening.time
+          : target.kind === "weighIn"
+            ? config.weighIn.time
           : target.kind === "waterStart"
             ? config.water.start
             : config.water.end;
@@ -155,6 +163,8 @@ export function RemindersCard() {
     }
     setTarget(null);
     if (target.kind === "meal") apply(setMeal(target.key, { time }));
+    else if (target.kind === "gainEvening")
+      apply({ ...config, gainEvening: { ...config.gainEvening, time } });
     else if (target.kind === "weighIn") apply({ ...config, weighIn: { ...config.weighIn, time } });
     else if (target.kind === "waterStart") apply(setWater({ start: time }));
     else apply(setWater({ end: time }));
@@ -170,7 +180,7 @@ export function RemindersCard() {
     <>
       <Text style={styles.sectionLabel}>{t("section.reminders")}</Text>
 
-      {loaded && permission !== "granted" && anyEnabled(config) ? (
+      {loaded && permission !== "granted" && anyEnabled(config, gainPlan) ? (
         <View style={styles.warning}>
           <Text style={styles.warningText}>{t("reminders.permissionOff.message")}</Text>
           <Button
@@ -209,6 +219,29 @@ export function RemindersCard() {
             />
           );
         })}
+        {gainPlan ? (
+          <ListRow
+            icon="moon"
+            iconTint="makan"
+            title={t("gain:reminder.label")}
+            subtitle={t("gain:reminder.hint")}
+            value={config.gainEvening.time}
+            onPress={() => setTarget({ kind: "gainEvening" })}
+            right={
+              <Switch
+                {...switchProps}
+                value={config.gainEvening.enabled}
+                onValueChange={(value) =>
+                  void toggle(value, (enabled) => ({
+                    ...config,
+                    gainEvening: { ...config.gainEvening, enabled },
+                  }))
+                }
+                accessibilityLabel={t("gain:reminder.label")}
+              />
+            }
+          />
+        ) : null}
       </ListGroup>
       {fastingNotifyOn ? (
         <Text style={styles.note}>{t("reminders.meal.fastingNote")}</Text>

@@ -192,6 +192,8 @@ async function preparePost(
       publicProfile: profileTable.publicProfile,
       defaultVisibility: profileTable.defaultVisibility,
       startWeightKg: profileTable.startWeightKg,
+      goal: profileTable.goal,
+      goalStartKg: profileTable.goalStartKg,
     })
     .from(profileTable)
     .where(eq(profileTable.userId, me))
@@ -742,7 +744,15 @@ export const socialRouter = {
           photosJson: null,
           statsJson: JSON.stringify({
             weightKg: weight.weightKg,
-            deltaKg: Number((weight.weightKg - meProfile.startWeightKg).toFixed(1)),
+            // Under a gain plan the check-in compares with where the gain began, so it reads "naik" (never "turun since the old start").
+            deltaKg: Number(
+              (
+                weight.weightKg -
+                (meProfile.goal === "gain"
+                  ? (meProfile.goalStartKg ?? meProfile.startWeightKg)
+                  : meProfile.startWeightKg)
+              ).toFixed(1),
+            ),
           }),
           foodLogId: null,
           exerciseLogId: null,

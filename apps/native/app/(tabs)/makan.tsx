@@ -20,7 +20,9 @@ import {
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/format";
+import { gainEatTone, gainRemaining } from "@joyorogo/api/lib/gain";
 
+import { gainRemainingLabel } from "@/components/gain/gain-today";
 import { BelanjaSection } from "@/components/plate/belanja";
 import { PlateHeader } from "@/components/plate/plate-header";
 import { PlateEditSheet } from "@/components/plate/plate-edit-sheet";
@@ -479,6 +481,8 @@ export default function Makan() {
   const targets = summaryQuery.data?.targets ?? null;
   // Hamil / Menyusui: a need to meet, so never an "over" tone or wording.
   const maternal = targets?.maternal != null;
+  // Naikin BB: under-eating is the problem, so never an "over" tone, and the day reads "still to eat".
+  const gainPlan = !maternal && targets?.gain != null;
   const eatenKcal = summaryQuery.data?.eatenKcal ?? totals.kcal;
   // Carb/fat/fiber floors from the engine; same reference as the web card.
   const macroBudgets = targets ? macroTargets(targets.eatKcal, 70) : null;
@@ -721,7 +725,13 @@ export default function Makan() {
                   ok: theme.colors.makan,
                   near: theme.colors.eatNear,
                   over: theme.colors.destructive,
-                }[maternal ? "ok" : eatTone(eatenKcal, targets?.eatKcal ?? 0)]
+                }[
+                  maternal
+                    ? "ok"
+                    : gainPlan
+                      ? gainEatTone(eatenKcal, targets?.eatKcal ?? 0)
+                      : eatTone(eatenKcal, targets?.eatKcal ?? 0)
+                ]
               }
               track={theme.colors.makanSoft}
             >
@@ -737,10 +747,12 @@ export default function Makan() {
                   <Text
                     style={[
                       styles.ringTarget,
-                      !maternal && eatenKcal > targets.eatKcal && { color: theme.colors.bakarText },
+                      !maternal &&
+                        !gainPlan &&
+                        eatenKcal > targets.eatKcal && { color: theme.colors.bakarText },
                     ]}
                   >
-                    {!maternal && eatenKcal > targets.eatKcal
+                    {!maternal && !gainPlan && eatenKcal > targets.eatKcal
                       ? t("diary.summary.over", { kcal: fmtInt(eatenKcal - targets.eatKcal) })
                       : t("diary.summary.ofTarget", { kcal: fmtInt(targets.eatKcal) })}
                   </Text>
@@ -753,28 +765,37 @@ export default function Makan() {
                 label={t("diary.macro.protein")}
                 eaten={totals.protein}
                 budget={summaryQuery.data?.protein?.targetG ?? null}
+                neutral={gainPlan}
               />
               <MacroBar
                 macro="carbs"
                 label={t("diary.macro.carbs")}
                 eaten={totals.carbs}
                 budget={macroBudgets?.carbsG ?? null}
+                neutral={gainPlan}
               />
               <MacroBar
                 macro="fat"
                 label={t("diary.macro.fat")}
                 eaten={totals.fat}
                 budget={macroBudgets?.fatG ?? null}
+                neutral={gainPlan}
               />
               <MacroBar
                 macro="fiber"
                 label={t("diary.macro.fiber")}
                 eaten={totals.fiber}
                 budget={macroBudgets?.fiberG ?? null}
+                neutral={gainPlan}
               />
             </View>
           </Card>
 
+          {gainPlan && targets !== null ? (
+            <Text style={styles.gainLine}>
+              {gainRemainingLabel(gainRemaining(targets.eatKcal, eatenKcal))}
+            </Text>
+          ) : null}
           {/* Skor JoyoFit untuk hari yang dipilih; kosong kalau JoyoFit belum mengirim */}
           <FitnessCard date={date} />
 
@@ -1259,6 +1280,12 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: 10,
     fontWeight: "600",
     color: theme.colors.mutedForeground,
+  },
+  gainLine: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+    textAlign: "center",
   },
   summaryInfo: {
     flex: 1,

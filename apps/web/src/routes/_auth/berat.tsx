@@ -24,6 +24,7 @@ import type { KcalBar } from "@joyorogo/api/lib/kcal-bars";
 import { Mascot } from "@/components/mascot";
 import { ScreenError } from "@/components/screen-state";
 import { WeightGainCard } from "@/components/maternal/weight-gain-chart";
+import { GainNotes } from "@/components/gain/gain-notes";
 import { WaistSection } from "@/components/waist-section";
 import {
   Card,
@@ -64,6 +65,18 @@ export const Route = createFileRoute("/_auth/berat")({
 
 
 const PAD = { top: 18, right: 38, bottom: 26, left: 38 };
+
+/** Naikin BB plan drawn on the chart: upward target line plus the weekly pace fan. */
+type GainPlanLine = {
+  startKg: number;
+  startDate: string;
+  targetKg: number;
+  targetDate: string;
+  paceMinKg: number;
+  paceMaxKg: number;
+  /** latest trend point, the origin of the pace fan */
+  base: { date: string; kg: number } | null;
+};
 
 /** Calorie bars live in the bottom share of the plot, on their own (right) axis. */
 const BAR_ZONE = 0.38;
@@ -125,6 +138,7 @@ function WeightChart({
   bars,
   weekly,
   targetKcal,
+  gainPlan,
 }: {
   width: number;
   height: number;
@@ -143,8 +157,10 @@ function WeightChart({
   bars: KcalBar[];
   weekly: boolean;
   targetKcal: number | null;
+  /** Naikin BB plan (upward target line + pace fan); null for every other mode */
+  gainPlan: GainPlanLine | null;
 }) {
-  const { t } = useTranslation("berat");
+  const { t } = useTranslation(["berat", "gain"]);
   const [scrubDate, setScrubDate] = useState<string | null>(null);
   const innerW = width - PAD.left - PAD.right;
   const innerH = height - PAD.top - PAD.bottom;
@@ -160,20 +176,62 @@ function WeightChart({
   const rawHi = Math.max(...values);
   const valSpan = Math.max(rawHi - rawLo, 1);
   const near = (kg: number) => kg >= rawLo - valSpan && kg <= rawHi + valSpan;
-  const target = targetKg !== null && near(targetKg) ? targetKg : null;
+  // Naikin BB draws one diagonal plan line instead of flat target/start lines. The x domain
+  // already reaches (at most a capped stretch toward) the target date, so its ends stay close.
+  const planDays = gainPlan ? Math.max(daysBetween(gainPlan.startDate, gainPlan.targetDate), 1) : 1;
+  const planKgAt = (date: string) =>
+    gainPlan
+      ? gainPlan.startKg +
+        ((gainPlan.targetKg - gainPlan.startKg) *
+          Math.min(Math.max(daysBetween(gainPlan.startDate, date), 0), planDays)) /
+          planDays
+      : 0;
+  const planFrom = gainPlan && gainPlan.startDate > domainStart ? gainPlan.startDate : domainStart;
+  const planTo = gainPlan && gainPlan.targetDate < domainEnd ? gainPlan.targetDate : domainEnd;
+  const planLine =
+    gainPlan && planFrom <= planTo
+      ? [
+          { date: planFrom, kg: planKgAt(planFrom) },
+          { date: planTo, kg: planKgAt(planTo) },
+        ]
+      : null;
+  // The fan: the weekly pace band from the latest trend point, capped at the target.
+  const planFan =
+    gainPlan && gainPlan.base && gainPlan.base.date < domainEnd
+      ? (() => {
+          const days = daysBetween(gainPlan.base.date, domainEnd);
+          const at = (kgPerWeek: number) =>
+            Math.min(gainPlan.base!.kg + (kgPerWeek / 7) * days, Math.max(gainPlan.targetKg, gainPlan.base!.kg));
+          return [
+            [gainPlan.base.date, gainPlan.base.kg],
+            [domainEnd, at(gainPlan.paceMaxKg)],
+            [domainEnd, at(gainPlan.paceMinKg)],
+          ] as Array<[string, number]>;
+        })()
+      : null;
+  const planKgs = [
+    ...(planLine ? planLine.map((p) => p.kg) : []),
+    ...(planFan ? planFan.map(([, kg]) => kg) : []),
+  ];
+  const target = !gainPlan && targetKg !== null && near(targetKg) ? targetKg : null;
   const start =
-    startKg !== null && near(startKg) && (target === null || Math.abs(startKg - target) > 0.01)
+    !gainPlan &&
+    startKg !== null &&
+    near(startKg) &&
+    (target === null || Math.abs(startKg - target) > 0.01)
       ? startKg
       : null;
   // Step is chosen from the FULL domain (lines included) so the tick count
   // stays ~5 no matter how much the reference lines stretch the view.
   const dataLo = Math.min(
     rawLo,
+    ...planKgs,
     ...(target !== null ? [target] : []),
     ...(start !== null ? [start] : []),
   );
   const dataHi = Math.max(
     rawHi,
+    ...planKgs,
     ...(target !== null ? [target] : []),
     ...(start !== null ? [start] : []),
   );
@@ -295,7 +353,8 @@ function WeightChart({
             const { left, w } = barGeom(b);
             const barH = b.avgKcal === null ? 0 : baseY - ky(b.avgKcal);
             const ghostH = zoneH * GHOST_SHARE * (b.untrackedDays / b.days);
-            const over = targetKcal !== null && b.avgKcal !== null && b.avgKcal > targetKcal;
+            const over =
+              !gainPlan && targetKcal !== null && b.avgKcal !== null && b.avgKcal > targetKcal;
             return (
               <g key={b.from}>
                 {b.avgKcal !== null && (
@@ -406,6 +465,52 @@ function WeightChart({
             >
               {t("chart.start", { kg: fmtKg(start) })}
             </text>
+          </g>
+        )}
+
+        {/* Naikin BB: the plan's upward target line and the pace fan from the latest weigh-in. */}
+        {gainPlan && planLine && (
+          <g>
+            {planFan && (
+              <polygon
+                points={planFan
+                  .map(([date, kg]) => `${x(date).toFixed(1)},${y(kg).toFixed(1)}`)
+                  .join(" ")}
+                className="fill-makan/15"
+              />
+            )}
+            <line
+              x1={x(planLine[0].date)}
+              y1={y(planLine[0].kg)}
+              x2={x(planLine[1].date)}
+              y2={y(planLine[1].kg)}
+              strokeDasharray="4 5"
+              strokeWidth={1.75}
+              className="stroke-makan/60"
+            />
+            {planLine[0].date === gainPlan.startDate && (
+              <text
+                x={x(planLine[0].date)}
+                y={y(planLine[0].kg) + 15}
+                fontSize={11}
+                fontWeight={600}
+                className="fill-muted-foreground"
+              >
+                {t("gain:chart.start")} {fmtKg(gainPlan.startKg)}
+              </text>
+            )}
+            {planLine[1].date === gainPlan.targetDate && (
+              <text
+                x={x(planLine[1].date)}
+                y={y(planLine[1].kg) - 6}
+                textAnchor="end"
+                fontSize={11}
+                fontWeight={600}
+                className="fill-makan-ink"
+              >
+                {t("gain:chart.target", { kg: fmtKg(gainPlan.targetKg) })}
+              </text>
+            )}
           </g>
         )}
 
@@ -529,13 +634,13 @@ function WeightChart({
               <dd
                 className={cn(
                   "font-bold tabular-nums",
-                  scrubDelta === null
+                  scrubDelta === null || scrubDelta === 0
                     ? "text-muted-foreground"
-                    : scrubDelta < 0
+                    : (gainPlan ? scrubDelta > 0 : scrubDelta < 0)
                       ? "text-makan-ink"
-                      : scrubDelta > 0
-                        ? "text-bakar-ink"
-                        : "text-muted-foreground",
+                      : gainPlan
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-bakar-ink",
                 )}
               >
                 {scrubDelta === null
@@ -553,8 +658,14 @@ function WeightChart({
 }
 
 /** One-line key: Berat, Tren, Kalori (over/under), Belum dicatat, Target. */
-function ChartLegend({ showTarget }: { showTarget: boolean }) {
-  const { t } = useTranslation("berat");
+function ChartLegend({
+  showTarget,
+  gainPlan,
+}: {
+  showTarget: boolean;
+  gainPlan: GainPlanLine | null;
+}) {
+  const { t } = useTranslation(["berat", "gain"]);
   return (
     <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-muted-foreground">
       <li className="flex items-center gap-1">
@@ -599,6 +710,24 @@ function ChartLegend({ showTarget }: { showTarget: boolean }) {
           <span className="w-3 border-t-2 border-dashed border-bakar-ink/70" />
           {t("legend.kcalTarget")}
         </li>
+      )}
+      {gainPlan && (
+        <>
+          <li className="flex items-center gap-1">
+            <span className="w-3 border-t-2 border-dashed border-makan/60" />
+            {t("gain:chart.target", { kg: fmtKg(gainPlan.targetKg) })}
+          </li>
+          <li className="flex items-center gap-1">
+            <span className="size-2 rounded-sm bg-makan/15" />
+            {t("gain:chart.band")}
+            <span className="font-normal">
+              {t("gain:chart.bandRange", {
+                min: fmtKg(gainPlan.paceMinKg),
+                max: fmtKg(gainPlan.paceMaxKg),
+              })}
+            </span>
+          </li>
+        </>
       )}
     </ul>
   );
@@ -647,11 +776,14 @@ function BeratPage() {
 }
 
 function BeratScreen({ history }: { history: WeightHistory }) {
-  const { t } = useTranslation(["berat", "common"]);
+  const { t } = useTranslation(["berat", "common", "gain"]);
   const summary = useQuery(summaryOptions);
   const profile = useQuery(profileOptions);
   const maternal = profile.data?.targets?.maternal ?? null;
+  const gainInfo = profile.data?.targets?.gain ?? null;
+  const goal = profile.data?.profile?.goal ?? "lose";
   const { entries, summary: weightSummary } = history;
+  const gain = weightSummary.gain;
   const trend = summary.data?.trend ?? null;
   const today = jakartaToday();
 
@@ -696,7 +828,9 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const bmiCategory =
     bmi === null ? null : bmi < 18.5 ? "under" : bmi < 25 ? "ideal" : bmi < 30 ? "over" : "obese";
   const goalReached =
-    trendKg !== null && weightSummary.targetKg !== null && trendKg <= weightSummary.targetKg;
+    trendKg !== null &&
+    weightSummary.targetKg !== null &&
+    (goal === "gain" ? trendKg >= weightSummary.targetKg : trendKg <= weightSummary.targetKg);
 
   // Chart line: client-side 7-day EMA over the raw entries, so every range —
   // including "Semua" — gets a full trend (day.summary only ships 30 days).
@@ -711,6 +845,37 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const rangeShort =
     range === "all" ? t("chart.sinceStart") : t("chart.rangeDays", { count: Number(range) });
   const domainStart = cutoff ?? rangeEntries[0]?.date ?? today;
+  // Naikin BB: the plan line starts where the gain began (the latest earlier weigh-in at the
+  // gain's starting weight, else the first weigh-in) and the x axis reaches toward the target date.
+  const latestTrend = allTrend.at(-1);
+  const gainStartDate = gain
+    ? ([...entries]
+        .reverse()
+        .find((e, i) => i > 0 && Math.abs(e.weightKg - gain.startKg) <= 0.5)?.date ??
+      entries[0]?.date ??
+      today)
+    : null;
+  const gainPlan: GainPlanLine | null =
+    gain && gainStartDate && weightSummary.targetKg !== null
+      ? {
+          startKg: gain.startKg,
+          startDate: gainStartDate,
+          targetKg: weightSummary.targetKg,
+          targetDate: gain.targetDate,
+          paceMinKg: gain.pace.minKg,
+          paceMaxKg: gain.pace.maxKg,
+          base: latestTrend ? { date: latestTrend.date, kg: latestTrend.trendKg } : null,
+        }
+      : null;
+  const chartEnd = gainPlan
+    ? shiftDate(
+        today,
+        Math.min(
+          Math.max(daysBetween(today, gainPlan.targetDate), 0),
+          Math.max(14, daysBetween(domainStart, today)),
+        ),
+      )
+    : today;
   // Hamil / Menyusui: no calorie target line, no over-target bars, no goal.
   const targetKcal = maternal ? null : (summary.data?.targets?.eatKcal ?? null);
   const kcalRange = kcalSeries.data ?? [];
@@ -723,6 +888,8 @@ function BeratScreen({ history }: { history: WeightHistory }) {
     weightSummary.targetKg <= (weightSummary.startKg ?? Number.POSITIVE_INFINITY);
   const toneFor = (delta: number | null): "good" | "bad" | "neutral" => {
     if (maternal || delta === null || Math.abs(delta) < 0.05) return "neutral";
+    // Gain plan: weight up is good, a drop is just neutral information.
+    if (gain) return delta > 0 ? "good" : "neutral";
     return (wantDown ? delta < 0 : delta > 0) ? "good" : "bad";
   };
 
@@ -816,7 +983,15 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                 <p
                   className={cn(
                     "mt-2 flex items-center gap-1.5 text-sm font-bold",
-                    flat ? "text-muted-foreground" : rate < 0 ? "text-makan-ink" : "text-bakar-ink",
+                    flat
+                      ? "text-muted-foreground"
+                      : gain
+                        ? rate > 0
+                          ? "text-makan-ink"
+                          : "text-amber-600 dark:text-amber-400"
+                        : rate < 0
+                          ? "text-makan-ink"
+                          : "text-bakar-ink",
                   )}
                 >
                   {!flat &&
@@ -845,40 +1020,57 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-muted-foreground">{t("summary.start")}</p>
                   <p className="mt-0.5 text-lg leading-tight font-extrabold tabular-nums">
-                    {fmtKg(weightSummary.startKg ?? 0)}
+                    {fmtKg(gain ? gain.startKg : (weightSummary.startKg ?? 0))}
                     <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
                   </p>
                 </div>
                 {!maternal && (
                   <>
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-muted-foreground">{t("summary.down")}</p>
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        {gain ? t("gain:webToday.chart.up") : t("summary.down")}
+                      </p>
                       <p
                         className={cn(
                           "mt-0.5 text-lg leading-tight font-extrabold tabular-nums",
-                          (weightSummary.deltaKg ?? 0) < 0 && "text-makan-ink",
-                          (weightSummary.deltaKg ?? 0) > 0 && "text-bakar-ink",
+                          gain
+                            ? gain.gainedKg > 0 && "text-makan-ink"
+                            : (weightSummary.deltaKg ?? 0) < 0
+                              ? "text-makan-ink"
+                              : (weightSummary.deltaKg ?? 0) > 0 && "text-bakar-ink",
                         )}
                       >
-                        {weightSummary.deltaKg !== null ? fmtKg(Math.abs(weightSummary.deltaKg)) : "–"}
+                        {gain
+                          ? fmtKg(gain.gainedKg)
+                          : weightSummary.deltaKg !== null
+                            ? fmtKg(Math.abs(weightSummary.deltaKg))
+                            : "–"}
                         <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
                       </p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {weightSummary.deltaKg === null
-                          ? t("summary.noData")
-                          : weightSummary.deltaKg < 0
+                        {gain
+                          ? gain.gainedKg > 0
                             ? t("summary.fromStart")
-                            : weightSummary.deltaKg > 0
-                              ? t("summary.upFromStart")
-                              : t("summary.same")}
+                            : t("summary.same")
+                          : weightSummary.deltaKg === null
+                            ? t("summary.noData")
+                            : weightSummary.deltaKg < 0
+                              ? t("summary.fromStart")
+                              : weightSummary.deltaKg > 0
+                                ? t("summary.upFromStart")
+                                : t("summary.same")}
                       </p>
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-muted-foreground">
-                        {t("summary.remaining")}
+                        {gain ? t("summary.remainingToGoal") : t("summary.remaining")}
                       </p>
                       <p className="mt-0.5 text-lg leading-tight font-extrabold tabular-nums">
-                        {weightSummary.remainingKg !== null ? fmtKg(weightSummary.remainingKg) : "–"}
+                        {gain
+                          ? fmtKg(gain.toGoKg)
+                          : weightSummary.remainingKg !== null
+                            ? fmtKg(weightSummary.remainingKg)
+                            : "–"}
                         <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
                       </p>
                       <p className="truncate text-xs text-muted-foreground">
@@ -891,6 +1083,15 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                 )}
               </div>
             </Card>
+
+            {gainInfo && gainInfo.flags.some((flag) => flag !== "TARGET_ABOVE_HEALTHY") && (
+              <GainNotes
+                gain={{
+                  ...gainInfo,
+                  flags: gainInfo.flags.filter((flag) => flag !== "TARGET_ABOVE_HEALTHY"),
+                }}
+              />
+            )}
 
             {maternal?.mode === "pregnant" && <WeightGainCard onWeigh={openWeigh} />}
 
@@ -974,16 +1175,17 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                         targetKg={weightSummary.targetKg}
                         startKg={weightSummary.startKg}
                         domainStart={domainStart}
-                        domainEnd={today}
+                        domainEnd={chartEnd}
                         rangeKey={range}
                         rangeLabel={rangeLabel}
                         bars={kcalBarList}
                         weekly={kcalWeekly}
                         targetKcal={targetKcal}
+                        gainPlan={gainPlan}
                       />
                     )}
                   </div>
-                  <ChartLegend showTarget={targetKcal !== null} />
+                  <ChartLegend showTarget={targetKcal !== null} gainPlan={gainPlan} />
                   {kcalSeries.data && (
                     <p className="mt-1.5 text-xs font-semibold tabular-nums">
                       {kcalStats.trackedDays === 0
@@ -1005,10 +1207,12 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                   {t("detail.trustTrend")} {t("detail.legend")}
                   {kcalWeekly ? ` ${t("detail.weekly")}` : ""}
                   {!maternal &&
-                    weightSummary.deltaKg !== null &&
-                    ` ${t(weightSummary.deltaKg < 0 ? "detail.totalDown" : "detail.totalUp", {
-                      kg: fmtKg(Math.abs(weightSummary.deltaKg)),
-                    })}`}
+                    (gain
+                      ? ` ${t("gain:chart.gained", { kg: fmtKg(gain.gainedKg) })}`
+                      : weightSummary.deltaKg !== null &&
+                        ` ${t(weightSummary.deltaKg < 0 ? "detail.totalDown" : "detail.totalUp", {
+                          kg: fmtKg(Math.abs(weightSummary.deltaKg)),
+                        })}`)}
                 </p>
               </details>
             </Card>

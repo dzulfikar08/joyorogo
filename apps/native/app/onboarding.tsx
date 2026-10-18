@@ -15,11 +15,28 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import {
   ACTIVITY_LABELS,
+  checkTargetDate,
   jakartaToday,
   idealWeightRange,
+  MAX_TARGET_DAYS,
+  shiftDate,
+  type TargetDateCheck,
   type Targets,
 } from "@joyorogo/api/lib/engine";
+import {
+  bmiOf,
+  goalOf,
+  goalTargetError,
+  HEALTHY_BMI_MAX,
+  MAX_SURPLUS_KCAL,
+  suggestedDays,
+  suggestGainTarget,
+  UNDERWEIGHT_BMI,
+  type GainInfo,
+  type Goal,
+} from "@joyorogo/api/lib/gain";
 import type { MaternalInfo } from "@joyorogo/api/lib/maternal";
+import { fmtNumber } from "@joyorogo/i18n";
 
 import {
   BootLoader,
@@ -38,6 +55,8 @@ import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
 import { InviteFriendsStep } from "@/components/onboarding/invite-step";
 import { Disclosure } from "@/components/disclosure";
+import { GainDisclaimer, GainNotes } from "@/components/gain/gain-notes";
+import { GoalChooser } from "@/components/gain/goal-chooser";
 import { MaternalDisclaimer } from "@/components/maternal/disclaimer";
 import { MaternalFlagNotes } from "@/components/maternal/flag-notes";
 import {
@@ -47,7 +66,7 @@ import {
   type MaternalDraft,
 } from "@/components/maternal/maternal-form";
 import { useStageText } from "@/components/maternal/use-maternal";
-import { errorMessage, fmtInt, fmtKg, parseNum } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtInt, fmtKg, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
 type Gender = "male" | "female";
@@ -190,6 +209,7 @@ function ResultView({
               sub={t("settings:plan.numbers.perNight")}
             />
           </View>
+          {targets.gain ? <GainResult targets={targets} gain={targets.gain} /> : null}
           {targets.notes.includes("BELOW_HEALTHY_RANGE") ? (
             <Text style={styles.warning}>
               {t("result.belowRange", {
@@ -217,6 +237,121 @@ function ResultView({
         icon="people-outline"
         label={t("action.inviteFriends")}
         onPress={onInvite}
+      />
+    </>
+  );
+}
+
+/** Naikin BB result: TDEE + surplus = target, then pace, reach date and protein. */
+function GainResult({ targets, gain }: { targets: Targets; gain: GainInfo }) {
+  const { t } = useTranslation(["gain", "settings"]);
+  return (
+    <>
+      <Card>
+        <View style={styles.maternalLine}>
+          <Text style={styles.hint}>{t("settings:plan.needs.tdee.label")}</Text>
+          <Text style={styles.maternalValue}>
+            {fmtInt(targets.tdee)} {t("settings:plan.needs.unit")}
+          </Text>
+        </View>
+        <View style={styles.maternalLine}>
+          <Text style={styles.hint}>{t("gain:plan.surplus.label")}</Text>
+          <Text style={styles.maternalValue}>
+            + {fmtInt(gain.surplusKcal)} {t("settings:plan.needs.unit")}
+          </Text>
+        </View>
+        <View style={styles.maternalLine}>
+          <Text style={styles.hint}>{t("settings:plan.needs.target.label")}</Text>
+          <Text style={styles.maternalValue}>
+            {fmtInt(targets.eatKcal)} {t("settings:plan.needs.unit")}
+          </Text>
+        </View>
+        <Text style={styles.hint}>{t("gain:plan.intro")}</Text>
+      </Card>
+      <Card>
+        <Text style={styles.hint}>
+          {t("gain:plan.pace", {
+            kg: fmtNumber(gain.paceKgPerWeek, 2),
+            pct: fmtNumber(gain.pacePct, 2),
+          })}
+        </Text>
+        <Text style={styles.hint}>
+          {t("gain:plan.reach", { date: fmtDateMedium(gain.reachDate) })}
+        </Text>
+        <Text style={styles.hint}>
+          {t("gain:plan.protein", {
+            min: gain.protein.minG,
+            max: gain.protein.maxG,
+            target: gain.protein.targetG,
+          })}
+        </Text>
+        <Text style={styles.hint}>{t("gain:plan.proteinHint")}</Text>
+        <Text style={styles.hint}>{t("gain:plan.leanNote")}</Text>
+      </Card>
+      <GainNotes gain={gain} />
+      <GainDisclaimer />
+    </>
+  );
+}
+
+/** Verdict of the typed date for a gain target: a note, or a warning with a button for a later date. Never blocks. */
+function GainDateNote({
+  check,
+  onUseDate,
+}: {
+  check: TargetDateCheck;
+  onUseDate: (date: string) => void;
+}) {
+  const { t } = useTranslation("gain");
+  if (check.status !== "gainOk" && check.status !== "gainFast" && check.status !== "gainSlow") {
+    return null;
+  }
+  const today = jakartaToday();
+  const later = shiftDate(today, check.feasibleDays);
+  if (check.status === "gainOk") {
+    return (
+      <Text style={styles.hint}>
+        {t(check.band === "lean" ? "date.ok.lean" : "date.ok.brisk", {
+          kg: fmtKg(check.gainKg),
+          count: check.days,
+          perWeek: fmtNumber(check.weeklyKg, 2),
+          pct: fmtNumber(check.pacePct, 2),
+        })}
+      </Text>
+    );
+  }
+  if (check.status === "gainFast") {
+    return (
+      <>
+        <Text style={styles.warning}>
+          {check.rawSurplusKcal > MAX_SURPLUS_KCAL
+            ? t("date.fast.titleSurplus", { surplus: fmtInt(check.rawSurplusKcal), max: MAX_SURPLUS_KCAL })
+            : t("date.fast.title", {
+                perWeek: fmtNumber(check.weeklyKg, 2),
+                pct: fmtNumber(check.pacePct, 2),
+              })}
+        </Text>
+        <Text style={styles.hint}>
+          {t("date.fast.body", { kg: fmtKg(check.gainKg), count: check.feasibleDays })}
+        </Text>
+        <Button
+          variant="secondary"
+          label={t("date.fast.useDate", { date: fmtDateMedium(later) })}
+          onPress={() => onUseDate(later)}
+        />
+      </>
+    );
+  }
+  return (
+    <>
+      <Text style={styles.hint}>{t("date.slow.title")}</Text>
+      <Text style={styles.hint}>
+        {t("date.slow.body", { surplus: fmtInt(check.surplusKcal), date: fmtDateMedium(later) })}
+      </Text>
+      <Button
+        variant="secondary"
+        label={t("date.slow.useDate", { date: fmtDateMedium(later) })}
+        onPress={() => onUseDate(later)}
       />
     </>
   );
@@ -279,7 +414,7 @@ function MaternalResult({ targets, info }: { targets: Targets; info: MaternalInf
 
 export default function Onboarding() {
   const gate = useSessionGate();
-  const { t } = useTranslation(["onboarding", "common", "settings", "maternal"]);
+  const { t } = useTranslation(["onboarding", "common", "settings", "maternal", "gain"]);
   const { theme } = useUnistyles();
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   const queryClient = useQueryClient();
@@ -299,6 +434,8 @@ export default function Onboarding() {
   const [formError, setFormError] = useState<string | null>(null);
   const [maternalChoice, setMaternalChoice] = useState<MaternalChoice>("none");
   const [draft, setDraft] = useState<MaternalDraft>(() => emptyDraft("pregnant"));
+  const [goal, setGoal] = useState<Goal>("lose");
+  const [derivedGain, setDerivedGain] = useState(false);
 
   if (gate === "loading" || profileQuery.isPending) {
     return <BootLoader />;
@@ -383,9 +520,22 @@ export default function Onboarding() {
   };
 
   const submitTarget = () => {
+    if (goal === "maintain") {
+      nextStep();
+      return;
+    }
     if (target === null || target < 25 || target > 400) {
       setFormError(t("error.targetWeight"));
       return;
+    }
+    if (weight !== null) {
+      const mismatch = goalTargetError(goal, weight, target);
+      if (mismatch) {
+        setFormError(
+          t(mismatch === "goalGainTarget" ? "gain:nativeSetup.needGainTarget" : "gain:nativeSetup.needLoseTarget"),
+        );
+        return;
+      }
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
       setFormError(t("error.targetDateFormat"));
@@ -398,6 +548,48 @@ export default function Onboarding() {
     nextStep();
   };
 
+  /** The chooser is the intent; picking Naikin BB offers a starting target and a lean-pace date. */
+  const chooseGoal = (next: Goal) => {
+    setGoal(next);
+    setDerivedGain(false);
+    setFormError(null);
+    if (next === "gain" && weight !== null && height !== null && ideal && (target === null || target <= weight)) {
+      const suggested = Math.round(suggestGainTarget(weight, height, ideal.minKg, ideal.maxKg) * 10) / 10;
+      const days = suggestedDays(suggested - weight, weight, bmiOf(weight, height) < UNDERWEIGHT_BMI);
+      setTargetWeightKg(String(suggested));
+      setTargetDate(shiftDate(jakartaToday(), Math.min(days, MAX_TARGET_DAYS)));
+    } else if (next === "lose" && target !== null && weight !== null && target >= weight) {
+      setTargetWeightKg("");
+      setTargetDate(defaultTargetDate());
+    }
+  };
+
+  /** A target on the other side of the weight moves the chooser along. */
+  const changeTarget = (text: string) => {
+    setTargetWeightKg(text);
+    const typed = parseNum(text);
+    if (typed === null || weight === null) return;
+    const implied = goalOf(weight, typed);
+    if (implied === "gain" && goal !== "gain") {
+      setGoal("gain");
+      setDerivedGain(true);
+    } else if (implied === "lose" && goal === "gain") {
+      setGoal("lose");
+      setDerivedGain(false);
+    }
+  };
+
+  const gainCheck =
+    goal === "gain" && weight !== null && target !== null
+      ? checkTargetDate({
+          weightNowKg: weight,
+          targetWeightKg: target,
+          targetDate,
+          goal,
+          heightCm: height ?? undefined,
+        })
+      : null;
+
   const submitAll = async () => {
     const year = parseNum(birthYear);
     const maternalResult = isMaternal ? draftToInput(draft) : null;
@@ -405,7 +597,7 @@ export default function Onboarding() {
       year === null ||
       height === null ||
       weight === null ||
-      (maternalResult ? !maternalResult.ok : target === null)
+      (maternalResult ? !maternalResult.ok : goal !== "maintain" && target === null)
     ) {
       setFormError(t("error.incomplete"));
       return;
@@ -422,7 +614,9 @@ export default function Onboarding() {
         activityLevel,
         ...(maternalResult?.ok
           ? { maternal: maternalResult.input }
-          : { targetWeightKg: target ?? undefined, targetDate }),
+          : goal === "maintain"
+            ? { goal, targetWeightKg: weight, targetDate: shiftDate(jakartaToday(), 365) }
+            : { goal, targetWeightKg: target ?? undefined, targetDate }),
       })) as unknown as { targets: Targets };
       setSavedTargets(result.targets);
     } catch (e) {
@@ -613,34 +807,55 @@ export default function Onboarding() {
               <>
                 <Text style={styles.stepTitle}>{t("question.goal.title")}</Text>
                 <Card>
-                  <Field
-                    label={t("question.target.label")}
-                    hint={
-                      ideal
-                        ? t("question.target.healthyRange", {
+                  <GoalChooser value={goal} onChange={chooseGoal} />
+                  {goal === "maintain" ? (
+                    <Text style={styles.hint}>{t("gain:goal.maintainNote")}</Text>
+                  ) : (
+                    <>
+                      <Field
+                        label={t("question.target.label")}
+                        hint={
+                          ideal
+                            ? t("question.target.healthyRange", {
+                                min: fmtKg(ideal.minKg),
+                                max: fmtKg(ideal.maxKg),
+                              })
+                            : undefined
+                        }
+                      >
+                        <Input
+                          value={targetWeightKg}
+                          onChangeText={changeTarget}
+                          keyboardType="decimal-pad"
+                          placeholder="70"
+                        />
+                      </Field>
+                      {derivedGain && goal === "gain" ? (
+                        <Text style={styles.hint}>{t("gain:goal.derivedGain")}</Text>
+                      ) : null}
+                      {goal !== "gain" && ideal && target !== null && target < ideal.minKg ? (
+                        <Text style={styles.warning}>{t("question.target.belowRange")}</Text>
+                      ) : null}
+                      {goal === "gain" && ideal && target !== null && height !== null && bmiOf(target, height) > HEALTHY_BMI_MAX ? (
+                        <Text style={styles.hint}>
+                          {t("gain:target.aboveHealthy", {
                             min: fmtKg(ideal.minKg),
                             max: fmtKg(ideal.maxKg),
-                          })
-                        : undefined
-                    }
-                  >
-                    <Input
-                      value={targetWeightKg}
-                      onChangeText={setTargetWeightKg}
-                      keyboardType="decimal-pad"
-                      placeholder="70"
-                    />
-                  </Field>
-                  {ideal && target !== null && target < ideal.minKg ? (
-                    <Text style={styles.warning}>{t("question.target.belowRange")}</Text>
-                  ) : null}
-                  <Field label={t("question.date.label")} hint={t("question.date.hint")}>
-                    <Input
-                      value={targetDate}
-                      onChangeText={setTargetDate}
-                      placeholder="2026-12-15"
-                    />
-                  </Field>
+                          })}
+                        </Text>
+                      ) : null}
+                      <Field label={t("question.date.label")} hint={t("question.date.hint")}>
+                        <Input
+                          value={targetDate}
+                          onChangeText={setTargetDate}
+                          placeholder="2026-12-15"
+                        />
+                      </Field>
+                      {gainCheck ? (
+                        <GainDateNote check={gainCheck} onUseDate={setTargetDate} />
+                      ) : null}
+                    </>
+                  )}
                   {formError ? <Text style={styles.error}>{formError}</Text> : null}
                   <Button label={t("action.next")} onPress={submitTarget} />
                 </Card>

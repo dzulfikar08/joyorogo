@@ -17,6 +17,7 @@ import { lightTheme as brandTheme } from "@/theme";
 import { MACRO_META } from "@/utils/macro-icons";
 import { ON_TARGET_TOLERANCE, type RecapShare } from "@joyorogo/api/lib/recap";
 import { verificationLabel, type ChallengeShare } from "@joyorogo/api/lib/challenge";
+import { gainEatTone } from "@joyorogo/api/lib/gain";
 import { fmtDate, fmtInt as intFmt, fmtNumber, i18n } from "@joyorogo/i18n";
 
 /**
@@ -104,6 +105,10 @@ export type ProgressStory = {
   proteinTargetG?: number | null;
   streakDays?: number | null;
   weightLostKg?: number | null;
+  /** Naikin BB: weight gained since the start; the card never words a change as "turun". */
+  weightGainedKg?: number | null;
+  /** A Naikin BB plan: gained wording, and the bar is never red. */
+  gain?: boolean;
   /** Newest-last weigh-ins for the sparkline; drawn from 2 points up. */
   weekTrend?: Array<{ date: string; weightKg: number }>;
   eyebrow?: string;
@@ -389,7 +394,18 @@ function progressCells(story: ProgressStory): Cell[] {
       unit: i18n.t("makan:story.card.unit.days", { count: story.streakDays ?? 0 }),
     });
   }
-  if ((story.weightLostKg ?? 0) > 0) {
+  if (story.gain) {
+    if ((story.weightGainedKg ?? 0) > 0) {
+      cells.push({
+        icon: "trending-up",
+        color: ACCENT,
+        label: i18n.t("gain:nativeToday.story.gained"),
+        value: fmtNumber(story.weightGainedKg!, 1),
+        unit: "kg",
+        sub: i18n.t("makan:story.card.fromStartWeight"),
+      });
+    }
+  } else if ((story.weightLostKg ?? 0) > 0) {
     cells.push({
       icon: "trending-down",
       color: ACCENT,
@@ -453,10 +469,11 @@ function recapCells(story: RecapStory): Cell[] {
   }
   if (story.weightChangeKg != null) {
     const change = story.weightChangeKg;
+    const gained = story.gain && change > 0;
     cells.push({
-      icon: change < 0 ? "trending-down" : change > 0 ? "trending-up" : "minus",
+      icon: change > 0 ? "trending-up" : change < 0 && !story.gain ? "trending-down" : "minus",
       color: ACCENT,
-      label: i18n.t("makan:story.card.weight"),
+      label: gained ? i18n.t("gain:nativeToday.story.gained") : i18n.t("makan:story.card.weight"),
       value: `${change > 0 ? "+" : ""}${fmtNumber(change, 1)}`,
       unit: "kg",
       sub: i18n.t("makan:story.card.weeklyTrend"),
@@ -642,15 +659,22 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
   // A recap average is judged like a day: within tolerance of the target is on target.
   const pctColor =
     story.kind === "recap"
-      ? pct > ON_TARGET_TOLERANCE
-        ? OVER
-        : ACCENT
-      : pct > 1
-        ? OVER
-        : pct >= 0.9
+      ? story.gain
+        ? ACCENT
+        : pct > ON_TARGET_TOLERANCE
+          ? OVER
+          : ACCENT
+      : story.kind === "progress" && story.gain
+        ? gainEatTone(story.eatenKcal, story.targetKcal) === "near"
           ? AMBER
-          : ACCENT;
+          : ACCENT
+        : pct > 1
+          ? OVER
+          : pct >= 0.9
+            ? AMBER
+            : ACCENT;
   const trend = card && story.kind === "progress" ? weekTrend(story) : null;
+  const gainTrend = story.kind === "progress" && story.gain === true;
 
   return (
     <CardTone.Provider value={tone}>
@@ -795,17 +819,28 @@ function StatsBlock({ story, date, card }: { story: StorySpec; date: Date; card:
         {trend ? (
           <>
             <View style={styles.trendHeader}>
-              {trend.delta < 0 ? (
+              {trend.delta < 0 && !gainTrend ? (
                 <View style={{ marginRight: px(16) }}>
                   <Icon name="trending-down" size={44} color={ACCENT} />
                 </View>
               ) : null}
+              {gainTrend && trend.delta > 0 ? (
+                <View style={{ marginRight: px(16) }}>
+                  <Icon name="trending-up" size={44} color={ACCENT} />
+                </View>
+              ) : null}
               <Txt size={36} weight={700} lh={48} lines={1}>
-                {trend.delta < 0
-                  ? i18n.t("makan:story.card.trend.down", { kg: fmtNumber(Math.abs(trend.delta), 1) })
-                  : trend.delta > 0
-                    ? i18n.t("makan:story.card.trend.up", { kg: fmtNumber(trend.delta, 1) })
-                    : i18n.t("makan:story.card.trend.steady")}
+                {gainTrend
+                  ? trend.delta > 0
+                    ? i18n.t("gain:recap.weightUp", { kg: fmtNumber(trend.delta, 1) })
+                    : trend.delta === 0
+                      ? i18n.t("gain:recap.weightSteady")
+                      : ""
+                  : trend.delta < 0
+                    ? i18n.t("makan:story.card.trend.down", { kg: fmtNumber(Math.abs(trend.delta), 1) })
+                    : trend.delta > 0
+                      ? i18n.t("makan:story.card.trend.up", { kg: fmtNumber(trend.delta, 1) })
+                      : i18n.t("makan:story.card.trend.steady")}
               </Txt>
             </View>
             <Sparkline weights={trend.weights} />

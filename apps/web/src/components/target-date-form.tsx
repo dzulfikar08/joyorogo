@@ -13,8 +13,11 @@ import {
   shiftDate,
 } from "@joyorogo/api/lib/engine";
 import type { TargetDateCheck } from "@joyorogo/api/lib/engine";
+import type { Goal } from "@joyorogo/api/lib/gain";
 import { cn } from "@joyorogo/ui/lib/utils";
 
+import { GainDateVerdict, isGainCheck } from "@/components/gain/gain-date-verdict";
+import { settleableGoal } from "@/components/gain/goal-plan";
 import { Segmented } from "@/components/kit/surface";
 import { fmtDateLong, fmtInt, fmtKg } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
@@ -46,6 +49,8 @@ export function TargetDateForm({
   targetDate,
   weightNowKg,
   targetWeightKg,
+  heightCm,
+  goal,
   pending,
   serverError,
   onSave,
@@ -53,12 +58,15 @@ export function TargetDateForm({
   targetDate: string;
   weightNowKg: number;
   targetWeightKg: number;
+  heightCm: number;
+  /** the plan's direction; undefined = derived from the weight and the target */
+  goal?: Goal;
   pending: boolean;
   /** Message from the last failed save (e.g. server rejected the date). */
   serverError: string | null;
   onSave: (targetDate: string) => void;
 }) {
-  const { t, i18n } = useTranslation(["settings", "common"]);
+  const { t, i18n } = useTranslation(["settings", "common", "gain"]);
   const today = jakartaToday();
   const tomorrow = shiftDate(today, 1);
   const lastDay = shiftDate(today, MAX_TARGET_DAYS);
@@ -70,14 +78,21 @@ export function TargetDateForm({
   const captionFormat = new Intl.DateTimeFormat(tag, { month: "long", year: "numeric" });
   const weekdayFormat = new Intl.DateTimeFormat(tag, { weekday: "short" });
 
-  const check = checkTargetDate({ weightNowKg, targetWeightKg, targetDate: date, today });
+  const check = checkTargetDate({ weightNowKg, targetWeightKg, targetDate: date, today, goal, heightCm });
   const days = daysBetween(today, date);
-  const saveable = ["ok", "fast", "slow", "maintenance"].includes(check.status);
+  const saveable = ["ok", "fast", "slow", "maintenance", "gainOk", "gainFast", "gainSlow"].includes(
+    check.status,
+  );
   const previewable = saveable;
+  const gaining = isGainCheck(check);
 
   const preview = useQuery({
     ...orpc.profile.previewTargets.queryOptions({
-      input: { targetWeightKg, targetDate: date },
+      input: {
+        targetWeightKg,
+        targetDate: date,
+        goal: goal && settleableGoal(goal, weightNowKg, targetWeightKg),
+      },
     }),
     enabled: previewable,
     placeholderData: keepPreviousData,
@@ -175,21 +190,38 @@ export function TargetDateForm({
         }}
       />
 
-      <Verdict
-        check={check}
-        today={today}
-        onUseDate={(offsetDays) => pick(shiftDate(today, Math.min(offsetDays, MAX_TARGET_DAYS)))}
-      />
+      {isGainCheck(check) ? (
+        <GainDateVerdict
+          check={check}
+          today={today}
+          onUseDate={(offsetDays) => pick(shiftDate(today, Math.min(offsetDays, MAX_TARGET_DAYS)))}
+        />
+      ) : (
+        <Verdict
+          check={check}
+          today={today}
+          onUseDate={(offsetDays) => pick(shiftDate(today, Math.min(offsetDays, MAX_TARGET_DAYS)))}
+        />
+      )}
+      {gaining && <p className="text-sm leading-relaxed text-muted-foreground">{t("gain:date.hint")}</p>}
 
       {previewable &&
         (preview.data ? (
           <p className="rounded-2xl bg-makan-soft px-4 py-3 text-sm leading-snug font-semibold text-makan-ink tabular-nums">
             {preview.data.next.eatKcal !== preview.data.current.eatKcal
-              ? t("plan.targetDate.preview.changed", {
-                  next: fmtInt(preview.data.next.eatKcal),
-                  current: fmtInt(preview.data.current.eatKcal),
-                })
-              : t("plan.targetDate.preview.same", { kcal: fmtInt(preview.data.next.eatKcal) })}
+              ? gaining
+                ? t("gain:date.preview.changed", {
+                    next: fmtInt(preview.data.next.eatKcal),
+                    current: fmtInt(preview.data.current.eatKcal),
+                    surplus: fmtInt(preview.data.next.gain?.surplusKcal ?? 0),
+                  })
+                : t("plan.targetDate.preview.changed", {
+                    next: fmtInt(preview.data.next.eatKcal),
+                    current: fmtInt(preview.data.current.eatKcal),
+                  })
+              : gaining
+                ? t("gain:date.preview.same", { kcal: fmtInt(preview.data.next.eatKcal) })
+                : t("plan.targetDate.preview.same", { kcal: fmtInt(preview.data.next.eatKcal) })}
           </p>
         ) : preview.isError ? (
           <p className="text-sm text-muted-foreground">{t("plan.targetDate.previewFailed")}</p>
@@ -208,7 +240,7 @@ function Verdict({
   today,
   onUseDate,
 }: {
-  check: TargetDateCheck;
+  check: Exclude<TargetDateCheck, { status: "gainOk" | "gainFast" | "gainSlow" }>;
   today: string;
   onUseDate: (offsetDays: number) => void;
 }) {

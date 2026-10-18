@@ -25,6 +25,7 @@ import {
 import { Card, Page, PageHeader, SectionTitle, StatTile } from "@/components/kit/surface";
 import { ProgressBar } from "@/components/progress-bar";
 import { RecapChart } from "@/components/recap-chart";
+import { GainRecapNote } from "@/components/gain/gain-today";
 import { EmptyHint, ScreenError } from "@/components/screen-state";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { fmtInt, fmtKg } from "@/lib/format";
@@ -49,7 +50,7 @@ export const Route = createFileRoute("/_auth/rekap")({
 });
 
 function RekapPage() {
-  const { t } = useTranslation(["misc", "common"]);
+  const { t } = useTranslation(["misc", "common", "gain"]);
   const { week } = Route.useSearch();
   const navigate = Route.useNavigate();
   const today = jakartaToday();
@@ -130,8 +131,10 @@ function RekapPage() {
 
           <Card>
             <SectionTitle className="mb-4 px-0">{t("recap.daily")}</SectionTitle>
-            <RecapChart days={recap.days} targetKcal={recap.targetKcal} />
+            <RecapChart days={recap.days} targetKcal={recap.targetKcal} gain={recap.gain} />
           </Card>
+
+          {recap.gain && <GainRecapNote recap={recap} />}
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <StatTile
@@ -160,7 +163,7 @@ function RekapPage() {
               label={t("recap.stat.streak.label")}
               value={recap.streakDays}
               unit={t("recap.unit.day", { count: recap.streakDays })}
-              sub={t("recap.stat.streak.sub")}
+              sub={recap.gain ? t("gain:today.streakRule") : t("recap.stat.streak.sub")}
             />
             <StatTile
               metric="bakar"
@@ -224,7 +227,7 @@ function RekapPage() {
               {t("recap.note.title")}
             </summary>
             <p className="mt-1.5 pl-5 leading-relaxed">
-              {t("recap.note.body")}
+              {recap.gain ? t("gain:today.streakRule") : t("recap.note.body")}
               {recap.complete ? "" : ` ${t("recap.note.ongoing")}`}
             </p>
           </details>

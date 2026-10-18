@@ -17,6 +17,7 @@ import { effectiveRamadan, jakartaToday } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { wibMinutes } from "@joyorogo/api/lib/fasting";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
+import { gainRemaining } from "@joyorogo/api/lib/gain";
 import { VERDICT_LABELS, adviseSnack, dayImpactLine } from "@joyorogo/api/lib/snack-advice";
 import type { AdviceVerdict, SnackAdvice } from "@joyorogo/api/lib/snack-advice";
 import { Button } from "@joyorogo/ui/components/button";
@@ -24,7 +25,22 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { fmtInt, fmtKcalLabel } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 
-export type SnackAdviceState = { advice: SnackAdvice | null; impact: string | null };
+/** Naikin BB: the item read against what is still to eat (never a verdict). */
+export type GainScan = {
+  state: "short" | "reached";
+  leftKcal: number;
+  /** Day total with this item added. */
+  totalKcal: number;
+  targetKcal: number;
+  /** The item alone is a third of the day's target: offer the calorie-dense hint. */
+  dense: boolean;
+};
+
+export type SnackAdviceState = {
+  advice: SnackAdvice | null;
+  impact: string | null;
+  gain?: GainScan;
+};
 
 /**
  * Advice for the item about to be saved. Today gets the verdict card; a past
@@ -49,6 +65,21 @@ export function useSnackAdvice(input: {
   if (!summary.data || !targets || !(input.kcal > 0)) return { advice: null, impact: null };
   // Hamil / Menyusui: no over-target verdict, no "upcoming meals" budget pressure.
   if (targets.maternal) return { advice: null, impact: null };
+  // Naikin BB: under-eating is the problem, so never a verdict, only what is still to eat.
+  if (targets.gain) {
+    const { state, kcal: leftKcal } = gainRemaining(targets.eatKcal, summary.data.eatenKcal);
+    return {
+      advice: null,
+      impact: null,
+      gain: {
+        state: state === "short" ? "short" : "reached",
+        leftKcal,
+        totalKcal: summary.data.eatenKcal + input.kcal,
+        targetKcal: targets.eatKcal,
+        dense: input.kcal >= targets.eatKcal / 3,
+      },
+    };
+  }
   if (!isToday) {
     return {
       advice: null,
@@ -110,8 +141,44 @@ export function SnackAdviceCard({
   onUndoHalf?: () => void;
   className?: string;
 }) {
-  const { t } = useTranslation("makan");
-  const { advice, impact } = state;
+  const { t } = useTranslation(["makan", "gain"]);
+  const { advice, impact, gain } = state;
+  if (gain) {
+    return (
+      <section
+        role="status"
+        aria-label={t("gain:coach.scanTitle")}
+        data-verdict="gain"
+        className={cn("rounded-3xl bg-makan-soft p-5", className)}
+      >
+        <div className="flex items-start gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-card text-makan-ink">
+            <CircleCheck className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-base leading-tight font-extrabold">{t("gain:coach.scanTitle")}</p>
+            <p className="mt-1 text-sm leading-relaxed">
+              {gain.state === "short"
+                ? t("gain:coach.scanShort", { kcal: fmtInt(gain.leftKcal) })
+                : t("gain:coach.scanReached")}
+            </p>
+            <p className="mt-1 text-sm leading-relaxed tabular-nums text-foreground/70">
+              {t("gain:coach.dayImpact", {
+                total: fmtInt(gain.totalKcal),
+                target: fmtInt(gain.targetKcal),
+              })}
+            </p>
+            {gain.dense && (
+              <p className="mt-2 flex items-start gap-2 text-sm">
+                <Lightbulb className="mt-0.5 size-4 shrink-0 text-foreground/70" aria-hidden />
+                <span>{t("gain:coach.dense")}</span>
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
+    );
+  }
   if (!advice) {
     return impact ? (
       <p className={cn("px-1 text-sm text-muted-foreground", className)} role="status">

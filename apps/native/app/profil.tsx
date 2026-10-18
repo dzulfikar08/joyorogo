@@ -11,7 +11,14 @@ import * as WebBrowser from "expo-web-browser";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, UnistylesRuntime, useUnistyles } from "react-native-unistyles";
 
-import { ACTIVITY_LABELS, idealWeightRange } from "@joyorogo/api/lib/engine";
+import { ACTIVITY_LABELS, idealWeightRange, jakartaToday, MAX_TARGET_DAYS, shiftDate } from "@joyorogo/api/lib/engine";
+import {
+  bmiOf,
+  suggestedDays,
+  suggestGainTarget,
+  UNDERWEIGHT_BMI,
+  type Goal,
+} from "@joyorogo/api/lib/gain";
 import { i18n, LOCALES, LOCALE_NAMES } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
@@ -40,6 +47,8 @@ import {
   EndPregnancySheet,
 } from "@/components/maternal/end-pregnancy-sheet";
 import { MaternalEditSheet, MaternalSettingsSheet, useSetMaternal } from "@/components/maternal/maternal-sheets";
+import { GainDisclaimer, GainNotes } from "@/components/gain/gain-notes";
+import { GoalChooser } from "@/components/gain/goal-chooser";
 import { StravaCard } from "@/components/strava-card";
 import { FastingSettingsCard } from "@/components/fasting/settings-card";
 import { RemindersCard } from "@/components/reminders/reminders-card";
@@ -63,14 +72,14 @@ import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 const SHEET_SWAP_MS = 350;
 
 export default function Profil() {
-  const { t } = useTranslation(["settings", "common", "maternal"]);
+  const { t } = useTranslation(["settings", "common", "maternal", "gain"]);
   const gate = useSessionGate();
   const toast = useToast();
   // refetch keeps every screen's avatar in sync right after ganti/hapus foto.
   const session = authClient.useSession();
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   const config = useAppConfig();
-  type TargetsInput = { targetWeightKg: number; targetDate: string };
+  type TargetsInput = { targetWeightKg: number; targetDate: string; goal?: Goal };
   type ProfileCache = { profile: Record<string, unknown> | null };
   const myProfileKey = orpc.profile.myProfile.queryOptions().queryKey;
 
@@ -84,14 +93,21 @@ export default function Profil() {
           : {
               targetWeightKg: row.profile.targetWeightKg as number,
               targetDate: row.profile.targetDate as string,
+              ...(input.goal ? { goal: row.profile.goal as Goal } : {}),
             };
       cache.value<ProfileCache>(myProfileKey, (old) => ({
-        profile: { ...old?.profile, targetWeightKg: input.targetWeightKg, targetDate: input.targetDate },
+        profile: {
+          ...old?.profile,
+          targetWeightKg: input.targetWeightKg,
+          targetDate: input.targetDate,
+          ...(input.goal ? { goal: input.goal } : {}),
+        },
       }));
       return previous;
     },
     success: (_input, _data, previous) => {
       setSheet(null);
+      setGoalDraft(null);
       const undoFrom = previous ?? null;
       return {
         message: t("plan.toast.updated"),
@@ -106,6 +122,8 @@ export default function Profil() {
   const [sheet, setSheet] = useState<
     null | "weight" | "date" | "needs" | "maternal" | "maternalEdit" | "end"
   >(null);
+  // A goal picked in the chooser that needs a new target first (the weight sheet saves both).
+  const [goalDraft, setGoalDraft] = useState<"lose" | "gain" | null>(null);
   const { needs: needsParam } = useLocalSearchParams<{ needs?: string }>();
   useEffect(() => {
     if (needsParam === "1") setSheet("needs");
@@ -208,8 +226,52 @@ export default function Profil() {
   };
 
   const prof = profileQuery.data?.profile ?? null;
+  const weightNowKg = profileQuery.data?.latestWeightKg ?? prof?.startWeightKg ?? 0;
   const targets = profileQuery.data?.targets ?? null;
   const maternal = targets?.maternal ?? null;
+  const heightCm = prof?.heightCm ?? null;
+  const underweight = heightCm !== null && bmiOf(weightNowKg, heightCm) < UNDERWEIGHT_BMI;
+
+  /** A starting target for a goal that has no valid target yet. */
+  const draftTargetKg = (goal: "lose" | "gain") => {
+    if (goal === "gain" && heightCm !== null) {
+      const range = idealWeightRange(heightCm);
+      return Math.round(suggestGainTarget(weightNowKg, heightCm, range.minKg, range.maxKg) * 10) / 10;
+    }
+    return Math.round((weightNowKg - 1) * 10) / 10;
+  };
+  const draftTargetDate = (goal: "lose" | "gain", targetKg: number) =>
+    shiftDate(
+      jakartaToday(),
+      goal === "gain"
+        ? Math.min(suggestedDays(targetKg - weightNowKg, weightNowKg, underweight), MAX_TARGET_DAYS)
+        : 90,
+    );
+  const closeTargetSheet = () => {
+    setSheet(null);
+    setGoalDraft(null);
+  };
+
+  /** Maintain holds today's weight; lose / gain keep the target when it sits on the right side, else ask for a new one first. */
+  const chooseGoal = (next: Goal) => {
+    if (!prof || next === prof.goal) {
+      setGoalDraft(null);
+      return;
+    }
+    if (next === "maintain") {
+      setGoalDraft(null);
+      updateTargets.mutate({ goal: next, targetWeightKg: prof.targetWeightKg, targetDate: prof.targetDate });
+      return;
+    }
+    const fits = next === "gain" ? prof.targetWeightKg > weightNowKg : prof.targetWeightKg < weightNowKg;
+    if (fits) {
+      setGoalDraft(null);
+      updateTargets.mutate({ goal: next, targetWeightKg: prof.targetWeightKg, targetDate: prof.targetDate });
+      return;
+    }
+    setGoalDraft(next);
+    setSheet("weight");
+  };
 
   if (gate === "loading") {
     return <BootLoader />;
@@ -557,6 +619,14 @@ export default function Profil() {
             </ListGroup>
           ) : null}
 
+          {/* Tujuan: Turunin / Jaga / Naikin BB (mati selama Hamil atau Menyusui) */}
+          {maternal ? null : (
+            <Card>
+              <Text style={styles.cardTitle}>{t("gain:goal.title")}</Text>
+              <GoalChooser value={goalDraft ?? prof.goal} onChange={chooseGoal} />
+            </Card>
+          )}
+
           {/* Rencana rows → sheet editors */}
           <ListGroup>
             {maternal ? null : (
@@ -623,6 +693,16 @@ export default function Profil() {
                     })}
               </Text>
               <Text style={styles.caption}>{t("plan.recalcNote")}</Text>
+              {targets.gain ? (
+                <>
+                  <GainNotes gain={targets.gain} />
+                  <Text style={styles.caption}>{t("gain:plan.estimate")}</Text>
+                  <Text style={styles.caption}>
+                    {t("gain:estimate.title")}. {t("gain:estimate.body")}
+                  </Text>
+                  <GainDisclaimer short />
+                </>
+              ) : null}
             </>
           )}
 
@@ -786,14 +866,16 @@ export default function Profil() {
             <>
               <TargetWeightSheet
                 visible={sheet === "weight"}
-                onClose={() => setSheet(null)}
+                onClose={closeTargetSheet}
                 heightCm={prof.heightCm}
-                targetWeightKg={prof.targetWeightKg}
+                weightNowKg={weightNowKg}
+                targetWeightKg={goalDraft ? draftTargetKg(goalDraft) : prof.targetWeightKg}
                 pending={updateTargets.isPending}
                 onSave={async (kg) => {
                   await updateTargets.mutateAsync({
                     targetWeightKg: kg,
-                    targetDate: prof.targetDate,
+                    targetDate: goalDraft ? draftTargetDate(goalDraft, kg) : prof.targetDate,
+                    ...(goalDraft ? { goal: goalDraft } : {}),
                   });
                 }}
               />
@@ -801,8 +883,10 @@ export default function Profil() {
                 visible={sheet === "date"}
                 onClose={() => setSheet(null)}
                 targetDate={prof.targetDate}
-                weightNowKg={profileQuery.data?.latestWeightKg ?? prof.startWeightKg}
+                weightNowKg={weightNowKg}
                 targetWeightKg={prof.targetWeightKg}
+                goal={prof.goal}
+                heightCm={prof.heightCm}
                 pending={updateTargets.isPending}
                 onSave={async (date) => {
                   await updateTargets.mutateAsync({

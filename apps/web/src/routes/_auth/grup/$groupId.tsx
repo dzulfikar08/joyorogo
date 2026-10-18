@@ -561,7 +561,7 @@ function MemberCard({
   pokePending: boolean;
   index: number;
 }) {
-  const { t } = useTranslation("grup");
+  const { t } = useTranslation(["grup", "gain"]);
   const { today } = member;
   const delta = today.weightDeltaKg7d;
   const firstName = member.name.split(" ")[0] ?? member.name;
@@ -587,7 +587,11 @@ function MemberCard({
         {member.streakDays > 0 && (
           <span
             className="inline-flex shrink-0 items-center gap-1 rounded-full bg-bakar-soft px-2.5 py-1 text-xs font-bold text-bakar-ink tabular-nums"
-            title={t("member.streak", { count: member.streakDays })}
+            title={
+              today.gaining
+                ? t("gain:group.streak", { count: member.streakDays })
+                : t("member.streak", { count: member.streakDays })
+            }
           >
             <Flame className="size-3.5" aria-hidden />
             {member.streakDays}
@@ -622,7 +626,9 @@ function MemberCard({
                 <span
                   className={cn(
                     "ml-1 inline-flex items-center gap-0.5 align-middle font-bold",
-                    delta < 0 ? "text-primary" : "text-amber-600 dark:text-amber-400",
+                    (today.gaining ? delta > 0 : delta < 0)
+                      ? "text-primary"
+                      : "text-amber-600 dark:text-amber-400",
                   )}
                 >
                   {delta < 0 ? (
@@ -630,7 +636,9 @@ function MemberCard({
                   ) : (
                     <TrendingUp className="size-3.5" aria-hidden />
                   )}
-                  {fmtKg(Math.abs(delta))}
+                  {today.gaining && delta > 0
+                    ? t("gain:group.weekGained", { kg: fmtKg(delta) })
+                    : fmtKg(Math.abs(delta))}
                 </span>
               )}
             </span>

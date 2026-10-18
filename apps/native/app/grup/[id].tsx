@@ -89,7 +89,7 @@ function MemberCard({
   onRemove: () => void;
 }) {
   const { theme } = useUnistyles();
-  const { t } = useTranslation("grup");
+  const { t } = useTranslation(["grup", "gain"]);
   const today = member.today;
   const lastActive = member.lastActiveAt ? t("member.active", { time: timeAgoId(member.lastActiveAt) }) : t("member.inactiveShort");
   const delta = today.weightDeltaKg7d;
@@ -118,7 +118,12 @@ function MemberCard({
           </Text>
         </View>
         {member.streakDays > 0 ? (
-          <View style={[styles.streak, { backgroundColor: theme.colors.bakarSoft }]}>
+          <View
+            style={[styles.streak, { backgroundColor: theme.colors.bakarSoft }]}
+            accessibilityLabel={
+              today.gaining ? t("gain:group.streak", { count: member.streakDays }) : undefined
+            }
+          >
             <Ionicons name="flame" size={12} color={theme.colors.bakarText} />
             <Num style={[styles.streakText, { color: theme.colors.bakarText }]}>
               {member.streakDays}
@@ -132,6 +137,7 @@ function MemberCard({
         eaten={today.eatenKcal}
         budget={today.eatTargetKcal}
         unit="kcal"
+        neutral={today.gaining}
       />
 
       <Text style={styles.memberStats}>
@@ -141,9 +147,11 @@ function MemberCard({
           today.exerciseMinutes !== null ? t("member.statExercise", { minutes: today.exerciseMinutes }) : null,
           today.weightKg !== null
             ? `${fmtKg(today.weightKg)} kg${
-                delta !== null
-                  ? ` ${t("member.statDelta", { value: `${delta <= 0 ? "−" : "+"}${fmtKg(Math.abs(delta))}` })}`
-                  : ""
+                delta === null
+                  ? ""
+                  : today.gaining && delta > 0
+                    ? ` (${t("gain:group.weekGained", { kg: fmtKg(delta) })})`
+                    : ` ${t("member.statDelta", { value: `${delta <= 0 ? "−" : "+"}${fmtKg(Math.abs(delta))}` })}`
               }`
             : null,
         ]

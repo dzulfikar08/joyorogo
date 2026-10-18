@@ -7,13 +7,15 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { warningMessage } from "@joyorogo/api/lib/workout";
 
+import { useGain } from "@/components/gain/use-gain";
 import { Card, Text } from "@/components/ui";
 import { orpc } from "@/utils/orpc";
 
 /** Compact Beranda card: missed-muscle warnings today + door to /latihan. */
 export function WorkoutCard() {
   const { theme } = useUnistyles();
-  const { t } = useTranslation("home");
+  const { t } = useTranslation(["home", "gain"]);
+  const { gain } = useGain();
   const status = useQuery(orpc.workout.status.queryOptions({ input: {} }));
 
   // Silent while loading or failing: Beranda stays calm, /latihan owns errors.
@@ -25,7 +27,7 @@ export function WorkoutCard() {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={t("workout.openLabel")}
+      accessibilityLabel={t("home:workout.openLabel")}
       onPress={() => router.push("/latihan")}
       style={({ pressed }) => [styles.press, pressed && styles.pressed]}
     >
@@ -34,7 +36,7 @@ export function WorkoutCard() {
           <View style={[styles.iconChip, { backgroundColor: theme.colors.bakarSoft }]}>
             <Ionicons name="barbell" size={15} color={theme.colors.bakarText} />
           </View>
-          <Text style={styles.label}>{t("workout.title")}</Text>
+          <Text style={styles.label}>{t("home:workout.title")}</Text>
           <Ionicons name="chevron-forward" size={16} color={theme.colors.mutedForeground} />
         </View>
         {top.length > 0 ? (
@@ -47,7 +49,11 @@ export function WorkoutCard() {
           </View>
         ) : (
           <Text style={styles.hint}>
-            {sessionCount28d > 0 ? t("workout.allGood") : t("workout.keepMuscle")}
+            {sessionCount28d > 0
+              ? t("home:workout.allGood")
+              : gain
+                ? t("gain:coach.keepMuscle")
+                : t("home:workout.keepMuscle")}
           </Text>
         )}
       </Card>
