@@ -1,4 +1,5 @@
 import "@/unistyles";
+import { useQuery } from "@tanstack/react-query";
 import { Redirect, router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Platform } from "react-native";
@@ -15,6 +16,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { useUnreadCount } from "@/src/lib/group";
+import { orpc } from "@/utils/orpc";
 
 /**
  * Lainnya tab: the overflow destination — Profil, Grup, Kotak Masuk, and the
@@ -25,6 +27,7 @@ export default function Lainnya() {
   const gate = useSessionGate();
   const { data: session } = authClient.useSession();
   const config = useAppConfig();
+  const profile = useQuery(orpc.profile.myProfile.queryOptions());
   const unread = useUnreadCount();
   const unreadCount = unread.data?.count ?? 0;
   const displayName = session?.user.name ?? t("more.fallbackNameNative");
@@ -42,10 +45,12 @@ export default function Lainnya() {
     return <Redirect href="/login" />;
   }
 
-  // Free accounts see the paywall row; Founder sees nothing to buy. The row
+  // Free accounts see the paywall row; Pro (founder) sees nothing to buy, so the
+  // row is hidden (/founder bounces a Pro account back home). The row also
   // needs a working checkout: /founder bounces back when billing is off
   // (self-hosted copies, Play build).
   const showPricing =
+    profile.data?.tier === "free" &&
     config.data?.paywall === true &&
     (Platform.OS === "ios" ? config.data.appleBilling : config.data.billing);
 
