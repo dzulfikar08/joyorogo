@@ -1,0 +1,81 @@
+{
+  "title": "AI connections",
+  "subtitle": "AI apps allowed to read your JoyoRogo data. Read-only: nothing can be changed or deleted through a connection.",
+  "connector": {
+    "title": "Connector address",
+    "hint": "Paste this address into Claude or ChatGPT when you add a connector.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "guide": "Guide: use Claude or ChatGPT with your JoyoRogo data"
+  },
+  "pro": {
+    "required": "AI connections are a JoyoRogo Pro feature. You can still connect an app, but it can only read your data once Pro is active.",
+    "cta": "See JoyoRogo Pro"
+  },
+  "list": {
+    "title": "Connected apps",
+    "empty": "No AI app is connected yet.",
+    "emptyHint": "Connect from Claude or ChatGPT and the app shows up here.",
+    "error": "Could not load your connections. Try again.",
+    "retry": "Try again",
+    "connectedAt": "Connected {{date}}",
+    "lastUsed": "Last used {{when}}",
+    "neverUsed": "Never used",
+    "calls_one": "{{count}} call in 30 days",
+    "calls_other": "{{count}} calls in 30 days",
+    "allows": "Allowed to read",
+    "via": "Via {{hosts}}"
+  },
+  "revoke": {
+    "action": "Disconnect",
+    "title": "Disconnect {{name}}?",
+    "body": "{{name}} can no longer read your data, right away. You can connect it again any time.",
+    "confirm": "Disconnect",
+    "cancel": "Cancel",
+    "done": "{{name}} disconnected.",
+    "error": "Could not disconnect. Try again."
+  },
+  "activity": {
+    "title": "Recent activity",
+    "hint": "Every time an AI app reads your data it is logged here for 90 days. What is logged: the tool used and its date range, never the data itself.",
+    "empty": "No activity yet.",
+    "outcome": {
+      "ok": "Done",
+      "error": "Failed",
+      "not_pro": "Needs Pro",
+      "rate_limited": "Limited",
+      "scope": "Missing permission"
+    },
+    "tool": {
+      "get_profile": "Profile and targets",
+      "get_food_log": "Food log",
+      "get_daily_totals": "Daily totals",
+      "get_weight_history": "Weight history",
+      "list_workouts": "Workout list",
+      "get_workout": "Workout detail",
+      "get_recovery_metrics": "Sleep and recovery"
+    }
+  },
+  "scope": {
+    "profile_read": {
+      "label": "Profile and targets",
+      "desc": "Mode (lose, maintain, gain, pregnant), height, age, start and target weight, calorie and protein targets."
+    },
+    "food_read": {
+      "label": "Food log",
+      "desc": "The food you log each day with calories and macros, and daily totals against your target."
+    },
+    "weight_read": {
+      "label": "Body weight",
+      "desc": "Weigh-in history, waist measurements and the trend toward your target."
+    },
+    "workouts_read": {
+      "label": "Workouts",
+      "desc": "Workouts from your JoyoFit watch (duration, distance, heart rate, analysis) and strength sessions. No GPS routes."
+    },
+    "recovery_read": {
+      "label": "Sleep and recovery",
+      "desc": "Hours slept, recovery, readiness, resting heart rate, HRV, VO2max and steps from JoyoFit or Health Connect."
+    }
+  }
+}

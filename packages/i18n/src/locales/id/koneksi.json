@@ -1,0 +1,80 @@
+{
+  "title": "Koneksi AI",
+  "subtitle": "Aplikasi AI yang boleh membaca datamu di JoyoRogo. Hanya membaca: tidak ada yang bisa diubah atau dihapus lewat koneksi ini.",
+  "connector": {
+    "title": "Alamat penyambung",
+    "hint": "Tempel alamat ini di Claude atau ChatGPT saat menambah penyambung (connector).",
+    "copy": "Salin",
+    "copied": "Tersalin",
+    "guide": "Panduan: pakai Claude atau ChatGPT dengan data JoyoRogo"
+  },
+  "pro": {
+    "required": "Koneksi AI adalah fitur JoyoRogo Pro. Kamu tetap bisa menyambungkannya, tapi aplikasi AI baru bisa membaca datamu setelah Pro aktif.",
+    "cta": "Lihat JoyoRogo Pro"
+  },
+  "list": {
+    "title": "Aplikasi tersambung",
+    "empty": "Belum ada aplikasi AI yang tersambung.",
+    "emptyHint": "Sambungkan dari Claude atau ChatGPT, lalu aplikasinya muncul di sini.",
+    "error": "Daftar koneksi belum bisa dimuat. Coba lagi.",
+    "retry": "Coba lagi",
+    "connectedAt": "Tersambung {{date}}",
+    "lastUsed": "Terakhir dipakai {{when}}",
+    "neverUsed": "Belum pernah dipakai",
+    "calls_other": "{{count}} pemanggilan dalam 30 hari",
+    "allows": "Boleh membaca",
+    "via": "Lewat {{hosts}}"
+  },
+  "revoke": {
+    "action": "Putuskan",
+    "title": "Putuskan {{name}}?",
+    "body": "{{name}} langsung tidak bisa membaca datamu lagi. Kamu bisa menyambungkannya lagi kapan saja.",
+    "confirm": "Putuskan",
+    "cancel": "Batal",
+    "done": "{{name}} diputus.",
+    "error": "Gagal memutuskan. Coba lagi."
+  },
+  "activity": {
+    "title": "Aktivitas terakhir",
+    "hint": "Setiap kali aplikasi AI membaca datamu, tercatat di sini selama 90 hari. Yang dicatat: alat yang dipakai dan rentang tanggalnya, bukan isi datanya.",
+    "empty": "Belum ada aktivitas.",
+    "outcome": {
+      "ok": "Berhasil",
+      "error": "Gagal",
+      "not_pro": "Butuh Pro",
+      "rate_limited": "Dibatasi",
+      "scope": "Izin kurang"
+    },
+    "tool": {
+      "get_profile": "Profil dan target",
+      "get_food_log": "Catatan makan",
+      "get_daily_totals": "Total harian",
+      "get_weight_history": "Riwayat berat",
+      "list_workouts": "Daftar latihan",
+      "get_workout": "Detail latihan",
+      "get_recovery_metrics": "Tidur dan pemulihan"
+    }
+  },
+  "scope": {
+    "profile_read": {
+      "label": "Profil dan target",
+      "desc": "Mode (turun, jaga, naik, hamil), tinggi, umur, berat awal dan target, target kalori dan protein."
+    },
+    "food_read": {
+      "label": "Catatan makan",
+      "desc": "Makanan yang kamu catat per hari beserta kalori dan makronya, dan total harian dibanding target."
+    },
+    "weight_read": {
+      "label": "Berat badan",
+      "desc": "Riwayat timbangan, lingkar perut, dan tren menuju targetmu."
+    },
+    "workouts_read": {
+      "label": "Latihan",
+      "desc": "Latihan dari jam JoyoFit (durasi, jarak, detak jantung, analisis) dan sesi latihan beban. Tanpa rute GPS."
+    },
+    "recovery_read": {
+      "label": "Tidur dan pemulihan",
+      "desc": "Jam tidur, pemulihan, kesiapan, detak jantung istirahat, HRV, VO2max, dan langkah dari JoyoFit atau Health Connect."
+    }
+  }
+}

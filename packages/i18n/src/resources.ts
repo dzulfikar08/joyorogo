@@ -24,6 +24,9 @@ import idCoach from "./locales/id/coach.json";
 import idMaternal from "./locales/id/maternal.json";
 import idGain from "./locales/id/gain.json";
 import idJam from "./locales/id/jam.json";
+import idKoneksi from "./locales/id/koneksi.json";
+import idIzin from "./locales/id/izin.json";
+import idPanduanAi from "./locales/id/panduanAi.json";
 
 import enAuth from "./locales/en/auth.json";
 import enBerat from "./locales/en/berat.json";
@@ -51,6 +54,9 @@ import enCoach from "./locales/en/coach.json";
 import enMaternal from "./locales/en/maternal.json";
 import enGain from "./locales/en/gain.json";
 import enJam from "./locales/en/jam.json";
+import enKoneksi from "./locales/en/koneksi.json";
+import enIzin from "./locales/en/izin.json";
+import enPanduanAi from "./locales/en/panduanAi.json";
 
 import type { Locale } from "./locale";
 
@@ -82,6 +88,9 @@ const id = {
   maternal: idMaternal,
   gain: idGain,
   jam: idJam,
+  koneksi: idKoneksi,
+  izin: idIzin,
+  panduanAi: idPanduanAi,
 };
 
 /**
@@ -115,6 +124,9 @@ const en: typeof id = {
   maternal: enMaternal,
   gain: enGain,
   jam: enJam,
+  koneksi: enKoneksi,
+  izin: enIzin,
+  panduanAi: enPanduanAi,
 };
 
 export const resources = { id, en } satisfies Record<Locale, typeof id>;

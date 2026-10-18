@@ -23,3 +23,8 @@ export function isMcpDataScope(scope: string): scope is McpDataScope {
 
 /** The path of the MCP endpoint below the API origin. */
 export const MCP_PATH = "/mcp";
+
+/** The i18n key of a scope under `koneksi:scope.<key>.label|desc` (a colon cannot sit in an i18next key). */
+export function mcpScopeKey(scope: McpDataScope): string {
+  return scope.replace(":", "_");
+}
