@@ -94,13 +94,18 @@ const unsubscribeUrl = async (deps: BroadcastDeps, userId: string) =>
   `${deps.baseUrl.replace(/\/$/, "")}/unsubscribe?t=${await signUnsubscribeToken(deps.secret, userId)}`;
 
 /** The mail one recipient gets, with their own signed unsubscribe link. */
-export async function renderFor(deps: BroadcastDeps, campaign: Campaign, to: Pick<Recipient, "id" | "name">) {
+export async function renderFor(
+  deps: BroadcastDeps,
+  campaign: Campaign,
+  to: Pick<Recipient, "id" | "name">,
+  locale?: "id" | "en",
+) {
   const url = await unsubscribeUrl(deps, to.id);
-  return { mail: renderBroadcast({ campaign, name: to.name, unsubscribeUrl: url }), unsubscribeUrl: url };
+  return { mail: renderBroadcast({ campaign, name: to.name, unsubscribeUrl: url, locale }), unsubscribeUrl: url };
 }
 
 /** Sends one mail; never throws. */
-async function deliver(deps: BroadcastDeps, mail: RenderedMail, to: string, unsubscribe: string): Promise<MailResult> {
+export async function deliver(deps: BroadcastDeps, mail: RenderedMail, to: string, unsubscribe: string): Promise<MailResult> {
   if (!deps.email) return { ok: false, error: "email off (no EMAIL binding)" };
   const sender = deps.sender ?? BROADCAST_SENDER;
   try {

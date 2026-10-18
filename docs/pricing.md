@@ -39,6 +39,16 @@ The current step (buyers 11-110) matches both stores. The server accepts only th
 
 Legacy non-renewing IAPs (removed 2026-10-18): `.founder.1y` was deleted in App Store Connect (it was never submitted). `.founder.1m` could not be deleted (`IAP_DELETE_NOT_ALLOWED`, state READY_TO_SUBMIT); it is cleared for sale in every territory (availability: no territories, not in new territories) and stays at Rp29.000. Neither is referenced by the app or the server. Four zero-revenue sandbox `apple:` payments from earlier tests remain in D1 as history.
 
+## TestFlight purchases (Sandbox, Rp0)
+
+A purchase in a TestFlight build runs in Apple's Sandbox and charges nothing. The server grants a Sandbox buyer who is not in `APPLE_SANDBOX_EMAILS` 24 h of Pro at Rp0 (`apple:<txn>` payment row, amount 0), so testers may think they paid.
+
+- **In the app (iOS, TestFlight installs only):** the paywall shows a neutral notice before the buy button, and after a Sandbox grant an alert repeats it. No link, no mention of the web (App Store 3.1.1/3.1.3). Detection is JS only, so it ships OTA: `apps/native/src/lib/testflight.ts` checks for `StoreKit/sandboxReceipt` in the app bundle; the post-purchase alert follows the server's `sandbox: true` in the `/api/billing/apple` answer (Sandbox transaction credited at Rp0). Strings: `billing.testflight.*`.
+- **By email:** one mail per user (`email_log` kind `testflight_notice`, ref = user id), from `dzulfikar@joyorogo.com` with the broadcast unsubscribe footer (opt-outs apply), id or en by the user's profile locale. It says the purchase was Apple's simulation, no charge, Pro 24 h, and that joyorogo.com/harga (QRIS/VA) subscribes for real, working on iPhone too. Code: `apps/server/src/testflight-notice.ts`. Sent right after the grant (purchase route and App Store notifications) and by the `*/5` cron sweep, which also covers buyers from before the mail existed and failed sends (20 per tick, stops at the first failure). Never sent to `review@`/`qa@`, `ADMIN_EMAILS`, `APPLE_SANDBOX_EMAILS` or unverified emails.
+- **Admin:** a Rp0 `apple:` order shows the method "TestFlight (uji)". Revenue sums, the paid-order counts and the daily paid series count only `amount_idr > 0`.
+
+**Switch it off when App Store 1.0 is live:** the mail is gated by the server var `TESTFLIGHT_PURCHASE_EMAIL`. Set it to anything but `on` (e.g. `off`) in `apps/server/wrangler.jsonc` `vars`, then `cd apps/server && CLOUDFLARE_ACCOUNT_ID=3268f27664d77716b648b00c8850469e bunx wrangler deploy`. That stops both the after-grant mail and the sweep. The in-app notice needs no switch: it only shows in TestFlight installs.
+
 ## Runbook: buyer count crosses 110 (step 2 to step 3)
 
 Check the count: `/api/config` returns `promo` while on a step with a cap; once `promo` is `null` and `founderPriceIdr` is 49000, step 3 is live. Web prices change by themselves. Then:

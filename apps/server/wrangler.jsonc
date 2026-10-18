@@ -92,6 +92,7 @@
     "DOKU_BASE_URL": "https://api.doku.com",
     "PAKASIR_SLUG": "joyorogo",
     "APPLE_BUNDLE_ID": "com.joyodigitama.joyorogo",
-    "APPLE_SANDBOX_EMAILS": ""
+    "APPLE_SANDBOX_EMAILS": "",
+    "TESTFLIGHT_PURCHASE_EMAIL": "on"
   }
 }

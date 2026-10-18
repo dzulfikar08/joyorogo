@@ -50,6 +50,7 @@ import { registerOgRoutes } from "./og";
 import { registerPrivacyRoutes } from "./privacy";
 import { registerFamilyRoutes } from "./family";
 import { registerStravaRoutes } from "./strava";
+import { runTestflightNoticeSweep, sendTestflightNotice, testflightNoticeConfig } from "./testflight-notice";
 import { registerUnsubscribeRoutes } from "./unsubscribe";
 import { registerWatchWorkoutRoutes } from "./watch-workout";
 import { scrubExpiredStravaRows } from "@joyorogo/api/lib/strava-retention";
@@ -86,9 +87,33 @@ registerAnonScanRoutes(app, {
   anonScans: paywallConfig(env).anonScans,
 });
 
+// Announcement mail needs the STICKERS bucket (opt-outs, campaign state; no D1 table); without it
+// the broadcast routes answer 503 and the TestFlight notice stays off.
+const broadcastDeps = (): BroadcastDeps | undefined =>
+  "STICKERS" in env
+    ? {
+        db: getDb(),
+        bucket: env.STICKERS,
+        email: env.EMAIL,
+        secret: env.BETTER_AUTH_SECRET,
+        baseUrl: env.BETTER_AUTH_URL,
+      }
+    : undefined;
+
+// One mail per TestFlight (Sandbox) buyer; TESTFLIGHT_PURCHASE_EMAIL=on enables it (docs/pricing.md).
+const testflightNotice = testflightNoticeConfig(env);
+
 // Public config, Founder checkout (DOKU/Pakasir) + webhooks, personal AI usage.
 // After CORS so web can read errors.
-const billing = registerBillingRoutes(app, { env, getDb, createAuth });
+const billing = registerBillingRoutes(app, {
+  env,
+  getDb,
+  createAuth,
+  onSandboxGrant: async (userId) => {
+    const broadcast = broadcastDeps();
+    if (broadcast) await sendTestflightNotice(broadcast, testflightNotice, userId);
+  },
+});
 
 // Google Play Billing (Play build Pro subscription) + its Pub/Sub notifications.
 registerGooglePlayRoutes(app, { env, getDb, createAuth });
@@ -110,18 +135,7 @@ registerAdminRoutes(app, {
 });
 
 // Announcement mail: console endpoints behind the admin gate above, key-gated CLI test/status
-// (BROADCAST_KEY), and the public unsubscribe page the mails link to. Opt-outs and the
-// campaign state live in the STICKERS bucket (no D1 table).
-const broadcastDeps = (): BroadcastDeps | undefined =>
-  "STICKERS" in env
-    ? {
-        db: getDb(),
-        bucket: env.STICKERS,
-        email: env.EMAIL,
-        secret: env.BETTER_AUTH_SECRET,
-        baseUrl: env.BETTER_AUTH_URL,
-      }
-    : undefined;
+// (BROADCAST_KEY), and the public unsubscribe page the mails link to.
 registerBroadcastRoutes(app, {
   adminEmails: env.ADMIN_EMAILS,
   getDb,
@@ -721,6 +735,11 @@ export default {
       ctx.waitUntil(
         runBroadcastTick(broadcast).catch((error: unknown) =>
           console.error("[broadcast] tick failed", error),
+        ),
+      );
+      ctx.waitUntil(
+        runTestflightNoticeSweep(broadcast, testflightNotice).catch((error: unknown) =>
+          console.error("[testflight-notice] sweep failed", error),
         ),
       );
     }

@@ -6,7 +6,7 @@
  * - blank line starts a new paragraph; other lines of a paragraph stay on their own line (`<br>`)
  * - `- item` lines form a bullet list
  * - `**bold**`, `[label](https://url)`, and bare `https://url` (made a link)
- * - `{nama}` is the recipient's first name ("kamu" when unknown)
+ * - `{nama}` is the recipient's first name ("kamu" when unknown; "there" in an English mail)
  */
 
 export type Campaign = { id: string; subject: string; body: string };
@@ -15,14 +15,20 @@ export type RenderedMail = { subject: string; html: string; text: string };
 
 export const FALLBACK_NAME = "kamu";
 
+/** Footer wording and the unknown-name fallback per mail language; the body is written per language by the caller. */
+const LOCALE_COPY: Record<"id" | "en", { fallbackName: string; unsubscribe: string; unsubscribeLink: string }> = {
+  id: { fallbackName: FALLBACK_NAME, unsubscribe: "Tidak mau terima email seperti ini lagi?", unsubscribeLink: "Berhenti berlangganan" },
+  en: { fallbackName: "there", unsubscribe: "Don't want emails like this anymore?", unsubscribeLink: "Unsubscribe" },
+};
+
 /** Text-node escaping; the URL patterns below stop at `"`, so a matched URL is attribute-safe too. */
 const escapeHtml = (value: string) =>
   value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-/** "Siti Aminah" -> "Siti"; "dzul" -> "Dzul"; an email address or blank -> "kamu". */
-export function firstName(fullName: string | null | undefined): string {
+/** "Siti Aminah" -> "Siti"; "dzul" -> "Dzul"; an email address or blank -> `fallback` ("kamu"). */
+export function firstName(fullName: string | null | undefined, fallback = FALLBACK_NAME): string {
   const word = (fullName ?? "").trim().split(/\s+/)[0] ?? "";
-  if (!word || word.includes("@") || !/\p{L}/u.test(word)) return FALLBACK_NAME;
+  if (!word || word.includes("@") || !/\p{L}/u.test(word)) return fallback;
   const uniform = word === word.toLowerCase() || word === word.toUpperCase();
   return uniform ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : word;
 }
@@ -92,11 +98,14 @@ export type RenderInput = {
   /** The recipient's full name as stored; only the first word is used. */
   name: string | null | undefined;
   unsubscribeUrl: string;
+  /** Mail language: footer wording and the name fallback. Default "id". */
+  locale?: "id" | "en";
 };
 
 /** Plain readable HTML and the matching text part. The unsubscribe footer is always appended. */
-export function renderBroadcast({ campaign, name, unsubscribeUrl }: RenderInput): RenderedMail {
-  const who = firstName(name);
+export function renderBroadcast({ campaign, name, unsubscribeUrl, locale = "id" }: RenderInput): RenderedMail {
+  const copy = LOCALE_COPY[locale];
+  const who = firstName(name, copy.fallbackName);
   const blocks = parseBlocks(campaign.body);
 
   const htmlBlocks = blocks.map((block) =>
@@ -106,10 +115,10 @@ export function renderBroadcast({ campaign, name, unsubscribeUrl }: RenderInput)
           .join("")}</ul>`
       : `<p style="${PARAGRAPH_STYLE}">${block.lines.map((line) => lineToHtml(line, who)).join("<br>")}</p>`,
   );
-  const footerHtml = `Tidak mau terima email seperti ini lagi? <a href="${escapeHtml(unsubscribeUrl)}" style="color:${MUTED};">Berhenti berlangganan</a>`;
+  const footerHtml = `${copy.unsubscribe} <a href="${escapeHtml(unsubscribeUrl)}" style="color:${MUTED};">${copy.unsubscribeLink}</a>`;
 
   const html = `<!doctype html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(campaign.subject)}</title></head>
+<html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(campaign.subject)}</title></head>
 <body style="margin:0;padding:24px 16px;background:#ffffff;color:${INK};font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;line-height:1.6;">
 <div style="max-width:560px;margin:0 auto;">
 ${htmlBlocks.join("\n")}
@@ -122,7 +131,7 @@ ${htmlBlocks.join("\n")}
       ? block.items.map((item) => `- ${lineToText(item, who)}`).join("\n")
       : block.lines.map((line) => lineToText(line, who)).join("\n"),
   );
-  const text = `${textBlocks.join("\n\n")}\n\nTidak mau terima email seperti ini lagi? Berhenti berlangganan: ${unsubscribeUrl}\n`;
+  const text = `${textBlocks.join("\n\n")}\n\n${copy.unsubscribe} ${copy.unsubscribeLink}: ${unsubscribeUrl}\n`;
 
   return { subject: campaign.subject, html, text };
 }

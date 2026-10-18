@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull, isNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNotNull, isNull, ne, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import type { JoyoAuth } from "@joyorogo/auth";
 import type { Context, Hono } from "hono";
@@ -205,7 +205,7 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
               foodLogs: sql<number>`(select count(*) from food_log where food_log.user_id = ${uid})`,
               onboarded: sql<number>`(select count(*) from profile where profile.user_id = ${uid})`,
               pendingOrders: sql<number>`(select count(*) from payment where payment.user_id = ${uid} and payment.status = 'pending')`,
-              paidOrders: sql<number>`(select count(*) from payment where payment.user_id = ${uid} and payment.status = 'paid')`,
+              paidOrders: sql<number>`(select count(*) from payment where payment.user_id = ${uid} and payment.status = 'paid' and payment.amount_idr > 0)`,
             })
             .from(user)
             .where(
@@ -236,7 +236,7 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
         scans7d: sql<number>`(select count(*) from ai_usage where scan_type = 'user' and created_at >= ${now - 7 * DAY_MS})`,
         anonScansToday: sql<number>`(select count(*) from ai_usage where scan_type != 'user' and created_at between ${startMs} and ${endMs})`,
         pendingOrders: sql<number>`(select count(*) from payment where status = 'pending')`,
-        paidOrders: sql<number>`(select count(*) from payment where status = 'paid')`,
+        paidOrders: sql<number>`(select count(*) from payment where status = 'paid' and amount_idr > 0)`,
         revenueIdr: sql<number>`(select coalesce(sum(amount_idr), 0) from payment where status = 'paid')`,
       })
       // Every column is a scalar subquery; any one-row source works.
@@ -272,7 +272,7 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
           revenueIdr: sql<number>`sum(${payment.amountIdr})`,
         })
         .from(payment)
-        .where(and(eq(payment.status, "paid"), sql`${payment.paidAt} >= ${since}`))
+        .where(and(eq(payment.status, "paid"), gt(payment.amountIdr, 0), sql`${payment.paidAt} >= ${since}`))
         .groupBy(wibDay(payment.paidAt)),
     ]);
     const byDay: Record<string, { day: string; scans: number; scanUsers: number; signups: number; paid: number; revenueIdr: number }> = {};

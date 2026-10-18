@@ -95,6 +95,8 @@ type Deps = {
   env: BillingEnv;
   getDb: () => Database;
   createAuth: () => Promise<JoyoAuth>;
+  /** Called (inside waitUntil) after a zero-revenue Sandbox grant: TestFlight buyers get a notice mail. */
+  onSandboxGrant?: (userId: string) => Promise<void>;
 };
 
 type Provider = "doku" | "pakasir";
@@ -508,22 +510,39 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       }
       return c.json({ error: t(c)("billing.processing") }, 409);
     }
+    // A Sandbox transaction credited at Rp0 is the TestFlight trial: the app
+    // tells the buyer nothing was charged.
+    const ledgerId = appleLedgerId(transaction.transactionId);
+    let sandbox = false;
+    if (transaction.environment === "Sandbox") {
+      if (result.status === "granted") {
+        sandbox = result.amountIdr === 0;
+      } else {
+        const [ledger] = await billing.db
+          .select({ amountIdr: payment.amountIdr })
+          .from(payment)
+          .where(eq(payment.orderId, ledgerId))
+          .limit(1);
+        sandbox = ledger?.amountIdr === 0;
+      }
+    }
     if (result.status === "granted") {
       // The one-day sandbox trial is not a sale: no receipt, no admin alert.
       if (result.amountIdr > 0) {
-        const orderId = appleLedgerId(transaction.transactionId);
         c.executionCtx.waitUntil(
           sendOrderEmails(
             env,
             billing.db,
-            { orderId, userId: me.id, gateway: "apple" },
+            { orderId: ledgerId, userId: me.id, gateway: "apple" },
             { founderDailyCap: config.founderDailyCap },
-          ).catch((error: unknown) => console.error(`order emails ${orderId}:`, error)),
+          ).catch((error: unknown) => console.error(`order emails ${ledgerId}:`, error)),
         );
+      } else if (deps.onSandboxGrant) {
+        c.executionCtx.waitUntil(deps.onSandboxGrant(me.id));
       }
-      return c.json({ activated: true, founderUntil: result.founderUntil });
+      return c.json({ activated: true, founderUntil: result.founderUntil, sandbox });
     }
-    return c.json({ activated: false, founderUntil: result.founderUntil });
+    return c.json({ activated: false, founderUntil: result.founderUntil, sandbox });
   });
 
   // App Store Server Notifications V2. Set this URL as both the Production and
@@ -561,6 +580,8 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
             { founderDailyCap: config.founderDailyCap },
           ).catch((error: unknown) => console.error(`order emails ${granted.orderId}:`, error)),
         );
+      } else if (result.granted && deps.onSandboxGrant) {
+        c.executionCtx.waitUntil(deps.onSandboxGrant(result.granted.userId));
       }
       return c.json({ received: true });
     } catch (error) {

@@ -38,7 +38,8 @@ export const payment = sqliteTable(
 /**
  * email_log.kind. Plain text in D1 (no CHECK), so a new kind is a TS-only change.
  * `broadcast:<campaignId>` (ref = userId) is one announcement mail per user;
- * `broadcast_test:<campaignId>` (ref = "<userId>:<sentMs>-<random>") is an admin test send.
+ * `broadcast_test:<campaignId>` (ref = "<userId>:<sentMs>-<random>") is an admin test send;
+ * `testflight_notice` (ref = userId) is the once-per-user mail after a TestFlight (Sandbox) purchase.
  */
 export type EmailLogKind =
   | "receipt"
@@ -46,6 +47,7 @@ export type EmailLogKind =
   | "founder_ending"
   | "founder_expired"
   | "accuracy_digest"
+  | "testflight_notice"
   | `broadcast:${string}`
   | `broadcast_test:${string}`;
 
