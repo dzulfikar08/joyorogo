@@ -34,9 +34,9 @@ Store prices checked 2026-10-18 (read-only):
 | --- | --- | --- | --- |
 | App Store Connect (IDN) | auto-renewable `com.joyodigitama.joyorogo.founder.monthly` / `.yearly` | Rp29.000 | **Rp199.000** |
 | Google Play | subscription `pro`, base plans `monthly` / `yearly` (ID region) | Rp29.000 | **Rp199.000** |
-| App Store Connect (IDN) | legacy non-renewing `.founder.1m` / `.founder.1y` | Rp29.000 | **Rp290.000** (`.1y`, MISSING_METADATA, not on sale) |
+| App Store Connect (IDN) | legacy non-renewing `.founder.1m` / `.founder.1y` (never submitted, not sold by the app) | Rp29.000 | **Rp199.000** (`.1y`, fixed from Rp290.000 on 2026-10-18) |
 
-The current step (buyers 11-110) matches both stores. The legacy `.founder.1y` (still accepted by the server) is Rp290k and does not match; it is not submitted, so no store customer can buy it. Do not ship it without fixing the price.
+The current step (buyers 11-110) matches all store products. The legacy non-renewing products are not referenced by the native app (it only sells `.founder.monthly` / `.founder.yearly`) and are not submitted, so no customer can buy them. The server still accepts them so sandbox/TestFlight receipts and notifications from earlier tests (4 zero-revenue `apple:` payments) stay valid; their ASC prices now match the live step, so they can never sell at a wrong price. They must be repriced alongside the live products at each ladder step.
 
 ## Runbook: buyer count crosses 110 (step 2 to step 3)
 
