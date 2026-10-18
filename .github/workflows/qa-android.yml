@@ -1,0 +1,76 @@
+# QA APK for on-device checks, never for users: the same code as the release but the Android package is
+# com.joyodigitama.joyorogo.qa (JOYOROGO_QA=1) and the APK is signed with a throwaway debug key, so it installs
+# NEXT TO the real app and cannot update or replace it. No secrets, no environment, read-only token.
+#
+# Manual only. Builds the ref it is dispatched on:
+#   gh workflow run qa-android.yml -R dzulfikar08/joyorogo --ref <branch>
+#   gh run download <run-id> -R dzulfikar08/joyorogo -n joyorogo-qa-apk
+#   adb install -r joyorogo-qa.apk
+name: QA Android
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qa-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/node_modules/.cache "$AGENT_TOOLSDIRECTORY/CodeQL"
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Cache bun packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: false
+
+      - name: Gradle JVM settings
+        run: |
+          mkdir -p ~/.gradle
+          cat >> ~/.gradle/gradle.properties <<'EOF2'
+          org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -XX:+UseParallelGC
+          org.gradle.parallel=true
+          org.gradle.caching=true
+          EOF2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build QA APK
+        run: scripts/build-qa-apk.sh
+
+      - name: Upload QA APK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: joyorogo-qa-apk
+          path: dist/joyorogo-qa.apk
+          if-no-files-found: error
+          retention-days: 7
