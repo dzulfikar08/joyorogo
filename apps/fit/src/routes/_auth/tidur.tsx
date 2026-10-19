@@ -5,7 +5,7 @@ import type { RecoveryDayView } from "@joyorogo/api/lib/fit-data";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Hourglass, Moon, Repeat2, Target } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { DayChart, Legend, legendOf } from "@/components/charts";
@@ -25,7 +25,7 @@ import {
 } from "@/lib/aggregate";
 import { fmtSleep } from "@/lib/format";
 import { usePageTitle } from "@/lib/page-title";
-import { orpc } from "@/lib/orpc";
+import { recoveryQuery, sleepStagesQuery } from "@/lib/queries";
 import { type RangeDays, isRange, windowOf } from "@/lib/range";
 
 /** The default (30 days) stays out of the URL. */
@@ -33,6 +33,12 @@ type Search = { range?: RangeDays };
 
 export const Route = createFileRoute("/_auth/tidur")({
   component: SleepPage,
+  loaderDeps: ({ search }) => ({ range: search.range ?? 30 }),
+  loader: ({ context, deps }) => {
+    const win = windowOf(deps.range);
+    void context.queryClient.prefetchQuery(recoveryQuery(win));
+    void context.queryClient.prefetchQuery(sleepStagesQuery(win.from, win.to).options);
+  },
   validateSearch: (search: Record<string, unknown>): Search => ({
     range:
       isRange(Number(search.range)) && Number(search.range) !== 30
@@ -51,8 +57,10 @@ function SleepPage() {
   const range: RangeDays = Route.useSearch().range ?? 30;
   const navigate = Route.useNavigate();
   const win = useMemo(() => windowOf(range), [range]);
-  const result = useQuery(orpc.fitWeb.recovery.queryOptions({ input: win }));
+  const result = useQuery(recoveryQuery(win));
   const [shown, setShown] = useState(PAGE);
+  // The first render with data is heavy (charts and a table): paint the frame and skeleton first.
+  const settled = useDeferredValue(Boolean(result.data), false);
 
   const header = (
     <PageHeader
@@ -80,7 +88,7 @@ function SleepPage() {
       </>
     );
   }
-  if (!result.data) {
+  if (!result.data || !settled) {
     return (
       <>
         {header}
@@ -111,7 +119,10 @@ function SleepPage() {
   const stats = sleepStats(nights);
   const byWeekday = weekdayAverages(nights);
   return (
-    <div className="flex flex-col gap-4">
+    <div
+      aria-busy={result.isPlaceholderData}
+      className={cn("flex flex-col gap-4 transition-opacity", result.isPlaceholderData && "opacity-60")}
+    >
       {header}
       <Tiles stats={stats} />
       <div className="grid gap-4 lg:grid-cols-2">
@@ -473,7 +484,7 @@ function NightsTable({ days, shown }: { days: readonly RecoveryDayView[]; shown:
             {nights.map((d) => (
               <tr
                 key={d.date}
-                className="border-b border-border/60 last:border-0 hover:bg-muted/60"
+                className="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/60"
               >
                 <th scope="row" className="px-4 py-2.5 text-left font-semibold whitespace-nowrap">
                   {fmtDateMedium(d.date)}

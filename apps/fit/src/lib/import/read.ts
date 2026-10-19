@@ -3,10 +3,7 @@
 import { parseFit } from "./fit";
 import { parseGpx } from "./gpx";
 import { parseTcx } from "./tcx";
-import { type ImportError, type ImportFormat, type ParsedActivity } from "./types";
-
-/** A workout file is a few MB at most (a day-long ride at 1 Hz is under 10 MB); this stops a wrong file before it is read. */
-export const MAX_FILE_BYTES = 60 * 1024 * 1024;
+import { MAX_FILE_BYTES, type ImportError, type ImportFormat, type ParsedActivity } from "./types";
 
 export const ACCEPTED_EXTENSIONS = [".fit", ".gpx", ".tcx"] as const;
 

@@ -125,6 +125,8 @@
       "title": "Belum ada fase tidur di rentang ini",
       "body": "Fase muncul setelah JoyoFit di ponselmu menyinkronkan tidur dari jam."
     },
-    "window": "Fase tersedia untuk 92 hari terakhir."
+    "window": "Fase tersedia untuk 92 hari terakhir.",
+    "search": "Cari tanggal",
+    "noMatch": "Tidak ada malam yang cocok"
   }
 }

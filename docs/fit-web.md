@@ -16,7 +16,13 @@ Host: `app.fit.joyorogo.com` (Cloudflare zone `joyorogo.com`). It is its own Wor
 | Tidur & pemulihan | `/tidur` | Average, estimated need, debt, regularity; nightly bars against the need; **sleep stages** (stage chart of one night at a time, minutes per stage, naps, composition of every night, averages); recovery, HRV, resting HR; average by weekday; night table (cards below 1280 px). |
 | Unggah | `/unggah` | **Workouts:** `.fit`, `.gpx`, `.tcx` read in the browser, previewed, checked against what the account already has, uploaded. **Watch faces:** the account's `.hwt` library (upload, download, delete). |
 
+Menus are `@joyorogo/ui` primitives: `Select` / `MultiSelect` (`select.tsx`, a listbox with Up/Down/Home/End, typing to jump, a check on the chosen row, a search field from 9 options) on top of `Overlay` (`overlay.tsx`): an anchored Radix popover from 640 px (flips and shifts at the screen edge, Esc or an outside tap closes, focus returns to the trigger) and the existing bottom `Sheet` (drag handle, safe-area padding, scroll lock) below it. Used for the range on phones, the sport filter, the sort, the night picker and the export format.
+
 Filters and the range live in the URL (`?range=90&sport=["run"]&sort=distance&dir=asc`, defaults left out), so a view can be linked. Nothing is stored in `localStorage` except the language and theme choice: no health data survives a sign-out on a shared computer.
+
+### Studio (watch faces)
+
+The sidebar (and the settings sheet below `lg`) has a "Studio" entry, a plain `<a href="/studio/">` to the JoyoFit Studio app mounted on this same origin by a Worker route. It is outside the Pro gate, like Ride. URL: `src/lib/ride.ts`.
 
 ### Ride (game)
 
@@ -72,6 +78,15 @@ Vite 8, React 19, TanStack Router (file routes, `_auth` layout guard) and Query,
 - **Map and shared maths: `packages/workout-view`.** The route map (`route-map.tsx`), its OpenFreeMap style (`map-style.ts`) and the analysis helpers (`analysis-math.ts`, with its test) moved out of `apps/web` into this package so both apps use one copy; `apps/web` imports them from `@joyorogo/workout-view/...`.
 - **Brand:** JoyoRogo's tokens with JoyoFit's primary (`#0A6580` light, `#58C4DE` dark) and mark; light and dark follow the system or the choice in the menu.
 - **i18n:** namespaces `fitWeb` (shell, login, wall, states, units), `fitWebOverview`, `fitWebWorkouts`, `fitWebSleep` in `packages/i18n`, Indonesian ("kamu") and English. Slices 3 and 4 add their own namespaces.
+
+## Performance
+
+- **i18n bundle.** `@joyorogo/i18n` bundles every namespace of JoyoRogo and JoyoFit in both languages (about 850 KB of JSON). `vite.config.ts` swaps its `resources.ts` for a slim module (only the namespaces this app reads, and the route-map strings of `feed`), which took the shared entry chunk from 599 KB (201 KB gzip) to 129 KB (45 KB gzip). A namespace the app starts using must be added to `FIT_NAMESPACES` there; type-checking still sees the full module.
+- **Query cache.** `staleTime` 5 minutes, no refetch on focus, one retry and none for 4xx (`lib/orpc.ts`). A range switch keeps the previous window on screen, dimmed, while the new one loads (`lib/queries.ts`, `keepPreviousData`). Nothing is persisted: no health data survives a tab on a shared computer.
+- **Route loaders.** Ringkasan, Latihan, Tidur and a workout start their reads in the route `loader` (not awaited, so the page still renders at once), which also runs on link hover/focus (`defaultPreload: "intent"`); the page's own `useQuery` reads the same cache entries. A workout's map chunk (maplibre, ~1 MB) starts loading as soon as its detail says it has GPS.
+- **Session.** A returning browser (hint `jfit-signed-in` in `localStorage`, no data) does not wait for the session answer before loading the page chunk, its reads and `cloudAccess`; a refused session still ends at `/login`. A first visit is checked first. `/login` renders at once and redirects in the background if a session exists. While the session and the Pro check are in flight the shell is a skeleton instead of a spinner.
+- **Splits.** The FIT/GPX/TCX readers load when the first file is dropped on Unggah (the route chunk went from 470 KB to 29 KB); Koneksi's three tabs are separate chunks.
+- **Server.** The windowed reads are already index-backed (`(user_id, date)` unique indexes, `(user_id, start)` primary key); `fitWeb.workouts` now selects only the columns it returns. The RPC calls are POST, so there is no HTTP caching to add; the cache above is the lever.
 
 ## Auth and CORS
 
@@ -132,7 +147,7 @@ bun run i18n:check
 
 ## Koneksi (`/koneksi`)
 
-One page, three sections, namespace `fitWebConnect`. Code: `routes/_auth/koneksi.tsx`, `components/connect/*`, `lib/coach/*`, `lib/export/*`.
+One page, three tabs (`?tab=coach` or `?tab=export`; the default, AI apps, stays out of the URL; the tab strip is the `Segmented` of the Unggah page), namespace `fitWebConnect`. Each tab is its own lazy chunk (`components/connect/tab-*.tsx`) and fetches only its own data when opened. Code: `routes/_auth/koneksi.tsx`, `components/connect/*`, `lib/coach/*`, `lib/export/*`.
 
 ### 1. AI apps (MCP)
 

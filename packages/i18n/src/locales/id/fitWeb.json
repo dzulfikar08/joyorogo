@@ -87,5 +87,9 @@
     "ride": "Sepeda",
     "swim": "Renang",
     "other": "Lainnya"
+  },
+  "studio": {
+    "title": "Studio",
+    "description": "Desain watch face untuk Fit 4 / Fit 4 Pro."
   }
 }

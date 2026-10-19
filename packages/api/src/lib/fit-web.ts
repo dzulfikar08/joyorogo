@@ -78,7 +78,21 @@ export async function getFitWebWorkouts(
   const startSec = Math.floor(wibDayBounds(from).startMs / 1000);
   const endSec = Math.floor(wibDayBounds(to).endMs / 1000);
   const rows = await db
-    .select()
+    .select({
+      start: watchWorkout.start,
+      sportName: watchWorkout.sportName,
+      sportKind: watchWorkout.sportKind,
+      elapsedSec: watchWorkout.elapsedSec,
+      movingSec: watchWorkout.movingSec,
+      distanceM: watchWorkout.distanceM,
+      elevGainM: watchWorkout.elevGainM,
+      avgHr: watchWorkout.avgHr,
+      maxHr: watchWorkout.maxHr,
+      calories: watchWorkout.calories,
+      hasGps: watchWorkout.hasGps,
+      hasAnalysis: watchWorkout.hasAnalysis,
+      imported: watchWorkout.imported,
+    })
     .from(watchWorkout)
     .where(
       and(

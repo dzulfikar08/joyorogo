@@ -7,10 +7,12 @@ import { QueryCache, QueryClient } from "@tanstack/react-query";
 
 import { SERVER_URL } from "./env";
 import { FitApiError } from "./fit-api";
+import { setSessionHint } from "./session-hint";
 
 /** Session ended mid-use (expired or revoked): drop every cached query before leaving, so nothing of this account survives. */
 function onUnauthorized(error: unknown) {
   if (error instanceof ORPCError && error.code === "UNAUTHORIZED") {
+    setSessionHint(false);
     queryClient.clear();
     if (!window.location.pathname.startsWith("/login")) window.location.assign("/login");
   }

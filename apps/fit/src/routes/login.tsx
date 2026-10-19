@@ -1,11 +1,11 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
-import { createFileRoute, isRedirect, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { BrandMark } from "@/components/brand-mark";
-import { authClient, sessionQuery } from "@/lib/auth-client";
+import { authClient, useSession } from "@/lib/auth-client";
 import { DEV_LOGIN } from "@/lib/env";
 
 export const Route = createFileRoute("/login")({
@@ -19,21 +19,18 @@ export const Route = createFileRoute("/login")({
         : undefined;
     return { redirect: target };
   },
-  beforeLoad: async ({ context, search }) => {
-    // The login page must render even when the server is unreachable: it is the pre-auth surface.
-    try {
-      const session = await context.queryClient.fetchQuery({ ...sessionQuery, staleTime: 0 });
-      if (session) throw redirect({ to: search.redirect ?? "/" });
-    } catch (error) {
-      if (isRedirect(error)) throw error;
-      console.warn("Session check failed; showing login anyway", error);
-    }
-  },
 });
 
 function LoginPage() {
   const { t } = useTranslation("fitWeb");
   const { redirect: returnTo } = Route.useSearch();
+  // The form is on screen at once; a session found in the background sends the person on (never blocks first paint,
+  // and a down server leaves the login page usable).
+  const session = useSession();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (session.data) void navigate({ to: returnTo ?? "/", replace: true });
+  }, [session.data, returnTo, navigate]);
   // Absolute origin of this app: better-auth resolves a relative callbackURL against the API origin.
   const origin = window.location.origin;
   const landing = `${origin}${returnTo ?? "/"}`;

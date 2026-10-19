@@ -1,80 +1,72 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Bot, Download, Plug } from "lucide-react";
+import { Suspense, lazy } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ActivityCard } from "@/components/connect/activity-card";
-import { AppsCard } from "@/components/connect/apps-card";
-import { CoachAside, CoachChat } from "@/components/connect/coach-chat";
-import { ConnectorCard } from "@/components/connect/connector-card";
-import { ExportBulkCard, ExportFormatsCard } from "@/components/connect/export-bulk";
-import { LimitsCard, ReadsCard } from "@/components/connect/mcp-info";
-import { SectionBand } from "@/components/connect/shared";
-import { PageHeader } from "@/components/kit";
-import { useSession } from "@/lib/auth-client";
+import { PageHeader, Segmented } from "@/components/kit";
+import { BlockSkeleton } from "@/components/states";
 import { usePageTitle } from "@/lib/page-title";
+
+const TABS = ["mcp", "coach", "export"] as const;
+type Tab = (typeof TABS)[number];
+
+/** The default tab (AI apps) stays out of the URL. */
+type Search = { tab?: Exclude<Tab, "mcp"> };
 
 export const Route = createFileRoute("/_auth/koneksi")({
   component: ConnectPage,
+  validateSearch: (search: Record<string, unknown>): Search => ({
+    tab: search.tab === "coach" || search.tab === "export" ? search.tab : undefined,
+  }),
 });
 
-const SECTIONS = ["mcp", "coach", "export"] as const;
+// One chunk and one set of queries per tab: a tab fetches nothing until it is opened.
+const PANELS = {
+  mcp: lazy(() => import("@/components/connect/tab-mcp")),
+  coach: lazy(() => import("@/components/connect/tab-coach")),
+  export: lazy(() => import("@/components/connect/tab-export")),
+} satisfies Record<Tab, unknown>;
+
+const TAB_ICON = { mcp: Plug, coach: Bot, export: Download } as const;
 
 function ConnectPage() {
   const { t } = useTranslation("fitWebConnect");
   usePageTitle(t("title"));
-  const session = useSession();
+  const tab: Tab = Route.useSearch().tab ?? "mcp";
+  const navigate = Route.useNavigate();
+  const Panel = PANELS[tab];
 
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <PageHeader title={t("title")} subtitle={t("subtitle")} />
-        <nav aria-label={t("jump.label")} className="-mt-2 flex flex-wrap gap-2">
-          {SECTIONS.map((id) => (
-            <a
-              key={id}
-              href={`#${id}`}
-              className="inline-flex h-10 items-center rounded-full bg-card px-4 text-[0.8125rem] font-semibold text-muted-foreground ring-1 ring-foreground/10 transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40"
-            >
-              {t(`jump.${id}`)}
-            </a>
-          ))}
-        </nav>
-      </div>
-
-      <SectionBand id="mcp" Icon={Plug} title={t("mcp.title")} subtitle={t("mcp.subtitle")}>
-        <div className="grid gap-4 xl:grid-cols-2">
-          <div className="flex min-w-0 flex-col gap-4">
-            <ConnectorCard />
-            <ReadsCard />
-          </div>
-          <div className="flex min-w-0 flex-col gap-4">
-            <AppsCard />
-            <LimitsCard />
-          </div>
-          <div className="min-w-0 xl:col-span-2">
-            <ActivityCard />
-          </div>
-        </div>
-      </SectionBand>
-
-      <SectionBand id="coach" Icon={Bot} title={t("coach.title")} subtitle={t("coach.subtitle")}>
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-          {session.data ? <CoachChat userId={session.data.user.id} /> : null}
-          <CoachAside />
-        </div>
-      </SectionBand>
-
-      <SectionBand
-        id="export"
-        Icon={Download}
-        title={t("export.title")}
-        subtitle={t("export.subtitle")}
-      >
-        <div className="grid gap-4 xl:grid-cols-2">
-          <ExportBulkCard />
-          <ExportFormatsCard />
-        </div>
-      </SectionBand>
+    <div className="flex flex-col">
+      <PageHeader
+        title={t("title")}
+        subtitle={t("subtitle")}
+        actions={
+          <Segmented<Tab>
+            label={t("tabs.label")}
+            value={tab}
+            className="overflow-x-auto"
+            onChange={(next) =>
+              void navigate({ search: { tab: next === "mcp" ? undefined : next }, replace: true })
+            }
+            options={TABS.map((id) => {
+              const Icon = TAB_ICON[id];
+              return {
+                value: id,
+                label: (
+                  <>
+                    <Icon className="size-4" aria-hidden />
+                    {t(`tabs.${id}`)}
+                  </>
+                ),
+              };
+            })}
+          />
+        }
+      />
+      <Suspense fallback={<BlockSkeleton className="h-64" />}>
+        <Panel />
+      </Suspense>
     </div>
   );
 }

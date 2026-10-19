@@ -24,10 +24,24 @@ import { orpc } from "@/lib/orpc";
 import { sportIcon } from "@/lib/sport";
 import { sportKindOf } from "@/lib/aggregate";
 
-const RouteMap = lazy(() => import("@joyorogo/workout-view/route-map"));
+const loadRouteMap = () => import("@joyorogo/workout-view/route-map");
+const RouteMap = lazy(loadRouteMap);
 
 export const Route = createFileRoute("/_auth/latihan/$start")({
   component: WorkoutDetailPage,
+  // The workout and, once we know it has GPS, the map chunk start loading together with the page chunk (and on hover).
+  loader: ({ context, params }) => {
+    const start = Number(params.start);
+    if (!Number.isInteger(start) || start <= 0) return;
+    void context.queryClient
+      .prefetchQuery(orpc.watchWorkout.detail.queryOptions({ input: { start } }))
+      .then(() => {
+        const detail = context.queryClient.getQueryData(
+          orpc.watchWorkout.detail.queryKey({ input: { start } }),
+        );
+        if (detail?.item.hasGps) void loadRouteMap();
+      });
+  },
 });
 
 function BackLink() {

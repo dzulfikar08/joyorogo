@@ -2,6 +2,7 @@ import { LOCALES, LOCALE_NAMES, isLocale } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Sheet } from "@joyorogo/ui/components/sheet";
+import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useTheme } from "@joyorogo/ui/hooks/use-theme";
 import type { Theme } from "@joyorogo/ui/hooks/use-theme";
 import { cn } from "@joyorogo/ui/lib/utils";
@@ -15,6 +16,7 @@ import {
   LogOut,
   Monitor,
   Moon,
+  Palette,
   Settings,
   Sun,
   Plug,
@@ -28,9 +30,10 @@ import { setLocale } from "@/lib/i18n";
 import { type Session, signOut } from "@/lib/auth-client";
 import { orpc } from "@/lib/orpc";
 
-import { RIDE_URL } from "@/lib/ride";
+import { RIDE_URL, STUDIO_URL } from "@/lib/ride";
 
 import { BrandMark } from "./brand-mark";
+import { PageLoader } from "./states";
 import { Segmented } from "./kit";
 
 type NavItem = {
@@ -93,20 +96,53 @@ function BottomLink({ item }: { item: NavItem }) {
   );
 }
 
-/** External: the ride game is a full-screen site of its own, opened in this tab. The tab bar is full, so small screens reach it from the settings sheet. */
-function RideLink() {
-  const { t } = useTranslation("fitWeb");
+/**
+ * External: a full-page site of its own, opened in this tab (a plain link, not the router's). They sit outside the Pro
+ * gate. The tab bar is full, so small screens reach them from the settings sheet.
+ */
+function ExternalLink({
+  href,
+  Icon,
+  title,
+  description,
+}: {
+  href: string;
+  Icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  title: string;
+  description: string;
+}) {
   return (
     <a
-      href={RIDE_URL}
+      href={href}
       className="group flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40"
     >
-      <Bike className="size-[1.125rem] shrink-0" aria-hidden />
+      <Icon className="size-[1.125rem] shrink-0" aria-hidden />
       <span className="min-w-0">
-        <span className="block text-sm font-semibold">{t("ride.title")}</span>
-        <span className="block text-xs leading-snug">{t("ride.description")}</span>
+        <span className="block text-sm font-semibold">{title}</span>
+        <span className="block text-xs leading-snug">{description}</span>
       </span>
     </a>
+  );
+}
+
+/** Ride game and watch-face Studio. */
+function ExternalLinks() {
+  const { t } = useTranslation("fitWeb");
+  return (
+    <>
+      <ExternalLink
+        href={RIDE_URL}
+        Icon={Bike}
+        title={t("ride.title")}
+        description={t("ride.description")}
+      />
+      <ExternalLink
+        href={STUDIO_URL}
+        Icon={Palette}
+        title={t("studio.title")}
+        description={t("studio.description")}
+      />
+    </>
   );
 }
 
@@ -181,6 +217,32 @@ function SettingsPanel({ session }: { session: Session }) {
 }
 
 /** App chrome: sidebar from `lg`, top bar and tab bar below it. */
+/** The frame while the session and Pro check are in flight: the brand and nav slots hold their place, so the page does not jump. */
+export function ShellSkeleton() {
+  return (
+    <div className="min-h-svh lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
+      <aside className="sticky top-0 hidden h-svh flex-col gap-6 border-r border-border bg-sidebar px-3 py-5 lg:flex">
+        <div className="px-2">
+          <Brand />
+        </div>
+        <div className="flex flex-col gap-1">
+          {NAV.map((item) => (
+            <Skeleton key={item.to} className="h-11 rounded-xl" />
+          ))}
+        </div>
+      </aside>
+      <div className="min-w-0">
+        <header className="sticky top-0 z-30 flex h-14 items-center border-b border-border bg-background/90 px-4 pt-[env(safe-area-inset-top)] lg:hidden">
+          <Brand />
+        </header>
+        <main className="mx-auto w-full max-w-[1500px] px-4 pt-4 pb-28 sm:px-6 sm:pt-6 lg:px-8 lg:pb-12">
+          <PageLoader />
+        </main>
+      </div>
+    </div>
+  );
+}
+
 export function Shell({ session, children }: { session: Session; children: React.ReactNode }) {
   const { t } = useTranslation("fitWeb");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -194,7 +256,7 @@ export function Shell({ session, children }: { session: Session; children: React
           {NAV.map((item) => (
             <SideLink key={item.to} item={item} />
           ))}
-          <RideLink />
+          <ExternalLinks />
         </nav>
         <div className="mt-auto rounded-2xl bg-card p-3 ring-1 ring-foreground/5">
           <SettingsPanel session={session} />
@@ -215,7 +277,7 @@ export function Shell({ session, children }: { session: Session; children: React
         </header>
         <Sheet open={settingsOpen} onOpenChange={setSettingsOpen} title={t("menu.title")}>
           <div className="flex flex-col gap-4">
-            <RideLink />
+            <ExternalLinks />
             <SettingsPanel session={session} />
           </div>
         </Sheet>

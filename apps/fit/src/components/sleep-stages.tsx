@@ -1,6 +1,6 @@
 import { fmtClock, fmtDateMedium, fmtDateShort, fmtDecimal } from "@joyorogo/i18n";
-import { shiftDate } from "@joyorogo/api/lib/engine";
 import { Button } from "@joyorogo/ui/components/button";
+import { Select } from "@joyorogo/ui/components/select";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -9,8 +9,8 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 
 import { Card, CardHeader } from "@/components/kit";
 import { BlockSkeleton, EmptyState, QueryError } from "@/components/states";
-import { fitApi } from "@/lib/fit-api";
 import { fmtHm } from "@/lib/format";
+import { sleepStagesQuery } from "@/lib/queries";
 import {
   CHART_ORDER,
   type SleepDay,
@@ -23,9 +23,6 @@ import {
   stagesPresent,
 } from "@/lib/sleep-stages";
 
-/** The longest window the JoyoFit API serves in one call. */
-export const STAGE_WINDOW_DAYS = 92;
-
 const COLOR: Record<Stage, string> = {
   awake: "var(--stage-awake)",
   rem: "var(--stage-rem)",
@@ -37,13 +34,8 @@ const COLOR: Record<Stage, string> = {
 /** Sleep stages per night from the JoyoFit cloud: a stage chart of one night at a time, and the nights side by side. */
 export function SleepStagesCard({ from, to }: { from: string; to: string }) {
   const { t } = useTranslation("fitWebSleep");
-  const clamped =
-    from < shiftDate(to, -(STAGE_WINDOW_DAYS - 1)) ? shiftDate(to, -(STAGE_WINDOW_DAYS - 1)) : from;
-  const result = useQuery({
-    queryKey: ["fit-api", "sleep", clamped, to],
-    queryFn: () => fitApi<SleepResponse>(`/sleep?from=${clamped}&to=${to}`),
-    staleTime: 5 * 60 * 1000,
-  });
+  const { clamped, options } = sleepStagesQuery(from, to);
+  const result = useQuery(options);
   // Newest night first for the picker; the composition chart reads oldest to newest.
   const nights = useMemo(
     () => (result.data?.days ?? []).filter((d) => d.night !== null).toReversed(),
@@ -79,20 +71,15 @@ export function SleepStagesCard({ from, to }: { from: string; to: string }) {
             >
               <ChevronLeft aria-hidden />
             </Button>
-            <label className="min-w-0 flex-1 sm:flex-none">
-              <span className="sr-only">{t("stages.pick")}</span>
-              <select
-                value={selected.day}
-                onChange={(event) => setPicked(event.target.value)}
-                className="h-10 w-full rounded-full border border-input bg-card px-4 text-sm font-semibold sm:w-64"
-              >
-                {nights.map((d) => (
-                  <option key={d.day} value={d.day}>
-                    {fmtDateMedium(d.day)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Select<string>
+              label={t("stages.pick")}
+              searchLabel={t("stages.search")}
+              noResults={t("stages.noMatch")}
+              value={selected.day}
+              onChange={setPicked}
+              options={nights.map((d) => ({ value: d.day, label: fmtDateMedium(d.day) }))}
+              className="min-w-0 flex-1 sm:w-64 sm:flex-none"
+            />
             <Button
               variant="outline"
               size="icon-sm"

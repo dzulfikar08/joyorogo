@@ -1,4 +1,5 @@
 import { fmtDateShort, fmtDecimal } from "@joyorogo/i18n";
+import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
@@ -11,7 +12,7 @@ import {
   ShieldCheck,
   TrendingUp,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { DayChart, Legend, Sparkline, VolumeChart, legendOf } from "@/components/charts";
@@ -36,6 +37,7 @@ import {
 import { fmtHm, fmtKm, fmtSigned, fmtSleep } from "@/lib/format";
 import { usePageTitle } from "@/lib/page-title";
 import { orpc } from "@/lib/orpc";
+import { recoveryQuery, workoutsQuery } from "@/lib/queries";
 import { type RangeDays, isRange, windowOf } from "@/lib/range";
 import { SPORT_COLOR, sportIcon } from "@/lib/sport";
 
@@ -44,6 +46,18 @@ type Search = { range?: RangeDays; compare?: false };
 
 export const Route = createFileRoute("/_auth/")({
   component: OverviewPage,
+  loaderDeps: ({ search }) => ({ range: search.range ?? 30, compare: search.compare !== false }),
+  // Start the reads before the page renders (and on link hover); the page's own queries pick the same cache entries up.
+  loader: ({ context, deps }) => {
+    const win = windowOf(deps.range);
+    void context.queryClient.prefetchQuery(recoveryQuery(win));
+    void context.queryClient.prefetchQuery(workoutsQuery(win));
+    if (deps.compare) {
+      const before = previousWindow(win.from, win.to);
+      void context.queryClient.prefetchQuery(recoveryQuery(before));
+      void context.queryClient.prefetchQuery(workoutsQuery(before));
+    }
+  },
   validateSearch: (search: Record<string, unknown>): Search => ({
     range:
       isRange(Number(search.range)) && Number(search.range) !== 30
@@ -67,8 +81,8 @@ function OverviewPage() {
   const win = useMemo(() => windowOf(range), [range]);
   const before = useMemo(() => previousWindow(win.from, win.to), [win]);
 
-  const recovery = useQuery(orpc.fitWeb.recovery.queryOptions({ input: win }));
-  const workouts = useQuery(orpc.fitWeb.workouts.queryOptions({ input: win }));
+  const recovery = useQuery(recoveryQuery(win));
+  const workouts = useQuery(workoutsQuery(win));
   const previousRecovery = useQuery({
     ...orpc.fitWeb.recovery.queryOptions({ input: before }),
     enabled: compare,
@@ -77,6 +91,9 @@ function OverviewPage() {
     ...orpc.fitWeb.workouts.queryOptions({ input: before }),
     enabled: compare,
   });
+
+  // The first render with data is heavy (a dozen charts): show the frame and skeleton first, then fill in at low priority.
+  const settled = useDeferredValue(Boolean(recovery.data && workouts.data), false);
 
   const controls = (
     <RangeControls
@@ -121,7 +138,7 @@ function OverviewPage() {
       </>
     );
   }
-  if (!recovery.data || !workouts.data) {
+  if (!recovery.data || !workouts.data || !settled) {
     return (
       <>
         {header}
@@ -148,6 +165,7 @@ function OverviewPage() {
     );
   }
 
+  const dim = recovery.isPlaceholderData || workouts.isPlaceholderData;
   const prevRows =
     compare && previousRecovery.data
       ? dayPoints(before.from, before.to, previousRecovery.data.days)
@@ -155,7 +173,10 @@ function OverviewPage() {
   const prevItems = compare ? previousWorkouts.data?.items : undefined;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div
+      aria-busy={dim}
+      className={cn("flex flex-col gap-4 transition-opacity", dim && "opacity-60")}
+    >
       {header}
       <Tiles rows={rows} prevRows={prevRows} items={items} prevItems={prevItems} />
       <div className="grid gap-4 lg:grid-cols-2">

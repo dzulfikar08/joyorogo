@@ -5,7 +5,8 @@ import type { FitWebWorkout } from "@joyorogo/api/lib/fit-web";
 import type { AnalysisOptions } from "./analysis";
 import { type Collision, findCollision } from "./collision";
 import { type BuildFailure, type BuiltDoc, buildDoc } from "./doc";
-import { MAX_FILE_BYTES, readWorkoutFile } from "./read";
+import { readWorkoutFile } from "./read";
+import { MAX_FILE_BYTES } from "./types";
 import { type ImportFailure, type ParsedActivity, isImportError } from "./types";
 
 export type Prepared =

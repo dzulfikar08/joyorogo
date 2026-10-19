@@ -1,5 +1,6 @@
 import { fmtDateShort } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
+import { Select } from "@joyorogo/ui/components/select";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -7,7 +8,7 @@ import { Download, FileJson, Loader2, Route, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Card, CardHeader, Segmented } from "@/components/kit";
+import { Card, CardHeader } from "@/components/kit";
 import { RangeControls } from "@/components/range-controls";
 import { orpc } from "@/lib/orpc";
 import { type RangeDays, windowOf } from "@/lib/range";
@@ -114,7 +115,7 @@ export function ExportBulkCard() {
         </div>
         <div className="flex flex-col gap-1.5">
           <p className="text-xs font-semibold text-muted-foreground">{t("export.bulk.format")}</p>
-          <Segmented<Format>
+          <Select<Format>
             className="self-start"
             label={t("export.bulk.format")}
             value={format}

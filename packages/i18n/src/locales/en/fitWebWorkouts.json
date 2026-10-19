@@ -39,7 +39,9 @@
     "sort": "Sort",
     "ascending": "Sort ascending",
     "descending": "Sort descending",
-    "noMatch": "No workouts match these filters"
+    "noMatch": "No workouts match these filters",
+    "sportAny": "All sports",
+    "sportSome": "Sports: {{n}}"
   },
   "detail": {
     "back": "All workouts",

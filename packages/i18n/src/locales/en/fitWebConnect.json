@@ -1,11 +1,11 @@
 {
   "title": "Connections",
   "subtitle": "Connect JoyoFit to AI apps, ask the coach with your own data, and download all your workouts.",
-  "jump": {
-    "label": "Sections on this page",
+  "tabs": {
+    "label": "Connect sections",
     "mcp": "AI apps",
-    "coach": "Ask the coach",
-    "export": "Export data"
+    "coach": "Coach",
+    "export": "Export"
   },
   "mcp": {
     "title": "AI apps (MCP)",

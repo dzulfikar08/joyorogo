@@ -2,7 +2,7 @@ import { Button } from "@joyorogo/ui/components/button";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { ORPCError } from "@orpc/client";
-import { CloudOff, Crown, Loader2, RotateCw, SearchX } from "lucide-react";
+import { CloudOff, Crown, RotateCw, SearchX } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -11,19 +11,21 @@ import { isPaywall } from "@/lib/orpc";
 
 import { PRICING_URL } from "./pro-wall";
 
-/** Router-level pending fallback: a quiet spinner. */
+/** Router-level pending fallback: the shape of a page (title, tiles, a chart) instead of a spinner. */
 export function PageLoader() {
   const { t } = useTranslation("fitWeb");
   return (
-    <div
-      role="status"
-      aria-label={t("state.loading")}
-      className="grid min-h-[50svh] place-items-center"
-    >
-      <Loader2
-        className="size-6 animate-spin text-muted-foreground motion-reduce:animate-[spin_1.5s_linear_infinite]"
-        aria-hidden
-      />
+    <div role="status" aria-label={t("state.loading")} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2 pb-2">
+        <Skeleton className="h-8 w-48 rounded-lg" />
+        <Skeleton className="h-4 w-72 max-w-full rounded-md" />
+      </div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <Skeleton key={i} className="h-28 rounded-2xl" />
+        ))}
+      </div>
+      <Skeleton className="h-72 rounded-2xl" />
     </div>
   );
 }

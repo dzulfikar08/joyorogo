@@ -1,6 +1,7 @@
 import { GitCompareArrows } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { Select } from "@joyorogo/ui/components/select";
 import { cn } from "@joyorogo/ui/lib/utils";
 
 import { RANGES, type RangeDays } from "@/lib/range";
@@ -26,11 +27,20 @@ export function RangeControls({
         label={t("range.label")}
         value={range}
         onChange={onRange}
+        className="max-sm:hidden"
         options={RANGES.map((days) => ({
           value: days,
           label: t("range.days", { count: days }),
           name: t("range.daysFull", { count: days }),
         }))}
+      />
+      {/* Phones: one compact control that opens a bottom sheet. */}
+      <Select<RangeDays>
+        label={t("range.label")}
+        value={range}
+        onChange={onRange}
+        className="sm:hidden"
+        options={RANGES.map((days) => ({ value: days, label: t("range.daysFull", { count: days }) }))}
       />
       {onCompare && (
         <button

@@ -12,8 +12,8 @@ import { Card, CardHeader, IconChip } from "@/components/kit";
 import { DropZone } from "./drop-zone";
 import { PRICING_URL } from "@/components/pro-wall";
 import { kindOf, maxHrFromAge } from "@/lib/import/analysis";
-import { MAX_FILE_BYTES } from "@/lib/import/read";
-import { type Prepared, prepareFile } from "@/lib/import/pipeline";
+import type { Prepared } from "@/lib/import/pipeline";
+import { MAX_FILE_BYTES } from "@/lib/import/types";
 import { type UploadResult, uploadWorkout } from "@/lib/import/upload";
 import { fmtFileSize, fmtHm, fmtKm, wibDay } from "@/lib/format";
 import { orpc } from "@/lib/orpc";
@@ -87,6 +87,8 @@ export function WorkoutUpload() {
       for (const [index, file] of files.entries()) {
         const id = (added[index] as Item).id;
         try {
+          // The FIT/GPX/TCX readers (the FIT SDK is most of this route) load when the first file is dropped.
+          const { prepareFile } = await import("@/lib/import/pipeline");
           patch(id, { state: await prepareFile(file, analysisOptions, lookup) });
         } catch {
           patch(id, { state: { kind: "failed", reason: "corrupt" } });

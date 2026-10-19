@@ -1,11 +1,11 @@
 {
   "title": "Koneksi",
   "subtitle": "Sambungkan JoyoFit ke aplikasi AI, tanya coach dengan datamu sendiri, dan unduh semua latihanmu.",
-  "jump": {
-    "label": "Bagian di halaman ini",
+  "tabs": {
+    "label": "Bagian Koneksi",
     "mcp": "Aplikasi AI",
-    "coach": "Tanya coach",
-    "export": "Ekspor data"
+    "coach": "Coach",
+    "export": "Ekspor"
   },
   "mcp": {
     "title": "Aplikasi AI (MCP)",

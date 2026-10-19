@@ -1,12 +1,13 @@
 import { fmtClock, fmtDateShort, fmtDecimal } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
+import { MultiSelect, Select } from "@joyorogo/ui/components/select";
 import { cn } from "@joyorogo/ui/lib/utils";
 import type { FitWebWorkout } from "@joyorogo/api/lib/fit-web";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, ChevronsUpDown, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Card, IconChip, PageHeader, Stat } from "@/components/kit";
@@ -15,7 +16,7 @@ import { BlockSkeleton, EmptyState, QueryError } from "@/components/states";
 import { SPORT_KINDS, type SportKind, totals } from "@/lib/aggregate";
 import { fmtHm, fmtKm } from "@/lib/format";
 import { usePageTitle } from "@/lib/page-title";
-import { orpc } from "@/lib/orpc";
+import { workoutsQuery } from "@/lib/queries";
 import { type RangeDays, isRange, windowOf } from "@/lib/range";
 import { sportIcon } from "@/lib/sport";
 import {
@@ -35,6 +36,10 @@ type Search = { range?: RangeDays; sport?: SportKind[]; q?: string; sort?: SortK
 
 export const Route = createFileRoute("/_auth/latihan/")({
   component: WorkoutsPage,
+  loaderDeps: ({ search }) => ({ range: search.range ?? 90 }),
+  loader: ({ context, deps }) => {
+    void context.queryClient.prefetchQuery(workoutsQuery(windowOf(deps.range)));
+  },
   validateSearch: (search: Record<string, unknown>): Search => ({
     range:
       isRange(Number(search.range)) && Number(search.range) !== 90
@@ -90,8 +95,9 @@ function WorkoutsPage() {
   };
   const navigate = Route.useNavigate();
   const win = useMemo(() => windowOf(search.range), [search.range]);
-  const result = useQuery(orpc.fitWeb.workouts.queryOptions({ input: win }));
+  const result = useQuery(workoutsQuery(win));
   const [shown, setShown] = useState(PAGE);
+  const settled = useDeferredValue(Boolean(result.data), false);
 
   /** Writes a change into the URL; a value equal to its default is dropped from it. */
   const set = (patch: {
@@ -143,7 +149,7 @@ function WorkoutsPage() {
       </>
     );
   }
-  if (!all) {
+  if (!all || !settled) {
     return (
       <>
         {header}
@@ -171,12 +177,6 @@ function WorkoutsPage() {
     swim: tw("sport.swim"),
     other: tw("sport.other"),
   };
-  const toggleKind = (kind: SportKind) =>
-    set({
-      sport: search.sport.includes(kind)
-        ? search.sport.filter((k) => k !== kind)
-        : [...search.sport, kind],
-    });
   const sortBy = (key: SortKey) =>
     set({ sort: key, dir: search.sort === key && search.dir === "desc" ? "asc" : "desc" });
   const filtered = search.sport.length > 0 || search.q.trim() !== "";
@@ -192,7 +192,10 @@ function WorkoutsPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div
+      aria-busy={result.isPlaceholderData}
+      className={cn("flex flex-col gap-4 transition-opacity", result.isPlaceholderData && "opacity-60")}
+    >
       {header}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -226,54 +229,37 @@ function WorkoutsPage() {
               className="h-10 rounded-full pl-10"
             />
           </div>
-          <div
-            role="group"
-            aria-label={t("filter.sport")}
-            className="flex min-w-0 flex-wrap gap-1.5"
-          >
-            {SPORT_KINDS.filter((kind) => counts.has(kind)).map((kind) => {
-              const on = search.sport.includes(kind);
-              return (
-                <button
-                  key={kind}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => toggleKind(kind)}
-                  className={cn(
-                    "inline-flex h-10 items-center gap-1.5 rounded-full px-3.5 text-[0.8125rem] font-semibold ring-1 transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
-                    on
-                      ? "bg-primary/10 text-primary ring-primary/30"
-                      : "bg-card text-muted-foreground ring-foreground/10 hover:text-foreground",
-                  )}
-                >
-                  {labels[kind]}
-                  <span className="text-xs font-normal tabular-nums opacity-70">
-                    {counts.get(kind)}
-                  </span>
-                </button>
-              );
-            })}
+          <MultiSelect<SportKind>
+            label={t("filter.sport")}
+            values={search.sport}
+            onChange={(sport) => set({ sport })}
+            options={SPORT_KINDS.filter((kind) => counts.has(kind)).map((kind) => ({
+              value: kind,
+              label: labels[kind],
+              hint: counts.get(kind),
+            }))}
+            triggerLabel={
+              search.sport.length > 0
+                ? t("filter.sportSome", { n: search.sport.length })
+                : t("filter.sportAny")
+            }
+            className="w-full sm:w-auto"
+          />
+          <div className="flex min-w-0 flex-wrap gap-1.5">
             {filtered && (
               <Button variant="ghost" size="sm" onClick={() => set({ sport: [], q: "" })}>
                 {t("filter.clear")}
               </Button>
             )}
           </div>
-          <label className="ml-auto flex items-center gap-2 text-xs font-semibold text-muted-foreground xl:hidden">
+          <div className="ml-auto flex items-center gap-2 text-xs font-semibold text-muted-foreground xl:hidden">
             {t("filter.sort")}
-            <select
+            <Select<SortKey>
+              label={t("filter.sort")}
               value={search.sort}
-              onChange={(event) =>
-                isSortKey(event.target.value) && set({ sort: event.target.value })
-              }
-              className="h-10 rounded-full border border-input bg-card px-3 text-sm font-semibold text-foreground"
-            >
-              {columns.map((c) => (
-                <option key={c.key} value={c.key}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+              onChange={(sort) => set({ sort })}
+              options={columns.map((c) => ({ value: c.key, label: c.label }))}
+            />
             <Button
               variant="outline"
               size="icon-sm"
@@ -282,7 +268,7 @@ function WorkoutsPage() {
             >
               {search.dir === "desc" ? <ArrowDown aria-hidden /> : <ArrowUp aria-hidden />}
             </Button>
-          </label>
+          </div>
         </div>
       </Card>
 
@@ -403,7 +389,7 @@ function WorkoutsPage() {
                       onClick={() =>
                         void navigate({ to: "/latihan/$start", params: { start: String(w.start) } })
                       }
-                      className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted/60"
+                      className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-muted/60 focus-within:bg-muted/60"
                     >
                       <td className="max-w-[16rem] px-4 py-2.5">
                         <Link

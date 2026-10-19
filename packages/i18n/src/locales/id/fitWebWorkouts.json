@@ -39,7 +39,9 @@
     "sort": "Urutkan",
     "ascending": "Urut naik",
     "descending": "Urut turun",
-    "noMatch": "Tidak ada latihan yang cocok dengan filter ini"
+    "noMatch": "Tidak ada latihan yang cocok dengan filter ini",
+    "sportAny": "Semua olahraga",
+    "sportSome": "Olahraga: {{n}}"
   },
   "detail": {
     "back": "Semua latihan",

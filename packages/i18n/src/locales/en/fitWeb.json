@@ -89,5 +89,9 @@
     "ride": "Ride",
     "swim": "Swim",
     "other": "Other"
+  },
+  "studio": {
+    "title": "Studio",
+    "description": "Design watch faces for Fit 4 / Fit 4 Pro."
   }
 }

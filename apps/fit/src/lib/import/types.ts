@@ -136,3 +136,9 @@ export interface ImportError {
 
 export const isImportError = (value: ParsedActivity | ImportError): value is ImportError =>
   "ok" in value;
+
+/**
+ * The largest file read, in bytes: a workout file is a few MB at most (a day-long ride at 1 Hz is under 10 MB), this stops a
+ * wrong file before it is read. Lives here so the upload page can show it without loading the parsers.
+ */
+export const MAX_FILE_BYTES = 60 * 1024 * 1024;
