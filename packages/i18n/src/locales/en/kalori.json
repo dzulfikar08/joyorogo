@@ -51,28 +51,52 @@
     "deskBody": "A tiny number from a phone you didn't carry no longer reads as a lazy day. If measured movement is below what your factor already covers, nothing is added and your target stays at the base target. Watch or phone data never lowers your target."
   },
   "calibration": {
-    "title": "Automatic calibration from your weight",
-    "p1": "The level's factor is a guess. When you log food and weigh yourself regularly, JoyoRogo can measure what your body really burns and use that as the TDEE in your target instead of BMR × the factor. It is on by default and you can configure it.",
-    "items": {
-      "start": {
-        "title": "When it starts",
-        "body": "Once the last 28 days hold at least 20 logged days (a day under 800 kcal counts as not logged) and your weigh-ins span at least 21 days. Until then your target stays on the formula, and you can see the progress in Profile, Target & body."
+    "title": "Automatic calibration",
+    "lead": "When your food log and weigh-ins are complete enough, JoyoRogo measures how many calories your body really burns and uses that for your target instead of the formula's guess. It is on by default.",
+    "steps": {
+      "log": {
+        "title": "Log food and weigh in",
+        "body": "Regularly, until there is enough data."
       },
       "measure": {
+        "title": "Measured every Monday",
+        "body": "From the last {{window}} days, held until the next Monday."
+      },
+      "adjust": {
+        "title": "Target adjusted",
+        "body": "Kept within ±15% of the formula."
+      }
+    },
+    "stepsLabel": "The three calibration steps",
+    "gateTitle": "What it takes to start",
+    "gate": {
+      "days": "Food logged on at least {{days}} of the last {{window}} days (a day under {{minKcal}} kcal counts as not logged)",
+      "weighIns": "At least {{count}} weigh-ins",
+      "span": "First to last weigh-in spanning at least {{span}} days"
+    },
+    "gateNote": "Until those are met, your target stays on the formula. You can follow the progress in Profile, Target & body.",
+    "guardTitle": "The ±15% guard",
+    "exampleIntro": "Example for level {{level}}: the formula gives a TDEE of {{formula}} kcal, so the guard is {{min}} to {{max}} kcal. A measurement outside it is pulled back to the guard.",
+    "chartLabel": "Three measurements against the ±15% guard around a formula of {{formula}} kcal: {{rows}}",
+    "measured": "Measured",
+    "used": "Used",
+    "formula": "Formula {{kcal}}",
+    "band": "±15% guard: {{min}} to {{max}}",
+    "within": "Within the guard",
+    "capped": "Hit the guard",
+    "itemsTitle": "Good to know",
+    "items": {
+      "measure": {
         "title": "How it is measured",
-        "body": "What you ate on average, plus the energy your weight trend says left the body (7,700 kcal per kg), minus the average of your logged workouts. The result is the TDEE of your days without exercise, which is what the activity level you pick stands for. Strava workouts are left out of this."
+        "body": "What you ate on average, plus the energy your weight trend says left the body (7,700 kcal per kg), minus the average of your logged workouts. The result is your daily TDEE outside workouts, replacing BMR × the level's factor."
       },
-      "guard": {
-        "title": "A ±15% guard",
-        "body": "The measurement is kept within 15% of the formula (BMR × your level's factor). One messy month cannot throw your target far off."
-      },
-      "weekly": {
-        "title": "Once a week",
-        "body": "The measurement is refreshed every Monday and held until the next one, so your target does not bounce around every time you weigh in."
+      "strava": {
+        "title": "Strava is left out",
+        "body": "Strava workouts are not used in the measurement."
       },
       "credit": {
         "title": "Never counted twice",
-        "body": "The movement that is measured already sits inside the calibrated TDEE. So a watch or phone only adds to your target when your day goes beyond that movement: measured TDEE − BMR − 10% of TDEE."
+        "body": "The movement that is measured already sits inside the calibrated TDEE. A watch or phone only adds to your target when your day goes beyond it: measured TDEE − BMR − 10% of TDEE."
       },
       "maternal": {
         "title": "Pregnant and breastfeeding",
@@ -80,14 +104,13 @@
       },
       "off": {
         "title": "You can turn it off",
-        "body": "In Profile, Target & body you can switch calibration off, and your target goes back to the pure formula. When calibration moves your target by 50 kcal or more, Beranda tells you."
+        "body": "Switch it off in Profile, Target & body and your target goes back to the pure formula."
+      },
+      "notice": {
+        "title": "A note on Beranda",
+        "body": "When calibration moves your target by {{kcal}} kcal or more, Beranda tells you."
       }
     },
-    "exampleIntro": "Example for level {{level}}: the formula gives a TDEE of {{formula}} kcal, so the guard is {{min}} to {{max}} kcal.",
-    "measured": "Measured",
-    "used": "Used",
-    "within": "Within the guard",
-    "capped": "Hit the guard",
     "note": "The 7,700 kcal per kg rule is only an approximation (Hall et al. 2011), and the result depends on how complete your log is. That is why there is a ±15% guard and a weekly measurement.",
     "cta": "Calibration settings"
   },

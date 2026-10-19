@@ -7,6 +7,7 @@ import { StyleSheet } from "react-native-unistyles";
 
 import type { CalibrationNotice as CalibrationNoticeData } from "@joyorogo/api/lib/calibration";
 
+import { CalibrationLearnLink } from "@/components/calibration-learn-link";
 import { Button, Card, Text } from "@/components/ui";
 import { saveCalibrationPref } from "@/src/lib/calibration-prefs";
 import { syncPrefs } from "@/src/lib/prefs-sync";
@@ -48,6 +49,7 @@ export function CalibrationNotice({ notice }: { notice: CalibrationNoticeData | 
           }}
         />
         <Button variant="secondary" label={t("calNotice.dismiss")} onPress={() => void dismiss()} />
+        <CalibrationLearnLink label={t("calNotice.learn")} />
       </View>
     </Card>
   );

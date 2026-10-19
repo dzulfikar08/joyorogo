@@ -1,6 +1,12 @@
 import { ENERGY_SOURCES } from "@joyorogo/api/lib/energy-sources";
-import { CALIBRATION_MAX_SHIFT } from "@joyorogo/api/lib/calibration";
-import { ACTIVITY_LEVELS, computeTargets } from "@joyorogo/api/lib/engine";
+import {
+  CALIBRATION_MAX_SHIFT,
+  CALIBRATION_MIN_DAY_KCAL,
+  CALIBRATION_MIN_LOGGED_DAYS,
+  CALIBRATION_MIN_SPAN_DAYS,
+  CALIBRATION_NOTICE_MIN_KCAL,
+} from "@joyorogo/api/lib/calibration";
+import { ACTIVITY_LEVELS, ADAPTIVE_MIN_WEIGH_INS, ADAPTIVE_WINDOW_DAYS, computeTargets } from "@joyorogo/api/lib/engine";
 import type { ActivityLevel } from "@joyorogo/api/lib/engine";
 import { DEFAULT_ADD_BACK_SETTINGS, exerciseCredit } from "@joyorogo/api/lib/exercise-credit";
 import { STEP_LEVEL_BOUNDS } from "@joyorogo/api/lib/activity-guide";
@@ -10,8 +16,8 @@ import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { BarRows, CreditDiagram, Swatch, TdeeStackedBar } from "@/components/kalori-diagrams";
-import type { CreditDay } from "@/components/kalori-diagrams";
+import { BarRows, CreditDiagram, FlowSteps, GuardBand, Swatch, TdeeStackedBar } from "@/components/kalori-diagrams";
+import type { CreditDay, GuardRow } from "@/components/kalori-diagrams";
 import { PublicFooter } from "@/components/public-footer";
 import { PublicHeader } from "@/components/public-header";
 import { fmtFactor, fmtInt } from "@/lib/format";
@@ -55,7 +61,8 @@ const addedOn = (measuredKcal: number) =>
 
 const SECTIONS = ["why", "formula", "levels", "credit", "calibration", "recommend", "example", "sources"] as const;
 const STEP_ROWS = ["r1", "r2", "r3", "r4", "r5"] as const;
-const CALIBRATION_ITEMS = ["start", "measure", "guard", "weekly", "credit", "maternal", "off"] as const;
+const CALIBRATION_STEPS = ["log", "measure", "adjust"] as const;
+const CALIBRATION_ITEMS = ["measure", "strava", "credit", "maternal", "off", "notice"] as const;
 /** Three measurements against the demo person's formula TDEE: under the guard, inside it, over it. */
 const CALIBRATION_EXAMPLES = [2300, 2950, 3600] as const;
 const guardMin = Math.round(demo.tdee * (1 - CALIBRATION_MAX_SHIFT));
@@ -141,6 +148,18 @@ function PanduanKaloriPage() {
       addedText: added > 0 ? t("kalori:credit.added", { kcal: fmtInt(added) }) : t("kalori:credit.none"),
     };
   }) as [CreditDay, CreditDay, CreditDay];
+
+  const guardRows: GuardRow[] = CALIBRATION_EXAMPLES.map((measured) => {
+    const used = Math.min(guardMax, Math.max(guardMin, measured));
+    return {
+      key: String(measured),
+      measuredKcal: measured,
+      usedKcal: used,
+      measuredText: `${t("kalori:calibration.measured")} ${fmtInt(measured)}`,
+      usedText: `${t("kalori:calibration.used")} ${fmtInt(used)}`,
+      statusText: t(used === measured ? "kalori:calibration.within" : "kalori:calibration.capped"),
+    };
+  });
 
   const outline = (
     <ul className="mt-2 space-y-0.5 border-l border-border">
@@ -325,48 +344,81 @@ function PanduanKaloriPage() {
           </Section>
 
           <Section id="calibration" title={t("kalori:calibration.title")}>
-            <P>{t("kalori:calibration.p1")}</P>
-            <ul className="mt-4 space-y-3">
-              {CALIBRATION_ITEMS.map((item) => (
-                <li key={item}>
-                  <h3 className="text-sm font-bold">{t(`kalori:calibration.items.${item}.title`)}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                    {t(`kalori:calibration.items.${item}.body`)}
-                  </p>
-                </li>
-              ))}
+            <P>{t("kalori:calibration.lead")}</P>
+            <FlowSteps
+              label={t("kalori:calibration.stepsLabel")}
+              steps={CALIBRATION_STEPS.map((step) => ({
+                key: step,
+                title: t(`kalori:calibration.steps.${step}.title`),
+                body: t(`kalori:calibration.steps.${step}.body`, { window: ADAPTIVE_WINDOW_DAYS }),
+              }))}
+            />
+
+            <h3 className="mt-6 text-base font-bold">{t("kalori:calibration.gateTitle")}</h3>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-base leading-7 marker:text-muted-foreground">
+              <li>
+                {t("kalori:calibration.gate.days", {
+                  days: CALIBRATION_MIN_LOGGED_DAYS,
+                  window: ADAPTIVE_WINDOW_DAYS,
+                  minKcal: CALIBRATION_MIN_DAY_KCAL,
+                })}
+              </li>
+              <li>{t("kalori:calibration.gate.weighIns", { count: ADAPTIVE_MIN_WEIGH_INS })}</li>
+              <li>{t("kalori:calibration.gate.span", { span: CALIBRATION_MIN_SPAN_DAYS })}</li>
             </ul>
-            <P>
+            <Caption>{t("kalori:calibration.gateNote")}</Caption>
+
+            <h3 className="mt-6 text-base font-bold">{t("kalori:calibration.guardTitle")}</h3>
+            <SubP>
               {t("kalori:calibration.exampleIntro", {
                 level: demoName,
                 formula: fmtInt(demo.tdee),
                 min: fmtInt(guardMin),
                 max: fmtInt(guardMax),
               })}
-            </P>
-            <table className="mt-3 w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs text-muted-foreground">
-                  <th className="py-1.5 pr-2 text-right font-semibold">{t("kalori:calibration.measured")}</th>
-                  <th className="py-1.5 pr-2 text-right font-semibold">{t("kalori:calibration.used")}</th>
-                  <th className="py-1.5 font-semibold" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border tabular-nums">
-                {CALIBRATION_EXAMPLES.map((measured) => {
-                  const used = Math.min(guardMax, Math.max(guardMin, measured));
-                  return (
-                    <tr key={measured}>
-                      <td className="py-2 pr-2 text-right">{fmtInt(measured)}</td>
-                      <td className="py-2 pr-2 text-right font-bold">{fmtInt(used)}</td>
-                      <td className="py-2 text-muted-foreground">
-                        {t(used === measured ? "kalori:calibration.within" : "kalori:calibration.capped")}
-                      </td>
-                    </tr>
-                  );
+            </SubP>
+            <div className="mt-4 rounded-2xl bg-card p-4">
+              <GuardBand
+                formulaKcal={demo.tdee}
+                minKcal={guardMin}
+                maxKcal={guardMax}
+                rows={guardRows}
+                label={t("kalori:calibration.chartLabel", {
+                  formula: fmtInt(demo.tdee),
+                  rows: guardRows.map((row) => `${row.measuredText}, ${row.usedText}, ${row.statusText}`).join("; "),
                 })}
-              </tbody>
-            </table>
+              />
+              <ul className="mt-4 space-y-1.5 text-sm leading-relaxed">
+                <li className="flex gap-2">
+                  <span aria-hidden className="mt-1 inline-block h-3 w-4 shrink-0 rounded-sm bg-chart-2/45" />
+                  <span>{t("kalori:calibration.band", { min: fmtInt(guardMin), max: fmtInt(guardMax) })}</span>
+                </li>
+                <li className="flex gap-2">
+                  <span aria-hidden className="mt-1.5 inline-block h-0 w-4 shrink-0 border-t-2 border-dashed border-foreground" />
+                  <span>{t("kalori:calibration.formula", { kcal: fmtInt(demo.tdee) })}</span>
+                </li>
+                <li className="flex gap-2">
+                  <span aria-hidden className="mt-1 inline-block size-3 shrink-0 rounded-full border-2 border-foreground bg-card" />
+                  <span>{t("kalori:calibration.measured")}</span>
+                </li>
+                <li className="flex gap-2">
+                  <span aria-hidden className="mt-1 inline-block size-3 shrink-0 rounded-full bg-chart-1" />
+                  <span>{t("kalori:calibration.used")}</span>
+                </li>
+              </ul>
+            </div>
+
+            <h3 className="mt-6 text-base font-bold">{t("kalori:calibration.itemsTitle")}</h3>
+            <dl className="mt-3 divide-y divide-border rounded-2xl bg-card px-4">
+              {CALIBRATION_ITEMS.map((item) => (
+                <div key={item} className="py-3">
+                  <dt className="text-sm font-bold">{t(`kalori:calibration.items.${item}.title`)}</dt>
+                  <dd className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+                    {t(`kalori:calibration.items.${item}.body`, { kcal: CALIBRATION_NOTICE_MIN_KCAL })}
+                  </dd>
+                </div>
+              ))}
+            </dl>
             <Caption>{t("kalori:calibration.note")}</Caption>
             <Button
               size="sm"

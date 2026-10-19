@@ -2,7 +2,7 @@ import { CALIBRATION_SEEN_PREF_KEY } from "@joyorogo/api/lib/calibration";
 import type { CalibrationNotice as CalibrationNoticeData } from "@joyorogo/api/lib/calibration";
 import { Button } from "@joyorogo/ui/components/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Scale, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -52,7 +52,7 @@ export function CalibrationNotice({
         {t("calNotice.body", { old: fmtInt(notice.fromKcal), new: fmtInt(notice.toKcal) })}
       </p>
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{t("calNotice.hint")}</p>
-      <div className="mt-3">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4">
         <Button
           size="sm"
           className="min-h-11"
@@ -62,6 +62,13 @@ export function CalibrationNotice({
         >
           {t("calNotice.action")}
         </Button>
+        <Link
+          to="/panduan/kalori"
+          hash="calibration"
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+        >
+          {t("calNotice.learn")}
+        </Link>
       </div>
     </Card>
   );

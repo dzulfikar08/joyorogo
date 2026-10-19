@@ -6,6 +6,8 @@ import { needsBreakdown } from "@joyorogo/api/lib/engine";
 import type { Targets } from "@joyorogo/api/lib/engine";
 import { MAX_SURPLUS_KCAL, MIN_SURPLUS_KCAL } from "@joyorogo/api/lib/gain";
 
+import { Link } from "@tanstack/react-router";
+
 import { EnergySources } from "@/components/energy-sources";
 import { storedAddBackSettings } from "@/lib/exercise-credit-prefs";
 import { fmtDateLong, fmtFactor, fmtInt } from "@/lib/format";
@@ -143,18 +145,29 @@ export function NeedsSheet({
             ? t("energy:needs.includedCalibrated", { kcal: fmtInt(needs.includedKcal) })
             : t("energy:needs.included", { factor: fmtFactor(needs.factor), kcal: fmtInt(needs.includedKcal) })}
         </p>
-        {calibration && calibration.status !== "active" && !maternal && (
-          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+        {calibration && !maternal && (
+          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground tabular-nums">
             {calibration.status === "off"
               ? t("energy:auto.status.off", { formula: fmtInt(calibration.formulaKcal) })
               : calibration.status === "waiting"
                 ? t("energy:auto.status.waiting", { date: fmtDateLong(calibration.nextDate) })
-                : t("energy:auto.status.collecting", {
-                    logged: calibration.loggedDays,
-                    loggedNeeded: calibration.loggedDaysNeeded,
-                    span: calibration.spanDays,
-                    spanNeeded: calibration.spanDaysNeeded,
-                  })}
+                : calibration.status === "collecting"
+                  ? t("energy:auto.status.collecting", {
+                      logged: calibration.loggedDays,
+                      loggedNeeded: calibration.loggedDaysNeeded,
+                      count: calibration.weighIns,
+                      needed: calibration.weighInsNeeded,
+                      span: calibration.spanDays,
+                      spanNeeded: calibration.spanDaysNeeded,
+                    })
+                  : null}{" "}
+            <Link
+              to="/panduan/kalori"
+              hash="calibration"
+              className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+            >
+              {t("energy:auto.learn")}
+            </Link>
           </p>
         )}
       </div>

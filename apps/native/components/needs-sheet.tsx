@@ -9,10 +9,11 @@ import { DEFAULT_ADD_BACK_SETTINGS } from "@joyorogo/api/lib/exercise-credit";
 import { MAX_SURPLUS_KCAL, MIN_SURPLUS_KCAL } from "@joyorogo/api/lib/gain";
 import { fmtNumber } from "@joyorogo/i18n";
 
+import { CalibrationLearnLink } from "@/components/calibration-learn-link";
 import { EnergySources } from "@/components/energy-sources";
 import { Num, Sheet, Text } from "@/components/ui";
 import { loadAddBackSettings } from "@/src/lib/exercise-credit-prefs";
-import { fmtInt } from "@/utils/format";
+import { fmtDateMedium, fmtInt } from "@/utils/format";
 
 type Step = {
   key: string;
@@ -42,6 +43,9 @@ export function NeedsSheet({
   const needs = needsBreakdown(targets);
   const maternal = targets.maternal ?? null;
   const gain = targets.gain ?? null;
+  const calibration = needs.calibration;
+  const active = calibration?.status === "active" ? calibration : null;
+  const calibrated = active !== null;
   // Only the "movement above the factor" row needs the percentage in force.
   const credit = useQuery({
     queryKey: ["add-back-settings"],
@@ -61,7 +65,13 @@ export function NeedsSheet({
     key: "activity",
     label: t("plan.needs.activity.label"),
     name: t("plan.needs.activity.name"),
-    body: t("plan.needs.activity.body", { level: t(`energy:levels.${needs.level}.name`) }),
+    body: active
+      ? t("energy:needs.calibrated", {
+          formula: fmtInt(active.formulaKcal),
+          measured: fmtInt(active.measuredKcal ?? active.formulaKcal),
+          used: fmtInt(active.usedKcal ?? needs.tdeeKcal),
+        })
+      : t("plan.needs.activity.body", { level: t(`energy:levels.${needs.level}.name`) }),
     sign: "+",
     kcal: needs.activityKcal,
   };
@@ -144,9 +154,11 @@ export function NeedsSheet({
     needs.exerciseKcal > 0
       ? {
           key: "extra",
-          label: t("energy:needs.extra.label"),
+          label: t(calibrated ? "energy:needs.extra.labelCalibrated" : "energy:needs.extra.label"),
           name: t("energy:needs.extra.name"),
-          body: t("energy:needs.extra.body", { pct: credit.data?.pct ?? DEFAULT_ADD_BACK_SETTINGS.pct }),
+          body: t(calibrated ? "energy:needs.extra.bodyCalibrated" : "energy:needs.extra.body", {
+            pct: credit.data?.pct ?? DEFAULT_ADD_BACK_SETTINGS.pct,
+          }),
           sign: "+",
           kcal: needs.exerciseKcal,
         }
@@ -157,11 +169,17 @@ export function NeedsSheet({
     <Sheet visible={visible} onClose={onClose} title={t("plan.needs.title")}>
       <Text style={styles.intro}>{t("plan.needs.intro")}</Text>
       <Text style={styles.formula}>
-        {t("energy:needs.formula", {
-          bmr: fmtInt(needs.bmrKcal),
-          factor: fmtNumber(needs.factor, 3),
-          tdee: fmtInt(needs.tdeeKcal),
-        })}
+        {calibrated
+          ? t("energy:needs.formulaCalibrated", {
+              bmr: fmtInt(needs.bmrKcal),
+              move: fmtInt(needs.tdeeKcal - needs.bmrKcal),
+              tdee: fmtInt(needs.tdeeKcal),
+            })
+          : t("energy:needs.formula", {
+              bmr: fmtInt(needs.bmrKcal),
+              factor: fmtNumber(needs.factor, 3),
+              tdee: fmtInt(needs.tdeeKcal),
+            })}
       </Text>
       {shown.map((step) => (
         <View key={step.key} style={[styles.step, step.strong && styles.stepStrong]}>
@@ -181,10 +199,35 @@ export function NeedsSheet({
           <Text style={styles.stepBody}>{step.body}</Text>
         </View>
       ))}
-      {extraStep ? null : <Text style={styles.note}>{t("energy:needs.none")}</Text>}
+      {extraStep ? null : <Text style={styles.note}>{t(calibrated ? "energy:needs.noneCalibrated" : "energy:needs.none")}</Text>}
       <Text style={styles.note}>
-        {t("energy:needs.included", { factor: fmtNumber(needs.factor, 3), kcal: fmtInt(needs.includedKcal) })}
+        {calibrated
+          ? t("energy:needs.includedCalibrated", { kcal: fmtInt(needs.includedKcal) })
+          : t("energy:needs.included", { factor: fmtNumber(needs.factor, 3), kcal: fmtInt(needs.includedKcal) })}
       </Text>
+      {calibration && !maternal ? (
+        <>
+          {calibration.status === "off" ? (
+            <Text style={styles.note}>{t("energy:auto.status.off", { formula: fmtInt(calibration.formulaKcal) })}</Text>
+          ) : calibration.status === "waiting" ? (
+            <Text style={styles.note}>
+              {t("energy:auto.status.waiting", { date: fmtDateMedium(calibration.nextDate) })}
+            </Text>
+          ) : calibration.status === "collecting" ? (
+            <Text style={styles.note}>
+              {t("energy:auto.status.collecting", {
+                logged: calibration.loggedDays,
+                loggedNeeded: calibration.loggedDaysNeeded,
+                count: calibration.weighIns,
+                needed: calibration.weighInsNeeded,
+                span: calibration.spanDays,
+                spanNeeded: calibration.spanDaysNeeded,
+              })}
+            </Text>
+          ) : null}
+          <CalibrationLearnLink label={t("energy:auto.learn")} />
+        </>
+      ) : null}
       {maternal ? <Text style={styles.note}>{t("maternal:needs.noDeficit")}</Text> : null}
       {gain ? (
         <>

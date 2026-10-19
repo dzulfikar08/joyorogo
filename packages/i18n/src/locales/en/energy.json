@@ -141,29 +141,43 @@
   "auto": {
     "title": "Automatic calibration",
     "toggle": "Adjust my target from my progress",
-    "how": "When your food log and weigh-ins are complete enough, JoyoRogo measures how many calories your body really burns from your weight trend, and uses that as the TDEE in your target instead of the formula's estimate.",
-    "guard": "The result is kept within ±15% of the formula, so one messy month cannot throw your target far off.",
-    "weekly": "It updates once a week, every Monday, so your target does not bounce around day to day.",
-    "off": "Turn it off and your target goes back to the pure formula: BMR × your activity level's factor.",
-    "levelNote": "While calibration is on, your level is the starting point and the reference for the ±15% guard.",
+    "toggleOn": "Your target uses the calorie need measured from your body.",
+    "toggleOnPending": "On. Your target will adjust automatically once there is enough data.",
+    "toggleOff": "Your target uses the pure formula: BMR × your activity level's factor.",
+    "explain": "Every Monday, JoyoRogo measures your calorie need from 28 days of food log and weigh-ins. The result is kept within ±15% of the formula, with your level as the reference.",
+    "learn": "Learn how it works",
     "maternal": "Pregnant / Breastfeeding mode does not use calibration: weight is expected to change.",
+    "progress": {
+      "days": "Days logged",
+      "weighIns": "Weigh-ins",
+      "span": "Weigh-in span",
+      "value": "{{value}}/{{needed}}",
+      "valueDays": "{{value}}/{{needed}} days"
+    },
     "status": {
+      "offTitle": "Off",
       "off": "Calibration is off. Your target comes from the pure formula, TDEE {{formula}} kcal.",
+      "offBody": "Your target comes from the pure formula, TDEE {{formula}} kcal.",
       "offMeasured": "If you turned it on, your body measures about {{measured}} kcal (formula {{formula}}).",
-      "collecting": "Calibration: {{logged}}/{{loggedNeeded}} days logged, weigh-in span {{span}}/{{spanNeeded}} days",
-      "collectingWeighIns": "Weigh-ins: {{count}}/{{needed}} done",
+      "collectingTitle": "Collecting data",
+      "collecting": "Calibration is collecting data: {{logged}}/{{loggedNeeded}} days logged, {{count}}/{{needed}} weigh-ins, span {{span}}/{{spanNeeded}} days.",
       "collectingHint": "Your target still comes from the formula. Keep logging food and weighing in, and calibration starts on its own once there is enough data.",
+      "waitingTitle": "Enough data",
+      "waitingBody": "Calibration takes effect {{date}}.",
       "waiting": "You have enough data. Calibration takes effect {{date}}.",
-      "active": "Adjusted from your progress: formula {{formula}}, measured {{measured}}, used {{used}} kcal",
-      "clamped": "The measurement was outside the ±15% guard, so the guard value is used.",
+      "activeTitle": "Active",
+      "activeBody": "Formula {{formula}} → used {{used}} kcal",
+      "activeMeasured": "Measured {{measured}} kcal, still within the ±15% guard.",
+      "clamped": "Measured {{measured}} kcal, outside the ±15% guard, so the guard value is used.",
       "held": "Measured from the 28 days before {{date}}. Updated again {{next}}."
     }
   },
   "calNotice": {
     "title": "Your target was adjusted",
-    "body": "Automatic calibration adjusted your base target: {{old}} → {{new}} kcal per day.",
+    "body": "Automatic calibration changed your base target from {{old}} to {{new}} kcal per day.",
     "hint": "Measured from your food log and weigh-ins. You can turn it off in settings.",
     "action": "Calibration settings",
+    "learn": "Learn more",
     "dismiss": "Close"
   },
   "readMore": "Read the full explanation"

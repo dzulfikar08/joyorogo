@@ -51,28 +51,52 @@
     "deskBody": "Angka gerak yang kecil karena HP tidak dibawa tidak lagi dianggap sebagai hari yang santai. Kalau gerak terukur masih di bawah yang sudah ada di pengalimu, tambahannya nol dan targetmu tetap sama dengan target dasar. Data jam atau HP tidak akan pernah menurunkan targetmu."
   },
   "calibration": {
-    "title": "Kalibrasi otomatis dari berat badanmu",
-    "p1": "Pengali level adalah tebakan. Kalau kamu rutin mencatat makan dan menimbang, JoyoRogo bisa mengukur berapa yang sebenarnya dibakar tubuhmu, lalu memakainya sebagai TDEE di targetmu menggantikan BMR × pengali. Fitur ini menyala secara bawaan dan bisa kamu atur.",
-    "items": {
-      "start": {
-        "title": "Kapan mulai",
-        "body": "Setelah dalam 28 hari terakhir ada sedikitnya 20 hari tercatat (hari di bawah 800 kkal dianggap belum tercatat) dan timbanganmu membentang sedikitnya 21 hari. Sebelum itu targetmu tetap dari rumus, dan progresnya terlihat di Profil, Target & tubuh."
+    "title": "Kalibrasi otomatis",
+    "lead": "Kalau catatan makan dan timbanganmu cukup lengkap, JoyoRogo mengukur berapa kalori yang sebenarnya dibakar tubuhmu, lalu memakainya untuk targetmu menggantikan tebakan rumus. Fitur ini menyala secara bawaan.",
+    "steps": {
+      "log": {
+        "title": "Catat makan dan timbang",
+        "body": "Rutin, sampai datanya cukup."
       },
       "measure": {
+        "title": "Diukur tiap Senin",
+        "body": "Dari {{window}} hari terakhir, dipegang sampai Senin berikutnya."
+      },
+      "adjust": {
+        "title": "Target disesuaikan",
+        "body": "Dijaga dalam ±15% dari rumus."
+      }
+    },
+    "stepsLabel": "Tiga langkah kalibrasi",
+    "gateTitle": "Syarat mulai",
+    "gate": {
+      "days": "Makan tercatat di sedikitnya {{days}} dari {{window}} hari terakhir (hari di bawah {{minKcal}} kkal dianggap belum tercatat)",
+      "weighIns": "Sedikitnya {{count}} timbangan",
+      "span": "Timbangan pertama ke terakhir membentang sedikitnya {{span}} hari"
+    },
+    "gateNote": "Sebelum syarat itu terpenuhi, targetmu tetap dari rumus. Progresnya terlihat di Profil, Target & tubuh.",
+    "guardTitle": "Batas ±15%",
+    "exampleIntro": "Contoh untuk level {{level}}: rumusnya memberi TDEE {{formula}} kkal, jadi batasnya {{min}} sampai {{max}} kkal. Hasil ukur di luar batas ditarik ke batas.",
+    "chartLabel": "Tiga hasil ukur terhadap batas ±15% dari rumus {{formula}} kkal: {{rows}}",
+    "measured": "Terukur",
+    "used": "Dipakai",
+    "formula": "Rumus {{kcal}}",
+    "band": "Batas ±15%: {{min}} sampai {{max}}",
+    "within": "Dalam batas",
+    "capped": "Kena batas",
+    "itemsTitle": "Yang perlu kamu tahu",
+    "items": {
+      "measure": {
         "title": "Cara mengukur",
-        "body": "Rata-rata yang kamu makan, ditambah energi yang keluar dari tubuh menurut tren beratmu (7.700 kkal per kg), lalu dikurangi rata-rata latihan yang tercatat. Hasilnya TDEE hari-harimu tanpa olahraga, artinya sama dengan level aktivitas yang kamu pilih. Latihan dari Strava tidak ikut dihitung."
+        "body": "Rata-rata makanmu ditambah energi yang keluar menurut tren berat (7.700 kkal per kg), dikurangi rata-rata latihan tercatat. Hasilnya TDEE harianmu di luar latihan, pengganti BMR × pengali level."
       },
-      "guard": {
-        "title": "Batas ±15%",
-        "body": "Hasil ukur dijaga dalam 15% dari rumus (BMR × pengali levelmu). Satu bulan yang berantakan tidak bisa membuat targetmu melenceng jauh."
-      },
-      "weekly": {
-        "title": "Seminggu sekali",
-        "body": "Pengukuran diperbarui tiap Senin dan dipegang sampai Senin berikutnya, supaya targetmu tidak naik turun tiap kali kamu menimbang."
+      "strava": {
+        "title": "Strava tidak ikut",
+        "body": "Latihan dari Strava tidak dipakai dalam pengukuran."
       },
       "credit": {
         "title": "Tidak dihitung dua kali",
-        "body": "Gerak yang sudah terukur ada di dalam TDEE hasil kalibrasi. Jam dan HP hanya menambah target kalau gerak harimu melebihi gerak itu: TDEE terukur − BMR − 10% TDEE."
+        "body": "Gerak yang terukur sudah ada di TDEE hasil kalibrasi. Jam dan HP hanya menambah target kalau gerakmu melebihi itu: TDEE terukur − BMR − 10% TDEE."
       },
       "maternal": {
         "title": "Hamil dan Menyusui",
@@ -80,14 +104,13 @@
       },
       "off": {
         "title": "Bisa dimatikan",
-        "body": "Di Profil, Target & tubuh kamu bisa mematikan kalibrasi, dan targetmu kembali ke rumus murni. Kalau targetmu berubah 50 kkal atau lebih karena kalibrasi, Beranda memberi tahu."
+        "body": "Matikan di Profil, Target & tubuh, dan targetmu kembali ke rumus murni."
+      },
+      "notice": {
+        "title": "Kabar di Beranda",
+        "body": "Kalau targetmu berubah {{kcal}} kkal atau lebih karena kalibrasi, Beranda memberi tahu."
       }
     },
-    "exampleIntro": "Contoh untuk level {{level}}: rumusnya memberi TDEE {{formula}} kkal, jadi batasnya {{min}} sampai {{max}} kkal.",
-    "measured": "Terukur",
-    "used": "Dipakai",
-    "within": "Dalam batas",
-    "capped": "Kena batas",
     "note": "Angka 7.700 kkal per kg hanyalah pendekatan (Hall dkk. 2011), dan hasilnya bergantung pada kelengkapan catatanmu. Itu sebabnya ada batas ±15% dan pengukuran mingguan.",
     "cta": "Atur kalibrasi"
   },
