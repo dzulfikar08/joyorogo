@@ -30,6 +30,7 @@ import idPanduanAi from "./locales/id/panduanAi.json";
 import idSticker from "./locales/id/sticker.json";
 import idEnergy from "./locales/id/energy.json";
 import idKalori from "./locales/id/kalori.json";
+import idReflection from "./locales/id/reflection.json";
 
 import enAuth from "./locales/en/auth.json";
 import enBerat from "./locales/en/berat.json";
@@ -63,6 +64,7 @@ import enPanduanAi from "./locales/en/panduanAi.json";
 import enSticker from "./locales/en/sticker.json";
 import enEnergy from "./locales/en/energy.json";
 import enKalori from "./locales/en/kalori.json";
+import enReflection from "./locales/en/reflection.json";
 
 import type { Locale } from "./locale";
 
@@ -100,6 +102,7 @@ const id = {
   sticker: idSticker,
   energy: idEnergy,
   kalori: idKalori,
+  reflection: idReflection,
 };
 
 /**
@@ -139,6 +142,7 @@ const en: typeof id = {
   sticker: enSticker,
   energy: enEnergy,
   kalori: enKalori,
+  reflection: enReflection,
 };
 
 export const resources = { id, en } satisfies Record<Locale, typeof id>;

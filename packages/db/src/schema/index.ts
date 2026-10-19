@@ -9,6 +9,7 @@ export * from "./joyofit";
 export * from "./challenge";
 export * from "./watch-workout";
 export * from "./coach";
+export * from "./recap";
 export * from "./oauth";
 export * from "./strength";
 export * from "./sync";

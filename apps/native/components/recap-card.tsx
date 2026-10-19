@@ -27,6 +27,12 @@ export function RecapCard() {
     ...orpc.stats.weekRecap.queryOptions({ input: { weekStart } }),
     enabled: isMonday,
   });
+  // Same cached query as the recap screen; the card only reads it and never asks for AI text.
+  const reflection = useQuery({
+    ...orpc.stats.weekReflection.queryOptions({ input: { weekStart } }),
+    enabled: isMonday,
+  });
+  const teaser = reflection.data?.focus[0]?.title ?? reflection.data?.wins[0]?.title ?? null;
   const data = recap.data;
   if (!isMonday || !data || data.avgKcal === null) return null;
 
@@ -65,6 +71,17 @@ export function RecapCard() {
             <Text style={styles.cellSub}>{t("recap.logged", { count: data.loggedDays })}</Text>
           </View>
         </View>
+        {teaser ? (
+          <View style={styles.teaser}>
+            <Ionicons
+              name={reflection.data?.focus.length ? "flag" : "checkmark-circle"}
+              size={16}
+              color={theme.colors.mutedForeground}
+              style={styles.teaserIcon}
+            />
+            <Text style={styles.teaserText}>{teaser}</Text>
+          </View>
+        ) : null}
       </Card>
     </Pressable>
   );
@@ -102,4 +119,7 @@ const styles = StyleSheet.create((theme) => ({
   },
   cellUnit: { fontSize: theme.fontSize.sm, fontWeight: "600", color: theme.colors.mutedForeground },
   cellSub: { fontSize: theme.fontSize.xs, color: theme.colors.mutedForeground },
+  teaser: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
+  teaserIcon: { marginTop: 1 },
+  teaserText: { flex: 1, fontSize: theme.fontSize.sm, lineHeight: 18, color: theme.colors.mutedForeground },
 }));

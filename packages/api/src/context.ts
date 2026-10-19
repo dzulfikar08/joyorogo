@@ -19,6 +19,8 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
   AI_CORRECT_MODEL?: string;
   /** Model for coach.chat; unset = AI_CORRECT_MODEL, else the vision model (thinking off). */
   AI_COACH_MODEL?: string;
+  /** Model for the weekly reflection (stats.generateWeekReflection); unset = the vision model (Gemma 4, thinking off). */
+  AI_RECAP_MODEL?: string;
   /** Coach chat messages per user per WIB day (default 20); "0" turns the chat off. See docs/coach.md. */
   COACH_DAILY_CAP?: string;
   /**

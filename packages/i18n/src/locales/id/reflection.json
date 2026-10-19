@@ -1,0 +1,270 @@
+{
+  "title": "Refleksi minggu ini",
+  "source": {
+    "ai": "Ditulis AI dari angka mingguanmu",
+    "template": "Ringkasan otomatis dari angka mingguanmu"
+  },
+  "wins": "Yang sudah bagus",
+  "focus": "Fokus minggu depan",
+  "generating": "AI lagi menyusun refleksimu...",
+  "locked": "Refleksi yang ditulis AI khusus pengguna Pro.",
+  "disclaimer": "Ini bukan saran medis. Kalau ada keluhan, tanyakan ke dokter.",
+  "ongoing": "Dihitung dari hari yang sudah lewat, jadi bisa berubah sampai minggunya selesai.",
+  "upsell": {
+    "title": "Mau refleksi yang ditulis AI?",
+    "body": "Pro menuliskannya dengan bahasa yang lebih personal dari angka mingguanmu.",
+    "cta": "Lihat Pro"
+  },
+  "text": {
+    "winsIntro": "Kabar baiknya:",
+    "focusIntro": "Yang perlu diperhatikan:",
+    "closing": "Fokus minggu depan:",
+    "keepGoing": "Pertahankan ritme ini minggu depan.",
+    "maternalNote": "Angka-angka ini cuma gambaran, bukan target yang harus dikejar."
+  },
+  "facts": {
+    "LOG_STREAK": {
+      "streak": {
+        "title": "Rajin mencatat",
+        "text": "Kamu mencatat makan {{streakDays}} hari berturut-turut. Kebiasaan ini yang bikin angka-angka lain bisa dipercaya."
+      },
+      "streak_gain": {
+        "title": "Target makan tercapai",
+        "text": "Kamu mencapai target makan {{streakDays}} hari berturut-turut. Mantap buat naik berat badan dengan sehat."
+      },
+      "logged": {
+        "title": "Catatan lengkap",
+        "text": "Kamu mencatat makan {{loggedDays}} dari {{judgedDays}} hari, jadi datanya cukup lengkap buat dibaca."
+      },
+      "some": {
+        "title": "Sudah mulai mencatat",
+        "text": "Kamu mencatat makan {{loggedDays}} hari minggu ini. Awal yang bagus."
+      }
+    },
+    "LOG_GAPS": {
+      "gaps": {
+        "title": "Catatan masih bolong",
+        "text": "Kamu baru mencatat makan {{loggedDays}} dari {{judgedDays}} hari, jadi angka minggu ini belum tentu menggambarkan makanmu yang sebenarnya.",
+        "advice": "Catat sekali saja per hari, sekalipun cuma satu kali makan. Lebih baik kasar tapi rutin daripada rinci tapi jarang."
+      }
+    },
+    "WEIGHT_PACE": {
+      "projected": "Dengan laju sekarang, targetmu tercapai sekitar {{projectedDate}}.",
+      "on_pace": {
+        "title": "Berat turun di laju yang pas",
+        "text": "Tren berat badanmu turun sekitar {{kgPerWeek}} kg per minggu, laju yang pas."
+      },
+      "week_down": {
+        "title": "Berat turun minggu ini",
+        "text": "Tren berat badanmu turun sekitar {{weekChangeKg}} kg minggu ini."
+      },
+      "behind": {
+        "title": "Turunnya lebih pelan dari target",
+        "text": "Tren berat badanmu turun sekitar {{kgPerWeek}} kg per minggu, sementara tanggal targetmu butuh sekitar {{neededKgPerWeek}} kg per minggu.",
+        "advice": "Jangan potong makan drastis. Rapikan satu hal dulu, misalnya porsi makan malam atau minuman manis, lalu tambah jalan santai. Kalau tanggal targetnya terasa terlalu mepet, geser tanggalnya di Profil."
+      },
+      "gaining": {
+        "title": "Tren berat sedang naik",
+        "text": "Tren berat badanmu naik sekitar {{kgPerWeek}} kg per minggu, padahal targetmu turun.",
+        "advice": "Mulai dari makan dekat target tiap hari dan timbang di jam yang sama. Satu minggu belum menentukan, lihat arah tren-nya."
+      },
+      "flat": {
+        "title": "Berat belum bergerak",
+        "text": "Tren berat badanmu hampir datar, sekitar {{kgPerWeek}} kg per minggu.",
+        "advice": "Cek dulu apakah catatan makanmu sudah lengkap, termasuk camilan dan minuman. Kalau sudah, kurangi sedikit porsi atau tambah jalan kaki."
+      },
+      "too_fast": {
+        "title": "Turunnya terlalu cepat",
+        "text": "Tren berat badanmu turun sekitar {{kgPerWeek}} kg per minggu, lebih cepat dari laju yang aman.",
+        "advice": "Makan sesuai target, jangan lebih sedikit, dan cukupkan protein supaya yang turun lemak, bukan otot. Kalau badan terasa lemas atau pusing, tanyakan ke dokter."
+      },
+      "steady": {
+        "title": "Berat stabil",
+        "text": "Tren berat badanmu stabil, sekitar {{kgPerWeek}} kg per minggu. Pas buat menjaga berat."
+      },
+      "drifting": {
+        "title": "Berat bergeser dari target jaga",
+        "text": "Tren berat badanmu bergeser sekitar {{kgPerWeek}} kg per minggu padahal kamu ingin menjaganya.",
+        "advice": "Lihat dulu rata-rata makanmu dibanding target. Selisih kecil tiap hari bisa menumpuk, jadi geser porsi atau geraknya sedikit saja, jangan drastis."
+      },
+      "gain_on_pace": {
+        "title": "Berat naik di laju yang pas",
+        "text": "Tren berat badanmu naik sekitar {{kgPerWeek}} kg per minggu, laju yang sehat."
+      },
+      "gain_stalled": {
+        "title": "Berat belum naik",
+        "text": "Tren berat badanmu naik cuma sekitar {{kgPerWeek}} kg per minggu.",
+        "advice": "Tambah satu camilan padat kalori tiap hari, misalnya susu atau roti dengan selai kacang, dan pastikan target makanmu tercapai."
+      }
+    },
+    "WEIGH_INS": {
+      "regular": {
+        "title": "Rajin menimbang",
+        "text": "Kamu menimbang berat {{count}} kali minggu ini, jadi tren-nya bisa dipercaya."
+      },
+      "few": {
+        "title": "Timbang lebih sering",
+        "text_other": "Kamu baru menimbang berat {{count}} kali minggu ini.",
+        "advice": "Timbang 3 sampai 4 kali seminggu di jam yang sama, misalnya pagi setelah bangun, supaya tren-nya lebih jelas."
+      },
+      "none": {
+        "title": "Belum ada timbangan",
+        "text": "Minggu ini kamu belum menimbang berat.",
+        "advice": "Coba timbang beberapa kali seminggu di jam yang sama, misalnya pagi setelah bangun, supaya tren-nya kelihatan."
+      }
+    },
+    "MEASURE_ANOMALY": {
+      "waist": {
+        "title": "Angka lingkar perut melonjak",
+        "text_other": "Lingkar perutmu tercatat dari {{fromCm}} cm ke {{toCm}} cm dalam {{days}} hari. Perubahan sebesar itu terlalu cepat buat tubuh, kemungkinan besar cara ukurnya berbeda.",
+        "advice": "Ukur di titik yang sama (sejajar pusar), pagi hari, setelah buang napas, dan dengan posisi pita yang sama. Ukur ulang kalau ragu."
+      },
+      "weight": {
+        "title": "Angka berat melonjak",
+        "text_other": "Berat badanmu tercatat dari {{fromKg}} kg ke {{toKg}} kg dalam {{days}} hari. Selisih sebesar itu biasanya karena waktu atau cara menimbang yang beda, bukan lemak.",
+        "advice": "Timbang di jam yang sama, sebelum makan, dengan pakaian yang mirip, supaya angkanya bisa dibandingkan."
+      }
+    },
+    "INTAKE_AVG_VS_TARGET": {
+      "on_target": {
+        "title": "Makan sesuai target",
+        "text": "Rata-rata makanmu {{avgKcal}} kkal per hari, dekat dengan target {{targetKcal}} kkal."
+      },
+      "over": {
+        "title": "Makan di atas target",
+        "text": "Rata-rata makanmu {{avgKcal}} kkal per hari, sekitar {{diffKcal}} kkal ({{diffPct}}%) di atas target {{targetKcal}} kkal.",
+        "advice": "Pilih satu waktu makan yang paling gampang dipangkas, biasanya makan malam atau camilan, dan kurangi sedikit saja. Selisih kecil tiap hari lebih awet daripada pantang total."
+      },
+      "under": {
+        "title": "Makan jauh di bawah target",
+        "text": "Rata-rata makanmu {{avgKcal}} kkal per hari, jauh di bawah target {{targetKcal}} kkal. Bisa jadi ada makanan yang belum tercatat, bisa juga kamu memang makan terlalu sedikit.",
+        "advice": "Catat semua makan dan minuman, termasuk camilan. Kalau memang makan sedikit, jangan dipaksa lebih rendah dari target, badan perlu bahan bakar buat gerak dan pemulihan."
+      },
+      "under_gain": {
+        "title": "Makan belum cukup buat naik",
+        "text": "Rata-rata makanmu {{avgKcal}} kkal per hari, di bawah target naik berat {{targetKcal}} kkal.",
+        "advice": "Tambah satu camilan padat gizi per hari, misalnya susu, kacang, atau roti isi, dan jangan lewatkan makan besar."
+      },
+      "under_maternal": {
+        "title": "Makan perlu dicukupkan",
+        "text": "Rata-rata makanmu {{avgKcal}} kkal per hari, di bawah kebutuhanmu {{targetKcal}} kkal.",
+        "advice": "Makan sedikit tapi sering dan pilih makanan padat gizi. Kalau susah makan, ceritakan ke dokter atau bidan."
+      }
+    },
+    "INTAKE_SWING": {
+      "swing": {
+        "title": "Asupan naik turun antar hari",
+        "text": "Makanmu berayun dari {{minKcal}} sampai {{maxKcal}} kkal per hari, selisih {{spreadKcal}} kkal.",
+        "advice": "Coba diratakan. Kalau hari ini sudah banyak, jangan dibalas dengan skip makan besok. Siapkan menu dasar yang kurang lebih sama tiap hari."
+      },
+      "steady": {
+        "title": "Asupan stabil",
+        "text": "Makanmu stabil dari hari ke hari, di kisaran {{minKcal}} sampai {{maxKcal}} kkal."
+      }
+    },
+    "PROTEIN_OK": {
+      "ok": {
+        "title": "Protein tercukupi",
+        "text": "Rata-rata proteinmu {{avgG}} g per hari, sudah mencapai target {{targetG}} g."
+      }
+    },
+    "PROTEIN_LOW": {
+      "low": {
+        "title": "Protein masih kurang",
+        "text": "Rata-rata proteinmu {{avgG}} g per hari, target {{targetG}} g (kurang sekitar {{shortG}} g).",
+        "advice": "Tambahkan satu sumber protein di tiap kali makan: telur, ikan, ayam tanpa kulit, tahu, atau tempe."
+      }
+    },
+    "FOOD_PATTERN": {
+      "fried": {
+        "title": "Banyak makanan goreng",
+        "text": "Ada {{count}} makanan goreng atau bertepung dalam {{days}} hari, sekitar {{kcalSharePct}}% dari kalori yang tercatat.",
+        "advice": "Tukar sebagian dengan versi panggang, rebus, atau kukus, misalnya ayam bakar, pepes, tahu atau tempe kukus. Kalau gorengan, cukup satu potong dan tiriskan minyaknya."
+      },
+      "double_carb": {
+        "title": "Dua karbo dalam satu makan",
+        "text": "Ada {{count}} kali makan dengan dua sumber karbohidrat sekaligus (misalnya nasi dengan mie, kentang, atau roti), tersebar di {{days}} hari.",
+        "advice": "Pilih satu sumber karbohidrat per makan, lalu isi sisanya dengan sayur dan lauk protein. Nasi dengan mie goreng, misalnya, cukup salah satu."
+      },
+      "sweet": {
+        "title": "Banyak yang manis",
+        "text": "Ada {{count}} makanan atau minuman manis dalam {{days}} hari, sekitar {{kcalSharePct}}% dari kalori yang tercatat.",
+        "advice": "Ganti minuman manis dengan teh atau kopi tawar atau air putih, atau kurangi gulanya jadi setengah. Untuk dessert, bagi dua dengan teman."
+      }
+    },
+    "ACTIVE_WEEK": {
+      "active": {
+        "title": "Rutin bergerak",
+        "text_other": "Kamu berolahraga total {{minutes}} menit minggu ini, tersebar di {{activeDays}} hari."
+      },
+      "maternal": {
+        "title": "Tetap bergerak",
+        "text": "Kamu tetap bergerak minggu ini, total {{minutes}} menit. Pertahankan yang terasa nyaman buat tubuhmu."
+      }
+    },
+    "RUN_EASY": {
+      "easy": {
+        "title": "Latihan di zona santai",
+        "text": "Sekitar {{easySharePct}}% waktu latihanmu ada di zona ringan sampai sedang. Itu bagus buat membangun stamina tanpa menguras tenaga."
+      }
+    },
+    "RUN_INTENSITY": {
+      "load": "Beban latihanmu minggu ini juga sekitar {{loadRatio}} kali dari biasanya.",
+      "loadAdvice": "Beri juga 1 sampai 2 hari istirahat penuh minggu depan.",
+      "hr": "Detak jantungmu rata-rata {{avgHrBpm}} dan sempat {{maxHrBpm}} bpm.",
+      "hard_run": {
+        "title": "Larinya terlalu ngebut",
+        "text": "Larimu menghabiskan {{z45Min}} menit di zona {{zoneFrom}} sampai {{zoneTo}}, sekitar {{z45SharePct}}% dari waktu sesi. Itu zona yang berat.",
+        "advice": "Selang-seling lari dan jalan, misalnya 1 menit lari pelan lalu 2 menit jalan, ulangi. Patokannya kamu masih bisa ngobrol sambil bergerak. Tambah durasi dulu, baru tempo."
+      },
+      "hard_other": {
+        "title": "Latihannya terlalu berat",
+        "text": "Latihanmu menghabiskan {{z45Min}} menit di zona {{zoneFrom}} sampai {{zoneTo}}, sekitar {{z45SharePct}}% dari waktu sesi. Itu zona yang berat.",
+        "advice": "Turunkan tempo sampai kamu masih bisa ngobrol dalam kalimat utuh. Tambah durasi pelan-pelan, baru tempo."
+      },
+      "hard_check_doctor": {
+        "title": "Intensitas tinggi, cek dokter dulu",
+        "text": "Latihanmu menghabiskan {{z45Min}} menit di zona {{zoneFrom}} sampai {{zoneTo}}, sekitar {{z45SharePct}}% dari waktu sesi. Itu zona yang berat.",
+        "advice": "Detak jantung setinggi ini di tempo yang berat perlu diperhatikan. Cek dulu ke dokter sebelum menambah intensitas, lalu mulai dengan jalan cepat atau selang-seling lari dan jalan di tempo yang masih bisa ngobrol. Kalau ada nyeri dada, sesak, atau pusing, berhenti dan segera periksa."
+      },
+      "hard_maternal": {
+        "title": "Intensitas perlu diturunkan",
+        "text": "Latihanmu menghabiskan {{z45Min}} menit di zona {{zoneFrom}} sampai {{zoneTo}}, sekitar {{z45SharePct}}% dari waktu sesi. Itu zona yang berat.",
+        "advice": "Turunkan tempo ke level yang masih bisa ngobrol dan pilih jalan santai atau gerak ringan. Tanyakan ke dokter atau bidan seberapa berat latihan yang aman buat kondisimu."
+      }
+    },
+    "LOAD_SPIKE": {
+      "spike": {
+        "title": "Beban latihan melonjak",
+        "text": "Beban latihanmu minggu ini sekitar {{loadRatio}} kali dari biasanya, jauh di atas batas wajar sekitar {{spikeAt}} kali.",
+        "advice": "Turunkan bebannya minggu depan: beri 1 sampai 2 hari istirahat penuh dan jangan menambah jarak atau tempo sekaligus. Naikkan bertahap."
+      }
+    },
+    "SLEEP_OK": {
+      "ok": {
+        "title": "Tidur cukup",
+        "text": "Rata-rata tidurmu {{avgHours}} jam per malam. Itu cukup buat pulih."
+      }
+    },
+    "SLEEP_SHORT": {
+      "short": {
+        "title": "Tidur kurang",
+        "text": "Rata-rata tidurmu {{avgHours}} jam per malam (antara {{minHours}} dan {{maxHours}} jam), sementara kamu butuh sekitar {{needHours}} jam.",
+        "advice": "Majukan jam tidur 15 menit tiap beberapa hari sampai mendekati kebutuhanmu, dan kurangi layar serta kafein di malam hari. Tidur kurang bikin lebih sering lapar dan pemulihan latihan lebih lambat."
+      }
+    },
+    "STEPS_GOOD": {
+      "good": {
+        "title": "Langkah harian bagus",
+        "text": "Rata-rata langkahmu {{avgSteps}} per hari."
+      }
+    },
+    "LOW_STEPS": {
+      "low": {
+        "title": "Langkah harian masih sedikit",
+        "text": "Rata-rata langkahmu {{avgSteps}} per hari di {{days}} hari yang terbaca. Kalau jam atau HP tidak selalu kamu bawa, angkanya bisa lebih rendah dari kenyataan.",
+        "advice": "Tambah jalan kaki 10 menit setelah makan atau pilih tangga. Naikkan sedikit demi sedikit, jangan langsung dilipatkan."
+      }
+    }
+  }
+}

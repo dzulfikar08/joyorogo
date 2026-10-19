@@ -344,7 +344,8 @@ export const aiUsage = sqliteTable(
     // "correction": a typed/spoken fix of a scan result (ai.correctScan); free, only rate-limited.
     // "label": a nutrition-label photo read (barcode.readLabel); free, only rate-limited, failures included.
     // "coach": one coach chat message that reached the model (coach.chat); free for food scans, capped per day by COACH_DAILY_CAP.
-    scanType: text("scan_type", { enum: ["anon", "user", "retry", "failed", "correction", "label", "coach"] }).notNull(),
+    // "recap": one model run of the weekly reflection (stats.generateWeekReflection); free, capped per week by its cache row.
+    scanType: text("scan_type", { enum: ["anon", "user", "retry", "failed", "correction", "label", "coach", "recap"] }).notNull(),
     latencyMs: integer("latency_ms").notNull(),
     usageJson: text("usage_json"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })

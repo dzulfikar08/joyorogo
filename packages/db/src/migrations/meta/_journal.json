@@ -344,6 +344,13 @@
       "when": 1792411200000,
       "tag": "0048_activity_levels",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "6",
+      "when": 1792497600000,
+      "tag": "0049_week_reflection",
+      "breakpoints": true
     }
   ]
 }

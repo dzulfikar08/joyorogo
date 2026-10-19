@@ -1,0 +1,274 @@
+{
+  "title": "This week's reflection",
+  "source": {
+    "ai": "Written by AI from your weekly numbers",
+    "template": "Automatic summary of your weekly numbers"
+  },
+  "wins": "What went well",
+  "focus": "Focus for next week",
+  "generating": "AI is writing your reflection...",
+  "locked": "The AI-written reflection is for Pro users.",
+  "disclaimer": "This is not medical advice. If something worries you, ask a doctor.",
+  "ongoing": "Based on the days that are over, so it can change until the week ends.",
+  "upsell": {
+    "title": "Want the AI-written version?",
+    "body": "Pro writes it in a more personal voice from your weekly numbers.",
+    "cta": "See Pro"
+  },
+  "text": {
+    "winsIntro": "The good news:",
+    "focusIntro": "Worth your attention:",
+    "closing": "Focus for next week:",
+    "keepGoing": "Keep this rhythm going next week.",
+    "maternalNote": "These numbers are only a picture of the week, not targets you have to chase."
+  },
+  "facts": {
+    "LOG_STREAK": {
+      "streak": {
+        "title": "Consistent logging",
+        "text": "You logged your food {{streakDays}} days in a row. That habit is what makes every other number trustworthy."
+      },
+      "streak_gain": {
+        "title": "Eating target reached",
+        "text": "You hit your eating target {{streakDays}} days in a row. Great for gaining weight in a healthy way."
+      },
+      "logged": {
+        "title": "Complete logs",
+        "text": "You logged your food on {{loggedDays}} of {{judgedDays}} days, so there is enough data to read."
+      },
+      "some": {
+        "title": "Logging has started",
+        "text": "You logged your food on {{loggedDays}} days this week. A good start."
+      }
+    },
+    "LOG_GAPS": {
+      "gaps": {
+        "title": "Logs have gaps",
+        "text": "You logged your food on only {{loggedDays}} of {{judgedDays}} days, so this week's numbers may not show what you really ate.",
+        "advice": "Log once a day, even if it is just one meal. Rough but regular beats detailed but rare."
+      }
+    },
+    "WEIGHT_PACE": {
+      "projected": "At the current pace you reach your target around {{projectedDate}}.",
+      "on_pace": {
+        "title": "Weight dropping at a good pace",
+        "text": "Your weight trend is down about {{kgPerWeek}} kg per week, a good pace."
+      },
+      "week_down": {
+        "title": "Weight down this week",
+        "text": "Your weight trend is down about {{weekChangeKg}} kg this week."
+      },
+      "behind": {
+        "title": "Slower than your target needs",
+        "text": "Your weight trend is down about {{kgPerWeek}} kg per week, while your target date needs about {{neededKgPerWeek}} kg per week.",
+        "advice": "Do not cut food drastically. Fix one thing first, like dinner portions or sweet drinks, then add easy walks. If the target date feels too tight, move it in Profile."
+      },
+      "gaining": {
+        "title": "Weight trend is going up",
+        "text": "Your weight trend is up about {{kgPerWeek}} kg per week, although your target is lower.",
+        "advice": "Start by eating close to your target every day and weigh in at the same time of day. One week does not decide anything, watch the direction of the trend."
+      },
+      "flat": {
+        "title": "Weight has not moved",
+        "text": "Your weight trend is nearly flat, about {{kgPerWeek}} kg per week.",
+        "advice": "First check that your food log is complete, snacks and drinks included. If it is, trim your portions a little or walk more."
+      },
+      "too_fast": {
+        "title": "Dropping too fast",
+        "text": "Your weight trend is down about {{kgPerWeek}} kg per week, faster than a safe pace.",
+        "advice": "Eat to your target, not below it, and get enough protein so that fat goes, not muscle. If you feel weak or dizzy, ask a doctor."
+      },
+      "steady": {
+        "title": "Weight is steady",
+        "text": "Your weight trend is steady, about {{kgPerWeek}} kg per week. Right for maintaining."
+      },
+      "drifting": {
+        "title": "Weight drifting off maintenance",
+        "text": "Your weight trend is shifting about {{kgPerWeek}} kg per week although you want to maintain.",
+        "advice": "First compare your average intake with your target. Small daily gaps add up, so nudge portions or movement a little, nothing drastic."
+      },
+      "gain_on_pace": {
+        "title": "Weight rising at a good pace",
+        "text": "Your weight trend is up about {{kgPerWeek}} kg per week, a healthy pace."
+      },
+      "gain_stalled": {
+        "title": "Weight has not gone up",
+        "text": "Your weight trend is up only about {{kgPerWeek}} kg per week.",
+        "advice": "Add one calorie-dense snack a day, like milk or bread with peanut butter, and make sure you reach your eating target."
+      }
+    },
+    "WEIGH_INS": {
+      "regular": {
+        "title": "Weighing in regularly",
+        "text": "You weighed in {{count}} times this week, so the trend can be trusted."
+      },
+      "few": {
+        "title": "Weigh in more often",
+        "text_one": "You weighed in only once this week.",
+        "text_other": "You weighed in only {{count}} times this week.",
+        "advice": "Weigh in 3 to 4 times a week at the same time of day, for example in the morning after waking up, so the trend is clearer."
+      },
+      "none": {
+        "title": "No weigh-ins yet",
+        "text": "You did not weigh in this week.",
+        "advice": "Try weighing in a few times a week at the same time of day, for example in the morning after waking up, so the trend shows."
+      }
+    },
+    "MEASURE_ANOMALY": {
+      "waist": {
+        "title": "Waist reading jumped",
+        "text_one": "Your waist was logged going from {{fromCm}} cm to {{toCm}} cm in {{days}} day. A change that big is too fast for a body, most likely it was measured differently.",
+        "text_other": "Your waist was logged going from {{fromCm}} cm to {{toCm}} cm in {{days}} days. A change that big is too fast for a body, most likely it was measured differently.",
+        "advice": "Measure at the same spot (level with your navel), in the morning, after breathing out, with the tape in the same position. Measure again if in doubt."
+      },
+      "weight": {
+        "title": "Weight reading jumped",
+        "text_one": "Your weight was logged going from {{fromKg}} kg to {{toKg}} kg in {{days}} day. A gap that big is usually a different time or way of weighing, not fat.",
+        "text_other": "Your weight was logged going from {{fromKg}} kg to {{toKg}} kg in {{days}} days. A gap that big is usually a different time or way of weighing, not fat.",
+        "advice": "Weigh in at the same time, before eating, in similar clothes, so the numbers can be compared."
+      }
+    },
+    "INTAKE_AVG_VS_TARGET": {
+      "on_target": {
+        "title": "Eating on target",
+        "text": "You averaged {{avgKcal}} kcal a day, close to your {{targetKcal}} kcal target."
+      },
+      "over": {
+        "title": "Eating above target",
+        "text": "You averaged {{avgKcal}} kcal a day, about {{diffKcal}} kcal ({{diffPct}}%) above your {{targetKcal}} kcal target.",
+        "advice": "Pick the one meal that is easiest to trim, usually dinner or snacks, and cut only a little. A small gap every day lasts longer than quitting cold turkey."
+      },
+      "under": {
+        "title": "Eating far below target",
+        "text": "You averaged {{avgKcal}} kcal a day, far below your {{targetKcal}} kcal target. Some food may not be logged, or you may really be eating too little.",
+        "advice": "Log every meal and drink, snacks included. If you really eat little, do not push below your target, your body needs fuel to move and recover."
+      },
+      "under_gain": {
+        "title": "Not eating enough to gain",
+        "text": "You averaged {{avgKcal}} kcal a day, below your {{targetKcal}} kcal gaining target.",
+        "advice": "Add one nutrient-dense snack a day, like milk, nuts, or a filled sandwich, and do not skip main meals."
+      },
+      "under_maternal": {
+        "title": "Eating needs to be enough",
+        "text": "You averaged {{avgKcal}} kcal a day, below the {{targetKcal}} kcal you need.",
+        "advice": "Eat small and often, and choose nutrient-dense food. If eating is hard, tell your doctor or midwife."
+      }
+    },
+    "INTAKE_SWING": {
+      "swing": {
+        "title": "Intake swings between days",
+        "text": "Your eating swung from {{minKcal}} to {{maxKcal}} kcal a day, a gap of {{spreadKcal}} kcal.",
+        "advice": "Try to even it out. If today was a lot, do not answer it by skipping meals tomorrow. Keep a base menu that is roughly the same every day."
+      },
+      "steady": {
+        "title": "Steady intake",
+        "text": "Your eating was steady day to day, around {{minKcal}} to {{maxKcal}} kcal."
+      }
+    },
+    "PROTEIN_OK": {
+      "ok": {
+        "title": "Protein on target",
+        "text": "You averaged {{avgG}} g of protein a day, reaching your {{targetG}} g target."
+      }
+    },
+    "PROTEIN_LOW": {
+      "low": {
+        "title": "Protein still low",
+        "text": "You averaged {{avgG}} g of protein a day against a {{targetG}} g target (about {{shortG}} g short).",
+        "advice": "Add one protein source to every meal: eggs, fish, skinless chicken, tofu, or tempeh."
+      }
+    },
+    "FOOD_PATTERN": {
+      "fried": {
+        "title": "A lot of fried food",
+        "text": "There were {{count}} fried or battered items in {{days}} days, about {{kcalSharePct}}% of the calories you logged.",
+        "advice": "Swap some for grilled, boiled, or steamed versions, like grilled chicken, pepes, or steamed tofu or tempeh. For fritters, one piece is enough, and drain the oil."
+      },
+      "double_carb": {
+        "title": "Two starches in one meal",
+        "text": "{{count}} meals had two starches at once (for example rice with noodles, potatoes, or bread), spread over {{days}} days.",
+        "advice": "Pick one starch per meal and fill the rest with vegetables and a protein side. Rice with fried noodles, for example, only needs one of the two."
+      },
+      "sweet": {
+        "title": "A lot of sweets",
+        "text": "There were {{count}} sweet foods or drinks in {{days}} days, about {{kcalSharePct}}% of the calories you logged.",
+        "advice": "Swap sweet drinks for unsweetened tea or coffee or water, or halve the sugar. Share dessert with a friend."
+      }
+    },
+    "ACTIVE_WEEK": {
+      "active": {
+        "title": "Moving regularly",
+        "text_one": "You exercised {{minutes}} minutes in total this week, on {{activeDays}} day.",
+        "text_other": "You exercised {{minutes}} minutes in total this week, spread over {{activeDays}} days."
+      },
+      "maternal": {
+        "title": "Staying active",
+        "text": "You kept moving this week, {{minutes}} minutes in total. Keep what feels comfortable for your body."
+      }
+    },
+    "RUN_EASY": {
+      "easy": {
+        "title": "Training in easy zones",
+        "text": "About {{easySharePct}}% of your training time was in the light to moderate zones. That builds stamina without draining you."
+      }
+    },
+    "RUN_INTENSITY": {
+      "load": "Your training load this week is also about {{loadRatio}} times your usual.",
+      "loadAdvice": "Also take 1 to 2 full rest days next week.",
+      "hr": "Your heart rate averaged {{avgHrBpm}} and peaked at {{maxHrBpm}} bpm.",
+      "hard_run": {
+        "title": "Ran too fast",
+        "text": "Your run spent {{z45Min}} minutes in zones {{zoneFrom}} to {{zoneTo}}, about {{z45SharePct}}% of the session. Those are hard zones.",
+        "advice": "Alternate running and walking, for example 1 minute of easy running then 2 minutes of walking, repeat. The rule of thumb: you can still talk while moving. Add duration first, then pace."
+      },
+      "hard_other": {
+        "title": "Workout was too hard",
+        "text": "Your workout spent {{z45Min}} minutes in zones {{zoneFrom}} to {{zoneTo}}, about {{z45SharePct}}% of the session. Those are hard zones.",
+        "advice": "Lower the pace until you can still talk in full sentences. Add duration slowly, then pace."
+      },
+      "hard_check_doctor": {
+        "title": "High intensity, see a doctor first",
+        "text": "Your workout spent {{z45Min}} minutes in zones {{zoneFrom}} to {{zoneTo}}, about {{z45SharePct}}% of the session. Those are hard zones.",
+        "advice": "A heart rate this high at a hard pace deserves attention. See a doctor before adding intensity, then start with brisk walking or alternating running and walking at a pace where you can still talk. If you get chest pain, shortness of breath, or dizziness, stop and get checked."
+      },
+      "hard_maternal": {
+        "title": "Intensity needs to come down",
+        "text": "Your workout spent {{z45Min}} minutes in zones {{zoneFrom}} to {{zoneTo}}, about {{z45SharePct}}% of the session. Those are hard zones.",
+        "advice": "Lower the pace to where you can still talk and choose easy walks or light movement. Ask your doctor or midwife how hard is safe for your situation."
+      }
+    },
+    "LOAD_SPIKE": {
+      "spike": {
+        "title": "Training load spiked",
+        "text": "Your training load this week is about {{loadRatio}} times your usual, far above the normal limit of about {{spikeAt}} times.",
+        "advice": "Bring the load down next week: take 1 to 2 full rest days and do not add distance or pace at the same time. Build up gradually."
+      }
+    },
+    "SLEEP_OK": {
+      "ok": {
+        "title": "Enough sleep",
+        "text": "You averaged {{avgHours}} hours of sleep a night. That is enough to recover."
+      }
+    },
+    "SLEEP_SHORT": {
+      "short": {
+        "title": "Short on sleep",
+        "text": "You averaged {{avgHours}} hours of sleep a night (between {{minHours}} and {{maxHours}} hours), while you need about {{needHours}} hours.",
+        "advice": "Move bedtime earlier by 15 minutes every few days until you are close to what you need, and cut screens and caffeine in the evening. Short sleep makes you hungrier and slows training recovery."
+      }
+    },
+    "STEPS_GOOD": {
+      "good": {
+        "title": "Good daily steps",
+        "text": "You averaged {{avgSteps}} steps a day."
+      }
+    },
+    "LOW_STEPS": {
+      "low": {
+        "title": "Daily steps are low",
+        "text": "You averaged {{avgSteps}} steps a day over the {{days}} days that were recorded. If your watch or phone is not always with you, the number can read lower than reality.",
+        "advice": "Add a 10-minute walk after meals or take the stairs. Build up a little at a time, do not double it overnight."
+      }
+    }
+  }
+}

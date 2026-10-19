@@ -32,6 +32,7 @@ import {
   StatTile,
   Text,
 } from "@/components/ui";
+import { RecapReflection } from "@/components/recap-reflection";
 import { Disclosure } from "@/components/disclosure";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { useSessionGate } from "@/lib/use-session-gate";
@@ -351,6 +352,8 @@ export default function Rekap() {
                 }
               />
             </View>
+
+            <RecapReflection key={recap.weekStart} weekStart={recap.weekStart} />
 
             {share && !maternal ? (
               <ShareStoryButton

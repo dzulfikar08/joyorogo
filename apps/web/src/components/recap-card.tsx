@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { CalendarCheck, ChevronRight } from "lucide-react";
+import { CalendarCheck, Check, ChevronRight, Target } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
@@ -22,6 +22,12 @@ export function RecapCard() {
     ...orpc.stats.weekRecap.queryOptions({ input: { weekStart } }),
     enabled: isMonday,
   });
+  const reflection = useQuery({
+    ...orpc.stats.weekReflection.queryOptions({ input: { weekStart } }),
+    enabled: isMonday,
+  });
+  const teaser = reflection.data?.focus[0]?.title ?? reflection.data?.wins[0]?.title ?? null;
+  const TeaserIcon = reflection.data?.focus.length ? Target : Check;
   const data = recap.data;
   if (!isMonday || !data || data.avgKcal === null) return null;
 
@@ -67,6 +73,12 @@ export function RecapCard() {
           </dd>
         </div>
       </dl>
+      {teaser ? (
+        <p className="mt-3 flex items-start gap-2 text-sm leading-snug text-muted-foreground">
+          <TeaserIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span className="min-w-0 break-words">{teaser}</span>
+        </p>
+      ) : null}
     </Link>
   );
 }

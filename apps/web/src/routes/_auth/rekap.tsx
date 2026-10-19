@@ -25,6 +25,7 @@ import {
 import { Card, Page, PageHeader, SectionTitle, StatTile } from "@/components/kit/surface";
 import { ProgressBar } from "@/components/progress-bar";
 import { RecapChart } from "@/components/recap-chart";
+import { RecapReflection } from "@/components/recap-reflection";
 import { GainRecapNote } from "@/components/gain/gain-today";
 import { EmptyHint, ScreenError } from "@/components/screen-state";
 import { ShareStoryButton } from "@/components/story/share-story-button";
@@ -207,6 +208,8 @@ function RekapPage() {
               }
             />
           </div>
+
+          <RecapReflection weekStart={recap.weekStart} />
 
           {share ? (
             <ShareStoryButton

@@ -15,8 +15,8 @@ const files = readdirSync(migrationsDir)
 const TAG = "0048_activity_levels.sql";
 
 describe("migration 0048_activity_levels", () => {
-  test("is the last migration", () => {
-    expect(files.at(-1)).toBe(TAG);
+  test("is in the migrations folder", () => {
+    expect(files).toContain(TAG);
   });
 
   test("renames low / mid / high and leaves every other value alone", async () => {
