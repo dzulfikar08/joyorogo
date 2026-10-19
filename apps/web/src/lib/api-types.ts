@@ -36,6 +36,12 @@ type AiDescribeOutput = Awaited<ReturnType<AppRouterClient["ai"]["describeFood"]
 /** One item from a typed/spoken story, already placed on a meal slot and date. */
 export type StoryFoodItem = AiDescribeOutput["items"][number];
 
+/** What describeFood (and food.copyMeal) answer: items to review, plus how a reference was resolved. */
+export type StoryResult = AiDescribeOutput;
+
+/** How a story that points at an earlier meal ("sama kayak tadi siang") was answered. */
+export type StoryReference = NonNullable<AiDescribeOutput["reference"]>;
+
 /** profile.myProfile output: profile row, targets, latest weight, tier. */
 export type MyProfileData = Awaited<ReturnType<AppRouterClient["profile"]["myProfile"]>>;
 type ProfileOutput = MyProfileData;

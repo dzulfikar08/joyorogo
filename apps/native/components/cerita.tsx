@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
   RecordingPresets,
@@ -17,12 +17,14 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { MEALS, jakartaToday, storySlotLabel } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
+import { copyChipLabel, copyWantedLabel } from "@joyorogo/api/lib/meal-copy-label";
+import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
-import { Button, Input, ListGroup, ListRow, Text } from "@/components/ui";
+import { Button, Chip, Input, ListGroup, ListRow, Text } from "@/components/ui";
 import { MetaLine } from "@/components/meta-line";
 import { PlateFields } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
-import { errorMessage, fmtGramsLabel, fmtInt, parseNum } from "@/utils/format";
+import { errorMessage, fmtGramsLabel, fmtInt, fmtKcalLabel, parseNum } from "@/utils/format";
 import { client, isPaywallError, orpc, queryClient } from "@/utils/orpc";
 import { useToast } from "@/components/toast";
 import { useOptimisticMutation } from "@/lib/optimistic";
@@ -42,7 +44,15 @@ type StoryItem = {
   matched?: boolean;
   meal: Meal;
   date: string;
+  /** Copied from an earlier log row: stored nutrition, never an AI estimate. */
+  copied?: boolean;
 };
+
+/** What describeFood (and food.copyMeal) answer. */
+type StoryResult = Awaited<ReturnType<AppRouterClient["ai"]["describeFood"]>>;
+
+/** How a story that points at an earlier meal ("sama kayak tadi siang") was answered. */
+type StoryReference = NonNullable<StoryResult["reference"]>;
 
 export type CeritaPhase = "input" | "recording" | "working" | "review";
 
@@ -88,6 +98,13 @@ export function Cerita({
   const [phase, setPhaseState] = useState<CeritaPhase>("input");
   // This story used the last free scan of today → paywall after the save.
   const [quotaReached, setQuotaReached] = useState(false);
+  // The earlier meal this story copied, or why it could not (empty slot, everything removed).
+  const [reference, setReference] = useState<StoryReference | null>(null);
+  const [notice, setNotice] = useState<StoryReference | null>(null);
+  const [copying, setCopying] = useState(false);
+  const recentMeals =
+    useQuery(orpc.food.recentMeals.queryOptions({ input: { date, ...(meal ? { meal } : {}), slots } })).data
+      ?.groups ?? [];
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState("");
@@ -200,6 +217,47 @@ export function Cerita({
     return () => clearInterval(timer);
   }, [phase]);
 
+  /** Show an answer: items go to the review screen; an empty copy stays on the input with a notice. */
+  const showResult = (result: StoryResult) => {
+    setTranscript(result.transcript);
+    // A one-tap copy has no story of its own: leave whatever the user typed.
+    if (result.reference?.via !== "chip") setText(result.transcript);
+    setReference(result.reference);
+    if (result.items.length === 0 && result.reference) {
+      setNotice(result.reference);
+      setPhase("input");
+      return;
+    }
+    setNotice(null);
+    setItems(result.items);
+    setKcals(result.items.map((item) => String(Math.round(item.kcal))));
+    setPlates({});
+    setQuotaReached(result.quotaReached);
+    setPhase("review");
+  };
+
+  /** One-tap repeat of a logged meal: no AI, same review screen. */
+  const copyFrom = async (from: { date: string; meal: Meal }, label: string) => {
+    const run = ++runRef.current;
+    setCopying(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await client.food.copyMeal({
+        from: { date: from.date, meal: from.meal },
+        ...(meal ? { meal } : {}),
+        date,
+        slots,
+      });
+      if (run !== runRef.current) return;
+      showResult({ ...result, transcript: label });
+    } catch {
+      if (run === runRef.current) setError(t("story.copy.failed"));
+    } finally {
+      setCopying(false);
+    }
+  };
+
   const runDescribe = async (
     input: { text: string } | { audioBase64: string },
     fromAudio: boolean,
@@ -216,13 +274,7 @@ export function Cerita({
         slots,
       });
       if (run !== runRef.current) return;
-      setTranscript(result.transcript);
-      setText(result.transcript);
-      setItems(result.items);
-      setKcals(result.items.map((item) => String(Math.round(item.kcal))));
-      setPlates({});
-      setQuotaReached(result.quotaReached);
-      setPhase("review");
+      showResult(result);
     } catch (err) {
       if (run !== runRef.current) return;
       // Out of free scans: paywall on top of the sheet, not an error line.
@@ -289,7 +341,25 @@ export function Cerita({
     setItems([]);
     setKcals([]);
     setPlates({});
+    setReference(null);
     setPhase("input");
+  };
+
+  /** The copy that could not be shown: nothing logged there, or every item removed. */
+  const noticeLines = (info: StoryReference): string[] => {
+    if (info.status === "emptied") return [t("story.copy.emptied")];
+    const today = jakartaToday();
+    const what = copyWantedLabel(info.wanted, today);
+    const lines = [what ? t("story.copy.empty", { what }) : t("story.copy.emptyAny")];
+    if (info.suggestion) {
+      lines.push(
+        t("story.copy.suggest", {
+          label: storySlotLabel(info.suggestion.date, info.suggestion.meal, today),
+          kcal: fmtInt(info.suggestion.kcal),
+        }),
+      );
+    }
+    return lines;
   };
 
   const remove = (index: number) => {
@@ -346,27 +416,31 @@ export function Cerita({
           carbs: item.carbs,
           fat: item.fat,
           fiber: item.fiber,
-          source: "ai",
+          source: item.copied ? "copy" : "ai",
           ...(existing ? { plateId: existing } : plate ? { plate } : {}),
         });
         if (!existing && savedRow?.plateId) plateIds[key] = savedRow.plateId;
         if (savedRow?.id) createdIdsRef.current.push(savedRow.id);
         saved += 1;
       }
-      // Miss log: AI estimate vs what the user kept. Never blocks the save.
-      void logCorrections
-        .mutateAsync({
-          source: "native",
-          items: items.map((item, index) => ({
-            meal: item.meal,
-            dishName: item.name,
-            aiKcal: Math.round(item.kcal),
-            savedKcal: values[index] ?? 0,
-            aiGrams: item.grams ?? null,
-            aiConfidence: item.confidence ?? null,
-          })),
-        })
-        .catch(() => {});
+      // Miss log: AI estimate vs what the user kept. Never blocks the save. Copied rows carry the
+      // log's own numbers: nothing was estimated there.
+      const estimated = items.flatMap((item, index) => (item.copied ? [] : [{ item, index }]));
+      if (estimated.length > 0) {
+        void logCorrections
+          .mutateAsync({
+            source: "native",
+            items: estimated.map(({ item, index }) => ({
+              meal: item.meal,
+              dishName: item.name,
+              aiKcal: Math.round(item.kcal),
+              savedKcal: values[index] ?? 0,
+              aiGrams: item.grams ?? null,
+              aiConfidence: item.confidence ?? null,
+            })),
+          })
+          .catch(() => {});
+      }
       queryClient.invalidateQueries({ queryKey: orpc.food.key() });
       queryClient.invalidateQueries({ queryKey: orpc.plate.key() });
       queryClient.invalidateQueries({ queryKey: orpc.day.key() });
@@ -444,8 +518,19 @@ export function Cerita({
     return (
       <View style={styles.reviewGap}>
         <View style={styles.saidBox}>
-          <Text style={styles.saidLabel}>{t("story.youSaid")}</Text>
-          <Text style={styles.saidText}>{transcript}</Text>
+          {reference?.via !== "chip" ? (
+            <>
+              <Text style={styles.saidLabel}>{t("story.youSaid")}</Text>
+              <Text style={styles.saidText}>{transcript}</Text>
+            </>
+          ) : null}
+          {reference?.status === "copied" && reference.from ? (
+            <Text style={reference.via === "chip" ? styles.saidText : styles.saidLabel}>
+              {t("story.copy.copiedFrom", {
+                label: storySlotLabel(reference.from.date, reference.from.meal, today),
+              })}
+            </Text>
+          ) : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t("story.editStory")}
@@ -570,6 +655,28 @@ export function Cerita({
           style={styles.textArea}
         />
       )}
+      {notice ? (
+        <View style={styles.notice} accessibilityLiveRegion="polite">
+          {noticeLines(notice).map((line) => (
+            <Text key={line} style={styles.noticeText}>
+              {line}
+            </Text>
+          ))}
+          {notice.suggestion ? (
+            <Button
+              size="sm"
+              label={t("story.copy.suggestAction")}
+              disabled={copying}
+              onPress={() =>
+                void copyFrom(
+                  notice.suggestion!,
+                  storySlotLabel(notice.suggestion!.date, notice.suggestion!.meal, jakartaToday()),
+                )
+              }
+            />
+          ) : null}
+        </View>
+      ) : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {recording ? (
         <View style={styles.actionRow}>
@@ -594,6 +701,27 @@ export function Cerita({
           <Button label={t("story.calculate")} onPress={submitText} style={styles.grow} />
         </View>
       )}
+      {!recording && recentMeals.length > 0 ? (
+        <View style={styles.copyBlock}>
+          <Text style={styles.copyTitle}>{t("story.copy.title")}</Text>
+          <Text style={styles.copyHint}>{t("story.copy.hint")}</Text>
+          <View style={styles.copyChips}>
+            {recentMeals.map((group) => {
+              const today = jakartaToday();
+              const label = copyChipLabel(group, today);
+              return (
+                <Chip
+                  key={`${group.date}-${group.meal}`}
+                  label={`${label} · ${fmtKcalLabel(group.kcal)}`}
+                  leading={<Ionicons name="repeat" size={16} color={theme.colors.mutedForeground} />}
+                  disabled={copying}
+                  onPress={() => void copyFrom(group, label)}
+                />
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -757,6 +885,37 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.xs,
     fontWeight: "600",
     color: theme.colors.mutedForeground,
+  },
+  notice: {
+    backgroundColor: theme.colors.muted,
+    borderRadius: theme.radius.card,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    gap: theme.spacing.sm,
+    alignItems: "flex-start",
+  },
+  noticeText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.foreground,
+  },
+  copyBlock: {
+    gap: 2,
+    paddingTop: theme.spacing.xs,
+  },
+  copyTitle: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  copyHint: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.mutedForeground,
+  },
+  copyChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
+    paddingTop: theme.spacing.sm,
   },
   error: {
     fontSize: theme.fontSize.sm,

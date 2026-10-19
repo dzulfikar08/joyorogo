@@ -36,6 +36,9 @@ import { MEALS, jakartaToday } from "../lib/engine";
 import { GAIN_PROMPT_NOTE, isGainGap } from "../lib/gain";
 import { maternalFromRow, maternalNoteFor } from "../lib/maternal";
 import { dateSchema, mealSchema } from "../lib/schemas";
+import { answerReference } from "../lib/meal-copy";
+import type { ReferenceInfo } from "../lib/meal-copy";
+import { parseMealReference, storyTarget } from "../lib/meal-reference";
 import { TRANSCRIBE_MODEL, parseFoodStory, transcribeStory } from "../lib/story";
 import { MAX_SCAN_RETRIES, requireAiQuota } from "../lib/quota";
 import { wibDayBounds } from "../lib/tiers";
@@ -956,6 +959,27 @@ export const aiRouter = {
           message: serverT(context.locale, "scan")("errors.storyInputRequired"),
         });
       }
+      const now = new Date();
+      const slots = [...new Set(input.slots)];
+      const target = storyTarget({ now, date: input.date, meal: input.meal, slots });
+      // "Sama kayak tadi siang": answered from the user's own log. Only changes the
+      // rules cannot pin down ("tambah telur") reach the AI, with the rows as context.
+      const pointAtLog = async (text: string) => {
+        const ref = parseMealReference(text, now);
+        return ref ? answerReference(context.db, userId, ref, target, now) : null;
+      };
+      const failure = (error: unknown, transcript: string): never => {
+        // The transcript still helps the user fix what the AI misheard.
+        throw new ORPCError("UNPROCESSABLE_CONTENT", {
+          message: error instanceof Error ? error.message : serverT(context.locale, "errors")("story.empty"),
+          data: { transcript: transcript || null },
+        });
+      };
+      let transcript = input.text ?? "";
+      let pointed = input.text !== undefined ? await pointAtLog(input.text) : null;
+      if (pointed?.kind === "answer") {
+        return { transcript, items: pointed.items, quotaReached: false, reference: pointed.reference };
+      }
       const { ai, quotaReached } = await requireAiQuota(
         context.db,
         context.env,
@@ -963,29 +987,53 @@ export const aiRouter = {
         context.locale,
       );
       const startedAt = Date.now();
-      let transcript = input.text ?? "";
       let transcribeUsage: Record<string, unknown> | null = null;
-      let analysis;
-      try {
-        if (input.audioBase64 !== undefined) {
+      if (input.audioBase64 !== undefined) {
+        try {
           const heard = await transcribeStory(ai, input.audioBase64, context.locale);
           transcript = heard.text;
           transcribeUsage = heard.usage;
+        } catch (error) {
+          return failure(error, transcript);
         }
+        pointed = await pointAtLog(transcript);
+      }
+      const usageJson = (parse: Record<string, unknown> | null, copy: boolean) =>
+        JSON.stringify({
+          kind: input.audioBase64 !== undefined ? "voice" : "text",
+          ...(copy ? { copy: true } : { parse }),
+          ...(input.audioBase64 !== undefined
+            ? { transcribe: { model: TRANSCRIBE_MODEL, ...transcribeUsage } }
+            : {}),
+        });
+      if (pointed?.kind === "answer") {
+        // A spoken "sama kayak kemarin": only the transcription cost anything.
+        if (pointed.items.length > 0) {
+          await context.db.insert(aiUsage).values({
+            id: crypto.randomUUID(),
+            userId,
+            model: TRANSCRIBE_MODEL,
+            scanType: "user",
+            latencyMs: Date.now() - startedAt,
+            usageJson: usageJson(null, true),
+          });
+        }
+        return { transcript, items: pointed.items, quotaReached, reference: pointed.reference };
+      }
+      let analysis;
+      try {
         analysis = await parseFoodStory(ai, {
           text: transcript,
-          slots: [...new Set(input.slots)],
+          slots,
           defaultMeal: input.meal,
           referenceDate: input.date,
           model: context.env.AI_VISION_MODEL || undefined,
           locale: context.locale,
+          now,
+          reference: pointed ? { rows: pointed.rows, target } : undefined,
         });
       } catch (error) {
-        // The transcript still helps the user fix what the AI misheard.
-        throw new ORPCError("UNPROCESSABLE_CONTENT", {
-          message: error instanceof Error ? error.message : serverT(context.locale, "errors")("story.empty"),
-          data: { transcript: transcript || null },
-        });
+        return failure(error, transcript);
       }
       // Charge only stories that produced food — quota counts these rows.
       await context.db.insert(aiUsage).values({
@@ -994,15 +1042,19 @@ export const aiRouter = {
         model: analysis.model,
         scanType: "user",
         latencyMs: Date.now() - startedAt,
-        usageJson: JSON.stringify({
-          kind: input.audioBase64 !== undefined ? "voice" : "text",
-          parse: analysis.usage,
-          ...(input.audioBase64 !== undefined
-            ? { transcribe: { model: TRANSCRIBE_MODEL, ...transcribeUsage } }
-            : {}),
-        }),
+        usageJson: usageJson(analysis.usage, false),
       });
-      return { transcript, items: analysis.items, quotaReached };
+      const reference: ReferenceInfo | null =
+        pointed && analysis.items.some((item) => item.copied)
+          ? {
+              status: "copied",
+              via: "ai",
+              from: pointed.from,
+              wanted: { date: pointed.from.date, meal: pointed.from.meal },
+              suggestion: null,
+            }
+          : null;
+      return { transcript, items: analysis.items, quotaReached, reference };
     }),
   // Miss log (JRG-32): the client posts what the AI estimated vs what the user
   // actually kept, per item, at save time. Fire-and-forget from the clients —

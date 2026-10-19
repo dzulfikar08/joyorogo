@@ -6,6 +6,8 @@ import { localNameRule, localNameShape, transcriptionLanguage } from "./ai-local
 import { MEALS, jakartaToday, shiftDate, suggestMealNow } from "./engine";
 import { foodKind } from "./food-kind";
 import type { Meal } from "./engine";
+import { scaleRow } from "./meal-reference";
+import type { MealRow, Target } from "./meal-reference";
 import { serverT } from "./messages";
 import { calibrateItems } from "./tkpi";
 import type { CalibratedItem } from "./tkpi";
@@ -54,6 +56,7 @@ export function storyPrompt(ctx: {
   slots: readonly Meal[];
   defaultMeal?: Meal;
   locale?: Locale;
+  reference?: { rows: readonly MealRow[]; target: Target };
 }): string {
   const locale = ctx.locale ?? DEFAULT_LOCALE;
   const weekday = WEEKDAYS[new Date(`${ctx.today}T00:00:00Z`).getUTCDay()];
@@ -73,24 +76,46 @@ Aturan:
 - Minuman dicatat juga (es teh manis, kopi susu). Minuman tanpa kalori (Coke Zero, Diet Coke, air putih, teh tawar, kopi hitam tanpa gula) tetap dicatat dengan kcal 0 atau 1, itu jawaban yang benar. Untuk minuman grams = volume ml (kaleng 330, gelas 250). Merek atau varian yang disebut pengguna dipakai apa adanya (mis. "coke zero" bukan "coca cola").
 - Abaikan yang bukan makanan. Kalau tidak ada makanan sama sekali, jawab {"items":[]}.
 - name dalam Bahasa Indonesia, huruf awal kapital. kcal, protein/carbs/fat/fiber (gram) = estimasi realistis.${localNameRule(locale)}
-Cerita pengguna: """${ctx.text}"""`;
+${referenceBlock(ctx.reference)}Cerita pengguna: """${ctx.text}"""`;
+}
+
+/** Rows the user pointed at ("sama kayak kemarin"), numbered so the model can refer to them without retyping any nutrition. */
+function referenceBlock(reference: { rows: readonly MealRow[]; target: Target } | undefined): string {
+  if (!reference) return "";
+  const rows = reference.rows.map((row, ref) => ({
+    ref,
+    name: row.name,
+    grams: row.grams ?? undefined,
+    kcal: Math.round(row.kcal),
+  }));
+  return `Pengguna menunjuk makanan yang sudah tercatat. Daftarnya (ref = nomor):
+${JSON.stringify(rows)}
+Aturan tambahan untuk rujukan ini:
+- Item tercatat yang tetap dimakan ditulis {"ref":nomor,"scale":faktor porsi} saja (scale 1 = sama persis, 0.5 = setengah, 2 = dua kali). Jangan tulis ulang nama atau gizinya: itu diambil dari catatan.
+- Item tercatat yang dihapus atau diganti pengguna jangan ditulis sama sekali.
+- Makanan baru yang disebut pengguna (mis. "tambah telur") ditulis lengkap seperti biasa, tanpa ref.
+- Semua item masuk ke waktu makan ${reference.target.meal} dan hari tujuan: isi meal="${reference.target.meal}" dan day=null.
+`;
 }
 
 const rawItemSchema = z.object({
-  name: z.string(),
+  name: z.string().optional(),
   localName: z.string().optional(),
   portion: z.string().optional(),
   grams: z.number().optional(),
-  kcal: z.number(),
+  kcal: z.number().optional(),
   protein: z.number().optional(),
   carbs: z.number().optional(),
   fat: z.number().optional(),
   fiber: z.number().optional(),
   meal: z.string().optional(),
   day: z.number().nullable().optional(),
+  /** Index into the referenced rows: the item is copied from the log, not estimated. */
+  ref: z.number().nullable().optional(),
+  scale: z.number().optional(),
 });
 
-const NUMERIC_KEYS = ["grams", "kcal", "protein", "carbs", "fat", "fiber", "day"] as const;
+const NUMERIC_KEYS = ["grams", "kcal", "protein", "carbs", "fat", "fiber", "day", "ref", "scale"] as const;
 
 /**
  * Gemma occasionally mangles a key ("protein thick": 15). Keep the first
@@ -119,7 +144,8 @@ function bound(v: number | undefined, min: number, max: number): number | undefi
   return Math.round(Math.min(max, Math.max(min, v)) * 10) / 10;
 }
 
-export type StoryItem = CalibratedItem & { meal: Meal; date: string };
+/** `copied`: stored nutrition from an earlier log row, scaled, never re-estimated. */
+export type StoryItem = CalibratedItem & { meal: Meal; date: string; copied?: boolean };
 
 export type StoryContext = {
   /** WIB calendar day "today" means; injectable for tests. */
@@ -132,6 +158,8 @@ export type StoryContext = {
   nowMeal: Meal;
   /** Language of the returned item names and portions; default Indonesian. */
   locale?: Locale;
+  /** Logged rows the story points at; items may reference them by index. Everything lands on `target`. */
+  reference?: { rows: readonly MealRow[]; target: Target };
 };
 
 /** Parse, bound, calibrate, and place one model answer onto meal slots and dates. */
@@ -141,25 +169,48 @@ export function storyItemsFromText(text: string, ctx: StoryContext): StoryItem[]
     .parse(extractJson(text.replace(/```(?:json)?/g, "")));
   const placed: Array<{
     item: Parameters<typeof calibrateItems>[0][number];
+    /** Copied from the log: skips calibration, keeps stored nutrition. */
+    copy?: CalibratedItem;
     localName?: string;
     meal: Meal;
     date: string;
   }> = [];
+  const copiedRefs = new Set<number>();
   for (const candidate of parsed.items.slice(0, MAX_ITEMS)) {
     const result = rawItemSchema.safeParse(normalizeItem(candidate));
     if (!result.success) continue;
     const raw = result.data;
+    if (ctx.reference) {
+      const ref = raw.ref === null || raw.ref === undefined ? undefined : Math.round(raw.ref);
+      const row = ref === undefined ? undefined : ctx.reference.rows[ref];
+      if (ref !== undefined && row) {
+        if (copiedRefs.has(ref)) continue;
+        copiedRefs.add(ref);
+        const scale =
+          raw.scale !== undefined && Number.isFinite(raw.scale) ? Math.min(5, Math.max(0.1, raw.scale)) : 1;
+        placed.push({
+          item: { name: row.name, kcal: row.kcal },
+          copy: scaleRow(row, scale),
+          meal: ctx.reference.target.meal,
+          date: ctx.reference.target.date,
+        });
+        continue;
+      }
+    }
     const kcal = bound(raw.kcal, 0, 5000);
-    const name = raw.name.trim();
+    const name = raw.name?.trim() ?? "";
     // Zero is a real answer for a drink (Coke Zero, air putih); any other 0 is a miss.
     if (kcal === undefined || name.length === 0) continue;
     if (kcal <= 0 && foodKind(name) !== "minuman") continue;
-    const meal =
-      raw.meal && (ctx.slots as readonly string[]).includes(raw.meal)
+    // A story about a copied meal lands entirely on the target slot and day.
+    const meal = ctx.reference
+      ? ctx.reference.target.meal
+      : raw.meal && (ctx.slots as readonly string[]).includes(raw.meal)
         ? (raw.meal as Meal)
         : (ctx.defaultMeal ?? ctx.nowMeal);
-    const date =
-      raw.day === null || raw.day === undefined || !Number.isFinite(raw.day)
+    const date = ctx.reference
+      ? ctx.reference.target.date
+      : raw.day === null || raw.day === undefined || !Number.isFinite(raw.day)
         ? ctx.referenceDate
         : shiftDate(ctx.today, Math.max(-MAX_DAYS_BACK, Math.min(0, Math.round(raw.day))));
     placed.push({
@@ -178,15 +229,20 @@ export function storyItemsFromText(text: string, ctx: StoryContext): StoryItem[]
       date,
     });
   }
-  const calibrated = calibrateItems(placed.map((p) => p.item));
+  const calibrated = calibrateItems(placed.filter((p) => !p.copy).map((p) => p.item));
   const local = ctx.locale !== undefined && ctx.locale !== DEFAULT_LOCALE;
-  return calibrated.map((item, index) => ({
-    ...item,
-    // Matching used the Indonesian name; the user sees theirs.
-    name: (local && placed[index]!.localName) || item.name,
-    meal: placed[index]!.meal,
-    date: placed[index]!.date,
-  }));
+  let next = 0;
+  return placed.map((p) => {
+    if (p.copy) return { ...p.copy, meal: p.meal, date: p.date, copied: true };
+    const item = calibrated[next++]!;
+    return {
+      ...item,
+      // Matching used the Indonesian name; the user sees theirs.
+      name: (local && p.localName) || item.name,
+      meal: p.meal,
+      date: p.date,
+    };
+  });
 }
 
 function withDeadline<T>(
@@ -222,6 +278,8 @@ export async function parseFoodStory(
     /** Language of the returned item names and of the error messages. */
     locale?: Locale;
     model?: string;
+    /** Logged rows the story points at ("sama kayak kemarin tapi ..."): the model copies them by index. */
+    reference?: { rows: readonly MealRow[]; target: Target };
     now?: Date;
     schedule?: ScheduleTimeout;
   },
@@ -246,6 +304,7 @@ export async function parseFoodStory(
       opts.defaultMeal && slots.includes(opts.defaultMeal) ? opts.defaultMeal : undefined,
     nowMeal: slots.includes(suggested) ? suggested : slots[0]!,
     locale,
+    reference: opts.reference,
   };
   let result: unknown;
   try {
@@ -261,6 +320,7 @@ export async function parseFoodStory(
               slots,
               defaultMeal: ctx.defaultMeal,
               locale,
+              reference: opts.reference,
             }),
           },
         ],

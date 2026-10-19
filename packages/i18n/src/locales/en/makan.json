@@ -392,6 +392,19 @@
     "kcalAria": "Calories in kcal"
   },
   "story": {
+    "copy": {
+      "title": "Repeat a meal",
+      "hint": "Tap to copy, or type: same as lunch.",
+      "chipToday": "Same as {{meal}} earlier",
+      "chipDay": "{{meal}} {{day}}",
+      "copiedFrom": "Copied from {{label}}. Check it before saving.",
+      "empty": "Nothing logged for {{what}}.",
+      "emptyAny": "No logged meal to copy yet.",
+      "suggest": "Closest one: {{label}}, {{kcal}} kcal.",
+      "suggestAction": "Copy that",
+      "emptied": "You took every item out, so there is nothing to copy.",
+      "failed": "Couldn't copy. Try again."
+    },
     "joinLast": "{{list}} and {{last}}",
     "error": {
       "generic": "Couldn't reach the AI. Try again.",

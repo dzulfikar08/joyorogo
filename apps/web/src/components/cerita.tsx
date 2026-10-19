@@ -1,25 +1,27 @@
 import { MEALS, jakartaToday, relativeDayLabel, storySlotLabel } from "@joyorogo/api/lib/engine";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
+import { copyChipLabel, copyWantedLabel } from "@joyorogo/api/lib/meal-copy-label";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import type { TFunction } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Textarea } from "@joyorogo/ui/components/textarea";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Mic, Square, X } from "lucide-react";
+import { Mic, Repeat, Square, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import type { StoryFoodItem } from "@/lib/api-types";
+import type { StoryFoodItem, StoryReference, StoryResult } from "@/lib/api-types";
 import { isPaywallError } from "@/lib/billing";
 import { removeById } from "@joyorogo/api/lib/optimistic";
+import { Chip } from "@/components/chip";
 import { FieldLabel } from "@/components/kit/surface";
 import { FoodSafetyNotes } from "@/components/maternal/food-safety-notes";
 import { MetaLine } from "@/components/meta-line";
 import { IdrInput } from "@/components/plate/idr-input";
-import { fmtGramsLabel, fmtInt, parseNum } from "@/lib/format";
+import { fmtGramsLabel, fmtInt, fmtKcalLabel, parseNum } from "@/lib/format";
 import { OptimisticCache, undoLabel, UNDO_TOAST_MS } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
@@ -100,6 +102,14 @@ export function Cerita({
   // This story used the free user's last quota of today: offer Founder once
   // the items are saved.
   const [quotaReached, setQuotaReached] = useState(false);
+  // The earlier meal this story copied, or why it could not (empty slot, everything removed).
+  const [reference, setReference] = useState<StoryReference | null>(null);
+  const [notice, setNotice] = useState<StoryReference | null>(null);
+  const [copying, setCopying] = useState(false);
+  const activeSlots = slots.length > 0 ? slots : [...MEALS];
+  const recentMeals =
+    useQuery(orpc.food.recentMeals.queryOptions({ input: { date, meal, slots: activeSlots } })).data
+      ?.groups ?? [];
   // Optional price per plate group ("Nasi padang" / "RM Sederhana" / "28000"),
   // prefilled from the last known price when the review screen opens.
   const [plates, setPlates] = useState<
@@ -139,47 +149,61 @@ export function Cerita({
     return () => clearInterval(timer);
   }, [phase]);
 
+  /** Show an answer: items go to the review screen; an empty copy stays on the input with a notice. */
+  const showResult = (result: StoryResult) => {
+    setTranscript(result.transcript);
+    // A one-tap copy has no story of its own: leave whatever the user typed.
+    if (result.reference?.via !== "chip") setText(result.transcript);
+    setReference(result.reference);
+    if (result.items.length === 0 && result.reference) {
+      setNotice(result.reference);
+      setPhase("input");
+      return;
+    }
+    setNotice(null);
+    setItems(result.items);
+    setQuotaReached(result.quotaReached);
+    setKcals(result.items.map((item) => String(Math.round(item.kcal))));
+    // Autofill each group's plate from the last price paid for that name.
+    const groupsByKey = [...new Set(result.items.map(groupKey))];
+    setPlates(
+      Object.fromEntries(groupsByKey.map((key) => [key, { name: "", place: "", price: "" }])),
+    );
+    for (const key of groupsByKey) {
+      const sample = result.items.find((item) => groupKey(item) === key);
+      if (!sample) continue;
+      client.plate
+        .lastPrice({ name: sample.name })
+        .then((hit) => {
+          if (!hit) return;
+          setPlates((current) =>
+            current[key]?.price
+              ? current
+              : {
+                  ...current,
+                  [key]: { name: hit.name, place: hit.place ?? "", price: String(hit.priceIdr) },
+                },
+          );
+        })
+        .catch(() => {});
+    }
+    setPhase("review");
+  };
+
   const describe = async (input: { text: string } | { audioBase64: string }) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
     setError(null);
+    setNotice(null);
     setPhase("audioBase64" in input ? "listening" : "thinking");
     try {
       const result = await client.ai.describeFood(
-        { ...input, meal, date, slots: slots.length > 0 ? slots : [...MEALS] },
+        { ...input, meal, date, slots: activeSlots },
         { signal: controller.signal },
       );
       if (controller.signal.aborted) return;
-      setTranscript(result.transcript);
-      setText(result.transcript);
-      setItems(result.items);
-      setQuotaReached(result.quotaReached);
-      setKcals(result.items.map((item) => String(Math.round(item.kcal))));
-      // Autofill each group's plate from the last price paid for that name.
-      const groupsByKey = [...new Set(result.items.map(groupKey))];
-      setPlates(
-        Object.fromEntries(groupsByKey.map((key) => [key, { name: "", place: "", price: "" }])),
-      );
-      for (const key of groupsByKey) {
-        const sample = result.items.find((item) => groupKey(item) === key);
-        if (!sample) continue;
-        client.plate
-          .lastPrice({ name: sample.name })
-          .then((hit) => {
-            if (!hit) return;
-            setPlates((current) =>
-              current[key]?.price
-                ? current
-                : {
-                    ...current,
-                    [key]: { name: hit.name, place: hit.place ?? "", price: String(hit.priceIdr) },
-                  },
-            );
-          })
-          .catch(() => {});
-      }
-      setPhase("review");
+      showResult(result);
     } catch (err) {
       if (controller.signal.aborted) return;
       // Story rejected because the free quota ran out: paywall instead of an
@@ -192,6 +216,21 @@ export function Cerita({
       if (parts.transcript) setText(parts.transcript);
       setError(parts.message);
       setPhase("input");
+    }
+  };
+
+  /** One-tap repeat of a logged meal: no AI, same review screen. */
+  const copyFrom = async (from: { date: string; meal: Meal }, label: string) => {
+    setCopying(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await client.food.copyMeal({ from: { date: from.date, meal: from.meal }, meal, date, slots: activeSlots });
+      showResult({ ...result, transcript: label });
+    } catch {
+      setError(t("story.copy.failed"));
+    } finally {
+      setCopying(false);
     }
   };
 
@@ -239,6 +278,7 @@ export function Cerita({
   const backToInput = () => {
     setItems([]);
     setKcals([]);
+    setReference(null);
     setPhase("input");
   };
 
@@ -247,6 +287,23 @@ export function Cerita({
     setItems(nextItems);
     setKcals((current) => current.filter((_, i) => i !== index));
     if (nextItems.length === 0) backToInput();
+  };
+
+  /** The copy that could not be shown: nothing logged there, or every item removed. */
+  const noticeLines = (info: StoryReference): string[] => {
+    if (info.status === "emptied") return [t("story.copy.emptied")];
+    const today = jakartaToday();
+    const what = copyWantedLabel(info.wanted, today);
+    const lines = [what ? t("story.copy.empty", { what }) : t("story.copy.emptyAny")];
+    if (info.suggestion) {
+      lines.push(
+        t("story.copy.suggest", {
+          label: storySlotLabel(info.suggestion.date, info.suggestion.meal, today),
+          kcal: fmtInt(info.suggestion.kcal),
+        }),
+      );
+    }
+    return lines;
   };
 
   const total = kcals.reduce((sum, value) => sum + (parseNum(value) ?? 0), 0);
@@ -305,7 +362,7 @@ export function Cerita({
           carbs: item.carbs,
           fat: item.fat,
           fiber: item.fiber,
-          source: "ai",
+          source: item.copied ? "copy" : "ai",
           ...(startsGroup
             ? {
                 plate: {
@@ -336,19 +393,23 @@ export function Cerita({
         }
         saved += 1;
       }
-      void client.ai
-        .logCorrections({
-          source: "web",
-          items: items.map((item, index) => ({
-            meal: item.meal,
-            dishName: item.name,
-            aiKcal: Math.round(item.kcal),
-            savedKcal: values[index] ?? 0,
-            aiGrams: item.grams ?? null,
-            aiConfidence: item.confidence ?? null,
-          })),
-        })
-        .catch(() => {});
+      const estimated = items.flatMap((item, index) => (item.copied ? [] : [{ item, index }]));
+      // Copied rows carry the log's own numbers: nothing was estimated, nothing to learn from.
+      if (estimated.length > 0) {
+        void client.ai
+          .logCorrections({
+            source: "web",
+            items: estimated.map(({ item, index }) => ({
+              meal: item.meal,
+              dishName: item.name,
+              aiKcal: Math.round(item.kcal),
+              savedKcal: values[index] ?? 0,
+              aiGrams: item.grams ?? null,
+              aiConfidence: item.confidence ?? null,
+            })),
+          })
+          .catch(() => {});
+      }
       const dates = [...new Set(items.map((item) => item.date))].sort();
       const today = jakartaToday();
       const elsewhere = dates.find((d) => d !== date);
@@ -469,8 +530,23 @@ export function Cerita({
     return (
       <div className="space-y-4">
         <div className="rounded-2xl bg-muted px-4 py-3">
-          <p className="text-xs font-semibold text-muted-foreground">{t("story.youSaid")}</p>
-          <p className="mt-0.5 text-sm">{transcript}</p>
+          {reference?.via !== "chip" && (
+            <>
+              <p className="text-xs font-semibold text-muted-foreground">{t("story.youSaid")}</p>
+              <p className="mt-0.5 text-sm">{transcript}</p>
+            </>
+          )}
+          {reference?.status === "copied" && reference.from && (
+            <p
+              className={
+                reference.via === "chip" ? "text-sm" : "mt-1 text-xs text-muted-foreground"
+              }
+            >
+              {t("story.copy.copiedFrom", {
+                label: storySlotLabel(reference.from.date, reference.from.meal, today),
+              })}
+            </p>
+          )}
           <button
             type="button"
             onClick={backToInput}
@@ -634,6 +710,23 @@ export function Cerita({
           className="min-h-28 rounded-xl border-transparent bg-muted px-4 py-3 text-base md:text-base focus-visible:border-ring/60 focus-visible:bg-card focus-visible:ring-[3px] focus-visible:ring-ring/25"
         />
       )}
+      {notice && (
+        <div role="status" className="space-y-2 rounded-2xl bg-muted px-4 py-3 text-sm">
+          {noticeLines(notice).map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+          {notice.suggestion && (
+            <Button
+              type="button"
+              size="sm"
+              disabled={copying}
+              onClick={() => void copyFrom(notice.suggestion!, storySlotLabel(notice.suggestion!.date, notice.suggestion!.meal, jakartaToday()))}
+            >
+              {t("story.copy.suggestAction")}
+            </Button>
+          )}
+        </div>
+      )}
       {error && (
         <p id="cerita-error" role="alert" className="px-1 text-sm text-destructive">
           {error}
@@ -669,6 +762,30 @@ export function Cerita({
           </Button>
         )}
       </div>
+      {!recording && recentMeals.length > 0 && (
+        <div className="pt-1">
+          <p className="text-sm font-bold">{t("story.copy.title")}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t("story.copy.hint")}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {recentMeals.map((group) => {
+              const today = jakartaToday();
+              return (
+                <Chip
+                  key={`${group.date}-${group.meal}`}
+                  className="max-w-full"
+                  disabled={copying}
+                  onClick={() => void copyFrom(group, copyChipLabel(group, today))}
+                >
+                  <Repeat className="mr-1.5 size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">
+                    {copyChipLabel(group, today)} · {fmtKcalLabel(group.kcal)}
+                  </span>
+                </Chip>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </form>
   );
 }

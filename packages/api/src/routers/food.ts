@@ -8,7 +8,9 @@ import { foodLog, profile } from "@joyorogo/db/schema/fitness";
 import { plate } from "@joyorogo/db/schema/plans";
 
 import { protectedProcedure } from "../index";
-import { jakartaToday } from "../lib/engine";
+import { MEALS, jakartaToday } from "../lib/engine";
+import { copyLoggedMeal, recentMealGroups } from "../lib/meal-copy";
+import { storyTarget } from "../lib/meal-reference";
 import { MAX_GRAMS, MAX_KCAL, resolvePortion } from "../lib/portion";
 import { recalcRow } from "../lib/plate-recalc";
 import type { RecalcValues } from "../lib/plate-recalc";
@@ -244,7 +246,7 @@ export const foodRouter = {
         carbs: z.number().min(0).max(500).optional(),
         fat: z.number().min(0).max(500).optional(),
         fiber: z.number().min(0).max(500).optional(),
-        source: z.enum(["manual", "ai", "barcode"]).default("manual"),
+        source: z.enum(["manual", "ai", "barcode", "copy"]).default("manual"),
         itemsJson: z.string().max(10_000).optional(),
         // capability id of the dish sticker generated at scan time
         scanId: z.string().regex(SCAN_ID_RE).optional(),
@@ -488,4 +490,39 @@ export const foodRouter = {
       .limit(10);
     return { items };
   }),
+
+  // "Ulangi makanan" chips: meals logged in the last week, newest first, minus
+  // the slot being added to.
+  recentMeals: protectedProcedure
+    .input(
+      z.object({
+        date: dateSchema.optional(),
+        meal: mealSchema.optional(),
+        slots: z.array(mealSchema).min(1).max(MEALS.length),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const now = new Date();
+      const target = storyTarget({ now, date: input.date, meal: input.meal, slots: input.slots });
+      const groups = await recentMealGroups(context.db, context.session.user.id, now, target, 4);
+      return { groups };
+    }),
+
+  // One-tap repeat of a logged meal: its rows as review items for the target
+  // slot and day, stored nutrition untouched. Nothing is saved until the client
+  // confirms through add, so the copies get their own ids.
+  copyMeal: protectedProcedure
+    .input(
+      z.object({
+        from: z.object({ date: dateSchema, meal: mealSchema }),
+        date: dateSchema.optional(),
+        meal: mealSchema.optional(),
+        slots: z.array(mealSchema).min(1).max(MEALS.length),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const target = storyTarget({ now: new Date(), date: input.date, meal: input.meal, slots: input.slots });
+      const { items, reference } = await copyLoggedMeal(context.db, context.session.user.id, input.from, target);
+      return { transcript: "", items, quotaReached: false, reference };
+    }),
 };

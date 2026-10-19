@@ -382,6 +382,19 @@
     "kcalAria": "Kalori dalam kkal"
   },
   "story": {
+    "copy": {
+      "title": "Ulangi makanan",
+      "hint": "Tap untuk salin, atau ketik: sama kayak tadi siang.",
+      "chipToday": "Sama kayak {{meal}} tadi",
+      "chipDay": "{{meal}} {{day}}",
+      "copiedFrom": "Disalin dari {{label}}. Cek dulu sebelum disimpan.",
+      "empty": "Belum ada catatan {{what}}.",
+      "emptyAny": "Belum ada makanan tercatat yang bisa disalin.",
+      "suggest": "Yang terdekat: {{label}}, {{kcal}} kcal.",
+      "suggestAction": "Salin itu",
+      "emptied": "Semua makanannya kamu keluarkan, jadi tidak ada yang disalin.",
+      "failed": "Gagal menyalin. Coba lagi."
+    },
     "joinLast": "{{list}} dan {{last}}",
     "error": {
       "generic": "Gagal menghubungi AI. Coba lagi.",

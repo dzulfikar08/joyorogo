@@ -185,7 +185,7 @@ export const foodLog = sqliteTable(
     // Portion weight in grams when known (AI scan/Cerita estimate or typed in);
     // null when unknown. Baseline for the proportional portion edit.
     grams: real("grams"),
-    // 'manual' | 'ai'
+    // 'manual' | 'ai' | 'barcode' | 'copy' (a repeat of an earlier meal, Cerita "sama kayak ...")
     source: text("source").notNull().default("manual"),
     // scan_id keys this item's background-removed sticker in R2
     // (scans/<id>.png); photo_id keys the original photo shared by every item
