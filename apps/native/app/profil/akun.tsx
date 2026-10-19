@@ -35,10 +35,12 @@ function AkunContent() {
   const displayName = session.data?.user.name ?? t("common:more.fallbackNameNative");
   const avatarImage = session.data?.user.image ?? null;
 
-  // Foto profil: galeri atau kamera (potong persegi di picker), lalu
-  // dipampatkan ke persegi 512px JPEG sebelum diunggah.
+  // The server caches the session in a signed 5-minute cookie (cookieCache in
+  // @joyorogo/auth). avatar.upload/remove write user.image straight to D1, so a
+  // plain refetch is answered from that cookie with the OLD image (initials).
+  // disableCookieCache reads D1 and re-issues the cookie with the new image.
   const refreshAfterAvatar = async () => {
-    await session.refetch();
+    await session.refetch({ query: { disableCookieCache: true } });
     queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
   };
 
@@ -81,6 +83,8 @@ function AkunContent() {
     invalidate: () => [orpc.profile.key()],
   });
 
+  // Foto profil: galeri atau kamera (potong persegi di picker), lalu
+  // dipampatkan ke persegi 512px JPEG sebelum diunggah.
   const pickAvatar = async (source: "gallery" | "camera") => {
     const options: ImagePicker.ImagePickerOptions = {
       mediaTypes: ["images"],
