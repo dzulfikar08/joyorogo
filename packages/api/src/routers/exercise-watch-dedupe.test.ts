@@ -28,7 +28,8 @@ const as = (userId: string) => ({
 
 async function logs(userId: string) {
   const result = await client.execute({
-    sql: "SELECT date, type, duration_min, kcal, source, external_id FROM exercise_log WHERE user_id = ? ORDER BY created_at, id",
+    // Insertion order: rows written in the same millisecond share created_at, and the id is a random UUID.
+    sql: "SELECT date, type, duration_min, kcal, source, external_id FROM exercise_log WHERE user_id = ? ORDER BY created_at, rowid",
     args: [userId],
   });
   const raw: Record<string, unknown>[] = result.rows;
