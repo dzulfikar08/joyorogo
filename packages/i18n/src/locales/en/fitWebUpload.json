@@ -1,0 +1,130 @@
+{
+  "title": "Upload",
+  "subtitle": "Add workouts from files and manage your watch faces.",
+  "tabs": {
+    "label": "Upload type",
+    "workouts": "Workouts",
+    "watchfaces": "Watch faces"
+  },
+  "workouts": {
+    "title": "Workout files",
+    "intro": "Pick .fit, .gpx or .tcx files from a watch, a bike computer or another app. The file is read in your browser; only the resulting workout is uploaded.",
+    "drop": {
+      "title": "Drop files here",
+      "or": "or",
+      "button": "Choose files",
+      "hint": "FIT, GPX, TCX. Up to {{mb}} MB per file.",
+      "active": "Release to read"
+    },
+    "list": {
+      "label": "Chosen files",
+      "summary": "{{done}} of {{total}} done"
+    },
+    "format": {
+      "fit": "FIT",
+      "gpx": "GPX",
+      "tcx": "TCX"
+    },
+    "meta": {
+      "points_one": "{{count}} point",
+      "points_other": "{{count}} points",
+      "noAnalysis": "No charts",
+      "thinned": "Points thinned",
+      "at": "{{date}} · {{time}}"
+    },
+    "state": {
+      "reading": "Reading",
+      "ready": "Ready to upload",
+      "uploading": "Uploading",
+      "created": "Saved to the cloud",
+      "updated": "Updated in the cloud",
+      "unchanged": "Already there, unchanged"
+    },
+    "collision": {
+      "duplicate": "A workout with the same start time already exists ({{name}}). This file is skipped so it doesn't overwrite it.",
+      "overlap": "Its time overlaps {{name}} ({{date}}). This file is skipped."
+    },
+    "notes": {
+      "noAnalysis": "The file doesn't have enough data for charts. The summary numbers are still saved.",
+      "thinned": "Its recording points were thinned to fit in the cloud.",
+      "analysis": "Charts, zones and splits are computed from the file. Comparison with your other workouts shows up after JoyoFit on your phone recomputes."
+    },
+    "errors": {
+      "unsupported": "This file type isn't supported. Use .fit, .gpx or .tcx.",
+      "empty": "The file is empty.",
+      "too-large": "The file is too large.",
+      "not-fit": "This isn't a valid FIT file.",
+      "corrupt": "The FIT file is damaged or incomplete.",
+      "not-activity": "This FIT file isn't a workout (it may be settings or a course).",
+      "no-session": "There's no workout summary in this file.",
+      "no-points": "There are no timed recording points in this file.",
+      "bad-xml": "The XML file isn't valid.",
+      "invalid": "This workout didn't pass the format check.",
+      "paywall": "Uploading workouts needs JoyoRogo Pro.",
+      "unauthorized": "Your session ended. Sign in again, then retry the upload.",
+      "deleted": "A workout with this start time was deleted from the cloud, so it isn't uploaded again.",
+      "quota": "Your account's cloud storage is full.",
+      "network": "Couldn't reach the server. Try again.",
+      "server": "The server failed to save this workout. Try again."
+    },
+    "action": {
+      "upload_one": "Upload {{count}} workout",
+      "upload_other": "Upload {{count}} workouts",
+      "clear": "Clear the list",
+      "retry": "Try again",
+      "open": "Open workout",
+      "pricing": "See Pro pricing",
+      "select": "Select {{name}}",
+      "remove": "Remove {{name}}"
+    }
+  },
+  "watchfaces": {
+    "title": "Watch face library",
+    "intro": "Upload .hwt watch faces to your account. In JoyoFit on your phone, open Watch faces then From the web, and install to the watch from there.",
+    "drop": {
+      "title": "Drop watch faces here",
+      "active": "Release to upload",
+      "or": "or",
+      "button": "Choose watch faces",
+      "hint": ".hwt files. Up to {{mb}} MB per file, up to {{max}} watch faces."
+    },
+    "list": {
+      "label": "Watch faces in your library",
+      "count_one": "{{count}} watch face",
+      "count_other": "{{count}} watch faces",
+      "emptyTitle": "Your library is empty",
+      "emptyBody": "Upload a .hwt file above, then install it from JoyoFit on your phone: Watch faces, From the web."
+    },
+    "row": {
+      "added": "Added {{date}}"
+    },
+    "state": {
+      "uploading": "Uploading and checking",
+      "saved": "Saved to the library",
+      "existing": "Already in the library"
+    },
+    "errors": {
+      "extension": "Choose a file ending in .hwt.",
+      "empty": "The file is empty.",
+      "too_large": "The file is larger than {{mb}} MB.",
+      "invalid_hwt": "This isn't a valid .hwt watch face ({{reason}}).",
+      "invalid_hwt_plain": "This isn't a valid .hwt watch face.",
+      "library_full": "Your library is full (up to {{max}} watch faces). Delete one first.",
+      "paywall": "Uploading watch faces needs JoyoRogo Pro. The ones you already have can still be downloaded and deleted.",
+      "unauthorized": "Your session ended. Sign in again, then retry the upload.",
+      "network": "Couldn't reach the server. Try again.",
+      "server": "The server failed to save this watch face. Try again.",
+      "download": "Couldn't download this watch face. Try again.",
+      "delete": "Couldn't delete this watch face. Try again."
+    },
+    "action": {
+      "download": "Download",
+      "delete": "Delete",
+      "confirm": "Delete {{name}} from the library?",
+      "confirmYes": "Yes, delete",
+      "cancel": "Cancel",
+      "pricing": "See Pro pricing",
+      "dismiss": "Dismiss message"
+    }
+  }
+}

@@ -35,3 +35,41 @@ export async function coachUsedToday(db: Database, userId: string): Promise<numb
     );
   return row?.used ?? 0;
 }
+
+/**
+ * Takes one of today's slots BEFORE the model is called. The check and the insert are one statement
+ * (`INSERT ... SELECT ... WHERE count < cap`), so concurrent calls cannot all read "under the cap" and then all run: the
+ * database serializes the statements and only the first `cap` of them insert a row. Returns the reserved row's id, or null
+ * when the day is full. The row counts from this moment whatever the model does (the cap counts every call that reached the
+ * model, answer or not); {@link settleCoachSlot} fills in what happened.
+ */
+export async function reserveCoachSlot(db: Database, userId: string, cap: number, model: string): Promise<string | null> {
+  const { startMs, endMs } = wibDayBounds(jakartaToday());
+  const id = crypto.randomUUID();
+  const pending = JSON.stringify({ kind: "coach", outcome: "pending" });
+  const rows = await db.all<{ id: string }>(sql`
+    INSERT INTO ai_usage (id, user_id, model, scan_type, latency_ms, usage_json, created_at)
+    SELECT ${id}, ${userId}, ${model}, 'coach', 0, ${pending}, ${Date.now()}
+    WHERE (
+      SELECT count(*) FROM ai_usage
+      WHERE user_id = ${userId} AND scan_type = 'coach' AND created_at BETWEEN ${startMs} AND ${endMs}
+    ) < ${cap}
+    RETURNING id
+  `);
+  return rows.length === 1 ? id : null;
+}
+
+/** Records how a reserved call went (latency, outcome, token usage). The slot stays taken even if this never runs. */
+export async function settleCoachSlot(
+  db: Database,
+  id: string,
+  result: { latencyMs: number; outcome: string; turns: number; usage: Record<string, unknown> | null },
+): Promise<void> {
+  await db
+    .update(aiUsage)
+    .set({
+      latencyMs: result.latencyMs,
+      usageJson: JSON.stringify({ kind: "coach", outcome: result.outcome, turns: result.turns, ...(result.usage ? { usage: result.usage } : {}) }),
+    })
+    .where(eq(aiUsage.id, id));
+}

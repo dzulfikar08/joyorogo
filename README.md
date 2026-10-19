@@ -241,6 +241,9 @@ cd apps/server && bunx wrangler d1 migrations apply DB --local && bunx wrangler 
 # Web (http://localhost:3001)
 cd apps/web && VITE_SERVER_URL=http://localhost:3000 VITE_DEV_LOGIN=1 bun run dev:bare
 
+# JoyoFit web (analisis latihan dan tidur, Pro), http://localhost:3003. Lihat docs/fit-web.md
+cd apps/fit && VITE_SERVER_URL=http://localhost:3000 VITE_DEV_LOGIN=1 bun run dev:bare
+
 # Aplikasi native (Expo)
 bun run dev:native
 
@@ -257,7 +260,7 @@ Sebelum kirim perubahan:
 bunx oxfmt --write <file yang diubah>
 bunx oxlint
 bunx turbo run check-types
-bun test packages/api/src packages/auth/src packages/i18n/src apps/server/src apps/native/src
+bun test packages/api/src packages/auth/src packages/i18n/src packages/workout-view/src apps/server/src apps/native/src apps/fit/src
 bun run i18n:check
 bun scripts/roadmap-sync.ts --check   # kalau kamu mengubah docs/roadmap.json
 ```

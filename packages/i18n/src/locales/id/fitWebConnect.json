@@ -1,0 +1,273 @@
+{
+  "title": "Koneksi",
+  "subtitle": "Sambungkan JoyoFit ke aplikasi AI, tanya coach dengan datamu sendiri, dan unduh semua latihanmu.",
+  "jump": {
+    "label": "Bagian di halaman ini",
+    "mcp": "Aplikasi AI",
+    "coach": "Tanya coach",
+    "export": "Ekspor data"
+  },
+  "mcp": {
+    "title": "Aplikasi AI (MCP)",
+    "subtitle": "Claude atau ChatGPT bisa membaca datamu di JoyoRogo dan JoyoFit lewat penyambung (connector). Hanya membaca, butuh Pro, dan bisa kamu putuskan kapan saja.",
+    "pro": {
+      "required": "Penyambung ini fitur JoyoRogo Pro. Aplikasi AI bisa disambungkan, tapi baru bisa membaca datamu kalau Pro aktif.",
+      "cta": "Lihat JoyoRogo Pro"
+    },
+    "connector": {
+      "title": "Alamat penyambung",
+      "hint": "Tempel alamat ini di Claude atau ChatGPT saat menambah penyambung.",
+      "copy": "Salin",
+      "copied": "Tersalin",
+      "copyFailed": "Tidak bisa menyalin otomatis. Pilih alamatnya, lalu salin sendiri.",
+      "label": "Alamat penyambung MCP",
+      "error": "Alamat penyambung belum bisa dimuat. Coba lagi.",
+      "retry": "Coba lagi"
+    },
+    "steps": {
+      "choose": "Aplikasi AI",
+      "claude": "Claude",
+      "chatgpt": "ChatGPT",
+      "claudeTitle": "Langkah di Claude",
+      "claudeIntro": "Lakukan di claude.ai (web) atau Claude Desktop. Menu di aplikasi ponsel bisa berbeda, jadi pakai versi web kalau tidak ketemu.",
+      "claude1": "Buka claude.ai, lalu Customize, lalu Connectors.",
+      "claude2": "Pilih Add custom connector.",
+      "claude3": "Isi nama dengan JoyoRogo dan URL server MCP dengan alamat penyambung di atas. Kalau ada pilihan OAuth client, biarkan bawaannya dan jangan isi client ID atau secret.",
+      "claude4": "Pilih Add, lalu Connect di penyambung JoyoRogo.",
+      "claude5": "Browser membuka joyorogo.com/koneksi/izin. Masuk dengan akunmu, cek izin yang diminta, lalu tekan Izinkan. Persetujuan ini terjadi di sana, bukan di halaman ini.",
+      "claude6": "Di sebuah chat, tekan +, pilih Connectors, lalu nyalakan JoyoRogo. Tanya sesuatu, misalnya \"Ringkas latihanku bulan ini\".",
+      "claudeNote": "Di paket Team dan Enterprise, Owner menambahkan penyambung di Organization settings, lalu tiap anggota menekan Connect dengan akunnya sendiri.",
+      "chatgptTitle": "Langkah di ChatGPT",
+      "chatgptIntro": "Penyambung server MCP kustom hanya bisa ditambah di ChatGPT web (chatgpt.com), tidak di aplikasi ponsel, dan hanya di paket yang membolehkannya.",
+      "chatgpt1": "Buka chatgpt.com/plugins (menu Plugins).",
+      "chatgpt2": "Tekan tombol plus, lalu pilih Add custom MCP server.",
+      "chatgpt3": "Isi nama JoyoRogo. Di Connection, isi alamat penyambung di atas, lalu pilih OAuth untuk Authentication.",
+      "chatgpt4": "Baca peringatan risikonya, centang I understand and want to continue, lalu pilih Create as a plugin.",
+      "chatgpt5": "Browser membuka joyorogo.com/koneksi/izin. Masuk dengan akunmu, cek izin yang diminta, lalu tekan Izinkan. Persetujuan ini terjadi di sana, bukan di halaman ini.",
+      "chatgpt6": "Di chat baru, ketik @ lalu pilih JoyoRogo, kemudian tanyakan sesuatu.",
+      "chatgptNote": "Paket dan menu di aplikasi AI sering berubah. Kalau langkahnya berbeda dari yang kamu lihat, ikuti bantuan penyedianya (support.claude.com atau help.openai.com).",
+      "guide": "Panduan lengkap di joyorogo.com"
+    },
+    "apps": {
+      "title": "Aplikasi tersambung",
+      "subtitle": "Aplikasi AI yang sudah kamu izinkan.",
+      "empty": "Belum ada aplikasi AI yang tersambung.",
+      "emptyHint": "Ikuti langkah di atas. Setelah kamu menekan Izinkan, aplikasinya muncul di sini.",
+      "error": "Daftar aplikasi belum bisa dimuat. Coba lagi.",
+      "retry": "Coba lagi",
+      "connectedAt": "Tersambung pertama kali {{date}}",
+      "lastUsed": "Terakhir dipakai {{when}}",
+      "neverUsed": "Belum pernah dipakai",
+      "calls_other": "{{count}} pemanggilan dalam 30 hari",
+      "allows": "Boleh membaca",
+      "via": "Lewat {{hosts}}",
+      "viaHint": "Nama aplikasi ditulis aplikasinya sendiri. Cek alamat di bawahnya sebelum mempercayainya."
+    },
+    "revoke": {
+      "action": "Putuskan",
+      "actionFor": "Putuskan {{name}}",
+      "title": "Putuskan {{name}}?",
+      "body": "{{name}} langsung tidak bisa membaca datamu lagi, dan semua akses yang dipegangnya dicabut. Kamu bisa menyambungkannya lagi kapan saja.",
+      "confirm": "Ya, putuskan",
+      "cancel": "Batal",
+      "working": "Memutuskan",
+      "done": "{{name}} sudah diputus.",
+      "gone": "{{name}} sudah tidak tersambung.",
+      "error": "Gagal memutuskan. Coba lagi."
+    },
+    "activity": {
+      "title": "Aktivitas terakhir",
+      "hint": "Setiap kali aplikasi AI membaca datamu, tercatat di sini selama 90 hari: alat yang dipakai dan rentang tanggalnya, bukan isi datanya.",
+      "empty": "Belum ada aktivitas.",
+      "error": "Aktivitas belum bisa dimuat. Coba lagi.",
+      "retry": "Coba lagi",
+      "refresh": "Muat ulang",
+      "tableLabel": "Pemanggilan terakhir oleh aplikasi AI",
+      "col": {
+        "tool": "Alat",
+        "app": "Aplikasi",
+        "time": "Waktu",
+        "outcome": "Hasil",
+        "args": "Isian"
+      },
+      "unknownApp": "Aplikasi yang sudah diputus",
+      "outcome": {
+        "ok": "Berhasil",
+        "error": "Gagal",
+        "not_pro": "Butuh Pro",
+        "rate_limited": "Dibatasi",
+        "scope": "Izin kurang"
+      },
+      "tool": {
+        "get_profile": "Profil dan target",
+        "get_food_log": "Catatan makan",
+        "get_daily_totals": "Total harian",
+        "get_weight_history": "Riwayat berat",
+        "list_workouts": "Daftar latihan",
+        "get_workout": "Detail latihan",
+        "get_recovery_metrics": "Tidur dan pemulihan"
+      }
+    },
+    "reads": {
+      "title": "Apa yang bisa dibaca",
+      "intro": "Tujuh alat, semuanya hanya membaca. Tiap alat butuh izin yang kamu setujui di layar Izinkan.",
+      "get_profile": "Profil dan target: mode (turun, jaga, naik, hamil), tinggi, umur, berat awal dan target, target kalori dan protein.",
+      "get_food_log": "Catatan makan: tiap makanan per hari dengan kalori dan makronya.",
+      "get_daily_totals": "Total harian: kalori dan makro per hari dibanding target.",
+      "get_weight_history": "Riwayat berat: timbangan, lingkar perut, tren, dan perkiraan tanggal sampai target.",
+      "list_workouts": "Daftar latihan dari jam JoyoFit dan sesi latihan beban.",
+      "get_workout": "Detail satu latihan: detak jantung, zona, set dan beban. Tanpa rute GPS.",
+      "get_recovery_metrics": "Tidur dan pemulihan: jam tidur, pemulihan, detak jantung istirahat, HRV, VO2max, dan langkah.",
+      "never": "Tidak pernah dibagikan: rute GPS, foto, data yang diimpor dari Strava, dan data orang lain."
+    },
+    "limits": {
+      "title": "Batas pemakaian",
+      "l1": "Hanya membaca: tidak ada yang bisa dicatat, diubah, atau dihapus lewat koneksi ini.",
+      "l2": "Hanya untuk JoyoRogo Pro. Di akun Free, setiap pertanyaan dijawab bahwa Pro dibutuhkan.",
+      "l3": "Paling banyak 60 pemanggilan per menit dan 1000 per 24 jam untuk akunmu. Kalau tercapai, tunggu sebentar atau coba lagi besok.",
+      "l4": "Aktivitas tercatat 90 hari, lalu dihapus otomatis.",
+      "l5": "Memutuskan sebuah aplikasi langsung mematikan aksesnya, tanpa menunggu tokennya habis."
+    },
+    "apiKeys": {
+      "title": "Kunci API pribadi",
+      "body": "Belum ada. JoyoFit tidak menerbitkan kunci API pribadi: akses dari luar aplikasi lewat penyambung MCP dengan OAuth di atas, hanya membaca dan bisa dicabut kapan saja.",
+      "link": "Panduan penyambung"
+    }
+  },
+  "coach": {
+    "title": "Tanya coach",
+    "subtitle": "Coach JoyoFit menjawab dengan latihan, pemulihan, dan tidurmu sendiri. Percakapan tidak disimpan di server.",
+    "status": {
+      "label": "Pesan hari ini",
+      "count": "{{used}} dari {{cap}}",
+      "left_other": "Sisa {{count}} pesan sampai pukul 00.00 WIB.",
+      "none": "Jatahmu hari ini habis. Mulai lagi besok pukul 00.00 WIB.",
+      "loadError": "Jatah pesan belum bisa dimuat."
+    },
+    "intro": {
+      "title": "Mulai dari pertanyaan",
+      "body": "Tulis dengan bahasamu sendiri. Setiap pesan dikirim bersama ringkasan data dari JoyoFit Web, jadi kamu tidak perlu mengetik ulang angkanya.",
+      "q1": "Latihan apa yang pas besok, melihat tidur dan pemulihanku?",
+      "q2": "Apakah beban latihanku minggu ini terlalu berat?",
+      "q3": "Bagaimana cara memperbaiki tidurku yang kurang?"
+    },
+    "log": {
+      "label": "Percakapan dengan coach",
+      "you": "Kamu",
+      "coach": "Coach",
+      "thinking": "Coach sedang menulis jawaban",
+      "newReply": "Jawaban baru dari coach",
+      "flagged": "Jawaban khusus keselamatan"
+    },
+    "input": {
+      "label": "Pesan untuk coach",
+      "placeholder": "Tanya sesuatu soal latihan, tidur, atau pemulihan",
+      "hint": "Enter untuk kirim, Shift+Enter untuk baris baru.",
+      "send": "Kirim",
+      "sending": "Mengirim",
+      "tooLong": "Pesan terlalu panjang. Maksimal {{max}} karakter.",
+      "counter": "{{used}}/{{max}}"
+    },
+    "clear": {
+      "action": "Hapus percakapan",
+      "done": "Percakapan dihapus dari tab ini."
+    },
+    "error": {
+      "paywall": "Coach khusus JoyoRogo Pro, dan Pro-mu sedang tidak aktif.",
+      "paywallCta": "Lihat harga Pro",
+      "capReached": "Jatah {{cap}} pesan hari ini sudah habis. Jatah kembali besok pukul 00.00 WIB.",
+      "capReachedNoCap": "Jatah pesan hari ini sudah habis. Jatah kembali besok pukul 00.00 WIB.",
+      "unavailable": "Coach sedang tidak tersedia. Coba lagi nanti.",
+      "failed": "Coach belum bisa menjawab. Coba lagi.",
+      "network": "Pesan belum terkirim karena server tidak terjangkau. Cek koneksimu, lalu coba lagi.",
+      "retry": "Kirim ulang"
+    },
+    "disabled": {
+      "title": "Coach sedang dimatikan",
+      "body": "Fitur ini belum aktif di server saat ini."
+    },
+    "locked": {
+      "title": "Coach khusus Pro",
+      "body": "Dengan JoyoRogo Pro kamu bisa bertanya ke coach di sini dan di aplikasi.",
+      "cta": "Lihat harga Pro"
+    },
+    "context": {
+      "title": "Yang dikirim bersama pesanmu",
+      "body": "Ringkasan dari data yang bisa dibaca web ini. Yang tidak ada datanya tidak dikirim.",
+      "workouts": "Latihan terbaru (sampai 10 dalam 30 hari)",
+      "recovery": "Kesiapan, HRV, beban latihan, detak jantung istirahat, dan VO2max",
+      "sleep": "Tidur semalam, kebutuhan, dan utang tidur 14 hari terakhir",
+      "strain": "Strain kemarin, hari ini, dan rata-rata 7 hari",
+      "server": "Profil, target, dan rencana latihan dibaca server dari akunmu."
+    },
+    "safety": "Coach bukan dokter dan tidak memberi saran medis. Kalau ada cedera, nyeri, atau gejala yang mengkhawatirkan, hentikan latihan dan temui dokter atau fisioterapis.",
+    "memory": "Percakapan hanya ada di tab ini dan hilang saat tab ditutup."
+  },
+  "export": {
+    "title": "Ekspor datamu",
+    "subtitle": "Unduh latihan dari cloud JoyoFit sebagai berkas. Berkas dibuat di browser-mu dan tidak diunggah ke mana pun.",
+    "formats": {
+      "title": "Format",
+      "gpx": {
+        "name": "GPX",
+        "desc": "Rute dengan waktu, elevasi, detak jantung, irama, dan daya. Untuk Strava, Komoot, dan peta. Latihan tanpa GPS dilewati."
+      },
+      "fit": {
+        "name": "FIT",
+        "desc": "Berkas aktivitas Garmin: semua sampel, lap, dan total dari jam. Untuk Garmin Connect, TrainingPeaks, dan Intervals.icu."
+      },
+      "json": {
+        "name": "JSON",
+        "desc": "Dokumen lengkap: ringkasan, analisis, dan semua titik data. Untuk analisis sendiri."
+      }
+    },
+    "bulk": {
+      "title": "Ekspor banyak latihan",
+      "subtitle": "Pilih rentang dan format. Hasilnya satu berkas ZIP.",
+      "range": "Rentang waktu",
+      "format": "Format",
+      "count_other": "{{count}} latihan di rentang ini",
+      "capNote": "Satu ZIP maksimal {{max}} latihan, yang terbaru dulu. Persempit rentangnya untuk sisanya.",
+      "noGps_other": "{{count}} latihan tanpa GPS dilewati untuk GPX.",
+      "empty": "Tidak ada latihan di rentang ini.",
+      "listError": "Daftar latihan belum bisa dimuat. Coba lagi.",
+      "retry": "Coba lagi",
+      "start_other": "Ekspor {{count}} latihan",
+      "cancel": "Batalkan",
+      "progress": "Mengambil latihan {{done}} dari {{total}}",
+      "zipping": "Menyusun ZIP",
+      "done_other": "{{count}} berkas siap, ZIP diunduh.",
+      "doneOne": "Satu berkas diunduh.",
+      "nothing": "Tidak ada berkas yang bisa dibuat.",
+      "cancelled": "Dibatalkan. Tidak ada yang diunduh.",
+      "problemsTitle": "Dilewati",
+      "problem": {
+        "no_gps": "tanpa GPS",
+        "not_found": "tidak ditemukan di cloud",
+        "unreadable": "dokumennya tidak terbaca",
+        "unavailable": "server tidak bisa menyajikannya",
+        "network": "server tidak terjangkau"
+      },
+      "unauthorized": "Sesi loginmu berakhir. Masuk lagi, lalu ulangi.",
+      "tooBig": "Hasilnya terlalu besar untuk satu ZIP. Persempit rentangnya."
+    },
+    "single": {
+      "title": "Satu latihan",
+      "body": "Buka sebuah latihan, lalu pakai tombol Ekspor di bagian atasnya.",
+      "cta": "Ke daftar latihan"
+    },
+    "detail": {
+      "label": "Ekspor",
+      "group": "Ekspor latihan ini",
+      "as": "Ekspor sebagai {{format}}",
+      "working": "Menyiapkan {{format}}",
+      "done": "{{name}} diunduh.",
+      "noGps": "Latihan ini tidak punya GPS, jadi tidak ada rute untuk GPX. Coba FIT atau JSON.",
+      "notFound": "Dokumen latihan ini tidak ada di cloud.",
+      "unreadable": "Dokumen latihan ini tidak terbaca.",
+      "network": "Server tidak terjangkau. Cek koneksimu, lalu coba lagi.",
+      "unauthorized": "Sesi loginmu berakhir. Masuk lagi, lalu ulangi.",
+      "failed": "Ekspor gagal. Coba lagi."
+    }
+  }
+}

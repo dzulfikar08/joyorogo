@@ -18,7 +18,7 @@ import {
   niceTicks,
   paceMode,
   valueDomain,
-} from "./analysis-math";
+} from "@joyorogo/workout-view/analysis-math";
 
 const HEIGHT = 188;
 const PAD = { top: 10, right: 38, bottom: 24, left: 6 };

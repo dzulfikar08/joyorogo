@@ -1,0 +1,133 @@
+{
+  "title": "Sleep and recovery",
+  "subtitle": "Sleep and recovery, {{from}} to {{to}}.",
+  "empty": {
+    "title": "No sleep data in this range yet",
+    "body": "Sleep and recovery show up here after JoyoFit on your phone syncs them, or after you log sleep in JoyoRogo."
+  },
+  "tiles": {
+    "average": "Average sleep",
+    "nights_one": "{{count}} night logged",
+    "nights_other": "{{count}} nights logged",
+    "need": "Sleep need",
+    "needUnknown": "JoyoFit hasn't estimated your need yet",
+    "met": "{{met}} of {{total}} nights met",
+    "debt": "Sleep debt",
+    "debtHint": "Each night's shortfall, added up",
+    "consistency": "Regularity",
+    "consistencyUnknown": "Needs at least 2 nights",
+    "spread": "±{{min}} min",
+    "band": {
+      "steady": "Very regular",
+      "ok": "Fairly regular",
+      "irregular": "Varies a lot"
+    }
+  },
+  "nights": {
+    "title": "Sleep per night",
+    "subtitleNeed": "The dashed line is your sleep need according to JoyoFit.",
+    "subtitleAverage": "The dashed line is your average sleep.",
+    "hours": "Sleep",
+    "hoursUnit": "h",
+    "aria": "Chart of hours slept per night, average {{avg}}",
+    "average": "Average {{value}}",
+    "need": "Need {{value}}"
+  },
+  "recovery": {
+    "title": "Recovery after sleep",
+    "subtitle": "Recovery, HRV, and resting heart rate each morning.",
+    "recovery": "Recovery",
+    "hrv": "HRV",
+    "resting": "Resting heart rate",
+    "aria": "Chart of daily recovery, average {{avg}} percent",
+    "empty": "No recovery, HRV, or resting heart rate data in this range yet."
+  },
+  "weekday": {
+    "title": "Sleep by day of the week",
+    "subtitle": "Average sleep the night before that day.",
+    "names": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "legend": "The vertical line is your need ({{need}}). An orange bar means below your need."
+  },
+  "table": {
+    "title": "Sleep history",
+    "subtitle": "One row per morning, newest first.",
+    "more": "Show more",
+    "date": "Woke up on",
+    "duration": "Duration",
+    "need": "% of need",
+    "recovery": "Recovery",
+    "hrv": "HRV",
+    "resting": "Resting HR",
+    "readiness": "Readiness",
+    "source": "Source",
+    "needShort": "Of need",
+    "restingShort": "Resting"
+  },
+  "readiness": {
+    "Primed": "Primed",
+    "Balanced": "Balanced",
+    "Strained": "Strained",
+    "Run down": "Run down"
+  },
+  "source": {
+    "joyofit": "JoyoFit watch",
+    "manual": "Logged manually",
+    "health_connect": "Health Connect",
+    "apple_health": "Apple Health"
+  },
+  "stages": {
+    "title": "Sleep stages",
+    "subtitle": "The watch's sleep stages each night: deep, REM, light and awake.",
+    "pick": "Choose a night",
+    "previous": "Previous night",
+    "next": "Next night",
+    "names": {
+      "awake": "Awake",
+      "rem": "REM",
+      "light": "Light",
+      "deep": "Deep",
+      "asleep": "Asleep, no stage"
+    },
+    "night": {
+      "window": "{{start}} to {{end}}",
+      "asleep": "Asleep",
+      "awake": "Awake",
+      "awakenings_one": "{{count}} awakening",
+      "awakenings_other": "{{count}} awakenings",
+      "noStages": "The watch only recorded when you slept this night, with no stages."
+    },
+    "hypnogram": {
+      "aria": "Sleep stage chart of {{day}}: {{summary}}"
+    },
+    "list": {
+      "label": "Time in each stage"
+    },
+    "naps": {
+      "title": "Naps",
+      "item": "{{start}} to {{end}} ({{duration}})"
+    },
+    "composition": {
+      "title": "Composition of each night",
+      "subtitle": "Hours in each stage, night by night.",
+      "aria": "Chart of sleep stage composition over {{count}} nights"
+    },
+    "averages": {
+      "title": "Average per night",
+      "nights_one": "over {{count}} night with stages",
+      "nights_other": "over {{count}} nights with stages"
+    },
+    "empty": {
+      "title": "No sleep stages in this range yet",
+      "body": "Stages show up after JoyoFit on your phone syncs sleep from the watch."
+    },
+    "window": "Stages are available for the last 92 days."
+  }
+}

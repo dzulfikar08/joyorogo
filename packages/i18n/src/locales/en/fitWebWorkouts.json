@@ -1,0 +1,184 @@
+{
+  "title": "Workouts",
+  "subtitle": "Workouts from JoyoFit, {{from}} to {{to}}.",
+  "tableLabel": "Workout list, sortable",
+  "empty": {
+    "title": "No workouts in this range yet",
+    "body": "Workouts show up here after JoyoFit on your phone syncs them to the cloud. Try a longer range if your workouts are older."
+  },
+  "showing": "Showing {{shown}} of {{total}} workouts",
+  "more": "Show more",
+  "truncated": "This range has more than {{n}} workouts, so the oldest ones aren't shown. Narrow the range.",
+  "unit": {
+    "perKm": "/km",
+    "kmh": "km/h"
+  },
+  "col": {
+    "date": "Date",
+    "sport": "Sport",
+    "distance": "Distance",
+    "duration": "Duration",
+    "pace": "Pace / speed",
+    "hr": "Heart rate",
+    "elevation": "Climb",
+    "calories": "Calories",
+    "paceOnly": "Pace",
+    "speedOnly": "Speed"
+  },
+  "totals": {
+    "count": "Workouts",
+    "of": "of {{total}}",
+    "distance": "Distance",
+    "time": "Moving time",
+    "elevation": "Climb"
+  },
+  "filter": {
+    "search": "Search sport name",
+    "sport": "Filter by sport",
+    "clear": "Clear filters",
+    "sort": "Sort",
+    "ascending": "Sort ascending",
+    "descending": "Sort descending",
+    "noMatch": "No workouts match these filters"
+  },
+  "detail": {
+    "back": "All workouts",
+    "notFoundTitle": "Workout not found",
+    "notFoundBody": "This workout was deleted or isn't in your account.",
+    "imported": "Imported",
+    "distance": "Distance",
+    "movingTime": "Moving time",
+    "elapsed": "Total {{time}}",
+    "avgPace": "Average pace",
+    "avgSpeed": "Average speed",
+    "best": "Best {{value}}",
+    "avgHr": "Average heart rate",
+    "maxHr": "Max {{value}} bpm",
+    "elevation": "Climb",
+    "elevationLoss": "Descent {{value}} m",
+    "calories": "Calories",
+    "strain": "Workout strain",
+    "loadRatio": "Load ratio",
+    "trimp": "TRIMP {{value}}",
+    "noAnalysisTitle": "Full analysis isn't available",
+    "noAnalysisBody": "This workout was stored without charts and route, or in a format that can't be read yet. The summary numbers are still right.",
+    "noSeriesTitle": "No charts for this workout",
+    "noSeriesBody": "The watch didn't record a route or heart rate during this workout."
+  },
+  "charts": {
+    "title": "Workout charts",
+    "hint": "Point at a chart or the route to read the numbers.",
+    "minutes": "min",
+    "time": "Time",
+    "distance": "Distance",
+    "pace": "Pace",
+    "speed": "Speed",
+    "hr": "Heart rate",
+    "alt": "Elevation",
+    "cad": "Cadence",
+    "power": "Power",
+    "aria": "Chart of {{metric}} over the workout",
+    "unit": {
+      "hr": "bpm",
+      "alt": "m",
+      "cad": "spm",
+      "power": "W"
+    }
+  },
+  "zones": {
+    "hr": {
+      "title": "Heart rate zones",
+      "subtitle": "Max heart rate {{max}} bpm ({{source}})",
+      "source": {
+        "age": "from age",
+        "setting": "from your setting"
+      },
+      "range": "{{low}} to {{high}} bpm",
+      "below": "Below Z1 (under {{low}} bpm): {{time}}"
+    },
+    "pace": {
+      "title": "Pace zones",
+      "subtitle": "Threshold pace about {{pace}} /km",
+      "names": {
+        "recovery": "Recovery",
+        "endurance": "Endurance",
+        "tempo": "Tempo",
+        "threshold": "Threshold",
+        "vo2": "VO2max"
+      },
+      "range": "{{range}} /km"
+    }
+  },
+  "best": {
+    "title": "Best efforts",
+    "subtitle": "The fastest stretches inside this workout.",
+    "distance": "Distance",
+    "time": "Time",
+    "names": {
+      "400m": "400 m",
+      "1k": "1 km",
+      "1mi": "1 mile",
+      "5k": "5 km",
+      "10k": "10 km",
+      "half": "Half marathon"
+    },
+    "record": "Best in 120 days",
+    "rank": "Rank {{rank}}",
+    "at": "starting at km {{km}}"
+  },
+  "effort": {
+    "title": "Effort and load",
+    "subtitle": "How hard this workout was and where it sits in your load.",
+    "strain": "Workout strain",
+    "band": {
+      "light": "Light",
+      "moderate": "Moderate",
+      "hard": "Hard",
+      "max": "Maximal"
+    },
+    "trimp": "TRIMP",
+    "addedToDay": "Added to that day's strain",
+    "acute": "7-day load",
+    "acuteHint": "TRIMP up to this workout",
+    "chronic": "28-day weekly average",
+    "chronicHint": "TRIMP per week",
+    "ratio": "Acute:chronic ratio",
+    "wording": {
+      "under": "Below your habit",
+      "steady": "Steady",
+      "high": "Rising",
+      "spike": "Spiking, take care"
+    },
+    "aerobic": "Aerobic effect",
+    "anaerobic": "Anaerobic effect",
+    "effectHint": "from the watch, scale 0 to 5",
+    "recoveryHours": "Recovery time",
+    "hours_one": "{{count}} hour",
+    "hours_other": "{{count}} hours"
+  },
+  "compare": {
+    "title": "Against similar workouts",
+    "basis": {
+      "distance": "Same sport, distance within 20%.",
+      "duration": "Same sport, duration within 25%."
+    },
+    "previous": "Last similar workout",
+    "average": "Average of similar workouts"
+  },
+  "splits": {
+    "title": "Kilometer splits",
+    "subtitle": "The longest bar is the fastest split.",
+    "km": "Km",
+    "bar": "Speed comparison",
+    "gain": "Up (m)",
+    "loss": "Down (m)",
+    "cadence": "Cadence"
+  },
+  "laps": {
+    "title": "Laps",
+    "subtitle": "Recorded by the watch during the workout.",
+    "lap": "Lap",
+    "avgHr": "Avg heart rate",
+    "maxHr": "Max heart rate"
+  }
+}

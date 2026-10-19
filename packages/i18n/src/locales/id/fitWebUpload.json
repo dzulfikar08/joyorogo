@@ -1,0 +1,127 @@
+{
+  "title": "Unggah",
+  "subtitle": "Masukkan latihan dari berkas dan kelola watchface-mu.",
+  "tabs": {
+    "label": "Jenis unggahan",
+    "workouts": "Latihan",
+    "watchfaces": "Watchface"
+  },
+  "workouts": {
+    "title": "Berkas latihan",
+    "intro": "Pilih berkas .fit, .gpx, atau .tcx dari jam, head unit, atau aplikasi lain. Berkasnya dibaca di browsermu; yang diunggah hanya latihan hasil bacaan.",
+    "drop": {
+      "title": "Tarik berkas ke sini",
+      "or": "atau",
+      "button": "Pilih berkas",
+      "hint": "FIT, GPX, TCX. Maksimal {{mb}} MB per berkas.",
+      "active": "Lepas untuk membaca"
+    },
+    "list": {
+      "label": "Berkas yang dipilih",
+      "summary": "{{done}} dari {{total}} selesai"
+    },
+    "format": {
+      "fit": "FIT",
+      "gpx": "GPX",
+      "tcx": "TCX"
+    },
+    "meta": {
+      "points_other": "{{count}} titik",
+      "noAnalysis": "Tanpa grafik",
+      "thinned": "Titik dikurangi",
+      "at": "{{date}} · {{time}}"
+    },
+    "state": {
+      "reading": "Membaca",
+      "ready": "Siap diunggah",
+      "uploading": "Mengunggah",
+      "created": "Tersimpan di cloud",
+      "updated": "Diperbarui di cloud",
+      "unchanged": "Sudah ada, tidak berubah"
+    },
+    "collision": {
+      "duplicate": "Sudah ada latihan dengan waktu mulai yang sama ({{name}}). Berkas ini dilewati supaya tidak menimpanya.",
+      "overlap": "Waktunya bertumpuk dengan {{name}} ({{date}}). Berkas ini dilewati."
+    },
+    "notes": {
+      "noAnalysis": "Berkasnya tidak punya cukup data untuk grafik. Angka ringkasnya tetap tersimpan.",
+      "thinned": "Titik rekamannya dikurangi supaya muat di cloud.",
+      "analysis": "Grafik, zona, dan split dihitung dari berkasnya. Perbandingan dengan latihan lain muncul setelah JoyoFit di ponselmu menghitung ulang."
+    },
+    "errors": {
+      "unsupported": "Jenis berkas ini belum didukung. Pakai .fit, .gpx, atau .tcx.",
+      "empty": "Berkasnya kosong.",
+      "too-large": "Berkasnya terlalu besar.",
+      "not-fit": "Ini bukan berkas FIT yang valid.",
+      "corrupt": "Berkas FIT-nya rusak atau tidak lengkap.",
+      "not-activity": "Berkas FIT ini bukan latihan (bisa jadi pengaturan atau rute).",
+      "no-session": "Tidak ada ringkasan latihan di berkas ini.",
+      "no-points": "Tidak ada titik rekaman dengan waktu di berkas ini.",
+      "bad-xml": "Berkas XML-nya tidak valid.",
+      "invalid": "Latihan ini tidak lolos pemeriksaan format.",
+      "paywall": "Mengunggah latihan butuh JoyoRogo Pro.",
+      "unauthorized": "Sesimu berakhir. Masuk lagi, lalu coba unggah ulang.",
+      "deleted": "Latihan dengan waktu mulai ini pernah kamu hapus dari cloud, jadi tidak diunggah lagi.",
+      "quota": "Penyimpanan cloud akunmu penuh.",
+      "network": "Tidak bisa menghubungi server. Coba lagi.",
+      "server": "Server gagal menyimpan latihan ini. Coba lagi."
+    },
+    "action": {
+      "upload_other": "Unggah {{count}} latihan",
+      "clear": "Kosongkan daftar",
+      "retry": "Coba lagi",
+      "open": "Buka latihan",
+      "pricing": "Lihat harga Pro",
+      "select": "Pilih {{name}}",
+      "remove": "Buang {{name}}"
+    }
+  },
+  "watchfaces": {
+    "title": "Pustaka watchface",
+    "intro": "Unggah watchface .hwt ke akunmu. Di JoyoFit pada ponselmu, buka Watchface lalu Dari web, dan pasang ke jam dari sana.",
+    "drop": {
+      "title": "Tarik watchface ke sini",
+      "active": "Lepas untuk mengunggah",
+      "or": "atau",
+      "button": "Pilih watchface",
+      "hint": "Berkas .hwt. Maksimal {{mb}} MB per berkas, sampai {{max}} watchface."
+    },
+    "list": {
+      "label": "Watchface di pustakamu",
+      "count_other": "{{count}} watchface",
+      "emptyTitle": "Pustakamu masih kosong",
+      "emptyBody": "Unggah berkas .hwt di atas, lalu pasang dari JoyoFit di ponselmu: Watchface, Dari web."
+    },
+    "row": {
+      "added": "Ditambahkan {{date}}"
+    },
+    "state": {
+      "uploading": "Mengunggah dan memeriksa",
+      "saved": "Tersimpan di pustaka",
+      "existing": "Sudah ada di pustaka"
+    },
+    "errors": {
+      "extension": "Pilih berkas dengan akhiran .hwt.",
+      "empty": "Berkasnya kosong.",
+      "too_large": "Berkasnya lebih dari {{mb}} MB.",
+      "invalid_hwt": "Ini bukan watchface .hwt yang valid ({{reason}}).",
+      "invalid_hwt_plain": "Ini bukan watchface .hwt yang valid.",
+      "library_full": "Pustakamu penuh (maksimal {{max}} watchface). Hapus satu dulu.",
+      "paywall": "Mengunggah watchface butuh JoyoRogo Pro. Yang sudah ada tetap bisa diunduh dan dihapus.",
+      "unauthorized": "Sesimu berakhir. Masuk lagi, lalu coba unggah ulang.",
+      "network": "Tidak bisa menghubungi server. Coba lagi.",
+      "server": "Server gagal menyimpan watchface ini. Coba lagi.",
+      "download": "Watchface ini belum bisa diunduh. Coba lagi.",
+      "delete": "Watchface ini belum bisa dihapus. Coba lagi."
+    },
+    "action": {
+      "download": "Unduh",
+      "delete": "Hapus",
+      "confirm": "Hapus {{name}} dari pustaka?",
+      "confirmYes": "Ya, hapus",
+      "cancel": "Batal",
+      "pricing": "Lihat harga Pro",
+      "dismiss": "Tutup pesan"
+    }
+  }
+}

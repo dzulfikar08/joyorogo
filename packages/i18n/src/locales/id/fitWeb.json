@@ -1,0 +1,85 @@
+{
+  "nav": {
+    "main": "Menu utama",
+    "overview": "Ringkasan",
+    "workouts": "Latihan",
+    "sleep": "Tidur & pemulihan",
+    "upload": "Unggah",
+    "connect": "Koneksi"
+  },
+  "menu": {
+    "title": "Pengaturan",
+    "open": "Buka pengaturan",
+    "language": "Bahasa",
+    "theme": "Tampilan",
+    "light": "Terang",
+    "dark": "Gelap",
+    "system": "Ikut perangkat",
+    "signOut": "Keluar"
+  },
+  "login": {
+    "tagline": "Analisis latihan, tidur, dan pemulihanmu dari JoyoFit, di layar besar.",
+    "google": "Masuk dengan Google",
+    "dev": "Masuk (dev)",
+    "email": "Email",
+    "password": "Kata sandi",
+    "submit": "Masuk",
+    "emailToggle": "Masuk dengan email",
+    "rateLimited": "Terlalu banyak percobaan. Coba lagi sebentar.",
+    "invalidCredentials": "Email atau kata sandi salah.",
+    "footer": "Pakai akun JoyoRogo yang sama dengan di aplikasi.",
+    "privacy": "Kebijakan privasi"
+  },
+  "wall": {
+    "title": "JoyoFit Web khusus pengguna Pro",
+    "body": "{{email}} belum punya JoyoRogo Pro. Dengan Pro, kamu bisa membuka data JoyoFit-mu di browser untuk dianalisis lebih dalam.",
+    "featureOverview": "Ringkasan beban latihan, pemulihan, HRV, dan detak jantung istirahat",
+    "featureWorkouts": "Daftar latihan dengan peta, grafik detak jantung, pace, dan zona",
+    "featureSleep": "Tidur tiap malam, kebutuhan tidur, dan seberapa teratur tidurmu",
+    "cta": "Lihat harga Pro",
+    "recheck": "Sudah berlangganan? Cek lagi",
+    "switchAccount": "Keluar dan pakai akun lain",
+    "lapsed": "Pro-mu sedang tidak aktif, jadi data ini tidak bisa dibuka. Aktifkan lagi untuk melanjutkan."
+  },
+  "state": {
+    "loading": "Memuat",
+    "errorTitle": "Data belum bisa dimuat",
+    "errorBody": "Ada yang salah saat memuat data. Coba lagi ya.",
+    "errorUnreachable": "Server JoyoRogo tidak terjangkau. Cek koneksimu, lalu coba lagi.",
+    "retry": "Coba lagi"
+  },
+  "error": {
+    "title": "Ada yang tidak beres",
+    "body": "Halaman ini gagal dimuat. Coba muat ulang.",
+    "updatedTitle": "Ada versi baru",
+    "updatedBody": "JoyoFit Web baru saja diperbarui. Muat ulang halaman untuk lanjut.",
+    "reload": "Muat ulang"
+  },
+  "notFound": {
+    "title": "Halaman tidak ditemukan",
+    "body": "Alamat ini tidak ada di JoyoFit Web.",
+    "home": "Ke Ringkasan"
+  },
+  "range": {
+    "label": "Rentang waktu",
+    "days_other": "{{count}}h",
+    "daysFull_other": "{{count}} hari terakhir"
+  },
+  "compare": {
+    "toggle": "Bandingkan",
+    "vsPrevious": "dibanding periode sebelumnya",
+    "previousPeriod": "Periode sebelumnya",
+    "previousDay": "Periode sebelumnya: {{date}}"
+  },
+  "unit": {
+    "hm": "{{h}} j {{m}} mnt",
+    "min": "{{m}} mnt"
+  },
+  "sport": {
+    "run": "Lari",
+    "walk": "Jalan",
+    "ride": "Sepeda",
+    "swim": "Renang",
+    "other": "Lainnya"
+  }
+}

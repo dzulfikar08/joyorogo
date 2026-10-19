@@ -1,0 +1,82 @@
+@import "@fontsource-variable/plus-jakarta-sans/wght.css";
+@import "@joyorogo/ui/globals.css";
+
+/*
+ * JoyoFit brand on the shared JoyoRogo tokens (@joyorogo/ui/globals.css): the primary is JoyoFit's ink-teal
+ * (#0A6580 light, #58C4DE dark), the same values the JoyoFit app and fit.joyorogo.com use. Canvas, cards and the
+ * tidur / bakar data colors stay the shared ones. Data colors used by the charts:
+ *   primary = distance and volume, bakar = strain and training load, tidur = sleep,
+ *   heart = heart rate, recovery = recovery and good trends.
+ */
+:root {
+  --primary: oklch(0.472 0.087 225);
+  --primary-foreground: oklch(1 0 0);
+  --ring: oklch(0.472 0.087 225);
+  --sidebar-primary: oklch(0.472 0.087 225);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-ring: oklch(0.472 0.087 225);
+  --chart-1: oklch(0.472 0.087 225);
+  --heart: #d12f4d;
+  --recovery: #177a45;
+  --warning: #b45309;
+  /* Sleep stages, the same four colors as the JoyoFit app's night chart. */
+  --stage-deep: #3f4a9a;
+  --stage-rem: #8a6bd4;
+  --stage-light: #a9b3ea;
+  --stage-awake: #e2a03a;
+}
+
+.dark {
+  --primary: oklch(0.767 0.105 216);
+  --primary-foreground: oklch(0.235 0.039 221);
+  --ring: oklch(0.767 0.105 216);
+  --sidebar-primary: oklch(0.767 0.105 216);
+  --sidebar-primary-foreground: oklch(0.235 0.039 221);
+  --sidebar-ring: oklch(0.767 0.105 216);
+  --chart-1: oklch(0.767 0.105 216);
+  --heart: #ff7b93;
+  --recovery: #5fd08d;
+  --warning: #f0a23c;
+  --stage-deep: #4b57b5;
+  --stage-rem: #c09cf5;
+  --stage-light: #8f9bea;
+  --stage-awake: #f0a23c;
+}
+
+@theme inline {
+  --color-heart: var(--heart);
+  --color-recovery: var(--recovery);
+  --color-warning: var(--warning);
+}
+
+/* Recharts draws axes and grids with these classes: keep them on the theme instead of its fixed greys. */
+.recharts-cartesian-axis-tick-value {
+  fill: var(--muted-foreground);
+  font-size: 11px;
+}
+.recharts-cartesian-grid line {
+  stroke: var(--border);
+}
+.recharts-surface:focus,
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus {
+  outline: none;
+}
+
+/* MapLibre chrome (route map): follow the app surface in dark mode. */
+.dark .maplibregl-ctrl-attrib {
+  background: color-mix(in oklab, var(--card) 85%, transparent);
+  color: var(--muted-foreground);
+}
+.dark .maplibregl-ctrl-attrib a {
+  color: var(--foreground);
+}
+.dark .maplibregl-ctrl-group {
+  background: var(--card);
+}
+.dark .maplibregl-ctrl-group button + button {
+  border-top-color: var(--border);
+}
+.dark .maplibregl-ctrl-group .maplibregl-ctrl-icon {
+  filter: invert(1);
+}

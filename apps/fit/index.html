@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>JoyoFit</title>
+    <meta name="description" content="Analisis latihan, tidur, dan pemulihan dari JoyoFit di browser." />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f9f6f1" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1112" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Theme before first paint; matches packages/ui use-theme (class + colorScheme). -->
+    <script>
+      try {
+        var t = localStorage.getItem("vite-ui-theme") || "system";
+        var dark =
+          t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      } catch (e) {}
+    </script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

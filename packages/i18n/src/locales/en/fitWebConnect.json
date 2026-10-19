@@ -1,0 +1,279 @@
+{
+  "title": "Connections",
+  "subtitle": "Connect JoyoFit to AI apps, ask the coach with your own data, and download all your workouts.",
+  "jump": {
+    "label": "Sections on this page",
+    "mcp": "AI apps",
+    "coach": "Ask the coach",
+    "export": "Export data"
+  },
+  "mcp": {
+    "title": "AI apps (MCP)",
+    "subtitle": "Claude or ChatGPT can read your data in JoyoRogo and JoyoFit through a connector. Read only, needs Pro, and you can disconnect any time.",
+    "pro": {
+      "required": "The connector is a JoyoRogo Pro feature. You can connect an AI app, but it can only read your data while Pro is active.",
+      "cta": "See JoyoRogo Pro"
+    },
+    "connector": {
+      "title": "Connector address",
+      "hint": "Paste this address into Claude or ChatGPT when you add the connector.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyFailed": "Could not copy automatically. Select the address and copy it yourself.",
+      "label": "MCP connector address",
+      "error": "The connector address could not be loaded. Try again.",
+      "retry": "Try again"
+    },
+    "steps": {
+      "choose": "AI app",
+      "claude": "Claude",
+      "chatgpt": "ChatGPT",
+      "claudeTitle": "Steps in Claude",
+      "claudeIntro": "Do this on claude.ai (web) or Claude Desktop. Menus in the phone app can differ, so use the web version if you cannot find it.",
+      "claude1": "Open claude.ai, then Customize, then Connectors.",
+      "claude2": "Choose Add custom connector.",
+      "claude3": "Name it JoyoRogo and put the connector address above in the MCP server URL. If there is an OAuth client option, keep the default and leave client ID and secret empty.",
+      "claude4": "Choose Add, then Connect on the JoyoRogo connector.",
+      "claude5": "Your browser opens joyorogo.com/koneksi/izin. Sign in with your account, check the permissions it asks for, then press Allow. That consent happens there, not on this page.",
+      "claude6": "In a chat, press +, choose Connectors, and turn JoyoRogo on. Ask something, for example \"Summarize my workouts this month\".",
+      "claudeNote": "On Team and Enterprise plans an Owner adds the connector in Organization settings, then each member presses Connect with their own account.",
+      "chatgptTitle": "Steps in ChatGPT",
+      "chatgptIntro": "Custom MCP server connectors can only be added on ChatGPT web (chatgpt.com), not in the phone app, and only on plans that allow them.",
+      "chatgpt1": "Open chatgpt.com/plugins (the Plugins menu).",
+      "chatgpt2": "Press the plus button, then choose Add custom MCP server.",
+      "chatgpt3": "Name it JoyoRogo. Under Connection, enter the connector address above, and pick OAuth for Authentication.",
+      "chatgpt4": "Read the risk warning, tick I understand and want to continue, then choose Create as a plugin.",
+      "chatgpt5": "Your browser opens joyorogo.com/koneksi/izin. Sign in with your account, check the permissions it asks for, then press Allow. That consent happens there, not on this page.",
+      "chatgpt6": "In a new chat, type @ and pick JoyoRogo, then ask something.",
+      "chatgptNote": "Plans and menus in AI apps change often. If the steps differ from what you see, follow the provider's help (support.claude.com or help.openai.com).",
+      "guide": "Full guide on joyorogo.com"
+    },
+    "apps": {
+      "title": "Connected apps",
+      "subtitle": "AI apps you have allowed.",
+      "empty": "No AI app is connected yet.",
+      "emptyHint": "Follow the steps above. Once you press Allow, the app shows up here.",
+      "error": "The list of apps could not be loaded. Try again.",
+      "retry": "Try again",
+      "connectedAt": "First connected {{date}}",
+      "lastUsed": "Last used {{when}}",
+      "neverUsed": "Never used",
+      "calls_one": "{{count}} call in 30 days",
+      "calls_other": "{{count}} calls in 30 days",
+      "allows": "Allowed to read",
+      "via": "Via {{hosts}}",
+      "viaHint": "The app name is written by the app itself. Check the address under it before you trust it."
+    },
+    "revoke": {
+      "action": "Disconnect",
+      "actionFor": "Disconnect {{name}}",
+      "title": "Disconnect {{name}}?",
+      "body": "{{name}} can no longer read your data at once, and every access it holds is withdrawn. You can connect it again any time.",
+      "confirm": "Yes, disconnect",
+      "cancel": "Cancel",
+      "working": "Disconnecting",
+      "done": "{{name}} was disconnected.",
+      "gone": "{{name}} is not connected any more.",
+      "error": "Could not disconnect. Try again."
+    },
+    "activity": {
+      "title": "Recent activity",
+      "hint": "Each time an AI app reads your data it is logged here for 90 days: the tool used and its date range, not the data itself.",
+      "empty": "No activity yet.",
+      "error": "Activity could not be loaded. Try again.",
+      "retry": "Try again",
+      "refresh": "Refresh",
+      "tableLabel": "Latest calls by AI apps",
+      "col": {
+        "tool": "Tool",
+        "app": "App",
+        "time": "Time",
+        "outcome": "Outcome",
+        "args": "Input"
+      },
+      "unknownApp": "An app that was disconnected",
+      "outcome": {
+        "ok": "Succeeded",
+        "error": "Failed",
+        "not_pro": "Needs Pro",
+        "rate_limited": "Limited",
+        "scope": "Missing permission"
+      },
+      "tool": {
+        "get_profile": "Profile and targets",
+        "get_food_log": "Food log",
+        "get_daily_totals": "Daily totals",
+        "get_weight_history": "Weight history",
+        "list_workouts": "Workout list",
+        "get_workout": "Workout detail",
+        "get_recovery_metrics": "Sleep and recovery"
+      }
+    },
+    "reads": {
+      "title": "What it can read",
+      "intro": "Seven tools, all read only. Each tool needs a permission you approved on the Allow screen.",
+      "get_profile": "Profile and targets: mode (lose, maintain, gain, pregnancy), height, age, start and target weight, calorie and protein targets.",
+      "get_food_log": "Food log: every food per day with calories and macros.",
+      "get_daily_totals": "Daily totals: calories and macros per day against your target.",
+      "get_weight_history": "Weight history: weigh-ins, waist, trend, and the estimated date you reach your goal.",
+      "list_workouts": "Workout list from the JoyoFit watch and strength sessions.",
+      "get_workout": "One workout in detail: heart rate, zones, sets and loads. No GPS route.",
+      "get_recovery_metrics": "Sleep and recovery: sleep hours, recovery, resting heart rate, HRV, VO2max, and steps.",
+      "never": "Never shared: GPS routes, photos, data imported from Strava, and other people's data."
+    },
+    "limits": {
+      "title": "Usage limits",
+      "l1": "Read only: nothing can be logged, changed, or deleted through this connection.",
+      "l2": "JoyoRogo Pro only. On a Free account every question is answered with \"Pro is needed\".",
+      "l3": "At most 60 calls per minute and 1000 per 24 hours for your account. When you hit one, wait a moment or try again tomorrow.",
+      "l4": "Activity is kept for 90 days, then deleted automatically.",
+      "l5": "Disconnecting an app cuts its access at once, without waiting for its token to expire."
+    },
+    "apiKeys": {
+      "title": "Personal API keys",
+      "body": "There are none. JoyoFit does not issue personal API keys: access from outside the app goes through the MCP connector with OAuth above, read only and revocable any time.",
+      "link": "Connector guide"
+    }
+  },
+  "coach": {
+    "title": "Ask the coach",
+    "subtitle": "The JoyoFit coach answers with your own workouts, recovery, and sleep. Conversations are not stored on the server.",
+    "status": {
+      "label": "Messages today",
+      "count": "{{used}} of {{cap}}",
+      "left_one": "{{count}} message left until 00:00 WIB.",
+      "left_other": "{{count}} messages left until 00:00 WIB.",
+      "none": "You have used today's messages. Start again tomorrow at 00:00 WIB.",
+      "loadError": "The message allowance could not be loaded."
+    },
+    "intro": {
+      "title": "Start with a question",
+      "body": "Write in your own words. Every message is sent with a summary of your data from JoyoFit Web, so you do not need to retype the numbers.",
+      "q1": "What workout fits tomorrow, given my sleep and recovery?",
+      "q2": "Is my training load too heavy this week?",
+      "q3": "How can I fix my short sleep?"
+    },
+    "log": {
+      "label": "Conversation with the coach",
+      "you": "You",
+      "coach": "Coach",
+      "thinking": "The coach is writing an answer",
+      "newReply": "New reply from the coach",
+      "flagged": "Safety answer"
+    },
+    "input": {
+      "label": "Message for the coach",
+      "placeholder": "Ask about training, sleep, or recovery",
+      "hint": "Enter to send, Shift+Enter for a new line.",
+      "send": "Send",
+      "sending": "Sending",
+      "tooLong": "The message is too long. At most {{max}} characters.",
+      "counter": "{{used}}/{{max}}"
+    },
+    "clear": {
+      "action": "Clear conversation",
+      "done": "The conversation was cleared from this tab."
+    },
+    "error": {
+      "paywall": "The coach is for JoyoRogo Pro, and your Pro is not active right now.",
+      "paywallCta": "See Pro pricing",
+      "capReached": "You have used all {{cap}} messages today. They come back tomorrow at 00:00 WIB.",
+      "capReachedNoCap": "You have used all of today's messages. They come back tomorrow at 00:00 WIB.",
+      "unavailable": "The coach is not available right now. Try again later.",
+      "failed": "The coach could not answer. Try again.",
+      "network": "The message was not sent because the server could not be reached. Check your connection and try again.",
+      "retry": "Send again"
+    },
+    "disabled": {
+      "title": "The coach is switched off",
+      "body": "This feature is not enabled on the server right now."
+    },
+    "locked": {
+      "title": "The coach is for Pro",
+      "body": "With JoyoRogo Pro you can ask the coach here and in the app.",
+      "cta": "See Pro pricing"
+    },
+    "context": {
+      "title": "Sent along with your message",
+      "body": "A summary of the data this web app can read. What has no data is not sent.",
+      "workouts": "Latest workouts (up to 10 in 30 days)",
+      "recovery": "Readiness, HRV, training load, resting heart rate, and VO2max",
+      "sleep": "Last night's sleep, need, and sleep debt over the last 14 days",
+      "strain": "Strain yesterday, today, and the 7-day average",
+      "server": "Profile, targets, and training plan are read by the server from your account."
+    },
+    "safety": "The coach is not a doctor and gives no medical advice. If you have an injury, pain, or worrying symptoms, stop training and see a doctor or physiotherapist.",
+    "memory": "The conversation exists only in this tab and is gone when the tab closes."
+  },
+  "export": {
+    "title": "Export your data",
+    "subtitle": "Download workouts from the JoyoFit cloud as files. Files are built in your browser and are not uploaded anywhere.",
+    "formats": {
+      "title": "Formats",
+      "gpx": {
+        "name": "GPX",
+        "desc": "Route with time, elevation, heart rate, cadence, and power. For Strava, Komoot, and maps. Workouts without GPS are skipped."
+      },
+      "fit": {
+        "name": "FIT",
+        "desc": "Garmin activity file: every sample, lap, and total from the watch. For Garmin Connect, TrainingPeaks, and Intervals.icu."
+      },
+      "json": {
+        "name": "JSON",
+        "desc": "The full document: summary, analysis, and every data point. For your own analysis."
+      }
+    },
+    "bulk": {
+      "title": "Export many workouts",
+      "subtitle": "Pick a range and a format. The result is one ZIP file.",
+      "range": "Time range",
+      "format": "Format",
+      "count_one": "{{count}} workout in this range",
+      "count_other": "{{count}} workouts in this range",
+      "capNote": "One ZIP holds at most {{max}} workouts, newest first. Narrow the range for the rest.",
+      "noGps_one": "{{count}} workout without GPS is skipped for GPX.",
+      "noGps_other": "{{count}} workouts without GPS are skipped for GPX.",
+      "empty": "No workouts in this range.",
+      "listError": "The workout list could not be loaded. Try again.",
+      "retry": "Try again",
+      "start_one": "Export {{count}} workout",
+      "start_other": "Export {{count}} workouts",
+      "cancel": "Cancel",
+      "progress": "Fetching workout {{done}} of {{total}}",
+      "zipping": "Building the ZIP",
+      "done_one": "{{count}} file ready, ZIP downloaded.",
+      "done_other": "{{count}} files ready, ZIP downloaded.",
+      "doneOne": "One file downloaded.",
+      "nothing": "No file could be built.",
+      "cancelled": "Cancelled. Nothing was downloaded.",
+      "problemsTitle": "Skipped",
+      "problem": {
+        "no_gps": "no GPS",
+        "not_found": "not found in the cloud",
+        "unreadable": "its document could not be read",
+        "unavailable": "the server could not serve it",
+        "network": "the server could not be reached"
+      },
+      "unauthorized": "Your login session ended. Sign in again, then repeat.",
+      "tooBig": "The result is too large for one ZIP. Narrow the range."
+    },
+    "single": {
+      "title": "One workout",
+      "body": "Open a workout, then use the Export button at the top of it.",
+      "cta": "Go to workouts"
+    },
+    "detail": {
+      "label": "Export",
+      "group": "Export this workout",
+      "as": "Export as {{format}}",
+      "working": "Preparing {{format}}",
+      "done": "{{name}} downloaded.",
+      "noGps": "This workout has no GPS, so there is no route for GPX. Try FIT or JSON.",
+      "notFound": "This workout's document is not in the cloud.",
+      "unreadable": "This workout's document could not be read.",
+      "network": "The server could not be reached. Check your connection and try again.",
+      "unauthorized": "Your login session ended. Sign in again, then repeat.",
+      "failed": "The export failed. Try again."
+    }
+  }
+}

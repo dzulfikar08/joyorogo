@@ -1,0 +1,130 @@
+{
+  "title": "Tidur dan pemulihan",
+  "subtitle": "Tidur dan pemulihan, {{from}} sampai {{to}}.",
+  "empty": {
+    "title": "Belum ada data tidur di rentang ini",
+    "body": "Data tidur dan pemulihan muncul di sini setelah JoyoFit di ponselmu menyinkronkannya, atau setelah kamu mencatat tidur di JoyoRogo."
+  },
+  "tiles": {
+    "average": "Tidur rata-rata",
+    "nights_other": "{{count}} malam tercatat",
+    "need": "Kebutuhan tidur",
+    "needUnknown": "JoyoFit belum menghitung kebutuhanmu",
+    "met": "{{met}} dari {{total}} malam terpenuhi",
+    "debt": "Utang tidur",
+    "debtHint": "Kekurangan tiap malam, dijumlah",
+    "consistency": "Keteraturan",
+    "consistencyUnknown": "Butuh minimal 2 malam",
+    "spread": "±{{min}} mnt",
+    "band": {
+      "steady": "Sangat teratur",
+      "ok": "Cukup teratur",
+      "irregular": "Berubah-ubah"
+    }
+  },
+  "nights": {
+    "title": "Tidur per malam",
+    "subtitleNeed": "Garis putus-putus adalah kebutuhan tidurmu menurut JoyoFit.",
+    "subtitleAverage": "Garis putus-putus adalah rata-rata tidurmu.",
+    "hours": "Tidur",
+    "hoursUnit": "jam",
+    "aria": "Grafik jam tidur per malam, rata-rata {{avg}}",
+    "average": "Rata-rata {{value}}",
+    "need": "Kebutuhan {{value}}"
+  },
+  "recovery": {
+    "title": "Pemulihan setelah tidur",
+    "subtitle": "Recovery, HRV, dan detak istirahat tiap pagi.",
+    "recovery": "Recovery",
+    "hrv": "HRV",
+    "resting": "Detak istirahat",
+    "aria": "Grafik recovery harian, rata-rata {{avg}} persen",
+    "empty": "Belum ada data recovery, HRV, atau detak istirahat di rentang ini."
+  },
+  "weekday": {
+    "title": "Tidur per hari dalam seminggu",
+    "subtitle": "Rata-rata tidur malam sebelum hari itu.",
+    "names": {
+      "mon": "Sen",
+      "tue": "Sel",
+      "wed": "Rab",
+      "thu": "Kam",
+      "fri": "Jum",
+      "sat": "Sab",
+      "sun": "Min"
+    },
+    "legend": "Garis tegak adalah kebutuhanmu ({{need}}). Batang oranye artinya di bawah kebutuhan."
+  },
+  "table": {
+    "title": "Riwayat tidur",
+    "subtitle": "Satu baris per pagi, terbaru di atas.",
+    "more": "Tampilkan lebih banyak",
+    "date": "Bangun pada",
+    "duration": "Durasi",
+    "need": "% kebutuhan",
+    "recovery": "Recovery",
+    "hrv": "HRV",
+    "resting": "Detak istirahat",
+    "readiness": "Kesiapan",
+    "source": "Sumber",
+    "needShort": "Kebutuhan",
+    "restingShort": "Istirahat"
+  },
+  "readiness": {
+    "Primed": "Prima",
+    "Balanced": "Seimbang",
+    "Strained": "Terbebani",
+    "Run down": "Kelelahan"
+  },
+  "source": {
+    "joyofit": "Jam JoyoFit",
+    "manual": "Dicatat manual",
+    "health_connect": "Health Connect",
+    "apple_health": "Apple Health"
+  },
+  "stages": {
+    "title": "Fase tidur",
+    "subtitle": "Tahap tidur dari jam tiap malam: nyenyak, REM, ringan, dan terjaga.",
+    "pick": "Pilih malam",
+    "previous": "Malam sebelumnya",
+    "next": "Malam berikutnya",
+    "names": {
+      "awake": "Terjaga",
+      "rem": "REM",
+      "light": "Ringan",
+      "deep": "Nyenyak",
+      "asleep": "Tidur tanpa fase"
+    },
+    "night": {
+      "window": "{{start}} sampai {{end}}",
+      "asleep": "Tidur",
+      "awake": "Terjaga",
+      "awakenings_other": "{{count}} kali terbangun",
+      "noStages": "Jam hanya mencatat kapan kamu tidur malam ini, tanpa fase."
+    },
+    "hypnogram": {
+      "aria": "Grafik fase tidur {{day}}: {{summary}}"
+    },
+    "list": {
+      "label": "Waktu di tiap fase"
+    },
+    "naps": {
+      "title": "Tidur siang",
+      "item": "{{start}} sampai {{end}} ({{duration}})"
+    },
+    "composition": {
+      "title": "Komposisi tiap malam",
+      "subtitle": "Jam di tiap fase, malam demi malam.",
+      "aria": "Grafik komposisi fase tidur dari {{count}} malam"
+    },
+    "averages": {
+      "title": "Rata-rata per malam",
+      "nights_other": "dari {{count}} malam yang punya fase"
+    },
+    "empty": {
+      "title": "Belum ada fase tidur di rentang ini",
+      "body": "Fase muncul setelah JoyoFit di ponselmu menyinkronkan tidur dari jam."
+    },
+    "window": "Fase tersedia untuk 92 hari terakhir."
+  }
+}

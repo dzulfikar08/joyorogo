@@ -1,0 +1,82 @@
+{
+  "title": "Ringkasan",
+  "subtitle": "{{from}} sampai {{to}}",
+  "empty": {
+    "title": "Belum ada data di rentang ini",
+    "body": "Sinkronkan JoyoFit di ponselmu (Pengaturan, lalu Sinkron cloud). Latihan, tidur, dan pemulihan muncul di sini setelah sinkron."
+  },
+  "tiles": {
+    "workouts": "Latihan",
+    "distance": "Jarak",
+    "elevation": "Tanjakan {{value}} m",
+    "strain": "Strain",
+    "recovery": "Recovery",
+    "hrv": "HRV",
+    "restingHr": "Detak istirahat",
+    "vo2max": "VO2max",
+    "vo2maxUnit": "ml/kg/mnt",
+    "sleep": "Tidur",
+    "perNight": "per malam",
+    "hoursUnit": "jam",
+    "noPrevious": "Belum ada pembanding",
+    "average": "rata-rata"
+  },
+  "load": {
+    "title": "Beban latihan",
+    "subtitle": "Strain harian (0 sampai 21) dan rasio beban 7 hari terhadap 28 hari.",
+    "strain": "Strain",
+    "ratio": "Rasio beban",
+    "latest": "Rasio terbaru {{ratio}}: {{band}}",
+    "band": {
+      "under": "di bawah kebiasaan",
+      "steady": "stabil",
+      "high": "naik",
+      "spike": "melonjak"
+    },
+    "aria": "Grafik strain harian, rata-rata {{avg}} dari 21",
+    "empty": "Belum ada strain atau rasio beban di rentang ini."
+  },
+  "recovery": {
+    "title": "Pemulihan",
+    "subtitle": "Recovery (dari HRV semalam) dan HRV rata-rata semalam.",
+    "recovery": "Recovery",
+    "hrv": "HRV",
+    "aria": "Grafik recovery harian, rata-rata {{avg}} persen",
+    "empty": "Belum ada data recovery atau HRV di rentang ini."
+  },
+  "heart": {
+    "title": "Detak istirahat dan kebugaran",
+    "subtitle": "Detak jantung istirahat dan perkiraan VO2max.",
+    "resting": "Detak istirahat",
+    "vo2max": "VO2max",
+    "aria": "Grafik detak istirahat harian, rata-rata {{avg}} bpm",
+    "empty": "Belum ada data detak istirahat atau VO2max di rentang ini."
+  },
+  "sleep": {
+    "title": "Tidur",
+    "subtitle": "Jam tidur tiap malam.",
+    "hours": "Tidur",
+    "more": "Lihat detail",
+    "average": "Rata-rata {{value}}",
+    "aria": "Grafik jam tidur per malam, rata-rata {{avg}}",
+    "empty": "Belum ada data tidur di rentang ini."
+  },
+  "volume": {
+    "title": "Volume mingguan",
+    "subtitle": "Waktu atau jarak per minggu, dipisah per olahraga.",
+    "metric": "Ukuran volume",
+    "time": "Waktu",
+    "distance": "Jarak",
+    "hoursUnit": "jam",
+    "week": "Minggu {{date}}",
+    "total": "Total",
+    "none": "Tidak ada latihan",
+    "aria": "Grafik volume mingguan dari {{n}} latihan",
+    "empty": "Belum ada latihan di rentang ini."
+  },
+  "recent": {
+    "title": "Latihan terbaru",
+    "all": "Semua latihan",
+    "empty": "Belum ada latihan di rentang ini."
+  }
+}

@@ -40,6 +40,7 @@
     "dev:types": "tsc -b packages/api --watch",
     "dev:native": "turbo run dev -F native --",
     "dev:web": "turbo run dev:bare -F web --",
+    "dev:fit": "turbo run dev:bare -F fit --",
     "dev:server": "turbo run dev:bare -F hono --",
     "db:generate": "turbo run db:generate -F @joyorogo/db --",
     "deploy": "turbo run deploy -F @joyorogo/infra --",
@@ -47,7 +48,7 @@
     "env:generate": "varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./apps/native/ && varlock codegen --path ./packages/db/",
     "check": "oxlint && oxfmt --write",
     "i18n:check": "bun scripts/i18n-check.ts",
-    "lint:hooks": "oxlint --react-plugin -D react/rules-of-hooks apps/native/app apps/native/components apps/web/src"
+    "lint:hooks": "oxlint --react-plugin -D react/rules-of-hooks apps/native/app apps/native/components apps/web/src apps/fit/src"
   },
   "dependencies": {
     "sharp": "0.34.5",

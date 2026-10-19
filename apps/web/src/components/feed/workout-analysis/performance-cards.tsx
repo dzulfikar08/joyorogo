@@ -23,7 +23,7 @@ import {
   loadWording,
   paceMode,
   speedKmh,
-} from "./analysis-math";
+} from "@joyorogo/workout-view/analysis-math";
 
 /** Fastest stretches of 400 m to a half marathon, with a PR badge against recent similar workouts. */
 export function BestEffortsCard({ efforts }: { efforts: AnalysisBestEffort[] }) {

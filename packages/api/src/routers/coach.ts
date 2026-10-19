@@ -2,8 +2,6 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { protectedProcedure } from "../index";
-import { aiUsage } from "@joyorogo/db/schema/fitness";
-
 import {
   CoachModelError,
   assessMessages,
@@ -17,7 +15,7 @@ import {
 } from "../lib/coach-chat";
 import { readCoachServerContext } from "../lib/coach-context";
 import { COACH_DOC_LIMITS, coachDocSchema, readCoachDoc, writeCoachDoc } from "../lib/coach-doc";
-import { coachDailyCap, coachUsedToday } from "../lib/coach-limit";
+import { coachDailyCap, coachUsedToday, reserveCoachSlot, settleCoachSlot } from "../lib/coach-limit";
 import { jakartaToday } from "../lib/engine";
 import { serverT } from "../lib/messages";
 import { cloudUnlocked } from "../lib/watch-workout-store";
@@ -88,6 +86,11 @@ export const coachRouter = {
     }
 
     const model = coachModel(context.env);
+    // The slot is taken before the model runs, in one conditional statement: concurrent requests cannot slip past the cap.
+    const slot = await reserveCoachSlot(context.db, userId, cap, model);
+    if (slot === null) {
+      throw new ORPCError("TOO_MANY_REQUESTS", { message: t("capReached", { cap }), data: { coachCapReached: true, cap } });
+    }
     const startedAt = Date.now();
     let reply: string | null = null;
     let usage: Record<string, unknown> | null = null;
@@ -106,22 +109,12 @@ export const coachRouter = {
       outcome = error instanceof CoachModelError ? error.reason : "failed";
       if (!(error instanceof CoachModelError)) console.error("[coach] failed", error);
     }
-    // Every call that reached the model counts toward the cap, answer or not. Only counts and token usage are kept.
+    // The slot was counted when it was reserved (every call that reached the model counts, answer or not). Only counts and
+    // token usage are kept.
     context.waitUntil(
-      context.db
-        .insert(aiUsage)
-        .values({
-          id: crypto.randomUUID(),
-          userId,
-          model,
-          scanType: "coach",
-          latencyMs: Date.now() - startedAt,
-          usageJson: JSON.stringify({ kind: "coach", outcome, turns: input.messages.length, ...(usage ? { usage } : {}) }),
-        })
-        .then(
-          () => undefined,
-          (error: unknown) => console.error("[coach] ledger insert failed", error),
-        ),
+      settleCoachSlot(context.db, slot, { latencyMs: Date.now() - startedAt, outcome, turns: input.messages.length, usage }).catch(
+        (error: unknown) => console.error("[coach] ledger update failed", error),
+      ),
     );
     if (reply === null) {
       throw new ORPCError(outcome === "timeout" ? "INTERNAL_SERVER_ERROR" : "UNPROCESSABLE_CONTENT", {
@@ -129,6 +122,6 @@ export const coachRouter = {
         data: { reason: outcome },
       });
     }
-    return { reply, used: used + 1, cap, flagged: null };
+    return { reply, used: await coachUsedToday(context.db, userId), cap, flagged: null };
   }),
 };

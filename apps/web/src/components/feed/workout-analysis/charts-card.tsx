@@ -17,7 +17,7 @@ import {
   formatPaceOrSpeed,
   metricValues,
   paceMode,
-} from "./analysis-math";
+} from "@joyorogo/workout-view/analysis-math";
 import { SeriesChart } from "./series-chart";
 
 function ReadoutItem({ label, value, unit }: { label: string; value: string; unit?: string }) {

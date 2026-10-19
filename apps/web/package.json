@@ -18,6 +18,7 @@
     "@joyorogo/i18n": "workspace:*",
     "@joyorogo/sticker": "workspace:*",
     "@joyorogo/ui": "workspace:*",
+    "@joyorogo/workout-view": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/server": "catalog:",
     "@orpc/tanstack-query": "catalog:",

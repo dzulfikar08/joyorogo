@@ -34,7 +34,10 @@ Errors: not Pro `FORBIDDEN` `data: { paywall: true }`; cap reached `TOO_MANY_REQ
 
 - Per user per Jakarta (WIB) day, default 20 messages (`COACH_DAILY_CAP`, `"0"` disables). Counted from `ai_usage` rows with
   `scan_type = 'coach'` (no CHECK on the column, so no migration for the enum value). Every call that reached the model
-  writes a row (model, latencyMs, `usage_json` with outcome, turns, token usage), answer or not.
+  writes a row (model, latencyMs, `usage_json` with outcome, turns, token usage), answer or not. The slot is **reserved before the
+  model is called** with one conditional `INSERT ... SELECT ... WHERE (count today) < cap` (`reserveCoachSlot` in `lib/coach-limit.ts`),
+  so concurrent requests cannot all pass a read-then-write check; the row is then updated with the outcome (`settleCoachSlot`).
+  A reserved slot stays spent even if that update never runs (`outcome` stays `pending`). Test: `routers/coach-cap.test.ts`.
 - A flagged message (below) is answered from fixed text without calling the model: no ledger row, no cap spent.
 - Does not touch the food-scan quota (`requireAiQuota`).
 - Model: `AI_COACH_MODEL`, else `AI_CORRECT_MODEL`, else the default text/vision model (Gemma 4), thinking off, 700 completion

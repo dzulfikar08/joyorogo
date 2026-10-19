@@ -12,6 +12,7 @@ import { diaryRouter } from "./diary";
 import { exerciseRouter } from "./exercise";
 import { fastingRouter } from "./fasting";
 import { fitnessRouter } from "./fitness";
+import { fitWebRouter } from "./fit-web";
 import { foodRouter } from "./food";
 import { groupRouter } from "./group";
 import { mcpConnectionRouter } from "./mcp-connection";
@@ -68,6 +69,7 @@ export const appRouter = {
   savedFood: savedFoodRouter,
   barcode: barcodeRouter,
   fitness: fitnessRouter,
+  fitWeb: fitWebRouter,
   coach: coachRouter,
   strength: strengthRouter,
   sync: syncRouter,

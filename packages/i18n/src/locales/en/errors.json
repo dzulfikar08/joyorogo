@@ -9,6 +9,10 @@
     "storageUnavailable": "Workout cloud storage isn't available yet.",
     "notFound": "This workout isn't in the cloud."
   },
+  "fitWeb": {
+    "proRequired": "JoyoFit web is for JoyoRogo Pro.",
+    "badRange": "That date range isn't valid."
+  },
   "profile": {
     "onboardingRequired": "Please finish setting up your profile first.",
     "targetDatePast": "The target date must be tomorrow or later.",

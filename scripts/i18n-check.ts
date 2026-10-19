@@ -32,6 +32,7 @@ for (const locale of LOCALES) {
 
 const APPS: Record<string, string[]> = {
   "apps/web": ["apps/web/src"],
+  "apps/fit": ["apps/fit/src"],
   "apps/native": [
     "apps/native/app",
     "apps/native/components",

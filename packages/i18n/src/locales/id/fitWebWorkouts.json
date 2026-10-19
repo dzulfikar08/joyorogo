@@ -1,0 +1,183 @@
+{
+  "title": "Latihan",
+  "subtitle": "Latihan dari JoyoFit, {{from}} sampai {{to}}.",
+  "tableLabel": "Daftar latihan, bisa diurutkan",
+  "empty": {
+    "title": "Belum ada latihan di rentang ini",
+    "body": "Latihan muncul di sini setelah JoyoFit di ponselmu menyinkronkannya ke cloud. Coba rentang yang lebih panjang kalau latihanmu sudah lama."
+  },
+  "showing": "Menampilkan {{shown}} dari {{total}} latihan",
+  "more": "Tampilkan lebih banyak",
+  "truncated": "Rentang ini punya lebih dari {{n}} latihan, jadi yang paling lama tidak ditampilkan. Persempit rentangnya.",
+  "unit": {
+    "perKm": "/km",
+    "kmh": "km/j"
+  },
+  "col": {
+    "date": "Tanggal",
+    "sport": "Olahraga",
+    "distance": "Jarak",
+    "duration": "Durasi",
+    "pace": "Pace / kecepatan",
+    "hr": "Detak",
+    "elevation": "Tanjakan",
+    "calories": "Kalori",
+    "paceOnly": "Pace",
+    "speedOnly": "Kecepatan"
+  },
+  "totals": {
+    "count": "Latihan",
+    "of": "dari {{total}}",
+    "distance": "Jarak",
+    "time": "Waktu bergerak",
+    "elevation": "Tanjakan"
+  },
+  "filter": {
+    "search": "Cari nama olahraga",
+    "sport": "Filter olahraga",
+    "clear": "Hapus filter",
+    "sort": "Urutkan",
+    "ascending": "Urut naik",
+    "descending": "Urut turun",
+    "noMatch": "Tidak ada latihan yang cocok dengan filter ini"
+  },
+  "detail": {
+    "back": "Semua latihan",
+    "notFoundTitle": "Latihan tidak ditemukan",
+    "notFoundBody": "Latihan ini sudah dihapus atau tidak ada di akunmu.",
+    "imported": "Impor",
+    "distance": "Jarak",
+    "movingTime": "Waktu bergerak",
+    "elapsed": "Total {{time}}",
+    "avgPace": "Pace rata-rata",
+    "avgSpeed": "Kecepatan rata-rata",
+    "best": "Terbaik {{value}}",
+    "avgHr": "Detak rata-rata",
+    "maxHr": "Maks {{value}} bpm",
+    "elevation": "Tanjakan",
+    "elevationLoss": "Turunan {{value}} m",
+    "calories": "Kalori",
+    "strain": "Strain latihan",
+    "loadRatio": "Rasio beban",
+    "trimp": "TRIMP {{value}}",
+    "noAnalysisTitle": "Analisis lengkap tidak tersedia",
+    "noAnalysisBody": "Latihan ini tersimpan tanpa grafik dan rute, atau dengan format yang belum bisa dibaca. Angka ringkasnya tetap benar.",
+    "noSeriesTitle": "Tidak ada grafik untuk latihan ini",
+    "noSeriesBody": "Jam tidak merekam rute atau detak jantung selama latihan ini."
+  },
+  "charts": {
+    "title": "Grafik latihan",
+    "hint": "Arahkan kursor ke grafik atau rute untuk melihat angkanya.",
+    "minutes": "mnt",
+    "time": "Waktu",
+    "distance": "Jarak",
+    "pace": "Pace",
+    "speed": "Kecepatan",
+    "hr": "Detak jantung",
+    "alt": "Ketinggian",
+    "cad": "Kadens",
+    "power": "Daya",
+    "aria": "Grafik {{metric}} sepanjang latihan",
+    "unit": {
+      "hr": "bpm",
+      "alt": "m",
+      "cad": "spm",
+      "power": "W"
+    }
+  },
+  "zones": {
+    "hr": {
+      "title": "Zona detak jantung",
+      "subtitle": "Detak maksimal {{max}} bpm ({{source}})",
+      "source": {
+        "age": "dari usia",
+        "setting": "dari pengaturanmu"
+      },
+      "range": "{{low}} sampai {{high}} bpm",
+      "below": "Di bawah Z1 (kurang dari {{low}} bpm): {{time}}"
+    },
+    "pace": {
+      "title": "Zona pace",
+      "subtitle": "Pace ambang sekitar {{pace}} /km",
+      "names": {
+        "recovery": "Pemulihan",
+        "endurance": "Daya tahan",
+        "tempo": "Tempo",
+        "threshold": "Ambang",
+        "vo2": "VO2max"
+      },
+      "range": "{{range}} /km"
+    }
+  },
+  "best": {
+    "title": "Usaha terbaik",
+    "subtitle": "Bagian tercepat di dalam latihan ini.",
+    "distance": "Jarak",
+    "time": "Waktu",
+    "names": {
+      "400m": "400 m",
+      "1k": "1 km",
+      "1mi": "1 mil",
+      "5k": "5 km",
+      "10k": "10 km",
+      "half": "Half marathon"
+    },
+    "record": "Terbaik 120 hari",
+    "rank": "Peringkat {{rank}}",
+    "at": "mulai km {{km}}"
+  },
+  "effort": {
+    "title": "Usaha dan beban",
+    "subtitle": "Seberapa berat latihan ini dan posisinya dalam bebanmu.",
+    "strain": "Strain latihan",
+    "band": {
+      "light": "Ringan",
+      "moderate": "Sedang",
+      "hard": "Berat",
+      "max": "Maksimal"
+    },
+    "trimp": "TRIMP",
+    "addedToDay": "Menambah strain hari itu",
+    "acute": "Beban 7 hari",
+    "acuteHint": "TRIMP sampai latihan ini",
+    "chronic": "Rata-rata mingguan 28 hari",
+    "chronicHint": "TRIMP per minggu",
+    "ratio": "Rasio akut:kronis",
+    "wording": {
+      "under": "Di bawah kebiasaanmu",
+      "steady": "Stabil",
+      "high": "Naik",
+      "spike": "Melonjak, hati-hati"
+    },
+    "aerobic": "Efek aerobik",
+    "anaerobic": "Efek anaerobik",
+    "effectHint": "dari jam, skala 0 sampai 5",
+    "recoveryHours": "Waktu pemulihan",
+    "hours_other": "{{count}} jam"
+  },
+  "compare": {
+    "title": "Dibanding latihan serupa",
+    "basis": {
+      "distance": "Olahraga sama, jarak selisih paling banyak 20%.",
+      "duration": "Olahraga sama, durasi selisih paling banyak 25%."
+    },
+    "previous": "Latihan serupa terakhir",
+    "average": "Rata-rata latihan serupa"
+  },
+  "splits": {
+    "title": "Split per kilometer",
+    "subtitle": "Batang terpanjang adalah split tercepat.",
+    "km": "Km",
+    "bar": "Perbandingan kecepatan",
+    "gain": "Naik (m)",
+    "loss": "Turun (m)",
+    "cadence": "Kadens"
+  },
+  "laps": {
+    "title": "Lap",
+    "subtitle": "Dicatat jam selama latihan.",
+    "lap": "Lap",
+    "avgHr": "Detak rata-rata",
+    "maxHr": "Detak maks"
+  }
+}

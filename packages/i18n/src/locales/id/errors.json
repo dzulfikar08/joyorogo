@@ -9,6 +9,10 @@
     "storageUnavailable": "Penyimpanan cloud latihan belum tersedia.",
     "notFound": "Latihan ini tidak ada di cloud."
   },
+  "fitWeb": {
+    "proRequired": "JoyoFit web khusus pengguna JoyoRogo Pro.",
+    "badRange": "Rentang tanggal tidak valid."
+  },
   "profile": {
     "onboardingRequired": "Lengkapi onboarding dulu ya.",
     "targetDatePast": "Tanggal target harus besok atau setelahnya.",

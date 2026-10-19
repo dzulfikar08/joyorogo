@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 
 import { Card, SectionTitle } from "@/components/kit/surface";
 
-import { paceMode, speedKmh } from "./analysis-math";
+import { paceMode, speedKmh } from "@joyorogo/workout-view/analysis-math";
 
 function Stat({
   label,

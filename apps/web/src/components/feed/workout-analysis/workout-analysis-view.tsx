@@ -11,7 +11,7 @@ import { CaloriesCard, SummaryCard } from "./summary-card";
 import { LapsCard, SplitsCard } from "./tables";
 import { HrZonesCard, PaceZonesCard } from "./zones-cards";
 
-const RouteMap = lazy(() => import("./route-map"));
+const RouteMap = lazy(() => import("@joyorogo/workout-view/route-map"));
 
 function MapCard({
   track,

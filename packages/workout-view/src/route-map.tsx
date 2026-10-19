@@ -12,7 +12,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { type MapTheme, maplibreStyle } from "@/lib/map-style";
+import { type MapTheme, maplibreStyle } from "./map-style";
 
 import { nearestTrackIndex } from "./analysis-math";
 

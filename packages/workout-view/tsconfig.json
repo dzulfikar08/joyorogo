@@ -1,0 +1,15 @@
+{
+  "extends": "@joyorogo/config/tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["bun"],
+    "jsx": "react-jsx",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    // map-style.ts and route-map.tsx moved verbatim from apps/web, which does not enable it.
+    "noUncheckedIndexedAccess": false,
+    "paths": {
+      "@joyorogo/ui/*": ["../ui/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

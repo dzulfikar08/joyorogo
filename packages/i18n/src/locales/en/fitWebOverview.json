@@ -1,0 +1,82 @@
+{
+  "title": "Overview",
+  "subtitle": "{{from}} to {{to}}",
+  "empty": {
+    "title": "No data in this range yet",
+    "body": "Sync JoyoFit on your phone (Settings, then Cloud sync). Workouts, sleep, and recovery show up here after a sync."
+  },
+  "tiles": {
+    "workouts": "Workouts",
+    "distance": "Distance",
+    "elevation": "Climb {{value}} m",
+    "strain": "Strain",
+    "recovery": "Recovery",
+    "hrv": "HRV",
+    "restingHr": "Resting heart rate",
+    "vo2max": "VO2max",
+    "vo2maxUnit": "ml/kg/min",
+    "sleep": "Sleep",
+    "perNight": "per night",
+    "hoursUnit": "h",
+    "noPrevious": "Nothing to compare yet",
+    "average": "average"
+  },
+  "load": {
+    "title": "Training load",
+    "subtitle": "Daily strain (0 to 21) and the 7-day to 28-day load ratio.",
+    "strain": "Strain",
+    "ratio": "Load ratio",
+    "latest": "Latest ratio {{ratio}}: {{band}}",
+    "band": {
+      "under": "below your habit",
+      "steady": "steady",
+      "high": "rising",
+      "spike": "spiking"
+    },
+    "aria": "Chart of daily strain, average {{avg}} out of 21",
+    "empty": "No strain or load ratio in this range yet."
+  },
+  "recovery": {
+    "title": "Recovery",
+    "subtitle": "Recovery (from last night's HRV) and average overnight HRV.",
+    "recovery": "Recovery",
+    "hrv": "HRV",
+    "aria": "Chart of daily recovery, average {{avg}} percent",
+    "empty": "No recovery or HRV data in this range yet."
+  },
+  "heart": {
+    "title": "Resting heart rate and fitness",
+    "subtitle": "Resting heart rate and estimated VO2max.",
+    "resting": "Resting heart rate",
+    "vo2max": "VO2max",
+    "aria": "Chart of daily resting heart rate, average {{avg}} bpm",
+    "empty": "No resting heart rate or VO2max data in this range yet."
+  },
+  "sleep": {
+    "title": "Sleep",
+    "subtitle": "Hours of sleep each night.",
+    "hours": "Sleep",
+    "more": "See details",
+    "average": "Average {{value}}",
+    "aria": "Chart of hours slept per night, average {{avg}}",
+    "empty": "No sleep data in this range yet."
+  },
+  "volume": {
+    "title": "Weekly volume",
+    "subtitle": "Time or distance per week, split by sport.",
+    "metric": "Volume measure",
+    "time": "Time",
+    "distance": "Distance",
+    "hoursUnit": "h",
+    "week": "Week of {{date}}",
+    "total": "Total",
+    "none": "No workouts",
+    "aria": "Chart of weekly volume from {{n}} workouts",
+    "empty": "No workouts in this range yet."
+  },
+  "recent": {
+    "title": "Recent workouts",
+    "all": "All workouts",
+    "empty": "No workouts in this range yet."
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "nav": {
+    "main": "Main menu",
+    "overview": "Overview",
+    "workouts": "Workouts",
+    "sleep": "Sleep & recovery",
+    "upload": "Upload",
+    "connect": "Connections"
+  },
+  "menu": {
+    "title": "Settings",
+    "open": "Open settings",
+    "language": "Language",
+    "theme": "Appearance",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "Match device",
+    "signOut": "Sign out"
+  },
+  "login": {
+    "tagline": "Analyze your workouts, sleep, and recovery from JoyoFit on a big screen.",
+    "google": "Sign in with Google",
+    "dev": "Sign in (dev)",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "emailToggle": "Sign in with email",
+    "rateLimited": "Too many attempts. Try again in a moment.",
+    "invalidCredentials": "Wrong email or password.",
+    "footer": "Use the same JoyoRogo account as in the app.",
+    "privacy": "Privacy policy"
+  },
+  "wall": {
+    "title": "JoyoFit Web is for Pro members",
+    "body": "{{email}} doesn't have JoyoRogo Pro yet. With Pro you can open your JoyoFit data in the browser and dig deeper.",
+    "featureOverview": "Overview of training load, recovery, HRV, and resting heart rate",
+    "featureWorkouts": "Workout list with map, heart rate and pace charts, and zones",
+    "featureSleep": "Sleep each night, your sleep need, and how regular your sleep is",
+    "cta": "See Pro pricing",
+    "recheck": "Already subscribed? Check again",
+    "switchAccount": "Sign out and use another account",
+    "lapsed": "Your Pro isn't active, so this data can't be opened. Renew it to continue."
+  },
+  "state": {
+    "loading": "Loading",
+    "errorTitle": "Couldn't load the data",
+    "errorBody": "Something went wrong while loading. Please try again.",
+    "errorUnreachable": "The JoyoRogo server can't be reached. Check your connection, then try again.",
+    "retry": "Try again"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "body": "This page failed to load. Try reloading it.",
+    "updatedTitle": "There's a new version",
+    "updatedBody": "JoyoFit Web was just updated. Reload the page to continue.",
+    "reload": "Reload"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "This address isn't on JoyoFit Web.",
+    "home": "Go to Overview"
+  },
+  "range": {
+    "label": "Time range",
+    "days_one": "{{count}}d",
+    "days_other": "{{count}}d",
+    "daysFull_one": "Last {{count}} day",
+    "daysFull_other": "Last {{count}} days"
+  },
+  "compare": {
+    "toggle": "Compare",
+    "vsPrevious": "vs the previous period",
+    "previousPeriod": "Previous period",
+    "previousDay": "Previous period: {{date}}"
+  },
+  "unit": {
+    "hm": "{{h}} h {{m}} min",
+    "min": "{{m}} min"
+  },
+  "sport": {
+    "run": "Run",
+    "walk": "Walk",
+    "ride": "Ride",
+    "swim": "Swim",
+    "other": "Other"
+  }
+}

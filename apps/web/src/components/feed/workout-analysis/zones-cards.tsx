@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 
 import { Card, SectionTitle } from "@/components/kit/surface";
 
-import { percentOf } from "./analysis-math";
+import { percentOf } from "@joyorogo/workout-view/analysis-math";
 import { ZONE_COLORS } from "./series-chart";
 
 function ZoneBar({

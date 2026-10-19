@@ -57,6 +57,7 @@ import { registerFamilyRoutes } from "./family";
 import { registerStravaRoutes } from "./strava";
 import { runTestflightNoticeSweep, sendTestflightNotice, testflightNoticeConfig } from "./testflight-notice";
 import { registerUnsubscribeRoutes } from "./unsubscribe";
+import { registerFitProxy } from "./fit-proxy";
 import { registerWatchWorkoutRoutes } from "./watch-workout";
 import { sweepMcp } from "@joyorogo/api/lib/mcp-connections";
 import { scrubExpiredStravaRows } from "@joyorogo/api/lib/strava-retention";
@@ -74,11 +75,13 @@ const allowedOrigins = env.CORS_ORIGIN.split(",")
 app.use(logger());
 // Open CORS (no cookies) for the endpoints MCP clients call from a browser; before the credentialed CORS below.
 registerMcpPublicCors(app);
+// PUT and DELETE: the JoyoFit web app (docs/fit-web.md) uploads workout documents with PUT /api/watch-workouts/:start and deletes
+// watch faces with DELETE /api/fit/watchfaces/:id from the browser.
 app.use(
   "/*",
   cors({
     origin: allowedOrigins,
-    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization", LOCALE_HEADER],
     credentials: true,
   }),
@@ -431,6 +434,13 @@ registerWatchWorkoutRoutes(app, {
   createAuth,
   env,
   bucket: () => ("STICKERS" in env ? env.STICKERS : undefined),
+});
+
+// The JoyoFit web app's door to the JoyoFit cloud API (sleep stages, the watch face library): this host holds the session cookie.
+registerFitProxy(app, {
+  createAuth,
+  allowedOrigins,
+  baseUrl: () => (env.JOYOFIT_API_URL || "https://api.fit.joyorogo.com").replace(/\/+$/, ""),
 });
 
 // MCP connector (docs/mcp-connector.md): Claude / ChatGPT read the account's data at /mcp with an OAuth token from

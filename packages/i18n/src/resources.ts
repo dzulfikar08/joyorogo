@@ -31,6 +31,12 @@ import idSticker from "./locales/id/sticker.json";
 import idEnergy from "./locales/id/energy.json";
 import idKalori from "./locales/id/kalori.json";
 import idReflection from "./locales/id/reflection.json";
+import idFitWeb from "./locales/id/fitWeb.json";
+import idFitWebOverview from "./locales/id/fitWebOverview.json";
+import idFitWebWorkouts from "./locales/id/fitWebWorkouts.json";
+import idFitWebSleep from "./locales/id/fitWebSleep.json";
+import idFitWebUpload from "./locales/id/fitWebUpload.json";
+import idFitWebConnect from "./locales/id/fitWebConnect.json";
 
 import enAuth from "./locales/en/auth.json";
 import enBerat from "./locales/en/berat.json";
@@ -65,6 +71,12 @@ import enSticker from "./locales/en/sticker.json";
 import enEnergy from "./locales/en/energy.json";
 import enKalori from "./locales/en/kalori.json";
 import enReflection from "./locales/en/reflection.json";
+import enFitWeb from "./locales/en/fitWeb.json";
+import enFitWebOverview from "./locales/en/fitWebOverview.json";
+import enFitWebWorkouts from "./locales/en/fitWebWorkouts.json";
+import enFitWebSleep from "./locales/en/fitWebSleep.json";
+import enFitWebUpload from "./locales/en/fitWebUpload.json";
+import enFitWebConnect from "./locales/en/fitWebConnect.json";
 
 import type { Locale } from "./locale";
 
@@ -103,6 +115,12 @@ const id = {
   energy: idEnergy,
   kalori: idKalori,
   reflection: idReflection,
+  fitWeb: idFitWeb,
+  fitWebOverview: idFitWebOverview,
+  fitWebWorkouts: idFitWebWorkouts,
+  fitWebSleep: idFitWebSleep,
+  fitWebUpload: idFitWebUpload,
+  fitWebConnect: idFitWebConnect,
 };
 
 /**
@@ -143,6 +161,12 @@ const en: typeof id = {
   energy: enEnergy,
   kalori: enKalori,
   reflection: enReflection,
+  fitWeb: enFitWeb,
+  fitWebOverview: enFitWebOverview,
+  fitWebWorkouts: enFitWebWorkouts,
+  fitWebSleep: enFitWebSleep,
+  fitWebUpload: enFitWebUpload,
+  fitWebConnect: enFitWebConnect,
 };
 
 export const resources = { id, en } satisfies Record<Locale, typeof id>;

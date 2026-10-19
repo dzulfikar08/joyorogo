@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 
 import { Card, SectionTitle } from "@/components/kit/surface";
 
-import { formatPaceOrSpeed, paceBarPercent, paceMode } from "./analysis-math";
+import { formatPaceOrSpeed, paceBarPercent, paceMode } from "@joyorogo/workout-view/analysis-math";
 
 const TH = "px-1 py-1.5 text-left text-[11px] font-medium text-muted-foreground whitespace-nowrap";
 const TD = "px-1 py-1.5 text-xs tabular-nums whitespace-nowrap";

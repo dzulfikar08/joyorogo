@@ -1,0 +1,21 @@
+{
+  "references": [{ "path": "../../packages/api" }],
+  "compilerOptions": {
+    "strict": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "types": ["vite/client", "bun"],
+    "rootDirs": ["."],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@joyorogo/ui/*": ["../../packages/ui/src/*"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}
