@@ -1,5 +1,5 @@
 {
-  "pickRule": "Choose by your everyday life WITHOUT the workouts you log. Logged workouts (or ones read from your watch) are added separately on top of your target, so if you also pick a high level because of workouts, those calories count twice. Not sure? Pick the lower one.",
+  "pickRule": "Choose based on your everyday life, not counting the workouts you log. Logged workouts (or ones read from your watch) are added on top of your target separately, so if you also pick a higher level because of them, those calories count twice. Not sure? Pick the lower one.",
   "pickTitle": "How active are your days?",
   "levels": {
     "sedentary": {

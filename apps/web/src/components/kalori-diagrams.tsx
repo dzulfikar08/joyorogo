@@ -55,7 +55,7 @@ export function BarRows({ rows, label }: { rows: readonly BarRow[]; label: strin
     <div role="img" aria-label={label} className="space-y-3">
       {rows.map((row) => (
         <div key={row.key}>
-          <div className="flex items-baseline justify-between gap-3 text-xs">
+          <div className="flex items-baseline justify-between gap-3 text-sm">
             <span className="min-w-0 font-semibold">{row.label}</span>
             <span className="shrink-0 font-bold tabular-nums">{row.value}</span>
           </div>
@@ -78,7 +78,7 @@ export type CreditDay = {
   measuredKcal: number;
   /** "Terukur 700 kkal" */
   measuredText: string;
-  /** "Tambah 164 kkal" or "Tidak menambah" */
+  /** "+164 kkal" or "Tidak ada tambahan" */
   addedText: string;
 };
 
@@ -104,7 +104,7 @@ export function CreditDiagram({
   const y = (kcal: number) => base - (kcal / max) * (base - top);
   const lineY = y(includedKcal);
   return (
-    <div role="img" aria-label={label}>
+    <div role="img" aria-label={label} className="mx-auto max-w-md">
       <svg viewBox={`0 0 ${W} ${H}`} aria-hidden className="h-auto w-full">
         <line x1="0" x2={W} y1={base} y2={base} className="stroke-border" strokeWidth="1" />
         {days.map((day, i) => {
@@ -113,7 +113,7 @@ export function CreditDiagram({
           const above = Math.max(0, day.measuredKcal - includedKcal);
           return (
             <g key={day.key}>
-              <rect x={x} y={y(below)} width="56" height={base - y(below)} rx="4" className="fill-muted-foreground/35" />
+              <rect x={x} y={Math.min(y(below), base - 4)} width="56" height={Math.max(4, base - y(below))} rx="4" className="fill-muted-foreground/35" />
               {above > 0 && (
                 <rect x={x} y={y(day.measuredKcal)} width="56" height={y(includedKcal) - y(day.measuredKcal)} rx="4" className="fill-chart-1" />
               )}
@@ -132,10 +132,12 @@ export function CreditDiagram({
       </svg>
       <div className="mt-2 grid grid-cols-3 gap-2 text-center">
         {days.map((day) => (
-          <div key={day.key} className="min-w-0">
-            <p className="text-xs font-bold">{day.label}</p>
-            <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">{day.measuredText}</p>
-            <p className="text-xs font-semibold tabular-nums">{day.addedText}</p>
+          <div key={day.key} className="min-w-0 text-xs leading-snug text-balance">
+            <p className="font-bold">{day.label}</p>
+            <p className="mt-0.5 text-muted-foreground tabular-nums">{day.measuredText}</p>
+            <p className={`mt-0.5 font-bold tabular-nums ${day.measuredKcal > includedKcal ? "text-primary" : "text-muted-foreground"}`}>
+              {day.addedText}
+            </p>
           </div>
         ))}
       </div>

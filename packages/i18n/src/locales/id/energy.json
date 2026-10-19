@@ -1,5 +1,5 @@
 {
-  "pickRule": "Pilih berdasarkan hari-harimu sehari-hari, TANPA olahraga yang kamu catat. Olahraga yang tercatat (atau terbaca dari jam) ditambahkan terpisah di atas targetmu, jadi kalau kamu memilih level tinggi karena olahraga juga, kalorinya terhitung dua kali. Ragu? Pilih yang lebih rendah.",
+  "pickRule": "Pilih berdasarkan keseharianmu, tanpa menghitung olahraga yang kamu catat. Olahraga yang tercatat (atau terbaca dari jam) ditambahkan terpisah di atas targetmu. Kalau kamu juga memilih level lebih tinggi karena olahraga, kalorinya jadi terhitung dua kali. Ragu? Pilih yang lebih rendah.",
   "pickTitle": "Seberapa aktif hari-harimu?",
   "levels": {
     "sedentary": {

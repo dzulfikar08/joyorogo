@@ -29,7 +29,7 @@ const TOOLS = [
   "get_recovery_metrics",
 ] as const;
 const LIMITS = ["l1", "l2", "l3", "l4", "l5", "l6"] as const;
-const TROUBLE = ["loop", "pro", "reconnect", "scope"] as const;
+const TROUBLE = ["loop", "clientId", "pro", "reconnect", "scope"] as const;
 const PRIVACY = ["p1", "p2", "p3", "p4", "p5", "p6", "p7"] as const;
 
 const SECTIONS = [

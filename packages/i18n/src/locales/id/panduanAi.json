@@ -25,12 +25,12 @@
     "intro": "Lakukan penyambungannya di claude.ai (web) atau Claude Desktop. Menu di aplikasi ponsel bisa berbeda, jadi kalau tidak menemukannya di sana, pakai versi web.",
     "s1": "Buka claude.ai, lalu Customize, lalu Connectors.",
     "s2": "Pilih Add custom connector.",
-    "s3": "Isi nama dengan JoyoRogo dan URL server MCP dengan https://api.joyorogo.com/mcp. Kalau ada pilihan OAuth client, pakai Register automatically atau biarkan bawaannya, dan jangan isi client ID atau secret.",
+    "s3": "Isi nama dengan JoyoRogo dan URL server MCP dengan https://api.joyorogo.com/mcp. Di layar berikutnya, untuk Authentication pilih Sign in now. Untuk OAuth client pilih Register automatically, bukan Use Claude’s published identity walau ditandai Recommended, karena JoyoRogo belum mendukung cara itu. Kosongkan Request headers. Kalau muncul pesan beberapa pengecekan dilewati karena server lebih dari 5 detik, abaikan saja dan pilih sesuai langkah ini.",
     "s4": "Pilih Add, lalu Connect di penyambung JoyoRogo.",
     "s5": "Browser membuka halaman JoyoRogo. Masuk dengan akunmu, cek izin yang diminta, lalu tekan Izinkan.",
     "s6": "Di sebuah chat, tekan tombol +, pilih Connectors, lalu nyalakan JoyoRogo untuk chat itu.",
     "s7": "Tanya sesuatu, misalnya \"Ringkas makanku 7 hari terakhir\". Claude akan menunjukkan saat memakai alat JoyoRogo.",
-    "teamNote": "Di Team dan Enterprise, Owner menambahkan penyambungnya di Organization settings, lalu tiap anggota menekan Connect dengan akunnya sendiri."
+    "teamNote": "Di Team dan Enterprise, Owner menambahkan penyambungnya di Organization settings (pengaturan yang sama: Sign in now dan Register automatically), lalu tiap anggota menekan Connect dan masuk dengan akun JoyoRogo-nya sendiri. Setelah selesai, Claude mungkin menawarkan langkah Add another Owner. Itu soal admin organisasi Claude dan tidak wajib untuk JoyoRogo."
   },
   "chatgpt": {
     "title": "Langkah di ChatGPT",
@@ -78,6 +78,10 @@
     "loop": {
       "q": "Masuk berulang tanpa hasil",
       "a": "Pastikan browser mengizinkan cookie dari api.joyorogo.com, dan jangan pakai mode yang memblokir cookie lintas situs. Kalau halaman bilang permintaan kedaluwarsa, mulai lagi dari aplikasi AI-nya."
+    },
+    "clientId": {
+      "q": "Connect gagal atau halaman masuk JoyoRogo tidak muncul",
+      "a": "Cek pilihan OAuth client di pengaturan penyambung. JoyoRogo hanya mendukung Register automatically. Kalau yang terpilih Use Claude’s published identity atau Use your own OAuth client, hapus penyambungnya, tambahkan lagi dengan Register automatically, lalu Connect."
     },
     "pro": {
       "q": "Muncul pesan JoyoRogo Pro dibutuhkan",

@@ -25,12 +25,12 @@
     "intro": "Do the setup on claude.ai (web) or Claude Desktop. Menus in the phone apps can differ, so if you can't find it there, use the web version.",
     "s1": "Open claude.ai, then Customize, then Connectors.",
     "s2": "Choose Add custom connector.",
-    "s3": "Set the name to JoyoRogo and the MCP server URL to https://api.joyorogo.com/mcp. If there is an OAuth client choice, use Register automatically or keep the default, and leave client ID and secret empty.",
+    "s3": "Set the name to JoyoRogo and the MCP server URL to https://api.joyorogo.com/mcp. On the next screen, under Authentication pick Sign in now. Under OAuth client pick Register automatically, not Use Claude’s published identity even though it's marked Recommended, because JoyoRogo doesn't support that yet. Leave Request headers empty. If you see a note that some checks were skipped because the server took longer than 5 seconds, ignore it and pick the options above.",
     "s4": "Choose Add, then Connect on the JoyoRogo connector.",
     "s5": "Your browser opens a JoyoRogo page. Sign in, check the permissions it asks for, then tap Allow (Izinkan).",
     "s6": "In a chat, tap the + button, choose Connectors, and switch JoyoRogo on for that chat.",
     "s7": "Ask something, like \"Summarize my food for the last 7 days\". Claude shows when it uses a JoyoRogo tool.",
-    "teamNote": "On Team and Enterprise an Owner adds the connector in Organization settings, then each member taps Connect with their own account."
+    "teamNote": "On Team and Enterprise an Owner adds the connector in Organization settings (same options: Sign in now and Register automatically), then each member taps Connect and signs in with their own JoyoRogo account. Afterwards Claude may suggest Add another Owner. That's about your Claude organization's admins and isn't needed for JoyoRogo."
   },
   "chatgpt": {
     "title": "Steps in ChatGPT",
@@ -78,6 +78,10 @@
     "loop": {
       "q": "Signing in again and again",
       "a": "Make sure the browser allows cookies from api.joyorogo.com and isn't blocking cross-site cookies. If the page says the request expired, start again from the AI app."
+    },
+    "clientId": {
+      "q": "Connect fails or the JoyoRogo sign-in page never opens",
+      "a": "Check the OAuth client option in the connector settings. JoyoRogo only supports Register automatically. If Use Claude’s published identity or Use your own OAuth client is selected, remove the connector, add it again with Register automatically, then Connect."
     },
     "pro": {
       "q": "A message says JoyoRogo Pro is required",

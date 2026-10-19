@@ -6,6 +6,7 @@ import { STEP_LEVEL_BOUNDS } from "@joyorogo/api/lib/activity-guide";
 import { Button } from "@joyorogo/ui/components/button";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { BarRows, CreditDiagram, Swatch, TdeeStackedBar } from "@/components/kalori-diagrams";
@@ -54,25 +55,67 @@ const addedOn = (measuredKcal: number) =>
 const SECTIONS = ["why", "formula", "levels", "credit", "recommend", "example", "sources"] as const;
 const STEP_ROWS = ["r1", "r2", "r3", "r4", "r5"] as const;
 
+/** Blog posts that build on this page. The blog is Indonesian-only, so these titles are not translated. */
+const RELATED_POSTS = [
+  { slug: "cara-menghitung-defisit-kalori", title: "Cara menghitung defisit kalori untuk turun berat badan" },
+  { slug: "panduan-tanggal-target-dan-tdee", title: "Panduan tanggal target, TDEE, dan angka Sisa di Beranda" },
+  { slug: "panduan-mode-naikin-bb", title: "Panduan mode Naikin BB" },
+  { slug: "panduan-mode-hamil-menyusui", title: "Panduan mode Hamil dan Menyusui" },
+  { slug: "hubungkan-joyofit-joyorogo", title: "Menghubungkan JoyoFit dengan JoyoRogo" },
+] as const;
+
+/**
+ * The section whose top has scrolled under the sticky header (with a little slack), for the outline highlight. At the
+ * very bottom of the page the last section wins, since a short final section can never reach the top.
+ */
+function useActiveSection(): string {
+  const [active, setActive] = useState<string>(SECTIONS[0]);
+  useEffect(() => {
+    const update = () => {
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      let current: string = SECTIONS[0];
+      for (const id of SECTIONS) {
+        const el = document.getElementById(id);
+        if (el && (atBottom || el.getBoundingClientRect().top <= 120)) current = id;
+      }
+      setActive(current);
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  return active;
+}
+
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-20 rounded-3xl bg-card p-5">
-      <h2 className="text-lg font-bold tracking-tight">{title}</h2>
+    <section id={id} className="scroll-mt-24 border-t border-border pt-8 first:border-t-0 first:pt-0">
+      <h2 className="text-xl font-bold tracking-tight text-balance md:text-2xl">{title}</h2>
       {children}
     </section>
   );
 }
 
 const P = ({ children }: { children: React.ReactNode }) => (
-  <p className="mt-3 text-sm leading-relaxed">{children}</p>
+  <p className="mt-3 text-base leading-7 text-pretty">{children}</p>
+);
+
+/** Body text right under an h3: same reading size as P, tighter gap to its heading. */
+const SubP = ({ children }: { children: React.ReactNode }) => (
+  <p className="mt-1 text-base leading-7 text-pretty">{children}</p>
 );
 
 const Caption = ({ children }: { children: React.ReactNode }) => (
-  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{children}</p>
+  <p className="mt-2 text-[0.8125rem] leading-relaxed text-pretty text-muted-foreground">{children}</p>
 );
 
 function PanduanKaloriPage() {
-  const { t } = useTranslation(["kalori", "energy", "common"]);
+  const { t } = useTranslation(["kalori", "energy", "panduanAi", "common"]);
+  const active = useActiveSection();
   const levelName = (level: ActivityLevel) => t(`energy:levels.${level}.name`);
   const demoName = levelName(DEMO_LEVEL);
   const tef = Math.round(demo.tdee * 0.1);
@@ -93,31 +136,52 @@ function PanduanKaloriPage() {
     };
   }) as [CreditDay, CreditDay, CreditDay];
 
+  const outline = (
+    <ul className="mt-2 space-y-0.5 border-l border-border">
+      {SECTIONS.map((id) => (
+        <li key={id}>
+          <a
+            href={`#${id}`}
+            aria-current={active === id ? "location" : undefined}
+            className={`-ml-px flex min-h-10 items-center border-l-2 py-1.5 pl-3 text-sm leading-snug transition-colors hover:text-foreground ${
+              active === id ? "border-primary font-semibold text-foreground" : "border-transparent text-muted-foreground"
+            }`}
+          >
+            {t(`kalori:${id}.title`)}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+  const tocLabel = (
+    <p className="text-[0.6875rem] font-bold tracking-[0.14em] text-muted-foreground uppercase">{t("kalori:toc")}</p>
+  );
+
   return (
     <div className="min-h-svh">
       <PublicHeader />
-      <main className="mx-auto w-full max-w-2xl px-4 py-8 md:px-6 md:py-12">
-        <header>
-          <h1 className="text-3xl font-extrabold tracking-tight text-balance md:text-4xl">{t("kalori:title")}</h1>
-          <p className="mt-2 text-muted-foreground">{t("kalori:subtitle")}</p>
-        </header>
-
-        <nav aria-label={t("kalori:toc")} className="mt-6 rounded-3xl bg-card p-5">
-          <p className="text-[0.6875rem] font-bold tracking-[0.14em] text-muted-foreground uppercase">
-            {t("kalori:toc")}
-          </p>
-          <ul className="mt-2 grid gap-x-4 sm:grid-cols-2">
-            {SECTIONS.map((id) => (
-              <li key={id}>
-                <a href={`#${id}`} className="inline-flex min-h-11 items-center text-sm font-semibold hover:text-primary">
-                  {t(`kalori:${id}.title`)}
-                </a>
-              </li>
-            ))}
-          </ul>
+      <main className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-8 md:px-6 md:py-12 lg:grid-cols-[13rem_minmax(0,1fr)] xl:grid-cols-[13rem_minmax(0,1fr)_15rem]">
+        <nav aria-label={t("kalori:toc")} className="hidden lg:block">
+          <div className="sticky top-24">
+            {tocLabel}
+            {outline}
+          </div>
         </nav>
 
-        <div className="mt-6 space-y-3">
+        <article className="mx-auto w-full max-w-2xl min-w-0">
+          <header>
+            <h1 className="text-3xl leading-tight font-extrabold tracking-tight text-balance md:text-4xl">
+              {t("kalori:title")}
+            </h1>
+            <p className="mt-3 text-lg leading-relaxed text-pretty text-muted-foreground">{t("kalori:subtitle")}</p>
+          </header>
+
+          <nav aria-label={t("kalori:toc")} className="mt-6 rounded-3xl bg-card p-5 lg:hidden">
+            {tocLabel}
+            {outline}
+          </nav>
+
+          <div className="mt-10 space-y-10">
           <Section id="why" title={t("kalori:why.title")}>
             <P>{t("kalori:why.p1")}</P>
             <P>{t("kalori:why.p2")}</P>
@@ -127,7 +191,7 @@ function PanduanKaloriPage() {
           <Section id="formula" title={t("kalori:formula.title")}>
             <P>{t("kalori:formula.p1")}</P>
             <P>{t("kalori:formula.p2")}</P>
-            <div className="mt-4 rounded-2xl bg-muted p-4">
+            <div className="mt-5 rounded-2xl bg-card p-4">
               <TdeeStackedBar
                 bmr={demo.bmr}
                 move={move}
@@ -139,7 +203,7 @@ function PanduanKaloriPage() {
                   tdee: fmtInt(demo.tdee),
                 })}
               />
-              <ul className="mt-3 space-y-1.5 text-xs leading-relaxed">
+              <ul className="mt-3 space-y-1.5 text-sm leading-relaxed">
                 {(
                   [
                     ["bmr", "bg-chart-1", demo.bmr],
@@ -169,25 +233,25 @@ function PanduanKaloriPage() {
             <P>{t("kalori:levels.intro")}</P>
             <ul className="mt-4 space-y-2">
               {plans.map(({ level, targets }) => (
-                <li key={level} className="rounded-2xl bg-muted p-4">
+                <li key={level} className="rounded-2xl bg-card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="min-w-0 text-sm font-bold">{levelName(level)}</h3>
                     <span className="shrink-0 text-xs font-bold text-muted-foreground tabular-nums">
                       {t("energy:factor", { factor: fmtFactor(targets.factor) })}
                     </span>
                   </div>
-                  <p className="mt-1.5 text-sm leading-relaxed">{t(`energy:levels.${level}.desc`)}</p>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-pretty">{t(`energy:levels.${level}.desc`)}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-pretty text-muted-foreground">
                     {t(`energy:levels.${level}.example`)}
                   </p>
                 </li>
               ))}
             </ul>
-            <p className="mt-4 rounded-2xl bg-makan-soft p-4 text-sm leading-relaxed font-medium text-makan-ink">
+            <p className="mt-4 rounded-2xl bg-makan-soft p-4 text-[0.9375rem] leading-7 font-medium text-pretty text-makan-ink">
               {t("energy:pickRule")}
             </p>
             <P>{t("kalori:levels.tip")}</P>
-            <div className="mt-4 rounded-2xl bg-muted p-4">
+            <div className="mt-5 rounded-2xl bg-card p-4">
               <BarRows
                 label={t("kalori:levels.chartLabel")}
                 rows={plans.map(({ level, targets }) => ({
@@ -198,7 +262,7 @@ function PanduanKaloriPage() {
                   solidKcal: targets.bmr,
                 }))}
               />
-              <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+              <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
                 <li className="flex items-center gap-1.5">
                   <Swatch className="bg-chart-1" />
                   {t("kalori:levels.bmrLegend")}
@@ -221,7 +285,7 @@ function PanduanKaloriPage() {
                 cap: capText,
               })}
             </P>
-            <div className="mt-4 rounded-2xl bg-muted p-4">
+            <div className="mt-5 rounded-2xl bg-card p-4">
               <CreditDiagram
                 days={creditDays}
                 includedKcal={demo.includedKcal}
@@ -232,7 +296,7 @@ function PanduanKaloriPage() {
                   included: demo.includedKcal,
                 })}
               />
-              <ul className="mt-3 space-y-1.5 text-xs leading-relaxed">
+              <ul className="mt-3 space-y-1.5 text-sm leading-relaxed">
                 <li className="flex gap-2">
                   <Swatch className="bg-muted-foreground/35" />
                   <span>{t("kalori:credit.legendBelow")}</span>
@@ -243,23 +307,21 @@ function PanduanKaloriPage() {
                 </li>
                 <li className="flex gap-2">
                   <span aria-hidden className="mt-1.5 inline-block h-0 w-3 shrink-0 border-t-2 border-dashed border-foreground" />
-                  <span>
-                    {t("kalori:credit.line")}: {fmtInt(demo.includedKcal)}
-                  </span>
+                  <span>{t("kalori:credit.line", { kcal: fmtInt(demo.includedKcal) })}</span>
                 </li>
               </ul>
             </div>
             <Caption>
               {t("kalori:credit.chart", { level: demoName, included: fmtInt(demo.includedKcal) })}
             </Caption>
-            <h3 className="mt-5 text-sm font-bold">{t("kalori:credit.deskTitle")}</h3>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{t("kalori:credit.deskBody")}</p>
+            <h3 className="mt-5 text-base font-bold">{t("kalori:credit.deskTitle")}</h3>
+            <SubP>{t("kalori:credit.deskBody")}</SubP>
           </Section>
 
           <Section id="recommend" title={t("kalori:recommend.title")}>
             <P>{t("kalori:recommend.intro")}</P>
-            <h3 className="mt-4 text-sm font-bold">{t("kalori:recommend.stepsTitle")}</h3>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{t("kalori:recommend.stepsBody")}</p>
+            <h3 className="mt-5 text-base font-bold">{t("kalori:recommend.stepsTitle")}</h3>
+            <SubP>{t("kalori:recommend.stepsBody")}</SubP>
             <table className="mt-3 w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground">
@@ -276,8 +338,8 @@ function PanduanKaloriPage() {
                 ))}
               </tbody>
             </table>
-            <h3 className="mt-5 text-sm font-bold">{t("kalori:recommend.trendTitle")}</h3>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{t("kalori:recommend.trendBody")}</p>
+            <h3 className="mt-5 text-base font-bold">{t("kalori:recommend.trendTitle")}</h3>
+            <SubP>{t("kalori:recommend.trendBody")}</SubP>
             <Caption>{t("kalori:recommend.trendNote")}</Caption>
           </Section>
 
@@ -309,25 +371,13 @@ function PanduanKaloriPage() {
                 ))}
               </tbody>
             </table>
-            <div className="mt-4 rounded-2xl bg-muted p-4">
-              <BarRows
-                label={t("kalori:example.chartLabel")}
-                rows={plans.map(({ level, targets }) => ({
-                  key: level,
-                  label: levelName(level),
-                  value: fmtInt(targets.eatKcal),
-                  kcal: targets.eatKcal,
-                }))}
-              />
-            </div>
-            <Caption>{t("kalori:example.chart")}</Caption>
             <P>{t("kalori:example.floorNote", { floor: fmtInt(FLOOR_KCAL) })}</P>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               {t("kalori:example.oldNote", { old: fmtInt(OLD_TARGET) })}
             </p>
             <div className="mt-5 rounded-2xl bg-makan-soft p-4">
               <p className="text-sm font-bold text-makan-ink">{t("kalori:cta.title")}</p>
-              <p className="mt-1 text-sm leading-relaxed text-makan-ink/85">{t("kalori:cta.body")}</p>
+              <p className="mt-1 text-[0.9375rem] leading-relaxed text-makan-ink/85">{t("kalori:cta.body")}</p>
               <Button
                 size="sm"
                 className="mt-3 min-h-11"
@@ -339,7 +389,7 @@ function PanduanKaloriPage() {
           </Section>
 
           <Section id="sources" title={t("kalori:sources.title")}>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t("kalori:sources.intro")}</p>
+            <p className="mt-3 text-base leading-relaxed text-muted-foreground">{t("kalori:sources.intro")}</p>
             <ol className="mt-3 divide-y divide-border">
               {ENERGY_SOURCES.map((source) => (
                 <li key={source.id} className="py-3 first:pt-0 last:pb-0">
@@ -362,7 +412,41 @@ function PanduanKaloriPage() {
               ))}
             </ol>
           </Section>
-        </div>
+          </div>
+        </article>
+
+        <aside aria-labelledby="related-title" className="lg:col-start-2 xl:col-start-auto">
+          <div className="mx-auto max-w-2xl xl:sticky xl:top-24">
+            <h2 id="related-title" className="text-[0.6875rem] font-bold tracking-[0.14em] text-muted-foreground uppercase">
+              {t("kalori:related")}
+            </h2>
+            <ul className="mt-3 space-y-2">
+              <li>
+                <Link
+                  to="/panduan/ai"
+                  className="block rounded-2xl bg-card p-4 text-sm leading-snug font-semibold transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+                >
+                  {t("panduanAi:title")}
+                </Link>
+              </li>
+              {RELATED_POSTS.map((post) => (
+                <li key={post.slug}>
+                  <a
+                    href={`/blog/${post.slug}/`}
+                    className="block rounded-2xl bg-card p-4 text-sm leading-snug font-semibold transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+                  >
+                    {post.title}
+                  </a>
+                </li>
+              ))}
+              <li>
+                <a href="/blog/" className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-primary hover:underline">
+                  Blog →
+                </a>
+              </li>
+            </ul>
+          </div>
+        </aside>
       </main>
       <PublicFooter />
     </div>

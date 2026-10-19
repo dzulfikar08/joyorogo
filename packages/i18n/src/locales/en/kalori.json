@@ -1,59 +1,60 @@
 {
-  "title": "How JoyoRogo works out your eating target",
-  "subtitle": "From BMR and activity level to the extra movement your watch or phone measures. With a worked example and sources.",
+  "title": "How JoyoRogo sets your eating target",
+  "subtitle": "From BMR and activity level to the extra movement your watch or phone picks up. With a worked example and sources.",
   "toc": "On this page",
+  "related": "Read next",
   "why": {
-    "title": "BMR and TDEE: what is the difference",
-    "p1": "BMR is the energy your body uses at complete rest: breathing, heartbeat, keeping warm. It is worked out from your weight, height, age and sex with the Mifflin-St Jeor equation (1990).",
-    "p2": "TDEE is the total energy you burn in a day: BMR plus everyday movement plus the energy of digesting food. Eat your TDEE and your weight stays the same. JoyoRogo's eating target starts from TDEE, then subtracts a deficit to lose weight (or adds a surplus to gain).",
-    "p3": "It used to start from BMR alone. That is too low for almost everyone, because it has no daily movement and no energy of digesting food in it."
+    "title": "BMR and TDEE: what's the difference?",
+    "p1": "BMR is the energy your body uses at complete rest: breathing, keeping your heart beating, staying warm. It's calculated from your weight, height, age and sex using the Mifflin-St Jeor equation (1990).",
+    "p2": "TDEE is the total energy you burn in a day: your BMR, plus everyday movement, plus the energy it takes to digest food. Eat as much as your TDEE and your weight stays the same. JoyoRogo starts from your TDEE, then subtracts a deficit if you want to lose weight, or adds a surplus if you want to gain.",
+    "p3": "We used to start from BMR alone. That turned out too low for almost everyone, because it leaves out daily movement and the energy spent digesting food."
   },
   "formula": {
     "title": "TDEE = BMR × factor",
-    "p1": "TDEE is BMR times an activity factor, standard numbers in wide use, from 1.2 to 1.9 depending on how active your days are. You choose the level.",
-    "p2": "Digesting and absorbing food also costs energy, called the thermic effect of food (TEF): about 5 to 15% of daily expenditure (Westerterp 2004), and JoyoRogo uses 10%. It is already inside the factor, because the factors come from total expenditure. That is why TEF is not added again.",
-    "chart": "Example for the {{level}} level (factor {{factor}}): TDEE is made of BMR, the daily movement already in the factor, and the effect of eating.",
-    "chartLabel": "Stacked bar: BMR {{bmr}} kcal, daily movement {{move}} kcal, effect of eating {{tef}} kcal, total TDEE {{tdee}} kcal.",
+    "p1": "TDEE is your BMR multiplied by an activity factor. These are widely used standard numbers, from 1.2 to 1.9, depending on how active your days are. You choose the level.",
+    "p2": "Digesting and absorbing food also uses energy. This is called the thermic effect of food (TEF), and it's about 5 to 15% of daily expenditure (Westerterp 2004). JoyoRogo uses 10%. Because the factors are based on total expenditure, TEF is already included, so it isn't added again.",
+    "chart": "Example for the {{level}} level (factor {{factor}}): TDEE is made up of BMR, the daily movement already in the factor, and the energy spent digesting food.",
+    "chartLabel": "Stacked bar: BMR {{bmr}} kcal, daily movement {{move}} kcal, digesting food {{tef}} kcal, total TDEE {{tdee}} kcal.",
     "bmr": "BMR (body at rest)",
-    "move": "Daily movement inside the factor",
-    "tef": "Effect of eating (about 10% of TDEE)",
+    "move": "Daily movement (in the factor)",
+    "tef": "Digesting food (about 10% of TDEE)",
     "total": "TDEE"
   },
   "levels": {
     "title": "Five activity levels",
-    "intro": "Each level has a standard factor. Here is what it means, an example, and how big its TDEE is for the example below.",
-    "tip": "Between two levels? Pick the lower one, then see whether your weight drops as planned. The app also suggests a level from your steps and from your weight trend (see below).",
-    "chart": "The higher the level, the bigger the TDEE. The solid part is the BMR, the same for every level.",
+    "intro": "Each level has a standard factor. Here's what each one means, some examples, and the TDEE it gives for the person in the worked example below.",
+    "tip": "Torn between two levels? Pick the lower one, then check whether your weight drops as planned. The app also suggests a level based on your steps and your weight trend (see below).",
+    "chart": "The higher the level, the bigger the TDEE. The darker part is the BMR, which is the same at every level.",
     "chartLabel": "Bar chart of the TDEE for all five levels.",
     "bmrLegend": "BMR",
     "restLegend": "Added by the factor"
   },
   "credit": {
-    "title": "Your watch and phone only add, never subtract",
-    "p1": "Your factor already contains an average day of movement. So data from your watch, phone or Health is not counted from zero: only the measured movement that goes beyond what your factor already contains counts.",
-    "p2": "Movement already in the factor = TDEE − BMR − 10% of TDEE (the effect of eating). For the {{level}} example that is about {{included}} kcal.",
-    "p3": "The extra is multiplied by the percentage you set (default {{pct}}%) and the daily addition is capped (default {{cap}} kcal). The percentage is below 100 because wrist devices are not accurate for energy: of 7 devices tested, none got its error below 20% (Shcherbina et al. 2017). Workouts you log outside the watch's total, for example by hand, are added the same way.",
-    "chart": "Three example days for the {{level}} level. The dashed line is the movement already in the factor ({{included}} kcal). Only the part above the line counts.",
-    "chartLabel": "Chart of three days: measured movement {{a}}, {{b}} and {{c}} kcal against the {{included}} kcal line.",
+    "title": "Watch and phone data only adds, never subtracts",
+    "p1": "Your factor already includes an average day's movement, so data from your watch, phone or Health app isn't counted from zero. Only measured movement beyond what your factor already covers is added.",
+    "p2": "Movement already in the factor = TDEE − BMR − 10% of TDEE (the part for digesting food). For the {{level}} example, that's about {{included}} kcal.",
+    "p3": "The extra is then multiplied by the percentage you set (default {{pct}}%), and the daily addition is capped (default {{cap}} kcal). The percentage is below 100 because wrist devices aren't accurate at measuring energy: of 7 devices tested, none had an error below 20% (Shcherbina et al. 2017). Workouts you log outside your watch, for example by hand, are added the same way.",
+    "chart": "Three example days at the {{level}} level. The dashed line marks the movement already in the factor ({{included}} kcal). Only the part above the line is added.",
+    "chartLabel": "Chart of three days: measured movement of {{a}}, {{b}} and {{c}} kcal against the {{included}} kcal line.",
     "legendBelow": "Already in the factor, not added",
-    "legendAbove": "Above the factor, counted",
-    "line": "Factor line",
-    "measured": "Measured {{kcal}} kcal",
-    "added": "Adds {{kcal}} kcal",
-    "none": "Adds nothing",
+    "legendAbove": "Above the factor, added",
+    "line": "Factor line: {{kcal}} kcal",
+    "measured": "{{kcal}}\u00a0kcal measured",
+    "added": "+{{kcal}}\u00a0kcal",
+    "none": "Nothing added",
     "days": {
-      "desk": "Phone on a desk",
-      "normal": "Ordinary day",
+      "desk": "Phone on desk",
+      "normal": "Normal day",
       "busy": "Busy day"
     },
-    "deskTitle": "A phone left on a desk",
-    "deskBody": "A tiny number from a phone that was not carried is no longer read as a quiet day. If the measured movement is below what your factor already contains, the addition is zero and your target stays the base target. Your target never drops because of watch or phone data."
+    "deskTitle": "When your phone stays on the desk",
+    "deskBody": "A tiny number from a phone you didn't carry no longer reads as a lazy day. If measured movement is below what your factor already covers, nothing is added and your target stays at the base target. Watch or phone data never lowers your target."
   },
   "recommend": {
-    "title": "Suggestions to be more accurate",
-    "intro": "Your level is your best guess. These two help check it. Both are only suggestions with a Use button, never applied on their own.",
+    "title": "Suggestions for a more accurate level",
+    "intro": "The level you pick is your best guess. These two checks help confirm it. Both are only suggestions with a Use button, and are never applied automatically.",
     "stepsTitle": "From your steps",
-    "stepsBody": "If your account has step data on at least 5 of the last 14 days, the average is matched to the Tudor-Locke & Bassett (2004) step index. In onboarding this suggestion only shows when the data already exists.",
+    "stepsBody": "If your account has step data on at least 5 of the last 14 days, the average is matched against the Tudor-Locke & Bassett (2004) step index. During onboarding, this suggestion only appears if the data is already there.",
     "stepsHeader": {
       "steps": "Steps per day",
       "level": "Level"
@@ -63,31 +64,29 @@
       "r2": "5,000 to 7,499",
       "r3": "7,500 to 9,999",
       "r4": "10,000 to 12,499",
-      "r5": "12,500 and up"
+      "r5": "12,500 or more"
     },
     "trendTitle": "From your weight trend",
-    "trendBody": "After at least 3 weeks of regular weigh-ins and food logging (70% of days logged), JoyoRogo works out what your body really burns: what you ate on average, adjusted for your weight change, minus the average of your logged workouts. That is divided by your BMR and matched to the nearest level. You see the measured number against the formula's.",
-    "trendNote": "The 7,700 kcal per kg rule is only an approximation, because the body adapts as weight changes (Hall et al. 2011). So this is a suggestion, not a verdict."
+    "trendBody": "Once you've weighed in and logged food regularly for at least 3 weeks (at least 70% of days logged), JoyoRogo works out how much your body actually burns: your average intake, adjusted for your weight change, minus your average logged workouts. That number is divided by your BMR and matched to the nearest level, so you can compare what was measured with what the formula predicts.",
+    "trendNote": "The 7,700 kcal per kg rule is only an approximation, because the body adapts as weight changes (Hall et al. 2011). So treat this as a suggestion, not a final answer."
   },
   "example": {
     "title": "Worked example",
-    "intro": "Male, 26 years, 171.5 cm, 107.7 kg, target 78 kg by 4 June 2027, worked out on 19 October 2026. BMR = 10 × 107.7 + 6.25 × 171.5 − 5 × 26 + 5 = {{bmr}} kcal. The deficit needed is {{raw}} kcal a day, capped at {{deficit}}.",
+    "intro": "A 26-year-old man, 171.5 cm tall, weighing 107.7 kg, aiming for 78 kg by 4 June 2027, calculated on 19 October 2026. BMR = 10 × 107.7 + 6.25 × 171.5 − 5 × 26 + 5 = {{bmr}} kcal. The deficit needed is {{raw}} kcal a day, capped at {{deficit}}.",
     "level": "Level",
     "factor": "Factor",
     "tdee": "TDEE",
     "target": "Eating target",
-    "floorNote": "At the lowest level, TDEE minus the deficit falls under the minimum eating floor for men ({{floor}} kcal), so the target is {{floor}} kcal.",
-    "oldNote": "The old model (BMR minus the deficit) gave {{old}} kcal for every level.",
-    "chart": "Eating target per level, in kcal a day.",
-    "chartLabel": "Bar chart of the eating target for all five levels."
+    "floorNote": "At the lowest level, TDEE minus the deficit falls below the minimum intake for men ({{floor}} kcal), so the target is raised to {{floor}} kcal.",
+    "oldNote": "The old method (BMR minus the deficit) gave {{old}} kcal at every level."
   },
   "cta": {
     "title": "Try it on your account",
-    "body": "Pick your level and see the target for each option in Profile, Target & body.",
+    "body": "Go to Profile, then Target & body. Pick your level and see the target for each option.",
     "action": "Open level settings"
   },
   "sources": {
     "title": "Sources",
-    "intro": "Every source was checked against its original page."
+    "intro": "Every source has been checked against the original."
   }
 }
