@@ -116,7 +116,7 @@ export const fastingRouter = {
         min: wibMinutes(row.createdAt),
       }));
       // Same budget as day.summary: the plan plus the counted exercise.
-      const credit = await loadDayCredit(context.db, userId, date);
+      const credit = await loadDayCredit(context.db, userId, date, plan.targets.includedKcal);
       const eatKcal = budgetKcal(plan.targets.eatKcal, credit);
       const day = fastingDay({
         pattern: prof.fastingPattern,

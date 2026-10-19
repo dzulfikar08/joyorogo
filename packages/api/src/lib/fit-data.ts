@@ -117,7 +117,12 @@ export interface ProfileView {
     eatKcal: number;
     burnKcal: number;
     bmrKcal: number;
+    /** BMR x activityFactor; the thermic effect of food is inside the factor */
     tdeeKcal: number;
+    /** The factor of the person's activityLevel (standard factors; Hamil / Menyusui have their own) */
+    activityFactor: number;
+    /** Movement the factor already contains: measured activity raises the budget only beyond it */
+    includedActivityKcal: number;
     proteinG: number;
     sleepHours: number;
     /** Planned kcal below maintenance per day (negative while gaining). */
@@ -170,6 +175,8 @@ export async function getProfileView(db: Database, userId: string, today = jakar
       burnKcal: round(targets.burnKcal),
       bmrKcal: round(targets.bmr),
       tdeeKcal: round(targets.tdee),
+      activityFactor: targets.factor,
+      includedActivityKcal: round(targets.includedKcal),
       proteinG: proteinGoalG(plan, prof.heightCm),
       sleepHours: targets.sleepHours,
       deficitKcal: round(targets.deficitKcal),
@@ -274,11 +281,9 @@ export interface DayTotalsView {
   activeKcal: number;
   /** Where the all-day energy came from; null when there was none. */
   activeSource: string | null;
-  /** Kcal added to the day's budget for that activity under the person's "Kalori olahraga" settings (0 when off). */
+  /** Kcal added to the day's budget for the activity that goes beyond the person's activity factor, under their "Kalori olahraga" settings (0 when off or nothing went beyond it). */
   exerciseAddedKcal: number;
-  /** Assumed daily activity added to the base on a day without all-day data (the "Aktivitas harian (perkiraan)" setting). */
-  assumedKcal: number;
-  /** eatKcal target plus assumedKcal and exerciseAddedKcal, minus eaten; negative = over. Null when nothing was logged or there is no profile. */
+  /** eatKcal target plus exerciseAddedKcal, minus eaten; negative = over. Null when nothing was logged or there is no profile. */
   remainingKcal: number | null;
 }
 
@@ -343,6 +348,7 @@ export async function getDailyTotals(db: Database, userId: string, from: string,
   const activityByDay = new Map(activity.map((row) => [row.date, row]));
   const scoreByDay = new Map(scores.map((row) => [row.date, row]));
   const eatTarget = view.dailyTargets?.eatKcal ?? null;
+  const includedKcal = view.dailyTargets?.includedActivityKcal ?? 0;
 
   const days: DayTotalsView[] = [];
   let eatenSum = 0;
@@ -360,6 +366,7 @@ export async function getDailyTotals(db: Database, userId: string, from: string,
       rows: exerciseByDay.get(date) ?? [],
       readings: dayReadings(activityByDay.get(date), scoreByDay.get(date)),
       steps: activityByDay.get(date)?.steps ?? null,
+      includedKcal,
     });
     days.push({
       date,
@@ -375,7 +382,6 @@ export async function getDailyTotals(db: Database, userId: string, from: string,
       activeKcal: credit.activeKcal,
       activeSource: credit.allDaySource,
       exerciseAddedKcal: credit.countedKcal,
-      assumedKcal: credit.assumedKcal,
       remainingKcal: row && eatTarget !== null ? round(budgetKcal(eatTarget, credit) - row.kcal) : null,
     });
   }

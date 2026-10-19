@@ -105,7 +105,7 @@ async function seed() {
     });
   }
   await client.execute(
-    `INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level, locale) VALUES ('siti', 1990, 'female', 160, 60, 55, '2027-01-01', 'low', 'en')`,
+    `INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level, locale) VALUES ('siti', 1990, 'female', 160, 60, 55, '2027-01-01', 'sedentary', 'en')`,
   );
 }
 

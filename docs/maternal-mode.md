@@ -9,7 +9,10 @@ the server and both clients. Nothing here is medical advice; the UI always carri
 ## What changes in these modes
 
 - Target = maintenance TDEE on the **pre-pregnancy basis** (Mifflin-St Jeor at the pre-pregnancy weight, the
-  usual activity multiplier, rounded to 5) **plus** the AKG 2019 addition. No deficit, no Burn target, no
+  maternal activity multiplier, rounded to 5) **plus** the AKG 2019 addition. The multipliers are the old 1.25 / 1.35 /
+  1.45 for the levels migrated from low / mid / high (sedentary / light / moderate; `MATERNAL_ACTIVITY_FACTOR` also has
+  1.55 and 1.65 for active and very active), not the standard factors of the normal plan, so the target did not move
+  with the activity-level change (docs/energy-model.md). No deficit, no Burn target, no
   weight target or date, no measured-TDEE drift (`computeMaternalTargets`, `buildPlan` branches on the row).
 - Targets carry `targets.maternal` (`MaternalInfo`): stage, gestation (week/day/trimester/HPL, recomputed
   from the stored HPHT every day), baby age (from the birth date), the AKG nutrient table, the IOM plan and

@@ -95,12 +95,11 @@ function readDevice(key: RogoPrefKey, userId: string): unknown | undefined {
       return readJson(STORY_PREFS_KEY) ?? undefined;
     case "dismissed.handlePrompt":
     case "dismissed.stravaRetention7d":
-    case "dismissed.addBackNotice2":
+    case "dismissed.energyModel":
       return localStorage.getItem(dismissalStoreKey(key, userId)) === "1" ? true : undefined;
     case "exercise.addBack.enabled":
     case "exercise.addBack.pct":
     case "exercise.addBack.cap":
-    case "exercise.assumedActive":
       return readAddBackPref(key);
     case "reminders":
       return undefined;
@@ -126,13 +125,12 @@ function writeDevice(key: RogoPrefKey, userId: string, value: unknown | undefine
         return;
       case "dismissed.handlePrompt":
       case "dismissed.stravaRetention7d":
-      case "dismissed.addBackNotice2":
+      case "dismissed.energyModel":
         writeDismissal(key, userId, value === true);
         return;
       case "exercise.addBack.enabled":
       case "exercise.addBack.pct":
       case "exercise.addBack.cap":
-      case "exercise.assumedActive":
         writeAddBackPref(key, value);
         return;
       case "reminders":

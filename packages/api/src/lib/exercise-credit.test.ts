@@ -3,7 +3,6 @@ import { describe, expect, test } from "bun:test";
 import { computeTargets, remainingKcal } from "./engine";
 import type { ProfileInput } from "./engine";
 import {
-  ADD_BACK_NOTICE_BEFORE_MS,
   ALL_DAY_MAX_KCAL,
   DEFAULT_ADD_BACK_SETTINGS,
   addBackSettings,
@@ -12,7 +11,6 @@ import {
   dayActiveKcal,
   exerciseCredit,
   shiftWorkoutKcal,
-  showAddBackNotice,
 } from "./exercise-credit";
 import type { AddBackSettings, AllDayReading } from "./exercise-credit";
 import { computeMaternalTargets } from "./maternal";
@@ -21,12 +19,21 @@ import type { MaternalState } from "./maternal";
 const TODAY = "2026-10-18";
 const settings = (patch: Partial<AddBackSettings> = {}): AddBackSettings => ({ ...DEFAULT_ADD_BACK_SETTINGS, ...patch });
 type Row = { kcal: number; source?: string; externalId?: string };
-const credit = (patch: Partial<AddBackSettings>, rows: Row[], watch: number | null = null, steps: number | null = null, extra: AllDayReading[] = []) =>
+// `included` is the movement the person's factor already contains; 0 (a bare BMR plan) unless a test is about the factor.
+const credit = (
+  patch: Partial<AddBackSettings>,
+  rows: Row[],
+  watch: number | null = null,
+  steps: number | null = null,
+  extra: AllDayReading[] = [],
+  included = 0,
+) =>
   exerciseCredit({
     settings: settings(patch),
     rows,
     readings: [{ source: "joyofit", kcal: watch }, ...extra],
     steps,
+    includedKcal: included,
   });
 
 describe("the watch's all-day energy against recorded workouts", () => {
@@ -115,35 +122,97 @@ describe("allDayActive: broken data is ignored", () => {
     expect(allDayActive([{ source: "joyofit", kcal: 9000 }, { source: "health_connect", kcal: 500 }], null)).toMatchObject({ source: "health_connect" });
   });
 
-  test("a broken watch reading means the assumption applies and the workouts count", () => {
-    const c = credit({ assumedKcal: 300 }, [{ kcal: 200, source: "joyofit" }], 9000);
+  test("a broken watch reading means the recorded workouts count", () => {
+    const c = credit({}, [{ kcal: 200, source: "joyofit" }], 9000, null, [], 250);
     expect(c.allDayKcal).toBeNull();
-    expect(c.assumedKcal).toBe(300);
     expect(c.activeKcal).toBe(200);
+    expect(c.extraKcal).toBe(200);
   });
 });
 
-describe("the assumed daily activity", () => {
-  test("applies only on a day without all-day data", () => {
-    expect(credit({ assumedKcal: 300 }, [], null).assumedKcal).toBe(300);
-    expect(credit({ assumedKcal: 300 }, [], 500).assumedKcal).toBe(0);
+describe("activity only raises the target: what counts is what goes beyond the factor", () => {
+  // A person whose factor already contains 400 kcal of movement.
+  const INCLUDED = 400;
+
+  test("measured movement below what the factor contains adds nothing (a phone left on a desk logs ~10 kcal)", () => {
+    const desk = credit({}, [], null, 40, [{ source: "health_connect", kcal: 10 }], INCLUDED);
+    expect(desk.allDayKcal).toBe(10);
+    expect(desk.extraKcal).toBe(0);
+    expect(desk.countedKcal).toBe(0);
+    expect(budgetKcal(1800, desk)).toBe(1800);
+    // exactly at the included movement: still nothing
+    expect(credit({}, [], 400, null, [], INCLUDED).countedKcal).toBe(0);
   });
 
-  test("is not multiplied by pct and not capped by the cap", () => {
-    const c = credit({ assumedKcal: 500, pct: 50, cap: 500 }, [{ kcal: 2000, source: "manual" }]);
-    expect(c.assumedKcal).toBe(500);
-    expect(c.countedKcal).toBe(500);
-    expect(budgetKcal(1500, c)).toBe(2500);
+  test("only what goes beyond the included movement is counted, pct of it", () => {
+    const c = credit({}, [], 900, null, [], INCLUDED);
+    expect(c.activeKcal).toBe(900);
+    expect(c.includedKcal).toBe(INCLUDED);
+    expect(c.extraKcal).toBe(500);
+    expect(c.countedKcal).toBe(375);
+    expect(budgetKcal(1800, c)).toBe(2175);
   });
 
-  test("still applies when the exercise setting is off (it is part of the base)", () => {
-    const c = credit({ enabled: false, assumedKcal: 150 }, [{ kcal: 400, source: "manual" }]);
+  test("a day below the factor never lowers the budget: counted is never negative", () => {
+    for (const watch of [1, 100, 399, 400]) {
+      const c = credit({}, [], watch, null, [], INCLUDED);
+      expect(c.countedKcal).toBe(0);
+      expect(budgetKcal(1800, c)).toBeGreaterThanOrEqual(1800);
+    }
+  });
+
+  test("workouts outside the all-day total still count in full (x pct), even on a low all-day day", () => {
+    // all-day 200 (below the factor): nothing from it. A manual 300 and a Strava 100 are on top.
+    const c = credit(
+      {},
+      [{ kcal: 300, source: "manual" }, { kcal: 100, source: "strava" }, { kcal: 150, source: "joyofit", externalId: "watch:1" }],
+      200,
+      null,
+      [],
+      INCLUDED,
+    );
+    expect(c.extraKcal).toBe(400);
+    expect(c.countedKcal).toBe(300);
+  });
+
+  test("a JoyoFit strength row without the watch's total counts on top of the factor", () => {
+    const c = credit({}, [{ kcal: 200, source: "joyofit", externalId: "strength:9" }], null, null, [{ source: "health_connect", kcal: 100 }], INCLUDED);
+    expect(c.extraKcal).toBe(200);
+    expect(c.countedKcal).toBe(150);
+  });
+
+  test("no all-day reading: recorded device workouts count as today (x pct), the factor is not taken off them", () => {
+    const c = credit({}, [{ kcal: 300, source: "joyofit", externalId: "watch:1" }, { kcal: 100, source: "health_connect" }], null, null, [], INCLUDED);
+    expect(c.allDayKcal).toBeNull();
+    expect(c.extraKcal).toBe(400);
+    expect(c.countedKcal).toBe(300);
+  });
+
+  test("a broken (glitch) reading is ignored: no all-day total, no matter how large the included movement", () => {
+    const c = credit({}, [], 9000, null, [], INCLUDED);
+    expect(c.allDayKcal).toBeNull();
     expect(c.countedKcal).toBe(0);
-    expect(budgetKcal(1500, c)).toBe(1650);
   });
 
-  test("none (the default) adds nothing", () => {
-    expect(budgetKcal(1500, credit({}, []))).toBe(1500);
+  test("applies to phone-only Health data and to watches alike (the source does not change the rule)", () => {
+    const phone = credit({}, [], null, 9000, [{ source: "health_connect", kcal: 700 }], INCLUDED);
+    const watch = credit({}, [], 700, null, [], INCLUDED);
+    expect(phone.countedKcal).toBe(watch.countedKcal);
+    expect(phone.allDaySource).toBe("health_connect");
+    expect(watch.allDaySource).toBe("joyofit");
+  });
+
+  test("the switch off counts nothing, extra is still reported", () => {
+    const c = credit({ enabled: false }, [], 900, null, [], INCLUDED);
+    expect(c.extraKcal).toBe(500);
+    expect(c.countedKcal).toBe(0);
+  });
+
+  test("the cap and pct apply to the extra, not to the whole day", () => {
+    const c = credit({ cap: 500, pct: 100 }, [], 2000, null, [], INCLUDED);
+    expect(c.extraKcal).toBe(1600);
+    expect(c.countedKcal).toBe(500);
+    expect(c.capped).toBe(true);
   });
 });
 
@@ -191,21 +260,20 @@ describe("counted = min(cap, pct x active)", () => {
 });
 
 describe("addBackSettings", () => {
-  test("nothing stored means the defaults: on, 75%, 1000, no assumption", () => {
-    expect(addBackSettings({})).toEqual({ enabled: true, pct: 75, cap: 1000, assumedKcal: 0 });
+  test("nothing stored means the defaults: on, 75%, 1000", () => {
+    expect(addBackSettings({})).toEqual({ enabled: true, pct: 75, cap: 1000 });
   });
 
   test("stored values override, each on its own", () => {
-    expect(addBackSettings({ "exercise.addBack.enabled": false, "exercise.addBack.pct": 90, "exercise.assumedActive": 300 })).toEqual({
+    expect(addBackSettings({ "exercise.addBack.enabled": false, "exercise.addBack.pct": 90 })).toEqual({
       enabled: false,
       pct: 90,
       cap: 1000,
-      assumedKcal: 300,
     });
   });
 
   test("a malformed value falls back to its default, the rest stand", () => {
-    expect(addBackSettings({ "exercise.addBack.enabled": "no", "exercise.addBack.pct": 33, "exercise.addBack.cap": 1500, "exercise.assumedActive": 200 })).toEqual({
+    expect(addBackSettings({ "exercise.addBack.enabled": "no", "exercise.addBack.pct": 33, "exercise.addBack.cap": 1500 })).toEqual({
       ...DEFAULT_ADD_BACK_SETTINGS,
       cap: 1500,
     });
@@ -220,6 +288,17 @@ describe("shiftWorkoutKcal (the optimistic edit)", () => {
     expect(after.countedKcal).toBe(675);
     expect(shiftWorkoutKcal(after, -200).countedKcal).toBe(before.countedKcal);
   });
+
+  test("the included movement stays out of the extra after the edit", () => {
+    const before = credit({}, [], 700, null, [], 400);
+    expect(before.extraKcal).toBe(300);
+    const after = shiftWorkoutKcal(before, 200);
+    expect(after.extraKcal).toBe(500);
+    expect(after.countedKcal).toBe(375);
+    // a day below the factor with no workout: the first manual workout is all extra
+    const desk = credit({}, [], 10, null, [], 400);
+    expect(shiftWorkoutKcal(desk, 200).countedKcal).toBe(150);
+  });
 });
 
 const LOSE: ProfileInput = {
@@ -229,29 +308,30 @@ const LOSE: ProfileInput = {
   weightKg: 160,
   targetWeightKg: 150,
   targetDate: "2027-01-16", // 90 days
-  activityLevel: "mid",
+  activityLevel: "light",
 };
 
 describe("the budget in each mode", () => {
   const rows: Row[] = [{ kcal: 400, source: "manual" }];
 
-  test("loss: base = BMR - deficit; Sisa = base - eaten + counted activity", () => {
+  test("loss: base = TDEE - deficit; Sisa = base - eaten + counted activity", () => {
     const t = computeTargets(LOSE, { today: TODAY });
-    // bmr 2517.5, the whole 856 deficit from food
-    expect(t.eatKcal).toBe(1660);
-    const c = credit({}, rows);
+    // bmr 2517.5 x 1.375 (light) = 3461.6, the whole 856 deficit from food
+    expect(t.tdee).toBe(3462);
+    expect(t.eatKcal).toBe(2605);
+    const c = credit({}, rows, null, null, [], t.includedKcal);
     const budget = budgetKcal(t.eatKcal, c);
-    expect(budget).toBe(1960);
-    expect(remainingKcal(budget, 1000)).toEqual({ kcal: 960, over: false });
-    expect(remainingKcal(budget, 2100)).toEqual({ kcal: 140, over: true });
+    expect(budget).toBe(2905);
+    expect(remainingKcal(budget, 1000)).toEqual({ kcal: 1905, over: false });
+    expect(remainingKcal(budget, 3000)).toEqual({ kcal: 95, over: true });
   });
 
-  test("loss: the floor holds the base, activity and the assumption sit on top of it", () => {
-    const t = computeTargets({ ...LOSE, weightKg: 80, targetWeightKg: 70 }, { today: TODAY });
+  test("loss: the floor holds the base, activity sits on top of it", () => {
+    const t = computeTargets({ ...LOSE, weightKg: 80, targetWeightKg: 70, activityLevel: "sedentary" }, { today: TODAY });
+    // 1717.5 x 1.2 = 2061, less 856 is under the male floor
     expect(t.eatKcal).toBe(1500);
     expect(t.notes).toContain("PLAN_CLAMPED");
-    expect(budgetKcal(t.eatKcal, credit({ assumedKcal: 150 }, rows))).toBe(1500 + 150 + 300);
-    expect(t.eatKcal).toBeGreaterThanOrEqual(1500);
+    expect(budgetKcal(t.eatKcal, credit({}, rows, null, null, [], t.includedKcal))).toBe(1500 + 300);
   });
 
   test("the female floor is 1200", () => {
@@ -264,13 +344,17 @@ describe("the budget in each mode", () => {
     expect(budgetKcal(t.eatKcal, credit({ enabled: false }, rows))).toBe(t.eatKcal);
   });
 
-  test("gain: the base is BMR + surplus and real activity raises how much is still to eat", () => {
+  test("gain: the base is TDEE + surplus and real activity beyond the factor raises how much is still to eat", () => {
     const lean: ProfileInput = { ...LOSE, weightKg: 60, targetWeightKg: 66, goal: "gain", targetDate: "2027-04-16" };
     const t = computeTargets(lean, { today: TODAY });
     expect(t.gain).not.toBeNull();
     expect(t.eatKcal).toBe(t.tdee + t.gain!.surplusKcal);
-    expect(t.tdee).toBe(1520);
-    expect(budgetKcal(t.eatKcal, credit({}, [], 400))).toBe(t.eatKcal + 300);
+    expect(t.tdee).toBe(2085);
+    expect(budgetKcal(t.eatKcal, credit({}, [], 800, null, [], t.includedKcal))).toBe(
+      t.eatKcal + Math.round((800 - t.includedKcal) * 0.75),
+    );
+    // a quiet day changes nothing
+    expect(budgetKcal(t.eatKcal, credit({}, [], 100, null, [], t.includedKcal))).toBe(t.eatKcal);
   });
 
   test("maternal: the AKG target is the base, activity only ever raises it", () => {
@@ -286,13 +370,14 @@ describe("the budget in each mode", () => {
     };
     const t = computeMaternalTargets({ ...LOSE, gender: "female", weightKg: 62 }, state, { today: TODAY, weightNow: 62 });
     expect(t.deficitKcal).toBe(0);
-    expect(budgetKcal(t.eatKcal, credit({}, []))).toBe(t.eatKcal);
-    expect(budgetKcal(t.eatKcal, credit({}, rows))).toBe(t.eatKcal + 300);
-    expect(budgetKcal(t.eatKcal, credit({ enabled: false }, rows))).toBe(t.eatKcal);
-    expect(budgetKcal(t.eatKcal, credit({ assumedKcal: 150 }, []))).toBe(t.eatKcal + 150);
+    expect(t.level).toBe("light");
+    expect(t.factor).toBe(1.35); // the maternal factor of the level migrated from "mid", not 1.375
+    expect(budgetKcal(t.eatKcal, credit({}, [], null, null, [], t.includedKcal))).toBe(t.eatKcal);
+    expect(budgetKcal(t.eatKcal, credit({}, rows, null, null, [], t.includedKcal))).toBe(t.eatKcal + 300);
+    expect(budgetKcal(t.eatKcal, credit({ enabled: false }, rows, null, null, [], t.includedKcal))).toBe(t.eatKcal);
   });
 
-  test("the maternal base keeps the profile's activity multiplier: no lower than before", () => {
+  test("the maternal base keeps its own multiplier for the migrated level (1.45 for moderate): no lower than before", () => {
     const state: MaternalState = {
       mode: "breastfeeding",
       pregnancyLmp: null,
@@ -303,28 +388,10 @@ describe("the budget in each mode", () => {
       babyBirthDate: "2026-08-01",
       conditions: [],
     };
-    const profile = { ...LOSE, gender: "female" as const, weightKg: 60, activityLevel: "high" as const };
+    const profile = { ...LOSE, gender: "female" as const, weightKg: 60, activityLevel: "moderate" as const };
     const t = computeMaternalTargets(profile, state, { today: TODAY, weightNow: 60 });
     const bmr = 10 * 60 + 6.25 * 170 - 5 * 30 - 161;
     expect(t.maternal!.baseKcal).toBe(Math.round((bmr * 1.45) / 5) * 5);
-  });
-});
-
-describe("the one-time notice", () => {
-  const before = ADD_BACK_NOTICE_BEFORE_MS - 1000;
-  const after = ADD_BACK_NOTICE_BEFORE_MS + 1000;
-
-  test("shows to an account made before the change, until it is closed", () => {
-    expect(showAddBackNotice({ accountCreatedAtMs: before, dismissed: false })).toBe(true);
-    expect(showAddBackNotice({ accountCreatedAtMs: before, dismissed: true })).toBe(false);
-  });
-
-  test("never shows to an account made after the change", () => {
-    expect(showAddBackNotice({ accountCreatedAtMs: after, dismissed: false })).toBe(false);
-  });
-
-  test("an unknown creation time does not show it", () => {
-    expect(showAddBackNotice({ accountCreatedAtMs: Number.NaN, dismissed: false })).toBe(false);
   });
 });
 

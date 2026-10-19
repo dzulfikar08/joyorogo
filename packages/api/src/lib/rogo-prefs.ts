@@ -69,7 +69,6 @@ const SPECS = {
   "exercise.addBack.enabled": addBack("enabled", "exercise.addBack.enabled"),
   "exercise.addBack.pct": addBack("pct", "exercise.addBack.pct"),
   "exercise.addBack.cap": addBack("cap", "exercise.addBack.cap"),
-  "exercise.assumedActive": addBack("assumedKcal", "exercise.assumedActive"),
   theme: {
     sanitize: (value) => THEMES.find((theme) => theme === value),
     isDefault: (value) => value === "system",
@@ -95,11 +94,11 @@ const SPECS = {
   // the record's owner.
   "dismissed.handlePrompt": dismissal,
   "dismissed.stravaRetention7d": dismissal,
-  // The one-time "how Sisa is counted changed" notice on Beranda (accounts made before the change). The id carries a
-  // number: it was bumped when the base changed again, which shows the notice once more to everybody who had closed it.
-  // The earlier `dismissed.addBackNotice` and the removed `exercise.addBack.source` / `.stepThreshold` records may still
-  // be in an account (older builds write them); no build reads them any more.
-  "dismissed.addBackNotice2": dismissal,
+  // The one-time "your target is now built on TDEE" notice on Beranda (accounts made before the change; the key is
+  // lib/energy-notice ENERGY_NOTICE_PREF_KEY). The earlier `dismissed.addBackNotice` / `dismissed.addBackNotice2`, the
+  // removed `exercise.assumedActive` and the older `exercise.addBack.source` / `.stepThreshold` records may still be in
+  // an account (older builds write them); no build reads them any more.
+  "dismissed.energyModel": dismissal,
 } satisfies Record<string, RogoPrefSpec>;
 
 export type RogoPrefKey = keyof typeof SPECS;

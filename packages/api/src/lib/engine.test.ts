@@ -4,6 +4,9 @@ import {
   ACTIVITY_LABELS,
   MEAL_LABELS,
   adaptiveTdee,
+  ACTIVITY_FACTOR,
+  ACTIVITY_LEVELS,
+  movementInFactorKcal,
   bmrMifflin,
   checkTargetDate,
   computeBurn,
@@ -36,7 +39,7 @@ const baseProfile = {
   weightKg: 90,
   targetWeightKg: 70,
   targetDate: "2026-12-12", // 90 days out
-  activityLevel: "low" as const,
+  activityLevel: "sedentary" as const,
 };
 
 describe("bmrMifflin", () => {
@@ -97,13 +100,14 @@ describe("idealWeightRange", () => {
 describe("computeTargets", () => {
   test("aggressive plan is clamped: deficit capped", () => {
     const t = computeTargets(baseProfile, { today: TODAY });
-    // bmr 1817.5 (at 90kg) is the base: no daily movement is assumed. Needed deficit 1711 -> 1000
+    // bmr 1817.5 (at 90kg), sedentary factor 1.2 -> tdee 2181. Needed deficit 1711 -> 1000
     expect(t.bmr).toBe(1818);
+    expect(t.tdee).toBe(2181);
     expect(t.rawDeficitKcal).toBe(1711);
     expect(t.deficitKcal).toBe(1000);
     // burn = round5(3.3*90) = 295: a movement goal, no longer part of the eat target
     expect(t.burnKcal).toBe(295);
-    // the whole deficit is a food cut: 1817.5 - 1000 is under the male floor of 1500
+    // the whole deficit is a food cut: 2181 - 1000 is under the male floor of 1500
     expect(t.eatKcal).toBe(1500);
     expect(t.exerciseKcal).toBe(0);
     expect(t.notes).toContain("PLAN_CLAMPED");
@@ -136,7 +140,7 @@ describe("computeTargets", () => {
         weightKg: 45,
         targetWeightKg: 42,
         targetDate: "2026-09-20", // 7 days: needed ~3300 -> capped
-        activityLevel: "low",
+        activityLevel: "sedentary",
       },
       { today: TODAY },
     );
@@ -158,18 +162,17 @@ describe("computeTargets", () => {
     expect(t.burnKcal).toBe(265); // round5(3.3*80) = 264 -> 265
     // needed deficit (80-70)*7700/90 = 856, inside clamp window
     expect(t.deficitKcal).toBe(856);
-    // 1717.5 - 856 is under the male floor: the floor holds and the note says so
+    // 1717.5 x 1.2 - 856 = 1205 is under the male floor: the floor holds and the note says so
     expect(t.eatKcal).toBe(1500);
     expect(t.notes).toContain("PLAN_CLAMPED");
   });
 
-  test("a heavier body keeps the whole food cut above the floor: target = round5(bmr - deficit)", () => {
+  test("a heavier body keeps the whole food cut above the floor: target = round5(tdee - deficit)", () => {
     const t = computeTargets({ ...baseProfile, weightKg: 160, targetWeightKg: 150 }, { today: TODAY });
-    // bmr 2517.5, deficit 10 * 7700 / 90 = 856
-    expect(t.tdee).toBe(2518);
+    // bmr 2517.5 x 1.2 = 3021, deficit 10 * 7700 / 90 = 856
+    expect(t.tdee).toBe(3021);
     expect(t.deficitKcal).toBe(856);
-    expect(t.eatKcal).toBe(1660);
-    expect(t.assumedKcal).toBe(0);
+    expect(t.eatKcal).toBe(2165);
     expect(t.notes).not.toContain("PLAN_CLAMPED");
   });
 
@@ -183,12 +186,12 @@ describe("computeTargets", () => {
 describe("labels", () => {
   test("meal and activity labels are Bahasa Indonesia", () => {
     expect(MEAL_LABELS.makan_siang).toBe("Makan Siang");
-    expect(ACTIVITY_LABELS.low).toBe("Jarang gerak");
+    expect(ACTIVITY_LABELS.sedentary).toBe("Hampir selalu duduk");
   });
 });
 
 describe("computeBurn", () => {
-  // bmr 1817.5 at 90 kg, low multiplier 1.25
+  // bmr 1817.5 at 90 kg, sedentary factor 1.2
   const NOON_WIB = new Date("2026-09-13T05:00:00Z"); // half the WIB day elapsed
   const logs = [
     { kcal: 200, source: "manual" },
@@ -198,11 +201,11 @@ describe("computeBurn", () => {
 
   test("prorates BMR x activity by elapsed WIB day and adds exercise", () => {
     const burn = computeBurn({ profile: baseProfile, exerciseLogs: logs, now: NOON_WIB });
-    // 1817.5 * 1.25 * 0.5
+    // 1817.5 * 1.2 * 0.5
     expect(burn.bmrKcal).toBe(1817.5);
-    expect(burn.activityKcal).toBeCloseTo(1135.9375);
+    expect(burn.activityKcal).toBeCloseTo(1090.5);
     expect(burn.exerciseKcal).toBe(295);
-    expect(burn.burnKcal).toBeCloseTo(1430.9375);
+    expect(burn.burnKcal).toBeCloseTo(1385.5);
   });
 
   test("rest rows never count toward exercise burn", () => {
@@ -221,8 +224,8 @@ describe("computeBurn", () => {
       exerciseLogs: [],
       now: NOON_WIB,
     });
-    // 1717.5 * 1.25 * 0.5
-    expect(burn.activityKcal).toBeCloseTo(1073.4375);
+    // 1717.5 * 1.2 * 0.5
+    expect(burn.activityKcal).toBeCloseTo(1030.5);
   });
 
   test("midnight WIB has no activity burn yet", () => {
@@ -242,8 +245,8 @@ describe("computeBurn", () => {
       dayFraction: 1,
       now: NOON_WIB,
     });
-    expect(burn.activityKcal).toBeCloseTo(2271.875);
-    expect(burn.burnKcal).toBeCloseTo(2271.875);
+    expect(burn.activityKcal).toBeCloseTo(2181);
+    expect(burn.burnKcal).toBeCloseTo(2181);
   });
 });
 
@@ -260,13 +263,13 @@ describe("computeDeficit (legacy day.summary field)", () => {
       now: NOON_WIB,
     });
     const d = computeDeficit(1200, burn, 1565);
-    expect(d.deficitKcal).toBe(231);
-    expect(d.targetGap).toBe(1796);
+    expect(d.deficitKcal).toBe(186);
+    expect(d.targetGap).toBe(1751);
   });
 
   test("a negative figure means more eaten than burned", () => {
     const burn = computeBurn({ profile: baseProfile, exerciseLogs: [], now: NOON_WIB });
-    expect(computeDeficit(2000, burn, 1565).deficitKcal).toBe(-864);
+    expect(computeDeficit(2000, burn, 1565).deficitKcal).toBe(-909);
   });
 });
 
@@ -455,20 +458,74 @@ describe("adaptiveTdee", () => {
   });
 });
 
-describe("computeTargets with measured TDEE", () => {
-  test("measured TDEE moves the plan at most 15% from the formula", () => {
-    const t = computeTargets(baseProfile, { today: TODAY, adaptiveTdee: 4000 });
-    expect(t.formulaTdee).toBe(1818); // the BMR: no assumed movement
-    expect(t.tdee).toBe(Math.round(1817.5 * 1.15));
-    expect(t.notes).toContain("ADAPTIVE");
-    const low = computeTargets(baseProfile, { today: TODAY, adaptiveTdee: 1000 });
-    expect(low.tdee).toBe(Math.round(1817.5 * 0.85));
+describe("activity factor: TDEE = BMR x the factor of the chosen level", () => {
+  // The owner's profile: male 26, 171.5 cm, 107.7 kg, 78 kg by 2027-06-04.
+  const owner = {
+    birthYear: 2000,
+    gender: "male" as const,
+    heightCm: 171.5,
+    weightKg: 107.7,
+    targetWeightKg: 78,
+    targetDate: "2027-06-04",
+  };
+  const today = "2026-10-19";
+  const at = (activityLevel: (typeof ACTIVITY_LEVELS)[number]) =>
+    computeTargets({ ...owner, activityLevel }, { today });
+
+  test("the standard factors", () => {
+    expect(ACTIVITY_FACTOR).toEqual({ sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, very_active: 1.9 });
   });
 
-  test("formula plan carries no ADAPTIVE note and tdee equals formulaTdee", () => {
-    const t = computeTargets(baseProfile, { today: TODAY });
-    expect(t.notes).not.toContain("ADAPTIVE");
-    expect(t.tdee).toBe(t.formulaTdee);
+  test("each level multiplies the BMR; the target is round5(tdee - deficit); the worked example", () => {
+    // bmr = 10 * 107.7 + 6.25 * 171.5 - 5 * 26 + 5 = 2023.875; deficit = 29.7 * 7700 / 228 = 1003 -> 1000
+    const expected = {
+      sedentary: { tdee: 2429, eat: 1430 },
+      light: { tdee: 2783, eat: 1785 },
+      moderate: { tdee: 3137, eat: 2135 },
+      active: { tdee: 3491, eat: 2490 },
+      very_active: { tdee: 3845, eat: 2845 },
+    } as const;
+    for (const level of ACTIVITY_LEVELS) {
+      const t = at(level);
+      expect(t.bmr).toBe(2024);
+      expect(t.level).toBe(level);
+      expect(t.factor).toBe(ACTIVITY_FACTOR[level]);
+      expect(t.tdee).toBe(expected[level].tdee);
+      expect(t.deficitKcal).toBe(1000);
+      // sedentary: 2428.65 - 1000 = 1428.65 is under the floor of 1500
+      expect(t.eatKcal).toBe(level === "sedentary" ? 1500 : expected[level].eat);
+    }
+  });
+
+  test("the movement already inside a factor is TDEE - BMR - 10% of TDEE, never below 0", () => {
+    expect(movementInFactorKcal(2428.65, 2023.875)).toBeCloseTo(161.9, 1);
+    expect(at("sedentary").includedKcal).toBe(162);
+    expect(at("light").includedKcal).toBe(481);
+    expect(at("very_active").includedKcal).toBe(1437);
+    // a factor of 1 (the pre-factor model) holds no movement
+    expect(movementInFactorKcal(2000, 2000)).toBe(0);
+    expect(computeTargets({ ...owner, activityLevel: "light" }, { today, activityFactor: 1 }).includedKcal).toBe(0);
+  });
+
+  test("a higher level never lowers the target", () => {
+    const targets = ACTIVITY_LEVELS.map((level) => at(level).eatKcal);
+    expect(targets).toEqual([...targets].sort((a, b) => a - b));
+  });
+
+  test("gain mode is TDEE + surplus", () => {
+    const t = computeTargets(
+      { birthYear: 1996, gender: "male", heightCm: 170, weightKg: 60, targetWeightKg: 66, targetDate: "2027-06-01", activityLevel: "moderate", goal: "gain" },
+      { today },
+    );
+    expect(t.gain).not.toBeNull();
+    expect(t.eatKcal).toBe(t.tdee + t.gain!.surplusKcal);
+    expect(t.factor).toBe(1.55);
+  });
+
+  test("an activityFactor override replaces the level's factor (the pre-factor model is factor 1)", () => {
+    const old = computeTargets({ ...owner, activityLevel: "light" }, { today, activityFactor: 1 });
+    expect(old.tdee).toBe(2024);
+    expect(old.factor).toBe(1);
   });
 });
 
@@ -555,15 +612,17 @@ describe("remainingKcal", () => {
 });
 
 describe("needsBreakdown", () => {
-  test("BMR + activity = TDEE, TDEE - food cut = target; the whole deficit is the food cut", () => {
+  test("BMR x factor = TDEE, TDEE - food cut = target; the whole deficit is the food cut", () => {
     const targets = computeTargets({ ...baseProfile, weightKg: 160, targetWeightKg: 150 }, { today: TODAY });
     const needs = needsBreakdown(targets);
+    expect(needs.level).toBe("sedentary");
+    expect(needs.factor).toBe(1.2);
     expect(needs.bmrKcal + needs.activityKcal).toBe(needs.tdeeKcal);
+    expect(needs.tdeeKcal).toBe(Math.round(2517.5 * 1.2));
+    expect(needs.includedKcal).toBe(targets.includedKcal);
     expect(needs.cutKcal).toBeGreaterThan(0);
     expect(needs.tdeeKcal - needs.cutKcal - needs.targetKcal).toBeLessThanOrEqual(2);
     expect(needs.cutKcal).toBeCloseTo(needs.deficitKcal, -1);
-    expect(needs.activityKcal).toBe(0);
-    expect(needs.assumedKcal).toBe(0);
     expect(needs.exerciseKcal).toBe(0);
     expect(needs.budgetKcal).toBe(needs.targetKcal);
     expect(needs.maintenance).toBe(false);
@@ -577,12 +636,13 @@ describe("needsBreakdown", () => {
     expect(needs.deficitKcal).toBe(0);
   });
 
-  test("a measured TDEE is flagged so the sheet can say it is not the textbook number", () => {
-    const targets = computeTargets(baseProfile, { today: TODAY, adaptiveTdee: 2600 });
-    const needs = needsBreakdown(targets);
-    expect(needs.adaptive).toBe(true);
-    expect(needs.tdeeKcal).toBe(targets.tdee);
-    expect(needs.formulaTdeeKcal).toBe(targets.formulaTdee);
+  test("counted activity is part of the budget, not of the base", () => {
+    const targets = computeTargets({ ...baseProfile, weightKg: 160, targetWeightKg: 150 }, { today: TODAY });
+    const day = { ...targets, eatKcal: targets.eatKcal + 120, exerciseKcal: 120 };
+    const needs = needsBreakdown(day);
+    expect(needs.targetKcal).toBe(targets.eatKcal);
+    expect(needs.exerciseKcal).toBe(120);
+    expect(needs.budgetKcal).toBe(targets.eatKcal + 120);
   });
 });
 
@@ -635,7 +695,7 @@ describe("datePace: the verdict on a stored target", () => {
         weightKg: 60,
         targetWeightKg: 66,
         targetDate: shiftDate(today, 28),
-        activityLevel: "mid",
+        activityLevel: "light",
         goal: "gain",
       },
       { today },
@@ -676,7 +736,7 @@ describe("datePace: the verdict on a stored target", () => {
         weightKg: 60,
         targetWeightKg: 66,
         targetDate: "2026-10-01",
-        activityLevel: "mid",
+        activityLevel: "light",
         goal: "gain",
       },
       { today },

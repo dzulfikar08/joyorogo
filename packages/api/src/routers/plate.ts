@@ -268,7 +268,7 @@ export const plateRouter = {
           startWeightKg: 70,
           targetWeightKg: 65,
           targetDate: jakartaToday(),
-          activityLevel: "mid",
+          activityLevel: "light",
           foodBudgetIdr: input.idr,
           foodBudgetPeriod: input.period,
         })

@@ -32,7 +32,7 @@ export async function writeAddBackPref(key: AddBackPrefKey, value: unknown | und
   }
 }
 
-/** All four settings, defaults filled in. */
+/** All three settings, defaults filled in. */
 export async function loadAddBackSettings(): Promise<AddBackSettings> {
   const entries = await Promise.all(ADD_BACK_PREF_KEYS.map(async (key) => [key, await readAddBackPref(key)] as const));
   return addBackSettings(Object.fromEntries(entries));

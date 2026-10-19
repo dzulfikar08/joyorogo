@@ -17,12 +17,6 @@
     "fallbackName": "You",
     "share": "Share progress"
   },
-  "addBackNotice": {
-    "title": "How what is left is counted changed again",
-    "body": "How your remaining calories are counted has changed: the base target is now just your BMR less the deficit, with no guess about activity. Active energy from your watch and the workouts you log are added on top ({{pct}}%). Adjust it in Profile.",
-    "action": "Open Profile",
-    "dismiss": "Close"
-  },
   "banner": {
     "scans": "AI scans {{n}}x/day",
     "proUnlimited": "Pro unlimited",
@@ -41,14 +35,6 @@
   "ideas": {
     "title": "Still fits",
     "protein": "{{g}} g protein"
-  },
-  "adaptive": {
-    "link": "Target adapts to your data",
-    "info": "About the adaptive target",
-    "title": "Adaptive target",
-    "formula": "The standard formula estimates you burn <b>{{kcal}} kcal</b> a day.",
-    "actual": "From your food and weight logs over the last 4 weeks, you actually burn about <b>{{kcal}} kcal</b>. Your eating target uses this number so it fits your body, not an average person.",
-    "limit": "The adjustment is capped at 15% from the formula, and days you forgot to log are left out."
   },
   "tile": {
     "burn": "Activity today",
@@ -215,7 +201,7 @@
   },
   "explain": {
     "title": "How to read today's numbers",
-    "formula": "Left = BMR − deficit + counted activity − eaten so far",
+    "formula": "Left = TDEE − deficit + movement above the factor − eaten so far",
     "exampleAdd": "Today: {{target}} + {{exercise}} activity − {{eaten}} = {{left}} kcal left",
     "exampleAddOver": "Today: {{target}} + {{exercise}} activity − {{eaten}} = {{over}} kcal over",
     "added": "+{{kcal}} kcal from exercise ({{pct}}%)",
@@ -223,7 +209,7 @@
     "exampleOver": "Today: {{target}} − {{eaten}} = {{over}} kcal over",
     "target": {
       "title": "Eating target",
-      "body": "Your calorie allowance for the day: your BMR (what your body needs at rest) less the deficit for your target weight. No activity is guessed here; real movement is added separately."
+      "body": "Your calorie allowance for the day: your TDEE (BMR times the factor of your activity level, which already includes daily movement and the effect of eating) less the deficit for your target weight. Measured movement beyond your factor is added separately."
     },
     "clamped": {
       "lose": "This target is worked out with a deficit of at most 1,000 kcal a day. Your target date asks for more than that, so you get there around {{date}}.",
@@ -241,33 +227,32 @@
     },
     "burn": {
       "title": "Activity today",
-      "body": "The movement that was really measured today: active energy from your watch (or Health Connect / Apple Health) plus logged workouts that are not on the watch. {{pct}}% is added to what you can still eat, so moving more means eating more."
+      "body": "The movement that was really measured today: active energy from your watch (or Health Connect / Apple Health) plus logged workouts that are not on the watch. Only the part beyond the movement already in your factor counts, and {{pct}}% of that extra is added to what you can still eat."
     },
     "sum": {
       "title": "Today's maths",
-      "bmr": "BMR (body at rest)",
+      "tdee": "TDEE (BMR {{bmr}} × {{factor}})",
       "cut": "Deficit",
       "surplus": "Weight-gain surplus",
       "add": "Pregnancy / breastfeeding addition",
       "floor": "Minimum eating floor",
-      "assumed": "Estimated daily activity",
       "activity": "Activity today",
-      "activityOf": "{{pct}}% of {{kcal}} kcal",
+      "activityOf": "{{pct}}% of {{kcal}} kcal above the factor",
       "target": "Eating target today",
       "eaten": "Eaten so far",
       "left": "Left"
     },
     "addBack": {
       "title": "Counted activity",
-      "body": "Of {{active}} kcal of activity today, {{pct}}% ({{kcal}} kcal) is added to your allowance.",
+      "body": "Measured movement today is {{active}} kcal; {{included}} kcal is already in your level's factor, so the extra is {{extra}} kcal. {{pct}}% ({{kcal}} kcal) is added to your allowance.",
       "watch": "Active energy from your watch is {{kcal}} kcal; the watch's workouts are inside it and are not counted twice.",
       "healthStore": "Active energy from {{source}} is {{kcal}} kcal; workouts there are included.",
       "other": "Workouts outside the watch (manual, Strava) add {{kcal}} kcal.",
-      "assumed": "There is no active data from the watch today, so your estimated daily activity is used: +{{kcal}} kcal (not multiplied by the percentage).",
       "capped": "The daily cap of {{cap}} kcal was reached.",
       "off": "This is turned off in Profile, so activity does not add to what is left. What is left comes from the base target only.",
-      "none": "No measured activity today, so nothing has been added.",
-      "setting": "Change it in Profile > Target & body"
+      "none": "No measured movement today. Your target already contains the average daily movement of your level.",
+      "setting": "Change it in Profile > Target & body",
+      "below": "Measured movement today ({{active}} kcal) has not passed the {{included}} kcal already in your level's factor, so nothing is added. Low movement never lowers your target."
     },
     "deficit": {
       "title": "What does deficit mean?",

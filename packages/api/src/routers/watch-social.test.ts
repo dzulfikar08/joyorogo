@@ -34,7 +34,7 @@ await client.executeMultiple(`
     ('pro', 'Pro', 'pro@test.id', 'founder'),
     ('out', 'Out', 'out@test.id', 'free');
   INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level)
-    SELECT id, 1990, 'male', 170, 80, 72, '2030-01-01', 'mid' FROM "user";
+    SELECT id, 1990, 'male', 170, 80, 72, '2030-01-01', 'light' FROM "user";
   INSERT INTO team (id, name, invite_code, owner_id) VALUES ('t1', 'Tim', 'AAAAAAAA', 'author');
   INSERT INTO team_member (team_id, user_id, role) VALUES
     ('t1', 'author', 'owner'), ('t1', 'mate', 'member'), ('t1', 'pro', 'member');

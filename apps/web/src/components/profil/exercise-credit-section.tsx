@@ -6,25 +6,19 @@ import { useTranslation } from "react-i18next";
 import {
   ADD_BACK_CAPS,
   ADD_BACK_PCT,
-  ASSUMED_ACTIVITY_KCAL,
   type AddBackCap,
   type AddBackPrefKey,
   type AddBackSettings,
-  type AssumedActivityKcal,
 } from "@joyorogo/api/lib/exercise-credit";
-import { Card, FieldLabel, IconChip, ListGroup, ListRow, SectionTitle, Segmented } from "@/components/kit/surface";
+import { Card, FieldLabel, IconChip, SectionTitle, Segmented } from "@/components/kit/surface";
 import { Switch } from "@/components/kit/switch";
 import { saveAddBackPref, storedAddBackSettings } from "@/lib/exercise-credit-prefs";
 import { fmtInt } from "@/lib/format";
 import { syncPrefs } from "@/lib/prefs-sync";
 import { orpc } from "@/utils/orpc";
 
-const ASSUMED_LABEL_KEYS = {
-  0: "exerciseCredit.assumed.none",
-  150: "exerciseCredit.assumed.light",
-  300: "exerciseCredit.assumed.moderate",
-  500: "exerciseCredit.assumed.active",
-} as const satisfies Record<AssumedActivityKcal, string>;
+/** The "what if" the percent example uses: movement beyond the level, in kcal. The copy says 400. */
+const EXAMPLE_EXTRA_KCAL = 400;
 
 function Stepper({
   label,
@@ -56,9 +50,12 @@ function Stepper({
   );
 }
 
-/** How much recorded exercise Sisa adds back. The server computes it; this only edits the synced settings. */
-export function ExerciseCreditSection() {
-  const { t } = useTranslation("settings");
+/**
+ * How much measured movement beyond the activity level Sisa adds back, explained in the person's own numbers. The server
+ * computes it; this only edits the synced settings.
+ */
+export function ExerciseCreditSection({ includedKcal }: { includedKcal: number }) {
+  const { t } = useTranslation(["settings", "energy"]);
   const queryClient = useQueryClient();
   const [settings, setSettings] = useState<AddBackSettings>(storedAddBackSettings);
 
@@ -83,53 +80,68 @@ export function ExerciseCreditSection() {
 
   return (
     <>
-      <SectionTitle className="mt-7">{t("exerciseCredit.title")}</SectionTitle>
-      <ListGroup>
-        <ListRow
-          icon={
+      <SectionTitle className="mt-7">{t("energy:credit.title")}</SectionTitle>
+      <Card className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+        <p className="tabular-nums">{t("energy:credit.how", { kcal: fmtInt(includedKcal) })}</p>
+        <p>{t("energy:credit.deskNote")}</p>
+      </Card>
+      <Card className="mt-3 space-y-4">
+        <div>
+          <div className="flex items-center gap-3">
             <IconChip tone="bakar">
               <Flame />
             </IconChip>
-          }
-          title={t("exerciseCredit.enabled.title")}
-          subtitle={t("exerciseCredit.enabled.hint")}
-          trailing={
+            <p className="min-w-0 flex-1 text-[0.9375rem] leading-snug font-semibold">
+              {t("settings:exerciseCredit.enabled.title")}
+            </p>
             <Switch
-              label={t("exerciseCredit.enabled.title")}
+              label={t("settings:exerciseCredit.enabled.title")}
               checked={settings.enabled}
               onCheckedChange={(enabled) => save("exercise.addBack.enabled", enabled, { enabled })}
             />
-          }
-        />
+          </div>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {t("settings:exerciseCredit.enabled.hint")}
+          </p>
+        </div>
         {settings.enabled && (
-          <>
-            <ListRow
-              icon={
-                <IconChip tone="bakar">
-                  <Percent />
-                </IconChip>
-              }
-              title={t("exerciseCredit.pct.title")}
-              subtitle={t("exerciseCredit.pct.hint")}
-              trailing={
-                <Stepper
-                  label={t("exerciseCredit.pct.aria")}
-                  text={t("exerciseCredit.pct.value", { pct: settings.pct })}
-                  canDecrease={settings.pct > ADD_BACK_PCT.min}
-                  canIncrease={settings.pct < ADD_BACK_PCT.max}
-                  onStep={stepPct}
-                />
-              }
-            />
-          </>
+          <div className="border-t border-border pt-4">
+            <div className="flex items-center gap-3">
+              <IconChip tone="bakar">
+                <Percent />
+              </IconChip>
+              <p className="min-w-0 flex-1 text-[0.9375rem] leading-snug font-semibold">
+                {t("settings:exerciseCredit.pct.title")}
+              </p>
+              <Stepper
+                label={t("settings:exerciseCredit.pct.aria")}
+                text={t("settings:exerciseCredit.pct.value", { pct: settings.pct })}
+                canDecrease={settings.pct > ADD_BACK_PCT.min}
+                canIncrease={settings.pct < ADD_BACK_PCT.max}
+                onStep={stepPct}
+              />
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {t("settings:exerciseCredit.pct.hint")}
+            </p>
+          </div>
         )}
-      </ListGroup>
-      {settings.enabled && (
-        <Card className="mt-3 space-y-4">
-          <div className="space-y-2">
-            <FieldLabel>{t("exerciseCredit.cap.title")}</FieldLabel>
+      </Card>
+      {settings.enabled ? (
+        <>
+          <Card className="mt-3 space-y-2">
+            <p className="text-sm leading-relaxed text-muted-foreground">{t("energy:credit.pct.body")}</p>
+            <p className="text-sm leading-relaxed font-semibold tabular-nums">
+              {t("energy:credit.pct.example", {
+                pct: settings.pct,
+                added: fmtInt((EXAMPLE_EXTRA_KCAL * settings.pct) / 100),
+              })}
+            </p>
+          </Card>
+          <Card className="mt-3 space-y-2">
+            <FieldLabel>{t("settings:exerciseCredit.cap.title")}</FieldLabel>
             <Segmented<`${AddBackCap}`>
-              label={t("exerciseCredit.cap.aria")}
+              label={t("settings:exerciseCredit.cap.aria")}
               value={`${settings.cap}`}
               onChange={(value) => {
                 const cap = ADD_BACK_CAPS.find((candidate) => `${candidate}` === value) ?? settings.cap;
@@ -137,30 +149,26 @@ export function ExerciseCreditSection() {
               }}
               options={ADD_BACK_CAPS.map((cap) => ({
                 value: `${cap}` as `${AddBackCap}`,
-                label: cap === "none" ? t("exerciseCredit.cap.none") : t("exerciseCredit.cap.kcal", { kcal: fmtInt(cap) }),
+                label:
+                  cap === "none"
+                    ? t("settings:exerciseCredit.cap.none")
+                    : t("settings:exerciseCredit.cap.kcal", { kcal: fmtInt(cap) }),
               }))}
             />
-            <p className="px-1 text-xs leading-relaxed text-muted-foreground">{t("exerciseCredit.cap.hint")}</p>
-          </div>
-        </Card>
+            <p className="px-1 text-xs leading-relaxed text-muted-foreground">{t("settings:exerciseCredit.cap.hint")}</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">{t("energy:credit.cap.body")}</p>
+            <p className="text-sm leading-relaxed font-semibold tabular-nums">
+              {settings.cap === "none"
+                ? t("energy:credit.cap.exampleNone", { pct: settings.pct })
+                : t("energy:credit.cap.example", { cap: fmtInt(settings.cap) })}
+            </p>
+          </Card>
+        </>
+      ) : (
+        <p className="mt-3 rounded-2xl bg-muted px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+          {t("energy:credit.off")}
+        </p>
       )}
-      <Card className="mt-3 space-y-2">
-        <FieldLabel>{t("exerciseCredit.assumed.title")}</FieldLabel>
-        <Segmented<`${AssumedActivityKcal}`>
-          label={t("exerciseCredit.assumed.aria")}
-          value={`${settings.assumedKcal}`}
-          onChange={(value) => {
-            const assumedKcal =
-              ASSUMED_ACTIVITY_KCAL.find((candidate) => `${candidate}` === value) ?? settings.assumedKcal;
-            save("exercise.assumedActive", assumedKcal, { assumedKcal });
-          }}
-          options={ASSUMED_ACTIVITY_KCAL.map((kcal) => ({
-            value: `${kcal}` as `${AssumedActivityKcal}`,
-            label: t(ASSUMED_LABEL_KEYS[kcal], { kcal }),
-          }))}
-        />
-        <p className="px-1 text-xs leading-relaxed text-muted-foreground">{t("exerciseCredit.assumed.hint")}</p>
-      </Card>
     </>
   );
 }

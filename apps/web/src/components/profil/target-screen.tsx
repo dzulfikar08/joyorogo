@@ -1,24 +1,18 @@
 import { useQueryClient } from "@tanstack/react-query";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 import { useNavigate } from "@tanstack/react-router";
-import { Calculator, CalendarDays, Flag, Footprints, TrendingUp } from "lucide-react";
+import { Calculator, CalendarDays, Flag, TrendingUp } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  ACTIVITY_LABELS,
-  checkTargetDate,
-  idealWeightRange,
-  jakartaToday,
-  shiftDate,
-} from "@joyorogo/api/lib/engine";
-import type { ActivityLevel } from "@joyorogo/api/lib/engine";
+import { checkTargetDate, idealWeightRange, jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
 import { bmiOf, goalOf, goalTargetError, HEALTHY_BMI_MAX } from "@joyorogo/api/lib/gain";
 import type { Goal } from "@joyorogo/api/lib/gain";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
-import { IconChip, ListButtonRow, ListGroup, ListRow, SectionTitle } from "@/components/kit/surface";
+import { EnergySources } from "@/components/energy-sources";
+import { Card, IconChip, ListButtonRow, ListGroup, ListRow, SectionTitle } from "@/components/kit/surface";
 import { MaternalSettings } from "@/components/maternal/settings-section";
 import { PlanNumbers, TargetNotesList } from "@/components/plan-numbers";
 import { NeedsSheet } from "@/components/needs-sheet";
@@ -33,6 +27,7 @@ import {
   planForGoal,
   settleableGoal,
 } from "@/components/gain/goal-plan";
+import { ActivityLevelSection } from "@/components/profil/activity-level-section";
 import { ExerciseCreditSection } from "@/components/profil/exercise-credit-section";
 import { profileOptions } from "@/components/profil/shared";
 import type { ProfilCtx } from "@/components/profil/shared";
@@ -173,17 +168,6 @@ export function TargetScreen({
             )}
           </>
         )}
-        {targets.maternal && (
-          <ListRow
-            icon={
-              <IconChip tone="tidur">
-                <Footprints />
-              </IconChip>
-            }
-            title={t("plan.activity.title")}
-            value={ACTIVITY_LABELS[row.activityLevel as ActivityLevel] ?? row.activityLevel}
-          />
-        )}
       </ListGroup>
       {!targets.maternal && <TargetPaceNotice pace={targets.datePace} className="mt-3" />}
       <div className="mt-3">
@@ -197,15 +181,12 @@ export function TargetScreen({
             </IconChip>
           }
           title={t("plan.needs.row")}
-          value={
-            targets.maternal
-              ? t("plan.needs.rowValue", { kcal: fmtInt(targets.tdee) })
-              : t("plan.needs.rowValueBmr", { kcal: fmtInt(targets.bmr) })
-          }
+          value={t("plan.needs.rowValue", { kcal: fmtInt(targets.tdee) })}
           onClick={() => setSheet("needs")}
         />
       </ListGroup>
-      <ExerciseCreditSection />
+      <ActivityLevelSection current={targets.level} maternal={targets.maternal !== null} />
+      <ExerciseCreditSection includedKcal={targets.includedKcal} />
       {targets.notes.some((note) => note !== "MATERNAL") && (
         <div className="mt-3">
           <TargetNotesList notes={targets.notes} />
@@ -217,6 +198,9 @@ export function TargetScreen({
           {t("plan.recalcNote")}
         </p>
       )}
+      <Card className="mt-7">
+        <EnergySources />
+      </Card>
 
       <Sheet
         open={sheet === "goal"}
@@ -306,7 +290,6 @@ export function TargetScreen({
           if (!open) closeSheet();
         }}
         targets={targets}
-        activityLabel={String(ACTIVITY_LABELS[row.activityLevel as ActivityLevel] ?? row.activityLevel)}
       />
 
       <SectionTitle className="mt-7">{t("section.personal")}</SectionTitle>

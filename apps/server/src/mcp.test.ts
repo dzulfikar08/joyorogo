@@ -173,7 +173,7 @@ await db.insert(profile).values({
   startWeightKg: 82,
   targetWeightKg: 72,
   targetDate: "2027-03-01",
-  activityLevel: "mid",
+  activityLevel: "light",
 });
 await db.insert(weightLog).values([
   { id: "w1", userId: "pro", date: "2026-10-01", weightKg: 81.4 },

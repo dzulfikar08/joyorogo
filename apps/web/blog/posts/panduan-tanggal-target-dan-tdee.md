@@ -1,7 +1,8 @@
 ---
 title: Panduan tanggal target, TDEE, dan angka Sisa di Beranda JoyoRogo
-description: Cara memilih tanggal target dengan cek ritme aman, membaca rincian Kebutuhan harianmu (BMR, aktivitas, TDEE, potongan), dan memahami rumus Sisa = target makan dikurangi yang sudah dimakan.
+description: Cara memilih tanggal target dengan cek ritme aman, membaca rincian Kebutuhan harianmu (BMR, pengali aktivitas, TDEE, potongan), dan memahami rumus Sisa = target makan dikurangi yang sudah dimakan.
 date: 2026-10-18
+updated: 2026-10-19
 category: Panduan
 related: cara-menghitung-defisit-kalori
 ---
@@ -25,12 +26,12 @@ Kalau beratmu sudah sama dengan target, tanggal belum mengubah angka harian. Tan
 Di Profil, baris **Kebutuhan harianmu** membuka rincian dari tubuhmu sampai target makan:
 
 1. **BMR (tubuh diam).** Energi untuk napas, jantung, dan menjaga suhu. Dihitung dari berat, tinggi, umur, dan jenis kelamin.
-2. **Aktivitas harian.** Tambahan dari jalan dan kerja sehari-hari, sesuai tingkat aktivitas yang kamu pilih.
-3. **TDEE (total kebutuhan).** Total energi yang terbakar sehari. Makan segini, berat badanmu tetap.
+2. **Pengali aktivitas.** Kamu memilih satu dari lima level (1,2 sampai 1,9) menurut hari-harimu **tanpa olahraga yang kamu catat**. Pengali ini sudah mencakup jalan, kerja, beres-beres, dan energi untuk mencerna makanan.
+3. **TDEE (total kebutuhan).** BMR dikali pengali. Makan segini, berat badanmu tetap.
 4. **Potongan makan.** Dihitung dari selisih berat dan tanggal targetmu. Kalau beratmu sudah di target, tidak ada potongan.
 5. **Target makan.** Angka yang tampil di Beranda.
 
-Kalau kamu sudah mencatat makan dan menimbang sekitar 4 minggu, TDEE diukur dari catatanmu sendiri, bukan dari rumus standar, dan rincian menyebut selisihnya dengan rumus. Kalau olahraga terencana menutup sebagian defisit, ada catatan berapa kcal yang datang dari Bakar.
+Di Profil, **Target & tubuh**, kamu bisa mengganti level dan melihat target untuk tiap pilihan. Kalau akunmu punya data langkah, atau sudah punya catatan makan dan timbangan yang rutin selama 3 minggu, ada saran level yang lebih akurat dengan tombol Pakai. Sarannya tidak pernah diterapkan otomatis. Rumus lengkap, contoh, dan sumbernya ada di [cara JoyoRogo menghitung target makan](/panduan/kalori).
 
 ## Membaca angka Sisa di Beranda
 
@@ -40,15 +41,15 @@ Ketuk tanda tanya di Beranda untuk melihat penjelasannya. Rumusnya satu saja:
 
 Contoh: target 1.650, sudah dimakan 1.240, sisa 410 kcal. Kalau sudah lewat, angkanya berubah jadi **Lewat** dengan jumlah kelebihannya.
 
-Target makan sudah memperhitungkan olahraga yang direncanakan. Olahraga tidak menambah sisa makanmu, dan olahraga yang kurang tidak mengurangi sisa. Angka defisit tidak lagi ditampilkan di Beranda; yang kamu ikuti cukup Sisa.
+Gerak yang diukur jam, HP, atau Health hanya menambah Sisa kalau melebihi gerak yang sudah ada di pengali levelmu (sebagian kecil, bawaannya 75%), dan tidak pernah mengurangi. Angka defisit tidak ditampilkan di Beranda; yang kamu ikuti cukup Sisa.
 
 Latar belakang hitungannya ada di [cara menghitung defisit kalori](/blog/cara-menghitung-defisit-kalori/).
 
 ## Pertanyaan
 
-### Kenapa target makanku berubah setelah beberapa minggu?
+### Kenapa target makanku berubah?
 
-Kalau catatan makan dan timbanganmu sudah cukup, TDEE menyesuaikan dengan pembakaran nyatamu. Perubahannya dibatasi 15% dari rumus.
+Target berubah kalau berat terbarumu, tanggal targetmu, atau level aktivitasmu berubah. Data dari jam atau HP hanya menambah Sisa hari itu, bukan targetnya.
 
 ### Bisa ganti tanggal berkali-kali?
 

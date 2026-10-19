@@ -1,0 +1,135 @@
+{
+  "pickRule": "Choose by your everyday life WITHOUT the workouts you log. Logged workouts (or ones read from your watch) are added separately on top of your target, so if you also pick a high level because of workouts, those calories count twice. Not sure? Pick the lower one.",
+  "pickTitle": "How active are your days?",
+  "levels": {
+    "sedentary": {
+      "name": "Mostly sitting",
+      "desc": "You sit almost all day and rarely walk far.",
+      "example": "Office or work-from-home job, studying, going everywhere by vehicle. You only walk around the house or office."
+    },
+    "light": {
+      "name": "Lightly active",
+      "desc": "You move a little every day and are on your feet for part of it.",
+      "example": "Teacher, cashier, shop assistant, parent busy around the house all day, walking to the shop or station daily."
+    },
+    "moderate": {
+      "name": "Moderately active",
+      "desc": "You are on your feet or walking most of the day, or your job is fairly physical.",
+      "example": "Waiter, nurse, cook, courier hopping on and off a motorbike, field staff."
+    },
+    "active": {
+      "name": "Very active",
+      "desc": "Your job is heavy physical work most of the day.",
+      "example": "Construction worker, farmer, porter, warehouse worker lifting goods all day."
+    },
+    "very_active": {
+      "name": "Extremely active",
+      "desc": "Your daily physical load is very heavy, like an athlete's.",
+      "example": "Miner or manual harvest worker over 10 hours, professional athlete with a very high daily load."
+    }
+  },
+  "factor": "Factor {{factor}}",
+  "current": "Selected",
+  "impact": {
+    "target": "Eating target: {{kcal}} kcal a day",
+    "tdee": "Total needs (TDEE) {{kcal}} kcal",
+    "current": "This is your current choice",
+    "up": "{{kcal}} kcal more than your current choice",
+    "down": "{{kcal}} kcal less than your current choice",
+    "same": "Same as your current choice",
+    "floor": "This hits the minimum eating floor, so this level does not raise your target yet."
+  },
+  "maternalNote": "You are in Pregnancy / Breastfeeding mode, so your target uses factors specific to that mode. The numbers on each option already use them.",
+  "included": "This factor already contains about {{kcal}} kcal of daily movement (outside the effect of eating). Your watch and Health only raise your target when they measure more than that.",
+  "saved": "Activity level saved",
+  "recommend": {
+    "title": "More accurate",
+    "intro": "Two ways to check your level fits. They are only suggestions: nothing is applied on its own.",
+    "apply": "Use",
+    "applying": "Saving...",
+    "same": "Same as your current choice.",
+    "suggest": "Suggestion: {{level}}",
+    "empty": "No suggestion yet. The one from steps appears once you have step data on at least 5 of the last 14 days. The one from your weight appears after at least 3 weeks of regular weigh-ins and food logging (70% of days logged).",
+    "steps": {
+      "title": "From your steps",
+      "body": "You average {{steps}} steps a day over the last {{days}} days. By the Tudor-Locke & Bassett (2004) step index, that is the {{level}} level.",
+      "bounds": "Under 5,000 steps: mostly sitting. 5,000 to 7,499: lightly active. 7,500 to 9,999: moderately active. 10,000 to 12,499: very active. 12,500 and up: extremely active."
+    },
+    "calibration": {
+      "title": "From your weight trend",
+      "body": "From your food and weight logs over the last {{days}} days ({{logged}} days logged), your body burns about {{measured}} kcal a day outside workouts. The formula with your current level says {{formula}} kcal. That is closest to the {{level}} level (factor {{factor}}).",
+      "measured": "Measured: {{kcal}} kcal",
+      "formula": "Formula: {{kcal}} kcal",
+      "note": "The result depends on how completely you log. The 7,700 kcal per kg rule is only an approximation, because the body adapts as weight changes (Hall et al. 2011)."
+    }
+  },
+  "credit": {
+    "title": "Workouts and extra movement",
+    "how": "Your target already contains the average daily movement of your level (about {{kcal}} kcal). Your watch or Health only adds to your target when your measured movement that day goes beyond that, and never lowers it. Workouts you log outside the watch's total are added too.",
+    "deskNote": "Example: a phone left on a desk logs about 10 kcal, so your target stays the same.",
+    "pct": {
+      "title": "Percent counted",
+      "body": "How much of the extra movement you may eat back. Of 7 wrist devices tested, none got its energy error below 20% (Shcherbina et al. 2017), so 75% is a safe middle.",
+      "example": "If the extra movement is 400 kcal, at {{pct}}% you get {{added}} kcal added."
+    },
+    "cap": {
+      "title": "Daily cap",
+      "body": "What is added in a day never goes past this number, even if your watch logs more. It protects against a bad reading or an extreme workout day.",
+      "example": "With a cap of {{cap}} kcal, however big the extra movement is, the addition stops at {{cap}} kcal.",
+      "exampleNone": "With no cap, the full {{pct}}% of the extra movement is added."
+    },
+    "off": "Adding extra movement is off, so your target comes from your level only. Extra movement adds nothing."
+  },
+  "sources": {
+    "title": "Sources",
+    "intro": "Where these numbers come from.",
+    "open": "Open source",
+    "items": {
+      "mifflin": {
+        "ref": "Mifflin MD et al. A new predictive equation for resting energy expenditure in healthy individuals. Am J Clin Nutr 1990;51(2):241-247.",
+        "use": "The BMR formula: what your body needs at rest."
+      },
+      "fao": {
+        "ref": "FAO/WHO/UNU. Human energy requirements: report of a Joint FAO/WHO/UNU Expert Consultation. FAO Food and Nutrition Technical Report Series 1, Rome, 2004.",
+        "use": "Total energy expenditure as a multiple of BMR (PAL) and the ranges of activity levels. The 1.2 to 1.9 factors are the standard multipliers commonly used with BMR; what this report supports is the concept."
+      },
+      "westerterp": {
+        "ref": "Westerterp KR. Diet induced thermogenesis. Nutr Metab (Lond) 2004;1:5.",
+        "use": "The thermic effect of food is about 5 to 15% of daily expenditure (10% is used). It is already inside the factor, so it is not added again."
+      },
+      "shcherbina": {
+        "ref": "Shcherbina A et al. Accuracy in wrist-worn, sensor-based measurements of heart rate and energy expenditure in a diverse cohort. J Pers Med 2017;7(2):3.",
+        "use": "None of the 7 wrist devices tested got its energy error below 20%. That is why only part of the movement is counted, and only to raise your target."
+      },
+      "tudor": {
+        "ref": "Tudor-Locke C, Bassett DR Jr. How many steps/day are enough? Preliminary pedometer indices for public health. Sports Med 2004;34(1):1-8.",
+        "use": "The steps-per-day index behind the level suggestion from your steps."
+      },
+      "hall": {
+        "ref": "Hall KD et al. Quantification of the effect of energy imbalance on bodyweight. Lancet 2011;378(9793):826-837.",
+        "use": "Weight change from an energy gap is dynamic, so 7,700 kcal per kg is only an approximation. That is why the suggestion from your weight trend is only a suggestion."
+      }
+    }
+  },
+  "notice": {
+    "title": "Your eating target now includes daily movement",
+    "body": "Your eating target used to come from your BMR alone, what your body needs at rest. It now comes from your TDEE: BMR times the factor of your activity level, which already includes daily movement and the effect of eating. Your level was moved over automatically from your old choice, so check that it fits.",
+    "change": "Base target: {{old}} → {{new}} kcal a day",
+    "same": "Your base target did not change: {{new}} kcal a day",
+    "level": "Your level now: {{level}} (factor {{factor}})",
+    "hint": "Pick by your everyday life without the workouts you log. Workouts are added separately.",
+    "action": "Set activity level",
+    "dismiss": "Close"
+  },
+  "needs": {
+    "formula": "BMR {{bmr}} × {{factor}} = TDEE {{tdee}}",
+    "included": "The {{factor}} factor already contains about {{kcal}} kcal of daily movement outside the effect of eating. Only measured movement above that raises your target.",
+    "extra": {
+      "label": "Movement above the factor",
+      "name": "Added today",
+      "body": "Today's movement went beyond what your factor already contains. {{pct}}% of the extra is added to your eating allowance."
+    },
+    "none": "No movement above the factor today, so nothing has been added."
+  },
+  "readMore": "Read the full explanation"
+}

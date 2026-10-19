@@ -1,5 +1,7 @@
 // Number and date formatting is shared with native and the server: see
 // @joyorogo/i18n (docs/i18n.md). Re-exported here so screens keep one import.
+import { fmtNumber } from "@joyorogo/i18n";
+
 export {
   fmtClock,
   fmtDateLong,
@@ -16,6 +18,11 @@ export {
   fmtRatio,
   timeAgo,
 } from "@joyorogo/i18n";
+
+/** Activity factor with the language's decimal separator, up to three decimals: "1,375" (id) / "1.375" (en). */
+export function fmtFactor(factor: number): string {
+  return fmtNumber(factor, 3);
+}
 
 /** WIB date N days from now as 'YYYY-MM-DD' (fixed UTC+7, no DST). */
 export function jakartaDatePlusDays(days: number): string {

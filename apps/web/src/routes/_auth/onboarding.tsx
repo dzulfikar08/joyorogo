@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, isRedirect, redirect, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, CalendarDays, CircleAlert, Users } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -6,7 +6,6 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import {
-  ACTIVITY_LABELS,
   checkTargetDate,
   idealWeightRange,
   jakartaToday,
@@ -15,6 +14,10 @@ import {
   MAX_TARGET_DAYS,
 } from "@joyorogo/api/lib/engine";
 import type { ActivityLevel, Gender } from "@joyorogo/api/lib/engine";
+import { activityOptions } from "@joyorogo/api/lib/activity-guide";
+import type { ActivityOption } from "@joyorogo/api/lib/activity-guide";
+import { resolveMaternalInput } from "@joyorogo/api/lib/maternal";
+import type { MaternalState } from "@joyorogo/api/lib/maternal";
 import { goalTargetError } from "@joyorogo/api/lib/gain";
 import type { Goal } from "@joyorogo/api/lib/gain";
 import { Button } from "@joyorogo/ui/components/button";
@@ -23,6 +26,8 @@ import { Input } from "@joyorogo/ui/components/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@joyorogo/ui/components/popover";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
+import { ActivityLevelPicker } from "@/components/activity-level-picker";
+import { ActivityRecommendations } from "@/components/activity-recommendations";
 import { Mascot } from "@/components/mascot";
 import { Page } from "@/components/kit/surface";
 import { PlanNumbers } from "@/components/plan-numbers";
@@ -93,6 +98,46 @@ type StepKey =
   | "activity"
   | "target"
   | "date";
+
+/**
+ * The five levels for the answers so far, computed here (no server call): the plan the server will build on save. Hamil /
+ * Menyusui use their own factors, so the draft is resolved to the stored state first. Empty while an answer is missing.
+ */
+function onboardingActivityOptions(
+  form: FormState,
+  maternalDraft: MaternalDraft | null,
+  goal: Goal,
+): ActivityOption[] {
+  const birthYear = parseNum(form.birthYear);
+  const height = parseNum(form.heightCm);
+  const weight = parseNum(form.weightKg);
+  if (birthYear === null || form.gender === "" || height === null || weight === null) return [];
+  const today = jakartaToday();
+  let maternal: MaternalState | null = null;
+  if (maternalDraft) {
+    const draft = maternalDraftToInput(maternalDraft);
+    const resolved = draft.ok ? resolveMaternalInput(draft.input, today) : null;
+    if (!resolved?.ok) return [];
+    maternal = resolved.state;
+  }
+  const holding = maternal !== null || goal === "maintain";
+  const targetWeight = parseNum(form.targetWeightKg);
+  return activityOptions(
+    {
+      birthYear,
+      gender: form.gender,
+      heightCm: height,
+      weightKg: weight,
+      targetWeightKg: holding ? weight : (targetWeight ?? weight),
+      targetDate: holding ? jakartaDatePlusDays(365) : form.targetDate,
+      activityLevel: form.activityLevel,
+      goal: maternal !== null ? undefined : goal,
+    },
+    maternal,
+    weight,
+    today,
+  );
+}
 
 /** Big tappable answer tile; selected state uses the brand tint. */
 function ChoiceTile({
@@ -168,7 +213,7 @@ function OnboardingPage() {
     gender: "",
     heightCm: "165",
     weightKg: "70",
-    activityLevel: "low",
+    activityLevel: "light",
     targetWeightKg: "65",
     targetDate: jakartaDatePlusDays(90),
     maternalChoice: "none",
@@ -221,12 +266,12 @@ function OnboardingPage() {
     ...(maternalMode ? (["maternalForm"] as const) : []),
     "height",
     "weight",
-    "activity",
     ...(maternalMode
       ? []
       : effectiveGoal === "maintain"
         ? (["target"] as const)
         : (["target", "date"] as const)),
+    "activity",
   ];
   const STEP_COUNT = steps.length;
   const key: StepKey = steps[step - 1] ?? "birth";
@@ -234,6 +279,12 @@ function OnboardingPage() {
   const maternalDraft: MaternalDraft | null = maternalMode
     ? { ...form.maternal, mode: maternalMode }
     : null;
+
+  // What each level would give THIS person, from the answers so far (the plan the server will build on save).
+  // The step comes last so the target weight and date are the real ones. Never blocks: no data, no options.
+  const guide = useQuery(orpc.profile.activityGuide.queryOptions({ enabled: key === "activity", retry: false }));
+  const activityChoices =
+    key === "activity" ? onboardingActivityOptions(form, maternalDraft, effectiveGoal) : [];
 
   // Same checks as before, now one step at a time so the error always sits
   // next to the question it belongs to. The final step re-validates the whole
@@ -335,6 +386,7 @@ function OnboardingPage() {
       }
       if (targetWeight === null || targetWeight < 25 || targetWeight > 400) {
         setError(t("error.targetWeight"));
+        setStep(steps.indexOf("target") + 1);
         return;
       }
       const goalError = goalTargetError(effectiveGoal, weight, targetWeight);
@@ -345,6 +397,7 @@ function OnboardingPage() {
       }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(form.targetDate) || form.targetDate < jakartaToday()) {
         setError(t("error.targetDatePast"));
+        setStep(steps.indexOf("date") + 1);
         return;
       }
       setError(null);
@@ -390,7 +443,6 @@ function OnboardingPage() {
 
   if (done && save.data?.targets) {
     const { targets } = save.data;
-    const infoNotes = targets.notes.filter((note) => note === "MAINTENANCE" || note === "ADAPTIVE");
     return (
       <Page className="max-w-xl">
         <header className="px-1 pt-2 pb-4">
@@ -420,12 +472,10 @@ function OnboardingPage() {
                 {t("settings:plan.noteShort.PLAN_CLAMPED")}
               </p>
             )}
-            {infoNotes.length > 0 && (
+            {targets.notes.includes("MAINTENANCE") && (
               <div className="mt-3">
                 <InfoAccordion title={t("result.aboutTitle")}>
-                  {infoNotes.map((note) => (
-                    <p key={note}>{t(`settings:plan.noteShort.${note}`)}</p>
-                  ))}
+                  <p>{t("settings:plan.noteShort.MAINTENANCE")}</p>
                 </InfoAccordion>
               </div>
             )}
@@ -623,18 +673,22 @@ function OnboardingPage() {
           )}
 
           {key === "activity" && (
-            <div className="grid grid-cols-3 gap-3">
-              {(Object.entries(ACTIVITY_LABELS) as Array<[ActivityLevel, string]>).map(
-                ([key, label]) => (
-                  <ChoiceTile
-                    key={key}
-                    active={form.activityLevel === key}
-                    onClick={() => set({ activityLevel: key })}
-                  >
-                    {label}
-                  </ChoiceTile>
-                ),
-              )}
+            <div className="space-y-4">
+              <ActivityLevelPicker
+                options={activityChoices}
+                value={form.activityLevel}
+                onSelect={(level) => set({ activityLevel: level })}
+                maternal={maternalMode !== null}
+              />
+              <ActivityRecommendations
+                steps={guide.data?.steps ?? null}
+                calibration={null}
+                options={activityChoices}
+                current={form.activityLevel}
+                applyingLevel={null}
+                onApply={(level) => set({ activityLevel: level })}
+                showEmpty={false}
+              />
             </div>
           )}
 

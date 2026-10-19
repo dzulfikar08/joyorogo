@@ -28,9 +28,11 @@
     }
   },
   "activity": {
-    "low": "Jarang gerak",
-    "mid": "Sedang",
-    "high": "Sering gerak"
+    "sedentary": "Hampir selalu duduk",
+    "light": "Ringan bergerak",
+    "moderate": "Cukup aktif",
+    "active": "Sangat aktif",
+    "very_active": "Ekstra aktif"
   },
   "actions": {
     "save": "Simpan",

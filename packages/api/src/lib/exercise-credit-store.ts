@@ -5,14 +5,13 @@ import { dailyActivity, exerciseLog } from "@joyorogo/db/schema/fitness";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 import { syncRecord } from "@joyorogo/db/schema/sync";
 
+import { ENERGY_NOTICE_PREF_KEY } from "./energy-notice";
 import { ADD_BACK_PREF_KEYS, addBackSettings, exerciseCredit } from "./exercise-credit";
 import type { AddBackPrefKey, AddBackSettings, AllDayReading, ExerciseCredit } from "./exercise-credit";
 
 // Server side of "Kalori olahraga": reads the person's settings from their synced preferences (sync_record ns 'rogo',
 // kind 'pref', id = the key, json `{"value": ...}`; a tombstone or a missing row means the default) and builds the
 // day's credit. The settings follow the account, so every client and the MCP connector see the same Sisa.
-
-const NOTICE_KEY = "dismissed.addBackNotice2";
 
 /** The `value` of a stored pref document, or undefined when it is not `{"value": ...}`. */
 function docValue(json: string): unknown {
@@ -34,7 +33,7 @@ export function addBackPrefQuery(db: Database, userId: string) {
         eq(syncRecord.userId, userId),
         eq(syncRecord.ns, "rogo"),
         eq(syncRecord.kind, "pref"),
-        inArray(syncRecord.id, [...ADD_BACK_PREF_KEYS, NOTICE_KEY]),
+        inArray(syncRecord.id, [...ADD_BACK_PREF_KEYS, ENERGY_NOTICE_PREF_KEY]),
         isNull(syncRecord.deletedAt),
       ),
     );
@@ -47,7 +46,7 @@ export function readAddBackPrefs(rows: AddBackPrefRows): { settings: AddBackSett
   const values: Partial<Record<AddBackPrefKey, unknown>> = {};
   let noticeDismissed = false;
   for (const row of rows) {
-    if (row.id === NOTICE_KEY) noticeDismissed = docValue(row.json) === true;
+    if (row.id === ENERGY_NOTICE_PREF_KEY) noticeDismissed = docValue(row.json) === true;
     else values[row.id as AddBackPrefKey] = docValue(row.json);
   }
   return { settings: addBackSettings(values), noticeDismissed };
@@ -84,8 +83,16 @@ export function creditDayQueries(db: Database, userId: string, date: string) {
   ] as const;
 }
 
-/** The day's credit on its own, for callers that do not already hold the rows (reminders, fasting day, coach). */
-export async function loadDayCredit(db: Database, userId: string, date: string): Promise<ExerciseCredit> {
+/**
+ * The day's credit on its own, for callers that do not already hold the rows (reminders, fasting day, coach).
+ * `includedKcal` is `Targets.includedKcal` of the plan the credit is added to.
+ */
+export async function loadDayCredit(
+  db: Database,
+  userId: string,
+  date: string,
+  includedKcal: number,
+): Promise<ExerciseCredit> {
   const [prefs, [rows, activity, score]] = await Promise.all([
     addBackPrefQuery(db, userId),
     db.batch(creditDayQueries(db, userId, date)),
@@ -95,5 +102,6 @@ export async function loadDayCredit(db: Database, userId: string, date: string):
     rows,
     readings: dayReadings(activity[0], score[0]),
     steps: activity[0]?.steps ?? null,
+    includedKcal,
   });
 }

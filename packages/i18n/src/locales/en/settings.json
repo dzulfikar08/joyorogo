@@ -233,8 +233,8 @@
       "previewFailed": "Couldn't work out the daily numbers. You can still save the date."
     },
     "activity": {
-      "title": "Daily activity",
-      "subtitle": "Only used for the pregnancy and breastfeeding target"
+      "title": "Activity level",
+      "subtitle": "How active your everyday days are"
     },
     "numbers": {
       "eat": "Eat",
@@ -248,17 +248,14 @@
       "MAINTENANCE": "Your weight is already in the healthy range, so your plan maintains it instead of losing.",
       "BELOW_HEALTHY_RANGE": "Your target weight is below the healthy range for your height. Consider raising it.",
       "PLAN_CLAMPED": "Your plan was adjusted to stay safe: the daily deficit is capped.",
-      "ADAPTIVE": "Your target is adjusted from your food and weigh-in data from the last 3 weeks.",
       "GAIN": "Your plan is to gain weight: you eat a little above your daily needs (TDEE plus a surplus)."
     },
     "noteShort": {
       "MAINTENANCE": "You've reached your target weight. Your plan now maintains your weight.",
       "BELOW_HEALTHY_RANGE": "Your target weight is below the healthy range. Raise it a little to stay safe.",
       "PLAN_CLAMPED": "Your plan was adjusted to stay safe. The calorie deficit is capped.",
-      "ADAPTIVE": "Adjusted from your food and weigh-in data from the last 3 weeks.",
       "GAIN": "Gain weight plan: eating target = TDEE plus a surplus."
     },
-    "formulaEstimate": "Formula estimate: {{formula}} kcal/day. Your plan uses {{tdee}} kcal because it fits your data better.",
     "summary": {
       "target": "Target: {{kg}} kg by {{date}}.",
       "withRange": "Target: {{kg}} kg by {{date}}. Healthy range for your height: {{min}}–{{max}} kg."
@@ -275,7 +272,6 @@
       "title": "Your daily needs",
       "row": "Your daily needs",
       "rowValue": "TDEE {{kcal}}",
-      "rowValueBmr": "BMR {{kcal}}",
       "intro": "Step by step, from your body to today's eating target.",
       "unit": "kcal per day",
       "bmr": {
@@ -284,9 +280,9 @@
         "body": "The energy your body uses at complete rest: breathing, heartbeat, staying warm. Worked out from your weight, height, age and sex."
       },
       "activity": {
-        "label": "Daily activity",
+        "label": "Activity factor",
         "name": "Everyday movement",
-        "body": "Extra from walking, work and chores outside of workouts. Based on the activity level you chose: {{level}}."
+        "body": "Your BMR times the factor of the level you chose ({{level}}). It covers walking, work, chores and the effect of eating, outside of the workouts you log."
       },
       "tdee": {
         "label": "TDEE",
@@ -296,27 +292,25 @@
       "cut": {
         "label": "Minus for weight loss",
         "name": "Food cut",
-        "body": "A cut from your BMR so your body draws on fat stores. Its size comes from the gap between your weight and your target, and your target date. The whole cut comes out of food."
+        "body": "A cut from your TDEE so your body draws on fat stores. Its size comes from the gap between your weight and your target, and your target date. The whole cut comes out of food."
       },
       "cutNone": {
         "label": "No cut",
         "name": "Holding weight",
-        "body": "You're already at your target weight, so you eat as much as your BMR to hold it. Real activity is added on top."
+        "body": "You're already at your target weight, so you eat as much as your TDEE to hold it. Movement beyond your factor is added on top."
       },
       "target": {
         "label": "Eating target",
         "name": "Your allowance",
         "body": "The number you see on Beranda."
       },
-      "burnNote": "Your whole planned deficit, about {{deficit}} kcal a day, comes out of food. The exercise you log is added to what is left that day.",
-      "adaptive": "This TDEE is measured from your food and weigh-in logs over the last 4 weeks, not from the standard formula ({{formula}} kcal)."
+      "burnNote": "Your whole planned deficit, about {{deficit}} kcal a day, comes out of food. The exercise you log is added to what is left that day."
     }
   },
   "exerciseCredit": {
-    "title": "Exercise calories",
     "enabled": {
-      "title": "Add activity calories",
-      "hint": "Active energy from your watch and the workouts you log add to what you can eat that day. Your base target is just your BMR less the deficit."
+      "title": "Add extra movement",
+      "hint": "Movement your watch or Health measures beyond what your activity level already contains, and the workouts you log outside the watch's total, add to what you can eat that day. Low movement never lowers your target."
     },
     "pct": {
       "title": "How much is counted",
@@ -330,15 +324,6 @@
       "kcal": "{{kcal}} kcal",
       "none": "No cap",
       "aria": "Daily cap on added activity calories"
-    },
-    "assumed": {
-      "title": "Daily activity (estimate)",
-      "hint": "Only used on days without active data from your watch. Added to the base target, not multiplied by the percentage.",
-      "none": "None",
-      "light": "Light +{{kcal}}",
-      "moderate": "Moderate +{{kcal}}",
-      "active": "Active +{{kcal}}",
-      "aria": "Estimated daily activity for days without watch data"
     }
   },
   "theme": {

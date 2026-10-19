@@ -30,7 +30,7 @@ import type { GainBand, GainInfo, Goal } from "./gain";
 export { relativeDayLabel };
 
 export const GENDERS = ["male", "female"] as const;
-export const ACTIVITY_LEVELS = ["low", "mid", "high"] as const;
+export const ACTIVITY_LEVELS = ["sedentary", "light", "moderate", "active", "very_active"] as const;
 export const MEALS = [
   "sarapan",
   "makan_siang",
@@ -84,15 +84,41 @@ export const ACTIVITY_LABELS = localizedLabels(ACTIVITY_LEVELS, (level, locale) 
 );
 
 /**
- * The profile's three-level activity multiplier. The normal plan no longer uses it (its base is the BMR: no daily
- * movement is assumed, real activity is added on top, lib/exercise-credit). Hamil / Menyusui keep it so their AKG-based
- * target never drops, and computeBurn's legacy fallback reads it.
+ * The standard activity factors: total daily energy as a multiple of the BMR. The person picks the level by their daily
+ * life WITHOUT the workouts they log (those are added separately, lib/exercise-credit), so nothing is counted twice.
+ * Thermic effect of food is already inside these factors (they come from total expenditure): never add it again.
  */
-export const ACTIVITY_MULTIPLIER: Record<ActivityLevel, number> = {
-  low: 1.25,
-  mid: 1.35,
-  high: 1.45,
+export const ACTIVITY_FACTOR: Record<ActivityLevel, number> = {
+  sedentary: 1.2,
+  light: 1.375,
+  moderate: 1.55,
+  active: 1.725,
+  very_active: 1.9,
 };
+
+/**
+ * Hamil / Menyusui keep the multipliers their AKG-based target has always used (1.25 / 1.35 / 1.45 for the levels that
+ * used to be low / mid / high, which migration 0048 renamed to sedentary / light / moderate), so the maternal target
+ * does not move numerically with the new levels. active and very_active continue the same 0.1 steps.
+ */
+export const MATERNAL_ACTIVITY_FACTOR: Record<ActivityLevel, number> = {
+  sedentary: 1.25,
+  light: 1.35,
+  moderate: 1.45,
+  active: 1.55,
+  very_active: 1.65,
+};
+
+/** Share of the TDEE that is the thermic effect of food (Westerterp 2004: about 5 to 15%, 10% used). */
+export const TEF_SHARE = 0.1;
+
+/**
+ * The daily movement a factor already contains: TDEE - BMR - the TEF share, never below 0. Measured activity only
+ * counts for what goes beyond this (lib/exercise-credit).
+ */
+export function movementInFactorKcal(tdeeKcal: number, bmrKcal: number): number {
+  return Math.max(0, tdeeKcal - bmrKcal - TEF_SHARE * tdeeKcal);
+}
 
 /** Eat-ring state: yellow from 90% of the budget, red once over it. */
 export type EatTone = "ok" | "near" | "over";
@@ -104,6 +130,8 @@ export function eatTone(eatenKcal: number, targetKcal: number): EatTone {
 
 export const KCAL_PER_KG_FAT = 7700;
 const EAT_FLOOR: Record<Gender, number> = { male: 1500, female: 1200 };
+/** The lowest daily eat target the plan sets (1500 male, 1200 female); the deficit never cuts below it. */
+export const eatFloorKcal = (gender: Gender): number => EAT_FLOOR[gender];
 export const SLEEP_NEED_HOURS = 8;
 export const BURN_BASE_PER_KG = 3.3;
 /** Safe daily deficit window: below the floor the date no longer moves the plan, above the cap it is unsafe. */
@@ -132,26 +160,34 @@ export type TargetNotes =
   | "MAINTENANCE"
   | "BELOW_HEALTHY_RANGE"
   | "PLAN_CLAMPED"
-  | "ADAPTIVE"
   /** Hamil / Menyusui plan (lib/maternal): no deficit, AKG additions */
   | "MATERNAL"
   /** Naikin BB plan (lib/gain): TDEE plus a surplus */
   | "GAIN";
 
 export type Targets = {
+  /** Mifflin-St Jeor BMR (Hamil / Menyusui: of the pre-pregnancy weight) */
   bmr: number;
-  /** TDEE the plan uses: measured (ADAPTIVE) when enough data, else formula */
+  /** The person's activity level, and the factor it stands for (maternal plans use MATERNAL_ACTIVITY_FACTOR) */
+  level: ActivityLevel;
+  factor: number;
+  /** TDEE = BMR x factor (rounded to 5 for gain and maternal, whose target is built on it); TEF is inside the factor */
   tdee: number;
-  /** Mifflin-St Jeor BMR: the normal plan assumes no daily movement */
-  formulaTdee: number;
   /**
-   * The day's eat budget. computeTargets / computeMaternalTargets return the base (BMR less the deficit, plus surplus
-   * or AKG addition); day.summary adds `assumedKcal` and `exerciseKcal` to it. Sisa = eatKcal - eaten.
+   * COMPAT, old clients (native builds up to 1932, web tabs opened before the TDEE deploy) still read this: their
+   * "adaptive target" sheet and needsBreakdown use `formulaTdee`. It equals `tdee` now that the plan is never adaptive.
+   */
+  formulaTdee: number;
+  /** COMPAT, same old clients: their needsBreakdown and snack advice subtract/add `assumedKcal`. Always 0 now. */
+  assumedKcal: 0;
+  /** Movement the factor already contains (movementInFactorKcal): measured activity only counts beyond it */
+  includedKcal: number;
+  /**
+   * The day's eat budget. computeTargets / computeMaternalTargets return the base (TDEE less the deficit, plus surplus
+   * or AKG addition); day.summary adds `exerciseKcal` to it. Sisa = eatKcal - eaten.
    */
   eatKcal: number;
-  /** Part of `eatKcal` that is the assumed activity of a day without all-day data (lib/exercise-credit); 0 in the plan itself */
-  assumedKcal: number;
-  /** Part of `eatKcal` that came from counted activity (lib/exercise-credit); 0 in the plan itself */
+  /** Part of `eatKcal` that came from counted activity above the factor (lib/exercise-credit); 0 in the plan itself */
   exerciseKcal: number;
   /** Daily movement goal for the exercise screens. It is not part of the eat budget. */
   burnKcal: number;
@@ -316,7 +352,6 @@ const TREND_ALPHA = 0.1;
 export const ADAPTIVE_WINDOW_DAYS = 28;
 const ADAPTIVE_MIN_LOGGED_DAYS = 14;
 const ADAPTIVE_MIN_WEIGH_INS = 6;
-const ADAPTIVE_MAX_SHIFT = 0.15;
 const RATE_MIN_SPAN_DAYS = 10;
 const PROJECTION_MAX_DAYS = 730;
 
@@ -456,7 +491,8 @@ export function rangeStats(points: TrendPoint[], targetKg: number | null): Range
  * before `date` (MacroFactor-style): average logged intake, minus average
  * logged exercise, plus the energy the weight slope says left the body.
  * Days logged below `minDayKcal` are treated as unlogged, not as fasting.
- * Null until there is enough data to beat the formula.
+ * Null until there is enough data to beat the formula. It never changes the plan:
+ * lib/activity-guide turns it into a recommended activity level the person may apply.
  */
 export function adaptiveTdee(input: {
   date: string;
@@ -585,14 +621,14 @@ export type ComputeOptions = {
   today?: string;
   /** latest known weight; defaults to profile start weight */
   weightNow?: number;
-  /** measured TDEE from adaptiveTdee(); clamped to ±15% of the formula */
-  adaptiveTdee?: number;
+  /** Replaces the profile level's factor. Used to show the target a level (or the pre-factor model) would give. */
+  activityFactor?: number;
 };
 
 /**
- * The one source of the 3 daily numbers. Exercise is excluded from the TDEE
- * multiplier and counted through the Burn target instead, so logged workouts
- * never double-dip against the eat budget.
+ * The one source of the 3 daily numbers. TDEE = BMR x the activity factor of the chosen level (daily life without the
+ * logged workouts; TEF is inside the factor), so a logged workout never double-dips: it is added on top by
+ * lib/exercise-credit, and only the measured activity beyond what the factor already holds.
  */
 export function computeTargets(profile: ProfileInput, options: ComputeOptions = {}): Targets {
   const today = options.today ?? jakartaToday();
@@ -600,16 +636,8 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
   const age = ageFromBirthYear(profile.birthYear, today);
 
   const bmr = bmrMifflin(weightNow, profile.heightCm, age, profile.gender);
-  const formulaTdee = bmr;
-  // Measured TDEE may only move the plan within ±15% of the textbook value:
-  // under-logged weeks must not crash the budget, nor binge weeks inflate it.
-  const tdee =
-    options.adaptiveTdee === undefined
-      ? formulaTdee
-      : Math.min(
-          formulaTdee * (1 + ADAPTIVE_MAX_SHIFT),
-          Math.max(formulaTdee * (1 - ADAPTIVE_MAX_SHIFT), options.adaptiveTdee),
-        );
+  const factor = options.activityFactor ?? ACTIVITY_FACTOR[profile.activityLevel];
+  const tdee = bmr * factor;
 
   const ideal = idealWeightRange(profile.heightCm);
   const notes: TargetNotes[] = [];
@@ -665,16 +693,16 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
   if (gainNums) {
     notes.push("GAIN");
   }
-  if (options.adaptiveTdee !== undefined) {
-    notes.push("ADAPTIVE");
-  }
 
   return {
     bmr: Math.round(bmr),
+    level: profile.activityLevel,
+    factor,
     tdee: Math.round(baseKcal),
-    formulaTdee: Math.round(formulaTdee),
-    eatKcal: eat,
+    formulaTdee: Math.round(baseKcal),
     assumedKcal: 0,
+    includedKcal: Math.round(movementInFactorKcal(tdee, bmr)),
+    eatKcal: eat,
     exerciseKcal: 0,
     burnKcal: burn,
     sleepHours: SLEEP_NEED_HOURS,
@@ -703,7 +731,7 @@ export type ExerciseLogLike = { kcal: number; source?: string | null };
 export type BurnResult = {
   /** resting BMR at the current weight */
   bmrKcal: number;
-  /** BMR x activity multiplier x elapsed WIB day fraction */
+  /** BMR x activity factor x elapsed WIB day fraction */
   activityKcal: number;
   /** today's logged exercise kcal; rest rows excluded */
   exerciseKcal: number;
@@ -725,7 +753,7 @@ export type BurnInput = {
 };
 
 /**
- * Burn so far today: prorated TDEE floor (BMR x daily-life multiplier) plus
+ * Burn so far today: prorated TDEE floor (BMR x daily-life factor) plus
  * logged exercise. Rest rows (source 'rest') never count — they mark planned
  * days off, not movement.
  */
@@ -737,7 +765,7 @@ export function computeBurn(input: BurnInput): BurnResult {
   const fraction =
     input.dayFraction ?? Math.min(1, Math.max(0, jakartaClockHour(input.now ?? new Date()) / 24));
   const activityKcal =
-    (input.tdeeKcal ?? bmr * ACTIVITY_MULTIPLIER[input.profile.activityLevel]) * fraction;
+    (input.tdeeKcal ?? bmr * ACTIVITY_FACTOR[input.profile.activityLevel]) * fraction;
   const exerciseKcal = input.exerciseLogs
     .filter((log) => log.source !== "rest")
     .reduce((total, log) => total + log.kcal, 0);
@@ -892,8 +920,8 @@ export function checkTargetDate(input: {
 }
 
 /**
- * The day's one calorie model: remaining = budget - eaten, where the budget is the base eat target plus the assumed
- * and counted activity (lib/exercise-credit, added by day.summary into `Targets.eatKcal`).
+ * The day's one calorie model: remaining = budget - eaten, where the budget is the base eat target plus the counted
+ * activity above the factor (lib/exercise-credit, added by day.summary into `Targets.eatKcal`).
  */
 export function remainingKcal(targetKcal: number, eatenKcal: number): { kcal: number; over: boolean } {
   const left = Math.round(targetKcal - eatenKcal);
@@ -902,9 +930,14 @@ export function remainingKcal(targetKcal: number, eatenKcal: number): { kcal: nu
 
 export type NeedsBreakdown = {
   bmrKcal: number;
-  /** daily-life movement on top of rest: tdee - bmr; 0 in the normal plan (no movement is assumed), set for Hamil / Menyusui */
+  level: ActivityLevel;
+  /** the activity factor: TDEE = BMR x factor */
+  factor: number;
+  /** daily-life movement on top of rest, TEF included: tdee - bmr */
   activityKcal: number;
   tdeeKcal: number;
+  /** the movement the factor already contains; measured activity counts only beyond it */
+  includedKcal: number;
   /** what the plan takes off the TDEE through food; 0 when holding weight */
   cutKcal: number;
   /** Hamil / Menyusui: the AKG 2019 addition on top of the TDEE; 0 otherwise */
@@ -913,40 +946,35 @@ export type NeedsBreakdown = {
   surplusKcal: number;
   /** the plan's target before counted exercise */
   targetKcal: number;
-  /** assumed daily activity of a day without all-day data (Targets.assumedKcal) */
-  assumedKcal: number;
-  /** counted activity added on top for today (Targets.exerciseKcal); 0 when the setting is off or nothing was recorded */
+  /** counted activity above the factor added on top for today (Targets.exerciseKcal); 0 when the setting is off or nothing went beyond it */
   exerciseKcal: number;
-  /** the day's budget: targetKcal + assumedKcal + exerciseKcal */
+  /** the day's budget: targetKcal + exerciseKcal */
   budgetKcal: number;
   /** whole planned daily deficit; all of it is the food cut */
   deficitKcal: number;
   maintenance: boolean;
-  /** tdee is measured from the logs, not the textbook formula */
-  adaptive: boolean;
-  formulaTdeeKcal: number;
 };
 
-/** BMR -> activity -> TDEE -> minus deficit -> target, from numbers computeTargets already made. */
+/** BMR x factor -> TDEE -> minus deficit -> target, from numbers computeTargets already made. */
 export function needsBreakdown(targets: Targets): NeedsBreakdown {
-  const base = targets.eatKcal - targets.assumedKcal - targets.exerciseKcal;
+  const base = targets.eatKcal - targets.exerciseKcal;
   const cut = targets.tdee - base;
   return {
     bmrKcal: targets.bmr,
+    level: targets.level,
+    factor: targets.factor,
     activityKcal: targets.tdee - targets.bmr,
     tdeeKcal: targets.tdee,
+    includedKcal: targets.includedKcal,
     // under 5 kcal is round5 noise, not a cut
     cutKcal: cut < 5 ? 0 : cut,
     addKcal: targets.maternal?.addKcal ?? 0,
     surplusKcal: targets.gain?.surplusKcal ?? 0,
     targetKcal: base,
-    assumedKcal: targets.assumedKcal,
     exerciseKcal: targets.exerciseKcal,
     budgetKcal: targets.eatKcal,
     deficitKcal: targets.deficitKcal,
     maintenance: targets.notes.includes("MAINTENANCE"),
-    adaptive: targets.notes.includes("ADAPTIVE"),
-    formulaTdeeKcal: targets.formulaTdee,
   };
 }
 

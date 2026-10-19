@@ -97,11 +97,10 @@ async function readDevice(key: RogoPrefKey, userId: string): Promise<unknown | u
     case "exercise.addBack.enabled":
     case "exercise.addBack.pct":
     case "exercise.addBack.cap":
-    case "exercise.assumedActive":
       return readAddBackPref(key);
     case "dismissed.handlePrompt":
     case "dismissed.stravaRetention7d":
-    case "dismissed.addBackNotice2":
+    case "dismissed.energyModel":
       return (await readDismissal(key, userId)) ? true : undefined;
   }
 }
@@ -122,11 +121,10 @@ async function writeDevice(key: RogoPrefKey, userId: string, value: unknown | un
     case "exercise.addBack.enabled":
     case "exercise.addBack.pct":
     case "exercise.addBack.cap":
-    case "exercise.assumedActive":
       return writeAddBackPref(key, value);
     case "dismissed.handlePrompt":
     case "dismissed.stravaRetention7d":
-    case "dismissed.addBackNotice2":
+    case "dismissed.energyModel":
       return writeDismissal(key, userId, value === true);
   }
 }

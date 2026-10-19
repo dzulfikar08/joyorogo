@@ -53,7 +53,7 @@ describe("applySummaryDelta", () => {
     const credited = {
       ...summary(),
       targets: { eatKcal: 2000, exerciseKcal: 0 },
-      exerciseCredit: exerciseCredit({ settings: DEFAULT_ADD_BACK_SETTINGS, rows: [], readings: [], steps: null }),
+      exerciseCredit: exerciseCredit({ settings: DEFAULT_ADD_BACK_SETTINGS, rows: [], readings: [], steps: null, includedKcal: 0 }),
     };
     const added = applySummaryDelta(credited, { date: TODAY, burnKcal: 400 }, TODAY);
     expect(added.targets).toEqual({ eatKcal: 2300, exerciseKcal: 300 });

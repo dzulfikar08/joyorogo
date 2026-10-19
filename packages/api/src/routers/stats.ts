@@ -98,7 +98,7 @@ export const statsRouter = {
         refDay,
       );
 
-      // Each judged day gets the budget Beranda showed for it: the base plus that day's assumed and counted activity.
+      // Each judged day gets the budget Beranda showed for it: the base plus that day's counted activity above the factor.
       const judgedDates = Array.from({ length: 7 }, (_, i) => shiftDate(weekStart, i)).filter((date) => date < today);
       const [prefRows, ...dayRows] = await context.db.batch([
         addBackPrefQuery(context.db, userId),
@@ -120,6 +120,7 @@ export const statsRouter = {
           rows,
           readings: dayReadings(activity[0], score[0]),
           steps: activity[0]?.steps ?? null,
+          includedKcal: plan.targets.includedKcal,
         });
         dayTargets[date] = budgetKcal(plan.targets.eatKcal, credit);
       });

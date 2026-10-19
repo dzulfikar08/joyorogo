@@ -1,11 +1,11 @@
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq, gte, isNotNull, lt } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { LOCALES } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 import { user } from "@joyorogo/db/schema/auth";
-import { foodLog, profile, weightLog } from "@joyorogo/db/schema/fitness";
+import { dailyActivity, foodLog, profile, weightLog } from "@joyorogo/db/schema/fitness";
 
 import { deleteUserMedia } from "../lib/privacy";
 
@@ -18,7 +18,13 @@ import { GOALS, goalTargetError, resolveGoal } from "../lib/gain";
 import type { Goal } from "../lib/gain";
 import { FEEDING_TYPES, NO_MATERNAL, computeMaternalTargets, maternalFromRow, maternalToRow, resolveMaternalInput } from "../lib/maternal";
 import type { MaternalState } from "../lib/maternal";
-import { dateSchema, maternalInputSchema, profileInputSchema } from "../lib/schemas";
+import {
+  STEPS_WINDOW_DAYS,
+  activityOptions,
+  calibrationRecommendation,
+  stepsRecommendation,
+} from "../lib/activity-guide";
+import { activityLevelSchema, dateSchema, maternalInputSchema, profileInputSchema } from "../lib/schemas";
 import { buildPlan, planQueries } from "../lib/plan";
 import { serverT } from "../lib/messages";
 import { effectiveTier } from "../lib/tiers";
@@ -126,6 +132,68 @@ export const profileRouter = {
       founderUntil,
     };
   }),
+
+  // Where the activity level is chosen: what each of the five levels would make of THIS person's target, plus the two
+  // "lebih akurat" recommendations (from steps; from the weight trend). Works before onboarding too (no profile:
+  // only the steps recommendation can exist). Recommendations are never applied here; setActivityLevel does that.
+  activityGuide: protectedProcedure.handler(async ({ context }) => {
+    const userId = context.session.user.id;
+    const today = jakartaToday();
+    const [[row], [latest], weighIns, intake, exercise, stepRows] = await context.db.batch([
+      ...planQueries(context.db, userId, today),
+      context.db
+        .select({ date: dailyActivity.date, steps: dailyActivity.steps })
+        .from(dailyActivity)
+        .where(
+          and(
+            eq(dailyActivity.userId, userId),
+            gte(dailyActivity.date, shiftDate(today, -STEPS_WINDOW_DAYS)),
+            lt(dailyActivity.date, today),
+          ),
+        ),
+    ]);
+    const steps = stepsRecommendation(stepRows, today);
+    if (!row) return { level: null, maternal: false, options: [], steps, calibration: null };
+    const plan = buildPlan(row, { latestWeightKg: latest?.weightKg ?? null, weighIns, intake, exercise }, today);
+    return {
+      level: plan.targets.level,
+      maternal: plan.maternal !== null,
+      options: activityOptions(plan.profileInput, plan.maternal, plan.weightNowKg, today),
+      steps,
+      // Hamil / Menyusui: the weight is expected to move, so it says nothing about the activity level.
+      calibration:
+        plan.maternal === null
+          ? calibrationRecommendation({
+              date: today,
+              weighIns,
+              intake,
+              exercise,
+              bmrKcal: plan.targets.bmr,
+              currentLevel: plan.targets.level,
+            })
+          : null,
+    };
+  }),
+
+  setActivityLevel: protectedProcedure
+    .input(z.object({ level: activityLevelSchema }))
+    .handler(async ({ context, input }): Promise<{ targets: Targets }> => {
+      const userId = context.session.user.id;
+      const t = serverT(context.locale, "errors");
+      const updated = await context.db
+        .update(profile)
+        .set({ activityLevel: input.level })
+        .where(eq(profile.userId, userId))
+        .returning({ userId: profile.userId });
+      if (updated.length === 0) {
+        throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+      }
+      const { plan } = await loadPlan(context.db, userId);
+      if (!plan) {
+        throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+      }
+      return { targets: plan.targets };
+    }),
 
   // Opt-in public progress page (/u/<code>); code is generated once.
   shareToggle: protectedProcedure

@@ -25,7 +25,8 @@ import {
   streakFromDates,
   suggestMealNow,
 } from "../lib/engine";
-import { budgetKcal, exerciseCredit, showAddBackNotice } from "../lib/exercise-credit";
+import { energyNotice, showEnergyNotice } from "../lib/energy-notice";
+import { budgetKcal, exerciseCredit } from "../lib/exercise-credit";
 import { addBackPrefQuery, dayReadings, loadDayCredit, readAddBackPrefs } from "../lib/exercise-credit-store";
 import { READINESS_LABELS, hasFitnessData } from "../lib/fitness-hint";
 import { dateSchema } from "../lib/schemas";
@@ -200,7 +201,8 @@ export const dayRouter = {
           targets: null,
           exerciseCredit: null,
           exerciseSources: [],
-          addBackNotice: false,
+          energyNotice: null,
+          addBackNotice: false, // COMPAT, old clients read it (see below)
           eatenKcal: 0,
           eatenByMeal: { ...ZERO_MEALS },
           burnedKcal: 0,
@@ -227,20 +229,20 @@ export const dayRouter = {
         date,
       );
       const { targets: planTargets } = plan;
-      // Sisa = budget - eaten, the budget being the plan's base (BMR less the deficit) plus the assumed activity of a day
-      // without watch data and the counted activity (lib/exercise-credit). Every client and the MCP read this one
-      // number; `assumedKcal` and `exerciseKcal` tell how much of `eatKcal` came from each.
+      // Sisa = budget - eaten, the budget being the plan's base (TDEE less the deficit) plus the counted activity that
+      // goes beyond the activity factor (lib/exercise-credit). Every client and the MCP read this one number;
+      // `exerciseKcal` tells how much of `eatKcal` came from the activity.
       const { settings, noticeDismissed } = readAddBackPrefs(prefRows);
       const credit = exerciseCredit({
         settings,
         rows: exerciseRows,
         readings: dayReadings(activityRows[0], scoreRows[0]),
         steps: activityRows[0]?.steps ?? null,
+        includedKcal: planTargets.includedKcal,
       });
       const targets = {
         ...planTargets,
         eatKcal: budgetKcal(planTargets.eatKcal, credit),
-        assumedKcal: credit.assumedKcal,
         exerciseKcal: credit.countedKcal,
       };
 
@@ -289,11 +291,17 @@ export const dayRouter = {
         exerciseCredit: credit,
         // Where today's recorded exercise came from (for the "Olahraga hari ini" tile); rest rows are not movement.
         exerciseSources: EXERCISE_SOURCES.filter((source) => exerciseRows.some((row) => row.source === source)),
-        // The one-time notice that Sisa is counted differently now: accounts made before the change, until closed.
-        addBackNotice: showAddBackNotice({
+        // The one-time notice that the target is built on TDEE now (old target -> new target): accounts made before
+        // the change, until closed.
+        energyNotice: showEnergyNotice({
           accountCreatedAtMs: new Date(context.session.user.createdAt).getTime(),
           dismissed: noticeDismissed,
-        }),
+        })
+          ? energyNotice(plan)
+          : null,
+        // COMPAT, old clients (native builds up to 1932, web tabs opened before the TDEE deploy) show the "how Sisa is
+        // counted changed" card when this is true. That notice is retired in favour of `energyNotice`: always false.
+        addBackNotice: false,
         // Legacy: see computeDeficit. Not read by the current clients.
         deficit: computeDeficit(eatenKcal, burn, targets.eatKcal),
         eatenKcal,
@@ -487,7 +495,7 @@ export const dayRouter = {
         today,
       );
       // The diary's bar and Sisa use the plan plus the counted exercise; guidance reads the same budget.
-      const credit = await loadDayCredit(context.db, userId, today);
+      const credit = await loadDayCredit(context.db, userId, today, builtPlan.targets.includedKcal);
       const eatKcal = budgetKcal(builtPlan.targets.eatKcal, credit);
       targets = {
         eatKcal,

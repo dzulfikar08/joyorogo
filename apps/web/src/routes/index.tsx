@@ -10,6 +10,7 @@ import {
   Check,
   ChevronDown,
   CupSoda,
+  Flame,
   Footprints,
   Globe,
   Hand,
@@ -300,7 +301,7 @@ const NUMBERS: Array<{
     center: "1.650",
     unit: "kcal",
     title: "Boleh makan",
-    body: "Kebutuhan harianmu dikurangi defisit yang pas untuk target berat dan tanggalmu. Setelah 4 minggu mencatat, angkanya menyesuaikan pembakaran nyata tubuhmu.",
+    body: "Kebutuhan harianmu (BMR dikali pengali level aktivitas yang kamu pilih) dikurangi defisit yang pas untuk target berat dan tanggalmu. Data jam atau HP hanya menambah jatah, tidak pernah menguranginya.",
   },
   {
     metric: "bakar",
@@ -341,6 +342,12 @@ const NEW_FEATURES = [
     title: "Tanggal target dan kebutuhan harian",
     body: "Pilih tanggal di kalender dan lihat langsung apakah ritmenya aman. Rincian TDEE dan angka Sisa di Beranda dijelaskan langkah demi langkah.",
     href: "/blog/panduan-tanggal-target-dan-tdee/",
+  },
+  {
+    icon: Flame,
+    title: "Target makan dari level aktivitasmu",
+    body: "Pilih salah satu dari lima level aktivitas dan lihat target tiap pilihan. Gerak dari jam atau HP hanya menambah jatah makan, tidak pernah menguranginya. Rumus dan sumbernya dijelaskan lengkap.",
+    href: "/panduan/kalori",
   },
   {
     icon: Share2,

@@ -34,7 +34,7 @@ export type RecapDay = {
   status: DayStatus;
   eatenKcal: number;
   exerciseKcal: number;
-  /** The day's eat budget: the base target plus that day's assumed and counted activity, like Beranda's Sisa. */
+  /** The day's eat budget: the base target plus that day's counted activity, like Beranda's Sisa. */
   targetKcal: number;
 };
 

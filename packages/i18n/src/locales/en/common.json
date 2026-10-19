@@ -31,9 +31,11 @@
     }
   },
   "activity": {
-    "low": "Mostly sitting",
-    "mid": "Moderately active",
-    "high": "Very active"
+    "sedentary": "Mostly sitting",
+    "light": "Lightly active",
+    "moderate": "Moderately active",
+    "active": "Very active",
+    "very_active": "Extremely active"
   },
   "actions": {
     "save": "Save",

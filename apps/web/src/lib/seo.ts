@@ -19,6 +19,7 @@ export type PublicPath =
   | "/syarat"
   | "/pengembalian-dana"
   | "/panduan/ai"
+  | "/panduan/kalori"
   | "/koneksi/izin"
   | "/login"
   | "/pembayaran"
@@ -73,6 +74,12 @@ export const PAGES: Record<PublicPath, PageMeta> = {
     description:
       "Tanya Claude atau ChatGPT soal catatan makan, latihan, berat, dan tidurmu sendiri. Hanya membaca, butuh JoyoRogo Pro. Langkah penyambungan dan privasinya.",
     lastmod: "2026-10-18",
+  },
+  "/panduan/kalori": {
+    title: "Cara Menghitung Target Makan: BMR, TDEE, Level Aktivitas | JoyoRogo",
+    description:
+      "Target makan JoyoRogo = BMR dikali pengali level aktivitasmu, dikurangi defisit. Penjelasan lima level, kenapa data jam atau HP hanya menambah, contoh hitungan, dan sumbernya.",
+    lastmod: "2026-10-19",
   },
   "/koneksi/izin": {
     title: "Izinkan Akses | JoyoRogo",

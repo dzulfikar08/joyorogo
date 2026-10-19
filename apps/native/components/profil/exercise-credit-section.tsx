@@ -7,7 +7,6 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import {
   ADD_BACK_CAPS,
   ADD_BACK_PCT,
-  ASSUMED_ACTIVITY_KCAL,
   DEFAULT_ADD_BACK_SETTINGS,
   type AddBackCap,
   type AddBackPrefKey,
@@ -26,7 +25,6 @@ const PREF_KEY: Record<keyof AddBackSettings, AddBackPrefKey> = {
   enabled: "exercise.addBack.enabled",
   pct: "exercise.addBack.pct",
   cap: "exercise.addBack.cap",
-  assumedKcal: "exercise.assumedActive",
 };
 
 type Range = { min: number; max: number; step: number };
@@ -72,9 +70,15 @@ function Stepper({
   );
 }
 
-/** Profil > Target & tubuh: how much of the recorded exercise Sisa adds back. Each edit syncs and refreshes Beranda. */
-export function ExerciseCreditSection() {
-  const { t } = useTranslation("settings");
+/** The extra movement (kcal) that `energy:credit.pct.example` is worked on. */
+const EXAMPLE_EXTRA_KCAL = 400;
+
+/**
+ * Profil > Target & tubuh: how much of the movement above the level's factor Sisa adds, with what the percentage and
+ * the cap do in the person's own numbers. Each edit syncs and refreshes Beranda.
+ */
+export function ExerciseCreditSection({ includedKcal }: { includedKcal: number }) {
+  const { t } = useTranslation(["settings", "energy"]);
   const { theme } = useUnistyles();
   const [settings, setSettings] = useState<AddBackSettings | null>(null);
 
@@ -107,9 +111,11 @@ export function ExerciseCreditSection() {
 
   return (
     <Card>
-      <Text style={styles.cardTitle}>{t("exerciseCredit.title")}</Text>
+      <Text style={styles.cardTitle}>{t("energy:credit.title")}</Text>
+      <Text style={styles.body}>{t("energy:credit.how", { kcal: fmtInt(includedKcal) })}</Text>
+      <Text style={styles.note}>{t("energy:credit.deskNote")}</Text>
 
-      <View style={styles.switchRow}>
+      <View style={[styles.switchRow, styles.switchGap]}>
         <View style={styles.switchText}>
           <Text style={styles.rowTitle}>{t("exerciseCredit.enabled.title")}</Text>
         </View>
@@ -121,11 +127,10 @@ export function ExerciseCreditSection() {
           accessibilityLabel={t("exerciseCredit.enabled.title")}
         />
       </View>
-      <Text style={styles.note}>{t("exerciseCredit.enabled.hint")}</Text>
 
       {settings.enabled ? (
         <>
-          <Text style={styles.rowTitleBlock}>{t("exerciseCredit.pct.title")}</Text>
+          <Text style={styles.rowTitleBlock}>{t("energy:credit.pct.title")}</Text>
           <Stepper
             value={settings.pct}
             range={ADD_BACK_PCT}
@@ -133,9 +138,15 @@ export function ExerciseCreditSection() {
             display={t("exerciseCredit.pct.value", { pct: settings.pct })}
             onChange={(next) => void commit("pct", next)}
           />
-          <Text style={styles.note}>{t("exerciseCredit.pct.hint")}</Text>
+          <Text style={styles.note}>{t("energy:credit.pct.body")}</Text>
+          <Text style={styles.example}>
+            {t("energy:credit.pct.example", {
+              pct: settings.pct,
+              added: fmtInt((EXAMPLE_EXTRA_KCAL * settings.pct) / 100),
+            })}
+          </Text>
 
-          <Text style={styles.rowTitleBlock}>{t("exerciseCredit.cap.title")}</Text>
+          <Text style={styles.rowTitleBlock}>{t("energy:credit.cap.title")}</Text>
           <Segmented<string>
             options={ADD_BACK_CAPS.map((cap) => ({ value: String(cap), label: capLabel(cap) }))}
             value={String(settings.cap)}
@@ -144,30 +155,16 @@ export function ExerciseCreditSection() {
               void commit("cap", cap ?? DEFAULT_ADD_BACK_SETTINGS.cap);
             }}
           />
-          <Text style={styles.note}>{t("exerciseCredit.cap.hint")}</Text>
+          <Text style={styles.note}>{t("energy:credit.cap.body")}</Text>
+          <Text style={styles.example}>
+            {settings.cap === "none"
+              ? t("energy:credit.cap.exampleNone", { pct: settings.pct })
+              : t("energy:credit.cap.example", { cap: fmtInt(settings.cap) })}
+          </Text>
         </>
-      ) : null}
-
-      <Text style={styles.rowTitleBlock}>{t("exerciseCredit.assumed.title")}</Text>
-      <Segmented<string>
-        options={ASSUMED_ACTIVITY_KCAL.map((kcal) => ({
-          value: String(kcal),
-          label:
-            kcal === 0
-              ? t("exerciseCredit.assumed.none")
-              : kcal === 150
-                ? t("exerciseCredit.assumed.light", { kcal })
-                : kcal === 300
-                  ? t("exerciseCredit.assumed.moderate", { kcal })
-                  : t("exerciseCredit.assumed.active", { kcal }),
-        }))}
-        value={String(settings.assumedKcal)}
-        onChange={(next) => {
-          const kcal = ASSUMED_ACTIVITY_KCAL.find((candidate) => String(candidate) === next);
-          void commit("assumedKcal", kcal ?? DEFAULT_ADD_BACK_SETTINGS.assumedKcal);
-        }}
-      />
-      <Text style={styles.note}>{t("exerciseCredit.assumed.hint")}</Text>
+      ) : (
+        <Text style={styles.example}>{t("energy:credit.off")}</Text>
+      )}
     </Card>
   );
 }
@@ -199,12 +196,25 @@ const styles = StyleSheet.create((theme) => ({
     fontWeight: "600",
     color: theme.colors.foreground,
   },
+  body: {
+    fontSize: theme.fontSize.sm,
+    lineHeight: 20,
+    color: theme.colors.foreground,
+  },
   note: {
     marginTop: theme.spacing.sm,
-    fontSize: theme.fontSize.xs,
-    lineHeight: 18,
+    fontSize: theme.fontSize.sm,
+    lineHeight: 20,
     color: theme.colors.mutedForeground,
   },
+  example: {
+    marginTop: theme.spacing.xs,
+    fontSize: theme.fontSize.xs,
+    lineHeight: 18,
+    fontWeight: "600",
+    color: theme.colors.makanText,
+  },
+  switchGap: { marginTop: theme.spacing.md },
   stepper: {
     flexDirection: "row",
     alignItems: "center",

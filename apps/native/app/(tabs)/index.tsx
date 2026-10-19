@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trans, useTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import { Link, Redirect, router } from "expo-router";
 import { Dimensions, Platform, Pressable, Share, ScrollView, View } from "react-native";
 import { useEffect, useState } from "react";
@@ -23,8 +23,9 @@ import type { Meal } from "@joyorogo/api/lib/engine";
 import { pickFact } from "@joyorogo/api/lib/facts";
 import { gainEatTone, gainRemaining } from "@joyorogo/api/lib/gain";
 import { DEFAULT_ADD_BACK_SETTINGS } from "@joyorogo/api/lib/exercise-credit";
+import { fmtNumber } from "@joyorogo/i18n";
 
-import { AddBackNotice } from "@/components/add-back-notice";
+import { EnergyNotice } from "@/components/energy-notice";
 import { BelanjaCompact } from "@/components/plate/belanja";
 import {
   GainCard,
@@ -222,7 +223,6 @@ export default function Dashboard() {
 
   const [weighOpen, setWeighOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [adaptiveOpen, setAdaptiveOpen] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   // Share entry points. Hooks live above the early returns below: Dashboard renders loading, then loaded.
   const queryClient = useQueryClient();
@@ -273,12 +273,13 @@ export default function Dashboard() {
   const over = maternal || gain ? false : overBudget;
   const credit = data.exerciseCredit;
   const needs = needsBreakdown(data.targets);
-  const baseKcal = needs.targetKcal + needs.assumedKcal;
   // "Cara baca angka ini": the day's budget step by step, every number from needsBreakdown.
   const sumRows: SumRow[] = [
-    maternal
-      ? { key: "bmr", label: t("maternal:needs.baseName"), value: fmtInt(needs.tdeeKcal) }
-      : { key: "bmr", label: t("explain.sum.bmr"), value: fmtInt(needs.bmrKcal) },
+    {
+      key: "tdee",
+      label: t("explain.sum.tdee", { bmr: fmtInt(needs.bmrKcal), factor: fmtNumber(needs.factor, 3) }),
+      value: fmtInt(needs.tdeeKcal),
+    },
     ...(needs.cutKcal > 0
       ? [{ key: "cut", label: t("explain.sum.cut"), value: `−${fmtInt(needs.cutKcal)}` }]
       : []),
@@ -289,15 +290,12 @@ export default function Dashboard() {
     ...(data.targets.notes.includes("PLAN_CLAMPED") && needs.cutKcal < needs.deficitKcal
       ? [{ key: "floor", label: t("explain.sum.floor"), value: null }]
       : []),
-    ...(needs.assumedKcal > 0
-      ? [{ key: "assumed", label: t("explain.sum.assumed"), value: `+${fmtInt(needs.assumedKcal)}` }]
-      : []),
     ...(needs.exerciseKcal > 0
       ? [
           {
             key: "activity",
             label: t("explain.sum.activity"),
-            sub: credit ? t("explain.sum.activityOf", { pct: credit.pct, kcal: fmtInt(credit.activeKcal) }) : undefined,
+            sub: credit ? t("explain.sum.activityOf", { pct: credit.pct, kcal: fmtInt(credit.extraKcal) }) : undefined,
             value: `+${fmtInt(needs.exerciseKcal)}`,
           },
         ]
@@ -319,7 +317,6 @@ export default function Dashboard() {
   const profileRow = profileQuery.data?.profile ?? null;
   const gainStartKg = profileRow ? (profileRow.goalStartKg ?? profileRow.startWeightKg) : null;
   const maintenance = data.targets.notes?.includes("MAINTENANCE") || data.targets.deficitKcal === 0;
-  const adaptive = data.targets.notes?.includes("ADAPTIVE") ?? false;
   const plates = (foods.data?.items ?? []).filter((item) => item.scanId != null) as Array<
     PlateItem & { scanId: string }
   >;
@@ -451,8 +448,7 @@ export default function Dashboard() {
       {isToday && !maternal ? <RecapCard /> : null}
 
       <StravaRetentionNotice />
-      <AddBackNotice show={data.addBackNotice} />
-
+      <EnergyNotice notice={data.energyNotice} />
 
       {/* Pro banner: kuota gratis vs Pro, ketuk Upgrade → paywall */}
       {showFounderBanner && configData ? (
@@ -519,7 +515,7 @@ export default function Dashboard() {
                 <CountNum value={data.targets.eatKcal} style={styles.heroStatValue} />
               </View>
               {maternal ? (
-                <Text style={styles.adaptiveText}>
+                <Text style={styles.helpText}>
                   {t("maternal:target.progress", {
                     pct: Math.round((data.eatenKcal / Math.max(data.targets.eatKcal, 1)) * 100),
                   })}
@@ -547,25 +543,12 @@ export default function Dashboard() {
                   size={20}
                   color={theme.colors.mutedForeground}
                 />
-                <Text style={styles.adaptiveText} numberOfLines={1}>
+                <Text style={styles.helpText} numberOfLines={1}>
                   {t("eat.help")}
                 </Text>
               </PressableScale>
             </View>
           </View>
-          {adaptive ? (
-            <PressableScale
-              accessibilityRole="button"
-              accessibilityLabel={t("adaptive.info")}
-              onPress={() => setAdaptiveOpen(true)}
-              scaleTo={1}
-              dimTo={0.7}
-              style={styles.adaptiveRow}
-            >
-              <Ionicons name="information-circle" size={14} color={theme.colors.mutedForeground} />
-              <Text style={styles.adaptiveText}>{t("adaptive.link")}</Text>
-            </PressableScale>
-          ) : null}
           {over ? (
             <Text style={styles.heroNote}>{t("eat.overNote", { kcal: fmtInt(leftKcal) })}</Text>
           ) : null}
@@ -712,7 +695,7 @@ export default function Dashboard() {
       {data.ideas.length > 0 && !maternal ? (
         <View style={styles.ideasWrap}>
           <Text style={styles.ideasTitle}>{gain ? t("gain:today.ideasTitle") : t("ideas.title")}</Text>
-          {gain ? <Text style={styles.adaptiveMuted}>{t("gain:today.ideasHint")}</Text> : null}
+          {gain ? <Text style={styles.mutedNote}>{t("gain:today.ideasHint")}</Text> : null}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -912,32 +895,9 @@ export default function Dashboard() {
 
       <WeighInSheet visible={weighOpen} onClose={() => setWeighOpen(false)} date={date} />
 
-      {/* Info target adaptif */}
-      <Sheet visible={adaptiveOpen} onClose={() => setAdaptiveOpen(false)} title={t("adaptive.title")}>
-        <View style={styles.adaptiveBody}>
-          <Text style={styles.adaptivePara}>
-            <Trans
-              ns="home"
-              i18nKey="adaptive.formula"
-              values={{ kcal: fmtInt(data.targets.formulaTdee) }}
-              components={{ b: <Num style={styles.adaptiveStrong} /> }}
-            />
-          </Text>
-          <Text style={styles.adaptivePara}>
-            <Trans
-              ns="home"
-              i18nKey="adaptive.actual"
-              values={{ kcal: fmtInt(data.targets.tdee) }}
-              components={{ b: <Num style={styles.adaptiveStrong} /> }}
-            />
-          </Text>
-          <Text style={styles.adaptiveMuted}>{t("adaptive.limit")}</Text>
-        </View>
-      </Sheet>
-
       {/* Cara baca angka hari ini */}
       <Sheet visible={explainOpen} onClose={() => setExplainOpen(false)} title={t("explain.title")}>
-        <View style={styles.adaptiveBody}>
+        <View style={styles.explainBody}>
           <View style={styles.explainFormula}>
             <Text style={styles.explainFormulaText}>
               {gainLeft ? t("gain:nativeToday.explain.formula") : t("explain.formula")}
@@ -957,13 +917,13 @@ export default function Dashboard() {
                 : data.targets.exerciseKcal > 0
                   ? over
                     ? t("explain.exampleAddOver", {
-                        target: fmtInt(baseKcal),
+                        target: fmtInt(needs.targetKcal),
                         exercise: fmtInt(data.targets.exerciseKcal),
                         eaten: fmtInt(data.eatenKcal),
                         over: fmtInt(leftKcal),
                       })
                     : t("explain.exampleAdd", {
-                        target: fmtInt(baseKcal),
+                        target: fmtInt(needs.targetKcal),
                         exercise: fmtInt(data.targets.exerciseKcal),
                         eaten: fmtInt(data.eatenKcal),
                         left: fmtInt(leftKcal),
@@ -985,13 +945,13 @@ export default function Dashboard() {
             <Text style={styles.explainTitle}>{t("explain.sum.title")}</Text>
             {sumRows.map((row) =>
               row.value === null ? (
-                <Text key={row.key} style={styles.adaptiveMuted}>
+                <Text key={row.key} style={styles.mutedNote}>
                   {row.label}
                 </Text>
               ) : (
                 <View key={row.key} style={styles.sumRow}>
                   <View style={styles.sumLabel}>
-                    <Text style={row.strong ? styles.sumLabelStrong : styles.adaptiveMuted}>{row.label}</Text>
+                    <Text style={row.strong ? styles.sumLabelStrong : styles.mutedNote}>{row.label}</Text>
                     {row.sub ? <Text style={styles.sumSub}>{row.sub}</Text> : null}
                   </View>
                   <Num style={row.strong ? styles.sumValueStrong : styles.sumValue}>{row.value}</Num>
@@ -1006,13 +966,13 @@ export default function Dashboard() {
                   ? t("gain:nativeToday.explain.leftTitle")
                   : t(`explain.${key}.title`)}
               </Text>
-              <Text style={styles.adaptiveMuted}>
+              <Text style={styles.mutedNote}>
                 {gainLeft && key === "left"
                   ? t("gain:nativeToday.explain.leftBody")
                   : t(`explain.${key}.body`)}
               </Text>
               {key === "target" && data.targets.datePace ? (
-                <Text style={styles.adaptiveMuted}>
+                <Text style={styles.mutedNote}>
                   {t(`explain.clamped.${datePaceExplainKey(data.targets.datePace)}`, {
                     date: fmtDateMedium(data.targets.datePace.reachDate),
                   })}
@@ -1022,31 +982,41 @@ export default function Dashboard() {
           ))}
           <View style={styles.explainItem}>
             <Text style={styles.explainTitle}>{t("explain.burn.title")}</Text>
-            <Text style={styles.adaptiveMuted}>{t("explain.burn.body", { pct: credit?.pct ?? DEFAULT_ADD_BACK_SETTINGS.pct })}</Text>
+            <Text style={styles.mutedNote}>{t("explain.burn.body", { pct: credit?.pct ?? DEFAULT_ADD_BACK_SETTINGS.pct })}</Text>
           </View>
           {credit ? (
             <View style={styles.explainItem}>
               <Text style={styles.explainTitle}>{t("explain.addBack.title")}</Text>
-              {!credit.enabled ? <Text style={styles.adaptiveMuted}>{t("explain.addBack.off")}</Text> : null}
-              {credit.activeKcal === 0 && credit.assumedKcal === 0 ? (
-                <Text style={styles.adaptiveMuted}>{t("explain.addBack.none")}</Text>
+              {!credit.enabled ? <Text style={styles.mutedNote}>{t("explain.addBack.off")}</Text> : null}
+              {credit.activeKcal === 0 ? (
+                <Text style={styles.mutedNote}>{t("explain.addBack.none")}</Text>
               ) : null}
               {credit.countedKcal > 0 ? (
-                <Text style={styles.adaptiveMuted}>
+                <Text style={styles.mutedNote}>
                   {t("explain.addBack.body", {
                     active: fmtInt(credit.activeKcal),
+                    included: fmtInt(credit.includedKcal),
+                    extra: fmtInt(credit.extraKcal),
                     pct: credit.pct,
                     kcal: fmtInt(credit.countedKcal),
                   })}
                 </Text>
               ) : null}
+              {credit.enabled && credit.activeKcal > 0 && credit.extraKcal === 0 ? (
+                <Text style={styles.mutedNote}>
+                  {t("explain.addBack.below", {
+                    active: fmtInt(credit.activeKcal),
+                    included: fmtInt(credit.includedKcal),
+                  })}
+                </Text>
+              ) : null}
               {credit.allDaySource === "joyofit" ? (
-                <Text style={styles.adaptiveMuted}>
+                <Text style={styles.mutedNote}>
                   {t("explain.addBack.watch", { kcal: fmtInt(credit.allDayKcal ?? 0) })}
                 </Text>
               ) : null}
               {credit.allDaySource === "health_connect" || credit.allDaySource === "apple_health" ? (
-                <Text style={styles.adaptiveMuted}>
+                <Text style={styles.mutedNote}>
                   {t("explain.addBack.healthStore", {
                     source: t(`tile.source.${credit.allDaySource}`),
                     kcal: fmtInt(credit.allDayKcal ?? 0),
@@ -1054,17 +1024,12 @@ export default function Dashboard() {
                 </Text>
               ) : null}
               {credit.otherWorkoutKcal > 0 ? (
-                <Text style={styles.adaptiveMuted}>
+                <Text style={styles.mutedNote}>
                   {t("explain.addBack.other", { kcal: fmtInt(credit.otherWorkoutKcal) })}
                 </Text>
               ) : null}
-              {credit.assumedKcal > 0 ? (
-                <Text style={styles.adaptiveMuted}>
-                  {t("explain.addBack.assumed", { kcal: fmtInt(credit.assumedKcal) })}
-                </Text>
-              ) : null}
               {credit.capped ? (
-                <Text style={styles.adaptiveMuted}>
+                <Text style={styles.mutedNote}>
                   {t("explain.addBack.capped", { cap: credit.cap === "none" ? "" : fmtInt(credit.cap) })}
                 </Text>
               ) : null}
@@ -1074,7 +1039,7 @@ export default function Dashboard() {
             <Text style={styles.explainTitle}>
               {gain ? t("gain:coach.surplusExplainer.title") : t("explain.deficit.title")}
             </Text>
-            <Text style={styles.adaptiveMuted}>
+            <Text style={styles.mutedNote}>
               {gain
                 ? t("gain:coach.surplusExplainer.body")
                 : maintenance
@@ -1265,15 +1230,7 @@ const styles = StyleSheet.create((theme) => ({
     fontWeight: "800",
     color: theme.colors.foreground,
   },
-  adaptiveRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    minHeight: 44,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.radius.pill,
-  },
-  adaptiveText: {
+  helpText: {
     fontSize: theme.fontSize.sm,
     fontWeight: "600",
     color: theme.colors.mutedForeground,
@@ -1393,19 +1350,10 @@ const styles = StyleSheet.create((theme) => ({
     lineHeight: 20,
     color: theme.colors.foreground,
   },
-  adaptiveBody: {
+  explainBody: {
     gap: theme.spacing.md,
   },
-  adaptivePara: {
-    fontSize: theme.fontSize.base,
-    lineHeight: 24,
-    color: theme.colors.foreground,
-  },
-  adaptiveStrong: {
-    fontWeight: "800",
-    color: theme.colors.foreground,
-  },
-  adaptiveMuted: {
+  mutedNote: {
     fontSize: theme.fontSize.sm,
     lineHeight: 20,
     color: theme.colors.mutedForeground,

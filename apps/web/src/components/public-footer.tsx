@@ -84,6 +84,11 @@ export function PublicFooter() {
               </Link>
             </li>
             <li>
+              <Link to="/panduan/kalori" className={linkClass}>
+                Cara hitung target makan
+              </Link>
+            </li>
+            <li>
               <Link to="/privasi" className={linkClass}>
                 Privasi
               </Link>

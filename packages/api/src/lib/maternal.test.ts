@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { computeTargets, shiftDate } from "./engine";
+import { MATERNAL_ACTIVITY_FACTOR, bmrMifflin, computeTargets, shiftDate } from "./engine";
 import type { ProfileInput } from "./engine";
 import {
   AKG_LACTATION_KCAL,
@@ -42,7 +42,7 @@ const profile: ProfileInput = {
   weightKg: 62, // current weight, above the pre-pregnancy 55
   targetWeightKg: 50, // an old weight-loss target must never matter in these modes
   targetDate: "2026-12-18",
-  activityLevel: "mid",
+  activityLevel: "light",
 };
 
 const pregnantAt = (days: number, extra: Partial<MaternalState> = {}): MaternalState => ({
@@ -166,10 +166,28 @@ describe("energy: maintenance on the pre-pregnancy basis + AKG 2019 addition", (
     expect(computeMaternalTargets(profile, pregnantAt(196), { today: TODAY }).eatKcal).toBe(base + 300);
   });
 
+  test("the maternal target keeps the old multipliers for the migrated levels (1.25 / 1.35 / 1.45), whatever the standard factors say", () => {
+    // pre-pregnancy 55 kg, 160 cm, age 26 at TODAY: the same basis as `base`
+    const bmr = bmrMifflin(55, 160, 26, "female");
+    const levels = [
+      ["sedentary", 1.25],
+      ["light", 1.35],
+      ["moderate", 1.45],
+      ["active", 1.55],
+      ["very_active", 1.65],
+    ] as const;
+    for (const [level, factor] of levels) {
+      const t = computeMaternalTargets({ ...profile, activityLevel: level }, pregnantAt(100), { today: TODAY });
+      expect(t.factor).toBe(factor);
+      expect(t.tdee).toBe(Math.round((bmr * factor) / 5) * 5);
+      expect(MATERNAL_ACTIVITY_FACTOR[level]).toBe(factor);
+      expect(t.eatKcal).toBe(t.tdee + 300);
+    }
+  });
+
   test("the basis is the pre-pregnancy weight, not today's, and the old target is ignored", () => {
     const t = computeMaternalTargets(profile, pregnantAt(100), { today: TODAY, weightNow: 70 });
     expect(t.tdee).toBe(base);
-    expect(t.formulaTdee).toBe(base);
     expect(t.bmr).toBe(1259);
     expect(t.maternal?.baseKcal).toBe(base);
     expect(t.maternal?.addKcal).toBe(300);
@@ -427,7 +445,7 @@ describe("mode switches through the plan", () => {
       startWeightKg: 62,
       targetWeightKg: 50,
       targetDate: "2027-06-01",
-      activityLevel: "mid",
+      activityLevel: "light",
       ...maternalToRow(maternal),
     }) as unknown as ProfileRow;
   const history = { latestWeightKg: 62, weighIns: [], intake: [], exercise: [] };

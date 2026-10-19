@@ -1,0 +1,135 @@
+{
+  "pickRule": "Pilih berdasarkan hari-harimu sehari-hari, TANPA olahraga yang kamu catat. Olahraga yang tercatat (atau terbaca dari jam) ditambahkan terpisah di atas targetmu, jadi kalau kamu memilih level tinggi karena olahraga juga, kalorinya terhitung dua kali. Ragu? Pilih yang lebih rendah.",
+  "pickTitle": "Seberapa aktif hari-harimu?",
+  "levels": {
+    "sedentary": {
+      "name": "Hampir selalu duduk",
+      "desc": "Kamu duduk hampir seharian dan jarang jalan jauh.",
+      "example": "Kerja kantoran atau WFH, kuliah, ke mana-mana naik kendaraan. Jalan cuma sekitar rumah atau kantor."
+    },
+    "light": {
+      "name": "Ringan bergerak",
+      "desc": "Kamu bergerak ringan tiap hari dan berdiri atau berjalan sebagian hari.",
+      "example": "Guru, kasir, karyawan toko, ibu rumah tangga yang beres-beres seharian, jalan ke warung atau stasiun tiap hari."
+    },
+    "moderate": {
+      "name": "Cukup aktif",
+      "desc": "Kamu berdiri atau berjalan hampir sepanjang hari, atau kerjaanmu cukup fisik.",
+      "example": "Pelayan restoran, perawat, tukang masak, kurir yang sering turun-naik motor, petugas lapangan."
+    },
+    "active": {
+      "name": "Sangat aktif",
+      "desc": "Kerjaanmu fisik berat hampir sepanjang hari.",
+      "example": "Buruh bangunan, petani, kuli angkut, pekerja gudang yang terus mengangkat barang."
+    },
+    "very_active": {
+      "name": "Ekstra aktif",
+      "desc": "Beban fisik harianmu sangat berat, setara atlet.",
+      "example": "Pekerja tambang atau panen manual lebih dari 10 jam, atlet profesional dengan beban harian sangat tinggi."
+    }
+  },
+  "factor": "Pengali {{factor}}",
+  "current": "Dipilih",
+  "impact": {
+    "target": "Target makan: {{kcal}} kkal per hari",
+    "tdee": "Kebutuhan total (TDEE) {{kcal}} kkal",
+    "current": "Ini pilihanmu sekarang",
+    "up": "{{kcal}} kkal lebih banyak dari pilihanmu sekarang",
+    "down": "{{kcal}} kkal lebih sedikit dari pilihanmu sekarang",
+    "same": "Sama dengan pilihanmu sekarang",
+    "floor": "Kena batas minimal makan, jadi level ini belum menambah targetmu."
+  },
+  "maternalNote": "Kamu memakai mode Hamil / Menyusui, jadi targetnya dihitung dengan pengali khusus mode itu. Angka di tiap pilihan sudah memakainya.",
+  "included": "Pengali ini sudah memuat sekitar {{kcal}} kkal gerak harian (di luar efek makan). Jam dan Health hanya menambah targetmu kalau geraknya melebihi angka itu.",
+  "saved": "Level aktivitas disimpan",
+  "recommend": {
+    "title": "Lebih akurat",
+    "intro": "Dua cara untuk memastikan levelmu pas. Ini cuma saran: tidak pernah diterapkan otomatis.",
+    "apply": "Pakai",
+    "applying": "Menyimpan...",
+    "same": "Sama dengan pilihanmu sekarang.",
+    "suggest": "Saran: {{level}}",
+    "empty": "Belum ada saran. Saran dari langkah muncul setelah ada data langkah minimal 5 hari dalam 14 hari terakhir. Saran dari berat badan muncul setelah sedikitnya 3 minggu timbangan dan catatan makan yang rutin (70% hari tercatat).",
+    "steps": {
+      "title": "Dari langkah kakimu",
+      "body": "Rata-rata {{steps}} langkah per hari dalam {{days}} hari terakhir. Menurut indeks langkah Tudor-Locke & Bassett (2004), itu masuk level {{level}}.",
+      "bounds": "Di bawah 5.000 langkah: hampir selalu duduk. 5.000 sampai 7.499: ringan. 7.500 sampai 9.999: cukup aktif. 10.000 sampai 12.499: sangat aktif. 12.500 ke atas: ekstra aktif."
+    },
+    "calibration": {
+      "title": "Dari tren berat badanmu",
+      "body": "Dari catatan makan dan timbanganmu {{days}} hari terakhir ({{logged}} hari tercatat), tubuhmu membakar sekitar {{measured}} kkal per hari di luar olahraga. Rumus dengan levelmu sekarang bilang {{formula}} kkal. Itu paling dekat dengan level {{level}} (pengali {{factor}}).",
+      "measured": "Terukur: {{kcal}} kkal",
+      "formula": "Rumus: {{kcal}} kkal",
+      "note": "Hasilnya bergantung pada seberapa lengkap kamu mencatat. Angka 7.700 kkal per kg hanyalah pendekatan, karena tubuh menyesuaikan diri saat berat berubah (Hall dkk. 2011)."
+    }
+  },
+  "credit": {
+    "title": "Olahraga dan gerak ekstra",
+    "how": "Targetmu sudah memuat gerak harian rata-rata sesuai levelmu (sekitar {{kcal}} kkal). Jam atau Health hanya menambah target kalau gerak terukurmu hari itu melebihi angka itu, dan tidak pernah menguranginya. Latihan yang kamu catat di luar total jam juga ditambahkan.",
+    "deskNote": "Contoh: HP yang ditinggal di meja hanya mencatat sekitar 10 kkal, jadi targetmu tetap sama.",
+    "pct": {
+      "title": "Persen yang dihitung",
+      "body": "Berapa persen dari kelebihan gerak yang boleh kamu makan. Dari 7 jam tangan yang diuji, tidak ada yang galat energinya di bawah 20% (Shcherbina dkk. 2017), jadi 75% itu titik tengah yang aman.",
+      "example": "Misalnya kelebihan geraknya 400 kkal: dengan {{pct}}% kamu dapat tambahan {{added}} kkal."
+    },
+    "cap": {
+      "title": "Batas tambahan",
+      "body": "Tambahan per hari tidak akan melewati angka ini, walau jam mencatat lebih. Ini melindungi dari bacaan yang meleset atau hari olahraga ekstrem.",
+      "example": "Dengan batas {{cap}} kkal, seberapa pun besar kelebihannya, tambahan berhenti di {{cap}} kkal.",
+      "exampleNone": "Tanpa batas, {{pct}}% penuh dari kelebihan gerak ditambahkan."
+    },
+    "off": "Fitur tambahan ini mati, jadi targetmu hanya dari levelmu. Gerak ekstra tidak menambah apa-apa."
+  },
+  "sources": {
+    "title": "Sumber",
+    "intro": "Dari mana angka-angka ini berasal.",
+    "open": "Buka sumber",
+    "items": {
+      "mifflin": {
+        "ref": "Mifflin MD dkk. A new predictive equation for resting energy expenditure in healthy individuals. Am J Clin Nutr 1990;51(2):241-247.",
+        "use": "Rumus BMR: kebutuhan tubuh saat istirahat."
+      },
+      "fao": {
+        "ref": "FAO/WHO/UNU. Human energy requirements: report of a Joint FAO/WHO/UNU Expert Consultation. FAO Food and Nutrition Technical Report Series 1, Roma, 2004.",
+        "use": "Total pengeluaran energi sebagai kelipatan BMR (PAL) dan rentang tingkat aktivitas. Pengali 1,2 sampai 1,9 adalah pengali standar yang lazim dipakai bersama BMR; yang dirujuk dari laporan ini adalah konsepnya."
+      },
+      "westerterp": {
+        "ref": "Westerterp KR. Diet induced thermogenesis. Nutr Metab (Lond) 2004;1:5.",
+        "use": "Efek panas makanan sekitar 5 sampai 15% dari pengeluaran harian (dipakai 10%). Sudah ada di dalam pengali, jadi tidak ditambah lagi."
+      },
+      "shcherbina": {
+        "ref": "Shcherbina A dkk. Accuracy in wrist-worn, sensor-based measurements of heart rate and energy expenditure in a diverse cohort. J Pers Med 2017;7(2):3.",
+        "use": "Tidak ada dari 7 jam tangan yang diuji yang galat energinya di bawah 20%. Karena itu hanya sebagian gerak yang dihitung, dan hanya untuk menambah target."
+      },
+      "tudor": {
+        "ref": "Tudor-Locke C, Bassett DR Jr. How many steps/day are enough? Preliminary pedometer indices for public health. Sports Med 2004;34(1):1-8.",
+        "use": "Indeks langkah per hari untuk saran level dari langkah kakimu."
+      },
+      "hall": {
+        "ref": "Hall KD dkk. Quantification of the effect of energy imbalance on bodyweight. Lancet 2011;378(9793):826-837.",
+        "use": "Perubahan berat karena selisih energi bersifat dinamis, jadi 7.700 kkal per kg hanya pendekatan. Karena itu saran dari tren berat badan hanya saran."
+      }
+    }
+  },
+  "notice": {
+    "title": "Target makanmu sekarang memakai gerak harian",
+    "body": "Dulu target makan hanya dari BMR, kebutuhan tubuh saat diam. Sekarang dari TDEE: BMR dikali pengali level aktivitasmu, sudah termasuk gerak harian dan efek makan. Levelmu dipindahkan otomatis dari pilihan lama, jadi cek apakah sudah pas.",
+    "change": "Target dasar: {{old}} → {{new}} kkal per hari",
+    "same": "Target dasarmu tidak berubah: {{new}} kkal per hari",
+    "level": "Levelmu sekarang: {{level}} (pengali {{factor}})",
+    "hint": "Pilih berdasarkan hari-harimu tanpa olahraga yang kamu catat. Olahraga ditambahkan terpisah.",
+    "action": "Atur level aktivitas",
+    "dismiss": "Tutup"
+  },
+  "needs": {
+    "formula": "BMR {{bmr}} × {{factor}} = TDEE {{tdee}}",
+    "included": "Pengali {{factor}} sudah memuat sekitar {{kcal}} kkal gerak harian di luar efek makan. Hanya gerak terukur di atas angka itu yang menambah targetmu.",
+    "extra": {
+      "label": "Gerak di atas pengali",
+      "name": "Tambahan hari ini",
+      "body": "Hari ini geraknya melebihi yang sudah ada di pengalimu. {{pct}}% dari kelebihannya ditambahkan ke jatah makanmu."
+    },
+    "none": "Belum ada gerak di atas pengali hari ini, jadi belum ada yang ditambahkan."
+  },
+  "readMore": "Baca penjelasan lengkap"
+}

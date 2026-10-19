@@ -6,27 +6,31 @@ import { needsBreakdown } from "@joyorogo/api/lib/engine";
 import type { Targets } from "@joyorogo/api/lib/engine";
 import { MAX_SURPLUS_KCAL, MIN_SURPLUS_KCAL } from "@joyorogo/api/lib/gain";
 
-import { fmtInt } from "@/lib/format";
+import { EnergySources } from "@/components/energy-sources";
+import { storedAddBackSettings } from "@/lib/exercise-credit-prefs";
+import { fmtFactor, fmtInt } from "@/lib/format";
 
-/** "Kebutuhan harianmu": BMR -> minus cut -> eating target. Hamil/Menyusui: BMR -> activity -> TDEE -> AKG addition -> target. */
+/**
+ * "Kebutuhan harianmu": BMR x factor = TDEE -> minus cut -> eating target. Hamil/Menyusui: TDEE -> AKG addition ->
+ * target. Movement measured beyond the factor comes on top; the sources behind every number close the sheet.
+ */
 export function NeedsSheet({
   open,
   onOpenChange,
   targets,
-  activityLabel,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   targets: Targets;
-  activityLabel: string;
 }) {
-  const { t } = useTranslation(["settings", "maternal", "gain"]);
+  const { t } = useTranslation(["settings", "maternal", "gain", "energy", "home"]);
   const needs = needsBreakdown(targets);
   const maternal = targets.maternal;
   const gain = targets.gain;
   const cutKey = needs.cutKcal > 0 ? "cut" : "cutNone";
+  const hasExtra = needs.exerciseKcal > 0;
   const step = (
-    key: "bmr" | "activity" | "cut" | "cutNone" | "target",
+    key: "bmr" | "activity" | "tdee" | "cut" | "cutNone" | "target",
     value: string,
     body: string,
   ) => ({
@@ -39,20 +43,22 @@ export function NeedsSheet({
 
   const steps = [
     step("bmr", fmtInt(needs.bmrKcal), t("settings:plan.needs.bmr.body")),
+    step(
+      "activity",
+      `+ ${fmtInt(needs.activityKcal)}`,
+      t("settings:plan.needs.activity.body", { level: t(`energy:levels.${needs.level}.name`) }),
+    ),
+    maternal
+      ? {
+          key: "tdee",
+          label: t("settings:plan.needs.tdee.label"),
+          name: t("maternal:needs.baseName"),
+          value: fmtInt(needs.tdeeKcal),
+          body: t("maternal:needs.baseBody"),
+        }
+      : step("tdee", fmtInt(needs.tdeeKcal), t("settings:plan.needs.tdee.body")),
     ...(maternal
       ? [
-          step(
-            "activity",
-            `+ ${fmtInt(needs.activityKcal)}`,
-            t("settings:plan.needs.activity.body", { level: activityLabel }),
-          ),
-          {
-            key: "base",
-            label: t("settings:plan.needs.tdee.label"),
-            name: t("maternal:needs.baseName"),
-            value: fmtInt(needs.tdeeKcal),
-            body: t("maternal:needs.baseBody"),
-          },
           {
             key: "add",
             label: t(`maternal:needs.add.${maternal.stage}`),
@@ -79,7 +85,26 @@ export function NeedsSheet({
             ),
           ]),
     step("target", fmtInt(needs.targetKcal), t("settings:plan.needs.target.body")),
+    ...(hasExtra
+      ? [
+          {
+            key: "extra",
+            label: t("energy:needs.extra.label"),
+            name: t("energy:needs.extra.name"),
+            value: `+ ${fmtInt(needs.exerciseKcal)}`,
+            body: t("energy:needs.extra.body", { pct: storedAddBackSettings().pct }),
+          },
+          {
+            key: "budget",
+            label: t("settings:plan.needs.target.label"),
+            name: t("home:explain.sum.target"),
+            value: fmtInt(needs.budgetKcal),
+            body: t("settings:plan.needs.target.body"),
+          },
+        ]
+      : []),
   ];
+  const finalKey = steps.at(-1)?.key;
 
   return (
     <Sheet
@@ -88,10 +113,22 @@ export function NeedsSheet({
       title={t("settings:plan.needs.title")}
       description={t("settings:plan.needs.intro")}
     >
+      <div className="mb-3 rounded-2xl bg-makan-soft p-4">
+        <p className="text-[0.9375rem] leading-snug font-extrabold text-makan-ink tabular-nums">
+          {t("energy:needs.formula", {
+            bmr: fmtInt(needs.bmrKcal),
+            factor: fmtFactor(needs.factor),
+            tdee: fmtInt(needs.tdeeKcal),
+          })}
+        </p>
+        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground tabular-nums">
+          {t("energy:needs.included", { factor: fmtFactor(needs.factor), kcal: fmtInt(needs.includedKcal) })}
+        </p>
+      </div>
       <ol className="space-y-2">
         {steps.map((step) => {
-          const final = step.key === "target";
-          const total = step.key === "base";
+          const final = step.key === finalKey;
+          const total = step.key === "tdee";
           return (
             <li
               key={step.key}
@@ -136,7 +173,9 @@ export function NeedsSheet({
             <span className="font-semibold">{t("gain:estimate.title")}.</span> {t("gain:estimate.body")}
           </p>
         )}
+        {!hasExtra && <p>{t("energy:needs.none")}</p>}
       </div>
+      <EnergySources className="mt-6" />
     </Sheet>
   );
 }

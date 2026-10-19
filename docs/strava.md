@@ -40,7 +40,7 @@ full design, with the same reasoning, is in `watch-fit/docs/strava.md` section 1
    `rogo_linked_at` is the only link ever set. The `/internal/joyofit/strava/*` routes exist but need your own client credentials.
 
 Imported rows follow Strava's API policy: owner-only (excluded from groups, challenges, feed and shares), never sent to AI,
-not used in adaptive plans; they are deleted on disconnect and on deauthorization.
+not used in the weight-trend activity-level recommendation; they are deleted on disconnect and on deauthorization.
 
 ## Retention: 7 days (API Policy 6.2)
 

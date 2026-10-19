@@ -3,13 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 
-import { ACTIVITY_LABELS, needsBreakdown } from "@joyorogo/api/lib/engine";
+import { needsBreakdown } from "@joyorogo/api/lib/engine";
 import type { Targets } from "@joyorogo/api/lib/engine";
+import { DEFAULT_ADD_BACK_SETTINGS } from "@joyorogo/api/lib/exercise-credit";
 import { MAX_SURPLUS_KCAL, MIN_SURPLUS_KCAL } from "@joyorogo/api/lib/gain";
+import { fmtNumber } from "@joyorogo/i18n";
 
+import { EnergySources } from "@/components/energy-sources";
 import { Num, Sheet, Text } from "@/components/ui";
+import { loadAddBackSettings } from "@/src/lib/exercise-credit-prefs";
 import { fmtInt } from "@/utils/format";
-import { orpc } from "@/utils/orpc";
 
 type Step = {
   key: string;
@@ -22,9 +25,9 @@ type Step = {
 };
 
 /**
- * Sheet "Kebutuhan harianmu", straight from needsBreakdown (no formula of its own). Normal plan: BMR -> potongan ->
- * target makan (no activity is assumed; counted exercise is added on Beranda). Hamil / Menyusui: BMR -> aktivitas ->
- * TDEE -> tambahan AKG -> target.
+ * Sheet "Kebutuhan harianmu", straight from needsBreakdown (no formula of its own). BMR -> pengali aktivitas -> TDEE ->
+ * potongan / surplus / tambahan AKG (Hamil, Menyusui) -> target makan, then the movement measured above the factor,
+ * what the factor already holds, and the sources.
  */
 export function NeedsSheet({
   visible,
@@ -35,12 +38,16 @@ export function NeedsSheet({
   onClose: () => void;
   targets: Targets;
 }) {
-  const { t } = useTranslation(["settings", "maternal", "gain"]);
-  const profile = useQuery({ ...orpc.profile.myProfile.queryOptions(), enabled: visible && !!targets.maternal });
+  const { t } = useTranslation(["settings", "maternal", "gain", "energy"]);
   const needs = needsBreakdown(targets);
   const maternal = targets.maternal ?? null;
   const gain = targets.gain ?? null;
-  const level = profile.data?.profile?.activityLevel as "low" | "mid" | "high" | undefined;
+  // Only the "movement above the factor" row needs the percentage in force.
+  const credit = useQuery({
+    queryKey: ["add-back-settings"],
+    queryFn: loadAddBackSettings,
+    enabled: visible && needs.exerciseKcal > 0,
+  });
 
   const bmrStep: Step = {
     key: "bmr",
@@ -49,6 +56,14 @@ export function NeedsSheet({
     body: t("plan.needs.bmr.body"),
     sign: "",
     kcal: needs.bmrKcal,
+  };
+  const activityStep: Step = {
+    key: "activity",
+    label: t("plan.needs.activity.label"),
+    name: t("plan.needs.activity.name"),
+    body: t("plan.needs.activity.body", { level: t(`energy:levels.${needs.level}.name`) }),
+    sign: "+",
+    kcal: needs.activityKcal,
   };
   const targetStep: Step = {
     key: "target",
@@ -63,14 +78,7 @@ export function NeedsSheet({
   const steps: Step[] = maternal
     ? [
         bmrStep,
-        {
-          key: "activity",
-          label: t("plan.needs.activity.label"),
-          name: t("plan.needs.activity.name"),
-          body: t("plan.needs.activity.body", { level: level ? ACTIVITY_LABELS[level] : "" }),
-          sign: "+",
-          kcal: needs.activityKcal,
-        },
+        activityStep,
         {
           key: "tdee",
           label: t("plan.needs.tdee.label"),
@@ -92,6 +100,16 @@ export function NeedsSheet({
       ]
     : [
         bmrStep,
+        activityStep,
+        {
+          key: "tdee",
+          label: t("plan.needs.tdee.label"),
+          name: t("plan.needs.tdee.name"),
+          body: t("plan.needs.tdee.body"),
+          sign: "=",
+          kcal: needs.tdeeKcal,
+          strong: true,
+        },
         gain
           ? {
               key: "surplus",
@@ -121,10 +139,31 @@ export function NeedsSheet({
         targetStep,
       ];
 
+  // Movement measured above the factor: a step when something is counted today, a plain note otherwise.
+  const extraStep: Step | null =
+    needs.exerciseKcal > 0
+      ? {
+          key: "extra",
+          label: t("energy:needs.extra.label"),
+          name: t("energy:needs.extra.name"),
+          body: t("energy:needs.extra.body", { pct: credit.data?.pct ?? DEFAULT_ADD_BACK_SETTINGS.pct }),
+          sign: "+",
+          kcal: needs.exerciseKcal,
+        }
+      : null;
+  const shown = extraStep ? [...steps, extraStep] : steps;
+
   return (
     <Sheet visible={visible} onClose={onClose} title={t("plan.needs.title")}>
       <Text style={styles.intro}>{t("plan.needs.intro")}</Text>
-      {steps.map((step) => (
+      <Text style={styles.formula}>
+        {t("energy:needs.formula", {
+          bmr: fmtInt(needs.bmrKcal),
+          factor: fmtNumber(needs.factor, 3),
+          tdee: fmtInt(needs.tdeeKcal),
+        })}
+      </Text>
+      {shown.map((step) => (
         <View key={step.key} style={[styles.step, step.strong && styles.stepStrong]}>
           <View style={styles.stepHead}>
             <View style={styles.stepTitle}>
@@ -142,6 +181,10 @@ export function NeedsSheet({
           <Text style={styles.stepBody}>{step.body}</Text>
         </View>
       ))}
+      {extraStep ? null : <Text style={styles.note}>{t("energy:needs.none")}</Text>}
+      <Text style={styles.note}>
+        {t("energy:needs.included", { factor: fmtNumber(needs.factor, 3), kcal: fmtInt(needs.includedKcal) })}
+      </Text>
       {maternal ? <Text style={styles.note}>{t("maternal:needs.noDeficit")}</Text> : null}
       {gain ? (
         <>
@@ -153,11 +196,7 @@ export function NeedsSheet({
       {!maternal && !gain && !needs.maintenance && needs.deficitKcal > 0 ? (
         <Text style={styles.note}>{t("plan.needs.burnNote", { deficit: fmtInt(needs.deficitKcal) })}</Text>
       ) : null}
-      {!maternal && needs.adaptive ? (
-        <Text style={styles.note}>
-          {t("plan.needs.adaptive", { formula: fmtInt(needs.formulaTdeeKcal) })}
-        </Text>
-      ) : null}
+      <EnergySources plain />
     </Sheet>
   );
 }
@@ -167,6 +206,12 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
     lineHeight: 20,
+  },
+  formula: {
+    fontSize: theme.fontSize.base,
+    fontWeight: "700",
+    lineHeight: 22,
+    color: theme.colors.foreground,
   },
   step: {
     gap: theme.spacing.xs,

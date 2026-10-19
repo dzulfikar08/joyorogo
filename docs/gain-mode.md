@@ -39,15 +39,16 @@ three more statuses, `remainingKcal` gets a sibling (`gainRemaining`).
 
 Target = **TDEE + surplus** (`computeTargets`, `Targets.gain`):
 
-- TDEE is the usual Mifflin-St Jeor x activity multiplier (or the measured TDEE within +-15%), rounded to 5 in
-  this mode so `tdee + surplus` is exactly the target on screen. Planned exercise (Bakar) is not added to the
+- TDEE is Mifflin-St Jeor BMR x the activity factor of the chosen level (1.2 to 1.9, docs/energy-model.md), rounded
+  to 5 in this mode so `tdee + surplus` is exactly the target on screen. The measured TDEE is never applied to the
+  plan; it only recommends a level. Planned exercise (Bakar) is not added to the
   eating target; if a user trains hard and the weight does not move in 2 to 3 weeks the copy says to eat a
   little more (`gain:plan.burnNote`).
 - **Surplus = gap x 7700 / days to the target date, rounded to 5, clamped to +200..+700 kcal/day.**
   The 7700 kcal/kg figure is the usual approximation (Wishnofsky 1958: 3500 kcal per pound of body weight gained
   or lost). It is an approximation: gained weight is partly lean mass and the real cost per kg moves with the mix
-  and with the person. That is why the plan watches the trend and the app keeps measured TDEE, instead of trusting
-  the constant.
+  and with the person. That is why the plan watches the trend and the app can recommend an activity level from the measured TDEE
+  (docs/energy-model.md), instead of trusting the constant.
 - Pace = surplus x 7 / 7700 kg per week, shown also as percent of body weight (`GainInfo.paceKgPerWeek`,
   `pacePct`).
 
@@ -146,7 +147,7 @@ same error flips: an over-estimate means the user ate less than the diary says, 
 surplus without seeing it. The accuracy log shows the estimator is not biased high overall (2026-10-17 A/B:
 bias about -5% to 0%, 36-41% of runs under, 16-22% over), so the effect depends on the dish, but it matters for
 this mode. What the app does: `gain:estimate.*` tells gain users that photo calories are estimates and to judge by
-the weight trend over 2 to 3 weeks, and measured TDEE (clamped to +-15%) absorbs a steady bias.
+the weight trend over 2 to 3 weeks; the weight-trend recommendation of the activity level (docs/energy-model.md) notices a steady bias.
 
 **Proposed option (not built):** an `estimateLean` per-user setting with `high` (today's behavior, default for
 lose and maintain) and `neutral` (default for gain). `neutral` would not re-prompt the model; it would only change
@@ -185,8 +186,8 @@ BMI, flags), `day.summary` returns `weightGainedKg`, gain milestones, gain ideas
 
 ## Known limits
 
-- Measured TDEE (28-day energy balance) uses 7700 kcal/kg for the weight slope, so a lean-heavy gain (cheaper per
-  kg) reads the TDEE a little low; the +-15% clamp bounds it.
+- Measured TDEE (28-day energy balance, used only to recommend an activity level) uses 7700 kcal/kg for the weight
+  slope, so a lean-heavy gain (cheaper per kg) reads the TDEE a little low.
 - The streak counts diary kcal, so under-logging breaks it without meaning under-eating.
 - No web push for the evening reminder (see Nudges). The reminder and every native screen need a native build to
   be seen on a device; the web and server parts are live without one.

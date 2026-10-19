@@ -1,6 +1,8 @@
-// "Sisa" adds back real activity. The eat target is BMR less the plan's deficit (engine.ts computeTargets): no daily
-// movement is assumed, so what the person really moved is added on top. This file is the one place that decides how
-// much. Pure: no i18n, no database. Settings live in the account preferences (rogo-prefs.ts) and are read by the server
+// "Sisa" adds back real activity, but only what goes beyond the activity factor. The eat target is TDEE = BMR x the
+// person's activity factor, less the plan's deficit (engine.ts computeTargets): the factor already contains an average
+// day of movement, so measured activity can only RAISE the budget, by what exceeds that included movement (a phone
+// left on a desk that logs 10 kcal changes nothing). This file is the one place that decides how much. Pure: no i18n,
+// no database. Settings live in the account preferences (rogo-prefs.ts) and are read by the server
 // (exercise-credit-store.ts). Contract for humans: docs/energy-model.md.
 
 /** 500 / 1000 / 1500 kcal a day, or no cap. */
@@ -10,23 +12,16 @@ export type AddBackCap = (typeof ADD_BACK_CAPS)[number];
 /** Share of the day's activity that is counted, in percent. */
 export const ADD_BACK_PCT = { min: 50, max: 100, step: 5 } as const;
 
-/** "Aktivitas harian (perkiraan)": kcal for a day with no all-day data. None / light / moderate / active. */
-export const ASSUMED_ACTIVITY_KCAL = [0, 150, 300, 500] as const;
-export type AssumedActivityKcal = (typeof ASSUMED_ACTIVITY_KCAL)[number];
-
 export interface AddBackSettings {
   enabled: boolean;
   pct: number;
   cap: AddBackCap;
-  /** added to the base on days without all-day data; not multiplied by `pct` */
-  assumedKcal: AssumedActivityKcal;
 }
 
 export const DEFAULT_ADD_BACK_SETTINGS: AddBackSettings = {
   enabled: true,
   pct: 75,
   cap: 1000,
-  assumedKcal: 0,
 };
 
 /** The preference keys behind the settings (rogo-prefs.ts SPECS), one record each. */
@@ -34,7 +29,6 @@ export const ADD_BACK_PREF_KEYS = [
   "exercise.addBack.enabled",
   "exercise.addBack.pct",
   "exercise.addBack.cap",
-  "exercise.assumedActive",
 ] as const;
 export type AddBackPrefKey = (typeof ADD_BACK_PREF_KEYS)[number];
 
@@ -50,7 +44,6 @@ export const ADD_BACK_SANITIZERS: Record<AddBackPrefKey, (value: unknown) => unk
   "exercise.addBack.enabled": (value) => (typeof value === "boolean" ? value : undefined),
   "exercise.addBack.pct": (value) => (isPct(value) ? value : undefined),
   "exercise.addBack.cap": (value) => ADD_BACK_CAPS.find((cap) => cap === value),
-  "exercise.assumedActive": (value) => ASSUMED_ACTIVITY_KCAL.find((kcal) => kcal === value),
 };
 
 /** Settings from the stored preference values: a missing or malformed one falls back to its default. */
@@ -60,7 +53,6 @@ export function addBackSettings(values: Partial<Record<AddBackPrefKey, unknown>>
     enabled: (pick("exercise.addBack.enabled") as boolean | undefined) ?? DEFAULT_ADD_BACK_SETTINGS.enabled,
     pct: (pick("exercise.addBack.pct") as number | undefined) ?? DEFAULT_ADD_BACK_SETTINGS.pct,
     cap: (pick("exercise.addBack.cap") as AddBackCap | undefined) ?? DEFAULT_ADD_BACK_SETTINGS.cap,
-    assumedKcal: (pick("exercise.assumedActive") as AssumedActivityKcal | undefined) ?? DEFAULT_ADD_BACK_SETTINGS.assumedKcal,
   };
 }
 
@@ -122,26 +114,42 @@ export interface ExerciseCredit {
   /** the day's trusted all-day active energy; null when there is none */
   allDayKcal: number | null;
   allDaySource: AllDaySource | null;
-  /** recorded workouts of the watch and health stores: replaced by the all-day total when there is one, counted when not */
+  /** the movement the person's activity factor already contains (Targets.includedKcal); the all-day total counts only beyond it */
+  includedKcal: number;
+  /** recorded workouts of the watch and health stores: inside the all-day total when there is one, counted on top of the factor when not */
   deviceWorkoutKcal: number;
   /** recorded workouts that are never inside the all-day total (manual, Strava, JoyoFit strength without the watch's total) */
   otherWorkoutKcal: number;
-  /** the day's activity: (all-day total, else the device workouts) + other workouts; what pct is taken of */
+  /** COMPAT, old clients (native builds up to 1932, web tabs opened before the TDEE deploy) read it on Beranda and in snack advice. Always 0 now. */
+  assumedKcal: 0;
+  /** the day's measured activity: (all-day total, else the device workouts) + other workouts; the "terbakar" of the exercise screens */
   activeKcal: number;
-  /** added to the base on a day without all-day data (not multiplied by pct); 0 on a day with it */
-  assumedKcal: number;
+  /** the part of the day's activity that goes beyond the factor: what pct is taken of */
+  extraKcal: number;
   /** what is added to the day's budget for activity; 0 while the setting is off */
   countedKcal: number;
   /** the cap cut the amount */
   capped: boolean;
 }
 
+/** pct of `extraKcal`, cut at `cap`; 0 while the setting is off. */
+function countedOf(extraKcal: number, credit: Pick<ExerciseCredit, "enabled" | "pct" | "cap">) {
+  const share = (extraKcal * credit.pct) / 100;
+  const limit = credit.cap === "none" ? Infinity : credit.cap;
+  return {
+    countedKcal: credit.enabled ? Math.round(Math.min(limit, share)) : 0,
+    capped: credit.enabled && share > limit,
+  };
+}
+
 /**
- * activeKcal = (allDay, or the device workouts when there is no all-day total) + other workouts;
- * counted = min(cap, pct x activeKcal). A valid all-day total is trusted over the separate workout entries of the watch
- * and the health stores: it already contains them and is the better measure (an imported workout can carry
- * an inflated estimate). Without one the workouts count and the assumed activity of the setting is added to the
- * base instead.
+ * The activity that raises the budget:
+ *   extra = max(0, allDay - included) + workouts that are not inside the all-day total
+ * and, on a day without a valid all-day reading, the recorded device workouts (the factor is the person's daily life
+ * without logged workouts, so those are on top of it) + the other workouts.
+ * counted = min(cap, pct x extra). A valid all-day total is trusted over the separate workout entries of the watch and
+ * the health stores: it already contains them and is the better measure (an imported workout can carry an inflated
+ * estimate). Activity never lowers the base: below `includedKcal` the all-day total adds nothing.
  */
 export function exerciseCredit(input: {
   settings: AddBackSettings;
@@ -149,6 +157,8 @@ export function exerciseCredit(input: {
   readings: readonly AllDayReading[];
   /** the day's step count; null when no step source synced */
   steps: number | null;
+  /** Targets.includedKcal of the plan the credit is added to */
+  includedKcal: number;
 }): ExerciseCredit {
   const { settings } = input;
   const allDay = allDayActive(input.readings, input.steps);
@@ -160,26 +170,26 @@ export function exerciseCredit(input: {
     else otherWorkoutKcal += row.kcal;
   }
   const activeKcal = (allDay?.kcal ?? deviceWorkoutKcal) + otherWorkoutKcal;
-  const share = (activeKcal * settings.pct) / 100;
-  const limit = settings.cap === "none" ? Infinity : settings.cap;
+  const extraKcal = (allDay ? Math.max(0, allDay.kcal - input.includedKcal) : deviceWorkoutKcal) + otherWorkoutKcal;
   return {
     enabled: settings.enabled,
     pct: settings.pct,
     cap: settings.cap,
     allDayKcal: allDay ? Math.round(allDay.kcal) : null,
     allDaySource: allDay?.source ?? null,
+    includedKcal: Math.round(input.includedKcal),
+    assumedKcal: 0,
     deviceWorkoutKcal: Math.round(deviceWorkoutKcal),
     otherWorkoutKcal: Math.round(otherWorkoutKcal),
     activeKcal: Math.round(activeKcal),
-    assumedKcal: allDay ? 0 : settings.assumedKcal,
-    countedKcal: settings.enabled ? Math.round(Math.min(limit, share)) : 0,
-    capped: settings.enabled && share > limit,
+    extraKcal: Math.round(extraKcal),
+    ...countedOf(extraKcal, settings),
   };
 }
 
-/** The day's budget: the plan's base eat target plus the assumed activity (days without all-day data) and the counted activity. */
-export function budgetKcal(baseEatKcal: number, credit: Pick<ExerciseCredit, "assumedKcal" | "countedKcal">): number {
-  return baseEatKcal + credit.assumedKcal + credit.countedKcal;
+/** The day's budget: the plan's base eat target plus the counted activity beyond the factor. */
+export function budgetKcal(baseEatKcal: number, credit: Pick<ExerciseCredit, "countedKcal">): number {
+  return baseEatKcal + credit.countedKcal;
 }
 
 /**
@@ -199,21 +209,8 @@ export function dayActiveKcal(credit: Pick<ExerciseCredit, "activeKcal"> | null 
 export function shiftWorkoutKcal(credit: ExerciseCredit, deltaKcal: number): ExerciseCredit {
   const otherWorkoutKcal = Math.max(0, credit.otherWorkoutKcal + deltaKcal);
   const activeKcal = (credit.allDayKcal ?? credit.deviceWorkoutKcal) + otherWorkoutKcal;
-  const share = (activeKcal * credit.pct) / 100;
-  const limit = credit.cap === "none" ? Infinity : credit.cap;
-  return {
-    ...credit,
-    otherWorkoutKcal,
-    activeKcal,
-    countedKcal: credit.enabled ? Math.round(Math.min(limit, share)) : 0,
-    capped: credit.enabled && share > limit,
-  };
+  const extraKcal =
+    (credit.allDayKcal === null ? credit.deviceWorkoutKcal : Math.max(0, credit.allDayKcal - credit.includedKcal)) +
+    otherWorkoutKcal;
+  return { ...credit, otherWorkoutKcal, activeKcal, extraKcal, ...countedOf(extraKcal, credit) };
 }
-
-/** Whether the one-time "how Sisa is counted changed" notice shows: an account made before the change, not yet closed. */
-export function showAddBackNotice(input: { accountCreatedAtMs: number; dismissed: boolean }): boolean {
-  return !input.dismissed && input.accountCreatedAtMs < ADD_BACK_NOTICE_BEFORE_MS;
-}
-
-/** Accounts created before this moment (the deploy of the second change) see the notice. */
-export const ADD_BACK_NOTICE_BEFORE_MS = Date.UTC(2026, 9, 18, 13, 30, 0);

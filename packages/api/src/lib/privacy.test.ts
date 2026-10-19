@@ -31,7 +31,7 @@ async function seedUserData(userId: string, tag: string) {
   await client.executeMultiple(
     `INSERT INTO "user" (id, name, email) VALUES ('${userId}', '${tag}', '${tag}@test.id');
      INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level)
-       VALUES ('${userId}', 1995, 'male', 170, 80, 70, '2026-12-01', 'mid');
+       VALUES ('${userId}', 1995, 'male', 170, 80, 70, '2026-12-01', 'light');
      INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES
        ('w1-${userId}', '${userId}', '2026-09-01', 79.5),
        ('w2-${userId}', '${userId}', '2026-09-02', 79.2);

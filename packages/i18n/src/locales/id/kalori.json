@@ -1,0 +1,93 @@
+{
+  "title": "Cara JoyoRogo menghitung target makanmu",
+  "subtitle": "Dari BMR, level aktivitas, sampai gerak ekstra dari jam atau HP. Lengkap dengan angka contoh dan sumbernya.",
+  "toc": "Di halaman ini",
+  "why": {
+    "title": "BMR dan TDEE: apa bedanya",
+    "p1": "BMR adalah energi yang dipakai tubuhmu saat istirahat total: napas, jantung, menjaga suhu badan. Dihitung dari berat, tinggi, umur, dan jenis kelamin dengan rumus Mifflin-St Jeor (1990).",
+    "p2": "TDEE adalah total energi yang kamu bakar dalam sehari: BMR ditambah gerak sehari-hari dan energi untuk mencerna makanan. Makan sebanyak TDEE, beratmu tetap. Target makan JoyoRogo dimulai dari TDEE, lalu dikurangi defisit untuk menurunkan berat (atau ditambah surplus untuk menaikkannya).",
+    "p3": "Dulu titik awalnya BMR saja. Itu terlalu rendah untuk hampir semua orang, karena tidak ada gerak harian dan energi mencerna makanan di dalamnya."
+  },
+  "formula": {
+    "title": "TDEE = BMR × pengali",
+    "p1": "TDEE dihitung dari BMR dikali pengali aktivitas, angka standar yang dipakai luas, dari 1,2 sampai 1,9 tergantung seberapa aktif hari-harimu. Kamu yang memilih levelnya.",
+    "p2": "Mencerna dan menyerap makanan juga memakai energi, disebut efek panas makanan (TEF): sekitar 5 sampai 15% dari pengeluaran harian (Westerterp 2004), JoyoRogo memakai 10%. Angka itu sudah ada di dalam pengali, karena pengali berasal dari total pengeluaran. Karena itu TEF tidak ditambahkan lagi.",
+    "chart": "Contoh untuk level {{level}} (pengali {{factor}}): TDEE terdiri dari BMR, gerak harian yang sudah termasuk di pengali, dan efek makan.",
+    "chartLabel": "Diagram batang bertumpuk: BMR {{bmr}} kkal, gerak harian {{move}} kkal, efek makan {{tef}} kkal, total TDEE {{tdee}} kkal.",
+    "bmr": "BMR (tubuh diam)",
+    "move": "Gerak harian di dalam pengali",
+    "tef": "Efek makan (sekitar 10% dari TDEE)",
+    "total": "TDEE"
+  },
+  "levels": {
+    "title": "Lima level aktivitas",
+    "intro": "Tiap level punya pengali standar. Ini penjelasan, contoh, dan seberapa besar TDEE-nya untuk contoh di bawah.",
+    "tip": "Ragu antara dua level? Pilih yang lebih rendah, lalu lihat apakah beratmu turun sesuai rencana. Aplikasi juga memberi saran dari langkah kakimu dan dari tren beratmu (lihat di bawah).",
+    "chart": "Makin tinggi levelnya, makin besar TDEE. Bagian pekat adalah BMR yang sama untuk semua level.",
+    "chartLabel": "Diagram batang TDEE untuk kelima level.",
+    "bmrLegend": "BMR",
+    "restLegend": "Tambahan dari pengali"
+  },
+  "credit": {
+    "title": "Jam dan HP hanya menambah, tidak pernah mengurangi",
+    "p1": "Pengalimu sudah memuat gerak harian rata-rata. Jadi data dari jam, HP, atau Health tidak dihitung dari nol: yang dihitung hanya gerak terukur yang melebihi gerak yang sudah ada di pengalimu.",
+    "p2": "Gerak yang sudah ada di pengali = TDEE − BMR − 10% TDEE (bagian efek makan). Untuk contoh level {{level}} itu sekitar {{included}} kkal.",
+    "p3": "Kelebihannya dikali persen yang kamu atur (bawaannya {{pct}}%) dan tambahan per hari dibatasi (bawaannya {{cap}} kkal). Persennya di bawah 100 karena jam tangan belum akurat untuk energi: dari 7 jam tangan yang diuji, tidak satu pun galatnya di bawah 20% (Shcherbina dkk. 2017). Latihan yang kamu catat di luar total jam, misalnya manual, ditambahkan dengan cara yang sama.",
+    "chart": "Tiga contoh hari untuk level {{level}}. Garis putus-putus adalah gerak yang sudah ada di pengali ({{included}} kkal). Hanya bagian di atas garis yang dihitung.",
+    "chartLabel": "Diagram tiga hari: gerak terukur {{a}}, {{b}}, dan {{c}} kkal terhadap garis {{included}} kkal.",
+    "legendBelow": "Sudah ada di pengali, tidak ditambah",
+    "legendAbove": "Di atas pengali, dihitung",
+    "line": "Garis pengali",
+    "measured": "Terukur {{kcal}} kkal",
+    "added": "Tambah {{kcal}} kkal",
+    "none": "Tidak menambah",
+    "days": {
+      "desk": "HP di meja",
+      "normal": "Hari biasa",
+      "busy": "Hari sibuk"
+    },
+    "deskTitle": "HP yang ditinggal di meja",
+    "deskBody": "Angka kecil dari HP yang tidak dibawa tidak lagi dibaca sebagai hari yang sepi. Kalau gerak terukur di bawah yang sudah ada di pengalimu, tambahannya nol dan targetmu tetap target dasar. Target tidak pernah turun karena data jam atau HP."
+  },
+  "recommend": {
+    "title": "Saran agar lebih akurat",
+    "intro": "Levelmu adalah tebakan terbaikmu. Dua hal ini membantu mengecek. Keduanya hanya saran dengan tombol Pakai, tidak pernah diterapkan otomatis.",
+    "stepsTitle": "Dari langkah kakimu",
+    "stepsBody": "Kalau akunmu sudah punya data langkah dari sedikitnya 5 hari dalam 14 hari terakhir, rata-ratanya dicocokkan dengan indeks langkah Tudor-Locke & Bassett (2004). Di onboarding, saran ini hanya muncul kalau datanya sudah ada.",
+    "stepsHeader": {
+      "steps": "Langkah per hari",
+      "level": "Level"
+    },
+    "stepsRows": {
+      "r1": "Di bawah 5.000",
+      "r2": "5.000 sampai 7.499",
+      "r3": "7.500 sampai 9.999",
+      "r4": "10.000 sampai 12.499",
+      "r5": "12.500 ke atas"
+    },
+    "trendTitle": "Dari tren berat badanmu",
+    "trendBody": "Setelah sedikitnya 3 minggu timbangan dan catatan makan yang rutin (70% hari tercatat), JoyoRogo menghitung berapa sebenarnya tubuhmu membakar: rata-rata yang kamu makan, disesuaikan dengan perubahan beratmu, lalu dikurangi rata-rata latihan yang tercatat. Hasilnya dibagi BMR dan dicocokkan ke level terdekat. Kamu melihat angka terukur melawan rumus.",
+    "trendNote": "Angka 7.700 kkal per kg hanyalah pendekatan, karena tubuh menyesuaikan diri saat berat berubah (Hall dkk. 2011). Jadi ini saran, bukan vonis."
+  },
+  "example": {
+    "title": "Contoh hitungan",
+    "intro": "Laki-laki 26 tahun, 171,5 cm, 107,7 kg, target 78 kg pada 4 Juni 2027, dihitung pada 19 Oktober 2026. BMR = 10 × 107,7 + 6,25 × 171,5 − 5 × 26 + 5 = {{bmr}} kkal. Defisit yang dibutuhkan {{raw}} kkal per hari, dibatasi jadi {{deficit}}.",
+    "level": "Level",
+    "factor": "Pengali",
+    "tdee": "TDEE",
+    "target": "Target makan",
+    "floorNote": "Di level paling rendah, TDEE dikurangi defisit jatuh di bawah batas minimal makan laki-laki ({{floor}} kkal), jadi targetnya {{floor}} kkal.",
+    "oldNote": "Model lama (BMR dikurangi defisit) memberi {{old}} kkal untuk semua level.",
+    "chart": "Target makan per level, dalam kkal per hari.",
+    "chartLabel": "Diagram batang target makan untuk kelima level."
+  },
+  "cta": {
+    "title": "Coba di akunmu",
+    "body": "Pilih levelmu dan lihat target untuk tiap pilihan di Profil, Target & tubuh.",
+    "action": "Buka pengaturan level"
+  },
+  "sources": {
+    "title": "Sumber",
+    "intro": "Setiap sumber sudah dicek ke halaman aslinya."
+  }
+}

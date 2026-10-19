@@ -48,7 +48,7 @@ const lean: ProfileInput = {
   weightKg: 60,
   targetWeightKg: 66,
   targetDate: shiftDate(TODAY, 180),
-  activityLevel: "mid",
+  activityLevel: "light",
   goal: "gain",
 };
 
@@ -108,7 +108,7 @@ describe("planGoal: Hamil and Menyusui take precedence", () => {
       startWeightKg: 50,
       targetWeightKg: 56,
       targetDate: shiftDate(TODAY, 180),
-      activityLevel: "mid",
+      activityLevel: "light",
       goal: "gain",
       goalStartKg: 50,
       ...NO_MATERNAL_ROW,
@@ -203,8 +203,8 @@ describe("computeTargets in gain mode", () => {
     expect(t.gain).not.toBeNull();
     expect(t.notes).toContain("GAIN");
     expect(t.notes).not.toContain("MAINTENANCE");
-    // BMR 1517.5 -> 1520; 6 kg in 180 days -> +255
-    expect(t.tdee).toBe(1520);
+    // BMR 1517.5 x 1.375 (light) = 2086.6 -> 2085; 6 kg in 180 days -> +255
+    expect(t.tdee).toBe(2085);
     expect(t.gain!.surplusKcal).toBe(255);
     expect(t.eatKcal).toBe(t.tdee + t.gain!.surplusKcal);
     expect(t.deficitKcal).toBe(0);
@@ -260,10 +260,11 @@ describe("computeTargets in gain mode", () => {
     expect(t.eatKcal).toBe(Math.round(t.tdee / 5) * 5);
   });
 
-  test("measured TDEE moves the base within 15%, the surplus sits on top", () => {
-    const t = computeTargets(lean, { today: TODAY, adaptiveTdee: 5000 });
-    expect(t.notes).toContain("ADAPTIVE");
-    expect(t.tdee).toBe(Math.round((1517.5 * 1.15) / 5) * 5);
+  test("the base is BMR x the level's factor, the surplus sits on top", () => {
+    const t = computeTargets(lean, { today: TODAY });
+    // bmr 1517.5 x 1.375 (light) = 2086.6 -> 2085
+    expect(t.factor).toBe(1.375);
+    expect(t.tdee).toBe(Math.round((1517.5 * 1.375) / 5) * 5);
     expect(t.eatKcal).toBe(t.tdee + t.gain!.surplusKcal);
   });
 
@@ -342,7 +343,7 @@ describe("safety flags", () => {
         startWeightKg: 60,
         targetWeightKg: 66,
         targetDate: shiftDate(TODAY, 180),
-        activityLevel: "mid",
+        activityLevel: "light",
         goal: "gain",
         goalStartKg: 60,
         maternalMode: "none",

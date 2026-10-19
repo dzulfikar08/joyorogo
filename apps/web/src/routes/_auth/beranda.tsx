@@ -10,7 +10,6 @@ import {
   ChevronRight,
   CircleHelp,
   Flame,
-  Info,
   Mic,
   Moon,
   Plus,
@@ -36,7 +35,7 @@ import { BelanjaCard } from "@/components/plate/belanja";
 import { ScreenError } from "@/components/screen-state";
 import { RecapCard } from "@/components/recap-card";
 import { StravaRetentionNotice } from "@/components/strava-retention-notice";
-import { AddBackNotice } from "@/components/add-back-notice";
+import { EnergyNotice } from "@/components/energy-notice";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { StorySpec } from "@/components/story/story-spec";
 import { Sticker } from "@/components/sticker";
@@ -52,7 +51,7 @@ import {
 import { WaterCard, WaterTile } from "@/components/water-card";
 import { JoyoFitCard } from "@/components/workout/joyofit-card";
 import { pickFact } from "@/lib/facts";
-import { fmtDateLong, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
+import { fmtDateLong, fmtFactor, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
 import { useFirstVisit } from "@/lib/motion";
 import { useWaistCheckIn, useWeightCheckIn } from "@/lib/optimistic";
 import { useAppConfig } from "@/lib/app-config";
@@ -318,7 +317,7 @@ function Dashboard({
       <FounderBanner />
 
       <StravaRetentionNotice className="mb-3" />
-      <AddBackNotice show={summary.addBackNotice} className="mb-3" />
+      <EnergyNotice notice={summary.energyNotice} className="mb-3" />
 
       {/* Day switcher */}
       <div className="mb-3 flex justify-center lg:justify-start">
@@ -460,7 +459,6 @@ function EatHero({ summary }: { summary: Summary }) {
   const { kcal: leftKcal, over } = remainingKcal(targets.eatKcal, summary.eatenKcal);
   const gaining = targets.gain != null;
   const intake = useGainIntake(targets.eatKcal, summary.eatenKcal);
-  const [adaptiveOpen, setAdaptiveOpen] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const maintenance = targets.notes.includes("MAINTENANCE") || targets.deficitKcal <= 0;
   const credit = summary.exerciseCredit;
@@ -637,13 +635,21 @@ function EatHero({ summary }: { summary: Summary }) {
               <p className="font-bold text-bakar-ink">{t("explain.addBack.title")}</p>
               <div className="mt-1 space-y-1.5 text-muted-foreground">
                 {!credit.enabled && <p>{t("explain.addBack.off")}</p>}
-                {credit.enabled && credit.activeKcal === 0 && credit.assumedKcal === 0 && (
-                  <p>{t("explain.addBack.none")}</p>
+                {credit.enabled && credit.activeKcal === 0 && <p>{t("explain.addBack.none")}</p>}
+                {credit.enabled && credit.activeKcal > 0 && credit.extraKcal === 0 && (
+                  <p>
+                    {t("explain.addBack.below", {
+                      active: fmtInt(credit.activeKcal),
+                      included: fmtInt(credit.includedKcal),
+                    })}
+                  </p>
                 )}
                 {credit.countedKcal > 0 && (
                   <p>
                     {t("explain.addBack.body", {
                       active: fmtInt(credit.activeKcal),
+                      included: fmtInt(credit.includedKcal),
+                      extra: fmtInt(credit.extraKcal),
                       pct: credit.pct,
                       kcal: fmtInt(credit.countedKcal),
                     })}
@@ -662,9 +668,6 @@ function EatHero({ summary }: { summary: Summary }) {
                 )}
                 {credit.otherWorkoutKcal > 0 && (
                   <p>{t("explain.addBack.other", { kcal: fmtInt(credit.otherWorkoutKcal) })}</p>
-                )}
-                {credit.assumedKcal > 0 && (
-                  <p>{t("explain.addBack.assumed", { kcal: fmtInt(credit.assumedKcal) })}</p>
                 )}
                 {credit.capped && (
                   <p>
@@ -694,40 +697,6 @@ function EatHero({ summary }: { summary: Summary }) {
           </Link>
         </div>
       </Sheet>
-
-      {targets.notes.includes("ADAPTIVE") && (
-        <>
-          <button
-            type="button"
-            onClick={() => setAdaptiveOpen(true)}
-            className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-          >
-            <Info className="size-3.5" aria-hidden />
-            {t("adaptive.link")}
-          </button>
-          <Sheet open={adaptiveOpen} onOpenChange={setAdaptiveOpen} title={t("adaptive.title")}>
-            <div className="space-y-3 text-[0.9375rem] leading-relaxed">
-              <p>
-                <Trans
-                  ns="home"
-                  i18nKey="adaptive.formula"
-                  values={{ kcal: fmtInt(targets.formulaTdee) }}
-                  components={{ b: <strong className="tabular-nums" /> }}
-                />
-              </p>
-              <p>
-                <Trans
-                  ns="home"
-                  i18nKey="adaptive.actual"
-                  values={{ kcal: fmtInt(targets.tdee) }}
-                  components={{ b: <strong className="tabular-nums" /> }}
-                />
-              </p>
-              <p className="text-sm text-muted-foreground">{t("adaptive.limit")}</p>
-            </div>
-          </Sheet>
-        </>
-      )}
 
       {summary.ideas.length > 0 && (
         <div className="mt-3 border-t pt-3">
@@ -768,9 +737,9 @@ function BudgetSum({ summary, leftKcal, over }: { summary: Summary; leftKcal: nu
   const maternal = targets.maternal !== null;
   const rows: Array<{ key: string; label: string; value?: string; sub?: string; strong?: boolean }> = [
     {
-      key: "bmr",
-      label: maternal ? t("maternal:needs.baseName") : t("explain.sum.bmr"),
-      value: fmtInt(maternal ? needs.tdeeKcal : needs.bmrKcal),
+      key: "tdee",
+      label: t("explain.sum.tdee", { bmr: fmtInt(needs.bmrKcal), factor: fmtFactor(needs.factor) }),
+      value: fmtInt(needs.tdeeKcal),
     },
   ];
   if (needs.cutKcal > 0) rows.push({ key: "cut", label: t("explain.sum.cut"), value: `−${fmtInt(needs.cutKcal)}` });
@@ -779,16 +748,13 @@ function BudgetSum({ summary, leftKcal, over }: { summary: Summary; leftKcal: nu
   if (targets.notes.includes("PLAN_CLAMPED") && needs.cutKcal < needs.deficitKcal) {
     rows.push({ key: "floor", label: t("explain.sum.floor") });
   }
-  if (needs.assumedKcal > 0) {
-    rows.push({ key: "assumed", label: t("explain.sum.assumed"), value: `+${fmtInt(needs.assumedKcal)}` });
-  }
   if (needs.exerciseKcal > 0) {
     rows.push({
       key: "activity",
       label: t("explain.sum.activity"),
       value: `+${fmtInt(needs.exerciseKcal)}`,
       sub: credit
-        ? t("explain.sum.activityOf", { pct: credit.pct, kcal: fmtInt(credit.activeKcal) })
+        ? t("explain.sum.activityOf", { pct: credit.pct, kcal: fmtInt(credit.extraKcal) })
         : undefined,
     });
   }

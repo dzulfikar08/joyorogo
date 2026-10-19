@@ -13,13 +13,14 @@
 //   2010       DHA 200 mg/day in pregnancy and lactation.
 
 import {
-  ACTIVITY_MULTIPLIER,
+  MATERNAL_ACTIVITY_FACTOR,
   SLEEP_NEED_HOURS,
   ageFromBirthYear,
   bmrMifflin,
   daysBetween,
   idealWeightRange,
   jakartaToday,
+  movementInFactorKcal,
   round5,
   shiftDate,
 } from "./engine";
@@ -650,9 +651,11 @@ export function computeMaternalTargets(
   const basisKg = state.prePregnancyWeightKg ?? weightNow;
 
   const bmr = bmrMifflin(basisKg, profile.heightCm, age, "female");
-  // Rounded to 5 like every plan number, so base + addition is exactly the target. Keeps the profile's activity
-  // multiplier (the normal plan moved to a sedentary base): the AKG-based target must never drop.
-  const baseKcal = round5(bmr * ACTIVITY_MULTIPLIER[profile.activityLevel]);
+  // Rounded to 5 like every plan number, so base + addition is exactly the target. The maternal target keeps its own
+  // multipliers (MATERNAL_ACTIVITY_FACTOR: 1.25 / 1.35 / 1.45 for the levels migrated from low / mid / high), not the
+  // standard factors of the normal plan, so it does not move with the new levels.
+  const factor = MATERNAL_ACTIVITY_FACTOR[profile.activityLevel];
+  const baseKcal = round5(bmr * factor);
 
   const flags: MaternalFlag[] = [];
   const gestation =
@@ -684,10 +687,13 @@ export function computeMaternalTargets(
   const ideal = idealWeightRange(profile.heightCm);
   return {
     bmr: Math.round(bmr),
+    level: profile.activityLevel,
+    factor,
     tdee: baseKcal,
-    formulaTdee: baseKcal,
+    formulaTdee: baseKcal, // COMPAT, old clients read it (see Targets)
+    assumedKcal: 0, // COMPAT, old clients read it (see Targets)
+    includedKcal: Math.round(movementInFactorKcal(bmr * factor, bmr)),
     eatKcal: baseKcal + add,
-    assumedKcal: 0,
     exerciseKcal: 0,
     burnKcal: 0,
     sleepHours: SLEEP_NEED_HOURS,

@@ -11,6 +11,17 @@ import {
 
 export const genderSchema = z.enum(GENDERS);
 export const activityLevelSchema = z.enum(ACTIVITY_LEVELS);
+
+/**
+ * COMPAT, old clients (native builds up to 1932, web tabs opened before the TDEE deploy): their onboarding still sends the
+ * three old levels. They are mapped to what migration 0048 made of them before anything is stored. Only the profile
+ * input takes this; the new `profile.setActivityLevel` is strict.
+ */
+const LEGACY_ACTIVITY_LEVELS = { low: "sedentary", mid: "light", high: "moderate" } as const;
+export const activityLevelInputSchema = z.union([
+  activityLevelSchema,
+  z.enum(["low", "mid", "high"]).transform((level) => LEGACY_ACTIVITY_LEVELS[level]),
+]);
 export const mealSchema = z.enum(MEALS);
 export const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD");
 
@@ -33,7 +44,7 @@ export const profileInputSchema = z.object({
   weightKg: z.number().min(25).max(400),
   targetWeightKg: z.number().min(25).max(400),
   targetDate: dateSchema,
-  activityLevel: activityLevelSchema,
+  activityLevel: activityLevelInputSchema,
 }) satisfies z.ZodType<ProfileInput>;
 
 const prePregnancyWeightSchema = z.number().min(25).max(250);

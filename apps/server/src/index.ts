@@ -672,7 +672,7 @@ async function runFastingReminders(): Promise<void> {
       .select({ kcal: sql<number | null>`sum(${foodLogTable.kcal})` })
       .from(foodLogTable)
       .where(and(eq(foodLogTable.userId, row.userId), eq(foodLogTable.date, today)));
-    const credit = await loadDayCredit(db, row.userId, today);
+    const credit = await loadDayCredit(db, row.userId, today, plan.targets.includedKcal);
 
     const due = dueReminders({
       pattern: row.pattern,

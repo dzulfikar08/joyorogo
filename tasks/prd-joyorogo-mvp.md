@@ -54,7 +54,7 @@ Everything else is bookkeeping behind those numbers: food photos recognized by A
 
 **Acceptance Criteria:**
 
-- [ ] `computeTargets(profile, weightNow?)` implements: Mifflin-St Jeor BMR; TDEE = BMR x activity (low 1.25 / mid 1.35 / high 1.45, exercise excluded); needed deficit = (weight - target) x 7700 / days; total deficit clamped 250..1000 kcal (0 when weight <= target: maintenance mode); eat = TDEE - (totalDeficit - burnTarget), floored at 1200 (female) / 1500 (male); burnTarget = clamp(round(3.3 x weight, to 5), 200..400); sleep = 8 h; ideal range = BMI 18.5..24.9 x height squared
+- [ ] `computeTargets(profile, weightNow?)` implements: Mifflin-St Jeor BMR; TDEE = BMR x activity factor (sedentary 1.2 / light 1.375 / moderate 1.55 / active 1.725 / very active 1.9, exercise excluded; originally low 1.25 / mid 1.35 / high 1.45, see docs/energy-model.md); needed deficit = (weight - target) x 7700 / days; total deficit clamped 250..1000 kcal (0 when weight <= target: maintenance mode); eat = TDEE - (totalDeficit - burnTarget), floored at 1200 (female) / 1500 (male); burnTarget = clamp(round(3.3 x weight, to 5), 200..400); sleep = 8 h; ideal range = BMI 18.5..24.9 x height squared
 - [ ] Returns note flags: target below healthy range, plan clamped for safety, maintenance mode
 - [ ] WIB (UTC+7) date helpers: `jakartaToday()`, days-to-target; 23:30 UTC resolves to the next WIB day
 - [ ] Bun tests cover: known BMR value (male 70 kg / 170 cm / 30 y = 1617.5), floors, clamps, maintenance mode, ideal-range bounds, WIB rollover

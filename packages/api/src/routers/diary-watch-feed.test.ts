@@ -11,7 +11,8 @@ import type { Database } from "@joyorogo/db";
 
 import type { Context } from "../context";
 import { jakartaToday, shiftDate } from "../lib/engine";
-import { ADD_BACK_NOTICE_BEFORE_MS, dayActiveKcal } from "../lib/exercise-credit";
+import { ENERGY_NOTICE_BEFORE_MS } from "../lib/energy-notice";
+import { dayActiveKcal } from "../lib/exercise-credit";
 import { activityRouter } from "./activity";
 import { dayRouter } from "./day";
 import { exerciseRouter } from "./exercise";
@@ -32,12 +33,12 @@ for (const file of readdirSync(migrationsDir)
 const today = jakartaToday();
 const yesterday = shiftDate(today, -1);
 const threeDaysAgo = shiftDate(today, -3);
-const old = ADD_BACK_NOTICE_BEFORE_MS - 86_400_000;
+const old = ENERGY_NOTICE_BEFORE_MS - 86_400_000;
 
 await client.executeMultiple(`
   INSERT INTO "user" (id, name, email, tier, created_at) VALUES ('owner', 'owner', 'owner@test.id', 'founder', ${old});
   INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level)
-    VALUES ('owner', 1990, 'male', 170, 108, 90, '2031-01-01', 'mid');
+    VALUES ('owner', 1990, 'male', 170, 108, 90, '2031-01-01', 'light');
 `);
 
 const db = drizzle(client) as unknown as Database;
@@ -91,9 +92,10 @@ describe("after JoyoFit sent the watch workouts and the all-day energy", () => {
     expect(recent.items.filter((item) => item.source === "joyofit").map((item) => item.date).sort()).toEqual([yesterday, today, today, today, today].sort());
 
     const s = await summary(today);
-    // max(418 watch, 13 health store) = 418; the watch's workouts are inside it and add nothing
-    expect(s.exerciseCredit).toMatchObject({ allDayKcal: 418, allDaySource: "joyofit", deviceWorkoutKcal: 269, otherWorkoutKcal: 0, activeKcal: 418, countedKcal: 314 });
-    expect(s.targets!.exerciseKcal).toBe(314);
+    // max(418 watch, 13 health store) = 418; the watch's workouts are inside it and add nothing. This person's factor
+    // (light, 1.375) already contains 467 kcal of movement, so 418 is below it: nothing is added to the target.
+    expect(s.exerciseCredit).toMatchObject({ allDayKcal: 418, allDaySource: "joyofit", deviceWorkoutKcal: 269, otherWorkoutKcal: 0, activeKcal: 418, includedKcal: 467, extraKcal: 0, countedKcal: 0 });
+    expect(s.targets!.exerciseKcal).toBe(0);
     expect(s.exerciseSources).toEqual(["joyofit"]);
     // the ring of the exercise screens is the 418, not the 269 of the rows
     expect(dayActiveKcal(s.exerciseCredit, list.totalKcal)).toBe(418);
@@ -106,7 +108,7 @@ describe("the estimated Apple Health walks of 15 Okt", () => {
     expect(list.items.map((item) => item.kcal).sort()).toEqual([471, 650]);
     expect(list.totalKcal).toBe(1121);
     const s = await summary(threeDaysAgo);
-    expect(s.exerciseCredit).toMatchObject({ allDayKcal: 254, allDaySource: "apple_health", deviceWorkoutKcal: 1121, activeKcal: 254, countedKcal: 191 });
+    expect(s.exerciseCredit).toMatchObject({ allDayKcal: 254, allDaySource: "apple_health", deviceWorkoutKcal: 1121, activeKcal: 254, extraKcal: 0, countedKcal: 0 });
     expect(dayActiveKcal(s.exerciseCredit, list.totalKcal)).toBe(254);
   });
 });

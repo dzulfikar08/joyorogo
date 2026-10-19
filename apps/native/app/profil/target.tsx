@@ -1,11 +1,13 @@
 import "@/unistyles";
 import { router } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 
-import { ACTIVITY_LABELS, idealWeightRange, jakartaToday, MAX_TARGET_DAYS, shiftDate } from "@joyorogo/api/lib/engine";
+import type { ActivityLevel } from "@joyorogo/api/lib/engine";
+import { idealWeightRange, jakartaToday, MAX_TARGET_DAYS, shiftDate } from "@joyorogo/api/lib/engine";
 import {
   bmiOf,
   suggestedDays,
@@ -14,9 +16,11 @@ import {
   type Goal,
 } from "@joyorogo/api/lib/gain";
 
-import { Button, Card, ListGroup, ListRow, StatTile, Text } from "@/components/ui";
+import { Button, Card, ErrorState, ListGroup, ListRow, StatTile, Text } from "@/components/ui";
 import { ConfirmSheet } from "@/components/confirm-sheet";
 import { ProfilDataPage, type ProfileData } from "@/components/profil/page";
+import { ActivityLevelPicker, ActivityRecommendations } from "@/components/profil/activity-level-picker";
+import { EnergySources } from "@/components/energy-sources";
 import { NeedsSheet } from "@/components/needs-sheet";
 import { ExerciseCreditSection } from "@/components/profil/exercise-credit-section";
 import { TargetPaceNotice } from "@/components/target-pace-notice";
@@ -25,7 +29,7 @@ import { EndPregnancySheet } from "@/components/maternal/end-pregnancy-sheet";
 import { MaternalEditSheet, MaternalSettingsSheet, useSetMaternal } from "@/components/maternal/maternal-sheets";
 import { GainDisclaimer, GainNotes } from "@/components/gain/gain-notes";
 import { GoalChooser } from "@/components/gain/goal-chooser";
-import { fmtDateMedium, fmtInt, fmtKg } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtInt, fmtKg } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 
@@ -42,7 +46,7 @@ export default function Target() {
 }
 
 function TargetContent({ profile: profileData }: { profile: ProfileData }) {
-  const { t } = useTranslation(["settings", "common", "maternal", "gain"]);
+  const { t } = useTranslation(["settings", "common", "maternal", "gain", "energy"]);
   type TargetsInput = { targetWeightKg: number; targetDate: string; goal?: Goal };
   type ProfileCache = { profile: Record<string, unknown> | null };
   const myProfileKey = orpc.profile.myProfile.queryOptions().queryKey;
@@ -81,6 +85,21 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
     invalidate: () => [orpc.profile.key()],
   });
 
+  // The activity level: the picker's options and recommendations come from the server (they are this person's numbers).
+  const guideKey = orpc.profile.activityGuide.queryOptions().queryKey;
+  const guide = useQuery(orpc.profile.activityGuide.queryOptions());
+  const setLevel = useOptimisticMutation<ActivityLevel, unknown>({
+    mutationFn: (next) => client.profile.setActivityLevel({ level: next }),
+    patch: (next, cache) => {
+      cache.value<ProfileCache>(myProfileKey, (old) =>
+        old?.profile ? { ...old, profile: { ...old.profile, activityLevel: next } } : old,
+      );
+      cache.value<{ level: ActivityLevel | null }>(guideKey, (old) => (old ? { ...old, level: next } : old));
+    },
+    success: () => ({ message: t("energy:saved") }),
+    invalidate: () => [orpc.profile.key(), orpc.day.key(), orpc.fasting.today.key()],
+  });
+
   // Focused editors: "weight" and "date" open separately; "needs" is the TDEE breakdown.
   const [sheet, setSheet] = useState<
     null | "weight" | "date" | "needs" | "maternal" | "maternalEdit" | "end"
@@ -99,6 +118,7 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
   };
 
   const prof = profileData.profile ?? null;
+  const level = prof?.activityLevel ?? null;
   const weightNowKg = profileData.latestWeightKg ?? prof?.startWeightKg ?? 0;
   const targets = profileData.targets ?? null;
   const maternal = targets?.maternal ?? null;
@@ -185,11 +205,7 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
               icon="flash"
               iconTint="makan"
               title={t("plan.needs.row")}
-              value={
-                maternal
-                  ? t("plan.needs.rowValue", { kcal: fmtInt(targets.tdee) })
-                  : t("plan.needs.rowValueBmr", { kcal: fmtInt(targets.bmr) })
-              }
+              value={t("plan.needs.rowValue", { kcal: fmtInt(targets.tdee) })}
               chevron
               onPress={() => setSheet("needs")}
             />
@@ -225,8 +241,8 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
           )}
 
           {/* Rencana rows → sheet editors */}
-          <ListGroup>
-            {maternal ? null : (
+          {maternal ? null : (
+            <ListGroup>
               <ListRow
                 icon="flag"
                 iconTint="makan"
@@ -236,8 +252,6 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
                 chevron
                 onPress={() => setSheet("weight")}
               />
-            )}
-            {maternal ? null : (
               <ListRow
                 icon="calendar"
                 iconTint="makan"
@@ -247,18 +261,41 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
                 chevron
                 onPress={() => setSheet("date")}
               />
+            </ListGroup>
+          )}
+
+          {/* Level aktivitas: pilih, lihat dampaknya, dan saran yang lebih akurat */}
+          <Card>
+            <Text style={styles.cardTitle}>{t("energy:pickTitle")}</Text>
+            {guide.isPending ? (
+              <ActivityIndicator style={styles.guideLoading} />
+            ) : guide.isError ? (
+              <ErrorState message={errorMessage(guide.error)} onRetry={() => void guide.refetch()} />
+            ) : (
+              <>
+                <ActivityLevelPicker
+                  options={guide.data.options}
+                  value={level}
+                  maternal={guide.data.maternal}
+                  disabled={setLevel.isPending}
+                  onSelect={(next) => {
+                    if (next !== level) setLevel.mutate(next);
+                  }}
+                />
+                <ActivityRecommendations
+                  steps={guide.data.steps}
+                  calibration={guide.data.calibration}
+                  current={level}
+                  applying={setLevel.isPending ? setLevel.variables : null}
+                  showEmpty
+                  onApply={(next) => setLevel.mutate(next)}
+                />
+              </>
             )}
-            {maternal ? (
-              <ListRow
-                icon="walk"
-                iconTint="makan"
-                title={t("plan.activity.title")}
-                subtitle={t("plan.activity.subtitle")}
-                value={ACTIVITY_LABELS[prof.activityLevel as "low" | "mid" | "high"]}
-              />
-            ) : null}
-          </ListGroup>
-          <ExerciseCreditSection />
+          </Card>
+
+          <ExerciseCreditSection includedKcal={targets.includedKcal} />
+          <EnergySources />
           {!maternal ? <TargetPaceNotice pace={targets.datePace} /> : null}
 
           {targets.notes
@@ -268,14 +305,6 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
                 {t(`plan.noteShort.${note}`)}
               </Text>
             ))}
-          {!maternal && targets.notes.includes("ADAPTIVE") && targets.formulaTdee ? (
-            <Text style={styles.note}>
-              {t("plan.formulaEstimate", {
-                formula: fmtInt(targets.formulaTdee),
-                tdee: fmtInt(targets.tdee),
-              })}
-            </Text>
-          ) : null}
           {maternal ? (
             <Text style={styles.note}>{t("maternal:settings.hiddenNote")}</Text>
           ) : (
@@ -424,6 +453,9 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.md,
     fontWeight: "700",
     color: theme.colors.foreground,
+  },
+  guideLoading: {
+    marginVertical: theme.spacing.lg,
   },
   planTiles: {
     flexDirection: "row",

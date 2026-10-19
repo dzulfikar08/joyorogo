@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import {
-  ACTIVITY_LABELS,
+  type ActivityLevel,
   checkTargetDate,
   jakartaToday,
   idealWeightRange,
@@ -35,7 +35,8 @@ import {
   type GainInfo,
   type Goal,
 } from "@joyorogo/api/lib/gain";
-import type { MaternalInfo } from "@joyorogo/api/lib/maternal";
+import { activityOptions } from "@joyorogo/api/lib/activity-guide";
+import { resolveMaternalInput, type MaternalInfo } from "@joyorogo/api/lib/maternal";
 import { fmtNumber } from "@joyorogo/i18n";
 
 import {
@@ -55,6 +56,7 @@ import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
 import { InviteFriendsStep } from "@/components/onboarding/invite-step";
 import { Disclosure } from "@/components/disclosure";
+import { ActivityLevelPicker, ActivityRecommendations } from "@/components/profil/activity-level-picker";
 import { GainDisclaimer, GainNotes } from "@/components/gain/gain-notes";
 import { GoalChooser } from "@/components/gain/goal-chooser";
 import { MaternalDisclaimer } from "@/components/maternal/disclaimer";
@@ -70,7 +72,6 @@ import { errorMessage, fmtDateMedium, fmtInt, fmtKg, parseNum } from "@/utils/fo
 import { client, orpc } from "@/utils/orpc";
 
 type Gender = "male" | "female";
-type ActivityLevel = "low" | "mid" | "high";
 
 type StepId = "birth" | "gender" | "maternalEntry" | "maternalForm" | "height" | "weight" | "goal" | "activity";
 type MaternalChoice = "none" | "pregnant" | "breastfeeding";
@@ -249,9 +250,9 @@ function GainResult({ targets, gain }: { targets: Targets; gain: GainInfo }) {
     <>
       <Card>
         <View style={styles.maternalLine}>
-          <Text style={styles.hint}>{t("settings:plan.needs.bmr.label")}</Text>
+          <Text style={styles.hint}>{t("settings:plan.needs.tdee.label")}</Text>
           <Text style={styles.maternalValue}>
-            {fmtInt(targets.bmr)} {t("settings:plan.needs.unit")}
+            {fmtInt(targets.tdee)} {t("settings:plan.needs.unit")}
           </Text>
         </View>
         <View style={styles.maternalLine}>
@@ -430,12 +431,14 @@ export default function Onboarding() {
   const [weightKg, setWeightKg] = useState("");
   const [targetWeightKg, setTargetWeightKg] = useState("");
   const [targetDate, setTargetDate] = useState(defaultTargetDate);
-  const [activityLevel, setActivityLevel] = useState<ActivityLevel>("mid");
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel>("light");
   const [formError, setFormError] = useState<string | null>(null);
   const [maternalChoice, setMaternalChoice] = useState<MaternalChoice>("none");
   const [draft, setDraft] = useState<MaternalDraft>(() => emptyDraft("pregnant"));
   const [goal, setGoal] = useState<Goal>("lose");
   const [derivedGain, setDerivedGain] = useState(false);
+  // Never blocks the step: with no answer yet (or offline) the recommendation just does not show.
+  const guide = useQuery({ ...orpc.profile.activityGuide.queryOptions(), retry: false });
 
   if (gate === "loading" || profileQuery.isPending) {
     return <BootLoader />;
@@ -474,6 +477,27 @@ export default function Onboarding() {
     "activity",
   ];
   const stepId = steps[step] ?? "activity";
+  // What each level makes of the answers so far, worked out here: the account has no profile yet to ask the server.
+  const maternalState = isMaternal ? draftToInput(draft) : null;
+  const resolvedMaternal = maternalState?.ok ? resolveMaternalInput(maternalState.input) : null;
+  const birth = parseNum(birthYear);
+  const activityChoices =
+    stepId === "activity" && weight !== null && height !== null && birth !== null
+      ? activityOptions(
+          {
+            birthYear: birth,
+            gender,
+            heightCm: height,
+            weightKg: weight,
+            activityLevel,
+            ...(goal === "maintain"
+              ? { goal, targetWeightKg: weight, targetDate: shiftDate(jakartaToday(), 365) }
+              : { goal, targetWeightKg: target ?? weight, targetDate }),
+          },
+          resolvedMaternal?.ok ? resolvedMaternal.state : null,
+          weight,
+        )
+      : [];
 
   const chooseMaternal = (choice: MaternalChoice) => {
     setMaternalChoice(choice);
@@ -868,17 +892,22 @@ export default function Onboarding() {
             {stepId === "activity" ? (
               <>
                 <Text style={styles.stepTitle}>{t("question.activity.title")}</Text>
-                <Text style={styles.stepCaption}>{t("question.activity.hint")}</Text>
-                <View style={styles.choiceList}>
-                  {(Object.keys(ACTIVITY_LABELS) as ActivityLevel[]).map((key) => (
-                    <ChoiceRow
-                      key={key}
-                      label={ACTIVITY_LABELS[key]}
-                      selected={activityLevel === key}
-                      onPress={() => setActivityLevel(key)}
-                    />
-                  ))}
-                </View>
+                <Card>
+                  <ActivityLevelPicker
+                    options={activityChoices}
+                    value={activityLevel}
+                    maternal={isMaternal}
+                    onSelect={setActivityLevel}
+                  />
+                  <ActivityRecommendations
+                    steps={guide.data?.steps ?? null}
+                    calibration={null}
+                    current={activityLevel}
+                    applying={null}
+                    showEmpty={false}
+                    onApply={setActivityLevel}
+                  />
+                </Card>
                 {formError ? <Text style={styles.error}>{formError}</Text> : null}
                 <Button
                   label={t("action.save")}

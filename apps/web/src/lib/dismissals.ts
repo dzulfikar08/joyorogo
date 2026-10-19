@@ -2,12 +2,12 @@ import { notePrefChanged } from "@joyorogo/api/lib/rogo-prefs-sync";
 
 // Notices the person closed for good. They follow the account (rogo-prefs.ts), but a browser can hold several
 // accounts, so the local key carries the user id; the synced key does not.
-export type DismissalKey = "dismissed.handlePrompt" | "dismissed.stravaRetention7d" | "dismissed.addBackNotice2";
+export type DismissalKey = "dismissed.handlePrompt" | "dismissed.stravaRetention7d" | "dismissed.energyModel";
 
 const LOCAL_KEYS: Record<DismissalKey, (userId: string) => string> = {
   "dismissed.handlePrompt": (userId) => `jrg-handle-prompt-${userId}`,
   "dismissed.stravaRetention7d": (userId) => `jrg-strava-7d-${userId}`,
-  "dismissed.addBackNotice2": (userId) => `jrg-addback-notice2-${userId}`,
+  "dismissed.energyModel": (userId) => `jrg-energy-model-${userId}`,
 };
 
 export const dismissalStoreKey = (key: DismissalKey, userId: string): string => LOCAL_KEYS[key](userId);

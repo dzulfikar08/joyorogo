@@ -15,12 +15,6 @@
     "fallbackName": "Kamu",
     "share": "Bagikan progres"
   },
-  "addBackNotice": {
-    "title": "Cara hitung sisa berubah lagi",
-    "body": "Cara hitung sisa kalori berubah: target dasar sekarang hanya BMR dikurangi defisit, tanpa tebakan aktivitas. Energi aktif dari jam-mu dan latihan yang tercatat ditambahkan ({{pct}}%). Atur di Profil.",
-    "action": "Atur di Profil",
-    "dismiss": "Tutup"
-  },
   "banner": {
     "scans": "Scan AI {{n}}x/hari",
     "proUnlimited": "Pro tanpa batas",
@@ -39,14 +33,6 @@
   "ideas": {
     "title": "Masih muat",
     "protein": "{{g}} g protein"
-  },
-  "adaptive": {
-    "link": "Target menyesuaikan datamu",
-    "info": "Info target adaptif",
-    "title": "Target adaptif",
-    "formula": "Rumus standar memperkirakan tubuhmu membakar <b>{{kcal}} kcal</b> sehari.",
-    "actual": "Dari catatan makan dan timbanganmu 4 minggu terakhir, pembakaran nyatamu sekitar <b>{{kcal}} kcal</b>. Target makan memakai angka ini supaya pas dengan tubuhmu, bukan rata-rata orang.",
-    "limit": "Penyesuaian dibatasi 15% dari rumus, dan hari yang lupa dicatat tidak ikut dihitung."
   },
   "tile": {
     "burn": "Aktivitas hari ini",
@@ -209,7 +195,7 @@
   },
   "explain": {
     "title": "Cara baca angka hari ini",
-    "formula": "Sisa = BMR − defisit + aktivitas yang dihitung − sudah dimakan",
+    "formula": "Sisa = TDEE − defisit + gerak di atas pengali − sudah dimakan",
     "exampleAdd": "Hari ini: {{target}} + {{exercise}} aktivitas − {{eaten}} = {{left}} kcal sisa",
     "exampleAddOver": "Hari ini: {{target}} + {{exercise}} aktivitas − {{eaten}} = lewat {{over}} kcal",
     "added": "+{{kcal}} kkal dari olahraga ({{pct}}%)",
@@ -217,7 +203,7 @@
     "exampleOver": "Hari ini: {{target}} − {{eaten}} = lewat {{over}} kcal",
     "target": {
       "title": "Target makan",
-      "body": "Jatah kalori makanmu sehari: BMR (kebutuhan tubuh saat diam) dikurangi defisit untuk target beratmu. Tidak ada tebakan aktivitas di sini; gerak yang nyata ditambahkan terpisah."
+      "body": "Jatah kalori makanmu sehari: TDEE (BMR dikali pengali level aktivitasmu, sudah termasuk gerak harian dan efek makan) dikurangi defisit untuk target beratmu. Gerak terukur yang melebihi pengalimu ditambahkan terpisah."
     },
     "clamped": {
       "lose": "Target makan ini dihitung dengan defisit maksimal 1.000 kcal per hari. Tanggal targetmu menuntut lebih dari itu, jadi targetmu baru tercapai sekitar {{date}}.",
@@ -235,33 +221,32 @@
     },
     "burn": {
       "title": "Aktivitas hari ini",
-      "body": "Gerak yang benar-benar terukur hari ini: energi aktif dari jam-mu (atau Health Connect / Apple Health) ditambah latihan tercatat yang tidak ada di jam. {{pct}}% ditambahkan ke sisa makanmu, jadi bergerak lebih banyak berarti boleh makan lebih banyak."
+      "body": "Gerak yang benar-benar terukur hari ini: energi aktif dari jam-mu (atau Health Connect / Apple Health) ditambah latihan tercatat yang tidak ada di jam. Hanya bagian yang melebihi gerak yang sudah ada di pengalimu yang dihitung, {{pct}}% dari kelebihannya ditambahkan ke sisa makanmu."
     },
     "sum": {
       "title": "Hitungan hari ini",
-      "bmr": "BMR (tubuh diam)",
+      "tdee": "TDEE (BMR {{bmr}} × {{factor}})",
       "cut": "Defisit",
       "surplus": "Surplus naik berat",
       "add": "Tambahan Hamil / Menyusui",
       "floor": "Batas minimal makan",
-      "assumed": "Perkiraan aktivitas harian",
       "activity": "Aktivitas hari ini",
-      "activityOf": "{{pct}}% dari {{kcal}} kkal",
+      "activityOf": "{{pct}}% dari {{kcal}} kkal di atas pengali",
       "target": "Target makan hari ini",
       "eaten": "Sudah dimakan",
       "left": "Sisa"
     },
     "addBack": {
       "title": "Aktivitas yang dihitung",
-      "body": "Dari {{active}} kkal aktivitas hari ini, {{pct}}% ({{kcal}} kkal) ditambahkan ke jatah makanmu.",
+      "body": "Gerak terukur hari ini {{active}} kkal; {{included}} kkal sudah ada di pengali levelmu, kelebihannya {{extra}} kkal. {{pct}}% ({{kcal}} kkal) ditambahkan ke jatah makanmu.",
       "watch": "Energi aktif dari jam-mu {{kcal}} kkal; latihan jam sudah termasuk di dalamnya, tidak dihitung dua kali.",
       "healthStore": "Energi aktif dari {{source}} {{kcal}} kkal; latihan di sana sudah termasuk.",
       "other": "Latihan di luar jam (manual, Strava) menambah {{kcal}} kkal.",
-      "assumed": "Hari ini belum ada data aktif dari jam, jadi dipakai perkiraan aktivitas harianmu: +{{kcal}} kkal (tidak dikali persen).",
       "capped": "Batas tambahan {{cap}} kkal per hari tercapai.",
       "off": "Fitur ini mati di Profil, jadi aktivitas tidak menambah sisa. Sisa hanya dari target dasar.",
-      "none": "Belum ada aktivitas terukur hari ini, jadi belum ada yang ditambahkan.",
-      "setting": "Atur di Profil > Target & tubuh"
+      "none": "Belum ada gerak terukur hari ini. Targetmu sudah memuat gerak harian rata-rata levelmu.",
+      "setting": "Atur di Profil > Target & tubuh",
+      "below": "Gerak terukur hari ini ({{active}} kkal) belum melewati {{included}} kkal yang sudah ada di pengali levelmu, jadi tidak ada yang ditambahkan. Gerak yang rendah tidak pernah mengurangi targetmu."
     },
     "deficit": {
       "title": "Kok ada kata defisit?",

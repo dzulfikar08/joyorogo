@@ -50,7 +50,9 @@ export const profile = sqliteTable("profile", {
   // Weight (kg) on the day the goal became 'gain': the baseline of "naik X kg". Null for
   // every other goal, where progress counts from startWeightKg.
   goalStartKg: real("goal_start_kg"),
-  activityLevel: text("activity_level").notNull(),
+  // The activity factor of the daily-life level (api lib/engine ACTIVITY_FACTOR): sedentary 1.2, light 1.375, moderate
+  // 1.55, active 1.725, very_active 1.9. Migration 0048 renamed the old low / mid / high.
+  activityLevel: text("activity_level", { enum: ["sedentary", "light", "moderate", "active", "very_active"] }).notNull(),
   // Ramadan schedule: 'auto' follows the Hijri calendar, on/off force it.
   ramadanMode: text("ramadan_mode", { enum: ["auto", "on", "off"] })
     .notNull()

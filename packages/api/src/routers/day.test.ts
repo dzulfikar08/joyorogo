@@ -34,7 +34,7 @@ await client.executeMultiple(`
     ('comp', 'comp', 'comp@test.id', 'founder', NULL),
     ('bare', 'bare', 'bare@test.id', 'founder', NULL);
   INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level)
-    SELECT id, 1990, 'male', 170, 80, 72, '2030-01-01', 'mid' FROM "user" WHERE id != 'bare';
+    SELECT id, 1990, 'male', 170, 80, 72, '2030-01-01', 'light' FROM "user" WHERE id != 'bare';
 `);
 
 const db = drizzle(client) as unknown as Database;
@@ -179,7 +179,7 @@ describe("day.summary protein boost on a training day", () => {
       INSERT INTO "user" (id, name, email, tier) VALUES
         ${ids.map((id) => `('${id}', '${id}', '${id}@test.id', 'free')`).join(",")};
       INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level)
-        SELECT id, 1990, 'male', 170, 80, 72, '2030-01-01', 'mid' FROM "user" WHERE id IN (${ids.map((id) => `'${id}'`).join(",")});
+        SELECT id, 1990, 'male', 170, 80, 72, '2030-01-01', 'light' FROM "user" WHERE id IN (${ids.map((id) => `'${id}'`).join(",")});
       INSERT INTO exercise_log (id, user_id, date, type, name, kcal, source, external_id) VALUES
         ('pb-1', 't_joyofit', '${today}', 'angkat_beban', 'Push', 200, 'joyofit', 'strength:1'),
         ('pb-2', 't_manual', '${today}', 'angkat_beban', 'Angkat beban', 200, 'manual', NULL),
