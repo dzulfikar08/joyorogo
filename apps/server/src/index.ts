@@ -1,4 +1,5 @@
-import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, ne, sql } from "drizzle-orm";
+import { parseStoredAttachment } from "@joyorogo/api/lib/comment-attachment";
 import { serverT } from "@joyorogo/api/lib/messages";
 import { appRouter } from "@joyorogo/api/routers/index";
 import { LOCALE_HEADER, isLocale } from "@joyorogo/i18n";
@@ -10,7 +11,7 @@ import {
   streakFromDates,
 } from "@joyorogo/api/lib/engine";
 import { dueReminders, isFastingPattern, wibDateKey, wibMinutes } from "@joyorogo/api/lib/fasting";
-import { pendingStickerKey } from "@joyorogo/api/lib/sticker";
+import { commentPhotoKey, pendingStickerKey } from "@joyorogo/api/lib/sticker";
 import { isGainGap } from "@joyorogo/api/lib/gain";
 import { readCalibrationPrefs } from "@joyorogo/api/lib/calibration-store";
 import { buildPlan, gainedKg, planQueries } from "@joyorogo/api/lib/plan";
@@ -34,7 +35,7 @@ import {
   weightLog as weightLogTable,
 } from "@joyorogo/db/schema/fitness";
 import { pushSubscription as pushSubscriptionTable } from "@joyorogo/db/schema/plans";
-import { post as postTable } from "@joyorogo/db/schema/social";
+import { post as postTable, postComment } from "@joyorogo/db/schema/social";
 
 import { registerAnonScanRoutes } from "./anon";
 import { registerBillingRoutes } from "./billing";
@@ -349,33 +350,63 @@ async function servePostPhoto(c: HonoContext, indexParam: string | undefined) {
   const key = photos.includes(photoId)
     ? `posts/${row.userId}/${photoId}.jpg`
     : `photos/${row.userId}/${photoId}.jpg`;
-  const isPublic = row.visibility === "publik" && row.authorPublic;
+  return serveSharedPhoto(c, {
+    key,
+    postAuthorId: row.userId,
+    visibility: row.visibility,
+    authorPublic: row.authorPublic,
+    owners: [row.userId],
+  });
+}
+
+/**
+ * One object of a shared post under that post's visibility rules. `owners` are the accounts whose data the object is
+ * (the post's author, plus the commenter for a comment photo): an owner always sees it, anyone else needs a public
+ * post on a public profile, or a teammate session for a 'grup' post and no block with any owner.
+ */
+async function serveSharedPhoto(
+  c: HonoContext,
+  photo: {
+    key: string;
+    postAuthorId: string;
+    visibility: "publik" | "grup";
+    authorPublic: boolean;
+    owners: string[];
+  },
+) {
+  if (!("STICKERS" in env) || !env.STICKERS) {
+    return c.json({ error: "Foto belum tersedia." }, 404);
+  }
+  const isPublic = photo.visibility === "publik" && photo.authorPublic;
   if (!isPublic) {
     const session = await (await createAuth()).api.getSession({ headers: c.req.raw.headers });
     if (!session?.user) {
       return c.json({ error: serverT(requestLocale(c), "errors")("auth.signInRequired") }, 401);
     }
-    if (session.user.id !== row.userId) {
+    const viewerId = session.user.id;
+    if (!photo.owners.includes(viewerId)) {
       const db = getDb();
       const notFound = c.json({ error: "Foto tidak ditemukan." }, 404);
-      const [blocked] = await db
-        .select({ total: sql<number>`count(*)` })
-        .from(sql`social_block b`)
-        .where(
-          sql`(b.blocker_id = ${session.user.id} AND b.blocked_id = ${row.userId})
-            OR (b.blocker_id = ${row.userId} AND b.blocked_id = ${session.user.id})`,
-        );
-      if ((blocked?.total ?? 0) > 0) return notFound;
-      if (row.visibility !== "grup") return notFound;
+      for (const owner of photo.owners) {
+        const [blocked] = await db
+          .select({ total: sql<number>`count(*)` })
+          .from(sql`social_block b`)
+          .where(
+            sql`(b.blocker_id = ${viewerId} AND b.blocked_id = ${owner})
+              OR (b.blocker_id = ${owner} AND b.blocked_id = ${viewerId})`,
+          );
+        if ((blocked?.total ?? 0) > 0) return notFound;
+      }
+      if (photo.visibility !== "grup") return notFound;
       const [mate] = await db
         .select({ total: sql<number>`count(*)` })
         .from(sql`team_member tm1`)
         .innerJoin(sql`team_member tm2`, sql`tm1.team_id = tm2.team_id`)
-        .where(sql`tm1.user_id = ${session.user.id} AND tm2.user_id = ${row.userId}`);
+        .where(sql`tm1.user_id = ${viewerId} AND tm2.user_id = ${photo.postAuthorId}`);
       if ((mate?.total ?? 0) === 0) return notFound;
     }
   }
-  const obj = await env.STICKERS.get(key);
+  const obj = await env.STICKERS.get(photo.key);
   if (!obj) {
     return c.json({ error: "Foto tidak ditemukan." }, 404);
   }
@@ -384,6 +415,9 @@ async function servePostPhoto(c: HonoContext, indexParam: string | undefined) {
       "Content-Type": obj.httpMetadata?.contentType ?? "image/jpeg",
       "Content-Length": String(obj.size),
       "Cache-Control": isPublic ? "public, max-age=3600" : "private, max-age=3600",
+      // Stored bytes are only ever shown as the picture they are.
+      "X-Content-Type-Options": "nosniff",
+      "Content-Disposition": "inline",
     },
   });
 }
@@ -393,6 +427,40 @@ app.get("/post-photo/:postId/:index", (c) => {
   return servePostPhoto(c, typeof index === "string" ? index : undefined);
 });
 app.get("/post-photo/:postId", (c) => servePostPhoto(c, undefined));
+
+// The photo of a comment attachment (an uploaded image, or the metadata-free copy made of an attached meal's photo; the
+// private diary original is never served here), under the visibility of
+// the post the comment sits on. A hidden ("komentar dihapus") comment has no attachment, so it stops resolving.
+app.get("/comment-photo/:commentId", async (c) => {
+  const commentId = c.req.param("commentId");
+  if (!/^[a-f0-9-]{36}$/.test(commentId)) {
+    return c.json({ error: "ID tidak valid." }, 400);
+  }
+  const [row] = await getDb()
+    .select({
+      commenterId: postComment.userId,
+      attachmentJson: postComment.attachmentJson,
+      postAuthorId: postTable.userId,
+      visibility: postTable.visibility,
+      authorPublic: profileTable.publicProfile,
+    })
+    .from(postComment)
+    .innerJoin(postTable, eq(postTable.id, postComment.postId))
+    .innerJoin(profileTable, eq(profileTable.userId, postTable.userId))
+    .where(and(eq(postComment.id, commentId), isNull(postComment.deletedAt)))
+    .limit(1);
+  const attachment = parseStoredAttachment(row?.attachmentJson ?? null);
+  if (!row || !attachment?.photoId || !attachment.hasPhoto) {
+    return c.json({ error: "Foto tidak ditemukan." }, 404);
+  }
+  return serveSharedPhoto(c, {
+    key: commentPhotoKey(row.commenterId, attachment.photoId),
+    postAuthorId: row.postAuthorId,
+    visibility: row.visibility,
+    authorPublic: row.authorPublic,
+    owners: [row.postAuthorId, row.commenterId],
+  });
+});
 
 // Public profile avatars (avatars/<userId>/<id>.<ext>). No session on purpose:
 // the 32-hex id is the unguessable capability, and the URL rides in public

@@ -24,6 +24,11 @@ export function postPhotoUrl(postId: string): string {
   return `${getServerUrl(env.VITE_SERVER_URL)}/post-photo/${postId}`;
 }
 
+/** Photo of a comment attachment (an uploaded photo, or the photo of an attached meal); follows the post's visibility. */
+export function commentPhotoUrl(commentId: string): string {
+  return `${getServerUrl(env.VITE_SERVER_URL)}/comment-photo/${commentId}`;
+}
+
 /** Die-cut look: thin white outline (four 1px hard shadows) over a soft drop shadow. */
 export const STICKER_FILTER = {
   filter:

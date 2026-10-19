@@ -29,11 +29,13 @@ import { WorkoutDetail } from "@/components/feed/workout-detail";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
 import { REPORT_REASONS, type FeedComment, type FeedItem, type ReportReason } from "@/src/lib/social";
-import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
+import { CommentComposer } from "@/components/feed/comment-composer";
+import type { ReplyTarget } from "@/components/feed/comment-composer";
+import { CommentSection, afterCommentDelete } from "@/components/feed/comment-thread";
+import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
-import { errorMessage, timeAgo } from "@/utils/format";
+import { errorMessage } from "@/utils/format";
 
-const COMMENT_MAX = 280;
 const NOTE_MAX = 200;
 
 /** Detail satu post: kartu, daftar semangat, komentar, dan menu lainnya. */
@@ -49,7 +51,6 @@ export default function DetailPost() {
 
   const post = useQuery(orpc.social.post.queryOptions({ input: { id } }));
   const kudosList = useQuery(orpc.social.kudosList.queryOptions({ input: { postId: id } }));
-  const comments = useQuery(orpc.social.comments.queryOptions({ input: { postId: id } }));
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -121,61 +122,32 @@ export default function DetailPost() {
       toast.success(t("menu.toast.reported"));
     },
   });
-  type CommentRow = NonNullable<NonNullable<typeof comments.data>["items"]>[number];
-  const commentsKey = orpc.social.comments.queryOptions({ input: { postId: id } }).queryKey;
+  const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  const toggleThread = (topId: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(topId)) next.delete(topId);
+      else next.add(topId);
+      return next;
+    });
 
-  /** social.comments caches hold { items, nextCursor }: append one row. */
-  const insertCommentRow = (cache: OptimisticCache, row: CommentRow) => {
-    cache.value<{ items: CommentRow[]; nextCursor: number | null }>(commentsKey, (old) =>
-      old ? { ...old, items: [...old.items, row] } : old,
-    );
-  };
-
-  /** social.comments caches hold { items, nextCursor }: strip one row. */
-  const stripCommentRow = (cache: OptimisticCache, commentId: string) => {
-    cache.value<{ items: CommentRow[]; nextCursor: number | null }>(commentsKey, (old) =>
-      old ? { ...old, items: old.items.filter((comment) => comment.id !== commentId) } : old,
-    );
-  };
-
-  const addComment = useOptimisticMutation<
-    string,
-    { id: string }
-  >({
-    mutationFn: (body) => client.social.addComment({ postId: id, body }),
-    patch: (body, cache) => {
-      insertCommentRow(cache, {
-        id: `temp-${Date.now()}`,
-        body,
-        createdAt: new Date(),
-        author: {
-          id: me ?? "",
-          name: session?.user.name ?? t("composer.fallbackName"),
-          handle: null,
-          image: session?.user.image ?? null,
-        },
-      });
-    },
-    success: (_input, data) => {
-      setCommentText("");
-      return {
-        message: t("comments.toast.sent"),
-        undo: () => void client.social.deleteComment({ id: data.id }),
-      };
-    },
-    invalidate: () => [orpc.social.key()],
-  });
-  const deleteComment = useDelayedDelete<CommentRow>({
+  const deleteComment = useDelayedDelete<FeedComment>({
     remove: (row) => client.social.deleteComment({ id: row.id }),
     patch: (row, cache) => {
-      stripCommentRow(cache, row.id);
+      for (const prefix of [orpc.social.comments.key(), orpc.social.commentReplies.key()]) {
+        for (const query of queryClient.getQueryCache().findAll({ queryKey: prefix })) {
+          cache.value<Parameters<typeof afterCommentDelete>[0]>(query.queryKey, (data) =>
+            afterCommentDelete(data, row, t("comments.deleted")),
+          );
+        }
+      }
     },
     label: (row) => row.body,
     fallback: t("comments.undoLabel"),
     invalidate: () => [orpc.social.key()],
   });
 
-  const [commentText, setCommentText] = useState("");
   const [scrubbing, setScrubbing] = useState(false);
 
   if (gate === "loading") {
@@ -214,7 +186,19 @@ export default function DetailPost() {
   const isOwnPost = data.author.id === me;
 
   return (
-    <Screen scrollEnabled={!scrubbing}>
+    <Screen
+      scrollEnabled={!scrubbing}
+      footer={
+        <CommentComposer
+          postId={id}
+          replyTo={replyTo}
+          onCancelReply={() => setReplyTo(null)}
+          onSent={(topId) => {
+            if (topId) setExpanded((prev) => new Set(prev).add(topId));
+          }}
+        />
+      }
+    >
       <PageHeader
         title={t("common:nav.title.post")}
         right={
@@ -270,69 +254,15 @@ export default function DetailPost() {
       )}
 
       <Text style={styles.sectionLabel}>{t("comments.title")}</Text>
-      {comments.isPending ? (
-        <Skeleton width="100%" height={80} radius={24} />
-      ) : (comments.data?.items.length ?? 0) === 0 ? (
-        <Card>
-          <Text style={styles.muted}>{t("comments.empty.short")}</Text>
-        </Card>
-      ) : (
-        <View style={styles.commentList}>
-          {comments.data!.items.map((comment) => {
-            const canDelete = comment.author.id === me || isOwnPost;
-            return (
-              <Card key={comment.id} style={styles.commentCard}>
-                <View style={styles.commentHeader}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t("post.openProfile", { name: comment.author.name })}
-                    onPress={() => openAuthor(comment.author.handle)}
-                    style={({ pressed }) => [styles.commentAuthor, pressed && styles.pressed]}
-                  >
-                    <Avatar name={comment.author.name} image={comment.author.image} size={24} />
-                    <Text style={styles.personName}>{comment.author.name}</Text>
-                    <Text style={styles.muted}>{timeAgo(comment.createdAt)}</Text>
-                  </Pressable>
-                  {canDelete ? (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={t("comments.delete")}
-                      onPress={() => setConfirm({ comment })}
-                      style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
-                    >
-                      <Ionicons name="trash-outline" size={16} color={theme.colors.destructive} />
-                    </Pressable>
-                  ) : null}
-                </View>
-                <Text style={styles.commentBody}>{comment.body}</Text>
-              </Card>
-            );
-          })}
-        </View>
-      )}
-      {comments.isError ? <Text style={styles.error}>{errorMessage(comments.error)}</Text> : null}
-
-      <Card style={styles.commentForm}>
-        <Field label={t("comments.field", { n: commentText.length, max: COMMENT_MAX })}>
-          <Input
-            value={commentText}
-            onChangeText={setCommentText}
-            maxLength={COMMENT_MAX}
-            multiline
-            placeholder={t("comments.placeholder")}
-          />
-        </Field>
-        {addComment.isError ? (
-          <Text style={styles.error}>{errorMessage(addComment.error)}</Text>
-        ) : null}
-        <Button
-          label={t("comments.sendShort")}
-          size="sm"
-          disabled={commentText.trim().length === 0 || addComment.isPending}
-          loading={addComment.isPending}
-          onPress={() => addComment.mutate(commentText.trim())}
-        />
-      </Card>
+      <CommentSection
+        postId={id}
+        me={me}
+        isOwnPost={isOwnPost}
+        expanded={expanded}
+        onToggle={toggleThread}
+        onReply={(comment, topId) => setReplyTo({ commentId: comment.id, topId, name: comment.author.name })}
+        onDelete={(comment) => setConfirm({ comment })}
+      />
 
       {/* Overflow menu */}
       <Sheet visible={menuOpen} onClose={() => setMenuOpen(false)} title={t("common:nav.more")}>
@@ -521,31 +451,6 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     fontWeight: "600",
     color: theme.colors.foreground,
-  },
-  commentList: {
-    gap: theme.spacing.md,
-  },
-  commentCard: {
-    gap: theme.spacing.sm,
-    paddingVertical: theme.spacing.md,
-  },
-  commentHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  commentAuthor: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-  },
-  commentBody: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.foreground,
-    lineHeight: 20,
-  },
-  commentForm: {
-    gap: theme.spacing.md,
   },
   menuCard: {
     paddingVertical: 0,

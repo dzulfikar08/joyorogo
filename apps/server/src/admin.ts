@@ -1,10 +1,11 @@
-import { and, desc, eq, gt, inArray, isNotNull, isNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import type { JoyoAuth } from "@joyorogo/auth";
 import type { Context, Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 
+import { commentPhotoKeysOf } from "@joyorogo/api/lib/comment-attachment";
 import { jakartaToday } from "@joyorogo/api/lib/engine";
 import { feedbackPhotoKey } from "@joyorogo/api/lib/feedback-keep";
 import { accuracyReportSummary } from "@joyorogo/api/lib/accuracy-report";
@@ -99,6 +100,15 @@ type Deps = {
   /** Sends a test email to `to`; returns the send outcome text. */
   sendTestEmail: (to: string) => Promise<string>;
 };
+
+/** Removes the R2 objects of comment photos whose rows an admin delete just cascaded away. */
+async function deleteCommentPhotos(
+  bucket: StickersBucket | undefined,
+  rows: { userId: string; attachmentJson: string | null }[],
+): Promise<void> {
+  const keys = commentPhotoKeysOf(rows);
+  if (bucket && keys.length > 0) await bucket.delete(keys).catch(() => {});
+}
 
 /**
  * Operator console API for admin.joyorogo.com. Same better-auth session as
@@ -557,12 +567,28 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
   // Hapus konten yang dilaporkan; kudos/komentar/notifikasi/laporan ikut
   // terhapus lewat ON DELETE CASCADE.
   app.delete("/api/admin/posts/:id", async (c) => {
-    await deps.getDb().delete(postTable).where(eq(postTable.id, c.req.param("id")));
+    const db = deps.getDb();
+    const postId = c.req.param("id");
+    // Comment photos go with the post's comments (cascade), so their keys are read first.
+    const photos = await db
+      .select({ userId: postComment.userId, attachmentJson: postComment.attachmentJson })
+      .from(postComment)
+      .where(and(eq(postComment.postId, postId), isNotNull(postComment.attachmentJson)));
+    await db.delete(postTable).where(eq(postTable.id, postId));
+    await deleteCommentPhotos(deps.getBucket(), photos);
     return c.json({ ok: true });
   });
 
   app.delete("/api/admin/comments/:id", async (c) => {
-    await deps.getDb().delete(postComment).where(eq(postComment.id, c.req.param("id")));
+    const db = deps.getDb();
+    const id = c.req.param("id");
+    // The comment and its replies (cascade) take their photos with them.
+    const photos = await db
+      .select({ userId: postComment.userId, attachmentJson: postComment.attachmentJson })
+      .from(postComment)
+      .where(and(or(eq(postComment.id, id), eq(postComment.parentId, id)), isNotNull(postComment.attachmentJson)));
+    await db.delete(postComment).where(eq(postComment.id, id));
+    await deleteCommentPhotos(deps.getBucket(), photos);
     return c.json({ ok: true });
   });
 

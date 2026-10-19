@@ -8,40 +8,18 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
-import { i18n } from "@joyorogo/i18n";
 
 import { Segmented } from "@/components/kit/surface";
 import type { FeedPost } from "@/lib/api-types";
+import { compressImage } from "@/lib/compress-image";
+import type { PendingPhoto } from "@/lib/compress-image";
 import { useSession } from "@/lib/auth-client";
 import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
 const STORY_MAX = 1000;
 const PHOTOS_MAX = 4;
-const LONG_EDGE = 1600;
-
-type Pending = { localUrl: string; base64: string; mimeType: "image/jpeg" };
-
-/**
- * Kompres ke sisi panjang ~1600px JPEG kualitas 0.8 lewat canvas; balikin
- * base64 murni (tanpa prefiks data URL) untuk unggahan.
- */
-async function compressImage(file: File): Promise<Pending> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, LONG_EDGE / Math.max(bitmap.width, bitmap.height));
-  const width = Math.max(1, Math.round(bitmap.width * scale));
-  const height = Math.max(1, Math.round(bitmap.height * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error(i18n.t("feed:composer.error.noCanvas"));
-  context.drawImage(bitmap, 0, 0, width, height);
-  bitmap.close();
-  const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
-  const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
-  return { localUrl: dataUrl, base64, mimeType: "image/jpeg" };
-}
+type Pending = PendingPhoto;
 
 /**
  * Sheet "Buat post" di feed: teks bebas (maks 1000) + 0-4 foto + penonton.

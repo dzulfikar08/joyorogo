@@ -130,7 +130,15 @@ export type SocialProfile = SocialProfileOutput;
 /** One post card in the feed. */
 export type FeedPost = FeedOutput["items"][number];
 export type SocialNotificationItem = SocialNotificationsOutput["items"][number];
+/** One comment of a post (top-level or a reply); contract: docs/social-comments.md. */
 export type PostCommentItem = SocialCommentsOutput["items"][number];
+/** What a comment carries besides text: an uploaded photo or a snapshot of one of the commenter's own items. */
+export type CommentAttachment = NonNullable<PostCommentItem["attachment"]>;
+type CommentAttachablesOutput = Awaited<ReturnType<AppRouterClient["social"]["commentAttachables"]>>;
+/** One own item the "Dari aplikasi" picker offers. */
+export type CommentAttachable = CommentAttachablesOutput["items"][number];
+/** Kinds of own items a comment can attach. */
+export type CommentItemKind = CommentAttachable["kind"];
 export type PublicProfileData = PublicProfileOutput;
 
 type SavedFoodListOutput = Awaited<ReturnType<AppRouterClient["savedFood"]["list"]>>;

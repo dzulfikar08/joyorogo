@@ -122,7 +122,8 @@ export function CountNum({
 
 /**
  * Scrollable page on paper: 20px gutters, 12px between related cards. Passing
- * `onRefresh` turns on pull-to-refresh.
+ * `onRefresh` turns on pull-to-refresh. `footer` pins a bar (a comment composer) under the
+ * scroll area; it rides above the keyboard while the page keeps its own height above it.
  */
 export function Screen({
   children,
@@ -130,6 +131,7 @@ export function Screen({
   refreshing = false,
   onRefresh,
   scrollEnabled = true,
+  footer,
 }: {
   children: React.ReactNode;
   style?: ViewStyle;
@@ -137,23 +139,35 @@ export function Screen({
   onRefresh?: () => void;
   /** False while a child gesture (chart scrubbing) owns the touch. */
   scrollEnabled?: boolean;
+  footer?: React.ReactNode;
 }) {
+  const scroll = (
+    // Keyboard-aware on both platforms: the focused input always scrolls
+    // above the keyboard (Android edge-to-edge never resizes the window).
+    <KeyboardAwareScrollView
+      contentContainerStyle={[styles.screenContent, footer ? styles.screenContentWithFooter : null, style]}
+      style={footer ? styles.screenScroll : undefined}
+      keyboardShouldPersistTaps="handled"
+      bottomOffset={24}
+      showsVerticalScrollIndicator={false}
+      scrollEnabled={scrollEnabled}
+      refreshControl={
+        onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined
+      }
+    >
+      {children}
+    </KeyboardAwareScrollView>
+  );
   return (
     <Container>
-      {/* Keyboard-aware on both platforms: the focused input always scrolls
-          above the keyboard (Android edge-to-edge never resizes the window). */}
-      <KeyboardAwareScrollView
-        contentContainerStyle={[styles.screenContent, style]}
-        keyboardShouldPersistTaps="handled"
-        bottomOffset={24}
-        showsVerticalScrollIndicator={false}
-        scrollEnabled={scrollEnabled}
-        refreshControl={
-          onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined
-        }
-      >
-        {children}
-      </KeyboardAwareScrollView>
+      {footer ? (
+        <KeyboardAvoidingView behavior="padding" style={styles.screenScroll}>
+          {scroll}
+          <View style={styles.screenFooter}>{footer}</View>
+        </KeyboardAvoidingView>
+      ) : (
+        scroll
+      )}
     </Container>
   );
 }
@@ -1082,6 +1096,20 @@ const styles = StyleSheet.create((theme) => ({
       maxWidth: 640,
       alignSelf: "center",
       width: "100%",
+    },
+  },
+  screenContentWithFooter: {
+    paddingBottom: theme.spacing.lg,
+  },
+  screenScroll: {
+    flex: 1,
+  },
+  screenFooter: {
+    backgroundColor: theme.colors.background,
+    borderTopWidth: RNStyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.hairline,
+    "@md": {
+      alignItems: "center",
     },
   },
   pressedSoft: {

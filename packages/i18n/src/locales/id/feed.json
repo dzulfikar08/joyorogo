@@ -37,11 +37,14 @@
       "kudos": "{{name}} kasih semangat",
       "comment": "{{name}} berkomentar",
       "commentExcerpt": "{{name}}: {{excerpt}}",
+      "reply": "{{name}} membalas komentarmu",
+      "replyExcerpt": "{{name}} membalas: {{excerpt}}",
       "follow": "{{name}} mulai mengikuti kamu"
     },
     "onPost": {
       "kudos": "{{name}} memberi semangat di \"{{post}}\"",
-      "comment": "{{name}} berkomentar di \"{{post}}\""
+      "comment": "{{name}} berkomentar di \"{{post}}\"",
+      "reply": "{{name}} membalas komentarmu di \"{{post}}\""
     },
     "deletedPost": "sebuah post yang sudah dihapus"
   },
@@ -113,7 +116,67 @@
     "toast": {
       "sent": "Komentar terkirim"
     },
-    "undoLabel": "Komentar"
+    "undoLabel": "Komentar",
+    "reply": "Balas",
+    "replyingTo": "Membalas {{name}}",
+    "replyPlaceholder": "Tulis balasan...",
+    "cancelReply": "Batalkan balasan",
+    "viewReplies_other": "Lihat {{count}} balasan",
+    "hideReplies": "Sembunyikan balasan",
+    "moreReplies": "Lihat balasan lainnya",
+    "moreComments": "Lihat komentar lainnya",
+    "deleted": "Komentar ini dihapus.",
+    "attach": {
+      "add": "Lampirkan",
+      "photo": "Foto",
+      "gallery": "Galeri",
+      "camera": "Kamera",
+      "fromApp": "Dari aplikasi",
+      "remove": "Hapus lampiran",
+      "uploading": "Mengunggah foto...",
+      "photoAlt": "Foto dalam komentar",
+      "photoError": "Fotonya gagal diproses. Coba foto lain.",
+      "cameraDenied": "Izin kamera belum diberikan. Aktifkan di pengaturan ponsel.",
+      "pickerTitle": "Lampirkan dari aplikasi",
+      "loading": "Memuat...",
+      "mapOff": "Peta kamu sedang dimatikan di pengaturan, jadi belum ada rute yang bisa dilampirkan.",
+      "kind": {
+        "workout": "Latihan",
+        "food": "Makanan",
+        "weight": "Berat",
+        "recap": "Rekap",
+        "route": "Rute"
+      },
+      "empty": {
+        "workout": "Belum ada latihan yang bisa dilampirkan.",
+        "food": "Belum ada catatan makan yang bisa dilampirkan.",
+        "weight": "Belum ada catatan berat yang bisa dilampirkan.",
+        "recap": "Belum ada rekap mingguan. Catat makananmu dulu.",
+        "route": "Belum ada rute dari JoyoFit yang bisa dilampirkan."
+      },
+      "title": {
+        "weight": "Check-in berat badan",
+        "recap": "Rekap minggu {{range}}"
+      },
+      "cardLabel": "Lampiran: {{title}}"
+    },
+    "fact": {
+      "duration": "{{value}} mnt",
+      "distance": "{{value}} km",
+      "kcal": "{{value}} kkal",
+      "heartRate": "{{value}} bpm",
+      "protein": "P {{value}}g",
+      "carbs": "K {{value}}g",
+      "fat": "L {{value}}g",
+      "items_other": "{{count}} item",
+      "weight": "{{value}} kg",
+      "delta": "{{value}} kg dari awal",
+      "avgKcal": "Rata-rata {{value}} dari {{target}} kkal",
+      "onTarget": "{{days}} dari {{total}} hari sesuai target",
+      "streak_other": "{{count}} hari beruntun",
+      "exercise": "{{value}} mnt olahraga",
+      "weightChange": "{{value}} kg minggu ini"
+    }
   },
   "menu": {
     "report": {
@@ -599,7 +662,12 @@
   "server": {
     "push": {
       "kudos": "{{name}} kasih semangat",
-      "comment": "{{name}} berkomentar"
+      "comment": "{{name}} berkomentar",
+      "reply": "{{name}} membalas komentarmu",
+      "attachment": "Mengirim lampiran"
+    },
+    "comment": {
+      "deleted": "Komentar ini dihapus."
     },
     "error": {
       "postNotFound": "Postingan tidak ditemukan.",
@@ -629,7 +697,12 @@
       "blockSelf": "Tidak bisa memblokir diri sendiri.",
       "reportOne": "Lapor satu konten saja.",
       "reportQuota": "Kuota laporan hari ini habis.",
-      "commentNotFound": "Komentar tidak ditemukan."
+      "commentNotFound": "Komentar tidak ditemukan.",
+      "commentEmpty": "Tulis komentar atau lampirkan sesuatu dulu.",
+      "attachmentNotFound": "Yang mau kamu lampirkan tidak ditemukan.",
+      "attachmentMapOff": "Peta kamu dimatikan di pengaturan, jadi rute ini tidak bisa dilampirkan.",
+      "attachmentNoRoute": "Rute ini belum bisa dibagikan, mungkin terlalu pendek.",
+      "photoInvalid": "Fotonya tidak terbaca. Pakai JPEG atau WebP."
     }
   }
 }

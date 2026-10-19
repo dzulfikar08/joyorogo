@@ -38,11 +38,14 @@
       "kudos": "{{name}} cheered you on",
       "comment": "{{name}} commented",
       "commentExcerpt": "{{name}}: {{excerpt}}",
+      "reply": "{{name}} replied to your comment",
+      "replyExcerpt": "{{name}} replied: {{excerpt}}",
       "follow": "{{name}} started following you"
     },
     "onPost": {
       "kudos": "{{name}} cheered \"{{post}}\"",
-      "comment": "{{name}} commented on \"{{post}}\""
+      "comment": "{{name}} commented on \"{{post}}\"",
+      "reply": "{{name}} replied to your comment on \"{{post}}\""
     },
     "deletedPost": "a deleted post"
   },
@@ -116,7 +119,70 @@
     "toast": {
       "sent": "Comment sent"
     },
-    "undoLabel": "Comment"
+    "undoLabel": "Comment",
+    "reply": "Reply",
+    "replyingTo": "Replying to {{name}}",
+    "replyPlaceholder": "Write a reply...",
+    "cancelReply": "Cancel reply",
+    "viewReplies_one": "View {{count}} reply",
+    "viewReplies_other": "View {{count}} replies",
+    "hideReplies": "Hide replies",
+    "moreReplies": "View more replies",
+    "moreComments": "View more comments",
+    "deleted": "This comment was deleted.",
+    "attach": {
+      "add": "Attach",
+      "photo": "Photo",
+      "gallery": "Gallery",
+      "camera": "Camera",
+      "fromApp": "From the app",
+      "remove": "Remove attachment",
+      "uploading": "Uploading photo...",
+      "photoAlt": "Photo in a comment",
+      "photoError": "Couldn't process that photo. Try another.",
+      "cameraDenied": "Camera access isn't allowed. Turn it on in your phone settings.",
+      "pickerTitle": "Attach from the app",
+      "loading": "Loading...",
+      "mapOff": "Your maps are turned off in settings, so there are no routes to attach yet.",
+      "kind": {
+        "workout": "Workout",
+        "food": "Meal",
+        "weight": "Weight",
+        "recap": "Recap",
+        "route": "Route"
+      },
+      "empty": {
+        "workout": "No workouts to attach yet.",
+        "food": "No meals to attach yet.",
+        "weight": "No weight entries to attach yet.",
+        "recap": "No weekly recap yet. Log your meals first.",
+        "route": "No routes from JoyoFit to attach yet."
+      },
+      "title": {
+        "weight": "Weight check-in",
+        "recap": "Recap for {{range}}"
+      },
+      "cardLabel": "Attachment: {{title}}"
+    },
+    "fact": {
+      "duration": "{{value}} min",
+      "distance": "{{value}} km",
+      "kcal": "{{value}} kcal",
+      "heartRate": "{{value}} bpm",
+      "protein": "P {{value}}g",
+      "carbs": "C {{value}}g",
+      "fat": "F {{value}}g",
+      "items_one": "{{count}} item",
+      "items_other": "{{count}} items",
+      "weight": "{{value}} kg",
+      "delta": "{{value}} kg since the start",
+      "avgKcal": "Avg {{value}} of {{target}} kcal",
+      "onTarget": "{{days}} of {{total}} days on target",
+      "streak_one": "{{count}} day streak",
+      "streak_other": "{{count}} day streak",
+      "exercise": "{{value}} min active",
+      "weightChange": "{{value}} kg this week"
+    }
   },
   "menu": {
     "report": {
@@ -603,7 +669,12 @@
   "server": {
     "push": {
       "kudos": "{{name}} cheered you on",
-      "comment": "{{name}} commented"
+      "comment": "{{name}} commented",
+      "reply": "{{name}} replied to your comment",
+      "attachment": "Sent an attachment"
+    },
+    "comment": {
+      "deleted": "This comment was deleted."
     },
     "error": {
       "postNotFound": "Post not found.",
@@ -633,7 +704,12 @@
       "blockSelf": "You can't block yourself.",
       "reportOne": "Report one item at a time.",
       "reportQuota": "You've reached today's report limit.",
-      "commentNotFound": "Comment not found."
+      "commentNotFound": "Comment not found.",
+      "commentEmpty": "Write a comment or attach something first.",
+      "attachmentNotFound": "What you're trying to attach wasn't found.",
+      "attachmentMapOff": "Your maps are turned off in settings, so this route can't be attached.",
+      "attachmentNoRoute": "This route can't be shared yet, it may be too short.",
+      "photoInvalid": "That photo couldn't be read. Use JPEG or WebP."
     }
   }
 }

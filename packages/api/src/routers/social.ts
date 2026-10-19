@@ -1,7 +1,9 @@
 import { ORPCError } from "@orpc/server";
 import {
-  and, asc, count, desc, eq, gt, inArray, isNull, lt, ne, or, sql,
+  and, asc, count, desc, eq, gt, inArray, isNotNull, isNull, like, lt, ne, or, sql,
+  type SQL,
 } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
 
 import { user } from "@joyorogo/db/schema/auth";
@@ -27,7 +29,19 @@ import {
 
 import { publicProcedure, protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
-import { base64ToBytes } from "../lib/sticker";
+import { base64ToBytes, commentPhotoKey } from "../lib/sticker";
+import {
+  attachmentInputSchema,
+  buildItemAttachment,
+  ITEM_KINDS,
+  listAttachables,
+  parseStoredAttachment,
+  toPublicAttachment,
+  weightDeltaKg,
+  commentPhotoKeysOf,
+} from "../lib/comment-attachment";
+import type { Attachment, StoredAttachment } from "../lib/comment-attachment";
+import { cleanImage } from "../lib/image-clean";
 import { serverT, userLocale } from "../lib/messages";
 import { sendPush } from "../lib/webpush";
 import { premiumUnlocked } from "../lib/readiness-food";
@@ -45,6 +59,9 @@ import { parseStoredAnalysis, workoutAnalysisSchema } from "../lib/workout-analy
 const STORY_MAX = 1000;
 const STORY_PHOTOS_MAX = 4;
 const COMMENT_MAX = 280;
+const COMMENT_REPLIES_PAGE = 10;
+/** Raw upload ceiling of a comment photo (~3 MB binary; clients send ~1600px JPEG/WebP far below it). */
+const COMMENT_PHOTO_BASE64_MAX = 4_000_000;
 const BIO_MAX = 160;
 const NOTE_MAX = 200;
 const MAX_POSTS_PER_DAY = 20;
@@ -346,25 +363,27 @@ async function notifyKudos(
   }
 }
 
+/** Komentar baru di postingan (`comment`, ke penulis postingan) atau balasan atas komentar seseorang (`reply`). */
 async function notifyComment(
   context: NotifyContext,
   postId: string,
-  authorId: string,
+  recipientId: string,
   actorId: string,
   actorName: string,
   body: string,
+  kind: "comment" | "reply" = "comment",
 ) {
   await context.db.insert(socialNotification).values({
     id: crypto.randomUUID(),
-    userId: authorId,
+    userId: recipientId,
     actorId,
-    kind: "comment",
+    kind,
     postId,
-    excerpt: body.slice(0, 120),
+    excerpt: body.length > 0 ? body.slice(0, 120) : null,
   });
-  pushFeed(context, authorId, (t) => ({
-    title: t("server.push.comment", { name: actorName }),
-    body: body.slice(0, 120),
+  pushFeed(context, recipientId, (t) => ({
+    title: t(kind === "reply" ? "server.push.reply" : "server.push.comment", { name: actorName }),
+    body: body.length > 0 ? body.slice(0, 120) : t("server.push.attachment"),
   }));
 }
 
@@ -463,7 +482,7 @@ function toFeedItem(row: {
 }
 
 const kudosCountSql = sql<number>`(SELECT count(*) FROM post_kudos k WHERE k.post_id = ${postTable.id})`;
-const commentCountSql = sql<number>`(SELECT count(*) FROM post_comment c WHERE c.post_id = ${postTable.id})`;
+const commentCountSql = sql<number>`(SELECT count(*) FROM post_comment c WHERE c.post_id = ${postTable.id} AND c.deleted_at IS NULL)`;
 
 const postColumns = {
   id: postTable.id,
@@ -502,6 +521,104 @@ async function countRow(query: Promise<{ total: number }[]>) {
 }
 
 const dayStartWib = () => new Date(`${jakartaToday()}T00:00:00+07:00`).getTime();
+
+// --- Komentar bertingkat -----------------------------------------------------------
+
+const replyUser = alias(user, "reply_user");
+const replyProfile = alias(profileTable, "reply_profile");
+
+/** Satu komentar sebagaimana dilihat klien. Kontrak: docs/social-comments.md. */
+export type CommentOut = {
+  id: string;
+  body: string;
+  createdAt: Date;
+  author: { id: string; name: string; handle: string | null; image: string | null };
+  deleted: boolean;
+  parentId: string | null;
+  replyCount: number;
+  replyTo: { id: string; name: string; handle: string | null } | null;
+  attachment: Attachment | null;
+};
+
+/** Balasan yang terlihat `me`: belum dihapus dan bukan dari pengguna yang saling blokir dengannya. */
+function replyCountSql(me: string | null) {
+  return sql<number>`(SELECT count(*) FROM post_comment r WHERE r.parent_id = ${postComment.id} AND r.deleted_at IS NULL${
+    me ? sql` AND ${blockedBetweenSql(me, sql`r.user_id`)}` : sql``
+  })`;
+}
+
+type CommentRow = {
+  id: string;
+  body: string;
+  createdAt: Date;
+  parentId: string | null;
+  deletedAt: Date | null;
+  attachmentJson: string | null;
+  replyCount: number;
+  authorId: string;
+  authorName: string;
+  authorImage: string | null;
+  authorHandle: string | null;
+  replyToId: string | null;
+  replyToName: string | null;
+  replyToHandle: string | null;
+};
+
+async function loadComments(db: Database, me: string | null, where: SQL | undefined, limit: number): Promise<CommentRow[]> {
+  return db
+    .select({
+      id: postComment.id,
+      body: postComment.body,
+      createdAt: postComment.createdAt,
+      parentId: postComment.parentId,
+      deletedAt: postComment.deletedAt,
+      attachmentJson: postComment.attachmentJson,
+      replyCount: replyCountSql(me),
+      authorId: user.id,
+      authorName: user.name,
+      authorImage: user.image,
+      authorHandle: profileTable.handle,
+      replyToId: replyUser.id,
+      replyToName: replyUser.name,
+      replyToHandle: replyProfile.handle,
+    })
+    .from(postComment)
+    .innerJoin(user, eq(user.id, postComment.userId))
+    .leftJoin(profileTable, eq(profileTable.userId, postComment.userId))
+    .leftJoin(replyUser, eq(replyUser.id, postComment.replyToUserId))
+    .leftJoin(replyProfile, eq(replyProfile.userId, postComment.replyToUserId))
+    .where(where)
+    .orderBy(asc(postComment.createdAt), asc(postComment.id))
+    .limit(limit);
+}
+
+function shapeComment(row: CommentRow, t: TFunction<"feed">): CommentOut {
+  const deleted = row.deletedAt !== null;
+  const stored = deleted ? null : parseStoredAttachment(row.attachmentJson);
+  return {
+    id: row.id,
+    // A hidden comment keeps a readable body so a client that does not know `deleted` still shows something.
+    body: deleted ? t("server.comment.deleted") : row.body,
+    createdAt: row.createdAt,
+    author: deleted
+      ? { id: "", name: "", handle: null, image: null }
+      : { id: row.authorId, name: row.authorName, handle: row.authorHandle, image: row.authorImage },
+    deleted,
+    parentId: row.parentId,
+    replyCount: row.replyCount,
+    replyTo: !deleted && row.replyToId ? { id: row.replyToId, name: row.replyToName ?? "", handle: row.replyToHandle } : null,
+    attachment: stored ? toPublicAttachment(stored) : null,
+  };
+}
+
+/** `limit + 1` baris dibaca; baris ekstra hanya penanda masih ada halaman berikutnya. */
+function commentPage(rows: CommentRow[], limit: number, t: TFunction<"feed">) {
+  const page = rows.slice(0, limit);
+  return {
+    items: page.map((row) => shapeComment(row, t)),
+    nextCursor: rows.length > limit ? (page[page.length - 1]?.createdAt.getTime() ?? null) : null,
+  };
+}
 
 // --- Router -------------------------------------------------------------------------
 
@@ -775,14 +892,7 @@ export const socialRouter = {
           statsJson: JSON.stringify({
             weightKg: weight.weightKg,
             // Under a gain plan the check-in compares with where the gain began, so it reads "naik" (never "turun since the old start").
-            deltaKg: Number(
-              (
-                weight.weightKg -
-                (meProfile.goal === "gain"
-                  ? (meProfile.goalStartKg ?? meProfile.startWeightKg)
-                  : meProfile.startWeightKg)
-              ).toFixed(1),
-            ),
+            deltaKg: weightDeltaKg(weight.weightKg, meProfile),
           }),
           foodLogId: null,
           exerciseLogId: null,
@@ -1083,6 +1193,13 @@ export const socialRouter = {
         .from(postTable)
         .where(and(eq(postTable.id, input.id), eq(postTable.userId, me)))
         .limit(1);
+      // Foto lampiran komentar di postingan ini ikut hilang bersama baris komentarnya (cascade), jadi kuncinya dibaca dulu.
+      const commentRows = row
+        ? await context.db
+            .select({ userId: postComment.userId, attachmentJson: postComment.attachmentJson })
+            .from(postComment)
+            .where(and(eq(postComment.postId, input.id), isNotNull(postComment.attachmentJson)))
+        : [];
       await context.db
         .delete(postTable)
         .where(and(eq(postTable.id, input.id), eq(postTable.userId, me)));
@@ -1090,13 +1207,11 @@ export const socialRouter = {
       // karena dipakai bersama catatan makanannya.
       const bucket = context.env.STICKERS;
       if (row && bucket) {
-        context.waitUntil(
-          Promise.all(
-            parseStringArray(row.photosJson).map((photoId) =>
-              bucket.delete(`posts/${me}/${photoId}.jpg`).catch(() => {}),
-            ),
-          ).then(() => {}),
-        );
+        const keys = [
+          ...parseStringArray(row.photosJson).map((photoId) => `posts/${me}/${photoId}.jpg`),
+          ...commentPhotoKeysOf(commentRows),
+        ];
+        context.waitUntil(Promise.all(keys.map((key) => bucket.delete(key).catch(() => {}))).then(() => {}));
       }
       return { ok: true };
     }),
@@ -1183,7 +1298,7 @@ export const socialRouter = {
         context.db
           .select({ total: count() })
           .from(postComment)
-          .where(eq(postComment.postId, row.id)),
+          .where(and(eq(postComment.postId, row.id), isNull(postComment.deletedAt))),
       );
       const kudosByMe = me
         ? (
@@ -1531,6 +1646,7 @@ export const socialRouter = {
       return rows;
     }),
 
+  /** Komentar tingkat atas (urut lama ke baru). Balasan diambil per komentar lewat `commentReplies`. */
   comments: publicProcedure
     .input(
       z.object({
@@ -1540,53 +1656,76 @@ export const socialRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
       const me = context.session?.user.id ?? null;
-      const rows = await context.db
-        .select({
-          id: postComment.id,
-          body: postComment.body,
-          createdAt: postComment.createdAt,
-          authorId: user.id,
-          authorName: user.name,
-          authorImage: user.image,
-          authorHandle: profileTable.handle,
-        })
-        .from(postComment)
-        .innerJoin(user, eq(user.id, postComment.userId))
-        .leftJoin(profileTable, eq(profileTable.userId, postComment.userId))
-        .where(
-          and(
-            eq(postComment.postId, input.postId),
-            me ? blockedBetweenSql(me, postComment.userId) : undefined,
-            input.cursor ? gt(postComment.createdAt, new Date(input.cursor)) : undefined,
-          ),
-        )
-        .orderBy(asc(postComment.createdAt))
-        .limit(input.limit + 1);
-      const page = rows.slice(0, input.limit);
-      return {
-        items: page.map((row) => ({
-          id: row.id,
-          body: row.body,
-          createdAt: row.createdAt,
-          author: {
-            id: row.authorId,
-            name: row.authorName,
-            handle: row.authorHandle,
-            image: row.authorImage,
-          },
-        })),
-        nextCursor:
-          rows.length > input.limit ? page[page.length - 1]?.createdAt.getTime() ?? null : null,
-      };
+      await loadVisiblePost(context.db, input.postId, me, t);
+      const rows = await loadComments(
+        context.db,
+        me,
+        and(
+          eq(postComment.postId, input.postId),
+          isNull(postComment.parentId),
+          me ? blockedBetweenSql(me, postComment.userId) : undefined,
+          input.cursor ? gt(postComment.createdAt, new Date(input.cursor)) : undefined,
+        ),
+        input.limit + 1,
+      );
+      return commentPage(rows, input.limit, t);
     }),
 
+  /** Balasan satu komentar tingkat atas, lama ke baru. Id sebuah balasan dipetakan ke komentar tingkat atasnya. */
+  commentReplies: publicProcedure
+    .input(
+      z.object({
+        parentId: z.string(),
+        cursor: cursorSchema,
+        limit: z.number().int().min(1).max(50).default(COMMENT_REPLIES_PAGE),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
+      const me = context.session?.user.id ?? null;
+      const [target] = await context.db
+        .select({ id: postComment.id, postId: postComment.postId, parentId: postComment.parentId })
+        .from(postComment)
+        .where(eq(postComment.id, input.parentId))
+        .limit(1);
+      if (!target) throw new ORPCError("NOT_FOUND", { message: t("server.error.commentNotFound") });
+      await loadVisiblePost(context.db, target.postId, me, t);
+      const rows = await loadComments(
+        context.db,
+        me,
+        and(
+          eq(postComment.parentId, target.parentId ?? target.id),
+          me ? blockedBetweenSql(me, postComment.userId) : undefined,
+          input.cursor ? gt(postComment.createdAt, new Date(input.cursor)) : undefined,
+        ),
+        input.limit + 1,
+      );
+      return commentPage(rows, input.limit, t);
+    }),
+
+  /**
+   * Komentar baru atau balasan. `parentId` boleh id komentar mana pun di postingan itu: balasan atas balasan diratakan
+   * ke komentar tingkat atasnya dan menyimpan siapa yang dibalas (`replyTo`). Lampiran: satu foto yang diunggah lewat
+   * `uploadCommentPhoto`, atau satu item milik pengomentar sendiri (dicuplik saat ini juga).
+   */
   addComment: protectedProcedure
-    .input(z.object({ postId: z.string(), body: z.string().trim().min(1).max(COMMENT_MAX) }))
+    .input(
+      z.object({
+        postId: z.string(),
+        body: z.string().trim().max(COMMENT_MAX).default(""),
+        parentId: z.string().optional(),
+        attachment: attachmentInputSchema.optional(),
+      }),
+    )
     .handler(async ({ context, input }) => {
       const t = serverT(context.locale, "feed");
       const me = context.session.user.id;
       const db = context.db;
+      if (input.body.length === 0 && !input.attachment) {
+        throw new ORPCError("BAD_REQUEST", { message: t("server.error.commentEmpty") });
+      }
       const dayCount = await countRow(
         db
           .select({ total: count() })
@@ -1599,44 +1738,171 @@ export const socialRouter = {
         throw new ORPCError("BAD_REQUEST", { message: t("server.error.commentQuota") });
       }
       const row = await loadVisiblePost(db, input.postId, me, t);
+
+      let topLevelId: string | null = null;
+      let replyToUserId: string | null = null;
+      let target: { userId: string } | null = null;
+      if (input.parentId) {
+        const [found] = await db
+          .select({
+            id: postComment.id,
+            userId: postComment.userId,
+            parentId: postComment.parentId,
+            deletedAt: postComment.deletedAt,
+          })
+          .from(postComment)
+          .where(and(eq(postComment.id, input.parentId), eq(postComment.postId, row.id)))
+          .limit(1);
+        const blocked = found
+          ? await countRow(
+              db
+                .select({ total: count() })
+                .from(socialBlock)
+                .where(
+                  or(
+                    and(eq(socialBlock.blockerId, me), eq(socialBlock.blockedId, found.userId)),
+                    and(eq(socialBlock.blockerId, found.userId), eq(socialBlock.blockedId, me)),
+                  ),
+                ),
+            )
+          : 0;
+        if (!found || found.deletedAt || blocked > 0) {
+          throw new ORPCError("NOT_FOUND", { message: t("server.error.commentNotFound") });
+        }
+        topLevelId = found.parentId ?? found.id;
+        // Only a reply to a reply names someone; a reply to a top-level comment is already under it.
+        replyToUserId = found.parentId && found.userId !== me ? found.userId : null;
+        target = { userId: found.userId };
+      }
+
+      let stored: StoredAttachment | null = null;
+      if (input.attachment?.kind === "image") {
+        const bucket = context.env.STICKERS;
+        if (!bucket) {
+          throw new ORPCError("INTERNAL_SERVER_ERROR", { message: t("server.error.photoStorageUnavailable") });
+        }
+        const photoId = input.attachment.photoId;
+        const found = await bucket.get(commentPhotoKey(me, photoId));
+        const used = await countRow(
+          db
+            .select({ total: count() })
+            .from(postComment)
+            .where(and(eq(postComment.userId, me), like(postComment.attachmentJson, `%${photoId}%`))),
+        );
+        if (!found || used > 0) {
+          throw new ORPCError("BAD_REQUEST", { message: t("server.error.photoMissing") });
+        }
+        stored = { kind: "image", title: "", date: null, mapLine: null, hasPhoto: true, stats: {}, photoId };
+      } else if (input.attachment) {
+        const built = await buildItemAttachment(db, context.env.STICKERS, me, input.attachment.kind, input.attachment.refId);
+        if (!built.ok) {
+          throw new ORPCError("NOT_FOUND", {
+            message: t(
+              built.reason === "mapOff"
+                ? "server.error.attachmentMapOff"
+                : built.reason === "noRoute"
+                  ? "server.error.attachmentNoRoute"
+                  : "server.error.attachmentNotFound",
+            ),
+          });
+        }
+        stored = built.attachment;
+      }
+
       const commentId = crypto.randomUUID();
       await db.insert(postComment).values({
         id: commentId,
         postId: row.id,
         userId: me,
         body: input.body,
+        parentId: topLevelId,
+        replyToUserId,
+        attachmentJson: stored ? JSON.stringify(stored) : null,
       });
-      if (row.userId !== me) {
-        const [actor] = await db
-          .select({ name: user.name })
-          .from(user)
-          .where(eq(user.id, me))
-          .limit(1);
-        await notifyComment(
-          context as unknown as NotifyContext,
-          row.id,
-          row.userId,
-          me,
-          actor?.name ?? "Teman",
-          input.body,
-        );
+
+      // Whoever was answered hears about the reply; the post's author hears about the comment unless that is the same person.
+      const recipients: { userId: string; kind: "comment" | "reply" }[] = [];
+      if (target && target.userId !== me) recipients.push({ userId: target.userId, kind: "reply" });
+      if (row.userId !== me && row.userId !== target?.userId) recipients.push({ userId: row.userId, kind: "comment" });
+      if (recipients.length > 0) {
+        const [actor] = await db.select({ name: user.name }).from(user).where(eq(user.id, me)).limit(1);
+        for (const recipient of recipients) {
+          await notifyComment(
+            context as unknown as NotifyContext,
+            row.id,
+            recipient.userId,
+            me,
+            actor?.name ?? "Teman",
+            input.body,
+            recipient.kind,
+          );
+        }
       }
-      return { id: commentId };
+
+      const [created] = await loadComments(db, me, eq(postComment.id, commentId), 1);
+      return { id: commentId, parentId: topLevelId, comment: shapeComment(created!, t) };
     }),
 
-  /** Pengomentar boleh hapus miliknya; penulis postingan boleh hapus semua. */
+  /**
+   * Satu foto untuk lampiran komentar. Klien memampatkan ke sisi ~1600px JPEG/WebP; server memeriksa isinya benar gambar
+   * dan membuang semua metadata (EXIF/GPS, XMP, IPTC) sebelum menyimpan.
+   */
+  uploadCommentPhoto: protectedProcedure
+    .input(
+      z.object({
+        imageBase64: z.base64().min(50).max(COMMENT_PHOTO_BASE64_MAX),
+        mimeType: z.enum(["image/jpeg", "image/webp"]),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
+      const me = context.session.user.id;
+      const bucket = context.env.STICKERS;
+      if (!bucket) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: t("server.error.photoStorageUnavailable") });
+      }
+      const clean = cleanImage(new Uint8Array(base64ToBytes(input.imageBase64)), input.mimeType);
+      if (!clean) throw new ORPCError("BAD_REQUEST", { message: t("server.error.photoInvalid") });
+      const photoId = crypto.randomUUID().replaceAll("-", "");
+      try {
+        await bucket.put(commentPhotoKey(me, photoId), clean.bytes.buffer, {
+          httpMetadata: { contentType: input.mimeType },
+        });
+      } catch {
+        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: t("server.error.photoSaveFailed") });
+      }
+      return { photoId };
+    }),
+
+  /** Isi menu "Dari aplikasi": item terbaru milik sendiri per jenis. */
+  commentAttachables: protectedProcedure
+    .input(z.object({ kind: z.enum(ITEM_KINDS) }))
+    .handler(({ context, input }) => listAttachables(context.db, context.session.user.id, input.kind)),
+
+  /**
+   * Pengomentar boleh hapus miliknya; penulis postingan boleh hapus semua. Komentar yang punya balasan hanya dikosongkan
+   * (`hidden`, tampil "komentar dihapus"); selain itu baris dihapus (`removed`).
+   */
   deleteComment: protectedProcedure
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       const t = serverT(context.locale, "feed");
       const me = context.session.user.id;
-      const [comment] = await context.db
-        .select({ id: postComment.id, userId: postComment.userId, postId: postComment.postId })
+      const db = context.db;
+      const [comment] = await db
+        .select({
+          id: postComment.id,
+          userId: postComment.userId,
+          postId: postComment.postId,
+          parentId: postComment.parentId,
+          attachmentJson: postComment.attachmentJson,
+          deletedAt: postComment.deletedAt,
+        })
         .from(postComment)
         .where(eq(postComment.id, input.id))
         .limit(1);
-      if (!comment) return { ok: true };
-      const [post] = await context.db
+      if (!comment || comment.deletedAt) return { ok: true, mode: "removed" as const };
+      const [post] = await db
         .select({ userId: postTable.userId })
         .from(postTable)
         .where(eq(postTable.id, comment.postId))
@@ -1644,8 +1910,38 @@ export const socialRouter = {
       if (comment.userId !== me && post?.userId !== me) {
         throw new ORPCError("FORBIDDEN", { message: t("server.error.notYourComment") });
       }
-      await context.db.delete(postComment).where(eq(postComment.id, comment.id));
-      return { ok: true };
+      const replies = await countRow(
+        db.select({ total: count() }).from(postComment).where(eq(postComment.parentId, comment.id)),
+      );
+      const mode = replies > 0 ? ("hidden" as const) : ("removed" as const);
+      if (mode === "hidden") {
+        await db
+          .update(postComment)
+          .set({ body: "", attachmentJson: null, replyToUserId: null, deletedAt: new Date() })
+          .where(eq(postComment.id, comment.id));
+      } else {
+        await db.delete(postComment).where(eq(postComment.id, comment.id));
+        // The last reply of an already-hidden comment takes the placeholder with it.
+        if (comment.parentId) {
+          const [parent] = await db
+            .select({ deletedAt: postComment.deletedAt })
+            .from(postComment)
+            .where(eq(postComment.id, comment.parentId))
+            .limit(1);
+          const left = await countRow(
+            db.select({ total: count() }).from(postComment).where(eq(postComment.parentId, comment.parentId)),
+          );
+          if (parent?.deletedAt && left === 0) {
+            await db.delete(postComment).where(eq(postComment.id, comment.parentId));
+          }
+        }
+      }
+      const bucket = context.env.STICKERS;
+      const keys = commentPhotoKeysOf([comment]);
+      if (bucket && keys.length > 0) {
+        context.waitUntil(Promise.all(keys.map((key) => bucket.delete(key).catch(() => {}))).then(() => {}));
+      }
+      return { ok: true, mode };
     }),
 
   block: protectedProcedure

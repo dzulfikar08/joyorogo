@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  type AnySQLiteColumn,
   index,
   integer,
   primaryKey,
@@ -183,11 +184,22 @@ export const postComment = sqliteTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     body: text("body").notNull(),
+    // Balasan: id komentar tingkat atas (balasan ke balasan diratakan ke sini). NULL = komentar tingkat atas.
+    parentId: text("parent_id").references((): AnySQLiteColumn => postComment.id, { onDelete: "cascade" }),
+    // Pengguna yang dibalas bila membalas sebuah balasan (klien menampilkan "@handle").
+    replyToUserId: text("reply_to_user_id").references(() => user.id, { onDelete: "set null" }),
+    // JSON lampiran: {kind:'image',photoId} atau cuplikan item aplikasi (lib/comment-attachment.ts); NULL = tanpa.
+    attachmentJson: text("attachment_json"),
+    // Tombstone: komentar punya balasan sehingga hanya isinya yang dikosongkan.
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),
   },
-  (table) => [index("post_comment_post_created_idx").on(table.postId, table.createdAt)],
+  (table) => [
+    index("post_comment_post_created_idx").on(table.postId, table.createdAt),
+    index("post_comment_parent_created_idx").on(table.parentId, table.createdAt),
+  ],
 );
 
 // Follow satu arah, tanpa persetujuan.
@@ -239,8 +251,8 @@ export const socialNotification = sqliteTable(
     actorId: text("actor_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    // 'kudos' | 'comment' | 'follow'
-    kind: text("kind", { enum: ["kudos", "comment", "follow"] }).notNull(),
+    // 'kudos' | 'comment' | 'reply' | 'follow'
+    kind: text("kind", { enum: ["kudos", "comment", "reply", "follow"] }).notNull(),
     postId: text("post_id").references(() => post.id, { onDelete: "cascade" }),
     // cuplikan komentar (untuk kind 'comment')
     excerpt: text("excerpt"),

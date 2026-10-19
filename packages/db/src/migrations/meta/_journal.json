@@ -358,6 +358,13 @@
       "when": 1792584000000,
       "tag": "0050_meal_plan",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "6",
+      "when": 1792670400000,
+      "tag": "0051_social_comment_threads",
+      "breakpoints": true
     }
   ]
 }

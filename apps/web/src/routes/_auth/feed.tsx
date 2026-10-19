@@ -12,6 +12,7 @@ import {
   Heart,
   MessageSquareText,
   PlusCircle,
+  Reply,
   UserPlus,
 } from "lucide-react";
 import { useState } from "react";
@@ -87,12 +88,18 @@ function UnreadBadge({ count }: { count: number }) {
 const NOTIF_ICON = {
   kudos: Heart,
   comment: MessageSquareText,
+  reply: Reply,
   follow: UserPlus,
 } as const;
 
 function notifText(t: TFunction<"feed">, item: SocialNotificationItem): string {
   if (item.kind === "kudos") return t("notif.text.kudos", { name: item.actorName });
   if (item.kind === "follow") return t("notif.text.follow", { name: item.actorName });
+  if (item.kind === "reply") {
+    return item.excerpt
+      ? t("notif.text.replyExcerpt", { name: item.actorName, excerpt: item.excerpt })
+      : t("notif.text.reply", { name: item.actorName });
+  }
   return item.excerpt
     ? t("notif.text.commentExcerpt", { name: item.actorName, excerpt: item.excerpt })
     : t("notif.text.comment", { name: item.actorName });

@@ -44,7 +44,7 @@ import { avatarPrefix } from "./avatar";
 import { datasetPrefix } from "./dataset";
 import { feedbackPrefix } from "./feedback-keep";
 import { deleteUserMcpData } from "./mcp-connections";
-import { photoPrefix, postPhotoPrefix, scanSrcPrefix, stickerKey, varPhotoPrefix } from "./sticker";
+import { commentPhotoPrefix, photoPrefix, postPhotoPrefix, scanSrcPrefix, stickerKey, varPhotoPrefix } from "./sticker";
 import { parseSavedItems } from "./saved-foods";
 import type { StickersBucket } from "./sticker";
 import { watchBlobPrefix } from "./watch-workout";
@@ -80,6 +80,8 @@ export async function deleteUserMedia(
     varPhotoPrefix(userId),
     // Feed post photos (cerita + shared meals).
     postPhotoPrefix(userId),
+    // Photos attached to comments (a user's own, shown on other people's posts too).
+    commentPhotoPrefix(userId),
     // Pending-scan originals kept for "Hitung ulang".
     scanSrcPrefix(userId),
     // Internal accuracy dataset (allowlisted accounts only): "delete on request".

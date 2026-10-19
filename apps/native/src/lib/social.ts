@@ -54,7 +54,7 @@ export type ProfileSummary = {
 
 export type NotificationItem = {
   id: string;
-  kind: "kudos" | "comment" | "follow";
+  kind: "kudos" | "comment" | "reply" | "follow";
   excerpt: string | null;
   createdAt: Date;
   readAt: Date | null;
@@ -67,11 +67,45 @@ export type NotificationItem = {
   actorHandle: string | null;
 };
 
+/** Kinds of the commenter's own items a comment can carry, next to an uploaded photo. */
+export type CommentItemKind = "workout" | "food" | "weight" | "recap" | "route";
+
+/** What a comment carries besides text; contract: docs/social-comments.md. */
+export type CommentAttachment = {
+  kind: "image" | CommentItemKind;
+  /** The item's own name; '' for image, weight and recap (the card titles itself). */
+  title: string;
+  /** WIB day of the item, 'YYYY-MM-DD'. */
+  date: string | null;
+  /** Encoded polyline of a route, already trimmed server-side. */
+  mapLine: string | null;
+  /** True when GET /comment-photo/{commentId} serves an image (the photo, or an attached meal's photo). */
+  hasPhoto: boolean;
+  stats: Record<string, number | string | null>;
+};
+
+/** One comment: top-level (`parentId` null) or a reply. A hidden one (`deleted`) is a placeholder. */
 export type FeedComment = {
   id: string;
   body: string;
   createdAt: Date;
   author: FeedAuthor;
+  deleted: boolean;
+  parentId: string | null;
+  /** Visible replies under a top-level comment; 0 for replies. */
+  replyCount: number;
+  /** Who a reply to a reply answers; shown as "@handle" before the text. */
+  replyTo: { id: string; name: string; handle: string | null } | null;
+  attachment: CommentAttachment | null;
+};
+
+/** One own item the "Dari aplikasi" picker offers. */
+export type CommentAttachable = {
+  kind: CommentItemKind;
+  refId: string;
+  /** The owner's own diary photo id; null when there is none. */
+  photoId: string | null;
+  preview: CommentAttachment;
 };
 
 export type PublicProfileResult = {
@@ -109,6 +143,11 @@ export function postStickerUrl(scanId: string): string {
 export function postPhotoUrl(postId: string, index?: number): string {
   const suffix = index === undefined ? "" : `/${index}`;
   return `${ENV.EXPO_PUBLIC_SERVER_URL}/post-photo/${postId}${suffix}`;
+}
+
+/** Photo of a comment attachment (an uploaded photo, or an attached meal's photo); the caller adds the session cookie. */
+export function commentPhotoUrl(commentId: string): string {
+  return `${ENV.EXPO_PUBLIC_SERVER_URL}/comment-photo/${commentId}`;
 }
 
 /** `label` is a getter so it follows the active language at read time. */

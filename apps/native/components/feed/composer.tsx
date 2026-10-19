@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Image, Pressable, View } from "react-native";
@@ -8,36 +7,15 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
 
 import { Button, Field, Input, Sheet, Segmented, Text } from "@/components/ui";
-import { i18n } from "@joyorogo/i18n";
 import { useToast } from "@/components/toast";
+import { compressPhoto } from "@/lib/compress-photo";
+import type { PendingPhoto } from "@/lib/compress-photo";
 import { errorMessage } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
 const STORY_MAX = 1000;
 const PHOTOS_MAX = 4;
-const LONG_EDGE = 1600;
-
-type Pending = { localUri: string; base64: string };
-
-/**
- * Kompres satu foto ke sisi panjang ~1600px JPEG kualitas 0.8; balikin
- * base64 untuk unggahan.
- */
-async function compress(asset: ImagePicker.ImagePickerAsset): Promise<Pending> {
-  const scale = Math.min(1, LONG_EDGE / Math.max(asset.width, asset.height));
-  const width = Math.max(1, Math.round(asset.width * scale));
-  const height = Math.max(1, Math.round(asset.height * scale));
-  const rendered = await ImageManipulator.manipulate(asset.uri)
-    .resize({ width, height })
-    .renderAsync();
-  const out = await rendered.saveAsync({
-    base64: true,
-    compress: 0.8,
-    format: SaveFormat.JPEG,
-  });
-  if (!out.base64) throw new Error(i18n.t("feed:composer.error.emptyPhoto"));
-  return { localUri: out.uri, base64: out.base64 };
-}
+type Pending = PendingPhoto;
 
 /**
  * Komposer post bebas 'cerita': teks (maks 1000) + 0-4 foto + penonton.
@@ -83,7 +61,7 @@ export function FeedComposer({
     for (const asset of result.assets) {
       try {
         setBusy(t("composer.busy.processing"));
-        const pending = await compress(asset);
+        const pending = await compressPhoto(asset);
         setPhotos((prev) => [...prev, pending]);
       } catch (e) {
         toast.error(t("composer.error.processFailed"), errorMessage(e));

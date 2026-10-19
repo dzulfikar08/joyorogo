@@ -22,7 +22,7 @@ import { client, orpc } from "@/utils/orpc";
 import { errorMessage, timeAgo } from "@/utils/format";
 import { KIND_META, type NotificationItem } from "@/src/lib/social";
 
-const KIND_ICON = { kudos: "heart", comment: "chatbubble", follow: "person-add" } as const;
+const KIND_ICON = { kudos: "heart", comment: "chatbubble", reply: "arrow-undo", follow: "person-add" } as const;
 
 /** Row label; tap targets the post when there is one, else the actor profile. */
 function rowTitle(item: NotificationItem, t: TFunction<"feed">): string {
@@ -31,7 +31,7 @@ function rowTitle(item: NotificationItem, t: TFunction<"feed">): string {
     item.postKind === "berat"
       ? t("post.weightTitle")
       : (item.postTitle ?? t("notif.deletedPost"));
-  return t(item.kind === "kudos" ? "notif.onPost.kudos" : "notif.onPost.comment", {
+  return t(`notif.onPost.${item.kind}`, {
     name: item.actorName,
     post,
   });

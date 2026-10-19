@@ -44,6 +44,15 @@ export function postPhotoPrefix(userId: string): string {
   return `posts/${userId}/`;
 }
 
+/** Photos attached to comments: the key embeds the commenter; served per the post's visibility (/comment-photo). */
+export function commentPhotoKey(userId: string, photoId: string): string {
+  return `comments/${userId}/${photoId}.jpg`;
+}
+
+export function commentPhotoPrefix(userId: string): string {
+  return `comments/${userId}/`;
+}
+
 /** VAR perut photos are private the same way: the key embeds the owner. */
 export function varPhotoKey(userId: string, photoId: string): string {
   return `var/${userId}/${photoId}.jpg`;
