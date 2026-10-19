@@ -3,7 +3,7 @@
 //
 //   1. Candidates: every catalog recipe in a handful of portion sizes (whole portion x0.5..x1.5, carbs x0.5..x1.5 =
 //      "nasi 1/2 porsi"), plus the foods the person already eats (their own logged numbers). Allergens, dislikes and
-//      the cook/warung choice are hard filters; "no same main more than twice a week" is a hard cap.
+//      the cook/buy choice are hard filters; "no same main more than twice a week" is a hard cap.
 //   2. Each slot gets a shortlist: the candidates closest to the slot's share of the day's budget, scored for protein
 //      density, history, lighter-version and budget fit, plus a small seeded jitter so another seed gives another day.
 //   3. The days' combinations of the shortlists are searched exhaustively and scored on the WHOLE day: kcal within the
@@ -17,7 +17,38 @@ import type { HabitFood, HistoryIndex } from "./history";
 import { hasPhrase, nameHitsAllergen, normName, unit } from "./text";
 import type { Allergen, MealKind, Nutrition, PlannedItem, PlannedSlot, RecipeDef } from "./types";
 
-export type CookPref = "any" | "cook" | "warung";
+/** Where the food comes from: only dishes practical at home, only dishes found ready-made, or both. */
+export type CookPref = "cook" | "buy" | "mixed";
+
+/** Whether one planned meal is suggested as something to cook or to buy ready-made. */
+export type MealMode = "cook" | "buy";
+
+/**
+ * Reads a stored or sent cook preference. Rows and old app versions from before the three-way choice hold
+ * 'any' (now 'mixed') and 'warung' (now 'buy'); anything unknown is 'mixed'.
+ */
+export function normalizeCookPref(value: unknown): CookPref {
+  if (value === "cook") return "cook";
+  if (value === "buy" || value === "warung") return "buy";
+  return "mixed";
+}
+
+/** A dish that takes this many minutes or less is worth cooking when the person has no strong preference. */
+export const QUICK_COOK_MINUTES = 20;
+
+/**
+ * Cook or buy suggestion for one meal. A dish only practical at home is cooked, one only found ready-made is bought;
+ * a dish that is both follows the preference, and with 'mixed' is cooked when it is quick. A food the person logs
+ * themselves has no recipe, so it is a buy suggestion.
+ */
+export function mealMode(recipe: Pick<RecipeDef, "home" | "warung" | "minutes"> | null, cookPref: CookPref): MealMode {
+  if (!recipe) return "buy";
+  if (recipe.home && !recipe.warung) return "cook";
+  if (recipe.warung && !recipe.home) return "buy";
+  if (cookPref === "cook") return "cook";
+  if (cookPref === "buy") return "buy";
+  return recipe.minutes <= QUICK_COOK_MINUTES ? "cook" : "buy";
+}
 
 export type PlanPrefs = {
   allergens: Allergen[];
@@ -26,7 +57,7 @@ export type PlanPrefs = {
   cookPref: CookPref;
 };
 
-export const DEFAULT_PREFS: PlanPrefs = { allergens: [], dislikes: [], budgetFriendly: false, cookPref: "any" };
+export const DEFAULT_PREFS: PlanPrefs = { allergens: [], dislikes: [], budgetFriendly: false, cookPref: "mixed" };
 
 /** Which kinds of recipe each slot accepts. */
 export const SLOT_KINDS: Record<Meal, MealKind[]> = {
@@ -131,7 +162,7 @@ function mainKeyOf(recipe: RecipeDef): string {
 
 export function recipeAllowed(recipe: RecipeDef, prefs: PlanPrefs): boolean {
   if (prefs.cookPref === "cook" && !recipe.home) return false;
-  if (prefs.cookPref === "warung" && !recipe.warung) return false;
+  if (prefs.cookPref === "buy" && !recipe.warung) return false;
   if (recipeAllergens(recipe).some((a) => prefs.allergens.includes(a))) return false;
   if (prefs.dislikes.length > 0) {
     const text = new Set<string>([normName(recipe.name.id), normName(recipe.name.en)]);

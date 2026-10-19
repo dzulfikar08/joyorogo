@@ -20,12 +20,15 @@ export function ItemCard({
   item,
   onOpenRecipe,
   onSwap,
+  onBuy,
   onToggleEaten,
   eatPending = false,
 }: {
   item: ItemView;
   onOpenRecipe?: () => void;
   onSwap?: () => void;
+  /** Present for a meal suggested to buy: opens the "Beli" sheet. */
+  onBuy?: () => void;
   /** Present when "Sudah makan" (or, once eaten, "Batalkan") is available for this day. */
   onToggleEaten?: () => void;
   eatPending?: boolean;
@@ -53,6 +56,12 @@ export function ItemCard({
     <Card style={styles.card}>
       <View style={styles.topRow}>
         <Text style={styles.slot}>{item.slotLabel}</Text>
+        {onSwap || onToggleEaten ? (
+          <Pill
+            label={t(item.mode === "buy" ? "item.modeBuy" : "item.modeCook")}
+            icon={item.mode === "buy" ? "bag-handle" : "restaurant"}
+          />
+        ) : null}
         {item.eaten || item.covered ? (
           <Pill label={t("item.eatenBadge")} tone={item.eaten ? "makan" : "muted"} icon="checkmark-circle" />
         ) : null}
@@ -127,6 +136,8 @@ export function ItemCard({
       ) : null}
 
       {item.kind === "habit" ? <Text style={styles.habitNote}>{t("recipe.habitNote")}</Text> : null}
+
+      {onBuy ? <Button variant="secondary" icon="bag-handle" label={t("item.buy")} onPress={onBuy} disabled={eatPending} /> : null}
 
       {onSwap || onToggleEaten ? (
         <View style={styles.actions}>

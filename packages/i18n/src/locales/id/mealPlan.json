@@ -75,7 +75,10 @@
     "ateFailed": "Belum bisa dicatat. Coba lagi.",
     "ateDone": "Tercatat di diari.",
     "undoDone": "Catatan dibatalkan.",
-    "avoid": "Ada bahan yang kamu hindari. Coba ganti."
+    "avoid": "Ada bahan yang kamu hindari. Coba ganti.",
+    "modeCook": "Masak",
+    "modeBuy": "Beli",
+    "buy": "Beli"
   },
   "swap": {
     "title": "Ganti menu",
@@ -147,7 +150,10 @@
       "susu": "Susu dan olahannya",
       "bumbu": "Bumbu dan minyak"
     },
-    "inMenus": "dipakai di {{n}} menu"
+    "inMenus": "dipakai di {{n}} menu",
+    "nearbyTitle": "Belanja bahan",
+    "nearbyMarket": "Cari pasar terdekat",
+    "nearbySupermarket": "Cari supermarket terdekat"
   },
   "prefs": {
     "title": "Pengaturan rencana",
@@ -162,9 +168,10 @@
     "budget": "Utamakan yang hemat",
     "budgetHint": "Menu yang murah dipilih lebih dulu.",
     "cook": "Dari mana makananmu",
-    "cookAny": "Bebas",
-    "cookHome": "Masak sendiri",
-    "cookWarung": "Beli di warung",
+    "cookHint": "Tiap menu diberi tanda masak atau beli. Campur memakai keduanya.",
+    "cookCook": "Masak sendiri",
+    "cookBuy": "Beli",
+    "cookMixed": "Campur",
     "save": "Simpan",
     "saved": "Tersimpan. Susun ulang supaya rencana memakai pengaturan ini.",
     "regenNow": "Susun ulang sekarang",
@@ -217,5 +224,19 @@
     "regenDayOf": "Susun ulang {{day}}",
     "regenDayBody": "Menu {{day}} diganti dengan susunan baru. Menu yang sudah kamu catat tetap.",
     "dislikesLimit": "Sudah {{max}} bahan, hapus satu untuk menambah."
+  },
+  "buy": {
+    "title": "Beli {{name}}",
+    "subtitle": "Pilih mau cari di mana.",
+    "nearby": "Cari terdekat",
+    "nearbyHint": "Buka Google Maps dan cari yang jual ini di dekatmu.",
+    "gofood": "GoFood",
+    "grabfood": "GrabFood",
+    "shopeefood": "ShopeeFood",
+    "appHint": "Buka aplikasinya. Nama menu disalin, tinggal tempel di pencarian.",
+    "grabHint": "Cari menu ini di GrabFood.",
+    "copied": "Nama menu disalin, tempel di pencarian.",
+    "copyFailed": "Nama menu belum bisa disalin. Ketik sendiri: {{name}}",
+    "note": "Tautan terbuka di aplikasinya kalau sudah terpasang. Ketersediaan dan harga mengikuti toko."
   }
 }

@@ -71,6 +71,7 @@ export function TodayTab({
   day,
   onSelectDate,
   onSwap,
+  onBuy,
   onOpenRecipe,
   onToggleEaten,
   pendingEat,
@@ -79,6 +80,7 @@ export function TodayTab({
   day: DayView;
   onSelectDate: (date: string) => void;
   onSwap: (date: string, item: ItemView) => void;
+  onBuy: (item: ItemView) => void;
   onOpenRecipe: (item: ItemView) => void;
   onToggleEaten: (date: string, item: ItemView) => void;
   /** "date|slot" of the eat or undo call in flight. */
@@ -107,6 +109,7 @@ export function TodayTab({
             item={item}
             onOpenRecipe={item.kind === "recipe" && item.recipeId !== null ? () => onOpenRecipe(item) : undefined}
             onSwap={!day.isPast && !item.eaten && !item.covered ? () => onSwap(day.date, item) : undefined}
+            onBuy={item.mode === "buy" && !day.isPast && !item.eaten && !item.covered ? () => onBuy(item) : undefined}
             onToggleEaten={day.isToday && !item.covered ? () => onToggleEaten(day.date, item) : undefined}
             eatPending={pendingEat === `${day.date}|${item.slot}`}
           />

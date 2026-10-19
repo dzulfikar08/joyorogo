@@ -13,6 +13,7 @@ import { serverT } from "../lib/messages";
 import { dateSchema, mealSchema } from "../lib/schemas";
 import { cloudUnlocked } from "../lib/watch-workout-store";
 import { computePortion, ingredientSource, INGREDIENTS, recipeAllergens, recipeById, recipeTags } from "../lib/meal/catalog";
+import { normalizeCookPref } from "../lib/meal/planner";
 import { planWeek } from "../lib/meal/week";
 import type { DaySpec } from "../lib/meal/week";
 import {
@@ -50,7 +51,8 @@ const prefsSchema = z.object({
   allergens: z.array(z.enum(ALLERGENS)).max(ALLERGENS.length),
   dislikes: z.array(z.string().trim().min(1).max(30)).max(MAX_DISLIKES),
   budgetFriendly: z.boolean(),
-  cookPref: z.enum(["any", "cook", "warung"]),
+  // "any" and "warung" are what app versions from before the three-way choice still send
+  cookPref: z.enum(["cook", "buy", "mixed", "any", "warung"]).transform(normalizeCookPref),
 });
 
 const portionSchema = z.object({ scale: z.number().min(0.5).max(1.5).default(1), carbScale: z.number().min(0.5).max(1.5).default(1) });
@@ -155,7 +157,7 @@ function recipeView(id: string, scale: number, carbScale: number, locale: Locale
   const t = serverT(locale, "mealPlan");
   const portion = computePortion(recipe, scale, carbScale);
   const item: PlannedItem = { ref: `r:${id}`, scale, carbScale };
-  const view = itemView("makan_siang", item, { eaten: false, covered: false }, { habits: [], affinity: new Map(), better: new Map(), unmatched: [] }, { allergens: [], dislikes: [], budgetFriendly: false, cookPref: "any" }, locale);
+  const view = itemView("makan_siang", item, { eaten: false, covered: false }, { habits: [], affinity: new Map(), better: new Map(), unmatched: [] }, { allergens: [], dislikes: [], budgetFriendly: false, cookPref: "mixed" }, locale);
   return {
     ref: item.ref,
     id,

@@ -11,6 +11,7 @@ import type { ItemView } from "@joyorogo/api/lib/meal/view";
 
 import { LockedView } from "@/components/meal-plan/locked-view";
 import { PrefsSheet } from "@/components/meal-plan/prefs-sheet";
+import { BuySheet } from "@/components/meal-plan/buy-sheet";
 import { RecipeSheet } from "@/components/meal-plan/recipe-sheet";
 import type { RecipeTarget } from "@/components/meal-plan/recipe-sheet";
 import { RegenSheet } from "@/components/meal-plan/regen-sheet";
@@ -45,6 +46,7 @@ export default function RencanaMakan() {
   const [tab, setTab] = useState<Tab>("today");
   const [date, setDate] = useState<string | null>(null);
   const [swapTarget, setSwapTarget] = useState<SwapTarget | null>(null);
+  const [buyTarget, setBuyTarget] = useState<ItemView | null>(null);
   const [recipeTarget, setRecipeTarget] = useState<RecipeTarget | null>(null);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [regenOpen, setRegenOpen] = useState(false);
@@ -193,6 +195,7 @@ export default function RencanaMakan() {
             day={day}
             onSelectDate={setDate}
             onSwap={(itemDate, item) => setSwapTarget({ date: itemDate, slot: item.slot })}
+            onBuy={setBuyTarget}
             onOpenRecipe={(item) => {
               if (item.recipeId !== null) {
                 setRecipeTarget({ id: item.recipeId, scale: item.scale, carbScale: item.carbScale });
@@ -215,6 +218,7 @@ export default function RencanaMakan() {
       </Screen>
 
       <SwapSheet target={swapTarget} onClose={() => setSwapTarget(null)} />
+      <BuySheet item={buyTarget} onClose={() => setBuyTarget(null)} />
       <RecipeSheet target={recipeTarget} onClose={() => setRecipeTarget(null)} />
       <PrefsSheet open={prefsOpen} prefs={data.prefs} onClose={() => setPrefsOpen(false)} />
       <RegenSheet open={regenOpen} day={day.isPast ? null : day} onClose={() => setRegenOpen(false)} />

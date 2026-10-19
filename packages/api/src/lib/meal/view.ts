@@ -8,8 +8,8 @@ import { mealLabel } from "../engine";
 import type { Meal } from "../engine";
 import { computePortion, INGREDIENTS, recipeAllergens, recipeById, recipeTags } from "./catalog";
 import type { HistoryIndex } from "./history";
-import { addNutrition, CARB_RANGE, dayMeets, FAT_RANGE, itemAllowed, roundNutrition, zeroNutrition } from "./planner";
-import type { PlanPrefs } from "./planner";
+import { addNutrition, CARB_RANGE, dayMeets, FAT_RANGE, itemAllowed, mealMode, roundNutrition, zeroNutrition } from "./planner";
+import type { MealMode, PlanPrefs } from "./planner";
 import type { Allergen, Nutrition, PlannedItem, PlannedSlot, RecipeTag } from "./types";
 
 const pick = (l: { id: string; en: string }, locale: Locale): string => (locale === "en" ? l.en : l.id);
@@ -43,6 +43,10 @@ export type ItemView = {
   kind: "recipe" | "habit";
   recipeId: string | null;
   name: string;
+  /** cook it (recipe) or buy it ready-made: follows the person's cook/buy choice for dishes that are both */
+  mode: MealMode;
+  /** what to type in a map or food-app search: the Indonesian dish name, whatever the app language is */
+  buyQuery: string;
   /** "Nasi, dada ayam, bayam" */
   summary: string;
   /** "1 porsi", "¾ porsi", "Nasi ½ porsi" */
@@ -108,6 +112,8 @@ export function itemView(slot: Meal, item: PlannedItem, state: ItemState, index:
       kind: "habit",
       recipeId: null,
       name: item.habit.name,
+      mode: mealMode(null, prefs.cookPref),
+      buyQuery: item.habit.name,
       summary: "",
       portion: portionLabel(item, null, locale),
       tags: [],
@@ -121,7 +127,7 @@ export function itemView(slot: Meal, item: PlannedItem, state: ItemState, index:
   }
   const recipe = recipeById(item.ref.slice(2));
   if (!recipe) {
-    return { ...base, kind: "recipe", recipeId: null, name: item.ref, summary: "", portion: portionLabel(item, null, locale), tags: [], allergens: [], minutes: null, cost: null, habitTimes: null, lighterThan: null, avoid: false };
+    return { ...base, kind: "recipe", recipeId: null, name: item.ref, mode: mealMode(null, prefs.cookPref), buyQuery: item.ref, summary: "", portion: portionLabel(item, null, locale), tags: [], allergens: [], minutes: null, cost: null, habitTimes: null, lighterThan: null, avoid: false };
   }
   const carbKey = recipe.ing.find(([k]) => INGREDIENTS[k]?.role === "carb")?.[0];
   const carbDef = carbKey ? INGREDIENTS[carbKey] : undefined;
@@ -138,6 +144,8 @@ export function itemView(slot: Meal, item: PlannedItem, state: ItemState, index:
     kind: "recipe",
     recipeId: recipe.id,
     name: pick(recipe.name, locale),
+    mode: mealMode(recipe, prefs.cookPref),
+    buyQuery: recipe.name.id,
     summary: summary.charAt(0).toUpperCase() + summary.slice(1),
     portion: portionLabel(item, carbDef ? pick(carbDef.name, locale) : null, locale),
     tags: recipeTags(recipe),

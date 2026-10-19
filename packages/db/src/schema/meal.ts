@@ -15,7 +15,8 @@ export const mealPrefs = sqliteTable("meal_prefs", {
   // JSON string[] of lowercase free-text words (an ingredient, a dish)
   dislikes: text("dislikes").notNull().default("[]"),
   budgetFriendly: integer("budget_friendly", { mode: "boolean" }).notNull().default(false),
-  // 'any' | 'cook' (only dishes practical at home) | 'warung' (only dishes found ready-made)
+  // 'mixed' | 'cook' (only dishes practical at home) | 'buy' (only dishes found ready-made). Rows from before the
+  // three-way choice hold 'any' / 'warung'; readPrefs maps them to 'mixed' / 'buy'.
   cookPref: text("cook_pref").notNull().default("any"),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });

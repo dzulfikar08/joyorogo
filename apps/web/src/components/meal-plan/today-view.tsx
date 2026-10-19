@@ -79,6 +79,7 @@ export function TodayView({
   onDate,
   onOpenRecipe,
   onSwap,
+  onBuy,
 }: {
   week: MealPlanWeek;
   today: string;
@@ -87,6 +88,7 @@ export function TodayView({
   onDate: (date: string) => void;
   onOpenRecipe: (item: MealPlanItem) => void;
   onSwap: (date: string, item: MealPlanItem) => void;
+  onBuy: (item: MealPlanItem) => void;
 }) {
   const { t } = useTranslation("mealPlan");
   const day = week.days.find((d) => d.date === date) ?? week.days[0];
@@ -121,6 +123,7 @@ export function TodayView({
                       isSlotBusy(eat, day.date, item.slot) || isSlotBusy(undo, day.date, item.slot),
                     onOpenRecipe,
                     onSwap: (picked) => onSwap(day.date, picked),
+                    onBuy,
                     onEat: (picked) => eat.mutate({ date: day.date, slot: picked.slot }),
                     onUndo: (picked) => undo.mutate({ date: day.date, slot: picked.slot }),
                   }}

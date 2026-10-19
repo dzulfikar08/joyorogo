@@ -17,7 +17,7 @@ Code: `packages/api/src/lib/meal/`, router `packages/api/src/routers/meal-plan.t
 | Carbs and fat | Ranges of the day's kcal (`CARB_RANGE` 40-60 %, `FAT_RANGE` 20-35 %, AMDR-style). Protein is a floor, not a range. |
 | Slots | Normal: sarapan 25 %, makan siang 35 %, makan malam 30 %, snack 10 %. Ramadan: the app's `ramadanSplit` (berbuka, snack, sahur). Intermittent fasting: the eating schedule of `buildSchedule` (buka, camilan = snack slot, terakhir). Hamil/Menyusui never fast. |
 | History | `food_log` of the last 60 days, grouped to plates (components of one plate summed, named by the plate). A food eaten 3+ times (with a protein figure, 60-1100 kcal) is a *habit*. |
-| Preferences | `meal_prefs`: allergens, free-text dislikes, budget-friendly, cook/warung. |
+| Preferences | `meal_prefs`: allergens, free-text dislikes, budget-friendly, and a three-way food source choice `cookPref`: `cook` (Masak sendiri), `buy` (Beli), `mixed` (Campur). |
 
 ## Recipe catalog
 
@@ -60,7 +60,7 @@ TKPI caveats worth knowing:
 1. **Candidates.** Every recipe in portion variants: whole portion x0.5 / 0.75 / 1 / 1.25 / 1.5 and carb ingredients x0.5 / 0.75
    / 1 / 1.5 ("nasi 1/2 porsi"), duplicates after snapping dropped. Plus the person's *unmatched* habit foods at x0.5 / 0.75 / 1
    with their own logged averages. Filters (hard): allergens (exact, from ingredients; word list for logged names),
-   dislikes (words matched against recipe names and non-trace ingredient names), cook/warung.
+   dislikes (words matched against recipe names and non-trace ingredient names), cook/buy (`cook` keeps dishes practical at home, `buy` dishes found ready-made, `mixed` both).
 2. **Shortlist per slot** (16 candidates, max 3 sizes of one dish) ranked by
    `40 x |kcal - slot budget| / budget + 28 x protein gap + item cost`, where item cost =
    preference (history: -(10 + 3 x min(times, 8)); lighter version of a habit: -(8 + 2 x min(times, 8)); unmatched habit food:
@@ -136,7 +136,7 @@ today's first meal in full and the count of the others, never the plan, recipes 
 * **Native** (`apps/native`): stack screen `app/rencana-makan.tsx`, components in `components/meal-plan/`; entry cards on the Makan tab
   and Beranda (today only). Ionicons. Swap, recipe, settings and rebuild are bottom sheets.
 * Screens: Hari ini (day bars for kcal/protein/carbs range/fat range, one card per meal with Ganti, Sudah makan and the recipe,
-  "Kenapa rencana ini"), Minggu (7 days), Belanja (grouped checklist), recipe detail, settings (allergies, dislikes, budget, cook/warung),
+  "Kenapa rencana ini"), Minggu (7 days), Belanja (grouped checklist), recipe detail, settings (allergies, dislikes, budget, cook/buy/mixed),
   free-account upsell with the one-meal teaser. Pro accounts without a plan are offered "Buat rencana 7 hari".
 
 ## Tests
@@ -150,3 +150,28 @@ swaps, prefs, recipe, shopping ticks, history, data deletion).
 
 Add ingredients to a part's `EXTRA_INGREDIENTS_n` (key prefixed `pN-`, real TKPI code) and recipes to `RECIPES_n`; never type a
 nutrition number. Run `catalogProblems()` (the catalog test) and check the computed kcal/protein look right for the dish.
+
+## Cook or buy, and where to buy
+
+* **Preference.** `meal_prefs.cook_pref` holds `cook | buy | mixed`. Rows and old clients from before the three-way choice hold `any` and
+  `warung`; `normalizeCookPref` (planner.ts) maps `any` -> `mixed`, `warung` -> `buy` on every read and on `setPrefs` input, so
+  no data migration or column change is needed (the column default `any` is read as `mixed`).
+* **Per meal.** `mealMode` (planner.ts) marks each planned meal `cook` or `buy` (`ItemView.mode`): a dish only practical at home is
+  cooked, one only found ready-made is bought, a dish that is both follows the preference, and with `mixed` is cooked when it takes
+  <= 20 minutes (`QUICK_COOK_MINUTES`) and bought otherwise. A food the person logs themselves (habit) has no recipe, so it is `buy`.
+  `ItemView.buyQuery` is the Indonesian dish name to search for, whatever the app language is.
+* **Beli sheet** (buy meals; web `buy-sheet.tsx`, native `buy-sheet.tsx`) and the **shopping list** (market / supermarket) use the
+  URL builders in `lib/meal/links.ts`. All links are plain https URLs: a phone opens the matching app when installed (Android App
+  Links, iOS Universal Links), otherwise the browser. No custom schemes, so no `canOpenURL`, no Android `<queries>` and no iOS
+  `LSApplicationQueriesSchemes`: nothing needs a native build and it ships OTA.
+
+| Action | URL | Source | Dish name |
+| --- | --- | --- | --- |
+| Cari terdekat | `https://www.google.com/maps/search/?api=1&query=<name>` | **Official** Maps URLs, <https://developers.google.com/maps/documentation/urls/get-started> | in the URL; Maps searches near the user, we ask for no location |
+| Pasar / supermarket (shopping list) | same, `query=pasar` / `query=supermarket` | same | n/a |
+| GrabFood | `https://food.grab.com/id/id/restaurants?search=<name>` | **Unofficial**: GrabFood web's own search page (its title echoes the query; it needs the person's location). `food.grab.com` is an app-link domain of the Grab app (assetlinks.json `com.grabtaxi.passenger`, AASA `/*/*/restaurants`), so the app opens it when installed; Grab documents no search parameter and whether the app honours it is unverified | in the URL |
+| GoFood | `https://gofood.co.id/id` | **Unofficial** home only: no search URL is documented. `gofood.co.id` is an app-link domain of the Gojek app (assetlinks.json `com.gojek.app`, AASA `/id`) | copied to clipboard, toast "Nama menu disalin, tempel di pencarian." |
+| ShopeeFood | `https://shopee.co.id/m/shopeefood` | **Unofficial** home only: ShopeeFood lives inside the Shopee app and no search URL is documented. `shopee.co.id` is an app-link domain of the Shopee app (assetlinks.json `com.shopee.id`, AASA `*`) | copied to clipboard, same toast |
+
+Links were checked on 2026-10-19 (fetching the pages and each domain's `/.well-known/assetlinks.json` / `apple-app-site-association`).
+Unofficial ones can change without notice; they are in one file, `links.ts`, with tests in `links.test.ts`.

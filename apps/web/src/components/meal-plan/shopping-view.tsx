@@ -1,7 +1,9 @@
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { Check } from "lucide-react";
+import { shopPlaceUrl } from "@joyorogo/api/lib/meal/links";
+import type { ShopPlace } from "@joyorogo/api/lib/meal/links";
+import { Check, ExternalLink, MapPin } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { ErrorNote } from "@/components/kit/error-note";
@@ -74,6 +76,36 @@ function Row({ item, onTick }: { item: MealPlanShoppingItem; onTick: (checked: b
   );
 }
 
+const PLACES: readonly ShopPlace[] = ["market", "supermarket"];
+
+/** Google Maps searches for a market or supermarket near the person. */
+function NearbyShops() {
+  const { t } = useTranslation("mealPlan");
+  return (
+    <div className="mb-4 rounded-3xl bg-card px-5 py-4">
+      <h3 className="text-sm font-bold">{t("shopping.nearbyTitle")}</h3>
+      <ul className="mt-2.5 grid gap-2 sm:grid-cols-2">
+        {PLACES.map((place) => (
+          <li key={place}>
+            <a
+              href={shopPlaceUrl(place)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-full min-h-11 w-full items-center gap-2.5 rounded-2xl bg-muted px-4 py-2 text-[0.9375rem] font-semibold transition-colors hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_6%)] focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+            >
+              <MapPin className="size-5 shrink-0 text-primary" aria-hidden />
+              <span className="min-w-0 flex-1 break-words">
+                {t(place === "market" ? "shopping.nearbyMarket" : "shopping.nearbySupermarket")}
+              </span>
+              <ExternalLink className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /** The ingredients of the meals not eaten yet, by shop section, to tick off while shopping. */
 export function ShoppingView() {
   const { t } = useTranslation("mealPlan");
@@ -126,6 +158,8 @@ export function ShoppingView() {
               />
             </div>
           </div>
+
+          <NearbyShops />
 
           <div className="lg:columns-2 lg:gap-5">
             {filled.map((group) => (

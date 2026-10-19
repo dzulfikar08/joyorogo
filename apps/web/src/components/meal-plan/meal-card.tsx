@@ -3,10 +3,12 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import {
   ChevronRight,
   Check,
+  CookingPot,
   History,
   Leaf,
   LoaderCircle,
   Repeat2,
+  ShoppingBag,
   TriangleAlert,
   Undo2,
 } from "lucide-react";
@@ -52,6 +54,7 @@ export interface MealCardControls {
   busy: boolean;
   onOpenRecipe: (item: MealPlanItem) => void;
   onSwap: (item: MealPlanItem) => void;
+  onBuy: (item: MealPlanItem) => void;
   onEat: (item: MealPlanItem) => void;
   onUndo: (item: MealPlanItem) => void;
 }
@@ -71,6 +74,7 @@ export function MealCard({
   const canSwap = controls !== undefined && !day.isPast && !item.eaten && !item.covered;
   const canEat = controls !== undefined && day.isToday && !item.covered && !item.eaten;
   const canUndo = controls !== undefined && day.isToday && item.eaten;
+  const canBuy = controls !== undefined && item.mode === "buy" && !day.isPast && !item.eaten && !item.covered;
   const grams = (n: number) => t("day.unitG", { n: fmtInt(n) });
   const habit = item.habitTimes !== null || item.kind === "habit";
   const opensRecipe = controls !== undefined && item.kind === "recipe";
@@ -155,8 +159,14 @@ export function MealCard({
 
         <TagList tags={item.tags} />
 
-        {(item.eaten || item.covered || habit || item.lighterThan || item.avoid) && (
+        {(controls || item.eaten || item.covered || habit || item.lighterThan || item.avoid) && (
           <ul className="flex flex-wrap gap-1.5">
+            {controls && (
+              <li className={cn(BADGE, "bg-muted text-foreground")}>
+                {item.mode === "buy" ? <ShoppingBag aria-hidden /> : <CookingPot aria-hidden />}
+                {t(item.mode === "buy" ? "item.modeBuy" : "item.modeCook")}
+              </li>
+            )}
             {item.eaten && (
               <li className={cn(BADGE, "bg-makan-soft text-makan-ink")}>
                 <Check aria-hidden />
@@ -201,6 +211,18 @@ export function MealCard({
               : ""}
             {t("recipe.habitNote")}
           </p>
+        )}
+
+        {controls && canBuy && (
+          <Button
+            variant="secondary"
+            className="h-11 w-full"
+            disabled={controls.busy}
+            onClick={() => controls.onBuy(item)}
+          >
+            <ShoppingBag aria-hidden />
+            {t("item.buy")}
+          </Button>
         )}
 
         {controls && (canSwap || canEat || canUndo) && (

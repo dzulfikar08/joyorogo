@@ -151,14 +151,14 @@ function PrefsBody({ prefs, onClose }: { prefs: PlanPrefs; onClose: () => void }
         />
       </View>
 
-      <Field label={t("prefs.cook")}>
+      <Field label={t("prefs.cook")} hint={t("prefs.cookHint")}>
         <Segmented
           value={cook}
           onChange={setCook}
           options={[
-            { value: "any", label: t("prefs.cookAny") },
-            { value: "cook", label: t("prefs.cookHome") },
-            { value: "warung", label: t("prefs.cookWarung") },
+            { value: "cook", label: t("prefs.cookCook") },
+            { value: "buy", label: t("prefs.cookBuy") },
+            { value: "mixed", label: t("prefs.cookMixed") },
           ]}
         />
       </Field>

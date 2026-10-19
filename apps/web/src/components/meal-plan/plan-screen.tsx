@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 
 import { ErrorNote } from "@/components/kit/error-note";
 import { Page, PageHeader } from "@/components/kit/surface";
+import { BuySheet } from "@/components/meal-plan/buy-sheet";
 import { PrefsSheet } from "@/components/meal-plan/prefs-sheet";
 import { EmptyPlan, LockedPlan, NoProfile, PlanSkeleton } from "@/components/meal-plan/plan-states";
 import { RecipeSheet } from "@/components/meal-plan/recipe-sheet";
@@ -89,6 +90,7 @@ export function PlanScreen({
   const overview = useQuery(overviewOptions);
   const actions = useMealPlanActions();
   const [recipe, setRecipe] = useState<MealPlanItem | null>(null);
+  const [buying, setBuying] = useState<MealPlanItem | null>(null);
   const [swapTarget, setSwapTarget] = useState<SlotRef | null>(null);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [regenOpen, setRegenOpen] = useState(false);
@@ -162,6 +164,7 @@ export function PlanScreen({
                 onDate={(next) => onShow({ date: next })}
                 onOpenRecipe={setRecipe}
                 onSwap={(swapDate, item) => setSwapTarget({ date: swapDate, slot: item.slot })}
+                onBuy={setBuying}
               />
             )}
             {tab === "week" && (
@@ -176,6 +179,7 @@ export function PlanScreen({
         </div>
       )}
 
+      {buying && <BuySheet item={buying} onClose={() => setBuying(null)} />}
       {recipe && <RecipeSheet item={recipe} onClose={() => setRecipe(null)} />}
       {swapTarget && (
         <SwapSheet target={swapTarget} actions={actions} onClose={() => setSwapTarget(null)} />

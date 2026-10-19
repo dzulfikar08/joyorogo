@@ -2,8 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { Linking, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+
+import { shopPlaceUrl } from "@joyorogo/api/lib/meal/links";
+import type { ShopPlace } from "@joyorogo/api/lib/meal/links";
 
 import { PressableScale } from "@/components/motion";
 import { Card, EmptyState, ErrorState, ListGroup, SectionTitle, Skeleton, Text } from "@/components/ui";
@@ -11,6 +14,37 @@ import { errorMessage } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 import { routePaywall, useCheckItem } from "./use-meal-plan";
+
+const PLACES: readonly ShopPlace[] = ["market", "supermarket"];
+
+/** Google Maps searches for a market or supermarket near the person (a plain https link, no custom scheme). */
+function NearbyShops() {
+  const { t } = useTranslation("mealPlan");
+  const { theme } = useUnistyles();
+  return (
+    <Card style={styles.nearby}>
+      <Text style={styles.nearbyTitle}>{t("shopping.nearbyTitle")}</Text>
+      {PLACES.map((place) => {
+        const label = t(place === "market" ? "shopping.nearbyMarket" : "shopping.nearbySupermarket");
+        return (
+          <PressableScale
+            key={place}
+            accessibilityRole="link"
+            accessibilityLabel={label}
+            onPress={() => void Linking.openURL(shopPlaceUrl(place))}
+            scaleTo={0.99}
+            dimTo={0.8}
+            style={styles.nearbyRow}
+          >
+            <Ionicons name={place === "market" ? "location" : "storefront"} size={20} color={theme.colors.primary} />
+            <Text style={styles.nearbyLabel}>{label}</Text>
+            <Ionicons name="open-outline" size={18} color={theme.colors.mutedForeground} />
+          </PressableScale>
+        );
+      })}
+    </Card>
+  );
+}
 
 /** Ingredients of the meals still ahead, grouped by where they are bought, with a tick per item. */
 export function ShoppingTab() {
@@ -58,6 +92,8 @@ export function ShoppingTab() {
           </View>
         </View>
       </Card>
+
+      <NearbyShops />
 
       {groups.map((group) => (
         <View key={group.cat} style={styles.group}>
@@ -119,6 +155,30 @@ const styles = StyleSheet.create((theme) => ({
     height: "100%",
     borderRadius: 4,
     backgroundColor: theme.colors.makan,
+  },
+  nearby: {
+    gap: theme.spacing.sm,
+  },
+  nearbyTitle: {
+    fontSize: theme.fontSize.base,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  nearbyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+    minHeight: 48,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.radius.tile,
+    backgroundColor: theme.colors.muted,
+  },
+  nearbyLabel: {
+    flex: 1,
+    fontSize: theme.fontSize.base,
+    fontWeight: "600",
+    color: theme.colors.foreground,
   },
   group: {
     gap: theme.spacing.sm,

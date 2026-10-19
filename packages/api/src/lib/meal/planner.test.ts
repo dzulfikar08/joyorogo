@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { computePortion, INGREDIENTS, recipeAllergens, recipeById, RECIPES } from "./catalog";
 import { buildHistoryIndex, habitFoods } from "./history";
 import type { LoggedPlate } from "./history";
-import { alternativesFor, buildCandidates, BUDGET_TOLERANCE, DEFAULT_PREFS, dayMeets, itemNutrition, planDay, SWAP_KCAL_TOLERANCE, WEEK_CAP, zeroNutrition } from "./planner";
+import { alternativesFor, buildCandidates, BUDGET_TOLERANCE, DEFAULT_PREFS, dayMeets, itemNutrition, mealMode, normalizeCookPref, planDay, QUICK_COOK_MINUTES, SWAP_KCAL_TOLERANCE, WEEK_CAP, zeroNutrition } from "./planner";
 import type { PlanPrefs } from "./planner";
 import type { PlannedDay, PlannedSlot } from "./types";
 import { daySlots, planWeek, slotsStillOpen } from "./week";
@@ -67,7 +67,7 @@ describe("planner: budget and protein", () => {
 });
 
 describe("planner: exclusions", () => {
-  const prefs: PlanPrefs = { allergens: ["seafood", "telur"], dislikes: ["tempe", "jamur"], budgetFriendly: false, cookPref: "any" };
+  const prefs: PlanPrefs = { allergens: ["seafood", "telur"], dislikes: ["tempe", "jamur"], budgetFriendly: false, cookPref: "mixed" };
 
   test("never plans an allergen or a disliked ingredient", () => {
     const out = planWeek({ seed: "x", days: weekSpecs(1700, 100), prefs, candidates: buildCandidates(prefs, EMPTY_INDEX) });
@@ -85,8 +85,8 @@ describe("planner: exclusions", () => {
     }
   });
 
-  test("cook-at-home and warung preferences are hard filters", () => {
-    for (const cookPref of ["cook", "warung"] as const) {
+  test("cook and buy preferences are hard filters", () => {
+    for (const cookPref of ["cook", "buy"] as const) {
       const p: PlanPrefs = { ...DEFAULT_PREFS, cookPref };
       const out = planWeek({ seed: "c", days: weekSpecs(1800, 100, NORMAL, 3), prefs: p, candidates: buildCandidates(p, EMPTY_INDEX) });
       for (const o of out) {
@@ -300,5 +300,55 @@ describe("planner: the weekly caps hold for foods the person logs too", () => {
     expect(used("Ayam Kremes Bu Sri")).toBeGreaterThanOrEqual(1);
     expect(used("Ayam Kremes Bu Sri")).toBeLessThanOrEqual(WEEK_CAP.main);
     expect(used("Kopi Susu Gula Aren")).toBeLessThanOrEqual(WEEK_CAP.snack);
+  });
+});
+
+describe("planner: cook / buy choice", () => {
+  test("old stored values migrate: any -> mixed, warung -> buy, unknown -> mixed", () => {
+    expect(normalizeCookPref("any")).toBe("mixed");
+    expect(normalizeCookPref("warung")).toBe("buy");
+    expect(normalizeCookPref("cook")).toBe("cook");
+    expect(normalizeCookPref("buy")).toBe("buy");
+    expect(normalizeCookPref("mixed")).toBe("mixed");
+    expect(normalizeCookPref(undefined)).toBe("mixed");
+    expect(normalizeCookPref("nonsense")).toBe("mixed");
+    expect(DEFAULT_PREFS.cookPref).toBe("mixed");
+  });
+
+  test("mixed keeps both kinds of dish, cook and buy keep their own", () => {
+    const count = (cookPref: PlanPrefs["cookPref"]) => buildCandidates({ ...DEFAULT_PREFS, cookPref }, EMPTY_INDEX).length;
+    expect(count("mixed")).toBeGreaterThan(count("cook"));
+    expect(count("mixed")).toBeGreaterThan(count("buy"));
+  });
+
+  test("a dish only practical at home is cooked, one only found ready-made is bought, whatever the choice", () => {
+    for (const cookPref of ["cook", "buy", "mixed"] as const) {
+      expect(mealMode({ home: true, warung: false, minutes: 60 }, cookPref)).toBe("cook");
+      expect(mealMode({ home: false, warung: true, minutes: 5 }, cookPref)).toBe("buy");
+    }
+  });
+
+  test("a dish that is both follows the choice, and with mixed is cooked only when quick", () => {
+    const both = (minutes: number) => ({ home: true, warung: true, minutes });
+    expect(mealMode(both(60), "cook")).toBe("cook");
+    expect(mealMode(both(5), "buy")).toBe("buy");
+    expect(mealMode(both(QUICK_COOK_MINUTES), "mixed")).toBe("cook");
+    expect(mealMode(both(QUICK_COOK_MINUTES + 1), "mixed")).toBe("buy");
+  });
+
+  test("a food the person logs themselves is a buy suggestion", () => {
+    expect(mealMode(null, "mixed")).toBe("buy");
+  });
+
+  test("with the buy choice every planned meal is a buy suggestion, with cook every recipe is a cook suggestion", () => {
+    for (const cookPref of ["cook", "buy"] as const) {
+      const p: PlanPrefs = { ...DEFAULT_PREFS, cookPref };
+      const out = planWeek({ seed: "m", days: weekSpecs(1800, 100, NORMAL, 3), prefs: p, candidates: buildCandidates(p, EMPTY_INDEX) });
+      for (const o of out) {
+        for (const s of o.day.slots) {
+          expect(mealMode(recipeById(s.item.ref.slice(2)) ?? null, cookPref)).toBe(cookPref);
+        }
+      }
+    }
   });
 });

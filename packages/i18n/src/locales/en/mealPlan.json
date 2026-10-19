@@ -75,7 +75,10 @@
     "ateFailed": "Could not log it. Try again.",
     "ateDone": "Logged in your diary.",
     "undoDone": "Log removed.",
-    "avoid": "Has something you avoid. Try a swap."
+    "avoid": "Has something you avoid. Try a swap.",
+    "modeCook": "Cook",
+    "modeBuy": "Buy",
+    "buy": "Buy"
   },
   "swap": {
     "title": "Swap meal",
@@ -147,7 +150,10 @@
       "susu": "Dairy",
       "bumbu": "Spices and oil"
     },
-    "inMenus": "used in {{n}} meals"
+    "inMenus": "used in {{n}} meals",
+    "nearbyTitle": "Shopping for ingredients",
+    "nearbyMarket": "Find the nearest market",
+    "nearbySupermarket": "Find the nearest supermarket"
   },
   "prefs": {
     "title": "Plan settings",
@@ -162,9 +168,10 @@
     "budget": "Prefer budget meals",
     "budgetHint": "Cheaper meals are picked first.",
     "cook": "Where your food comes from",
-    "cookAny": "Either",
-    "cookHome": "Cook at home",
-    "cookWarung": "Buy at a warung",
+    "cookHint": "Each meal is marked cook or buy. Mixed uses both.",
+    "cookCook": "Cook myself",
+    "cookBuy": "Buy",
+    "cookMixed": "Mixed",
     "save": "Save",
     "saved": "Saved. Rebuild the plan to use these settings.",
     "regenNow": "Rebuild now",
@@ -217,5 +224,19 @@
     "regenDayOf": "Rebuild {{day}}",
     "regenDayBody": "The meals of {{day}} are replaced with a new set. Anything you logged stays.",
     "dislikesLimit": "You already have {{max}}. Remove one to add another."
+  },
+  "buy": {
+    "title": "Buy {{name}}",
+    "subtitle": "Pick where to look.",
+    "nearby": "Find nearby",
+    "nearbyHint": "Opens Google Maps and searches for it near you.",
+    "gofood": "GoFood",
+    "grabfood": "GrabFood",
+    "shopeefood": "ShopeeFood",
+    "appHint": "Opens the app. The dish name is copied, just paste it in the search.",
+    "grabHint": "Searches for this dish in GrabFood.",
+    "copied": "Dish name copied, paste it in the search.",
+    "copyFailed": "Could not copy the dish name. Type it yourself: {{name}}",
+    "note": "Links open in the app when it is installed. Availability and prices depend on the shop."
   }
 }

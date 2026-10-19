@@ -19,7 +19,7 @@ import { buildPlan, planQueries, proteinGoalG, trainingDayQuery } from "../plan"
 import type { ProfileRow } from "../plan";
 import { habitFoods, buildHistoryIndex } from "./history";
 import type { HistoryIndex, LoggedPlate } from "./history";
-import { addNutrition, alternativesFor, buildCandidates, DEFAULT_PREFS, dayMeets, itemAllowed, zeroNutrition } from "./planner";
+import { addNutrition, alternativesFor, buildCandidates, DEFAULT_PREFS, dayMeets, itemAllowed, normalizeCookPref, zeroNutrition } from "./planner";
 import type { Alternative, Candidate, PlanPrefs } from "./planner";
 import { dayTargets, itemNumbers } from "./view";
 import type { DayTargets } from "./view";
@@ -50,7 +50,7 @@ export async function readPrefs(db: Database, userId: string): Promise<PlanPrefs
     allergens: parseList(row.allergens).filter((a): a is Allergen => (ALLERGENS as readonly string[]).includes(a)),
     dislikes: parseList(row.dislikes),
     budgetFriendly: row.budgetFriendly,
-    cookPref: row.cookPref === "cook" || row.cookPref === "warung" ? row.cookPref : "any",
+    cookPref: normalizeCookPref(row.cookPref),
   };
 }
 
@@ -59,7 +59,7 @@ export async function writePrefs(db: Database, userId: string, prefs: PlanPrefs)
     allergens: ALLERGENS.filter((a) => prefs.allergens.includes(a)),
     dislikes: [...new Set(prefs.dislikes.map((d) => d.trim().toLowerCase()).filter((d) => d.length > 0))].slice(0, MAX_DISLIKES),
     budgetFriendly: prefs.budgetFriendly,
-    cookPref: prefs.cookPref,
+    cookPref: normalizeCookPref(prefs.cookPref),
   };
   const values = {
     allergens: JSON.stringify(clean.allergens),

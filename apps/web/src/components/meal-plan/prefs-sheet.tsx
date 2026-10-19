@@ -73,9 +73,9 @@ export function PrefsSheet({
   };
 
   const cookOptions: Array<{ value: Cook; label: string }> = [
-    { value: "any", label: t("prefs.cookAny") },
-    { value: "cook", label: t("prefs.cookHome") },
-    { value: "warung", label: t("prefs.cookWarung") },
+    { value: "cook", label: t("prefs.cookCook") },
+    { value: "buy", label: t("prefs.cookBuy") },
+    { value: "mixed", label: t("prefs.cookMixed") },
   ];
 
   return (
@@ -184,7 +184,7 @@ export function PrefsSheet({
             />
           </div>
 
-          <Fieldset legend={t("prefs.cook")}>
+          <Fieldset legend={t("prefs.cook")} hint={t("prefs.cookHint")}>
             <Segmented
               label={t("prefs.cook")}
               value={draft.cookPref}

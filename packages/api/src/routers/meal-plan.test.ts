@@ -70,7 +70,7 @@ describe("mealPlan: Pro gate (server side)", () => {
       ["recipe", () => call(mealPlanRouter.recipe, { id: RECIPES[0]?.id ?? "x", scale: 1, carbScale: 1 }, as("free"))],
       ["shopping", () => call(mealPlanRouter.shopping, undefined, as("free"))],
       ["prefs", () => call(mealPlanRouter.prefs, undefined, as("free"))],
-      ["setPrefs", () => call(mealPlanRouter.setPrefs, { allergens: [], dislikes: [], budgetFriendly: false, cookPref: "any" }, as("free"))],
+      ["setPrefs", () => call(mealPlanRouter.setPrefs, { allergens: [], dislikes: [], budgetFriendly: false, cookPref: "mixed" }, as("free"))],
       ["eat", () => call(mealPlanRouter.eat, { date: today, slot: "sarapan" }, as("free"))],
       ["swapOptions", () => call(mealPlanRouter.swapOptions, { date: today, slot: "sarapan" }, as("free"))],
       ["checkItem", () => call(mealPlanRouter.checkItem, { key: "nasi", checked: true }, as("free"))],
@@ -303,8 +303,35 @@ describe("mealPlan: settings", () => {
     }
   });
 
+  test("the three-way choice is stored; old values from before it are migrated when sent or read", async () => {
+    const send = (cookPref: string) => call(mealPlanRouter.setPrefs, { allergens: [], dislikes: [], budgetFriendly: false, cookPref: cookPref as never }, as("other"));
+    expect((await send("buy")).cookPref).toBe("buy");
+    expect((await send("mixed")).cookPref).toBe("mixed");
+    expect((await send("warung")).cookPref).toBe("buy");
+    expect((await send("any")).cookPref).toBe("mixed");
+    await sql("UPDATE meal_prefs SET cook_pref = 'warung' WHERE user_id = 'other'");
+    expect((await call(mealPlanRouter.prefs, undefined, as("other"))).cookPref).toBe("buy");
+    await sql("UPDATE meal_prefs SET cook_pref = 'any' WHERE user_id = 'other'");
+    expect((await call(mealPlanRouter.prefs, undefined, as("other"))).cookPref).toBe("mixed");
+    await send("mixed");
+  });
+
+  test("every planned meal says whether to cook or buy it, plus the name to search for", async () => {
+    await call(mealPlanRouter.setPrefs, { allergens: [], dislikes: [], budgetFriendly: false, cookPref: "buy" }, as("pro"));
+    const week = await generate("pro", true);
+    for (const item of week.days.flatMap((d) => d.items)) {
+      expect(item.mode).toBe("buy");
+      const recipe = item.recipeId ? recipeById(item.recipeId) : undefined;
+      expect(item.buyQuery).toBe(recipe ? recipe.name.id : item.name);
+    }
+    await call(mealPlanRouter.setPrefs, { allergens: [], dislikes: [], budgetFriendly: false, cookPref: "cook" }, as("pro"));
+    const cooked = await generate("pro", true);
+    for (const item of cooked.days.flatMap((d) => d.items)) if (item.kind === "recipe") expect(item.mode).toBe("cook");
+    await call(mealPlanRouter.setPrefs, { allergens: [], dislikes: [], budgetFriendly: false, cookPref: "mixed" }, as("pro"));
+  });
+
   test("bad settings are rejected", async () => {
-    const err = await call(mealPlanRouter.setPrefs, { allergens: ["nuts" as never], dislikes: [], budgetFriendly: false, cookPref: "any" }, as("pro")).then(() => null, (e: { code?: string }) => e);
+    const err = await call(mealPlanRouter.setPrefs, { allergens: ["nuts" as never], dislikes: [], budgetFriendly: false, cookPref: "mixed" }, as("pro")).then(() => null, (e: { code?: string }) => e);
     expect(err?.code).toBe("BAD_REQUEST");
   });
 });
@@ -376,7 +403,7 @@ describe("mealPlan: history", () => {
 describe("mealPlan: account data", () => {
   test("deleting all data removes plans, swaps, shopping ticks and preferences", async () => {
     const { deleteAllUserData } = await import("../lib/privacy");
-    await call(mealPlanRouter.setPrefs, { allergens: ["susu"], dislikes: [], budgetFriendly: false, cookPref: "any" }, as("other"));
+    await call(mealPlanRouter.setPrefs, { allergens: ["susu"], dislikes: [], budgetFriendly: false, cookPref: "mixed" }, as("other"));
     await generate("other", true);
     await deleteAllUserData(db, "other");
     for (const table of ["meal_plan", "meal_plan_swap", "meal_shopping_check", "meal_prefs"]) {
