@@ -6,8 +6,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-export CLOUDFLARE_ACCOUNT_ID="3268f27664d77716b648b00c8850469e"
-
 cd apps/fit
 VITE_SERVER_URL="https://api.joyorogo.com" bunx vite build
 bunx wrangler deploy

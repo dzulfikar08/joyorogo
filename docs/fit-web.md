@@ -96,7 +96,7 @@ cd apps/fit && VITE_SERVER_URL=http://localhost:3000 VITE_DEV_LOGIN=1 bun run de
 
 ## Deploy
 
-Everything JoyoRogo runs on the Cloudflare account `3268f27664d77716b648b00c8850469e` (the zone `joyorogo.com` lives there); `wrangler` needs a login for it. **Order matters:** the web app calls the JoyoRogo API, which calls the JoyoFit API.
+Two Cloudflare accounts: the JoyoRogo API (`apps/server`) deploys with `CLOUDFLARE_ACCOUNT_ID=3268f27664d77716b648b00c8850469e`; the web apps (`apps/web`, `apps/fit`) deploy on `b7e6f8457bd39fa37a7eea5249799754`, where the zone `joyorogo.com` lives (set as `account_id` in their `wrangler.jsonc`). **Order matters:** the web app calls the JoyoRogo API, which calls the JoyoFit API.
 
 1. **JoyoFit cloud API** (repo `watch-fit`, `server/`), first, because the proxy forwards to it and a missing route would answer 404:
    ```bash

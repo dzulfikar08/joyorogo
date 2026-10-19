@@ -1,11 +1,11 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "joyofit-web",
-  "account_id": "3268f27664d77716b648b00c8850469e",
+  "account_id": "b7e6f8457bd39fa37a7eea5249799754",
   "compatibility_date": "2026-08-31",
   // Static SPA only: no script runs, every request is served from the asset store.
   "workers_dev": false,
-  "routes": [{ "pattern": "app.fit.joyorogo.com", "custom_domain": true }],
+  "routes": [{ "pattern": "app.fit.joyorogo.com", "zone_name": "joyorogo.com", "custom_domain": true }],
   "assets": {
     "directory": "dist",
     "not_found_handling": "single-page-application",
