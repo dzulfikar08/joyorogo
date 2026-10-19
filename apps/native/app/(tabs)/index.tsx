@@ -28,6 +28,7 @@ import { fmtNumber } from "@joyorogo/i18n";
 import { CalibrationNotice } from "@/components/calibration-notice";
 import { EnergyNotice } from "@/components/energy-notice";
 import { BelanjaCompact } from "@/components/plate/belanja";
+import { MealPlanEntry } from "@/components/meal-plan/entry-card";
 import {
   GainCard,
   GainDailyTip,
@@ -717,6 +718,9 @@ export default function Dashboard() {
           </ScrollView>
         </View>
       ) : null}
+
+      {/* Rencana makan: menu sehari dan seminggu dari target kalori dan protein */}
+      {isToday ? <MealPlanEntry /> : null}
 
       {/* Makan hari ini per slot */}
       <SectionTitle

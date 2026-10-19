@@ -37,6 +37,7 @@ import idFitWebWorkouts from "./locales/id/fitWebWorkouts.json";
 import idFitWebSleep from "./locales/id/fitWebSleep.json";
 import idFitWebUpload from "./locales/id/fitWebUpload.json";
 import idFitWebConnect from "./locales/id/fitWebConnect.json";
+import idMealPlan from "./locales/id/mealPlan.json";
 
 import enAuth from "./locales/en/auth.json";
 import enBerat from "./locales/en/berat.json";
@@ -77,6 +78,7 @@ import enFitWebWorkouts from "./locales/en/fitWebWorkouts.json";
 import enFitWebSleep from "./locales/en/fitWebSleep.json";
 import enFitWebUpload from "./locales/en/fitWebUpload.json";
 import enFitWebConnect from "./locales/en/fitWebConnect.json";
+import enMealPlan from "./locales/en/mealPlan.json";
 
 import type { Locale } from "./locale";
 
@@ -121,6 +123,7 @@ const id = {
   fitWebSleep: idFitWebSleep,
   fitWebUpload: idFitWebUpload,
   fitWebConnect: idFitWebConnect,
+  mealPlan: idMealPlan,
 };
 
 /**
@@ -167,6 +170,7 @@ const en: typeof id = {
   fitWebSleep: enFitWebSleep,
   fitWebUpload: enFitWebUpload,
   fitWebConnect: enFitWebConnect,
+  mealPlan: enMealPlan,
 };
 
 export const resources = { id, en } satisfies Record<Locale, typeof id>;

@@ -25,7 +25,7 @@ export function Switch({
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "relative -my-2 inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full p-1 transition-colors duration-200 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:opacity-50",
+        "relative -my-2 inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full p-1 transition-colors duration-200 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:opacity-50",
         checked ? "bg-primary" : "bg-foreground/25",
       )}
     >

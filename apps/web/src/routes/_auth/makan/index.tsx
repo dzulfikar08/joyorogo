@@ -38,6 +38,7 @@ import { ScreenError } from "@/components/screen-state";
 import { STICKER_FILTER, stickerUrl } from "@/components/sticker";
 import { FoodRow } from "@/components/makan/food-row";
 import { FitnessCard } from "@/components/makan/fitness-card";
+import { MealPlanEntry } from "@/components/meal-plan/entry-card";
 import type { FoodAddInput, FoodItem, FoodRecentItem } from "@/lib/api-types";
 import { fmtDateLong, fmtInt, parseNum } from "@/lib/format";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
@@ -360,6 +361,10 @@ function MakanPage() {
           )}
 
           {!daySummary.data?.targets?.maternal && <FitnessCard date={date} />}
+
+          <div className="mt-3">
+            <MealPlanEntry />
+          </div>
 
           {/* Belanja: angkanya selalu hari ini */}
           {isToday ? <BelanjaCard /> : null}

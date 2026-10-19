@@ -24,6 +24,7 @@ import { gainEatTone, gainRemaining } from "@joyorogo/api/lib/gain";
 
 import { gainRemainingLabel } from "@/components/gain/gain-today";
 import { BelanjaSection } from "@/components/plate/belanja";
+import { MealPlanEntry } from "@/components/meal-plan/entry-card";
 import { PlateHeader } from "@/components/plate/plate-header";
 import { PlateEditSheet } from "@/components/plate/plate-edit-sheet";
 import { DaySwitcher } from "@/components/day-switcher";
@@ -796,6 +797,8 @@ export default function Makan() {
               {gainRemainingLabel(gainRemaining(targets.eatKcal, eatenKcal))}
             </Text>
           ) : null}
+          {/* Rencana makan: menu sehari dan seminggu dari target kalori dan protein */}
+          {isToday ? <MealPlanEntry /> : null}
           {/* Skor JoyoFit untuk hari yang dipilih; kosong kalau JoyoFit belum mengirim */}
           <FitnessCard date={date} />
 

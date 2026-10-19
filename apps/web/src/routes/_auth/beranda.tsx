@@ -31,6 +31,7 @@ import { Avatar } from "@/components/avatar";
 import { DailyTipCard } from "@/components/tips/daily-tip-card";
 import { FastingScheduleCard } from "@/components/fasting/schedule-card";
 import MovementCard from "@/components/movement-card";
+import { MealPlanEntry } from "@/components/meal-plan/entry-card";
 import { BelanjaCard } from "@/components/plate/belanja";
 import { ScreenError } from "@/components/screen-state";
 import { RecapCard } from "@/components/recap-card";
@@ -410,6 +411,7 @@ function Dashboard({
 
         <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-1">
           <TodayMeals summary={summary} isToday={isToday} />
+          {isToday && <MealPlanEntry />}
           {isToday && !maternal ? <FastingScheduleCard /> : null}
           {maternal && <MaternalCard info={maternal} summary={summary} />}
           {gain && <GainPlanCard gain={gain} summary={summary} />}

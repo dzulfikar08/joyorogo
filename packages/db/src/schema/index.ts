@@ -13,3 +13,4 @@ export * from "./recap";
 export * from "./oauth";
 export * from "./strength";
 export * from "./sync";
+export * from "./meal";

@@ -152,3 +152,51 @@ export type ChallengeDetail = ChallengeDetailOutput;
 
 /** One leaderboard row of challenge.detail. */
 export type ChallengeMember = ChallengeDetailOutput["leaderboard"][number];
+
+type MealPlanOverviewOutput = Awaited<ReturnType<AppRouterClient["mealPlan"]["overview"]>>;
+
+/** mealPlan.overview when the account has Pro and a profile. */
+export type MealPlanReady = Extract<MealPlanOverviewOutput, { status: "ready" }>;
+
+/** mealPlan.overview for a free account: the one-meal teaser. */
+export type MealPlanLocked = Extract<MealPlanOverviewOutput, { status: "locked" }>;
+
+/** The 7-day plan the screens show (generate, replanDay, swap, eat and undoEat all return it). */
+export type MealPlanWeek = NonNullable<MealPlanReady["plan"]>;
+
+/** One planned day: items, targets, totals and the "why this plan" lines. */
+export type MealPlanDay = MealPlanWeek["days"][number];
+
+/** One planned meal. */
+export type MealPlanItem = MealPlanDay["items"][number];
+
+/** Allergens, dislikes, budget and cook preference. */
+export type MealPlanPrefs = MealPlanReady["prefs"];
+
+/** mealPlan.recipe output: ingredients, steps and nutrition of one portion. */
+export type MealPlanRecipe = Awaited<ReturnType<AppRouterClient["mealPlan"]["recipe"]>>;
+
+type MealPlanShoppingOutput = Awaited<ReturnType<AppRouterClient["mealPlan"]["shopping"]>>;
+
+/** One shop section of the shopping list. */
+export type MealPlanShoppingGroup = Extract<MealPlanShoppingOutput, { startDate: string }>["groups"][number];
+
+/** One shopping row. */
+export type MealPlanShoppingItem = MealPlanShoppingGroup["items"][number];
+
+/** mealPlan.shopping output: the open and ticked ingredients by shop section (no groups while there is no plan). */
+export type MealPlanShopping = {
+  startDate: string | null;
+  groups: MealPlanShoppingGroup[];
+  total: number;
+  checked: number;
+};
+
+/** Input contract of mealPlan.swap: the slot and one alternative from swapOptions (ref and portion factors). */
+export type MealPlanSwapInput = Parameters<AppRouterClient["mealPlan"]["swap"]>[0];
+
+/** mealPlan.swap output: the new plan and whether other meals of the day moved with it. */
+export type MealPlanSwapResult = Awaited<ReturnType<AppRouterClient["mealPlan"]["swap"]>>;
+
+/** mealPlan.eat output: the diary row it created and the new plan. */
+export type MealPlanEatResult = Awaited<ReturnType<AppRouterClient["mealPlan"]["eat"]>>;

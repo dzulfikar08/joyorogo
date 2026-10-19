@@ -1,0 +1,221 @@
+{
+  "title": "Meal plan",
+  "subtitle": "Menus that fit your calories and protein, built from food that is already around you.",
+  "entry": {
+    "title": "Meal plan",
+    "body": "A day and a week of menus that fit your calories and protein.",
+    "bodyPro": "Today's menu is ready. Open it to see or swap meals.",
+    "cta": "View plan",
+    "pro": "Pro"
+  },
+  "tabs": {
+    "today": "Today",
+    "week": "Week",
+    "shopping": "Shopping"
+  },
+  "back": "Back",
+  "loading": "Loading your plan...",
+  "loadError": "Could not load the plan. Try again in a moment.",
+  "retry": "Try again",
+  "noProfile": "Finish your profile first so your calorie and protein targets can be worked out.",
+  "empty": {
+    "title": "No plan yet",
+    "body": "We build a 7-day menu from your calorie and protein targets, favouring food you already eat. You can swap any meal.",
+    "cta": "Build a 7-day plan",
+    "working": "Building your menu..."
+  },
+  "regen": {
+    "week": "Rebuild this week",
+    "day": "Rebuild today",
+    "title": "Rebuild the menu?",
+    "bodyWeek": "Meals you have not eaten are replaced with a new set. Anything you logged stays.",
+    "bodyDay": "Today's meals you have not eaten are replaced with a new set. Anything you logged stays.",
+    "confirm": "Rebuild",
+    "cancel": "Cancel",
+    "working": "Rebuilding..."
+  },
+  "day": {
+    "kcal": "Calories",
+    "protein": "Protein",
+    "carbs": "Carbs",
+    "fat": "Fat",
+    "of": "of {{target}}",
+    "range": "{{min}}-{{max}} g",
+    "unitKcal": "{{n}} kcal",
+    "unitG": "{{n}} g",
+    "eaten": "Eaten",
+    "planned": "Still planned",
+    "total": "Total for the day",
+    "kcalOk": "Calories match your target",
+    "kcalOver": "{{kcal}} kcal over your target",
+    "kcalUnder": "{{kcal}} kcal under your target",
+    "proteinOk": "Protein target met",
+    "proteinShort": "{{g}} g short on protein",
+    "why": "Why this plan",
+    "sourceLive": "Today's target, workout calories included",
+    "sourceBase": "Base target. If you work out, the target goes up and that day can be rebuilt",
+    "noMeals": "No meals left to plan today.",
+    "past": "Past",
+    "today": "Today",
+    "swapped": "Swapped"
+  },
+  "item": {
+    "swap": "Swap",
+    "ate": "Ate it",
+    "undo": "Undo",
+    "eatenBadge": "Eaten",
+    "recipe": "Recipe",
+    "fromHabit": "You eat this often",
+    "fromHabitTimes": "You logged this {{times}} times lately",
+    "lighter": "Lighter version of {{name}}",
+    "minutes": "{{min}} min",
+    "carbShort": "C",
+    "fatShort": "F",
+    "proteinShort": "P",
+    "ateFailed": "Could not log it. Try again.",
+    "ateDone": "Logged in your diary.",
+    "undoDone": "Log removed.",
+    "avoid": "Has something you avoid. Try a swap."
+  },
+  "swap": {
+    "title": "Swap meal",
+    "subtitle": "Options with similar calories and protein.",
+    "current": "Now",
+    "pick": "Use this",
+    "none": "No good swap for this meal yet.",
+    "replanned": "The other meals of the day were adjusted so the total still fits.",
+    "delta": "{{kcal}} kcal, {{protein}} g protein",
+    "working": "Swapping..."
+  },
+  "recipe": {
+    "title": "Recipe",
+    "ingredients": "Ingredients",
+    "steps": "Method",
+    "tip": "Tip",
+    "nutrition": "Nutrition per portion",
+    "portion": "Portion",
+    "source": "Nutrition is computed per ingredient from the tables above, not estimated by AI.",
+    "aiNote": "The recipe text was written with AI help. The nutrition numbers were not.",
+    "allergens": "Contains",
+    "noAllergens": "No major allergens",
+    "notFound": "Recipe not found.",
+    "habitNote": "This is food you logged yourself. The numbers are the average of your own logs, not from a recipe.",
+    "habitHint": "Average of your {{times}} logs",
+    "sourceTitle": "Nutrition sources",
+    "sourceTkpi": "TKPI 2019 (Indonesian Ministry of Health)",
+    "sourceUsda": "USDA FoodData Central (SR Legacy), for ingredients TKPI does not have"
+  },
+  "tag": {
+    "highProtein": "High protein",
+    "budget": "Budget",
+    "warung": "At a warung",
+    "home": "Cook at home",
+    "quick": "Quick",
+    "lowFat": "Low fat",
+    "highFiber": "High fibre"
+  },
+  "allergen": {
+    "seafood": "Seafood",
+    "kacang": "Peanuts",
+    "telur": "Egg",
+    "susu": "Milk",
+    "gluten": "Gluten",
+    "kedelai": "Soy"
+  },
+  "cost": {
+    "1": "Budget",
+    "2": "Regular",
+    "3": "Pricier"
+  },
+  "week": {
+    "title": "Next 7 days",
+    "met": "{{n}} of {{total}} days fit your target",
+    "menus": "{{n}} meals",
+    "openDay": "Open this day"
+  },
+  "shopping": {
+    "title": "Shopping list",
+    "subtitle": "From this week's meals you have not eaten yet.",
+    "empty": "Nothing to buy.",
+    "progress": "{{done}} of {{total}} bought",
+    "approx": "Amounts are estimates, rounded up.",
+    "group": {
+      "karbo": "Carbs",
+      "protein": "Protein",
+      "sayur": "Vegetables",
+      "buah": "Fruit",
+      "susu": "Dairy",
+      "bumbu": "Spices and oil"
+    },
+    "inMenus": "used in {{n}} meals"
+  },
+  "prefs": {
+    "title": "Plan settings",
+    "open": "Set allergies and tastes",
+    "allergies": "Allergies",
+    "allergiesHint": "Meals with these never show up.",
+    "dislikes": "Dislikes",
+    "dislikesHint": "Type an ingredient or dish to avoid, like mushroom or fish.",
+    "dislikesAdd": "Add",
+    "dislikesPlaceholder": "For example mushroom",
+    "dislikesRemove": "Remove {{name}}",
+    "budget": "Prefer budget meals",
+    "budgetHint": "Cheaper meals are picked first.",
+    "cook": "Where your food comes from",
+    "cookAny": "Either",
+    "cookHome": "Cook at home",
+    "cookWarung": "Buy at a warung",
+    "save": "Save",
+    "saved": "Saved. Rebuild the plan to use these settings.",
+    "regenNow": "Rebuild now",
+    "later": "Later"
+  },
+  "locked": {
+    "title": "Meal plan is for Pro",
+    "body": "Daily and weekly menus that fit your calories and protein, a shopping list, and recipes with TKPI nutrition.",
+    "cta": "See Pro",
+    "preview": "A sample of today's menu",
+    "hidden": "{{n}} more meals open with Pro"
+  },
+  "why": {
+    "budget": "Total {{kcal}} kcal, {{pct}}% off the {{budget}} kcal target.",
+    "protein": "Protein {{planned}} g against a {{target}} g target.",
+    "proteinShort": "Protein {{planned}} g, short of the {{target}} g target. Add a protein side if you are still hungry.",
+    "history": "{{n}} meals come from food you already eat often ({{names}}).",
+    "better": "{{name}} is picked as a lighter version of {{from}}, saving about {{kcal}} kcal.",
+    "portion": "{{carb}} is cut to {{amount}} so calories and protein fit.",
+    "variety": "The same meal is not repeated more than twice in a week.",
+    "live": "Today's target already includes the calories from your workout.",
+    "base": "The days ahead use your base target. If you work out, the target rises and that day can be rebuilt."
+  },
+  "portion": {
+    "one": "1 portion",
+    "of": "{{n}} portion",
+    "carb": "{{carb}} {{n}} portion"
+  },
+  "amount": {
+    "grams": "{{g}} g",
+    "units": "{{n}} {{unit}} ({{g}} g)",
+    "kg": "{{n}} kg"
+  },
+  "errors": {
+    "locked": "Meal plan is for Pro.",
+    "noProfile": "Finish your profile first.",
+    "noPlan": "No plan yet. Build one first.",
+    "notFound": "Meal not found in the plan.",
+    "futureEat": "A meal on a day that has not come yet cannot be logged as eaten.",
+    "alreadyEaten": "This meal is already logged.",
+    "notEaten": "This meal is not logged.",
+    "badAlternative": "That swap does not fit this slot."
+  },
+  "web": {
+    "fiber": "Fibre",
+    "dislikesLimit": "You already have {{max}}. Remove one to add another.",
+    "completeProfile": "Finish your profile"
+  },
+  "native": {
+    "regenDayOf": "Rebuild {{day}}",
+    "regenDayBody": "The meals of {{day}} are replaced with a new set. Anything you logged stays.",
+    "dislikesLimit": "You already have {{max}}. Remove one to add another."
+  }
+}

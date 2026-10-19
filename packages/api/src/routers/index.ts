@@ -16,6 +16,7 @@ import { fitWebRouter } from "./fit-web";
 import { foodRouter } from "./food";
 import { groupRouter } from "./group";
 import { mcpConnectionRouter } from "./mcp-connection";
+import { mealPlanRouter } from "./meal-plan";
 import { plateRouter } from "./plate";
 import { placeRouter } from "./place";
 import { profileRouter } from "./profile";
@@ -74,6 +75,7 @@ export const appRouter = {
   strength: strengthRouter,
   sync: syncRouter,
   mcpConnection: mcpConnectionRouter,
+  mealPlan: mealPlanRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

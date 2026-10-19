@@ -1,0 +1,221 @@
+{
+  "title": "Rencana makan",
+  "subtitle": "Menu yang pas dengan kalori dan proteinmu, dari makanan yang memang ada di sekitarmu.",
+  "entry": {
+    "title": "Rencana makan",
+    "body": "Menu sehari dan seminggu yang pas dengan kalori dan proteinmu.",
+    "bodyPro": "Menu hari ini sudah disusun. Buka untuk melihat atau mengganti.",
+    "cta": "Lihat rencana",
+    "pro": "Pro"
+  },
+  "tabs": {
+    "today": "Hari ini",
+    "week": "Minggu",
+    "shopping": "Belanja"
+  },
+  "back": "Kembali",
+  "loading": "Memuat rencana...",
+  "loadError": "Rencana belum bisa dimuat. Coba lagi sebentar lagi.",
+  "retry": "Coba lagi",
+  "noProfile": "Lengkapi profilmu dulu supaya target kalori dan proteinnya bisa dihitung.",
+  "empty": {
+    "title": "Belum ada rencana",
+    "body": "Kami susun menu 7 hari dari target kalori dan proteinmu, utamakan makanan yang sudah biasa kamu makan. Menu mana pun bisa kamu ganti.",
+    "cta": "Buat rencana 7 hari",
+    "working": "Menyusun menu..."
+  },
+  "regen": {
+    "week": "Susun ulang minggu ini",
+    "day": "Susun ulang hari ini",
+    "title": "Susun ulang menu?",
+    "bodyWeek": "Menu yang belum kamu makan diganti dengan susunan baru. Yang sudah kamu catat tetap.",
+    "bodyDay": "Menu hari ini yang belum kamu makan diganti dengan susunan baru. Yang sudah kamu catat tetap.",
+    "confirm": "Susun ulang",
+    "cancel": "Batal",
+    "working": "Menyusun ulang..."
+  },
+  "day": {
+    "kcal": "Kalori",
+    "protein": "Protein",
+    "carbs": "Karbo",
+    "fat": "Lemak",
+    "of": "dari {{target}}",
+    "range": "{{min}}-{{max}} g",
+    "unitKcal": "{{n}} kcal",
+    "unitG": "{{n}} g",
+    "eaten": "Sudah dimakan",
+    "planned": "Masih direncanakan",
+    "total": "Total hari ini",
+    "kcalOk": "Kalori pas dengan targetmu",
+    "kcalOver": "Lebih {{kcal}} kcal dari targetmu",
+    "kcalUnder": "Kurang {{kcal}} kcal dari targetmu",
+    "proteinOk": "Protein terpenuhi",
+    "proteinShort": "Kurang {{g}} g protein",
+    "why": "Kenapa rencana ini",
+    "sourceLive": "Target hari ini, sudah termasuk olahragamu",
+    "sourceBase": "Target dasar. Kalau kamu olahraga, targetnya naik dan hari itu bisa disusun ulang",
+    "noMeals": "Tidak ada menu yang tersisa untuk hari ini.",
+    "past": "Sudah lewat",
+    "today": "Hari ini",
+    "swapped": "Sudah diganti"
+  },
+  "item": {
+    "swap": "Ganti",
+    "ate": "Sudah makan",
+    "undo": "Batalkan",
+    "eatenBadge": "Sudah dimakan",
+    "recipe": "Resep",
+    "fromHabit": "Sering kamu makan",
+    "fromHabitTimes": "Kamu makan ini {{times}} kali belakangan ini",
+    "lighter": "Versi lebih ringan dari {{name}}",
+    "minutes": "{{min}} menit",
+    "carbShort": "K",
+    "fatShort": "L",
+    "proteinShort": "P",
+    "ateFailed": "Belum bisa dicatat. Coba lagi.",
+    "ateDone": "Tercatat di diari.",
+    "undoDone": "Catatan dibatalkan.",
+    "avoid": "Ada bahan yang kamu hindari. Coba ganti."
+  },
+  "swap": {
+    "title": "Ganti menu",
+    "subtitle": "Pilihan dengan kalori dan protein yang mirip.",
+    "current": "Sekarang",
+    "pick": "Pakai ini",
+    "none": "Belum ada pengganti yang cocok untuk menu ini.",
+    "replanned": "Menu lain di hari ini ikut disesuaikan supaya total tetap pas.",
+    "delta": "{{kcal}} kcal, protein {{protein}} g",
+    "working": "Mengganti..."
+  },
+  "recipe": {
+    "title": "Resep",
+    "ingredients": "Bahan",
+    "steps": "Cara membuat",
+    "tip": "Tips",
+    "nutrition": "Gizi per porsi",
+    "portion": "Porsi",
+    "source": "Angka gizi dihitung per bahan dari tabel di atas, bukan perkiraan AI.",
+    "aiNote": "Teks resep ditulis dengan bantuan AI. Angka gizinya tidak.",
+    "allergens": "Mengandung",
+    "noAllergens": "Tanpa alergen utama",
+    "notFound": "Resep tidak ditemukan.",
+    "habitNote": "Ini makanan yang kamu catat sendiri. Angkanya dari rata-rata catatanmu, bukan dari resep.",
+    "habitHint": "Rata-rata dari {{times}} catatanmu",
+    "sourceTitle": "Sumber gizi",
+    "sourceTkpi": "TKPI 2019 (Kemenkes)",
+    "sourceUsda": "USDA FoodData Central (SR Legacy), untuk bahan yang tidak ada di TKPI"
+  },
+  "tag": {
+    "highProtein": "Tinggi protein",
+    "budget": "Hemat",
+    "warung": "Ada di warung",
+    "home": "Bisa masak sendiri",
+    "quick": "Cepat",
+    "lowFat": "Rendah lemak",
+    "highFiber": "Tinggi serat"
+  },
+  "allergen": {
+    "seafood": "Seafood",
+    "kacang": "Kacang",
+    "telur": "Telur",
+    "susu": "Susu",
+    "gluten": "Gluten",
+    "kedelai": "Kedelai"
+  },
+  "cost": {
+    "1": "Hemat",
+    "2": "Biasa",
+    "3": "Agak mahal"
+  },
+  "week": {
+    "title": "7 hari ke depan",
+    "met": "{{n}} dari {{total}} hari pas dengan targetmu",
+    "menus": "{{n}} menu",
+    "openDay": "Buka hari ini"
+  },
+  "shopping": {
+    "title": "Daftar belanja",
+    "subtitle": "Dari menu minggu ini yang belum kamu makan.",
+    "empty": "Tidak ada bahan yang perlu dibeli.",
+    "progress": "{{done}} dari {{total}} sudah dibeli",
+    "approx": "Jumlahnya perkiraan dan dibulatkan ke atas.",
+    "group": {
+      "karbo": "Karbo",
+      "protein": "Lauk dan protein",
+      "sayur": "Sayur",
+      "buah": "Buah",
+      "susu": "Susu dan olahannya",
+      "bumbu": "Bumbu dan minyak"
+    },
+    "inMenus": "dipakai di {{n}} menu"
+  },
+  "prefs": {
+    "title": "Pengaturan rencana",
+    "open": "Atur alergi dan selera",
+    "allergies": "Alergi",
+    "allergiesHint": "Menu dengan bahan ini tidak akan muncul.",
+    "dislikes": "Tidak suka",
+    "dislikesHint": "Tulis bahan atau makanan yang ingin dihindari, misalnya jamur atau ikan.",
+    "dislikesAdd": "Tambah",
+    "dislikesPlaceholder": "Misalnya jamur",
+    "dislikesRemove": "Hapus {{name}}",
+    "budget": "Utamakan yang hemat",
+    "budgetHint": "Menu yang murah dipilih lebih dulu.",
+    "cook": "Dari mana makananmu",
+    "cookAny": "Bebas",
+    "cookHome": "Masak sendiri",
+    "cookWarung": "Beli di warung",
+    "save": "Simpan",
+    "saved": "Tersimpan. Susun ulang supaya rencana memakai pengaturan ini.",
+    "regenNow": "Susun ulang sekarang",
+    "later": "Nanti saja"
+  },
+  "locked": {
+    "title": "Rencana makan untuk pengguna Pro",
+    "body": "Menu harian dan mingguan yang pas dengan kalori dan proteinmu, daftar belanja, dan resep dengan gizi dari TKPI.",
+    "cta": "Lihat Pro",
+    "preview": "Contoh menu hari ini",
+    "hidden": "{{n}} menu lagi terbuka di Pro"
+  },
+  "why": {
+    "budget": "Total {{kcal}} kcal, selisih {{pct}}% dari target {{budget}} kcal.",
+    "protein": "Protein {{planned}} g, target {{target}} g.",
+    "proteinShort": "Protein {{planned}} g, belum sampai target {{target}} g. Tambah lauk protein kalau masih lapar.",
+    "history": "{{n}} menu berasal dari makanan yang sudah sering kamu makan ({{names}}).",
+    "better": "{{name}} dipilih sebagai versi lebih ringan dari {{from}}, hemat sekitar {{kcal}} kcal.",
+    "portion": "{{carb}} dikurangi jadi {{amount}} supaya kalori dan protein pas.",
+    "variety": "Menu yang sama tidak diulang lebih dari dua kali dalam seminggu.",
+    "live": "Target hari ini sudah termasuk kalori dari olahragamu.",
+    "base": "Hari-hari berikutnya memakai target dasar. Kalau kamu olahraga, targetnya naik dan hari itu bisa disusun ulang."
+  },
+  "portion": {
+    "one": "1 porsi",
+    "of": "{{n}} porsi",
+    "carb": "{{carb}} {{n}} porsi"
+  },
+  "amount": {
+    "grams": "{{g}} g",
+    "units": "{{n}} {{unit}} ({{g}} g)",
+    "kg": "{{n}} kg"
+  },
+  "errors": {
+    "locked": "Rencana makan khusus pengguna Pro.",
+    "noProfile": "Lengkapi profilmu dulu.",
+    "noPlan": "Belum ada rencana. Buat dulu.",
+    "notFound": "Menu tidak ditemukan di rencana.",
+    "futureEat": "Menu hari yang belum datang belum bisa dicatat sebagai sudah dimakan.",
+    "alreadyEaten": "Menu ini sudah dicatat.",
+    "notEaten": "Menu ini belum dicatat.",
+    "badAlternative": "Pengganti itu tidak cocok untuk slot ini."
+  },
+  "web": {
+    "fiber": "Serat",
+    "dislikesLimit": "Sudah {{max}} bahan, hapus satu untuk menambah.",
+    "completeProfile": "Lengkapi profil"
+  },
+  "native": {
+    "regenDayOf": "Susun ulang {{day}}",
+    "regenDayBody": "Menu {{day}} diganti dengan susunan baru. Menu yang sudah kamu catat tetap.",
+    "dislikesLimit": "Sudah {{max}} bahan, hapus satu untuk menambah."
+  }
+}

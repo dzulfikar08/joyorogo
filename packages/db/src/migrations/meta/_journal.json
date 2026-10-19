@@ -351,6 +351,13 @@
       "when": 1792497600000,
       "tag": "0049_week_reflection",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "6",
+      "when": 1792584000000,
+      "tag": "0050_meal_plan",
+      "breakpoints": true
     }
   ]
 }

@@ -13,11 +13,14 @@ const TABS = [
   { to: "/lainnya", label: "nav.more", Icon: Ellipsis },
 ] as const;
 
-/** Routes the Lainnya tab/desktop link stands in for. */
-const LAINNYA_GROUP = ["/lainnya", "/profil", "/grup", "/inbox", "/berat", "/rekap", "/jam"] as const;
+/** Routes each tab/desktop link stands in for besides its own page. */
+const TAB_GROUPS: Partial<Record<string, readonly string[]>> = {
+  "/lainnya": ["/lainnya", "/profil", "/grup", "/inbox", "/berat", "/rekap", "/jam"],
+  "/makan": ["/rencana-makan"],
+};
 
-function inLainnyaGroup(pathname: string, to: string): boolean {
-  return to === "/lainnya" && LAINNYA_GROUP.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+function inTabGroup(pathname: string, to: string): boolean {
+  return TAB_GROUPS[to]?.some((p) => pathname === p || pathname.startsWith(`${p}/`)) ?? false;
 }
 
 /** Unread nudge pill; sits on the icon's top-right corner. */
@@ -32,7 +35,7 @@ function UnreadBadge({ count }: { count: number }) {
 function Tab({ to, label, Icon, badge }: (typeof TABS)[number] & { badge?: number }) {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const groupedActive = inLainnyaGroup(pathname, to);
+  const groupedActive = inTabGroup(pathname, to);
   return (
     <Link
       to={to}
@@ -127,7 +130,7 @@ export function DesktopBar() {
         <nav aria-label={t("nav.primary")} className="flex-1">
           <ul className="flex gap-1">
             {DESKTOP_LINKS.map(({ to, label }) => {
-              const groupedActive = inLainnyaGroup(pathname, to);
+              const groupedActive = inTabGroup(pathname, to);
               return (
                 <li key={to}>
                   <Link
