@@ -11,20 +11,35 @@ import type { Hono } from "hono";
  *
  * - `GET /api/fit/sleep?from&to`
  * - `GET|POST /api/fit/watchfaces`, `DELETE /api/fit/watchfaces/:id`, `GET /api/fit/watchfaces/:id/file`
+ * - `GET|POST /api/fit/studio/projects`, `GET|PUT|DELETE /api/fit/studio/projects/:id` (JoyoFit Studio's cloud projects, JSON bodies)
  *
  * Nothing else is forwarded, so this is not an open relay.
  */
-const ROUTES: readonly { method: string; path: RegExp }[] = [
-  { method: "GET", path: /^sleep$/ },
-  { method: "GET", path: /^watchfaces$/ },
-  { method: "POST", path: /^watchfaces$/ },
-  { method: "DELETE", path: /^watchfaces\/[A-Za-z0-9-]{8,64}$/ },
-  { method: "GET", path: /^watchfaces\/[A-Za-z0-9-]{8,64}\/file$/ },
+const ID = "[A-Za-z0-9-]{8,64}";
+/** What a route's request carries: nothing, an uploaded file (octet-stream) or a JSON document. */
+type Body = "none" | "octet" | "json";
+const ROUTES: readonly { method: string; path: RegExp; body: Body }[] = [
+  { method: "GET", path: /^sleep$/, body: "none" },
+  { method: "GET", path: /^watchfaces$/, body: "none" },
+  { method: "POST", path: /^watchfaces$/, body: "octet" },
+  { method: "DELETE", path: new RegExp(`^watchfaces/${ID}$`), body: "none" },
+  { method: "GET", path: new RegExp(`^watchfaces/${ID}/file$`), body: "none" },
+  { method: "GET", path: /^studio\/projects$/, body: "none" },
+  { method: "POST", path: /^studio\/projects$/, body: "json" },
+  { method: "GET", path: new RegExp(`^studio/projects/${ID}$`), body: "none" },
+  { method: "PUT", path: new RegExp(`^studio/projects/${ID}$`), body: "json" },
+  { method: "DELETE", path: new RegExp(`^studio/projects/${ID}$`), body: "none" },
 ];
 
 const PREFIX = "/api/fit/";
 /** The most a watch face upload may weigh: the JoyoFit API's own limit (watch-fit server/src/limits.ts, 8 MiB). Checked here, before one byte is forwarded. */
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+/**
+ * The most a Studio project request may weigh here: the JoyoFit API's 5 MiB (MAX_STUDIO_BODY_BYTES in watch-fit
+ * server/src/limits.ts) plus 64 KiB of slack. The JoyoFit API enforces the exact 5 MiB itself; this only stops a grossly
+ * oversized body before one byte is forwarded.
+ */
+export const MAX_STUDIO_BODY_BYTES = 5 * 1024 * 1024 + 64 * 1024;
 /** Response headers worth passing back: the body's description and a download's name. Everything else (CORS, cookies) is this server's. */
 const PASS_HEADERS = [
   "content-type",
@@ -57,10 +72,10 @@ export function registerFitProxy(app: Hono, deps: Deps) {
   app.all(`${PREFIX}*`, async (c) => {
     const path = c.req.path.slice(PREFIX.length);
     const method = c.req.method;
-    if (!ROUTES.some((route) => route.method === method && route.path.test(path)))
-      return c.json({ error: "not_found" }, 404);
+    const route = ROUTES.find((r) => r.method === method && r.path.test(path));
+    if (!route) return c.json({ error: "not_found" }, 404);
 
-    // The session cookie is SameSite=None, so a page on any site can make the browser send it with a POST or DELETE. Reads are
+    // The session cookie is SameSite=None, so a page on any site can make the browser send it with a POST, PUT or DELETE. Reads are
     // harmless (the answer is unreadable cross-site without CORS), but a state change must come from one of our own web apps:
     // its Origin must be in the allowlist. A browser always sends Origin on these methods; no Origin is not a browser of ours.
     if (method !== "GET") {
@@ -77,23 +92,21 @@ export function registerFitProxy(app: Hono, deps: Deps) {
     // Built from scratch, never copied from the request: hop-by-hop headers (connection, transfer-encoding, upgrade, host, ...)
     // and everything else the browser sent stay behind. Only what the JoyoFit API reads is set.
     const headers = new Headers({ cookie, accept: "application/json, application/octet-stream" });
-    if (method === "POST") {
-      // A stream needs its size up front (the JoyoFit API streams to R2), and an oversized one must not be forwarded at all.
+    if (route.body !== "none") {
+      const kind = route.body === "octet" ? "application/octet-stream" : "application/json";
+      const max = route.body === "octet" ? MAX_UPLOAD_BYTES : MAX_STUDIO_BODY_BYTES;
+      // A body needs its size up front (the JoyoFit API streams or bounds it), and an oversized one must not be forwarded at all.
       const declared = c.req.header("content-length");
       const length = declared === undefined ? NaN : Number(declared);
       if (!Number.isInteger(length) || length < 0)
         return c.json({ error: "content_length_required" }, 411);
-      if (length > MAX_UPLOAD_BYTES)
-        return c.json({ error: "too_large", maxBytes: MAX_UPLOAD_BYTES }, 413);
+      if (length > max) return c.json({ error: "too_large", maxBytes: max }, 413);
       // Not a type a plain cross-site form can send: it makes the browser preflight first, which only our origins pass.
-      if (
-        c.req.header("content-type")?.split(";")[0]?.trim().toLowerCase() !==
-        "application/octet-stream"
-      ) {
+      if (c.req.header("content-type")?.split(";")[0]?.trim().toLowerCase() !== kind) {
         return c.json({ error: "unsupported_media_type" }, 415);
       }
       headers.set("content-length", String(length));
-      headers.set("content-type", "application/octet-stream");
+      headers.set("content-type", kind);
     }
 
     const target = `${deps.baseUrl()}/v1/${path}${new URL(c.req.url).search}`;
@@ -102,7 +115,7 @@ export function registerFitProxy(app: Hono, deps: Deps) {
       upstream = await (deps.fetch ?? fetch)(target, {
         method,
         headers,
-        body: method === "POST" ? c.req.raw.body : undefined,
+        body: route.body === "none" ? undefined : c.req.raw.body,
         // @ts-expect-error `duplex` is required by the Workers runtime to stream a request body; lib.dom's RequestInit omits it.
         duplex: "half",
       });

@@ -24,6 +24,15 @@ Filters and the range live in the URL (`?range=90&sport=["run"]&sort=distance&di
 
 The sidebar (and the settings sheet below `lg`) has a "Studio" entry, a plain `<a href="/studio/">` to the JoyoFit Studio app mounted on this same origin by a Worker route. It is outside the Pro gate, like Ride. URL: `src/lib/ride.ts`.
 
+### Studio projects (cloud)
+
+JoyoFit Studio (`/studio/`, repo `watch-fit` `web/`) can keep its `.project.json` documents in the account ("save to db"). They live in **joyofit-api**: D1 table `studio_projects` (migration `0011_studio_projects.sql`) for the metadata (name, `rev`, size, thumbnail), the document itself in R2 `IMPORTS` under `studio/<userId>/<id>/<uuid>` (a fresh object per saved version). Studio reaches it only through the proxy below (`/api/fit/studio/projects[/<id>]`).
+
+- **Pro rule:** writes (`POST`, `PUT`) are Pro only (`402 founder_required`, `paywall: true`). Listing, opening and deleting are open to any signed-in account, so a lapsed Pro keeps access to, and can download or delete, everything already saved.
+- **Limits:** a project document is at most 5 MiB (the whole request body; `413 too_large`), 100 projects per account (`409 library_full`), names 1 to 80 characters, thumbnail a PNG, JPEG or WebP data URL of at most 16 KiB. The proxy refuses a body over 5 MiB + 64 KiB (`413`) before forwarding it; the JoyoFit API enforces the exact 5 MiB itself.
+- **Saving is optimistic:** `PUT` carries the `rev` the client last saw; a stale one is `409 rev_conflict` with the current `rev` and nothing is changed. Bodies are `application/json` with a `Content-Length` (`415` / `411` otherwise).
+- Account wipe (`deleteUserData`) removes the rows and the `studio/<userId>/` objects.
+
 ### Ride (game)
 
 `/ride` is a public route outside the `_auth` guard (no sign-in or Pro needed): it calls `window.location.replace` to `https://fit.joyorogo.com/ride`, the full-screen ride game built in the watch-fit repo. The sidebar has a "Ride" link (icon + short description) to the same URL; below `lg` the tab bar is full, so the link sits at the top of the settings sheet. Target URL: `src/lib/ride.ts`.
@@ -54,8 +63,10 @@ The session cookie is host-only on `api.joyorogo.com` (`sameSite: none`, no `Dom
 | `GET /api/fit/sleep?from&to` | `GET /v1/sleep` |
 | `GET /api/fit/watchfaces`, `POST /api/fit/watchfaces?filename=` | `GET`, `POST /v1/watchfaces` |
 | `GET /api/fit/watchfaces/<id>/file`, `DELETE /api/fit/watchfaces/<id>` | the same under `/v1/watchfaces/<id>` |
+| `GET`, `POST /api/fit/studio/projects` | `GET`, `POST /v1/studio/projects` (JSON body) |
+| `GET`, `PUT`, `DELETE /api/fit/studio/projects/<id>` | the same under `/v1/studio/projects/<id>` (`PUT` has a JSON body) |
 
-Not an open relay: any other path or method is `404` and nothing is forwarded; no session is `401`; a `POST` or `DELETE` must carry an `Origin` that is in the server's `CORS_ORIGIN` list or it is `403 forbidden_origin` (the session cookie is `SameSite=None`, so without this a page on any site could make a visitor's browser upload into or delete from their library), and an upload must be `Content-Type: application/octet-stream` (`415` otherwise: a plain cross-site form cannot send that type, so a browser has to preflight it first, which only our origins pass); request headers are built from scratch (only the session cookies, `Accept`, and for an upload `Content-Type` and `Content-Length`, so hop-by-hop headers, `Host`, `Origin` and foreign cookies never travel); an upload without `Content-Length` is `411` and over 8 MiB `413` before one byte is sent on; only `Content-Type`, `Content-Length`, `Content-Disposition` and `Cache-Control` come back, and the status is passed through (`402 founder_required` is what makes the Pro wall appear); an unreachable joyofit-api is `502 fit_api_unreachable`. The target is the var `JOYOFIT_API_URL` (default `https://api.fit.joyorogo.com`; `http://localhost:3004` locally).
+Not an open relay: any other path or method is `404` and nothing is forwarded; no session is `401`; a `POST`, `PUT` or `DELETE` must carry an `Origin` that is in the server's `CORS_ORIGIN` list or it is `403 forbidden_origin` (the session cookie is `SameSite=None`, so without this a page on any site could make a visitor's browser upload into, change or delete from their library), and a body must have the one content type its route takes: `application/octet-stream` for a watch face upload, `application/json` for a Studio project (`415` otherwise: a plain cross-site form cannot send either type, so a browser has to preflight it first, which only our origins pass); request headers are built from scratch (only the session cookies, `Accept`, and for a body `Content-Type` and `Content-Length`, so hop-by-hop headers, `Host`, `Origin` and foreign cookies never travel); a body without `Content-Length` is `411`, over 8 MiB (watch face) or 5 MiB + 64 KiB (Studio project, the JoyoFit API enforces the exact 5 MiB itself) `413` before one byte is sent on; only `Content-Type`, `Content-Length`, `Content-Disposition` and `Cache-Control` come back, and the status is passed through (`402 founder_required` is what makes the Pro wall appear, `409 rev_conflict` is a Studio save on a stale revision); an unreachable joyofit-api is `502 fit_api_unreachable`. The target is the var `JOYOFIT_API_URL` (default `https://api.fit.joyorogo.com`; `http://localhost:3004` locally).
 
 ## API
 
@@ -120,11 +131,11 @@ Two Cloudflare accounts: the JoyoRogo API (`apps/server`) deploys with `CLOUDFLA
 1. **JoyoFit cloud API** (repo `watch-fit`, `server/`), first, because the proxy forwards to it and a missing route would answer 404:
    ```bash
    cd watch-fit/server
-   bun run db:migrate:remote     # migration 0010_web_watchfaces (a new table: safe before the code)
-   bunx wrangler deploy          # /v1/sleep and /v1/watchfaces; nothing existing changes
+   bun run db:migrate:remote     # migrations 0010_web_watchfaces and 0011_studio_projects (new tables: safe before the code)
+   bunx wrangler deploy          # /v1/sleep, /v1/watchfaces and /v1/studio/projects; nothing existing changes
    ```
    This account is `b7e6f8457bd39fa37a7eea5249799754` in that repo's `wrangler.jsonc`; deploy it the way the JoyoFit API is normally deployed.
-2. **JoyoRogo API** (`apps/server`): the `/api/fit/*` proxy, `JOYOFIT_API_URL`, CORS methods `PUT`/`DELETE`, the `fitWeb` procedures. Put `https://app.fit.joyorogo.com` in the `CORS_ORIGIN` line of `apps/server/.env` too (`scripts/deploy.sh` rewrites the var from it), then `scripts/deploy.sh` or `cd apps/server && bunx wrangler deploy`.
+2. **JoyoRogo API** (`apps/server`): the `/api/fit/*` proxy (watch faces and Studio projects), `JOYOFIT_API_URL`, CORS methods `PUT`/`DELETE`, the `fitWeb` procedures. Put `https://app.fit.joyorogo.com` in the `CORS_ORIGIN` line of `apps/server/.env` too (`scripts/deploy.sh` rewrites the var from it), then `scripts/deploy.sh` or `cd apps/server && bunx wrangler deploy`. Until it is out, JoyoFit Studio's cloud projects get `404` from the proxy.
 3. **JoyoFit web app**:
    ```bash
    scripts/deploy-fit.sh
@@ -132,6 +143,7 @@ Two Cloudflare accounts: the JoyoRogo API (`apps/server`) deploys with `CLOUDFLA
    ```
    `apps/fit/wrangler.jsonc` is assets only (`dist`, SPA fallback, no script) with the custom domain `app.fit.joyorogo.com` (`workers_dev` is off: a `workers.dev` origin would not pass CORS).
 4. **JoyoFit phone app** ("Dari web" in Watchfaces, JS only): the usual OTA (`scripts/ota.sh "message"` in `watch-fit`; no native change, no runtime version bump). Until it is out the library works on the web and the phone ignores it.
+5. **JoyoFit Studio** (repo `watch-fit`, `web/`, served at `/studio/`), last: its cloud projects call `/api/fit/studio/projects`, which exists only after steps 1 and 2. Order for the Studio feature: joyofit-api (migrate, then deploy) -> JoyoRogo server -> Studio.
 
 A step can go out alone: the web app without the JoyoFit API shows an error card with a retry on the stage and watch face parts only; the phone section is independent.
 

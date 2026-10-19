@@ -280,11 +280,170 @@ describe("fit proxy", () => {
       ["GET", "/api/fit/watchfaces/../imports"],
       ["GET", "/api/fit/watchfaces/abc"],
       ["GET", "/api/fit/"],
+      ["PUT", "/api/fit/watchfaces/a1b2c3d4-0000"],
+      ["PUT", "/api/fit/studio/projects"],
+      ["DELETE", "/api/fit/studio/projects"],
+      ["GET", "/api/fit/studio/projects/x"],
+      ["GET", "/api/fit/studio/projects/a1b2c3d4-0000/file"],
+      ["POST", "/api/fit/studio/projects/a1b2c3d4-0000"],
+      ["PATCH", "/api/fit/studio/projects/a1b2c3d4-0000"],
+      ["GET", "/api/fit/studio"],
     ] as const) {
       const res = await app.request(path, { method, headers });
       expect(res.status).toBe(404);
     }
     expect(calls).toHaveLength(0);
+  });
+
+  describe("studio projects", () => {
+    const ID = "a1b2c3d4-0000";
+    const JSON_FROM_APP = { origin: APP_ORIGIN, "content-type": "application/json" };
+
+    test("every route is forwarded to /v1/studio/projects with method, query and body intact", async () => {
+      const { app, calls } = setup(() => Response.json({ ok: true }));
+      const doc = JSON.stringify({ format: "joyofit-studio-project", project: { version: 1 } });
+      const len = String(new TextEncoder().encode(doc).length);
+
+      await app.request("/api/fit/studio/projects?x=1", { headers: { cookie: GOOD } });
+      await app.request("/api/fit/studio/projects", {
+        method: "POST",
+        headers: { cookie: GOOD, ...JSON_FROM_APP, "content-length": len },
+        body: doc,
+      });
+      await app.request(`/api/fit/studio/projects/${ID}`, { headers: { cookie: GOOD } });
+      await app.request(`/api/fit/studio/projects/${ID}?y=2`, {
+        method: "PUT",
+        headers: { cookie: GOOD, ...JSON_FROM_APP, "content-length": len },
+        body: doc,
+      });
+      await app.request(`/api/fit/studio/projects/${ID}`, {
+        method: "DELETE",
+        headers: { cookie: GOOD, origin: APP_ORIGIN },
+      });
+
+      expect(calls.map((c) => [c.method, c.url])).toEqual([
+        ["GET", "https://fit.test/v1/studio/projects?x=1"],
+        ["POST", "https://fit.test/v1/studio/projects"],
+        ["GET", `https://fit.test/v1/studio/projects/${ID}`],
+        ["PUT", `https://fit.test/v1/studio/projects/${ID}?y=2`],
+        ["DELETE", `https://fit.test/v1/studio/projects/${ID}`],
+      ]);
+      expect(calls[1]?.body).toBe(doc);
+      expect(calls[3]?.body).toBe(doc);
+      for (const i of [1, 3]) {
+        expect(calls[i]?.headers.get("content-type")).toBe("application/json");
+        expect(calls[i]?.headers.get("content-length")).toBe(len);
+      }
+      expect(calls[0]?.headers.get("cookie")).toBe(
+        "better-auth.session_token=good; better-auth.session_data=abc",
+      );
+      expect(calls[4]?.body).toBe("");
+    });
+
+    test("POST, PUT and DELETE need an Origin of ours: another or none is 403 and goes nowhere", async () => {
+      const { app, calls } = setup(() => Response.json({}));
+      for (const [method, path] of [
+        ["POST", "/api/fit/studio/projects"],
+        ["PUT", `/api/fit/studio/projects/${ID}`],
+        ["DELETE", `/api/fit/studio/projects/${ID}`],
+      ] as const) {
+        for (const origin of ["https://evil.test", undefined]) {
+          const headers: Record<string, string> = {
+            cookie: GOOD,
+            "content-type": "application/json",
+            "content-length": "2",
+          };
+          if (origin) headers.origin = origin;
+          const res = await app.request(path, { method, headers, body: "{}" });
+          expect(res.status).toBe(403);
+          expect(await res.json()).toEqual({ error: "forbidden_origin" });
+        }
+      }
+      expect(calls).toHaveLength(0);
+    });
+
+    test("no session is 401 and nothing is forwarded", async () => {
+      const { app, calls } = setup(() => Response.json({}));
+      expect((await app.request("/api/fit/studio/projects")).status).toBe(401);
+      const put = await app.request(`/api/fit/studio/projects/${ID}`, {
+        method: "PUT",
+        headers: { ...JSON_FROM_APP, "content-length": "2" },
+        body: "{}",
+      });
+      expect(put.status).toBe(401);
+      expect(calls).toHaveLength(0);
+    });
+
+    test("a JSON body needs a length (411), at most 5 MiB + 64 KiB (413) and application/json (415)", async () => {
+      const { app, calls } = setup(() => Response.json({}, { status: 201 }));
+      const base = { cookie: GOOD, ...JSON_FROM_APP };
+      const noLength = await app.request("/api/fit/studio/projects", {
+        method: "POST",
+        headers: { ...base, "transfer-encoding": "chunked" },
+      });
+      expect(noLength.status).toBe(411);
+      const max = 5 * 1024 * 1024 + 64 * 1024;
+      const big = await app.request(`/api/fit/studio/projects/${ID}`, {
+        method: "PUT",
+        headers: { ...base, "content-length": String(max + 1) },
+        body: "x",
+      });
+      expect(big.status).toBe(413);
+      expect(await big.json()).toEqual({ error: "too_large", maxBytes: max });
+      for (const type of ["text/plain", "application/octet-stream", "multipart/form-data; boundary=x", ""]) {
+        const headers: Record<string, string> = { ...base, "content-length": "2" };
+        delete headers["content-type"];
+        if (type) headers["content-type"] = type;
+        const res = await app.request("/api/fit/studio/projects", {
+          method: "POST",
+          headers,
+          body: "{}",
+        });
+        expect(res.status).toBe(415);
+      }
+      expect(calls).toHaveLength(0);
+      const atCap = await app.request("/api/fit/studio/projects", {
+        method: "POST",
+        headers: { ...base, "content-type": "Application/JSON; charset=utf-8", "content-length": "2" },
+        body: "{}",
+      });
+      expect(atCap.status).toBe(201);
+      expect(calls[0]?.headers.get("content-type")).toBe("application/json");
+    });
+
+    test("the kinds do not mix: JSON is refused for a watch face upload", async () => {
+      const { app, calls } = setup(() => Response.json({}, { status: 201 }));
+      const res = await app.request("/api/fit/watchfaces", {
+        method: "POST",
+        headers: { cookie: GOOD, ...JSON_FROM_APP, "content-length": "2" },
+        body: "{}",
+      });
+      expect(res.status).toBe(415);
+      expect(calls).toHaveLength(0);
+    });
+
+    test("the other API's 409, 402 and 413 answers and cache-control pass through", async () => {
+      const answers = [
+        Response.json({ error: "rev_conflict", rev: 4, updatedAt: 9 }, { status: 409 }),
+        Response.json({ error: "founder_required", paywall: true }, { status: 402 }),
+        Response.json({ error: "too_large", maxBytes: 5242880 }, { status: 413 }),
+        Response.json({ id: ID }, { headers: { "cache-control": "private, no-store" } }),
+      ];
+      const { app } = setup(() => answers.shift() as Response);
+      const put = () =>
+        app.request(`/api/fit/studio/projects/${ID}`, {
+          method: "PUT",
+          headers: { cookie: GOOD, ...JSON_FROM_APP, "content-length": "2" },
+          body: "{}",
+        });
+      const conflict = await put();
+      expect(conflict.status).toBe(409);
+      expect(await conflict.json()).toEqual({ error: "rev_conflict", rev: 4, updatedAt: 9 });
+      expect((await put()).status).toBe(402);
+      expect((await put()).status).toBe(413);
+      const got = await app.request(`/api/fit/studio/projects/${ID}`, { headers: { cookie: GOOD } });
+      expect(got.headers.get("cache-control")).toBe("private, no-store");
+    });
   });
 
   test("an unreachable JoyoFit API is a 502, not a hang or a leak", async () => {
