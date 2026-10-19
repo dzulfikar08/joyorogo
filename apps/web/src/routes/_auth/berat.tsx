@@ -1268,13 +1268,22 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                     <ListRow
                       key={entry.id}
                       title={dayLabel(entry.date)}
-                      subtitle={
+                      subtitle={[
                         delta === null
                           ? t("history.first")
                           : delta !== 0
                             ? t("history.delta", { delta: signed(delta) })
-                            : t("history.same")
-                      }
+                            : t("history.same"),
+                        entry.bodyFatPct != null
+                          ? t("history.bodyFat", { pct: fmtKg(entry.bodyFatPct) })
+                          : null,
+                        entry.musclePct != null
+                          ? t("history.bodyMuscle", { pct: fmtKg(entry.musclePct) })
+                          : null,
+                        entry.source === "scale" ? t("history.scale") : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                       value={`${fmtKg(entry.weightKg)} kg`}
                     />
                   );

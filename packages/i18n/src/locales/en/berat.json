@@ -124,6 +124,9 @@
     "same": "same"
   },
   "history": {
+    "scale": "from scale",
+    "bodyFat": "Fat {{pct}}%",
+    "bodyMuscle": "Muscle {{pct}}%",
     "title": "History",
     "first": "first entry",
     "same": "same as previous",

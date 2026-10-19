@@ -110,6 +110,15 @@ export const weightLog = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     date: text("date").notNull(),
     weightKg: real("weight_kg").notNull(),
+    /** Body composition from a Bluetooth scale weigh-in (JoyoFit); all null for manual entries. */
+    bodyFatPct: real("body_fat_pct"),
+    musclePct: real("muscle_pct"),
+    waterPct: real("water_pct"),
+    boneKg: real("bone_kg"),
+    visceralFat: real("visceral_fat"),
+    bmrKcal: real("bmr_kcal"),
+    proteinPct: real("protein_pct"),
+    source: text("source", { enum: ["manual", "scale"] }).notNull().default("manual"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),

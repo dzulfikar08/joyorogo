@@ -1238,9 +1238,20 @@ export default function Berat() {
                     title={entry.date === today ? t("common:date.today") : fmtDateMedium(entry.date)}
                     value={`${fmtKg(entry.weightKg)} kg`}
                     subtitle={
-                      delta !== null && Math.abs(delta) >= 0.05
-                        ? t("history.delta", { delta: signed(delta) })
-                        : undefined
+                      [
+                        delta !== null && Math.abs(delta) >= 0.05
+                          ? t("history.delta", { delta: signed(delta) })
+                          : null,
+                        entry.bodyFatPct != null
+                          ? t("history.bodyFat", { pct: fmtKg(entry.bodyFatPct) })
+                          : null,
+                        entry.musclePct != null
+                          ? t("history.bodyMuscle", { pct: fmtKg(entry.musclePct) })
+                          : null,
+                        entry.source === "scale" ? t("history.scale") : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || undefined
                     }
                   />
                 );

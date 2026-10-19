@@ -16,20 +16,35 @@ export const weightRouter = {
       z.object({
         weightKg: z.number().min(25).max(400),
         date: dateSchema.optional(),
+        bodyFatPct: z.number().min(2).max(75).nullish(),
+        musclePct: z.number().min(5).max(80).nullish(),
+        waterPct: z.number().min(20).max(85).nullish(),
+        boneKg: z.number().min(0.5).max(8).nullish(),
+        visceralFat: z.number().min(1).max(60).nullish(),
+        bmrKcal: z.number().min(500).max(5000).nullish(),
+        proteinPct: z.number().min(2).max(40).nullish(),
+        source: z.enum(["manual", "scale"]).default("manual"),
       }),
     )
     .handler(async ({ context, input }) => {
+      const { weightKg, date, source, ...body } = input;
+      // Only the body fields actually sent are written; a manual re-entry on the same day leaves
+      // earlier scale composition (and its source) untouched and only updates the weight.
+      const given = Object.fromEntries(Object.entries(body).filter(([, v]) => v !== undefined && v !== null));
+      const hasBody = Object.keys(given).length > 0;
       const [row] = await context.db
         .insert(weightLog)
         .values({
           id: crypto.randomUUID(),
           userId: context.session.user.id,
-          date: input.date ?? jakartaToday(),
-          weightKg: input.weightKg,
+          date: date ?? jakartaToday(),
+          weightKg,
+          ...given,
+          source: hasBody ? source : "manual",
         })
         .onConflictDoUpdate({
           target: [weightLog.userId, weightLog.date],
-          set: { weightKg: input.weightKg },
+          set: { weightKg, ...given, ...(hasBody ? { source } : {}) },
         })
         .returning();
       return row;

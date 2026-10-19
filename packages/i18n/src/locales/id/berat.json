@@ -120,6 +120,9 @@
     "same": "sama"
   },
   "history": {
+    "scale": "dari timbangan",
+    "bodyFat": "Lemak {{pct}}%",
+    "bodyMuscle": "Otot {{pct}}%",
     "title": "Riwayat",
     "first": "catatan pertama",
     "same": "sama seperti sebelumnya",
