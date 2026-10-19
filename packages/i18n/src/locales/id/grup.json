@@ -235,12 +235,6 @@
       "pokeLimit": "Colek lagi satu jam lagi, ya.",
       "noteEmpty": "Catatan tidak boleh kosong.",
       "noteQuota": "Kuota catatan hari ini habis."
-    },
-    "push": {
-      "friend": "Teman",
-      "pokeTitle": "{{name}} mencolekmu",
-      "noteTitle": "Catatan dari {{name}}",
-      "defaultBody": "Semangat catat kalorinya hari ini!"
     }
   },
   "confirm": {

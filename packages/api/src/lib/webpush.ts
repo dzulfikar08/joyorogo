@@ -244,15 +244,18 @@ export async function vapidAuthorization(
 
 export type PushResult = { ok: boolean; status: number };
 
+/** What the service worker (apps/web/public/sw.js) reads: `url` is opened on a tap, `tag` replaces an older one. */
+export type WebPushPayload = { title: string; body: string; url?: string; tag?: string; data?: unknown };
+
 /**
  * Delivers one encrypted notification. `status` 404/410 means the browser
  * threw the subscription away — callers delete the stored row then. Any
- * other failure just counts as skipped; the next cron tick retries.
+ * other failure is the caller's to classify (lib/notify.ts retries 0, 429 and 5xx).
  */
 export async function sendPush(
   env: VapidEnv,
   subscription: PushSubscriptionLike,
-  payload: { title: string; body: string },
+  payload: WebPushPayload,
 ): Promise<PushResult> {
   if (!vapidConfigured(env)) return { ok: false, status: 0 };
   try {

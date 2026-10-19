@@ -20,5 +20,95 @@
       "camilan": "Snack",
       "terakhir": "Last meal"
     }
+  },
+  "notify": {
+    "test": {
+      "title": "Test notification",
+      "body": "If you can read this, JoyoRogo notifications are working."
+    },
+    "social": {
+      "kudos": {
+        "title": "{{name}} cheered you on"
+      },
+      "comment": {
+        "title": "{{name}} commented",
+        "attachment": "Sent an attachment"
+      },
+      "reply": {
+        "title": "{{name}} replied to your comment"
+      },
+      "follow": {
+        "title": "{{name}} started following you",
+        "body": "Take a look at their profile."
+      },
+      "post": {
+        "title": "{{name}} shared a new post"
+      }
+    },
+    "group": {
+      "poke": {
+        "title": "{{name}} poked you",
+        "body": "Keep logging your calories today!"
+      },
+      "note": {
+        "title": "Note from {{name}}"
+      },
+      "challengeNew": {
+        "title": "New challenge in {{group}}"
+      },
+      "challengeJoin": {
+        "title": "{{name}} joined your challenge"
+      },
+      "challengeEnd": {
+        "title": "Challenge finished",
+        "body": "{{title}}: see who won."
+      },
+      "memberJoin": {
+        "title": "{{name}} joined {{group}}",
+        "body": "Say hi to the new member."
+      }
+    },
+    "meal": {
+      "noon": {
+        "title": "No food logged yet",
+        "body": "Lunchtime has passed. Log what you ate, one photo is enough."
+      },
+      "evening": {
+        "title": "No meals logged today",
+        "body": "Log now to keep your target accurate."
+      },
+      "streak": {
+        "title": "Your {{n}}-day streak could break",
+        "body": "Log one meal or weigh-in before midnight."
+      }
+    },
+    "weigh": {
+      "title": "{{n}} days since your last weigh-in",
+      "body": "Step on the scale to keep your weight trend accurate."
+    },
+    "recap": {
+      "weekly": {
+        "title": "Last week's recap is ready",
+        "body": "See your food, workouts, and weight summary."
+      },
+      "calibration": {
+        "title": "Your food target was adjusted",
+        "body": "Now {{toKcal}} kcal a day, was {{fromKcal}} kcal."
+      },
+      "plan": {
+        "title": "This week's menu is ready",
+        "body": "Your meal plan is waiting in Rencana makan."
+      }
+    },
+    "digest": {
+      "social": {
+        "title": "{{n}} more social notifications",
+        "body": "Kudos, comments, and new posts today."
+      },
+      "group": {
+        "title": "{{n}} more pokes and notes",
+        "body": "Open the group inbox to see them."
+      }
+    }
   }
 }

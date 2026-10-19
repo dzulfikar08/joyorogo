@@ -20,5 +20,95 @@
       "camilan": "Camilan",
       "terakhir": "Makan terakhir"
     }
+  },
+  "notify": {
+    "test": {
+      "title": "Notifikasi uji",
+      "body": "Kalau kamu membaca ini, notifikasi JoyoRogo sudah jalan."
+    },
+    "social": {
+      "kudos": {
+        "title": "{{name}} kasih semangat"
+      },
+      "comment": {
+        "title": "{{name}} berkomentar",
+        "attachment": "Mengirim lampiran"
+      },
+      "reply": {
+        "title": "{{name}} membalas komentarmu"
+      },
+      "follow": {
+        "title": "{{name}} mulai mengikutimu",
+        "body": "Lihat profilnya."
+      },
+      "post": {
+        "title": "{{name}} membagikan postingan baru"
+      }
+    },
+    "group": {
+      "poke": {
+        "title": "{{name}} mencolekmu",
+        "body": "Semangat catat kalorinya hari ini!"
+      },
+      "note": {
+        "title": "Catatan dari {{name}}"
+      },
+      "challengeNew": {
+        "title": "Tantangan baru di {{group}}"
+      },
+      "challengeJoin": {
+        "title": "{{name}} ikut tantanganmu"
+      },
+      "challengeEnd": {
+        "title": "Tantangan selesai",
+        "body": "{{title}}: lihat siapa yang menang."
+      },
+      "memberJoin": {
+        "title": "{{name}} bergabung ke {{group}}",
+        "body": "Sapa anggota baru."
+      }
+    },
+    "meal": {
+      "noon": {
+        "title": "Belum ada makanan tercatat",
+        "body": "Sudah lewat jam makan siang. Catat yang kamu makan, satu foto cukup."
+      },
+      "evening": {
+        "title": "Hari ini belum ada catatan makan",
+        "body": "Catat sekarang biar targetmu tetap akurat."
+      },
+      "streak": {
+        "title": "Streak {{n}} hari bisa putus",
+        "body": "Catat satu makanan atau timbangan sebelum tengah malam."
+      }
+    },
+    "weigh": {
+      "title": "Sudah {{n}} hari belum timbang",
+      "body": "Timbang sebentar biar tren beratmu tetap akurat."
+    },
+    "recap": {
+      "weekly": {
+        "title": "Rekap minggu lalu sudah siap",
+        "body": "Lihat ringkasan makan, olahraga, dan beratmu."
+      },
+      "calibration": {
+        "title": "Target makanmu disesuaikan",
+        "body": "Sekarang {{toKcal}} kcal per hari, sebelumnya {{fromKcal}} kcal."
+      },
+      "plan": {
+        "title": "Menu minggu ini sudah siap",
+        "body": "Rencana makanmu ada di Rencana makan."
+      }
+    },
+    "digest": {
+      "social": {
+        "title": "{{n}} notifikasi sosial lainnya",
+        "body": "Kudos, komentar, dan postingan baru hari ini."
+      },
+      "group": {
+        "title": "{{n}} colekan dan catatan lainnya",
+        "body": "Buka kotak masuk grup untuk melihatnya."
+      }
+    }
   }
 }

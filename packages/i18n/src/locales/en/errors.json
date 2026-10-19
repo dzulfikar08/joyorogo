@@ -77,5 +77,8 @@
       "notFound": "Favorite not found",
       "empty": "This favorite is empty"
     }
+  },
+  "push": {
+    "badToken": "Invalid notification token."
   }
 }

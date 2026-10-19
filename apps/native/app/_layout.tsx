@@ -31,6 +31,8 @@ import { authClient } from "@/lib/auth-client";
 import { LocaleSync } from "@/components/locale-sync";
 import { PrefsSync } from "@/components/prefs-sync";
 import { ReminderSync } from "@/components/reminders/reminder-sync";
+import { PushSync } from "@/components/push/push-sync";
+import { PushTapHandler } from "@/components/push/push-tap-handler";
 import { ToastProvider } from "@/components/toast";
 import { UpdateBanner } from "@/components/update-banner";
 import { UpdateGate } from "@/components/update-gate";
@@ -123,6 +125,8 @@ export default function RootLayout() {
           <LocaleSync />
           <PrefsSync />
           <ReminderSync />
+          <PushSync />
+          <PushTapHandler />
           {/* Android only: Play in-app update or sideload APK update. */}
           <UpdateBanner />
           {/* Cold-start OTA refresh, minimum-build block screen, iOS new-version banner (docs/force-update.md). */}

@@ -182,7 +182,8 @@ Pemilik server yang menentukan. Tanpa konfigurasi, semua fitur gratis tanpa bata
 | `APPLE_SANDBOX_EMAILS`                                   | Email (pisah koma) yang boleh memakai pembelian sandbox/TestFlight: akunmu dan akun demo App Review. Production selalu diterima.                                            | kosong |
 | `REVIEW_LOGIN_EMAILS`                                    | Email (pisah koma) yang boleh masuk dengan email + kata sandi: akun reviewer Google Play/App Store. Daftar tidak pernah membuka pendaftaran lewat email. Akun dibuat dengan `bun packages/auth/scripts/review-login.ts` (Pro gratis, sandi acak disimpan di `~/.config/joyorogo/review-login.txt`). Kosong = masuk dengan email mati. | kosong |
 | `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`               | Impor olahraga dari Strava. Di JoyoRogo Cloud aplikasi Strava-nya dipakai bersama JoyoFit ([docs/strava.md](docs/strava.md)). | kosong |
-| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push untuk pengingat puasa intermiten di web (cron tiap 5 menit). Kosong = pengingat web mati.                                                                          | kosong |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push: pengingat puasa intermiten dan semua notifikasi (sosial, grup, pengingat) di browser, lihat [docs/push.md](docs/push.md) (cron tiap 5 menit). Kosong = notifikasi web mati.                                                                          | kosong |
+| `EXPO_ACCESS_TOKEN` | Opsional: token akses Expo untuk push ke HP (JoyoRogo dan JoyoFit), hanya perlu kalau "enhanced push security" menyala di proyek EAS. | kosong |
 
 Pro bisa dibayar bulanan atau tahunan. Sebelum checkout, pembeli di Indonesia
 memilih **QRIS** (Pakasir) atau **Transfer Bank** (DOKU); tombol hanya muncul
@@ -341,6 +342,7 @@ Catatan desain dan runbook ada di `docs/`:
 | Konektor AI (Claude, ChatGPT) | [mcp-connector.md](docs/mcp-connector.md) |
 | JoyoFit: coach, latihan beban, sinkron cloud, Strava | [coach.md](docs/coach.md), [strength-moved.md](docs/strength-moved.md), [watch-workout-cloud.md](docs/watch-workout-cloud.md), [strava.md](docs/strava.md) |
 | Scan makanan: akurasi, barcode | [ai-accuracy-review-2026-10-17.md](docs/ai-accuracy-review-2026-10-17.md), [ai-accuracy-log.md](docs/ai-accuracy-log.md), [accuracy-digest.md](docs/accuracy-digest.md), [ai-clef-probe.md](docs/ai-clef-probe.md), [barcode-sources.md](docs/barcode-sources.md), [barcode-community.md](docs/barcode-community.md) |
+| Notifikasi push (web, HP, JoyoFit): jalur, jam tenang, batas harian, pengingat | [push.md](docs/push.md) |
 | Berbagi dan stiker | [story-sharing.md](docs/story-sharing.md), [sticker-studio.md](docs/sticker-studio.md) |
 | Rilis: CI, OTA, iOS, pembaruan dalam aplikasi | [ci-release.md](docs/ci-release.md), [ota.md](docs/ota.md), [ios-mac.md](docs/ios-mac.md), [in-app-updates.md](docs/in-app-updates.md) |
 | Bahasa, merek, email, UTM | [i18n.md](docs/i18n.md), [brand-marks.md](docs/brand-marks.md), [broadcast-email.md](docs/broadcast-email.md), [utm.md](docs/utm.md), [marketing/marketing-plan.md](docs/marketing/marketing-plan.md) |

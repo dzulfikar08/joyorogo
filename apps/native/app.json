@@ -33,6 +33,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.joyodigitama.joyorogo",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.health.READ_EXERCISE",
         "android.permission.health.READ_SLEEP",

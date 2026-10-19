@@ -18,6 +18,7 @@ import { buildPlan, gainedKg, planQueries } from "@joyorogo/api/lib/plan";
 import { budgetKcal } from "@joyorogo/api/lib/exercise-credit";
 import { loadDayCredit } from "@joyorogo/api/lib/exercise-credit-store";
 import { sendPush, vapidConfigured } from "@joyorogo/api/lib/webpush";
+import { runPushCron } from "@joyorogo/api/lib/push-cron";
 import { paywallConfig } from "@joyorogo/api/lib/tiers";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
@@ -701,6 +702,10 @@ app.get("/", (c) => {
   return c.text("OK");
 });
 
+// --- Push notifications (docs/push.md) ---------------------------------------
+// The same tick also runs runPushCron (lib/push-cron): server reminders, the outbox (quiet-hour queue, retries,
+// new-post fan-outs), the evening digest and Expo receipts.
+
 // --- Puasa intermiten: Web Push reminders ------------------------------------
 // Cron (*/5 * * * *): every subscribed device with fastingNotify on gets the
 // window-open / next-meal / 30-minutes-to-close nudge exactly once, deduped
@@ -825,6 +830,9 @@ export default {
   fetch: app.fetch,
   scheduled: (_controller: ScheduledController, _env2: unknown, ctx: ExecutionContext) => {
     ctx.waitUntil(runFastingReminders());
+    ctx.waitUntil(
+      runPushCron({ db: getDb(), env }).catch((error: unknown) => console.error("[push] cron failed", error)),
+    );
     ctx.waitUntil(billing.reconcilePending());
     ctx.waitUntil(billing.runEmails());
     ctx.waitUntil(runStravaRetention());

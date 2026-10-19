@@ -667,12 +667,6 @@
     "photoFailed": "Couldn't load the original photo."
   },
   "server": {
-    "push": {
-      "kudos": "{{name}} cheered you on",
-      "comment": "{{name}} commented",
-      "reply": "{{name}} replied to your comment",
-      "attachment": "Sent an attachment"
-    },
     "comment": {
       "deleted": "This comment was deleted."
     },

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
+  Bell,
   ChevronRight,
   Info,
   LogOut,
@@ -94,7 +95,7 @@ function SummaryCard({ ctx }: { ctx: ProfilCtx }) {
 
 /** Profil hub: summary card, grouped rows that open sub-screens, then Keluar and Hapus akun. */
 export function HubScreen({ ctx }: { ctx: ProfilCtx }) {
-  const { t, i18n: instance } = useTranslation(["settings", "koneksi"]);
+  const { t, i18n: instance } = useTranslation(["settings", "koneksi", "notifications"]);
   const { theme } = useTheme();
   const strava = useQuery(orpc.strava.status.queryOptions());
   const apps = useQuery(orpc.mcpConnection.list.queryOptions());
@@ -198,6 +199,17 @@ export function HubScreen({ ctx }: { ctx: ProfilCtx }) {
       </Group>
 
       <Group title={t("hub.groups.app")}>
+        <ListLinkRow
+          to="/profil/notifikasi"
+          icon={
+            <IconChip tone="bakar">
+              <Bell />
+            </IconChip>
+          }
+          title={t("notifications:title")}
+          subtitle={t("notifications:web.hubSubtitle")}
+          oneLineSubtitle
+        />
         <ListLinkRow
           to="/profil/tampilan"
           icon={

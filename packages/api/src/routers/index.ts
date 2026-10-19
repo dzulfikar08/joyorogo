@@ -20,6 +20,7 @@ import { mealPlanRouter } from "./meal-plan";
 import { plateRouter } from "./plate";
 import { placeRouter } from "./place";
 import { profileRouter } from "./profile";
+import { pushRouter } from "./push";
 import { privacyRouter } from "./privacy";
 import { savedFoodRouter } from "./saved-food";
 import { sleepRouter } from "./sleep";
@@ -76,6 +77,7 @@ export const appRouter = {
   sync: syncRouter,
   mcpConnection: mcpConnectionRouter,
   mealPlan: mealPlanRouter,
+  push: pushRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

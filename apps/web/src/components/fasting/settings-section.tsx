@@ -1,6 +1,5 @@
 import { Input } from "@joyorogo/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { QueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BellRing } from "lucide-react";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,6 +12,7 @@ import type { AppRouterClient } from "@joyorogo/api/routers/index";
 import { Card, Segmented } from "@/components/kit/surface";
 import { Switch } from "@/components/kit/switch";
 import { useOptimisticMutation } from "@/lib/optimistic";
+import { enableWebPush } from "@/lib/push";
 import { client, orpc } from "@/utils/orpc";
 
 type FastingSettings = {
@@ -21,81 +21,11 @@ type FastingSettings = {
   notify: boolean;
 };
 
-type PushSubscriptionInput = {
-  endpoint: string;
-  keys: { p256dh: string; auth: string };
-};
-
-/** PushManager.applicationServerKey accepts a base64url string, but
- * BufferSource is the portable form across browsers. */
-function base64UrlToUint8Array(value: string) {
-  const padded = value.replace(/-/g, "+").replace(/_/g, "/");
-  const pad = padded.length % 4 === 0 ? "" : "=".repeat(4 - (padded.length % 4));
-  const raw = atob(padded + pad);
-  const bytes = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-  return bytes;
-}
-
-/** Permission → /sw.js → VAPID subscribe → simpan ke server. */
-async function subscribeBrowser(
-  queryClient: QueryClient,
-  subscribePush: (input: PushSubscriptionInput) => Promise<unknown>,
-): Promise<boolean> {
-  try {
-    if (
-      !("Notification" in window) ||
-      !("serviceWorker" in navigator) ||
-      !("PushManager" in window)
-    ) {
-      toast.error(i18n.t("settings:fasting.error.unsupported"));
-      return false;
-    }
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      toast.error(i18n.t("settings:fasting.error.denied"));
-      return false;
-    }
-    const registration = await navigator.serviceWorker.register("/sw.js");
-    const { key } = await queryClient.fetchQuery(orpc.fasting.vapidPublicKey.queryOptions());
-    if (!key) {
-      toast.error(i18n.t("settings:fasting.error.serverNotReady"));
-      return false;
-    }
-    let subscription = await registration.pushManager.getSubscription();
-    subscription ??= await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: base64UrlToUint8Array(key),
-    });
-    const json = subscription.toJSON();
-    if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
-      toast.error(i18n.t("settings:fasting.error.noKeys"));
-      return false;
-    }
-    await subscribePush({
-      endpoint: json.endpoint,
-      keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
-    });
-    return true;
-  } catch {
-    toast.error(i18n.t("settings:fasting.error.failed"));
-    return false;
-  }
-}
-
-async function unsubscribeBrowser(
-  unsubscribePush: (input: { endpoint: string }) => Promise<unknown>,
-): Promise<void> {
-  try {
-    const registration = await navigator.serviceWorker.getRegistration();
-    const subscription = await registration?.pushManager.getSubscription();
-    if (!subscription) return;
-    const { endpoint } = subscription.toJSON();
-    await subscription.unsubscribe();
-    if (endpoint) await unsubscribePush({ endpoint });
-  } catch {
-    // Unsubscribe best-effort — server row dibiarkan sampai 404/410.
-  }
+/** Same toast copy as before the push module was shared. */
+async function subscribeBrowser(): Promise<boolean> {
+  const result = await enableWebPush();
+  if (!result.ok) toast.error(i18n.t(`settings:fasting.error.${result.reason}`));
+  return result.ok;
 }
 
 /**
@@ -135,12 +65,6 @@ export function FastingSettingsSection() {
       };
     },
   });
-  const subscribePush = useMutation(
-    orpc.fasting.subscribePush.mutationOptions({
-      onError: (error) => toast.error(error.message),
-    }),
-  );
-  const unsubscribePush = useMutation(orpc.fasting.unsubscribePush.mutationOptions());
 
   const data = settings.data;
   if (settings.isPending || !data) {
@@ -164,14 +88,11 @@ export function FastingSettingsSection() {
   };
 
   const toggleNotify = async (enabled: boolean) => {
-    if (enabled) {
-      const ok = await subscribeBrowser(queryClient, subscribePush.mutateAsync);
-      // Mirrors native: the switch only stays on when permission was granted.
-      change({ notify: ok });
-      return;
-    }
-    change({ notify: false });
-    await unsubscribeBrowser(unsubscribePush.mutateAsync);
+    // Mirrors native: the switch only stays on when permission was granted.
+    // Switching off keeps the browser subscribed: the same subscription now
+    // carries the other notification categories, and the server only sends
+    // fasting reminders while `notify` is on.
+    change({ notify: enabled ? await subscribeBrowser() : false });
   };
   const patternOptions: Array<{ value: FastingSettings["pattern"]; label: string }> = [
     { value: "off", label: t("fasting.pattern.off") },

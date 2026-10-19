@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { session, user } from "@joyorogo/db/schema/auth";
 import type { Database } from "@joyorogo/db";
-import type { Locale, TFunction } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
 import {
   aiUsage,
   dailyActivity,
@@ -19,7 +19,6 @@ import {
   waterLog,
   weightLog,
 } from "@joyorogo/db/schema/fitness";
-import { pushSubscription } from "@joyorogo/db/schema/plans";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 import { team, teamMember, teamNudge } from "@joyorogo/db/schema/social";
 
@@ -39,7 +38,7 @@ import {
   varVerdict,
 } from "../lib/group";
 import { leaveTeamChallenges } from "../lib/challenge-db";
-import { serverT, userLocale } from "../lib/messages";
+import { serverT } from "../lib/messages";
 import { loadPublicGroupPreview, previewAllowed } from "../lib/group-preview";
 import { requireAiQuota } from "../lib/quota";
 import { CALIBRATION_HISTORY_DAYS } from "../lib/calibration";
@@ -56,7 +55,8 @@ import { restoreVarVerdict, retryVarScan, varRetriesLeft } from "../lib/varretry
 import { analyzeVarPhotos } from "../lib/varscan";
 import type { VarVerdict } from "../lib/varscan";
 import { READINESS_LABELS } from "../lib/fitness-hint";
-import { sendPush } from "../lib/webpush";
+import { notifyInBackground } from "../lib/notify";
+import { pushNudge } from "../lib/social-push";
 
 const MAX_MEMBERS = 20;
 const MAX_GROUPS = 5;
@@ -90,39 +90,6 @@ async function requireMember(db: Database, groupId: string, userId: string, loca
   const row = await memberRow(db, groupId, userId);
   if (!row) throw new ORPCError("NOT_FOUND", { message: serverT(locale, "grup")("server.error.notFound") });
   return row;
-}
-
-/**
- * Fire-and-forget Web Push; dead endpoints (404/410) are deleted on the spot.
- * The text is written in the RECIPIENT's language, not the sender's.
- */
-function pushNudge(
-  context: {
-    db: Database;
-    env: { VAPID_PUBLIC_KEY?: string; VAPID_PRIVATE_KEY?: string; VAPID_SUBJECT?: string };
-    waitUntil: (promise: Promise<unknown>) => void;
-  },
-  toUserId: string,
-  payload: (t: TFunction<"grup">) => { title: string; body: string },
-) {
-  context.waitUntil(
-    (async () => {
-      const subs = await context.db
-        .select()
-        .from(pushSubscription)
-        .where(eq(pushSubscription.userId, toUserId));
-      if (subs.length === 0) return;
-      const message = payload(serverT(await userLocale(context.db, toUserId), "grup"));
-      await Promise.all(
-        subs.map(async (sub) => {
-          const result = await sendPush(context.env, sub, message);
-          if (result.status === 404 || result.status === 410) {
-            await context.db.delete(pushSubscription).where(eq(pushSubscription.id, sub.id));
-          }
-        }),
-      );
-    })().catch(() => {}),
-  );
 }
 
 export const groupRouter = {
@@ -225,6 +192,24 @@ export const groupRouter = {
       await context.db
         .insert(teamMember)
         .values({ teamId: row.id, userId: context.session.user.id });
+      const [joined] = await context.db
+        .select({ ownerId: team.ownerId, name: team.name })
+        .from(team)
+        .where(eq(team.id, row.id))
+        .limit(1);
+      if (joined && joined.ownerId !== context.session.user.id) {
+        notifyInBackground(context, joined.ownerId, {
+          category: "group",
+          kind: "member_join",
+          title: {
+            key: "notify.group.memberJoin.title",
+            params: { name: context.session.user.name, group: joined.name },
+          },
+          body: { key: "notify.group.memberJoin.body" },
+          link: { t: "group", groupId: row.id },
+          dedupeKey: `join:${row.id}:${context.session.user.id}`,
+        });
+      }
       return { groupId: row.id };
     }),
 
@@ -824,8 +809,9 @@ export const groupRouter = {
         }
       }
 
+      const nudgeId = crypto.randomUUID();
       await db.insert(teamNudge).values({
-        id: crypto.randomUUID(),
+        id: nudgeId,
         teamId: input.groupId,
         fromUserId,
         toUserId: input.toUserId,
@@ -838,13 +824,12 @@ export const groupRouter = {
         .from(user)
         .where(eq(user.id, fromUserId))
         .limit(1);
-      const senderName = sender?.name;
-      pushNudge(context, input.toUserId, (t) => {
-        const name = senderName ?? t("server.push.friend");
-        return {
-          title: input.kind === "poke" ? t("server.push.pokeTitle", { name }) : t("server.push.noteTitle", { name }),
-          body: input.message ?? t("server.push.defaultBody"),
-        };
+      pushNudge(context, {
+        nudgeId,
+        kind: input.kind,
+        toUserId: input.toUserId,
+        fromName: sender?.name ?? context.session.user.name,
+        message: input.message ?? null,
       });
       return { ok: true };
     }),

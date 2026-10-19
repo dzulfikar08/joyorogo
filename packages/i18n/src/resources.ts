@@ -8,6 +8,7 @@ import idMakan from "./locales/id/makan.json";
 import idTidur from "./locales/id/tidur.json";
 import idOlahraga from "./locales/id/olahraga.json";
 import idOnboarding from "./locales/id/onboarding.json";
+import idNotifications from "./locales/id/notifications.json";
 import idPush from "./locales/id/push.json";
 import idSettings from "./locales/id/settings.json";
 import idScan from "./locales/id/scan.json";
@@ -49,6 +50,7 @@ import enMakan from "./locales/en/makan.json";
 import enTidur from "./locales/en/tidur.json";
 import enOlahraga from "./locales/en/olahraga.json";
 import enOnboarding from "./locales/en/onboarding.json";
+import enNotifications from "./locales/en/notifications.json";
 import enPush from "./locales/en/push.json";
 import enSettings from "./locales/en/settings.json";
 import enScan from "./locales/en/scan.json";
@@ -94,6 +96,7 @@ const id = {
   tidur: idTidur,
   olahraga: idOlahraga,
   onboarding: idOnboarding,
+  notifications: idNotifications,
   push: idPush,
   settings: idSettings,
   scan: idScan,
@@ -141,6 +144,7 @@ const en: typeof id = {
   tidur: enTidur,
   olahraga: enOlahraga,
   onboarding: enOnboarding,
+  notifications: enNotifications,
   push: enPush,
   settings: enSettings,
   scan: enScan,

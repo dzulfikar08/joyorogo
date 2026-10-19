@@ -76,5 +76,8 @@
       "notFound": "Favorit tidak ditemukan",
       "empty": "Favorit ini kosong"
     }
+  },
+  "push": {
+    "badToken": "Token notifikasi tidak valid."
   }
 }

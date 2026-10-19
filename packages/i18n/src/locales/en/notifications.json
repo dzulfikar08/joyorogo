@@ -1,0 +1,83 @@
+{
+  "title": "Notifications",
+  "intro": "Choose which updates may reach your browser and phone. These settings apply to your JoyoRogo and JoyoFit account.",
+  "categories": {
+    "social": {
+      "title": "Social",
+      "desc": "Kudos, comments, replies, new followers, and new posts from people you follow."
+    },
+    "group": {
+      "title": "Groups: pokes, notes, challenges",
+      "desc": "Pokes, notes from group friends, new members, and challenge updates."
+    },
+    "meal": {
+      "title": "Meal reminders",
+      "desc": "When no food is logged all day, and when your streak is about to break."
+    },
+    "weigh": {
+      "title": "Weigh-in reminder",
+      "desc": "Once a week if you have not weighed in."
+    },
+    "recap": {
+      "title": "Recap & targets",
+      "desc": "Weekly recap ready, calorie target changed, and this week's meal plan."
+    }
+  },
+  "quiet": {
+    "title": "Quiet hours",
+    "desc": "During quiet hours notifications are held and sent when they end. Times are WIB (Jakarta).",
+    "start": "From",
+    "end": "Until"
+  },
+  "limits": "There is a daily limit per category. Anything over it is folded into one evening summary.",
+  "devices": "Registered: {{web}} browser(s), {{rogo}} JoyoRogo phone(s), {{fit}} JoyoFit phone(s).",
+  "status": {
+    "granted": "Notifications are on for this device.",
+    "undetermined": "Notifications are not turned on for this device yet.",
+    "denied": "Notifications are blocked on this device. Turn them on in system settings.",
+    "unsupported": "This device or browser does not support notifications yet.",
+    "unavailable": "Notifications are not available on this server yet."
+  },
+  "test": {
+    "button": "Send a test notification",
+    "sending": "Sending…",
+    "sent": "Sent. Check the notifications on your device.",
+    "skipped": "No device or browser is registered yet. Turn notifications on first.",
+    "failed": "The test notification could not be sent. Try again in a moment."
+  },
+  "saveFailed": "Could not save notification settings.",
+  "web": {
+    "hubSubtitle": "Social, groups, reminders, quiet hours",
+    "sections": {
+      "browser": "This browser",
+      "categories": "What you get",
+      "quiet": "Quiet hours",
+      "test": "Try it"
+    },
+    "enable": "Turn on in this browser",
+    "disable": "Turn off in this browser",
+    "working": "Working…",
+    "subscribed": "This browser is registered for notifications.",
+    "notSubscribed": "Permission is granted, but this browser is not registered yet. Turn it on again to register.",
+    "iosInstall": "On iPhone or iPad, browser notifications only work after JoyoRogo is added to the Home Screen (Share, then Add to Home Screen).",
+    "toastEnabled": "Browser notifications are on",
+    "toastDisabled": "Browser notifications are off",
+    "quietAria": "Turn quiet hours on",
+    "startAria": "Quiet hours start",
+    "endAria": "Quiet hours end"
+  },
+  "native": {
+    "hubSubtitle": "Social, groups, reminders, quiet hours",
+    "enable": "Turn on notifications",
+    "openSettings": "Open settings",
+    "reminderNote": "Server reminders (no meal logged, weekly weigh-in) are managed in Notifications. If the meal or weigh-in reminder here is on, the server one is skipped so you do not get both.",
+    "reminderNoteAction": "Open Notifications",
+    "channel": {
+      "social": { "name": "Social", "description": "Kudos, comments and new followers" },
+      "group": { "name": "Groups", "description": "Pokes, notes and group challenges" },
+      "meal": { "name": "Meal reminders", "description": "No meal logged and streak about to break" },
+      "weigh": { "name": "Weigh-in reminder", "description": "Weekly weigh-in reminder" },
+      "recap": { "name": "Recap & targets", "description": "Weekly recap and target changes" }
+    }
+  }
+}

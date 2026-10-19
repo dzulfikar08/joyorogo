@@ -34,7 +34,7 @@ export default function ProfilHub() {
 }
 
 function Hub({ profile }: { profile: ProfileData }) {
-  const { t, i18n } = useTranslation(["settings", "common", "koneksi"]);
+  const { t, i18n } = useTranslation(["settings", "common", "koneksi", "notifications"]);
   const { rt, theme } = useUnistyles();
   const session = authClient.useSession();
   const stravaStatus = useQuery(orpc.strava.status.queryOptions());
@@ -163,6 +163,14 @@ function Hub({ profile }: { profile: ProfileData }) {
           subtitle={t("settings:hub.rows.reminders.subtitle")}
           chevron
           onPress={() => router.push("/profil/pengingat")}
+        />
+        <ListRow
+          icon="notifications-circle"
+          iconTint="bakar"
+          title={t("notifications:title")}
+          subtitle={t("notifications:native.hubSubtitle")}
+          chevron
+          onPress={() => router.push("/profil/notifikasi")}
         />
         <ListRow
           icon="people"

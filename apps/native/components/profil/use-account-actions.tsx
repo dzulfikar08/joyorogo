@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { ConfirmSheet } from "@/components/confirm-sheet";
 import { useToast } from "@/components/toast";
 import { authClient } from "@/lib/auth-client";
+import { forgetPush, unregisterPush } from "@/src/lib/push";
 import { teardownReminders } from "@/src/lib/notifications";
 import { flushPrefsSync, forgetPrefsSync } from "@/src/lib/prefs-sync";
 import { errorMessage } from "@/utils/format";
@@ -54,6 +55,7 @@ export function useAccountActions(): AccountActions {
         }
         queryClient.clear();
         forgetPrefsSync();
+        await forgetPush();
         await teardownReminders();
         router.replace("/login");
       },
@@ -77,6 +79,7 @@ export function useAccountActions(): AccountActions {
     setSigningOut(true);
     try {
       await flushPrefsSync();
+      await unregisterPush();
       await authClient.signOut();
       queryClient.clear();
       forgetPrefsSync();

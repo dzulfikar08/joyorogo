@@ -1,0 +1,83 @@
+{
+  "title": "Notifikasi",
+  "intro": "Pilih kabar apa yang boleh masuk ke browser dan HP kamu. Pengaturan ini berlaku untuk akun JoyoRogo dan JoyoFit.",
+  "categories": {
+    "social": {
+      "title": "Sosial",
+      "desc": "Kudos, komentar, balasan, pengikut baru, dan postingan baru dari orang yang kamu ikuti."
+    },
+    "group": {
+      "title": "Grup: colek, catatan, tantangan",
+      "desc": "Colekan, catatan dari teman grup, anggota baru, dan kabar tantangan."
+    },
+    "meal": {
+      "title": "Pengingat makan",
+      "desc": "Kalau seharian belum ada makanan tercatat, dan saat streak-mu hampir putus."
+    },
+    "weigh": {
+      "title": "Pengingat timbang",
+      "desc": "Sekali seminggu kalau kamu belum menimbang."
+    },
+    "recap": {
+      "title": "Rekap & target",
+      "desc": "Rekap mingguan siap, target kalori berubah, dan rencana makan minggu ini."
+    }
+  },
+  "quiet": {
+    "title": "Jam tenang",
+    "desc": "Selama jam tenang notifikasi ditahan dan dikirim setelah selesai. Waktu mengikuti WIB.",
+    "start": "Mulai",
+    "end": "Selesai"
+  },
+  "limits": "Ada batas notifikasi per hari. Kalau lewat, sisanya diringkas jadi satu notifikasi malam hari.",
+  "devices": "Terdaftar: {{web}} browser, {{rogo}} HP JoyoRogo, {{fit}} HP JoyoFit.",
+  "status": {
+    "granted": "Notifikasi aktif di perangkat ini.",
+    "undetermined": "Notifikasi belum diaktifkan di perangkat ini.",
+    "denied": "Notifikasi diblokir di perangkat ini. Aktifkan lewat pengaturan sistem.",
+    "unsupported": "Perangkat atau browser ini belum mendukung notifikasi.",
+    "unavailable": "Notifikasi belum tersedia di server ini."
+  },
+  "test": {
+    "button": "Kirim notifikasi uji",
+    "sending": "Mengirim…",
+    "sent": "Terkirim. Cek notifikasi di perangkatmu.",
+    "skipped": "Belum ada perangkat atau browser yang terdaftar. Aktifkan notifikasi dulu.",
+    "failed": "Notifikasi uji gagal terkirim. Coba lagi sebentar lagi."
+  },
+  "saveFailed": "Pengaturan notifikasi gagal disimpan.",
+  "web": {
+    "hubSubtitle": "Sosial, grup, pengingat, jam tenang",
+    "sections": {
+      "browser": "Browser ini",
+      "categories": "Kabar yang masuk",
+      "quiet": "Jam tenang",
+      "test": "Coba kirim"
+    },
+    "enable": "Aktifkan di browser ini",
+    "disable": "Matikan di browser ini",
+    "working": "Memproses…",
+    "subscribed": "Browser ini sudah terdaftar untuk notifikasi.",
+    "notSubscribed": "Izin sudah diberikan, tapi browser ini belum terdaftar. Aktifkan lagi untuk mendaftar.",
+    "iosInstall": "Di iPhone atau iPad, notifikasi browser baru bisa dipakai setelah JoyoRogo ditambahkan ke Layar Utama (Bagikan, lalu Tambahkan ke Layar Utama).",
+    "toastEnabled": "Notifikasi browser aktif",
+    "toastDisabled": "Notifikasi browser dimatikan",
+    "quietAria": "Aktifkan jam tenang",
+    "startAria": "Jam tenang mulai",
+    "endAria": "Jam tenang selesai"
+  },
+  "native": {
+    "hubSubtitle": "Sosial, grup, pengingat, jam tenang",
+    "enable": "Aktifkan notifikasi",
+    "openSettings": "Buka pengaturan",
+    "reminderNote": "Pengingat dari server (belum catat makan, timbang mingguan) diatur di Notifikasi. Kalau pengingat makan atau timbang di sini aktif, yang dari server dilewati supaya tidak dobel.",
+    "reminderNoteAction": "Buka Notifikasi",
+    "channel": {
+      "social": { "name": "Sosial", "description": "Kudos, komentar, dan pengikut baru" },
+      "group": { "name": "Grup", "description": "Colek, catatan, dan tantangan grup" },
+      "meal": { "name": "Pengingat makan", "description": "Belum catat makan dan streak hampir putus" },
+      "weigh": { "name": "Pengingat timbang", "description": "Pengingat timbang mingguan" },
+      "recap": { "name": "Rekap & target", "description": "Rekap mingguan dan perubahan target" }
+    }
+  }
+}

@@ -45,6 +45,9 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
   VAPID_SUBJECT?: string;
+  /** Expo Push Service (JoyoRogo native + JoyoFit): optional access token (only needed with enhanced push security) and a test endpoint override. */
+  EXPO_ACCESS_TOKEN?: string;
+  EXPO_PUSH_URL?: string;
   /** Sign in with Apple revocation on account deletion (.p8 key, PKCS8 PEM). */
   APPLE_TEAM_ID?: string;
   APPLE_SIWA_KEY_ID?: string;

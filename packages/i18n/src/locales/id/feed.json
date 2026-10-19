@@ -660,12 +660,6 @@
     "photoFailed": "Foto asli gagal dimuat."
   },
   "server": {
-    "push": {
-      "kudos": "{{name}} kasih semangat",
-      "comment": "{{name}} berkomentar",
-      "reply": "{{name}} membalas komentarmu",
-      "attachment": "Mengirim lampiran"
-    },
     "comment": {
       "deleted": "Komentar ini dihapus."
     },

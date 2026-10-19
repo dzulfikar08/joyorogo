@@ -15,7 +15,7 @@ import {
   profile as profileTable,
   weightLog,
 } from "@joyorogo/db/schema/fitness";
-import { pushSubscription, workoutSession, workoutSet } from "@joyorogo/db/schema/plans";
+import { workoutSession, workoutSet } from "@joyorogo/db/schema/plans";
 import {
   post as postTable,
   postComment,
@@ -42,8 +42,9 @@ import {
 } from "../lib/comment-attachment";
 import type { Attachment, StoredAttachment } from "../lib/comment-attachment";
 import { cleanImage } from "../lib/image-clean";
-import { serverT, userLocale } from "../lib/messages";
-import { sendPush } from "../lib/webpush";
+import { serverT } from "../lib/messages";
+import { pushComment, pushFollow, pushKudos, pushNewPost } from "../lib/social-push";
+import type { PushContext } from "../lib/social-push";
 import { premiumUnlocked } from "../lib/readiness-food";
 import { paywallConfig } from "../lib/tiers";
 import {
@@ -283,38 +284,7 @@ async function ensureHandle(db: Database, userId: string): Promise<string | null
 
 // --- Push & notifikasi ------------------------------------------------------------
 
-/** Fire-and-forget Web Push; endpoint mati (404/410) langsung dihapus. */
-function pushFeed(
-  context: {
-    db: Database;
-    env: { VAPID_PUBLIC_KEY?: string; VAPID_PRIVATE_KEY?: string; VAPID_SUBJECT?: string };
-    waitUntil: (promise: Promise<unknown>) => void;
-  },
-  toUserId: string,
-  /** Written in the RECIPIENT's language, not the actor's. */
-  payload: (t: TFunction<"feed">) => { title: string; body: string },
-) {
-  context.waitUntil(
-    (async () => {
-      const subs = await context.db
-        .select()
-        .from(pushSubscription)
-        .where(eq(pushSubscription.userId, toUserId));
-      if (subs.length === 0) return;
-      const message = payload(serverT(await userLocale(context.db, toUserId), "feed"));
-      await Promise.all(
-        subs.map(async (sub) => {
-          const result = await sendPush(context.env, sub, message);
-          if (result.status === 404 || result.status === 410) {
-            await context.db.delete(pushSubscription).where(eq(pushSubscription.id, sub.id));
-          }
-        }),
-      );
-    })().catch(() => {}),
-  );
-}
-
-type NotifyContext = Parameters<typeof pushFeed>[0] & { db: Database };
+type NotifyContext = PushContext;
 
 /**
  * Satu notifikasi per (aktor, postingan, jenis) untuk kudos: kudos ulang
@@ -325,6 +295,7 @@ async function notifyKudos(
   context: NotifyContext,
   postId: string,
   postTitle: string,
+  statsJson: string | null,
   authorId: string,
   actorId: string,
   actorName: string,
@@ -356,10 +327,15 @@ async function notifyKudos(
     });
   }
   if (shouldPush) {
-    pushFeed(context, authorId, (t) => ({
-      title: t("server.push.kudos", { name: actorName }),
-      body: postTitle,
-    }));
+    pushKudos(context, {
+      postId,
+      postTitle,
+      statsJson,
+      authorId,
+      actorId,
+      actorName,
+      hourBucket: Math.floor(Date.now() / KUDOS_PUSH_WINDOW_MS),
+    });
   }
 }
 
@@ -367,6 +343,8 @@ async function notifyKudos(
 async function notifyComment(
   context: NotifyContext,
   postId: string,
+  statsJson: string | null,
+  commentId: string,
   recipientId: string,
   actorId: string,
   actorName: string,
@@ -381,10 +359,7 @@ async function notifyComment(
     postId,
     excerpt: body.length > 0 ? body.slice(0, 120) : null,
   });
-  pushFeed(context, recipientId, (t) => ({
-    title: t(kind === "reply" ? "server.push.reply" : "server.push.comment", { name: actorName }),
-    body: body.length > 0 ? body.slice(0, 120) : t("server.push.attachment"),
-  }));
+  pushComment(context, { kind, commentId, postId, statsJson, recipientId, actorName, body });
 }
 
 // --- Mapping baris → output --------------------------------------------------------
@@ -986,6 +961,13 @@ export const socialRouter = {
         visibility,
         ...snapshot,
       });
+      pushNewPost(context as unknown as NotifyContext, {
+        postId,
+        authorId: me,
+        authorName: context.session.user.name,
+        title: snapshot.title || input.caption || "",
+        visibility,
+      });
       return { id: postId, visibility };
     }),
 
@@ -1079,6 +1061,13 @@ export const socialRouter = {
           : []),
       ];
       await db.batch(statements as [(typeof statements)[0], ...typeof statements]);
+      pushNewPost(context as unknown as NotifyContext, {
+        postId,
+        authorId: me,
+        authorName: context.session.user.name,
+        title: workout.sportName,
+        visibility,
+      });
       return { id: postId, visibility };
     }),
 
@@ -1468,10 +1457,11 @@ export const socialRouter = {
         if (followingCount >= MAX_FOLLOWING) {
           throw new ORPCError("BAD_REQUEST", { message: t("server.error.followLimit") });
         }
-        await db
+        const fresh = await db
           .insert(socialFollow)
           .values({ followerId: me, followingId: input.userId })
-          .onConflictDoNothing();
+          .onConflictDoNothing()
+          .returning({ id: socialFollow.followerId });
         // Notifikasi follow: satu baris per pasangan, dikunjungi ulang saat
         // unfollow-refollow supaya kotak notifikasi tidak menumpuk.
         const [existing] = await db
@@ -1497,6 +1487,20 @@ export const socialRouter = {
             userId: input.userId,
             actorId: me,
             kind: "follow",
+          });
+        }
+        if (fresh.length > 0) {
+          const [mine] = await db
+            .select({ handle: profileTable.handle })
+            .from(profileTable)
+            .where(eq(profileTable.userId, me))
+            .limit(1);
+          pushFollow(context as unknown as NotifyContext, {
+            recipientId: input.userId,
+            actorId: me,
+            actorName: context.session.user.name,
+            actorHandle: mine?.handle ?? null,
+            day: jakartaToday(),
           });
         }
       } else {
@@ -1607,6 +1611,7 @@ export const socialRouter = {
             context as unknown as NotifyContext,
             row.id,
             row.title,
+            row.statsJson,
             row.userId,
             me,
             actor?.name ?? "Teman",
@@ -1830,6 +1835,8 @@ export const socialRouter = {
           await notifyComment(
             context as unknown as NotifyContext,
             row.id,
+            row.statsJson,
+            commentId,
             recipient.userId,
             me,
             actor?.name ?? "Teman",

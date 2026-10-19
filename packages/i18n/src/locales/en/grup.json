@@ -242,12 +242,6 @@
       "pokeLimit": "You can poke again in an hour.",
       "noteEmpty": "Note can't be empty.",
       "noteQuota": "You've used today's note limit."
-    },
-    "push": {
-      "friend": "A friend",
-      "pokeTitle": "{{name}} poked you",
-      "noteTitle": "Note from {{name}}",
-      "defaultBody": "Keep logging your calories today!"
     }
   },
   "confirm": {

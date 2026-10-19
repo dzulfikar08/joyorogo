@@ -3,7 +3,6 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { foodLog, profile } from "@joyorogo/db/schema/fitness";
-import { pushSubscription } from "@joyorogo/db/schema/plans";
 
 import type { Meal } from "../lib/engine";
 import type { DayLog, FastingPattern } from "../lib/fasting";
@@ -16,6 +15,7 @@ import { buildPlan, planQueries } from "../lib/plan";
 import { budgetKcal } from "../lib/exercise-credit";
 import { loadDayCredit } from "../lib/exercise-credit-store";
 import { serverT } from "../lib/messages";
+import { removeWebSubscription, saveWebSubscription } from "../lib/push-subs";
 import {
   adherenceWeek,
   countKept,
@@ -177,6 +177,7 @@ export const fastingRouter = {
     };
   }),
 
+  // Kept for browser tabs opened before the push settings moved to `push.*`; same behaviour.
   subscribePush: protectedProcedure
     .input(
       z.object({
@@ -185,34 +186,14 @@ export const fastingRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
-      const userId = context.session.user.id;
-      await context.db
-        .insert(pushSubscription)
-        .values({
-          id: crypto.randomUUID(),
-          userId,
-          endpoint: input.endpoint,
-          p256dh: input.keys.p256dh,
-          auth: input.keys.auth,
-        })
-        .onConflictDoUpdate({
-          target: pushSubscription.endpoint,
-          set: { userId, p256dh: input.keys.p256dh, auth: input.keys.auth },
-        });
+      await saveWebSubscription(context.db, context.session.user.id, input);
       return { ok: true };
     }),
 
   unsubscribePush: protectedProcedure
     .input(z.object({ endpoint: z.string().url() }))
     .handler(async ({ context, input }) => {
-      await context.db
-        .delete(pushSubscription)
-        .where(
-          and(
-            eq(pushSubscription.userId, context.session.user.id),
-            eq(pushSubscription.endpoint, input.endpoint),
-          ),
-        );
+      await removeWebSubscription(context.db, context.session.user.id, input.endpoint);
       return { ok: true };
     }),
 

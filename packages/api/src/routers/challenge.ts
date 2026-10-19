@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server";
-import { and, count, desc, eq, gte, inArray } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@joyorogo/db";
@@ -36,6 +36,7 @@ import { buildPlan, planQueries, proteinGoalG } from "../lib/plan";
 import { dateSchema } from "../lib/schemas";
 import { paywallConfig } from "../lib/tiers";
 import { serverT } from "../lib/messages";
+import { enqueueMany, notifyInBackground } from "../lib/notify";
 import type { Locale } from "@joyorogo/i18n";
 
 /** Ended challenges stay listed (for the result card) this many days. */
@@ -449,6 +450,29 @@ export const challengeRouter = {
           .insert(teamChallengeMember)
           .values({ challengeId: id, userId, fromDate, target: mine.target }),
       ]);
+      const title =
+        input.title || defaultChallengeTitle(input.goal, target, input.durationDays, context.locale);
+      const [group, others] = await Promise.all([
+        db.select({ name: team.name }).from(team).where(eq(team.id, input.groupId)).limit(1),
+        db
+          .select({ userId: teamMember.userId })
+          .from(teamMember)
+          .where(and(eq(teamMember.teamId, input.groupId), ne(teamMember.userId, userId))),
+      ]);
+      context.waitUntil(
+        enqueueMany(
+          { db, env: context.env },
+          others.map((member) => member.userId),
+          () => ({
+            category: "group",
+            kind: "challenge_new",
+            title: { key: "notify.group.challengeNew.title", params: { group: group[0]?.name ?? "" } },
+            body: { text: title },
+            link: { t: "challenge", groupId: input.groupId, challengeId: id },
+            dedupeKey: `challenge_new:${id}`,
+          }),
+        ).catch((error: unknown) => console.error("[push] challenge fan-out failed", error)),
+      );
       return { id };
     }),
 
@@ -480,6 +504,16 @@ export const challengeRouter = {
         target: mine.target,
       })
       .onConflictDoNothing();
+    if (c.createdBy && c.createdBy !== userId) {
+      notifyInBackground(context, c.createdBy, {
+        category: "group",
+        kind: "challenge_join",
+        title: { key: "notify.group.challengeJoin.title", params: { name: context.session.user.name } },
+        body: { text: c.title },
+        link: { t: "challenge", groupId: c.teamId, challengeId: c.id },
+        dedupeKey: `challenge_join:${c.id}:${userId}`,
+      });
+    }
     return { ok: true };
   }),
 
