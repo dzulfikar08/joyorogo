@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { RECIPES } from "./catalog";
-import { buyLinks, cleanQuery, grabFoodSearchUrl, GOFOOD_HOME_URL, mapsSearchUrl, MAX_QUERY_LENGTH, SHOPEEFOOD_HOME_URL, shopPlaceUrl } from "./links";
+import { buyLinks, cleanQuery, goFoodSearchUrl, grabFoodSearchUrl, mapsSearchUrl, MAX_QUERY_LENGTH, SHOPEEFOOD_HOME_URL, shopPlaceUrl } from "./links";
 
 const query = (url: string, key: string) => new URL(url).searchParams.get(key);
 
@@ -60,9 +60,10 @@ describe("meal links: delivery apps", () => {
     expect(links[0]?.url).toBe(mapsSearchUrl("Pecel lele"));
   });
 
-  test("apps without a search link open their home and ask to copy the dish name", () => {
+  test("GoFood searches the dish and still copies the name; ShopeeFood opens its home and copies it", () => {
     const byApp = Object.fromEntries(buyLinks("Pecel lele").map((l) => [l.app, l]));
-    expect(byApp.gofood).toEqual({ app: "gofood", url: GOFOOD_HOME_URL, copyName: true });
+    expect(byApp.gofood).toEqual({ app: "gofood", url: goFoodSearchUrl("Pecel lele"), copyName: true });
+    expect(query(goFoodSearchUrl("Pecel lele"), "query")).toBe("Pecel lele");
     expect(byApp.shopeefood).toEqual({ app: "shopeefood", url: SHOPEEFOOD_HOME_URL, copyName: true });
     expect(byApp.maps?.copyName).toBe(false);
     expect(byApp.grabfood?.copyName).toBe(false);

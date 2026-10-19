@@ -10,9 +10,10 @@
 //    title echoes the query). food.grab.com is a registered app-link domain of the Grab app (assetlinks.json lists
 //    com.grabtaxi.passenger; the iOS AASA lists `/*/*/restaurants`), so a phone with Grab opens it there. Grab documents no
 //    search parameter; the web page needs the person's location, and whether the app honours `search` is not documented.
-//  * GoFood: no search URL is documented or verifiable. `https://gofood.co.id/id` is GoFood web's home; the domain is a
-//    registered app-link domain of the Gojek app (assetlinks.json lists com.gojek.app; the iOS AASA lists `/id`), so it opens
-//    the app when installed. The dish name is copied for the person to paste in the search box.
+//  * GoFood: UNOFFICIAL. `https://gofood.co.id/id/search?query=<q>` is GoFood web's search page (checked 2026-10-19: the
+//    page echoes the query). gofood.co.id is a registered app-link domain of the Gojek app (assetlinks.json lists
+//    com.gojek.app), so a phone with Gojek may open the app instead; whether the app honours `query` is not documented,
+//    so the dish name is still copied for the search box.
 //  * ShopeeFood: lives inside the Shopee app. `https://shopee.co.id/m/shopeefood` is Shopee's ShopeeFood landing page;
 //    shopee.co.id is a registered app-link domain of the Shopee app (assetlinks.json com.shopee.id; AASA `*`). No search URL is
 //    documented, so the dish name is copied too.
@@ -49,7 +50,9 @@ export function shopPlaceUrl(place: ShopPlace): string {
   return mapsSearchUrl(SHOP_PLACE_QUERIES[place]);
 }
 
-export const GOFOOD_HOME_URL = "https://gofood.co.id/id";
+export function goFoodSearchUrl(query: string): string {
+  return `https://gofood.co.id/id/search?query=${enc(query)}`;
+}
 export const SHOPEEFOOD_HOME_URL = "https://shopee.co.id/m/shopeefood";
 
 export function grabFoodSearchUrl(query: string): string {
@@ -60,7 +63,7 @@ export function grabFoodSearchUrl(query: string): string {
 export function buyLinks(dish: string): BuyLink[] {
   return [
     { app: "maps", url: mapsSearchUrl(dish), copyName: false },
-    { app: "gofood", url: GOFOOD_HOME_URL, copyName: true },
+    { app: "gofood", url: goFoodSearchUrl(dish), copyName: true },
     { app: "grabfood", url: grabFoodSearchUrl(dish), copyName: false },
     { app: "shopeefood", url: SHOPEEFOOD_HOME_URL, copyName: true },
   ];
