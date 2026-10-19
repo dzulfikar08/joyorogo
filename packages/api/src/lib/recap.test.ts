@@ -82,6 +82,30 @@ describe("buildWeekRecap", () => {
     expect(recap.protein).toEqual({ avgG: 67, targetG: 90, days: 3 });
   });
 
+  test("each day is judged against its own budget: activity raises it, like Beranda's Sisa", () => {
+    // Base 1500. Saturday burned 400 (counted 300): budget 1800, so 1585 eaten is on target, not over the base.
+    const recap = buildWeekRecap({
+      ...base,
+      targetKcal: 1500,
+      dayTargets: { "2026-10-16": 1500, "2026-10-17": 1800, "2026-10-18": 2100 },
+      food: [
+        { date: "2026-10-16", kcal: 1700, protein: 60 },
+        { date: "2026-10-17", kcal: 1585, protein: 50 },
+        { date: "2026-10-18", kcal: 2150, protein: 90 },
+      ],
+    });
+    expect(recap.days.slice(4).map((d) => [d.status, d.targetKcal])).toEqual([
+      ["over", 1500],
+      ["on_target", 1800],
+      ["on_target", 2100],
+    ]);
+    expect(recap.daysOnTarget).toBe(2);
+    // The week's one number is the mean budget of the logged days.
+    expect(recap.targetKcal).toBe(1800);
+    // Nearest to its own budget: Sunday is 50 off, Saturday 215.
+    expect(recap.bestDay?.date).toBe("2026-10-18");
+  });
+
   test("a running week judges only days before today", () => {
     const recap = buildWeekRecap({
       ...base,

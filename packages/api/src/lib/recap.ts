@@ -34,6 +34,8 @@ export type RecapDay = {
   status: DayStatus;
   eatenKcal: number;
   exerciseKcal: number;
+  /** The day's eat budget: the base target plus that day's assumed and counted activity, like Beranda's Sisa. */
+  targetKcal: number;
 };
 
 export type RecapFoodDay = { date: string; kcal: number; protein: number | null };
@@ -55,6 +57,10 @@ export type WeekRecap = {
   loggedDays: number;
   /** True when nothing was logged all week (food, exercise or weight). */
   empty: boolean;
+  /**
+   * The eat target the week reads as one number: the mean budget of the logged days (base plus each day's activity), or
+   * the base target before anything is logged. Each day is judged against its own budget (`days[].targetKcal`).
+   */
   targetKcal: number;
   avgKcal: number | null;
   daysOnTarget: number;
@@ -79,6 +85,8 @@ export type WeekRecapInput = {
   weekStart: string;
   today: string;
   targetKcal: number;
+  /** Each day's budget (base plus that day's activity, lib/exercise-credit). A missing day falls back to `targetKcal`. */
+  dayTargets?: Record<string, number>;
   proteinTargetG: number;
   food: RecapFoodDay[];
   exercise: RecapExerciseDay[];
@@ -101,7 +109,7 @@ export function dayStatus(eatenKcal: number, targetKcal: number, gain = false): 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 export function buildWeekRecap(input: WeekRecapInput): WeekRecap {
-  const { weekStart, today, targetKcal } = input;
+  const { weekStart, today } = input;
   const weekEnd = shiftDate(weekStart, 6);
   const foodByDate = new Map(input.food.map((row) => [row.date, row]));
   const exerciseByDate = new Map(input.exercise.map((row) => [row.date, row]));
@@ -110,11 +118,13 @@ export function buildWeekRecap(input: WeekRecapInput): WeekRecap {
   for (let i = 0; i < 7; i += 1) {
     const date = shiftDate(weekStart, i);
     const eatenKcal = Math.round(foodByDate.get(date)?.kcal ?? 0);
+    const dayTarget = Math.round(input.dayTargets?.[date] ?? input.targetKcal);
     days.push({
       date,
-      status: date < today ? dayStatus(eatenKcal, targetKcal, input.gain !== undefined) : "pending",
+      status: date < today ? dayStatus(eatenKcal, dayTarget, input.gain !== undefined) : "pending",
       eatenKcal,
       exerciseKcal: Math.round(exerciseByDate.get(date)?.kcal ?? 0),
+      targetKcal: dayTarget,
     });
   }
 
@@ -125,11 +135,15 @@ export function buildWeekRecap(input: WeekRecapInput): WeekRecap {
       ? Math.round(logged.reduce((sum, day) => sum + day.eatenKcal, 0) / logged.length)
       : null;
   const onTarget = judged.filter((day) => day.status === "on_target");
+  const targetKcal =
+    logged.length > 0
+      ? Math.round(logged.reduce((sum, day) => sum + day.targetKcal, 0) / logged.length)
+      : Math.round(input.targetKcal);
 
   const bestDay = onTarget.reduce<RecapDay | null>((best, day) => {
     if (!best) return day;
-    const gap = Math.abs(day.eatenKcal - targetKcal);
-    const bestGap = Math.abs(best.eatenKcal - targetKcal);
+    const gap = Math.abs(day.eatenKcal - day.targetKcal);
+    const bestGap = Math.abs(best.eatenKcal - best.targetKcal);
     if (gap !== bestGap) return gap < bestGap ? day : best;
     const protein = foodByDate.get(day.date)?.protein ?? 0;
     return protein > (foodByDate.get(best.date)?.protein ?? 0) ? day : best;

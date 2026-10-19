@@ -5,6 +5,8 @@ import { exerciseLog, foodLog, weightLog } from "@joyorogo/db/schema/fitness";
 
 import { protectedProcedure } from "../index";
 import { gainStreak, jakartaToday, shiftDate } from "../lib/engine";
+import { budgetKcal, exerciseCredit } from "../lib/exercise-credit";
+import { addBackPrefQuery, creditDayQueries, dayReadings, readAddBackPrefs } from "../lib/exercise-credit-store";
 import { buildPlan, planQueries, proteinGoalG } from "../lib/plan";
 import { buildWeekRecap, weekStartOf } from "../lib/recap";
 import { dateSchema } from "../lib/schemas";
@@ -96,12 +98,39 @@ export const statsRouter = {
         refDay,
       );
 
+      // Each judged day gets the budget Beranda showed for it: the base plus that day's assumed and counted activity.
+      const judgedDates = Array.from({ length: 7 }, (_, i) => shiftDate(weekStart, i)).filter((date) => date < today);
+      const [prefRows, ...dayRows] = await context.db.batch([
+        addBackPrefQuery(context.db, userId),
+        ...judgedDates.flatMap((date) => creditDayQueries(context.db, userId, date)),
+      ] as unknown as Parameters<typeof context.db.batch>[0]) as unknown as [
+        Parameters<typeof readAddBackPrefs>[0],
+        ...unknown[],
+      ];
+      const settings = readAddBackPrefs(prefRows).settings;
+      const dayTargets: Record<string, number> = {};
+      judgedDates.forEach((date, i) => {
+        const [rows, activity, score] = dayRows.slice(i * 3, i * 3 + 3) as [
+          { kcal: number; source: string; externalId: string | null }[],
+          { steps: number | null; activeCalories: number; source: string }[],
+          { activeKcal: number | null }[],
+        ];
+        const credit = exerciseCredit({
+          settings,
+          rows,
+          readings: dayReadings(activity[0], score[0]),
+          steps: activity[0]?.steps ?? null,
+        });
+        dayTargets[date] = budgetKcal(plan.targets.eatKcal, credit);
+      });
+
       const streakRef = weekEnd < today ? weekEnd : today;
       return buildWeekRecap({
         weekStart,
         today,
         targetKcal: plan.targets.eatKcal,
         proteinTargetG: proteinGoalG(plan, prof.heightCm),
+        dayTargets,
         food: foodRows,
         exercise: exerciseRows.map((row) => ({ ...row, minutes: row.minutes ?? 0 })),
         trendPoints: plan.trend?.points ?? [],
