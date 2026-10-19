@@ -25,6 +25,7 @@ import { team, teamMember, teamNudge } from "@joyorogo/db/schema/social";
 
 import { protectedProcedure, publicProcedure } from "../index";
 import {
+  ADAPTIVE_WINDOW_DAYS,
   computeBurn,
   gainStreak,
   jakartaToday,
@@ -41,7 +42,9 @@ import { leaveTeamChallenges } from "../lib/challenge-db";
 import { serverT, userLocale } from "../lib/messages";
 import { loadPublicGroupPreview, previewAllowed } from "../lib/group-preview";
 import { requireAiQuota } from "../lib/quota";
-import { buildPlan } from "../lib/plan";
+import { CALIBRATION_HISTORY_DAYS } from "../lib/calibration";
+import { calibrationPrefsOfUsersQuery, readCalibrationPrefs } from "../lib/calibration-store";
+import { buildPlan, planQueries } from "../lib/plan";
 import { dateSchema } from "../lib/schemas";
 import {
   base64ToBytes,
@@ -379,7 +382,7 @@ export const groupRouter = {
       const ids = members.map((m) => m.userId);
 
       const streakStart = shiftDate(today, -STREAK_LOOKBACK_DAYS);
-      const windowStart = shiftDate(date, -28);
+      const windowStart = shiftDate(date, -CALIBRATION_HISTORY_DAYS);
       const [
         profiles,
         latestWeights,
@@ -396,6 +399,7 @@ export const groupRouter = {
         lastActive,
         varRows,
         fitnessRows,
+        calibrationRows,
       ] = await db.batch([
         db.select().from(profile).where(inArray(profile.userId, ids)),
         // Latest weigh-in ever (per member) via the group-by-max pattern.
@@ -528,6 +532,8 @@ export const groupRouter = {
           })
           .from(fitnessScore)
           .where(and(inArray(fitnessScore.userId, ids), eq(fitnessScore.date, date))),
+        // The calibration switch of every member, so each target is the one their own Beranda shows.
+        calibrationPrefsOfUsersQuery(db, ids),
       ]);
 
       const fitnessByUser = new Map(fitnessRows.map((r) => [r.userId, r]));
@@ -584,6 +590,7 @@ export const groupRouter = {
                 exercise: exerciseWindow
                   .filter((r) => r.userId === m.userId)
                   .map((r) => ({ date: r.date, kcal: r.kcal })),
+                prefs: readCalibrationPrefs(calibrationRows.filter((r) => r.userId === m.userId)),
               },
               date,
             );
@@ -651,7 +658,7 @@ export const groupRouter = {
                 ? gainStreak(
                     [
                       ...intakeWindow
-                        .filter((r) => r.userId === m.userId)
+                        .filter((r) => r.userId === m.userId && r.date >= shiftDate(date, -ADAPTIVE_WINDOW_DAYS))
                         .map((r) => ({ date: r.date, kcal: r.kcal })),
                       { date, kcal: eatenKcal },
                     ],
@@ -937,21 +944,20 @@ export const groupRouter = {
 
       // Target from the same plan math as the member's own Beranda.
       let eatTargetKcal: number | null = null;
-      const [prof] = await db
-        .select()
-        .from(profile)
-        .where(eq(profile.userId, input.userId))
-        .limit(1);
+      const [profRows, latest, weighIns, intake, exercise, calibrationPrefRows] = await db.batch(
+        planQueries(db, input.userId, date),
+      );
+      const prof = profRows[0];
       if (prof) {
-        const latest = await db
-          .select({ weightKg: weightLog.weightKg })
-          .from(weightLog)
-          .where(and(eq(weightLog.userId, input.userId), lte(weightLog.date, date)))
-          .orderBy(desc(weightLog.date))
-          .limit(1);
         const plan = buildPlan(
           prof,
-          { latestWeightKg: latest[0]?.weightKg ?? null, weighIns: [], intake: [], exercise: [] },
+          {
+            latestWeightKg: latest[0]?.weightKg ?? null,
+            weighIns,
+            intake,
+            exercise,
+            prefs: readCalibrationPrefs(calibrationPrefRows),
+          },
           date,
         );
         // Hamil / Menyusui: the daily need is health data and stays out of the group.

@@ -2,13 +2,12 @@ import {
   ACTIVITY_FACTOR,
   ACTIVITY_LEVELS,
   ADAPTIVE_WINDOW_DAYS,
-  adaptiveTdee,
   computeTargets,
-  daysBetween,
   eatFloorKcal,
   shiftDate,
 } from "./engine";
 import type { ActivityLevel, DayKcal, ProfileInput, WeighIn } from "./engine";
+import { measureCalibration } from "./calibration";
 import { computeMaternalTargets } from "./maternal";
 import type { MaternalState } from "./maternal";
 
@@ -108,12 +107,8 @@ export function stepsRecommendation(
 
 // --- From the weight trend ----------------------------------------------------------------------------------------
 
-/** First weigh-in to last weigh-in of the window must span at least this many days. */
-export const CALIBRATION_MIN_SPAN_DAYS = 21;
-/** Share of the 28 window days that must have food logged (a day under CALIBRATION_MIN_DAY_KCAL is not logged). */
-export const CALIBRATION_MIN_LOGGED_SHARE = 0.7;
-/** A day logged under this is treated as not logged, not as fasting. */
-export const CALIBRATION_MIN_DAY_KCAL = 800;
+// The gate (21-day weigh-in span, 20 of 28 days logged) and the measurement live in lib/calibration, shared with the
+// automatic calibration of the target; this recommendation is what the person gets while that is switched off.
 
 /** The level whose factor is nearest to `factor`. */
 export function levelFromFactor(factor: number): ActivityLevel {
@@ -137,10 +132,8 @@ export type CalibrationRecommendation = {
 };
 
 /**
- * The level the weight trend supports, or null until the data is good enough: adaptiveTdee needs enough food days and
- * weigh-ins, and on top of that the weigh-ins must span 21 days and 70% of the 28 days must be logged.
- * implied factor = (measured TDEE - average counted workout kcal a day) / BMR, where measured TDEE is adaptiveTdee over
- * the logs without subtracting the workouts (so the workouts come out exactly once, here).
+ * The level the weight trend supports, or null until the data is good enough (lib/calibration measureCalibration: the
+ * gate and the measurement, workouts taken out once). implied factor = measured daily-life TDEE / BMR.
  */
 export function calibrationRecommendation(input: {
   date: string;
@@ -151,33 +144,16 @@ export function calibrationRecommendation(input: {
   bmrKcal: number;
   currentLevel: ActivityLevel;
 }): CalibrationRecommendation | null {
-  const start = shiftDate(input.date, -ADAPTIVE_WINDOW_DAYS);
-  const inWindow = (date: string) => date >= start && date < input.date;
-  const measured = adaptiveTdee({
-    date: input.date,
-    weighIns: input.weighIns,
-    intake: input.intake,
-    exercise: [],
-    minDayKcal: CALIBRATION_MIN_DAY_KCAL,
-  });
-  if (measured === null || input.bmrKcal <= 0) return null;
-
-  const weights = input.weighIns.filter((w) => inWindow(w.date));
-  const span = weights.length > 0 ? daysBetween(weights[0]!.date, weights.at(-1)!.date) : 0;
-  const loggedDays = input.intake.filter((d) => inWindow(d.date) && d.kcal >= CALIBRATION_MIN_DAY_KCAL).length;
-  if (span < CALIBRATION_MIN_SPAN_DAYS || loggedDays < CALIBRATION_MIN_LOGGED_SHARE * ADAPTIVE_WINDOW_DAYS) return null;
-
-  const avgWorkoutKcal =
-    input.exercise.filter((d) => inWindow(d.date)).reduce((sum, d) => sum + d.kcal, 0) / ADAPTIVE_WINDOW_DAYS;
-  const dailyLifeKcal = measured - avgWorkoutKcal;
-  const impliedFactor = dailyLifeKcal / input.bmrKcal;
+  const measure = measureCalibration(input);
+  if (measure === null || input.bmrKcal <= 0) return null;
+  const impliedFactor = measure.lifeKcal / input.bmrKcal;
   return {
     level: levelFromFactor(impliedFactor),
     impliedFactor: Math.round(impliedFactor * 100) / 100,
-    measuredKcal: Math.round(dailyLifeKcal),
+    measuredKcal: Math.round(measure.lifeKcal),
     formulaKcal: Math.round(input.bmrKcal * ACTIVITY_FACTOR[input.currentLevel]),
-    avgWorkoutKcal: Math.round(avgWorkoutKcal),
-    loggedDays,
+    avgWorkoutKcal: Math.round(measure.avgWorkoutKcal),
+    loggedDays: measure.loggedDays,
     windowDays: ADAPTIVE_WINDOW_DAYS,
   };
 }

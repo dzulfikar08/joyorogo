@@ -8,7 +8,7 @@ import { MAX_SURPLUS_KCAL, MIN_SURPLUS_KCAL } from "@joyorogo/api/lib/gain";
 
 import { EnergySources } from "@/components/energy-sources";
 import { storedAddBackSettings } from "@/lib/exercise-credit-prefs";
-import { fmtFactor, fmtInt } from "@/lib/format";
+import { fmtDateLong, fmtFactor, fmtInt } from "@/lib/format";
 
 /**
  * "Kebutuhan harianmu": BMR x factor = TDEE -> minus cut -> eating target. Hamil/Menyusui: TDEE -> AKG addition ->
@@ -29,6 +29,9 @@ export function NeedsSheet({
   const gain = targets.gain;
   const cutKey = needs.cutKcal > 0 ? "cut" : "cutNone";
   const hasExtra = needs.exerciseKcal > 0;
+  const calibration = needs.calibration;
+  const active = calibration?.status === "active" ? calibration : null;
+  const calibrated = active !== null;
   const step = (
     key: "bmr" | "activity" | "tdee" | "cut" | "cutNone" | "target",
     value: string,
@@ -46,7 +49,13 @@ export function NeedsSheet({
     step(
       "activity",
       `+ ${fmtInt(needs.activityKcal)}`,
-      t("settings:plan.needs.activity.body", { level: t(`energy:levels.${needs.level}.name`) }),
+      active
+        ? t("energy:needs.calibrated", {
+            formula: fmtInt(active.formulaKcal),
+            measured: fmtInt(active.measuredKcal ?? active.formulaKcal),
+            used: fmtInt(active.usedKcal ?? needs.tdeeKcal),
+          })
+        : t("settings:plan.needs.activity.body", { level: t(`energy:levels.${needs.level}.name`) }),
     ),
     maternal
       ? {
@@ -89,10 +98,12 @@ export function NeedsSheet({
       ? [
           {
             key: "extra",
-            label: t("energy:needs.extra.label"),
+            label: t(calibrated ? "energy:needs.extra.labelCalibrated" : "energy:needs.extra.label"),
             name: t("energy:needs.extra.name"),
             value: `+ ${fmtInt(needs.exerciseKcal)}`,
-            body: t("energy:needs.extra.body", { pct: storedAddBackSettings().pct }),
+            body: calibrated
+              ? t("energy:needs.extra.bodyCalibrated", { pct: storedAddBackSettings().pct })
+              : t("energy:needs.extra.body", { pct: storedAddBackSettings().pct }),
           },
           {
             key: "budget",
@@ -115,15 +126,37 @@ export function NeedsSheet({
     >
       <div className="mb-3 rounded-2xl bg-makan-soft p-4">
         <p className="text-[0.9375rem] leading-snug font-extrabold text-makan-ink tabular-nums">
-          {t("energy:needs.formula", {
-            bmr: fmtInt(needs.bmrKcal),
-            factor: fmtFactor(needs.factor),
-            tdee: fmtInt(needs.tdeeKcal),
-          })}
+          {calibrated
+            ? t("energy:needs.formulaCalibrated", {
+                bmr: fmtInt(needs.bmrKcal),
+                move: fmtInt(needs.tdeeKcal - needs.bmrKcal),
+                tdee: fmtInt(needs.tdeeKcal),
+              })
+            : t("energy:needs.formula", {
+                bmr: fmtInt(needs.bmrKcal),
+                factor: fmtFactor(needs.factor),
+                tdee: fmtInt(needs.tdeeKcal),
+              })}
         </p>
         <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground tabular-nums">
-          {t("energy:needs.included", { factor: fmtFactor(needs.factor), kcal: fmtInt(needs.includedKcal) })}
+          {calibrated
+            ? t("energy:needs.includedCalibrated", { kcal: fmtInt(needs.includedKcal) })
+            : t("energy:needs.included", { factor: fmtFactor(needs.factor), kcal: fmtInt(needs.includedKcal) })}
         </p>
+        {calibration && calibration.status !== "active" && !maternal && (
+          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+            {calibration.status === "off"
+              ? t("energy:auto.status.off", { formula: fmtInt(calibration.formulaKcal) })
+              : calibration.status === "waiting"
+                ? t("energy:auto.status.waiting", { date: fmtDateLong(calibration.nextDate) })
+                : t("energy:auto.status.collecting", {
+                    logged: calibration.loggedDays,
+                    loggedNeeded: calibration.loggedDaysNeeded,
+                    span: calibration.spanDays,
+                    spanNeeded: calibration.spanDaysNeeded,
+                  })}
+          </p>
+        )}
       </div>
       <ol className="space-y-2">
         {steps.map((step) => {
@@ -173,7 +206,7 @@ export function NeedsSheet({
             <span className="font-semibold">{t("gain:estimate.title")}.</span> {t("gain:estimate.body")}
           </p>
         )}
-        {!hasExtra && <p>{t("energy:needs.none")}</p>}
+        {!hasExtra && <p>{t(calibrated ? "energy:needs.noneCalibrated" : "energy:needs.none")}</p>}
       </div>
       <EnergySources className="mt-6" />
     </Sheet>

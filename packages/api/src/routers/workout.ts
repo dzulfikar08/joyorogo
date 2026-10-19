@@ -44,6 +44,7 @@ import {
   weeklySetsPerMuscle,
   type WorkoutPR,
 } from "../lib/workout";
+import { readCalibrationPrefs } from "../lib/calibration-store";
 import { planQueries, buildPlan } from "../lib/plan";
 import {
   EXPORT_MAX_SIDE_ROWS,
@@ -862,7 +863,7 @@ export const workoutRouter = {
 
     const [plan, sessions] = await Promise.all([
       (async () => {
-        const [profileRows, latestRows, weighIns, intake, exercise] =
+        const [profileRows, latestRows, weighIns, intake, exercise, prefRows] =
           await context.db.batch(planQueries(context.db, userId, today));
         const prof = profileRows[0];
         if (!prof) return null;
@@ -873,6 +874,7 @@ export const workoutRouter = {
             weighIns,
             intake,
             exercise,
+            prefs: readCalibrationPrefs(prefRows),
           },
           today,
         );

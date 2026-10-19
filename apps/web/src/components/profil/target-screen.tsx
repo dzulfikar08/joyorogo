@@ -28,6 +28,7 @@ import {
   settleableGoal,
 } from "@/components/gain/goal-plan";
 import { ActivityLevelSection } from "@/components/profil/activity-level-section";
+import { CalibrationSection } from "@/components/profil/calibration-section";
 import { ExerciseCreditSection } from "@/components/profil/exercise-credit-section";
 import { profileOptions } from "@/components/profil/shared";
 import type { ProfilCtx } from "@/components/profil/shared";
@@ -181,11 +182,13 @@ export function TargetScreen({
             </IconChip>
           }
           title={t("plan.needs.row")}
+          wrapTitle
           value={t("plan.needs.rowValue", { kcal: fmtInt(targets.tdee) })}
           onClick={() => setSheet("needs")}
         />
       </ListGroup>
       <ActivityLevelSection current={targets.level} maternal={targets.maternal !== null} />
+      <CalibrationSection maternal={targets.maternal !== null} />
       <ExerciseCreditSection includedKcal={targets.includedKcal} />
       {targets.notes.some((note) => note !== "MATERNAL") && (
         <div className="mt-3">

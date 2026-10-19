@@ -11,6 +11,7 @@ import type { DayLog, FastingPattern } from "../lib/fasting";
 import { protectedProcedure } from "../index";
 import { effectiveRamadan, jakartaToday, shiftDate } from "../lib/engine";
 import { dateSchema } from "../lib/schemas";
+import { readCalibrationPrefs } from "../lib/calibration-store";
 import { buildPlan, planQueries } from "../lib/plan";
 import { budgetKcal } from "../lib/exercise-credit";
 import { loadDayCredit } from "../lib/exercise-credit-store";
@@ -87,7 +88,7 @@ export const fastingRouter = {
       const userId = context.session.user.id;
       const date = input.date ?? jakartaToday();
       const now = new Date();
-      const [profRows, latest, weighIns, intake, exercise, logRows] = await context.db.batch([
+      const [profRows, latest, weighIns, intake, exercise, prefRows, logRows] = await context.db.batch([
         ...planQueries(context.db, userId, date),
         context.db
           .select({ meal: foodLog.meal, kcal: foodLog.kcal, createdAt: foodLog.createdAt })
@@ -107,6 +108,7 @@ export const fastingRouter = {
           weighIns,
           intake,
           exercise,
+          prefs: readCalibrationPrefs(prefRows),
         },
         date,
       );

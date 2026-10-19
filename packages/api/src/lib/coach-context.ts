@@ -12,6 +12,7 @@ import { readCoachDoc } from "./coach-doc";
 import type { CoachDoc } from "./coach-doc";
 import { shiftDate } from "./engine";
 import { maternalFromRow } from "./maternal";
+import { readCalibrationPrefs } from "./calibration-store";
 import { buildPlan, planQueries } from "./plan";
 
 export interface CoachProfileContext {
@@ -56,9 +57,13 @@ export async function readProfileContext(
   today: string,
   nowYear: number,
 ): Promise<CoachProfileContext | null> {
-  const [[row], [latest], weighIns, intake, exercise] = await db.batch(planQueries(db, userId, today));
+  const [[row], [latest], weighIns, intake, exercise, prefRows] = await db.batch(planQueries(db, userId, today));
   if (!row) return null;
-  const plan = buildPlan(row, { latestWeightKg: latest?.weightKg ?? null, weighIns, intake, exercise }, today);
+  const plan = buildPlan(
+    row,
+    { latestWeightKg: latest?.weightKg ?? null, weighIns, intake, exercise, prefs: readCalibrationPrefs(prefRows) },
+    today,
+  );
   const age = row.birthYear > 1900 ? nowYear - row.birthYear : null;
   return {
     age,

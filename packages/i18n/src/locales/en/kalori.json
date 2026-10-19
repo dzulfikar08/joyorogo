@@ -11,7 +11,7 @@
   },
   "formula": {
     "title": "TDEE = BMR × factor",
-    "p1": "TDEE is your BMR multiplied by an activity factor. These are widely used standard numbers, from 1.2 to 1.9, depending on how active your days are. You choose the level.",
+    "p1": "TDEE is your BMR multiplied by an activity factor. These are widely used standard numbers, from 1.2 to 1.9, depending on how active your days are. You choose the level. It is the starting point: when your log and weigh-ins are good enough, automatic calibration adjusts it from your progress (see the Automatic calibration section).",
     "p2": "Digesting and absorbing food also uses energy. This is called the thermic effect of food (TEF), and it's about 5 to 15% of daily expenditure (Westerterp 2004). JoyoRogo uses 10%. Because the factors are based on total expenditure, TEF is already included, so it isn't added again.",
     "chart": "Example for the {{level}} level (factor {{factor}}): TDEE is made up of BMR, the daily movement already in the factor, and the energy spent digesting food.",
     "chartLabel": "Stacked bar: BMR {{bmr}} kcal, daily movement {{move}} kcal, digesting food {{tef}} kcal, total TDEE {{tdee}} kcal.",
@@ -23,7 +23,7 @@
   "levels": {
     "title": "Five activity levels",
     "intro": "Each level has a standard factor. Here's what each one means, some examples, and the TDEE it gives for the person in the worked example below.",
-    "tip": "Torn between two levels? Pick the lower one, then check whether your weight drops as planned. The app also suggests a level based on your steps and your weight trend (see below).",
+    "tip": "Torn between two levels? Pick the lower one, then check whether your weight drops as planned. The app also suggests a level based on your steps and your weight trend (see below). The app also adjusts your target from your weight trend through automatic calibration (see below).",
     "chart": "The higher the level, the bigger the TDEE. The darker part is the BMR, which is the same at every level.",
     "chartLabel": "Bar chart of the TDEE for all five levels.",
     "bmrLegend": "BMR",
@@ -39,8 +39,8 @@
     "legendBelow": "Already in the factor, not added",
     "legendAbove": "Above the factor, added",
     "line": "Factor line: {{kcal}} kcal",
-    "measured": "{{kcal}}\u00a0kcal measured",
-    "added": "+{{kcal}}\u00a0kcal",
+    "measured": "{{kcal}} kcal measured",
+    "added": "+{{kcal}} kcal",
     "none": "Nothing added",
     "days": {
       "desk": "Phone on desk",
@@ -50,9 +50,50 @@
     "deskTitle": "When your phone stays on the desk",
     "deskBody": "A tiny number from a phone you didn't carry no longer reads as a lazy day. If measured movement is below what your factor already covers, nothing is added and your target stays at the base target. Watch or phone data never lowers your target."
   },
+  "calibration": {
+    "title": "Automatic calibration from your weight",
+    "p1": "The level's factor is a guess. When you log food and weigh yourself regularly, JoyoRogo can measure what your body really burns and use that as the TDEE in your target instead of BMR × the factor. It is on by default and you can configure it.",
+    "items": {
+      "start": {
+        "title": "When it starts",
+        "body": "Once the last 28 days hold at least 20 logged days (a day under 800 kcal counts as not logged) and your weigh-ins span at least 21 days. Until then your target stays on the formula, and you can see the progress in Profile, Target & body."
+      },
+      "measure": {
+        "title": "How it is measured",
+        "body": "What you ate on average, plus the energy your weight trend says left the body (7,700 kcal per kg), minus the average of your logged workouts. The result is the TDEE of your days without exercise, which is what the activity level you pick stands for. Strava workouts are left out of this."
+      },
+      "guard": {
+        "title": "A ±15% guard",
+        "body": "The measurement is kept within 15% of the formula (BMR × your level's factor). One messy month cannot throw your target far off."
+      },
+      "weekly": {
+        "title": "Once a week",
+        "body": "The measurement is refreshed every Monday and held until the next one, so your target does not bounce around every time you weigh in."
+      },
+      "credit": {
+        "title": "Never counted twice",
+        "body": "The movement that is measured already sits inside the calibrated TDEE. So a watch or phone only adds to your target when your day goes beyond that movement: measured TDEE − BMR − 10% of TDEE."
+      },
+      "maternal": {
+        "title": "Pregnant and breastfeeding",
+        "body": "These modes do not use calibration, because weight is expected to change."
+      },
+      "off": {
+        "title": "You can turn it off",
+        "body": "In Profile, Target & body you can switch calibration off, and your target goes back to the pure formula. When calibration moves your target by 50 kcal or more, Beranda tells you."
+      }
+    },
+    "exampleIntro": "Example for level {{level}}: the formula gives a TDEE of {{formula}} kcal, so the guard is {{min}} to {{max}} kcal.",
+    "measured": "Measured",
+    "used": "Used",
+    "within": "Within the guard",
+    "capped": "Hit the guard",
+    "note": "The 7,700 kcal per kg rule is only an approximation (Hall et al. 2011), and the result depends on how complete your log is. That is why there is a ±15% guard and a weekly measurement.",
+    "cta": "Calibration settings"
+  },
   "recommend": {
     "title": "Suggestions for a more accurate level",
-    "intro": "The level you pick is your best guess. These two checks help confirm it. Both are only suggestions with a Use button, and are never applied automatically.",
+    "intro": "The level you pick is your best guess. These two checks help confirm it. Both are only suggestions with a Use button, and are never applied automatically. From your weight trend, automatic calibration already works directly; the level suggestion from the trend only shows when you turn calibration off.",
     "stepsTitle": "From your steps",
     "stepsBody": "If your account has step data on at least 5 of the last 14 days, the average is matched against the Tudor-Locke & Bassett (2004) step index. During onboarding, this suggestion only appears if the data is already there.",
     "stepsHeader": {
@@ -66,8 +107,8 @@
       "r4": "10,000 to 12,499",
       "r5": "12,500 or more"
     },
-    "trendTitle": "From your weight trend",
-    "trendBody": "Once you've weighed in and logged food regularly for at least 3 weeks (at least 70% of days logged), JoyoRogo works out how much your body actually burns: your average intake, adjusted for your weight change, minus your average logged workouts. That number is divided by your BMR and matched to the nearest level, so you can compare what was measured with what the formula predicts.",
+    "trendTitle": "From your weight trend (calibration off)",
+    "trendBody": "This part only shows when you turn automatic calibration off. Once you've weighed in and logged food regularly for at least 3 weeks (at least 70% of days logged), JoyoRogo works out how much your body actually burns: your average intake, adjusted for your weight change, minus your average logged workouts. That number is divided by your BMR and matched to the nearest level, so you can compare what was measured with what the formula predicts.",
     "trendNote": "The 7,700 kcal per kg rule is only an approximation, because the body adapts as weight changes (Hall et al. 2011). So treat this as a suggestion, not a final answer."
   },
   "example": {
@@ -78,7 +119,8 @@
     "tdee": "TDEE",
     "target": "Eating target",
     "floorNote": "At the lowest level, TDEE minus the deficit falls below the minimum intake for men ({{floor}} kcal), so the target is raised to {{floor}} kcal.",
-    "oldNote": "The old method (BMR minus the deficit) gave {{old}} kcal at every level."
+    "oldNote": "The old method (BMR minus the deficit) gave {{old}} kcal at every level.",
+    "calNote": "The numbers in this table are from the pure formula. Once your data is good enough, automatic calibration can move them up or down by as much as 15%."
   },
   "cta": {
     "title": "Try it on your account",

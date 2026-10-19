@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  CALIBRATION_MIN_SPAN_DAYS,
   STEPS_MIN_DAYS,
   activityOptions,
   calibrationRecommendation,
@@ -9,6 +8,7 @@ import {
   levelFromSteps,
   stepsRecommendation,
 } from "./activity-guide";
+import { CALIBRATION_MIN_SPAN_DAYS } from "./calibration";
 import { ACTIVITY_FACTOR, ACTIVITY_LEVELS, computeTargets, shiftDate } from "./engine";
 import type { ActivityLevel, DayKcal, ProfileInput, WeighIn } from "./engine";
 import { NO_MATERNAL } from "./maternal";

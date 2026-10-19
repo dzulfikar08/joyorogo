@@ -12,6 +12,7 @@ import {
 import { dueReminders, isFastingPattern, wibDateKey, wibMinutes } from "@joyorogo/api/lib/fasting";
 import { pendingStickerKey } from "@joyorogo/api/lib/sticker";
 import { isGainGap } from "@joyorogo/api/lib/gain";
+import { readCalibrationPrefs } from "@joyorogo/api/lib/calibration-store";
 import { buildPlan, gainedKg, planQueries } from "@joyorogo/api/lib/plan";
 import { budgetKcal } from "@joyorogo/api/lib/exercise-credit";
 import { loadDayCredit } from "@joyorogo/api/lib/exercise-credit-store";
@@ -519,8 +520,12 @@ app.get("/u/:code", async (c) => {
   const gaining = row.goal === "gain" && isGainGap(row.targetWeightKg - latestKg);
   const gained = gaining ? gainedKg(row, latestKg) : 0;
   if (gaining) {
-    const [, , weighIns, intake, exercise] = await db.batch(planQueries(db, row.userId, today));
-    const plan = buildPlan(row, { latestWeightKg: latestKg, weighIns, intake, exercise }, today);
+    const [, , weighIns, intake, exercise, prefRows] = await db.batch(planQueries(db, row.userId, today));
+    const plan = buildPlan(
+      row,
+      { latestWeightKg: latestKg, weighIns, intake, exercise, prefs: readCalibrationPrefs(prefRows) },
+      today,
+    );
     const eatenDays = await db
       .select({ date: foodLogTable.date, kcal: sql<number>`sum(${foodLogTable.kcal})` })
       .from(foodLogTable)
@@ -658,14 +663,14 @@ async function runFastingReminders(): Promise<void> {
     if (effectiveRamadan(row.ramadanMode, now)) continue;
 
     // Same eat budget the day summary shows (formula → measured TDEE).
-    const [profRows, latest, weighIns, intake, exercise] = await db.batch(
+    const [profRows, latest, weighIns, intake, exercise, prefRows] = await db.batch(
       planQueries(db, row.userId, today),
     );
     const profRow = profRows[0];
     if (!profRow) continue;
     const plan = buildPlan(
       profRow,
-      { latestWeightKg: latest[0]?.weightKg ?? null, weighIns, intake, exercise },
+      { latestWeightKg: latest[0]?.weightKg ?? null, weighIns, intake, exercise, prefs: readCalibrationPrefs(prefRows) },
       today,
     );
     const [eatenRow] = await db

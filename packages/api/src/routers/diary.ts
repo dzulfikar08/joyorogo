@@ -6,6 +6,7 @@ import { foodLog } from "@joyorogo/db/schema/fitness";
 import { protectedProcedure } from "../index";
 import { daysBetween, jakartaToday } from "../lib/engine";
 import { FOOD_KINDS, matchesKind } from "../lib/food-kind";
+import { readCalibrationPrefs } from "../lib/calibration-store";
 import { buildPlan, planQueries } from "../lib/plan";
 import { dateSchema } from "../lib/schemas";
 
@@ -36,7 +37,7 @@ export const diaryRouter = {
       const first = `${input.month}-01`;
       const last = `${input.month}-31`;
       const planDate = today < first ? first : today > last ? last : today;
-      const [profileRows, latestRows, weighIns, intake, exercise, rows] = await context.db.batch([
+      const [profileRows, latestRows, weighIns, intake, exercise, prefRows, rows] = await context.db.batch([
         ...planQueries(context.db, userId, planDate),
         context.db
           .select({
@@ -53,7 +54,13 @@ export const diaryRouter = {
       const targetKcal = prof
         ? buildPlan(
             prof,
-            { latestWeightKg: latestRows[0]?.weightKg ?? null, weighIns, intake, exercise },
+            {
+              latestWeightKg: latestRows[0]?.weightKg ?? null,
+              weighIns,
+              intake,
+              exercise,
+              prefs: readCalibrationPrefs(prefRows),
+            },
             planDate,
           ).targets.eatKcal
         : null;

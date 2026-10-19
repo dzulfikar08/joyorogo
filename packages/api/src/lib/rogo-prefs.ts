@@ -1,3 +1,9 @@
+import {
+  CALIBRATION_PREF_KEY,
+  CALIBRATION_SEEN_PREF_KEY,
+  DEFAULT_CALIBRATION_ENABLED,
+  sanitizeSeenKcal,
+} from "./calibration";
 import { ADD_BACK_SANITIZERS, DEFAULT_ADD_BACK_SETTINGS } from "./exercise-credit";
 import { DEFAULT_MAKAN_VIEW, parseMakanView } from "./diary-view";
 import { parseFoodKindFilter } from "./food-kind";
@@ -99,6 +105,17 @@ const SPECS = {
   // removed `exercise.assumedActive` and the older `exercise.addBack.source` / `.stepThreshold` records may still be in
   // an account (older builds write them); no build reads them any more.
   "dismissed.energyModel": dismissal,
+  // Automatic calibration of the eat target to the weight trend (lib/calibration; the server reads it, so every client
+  // and the MCP connector see the same target). On by default: only `false` is stored. The seen figure is the base
+  // target the person last acknowledged on Beranda; it has no default (absent = nothing acknowledged yet).
+  [CALIBRATION_PREF_KEY]: {
+    sanitize: (value) => (typeof value === "boolean" ? value : undefined),
+    isDefault: (value) => value === DEFAULT_CALIBRATION_ENABLED,
+  },
+  [CALIBRATION_SEEN_PREF_KEY]: {
+    sanitize: sanitizeSeenKcal,
+    isDefault: () => false,
+  },
 } satisfies Record<string, RogoPrefSpec>;
 
 export type RogoPrefKey = keyof typeof SPECS;

@@ -1,4 +1,5 @@
 import { ENERGY_SOURCES } from "@joyorogo/api/lib/energy-sources";
+import { CALIBRATION_MAX_SHIFT } from "@joyorogo/api/lib/calibration";
 import { ACTIVITY_LEVELS, computeTargets } from "@joyorogo/api/lib/engine";
 import type { ActivityLevel } from "@joyorogo/api/lib/engine";
 import { DEFAULT_ADD_BACK_SETTINGS, exerciseCredit } from "@joyorogo/api/lib/exercise-credit";
@@ -52,8 +53,13 @@ const addedOn = (measuredKcal: number) =>
     includedKcal: demo.includedKcal,
   }).countedKcal;
 
-const SECTIONS = ["why", "formula", "levels", "credit", "recommend", "example", "sources"] as const;
+const SECTIONS = ["why", "formula", "levels", "credit", "calibration", "recommend", "example", "sources"] as const;
 const STEP_ROWS = ["r1", "r2", "r3", "r4", "r5"] as const;
+const CALIBRATION_ITEMS = ["start", "measure", "guard", "weekly", "credit", "maternal", "off"] as const;
+/** Three measurements against the demo person's formula TDEE: under the guard, inside it, over it. */
+const CALIBRATION_EXAMPLES = [2300, 2950, 3600] as const;
+const guardMin = Math.round(demo.tdee * (1 - CALIBRATION_MAX_SHIFT));
+const guardMax = Math.round(demo.tdee * (1 + CALIBRATION_MAX_SHIFT));
 
 /** Blog posts that build on this page. The blog is Indonesian-only, so these titles are not translated. */
 const RELATED_POSTS = [
@@ -318,6 +324,60 @@ function PanduanKaloriPage() {
             <SubP>{t("kalori:credit.deskBody")}</SubP>
           </Section>
 
+          <Section id="calibration" title={t("kalori:calibration.title")}>
+            <P>{t("kalori:calibration.p1")}</P>
+            <ul className="mt-4 space-y-3">
+              {CALIBRATION_ITEMS.map((item) => (
+                <li key={item}>
+                  <h3 className="text-sm font-bold">{t(`kalori:calibration.items.${item}.title`)}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    {t(`kalori:calibration.items.${item}.body`)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <P>
+              {t("kalori:calibration.exampleIntro", {
+                level: demoName,
+                formula: fmtInt(demo.tdee),
+                min: fmtInt(guardMin),
+                max: fmtInt(guardMax),
+              })}
+            </P>
+            <table className="mt-3 w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground">
+                  <th className="py-1.5 pr-2 text-right font-semibold">{t("kalori:calibration.measured")}</th>
+                  <th className="py-1.5 pr-2 text-right font-semibold">{t("kalori:calibration.used")}</th>
+                  <th className="py-1.5 font-semibold" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border tabular-nums">
+                {CALIBRATION_EXAMPLES.map((measured) => {
+                  const used = Math.min(guardMax, Math.max(guardMin, measured));
+                  return (
+                    <tr key={measured}>
+                      <td className="py-2 pr-2 text-right">{fmtInt(measured)}</td>
+                      <td className="py-2 pr-2 text-right font-bold">{fmtInt(used)}</td>
+                      <td className="py-2 text-muted-foreground">
+                        {t(used === measured ? "kalori:calibration.within" : "kalori:calibration.capped")}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <Caption>{t("kalori:calibration.note")}</Caption>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-3 min-h-11"
+              render={<Link to="/profil/target" search={{}} hash="calibration" />}
+            >
+              {t("kalori:calibration.cta")}
+            </Button>
+          </Section>
+
           <Section id="recommend" title={t("kalori:recommend.title")}>
             <P>{t("kalori:recommend.intro")}</P>
             <h3 className="mt-5 text-base font-bold">{t("kalori:recommend.stepsTitle")}</h3>
@@ -375,6 +435,7 @@ function PanduanKaloriPage() {
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               {t("kalori:example.oldNote", { old: fmtInt(OLD_TARGET) })}
             </p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("kalori:example.calNote")}</p>
             <div className="mt-5 rounded-2xl bg-makan-soft p-4">
               <p className="text-sm font-bold text-makan-ink">{t("kalori:cta.title")}</p>
               <p className="mt-1 text-[0.9375rem] leading-relaxed text-makan-ink/85">{t("kalori:cta.body")}</p>

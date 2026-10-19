@@ -7,6 +7,7 @@ import { protectedProcedure } from "../index";
 import { gainStreak, jakartaToday, shiftDate } from "../lib/engine";
 import { budgetKcal, exerciseCredit } from "../lib/exercise-credit";
 import { addBackPrefQuery, creditDayQueries, dayReadings, readAddBackPrefs } from "../lib/exercise-credit-store";
+import { readCalibrationPrefs } from "../lib/calibration-store";
 import { buildPlan, planQueries, proteinGoalG } from "../lib/plan";
 import { buildWeekRecap, weekStartOf } from "../lib/recap";
 import { dateSchema } from "../lib/schemas";
@@ -31,8 +32,18 @@ export const statsRouter = {
       const weekEnd = shiftDate(weekStart, 6);
       const refDay = weekEnd < today ? weekEnd : today;
 
-      const [profileRows, latestRows, weighIns, intake, exercise, foodRows, exerciseRows, foodDates, weightDates] =
-        await context.db.batch([
+      const [
+        profileRows,
+        latestRows,
+        weighIns,
+        intake,
+        exercise,
+        calibrationRows,
+        foodRows,
+        exerciseRows,
+        foodDates,
+        weightDates,
+      ] = await context.db.batch([
           ...planQueries(context.db, userId, refDay),
           context.db
             .select({
@@ -94,7 +105,7 @@ export const statsRouter = {
       if (!prof) return null;
       const plan = buildPlan(
         prof,
-        { latestWeightKg: latestRows[0]?.weightKg ?? null, weighIns, intake, exercise },
+        { latestWeightKg: latestRows[0]?.weightKg ?? null, weighIns, intake, exercise, prefs: readCalibrationPrefs(calibrationRows) },
         refDay,
       );
 

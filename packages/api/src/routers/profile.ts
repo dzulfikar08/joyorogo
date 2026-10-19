@@ -13,10 +13,10 @@ import type { Database } from "@joyorogo/db";
 import type { Targets } from "../lib/engine";
 
 import { protectedProcedure } from "../index";
-import { checkTargetDate, computeTargets, jakartaToday, shiftDate } from "../lib/engine";
+import { checkTargetDate, jakartaToday, shiftDate } from "../lib/engine";
 import { GOALS, goalTargetError, resolveGoal } from "../lib/gain";
 import type { Goal } from "../lib/gain";
-import { FEEDING_TYPES, NO_MATERNAL, computeMaternalTargets, maternalFromRow, maternalToRow, resolveMaternalInput } from "../lib/maternal";
+import { FEEDING_TYPES, NO_MATERNAL, maternalFromRow, maternalToRow, resolveMaternalInput } from "../lib/maternal";
 import type { MaternalState } from "../lib/maternal";
 import {
   STEPS_WINDOW_DAYS,
@@ -25,6 +25,7 @@ import {
   stepsRecommendation,
 } from "../lib/activity-guide";
 import { activityLevelSchema, dateSchema, maternalInputSchema, profileInputSchema } from "../lib/schemas";
+import { readCalibrationPrefs } from "../lib/calibration-store";
 import { buildPlan, planQueries } from "../lib/plan";
 import { serverT } from "../lib/messages";
 import { effectiveTier } from "../lib/tiers";
@@ -98,7 +99,7 @@ function settleTarget(
 /** Today's plan exactly as day.summary computes it (latest weigh-in + measured TDEE). */
 async function loadPlan(db: Database, userId: string) {
   const today = jakartaToday();
-  const [[userRow], [row], [latest], weighIns, intake, exercise] = await db.batch([
+  const [[userRow], [row], [latest], weighIns, intake, exercise, prefRows] = await db.batch([
     db
       .select({ tier: user.tier, founderUntil: user.founderUntil })
       .from(user)
@@ -112,7 +113,7 @@ async function loadPlan(db: Database, userId: string) {
   if (!row) return { row: null, plan: null, tier, founderUntil };
   const plan = buildPlan(
     row,
-    { latestWeightKg: latest?.weightKg ?? null, weighIns, intake, exercise },
+    { latestWeightKg: latest?.weightKg ?? null, weighIns, intake, exercise, prefs: readCalibrationPrefs(prefRows) },
     today,
   );
   return { row, plan, tier, founderUntil };
@@ -139,7 +140,7 @@ export const profileRouter = {
   activityGuide: protectedProcedure.handler(async ({ context }) => {
     const userId = context.session.user.id;
     const today = jakartaToday();
-    const [[row], [latest], weighIns, intake, exercise, stepRows] = await context.db.batch([
+    const [[row], [latest], weighIns, intake, exercise, prefRows, stepRows] = await context.db.batch([
       ...planQueries(context.db, userId, today),
       context.db
         .select({ date: dailyActivity.date, steps: dailyActivity.steps })
@@ -153,16 +154,22 @@ export const profileRouter = {
         ),
     ]);
     const steps = stepsRecommendation(stepRows, today);
-    if (!row) return { level: null, maternal: false, options: [], steps, calibration: null };
-    const plan = buildPlan(row, { latestWeightKg: latest?.weightKg ?? null, weighIns, intake, exercise }, today);
+    if (!row) return { level: null, maternal: false, options: [], steps, calibration: null, autoCalibration: null };
+    const plan = buildPlan(
+      row,
+      { latestWeightKg: latest?.weightKg ?? null, weighIns, intake, exercise, prefs: readCalibrationPrefs(prefRows) },
+      today,
+    );
     return {
       level: plan.targets.level,
       maternal: plan.maternal !== null,
       options: activityOptions(plan.profileInput, plan.maternal, plan.weightNowKg, today),
       steps,
-      // Hamil / Menyusui: the weight is expected to move, so it says nothing about the activity level.
+      // The level suggestion from the weight trend. With the automatic calibration on it supersedes it (the target is
+      // already built on the measured figure), so it shows only while the calibration is off. Hamil / Menyusui: the
+      // weight is expected to move, so it says nothing about the activity level.
       calibration:
-        plan.maternal === null
+        plan.maternal === null && !plan.prefs.enabled
           ? calibrationRecommendation({
               date: today,
               weighIns,
@@ -172,6 +179,8 @@ export const profileRouter = {
               currentLevel: plan.targets.level,
             })
           : null,
+      // The automatic calibration: switch, progress, formula / measured / used. Null for Hamil / Menyusui.
+      autoCalibration: plan.calibration,
     };
   }),
 
@@ -301,22 +310,11 @@ export const profileRouter = {
             set: { weightKg: input.weightKg },
           }),
       ]);
-      const profileInput = {
-        birthYear: input.birthYear,
-        gender: input.gender,
-        heightCm: input.heightCm,
-        weightKg: input.weightKg,
-        targetWeightKg,
-        targetDate,
-        activityLevel: input.activityLevel,
-        goal,
-      };
-      return {
-        targets:
-          maternal.mode === "none"
-            ? computeTargets(profileInput, { weightNow: input.weightKg })
-            : computeMaternalTargets(profileInput, maternal, { today, weightNow: input.weightKg }),
-      };
+      const { plan } = await loadPlan(context.db, userId);
+      if (!plan) {
+        throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+      }
+      return { targets: plan.targets };
     }),
 
   // Editing the plan from /profil must not touch startWeightKg (the history
@@ -403,7 +401,7 @@ export const profileRouter = {
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
       const today = jakartaToday();
-      const [[row], [latest], weighIns, intake, exercise] = await context.db.batch(
+      const [[row], [latest], weighIns, intake, exercise, prefRows] = await context.db.batch(
         planQueries(context.db, userId, today),
       );
       if (!row) {
@@ -411,7 +409,13 @@ export const profileRouter = {
           message: serverT(context.locale, "errors")("profile.onboardingRequired"),
         });
       }
-      const history = { latestWeightKg: latest?.weightKg ?? null, weighIns, intake, exercise };
+      const history = {
+        latestWeightKg: latest?.weightKg ?? null,
+        weighIns,
+        intake,
+        exercise,
+        prefs: readCalibrationPrefs(prefRows),
+      };
       const now = buildPlan(row, history, today);
       const settled = settleTarget(context.locale, {
         explicit: input.goal,

@@ -14,12 +14,15 @@ import type {
   WeightTrend,
 } from "./engine";
 import {
-  ADAPTIVE_WINDOW_DAYS,
   computeTargets,
   proteinTargetG,
   shiftDate,
   weightTrend,
 } from "./engine";
+import { CALIBRATION_HISTORY_DAYS, resolveCalibration } from "./calibration";
+import type { CalibrationInfo } from "./calibration";
+import { calibrationPrefQuery } from "./calibration-store";
+import type { CalibrationPrefs } from "./calibration-store";
 import { isRapidLoss } from "./gain";
 import { computeMaternalTargets, maternalFromRow, maternalNutrient } from "./maternal";
 import type { MaternalState } from "./maternal";
@@ -30,10 +33,12 @@ const TREND_HISTORY_DAYS = 60;
 /**
  * Queries the plan needs for `date`, shaped for `db.batch` so callers fold
  * them into their own single round trip: profile, latest weigh-in ever,
- * 60 days of weigh-ins, and 28 complete days of intake + exercise totals.
+ * 60 days of weigh-ins, the intake + exercise totals of the days before `date`
+ * the calibration's weekly window reaches (34 days: 28 before the Monday on or
+ * before `date`), and the calibration preferences.
  */
 export function planQueries(db: Database, userId: string, date: string) {
-  const windowStart = shiftDate(date, -ADAPTIVE_WINDOW_DAYS);
+  const windowStart = shiftDate(date, -CALIBRATION_HISTORY_DAYS);
   return [
     db.select().from(profile).where(eq(profile.userId, userId)).limit(1),
     db
@@ -74,6 +79,7 @@ export function planQueries(db: Database, userId: string, date: string) {
         ),
       )
       .groupBy(exerciseLog.date),
+    calibrationPrefQuery(db, userId),
   ] as const;
 }
 
@@ -117,9 +123,19 @@ export type Plan = {
   trend: WeightTrend | null;
   /** Hamil / Menyusui state of the profile row; null for the normal plan */
   maternal: MaternalState | null;
+  /** where the automatic calibration stands (also on `targets.calibration`); null for Hamil / Menyusui */
+  calibration: CalibrationInfo | null;
+  /** the base eat target the pure level formula gives; what the plan was before calibration, for Beranda's notice */
+  formulaEatKcal: number;
+  /** the person's calibration preferences, for callers that also need the acknowledged figure */
+  prefs: CalibrationPrefs;
 };
 
-/** The 3 numbers for `date`: TDEE (BMR x activity factor) less the deficit (gain: plus the surplus), Hamil / Menyusui from AKG. */
+/**
+ * The 3 numbers for `date`: TDEE (BMR x activity factor, or the calibrated TDEE once the weight trend has earned one)
+ * less the deficit (gain: plus the surplus), Hamil / Menyusui from AKG. `history` is what `planQueries` loads; `prefs`
+ * is required so that no caller can build a plan that ignores the person's calibration switch.
+ */
 export function buildPlan(
   row: ProfileRow,
   history: {
@@ -127,6 +143,7 @@ export function buildPlan(
     weighIns: WeighIn[];
     intake: DayKcal[];
     exercise: DayKcal[];
+    prefs: CalibrationPrefs;
   },
   date: string,
 ): Plan {
@@ -152,11 +169,24 @@ export function buildPlan(
       targets: computeMaternalTargets(profileInput, maternal, { today: date, weightNow: weightNowKg }),
       trend: null,
       maternal,
+      calibration: null,
+      formulaEatKcal: 0,
+      prefs: history.prefs,
     };
   }
-  // The base is TDEE (BMR x the chosen activity factor) less the deficit. The measured TDEE (adaptiveTdee) is never
-  // applied here: it only drives the recommended level the person may choose (lib/activity-guide).
-  const targets = computeTargets(profileInput, { weightNow: weightNowKg });
+  // The base is TDEE less the deficit. TDEE is BMR x the chosen activity factor until the weight trend has earned a
+  // calibrated one (lib/calibration: enough logs, held weekly, within +-15% of the formula, workouts taken out once).
+  const formula = computeTargets(profileInput, { weightNow: weightNowKg });
+  const { info, tdeeKcal } = resolveCalibration({
+    enabled: history.prefs.enabled,
+    date,
+    weighIns: history.weighIns,
+    intake: history.intake,
+    exercise: history.exercise,
+    formulaKcal: formula.tdee,
+  });
+  const targets = tdeeKcal === null ? formula : computeTargets(profileInput, { weightNow: weightNowKg, tdeeKcal });
+  targets.calibration = info;
   const trend = weightTrend(history.weighIns, row.targetWeightKg, date);
   // A fast fall while the plan is to gain gets the see-a-doctor note (the one flag that needs the trend).
   if (targets.gain && isRapidLoss(trend?.weeklyRateKg ?? null, weightNowKg)) {
@@ -170,6 +200,9 @@ export function buildPlan(
     targets,
     trend,
     maternal: null,
+    calibration: info,
+    formulaEatKcal: formula.eatKcal,
+    prefs: history.prefs,
   };
 }
 

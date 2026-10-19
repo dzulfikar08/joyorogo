@@ -31,6 +31,7 @@ import type { ChallengeShare, DayFacts, DayResult } from "../lib/challenge";
 import { canHostChallenge } from "../lib/challenge-host";
 import { loadFacts } from "../lib/challenge-db";
 import { daysBetween, jakartaToday, shiftDate } from "../lib/engine";
+import { readCalibrationPrefs } from "../lib/calibration-store";
 import { buildPlan, planQueries, proteinGoalG } from "../lib/plan";
 import { dateSchema } from "../lib/schemas";
 import { paywallConfig } from "../lib/tiers";
@@ -118,13 +119,13 @@ function describeChallenge(c: ChallengeRow, today: string, locale: Locale) {
  * is judged against a personal target.
  */
 async function personalTargets(db: Database, userId: string, date: string) {
-  const [[prof], [latest], weighIns, intake, exercise] = await db.batch([
+  const [[prof], [latest], weighIns, intake, exercise, prefRows] = await db.batch([
     ...planQueries(db, userId, date),
   ]);
   if (!prof) return null;
   const plan = buildPlan(
     prof,
-    { latestWeightKg: latest?.weightKg ?? null, weighIns, intake, exercise },
+    { latestWeightKg: latest?.weightKg ?? null, weighIns, intake, exercise, prefs: readCalibrationPrefs(prefRows) },
     date,
   );
   return {

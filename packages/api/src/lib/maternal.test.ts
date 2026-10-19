@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
+import { DEFAULT_CALIBRATION_PREFS } from "./calibration-store";
+
 import { MATERNAL_ACTIVITY_FACTOR, bmrMifflin, computeTargets, shiftDate } from "./engine";
 import type { ProfileInput } from "./engine";
 import {
@@ -448,7 +450,13 @@ describe("mode switches through the plan", () => {
       activityLevel: "light",
       ...maternalToRow(maternal),
     }) as unknown as ProfileRow;
-  const history = { latestWeightKg: 62, weighIns: [], intake: [], exercise: [] };
+  const history = {
+    latestWeightKg: 62,
+    weighIns: [],
+    intake: [],
+    exercise: [],
+    prefs: DEFAULT_CALIBRATION_PREFS,
+  };
 
   test("normal -> pregnant -> breastfeeding -> normal", () => {
     const normal = buildPlan(row(NO_MATERNAL), history, TODAY);

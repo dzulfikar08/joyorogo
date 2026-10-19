@@ -65,6 +65,7 @@ export function ActivityRecommendations({
   applyingLevel,
   onApply,
   showEmpty,
+  autoCalibration = false,
   className,
 }: {
   steps: StepsRecommendation | null;
@@ -76,6 +77,8 @@ export function ActivityRecommendations({
   applyingLevel: ActivityLevel | null;
   onApply: (level: ActivityLevel) => void;
   showEmpty: boolean;
+  /** automatic calibration is on: the empty note says so */
+  autoCalibration?: boolean;
   className?: string;
 }) {
   const { t } = useTranslation("energy");
@@ -137,7 +140,7 @@ export function ActivityRecommendations({
           </RecommendationCard>
         )}
         {!steps && !calibration && (
-          <p className="text-sm leading-relaxed text-muted-foreground">{t("recommend.empty")}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">{t(autoCalibration ? "recommend.emptyAuto" : "recommend.empty")}</p>
         )}
       </div>
     </Card>

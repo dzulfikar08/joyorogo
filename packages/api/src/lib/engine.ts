@@ -6,6 +6,7 @@
 import { getActiveLocale, getT, relativeDayLabel } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
+import type { CalibrationInfo } from "./calibration";
 import type { MaternalInfo } from "./maternal";
 import {
   MAX_SURPLUS_KCAL,
@@ -171,11 +172,16 @@ export type Targets = {
   /** The person's activity level, and the factor it stands for (maternal plans use MATERNAL_ACTIVITY_FACTOR) */
   level: ActivityLevel;
   factor: number;
-  /** TDEE = BMR x factor (rounded to 5 for gain and maternal, whose target is built on it); TEF is inside the factor */
+  /**
+   * TDEE = BMR x factor (rounded to 5 for gain and maternal, whose target is built on it); TEF is inside the factor.
+   * With an active calibration it is the calibrated TDEE instead (`calibration.usedKcal`), and `factor` stays the
+   * level's.
+   */
   tdee: number;
   /**
    * COMPAT, old clients (native builds up to 1932, web tabs opened before the TDEE deploy) still read this: their
-   * "adaptive target" sheet and needsBreakdown use `formulaTdee`. It equals `tdee` now that the plan is never adaptive.
+   * "adaptive target" sheet and needsBreakdown use `formulaTdee`. It equals `tdee` (the figure the target is built on,
+   * calibrated or not) so their sums stay whole.
    */
   formulaTdee: number;
   /** COMPAT, same old clients: their needsBreakdown and snack advice subtract/add `assumedKcal`. Always 0 now. */
@@ -208,6 +214,12 @@ export type Targets = {
    * what the plan really follows): the realistic date to offer. Null otherwise.
    */
   datePace: DatePace | null;
+  /**
+   * Automatic calibration (lib/calibration): where it stands and, when active, the measured TDEE this target is built
+   * on (`tdee` is then the calibrated figure, `includedKcal` follows it). Set by buildPlan; absent for Hamil / Menyusui
+   * and in payloads from before the feature (clients treat missing as "no calibration").
+   */
+  calibration?: CalibrationInfo | null;
 };
 
 export function round5(n: number): number {
@@ -351,7 +363,7 @@ export type WeightTrend = {
 const TREND_ALPHA = 0.1;
 export const ADAPTIVE_WINDOW_DAYS = 28;
 const ADAPTIVE_MIN_LOGGED_DAYS = 14;
-const ADAPTIVE_MIN_WEIGH_INS = 6;
+export const ADAPTIVE_MIN_WEIGH_INS = 6;
 const RATE_MIN_SPAN_DAYS = 10;
 const PROJECTION_MAX_DAYS = 730;
 
@@ -491,8 +503,9 @@ export function rangeStats(points: TrendPoint[], targetKg: number | null): Range
  * before `date` (MacroFactor-style): average logged intake, minus average
  * logged exercise, plus the energy the weight slope says left the body.
  * Days logged below `minDayKcal` are treated as unlogged, not as fasting.
- * Null until there is enough data to beat the formula. It never changes the plan:
- * lib/activity-guide turns it into a recommended activity level the person may apply.
+ * Null until there is enough data to beat the formula. lib/calibration holds the gate, the weekly anchor and the +-15%
+ * guard before any of it reaches the plan (the tdeeKcal option of computeTargets); with the calibration off it only
+ * drives the level recommendation (lib/activity-guide).
  */
 export function adaptiveTdee(input: {
   date: string;
@@ -623,12 +636,15 @@ export type ComputeOptions = {
   weightNow?: number;
   /** Replaces the profile level's factor. Used to show the target a level (or the pre-factor model) would give. */
   activityFactor?: number;
+  /** Replaces BMR x factor: the calibrated TDEE (lib/calibration, already inside its +-15% guard). */
+  tdeeKcal?: number;
 };
 
 /**
  * The one source of the 3 daily numbers. TDEE = BMR x the activity factor of the chosen level (daily life without the
- * logged workouts; TEF is inside the factor), so a logged workout never double-dips: it is added on top by
- * lib/exercise-credit, and only the measured activity beyond what the factor already holds.
+ * logged workouts; TEF is inside the factor), or the calibrated TDEE (`tdeeKcal`, lib/calibration) when the weight
+ * trend has earned one. Either way a logged workout never double-dips: it is added on top by lib/exercise-credit, and
+ * only the measured activity beyond the movement the TDEE already holds (`includedKcal`, derived from it).
  */
 export function computeTargets(profile: ProfileInput, options: ComputeOptions = {}): Targets {
   const today = options.today ?? jakartaToday();
@@ -637,7 +653,7 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
 
   const bmr = bmrMifflin(weightNow, profile.heightCm, age, profile.gender);
   const factor = options.activityFactor ?? ACTIVITY_FACTOR[profile.activityLevel];
-  const tdee = bmr * factor;
+  const tdee = options.tdeeKcal ?? bmr * factor;
 
   const ideal = idealWeightRange(profile.heightCm);
   const notes: TargetNotes[] = [];
@@ -953,6 +969,8 @@ export type NeedsBreakdown = {
   /** whole planned daily deficit; all of it is the food cut */
   deficitKcal: number;
   maintenance: boolean;
+  /** where the automatic calibration stands, and the figures behind a calibrated TDEE; null without one */
+  calibration: CalibrationInfo | null;
 };
 
 /** BMR x factor -> TDEE -> minus deficit -> target, from numbers computeTargets already made. */
@@ -975,6 +993,7 @@ export function needsBreakdown(targets: Targets): NeedsBreakdown {
     budgetKcal: targets.eatKcal,
     deficitKcal: targets.deficitKcal,
     maintenance: targets.notes.includes("MAINTENANCE"),
+    calibration: targets.calibration ?? null,
   };
 }
 

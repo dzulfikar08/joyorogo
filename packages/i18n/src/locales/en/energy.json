@@ -50,6 +50,7 @@
     "same": "Same as your current choice.",
     "suggest": "Suggestion: {{level}}",
     "empty": "No suggestion yet. The one from steps appears once you have step data on at least 5 of the last 14 days. The one from your weight appears after at least 3 weeks of regular weigh-ins and food logging (70% of days logged).",
+    "emptyAuto": "No suggestion yet. The one from steps appears once you have step data on at least 5 of the last 14 days. From your weight trend, automatic calibration already adjusts your target directly.",
     "steps": {
       "title": "From your steps",
       "body": "You average {{steps}} steps a day over the last {{days}} days. By the Tudor-Locke & Bassett (2004) step index, that is the {{level}} level.",
@@ -127,9 +128,43 @@
     "extra": {
       "label": "Movement above the factor",
       "name": "Added today",
-      "body": "Today's movement went beyond what your factor already contains. {{pct}}% of the extra is added to your eating allowance."
+      "body": "Today's movement went beyond what your factor already contains. {{pct}}% of the extra is added to your eating allowance.",
+      "labelCalibrated": "Movement above measured TDEE",
+      "bodyCalibrated": "Today's movement went beyond what is already measured in your TDEE. {{pct}}% of the extra is added to your eating allowance."
     },
-    "none": "No movement above the factor today, so nothing has been added."
+    "none": "No movement above the factor today, so nothing has been added.",
+    "noneCalibrated": "No movement above your measured TDEE today, so nothing has been added.",
+    "calibrated": "Automatic calibration: formula {{formula}}, measured {{measured}}, used {{used}} kcal",
+    "formulaCalibrated": "BMR {{bmr}} + measured daily movement {{move}} = TDEE {{tdee}}",
+    "includedCalibrated": "Your measured TDEE already contains about {{kcal}} kcal of daily movement (food effect aside). Only measured movement above that adds to your target."
+  },
+  "auto": {
+    "title": "Automatic calibration",
+    "toggle": "Adjust my target from my progress",
+    "how": "When your food log and weigh-ins are complete enough, JoyoRogo measures how many calories your body really burns from your weight trend, and uses that as the TDEE in your target instead of the formula's estimate.",
+    "guard": "The result is kept within ±15% of the formula, so one messy month cannot throw your target far off.",
+    "weekly": "It updates once a week, every Monday, so your target does not bounce around day to day.",
+    "off": "Turn it off and your target goes back to the pure formula: BMR × your activity level's factor.",
+    "levelNote": "While calibration is on, your level is the starting point and the reference for the ±15% guard.",
+    "maternal": "Pregnant / Breastfeeding mode does not use calibration: weight is expected to change.",
+    "status": {
+      "off": "Calibration is off. Your target comes from the pure formula, TDEE {{formula}} kcal.",
+      "offMeasured": "If you turned it on, your body measures about {{measured}} kcal (formula {{formula}}).",
+      "collecting": "Calibration: {{logged}}/{{loggedNeeded}} days logged, weigh-in span {{span}}/{{spanNeeded}} days",
+      "collectingWeighIns": "Weigh-ins: {{count}}/{{needed}} done",
+      "collectingHint": "Your target still comes from the formula. Keep logging food and weighing in, and calibration starts on its own once there is enough data.",
+      "waiting": "You have enough data. Calibration takes effect {{date}}.",
+      "active": "Adjusted from your progress: formula {{formula}}, measured {{measured}}, used {{used}} kcal",
+      "clamped": "The measurement was outside the ±15% guard, so the guard value is used.",
+      "held": "Measured from the 28 days before {{date}}. Updated again {{next}}."
+    }
+  },
+  "calNotice": {
+    "title": "Your target was adjusted",
+    "body": "Automatic calibration adjusted your base target: {{old}} → {{new}} kcal per day.",
+    "hint": "Measured from your food log and weigh-ins. You can turn it off in settings.",
+    "action": "Calibration settings",
+    "dismiss": "Close"
   },
   "readMore": "Read the full explanation"
 }

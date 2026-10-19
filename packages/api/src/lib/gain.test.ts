@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
+import { DEFAULT_CALIBRATION_PREFS } from "./calibration-store";
+
 import {
   checkTargetDate,
   computeTargets,
@@ -124,7 +126,7 @@ describe("planGoal: Hamil and Menyusui take precedence", () => {
     babyBirthDate: null,
     maternalConditions: null,
   };
-  const history = { latestWeightKg: 50, weighIns: [], intake: [], exercise: [] };
+  const history = { latestWeightKg: 50, weighIns: [], intake: [], exercise: [], prefs: DEFAULT_CALIBRATION_PREFS };
 
   test("buildPlan: gain row gives a surplus plan", () => {
     const plan = buildPlan(row({}), history, TODAY);
@@ -348,7 +350,13 @@ describe("safety flags", () => {
         goalStartKg: 60,
         maternalMode: "none",
       } as ProfileRow,
-      { latestWeightKg: weighIns.at(-1)!.weightKg, weighIns, intake: [], exercise: [] },
+      {
+        latestWeightKg: weighIns.at(-1)!.weightKg,
+        weighIns,
+        intake: [],
+        exercise: [],
+        prefs: DEFAULT_CALIBRATION_PREFS,
+      },
       TODAY,
     );
     expect(plan.targets.gain!.flags).toContain("RAPID_LOSS");

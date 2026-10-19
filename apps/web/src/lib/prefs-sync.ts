@@ -17,6 +17,7 @@ import { THEME_STORAGE_KEY } from "@/components/theme-provider";
 import { client } from "@/utils/orpc";
 
 import { dismissalStoreKey, writeDismissal } from "./dismissals";
+import { readCalibrationPref, writeCalibrationPref } from "./calibration-prefs";
 import { readAddBackPref, writeAddBackPref } from "./exercise-credit-prefs";
 import { storedKind, storedMakanView, writeMakanPref } from "./makan-prefs";
 import { STORY_PREFS_KEY } from "./story-prefs";
@@ -101,6 +102,9 @@ function readDevice(key: RogoPrefKey, userId: string): unknown | undefined {
     case "exercise.addBack.pct":
     case "exercise.addBack.cap":
       return readAddBackPref(key);
+    case "energy.calibration":
+    case "energy.calibrationSeen":
+      return readCalibrationPref(key);
     case "reminders":
       return undefined;
   }
@@ -132,6 +136,10 @@ function writeDevice(key: RogoPrefKey, userId: string, value: unknown | undefine
       case "exercise.addBack.pct":
       case "exercise.addBack.cap":
         writeAddBackPref(key, value);
+        return;
+      case "energy.calibration":
+      case "energy.calibrationSeen":
+        writeCalibrationPref(key, value);
         return;
       case "reminders":
         return;

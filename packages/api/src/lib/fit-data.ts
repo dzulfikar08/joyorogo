@@ -22,6 +22,7 @@ import type { AddBackSettings } from "./exercise-credit";
 import { addBackPrefQuery, dayReadings, readAddBackPrefs } from "./exercise-credit-store";
 import { exerciseById } from "./exercises";
 import { gestationalAge, maternalFromRow } from "./maternal";
+import { readCalibrationPrefs } from "./calibration-store";
 import { buildPlan, planQueries, proteinGoalG } from "./plan";
 import { pickNightSleep } from "./sleep-night";
 import type { StickersBucket } from "./sticker";
@@ -143,10 +144,14 @@ export interface ProfileView {
 }
 
 export async function getProfileView(db: Database, userId: string, today = jakartaToday()): Promise<ProfileView> {
-  const [profRows, latest, weighIns, intake, exercise] = await db.batch(planQueries(db, userId, today));
+  const [profRows, latest, weighIns, intake, exercise, prefRows] = await db.batch(planQueries(db, userId, today));
   const prof = profRows[0];
   if (!prof) return { today, hasProfile: false, mode: null };
-  const plan = buildPlan(prof, { latestWeightKg: latest[0]?.weightKg ?? null, weighIns, intake, exercise }, today);
+  const plan = buildPlan(
+    prof,
+    { latestWeightKg: latest[0]?.weightKg ?? null, weighIns, intake, exercise, prefs: readCalibrationPrefs(prefRows) },
+    today,
+  );
   const maternal = maternalFromRow(prof);
   const mode: CoachMode = maternal.mode !== "none" ? "hamil" : prof.goal;
   const gestation = maternal.mode === "pregnant" && maternal.pregnancyLmp ? gestationalAge(maternal.pregnancyLmp, today) : null;
@@ -452,9 +457,15 @@ export async function getWeightView(db: Database, userId: string, from: string, 
     getProfileView(db, userId, today),
     db.batch(planQueries(db, userId, today)),
   ]);
-  const [profRows, latestRows, weighIns, intake, exercise] = trendRows;
+  const [profRows, latestRows, weighIns, intake, exercise, prefRows] = trendRows;
   const prof = profRows[0];
-  const plan = prof ? buildPlan(prof, { latestWeightKg: latestRows[0]?.weightKg ?? null, weighIns, intake, exercise }, today) : null;
+  const plan = prof
+    ? buildPlan(
+        prof,
+        { latestWeightKg: latestRows[0]?.weightKg ?? null, weighIns, intake, exercise, prefs: readCalibrationPrefs(prefRows) },
+        today,
+      )
+    : null;
   const mode = view.mode;
   const targetKg = view.weight?.targetKg ?? null;
   const current = latest[0]?.weightKg ?? view.weight?.startKg ?? null;

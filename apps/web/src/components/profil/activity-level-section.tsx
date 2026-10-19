@@ -70,6 +70,7 @@ export function ActivityLevelSection({ current, maternal }: { current: ActivityL
             applyingLevel={applyingLevel}
             onApply={choose}
             showEmpty
+            autoCalibration={guide.data.autoCalibration?.enabled === true}
           />
         </>
       )}

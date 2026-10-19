@@ -50,6 +50,7 @@
     "same": "Sama dengan pilihanmu sekarang.",
     "suggest": "Saran: {{level}}",
     "empty": "Belum ada saran. Saran dari langkah muncul setelah ada data langkah minimal 5 hari dalam 14 hari terakhir. Saran dari berat badan muncul setelah sedikitnya 3 minggu timbangan dan catatan makan yang rutin (70% hari tercatat).",
+    "emptyAuto": "Belum ada saran. Saran dari langkah muncul setelah ada data langkah minimal 5 hari dalam 14 hari terakhir. Dari tren berat badan, kalibrasi otomatis sudah langsung menyesuaikan targetmu.",
     "steps": {
       "title": "Dari langkah kakimu",
       "body": "Rata-rata {{steps}} langkah per hari dalam {{days}} hari terakhir. Menurut indeks langkah Tudor-Locke & Bassett (2004), itu masuk level {{level}}.",
@@ -127,9 +128,43 @@
     "extra": {
       "label": "Gerak di atas pengali",
       "name": "Tambahan hari ini",
-      "body": "Hari ini geraknya melebihi yang sudah ada di pengalimu. {{pct}}% dari kelebihannya ditambahkan ke jatah makanmu."
+      "body": "Hari ini geraknya melebihi yang sudah ada di pengalimu. {{pct}}% dari kelebihannya ditambahkan ke jatah makanmu.",
+      "labelCalibrated": "Gerak di atas TDEE terukur",
+      "bodyCalibrated": "Hari ini geraknya melebihi yang sudah terukur di TDEE-mu. {{pct}}% dari kelebihannya ditambahkan ke jatah makanmu."
     },
-    "none": "Belum ada gerak di atas pengali hari ini, jadi belum ada yang ditambahkan."
+    "none": "Belum ada gerak di atas pengali hari ini, jadi belum ada yang ditambahkan.",
+    "noneCalibrated": "Belum ada gerak di atas TDEE terukur hari ini, jadi belum ada yang ditambahkan.",
+    "calibrated": "Kalibrasi otomatis: rumus {{formula}}, terukur {{measured}}, dipakai {{used}} kkal",
+    "formulaCalibrated": "BMR {{bmr}} + gerak harian terukur {{move}} = TDEE {{tdee}}",
+    "includedCalibrated": "TDEE terukurmu sudah memuat sekitar {{kcal}} kkal gerak harian di luar efek makan. Hanya gerak terukur di atas angka itu yang menambah targetmu."
+  },
+  "auto": {
+    "title": "Kalibrasi otomatis",
+    "toggle": "Sesuaikan targetku dari progres",
+    "how": "Kalau catatan makan dan timbanganmu cukup lengkap, JoyoRogo mengukur berapa kalori yang sebenarnya dibakar tubuhmu dari tren berat badan, lalu memakainya sebagai TDEE di targetmu, menggantikan perkiraan rumus.",
+    "guard": "Hasilnya dijaga dalam ±15% dari rumus, jadi satu bulan yang berantakan tidak bisa membuat targetmu melenceng jauh.",
+    "weekly": "Diperbarui seminggu sekali, tiap Senin, supaya targetmu tidak naik turun tiap hari.",
+    "off": "Kalau dimatikan, targetmu kembali ke rumus murni: BMR × pengali level aktivitasmu.",
+    "levelNote": "Saat kalibrasi aktif, levelmu jadi titik awal dan patokan batas ±15%.",
+    "maternal": "Mode Hamil / Menyusui tidak memakai kalibrasi: berat badan memang diharapkan berubah.",
+    "status": {
+      "off": "Kalibrasi mati. Targetmu dari rumus murni, TDEE {{formula}} kkal.",
+      "offMeasured": "Kalau dinyalakan, tubuhmu terukur sekitar {{measured}} kkal (rumus {{formula}}).",
+      "collecting": "Kalibrasi: {{logged}}/{{loggedNeeded}} hari tercatat, rentang timbangan {{span}}/{{spanNeeded}} hari",
+      "collectingWeighIns": "Timbangan: {{count}}/{{needed}} kali ditimbang",
+      "collectingHint": "Targetmu masih dari rumus. Terus catat makan dan timbang berat badan, kalibrasi jalan sendiri begitu datanya cukup.",
+      "waiting": "Datamu sudah cukup. Kalibrasi mulai berlaku {{date}}.",
+      "active": "Disesuaikan dari progresmu: rumus {{formula}}, terukur {{measured}}, dipakai {{used}} kkal",
+      "clamped": "Hasil ukurnya di luar batas ±15%, jadi yang dipakai angka batasnya.",
+      "held": "Diukur dari 28 hari sebelum {{date}}. Diperbarui lagi {{next}}."
+    }
+  },
+  "calNotice": {
+    "title": "Targetmu disesuaikan",
+    "body": "Kalibrasi otomatis menyesuaikan target dasarmu: {{old}} → {{new}} kkal per hari.",
+    "hint": "Diukur dari catatan makan dan timbanganmu. Bisa kamu matikan di pengaturan.",
+    "action": "Atur kalibrasi",
+    "dismiss": "Tutup"
   },
   "readMore": "Baca penjelasan lengkap"
 }

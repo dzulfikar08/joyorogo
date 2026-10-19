@@ -153,8 +153,22 @@ describe("profile.activityGuide", () => {
     expect(guide).toMatchObject({ level: null, options: [], calibration: null, steps: { level: "sedentary", avgSteps: 3000, days: 5 } });
   });
 
-  test("recommends from the weight trend once the logs are long and regular enough", async () => {
+  test("with the automatic calibration on (the default) the trend suggestion is superseded by it", async () => {
     const guide = await call(profileRouter.activityGuide, undefined, as("cal"));
+    expect(guide.calibration).toBeNull();
+    // the weekly measurement looks back from the last Monday, so how much of this 28-day seed it sees depends on the weekday
+    expect(guide.autoCalibration).toMatchObject({ enabled: true, loggedDays: 28 });
+    expect(["active", "waiting"]).toContain(guide.autoCalibration!.status);
+  });
+
+  test("recommends from the weight trend once the logs are long and regular enough, while the calibration is off", async () => {
+    await client.execute({
+      sql: `INSERT INTO sync_record (user_id, ns, kind, id, json, updated_at, deleted_at, rank, server_at) VALUES ('cal', 'rogo', 'pref', 'energy.calibration', ?, 1, NULL, 0, 1)`,
+      args: [JSON.stringify({ value: false })],
+    });
+    const guide = await call(profileRouter.activityGuide, undefined, as("cal"));
+    await client.execute(`DELETE FROM sync_record WHERE user_id = 'cal' AND id = 'energy.calibration'`);
+    expect(guide.autoCalibration).toMatchObject({ enabled: false, status: "off" });
     // BMR at 100 kg, age 36: 1000 + 1062.5 - 180 + 5 = 1887.5. Steady weight on 3 000 kcal eaten a day = 3 000 burned;
     // the 280 kcal workouts come out: (3000 - 280) / 1888 = 1.44, nearest to light 1.375 (the sedentary formula says 2266)
     expect(guide.calibration).toEqual({

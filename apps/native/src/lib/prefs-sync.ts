@@ -16,6 +16,7 @@ import { DEFAULT_STICKER_PREFS, loadStickerPrefs, writeStickerPrefs } from "@/co
 import { client, orpc, queryClient } from "@/utils/orpc";
 
 import { readDismissal, writeDismissal } from "./dismissals";
+import { readCalibrationPref, writeCalibrationPref } from "./calibration-prefs";
 import { readAddBackPref, writeAddBackPref } from "./exercise-credit-prefs";
 import { setLocale } from "./i18n";
 import { loadMakanPrefs, writeMakanPref } from "./makan-prefs";
@@ -102,6 +103,9 @@ async function readDevice(key: RogoPrefKey, userId: string): Promise<unknown | u
     case "dismissed.stravaRetention7d":
     case "dismissed.energyModel":
       return (await readDismissal(key, userId)) ? true : undefined;
+    case "energy.calibration":
+    case "energy.calibrationSeen":
+      return readCalibrationPref(key);
   }
 }
 
@@ -126,6 +130,9 @@ async function writeDevice(key: RogoPrefKey, userId: string, value: unknown | un
     case "dismissed.stravaRetention7d":
     case "dismissed.energyModel":
       return writeDismissal(key, userId, value === true);
+    case "energy.calibration":
+    case "energy.calibrationSeen":
+      return writeCalibrationPref(key, value);
   }
 }
 

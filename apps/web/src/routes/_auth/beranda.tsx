@@ -35,6 +35,7 @@ import { BelanjaCard } from "@/components/plate/belanja";
 import { ScreenError } from "@/components/screen-state";
 import { RecapCard } from "@/components/recap-card";
 import { StravaRetentionNotice } from "@/components/strava-retention-notice";
+import { CalibrationNotice } from "@/components/calibration-notice";
 import { EnergyNotice } from "@/components/energy-notice";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { StorySpec } from "@/components/story/story-spec";
@@ -318,6 +319,7 @@ function Dashboard({
 
       <StravaRetentionNotice className="mb-3" />
       <EnergyNotice notice={summary.energyNotice} className="mb-3" />
+      <CalibrationNotice notice={summary.calibrationNotice} className="mb-3" />
 
       {/* Day switcher */}
       <div className="mb-3 flex justify-center lg:justify-start">

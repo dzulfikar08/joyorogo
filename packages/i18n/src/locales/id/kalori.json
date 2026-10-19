@@ -11,7 +11,7 @@
   },
   "formula": {
     "title": "TDEE = BMR × pengali",
-    "p1": "TDEE didapat dari BMR dikali pengali aktivitas, yaitu angka standar yang umum dipakai, mulai dari 1,2 sampai 1,9 tergantung seberapa aktif keseharianmu. Levelnya kamu pilih sendiri.",
+    "p1": "TDEE didapat dari BMR dikali pengali aktivitas, yaitu angka standar yang umum dipakai, mulai dari 1,2 sampai 1,9 tergantung seberapa aktif keseharianmu. Levelnya kamu pilih sendiri. Itu titik awal: kalau catatan dan timbanganmu cukup, kalibrasi otomatis menyesuaikannya dari progresmu (lihat bagian Kalibrasi otomatis).",
     "p2": "Mencerna dan menyerap makanan juga butuh energi. Ini disebut efek panas makanan (TEF), besarnya sekitar 5 sampai 15% dari pengeluaran harian (Westerterp 2004). JoyoRogo memakai angka 10%. Karena pengali dihitung dari total pengeluaran, TEF sudah termasuk di dalamnya, jadi tidak ditambahkan lagi.",
     "chart": "Contoh untuk level {{level}} (pengali {{factor}}): TDEE terdiri dari BMR, gerak harian yang sudah termasuk dalam pengali, dan efek makan.",
     "chartLabel": "Diagram batang bertumpuk: BMR {{bmr}} kkal, gerak harian {{move}} kkal, efek makan {{tef}} kkal, total TDEE {{tdee}} kkal.",
@@ -23,7 +23,7 @@
   "levels": {
     "title": "Lima level aktivitas",
     "intro": "Setiap level punya pengali standar. Berikut penjelasan dan contoh tiap level, beserta besar TDEE-nya untuk contoh di bawah.",
-    "tip": "Bingung memilih di antara dua level? Ambil yang lebih rendah, lalu pantau apakah beratmu turun sesuai rencana. Aplikasi juga akan memberi saran berdasarkan jumlah langkah dan tren beratmu (lihat di bawah).",
+    "tip": "Bingung memilih di antara dua level? Ambil yang lebih rendah, lalu pantau apakah beratmu turun sesuai rencana. Aplikasi juga akan memberi saran berdasarkan jumlah langkah dan tren beratmu (lihat di bawah). Aplikasi juga menyesuaikan targetmu dari tren beratmu lewat kalibrasi otomatis (lihat di bawah).",
     "chart": "Makin tinggi levelnya, makin besar TDEE-nya. Bagian yang lebih gelap adalah BMR, sama untuk semua level.",
     "chartLabel": "Diagram batang TDEE untuk kelima level.",
     "bmrLegend": "BMR",
@@ -39,8 +39,8 @@
     "legendBelow": "Sudah ada di pengali, tidak ditambahkan",
     "legendAbove": "Melebihi pengali, ditambahkan",
     "line": "Garis pengali: {{kcal}} kkal",
-    "measured": "Terukur {{kcal}}\u00a0kkal",
-    "added": "+{{kcal}}\u00a0kkal",
+    "measured": "Terukur {{kcal}} kkal",
+    "added": "+{{kcal}} kkal",
     "none": "Tidak ada tambahan",
     "days": {
       "desk": "HP di meja",
@@ -50,9 +50,50 @@
     "deskTitle": "Kalau HP ditinggal di meja",
     "deskBody": "Angka gerak yang kecil karena HP tidak dibawa tidak lagi dianggap sebagai hari yang santai. Kalau gerak terukur masih di bawah yang sudah ada di pengalimu, tambahannya nol dan targetmu tetap sama dengan target dasar. Data jam atau HP tidak akan pernah menurunkan targetmu."
   },
+  "calibration": {
+    "title": "Kalibrasi otomatis dari berat badanmu",
+    "p1": "Pengali level adalah tebakan. Kalau kamu rutin mencatat makan dan menimbang, JoyoRogo bisa mengukur berapa yang sebenarnya dibakar tubuhmu, lalu memakainya sebagai TDEE di targetmu menggantikan BMR × pengali. Fitur ini menyala secara bawaan dan bisa kamu atur.",
+    "items": {
+      "start": {
+        "title": "Kapan mulai",
+        "body": "Setelah dalam 28 hari terakhir ada sedikitnya 20 hari tercatat (hari di bawah 800 kkal dianggap belum tercatat) dan timbanganmu membentang sedikitnya 21 hari. Sebelum itu targetmu tetap dari rumus, dan progresnya terlihat di Profil, Target & tubuh."
+      },
+      "measure": {
+        "title": "Cara mengukur",
+        "body": "Rata-rata yang kamu makan, ditambah energi yang keluar dari tubuh menurut tren beratmu (7.700 kkal per kg), lalu dikurangi rata-rata latihan yang tercatat. Hasilnya TDEE hari-harimu tanpa olahraga, artinya sama dengan level aktivitas yang kamu pilih. Latihan dari Strava tidak ikut dihitung."
+      },
+      "guard": {
+        "title": "Batas ±15%",
+        "body": "Hasil ukur dijaga dalam 15% dari rumus (BMR × pengali levelmu). Satu bulan yang berantakan tidak bisa membuat targetmu melenceng jauh."
+      },
+      "weekly": {
+        "title": "Seminggu sekali",
+        "body": "Pengukuran diperbarui tiap Senin dan dipegang sampai Senin berikutnya, supaya targetmu tidak naik turun tiap kali kamu menimbang."
+      },
+      "credit": {
+        "title": "Tidak dihitung dua kali",
+        "body": "Gerak yang sudah terukur ada di dalam TDEE hasil kalibrasi. Jam dan HP hanya menambah target kalau gerak harimu melebihi gerak itu: TDEE terukur − BMR − 10% TDEE."
+      },
+      "maternal": {
+        "title": "Hamil dan Menyusui",
+        "body": "Mode ini tidak memakai kalibrasi, karena berat badan memang diharapkan berubah."
+      },
+      "off": {
+        "title": "Bisa dimatikan",
+        "body": "Di Profil, Target & tubuh kamu bisa mematikan kalibrasi, dan targetmu kembali ke rumus murni. Kalau targetmu berubah 50 kkal atau lebih karena kalibrasi, Beranda memberi tahu."
+      }
+    },
+    "exampleIntro": "Contoh untuk level {{level}}: rumusnya memberi TDEE {{formula}} kkal, jadi batasnya {{min}} sampai {{max}} kkal.",
+    "measured": "Terukur",
+    "used": "Dipakai",
+    "within": "Dalam batas",
+    "capped": "Kena batas",
+    "note": "Angka 7.700 kkal per kg hanyalah pendekatan (Hall dkk. 2011), dan hasilnya bergantung pada kelengkapan catatanmu. Itu sebabnya ada batas ±15% dan pengukuran mingguan.",
+    "cta": "Atur kalibrasi"
+  },
   "recommend": {
     "title": "Saran supaya lebih akurat",
-    "intro": "Level yang kamu pilih adalah perkiraan terbaikmu. Dua hal berikut membantu mengeceknya. Keduanya hanya berupa saran dengan tombol Pakai, dan tidak pernah diterapkan otomatis.",
+    "intro": "Level yang kamu pilih adalah perkiraan terbaikmu. Dua hal berikut membantu mengeceknya. Keduanya hanya berupa saran dengan tombol Pakai, dan tidak pernah diterapkan otomatis. Dari tren berat badan, kalibrasi otomatis sudah bekerja langsung; saran level dari tren hanya muncul kalau kalibrasi kamu matikan.",
     "stepsTitle": "Dari jumlah langkahmu",
     "stepsBody": "Kalau akunmu sudah punya data langkah minimal 5 hari dalam 14 hari terakhir, rata-ratanya dicocokkan dengan indeks langkah Tudor-Locke & Bassett (2004). Saat onboarding, saran ini hanya muncul kalau datanya sudah tersedia.",
     "stepsHeader": {
@@ -66,8 +107,8 @@
       "r4": "10.000 sampai 12.499",
       "r5": "12.500 atau lebih"
     },
-    "trendTitle": "Dari tren berat badanmu",
-    "trendBody": "Setelah minimal 3 minggu kamu rutin menimbang dan mencatat makan (setidaknya 70% hari tercatat), JoyoRogo menghitung berapa kalori yang sebenarnya dibakar tubuhmu: rata-rata asupan makanmu, disesuaikan dengan perubahan beratmu, lalu dikurangi rata-rata latihan yang tercatat. Hasilnya dibagi BMR lalu dicocokkan dengan level terdekat. Jadi kamu bisa membandingkan angka hasil pengukuran dengan angka dari rumus.",
+    "trendTitle": "Dari tren berat badanmu (kalibrasi mati)",
+    "trendBody": "Bagian ini hanya muncul kalau kamu mematikan kalibrasi otomatis. Setelah minimal 3 minggu kamu rutin menimbang dan mencatat makan (setidaknya 70% hari tercatat), JoyoRogo menghitung berapa kalori yang sebenarnya dibakar tubuhmu: rata-rata asupan makanmu, disesuaikan dengan perubahan beratmu, lalu dikurangi rata-rata latihan yang tercatat. Hasilnya dibagi BMR lalu dicocokkan dengan level terdekat. Jadi kamu bisa membandingkan angka hasil pengukuran dengan angka dari rumus.",
     "trendNote": "Angka 7.700 kkal per kg hanya perkiraan, karena tubuh ikut menyesuaikan diri saat berat berubah (Hall dkk. 2011). Karena itu, hasilnya tetap berupa saran, bukan keputusan akhir."
   },
   "example": {
@@ -78,7 +119,8 @@
     "tdee": "TDEE",
     "target": "Target makan",
     "floorNote": "Di level paling rendah, TDEE dikurangi defisit hasilnya di bawah batas minimal makan untuk laki-laki ({{floor}} kkal), jadi targetnya dinaikkan menjadi {{floor}} kkal.",
-    "oldNote": "Dengan cara lama (BMR dikurangi defisit), targetnya {{old}} kkal untuk semua level."
+    "oldNote": "Dengan cara lama (BMR dikurangi defisit), targetnya {{old}} kkal untuk semua level.",
+    "calNote": "Angka di tabel ini dari rumus murni. Setelah datamu cukup, kalibrasi otomatis bisa menyesuaikannya sampai 15% ke atas atau ke bawah."
   },
   "cta": {
     "title": "Coba di akunmu",

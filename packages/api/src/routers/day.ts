@@ -25,6 +25,8 @@ import {
   streakFromDates,
   suggestMealNow,
 } from "../lib/engine";
+import { calibrationNotice } from "../lib/calibration";
+import { readCalibrationPrefs } from "../lib/calibration-store";
 import { energyNotice, showEnergyNotice } from "../lib/energy-notice";
 import { budgetKcal, exerciseCredit } from "../lib/exercise-credit";
 import { addBackPrefQuery, dayReadings, loadDayCredit, readAddBackPrefs } from "../lib/exercise-credit-store";
@@ -100,6 +102,7 @@ export const dayRouter = {
         weighIns,
         intake,
         exercise,
+        calibrationRows,
         eatenRows,
         exerciseRows,
         sleptRows,
@@ -204,6 +207,7 @@ export const dayRouter = {
           exerciseCredit: null,
           exerciseSources: [],
           energyNotice: null,
+          calibrationNotice: null,
           addBackNotice: false, // COMPAT, old clients read it (see below)
           eatenKcal: 0,
           eatenByMeal: { ...ZERO_MEALS },
@@ -227,7 +231,13 @@ export const dayRouter = {
 
       const plan = buildPlan(
         prof,
-        { latestWeightKg: latestRows[0]?.weightKg ?? null, weighIns, intake, exercise },
+        {
+          latestWeightKg: latestRows[0]?.weightKg ?? null,
+          weighIns,
+          intake,
+          exercise,
+          prefs: readCalibrationPrefs(calibrationRows),
+        },
         date,
       );
       const { targets: planTargets } = plan;
@@ -301,6 +311,17 @@ export const dayRouter = {
         })
           ? energyNotice(plan)
           : null,
+        // The calibrated base target moved by 50 kcal or more since the person last saw one (Beranda's one-line notice,
+        // today's plan only: a browsed past day must not acknowledge a past figure).
+        calibrationNotice:
+          date === today
+            ? calibrationNotice({
+                calibration: plan.calibration,
+                baseKcal: planTargets.eatKcal,
+                formulaBaseKcal: plan.formulaEatKcal,
+                seenKcal: plan.prefs.seenKcal,
+              })
+            : null,
         // COMPAT, old clients (native builds up to 1932, web tabs opened before the TDEE deploy) show the "how Sisa is
         // counted changed" card when this is true. That notice is retired in favour of `energyNotice`: always false.
         addBackNotice: false,
@@ -431,6 +452,7 @@ export const dayRouter = {
       weighIns,
       intake,
       exercise,
+      calibrationRows,
       todayRows,
       historyRows,
       workoutRows,
@@ -494,7 +516,13 @@ export const dayRouter = {
     if (prof) {
       const builtPlan = buildPlan(
         prof,
-        { latestWeightKg: latestRows[0]?.weightKg ?? null, weighIns, intake, exercise },
+        {
+          latestWeightKg: latestRows[0]?.weightKg ?? null,
+          weighIns,
+          intake,
+          exercise,
+          prefs: readCalibrationPrefs(calibrationRows),
+        },
         today,
       );
       // The diary's bar and Sisa use the plan plus the counted exercise; guidance reads the same budget.

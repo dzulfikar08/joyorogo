@@ -25,6 +25,8 @@ describe("the registry", () => {
       "dismissed.handlePrompt",
       "dismissed.stravaRetention7d",
       "dismissed.energyModel",
+      "energy.calibration",
+      "energy.calibrationSeen",
     ]);
     for (const key of ROGO_PREF_KEYS) expect(key.length).toBeLessThanOrEqual(64);
   });
@@ -76,6 +78,24 @@ describe("exercise.addBack.*", () => {
   test("the notice dismissal is only ever true", () => {
     expect(sanitizeRogoPref("dismissed.energyModel", true)).toBe(true);
     for (const value of [...GARBAGE, false]) expect(sanitizeRogoPref("dismissed.energyModel", value)).toBeUndefined();
+  });
+});
+
+describe("energy.calibration", () => {
+  test("a boolean, on by default: only off is stored", () => {
+    expect(sanitizeRogoPref("energy.calibration", true)).toBe(true);
+    expect(sanitizeRogoPref("energy.calibration", false)).toBe(false);
+    for (const value of GARBAGE) expect(sanitizeRogoPref("energy.calibration", value)).toBeUndefined();
+    expect(isRogoPrefDefault("energy.calibration", true)).toBe(true);
+    expect(isRogoPrefDefault("energy.calibration", false)).toBe(false);
+  });
+
+  test("the acknowledged target is a whole kcal figure in range and never a default", () => {
+    expect(sanitizeRogoPref("energy.calibrationSeen", 1785)).toBe(1785);
+    for (const value of [...GARBAGE, 1785.5, 499, 10_001, "1785", true]) {
+      expect(sanitizeRogoPref("energy.calibrationSeen", value)).toBeUndefined();
+    }
+    expect(isRogoPrefDefault("energy.calibrationSeen", 1785)).toBe(false);
   });
 });
 

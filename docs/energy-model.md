@@ -1,10 +1,11 @@
 # Energy model: TDEE target, counted activity, Sisa
 
 **Sisa = base eat target + counted activity − eaten.** The base is **TDEE less the plan's deficit**, with TDEE = BMR ×
-the activity factor of the level the person chose. Measured activity (watch, Health, logged workouts) only **raises**
-the day's budget, and only by what goes **beyond** the movement the factor already contains. One pure function decides
-the activity (`packages/api/src/lib/exercise-credit.ts`); `day.summary` puts the budget into `targets.eatKcal` and the
-counted part into `targets.exerciseKcal`. Clients render those numbers and never compute them.
+the activity factor of the level the person chose, **or the TDEE their own weight trend measured once there is enough
+data** (automatic calibration, below; on by default, switchable). Measured activity (watch, Health, logged workouts)
+only **raises** the day's budget, and only by what goes **beyond** the movement the TDEE already contains. One pure
+function decides the activity (`packages/api/src/lib/exercise-credit.ts`); `day.summary` puts the budget into
+`targets.eatKcal` and the counted part into `targets.exerciseKcal`. Clients render those numbers and never compute them.
 
 ## Base target (`computeTargets`, `computeMaternalTargets`)
 
@@ -33,8 +34,9 @@ counted part into `targets.exerciseKcal`. Clients render those numbers and never
   for the levels migrated from low / mid / high, i.e. sedentary / light / moderate; 1.55 and 1.65 continue the same
   steps for active / very active), so the maternal target does **not** change numerically. Counted activity is added on
   top and can only raise it.
-- The measured TDEE (`adaptiveTdee`, energy balance over 28 days) is never applied to the plan. It only produces a
-  *recommended level* the person may apply (see Recommendations).
+- The measured TDEE (`adaptiveTdee`, energy balance over 28 days) feeds the **automatic calibration** (below), which
+  replaces BMR × factor in `computeTargets` (`ComputeOptions.tdeeKcal`) when it is on and the data is good enough.
+  With the calibration off it only produces a *recommended level* the person may apply (see Recommendations).
 - `Targets` exposes `bmr`, `level`, `factor`, `tdee` and `includedKcal`; `needsBreakdown` exposes the same for the
   "Kebutuhan harianmu" sheet. `Targets.burnKcal` stays as a movement goal for the exercise screens, not part of the
   eat target.
@@ -58,9 +60,11 @@ The old model (bare BMR − 1000 = 1024, floor) gave 1500 for everybody.
 
 Real data only, and it can only **raise** the budget.
 
-- **Movement the factor already contains** (`Targets.includedKcal`, `movementInFactorKcal`):
-  `included = max(0, TDEE − BMR − 10% of TDEE)` (the 10% is the TEF share). Light, owner example: 2783 − 2024 − 278 =
-  481 kcal.
+- **Movement the TDEE already contains** (`Targets.includedKcal`, `movementInFactorKcal`):
+  `included = max(0, TDEE − BMR − 10% of TDEE)` (the 10% is the TEF share), with the TDEE the plan is built on:
+  BMR × factor, or the calibrated TDEE when the calibration is active (so a measured TDEE already contains the movement
+  the person does, and the watch only adds what goes beyond it: no double counting). Light, owner example: 2783 − 2024
+  − 278 = 481 kcal.
 - **All-day active energy** (the energy above rest of the whole day): the watch's own total from JoyoFit
   (`fitness_score.active_kcal`, pushed with `fitness.upsertScores`) or the health store's
   (`daily_activity.active_calories`, Health Connect / Apple Health read by the JoyoRogo app). They are two views of the
@@ -98,6 +102,9 @@ Settings (Profil > Target & tubuh > Kalori olahraga; synced rogo prefs in `rogo-
 | `exercise.addBack.pct` | 50 to 100, step 5 | 75 |
 | `exercise.addBack.cap` | 500, 1000, 1500, `none` | 1000 |
 
+The automatic calibration has its own two prefs (above): `energy.calibration` (default on) and
+`energy.calibrationSeen` (no default).
+
 The earlier `exercise.assumedActive` ("Aktivitas harian (perkiraan)": +0/150/300/500 kcal) is **removed**: the factor
 replaces it. Records of it, of `exercise.addBack.source` / `.stepThreshold` and of the dismissals
 `dismissed.addBackNotice` / `dismissed.addBackNotice2` that older builds wrote are ignored.
@@ -109,7 +116,8 @@ never lowers a target built on a standard factor.
 ## Recommendations ("lebih akurat")
 
 Shown where the level is chosen (onboarding, Profil > Target & tubuh). They are recommendations: the person taps
-"Pakai". Nothing is ever applied automatically. Server: `profile.activityGuide` (read), `profile.setActivityLevel`
+"Pakai". The level is never changed automatically (the calibration below is separate: it leaves the level alone and
+adjusts the TDEE). Server: `profile.activityGuide` (read), `profile.setActivityLevel`
 (write). Pure logic: `lib/activity-guide.ts`.
 
 - **From steps.** With at least 5 days with steps (> 0) in `daily_activity` in the 14 days before today (today is
@@ -117,15 +125,53 @@ Shown where the level is chosen (onboarding, Profil > Target & tubuh). They are 
   under 5000 `sedentary`, 5000 to 7499 `light`, 7500 to 9999 `moderate`, 10 000 to 12 499 `active`, 12 500 and up
   `very_active`. (The paper writes "above 12 500" for highly active; exactly 12 500 is a coin flip we settle upward.)
   Onboarding only shows it when the data already exists; it never adds a permission flow.
-- **From the weight trend** (calibration). `adaptiveTdee` over the 28 complete days before today needs at least 14 logged
-  days and 6 weigh-ins spanning 14 days; on top of that the recommendation requires the weigh-ins to span **at least 21
-  days** and **at least 70% of the 28 days logged** (20 days; a day under 800 kcal is not logged). Then:
-  `implied factor = (measured TDEE − average logged workout kcal per day) / BMR`, where measured TDEE is `adaptiveTdee`
-  without subtracting workouts (so they come out exactly once). Rest and Strava rows never take part (Strava's API terms
-  keep its data out of weight and food analytics). The recommended level is the one whose factor is nearest; the UI shows
-  measured kcal against the formula's (BMR × the current factor). Hamil / Menyusui get no calibration: weight is
-  expected to move. The 7700 kcal/kg used for the weight slope is an approximation (Hall et al. 2011), which is why this
-  stays a suggestion.
+- **From the weight trend** (the same measurement as the calibration). Only shown while the **automatic calibration is
+  off**: with it on the target is already built on the measured figure, so the level suggestion is superseded
+  (`profile.activityGuide.calibration` is null; `autoCalibration` carries the state). `adaptiveTdee` over the 28 complete
+  days before today needs at least 14 logged days and 6 weigh-ins spanning 14 days; on top of that the gate requires the
+  weigh-ins to span **at least 21 days** and **at least 70% of the 28 days logged** (20 days; a day under 800 kcal is
+  not logged). Then: `implied factor = (measured TDEE − average logged workout kcal per day) / BMR`, where measured TDEE
+  is `adaptiveTdee` without subtracting workouts (so they come out exactly once). Rest and Strava rows never take part
+  (Strava's API terms keep its data out of weight and food analytics). The recommended level is the one whose factor is
+  nearest; the UI shows measured kcal against the formula's (BMR × the current factor). Hamil / Menyusui get no
+  calibration: weight is expected to move. The 7700 kcal/kg used for the weight slope is an approximation (Hall et al.
+  2011).
+
+## Automatic calibration (`lib/calibration.ts`)
+
+The eat target is built on the TDEE the body showed, not the one the formula guessed, once the data is good enough.
+Pure logic in `lib/calibration.ts`; `buildPlan` applies it through `computeTargets({ tdeeKcal })`. It is the one path
+every day-budget consumer goes through (day summary, recap, fasting, fit-data / MCP, challenges, groups, diary, workout
+status, push reminders, coach context), because every one of them calls `buildPlan` with `planQueries` rows.
+
+- **Measurement.** `life TDEE = adaptiveTdee(28 complete days, workouts not subtracted) − average logged workout kcal per
+  day`: the TDEE of days **without the logged workouts**, which is what the activity level means. Workouts are the
+  non-rest, non-Strava `exercise_log` totals per day (`planQueries`). Maternal (Hamil / Menyusui): never calibrated.
+- **Gate** (all must hold at the measurement date): at least 20 of the 28 days logged (a day under 800 kcal is not
+  logged), weigh-ins spanning at least 21 days, plus `adaptiveTdee`'s own minimums (14 logged days, 6 weigh-ins).
+- **Guard.** The used TDEE is the measurement clamped to ±15% of the formula's (`Targets.tdee` of the same plan without
+  the calibration, i.e. BMR × the level's factor at today's weight). `calibration.clamped` says it was pulled back. The
+  deficit rules, the 1500 / 1200 floor and the gain surplus are unchanged: only the TDEE under them changes.
+- **Stability rule: held weekly.** The measurement is taken **as of the most recent Monday** (WIB; the 28 complete days
+  before that Monday) and held until the next one. So the target does not move with every daily weigh-in on a sliding
+  window; inside the week the number only follows the formula's own drift with the weight when it sits on the ±15%
+  guard. `planQueries` therefore loads 34 days of intake / workouts (28 + up to 6 days before the Monday), and
+  late-edited logs from before that Monday change the next recompute only through the same window. Data that is good by
+  today but was not at that Monday waits for the next Monday (`status: waiting`).
+- **Status** (`Targets.calibration`, `CalibrationInfo`): `off` (switched off; `measuredKcal` still shows what it would
+  be), `collecting` (progress: `loggedDays/loggedDaysNeeded`, `spanDays/spanDaysNeeded`), `waiting` (data is enough
+  today, starts next Monday), `active` (`formulaKcal`, `measuredKcal`, `usedKcal`, `clamped`, `anchorDate`, `nextDate`).
+- **Switch**: synced rogo pref `energy.calibration` (boolean, default **true**, only `false` is stored; the server reads
+  it from `sync_record` ns `rogo` kind `pref` next to the plan queries; a missing / tombstoned / malformed record means
+  on). Profil > Target & tubuh has a "Kalibrasi otomatis" card on web and native with the switch, what it does, the ±15%
+  guard, the weekly update, the off behaviour and the live status. The needs sheet shows the calibration line and
+  derives its texts from the calibrated TDEE. `profile.activityGuide` returns `autoCalibration` (state) and keeps
+  `calibration` (the level suggestion) only while the switch is off.
+- **Notice**: when the calibrated base target (before counted activity) is at least 50 kcal away from the one the person
+  last acknowledged (before any acknowledgement: from the pure-formula base target, which is what Beranda showed
+  before), `day.summary.calibrationNotice = { fromKcal, toKcal }` and Beranda shows a dismissible line old → new with a
+  link to the setting. Dismissing stores the synced pref `energy.calibrationSeen` (integer kcal = the new base). Only
+  while the calibration is active.
 
 The level picker lists all five levels with factor, explanation, example and **the target that level would give this
 person** (`profile.activityGuide.options`, or `activityOptions` computed locally in onboarding).
@@ -137,7 +183,12 @@ and room), the weekly recap (each judged day against its own budget), and the MC
 `activeSource`, `exerciseAddedKcal` per day; `get_profile` carries `activityLevel`, `activityFactor`, `tdeeKcal` and
 `includedActivityKcal`; **Strava rows never count there**). Callers that build a plan pass
 `plan.targets.includedKcal` to `exerciseCredit` / `loadDayCredit`. Gain streaks, challenge and group targets and diary day
-colours use the base plan target: they are per-plan, not per-day.
+colours use the base plan target: they are per-plan, not per-day. **Every one of these (day, recap, fasting, fit-data /
+MCP, challenge, group member and VAR targets, diary month, workout status, push reminders, coach context) builds its plan
+with `buildPlan(row, { latestWeightKg, weighIns, intake, exercise, prefs }, date)` from the rows of `planQueries` (one
+batch; the calibration preference rows are its sixth query), and `prefs` is a required argument, so none can build a plan
+that ignores the switch.** The recap builds one plan for the week (no per-day plan, no N+1); the group detail loads the
+members' windows and preferences in the batch it already runs.
 
 The ring and number "Terbakar" on the Olahraga screens (web and native) is `activeKcal` of `day.summary`'s credit
 (`dayActiveKcal`), not the sum of the listed rows. Without the summary the ring falls back to the sum of the rows.
@@ -196,6 +247,13 @@ accepts and returns the old shapes at the boundary only; each point is marked `C
   needs sheet, snack advice and Beranda do their sums with numbers instead of `NaN`.
 - Preferences: an old build that writes `exercise.assumedActive` or `dismissed.addBackNotice2` syncs without error
   (the server stores any `pref` id); neither changes the budget, and the old dismissal does not hide the new notice.
+- Calibration: all new fields are additive and optional (`Targets.calibration`, `NeedsBreakdown.calibration`,
+  `day.summary.calibrationNotice`, `profile.activityGuide.autoCalibration`); new prefs `energy.calibration` /
+  `energy.calibrationSeen` are stored like any pref and ignored by builds that do not know them. With the calibration
+  active `Targets.tdee` and `formulaTdee` are both the calibrated TDEE and `includedKcal` follows it, so the sums of an
+  old needs sheet (`bmr + (tdee - bmr)`, `tdee - cut = target`) still hold; an old build simply does not show the
+  calibration. While the switch is on the server returns `activityGuide.calibration = null`, so an old client shows no
+  weight-trend level card (it has no calibration switch to offer instead).
 - An old client shows the new levels it does not know (`sedentary`, ...) as empty or the raw value in its read-only
   "activity" row; it does not crash (its label lookup returns undefined). Its own "Aktivitas harian (perkiraan)" setting
   becomes inert: the server ignores it.

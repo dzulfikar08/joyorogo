@@ -14,7 +14,7 @@ import type { AddBackPrefKey, AddBackSettings, AllDayReading, ExerciseCredit } f
 // day's credit. The settings follow the account, so every client and the MCP connector see the same Sisa.
 
 /** The `value` of a stored pref document, or undefined when it is not `{"value": ...}`. */
-function docValue(json: string): unknown {
+export function docValue(json: string): unknown {
   try {
     const doc: unknown = JSON.parse(json);
     return typeof doc === "object" && doc !== null && "value" in doc ? doc.value : undefined;
