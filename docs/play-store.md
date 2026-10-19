@@ -106,7 +106,7 @@ BAKAR DAN TIDUR
 BARENG TEMAN
 • Grup kecil: colek teman yang lupa mencatat, tinggalkan catatan, dan lihat ringkasan bersama.
 • Feed komunitas untuk membagikan makanan, latihan, atau cerita. Tidak ada yang dibagikan otomatis.
-• Widget layar utama untuk progres harian dan kabar grup.
+• Widget layar utama untuk progres harian, kabar grup, dan pintasan satu ketukan ke kamera catat makanan.
 
 PRIVASI
 • Tanpa iklan.
@@ -141,7 +141,7 @@ BURN AND SLEEP
 WITH FRIENDS
 • Small groups: nudge a friend who forgot to log, leave notes, and see a shared summary.
 • A community feed to share a meal, workout, or story. Nothing is shared automatically.
-• Home screen widgets for daily progress and group news.
+• Home screen widgets for daily progress, group news, and a one-tap shortcut to the meal photo camera.
 
 PRIVACY
 • No ads.
@@ -173,7 +173,7 @@ Capture from the release build with a demo account (not your real data). Order m
 6. Latihan: active workout with the rest timer.
 7. Grup: colek, catatan, VAR.
 8. Profil: Health Connect sync card and "Hapus semua data saya".
-9. (optional) Feed and the three home-screen widgets.
+9. (optional) Feed and the four home-screen widgets (the 1x1 "Foto Makanan" tile opens the camera).
 
 Do not show the Pro/pricing screens or any real name or email.
 

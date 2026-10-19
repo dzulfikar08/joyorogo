@@ -232,6 +232,7 @@
     "over": " kcal over",
     "left": " kcal left",
     "eaten": "{{eaten}} / {{target}} kcal",
+    "photoLabel": "Log a meal with a photo",
     "noNews": "No news yet",
     "signIn": "Sign in first",
     "signInBody": "Open JoyoRogo to see your progress here.",

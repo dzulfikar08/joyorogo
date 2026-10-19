@@ -582,7 +582,15 @@ export default function MakanAi() {
     return <BootLoader />;
   }
   if (gate === "anon") {
-    return <Redirect href="/login" />;
+    // Return to the camera after signing in (the home-screen widget opens this route cold).
+    return (
+      <Redirect
+        href={{
+          pathname: "/login",
+          params: { next: scanDate ? `/makan-ai?date=${encodeURIComponent(scanDate)}` : "/makan-ai" },
+        }}
+      />
+    );
   }
   if (permission === null) {
     return <BootLoader />;

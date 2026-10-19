@@ -1,6 +1,7 @@
 import type { WidgetTaskHandlerProps } from "react-native-android-widget";
 
 import { loadStoredLocale, setLocale } from "@/src/lib/i18n";
+import { isStaticWidget } from "@/src/lib/widgets/names";
 import { refreshSnapshotFromApi } from "@/src/lib/widgets/refresh";
 import { readSnapshot } from "@/src/lib/widgets/snapshot";
 import { buildWidgetElement } from "@/src/lib/widgets/ui";
@@ -33,6 +34,9 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
   const element = buildWidgetElement(widgetInfo.widgetName, snapshot, widgetInfo);
   if (!element) return;
   renderWidget(element);
+
+  // Shortcut widgets show no data: nothing to fetch.
+  if (isStaticWidget(widgetInfo.widgetName)) return;
 
   const fresh = await refreshSnapshotFromApi(snapshot);
   if (fresh === null || fresh === snapshot) return;
