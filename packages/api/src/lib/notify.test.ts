@@ -392,16 +392,16 @@ describe("failures", () => {
 
 describe("web push", () => {
   async function vapid() {
-    const pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+    const pair = (await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"])) as CryptoKeyPair;
     const b64u = (bytes: ArrayBuffer | Uint8Array) => Buffer.from(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)).toString("base64url");
-    const jwk = await crypto.subtle.exportKey("jwk", pair.privateKey);
-    const publicRaw = await crypto.subtle.exportKey("raw", pair.publicKey);
+    const jwk = (await crypto.subtle.exportKey("jwk", pair.privateKey)) as JsonWebKey;
+    const publicRaw = (await crypto.subtle.exportKey("raw", pair.publicKey)) as ArrayBuffer;
     return { VAPID_PUBLIC_KEY: b64u(publicRaw), VAPID_PRIVATE_KEY: jwk.d!, VAPID_SUBJECT: "mailto:test@joyorogo.com" };
   }
 
   async function seedBrowser(client: TestClient, id: string) {
-    const ua = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
-    const raw = new Uint8Array(await crypto.subtle.exportKey("raw", ua.publicKey));
+    const ua = (await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"])) as CryptoKeyPair;
+    const raw = new Uint8Array((await crypto.subtle.exportKey("raw", ua.publicKey)) as ArrayBuffer);
     await client.execute({
       sql: `INSERT INTO push_subscription (id, user_id, endpoint, p256dh, auth) VALUES (?, 'u1', ?, ?, ?)`,
       args: [id, `https://push.example/${id}`, Buffer.from(raw).toString("base64url"), Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString("base64url")],
