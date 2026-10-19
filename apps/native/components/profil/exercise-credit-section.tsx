@@ -7,14 +7,13 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import {
   ADD_BACK_CAPS,
   ADD_BACK_PCT,
-  DEFAULT_ADD_BACK_SETTINGS,
   type AddBackCap,
   type AddBackPrefKey,
   type AddBackSettings,
 } from "@joyorogo/api/lib/exercise-credit";
 
 import { PressableScale } from "@/components/motion";
-import { Card, Segmented, Text } from "@/components/ui";
+import { Card, Chip, Text } from "@/components/ui";
 import { loadAddBackSettings, saveAddBackPref } from "@/src/lib/exercise-credit-prefs";
 import { syncPrefs } from "@/src/lib/prefs-sync";
 import { fmtInt } from "@/utils/format";
@@ -147,14 +146,16 @@ export function ExerciseCreditSection({ includedKcal }: { includedKcal: number }
           </Text>
 
           <Text style={styles.rowTitleBlock}>{t("energy:credit.cap.title")}</Text>
-          <Segmented<string>
-            options={ADD_BACK_CAPS.map((cap) => ({ value: String(cap), label: capLabel(cap) }))}
-            value={String(settings.cap)}
-            onChange={(next) => {
-              const cap = ADD_BACK_CAPS.find((candidate) => String(candidate) === next);
-              void commit("cap", cap ?? DEFAULT_ADD_BACK_SETTINGS.cap);
-            }}
-          />
+          <View style={styles.capRow} accessibilityRole="radiogroup">
+            {ADD_BACK_CAPS.map((cap) => (
+              <Chip
+                key={String(cap)}
+                label={capLabel(cap)}
+                selected={settings.cap === cap}
+                onPress={() => void commit("cap", cap)}
+              />
+            ))}
+          </View>
           <Text style={styles.note}>{t("energy:credit.cap.body")}</Text>
           <Text style={styles.example}>
             {settings.cap === "none"
@@ -215,6 +216,11 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.makanText,
   },
   switchGap: { marginTop: theme.spacing.md },
+  capRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
+  },
   stepper: {
     flexDirection: "row",
     alignItems: "center",

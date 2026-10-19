@@ -1402,31 +1402,6 @@ export default function MakanAi() {
             <View style={styles.feedbackCard}>
               <View style={styles.feedbackHead}>
                 <Text style={styles.feedbackHeadTitle}>{t("feedback.title")}</Text>
-                {feedbackRating === null ? (
-                  <View style={styles.feedbackRow}>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      label={t("feedback.accurate")}
-                      onPress={() => {
-                        sendFeedback("akurat");
-                        setFeedbackAnswered(true);
-                      }}
-                    />
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      label={t("feedback.lessAccurate")}
-                      onPress={() => setFeedbackRating("kurang_akurat")}
-                    />
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      label={t("feedback.wrong")}
-                      onPress={() => setFeedbackRating("salah")}
-                    />
-                  </View>
-                ) : null}
                 <PressableScale
                   accessibilityRole="button"
                   accessibilityLabel={t("feedback.skip")}
@@ -1442,6 +1417,31 @@ export default function MakanAi() {
                   <Ionicons name="close" size={20} color={theme.colors.mutedForeground} />
                 </PressableScale>
               </View>
+              {feedbackRating === null ? (
+                <View style={styles.feedbackRow}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    label={t("feedback.accurate")}
+                    onPress={() => {
+                      sendFeedback("akurat");
+                      setFeedbackAnswered(true);
+                    }}
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    label={t("feedback.lessAccurate")}
+                    onPress={() => setFeedbackRating("kurang_akurat")}
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    label={t("feedback.wrong")}
+                    onPress={() => setFeedbackRating("salah")}
+                  />
+                </View>
+              ) : null}
               {feedbackRating !== null ? (
                 <View style={styles.feedbackDetail}>
                   <View style={styles.feedbackRow}>
@@ -2256,13 +2256,11 @@ const styles = StyleSheet.create((theme) => ({
   },
   feedbackHead: {
     flexDirection: "row",
-    flexWrap: "wrap",
     alignItems: "center",
     gap: theme.spacing.sm,
   },
   feedbackHeadTitle: {
-    flexGrow: 1,
-    flexShrink: 1,
+    flex: 1,
     fontSize: theme.fontSize.base,
     fontWeight: "700",
     color: theme.colors.foreground,

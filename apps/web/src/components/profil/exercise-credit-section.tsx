@@ -142,6 +142,7 @@ export function ExerciseCreditSection({ includedKcal }: { includedKcal: number }
             <FieldLabel>{t("settings:exerciseCredit.cap.title")}</FieldLabel>
             <Segmented<`${AddBackCap}`>
               label={t("settings:exerciseCredit.cap.aria")}
+              className="flex-wrap rounded-3xl"
               value={`${settings.cap}`}
               onChange={(value) => {
                 const cap = ADD_BACK_CAPS.find((candidate) => `${candidate}` === value) ?? settings.cap;
