@@ -9,6 +9,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Activity,
+  Bike,
   BedDouble,
   LayoutDashboard,
   LogOut,
@@ -26,6 +27,8 @@ import { useTranslation } from "react-i18next";
 import { setLocale } from "@/lib/i18n";
 import { type Session, signOut } from "@/lib/auth-client";
 import { orpc } from "@/lib/orpc";
+
+import { RIDE_URL } from "@/lib/ride";
 
 import { BrandMark } from "./brand-mark";
 import { Segmented } from "./kit";
@@ -87,6 +90,23 @@ function BottomLink({ item }: { item: NavItem }) {
       </span>
       <span className="text-center leading-tight">{t(item.label)}</span>
     </Link>
+  );
+}
+
+/** External: the ride game is a full-screen site of its own, opened in this tab. The tab bar is full, so small screens reach it from the settings sheet. */
+function RideLink() {
+  const { t } = useTranslation("fitWeb");
+  return (
+    <a
+      href={RIDE_URL}
+      className="group flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40"
+    >
+      <Bike className="size-[1.125rem] shrink-0" aria-hidden />
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold">{t("ride.title")}</span>
+        <span className="block text-xs leading-snug">{t("ride.description")}</span>
+      </span>
+    </a>
   );
 }
 
@@ -174,6 +194,7 @@ export function Shell({ session, children }: { session: Session; children: React
           {NAV.map((item) => (
             <SideLink key={item.to} item={item} />
           ))}
+          <RideLink />
         </nav>
         <div className="mt-auto rounded-2xl bg-card p-3 ring-1 ring-foreground/5">
           <SettingsPanel session={session} />
@@ -193,7 +214,10 @@ export function Shell({ session, children }: { session: Session; children: React
           </Button>
         </header>
         <Sheet open={settingsOpen} onOpenChange={setSettingsOpen} title={t("menu.title")}>
-          <SettingsPanel session={session} />
+          <div className="flex flex-col gap-4">
+            <RideLink />
+            <SettingsPanel session={session} />
+          </div>
         </Sheet>
 
         <main

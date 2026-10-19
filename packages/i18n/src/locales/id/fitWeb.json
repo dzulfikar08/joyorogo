@@ -7,6 +7,12 @@
     "upload": "Unggah",
     "connect": "Koneksi"
   },
+  "ride": {
+    "title": "Ride",
+    "description": "Game balap sepeda JoyoFit, terbuka untuk semua.",
+    "opening": "Membuka Ride…",
+    "openNow": "Buka sekarang"
+  },
   "menu": {
     "title": "Pengaturan",
     "open": "Buka pengaturan",

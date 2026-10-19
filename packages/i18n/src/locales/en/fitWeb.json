@@ -7,6 +7,12 @@
     "upload": "Upload",
     "connect": "Connections"
   },
+  "ride": {
+    "title": "Ride",
+    "description": "The JoyoFit cycling game, open to everyone.",
+    "opening": "Opening Ride…",
+    "openNow": "Open now"
+  },
   "menu": {
     "title": "Settings",
     "open": "Open settings",

@@ -18,6 +18,10 @@ Host: `app.fit.joyorogo.com` (Cloudflare zone `joyorogo.com`). It is its own Wor
 
 Filters and the range live in the URL (`?range=90&sport=["run"]&sort=distance&dir=asc`, defaults left out), so a view can be linked. Nothing is stored in `localStorage` except the language and theme choice: no health data survives a sign-out on a shared computer.
 
+### Ride (game)
+
+`/ride` is a public route outside the `_auth` guard (no sign-in or Pro needed): it calls `window.location.replace` to `https://fit.joyorogo.com/ride`, the full-screen ride game built in the watch-fit repo. The sidebar has a "Ride" link (icon + short description) to the same URL; below `lg` the tab bar is full, so the link sits at the top of the settings sheet. Target URL: `src/lib/ride.ts`.
+
 ### Unggah: workout files
 
 `apps/fit/src/lib/import/` (pure, tested with `bun test`): `fit.ts` (Garmin FIT SDK, a port of the JoyoFit app's `parseFit`: sessions added up, records to points, laps kept from two up), `gpx.ts` / `tcx.ts` (DOMParser, vendor extensions by local name), `analysis.ts`, `doc.ts`, `collision.ts`, `upload.ts`.
