@@ -33,6 +33,7 @@ import { dateSchema } from "../lib/schemas";
 import { loadIdeaValues } from "./plate";
 import { gainMealIdeas, mealIdeas } from "../lib/ideas";
 import { buildPlan, gainedKg, planQueries, proteinGoalG, trainingDayQuery } from "../lib/plan";
+import { pickNightSleep } from "../lib/sleep-night";
 import { caffeineOfDay } from "../lib/maternal";
 import {
   DIARY_MACRO_REFERENCE_KG,
@@ -135,7 +136,7 @@ export const dayRouter = {
           .from(exerciseLog)
           .where(and(eq(exerciseLog.userId, userId), eq(exerciseLog.date, date))),
         context.db
-          .select({ hours: sleepLog.hours })
+          .select({ hours: sleepLog.hours, source: sleepLog.source })
           .from(sleepLog)
           .where(and(eq(sleepLog.userId, userId), eq(sleepLog.date, shiftDate(date, -1))))
           .limit(1),
@@ -182,9 +183,10 @@ export const dayRouter = {
         trainingDayQuery(context.db, userId, date),
         // "Kalori olahraga" settings and the notice dismissal, from the synced account preferences.
         addBackPrefQuery(context.db, userId),
-        // The watch's all-day active energy (JoyoFit) of the day, the main input of the activity credit.
+        // The watch's (JoyoFit) all-day active energy of the day, the main input of the activity credit, and the hours it
+        // measured for the night that ended on this day.
         context.db
-          .select({ activeKcal: fitnessScore.activeKcal })
+          .select({ activeKcal: fitnessScore.activeKcal, sleepHours: fitnessScore.sleepHours })
           .from(fitnessScore)
           .where(and(eq(fitnessScore.userId, userId), eq(fitnessScore.date, date)))
           .limit(1),
@@ -309,7 +311,8 @@ export const dayRouter = {
         burnedKcal: burn.exerciseKcal,
         // Health Connect rollup (null until the Android app syncs it)
         dailyActivity: activityRows[0] ?? null,
-        sleepHoursLastNight: sleptRows[0]?.hours ?? null,
+        // The night that ended on `date`: the person's own log, else the watch's hours (JoyoFit), else an import.
+        sleepHoursLastNight: pickNightSleep(sleptRows[0], scoreRows[0]?.sleepHours)?.hours ?? null,
         latestWeightKg: plan.latestWeightKg,
         weightLoggedToday: (loggedRows[0]?.logged ?? 0) > 0,
         // No streak pressure or weight-loss recap in Hamil / Menyusui.

@@ -2,10 +2,12 @@ import { and, eq, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { sleepLog } from "@joyorogo/db/schema/fitness";
+import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 
 import { protectedProcedure } from "../index";
-import { wibYesterday } from "../lib/engine";
+import { shiftDate, wibYesterday } from "../lib/engine";
 import { dateSchema } from "../lib/schemas";
+import { WATCH_SLEEP_SOURCE, pickNightSleep } from "../lib/sleep-night";
 
 export const sleepRouter = {
   log: protectedProcedure
@@ -51,19 +53,40 @@ export const sleepRouter = {
       return row ?? null;
     }),
 
+  /**
+   * The night keyed `date` (the WIB day it started, yesterday by default). It is the sleep_log row; when the person has
+   * no manual entry and JoyoFit measured hours for the morning that night ended, those hours come back as a row with
+   * source 'joyofit' (see pickNightSleep), so the Tidur screen shows what the watch recorded.
+   */
   getForDate: protectedProcedure
     .input(z.object({ date: dateSchema.optional() }))
     .handler(async ({ context, input }) => {
-      const [row] = await context.db
-        .select()
-        .from(sleepLog)
-        .where(
-          and(
-            eq(sleepLog.userId, context.session.user.id),
-            eq(sleepLog.date, input.date ?? wibYesterday()),
-          ),
-        )
-        .limit(1);
-      return row ?? null;
+      const userId = context.session.user.id;
+      const date = input.date ?? wibYesterday();
+      const [logRows, scoreRows] = await context.db.batch([
+        context.db
+          .select()
+          .from(sleepLog)
+          .where(and(eq(sleepLog.userId, userId), eq(sleepLog.date, date)))
+          .limit(1),
+        context.db
+          .select({ sleepHours: fitnessScore.sleepHours, updatedAt: fitnessScore.updatedAt })
+          .from(fitnessScore)
+          .where(and(eq(fitnessScore.userId, userId), eq(fitnessScore.date, shiftDate(date, 1))))
+          .limit(1),
+      ]);
+      const row = logRows[0];
+      const score = scoreRows[0];
+      const night = pickNightSleep(row, score?.sleepHours);
+      if (!night) return null;
+      if (!score || night.source !== WATCH_SLEEP_SOURCE) return row ?? null;
+      return {
+        id: `${WATCH_SLEEP_SOURCE}:${date}`,
+        userId,
+        date,
+        hours: night.hours,
+        source: night.source,
+        createdAt: score.updatedAt,
+      };
     }),
 };

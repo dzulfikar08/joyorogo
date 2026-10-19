@@ -52,6 +52,12 @@ JoyoRogo. JoyoFit's richer daily metrics were not, so `fitness.upsertScores` now
 `vo2max`, `trainingStatus`, `loadRatio`, `recoveryHours` (all optional, a missing one keeps the stored value). JoyoFit sends them with the
 scores it already pushes (JS only, OTA).
 
+The hours of one night can sit in both `sleep_log` (keyed by the day the night started) and `fitness_score.sleep_hours` (keyed by the day it ended,
+JoyoFit sends them for today and, since the week-window push, for each of the six days before). Every reader goes through `lib/sleep-night.ts`
+`pickNightSleep`: a manual `sleep_log` entry wins, else the watch's hours (source `joyofit`), else the Health Connect / Apple Health import. The
+Beranda "Tidur" tile (`day.summary.sleepHoursLastNight`), the Tidur screen (`sleep.getForDate`, which answers a row with source `joyofit` for a
+watch night) and `get_recovery_metrics` all show the same hours.
+
 ### Pro gate
 
 Connecting works for everybody (so the AI app shows the tools and the user sees why nothing opens); every **tool call** of a Free account

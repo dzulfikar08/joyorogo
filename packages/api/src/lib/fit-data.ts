@@ -23,6 +23,7 @@ import { addBackPrefQuery, dayReadings, readAddBackPrefs } from "./exercise-cred
 import { exerciseById } from "./exercises";
 import { gestationalAge, maternalFromRow } from "./maternal";
 import { buildPlan, planQueries, proteinGoalG } from "./plan";
+import { pickNightSleep } from "./sleep-night";
 import type { StickersBucket } from "./sticker";
 import { wibDayBounds } from "./tiers";
 import { getBlob } from "./watch-workout-store";
@@ -543,11 +544,11 @@ export async function getRecoveryDays(db: Database, userId: string, from: string
       const score = scoreByDay.get(date);
       const slept = sleepByDay.get(date);
       const act = activityByDay.get(date);
-      const watchHours = score?.sleepHours ?? null;
+      const night = pickNightSleep(slept, score?.sleepHours);
       return {
         date,
-        sleepHours: watchHours !== null ? round(watchHours, 2) : slept ? round(slept.hours, 2) : null,
-        sleepSource: watchHours !== null ? "joyofit" : (slept?.source ?? null),
+        sleepHours: night ? round(night.hours, 2) : null,
+        sleepSource: night?.source ?? null,
         sleepPct: score?.sleepPct ?? null,
         recoveryPct: score?.recoveryPct ?? null,
         strain: roundOrNull(score?.strain, 1),
