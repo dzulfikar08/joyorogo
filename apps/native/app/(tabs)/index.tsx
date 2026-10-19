@@ -25,6 +25,7 @@ import { gainEatTone, gainRemaining } from "@joyorogo/api/lib/gain";
 import { DEFAULT_ADD_BACK_SETTINGS } from "@joyorogo/api/lib/exercise-credit";
 import { fmtNumber } from "@joyorogo/i18n";
 
+import { CalibrationNotice } from "@/components/calibration-notice";
 import { EnergyNotice } from "@/components/energy-notice";
 import { BelanjaCompact } from "@/components/plate/belanja";
 import {
@@ -449,6 +450,7 @@ export default function Dashboard() {
 
       <StravaRetentionNotice />
       <EnergyNotice notice={data.energyNotice} />
+      <CalibrationNotice notice={data.calibrationNotice} />
 
       {/* Pro banner: kuota gratis vs Pro, ketuk Upgrade → paywall */}
       {showFounderBanner && configData ? (

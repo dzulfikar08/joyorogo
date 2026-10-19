@@ -22,6 +22,7 @@ import { ProfilDataPage, type ProfileData } from "@/components/profil/page";
 import { ActivityLevelPicker, ActivityRecommendations } from "@/components/profil/activity-level-picker";
 import { EnergySources } from "@/components/energy-sources";
 import { NeedsSheet } from "@/components/needs-sheet";
+import { CalibrationSection } from "@/components/profil/calibration-section";
 import { ExerciseCreditSection } from "@/components/profil/exercise-credit-section";
 import { TargetPaceNotice } from "@/components/target-pace-notice";
 import { TargetDateSheet, TargetWeightSheet } from "@/components/target-sheets";
@@ -205,6 +206,7 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
               icon="flash"
               iconTint="makan"
               title={t("plan.needs.row")}
+              wrapTitle
               value={t("plan.needs.rowValue", { kcal: fmtInt(targets.tdee) })}
               chevron
               onPress={() => setSheet("needs")}
@@ -294,6 +296,7 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
             )}
           </Card>
 
+          <CalibrationSection info={guide.data?.autoCalibration ?? null} maternal={maternal !== null} />
           <ExerciseCreditSection includedKcal={targets.includedKcal} />
           <EnergySources />
           {!maternal ? <TargetPaceNotice pace={targets.datePace} /> : null}
