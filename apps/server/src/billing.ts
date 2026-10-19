@@ -67,11 +67,13 @@ import { user } from "@joyorogo/db/schema/auth";
 import { payment, polarSubscription } from "@joyorogo/db/schema/billing";
 import { aiUsage } from "@joyorogo/db/schema/fitness";
 import type { Database } from "@joyorogo/db";
+import { appVersionConfig } from "./app-version";
+import type { AppVersionEnv } from "./app-version";
 import { requestLocale } from "./context";
 import { runFounderEmails, sendOrderEmails } from "./email";
 import { INTERNAL_EMAILS } from "./internal-accounts";
 
-export type BillingEnv = PaywallEnv & GooglePlayEnv & PolarEnv & {
+export type BillingEnv = PaywallEnv & GooglePlayEnv & PolarEnv & AppVersionEnv & {
   BETTER_AUTH_URL: string;
   /** Public web app origin; defaults to BETTER_AUTH_URL (single-worker deploys). */
   APP_URL?: string;
@@ -303,6 +305,8 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       founderYearlyPriceIdr: step ? step.yearlyIdr : config.founderYearlyPriceIdr,
       promo,
       anonScans: config.anonScans,
+      // Native update gate: no login needed, so a signed-out user is gated too.
+      app: appVersionConfig(env),
       // USD option (Polar): prices in cents; `preferred` = the visitor's Cloudflare country is known and not Indonesia.
       usd: polar
         ? {

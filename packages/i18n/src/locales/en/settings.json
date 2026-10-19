@@ -716,6 +716,29 @@
       "readyBody": "Restart JoyoRogo to use the new version.",
       "restart": "Restart"
     },
+    "gate": {
+      "ota": "Updating…",
+      "block": {
+        "title": "Update first",
+        "body": "The JoyoRogo version on your phone is out of date. Fixes we already released only work once the app is updated.",
+        "how": {
+          "android": "Open the Play Store, then tap Update.",
+          "ios": "Open TestFlight, then tap Update."
+        },
+        "update": "Update now",
+        "testing": "Open the testing page",
+        "recheck": "Check again",
+        "rechecking": "Checking…",
+        "stillOld": "Your version isn't the latest yet. Finish the update first, then tap Check again.",
+        "openFailed": "Couldn't open the store. Open the Play Store or TestFlight yourself."
+      },
+      "banner": {
+        "title": "New version available",
+        "body": "Update JoyoRogo to get the latest fixes.",
+        "update": "Update",
+        "later": "Later"
+      }
+    },
     "error": {
       "offline": "Can't reach the server. Check your internet connection.",
       "rejected": "The server rejected the update request (HTTP {{status}}).",

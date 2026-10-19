@@ -50,6 +50,8 @@ export type AppConfig = {
    */
   promo: { slots: number; taken: number; nextPriceIdr?: number | null } | null;
   anonScans: number;
+  /** Native update gate: minimum/latest build per platform (see src/lib/force-update.ts). Missing on older servers. */
+  app?: unknown;
 };
 
 /** Buyer-facing payment choice; the server maps each to its gateway. */
@@ -74,7 +76,12 @@ export function serverUrl(): string {
  * cards) stays hidden.
  */
 export function useAppConfig() {
-  return useQuery({
+  return useQuery(appConfigQuery());
+}
+
+/** Shared by useAppConfig and the launch-time update gate (use-force-update.ts), so both hit one cache entry. */
+export function appConfigQuery() {
+  return {
     queryKey: ["app-config"],
     queryFn: async (): Promise<AppConfig> => {
       const res = await fetch(`${serverUrl()}/api/config`);
@@ -91,7 +98,7 @@ export function useAppConfig() {
     },
     staleTime: 60 * 60 * 1000,
     retry: 2,
-  });
+  };
 }
 
 /** "12 November 2026" / "November 12, 2026" in WIB, in the active language. */

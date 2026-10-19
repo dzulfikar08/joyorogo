@@ -138,4 +138,11 @@ describe("POST /api/billing/polar/webhook", () => {
     expect((await unknown.json()).usd).toMatchObject({ preferred: false, country: null });
     expect(outside.headers.get("cache-control")).toBe("private, no-store");
   });
+
+  test("/api/config carries the native update gate, off by default", async () => {
+    const res = await app.request("/api/config", {}, env, ctx);
+    const body = await res.json();
+    expect(body.app.android.minBuild).toBe(0);
+    expect(body.app.ios.minBuild).toBe(0);
+  });
 });

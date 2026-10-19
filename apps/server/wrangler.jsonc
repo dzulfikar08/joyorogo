@@ -119,6 +119,11 @@
     "POLAR_PRICE_YEARLY_USD_CENTS": "5999",
     "APPLE_BUNDLE_ID": "com.joyodigitama.joyorogo",
     "APPLE_SANDBOX_EMAILS": "",
-    "TESTFLIGHT_PURCHASE_EMAIL": "on"
+    "TESTFLIGHT_PURCHASE_EMAIL": "on",
+    // Native update gate (docs/force-update.md). 0 = off. Set after the fixed build is live in Play / TestFlight.
+    "MIN_BUILD_ANDROID": "1471904",
+    "LATEST_BUILD_ANDROID": "1471904",
+    "MIN_BUILD_IOS": "0",
+    "LATEST_BUILD_IOS": "0"
   }
 }

@@ -33,6 +33,7 @@ import { PrefsSync } from "@/components/prefs-sync";
 import { ReminderSync } from "@/components/reminders/reminder-sync";
 import { ToastProvider } from "@/components/toast";
 import { UpdateBanner } from "@/components/update-banner";
+import { UpdateGate } from "@/components/update-gate";
 import { loadStoredLocale, setLocale } from "@/src/lib/i18n";
 import { applyThemePref, loadThemePref } from "@/src/lib/theme-pref";
 import { orpc, queryClient } from "@/utils/orpc";
@@ -124,6 +125,8 @@ export default function RootLayout() {
           <ReminderSync />
           {/* Android only: Play in-app update or sideload APK update. */}
           <UpdateBanner />
+          {/* Cold-start OTA refresh, minimum-build block screen, iOS new-version banner (docs/force-update.md). */}
+          <UpdateGate />
           {/* Follows the app theme (which can override the OS), not the OS. */}
           <StatusBar style={navTheme.dark ? "light" : "dark"} />
           <Stack

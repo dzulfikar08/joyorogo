@@ -39,3 +39,26 @@ export function otaPercent(progress: number | null | undefined): number | null {
   if (typeof progress !== "number" || !Number.isFinite(progress)) return null;
   return Math.min(100, Math.max(0, Math.round(progress * 100)));
 }
+
+/** The cold-start check waits at most this long for an update before the app opens anyway. */
+export const OTA_LAUNCH_TIMEOUT_MS = 8000;
+
+/** Resolves with the promise's value, or `{ timedOut: true }` once `ms` passed. The promise itself keeps running. */
+export function raceTimeout<T>(
+  work: Promise<T>,
+  ms: number,
+): Promise<{ timedOut: false; value: T } | { timedOut: true }> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => resolve({ timedOut: true }), ms);
+    work.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve({ timedOut: false, value });
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}

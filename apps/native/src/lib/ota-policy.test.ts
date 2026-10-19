@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { otaPercent, otaPhase, otaSource, type OtaSnapshot } from "./ota-policy";
+import { otaPercent, otaPhase, otaSource, raceTimeout, type OtaSnapshot } from "./ota-policy";
 
 const base: OtaSnapshot = {
   enabled: true,
@@ -47,5 +47,20 @@ describe("otaPercent", () => {
     expect(otaPercent(-1)).toBe(0);
     expect(otaPercent(undefined)).toBeNull();
     expect(otaPercent(Number.NaN)).toBeNull();
+  });
+});
+
+describe("raceTimeout", () => {
+  test("returns the value when work finishes first", async () => {
+    expect(await raceTimeout(Promise.resolve(7), 50)).toEqual({ timedOut: false, value: 7 });
+  });
+
+  test("times out while the work keeps running", async () => {
+    const slow = new Promise<number>((resolve) => setTimeout(() => resolve(1), 100));
+    expect(await raceTimeout(slow, 10)).toEqual({ timedOut: true });
+  });
+
+  test("passes a rejection through", async () => {
+    await expect(raceTimeout(Promise.reject(new Error("boom")), 50)).rejects.toThrow("boom");
   });
 });
