@@ -12,12 +12,17 @@
 //   Export owner/feedback/external with scripts/dataset-export.ts, or write external cases
 //   straight from a labels file with scripts/external-import.ts --out .tmp/dataset/external.
 //   Cases with no saved label are skipped and listed in the report.
+//   A `scale.json` beside a photo ({"reading":"100","unit":"g","appliesTo":"plate"}) says the photo shows
+//   a kitchen-scale display and what it reads: the scale-readout variant is scored on those (digits exact,
+//   grams before / after) and every photo without one counts as showing none (false reads).
 //
 // Usage: bun run scripts/eval-scans.ts [options]
 //   --variant <name>   run a named variant (repeatable; default baseline). With 2+, the
 //                      report compares every later variant against the first.
 //   --wikimedia        add the Wikimedia bench set (structure check; band truth)
-//   --only <group>     run only this group (repeatable): owner, feedback, external, wikimedia
+//   --scale-photos     add three public Wikimedia Commons photos of a scale display (group "scale": the
+//                      display is the only truth; run with --variant scale-readout, see docs/scale-readout.md)
+//   --only <group>     run only this group (repeatable): owner, feedback, external, wikimedia, scale
 //   --external-trust <high|medium|low>
 //                      lowest trust of an external case to run (default medium; see the
 //                      labels: low = the photo may not be his plate)
@@ -70,6 +75,9 @@ import type { AiRunner, CardAnswer } from "../packages/api/src/lib/vision";
 import type { CalibrateOptions } from "../packages/api/src/lib/tkpi";
 import { PRIOR_BIG_PLATE, buildPriors, userSetSamples, withPortionPrior } from "../packages/api/src/lib/portion-prior";
 import type { HistoryRow } from "../packages/api/src/lib/portion-prior";
+import { applyScaleReading, parseScaleDigits, readScaleDisplay, scaleReadingGrams, SCALE_PROMPT } from "../packages/api/src/lib/scale-reading";
+import type { ScaleOutcome } from "../packages/api/src/lib/scale-reading";
+import type { ScaleUnit } from "../packages/api/src/lib/scale-chip";
 import { NAME_MATCH_MIN, nameScore, pairItems } from "../packages/api/src/lib/scan-match";
 import type { EvalItem, SummaryRow } from "./dataset-export";
 
@@ -103,6 +111,8 @@ type Variant = {
    * to those cases: a comparison is only paired on cases they all ran.
    */
   appliesTo?: (c: Case) => boolean;
+  /** Production's kitchen-scale readout (lib/scale-reading.ts) on top of the baseline: prompt rule, then applyScaleReading. */
+  scaleReadout?: true;
   notes: string;
 };
 
@@ -152,6 +162,10 @@ const VARIANTS: Record<string, Variant> = {
     appliesTo: (c) => c.card !== undefined,
     notes: "Card in the photo as a size reference: the shipped card block (lib/dishware.ts CARD_INSTRUCTION; any ID-1 card, 85.6 x 54 mm) goes into the prompt as production sends it to an allowlisted user, with no plates, so the effect of the card is read alone. The model reports {seen, confidence}; a card counts as used from confidence 0.6. Only cases whose photo was checked for a card (labels `card`, or --cards: true = a card lies beside the food, false = none) run, for every variant of the run. Reports detection on the cases with a card and false detections on the checked cases without.",
   },
+  "scale-readout": {
+    scaleReadout: true,
+    notes: "Production's kitchen-scale readout (lib/scale-reading.ts): a second, tiny vision call asks only for the scale display; a read with confidence >= 0.75 puts its grams on the item it names (a plate total is shared in the model's proportions; kcal follow through calibration). The scan itself is baseline's request, so its answer is baseline's answer and the comparison is paired. A reading on a photo without a display counts as a false read.",
+  },
 };
 // ---------------------------------------------------------------------------
 
@@ -163,8 +177,48 @@ const WIKI_DIR = join(EVAL_DIR, "wikimedia");
 const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID ?? "b7e6f8457bd39fa37a7eea5249799754";
 /** |signed error| under this share of the true value is "close", not over/under. */
 const CLOSE_PCT = 5;
+const SCALE_DIR = join(EVAL_DIR, "scale");
 
-type Group = "owner" | "feedback" | "external" | "wikimedia";
+/** What a kitchen-scale display in a photo shows, as labelled by a person who read it. */
+type ScaleTruth = { text: string; unit: ScaleUnit; appliesTo: "plate" | string[] };
+
+/**
+ * `scale.json` beside a photo ({"reading":"100","unit":"g","appliesTo":"plate" or ["nasi putih"]}) says
+ * the photo shows a scale display and what it reads. Written by hand after looking at the photo; a photo
+ * without the file is taken to show none.
+ */
+async function loadScaleTruth(dir: string): Promise<ScaleTruth | undefined> {
+  const file = join(dir, "scale.json");
+  if (!existsSync(file)) return undefined;
+  const raw = (await Bun.file(file).json()) as { reading?: unknown; unit?: unknown; appliesTo?: unknown };
+  const unit = raw.unit as ScaleUnit;
+  if (typeof raw.reading !== "string" || !["g", "kg", "oz", "lb", "ml", "fl oz"].includes(unit) || scaleReadingGrams(raw.reading, unit) === null) {
+    throw new Error(`${file}: needs "reading" (the digits as shown, e.g. "100") and "unit" (g, kg, oz, lb, ml, fl oz)`);
+  }
+  const appliesTo = Array.isArray(raw.appliesTo) && raw.appliesTo.every((n) => typeof n === "string") && raw.appliesTo.length ? (raw.appliesTo as string[]) : "plate";
+  return { text: raw.reading, unit, appliesTo };
+}
+
+/**
+ * Public photos of a kitchen-scale display on Wikimedia Commons (not food diaries; the display is the only
+ * truth, read off the photo by hand): --scale-photos adds them, downloaded to .tmp/eval/scale. The
+ * flour bag has "500 GRAM" printed on it while the display reads 243 g: a read of the package is wrong.
+ * Credits: Digi-keukenweegschaal1284.JPG (CC BY-SA 3.0), Digitalwaage mit ei IMGP1351.jpg (FAL),
+ * 2023 Elektroniczna waga kuchenna.jpg (CC BY-SA 4.0).
+ */
+const SCALE_CASES: Array<{ id: string; what: string; text: string; unit: ScaleUnit; url: string }> = [
+  ["scale-flour-bag", "flour bag on a Scaleman scale (package says 500 GRAM)", "243", "g", "f/f9/Digi-keukenweegschaal1284.JPG"],
+  ["scale-egg", "egg on a glass scale", "61", "g", "4/45/Digitalwaage_mit_ei_IMGP1351.jpg"],
+  ["scale-tomato", "tomato on an electronic scale", "314", "g", "6/6c/2023_Elektroniczna_waga_kuchenna.jpg"],
+].map(([id, what, text, unit, path]) => ({
+  id: id as string,
+  what: what as string,
+  text: text as string,
+  unit: unit as ScaleUnit,
+  url: `https://thumb.wikimedia.org/wikipedia/commons/thumb/${path}/960px-${(path as string).split("/").pop()}`,
+}));
+
+type Group = "owner" | "feedback" | "external" | "wikimedia" | "scale";
 /** A truth item. noKcal = there is no reference kcal for it (kcal is 0 and is never scored). */
 type TruthItem = EvalItem & { noKcal?: true; ref?: string };
 type Case = {
@@ -184,6 +238,8 @@ type Case = {
   plate?: PlateRef;
   /** Wikimedia only: dish name and the kcal band one serving is expected in. */
   wiki?: { dish: string; min: number; max: number };
+  /** A visible kitchen-scale display, labelled by hand (scale.json beside the photo, or SCALE_CASES). */
+  scale?: ScaleTruth;
   /** External cases only. */
   external?: {
     trust: ExternalMeta["trust"];
@@ -225,6 +281,7 @@ const WIKI_CASES: Array<{ dish: string; url: string; min: number; max: number }>
 type Args = {
   variants: string[];
   wikimedia: boolean;
+  scalePhotos: boolean;
   only: Group[];
   externalTrust: ExternalMeta["trust"];
   externalUncertain: boolean;
@@ -243,6 +300,7 @@ function parseArgs(argv: string[]): Args {
   const args: Args = {
     variants: [],
     wikimedia: false,
+    scalePhotos: false,
     only: [],
     externalTrust: "medium",
     externalUncertain: false,
@@ -269,6 +327,9 @@ function parseArgs(argv: string[]): Args {
       case "--wikimedia":
         args.wikimedia = true;
         break;
+      case "--scale-photos":
+        args.scalePhotos = true;
+        break;
       case "--dir":
         args.dir = join(process.cwd(), value(i++));
         break;
@@ -286,7 +347,7 @@ function parseArgs(argv: string[]): Args {
         break;
       case "--only": {
         const group = value(i++);
-        if (!["owner", "feedback", "external", "wikimedia"].includes(group)) throw new Error(`--only: unknown group "${group}"`);
+        if (!["owner", "feedback", "external", "wikimedia", "scale"].includes(group)) throw new Error(`--only: unknown group "${group}"`);
         args.only.push(group as Group);
         break;
       }
@@ -477,14 +538,14 @@ function restRunner(token: string): AiRunner {
 }
 
 type RunResult =
-  | { ok: true; items: EvalItem[]; ms: number; modelMs: number; tooMany: boolean; cached: boolean; plate?: string | null; card?: CardAnswer }
+  | { ok: true; items: EvalItem[]; ms: number; modelMs: number; tooMany: boolean; cached: boolean; plate?: string | null; card?: CardAnswer; scale?: ScaleOutcome | null; scaleError?: string }
   | { ok: false; reason: string; ms: number; cached: false };
 
 /** Cache key of a variant for one case: model, final prompt (variant diff + the case's own line) and calibration. */
 const fingerprint = (variant: Variant, c?: Case) =>
   createHash("sha256")
     .update(
-      `${variant.model ?? DEFAULT_VISION_MODEL}\n${promptFor(variant)(visionPrompt())}\n${JSON.stringify(variant.calibration ?? {}, (_k, v) => (v === Infinity ? "inf" : v))}\n${priorSignature(variant, c)}\n${(c && variant.dishware?.(c)) ?? ""}`,
+      `${variant.model ?? DEFAULT_VISION_MODEL}\n${promptFor(variant)(visionPrompt())}\n${variant.scaleReadout ? SCALE_PROMPT : ""}\n${JSON.stringify(variant.calibration ?? {}, (_k, v) => (v === Infinity ? "inf" : v))}\n${priorSignature(variant, c)}\n${(c && variant.dishware?.(c)) ?? ""}`,
     )
     .digest("hex")
     .slice(0, 8);
@@ -551,21 +612,30 @@ async function runOne(
   const bytes = await Bun.file(c.photo).arrayBuffer();
   const started = Date.now();
   try {
-    const analysis = await analyzeFoodPhoto(rawCache(ai, rep, useCache), {
-      imageBase64: Buffer.from(bytes).toString("base64"),
-      mimeType: "image/jpeg",
-      model: variant.model,
-      promptTransform: promptFor(variant),
-      dishware: variant.dishware?.(c),
-      calibration: variant.calibration,
-    });
+    const runner = rawCache(ai, rep, useCache);
+    const image = Buffer.from(bytes).toString("base64");
+    // The scale call runs beside the scan, as in production; the scan's request is baseline's own, so its answer is replayed.
+    const [analysis, call] = await Promise.all([
+      analyzeFoodPhoto(runner, {
+        imageBase64: image,
+        mimeType: "image/jpeg",
+        model: variant.model,
+        promptTransform: promptFor(variant),
+        dishware: variant.dishware?.(c),
+        calibration: variant.calibration,
+      }),
+      variant.scaleReadout ? readScaleDisplay(runner, { imageBase64: image, mimeType: "image/jpeg", model: variant.model }) : null,
+    ]);
+    const read = call ? applyScaleReading(analysis.items, call.reading) : null;
+    const shown: typeof analysis.items = read?.items ?? analysis.items;
     const priors = variant.portionPrior ? priorsFor(c) : null;
     const answered = priors
-      ? analysis.items.map((item) => withPortionPrior(item, priors, variant.portionPrior))
-      : analysis.items;
+      ? shown.map((item) => withPortionPrior(item, priors, variant.portionPrior))
+      : shown;
     const result: RunResult = {
       ok: true,
       items: answered.map((item) => ({ name: item.name, grams: item.grams, kcal: item.kcal })),
+      ...(read ? { scale: read.outcome, ...(call?.error ? { scaleError: call.error } : {}) } : {}),
       ms: Date.now() - started,
       modelMs: analysis.timing.modelMs,
       tooMany: analysis.tooMany,
@@ -681,6 +751,7 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
         label: row.label,
         recorded: row.ai_items,
         truth: row.truth_items && row.truth_items.length ? row.truth_items : null,
+        scale: await loadScaleTruth(join(args.dir, row.set, row.case_id)),
       };
       (c.truth ? cases : skipped).push(c);
       if (row.set === "owner") HISTORY.push(...ownerHistoryRows(row).map((r) => ({ caseId: row.case_id, user: "owner", row: r })));
@@ -748,8 +819,27 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
               : [],
           ),
         );
+        const externalScale = await loadScaleTruth(dir);
+        if (externalScale) c.scale = externalScale;
         (trustRank[meta.trust] >= trustRank[args.externalTrust] ? cases : skipped).push(c);
       }
+    }
+  }
+  if (args.scalePhotos) {
+    mkdirSync(SCALE_DIR, { recursive: true });
+    for (const s of SCALE_CASES) {
+      const photo = join(SCALE_DIR, `${s.id}.jpg`);
+      if (!existsSync(photo)) await downloadWiki(s.url, photo);
+      cases.push({
+        id: s.id,
+        group: "scale",
+        person: "scale",
+        photo,
+        label: s.what,
+        recorded: null,
+        truth: null,
+        scale: { text: s.text, unit: s.unit, appliesTo: "plate" },
+      });
     }
   }
   if (args.wikimedia) {
@@ -789,6 +879,92 @@ async function downloadWiki(url: string, to: string): Promise<void> {
 
 // ------------------------------------------------------------- aggregation
 type Run = { c: Case; rep: number; result: RunResult; scored: Scored | null };
+
+/** Grams the answer put on the items a labelled display covers (the whole answer for "plate"). */
+function coveredGrams(r: Run, t: ScaleTruth): number {
+  if (!r.result.ok) return NaN;
+  const items = t.appliesTo === "plate" ? r.result.items : r.result.items.filter((i) => t.appliesTo.some((n) => nameScore(i.name, n) >= NAME_MATCH_MIN));
+  return items.length ? sum(items.map((i) => i.grams ?? 0)) : NaN;
+}
+
+const outcomeOf = (r: Run): ScaleOutcome | null | undefined => (r.result.ok ? r.result.scale : undefined);
+
+/**
+ * Kitchen-scale readout: how often the model writes a reading at all, how often a
+ * photo without a display gets one (a false read), and on the photos with a labelled display
+ * (scale.json, or --scale-photos) whether the digits are exact and what the grams did
+ * against the baseline answer for the same photo.
+ */
+function scaleSection(variants: string[], cases: Case[], runs: Array<Run & { variant: string }>): string[] {
+  const readers = variants.filter((v) => VARIANTS[v]!.scaleReadout);
+  const display = cases.filter((c) => c.scale);
+  const md = ["## Scale readout", ""];
+  md.push(
+    display.length === 0
+      ? "No photo in this run has a labelled scale display (a `scale.json` beside the photo, or --scale-photos), so digit accuracy and the grams effect cannot be measured here; only false reads (a reading on a photo without a display) are counted."
+      : `${display.length} photo(s) with a labelled display (${display.map((c) => `${c.id}: ${c.scale!.text} ${c.scale!.unit}`).join("; ")}). Every other photo is taken to have none: label a display photo, or its reading counts as a false one.`,
+    "",
+  );
+  if (readers.length === 0) return [...md, "No scale-readout variant in this run (add --variant scale-readout).", ""];
+  const reference = variants.find((v) => !VARIANTS[v]!.scaleReadout && !VARIANTS[v]!.portionPrior);
+  for (const v of readers) {
+    const mine = runs.filter((r) => r.variant === v && r.result.ok);
+    const withDisplay = mine.filter((r) => r.c.scale);
+    const without = mine.filter((r) => !r.c.scale);
+    const written = (rs: Run[]) => rs.filter((r) => outcomeOf(r) != null);
+    const used = (rs: Run[]) => rs.filter((r) => (outcomeOf(r)?.applied.length ?? 0) > 0);
+    const exact = withDisplay.filter((r) => {
+      const o = outcomeOf(r);
+      const t = r.c.scale!;
+      const value = o ? parseScaleDigits(o.text, o.unit) : null;
+      return o != null && value !== null && o.unit === t.unit && value === parseScaleDigits(t.text, t.unit);
+    });
+    md.push(
+      `**${v}**`,
+      "",
+      "| Metric | Value |",
+      "|---|---|",
+      `| runs on photos without a display | ${without.length} (${new Set(without.map((r) => r.c.id)).size} photos) |`,
+      `| false reads written / used on those | ${written(without).length} / ${used(without).length} |`,
+      `| runs on photos with a display | ${withDisplay.length} (${new Set(withDisplay.map((r) => r.c.id)).size} photos) |`,
+      `| reading written / used | ${written(withDisplay).length} / ${used(withDisplay).length} |`,
+      `| digits and unit exact | ${exact.length} of ${withDisplay.length} |`,
+      `| scale call failed (no answer, scan unaffected) | ${mine.filter((r) => r.result.ok && r.result.scaleError).length} of ${mine.length} |`,
+      "",
+    );
+    const falseReads = written(without);
+    if (falseReads.length) {
+      md.push("False reads (photo without a display):", "", "| Run | Read | Confidence | Result |", "|---|---|---|---|");
+      for (const r of falseReads) {
+        const o = outcomeOf(r)!;
+        md.push(`| ${r.c.id}#${r.rep} | ${o.text} ${o.unit} (${o.appliesTo === "plate" ? "plate" : o.appliesTo.join("|")}) | ${f(o.confidence, 2)} | ${o.applied.length ? `USED on ${o.applied.length} item(s)` : `set aside: ${o.skipped ?? "-"}`} |`);
+      }
+      md.push("");
+    }
+    if (withDisplay.length) {
+      md.push("Photos with a display: the weight of what the display covers, before (" + (reference ?? "no reference variant") + ") and after, against the display's grams.", "", "| Run | Display | Read | Conf | Result | Reference g | After g | Display g | Error before | Error after |", "|---|---|---|---|---|---|---|---|---|---|");
+      const before: number[] = [];
+      const after: number[] = [];
+      for (const r of withDisplay) {
+        const t = r.c.scale!;
+        const truthGrams = scaleReadingGrams(t.text, t.unit);
+        const o = outcomeOf(r);
+        const base = reference ? runs.find((x) => x.variant === reference && x.c.id === r.c.id && x.rep === r.rep) : undefined;
+        const baseGrams = base ? coveredGrams(base, t) : NaN;
+        const afterGrams = coveredGrams(r, t);
+        const err = (g: number) => (truthGrams && Number.isFinite(g) ? ((g - truthGrams) / truthGrams) * 100 : NaN);
+        if (Number.isFinite(err(baseGrams)) && Number.isFinite(err(afterGrams))) {
+          before.push(Math.abs(err(baseGrams)));
+          after.push(Math.abs(err(afterGrams)));
+        }
+        const result = !o ? "no reading" : o.applied.length ? `used on ${o.applied.length} item(s)` : `set aside: ${o.skipped ?? "-"}`;
+        md.push(`| ${r.c.id}#${r.rep} | ${t.text} ${t.unit} | ${o ? `${o.text} ${o.unit}` : "-"} | ${o ? f(o.confidence, 2) : "-"} | ${result} | ${f(baseGrams, 0)} | ${f(afterGrams, 0)} | ${f(truthGrams ?? NaN, 0)} | ${f(err(baseGrams), 0)}% | ${f(err(afterGrams), 0)}% |`);
+      }
+      md.push("", `Mean |grams error| over ${before.length} paired run(s): before ${f(mean(before), 1)}%, after ${f(mean(after), 1)}%.`, "");
+    }
+  }
+  return [...md, ""];
+}
 
 type Agg = {
   group: Group;
@@ -1273,7 +1449,7 @@ async function main() {
   const date = new Date().toISOString().slice(0, 10);
   const md: string[] = [`# Scan accuracy eval ${date}`, ""];
   md.push(
-    `Cases: ${groups.map((g) => `${g} ${cases.filter((c) => c.group === g).length}`).join(", ") || "none"}; unlabelled skipped ${skipped.length}. Reps ${args.reps}. Model ${DEFAULT_VISION_MODEL} unless a variant overrides it.`,
+    `Cases: ${groups.map((g) => `${g} ${cases.filter((c) => c.group === g).length}`).join(", ") || "none"}${cases.some((c) => c.group === "scale") ? `, scale ${cases.filter((c) => c.group === "scale").length}` : ""}; unlabelled skipped ${skipped.length}. Reps ${args.reps}. Model ${DEFAULT_VISION_MODEL} unless a variant overrides it.`,
     "",
     "Variants:",
     ...args.variants.map((v) => `- \`${v}\`: ${VARIANTS[v]!.notes} (fingerprint ${fingerprint(VARIANTS[v]!)})`),
@@ -1315,6 +1491,9 @@ async function main() {
       const subset = runsBy(a.variant, "owner").filter(edited);
       if (subset.length) rows.push({ set: "owner, edited only (corrected + retried)", agg: aggregate("owner", a.variant, subset) });
     }
+    // Photos with a labelled scale display (scale.json): the cases the scale-readout variant is for.
+    const display = runsBy(a.variant, a.group).filter((r) => r.c.scale);
+    if (display.length) rows.push({ set: `${a.group}, scale display visible`, agg: aggregate(a.group, a.variant, display) });
     return rows;
   });
   md.splice(
@@ -1332,6 +1511,9 @@ async function main() {
     ),
     "",
   );
+  if (cases.some((c) => c.scale || c.group === "scale") || args.variants.some((v) => VARIANTS[v]!.scaleReadout)) {
+    md.push(...scaleSection(args.variants, cases, results.map((r, i) => ({ ...r, variant: jobs[i]!.variant }))));
+  }
 
   // The answer production gave at scan time vs the saved items (no model calls).
   const recorded = cases.filter((c) => c.recorded && c.truth);

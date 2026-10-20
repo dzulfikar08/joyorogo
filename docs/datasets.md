@@ -69,6 +69,11 @@ bun run scripts/eval-scans.ts --only external --reps 2       # production prompt
 #                                words with his grams and print per meal: reference kcal for his grams vs
 #                                the comparator vs our photo answer vs our text answer, plus the text path
 #                                item by item (grams kept? kcal per 100 g vs the reference?)
+#    --variant baseline --variant scale-readout   the kitchen-scale readout (docs/scale-readout.md) on the baseline
+#                                scan answers; photos with a scale display are the ones that carry a `scale.json`
+#                                ({"reading":"100","unit":"g","appliesTo":"plate"}) beside photo.jpg, written by hand
+#                                (git-ignored .tmp/); a photo without it is taken to show no display
+#    --scale-photos              add three public Wikimedia Commons photos of a scale display (read accuracy only)
 
 # Pull what is in R2 back down: fills .tmp/dataset/{owner,feedback,external}/ and summary.jsonl.
 # With AI_BENCH_KEY it goes through the server routes; without it, straight from the R2 bucket

@@ -6,9 +6,9 @@
 //
 // History = grams the user set themselves: typed by hand, or edited after the AI
 // answered. Unedited AI answers never count, or the prior would echo the model.
-import { scalePortion } from "./portion";
+import { itemAtGrams } from "./item-grams";
 import type { PortionNumbers, PortionPriorChip } from "./portion-chip";
-import { calibrateItems, canonicalFood } from "./tkpi";
+import { canonicalFood } from "./tkpi";
 import type { CalibratedItem } from "./tkpi";
 
 /** Only rows from the last this-many days. */
@@ -127,32 +127,10 @@ export function withPortionPrior<T extends PriorItem>(
   if (ai > prior.grams * (options.bigPlate ?? PRIOR_BIG_PLATE)) return item;
   if (Math.abs(ai - prior.grams) <= SAME_PORTION * prior.grams) return item;
 
-  const scaled = scalePortion(
-    {
-      grams: ai,
-      kcal: item.kcal,
-      protein: item.protein ?? null,
-      carbs: item.carbs ?? null,
-      fat: item.fat ?? null,
-      fiber: item.fiber ?? null,
-    },
-    prior.grams / ai,
-  );
-  const [calibrated] = calibrateItems([
-    {
-      name: item.name,
-      drink: item.kind === "minuman",
-      grams: prior.grams,
-      kcal: scaled.kcal,
-      ...(scaled.protein !== null ? { protein: scaled.protein } : {}),
-      ...(scaled.carbs !== null ? { carbs: scaled.carbs } : {}),
-      ...(scaled.fat !== null ? { fat: scaled.fat } : {}),
-      ...(scaled.fiber !== null ? { fiber: scaled.fiber } : {}),
-    },
-  ]);
-  if (!calibrated) return item;
+  const shown = itemAtGrams(item, prior.grams);
+  if (!shown) return item;
 
-  const { portion: aiPortion, ...rest } = item;
+  const { portion: aiPortion } = item;
   const other: PortionNumbers = {
     ...(aiPortion !== undefined ? { portion: aiPortion } : {}),
     grams: ai,
@@ -162,14 +140,5 @@ export function withPortionPrior<T extends PriorItem>(
     ...(item.fat !== undefined ? { fat: item.fat } : {}),
     ...(item.fiber !== undefined ? { fiber: item.fiber } : {}),
   };
-  return {
-    ...rest,
-    grams: prior.grams,
-    kcal: calibrated.kcal,
-    ...(calibrated.protein !== undefined ? { protein: calibrated.protein } : {}),
-    ...(calibrated.carbs !== undefined ? { carbs: calibrated.carbs } : {}),
-    ...(calibrated.fat !== undefined ? { fat: calibrated.fat } : {}),
-    ...(calibrated.fiber !== undefined ? { fiber: calibrated.fiber } : {}),
-    portionPrior: { active: "prior", other, n: prior.n },
-  } as T & { portionPrior: PortionPriorChip };
+  return { ...shown, portionPrior: { active: "prior", other, n: prior.n } } as T & { portionPrior: PortionPriorChip };
 }

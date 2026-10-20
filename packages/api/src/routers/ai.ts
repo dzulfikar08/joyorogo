@@ -52,6 +52,8 @@ import { withPortionPrior } from "../lib/portion-prior";
 import type { PortionPrior } from "../lib/portion-prior";
 import { loadPortionPriors, portionPriorEnabled } from "../lib/portion-prior-store";
 import type { PortionPriorChip } from "../lib/portion-chip";
+import { applyScaleReading, readScaleDisplay, scaleLedger, scaleReadoutEnabled } from "../lib/scale-reading";
+import type { ScaleReadChip } from "../lib/scale-chip";
 import type { ScanStreamEvent } from "../lib/scan-live";
 import type { Context } from "../context";
 import { assertCorrectionAllowed, correctionsLeft, correctionsUsed } from "../lib/correct-limit";
@@ -235,7 +237,9 @@ function referenceOutcome(reference: ScanReference | null, answered: Pick<Vision
 /** What analyzeFood answers, and what the closing `done` event of analyzeFoodStream carries. */
 export type AnalyzeFoodResult = {
   /** `portionPrior` is present only for allowlisted users with a consistent weighed history (lib/portion-prior.ts). */
-  items: Array<VisionAnalysis["items"][number] & { portionPrior?: PortionPriorChip }>;
+  items: Array<
+    VisionAnalysis["items"][number] & { portionPrior?: PortionPriorChip; scaleRead?: ScaleReadChip }
+  >;
   tooMany: boolean;
   scanId: string | null;
   photoId: string | null;
@@ -268,6 +272,7 @@ async function runAnalyzeFood(
   onEvent?: (event: VisionEvent) => void,
 ): Promise<AnalyzeFoodResult> {
   const userId = context.session.user.id;
+  const scaleOn = scaleReadoutEnabled(context.env, userId);
   const requestStartedAt = Date.now();
   // Request start (createContext: session lookup, then the body upload as the
   // worker saw it) to here. Absent outside the worker (tests).
@@ -368,6 +373,14 @@ async function runAnalyzeFood(
         onEvent(event);
       }
     : undefined;
+  // Kitchen-scale readout (lib/scale-reading.ts): allowlist only; one more call beside the scan.
+  const scalePending = scaleOn
+    ? readScaleDisplay(ai, {
+        imageBase64: input.imageBase64,
+        mimeType: input.mimeType,
+        model: context.env.AI_VISION_MODEL || undefined,
+      })
+    : null;
   let analysis;
   try {
     analysis = await analyzeFoodPhoto(ai, {
@@ -392,6 +405,12 @@ async function runAnalyzeFood(
     throw scanFailure(error, context.locale);
   }
   const latencyMs = Date.now() - startedAt;
+  // Kitchen-scale readout (lib/scale-reading.ts): allowlist only. The ledger and the
+  // scan session keep the numbers the user sees; `scale` on the ledger row keeps the
+  // reading, what became of it and the model's own grams for the rows it changed.
+  const scaleCall = await scalePending;
+  const scale = scaleCall ? applyScaleReading(analysis.items, scaleCall.reading) : null;
+  const items: AnalyzeFoodResult["items"] = scale?.items ?? analysis.items;
   const sticker = await cutout;
   const storeSticker = async (): Promise<string | null> => {
     if (!stickers || !sticker) return null;
@@ -433,7 +452,8 @@ async function runAnalyzeFood(
     serverTiming,
     ...(input.clientTiming ? { clientTiming: input.clientTiming } : {}),
     // Implicit outcome labels (lib/scan-outcome.ts) build on these two.
-    ...(storedPhotoId ? { photoId: storedPhotoId, aiItems: compactItems(analysis.items) } : {}),
+    ...(storedPhotoId ? { photoId: storedPhotoId, aiItems: compactItems(items) } : {}),
+    ...(scaleCall ? { scale: scaleLedger(scaleCall, scale?.outcome ?? null) } : {}),
   };
   const ledger = context.db
     .insert(aiUsage)
@@ -519,7 +539,7 @@ async function runAnalyzeFood(
             mimeType: input.mimeType,
             model: analysis.model,
             locale: context.locale,
-            items: analysis.items,
+            items,
             tooMany: analysis.tooMany,
           }),
         )
@@ -551,7 +571,9 @@ async function runAnalyzeFood(
   // the user sees starts at their usual portion.
   const usual = await priors;
   return {
-    items: usual ? analysis.items.map((item) => withPortionPrior(item, usual)) : analysis.items,
+    items: usual
+      ? items.map((item) => (item.scaleRead ? item : withPortionPrior(item, usual)))
+      : items,
     tooMany: analysis.tooMany,
     scanId,
     photoId,
@@ -604,6 +626,7 @@ export const aiRouter = {
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
+      const scaleOn = scaleReadoutEnabled(context.env, userId);
       const requestStartedAt = Date.now();
       const userNote = loadUserNote(context.db, userId);
       const reference = loadScanReference(context.db, context.env, userId);
@@ -636,12 +659,21 @@ export const aiRouter = {
       const startedAt = Date.now();
       // R2 read of the kept photo (before the model can start).
       const loadMs = startedAt - requestStartedAt;
+      // Kitchen-scale readout (lib/scale-reading.ts): allowlist only; one more call beside the scan.
+      const photoBase64 = bytesToBase64(bytes);
+      const photoMime = mimeType === "image/png" || mimeType === "image/webp" ? mimeType : "image/jpeg";
+      const scalePending = scaleOn
+        ? readScaleDisplay(ai, {
+            imageBase64: photoBase64,
+            mimeType: photoMime,
+            model: context.env.AI_VISION_MODEL || undefined,
+          })
+        : null;
       let analysis;
       try {
         analysis = await analyzeFoodPhoto(ai, {
-          imageBase64: bytesToBase64(bytes),
-          mimeType:
-            mimeType === "image/png" || mimeType === "image/webp" ? mimeType : "image/jpeg",
+          imageBase64: photoBase64,
+          mimeType: photoMime,
           model: context.env.AI_VISION_MODEL || undefined,
           retry: { hint: input.hint },
           locale: context.locale,
@@ -654,6 +686,10 @@ export const aiRouter = {
       }
       const aiMs = Date.now() - startedAt;
       const references = referenceOutcome(await reference, analysis);
+      // Kitchen-scale readout (lib/scale-reading.ts): allowlist only.
+      const scaleCall = await scalePending;
+      const scale = scaleCall ? applyScaleReading(analysis.items, scaleCall.reading) : null;
+      const shownItems: AnalyzeFoodResult["items"] = scale?.items ?? analysis.items;
       // Both writes come after inference: a failed or abandoned attempt
       // never consumes the cap, and ledger rows marked "retry" stay outside
       // the daily quota count (scansUsedToday only counts "user").
@@ -687,7 +723,8 @@ export const aiRouter = {
           usageJson: JSON.stringify({
             kind: "retry",
             ...(input.hint ? { hint: input.hint } : {}),
-            itemCount: analysis.items.length,
+            itemCount: shownItems.length,
+            ...(scaleCall ? { scale: scaleLedger(scaleCall, scale?.outcome ?? null) } : {}),
             ...(analysis.tooMany ? { tooMany: true } : {}),
             ...(analysis.modelTooMany ? { modelTooMany: true } : {}),
             ...(analysis.repaired ? { repaired: true } : {}),
@@ -709,7 +746,7 @@ export const aiRouter = {
           recordSessionRetry(context.db, userId, input.photoId, {
             model: analysis.model,
             hint: input.hint,
-            items: analysis.items,
+            items: shownItems,
           }),
           markRetryTapFeedback(context.db, userId, input.photoId),
         ]).catch((error: unknown) => console.error("[ai] retry outcome failed", error)),
@@ -719,7 +756,7 @@ export const aiRouter = {
           recordRetry(bucket, userId, input.photoId, {
             model: analysis.model,
             hint: input.hint,
-            items: analysis.items,
+            items: shownItems,
           }),
         );
       }
@@ -731,7 +768,7 @@ export const aiRouter = {
         );
       }
       return {
-        items: analysis.items,
+        items: shownItems,
         tooMany: analysis.tooMany,
         retriesLeft: MAX_SCAN_RETRIES - (used + 1),
         model: analysis.model,

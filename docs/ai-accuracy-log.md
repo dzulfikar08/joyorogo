@@ -39,6 +39,21 @@ Reading it: the field format works with Gemma 4 and no answer lost its item list
 
 **What the answer needs**: a handful of photos of food on a plate whose diameter is measured, with the food weighed. Either the owner registers a plate and weighs a few meals on it (the harness takes a `plate` per owner case via `--plates`, e.g. `{"group:owner": {...}}` for a window of meals), or the external contributor adds `plate` to his labels (name, kind, measured diameter). About 15 weighed meals on two or three plates would give a first paired read of grams error, baseline vs `plate-ref`.
 
+## 2026-10-20: reading a kitchen scale's display (`scale-readout`, flagged off for users)
+
+Built the read-the-display path: a second tiny vision call beside the scan reads a scale display, its grams replace the model's on the item that was weighed, and the row shows "Terbaca dari timbangan: 100 g" with the photo estimate one tap away. Rules, flag (`SCALE_READOUT_USER_IDS`), response shape and why it is a separate call instead of a prompt rule: `docs/scale-readout.md`.
+
+**How many photos show a display: none.** All 35 photo files looked at by eye (the contributor's 9, the owner's 24 scans, 2 consented feedback photos; one meal appears in both the owner and feedback sets): plates, cups, hand-held items, a laptop keyboard and coins as distractors, no scale anywhere. So the measurement the task asked for (digits exact and grams error on the user's own display photos) cannot be made yet. What was run instead, and it is not the user's data:
+
+- **False reads on photos without a display:** `scale-readout` on the 28 labelled cases that run (2 reps, 58 runs): 0 readings written, 0 used. One of them is an office meal next to a keyboard numpad and a tray of coins, the likeliest place for a misread. The other 6 photos (5 unsaved owner scans, 1 low-trust case) were looked at but not run.
+- **Read accuracy on real public photos of scale displays** (`--scale-photos`: three CC-licensed Wikimedia Commons photos, display read off by hand: flour bag 243 g with "500 GRAM" printed on the package, egg 61 g, tomato 314 g): digits and unit exact in 35 of 35 runs (egg 15, tomato 15 through the harness; flour 5 through a direct call, because the scan itself answers `not_food` for a flour bag so the harness run fails whatever the scale call does). The model read the display, not the package. Confidence 0.95-1.0 each time; the scale call failed in 0 of 62 runs.
+- **Grams error before / after on those photos: 0% and 0%.** The baseline scan already answers the displayed number as the grams for a single item on a scale (egg 61 g and tomato 314 g in 15 of 15 runs each), so the readout shows no gain here. Where it should matter (several items on the plate, a plate total to share, an ounce display, a low-confidence digit to set aside) no photo exists; those paths are covered by unit tests only.
+- **Food accuracy on the dataset photos is unchanged by construction:** the scan request in the variant is baseline's own, its answer replayed, so owner / feedback / external numbers are identical row by row (the variant summary rows are equal).
+
+Cost: 507 prompt tokens and about 6 completion tokens per scan when there is no display (about 4.5 neurons against 13 for the scan, 101 calls). A first version put the rule inside the scan prompt; on the egg photo the item list lost its keys in 8 of 15 runs (baseline 0 of 15), which is why it is a separate call.
+
+Next: when the owner (or the contributor) weighs a plate with the scale in the photo, drop a `scale.json` beside the photo (see `docs/scale-readout.md`) and rerun `--variant baseline --variant scale-readout`; the "scale display visible" rows in the variant summary and the Scale readout section then carry the real before / after.
+
 ## 2026-10-20: when the grams are known, does our kcal per gram agree with Meta AI? (comparator, not truth)
 
 The external contributor also asks Meta AI (meta.ai) in his thread, giving it the photo, his grams and a nutrition-tracker prompt. Its answer for one day (Day 3, four meals) was copied into the case labels as a **comparator** (`comparators` on the case: source, meal or day scope, kcal range). It is shown beside ours and never scored: Meta AI is not ground truth. Days 4 and 5 have no Meta answer (hidden under "Show replies").

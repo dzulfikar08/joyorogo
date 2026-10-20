@@ -46,6 +46,8 @@ import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { scalePortion } from "@joyorogo/api/lib/portion";
 import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
 import type { PortionPriorChip } from "@joyorogo/api/lib/portion-chip";
+import { swapScaleRead, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
+import type { ScaleReadChip } from "@joyorogo/api/lib/scale-chip";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import { cupPick } from "@joyorogo/api/lib/drink-options";
 import type { CupChoice } from "@joyorogo/api/lib/drink-options";
@@ -78,6 +80,7 @@ import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
 import { CorrectBox } from "@/components/scan/correct-box";
 import { CupChoices } from "@/components/scan/cup-choices";
 import { PortionPriorChips } from "@/components/scan/portion-prior-chips";
+import { ScaleReadChips } from "@/components/scan/scale-read-chips";
 import type { CorrectInput, CorrectOutcome } from "@/components/scan/correct-box";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { MealStory } from "@/components/story/types";
@@ -106,6 +109,8 @@ type AnalyzedItem = {
   kind?: FoodKind;
   /** Set when the weight started at the user's usual portion: the model's number is one tap away. */
   portionPrior?: PortionPriorChip;
+  /** Set when the weight was read off a kitchen-scale display in the photo: the photo estimate is one tap away. */
+  scaleRead?: ScaleReadChip;
 };
 
 /** Everything per-row that a correction rewrites; "Urungkan" restores one of these. */
@@ -1034,7 +1039,7 @@ export default function MakanAi() {
           ...(stickers[index] ? { scanId: stickers[index] } : {}),
         })),
         ...(photoId ? { scanPhotoId: photoId } : {}),
-        itemsJson: JSON.stringify(withoutPortionPrior(aiItems)),
+        itemsJson: JSON.stringify(withoutScaleRead(withoutPortionPrior(aiItems))),
         ...(plate ? { plate } : {}),
         ...(eatenAt !== null
           ? { eatenAt: eatenAtFromClock(scanDate ?? jakartaToday(), eatenAtClock(eatenAt)) ?? undefined }
@@ -1089,6 +1094,7 @@ export default function MakanAi() {
       return {
         ...item,
         portionPrior: undefined,
+        scaleRead: undefined,
         kcal: half.kcal,
         grams: half.grams ?? undefined,
         protein: half.protein ?? undefined,
@@ -1121,6 +1127,17 @@ export default function MakanAi() {
         items: prev.items.map((it, i) => (i === origin ? swapPortionPrior(it) : it)),
       }));
     }
+  };
+
+  /** Kitchen-scale readout: one tap puts the scale's weight or the photo estimate on the row. */
+  const swapScale = (index: number) => {
+    const item = items[index];
+    if (!item) return;
+    const swapped = swapScaleRead(item);
+    setItems((prev) => prev.map((it, i) => (i === index ? swapped : it)));
+    setDrafts((prev) =>
+      prev.map((draft, i) => (i === index ? { ...draft, kcal: String(swapped.kcal) } : draft)),
+    );
   };
 
   /** A cup whose contents the photo hides: the user's drink / size pick replaces the row's numbers. */
@@ -1617,6 +1634,9 @@ export default function MakanAi() {
                       ) : null}
                       {item.portionPrior ? (
                         <PortionPriorChips name={item.name} item={item} onSwap={() => swapPrior(index)} />
+                      ) : null}
+                      {item.scaleRead ? (
+                        <ScaleReadChips name={item.name} item={item} onSwap={() => swapScale(index)} />
                       ) : null}
                       <View style={styles.itemChips}>
                         {hasMacros ? (

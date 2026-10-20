@@ -165,7 +165,12 @@
       "cupSize": "Cup size",
       "priorGroup": "Pick the portion for {{name}}",
       "priorAi": "AI: {{grams}}",
-      "priorUsual": "Your usual: {{grams}}"
+      "priorUsual": "Your usual: {{grams}}",
+      "scaleGroup": "Pick the weight for {{name}}",
+      "scaleRead": "Read from the scale: {{value}}",
+      "scaleReadShared_one": "Read from the scale: {{value}}, split over {{count}} item",
+      "scaleReadShared_other": "Read from the scale: {{value}}, split over {{count}} items",
+      "scaleAi": "Photo estimate: {{grams}}"
     },
     "names": {
       "more_one": "{{first}} +{{count}} more",

@@ -40,6 +40,12 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
    * answered exactly as before.
    */
   DISHWARE_USER_IDS?: string;
+  /**
+   * Comma-separated user ids that get the kitchen-scale readout on photo scans: a scale
+   * display in the photo is read and its grams replace the model's estimate
+   * (lib/scale-reading.ts). Unset or empty = nobody, and scans are answered exactly as before.
+   */
+  SCALE_READOUT_USER_IDS?: string;
   /** USDA FoodData Central key (api.data.gov): enables the USDA barcode source; unset = not asked. */
   USDA_FDC_API_KEY?: string;
   STRAVA_CLIENT_ID?: string;

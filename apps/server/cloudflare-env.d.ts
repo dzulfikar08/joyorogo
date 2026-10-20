@@ -46,6 +46,7 @@ declare module "cloudflare:workers" {
       DATASET_USER_IDS?: string;
       PORTION_PRIOR_USER_IDS?: string;
       DISHWARE_USER_IDS?: string;
+      SCALE_READOUT_USER_IDS?: string;
       REVIEW_LOGIN_EMAILS?: string;
       EMAIL_FROM?: string;
       EMAIL_FROM_NAME?: string;

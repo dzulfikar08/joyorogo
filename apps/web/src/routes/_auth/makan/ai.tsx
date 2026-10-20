@@ -42,12 +42,14 @@ import type { Meal } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { scalePortion } from "@joyorogo/api/lib/portion";
 import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
+import { swapScaleRead, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { cupPick } from "@joyorogo/api/lib/drink-options";
 import type { CupChoice } from "@joyorogo/api/lib/drink-options";
 import { CupChoices } from "@/components/scan/cup-choices";
 import { PortionPriorChips } from "@/components/scan/portion-prior-chips";
+import { ScaleReadChips } from "@/components/scan/scale-read-chips";
 import { Button, buttonVariants } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
@@ -476,6 +478,7 @@ function AiFoodPage() {
       return {
         ...item,
         portionPrior: undefined,
+        scaleRead: undefined,
         kcal: half.kcal,
         grams: half.grams ?? undefined,
         protein: half.protein ?? undefined,
@@ -503,6 +506,16 @@ function AiFoodPage() {
     const item = items[index];
     if (!item) return;
     const swapped = swapPortionPrior(item);
+    touchList();
+    setItems((current) => current.map((it, i) => (i === index ? swapped : it)));
+    setKcals((current) => ({ ...current, [index]: String(swapped.kcal) }));
+  };
+
+  /** Kitchen-scale readout: one click puts the scale's weight or the photo estimate on the row. */
+  const swapScale = (index: number) => {
+    const item = items[index];
+    if (!item) return;
+    const swapped = swapScaleRead(item);
     touchList();
     setItems((current) => current.map((it, i) => (i === index ? swapped : it)));
     setKcals((current) => ({ ...current, [index]: String(swapped.kcal) }));
@@ -968,7 +981,7 @@ function AiFoodPage() {
         meal,
         imageBase64: image.base64,
         mimeType: image.mimeType,
-        itemsJson: JSON.stringify(withoutPortionPrior(baseList)),
+        itemsJson: JSON.stringify(withoutScaleRead(withoutPortionPrior(baseList))),
         ...(photoId ? { scanPhotoId: photoId } : {}),
         ...(plate.name || plate.place || plate.priceIdr != null ? { plate } : {}),
         ...(eatenAt !== null
@@ -1365,6 +1378,9 @@ function AiFoodPage() {
                   {item.cup && <CupChoices choice={item.cup} onPick={(next) => pickCup(index, next)} />}
                   {item.portionPrior && (
                     <PortionPriorChips name={item.name} item={item} onSwap={() => swapPrior(index)} />
+                  )}
+                  {item.scaleRead && (
+                    <ScaleReadChips name={item.name} item={item} onSwap={() => swapScale(index)} />
                   )}
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5">

@@ -91,6 +91,7 @@
     "DATASET_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
     "PORTION_PRIOR_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
     "DISHWARE_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
+    "SCALE_READOUT_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
     "SHADOW_SAMPLE_RATE": "0.2",
     "SHADOW_DAILY_CAP": "60",
     // The signed-in app (docs/app-subdomain.md); SITE_URL is the landing/marketing site.

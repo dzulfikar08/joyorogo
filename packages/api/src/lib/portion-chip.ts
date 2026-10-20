@@ -26,7 +26,7 @@ export type PortionPriorChip = {
 
 type Swappable = PortionNumbers & { portionPrior?: PortionPriorChip };
 
-const numbersOf = (item: PortionNumbers): PortionNumbers => ({
+export const numbersOf = (item: PortionNumbers): PortionNumbers => ({
   ...(item.portion !== undefined ? { portion: item.portion } : {}),
   grams: item.grams,
   kcal: item.kcal,

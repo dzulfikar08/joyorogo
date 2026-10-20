@@ -160,7 +160,11 @@
       "cupSize": "Ukuran gelas",
       "priorGroup": "Pilih angka porsi {{name}}",
       "priorAi": "AI: {{grams}}",
-      "priorUsual": "Biasanya kamu: {{grams}}"
+      "priorUsual": "Biasanya kamu: {{grams}}",
+      "scaleGroup": "Pilih angka berat {{name}}",
+      "scaleRead": "Terbaca dari timbangan: {{value}}",
+      "scaleReadShared_other": "Terbaca dari timbangan: {{value}}, dibagi ke {{count}} item",
+      "scaleAi": "Perkiraan foto: {{grams}}"
     },
     "names": {
       "more_other": "{{first}} +{{count}} lainnya",
