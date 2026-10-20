@@ -1142,6 +1142,10 @@ function Landing() {
                     </li>
                     <li className="flex gap-2">
                       <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
+                      Dukungan prioritas: laporan dan permintaan fiturmu didahulukan
+                    </li>
+                    <li className="flex gap-2">
+                      <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
                       {showUsd
                         ? `Paket tahunan ${fmtUsd(config.data.usd!.yearlyCents)}/tahun, setara ${fmtUsd(Math.round(config.data.usd!.yearlyCents / 12))}/bulan`
                         : `Paket tahunan ${fmtRupiah(config.data.founderYearlyPriceIdr)}/tahun, setara ${fmtRupiah(Math.round(config.data.founderYearlyPriceIdr / 12))}/bulan`}

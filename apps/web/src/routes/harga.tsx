@@ -51,6 +51,7 @@ function founderFeatures(config: AppConfig): string[] {
     "Saran makan dari skor JoyoFit",
     "Cadangan cloud JoyoFit (langkah, detak jantung, tidur, latihan dari jam)",
     "Badge Pro di profilmu",
+    "Dukungan prioritas: laporan dan permintaan fiturmu didahulukan",
     "Harga terkunci saat perpanjang (pembayaran web)",
   ];
 }
@@ -535,6 +536,7 @@ function HargaPage() {
                   <CompareRow feature="Saran makan dari skor JoyoFit" free={false} founder />
                   <CompareRow feature="Cadangan cloud JoyoFit" free={false} founder />
                   <CompareRow feature="Badge Pro di profil" free={false} founder />
+                  <CompareRow feature="Dukungan prioritas dan permintaan fitur" free={false} founder />
                 </tbody>
               </table>
             </div>
