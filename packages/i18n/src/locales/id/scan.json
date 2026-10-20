@@ -168,6 +168,10 @@
       "scaleReadShared_other": "Terbaca dari timbangan: {{value}}, dibagi ke {{count}} item",
       "scaleAi": "Perkiraan foto: {{grams}}"
     },
+    "memory": {
+      "title": "Maksudnya ini?",
+      "group": "Ganti item teratas dengan makanan yang pernah kamu koreksi"
+    },
     "names": {
       "more_other": "{{first}} +{{count}} lainnya",
       "andMore_other": "{{first}} dan {{count}} lainnya"

@@ -49,6 +49,7 @@ import { cupPick } from "@joyorogo/api/lib/drink-options";
 import type { CupChoice } from "@joyorogo/api/lib/drink-options";
 import { CupChoices } from "@/components/scan/cup-choices";
 import { PortionPriorChips } from "@/components/scan/portion-prior-chips";
+import { MemoryChips } from "@/components/scan/memory-chips";
 import { ScaleReadChips } from "@/components/scan/scale-read-chips";
 import { Button, buttonVariants } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
@@ -386,6 +387,7 @@ function AiFoodPage() {
   const [photoId, setPhotoId] = useState<string | null>(null);
   const [retriesLeft, setRetriesLeft] = useState(0);
   const [retryHint, setRetryHint] = useState("");
+  const [memoryChips, setMemoryChips] = useState<string[]>([]);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState<ScanFailure | null>(null);
   const retryAbortRef = useRef<AbortController | null>(null);
@@ -587,6 +589,7 @@ function AiFoodPage() {
       rows: origins.map((origin) => (origin === null ? null : (baseRows[origin] ?? null))),
     });
     setItems(result.items);
+    setMemoryChips([]);
     setKcals(nextKcals);
     setKinds(nextKinds);
     setFullPortion(null);
@@ -726,6 +729,7 @@ function AiFoodPage() {
       setTooMany(result.tooMany);
       setPlateNote({ plate: result.plate, card: result.card });
       setPhotoId(result.photoId ?? null);
+      setMemoryChips(result.memoryChips ?? []);
       setCorrectionsLeft(null);
       setRetriesLeft(result.retriesLeft ?? 0);
       setRetryHint("");
@@ -871,6 +875,7 @@ function AiFoodPage() {
     setPhotoId(null);
     setCorrectionsLeft(null);
     setRetriesLeft(0);
+    setMemoryChips([]);
     setRetryHint("");
     setRetryError(null);
     setAskFeedback(false);
@@ -938,6 +943,7 @@ function AiFoodPage() {
         }),
       );
       setRetriesLeft(result.retriesLeft);
+      setMemoryChips(result.memoryChips ?? []);
       setRetryHint("");
       setModel(result.model ?? model);
       setRetryCount((count) => count + 1);
@@ -1403,6 +1409,17 @@ function AiFoodPage() {
             ))}
           </ListGroup>
         </section>
+
+        {!retrying && !saving && memoryChips.length > 0 && items.length > 0 && (
+          <MemoryChips
+            names={memoryChips}
+            photoId={photoId}
+            items={items}
+            kcals={kcals}
+            kinds={kinds}
+            onApply={applyCorrection}
+          />
+        )}
 
         {!retrying && !saving && items.length > 0 && (
           <CorrectBox

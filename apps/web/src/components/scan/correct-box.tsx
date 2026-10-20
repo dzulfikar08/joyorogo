@@ -52,7 +52,7 @@ function blobToBase64(blob: Blob): Promise<string> {
 }
 
 /** The list as the user currently sees it: edited kcal and tapped kinds included. */
-function toPayload(
+export function toPayload(
   items: AiFoodItem[],
   kcals: Record<number, string>,
   kinds: Record<number, FoodKind>,

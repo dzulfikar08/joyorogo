@@ -41,6 +41,12 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
    */
   DISHWARE_USER_IDS?: string;
   /**
+   * Comma-separated user ids that get "Ingat koreksimu": the photo scan carries a hint of what the user
+   * corrected before and the result offers their learned foods (lib/correction-memory.ts). Unset or
+   * empty = nobody, and scans are answered exactly as before.
+   */
+  CORRECTION_MEMORY_USER_IDS?: string;
+  /**
    * Comma-separated user ids that get the kitchen-scale readout on photo scans: a scale
    * display in the photo is read and its grams replace the model's estimate
    * (lib/scale-reading.ts). Unset or empty = nobody, and scans are answered exactly as before.

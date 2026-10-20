@@ -50,6 +50,8 @@ import type { CardScanNote, DishwareScanNote, ScanReference } from "../lib/dishw
 import { EventChannel } from "../lib/event-channel";
 import { withPortionPrior } from "../lib/portion-prior";
 import type { PortionPrior } from "../lib/portion-prior";
+import { chipsFor, correctionMemoryEnabled, loadCorrectionMemory } from "../lib/correction-memory";
+import type { CorrectionMemory } from "../lib/correction-memory";
 import { loadPortionPriors, portionPriorEnabled } from "../lib/portion-prior-store";
 import type { PortionPriorChip } from "../lib/portion-chip";
 import { applyScaleReading, readScaleDisplay, scaleLedger, scaleReadoutEnabled } from "../lib/scale-reading";
@@ -234,12 +236,28 @@ function referenceOutcome(reference: ScanReference | null, answered: Pick<Vision
   };
 }
 
+/** usage_json.memory: how many learned pairs there were and whether the scan prompt carried them. */
+function memoryLedger(memory: CorrectionMemory | null) {
+  return { pairs: memory?.pairs ?? 0, used: memory?.block !== undefined };
+}
+
+/** The learned foods offered as swaps, unless the top answer already is one. */
+function memoryResult(memory: CorrectionMemory | null, topName: string | undefined) {
+  const chips = memory ? chipsFor(memory.learned, topName) : [];
+  return chips.length > 0 ? { memoryChips: chips } : {};
+}
+
 /** What analyzeFood answers, and what the closing `done` event of analyzeFoodStream carries. */
 export type AnalyzeFoodResult = {
   /** `portionPrior` is present only for allowlisted users with a consistent weighed history (lib/portion-prior.ts). */
   items: Array<
     VisionAnalysis["items"][number] & { portionPrior?: PortionPriorChip; scaleRead?: ScaleReadChip }
   >;
+  /**
+   * "Ingat koreksimu", allowlisted users only: foods this user taught the scan by correcting it, offered as
+   * one-tap swaps for the first item. Absent = nothing to offer (or the answer already is one of them).
+   */
+  memoryChips?: string[];
   tooMany: boolean;
   scanId: string | null;
   photoId: string | null;
@@ -322,6 +340,14 @@ async function runAnalyzeFood(
       })
     : Promise.resolve(null);
 
+  // "Ingat koreksimu": allowlist only; a failed read is no memory, never a failed scan.
+  const memory: Promise<CorrectionMemory | null> = correctionMemoryEnabled(context.env, userId)
+    ? loadCorrectionMemory(context.db, userId).catch((error: unknown) => {
+        console.error("[ai] correction memory failed", error);
+        return null;
+      })
+    : Promise.resolve(null);
+
   const startedAt = Date.now();
   const stickers = context.env.STICKERS as StickersBucket | undefined;
   const images = context.env.IMAGES as ImagesBinding | undefined;
@@ -390,6 +416,7 @@ async function runAnalyzeFood(
       locale: context.locale,
       userContext: (await userNote) ?? undefined,
       dishware: (await reference)?.instruction,
+      memory: (await memory)?.block,
       onEvent: report,
     });
   } catch (error) {
@@ -446,6 +473,7 @@ async function runAnalyzeFood(
     ...analysis.usage,
     itemCount: analysis.items.length,
     ...references.ledger,
+    ...((await memory) ? { memory: memoryLedger(await memory) } : {}),
     ...(analysis.tooMany ? { tooMany: true } : {}),
     ...(analysis.modelTooMany ? { modelTooMany: true } : {}),
     ...(analysis.repaired ? { repaired: true } : {}),
@@ -582,6 +610,7 @@ async function runAnalyzeFood(
     model: analysis.model,
     askFeedback: (scansEverRow?.n ?? 0) < 3 || (askedTodayRow?.n ?? 0) === 0,
     ...references.result,
+    ...memoryResult(await memory, items[0]?.name),
   };
 }
 
@@ -630,6 +659,12 @@ export const aiRouter = {
       const requestStartedAt = Date.now();
       const userNote = loadUserNote(context.db, userId);
       const reference = loadScanReference(context.db, context.env, userId);
+      const memory: Promise<CorrectionMemory | null> = correctionMemoryEnabled(context.env, userId)
+        ? loadCorrectionMemory(context.db, userId).catch((error: unknown) => {
+            console.error("[ai] correction memory failed", error);
+            return null;
+          })
+        : Promise.resolve(null);
       const t = serverT(context.locale, "errors");
       const ai = context.env.AI;
       if (!ai) {
@@ -679,6 +714,7 @@ export const aiRouter = {
           locale: context.locale,
           userContext: (await userNote) ?? undefined,
           dishware: (await reference)?.instruction,
+          memory: (await memory)?.block,
         });
       } catch (error) {
         context.waitUntil(logScanFailure(context.db, userId, error, startedAt, "retry"));
@@ -729,6 +765,7 @@ export const aiRouter = {
             ...(analysis.modelTooMany ? { modelTooMany: true } : {}),
             ...(analysis.repaired ? { repaired: true } : {}),
             ...references.ledger,
+            ...((await memory) ? { memory: memoryLedger(await memory) } : {}),
             ...analysis.usage,
             serverTiming: {
               loadMs,
@@ -773,6 +810,7 @@ export const aiRouter = {
         retriesLeft: MAX_SCAN_RETRIES - (used + 1),
         model: analysis.model,
         ...references.result,
+        ...memoryResult(await memory, shownItems[0]?.name),
       };
     }),
   // Real background-removed cutout of one detected item, for the result screen.

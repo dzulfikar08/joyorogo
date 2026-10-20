@@ -80,6 +80,7 @@ import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
 import { CorrectBox } from "@/components/scan/correct-box";
 import { CupChoices } from "@/components/scan/cup-choices";
 import { PortionPriorChips } from "@/components/scan/portion-prior-chips";
+import { MemoryChips } from "@/components/scan/memory-chips";
 import { ReferenceHint } from "@/components/scan/reference-hint";
 import { ScaleReadChips } from "@/components/scan/scale-read-chips";
 import type { CorrectInput, CorrectOutcome } from "@/components/scan/correct-box";
@@ -543,6 +544,7 @@ export default function MakanAi() {
   // Hitung ulang: the server keeps the photo, a retry sends only the id and
   // spends no daily scan. Previous items stay visible when a retry fails.
   const [photoId, setPhotoId] = useState<string | null>(null);
+  const [memoryChips, setMemoryChips] = useState<string[]>([]);
   const [retriesLeft, setRetriesLeft] = useState(0);
   const [retryHint, setRetryHint] = useState("");
   const [retryCount, setRetryCount] = useState(0);
@@ -632,6 +634,7 @@ export default function MakanAi() {
     setPlateValues({ name: "", place: "", price: "" });
     setEatenAt(null);
     setPhotoId(null);
+    setMemoryChips([]);
     setRetriesLeft(0);
     setRetryHint("");
     setRetryCount(0);
@@ -828,6 +831,7 @@ export default function MakanAi() {
       setFeedbackNote("");
       setFeedbackKeepPhoto(false);
       setItems(result.items);
+      setMemoryChips(result.memoryChips ?? []);
       setBaseline({ items: result.items, origin: result.items.map((_, i) => i) });
       correctRunRef.current += 1;
       setUndoStack([]);
@@ -969,6 +973,7 @@ export default function MakanAi() {
       setUndoStack([]);
       setFlagged(null);
       setBaseline({ items: result.items, origin: result.items.map((_, i) => i) });
+      setMemoryChips(result.memoryChips ?? []);
       setItems(result.items);
       suggestSlotFor(result.items);
       setDrafts(
@@ -1636,6 +1641,18 @@ export default function MakanAi() {
                       ) : null}
                       {item.portionPrior ? (
                         <PortionPriorChips name={item.name} item={item} onSwap={() => swapPrior(index)} />
+                      ) : null}
+                      {index === 0 && memoryChips.length > 0 ? (
+                        <MemoryChips
+                          names={memoryChips}
+                          disabled={correct.isPending}
+                          onPick={async (chip) => {
+                            const outcome = await submitCorrection({
+                              text: `bukan ${items[0]!.name}, ${chip}`,
+                            });
+                            if (outcome) setMemoryChips([]);
+                          }}
+                        />
                       ) : null}
                       {item.scaleRead ? (
                         <ScaleReadChips name={item.name} item={item} onSwap={() => swapScale(index)} />

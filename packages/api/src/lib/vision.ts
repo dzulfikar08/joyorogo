@@ -728,6 +728,8 @@ export async function analyzeFoodPhoto(
     userContext?: string;
     /** The user's registered plates as prompt text (dishwareInstruction); the answer then carries `plate`. */
     dishware?: string;
+    /** The user's past corrections as a hint (lib/correction-memory.ts); never an override of what the photo shows. */
+    memory?: string;
     /**
      * Stream the answer and report items as they complete. The returned
      * analysis is parsed from the whole text, identical to a plain run.
@@ -767,7 +769,7 @@ export async function analyzeFoodPhoto(
         imageBase64: opts.imageBase64,
         mimeType: opts.mimeType,
         instruction:
-          [opts.retry ? retryInstruction(opts.retry.hint) : undefined, opts.userContext, opts.dishware]
+          [opts.retry ? retryInstruction(opts.retry.hint) : undefined, opts.userContext, opts.dishware, opts.memory]
             .filter(Boolean)
             .join("\n\n") || undefined,
         locale: opts.locale,
