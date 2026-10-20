@@ -17,14 +17,11 @@ import { timeAgoId } from "@/src/lib/group";
 import type { WidgetSnapshot } from "@/src/lib/widgets/snapshot";
 import { fmtInt } from "@/utils/format";
 
-/** Widget registry — names must match the config-plugin entries in app.json. */
-export const WIDGET_NAMES = {
-  ProgresHariIni: true,
-  KotakMasukGrup: true,
-  Ringkasan: true,
-} as const;
+import { CAMERA_WIDGET_URI, WIDGET_NAMES } from "@/src/lib/widgets/names";
+import type { WidgetName } from "@/src/lib/widgets/names";
 
-export type WidgetName = keyof typeof WIDGET_NAMES;
+export { WIDGET_NAMES };
+export type { WidgetName };
 
 // Basenames of the TTFs the config plugin copies into android assets
 // (app.json -> react-native-android-widget fonts).
@@ -544,6 +541,39 @@ function RingkasanWidget({ snapshot, c, width }: { snapshot: WidgetSnapshot; c: 
   return light;
 }
 
+/** lucide "camera" glyph (24x24): body plus lens, stroked in the primaryForeground tone. */
+const CAMERA_BODY_PATH = "M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z";
+
+/**
+ * 1x1 shortcut: a brand-colored rounded tile with a camera. Static (no
+ * snapshot data); a tap opens the scan camera through the deep link, which
+ * covers cold and warm start and sends signed-out users through /login.
+ */
+function CameraWidget({ dark }: { dark: boolean }) {
+  const t = dark ? darkTheme : lightTheme;
+  const stroke = String(t.colors.primaryForeground);
+  return (
+    <FlexWidget
+      clickAction="OPEN_URI"
+      clickActionData={{ uri: CAMERA_WIDGET_URI }}
+      accessibilityLabel={i18n.t("misc:widget.photoLabel")}
+      style={{
+        width: "match_parent",
+        height: "match_parent",
+        backgroundColor: t.colors.primary,
+        borderRadius: lightTheme.radius.card,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <SvgWidget
+        svg={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${CAMERA_BODY_PATH}"/><circle cx="12" cy="13" r="3"/></svg>`}
+        style={{ width: 32, height: 32 }}
+      />
+    </FlexWidget>
+  );
+}
+
 function buildElement(name: WidgetName, snapshot: WidgetSnapshot, dark: boolean, width: number) {
   const c = widgetPalette(dark);
   switch (name) {
@@ -553,6 +583,8 @@ function buildElement(name: WidgetName, snapshot: WidgetSnapshot, dark: boolean,
       return <InboxWidget snapshot={snapshot} c={c} />;
     case "Ringkasan":
       return <RingkasanWidget snapshot={snapshot} c={c} width={width} />;
+    case "FotoMakanan":
+      return <CameraWidget dark={dark} />;
   }
 }
 

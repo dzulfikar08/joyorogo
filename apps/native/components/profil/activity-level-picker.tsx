@@ -166,6 +166,7 @@ export function ActivityRecommendations({
   current,
   applying,
   showEmpty,
+  autoCalibration = false,
   onApply,
 }: {
   steps: StepsRecommendation | null;
@@ -175,6 +176,8 @@ export function ActivityRecommendations({
   /** the level being saved right now, if any (disables the other buttons) */
   applying: ActivityLevel | null;
   showEmpty: boolean;
+  /** automatic calibration is on: the empty note explains that the target already follows the weight trend */
+  autoCalibration?: boolean;
   onApply: (level: ActivityLevel) => void;
 }) {
   const { t } = useTranslation("energy");
@@ -216,7 +219,9 @@ export function ActivityRecommendations({
           <ApplyRow level={calibration.level} current={current} applying={applying} onApply={onApply} />
         </View>
       ) : null}
-      {!steps && !calibration ? <Text style={styles.note}>{t("recommend.empty")}</Text> : null}
+      {!steps && !calibration ? (
+        <Text style={styles.note}>{t(autoCalibration ? "recommend.emptyAuto" : "recommend.empty")}</Text>
+      ) : null}
     </View>
   );
 }

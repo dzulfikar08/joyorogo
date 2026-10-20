@@ -308,6 +308,7 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
                   current={level}
                   applying={setLevel.isPending ? setLevel.variables : null}
                   showEmpty
+                  autoCalibration={guide.data.autoCalibration?.enabled ?? false}
                   onApply={(next) => setLevel.mutate(next)}
                 />
               </>
