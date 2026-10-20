@@ -34,17 +34,36 @@ describe("applyCorrection", () => {
     expect(patch.removed).toEqual([]);
   });
 
-  test("a rename without numbers keeps the old weight and kcal for calibration to bound", () => {
+  test("a rename that states no weight does not carry the old one", () => {
     const patch = applyCorrection(plate, ops({ op: "rename", i: 3, name: "ayam bakar" }));
     expect(patch.items[2]?.name).toBe("ayam bakar");
-    expect(patch.items[2]?.grams).toBe(80);
-    expect(patch.items[2]?.portion).toBe("1 potong");
+    expect(patch.items[2]?.grams).not.toBe(80);
+    expect(patch.items[2]?.portion).toBeUndefined();
+  });
+
+  test("a rename takes the weight re-estimated for the new food, not the old 250 g", () => {
+    const milk: CorrectionItemInput[] = [{ name: "susu plastik", portion: "1 bungkus", grams: 250, kcal: 150, kind: "minuman" }];
+    const patch = applyCorrection(milk, ops({ op: "rename", i: 1, name: "putih telur rebus", grams: 100, kcal100: 52 }));
+    expect(patch.items[0]).toMatchObject({ name: "putih telur rebus", grams: 100, kcal: 52 });
+    expect(patch.items[0]?.grams).not.toBe(milk[0]!.grams);
+    expect(patch.items[0]?.portion).toBeUndefined();
+  });
+
+  test("a rename with a stated amount honours it exactly", () => {
+    const milk: CorrectionItemInput[] = [{ name: "susu plastik", grams: 250, kcal: 150, kind: "minuman" }];
+    const patch = applyCorrection(milk, ops({ op: "rename", i: 1, name: "putih telur rebus", grams: 2 * 33, kcal100: 52 }));
+    expect(patch.items[0]).toMatchObject({ grams: 66, kcal: 34.3 });
+  });
+
+  test("a pure portion correction still scales the old weight", () => {
+    const rice = applyCorrection(plate, ops({ op: "portion", i: 1, scale: 0.5 })).items[0]!;
+    expect(rice).toMatchObject({ name: "nasi putih", grams: 75 });
   });
 
   describe("a rename recomputes kcal for the new dish at the kept weight", () => {
     test("TKPI library hit with no model figure uses the library, not the old dish's kcal", () => {
       // perkedel 60 g / 130 kcal -> rendang (library 290 kcal/100 g): 174 kcal at 60 g.
-      const patch = applyCorrection(plate, ops({ op: "rename", i: 2, name: "rendang" }));
+      const patch = applyCorrection(plate, ops({ op: "rename", i: 2, name: "rendang", grams: 60 }));
       expect(patch.items[1]).toMatchObject({ name: "rendang", grams: 60, kcal: 174, matched: true });
       expect(patch.items[1]?.kcal).not.toBe(130);
       // Macros described the old dish and are not carried over.
@@ -54,7 +73,7 @@ describe("applyCorrection", () => {
     test("TKPI miss scales the model's per-100 g estimate to the item's weight", () => {
       const patch = applyCorrection(
         plate,
-        ops({ op: "rename", i: 2, name: "rolade", kcal100: 250, protein100: 15, carbs100: 10, fat100: 17 }),
+        ops({ op: "rename", i: 2, name: "rolade", grams: 60, kcal100: 250, protein100: 15, carbs100: 10, fat100: 17 }),
       );
       expect(patch.items[1]).toMatchObject({ name: "rolade", grams: 60, kcal: 150, matched: false });
       expect(patch.items[1]?.protein).toBe(9);
@@ -63,10 +82,10 @@ describe("applyCorrection", () => {
 
     test("model and library disagree: the higher figure wins, never under-counting", () => {
       // library nasi goreng 108 kcal at 60 g vs a model guess of 70.
-      const low = applyCorrection(plate, ops({ op: "rename", i: 2, name: "nasi goreng", kcal100: 117 }));
+      const low = applyCorrection(plate, ops({ op: "rename", i: 2, name: "nasi goreng", grams: 60, kcal100: 117 }));
       expect(low.items[1]?.kcal).toBe(108);
       // model above the library is kept (inside the band for that portion).
-      const high = applyCorrection(plate, ops({ op: "rename", i: 2, name: "nasi goreng", kcal100: 250 }));
+      const high = applyCorrection(plate, ops({ op: "rename", i: 2, name: "nasi goreng", grams: 60, kcal100: 250 }));
       expect(high.items[1]?.kcal).toBe(150);
     });
 
@@ -80,7 +99,7 @@ describe("applyCorrection", () => {
 
     test("with no figure from the model or the library the old kcal stays for calibration to bound", () => {
       const patch = applyCorrection(plate, ops({ op: "rename", i: 2, name: "rolade" }));
-      expect(patch.items[1]?.grams).toBe(60);
+      expect(patch.items[1]?.grams).toBeUndefined();
       expect(patch.items[1]?.kcal).toBe(130);
     });
 
@@ -158,7 +177,7 @@ describe("applyCorrection", () => {
         },
       };
       const run = await correctScanItems(ai, { items: snacks, text: "yang dimakan cuma 2" });
-      expect(prompt).toContain("1. pisang goreng | 5 pcs | 250 g | 500 kcal");
+      expect(prompt).toContain("1. pisang goreng | 5 pcs | 500 kcal");
       expect(prompt).toContain("yang dimakan cuma 2");
       expect(prompt).toContain('"count"');
       expect(run.patch.items[0]).toMatchObject({ portion: "2 pcs", kcal: 200 });
@@ -271,9 +290,31 @@ describe("correctScanItems", () => {
     expect(run.patch.removed).toEqual(["sambal"]);
     const prompt = seen!.messages[0]!.content;
     expect(typeof prompt).toBe("string");
-    expect(prompt).toContain("4. sambal | 1 sdm | 20 g | 25 kcal");
+    expect(prompt).toContain("4. sambal | 1 sdm | 25 kcal");
+    expect(prompt).not.toContain("20 g");
     expect(prompt).toContain("ga ada sambel");
     expect(seen!.chat_template_kwargs).toEqual({ enable_thinking: false });
+  });
+
+  test("a stored photo travels with the prompt and tells the model to weigh from it", async () => {
+    let seen: { messages: Array<{ content: Array<{ type: string; text?: string; image_url?: { url: string } }> }> } | undefined;
+    const ai = {
+      async run(_model: string, input: unknown) {
+        seen = input as typeof seen;
+        return { response: ops({ op: "rename", i: 1, name: "putih telur rebus", grams: 120, kcal100: 52 }) };
+      },
+    };
+    const milk: CorrectionItemInput[] = [{ name: "susu plastik", grams: 250, kcal: 150, kind: "minuman" }];
+    const run = await correctScanItems(ai, {
+      items: milk,
+      text: "bukan susu, putih telor rebus",
+      photo: { mimeType: "image/jpeg", imageBase64: "QUJD" },
+    });
+    const content = seen!.messages[0]!.content;
+    expect(content[1]!.image_url!.url).toBe("data:image/jpeg;base64,QUJD");
+    expect(content[0]!.text).toContain("dari foto");
+    expect(content[0]!.text).not.toContain("250 g");
+    expect(run.patch.items[0]).toMatchObject({ name: "putih telur rebus", grams: 120 });
   });
 
   test("a garbled first answer gets a second attempt", async () => {

@@ -928,7 +928,8 @@ export const aiRouter = {
     }),
   // "Koreksi": the user types or says what the scan got wrong ("itu rolade
   // bukan perkedel", "nasinya setengah aja") and gets the patched list back.
-  // Text-only model call (the photo never travels), so it answers in ~1 s.
+  // Mostly a text call (~1 s); the stored scan photo rides along so a renamed
+  // food gets its weight from the picture, not from the old guess.
   // Never spends the daily scan quota; the ledger-backed caps in
   // correct-limit.ts (per scan session and per day) are its only limit.
   // Nothing is saved: the client applies the patch and keeps undo.
@@ -969,8 +970,24 @@ export const aiRouter = {
           transcript = heard.text;
           transcribeUsage = heard.usage;
         }
+        // The stored scan photo (when it has not expired) lets a renamed food be
+        // re-weighed from what is on the plate; without it the model estimates a
+        // typical portion.
+        const stored =
+          input.photoId && context.env.STICKERS
+            ? await (context.env.STICKERS as StickersBucket)
+                .get(scanSrcKey(userId, input.photoId))
+                .catch(() => null)
+            : null;
+        const photo = stored
+          ? {
+              mimeType: stored.httpMetadata?.contentType || "image/jpeg",
+              imageBase64: bytesToBase64(await stored.arrayBuffer()),
+            }
+          : undefined;
         run = await correctScanItems(ai, {
           items: input.items,
+          photo,
           text: (transcript ?? input.text ?? "").slice(0, 300),
           model: context.env.AI_CORRECT_MODEL || undefined,
           locale: context.locale,

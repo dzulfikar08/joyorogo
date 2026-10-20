@@ -39,6 +39,8 @@ export const MAX_CORRECTED_ITEMS = 15;
 const MAX_COMPLETION_TOKENS = 500;
 /** Text-only calls answer in 1-2 s; anything slower is a stuck run. */
 const ATTEMPT_DEADLINES_MS: [number, number] = [9_000, 5_000];
+/** With the photo attached the model reads pixels first. */
+const PHOTO_ATTEMPT_DEADLINES_MS: [number, number] = [15_000, 8_000];
 /** A failed first attempt only gets the second one when it failed this fast. */
 const FAST_FAILURE_BUDGET_MS = 4_000;
 
@@ -145,23 +147,24 @@ export function correctionPrompt(
   items: readonly CorrectionItemInput[],
   text: string,
   locale: Locale = DEFAULT_LOCALE,
+  photo = false,
 ): string {
   const list = items
     .map((item, i) => {
       const parts = [item.name];
       if (item.portion) parts.push(item.portion);
-      if (item.grams) parts.push(`${Math.round(item.grams)} g`);
+      // Old grams stay out of the list: shown, the model copies them onto a renamed food.
       parts.push(`${Math.round(item.kcal)} kcal`);
       return `${i + 1}. ${parts.join(" | ")}`;
     })
     .join("\n");
   const shape = localNameShape(locale);
   return `Kamu memperbaiki daftar makanan hasil scan foto sesuai koreksi pengguna. Ubah HANYA item yang disebut pengguna; item lain jangan disentuh.
-Daftar sekarang (nomor. nama | porsi | berat | kalori):
+Daftar sekarang (nomor. nama | porsi | kalori):
 ${list}
 Koreksi pengguna: "${text.replace(/"/g, "'")}"
-Jawab HANYA JSON valid satu baris (tanpa \`\`\`, tanpa teks lain): {"ops":[...]}. Jenis op:
-{"op":"rename","i":nomor,"name":"nama yang benar",${shape}"portion":"maks 3 kata","kcal100":number,"protein100":number,"carbs100":number,"fat100":number} = nama item salah. Isi kcal100/protein100/carbs100/fat100 = kalori dan gizi per 100 gram makanan yang BENAR (bukan angka item lama). Berat tidak usah diisi; tambahkan "grams":number hanya kalau pengguna menyebut beratnya.
+Jawab HANYA JSON valid satu baris (tanpa \`\`\`, tanpa teks lain): {"ops":[...]}.${photo ? " Foto scan terlampir: untuk berat makanan baru, nilai dari foto (ukuran terhadap kartu, piring, atau timbangan kalau terlihat), bukan dari berat lama." : ""} Jenis op:
+{"op":"rename","i":nomor,"name":"nama yang benar",${shape}"portion":"maks 3 kata","grams":number,"kcal100":number,"protein100":number,"carbs100":number,"fat100":number} = nama item salah. Isi kcal100/protein100/carbs100/fat100 = kalori dan gizi per 100 gram makanan yang BENAR (bukan angka item lama). grams = berat yang dimakan: kalau pengguna menyebut jumlah atau berat ("100 gr", "2 butir", "setengah"), pakai persis itu; kalau tidak, perkirakan sendiri berat makanan yang BENAR itu${photo ? " dari foto" : " sebagai satu porsi biasa"}. Berat item lama adalah tebakan untuk makanan LAIN: jangan disalin. Padat dalam gram, minuman dalam ml (1 ml = 1 g); pindah dari minuman ke makanan padat (atau sebaliknya) berarti satuan dan jumlahnya ikut berubah.
 {"op":"portion","i":nomor,"scale":number} = porsi berubah relatif (setengah 0.5, dua kali 2, seperempat 0.25, sedikit lebih 1.3).
 {"op":"portion","i":nomor,"count":number} = item berhitung per buah (porsi atau namanya memuat "5 pcs", "3 potong", "4 buah") dan pengguna menyebut berapa yang DIMAKAN ("cuma 2", "yang dimakan 2", "aku makan 3 aja"). count = jumlah baru yang dimakan, bukan berat. Contoh: "pisang goreng | 5 pcs" dan pengguna bilang "cuma 2" jadi {"op":"portion","i":nomor,"count":2}.
 {"op":"portion","i":nomor,"grams":number} = HANYA kalau pengguna menyebut berat (gram, ons, kg); jangan isi grams dengan jumlah buah.
@@ -189,19 +192,24 @@ type Row = {
 
 function applyRename(row: Row, op: Extract<Op, { op: "rename" }>): Row | null {
   const old = row.item;
-  // The weight stays unless the user stated a new one; the dish is what changed.
-  const grams = bound(op.grams, 1, 5000) ?? old.grams;
+  // The weight is the model's estimate for the NEW food (or the amount the user
+  // stated). The old weight was a guess for a different food, so it never carries
+  // over, with one exception: a drink renamed to another drink stays in the same
+  // cup. Without any weight the new dish is priced per 100 g and left weightless.
+  const sameCup =
+    resolveFoodKind(old.name, old.kind) === "minuman" && resolveFoodKind(op.name, op.kind) === "minuman";
+  const grams = bound(op.grams, 1, 5000) ?? (sameCup ? old.grams : undefined);
   const at = (grams ?? 100) / 100;
   // Energy of the NEW dish at that weight: the model's per-100 g figure (or a
   // total it volunteered), and what the curated TKPI library says for that
   // name. When both exist the higher one wins: an unsure estimate should not
   // under-count what the owner eats. Without either, the old kcal stands in
-  // and calibration bounds it by the new dish's band. A weight the user stated
-  // still scales that stand-in (old kcal * grams / old grams), never left as is.
+  // and calibration bounds it by the new dish's band.
   const fromModel = op.kcal100 !== undefined ? op.kcal100 * at : op.kcal;
   const fromLibrary = libraryKcal(op.name, grams ?? 100);
+  // A weight set on a rename still scales that stand-in (old kcal * grams / old grams).
   const carried =
-    grams !== undefined && grams !== old.grams && old.grams
+    grams !== undefined && old.grams
       ? rescaleForGrams(
           { grams: old.grams, kcal: old.kcal, protein: null, carbs: null, fat: null, fiber: null },
           grams,
@@ -221,7 +229,7 @@ function applyRename(row: Row, op: Extract<Op, { op: "rename" }>): Row | null {
       name: op.name.slice(0, 120),
       localName: op.localName?.trim().slice(0, 120) || undefined,
       // Portion text and macros described the old dish.
-      portion: op.portion?.trim().slice(0, 80) || (grams === old.grams ? old.portion : undefined),
+      portion: op.portion?.trim().slice(0, 80) || undefined,
       grams,
       kcal,
       protein: bound(op.protein100 !== undefined ? op.protein100 * at : op.protein, 0, 500),
@@ -451,17 +459,25 @@ export async function correctScanItems(
     locale?: Locale;
     timeouts?: [number, number];
     schedule?: ScheduleTimeout;
+    /** The scan photo, when still stored: lets a renamed food be re-weighed from what is on the plate. */
+    photo?: { mimeType: string; imageBase64: string };
   },
 ): Promise<CorrectionRun> {
   const model = opts.model || DEFAULT_CORRECT_MODEL;
-  const prompt = correctionPrompt(opts.items, opts.text, opts.locale);
+  const prompt = correctionPrompt(opts.items, opts.text, opts.locale, opts.photo !== undefined);
+  const content = opts.photo
+    ? [
+        { type: "text", text: prompt },
+        { type: "image_url", image_url: { url: `data:${opts.photo.mimeType};base64,${opts.photo.imageBase64}` } },
+      ]
+    : prompt;
   let lastError: unknown = new CorrectionError("failed");
-  for (const timeoutMs of opts.timeouts ?? ATTEMPT_DEADLINES_MS) {
+  for (const timeoutMs of opts.timeouts ?? (opts.photo ? PHOTO_ATTEMPT_DEADLINES_MS : ATTEMPT_DEADLINES_MS)) {
     const startedAt = Date.now();
     try {
       const result = await withDeadline(
         ai.run(model, {
-          messages: [{ role: "user", content: prompt }],
+          messages: [{ role: "user", content }],
           max_tokens: MAX_COMPLETION_TOKENS,
           // Thinking multiplies latency; the ops are a lookup, not a puzzle.
           chat_template_kwargs: { enable_thinking: false },
