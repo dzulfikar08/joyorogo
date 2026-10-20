@@ -4,6 +4,7 @@ import { createFileRoute, isRedirect, Link, Navigate, redirect } from "@tanstack
 import {
   Activity,
   Baby,
+  Bluetooth,
   TrendingUp,
   CalendarDays,
   CameraOff,
@@ -689,6 +690,23 @@ function Landing() {
                 </li>
               ))}
             </ul>
+            <p className="mt-5 flex gap-2.5 text-[0.9375rem] text-muted-foreground">
+              <Bluetooth className="mt-0.5 size-[1.125rem] shrink-0" aria-hidden />
+              <span>
+                Punya timbangan Bluetooth?{" "}
+                <a
+                  href="https://fit.joyorogo.com/timbangan"
+                  target="_blank"
+                  rel="noopener"
+                  className="font-semibold text-foreground underline underline-offset-4"
+                  data-revklik-goal="timbangan_click"
+                  data-revklik-goal-location="weight"
+                >
+                  Lihat daftar yang didukung
+                </a>
+                . Beratnya masuk lewat JoyoFit; dukungannya belum diuji di timbangan asli.
+              </span>
+            </p>
           </div>
           <div className="md:order-1">
             <figure>
