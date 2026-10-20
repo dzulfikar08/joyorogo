@@ -4,6 +4,31 @@ Running notes on how accurate the photo scan is, what the data says, and what to
 
 Owner preference to keep in mind: an over-estimated kcal is acceptable, an under-estimate is the worse error, yet users do write "kalori kelewat tinggi". Over and under are always reported separately.
 
+## 2026-10-20: first weighed ground truth (external contributor), harness run
+
+A contributor who weighs every food in grams agreed to let us use his public photos and weights for internal testing (`docs/datasets.md`: consent, format, commands). Five photos from two days were labelled by hand (`scripts/external-import.ts`; truth = his grams, kcal = TKPI 2019 / library reference for those grams, proxy rows flagged). `scripts/eval-scans.ts` now has an `external` group: grams error per item, plate grams error, kcal against that reference, an item-by-item table. No change to `vision.ts` or `tkpi.ts`.
+
+Run: `bun run scripts/eval-scans.ts --only external --reps 2` (baseline = production prompt, model `@cf/google/gemma-4-26b-a4b-it`, TKPI calibration; Workers AI REST on 1024 px photos, 10 calls including the low-trust case; cost not measured, [INFERENCE] well under a few cents). Cases at trust medium or higher: 4 photos, 8 runs, 0 failures. The fifth photo is a picture of a phone screen (low trust), run for names only.
+
+| Metric (trust ≥ medium) | Result |
+|---|---|
+| item names P / R / F1 | 75% / 75% / 75% |
+| grams, matched items (11 pairs over 8 runs) | 9 over (mean +57%), 2 under (mean -13%), 0 within ±5%; signed mean +44%, MAE 29 g |
+| plate grams (8 runs) | 6 over (mean +28%), 2 under (mean -54%); signed mean +7%, MAE 154 g |
+| plate kcal vs reference (6 runs with a complete reference) | 4 over (mean +78%), 0 under, 2 within ±5%; MAE 79 kcal |
+
+What the item table shows (n is tiny; these are leads, not findings):
+
+- **Rice is +50% every time** (H2 above, now with weights): `nasi putih` answered 150 g on both rice plates, in all 4 runs, +50% against the weighed portion (195 kcal against a 130 kcal reference).
+- **Raw cabbage** +56% and **sambal** +85% in both runs.
+- **Fried chicken thigh** -13% in both runs (260 kcal against a 329 kcal reference).
+- **The serundeng-chicken plate is +147 and +187 kcal over** (reference 418): rice +65, sambal +52, the chicken named `ayam goreng bumbu 120 g` (+19) and `ayam bumbu kuning 150 g` (+59; this name does not pair with his, so that run has no grams error for it), cabbage +11.
+- **A vegetable bowl** answered `capcay sayur 250 g, 125 kcal`; the reference (TKPI "Sayur sop" proxy, a soup) is 2.2 times lower, so part of the gap is the reference.
+- **Combined weight case** (one weight for rice + lodeh + tempe, chicken apart): the answers add up to about half of the weighed total. That weight looks large for the photo and is unverified, so treat this one as unresolved, not as an under-estimate.
+- **Low-trust screen photo**: `nasi uduk` was answered as `nasi putih` in both runs, the liver skewer as `ayam goreng 100-120 g`, the tofu -40%.
+
+Limits to keep in mind: name pairing is strict, so a same-dish rename (`ayam goreng` for his `ayam kecap dada`) shows as "not in the answer" plus "not in his list" instead of a grams error; items that cannot be separated in his weighing have no per-item grams; reference rows marked PROXY stand in for the real dish. Four photos from one person say nothing about prompt changes; they become useful as he posts the rest of his 30 days.
+
 ## 2026-10-18: small portions clamped up to the typical portion's minimum
 
 Owner report: "martabak telur 50 g (1 potong)" logged as 300 kcal (6 kcal/g; the library has 250 kcal/100 g, so 125). The row's own macros (4 P, 12 C, 9 F) add up to about 145 kcal.

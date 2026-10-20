@@ -3,6 +3,10 @@
 //   owner     R2 dataset/<userId>/<scanId>/   every scan of the owner (label from the diary save)
 //   feedback  R2 feedback/<userId>/<photoId>/ photos users opted in to keep with a
 //                                             negative rating (empty until users opt in)
+//   external  R2 dataset/external/<source>/<caseId>/  weighed meals contributed by people
+//             outside the app (see packages/api/src/lib/external-case.ts); written to
+//             .tmp/dataset/external/<source>/<caseId>/ as is (no user ids in them) and
+//             read by scripts/eval-scans.ts straight from there, not through summary.jsonl
 //
 // Usage: AI_BENCH_KEY=... bun run scripts/dataset-export.ts
 //        EXPORT_URL=https://api.joyorogo.com  (default)
@@ -97,10 +101,19 @@ async function download(objectKey: string, to: string): Promise<void> {
 
 /** The scans of one prefix: ids parsed from the meta.json keys. */
 function scansOf(keys: string[], prefix: string): Array<{ userId: string; id: string }> {
+  // Exactly two segments below the prefix: dataset/external/<source>/<caseId>/ is deeper and never matches.
   const re = new RegExp(`^${prefix}([^/]+)/([^/]+)/meta\\.json$`);
   return keys.flatMap((k) => {
     const m = re.exec(k);
     return m ? [{ userId: m[1]!, id: m[2]! }] : [];
+  });
+}
+
+/** External cases among the dataset/ keys: <source>/<caseId> of every meta.json. */
+function externalCasesOf(keys: string[]): Array<{ source: string; id: string }> {
+  return keys.flatMap((k) => {
+    const m = /^dataset\/external\/([^/]+)\/([^/]+)\/meta\.json$/.exec(k);
+    return m ? [{ source: m[1]!, id: m[2]! }] : [];
   });
 }
 
@@ -143,7 +156,8 @@ async function main() {
     counts[label] = (counts[label] ?? 0) + 1;
   };
 
-  const owner = scansOf(await listKeys("dataset/"), "dataset/");
+  const datasetKeys = await listKeys("dataset/");
+  const owner = scansOf(datasetKeys, "dataset/");
   console.log(`${owner.length} scans in the owner dataset`);
   for (const { userId, id } of owner) {
     const { id: cid, meta } = await fetchCase("owner", "dataset/", userId, id);
@@ -191,6 +205,17 @@ async function main() {
       reasons: m.reasons,
       after_retry: m.afterRetry,
     });
+  }
+
+  const external = externalCasesOf(datasetKeys);
+  console.log(`${external.length} external cases`);
+  for (const { source, id } of external) {
+    const dir = join(outDir, "external", source, id);
+    await mkdir(dir, { recursive: true });
+    const remote = `dataset/external/${source}/${id}`;
+    await download(`${remote}/meta.json`, join(dir, "meta.json"));
+    if (!(await Bun.file(join(dir, "photo.jpg")).exists())) await download(`${remote}/photo.jpg`, join(dir, "photo.jpg"));
+    count(`external:${source}`);
   }
 
   await mkdir(outDir, { recursive: true });

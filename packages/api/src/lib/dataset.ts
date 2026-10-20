@@ -14,6 +14,14 @@ import type { StickersBucket } from "./sticker";
 
 export const DATASET_PREFIX = "dataset/";
 
+/**
+ * Cases contributed by people outside the app (their own weighed meals, with
+ * their consent), under dataset/external/<source>/<caseId>/. Not user ids and
+ * not diary saves: the owner-dataset readers must skip this prefix (see
+ * lib/external-case.ts).
+ */
+export const EXTERNAL_DATASET_PREFIX = `${DATASET_PREFIX}external/`;
+
 export function datasetPrefix(userId: string): string {
   return `${DATASET_PREFIX}${userId}/`;
 }

@@ -32,7 +32,7 @@ import type {
   RegressionCaseResult,
   RegressionReport,
 } from "@joyorogo/api/lib/accuracy-report";
-import { DATASET_PREFIX } from "@joyorogo/api/lib/dataset";
+import { DATASET_PREFIX, EXTERNAL_DATASET_PREFIX } from "@joyorogo/api/lib/dataset";
 import type { DatasetMeta } from "@joyorogo/api/lib/dataset";
 import { shiftDate, jakartaToday } from "@joyorogo/api/lib/engine";
 import { FEEDBACK_PREFIX } from "@joyorogo/api/lib/feedback-keep";
@@ -269,7 +269,12 @@ export async function runRegression(opts: {
     const keys = [
       ...(await listKeys(bucket, DATASET_PREFIX)),
       ...(await listKeys(bucket, FEEDBACK_PREFIX)),
-    ].flatMap((key) => (key.endsWith("/meta.json") ? [key.slice(0, -"/meta.json".length)] : []));
+    ].flatMap((key) =>
+      // External cases (dataset/external/) carry another contributor's weights, not a diary save; they run through scripts/eval-scans.ts only.
+      key.endsWith("/meta.json") && !key.startsWith(EXTERNAL_DATASET_PREFIX)
+        ? [key.slice(0, -"/meta.json".length)]
+        : [],
+    );
     const ordered = orderRegressionCandidates(keys, Math.floor(dayStartMs(opts.date) / DAY_MS), cap);
 
     // First `cap` labelled cases, reading no more than META_READS_PER_CASE x cap metas.

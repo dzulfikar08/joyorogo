@@ -5,16 +5,26 @@
 // Cases
 //   owner      .tmp/dataset/owner/<caseId>/     truth = the diary save (final.items)
 //   feedback   .tmp/dataset/feedback/<caseId>/  truth = savedItems of a consented photo
+//   external   .tmp/dataset/external/<source>/<caseId>/  truth = a contributor's own weighed
+//              grams (packages/api/src/lib/external-case.ts); kcal = TKPI 2019 / library
+//              reference for those grams, never his or the model's number
 //   wikimedia  (--wikimedia) the bench-accuracy set; truth = a kcal band + the dish name
-//   Export the first two with scripts/dataset-export.ts. Cases with no saved label are
-//   skipped and listed in the report.
+//   Export owner/feedback/external with scripts/dataset-export.ts, or write external cases
+//   straight from a labels file with scripts/external-import.ts --out .tmp/dataset/external.
+//   Cases with no saved label are skipped and listed in the report.
 //
 // Usage: bun run scripts/eval-scans.ts [options]
 //   --variant <name>   run a named variant (repeatable; default baseline). With 2+, the
 //                      report compares every later variant against the first.
 //   --wikimedia        add the Wikimedia bench set (structure check; band truth)
+//   --only <group>     run only this group (repeatable): owner, feedback, external, wikimedia
+//   --external-trust <high|medium|low>
+//                      lowest trust of an external case to run (default medium; see the
+//                      labels: low = the photo may not be his plate)
+//   --external-uncertain  also score the items marked "uncertain" in the photo
+//   --dry-run          list the cases, their truth and the model calls, then exit (no calls)
 //   --dir <path>       exported dataset dir (default .tmp/dataset)
-//   --limit <N>        at most N cases in total (owner, feedback, then wikimedia)
+//   --limit <N>        at most N cases in total (owner, feedback, external, then wikimedia)
 //   --reps <N>         repeat every (case, variant) N times (run-to-run noise; default 1)
 //   --concurrency <N>  parallel model calls (default 3)
 //   --no-cache         ignore .tmp/eval/cache
@@ -31,9 +41,11 @@
 // the model's own answer as its "truth", so a re-run of the same model scores well
 // on it by construction; the signal is in the corrected, retried and feedback cases.
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { EXTERNAL_META_VERSION, truthOf } from "../packages/api/src/lib/external-case";
+import type { ExternalMeta } from "../packages/api/src/lib/external-case";
 
 import { analyzeFoodPhoto, DEFAULT_VISION_MODEL, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
 import type { AiRunner } from "../packages/api/src/lib/vision";
@@ -71,7 +83,9 @@ const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID ?? "b7e6f8457bd39fa37a7eea5249
 /** |signed error| under this share of the true value is "close", not over/under. */
 const CLOSE_PCT = 5;
 
-type Group = "owner" | "feedback" | "wikimedia";
+type Group = "owner" | "feedback" | "external" | "wikimedia";
+/** A truth item. noKcal = there is no reference kcal for it (kcal is 0 and is never scored). */
+type TruthItem = EvalItem & { noKcal?: true; ref?: string };
 type Case = {
   id: string;
   group: Group;
@@ -80,9 +94,19 @@ type Case = {
   /** What production answered when the photo was scanned (owner/feedback). */
   recorded: EvalItem[] | null;
   /** The user's saved items; null = unlabelled. */
-  truth: EvalItem[] | null;
+  truth: TruthItem[] | null;
   /** Wikimedia only: dish name and the kcal band one serving is expected in. */
   wiki?: { dish: string; min: number; max: number };
+  /** External cases only. */
+  external?: {
+    trust: ExternalMeta["trust"];
+    /** Every scored item has a reference kcal; item and plate kcal are scored only then. */
+    kcalComplete: boolean;
+    /** Weighed grams of the scored items (combined weights once), null when an item has none. */
+    plateGrams: number | null;
+    /** Visible in the photo but not part of his weights: an answer item for one is neither right nor wrong. */
+    ignore: string[];
+  };
 };
 
 // Same set as scripts/bench-accuracy.ts (that script runs on import, so it cannot be imported).
@@ -106,6 +130,10 @@ const WIKI_CASES: Array<{ dish: string; url: string; min: number; max: number }>
 type Args = {
   variants: string[];
   wikimedia: boolean;
+  only: Group[];
+  externalTrust: ExternalMeta["trust"];
+  externalUncertain: boolean;
+  dryRun: boolean;
   dir: string;
   limit: number;
   reps: number;
@@ -117,6 +145,10 @@ function parseArgs(argv: string[]): Args {
   const args: Args = {
     variants: [],
     wikimedia: false,
+    only: [],
+    externalTrust: "medium",
+    externalUncertain: false,
+    dryRun: false,
     dir: join(ROOT, ".tmp", "dataset"),
     limit: Infinity,
     reps: 1,
@@ -151,6 +183,24 @@ function parseArgs(argv: string[]): Args {
       case "--no-cache":
         args.cache = false;
         break;
+      case "--only": {
+        const group = value(i++);
+        if (!["owner", "feedback", "external", "wikimedia"].includes(group)) throw new Error(`--only: unknown group "${group}"`);
+        args.only.push(group as Group);
+        break;
+      }
+      case "--external-trust": {
+        const trust = value(i++);
+        if (trust !== "high" && trust !== "medium" && trust !== "low") throw new Error("--external-trust must be high, medium or low");
+        args.externalTrust = trust;
+        break;
+      }
+      case "--external-uncertain":
+        args.externalUncertain = true;
+        break;
+      case "--dry-run":
+        args.dryRun = true;
+        break;
       case "--list-variants":
         for (const [name, v] of Object.entries(VARIANTS)) console.log(`${name.padEnd(12)} ${v.notes}`);
         process.exit(0);
@@ -170,15 +220,20 @@ function parseArgs(argv: string[]): Args {
 // ---------------------------------------------------------------- scoring
 type ErrPoint = { err: number; pct: number };
 type Scored = {
-  /** Item names: matches, answer items, truth items (owner/feedback). */
+  /** Item names: matches, answer items, truth items (owner/feedback/external). */
   names: { tp: number; ai: number; truth: number } | null;
   /** Wikimedia: the dish name appears among the answer items. */
   nameHit: boolean | null;
   itemKcal: ErrPoint[];
   grams: ErrPoint[];
-  plate: ErrPoint & { aiKcal: number; truthKcal: number };
+  /** null = the truth has no complete reference kcal (an external case with combined weights). */
+  plate: (ErrPoint & { aiKcal: number; truthKcal: number }) | null;
+  /** Answer total vs the weighed total; null when either side lacks a weight. */
+  plateGrams: (ErrPoint & { aiGrams: number; truthGrams: number }) | null;
   /** Wikimedia: the answer's total is inside the band. */
   inBand: boolean | null;
+  /** Item by item: what paired, what the answer missed, what it added, what was set aside. */
+  detail: { matches: Array<{ truth: TruthItem; ai: EvalItem }>; missed: TruthItem[]; extra: EvalItem[]; ignored: EvalItem[] };
 };
 
 const total = (items: EvalItem[]) => items.reduce((sum, item) => sum + item.kcal, 0);
@@ -199,21 +254,41 @@ function scoreCase(c: Case, items: EvalItem[]): Scored {
       itemKcal: [],
       grams: [],
       plate: { ...point(aiKcal, target), aiKcal, truthKcal: target },
+      plateGrams: null,
       inBand: aiKcal >= min && aiKcal <= max,
+      detail: { matches: [], missed: [], extra: [], ignored: [] },
     };
   }
   const truth = c.truth ?? [];
-  const pairs = pairItems(items, truth);
+  const pairs = pairItems(items, truth) as Array<{ ai: EvalItem; truth: TruthItem }>;
+  const paired = new Set<EvalItem>(pairs.map((p) => p.ai));
+  const ignoreNames = c.external?.ignore ?? [];
+  const ignored = items.filter((i) => !paired.has(i) && ignoreNames.some((n) => nameScore(i.name, n) >= NAME_MATCH_MIN));
+  const answer = items.filter((i) => !ignored.includes(i));
+  const noKcal = new Set<EvalItem>(truth.filter((t) => t.noKcal));
+  const answerKcal = total(answer);
   const truthKcal = total(truth);
+  const truthGrams = c.external ? c.external.plateGrams : truth.every((t) => t.grams !== undefined) ? sum(truth.map((t) => t.grams!)) : null;
+  const aiGrams = answer.every((i) => i.grams !== undefined) ? sum(answer.map((i) => i.grams!)) : null;
   return {
-    names: { tp: pairs.length, ai: items.length, truth: truth.length },
+    names: { tp: pairs.length, ai: answer.length, truth: truth.length },
     nameHit: null,
-    itemKcal: pairs.map((p) => point(p.ai.kcal, p.truth.kcal)),
+    itemKcal: pairs.filter((p) => !noKcal.has(p.truth)).map((p) => point(p.ai.kcal, p.truth.kcal)),
     grams: pairs.flatMap((p) =>
       p.ai.grams !== undefined && p.truth.grams !== undefined ? [point(p.ai.grams, p.truth.grams)] : [],
     ),
-    plate: { ...point(aiKcal, truthKcal), aiKcal, truthKcal },
+    plate: c.external?.kcalComplete === false ? null : { ...point(answerKcal, truthKcal), aiKcal: answerKcal, truthKcal },
+    plateGrams:
+      truthGrams !== null && truthGrams > 0 && aiGrams !== null
+        ? { ...point(aiGrams, truthGrams), aiGrams, truthGrams }
+        : null,
     inBand: null,
+    detail: {
+      matches: pairs,
+      missed: truth.filter((t) => !pairs.some((p) => p.truth === t)),
+      extra: answer.filter((a) => !paired.has(a)),
+      ignored,
+    },
   };
 }
 
@@ -353,6 +428,50 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
   } else {
     console.log(`no ${join(".tmp", "dataset", "summary.jsonl")}: run scripts/dataset-export.ts first (0 owner/feedback cases)`);
   }
+  const externalRoot = join(args.dir, "external");
+  if (existsSync(externalRoot)) {
+    const trustRank = { low: 0, medium: 1, high: 2 };
+    const dirs = (path: string) =>
+      readdirSync(path, { withFileTypes: true })
+        .filter((d) => d.isDirectory())
+        .map((d) => d.name)
+        .sort();
+    for (const source of dirs(externalRoot)) {
+      for (const caseDir of dirs(join(externalRoot, source))) {
+        const dir = join(externalRoot, source, caseDir);
+        if (!existsSync(join(dir, "meta.json")) || !existsSync(join(dir, "photo.jpg"))) continue;
+        // Boundary: meta.json written by scripts/external-import.ts.
+        const meta: ExternalMeta = await Bun.file(join(dir, "meta.json")).json();
+        if (meta.version !== EXTERNAL_META_VERSION) continue;
+        const scored = meta.items.filter((i) => i.inPhoto === "yes" || (args.externalUncertain && i.inPhoto === "uncertain"));
+        const truthBlock = truthOf(meta.items, meta.groups, args.externalUncertain);
+        const c: Case = {
+          id: meta.caseId,
+          group: "external",
+          photo: join(dir, "photo.jpg"),
+          label: `${meta.trust} trust, day ${meta.source.day} ${meta.source.meal}`,
+          recorded: null,
+          truth: scored.map((i) => ({
+            name: i.name,
+            ...(i.grams !== null ? { grams: i.grams } : {}),
+            kcal: i.kcal ?? 0,
+            ...(i.kcal === undefined ? { noKcal: true as const } : {}),
+            ...(i.ref ? { ref: `${i.ref.source === "manual" ? "manual" : `${i.ref.source}: ${i.ref.name}`}${i.ref.proxy ? " (proxy)" : ""}` } : {}),
+          })),
+          external: {
+            trust: meta.trust,
+            kcalComplete: truthBlock.kcalComplete,
+            plateGrams: truthBlock.plateGrams,
+            ignore: [
+              ...meta.extras.map((e) => e.name),
+              ...(args.externalUncertain ? [] : meta.items.filter((i) => i.inPhoto === "uncertain").map((i) => i.name)),
+            ],
+          },
+        };
+        (trustRank[meta.trust] >= trustRank[args.externalTrust] ? cases : skipped).push(c);
+      }
+    }
+  }
   if (args.wikimedia) {
     mkdirSync(WIKI_DIR, { recursive: true });
     for (const w of WIKI_CASES) {
@@ -369,7 +488,8 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
       });
     }
   }
-  return { cases: cases.slice(0, args.limit), skipped };
+  const wanted = args.only.length ? cases.filter((c) => args.only.includes(c.group)) : cases;
+  return { cases: wanted.slice(0, args.limit), skipped };
 }
 
 async function downloadWiki(url: string, to: string): Promise<void> {
@@ -400,6 +520,7 @@ type Agg = {
   inBand: { hit: number; of: number } | null;
   itemKcal: ErrStats;
   plate: ErrStats;
+  plateGrams: ErrStats;
   grams: ErrStats;
   latency: { p50: number; p95: number };
   tooMany: number;
@@ -441,7 +562,8 @@ function aggregate(group: Group, variant: string, runs: Run[]): Agg {
     nameHit: wiki.length ? { hit: wiki.filter((s) => s.nameHit).length, of: wiki.length } : null,
     inBand: band.length ? { hit: band.filter((s) => s.inBand).length, of: band.length } : null,
     itemKcal: errStats(scored.flatMap((s) => s.itemKcal)),
-    plate: errStats(scored.map((s) => s.plate)),
+    plate: errStats(scored.flatMap((s) => (s.plate ? [s.plate] : []))),
+    plateGrams: errStats(scored.flatMap((s) => (s.plateGrams ? [s.plateGrams] : []))),
     grams: errStats(scored.flatMap((s) => s.grams)),
     latency: { p50: quantile(ms, 0.5), p95: quantile(ms, 0.95) },
     tooMany: ok.filter((r) => r.result.ok && r.result.tooMany).length,
@@ -477,6 +599,7 @@ function aggTable(a: Agg): string[] {
   rows.push(...statsRows(plateLabel, a.plate, "kcal"));
   rows.push(...statsRows("item kcal (matched)", a.itemKcal, "kcal"));
   rows.push(...statsRows("grams (matched)", a.grams, "g"));
+  rows.push(...statsRows("plate grams", a.plateGrams, "g"));
   rows.push(`| latency p50 / p95 (REST, incl. round trip) | ${sec(a.latency.p50)} / ${sec(a.latency.p95)} |`);
   if (a.tooMany) rows.push(`| answers flagged too many | ${a.tooMany} |`);
   return rows;
@@ -494,6 +617,8 @@ const METRICS: Metric[] = [
   { label: "item kcal MAE", get: (a) => a.itemKcal.mae, digits: 0, lowerBetter: true },
   { label: "grams signed mean %", get: (a) => a.grams.signedMeanPct },
   { label: "grams MAE g", get: (a) => a.grams.mae, digits: 0, lowerBetter: true },
+  { label: "plate grams signed mean %", get: (a) => a.plateGrams.signedMeanPct },
+  { label: "plate grams MAE g", get: (a) => a.plateGrams.mae, digits: 0, lowerBetter: true },
   { label: "latency p50 s", get: (a) => a.latency.p50 / 1000 },
   { label: "latency p95 s", get: (a) => a.latency.p95 / 1000 },
   { label: "failures", get: (a) => sum(Object.values(a.failures)), digits: 0, lowerBetter: true },
@@ -503,7 +628,7 @@ const METRICS: Metric[] = [
 function perCasePlateAbs(runs: Run[]): Map<string, number> {
   const by = new Map<string, number[]>();
   for (const r of runs) {
-    if (r.scored) by.set(r.c.id, [...(by.get(r.c.id) ?? []), Math.abs(r.scored.plate.err)]);
+    if (r.scored?.plate) by.set(r.c.id, [...(by.get(r.c.id) ?? []), Math.abs(r.scored.plate.err)]);
   }
   return new Map([...by].map(([id, xs]) => [id, mean(xs)]));
 }
@@ -541,11 +666,11 @@ const showItems = (items: EvalItem[]) =>
   items.length ? items.map((i) => `${i.name}${i.grams !== undefined ? ` ${Math.round(i.grams)}g` : ""} ${Math.round(i.kcal)}kcal`).join("; ") : "(none)";
 
 function worstSection(variant: string, group: Group, runs: Run[], n = 5): string[] {
-  const scored = runs.filter((r) => r.scored && r.result.ok);
+  const scored = runs.filter((r) => r.scored?.plate && r.result.ok);
   const worst = (sign: 1 | -1) =>
     scored
-      .filter((r) => r.scored!.plate.pct * sign > CLOSE_PCT)
-      .sort((x, y) => y.scored!.plate.pct * sign - x.scored!.plate.pct * sign)
+      .filter((r) => r.scored!.plate!.pct * sign > CLOSE_PCT)
+      .sort((x, y) => y.scored!.plate!.pct * sign - x.scored!.plate!.pct * sign)
       .slice(0, n);
   const lines: string[] = [];
   for (const [title, sign] of [["Worst over-estimates", 1], ["Worst under-estimates", -1]] as const) {
@@ -554,14 +679,44 @@ function worstSection(variant: string, group: Group, runs: Run[], n = 5): string
     lines.push(`**${title}** (${variant}, ${group})`, "");
     lines.push("| Case | Plate AI / truth | Error | AI answer | Truth |", "|---|---|---|---|---|");
     for (const r of picks) {
-      const s = r.scored!;
+      const plate = r.scored!.plate!;
       const truth = r.c.wiki ? `band ${r.c.wiki.min}-${r.c.wiki.max} kcal (${r.c.wiki.dish})` : showItems(r.c.truth ?? []);
       const answer = r.result.ok ? showItems(r.result.items) : "";
-      lines.push(`| ${r.c.id}${r.rep ? `#${r.rep}` : ""} | ${Math.round(s.plate.aiKcal)} / ${Math.round(s.plate.truthKcal)} | ${s.plate.err > 0 ? "+" : ""}${Math.round(s.plate.err)} kcal (${s.plate.pct > 0 ? "+" : ""}${f(s.plate.pct, 0)}%) | ${answer} | ${truth} |`);
+      lines.push(`| ${r.c.id}${r.rep ? `#${r.rep}` : ""} | ${Math.round(plate.aiKcal)} / ${Math.round(plate.truthKcal)} | ${plate.err > 0 ? "+" : ""}${Math.round(plate.err)} kcal (${plate.pct > 0 ? "+" : ""}${f(plate.pct, 0)}%) | ${answer} | ${truth} |`);
     }
     lines.push("");
   }
   return lines;
+}
+
+/** External cases: every truth item against what the model said for it, grams and kcal side by side. */
+function externalDetail(variant: string, runs: Run[]): string[] {
+  const rows: string[] = [];
+  for (const r of runs) {
+    if (!r.scored || !r.result.ok) continue;
+    const id = `${r.c.id}${r.rep ? `#${r.rep}` : ""}`;
+    const { matches, missed, extra, ignored } = r.scored.detail;
+    for (const { truth, ai } of matches) {
+      const grams =
+        truth.grams !== undefined && ai.grams !== undefined
+          ? `${ai.grams - truth.grams > 0 ? "+" : ""}${Math.round(ai.grams - truth.grams)} g (${ai.grams > truth.grams ? "+" : ""}${f(((ai.grams - truth.grams) / truth.grams) * 100, 0)}%)`
+          : "-";
+      const kcal = truth.noKcal ? "-" : `${Math.round(ai.kcal)} / ${Math.round(truth.kcal)}`;
+      rows.push(`| ${id} | ${truth.name} | ${truth.grams ?? "-"} | ${ai.name} | ${ai.grams !== undefined ? Math.round(ai.grams) : "-"} | ${grams} | ${kcal} | ${truth.ref ?? "-"} |`);
+    }
+    for (const t of missed) rows.push(`| ${id} | ${t.name} | ${t.grams ?? "-"} | (not in the answer) | - | - | - | ${t.ref ?? "-"} |`);
+    for (const a of extra) rows.push(`| ${id} | (not in his list) | - | ${a.name} | ${a.grams !== undefined ? Math.round(a.grams) : "-"} | - | ${Math.round(a.kcal)} / - | - |`);
+    if (ignored.length) rows.push(`| ${id} | (set aside: visible, not in his weights) | - | ${ignored.map((i) => i.name).join(", ")} | - | - | - | - |`);
+  }
+  if (!rows.length) return [];
+  return [
+    `**Item by item** (${variant}, external): grams error is AI minus his weight; kcal is AI / reference`,
+    "",
+    "| Case | His item | His g | AI item | AI g | Grams error | kcal AI / ref | Reference row |",
+    "|---|---|---|---|---|---|---|---|",
+    ...rows,
+    "",
+  ];
 }
 
 // ------------------------------------------------------------------- main
@@ -570,7 +725,7 @@ async function main() {
   mkdirSync(CACHE_DIR, { recursive: true });
   const { cases, skipped } = await loadCases(args);
   if (cases.length === 0) {
-    console.log("no labelled cases to run (export the dataset, or pass --wikimedia)");
+    console.log("no labelled cases to run (export the dataset, write external cases with scripts/external-import.ts --out, or pass --wikimedia)");
   }
 
   const hashes = new Map<string, string>();
@@ -585,6 +740,23 @@ async function main() {
     ? jobs.filter((j) => existsSync(join(CACHE_DIR, `${hashes.get(j.c.id)}.${j.variant}.${fingerprint(VARIANTS[j.variant]!)}.${j.rep}.json`))).length
     : 0;
   console.log(`${cases.length} cases x ${args.variants.length} variant(s) x ${args.reps} rep(s) = ${jobs.length} runs, ${jobs.length - cachedAlready} model calls (${cachedAlready} cached), ${skipped.length} unlabelled skipped`);
+
+  if (args.dryRun) {
+    for (const c of cases) {
+      const ext = c.external;
+      console.log(`\n${c.group}/${c.id} (${c.label})  ${c.photo}`);
+      if (ext) {
+        console.log(`  plate truth: ${ext.plateGrams === null ? "grams n/a (an item has no weight)" : `${ext.plateGrams} g`}, kcal ${ext.kcalComplete ? "complete" : "incomplete (plate and item kcal not scored)"}`);
+      }
+      for (const t of c.truth ?? []) {
+        console.log(`  truth  ${t.name.padEnd(22)} ${t.grams !== undefined ? `${t.grams} g`.padEnd(8) : "- g".padEnd(8)} ${t.noKcal ? "no ref kcal" : `${t.kcal} kcal`}${t.ref ? `  [${t.ref}]` : ""}`);
+      }
+      if (ext?.ignore.length) console.log(`  set aside if the model names them: ${ext.ignore.join(", ")}`);
+    }
+    for (const c of skipped) console.log(`\nnot run: ${c.group}/${c.id} (${c.label})`);
+    console.log("\ndry run: no model calls made, no report written");
+    return;
+  }
 
   const ai = jobs.length > cachedAlready || !args.cache ? restRunner(apiToken()) : { run: () => Promise.reject(new Error("unreachable: all cached")) };
   const results = new Array<Run>(jobs.length);
@@ -605,7 +777,7 @@ async function main() {
 
   const runsBy = (variant: string, group: Group) =>
     results.flatMap((r, i) => (jobs[i]!.variant === variant && r.c.group === group ? [r] : []));
-  const groups = (["owner", "feedback", "wikimedia"] as const).filter((g) => cases.some((c) => c.group === g));
+  const groups = (["owner", "feedback", "external", "wikimedia"] as const).filter((g) => cases.some((c) => c.group === g));
 
   const date = new Date().toISOString().slice(0, 10);
   const md: string[] = [`# Scan accuracy eval ${date}`, ""];
@@ -624,6 +796,12 @@ async function main() {
       "",
     );
   }
+  if (groups.includes("external")) {
+    md.push(
+      `External cases: photos from contributors who weighed their food and agreed to internal testing. Truth = their grams; kcal = TKPI 2019 / curated-library reference for those grams (proxy rows are flagged), never their number. Run with trust >= ${args.externalTrust}${args.externalUncertain ? ", uncertain items scored" : ", uncertain items set aside"}. Items he did not weigh as a whole plate (combined weights) are scored on grams and names only. Small n: read the item table, not the averages.`,
+      "",
+    );
+  }
 
   const allAggs: Agg[] = [];
   for (const group of groups) {
@@ -633,13 +811,14 @@ async function main() {
     for (const a of aggs) md.push(...aggTable(a), "");
     md.push(...deltaSection(group, aggs, (v) => runsBy(v, group)));
     for (const v of args.variants) md.push(...worstSection(v, group, runsBy(v, group)));
+    if (group === "external") for (const v of args.variants) md.push(...externalDetail(v, runsBy(v, group)));
   }
 
   // The answer production gave at scan time vs the saved items (no model calls).
   const recorded = cases.filter((c) => c.recorded && c.truth);
   if (recorded.length) {
     const rec = recorded.map((c) => ({ c, s: scoreCase(c, c.recorded!) }));
-    const st = errStats(rec.map((r) => r.s.plate));
+    const st = errStats(rec.flatMap((r) => (r.s.plate ? [r.s.plate] : [])));
     md.push(
       "## As recorded at scan time",
       "",
@@ -650,22 +829,22 @@ async function main() {
 
   if (skipped.length) {
     md.push(
-      "## Unlabelled (skipped)",
+      "## Not run (skipped)",
       "",
-      `${skipped.length} cases have no saved items: ${skipped.map((c) => `${c.id} (${c.label})`).join(", ")}`,
+      `${skipped.length} cases were not run (no saved items, or an external case below the trust floor): ${skipped.map((c) => `${c.id} (${c.label})`).join(", ")}`,
       "",
     );
   }
 
   mkdirSync(EVAL_DIR, { recursive: true });
-  const base = join(EVAL_DIR, `report-${date}`);
+  const base = join(EVAL_DIR, `report-${date}${args.only.length ? `-${args.only.join("+")}` : ""}`);
   await Bun.write(`${base}.md`, `${md.join("\n")}\n`);
   await Bun.write(
     `${base}.json`,
     JSON.stringify(
       {
         date,
-        args: { variants: args.variants, wikimedia: args.wikimedia, limit: Number.isFinite(args.limit) ? args.limit : null, reps: args.reps },
+        args: { variants: args.variants, wikimedia: args.wikimedia, only: args.only, externalTrust: args.externalTrust, externalUncertain: args.externalUncertain, limit: Number.isFinite(args.limit) ? args.limit : null, reps: args.reps },
         variants: Object.fromEntries(args.variants.map((v) => [v, { notes: VARIANTS[v]!.notes, fingerprint: fingerprint(VARIANTS[v]!) }])),
         aggregates: allAggs,
         skipped: skipped.map((c) => ({ id: c.id, label: c.label })),
@@ -678,13 +857,15 @@ async function main() {
           ...(r.result.ok ? { items: r.result.items, ms: r.result.ms, cached: r.result.cached } : { reason: r.result.reason }),
           truth: r.c.wiki ?? r.c.truth,
           plate: r.scored?.plate ?? null,
+          plateGrams: r.scored?.plateGrams ?? null,
+          detail: r.scored?.detail ?? null,
         })),
       },
       null,
       2,
     ),
   );
-  console.log(`wrote ${join(".tmp", "eval", `report-${date}.md`)} and .json`);
+  console.log(`wrote ${base.replace(`${ROOT}/`, "")}.md and .json`);
   for (const a of allAggs) {
     console.log(
       `${a.group}/${a.variant}: ${a.runs} runs, ${sum(Object.values(a.failures))} failed; plate over ${a.plate.over.n} (${f(a.plate.over.meanPct, 0)}%) under ${a.plate.under.n} (${f(a.plate.under.meanPct, 0)}%) close ${a.plate.close}; p50 ${sec(a.latency.p50)} p95 ${sec(a.latency.p95)}`,

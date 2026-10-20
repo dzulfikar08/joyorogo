@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "source": {
+    "name": "example",
+    "platform": "threads",
+    "profile": "https://example.com/@example",
+    "thread": "Invented example: nothing here is a real person's data. Copy it to <handle>.labels.json (git-ignored) and replace everything."
+  },
+  "consent": {
+    "by": "@example",
+    "channel": "Threads DM",
+    "at": "2026-01-01",
+    "scope": "Internal use only: test and improve JoyoRogo's food-scan AI accuracy. Not published, not shared.",
+    "deletion": "On request: bun run scripts/external-import.ts --delete <labels file>, then delete the local copies."
+  },
+  "cases": [
+    {
+      "photo": { "post": "Xexample01", "index": 1, "file": "Xexample01-1.jpg" },
+      "day": 1,
+      "meal": "lunch",
+      "mealRaw": "Lunch",
+      "postedAt": "2026-01-01T05:00:00.000Z",
+      "said": "120gr Nasi / 90gr Ayam goreng / 1 butir telor rebus / 30gr kol",
+      "mapping": "certain",
+      "trust": "high",
+      "trustWhy": "The plate in the photo is exactly the listed items.",
+      "items": [
+        { "name": "nasi putih", "said": "120gr Nasi", "grams": 120, "cooking": "matang", "inPhoto": "yes", "ref": { "source": "library", "dish": "nasi putih" } },
+        {
+          "name": "ayam goreng",
+          "said": "90gr Ayam goreng",
+          "grams": 90,
+          "cooking": "goreng",
+          "inPhoto": "yes",
+          "ref": { "source": "tkpi2019", "row": "Ayam goreng kalasan, paha", "proxy": true, "note": "Why this row stands in for the real dish." }
+        },
+        {
+          "name": "telur rebus",
+          "said": "1 butir telor rebus",
+          "grams": null,
+          "assumedGrams": 50,
+          "cooking": "rebus",
+          "inPhoto": "yes",
+          "ref": { "source": "tkpi2019", "row": "Telur ayam ras, segar" },
+          "note": "Counted, not weighed: assumedGrams feeds kcal only and is never scored as grams."
+        },
+        { "name": "kol mentah", "said": "30gr kol", "grams": 30, "cooking": "mentah", "inPhoto": "uncertain", "ref": { "source": "tkpi2019", "row": "Kol merah, kol putih" } }
+      ],
+      "groups": [],
+      "extras": [{ "name": "sambal", "note": "Visible in the photo, not in his weights: never scored." }]
+    },
+    {
+      "photo": { "post": "Xexample01", "index": 2, "file": "Xexample01-2.jpg" },
+      "day": 1,
+      "meal": "dinner",
+      "mealRaw": "Dinner",
+      "said": "400gr Nasi sayur lodeh tempe / 100gr tahu goreng",
+      "mapping": "likely",
+      "trust": "medium",
+      "trustWhy": "One combined weight for rice + lodeh + tempe: scored on names and plate grams only, never per item or kcal.",
+      "items": [
+        { "name": "nasi putih", "said": "400gr Nasi sayur lodeh tempe", "grams": null, "group": "bungkus", "inPhoto": "yes" },
+        { "name": "sayur lodeh", "said": "400gr Nasi sayur lodeh tempe", "grams": null, "group": "bungkus", "inPhoto": "yes" },
+        { "name": "tempe", "said": "400gr Nasi sayur lodeh tempe", "grams": null, "group": "bungkus", "inPhoto": "uncertain" },
+        { "name": "tahu goreng", "said": "100gr tahu goreng", "grams": 100, "cooking": "goreng", "inPhoto": "yes", "ref": { "source": "tkpi2019", "row": "Tahu goreng" } }
+      ],
+      "groups": [{ "id": "bungkus", "name": "nasi + sayur lodeh + tempe", "grams": 400 }],
+      "extras": []
+    }
+  ],
+  "unmapped": [{ "day": 1, "meal": "snack", "said": "2 buah dimsum", "why": "Photo not scraped yet." }]
+}

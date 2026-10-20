@@ -64,3 +64,8 @@ apps/native/keystore/
 
 # local scratch (screenshots, venvs)
 .tmp/
+
+# External contributors' labels hold their weights and post text and were given for
+# internal use only; this repo is public. Only the invented example is tracked.
+scripts/external-cases/*.labels.json
+!scripts/external-cases/example.labels.json

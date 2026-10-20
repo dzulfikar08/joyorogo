@@ -222,6 +222,18 @@ describe("runDailyAccuracy", () => {
     expect(calls.n).toBe(40);
   });
 
+  test("external cases (dataset/external/) are not owner cases: not counted, not read, not run", async () => {
+    const r = fakeBucket();
+    labelledCases(r, 3);
+    r.objects.set("dataset/external/someone/post1-1/meta.json", { body: "{}" });
+    r.objects.set("dataset/external/someone/post1-1/photo.jpg", { body: "jpeg", contentType: "image/jpeg" });
+    const calls = { n: 0 };
+    const result = await runDailyAccuracy(baseDeps(r, { analyze: fakeAnalyze(calls), cap: 10 }));
+    expect(result.report!.regression).toMatchObject({ candidates: 3 });
+    expect(calls.n).toBe(3);
+    expect(r.reads.some((key) => key.startsWith("dataset/external/"))).toBe(false);
+  });
+
   test("a model failure on one photo is a failed case, not a failed report", async () => {
     const r = fakeBucket();
     labelledCases(r, 4);
