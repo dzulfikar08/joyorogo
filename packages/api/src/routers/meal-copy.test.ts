@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { call } from "@orpc/server";
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, setSystemTime, test } from "bun:test";
 import { drizzle } from "drizzle-orm/libsql";
 
 // @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
@@ -50,18 +50,34 @@ const as = (userId: string) => ({
 const u1 = as("u1");
 const u2 = as("u2");
 
+// Frozen clock: the story's slot, "today" and the day boundary all follow the wall clock (Jakarta), so the
+// suite pins it to a fixed instant (12:00 WIB) instead of whatever time CI happens to run at.
+// Rows are ordered by created_at, which SQLite fills from its own clock (ms ties between quick inserts). So
+// every seeded row is stamped with the frozen clock, ticked 1ms per write, to keep insertion order.
+let now = new Date(process.env.MEAL_COPY_TEST_NOW ?? "2026-03-15T05:00:00Z").getTime();
+setSystemTime(now);
+afterAll(() => setSystemTime());
+
 const today = jakartaToday();
 const yesterday = shiftDate(today, -1);
 const SLOTS = ["sarapan", "makan_siang", "makan_malam", "snack"] as const;
 
-const add = (
+const add = async (
   who: typeof u1,
   date: string,
   meal: (typeof SLOTS)[number],
   name: string,
   kcal: number,
   extra: { grams?: number; protein?: number; carbs?: number; fat?: number } = {},
-) => call(foodRouter.add, { date, meal, name, kcal, ...extra }, who);
+) => {
+  setSystemTime((now += 1));
+  const out = await call(foodRouter.add, { date, meal, name, kcal, ...extra }, who);
+  await client.execute({
+    sql: "UPDATE food_log SET created_at = ? WHERE rowid = (SELECT max(rowid) FROM food_log)",
+    args: [now],
+  });
+  return out;
+};
 
 await add(u1, yesterday, "sarapan", "Nasi uduk", 380, { grams: 220, protein: 9, carbs: 58, fat: 12 });
 await add(u1, yesterday, "sarapan", "Telur dadar", 120, { grams: 60, protein: 8, carbs: 1, fat: 9 });
