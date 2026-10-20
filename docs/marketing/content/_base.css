@@ -1,0 +1,111 @@
+/*
+ * Shared base for every piece. One .slide = one PNG (1080x1350; add .story for 1080x1920).
+ * Tokens mirror packages/ui/src/styles/globals.css (JoyoRogo) and watch-fit/site/src/index.css (JoyoFit):
+ * warm paper canvas, Plus Jakarta Sans, leaf green (Rogo) or teal (Fit) as the one accent.
+ * The renderer injects the @font-face for Plus Jakarta Sans and expands @joyorogo/ and @watch-fit/ paths.
+ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #888; }
+body { font-family: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+.slide {
+  --bg: oklch(0.975 0.008 85);
+  --fg: oklch(0.22 0.012 85);
+  --muted: oklch(0.47 0.014 85);
+  --card: oklch(1 0 0);
+  --line: oklch(0.91 0.01 85);
+  --bakar: oklch(0.64 0.17 40);
+  --bakar-ink: oklch(0.47 0.14 40);
+  --bakar-soft: oklch(0.95 0.03 50);
+  --tidur-ink: oklch(0.43 0.13 275);
+  --tidur-soft: oklch(0.95 0.025 275);
+  position: relative; width: 1080px; height: 1350px; overflow: hidden;
+  padding: 96px 80px 170px; background: var(--bg); color: var(--fg);
+  display: flex; flex-direction: column;
+}
+.slide.story { height: 1920px; }
+.slide + .slide { margin-top: 24px; }
+
+/* Brand themes */
+.rogo {
+  --primary: oklch(0.52 0.13 152);
+  --ink: oklch(0.4 0.1 152);
+  --soft: oklch(0.95 0.035 152);
+  --deep: oklch(0.3 0.07 152);
+  --on-deep: oklch(0.97 0.02 140);
+  --on-deep-accent: oklch(0.85 0.15 140);
+}
+.fit {
+  --primary: oklch(0.472 0.087 225);
+  --ink: oklch(0.404 0.077 229);
+  --soft: oklch(0.942 0.023 217);
+  --deep: oklch(0.2 0.02 225);
+  --on-deep: oklch(0.96 0.008 85);
+  --on-deep-accent: oklch(0.8 0.1 215);
+}
+/* Dark variant: deep brand background, light text. */
+.slide.deep { background: var(--deep); color: var(--on-deep); --muted: oklch(0.8 0.02 200); --primary: var(--on-deep-accent); --line: oklch(1 0 0 / 0.16); }
+/* Soft variant: tinted background for the diagram / quiet slides. */
+.slide.soft { background: var(--soft); }
+
+/* Type scale: phone-first, nothing under 28px */
+.k { font-size: 34px; font-weight: 700; color: var(--primary); letter-spacing: 0; }
+.deep .k { color: var(--on-deep-accent); }
+.h { font-size: 112px; line-height: 1.02; font-weight: 800; letter-spacing: -0.035em; text-wrap: balance; }
+.h.m { font-size: 92px; }
+.h.s { font-size: 76px; letter-spacing: -0.03em; line-height: 1.06; }
+.lead { font-size: 46px; line-height: 1.28; font-weight: 500; color: var(--muted); text-wrap: pretty; }
+.deep .lead { color: oklch(0.9 0.015 200); }
+.p { font-size: 40px; line-height: 1.3; font-weight: 500; }
+.note { font-size: 29px; line-height: 1.35; font-weight: 500; color: var(--muted); }
+.em { color: var(--primary); }
+.stack { display: flex; flex-direction: column; }
+.grow { flex: 1; }
+.gap-s { height: 28px; } .gap-m { height: 48px; } .gap-l { height: 80px; }
+
+/* Footer: wordmark + page counter. Renderer fills .pg with n/N. */
+.foot { position: absolute; left: 80px; right: 80px; bottom: 60px; display: flex; align-items: center; justify-content: space-between; font-size: 30px; font-weight: 700; color: var(--muted); }
+.foot .brand { display: flex; align-items: center; gap: 16px; color: var(--fg); }
+.deep .foot .brand { color: var(--on-deep); }
+.foot img { width: 44px; height: 44px; object-fit: contain; }
+.deep .foot img { display: none; }
+.pg:empty { display: none; }
+
+/* Phone frame around a real screenshot. Crop with height, bleed off the slide edge with bottom. */
+.phone { position: absolute; width: 440px; padding: 14px; border-radius: 68px; background: #17181a; box-shadow: 0 24px 60px oklch(0.2 0.02 85 / 0.28); }
+.phone .scr { border-radius: 54px; overflow: hidden; background: #000; }
+.phone img { display: block; width: 100%; }
+.phone.crop .scr { height: var(--h, 760px); }
+.phone.crop img { height: 100%; object-fit: cover; object-position: top; }
+
+/* Rows: big label, quiet detail, hairline between */
+.rows { display: flex; flex-direction: column; }
+.row { padding: 30px 0; border-top: 2px solid var(--line); }
+.row:last-child { border-bottom: 2px solid var(--line); }
+.row b { display: block; font-size: 56px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; }
+.row span { display: block; margin-top: 8px; font-size: 34px; line-height: 1.3; font-weight: 500; color: var(--muted); }
+
+/* Card: white, borderless, separated by value alone */
+.card { background: var(--card); border-radius: 36px; padding: 44px 48px; }
+.deep .card { background: oklch(1 0 0 / 0.07); }
+.chip { display: inline-block; background: var(--card); color: var(--fg); border-radius: 30px; padding: 22px 34px; font-size: 42px; font-weight: 700; line-height: 1.2; }
+
+.cta { display: inline-block; align-self: flex-start; background: var(--primary); color: #fff; border-radius: 28px; padding: 34px 52px; font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+.deep .cta { background: var(--on-deep-accent); color: var(--deep); }
+.mascot { position: absolute; pointer-events: none; }
+
+/*
+ * Cropped screenshot (docs/marketing/content/_shots). A real shot is 1320 px wide (440 css px at 3x); a crop is described in
+ * those source pixels so a slide can enlarge exactly the one control the point is about:
+ *   <div class="snap" style="--s:.697;--cx:0;--cy:1020;--cw:1320;--ch:335"><img src="@content/_shots/x.webp" alt=""></div>
+ * --s = slide px per source px (0.697 makes a full-width crop 920 px wide). Rings go inside .snap as .callout with --rx/--ry/--rw/--rh
+ * (source px, same origin as the shot).
+ */
+.snap { --s: .697; --cx: 0; --cy: 0; --cw: 1320; --ch: 800; position: relative; flex: none; overflow: hidden; width: calc(var(--cw) * var(--s) * 1px); height: calc(var(--ch) * var(--s) * 1px); border-radius: 36px; background: var(--card); box-shadow: 0 18px 48px oklch(0.2 0.02 85 / 0.16); }
+.snap img { position: absolute; display: block; max-width: none; width: calc(1320 * var(--s) * 1px); left: calc(var(--cx) * var(--s) * -1px); top: calc(var(--cy) * var(--s) * -1px); }
+.deep .snap { box-shadow: 0 18px 60px oklch(0 0 0 / 0.35); }
+.callout { position: absolute; left: calc((var(--rx) - var(--cx)) * var(--s) * 1px); top: calc((var(--ry) - var(--cy)) * var(--s) * 1px); width: calc(var(--rw) * var(--s) * 1px); height: calc(var(--rh) * var(--s) * 1px); border: 8px solid var(--bakar); border-radius: 999px; pointer-events: none; }
+/* Label straddling a crop's top edge, e.g. Sebelum / Sesudah: <div class="fig"><span class="tag">Sebelum</span><div class="snap">...</div></div> */
+.fig { position: relative; flex: none; }
+.tag { position: absolute; left: 28px; top: -24px; z-index: 2; background: var(--fg); color: #fff; border-radius: 999px; padding: 12px 26px; font-size: 30px; font-weight: 700; line-height: 1; }
+.tag.on { background: var(--primary); }

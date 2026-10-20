@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><link rel="stylesheet" href="@content/_base.css">
+<style>
+  /* Local helpers: ring = callout outline placed in % of the screenshot, so it scales with the image. */
+  .scr { position: relative; }
+  .shot { position: relative; width: 100%; }
+  .shot img { display: block; width: 100%; max-width: none; }
+  .ring { position: absolute; border: 8px solid var(--ring, var(--bakar)); border-radius: 50%; pointer-events: none; }
+  .ring.sq { border-radius: 44px; }
+  .crop-card { position: absolute; overflow: hidden; border-radius: 40px; box-shadow: 0 24px 60px oklch(0.2 0.02 85 / 0.28); }
+  .crop-card .shot { position: absolute; }
+  .t { position: absolute; left: 80px; right: 80px; top: 96px; }
+</style></head>
+<body>
+
+<!-- 1 Cover: watch tab + Today tab -->
+<section class="slide fit deep">
+  <div class="k">JoyoFit</div>
+  <div class="gap-m"></div>
+  <h1 class="h" style="font-size:100px">Jam Huawei, tanpa Huawei Health.</h1>
+  <div class="gap-m"></div>
+  <p class="lead">Gue bikin JoyoFit, datanya langsung ke HP.</p>
+  <div data-bleed class="phone" style="left:64px;top:700px;width:450px"><div class="scr" style="height:470px"><div class="shot" style="margin-top:-55px"><img src="@watch-fit/site/public/shots/watch.webp" alt=""></div></div></div>
+  <div data-bleed class="phone" style="left:566px;top:640px;width:450px"><div class="scr" style="height:530px"><div class="shot"><img src="@watch-fit/site/public/shots/today.webp" alt=""></div></div></div>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 2 Today: steps + heart rate -->
+<section class="slide fit">
+  <div class="k">Tab Today</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Langkah dan detak jantung, langsung.</h1>
+  <div class="gap-s"></div>
+  <p class="lead">Dari jam ke HP lewat Bluetooth.</p>
+  <div data-bleed class="phone" style="left:210px;top:500px;width:660px"><div class="scr" style="height:700px"><div class="shot" style="margin-top:-80px">
+    <img src="@watch-fit/site/public/shots/today.webp" alt="">
+    <i class="ring" style="left:46.6%;top:24.6%;width:38.6%;height:14.1%"></i>
+  </div></div></div>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 3 Sleep -->
+<section class="slide fit soft">
+  <div class="k">Tidur</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Tidur lengkap sama tahapnya.</h1>
+  <div class="gap-s"></div>
+  <p class="lead">Ditarik dari jam lewat Bluetooth, gak lewat cloud Huawei.</p>
+  <div data-bleed class="phone" style="left:210px;top:520px;width:660px"><div class="scr" style="height:680px"><div class="shot" style="margin-top:-372px">
+    <img src="@watch-fit/site/public/shots/sleep.webp" alt="">
+    <i class="ring sq" style="left:6%;top:52.8%;width:88%;height:20.4%"></i>
+  </div></div></div>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 4 Workout + GPS route -->
+<section class="slide fit deep">
+  <div class="k">Olahraga</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Lari di jam, rutenya ikut masuk.</h1>
+  <div class="gap-s"></div>
+  <p class="lead">Jadi kartu rute. Kirim ke Strava juga bisa, slot terbatas (ada waitlist).</p>
+  <div data-bleed class="crop-card" style="left:151px;top:510px;width:778px;height:662px">
+    <div class="shot" style="width:803px;left:-25px;top:-561px;--ring:var(--primary)">
+      <img src="@watch-fit/docs/screenshots/social-route-map-dark.png" alt="">
+      <i class="ring" style="left:83.6%;top:54.2%;width:10.4%;height:8.2%"></i>
+    </div>
+  </div>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 5 Studio -->
+<section class="slide fit">
+  <div class="k">JoyoFit Studio</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Bikin tampilan jam sendiri.</h1>
+  <div class="gap-s"></div>
+  <p class="lead">Rancang watch face langsung di browser.</p>
+  <div data-bleed class="crop-card" style="left:80px;top:560px;width:920px;height:583px">
+    <div class="shot" style="width:1890px;left:-439px;top:-93px">
+      <img src="@watch-fit/site/public/shots/studio-face.webp" alt="">
+    </div>
+  </div>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 6 CTA -->
+<section class="slide fit deep">
+  <img data-bleed class="mascot" src="@watch-fit/site/public/mascot/relax.webp" alt="" style="width:400px;right:60px;top:90px">
+  <div class="grow"></div>
+  <h1 class="h">Gratis, open source. Cobain.</h1>
+  <div class="gap-m"></div>
+  <p class="lead">Android tes tertutup, iPhone TestFlight. Dites di Watch Fit 4 Pro.</p>
+  <div class="gap-m"></div>
+  <span class="cta">fit.joyorogo.com</span>
+  <div class="gap-m"></div>
+  <p class="note">Tidak berafiliasi dengan Huawei. Estimasi kalori dan skor = perkiraan, bukan alat medis.</p>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+</body></html>

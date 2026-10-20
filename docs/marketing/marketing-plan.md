@@ -4,6 +4,8 @@ Written 2026-10-15. Covers a 30-day launch (Mon 19 Oct to Tue 17 Nov 2026) and a
 
 Evidence rules used throughout. "Verified" means I read it in the repo or on the cited page on 2026-10-15. "Inference" means my reasoning, not a measurement. There are no user counts, ratings, testimonials, or conversion rates in this plan because none exist in the repo. Every target number below is a goal to calibrate after the Day 0 baseline, not a forecast.
 
+Update 2026-10-20: social execution (Threads, Instagram, TikTok, JoyoFit included, static formats before video) moved to [`social-playbook.md`](social-playbook.md), which overrides sections 3, 4 and the social rows of section 10 where they differ. Every user-visible feature now gets a release entry in [`releases/`](releases/README.md).
+
 ---
 
 ## 0. Findings that change the plan

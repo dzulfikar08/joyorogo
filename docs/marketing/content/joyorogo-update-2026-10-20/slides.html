@@ -1,0 +1,98 @@
+<!doctype html>
+<!-- Feature release, 20 Okt: koreksi scan, minuman, foto label gizi, mode Naikin BB, mode Hamil dan Menyusui.
+     Every screenshot is the web app with the demo account "Rina" (.tmp/appstore/seed-content.mjs + shoot-content.mjs); the AI answers on the
+     scan screens are mocked (fixed plate, fixed cup, fixed label). Crops are described in source pixels, see .snap in _base.css. -->
+<html lang="id"><head><meta charset="utf-8"><link rel="stylesheet" href="@content/_base.css"></head>
+<body>
+
+<!-- 1 Cover: the pain -->
+<section class="slide rogo deep">
+  <div class="k">Update JoyoRogo · 20 Okt</div>
+  <div class="gap-s"></div>
+  <h1 class="h" style="font-size:108px">Makan cuma setengah? Bilang aja.</h1>
+  <div class="gap-s"></div>
+  <p class="lead" style="font-size:42px">Hasil scan bisa dikoreksi pakai suara atau ketik.</p>
+  <div data-bleed class="phone" style="left:190px;top:680px;width:700px"><div class="scr"><img src="@content/_shots/rogo-scan-after-top.webp" alt=""></div></div>
+</section>
+
+<!-- 2 Before / after -->
+<section class="slide rogo" style="padding-top:84px">
+  <div class="k">Koreksi scan</div>
+  <div class="gap-s"></div>
+  <h1 class="h s" style="font-size:70px">“Nasinya cuma setengah”.<br>Langsung dihitung ulang.</h1>
+  <div class="gap-s"></div>
+  <p class="p" style="color:var(--muted)">Bisa ketik, bisa ngomong. Salah? Urungkan.</p>
+  <div class="gap-m"></div>
+  <div class="stack" style="gap:44px;padding-top:14px">
+    <div class="fig"><span class="tag">Sebelum</span><div class="snap" style="--s:.697;--cx:0;--cy:1010;--cw:1320;--ch:330"><img src="@content/_shots/rogo-scan-before-top.webp" alt="">
+      <span class="callout" style="--rx:890;--ry:1105;--rw:255;--rh:170"></span></div></div>
+    <div class="fig"><span class="tag on">Sesudah</span><div class="snap" style="--s:.697;--cx:0;--cy:1010;--cw:1320;--ch:330"><img src="@content/_shots/rogo-scan-after-top.webp" alt="">
+      <span class="callout" style="--rx:890;--ry:1105;--rw:255;--rh:170"></span></div></div>
+    <div class="snap" style="--s:.697;--cx:0;--cy:2140;--cw:1320;--ch:262"><img src="@content/_shots/rogo-scan-after-top.webp" alt=""></div>
+  </div>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 3 Minuman -->
+<section class="slide rogo soft">
+  <div class="k">Catat minuman</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Es kopi susu juga dihitung.</h1>
+  <div class="gap-s"></div>
+  <p class="p" style="color:var(--muted)">Air putih 0 kkal. Gelas tertutup? Ditanya isinya apa.</p>
+  <div class="gap-m"></div>
+  <div class="snap" style="--s:.697;--cx:0;--cy:335;--cw:1320;--ch:850"><img src="@content/_shots/rogo-cup-picked.webp" alt="">
+    <span class="callout" style="--rx:880;--ry:700;--rw:330;--rh:160"></span></div>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 4 Foto label gizi -->
+<section class="slide rogo">
+  <div class="k">Produk kemasan</div>
+  <div class="gap-s"></div>
+  <h1 class="h s">Barcode gak ketemu? Foto label gizinya.</h1>
+  <div class="gap-s"></div>
+  <p class="p" style="color:var(--muted)">Angkanya masuk sendiri, tinggal dicek.</p>
+  <div class="gap-m"></div>
+  <div class="snap" style="--s:.66;--cx:0;--cy:1560;--cw:1320;--ch:1050;align-self:center"><img src="@content/_shots/rogo-label-values.webp" alt="">
+    <span class="callout" style="--rx:80;--ry:1815;--rw:580;--rh:190"></span></div>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 5 Naikin BB -->
+<section class="slide rogo soft">
+  <div class="k">Mode baru</div>
+  <div class="gap-s"></div>
+  <h1 class="h">Mau naik BB? Ada modenya sekarang.</h1>
+  <div class="grow"></div>
+  <div class="snap" style="--s:.697;--cx:0;--cy:1440;--cw:1320;--ch:560"><img src="@content/_shots/rogo-goal-gain.webp" alt="">
+    <span class="callout" style="--rx:850;--ry:1672;--rw:420;--rh:160"></span></div>
+  <div class="grow"></div>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 6 Hamil dan Menyusui -->
+<section class="slide rogo">
+  <div class="k">Mode baru</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Hamil atau menyusui? Ada modenya.</h1>
+  <div class="gap-s"></div>
+  <p class="p" style="color:var(--muted)">Target tanpa defisit. Tanya dokter atau bidan.</p>
+  <div class="gap-m"></div>
+  <div class="snap" style="--s:.697;--cx:0;--cy:940;--cw:1320;--ch:1040"><img src="@content/_shots/rogo-maternal.webp" alt=""></div>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 7 CTA -->
+<section class="slide rogo deep">
+  <img data-bleed class="mascot" src="@joyorogo/apps/web/public/mascot/hero.webp" alt="" style="width:340px;right:56px;top:70px">
+  <div class="grow"></div>
+  <h1 class="h">Gratis dicoba, langsung di web.</h1>
+  <div class="gap-m"></div>
+  <span class="cta">joyorogo.com</span>
+  <div class="gap-m"></div>
+  <p class="lead" style="font-size:38px">Android tes tertutup, iPhone TestFlight. Semua angka perkiraan, bukan saran medis.</p>
+  <footer class="foot"><span class="brand">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+</body></html>

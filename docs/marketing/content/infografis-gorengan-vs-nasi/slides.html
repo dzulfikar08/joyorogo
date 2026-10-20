@@ -1,0 +1,63 @@
+<!doctype html>
+<!-- Numbers: apps/web/blog/posts/kalori-gorengan.md (::porsi block) and packages/api/src/data/tkpi2019.json.
+     kkal per 100 g: Bakwan AP031 280, Tempe pasar goreng CP083 336, Tahu goreng CP062 115, Kerupuk udang goreng BP045 477, Nasi AP001 180.
+     Portions from the blog: 50 / 30 / 40 / 15 g and 200 g nasi. 140 + 101 + 46 + 72 = 359, written "sekitar 360" like the post.
+     Slide 2: the diary of the demo account "Rina" (web app) with those four pieces logged by hand, no AI involved. -->
+<html lang="id"><head><meta charset="utf-8"><link rel="stylesheet" href="@content/_base.css">
+<style>
+  .bar { display: flex; gap: 4px; height: 120px; border-radius: 28px; overflow: hidden; }
+  .seg { display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 800; letter-spacing: -0.02em; }
+  .legend { margin-top: 22px; display: flex; flex-direction: column; gap: 4px; }
+  .lg { display: flex; align-items: center; gap: 18px; font-size: 34px; font-weight: 600; line-height: 1.2; padding: 5px 0; }
+  .lg i { width: 28px; height: 28px; border-radius: 8px; flex: none; }
+  .lg .g { color: var(--muted); font-weight: 500; }
+  .lg .n { margin-left: auto; font-weight: 800; }
+  .lab { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  .lab b { font-size: 44px; font-weight: 800; letter-spacing: -0.02em; }
+  .lab span { font-size: 44px; font-weight: 800; color: var(--primary); letter-spacing: -0.02em; }
+</style></head>
+<body>
+
+<!-- 1 Infographic -->
+<section class="slide rogo" style="padding-top:88px">
+  <div class="k">Kalori gorengan</div>
+  <div class="gap-s"></div>
+  <h1 class="h s" style="font-size:84px">3 gorengan + kerupuk = 1 piring nasi.</h1>
+  <p class="lead" style="margin-top:20px;font-size:42px">±360 kkal. Bakwan doang 140.</p>
+  <div class="gap-m"></div>
+
+  <div class="lab"><b>Gorengan warung</b><span>±360 kkal</span></div>
+  <div class="bar">
+    <div class="seg" style="flex:140;background:oklch(0.5 0.15 40);color:#fff">140</div>
+    <div class="seg" style="flex:101;background:oklch(0.72 0.14 50);color:var(--fg)">101</div>
+    <div class="seg" style="flex:46;background:oklch(0.84 0.1 60);color:var(--fg)">46</div>
+    <div class="seg" style="flex:72;background:oklch(0.58 0.17 38);color:#fff">72</div>
+  </div>
+  <div class="legend">
+    <div class="lg"><i style="background:oklch(0.5 0.15 40)"></i>Bakwan, 1 potong<span class="g">50 g</span><span class="n">140 kkal</span></div>
+    <div class="lg"><i style="background:oklch(0.72 0.14 50)"></i>Tempe goreng, 1 potong<span class="g">30 g</span><span class="n">101 kkal</span></div>
+    <div class="lg"><i style="background:oklch(0.84 0.1 60)"></i>Tahu goreng, 1 potong<span class="g">40 g</span><span class="n">46 kkal</span></div>
+    <div class="lg"><i style="background:oklch(0.58 0.17 38)"></i>Kerupuk udang<span class="g">15 g</span><span class="n">72 kkal</span></div>
+  </div>
+
+  <div class="gap-m"></div>
+  <div class="lab"><b>Nasi putih, sepiring</b><span>360 kkal</span></div>
+  <div class="bar"><div class="seg" style="flex:1;background:var(--primary);color:#fff">360</div></div>
+
+  <div class="grow"></div>
+  <p class="note" style="font-size:27px;margin-top:40px">Perkiraan, pakai berat contoh (nasi 200 g). Sumber: TKPI 2019 (Kemenkes).</p>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 2 Dicatat di JoyoRogo -->
+<section class="slide rogo soft" style="padding-top:84px">
+  <div class="k">Catat di JoyoRogo</div>
+  <div class="gap-s"></div>
+  <h1 class="h s" style="font-size:70px">Catat gorengan lo, totalnya langsung kelihatan.</h1>
+  <div class="gap-m"></div>
+  <div class="snap" style="--s:.5;--cx:30;--cy:1770;--cw:1260;--ch:1760;align-self:center"><img src="@content/_shots/rogo-makan-gorengan-snack.webp" alt="">
+    <span class="callout" style="--rx:110;--ry:1812;--rw:370;--rh:88"></span></div>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span style="font-size:40px;font-weight:800;color:var(--ink)">joyorogo.com</span></footer>
+</section>
+
+</body></html>
