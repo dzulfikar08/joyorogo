@@ -11,6 +11,7 @@ import { getActiveLocale } from "@joyorogo/i18n";
 
 import { DaySwitcher } from "@/components/day-switcher";
 import { Disclosure } from "@/components/disclosure";
+import { SleepInsightsSection } from "@/components/sleep-insights/section";
 import {
   BootLoader,
   Button,
@@ -281,6 +282,8 @@ export default function Tidur() {
         </Card>
 
         <Button variant="secondary" label={t("log.manualButton")} onPress={() => setSheetOpen(true)} />
+
+        <SleepInsightsSection />
 
         <Disclosure title={t("how.title")}>
           <Text style={styles.note}>

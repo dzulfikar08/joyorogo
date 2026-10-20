@@ -6,6 +6,7 @@ import { StyleSheet } from "react-native-unistyles";
 import { serverUrl } from "@/components/billing";
 import { Group, ProfilDataPage } from "@/components/profil/page";
 import { PrivacyList, ShareRow } from "@/components/profil/sections";
+import { SleepConsentCard } from "@/components/sleep-insights/consent";
 import { useAccountActions } from "@/components/profil/use-account-actions";
 import { ListRow, Text } from "@/components/ui";
 
@@ -32,6 +33,7 @@ function PrivasiContent({
     <>
       {profile && !maternal ? <ShareRow /> : null}
       {profile ? <PrivacyList keepPhotos={profile.keepPhotos} /> : null}
+      <SleepConsentCard />
       <Group>
         <ListRow
           icon="shield-checkmark"

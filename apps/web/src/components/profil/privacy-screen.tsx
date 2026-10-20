@@ -12,6 +12,7 @@ import { Switch } from "@/components/kit/switch";
 import { useAccountActions } from "@/components/profil/account-actions";
 import { ConfirmSheet } from "@/components/profil/confirm-sheet";
 import { profileOptions } from "@/components/profil/shared";
+import { SleepConsentSection } from "@/components/sleep-insights/consent";
 import type { ProfilCtx } from "@/components/profil/shared";
 import { env } from "@/env.public";
 import type { MyProfileData } from "@/lib/api-types";
@@ -27,6 +28,7 @@ export function PrivacyScreen({ ctx }: { ctx: ProfilCtx }) {
     <>
       {!targets.maternal && <ShareSection enabled={row.shareEnabled} code={row.shareCode} />}
       <KeepPhotosSection keep={row.keepPhotos} />
+      <SleepConsentSection />
       <ListGroup className="mt-3">
         <ListLinkRow
           to="/privasi"

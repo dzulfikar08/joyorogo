@@ -14,6 +14,7 @@ import { Ring } from "@/components/kit/ring";
 import { ScreenError } from "@/components/screen-state";
 import { Card, FieldLabel, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
 import { DaySwitcher } from "@/components/day-switcher";
+import { SleepInsightsSection } from "@/components/sleep-insights/section";
 import { fmtKg, parseNum } from "@/lib/format";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
@@ -238,7 +239,9 @@ function TidurScreen({
         {error && <p className="mt-2 px-1 text-sm text-destructive">{error}</p>}
       </section>
 
-      <details className="group mt-4 rounded-2xl bg-card">
+      <SleepInsightsSection />
+
+      <details className="group mt-6 rounded-2xl bg-card">
         <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between rounded-2xl px-4 select-none focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
           <span className="text-sm font-bold">{t("how.title")}</span>
           <ChevronDown
