@@ -11,7 +11,7 @@ import type { ScanFailReason } from "./scan-errors";
 import { CUP_CONFIDENCE, cupItem, guessCupChoice } from "./drink-options";
 import type { CupChoice } from "./drink-options";
 import { calibrateItems } from "./tkpi";
-import type { CalibratedItem } from "./tkpi";
+import type { CalibratedItem, CalibrateOptions } from "./tkpi";
 
 export const DEFAULT_VISION_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 
@@ -545,13 +545,18 @@ type CalibratedRaw = CalibratedItem & {
  * Calibrates against TKPI item by item; boxes, kinds and local names re-attach by index.
  * A hidden cup skips calibration: its numbers are the cup table's, for the pick it stands for.
  */
-function calibrateRaw(raw: UsableItem[], locale: Locale): CalibratedRaw[] {
+function calibrateRaw(
+  raw: UsableItem[],
+  locale: Locale,
+  options?: CalibrateOptions,
+): CalibratedRaw[] {
   const visible = raw.filter((item) => item.cup === undefined);
   const calibrated = calibrateItems(
     visible.map(({ box: _box, kind, cup: _cup, ...item }) => ({
       ...item,
       drink: resolveFoodKind(item.name, kind) === "minuman",
     })),
+    options,
   );
   let next = 0;
   return raw.map((entry) => {
@@ -614,6 +619,7 @@ export function parseAnswer(
   text: string,
   finish: string | null,
   locale: Locale = DEFAULT_LOCALE,
+  calibration?: CalibrateOptions,
 ): ParsedAnswer {
   const unfenced = text.replace(/```(?:json)?/g, "");
   const cleaned = repairKeys(unfenced);
@@ -639,7 +645,7 @@ export function parseAnswer(
     return parsed.success ? [parsed.data] : [];
   });
   const raw = valid.slice(0, MAX_ITEMS).map(boundItem).filter(isUsable);
-  const items = dropDuplicateBroth(dedupeItems(calibrateRaw(raw, locale))).map((item) =>
+  const items = dropDuplicateBroth(dedupeItems(calibrateRaw(raw, locale, calibration))).map((item) =>
     localizeName(item, locale),
   );
   return {
@@ -694,6 +700,8 @@ export async function analyzeFoodPhoto(
     promptTransform?: (base: string) => string;
     /** Sampling temperature (the shadow variant only); unset = the model default. */
     temperature?: number;
+    /** Eval harness only (scripts/eval-scans.ts): calibration variant; production never sets it. */
+    calibration?: CalibrateOptions;
     /** Injectable for tests — deterministic deadlines without real timers. */
     schedule?: ScheduleTimeout;
   },
@@ -739,7 +747,7 @@ export async function analyzeFoodPhoto(
       usage = extractUsage(result);
       const text = responseText(result);
       if (text === null) throw new Error("no text in response");
-      const answer = parseAnswer(text, finish, opts.locale);
+      const answer = parseAnswer(text, finish, opts.locale, opts.calibration);
       found = answer.found;
       if (answer.items.length > 0) {
         if (answer.tooMany || answer.modelTooMany) {

@@ -537,11 +537,20 @@ const MAX_KCAL_PER_GRAM = 9;
  * it proportionally. An unscaled band clamped "martabak telur 50 g" up to the
  * 150 g portion's minimum (300 kcal, 6 kcal/g, against 2.5 in the table).
  */
-function bandFor(dish: TdpiDish, grams: number): [number, number] {
+function bandFor(dish: TdpiDish, grams: number, slack = 0): [number, number] {
+  if (slack === Infinity) return [-Infinity, Infinity];
   const [min, max] = dish.plausibleKcalRange;
   const ratio = grams / dish.typicalPortionG;
-  return [Math.round(min * ratio), Math.round(max * ratio)];
+  return [Math.round(min * ratio * (1 - slack)), Math.round(max * ratio * (1 + slack))];
 }
+
+/**
+ * Eval harness only (scripts/eval-scans.ts); production never passes it.
+ * `bandSlack` widens a matched dish's kcal band by that share on both sides
+ * (0.5 = from half the minimum to 1.5 times the maximum; Infinity = no band, the
+ * model's kcal stands apart from the density cap and the Atwater guard).
+ */
+export type CalibrateOptions = { bandSlack?: number };
 
 export type CalibratedItem = {
   name: string;
@@ -622,8 +631,11 @@ function applyDensityBand(item: CalibratedItem): CalibratedItem {
  * band scales with the item's grams (half a plate of rice is ~100 kcal, a 50 g
  * slice of martabak ~125), and no item exceeds 9 kcal per gram of its weight.
  */
-export function calibrateItems(items: CalibratableItem[]): CalibratedItem[] {
-  return items.map((item) => capDensity(applyDensityBand(calibrateOne(item))));
+export function calibrateItems(
+  items: CalibratableItem[],
+  options: CalibrateOptions = {},
+): CalibratedItem[] {
+  return items.map((item) => capDensity(applyDensityBand(calibrateOne(item, options))));
 }
 
 function capDensity(item: CalibratedItem): CalibratedItem {
@@ -632,7 +644,7 @@ function capDensity(item: CalibratedItem): CalibratedItem {
   return item.kcal > cap ? { ...item, kcal: cap } : item;
 }
 
-function calibrateOne({ drink, ...item }: CalibratableItem): CalibratedItem {
+function calibrateOne({ drink, ...item }: CalibratableItem, options: CalibrateOptions): CalibratedItem {
   const combination = isCombination(item.name);
   const generic = combination || isCondimentedDish(item.name) || isCompoundOfIngredient(item.name);
   const dish = generic ? undefined : matchDish(item.name);
@@ -677,7 +689,7 @@ function calibrateOne({ drink, ...item }: CalibratableItem): CalibratedItem {
     ...item,
     grams,
     fiber,
-    kcal: clamp(item.kcal, ...bandFor(dish, grams)),
+    kcal: clamp(item.kcal, ...bandFor(dish, grams, options.bandSlack)),
     matched: true,
   });
 }

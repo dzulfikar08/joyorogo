@@ -49,6 +49,7 @@ import type { ExternalMeta } from "../packages/api/src/lib/external-case";
 
 import { analyzeFoodPhoto, DEFAULT_VISION_MODEL, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
 import type { AiRunner } from "../packages/api/src/lib/vision";
+import type { CalibrateOptions } from "../packages/api/src/lib/tkpi";
 import { NAME_MATCH_MIN, nameScore, pairItems } from "../packages/api/src/lib/scan-match";
 import type { EvalItem, SummaryRow } from "./dataset-export";
 
@@ -61,8 +62,17 @@ import type { EvalItem, SummaryRow } from "./dataset-export";
 type Variant = {
   model?: string;
   promptTransform?: (base: string) => string;
+  /** A calibration variant (tkpi.ts CalibrateOptions): same model call as baseline, other post-processing. */
+  calibration?: CalibrateOptions;
+  /** One extra prompt line for this case (e.g. from the contributor's own history); undefined = none. */
+  caseLine?: (c: Case) => string | undefined;
+  /** Only these groups run the variant (default: all). */
+  groups?: Group[];
   notes: string;
 };
+
+const SCALE_CUES_RULE =
+  "Cara memperkirakan grams: gunakan petunjuk skala yang terlihat di foto (diameter piring atau mangkuk, sendok, garpu, tangan, kemasan) dan bandingkan dengan isi piring; jangan otomatis memakai porsi umum atau standar, tiap foto bisa lebih kecil atau lebih besar dari itu.";
 
 const VARIANTS: Record<string, Variant> = {
   baseline: { notes: "Production exactly: default model, shipped prompt, TKPI calibration." },
@@ -72,12 +82,34 @@ const VARIANTS: Record<string, Variant> = {
       `${base}\nCatatan porsi: perkirakan berat sebagai satu porsi rumahan untuk satu orang, bukan porsi restoran besar; jangan melebih-lebihkan.`,
     notes: "Placeholder: production prompt plus one portion-size line. Mechanism demo only.",
   },
+  "band-wide": {
+    calibration: { bandSlack: 0.5 },
+    notes: "Calibration only: the library kcal band for a matched dish (already scaled with grams) is widened by 50% each side. Same model answers as baseline.",
+  },
+  "band-off": {
+    calibration: { bandSlack: Infinity },
+    notes: "Calibration only: no library kcal band for matched dishes (the 9 kcal/g cap, the Atwater guard and the TKPI 2019 recompute stay). Same model answers as baseline.",
+  },
+  "scale-cues": {
+    promptTransform: (base) => {
+      const swapped = base.replace("estimasi realistis porsi umum", "estimasi realistis untuk porsi yang TERLIHAT di foto, bukan porsi umum");
+      if (swapped === base) throw new Error("scale-cues: the production prompt no longer has the 'porsi umum' phrase");
+      return `${swapped}\n${SCALE_CUES_RULE}`;
+    },
+    notes: "Prompt: 'porsi umum' becomes 'porsi yang TERLIHAT', plus a rule to read grams from visible scale cues (plate or bowl diameter, spoon, fork, hand) and not default to typical portions.",
+  },
+  "user-prior": {
+    caseLine: (c) => portionHistoryLine(c),
+    groups: ["external"],
+    notes: "Simulated per-user portion prior (external cases only): the median of the contributor's OTHER weighed meals, per dish eaten at least twice, as one prompt line. Production would build it from the user's diary history.",
+  },
 };
 // ---------------------------------------------------------------------------
 
 const ROOT = join(import.meta.dir, "..");
 const EVAL_DIR = join(ROOT, ".tmp", "eval");
 const CACHE_DIR = join(EVAL_DIR, "cache");
+const RAW_DIR = join(EVAL_DIR, "raw");
 const WIKI_DIR = join(EVAL_DIR, "wikimedia");
 const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID ?? "b7e6f8457bd39fa37a7eea5249799754";
 /** |signed error| under this share of the true value is "close", not over/under. */
@@ -226,6 +258,9 @@ type Scored = {
   nameHit: boolean | null;
   itemKcal: ErrPoint[];
   grams: ErrPoint[];
+  /** `grams` split: rice (the truth item is a nasi) and everything else (side dishes: lauk, sayur). */
+  gramsRice: ErrPoint[];
+  gramsSide: ErrPoint[];
   /** null = the truth has no complete reference kcal (an external case with combined weights). */
   plate: (ErrPoint & { aiKcal: number; truthKcal: number }) | null;
   /** Answer total vs the weighed total; null when either side lacks a weight. */
@@ -253,6 +288,8 @@ function scoreCase(c: Case, items: EvalItem[]): Scored {
       nameHit: items.some((item) => nameScore(item.name, dish) >= NAME_MATCH_MIN),
       itemKcal: [],
       grams: [],
+      gramsRice: [],
+      gramsSide: [],
       plate: { ...point(aiKcal, target), aiKcal, truthKcal: target },
       plateGrams: null,
       inBand: aiKcal >= min && aiKcal <= max,
@@ -274,9 +311,9 @@ function scoreCase(c: Case, items: EvalItem[]): Scored {
     names: { tp: pairs.length, ai: answer.length, truth: truth.length },
     nameHit: null,
     itemKcal: pairs.filter((p) => !noKcal.has(p.truth)).map((p) => point(p.ai.kcal, p.truth.kcal)),
-    grams: pairs.flatMap((p) =>
-      p.ai.grams !== undefined && p.truth.grams !== undefined ? [point(p.ai.grams, p.truth.grams)] : [],
-    ),
+    grams: gramsPoints(pairs).map((p) => p.point),
+    gramsRice: gramsPoints(pairs).flatMap((p) => (p.rice ? [p.point] : [])),
+    gramsSide: gramsPoints(pairs).flatMap((p) => (p.rice ? [] : [p.point])),
     plate: c.external?.kcalComplete === false ? null : { ...point(answerKcal, truthKcal), aiKcal: answerKcal, truthKcal },
     plateGrams:
       truthGrams !== null && truthGrams > 0 && aiGrams !== null
@@ -290,6 +327,15 @@ function scoreCase(c: Case, items: EvalItem[]): Scored {
       ignored,
     },
   };
+}
+
+/** Grams error of every pair with a weight on both sides; rice = a nasi on the truth side. */
+function gramsPoints(pairs: Array<{ ai: EvalItem; truth: TruthItem }>): Array<{ point: ErrPoint; rice: boolean }> {
+  return pairs.flatMap((p) =>
+    p.ai.grams !== undefined && p.truth.grams !== undefined
+      ? [{ point: point(p.ai.grams, p.truth.grams), rice: /\bnasi\b/i.test(p.truth.name) }]
+      : [],
+  );
 }
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
@@ -356,11 +402,56 @@ type RunResult =
   | { ok: true; items: EvalItem[]; ms: number; modelMs: number; tooMany: boolean; cached: boolean }
   | { ok: false; reason: string; ms: number; cached: false };
 
-const fingerprint = (variant: Variant) =>
+/** Cache key of a variant for one case: model, final prompt (variant diff + the case's own line) and calibration. */
+const fingerprint = (variant: Variant, line?: string) =>
   createHash("sha256")
-    .update(`${variant.model ?? DEFAULT_VISION_MODEL}\n${(variant.promptTransform ?? ((p) => p))(visionPrompt())}`)
+    .update(
+      `${variant.model ?? DEFAULT_VISION_MODEL}\n${promptFor(variant, line)(visionPrompt())}\n${JSON.stringify(variant.calibration ?? {}, (_k, v) => (v === Infinity ? "inf" : v))}`,
+    )
     .digest("hex")
     .slice(0, 8);
+
+const promptFor = (variant: Variant, line?: string) => (base: string) => {
+  const prompt = (variant.promptTransform ?? ((p: string) => p))(base);
+  return line ? `${prompt}\n${line}` : prompt;
+};
+
+/** Where a job's result lives in the result cache. */
+const cacheFileOf = (hash: string, name: string, c: Case, rep: number) =>
+  join(CACHE_DIR, `${hash}.${name}.${fingerprint(VARIANTS[name]!, VARIANTS[name]!.caseLine?.(c))}.${rep}.json`);
+
+/**
+ * Raw model answers, keyed by the exact request (model + prompt + image) and rep.
+ * Variants that differ only in calibration send the same request, so they replay
+ * one answer instead of paying for another: the comparison is paired, and free of
+ * run-to-run noise. Concurrent identical requests share one call.
+ */
+const RAW_STATS = { calls: 0, replays: 0 };
+const inflight = new Map<string, Promise<unknown>>();
+function rawCache(base: AiRunner, rep: number, useCache: boolean): AiRunner {
+  return {
+    run(model, input) {
+      const key = `${createHash("sha256").update(`${model}\n${JSON.stringify(input)}`).digest("hex").slice(0, 20)}.${rep}`;
+      const file = join(RAW_DIR, `${key}.json`);
+      if (useCache && existsSync(file)) {
+        RAW_STATS.replays++;
+        return Bun.file(file).json();
+      }
+      const pending = inflight.get(key);
+      if (useCache && pending) {
+        RAW_STATS.replays++;
+        return pending;
+      }
+      RAW_STATS.calls++;
+      const call = base.run(model, input).then(async (result) => {
+        await Bun.write(file, JSON.stringify(result));
+        return result;
+      });
+      inflight.set(key, call);
+      return call;
+    },
+  };
+}
 
 async function runOne(
   ai: AiRunner,
@@ -371,7 +462,7 @@ async function runOne(
   useCache: boolean,
 ): Promise<RunResult> {
   const variant = VARIANTS[name]!;
-  const cacheFile = join(CACHE_DIR, `${hash}.${name}.${fingerprint(variant)}.${rep}.json`);
+  const cacheFile = cacheFileOf(hash, name, c, rep);
   if (useCache && existsSync(cacheFile)) {
     const hit: RunResult = await Bun.file(cacheFile).json();
     if (hit.ok) return { ...hit, cached: true };
@@ -379,11 +470,12 @@ async function runOne(
   const bytes = await Bun.file(c.photo).arrayBuffer();
   const started = Date.now();
   try {
-    const analysis = await analyzeFoodPhoto(ai, {
+    const analysis = await analyzeFoodPhoto(rawCache(ai, rep, useCache), {
       imageBase64: Buffer.from(bytes).toString("base64"),
       mimeType: "image/jpeg",
       model: variant.model,
-      promptTransform: variant.promptTransform,
+      promptTransform: promptFor(variant, variant.caseLine?.(c)),
+      calibration: variant.calibration,
     });
     const result: RunResult = {
       ok: true,
@@ -401,7 +493,33 @@ async function runOne(
   }
 }
 
-// ----------------------------------------------------------------- cases
+/**
+ * Everything an external contributor weighed, from every case on disk (all trust
+ * levels, all `inPhoto` values: what a diary would hold), for the simulated
+ * per-user portion prior.
+ */
+const HISTORY: Array<{ caseId: string; name: string; grams: number }> = [];
+
+/**
+ * The `user-prior` prompt line: the median weighed grams per dish over the
+ * contributor's OTHER cases (leave-one-out, so a case never sees its own weights),
+ * for dishes weighed in at least two other cases. undefined = nothing to say.
+ */
+function portionHistoryLine(c: Case): string | undefined {
+  if (c.group !== "external") return undefined;
+  const byName = new Map<string, number[]>();
+  for (const h of HISTORY) {
+    if (h.caseId !== c.id) byName.set(h.name, [...(byName.get(h.name) ?? []), h.grams]);
+  }
+  const prior = [...byName]
+    .filter(([, grams]) => grams.length >= 2)
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, 6)
+    .map(([name, grams]) => `${name} ${Math.round(quantile(grams, 0.5))} g`);
+  if (!prior.length) return undefined;
+  return `Riwayat porsi pengguna ini (median dari catatan makannya yang ditimbang): ${prior.join(", ")}. Pakai sebagai perkiraan awal untuk porsi yang tampak serupa; sesuaikan hanya bila foto jelas menunjukkan porsi lain.`;
+}
+
 async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }> {
   const cases: Case[] = [];
   const skipped: Case[] = [];
@@ -468,6 +586,7 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
             ],
           },
         };
+        HISTORY.push(...meta.items.flatMap((i) => (i.grams !== null && !i.group ? [{ caseId: meta.caseId, name: i.name.toLowerCase(), grams: i.grams }] : [])));
         (trustRank[meta.trust] >= trustRank[args.externalTrust] ? cases : skipped).push(c);
       }
     }
@@ -522,6 +641,8 @@ type Agg = {
   plate: ErrStats;
   plateGrams: ErrStats;
   grams: ErrStats;
+  riceGrams: ErrStats;
+  sideGrams: ErrStats;
   latency: { p50: number; p95: number };
   tooMany: number;
 };
@@ -565,6 +686,8 @@ function aggregate(group: Group, variant: string, runs: Run[]): Agg {
     plate: errStats(scored.flatMap((s) => (s.plate ? [s.plate] : []))),
     plateGrams: errStats(scored.flatMap((s) => (s.plateGrams ? [s.plateGrams] : []))),
     grams: errStats(scored.flatMap((s) => s.grams)),
+    riceGrams: errStats(scored.flatMap((s) => s.gramsRice)),
+    sideGrams: errStats(scored.flatMap((s) => s.gramsSide)),
     latency: { p50: quantile(ms, 0.5), p95: quantile(ms, 0.95) },
     tooMany: ok.filter((r) => r.result.ok && r.result.tooMany).length,
   };
@@ -599,6 +722,8 @@ function aggTable(a: Agg): string[] {
   rows.push(...statsRows(plateLabel, a.plate, "kcal"));
   rows.push(...statsRows("item kcal (matched)", a.itemKcal, "kcal"));
   rows.push(...statsRows("grams (matched)", a.grams, "g"));
+  rows.push(...statsRows("rice grams", a.riceGrams, "g"));
+  rows.push(...statsRows("side-dish grams", a.sideGrams, "g"));
   rows.push(...statsRows("plate grams", a.plateGrams, "g"));
   rows.push(`| latency p50 / p95 (REST, incl. round trip) | ${sec(a.latency.p50)} / ${sec(a.latency.p95)} |`);
   if (a.tooMany) rows.push(`| answers flagged too many | ${a.tooMany} |`);
@@ -734,12 +859,14 @@ async function main() {
   }
 
   const jobs = cases.flatMap((c) =>
-    args.variants.flatMap((variant) => Array.from({ length: args.reps }, (_, rep) => ({ c, variant, rep }))),
+    args.variants
+      .filter((variant) => !VARIANTS[variant]!.groups || VARIANTS[variant]!.groups!.includes(c.group))
+      .flatMap((variant) => Array.from({ length: args.reps }, (_, rep) => ({ c, variant, rep }))),
   );
   const cachedAlready = args.cache
-    ? jobs.filter((j) => existsSync(join(CACHE_DIR, `${hashes.get(j.c.id)}.${j.variant}.${fingerprint(VARIANTS[j.variant]!)}.${j.rep}.json`))).length
+    ? jobs.filter((j) => existsSync(cacheFileOf(hashes.get(j.c.id)!, j.variant, j.c, j.rep))).length
     : 0;
-  console.log(`${cases.length} cases x ${args.variants.length} variant(s) x ${args.reps} rep(s) = ${jobs.length} runs, ${jobs.length - cachedAlready} model calls (${cachedAlready} cached), ${skipped.length} unlabelled skipped`);
+  console.log(`${cases.length} cases x ${args.variants.length} variant(s) x ${args.reps} rep(s) = ${jobs.length} runs, ${jobs.length - cachedAlready} not in the result cache (model calls only for requests with no raw answer yet; variants that differ in calibration alone replay one answer), ${skipped.length} unlabelled skipped`);
 
   if (args.dryRun) {
     for (const c of cases) {
@@ -774,6 +901,7 @@ async function main() {
     }),
   );
   if (jobs.length) process.stdout.write("\n");
+  console.log(`Workers AI calls made ${RAW_STATS.calls}, replayed from the raw cache ${RAW_STATS.replays}`);
 
   const runsBy = (variant: string, group: Group) =>
     results.flatMap((r, i) => (jobs[i]!.variant === variant && r.c.group === group ? [r] : []));
@@ -804,15 +932,43 @@ async function main() {
   }
 
   const allAggs: Agg[] = [];
+  const summaryAt = md.length;
   for (const group of groups) {
-    const aggs = args.variants.map((v) => aggregate(group, v, runsBy(v, group)));
+    const variants = args.variants.filter((v) => !VARIANTS[v]!.groups || VARIANTS[v]!.groups!.includes(group));
+    const aggs = variants.map((v) => aggregate(group, v, runsBy(v, group)));
     allAggs.push(...aggs);
     md.push(`## ${group}${group === "wikimedia" ? " (structure check; band truth, not user labels)" : ""}`, "");
     for (const a of aggs) md.push(...aggTable(a), "");
     md.push(...deltaSection(group, aggs, (v) => runsBy(v, group)));
-    for (const v of args.variants) md.push(...worstSection(v, group, runsBy(v, group)));
-    if (group === "external") for (const v of args.variants) md.push(...externalDetail(v, runsBy(v, group)));
+    for (const v of variants) md.push(...worstSection(v, group, runsBy(v, group)));
+    if (group === "external") for (const v of variants) md.push(...externalDetail(v, runsBy(v, group)));
   }
+  const cell = (st: ErrStats, unit: "g" | "kcal") => (st.n ? `${f(st.signedMeanPct, 0)}% / ${f(st.mae, 0)} ${unit} (n ${st.n})` : "-");
+  // An owner scan saved unedited has the model's own answer as truth, so only the edited ones (corrected, retried) test a change.
+  const edited = (r: Run) => r.c.label === "corrected" || r.c.label === "retried";
+  const summaryRows = allAggs.flatMap((a) => {
+    const rows = [{ set: a.group as string, agg: a }];
+    if (a.group === "owner") {
+      const subset = runsBy(a.variant, "owner").filter(edited);
+      if (subset.length) rows.push({ set: "owner, edited only (corrected + retried)", agg: aggregate("owner", a.variant, subset) });
+    }
+    return rows;
+  });
+  md.splice(
+    summaryAt,
+    0,
+    "## Variant summary",
+    "",
+    "Signed mean = mean of (AI - truth) / truth; MAE in g or kcal; n = matched items or plates over all reps. Rice = a truth item named nasi; side = every other matched item (lauk, sayur).",
+    "",
+    "| Set | Variant | Runs | Name F1 | Rice grams signed / MAE | Side-dish grams signed / MAE | Plate kcal signed / MAE | Plate kcal under / over |",
+    "|---|---|---|---|---|---|---|---|",
+    ...summaryRows.map(
+      ({ set, agg: a }) =>
+        `| ${set} | ${a.variant} | ${a.runs} | ${a.name ? `${f(a.name.f1 * 100, 0)}%` : "-"} | ${cell(a.riceGrams, "g")} | ${cell(a.sideGrams, "g")} | ${cell(a.plate, "kcal")} | ${a.plate.under.n} / ${a.plate.over.n} |`,
+    ),
+    "",
+  );
 
   // The answer production gave at scan time vs the saved items (no model calls).
   const recorded = cases.filter((c) => c.recorded && c.truth);
@@ -851,6 +1007,7 @@ async function main() {
         cases: results.map((r, i) => ({
           id: r.c.id,
           group: r.c.group,
+          label: r.c.label,
           variant: jobs[i]!.variant,
           rep: r.rep,
           ok: r.result.ok,

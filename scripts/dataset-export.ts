@@ -10,9 +10,13 @@
 //
 // Usage: AI_BENCH_KEY=... bun run scripts/dataset-export.ts
 //        EXPORT_URL=https://api.joyorogo.com  (default)
+//        bun run scripts/dataset-export.ts            (no AI_BENCH_KEY: reads R2 directly)
 //
-// Reads through the key-gated /ai/dataset/* routes of the server (the same
-// X-Bench-Key secret as /ai/bench); only those two prefixes are reachable.
+// With the key it reads through the key-gated /ai/dataset/* routes of the server (the
+// same X-Bench-Key secret as /ai/bench); only those two prefixes are reachable.
+// Without it, it reads the R2 bucket (R2_BUCKET, default joyorogo-scans) through the
+// Cloudflare REST API with CLOUDFLARE_API_TOKEN or the wrangler OAuth login (any
+// wrangler command refreshes an expired login), same prefixes, read-only.
 // Photos already on disk are not downloaded again; meta.json is always fetched
 // because it changes over a scan's life (retry, corrections, diary save).
 //
@@ -28,7 +32,9 @@
 //   label (owner)    correct | corrected | retried | unsaved  (see datasetLabel)
 //   label (feedback) rated_<rating>, or unsaved when nothing was saved afterwards
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { datasetLabel } from "../packages/api/src/lib/dataset";
@@ -37,6 +43,8 @@ import type { FeedbackKeepMeta } from "../packages/api/src/lib/feedback-keep";
 
 const base = process.env.EXPORT_URL ?? "https://api.joyorogo.com";
 const key = process.env.AI_BENCH_KEY ?? "";
+const bucket = process.env.R2_BUCKET ?? "joyorogo-scans";
+const account = process.env.CLOUDFLARE_ACCOUNT_ID ?? "b7e6f8457bd39fa37a7eea5249799754";
 const outDir = join(import.meta.dir, "..", ".tmp", "dataset");
 
 export type EvalItem = { name: string; grams?: number; kcal: number };
@@ -70,6 +78,17 @@ export function caseId(userId: string, scanId: string): string {
   return createHash("sha256").update(`joyorogo-eval:${userId}/${scanId}`).digest("hex").slice(0, 10);
 }
 
+function r2Token(): string {
+  if (process.env.CLOUDFLARE_API_TOKEN) return process.env.CLOUDFLARE_API_TOKEN;
+  const toml = readFileSync(join(homedir(), ".config/.wrangler/config/default.toml"), "utf8");
+  const found = /oauth_token = "([^"]+)"/.exec(toml);
+  if (!found) throw new Error("no AI_BENCH_KEY, no CLOUDFLARE_API_TOKEN and no wrangler login");
+  return found[1]!;
+}
+
+const r2Url = (path: string) => `https://api.cloudflare.com/client/v4/accounts/${account}/r2/buckets/${bucket}/${path}`;
+const r2Fetch = (path: string) => fetch(r2Url(path), { headers: { Authorization: `Bearer ${r2Token()}` } });
+
 async function get(path: string): Promise<Response> {
   const response = await fetch(`${base}${path}`, { headers: { "X-Bench-Key": key } });
   if (response.status === 404) {
@@ -83,20 +102,34 @@ async function listKeys(prefix: string): Promise<string[]> {
   const keys: string[] = [];
   let cursor: string | undefined;
   do {
-    const query = `prefix=${encodeURIComponent(prefix)}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
-    const page = (await (await get(`/ai/dataset/list?${query}`)).json()) as {
-      keys: string[];
-      cursor?: string;
-    };
-    keys.push(...page.keys);
-    cursor = page.cursor;
+    if (key) {
+      const query = `prefix=${encodeURIComponent(prefix)}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
+      const page = (await (await get(`/ai/dataset/list?${query}`)).json()) as {
+        keys: string[];
+        cursor?: string;
+      };
+      keys.push(...page.keys);
+      cursor = page.cursor;
+    } else {
+      const res = await r2Fetch(`objects?prefix=${encodeURIComponent(prefix)}&per_page=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`);
+      // Boundary: the Cloudflare REST envelope.
+      const page = (await res.json()) as { success?: boolean; result?: Array<{ key: string }>; result_info?: { cursor?: string } };
+      if (!res.ok || !page.result) throw new Error(`R2 list ${prefix}: ${res.status} (an expired wrangler login: run any wrangler command)`);
+      keys.push(...page.result.map((o) => o.key));
+      cursor = page.result_info?.cursor || undefined;
+    }
   } while (cursor);
   return keys;
 }
 
 async function download(objectKey: string, to: string): Promise<void> {
-  const response = await get(`/ai/dataset/object?key=${encodeURIComponent(objectKey)}`);
-  await Bun.write(to, response);
+  if (key) {
+    await Bun.write(to, await get(`/ai/dataset/object?key=${encodeURIComponent(objectKey)}`));
+    return;
+  }
+  const res = await r2Fetch(`objects/${encodeURIComponent(objectKey)}`);
+  if (!res.ok) throw new Error(`R2 get ${objectKey}: ${res.status}`);
+  await Bun.write(to, res);
 }
 
 /** The scans of one prefix: ids parsed from the meta.json keys. */
@@ -145,10 +178,6 @@ async function fetchCase(
 }
 
 async function main() {
-  if (!key) {
-    console.error("AI_BENCH_KEY is required (and must match the AI_BENCH_KEY secret).");
-    process.exit(1);
-  }
 
   const rows: SummaryRow[] = [];
   const counts: Record<string, number> = {};

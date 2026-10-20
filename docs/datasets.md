@@ -51,10 +51,14 @@ bun run scripts/eval-scans.ts --only external --dry-run      # list cases, truth
 bun run scripts/eval-scans.ts --only external --reps 2       # production prompt/model; a few cents
 #    --external-trust low        include low-trust cases (names only, grams not comparable)
 #    --external-uncertain        also score the items marked uncertain
-#    --variant prompt-b ...      compare a prompt variant against baseline
+#    --variant baseline --variant scale-cues ...   compare variants (see `--list-variants`); variants that
+#                                differ in calibration only replay the same model answer (.tmp/eval/raw)
+#    --only owner --only external   run the owner set next to the external one
 
-# Pull what is in R2 back down (needs AI_BENCH_KEY): fills .tmp/dataset/external/
-AI_BENCH_KEY=... bun run scripts/dataset-export.ts
+# Pull what is in R2 back down: fills .tmp/dataset/{owner,feedback,external}/ and summary.jsonl.
+# With AI_BENCH_KEY it goes through the server routes; without it, straight from the R2 bucket
+# with the wrangler login (read-only).
+bun run scripts/dataset-export.ts
 ```
 
 The report (`.tmp/eval/report-<date>-external.md`, git-ignored) carries a table item by item: his grams, the model's grams, grams error, kcal model / reference, and the reference row used.
@@ -71,13 +75,13 @@ The report (`.tmp/eval/report-<date>-external.md`, git-ignored) carries a table 
 ### Annas, Threads @annasfatahillah
 
 - **Who**: Annas, public Threads account [`@annasfatahillah`](https://www.threads.com/@annasfatahillah).
-- **What**: the photos and food weights of his public thread "Masih ganyangka berat badan nyentuh 78kg. Coba track makanan sebulan kedepan. Day N" (30 days; he weighs every food in grams). Days 4 and 5 imported so far (5 photos); Days 1 to 3 were not found on his profile; later days are added as he posts them.
+- **What**: the photos and food weights of his public thread "Masih ganyangka berat badan nyentuh 78kg. Coba track makanan sebulan kedepan. Day N" (30 days; he weighs every food in grams). Days 3, 4 and 5 imported so far (9 photos, uploaded to R2 on 2026-10-20); Days 1 and 2 were not found on his profile; later days are added as he posts them.
 - **Scope**: internal use only, to test and improve JoyoRogo's food-scan AI accuracy. Not published, not shared outside the team, not used for marketing. Deletable on request.
 - **Given**: Threads DM, 2026-10-19 to 2026-10-20 (the DM stays in the owner's Threads inbox; it is not copied here).
-- **Source**: https://www.threads.com/@annasfatahillah (posts `Deol0jcCQh9` Day 4, `Derp6N2ibHP` Day 5).
+- **Source**: https://www.threads.com/@annasfatahillah (posts `DemGR4JCSUy` Day 3, `Deol0jcCQh9` Day 4, `Derp6N2ibHP` Day 5).
 - **Where it lives**: R2 `joyorogo-scans` (account in `apps/server/wrangler.jsonc`) under `dataset/external/annasfatahillah/`; local copies under `.tmp/dataset/external/annasfatahillah/` and reports under `.tmp/eval/` (git-ignored); his labels file stays outside git (this repo is public).
 - **How to delete**: on his request, through any channel:
   1. `bun run scripts/external-import.ts --delete scripts/external-cases/annasfatahillah.labels.json` (removes `photo.jpg` and `meta.json` of every case in the file from R2; add `--only <caseId>` for one). Cases added later must be in that file to be deleted this way; otherwise delete the keys under `dataset/external/annasfatahillah/` with `bunx wrangler r2 object delete joyorogo-scans/<key> --remote`.
   2. Delete `.tmp/dataset/external/annasfatahillah/`, his labels file, and any `.tmp/eval/` report or cache made from it (`rm -rf .tmp/eval` is enough).
   3. Nothing of his is in git history: photos, weights and post text were never committed.
-- **Use so far**: first harness run in `docs/ai-accuracy-log.md` (2026-10-20 entry); aggregates only, no photos or post text.
+- **Use so far**: harness runs in `docs/ai-accuracy-log.md` (two 2026-10-20 entries); aggregates only, no photos or post text.

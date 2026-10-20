@@ -15,6 +15,22 @@ describe("calibrateItems", () => {
     expect(item?.kcal).toBe(300);
   });
 
+  test("bandSlack (eval harness only) widens the band; Infinity leaves the model's kcal; default unchanged", () => {
+    const nasgor = { name: "nasi goreng", kcal: 1200, grams: 250 };
+    expect(calibrateItems([nasgor], { bandSlack: 0.5 })[0]?.kcal).toBe(1050);
+    expect(calibrateItems([nasgor], { bandSlack: Infinity })[0]?.kcal).toBe(1200);
+    expect(calibrateItems([nasgor], {})[0]?.kcal).toBe(700);
+    const rendang = { name: "rendang", kcal: 50, grams: 150 };
+    expect(calibrateItems([rendang], { bandSlack: 0.5 })[0]?.kcal).toBe(150);
+    expect(calibrateItems([rendang], { bandSlack: Infinity })[0]?.kcal).toBe(50);
+    // The 9 kcal/g cap still holds with no band.
+    expect(calibrateItems([{ name: "nasi goreng", kcal: 5000, grams: 100 }], { bandSlack: Infinity })[0]?.kcal).toBe(900);
+    // A library dish whose band starts at 0 (a zero-calorie drink) must not turn into NaN.
+    const zero = TKPI_DISHES.find((d) => d.plausibleKcalRange[0] === 0);
+    expect(zero).toBeDefined();
+    expect(calibrateItems([{ name: zero!.name, kcal: 40, grams: zero!.typicalPortionG }], { bandSlack: Infinity })[0]?.kcal).toBe(40);
+  });
+
   test("fills missing grams from the typical portion", () => {
     const [item] = calibrateItems([{ name: "bakso", kcal: 400 }]);
     expect(item?.grams).toBe(400);

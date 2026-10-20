@@ -4,6 +4,41 @@ Running notes on how accurate the photo scan is, what the data says, and what to
 
 Owner preference to keep in mind: an over-estimated kcal is acceptable, an under-estimate is the worse error, yet users do write "kalori kelewat tinggi". Over and under are always reported separately.
 
+## 2026-10-20: do the portion errors come from the clamp, the prompt or the lack of a personal prior? (eval only, production untouched)
+
+Question: on the weighed external cases the model answers 150 g of rice where the contributor ate about 100 g. Three candidate fixes were run through `scripts/eval-scans.ts`, none shipped: `band-wide` / `band-off` (the library kcal band of the 2026-10-18 change widened by 50% / removed), `scale-cues` (prompt: "porsi umum" becomes "porsi yang TERLIHAT" plus a rule to read grams from plate or bowl diameter, spoon, fork, hand, and not default to typical portions), `user-prior` (one prompt line with the median of the contributor's OTHER weighed meals per dish eaten at least twice, leave-one-out; external cases only, since it needs a weighed history).
+
+Run: `bun run scripts/eval-scans.ts --only external --only owner --reps 2 --variant baseline --variant band-wide --variant band-off --variant scale-cues --variant user-prior`. Sets: external 8 photos (trust medium or higher; 9 uploaded, the screen photo is low trust and left out), owner 19 labelled scans (5 unsaved skipped; 14 of the 38 owner runs are corrected or retried scans, the rest saved as the AI answered). 124 Workers AI calls (production prompt and model, REST), 145k prompt + 22k completion tokens in all; the three calibration variants replay the baseline answers, so they cost nothing and are paired with it exactly. Hooks added, prod-neutral: `calibrateItems(items, { bandSlack })` and `analyzeFoodPhoto({ calibration })`, `--variant` registry entries, a raw-answer cache, `scripts/dataset-export.ts` reading R2 directly with the wrangler login when no `AI_BENCH_KEY` is set.
+
+| Set | Variant | Runs | Name F1 | Rice grams signed / MAE | Side-dish grams signed / MAE | Plate kcal signed / MAE | Plate kcal under / over |
+|---|---|---|---|---|---|---|---|
+| external | baseline | 16 | 68% | +45% / 43 g (n 10) | +11% / 31 g (n 11) | +20% / 83 kcal (n 12) | 4 / 6 |
+| external | band-wide | 16 | 68% | +45% / 43 g | +11% / 31 g | +19% / 82 kcal | 4 / 6 |
+| external | band-off | 16 | 68% | +45% / 43 g | +11% / 31 g | +19% / 82 kcal | 4 / 6 |
+| external | scale-cues | 16 | 72% | +42% / 40 g (n 10) | +9% / 33 g (n 13) | +13% / 92 kcal (n 12) | 4 / 6 |
+| external | user-prior | 16 | 70% | -3% / 13 g (n 10) | +6% / 36 g (n 13) | -8% / 90 kcal (n 12) | 6 / 4 |
+| owner (all) | baseline | 38 | 72% | -8% / 15 g (n 10) | -3% / 9 g (n 46) | +6% / 35 kcal (n 38) | 9 / 9 |
+| owner (all) | band-wide, band-off | 38 | 72% | same as baseline | same | same | 9 / 9 |
+| owner (all) | scale-cues | 38 | 70% | -10% / 20 g | -3% / 11 g (n 44) | +2% / 43 kcal | 11 / 10 |
+| owner, edited only | baseline | 14 | 49% | -8% / 13 g (n 4) | -9% / 9 g (n 16) | +20% / 56 kcal (n 14) | 4 / 6 |
+| owner, edited only | band-wide, band-off | 14 | 49% | same as baseline | same | same | 4 / 6 |
+| owner, edited only | scale-cues | 14 | 51% | -13% / 25 g | -13% / 10 g (n 17) | +13% / 62 kcal | 5 / 7 |
+
+Paired plate |error| per case against baseline: band-wide and band-off closer on 1 of 19 owner and 1 of 6 external cases, further on none; scale-cues closer on 5, further on 8 (owner) and closer on 2, further on 4 (external); user-prior closer on 4, further on 2 (external). Run-to-run noise at reps 2 is visible (a case's plate moves 10 to 60 kcal between reps), so differences of that size are not signals.
+
+Reading it:
+
+- **The clamp is not the cause.** The band changes at most one case, by a few kcal. The rice error is in `grams` (the model says 150 g), which the band never touches: it only moves kcal, and only when the model's kcal is far from grams times density. Keep it: it is what catches a hallucinated kcal (the 2026-10-17 findings), and widening it buys nothing measurable.
+- **`scale-cues` does nothing for rice** (+45% to +42%, same 150 g in 9 of 10 runs) and makes the owner set slightly worse (more under-estimates, 4 closer / 8 further plates; edited scans 4 to 5 under). The model does not turn plate size into grams on its own. No evidence for shipping it.
+- **`user-prior` is the only thing that moves rice**: +45% to -3%, MAE 43 to 13 g. Side dishes are untouched (they were never the problem: bone-in chicken is the outlier, 80 to 120 g answered against about 200 g weighed, which includes bone, so its TKPI reference kcal is itself an upper bound). The cost is visible too: on the one plate with 150 g of rice the prior pulled the answer to 100 g (-33%), and plate kcal went from +20% to -8%, 6 under / 4 over. The owner treats under-estimates as the worse error.
+- **Limits.** 8 external photos from one person (9 weighed meals in the history), leave-one-out on a very regular eater (rice about 100 g in most meals, which is the best case for a prior); owner truth is mostly the model's own answer; kcal references use proxy rows (flagged in the case files). The owner set has no weighed history, so `user-prior` was not run on it: the warteg plates are only checked against the clamp and `scale-cues`.
+
+Recommendation:
+
+1. **Do not ship the clamp change or `scale-cues`.** No gain, small harm for `scale-cues`.
+2. **Prototype the per-user portion prior, not as a prompt line to the model but as a post-hoc default**, and only when the history is consistent. [INFERENCE] design, untested: for a dish the user has logged at least 5 times with weights that were typed or edited (never counting unedited AI answers, or the prior would echo the model's own 150 g back), take the median grams when the spread is small (for example the interquartile range under 25% of the median); show it as the starting grams the user can change, instead of silently overriding the model; leave dishes with no history alone. Risk: a typical-looking prior applied to an unusually big plate under-estimates it (seen once here, -33%), and a prior learned from tiny n is noise. Validate on the diary history of consenting users, or on more of this contributor's days (30 are expected), before any prompt or calibration change. The same labels file keeps growing, so `--variant user-prior` can be re-run unchanged.
+3. **Next evidence worth getting:** more weighed days; a bone-in flag on the chicken items so the reference stops overstating them; the owner's saved rice weights over time to see whether a personal rice prior exists for the owner too.
+
 ## 2026-10-20: first weighed ground truth (external contributor), harness run
 
 A contributor who weighs every food in grams agreed to let us use his public photos and weights for internal testing (`docs/datasets.md`: consent, format, commands). Five photos from two days were labelled by hand (`scripts/external-import.ts`; truth = his grams, kcal = TKPI 2019 / library reference for those grams, proxy rows flagged). `scripts/eval-scans.ts` now has an `external` group: grams error per item, plate grams error, kcal against that reference, an item-by-item table. No change to `vision.ts` or `tkpi.ts`.
