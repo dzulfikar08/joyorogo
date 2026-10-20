@@ -19,10 +19,12 @@ import {
   suggestMealNow,
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/format";
 import { gainEatTone, gainRemaining } from "@joyorogo/api/lib/gain";
 
 import { gainRemainingLabel } from "@/components/gain/gain-today";
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { BelanjaSection } from "@/components/plate/belanja";
 import { MealPlanEntry } from "@/components/meal-plan/entry-card";
 import { PlateHeader } from "@/components/plate/plate-header";
@@ -249,6 +251,7 @@ export default function Makan() {
         scanId: input.scanId ?? null,
         photoId: null,
         plateId: null,
+        eatenAt: input.eatenAt ?? null,
         createdAt: new Date(),
       });
       cache.summary(foodSummaryDelta({ ...input, date: rowDate }, 1));
@@ -430,6 +433,8 @@ export default function Makan() {
   // Manual form's optional plate price, and the diary's inline plate editor.
   const [platePriceManual, setPlatePriceManual] = useState("");
   const [manualPlace, setManualPlace] = useState("");
+  // Optional "Jam makan" (unix ms) of the manual entry; null = now, nothing is sent.
+  const [manualEatenAt, setManualEatenAt] = useState<number | null>(null);
   const placeLocation = usePlaceLocation();
   // Caret inside the manual price input, so backspacing a separator drops the
   // digit instead of letting the separator snap back.
@@ -552,6 +557,9 @@ export default function Makan() {
       carbs: carbsNum ?? undefined,
       fat: fatNum ?? undefined,
       ...(plate ? { plate } : {}),
+      ...(manualEatenAt !== null
+        ? { eatenAt: eatenAtFromClock(date, eatenAtClock(manualEatenAt)) ?? undefined }
+        : {}),
     });
   };
 
@@ -594,6 +602,7 @@ export default function Makan() {
     setFat("");
     setPlatePriceManual("");
     setManualPlace("");
+    setManualEatenAt(null);
     setMacrosOpen(false);
     setManualOpen(false);
     setCeritaPhase("input");
@@ -1131,6 +1140,12 @@ export default function Makan() {
               enabled={placeLocation.enabled}
               status={placeLocation.status}
               onChange={placeLocation.setEnabled}
+            />
+            <EatenAtField
+              date={date}
+              meal={sheetMeal ?? "sarapan"}
+              value={manualEatenAt}
+              onChange={setManualEatenAt}
             />
             {macrosOpen ? (
               <View style={styles.macroRow}>

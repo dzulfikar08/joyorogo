@@ -722,5 +722,12 @@
       "base": "Dasar: target harianmu {{kcal}} kkal, protein {{protein}} g, dan karbohidrat {{carbs}} g (angka yang sama dengan bar di diary), dikurangi yang sudah kamu catat hari ini.",
       "boost": "Tambahan karbohidrat {{pct}}% adalah aturan JoyoRogo untuk strain {{from}} ke atas, bukan hitungan kalori dari jam tangan."
     }
+  },
+  "eatenAt": {
+    "label": "Jam makan",
+    "now": "Sekarang",
+    "clear": "Hapus jam makan",
+    "sheetTitle": "Jam makan",
+    "hint": "Opsional. Dipakai untuk melihat pola makan malam dan tidurmu."
   }
 }

@@ -26,6 +26,7 @@ import { fmtPercent, getActiveLocale, i18n } from "@joyorogo/i18n";
 import {
   MEAL_LABELS,
   effectiveRamadan,
+  jakartaToday,
   slotsFor,
   suggestMealForDish,
   suggestMealNow,
@@ -38,6 +39,7 @@ import { analyzeStreaming } from "@joyorogo/api/lib/scan-live";
 import type { LiveRow } from "@joyorogo/api/lib/scan-live";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { scalePortion } from "@joyorogo/api/lib/portion";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
@@ -58,6 +60,7 @@ import {
   SectionTitle,
   Segmented,
 } from "@/components/kit/surface";
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { IdrInput } from "@/components/plate/idr-input";
 import { SaveLocationToggle } from "@/components/places/location-toggle";
 import { CORRECTED_ROW_CLASS, CorrectBadge, CorrectBox } from "@/components/scan/correct-box";
@@ -390,6 +393,8 @@ function AiFoodPage() {
   const [feedbackKeepPhoto, setFeedbackKeepPhoto] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   // Price attaches to the whole plate, not per item: one number per photo.
+  // Optional "Jam makan" (unix ms); null = now, nothing is sent.
+  const [eatenAt, setEatenAt] = useState<number | null>(null);
   const [plateName, setPlateName] = useState("");
   const [platePlace, setPlatePlace] = useState("");
   const [platePrice, setPlatePrice] = useState("");
@@ -828,6 +833,7 @@ function AiFoodPage() {
     setPlateName("");
     setPlatePlace("");
     setPlatePrice("");
+    setEatenAt(null);
     setScanError(null);
     setTooMany(false);
     setPhotoId(null);
@@ -946,6 +952,9 @@ function AiFoodPage() {
         itemsJson: JSON.stringify(baseList),
         ...(photoId ? { scanPhotoId: photoId } : {}),
         ...(plate.name || plate.place || plate.priceIdr != null ? { plate } : {}),
+        ...(eatenAt !== null
+          ? { eatenAt: eatenAtFromClock(scanDate ?? jakartaToday(), eatenAtClock(eatenAt)) ?? undefined }
+          : {}),
         items: items.map((item, index) => ({
           name: item.name,
           kcal: values[index]!,
@@ -1499,6 +1508,10 @@ function AiFoodPage() {
             />
           </Card>
         </section>
+
+        <div className="mt-4">
+          <EatenAtField id="scan-eaten-at" date={scanDate ?? jakartaToday()} value={eatenAt} onChange={setEatenAt} />
+        </div>
 
         <div className="mt-4 space-y-2">
           {photoUrl && (

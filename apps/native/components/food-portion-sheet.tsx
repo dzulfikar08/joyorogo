@@ -8,12 +8,14 @@ import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { MEAL_EDIT_LABELS, jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { PORTION_MULTIPLIERS, rescaleForGrams, scalePortion } from "@joyorogo/api/lib/portion";
 import type { PortionValues } from "@joyorogo/api/lib/portion";
 
 import { MacroLine } from "@/components/macro-line";
 import { DateSheet, DayChips } from "@/components/plate/date-sheet";
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { MealSlotField } from "@/components/plate/meal-slot-field";
 import { SheetActions } from "@/components/sheet-actions";
 import { StickerHero } from "@/components/sticker";
@@ -32,6 +34,7 @@ export type PortionRow = PortionValues & {
   meal: string;
   name: string;
   scanId?: string | null;
+  eatenAt?: number | null;
 };
 
 type FoodList = {
@@ -206,6 +209,7 @@ export function FoodPortionSheet({
   const [date, setDate] = useState(row.date);
   const [meal, setMeal] = useState<Meal>(row.meal as Meal);
   const [pickingDate, setPickingDate] = useState(false);
+  const [eatenAt, setEatenAt] = useState<number | null>(row.eatenAt ?? null);
   const [linked, setLinked] = useState(true);
   // Scale of the portion relative to what was logged; macros always follow it.
   const [ratio, setRatio] = useState(1);
@@ -231,13 +235,21 @@ export function FoodPortionSheet({
     (!hasGrams || (typedGrams !== null && typedGrams >= 1 && typedGrams <= 5000));
   const dateChanged = date !== row.date;
   const mealChanged = meal !== row.meal;
+  const eatenAtChanged = eatenAt !== (row.eatenAt ?? null);
   const changed =
     dateChanged ||
+    eatenAtChanged ||
     mealChanged ||
     name.trim() !== row.name ||
     values.kcal !== row.kcal ||
     values.grams !== row.grams ||
     ratio !== 1;
+
+  /** A moved day carries the chosen clock time along, so the time never points at the old day. */
+  const setDay = (next: string) => {
+    setDate(next);
+    if (eatenAt !== null) setEatenAt(eatenAtFromClock(next, eatenAtClock(eatenAt)));
+  };
 
   /** Re-render every field from a new scale (the linked path). */
   const applyRatio = (next: number) => {
@@ -293,6 +305,7 @@ export function FoodPortionSheet({
         name: input.name ?? row.name,
         date: input.date ?? row.date,
         meal: input.meal ?? row.meal,
+        eatenAt: input.eatenAt === undefined ? row.eatenAt : input.eatenAt,
       });
     },
     invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key()],
@@ -315,6 +328,7 @@ export function FoodPortionSheet({
               name: input.name ?? row.name,
               date: input.date ?? row.date,
               meal: input.meal ?? row.meal,
+              eatenAt: input.eatenAt === undefined ? row.eatenAt : input.eatenAt,
             },
             row,
           );
@@ -324,6 +338,7 @@ export function FoodPortionSheet({
                 name: row.name,
                 ...(moved ? { date: row.date } : {}),
                 ...(slotMoved ? { meal: row.meal as Meal } : {}),
+                ...(input.eatenAt !== undefined ? { eatenAt: row.eatenAt ?? null } : {}),
               }),
             )
             .finally(() => {
@@ -343,6 +358,7 @@ export function FoodPortionSheet({
         ...(name.trim() !== row.name ? { name: name.trim() } : {}),
         ...(dateChanged ? { date } : {}),
         ...(mealChanged ? { meal } : {}),
+        ...(eatenAtChanged ? { eatenAt } : {}),
       }),
     );
     onClose();
@@ -476,7 +492,7 @@ export function FoodPortionSheet({
 
           <Field label={t("portionSheet.loggedOn")}>
             <View style={styles.dateBox}>
-              <DayChips value={date} onChange={setDate} />
+              <DayChips value={date} onChange={setDay} />
               <Button
                 variant="ghost"
                 size="sm"
@@ -503,6 +519,8 @@ export function FoodPortionSheet({
             }
           />
 
+          <EatenAtField date={date} meal={meal} value={eatenAt} onChange={setEatenAt} />
+
           <FoodSafetyNotes names={[row.name]} />
 
           <SheetActions
@@ -516,7 +534,7 @@ export function FoodPortionSheet({
       <DateSheet
         visible={pickingDate}
         value={date}
-        onPick={setDate}
+        onPick={setDay}
         onClose={() => setPickingDate(false)}
       />
     </>

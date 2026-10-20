@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { MEAL_EDIT_LABELS, jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { PORTION_MULTIPLIERS, rescaleForGrams, scalePortion } from "@joyorogo/api/lib/portion";
 import type { PortionValues } from "@joyorogo/api/lib/portion";
@@ -14,6 +15,7 @@ import type { PortionValues } from "@joyorogo/api/lib/portion";
 import { Chip } from "@/components/chip";
 import { FieldLabel } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { MealSlotField } from "@/components/plate/meal-slot-field";
 import { CalendarSheet, DayChips } from "@/components/plate/plate-group";
 import { FoodSafetyNotes } from "@/components/maternal/food-safety-notes";
@@ -162,6 +164,7 @@ export function FoodPortionSheet({
   const hasGrams = base.grams !== null;
   const [name, setName] = useState(row.name);
   const [date, setDate] = useState(row.date);
+  const [eatenAt, setEatenAt] = useState<number | null>(row.eatenAt ?? null);
   const [meal, setMeal] = useState<Meal>(row.meal as Meal);
   const [pickingDate, setPickingDate] = useState(false);
   const [linked, setLinked] = useState(true);
@@ -189,13 +192,21 @@ export function FoodPortionSheet({
     (!hasGrams || (typedGrams !== null && typedGrams >= 1 && typedGrams <= 5000));
   const dateChanged = date !== row.date;
   const mealChanged = meal !== row.meal;
+  const eatenAtChanged = eatenAt !== (row.eatenAt ?? null);
   const changed =
     dateChanged ||
     mealChanged ||
+    eatenAtChanged ||
     name.trim() !== row.name ||
     values.kcal !== row.kcal ||
     values.grams !== row.grams ||
     ratio !== 1;
+
+  /** A moved day carries the chosen clock time along, so the time never points at the old day. */
+  const setDay = (next: string) => {
+    setDate(next);
+    if (eatenAt !== null) setEatenAt(eatenAtFromClock(next, eatenAtClock(eatenAt)));
+  };
 
   /** Re-render every field from a new scale (the linked path). */
   const applyRatio = (next: number) => {
@@ -251,6 +262,7 @@ export function FoodPortionSheet({
         name: input.name ?? row.name,
         date: input.date ?? row.date,
         meal: input.meal ?? row.meal,
+        eatenAt: input.eatenAt === undefined ? row.eatenAt : input.eatenAt,
       });
     },
     invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key()],
@@ -273,6 +285,7 @@ export function FoodPortionSheet({
               name: input.name ?? row.name,
               date: input.date ?? row.date,
               meal: input.meal ?? row.meal,
+              eatenAt: input.eatenAt === undefined ? row.eatenAt : input.eatenAt,
             },
             row,
           );
@@ -282,6 +295,7 @@ export function FoodPortionSheet({
                 name: row.name,
                 ...(moved ? { date: row.date } : {}),
                 ...(slotMoved ? { meal: row.meal as Meal } : {}),
+                ...(input.eatenAt !== undefined ? { eatenAt: row.eatenAt ?? null } : {}),
               }),
             )
             .finally(() => {
@@ -301,6 +315,7 @@ export function FoodPortionSheet({
         ...(name.trim() !== row.name ? { name: name.trim() } : {}),
         ...(dateChanged ? { date } : {}),
         ...(mealChanged ? { meal } : {}),
+        ...(eatenAtChanged ? { eatenAt } : {}),
       }),
     );
     onClose();
@@ -435,7 +450,7 @@ export function FoodPortionSheet({
           <div>
             <FieldLabel htmlFor="food-date">{t("portionSheet.loggedOn")}</FieldLabel>
             <div className="mt-1.5 space-y-2">
-              <DayChips value={date} onChange={setDate} />
+              <DayChips value={date} onChange={setDay} />
               <Button
                 type="button"
                 variant={dateChanged ? "secondary" : "outline"}
@@ -469,6 +484,8 @@ export function FoodPortionSheet({
             }
           />
 
+          <EatenAtField id="food-eaten-at" date={date} value={eatenAt} onChange={setEatenAt} />
+
           <Button
             type="submit"
             className="w-full"
@@ -486,7 +503,7 @@ export function FoodPortionSheet({
         </form>
       </Sheet>
       {pickingDate && (
-        <CalendarSheet value={date} onPick={setDate} onClose={() => setPickingDate(false)} />
+        <CalendarSheet value={date} onPick={setDay} onClose={() => setPickingDate(false)} />
       )}
     </>
   );

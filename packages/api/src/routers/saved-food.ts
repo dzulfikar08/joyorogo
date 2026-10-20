@@ -11,6 +11,7 @@ import { protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
 import { serverT } from "../lib/messages";
 import { dateSchema, mealSchema } from "../lib/schemas";
+import { assertEatenAt, eatenAtSchema } from "../lib/eaten-at";
 import { foodSavedKey, parseSavedItems, plateSavedKey } from "../lib/saved-foods";
 import type { SavedItem } from "../lib/saved-foods";
 import { photoKey, stickerKey } from "../lib/sticker";
@@ -194,7 +195,7 @@ export const savedFoodRouter = {
   // One-tap re-log into a day + slot, grams/macros/price/photo reference intact.
   // Several components or a price become a plate so the diary groups them again.
   relog: protectedProcedure
-    .input(z.object({ id: z.string(), date: dateSchema.optional(), meal: mealSchema }))
+    .input(z.object({ id: z.string(), date: dateSchema.optional(), meal: mealSchema, eatenAt: eatenAtSchema.optional() }))
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
       const [saved] = await context.db
@@ -208,6 +209,7 @@ export const savedFoodRouter = {
         throw new ORPCError("UNPROCESSABLE_CONTENT", { message: serverT(context.locale, "errors")("misc.savedFood.empty") });
       }
       const date = input.date ?? jakartaToday();
+      assertEatenAt(input.eatenAt, date);
       let plateId: string | null = null;
       if (items.length > 1 || saved.priceIdr != null) {
         plateId = crypto.randomUUID();
@@ -237,6 +239,7 @@ export const savedFoodRouter = {
             fat: item.fat,
             fiber: item.fiber,
             source: item.scanId ? "ai" : "manual",
+            eatenAt: input.eatenAt,
             scanId: item.scanId,
             photoId: item.photoId,
             plateId,

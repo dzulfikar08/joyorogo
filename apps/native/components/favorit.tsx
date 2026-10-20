@@ -127,6 +127,7 @@ export function useFavorites(): Favorites {
           scanId: item.scanId,
           photoId: item.photoId,
           plateId: null,
+          eatenAt: null,
           createdAt: new Date(),
         };
         cache.value<DayList>(dayKey(date), (old) =>

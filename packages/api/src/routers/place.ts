@@ -6,6 +6,7 @@ import { foodLog } from "@joyorogo/db/schema/fitness";
 import { plate } from "@joyorogo/db/schema/plans";
 
 import { protectedProcedure } from "../index";
+import { assertEatenAt, eatenAtSchema } from "../lib/eaten-at";
 import { jakartaToday, suggestMealNow } from "../lib/engine";
 import { serverT } from "../lib/messages";
 import { aggregatePlaces, normalizePlaceKey, visitsOfPlace } from "../lib/places";
@@ -139,7 +140,12 @@ export const placeRouter = {
   // place and its coordinates) into today (or `date`) under the current meal slot.
   relog: protectedProcedure
     .input(
-      z.object({ plateId: z.string(), date: dateSchema.optional(), meal: mealSchema.optional() }),
+      z.object({
+        plateId: z.string(),
+        date: dateSchema.optional(),
+        meal: mealSchema.optional(),
+        eatenAt: eatenAtSchema.optional(),
+      }),
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
@@ -162,6 +168,7 @@ export const placeRouter = {
       }
       const date = input.date ?? jakartaToday();
       const meal = input.meal ?? suggestMealNow();
+      assertEatenAt(input.eatenAt, date);
       const plateId = crypto.randomUUID();
       await context.db.insert(plate).values({
         id: plateId,
@@ -190,6 +197,7 @@ export const placeRouter = {
             fat: item.fat,
             fiber: item.fiber,
             source: item.source,
+            eatenAt: input.eatenAt,
             scanId: item.scanId,
             photoId: item.photoId,
             plateId,

@@ -109,6 +109,7 @@ export function useFavorites() {
           scanId: item.scanId,
           photoId: item.photoId,
           plateId: null,
+          eatenAt: null,
           createdAt: new Date(),
         } as FoodItem;
         insertFoodRow(cache, dayKey(date), row);

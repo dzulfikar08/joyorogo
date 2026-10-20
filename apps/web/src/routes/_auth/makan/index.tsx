@@ -54,9 +54,11 @@ import { MakanViewSwitcher } from "@/components/makan/view-switcher";
 import { KindPicker, SnackAdviceCard, useSnackAdvice } from "@/components/makan/snack-advice";
 import type { PickableKind } from "@/components/makan/snack-advice";
 import { PlacesView } from "@/components/places/places-view";
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { SaveLocationToggle } from "@/components/places/location-toggle";
 import { usePlaceLocation } from "@/lib/location";
 import { saveKind, saveMakanView, storedKind, storedMakanView } from "@/lib/makan-prefs";
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { parseMakanView } from "@joyorogo/api/lib/diary-view";
 import type { MakanView } from "@joyorogo/api/lib/diary-view";
 import { foodKind, matchesKind, parseFoodKindFilter } from "@joyorogo/api/lib/food-kind";
@@ -261,6 +263,7 @@ function MakanPage() {
         scanId: input.scanId ?? null,
         photoId: null,
         plateId: input.plateId ?? null,
+        eatenAt: input.eatenAt ?? null,
         createdAt: new Date(),
       } as FoodItem;
       insertFood(cache, rowDate, provisional);
@@ -704,6 +707,8 @@ function AddFoodSheet({
   // Optional price for the whole plate; the dish name becomes the plate name.
   const [price, setPrice] = useState("");
   const [place, setPlace] = useState("");
+  // Optional "Jam makan" (unix ms); null = now, nothing is sent.
+  const [eatenAt, setEatenAt] = useState<number | null>(null);
   const placeLocation = usePlaceLocation();
   const [error, setError] = useState<string | null>(null);
   const label = MEAL_LABELS[meal];
@@ -787,6 +792,7 @@ function AddFoodSheet({
               },
             }
           : {}),
+        ...(eatenAt !== null ? { eatenAt: eatenAtFromClock(date, eatenAtClock(eatenAt)) ?? undefined } : {}),
       });
       setName("");
       setKcal("");
@@ -797,6 +803,7 @@ function AddFoodSheet({
       setFat("");
       setPrice("");
       setPlace("");
+      setEatenAt(null);
       setShowMacros(false);
     } catch {
       // the mutation already toasts the server message
@@ -993,6 +1000,7 @@ function AddFoodSheet({
               status={placeLocation.status}
               onChange={placeLocation.setEnabled}
             />
+            <EatenAtField id="food-add-eaten-at" date={date} value={eatenAt} onChange={setEatenAt} />
 
             {error && <p className="px-1 text-sm text-destructive">{error}</p>}
 

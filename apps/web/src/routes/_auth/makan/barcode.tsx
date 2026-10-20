@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { MEAL_LABELS, effectiveRamadan, slotsFor, suggestMealNow } from "@joyorogo/api/lib/engine";
+import { MEAL_LABELS, effectiveRamadan, jakartaToday, slotsFor, suggestMealNow } from "@joyorogo/api/lib/engine";
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { normalizeBarcode } from "@joyorogo/api/lib/barcode";
 import { MAX_GRAMS, portionFromGrams } from "@joyorogo/api/lib/portion";
@@ -15,6 +16,7 @@ import { Input } from "@joyorogo/ui/components/input";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Card, FieldLabel, Page, PageHeader, Segmented } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { fmtInt, fmtKcalLabel, parseNum } from "@/lib/format";
 import { FoodSafetyNotes } from "@/components/maternal/food-safety-notes";
 import { KindPicker, SnackAdviceCard, useSnackAdvice } from "@/components/makan/snack-advice";
@@ -267,6 +269,8 @@ function BarcodeResult({
   const ramadan = effectiveRamadan(profile.data?.profile?.ramadanMode);
   const meals = MEAL_KEYS.filter((key) => slotsFor(ramadan).includes(key));
   const [meal, setMeal] = useState<Meal>(startMeal ?? suggestMealNow(new Date(), ramadan));
+  // Optional "Jam makan" (unix ms); null = now, nothing is sent.
+  const [eatenAt, setEatenAt] = useState<number | null>(null);
   const [grams, setGrams] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualName, setManualName] = useState("");
@@ -288,7 +292,14 @@ function BarcodeResult({
     setSaving(true);
     setError(null);
     try {
-      await client.food.add({ ...input, date, meal });
+      await client.food.add({
+        ...input,
+        date,
+        meal,
+        ...(eatenAt !== null
+          ? { eatenAt: eatenAtFromClock(date ?? jakartaToday(), eatenAtClock(eatenAt)) ?? undefined }
+          : {}),
+      });
       toast.success(t("save.toast", { name: input.name, meal: MEAL_LABELS[meal] }));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: orpc.food.key() }),
@@ -432,6 +443,7 @@ function BarcodeResult({
             />
           </div>
           {mealPicker}
+          <EatenAtField id="barcode-eaten-at" date={date ?? jakartaToday()} value={eatenAt} onChange={setEatenAt} />
           <KindPicker value={kind} onChange={setKindOverride} />
           <SnackAdviceCard
             state={advice}
@@ -671,6 +683,7 @@ function BarcodeResult({
       )}
 
       {mealPicker}
+      <EatenAtField id="barcode-eaten-at-manual" date={date ?? jakartaToday()} value={eatenAt} onChange={setEatenAt} />
       <KindPicker value={kind} onChange={setKindOverride} />
       <SnackAdviceCard
         state={advice}

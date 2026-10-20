@@ -742,5 +742,12 @@
       "base": "Basis: your daily target of {{kcal}} kcal, {{protein}} g protein and {{carbs}} g carbs (the same numbers as the bars in your diary), minus what you've logged today.",
       "boost": "The extra {{pct}}% carbs is a JoyoRogo rule for strain {{from}} and up, not a calorie count from your watch."
     }
+  },
+  "eatenAt": {
+    "label": "Meal time",
+    "now": "Now",
+    "clear": "Clear meal time",
+    "sheetTitle": "Meal time",
+    "hint": "Optional. Used to spot patterns between late dinners and your sleep."
   }
 }

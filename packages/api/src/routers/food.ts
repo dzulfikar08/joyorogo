@@ -8,6 +8,7 @@ import { foodLog, profile } from "@joyorogo/db/schema/fitness";
 import { plate } from "@joyorogo/db/schema/plans";
 
 import { protectedProcedure } from "../index";
+import { assertEatenAt, eatenAtProblem, eatenAtSchema } from "../lib/eaten-at";
 import { MEALS, jakartaToday } from "../lib/engine";
 import { copyLoggedMeal, recentMealGroups } from "../lib/meal-copy";
 import { storyTarget } from "../lib/meal-reference";
@@ -107,10 +108,12 @@ export const foodRouter = {
         // record the final saved items next to the AI answer. Ignored for everyone else.
         scanPhotoId: z.string().regex(SCAN_ID_RE).optional(),
         plate: plateInput.optional(),
+        eatenAt: eatenAtSchema.optional(),
       }),
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
+      assertEatenAt(input.eatenAt, input.date ?? jakartaToday());
       const bucket = context.env.STICKERS;
       const images = context.env.IMAGES;
       const bytes = base64ToBytes(input.imageBase64);
@@ -185,6 +188,7 @@ export const foodRouter = {
             fat: item.fat,
             fiber: item.fiber,
             source: "ai",
+            eatenAt: input.eatenAt,
             itemsJson: input.itemsJson,
             scanId: promoted[index] ?? jobs[index]?.scanId,
             photoId,
@@ -253,9 +257,11 @@ export const foodRouter = {
         plate: plateInput.optional(),
         // attach to a plate created by an earlier item of the same Cerita group
         plateId: z.string().optional(),
+        eatenAt: eatenAtSchema.optional(),
       }),
     )
     .handler(async ({ context, input }) => {
+      assertEatenAt(input.eatenAt, input.date ?? jakartaToday());
       // An explicit plateId must belong to this user; unknown ids are ignored.
       let attachId = input.plateId ?? null;
       if (attachId) {
@@ -290,6 +296,7 @@ export const foodRouter = {
           fat: input.fat,
           fiber: input.fiber,
           source: input.source,
+          eatenAt: input.eatenAt,
           itemsJson: input.itemsJson,
           scanId: input.scanId,
           plateId,
@@ -317,6 +324,8 @@ export const foodRouter = {
         carbs: z.number().min(0).max(500).optional(),
         fat: z.number().min(0).max(500).optional(),
         fiber: z.number().min(0).max(500).optional(),
+        // null clears the time
+        eatenAt: eatenAtSchema.nullable().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -328,7 +337,18 @@ export const foodRouter = {
         .limit(1);
       if (!row) return null;
       // Portion fields resolve against the stored row (weight <-> kcal <-> macros).
-      const { id: _id, date, meal, name, ...patch } = input;
+      const { id: _id, date, meal, name, eatenAt, ...patch } = input;
+      // A moved day without a new time drops a stored time that no longer fits it.
+      const nextDate = date ?? row.date;
+      let nextEatenAt: number | null | undefined;
+      if (typeof eatenAt === "number") {
+        assertEatenAt(eatenAt, nextDate);
+        nextEatenAt = eatenAt;
+      } else if (eatenAt === null) {
+        nextEatenAt = null;
+      } else if (date && row.eatenAt != null && eatenAtProblem(row.eatenAt, nextDate, new Date(row.eatenAt))) {
+        nextEatenAt = null;
+      }
       const next = resolvePortion(row, patch);
       const [updated] = await context.db
         .update(foodLog)
@@ -337,6 +357,7 @@ export const foodRouter = {
           ...(name ? { name } : {}),
           ...(date ? { date } : {}),
           ...(meal ? { meal } : {}),
+          ...(nextEatenAt !== undefined ? { eatenAt: nextEatenAt } : {}),
         })
         .where(and(eq(foodLog.id, input.id), eq(foodLog.userId, userId)))
         .returning();

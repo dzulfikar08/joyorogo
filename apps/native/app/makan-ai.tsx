@@ -33,11 +33,13 @@ import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import {
   MEAL_LABELS,
   effectiveRamadan,
+  jakartaToday,
   slotsFor,
   suggestMealForDish,
   suggestMealNow,
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { foodKind, isHeavyDish } from "@joyorogo/api/lib/food-kind";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { scalePortion } from "@joyorogo/api/lib/portion";
@@ -63,6 +65,7 @@ import { EASE_OUT, PressableScale, useEnter, usePopIn } from "@/components/motio
 import { Disclosure } from "@/components/disclosure";
 import { KindCycleChip, SnackAdviceSection } from "@/components/makan/snack-advice";
 import { useGain } from "@/components/gain/use-gain";
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { PlateFields, plateInput } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
 import { MacroLine } from "@/components/macro-line";
@@ -558,6 +561,8 @@ export default function MakanAi() {
     origin: Array<number | null>;
   }>({ items: [], origin: [] });
   const aiItems = baseline.items;
+  // Optional "Jam makan" (unix ms); null = now, nothing is sent.
+  const [eatenAt, setEatenAt] = useState<number | null>(null);
   const [plateValues, setPlateValues] = useState<PlateValues>({
     name: "",
     place: "",
@@ -612,6 +617,7 @@ export default function MakanAi() {
     setCropping(false);
     setPreviewUri(null);
     setPlateValues({ name: "", place: "", price: "" });
+    setEatenAt(null);
     setPhotoId(null);
     setRetriesLeft(0);
     setRetryHint("");
@@ -1020,6 +1026,9 @@ export default function MakanAi() {
         ...(photoId ? { scanPhotoId: photoId } : {}),
         itemsJson: JSON.stringify(aiItems),
         ...(plate ? { plate } : {}),
+        ...(eatenAt !== null
+          ? { eatenAt: eatenAtFromClock(scanDate ?? jakartaToday(), eatenAtClock(eatenAt)) ?? undefined }
+          : {}),
       });
       // Miss log: AI estimate vs what the user kept. Never blocks the save.
       void logCorrections
@@ -1703,6 +1712,13 @@ export default function MakanAi() {
           />
 
           <PlateFields compact values={plateValues} onChange={setPlateValues} />
+
+          <EatenAtField
+            date={scanDate ?? jakartaToday()}
+            meal={meal}
+            value={eatenAt}
+            onChange={setEatenAt}
+          />
 
           {/* Original photo and per-item crops, plus how the result is made */}
           {previewUri ? (

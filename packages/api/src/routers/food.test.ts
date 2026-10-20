@@ -183,3 +183,47 @@ describe("food.recalculatePlate", () => {
     expect((await kcalOf(row!.id)).kcal).toBe(300);
   });
 });
+
+describe("food eatenAt", () => {
+  const wib = (iso: string) => Date.parse(`${iso}+07:00`);
+  const base = { date: "2026-10-14", meal: "makan_siang" as const, name: "Soto", kcal: 200 };
+
+  test("absent stays null", async () => {
+    const row = await call(foodRouter.add, base, u1);
+    expect(row!.eatenAt).toBeNull();
+  });
+
+  test("a time on the item's day is stored and listed", async () => {
+    const at = wib("2026-10-14T12:30:00");
+    const row = await call(foodRouter.add, { ...base, eatenAt: at }, u1);
+    expect(row!.eatenAt).toBe(at);
+    const list = await call(foodRouter.listByDate, { date: "2026-10-14" }, u1);
+    expect(list.items.find((i) => i.id === row!.id)?.eatenAt).toBe(at);
+  });
+
+  test("00:00-03:59 the next WIB day is allowed, 04:00 is not", async () => {
+    const ok = await call(foodRouter.add, { ...base, eatenAt: wib("2026-10-15T01:00:00") }, u1);
+    expect(ok!.eatenAt).toBe(wib("2026-10-15T01:00:00"));
+    expect(call(foodRouter.add, { ...base, eatenAt: wib("2026-10-15T04:00:00") }, u1)).rejects.toThrow();
+  });
+
+  test("wrong day, too old and far future are rejected", async () => {
+    expect(call(foodRouter.add, { ...base, eatenAt: wib("2026-10-13T12:00:00") }, u1)).rejects.toThrow();
+    expect(
+      call(foodRouter.add, { ...base, date: "2026-08-01", eatenAt: wib("2026-08-01T12:00:00") }, u1),
+    ).rejects.toThrow();
+    expect(call(foodRouter.add, { ...base, eatenAt: Date.now() + 3 * 86_400_000 }, u1)).rejects.toThrow();
+  });
+
+  test("update sets, validates and clears; moving the day drops a stale time", async () => {
+    const row = await call(foodRouter.add, base, u1);
+    const set = await call(foodRouter.update, { id: row!.id, eatenAt: wib("2026-10-14T13:00:00") }, u1);
+    expect(set!.eatenAt).toBe(wib("2026-10-14T13:00:00"));
+    expect(call(foodRouter.update, { id: row!.id, eatenAt: wib("2026-10-12T13:00:00") }, u1)).rejects.toThrow();
+    const moved = await call(foodRouter.update, { id: row!.id, date: "2026-10-13" }, u1);
+    expect(moved!.eatenAt).toBeNull();
+    const again = await call(foodRouter.update, { id: row!.id, eatenAt: wib("2026-10-13T08:00:00") }, u1);
+    const cleared = await call(foodRouter.update, { id: again!.id, eatenAt: null }, u1);
+    expect(cleared!.eatenAt).toBeNull();
+  });
+});

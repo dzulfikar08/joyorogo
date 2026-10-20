@@ -11,13 +11,15 @@ import type { KeyboardAwareScrollViewRef } from "react-native-keyboard-controlle
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { MEAL_LABELS, effectiveRamadan, slotsFor, suggestMealNow } from "@joyorogo/api/lib/engine";
+import { MEAL_LABELS, effectiveRamadan, jakartaToday, slotsFor, suggestMealNow } from "@joyorogo/api/lib/engine";
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { normalizeBarcode } from "@joyorogo/api/lib/barcode";
 import { MAX_GRAMS, portionFromGrams } from "@joyorogo/api/lib/portion";
 import { foodKind } from "@joyorogo/api/lib/food-kind";
 
 import { Disclosure } from "@/components/disclosure";
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { MacroLine } from "@/components/macro-line";
 import {
   BootLoader,
@@ -65,6 +67,8 @@ export default function MakanBarcode() {
 
   const [grams, setGrams] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
+  // Optional "Jam makan" (unix ms); null = now, nothing is sent.
+  const [eatenAt, setEatenAt] = useState<number | null>(null);
   const [manualName, setManualName] = useState("");
   const [manualKcal, setManualKcal] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -100,6 +104,7 @@ export default function MakanBarcode() {
     setGrams(null);
     setManualOpen(false);
     setManualName("");
+    setEatenAt(null);
     setManualKcal("");
     setFormError(null);
     setSaved(null);
@@ -129,6 +134,11 @@ export default function MakanBarcode() {
     handled.current = true;
     accept(data);
   };
+
+  const eatenAtInput = () =>
+    eatenAt === null
+      ? {}
+      : { eatenAt: eatenAtFromClock(logDate ?? jakartaToday(), eatenAtClock(eatenAt)) ?? undefined };
 
   const finishSave = (name: string, kcal: number) => {
     queryClient.invalidateQueries();
@@ -182,7 +192,7 @@ export default function MakanBarcode() {
       }
       setFormError(null);
       addFood.mutate(
-        { ...(logDate ? { date: logDate } : {}), meal, name, kcal, source: "manual" },
+        { ...(logDate ? { date: logDate } : {}), meal, name, kcal, source: "manual", ...eatenAtInput() },
         { onSuccess: () => finishSave(name, kcal) },
       );
     };
@@ -257,6 +267,7 @@ export default function MakanBarcode() {
             />
             <FoodSafetyNotes names={manualName.trim() ? [manualName.trim()] : []} addToDay />
             {mealPicker}
+            <EatenAtField date={logDate ?? jakartaToday()} meal={meal} value={eatenAt} onChange={setEatenAt} />
             {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
             {addFood.isError ? (
               <Text style={styles.errorText}>{errorMessage(addFood.error)}</Text>
@@ -338,6 +349,7 @@ export default function MakanBarcode() {
             ...(scaled.fat !== null ? { fat: scaled.fat } : {}),
             ...(scaled.fiber !== null ? { fiber: scaled.fiber } : {}),
             source: "barcode",
+            ...eatenAtInput(),
             itemsJson: JSON.stringify({
               barcode: data.code,
               brand: data.product.brand,
@@ -446,6 +458,7 @@ export default function MakanBarcode() {
           )}
 
           {mealPicker}
+          <EatenAtField date={logDate ?? jakartaToday()} meal={meal} value={eatenAt} onChange={setEatenAt} />
           {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
           {addFood.isError ? (
             <Text style={styles.errorText}>{errorMessage(addFood.error)}</Text>
