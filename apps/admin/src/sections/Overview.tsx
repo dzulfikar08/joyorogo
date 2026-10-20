@@ -10,6 +10,7 @@ import {
   get,
   lastWibDays,
   type Overview,
+  type Plan,
   type UsageDay,
 } from "../api";
 import {
@@ -24,6 +25,12 @@ import {
 } from "../ui";
 
 const dayLabel = (day: string) => `${day.slice(8)}/${day.slice(5, 7)}`;
+
+const PLAN_ROWS: { plan: Plan; label: string }[] = [
+  { plan: "paid", label: "Paid" },
+  { plan: "founder", label: "Founder (comp)" },
+  { plan: "free", label: "Free" },
+];
 
 const DAY_COLUMNS: Column<UsageDay>[] = [
   { key: "day", header: "Day", cell: (d) => d.day, className: "font-medium" },
@@ -109,6 +116,41 @@ export function OverviewSection() {
           hint={hint(o && `${fmtNum(o.paidOrders)} paid · ${fmtNum(o.pendingOrders)} pending`)}
         />
       </div>
+
+      <SectionCard title="Scan per plan — akun yang scan kemarin vs tidak (hari WIB)">
+        <div className="grid gap-3 sm:grid-cols-3">
+          {PLAN_ROWS.map(({ plan, label }) => {
+            const p = o?.plans[plan];
+            return (
+              <StatCard
+                key={plan}
+                label={`${label} (${p ? fmtNum(p.users) : "…"} akun)`}
+                value={
+                  p ? (
+                    <>
+                      {fmtNum(p.activeYesterday)} aktif
+                      <span className="text-muted-foreground"> · </span>
+                      {fmtNum(p.users - p.activeYesterday)} tidak
+                    </>
+                  ) : (
+                    stat(undefined)
+                  )
+                }
+                hint={
+                  p && (
+                    <>
+                      Hari ini: {fmtNum(p.activeToday)} aktif ·{" "}
+                      <a className="text-primary underline" href={`#users?plan=${plan}&idle=1`}>
+                        lihat yang tidak scan
+                      </a>
+                    </>
+                  )
+                }
+              />
+            );
+          })}
+        </div>
+      </SectionCard>
 
       <SectionCard title="Last 30 days — scans per day">
         <QueryBoundary

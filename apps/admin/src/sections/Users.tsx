@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Check, SearchX, TriangleAlert } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, SearchX, UserX } from "lucide-react";
 import { Checkbox } from "@joyorogo/ui/components/checkbox";
 import {
   fmtDate,
@@ -8,11 +8,21 @@ import {
   get,
   type AdminUser,
   type PagedUsers,
+  type Plan,
 } from "../api";
 import { SERVER_URL } from "../auth-client";
 import { useClampPage, useHashQuery, usePaging } from "../hash";
 import {
-  Badge,
+  ABUSE_7D,
+  DayScans,
+  LastScan,
+  PlanBadge,
+  ScanCount,
+  Streak,
+  founderUntilNote,
+} from "../scan-parts";
+import {
+  Button,
   CardFacts,
   DataList,
   Pagination,
@@ -20,24 +30,9 @@ import {
   SearchBox,
   Select,
   type Column,
+  type ListSort,
 } from "../ui";
 import { UserDetail } from "./UserDetail";
-
-// Same heuristics as the server (admin.ts ABUSE_TODAY / ABUSE_7D).
-const ABUSE_TODAY = 50;
-const ABUSE_7D = 300;
-
-function TierBadge({ user }: { user: AdminUser }) {
-  return (
-    <span className="inline-flex flex-wrap items-start gap-1">
-      <Badge tone={user.tier === "founder" ? "green" : "muted"}>
-        {user.tier === "founder" ? "Founder" : "Free"}
-      </Badge>
-      {user.manualTier === "founder" && <Badge tone="amber">comp</Badge>}
-      {user.aiUnlimited && <Badge tone="amber">AI unlimited</Badge>}
-    </span>
-  );
-}
 
 function Avatar({ user }: { user: AdminUser }) {
   return user.image ? (
@@ -54,23 +49,6 @@ function Avatar({ user }: { user: AdminUser }) {
   );
 }
 
-/** Scan count, flagged red when it crosses the abuse threshold. */
-function ScanCount({ value, flagAt }: { value: number; flagAt: number }) {
-  return value >= flagAt ? (
-    <Badge tone="red" className="tabular-nums">
-      <TriangleAlert className="size-3" />
-      {fmtNum(value)}
-    </Badge>
-  ) : (
-    <>{fmtNum(value)}</>
-  );
-}
-
-const founderUntilNote = (u: AdminUser) =>
-  u.tier === "founder" && u.manualTier !== "founder" && u.founderUntil !== null
-    ? `until ${fmtDate(u.founderUntil)}`
-    : null;
-
 const COLUMNS: Column<AdminUser>[] = [
   {
     key: "user",
@@ -86,11 +64,11 @@ const COLUMNS: Column<AdminUser>[] = [
     ),
   },
   {
-    key: "tier",
-    header: "Tier",
+    key: "plan",
+    header: "Plan",
     cell: (u) => (
       <>
-        <TierBadge user={u} />
+        <PlanBadge user={u} />
         {founderUntilNote(u) && (
           <div className="mt-0.5 text-[0.6875rem] text-muted-foreground">{founderUntilNote(u)}</div>
         )}
@@ -104,23 +82,62 @@ const COLUMNS: Column<AdminUser>[] = [
       u.onboarded ? <Check aria-label="Onboarded" className="size-4 text-primary" /> : "—",
   },
   {
+    key: "yesterday",
+    header: "Scans yesterday",
+    numeric: true,
+    sortKey: "scansYesterday",
+    cell: (u) => <DayScans value={u.scansYesterday} />,
+  },
+  {
     key: "today",
     header: "Scans today",
     numeric: true,
-    cell: (u) => (
-      <ScanCount value={u.scansToday} flagAt={ABUSE_TODAY} />
-    ),
+    sortKey: "scansToday",
+    cell: (u) => <DayScans value={u.scansToday} />,
+  },
+  {
+    key: "streak",
+    header: "Streak",
+    numeric: true,
+    sortKey: "streak",
+    cell: (u) => <Streak days={u.streak} />,
+  },
+  {
+    key: "lastScan",
+    header: "Last scan",
+    nowrap: true,
+    sortKey: "lastScan",
+    cell: (u) => <LastScan user={u} />,
   },
   {
     key: "7d",
     header: "Scans 7d",
     numeric: true,
+    sortKey: "scans7d",
     cell: (u) => <ScanCount value={u.scans7d} flagAt={ABUSE_7D} />,
   },
-  { key: "total", header: "Scans total", numeric: true, cell: (u) => fmtNum(u.scansTotal) },
+  {
+    key: "total",
+    header: "Scans total",
+    numeric: true,
+    sortKey: "scansTotal",
+    cell: (u) => fmtNum(u.scansTotal),
+  },
   { key: "food", header: "Food logs", numeric: true, cell: (u) => fmtNum(u.foodLogs) },
-  { key: "seen", header: "Last seen", nowrap: true, cell: (u) => fmtDateTime(u.lastSeen) },
-  { key: "created", header: "Created", nowrap: true, cell: (u) => fmtDate(u.createdAt) },
+  {
+    key: "seen",
+    header: "Last seen",
+    nowrap: true,
+    sortKey: "lastSeen",
+    cell: (u) => fmtDateTime(u.lastSeen),
+  },
+  {
+    key: "created",
+    header: "Created",
+    nowrap: true,
+    sortKey: "newest",
+    cell: (u) => fmtDate(u.createdAt),
+  },
   {
     key: "orders",
     header: "Orders",
@@ -138,19 +155,21 @@ function UserCard({ user: u }: { user: AdminUser }) {
           <div className="truncate text-sm font-medium">{u.name ?? "—"}</div>
           <div className="truncate text-xs text-muted-foreground">{u.email}</div>
         </div>
-        <TierBadge user={u} />
+        <PlanBadge user={u} />
       </div>
       <CardFacts
         facts={[
           {
-            label: "Scans hari ini / 7d",
+            label: "Scans kemarin / hari ini",
             value: (
               <>
-                <ScanCount value={u.scansToday} flagAt={ABUSE_TODAY} /> /{" "}
-                <ScanCount value={u.scans7d} flagAt={ABUSE_7D} />
+                <DayScans value={u.scansYesterday} /> / <DayScans value={u.scansToday} />
               </>
             ),
           },
+          { label: "Streak", value: <Streak days={u.streak} /> },
+          { label: "Scan terakhir", value: <LastScan user={u} /> },
+          { label: "Scans 7d", value: <ScanCount value={u.scans7d} flagAt={ABUSE_7D} /> },
           { label: "Scans total", value: fmtNum(u.scansTotal) },
           { label: "Food logs", value: fmtNum(u.foodLogs) },
           { label: "Onboarded", value: u.onboarded ? "Ya" : "Belum" },
@@ -167,26 +186,59 @@ function UserCard({ user: u }: { user: AdminUser }) {
   );
 }
 
-type SortKey = "newest" | "lastSeen" | "scansToday" | "scans7d" | "scansTotal";
-const SORTS: SortKey[] = ["scans7d", "scansToday", "scansTotal", "lastSeen", "newest"];
+type SortKey =
+  | "newest"
+  | "lastSeen"
+  | "scansToday"
+  | "scansYesterday"
+  | "scans7d"
+  | "scansTotal"
+  | "streak"
+  | "lastScan";
+const SORTS: SortKey[] = [
+  "scans7d",
+  "scansToday",
+  "scansYesterday",
+  "streak",
+  "lastScan",
+  "scansTotal",
+  "lastSeen",
+  "newest",
+];
+const DEFAULT_SORT: SortKey = "scans7d";
+
+const PLANS: Plan[] = ["paid", "founder", "free"];
+/** Server `idle` values: no scan today nor in the N days before. */
+const IDLE_OPTIONS = [
+  { value: "", label: "Tidak scan: semua" },
+  { value: "1", label: "Tidak scan: kemarin & hari ini" },
+  { value: "3", label: "Tidak scan: 3 hari + hari ini" },
+  { value: "7", label: "Tidak scan: 7 hari + hari ini" },
+];
 
 export function UsersSection() {
   const { params, set } = useHashQuery("users");
   const q = params.get("q") ?? "";
-  const tier = params.get("tier") === "free" || params.get("tier") === "founder" ? params.get("tier")! : "";
+  const planParam = params.get("plan");
+  const plan = PLANS.find((p) => p === planParam) ?? "";
+  const idleParam = params.get("idle");
+  const idle = IDLE_OPTIONS.some((o) => o.value === idleParam) ? (idleParam ?? "") : "";
   const abuse = params.get("abuse") === "1";
   const sortParam = params.get("sort") as SortKey | null;
-  const sort: SortKey = sortParam && SORTS.includes(sortParam) ? sortParam : "scans7d";
+  const sort: SortKey = sortParam && SORTS.includes(sortParam) ? sortParam : DEFAULT_SORT;
+  const dir = params.get("dir") === "asc" ? "asc" : "desc";
   const paging = usePaging(params, set);
   const openId = params.get("user");
 
   const sp = new URLSearchParams({
     sort,
+    dir,
     page: String(paging.page),
     pageSize: String(paging.pageSize),
   });
   if (q) sp.set("q", q);
-  if (tier) sp.set("tier", tier);
+  if (plan) sp.set("plan", plan);
+  if (idle) sp.set("idle", idle);
   if (abuse) sp.set("abuse", "1");
 
   const users = useQuery({
@@ -198,7 +250,37 @@ export function UsersSection() {
 
   const setFilter = (patch: Record<string, string | number | null>) =>
     set({ ...patch, page: null });
-  const filtered = Boolean(q || tier || abuse);
+  const filtered = Boolean(q || plan || idle || abuse);
+
+  // Defaults stay out of the URL.
+  const setSort = (key: SortKey, nextDir: "asc" | "desc") =>
+    setFilter({ sort: key === DEFAULT_SORT ? null : key, dir: nextDir === "desc" ? null : nextDir });
+  const listSort: ListSort = {
+    key: sort,
+    dir,
+    onSort: (key) => {
+      const next = key as SortKey;
+      setSort(next, next === sort && dir === "desc" ? "asc" : "desc");
+    },
+  };
+
+  // "Paid, not scanning" / "Free, not scanning": the plan + an idle window (1 = yesterday and today).
+  const quick = (target: Plan, label: string) => {
+    const active = plan === target && idle !== "";
+    return (
+      <Button
+        size="sm"
+        variant={active ? "default" : "outline"}
+        aria-pressed={active}
+        onClick={() =>
+          setFilter(active ? { plan: null, idle: null } : { plan: target, idle: idle || "1" })
+        }
+      >
+        <UserX />
+        {label}
+      </Button>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -209,29 +291,48 @@ export function UsersSection() {
           placeholder="Cari nama atau email…"
           label="Cari user"
         />
-        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
           <Select
-            value={tier}
-            onValueChange={(v) => setFilter({ tier: v || null })}
-            aria-label="Filter tier"
+            value={plan}
+            onValueChange={(v) => setFilter({ plan: v || null })}
+            aria-label="Filter plan"
             options={[
-              { value: "", label: "Tier: semua" },
-              { value: "free", label: "Tier: free" },
-              { value: "founder", label: "Tier: founder" },
+              { value: "", label: "Plan: semua" },
+              { value: "paid", label: "Plan: paid" },
+              { value: "founder", label: "Plan: founder (comp)" },
+              { value: "free", label: "Plan: free" },
             ]}
           />
           <Select
+            value={idle}
+            onValueChange={(v) => setFilter({ idle: v || null })}
+            aria-label="Filter tidak scan"
+            options={IDLE_OPTIONS}
+          />
+          <Select
             value={sort}
-            onValueChange={(v) => setFilter({ sort: v === "scans7d" ? null : v })}
+            onValueChange={(v) => setSort(v as SortKey, dir)}
             aria-label="Urutkan"
             options={[
               { value: "scans7d", label: "Sort: scans 7d" },
               { value: "scansToday", label: "Sort: scans today" },
+              { value: "scansYesterday", label: "Sort: scans yesterday" },
+              { value: "streak", label: "Sort: streak" },
+              { value: "lastScan", label: "Sort: last scan" },
               { value: "scansTotal", label: "Sort: scans total" },
               { value: "lastSeen", label: "Sort: last seen" },
               { value: "newest", label: "Sort: newest" },
             ]}
           />
+          <Button
+            variant="secondary"
+            className="h-12 rounded-xl"
+            aria-label={dir === "desc" ? "Urutan terbesar dulu" : "Urutan terkecil dulu"}
+            onClick={() => setSort(sort, dir === "desc" ? "asc" : "desc")}
+          >
+            {dir === "desc" ? <ArrowDown /> : <ArrowUp />}
+            {dir === "desc" ? "Terbesar dulu" : "Terkecil dulu"}
+          </Button>
           <label className="col-span-2 inline-flex h-12 cursor-pointer items-center gap-2 rounded-xl bg-muted px-3 text-base text-foreground">
             <Checkbox
               checked={abuse}
@@ -240,6 +341,14 @@ export function UsersSection() {
             Dugaan abuse
           </label>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {quick("paid", "Paid, tidak scan")}
+        {quick("free", "Free, tidak scan")}
+        <span className="text-xs text-muted-foreground">
+          Jendela mengikuti filter “Tidak scan” (default kemarin & hari ini); hari = WIB.
+        </span>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -258,6 +367,7 @@ export function UsersSection() {
                 rows={d.users}
                 rowKey={(u) => u.id}
                 columns={COLUMNS}
+                sort={listSort}
                 card={(u) => <UserCard user={u} />}
                 onRowClick={(u) => set({ user: u.id })}
                 rowLabel={(u) => `Buka detail ${u.name ?? u.email}`}

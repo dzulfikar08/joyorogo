@@ -106,6 +106,14 @@ export function lastWibDays(n: number): string[] {
   );
 }
 
+const wibDayKey = (ms: number) => new Date(ms + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+/** Whole WIB calendar days between `ms` and now (0 = today); null for no timestamp. */
+export function wibDaysAgo(ms: number | null | undefined): number | null {
+  if (ms === null || ms === undefined) return null;
+  return Math.round((Date.parse(wibDayKey(Date.now())) - Date.parse(wibDayKey(ms))) / 86_400_000);
+}
+
 /** Message for a failed request, without the "Error:" prefix `String(err)` adds. */
 export function errorMessage(err: unknown): string {
   if (err instanceof ApiError) return err.message;
@@ -128,7 +136,21 @@ export interface Overview {
   pendingOrders: number;
   paidOrders: number;
   revenueIdr: number;
+  /** Accounts per plan and how many of them scanned yesterday / today (Jakarta days). */
+  plans: Record<Plan, PlanScanStats>;
 }
+
+/** paid = active paid period; founder = manual comp without one; free = the rest. */
+export type Plan = "paid" | "founder" | "free";
+
+export interface PlanScanStats {
+  users: number;
+  activeYesterday: number;
+  activeToday: number;
+}
+
+/** Streaks are counted over this many Jakarta days (server STREAK_WINDOW_DAYS); the cap shows as "60+". */
+export const STREAK_CAP = 60;
 
 export interface UsageDay {
   day: string;
@@ -149,13 +171,19 @@ export interface AdminUser {
   tier: "free" | "founder";
   /** Raw comp column; "founder" here means manually granted. */
   manualTier: "free" | "founder";
-  /** Detail endpoint echoes the effective tier; falls back to `tier`. */
-  effectiveTier?: "free" | "founder";
+  /** Paid period > manual comp > free. */
+  plan: Plan;
   founderUntil: string | number | null;
   aiUnlimited: boolean;
   createdAt: string | number;
   lastSeen: string | number | null;
   scansToday: number;
+  /** Scans on the Jakarta day before today. */
+  scansYesterday: number;
+  /** Consecutive Jakarta days with a scan, ending today or yesterday (0 = broken); capped at STREAK_CAP. */
+  streak: number;
+  /** Newest scan (ms), null if the user never scanned. */
+  lastScanAt: number | null;
   scans7d: number;
   scansTotal: number;
   foodLogs: number;

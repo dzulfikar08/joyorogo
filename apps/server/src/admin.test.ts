@@ -118,7 +118,7 @@ describe("paging validation", () => {
     "/api/admin/users?pageSize=7",
     "/api/admin/users?pageSize=1000",
     "/api/admin/users?sort=bogus",
-    "/api/admin/users?tier=gold",
+    "/api/admin/users?plan=gold",
     "/api/admin/orders?status=bogus",
     "/api/admin/reports?status=bogus",
     "/api/admin/feedback/negatives?pageSize=0",
@@ -130,7 +130,7 @@ describe("paging validation", () => {
   });
 
   test("defaults to page 1 of 25, and a cleared filter counts as absent", async () => {
-    const res = await call("/api/admin/users?tier=&abuse=&q=");
+    const res = await call("/api/admin/users?plan=&idle=&dir=&abuse=&q=");
     expect(res.status).toBe(200);
     expect(res.body.page).toBe(1);
     expect(res.body.pageSize).toBe(25);

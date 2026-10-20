@@ -22,13 +22,14 @@ import {
   type UserOrder,
 } from "../api";
 import { useClampPage, useHashQuery, usePaging } from "../hash";
+import { DayScans, LastScan, PlanBadge, Streak, founderUntilNote } from "../scan-parts";
 import { Amount, CheckOrderButton, OrderStatus } from "../order-parts";
 import {
   Badge,
   CardFacts,
   ConfirmAction,
   CardList,
-  DayBars,
+  BarChart,
   Pagination,
   QueryBoundary,
   SectionCard,
@@ -240,34 +241,40 @@ export function UserDetail({ userId, onClose }: { userId: string; onClose: () =>
       ) : (
         <div className="flex flex-col gap-4 pb-4">
           <div className="flex flex-wrap gap-2">
-            <Badge tone={(u.effectiveTier ?? u.tier) === "founder" ? "green" : "muted"}>
-              {u.effectiveTier ?? u.tier}
-              {(u.effectiveTier ?? u.tier) === "founder" &&
-                u.manualTier !== "founder" &&
-                u.founderUntil !== null &&
-                ` until ${fmtDate(u.founderUntil)}`}
-            </Badge>
-            {u.manualTier === "founder" && <Badge tone="amber">comp</Badge>}
-            {u.aiUnlimited && <Badge tone="amber">AI unlimited</Badge>}
+            <PlanBadge user={u} />
+            {founderUntilNote(u) && <Badge>{founderUntilNote(u)}</Badge>}
             {u.onboarded ? <Badge tone="green">onboarded</Badge> : <Badge>not onboarded</Badge>}
             <Badge>joined {fmtDate(u.createdAt)}</Badge>
             <Badge>last seen {fmtDateTime(u.lastSeen)}</Badge>
-            <Badge>
-              scans {fmtNum(u.scansToday)}/d · {fmtNum(u.scans7d)}/7d · {fmtNum(u.scansTotal)} total
-            </Badge>
             <Badge>{fmtNum(u.foodLogs)} food logs</Badge>
           </div>
+
+          <SectionCard title="Aktivitas scan">
+            <CardFacts
+              facts={[
+                { label: "Kemarin", value: <DayScans value={u.scansYesterday} /> },
+                { label: "Hari ini", value: <DayScans value={u.scansToday} /> },
+                { label: "Streak (hari)", value: <Streak days={u.streak} /> },
+                { label: "Scan terakhir", value: <LastScan user={u} /> },
+                { label: "7 hari", value: fmtNum(u.scans7d) },
+                { label: "Total", value: fmtNum(u.scansTotal) },
+              ]}
+            />
+          </SectionCard>
 
           <SectionCard title="Tier controls">
             <TierControls user={u} />
           </SectionCard>
 
-          <SectionCard title="Scans per day (last 30d)">
-            <DayBars
-              rows={[...d.perDay]
-                .reverse()
-                .slice(-30)
-                .map((d) => ({ key: d.day, label: d.day.slice(5), value: d.scans }))}
+          <SectionCard title="Scans per hari (30 hari, WIB)">
+            <BarChart
+              height={100}
+              formatValue={fmtNum}
+              rows={d.perDay.map((day) => ({
+                key: day.day,
+                label: `${day.day.slice(8)}/${day.day.slice(5, 7)}`,
+                value: day.scans,
+              }))}
             />
           </SectionCard>
 

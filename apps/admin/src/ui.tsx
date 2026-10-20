@@ -5,6 +5,8 @@ import { Input } from "@joyorogo/ui/components/input";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import {
+  ArrowDown,
+  ArrowUp,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -433,7 +435,16 @@ export type Column<T> = {
   numeric?: boolean;
   /** Keep the cell on one line: dates, ids, counts. */
   nowrap?: boolean;
+  /** Makes the header a sort button (needs DataList `sort`); the key the server sorts by. */
+  sortKey?: string;
   className?: string;
+};
+
+/** Active sort of a DataList: clicking a sortable header calls `onSort` with its key. */
+export type ListSort = {
+  key: string;
+  dir: "asc" | "desc";
+  onSort: (key: string) => void;
 };
 
 // Literal class names so Tailwind sees them: table at/above the container width, cards below.
@@ -463,6 +474,7 @@ export function DataList<T>({
   card,
   onRowClick,
   rowLabel,
+  sort,
   switchAt = "5xl",
 }: {
   rows: T[];
@@ -472,6 +484,7 @@ export function DataList<T>({
   onRowClick?: (row: T) => void;
   /** Accessible name of a clickable row. */
   rowLabel?: (row: T) => string;
+  sort?: ListSort;
   switchAt?: keyof typeof SWITCH;
 }) {
   const at = SWITCH[switchAt];
@@ -482,8 +495,37 @@ export function DataList<T>({
           <thead>
             <tr>
               {columns.map((c) => (
-                <th key={c.key} className={cn(c.numeric && "text-right")}>
-                  {c.header}
+                <th
+                  key={c.key}
+                  className={cn(c.numeric && "text-right")}
+                  aria-sort={
+                    sort && c.sortKey === sort.key
+                      ? sort.dir === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : undefined
+                  }
+                >
+                  {sort && c.sortKey ? (
+                    <button
+                      type="button"
+                      onClick={() => sort.onSort(c.sortKey!)}
+                      className={cn(
+                        "inline-flex cursor-pointer items-center gap-1 rounded font-semibold outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40",
+                        c.sortKey === sort.key && "text-foreground",
+                      )}
+                    >
+                      {c.header}
+                      {c.sortKey === sort.key &&
+                        (sort.dir === "asc" ? (
+                          <ArrowUp className="size-3" aria-hidden />
+                        ) : (
+                          <ArrowDown className="size-3" aria-hidden />
+                        ))}
+                    </button>
+                  ) : (
+                    c.header
+                  )}
                 </th>
               ))}
             </tr>

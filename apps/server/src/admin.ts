@@ -6,7 +6,7 @@ import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 
 import { commentPhotoKeysOf } from "@joyorogo/api/lib/comment-attachment";
-import { jakartaToday } from "@joyorogo/api/lib/engine";
+import { shiftDate } from "@joyorogo/api/lib/engine";
 import { feedbackPhotoKey } from "@joyorogo/api/lib/feedback-keep";
 import { accuracyReportSummary } from "@joyorogo/api/lib/accuracy-report";
 import {
@@ -19,7 +19,7 @@ import {
   wibDaySql as wibDay,
 } from "@joyorogo/api/lib/scan-outcome";
 import type { ScanOutcome, ScanSession } from "@joyorogo/api/lib/scan-outcome";
-import { effectiveTier, wibDayBounds } from "@joyorogo/api/lib/tiers";
+import { wibDayBounds } from "@joyorogo/api/lib/tiers";
 import { SCAN_ID_RE, scanSrcKey } from "@joyorogo/api/lib/sticker";
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
 import { session, user } from "@joyorogo/db/schema/auth";
@@ -29,9 +29,11 @@ import { post as postTable, postComment, socialReport } from "@joyorogo/db/schem
 import type { Database } from "@joyorogo/db";
 
 import { listReportDates, readReport } from "./accuracy-job";
+import { DAY_MS, IDLE_DAYS, intSql, scanSql } from "./admin-scans";
+import type { ScanSql } from "./admin-scans";
 import { internalEmailsSql } from "./internal-accounts";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const THIRTY_DAYS = 30;
 
 type OutcomeCounts = Record<ScanOutcome, number>;
 // Abuse heuristics shared by the users filter and the console badges.
@@ -55,7 +57,7 @@ const pagingShape = {
 const pagingSchema = z.object(pagingShape);
 
 /** Optional enum filter; an empty value (cleared filter) counts as absent. */
-const filterEnum = <const T extends [string, ...string[]]>(values: T) =>
+const filterEnum = <const T extends readonly [string, ...string[]]>(values: T) =>
   z.preprocess((v) => (v === "" ? undefined : v), z.enum(values).optional());
 const searchTerm = z.string().trim().max(100).optional();
 
@@ -99,6 +101,8 @@ type Deps = {
   reconcileById: (orderId: string) => Promise<string>;
   /** Sends a test email to `to`; returns the send outcome text. */
   sendTestEmail: (to: string) => Promise<string>;
+  /** Clock in ms; tests pin it to hit Jakarta day boundaries. Default Date.now. */
+  now?: () => number;
 };
 
 /** Removes the R2 objects of comment photos whose rows an admin delete just cascaded away. */
@@ -137,46 +141,89 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
 
   app.get("/api/admin/me", (c) => c.json({ ok: true }));
 
-  // Paged, filtered user list. Query: q (name/email), tier=free|founder,
-  // abuse=1, sort=newest|lastSeen|scansToday|scans7d|scansTotal, page,
-  // pageSize. Every sort ends in created_at desc, id desc so pages are stable.
+  // One row of the users list / detail: profile, plan, and per-user scan
+  // activity (see admin-scans.ts for what a "scan" is). Correlated subqueries
+  // must name the outer table: drizzle renders a bare column ref as "id",
+  // which the inner FROM would resolve to its own id.
+  const userColumns = (scans: ScanSql, now: number) => {
+    const uid = sql.raw(`"user"."id"`);
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      image: user.image,
+      // Effective tier (paid period counts); manualTier is the raw comp column.
+      tier: sql<"free" | "founder">`case when (${user.tier} = 'founder' or ${user.founderUntil} > ${intSql(now)}) then 'founder' else 'free' end`,
+      plan: scans.plan,
+      manualTier: user.tier,
+      founderUntil: user.founderUntil,
+      aiUnlimited: user.aiUnlimited,
+      createdAt: user.createdAt,
+      lastSeen: sql<number | null>`(select max(updated_at) from session where session.user_id = ${uid})`,
+      scansToday: scans.scansToday,
+      scansYesterday: scans.scansYesterday,
+      scans7d: sql<number>`(select count(*) from ai_usage where ai_usage.user_id = ${uid} and ai_usage.scan_type = 'user' and ai_usage.created_at >= ${intSql(now - 7 * DAY_MS)})`,
+      scansTotal: sql<number>`(select count(*) from ai_usage where ai_usage.user_id = ${uid} and ai_usage.scan_type = 'user')`,
+      streak: scans.streak,
+      lastScanAt: scans.lastScanAt,
+      foodLogs: sql<number>`(select count(*) from food_log where food_log.user_id = ${uid})`,
+      onboarded: sql<number>`(select count(*) from profile where profile.user_id = ${uid})`,
+      pendingOrders: sql<number>`(select count(*) from payment where payment.user_id = ${uid} and payment.status = 'pending')`,
+      paidOrders: sql<number>`(select count(*) from payment where payment.user_id = ${uid} and payment.status = 'paid' and payment.amount_idr > 0)`,
+    };
+  };
+
+  // Paged, filtered user list. Query: q (name/email), plan=paid|founder|free
+  // (founder = manual comp), idle=1|3|7 (no scan today nor in the N days
+  // before; never-scanned users included), abuse=1,
+  // sort=newest|lastSeen|scansToday|scansYesterday|scans7d|scansTotal|streak|lastScan,
+  // dir=asc|desc (default desc), page, pageSize. Every sort ends in
+  // created_at desc, id desc so pages are stable.
   const usersQuery = pagingSchema.extend({
     q: searchTerm,
-    tier: filterEnum(["free", "founder"]),
+    plan: filterEnum(["paid", "founder", "free"]),
+    idle: filterEnum(IDLE_DAYS),
     abuse: filterEnum(["1"]),
-    sort: z.enum(["newest", "lastSeen", "scansToday", "scans7d", "scansTotal"]).default("newest"),
+    sort: z
+      .enum([
+        "newest",
+        "lastSeen",
+        "scansToday",
+        "scansYesterday",
+        "scans7d",
+        "scansTotal",
+        "streak",
+        "lastScan",
+      ])
+      .default("newest"),
+    dir: filterEnum(["asc", "desc"]),
   });
   app.get("/api/admin/users", async (c) => {
-    const { startMs, endMs } = wibDayBounds(jakartaToday());
-    const now = Date.now();
+    const now = deps.now?.() ?? Date.now();
     const query = parseQuery(c, usersQuery);
     const { page, pageSize } = query;
-    // Correlated subqueries must name the outer table: drizzle renders a bare
-    // column ref as "id", which the inner FROM would resolve to its own id.
-    const uid = sql.raw(`"user"."id"`);
-    const scans7dExpr = sql<number>`(select count(*) from ai_usage where ai_usage.user_id = ${uid} and ai_usage.scan_type = 'user' and ai_usage.created_at >= ${now - 7 * DAY_MS})`;
-    const scansTodayExpr = sql<number>`(select count(*) from ai_usage where ai_usage.user_id = ${uid} and ai_usage.scan_type = 'user' and ai_usage.created_at between ${startMs} and ${endMs})`;
-    const scansTotalExpr = sql<number>`(select count(*) from ai_usage where ai_usage.user_id = ${uid} and ai_usage.scan_type = 'user')`;
-    const lastSeenExpr = sql<number | null>`(select max(updated_at) from session where session.user_id = ${uid})`;
-    const founderExpr = sql`(${user.tier} = 'founder' or ${user.founderUntil} > ${now})`;
+    const scans = scanSql(now);
+    const cols = userColumns(scans, now);
 
     const filters = and(
       query.q ? containsAny([user.name, user.email], query.q) : undefined,
-      query.tier === "founder"
-        ? founderExpr
-        : query.tier === "free"
-          ? sql`not ${founderExpr}`
-          : undefined,
+      query.plan ? sql`${scans.plan} = ${query.plan}` : undefined,
+      query.idle ? scans.idleFor(Number(query.idle)) : undefined,
       query.abuse
-        ? sql`(${scansTodayExpr} >= ${ABUSE_TODAY} or ${scans7dExpr} >= ${ABUSE_7D})`
+        ? sql`(${cols.scansToday} >= ${ABUSE_TODAY} or ${cols.scans7d} >= ${ABUSE_7D})`
         : undefined,
     );
+    // Nulls (never seen, never scanned) sort as the smallest value.
+    const dir = query.dir === "asc" ? sql`asc` : sql`desc`;
     const primaryOrder = {
-      newest: undefined,
-      lastSeen: sql`${lastSeenExpr} desc nulls last`,
-      scansToday: sql`${scansTodayExpr} desc`,
-      scans7d: sql`${scans7dExpr} desc`,
-      scansTotal: sql`${scansTotalExpr} desc`,
+      newest: query.dir === "asc" ? sql`${user.createdAt} asc` : undefined,
+      lastSeen: sql`${cols.lastSeen} ${dir}`,
+      scansToday: sql`${cols.scansToday} ${dir}`,
+      scansYesterday: sql`${cols.scansYesterday} ${dir}`,
+      scans7d: sql`${cols.scans7d} ${dir}`,
+      scansTotal: sql`${cols.scansTotal} ${dir}`,
+      streak: sql`${cols.streak} ${dir}`,
+      lastScan: sql`${cols.lastScanAt} ${dir}`,
     }[query.sort];
 
     const db = deps.getDb();
@@ -197,26 +244,7 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
       pageIds.length === 0
         ? []
         : await db
-            .select({
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              image: user.image,
-              // Effective tier (paid period counts); manualTier is the raw comp column.
-              tier: sql<"free" | "founder">`case when ${founderExpr} then 'founder' else 'free' end`,
-              manualTier: user.tier,
-              founderUntil: user.founderUntil,
-              aiUnlimited: user.aiUnlimited,
-              createdAt: user.createdAt,
-              lastSeen: lastSeenExpr,
-              scansToday: scansTodayExpr,
-              scans7d: scans7dExpr,
-              scansTotal: scansTotalExpr,
-              foodLogs: sql<number>`(select count(*) from food_log where food_log.user_id = ${uid})`,
-              onboarded: sql<number>`(select count(*) from profile where profile.user_id = ${uid})`,
-              pendingOrders: sql<number>`(select count(*) from payment where payment.user_id = ${uid} and payment.status = 'pending')`,
-              paidOrders: sql<number>`(select count(*) from payment where payment.user_id = ${uid} and payment.status = 'paid' and payment.amount_idr > 0)`,
-            })
+            .select(cols)
             .from(user)
             .where(
               inArray(
@@ -231,28 +259,45 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
 
   // Headline numbers for the dashboard cards.
   app.get("/api/admin/overview", async (c) => {
-    const { startMs, endMs } = wibDayBounds(jakartaToday());
-    const now = Date.now();
-    const [row] = await deps
-      .getDb()
-      .select({
-        users: sql<number>`(select count(*) from user where email not in (${internalEmailsSql}))`,
-        signupsToday: sql<number>`(select count(*) from user where email not in (${internalEmailsSql}) and created_at between ${startMs} and ${endMs})`,
-        signups7d: sql<number>`(select count(*) from user where email not in (${internalEmailsSql}) and created_at >= ${now - 7 * DAY_MS})`,
-        onboarded: sql<number>`(select count(*) from profile where user_id not in (select id from user where email in (${internalEmailsSql})))`,
-        activeToday: sql<number>`(select count(distinct user_id) from session where user_id not in (select id from user where email in (${internalEmailsSql})) and updated_at between ${startMs} and ${endMs})`,
-        founders: sql<number>`(select count(*) from user where tier = 'founder' or founder_until > ${now})`,
-        scansToday: sql<number>`(select count(*) from ai_usage where scan_type = 'user' and created_at between ${startMs} and ${endMs})`,
-        scans7d: sql<number>`(select count(*) from ai_usage where scan_type = 'user' and created_at >= ${now - 7 * DAY_MS})`,
-        anonScansToday: sql<number>`(select count(*) from ai_usage where scan_type != 'user' and created_at between ${startMs} and ${endMs})`,
-        pendingOrders: sql<number>`(select count(*) from payment where status = 'pending')`,
-        paidOrders: sql<number>`(select count(*) from payment where status = 'paid' and amount_idr > 0)`,
-        revenueIdr: sql<number>`(select coalesce(sum(amount_idr), 0) from payment where status = 'paid')`,
-      })
-      // Every column is a scalar subquery; any one-row source works.
-      .from(user)
-      .limit(1);
-    return c.json(row);
+    const now = deps.now?.() ?? Date.now();
+    const scans = scanSql(now);
+    const { startMs, endMs } = wibDayBounds(scans.today);
+    const db = deps.getDb();
+    const [[row], planRows] = await Promise.all([
+      db
+        .select({
+          users: sql<number>`(select count(*) from user where email not in (${internalEmailsSql}))`,
+          signupsToday: sql<number>`(select count(*) from user where email not in (${internalEmailsSql}) and created_at between ${startMs} and ${endMs})`,
+          signups7d: sql<number>`(select count(*) from user where email not in (${internalEmailsSql}) and created_at >= ${now - 7 * DAY_MS})`,
+          onboarded: sql<number>`(select count(*) from profile where user_id not in (select id from user where email in (${internalEmailsSql})))`,
+          activeToday: sql<number>`(select count(distinct user_id) from session where user_id not in (select id from user where email in (${internalEmailsSql})) and updated_at between ${startMs} and ${endMs})`,
+          founders: sql<number>`(select count(*) from user where tier = 'founder' or founder_until > ${now})`,
+          scansToday: sql<number>`(select count(*) from ai_usage where scan_type = 'user' and created_at between ${startMs} and ${endMs})`,
+          scans7d: sql<number>`(select count(*) from ai_usage where scan_type = 'user' and created_at >= ${now - 7 * DAY_MS})`,
+          anonScansToday: sql<number>`(select count(*) from ai_usage where scan_type != 'user' and created_at between ${startMs} and ${endMs})`,
+          pendingOrders: sql<number>`(select count(*) from payment where status = 'pending')`,
+          paidOrders: sql<number>`(select count(*) from payment where status = 'paid' and amount_idr > 0)`,
+          revenueIdr: sql<number>`(select coalesce(sum(amount_idr), 0) from payment where status = 'paid')`,
+        })
+        // Every column is a scalar subquery; any one-row source works.
+        .from(user)
+        .limit(1),
+      // Scan activity per plan: how many accounts scanned yesterday / today.
+      db
+        .select({
+          plan: scans.plan,
+          users: sql<number>`count(*)`,
+          activeYesterday: sql<number>`coalesce(sum(${scans.activeYesterday}), 0)`,
+          activeToday: sql<number>`coalesce(sum(${scans.activeToday}), 0)`,
+        })
+        .from(user)
+        .where(sql`${user.email} not in (${internalEmailsSql})`)
+        .groupBy(scans.plan),
+    ]);
+    const empty = { users: 0, activeYesterday: 0, activeToday: 0 };
+    const planStats = { paid: { ...empty }, founder: { ...empty }, free: { ...empty } };
+    for (const { plan, ...counts } of planRows) planStats[plan] = counts;
+    return c.json({ ...row, plans: planStats });
   });
 
   // Per-WIB-day series: scans, distinct scanning users, signups, paid orders.
@@ -294,31 +339,36 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
     return c.json({ days: Object.values(byDay).sort((a, b) => a.day.localeCompare(b.day)) });
   });
 
-  // One user: profile + 30-day scan chart. The long lists (AI calls, food
-  // logs, orders, sessions) page through their own endpoints below.
+  // One user: the list row (plan, scan activity) + a 30-day scan chart (Jakarta
+  // days, oldest first, zero-filled). The long lists (AI calls, food logs,
+  // orders, sessions) page through their own endpoints below.
   app.get("/api/admin/users/:id", async (c) => {
     const id = c.req.param("id");
+    const now = deps.now?.() ?? Date.now();
+    const scans = scanSql(now);
     const db = deps.getDb();
-    const [[profile], perDay] = await Promise.all([
-      db.select().from(user).where(eq(user.id, id)).limit(1),
+    const firstDay = shiftDate(scans.today, 1 - THIRTY_DAYS);
+    const [[row], counts] = await Promise.all([
+      db.select(userColumns(scans, now)).from(user).where(eq(user.id, id)).limit(1),
       db
         .select({ day: wibDay(aiUsage.createdAt), scans: sql<number>`count(*)` })
         .from(aiUsage)
         .where(
           and(
             eq(aiUsage.userId, id),
-            ne(aiUsage.scanType, "failed"),
-            sql`${aiUsage.createdAt} >= ${Date.now() - 30 * DAY_MS}`,
+            eq(aiUsage.scanType, "user"),
+            sql`${aiUsage.createdAt} >= ${wibDayBounds(firstDay).startMs}`,
           ),
         )
-        .groupBy(wibDay(aiUsage.createdAt))
-        .orderBy(wibDay(aiUsage.createdAt)),
+        .groupBy(wibDay(aiUsage.createdAt)),
     ]);
-    if (!profile) return c.json({ error: "user not found" }, 404);
-    return c.json({
-      user: { ...profile, effectiveTier: effectiveTier(profile) },
-      perDay,
+    if (!row) return c.json({ error: "user not found" }, 404);
+    const byDay = new Map(counts.map((r) => [r.day, r.scans]));
+    const perDay = Array.from({ length: THIRTY_DAYS }, (_, i) => {
+      const day = shiftDate(firstDay, i);
+      return { day, scans: byDay.get(day) ?? 0 };
     });
+    return c.json({ user: row, perDay });
   });
 
   // Paged per-user lists, newest first (id as the tiebreak): page, pageSize.
