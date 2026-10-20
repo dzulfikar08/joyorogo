@@ -54,6 +54,7 @@ import {
 } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { HOSTS } from "@/lib/app-host";
+import { landingSkipsForSignedIn } from "@/lib/hosts";
 import { sessionQuery } from "@/lib/auth-client";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
@@ -70,9 +71,8 @@ export const Route = createFileRoute("/")({
     // straight from the persisted cache) and skip the landing. New visitors
     // must not wait on an API round trip, or retries when it is down, to see
     // the page; the component redirects later if a session turns up anyway.
-    // With a separate app host (HOSTS) the landing stays reachable for everyone: "Masuk" leads signed-in people
-    // into the app, and the app host's `/` goes to Beranda.
-    if (HOSTS || !localStorage.getItem(CACHE_OWNER_KEY)) return;
+    // With a separate app host the landing stays reachable for everyone (landingSkipsForSignedIn).
+    if (!landingSkipsForSignedIn(HOSTS) || !localStorage.getItem(CACHE_OWNER_KEY)) return;
     try {
       const session = await context.queryClient.ensureQueryData(sessionQuery);
       if (session) throw redirect({ to: "/beranda" });
@@ -443,8 +443,10 @@ function pricingFaq(config: AppConfig | undefined): Array<{ q: string; a: string
 function Landing() {
   const config = useAppConfig();
   // Background check for visitors the beforeLoad gate let through.
-  const { data: session } = useQuery({ ...sessionQuery, enabled: HOSTS === null });
-  if (session) return <Navigate to="/beranda" replace />;
+  // `enabled: false` still returns a session persisted in this origin's query cache, so the redirect itself is gated.
+  const skip = landingSkipsForSignedIn(HOSTS);
+  const { data: session } = useQuery({ ...sessionQuery, enabled: skip });
+  if (skip && session) return <Navigate to="/beranda" replace />;
   // Visitors outside Indonesia (known country, not ID) see Pro in dollars.
   const showUsd = Boolean(config.data?.usd?.preferred);
 

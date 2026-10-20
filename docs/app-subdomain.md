@@ -84,6 +84,17 @@ that is outside the installed app's scope, Android Chrome is expected to show it
 (not verified on a device); re-installing from `app.joyorogo.com` removes the bar. iOS Home Screen apps are the unknown
 case: check one. The manifest on `joyorogo.com` stays (an installed app must keep a valid one).
 
+## Checking both hosts locally
+
+`wrangler dev` rewrites every request to the host of the first `routes` entry, so with the committed config the Worker
+always sees `joyorogo.com` and the redirects loop. Copy `apps/web/wrangler.jsonc` without its `routes` array, build with
+`VITE_SERVER_URL=https://api.joyorogo.com VITE_APP_URL=https://app.joyorogo.com`, and run
+`wrangler dev -c <copy> --local --local-protocol https --port 8788`. Start Chromium with
+`--host-resolver-rules="MAP joyorogo.com 127.0.0.1:8788, MAP app.joyorogo.com 127.0.0.1:8788" --ignore-certificate-errors`:
+both hosts then reach the local Worker, and the real API accepts the origins (sign in with an email/password test account
+through `fetch("https://api.joyorogo.com/api/auth/sign-in/email", { credentials: "include" })` from the app host).
+Check signed out and signed in: the landing and every marketing page must stay on `joyorogo.com` in both states.
+
 ## Cut-over runbook
 
 Needs: Cloudflare account `b7e6f8457bd39fa37a7eea5249799754` (web and zone) and `3268f27664d77716b648b00c8850469e`

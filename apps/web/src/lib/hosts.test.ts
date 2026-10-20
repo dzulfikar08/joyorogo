@@ -8,6 +8,7 @@ import {
   SITE_SEGMENTS,
   appHref,
   areaOf,
+  landingSkipsForSignedIn,
   hostConfig,
   hostRedirect,
 } from "./hosts";
@@ -149,6 +150,16 @@ describe("hostRedirect elsewhere", () => {
     expect(hostRedirect(config, "joyorogo-web.workers.dev", "/beranda")).toBeNull();
     expect(hostRedirect(config, "localhost:3001", "/harga")).toBeNull();
     expect(hostRedirect(null, "joyorogo.com", "/beranda")).toBeNull();
+  });
+});
+
+describe("landingSkipsForSignedIn", () => {
+  test("a signed-in visitor stays on the landing when the app has its own host", () => {
+    expect(landingSkipsForSignedIn(config)).toBe(false);
+  });
+
+  test("the landing still forwards signed-in visitors when one host serves everything", () => {
+    expect(landingSkipsForSignedIn(null)).toBe(true);
   });
 });
 

@@ -113,6 +113,15 @@ export function hostRedirect(
 }
 
 /**
+ * Whether the landing sends a signed-in visitor straight to Beranda. Only when the app shares the landing's host (one
+ * host, self-hosted, workers.dev): with a separate app host the landing is a page people may want to read signed in, and
+ * the way into the app is the "Masuk" button, which lands on app.joyorogo.com.
+ */
+export function landingSkipsForSignedIn(config: HostConfig | null): boolean {
+  return config === null;
+}
+
+/**
  * Absolute link to an app path, for pages on the site host. Everywhere else (the app host itself, localhost, a
  * workers.dev preview, a self-hosted deploy) the path stays relative, so the router navigates without a reload.
  */
