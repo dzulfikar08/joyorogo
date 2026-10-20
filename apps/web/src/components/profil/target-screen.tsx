@@ -29,6 +29,7 @@ import {
 } from "@/components/gain/goal-plan";
 import { ActivityLevelSection } from "@/components/profil/activity-level-section";
 import { CalibrationSection } from "@/components/profil/calibration-section";
+import { ManualTdeeSection } from "@/components/profil/manual-tdee-section";
 import { SleepTargetSection } from "@/components/profil/sleep-target-section";
 import { ExerciseCreditSection } from "@/components/profil/exercise-credit-section";
 import { profileOptions } from "@/components/profil/shared";
@@ -188,7 +189,12 @@ export function TargetScreen({
           onClick={() => setSheet("needs")}
         />
       </ListGroup>
-      <ActivityLevelSection current={targets.level} maternal={targets.maternal !== null} />
+      <ActivityLevelSection
+        current={targets.level}
+        maternal={targets.maternal !== null}
+        manualTdee={targets.manualTdee?.kcal != null}
+      />
+      <ManualTdeeSection targets={targets} />
       <CalibrationSection maternal={targets.maternal !== null} />
       <SleepTargetSection current={targets.sleepHours} />
       <ExerciseCreditSection includedKcal={targets.includedKcal} />

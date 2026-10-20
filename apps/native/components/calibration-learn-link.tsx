@@ -7,13 +7,13 @@ import { PressableScale } from "@/components/motion";
 import { Text } from "@/components/ui";
 import { SITE_ORIGIN } from "@/src/lib/share-links";
 
-/** Link to the calibration section of the public energy guide. `label` is the translated text. */
-export function CalibrationLearnLink({ label }: { label: string }) {
+/** Link to a section of the public energy guide (the calibration one by default). `label` is the translated text. */
+export function CalibrationLearnLink({ label, hash = "calibration" }: { label: string; hash?: string }) {
   const { theme } = useUnistyles();
   return (
     <PressableScale
       accessibilityRole="link"
-      onPress={() => void Linking.openURL(`${SITE_ORIGIN}/panduan/kalori#calibration`)}
+      onPress={() => void Linking.openURL(`${SITE_ORIGIN}/panduan/kalori#${hash}`)}
       hitSlop={8}
       scaleTo={1}
       dimTo={0.7}

@@ -393,6 +393,13 @@
       "when": 1792464513580,
       "tag": "0055_sleep_target",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "6",
+      "when": 1792470443688,
+      "tag": "0056_manual_tdee",
+      "breakpoints": true
     }
   ]
 }

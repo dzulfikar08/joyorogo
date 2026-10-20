@@ -44,7 +44,7 @@ function Progress({ label, text, value, needed }: { label: string; text: string;
 /** Where the calibration stands, in plain words with the numbers that matter. */
 function Status({ info }: { info: CalibrationInfo }) {
   const { t } = useTranslation("energy");
-  const title = (key: "collectingTitle" | "waitingTitle" | "activeTitle" | "offTitle") => (
+  const title = (key: "collectingTitle" | "waitingTitle" | "activeTitle" | "offTitle" | "manualTitle") => (
     <p className="text-[0.9375rem] leading-snug font-bold">{t(`auto.status.${key}`)}</p>
   );
   let body: React.ReactNode;
@@ -95,6 +95,17 @@ function Status({ info }: { info: CalibrationInfo }) {
         </p>
         <p className={`mt-1 ${note}`}>
           {t("auto.status.held", { date: fmtDateLong(info.anchorDate), next: fmtDateLong(info.nextDate) })}
+        </p>
+      </>
+    );
+  } else if (info.status === "manual") {
+    body = (
+      <>
+        {title("manualTitle")}
+        <p className={`mt-1 tabular-nums ${note}`}>
+          {info.measuredKcal === null
+            ? t("auto.status.manualBodyNoMeasure")
+            : t("auto.status.manualBody", { measured: fmtInt(info.measuredKcal) })}
         </p>
       </>
     );
@@ -157,7 +168,15 @@ export function CalibrationSection({ maternal }: { maternal: boolean }) {
               <Switch label={t("auto.toggle")} checked={enabled} onCheckedChange={toggle} />
             </div>
             <p className={`mt-2 ${note}`}>
-              {t(!enabled ? "auto.toggleOff" : pending ? "auto.toggleOnPending" : "auto.toggleOn")}
+              {t(
+                !enabled
+                  ? "auto.toggleOff"
+                  : info?.status === "manual"
+                    ? "auto.toggleManual"
+                    : pending
+                      ? "auto.toggleOnPending"
+                      : "auto.toggleOn",
+              )}
             </p>
           </div>
           {info && <Status info={info} />}

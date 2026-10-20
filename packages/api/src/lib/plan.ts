@@ -24,6 +24,7 @@ import type { CalibrationInfo } from "./calibration";
 import { calibrationPrefQuery } from "./calibration-store";
 import type { CalibrationPrefs } from "./calibration-store";
 import { isRapidLoss } from "./gain";
+import { resolveManualTdee } from "./manual-tdee";
 import { computeMaternalTargets, maternalFromRow, maternalNutrient } from "./maternal";
 import type { MaternalState } from "./maternal";
 
@@ -34,8 +35,8 @@ const TREND_HISTORY_DAYS = 60;
  * Queries the plan needs for `date`, shaped for `db.batch` so callers fold
  * them into their own single round trip: profile, latest weigh-in ever,
  * 60 days of weigh-ins, the intake + exercise totals of the days before `date`
- * the calibration's weekly window reaches (34 days: 28 before the Monday on or
- * before `date`), and the calibration preferences.
+ * the calibration's weekly windows reach (41 days: 28 before the Monday before
+ * the one on or before `date`), and the calibration preferences.
  */
 export function planQueries(db: Database, userId: string, date: string) {
   const windowStart = shiftDate(date, -CALIBRATION_HISTORY_DAYS);
@@ -161,13 +162,36 @@ export function buildPlan(
   const weightNowKg = history.latestWeightKg ?? row.startWeightKg;
   // Hamil / Menyusui: no deficit, no weight target, no measured-TDEE drift.
   const maternal = maternalFromRow(row);
+  const manualKcal = row.manualTdeeKcal ?? null;
+  const manualInput = {
+    manualKcal,
+    date,
+    calibrationEnabled: history.prefs.enabled,
+    dismissedOn: row.manualTdeeDismissedOn ?? null,
+    weighIns: history.weighIns,
+    intake: history.intake,
+    exercise: history.exercise,
+  };
   if (maternal.mode !== "none") {
+    const computed = computeMaternalTargets(profileInput, maternal, { today: date, weightNow: weightNowKg });
+    // A typed TDEE replaces the pre-pregnancy base; the AKG addition goes on top of it as always.
+    const targets =
+      manualKcal === null
+        ? computed
+        : computeMaternalTargets(profileInput, maternal, { today: date, weightNow: weightNowKg, tdeeKcal: manualKcal });
+    // Maternal plans have no weight drift to measure, so there is nothing to suggest from.
+    targets.manualTdee = resolveManualTdee({
+      ...manualInput,
+      computedKcal: computed.tdee,
+      bmrKcal: computed.bmr,
+      calibrationEnabled: false,
+    });
     return {
       profileInput,
       latestWeightKg: history.latestWeightKg,
       weightNowKg,
       weighIns: history.weighIns,
-      targets: computeMaternalTargets(profileInput, maternal, { today: date, weightNow: weightNowKg }),
+      targets,
       trend: null,
       maternal,
       calibration: null,
@@ -186,8 +210,17 @@ export function buildPlan(
     exercise: history.exercise,
     formulaKcal: formula.tdee,
   });
-  const targets = tdeeKcal === null ? formula : computeTargets(profileInput, { weightNow: weightNowKg, tdeeKcal });
-  targets.calibration = info;
+  const computedKcal = tdeeKcal ?? formula.tdee;
+  // A typed TDEE wins over the calibrated one: the calibration keeps measuring, but only to suggest (lib/manual-tdee).
+  const targets =
+    manualKcal !== null
+      ? computeTargets(profileInput, { weightNow: weightNowKg, tdeeKcal: manualKcal })
+      : tdeeKcal === null
+        ? formula
+        : computeTargets(profileInput, { weightNow: weightNowKg, tdeeKcal });
+  targets.calibration =
+    manualKcal === null ? info : { ...info, status: "manual", usedKcal: null, clamped: false };
+  targets.manualTdee = resolveManualTdee({ ...manualInput, computedKcal, bmrKcal: formula.bmr });
   const trend = weightTrend(history.weighIns, row.targetWeightKg, date);
   // A fast fall while the plan is to gain gets the see-a-doctor note (the one flag that needs the trend).
   if (targets.gain && isRapidLoss(trend?.weeklyRateKg ?? null, weightNowKg)) {
@@ -201,7 +234,7 @@ export function buildPlan(
     targets,
     trend,
     maternal: null,
-    calibration: info,
+    calibration: targets.calibration,
     formulaEatKcal: formula.eatKcal,
     prefs: history.prefs,
   };

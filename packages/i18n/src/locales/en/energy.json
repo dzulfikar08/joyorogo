@@ -130,13 +130,19 @@
       "name": "Added today",
       "body": "Today's movement went beyond what your factor already contains. {{pct}}% of the extra is added to your eating allowance.",
       "labelCalibrated": "Movement above measured TDEE",
-      "bodyCalibrated": "Today's movement went beyond what is already measured in your TDEE. {{pct}}% of the extra is added to your eating allowance."
+      "bodyCalibrated": "Today's movement went beyond what is already measured in your TDEE. {{pct}}% of the extra is added to your eating allowance.",
+      "labelManual": "Movement above your TDEE",
+      "bodyManual": "Today's movement went beyond what your entered TDEE already holds. {{pct}}% of the excess is added to your food budget."
     },
     "none": "No movement above the factor today, so nothing has been added.",
     "noneCalibrated": "No movement above your measured TDEE today, so nothing has been added.",
     "calibrated": "Automatic calibration: formula {{formula}}, measured {{measured}}, used {{used}} kcal",
     "formulaCalibrated": "BMR {{bmr}} + measured daily movement {{move}} = TDEE {{tdee}}",
-    "includedCalibrated": "Your measured TDEE already contains about {{kcal}} kcal of daily movement (food effect aside). Only measured movement above that adds to your target."
+    "includedCalibrated": "Your measured TDEE already contains about {{kcal}} kcal of daily movement (food effect aside). Only measured movement above that adds to your target.",
+    "manual": "Own TDEE: you entered {{used}} kcal, our estimate is {{computed}} kcal.",
+    "formulaManual": "BMR {{bmr}} + daily movement {{move}} = TDEE {{tdee}} (your number)",
+    "includedManual": "The TDEE you entered already holds your daily movement. Only measured movement above that number adds to your target.",
+    "noneManual": "No movement above your TDEE yet today, so nothing is added."
   },
   "auto": {
     "title": "Automatic calibration",
@@ -169,8 +175,12 @@
       "activeBody": "Formula {{formula}} → used {{used}} kcal",
       "activeMeasured": "Measured {{measured}} kcal, still within the ±15% guard.",
       "clamped": "Measured {{measured}} kcal, outside the ±15% guard, so the guard value is used.",
-      "held": "Measured from the 28 days before {{date}}. Updated again {{next}}."
-    }
+      "held": "Measured from the 28 days before {{date}}. Updated again {{next}}.",
+      "manualTitle": "Using your own TDEE",
+      "manualBody": "Your target is built on the TDEE you entered. Calibration keeps measuring ({{measured}} kcal) but does not change your number.",
+      "manualBodyNoMeasure": "Calibration keeps measuring, but does not change your number."
+    },
+    "toggleManual": "Your target uses the TDEE you entered. Calibration only makes suggestions and never changes your number."
   },
   "calNotice": {
     "title": "Your target was adjusted",
@@ -180,5 +190,46 @@
     "learn": "Learn more",
     "dismiss": "Close"
   },
-  "readMore": "Read the full explanation"
+  "readMore": "Read the full explanation",
+  "manual": {
+    "title": "Use my own TDEE",
+    "subtitle": "Already know your daily calorie needs from somewhere else? Enter it yourself. The deficit or surplus for your goal, exercise add-back and the minimum-intake floor still apply on top of it.",
+    "label": "Your TDEE (kcal per day)",
+    "placeholder": "Example: 2250",
+    "reference": "Our estimate: {{kcal}} kcal",
+    "diff": {
+      "more": "Your number is {{kcal}} kcal above our estimate.",
+      "less": "Your number is {{kcal}} kcal below our estimate.",
+      "same": "Same as our estimate."
+    },
+    "save": "Save my TDEE",
+    "saved": "Your TDEE is saved.",
+    "reset": "Back to the automatic estimate",
+    "resetDone": "Back to the automatic estimate.",
+    "active": "Your target is built on the {{kcal}} kcal TDEE you entered.",
+    "activeCalibration": "Automatic calibration does not change your number. If your data shows it is off, we only make a suggestion.",
+    "rowValue": "{{kcal}} kcal",
+    "rowOff": "Automatic",
+    "error": {
+      "range": "Enter a whole number between {{min}} and {{max}} kcal.",
+      "empty": "Enter your TDEE first."
+    },
+    "warn": {
+      "BELOW_BMR": "Your number is below our BMR estimate ({{bmr}} kcal). Bodies rarely burn that little, double-check it. You can still save it.",
+      "ABOVE_RANGE": "Your number is more than 1.5x our estimate ({{kcal}} kcal). Double-check it. You can still save it."
+    },
+    "levelNote": "You use your own TDEE, so the activity level does not change your target.",
+    "onboardingLink": "Already know your TDEE? Enter it yourself",
+    "onboardingHide": "Close",
+    "suggest": {
+      "title": "Your number looks off",
+      "body": "Two weeks in a row, your food log and weigh-ins show your body burning about {{measured}} kcal a day, more than 10% from the {{manual}} kcal TDEE you entered.",
+      "hint": "Just a suggestion. Your number does not change unless you pick it.",
+      "accept": "Use this number",
+      "dismiss": "Leave it",
+      "accepted": "TDEE changed to {{kcal}} kcal.",
+      "dismissed": "Okay, your number stays."
+    },
+    "learn": "Learn more"
+  }
 }

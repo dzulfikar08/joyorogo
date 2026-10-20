@@ -69,6 +69,7 @@ import {
   type MaternalDraft,
 } from "@/components/maternal/maternal-form";
 import { useStageText } from "@/components/maternal/use-maternal";
+import { ManualTdeeForm } from "@/components/manual-tdee";
 import { errorMessage, fmtDateMedium, fmtInt, fmtKg, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
@@ -186,14 +187,18 @@ function GuideLink({ label }: { label: string }) {
 /** Result of onboarding: deficit plan summary, or the Hamil / Menyusui numbers (no deficit). */
 function ResultView({
   targets,
+  onTargets,
   onStart,
   onInvite,
 }: {
   targets: Targets;
+  /** the plan the server rebuilt after a typed TDEE */
+  onTargets: (targets: Targets) => void;
   onStart: () => void;
   onInvite: () => void;
 }) {
-  const { t } = useTranslation(["onboarding", "common", "settings", "maternal"]);
+  const { t } = useTranslation(["onboarding", "common", "settings", "maternal", "energy"]);
+  const [tdeeOpen, setTdeeOpen] = useState(false);
   return (
     <>
       <Mascot pose="cheer" size="sm" style={styles.resultMascot} />
@@ -247,6 +252,24 @@ function ResultView({
           </Disclosure>
         </>
       )}
+      {targets.manualTdee ? (
+        tdeeOpen ? (
+          <Card>
+            <Text style={styles.hint}>{t("energy:manual.subtitle")}</Text>
+            <ManualTdeeForm info={targets.manualTdee} onSaved={onTargets} />
+          </Card>
+        ) : (
+          <Button
+            variant="ghost"
+            label={
+              targets.manualTdee.kcal === null
+                ? t("energy:manual.onboardingLink")
+                : t("energy:manual.active", { kcal: fmtInt(targets.manualTdee.kcal) })
+            }
+            onPress={() => setTdeeOpen(true)}
+          />
+        )
+      ) : null}
       <Text style={styles.hint}>{t("guide.later")}</Text>
       <GuideLink label={t("guide.result")} />
       <Button label={t("action.openHome")} onPress={onStart} />
@@ -712,7 +735,7 @@ export default function Onboarding() {
             onOpenGroup={(groupId) => openAfterOnboarding(() => router.replace(`/grup/${groupId}`))}
           />
         ) : targets ? (
-          <ResultView targets={targets} onStart={startApp} onInvite={() => setInviting(true)} />
+          <ResultView targets={targets} onTargets={setSavedTargets} onStart={startApp} onInvite={() => setInviting(true)} />
         ) : (
           <>
             {step > 0 ? (

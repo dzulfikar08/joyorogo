@@ -24,7 +24,7 @@ import {
   calibrationRecommendation,
   stepsRecommendation,
 } from "../lib/activity-guide";
-import { activityLevelSchema, dateSchema, maternalInputSchema, profileInputSchema, sleepTargetHoursSchema } from "../lib/schemas";
+import { activityLevelSchema, dateSchema, manualTdeeKcalSchema, maternalInputSchema, profileInputSchema, sleepTargetHoursSchema } from "../lib/schemas";
 import { readCalibrationPrefs } from "../lib/calibration-store";
 import { buildPlan, planQueries } from "../lib/plan";
 import { serverT } from "../lib/messages";
@@ -163,7 +163,7 @@ export const profileRouter = {
     return {
       level: plan.targets.level,
       maternal: plan.maternal !== null,
-      options: activityOptions(plan.profileInput, plan.maternal, plan.weightNowKg, today),
+      options: activityOptions(plan.profileInput, plan.maternal, plan.weightNowKg, today, row.manualTdeeKcal ?? null),
       steps,
       // The level suggestion from the weight trend. With the automatic calibration on it supersedes it (the target is
       // already built on the measured figure), so it shows only while the calibration is off. Hamil / Menyusui: the
@@ -223,6 +223,66 @@ export const profileRouter = {
       }
       return { targets: plan.targets };
     }),
+
+  // "Pakai TDEE sendiri": the person's own maintenance kcal. Saving it clears an earlier "Biarkan" of the calibration's
+  // suggestion (a new number deserves new suggestions); the same call serves "Pakai angka ini".
+  setManualTdee: protectedProcedure
+    .input(z.object({ kcal: manualTdeeKcalSchema }))
+    .handler(async ({ context, input }): Promise<{ targets: Targets }> => {
+      const userId = context.session.user.id;
+      const t = serverT(context.locale, "errors");
+      const updated = await context.db
+        .update(profile)
+        .set({ manualTdeeKcal: input.kcal, manualTdeeSetAt: new Date(), manualTdeeDismissedOn: null })
+        .where(eq(profile.userId, userId))
+        .returning({ userId: profile.userId });
+      if (updated.length === 0) {
+        throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+      }
+      const { plan } = await loadPlan(context.db, userId);
+      if (!plan) {
+        throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+      }
+      return { targets: plan.targets };
+    }),
+
+  // "Kembali ke hitungan otomatis".
+  clearManualTdee: protectedProcedure.handler(async ({ context }): Promise<{ targets: Targets }> => {
+    const userId = context.session.user.id;
+    const t = serverT(context.locale, "errors");
+    const updated = await context.db
+      .update(profile)
+      .set({ manualTdeeKcal: null, manualTdeeSetAt: null, manualTdeeDismissedOn: null })
+      .where(eq(profile.userId, userId))
+      .returning({ userId: profile.userId });
+    if (updated.length === 0) {
+      throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+    }
+    const { plan } = await loadPlan(context.db, userId);
+    if (!plan) {
+      throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+    }
+    return { targets: plan.targets };
+  }),
+
+  // "Biarkan": the suggestion stays away for MANUAL_TDEE_DISMISS_DAYS.
+  dismissManualTdeeSuggestion: protectedProcedure.handler(async ({ context }): Promise<{ targets: Targets }> => {
+    const userId = context.session.user.id;
+    const t = serverT(context.locale, "errors");
+    const updated = await context.db
+      .update(profile)
+      .set({ manualTdeeDismissedOn: jakartaToday() })
+      .where(and(eq(profile.userId, userId), isNotNull(profile.manualTdeeKcal)))
+      .returning({ userId: profile.userId });
+    if (updated.length === 0) {
+      throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+    }
+    const { plan } = await loadPlan(context.db, userId);
+    if (!plan) {
+      throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+    }
+    return { targets: plan.targets };
+  }),
 
   // Opt-in public progress page (/u/<code>); code is generated once.
   shareToggle: protectedProcedure

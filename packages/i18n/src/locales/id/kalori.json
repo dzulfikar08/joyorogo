@@ -116,6 +116,30 @@
     "note": "Angka 7.700 kkal per kg hanyalah pendekatan (Hall dkk. 2011), dan hasilnya bergantung pada kelengkapan catatanmu. Itu sebabnya ada batas ±15% dan pengukuran mingguan.",
     "cta": "Atur kalibrasi"
   },
+  "manual": {
+    "title": "Pakai TDEE sendiri",
+    "lead": "Kalau kamu sudah tahu kebutuhan kalori hariannya (TDEE) dari tempat lain, kamu bisa mengisinya sendiri di Profil, Target & tubuh. Isi angka antara {{min}} dan {{max}} kkal.",
+    "itemsTitle": "Yang perlu kamu tahu",
+    "items": {
+      "base": {
+        "title": "Dipakai sebagai dasar",
+        "body": "Angkamu menggantikan BMR × pengali level (dan kalibrasi). Defisit atau surplus untuk tujuanmu, tambahan olahraga, penyesuaian Hamil / Menyusui, dan batas makan minimum tetap dihitung di atasnya, sama seperti untuk TDEE hitungan kami."
+      },
+      "reference": {
+        "title": "Dibandingkan dengan hitungan kami",
+        "body": "Hitungan kami ditampilkan di sebelah isianmu beserta selisihnya. Kamu mendapat peringatan, tapi tidak diblokir, kalau angkamu di bawah BMR kami atau lebih dari 1,5 kali TDEE kami."
+      },
+      "calibration": {
+        "title": "Kalibrasi hanya menyarankan",
+        "body": "Kalibrasi tidak mengubah angkamu. Kalau selama dua minggu berturut-turut hasil ukurnya meleset lebih dari 10% dari angkamu, muncul kartu saran dengan angka hasil ukur. Pilih \"Pakai angka ini\" atau \"Biarkan\"; tidak ada yang berubah tanpa pilihanmu. Setelah \"Biarkan\", saran itu tidak muncul lagi selama 28 hari."
+      },
+      "back": {
+        "title": "Kembali ke otomatis",
+        "body": "Tekan \"Kembali ke hitungan otomatis\" kapan saja. Level aktivitas dan kalibrasi langsung berlaku lagi."
+      }
+    },
+    "cta": "Isi TDEE sendiri"
+  },
   "recommend": {
     "title": "Saran supaya lebih akurat",
     "intro": "Level yang kamu pilih adalah perkiraan terbaikmu. Dua hal berikut membantu mengeceknya. Keduanya hanya berupa saran dengan tombol Pakai, dan tidak pernah diterapkan otomatis. Dari tren berat badan, kalibrasi otomatis sudah bekerja langsung; saran level dari tren hanya muncul kalau kalibrasi kamu matikan.",

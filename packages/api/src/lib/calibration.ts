@@ -29,10 +29,11 @@ export const CALIBRATION_MAX_SHIFT = 0.15;
 /** The Beranda notice appears when the calibrated base target is at least this far from the one the person last saw. */
 export const CALIBRATION_NOTICE_MIN_KCAL = 50;
 /**
- * How far back the intake / workout rows must reach for a plan on `date`: the 28-day window of the weekly anchor (the
- * Monday on or before `date`), which starts up to 6 days earlier than the window ending today.
+ * How far back the intake / workout rows must reach for a plan on `date`: the 28-day window of the Monday before the
+ * weekly anchor (the manual TDEE's suggestion needs two consecutive weekly measurements), which starts up to 13 days
+ * earlier than the window ending today.
  */
-export const CALIBRATION_HISTORY_DAYS = ADAPTIVE_WINDOW_DAYS + 6;
+export const CALIBRATION_HISTORY_DAYS = ADAPTIVE_WINDOW_DAYS + 13;
 
 /** Sanitizer of CALIBRATION_SEEN_PREF_KEY: a whole kcal figure in a plausible range, else nothing. */
 export const sanitizeSeenKcal = (value: unknown): number | undefined =>
@@ -96,9 +97,10 @@ export function measureCalibration(input: {
 /**
  * collecting: not enough data yet (the progress shows how far). waiting: the data is there but the weekly measurement
  * (the Monday on or before today) did not have it, so it starts next Monday. active: the target is built on it. off:
- * the person turned it off.
+ * the person turned it off. manual: the person typed their own TDEE (lib/manual-tdee); the measurement keeps running
+ * (`measuredKcal`) but only ever becomes a suggestion, never the number.
  */
-export type CalibrationStatus = "off" | "collecting" | "waiting" | "active";
+export type CalibrationStatus = "off" | "collecting" | "waiting" | "active" | "manual";
 
 export type CalibrationInfo = {
   enabled: boolean;

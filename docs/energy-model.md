@@ -155,12 +155,12 @@ status, push reminders, coach context), because every one of them calls `buildPl
 - **Stability rule: held weekly.** The measurement is taken **as of the most recent Monday** (WIB; the 28 complete days
   before that Monday) and held until the next one. So the target does not move with every daily weigh-in on a sliding
   window; inside the week the number only follows the formula's own drift with the weight when it sits on the ±15%
-  guard. `planQueries` therefore loads 34 days of intake / workouts (28 + up to 6 days before the Monday), and
+  guard. `planQueries` therefore loads 41 days of intake / workouts (28 + up to 13 days: the Monday before the anchor's window too, for the manual TDEE's two-week check), and
   late-edited logs from before that Monday change the next recompute only through the same window. Data that is good by
   today but was not at that Monday waits for the next Monday (`status: waiting`).
 - **Status** (`Targets.calibration`, `CalibrationInfo`): `off` (switched off; `measuredKcal` still shows what it would
   be), `collecting` (progress: `loggedDays/loggedDaysNeeded`, `spanDays/spanDaysNeeded`), `waiting` (data is enough
-  today, starts next Monday), `active` (`formulaKcal`, `measuredKcal`, `usedKcal`, `clamped`, `anchorDate`, `nextDate`).
+  today, starts next Monday), `active` (`formulaKcal`, `measuredKcal`, `usedKcal`, `clamped`, `anchorDate`, `nextDate`), `manual` (the person typed their own TDEE, below: `measuredKcal` keeps showing, `usedKcal` is null).
 - **Switch**: synced rogo pref `energy.calibration` (boolean, default **true**, only `false` is stored; the server reads
   it from `sync_record` ns `rogo` kind `pref` next to the plan queries; a missing / tombstoned / malformed record means
   on). Profil > Target & tubuh has a "Kalibrasi otomatis" card on web and native with the switch, what it does, the ±15%
@@ -172,6 +172,33 @@ status, push reminders, coach context), because every one of them calls `buildPl
   before), `day.summary.calibrationNotice = { fromKcal, toKcal }` and Beranda shows a dismissible line old → new with a
   link to the setting. Dismissing stores the synced pref `energy.calibrationSeen` (integer kcal = the new base). Only
   while the calibration is active.
+
+## Own TDEE (`lib/manual-tdee.ts`, "Pakai TDEE sendiri")
+
+People who already know their maintenance kcal (from a lab, a tracker, years of logging) can type it in Profil > Target &
+tubuh (web and native) or in place on the onboarding result ("Sudah tahu TDEE-mu? Isi sendiri"). It is a manual **TDEE**,
+not a manual final target.
+
+- **Storage.** `profile.manual_tdee_kcal` (integer, null = computed), `manual_tdee_set_at`, `manual_tdee_dismissed_on`
+  (migration 0056). Procedures: `profile.setManualTdee({ kcal })` (whole kcal 1.000 to 6.000, `manualTdeeKcalSchema`; also
+  clears an earlier "Biarkan"), `profile.clearManualTdee`, `profile.dismissManualTdeeSuggestion`; each returns `{ targets }`.
+- **Effect.** `buildPlan` passes it as `tdeeKcal` to `computeTargets` / `computeMaternalTargets`, so it replaces BMR x the
+  factor and the calibrated TDEE. Everything on top is untouched: the goal pace (deficit or gain surplus), the exercise
+  add-back (`includedKcal` follows it), the AKG addition, the 1500 / 1200 floor. Every consumer reads `Targets.tdee`, so
+  the weekly reflection, recaps, coach, MCP, groups and sleep texts see the effective TDEE with no per-caller work. The
+  activity level stays stored but no longer moves the target (`activityOptions` gets the typed TDEE: every level shows
+  the same one, and the level screen says so).
+- **Reference and warnings.** `Targets.manualTdee = { kcal, computedKcal, bmrKcal, diffKcal, warning, suggestion }`; it is
+  present (with `kcal: null`) whenever unused, so the form can show "Hitungan kami" and validate before saving.
+  `computedKcal` is the TDEE the plan would use without the typed one (calibrated when that is active, else BMR x
+  factor). Warnings, never blocks: `BELOW_BMR` (under the computed BMR) and `ABOVE_RANGE` (over 1.5 x the computed TDEE).
+- **Calibration never moves the number.** While it is set, `calibration.status = "manual"` (`usedKcal` null); the
+  weekly measurement keeps running. When the measurement of the last Monday **and** of the Monday before are both more
+  than 10% from the typed TDEE in the same direction, `manualTdee.suggestion = { kcal, weeks: 2 }` (the latest
+  measurement) and a card (Beranda and the setting) offers "Pakai angka ini" (`setManualTdee`) or "Biarkan"
+  (`dismissManualTdeeSuggestion`: gone for 28 days). Nothing is applied by itself. No suggestion with the calibration
+  switch off, for maternal plans, or before the data gate holds in both weeks.
+- **Not synced as a pref**: it lives on the profile row, which `myProfile` already returns to every device.
 
 The level picker lists all five levels with factor, explanation, example and **the target that level would give this
 person** (`profile.activityGuide.options`, or `activityOptions` computed locally in onboarding).

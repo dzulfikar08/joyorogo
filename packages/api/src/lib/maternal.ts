@@ -643,7 +643,7 @@ export type MaternalInfo = {
 export function computeMaternalTargets(
   profile: ProfileInput,
   state: MaternalState,
-  options: { today?: string; weightNow?: number } = {},
+  options: { today?: string; weightNow?: number; tdeeKcal?: number } = {},
 ): Targets {
   if (state.mode === "none") throw new Error("computeMaternalTargets needs a maternal mode");
   const today = options.today ?? jakartaToday();
@@ -656,7 +656,7 @@ export function computeMaternalTargets(
   // multipliers (MATERNAL_ACTIVITY_FACTOR: 1.25 / 1.35 / 1.45 for the levels migrated from low / mid / high), not the
   // standard factors of the normal plan, so it does not move with the new levels.
   const factor = MATERNAL_ACTIVITY_FACTOR[profile.activityLevel];
-  const baseKcal = round5(bmr * factor);
+  const baseKcal = round5(options.tdeeKcal ?? bmr * factor);
 
   const flags: MaternalFlag[] = [];
   const gestation =
@@ -693,7 +693,7 @@ export function computeMaternalTargets(
     tdee: baseKcal,
     formulaTdee: baseKcal, // COMPAT, old clients read it (see Targets)
     assumedKcal: 0, // COMPAT, old clients read it (see Targets)
-    includedKcal: Math.round(movementInFactorKcal(bmr * factor, bmr)),
+    includedKcal: Math.round(movementInFactorKcal(options.tdeeKcal ?? bmr * factor, bmr)),
     eatKcal: baseKcal + add,
     exerciseKcal: 0,
     burnKcal: 0,

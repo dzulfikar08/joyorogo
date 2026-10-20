@@ -13,7 +13,7 @@ import {
   MAX_DEFICIT_KCAL,
   MAX_TARGET_DAYS,
 } from "@joyorogo/api/lib/engine";
-import type { ActivityLevel, Gender } from "@joyorogo/api/lib/engine";
+import type { ActivityLevel, Gender, Targets } from "@joyorogo/api/lib/engine";
 import { activityOptions } from "@joyorogo/api/lib/activity-guide";
 import type { ActivityOption } from "@joyorogo/api/lib/activity-guide";
 import { resolveMaternalInput } from "@joyorogo/api/lib/maternal";
@@ -29,13 +29,15 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { ActivityLevelPicker } from "@/components/activity-level-picker";
 import { ActivityRecommendations } from "@/components/activity-recommendations";
 import { Mascot } from "@/components/mascot";
-import { Page } from "@/components/kit/surface";
+import { Card, Page } from "@/components/kit/surface";
+import { ManualTdeeForm } from "@/components/manual-tdee";
 import { PlanNumbers } from "@/components/plan-numbers";
 import { trackConversion } from "@/lib/analytics";
 import {
   fmtDateLong,
   fmtDateMedium,
   fmtKcalLabel,
+  fmtInt,
   fmtKg,
   jakartaDatePlusDays,
   parseNum,
@@ -219,6 +221,9 @@ function OnboardingPage() {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [done, setDone] = useState(false);
+  const { t: tEnergy } = useTranslation("energy");
+  const [tdeeOpen, setTdeeOpen] = useState(false);
+  const [typedTargets, setTypedTargets] = useState<Targets | null>(null);
   const [inviting, setInviting] = useState(false);
   const session = useSession();
   const [form, setForm] = useState<FormState>({
@@ -455,7 +460,8 @@ function OnboardingPage() {
   }
 
   if (done && save.data?.targets) {
-    const { targets } = save.data;
+    // "Sudah tahu TDEE-mu?": the server's targets after a typed TDEE replace the ones the save returned.
+    const targets = typedTargets ?? save.data.targets;
     return (
       <Page className="max-w-xl">
         <header className="px-1 pt-2 pb-4">
@@ -493,6 +499,26 @@ function OnboardingPage() {
               </div>
             )}
           </>
+        )}
+        {targets.manualTdee && (
+          <div className="mt-3">
+            {tdeeOpen ? (
+              <Card>
+                <p className="mb-3 text-sm leading-relaxed text-muted-foreground">{tEnergy("manual.subtitle")}</p>
+                <ManualTdeeForm info={targets.manualTdee} onSaved={setTypedTargets} />
+              </Card>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setTdeeOpen(true)}
+                className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+              >
+                {targets.manualTdee.kcal === null
+                  ? tEnergy("manual.onboardingLink")
+                  : tEnergy("manual.active", { kcal: fmtInt(targets.manualTdee.kcal) })}
+              </button>
+            )}
+          </div>
         )}
         <p className="mt-4 px-1 text-sm leading-snug text-muted-foreground">{t("guide.later")}</p>
         <div className="mt-1">

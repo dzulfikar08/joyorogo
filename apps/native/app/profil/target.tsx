@@ -23,6 +23,7 @@ import { ActivityLevelPicker, ActivityRecommendations } from "@/components/profi
 import { EnergySources } from "@/components/energy-sources";
 import { NeedsSheet } from "@/components/needs-sheet";
 import { CalibrationSection } from "@/components/profil/calibration-section";
+import { ManualTdeeSection } from "@/components/profil/manual-tdee-section";
 import { ExerciseCreditSection } from "@/components/profil/exercise-credit-section";
 import { TargetPaceNotice } from "@/components/target-pace-notice";
 import { TargetDateSheet, TargetWeightSheet } from "@/components/target-sheets";
@@ -287,6 +288,9 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
           {/* Level aktivitas: pilih, lihat dampaknya, dan saran yang lebih akurat */}
           <Card>
             <Text style={styles.cardTitle}>{t("energy:pickTitle")}</Text>
+            {targets?.manualTdee?.kcal != null ? (
+              <Text style={styles.cardHint}>{t("energy:manual.levelNote")}</Text>
+            ) : null}
             {guide.isPending ? (
               <ActivityIndicator style={styles.guideLoading} />
             ) : guide.isError ? (
@@ -337,6 +341,7 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
             ) : null}
           </Card>
 
+          <ManualTdeeSection info={targets.manualTdee} />
           <CalibrationSection info={guide.data?.autoCalibration ?? null} maternal={maternal !== null} />
           <ExerciseCreditSection includedKcal={targets.includedKcal} />
           <EnergySources />

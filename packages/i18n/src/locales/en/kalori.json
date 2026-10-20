@@ -116,6 +116,30 @@
     "note": "The 7,700 kcal per kg rule is only an approximation (Hall et al. 2011), and the result depends on how complete your log is. That is why there is a ±15% guard and a weekly measurement.",
     "cta": "Calibration settings"
   },
+  "manual": {
+    "title": "Use your own TDEE",
+    "lead": "If you already know your daily calorie needs (TDEE) from somewhere else, you can enter it yourself in Profile, Target & body. Enter a number between {{min}} and {{max}} kcal.",
+    "itemsTitle": "What to know",
+    "items": {
+      "base": {
+        "title": "Used as the base",
+        "body": "Your number replaces BMR x the activity factor (and calibration). The deficit or surplus for your goal, exercise add-back, Pregnant / Breastfeeding adjustments and the minimum-intake floor still apply on top of it, exactly as for our computed TDEE."
+      },
+      "reference": {
+        "title": "Compared with our estimate",
+        "body": "Our estimate is shown next to your entry with the difference. You get a warning, never a block, if your number is under our BMR or more than 1.5 times our TDEE."
+      },
+      "calibration": {
+        "title": "Calibration only suggests",
+        "body": "Calibration never changes your number. If for two weeks in a row the measurement is more than 10% off your number, a suggestion card appears with the measured figure. Pick \"Use this number\" or \"Leave it\"; nothing changes without your choice. After \"Leave it\" the suggestion stays away for 28 days."
+      },
+      "back": {
+        "title": "Back to automatic",
+        "body": "Tap \"Back to the automatic estimate\" any time. Your activity level and calibration apply again right away."
+      }
+    },
+    "cta": "Enter my own TDEE"
+  },
   "recommend": {
     "title": "Suggestions for a more accurate level",
     "intro": "The level you pick is your best guess. These two checks help confirm it. Both are only suggestions with a Use button, and are never applied automatically. From your weight trend, automatic calibration already works directly; the level suggestion from the trend only shows when you turn calibration off.",

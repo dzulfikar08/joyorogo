@@ -8,6 +8,7 @@ import {
   PREGNANCY_DATE_KINDS,
   type MaternalInput,
 } from "./maternal";
+import { MANUAL_TDEE_MAX_KCAL, MANUAL_TDEE_MIN_KCAL } from "./manual-tdee";
 
 export const genderSchema = z.enum(GENDERS);
 export const activityLevelSchema = z.enum(ACTIVITY_LEVELS);
@@ -40,6 +41,12 @@ export const pastDateSchema = z
 export const sleepTargetHoursSchema = z
   .number()
   .refine((hours) => (SLEEP_TARGET_HOURS as readonly number[]).includes(hours), "Target tidur harus 6 sampai 9 jam, per setengah jam");
+
+export const manualTdeeKcalSchema = z
+  .number()
+  .int()
+  .min(MANUAL_TDEE_MIN_KCAL)
+  .max(MANUAL_TDEE_MAX_KCAL);
 
 export const profileInputSchema = z.object({
   birthYear: z.number().int().min(1930).max(2020),

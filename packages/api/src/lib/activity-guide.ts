@@ -36,13 +36,15 @@ export function activityOptions(
   maternal: MaternalState | null,
   weightNow: number,
   today?: string,
+  /** the person's own TDEE (lib/manual-tdee): every level then gives the same one, the level no longer moves the target */
+  manualTdeeKcal: number | null = null,
 ): ActivityOption[] {
   return ACTIVITY_LEVELS.map((level) => {
     const input = { ...profile, activityLevel: level };
     const targets =
       maternal !== null && maternal.mode !== "none"
-        ? computeMaternalTargets(input, maternal, { today, weightNow })
-        : computeTargets(input, { today, weightNow });
+        ? computeMaternalTargets(input, maternal, { today, weightNow, tdeeKcal: manualTdeeKcal ?? undefined })
+        : computeTargets(input, { today, weightNow, tdeeKcal: manualTdeeKcal ?? undefined });
     return {
       level,
       factor: targets.factor,

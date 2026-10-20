@@ -7,6 +7,7 @@ import { getActiveLocale, getT, relativeDayLabel } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
 import type { CalibrationInfo } from "./calibration";
+import type { ManualTdeeInfo } from "./manual-tdee";
 import type { MaternalInfo } from "./maternal";
 import {
   MAX_SURPLUS_KCAL,
@@ -184,7 +185,7 @@ export type Targets = {
   /**
    * TDEE = BMR x factor (rounded to 5 for gain and maternal, whose target is built on it); TEF is inside the factor.
    * With an active calibration it is the calibrated TDEE instead (`calibration.usedKcal`), and `factor` stays the
-   * level's.
+   * level's. With a typed TDEE (`manualTdee.kcal`) it is that figure.
    */
   tdee: number;
   /**
@@ -229,6 +230,11 @@ export type Targets = {
    * and in payloads from before the feature (clients treat missing as "no calibration").
    */
   calibration?: CalibrationInfo | null;
+  /**
+   * "Pakai TDEE sendiri" (lib/manual-tdee): the typed TDEE (`tdee` is then that figure), the computed one next to it
+   * and the calibration's suggestion. Set by buildPlan with `kcal: null` while unused; absent from older payloads.
+   */
+  manualTdee?: ManualTdeeInfo | null;
 };
 
 export function round5(n: number): number {

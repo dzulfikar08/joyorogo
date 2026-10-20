@@ -16,7 +16,16 @@ const guideOptions = orpc.profile.activityGuide.queryOptions();
  * Level aktivitas: the five levels with this person's numbers, plus the "Lebih akurat" recommendations. Tapping a level
  * (or "Pakai") saves it at once; the plan is recomputed on the server.
  */
-export function ActivityLevelSection({ current, maternal }: { current: ActivityLevel; maternal: boolean }) {
+export function ActivityLevelSection({
+  current,
+  maternal,
+  manualTdee = false,
+}: {
+  current: ActivityLevel;
+  maternal: boolean;
+  /** the person typed their own TDEE: the level no longer moves the target */
+  manualTdee?: boolean;
+}) {
   const { t } = useTranslation(["settings", "energy"]);
   const queryClient = useQueryClient();
   const guide = useQuery(guideOptions);
@@ -43,6 +52,11 @@ export function ActivityLevelSection({ current, maternal }: { current: ActivityL
       <p className="-mt-1 mb-3 px-1 text-sm leading-relaxed text-muted-foreground">
         {t("settings:plan.activity.subtitle")}
       </p>
+      {manualTdee && (
+        <p className="-mt-1 mb-3 rounded-2xl bg-muted px-4 py-3 text-sm leading-relaxed font-medium">
+          {t("energy:manual.levelNote")}
+        </p>
+      )}
       {guide.isPending ? (
         <div className="space-y-2" aria-busy="true">
           <Skeleton className="h-16 rounded-2xl" />

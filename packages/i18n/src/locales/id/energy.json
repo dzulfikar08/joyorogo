@@ -130,13 +130,19 @@
       "name": "Tambahan hari ini",
       "body": "Hari ini geraknya melebihi yang sudah ada di pengalimu. {{pct}}% dari kelebihannya ditambahkan ke jatah makanmu.",
       "labelCalibrated": "Gerak di atas TDEE terukur",
-      "bodyCalibrated": "Hari ini geraknya melebihi yang sudah terukur di TDEE-mu. {{pct}}% dari kelebihannya ditambahkan ke jatah makanmu."
+      "bodyCalibrated": "Hari ini geraknya melebihi yang sudah terukur di TDEE-mu. {{pct}}% dari kelebihannya ditambahkan ke jatah makanmu.",
+      "labelManual": "Gerak di atas TDEE-mu",
+      "bodyManual": "Hari ini geraknya melebihi yang sudah ada di TDEE yang kamu isi. {{pct}}% dari kelebihannya ditambahkan ke jatah makanmu."
     },
     "none": "Belum ada gerak di atas pengali hari ini, jadi belum ada yang ditambahkan.",
     "noneCalibrated": "Belum ada gerak di atas TDEE terukur hari ini, jadi belum ada yang ditambahkan.",
     "calibrated": "Kalibrasi otomatis: rumus {{formula}}, terukur {{measured}}, dipakai {{used}} kkal",
     "formulaCalibrated": "BMR {{bmr}} + gerak harian terukur {{move}} = TDEE {{tdee}}",
-    "includedCalibrated": "TDEE terukurmu sudah memuat sekitar {{kcal}} kkal gerak harian di luar efek makan. Hanya gerak terukur di atas angka itu yang menambah targetmu."
+    "includedCalibrated": "TDEE terukurmu sudah memuat sekitar {{kcal}} kkal gerak harian di luar efek makan. Hanya gerak terukur di atas angka itu yang menambah targetmu.",
+    "manual": "TDEE sendiri: kamu mengisi {{used}} kkal, hitungan kami {{computed}} kkal.",
+    "formulaManual": "BMR {{bmr}} + gerak harian {{move}} = TDEE {{tdee}} (isianmu)",
+    "includedManual": "TDEE yang kamu isi sudah memuat gerak harianmu. Hanya gerak terukur di atas angka itu yang menambah targetmu.",
+    "noneManual": "Belum ada gerak di atas TDEE-mu hari ini, jadi belum ada yang ditambahkan."
   },
   "auto": {
     "title": "Kalibrasi otomatis",
@@ -169,8 +175,12 @@
       "activeBody": "Rumus {{formula}} → dipakai {{used}} kkal",
       "activeMeasured": "Terukur {{measured}} kkal, masih dalam batas ±15%.",
       "clamped": "Terukur {{measured}} kkal, di luar batas ±15%, jadi yang dipakai angka batasnya.",
-      "held": "Diukur dari 28 hari sebelum {{date}}. Diperbarui lagi {{next}}."
-    }
+      "held": "Diukur dari 28 hari sebelum {{date}}. Diperbarui lagi {{next}}.",
+      "manualTitle": "Pakai TDEE sendiri",
+      "manualBody": "Targetmu dibangun dari TDEE yang kamu isi sendiri. Kalibrasi tetap mengukur ({{measured}} kkal) tapi tidak mengubah angkamu.",
+      "manualBodyNoMeasure": "Kalibrasi tetap mengukur, tapi tidak mengubah angkamu."
+    },
+    "toggleManual": "Targetmu memakai TDEE yang kamu isi sendiri. Kalibrasi hanya memberi saran, tidak mengubah angkamu."
   },
   "calNotice": {
     "title": "Targetmu disesuaikan",
@@ -180,5 +190,46 @@
     "learn": "Pelajari",
     "dismiss": "Tutup"
   },
-  "readMore": "Baca penjelasan lengkap"
+  "readMore": "Baca penjelasan lengkap",
+  "manual": {
+    "title": "Pakai TDEE sendiri",
+    "subtitle": "Sudah tahu kebutuhan kalori hariannya dari tempat lain? Isi sendiri. Target defisit atau surplus, tambahan olahraga, dan batas makan minimum tetap dihitung di atasnya.",
+    "label": "TDEE-mu (kkal per hari)",
+    "placeholder": "Contoh: 2250",
+    "reference": "Hitungan kami: {{kcal}} kkal",
+    "diff": {
+      "more": "Angkamu {{kcal}} kkal di atas hitungan kami.",
+      "less": "Angkamu {{kcal}} kkal di bawah hitungan kami.",
+      "same": "Sama dengan hitungan kami."
+    },
+    "save": "Simpan TDEE-ku",
+    "saved": "TDEE-mu disimpan.",
+    "reset": "Kembali ke hitungan otomatis",
+    "resetDone": "Kembali ke hitungan otomatis.",
+    "active": "Targetmu dibangun dari TDEE {{kcal}} kkal yang kamu isi sendiri.",
+    "activeCalibration": "Kalibrasi otomatis tidak mengubah angkamu. Kalau datanya menunjukkan angkamu meleset, kami cuma menyarankan.",
+    "rowValue": "{{kcal}} kkal",
+    "rowOff": "Otomatis",
+    "error": {
+      "range": "Isi angka bulat antara {{min}} dan {{max}} kkal.",
+      "empty": "Isi TDEE-mu dulu."
+    },
+    "warn": {
+      "BELOW_BMR": "Angkamu di bawah BMR hitungan kami ({{bmr}} kkal). Tubuh jarang membakar sekurang itu, coba cek lagi. Tetap boleh disimpan.",
+      "ABOVE_RANGE": "Angkamu lebih dari 1,5× hitungan kami ({{kcal}} kkal). Coba cek lagi. Tetap boleh disimpan."
+    },
+    "levelNote": "Kamu pakai TDEE sendiri, jadi level aktivitas tidak mengubah targetmu.",
+    "onboardingLink": "Sudah tahu TDEE-mu? Isi sendiri",
+    "onboardingHide": "Tutup",
+    "suggest": {
+      "title": "Angkamu sepertinya meleset",
+      "body": "Dua minggu berturut-turut, catatan makan dan timbanganmu menunjukkan tubuhmu membakar sekitar {{measured}} kkal per hari, beda lebih dari 10% dari TDEE {{manual}} kkal yang kamu isi.",
+      "hint": "Cuma saran. Angkamu tidak berubah kalau kamu tidak memilihnya.",
+      "accept": "Pakai angka ini",
+      "dismiss": "Biarkan",
+      "accepted": "TDEE diganti jadi {{kcal}} kkal.",
+      "dismissed": "Oke, angkamu dibiarkan."
+    },
+    "learn": "Pelajari"
+  }
 }

@@ -33,7 +33,10 @@ export function NeedsSheet({
   const hasExtra = needs.exerciseKcal > 0;
   const calibration = needs.calibration;
   const active = calibration?.status === "active" ? calibration : null;
-  const calibrated = active !== null;
+  const manual = targets.manualTdee?.kcal != null ? targets.manualTdee : null;
+  const calibrated = active !== null || manual !== null;
+  // The own-TDEE wording, else the measured-TDEE one (the key suffix of energy:needs).
+  const kind = manual ? "Manual" : "Calibrated";
   const step = (
     key: "bmr" | "activity" | "tdee" | "cut" | "cutNone" | "target",
     value: string,
@@ -51,7 +54,9 @@ export function NeedsSheet({
     step(
       "activity",
       `+ ${fmtInt(needs.activityKcal)}`,
-      active
+      manual
+        ? t("energy:needs.manual", { used: fmtInt(needs.tdeeKcal), computed: fmtInt(manual.computedKcal) })
+        : active
         ? t("energy:needs.calibrated", {
             formula: fmtInt(active.formulaKcal),
             measured: fmtInt(active.measuredKcal ?? active.formulaKcal),
@@ -100,11 +105,11 @@ export function NeedsSheet({
       ? [
           {
             key: "extra",
-            label: t(calibrated ? "energy:needs.extra.labelCalibrated" : "energy:needs.extra.label"),
+            label: t(calibrated ? `energy:needs.extra.label${kind}` : "energy:needs.extra.label"),
             name: t("energy:needs.extra.name"),
             value: `+ ${fmtInt(needs.exerciseKcal)}`,
             body: calibrated
-              ? t("energy:needs.extra.bodyCalibrated", { pct: storedAddBackSettings().pct })
+              ? t(`energy:needs.extra.body${kind}`, { pct: storedAddBackSettings().pct })
               : t("energy:needs.extra.body", { pct: storedAddBackSettings().pct }),
           },
           {
@@ -129,7 +134,7 @@ export function NeedsSheet({
       <div className="mb-3 rounded-2xl bg-makan-soft p-4">
         <p className="text-[0.9375rem] leading-snug font-extrabold text-makan-ink tabular-nums">
           {calibrated
-            ? t("energy:needs.formulaCalibrated", {
+            ? t(manual ? "energy:needs.formulaManual" : "energy:needs.formulaCalibrated", {
                 bmr: fmtInt(needs.bmrKcal),
                 move: fmtInt(needs.tdeeKcal - needs.bmrKcal),
                 tdee: fmtInt(needs.tdeeKcal),
@@ -142,7 +147,7 @@ export function NeedsSheet({
         </p>
         <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground tabular-nums">
           {calibrated
-            ? t("energy:needs.includedCalibrated", { kcal: fmtInt(needs.includedKcal) })
+            ? t(manual ? "energy:needs.includedManual" : "energy:needs.includedCalibrated", { kcal: fmtInt(needs.includedKcal) })
             : t("energy:needs.included", { factor: fmtFactor(needs.factor), kcal: fmtInt(needs.includedKcal) })}
         </p>
         {calibration && !maternal && (
@@ -219,7 +224,7 @@ export function NeedsSheet({
             <span className="font-semibold">{t("gain:estimate.title")}.</span> {t("gain:estimate.body")}
           </p>
         )}
-        {!hasExtra && <p>{t(calibrated ? "energy:needs.noneCalibrated" : "energy:needs.none")}</p>}
+        {!hasExtra && <p>{t(calibrated ? `energy:needs.none${kind}` : "energy:needs.none")}</p>}
       </div>
       <EnergySources className="mt-6" />
     </Sheet>

@@ -6,6 +6,7 @@ import {
   CALIBRATION_MIN_SPAN_DAYS,
   CALIBRATION_NOTICE_MIN_KCAL,
 } from "@joyorogo/api/lib/calibration";
+import { MANUAL_TDEE_MAX_KCAL, MANUAL_TDEE_MIN_KCAL } from "@joyorogo/api/lib/manual-tdee";
 import { ACTIVITY_LEVELS, ADAPTIVE_MIN_WEIGH_INS, ADAPTIVE_WINDOW_DAYS, computeTargets } from "@joyorogo/api/lib/engine";
 import type { ActivityLevel } from "@joyorogo/api/lib/engine";
 import { DEFAULT_ADD_BACK_SETTINGS, exerciseCredit } from "@joyorogo/api/lib/exercise-credit";
@@ -59,9 +60,10 @@ const addedOn = (measuredKcal: number) =>
     includedKcal: demo.includedKcal,
   }).countedKcal;
 
-const SECTIONS = ["why", "formula", "levels", "credit", "calibration", "recommend", "example", "sources"] as const;
+const SECTIONS = ["why", "formula", "levels", "credit", "calibration", "manual", "recommend", "example", "sources"] as const;
 const STEP_ROWS = ["r1", "r2", "r3", "r4", "r5"] as const;
 const CALIBRATION_STEPS = ["log", "measure", "adjust"] as const;
+const MANUAL_ITEMS = ["base", "reference", "calibration", "back"] as const;
 const CALIBRATION_ITEMS = ["measure", "strava", "credit", "maternal", "off", "notice"] as const;
 /** Three measurements against the demo person's formula TDEE: under the guard, inside it, over it. */
 const CALIBRATION_EXAMPLES = [2300, 2950, 3600] as const;
@@ -429,6 +431,29 @@ function PanduanKaloriPage() {
               render={<Link to="/profil/target" search={{}} hash="calibration" />}
             >
               {t("kalori:calibration.cta")}
+            </Button>
+          </Section>
+
+          <Section id="manual" title={t("kalori:manual.title")}>
+            <P>{t("kalori:manual.lead", { min: fmtInt(MANUAL_TDEE_MIN_KCAL), max: fmtInt(MANUAL_TDEE_MAX_KCAL) })}</P>
+            <h3 className="mt-6 text-base font-bold">{t("kalori:manual.itemsTitle")}</h3>
+            <dl className="mt-3 divide-y divide-border rounded-2xl bg-card px-4">
+              {MANUAL_ITEMS.map((item) => (
+                <div key={item} className="py-3">
+                  <dt className="text-sm font-bold">{t(`kalori:manual.items.${item}.title`)}</dt>
+                  <dd className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+                    {t(`kalori:manual.items.${item}.body`)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-3 min-h-11"
+              render={<Link to="/profil/target" search={{}} hash="tdee-sendiri" />}
+            >
+              {t("kalori:manual.cta")}
             </Button>
           </Section>
 

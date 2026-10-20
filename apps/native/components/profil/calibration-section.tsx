@@ -89,6 +89,17 @@ function Status({ info }: { info: CalibrationInfo }) {
           </Text>
         </View>
       );
+    case "manual":
+      return (
+        <View style={styles.status}>
+          <Text style={styles.statusTitle}>{t("auto.status.manualTitle")}</Text>
+          <Text style={styles.statusNote}>
+            {info.measuredKcal === null
+              ? t("auto.status.manualBodyNoMeasure")
+              : t("auto.status.manualBody", { measured: fmtInt(info.measuredKcal) })}
+          </Text>
+        </View>
+      );
     case "off":
       return (
         <View style={styles.status}>
@@ -171,7 +182,15 @@ export function CalibrationSection({
             />
           </View>
           <Text style={styles.consequence}>
-            {t(!enabled ? "auto.toggleOff" : pending ? "auto.toggleOnPending" : "auto.toggleOn")}
+            {t(
+              !enabled
+                ? "auto.toggleOff"
+                : info?.status === "manual"
+                  ? "auto.toggleManual"
+                  : pending
+                    ? "auto.toggleOnPending"
+                    : "auto.toggleOn",
+            )}
           </Text>
 
           {info ? <Status info={info} /> : null}
