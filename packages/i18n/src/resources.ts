@@ -32,6 +32,7 @@ import idSticker from "./locales/id/sticker.json";
 import idEnergy from "./locales/id/energy.json";
 import idKalori from "./locales/id/kalori.json";
 import idReflection from "./locales/id/reflection.json";
+import idSleepInsights from "./locales/id/sleepInsights.json";
 import idFitWeb from "./locales/id/fitWeb.json";
 import idFitWebOverview from "./locales/id/fitWebOverview.json";
 import idFitWebWorkouts from "./locales/id/fitWebWorkouts.json";
@@ -74,6 +75,7 @@ import enSticker from "./locales/en/sticker.json";
 import enEnergy from "./locales/en/energy.json";
 import enKalori from "./locales/en/kalori.json";
 import enReflection from "./locales/en/reflection.json";
+import enSleepInsights from "./locales/en/sleepInsights.json";
 import enFitWeb from "./locales/en/fitWeb.json";
 import enFitWebOverview from "./locales/en/fitWebOverview.json";
 import enFitWebWorkouts from "./locales/en/fitWebWorkouts.json";
@@ -120,6 +122,7 @@ const id = {
   energy: idEnergy,
   kalori: idKalori,
   reflection: idReflection,
+  sleepInsights: idSleepInsights,
   fitWeb: idFitWeb,
   fitWebOverview: idFitWebOverview,
   fitWebWorkouts: idFitWebWorkouts,
@@ -168,6 +171,7 @@ const en: typeof id = {
   energy: enEnergy,
   kalori: enKalori,
   reflection: enReflection,
+  sleepInsights: enSleepInsights,
   fitWeb: enFitWeb,
   fitWebOverview: enFitWebOverview,
   fitWebWorkouts: enFitWebWorkouts,

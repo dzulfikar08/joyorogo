@@ -24,6 +24,7 @@ import { pushRouter } from "./push";
 import { privacyRouter } from "./privacy";
 import { savedFoodRouter } from "./saved-food";
 import { sleepRouter } from "./sleep";
+import { sleepInsightsRouter } from "./sleep-insights";
 import { socialRouter } from "./social";
 import { statsRouter } from "./stats";
 import { stravaRouter } from "./strava";
@@ -53,6 +54,7 @@ export const appRouter = {
   exercise: exerciseRouter,
   activity: activityRouter,
   sleep: sleepRouter,
+  sleepInsights: sleepInsightsRouter,
   day: dayRouter,
   diary: diaryRouter,
   ai: aiRouter,

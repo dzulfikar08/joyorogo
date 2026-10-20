@@ -1,0 +1,167 @@
+{
+  "title": "Sleep insights",
+  "disclaimer": "General habits, not medical advice.",
+  "confidence": {
+    "maybe": "Maybe",
+    "leaning": "Leaning"
+  },
+  "ui": {
+    "compare": "{{exposed}} nights vs {{other}} nights",
+    "deleteData": "Delete sleep data",
+    "showNights": "See the nights",
+    "hideNights": "Close",
+    "sources": "Source",
+    "dismiss": "Hide",
+    "legendExposed": "Nights with this habit",
+    "legendOther": "Nights without",
+    "general": "General",
+    "personal": "Yours",
+    "progress": "Progress",
+    "empty": "No pattern is clear enough yet. Keep wearing the watch; patterns show up as nights add up.",
+    "needsNights": "Needs {{need}} more nights from the watch to compare your nights (now {{have}}).",
+    "lockedTeaser_one": "{{count}} pattern found, unlock with Pro",
+    "lockedTeaser_other": "{{count}} patterns found, unlock with Pro",
+    "lockedCta": "See Pro",
+    "lastNight": "Last night",
+    "asleep": "Asleep",
+    "awake": "Awake",
+    "awakenings": "Wake-ups",
+    "hrv": "HRV",
+    "rhr": "Resting HR",
+    "deep": "Deep",
+    "rem": "REM",
+    "regularity": "7-night regularity",
+    "regularitySd": "Your bedtime moves by {{minutes}} min on average",
+    "durationHm": "{{h}} h {{m}} min",
+    "durationM": "{{m}} min",
+    "off": {
+      "title": "Sleep insights",
+      "body": "Line up your watch's sleep with your food and workout log and see what may go with better or worse nights. Needs night data from the watch through JoyoFit.",
+      "enable": "Turn on"
+    },
+    "settings": {
+      "title": "Free days",
+      "body": "Used to compare work-day and free-day sleep times. Change it if you work shifts.",
+      "days": [
+        "Sun",
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat"
+      ]
+    },
+    "room": "Room last night",
+    "roomValue": "{{temp}} °C, {{rh}} %"
+  },
+  "consent": {
+    "title": "Sleep insights",
+    "switch": "Send sleep data from JoyoFit",
+    "summary": "When on, JoyoFit sends one summary per night to your account so JoyoRogo can line it up with your food and workout log.",
+    "fieldsTitle": "Sent per night",
+    "fields": "Start and wake time, time asleep and awake, number of wake-ups, stage totals (if your watch has stages), the watch's sleep score, that night's HRV and resting heart rate, and nap times. If you set up a bedroom thermometer in JoyoFit: the average, lowest and highest room temperature and humidity during sleep.",
+    "notSent": "Not sent: per-minute heart rate or SpO2, location, food names to the AI model, and nights from before you turned this on.",
+    "retention": "Kept for 90 nights at most. Computed results are only a cache and are rebuilt.",
+    "delete": "Turning this switch off deletes all night data, the cache and hidden patterns at once. \"Delete all data\" removes them too.",
+    "shared": "Not shared with groups, the feed or AI connectors.",
+    "enabledToast": "Sleep insights on",
+    "disabledToast": "Sleep insights off and night data deleted",
+    "offConfirmTitle": "Turn off and delete?",
+    "offConfirmBody": "All stored night data will be deleted now.",
+    "offConfirm": "Turn off and delete"
+  },
+  "general": {
+    "caffeine": {
+      "text": "Your last coffee or caffeinated drink in the past 7 days was logged at {{time}}, about {{hours}} hours before you usually sleep. Caffeine takes about 5 hours on average to halve, but people differ (1.5 to 9.5 hours).",
+      "sourceLabel": "IOM: Caffeine for the Sustainment of Mental Task Performance"
+    },
+    "alcohol": {
+      "text": "Alcohol may make you fall asleep faster, but general research finds the second half of the night more disrupted and less REM. This is a general tip, not a result from your data.",
+      "sourceLabel": "Ebrahim 2013, Alcohol and sleep I"
+    },
+    "regularity": {
+      "text": "Your bedtime moved by {{minutes}} minutes on average between nights this week. A consistent bedtime usually helps more than chasing duration.",
+      "sourceLabel": "Windred 2024, Sleep regularity"
+    },
+    "jetlag": {
+      "text": "Your mid-sleep on free days is about {{minutes}} minutes {{direction}} than on work days. A shift this size is often called social jetlag.",
+      "later": "later",
+      "earlier": "earlier",
+      "sourceLabel": "Wittmann 2006, Social jetlag"
+    },
+    "room": {
+      "text": "Last night your room was about {{temp}} °C at {{rh}} % humidity. Humid heat tends to mean more waking and less deep sleep, but the comfortable range differs per person since bedding and clothing matter too.",
+      "sourceLabel": "Okamoto-Mizuno 2012, Effects of thermal environment on sleep"
+    }
+  },
+  "personal": {
+    "caffeine": {
+      "shorter": "On {{exposed}} nights after coffee or a caffeinated drink within about 8 hours of bedtime, you slept {{minutes}} minutes shorter on average than on {{other}} nights without it.",
+      "longer": "On {{exposed}} nights after coffee or a caffeinated drink within about 8 hours of bedtime, you slept {{minutes}} minutes longer on average than on {{other}} nights without it.",
+      "sourceLabel": "Drake 2013, Caffeine effects on sleep"
+    },
+    "dinner": {
+      "more": "On {{exposed}} nights with dinner less than 3 hours before bed, you were awake {{minutes}} minutes longer on average than on {{other}} other nights.",
+      "less": "On {{exposed}} nights with dinner less than 3 hours before bed, you were awake {{minutes}} minutes less on average than on {{other}} other nights.",
+      "sourceLabel": "Duan 2021, Dinner timing and sleep"
+    },
+    "workout": {
+      "more": "On {{exposed}} nights after a vigorous workout of 20 minutes or more that ended within 3 hours of bedtime, you were awake {{minutes}} minutes longer on average than on {{other}} other nights.",
+      "less": "On {{exposed}} nights after a vigorous workout of 20 minutes or more that ended within 3 hours of bedtime, you were awake {{minutes}} minutes less on average than on {{other}} other nights.",
+      "sourceLabel": "Stutz 2019, Effects of evening exercise on sleep"
+    },
+    "regularity": {
+      "shorter": "On {{exposed}} nights when your bedtime moved more than 1 hour from your usual, you slept {{minutes}} minutes shorter on average than on {{other}} regular nights.",
+      "longer": "On {{exposed}} nights when your bedtime moved more than 1 hour from your usual, you slept {{minutes}} minutes longer on average than on {{other}} regular nights.",
+      "sourceLabel": "Windred 2024, Sleep regularity"
+    },
+    "tail": {
+      "maybe": "It may be related, but {{total}} nights are not enough to be sure.",
+      "leaning": "The pattern leans the same way across {{total}} nights, but it is still not proof of cause and effect."
+    },
+    "temperature": {
+      "more": "On {{exposed}} nights with the room above {{value}} °C (your warmest third), you were awake {{minutes}} minutes longer on average than on {{other}} cooler nights.",
+      "less": "On {{exposed}} nights with the room above {{value}} °C (your warmest third), you were awake {{minutes}} minutes less on average than on {{other}} cooler nights.",
+      "sourceLabel": "Okamoto-Mizuno 2012, Effects of thermal environment on sleep"
+    },
+    "humidity": {
+      "more": "On {{exposed}} nights with room humidity above {{value}} % (your most humid third), you were awake {{minutes}} minutes longer on average than on {{other}} drier nights.",
+      "less": "On {{exposed}} nights with room humidity above {{value}} % (your most humid third), you were awake {{minutes}} minutes less on average than on {{other}} drier nights.",
+      "sourceLabel": "Okamoto-Mizuno 2012, Effects of thermal environment on sleep"
+    }
+  },
+  "progress": {
+    "nights": "Needs {{need}} more nights from the watch to compare your nights (now {{have}} of {{total}}).",
+    "caffeine": "Needs {{need}} more nights {{what}} to compare your nights.",
+    "caffeineWhat": {
+      "exposed": "with afternoon coffee",
+      "other": "without afternoon coffee and with your food fully logged"
+    },
+    "dinner": "Needs {{need}} more nights {{what}} to compare your nights.",
+    "dinnerWhat": {
+      "exposed": "with dinner less than 3 hours before bed",
+      "other": "with an earlier dinner"
+    },
+    "workout": "Needs {{need}} more nights {{what}} to compare your nights.",
+    "workoutWhat": {
+      "exposed": "after an evening workout",
+      "other": "without an evening workout"
+    },
+    "regularity": "Needs {{need}} more nights {{what}} to compare your nights.",
+    "regularityWhat": {
+      "exposed": "with bedtime moved by more than 1 hour",
+      "other": "with a regular bedtime"
+    },
+    "temperature": "Needs {{need}} more nights {{what}} to compare your nights.",
+    "temperatureWhat": {
+      "exposed": "with a warmer room than usual on record",
+      "other": "with a cooler room on record"
+    },
+    "humidity": "Needs {{need}} more nights {{what}} to compare your nights.",
+    "humidityWhat": {
+      "exposed": "with higher room humidity than usual on record",
+      "other": "with lower room humidity on record"
+    }
+  }
+}

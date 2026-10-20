@@ -39,6 +39,7 @@ import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 import { coachDoc } from "@joyorogo/db/schema/coach";
 import { strengthRecord } from "@joyorogo/db/schema/strength";
 import { syncRecord } from "@joyorogo/db/schema/sync";
+import { sleepInsightCache, sleepInsightPref, sleepNight } from "@joyorogo/db/schema/sleep-insights";
 import { watchWorkout } from "@joyorogo/db/schema/watch-workout";
 
 import { avatarPrefix } from "./avatar";
@@ -150,6 +151,10 @@ export function deleteAllUserData(db: Database, userId: string) {
     db.delete(sleepLog).where(eq(sleepLog.userId, userId)),
     db.delete(fitnessScore).where(eq(fitnessScore.userId, userId)),
     db.delete(watchWorkout).where(eq(watchWorkout.userId, userId)),
+    // Sleep insights: the nights JoyoFit pushed, the cached findings and the consent switch itself.
+    db.delete(sleepNight).where(eq(sleepNight.userId, userId)),
+    db.delete(sleepInsightCache).where(eq(sleepInsightCache.userId, userId)),
+    db.delete(sleepInsightPref).where(eq(sleepInsightPref.userId, userId)),
     db.delete(coachDoc).where(eq(coachDoc.userId, userId)),
     db.delete(strengthRecord).where(eq(strengthRecord.userId, userId)),
     db.delete(syncRecord).where(eq(syncRecord.userId, userId)),
