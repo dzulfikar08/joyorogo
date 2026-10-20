@@ -297,6 +297,44 @@ function PrivasiPage() {
             </p>
           </section>
 
+          <section className="rounded-3xl bg-card p-5" id="wawasan-tidur">
+            <h2 className="text-base font-bold tracking-tight">Wawasan tidur (opsional)</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Wawasan tidur mati secara bawaan. Baru setelah kamu menyalakannya (di JoyoRogo atau
+              di JoyoFit, satu saklar yang sama), JoyoFit mengirim satu ringkasan per malam ke
+              akunmu. Isinya:
+            </p>
+            <CheckList
+              items={[
+                "Jam mulai tidur dan jam bangun, serta selisih zona waktu ponselmu.",
+                "Lama tidur, lama terjaga, dan berapa kali kamu terbangun.",
+                "Total tahap tidur (dalam, REM, ringan) kalau jam tanganmu mengukurnya.",
+                "Skor tidur dari jam tangan, HRV malam, dan detak jantung istirahat malam.",
+                "Tidur siang (jam mulai dan selesai).",
+                "Kalau kamu memasang termometer kamar di JoyoFit: rata-rata, terendah, dan tertinggi suhu dan kelembapan kamar selama tidur (bukan bacaan per menit).",
+              ]}
+            />
+            <p className="mt-3 text-sm leading-relaxed">
+              JoyoRogo menyejajarkan ringkasan itu dengan catatan makan dan olahragamu untuk
+              menggambarkan pola, misalnya kapan makan malam terakhir atau hari saat kamu
+              berolahraga. Teks AI hanya melihat hitungan dan rata-rata, tidak pernah malam per
+              malam atau nama makanan. Kafein dan alkohol hanya dihitung dari catatan makanmu yang
+              sudah ada, dan tidak ada data olahraga baru yang dikirim dari JoyoFit.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Disimpan paling banyak 90 malam terakhir. Mematikan saklar langsung menghapus semua
+              malam yang tersimpan, begitu juga Hapus semua data saya dan menghapus akun. Data ini
+              tidak dibagikan ke grup, feed, keluarga, atau konektor MCP, tidak dipakai untuk iklan
+              atau pelacakan, dan tidak dijual. Wawasan tidur bukan saran medis; kalau tidurmu
+              terganggu terus, bicarakan dengan tenaga kesehatan.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Di catatan makanan ada juga isian opsional "jam makan". Jam itu disimpan bersama
+              entri makanannya, dipakai untuk wawasan berbasis waktu, dan dihapus bersama catatan
+              makananmu.
+            </p>
+          </section>
+
           <section className="rounded-3xl bg-card p-5">
             <h2 className="text-base font-bold tracking-tight">Komunitas: feed dan grup</h2>
             <p className="mt-3 text-sm leading-relaxed">
@@ -507,7 +545,7 @@ function PrivasiPage() {
             <h2 className="text-base font-bold tracking-tight">Hapus akun dan data</h2>
             <p className="mt-3 text-sm leading-relaxed">
               Kamu bisa menghapus seluruh catatan (profil, berat, makanan, olahraga, tidur,
-              postingan feed, foto, lokasi, langganan notifikasi browser, latihan JoyoFit di cloud, dan dokumen rencana Coach) secara permanen lewat tombol <span className="font-semibold">Hapus semua data saya</span> di
+              postingan feed, foto, lokasi, langganan notifikasi browser, latihan JoyoFit di cloud, dokumen rencana Coach, dan malam tidur untuk wawasan tidur) secara permanen lewat tombol <span className="font-semibold">Hapus semua data saya</span> di
               halaman{" "}
               <Link
                 to="/profil"

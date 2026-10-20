@@ -52,6 +52,9 @@ JoyoRogo. JoyoFit's richer daily metrics were not, so `fitness.upsertScores` now
 `vo2max`, `trainingStatus`, `loadRatio`, `recoveryHours` (all optional, a missing one keeps the stored value). JoyoFit sends them with the
 scores it already pushes (JS only, OTA).
 
+Sleep insights data (`sleep_night`, `sleep_insight_*`, see `docs/sleep-insights.md`) is **not** exposed by the connector: no tool reads it, and
+`get_recovery_metrics` keeps reading only `sleep_log` / `fitness_score`. The optional `food_log.eaten_at` is not returned by any tool either.
+
 The hours of one night can sit in both `sleep_log` (keyed by the day the night started) and `fitness_score.sleep_hours` (keyed by the day it ended,
 JoyoFit sends them for today and, since the week-window push, for each of the six days before). Every reader goes through `lib/sleep-night.ts`
 `pickNightSleep`: a manual `sleep_log` entry wins, else the watch's hours (source `joyofit`), else the Health Connect / Apple Health import. The
