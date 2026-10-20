@@ -33,6 +33,8 @@
   "idle": {
     "title": "Scan food",
     "heading": "Point at your plate",
+    "referenceHint": "Tip: put a card (ATM/ID) or a kitchen scale next to your food so the portion comes out closer.",
+    "referenceHintClose": "Dismiss tip",
     "tip": "One plate per photo, up close",
     "camera": "Open camera",
     "gallery": "Choose from gallery",

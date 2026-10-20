@@ -80,6 +80,7 @@ import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
 import { CorrectBox } from "@/components/scan/correct-box";
 import { CupChoices } from "@/components/scan/cup-choices";
 import { PortionPriorChips } from "@/components/scan/portion-prior-chips";
+import { ReferenceHint } from "@/components/scan/reference-hint";
 import { ScaleReadChips } from "@/components/scan/scale-read-chips";
 import type { CorrectInput, CorrectOutcome } from "@/components/scan/correct-box";
 import { ShareStoryButton } from "@/components/story/share-story-button";
@@ -1334,6 +1335,7 @@ export default function MakanAi() {
             <View style={styles.shutterRow}>
               <Text style={styles.shutterHint}>{t("camera.hint")}</Text>
               <Text style={styles.shutterTip}>{t("idle.tip")}</Text>
+              <ReferenceHint />
               <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel={t("camera.barcode")}

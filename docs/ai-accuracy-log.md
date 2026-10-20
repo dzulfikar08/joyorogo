@@ -4,6 +4,18 @@ Running notes on how accurate the photo scan is, what the data says, and what to
 
 Owner preference to keep in mind: an over-estimated kcal is acceptable, an under-estimate is the worse error, yet users do write "kalori kelewat tinggi". Over and under are always reported separately.
 
+## 2026-10-20: card seen at 0.95 yet 150 g on a 100 g egg white; asking for the size in cm made it worse (n=1 photo, not shipped)
+
+What happened: the owner's first real card scan (egg white in a plastic bag, a gym membership card beside it, truth 100 g, 52 kcal by the owner's own correction). The model answered lontong 150 g / 195-200 kcal, card seen at 0.95. `confidence` there is card detection, not portion accuracy.
+
+Cause, checked: the scan prompt has no 150 g anchor (no gram default anywhere in `visionPrompt`, `DRINK_RULE`, `SAUCE_RULE`, `CARD_INSTRUCTION`). The card block says to compare the food's length and width with the card, but the answer is single-line JSON with thinking off: nothing in the output holds the comparison, so grams come out as the model's usual 100/150 portion. In the photo the bag is about 1.25 card-lengths (~10.5 cm) long, ~4.5 cm wide, rounded; 150 g is a third too high, not a wild guess for that size.
+
+Harness (`--variant baseline --variant card-ref`, one case = the owner's photo with `card: true`, Workers AI, same model): baseline 8 runs: grams 100 x5, 150 x1, 3 answered `bukan_makanan`; names es lilin / es mambo / es krim. card-ref with the shipped prompt, 6 runs: grams 150 x5, 100 x1; names lontong x4, es krim x2; card seen 6 of 6 (0.9-1.0). The card did not move grams toward 100 here, and the dish was never egg white.
+
+Tried, not shipped: the card block asks each item for `"cm":[panjang,lebar,tebal]` before `grams`, grams derived from it. 8 runs: sizes 11-15 x 5-6.5 x 4 cm (length a little high, so the ruler was read decently) but grams 250 x5, 200 x2, 150 x1, all further from 100 g than before: length x width x thickness over-counts a rounded bag. Reverted; the shipped prompt is unchanged. One photo, one shape: no conclusion beyond that.
+
+Egg white as lontong / es krim: a pale bag of soft white matter is ambiguous even to a person; no cheap prompt fix that would not overfit one photo. The owner's text correction ("putih telur 100 g") is the path that fixed it.
+
 ## 2026-10-20: a card in the scan photo as the size reference (flag, mechanism checked on photos WITHOUT a card; grams NOT measured)
 
 Why: a thing of known size on the same surface as the food is the best scale a photo can have. Any ID-1 card (ATM, KTP, SIM, e-money, 85.6 x 54 mm) beside the food now goes into the scan prompt for allowlisted users (`DISHWARE_USER_IDS`, same flag as Piring saya): the model reports `card {seen, confidence}`, a confident one is the size reference and the result says "Kartu terdeteksi", otherwise the matched registered plate, otherwise the scan as before. The ledger keeps `usage_json.card {seen, used, confidence}`. Harness: `--variant card-ref`, only on photos someone checked for a card (labels `card`, or `--cards <file>`); docs/dishware.md.

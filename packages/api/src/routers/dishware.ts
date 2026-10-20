@@ -22,6 +22,7 @@ import {
 import { dishwareEnabled, loadDishware } from "../lib/dishware-store";
 import type { DishwareRow } from "../lib/dishware-store";
 import { jakartaToday } from "../lib/engine";
+import { scaleReadoutEnabled } from "../lib/scale-reading";
 import { serverT } from "../lib/messages";
 import { base64ToBytes, dishwarePhotoKey } from "../lib/sticker";
 import { wibDayBounds } from "../lib/tiers";
@@ -134,6 +135,12 @@ function ledger(db: Database, userId: string, model: string, startedAt: number, 
  * (DISHWARE_USER_IDS); `status` is how clients know whether to show the screen at all.
  */
 export const dishwareRouter = {
+  // The camera tip about putting a card or a kitchen scale beside the food: for users with either flag on.
+  scanHint: protectedProcedure.handler(({ context }) => {
+    const userId = context.session.user.id;
+    return { show: dishwareEnabled(context.env, userId) || scaleReadoutEnabled(context.env, userId) };
+  }),
+
   status: protectedProcedure.handler(async ({ context }) => {
     const enabled = dishwareEnabled(context.env, context.session.user.id);
     const plates = enabled ? (await loadDishware(context.db, context.session.user.id)).map(view) : [];

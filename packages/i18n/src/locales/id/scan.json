@@ -33,6 +33,8 @@
   "idle": {
     "title": "Pindai makanan",
     "heading": "Arahkan ke piringmu",
+    "referenceHint": "Tips: taruh kartu (ATM/KTP) atau timbangan di samping makanan biar porsinya lebih pas.",
+    "referenceHintClose": "Tutup petunjuk",
     "tip": "1 piring per foto, dari dekat",
     "camera": "Buka Kamera",
     "gallery": "Pilih dari Galeri",

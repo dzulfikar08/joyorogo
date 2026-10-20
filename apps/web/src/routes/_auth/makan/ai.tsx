@@ -86,6 +86,7 @@ import { KindCycleChip, SnackAdviceCard, useSnackAdvice } from "@/components/mak
 import { isPaywallError } from "@/lib/billing";
 import { fmtGramsLabel, fmtInt, parseNum } from "@/lib/format";
 import { usePlaceLocation } from "@/lib/location";
+import { ReferenceHint } from "@/components/scan/reference-hint";
 import { client, orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/_auth/makan/ai")({
@@ -1705,6 +1706,7 @@ function AiFoodPage() {
           <Lightbulb className="size-4 shrink-0" aria-hidden />
           {t("idle.tip")}
         </p>
+        <ReferenceHint />
         <div className="mt-5 flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <label className={cn(buttonVariants(), "w-full cursor-pointer sm:w-auto")}>
             <input
