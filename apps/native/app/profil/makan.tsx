@@ -2,6 +2,7 @@ import "@/unistyles";
 import { useTranslation } from "react-i18next";
 
 import { FastingSettingsCard } from "@/components/fasting/settings-card";
+import { DishwareSection } from "@/components/dishware/dishware-section";
 import { BudgetSetting } from "@/components/plate/budget-setting";
 import { ProfilDataPage } from "@/components/profil/page";
 import { RamadanList } from "@/components/profil/sections";
@@ -19,6 +20,7 @@ export default function Makan() {
             {prof ? <RamadanList mode={prof.ramadanMode} maternal={maternal !== null} /> : null}
             {prof && !maternal ? <FastingSettingsCard /> : null}
             <BudgetSetting />
+            <DishwareSection />
           </>
         );
       }}

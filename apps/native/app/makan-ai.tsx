@@ -28,6 +28,7 @@ import { useTranslation } from "react-i18next";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import ConfettiCannon from "react-native-confetti-cannon";
+import { PlateNote, type ScanPlate } from "@/components/dishware/plate-note";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
 import {
@@ -539,6 +540,7 @@ export default function MakanAi() {
   const [retriesLeft, setRetriesLeft] = useState(0);
   const [retryHint, setRetryHint] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+  const [plate, setPlate] = useState<ScanPlate | null>(null);
   // "Hasilnya akurat?" — the server decides when to ask (every scan for the
   // first 3, then once per WIB day). Answering or dismissing hides the card.
   const [model, setModel] = useState<string | null>(null);
@@ -627,6 +629,7 @@ export default function MakanAi() {
     setRetriesLeft(0);
     setRetryHint("");
     setRetryCount(0);
+    setPlate(null);
     setAskFeedback(false);
     setFeedbackAnswered(false);
     setFeedbackRating(null);
@@ -809,6 +812,7 @@ export default function MakanAi() {
       setRetriesLeft(result.retriesLeft ?? 0);
       setRetryHint("");
       setRetryCount(0);
+      setPlate(result.plate ?? null);
       setModel(result.model ?? null);
       setTooMany(result.tooMany);
       setAskFeedback(result.askFeedback ?? false);
@@ -970,6 +974,7 @@ export default function MakanAi() {
       setRetryHint("");
       setModel(result.model ?? model);
       setRetryCount((count) => count + 1);
+      setPlate(result.plate ?? null);
       setTooMany(result.tooMany);
       // Re-cut the per-item tiles from the same sent image, in the background.
       if (sentImage) {
@@ -1665,6 +1670,7 @@ export default function MakanAi() {
             names={items.filter((_, i) => drafts[i]?.include ?? true).map((item) => item.name)}
             addToDay
           />
+          <PlateNote plate={plate} />
 
           {/* Koreksi lewat ketikan atau suara; tersembunyi saat hitung ulang / simpan berjalan */}
           {!retry.isPending && !addScan.isPending ? (

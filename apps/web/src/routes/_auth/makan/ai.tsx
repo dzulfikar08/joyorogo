@@ -62,6 +62,8 @@ import {
   SectionTitle,
   Segmented,
 } from "@/components/kit/surface";
+import { PlateNote } from "@/components/dishware/plate-note";
+import type { PlateNoteData } from "@/components/dishware/plate-note";
 import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { IdrInput } from "@/components/plate/idr-input";
 import { SaveLocationToggle } from "@/components/places/location-toggle";
@@ -369,6 +371,7 @@ function AiFoodPage() {
   // The photo held more food than fit: the result keeps the most prominent
   // items and shows guidance until the user keeps them or reshoots.
   const [tooMany, setTooMany] = useState(false);
+  const [plateNote, setPlateNote] = useState<PlateNoteData | null>(null);
   const [fact] = useState(() => randomFact());
   const [saving, setSaving] = useState(false);
   // This scan used the free user's last quota of today: show the (skippable)
@@ -707,6 +710,7 @@ function AiFoodPage() {
       applyItems(result.items);
       setQuotaReached(result.quotaReached);
       setTooMany(result.tooMany);
+      setPlateNote(result.plate ?? null);
       setPhotoId(result.photoId ?? null);
       setCorrectionsLeft(null);
       setRetriesLeft(result.retriesLeft ?? 0);
@@ -849,6 +853,7 @@ function AiFoodPage() {
     setEatenAt(null);
     setScanError(null);
     setTooMany(false);
+    setPlateNote(null);
     setPhotoId(null);
     setCorrectionsLeft(null);
     setRetriesLeft(0);
@@ -923,6 +928,7 @@ function AiFoodPage() {
       setModel(result.model ?? model);
       setRetryCount((count) => count + 1);
       setTooMany(result.tooMany);
+      setPlateNote(result.plate ?? null);
     } catch (err) {
       setRetryError(failureOf(err, t("flow.retryFailed")));
     } finally {
@@ -1172,6 +1178,7 @@ function AiFoodPage() {
             />
           )}
         </Card>
+        <PlateNote plate={plateNote} />
 
         {askFeedback && !feedbackAnswered && photoId && (
           <Card className="mt-3 px-4 py-3" role="form" aria-label={t("feedback.aria")}>

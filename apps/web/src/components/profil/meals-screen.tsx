@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import { BudgetSetting } from "@/components/plate/budget-setting";
+import { DishwareSection } from "@/components/dishware/dishware-section";
 import { FastingSettingsSection } from "@/components/fasting/settings-section";
 import { Card, Segmented, SectionTitle } from "@/components/kit/surface";
 import { profileOptions } from "@/components/profil/shared";
@@ -38,6 +39,8 @@ export function MealsScreen({ ctx }: { ctx: ProfilCtx }) {
 
       <SectionTitle className="mt-7">{t("section.shopping")}</SectionTitle>
       <BudgetSetting />
+
+      <DishwareSection />
     </>
   );
 }
