@@ -4,7 +4,8 @@
     "noon": "Selamat siang",
     "afternoon": "Selamat sore",
     "evening": "Selamat malam",
-    "named": "{{greeting}}, {{name}}"
+    "named": "{{greeting}}, {{name}}",
+    "lead": "{{greeting}},"
   },
   "header": {
     "streakTitle": "Hari berturut-turut kamu mencatat",

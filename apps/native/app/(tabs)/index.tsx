@@ -77,6 +77,7 @@ import { JoyoFitCard } from "@/components/workout/joyofit-card";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { pushDaySnapshot } from "@/src/lib/widgets/push";
+import { useJakartaClock } from "@/src/lib/use-jakarta-clock";
 import { useHealthAutoSync } from "@/src/lib/use-health-sync";
 import { TargetPaceNotice } from "@/components/target-pace-notice";
 import { errorMessage, fmtDateMedium, fmtInt, fmtKg, weeklyRateLabel } from "@/utils/format";
@@ -164,8 +165,10 @@ export default function Dashboard() {
   const { theme } = useUnistyles();
   const { t } = useTranslation(["home", "common", "berat", "maternal", "gain"]);
   const gate = useSessionGate();
-  const today = jakartaToday();
-  const [date, setDate] = useState(today);
+  const { today, now } = useJakartaClock();
+  // null = follow the live WIB day; a past day is pinned only once the person picks it.
+  const [pickedDate, setPickedDate] = useState<string | null>(null);
+  const date = pickedDate ?? today;
   const isToday = date === today;
   const summary = useQuery({
     ...orpc.day.summary.queryOptions({ input: { date } }),
@@ -179,7 +182,7 @@ export default function Dashboard() {
   const { data: sessionData } = authClient.useSession();
   // Diari piring: today's scanned items with their sticker cutouts.
   const foods = useQuery(
-    orpc.food.listByDate.queryOptions({ input: { date: summary.data?.date ?? jakartaToday() } }),
+    orpc.food.listByDate.queryOptions({ input: { date: summary.data?.date ?? date } }),
   );
 
   // US-013: health data is the primary activity source (Health Connect on
@@ -229,6 +232,16 @@ export default function Dashboard() {
   const [explainOpen, setExplainOpen] = useState(false);
   // Share entry points. Hooks live above the early returns below: Dashboard renders loading, then loaded.
   const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshAll = async () => {
+    setRefreshing(true);
+    try {
+      // Everything mounted on Beranda (summary, water, fasting, diary, cards) refetches, not just the day summary.
+      await queryClient.refetchQueries({ type: "active" });
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const [streakOpen, setStreakOpen] = useState(false);
   const [weightOpen, setWeightOpen] = useState(false);
   const [recapStory, setRecapStory] = useState<StorySpec | null>(null);
@@ -399,17 +412,17 @@ export default function Dashboard() {
   };
 
   return (
-    <Screen>
+    <Screen refreshing={refreshing} onRefresh={() => void refreshAll()}>
       {/* Greeting + avatar → /profil */}
       <View style={styles.greetRow}>
         <View style={styles.greetText}>
-          <Text style={styles.greetTitle}>
-            {t("greeting.named", {
-              greeting: t(`greeting.${greetingKey(new Date())}`),
-              name: firstName,
-            })}
+          <Text style={styles.greetLead} numberOfLines={1}>
+            {t("greeting.lead", { greeting: t(`greeting.${greetingKey(now)}`) })}
           </Text>
-          <Text style={styles.greetCaption}>{fmtDateMedium(jakartaToday())}</Text>
+          <Text style={styles.greetTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+            {firstName}
+          </Text>
+          <Text style={styles.greetCaption}>{fmtDateMedium(today)}</Text>
         </View>
         {!maternal && data.streakDays > 0 ? (
           <Pressable
@@ -445,7 +458,7 @@ export default function Dashboard() {
       </View>
 
       {/* Day switcher */}
-      <DaySwitcher date={date} onChange={setDate} />
+      <DaySwitcher date={date} today={today} onChange={(next) => setPickedDate(next >= today ? null : next)} />
 
       {/* Monday only: recap of the week that just ended */}
       {isToday && !maternal ? <RecapCard /> : null}
@@ -1125,8 +1138,13 @@ const styles = StyleSheet.create((theme) => ({
     flex: 1,
     gap: 2,
   },
+  greetLead: {
+    fontSize: theme.fontSize.base,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
   greetTitle: {
-    fontSize: theme.fontSize.title,
+    fontSize: theme.fontSize["2xl"],
     fontWeight: "800",
     letterSpacing: -0.5,
     color: theme.colors.foreground,

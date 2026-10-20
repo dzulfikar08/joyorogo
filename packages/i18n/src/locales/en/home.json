@@ -4,7 +4,8 @@
     "noon": "Good afternoon",
     "afternoon": "Good afternoon",
     "evening": "Good evening",
-    "named": "{{greeting}}, {{name}}"
+    "named": "{{greeting}}, {{name}}",
+    "lead": "{{greeting}},"
   },
   "header": {
     "streakTitle": "Days in a row you've logged",

@@ -65,6 +65,7 @@ import type { Meal } from "@joyorogo/api/lib/engine";
 import { orpc } from "@/utils/orpc";
 
 import { DaySwitcher } from "@/components/day-switcher";
+import { useJakartaClock } from "@/lib/use-jakarta-clock";
 
 const summaryOptions = (date: string) => orpc.day.summary.queryOptions({ input: { date } });
 const profileOptions = orpc.profile.myProfile.queryOptions();
@@ -86,7 +87,8 @@ type Summary = DaySummary;
 function BerandaPage() {
   const { date: paramDate } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const date = paramDate ?? jakartaToday();
+  const { today, now } = useJakartaClock();
+  const date = paramDate ?? today;
   const summary = useQuery(summaryOptions(date));
   if (summary.isPending) return <BerandaSkeleton />;
   if (summary.error) {
@@ -99,9 +101,9 @@ function BerandaPage() {
     <Dashboard
       summary={summary.data}
       date={date}
-      onChange={(target) =>
-        navigate({ search: { date: target === jakartaToday() ? undefined : target } })
-      }
+      today={today}
+      now={now}
+      onChange={(target) => navigate({ search: { date: target === today ? undefined : target } })}
     />
   );
 }
@@ -137,13 +139,13 @@ function FounderBanner() {
   );
 }
 
-function greetingKey(): "morning" | "noon" | "afternoon" | "evening" {
+function greetingKey(now: Date): "morning" | "noon" | "afternoon" | "evening" {
   const hour = Number(
     new Intl.DateTimeFormat("en-GB", {
       hour: "numeric",
       hour12: false,
       timeZone: "Asia/Jakarta",
-    }).format(new Date()),
+    }).format(now),
   );
   if (hour < 11) return "morning";
   if (hour < 15) return "noon";
@@ -205,10 +207,14 @@ function GlanceTile({
 function Dashboard({
   summary,
   date,
+  today,
+  now,
   onChange,
 }: {
   summary: Summary;
   date: string;
+  today: string;
+  now: Date;
   onChange: (date: string) => void;
 }) {
   const { t } = useTranslation(["home", "berat", "gain"]);
@@ -240,7 +246,7 @@ function Dashboard({
         : null,
   };
   const firstName = session.user.name?.split(" ")[0];
-  const isToday = date === jakartaToday();
+  const isToday = date === today;
   const firstVisit = useFirstVisit("beranda");
 
   const foods = useQuery(orpc.food.listByDate.queryOptions({ input: { date: summary.date } }));
@@ -264,8 +270,8 @@ function Dashboard({
         <div className="min-w-0">
           <p className="text-sm font-medium text-muted-foreground">
             {firstName
-              ? t("greeting.named", { greeting: t(`greeting.${greetingKey()}`), name: firstName })
-              : t(`greeting.${greetingKey()}`)}
+              ? t("greeting.named", { greeting: t(`greeting.${greetingKey(now)}`), name: firstName })
+              : t(`greeting.${greetingKey(now)}`)}
           </p>
           <h1 className="mt-0.5 text-xl leading-tight font-extrabold tracking-tight min-[420px]:text-2xl">
             {fmtDateLong(summary.date).replace(/^\w+, /, "")}
