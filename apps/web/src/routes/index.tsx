@@ -38,7 +38,7 @@ import { AndroidMark } from "@/components/android-mark";
 import { AppleMark } from "@/components/apple-mark";
 import { Roadmap } from "@/components/landing/roadmap";
 import { ScanDemo } from "@/components/landing/scan-demo";
-import { GroupPeek, HeroPhone, ScanExample, WeightTrendDemo } from "@/components/landing/visuals";
+import { BrowserShot, HeroShot, PhoneShot } from "@/components/landing/phone-frame";
 import { GITHUB_URL, GithubMark, PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
 import { FounderPromo } from "@/components/founder-promo";
@@ -483,7 +483,7 @@ function Landing() {
               Foto tidak disimpan.
             </p>
           </div>
-          <HeroPhone />
+          <HeroShot />
         </section>
 
         {/* Founder intro price, while slots last — after the hero so the
@@ -641,7 +641,18 @@ function Landing() {
             <div>
               <p className="mb-3 text-sm font-bold text-primary">Coba sekarang, tanpa daftar</p>
               <ScanDemo />
-              <ScanExample />
+              <figure className="mt-6 flex flex-col items-center gap-5 rounded-[1.75rem] bg-background p-5 sm:flex-row">
+                <PhoneShot
+                  shot="scan"
+                  alt="Layar Cek hasil AI: total 380 kkal, nasi putih dan ayam bumbu dengan kolom kalori yang bisa diubah"
+                  className="w-[min(100%,13rem)] shrink-0"
+                />
+                <figcaption className="text-[0.9375rem] leading-relaxed text-muted-foreground">
+                  <span className="block font-bold text-foreground">Hasil scan di aplikasi</span>
+                  Tiap item punya kolom kalori yang bisa kamu ubah sebelum disimpan. Di sini porsi
+                  nasinya dikecilkan dan total kalorinya langsung ikut berubah.
+                </figcaption>
+              </figure>
             </div>
           </div>
         </section>
@@ -674,7 +685,15 @@ function Landing() {
             </ul>
           </div>
           <div className="md:order-1">
-            <WeightTrendDemo />
+            <figure>
+              <PhoneShot
+                shot="berat"
+                alt="Layar Berat badan: berat tren 65,8 kg, laju turun 0,5 kg per minggu, grafik tren timbangan dan kalori 30 hari"
+              />
+              <figcaption className="mt-4 text-center text-xs text-muted-foreground">
+                Tampilan asli aplikasi, dengan data contoh.
+              </figcaption>
+            </figure>
           </div>
         </section>
 
@@ -811,6 +830,56 @@ function Landing() {
               </li>
             </ul>
           </article>
+        </section>
+
+        {/* Real screens, straight from the app. */}
+        <section data-section="layar" className="mx-auto w-full max-w-6xl px-4 pb-20 md:px-6 md:pb-28">
+          <div className="max-w-2xl">
+            <h2 className="text-3xl font-extrabold tracking-tight text-balance md:text-[2.75rem] md:leading-[1.1]">
+              Begini tampilan aslinya
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+              Tangkapan layar dari aplikasinya, bukan ilustrasi. Angkanya data contoh.
+            </p>
+          </div>
+          <ul className="mt-12 grid gap-10 sm:grid-cols-3">
+            {(
+              [
+                [
+                  "makan",
+                  "Diary makan",
+                  "Tiap waktu makan rapi, lengkap dengan porsi dan makronya.",
+                  "Diary makan hari ini: piring nasi dan ayam bumbu dengan kalori, gram, protein, karbo, dan lemak",
+                ],
+                [
+                  "rekap",
+                  "Rekap mingguan",
+                  "Rata-rata per hari dan hari mana yang sesuai target.",
+                  "Rekap mingguan: rata-rata 1.340 kkal per hari dan grafik batang tujuh hari",
+                ],
+                [
+                  "tidur",
+                  "Tidur",
+                  "Catat jam tidur, bandingkan dengan kebutuhanmu.",
+                  "Layar Tidur: cincin 7,0 jam semalam dari kebutuhan 8 jam dan pilihan durasi",
+                ],
+              ] as const
+            ).map(([shot, title, body, alt]) => (
+              <li key={shot}>
+                <PhoneShot shot={shot} alt={alt} />
+                <h3 className="mt-6 text-center text-lg font-extrabold tracking-tight">{title}</h3>
+                <p className="mx-auto mt-1 max-w-[16.5rem] text-center text-[0.9375rem] leading-relaxed text-muted-foreground">
+                  {body}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-16">
+            <BrowserShot alt="JoyoRogo versi web di laptop: Beranda dengan sisa kalori, makan hari ini, aktivitas, tidur, protein, air, dan berat" />
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              Versi web yang sama, buka dari laptop di joyorogo.com.
+            </p>
+          </div>
         </section>
 
         {/* What testers can use today. */}
@@ -994,7 +1063,15 @@ function Landing() {
                 Grup dibuat dari dalam aplikasi; undangannya lewat tautan atau kode, dan bisa dibuka juga dari JoyoFit.
               </p>
             </div>
-            <GroupPeek />
+            <figure>
+              <PhoneShot
+                shot="grup"
+                alt="Layar Grup di JoyoRogo: tiga anggota dengan progres kalori, streak, tombol Colek, Catatan, dan VAR"
+              />
+              <figcaption className="mt-4 text-center text-xs text-tidur-ink/70">
+                Tampilan asli aplikasi, dengan anggota contoh.
+              </figcaption>
+            </figure>
           </div>
         </section>
 
