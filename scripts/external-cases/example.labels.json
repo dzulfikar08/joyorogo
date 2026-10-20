@@ -47,7 +47,11 @@
         { "name": "kol mentah", "said": "30gr kol", "grams": 30, "cooking": "mentah", "inPhoto": "uncertain", "ref": { "source": "tkpi2019", "row": "Kol merah, kol putih" } }
       ],
       "groups": [],
-      "extras": [{ "name": "sambal", "note": "Visible in the photo, not in his weights: never scored." }]
+      "extras": [{ "name": "sambal", "note": "Visible in the photo, not in his weights: never scored." }],
+      "comparators": [
+        { "source": "example-chatbot", "scope": "meal", "kcalLow": 480, "kcalHigh": 520, "note": "Invented: asked with the photo and his grams. A comparator, not truth." },
+        { "source": "example-chatbot", "scope": "day", "kcalLow": 1500, "kcalHigh": 1600, "note": "Invented day total; put on one case of the day." }
+      ]
     },
     {
       "photo": { "post": "Xexample01", "index": 2, "file": "Xexample01-2.jpg" },

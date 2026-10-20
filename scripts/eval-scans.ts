@@ -22,6 +22,10 @@
 //                      lowest trust of an external case to run (default medium; see the
 //                      labels: low = the photo may not be his plate)
 //   --external-uncertain  also score the items marked "uncertain" in the photo
+//   --comparators      for external cases that carry comparators (another estimator's answer, e.g.
+//                      Meta AI, never truth): also run OUR text path (story / "Ceritakan") on his
+//                      own words with his grams, and print per meal: his-grams reference kcal vs the
+//                      comparator vs our photo answer vs our text answer. A few calls per case.
 //   --dry-run          list the cases, their truth and the model calls, then exit (no calls)
 //   --dir <path>       exported dataset dir (default .tmp/dataset)
 //   --limit <N>        at most N cases in total (owner, feedback, external, then wikimedia)
@@ -44,8 +48,9 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { EXTERNAL_META_VERSION, truthOf } from "../packages/api/src/lib/external-case";
-import type { ExternalMeta } from "../packages/api/src/lib/external-case";
+import { ateReference, EXTERNAL_META_VERSION, truthOf } from "../packages/api/src/lib/external-case";
+import type { Comparator, ExternalMeta } from "../packages/api/src/lib/external-case";
+import { parseFoodStory } from "../packages/api/src/lib/story";
 
 import { analyzeFoodPhoto, DEFAULT_VISION_MODEL, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
 import type { AiRunner } from "../packages/api/src/lib/vision";
@@ -138,6 +143,14 @@ type Case = {
     plateGrams: number | null;
     /** Visible in the photo but not part of his weights: an answer item for one is neither right nor wrong. */
     ignore: string[];
+    /** Where the meal sits in his thread, and his own words for it (the text-path input). */
+    meal: { day: number; meal: string; mealRaw: string; said: string };
+    /** Other estimators' answers (never truth). */
+    comparators: Comparator[];
+    /** Everything he ate in the meal, in or out of the photo; per100 = the reference's kcal per 100 g. */
+    eaten: Array<{ name: string; grams?: number; kcal: number; per100?: number; noKcal?: true }>;
+    /** Reference kcal of everything eaten; `missing` = items with no reference row (kcal is then a floor). */
+    ate: { kcal: number; missing: string[] };
   };
 };
 
@@ -166,6 +179,7 @@ type Args = {
   externalTrust: ExternalMeta["trust"];
   externalUncertain: boolean;
   dryRun: boolean;
+  comparators: boolean;
   dir: string;
   limit: number;
   reps: number;
@@ -181,6 +195,7 @@ function parseArgs(argv: string[]): Args {
     externalTrust: "medium",
     externalUncertain: false,
     dryRun: false,
+    comparators: false,
     dir: join(ROOT, ".tmp", "dataset"),
     limit: Infinity,
     reps: 1,
@@ -229,6 +244,9 @@ function parseArgs(argv: string[]): Args {
       }
       case "--external-uncertain":
         args.externalUncertain = true;
+        break;
+      case "--comparators":
+        args.comparators = true;
         break;
       case "--dry-run":
         args.dryRun = true;
@@ -584,6 +602,16 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
               ...meta.extras.map((e) => e.name),
               ...(args.externalUncertain ? [] : meta.items.filter((i) => i.inPhoto === "uncertain").map((i) => i.name)),
             ],
+            meal: { day: meta.source.day, meal: meta.source.meal, mealRaw: meta.source.mealRaw, said: meta.said },
+            comparators: meta.comparators ?? [],
+            eaten: meta.items.map((i) => ({
+              name: i.name,
+              ...(i.grams !== null ? { grams: i.grams } : i.assumedGrams !== undefined ? { grams: i.assumedGrams } : {}),
+              kcal: i.kcal ?? 0,
+              ...(i.ref ? { per100: i.ref.kcalPer100g } : {}),
+              ...(i.kcal === undefined ? { noKcal: true as const } : {}),
+            })),
+            ate: ateReference(meta.items),
           },
         };
         HISTORY.push(...meta.items.flatMap((i) => (i.grams !== null && !i.group ? [{ caseId: meta.caseId, name: i.name.toLowerCase(), grams: i.grams }] : [])));
@@ -844,6 +872,124 @@ function externalDetail(variant: string, runs: Run[]): string[] {
   ];
 }
 
+// ------------------------------------------------------------ comparators
+/** Fixed "now" for the text path: the prompt carries today's date and the clock, so it must not move between runs (cache). */
+const TEXT_NOW = new Date("2026-10-20T05:00:00Z");
+
+type TextRun = { ok: true; items: EvalItem[] } | { ok: false; reason: string };
+
+/** OUR text path (parseFoodStory, what "Ceritakan" runs) on his own words for the meal, grams included. */
+async function runText(ai: AiRunner, c: Case, rep: number, useCache: boolean): Promise<TextRun> {
+  const { mealRaw, said } = c.external!.meal;
+  try {
+    const story = await parseFoodStory(rawCache(ai, rep, useCache), { text: `${mealRaw}: ${said}`, slots: [], now: TEXT_NOW });
+    return { ok: true, items: story.items.map((i) => ({ name: i.name, grams: i.grams, kcal: i.kcal })) };
+  } catch (error) {
+    return { ok: false, reason: error instanceof Error ? error.message : "error" };
+  }
+}
+
+const pct = (value: number, reference: number) => (reference > 0 ? `${value >= reference ? "+" : ""}${f(((value - reference) / reference) * 100, 0)}%` : "-");
+const range = (lo: number, hi: number) => (lo === hi ? `${Math.round(lo)}` : `${Math.round(lo)}-${Math.round(hi)}`);
+const spread = (xs: number[]) => (xs.length ? `${range(Math.min(...xs), Math.max(...xs))}${xs.length > 1 ? ` (${xs.length} runs)` : ""}` : "-");
+
+/**
+ * Per meal: reference kcal for his grams vs the comparator vs our photo answer vs our
+ * text answer; per day when a comparator gives a day total; per item what the text path
+ * did with his grams (kcal per 100 g against the reference).
+ */
+function comparatorSection(
+  cases: Case[],
+  photo: Map<string, number[]>,
+  text: Map<string, TextRun[]>,
+): string[] {
+  const meals = cases
+    .filter((c) => c.external?.comparators.length)
+    .sort((a, b) => a.external!.meal.day - b.external!.meal.day || a.id.localeCompare(b.id));
+  if (!meals.length) return [];
+  const md = [
+    "## External comparators (Meta AI and the like): NOT ground truth",
+    "",
+    "A comparator is another estimator's answer to the same meal (the contributor gave it the photo and his grams). It is shown beside ours to see whether kcal per gram agrees when grams are known; it is never scored. Reference = TKPI 2019 / library kcal for everything he ate in the meal (proxy rows, see the case files). 'Our photo' = the baseline answer for the photo alone (the photo may not show every item). 'Our text' = the story path on his own words with his grams. Percentages are against the reference.",
+    "",
+    "| Meal | Reference (his grams) | Comparator | Comparator vs ref | Our photo | Photo vs ref | Our text | Text vs ref | Notes |",
+    "|---|---|---|---|---|---|---|---|---|",
+  ];
+  const mid = (cmp: Comparator) => (cmp.kcalLow + cmp.kcalHigh) / 2;
+  const textTotals = (c: Case) => (text.get(c.id) ?? []).flatMap((t) => (t.ok ? [sum(t.items.map((i) => i.kcal))] : []));
+  for (const c of meals) {
+    const x = c.external!;
+    const ref = x.ate.kcal;
+    const complete = x.ate.missing.length === 0;
+    const meal = x.comparators.filter((cmp) => cmp.scope === "meal");
+    const photoTotals = photo.get(c.id) ?? [];
+    const texts = textTotals(c);
+    const against = (values: number[]) => (!values.length || !complete ? "-" : pct(mean(values), ref));
+    const notes = [
+      ...(complete ? [] : [`no reference row: ${x.ate.missing.join(", ")}`]),
+      ...(x.eaten.length > c.truth!.length ? [`${x.eaten.length - c.truth!.length} eaten item(s) not scored against the photo`] : []),
+    ];
+    md.push(
+      `| Day ${x.meal.day} ${x.meal.meal} | ${complete ? Math.round(ref) : `>= ${Math.round(ref)}`} | ${meal.map((cmp) => `${cmp.source} ${range(cmp.kcalLow, cmp.kcalHigh)}`).join("; ") || "-"} | ${complete && meal.length ? meal.map((cmp) => pct(mid(cmp), ref)).join("; ") : "-"} | ${spread(photoTotals)} | ${against(photoTotals)} | ${spread(texts)} | ${against(texts)} | ${notes.join("; ") || "-"} |`,
+    );
+  }
+
+  const days = [...new Set(meals.filter((c) => c.external!.comparators.some((cmp) => cmp.scope === "day")).map((c) => c.external!.meal.day))];
+  for (const day of days) {
+    const ofDay = cases.filter((c) => c.external?.meal.day === day);
+    const dayCmps = ofDay.flatMap((c) => c.external!.comparators.filter((cmp) => cmp.scope === "day"));
+    const complete = ofDay.every((c) => c.external!.ate.missing.length === 0);
+    const refSum = sum(ofDay.map((c) => c.external!.ate.kcal));
+    const photoSum = sum(ofDay.map((c) => mean(photo.get(c.id) ?? [0])));
+    const textSum = sum(ofDay.map((c) => mean(textTotals(c).length ? textTotals(c) : [0])));
+    const metaMealSum = sum(ofDay.flatMap((c) => c.external!.comparators.filter((cmp) => cmp.scope === "meal").map(mid)));
+    md.push(
+      "",
+      `**Day ${day}** (${ofDay.length} meals): ${dayCmps.map((cmp) => `${cmp.source} day total ${range(cmp.kcalLow, cmp.kcalHigh)}`).join("; ")}; sum of its meal answers ${Math.round(metaMealSum)}; reference ${complete ? "" : ">= "}${Math.round(refSum)}${complete ? "" : " (some items have no reference row)"}; our photo answers ${Math.round(photoSum)}; our text answers ${Math.round(textSum)}.`,
+    );
+  }
+
+  const rows: string[] = [];
+  for (const c of meals) {
+    for (const [rep, t] of (text.get(c.id) ?? []).entries()) {
+      if (!t.ok) {
+        rows.push(`| ${c.id}#${rep} | (text path failed: ${t.reason}) | | | | | |`);
+        continue;
+      }
+      const eaten = c.external!.eaten;
+      const pairs = pairItems<EvalItem & { per100?: number }>(t.items, eaten);
+      for (const { ai, truth } of pairs) {
+        const per100 = ai.grams ? (ai.kcal / ai.grams) * 100 : undefined;
+        rows.push(
+          `| ${c.id}#${rep} | ${truth.name} | ${truth.grams ?? "-"} | ${ai.name} | ${ai.grams !== undefined ? Math.round(ai.grams) : "-"} | ${truth.grams && ai.grams ? pct(ai.grams, truth.grams) : "-"} | ${per100 !== undefined ? Math.round(per100) : "-"} / ${truth.per100 ?? "-"} ${per100 !== undefined && truth.per100 ? `(${pct(per100, truth.per100)})` : ""} |`,
+        );
+      }
+      const unmatched = t.items.filter((i) => !pairs.some((p) => p.ai === i));
+      const unpaired = eaten.filter((x) => !pairs.some((p) => p.truth === x));
+      // A leftover on both sides is usually the same food named differently ("Sayur" / "tumis sayuran"): show them on one row.
+      for (const e of unpaired) {
+        const other = unmatched.shift();
+        const per100 = other?.grams ? (other.kcal / other.grams) * 100 : undefined;
+        rows.push(
+          `| ${c.id}#${rep} | ${e.name} | ${e.grams ?? "-"} | ${other ? `${other.name} (names differ)` : "(not in the text answer)"} | ${other?.grams !== undefined ? Math.round(other.grams) : "-"} | ${other?.grams && e.grams ? pct(other.grams, e.grams) : "-"} | ${per100 !== undefined ? Math.round(per100) : "-"} / ${e.per100 ?? "-"} ${per100 !== undefined && e.per100 ? `(${pct(per100, e.per100)})` : ""} |`,
+        );
+      }
+      for (const extra of unmatched) rows.push(`| ${c.id}#${rep} | (not in his list) | - | ${extra.name} | ${extra.grams !== undefined ? Math.round(extra.grams) : "-"} | - | ${extra.grams ? Math.round((extra.kcal / extra.grams) * 100) : "-"} / - |`);
+    }
+  }
+  if (rows.length) {
+    md.push(
+      "",
+      "**Our text path, item by item** (his grams in the text): does it keep his grams, and does its kcal per 100 g agree with the reference?",
+      "",
+      "| Run | His item | His g | Text item | Text g | Grams vs his | kcal/100 g text / ref |",
+      "|---|---|---|---|---|---|---|",
+      ...rows,
+    );
+  }
+  return [...md, ""];
+}
+
 // ------------------------------------------------------------------- main
 async function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -885,7 +1031,8 @@ async function main() {
     return;
   }
 
-  const ai = jobs.length > cachedAlready || !args.cache ? restRunner(apiToken()) : { run: () => Promise.reject(new Error("unreachable: all cached")) };
+  const needsLive = jobs.length > cachedAlready || !args.cache || (args.comparators && cases.some((c) => c.external?.comparators.length));
+  const ai = needsLive ? restRunner(apiToken()) : { run: () => Promise.reject(new Error("unreachable: all cached")) };
   const results = new Array<Run>(jobs.length);
   let next = 0;
   let done = 0;
@@ -902,6 +1049,22 @@ async function main() {
   );
   if (jobs.length) process.stdout.write("\n");
   console.log(`Workers AI calls made ${RAW_STATS.calls}, replayed from the raw cache ${RAW_STATS.replays}`);
+
+  // Our text path on the comparator cases (his words, his grams), same reps as the photo runs.
+  const textRuns = new Map<string, TextRun[]>();
+  const comparatorCases = args.comparators ? cases.filter((c) => c.external?.comparators.length) : [];
+  await Promise.all(
+    comparatorCases.map(async (c) => {
+      textRuns.set(c.id, await Promise.all(Array.from({ length: args.reps }, (_, rep) => runText(ai, c, rep, args.cache))));
+    }),
+  );
+  if (comparatorCases.length) console.log(`Text path: ${comparatorCases.length} cases x ${args.reps} rep(s); Workers AI calls made so far ${RAW_STATS.calls}, replayed ${RAW_STATS.replays}`);
+  const photoTotals = new Map<string, number[]>();
+  results.forEach((r, i) => {
+    if (jobs[i]!.variant === args.variants[0] && r.result.ok && r.c.external) {
+      photoTotals.set(r.c.id, [...(photoTotals.get(r.c.id) ?? []), sum(r.result.items.map((item) => item.kcal))]);
+    }
+  });
 
   const runsBy = (variant: string, group: Group) =>
     results.flatMap((r, i) => (jobs[i]!.variant === variant && r.c.group === group ? [r] : []));
@@ -983,6 +1146,7 @@ async function main() {
     );
   }
 
+  if (args.comparators) md.push(...comparatorSection(comparatorCases, photoTotals, textRuns));
   if (skipped.length) {
     md.push(
       "## Not run (skipped)",

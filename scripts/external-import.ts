@@ -136,6 +136,10 @@ function describe(meta: ExternalMeta, photoBytes: number): string[] {
   }
   for (const extra of meta.extras)
     lines.push(`  [extra    ] ${extra.name}${extra.note ? `: ${extra.note}` : ""}`);
+  for (const cmp of meta.comparators)
+    lines.push(
+      `  [compare  ] ${cmp.source} (${cmp.scope}) ${cmp.kcalLow}-${cmp.kcalHigh} kcal: a comparator, not truth`,
+    );
   const t = meta.truth;
   lines.push(
     `  scored: ${t.plateGrams ?? "n/a"} g, ${t.kcalComplete ? `${t.plateKcal} kcal` : "kcal incomplete (names + grams only)"}`,

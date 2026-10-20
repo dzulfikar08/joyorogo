@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { DATASET_PREFIX, EXTERNAL_DATASET_PREFIX } from "./dataset";
 import {
+  ateReference,
   buildExternalMeta,
   caseIdOf,
   externalCaseKey,
@@ -108,6 +109,32 @@ describe("meta.json", () => {
     expect(meta.items.filter((i) => i.group).every((i) => i.kcal === undefined)).toBe(true);
     // Scoring the uncertain tempe too changes nothing: it shares the group's weight.
     expect(truthOf(meta.items, meta.groups, true).plateGrams).toBe(500);
+  });
+
+  test("comparators ride along in the meta, never in the truth; the meal reference counts everything eaten", () => {
+    const meta = buildExternalMeta(labels, weighed!, photo, NOW);
+    expect(meta.comparators.map((c) => [c.source, c.scope, c.kcalLow, c.kcalHigh])).toEqual([
+      ["example-chatbot", "meal", 480, 520],
+      ["example-chatbot", "day", 1500, 1600],
+    ]);
+    // The uncertain kol is eaten too: 156 + 248 + 77 + 9.
+    expect(ateReference(meta.items)).toEqual({ kcal: 490, missing: [] });
+    expect(meta.truth.plateKcal).toBe(481);
+    const dinner = buildExternalMeta(labels, grouped!, photo, NOW);
+    expect(dinner.comparators).toEqual([]);
+    // Combined-weight members have no kcal: they are listed, and the sum is a floor.
+    expect(ateReference(dinner.items)).toEqual({
+      kcal: 115,
+      missing: ["nasi putih", "sayur lodeh", "tempe"],
+    });
+  });
+
+  test("a comparator range must be ordered and positive", () => {
+    const bad = JSON.parse(JSON.stringify(labels));
+    bad.cases[0].comparators[0] = { source: "x", scope: "meal", kcalLow: 600, kcalHigh: 500 };
+    expect(labelsSchema.safeParse(bad).success).toBe(false);
+    bad.cases[0].comparators[0] = { source: "x", scope: "week", kcalLow: 1, kcalHigh: 2 };
+    expect(labelsSchema.safeParse(bad).success).toBe(false);
   });
 });
 

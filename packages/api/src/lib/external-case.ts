@@ -81,6 +81,23 @@ export const itemSchema = z.object({
 });
 export type LabelItem = z.infer<typeof itemSchema>;
 
+/**
+ * What another estimator (a chatbot the contributor asked, with the photo and his
+ * grams) answered, kept for comparison only. `scope` "meal" = this case's meal,
+ * "day" = the whole day the case belongs to (put it on one case of that day).
+ */
+export const comparatorSchema = z
+  .object({
+    source: z.string().min(1),
+    scope: z.enum(["meal", "day"]),
+    kcalLow: z.number().positive(),
+    kcalHigh: z.number().positive(),
+    /** What was asked and what the answer said beyond the kcal range. */
+    note: z.string().optional(),
+  })
+  .refine((c) => c.kcalLow <= c.kcalHigh, "kcalLow is above kcalHigh");
+export type Comparator = z.infer<typeof comparatorSchema>;
+
 export const caseSchema = z.object({
   photo: z.object({
     post: z.string().min(1),
@@ -119,6 +136,8 @@ export const caseSchema = z.object({
   /** Visible in the photo but not part of his weights (not eaten, or not counted). Never scored. */
   extras: z.array(z.object({ name: z.string().min(1), note: z.string().optional() })).default([]),
   notes: z.string().optional(),
+  /** Other estimators' answers for this meal or day (Meta AI and the like). NOT ground truth: never scored, only shown next to ours. */
+  comparators: z.array(comparatorSchema).default([]),
 });
 export type LabelCase = z.infer<typeof caseSchema>;
 
@@ -242,6 +261,7 @@ export type ExternalMeta = {
   groups: LabelCase["groups"];
   extras: LabelCase["extras"];
   notes?: string;
+  comparators: Comparator[];
   /** What the harness scores against, over the items marked inPhoto "yes". */
   truth: {
     /** Every scored item has a reference kcal. */
@@ -292,6 +312,21 @@ export function truthOf(
     kcalComplete,
     plateKcal: kcalComplete ? kcals.reduce<number>((sum, k) => sum + (k ?? 0), 0) : null,
     plateGrams,
+  };
+}
+
+/**
+ * Reference kcal of EVERYTHING he ate in the meal (every item, whether or not it is
+ * in the photo), the number to put beside another estimator's answer for the whole
+ * meal. Items with no reference row are listed in `missing`; `kcal` is then a floor.
+ */
+export function ateReference(items: readonly Pick<ExternalItem, "name" | "kcal">[]): {
+  kcal: number;
+  missing: string[];
+} {
+  return {
+    kcal: items.reduce((sum, item) => sum + (item.kcal ?? 0), 0),
+    missing: items.filter((item) => item.kcal === undefined).map((item) => item.name),
   };
 }
 
@@ -377,6 +412,7 @@ export function buildExternalMeta(
     groups: c.groups,
     extras: c.extras,
     ...(c.notes ? { notes: c.notes } : {}),
+    comparators: c.comparators,
     truth: truthOf(items, c.groups),
     importedAt,
   };

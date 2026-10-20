@@ -4,6 +4,30 @@ Running notes on how accurate the photo scan is, what the data says, and what to
 
 Owner preference to keep in mind: an over-estimated kcal is acceptable, an under-estimate is the worse error, yet users do write "kalori kelewat tinggi". Over and under are always reported separately.
 
+## 2026-10-20: when the grams are known, does our kcal per gram agree with Meta AI? (comparator, not truth)
+
+The external contributor also asks Meta AI (meta.ai) in his thread, giving it the photo, his grams and a nutrition-tracker prompt. Its answer for one day (Day 3, four meals) was copied into the case labels as a **comparator** (`comparators` on the case: source, meal or day scope, kcal range). It is shown beside ours and never scored: Meta AI is not ground truth. Days 4 and 5 have no Meta answer (hidden under "Show replies").
+
+`bun run scripts/eval-scans.ts --only external --reps 2 --comparators` prints per meal: reference kcal for his grams (TKPI 2019 / library, proxy rows flagged), the comparator, our photo answer (baseline, photo alone), and our text answer (`parseFoodStory`, what "Ceritakan" runs, fed his own words with his grams). 8 extra Workers AI calls (4 meals x 2 reps), fixed clock so the text prompt is cacheable. Percentages below are against the reference; the absolute numbers stay in the git-ignored labels and report (they follow from his weights).
+
+| Day 3 meal | Meta AI vs ref | Our text vs ref | Our photo vs ref | Our text vs Meta |
+|---|---|---|---|---|
+| breakfast (rice + breaded chicken breast) | -18% | -21% | -10% | -4% |
+| lunch (rice, pan-seared breast, vegetables) | +7% | +4% | +23% | -2% |
+| snack (a cafe drink + potato nuggets) | no reference row | no reference row | no reference row | +130% (ours is about 2.3 times Meta's) |
+| dinner (rice, fried thighs, vegetables) | -21% | -6% | -28% | +19% |
+
+Day total: Meta says 1650-1750 and its four meal answers add to 1630; our text answers add to about 1.2 times Meta's day (the snack alone is most of it).
+
+Our text path item by item (kcal per 100 g against the reference row): rice 0%, pan-seared chicken breast +5%, vegetables +25%, fried thigh -9%, breaded chicken breast -28%. It kept his grams exactly in all 20 item rows (2 reps x 10 items): the model never re-estimates a gram it was given.
+
+Reading it:
+
+- **With grams known, the text path and Meta agree on the plain meals** (breakfast -4%, lunch -2%) and both sit below the reference on the two fried-chicken meals. The shortfall is in the fried chicken: the reference rows for fried chicken (about 275-340 kcal per 100 g) give 10-30% more than either model. [INFERENCE] part of that is the reference: the TKPI fried-chicken rows are proxies, and a weight that includes bone (the thighs, the katsu pieces?) makes any per-100 g edible figure too high. Worth asking the contributor whether his chicken weights include bone before treating our reference as the better number.
+- **The photo path is the loose one** (-28% to +23%), because it also guesses the grams (see the portion entry below); the text path only has to turn grams into kcal.
+- **The snack is a real disagreement.** The model read "Mont Blanc" as a dessert and answered about 190 kcal per 100 g (a 240 ml drink at roughly 450 kcal), about twice what Meta gave for the drink plus nuggets. Neither has a reference. The photo shows a cafe coffee with a cream foam cap; [INFERENCE] the text path has no photo to correct the dish name, so a branded or unusual name drives it. Not acted on.
+- **Limits.** One day, four meals, one contributor; Meta's meal figures are single values ("sekitar 410") or narrow ranges; the reference uses proxy rows. This says our kcal per gram is in the same range as Meta's when grams are known, not that either is right.
+
 ## 2026-10-20: do the portion errors come from the clamp, the prompt or the lack of a personal prior? (eval only, production untouched)
 
 Question: on the weighed external cases the model answers 150 g of rice where the contributor ate about 100 g. Three candidate fixes were run through `scripts/eval-scans.ts`, none shipped: `band-wide` / `band-off` (the library kcal band of the 2026-10-18 change widened by 50% / removed), `scale-cues` (prompt: "porsi umum" becomes "porsi yang TERLIHAT" plus a rule to read grams from plate or bowl diameter, spoon, fork, hand, and not default to typical portions), `user-prior` (one prompt line with the median of the contributor's OTHER weighed meals per dish eaten at least twice, leave-one-out; external cases only, since it needs a weighed history).

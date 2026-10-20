@@ -28,6 +28,7 @@ Each item: `name` (as the model would say it), `said` (his words), `grams` (weig
 - **`groups`**: when he gives one weight for several foods (rice + lodeh + tempe in one number), the members have no per-item grams or kcal. The case is scored on item names and plate grams only.
 - **`extras`**: visible in the photo but not in his weights (not eaten, lalapan, a garnish). An answer item matching one is set aside, neither right nor wrong.
 - **`mapping`**: `certain`, `likely` or `uncertain` for the meal-to-photo match when the post does not say which photo is which.
+- **`comparators`** (optional, case level): another estimator's answer to the same meal or day, for example a chatbot the contributor asked with the photo and his grams: `{source, scope: "meal"|"day", kcalLow, kcalHigh, note}`. A day total goes on one case of that day. A comparator is **never truth and never scored**; it is shown beside ours (`--comparators`) to see whether kcal per gram agrees when the grams are known.
 
 ### Labels file
 
@@ -54,6 +55,10 @@ bun run scripts/eval-scans.ts --only external --reps 2       # production prompt
 #    --variant baseline --variant scale-cues ...   compare variants (see `--list-variants`); variants that
 #                                differ in calibration only replay the same model answer (.tmp/eval/raw)
 #    --only owner --only external   run the owner set next to the external one
+#    --comparators               for cases with comparators: also run our text path ("Ceritakan") on his own
+#                                words with his grams and print per meal: reference kcal for his grams vs
+#                                the comparator vs our photo answer vs our text answer, plus the text path
+#                                item by item (grams kept? kcal per 100 g vs the reference?)
 
 # Pull what is in R2 back down: fills .tmp/dataset/{owner,feedback,external}/ and summary.jsonl.
 # With AI_BENCH_KEY it goes through the server routes; without it, straight from the R2 bucket
