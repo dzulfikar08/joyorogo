@@ -4,6 +4,46 @@ Running notes on how accurate the photo scan is, what the data says, and what to
 
 Owner preference to keep in mind: an over-estimated kcal is acceptable, an under-estimate is the worse error, yet users do write "kalori kelewat tinggi". Over and under are always reported separately.
 
+## 2026-10-20: the card as a ruler in code (geometry) built, measured, switched OFF by the owner; shipped: the sambal line and no literal confidence in the card prompt
+
+What was built and removed (not in the code any more; this entry is the record to rebuild it from). The model only pointed: the card's `box` and, per food item, the `box` it already writes plus one `"shape"` word (`flat|mound|piece|sauce|leafy|liquid`); code turned that into grams: boxes on the 0-1000 grid (x stretched by the photo's width/height read from the file header) -> cm through the card's 8.56 cm long side -> cm2 x fill (0.6-0.785 by shape) x mean height (flat 1 cm, mound 0.25 x equivalent diameter within 1.5-4.5 cm, piece 0.4 x short side within 1-4 cm, sauce 1 cm, leafy 3 cm) x density by food name (nasi 0.73, noodles 0.6, egg 0.95, tofu/tempeh 0.95, meat 1.0, cooked veg 0.5, raw leaves 0.12, sambal matah 0.6, sauces 1.0, crisps 0.15, else 0.75-1.0 by shape; rounded household-measure values written from memory and docs/portion-depth-research.md, never fitted) -> clamp per shape (flat 8-250 g, mound 20-700, piece 10-500, sauce 3-150, leafy 3-150); kcal through `itemAtGrams`. It kept the model's grams for: no card / confidence under 0.6 / no card box / card box not card-shaped (long over short side outside 1.27-2.06) / card span outside 4-70% of the photo / drinks / soup / no shape or box / footprint under 1 cm or over 34 cm / computed grams outside 0.6x-2x of the model's; a fried egg, omelette, lettuce, sambal-first and nasi/bubur/mie names overrode the model's shape word; ledger `usage_json.card {seen, confidence, used: geometry|prompt|false, box, skip, items[{shape, lenCm, widCm, cards, covered, volumeCm3, density, modelG, geoG, applied, skip}]}`. Decision (owner): off until weighed photos with a card exist in number, so grams stay the model's, the "Kartu terdeteksi" line is back to meaning "the model saw a card with confidence >= 0.6", and the ledger is back to `card {seen, used, confidence}`. The answer also grew from about 175 to about 360 completion tokens (boxes, shapes, extra items), roughly 4-6 s per scan, which is why it was not kept as log-only.
+
+**The one weighed photo with a card** (owner, boiled egg white in a bag on a kitchen scale reading 102 g, a gym card beside the scale; kept locally as `.tmp/dataset/owner/egg-white-card` with `scale.json`, run with `--cards .tmp/dataset/cards.json`). 5 runs through the harness, `card-ref` vs `card-geometry` (same model call):
+
+| run | model grams (name) | geometry grams | applied |
+|---|---|---|---|
+| 1 | 150 (lontong) | 103 | yes |
+| 2 | 100 (lemper) | 105 | yes |
+| 3 | 100 (lemper) | - | no: the item came back without a box |
+| 4 | 80 (lemper) | 106 | yes |
+| 5 | 100 (lemper) | 107 | yes |
+
+Truth 102 g: the geometry was within +1 to +5% in the 4 runs where it applied, against the model's 80-150 g (the model's own median 100 g, spread -22% to +47%). With the final prompt (card block without box/shape) 6 more runs gave 80, 60, 150, 50, 60, 60 g. The egg white is named lontong / lemper (kcal per gram of those, not of egg white: 120-263 kcal for ~53 true), so kcal were wrong whatever the grams, a naming problem the correction-memory feature addresses, not the card. One photo, one shape (a plain bag on a flat scale, nothing overlapping); it is the favourable case.
+
+**Three bowl photos** (the owner's beef / egg / sambal matah bowl, `latest`, `prev`, `prev2`; truth = visual estimates, not weighed: nasi 140, daging 80, telur 55, sambal matah 30), `card-ref` vs `card-geometry`, 10 runs each:
+
+| photo | item | estimate | model g median (range) | final g median (range) | computed from the card | geometry alone |
+|---|---|---|---|---|---|---|
+| prev | nasi | 140 | 150 (150-150) | 150 (150-150) | 0/10 | 32 (24-36) |
+| prev | telur | 55 | 50 (50-60) | 58 (55-59) | 10/10 | 58 (55-59) |
+| prev | sambal | 30 | 30 (30-30) | 22 (18-30) | 9/10 | 22 (18-25) |
+| latest | nasi | 140 | 150 (150-150) | 150 (150-150) | 0/10 | 31 (29-34) |
+| latest | telur | 55 | 50 (50-60) | 59 (50-60) | 8/10 | 59 (58-60) |
+| latest | daging | 80 | 80 (80-100) | 80 (80-183) | 3/10 | 179 (171-352) |
+| latest | sambal | 30 | 15 (15-20) | 15 (9-25) | 7/10 | 13 (9-25) |
+| prev2 | nasi | 140 | 150 (150-150) | 150 (102-150) | 1/10 | 38 (24-102) |
+| prev2 | telur | 55 | 50 (50-60) | 57 (50-59) | 6/10 | 59 (56-138) |
+| prev2 | sambal | 30 | 20 (20-30) | 22 (17-35) | 10/10 | 22 (17-35) |
+
+- An isolated flat item is measured well (fried egg 55-60 g in all 24 applied runs; the model was already at 50-60). Anything the camera cannot fully see is under-measured: rice under toppings computes 24-38 g (the visible crescent) against ~140, which the 0.6x-2x window rejects (so the model's 150 stays); beef under sambal and lettuce computes 171-352 g (the box takes in the lettuce) against ~80 and passed the window in 3 of 10 runs (183 g). In the harness report side-dish grams MAE against the estimates went 6 g to 10 g, plate kcal MAE 55 to 86 kcal. No net-improvement claim from these.
+- The card's own box is wrong sometimes: truncated (card 148 high instead of 250 grid units) in 2 of 10 runs on `latest` (the shape test rejected it), and on `prev2` a tall card written as a wide, plausibly shaped box (height 70 instead of 168) in 3 of 10 runs, which scales every item 1.5x in length. Extra fields to catch that failed: `"long":"tegak|mendatar"` (wrong on `latest` in 6 of 8, still wide on `prev2` in 8 of 8) and the box's own `h`/`w` (still wrong on `prev2` in 7 of 8, derived from the same box). A skip rule for items whose box is mostly covered by other boxes removed almost every item (loose overlapping rectangles).
+- Asking the model for "size in multiples of the card" instead of boxes failed: it wrote 1.2 / 1.5 / 1.0 for nearly everything. Its boxes were steady (egg 1.09 x 0.99 cards in 4 of 4 on `prev`).
+- **To turn it back on**: weighed meals with a card, among them plates with separate items (nasi campur compartments, tempe pieces, a boiled egg) where nothing is hidden, and the egg-white case above; compare `modelG` against `geoG`. Toppings and hidden rice are the known failures.
+
+**What stays in the code (card block of `CARD_INSTRUCTION`):**
+- The literal `0.9` is gone from the example (`"confidence":number`). The model still answers 0.95 in 25 of 29 runs (1.0 x3, 0.98 x1): a habit, not a calibrated number, so it says almost nothing about the card.
+- **Sambal matah**: with the production prompt alone (18 baseline runs on the three bowl photos) no run listed a sambal item (0 of 18), most answers merged the bowl into one "nasi putih dengan telur ... 350 g" line plus a duplicate egg. With the card block's added line ("sambal or raw sliced seasoning on top of a side dish is its own item with its own box"): 18 of 18 runs listed one (typically 15-30 g; "sambal matah", "sambal irisan" or "irisan cabai dan bawang"). The line is only in the allowlisted users' block; the production prompt (SAUCE_RULE, "Pisahkan ... sambal") is untouched. The card block's grams are still the model's.
+
 ## 2026-10-20: card seen at 0.95 yet 150 g on a 100 g egg white; asking for the size in cm made it worse (n=1 photo, not shipped)
 
 What happened: the owner's first real card scan (egg white in a plastic bag, a gym membership card beside it, truth 100 g, 52 kcal by the owner's own correction). The model answered lontong 150 g / 195-200 kcal, card seen at 0.95. `confidence` there is card detection, not portion accuracy.

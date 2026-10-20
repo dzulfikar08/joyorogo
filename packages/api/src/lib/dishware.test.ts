@@ -161,9 +161,11 @@ describe("analyzeDishwarePhoto", () => {
 
 describe("the card reference", () => {
   test("names every kind of ID-1 card, its size, and the leading field", () => {
-    for (const word of ["ATM", "KTP", "SIM", "e-money", "warna apa pun", "8,56 x 5,4 cm", '"card":{"seen":true,"confidence":0.9}', '"seen":false']) {
+    for (const word of ["ATM", "KTP", "SIM", "e-money", "warna apa pun", "8,56 x 5,4 cm", '"card":{"seen":true,"confidence":number}', '"seen":false', "sambal matah"]) {
       expect(CARD_INSTRUCTION).toContain(word);
     }
+    // A literal confidence in the example is copied by the model (0.95 on every scan).
+    expect(CARD_INSTRUCTION).not.toMatch(/"confidence":\s*[01]\.\d/);
     expect(CARD_INSTRUCTION).not.toContain('"plate"');
   });
 

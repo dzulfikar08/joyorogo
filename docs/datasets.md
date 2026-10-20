@@ -34,6 +34,8 @@ Each item: `name` (as the model would say it), `said` (his words), `grams` (weig
 
 - **`card`** (optional, case level): whether a standard card (ATM, KTP, SIM, e-money; 85.6 x 54 mm) lies next to the food in this photo, for the `card-ref` variant: `true` = it does, `false` = someone checked and there is none. Leave it out when nobody looked: an unlabelled photo is never assumed to have no card.
 
+  A weighed owner photo with a card can be added by hand to the local owner set (git-ignored, never committed): `.tmp/dataset/owner/<id>/photo.jpg` (<= 1024 px, as clients send), one `summary.jsonl` row with `truth_items`, a `scale.json` when a scale display is in frame, and a `--cards` file `{"<id>": true}`. The first one is `egg-white-card` (boiled egg white, 102 g on the scale, docs/ai-accuracy-log.md 2026-10-20). A later `dataset-export` run rewrites `summary.jsonl`: re-add the row.
+
 ### Labels file
 
 The hand-checked input of the importer: `version`, `source`, `consent`, `cases[]` (`photo {post, index, file}`, `day`, `meal`, `mealRaw`, `said`, `mapping`, `trust`, `trustWhy`, `items`, `groups`, `extras`, `notes`), `unmapped[]` (meals with no photo yet). Copy `scripts/external-cases/example.labels.json` (invented data) to `scripts/external-cases/<handle>.labels.json` and replace everything. Real labels files are git-ignored: they hold a person's weights and post text. The importer rejects a file whose refs do not resolve, whose groups are dangling, or with no scorable item.
