@@ -55,6 +55,8 @@ import { parseFoodStory } from "../packages/api/src/lib/story";
 import { analyzeFoodPhoto, DEFAULT_VISION_MODEL, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
 import type { AiRunner } from "../packages/api/src/lib/vision";
 import type { CalibrateOptions } from "../packages/api/src/lib/tkpi";
+import { PRIOR_BIG_PLATE, buildPriors, userSetSamples, withPortionPrior } from "../packages/api/src/lib/portion-prior";
+import type { HistoryRow } from "../packages/api/src/lib/portion-prior";
 import { NAME_MATCH_MIN, nameScore, pairItems } from "../packages/api/src/lib/scan-match";
 import type { EvalItem, SummaryRow } from "./dataset-export";
 
@@ -69,8 +71,12 @@ type Variant = {
   promptTransform?: (base: string) => string;
   /** A calibration variant (tkpi.ts CalibrateOptions): same model call as baseline, other post-processing. */
   calibration?: CalibrateOptions;
-  /** One extra prompt line for this case (e.g. from the contributor's own history); undefined = none. */
-  caseLine?: (c: Case) => string | undefined;
+  /**
+   * Production's "Porsi kebiasaanmu" (lib/portion-prior.ts) on top of the baseline answers: the same model
+   * call, then the usual-grams default from the user's OTHER cases (leave-one-out). `bigPlate` is the
+   * keep-the-model's-number ratio under test; production's constant when unset.
+   */
+  portionPrior?: { bigPlate?: number };
   /** Only these groups run the variant (default: all). */
   groups?: Group[];
   notes: string;
@@ -103,11 +109,13 @@ const VARIANTS: Record<string, Variant> = {
     },
     notes: "Prompt: 'porsi umum' becomes 'porsi yang TERLIHAT', plus a rule to read grams from visible scale cues (plate or bowl diameter, spoon, fork, hand) and not default to typical portions.",
   },
-  "user-prior": {
-    caseLine: (c) => portionHistoryLine(c),
-    groups: ["external"],
-    notes: "Simulated per-user portion prior (external cases only): the median of the contributor's OTHER weighed meals, per dish eaten at least twice, as one prompt line. Production would build it from the user's diary history.",
+  "portion-prior": {
+    portionPrior: {},
+    groups: ["external", "owner"],
+    notes: `The shipped Porsi kebiasaanmu (lib/portion-prior.ts) on the baseline answers: for a food with at least 5 user-set weights in the last 60 days and a coefficient of variation up to 25%, the item starts at the user's median grams (kcal recomputed through calibration) unless the model answers more than ${PRIOR_BIG_PLATE} times that. History is the user's OTHER cases only (leave-one-out): the contributor's weighed meals (external), the owner's typed or edited weights (owner scans: added items, and items whose grams differ from the AI answer).`,
   },
+  "portion-prior-1.6": { portionPrior: { bigPlate: 1.6 }, groups: ["external", "owner"], notes: "Tuning: portion-prior with the big-plate ratio 1.6." },
+  "portion-prior-noguard": { portionPrior: { bigPlate: Infinity }, groups: ["external", "owner"], notes: "Tuning: portion-prior with no big-plate guard." },
 };
 // ---------------------------------------------------------------------------
 
@@ -126,6 +134,8 @@ type TruthItem = EvalItem & { noKcal?: true; ref?: string };
 type Case = {
   id: string;
   group: Group;
+  /** Whose history the portion prior reads: the external contributor, or "owner" (feedback photos are other people: their own key). */
+  person: string;
   photo: string;
   label: string;
   /** What production answered when the photo was scanned (owner/feedback). */
@@ -421,22 +431,25 @@ type RunResult =
   | { ok: false; reason: string; ms: number; cached: false };
 
 /** Cache key of a variant for one case: model, final prompt (variant diff + the case's own line) and calibration. */
-const fingerprint = (variant: Variant, line?: string) =>
+const fingerprint = (variant: Variant, c?: Case) =>
   createHash("sha256")
     .update(
-      `${variant.model ?? DEFAULT_VISION_MODEL}\n${promptFor(variant, line)(visionPrompt())}\n${JSON.stringify(variant.calibration ?? {}, (_k, v) => (v === Infinity ? "inf" : v))}`,
+      `${variant.model ?? DEFAULT_VISION_MODEL}\n${promptFor(variant)(visionPrompt())}\n${JSON.stringify(variant.calibration ?? {}, (_k, v) => (v === Infinity ? "inf" : v))}\n${priorSignature(variant, c)}`,
     )
     .digest("hex")
     .slice(0, 8);
 
-const promptFor = (variant: Variant, line?: string) => (base: string) => {
-  const prompt = (variant.promptTransform ?? ((p: string) => p))(base);
-  return line ? `${prompt}\n${line}` : prompt;
-};
+const promptFor = (variant: Variant) => (base: string) => (variant.promptTransform ?? ((p: string) => p))(base);
+
+/** A prior variant's cache key part: the ratio and this case's own (leave-one-out) priors, so changed history never replays a stale result. */
+const priorSignature = (variant: Variant, c?: Case) =>
+  variant.portionPrior && c
+    ? JSON.stringify([variant.portionPrior.bigPlate ?? PRIOR_BIG_PLATE, [...priorsFor(c)].sort(([a], [b]) => a.localeCompare(b))], (_k, v) => (v === Infinity ? "inf" : v))
+    : "";
 
 /** Where a job's result lives in the result cache. */
 const cacheFileOf = (hash: string, name: string, c: Case, rep: number) =>
-  join(CACHE_DIR, `${hash}.${name}.${fingerprint(VARIANTS[name]!, VARIANTS[name]!.caseLine?.(c))}.${rep}.json`);
+  join(CACHE_DIR, `${hash}.${name}.${fingerprint(VARIANTS[name]!, c)}.${rep}.json`);
 
 /**
  * Raw model answers, keyed by the exact request (model + prompt + image) and rep.
@@ -492,12 +505,16 @@ async function runOne(
       imageBase64: Buffer.from(bytes).toString("base64"),
       mimeType: "image/jpeg",
       model: variant.model,
-      promptTransform: promptFor(variant, variant.caseLine?.(c)),
+      promptTransform: promptFor(variant),
       calibration: variant.calibration,
     });
+    const priors = variant.portionPrior ? priorsFor(c) : null;
+    const answered = priors
+      ? analysis.items.map((item) => withPortionPrior(item, priors, variant.portionPrior))
+      : analysis.items;
     const result: RunResult = {
       ok: true,
-      items: analysis.items.map((item) => ({ name: item.name, grams: item.grams, kcal: item.kcal })),
+      items: answered.map((item) => ({ name: item.name, grams: item.grams, kcal: item.kcal })),
       ms: Date.now() - started,
       modelMs: analysis.timing.modelMs,
       tooMany: analysis.tooMany,
@@ -512,30 +529,29 @@ async function runOne(
 }
 
 /**
- * Everything an external contributor weighed, from every case on disk (all trust
- * levels, all `inPhoto` values: what a diary would hold), for the simulated
- * per-user portion prior.
+ * What a diary would hold per person, as the rows `lib/portion-prior.ts` reads:
+ * an external contributor's weighed items (typed grams, trust irrelevant: all of
+ * them are in his diary), and the owner's saved scans (a saved item whose grams
+ * differ from the AI answer is an edited AI row, one the AI never listed is a
+ * typed row, an unchanged one is an unedited AI row and never counts).
  */
-const HISTORY: Array<{ caseId: string; name: string; grams: number }> = [];
+const HISTORY: Array<{ caseId: string; user: string; row: HistoryRow }> = [];
 
-/**
- * The `user-prior` prompt line: the median weighed grams per dish over the
- * contributor's OTHER cases (leave-one-out, so a case never sees its own weights),
- * for dishes weighed in at least two other cases. undefined = nothing to say.
- */
-function portionHistoryLine(c: Case): string | undefined {
-  if (c.group !== "external") return undefined;
-  const byName = new Map<string, number[]>();
-  for (const h of HISTORY) {
-    if (h.caseId !== c.id) byName.set(h.name, [...(byName.get(h.name) ?? []), h.grams]);
-  }
-  const prior = [...byName]
-    .filter(([, grams]) => grams.length >= 2)
-    .sort((a, b) => b[1].length - a[1].length)
-    .slice(0, 6)
-    .map(([name, grams]) => `${name} ${Math.round(quantile(grams, 0.5))} g`);
-  if (!prior.length) return undefined;
-  return `Riwayat porsi pengguna ini (median dari catatan makannya yang ditimbang): ${prior.join(", ")}. Pakai sebagai perkiraan awal untuk porsi yang tampak serupa; sesuaikan hanya bila foto jelas menunjukkan porsi lain.`;
+/** The usual portions the case's person would have in the app, never counting the case itself. */
+function priorsFor(c: Case) {
+  return buildPriors(userSetSamples(HISTORY.filter((h) => h.caseId !== c.id && h.user === c.person).map((h) => h.row)));
+}
+
+/** An owner scan as the diary rows it became (see HISTORY); nothing for a scan nobody saved. */
+function ownerHistoryRows(row: SummaryRow): HistoryRow[] {
+  if (!row.truth_items?.length) return [];
+  const pairs = pairItems(row.ai_items, row.truth_items) as Array<{ ai: EvalItem; truth: EvalItem }>;
+  const itemsJson = JSON.stringify(row.ai_items);
+  return row.truth_items.flatMap((t): HistoryRow[] => {
+    if (t.grams === undefined) return [];
+    const paired = pairs.find((p) => p.truth === t);
+    return [paired ? { name: paired.ai.name, grams: t.grams, source: "ai", itemsJson } : { name: t.name, grams: t.grams, source: "manual", itemsJson: null }];
+  });
 }
 
 async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }> {
@@ -554,12 +570,14 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
       const c: Case = {
         id: row.case_id,
         group: row.set,
+        person: row.set === "owner" ? "owner" : `feedback-${row.case_id}`,
         photo,
         label: row.label,
         recorded: row.ai_items,
         truth: row.truth_items && row.truth_items.length ? row.truth_items : null,
       };
       (c.truth ? cases : skipped).push(c);
+      if (row.set === "owner") HISTORY.push(...ownerHistoryRows(row).map((r) => ({ caseId: row.case_id, user: "owner", row: r })));
     }
   } else {
     console.log(`no ${join(".tmp", "dataset", "summary.jsonl")}: run scripts/dataset-export.ts first (0 owner/feedback cases)`);
@@ -584,6 +602,7 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
         const c: Case = {
           id: meta.caseId,
           group: "external",
+          person: source,
           photo: join(dir, "photo.jpg"),
           label: `${meta.trust} trust, day ${meta.source.day} ${meta.source.meal}`,
           recorded: null,
@@ -614,7 +633,13 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
             ate: ateReference(meta.items),
           },
         };
-        HISTORY.push(...meta.items.flatMap((i) => (i.grams !== null && !i.group ? [{ caseId: meta.caseId, name: i.name.toLowerCase(), grams: i.grams }] : [])));
+        HISTORY.push(
+          ...meta.items.flatMap((i) =>
+            i.grams !== null && !i.group
+              ? [{ caseId: meta.caseId, user: source, row: { name: i.name, grams: i.grams, source: "manual", itemsJson: null } }]
+              : [],
+          ),
+        );
         (trustRank[meta.trust] >= trustRank[args.externalTrust] ? cases : skipped).push(c);
       }
     }
@@ -627,6 +652,7 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
       cases.push({
         id: `wiki-${w.dish.replace(/\W+/g, "-")}`,
         group: "wikimedia",
+        person: "wikimedia",
         photo,
         label: "band",
         recorded: null,

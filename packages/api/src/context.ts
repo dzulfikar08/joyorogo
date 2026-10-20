@@ -28,6 +28,12 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
    * (R2 dataset/<userId>/<scanId>/, see lib/dataset.ts). Unset or empty = nobody.
    */
   DATASET_USER_IDS?: string;
+  /**
+   * Comma-separated user ids that get "Porsi kebiasaanmu" on photo scans: items start at
+   * their usual weighed portion, the model's number one tap away (lib/portion-prior.ts).
+   * Unset or empty = nobody, and scans are answered exactly as before.
+   */
+  PORTION_PRIOR_USER_IDS?: string;
   /** USDA FoodData Central key (api.data.gov): enables the USDA barcode source; unset = not asked. */
   USDA_FDC_API_KEY?: string;
   STRAVA_CLIENT_ID?: string;

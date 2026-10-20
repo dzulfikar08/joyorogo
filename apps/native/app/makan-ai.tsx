@@ -43,6 +43,8 @@ import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { foodKind, isHeavyDish } from "@joyorogo/api/lib/food-kind";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { scalePortion } from "@joyorogo/api/lib/portion";
+import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
+import type { PortionPriorChip } from "@joyorogo/api/lib/portion-chip";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import { cupPick } from "@joyorogo/api/lib/drink-options";
 import type { CupChoice } from "@joyorogo/api/lib/drink-options";
@@ -74,6 +76,7 @@ import { ContextualTip } from "@/components/tips/contextual-tip";
 import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
 import { CorrectBox } from "@/components/scan/correct-box";
 import { CupChoices } from "@/components/scan/cup-choices";
+import { PortionPriorChips } from "@/components/scan/portion-prior-chips";
 import type { CorrectInput, CorrectOutcome } from "@/components/scan/correct-box";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { MealStory } from "@/components/story/types";
@@ -100,6 +103,8 @@ type AnalyzedItem = {
   /** [ymin, xmin, ymax, xmax] on 0-1000 relative to the image we sent. */
   box?: number[];
   kind?: FoodKind;
+  /** Set when the weight started at the user's usual portion: the model's number is one tap away. */
+  portionPrior?: PortionPriorChip;
 };
 
 /** Everything per-row that a correction rewrites; "Urungkan" restores one of these. */
@@ -1024,7 +1029,7 @@ export default function MakanAi() {
           ...(stickers[index] ? { scanId: stickers[index] } : {}),
         })),
         ...(photoId ? { scanPhotoId: photoId } : {}),
-        itemsJson: JSON.stringify(aiItems),
+        itemsJson: JSON.stringify(withoutPortionPrior(aiItems)),
         ...(plate ? { plate } : {}),
         ...(eatenAt !== null
           ? { eatenAt: eatenAtFromClock(scanDate ?? jakartaToday(), eatenAtClock(eatenAt)) ?? undefined }
@@ -1036,7 +1041,8 @@ export default function MakanAi() {
           source: "native",
           items: chosen.map(({ item, draft, index }) => {
             const origin = baseline.origin[index];
-            const ai = origin === null || origin === undefined ? undefined : aiItems[origin];
+            const base = origin === null || origin === undefined ? undefined : aiItems[origin];
+            const ai = base ? modelNumbers(base) : undefined;
             return {
               meal,
               dishName: item.name,
@@ -1077,6 +1083,7 @@ export default function MakanAi() {
       );
       return {
         ...item,
+        portionPrior: undefined,
         kcal: half.kcal,
         grams: half.grams ?? undefined,
         protein: half.protein ?? undefined,
@@ -1088,6 +1095,27 @@ export default function MakanAi() {
     setFullPortion({ items, drafts });
     setItems(scaled);
     setDrafts(drafts.map((draft, index) => ({ ...draft, kcal: String(scaled[index]!.kcal) })));
+  };
+
+  /**
+   * "Porsi kebiasaanmu": one tap puts the model's number or the user's usual portion on the row.
+   * The stored AI breakdown follows, so a row that is saved as shown is never read as an edit.
+   */
+  const swapPrior = (index: number) => {
+    const item = items[index];
+    if (!item) return;
+    const swapped = swapPortionPrior(item);
+    const origin = baseline.origin[index];
+    setItems((prev) => prev.map((it, i) => (i === index ? swapped : it)));
+    setDrafts((prev) =>
+      prev.map((draft, i) => (i === index ? { ...draft, kcal: String(swapped.kcal) } : draft)),
+    );
+    if (origin !== null && origin !== undefined) {
+      setBaseline((prev) => ({
+        ...prev,
+        items: prev.items.map((it, i) => (i === origin ? swapPortionPrior(it) : it)),
+      }));
+    }
   };
 
   /** A cup whose contents the photo hides: the user's drink / size pick replaces the row's numbers. */
@@ -1581,6 +1609,9 @@ export default function MakanAi() {
                       />
                       {item.cup ? (
                         <CupChoices choice={item.cup} onPick={(next) => pickCup(index, next)} />
+                      ) : null}
+                      {item.portionPrior ? (
+                        <PortionPriorChips name={item.name} item={item} onSwap={() => swapPrior(index)} />
                       ) : null}
                       <View style={styles.itemChips}>
                         {hasMacros ? (

@@ -41,11 +41,13 @@ import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { scalePortion } from "@joyorogo/api/lib/portion";
+import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { cupPick } from "@joyorogo/api/lib/drink-options";
 import type { CupChoice } from "@joyorogo/api/lib/drink-options";
 import { CupChoices } from "@/components/scan/cup-choices";
+import { PortionPriorChips } from "@/components/scan/portion-prior-chips";
 import { Button, buttonVariants } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
@@ -470,6 +472,7 @@ function AiFoodPage() {
       );
       return {
         ...item,
+        portionPrior: undefined,
         kcal: half.kcal,
         grams: half.grams ?? undefined,
         protein: half.protein ?? undefined,
@@ -490,6 +493,16 @@ function AiFoodPage() {
     setItems(fullPortion.items);
     setKcals(fullPortion.kcals);
     setFullPortion(null);
+  };
+
+  /** "Porsi kebiasaanmu": one tap puts the model's number or the user's usual portion on the row. */
+  const swapPrior = (index: number) => {
+    const item = items[index];
+    if (!item) return;
+    const swapped = swapPortionPrior(item);
+    touchList();
+    setItems((current) => current.map((it, i) => (i === index ? swapped : it)));
+    setKcals((current) => ({ ...current, [index]: String(swapped.kcal) }));
   };
 
   /** A cup whose contents the photo hides: the user's drink / size pick replaces the row's numbers. */
@@ -949,7 +962,7 @@ function AiFoodPage() {
         meal,
         imageBase64: image.base64,
         mimeType: image.mimeType,
-        itemsJson: JSON.stringify(baseList),
+        itemsJson: JSON.stringify(withoutPortionPrior(baseList)),
         ...(photoId ? { scanPhotoId: photoId } : {}),
         ...(plate.name || plate.place || plate.priceIdr != null ? { plate } : {}),
         ...(eatenAt !== null
@@ -973,14 +986,18 @@ function AiFoodPage() {
       void client.ai
         .logCorrections({
           source: "web",
-          items: items.map((item, index) => ({
-            meal,
-            dishName: item.name,
-            aiKcal: Math.round(baseRows[index]?.kcal ?? item.kcal),
-            savedKcal: values[index] ?? 0,
-            aiGrams: baseRows[index]?.grams ?? item.grams ?? null,
-            aiConfidence: item.confidence ?? null,
-          })),
+          items: items.map((item, index) => {
+            const base = baseRows[index];
+            const model = base ? modelNumbers(base) : undefined;
+            return {
+              meal,
+              dishName: item.name,
+              aiKcal: Math.round(model?.kcal ?? item.kcal),
+              savedKcal: values[index] ?? 0,
+              aiGrams: model?.grams ?? item.grams ?? null,
+              aiConfidence: item.confidence ?? null,
+            };
+          }),
         })
         .catch(() => {});
       toast.success(t("toast.saved", { count: saved.items.length }));
@@ -1339,6 +1356,9 @@ function AiFoodPage() {
                     />
                   </span>
                   {item.cup && <CupChoices choice={item.cup} onPick={(next) => pickCup(index, next)} />}
+                  {item.portionPrior && (
+                    <PortionPriorChips name={item.name} item={item} onSwap={() => swapPrior(index)} />
+                  )}
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5">
                   <Input

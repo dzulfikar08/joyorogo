@@ -485,6 +485,22 @@ function isCombination(name: string): boolean {
   );
 }
 
+/** Plain rice as eaten beside a dish: the library's nasi putih / uduk / kuning rows and the usual spellings. */
+const PLAIN_RICE = /^(nasi( (putih|uduk|kuning|liwet|merah|hangat|biasa|pulen))*|steamed rice|white rice)$/;
+
+/**
+ * One key per food for per-user history: every plain rice (nasi putih, uduk,
+ * kuning, ...) is "nasi"; a name that is exactly a library dish or alias is that
+ * dish's name; anything else is its own normalized name (a longer name that only
+ * contains a library key, like "tempe mendoan", stays separate).
+ */
+export function canonicalFood(name: string): string {
+  const q = normalize(name);
+  if (PLAIN_RICE.test(q)) return "nasi";
+  const exact = INDEX.find((entry) => entry.key === q);
+  return exact ? normalize(exact.dish.name) : q;
+}
+
 /**
  * kcal of `grams` of the curated library dish that `name` names, or undefined
  * when the library has no single dish for it. For callers that swapped a dish

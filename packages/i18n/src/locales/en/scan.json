@@ -162,7 +162,10 @@
       "estimate": "AI estimate",
       "kcalAria": "Calories for {{name}}",
       "cupWhich": "The cup's contents aren't visible. Pick what it is:",
-      "cupSize": "Cup size"
+      "cupSize": "Cup size",
+      "priorGroup": "Pick the portion for {{name}}",
+      "priorAi": "AI: {{grams}}",
+      "priorUsual": "Your usual: {{grams}}"
     },
     "names": {
       "more_one": "{{first}} +{{count}} more",

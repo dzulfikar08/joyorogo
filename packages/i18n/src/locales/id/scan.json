@@ -157,7 +157,10 @@
       "estimate": "perkiraan AI",
       "kcalAria": "Kalori {{name}}",
       "cupWhich": "Isi gelasnya tidak terlihat. Pilih yang sesuai:",
-      "cupSize": "Ukuran gelas"
+      "cupSize": "Ukuran gelas",
+      "priorGroup": "Pilih angka porsi {{name}}",
+      "priorAi": "AI: {{grams}}",
+      "priorUsual": "Biasanya kamu: {{grams}}"
     },
     "names": {
       "more_other": "{{first}} +{{count}} lainnya",

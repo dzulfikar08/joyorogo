@@ -46,6 +46,10 @@ import { runShadowScan, sampledForShadow, shadowDailyCap } from "../lib/shadow-s
 import { DEFAULT_VISION_MODEL, VisionError, analyzeFoodPhoto, normalizeBox } from "../lib/vision";
 import type { ItemBox, VisionAnalysis, VisionEvent } from "../lib/vision";
 import { EventChannel } from "../lib/event-channel";
+import { withPortionPrior } from "../lib/portion-prior";
+import type { PortionPrior } from "../lib/portion-prior";
+import { loadPortionPriors, portionPriorEnabled } from "../lib/portion-prior-store";
+import type { PortionPriorChip } from "../lib/portion-chip";
 import type { ScanStreamEvent } from "../lib/scan-live";
 import type { Context } from "../context";
 import { assertCorrectionAllowed, correctionsLeft, correctionsUsed } from "../lib/correct-limit";
@@ -199,7 +203,8 @@ async function loadUserNote(db: Database, userId: string): Promise<string | null
 
 /** What analyzeFood answers, and what the closing `done` event of analyzeFoodStream carries. */
 export type AnalyzeFoodResult = {
-  items: VisionAnalysis["items"];
+  /** `portionPrior` is present only for allowlisted users with a consistent weighed history (lib/portion-prior.ts). */
+  items: Array<VisionAnalysis["items"][number] & { portionPrior?: PortionPriorChip }>;
   tooMany: boolean;
   scanId: string | null;
   photoId: string | null;
@@ -256,6 +261,16 @@ async function runAnalyzeFood(
         ),
       ),
   ]);
+
+  // "Porsi kebiasaanmu": the user's usual portions, read beside the model call
+  // (allowlist only; everyone else never touches the diary here). A failed read
+  // is no prior, never a failed scan.
+  const priors: Promise<Map<string, PortionPrior> | null> = portionPriorEnabled(context.env, userId)
+    ? loadPortionPriors(context.db, userId).catch((error: unknown) => {
+        console.error("[ai] portion prior failed", error);
+        return null;
+      })
+    : Promise.resolve(null);
 
   const startedAt = Date.now();
   const stickers = context.env.STICKERS as StickersBucket | undefined;
@@ -484,8 +499,11 @@ async function runAnalyzeFood(
         .catch((error: unknown) => console.error("[ai] sticker timing failed", error)),
     );
   }
+  // The ledger and the owner dataset above keep the model's own answer; only what
+  // the user sees starts at their usual portion.
+  const usual = await priors;
   return {
-    items: analysis.items,
+    items: usual ? analysis.items.map((item) => withPortionPrior(item, usual)) : analysis.items,
     tooMany: analysis.tooMany,
     scanId,
     photoId,

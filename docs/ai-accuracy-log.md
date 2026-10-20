@@ -28,6 +28,27 @@ Reading it:
 - **The snack is a real disagreement.** The model read "Mont Blanc" as a dessert and answered about 190 kcal per 100 g (a 240 ml drink at roughly 450 kcal), about twice what Meta gave for the drink plus nuggets. Neither has a reference. The photo shows a cafe coffee with a cream foam cap; [INFERENCE] the text path has no photo to correct the dish name, so a branded or unusual name drives it. Not acted on.
 - **Limits.** One day, four meals, one contributor; Meta's meal figures are single values ("sekitar 410") or narrow ranges; the reference uses proxy rows. This says our kcal per gram is in the same range as Meta's when grams are known, not that either is right.
 
+## 2026-10-20: "Porsi kebiasaanmu" prototype (flagged off for users) and its harness numbers
+
+Built the post-hoc default recommended below: `lib/portion-prior.ts` (rules and maths), `portion-prior-store.ts` (flag, diary read), `portion-chip.ts` (the two-number chip both apps use), wired in `ai.analyzeFood` / `analyzeFoodStream`. Details and how to switch it on: `docs/portion-prior.md`. Flag `PORTION_PRIOR_USER_IDS` (allowlist, owner only for now); without it the answer is byte-identical to before. Harness: `--variant portion-prior` now runs the real code on the baseline answers (replacing the simulated prompt line `user-prior`), history = the user's OTHER cases (leave-one-out).
+
+Run: `bun run scripts/eval-scans.ts --only external --only owner --reps 2 --variant baseline --variant portion-prior --variant portion-prior-1.6 --variant portion-prior-noguard` (54 new Workers AI calls; the prior variants replay the baseline answers, so they are paired with it exactly). External: 8 photos of one contributor, 5 of them with rice; owner: 19 labelled scans.
+
+| Set | Variant | Rice grams signed / MAE | Plate kcal signed / MAE | Plate kcal under / over |
+|---|---|---|---|---|
+| external | baseline | +45% / 43 g (n 10) | +20% / 86 kcal (n 12) | 4 / 6 |
+| external | portion-prior (big-plate 1.4, shipped) | +14% / 13 g | +14% / 103 kcal | 6 / 6 |
+| external | portion-prior-1.6 | +7% / 23 g | +11% / 101 kcal | 7 / 4 |
+| external | portion-prior-noguard | +7% / 23 g | +11% / 101 kcal | 7 / 4 |
+| owner (19 scans, 38 runs) | all prior variants | same as baseline | same | 7 / 14 |
+
+- **Rice moves as predicted** (+45% to +14%, 43 g to 13 g MAE), side dishes are untouched (they have no history of 5).
+- **Plates do not get better.** Plate kcal MAE goes 86 to 103 kcal and under-estimates 4 to 6 of 12, because the model's plates were often already under (455 against 501, 540 against 730): taking 40 kcal of rice off an under-estimated plate makes it worse. Paired against baseline: closer on 1, further on 4 of 6 plates. Over-estimates shrink (+20% to +14%), which is not what the owner wants to trade for under-estimates.
+- **The big-plate guard earns its place on exactly one case.** The leave-one-out prior for the 150 g plate (truth 150 g) is 100 g, the model answered 150 g, ratio 1.5: at 1.4 the model's number stays (correct), at 1.6 and above the prior pulls it to 100 g (-33%, the under-estimate seen before). All other rice plates had a prior of 113 g (ratio 1.33), so they are changed at every setting. One plate decides this; 1.4 kept as the shipped default until there is more weighed data.
+- **A rice answer of 150 g against a usual 100 g is not replaced at 1.4** (ratio 1.5): the chip only appears when the usual portion is at least about 107 g, or the model answered less. That is the guard doing what it is for and the main reason the effect is smaller than the simulated prompt line's.
+- **Owner: no effect, by data, not by design.** None of the 19 owner scans has a food with 5 user-set weights, and the owner's real diary (read-only count, last 60 days: 68 rows with grams, 59 unedited AI answers, 4 barcode, 5 copies) holds zero user-set weights, so the flag does nothing for the owner until typed or edited weights accumulate.
+- **Limits.** One contributor, a very regular eater, 5 rice plates, run-to-run noise at reps 2. Not evidence that the prior helps plate kcal; evidence that it fixes the rice grams when the history is clean.
+
 ## 2026-10-20: do the portion errors come from the clamp, the prompt or the lack of a personal prior? (eval only, production untouched)
 
 Question: on the weighed external cases the model answers 150 g of rice where the contributor ate about 100 g. Three candidate fixes were run through `scripts/eval-scans.ts`, none shipped: `band-wide` / `band-off` (the library kcal band of the 2026-10-18 change widened by 50% / removed), `scale-cues` (prompt: "porsi umum" becomes "porsi yang TERLIHAT" plus a rule to read grams from plate or bowl diameter, spoon, fork, hand, and not default to typical portions), `user-prior` (one prompt line with the median of the contributor's OTHER weighed meals per dish eaten at least twice, leave-one-out; external cases only, since it needs a weighed history).
