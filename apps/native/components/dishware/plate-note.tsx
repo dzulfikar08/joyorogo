@@ -5,12 +5,20 @@ import { Text } from "@/components/ui";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 import type { InferClientOutputs } from "@orpc/client";
 
-/** Plate verdict carried by a scan result (`ai.analyzeFood` and retry). */
-export type ScanPlate = InferClientOutputs<AppRouterClient>["ai"]["analyzeFood"]["plate"];
+type ScanResult = InferClientOutputs<AppRouterClient>["ai"]["analyzeFood"];
 
-/** One muted line under the scan result: which registered plate the model saw. Nothing when `plate` is absent. */
-export function PlateNote({ plate }: { plate: ScanPlate | null | undefined }) {
+/** What a scan result (`ai.analyzeFood` and retry) says about its size references: the card and the registered plate. */
+export type ScanReferences = Pick<ScanResult, "plate" | "card">;
+
+/**
+ * One muted line under the scan result. A card the model was sure of is the reference ("Kartu terdeteksi");
+ * without one, the registered plate it saw or "Piring tidak dikenali". Nothing when neither was asked.
+ */
+export function PlateNote({ note }: { note: ScanReferences | null | undefined }) {
   const { t } = useTranslation("scan");
+  if (!note) return null;
+  const { plate, card } = note;
+  if (card) return <Text style={styles.note}>{t("dishware.card")}</Text>;
   if (!plate) return null;
   if (plate.status === "none") {
     return <Text style={styles.note}>{t("dishware.none")}</Text>;

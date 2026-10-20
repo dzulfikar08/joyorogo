@@ -32,6 +32,8 @@ Each item: `name` (as the model would say it), `said` (his words), `grams` (weig
 
 - **`plate`** (optional, case level): the plate or bowl the meal was eaten from, as the contributor measured it: `{name, kind: "flat"|"bowl"|"rattan"|"lunchbox", diameterCm, widthCm?, description?, inPhoto?}`. `inPhoto: false` marks a plate that is NOT in this photo (a check that the model answers "none"). It only feeds the `plate-ref` variant ("Piring saya", `docs/dishware.md`); it is never truth about the food.
 
+- **`card`** (optional, case level): whether a standard card (ATM, KTP, SIM, e-money; 85.6 x 54 mm) lies next to the food in this photo, for the `card-ref` variant: `true` = it does, `false` = someone checked and there is none. Leave it out when nobody looked: an unlabelled photo is never assumed to have no card.
+
 ### Labels file
 
 The hand-checked input of the importer: `version`, `source`, `consent`, `cases[]` (`photo {post, index, file}`, `day`, `meal`, `mealRaw`, `said`, `mapping`, `trust`, `trustWhy`, `items`, `groups`, `extras`, `notes`), `unmapped[]` (meals with no photo yet). Copy `scripts/external-cases/example.labels.json` (invented data) to `scripts/external-cases/<handle>.labels.json` and replace everything. Real labels files are git-ignored: they hold a person's weights and post text. The importer rejects a file whose refs do not resolve, whose groups are dangling, or with no scorable item.
@@ -60,6 +62,9 @@ bun run scripts/eval-scans.ts --only external --reps 2       # production prompt
 #    --variant plate-ref --plates <file>   "Piring saya": cases that carry a `plate` (labels, or a JSON file of
 #                                { "<caseId>" | "group:<group>": plate }) get that plate in the prompt as text;
 #                                all variants of the run are limited to those cases so the comparison is paired
+#    --variant card-ref --cards <file>   a card beside the food as the size reference: cases with a `card` label (or
+#                                a JSON file of { "<caseId>" | "group:<group>": true|false }) run, all variants of
+#                                the run are limited to them; reports card seen / used with and without a card
 #    --comparators               for cases with comparators: also run our text path ("Ceritakan") on his own
 #                                words with his grams and print per meal: reference kcal for his grams vs
 #                                the comparator vs our photo answer vs our text answer, plus the text path

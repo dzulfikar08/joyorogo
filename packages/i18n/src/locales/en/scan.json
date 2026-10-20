@@ -301,6 +301,7 @@
   },
   "dishware": {
     "matched": "Plate: {{name}} ({{cm}} cm), used as the size reference for portions.",
-    "none": "Plate not recognised, portions estimated as usual."
+    "none": "Plate not recognised, portions estimated as usual.",
+    "card": "Card detected, used as the size reference for portions."
   }
 }

@@ -91,19 +91,56 @@ function sizeText(plate: PromptDishware): string {
 /**
  * The prompt block for a user's registered plates, or null when there are none. Added after the
  * production prompt, so a user without plates (or without the feature) is answered exactly as before.
+ * `withCard`: the card block (cardInstruction) comes first and asks for its own leading field, so the
+ * plate field follows it and the card is the scale to prefer.
  */
-export function dishwareInstruction(plates: readonly PromptDishware[]): string | null {
+export function dishwareInstruction(plates: readonly PromptDishware[], withCard = false): string | null {
   if (plates.length === 0) return null;
   const lines = plates.map(
     (plate, index) =>
       `${dishwareLabel(index)}: "${plate.name}", ${KIND_PROMPT[plate.kind]}, ${sizeText(plate)}${plate.description ? `. Ciri: ${plate.description}` : ""}`,
   );
+  const lead = withCard ? `{"card":{...},"plate":` : `{"plate":`;
   return [
     "Piring dan mangkuk milik pengguna ini (ukurannya sudah diukur sendiri olehnya):",
     ...lines,
-    `Jika salah satunya terlihat di foto (cocokkan bentuk, warna, motif, dan ukuran relatif; ragu = tidak cocok), tulis labelnya di field "plate" PALING AWAL: {"plate":"${dishwareLabel(0)}","items":[...]}. Lalu pakai ukurannya sebagai skala nyata: bandingkan luas yang tertutup dan tinggi tumpukan makanan dengan ukuran piring itu untuk memperkirakan grams, bukan porsi umum.`,
-    `Jika tidak ada yang cocok (piring lain, makan di luar, tanpa piring), tulis {"plate":null,"items":[...]} dan perkirakan porsi seperti biasa. Jangan menebak.`,
+    `Jika salah satunya terlihat di foto (cocokkan bentuk, warna, motif, dan ukuran relatif; ragu = tidak cocok), tulis labelnya di field "plate" ${withCard ? 'sesudah "card"' : "PALING AWAL"}: ${lead}"${dishwareLabel(0)}","items":[...]}. Lalu pakai ukurannya sebagai skala nyata: bandingkan luas yang tertutup dan tinggi tumpukan makanan dengan ukuran piring itu untuk memperkirakan grams, bukan porsi umum.`,
+    `Jika tidak ada yang cocok (piring lain, makan di luar, tanpa piring), tulis ${lead}null,"items":[...]} dan perkirakan porsi seperti biasa. Jangan menebak.`,
+    ...(withCard ? ["Jika kartu juga terlihat, skala dari kartu yang diutamakan; ukuran piring melengkapi."] : []),
   ].join("\n");
+}
+
+/** The model must be at least this sure of a card for the scan to say it was used (and tell the user). */
+export const CARD_MIN_CONFIDENCE = 0.6;
+
+/**
+ * The card reference: any ID-1 card (ATM, debit, credit, KTP, SIM, e-money, any colour) lying next to the
+ * food in the scan photo is a ruler of known size, on the same surface as the food.
+ */
+export const CARD_INSTRUCTION = `Kartu pembanding: kartu berukuran standar (kartu ATM, debit, kredit, KTP, SIM, e-money; warna apa pun) selalu ${String(CARD_LONG_SIDE_CM).replace(".", ",")} x 5,4 cm. Jika kartu seperti itu tergeletak di dekat makanan di foto, itu penggaris yang paling bisa dipercaya karena berada di bidang yang sama dengan makanan. Tulis field "card" PALING AWAL di JSON: {"card":{"seen":true,"confidence":0.9},"items":[...]} jika kartu terlihat utuh, atau {"card":{"seen":false,"confidence":0},"items":[...]} jika tidak ada. Ragu, kartu tertutup, atau benda lain yang mirip kartu = seen false; jangan menebak. confidence 0-1. Jika kartu terlihat, bandingkan panjang dan lebar makanan atau piring dengan sisi panjang kartu (${String(CARD_LONG_SIDE_CM).replace(".", ",")} cm) untuk memperkirakan grams, bukan porsi umum. Jika tidak ada kartu, perkirakan seperti biasa.`;
+
+/**
+ * Everything a scan of an allowlisted user adds to the prompt: the card reference first, then the user's
+ * plates (the scale to fall back on when no card is in the photo). With `card` false and no plates: null.
+ */
+export function referenceInstruction(plates: readonly PromptDishware[], card: boolean): string | null {
+  const platesText = dishwareInstruction(plates, card);
+  if (!card) return platesText;
+  return platesText === null ? CARD_INSTRUCTION : `${CARD_INSTRUCTION}\n${platesText}`;
+}
+
+/**
+ * Whether the scan can say a card was the size reference: the model reported one and was sure enough.
+ * `seen` is what the ledger keeps to measure the model's own card detection, `used` what the user is told.
+ */
+export function cardOutcome(answer: { seen: boolean; confidence: number } | undefined): {
+  seen: boolean;
+  used: boolean;
+  confidence: number;
+} {
+  const seen = answer?.seen ?? false;
+  const confidence = answer?.confidence ?? 0;
+  return { seen, used: seen && confidence >= CARD_MIN_CONFIDENCE, confidence };
 }
 
 export type DishwareMatch<T> = { status: "matched"; plate: T } | { status: "none" };

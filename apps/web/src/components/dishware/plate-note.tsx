@@ -1,23 +1,33 @@
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 import { useTranslation } from "react-i18next";
 
-export type PlateNoteData = Awaited<ReturnType<AppRouterClient["ai"]["analyzeFood"]>>["plate"];
+type ScanResult = Awaited<ReturnType<AppRouterClient["ai"]["analyzeFood"]>>;
 
-/** One muted line under the scan total: which registered plate the model saw. Nothing when `plate` is absent. */
-export function PlateNote({ plate }: { plate: PlateNoteData | null | undefined }) {
+/** What a scan result says about its size references: the card beside the food and the registered plate. */
+export type PlateNoteData = Pick<ScanResult, "plate" | "card">;
+
+/**
+ * One muted line under the scan total. A card the model was sure of is the reference ("Kartu terdeteksi");
+ * without one, the registered plate it saw or "Piring tidak dikenali". Nothing when neither was asked.
+ */
+export function PlateNote({ note }: { note: PlateNoteData | null | undefined }) {
   const { t } = useTranslation("scan");
-  if (!plate) return null;
+  if (!note) return null;
+  const { plate, card } = note;
+  if (!card && !plate) return null;
   return (
     <p className="mt-2 px-1 text-center text-xs text-muted-foreground">
-      {plate.status === "matched"
-        ? t("dishware.matched", {
-            name: plate.name,
-            cm:
-              plate.kind === "lunchbox" && plate.widthCm != null
-                ? `${plate.diameterCm} x ${plate.widthCm}`
-                : plate.diameterCm,
-          })
-        : t("dishware.none")}
+      {card
+        ? t("dishware.card")
+        : plate?.status === "matched"
+          ? t("dishware.matched", {
+              name: plate.name,
+              cm:
+                plate.kind === "lunchbox" && plate.widthCm != null
+                  ? `${plate.diameterCm} x ${plate.widthCm}`
+                  : plate.diameterCm,
+            })
+          : t("dishware.none")}
     </p>
   );
 }

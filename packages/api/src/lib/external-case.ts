@@ -146,6 +146,12 @@ export const caseSchema = z.object({
    * when that plate is not in this photo (a check that the model does not claim it).
    */
   plate: plateRefSchema.optional(),
+  /**
+   * Whether a standard card (ATM, KTP, SIM, e-money; 85.6 x 54 mm) lies next to the food in this photo, the
+   * size reference of the `card-ref` variant: true = it does, false = the photo was checked and has none.
+   * Leave it out when nobody checked (an unlabelled photo is never assumed to have no card).
+   */
+  card: z.boolean().optional(),
 });
 export type LabelCase = z.infer<typeof caseSchema>;
 
@@ -272,6 +278,8 @@ export type ExternalMeta = {
   comparators: Comparator[];
   /** The plate the meal was eaten from, when the contributor measured it (see caseSchema). */
   plate?: PlateRef;
+  /** A card lies beside the food (true), or the photo was checked and has none (false); see caseSchema. */
+  card?: boolean;
   /** What the harness scores against, over the items marked inPhoto "yes". */
   truth: {
     /** Every scored item has a reference kcal. */
@@ -424,6 +432,7 @@ export function buildExternalMeta(
     ...(c.notes ? { notes: c.notes } : {}),
     comparators: c.comparators,
     ...(c.plate ? { plate: c.plate } : {}),
+    ...(c.card !== undefined ? { card: c.card } : {}),
     truth: truthOf(items, c.groups),
     importedAt,
   };

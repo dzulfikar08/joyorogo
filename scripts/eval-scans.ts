@@ -32,6 +32,11 @@
 //                      inPhoto? (false = this plate is NOT in the photo) }. External cases can also
 //                      carry `plate` in their labels. Cases without a reference are left out of every
 //                      variant of the run when `plate-ref` is among them, so comparisons stay paired.
+//   --cards <file>     for the `card-ref` variant: JSON { "<caseId>": true|false, "group:owner": ... }.
+//                      true = a standard card (ATM, KTP, SIM, e-money) lies next to the food in this
+//                      photo, false = checked: there is none. External cases can carry `card` in their
+//                      labels. Unlabelled cases are left out of every variant of a run with `card-ref`
+//                      (nothing is assumed about a photo nobody checked), so comparisons stay paired.
 //   --dry-run          list the cases, their truth and the model calls, then exit (no calls)
 //   --dir <path>       exported dataset dir (default .tmp/dataset)
 //   --limit <N>        at most N cases in total (owner, feedback, external, then wikimedia)
@@ -57,11 +62,11 @@ import { join, resolve } from "node:path";
 import { ateReference, EXTERNAL_META_VERSION, truthOf } from "../packages/api/src/lib/external-case";
 import type { Comparator, ExternalMeta } from "../packages/api/src/lib/external-case";
 import { parseFoodStory } from "../packages/api/src/lib/story";
-import { dishwareInstruction, dishwareLabel, plateRefSchema } from "../packages/api/src/lib/dishware";
+import { cardOutcome, dishwareInstruction, dishwareLabel, plateRefSchema, referenceInstruction } from "../packages/api/src/lib/dishware";
 import type { PlateRef } from "../packages/api/src/lib/dishware";
 
 import { analyzeFoodPhoto, DEFAULT_VISION_MODEL, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
-import type { AiRunner } from "../packages/api/src/lib/vision";
+import type { AiRunner, CardAnswer } from "../packages/api/src/lib/vision";
 import type { CalibrateOptions } from "../packages/api/src/lib/tkpi";
 import { PRIOR_BIG_PLATE, buildPriors, userSetSamples, withPortionPrior } from "../packages/api/src/lib/portion-prior";
 import type { HistoryRow } from "../packages/api/src/lib/portion-prior";
@@ -85,8 +90,12 @@ type Variant = {
    * keep-the-model's-number ratio under test; production's constant when unset.
    */
   portionPrior?: { bigPlate?: number };
-  /** The case's registered plates as production sends them (analyzeFoodPhoto `dishware`); undefined = none. */
+  /** The case's size-reference text as production sends it (analyzeFoodPhoto `dishware`); undefined = none. */
   dishware?: (c: Case) => string | undefined;
+  /** The variant asks the plate question: the report counts plate recognition. */
+  asksPlate?: true;
+  /** The variant asks the card question: the report counts card detection. */
+  asksCard?: true;
   /** Only these groups run the variant (default: all). */
   groups?: Group[];
   /**
@@ -133,8 +142,15 @@ const VARIANTS: Record<string, Variant> = {
   "portion-prior-noguard": { portionPrior: { bigPlate: Infinity }, groups: ["external", "owner"], notes: "Tuning: portion-prior with no big-plate guard." },
   "plate-ref": {
     dishware: (c) => (c.plate ? (dishwareInstruction([c.plate]) ?? undefined) : undefined),
+    asksPlate: true,
     appliesTo: (c) => c.plate !== undefined,
     notes: "Piring saya: the case's registered plate (name, kind, diameter, description) goes into the prompt as text, as production does for an allowlisted user; the model says whether it is in the photo and scales portions by it. Only cases that carry a plate reference (labels `plate` or --plates) run, for every variant of the run. Reports how often the plate was recognised (inPhoto) and wrongly claimed (not inPhoto).",
+  },
+  "card-ref": {
+    dishware: () => referenceInstruction([], true) ?? undefined,
+    asksCard: true,
+    appliesTo: (c) => c.card !== undefined,
+    notes: "Card in the photo as a size reference: the shipped card block (lib/dishware.ts CARD_INSTRUCTION; any ID-1 card, 85.6 x 54 mm) goes into the prompt as production sends it to an allowlisted user, with no plates, so the effect of the card is read alone. The model reports {seen, confidence}; a card counts as used from confidence 0.6. Only cases whose photo was checked for a card (labels `card`, or --cards: true = a card lies beside the food, false = none) run, for every variant of the run. Reports detection on the cases with a card and false detections on the checked cases without.",
   },
 };
 // ---------------------------------------------------------------------------
@@ -162,6 +178,8 @@ type Case = {
   recorded: EvalItem[] | null;
   /** The user's saved items; null = unlabelled. */
   truth: TruthItem[] | null;
+  /** A standard card lies beside the food in this photo (true), or the photo was checked and has none (false); undefined = nobody looked. */
+  card?: boolean;
   /** The plate this meal was eaten from (labels or --plates); what the `plate-ref` variant tells the model. */
   plate?: PlateRef;
   /** Wikimedia only: dish name and the kcal band one serving is expected in. */
@@ -213,6 +231,7 @@ type Args = {
   dryRun: boolean;
   comparators: boolean;
   plates: string | null;
+  cards: string | null;
   dir: string;
   limit: number;
   reps: number;
@@ -230,6 +249,7 @@ function parseArgs(argv: string[]): Args {
     dryRun: false,
     comparators: false,
     plates: null,
+    cards: null,
     dir: join(ROOT, ".tmp", "dataset"),
     limit: Infinity,
     reps: 1,
@@ -284,6 +304,9 @@ function parseArgs(argv: string[]): Args {
         break;
       case "--plates":
         args.plates = resolve(process.cwd(), value(i++));
+        break;
+      case "--cards":
+        args.cards = resolve(process.cwd(), value(i++));
         break;
       case "--dry-run":
         args.dryRun = true;
@@ -454,7 +477,7 @@ function restRunner(token: string): AiRunner {
 }
 
 type RunResult =
-  | { ok: true; items: EvalItem[]; ms: number; modelMs: number; tooMany: boolean; cached: boolean; plate?: string | null }
+  | { ok: true; items: EvalItem[]; ms: number; modelMs: number; tooMany: boolean; cached: boolean; plate?: string | null; card?: CardAnswer }
   | { ok: false; reason: string; ms: number; cached: false };
 
 /** Cache key of a variant for one case: model, final prompt (variant diff + the case's own line) and calibration. */
@@ -548,6 +571,7 @@ async function runOne(
       tooMany: analysis.tooMany,
       cached: false,
       ...(analysis.plate !== undefined ? { plate: analysis.plate } : {}),
+      ...(analysis.card !== undefined ? { card: analysis.card } : {}),
     };
     await Bun.write(cacheFile, JSON.stringify(result));
     return result;
@@ -610,6 +634,32 @@ async function applyPlates(cases: Case[], skipped: Case[], file: string): Promis
   return n;
 }
 
+/**
+ * `--cards <file>`: whether a standard card lies beside the food, by case id or `group:<group>` (a case id
+ * wins over its group). true = a card is in the photo, false = the photo was checked and has none. Replaces
+ * the `card` of an external case's labels.
+ */
+async function applyCards(cases: Case[], skipped: Case[], file: string): Promise<number> {
+  // Boundary: a hand-written file; every value must be a boolean.
+  const raw: unknown = await Bun.file(file).json();
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) throw new Error(`${file}: expected an object of true/false`);
+  const flags = new Map<string, boolean>(
+    Object.entries(raw).map(([key, flag]) => {
+      if (typeof flag !== "boolean") throw new Error(`${file}: "${key}" must be true or false`);
+      return [key, flag];
+    }),
+  );
+  let n = 0;
+  for (const c of [...cases, ...skipped]) {
+    const flag = flags.get(c.id) ?? flags.get(`group:${c.group}`);
+    if (flag !== undefined) {
+      c.card = flag;
+      n++;
+    }
+  }
+  return n;
+}
+
 async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }> {
   const cases: Case[] = [];
   const skipped: Case[] = [];
@@ -662,6 +712,7 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
           photo: join(dir, "photo.jpg"),
           label: `${meta.trust} trust, day ${meta.source.day} ${meta.source.meal}`,
           ...(meta.plate ? { plate: meta.plate } : {}),
+          ...(meta.card !== undefined ? { card: meta.card } : {}),
           recorded: null,
           truth: scored.map((i) => ({
             name: i.name,
@@ -758,6 +809,8 @@ type Agg = {
   tooMany: number;
   /** `plate-ref` runs: how often the registered plate was recognised where it is in the photo, and claimed where it is not. */
   plateRef: { shown: { hit: number; of: number }; hidden: { claimed: number; of: number }; unanswered: number } | null;
+  /** `card-ref` runs: how often the model saw a card where one lies beside the food, counted as used, and saw one where there is none. */
+  cardRef: { shown: { seen: number; used: number; of: number }; hidden: { seen: number; used: number; of: number }; unanswered: number } | null;
 };
 
 const ratio = (a: number, b: number) => (b > 0 ? a / b : NaN);
@@ -804,7 +857,8 @@ function aggregate(group: Group, variant: string, runs: Run[]): Agg {
     latency: { p50: quantile(ms, 0.5), p95: quantile(ms, 0.95) },
     tooMany: ok.filter((r) => r.result.ok && r.result.tooMany).length,
     // Only variants that ask the plate question have an answer to count.
-    plateRef: VARIANTS[variant]?.dishware ? plateRefStats(runs) : null,
+    plateRef: VARIANTS[variant]?.asksPlate ? plateRefStats(runs) : null,
+    cardRef: VARIANTS[variant]?.asksCard ? cardRefStats(runs) : null,
   };
 }
 
@@ -819,6 +873,21 @@ function plateRefStats(runs: Run[]): Agg["plateRef"] {
     shown: { hit: shown.filter(claimed).length, of: shown.length },
     hidden: { claimed: hidden.filter(claimed).length, of: hidden.length },
     unanswered: asked.filter((r) => r.result.ok && r.result.plate === undefined).length,
+  };
+}
+
+/** A run's card answer through the same rule production uses (cardOutcome): seen is what the model said, used what counted. */
+function cardRefStats(runs: Run[]): Agg["cardRef"] {
+  const asked = runs.filter((r) => r.c.card !== undefined && r.result.ok);
+  if (!asked.length) return null;
+  const count = (rows: Run[]) => {
+    const outcomes = rows.map((r) => cardOutcome(r.result.ok ? r.result.card : undefined));
+    return { seen: outcomes.filter((o) => o.seen).length, used: outcomes.filter((o) => o.used).length, of: rows.length };
+  };
+  return {
+    shown: count(asked.filter((r) => r.c.card === true)),
+    hidden: count(asked.filter((r) => r.c.card === false)),
+    unanswered: asked.filter((r) => r.result.ok && r.result.card === undefined).length,
   };
 }
 
@@ -860,6 +929,12 @@ function aggTable(a: Agg): string[] {
     rows.push(`| plate recognised (it is in the photo) | ${a.plateRef.shown.hit} of ${a.plateRef.shown.of} |`);
     if (a.plateRef.hidden.of) rows.push(`| plate wrongly claimed (it is not in the photo) | ${a.plateRef.hidden.claimed} of ${a.plateRef.hidden.of} |`);
     if (a.plateRef.unanswered) rows.push(`| answers without a plate field | ${a.plateRef.unanswered} |`);
+  }
+  if (a.cardRef) {
+    const { shown, hidden } = a.cardRef;
+    if (shown.of) rows.push(`| card seen / used (a card is beside the food) | ${shown.seen} / ${shown.used} of ${shown.of} |`);
+    if (hidden.of) rows.push(`| card seen / used (no card in the photo) | ${hidden.seen} / ${hidden.used} of ${hidden.of} |`);
+    if (a.cardRef.unanswered) rows.push(`| answers without a card field | ${a.cardRef.unanswered} |`);
   }
   return rows;
 }
@@ -1102,18 +1177,23 @@ async function main() {
   mkdirSync(CACHE_DIR, { recursive: true });
   const { cases: loaded, skipped } = await loadCases(args);
   if (args.plates) console.log(`--plates: ${await applyPlates(loaded, skipped, args.plates)} cases now carry a plate reference`);
-  // `plate-ref` only means something on cases with a plate: when it is in the run, every variant gets just those
-  // cases, so the comparison stays paired.
-  const needing = args.variants.flatMap((v) => (VARIANTS[v]!.appliesTo ? [VARIANTS[v]!.appliesTo!] : []));
-  const cases = loaded.filter((c) => needing.every((applies) => applies(c)));
-  if (needing.length) {
-    console.log(`${cases.length} of ${loaded.length} cases carry a plate reference; the other ${loaded.length - cases.length} are left out of every variant of this run`);
+  if (args.cards) console.log(`--cards: ${await applyCards(loaded, skipped, args.cards)} cases now say whether a card is in the photo`);
+  // `plate-ref` and `card-ref` only mean something on cases with their reference data: when one is in the run,
+  // every variant gets just the cases that have it, so the comparison stays paired.
+  const gated = args.variants.filter((v) => VARIANTS[v]!.appliesTo);
+  const cases = loaded.filter((c) => gated.every((v) => VARIANTS[v]!.appliesTo!(c)));
+  if (gated.length) {
+    console.log(`${cases.length} of ${loaded.length} cases have the reference data ${gated.join(" + ")} need; the other ${loaded.length - cases.length} are left out of every variant of this run`);
     if (cases.length === 0) {
-      console.log("plate-ref is ready but there is no plate data yet: add `plate` to an external case's labels, or pass --plates <file> (see the header of this script). No model calls made, no report written.");
+      const how: Record<string, string> = {
+        "plate-ref": "plate data: add `plate` to an external case's labels, or pass --plates <file>",
+        "card-ref": "card data: add `card` (true/false) to an external case's labels, or pass --cards <file>; true = a card lies beside the food in that photo, false = checked and none",
+      };
+      console.log(`${gated.join(" + ")} ${gated.length > 1 ? "are" : "is"} ready but there is no ${gated.map((v) => how[v]).join("; and no ")} (see the header of this script). No model calls made, no report written.`);
       return;
     }
   }
-  if (cases.length === 0 && !needing.length) {
+  if (cases.length === 0 && gated.length === 0) {
     console.log("no labelled cases to run (export the dataset, write external cases with scripts/external-import.ts --out, or pass --wikimedia)");
   }
 
@@ -1143,6 +1223,7 @@ async function main() {
         console.log(`  truth  ${t.name.padEnd(22)} ${t.grams !== undefined ? `${t.grams} g`.padEnd(8) : "- g".padEnd(8)} ${t.noKcal ? "no ref kcal" : `${t.kcal} kcal`}${t.ref ? `  [${t.ref}]` : ""}`);
       }
       if (ext?.ignore.length) console.log(`  set aside if the model names them: ${ext.ignore.join(", ")}`);
+      if (c.card !== undefined) console.log(`  card: ${c.card ? "a card lies beside the food" : "checked, no card in the photo"}`);
       if (c.plate) console.log(`  plate ref: ${c.plate.name} (${c.plate.kind}, ${c.plate.diameterCm} cm${c.plate.widthCm ? ` x ${c.plate.widthCm}` : ""})${c.plate.inPhoto ? "" : "  NOT in this photo (expect none)"}`);
     }
     for (const c of skipped) console.log(`\nnot run: ${c.group}/${c.id} (${c.label})`);

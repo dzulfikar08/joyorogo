@@ -1,4 +1,4 @@
-# Piring saya (registered plates and bowls)
+# Piring saya (registered plates and bowls) and the card reference
 
 Grams from a photo are the weak point of the scan (docs/ai-accuracy-log.md, 2026-10-20: about 150 g of rice guessed where 100 g was eaten). A photo has no scale. "Piring saya" gives it one: the user registers the plates and bowls they eat from every day, once, with the diameter they measured, and every scan then knows how big the plate is.
 
@@ -33,6 +33,16 @@ The model answers `{"plate":"P1","items":[...]}` (the field comes first, so the 
 
 "Hitung ulang" (`analyzeFoodRetry`) asks the same question. The ledger row (`ai_usage.usage_json.plate`) keeps `{registered, matched, answer}` for every scan of a user with plates, so recognition can be counted from prod without photos.
 
+## A card in the scan photo
+
+The most direct scale is a thing of known size on the same surface as the food. Any ID-1 card (ISO/IEC 7810, 85.60 x 53.98 mm: ATM, debit, credit, KTP, SIM, e-money; any colour) lying next to the food in the scan photo is a ruler. Same flag as the plates: for a user on `DISHWARE_USER_IDS` the scan prompt always carries the card block (`CARD_INSTRUCTION` in `lib/dishware.ts`), with or without registered plates; for everyone else nothing changes.
+
+The model answers a leading `"card":{"seen":true|false,"confidence":0-1}`. `seen: true` with a confidence of at least 0.6 (`CARD_MIN_CONFIDENCE`) counts as **used**: the model was told to scale grams by the card's long side (8.56 cm), and the result carries `card: {status: "used"}`, so the scan screen says "Kartu terdeteksi, jadi patokan ukuran porsi." A card that is not seen, not believable (unsure, covered, something card-shaped like a phone) or an answer without the field adds nothing: no card line, and the scan falls back to the matched registered plate (the plate line as above), then to today's behaviour. When both a card and a plate are reported, the card is the reference ("Kartu terdeteksi"; the plate stays in the result and the ledger).
+
+Every scan of an allowlisted user logs `ai_usage.usage_json.card = {seen, used, confidence}` (the model's own detection and whether it counted), next to `plate` for users with plates, on the first scan and on "Hitung ulang". No migration, no extra model call, no extra image: about 150 prompt tokens.
+
+What the user is told is the claim "a card was the reference", so a false detection costs trust and a wrong scale; the harness below counts false detections on photos checked to have no card. What is NOT known yet is how well Gemma 4 finds and measures a card in a food photo (perspective, glare, partly hidden, a card on a different plane than the plate).
+
 ## Storage and privacy
 
 - D1 `dishware` (migration `0057_dishware`): name, kind, `diameter_cm`, `width_cm` (lunchbox short side), `diameter_source` (manual | card), `description`, `photo_id`, owned by a user (`ON DELETE CASCADE`).
@@ -46,3 +56,7 @@ The model answers `{"plate":"P1","items":[...]}` (the field comes first, so the 
 `scripts/eval-scans.ts --variant plate-ref` (see docs/datasets.md): each case carries the plate it was eaten from (`plate` in an external case's labels, or `--plates <file>` with `{ "<caseId>" | "group:<group>": {name, kind, diameterCm, widthCm?, description?, inPhoto?} }`), the same text block goes into the prompt through the same `dishware` option production uses, and the report adds how often the plate was recognised (in the photo) and wrongly claimed (`inPhoto: false`), next to the usual grams/kcal error tables. When `plate-ref` is in a run, every variant of that run is limited to the cases that have a plate, so baseline vs `plate-ref` is paired on the same photos. With no plate data it prints that and stops (no model calls).
 
 What it needs before it can say anything about grams: real plates with a measured diameter, photographed with food whose weight is known. The external contributor's labels have no plate sizes, so today only the mechanism is exercised (see the accuracy log).
+
+`--variant card-ref` is the same for the card: the shipped card block goes in through the same `dishware` option, with no plates, so its effect is read alone. It runs only on cases whose photo someone checked (external labels `card: true|false`, or `--cards <file>` with `{ "<caseId>" | "group:<group>": true|false }`; true = a card lies beside the food, false = checked and none; unlabelled photos are never assumed to have no card), and every variant of a run with `card-ref` is limited to those cases. The report adds `card seen / used` for the photos with a card and for the ones without (false detections), next to the grams/kcal tables. With no checked photos it says so and stops. A first mechanism check on photos that all have no card is in the accuracy log; grams need photos WITH a card.
+
+What `card-ref` needs before it can say anything about grams: photos of weighed food with a card lying next to it (flat, on the same surface, mostly visible), and the same food photographed without it for the paired comparison.

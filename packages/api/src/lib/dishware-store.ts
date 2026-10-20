@@ -4,8 +4,9 @@ import { asc, eq } from "drizzle-orm";
 import type { Database } from "@joyorogo/db";
 import { dishware } from "@joyorogo/db/schema/dishware";
 
-import { dishwareInstruction, matchDishware, MAX_DISHWARE } from "./dishware";
+import { cardOutcome, matchDishware, MAX_DISHWARE, referenceInstruction } from "./dishware";
 import type { DishwareKind } from "./dishware";
+import type { CardAnswer } from "./vision";
 
 export type DishwareRow = typeof dishware.$inferSelect;
 
@@ -34,41 +35,54 @@ export type DishwareScanNote =
   | { status: "matched"; id: string; name: string; kind: DishwareKind; diameterCm: number; widthCm: number | null }
   | { status: "none" };
 
-export type ScanDishware = {
+/** A card lay next to the food and was the size reference ("Kartu terdeteksi"). Absent = it was not, so there is nothing to say. */
+export type CardScanNote = { status: "used" };
+
+/** What the ledger keeps of the card question (usage_json.card): the model's own detection, and whether it counted. */
+export type CardLedger = { seen: boolean; used: boolean; confidence: number };
+
+export type ScanReference = {
   plates: DishwareRow[];
-  /** The prompt block (lib/dishware.ts); one scan, one string, nothing per plate sent as an image. */
+  /** The prompt block (lib/dishware.ts): the card reference, then the plates; no image is sent for either. */
   instruction: string;
-  /** Turns the model's `plate` answer into what the result carries. */
-  note: (answer: string | null | undefined) => DishwareScanNote;
+  /** Turns the model's `plate` answer into what the result carries; undefined when the user has no plates (nothing was asked). */
+  plateNote: (answer: string | null | undefined) => DishwareScanNote | undefined;
+  /** The model's `card` answer: what the result says (only a card that counted) and what the ledger keeps. */
+  cardNote: (answer: CardAnswer | undefined) => { note: CardScanNote | undefined; ledger: CardLedger };
 };
 
 /**
- * The plates a scan of this user should be told about: null for a user outside the allowlist, with no
- * plates, or when the read fails (a failed read is an ordinary scan, never a failed one).
+ * What a scan of this user adds to the prompt: null for a user outside the allowlist, so everyone else is
+ * scanned exactly as before. An allowlisted user always gets the card reference, and their plates too when
+ * they have registered any. A failed plate read is the card alone, never a failed scan.
  */
-export async function loadScanDishware(
+export async function loadScanReference(
   db: Database,
   env: { DISHWARE_USER_IDS?: string },
   userId: string,
-): Promise<ScanDishware | null> {
+): Promise<ScanReference | null> {
   if (!dishwareEnabled(env, userId)) return null;
-  let plates: DishwareRow[];
+  let plates: DishwareRow[] = [];
   try {
     plates = await loadDishware(db, userId);
   } catch (error) {
     console.error("[ai] dishware read failed", error);
-    return null;
   }
-  const instruction = dishwareInstruction(plates);
+  const instruction = referenceInstruction(plates, true);
   if (instruction === null) return null;
   return {
     plates,
     instruction,
-    note: (answer) => {
+    plateNote: (answer) => {
+      if (plates.length === 0) return undefined;
       const match = matchDishware(answer, plates);
       if (match.status === "none") return { status: "none" };
       const { id, name, kind, diameterCm, widthCm } = match.plate;
       return { status: "matched", id, name, kind, diameterCm, widthCm };
+    },
+    cardNote: (answer) => {
+      const outcome = cardOutcome(answer);
+      return { note: outcome.used ? { status: "used" } : undefined, ledger: outcome };
     },
   };
 }

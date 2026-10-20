@@ -140,6 +140,16 @@ describe("meta.json", () => {
     expect(bare.cases[0]!.plate).toEqual({ name: "Mangkuk", kind: "bowl", diameterCm: 14, description: "", inPhoto: true });
   });
 
+  test("a card flag rides along when someone checked the photo, and stays absent when nobody did", () => {
+    expect(weighed!.card).toBeUndefined();
+    expect("card" in buildExternalMeta(labels, weighed!, photo, NOW)).toBe(false);
+    for (const card of [true, false]) {
+      const parsed = labelsSchema.parse({ ...labels, cases: [{ ...weighed!, card }] });
+      expect(buildExternalMeta(parsed, parsed.cases[0]!, photo, NOW).card).toBe(card);
+    }
+    expect(labelsSchema.safeParse({ ...labels, cases: [{ ...weighed!, card: "yes" }] }).success).toBe(false);
+  });
+
   test("a plate nobody could own is rejected", () => {
     const bad = (plate: unknown) => labelsSchema.safeParse({ ...labels, cases: [{ ...weighed!, plate }] }).success;
     expect(bad({ name: "x", kind: "bowl", diameterCm: 2 })).toBe(false);

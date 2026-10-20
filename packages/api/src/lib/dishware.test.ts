@@ -1,16 +1,20 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  CARD_INSTRUCTION,
   CARD_LONG_SIDE_CM,
+  CARD_MIN_CONFIDENCE,
   analyzeDishwarePhoto,
+  cardOutcome,
   dishwareInstruction,
   dishwareLabel,
   matchDishware,
   parseDishwareAnalysis,
   promptText,
+  referenceInstruction,
 } from "./dishware";
 import type { PromptDishware } from "./dishware";
-import { extractPlateAnswer, parseAnswer } from "./vision";
+import { extractCardAnswer, extractPlateAnswer, parseAnswer } from "./vision";
 
 const WHITE: PromptDishware = {
   name: "Piring makan putih",
@@ -152,5 +156,67 @@ describe("analyzeDishwarePhoto", () => {
         { model: "m", imageBase64: "aGVsbG8=", mimeType: "image/jpeg" },
       ),
     ).rejects.toThrow("did not answer with JSON");
+  });
+});
+
+describe("the card reference", () => {
+  test("names every kind of ID-1 card, its size, and the leading field", () => {
+    for (const word of ["ATM", "KTP", "SIM", "e-money", "warna apa pun", "8,56 x 5,4 cm", '"card":{"seen":true,"confidence":0.9}', '"seen":false']) {
+      expect(CARD_INSTRUCTION).toContain(word);
+    }
+    expect(CARD_INSTRUCTION).not.toContain('"plate"');
+  });
+
+  test("a card-only user (no plates) gets just the card block; neither card nor plates gets nothing", () => {
+    expect(referenceInstruction([], true)).toBe(CARD_INSTRUCTION);
+    expect(referenceInstruction([], false)).toBeNull();
+  });
+
+  test("without the card, the plates text is exactly what plates alone produce", () => {
+    expect(referenceInstruction([WHITE], false)).toBe(dishwareInstruction([WHITE]));
+  });
+
+  test("with both, the card comes first, the plate field follows it, and the card is preferred", () => {
+    const text = referenceInstruction([WHITE, BOWL], true)!;
+    expect(text.startsWith(CARD_INSTRUCTION)).toBe(true);
+    expect(text).toContain('P1: "Piring makan putih"');
+    expect(text).toContain('sesudah "card"');
+    expect(text).toContain('{"card":{...},"plate":"P1","items":[...]}');
+    expect(text).toContain('{"card":{...},"plate":null,"items":[...]}');
+    expect(text.indexOf("skala dari kartu yang diutamakan")).toBeGreaterThan(text.indexOf("P2:"));
+  });
+
+  test("the card answer is read from the raw text, whatever the other fields do", () => {
+    expect(extractCardAnswer('{"card":{"seen":true,"confidence":0.85},"items":[]}')).toEqual({ seen: true, confidence: 0.85 });
+    expect(extractCardAnswer('{"card": {"seen": false, "confidence": 0}, "plate": null, "items":[]}')).toEqual({ seen: false, confidence: 0 });
+    expect(extractCardAnswer('{"card":{"seen":true,"confidence":"0.7"},"items":[]}')).toEqual({ seen: true, confidence: 0.7 });
+    expect(extractCardAnswer('{"card":{"seen":true,"confidence":7},"items":[]}')).toEqual({ seen: true, confidence: 1 });
+    expect(extractCardAnswer('{"card":{"seen":true},"items":[]}')).toEqual({ seen: true, confidence: 0 });
+    expect(extractCardAnswer('{"card":{"seen":false,"confidence":0.9},"items":[]}')).toEqual({ seen: false, confidence: 0 });
+  });
+
+  test("no field, or one with no usable seen, is no answer", () => {
+    expect(extractCardAnswer('{"items":[{"name":"nasi","kcal":200}]}')).toBeUndefined();
+    expect(extractCardAnswer('{"card":true,"items":[]}')).toBeUndefined();
+    expect(extractCardAnswer('{"card":{"confidence":0.9},"items":[]}')).toBeUndefined();
+  });
+
+  test("survives an answer cut off after the first item, and rides beside the plate", () => {
+    const cut = '{"card":{"seen":true,"confidence":0.9},"plate":"P1","items":[{"name":"nasi putih","kcal":180,"grams":100,"box":[1,2,3,4]},{"name":"ayam';
+    const parsed = parseAnswer(cut, "length");
+    expect(parsed.card).toEqual({ seen: true, confidence: 0.9 });
+    expect(parsed.plate).toBe("P1");
+    expect(parsed.items).toHaveLength(1);
+  });
+
+  test("the registration prompt's own card flag never reads as a scan answer", () => {
+    expect(extractCardAnswer('{"description":"putih","card":true,"plateToCardRatio":2.8}')).toBeUndefined();
+  });
+
+  test("a card counts only when the model is sure enough; the ledger keeps what it saw either way", () => {
+    expect(cardOutcome({ seen: true, confidence: CARD_MIN_CONFIDENCE })).toEqual({ seen: true, used: true, confidence: CARD_MIN_CONFIDENCE });
+    expect(cardOutcome({ seen: true, confidence: CARD_MIN_CONFIDENCE - 0.01 })).toMatchObject({ seen: true, used: false });
+    expect(cardOutcome({ seen: false, confidence: 0 })).toEqual({ seen: false, used: false, confidence: 0 });
+    expect(cardOutcome(undefined)).toEqual({ seen: false, used: false, confidence: 0 });
   });
 });

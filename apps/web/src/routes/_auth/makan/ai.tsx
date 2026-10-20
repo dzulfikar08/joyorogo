@@ -710,7 +710,7 @@ function AiFoodPage() {
       applyItems(result.items);
       setQuotaReached(result.quotaReached);
       setTooMany(result.tooMany);
-      setPlateNote(result.plate ?? null);
+      setPlateNote({ plate: result.plate, card: result.card });
       setPhotoId(result.photoId ?? null);
       setCorrectionsLeft(null);
       setRetriesLeft(result.retriesLeft ?? 0);
@@ -928,7 +928,7 @@ function AiFoodPage() {
       setModel(result.model ?? model);
       setRetryCount((count) => count + 1);
       setTooMany(result.tooMany);
-      setPlateNote(result.plate ?? null);
+      setPlateNote({ plate: result.plate, card: result.card });
     } catch (err) {
       setRetryError(failureOf(err, t("flow.retryFailed")));
     } finally {
@@ -1178,7 +1178,7 @@ function AiFoodPage() {
             />
           )}
         </Card>
-        <PlateNote plate={plateNote} />
+        <PlateNote note={plateNote} />
 
         {askFeedback && !feedbackAnswered && photoId && (
           <Card className="mt-3 px-4 py-3" role="form" aria-label={t("feedback.aria")}>

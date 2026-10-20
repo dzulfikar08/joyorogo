@@ -174,6 +174,8 @@ export type VisionAnalysis = {
   repaired?: boolean;
   /** The "plate" the model answered (lib/dishware.ts): a label, null = none of the user's plates; absent = not asked. */
   plate?: string | null;
+  /** The "card" the model answered (lib/dishware.ts): a standard bank-size card beside the food; absent = not asked. */
+  card?: CardAnswer;
   /** Where the model call's time went (ms): the whole attempt, and for a stream the wait for the first token. */
   timing: { modelMs: number; ttftMs?: number; attempts: number };
 };
@@ -474,7 +476,27 @@ type ParsedAnswer = {
   repaired: boolean;
   /** The "plate" field (see extractPlateAnswer); undefined = the answer has none. */
   plate: string | null | undefined;
+  /** The "card" field (see extractCardAnswer); undefined = the answer has none. */
+  card: CardAnswer | undefined;
 };
+
+/** The model's report on a reference card in the photo: whether one is there and how sure it is (0-1). */
+export type CardAnswer = { seen: boolean; confidence: number };
+
+/**
+ * The model's leading "card" field (docs/dishware.md): `{"seen":true,"confidence":0.9}`. Read from the raw
+ * text like the plate. undefined = no such field (not asked, or skipped); a field without a usable `seen`
+ * is undefined too. A missing confidence on a seen card counts as 0: a card nobody is sure about is not a ruler.
+ */
+export function extractCardAnswer(text: string): CardAnswer | undefined {
+  const field = /"card"\s*:\s*\{([^{}]{0,80})\}/.exec(text);
+  if (!field) return undefined;
+  const seen = /"seen"\s*:\s*(true|false)/.exec(field[1]!);
+  if (!seen) return undefined;
+  const confidence = /"confidence"\s*:\s*"?(-?\d+(?:\.\d+)?)"?/.exec(field[1]!);
+  const value = confidence ? Math.min(1, Math.max(0, Number(confidence[1]))) : 0;
+  return seen[1] === "true" ? { seen: true, confidence: value } : { seen: false, confidence: 0 };
+}
 
 /**
  * The model's leading "plate" field (docs/dishware.md), read from the raw text so a cut-off or
@@ -680,6 +702,7 @@ export function parseAnswer(
     found: valid.length,
     repaired,
     plate: extractPlateAnswer(cleaned),
+    card: extractCardAnswer(cleaned),
   };
 }
 
@@ -782,6 +805,7 @@ export async function analyzeFoodPhoto(
           tooMany: answer.tooMany,
           ...(answer.modelTooMany ? { modelTooMany: true } : {}),
           ...(answer.repaired ? { repaired: true } : {}),
+          ...(answer.card !== undefined ? { card: answer.card } : {}),
           ...(answer.plate !== undefined ? { plate: answer.plate } : {}),
           timing: { modelMs, ...streamTiming, attempts },
         };

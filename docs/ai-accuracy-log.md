@@ -4,6 +4,22 @@ Running notes on how accurate the photo scan is, what the data says, and what to
 
 Owner preference to keep in mind: an over-estimated kcal is acceptable, an under-estimate is the worse error, yet users do write "kalori kelewat tinggi". Over and under are always reported separately.
 
+## 2026-10-20: a card in the scan photo as the size reference (flag, mechanism checked on photos WITHOUT a card; grams NOT measured)
+
+Why: a thing of known size on the same surface as the food is the best scale a photo can have. Any ID-1 card (ATM, KTP, SIM, e-money, 85.6 x 54 mm) beside the food now goes into the scan prompt for allowlisted users (`DISHWARE_USER_IDS`, same flag as Piring saya): the model reports `card {seen, confidence}`, a confident one is the size reference and the result says "Kartu terdeteksi", otherwise the matched registered plate, otherwise the scan as before. The ledger keeps `usage_json.card {seen, used, confidence}`. Harness: `--variant card-ref`, only on photos someone checked for a card (labels `card`, or `--cards <file>`); docs/dishware.md.
+
+What was run: 8 external photos x baseline and card-ref = 16 Workers AI calls, a few cents. I looked at every one of the 8 photos: none has a card lying beside the food, so all 8 are labelled `card: false` (my own check of the photos, not a guess about the contributor). Several have card-shaped distractors: a phone held up behind a drink, two milk cartons, a laptop and keyboard with coins and a boxed item.
+
+| Check | Result |
+|---|---|
+| card seen on a photo with no card (false detection) | 0 of 8 |
+| card-ref answers without the `card` field | 0 of 8 |
+| answers that still returned items | 8 of 8 |
+
+Reading it: the field format works with Gemma 4, and it did not take a phone, cartons or a keyboard for a card in these 8. That is all this says: no photo here HAS a card, so it tells nothing about whether the model finds a real one (glare, a card half under the plate, on a different plane than the food, perspective) or whether scaling by it moves grams toward the weighed value. n=8, one contributor, one run per variant.
+
+**What the answer needs**: photos of weighed food with a card lying flat beside it, plus the same kind of meal without one. Roughly 10 weighed meals with a card and 10 without, from the owner or the contributor, labelled `card: true|false`, would give a first read of detection (seen on the ones with, not on the ones without) and a paired grams error, baseline vs `card-ref`. Until then the line "Kartu terdeteksi" only means the model said so with confidence 0.6 or more.
+
 ## 2026-10-20: Piring saya (registered plates) built behind a flag; mechanism checked, accuracy NOT measured yet
 
 Why: the portion entry below shows the photo has no scale, so grams (rice above all) are guessed. Piring saya lets the owner register his plates and bowls with a measured diameter; the scan prompt then carries those sizes as text and the model says which one it sees (docs/dishware.md). Flag `DISHWARE_USER_IDS` (owner only), nothing changes for anyone else.

@@ -286,6 +286,7 @@
   },
   "dishware": {
     "matched": "Piring: {{name}} ({{cm}} cm), jadi patokan ukuran porsi.",
-    "none": "Piring tidak dikenali, porsi diperkirakan biasa."
+    "none": "Piring tidak dikenali, porsi diperkirakan biasa.",
+    "card": "Kartu terdeteksi, jadi patokan ukuran porsi."
   }
 }

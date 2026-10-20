@@ -231,8 +231,9 @@ describe("dishware router: other people's plates", () => {
 
 describe("the photo scan with Piring saya", () => {
   const SCAN = PHOTO;
-  const answer = (plate: string | null | undefined) =>
+  const answer = (plate: string | null | undefined, card?: { seen: boolean; confidence: number }) =>
     JSON.stringify({
+      ...(card === undefined ? {} : { card }),
       ...(plate === undefined ? {} : { plate }),
       items: [{ name: "nasi putih", kind: "makanan", kcal: 130, grams: 100, box: [100, 100, 600, 600] }],
     });
@@ -283,14 +284,107 @@ describe("the photo scan with Piring saya", () => {
     const result = await call(aiRouter.analyzeFood, SCAN, { context: ctx("eve", answer("P1")) });
     expect(requests[0]!.prompt).not.toContain("Piring Eve");
     expect(requests[0]!.prompt).not.toContain('"plate"');
+    expect(requests[0]!.prompt).not.toContain('"card"');
     expect("plate" in result).toBe(false);
+    expect("card" in result).toBe(false);
   });
 
-  test("an allowlisted user with no plates is scanned exactly as before too", async () => {
+  test("an allowlisted user with no plates is asked about the card only, and gets no plate field", async () => {
     await client.executeMultiple(`INSERT INTO "user" (id, name, email) VALUES ('new', 'New', 'new@t.id')`);
     requests.length = 0;
     const result = await call(aiRouter.analyzeFood, SCAN, { context: ctx("new", answer(undefined), "new") });
+    expect(requests[0]!.prompt).toContain('"card"');
     expect(requests[0]!.prompt).not.toContain('"plate"');
     expect("plate" in result).toBe(false);
+    expect("card" in result).toBe(false);
+  });
+});
+
+describe("the photo scan with a card beside the food", () => {
+  const answer = (card: { seen: boolean; confidence: number } | undefined, plate?: string | null) =>
+    JSON.stringify({
+      ...(card === undefined ? {} : { card }),
+      ...(plate === undefined ? {} : { plate }),
+      items: [{ name: "nasi putih", kind: "makanan", kcal: 130, grams: 100, box: [100, 100, 600, 600] }],
+    });
+  const ledgerOf = async (userId: string) => {
+    await Promise.all(background.splice(0));
+    const rows = await client.execute({
+      sql: `select usage_json from ai_usage where user_id = ? and scan_type = 'user' order by created_at desc, rowid desc limit 1`,
+      args: [userId],
+    });
+    const usage = JSON.parse(String((rows.rows as Array<Record<string, unknown>>)[0]!.usage_json)) as {
+      card?: { seen: boolean; used: boolean; confidence: number };
+      plate?: { registered: number; matched: string | null; answer: string | null };
+    };
+    // Only what the reference questions wrote; the row also holds timings, items and tokens.
+    return { card: usage.card, ...(usage.plate ? { plate: usage.plate } : {}) };
+  };
+
+  test("a card the model is sure of is reported, and the card block went into the prompt as text", async () => {
+    await client.executeMultiple(`INSERT INTO "user" (id, name, email) VALUES ('kar', 'Kar', 'kar@t.id')`);
+    requests.length = 0;
+    const result = await call(aiRouter.analyzeFood, PHOTO, { context: ctx("kar", answer({ seen: true, confidence: 0.9 }), "kar") });
+    expect(requests[0]!.prompt).toContain("Kartu pembanding");
+    expect(requests[0]!.prompt).toContain("8,56 x 5,4 cm");
+    expect(result.card).toEqual({ status: "used" });
+    expect("plate" in result).toBe(false);
+    expect(await ledgerOf("kar")).toEqual({ card: { seen: true, used: true, confidence: 0.9 } });
+  });
+
+  test("no card: no card line, the scan is the ordinary one, and the ledger says it was looked for", async () => {
+    const seen = await call(aiRouter.analyzeFood, PHOTO, { context: ctx("kar", answer({ seen: true, confidence: 0.9 }), "kar") });
+    const result = await call(aiRouter.analyzeFood, PHOTO, { context: ctx("kar", answer({ seen: false, confidence: 0 }), "kar") });
+    expect("card" in result).toBe(false);
+    expect(result.items).toEqual(seen.items);
+    expect(await ledgerOf("kar")).toEqual({ card: { seen: false, used: false, confidence: 0 } });
+  });
+
+  test("a card the model is unsure of is logged as seen but not used, and not shown", async () => {
+    const result = await call(aiRouter.analyzeFood, PHOTO, { context: ctx("kar", answer({ seen: true, confidence: 0.3 }), "kar") });
+    expect("card" in result).toBe(false);
+    expect(await ledgerOf("kar")).toEqual({ card: { seen: true, used: false, confidence: 0.3 } });
+  });
+
+  test("an answer without the card field is no card", async () => {
+    const result = await call(aiRouter.analyzeFood, PHOTO, { context: ctx("kar", answer(undefined), "kar") });
+    expect("card" in result).toBe(false);
+    expect(await ledgerOf("kar")).toEqual({ card: { seen: false, used: false, confidence: 0 } });
+  });
+
+  test("with plates registered too: the card is reported, the plate is still matched, both are in the ledger", async () => {
+    const plates = (await call(dishwareRouter.status, undefined, { context: ctx("own") })).plates;
+    requests.length = 0;
+    const result = await call(aiRouter.analyzeFood, PHOTO, { context: ctx("own", answer({ seen: true, confidence: 0.8 }, "P1")) });
+    expect(requests[0]!.prompt).toContain("Kartu pembanding");
+    expect(requests[0]!.prompt).toContain(`P1: "${plates[0]!.name}"`);
+    expect(result.card).toEqual({ status: "used" });
+    expect(result.plate).toMatchObject({ status: "matched", id: plates[0]!.id });
+    const ledger = await ledgerOf("own");
+    expect(ledger.card).toEqual({ seen: true, used: true, confidence: 0.8 });
+    expect(ledger.plate).toMatchObject({ registered: plates.length, matched: plates[0]!.id, answer: "P1" });
+  });
+
+  test("with plates registered and no card: the plate is the fallback, then the ordinary scan", async () => {
+    const withPlate = await call(aiRouter.analyzeFood, PHOTO, { context: ctx("own", answer({ seen: false, confidence: 0 }, "P1")) });
+    expect("card" in withPlate).toBe(false);
+    expect(withPlate.plate?.status).toBe("matched");
+    const neither = await call(aiRouter.analyzeFood, PHOTO, { context: ctx("own", answer({ seen: false, confidence: 0 }, null)) });
+    expect("card" in neither).toBe(false);
+    expect(neither.plate).toEqual({ status: "none" });
+    expect(neither.items).toEqual(withPlate.items);
+  });
+
+  test("Hitung ulang asks the same question and answers it the same way", async () => {
+    const first = await call(aiRouter.analyzeFood, PHOTO, { context: ctx("kar", answer({ seen: false, confidence: 0 }), "kar") });
+    expect(first.photoId).not.toBeNull();
+    requests.length = 0;
+    const retry = await call(aiRouter.analyzeFoodRetry, { photoId: first.photoId! }, { context: ctx("kar", answer({ seen: true, confidence: 0.95 }), "kar") });
+    expect(requests[0]!.prompt).toContain("Kartu pembanding");
+    expect(retry.card).toEqual({ status: "used" });
+    await Promise.all(background.splice(0));
+    const rows = await client.execute(`select usage_json from ai_usage where user_id = 'kar' and scan_type = 'retry'`);
+    const usage = JSON.parse(String((rows.rows as Array<Record<string, unknown>>)[0]!.usage_json)) as { card?: unknown };
+    expect(usage.card).toEqual({ seen: true, used: true, confidence: 0.95 });
   });
 });
