@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 
 import type { ActivityLevel } from "@joyorogo/api/lib/engine";
-import { idealWeightRange, jakartaToday, MAX_TARGET_DAYS, shiftDate } from "@joyorogo/api/lib/engine";
+import { idealWeightRange, jakartaToday, MAX_TARGET_DAYS, MIN_RECOMMENDED_SLEEP_HOURS, shiftDate, SLEEP_TARGET_HOURS } from "@joyorogo/api/lib/engine";
 import {
   bmiOf,
   suggestedDays,
@@ -16,7 +16,7 @@ import {
   type Goal,
 } from "@joyorogo/api/lib/gain";
 
-import { Button, Card, ErrorState, ListGroup, ListRow, StatTile, Text } from "@/components/ui";
+import { Button, Card, Chip, ErrorState, ListGroup, ListRow, StatTile, Text } from "@/components/ui";
 import { ConfirmSheet } from "@/components/confirm-sheet";
 import { ProfilDataPage, type ProfileData } from "@/components/profil/page";
 import { ActivityLevelPicker, ActivityRecommendations } from "@/components/profil/activity-level-picker";
@@ -99,6 +99,24 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
     },
     success: () => ({ message: t("energy:saved") }),
     invalidate: () => [orpc.profile.key(), orpc.day.key(), orpc.fasting.today.key()],
+  });
+
+  // The nightly sleep goal: one of SLEEP_TARGET_HOURS, saved at once.
+  const setSleepTarget = useOptimisticMutation<number, unknown>({
+    mutationFn: (hours) => client.profile.setSleepTarget({ hours }),
+    patch: (hours, cache) => {
+      cache.value<ProfileCache & { targets: Record<string, unknown> | null }>(myProfileKey, (old) =>
+        old?.profile
+          ? {
+              ...old,
+              profile: { ...old.profile, sleepTargetHours: hours },
+              targets: old.targets ? { ...old.targets, sleepHours: hours } : old.targets,
+            }
+          : old,
+      );
+    },
+    success: () => ({ message: t("energy:saved") }),
+    invalidate: () => [orpc.profile.key(), orpc.day.key()],
   });
 
   // Focused editors: "weight" and "date" open separately; "needs" is the TDEE breakdown.
@@ -296,6 +314,28 @@ function TargetContent({ profile: profileData }: { profile: ProfileData }) {
             )}
           </Card>
 
+          {/* Target tidur */}
+          <Card>
+            <Text style={styles.cardTitle}>{t("plan.sleepTarget.title")}</Text>
+            <View style={styles.chipRow}>
+              {SLEEP_TARGET_HOURS.map((hours) => (
+                <Chip
+                  key={hours}
+                  label={t("plan.sleepTarget.option", { hours: fmtKg(hours) })}
+                  selected={hours === (targets?.sleepHours ?? 8)}
+                  disabled={setSleepTarget.isPending}
+                  onPress={() => {
+                    if (hours !== targets?.sleepHours) setSleepTarget.mutate(hours);
+                  }}
+                />
+              ))}
+            </View>
+            <Text style={styles.cardHint}>{t("plan.sleepTarget.subtitle")}</Text>
+            {(targets?.sleepHours ?? 8) < MIN_RECOMMENDED_SLEEP_HOURS ? (
+              <Text style={styles.cardHint}>{t("plan.sleepTarget.lowNote")}</Text>
+            ) : null}
+          </Card>
+
           <CalibrationSection info={guide.data?.autoCalibration ?? null} maternal={maternal !== null} />
           <ExerciseCreditSection includedKcal={targets.includedKcal} />
           <EnergySources />
@@ -456,6 +496,16 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.md,
     fontWeight: "700",
     color: theme.colors.foreground,
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
+  },
+  cardHint: {
+    fontSize: theme.fontSize.sm,
+    lineHeight: 20,
+    color: theme.colors.mutedForeground,
   },
   guideLoading: {
     marginVertical: theme.spacing.lg,

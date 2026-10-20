@@ -24,7 +24,7 @@ import {
   calibrationRecommendation,
   stepsRecommendation,
 } from "../lib/activity-guide";
-import { activityLevelSchema, dateSchema, maternalInputSchema, profileInputSchema } from "../lib/schemas";
+import { activityLevelSchema, dateSchema, maternalInputSchema, profileInputSchema, sleepTargetHoursSchema } from "../lib/schemas";
 import { readCalibrationPrefs } from "../lib/calibration-store";
 import { buildPlan, planQueries } from "../lib/plan";
 import { serverT } from "../lib/messages";
@@ -204,6 +204,26 @@ export const profileRouter = {
       return { targets: plan.targets };
     }),
 
+  setSleepTarget: protectedProcedure
+    .input(z.object({ hours: sleepTargetHoursSchema }))
+    .handler(async ({ context, input }): Promise<{ targets: Targets }> => {
+      const userId = context.session.user.id;
+      const t = serverT(context.locale, "errors");
+      const updated = await context.db
+        .update(profile)
+        .set({ sleepTargetHours: input.hours })
+        .where(eq(profile.userId, userId))
+        .returning({ userId: profile.userId });
+      if (updated.length === 0) {
+        throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+      }
+      const { plan } = await loadPlan(context.db, userId);
+      if (!plan) {
+        throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
+      }
+      return { targets: plan.targets };
+    }),
+
   // Opt-in public progress page (/u/<code>); code is generated once.
   shareToggle: protectedProcedure
     .input(z.object({ enabled: z.boolean() }))
@@ -278,6 +298,15 @@ export const profileRouter = {
           today,
         });
       const { targetWeightKg, targetDate, goal, goalStartKg } = settled;
+      // Omitted: keep the stored sleep goal (onboarding never asks for it).
+      const sleepTargetHours =
+        input.sleepTargetHours !== undefined
+          ? input.sleepTargetHours
+          : ((await context.db
+              .select({ hours: profile.sleepTargetHours })
+              .from(profile)
+              .where(eq(profile.userId, userId))
+              .limit(1))[0]?.hours ?? null);
       const fields = {
         birthYear: input.birthYear,
         gender: input.gender,
@@ -288,6 +317,7 @@ export const profileRouter = {
         goal,
         goalStartKg,
         activityLevel: input.activityLevel,
+        sleepTargetHours,
         ...maternalToRow(maternal),
         ...(maternal.mode !== "none" ? MATERNAL_DEFAULTS : {}),
       };

@@ -236,6 +236,13 @@
       "title": "Activity level",
       "subtitle": "How active your everyday days are"
     },
+    "sleepTarget": {
+      "title": "Sleep goal",
+      "subtitle": "Recommended for adults: 7–9 hours a night.",
+      "lowNote": "Still within NSF's acceptable range (6–10 hours), but below the recommended minimum of 7 hours.",
+      "option": "{{hours}} h",
+      "group": "Choose your nightly sleep goal"
+    },
     "numbers": {
       "eat": "Eat",
       "burn": "Burn",

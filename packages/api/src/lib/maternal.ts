@@ -14,7 +14,7 @@
 
 import {
   MATERNAL_ACTIVITY_FACTOR,
-  SLEEP_NEED_HOURS,
+  DEFAULT_SLEEP_TARGET_HOURS,
   ageFromBirthYear,
   bmrMifflin,
   daysBetween,
@@ -697,7 +697,7 @@ export function computeMaternalTargets(
     eatKcal: baseKcal + add,
     exerciseKcal: 0,
     burnKcal: 0,
-    sleepHours: SLEEP_NEED_HOURS,
+    sleepHours: profile.sleepTargetHours ?? DEFAULT_SLEEP_TARGET_HOURS,
     deficitKcal: 0,
     rawDeficitKcal: 0,
     idealMinKg: ideal.minKg,

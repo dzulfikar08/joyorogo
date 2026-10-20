@@ -133,7 +133,14 @@ export const KCAL_PER_KG_FAT = 7700;
 const EAT_FLOOR: Record<Gender, number> = { male: 1500, female: 1200 };
 /** The lowest daily eat target the plan sets (1500 male, 1200 female); the deficit never cuts below it. */
 export const eatFloorKcal = (gender: Gender): number => EAT_FLOOR[gender];
-export const SLEEP_NEED_HOURS = 8;
+/**
+ * Nightly sleep goals a person can pick (hours). NSF 2015: 7-9 h recommended for adults, 6-10 h "may be appropriate";
+ * AASM/SRS: at least 7 h. 6 and 6.5 are accepted but sit below the recommended minimum.
+ */
+export const SLEEP_TARGET_HOURS = [6, 6.5, 7, 7.5, 8, 8.5, 9] as const;
+export const DEFAULT_SLEEP_TARGET_HOURS = 8;
+/** A night below this is under the recommended minimum for adults whatever the goal. */
+export const MIN_RECOMMENDED_SLEEP_HOURS = 7;
 export const BURN_BASE_PER_KG = 3.3;
 /** Safe daily deficit window: below the floor the date no longer moves the plan, above the cap it is unsafe. */
 export const MIN_DEFICIT_KCAL = 250;
@@ -155,6 +162,8 @@ export type ProfileInput = {
    * always was: a deficit toward a lower target, holding once the weight is there.
    */
   goal?: Goal;
+  /** Nightly sleep goal, one of SLEEP_TARGET_HOURS. Absent or null means DEFAULT_SLEEP_TARGET_HOURS. */
+  sleepTargetHours?: number | null;
 };
 
 export type TargetNotes =
@@ -721,7 +730,7 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
     eatKcal: eat,
     exerciseKcal: 0,
     burnKcal: burn,
-    sleepHours: SLEEP_NEED_HOURS,
+    sleepHours: profile.sleepTargetHours ?? DEFAULT_SLEEP_TARGET_HOURS,
     deficitKcal: Math.round(totalDeficit),
     rawDeficitKcal: Math.round(rawDeficit),
     idealMinKg: ideal.minKg,

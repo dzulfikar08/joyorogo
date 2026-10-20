@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import { profileInputSchema } from "./schemas";
 import {
   ACTIVITY_LABELS,
   MEAL_LABELS,
@@ -113,6 +114,20 @@ describe("computeTargets", () => {
     expect(t.notes).toContain("PLAN_CLAMPED");
     expect(t.notes).not.toContain("BELOW_HEALTHY_RANGE");
     expect(t.sleepHours).toBe(8);
+  });
+
+  test("sleep goal: 8 by default, the stored value otherwise", () => {
+    expect(computeTargets({ ...baseProfile, sleepTargetHours: null }, { today: TODAY }).sleepHours).toBe(8);
+    expect(computeTargets({ ...baseProfile, sleepTargetHours: 7.5 }, { today: TODAY }).sleepHours).toBe(7.5);
+  });
+
+  test("profile schema accepts only the allowed sleep goals", () => {
+    const input = { ...baseProfile, targetDate: "2027-01-01" };
+    expect(profileInputSchema.safeParse({ ...input, sleepTargetHours: 8.5 }).success).toBe(true);
+    expect(profileInputSchema.safeParse({ ...input, sleepTargetHours: 6 }).success).toBe(true);
+    expect(profileInputSchema.safeParse({ ...input, sleepTargetHours: 6.5 }).success).toBe(true);
+    expect(profileInputSchema.safeParse({ ...input, sleepTargetHours: 5.5 }).success).toBe(false);
+    expect(profileInputSchema.safeParse({ ...input, sleepTargetHours: 10 }).success).toBe(false);
   });
 
   test("below-healthy-range target is flagged, not blocked", () => {

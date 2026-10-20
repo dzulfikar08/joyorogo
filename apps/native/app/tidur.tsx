@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Redirect, Stack } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { SLEEP_NEED_HOURS, jakartaToday } from "@joyorogo/api/lib/engine";
+import { DEFAULT_SLEEP_TARGET_HOURS, MIN_RECOMMENDED_SLEEP_HOURS, jakartaToday } from "@joyorogo/api/lib/engine";
 import { getActiveLocale } from "@joyorogo/i18n";
 
 import { DaySwitcher } from "@/components/day-switcher";
@@ -44,16 +44,18 @@ function shiftDate(date: string, days: number): string {
 function SleepBars({
   nights,
   lastLabel,
+  need,
 }: {
   nights: Array<{ date: string; hours: number | null }>;
   lastLabel: string;
+  need: number;
 }) {
   const { theme } = useUnistyles();
   const w = Math.min(320, Dimensions.get("window").width - 100);
   const h = 96;
   const gap = 8;
   const barW = (w - gap * (nights.length - 1)) / nights.length;
-  const max = Math.max(SLEEP_NEED_HOURS, ...nights.map((n) => n.hours ?? 0));
+  const max = Math.max(need, ...nights.map((n) => n.hours ?? 0));
   const weekday = new Intl.DateTimeFormat(getActiveLocale(), {
     weekday: "short",
     timeZone: "UTC",
@@ -104,6 +106,9 @@ export default function Tidur() {
   const [viewDate, setViewDate] = useState(today);
   const isToday = viewDate === today;
   const sleepDate = shiftDate(viewDate, -1);
+  // The goal is a profile setting; until the plan loads (or without one) the default shows.
+  const planQuery = useQuery(orpc.profile.myProfile.queryOptions());
+  const need = planQuery.data?.targets?.sleepHours ?? DEFAULT_SLEEP_TARGET_HOURS;
   const sleepQuery = useQuery({
     ...orpc.sleep.getForDate.queryOptions({ input: { date: sleepDate } }),
     placeholderData: (prev) => prev,
@@ -217,7 +222,7 @@ export default function Tidur() {
             size={116}
             stroke={10}
             value={logged ?? 0}
-            max={SLEEP_NEED_HOURS}
+            max={need}
             color={theme.colors.tidur}
             track={theme.colors.tidurSoft}
           >
@@ -230,14 +235,16 @@ export default function Tidur() {
             <Text style={styles.ringLabel}>{nightLabel}</Text>
             <Text style={styles.ringNote}>
               {logged === null
-                ? t("status.empty", { need: SLEEP_NEED_HOURS })
-                : logged < SLEEP_NEED_HOURS
-                  ? t("status.short", {
-                      count: SLEEP_NEED_HOURS - logged,
-                      hours: fmtKg(SLEEP_NEED_HOURS - logged),
-                      need: SLEEP_NEED_HOURS,
-                    })
-                  : t("status.met")}
+                ? t("status.empty", { need })
+                : logged >= need
+                  ? t("status.met")
+                  : logged < MIN_RECOMMENDED_SLEEP_HOURS
+                    ? t("status.belowMin", { hours: fmtKg(logged) })
+                    : t("status.short", {
+                        count: need - logged,
+                        hours: fmtKg(need - logged),
+                        need,
+                      })}
             </Text>
           </View>
         </Card>
@@ -277,7 +284,7 @@ export default function Tidur() {
               <Skeleton width="100%" height={96} radius={12} />
             </View>
           ) : (
-            <SleepBars nights={nights} lastLabel={nightLabel} />
+            <SleepBars nights={nights} lastLabel={nightLabel} need={need} />
           )}
         </Card>
 

@@ -14,7 +14,8 @@
     "empty": "Not logged yet. You need {{need}} hours a night.",
     "met": "Goal met, nice.",
     "short_one": "{{hours}} hour short of your {{need}}-hour goal.",
-    "short_other": "{{hours}} hours short of your {{need}}-hour goal."
+    "short_other": "{{hours}} hours short of your {{need}}-hour goal.",
+    "belowMin": "{{hours}} hours is under the recommended minimum of 7 hours for adults."
   },
   "log": {
     "titleLastNight": "Last night's sleep",

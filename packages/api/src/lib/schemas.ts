@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ACTIVITY_LEVELS, GENDERS, MEALS, jakartaToday, shiftDate, type ProfileInput } from "./engine";
+import { ACTIVITY_LEVELS, GENDERS, MEALS, SLEEP_TARGET_HOURS, jakartaToday, shiftDate, type ProfileInput } from "./engine";
 import {
   FEEDING_TYPES,
   MATERNAL_CONDITIONS,
@@ -37,6 +37,10 @@ export const pastDateSchema = z
     return date <= today && date >= shiftDate(today, -LOG_DATE_WINDOW_DAYS);
   }, `Tanggal harus antara ${LOG_DATE_WINDOW_DAYS} hari lalu dan hari ini`);
 
+export const sleepTargetHoursSchema = z
+  .number()
+  .refine((hours) => (SLEEP_TARGET_HOURS as readonly number[]).includes(hours), "Target tidur harus 6 sampai 9 jam, per setengah jam");
+
 export const profileInputSchema = z.object({
   birthYear: z.number().int().min(1930).max(2020),
   gender: genderSchema,
@@ -45,6 +49,7 @@ export const profileInputSchema = z.object({
   targetWeightKg: z.number().min(25).max(400),
   targetDate: dateSchema,
   activityLevel: activityLevelInputSchema,
+  sleepTargetHours: sleepTargetHoursSchema.nullish(),
 }) satisfies z.ZodType<ProfileInput>;
 
 const prePregnancyWeightSchema = z.number().min(25).max(250);

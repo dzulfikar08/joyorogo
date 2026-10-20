@@ -226,6 +226,13 @@
       "title": "Level aktivitas",
       "subtitle": "Seberapa aktif hari-harimu"
     },
+    "sleepTarget": {
+      "title": "Target tidur",
+      "subtitle": "Rekomendasi untuk orang dewasa: 7–9 jam per malam.",
+      "lowNote": "Masih dalam batas wajar NSF (6–10 jam), tapi di bawah rekomendasi minimal 7 jam.",
+      "option": "{{hours}} jam",
+      "group": "Pilih target tidur per malam"
+    },
     "numbers": {
       "eat": "Makan",
       "burn": "Bakar",

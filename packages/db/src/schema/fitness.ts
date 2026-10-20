@@ -53,6 +53,8 @@ export const profile = sqliteTable("profile", {
   // The activity factor of the daily-life level (api lib/engine ACTIVITY_FACTOR): sedentary 1.2, light 1.375, moderate
   // 1.55, active 1.725, very_active 1.9. Migration 0048 renamed the old low / mid / high.
   activityLevel: text("activity_level", { enum: ["sedentary", "light", "moderate", "active", "very_active"] }).notNull(),
+  // Nightly sleep goal in hours (api lib/engine SLEEP_TARGET_HOURS: 6 to 9 in half hours). Null = the default, 8.
+  sleepTargetHours: real("sleep_target_hours"),
   // Ramadan schedule: 'auto' follows the Hijri calendar, on/off force it.
   ramadanMode: text("ramadan_mode", { enum: ["auto", "on", "off"] })
     .notNull()

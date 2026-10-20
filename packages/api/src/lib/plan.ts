@@ -156,6 +156,7 @@ export function buildPlan(
     targetDate: row.targetDate,
     activityLevel: row.activityLevel as ActivityLevel,
     goal: row.goal,
+    sleepTargetHours: row.sleepTargetHours,
   };
   const weightNowKg = history.latestWeightKg ?? row.startWeightKg;
   // Hamil / Menyusui: no deficit, no weight target, no measured-TDEE drift.

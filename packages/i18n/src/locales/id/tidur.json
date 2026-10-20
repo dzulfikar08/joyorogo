@@ -13,7 +13,8 @@
   "status": {
     "empty": "Belum dicatat. Kebutuhanmu {{need}} jam tiap malam.",
     "met": "Kebutuhan terpenuhi, mantap.",
-    "short_other": "Kurang {{hours}} jam dari kebutuhan {{need}} jam."
+    "short_other": "Kurang {{hours}} jam dari kebutuhan {{need}} jam.",
+    "belowMin": "Tidur {{hours}} jam, di bawah batas anjuran minimal 7 jam untuk orang dewasa."
   },
   "log": {
     "titleLastNight": "Durasi tadi malam",

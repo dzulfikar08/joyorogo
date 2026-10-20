@@ -8,7 +8,13 @@ import { ChevronDown } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { SLEEP_NEED_HOURS, jakartaToday, relativeDayLabel, shiftDate } from "@joyorogo/api/lib/engine";
+import {
+  DEFAULT_SLEEP_TARGET_HOURS,
+  MIN_RECOMMENDED_SLEEP_HOURS,
+  jakartaToday,
+  relativeDayLabel,
+  shiftDate,
+} from "@joyorogo/api/lib/engine";
 
 import { Ring } from "@/components/kit/ring";
 import { ScreenError } from "@/components/screen-state";
@@ -46,6 +52,9 @@ function TidurPage() {
   const viewDate = paramDate ?? jakartaToday();
   const nightDate = shiftDate(viewDate, -1);
   const logged = useQuery(sleepOptions(nightDate));
+  // The goal is a profile setting; until the plan loads (or without one) the default shows.
+  const plan = useQuery(orpc.profile.myProfile.queryOptions());
+  const need = plan.data?.targets?.sleepHours ?? DEFAULT_SLEEP_TARGET_HOURS;
   if (logged.isPending) return <TidurSkeleton />;
   if (logged.error) {
     return <ScreenError message={logged.error.message} onRetry={() => logged.refetch()} />;
@@ -53,6 +62,7 @@ function TidurPage() {
   return (
     <TidurScreen
       row={logged.data}
+      need={need}
       viewDate={viewDate}
       nightDate={nightDate}
       onChange={(target) =>
@@ -64,11 +74,13 @@ function TidurPage() {
 
 function TidurScreen({
   row,
+  need,
   viewDate,
   nightDate,
   onChange,
 }: {
   row: { hours: number } | null;
+  need: number;
   viewDate: string;
   nightDate: string;
   onChange: (date: string) => void;
@@ -134,13 +146,13 @@ function TidurScreen({
           <Ring
             metric="tidur"
             value={hours ?? 0}
-            max={SLEEP_NEED_HOURS}
+            max={need}
             size={168}
             stroke={14}
             label={
               hours !== null
-                ? t("ring.aria.logged", { hours: fmtKg(hours), need: SLEEP_NEED_HOURS })
-                : t("ring.aria.empty", { need: SLEEP_NEED_HOURS })
+                ? t("ring.aria.logged", { hours: fmtKg(hours), need })
+                : t("ring.aria.empty", { need })
             }
           >
             <div>
@@ -163,14 +175,16 @@ function TidurScreen({
           </Ring>
           <p className="mt-3 max-w-xs text-sm text-muted-foreground">
             {hours === null
-              ? t("status.empty", { need: SLEEP_NEED_HOURS })
-              : hours >= SLEEP_NEED_HOURS
+              ? t("status.empty", { need })
+              : hours >= need
                 ? t("status.met")
-                : t("status.short", {
-                    count: SLEEP_NEED_HOURS - hours,
-                    hours: fmtKg(SLEEP_NEED_HOURS - hours),
-                    need: SLEEP_NEED_HOURS,
-                  })}
+                : hours < MIN_RECOMMENDED_SLEEP_HOURS
+                  ? t("status.belowMin", { hours: fmtKg(hours) })
+                  : t("status.short", {
+                      count: need - hours,
+                      hours: fmtKg(need - hours),
+                      need,
+                    })}
           </p>
         </div>
       </Card>

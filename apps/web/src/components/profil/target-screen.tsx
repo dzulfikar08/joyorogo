@@ -29,6 +29,7 @@ import {
 } from "@/components/gain/goal-plan";
 import { ActivityLevelSection } from "@/components/profil/activity-level-section";
 import { CalibrationSection } from "@/components/profil/calibration-section";
+import { SleepTargetSection } from "@/components/profil/sleep-target-section";
 import { ExerciseCreditSection } from "@/components/profil/exercise-credit-section";
 import { profileOptions } from "@/components/profil/shared";
 import type { ProfilCtx } from "@/components/profil/shared";
@@ -189,6 +190,7 @@ export function TargetScreen({
       </ListGroup>
       <ActivityLevelSection current={targets.level} maternal={targets.maternal !== null} />
       <CalibrationSection maternal={targets.maternal !== null} />
+      <SleepTargetSection current={targets.sleepHours} />
       <ExerciseCreditSection includedKcal={targets.includedKcal} />
       {targets.notes.some((note) => note !== "MATERNAL") && (
         <div className="mt-3">
