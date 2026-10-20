@@ -4,7 +4,7 @@ import { Clock, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Card } from "@/components/kit/surface";
+import { CollapsibleNotice } from "@/components/collapsible-notice";
 import { useSession } from "@/lib/auth-client";
 import { dismissalStoreKey, saveDismissal } from "@/lib/dismissals";
 import { orpc } from "@/utils/orpc";
@@ -40,19 +40,18 @@ export function StravaRetentionNotice({ className }: { className?: string }) {
   };
 
   return (
-    <Card className={className} aria-label={t("strava.retention.noticeTitle")}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Clock className="size-5 text-bakar" aria-hidden />
-          <h2 className="text-base font-bold">{t("strava.retention.noticeTitle")}</h2>
-        </div>
+    <CollapsibleNotice
+      id="strava-retention"
+      className={className}
+      title={t("strava.retention.noticeTitle")}
+      icon={<Clock />}
+      action={
         <Button variant="ghost" size="icon" aria-label={t("common:actions.close")} onClick={dismiss}>
           <X className="size-4" aria-hidden />
         </Button>
-      </div>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        {t("strava.retention.text")}
-      </p>
+      }
+    >
+      <p className="text-sm leading-relaxed text-muted-foreground">{t("strava.retention.text")}</p>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
         {t("strava.retention.healthAlternative")}
       </p>
@@ -61,6 +60,6 @@ export function StravaRetentionNotice({ className }: { className?: string }) {
           {t("strava.retention.understood")}
         </Button>
       </div>
-    </Card>
+    </CollapsibleNotice>
   );
 }

@@ -7,7 +7,7 @@ import { Scale, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Card } from "@/components/kit/surface";
+import { CollapsibleNotice } from "@/components/collapsible-notice";
 import { saveCalibrationPref } from "@/lib/calibration-prefs";
 import { refreshAfterCalibrationPref } from "@/lib/calibration-refresh";
 import { fmtInt } from "@/lib/format";
@@ -38,17 +38,18 @@ export function CalibrationNotice({
   };
 
   return (
-    <Card className={className} aria-label={t("calNotice.title")}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-2">
-          <Scale className="mt-0.5 size-5 shrink-0 text-bakar" aria-hidden />
-          <h2 className="text-base leading-snug font-bold">{t("calNotice.title")}</h2>
-        </div>
+    <CollapsibleNotice
+      id="calibration"
+      className={className}
+      title={t("calNotice.title")}
+      icon={<Scale />}
+      action={
         <Button variant="ghost" size="icon" aria-label={t("calNotice.dismiss")} onClick={dismiss}>
           <X className="size-4" aria-hidden />
         </Button>
-      </div>
-      <p className="mt-2 text-sm leading-relaxed font-semibold tabular-nums">
+      }
+    >
+      <p className="text-sm leading-relaxed font-semibold tabular-nums">
         {t("calNotice.body", { old: fmtInt(notice.fromKcal), new: fmtInt(notice.toKcal) })}
       </p>
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{t("calNotice.hint")}</p>
@@ -70,6 +71,6 @@ export function CalibrationNotice({
           {t("calNotice.learn")}
         </Link>
       </div>
-    </Card>
+    </CollapsibleNotice>
   );
 }

@@ -195,6 +195,7 @@ export default function RootLayout() {
             <Stack.Screen name="profil/pengingat" options={{ title: t("hub.rows.reminders.title", { ns: "settings" }) }} />
             <Stack.Screen name="profil/feed" options={{ title: t("hub.rows.feed.title", { ns: "settings" }) }} />
             <Stack.Screen name="profil/tampilan" options={{ title: t("hub.rows.display.title", { ns: "settings" }) }} />
+            <Stack.Screen name="profil/kartu-beranda" options={{ title: t("cards.title", { ns: "home" }) }} />
             <Stack.Screen name="profil/privasi" options={{ title: t("hub.rows.privacy.title", { ns: "settings" }) }} />
             <Stack.Screen name="profil/tentang" options={{ title: t("hub.rows.about.title", { ns: "settings" }) }} />
             <Stack.Screen name="tips/[slug]" options={{ title: t("nav.title.tips") }} />

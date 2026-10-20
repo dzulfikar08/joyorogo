@@ -15,7 +15,8 @@ import type { ManualTdeeInfo } from "@joyorogo/api/lib/manual-tdee";
 
 import { CalibrationLearnLink } from "@/components/calibration-learn-link";
 import { useToast } from "@/components/toast";
-import { Button, Card, Field, Input, Text } from "@/components/ui";
+import { CollapsibleNotice } from "@/components/collapsible-notice";
+import { Button, Field, Input, Text } from "@/components/ui";
 import { errorMessage, fmtInt } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 
@@ -159,8 +160,7 @@ export function ManualTdeeSuggestionCard({ info }: { info: ManualTdeeInfo | null
   const busy = save.isPending || dismiss.isPending;
   const { kcal: measured } = info.suggestion;
   return (
-    <Card style={styles.card}>
-      <Text style={styles.cardTitle}>{t("manual.suggest.title")}</Text>
+    <CollapsibleNotice id="manualTdeeSuggestion" title={t("manual.suggest.title")}>
       <Text style={styles.strong}>
         {t("manual.suggest.body", { measured: fmtInt(measured), manual: fmtInt(info.kcal) })}
       </Text>
@@ -175,18 +175,12 @@ export function ManualTdeeSuggestionCard({ info }: { info: ManualTdeeInfo | null
         />
         <CalibrationLearnLink label={t("manual.learn")} hash="manual" />
       </View>
-    </Card>
+    </CollapsibleNotice>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
   form: { gap: theme.spacing.sm },
-  card: { gap: theme.spacing.sm },
-  cardTitle: {
-    fontSize: theme.fontSize.base,
-    fontWeight: "700",
-    color: theme.colors.foreground,
-  },
   strong: {
     fontSize: theme.fontSize.sm,
     lineHeight: 20,

@@ -28,15 +28,16 @@
     "ringLabel": "Sudah dimakan {{eaten}} dari target {{target}} kcal",
     "target": "Target makan",
     "eaten": "Sudah dimakan",
-    "overNote": "Lewat {{kcal}} kcal dari target. Ringan saja hari ini, besok jalan lagi.",
-    "help": "Cara baca angka ini"
+    "overNote": "Ringan saja hari ini, besok jalan lagi.",
+    "help": "Cara baca angka ini",
+    "targetShort": "Target"
   },
   "ideas": {
     "title": "Masih muat",
     "protein": "{{g}} g protein"
   },
   "tile": {
-    "burn": "Aktivitas hari ini",
+    "burn": "Aktivitas",
     "burnSub": "dari {{sources}}",
     "burnNone": "belum ada aktivitas",
     "activeFrom": {
@@ -54,13 +55,19 @@
     "sleep": "Tidur",
     "sleepUnit": "jam",
     "sleepNone": "belum dicatat",
-    "sleepNeed": "butuh {{hours}} jam",
+    "sleepNeed": "target {{hours}} jam",
     "protein": "Protein",
     "proteinOf": "dari {{g}} g",
     "proteinNone": "catat makan dulu",
     "water": "Air",
     "weight": "Berat",
-    "weightNone": "belum ditimbang"
+    "weightNone": "belum ditimbang",
+    "waterValue": "{{count}}/{{goal}} gelas",
+    "weightToday": "ditimbang hari ini",
+    "weightLast": "terakhir {{when}}",
+    "weightLastUnknown": "berat terakhir",
+    "sleepValue": "{{hours}} jam",
+    "list": "Angka harian"
   },
   "meals": {
     "title": "Makan hari ini",
@@ -111,6 +118,7 @@
   },
   "more": {
     "title": "Air minum, gerak, dan lainnya",
+    "webTitle": "Gerak, fakta, dan lainnya",
     "sectionTitle": "Lainnya",
     "show": "Tampilkan",
     "hide": "Sembunyikan",
@@ -255,5 +263,44 @@
       "bodyMaintenance": "Rencanamu sekarang menjaga berat, jadi tidak ada defisit. Makan sekitar target saja."
     },
     "needs": "Lihat rincian kebutuhan harianmu"
+  },
+  "macros": {
+    "carbs": "Karbo",
+    "fat": "Lemak",
+    "proteinOf": "{{eaten}} / {{target}} g",
+    "grams": "{{g}} g"
+  },
+  "cards": {
+    "title": "Atur kartu Beranda",
+    "link": "Atur kartu Beranda",
+    "lead": "Pilih kartu yang tampil di Beranda dan urutannya. Laporan harian ada di atas secara bawaan. Pengaturan ini hanya berlaku di perangkat ini.",
+    "moveUp": "Naikkan {{card}}",
+    "moveDown": "Turunkan {{card}}",
+    "position": "{{card}}, urutan {{n}} dari {{total}}",
+    "reset": "Kembalikan urutan bawaan",
+    "empty": "Semua kartu disembunyikan.",
+    "names": {
+      "calorie": "Kalori dan makro",
+      "stats": "Angka harian (aktivitas, tidur, air, berat)",
+      "meals": "Makan hari ini dan diari piring",
+      "mode": "Panduan Hamil / Menyusui / Naikin BB",
+      "notices": "Catatan dan saran",
+      "weight": "Tren berat",
+      "waist": "Lingkar perut",
+      "fasting": "Puasa intermiten",
+      "mealplan": "Rencana makan",
+      "ideas": "Masih muat",
+      "belanja": "Belanja makan",
+      "joyofit": "JoyoFit",
+      "tips": "Tips hari ini",
+      "recap": "Rekap mingguan",
+      "extras": "Lainnya (fakta, lencana, bagikan)",
+      "promo": "Info Pro"
+    },
+    "subtitle": "Tampil, sembunyi, dan urutan kartu"
+  },
+  "notice": {
+    "expand": "Buka catatan",
+    "collapse": "Tutup catatan"
   }
 }

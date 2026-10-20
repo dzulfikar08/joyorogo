@@ -4,6 +4,7 @@ import {
   Bell,
   ChevronRight,
   Info,
+  LayoutList,
   LogOut,
   Palette,
   Plug,
@@ -95,7 +96,7 @@ function SummaryCard({ ctx }: { ctx: ProfilCtx }) {
 
 /** Profil hub: summary card, grouped rows that open sub-screens, then Keluar and Hapus akun. */
 export function HubScreen({ ctx }: { ctx: ProfilCtx }) {
-  const { t, i18n: instance } = useTranslation(["settings", "koneksi", "notifications"]);
+  const { t, i18n: instance } = useTranslation(["settings", "koneksi", "notifications", "home"]);
   const { theme } = useTheme();
   const strava = useQuery(orpc.strava.status.queryOptions());
   const apps = useQuery(orpc.mcpConnection.list.queryOptions());
@@ -219,6 +220,16 @@ export function HubScreen({ ctx }: { ctx: ProfilCtx }) {
           }
           title={t("hub.rows.display.title")}
           subtitle={displayValue}
+          oneLineSubtitle
+        />
+        <ListLinkRow
+          to="/beranda-kartu"
+          icon={
+            <IconChip tone="makan">
+              <LayoutList />
+            </IconChip>
+          }
+          title={t("home:cards.title")}
           oneLineSubtitle
         />
         <ListLinkRow

@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { View } from "react-native";
+import { CollapsibleNotice } from "@/components/collapsible-notice";
 import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 
@@ -36,8 +36,12 @@ export function TargetPaceNotice({ pace }: { pace: DatePace | null | undefined }
   if (!pace) return null;
   const date = fmtDateMedium(pace.reachDate);
   return (
-    <View style={styles.box} testID="target-pace-notice">
-      <Text style={styles.title}>{t(pace.reason === "passed" ? "plan.datePace.passed.title" : "plan.datePace.title")}</Text>
+    <CollapsibleNotice
+      id="targetPace"
+      tone="warn"
+      icon="calendar-outline"
+      title={t(pace.reason === "passed" ? "plan.datePace.passed.title" : "plan.datePace.title")}
+    >
       <Text style={styles.body}>
         {t(`plan.datePace.${pace.reason === "passed" ? "passed." : ""}${pace.direction}.body`, {
           kg: fmtKg(pace.kg),
@@ -53,23 +57,11 @@ export function TargetPaceNotice({ pace }: { pace: DatePace | null | undefined }
         onPress={() => apply.mutate(pace)}
         style={styles.action}
       />
-    </View>
+    </CollapsibleNotice>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
-  box: {
-    gap: theme.spacing.sm,
-    padding: theme.spacing.md,
-    borderRadius: theme.radius.tile,
-    backgroundColor: theme.colors.bakarSoft,
-  },
-  title: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: "700",
-    color: theme.colors.bakarText,
-    lineHeight: 20,
-  },
   body: {
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,

@@ -3,11 +3,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
-import { Platform, Pressable, View } from "react-native";
+import { Platform, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { Button, Card, Text } from "@/components/ui";
+import { CollapsibleNotice } from "@/components/collapsible-notice";
+import { Button, Text } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
 import { readDismissal, saveDismissal } from "@/src/lib/dismissals";
 import { isHealthSyncSupported } from "@/src/lib/health-sync";
@@ -62,7 +63,6 @@ export function StravaRetentionNote() {
  */
 export function StravaRetentionNotice() {
   const { t } = useTranslation(["settings", "common"]);
-  const { theme } = useUnistyles();
   const { data: session } = authClient.useSession();
   const userId = session?.user.id ?? null;
   const status = useQuery(orpc.strava.status.queryOptions());
@@ -87,21 +87,10 @@ export function StravaRetentionNotice() {
   };
 
   return (
-    <Card style={styles.card}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t("strava.retention.noticeTitle")}</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("common:actions.close")}
-          hitSlop={10}
-          onPress={dismiss}
-        >
-          <Ionicons name="close" size={20} color={theme.colors.mutedForeground} />
-        </Pressable>
-      </View>
+    <CollapsibleNotice id="stravaRetention" title={t("strava.retention.noticeTitle")} icon="time-outline">
       <RetentionLines />
       <Button label={t("strava.retention.understood")} onPress={dismiss} />
-    </Card>
+    </CollapsibleNotice>
   );
 }
 
@@ -110,19 +99,6 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.muted,
     borderRadius: theme.radius.tile,
     padding: theme.spacing.md,
-  },
-  card: {
-    gap: theme.spacing.sm,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  title: {
-    fontSize: theme.fontSize.base,
-    fontWeight: "700",
-    color: theme.colors.foreground,
   },
   lines: {
     gap: theme.spacing.sm,

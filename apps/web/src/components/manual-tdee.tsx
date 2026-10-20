@@ -10,7 +10,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { Card } from "@/components/kit/surface";
+import { CollapsibleNotice } from "@/components/collapsible-notice";
 import { fmtInt, parseNum } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 
@@ -174,12 +174,13 @@ export function ManualTdeeSuggestionCard({
   const busy = save.isPending || dismiss.isPending;
   const { kcal: measured } = info.suggestion;
   return (
-    <Card className={className} aria-label={t("manual.suggest.title")}>
-      <div className="flex items-start gap-2">
-        <Scale className="mt-0.5 size-5 shrink-0 text-bakar" aria-hidden />
-        <h2 className="text-base leading-snug font-bold">{t("manual.suggest.title")}</h2>
-      </div>
-      <p className="mt-2 text-sm leading-relaxed font-semibold tabular-nums">
+    <CollapsibleNotice
+      id="manual-tdee"
+      className={className}
+      title={t("manual.suggest.title")}
+      icon={<Scale />}
+    >
+      <p className="text-sm leading-relaxed font-semibold tabular-nums">
         {t("manual.suggest.body", { measured: fmtInt(measured), manual: fmtInt(info.kcal) })}
       </p>
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{t("manual.suggest.hint")}</p>
@@ -203,6 +204,6 @@ export function ManualTdeeSuggestionCard({
           {t("manual.learn")}
         </Link>
       </div>
-    </Card>
+    </CollapsibleNotice>
   );
 }

@@ -30,15 +30,16 @@
     "ringLabel": "Eaten {{eaten}} of {{target}} kcal target",
     "target": "Eating target",
     "eaten": "Eaten so far",
-    "overNote": "{{kcal}} kcal over target. Keep it light today and pick up again tomorrow.",
-    "help": "How to read these numbers"
+    "overNote": "Keep it light today and pick up again tomorrow.",
+    "help": "How to read these numbers",
+    "targetShort": "Target"
   },
   "ideas": {
     "title": "Still fits",
     "protein": "{{g}} g protein"
   },
   "tile": {
-    "burn": "Activity today",
+    "burn": "Activity",
     "burnSub": "from {{sources}}",
     "burnNone": "no activity yet",
     "activeFrom": {
@@ -56,13 +57,19 @@
     "sleep": "Sleep",
     "sleepUnit": "h",
     "sleepNone": "not logged",
-    "sleepNeed": "need {{hours}} h",
+    "sleepNeed": "target {{hours}} h",
     "protein": "Protein",
     "proteinOf": "of {{g}} g",
     "proteinNone": "log food first",
     "water": "Water",
     "weight": "Weight",
-    "weightNone": "not weighed yet"
+    "weightNone": "not weighed yet",
+    "waterValue": "{{count}}/{{goal}} glasses",
+    "weightToday": "weighed today",
+    "weightLast": "last {{when}}",
+    "weightLastUnknown": "last weigh-in",
+    "sleepValue": "{{hours}} h",
+    "list": "Daily numbers"
   },
   "meals": {
     "title": "Today's meals",
@@ -113,6 +120,7 @@
   },
   "more": {
     "title": "Water, movement and more",
+    "webTitle": "Movement, facts and more",
     "sectionTitle": "More",
     "show": "Show",
     "hide": "Hide",
@@ -261,5 +269,44 @@
       "bodyMaintenance": "Your plan is to hold your weight right now, so there is no deficit. Just eat around your target."
     },
     "needs": "See your daily needs in detail"
+  },
+  "macros": {
+    "carbs": "Carbs",
+    "fat": "Fat",
+    "proteinOf": "{{eaten}} / {{target}} g",
+    "grams": "{{g}} g"
+  },
+  "cards": {
+    "title": "Arrange Home cards",
+    "link": "Arrange Home cards",
+    "lead": "Choose which cards show on Home and in what order. The daily report is on top by default. This only applies on this device.",
+    "moveUp": "Move {{card}} up",
+    "moveDown": "Move {{card}} down",
+    "position": "{{card}}, position {{n}} of {{total}}",
+    "reset": "Restore default order",
+    "empty": "Every card is hidden.",
+    "names": {
+      "calorie": "Calories and macros",
+      "stats": "Daily numbers (activity, sleep, water, weight)",
+      "meals": "Today's meals and plate diary",
+      "mode": "Pregnancy / Breastfeeding / Weight gain guide",
+      "notices": "Notes and suggestions",
+      "weight": "Weight trend",
+      "waist": "Waist",
+      "fasting": "Intermittent fasting",
+      "mealplan": "Meal plan",
+      "ideas": "Still fits",
+      "belanja": "Grocery run",
+      "joyofit": "JoyoFit",
+      "tips": "Today's tip",
+      "recap": "Weekly recap",
+      "extras": "More (fact, badges, share)",
+      "promo": "Pro info"
+    },
+    "subtitle": "Show, hide and order the cards"
+  },
+  "notice": {
+    "expand": "Open note",
+    "collapse": "Close note"
   }
 }

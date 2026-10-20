@@ -12,6 +12,8 @@ import {
   Flame,
   Mic,
   Moon,
+  Droplet,
+  Minus,
   Plus,
   Scale,
   Sparkles,
@@ -22,7 +24,8 @@ import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { MACRO_META } from "@/lib/macro-icons";
+import { useHomeCards } from "@/lib/home-cards-store";
+import { ProgressBar } from "@/components/progress-bar";
 import { CountUp } from "@/components/kit/count-up";
 import { Ring } from "@/components/kit/ring";
 import { Card, Page, SectionTitle } from "@/components/kit/surface";
@@ -51,7 +54,7 @@ import {
   GainPlanCard,
   useGainIntake,
 } from "@/components/gain/gain-today";
-import { WaterCard, WaterTile } from "@/components/water-card";
+import { useWater } from "@/components/water-card";
 import { JoyoFitCard } from "@/components/workout/joyofit-card";
 import { pickFact } from "@/lib/facts";
 import { fmtDateLong, fmtFactor, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
@@ -61,6 +64,9 @@ import { useAppConfig } from "@/lib/app-config";
 import type { DaySummary } from "@/lib/api-types";
 import { DEFAULT_ADD_BACK_SETTINGS } from "@joyorogo/api/lib/exercise-credit";
 import { datePaceExplainKey, jakartaToday, needsBreakdown, relativeDayLabel, remainingKcal } from "@joyorogo/api/lib/engine";
+import { visibleHomeCards } from "@joyorogo/api/lib/home-cards";
+import type { HomeCardId } from "@joyorogo/api/lib/home-cards";
+import { weightSecondary } from "@joyorogo/api/lib/home-stats";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { orpc } from "@/utils/orpc";
 
@@ -118,7 +124,7 @@ function FounderBanner() {
   if (config.data?.billing !== true || profile.data?.tier !== "free") return null;
   const cap = config.data.founderDailyCap;
   return (
-    <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-makan-soft px-4 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-2xl bg-makan-soft px-4 py-2">
       <p className="min-w-0 text-[0.8125rem] font-semibold text-makan-ink tabular-nums">
         {t("banner.scans", { n: config.data.freeDailyScans })}
         <span aria-hidden className="mx-1 text-muted-foreground">
@@ -155,52 +161,267 @@ function greetingKey(now: Date): "morning" | "noon" | "afternoon" | "evening" {
 
 const DEFAULT_SLOTS: Meal[] = ["sarapan", "makan_siang", "makan_malam", "snack"];
 
-const TILE_TINT = {
-  makan: "bg-makan-soft text-makan-ink",
-  bakar: "bg-bakar-soft text-bakar-ink",
-  tidur: "bg-tidur-soft text-tidur-ink",
+const STAT_TONE = {
+  bakar: "text-bakar",
+  tidur: "text-tidur",
+  makan: "text-makan",
 } as const;
 
-/** Dense glance tile: icon + label on one line, value, one-line context. */
-function GlanceTile({
-  tint,
+const STAT_ROW =
+  "flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left";
+
+/** One line of the daily numbers card: icon, label over a one-line note, value with its unit. */
+function StatRow({
   to,
+  tone,
   icon,
   label,
+  note,
   value,
-  unit,
-  sub,
+  trailing,
 }: {
-  tint: keyof typeof TILE_TINT;
-  to: "/olahraga" | "/tidur" | "/makan" | "/berat";
+  to?: "/olahraga" | "/tidur" | "/berat";
+  tone: keyof typeof STAT_TONE;
   icon: ReactNode;
   label: string;
+  note?: ReactNode;
   value: ReactNode;
-  unit?: string;
-  sub?: ReactNode;
+  trailing?: ReactNode;
 }) {
-  return (
-    <Link
-      to={to}
-      className={cn(
-        "pressable block min-w-0 rounded-2xl p-3 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
-        TILE_TINT[tint],
-      )}
-    >
-      <span className="flex items-center gap-1.5 text-[0.8125rem] font-semibold">
+  const body = (
+    <>
+      <span aria-hidden className={cn("shrink-0 [&>svg]:size-5", STAT_TONE[tone])}>
         {icon}
-        <span className="truncate">{label}</span>
       </span>
-      <span className="mt-1 block text-xl leading-tight font-extrabold tracking-tight text-foreground tabular-nums">
-        {value}
-        {unit && <span className="ml-1 text-xs font-semibold text-muted-foreground">{unit}</span>}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[0.9375rem] font-semibold">{label}</span>
+        {note && (
+          <span className="mt-0.5 block truncate text-xs text-muted-foreground tabular-nums">
+            {note}
+          </span>
+        )}
       </span>
-      {sub && (
-        <span className="block truncate text-[0.6875rem] text-muted-foreground tabular-nums">
-          {sub}
-        </span>
+      <span className="shrink-0 text-base font-extrabold tabular-nums">{value}</span>
+    </>
+  );
+  return (
+    <li>
+      {to ? (
+        <Link
+          to={to}
+          className={cn(
+            STAT_ROW,
+            "transition-colors hover:bg-muted/60 active:bg-muted focus-visible:bg-muted focus-visible:outline-none",
+          )}
+        >
+          {body}
+          <ChevronRight className="-mr-1 size-4 shrink-0 text-muted-foreground" aria-hidden />
+        </Link>
+      ) : (
+        <div className={STAT_ROW}>
+          {body}
+          {trailing}
+        </div>
       )}
-    </Link>
+    </li>
+  );
+}
+
+function Unit({ children }: { children: ReactNode }) {
+  return <span className="ml-1 text-xs font-semibold text-muted-foreground">{children}</span>;
+}
+
+/** Glasses of water: progress under the label, one tap to add (or take one back). The row has no detail page. */
+function WaterRow({ date }: { date?: string }) {
+  const { t } = useTranslation("home");
+  const water = useWater(date);
+  return (
+    <StatRow
+      tone="tidur"
+      icon={<Droplet />}
+      label={t("tile.water")}
+      note={
+        <ProgressBar
+          value={water.glasses}
+          max={water.goal}
+          ariaLabel={t("tile.waterValue", { count: water.glasses, goal: water.goal })}
+          className="mt-1.5 h-1.5"
+        />
+      }
+      value={<span aria-live="polite">{t("tile.waterValue", { count: water.glasses, goal: water.goal })}</span>}
+      trailing={
+        <span className="-mr-2 flex shrink-0 items-center">
+          <button
+            type="button"
+            aria-label={t("water.less")}
+            disabled={water.busy || water.glasses <= 0}
+            onClick={water.remove}
+            className="group flex size-11 items-center justify-center rounded-full outline-none disabled:opacity-40"
+          >
+            <span className="flex size-8 items-center justify-center rounded-full bg-muted text-foreground group-focus-visible:ring-[3px] group-focus-visible:ring-ring/40">
+              <Minus className="size-4" aria-hidden />
+            </span>
+          </button>
+          <button
+            type="button"
+            aria-label={t("water.more")}
+            disabled={water.busy}
+            onClick={water.add}
+            className="group flex size-11 items-center justify-center rounded-full outline-none disabled:opacity-40"
+          >
+            <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground group-focus-visible:ring-[3px] group-focus-visible:ring-ring/40">
+              <Plus className="size-4" aria-hidden />
+            </span>
+          </button>
+        </span>
+      }
+    />
+  );
+}
+
+/** Activity, sleep, water and weight in one quiet list; each row opens its own page (water has none). */
+function StatsCard({ summary, date, today }: { summary: Summary; date: string; today: string }) {
+  const { t } = useTranslation(["home"]);
+  const maternal = summary.targets.maternal;
+  const isToday = date === today;
+  const activeKcal = summary.exerciseCredit?.activeKcal ?? 0;
+  const sleep = summary.sleepHoursLastNight;
+  // The last LOGGED weight, so the note ("terakhir Sabtu") describes the number beside it.
+  const weightKg = summary.latestWeightKg ?? summary.trend?.weightKg ?? null;
+  const weightNote = weightSecondary({
+    weightKg,
+    latestWeightDate: summary.latestWeightDate ?? null,
+    today,
+    loggedToday: isToday && summary.weightLoggedToday,
+  });
+
+  return (
+    <section aria-label={t("tile.list")}>
+      <ul className="divide-y divide-border overflow-hidden rounded-3xl bg-card">
+        {!maternal && (
+          <StatRow
+            to="/olahraga"
+            tone="bakar"
+            icon={<Flame />}
+            label={t("tile.burn")}
+            value={
+              <>
+                <CountUp value={activeKcal} />
+                <Unit>kcal</Unit>
+              </>
+            }
+            note={
+              summary.exerciseCredit?.allDaySource
+                ? t(`tile.activeFrom.${summary.exerciseCredit.allDaySource}`)
+                : summary.exerciseSources.length > 0
+                  ? t("tile.burnSub", {
+                      sources: summary.exerciseSources.map((source) => t(`tile.source.${source}`)).join(", "),
+                    })
+                  : t("tile.burnNone")
+            }
+          />
+        )}
+        <StatRow
+          to="/tidur"
+          tone="tidur"
+          icon={<Moon />}
+          label={t("tile.sleep")}
+          value={sleep === null ? "–" : t("tile.sleepValue", { hours: fmtKg(sleep) })}
+          note={
+            sleep === null
+              ? t("tile.sleepNone")
+              : t("tile.sleepNeed", { hours: fmtInt(summary.targets.sleepHours) })
+          }
+        />
+        {/* Hamil / Menyusui already lists water among its nutrients: not shown twice. */}
+        {!maternal && <WaterRow date={isToday ? undefined : date} />}
+        <StatRow
+          to="/berat"
+          tone="makan"
+          icon={<Scale />}
+          label={t("tile.weight")}
+          value={
+            weightKg === null ? (
+              "–"
+            ) : (
+              <>
+                <CountUp value={weightKg} format={fmtKg} />
+                <Unit>kg</Unit>
+              </>
+            )
+          }
+          note={
+            weightNote.kind === "today"
+              ? t("tile.weightToday")
+              : weightNote.kind === "last"
+                ? t("tile.weightLast", {
+                    when: relativeDayLabel(weightNote.when, today).toLowerCase(),
+                  })
+                : weightNote.kind === "lastUnknown"
+                  ? t("tile.weightLastUnknown")
+                  : t("tile.weightNone")
+          }
+        />
+      </ul>
+    </section>
+  );
+}
+
+/** Protein with its target, carbs and fat as eaten grams: the macros of the calorie card. */
+function MacroRow({ summary }: { summary: Summary }) {
+  const { t } = useTranslation("home");
+  const eaten = summary.protein?.eatenG ?? 0;
+  const target = summary.protein?.targetG ?? 0;
+  return (
+    <dl className="mt-3 grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)] gap-x-4 border-t border-border pt-3">
+      <div className="min-w-0">
+        <dt className="truncate text-xs font-semibold text-muted-foreground">{t("tile.protein")}</dt>
+        <dd className="mt-0.5 truncate text-sm font-extrabold tabular-nums">
+          {t("macros.proteinOf", { eaten: fmtInt(eaten), target: fmtInt(target) })}
+        </dd>
+        <ProgressBar value={eaten} max={target} ariaLabel={t("tile.protein")} className="mt-1.5 h-1" />
+      </div>
+      <div className="min-w-0">
+        <dt className="truncate text-xs font-semibold text-muted-foreground">{t("macros.carbs")}</dt>
+        <dd className="mt-0.5 truncate text-sm font-extrabold tabular-nums">
+          {t("macros.grams", { g: fmtInt(summary.carbsEatenG) })}
+        </dd>
+      </div>
+      <div className="min-w-0">
+        <dt className="truncate text-xs font-semibold text-muted-foreground">{t("macros.fat")}</dt>
+        <dd className="mt-0.5 truncate text-sm font-extrabold tabular-nums">
+          {t("macros.grams", { g: fmtInt(summary.fatEatenG) })}
+        </dd>
+      </div>
+    </dl>
+  );
+}
+
+/** "Masih muat": meal ideas that still fit today's budget. */
+function IdeasCard({ summary }: { summary: Summary }) {
+  const { t } = useTranslation(["home", "gain"]);
+  const gaining = summary.targets.gain != null;
+  if (summary.ideas.length === 0) return null;
+  return (
+    <Card className="p-4">
+      <p className="flex items-center gap-1.5 text-sm font-bold">
+        <Sparkles className="size-4 text-makan" aria-hidden />
+        {gaining ? t("gain:today.ideasTitle") : t("ideas.title")}
+      </p>
+      {gaining && <p className="mt-0.5 text-xs text-muted-foreground">{t("gain:today.ideasHint")}</p>}
+      <ul className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 no-scrollbar">
+        {summary.ideas.map((idea) => (
+          <li key={idea.name} className="w-40 shrink-0 rounded-2xl bg-makan-soft px-3 py-2.5">
+            <p className="line-clamp-2 text-sm leading-snug font-semibold">{idea.name}</p>
+            <p className="mt-1 text-xs font-semibold text-makan-ink tabular-nums">
+              <MetaLine
+                items={[`${fmtInt(idea.kcal)} kcal`, t("ideas.protein", { g: fmtInt(idea.proteinG) })]}
+              />
+            </p>
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }
 
@@ -254,15 +475,84 @@ function Dashboard({
     (item): item is typeof item & { scanId: string } => item.scanId !== null,
   );
 
-  const trend = summary.trend;
-  const weightKg = trend?.weightKg ?? summary.latestWeightKg;
-  const rate = trend?.weeklyRateKg ?? null;
-  const weightSub =
-    rate === null
-      ? t("tile.weightNone")
-      : Math.abs(rate) <= 0.05
-        ? t("berat:trend.stable")
-        : t(rate < 0 ? "berat:trend.down" : "berat:trend.up", { kg: fmtKg(Math.abs(rate)) });
+  const cards = visibleHomeCards(useHomeCards());
+
+  const renderCard = (id: HomeCardId): ReactNode => {
+    switch (id) {
+      case "calorie":
+        return maternal ? <MaternalEatHero summary={summary} /> : <EatHero summary={summary} />;
+      case "stats":
+        return <StatsCard summary={summary} date={date} today={today} />;
+      case "meals":
+        return (
+          <>
+            <TodayMeals summary={summary} isToday={isToday} />
+            {stickers.length > 0 && (
+              <section aria-label={t("plates.title")}>
+                <SectionTitle className="mb-1">{t("plates.title")}</SectionTitle>
+                <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 no-scrollbar lg:mx-0 lg:px-0">
+                  {stickers.map((item) => (
+                    <figure key={item.id} className="w-28 shrink-0 rounded-2xl bg-card p-3 text-center">
+                      <Sticker
+                        scanId={item.scanId}
+                        photoId={item.photoId}
+                        name={item.name}
+                        kcal={item.kcal}
+                        className="mx-auto block size-20"
+                      />
+                      <figcaption className="mt-2 truncate text-xs font-semibold">{item.name}</figcaption>
+                      <p className="text-xs text-muted-foreground tabular-nums">
+                        {fmtInt(item.kcal)} kcal
+                      </p>
+                    </figure>
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        );
+      case "mode":
+        return (
+          <>
+            {maternal && <MaternalCard info={maternal} summary={summary} />}
+            {gain && <GainPlanCard gain={gain} summary={summary} />}
+          </>
+        );
+      case "notices":
+        return (
+          <>
+            <StravaRetentionNotice />
+            <EnergyNotice notice={summary.energyNotice} />
+            <CalibrationNotice notice={summary.calibrationNotice} />
+            <ManualTdeeSuggestionCard info={summary.targets.manualTdee} />
+            {!maternal && isToday && <TargetPaceNotice pace={targets.datePace} collapsible />}
+          </>
+        );
+      case "weight":
+        return <WeightCard summary={summary} date={date} isToday={isToday} />;
+      case "waist":
+        return <WaistCard date={date} isToday={isToday} />;
+      case "fasting":
+        return isToday && !maternal ? <FastingScheduleCard /> : null;
+      case "mealplan":
+        return isToday ? <MealPlanEntry /> : null;
+      case "ideas":
+        return <IdeasCard summary={summary} />;
+      case "joyofit":
+        return maternal ? null : <JoyoFitCard />;
+      case "tips":
+        return isToday && !maternal ? gain ? <GainDailyTip /> : <DailyTipCard /> : null;
+      case "recap":
+        return isToday ? <RecapCard /> : null;
+      case "extras":
+        return <MoreSection summary={summary} date={date} isToday={isToday} />;
+      case "promo":
+        return <FounderBanner />;
+      // Belanja is a native-only card; on web the shopping line lives in "extras".
+      case "belanja":
+        return null;
+    }
+  };
 
   return (
     <Page className="max-w-xl lg:max-w-5xl">
@@ -323,144 +613,42 @@ function Dashboard({
         </div>
       </header>
 
-      <FounderBanner />
-
-      <StravaRetentionNotice className="mb-3" />
-      <EnergyNotice notice={summary.energyNotice} className="mb-3" />
-      <CalibrationNotice notice={summary.calibrationNotice} className="mb-3" />
-      <ManualTdeeSuggestionCard info={summary.targets.manualTdee} className="mb-3" />
-
       {/* Day switcher */}
       <div className="mb-3 flex justify-center lg:justify-start">
         <DaySwitcher date={date} onChange={onChange} />
       </div>
 
-      {isToday ? (
-        <div className="mb-3 empty:hidden">
-          <RecapCard />
-        </div>
-      ) : null}
-
-      {/* minmax(0, …) tracks: the scrollable ideas row inside EatHero must
-          scroll, not widen its column past the phone screen. Rows are pinned
-          per column on lg so Lingkar perut fills the empty slot next to the
-          Berat badan cards; on phones the DOM order keeps Berat first. */}
+      {/* One card per id, in the stored order. minmax(0, …) tracks so the scrollable strips inside a card scroll
+          instead of widening the column past the phone screen. A card with nothing to show renders nothing and its
+          wrapper hides (empty:hidden), so it leaves no gap. */}
       <div
         className={cn(
-          "grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-5",
+          "grid grid-cols-1 items-start gap-3 lg:grid-cols-2 lg:gap-5",
           firstVisit && "stagger-enter",
         )}
       >
-        <div className="min-w-0 space-y-2 lg:col-start-1 lg:row-start-1">
-          {maternal ? <MaternalEatHero summary={summary} /> : <EatHero summary={summary} />}
-          {!maternal && isToday && <TargetPaceNotice pace={targets.datePace} />}
-          <div className={cn("grid gap-2", maternal ? "grid-cols-2" : "grid-cols-3")}>
-            {!maternal && (
-              <GlanceTile
-                tint="bakar"
-                to="/olahraga"
-                icon={<Flame className="size-4 shrink-0" aria-hidden />}
-                label={t("tile.burn")}
-                value={<CountUp value={summary.exerciseCredit?.activeKcal ?? 0} />}
-                unit="kcal"
-                sub={
-                  summary.exerciseCredit?.allDaySource
-                    ? t(`tile.activeFrom.${summary.exerciseCredit.allDaySource}`)
-                    : summary.exerciseSources.length > 0
-                      ? t("tile.burnSub", {
-                          sources: summary.exerciseSources.map((source) => t(`tile.source.${source}`)).join(", "),
-                        })
-                      : t("tile.burnNone")
-                }
-              />
+        {cards.map((id) => (
+          <div
+            key={id}
+            className={cn(
+              "flex min-w-0 flex-col gap-3 empty:hidden",
+              (id === "extras" || id === "promo") && "lg:col-span-2",
             )}
-            <GlanceTile
-              tint="tidur"
-              to="/tidur"
-              icon={<Moon className="size-4 shrink-0" aria-hidden />}
-              label={t("tile.sleep")}
-              value={
-                summary.sleepHoursLastNight === null ? (
-                  "–"
-                ) : (
-                  <CountUp value={summary.sleepHoursLastNight} format={fmtKg} />
-                )
-              }
-              unit={summary.sleepHoursLastNight === null ? undefined : t("tile.sleepUnit")}
-              sub={
-                summary.sleepHoursLastNight === null
-                  ? t("tile.sleepNone")
-                  : t("tile.sleepNeed", { hours: fmtInt(targets.sleepHours) })
-              }
-            />
-            <GlanceTile
-              tint="makan"
-              to="/makan"
-              icon={<MACRO_META.protein.Icon className="size-4 shrink-0" aria-hidden />}
-              label={t("tile.protein")}
-              value={<CountUp value={summary.protein?.eatenG ?? 0} />}
-              unit="g"
-              sub={t("tile.proteinOf", { g: fmtInt(summary.protein?.targetG ?? 0) })}
-            />
+          >
+            {renderCard(id)}
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <WaterTile date={isToday ? undefined : date} />
-            <GlanceTile
-              tint="makan"
-              to="/berat"
-              icon={<Scale className="size-4 shrink-0" aria-hidden />}
-              label={t("tile.weight")}
-              value={weightKg === null ? "–" : <CountUp value={weightKg} format={fmtKg} />}
-              unit={weightKg === null ? undefined : "kg"}
-              sub={maternal ? undefined : weightSub}
-            />
-          </div>
-        </div>
-
-        <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-1">
-          <TodayMeals summary={summary} isToday={isToday} />
-          {isToday && <MealPlanEntry />}
-          {isToday && !maternal ? <FastingScheduleCard /> : null}
-          {maternal && <MaternalCard info={maternal} summary={summary} />}
-          {gain && <GainPlanCard gain={gain} summary={summary} />}
-        </div>
-
-        <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-2 lg:space-y-5">
-          <WeightCard summary={summary} date={date} isToday={isToday} />
-          {!maternal && <JoyoFitCard />}
-        </div>
-
-        <div className="min-w-0 lg:col-start-1 lg:row-start-2">
-          <WaistCard date={date} isToday={isToday} />
-        </div>
+        ))}
       </div>
-
-      {stickers.length > 0 && (
-        <section aria-label={t("plates.title")} className="mt-6">
-          <SectionTitle>{t("plates.title")}</SectionTitle>
-          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 no-scrollbar">
-            {stickers.map((item) => (
-              <figure key={item.id} className="w-28 shrink-0 rounded-2xl bg-card p-3 text-center">
-                <Sticker
-                  scanId={item.scanId}
-                  photoId={item.photoId}
-                  name={item.name}
-                  kcal={item.kcal}
-                  className="mx-auto block size-20"
-                />
-                <figcaption className="mt-2 truncate text-xs font-semibold">{item.name}</figcaption>
-                <p className="text-xs text-muted-foreground tabular-nums">
-                  {fmtInt(item.kcal)} kcal
-                </p>
-              </figure>
-            ))}
-          </div>
-        </section>
+      {cards.length === 0 && (
+        <p className="px-1 py-6 text-center text-sm text-muted-foreground">{t("cards.empty")}</p>
       )}
 
-      {isToday && !maternal ? gain ? <GainDailyTip /> : <DailyTipCard /> : null}
-
-      <MoreSection summary={summary} date={date} isToday={isToday} />
+      <Link
+        to="/beranda-kartu"
+        className="mx-auto mt-4 flex min-h-11 w-fit items-center rounded-full px-4 text-sm font-semibold text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+      >
+        {t("cards.link")}
+      </Link>
     </Page>
   );
 }
@@ -477,9 +665,22 @@ function EatHero({ summary }: { summary: Summary }) {
   const exercise = targets.exerciseKcal;
   const pct = credit?.pct ?? DEFAULT_ADD_BACK_SETTINGS.pct;
 
+  // Nothing eaten yet: the target is the one big number; Target / Eaten rows would only repeat it.
+  const fresh = !gaining && summary.eatenKcal === 0;
+  const helpButton = (
+    <button
+      type="button"
+      onClick={() => setExplainOpen(true)}
+      aria-label={t("eat.help")}
+      className="flex size-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+    >
+      <CircleHelp className="size-5" aria-hidden />
+    </button>
+  );
+
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-4">
+    <Card className="relative p-4">
+      <div className={cn("flex items-center gap-4", fresh && "justify-center")}>
         <Ring
           metric="makan"
           value={summary.eatenKcal}
@@ -512,7 +713,7 @@ function EatHero({ summary }: { summary: Summary }) {
           ) : (
             <div>
               <p className="text-xs font-semibold text-muted-foreground">
-                {over ? t("eat.over") : t("eat.left")}
+                {fresh ? t("eat.targetShort") : over ? t("eat.over") : t("eat.left")}
               </p>
               <p
                 className={cn(
@@ -520,56 +721,45 @@ function EatHero({ summary }: { summary: Summary }) {
                   over && "text-bakar-ink",
                 )}
               >
-                <CountUp value={leftKcal} />
+                <CountUp value={fresh ? targets.eatKcal : leftKcal} />
               </p>
               <p className="mt-0.5 text-xs font-semibold text-muted-foreground">kcal</p>
             </div>
           )}
         </Ring>
 
-        <div className="min-w-0 flex-1">
-          <dl className="divide-y divide-border">
-            <div className="flex items-baseline justify-between gap-2 pb-2">
-              <dt className="text-xs font-semibold text-muted-foreground">{t("eat.target")}</dt>
-              <dd className="text-lg font-extrabold tabular-nums">
-                <CountUp value={targets.eatKcal} />
-              </dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-2 pt-2">
-              <dt className="text-xs font-semibold text-muted-foreground">{t("eat.eaten")}</dt>
-              <dd className="text-lg font-extrabold tabular-nums">
-                <CountUp value={summary.eatenKcal} />
-              </dd>
-            </div>
-          </dl>
-          <div className="-mr-2.5 -mb-2.5 mt-1 flex justify-end">
-            <button
-              type="button"
-              onClick={() => setExplainOpen(true)}
-              aria-label={t("eat.help")}
-              className="flex size-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-            >
-              <CircleHelp className="size-5" aria-hidden />
-            </button>
+        {!fresh && (
+          <div className="min-w-0 flex-1">
+            <dl className="divide-y divide-border">
+              <div className="flex items-baseline justify-between gap-2 pb-2">
+                <dt className="text-xs font-semibold text-muted-foreground">{t("eat.target")}</dt>
+                <dd className="text-lg font-extrabold tabular-nums">
+                  <CountUp value={targets.eatKcal} />
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-2 pt-2">
+                <dt className="text-xs font-semibold text-muted-foreground">{t("eat.eaten")}</dt>
+                <dd className="text-lg font-extrabold tabular-nums">
+                  <CountUp value={summary.eatenKcal} />
+                </dd>
+              </div>
+            </dl>
+            <div className="-mr-2.5 -mb-2.5 mt-1 flex justify-end">{helpButton}</div>
           </div>
-        </div>
+        )}
       </div>
+      {fresh && <div className="absolute top-1 right-1">{helpButton}</div>}
 
       {gaining ? (
         <GainIntakeNote targetKcal={targets.eatKcal} eatenKcal={summary.eatenKcal} />
       ) : (
         over && (
-          <p className="mt-2 text-sm leading-snug font-semibold text-bakar-ink">
-            {t("eat.overNote", { kcal: fmtInt(leftKcal) })}
-          </p>
+          <p className="mt-2 text-sm leading-snug font-semibold text-bakar-ink">{t("eat.overNote")}</p>
         )
       )}
 
-      {exercise > 0 && (
-        <p className="mt-2 text-xs font-semibold text-muted-foreground tabular-nums">
-          {t("explain.added", { kcal: fmtInt(exercise), pct })}
-        </p>
-      )}
+      <MacroRow summary={summary} />
+
 
       <Sheet open={explainOpen} onOpenChange={setExplainOpen} title={t("explain.title")}>
         <div className="space-y-4">
@@ -710,32 +900,6 @@ function EatHero({ summary }: { summary: Summary }) {
         </div>
       </Sheet>
 
-      {summary.ideas.length > 0 && (
-        <div className="mt-3 border-t pt-3">
-          <p className="flex items-center gap-1.5 text-sm font-bold">
-            <Sparkles className="size-4 text-makan" aria-hidden />
-            {gaining ? t("gain:today.ideasTitle") : t("ideas.title")}
-          </p>
-          {gaining && (
-            <p className="mt-0.5 text-xs text-muted-foreground">{t("gain:today.ideasHint")}</p>
-          )}
-          <ul className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 no-scrollbar">
-            {summary.ideas.map((idea) => (
-              <li key={idea.name} className="w-40 shrink-0 rounded-2xl bg-makan-soft px-3 py-2.5">
-                <p className="line-clamp-2 text-sm leading-snug font-semibold">{idea.name}</p>
-                <p className="mt-1 text-xs font-semibold text-makan-ink tabular-nums">
-                  <MetaLine
-                    items={[
-                      `${fmtInt(idea.kcal)} kcal`,
-                      t("ideas.protein", { g: fmtInt(idea.proteinG) }),
-                    ]}
-                  />
-                </p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </Card>
   );
 }
@@ -908,15 +1072,11 @@ function WeightCard({
   date: string;
   isToday: boolean;
 }) {
-  const { t } = useTranslation(["home", "berat", "common"]);
+  const { t } = useTranslation(["home", "common"]);
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const trend = summary.trend;
   const checkIn = useWeightCheckIn();
-  const rate = trend?.weeklyRateKg ?? null;
-  const flat = rate !== null && Math.abs(rate) <= 0.05;
-  // Under a gain plan weight going up is the point: never painted as a warning.
-  const gaining = summary.targets.gain != null;
 
   return (
     <section aria-label={t("weight.title")}>
@@ -934,43 +1094,24 @@ function WeightCard({
         {t("weight.title")}
       </SectionTitle>
       <Card className="p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground">
-              {summary.targets.maternal ? t("tile.weight") : t("weight.trend")}
-            </p>
-            <p className="text-[1.75rem] leading-tight font-extrabold tracking-tight tabular-nums">
-              {trend
-                ? fmtKg(trend.weightKg)
-                : summary.latestWeightKg !== null
-                  ? fmtKg(summary.latestWeightKg)
-                  : "–"}
-              <span className="ml-1 text-base font-semibold text-muted-foreground">kg</span>
-            </p>
-            {rate !== null && (
-              <p
-                className={cn(
-                  "mt-0.5 text-sm font-semibold",
-                  flat
-                    ? "text-muted-foreground"
-                    : gaining
-                      ? rate > 0
-                        ? "text-makan-ink"
-                        : "text-amber-600 dark:text-amber-400"
-                      : rate < 0
-                        ? "text-makan-ink"
-                        : "text-muted-foreground",
-                )}
-              >
-                {flat
-                  ? t("berat:trend.stable")
-                  : t(rate < 0 ? "berat:trend.down" : "berat:trend.up", {
-                      kg: fmtKg(Math.abs(rate)),
-                    })}
-              </p>
+        {trend ? (
+          <Sparkline values={trend.points.map((p) => p.trendKg)} />
+        ) : (
+          <p className="text-sm text-muted-foreground">{t("weight.startPrompt")}</p>
+        )}
+        <div className="mt-3 flex items-center justify-between gap-4">
+          <p className="min-w-0 text-sm text-muted-foreground">
+            {trend?.projectedDate && (
+              <Trans
+                ns="home"
+                i18nKey="weight.projected"
+                values={{ date: fmtDateLong(trend.projectedDate).replace(/^\w+, /, "") }}
+                components={{ b: <strong className="font-semibold text-foreground" /> }}
+              />
             )}
-          </div>
+          </p>
           <Button
+            className="shrink-0"
             variant={isToday && summary.weightLoggedToday ? "secondary" : "default"}
             size="sm"
             onClick={() => {
@@ -981,23 +1122,6 @@ function WeightCard({
             {isToday && summary.weightLoggedToday ? t("common:actions.edit") : t("weight.weigh")}
           </Button>
         </div>
-        {trend && (
-          <>
-            <div className="mt-3">
-              <Sparkline values={trend.points.map((p) => p.trendKg)} />
-            </div>
-            {trend.projectedDate && (
-              <p className="mt-2 text-sm text-muted-foreground">
-                <Trans
-                  ns="home"
-                  i18nKey="weight.projected"
-                  values={{ date: fmtDateLong(trend.projectedDate).replace(/^\w+, /, "") }}
-                  components={{ b: <strong className="font-semibold text-foreground" /> }}
-                />
-              </p>
-            )}
-          </>
-        )}
       </Card>
 
       <Sheet
@@ -1194,10 +1318,14 @@ function MoreSection({
 }) {
   const { t } = useTranslation(["home", "gain"]);
   const fact = pickFact(summary.date);
+  // The header streak chip already says the current streak: its milestone badge would repeat that number.
+  const badges = summary.milestones.filter(
+    (badge) => !(badge.kind === "streak" && badge.value === summary.streakDays),
+  );
   return (
-    <details className="group mt-6 rounded-3xl bg-card">
+    <details className="group rounded-3xl bg-card">
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between rounded-3xl px-5 select-none focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
-        <span className="text-[0.9375rem] font-bold">{t("more.title")}</span>
+        <span className="text-[0.9375rem] font-bold">{t("more.webTitle")}</span>
         <ChevronDown
           className="size-5 text-muted-foreground transition-transform duration-200 group-open:rotate-180"
           aria-hidden
@@ -1205,7 +1333,6 @@ function MoreSection({
       </summary>
       <div className="space-y-5 px-5 pb-5">
         {isToday ? <BelanjaCard variant="line" /> : null}
-        <WaterCard date={date} />
         {!summary.targets.maternal && <MovementCard date={date} />}
         {fact && !summary.targets.maternal && !summary.targets.gain && (
           <div className="rounded-2xl bg-muted p-4">
@@ -1215,9 +1342,9 @@ function MoreSection({
             </p>
           </div>
         )}
-        {summary.milestones.length > 0 && (
+        {badges.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {summary.milestones.map((badge) => (
+            {badges.map((badge) => (
               <span
                 key={`${badge.kind}-${badge.value}`}
                 className="inline-flex h-9 items-center gap-1.5 rounded-full bg-makan-soft px-3 text-xs font-bold text-makan-ink"
@@ -1249,12 +1376,8 @@ function BerandaSkeleton() {
         <Skeleton className="size-[132px] shrink-0 rounded-full" />
         <Skeleton className="h-24 flex-1 rounded-2xl" />
       </div>
-      <div className="mt-2 grid grid-cols-3 gap-2">
-        {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-20 rounded-2xl" />
-        ))}
-      </div>
-      <Skeleton className="mt-6 h-56 rounded-3xl" />
+      <Skeleton className="mt-3 h-56 rounded-3xl" />
+      <Skeleton className="mt-3 h-56 rounded-3xl" />
     </Page>
   );
 }

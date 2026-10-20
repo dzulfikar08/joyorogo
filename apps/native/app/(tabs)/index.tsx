@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, Redirect, router } from "expo-router";
 import { Dimensions, Platform, Pressable, Share, ScrollView, View } from "react-native";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { Circle, Polyline, Svg } from "react-native-svg";
 
@@ -64,7 +64,6 @@ import {
   SectionTitle,
   Sheet,
   Skeleton,
-  StatTile,
   Text,
 } from "@/components/ui";
 import { MetaLine } from "@/components/meta-line";
@@ -81,6 +80,11 @@ import { useJakartaClock } from "@/src/lib/use-jakarta-clock";
 import { useHealthAutoSync } from "@/src/lib/use-health-sync";
 import { TargetPaceNotice } from "@/components/target-pace-notice";
 import { errorMessage, fmtDateMedium, fmtInt, fmtKg, weeklyRateLabel } from "@/utils/format";
+import { visibleHomeCards, type HomeCardId } from "@joyorogo/api/lib/home-cards";
+import { weightSecondary } from "@joyorogo/api/lib/home-stats";
+import { StatList, StatRow } from "@/components/day-stats";
+import { useHomeCards } from "@/src/lib/home-cards-store";
+import { MACRO_META, MacroIcon, type MacroKey } from "@/utils/macro-icons";
 import { orpc } from "@/utils/orpc";
 
 type SumRow = { key: string; label: string; value: string | null; sub?: string; strong?: boolean };
@@ -157,6 +161,38 @@ function TrendSpark({ points }: { points: TrendPoint[] }) {
           />
         ))}
       </Svg>
+    </View>
+  );
+}
+
+/** One macro in the calorie card: icon and label, the day's value with its unit inline, and a thin bar when it has a target. */
+function MacroStat({
+  macro,
+  label,
+  value,
+  progress,
+}: {
+  macro: MacroKey;
+  label: string;
+  value: string;
+  progress?: number;
+}) {
+  return (
+    <View style={styles.macroStat} accessible accessibilityLabel={`${label}, ${value}`}>
+      <View style={styles.macroStatLabel}>
+        <MacroIcon macro={macro} size={14} />
+        <Text style={styles.macroStatName} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
+      <Num style={styles.macroStatValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+        {value}
+      </Num>
+      {progress !== undefined ? (
+        <View style={styles.macroStatTrack}>
+          <View style={[styles.macroStatFill, { width: `${Math.round(Math.min(1, Math.max(0, progress)) * 100)}%` }]} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -246,6 +282,7 @@ export default function Dashboard() {
   const [weightOpen, setWeightOpen] = useState(false);
   const [recapStory, setRecapStory] = useState<StorySpec | null>(null);
   const [viewer, setViewer] = useState<StickerViewerTarget | null>(null);
+  const { prefs: cardPrefs } = useHomeCards();
 
   if (gate === "loading") {
     return <BootLoader />;
@@ -411,6 +448,481 @@ export default function Dashboard() {
     });
   };
 
+  // Daily report numbers. Each figure is shown once, where it reads best: the calorie card owns kcal and the macros, the
+  // stats list owns activity, sleep, water and the last weight, the weight card owns the trend.
+  const carbsG = data.carbsEatenG ?? sumMacro(foods.data?.items, "carbs");
+  const fatG = data.fatEatenG ?? sumMacro(foods.data?.items, "fat");
+  const weightKg = data.latestWeightKg ?? data.trend?.weightKg ?? null;
+  const weightLine = weightSecondary({
+    weightKg,
+    latestWeightDate: data.latestWeightDate,
+    today,
+    loggedToday: isToday && data.weightLoggedToday,
+  });
+  const weightSub =
+    weightLine.kind === "today"
+      ? t("tile.weightToday")
+      : weightLine.kind === "last"
+        ? t("tile.weightLast", { when: relativeDayLabel(weightLine.when, today).toLowerCase() })
+        : weightLine.kind === "lastUnknown"
+          ? t("tile.weightLastUnknown")
+          : t("tile.weightNone");
+  // Nothing eaten yet: Sisa would equal the target, so the ring carries the target once and the side offers the first log.
+  const dayStarted = data.eatenKcal > 0;
+  const showFirstLog = !maternal && !gainLeft && !dayStarted;
+
+  const cards: Record<HomeCardId, ReactNode> = {
+    calorie: (
+      <Reveal index={0}>
+        <Card style={styles.heroCard}>
+          {maternal ? <Text style={styles.heroLabel}>{t("maternal:target.title")}</Text> : null}
+          <View style={styles.heroRow}>
+            <Ring
+              size={136}
+              stroke={12}
+              value={data.eatenKcal}
+              max={data.targets.eatKcal}
+              color={ringColor}
+              track={theme.colors.makanSoft}
+            >
+              <Text style={styles.heroLabel}>
+                {maternal
+                  ? t("maternal:target.eaten")
+                  : gainLeft
+                    ? gainLeft.state === "short"
+                      ? t("gain:today.shortLabel")
+                      : t("gain:today.ringLabel")
+                    : showFirstLog
+                      ? t("eat.targetShort")
+                      : over
+                        ? t("eat.over")
+                        : t("eat.left")}
+              </Text>
+              <CountNum
+                value={
+                  maternal
+                    ? data.eatenKcal
+                    : gainLeft
+                      ? gainLeft.state === "short"
+                        ? gainLeft.kcal
+                        : data.eatenKcal
+                      : showFirstLog
+                        ? data.targets.eatKcal
+                        : leftKcal
+                }
+                style={[styles.heroNumber, over && { color: theme.colors.bakarText }]}
+                adjustsFontSizeToFit
+                numberOfLines={1}
+              />
+              <Text style={styles.heroLabel}>kcal</Text>
+            </Ring>
+            <View style={styles.heroStats}>
+              {showFirstLog ? (
+                <Button
+                  size="sm"
+                  icon="add"
+                  label={t("meals.log")}
+                  onPress={() => router.navigate("/makan")}
+                />
+              ) : (
+                <>
+                  <View style={styles.heroStat}>
+                    <Text style={styles.heroStatLabel}>{maternal ? t("maternal:target.total") : t("eat.target")}</Text>
+                    <CountNum value={data.targets.eatKcal} style={styles.heroStatValue} />
+                  </View>
+                  {maternal ? (
+                    <Text style={styles.helpText}>
+                      {t("maternal:target.progress", {
+                        pct: Math.round((data.eatenKcal / Math.max(data.targets.eatKcal, 1)) * 100),
+                      })}
+                    </Text>
+                  ) : (
+                    <View style={[styles.heroStat, styles.heroStatMid]}>
+                      <Text style={styles.heroStatLabel}>{t("eat.eaten")}</Text>
+                      <CountNum value={data.eatenKcal} style={styles.heroStatValue} />
+                    </View>
+                  )}
+                </>
+              )}
+              <PressableScale
+                accessibilityRole="button"
+                accessibilityLabel={t("eat.help")}
+                onPress={() =>
+                  maternal
+                    ? router.push({ pathname: "/profil", params: { needs: "1" } })
+                    : setExplainOpen(true)
+                }
+                scaleTo={1}
+                dimTo={0.7}
+                style={styles.helpButton}
+              >
+                <Ionicons
+                  name="help-circle-outline"
+                  size={20}
+                  color={theme.colors.mutedForeground}
+                />
+                <Text style={styles.helpText} numberOfLines={1}>
+                  {t("eat.help")}
+                </Text>
+              </PressableScale>
+            </View>
+          </View>
+          {over ? <Text style={styles.heroNote}>{t("eat.overNote")}</Text> : null}
+          {maternal && data.eatenKcal >= data.targets.eatKcal ? (
+            <Text style={styles.heroNote}>{t("maternal:target.reached")}</Text>
+          ) : null}
+          {gainLeft ? (
+            <View style={styles.gainNote}>
+              <Text style={styles.gainStatus}>{gainRemainingLabel(gainLeft)}</Text>
+              <Text style={styles.gainHint}>{gainTipLabel(gainLeft)}</Text>
+              {gainLeft.state === "over" ? (
+                <Text style={styles.gainHint}>{t("gain:today.overHint")}</Text>
+              ) : null}
+            </View>
+          ) : null}
+          {maternal ? null : (
+            <View style={styles.macroRow}>
+              <MacroStat
+                macro="protein"
+                label={gain ? t("gain:today.protein") : MACRO_META.protein.label}
+                value={data.protein ? t("macros.proteinOf", { eaten: fmtInt(data.protein.eatenG), target: fmtInt(data.protein.targetG) }) : "–"}
+                progress={data.protein && data.protein.targetG > 0 ? data.protein.eatenG / data.protein.targetG : 0}
+              />
+              <MacroStat
+                macro="carbs"
+                label={MACRO_META.carbs.label}
+                value={carbsG === null ? "–" : t("macros.grams", { g: fmtInt(carbsG) })}
+              />
+              <MacroStat
+                macro="fat"
+                label={MACRO_META.fat.label}
+                value={fatG === null ? "–" : t("macros.grams", { g: fmtInt(fatG) })}
+              />
+            </View>
+          )}
+        </Card>
+      </Reveal>
+    ),
+
+    stats: (
+      <Reveal index={1}>
+        <StatList>
+          {maternal ? null : (
+            <StatRow
+              icon="flame"
+              tint="bakar"
+              label={t("tile.burn")}
+              value={`${fmtInt(credit?.activeKcal ?? 0)} kcal`}
+              secondary={
+                credit?.allDaySource
+                  ? t(`tile.activeFrom.${credit.allDaySource}`)
+                  : data.exerciseSources.length > 0
+                    ? t("tile.burnSub", {
+                        sources: data.exerciseSources.map((source) => t(`tile.source.${source}`)).join(", "),
+                      })
+                    : t("tile.burnNone")
+              }
+              onPress={() => router.navigate("/olahraga")}
+            />
+          )}
+          <StatRow
+            icon="moon"
+            tint="tidur"
+            label={t("tile.sleep")}
+            value={data.sleepHoursLastNight !== null ? t("tile.sleepValue", { hours: fmtKg(data.sleepHoursLastNight) }) : "–"}
+            secondary={
+              data.sleepHoursLastNight !== null
+                ? t("tile.sleepNeed", { hours: fmtKg(data.targets.sleepHours) })
+                : t("tile.sleepNone")
+            }
+            onPress={() => router.navigate("/tidur")}
+          />
+          {maternal ? null : (
+            <StatRow
+              icon="water"
+              tint="tidur"
+              label={t("tile.water")}
+              value={t("tile.waterValue", { count: water.glasses, goal: water.goal })}
+              progress={water.goal > 0 ? water.glasses / water.goal : 0}
+              right={
+                <PressableScale
+                  accessibilityRole="button"
+                  accessibilityLabel={t("water.more")}
+                  onPress={water.add}
+                  disabled={water.busy}
+                  scaleTo={0.88}
+                  style={styles.addWater}
+                >
+                  <Ionicons name="add" size={18} color={theme.colors.primaryForeground} />
+                </PressableScale>
+              }
+            />
+          )}
+          <StatRow
+            icon="scale-outline"
+            tint="makan"
+            label={t("tile.weight")}
+            value={weightKg === null ? "–" : `${fmtKg(weightKg)} kg`}
+            secondary={weightSub}
+            onPress={() => router.navigate("/berat")}
+          />
+        </StatList>
+      </Reveal>
+    ),
+
+    meals: (
+      <>
+        <SectionTitle
+          title={isToday ? t("meals.title") : t("meals.titleDay", { day: relativeDayLabel(date, today) })}
+          action={{ label: t("meals.all"), onPress: () => router.navigate("/makan") }}
+        />
+        <Reveal index={2}>
+          <ListGroup>
+            {slots.map((slot) => {
+              const kcal = data.eatenByMeal[slot] ?? 0;
+              return (
+                <ListRow
+                  key={slot}
+                  title={MEAL_LABELS[slot]}
+                  subtitle={kcal > 0 ? undefined : t("meals.empty")}
+                  value={kcal > 0 ? `${fmtInt(kcal)} kcal` : undefined}
+                  chevron
+                  onPress={() => router.navigate("/makan")}
+                />
+              );
+            })}
+          </ListGroup>
+        </Reveal>
+        {/* Diari piring: stiker hasil pindai hari ini */}
+        {plates.length > 0 ? (
+          <View style={styles.platesWrap}>
+            <Text style={styles.ideasTitle}>{t("plates.title")}</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.platesRow}
+            >
+              {plates.map((item, index) => (
+                <Reveal key={item.id} index={index} style={styles.plateCard}>
+                  <FoodSticker
+                    scanId={item.scanId}
+                    name={item.name}
+                    size={72}
+                    onPress={() =>
+                      setViewer({
+                        uri: stickerUrl(item.scanId),
+                        name: item.name,
+                        kcal: item.kcal,
+                        photoId: item.photoId,
+                        protein: item.protein,
+                        carbs: item.carbs,
+                        fat: item.fat,
+                      })
+                    }
+                  />
+                  <Text style={styles.plateName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Text style={styles.plateKcal}>{fmtInt(item.kcal)} kcal</Text>
+                </Reveal>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+      </>
+    ),
+
+    mode: maternal ? (
+      <MaternalCard
+        info={maternal}
+        proteinG={data.protein?.eatenG ?? null}
+        fiberG={foods.data?.totals.fiber ?? null}
+        waterGlasses={water.glasses}
+        waterGoal={water.goal}
+        caffeine={data.maternal?.caffeine ?? null}
+      />
+    ) : gain ? (
+      <GainCard
+        gain={gain}
+        targetKcal={needs.targetKcal}
+        tdee={data.targets.tdee}
+        streakDays={data.streakDays}
+        gainedKg={data.weightGainedKg}
+        startKg={gainStartKg}
+      />
+    ) : null,
+
+    // Explanatory notes, each one collapsed to a line until opened.
+    notices: (
+      <>
+        {!maternal && isToday ? <TargetPaceNotice pace={data.targets.datePace} /> : null}
+        <StravaRetentionNotice />
+        <EnergyNotice notice={data.energyNotice} />
+        <CalibrationNotice notice={data.calibrationNotice} />
+        <ManualTdeeSuggestionCard info={data.targets.manualTdee} />
+      </>
+    ),
+
+    // Trend only: the last weight itself lives in the stats list.
+    weight: data.trend ? (
+      <Card>
+        <View style={styles.trendHead}>
+          <Text style={styles.trendLabel}>{t("weight.trend")}</Text>
+          {data.trend.weeklyRateKg !== null ? (
+            <View style={styles.trendRate}>
+              <Text style={styles.trendRateValue}>{weeklyRateLabel(data.trend.weeklyRateKg)}</Text>
+              {data.trend.projectedDate ? (
+                <Text style={styles.trendRateSub}>
+                  {t("weight.projectedShort", { date: fmtDateMedium(data.trend.projectedDate) })}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+        {trendPoints.length > 1 ? <TrendSpark points={trendPoints} /> : null}
+        {isToday ? (
+          data.weightLoggedToday ? (
+            <Text style={styles.trendNote}>{t("weight.doneToday")}</Text>
+          ) : (
+            <>
+              <Text style={styles.trendNote}>
+                {trendPoints.length === 0 ? t("weight.startPrompt") : t("weight.missedToday")}
+              </Text>
+              <View>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  label={t("weight.weighNow")}
+                  icon="scale-outline"
+                  onPress={() => setWeighOpen(true)}
+                />
+              </View>
+            </>
+          )
+        ) : null}
+      </Card>
+    ) : null,
+
+    waist: null,
+
+    fasting: isToday && !maternal ? <FastingScheduleCard /> : null,
+
+    mealplan: isToday ? <MealPlanEntry /> : null,
+
+    ideas:
+      data.ideas.length > 0 && !maternal ? (
+        <View style={styles.ideasWrap}>
+          <Text style={styles.ideasTitle}>{gain ? t("gain:today.ideasTitle") : t("ideas.title")}</Text>
+          {gain ? <Text style={styles.mutedNote}>{t("gain:today.ideasHint")}</Text> : null}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.ideasRow}
+          >
+            {data.ideas.map((idea) => (
+              <View key={idea.name} style={styles.ideaChip}>
+                <Text style={styles.ideaChipName} numberOfLines={2}>
+                  {idea.name}
+                </Text>
+                <MetaLine
+                  items={[`${fmtInt(idea.kcal)} kcal`, t("ideas.protein", { g: fmtInt(idea.proteinG) })]}
+                  itemStyle={styles.ideaChipMeta}
+                />
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null,
+
+    belanja: isToday ? <BelanjaCompact /> : null,
+
+    joyofit: <JoyoFitCard />,
+
+    tips: isToday && !maternal ? gain ? <GainDailyTip /> : <DailyTipCard /> : null,
+
+    recap: isToday && !maternal ? <RecapCard /> : null,
+
+    // Fact, share and badges (collapsed by default). Hamil / Menyusui has no water row in the stats list: its counter lives here.
+    extras: maternal ? (
+      <WaterCard date={date} />
+    ) : (
+      <>
+        <SectionTitle
+          title={t("more.sectionTitle")}
+          action={{
+            label: moreOpen ? t("more.hide") : t("more.show"),
+            onPress: () => setMoreOpen((v) => !v),
+          }}
+        />
+        {moreOpen ? (
+          <>
+            <ListGroup>
+              <View style={styles.factBox}>
+                <Text style={styles.factLabel}>{t("more.factLabel")}</Text>
+                <Text style={styles.factText}>
+                  {t("more.fact", { text: fact.text, kcal: fmtInt(fact.kcal), move: fact.move })}
+                </Text>
+              </View>
+              <ListRow
+                icon="share-social"
+                iconTint="makan"
+                title={t("more.shareRecap")}
+                chevron
+                onPress={() => void openRecapSticker()}
+              />
+            </ListGroup>
+            {/* The streak count is the header chip; its badge would repeat the number. */}
+            {data.milestones.some((badge) => badge.kind !== "streak") ? (
+              <Card>
+                <Text style={styles.milestoneTitle}>{t("more.badges")}</Text>
+                <View style={styles.milestoneRow}>
+                  {data.milestones
+                    .filter((badge) => badge.kind !== "streak")
+                    .map((badge) => (
+                      <Pressable
+                        key={`${badge.kind}-${badge.value}`}
+                        accessibilityRole="button"
+                        style={({ pressed }) => [styles.milestoneBadge, pressed && styles.pressedSoft]}
+                        onPress={() => setWeightOpen(true)}
+                      >
+                        <Ionicons name="trophy" size={13} color={theme.colors.makanText} />
+                        <Text style={styles.milestoneText}>
+                          {badge.kind === "gained"
+                            ? t("gain:milestone.gained", { kg: badge.value })
+                            : t("milestone.lost", { kg: badge.value })}
+                        </Text>
+                      </Pressable>
+                    ))}
+                </View>
+              </Card>
+            ) : null}
+          </>
+        ) : (
+          <Text style={styles.moreHint}>{t("more.hint")}</Text>
+        )}
+      </>
+    ),
+
+    promo:
+      showFounderBanner && configData ? (
+        <Card style={styles.founderBanner}>
+          <Text style={styles.founderBannerText} numberOfLines={1}>
+            {t("banner.scans", { n: configData.freeDailyScans })} ·{" "}
+            {configData.founderDailyCap === null
+              ? t("banner.proUnlimited")
+              : t("banner.proCapped", { n: configData.founderDailyCap })}
+          </Text>
+          <Button
+            size="sm"
+            label={t("banner.upgrade")}
+            onPress={() =>
+              router.push({ pathname: "/founder", params: { from: "banner", next: "/" } })
+            }
+          />
+        </Card>
+      ) : null,
+  };
+
   return (
     <Screen refreshing={refreshing} onRefresh={() => void refreshAll()}>
       {/* Greeting + avatar → /profil */}
@@ -460,459 +972,22 @@ export default function Dashboard() {
       {/* Day switcher */}
       <DaySwitcher date={date} today={today} onChange={(next) => setPickedDate(next >= today ? null : next)} />
 
-      {/* Monday only: recap of the week that just ended */}
-      {isToday && !maternal ? <RecapCard /> : null}
+      {/* The cards, in the order this person arranged them (daily report first by default) */}
+      {visibleHomeCards(cardPrefs).map((id) => (
+        <Fragment key={id}>{cards[id]}</Fragment>
+      ))}
 
-      <StravaRetentionNotice />
-      <EnergyNotice notice={data.energyNotice} />
-      <CalibrationNotice notice={data.calibrationNotice} />
-      <ManualTdeeSuggestionCard info={data.targets.manualTdee} />
-
-      {/* Pro banner: kuota gratis vs Pro, ketuk Upgrade → paywall */}
-      {showFounderBanner && configData ? (
-        <Card style={styles.founderBanner}>
-          <Text style={styles.founderBannerText} numberOfLines={1}>
-            {t("banner.scans", { n: configData.freeDailyScans })} ·{" "}
-            {configData.founderDailyCap === null
-              ? t("banner.proUnlimited")
-              : t("banner.proCapped", { n: configData.founderDailyCap })}
-          </Text>
-          <Button
-            size="sm"
-            label={t("banner.upgrade")}
-            onPress={() =>
-              router.push({ pathname: "/founder", params: { from: "banner", next: "/" } })
-            }
-          />
-        </Card>
-      ) : null}
-
-      {/* Hero: sisa makan di ring + tiga angka di sebelahnya */}
-      <Reveal index={0}>
-        <Card style={styles.heroCard}>
-          {maternal ? <Text style={styles.heroLabel}>{t("maternal:target.title")}</Text> : null}
-          <View style={styles.heroRow}>
-            <Ring
-              size={136}
-              stroke={12}
-              value={data.eatenKcal}
-              max={data.targets.eatKcal}
-              color={ringColor}
-              track={theme.colors.makanSoft}
-            >
-              <Text style={styles.heroLabel}>
-                {maternal
-                  ? t("maternal:target.eaten")
-                  : gainLeft
-                    ? gainLeft.state === "short"
-                      ? t("gain:today.shortLabel")
-                      : t("gain:today.ringLabel")
-                    : over
-                      ? t("eat.over")
-                      : t("eat.left")}
-              </Text>
-              <CountNum
-                value={
-                  maternal
-                    ? data.eatenKcal
-                    : gainLeft
-                      ? gainLeft.state === "short"
-                        ? gainLeft.kcal
-                        : data.eatenKcal
-                      : leftKcal
-                }
-                style={[styles.heroNumber, over && { color: theme.colors.bakarText }]}
-                adjustsFontSizeToFit
-                numberOfLines={1}
-              />
-              <Text style={styles.heroLabel}>kcal</Text>
-            </Ring>
-            <View style={styles.heroStats}>
-              <View style={styles.heroStat}>
-                <Text style={styles.heroStatLabel}>{maternal ? t("maternal:target.total") : t("eat.target")}</Text>
-                <CountNum value={data.targets.eatKcal} style={styles.heroStatValue} />
-              </View>
-              {maternal ? (
-                <Text style={styles.helpText}>
-                  {t("maternal:target.progress", {
-                    pct: Math.round((data.eatenKcal / Math.max(data.targets.eatKcal, 1)) * 100),
-                  })}
-                </Text>
-              ) : (
-                <View style={[styles.heroStat, styles.heroStatMid]}>
-                  <Text style={styles.heroStatLabel}>{t("eat.eaten")}</Text>
-                  <CountNum value={data.eatenKcal} style={styles.heroStatValue} />
-                </View>
-              )}
-              <PressableScale
-                accessibilityRole="button"
-                accessibilityLabel={t("eat.help")}
-                onPress={() =>
-                  maternal
-                    ? router.push({ pathname: "/profil", params: { needs: "1" } })
-                    : setExplainOpen(true)
-                }
-                scaleTo={1}
-                dimTo={0.7}
-                style={styles.helpButton}
-              >
-                <Ionicons
-                  name="help-circle-outline"
-                  size={20}
-                  color={theme.colors.mutedForeground}
-                />
-                <Text style={styles.helpText} numberOfLines={1}>
-                  {t("eat.help")}
-                </Text>
-              </PressableScale>
-            </View>
-          </View>
-          {over ? (
-            <Text style={styles.heroNote}>{t("eat.overNote", { kcal: fmtInt(leftKcal) })}</Text>
-          ) : null}
-          {maternal && data.eatenKcal >= data.targets.eatKcal ? (
-            <Text style={styles.heroNote}>{t("maternal:target.reached")}</Text>
-          ) : null}
-          {gainLeft ? (
-            <View style={styles.gainNote}>
-              <Text style={styles.gainStatus}>{gainRemainingLabel(gainLeft)}</Text>
-              <Text style={styles.gainHint}>
-                {t("gain:today.eatenOf", {
-                  eaten: fmtInt(data.eatenKcal),
-                  target: fmtInt(data.targets.eatKcal),
-                })}
-              </Text>
-              <Text style={styles.gainHint}>{gainTipLabel(gainLeft)}</Text>
-              {gainLeft.state === "over" ? (
-                <Text style={styles.gainHint}>{t("gain:today.overHint")}</Text>
-              ) : null}
-            </View>
-          ) : null}
-          {data.targets.exerciseKcal > 0 && credit ? (
-            <Text style={styles.heroNote}>
-              {t("explain.added", { kcal: fmtInt(data.targets.exerciseKcal), pct: credit.pct })}
-            </Text>
-          ) : null}
-        </Card>
-      </Reveal>
-
-      {!maternal && isToday ? <TargetPaceNotice pace={data.targets.datePace} /> : null}
-
-      {maternal ? (
-        <MaternalCard
-          info={maternal}
-          proteinG={data.protein?.eatenG ?? null}
-          fiberG={foods.data?.totals.fiber ?? null}
-          waterGlasses={water.glasses}
-          waterGoal={water.goal}
-          caffeine={data.maternal?.caffeine ?? null}
-        />
-      ) : null}
-
-      {gain ? (
-        <GainCard
-          gain={gain}
-          targetKcal={needs.targetKcal}
-          tdee={data.targets.tdee}
-          streakDays={data.streakDays}
-          gainedKg={data.weightGainedKg}
-          startKg={gainStartKg}
-        />
-      ) : null}
-
-      {/* Angka harian: bakar, tidur, protein */}
-      <Reveal index={1} style={styles.tileRow}>
-        {maternal ? null : (
-          <StatTile
-            icon="flame"
-            tint="bakar"
-            label={t("tile.burn")}
-            value={fmtInt(credit?.activeKcal ?? 0)}
-            count={credit?.activeKcal ?? 0}
-            sub={
-              credit?.allDaySource
-                ? t(`tile.activeFrom.${credit.allDaySource}`)
-                : data.exerciseSources.length > 0
-                  ? t("tile.burnSub", {
-                      sources: data.exerciseSources.map((source) => t(`tile.source.${source}`)).join(", "),
-                    })
-                  : t("tile.burnNone")
-            }
-            onPress={() => router.navigate("/olahraga")}
-          />
-        )}
-        <StatTile
-          icon="moon"
-          tint="tidur"
-          label={t("tile.sleep")}
-          value={data.sleepHoursLastNight !== null ? fmtKg(data.sleepHoursLastNight) : "–"}
-          sub={
-            data.sleepHoursLastNight !== null
-              ? t("tile.sleepNeed", { hours: fmtKg(data.targets.sleepHours) })
-              : t("tile.sleepNone")
-          }
-          onPress={() => router.navigate("/tidur")}
-        />
-        <StatTile
-          macro="protein"
-          tint="makan"
-          label={gain ? t("gain:today.protein") : t("tile.protein")}
-          value={data.protein ? `${fmtInt(data.protein.eatenG)}g` : "–"}
-          count={data.protein ? data.protein.eatenG : undefined}
-          countSuffix="g"
-          sub={
-            data.protein
-              ? gain
-                ? t("gain:today.proteinOf", {
-                    eaten: fmtInt(data.protein.eatenG),
-                    target: fmtInt(data.protein.targetG),
-                  })
-                : t("tile.proteinOf", { g: fmtInt(data.protein.targetG) })
-              : t("tile.proteinNone")
-          }
-          onPress={() => router.navigate("/makan")}
-        />
-      </Reveal>
-
-      {/* Air (ketuk = +1 gelas) dan berat tren */}
-      <Reveal index={2} style={styles.tileRow}>
-        <StatTile
-          icon="water"
-          tint="tidur"
-          label={t("tile.water")}
-          value={String(water.glasses)}
-          count={water.glasses}
-          sub={t("water.ofGoal", { count: water.goal })}
-          onPress={water.add}
-        />
-        <StatTile
-          icon="scale-outline"
-          tint="makan"
-          label={t("tile.weight")}
-          value={data.trend ? fmtKg(data.trend.weightKg) : data.latestWeightKg !== null ? fmtKg(data.latestWeightKg) : "–"}
-          sub={
-            maternal
-              ? data.latestWeightKg !== null
-                ? undefined
-                : t("tile.weightNone")
-              : data.trend?.weeklyRateKg != null
-                ? weeklyRateLabel(data.trend.weeklyRateKg)
-                : t("tile.weightNone")
-          }
-          onPress={() => router.navigate("/berat")}
-        />
-      </Reveal>
-
-      {/* Latihan beban pindah ke JoyoFit */}
-      <JoyoFitCard />
-
-      {/* Belanja makan hari ini, satu baris — angkanya selalu hari ini */}
-      {isToday ? <BelanjaCompact /> : null}
-
-      {/* Masih muat: ide menu yang masih muat di sisa budget */}
-      {data.ideas.length > 0 && !maternal ? (
-        <View style={styles.ideasWrap}>
-          <Text style={styles.ideasTitle}>{gain ? t("gain:today.ideasTitle") : t("ideas.title")}</Text>
-          {gain ? <Text style={styles.mutedNote}>{t("gain:today.ideasHint")}</Text> : null}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.ideasRow}
-          >
-            {data.ideas.map((idea) => (
-              <View key={idea.name} style={styles.ideaChip}>
-                <Text style={styles.ideaChipName} numberOfLines={2}>
-                  {idea.name}
-                </Text>
-                <MetaLine
-                  items={[`${fmtInt(idea.kcal)} kcal`, t("ideas.protein", { g: fmtInt(idea.proteinG) })]}
-                  itemStyle={styles.ideaChipMeta}
-                />
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
-
-      {/* Rencana makan: menu sehari dan seminggu dari target kalori dan protein */}
-      {isToday ? <MealPlanEntry /> : null}
-
-      {/* Makan hari ini per slot */}
-      <SectionTitle
-        title={
-          isToday ? t("meals.title") : t("meals.titleDay", { day: relativeDayLabel(date, today) })
-        }
-        action={{ label: t("meals.all"), onPress: () => router.navigate("/makan") }}
-      />
-      <Reveal index={3}>
-        <ListGroup>
-          {slots.map((slot) => {
-            const kcal = data.eatenByMeal[slot] ?? 0;
-            return (
-              <ListRow
-                key={slot}
-                title={MEAL_LABELS[slot]}
-                subtitle={kcal > 0 ? undefined : t("meals.empty")}
-                value={kcal > 0 ? `${fmtInt(kcal)} kcal` : undefined}
-                chevron
-                onPress={() => router.navigate("/makan")}
-              />
-            );
-          })}
-        </ListGroup>
-      </Reveal>
-
-      {/* Diari piring: stiker hasil pindai hari ini */}
-      {plates.length > 0 ? (
-        <View style={styles.platesWrap}>
-          <Text style={styles.ideasTitle}>{t("plates.title")}</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.platesRow}
-          >
-            {plates.map((item, index) => (
-              <Reveal key={item.id} index={index} style={styles.plateCard}>
-                <FoodSticker
-                  scanId={item.scanId}
-                  name={item.name}
-                  size={72}
-                  onPress={() =>
-                    setViewer({
-                      uri: stickerUrl(item.scanId),
-                      name: item.name,
-                      kcal: item.kcal,
-                      photoId: item.photoId,
-                      protein: item.protein,
-                      carbs: item.carbs,
-                      fat: item.fat,
-                    })
-                  }
-                />
-                <Text style={styles.plateName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text style={styles.plateKcal}>{fmtInt(item.kcal)} kcal</Text>
-              </Reveal>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
-
-      {/* Tren berat + timbang inline */}
-      {data.trend ? (
-        <Card>
-          <View style={styles.trendHead}>
-            <View>
-              <Text style={styles.trendLabel}>{t("weight.trend")}</Text>
-              <View style={styles.trendValueRow}>
-                <Num style={styles.trendValue}>{fmtKg(data.trend.weightKg)}</Num>
-                <Text style={styles.trendUnit}>kg</Text>
-              </View>
-            </View>
-            {data.trend.weeklyRateKg !== null ? (
-              <View style={styles.trendRate}>
-                <Text style={styles.trendRateValue}>
-                  {weeklyRateLabel(data.trend.weeklyRateKg)}
-                </Text>
-                {data.trend.projectedDate ? (
-                  <Text style={styles.trendRateSub}>
-                    {t("weight.projectedShort", { date: fmtDateMedium(data.trend.projectedDate) })}
-                  </Text>
-                ) : null}
-              </View>
-            ) : null}
-          </View>
-          {trendPoints.length > 1 ? <TrendSpark points={trendPoints} /> : null}
-          {isToday ? (
-            data.weightLoggedToday ? (
-              <Text style={styles.trendNote}>{t("weight.doneToday")}</Text>
-            ) : (
-              <>
-                <Text style={styles.trendNote}>
-                  {trendPoints.length === 0 ? t("weight.startPrompt") : t("weight.missedToday")}
-                </Text>
-                <View>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    label={t("weight.weighNow")}
-                    icon="scale-outline"
-                    onPress={() => setWeighOpen(true)}
-                  />
-                </View>
-              </>
-            )
-          ) : null}
-        </Card>
-      ) : null}
-
-      {/* Puasa intermiten: panduan jadwal makan — timer hidup hanya ada hari ini */}
-      {isToday && !maternal ? <FastingScheduleCard /> : null}
-
-      {/* Tips hari ini: artikel berbasis bukti (fat-loss), tidak untuk Hamil / Menyusui */}
-      {isToday && !maternal ? gain ? <GainDailyTip /> : <DailyTipCard /> : null}
-
-      {maternal ? (
-        <WaterCard date={date} />
-      ) : (
-        <>
-      {/* Lainnya: air, streak, lencana, share — collapsed by default */}
-      <SectionTitle
-        title={t("more.sectionTitle")}
-        action={{
-          label: moreOpen ? t("more.hide") : t("more.show"),
-          onPress: () => setMoreOpen((v) => !v),
-        }}
-      />
-      {moreOpen ? (
-        <>
-          <WaterCard date={date} />
-          <ListGroup>
-            <View style={styles.factBox}>
-              <Text style={styles.factLabel}>{t("more.factLabel")}</Text>
-              <Text style={styles.factText}>
-                {t("more.fact", { text: fact.text, kcal: fmtInt(fact.kcal), move: fact.move })}
-              </Text>
-            </View>
-            <ListRow
-              icon="share-social"
-              iconTint="makan"
-              title={t("more.shareRecap")}
-              chevron
-              onPress={() => void openRecapSticker()}
-            />
-          </ListGroup>
-          {data.milestones.length > 0 ? (
-            <Card>
-              <Text style={styles.milestoneTitle}>{t("more.badges")}</Text>
-              <View style={styles.milestoneRow}>
-                {data.milestones.map((badge) => (
-                  <Pressable
-                    key={`${badge.kind}-${badge.value}`}
-                    accessibilityRole="button"
-                    style={({ pressed }) => [styles.milestoneBadge, pressed && styles.pressedSoft]}
-                    onPress={() => (badge.kind === "streak" ? setStreakOpen(true) : setWeightOpen(true))}
-                  >
-                    <Ionicons name="trophy" size={13} color={theme.colors.makanText} />
-                    <Text style={styles.milestoneText}>
-                      {badge.kind === "streak"
-                        ? t("milestone.streak", { days: badge.value })
-                        : badge.kind === "gained"
-                          ? t("gain:milestone.gained", { kg: badge.value })
-                          : t("milestone.lost", { kg: badge.value })}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </Card>
-          ) : null}
-        </>
-      ) : (
-        <Text style={styles.moreHint}>{t("more.hint")}</Text>
-      )}
-        </>
-      )}
+      <PressableScale
+        accessibilityRole="button"
+        accessibilityLabel={t("cards.link")}
+        onPress={() => router.push("/profil/kartu-beranda")}
+        scaleTo={1}
+        dimTo={0.7}
+        style={styles.arrangeLink}
+      >
+        <Ionicons name="options-outline" size={18} color={theme.colors.mutedForeground} />
+        <Text style={styles.helpText}>{t("cards.link")}</Text>
+      </PressableScale>
 
       <WeighInSheet visible={weighOpen} onClose={() => setWeighOpen(false)} date={date} />
 
@@ -1155,6 +1230,60 @@ const styles = StyleSheet.create((theme) => ({
   },
   heroCard: {
     paddingVertical: theme.spacing.lg,
+  },
+  macroRow: {
+    flexDirection: "row",
+    gap: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.hairline,
+  },
+  macroStat: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  macroStatLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  macroStatName: {
+    flexShrink: 1,
+    fontSize: theme.fontSize.xs,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  macroStatValue: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  macroStatTrack: {
+    height: 4,
+    borderRadius: 2,
+    overflow: "hidden",
+    backgroundColor: theme.colors.muted,
+  },
+  macroStatFill: {
+    height: "100%",
+    borderRadius: 2,
+    backgroundColor: theme.colors.makan,
+  },
+  addWater: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.primary,
+  },
+  arrangeLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    minHeight: 44,
   },
   heroRow: {
     flexDirection: "row",

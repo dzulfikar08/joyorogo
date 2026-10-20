@@ -34,7 +34,7 @@ export default function ProfilHub() {
 }
 
 function Hub({ profile }: { profile: ProfileData }) {
-  const { t, i18n } = useTranslation(["settings", "common", "koneksi", "notifications"]);
+  const { t, i18n } = useTranslation(["settings", "common", "koneksi", "notifications", "home"]);
   const { rt, theme } = useUnistyles();
   const session = authClient.useSession();
   const stravaStatus = useQuery(orpc.strava.status.queryOptions());
@@ -191,6 +191,14 @@ function Hub({ profile }: { profile: ProfileData }) {
           value={displayValue}
           chevron
           onPress={() => router.push("/profil/tampilan")}
+        />
+        <ListRow
+          icon="albums"
+          iconTint="makan"
+          title={t("home:cards.title")}
+          subtitle={t("home:cards.subtitle")}
+          chevron
+          onPress={() => router.push("/profil/kartu-beranda")}
         />
         <ListRow
           icon="shield-checkmark"

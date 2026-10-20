@@ -5,7 +5,7 @@ import { Flame, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Card } from "@/components/kit/surface";
+import { CollapsibleNotice } from "@/components/collapsible-notice";
 import { useSession } from "@/lib/auth-client";
 import { dismissalStoreKey, saveDismissal } from "@/lib/dismissals";
 import { fmtFactor, fmtInt } from "@/lib/format";
@@ -41,17 +41,18 @@ export function EnergyNotice({ notice, className }: { notice: EnergyNoticeData |
   };
 
   return (
-    <Card className={className} aria-label={t("notice.title")}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-2">
-          <Flame className="mt-0.5 size-5 shrink-0 text-bakar" aria-hidden />
-          <h2 className="text-base leading-snug font-bold">{t("notice.title")}</h2>
-        </div>
+    <CollapsibleNotice
+      id="energy-model"
+      className={className}
+      title={t("notice.title")}
+      icon={<Flame />}
+      action={
         <Button variant="ghost" size="icon" aria-label={t("notice.dismiss")} onClick={dismiss}>
           <X className="size-4" aria-hidden />
         </Button>
-      </div>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("notice.body")}</p>
+      }
+    >
+      <p className="text-sm leading-relaxed text-muted-foreground">{t("notice.body")}</p>
       <div className="mt-3 space-y-1 rounded-2xl bg-muted px-4 py-3 text-sm leading-relaxed font-semibold tabular-nums">
         <p>
           {notice.oldKcal === notice.newKcal
@@ -83,6 +84,6 @@ export function EnergyNotice({ notice, className }: { notice: EnergyNoticeData |
       >
         {t("readMore")}
       </Link>
-    </Card>
+    </CollapsibleNotice>
   );
 }

@@ -8,7 +8,8 @@ import { StyleSheet } from "react-native-unistyles";
 import type { EnergyNotice as EnergyNoticeData } from "@joyorogo/api/lib/energy-notice";
 import { fmtNumber } from "@joyorogo/i18n";
 
-import { Button, Card, Text } from "@/components/ui";
+import { CollapsibleNotice } from "@/components/collapsible-notice";
+import { Button, Text } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
 import { readDismissal, saveDismissal } from "@/src/lib/dismissals";
 import { fmtInt } from "@/utils/format";
@@ -43,8 +44,7 @@ export function EnergyNotice({ notice }: { notice: EnergyNoticeData | null }) {
   };
 
   return (
-    <Card style={styles.card}>
-      <Text style={styles.title}>{t("notice.title")}</Text>
+    <CollapsibleNotice id="energy" title={t("notice.title")}>
       <Text style={styles.body}>{t("notice.body")}</Text>
       <Text style={styles.figure}>
         {notice.oldKcal === notice.newKcal
@@ -69,17 +69,11 @@ export function EnergyNotice({ notice }: { notice: EnergyNoticeData | null }) {
         <Button variant="ghost" label={t("readMore")} onPress={() => void Linking.openURL(`${SITE_ORIGIN}/panduan/kalori`)} />
         <Button variant="secondary" label={t("notice.dismiss")} onPress={dismiss} />
       </View>
-    </Card>
+    </CollapsibleNotice>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
-  card: { gap: theme.spacing.sm },
-  title: {
-    fontSize: theme.fontSize.base,
-    fontWeight: "700",
-    color: theme.colors.foreground,
-  },
   body: {
     fontSize: theme.fontSize.sm,
     lineHeight: 20,

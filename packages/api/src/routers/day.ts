@@ -335,6 +335,8 @@ export const dayRouter = {
         // The night that ended on `date`: the person's own log, else the watch's hours (JoyoFit), else an import.
         sleepHoursLastNight: pickNightSleep(sleptRows[0], scoreRows[0]?.sleepHours)?.hours ?? null,
         latestWeightKg: plan.latestWeightKg,
+        // The day that weight was logged (on or before the viewed day), so a tile never shows an old weight as today's.
+        latestWeightDate: latestRows[0]?.date ?? null,
         weightLoggedToday: (loggedRows[0]?.logged ?? 0) > 0,
         // No streak pressure or weight-loss recap in Hamil / Menyusui.
         streakDays: maternal ? 0 : planStreakDays,

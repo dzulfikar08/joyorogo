@@ -43,7 +43,7 @@ export function planQueries(db: Database, userId: string, date: string) {
   return [
     db.select().from(profile).where(eq(profile.userId, userId)).limit(1),
     db
-      .select({ weightKg: weightLog.weightKg })
+      .select({ date: weightLog.date, weightKg: weightLog.weightKg })
       .from(weightLog)
       .where(and(eq(weightLog.userId, userId), lte(weightLog.date, date)))
       .orderBy(desc(weightLog.date))

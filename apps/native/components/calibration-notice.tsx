@@ -8,7 +8,8 @@ import { StyleSheet } from "react-native-unistyles";
 import type { CalibrationNotice as CalibrationNoticeData } from "@joyorogo/api/lib/calibration";
 
 import { CalibrationLearnLink } from "@/components/calibration-learn-link";
-import { Button, Card, Text } from "@/components/ui";
+import { CollapsibleNotice } from "@/components/collapsible-notice";
+import { Button, Text } from "@/components/ui";
 import { saveCalibrationPref } from "@/src/lib/calibration-prefs";
 import { syncPrefs } from "@/src/lib/prefs-sync";
 import { fmtInt } from "@/utils/format";
@@ -34,8 +35,7 @@ export function CalibrationNotice({ notice }: { notice: CalibrationNoticeData | 
   };
 
   return (
-    <Card style={styles.card}>
-      <Text style={styles.title}>{t("calNotice.title")}</Text>
+    <CollapsibleNotice id="calibration" title={t("calNotice.title")}>
       <Text style={styles.body}>
         {t("calNotice.body", { old: fmtInt(notice.fromKcal), new: fmtInt(notice.toKcal) })}
       </Text>
@@ -51,17 +51,11 @@ export function CalibrationNotice({ notice }: { notice: CalibrationNoticeData | 
         <Button variant="secondary" label={t("calNotice.dismiss")} onPress={() => void dismiss()} />
         <CalibrationLearnLink label={t("calNotice.learn")} />
       </View>
-    </Card>
+    </CollapsibleNotice>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
-  card: { gap: theme.spacing.sm },
-  title: {
-    fontSize: theme.fontSize.base,
-    fontWeight: "700",
-    color: theme.colors.foreground,
-  },
   body: {
     fontSize: theme.fontSize.sm,
     lineHeight: 20,

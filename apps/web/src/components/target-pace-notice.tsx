@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import type { DatePace } from "@joyorogo/api/lib/engine";
 import { cn } from "@joyorogo/ui/lib/utils";
 
+import { CollapsibleNotice } from "@/components/collapsible-notice";
 import { fmtDateLong, fmtKg } from "@/lib/format";
 import { client, orpc } from "@/utils/orpc";
 
@@ -18,9 +19,12 @@ import { client, orpc } from "@/utils/orpc";
 export function TargetPaceNotice({
   pace,
   className,
+  collapsible = false,
 }: {
   pace: DatePace | null | undefined;
   className?: string;
+  /** Beranda folds it to one row; the target screen shows it open. */
+  collapsible?: boolean;
 }) {
   const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
@@ -41,12 +45,8 @@ export function TargetPaceNotice({
   });
   if (!pace) return null;
   const date = fmtDateLong(pace.reachDate).replace(/^\w+, /, "");
-  return (
-    <div className={cn("rounded-2xl bg-bakar-soft p-4", className)} data-testid="target-pace-notice">
-      <p className="flex items-start gap-1.5 text-sm leading-snug font-bold text-bakar-ink">
-        <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-        {t(pace.reason === "passed" ? "plan.datePace.passed.title" : "plan.datePace.title")}
-      </p>
+  const body = (
+    <>
       <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
         {t(`plan.datePace.${pace.reason === "passed" ? "passed." : ""}${pace.direction}.body`, {
           kg: fmtKg(pace.kg),
@@ -64,6 +64,28 @@ export function TargetPaceNotice({
       >
         {t("plan.datePace.use", { date })}
       </Button>
+    </>
+  );
+  const title = t(pace.reason === "passed" ? "plan.datePace.passed.title" : "plan.datePace.title");
+  if (collapsible) {
+    return (
+      <CollapsibleNotice
+        id="target-pace"
+        className={cn("bg-bakar-soft", className)}
+        title={title}
+        icon={<CircleAlert />}
+      >
+        {body}
+      </CollapsibleNotice>
+    );
+  }
+  return (
+    <div className={cn("rounded-2xl bg-bakar-soft p-4", className)} data-testid="target-pace-notice">
+      <p className="flex items-start gap-1.5 text-sm leading-snug font-bold text-bakar-ink">
+        <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+        {title}
+      </p>
+      {body}
     </div>
   );
 }
