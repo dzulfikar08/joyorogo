@@ -265,6 +265,44 @@
         "text": "Rata-rata langkahmu {{avgSteps}} per hari di {{days}} hari yang terbaca. Kalau jam atau HP tidak selalu kamu bawa, angkanya bisa lebih rendah dari kenyataan.",
         "advice": "Tambah jalan kaki 10 menit setelah makan atau pilih tangga. Naikkan sedikit demi sedikit, jangan langsung dilipatkan."
       }
+    },
+    "SLEEP_FACTOR": {
+      "caffeine": {
+        "title": "Kopi sore dan tidurmu",
+        "text_maybe": "Mungkin ada hubungannya: Di {{exposed}} malam setelah kamu minum kopi atau minuman berkafein dalam sekitar 8 jam sebelum tidur, tidurmu rata-rata {{minutes}} menit lebih pendek dibanding {{other}} malam tanpa itu.",
+        "text_leaning": "Polanya cenderung sama: Di {{exposed}} malam setelah kamu minum kopi atau minuman berkafein dalam sekitar 8 jam sebelum tidur, tidurmu rata-rata {{minutes}} menit lebih pendek dibanding {{other}} malam tanpa itu.",
+        "advice": "Coba geser kopi terakhirmu lebih awal selama beberapa hari dan lihat apakah tidurmu ikut berubah."
+      },
+      "regularity": {
+        "title": "Jam tidur yang bergeser",
+        "text_maybe": "Mungkin ada hubungannya: Di {{exposed}} malam dengan jam tidur bergeser lebih dari 1 jam dari kebiasaanmu, tidurmu rata-rata {{minutes}} menit lebih pendek dibanding {{other}} malam yang teratur.",
+        "text_leaning": "Polanya cenderung sama: Di {{exposed}} malam dengan jam tidur bergeser lebih dari 1 jam dari kebiasaanmu, tidurmu rata-rata {{minutes}} menit lebih pendek dibanding {{other}} malam yang teratur.",
+        "advice": "Coba tidur di jam yang kurang lebih sama beberapa malam berturut-turut dan lihat apakah polanya berubah."
+      },
+      "temperature": {
+        "title": "Kamar yang hangat",
+        "text_maybe": "Mungkin ada hubungannya: Di {{exposed}} malam dengan suhu kamar di atas {{value}} derajat C, kamu terjaga rata-rata {{minutes}} menit lebih lama dibanding {{other}} malam yang lebih sejuk.",
+        "text_leaning": "Polanya cenderung sama: Di {{exposed}} malam dengan suhu kamar di atas {{value}} derajat C, kamu terjaga rata-rata {{minutes}} menit lebih lama dibanding {{other}} malam yang lebih sejuk.",
+        "advice": "Coba bikin kamar lebih sejuk beberapa malam, misalnya lewat ventilasi atau kipas, dan lihat apakah malammu berubah."
+      },
+      "humidity": {
+        "title": "Kamar yang lembap",
+        "text_maybe": "Mungkin ada hubungannya: Di {{exposed}} malam dengan kelembapan kamar di atas {{value}}%, kamu terjaga rata-rata {{minutes}} menit lebih lama dibanding {{other}} malam yang lebih kering.",
+        "text_leaning": "Polanya cenderung sama: Di {{exposed}} malam dengan kelembapan kamar di atas {{value}}%, kamu terjaga rata-rata {{minutes}} menit lebih lama dibanding {{other}} malam yang lebih kering.",
+        "advice": "Coba kurangi lembap di kamar beberapa malam, misalnya lewat ventilasi, dan lihat apakah malammu berubah."
+      },
+      "dinner": {
+        "title": "Makan malam yang mepet tidur",
+        "text_maybe": "Mungkin ada hubungannya: Di {{exposed}} malam dengan makan malam kurang dari 3 jam sebelum tidur, kamu terjaga rata-rata {{minutes}} menit lebih lama dibanding {{other}} malam lainnya.",
+        "text_leaning": "Polanya cenderung sama: Di {{exposed}} malam dengan makan malam kurang dari 3 jam sebelum tidur, kamu terjaga rata-rata {{minutes}} menit lebih lama dibanding {{other}} malam lainnya.",
+        "advice": "Coba majukan makan malam beberapa hari dan lihat apakah malammu terasa lebih tenang."
+      },
+      "workout": {
+        "title": "Latihan yang mepet tidur",
+        "text_maybe": "Mungkin ada hubungannya: Di {{exposed}} malam setelah latihan 20 menit atau lebih yang selesai dalam 3 jam sebelum tidur, kamu terjaga rata-rata {{minutes}} menit lebih lama dibanding {{other}} malam lainnya.",
+        "text_leaning": "Polanya cenderung sama: Di {{exposed}} malam setelah latihan 20 menit atau lebih yang selesai dalam 3 jam sebelum tidur, kamu terjaga rata-rata {{minutes}} menit lebih lama dibanding {{other}} malam lainnya.",
+        "advice": "Coba pindahkan latihan sedikit lebih awal beberapa hari dan lihat apakah malammu berubah."
+      }
     }
   }
 }

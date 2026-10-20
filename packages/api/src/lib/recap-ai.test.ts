@@ -20,7 +20,7 @@ import {
 import type { RecapValidationContext } from "./recap-ai";
 import { reflectionFacts } from "./recap-facts";
 import type { FactSelection, ReflectionMode } from "./recap-facts";
-import { ownerWeek, quietWeek } from "./recap-fixtures";
+import { consentOnWeek, ownerWeek, quietWeek, sleepFinding } from "./recap-fixtures";
 import { renderSelection } from "./recap-text";
 import { DEFAULT_VISION_MODEL } from "./vision";
 
@@ -336,5 +336,67 @@ describe("generateRecapText", () => {
     const r = runner(["nope"]);
     const run = await generateRecapText(r.ai, { ...opts, selection: calm, body: renderSelection(calm, "id", "lose") });
     expect(run.text).toBeNull();
+  });
+});
+
+describe("validateRecapText with a sleep pattern", () => {
+  const sel = reflectionFacts(consentOnWeek([sleepFinding("caffeine", { confidence: "leaning", exposed: 6, other: 9, diff: -34 })]));
+  const withSleep = (locale: Locale): RecapValidationContext => ({ ...contextFor(locale, "lose", sel), focusCount: 1, sleepFactor: true });
+
+  const ID = `Minggu ini kamu cukup rapi mencatat dan hasilnya terasa di datamu. Ini dasar yang bagus buat minggu-minggu berikutnya, dan kamu sudah berada di jalur yang masuk akal untuk terus dilanjutkan dengan tenang, tanpa perlu terburu-buru mengubah apa pun dalam waktu dekat.
+
+Yang menarik dari tidurmu: polanya cenderung sama, di 6 malam setelah kopi atau minuman berkafein dalam sekitar 8 jam sebelum tidur, tidurmu rata-rata 34 menit lebih pendek dibanding 9 malam tanpa itu. Ini hanya gambaran dari malam-malammu, bukan kesimpulan buat semua orang di luar sana, jadi baca sebagai catatan saja.
+
+Fokus minggu depan:
+1. Coba geser kopi terakhirmu lebih awal selama beberapa hari dan lihat apakah tidurmu ikut berubah.`;
+
+  const EN = `This week you kept your logging tidy and it shows in your data. That is a good base for the weeks ahead, and you are on a sensible track that you can keep up calmly for a long time to come, with no need to rush or change anything in the near future.
+
+One thing from your sleep: the pattern leans the same way. On 6 nights after coffee or a caffeinated drink within about 8 hours of bed, you slept 34 minutes less on average than on 9 nights without it. This is only a picture of your own nights, not a conclusion that holds for everyone out there, so read it as a note and nothing more than that.
+
+Focus for next week:
+1. Try moving your last coffee earlier for a few days and see whether your sleep changes too.`;
+
+  test("the baseline answers are accepted", () => {
+    expect(validateRecapText(ID, withSleep("id"))).toMatchObject({ ok: true });
+    expect(validateRecapText(EN, withSleep("en"))).toMatchObject({ ok: true });
+  });
+
+  test("refuses a causal caffeine sentence in Indonesian", () => {
+    for (const bad of ["Kopi menyebabkan tidurmu lebih pendek.", "Tidur pendek itu penyebabnya kopi.", "Tidurmu pendek karena kopi sore.", "Tidurmu pendek gara-gara kafein.", "Itu akibat kopi sore."]) {
+      const text = ID.replace("Ini hanya gambaran dari malam-malammu", `${bad} Ini hanya gambaran dari malam-malammu`);
+      expect(validateRecapText(text, withSleep("id")), bad).toMatchObject({ ok: false, reason: "causal" });
+    }
+  });
+
+  test("refuses a causal caffeine sentence in English", () => {
+    for (const bad of ["Coffee causes shorter sleep.", "Your sleep was short because of coffee.", "It is due to the caffeine.", "Late coffee leads to less sleep.", "Caffeine caused it."]) {
+      const text = EN.replace("This is only a picture", `${bad} This is only a picture`);
+      expect(validateRecapText(text, withSleep("en")), bad).toMatchObject({ ok: false, reason: "causal" });
+    }
+  });
+
+  test("refuses claims stronger than the confidence", () => {
+    expect(validateRecapText(ID.replace("polanya cenderung sama", "polanya jelas sama"), withSleep("id"))).toMatchObject({ ok: false, reason: "causal" });
+    expect(validateRecapText(ID.replace("bukan kesimpulan", "dan ini terbukti, bukan kesimpulan"), withSleep("id"))).toMatchObject({ ok: false, reason: "causal" });
+    expect(validateRecapText(EN.replace("leans the same way", "clearly points the same way"), withSleep("en"))).toMatchObject({ ok: false, reason: "causal" });
+    expect(validateRecapText(EN.replace("This is only", "This proves it. This is only"), withSleep("en"))).toMatchObject({ ok: false, reason: "causal" });
+  });
+
+  test("without a sleep pattern in the facts the words are not checked", () => {
+    const plain = { ...withSleep("en"), sleepFactor: false };
+    expect(validateRecapText(EN.replace("This is only", "Coffee causes it. This is only"), plain)).toMatchObject({ ok: true });
+  });
+
+  test("the prompt only tells the model about the sleep pattern when there is one", () => {
+    const opts = { locale: "id" as Locale, mode: "lose" as ReflectionMode, closingLabel: "Fokus minggu depan:", focusCount: 1 };
+    expect(buildRecapSystemPrompt({ ...opts, sleepFactor: true })).toContain("SLEEP_FACTOR");
+    expect(buildRecapSystemPrompt(opts)).not.toContain("SLEEP_FACTOR");
+  });
+
+  test("a sleep pattern reaches the prompt as numbers and a fixed sentence only", () => {
+    const facts = promptFacts(sel, "id", "lose");
+    const entry = facts.focus.find((f) => f.code === "SLEEP_FACTOR")!;
+    expect(entry.numbers).toEqual({ exposed: "6", other: "9", minutes: "34", confidence: "leaning" });
   });
 });

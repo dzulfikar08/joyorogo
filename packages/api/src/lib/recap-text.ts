@@ -58,7 +58,9 @@ export function renderFact(fact: Fact, locale: Locale): FactView {
   const count = pluralParam ? fact.params[pluralParam] : undefined;
   if (typeof count === "number") options.count = count;
 
-  let text = t(`${base}.text`, options);
+  // The sleep pattern has one fixed sentence per confidence ("mungkin" / "cenderung"); the model never picks the hedge.
+  const textKey = fact.code === "SLEEP_FACTOR" ? `${base}.text_${fact.params.confidence === "leaning" ? "leaning" : "maybe"}` : `${base}.text`;
+  let text = t(textKey, options);
   if (fact.code === "WEIGHT_PACE" && fact.params.projectedDate) text += ` ${t("facts.WEIGHT_PACE.projected", options)}`;
   if (fact.code === "RUN_INTENSITY" && fact.params.avgHrBpm != null && fact.params.maxHrBpm != null) {
     text += ` ${t("facts.RUN_INTENSITY.hr", options)}`;

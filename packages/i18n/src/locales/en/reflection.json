@@ -269,6 +269,44 @@
         "text": "You averaged {{avgSteps}} steps a day over the {{days}} days that were recorded. If your watch or phone is not always with you, the number can read lower than reality.",
         "advice": "Add a 10-minute walk after meals or take the stairs. Build up a little at a time, do not double it overnight."
       }
+    },
+    "SLEEP_FACTOR": {
+      "caffeine": {
+        "title": "Afternoon coffee and your sleep",
+        "text_maybe": "This might be connected: On {{exposed}} nights after you had coffee or a caffeinated drink within about 8 hours of bed, you slept {{minutes}} minutes less on average than on {{other}} nights without it.",
+        "text_leaning": "The pattern leans the same way: On {{exposed}} nights after you had coffee or a caffeinated drink within about 8 hours of bed, you slept {{minutes}} minutes less on average than on {{other}} nights without it.",
+        "advice": "Try moving your last coffee earlier for a few days and see whether your sleep changes too."
+      },
+      "regularity": {
+        "title": "A bedtime that moves around",
+        "text_maybe": "This might be connected: On {{exposed}} nights when your bedtime moved more than 1 hour from your usual, you slept {{minutes}} minutes less on average than on {{other}} regular nights.",
+        "text_leaning": "The pattern leans the same way: On {{exposed}} nights when your bedtime moved more than 1 hour from your usual, you slept {{minutes}} minutes less on average than on {{other}} regular nights.",
+        "advice": "Try going to bed at about the same time for a few nights in a row and see whether the pattern changes."
+      },
+      "temperature": {
+        "title": "A warm bedroom",
+        "text_maybe": "This might be connected: On {{exposed}} nights with a room temperature above {{value}} degrees C, you were awake {{minutes}} minutes more on average than on {{other}} cooler nights.",
+        "text_leaning": "The pattern leans the same way: On {{exposed}} nights with a room temperature above {{value}} degrees C, you were awake {{minutes}} minutes more on average than on {{other}} cooler nights.",
+        "advice": "Try cooling your bedroom for a few nights, for example with ventilation or a fan, and see whether your nights change."
+      },
+      "humidity": {
+        "title": "A humid bedroom",
+        "text_maybe": "This might be connected: On {{exposed}} nights with room humidity above {{value}}%, you were awake {{minutes}} minutes more on average than on {{other}} drier nights.",
+        "text_leaning": "The pattern leans the same way: On {{exposed}} nights with room humidity above {{value}}%, you were awake {{minutes}} minutes more on average than on {{other}} drier nights.",
+        "advice": "Try making your bedroom less humid for a few nights, for example with ventilation, and see whether your nights change."
+      },
+      "dinner": {
+        "title": "Dinner close to bedtime",
+        "text_maybe": "This might be connected: On {{exposed}} nights with dinner less than 3 hours before bed, you were awake {{minutes}} minutes more on average than on {{other}} other nights.",
+        "text_leaning": "The pattern leans the same way: On {{exposed}} nights with dinner less than 3 hours before bed, you were awake {{minutes}} minutes more on average than on {{other}} other nights.",
+        "advice": "Try eating dinner a bit earlier for a few days and see whether your nights feel calmer."
+      },
+      "workout": {
+        "title": "A workout close to bedtime",
+        "text_maybe": "This might be connected: On {{exposed}} nights after a workout of 20 minutes or more that ended within 3 hours of bed, you were awake {{minutes}} minutes more on average than on {{other}} other nights.",
+        "text_leaning": "The pattern leans the same way: On {{exposed}} nights after a workout of 20 minutes or more that ended within 3 hours of bed, you were awake {{minutes}} minutes more on average than on {{other}} other nights.",
+        "advice": "Try moving your workout a bit earlier for a few days and see whether your nights change."
+      }
     }
   }
 }

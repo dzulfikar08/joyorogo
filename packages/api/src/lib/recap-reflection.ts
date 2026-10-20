@@ -16,11 +16,12 @@ import type { Locale } from "@joyorogo/i18n";
 import type { AiBinding } from "../context";
 import { ageFromBirthYear, shiftDate } from "./engine";
 import { generateRecapText, recapModel } from "./recap-ai";
-import { reflectionFacts, selectionSignature } from "./recap-facts";
+import { reflectionFacts, selectionSignature, sleepFactorOfSignature } from "./recap-facts";
 import type { FactSelection, ReflectionInput, ReflectionMode, WorkoutInput } from "./recap-facts";
 import { loadWeekRecap } from "./recap-store";
 import { renderSelection } from "./recap-text";
 import type { ReflectionBody } from "./recap-text";
+import { sleepFindingsFor } from "./sleep-insights-store";
 import { pickNightSleep } from "./sleep-night";
 import type { StickersBucket } from "./sticker";
 import { wibDayBounds } from "./tiers";
@@ -161,12 +162,14 @@ export interface ComputedReflection {
   selection: FactSelection;
   body: ReflectionBody;
   signature: string;
+  /** The account is Pro (same check as the AI text), read once for the findings and the cache decision. */
+  pro: boolean;
 }
 
 /** Loads the week and builds the facts, their wording and the fingerprint of what was selected. Null: no profile, or nothing to say yet. */
 export async function computeReflection(
   db: Database,
-  env: Pick<ReflectionEnv, "STICKERS">,
+  env: Pick<ReflectionEnv, "STICKERS"> & PaywallEnv,
   userId: string,
   requestedWeek: string | undefined,
   locale: Locale,
@@ -176,6 +179,14 @@ export async function computeReflection(
   const { recap, plan, prof, today } = loaded;
   if (recap.empty || recap.evaluatedDays < REFLECTION_LIMITS.minJudgedDays) return null;
   const { weekStart, weekEnd } = recap;
+
+  const pro = await cloudUnlocked(db, env, userId);
+  // Personal sleep findings are Pro only, and only describe the current week: they are computed as of now. The previous
+  // week's stored reflection says which pattern it showed, so the same one is not repeated when another exists.
+  const [sleepFindings, previousSleepFactor] =
+    pro && weekEnd >= today
+      ? await Promise.all([sleepFindingsFor(db, userId), readPreviousSleepFactor(db, userId, weekStart)])
+      : [[], null];
 
   const [food, waist, exerciseRows, scores, sleepRows, activity, workouts] = await Promise.all([
     db
@@ -256,6 +267,8 @@ export async function computeReflection(
     sleep,
     needSleepHours: plan.targets.sleepHours,
     steps: activity.map((row) => ({ date: row.date, steps: row.steps })),
+    sleepFindings,
+    previousSleepFactor,
   };
 
   const selection = reflectionFacts(input);
@@ -268,7 +281,21 @@ export async function computeReflection(
     selection: { wins: selection.wins, focus: selection.focus },
     body: renderSelection(selection, locale, mode),
     signature: selectionSignature(selection),
+    pro,
   };
+}
+
+/** The `SLEEP_FACTOR` variant the stored reflection of the week before `weekStart` showed (any language); null when none or no row. */
+export async function readPreviousSleepFactor(db: Database, userId: string, weekStart: string): Promise<string | null> {
+  const rows = await db
+    .select({ signature: weekReflection.signature })
+    .from(weekReflection)
+    .where(and(eq(weekReflection.userId, userId), eq(weekReflection.weekStart, shiftDate(weekStart, -7))));
+  for (const row of rows) {
+    const factor = sleepFactorOfSignature(row.signature);
+    if (factor !== null) return factor;
+  }
+  return null;
 }
 
 // ---- cache decision ----
@@ -339,7 +366,7 @@ export async function getWeekReflection(
 ): Promise<WeekReflectionView | null> {
   const computed = await computeReflection(deps.db, deps.env, userId, requestedWeek, locale);
   if (!computed) return null;
-  const pro = await cloudUnlocked(deps.db, deps.env, userId);
+  const { pro } = computed;
   const row = pro ? await readRow(deps.db, userId, computed.weekStart, locale) : null;
   const decision = decideAi({ pro, hasAi: deps.env.AI !== undefined, row, signature: computed.signature, now });
   return toView(computed, decision, row?.generatedAt ?? null);
@@ -392,7 +419,7 @@ export async function generateWeekReflection(
 ): Promise<WeekReflectionView | null> {
   const computed = await computeReflection(deps.db, deps.env, userId, requestedWeek, locale);
   if (!computed) return null;
-  if (!(await cloudUnlocked(deps.db, deps.env, userId))) throw new ReflectionLockedError();
+  if (!computed.pro) throw new ReflectionLockedError();
   const { db, env } = deps;
   const row = await readRow(db, userId, computed.weekStart, locale);
   const decision = decideAi({ pro: true, hasAi: env.AI !== undefined, row, signature: computed.signature, now });

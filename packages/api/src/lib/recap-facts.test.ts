@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { shiftDate } from "./engine";
-import { day, ownerWeek, quietWeek, recapOf, TODAY, WEEK } from "./recap-fixtures";
+import { consentOnWeek, day, ownerWeek, quietWeek, recapOf, sleepFinding, TODAY, WEEK } from "./recap-fixtures";
 import type { WeekSpec } from "./recap-fixtures";
 import {
   FACT_CODES,
@@ -12,8 +12,10 @@ import {
   reflectionFacts,
   selectFacts,
   selectionSignature,
+  sleepFactorOfSignature,
 } from "./recap-facts";
 import type { Fact, ReflectionInput, WorkoutInput } from "./recap-facts";
+import type { SleepFinding } from "./sleep-insights-types";
 
 const find = (input: ReflectionInput, code: Fact["code"]) => buildFacts(input).filter((f) => f.code === code);
 const variantOf = (input: ReflectionInput, code: Fact["code"]) => {
@@ -436,6 +438,124 @@ describe("SLEEP", () => {
   });
   test("params carry min, max, the short nights and the need", () => {
     expect(find(quietWeek(nights([5, 6.4, 5.5, 6, 6.2])), "SLEEP_SHORT")[0]!.params).toEqual({ avgHours: 5.8, minHours: 5, maxHours: 6.4, nights: 5, shortNights: 2, needHours: 8 });
+  });
+});
+
+describe("SLEEP_FACTOR", () => {
+  const factsOf = (findings: readonly SleepFinding[], over: Partial<ReflectionInput> = {}) => find(consentOnWeek(findings, over), "SLEEP_FACTOR");
+
+  test("without findings (free account, switch off) nothing is emitted", () => {
+    expect(find(quietWeek({}), "SLEEP_FACTOR")).toHaveLength(0);
+    expect(factsOf([])).toHaveLength(0);
+    expect(find(quietWeek({ sleepFindings: [] }), "SLEEP_FACTOR")).toHaveLength(0);
+  });
+
+  test("each variant carries only the numbers of the finding and the confidence", () => {
+    for (const factor of ["caffeine", "regularity", "temperature", "humidity", "dinner", "workout"] as const) {
+      const [f] = factsOf([sleepFinding(factor, { exposed: 6, other: 11, confidence: "leaning" })]);
+      expect(f).toMatchObject({ variant: factor, role: "focus", domain: "sleep", severity: "info", priority: T.sleepFactorPriority });
+      const room = factor === "temperature" || factor === "humidity";
+      expect(Object.keys(f!.params).toSorted()).toEqual(room ? ["confidence", "exposed", "minutes", "other", "value"] : ["confidence", "exposed", "minutes", "other"]);
+      if (room) expect(f!.params.value).toBe(factor === "temperature" ? 28 : 70);
+      expect(f!.params).toMatchObject({ exposed: 6, other: 11, confidence: "leaning" });
+    }
+  });
+
+  test("the difference is rounded to whole minutes and written without a sign", () => {
+    expect(factsOf([sleepFinding("caffeine", { diff: -33.6 })])[0]!.params.minutes).toBe(34);
+    expect(factsOf([sleepFinding("dinner", { diff: 17.4 })])[0]!.params.minutes).toBe(17);
+  });
+
+  test("a difference that rounds to 0 minutes is not a pattern", () => {
+    expect(factsOf([sleepFinding("caffeine", { diff: -0.4 })])).toHaveLength(0);
+    expect(factsOf([sleepFinding("caffeine", { diff: -0.5 })])).toHaveLength(1);
+  });
+
+  test("only the unfavourable direction of each factor becomes a focus point", () => {
+    expect(factsOf([sleepFinding("caffeine", { diff: 20 })])).toHaveLength(0);
+    expect(factsOf([sleepFinding("regularity", { diff: 20 })])).toHaveLength(0);
+    expect(factsOf([sleepFinding("dinner", { diff: -20 })])).toHaveLength(0);
+    expect(factsOf([sleepFinding("temperature", { diff: -20 })])).toHaveLength(0);
+    expect(factsOf([sleepFinding("humidity", { diff: -20 })])).toHaveLength(0);
+    expect(factsOf([sleepFinding("workout", { diff: -20 })])).toHaveLength(0);
+  });
+
+  test("a finding on another outcome than its factor's is ignored", () => {
+    expect(factsOf([sleepFinding("caffeine", { outcome: "awake", diff: 20 })])).toHaveLength(0);
+    expect(factsOf([sleepFinding("dinner", { outcome: "asleep", diff: -20 })])).toHaveLength(0);
+  });
+
+  test("a bedroom finding without its cut-off is not worded", () => {
+    expect(factsOf([sleepFinding("temperature", { threshold: null })])).toHaveLength(0);
+    expect(factsOf([sleepFinding("humidity", { threshold: null }), sleepFinding("dinner")]).map((f) => f.variant)).toEqual(["dinner"]);
+  });
+
+  test("alcohol is never worded, even when a finding slips in", () => {
+    const alcohol = { ...sleepFinding("caffeine"), factor: "alcohol", outcome: "hrv", diff: -9 } as unknown as SleepFinding;
+    expect(factsOf([alcohol])).toHaveLength(0);
+    expect(factsOf([alcohol, sleepFinding("dinner")]).map((f) => f.variant)).toEqual(["dinner"]);
+  });
+
+  test("at most one per week: leaning before maybe, then more exposed nights, then caffeine, regularity, temperature, humidity, dinner, workout", () => {
+    const all = (over: Partial<Record<"caffeine" | "regularity" | "temperature" | "humidity" | "dinner" | "workout", Partial<SleepFinding>>> = {}) =>
+      (["workout", "dinner", "humidity", "temperature", "regularity", "caffeine"] as const).map((factor) => sleepFinding(factor, over[factor]));
+    expect(factsOf(all())).toHaveLength(1);
+    expect(factsOf(all())[0]!.variant).toBe("caffeine");
+    expect(factsOf(all({ dinner: { confidence: "leaning" }, workout: { confidence: "leaning" } }))[0]!.variant).toBe("dinner");
+    expect(factsOf(all({ humidity: { confidence: "leaning" }, dinner: { confidence: "leaning" } }))[0]!.variant).toBe("humidity");
+    expect(factsOf(all({ humidity: { exposed: 8 }, temperature: { exposed: 8 } }))[0]!.variant).toBe("temperature");
+    expect(factsOf(all({ regularity: { exposed: 9 }, workout: { exposed: 9 } }))[0]!.variant).toBe("regularity");
+    expect(factsOf(all({ caffeine: { exposed: 4 }, workout: { exposed: 7, confidence: "maybe" } }))[0]!.variant).toBe("workout");
+    expect(factsOf(all({ caffeine: { confidence: "maybe", exposed: 20 }, workout: { confidence: "leaning", exposed: 3 } }))[0]!.variant).toBe("workout");
+  });
+
+  test("the pattern the previous week showed makes way for another, and comes back when it is the only one", () => {
+    const two = [sleepFinding("caffeine"), sleepFinding("dinner")];
+    expect(factsOf(two, { previousSleepFactor: "caffeine" })[0]!.variant).toBe("dinner");
+    expect(factsOf(two, { previousSleepFactor: "dinner" })[0]!.variant).toBe("caffeine");
+    expect(factsOf([sleepFinding("caffeine")], { previousSleepFactor: "caffeine" })[0]!.variant).toBe("caffeine");
+    expect(factsOf(two, { previousSleepFactor: null })[0]!.variant).toBe("caffeine");
+    // An ineligible finding does not count as "another".
+    expect(factsOf([sleepFinding("caffeine"), sleepFinding("dinner", { diff: -5 })], { previousSleepFactor: "caffeine" })[0]!.variant).toBe("caffeine");
+  });
+
+  test("a quiet week with a finding selects it as a focus point", () => {
+    const sel = reflectionFacts(consentOnWeek());
+    expect(sel.focus.map((f) => `${f.code}/${f.variant}`)).toContain("SLEEP_FACTOR/caffeine");
+  });
+
+  test("safety ordering stays: an alert-level run still comes first and a full list leaves no room", () => {
+    const owner = { ...ownerWeek(), sleepFindings: [sleepFinding("caffeine", { confidence: "leaning" })] };
+    const sel = reflectionFacts(owner);
+    expect(sel.focus[0]!.code).toBe("RUN_INTENSITY");
+    expect(sel.all.filter((f) => f.code === "SLEEP_FACTOR")).toHaveLength(1);
+    expect(sel.focus.filter((f) => f.code === "SLEEP_FACTOR")).toHaveLength(0);
+    expect(selectionSignature(sel)).toBe(selectionSignature(reflectionFacts(ownerWeek())));
+  });
+
+  test("it ranks below other sleep and every other focus point of the same domain pass", () => {
+    const short = { sleep: [5, 6, 5.5, 6].map((hours, i) => ({ date: day(i), hours })) };
+    const sel = reflectionFacts(consentOnWeek(undefined, short));
+    const codes = sel.focus.map((f) => f.code);
+    expect(codes.indexOf("SLEEP_SHORT")).toBeLessThan(codes.indexOf("SLEEP_FACTOR"));
+  });
+
+  test("at most one SLEEP_FACTOR is ever selected", () => {
+    const sel = reflectionFacts(consentOnWeek(["caffeine", "dinner", "workout", "regularity", "temperature", "humidity"].map((f) => sleepFinding(f as "caffeine"))));
+    expect([...sel.wins, ...sel.focus].filter((f) => f.code === "SLEEP_FACTOR")).toHaveLength(1);
+  });
+
+  test("the signature carries the pattern and changes with it and with the confidence", () => {
+    const sig = (f: SleepFinding) => selectionSignature(reflectionFacts(consentOnWeek([f])));
+    const base = selectionSignature(reflectionFacts(quietWeek({})));
+    expect(sleepFactorOfSignature(base)).toBeNull();
+    expect(sleepFactorOfSignature(sig(sleepFinding("caffeine")))).toBe("caffeine");
+    expect(sleepFactorOfSignature(sig(sleepFinding("dinner")))).toBe("dinner");
+    expect(sig(sleepFinding("caffeine"))).not.toBe(base);
+    expect(sig(sleepFinding("caffeine"))).not.toBe(sig(sleepFinding("dinner")));
+    expect(sig(sleepFinding("caffeine"))).not.toBe(sig(sleepFinding("caffeine", { confidence: "leaning" })));
+    // A change of a few percent keeps the fingerprint.
+    expect(sig(sleepFinding("caffeine", { diff: -34 }))).toBe(sig(sleepFinding("caffeine", { diff: -33 })));
   });
 });
 

@@ -5,6 +5,7 @@ import { shiftDate } from "./engine";
 import type { TrendPoint } from "./engine";
 import { buildWeekRecap } from "./recap";
 import type { ReflectionInput, WorkoutInput } from "./recap-facts";
+import type { SleepFinding } from "./sleep-insights-types";
 
 /** A Monday; `TODAY` is the Monday after, so the week is complete. */
 export const WEEK = "2026-10-12";
@@ -63,6 +64,36 @@ export function quietWeek(over: Partial<ReflectionInput> = {}, spec: Partial<Wee
     steps: [],
     ...over,
   };
+}
+
+/** The outcome and the unfavourable direction of each factor, the way `sleepFindingsFor` words them. */
+const FINDING_SHAPE = {
+  caffeine: { outcome: "asleep", diff: -34 },
+  regularity: { outcome: "asleep", diff: -41 },
+  temperature: { outcome: "awake", diff: 15 },
+  humidity: { outcome: "awake", diff: 9 },
+  dinner: { outcome: "awake", diff: 18 },
+  workout: { outcome: "awake", diff: 12 },
+} as const;
+
+/** A gate-passed personal sleep finding (the unfavourable direction unless `over` says otherwise). */
+export function sleepFinding(factor: keyof typeof FINDING_SHAPE, over: Partial<SleepFinding> = {}): SleepFinding {
+  return {
+    factor,
+    confidence: "maybe",
+    exposed: 5,
+    other: 9,
+    threshold: factor === "temperature" ? 28 : factor === "humidity" ? 70 : null,
+    nights: [],
+    through: WEEK,
+    ...FINDING_SHAPE[factor],
+    ...over,
+  };
+}
+
+/** A neutral week of a Pro account with the sleep switch on and one finding: what the reflection gets with the consent on. */
+export function consentOnWeek(findings: readonly SleepFinding[] = [sleepFinding("caffeine", { confidence: "leaning", exposed: 6 })], over: Partial<ReflectionInput> = {}): ReflectionInput {
+  return quietWeek({ sleepFindings: findings, ...over });
 }
 
 const item = (i: number, meal: string, name: string, kcal: number) => ({ date: day(i), meal, name, kcal });
@@ -211,6 +242,12 @@ export function variantScenarios(): Record<string, ReflectionInput> {
     "LOAD_SPIKE/spike": quietWeek({ loadRatios: [3] }),
     "SLEEP_OK/ok": quietWeek({ sleep: [7.5, 8, 7, 7.5].map((hours, i) => ({ date: day(i), hours })) }),
     "SLEEP_SHORT/short": quietWeek({ sleep: [5, 6, 5.5, 6].map((hours, i) => ({ date: day(i), hours })) }),
+    "SLEEP_FACTOR/caffeine": consentOnWeek([sleepFinding("caffeine")]),
+    "SLEEP_FACTOR/regularity": consentOnWeek([sleepFinding("regularity", { confidence: "leaning" })]),
+    "SLEEP_FACTOR/temperature": consentOnWeek([sleepFinding("temperature")]),
+    "SLEEP_FACTOR/humidity": consentOnWeek([sleepFinding("humidity", { confidence: "leaning" })]),
+    "SLEEP_FACTOR/dinner": consentOnWeek([sleepFinding("dinner")]),
+    "SLEEP_FACTOR/workout": consentOnWeek([sleepFinding("workout", { confidence: "leaning" })]),
     "STEPS_GOOD/good": quietWeek({ steps: [9000, 9500, 8800].map((steps, i) => ({ date: day(i), steps })) }),
     "LOW_STEPS/low": quietWeek({ steps: [3000, 3500, 4000].map((steps, i) => ({ date: day(i), steps })) }),
   };

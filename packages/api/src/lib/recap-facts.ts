@@ -12,6 +12,7 @@ import { daysBetween } from "./engine";
 import { detectFoodPatterns } from "./food-patterns";
 import type { FoodItemInput, FoodPatternKind } from "./food-patterns";
 import type { WeekRecap } from "./recap";
+import type { SleepFinding } from "./sleep-insights-types";
 
 export type ReflectionMode = "lose" | "maintain" | "gain" | "maternal";
 
@@ -32,6 +33,7 @@ export const FACT_CODES = [
   "LOAD_SPIKE",
   "SLEEP_OK",
   "SLEEP_SHORT",
+  "SLEEP_FACTOR",
   "STEPS_GOOD",
   "LOW_STEPS",
 ] as const;
@@ -55,6 +57,7 @@ export const FACT_VARIANTS: Record<FactCode, readonly string[]> = {
   LOAD_SPIKE: ["spike"],
   SLEEP_OK: ["ok"],
   SLEEP_SHORT: ["short"],
+  SLEEP_FACTOR: ["caffeine", "regularity", "temperature", "humidity", "dinner", "workout"],
   STEPS_GOOD: ["good"],
   LOW_STEPS: ["low"],
 };
@@ -150,6 +153,8 @@ export const T = {
   sleepVeryShortAvg: 6.5,
   sleepShortNight: 6,
   sleepOkMinNights: 4,
+  /** Priority of the personal sleep pattern: below every safety and food / weight point, so it only fills a free focus slot. */
+  sleepFactorPriority: 58,
   stepsMinDays: 3,
   stepsLow: 5000,
   stepsGood: 8000,
@@ -209,6 +214,13 @@ export interface ReflectionInput {
   needSleepHours: number;
   /** Steps per day from the phone / watch health data. */
   steps: ReadonlyArray<{ date: string; steps: number }>;
+  /**
+   * Personal sleep findings (`sleepFindingsFor`), passed in only for a Pro account with the sleep switch on; empty or
+   * absent otherwise. Only the numbers of a finding ever reach a fact, never a night.
+   */
+  sleepFindings?: readonly SleepFinding[];
+  /** The `SLEEP_FACTOR` variant the previous week's stored reflection showed, so the same pattern is not repeated when another exists. */
+  previousSleepFactor?: string | null;
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -554,6 +566,57 @@ function sleepFacts(input: ReflectionInput): Fact[] {
   return [];
 }
 
+/** Order the factors break ties in, and the only ones a reflection words (alcohol is a general tip, never a personal card). */
+const SLEEP_FACTOR_ORDER = FACT_VARIANTS.SLEEP_FACTOR;
+type SleepFactorVariant = "caffeine" | "regularity" | "temperature" | "humidity" | "dinner" | "workout";
+
+/** The outcome each factor is judged on and the direction of the difference (exposed minus other) that is worth a focus point. */
+const SLEEP_FACTOR_RULE: Record<SleepFactorVariant, { outcome: SleepFinding["outcome"]; sign: 1 | -1 }> = {
+  caffeine: { outcome: "asleep", sign: -1 },
+  regularity: { outcome: "asleep", sign: -1 },
+  temperature: { outcome: "awake", sign: 1 },
+  humidity: { outcome: "awake", sign: 1 },
+  dinner: { outcome: "awake", sign: 1 },
+  workout: { outcome: "awake", sign: 1 },
+};
+
+const ROOM_FACTORS: ReadonlySet<string> = new Set(["temperature", "humidity"]);
+const sleepFactorRank = (f: SleepFinding) => (f.confidence === "leaning" ? 1 : 0);
+
+/**
+ * At most one personal sleep pattern per week: among the findings whose direction is the unfavourable one (shorter sleep
+ * after caffeine or an irregular bedtime, more time awake after a late dinner or workout), leaning before maybe, then
+ * more exposed nights, then the factor order; the pattern the previous week's reflection showed only when nothing else
+ * exists. The wording is fixed per variant and confidence (reflection.json) and describes, it never explains.
+ */
+function sleepFactorFacts(input: ReflectionInput): Fact[] {
+  const eligible = (input.sleepFindings ?? []).filter((f) => {
+    const rule = SLEEP_FACTOR_RULE[f.factor as SleepFactorVariant];
+    if (rule === undefined || f.outcome !== rule.outcome || Math.sign(f.diff) !== rule.sign || Math.round(Math.abs(f.diff)) < 1) return false;
+    // The bedroom factors are worded with their cut-off: no cut-off, no sentence.
+    return !ROOM_FACTORS.has(f.factor) || f.threshold !== null;
+  });
+  if (eligible.length === 0) return [];
+  const best = (list: readonly SleepFinding[]) =>
+    list.toSorted(
+      (a, b) =>
+        sleepFactorRank(b) - sleepFactorRank(a) ||
+        b.exposed - a.exposed ||
+        SLEEP_FACTOR_ORDER.indexOf(a.factor) - SLEEP_FACTOR_ORDER.indexOf(b.factor),
+    )[0]!;
+  const fresh = eligible.filter((f) => f.factor !== input.previousSleepFactor);
+  const pick = best(fresh.length > 0 ? fresh : eligible);
+  return [
+    fact("SLEEP_FACTOR", pick.factor, "focus", "info", T.sleepFactorPriority, "sleep", {
+      exposed: pick.exposed,
+      other: pick.other,
+      minutes: Math.round(Math.abs(pick.diff)),
+      confidence: pick.confidence,
+      ...(ROOM_FACTORS.has(pick.factor) ? { value: pick.threshold } : {}),
+    }),
+  ];
+}
+
 function stepsFacts(input: ReflectionInput): Fact[] {
   if (input.mode === "maternal") return [];
   const measured = input.steps.filter((s) => s.steps >= T.stepsMeasured);
@@ -584,6 +647,7 @@ export function buildFacts(input: ReflectionInput): Fact[] {
     ...patternFacts(input),
     ...workoutFacts(input),
     ...sleepFacts(input),
+    ...sleepFactorFacts(input),
     ...stepsFacts(input),
   ];
 }
@@ -639,5 +703,15 @@ export function selectionSignature(selection: FactSelection): string {
     hash ^= text.charCodeAt(i);
     hash = Math.imul(hash, 0x01000193) >>> 0;
   }
-  return hash.toString(16).padStart(8, "0");
+  const sleepFactor = [...selection.wins, ...selection.focus].find((f) => f.code === "SLEEP_FACTOR");
+  // The sleep pattern is kept readable after the hash: the next week reads it from the stored row to pick another pattern.
+  return `${hash.toString(16).padStart(8, "0")}${sleepFactor ? `${SLEEP_SIGNATURE_MARK}${sleepFactor.variant}` : ""}`;
+}
+
+const SLEEP_SIGNATURE_MARK = "~";
+
+/** The `SLEEP_FACTOR` variant a stored signature was made with; null when its reflection had none. */
+export function sleepFactorOfSignature(signature: string): string | null {
+  const at = signature.indexOf(SLEEP_SIGNATURE_MARK);
+  return at === -1 ? null : signature.slice(at + 1) || null;
 }

@@ -17,7 +17,7 @@ import type { Context } from "../context";
 import { ENERGY_NOTICE_BEFORE_MS } from "./energy-notice";
 import { jakartaToday, shiftDate } from "./engine";
 import { weekStartOf } from "./recap";
-import { REFLECTION_LIMITS, claimRun, decideAi, generateWeekReflection, getWeekReflection } from "./recap-reflection";
+import { REFLECTION_LIMITS, claimRun, decideAi, generateWeekReflection, getWeekReflection, readPreviousSleepFactor } from "./recap-reflection";
 import type { ReflectionDeps } from "./recap-reflection";
 import { loadWeekRecap } from "./recap-store";
 import { statsRouter } from "../routers/stats";
@@ -419,5 +419,22 @@ describe("Strava stays out of the facts", () => {
     const view = (await generateWeekReflection(deps, "strava", week, "id"))!;
     expect(view.text).not.toMatch(/ride|strava/i);
     expect(model.calls[0]!.user).not.toMatch(/ride|strava|1500 kcal/i);
+  });
+});
+
+describe("the sleep pattern of the previous week", () => {
+  const put = (userId: string, weekStart: string, locale: string, signature: string) =>
+    db.insert(weekReflection).values({ userId, weekStart, locale, aiText: "x", aiModel: "m", status: "ok", signature, generations: 1, generatedAt: 1 });
+
+  test("is read from the stored signature of the week before, in any language", async () => {
+    const current = shiftDate(week, 7);
+    await put("pro", week, "en", "0a1b2c3d~dinner");
+    expect(await readPreviousSleepFactor(db, "pro", current)).toBe("dinner");
+  });
+
+  test("none when the stored reflection had no sleep pattern, or there is no row", async () => {
+    await put("blank", week, "id", "0a1b2c3d");
+    expect(await readPreviousSleepFactor(db, "blank", shiftDate(week, 7))).toBeNull();
+    expect(await readPreviousSleepFactor(db, "noprof", shiftDate(week, 7))).toBeNull();
   });
 });

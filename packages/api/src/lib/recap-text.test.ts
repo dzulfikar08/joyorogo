@@ -5,7 +5,7 @@ import type { Locale } from "@joyorogo/i18n";
 
 import { buildFacts, FACT_VARIANTS, reflectionFacts } from "./recap-facts";
 import type { Fact } from "./recap-facts";
-import { ownerWeek, quietWeek, variantScenarios } from "./recap-fixtures";
+import { consentOnWeek, ownerWeek, quietWeek, sleepFinding, variantScenarios } from "./recap-fixtures";
 import { formatParam, formatParams, renderFact, renderSelection } from "./recap-text";
 
 const LOCALES: Locale[] = ["id", "en"];
@@ -153,5 +153,45 @@ describe("the template text", () => {
     const quiet = renderSelection(reflectionFacts(quietWeek({ trend: { weeklyRateKg: -0.5, projectedDate: null } })), "id", "lose").templateText;
     expect(quiet.toLowerCase()).not.toContain("dokter");
     expect(getT("id", "reflection")("facts.RUN_INTENSITY.hard_check_doctor.advice")).toContain("dokter");
+  });
+});
+
+describe("SLEEP_FACTOR wording", () => {
+  const CAUSAL = /menyebabkan|penyebab|gara-gara|akibat|karena (kopi|kafein|makan|latihan)|\b(causes?|caused|because of|due to|leads? to)\b/i;
+  const OVERCLAIM = /\b(pasti|jelas|terbukti|proves?|proven|definitely|clearly)\b/i;
+  const render = (factor: "caffeine" | "regularity" | "temperature" | "humidity" | "dinner" | "workout", confidence: "maybe" | "leaning", locale: Locale) => {
+    const [fact] = buildFacts(consentOnWeek([sleepFinding(factor, { confidence })])).filter((f) => f.code === "SLEEP_FACTOR");
+    return renderFact(fact!, locale);
+  };
+
+  for (const locale of LOCALES) {
+    test(`${locale}: fixed hedge per confidence, numbers from the finding, never a cause or a certainty`, () => {
+      for (const factor of ["caffeine", "regularity", "temperature", "humidity", "dinner", "workout"] as const) {
+        const maybe = render(factor, "maybe", locale);
+        const leaning = render(factor, "leaning", locale);
+        expect(maybe.text, `${locale} ${factor}`).not.toBe(leaning.text);
+        const hedge = locale === "id" ? [/mungkin/i, /cenderung/i] : [/might/i, /leans/i];
+        expect(maybe.text).toMatch(hedge[0]!);
+        expect(leaning.text).toMatch(hedge[1]!);
+        for (const view of [maybe, leaning]) {
+          expect(view.text).toContain("5");
+          expect(view.text).toContain("9");
+          expect(`${view.text} ${view.advice}`).not.toMatch(CAUSAL);
+          expect(`${view.text} ${view.advice}`).not.toMatch(OVERCLAIM);
+          expect(view.advice!.length).toBeGreaterThan(10);
+        }
+      }
+    });
+
+    test(`${locale}: the same facts always give the same words`, () => {
+      expect(render("caffeine", "maybe", locale)).toEqual(render("caffeine", "maybe", locale));
+    });
+  }
+
+  test("the sleep pattern joins the template focus paragraph and the numbered advice", () => {
+    const sel = reflectionFacts(consentOnWeek());
+    const body = renderSelection(sel, "id", "lose");
+    expect(body.focus.map((v) => v.code)).toContain("SLEEP_FACTOR");
+    expect(body.templateText).toContain("34 menit");
   });
 });
