@@ -362,6 +362,18 @@ describe("watch posts", () => {
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
+  test("accepts an optional measured stride series and checks its length and range", async () => {
+    const analysis = analysisFor(workout);
+    const n = analysis.series!.n;
+    analysis.series!.stride = Array.from({ length: n }, (_, i) => (i % 4 === 0 ? null : 1.05));
+    expect(workoutAnalysisSchema.safeParse(analysis).success).toBe(true);
+    expect(workoutAnalysisSchema.safeParse(analysisFor(workout)).success).toBe(true);
+    analysis.series!.stride = analysis.series!.stride.slice(0, n - 1);
+    expect(workoutAnalysisSchema.safeParse(analysis).success).toBe(false);
+    analysis.series!.stride = Array.from({ length: n }, () => 11);
+    expect(workoutAnalysisSchema.safeParse(analysis).success).toBe(false);
+  });
+
   test("rejects out-of-range values, unknown keys and too many samples", async () => {
     const post = (analysis: unknown) =>
       call(socialRouter.createWatchPost, { workout, detail: { analysis } as never, visibility: "grup" }, as("author"));

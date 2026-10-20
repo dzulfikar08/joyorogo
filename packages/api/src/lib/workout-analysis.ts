@@ -36,6 +36,11 @@ export interface AnalysisSeries {
   alt: (number | null)[] | null;
   /** Steps (rpm when cycling) per minute. */
   cad: (number | null)[] | null;
+  /**
+   * Metres per step, only when the source measured it per sample (a FIT file, a foot pod). Absent otherwise: a reader derives
+   * the step length from `pace` and `cad` (speed over steps per second).
+   */
+  stride?: (number | null)[] | null;
   /** Watts. */
   power: (number | null)[] | null;
   /** Position per sample; null outside the GPS recording. Omitted by the author for a private route. */

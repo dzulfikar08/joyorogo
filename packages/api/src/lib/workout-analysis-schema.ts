@@ -39,6 +39,7 @@ const series = z
     pace: nullable(z.array(nullable(pace)).max(ANALYSIS_LIMITS.samples)),
     alt: nullable(z.array(nullable(num(-500, 9000))).max(ANALYSIS_LIMITS.samples)),
     cad: nullable(z.array(nullable(cad)).max(ANALYSIS_LIMITS.samples)),
+    stride: nullable(z.array(nullable(num(0, 10))).max(ANALYSIS_LIMITS.samples)).optional(),
     power: nullable(z.array(nullable(num(0, 3000))).max(ANALYSIS_LIMITS.samples)),
     track: nullable(
       z
@@ -47,7 +48,7 @@ const series = z
     ),
   })
   .superRefine((s, ctx) => {
-    for (const key of ["dist", "hr", "pace", "alt", "cad", "power", "track"] as const) {
+    for (const key of ["dist", "hr", "pace", "alt", "cad", "stride", "power", "track"] as const) {
       const arr = s[key];
       if (arr && arr.length !== s.n) {
         ctx.addIssue({ code: "custom", path: [key], message: `series.${key} must have exactly n (${s.n}) samples` });
