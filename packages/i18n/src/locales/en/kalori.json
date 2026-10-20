@@ -24,6 +24,8 @@
     "title": "Five activity levels",
     "intro": "Each level has a standard factor. Here's what each one means, some examples, and the TDEE it gives for the person in the worked example below.",
     "tip": "Torn between two levels? Pick the lower one, then check whether your weight drops as planned. The app also suggests a level based on your steps and your weight trend (see below). The app also adjusts your target from your weight trend through automatic calibration (see below).",
+    "gymTitle": "Desk job, but you train a lot",
+    "gymBody": "If your day is an office job and you hit the gym 3 to 5 times a week, pick \"Mostly sitting\". This level only rates your everyday life outside workouts. Gym sessions are logged as exercise and added separately on top of your target, so there is no need to raise the level. Raising it would count your gym twice. You can change your target any time in Profile > Target.",
     "chart": "The higher the level, the bigger the TDEE. The darker part is the BMR, which is the same at every level.",
     "chartLabel": "Bar chart of the TDEE for all five levels.",
     "bmrLegend": "BMR",

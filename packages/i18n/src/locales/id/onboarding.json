@@ -67,6 +67,11 @@
     "detail_other": "JoyoRogo membatasi defisit pada ~{{cap}}/hari. Turun {{kg}} kg dengan ritme itu butuh sekitar {{count}} hari (baru ±{{reach}} kg sampai {{date}}).",
     "cta_other": "Pakai tanggal realistis (+{{count}} hari)"
   },
+  "guide": {
+    "activity": "Bingung pilih level? Baca cara kami menghitung targetmu",
+    "result": "Lihat cara targetmu dihitung",
+    "later": "Targetmu bisa diubah kapan saja di Profil > Target, dan otomatis dikalibrasi tiap minggu dari perubahan beratmu."
+  },
   "result": {
     "title": "Rencana harianmu siap",
     "subtitle": "Timbangan awalmu sudah tercatat hari ini.",

@@ -24,6 +24,8 @@
     "title": "Lima level aktivitas",
     "intro": "Setiap level punya pengali standar. Berikut penjelasan dan contoh tiap level, beserta besar TDEE-nya untuk contoh di bawah.",
     "tip": "Bingung memilih di antara dua level? Ambil yang lebih rendah, lalu pantau apakah beratmu turun sesuai rencana. Aplikasi juga akan memberi saran berdasarkan jumlah langkah dan tren beratmu (lihat di bawah). Aplikasi juga menyesuaikan targetmu dari tren beratmu lewat kalibrasi otomatis (lihat di bawah).",
+    "gymTitle": "Kerja duduk, tapi rajin olahraga",
+    "gymBody": "Kalau harianmu kerja kantoran dan kamu ngegym 3 sampai 5 kali seminggu, pilih \"Hampir selalu duduk\". Level ini hanya menilai keseharianmu di luar latihan. Sesi gym dicatat sebagai olahraga dan ditambahkan terpisah di atas targetmu, jadi tidak perlu menaikkan level. Menaikkannya malah membuat gymmu terhitung dua kali. Targetmu bisa diubah kapan saja di Profil > Target.",
     "chart": "Makin tinggi levelnya, makin besar TDEE-nya. Bagian yang lebih gelap adalah BMR, sama untuk semua level.",
     "chartLabel": "Diagram batang TDEE untuk kelima level.",
     "bmrLegend": "BMR",

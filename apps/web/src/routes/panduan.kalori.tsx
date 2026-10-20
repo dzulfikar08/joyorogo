@@ -276,6 +276,8 @@ function PanduanKaloriPage() {
               {t("energy:pickRule")}
             </p>
             <P>{t("kalori:levels.tip")}</P>
+            <h3 className="mt-5 text-base font-bold">{t("kalori:levels.gymTitle")}</h3>
+            <SubP>{t("kalori:levels.gymBody")}</SubP>
             <div className="mt-5 rounded-2xl bg-card p-4">
               <BarRows
                 label={t("kalori:levels.chartLabel")}

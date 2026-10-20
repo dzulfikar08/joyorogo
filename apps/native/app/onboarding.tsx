@@ -2,7 +2,8 @@ import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Redirect, router } from "expo-router";
-import { View } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import { Pressable, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -168,6 +169,20 @@ function ChoiceRow({
   );
 }
 
+const GUIDE_URL = "https://joyorogo.com/panduan/kalori";
+
+function GuideLink({ label }: { label: string }) {
+  return (
+    <Pressable
+      accessibilityRole="link"
+      hitSlop={8}
+      onPress={() => void WebBrowser.openBrowserAsync(GUIDE_URL)}
+    >
+      <Text style={styles.guideLink}>{label}</Text>
+    </Pressable>
+  );
+}
+
 /** Result of onboarding: deficit plan summary, or the Hamil / Menyusui numbers (no deficit). */
 function ResultView({
   targets,
@@ -232,6 +247,8 @@ function ResultView({
           </Disclosure>
         </>
       )}
+      <Text style={styles.hint}>{t("guide.later")}</Text>
+      <GuideLink label={t("guide.result")} />
       <Button label={t("action.openHome")} onPress={onStart} />
       <Button
         variant="secondary"
@@ -908,6 +925,7 @@ export default function Onboarding() {
                     onApply={setActivityLevel}
                   />
                 </Card>
+                <GuideLink label={t("guide.activity")} />
                 {formError ? <Text style={styles.error}>{formError}</Text> : null}
                 <Button
                   label={t("action.save")}
@@ -1020,6 +1038,11 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     color: theme.colors.warning,
     lineHeight: 20,
+  },
+  guideLink: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+    textDecorationLine: "underline",
   },
   error: {
     fontSize: theme.fontSize.sm,

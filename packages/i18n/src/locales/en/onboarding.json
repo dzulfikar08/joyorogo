@@ -69,6 +69,11 @@
     "cta_one": "Use a realistic date (+{{count}} day)",
     "cta_other": "Use a realistic date (+{{count}} days)"
   },
+  "guide": {
+    "activity": "Not sure which level? Read how we calculate your target",
+    "result": "See how your target is calculated",
+    "later": "You can change your target any time in Profile > Target, and it auto-calibrates weekly from your weight changes."
+  },
   "result": {
     "title": "Your daily plan is ready",
     "subtitle": "Your starting weight is logged for today.",

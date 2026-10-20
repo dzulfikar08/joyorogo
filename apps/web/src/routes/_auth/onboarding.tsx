@@ -99,6 +99,19 @@ type StepKey =
   | "target"
   | "date";
 
+function GuideLink({ label }: { label: string }) {
+  return (
+    <a
+      href="https://joyorogo.com/panduan/kalori"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-block px-1 text-sm font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
+    >
+      {label}
+    </a>
+  );
+}
+
 /**
  * The five levels for the answers so far, computed here (no server call): the plan the server will build on save. Hamil /
  * Menyusui use their own factors, so the draft is resolved to the stored state first. Empty while an answer is missing.
@@ -481,6 +494,10 @@ function OnboardingPage() {
             )}
           </>
         )}
+        <p className="mt-4 px-1 text-sm leading-snug text-muted-foreground">{t("guide.later")}</p>
+        <div className="mt-1">
+          <GuideLink label={t("guide.result")} />
+        </div>
         <Button className="mt-6 w-full" onClick={openApp}>
           {t("action.openHome")}
         </Button>
@@ -689,6 +706,7 @@ function OnboardingPage() {
                 onApply={(level) => set({ activityLevel: level })}
                 showEmpty={false}
               />
+              <GuideLink label={t("guide.activity")} />
             </div>
           )}
 
