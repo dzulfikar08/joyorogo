@@ -34,6 +34,8 @@ import { z } from "zod";
 export type McpEnv = PaywallEnv & {
   BETTER_AUTH_URL: string;
   APP_URL?: string;
+  /** Marketing site origin (pricing page); defaults to APP_URL. */
+  SITE_URL?: string;
   /** Per-user budget of tool calls per minute (wrangler `ratelimits`); unset = no per-minute limit. */
   MCP_LIMITER?: RateLimitBinding;
   /** Per-IP budget of dynamic client registrations; unset = no limit. */
@@ -78,10 +80,11 @@ function failure(message: string): CallToolResult {
 }
 
 const appOrigin = (env: McpEnv) => (env.APP_URL || env.BETTER_AUTH_URL).replace(/\/$/, "");
+const siteOrigin = (env: McpEnv) => (env.SITE_URL ? env.SITE_URL.replace(/\/$/, "") : appOrigin(env));
 
 const upsell = (env: McpEnv) =>
-  `JoyoRogo Pro dibutuhkan untuk memakai koneksi AI. Upgrade di ${appOrigin(env)}/harga, lalu tanya lagi (tidak perlu menyambung ulang).\n` +
-  `JoyoRogo Pro is required to use the AI connection. Upgrade at ${appOrigin(env)}/harga, then ask again (no need to reconnect).`;
+  `JoyoRogo Pro dibutuhkan untuk memakai koneksi AI. Upgrade di ${siteOrigin(env)}/harga, lalu tanya lagi (tidak perlu menyambung ulang).\n` +
+  `JoyoRogo Pro is required to use the AI connection. Upgrade at ${siteOrigin(env)}/harga, then ask again (no need to reconnect).`;
 
 /** The one place a tool call is checked, limited, run and logged. */
 async function runTool(
@@ -141,7 +144,7 @@ function createMcpServer(
   waitUntil: (promise: Promise<unknown>) => void,
 ): McpServer {
   const server = new McpServer(
-    { name: "joyorogo", title: "JoyoRogo", version: "1.0.0", websiteUrl: appOrigin(deps.env) },
+    { name: "joyorogo", title: "JoyoRogo", version: "1.0.0", websiteUrl: siteOrigin(deps.env) },
     { instructions: MCP_INSTRUCTIONS },
   );
   const readOnly = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;

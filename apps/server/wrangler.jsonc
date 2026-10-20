@@ -83,7 +83,7 @@
     }
   ],
   "vars": {
-    "CORS_ORIGIN": "http://localhost:3001,http://localhost:3002,http://localhost:3003,https://joyorogo-web-live-dzul-fqqmlyfh7l3bif2g.dzulfikar-at.workers.dev,https://joyorogo.com,https://admin.joyorogo.com,https://app.fit.joyorogo.com",
+    "CORS_ORIGIN": "http://localhost:3001,http://localhost:3002,http://localhost:3003,https://joyorogo-web-live-dzul-fqqmlyfh7l3bif2g.dzulfikar-at.workers.dev,https://joyorogo.com,https://app.joyorogo.com,https://admin.joyorogo.com,https://app.fit.joyorogo.com",
     "BETTER_AUTH_URL": "https://api.joyorogo.com",
     "GOOGLE_CLIENT_ID": "915036968874-0ne1edkq0laljg6cdlnksor1hqpj9gfr.apps.googleusercontent.com",
     "DEV_LOGIN": "",
@@ -91,7 +91,9 @@
     "DATASET_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
     "SHADOW_SAMPLE_RATE": "0.2",
     "SHADOW_DAILY_CAP": "60",
-    "APP_URL": "https://joyorogo.com",
+    // The signed-in app (docs/app-subdomain.md); SITE_URL is the landing/marketing site.
+    "APP_URL": "https://app.joyorogo.com",
+    "SITE_URL": "https://joyorogo.com",
     // The JoyoFit cloud API that /api/fit/* (the JoyoFit web app) forwards to.
     "JOYOFIT_API_URL": "https://api.fit.joyorogo.com",
     "FREE_DAILY_SCANS": "3",

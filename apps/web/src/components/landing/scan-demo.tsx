@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
 import { Camera, ImageIcon, ScanSearch, ThumbsUp, TriangleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -154,7 +154,7 @@ export function ScanDemo() {
             : t("demo.paywall.bodyLimit", { count: freeDaily })}
         </p>
         <div className="mt-5 flex justify-center">
-          <Button render={<Link to="/login" />}>{t("demo.paywall.signup")}</Button>
+          <Button render={<AppLink to="/login" />}>{t("demo.paywall.signup")}</Button>
         </div>
       </div>
     );
@@ -283,9 +283,9 @@ export function ScanDemo() {
             </ListGroup>
             <p className="text-center text-sm text-muted-foreground">
               {t("demo.remaining", { count: result.remaining })}{" "}
-              <Link to="/login" className="font-semibold text-primary hover:underline">
+              <AppLink to="/login" className="font-semibold text-primary hover:underline">
                 {t("demo.signupSave")}
-              </Link>
+              </AppLink>
             </p>
           </>
         )}

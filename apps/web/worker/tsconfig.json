@@ -9,5 +9,6 @@
     "lib": ["ESNext"],
     "types": ["@cloudflare/workers-types"]
   },
-  "include": ["./*.ts"]
+  "include": ["./*.ts", "../src/lib/hosts.ts"],
+  "exclude": ["./*.test.ts"]
 }

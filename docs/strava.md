@@ -29,7 +29,7 @@ full design, with the same reasoning, is in `watch-fit/docs/strava.md` section 1
 ## Owner setup
 
 1. Strava application settings (<https://www.strava.com/settings/api>): **Authorization Callback Domain** = `joyorogo.com`. Strava accepts any
-   redirect on that domain and its subdomains: web `https://joyorogo.com/profil/strava/callback`, the Android/iOS app
+   redirect on that domain and its subdomains: web `https://app.joyorogo.com/profil/strava/callback` (the app host; `https://joyorogo.com/...` redirects there), the Android/iOS app
    `joyorogo://joyorogo.com/strava`, and JoyoFit's `https://api.fit.joyorogo.com/strava/callback`.
 2. Worker config (from `apps/server/`): `STRAVA_CLIENT_ID=287873` and the secret `bunx wrangler secret put STRAVA_CLIENT_SECRET`.
    JoyoFit's Worker must have the **same** `STRAVA_CLIENT_SECRET` (it signs the OAuth state with it and authenticates to

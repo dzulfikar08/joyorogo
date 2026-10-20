@@ -111,8 +111,8 @@ type ReceiptInfo = {
   founderDailyCap: number | null;
 };
 
-const HOME_URL = "https://joyorogo.com/beranda";
-const RENEW_URL = "https://joyorogo.com/pro?from=profile&next=/profil";
+const HOME_URL = "https://app.joyorogo.com/beranda";
+const RENEW_URL = "https://app.joyorogo.com/pro?from=profile&next=/profil";
 
 /** `<b>` in the HTML part, plain in the text part: one string serves both. */
 const bold = (html: boolean) => (value: string) => (html ? `<b>${value}</b>` : value);

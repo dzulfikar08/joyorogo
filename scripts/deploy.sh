@@ -28,6 +28,10 @@ for line in open(env):
         vals[m.group(1)] = m.group(2)
 doc = json.loads(re.sub(r",\s*([}\]])", r"\1", re.sub(r"^\s*//.*$", "", open(cfg).read(), flags=re.MULTILINE)))
 v = doc["vars"]
+# The app lives on app.joyorogo.com (docs/app-subdomain.md): without it in CORS_ORIGIN the browser blocks every
+# API call and better-auth rejects sign-in as an untrusted origin. Fail here instead of shipping a dead app.
+if "https://app.joyorogo.com" not in vals["CORS_ORIGIN"].split(","):
+    sys.exit("apps/server/.env: CORS_ORIGIN must list https://app.joyorogo.com (docs/app-subdomain.md)")
 v["CORS_ORIGIN"] = vals["CORS_ORIGIN"]
 v["GOOGLE_CLIENT_ID"] = vals.get("GOOGLE_CLIENT_ID", "")
 v["DEV_LOGIN"] = vals.get("DEV_LOGIN", "")
@@ -53,7 +57,10 @@ echo "== 4/4 build + deploy web =="
   cd "$WEB_DIR"
   # --configLoader runner: the blog plugin imports workspace TS packages (@joyorogo/api, @joyorogo/i18n)
   # whose extensionless imports Node's native loader cannot resolve.
-  VITE_SERVER_URL="https://api.joyorogo.com" VITE_REVKLIK_SITE_ID="88069ee9-6eac-4dc9-a23b-f5757a4b948e" \
+  # VITE_APP_URL turns on the two-host split (landing on joyorogo.com, app on app.joyorogo.com): without it the
+  # bundle serves every route on whichever host loaded it.
+  VITE_SERVER_URL="https://api.joyorogo.com" VITE_APP_URL="https://app.joyorogo.com" \
+    VITE_REVKLIK_SITE_ID="88069ee9-6eac-4dc9-a23b-f5757a4b948e" \
     bunx vite build --configLoader runner
   bunx wrangler deploy
   # Old/www hosts 301 to joyorogo.com; deployed after the web worker so the
@@ -68,4 +75,4 @@ echo "== 5/5 build + deploy admin =="
   bunx wrangler deploy
 )
 
-echo "DONE: https://joyorogo.com"
+echo "DONE: https://joyorogo.com (landing) and https://app.joyorogo.com (app)"

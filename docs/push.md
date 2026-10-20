@@ -143,6 +143,8 @@ everything else to `/social`.
 - Web: `apps/web/src/lib/push.ts` (permission, service worker, subscription), Pengaturan > Notifikasi
   (`/profil/notifikasi`), the fasting card reuses the same module. `public/sw.js` shows `title`/`body`/`tag` and opens
   `data.url` on a tap (same origin only).
+  Subscriptions are per origin: since the app moved to `app.joyorogo.com`, `components/push-move-banner.tsx` asks people
+  with a registered browser to subscribe again on the new host (`docs/app-subdomain.md`).
 - JoyoRogo native: `src/lib/push.ts` (channels, token, registration once a day and on sign-in / foreground / language
   change, unregister on sign-out), `src/lib/push-tap.ts` + `components/push/push-tap-handler.tsx` (taps and cold start),
   `app/profil/notifikasi.tsx` (permission sheet, switches, quiet hours, test). Local reminders are untouched.

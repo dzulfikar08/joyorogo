@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 
 import { Button } from "@joyorogo/ui/components/button";
 
+import { AppLink } from "@/components/app-link";
 import { useAppConfig } from "@/lib/app-config";
 
 export const GITHUB_URL = "https://github.com/dzulfikar08/joyorogo";
@@ -70,7 +71,7 @@ export function PublicHeader() {
           </a>
           <Button
             render={
-              <Link to="/login" data-revklik-goal="login_click" data-revklik-goal-location="header" />
+              <AppLink to="/login" data-revklik-goal="login_click" data-revklik-goal-location="header" />
             }
           >
             Masuk

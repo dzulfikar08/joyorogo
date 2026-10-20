@@ -287,7 +287,7 @@ untuk server sendiri pakai `apps/selfhost`.
 | Folder          | Isi                                                        |
 | --------------- | ---------------------------------------------------------- |
 | `apps/server`   | API Hono di Cloudflare Workers (D1, R2, Workers AI), termasuk endpoint MCP |
-| `apps/web`      | Aplikasi web dan landing joyorogo.com (Vite, React, TanStack Router) |
+| `apps/web`      | Landing joyorogo.com dan aplikasi web app.joyorogo.com, satu worker ([docs/app-subdomain.md](docs/app-subdomain.md)) (Vite, React, TanStack Router) |
 | `apps/web/blog` | Blog statis: artikel Markdown, dirender saat build         |
 | `apps/native`   | Aplikasi Android dan iPhone (Expo, update OTA lewat EAS Update) |
 | `apps/admin`    | Konsol operator (admin.joyorogo.com)                       |
@@ -306,7 +306,8 @@ Artikel blog ada di `apps/web/blog/posts/*.md` (frontmatter `title`,
 `::tkpi AP001 FP062` membuat tabel per 100 g dari TKPI 2019, `::porsi AP001 150
 Nasi putih | FP062 70` membuat contoh porsi beserta totalnya, `::contoh` sama
 tanpa total. Build menulis `/blog/`, RSS, dan `sitemap.xml`; `VITE_SITE_URL`
-mengganti domain kanonik (bawaan `https://joyorogo.com`).
+mengganti domain kanonik (bawaan `https://joyorogo.com`); `VITE_APP_URL` (misalnya
+`https://app.joyorogo.com`) memisahkan aplikasi ke host sendiri, kosong = satu host.
 
 Judul, deskripsi, dan kartu share tiap halaman publik (`/`, `/harga`,
 `/privasi`, `/login`) ada di `apps/web/src/lib/seo.ts`; build menulisnya ke

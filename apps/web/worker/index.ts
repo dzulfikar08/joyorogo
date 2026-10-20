@@ -1,8 +1,9 @@
-// The web app's Worker. Static assets are served straight from the asset
-// store; only the three public share routes come through here so their link
-// previews carry real tags. WhatsApp, Instagram, X and Facebook read the
-// first HTML response without running JavaScript, so the SPA's own head (a
-// useEffect after load) never reaches them.
+// The web app's Worker, bound to both hosts: joyorogo.com (landing, marketing) and app.joyorogo.com (the signed-in
+// app). It first sends each page to the host it belongs on (src/lib/hosts.ts, docs/app-subdomain.md). Static assets
+// are then served from the asset store; the three public share routes get their own link-preview tags, because
+// WhatsApp, Instagram, X and Facebook read the first HTML response without running JavaScript, so the SPA's own
+// head (a useEffect after load) never reaches them.
+import { hostConfig, hostRedirect, REDIRECT_STATUS } from "../src/lib/hosts";
 import { groupTags, postTags, profileTags, type OgTags } from "./og";
 import type { GroupOg, PostOg, ProfileOg } from "./og";
 
@@ -10,8 +11,10 @@ type Env = {
   ASSETS: Fetcher;
   /** API origin, no trailing slash (also hosts /post-photo). */
   API_URL: string;
-  /** Canonical site origin for og:url. */
+  /** Canonical site origin (landing, marketing, og:url). */
   SITE_URL: string;
+  /** Origin of the signed-in app. Unset = one host serves everything (self-hosted, workers.dev). */
+  APP_URL?: string;
 };
 
 type Kind = "gabung" | "p" | "u";
@@ -110,46 +113,71 @@ function rewrite(page: Response, tags: OgTags): Response {
   return new Response(out.body, { status: out.status, headers });
 }
 
+/** Nothing on the app host belongs in search results: the pages that are public there canonicalise to the site. */
+const APP_ROBOTS = "User-agent: *\nDisallow: /\n";
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
-    // A missing hashed chunk (old HTML after a deploy) must 404, not get the
-    // SPA's index.html with the immutable asset cache header: browsers would
-    // cache HTML as the script for a year and the app would never boot.
-    if (url.pathname.startsWith("/assets/")) {
-      const asset = await env.ASSETS.fetch(request);
-      if (asset.headers.get("Content-Type")?.startsWith("text/html")) {
-        return new Response("Not found", {
-          status: 404,
-          headers: { "Cache-Control": "no-store", "Content-Type": "text/plain" },
+    const hosts = hostConfig(env.SITE_URL, env.APP_URL);
+    const read = request.method === "GET" || request.method === "HEAD";
+    if (read) {
+      const target = hostRedirect(hosts, url.host, url.pathname, url.search);
+      if (target) return new Response(null, { status: REDIRECT_STATUS, headers: { Location: target } });
+    }
+    if (hosts && url.host === hosts.appHost) {
+      if (read && url.pathname === "/robots.txt") {
+        return new Response(request.method === "HEAD" ? null : APP_ROBOTS, {
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
         });
       }
-      return asset;
+      const res = await serve(request, env, ctx, url);
+      if (!res.headers.get("Content-Type")?.startsWith("text/html")) return res;
+      const out = new Response(res.body, res);
+      out.headers.set("X-Robots-Tag", "noindex");
+      return out;
     }
-    const route = ROUTE.exec(url.pathname);
-    if (!route || (request.method !== "GET" && request.method !== "HEAD")) {
-      return env.ASSETS.fetch(request);
-    }
-    const kind = route[1] as Kind;
-    let param: string;
-    try {
-      param = decodeURIComponent(route[2]!);
-    } catch {
-      return env.ASSETS.fetch(request);
-    }
-
-    // The prerendered /gabung, /p, /u pages already carry the right generic
-    // head; start from those instead of the home page the SPA fallback returns.
-    const headers = new Headers(request.headers);
-    headers.delete("If-None-Match");
-    headers.delete("If-Modified-Since");
-    const page = await env.ASSETS.fetch(new Request(new URL(`/${kind}`, url), { headers }));
-    if (!page.ok) return env.ASSETS.fetch(request);
-
-    // The URL itself is the only place the code appears: og:url/canonical must
-    // be per-link or WhatsApp would show one group's card for every invite.
-    const pageUrl = `${env.SITE_URL}${url.pathname.replace(/\/$/, "")}`;
-    const tags = await tagsFor(kind, param, pageUrl, env, ctx).catch(() => null);
-    return tags ? rewrite(page, tags) : page;
+    return serve(request, env, ctx, url);
   },
 };
+
+async function serve(request: Request, env: Env, ctx: ExecutionContext, url: URL): Promise<Response> {
+  // A missing hashed chunk (old HTML after a deploy) must 404, not get the
+  // SPA's index.html with the immutable asset cache header: browsers would
+  // cache HTML as the script for a year and the app would never boot.
+  if (url.pathname.startsWith("/assets/")) {
+    const asset = await env.ASSETS.fetch(request);
+    if (asset.headers.get("Content-Type")?.startsWith("text/html")) {
+      return new Response("Not found", {
+        status: 404,
+        headers: { "Cache-Control": "no-store", "Content-Type": "text/plain" },
+      });
+    }
+    return asset;
+  }
+  const route = ROUTE.exec(url.pathname);
+  if (!route || (request.method !== "GET" && request.method !== "HEAD")) {
+    return env.ASSETS.fetch(request);
+  }
+  const kind = route[1] as Kind;
+  let param: string;
+  try {
+    param = decodeURIComponent(route[2]!);
+  } catch {
+    return env.ASSETS.fetch(request);
+  }
+
+  // The prerendered /gabung, /p, /u pages already carry the right generic
+  // head; start from those instead of the home page the SPA fallback returns.
+  const headers = new Headers(request.headers);
+  headers.delete("If-None-Match");
+  headers.delete("If-Modified-Since");
+  const page = await env.ASSETS.fetch(new Request(new URL(`/${kind}`, url), { headers }));
+  if (!page.ok) return env.ASSETS.fetch(request);
+
+  // The URL itself is the only place the code appears: og:url/canonical must
+  // be per-link or WhatsApp would show one group's card for every invite.
+  const pageUrl = `${env.SITE_URL}${url.pathname.replace(/\/$/, "")}`;
+  const tags = await tagsFor(kind, param, pageUrl, env, ctx).catch(() => null);
+  return tags ? rewrite(page, tags) : page;
+}

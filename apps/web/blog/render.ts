@@ -30,6 +30,8 @@ import { REVKLIK_GUARD } from "./revklik.ts";
 export type BlogConfig = {
   /** Canonical origin, no trailing slash. */
   siteUrl: string;
+  /** Origin of the signed-in app, no trailing slash; unset = the same host as the blog (self-hosted builds). */
+  appUrl?: string;
   /** Hashed app stylesheet, e.g. /assets/index-abc.css. */
   cssHref: string;
   /** Revklik site id; no tag when unset (self-hosted builds). */
@@ -394,7 +396,7 @@ ${opts.jsonLd.map((data) => `    <script type="application/ld+json">${JSON.strin
         </a>
         <nav aria-label="Utama" class="flex items-center gap-1">
           <a href="/blog/" class="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-muted-foreground hover:text-foreground ${FOCUS}">Blog</a>
-          <a href="/login" class="inline-flex min-h-11 items-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 ${FOCUS}">Masuk</a>
+          <a href="${cfg.appUrl ?? ""}/login" class="inline-flex min-h-11 items-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 ${FOCUS}">Masuk</a>
         </nav>
       </div>
     </header>
@@ -441,7 +443,7 @@ function ctaCard(cfg: BlogConfig): string {
         <h2 id="cta-title" class="text-lg font-bold tracking-tight text-makan-ink">Malas menghitung sendiri?</h2>
         <p class="mt-2 leading-relaxed">Foto piringmu atau ceritakan apa yang kamu makan. JoyoRogo menghitung kalorinya dan bilang berapa lagi yang boleh kamu makan hari ini.</p>
         <div class="mt-4 flex flex-wrap gap-2">
-          <a href="/login" data-revklik-goal="signup_click" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 ${FOCUS}">Coba gratis</a>
+          <a href="${cfg.appUrl ?? ""}/login" data-revklik-goal="signup_click" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 ${FOCUS}">Coba gratis</a>
           <a href="/#coba" data-revklik-goal="try_scan_click" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">Coba scan tanpa daftar</a>
           <a href="/?pasang=iphone" data-revklik-goal="ios_cta_click" data-revklik-goal-location="blog" class="${ON_ANDROID_HIDE} inline-flex min-h-11 items-center gap-2 rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">${APPLE_ICON}Buka di iPhone</a>
           <a href="/#tester" data-revklik-goal="tester_cta_click" data-revklik-goal-location="blog" class="${ON_IOS_SECONDARY} inline-flex min-h-11 items-center gap-2 rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">${ANDROID_ICON}Gabung tester Android</a>

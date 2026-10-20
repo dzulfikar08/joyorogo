@@ -1,7 +1,7 @@
 import { Toaster } from "@joyorogo/ui/components/sonner";
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { HeadContent, Outlet, createRootRouteWithContext } from "@tanstack/react-router";
+import { HeadContent, Outlet, createRootRouteWithContext, redirect } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Fragment, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { IosInstallHost } from "@/components/ios-install";
 import { ThemeProvider } from "@/components/theme-provider";
 import { reportSignIn, signInPending } from "@/lib/analytics";
+import { wrongHostUrl } from "@/lib/app-host";
 import { useSession } from "@/lib/auth-client";
 import type { orpc } from "@/utils/orpc";
 
@@ -21,6 +22,16 @@ export interface RouterAppContext {
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,
+  // Marketing pages belong on joyorogo.com and the app on app.joyorogo.com (docs/app-subdomain.md). The Worker
+  // redirects page loads; this catches in-app navigation (a Link to /harga from inside the app).
+  beforeLoad: ({ location }) => {
+    const url = wrongHostUrl(
+      location.pathname,
+      location.searchStr,
+      location.hash ? `#${location.hash}` : "",
+    );
+    if (url) throw redirect({ href: url });
+  },
   // Public pages set their own title (src/lib/seo.ts); descriptions, icons,
   // and share tags live in each page's static HTML (blog/pages.ts).
   head: () => ({ meta: [{ title: "JoyoRogo" }] }),

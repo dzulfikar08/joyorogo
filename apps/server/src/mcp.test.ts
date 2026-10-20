@@ -74,9 +74,11 @@ const bucket: StickersBucket = {
 
 const limiterCalls: string[] = [];
 let limiterOpen = true;
+const SITE = "https://site.test";
 const env: McpEnv = {
   BETTER_AUTH_URL: BASE,
   APP_URL: APP,
+  SITE_URL: SITE,
   FREE_DAILY_SCANS: "3",
   MCP_LIMITER: {
     async limit({ key }) {
@@ -472,7 +474,7 @@ describe("MCP endpoint", () => {
     expect(list.status).toBe(200);
     const result = await callTool(accessToken, "get_profile");
     expect(result.isError).toBe(true);
-    expect(result.text).toContain(`${APP}/harga`);
+    expect(result.text).toContain(`${SITE}/harga`);
     expect(result.text).toContain("JoyoRogo Pro");
     const audit = await db.select().from(mcpAudit).where(eq(mcpAudit.userId, "free"));
     expect(audit.map((row) => row.outcome)).toEqual(["not_pro"]);

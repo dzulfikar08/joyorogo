@@ -10,6 +10,7 @@ import { IosInstallBanner } from "@/components/ios-install";
 import BottomNav, { DesktopBar } from "@/components/bottom-nav";
 import { LocaleSync } from "@/components/locale-sync";
 import { PrefsSync } from "@/components/prefs-sync";
+import { PushMoveBanner } from "@/components/push-move-banner";
 import { sessionQuery, useSession } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/_auth")({
@@ -42,6 +43,7 @@ function AuthLayout() {
       <PrefsSync />
       {showNav && <DesktopBar />}
       {showNav && <IosInstallBanner />}
+      {showNav && <PushMoveBanner />}
       <main>
         <Outlet />
       </main>

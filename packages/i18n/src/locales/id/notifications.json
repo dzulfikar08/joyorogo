@@ -64,7 +64,12 @@
     "toastDisabled": "Notifikasi browser dimatikan",
     "quietAria": "Aktifkan jam tenang",
     "startAria": "Jam tenang mulai",
-    "endAria": "Jam tenang selesai"
+    "endAria": "Jam tenang selesai",
+    "move": {
+      "title": "Notifikasi pindah ke alamat baru",
+      "body": "JoyoRogo sekarang ada di app.joyorogo.com. Aktifkan lagi notifikasi di sini supaya kabar dari teman dan pengingatmu tetap sampai.",
+      "action": "Aktifkan di sini"
+    }
   },
   "native": {
     "hubSubtitle": "Sosial, grup, pengingat, jam tenang",

@@ -2,7 +2,6 @@ import { Button } from "@joyorogo/ui/components/button";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import {
   BookOpen,
   Check,
@@ -22,6 +21,8 @@ import {
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { AppLink } from "@/components/app-link";
+import { HOSTS } from "@/lib/app-host";
 import { trackConversion } from "@/lib/analytics";
 import {
   closeIosInstall,
@@ -168,7 +169,7 @@ function IosInstallSheet() {
   const platform = usePlatform();
   const session = useQuery({ ...sessionQuery, enabled: open });
   const signedIn = Boolean(session.data);
-  const url = `${window.location.origin}/`;
+  const url = `${HOSTS?.appOrigin ?? window.location.origin}/`;
   const notIphone = platform.os !== "ios";
   const wrongBrowser = platform.os === "ios" && !platform.isIosSafari;
 
@@ -267,7 +268,7 @@ function IosInstallSheet() {
         <Button
           className="mt-5 w-full"
           render={
-            <Link
+            <AppLink
               to="/login"
               onClick={closeIosInstall}
               data-revklik-goal="signup_click"

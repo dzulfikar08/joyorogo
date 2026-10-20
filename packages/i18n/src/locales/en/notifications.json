@@ -64,7 +64,12 @@
     "toastDisabled": "Browser notifications are off",
     "quietAria": "Turn quiet hours on",
     "startAria": "Quiet hours start",
-    "endAria": "Quiet hours end"
+    "endAria": "Quiet hours end",
+    "move": {
+      "title": "Notifications moved to the new address",
+      "body": "JoyoRogo now lives at app.joyorogo.com. Turn notifications on again here so updates from friends and your reminders keep arriving.",
+      "action": "Turn on here"
+    }
   },
   "native": {
     "hubSubtitle": "Social, groups, reminders, quiet hours",

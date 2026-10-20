@@ -29,6 +29,8 @@ declare module "cloudflare:workers" {
       EMAIL?: SendEmail;
       // Wrangler-deployed vars/secrets (see .env.schema); unset = feature off.
       APP_URL?: string;
+      // Origin of the landing/marketing site; unset = APP_URL (single-host deploys).
+      SITE_URL?: string;
       // Origin of the JoyoFit cloud API the web app's /api/fit/* routes forward to (default https://api.fit.joyorogo.com).
       JOYOFIT_API_URL?: string;
       FREE_DAILY_SCANS?: string;

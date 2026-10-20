@@ -34,7 +34,7 @@
       "claude2": "Choose Add custom connector.",
       "claude3": "Name it JoyoRogo and put the connector address above in the MCP server URL. If there is an OAuth client option, keep the default and leave client ID and secret empty.",
       "claude4": "Choose Add, then Connect on the JoyoRogo connector.",
-      "claude5": "Your browser opens joyorogo.com/koneksi/izin. Sign in with your account, check the permissions it asks for, then press Allow. That consent happens there, not on this page.",
+      "claude5": "Your browser opens app.joyorogo.com/koneksi/izin. Sign in with your account, check the permissions it asks for, then press Allow. That consent happens there, not on this page.",
       "claude6": "In a chat, press +, choose Connectors, and turn JoyoRogo on. Ask something, for example \"Summarize my workouts this month\".",
       "claudeNote": "On Team and Enterprise plans an Owner adds the connector in Organization settings, then each member presses Connect with their own account.",
       "chatgptTitle": "Steps in ChatGPT",
@@ -43,7 +43,7 @@
       "chatgpt2": "Press the plus button, then choose Add custom MCP server.",
       "chatgpt3": "Name it JoyoRogo. Under Connection, enter the connector address above, and pick OAuth for Authentication.",
       "chatgpt4": "Read the risk warning, tick I understand and want to continue, then choose Create as a plugin.",
-      "chatgpt5": "Your browser opens joyorogo.com/koneksi/izin. Sign in with your account, check the permissions it asks for, then press Allow. That consent happens there, not on this page.",
+      "chatgpt5": "Your browser opens app.joyorogo.com/koneksi/izin. Sign in with your account, check the permissions it asks for, then press Allow. That consent happens there, not on this page.",
       "chatgpt6": "In a new chat, type @ and pick JoyoRogo, then ask something.",
       "chatgptNote": "Plans and menus in AI apps change often. If the steps differ from what you see, follow the provider's help (support.claude.com or help.openai.com).",
       "guide": "Full guide on joyorogo.com"

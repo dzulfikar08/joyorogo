@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+
+import { AppLink } from "@/components/app-link";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -310,7 +312,7 @@ function HargaPage() {
             <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
               Scan AI tanpa batas harian, plus diary, grafik berat, dan rencana harianmu.
             </p>
-            <Button className="mt-5" render={<Link to="/login" />}>
+            <Button className="mt-5" render={<AppLink to="/login" />}>
               Mulai
             </Button>
           </section>
@@ -372,7 +374,7 @@ function HargaPage() {
                   ...sharedFeatures(config.data).slice(0, 2),
                 ]}
                 cta={
-                  <Button variant="secondary" render={<Link to="/login" />}>
+                  <Button variant="secondary" render={<AppLink to="/login" />}>
                     Mulai gratis
                   </Button>
                 }

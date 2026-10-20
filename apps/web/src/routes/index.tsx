@@ -34,6 +34,7 @@ import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Ring, type Metric } from "@/components/kit/ring";
 import { AppDownload } from "@/components/app-download";
+import { AppLink } from "@/components/app-link";
 import { AndroidMark } from "@/components/android-mark";
 import { AppleMark } from "@/components/apple-mark";
 import { Roadmap } from "@/components/landing/roadmap";
@@ -52,6 +53,7 @@ import {
   useAppConfig,
 } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
+import { HOSTS } from "@/lib/app-host";
 import { sessionQuery } from "@/lib/auth-client";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
@@ -68,7 +70,9 @@ export const Route = createFileRoute("/")({
     // straight from the persisted cache) and skip the landing. New visitors
     // must not wait on an API round trip, or retries when it is down, to see
     // the page; the component redirects later if a session turns up anyway.
-    if (!localStorage.getItem(CACHE_OWNER_KEY)) return;
+    // With a separate app host (HOSTS) the landing stays reachable for everyone: "Masuk" leads signed-in people
+    // into the app, and the app host's `/` goes to Beranda.
+    if (HOSTS || !localStorage.getItem(CACHE_OWNER_KEY)) return;
     try {
       const session = await context.queryClient.ensureQueryData(sessionQuery);
       if (session) throw redirect({ to: "/beranda" });
@@ -439,7 +443,7 @@ function pricingFaq(config: AppConfig | undefined): Array<{ q: string; a: string
 function Landing() {
   const config = useAppConfig();
   // Background check for visitors the beforeLoad gate let through.
-  const { data: session } = useQuery(sessionQuery);
+  const { data: session } = useQuery({ ...sessionQuery, enabled: HOSTS === null });
   if (session) return <Navigate to="/beranda" replace />;
   // Visitors outside Indonesia (known country, not ID) see Pro in dollars.
   const showUsd = Boolean(config.data?.usd?.preferred);
@@ -1190,7 +1194,7 @@ function Landing() {
                     variant="secondary"
                     className="mt-6 w-full"
                     render={
-                      <Link
+                      <AppLink
                         to="/login"
                         data-revklik-goal="signup_click"
                         data-revklik-goal-location="pricing"
@@ -1237,8 +1241,8 @@ function Landing() {
                   <Button
                     className="mt-6 w-full"
                     render={
-                      <Link
-                        to="/harga"
+                      <AppLink
+                        to="/pro"
                         data-revklik-goal="pricing_click"
                         data-revklik-goal-location="pricing"
                       />
@@ -1346,7 +1350,7 @@ function Landing() {
                 size="lg"
                 className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 focus-visible:ring-primary-foreground/50"
                 render={
-                  <Link
+                  <AppLink
                     to="/login"
                     data-revklik-goal="signup_click"
                     data-revklik-goal-location="closing"

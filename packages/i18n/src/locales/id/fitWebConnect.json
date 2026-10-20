@@ -34,7 +34,7 @@
       "claude2": "Pilih Add custom connector.",
       "claude3": "Isi nama dengan JoyoRogo dan URL server MCP dengan alamat penyambung di atas. Kalau ada pilihan OAuth client, biarkan bawaannya dan jangan isi client ID atau secret.",
       "claude4": "Pilih Add, lalu Connect di penyambung JoyoRogo.",
-      "claude5": "Browser membuka joyorogo.com/koneksi/izin. Masuk dengan akunmu, cek izin yang diminta, lalu tekan Izinkan. Persetujuan ini terjadi di sana, bukan di halaman ini.",
+      "claude5": "Browser membuka app.joyorogo.com/koneksi/izin. Masuk dengan akunmu, cek izin yang diminta, lalu tekan Izinkan. Persetujuan ini terjadi di sana, bukan di halaman ini.",
       "claude6": "Di sebuah chat, tekan +, pilih Connectors, lalu nyalakan JoyoRogo. Tanya sesuatu, misalnya \"Ringkas latihanku bulan ini\".",
       "claudeNote": "Di paket Team dan Enterprise, Owner menambahkan penyambung di Organization settings, lalu tiap anggota menekan Connect dengan akunnya sendiri.",
       "chatgptTitle": "Langkah di ChatGPT",
@@ -43,7 +43,7 @@
       "chatgpt2": "Tekan tombol plus, lalu pilih Add custom MCP server.",
       "chatgpt3": "Isi nama JoyoRogo. Di Connection, isi alamat penyambung di atas, lalu pilih OAuth untuk Authentication.",
       "chatgpt4": "Baca peringatan risikonya, centang I understand and want to continue, lalu pilih Create as a plugin.",
-      "chatgpt5": "Browser membuka joyorogo.com/koneksi/izin. Masuk dengan akunmu, cek izin yang diminta, lalu tekan Izinkan. Persetujuan ini terjadi di sana, bukan di halaman ini.",
+      "chatgpt5": "Browser membuka app.joyorogo.com/koneksi/izin. Masuk dengan akunmu, cek izin yang diminta, lalu tekan Izinkan. Persetujuan ini terjadi di sana, bukan di halaman ini.",
       "chatgpt6": "Di chat baru, ketik @ lalu pilih JoyoRogo, kemudian tanyakan sesuatu.",
       "chatgptNote": "Paket dan menu di aplikasi AI sering berubah. Kalau langkahnya berbeda dari yang kamu lihat, ikuti bantuan penyedianya (support.claude.com atau help.openai.com).",
       "guide": "Panduan lengkap di joyorogo.com"

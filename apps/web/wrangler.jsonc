@@ -2,23 +2,28 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "joyorogo-web-live-dzul-fqqmlyfh7l3bif2g",
   "account_id": "b7e6f8457bd39fa37a7eea5249799754",
-  // Only the share routes below run this script (link-preview tags); every
-  // other request is served from the asset store without invoking it.
+  // Every request passes through here so pages reach the right host (src/lib/hosts.ts) and the share routes get
+  // link-preview tags; the static directories below skip it and come straight from the asset store.
   "main": "worker/index.ts",
   "compatibility_date": "2026-08-31",
   "workers_dev": true,
-  // A zone route, not a custom domain: the apex already has proxied DNS
-  // records from the zone import, and a route takes over every path on them.
-  "routes": [{ "pattern": "joyorogo.com/*", "zone_name": "joyorogo.com" }],
+  "routes": [
+    // A zone route, not a custom domain: the apex already has proxied DNS
+    // records from the zone import, and a route takes over every path on them.
+    { "pattern": "joyorogo.com/*", "zone_name": "joyorogo.com" },
+    // The signed-in app (docs/app-subdomain.md). A custom domain creates its own DNS record and certificate.
+    { "pattern": "app.joyorogo.com", "zone_name": "joyorogo.com", "custom_domain": true },
+  ],
   "vars": {
     "API_URL": "https://api.joyorogo.com",
     "SITE_URL": "https://joyorogo.com",
+    "APP_URL": "https://app.joyorogo.com",
   },
   "assets": {
     "directory": "dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
     "html_handling": "auto-trailing-slash",
-    "run_worker_first": ["/gabung/*", "/p/*", "/u/*", "/assets/*"],
+    "run_worker_first": ["/*", "!/fonts/*", "!/icons/*", "!/brand/*", "!/mascot/*", "!/food/*", "!/tips-img/*"],
   },
 }

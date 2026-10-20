@@ -527,9 +527,9 @@ registerStravaRoutes(app, { env, getDb });
 registerFamilyRoutes(app, { env, getDb });
 
 // The Android app only knows the API origin; send its "Kebijakan privasi"
-// link on to the web page.
+// link on to the web page (a marketing page: the site origin, not the app's).
 app.get("/privasi", (c) =>
-  c.redirect(`${(env.APP_URL || env.BETTER_AUTH_URL).replace(/\/$/, "")}/privasi`),
+  c.redirect(`${(env.SITE_URL || env.APP_URL || env.BETTER_AUTH_URL).replace(/\/$/, "")}/privasi`),
 );
 
 // Opt-in public progress page — the shareable link (/u/<code>).

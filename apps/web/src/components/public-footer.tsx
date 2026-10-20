@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { AndroidMark } from "@/components/android-mark";
+import { AppLink } from "@/components/app-link";
 import { AppleMark } from "@/components/apple-mark";
 import { FooterLandscape } from "@/components/footer-landscape";
 import { ANDROID_ROBOT_CREDIT } from "@/lib/credits";
@@ -132,9 +133,9 @@ export function PublicFooter() {
               </li>
             )}
             <li>
-              <Link to="/login" className={linkClass}>
+              <AppLink to="/login" className={linkClass}>
                 Masuk
-              </Link>
+              </AppLink>
             </li>
           </Column>
           <Column title="Terbuka">

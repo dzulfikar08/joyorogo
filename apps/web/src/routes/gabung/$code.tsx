@@ -6,6 +6,7 @@ import { CircleAlert, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+import { AppLink } from "@/components/app-link";
 import { useSession } from "@/lib/auth-client";
 import { pageHead } from "@/lib/seo";
 import { orpc } from "@/utils/orpc";
@@ -114,7 +115,7 @@ function GabungPage() {
                   <Button
                     size="lg"
                     className="mt-5 w-full"
-                    render={<Link to="/login" search={{ redirect: `/gabung/${code}` }} />}
+                    render={<AppLink to="/login" search={{ redirect: `/gabung/${code}` }} />}
                   >
                     {t("invite.signIn")}
                   </Button>

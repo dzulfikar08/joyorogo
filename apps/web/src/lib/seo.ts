@@ -90,6 +90,8 @@ export const PAGES: Record<PublicPath, PageMeta> = {
     title: "Masuk | JoyoRogo",
     description:
       "Masuk ke JoyoRogo dengan akun Google. Isi tinggi, berat, dan target, lalu angka harianmu muncul hari ini juga.",
+    // Lives on app.joyorogo.com; joyorogo.com/login only redirects there.
+    noindex: true,
   },
   "/pembayaran": {
     title: "Pembayaran | JoyoRogo",
