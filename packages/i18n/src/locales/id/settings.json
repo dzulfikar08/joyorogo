@@ -749,5 +749,55 @@
       "restart": "Mulai ulang",
       "error": "Gagal memeriksa pembaruan cepat. Aplikasi tetap memakai versi yang sekarang."
     }
+  },
+  "dishware": {
+    "title": "Piring saya",
+    "intro": "Daftarkan piring dan mangkuk yang biasa kamu pakai, sekali saja. Ukurannya jadi patokan waktu AI memperkirakan porsi dari foto, jadi gramnya lebih dekat ke kenyataan. Makan di tempat lain? Tidak masalah, scan jalan seperti biasa.",
+    "empty": "Belum ada piring. Tambah satu, cukup sekali.",
+    "add": "Tambah piring/mangkuk",
+    "slots": "{{used}} dari {{max}} piring",
+    "full": "Sudah {{max}} piring. Hapus satu kalau mau menambah yang lain.",
+    "form": {
+      "title": "Piring atau mangkuk baru",
+      "photo": "Foto dari atas",
+      "photoHint": "Piring atau mangkuk yang kosong, difoto tepat dari atas. AI menulis ciri-cirinya sekali, supaya nanti bisa mengenali piringmu di foto makanan.",
+      "takePhoto": "Ambil foto",
+      "retake": "Ganti foto",
+      "name": "Nama",
+      "namePlaceholder": "Piring makan putih",
+      "kind": "Jenis",
+      "diameter": "Diameter (cm)",
+      "length": "Panjang (cm)",
+      "width": "Lebar (cm)",
+      "diameterHelp": "Ukur pakai penggaris, atau taruh kartu ATM di sampingnya.",
+      "measureCard": "Ukur dari kartu ATM",
+      "measuring": "Membaca foto...",
+      "save": "Simpan piring",
+      "saving": "Menyimpan...",
+      "cancel": "Batal"
+    },
+    "kind": {
+      "flat": "Piring datar",
+      "bowl": "Mangkuk",
+      "rattan": "Piring rotan",
+      "lunchbox": "Kotak makan"
+    },
+    "measure": {
+      "result": "Perkiraan dari kartu: {{cm}} cm. Cek dengan penggaris kalau bisa, lalu ubah angkanya kalau beda.",
+      "noCard": "Kartunya belum kelihatan jelas di foto. Letakkan kartu rata di samping piring, lalu ambil foto lagi, atau ketik diameternya saja.",
+      "failed": "Foto belum terbaca. Coba foto lagi dari atas dengan cahaya cukup."
+    },
+    "fromCard": "dari kartu",
+    "size": "{{cm}} cm",
+    "sizeBox": "{{length}} x {{width}} cm",
+    "edit": "Ubah",
+    "delete": "Hapus",
+    "deleteConfirm": "Hapus {{name}}? Foto dan ukurannya ikut terhapus.",
+    "saved": "Piring disimpan.",
+    "removed": "Piring dihapus.",
+    "error": {
+      "save": "Gagal menyimpan piring.",
+      "remove": "Gagal menghapus piring."
+    }
   }
 }

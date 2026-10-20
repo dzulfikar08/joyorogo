@@ -9,6 +9,7 @@ import { challengeRouter } from "./challenge";
 import { coachRouter } from "./coach";
 import { dayRouter } from "./day";
 import { diaryRouter } from "./diary";
+import { dishwareRouter } from "./dishware";
 import { exerciseRouter } from "./exercise";
 import { fastingRouter } from "./fasting";
 import { fitnessRouter } from "./fitness";
@@ -65,6 +66,7 @@ export const appRouter = {
   watchWorkout: watchWorkoutRouter,
   fasting: fastingRouter,
   plate: plateRouter,
+  dishware: dishwareRouter,
   place: placeRouter,
   group: groupRouter,
   challenge: challengeRouter,

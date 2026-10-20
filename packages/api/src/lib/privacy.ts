@@ -32,6 +32,7 @@ import {
   teamNudge,
 } from "@joyorogo/db/schema/social";
 import { mealPlan, mealPlanSwap, mealPrefs, mealShoppingCheck } from "@joyorogo/db/schema/meal";
+import { dishware } from "@joyorogo/db/schema/dishware";
 import { savedFood } from "@joyorogo/db/schema/saved-foods";
 import { barcodeContribution } from "@joyorogo/db/schema/barcode";
 import { teamChallengeMember } from "@joyorogo/db/schema/challenge";
@@ -46,7 +47,7 @@ import { avatarPrefix } from "./avatar";
 import { datasetPrefix } from "./dataset";
 import { feedbackPrefix } from "./feedback-keep";
 import { deleteUserMcpData } from "./mcp-connections";
-import { commentPhotoPrefix, photoPrefix, postPhotoPrefix, scanSrcPrefix, stickerKey, varPhotoPrefix } from "./sticker";
+import { commentPhotoPrefix, dishwarePrefix, photoPrefix, postPhotoPrefix, scanSrcPrefix, stickerKey, varPhotoPrefix } from "./sticker";
 import { parseSavedItems } from "./saved-foods";
 import type { StickersBucket } from "./sticker";
 import { watchBlobPrefix } from "./watch-workout";
@@ -90,6 +91,8 @@ export async function deleteUserMedia(
     datasetPrefix(userId),
     // Photos the user opted in to keep with negative feedback.
     feedbackPrefix(userId),
+    // "Piring saya": photos of their registered plates and bowls.
+    dishwarePrefix(userId),
     // JoyoFit cloud workouts (Pro): one document per workout.
     watchBlobPrefix(userId),
   ]) {
@@ -133,6 +136,7 @@ export function deleteAllUserData(db: Database, userId: string) {
       .where(or(eq(socialBlock.blockerId, userId), eq(socialBlock.blockedId, userId))),
     db.delete(plate).where(eq(plate.userId, userId)),
     db.delete(savedFood).where(eq(savedFood.userId, userId)),
+    db.delete(dishware).where(eq(dishware.userId, userId)),
     // Rencana makan: saved plans, swaps, shopping ticks and food preferences.
     db.delete(mealPlan).where(eq(mealPlan.userId, userId)),
     db.delete(mealPlanSwap).where(eq(mealPlanSwap.userId, userId)),

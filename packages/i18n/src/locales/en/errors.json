@@ -80,5 +80,12 @@
   },
   "push": {
     "badToken": "Invalid notification token."
+  },
+  "dishware": {
+    "unavailable": "My plates is not available for your account yet.",
+    "notFound": "Plate not found.",
+    "dailyLimit": "Plate photos were read {{limit}} times today. Try again tomorrow.",
+    "full": "Up to {{max}} plates and bowls. Remove one first.",
+    "analysisFailed": "The AI could not read the plate photo. Try again from straight above with enough light."
   }
 }

@@ -298,6 +298,33 @@ app.get("/var-photo/:photoId", async (c) => {
   });
 });
 
+// "Piring saya" registration photos (dishware/<userId>/<id>.jpg). Private to the owner: the session
+// picks the prefix, so another user's id resolves to nothing.
+app.get("/dishware-photo/:photoId", async (c) => {
+  const photoId = c.req.param("photoId");
+  if (!/^[a-f0-9]{32}$/.test(photoId)) {
+    return c.json({ error: "ID tidak valid." }, 400);
+  }
+  const session = await (await createAuth()).api.getSession({ headers: c.req.raw.headers });
+  if (!session?.user) {
+    return c.json({ error: serverT(requestLocale(c), "errors")("auth.signInRequired") }, 401);
+  }
+  if (!("STICKERS" in env) || !env.STICKERS) {
+    return c.json({ error: "Foto belum tersedia." }, 404);
+  }
+  const obj = await env.STICKERS.get(`dishware/${session.user.id}/${photoId}.jpg`);
+  if (!obj) {
+    return c.json({ error: "Foto tidak ditemukan." }, 404);
+  }
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": obj.httpMetadata?.contentType ?? "image/jpeg",
+      "Content-Length": String(obj.size),
+      "Cache-Control": "private, max-age=86400",
+    },
+  });
+});
+
 // Photos of a shared feed post. Access follows the post's visibility, not the
 // viewer's own prefix: 'publik' posts on a public profile serve without login
 // (cacheable), 'grup' posts need a teammate session (private). Deleted/hidden

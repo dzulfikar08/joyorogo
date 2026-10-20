@@ -79,5 +79,12 @@
   },
   "push": {
     "badToken": "Token notifikasi tidak valid."
+  },
+  "dishware": {
+    "unavailable": "Piring saya belum tersedia untuk akunmu.",
+    "notFound": "Piring tidak ditemukan.",
+    "dailyLimit": "Foto piring hari ini sudah dibaca {{limit}} kali. Coba lagi besok ya.",
+    "full": "Maksimal {{max}} piring dan mangkuk. Hapus satu dulu ya.",
+    "analysisFailed": "AI belum berhasil membaca foto piringnya. Coba foto lagi dari atas dengan cahaya yang cukup."
   }
 }

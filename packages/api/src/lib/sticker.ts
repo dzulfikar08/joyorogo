@@ -62,6 +62,15 @@ export function varPhotoPrefix(userId: string): string {
   return `var/${userId}/`;
 }
 
+/** "Piring saya" registration photos: private, the key embeds the owner (served by /dishware-photo/:id). */
+export function dishwarePhotoKey(userId: string, photoId: string): string {
+  return `dishware/${userId}/${photoId}.jpg`;
+}
+
+export function dishwarePrefix(userId: string): string {
+  return `dishware/${userId}/`;
+}
+
 type ImagesTransformer = {
   transform(options: Record<string, unknown>): ImagesTransformer;
   output(options: Record<string, unknown>): Promise<{ response(): Response }>;

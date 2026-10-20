@@ -34,6 +34,12 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
    * Unset or empty = nobody, and scans are answered exactly as before.
    */
   PORTION_PRIOR_USER_IDS?: string;
+  /**
+   * Comma-separated user ids that get "Piring saya": registered plates and bowls whose sizes scale the
+   * photo scan's portions (lib/dishware.ts, docs/dishware.md). Unset or empty = nobody, and scans are
+   * answered exactly as before.
+   */
+  DISHWARE_USER_IDS?: string;
   /** USDA FoodData Central key (api.data.gov): enables the USDA barcode source; unset = not asked. */
   USDA_FDC_API_KEY?: string;
   STRAVA_CLIENT_ID?: string;

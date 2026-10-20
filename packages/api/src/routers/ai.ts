@@ -45,6 +45,8 @@ import { wibDayBounds } from "../lib/tiers";
 import { runShadowScan, sampledForShadow, shadowDailyCap } from "../lib/shadow-scan";
 import { DEFAULT_VISION_MODEL, VisionError, analyzeFoodPhoto, normalizeBox } from "../lib/vision";
 import type { ItemBox, VisionAnalysis, VisionEvent } from "../lib/vision";
+import { loadScanDishware } from "../lib/dishware-store";
+import type { DishwareScanNote } from "../lib/dishware-store";
 import { EventChannel } from "../lib/event-channel";
 import { withPortionPrior } from "../lib/portion-prior";
 import type { PortionPrior } from "../lib/portion-prior";
@@ -201,6 +203,11 @@ async function loadUserNote(db: Database, userId: string): Promise<string | null
   return isGainGap(gapKg) ? GAIN_PROMPT_NOTE : null;
 }
 
+/** The ledger's record of the plate question: how many plates the user has, and what the model answered. */
+function plateLedger(registered: number, note: DishwareScanNote, answer: string | null | undefined) {
+  return { registered, matched: note.status === "matched" ? note.id : null, answer: answer ?? null };
+}
+
 /** What analyzeFood answers, and what the closing `done` event of analyzeFoodStream carries. */
 export type AnalyzeFoodResult = {
   /** `portionPrior` is present only for allowlisted users with a consistent weighed history (lib/portion-prior.ts). */
@@ -212,6 +219,12 @@ export type AnalyzeFoodResult = {
   quotaReached: boolean;
   model: string;
   askFeedback: boolean;
+  /**
+   * "Piring saya" (docs/dishware.md), only for allowlisted users who have registered plates: which one the
+   * model recognised and scaled the portions by, or `none` (Piring tidak dikenali, porsi diperkirakan biasa).
+   * Absent = nobody asked the question, so there is nothing to say.
+   */
+  plate?: DishwareScanNote;
 };
 
 /**
@@ -241,6 +254,8 @@ async function runAnalyzeFood(
 
   // Hamil / Menyusui: one context line for the prompt, read beside the model call's setup.
   const userNote = loadUserNote(context.db, userId);
+  // "Piring saya": the registered plates as prompt text (allowlist only; a failed read is an ordinary scan).
+  const dishware = loadScanDishware(context.db, context.env, userId);
   // "Hasilnya akurat?" cadence: ask after every scan for a brand-new user
   // (first 3 scans ever), otherwise at most once per WIB day. Counted
   // before this scan's ledger row lands; awaited after inference so the
@@ -331,6 +346,7 @@ async function runAnalyzeFood(
       model: context.env.AI_VISION_MODEL || undefined,
       locale: context.locale,
       userContext: (await userNote) ?? undefined,
+      dishware: (await dishware)?.instruction,
       onEvent: report,
     });
   } catch (error) {
@@ -376,9 +392,12 @@ async function runAnalyzeFood(
     ...(onEvent ? { streamed: true, ...firstSeen } : {}),
     totalMs: Date.now() - requestStartedAt,
   };
+  const plates = await dishware;
+  const plate = plates?.note(analysis.plate);
   const ledgerUsage = {
     ...analysis.usage,
     itemCount: analysis.items.length,
+    ...(plates && plate ? { plate: plateLedger(plates.plates.length, plate, analysis.plate) } : {}),
     ...(analysis.tooMany ? { tooMany: true } : {}),
     ...(analysis.modelTooMany ? { modelTooMany: true } : {}),
     ...(analysis.repaired ? { repaired: true } : {}),
@@ -511,6 +530,7 @@ async function runAnalyzeFood(
     quotaReached,
     model: analysis.model,
     askFeedback: (scansEverRow?.n ?? 0) < 3 || (askedTodayRow?.n ?? 0) === 0,
+    ...(plate ? { plate } : {}),
   };
 }
 
@@ -557,6 +577,7 @@ export const aiRouter = {
       const userId = context.session.user.id;
       const requestStartedAt = Date.now();
       const userNote = loadUserNote(context.db, userId);
+      const dishware = loadScanDishware(context.db, context.env, userId);
       const t = serverT(context.locale, "errors");
       const ai = context.env.AI;
       if (!ai) {
@@ -596,12 +617,15 @@ export const aiRouter = {
           retry: { hint: input.hint },
           locale: context.locale,
           userContext: (await userNote) ?? undefined,
+          dishware: (await dishware)?.instruction,
         });
       } catch (error) {
         context.waitUntil(logScanFailure(context.db, userId, error, startedAt, "retry"));
         throw scanFailure(error, context.locale);
       }
       const aiMs = Date.now() - startedAt;
+      const plates = await dishware;
+      const plate = plates?.note(analysis.plate);
       // Both writes come after inference: a failed or abandoned attempt
       // never consumes the cap, and ledger rows marked "retry" stay outside
       // the daily quota count (scansUsedToday only counts "user").
@@ -639,6 +663,7 @@ export const aiRouter = {
             ...(analysis.tooMany ? { tooMany: true } : {}),
             ...(analysis.modelTooMany ? { modelTooMany: true } : {}),
             ...(analysis.repaired ? { repaired: true } : {}),
+            ...(plates && plate ? { plate: plateLedger(plates.plates.length, plate, analysis.plate) } : {}),
             ...analysis.usage,
             serverTiming: {
               loadMs,
@@ -682,6 +707,7 @@ export const aiRouter = {
         tooMany: analysis.tooMany,
         retriesLeft: MAX_SCAN_RETRIES - (used + 1),
         model: analysis.model,
+        ...(plate ? { plate } : {}),
       };
     }),
   // Real background-removed cutout of one detected item, for the result screen.

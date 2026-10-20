@@ -298,5 +298,9 @@
       "scanLimit_other": "You've used the correction limit for this photo ({{count}} times). Edit by hand or retake the photo.",
       "dayLimit": "Today's correction limit is reached. Edit by hand or try again tomorrow."
     }
+  },
+  "dishware": {
+    "matched": "Plate: {{name}} ({{cm}} cm), used as the size reference for portions.",
+    "none": "Plate not recognised, portions estimated as usual."
   }
 }

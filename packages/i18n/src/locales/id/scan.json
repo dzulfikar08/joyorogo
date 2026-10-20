@@ -283,5 +283,9 @@
       "scanLimit_other": "Koreksi untuk foto ini sudah mentok ({{count}} kali). Edit manual saja, atau foto ulang.",
       "dayLimit": "Batas koreksi hari ini tercapai. Edit manual saja, atau coba lagi besok."
     }
+  },
+  "dishware": {
+    "matched": "Piring: {{name}} ({{cm}} cm), jadi patokan ukuran porsi.",
+    "none": "Piring tidak dikenali, porsi diperkirakan biasa."
   }
 }

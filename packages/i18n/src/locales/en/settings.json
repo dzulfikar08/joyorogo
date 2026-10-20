@@ -769,5 +769,55 @@
       "restart": "Restart",
       "error": "Couldn't check for a quick update. The app keeps the version it has."
     }
+  },
+  "dishware": {
+    "title": "My plates",
+    "intro": "Register the plates and bowls you usually eat from, once. Their size becomes the reference when the AI estimates portions from a photo, so grams land closer to reality. Eating somewhere else? No problem, the scan works as usual.",
+    "empty": "No plates yet. Add one, just once.",
+    "add": "Add plate/bowl",
+    "slots": "{{used}} of {{max}} plates",
+    "full": "You have {{max}} plates. Remove one to add another.",
+    "form": {
+      "title": "New plate or bowl",
+      "photo": "Photo from above",
+      "photoHint": "An empty plate or bowl, photographed straight from above. The AI writes down what it looks like once, so it can recognise your plate in food photos later.",
+      "takePhoto": "Take photo",
+      "retake": "Change photo",
+      "name": "Name",
+      "namePlaceholder": "White dinner plate",
+      "kind": "Type",
+      "diameter": "Diameter (cm)",
+      "length": "Length (cm)",
+      "width": "Width (cm)",
+      "diameterHelp": "Measure with a ruler, or lay a bank card next to it.",
+      "measureCard": "Measure from a bank card",
+      "measuring": "Reading the photo...",
+      "save": "Save plate",
+      "saving": "Saving...",
+      "cancel": "Cancel"
+    },
+    "kind": {
+      "flat": "Flat plate",
+      "bowl": "Bowl",
+      "rattan": "Rattan plate",
+      "lunchbox": "Lunch box"
+    },
+    "measure": {
+      "result": "Estimate from the card: {{cm}} cm. Check with a ruler if you can, and change the number if it differs.",
+      "noCard": "The card is not clearly visible in the photo. Lay it flat next to the plate and take the photo again, or just type the diameter.",
+      "failed": "The photo could not be read. Try again from straight above with enough light."
+    },
+    "fromCard": "from card",
+    "size": "{{cm}} cm",
+    "sizeBox": "{{length}} x {{width}} cm",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteConfirm": "Delete {{name}}? Its photo and size are removed too.",
+    "saved": "Plate saved.",
+    "removed": "Plate removed.",
+    "error": {
+      "save": "Could not save the plate.",
+      "remove": "Could not delete the plate."
+    }
   }
 }

@@ -172,6 +172,8 @@ export type VisionAnalysis = {
   modelTooMany?: boolean;
   /** The model's JSON needed key repair or item salvage before it parsed (logged for tuning). */
   repaired?: boolean;
+  /** The "plate" the model answered (lib/dishware.ts): a label, null = none of the user's plates; absent = not asked. */
+  plate?: string | null;
   /** Where the model call's time went (ms): the whole attempt, and for a stream the wait for the first token. */
   timing: { modelMs: number; ttftMs?: number; attempts: number };
 };
@@ -470,7 +472,22 @@ type ParsedAnswer = {
   found: number;
   /** Key repair or item salvage was needed before the answer parsed. */
   repaired: boolean;
+  /** The "plate" field (see extractPlateAnswer); undefined = the answer has none. */
+  plate: string | null | undefined;
 };
+
+/**
+ * The model's leading "plate" field (docs/dishware.md), read from the raw text so a cut-off or
+ * repaired answer keeps it: undefined = no such field (the model was not asked, or skipped it),
+ * null = it answered none, else the label it chose (checked against the user's plates by the caller).
+ */
+export function extractPlateAnswer(text: string): string | null | undefined {
+  const match = /"plate"\s*:\s*(?:"([^"]{0,16})"|(null)|([A-Za-z0-9]{1,8}))/.exec(text);
+  if (!match) return undefined;
+  if (match[2] !== undefined) return null;
+  const label = (match[1] ?? match[3] ?? "").trim();
+  return label === "" || /^(null|none|tidak|-)$/i.test(label) ? null : label;
+}
 
 /** The model reports why it found nothing as a short Indonesian/English tag. */
 function problemReason(problem: string | undefined): ScanFailReason | null {
@@ -662,6 +679,7 @@ export function parseAnswer(
     empty: rawItems.length === 0,
     found: valid.length,
     repaired,
+    plate: extractPlateAnswer(cleaned),
   };
 }
 
@@ -685,6 +703,8 @@ export async function analyzeFoodPhoto(
     locale?: Locale;
     /** One line about the person (maternalPromptNote: Hamil/Menyusui), appended to the prompt. */
     userContext?: string;
+    /** The user's registered plates as prompt text (dishwareInstruction); the answer then carries `plate`. */
+    dishware?: string;
     /**
      * Stream the answer and report items as they complete. The returned
      * analysis is parsed from the whole text, identical to a plain run.
@@ -724,7 +744,7 @@ export async function analyzeFoodPhoto(
         imageBase64: opts.imageBase64,
         mimeType: opts.mimeType,
         instruction:
-          [opts.retry ? retryInstruction(opts.retry.hint) : undefined, opts.userContext]
+          [opts.retry ? retryInstruction(opts.retry.hint) : undefined, opts.userContext, opts.dishware]
             .filter(Boolean)
             .join("\n\n") || undefined,
         locale: opts.locale,
@@ -762,6 +782,7 @@ export async function analyzeFoodPhoto(
           tooMany: answer.tooMany,
           ...(answer.modelTooMany ? { modelTooMany: true } : {}),
           ...(answer.repaired ? { repaired: true } : {}),
+          ...(answer.plate !== undefined ? { plate: answer.plate } : {}),
           timing: { modelMs, ...streamTiming, attempts },
         };
       }
