@@ -4,6 +4,25 @@ Running notes on how accurate the photo scan is, what the data says, and what to
 
 Owner preference to keep in mind: an over-estimated kcal is acceptable, an under-estimate is the worse error, yet users do write "kalori kelewat tinggi". Over and under are always reported separately.
 
+## 2026-10-20: Piring saya (registered plates) built behind a flag; mechanism checked, accuracy NOT measured yet
+
+Why: the portion entry below shows the photo has no scale, so grams (rice above all) are guessed. Piring saya lets the owner register his plates and bowls with a measured diameter; the scan prompt then carries those sizes as text and the model says which one it sees (docs/dishware.md). Flag `DISHWARE_USER_IDS` (owner only), nothing changes for anyone else.
+
+Harness: `--variant plate-ref` (labels `plate` or `--plates <file>`), paired on the cases that have a plate, reports recognised / wrongly claimed.
+
+What was run (mechanism only, 8 external cases x baseline and plate-ref = 16 Workers AI calls, a few cents): one case got a plate described from what is visible in its photo (a clear scalloped glass plate), the other seven got a deliberately wrong plate (blue melamine) marked `inPhoto: false`. The diameters in this file were invented for the check, so the grams and kcal columns of that run mean nothing and are not quoted here.
+
+| Check | Result |
+|---|---|
+| plate in the photo recognised (P1) | 1 of 1 |
+| wrong plate claimed where it is not in the photo | 0 of 7 |
+| plate-ref answers that left out the `plate` field | 0 of 8 |
+| items still returned, JSON intact | yes in all 8; dish lists identical to baseline in 3 of 8, otherwise a renamed or merged side dish (one run per variant, so run-to-run drift is not separated from any effect of the prompt) |
+
+Reading it: the field format works with Gemma 4 and no answer lost its item list to it; the model does not claim a plate it cannot see on this small sample (n=7 negatives, one positive, one contributor). It says nothing yet about whether a known diameter brings the rice from 150 g toward 100 g.
+
+**What the answer needs**: a handful of photos of food on a plate whose diameter is measured, with the food weighed. Either the owner registers a plate and weighs a few meals on it (the harness takes a `plate` per owner case via `--plates`, e.g. `{"group:owner": {...}}` for a window of meals), or the external contributor adds `plate` to his labels (name, kind, measured diameter). About 15 weighed meals on two or three plates would give a first paired read of grams error, baseline vs `plate-ref`.
+
 ## 2026-10-20: when the grams are known, does our kcal per gram agree with Meta AI? (comparator, not truth)
 
 The external contributor also asks Meta AI (meta.ai) in his thread, giving it the photo, his grams and a nutrition-tracker prompt. Its answer for one day (Day 3, four meals) was copied into the case labels as a **comparator** (`comparators` on the case: source, meal or day scope, kcal range). It is shown beside ours and never scored: Meta AI is not ground truth. Days 4 and 5 have no Meta answer (hidden under "Show replies").

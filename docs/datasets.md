@@ -30,6 +30,8 @@ Each item: `name` (as the model would say it), `said` (his words), `grams` (weig
 - **`mapping`**: `certain`, `likely` or `uncertain` for the meal-to-photo match when the post does not say which photo is which.
 - **`comparators`** (optional, case level): another estimator's answer to the same meal or day, for example a chatbot the contributor asked with the photo and his grams: `{source, scope: "meal"|"day", kcalLow, kcalHigh, note}`. A day total goes on one case of that day. A comparator is **never truth and never scored**; it is shown beside ours (`--comparators`) to see whether kcal per gram agrees when the grams are known.
 
+- **`plate`** (optional, case level): the plate or bowl the meal was eaten from, as the contributor measured it: `{name, kind: "flat"|"bowl"|"rattan"|"lunchbox", diameterCm, widthCm?, description?, inPhoto?}`. `inPhoto: false` marks a plate that is NOT in this photo (a check that the model answers "none"). It only feeds the `plate-ref` variant ("Piring saya", `docs/dishware.md`); it is never truth about the food.
+
 ### Labels file
 
 The hand-checked input of the importer: `version`, `source`, `consent`, `cases[]` (`photo {post, index, file}`, `day`, `meal`, `mealRaw`, `said`, `mapping`, `trust`, `trustWhy`, `items`, `groups`, `extras`, `notes`), `unmapped[]` (meals with no photo yet). Copy `scripts/external-cases/example.labels.json` (invented data) to `scripts/external-cases/<handle>.labels.json` and replace everything. Real labels files are git-ignored: they hold a person's weights and post text. The importer rejects a file whose refs do not resolve, whose groups are dangling, or with no scorable item.
@@ -55,6 +57,9 @@ bun run scripts/eval-scans.ts --only external --reps 2       # production prompt
 #    --variant baseline --variant scale-cues ...   compare variants (see `--list-variants`); variants that
 #                                differ in calibration only replay the same model answer (.tmp/eval/raw)
 #    --only owner --only external   run the owner set next to the external one
+#    --variant plate-ref --plates <file>   "Piring saya": cases that carry a `plate` (labels, or a JSON file of
+#                                { "<caseId>" | "group:<group>": plate }) get that plate in the prompt as text;
+#                                all variants of the run are limited to those cases so the comparison is paired
 #    --comparators               for cases with comparators: also run our text path ("Ceritakan") on his own
 #                                words with his grams and print per meal: reference kcal for his grams vs
 #                                the comparator vs our photo answer vs our text answer, plus the text path

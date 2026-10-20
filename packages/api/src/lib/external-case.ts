@@ -20,6 +20,8 @@
 import { z } from "zod";
 
 import { EXTERNAL_DATASET_PREFIX } from "./dataset";
+import { plateRefSchema } from "./dishware";
+import type { PlateRef } from "./dishware";
 import { TKPI_DISHES } from "./tkpi";
 import { TKPI_2019 } from "./tkpi2019-data";
 
@@ -138,6 +140,12 @@ export const caseSchema = z.object({
   notes: z.string().optional(),
   /** Other estimators' answers for this meal or day (Meta AI and the like). NOT ground truth: never scored, only shown next to ours. */
   comparators: z.array(comparatorSchema).default([]),
+  /**
+   * The plate or bowl this meal was eaten from, as the contributor measured it ("Piring saya", the
+   * `plate-ref` variant of scripts/eval-scans.ts): name, kind, diameter in cm, how it looks. `inPhoto: false`
+   * when that plate is not in this photo (a check that the model does not claim it).
+   */
+  plate: plateRefSchema.optional(),
 });
 export type LabelCase = z.infer<typeof caseSchema>;
 
@@ -262,6 +270,8 @@ export type ExternalMeta = {
   extras: LabelCase["extras"];
   notes?: string;
   comparators: Comparator[];
+  /** The plate the meal was eaten from, when the contributor measured it (see caseSchema). */
+  plate?: PlateRef;
   /** What the harness scores against, over the items marked inPhoto "yes". */
   truth: {
     /** Every scored item has a reference kcal. */
@@ -413,6 +423,7 @@ export function buildExternalMeta(
     extras: c.extras,
     ...(c.notes ? { notes: c.notes } : {}),
     comparators: c.comparators,
+    ...(c.plate ? { plate: c.plate } : {}),
     truth: truthOf(items, c.groups),
     importedAt,
   };

@@ -26,6 +26,12 @@
 //                      Meta AI, never truth): also run OUR text path (story / "Ceritakan") on his
 //                      own words with his grams, and print per meal: his-grams reference kcal vs the
 //                      comparator vs our photo answer vs our text answer. A few calls per case.
+//   --plates <file>    plate references for the `plate-ref` variant ("Piring saya"): JSON
+//                      { "<caseId>": plate, "group:owner": plate, ... } with plate =
+//                      { name, kind: flat|bowl|rattan|lunchbox, diameterCm, widthCm?, description?,
+//                      inPhoto? (false = this plate is NOT in the photo) }. External cases can also
+//                      carry `plate` in their labels. Cases without a reference are left out of every
+//                      variant of the run when `plate-ref` is among them, so comparisons stay paired.
 //   --dry-run          list the cases, their truth and the model calls, then exit (no calls)
 //   --dir <path>       exported dataset dir (default .tmp/dataset)
 //   --limit <N>        at most N cases in total (owner, feedback, external, then wikimedia)
@@ -47,10 +53,12 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { ateReference, EXTERNAL_META_VERSION, truthOf } from "../packages/api/src/lib/external-case";
 import type { Comparator, ExternalMeta } from "../packages/api/src/lib/external-case";
 import { parseFoodStory } from "../packages/api/src/lib/story";
+import { dishwareInstruction, dishwareLabel, plateRefSchema } from "../packages/api/src/lib/dishware";
+import type { PlateRef } from "../packages/api/src/lib/dishware";
 
 import { analyzeFoodPhoto, DEFAULT_VISION_MODEL, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
 import type { AiRunner } from "../packages/api/src/lib/vision";
@@ -77,8 +85,15 @@ type Variant = {
    * keep-the-model's-number ratio under test; production's constant when unset.
    */
   portionPrior?: { bigPlate?: number };
+  /** The case's registered plates as production sends them (analyzeFoodPhoto `dishware`); undefined = none. */
+  dishware?: (c: Case) => string | undefined;
   /** Only these groups run the variant (default: all). */
   groups?: Group[];
+  /**
+   * Only cases that pass run, and when any chosen variant has this, every variant of the run is limited
+   * to those cases: a comparison is only paired on cases they all ran.
+   */
+  appliesTo?: (c: Case) => boolean;
   notes: string;
 };
 
@@ -116,6 +131,11 @@ const VARIANTS: Record<string, Variant> = {
   },
   "portion-prior-1.6": { portionPrior: { bigPlate: 1.6 }, groups: ["external", "owner"], notes: "Tuning: portion-prior with the big-plate ratio 1.6." },
   "portion-prior-noguard": { portionPrior: { bigPlate: Infinity }, groups: ["external", "owner"], notes: "Tuning: portion-prior with no big-plate guard." },
+  "plate-ref": {
+    dishware: (c) => (c.plate ? (dishwareInstruction([c.plate]) ?? undefined) : undefined),
+    appliesTo: (c) => c.plate !== undefined,
+    notes: "Piring saya: the case's registered plate (name, kind, diameter, description) goes into the prompt as text, as production does for an allowlisted user; the model says whether it is in the photo and scales portions by it. Only cases that carry a plate reference (labels `plate` or --plates) run, for every variant of the run. Reports how often the plate was recognised (inPhoto) and wrongly claimed (not inPhoto).",
+  },
 };
 // ---------------------------------------------------------------------------
 
@@ -142,6 +162,8 @@ type Case = {
   recorded: EvalItem[] | null;
   /** The user's saved items; null = unlabelled. */
   truth: TruthItem[] | null;
+  /** The plate this meal was eaten from (labels or --plates); what the `plate-ref` variant tells the model. */
+  plate?: PlateRef;
   /** Wikimedia only: dish name and the kcal band one serving is expected in. */
   wiki?: { dish: string; min: number; max: number };
   /** External cases only. */
@@ -190,6 +212,7 @@ type Args = {
   externalUncertain: boolean;
   dryRun: boolean;
   comparators: boolean;
+  plates: string | null;
   dir: string;
   limit: number;
   reps: number;
@@ -206,6 +229,7 @@ function parseArgs(argv: string[]): Args {
     externalUncertain: false,
     dryRun: false,
     comparators: false,
+    plates: null,
     dir: join(ROOT, ".tmp", "dataset"),
     limit: Infinity,
     reps: 1,
@@ -257,6 +281,9 @@ function parseArgs(argv: string[]): Args {
         break;
       case "--comparators":
         args.comparators = true;
+        break;
+      case "--plates":
+        args.plates = resolve(process.cwd(), value(i++));
         break;
       case "--dry-run":
         args.dryRun = true;
@@ -427,14 +454,14 @@ function restRunner(token: string): AiRunner {
 }
 
 type RunResult =
-  | { ok: true; items: EvalItem[]; ms: number; modelMs: number; tooMany: boolean; cached: boolean }
+  | { ok: true; items: EvalItem[]; ms: number; modelMs: number; tooMany: boolean; cached: boolean; plate?: string | null }
   | { ok: false; reason: string; ms: number; cached: false };
 
 /** Cache key of a variant for one case: model, final prompt (variant diff + the case's own line) and calibration. */
 const fingerprint = (variant: Variant, c?: Case) =>
   createHash("sha256")
     .update(
-      `${variant.model ?? DEFAULT_VISION_MODEL}\n${promptFor(variant)(visionPrompt())}\n${JSON.stringify(variant.calibration ?? {}, (_k, v) => (v === Infinity ? "inf" : v))}\n${priorSignature(variant, c)}`,
+      `${variant.model ?? DEFAULT_VISION_MODEL}\n${promptFor(variant)(visionPrompt())}\n${JSON.stringify(variant.calibration ?? {}, (_k, v) => (v === Infinity ? "inf" : v))}\n${priorSignature(variant, c)}\n${(c && variant.dishware?.(c)) ?? ""}`,
     )
     .digest("hex")
     .slice(0, 8);
@@ -506,6 +533,7 @@ async function runOne(
       mimeType: "image/jpeg",
       model: variant.model,
       promptTransform: promptFor(variant),
+      dishware: variant.dishware?.(c),
       calibration: variant.calibration,
     });
     const priors = variant.portionPrior ? priorsFor(c) : null;
@@ -519,6 +547,7 @@ async function runOne(
       modelMs: analysis.timing.modelMs,
       tooMany: analysis.tooMany,
       cached: false,
+      ...(analysis.plate !== undefined ? { plate: analysis.plate } : {}),
     };
     await Bun.write(cacheFile, JSON.stringify(result));
     return result;
@@ -552,6 +581,33 @@ function ownerHistoryRows(row: SummaryRow): HistoryRow[] {
     const paired = pairs.find((p) => p.truth === t);
     return [paired ? { name: paired.ai.name, grams: t.grams, source: "ai", itemsJson } : { name: t.name, grams: t.grams, source: "manual", itemsJson: null }];
   });
+}
+
+/**
+ * `--plates <file>`: plate references by case id or `group:<group>`, for cases whose labels carry none
+ * (the owner's own scans once he registers his plate). A case id wins over its group; a plate already in
+ * an external case's labels is replaced by the file's.
+ */
+async function applyPlates(cases: Case[], skipped: Case[], file: string): Promise<number> {
+  // Boundary: a hand-written file, every plate validated.
+  const raw: unknown = await Bun.file(file).json();
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) throw new Error(`${file}: expected an object of plates`);
+  const plates = new Map<string, PlateRef>(
+    Object.entries(raw).map(([key, plate]) => {
+      const parsed = plateRefSchema.safeParse(plate);
+      if (!parsed.success) throw new Error(`${file}: "${key}": ${parsed.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`);
+      return [key, parsed.data];
+    }),
+  );
+  let n = 0;
+  for (const c of [...cases, ...skipped]) {
+    const plate = plates.get(c.id) ?? plates.get(`group:${c.group}`);
+    if (plate) {
+      c.plate = plate;
+      n++;
+    }
+  }
+  return n;
 }
 
 async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }> {
@@ -605,6 +661,7 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
           person: source,
           photo: join(dir, "photo.jpg"),
           label: `${meta.trust} trust, day ${meta.source.day} ${meta.source.meal}`,
+          ...(meta.plate ? { plate: meta.plate } : {}),
           recorded: null,
           truth: scored.map((i) => ({
             name: i.name,
@@ -699,6 +756,8 @@ type Agg = {
   sideGrams: ErrStats;
   latency: { p50: number; p95: number };
   tooMany: number;
+  /** `plate-ref` runs: how often the registered plate was recognised where it is in the photo, and claimed where it is not. */
+  plateRef: { shown: { hit: number; of: number }; hidden: { claimed: number; of: number }; unanswered: number } | null;
 };
 
 const ratio = (a: number, b: number) => (b > 0 ? a / b : NaN);
@@ -744,6 +803,22 @@ function aggregate(group: Group, variant: string, runs: Run[]): Agg {
     sideGrams: errStats(scored.flatMap((s) => s.gramsSide)),
     latency: { p50: quantile(ms, 0.5), p95: quantile(ms, 0.95) },
     tooMany: ok.filter((r) => r.result.ok && r.result.tooMany).length,
+    // Only variants that ask the plate question have an answer to count.
+    plateRef: VARIANTS[variant]?.dishware ? plateRefStats(runs) : null,
+  };
+}
+
+/** The first (only) plate of a `plate-ref` prompt is labelled P1; an answer is a hit when the model says so. */
+function plateRefStats(runs: Run[]): Agg["plateRef"] {
+  const asked = runs.filter((r) => r.c.plate && r.result.ok);
+  if (!asked.length) return null;
+  const claimed = (r: Run) => r.result.ok && r.result.plate?.toLowerCase() === dishwareLabel(0).toLowerCase();
+  const shown = asked.filter((r) => r.c.plate!.inPhoto);
+  const hidden = asked.filter((r) => !r.c.plate!.inPhoto);
+  return {
+    shown: { hit: shown.filter(claimed).length, of: shown.length },
+    hidden: { claimed: hidden.filter(claimed).length, of: hidden.length },
+    unanswered: asked.filter((r) => r.result.ok && r.result.plate === undefined).length,
   };
 }
 
@@ -781,6 +856,11 @@ function aggTable(a: Agg): string[] {
   rows.push(...statsRows("plate grams", a.plateGrams, "g"));
   rows.push(`| latency p50 / p95 (REST, incl. round trip) | ${sec(a.latency.p50)} / ${sec(a.latency.p95)} |`);
   if (a.tooMany) rows.push(`| answers flagged too many | ${a.tooMany} |`);
+  if (a.plateRef) {
+    rows.push(`| plate recognised (it is in the photo) | ${a.plateRef.shown.hit} of ${a.plateRef.shown.of} |`);
+    if (a.plateRef.hidden.of) rows.push(`| plate wrongly claimed (it is not in the photo) | ${a.plateRef.hidden.claimed} of ${a.plateRef.hidden.of} |`);
+    if (a.plateRef.unanswered) rows.push(`| answers without a plate field | ${a.plateRef.unanswered} |`);
+  }
   return rows;
 }
 
@@ -1020,8 +1100,20 @@ function comparatorSection(
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   mkdirSync(CACHE_DIR, { recursive: true });
-  const { cases, skipped } = await loadCases(args);
-  if (cases.length === 0) {
+  const { cases: loaded, skipped } = await loadCases(args);
+  if (args.plates) console.log(`--plates: ${await applyPlates(loaded, skipped, args.plates)} cases now carry a plate reference`);
+  // `plate-ref` only means something on cases with a plate: when it is in the run, every variant gets just those
+  // cases, so the comparison stays paired.
+  const needing = args.variants.flatMap((v) => (VARIANTS[v]!.appliesTo ? [VARIANTS[v]!.appliesTo!] : []));
+  const cases = loaded.filter((c) => needing.every((applies) => applies(c)));
+  if (needing.length) {
+    console.log(`${cases.length} of ${loaded.length} cases carry a plate reference; the other ${loaded.length - cases.length} are left out of every variant of this run`);
+    if (cases.length === 0) {
+      console.log("plate-ref is ready but there is no plate data yet: add `plate` to an external case's labels, or pass --plates <file> (see the header of this script). No model calls made, no report written.");
+      return;
+    }
+  }
+  if (cases.length === 0 && !needing.length) {
     console.log("no labelled cases to run (export the dataset, write external cases with scripts/external-import.ts --out, or pass --wikimedia)");
   }
 
@@ -1051,6 +1143,7 @@ async function main() {
         console.log(`  truth  ${t.name.padEnd(22)} ${t.grams !== undefined ? `${t.grams} g`.padEnd(8) : "- g".padEnd(8)} ${t.noKcal ? "no ref kcal" : `${t.kcal} kcal`}${t.ref ? `  [${t.ref}]` : ""}`);
       }
       if (ext?.ignore.length) console.log(`  set aside if the model names them: ${ext.ignore.join(", ")}`);
+      if (c.plate) console.log(`  plate ref: ${c.plate.name} (${c.plate.kind}, ${c.plate.diameterCm} cm${c.plate.widthCm ? ` x ${c.plate.widthCm}` : ""})${c.plate.inPhoto ? "" : "  NOT in this photo (expect none)"}`);
     }
     for (const c of skipped) console.log(`\nnot run: ${c.group}/${c.id} (${c.label})`);
     console.log("\ndry run: no model calls made, no report written");

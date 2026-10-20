@@ -129,6 +129,24 @@ describe("meta.json", () => {
     });
   });
 
+  test("a plate the contributor measured rides along for the plate-ref variant, and defaults to being in the photo", () => {
+    expect(weighed!.plate).toMatchObject({ name: "Piring makan putih", kind: "flat", diameterCm: 24, inPhoto: true });
+    expect(buildExternalMeta(labels, weighed!, photo, NOW).plate).toEqual(weighed!.plate);
+    expect(buildExternalMeta(labels, grouped!, photo, NOW).plate).toBeUndefined();
+    const bare = labelsSchema.parse({
+      ...labels,
+      cases: [{ ...weighed!, plate: { name: "Mangkuk", kind: "bowl", diameterCm: 14 } }],
+    });
+    expect(bare.cases[0]!.plate).toEqual({ name: "Mangkuk", kind: "bowl", diameterCm: 14, description: "", inPhoto: true });
+  });
+
+  test("a plate nobody could own is rejected", () => {
+    const bad = (plate: unknown) => labelsSchema.safeParse({ ...labels, cases: [{ ...weighed!, plate }] }).success;
+    expect(bad({ name: "x", kind: "bowl", diameterCm: 2 })).toBe(false);
+    expect(bad({ name: "x", kind: "wok", diameterCm: 20 })).toBe(false);
+    expect(bad({ name: "x", kind: "bowl", diameterCm: 20 })).toBe(true);
+  });
+
   test("a comparator range must be ordered and positive", () => {
     const bad = JSON.parse(JSON.stringify(labels));
     bad.cases[0].comparators[0] = { source: "x", scope: "meal", kcalLow: 600, kcalHigh: 500 };

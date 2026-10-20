@@ -51,7 +51,8 @@
       "comparators": [
         { "source": "example-chatbot", "scope": "meal", "kcalLow": 480, "kcalHigh": 520, "note": "Invented: asked with the photo and his grams. A comparator, not truth." },
         { "source": "example-chatbot", "scope": "day", "kcalLow": 1500, "kcalHigh": 1600, "note": "Invented day total; put on one case of the day." }
-      ]
+      ],
+      "plate": { "name": "Piring makan putih", "kind": "flat", "diameterCm": 24, "description": "putih polos dengan pinggiran bergelombang, keramik", "inPhoto": true }
     },
     {
       "photo": { "post": "Xexample01", "index": 2, "file": "Xexample01-2.jpg" },
