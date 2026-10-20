@@ -32,11 +32,15 @@ export type EnergyNotice = {
  * Old target -> new target for this person. The old model is the same plan with a factor of 1 (the bare BMR). Hamil /
  * Menyusui targets did not change (their multipliers were kept), so both numbers are the same.
  */
-export function energyNotice(plan: Pick<Plan, "profileInput" | "targets" | "weightNowKg" | "maternal">): EnergyNotice {
+export function energyNotice(
+  plan: Pick<Plan, "profileInput" | "targets" | "weightNowKg" | "maternal">,
+  today?: string,
+): EnergyNotice {
   const { targets } = plan;
+  // Same day as `targets` was computed for, so the deficit (kg to lose over the days left) is the same in both figures.
   const oldKcal =
     plan.maternal === null
-      ? computeTargets(plan.profileInput, { weightNow: plan.weightNowKg, activityFactor: 1 }).eatKcal
+      ? computeTargets(plan.profileInput, { weightNow: plan.weightNowKg, activityFactor: 1, today }).eatKcal
       : targets.eatKcal;
   return {
     oldKcal,

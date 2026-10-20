@@ -309,7 +309,7 @@ export const dayRouter = {
           accountCreatedAtMs: new Date(context.session.user.createdAt).getTime(),
           dismissed: noticeDismissed,
         })
-          ? energyNotice(plan)
+          ? energyNotice(plan, today)
           : null,
         // The calibrated base target moved by 50 kcal or more since the person last saw one (Beranda's one-line notice,
         // today's plan only: a browsed past day must not acknowledge a past figure).

@@ -41,7 +41,7 @@ describe("energyNotice: old target -> new target", () => {
 
   test("the old model is the bare BMR less the same deficit", () => {
     const targets = computeTargets(profileInput, { today });
-    const notice = energyNotice({ profileInput, targets, weightNowKg: 107.7, maternal: null });
+    const notice = energyNotice({ profileInput, targets, weightNowKg: 107.7, maternal: null }, today);
     // bmr 2023.9 - 1000 = 1023.9: under the floor, so the old target was the floor too
     expect(notice).toMatchObject({ oldKcal: 1500, newKcal: 1785, level: "light", factor: 1.375, bmrKcal: 2024, tdeeKcal: 2783 });
   });
@@ -49,7 +49,7 @@ describe("energyNotice: old target -> new target", () => {
   test("a heavier body above the floor: old = round5(bmr - deficit), new = round5(tdee - deficit)", () => {
     const heavy = { ...profileInput, weightKg: 160, targetWeightKg: 150 };
     const targets = computeTargets(heavy, { today });
-    const notice = energyNotice({ profileInput: heavy, targets, weightNowKg: 160, maternal: null });
+    const notice = energyNotice({ profileInput: heavy, targets, weightNowKg: 160, maternal: null }, today);
     expect(notice.newKcal).toBe(targets.eatKcal);
     // bmr 2546.9, deficit 10 kg * 7700 / 228 days = 338: old round5(2546.9 - 338) = 2210, new round5(3502 - 338) = 3165
     expect(notice.oldKcal).toBe(2210);
