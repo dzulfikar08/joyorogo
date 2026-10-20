@@ -42,6 +42,7 @@ export function SummaryCard({ analysis }: { analysis: WorkoutAnalysis }) {
   const { t, i18n } = useTranslation("feed");
   const { stats, elevation, calories, sport } = analysis;
   const mode = paceMode(sport.kind);
+  const cadUnit = sport.kind === "ride" ? "rpm" : "spm";
   const distance = analysis.distanceM;
 
   const avgPace =
@@ -82,6 +83,15 @@ export function SummaryCard({ analysis }: { analysis: WorkoutAnalysis }) {
       : null,
     stats.maxHr !== null
       ? { label: t("analysis.maxHr"), value: String(Math.round(stats.maxHr)), unit: "bpm" }
+      : null,
+    stats.avgCad !== null
+      ? { label: t("analysis.avgCadence"), value: String(Math.round(stats.avgCad)), unit: cadUnit }
+      : null,
+    stats.maxCad !== null
+      ? { label: t("analysis.maxCadence"), value: String(Math.round(stats.maxCad)), unit: cadUnit }
+      : null,
+    mode === "pace" && stats.avgStrideM !== null
+      ? { label: t("analysis.stepLength"), value: stats.avgStrideM.toFixed(2), unit: "m" }
       : null,
   ].filter((item) => item !== null);
 

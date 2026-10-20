@@ -11,7 +11,9 @@
   "truncated": "This range has more than {{n}} workouts, so the oldest ones aren't shown. Narrow the range.",
   "unit": {
     "perKm": "/km",
-    "kmh": "km/h"
+    "kmh": "km/h",
+    "spm": "spm",
+    "rpm": "rpm"
   },
   "col": {
     "date": "Date",
@@ -56,6 +58,9 @@
     "best": "Best {{value}}",
     "avgHr": "Average heart rate",
     "maxHr": "Max {{value}} bpm",
+    "avgCadence": "Average cadence",
+    "maxCadence": "Max {{value}} {{unit}}",
+    "stepLength": "Step length",
     "elevation": "Climb",
     "elevationLoss": "Descent {{value}} m",
     "calories": "Calories",

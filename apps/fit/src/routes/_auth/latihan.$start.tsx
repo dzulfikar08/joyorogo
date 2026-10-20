@@ -176,6 +176,7 @@ function Analysis({ analysis, kind }: { analysis: WorkoutAnalysis; kind: SportKi
     ? series.track
     : null;
   const mode = paceMode(kind);
+  const cadUnit = t(kind === "ride" ? "unit.rpm" : "unit.spm");
   const hasCharts =
     series !== null && (series.hr || series.pace || series.alt || series.cad || series.power);
 
@@ -215,6 +216,25 @@ function Analysis({ analysis, kind }: { analysis: WorkoutAnalysis; kind: SportKi
           unit={stats.avgHr ? "bpm" : undefined}
           hint={stats.maxHr ? t("detail.maxHr", { value: stats.maxHr }) : undefined}
         />
+        {stats.avgCad !== null && (
+          <Stat
+            label={t("detail.avgCadence")}
+            value={fmtDecimal(stats.avgCad, 0)}
+            unit={cadUnit}
+            hint={
+              stats.maxCad !== null
+                ? t("detail.maxCadence", { value: fmtDecimal(stats.maxCad, 0), unit: cadUnit })
+                : undefined
+            }
+          />
+        )}
+        {mode === "pace" && stats.avgStrideM !== null && (
+          <Stat
+            label={t("detail.stepLength")}
+            value={fmtDecimal(stats.avgStrideM, 2)}
+            unit="m"
+          />
+        )}
         <Stat
           label={t("detail.elevation")}
           value={analysis.elevation ? `+${fmtDecimal(analysis.elevation.gainM, 0)}` : "–"}

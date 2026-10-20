@@ -11,7 +11,9 @@
   "truncated": "Rentang ini punya lebih dari {{n}} latihan, jadi yang paling lama tidak ditampilkan. Persempit rentangnya.",
   "unit": {
     "perKm": "/km",
-    "kmh": "km/j"
+    "kmh": "km/j",
+    "spm": "spm",
+    "rpm": "rpm"
   },
   "col": {
     "date": "Tanggal",
@@ -56,6 +58,9 @@
     "best": "Terbaik {{value}}",
     "avgHr": "Detak rata-rata",
     "maxHr": "Maks {{value}} bpm",
+    "avgCadence": "Kadens rata-rata",
+    "maxCadence": "Maks {{value}} {{unit}}",
+    "stepLength": "Panjang langkah",
     "elevation": "Tanjakan",
     "elevationLoss": "Turunan {{value}} m",
     "calories": "Kalori",
