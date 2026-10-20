@@ -4,6 +4,7 @@ import { DEFAULT_CALIBRATION_PREFS } from "./calibration-store";
 
 import { MATERNAL_ACTIVITY_FACTOR, bmrMifflin, computeTargets, shiftDate } from "./engine";
 import type { ProfileInput } from "./engine";
+import { caffeineMgFor } from "./intake";
 import {
   AKG_LACTATION_KCAL,
   AKG_PREGNANCY_KCAL,
@@ -14,7 +15,6 @@ import {
   babyAgeMonths,
   bmiCategory,
   birthDateFromAgeMonths,
-  caffeineMgFor,
   caffeineOfDay,
   computeMaternalTargets,
   dueDateFromLmp,

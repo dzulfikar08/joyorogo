@@ -24,6 +24,7 @@ import {
   round5,
   shiftDate,
 } from "./engine";
+import { ALCOHOL_MATCH, ALCOHOL_UNLESS, caffeineMgFor } from "./intake";
 import type { ProfileInput, Targets } from "./engine";
 
 export const MATERNAL_MODES = ["none", "pregnant", "breastfeeding"] as const;
@@ -752,12 +753,7 @@ type FlagRule = { key: FoodFlagKey; match: RegExp; unless?: RegExp; pregnantOnly
 // Matched on the lower-cased dish name in Indonesian and English. Gentle by
 // design: a flag is a note to check, never a verdict on the dish.
 const FLAG_RULES: FlagRule[] = [
-  {
-    key: "alcohol",
-    match:
-      /\b(bir|beer|wine|anggur merah|anggur putih|vodka|whisky|whiskey|sake|soju|tuak|arak|brem|cocktail|koktail|brandy|rum|tequila|champagne|sampanye|ciu|lapen|cap tikus|tape|tapai)\b/,
-    unless: /\b(root beer|bir pletok|brem cair? bebas alkohol|non[- ]?alcohol(ic)?|tanpa alkohol)\b/,
-  },
+  { key: "alcohol", match: ALCOHOL_MATCH, unless: ALCOHOL_UNLESS },
   { key: "rawMeat", match: /\b(carpaccio|tartare|steak tartare|daging mentah|ayam mentah|rare|medium rare|blue rare|steak setengah matang|steak 1\/2 matang)\b/, pregnantOnly: true },
   {
     key: "rawEgg",
@@ -791,25 +787,6 @@ const FLAG_RULES: FlagRule[] = [
       /\b(jamu|kunyit asam|beras kencur|temulawak|brotowali|pahitan|galian putri|galian singset|cabe puyang|lempuyang|wedang uwuh|herbal|ramuan|herbs?|herbal tea|teh herbal)\b/,
   },
 ];
-
-// Typical caffeine per serving (mg). Rough on purpose: brew strength varies.
-const CAFFEINE_RULES: { match: RegExp; mg: number }[] = [
-  { match: /\b(energy drink|minuman energi|kratingdaeng|extra joss|red bull|monster|hemaviton)\b/, mg: 80 },
-  { match: /\b(espresso|americano|kopi hitam|black coffee|long black|doppio)\b/, mg: 95 },
-  { match: /\b(kopi|coffee|latte|cappuccino|capuccino|flat white|mocha|macchiato|kopi susu|cold brew|frappe|frappuccino)\b/, mg: 80 },
-  { match: /\b(matcha)\b/, mg: 70 },
-  { match: /\b(teh|tea|chai|boba|thai tea)\b/, mg: 40 },
-  { match: /\b(cola|coca[- ]cola|pepsi|soda cola)\b/, mg: 35 },
-  { match: /\b(coklat panas|hot chocolate|cokelat panas|dark chocolate|cokelat hitam)\b/, mg: 15 },
-];
-
-/** Estimated caffeine of one serving of a drink/food by name; null when it has none we know of. */
-export function caffeineMgFor(name: string): number | null {
-  const n = name.toLowerCase();
-  if (/\b(decaf|tanpa kafein|bebas kafein|herbal tea|teh herbal)\b/.test(n)) return null;
-  for (const rule of CAFFEINE_RULES) if (rule.match.test(n)) return rule.mg;
-  return null;
-}
 
 /**
  * Notes for one dish name. Alcohol, caffeine and herbal apply to both modes;

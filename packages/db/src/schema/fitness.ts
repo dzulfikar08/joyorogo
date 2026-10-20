@@ -206,6 +206,9 @@ export const foodLog = sqliteTable(
     plateId: text("plate_id"),
     // raw AI breakdown kept for reference
     itemsJson: text("items_json"),
+    // When the food was actually eaten (unix ms), set by the "jam makan" picker; null = unknown, and time-based
+    // features (sleep insights) fall back to createdAt when it plausibly fits the meal.
+    eatenAt: integer("eaten_at"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),
