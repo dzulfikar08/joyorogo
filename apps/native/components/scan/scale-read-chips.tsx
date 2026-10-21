@@ -36,6 +36,7 @@ export function ScaleReadChips({
       style={styles.row}
     >
       <Chip
+        compact
         label={
           chip.count > 1
             ? t("result.items.scaleReadShared", { value, count: chip.count })
@@ -45,6 +46,7 @@ export function ScaleReadChips({
         onPress={scaleActive ? () => {} : onSwap}
       />
       <Chip
+        compact
         label={t("result.items.scaleAi", { grams: fmtGramsLabel(grams.ai) })}
         selected={!scaleActive}
         onPress={scaleActive ? onSwap : () => {}}
@@ -58,6 +60,5 @@ const styles = StyleSheet.create((theme) => ({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: theme.spacing.xs,
-    paddingTop: theme.spacing.xs,
   },
 }));

@@ -159,7 +159,6 @@
       "label": "Recognized foods",
       "title": "What the AI saw",
       "editable": "Numbers are editable",
-      "confidence": "Confidence {{percent}}",
       "confidenceShort": "{{percent}} sure",
       "estimate": "AI estimate",
       "kcalAria": "Calories for {{name}}",

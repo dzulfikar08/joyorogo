@@ -1618,7 +1618,8 @@ export default function MakanAi() {
                     ) : undefined
                   }
                   title={item.name}
-                  subtitle={
+                  wrapTitle
+                  footer={
                     <View style={styles.itemMeta}>
                       {mark ? (
                         <View style={styles.correctBadge}>
@@ -1626,9 +1627,11 @@ export default function MakanAi() {
                         </View>
                       ) : null}
                       <MetaLine
+                        itemStyle={styles.itemMetaText}
                         items={[
                           item.portion,
-                          item.grams !== undefined ? `± ${fmtGramsLabel(item.grams)}` : null,
+                          // a cup's portion already says "350 ml"; the same number as grams is noise
+                          item.grams !== undefined && !item.cup ? `±${fmtGramsLabel(item.grams)}` : null,
                           item.confidence !== undefined
                             ? t("result.items.confidenceShort", {
                                 percent: fmtPercent(Math.round(item.confidence * 100)),
@@ -2260,7 +2263,11 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.muted,
   },
   itemMeta: {
-    gap: 2,
+    gap: theme.spacing.sm,
+  },
+  itemMetaText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
   },
   itemChips: {
     flexDirection: "row",

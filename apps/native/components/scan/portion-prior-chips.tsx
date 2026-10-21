@@ -33,11 +33,13 @@ export function PortionPriorChips({
       style={styles.row}
     >
       <Chip
+        compact
         label={t("result.items.priorAi", { grams: fmtGramsLabel(grams.ai) })}
         selected={!usualActive}
         onPress={usualActive ? onSwap : () => {}}
       />
       <Chip
+        compact
         label={t("result.items.priorUsual", { grams: fmtGramsLabel(grams.usual) })}
         selected={usualActive}
         onPress={usualActive ? () => {} : onSwap}
@@ -51,6 +53,5 @@ const styles = StyleSheet.create((theme) => ({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: theme.spacing.xs,
-    paddingTop: theme.spacing.xs,
   },
 }));

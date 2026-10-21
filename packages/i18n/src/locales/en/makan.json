@@ -304,20 +304,29 @@
       "label": "Swap for something lighter",
       "idea": "Swap for {{name}} (about {{kcal}})."
     },
+    "summary": {
+      "outsideWindow": "Outside your IF eating window ({{window}}).",
+      "overNoRoom": "Today's target is already used up.",
+      "overSome": "Goes past today's target.",
+      "reserve": {
+        "safe": "Still fits before {{upcoming}}.",
+        "some": "Fits, but trims {{upcoming}}.",
+        "none": "Eats into {{upcoming}}."
+      },
+      "simple": "Still fits today's target."
+    },
     "reason": {
-      "head": "{{name}} {{kcal}}.",
-      "windowClosed": "Your IF eating window ({{window}}) is closed right now, so this is off schedule.",
-      "overNoRoom": "You're already at {{eaten}} of your {{target}} target today, and this adds {{kcal}}.",
-      "overSome": "You have {{remaining}} left today, so the total goes up to {{total}} against a {{target}} target ({{over}} over).",
+      "windowClosed": "Your IF eating window is closed right now, so this is off schedule. The calories still count toward today.",
+      "overNoRoom": "Today's target is already met, so this adds on top of it.",
+      "overSome": "What's left today isn't enough for this, so the total goes past the target.",
       "surplus": "Today's total goes past your daily needs (TDEE), so your weight won't drop today.",
       "thinDeficit": "That's over your target, but still under your daily needs (TDEE). You can still save it.",
       "reserve": {
-        "safe": "You have {{remaining}} left today and about {{reserve}} is usually set aside for {{upcoming}}, so about {{room}} is free for {{noun}}.",
-        "some": "You have {{remaining}} left today and about {{reserve}} is usually set aside for {{upcoming}}, so only {{room}} is free for {{noun}}.",
-        "none": "You have {{remaining}} left today and about {{reserve}} is usually set aside for {{upcoming}}, so there's no room for {{noun}}."
+        "safe": "What's left today is split for {{upcoming}} first, and there's still room for {{noun}}.",
+        "some": "What's left today is split for {{upcoming}} first, so room for {{noun}} is tight.",
+        "none": "What's left today is split for {{upcoming}} first, so there's no room for {{noun}}."
       },
-      "careful": "If you eat it anyway, {{upcoming}} is down to about {{after}}.",
-      "simple": "You have {{remaining}} left today, and {{after}} after this."
+      "simple": "No other meal needs setting aside, so what's left today goes straight to this."
     },
     "half": {
       "label": "Half portion"
@@ -330,9 +339,10 @@
       "withTarget": "That day's total becomes {{total}} against a {{target}} target."
     },
     "card": {
-      "lighterLine": "{{label}}, around {{kcal}}.",
+      "lighterLine": "{{label}}.",
       "aria": "Advice before saving: {{title}}",
-      "ariaFull": "Advice before saving: {{title}}. {{reason}}",
+      "ariaFull": "Advice before saving: {{title}}. {{summary}} {{figures}}",
+      "why": "Why?",
       "remainingToday": "Left today",
       "needLater": "Needed later",
       "mealsAhead": "Meals ahead",

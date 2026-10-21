@@ -154,7 +154,6 @@
       "label": "Makanan yang dikenali",
       "title": "Yang AI lihat",
       "editable": "Angkanya bisa dikoreksi",
-      "confidence": "Keyakinan {{percent}}",
       "confidenceShort": "yakin {{percent}}",
       "estimate": "perkiraan AI",
       "kcalAria": "Kalori {{name}}",

@@ -1331,42 +1331,59 @@ function AiFoodPage() {
             {items.map((item, index) => (
               <li
                 key={`${item.name}-${index}`}
-                className={cn(
-                  "relative flex min-h-12 items-center gap-2.5 px-4 py-2",
-                  changed[index] && CORRECTED_ROW_CLASS,
-                )}
+                className={cn("relative min-h-12 px-4 py-2", changed[index] && CORRECTED_ROW_CLASS)}
               >
-                {crops[index] || stickers[index] ? (
-                  <CutoutImage
-                    crop={crops[index]}
-                    sticker={stickers[index]}
-                    name=""
-                    className="chip-pop size-10 shrink-0 rounded-xl motion-reduce:animate-none"
-                  />
-                ) : cropping && item.box ? (
-                  <Skeleton className="size-10 shrink-0 rounded-xl" aria-hidden />
-                ) : null}
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5">
-                    <span className="min-w-0 truncate text-[0.9375rem] font-semibold">
-                      {item.name}
+                <div className="flex items-center gap-2.5">
+                  {crops[index] || stickers[index] ? (
+                    <CutoutImage
+                      crop={crops[index]}
+                      sticker={stickers[index]}
+                      name=""
+                      className="chip-pop size-10 shrink-0 rounded-xl motion-reduce:animate-none"
+                    />
+                  ) : cropping && item.box ? (
+                    <Skeleton className="size-10 shrink-0 rounded-xl" aria-hidden />
+                  ) : null}
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="min-w-0 truncate text-[0.9375rem] font-semibold">
+                        {item.name}
+                      </span>
+                      {changed[index] && <CorrectBadge kind={changed[index]} />}
                     </span>
-                    {changed[index] && <CorrectBadge kind={changed[index]} />}
+                    <span className="block text-[0.8125rem] leading-snug text-muted-foreground">
+                      {[
+                        item.portion,
+                        // a cup's portion already says "350 ml"; the same number as grams is noise
+                        item.grams != null && !item.cup ? `±${fmtGramsLabel(item.grams)}` : null,
+                        item.confidence != null
+                          ? t("result.items.confidenceShort", {
+                              percent: fmtPercent(Math.round(item.confidence * 100)),
+                            })
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
                   </span>
-                  <span className="block truncate text-[0.8125rem] text-muted-foreground">
-                    {[
-                      item.portion,
-                      item.grams != null ? `± ${fmtGramsLabel(item.grams)}` : null,
-                      item.confidence != null
-                        ? t("result.items.confidence", {
-                            percent: fmtPercent(Math.round(item.confidence * 100)),
-                          })
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    <Input
+                      aria-label={t("result.items.kcalAria", { name: item.name })}
+                      type="number"
+                      min="0"
+                      inputMode="numeric"
+                      value={kcals[index] ?? String(item.kcal)}
+                      onChange={(event) => {
+                        touchList();
+                        setKcals((current) => ({ ...current, [index]: event.target.value }));
+                      }}
+                      className="h-10 w-20 text-right font-bold tabular-nums"
+                    />
+                    <span className="text-xs font-semibold text-muted-foreground">{kcalUnit()}</span>
                   </span>
-                  <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                </div>
+                <div className="mt-1.5 space-y-2">
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <MacroLine
                       compact
                       protein={item.protein}
@@ -1390,22 +1407,7 @@ function AiFoodPage() {
                   {item.scaleRead && (
                     <ScaleReadChips name={item.name} item={item} onSwap={() => swapScale(index)} />
                   )}
-                </span>
-                <span className="flex shrink-0 items-center gap-1.5">
-                  <Input
-                    aria-label={t("result.items.kcalAria", { name: item.name })}
-                    type="number"
-                    min="0"
-                    inputMode="numeric"
-                    value={kcals[index] ?? String(item.kcal)}
-                    onChange={(event) => {
-                      touchList();
-                      setKcals((current) => ({ ...current, [index]: event.target.value }));
-                    }}
-                    className="h-10 w-20 text-right font-bold tabular-nums"
-                  />
-                  <span className="text-xs font-semibold text-muted-foreground">{kcalUnit()}</span>
-                </span>
+                </div>
               </li>
             ))}
           </ListGroup>

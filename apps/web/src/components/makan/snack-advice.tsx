@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  ChevronDown,
   CircleAlert,
   CircleCheck,
   Cookie,
@@ -192,21 +193,19 @@ export function SnackAdviceCard({
   const half = advice.suggestions.find((s) => s.type === "half");
   const swap = advice.suggestions.find((s) => s.type === "swap");
   const lighter = advice.suggestions.find((s) => s.type === "lighter-next");
-  const lines = [
-    swap?.type === "swap" ? swap.text : null,
-    lighter?.type === "lighter-next"
-      ? t("snackAdvice.card.lighterLine", {
-          label: lighter.label,
-          kcal: fmtKcalLabel(lighter.targetKcal),
-        })
-      : null,
-  ].filter((line): line is string => line !== null);
+  // One tip at most; the lighter-next line only restates "Setelah ini", so a swap idea wins.
+  const tip =
+    swap?.type === "swap"
+      ? swap.text
+      : lighter?.type === "lighter-next"
+        ? t("snackAdvice.card.lighterLine", { label: lighter.label })
+        : null;
   return (
     <section
       role="status"
       aria-label={t("snackAdvice.card.aria", { title: advice.title })}
       data-verdict={advice.verdict}
-      className={cn("rounded-3xl p-5", tone.card, className)}
+      className={cn("rounded-3xl p-4", tone.card, className)}
     >
       <div className="flex items-start gap-3">
         <span
@@ -219,11 +218,11 @@ export function SnackAdviceCard({
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-base leading-tight font-extrabold">{advice.title}</p>
-          <p className="mt-1 text-sm leading-relaxed">{advice.reason}</p>
+          <p className="mt-0.5 text-sm leading-snug">{advice.summary}</p>
         </div>
       </div>
 
-      <dl className="mt-4 grid grid-cols-3 gap-2">
+      <dl className="mt-3 grid grid-cols-3 gap-2">
         <Stat
           label={t("snackAdvice.card.remainingToday")}
           value={fmtKcalLabel(numbers.remainingKcal)}
@@ -277,20 +276,24 @@ export function SnackAdviceCard({
         </div>
       )}
 
-      {lines.length > 0 && (
-        <ul className="mt-3 space-y-1.5">
-          {lines.map((line) => (
-            <li key={line} className="flex items-start gap-2 text-sm">
-              <Lightbulb className="mt-0.5 size-4 shrink-0 text-foreground/70" aria-hidden />
-              <span>{line}</span>
-            </li>
-          ))}
-        </ul>
+      {tip && (
+        <p className="mt-3 flex items-start gap-2 text-sm">
+          <Lightbulb className="mt-0.5 size-4 shrink-0 text-foreground/70" aria-hidden />
+          <span>{tip}</span>
+        </p>
       )}
 
-      <p className="mt-3 text-xs text-foreground/70">
-        {t("snackAdvice.card.note")}
-      </p>
+      <details className="group mt-2">
+        <summary className="inline-flex min-h-8 cursor-pointer list-none items-center gap-1 text-sm font-bold text-foreground/70 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+          {t("snackAdvice.card.why")}
+          <ChevronDown
+            className="size-4 transition-transform group-open:rotate-180"
+            aria-hidden
+          />
+        </summary>
+        <p className="text-sm leading-snug">{advice.reason}</p>
+        <p className="mt-1.5 text-xs text-foreground/70">{t("snackAdvice.card.note")}</p>
+      </details>
     </section>
   );
 }

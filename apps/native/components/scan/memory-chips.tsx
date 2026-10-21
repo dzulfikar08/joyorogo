@@ -34,32 +34,27 @@ export function MemoryChips({
     }
   };
   return (
-    <View style={styles.wrap}>
+    <View
+      accessibilityRole="radiogroup"
+      accessibilityLabel={t("result.memory.group")}
+      style={styles.row}
+    >
       <Text style={styles.title}>{t("result.memory.title")}</Text>
-      <View
-        accessibilityRole="radiogroup"
-        accessibilityLabel={t("result.memory.group")}
-        style={styles.row}
-      >
-        {names.map((name) => (
-          <Chip
-            key={name}
-            label={name.charAt(0).toUpperCase() + name.slice(1)}
-            selected={busyName === name}
-            disabled={disabled || busyName !== null}
-            onPress={() => void pick(name)}
-          />
-        ))}
-      </View>
+      {names.map((name) => (
+        <Chip
+          key={name}
+          compact
+          label={name.charAt(0).toUpperCase() + name.slice(1)}
+          selected={busyName === name}
+          disabled={disabled || busyName !== null}
+          onPress={() => void pick(name)}
+        />
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
-  wrap: {
-    gap: theme.spacing.xs,
-    paddingTop: theme.spacing.xs,
-  },
   title: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
@@ -67,6 +62,7 @@ const styles = StyleSheet.create((theme) => ({
   row: {
     flexDirection: "row",
     flexWrap: "wrap",
+    alignItems: "center",
     gap: theme.spacing.xs,
   },
 }));

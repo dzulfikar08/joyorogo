@@ -34,10 +34,9 @@ describe("adviseSnack", () => {
       afterKcal: 350,
     });
     expect(advice?.upcoming.map((m) => m.label)).toEqual(["makan malam"]);
-    expect(advice?.reason).toContain("Pisang goreng 400 kkal.");
-    expect(advice?.reason).toContain("makan malam biasanya butuh sekitar 540");
-    expect(advice?.reason).toContain("tinggal 210 buat camilan");
-    expect(advice?.reason).toContain("tinggal sekitar 350 kkal");
+    expect(advice?.summary).toBe("Muat, tapi mengurangi jatah makan malam.");
+    expect(advice?.reason).toContain("dibagi dulu buat makan malam");
+    expect(advice?.reason).toContain("ruang buat camilan terbatas");
   });
 
   test("same snack when the day has little left: lewat", () => {
@@ -48,7 +47,7 @@ describe("adviseSnack", () => {
     });
     expect(advice?.verdict).toBe("lewat");
     expect(advice?.numbers).toMatchObject({ remainingKcal: 300, afterKcal: -100, overKcal: 100 });
-    expect(advice?.reason).toContain("lewat 100 kkal");
+    expect(advice?.summary).toBe("Melewati target hari ini.");
     expect(advice?.reason).toContain("boleh simpan");
   });
 
@@ -64,7 +63,8 @@ describe("adviseSnack", () => {
     const advice = adviseSnack({ ...base, eatenKcal: 1900, nowMin: at(20), kcal: 150 });
     expect(advice?.verdict).toBe("lewat");
     expect(advice?.numbers.remainingKcal).toBe(0);
-    expect(advice?.reason).toContain("sudah 1900 kkal dari target 1800 kkal");
+    expect(advice?.summary).toBe("Target hari ini sudah terpakai.");
+    expect(advice?.reason).toContain("sudah terpenuhi");
   });
 
   test("beyond tdee the day passes daily needs, below it only passes the target", () => {
@@ -118,6 +118,34 @@ describe("adviseSnack", () => {
     expect(late?.upcoming.map((m) => m.label)).not.toContain("sarapan");
   });
 
+  test("the explanation never repeats the figures the card shows as numbers", () => {
+    const cases: SnackAdviceInput[] = [
+      { ...base, eatenKcal: 1050, eatenByMeal: { sarapan: 400, makan_siang: 650 } },
+      { ...base, eatenKcal: 1500, eatenByMeal: { sarapan: 500, makan_siang: 1000 } },
+      { ...base, eatenKcal: 1900, nowMin: at(20), kcal: 150 },
+      { ...base, kcal: 100, nowMin: at(8, 30) },
+      { ...base, kcal: 150, eatenKcal: 1200, nowMin: at(21), fasting: IF_168 },
+      { ...base, kcal: 150, nowMin: at(9), fasting: IF_168 },
+    ];
+    for (const input of cases) {
+      const advice = adviseSnack(input);
+      expect(advice?.reason).not.toMatch(/\d/);
+      expect(advice?.reason).not.toContain("kkal");
+      expect(advice?.summary.length).toBeLessThanOrEqual(70);
+    }
+  });
+
+  test("outside the IF window the summary is one line with the window and no figures", () => {
+    const advice = adviseSnack({ ...base, kcal: 150, nowMin: at(9), fasting: IF_168 });
+    expect(advice?.verdict).toBe("hati-hati");
+    expect(advice?.summary).toBe("Di luar jendela makan IF (12:00–20:00).");
+  });
+
+  test("outside the window and over target says both in the summary", () => {
+    const advice = adviseSnack({ ...base, kcal: 500, eatenKcal: 1700, nowMin: at(21), fasting: IF_168 });
+    expect(advice?.summary).toBe("Di luar jendela makan IF (12:00–20:00). Melewati target hari ini.");
+  });
+
   test("IF window closed: lifts aman to hati-hati and says why", () => {
     const advice = adviseSnack({
       ...base,
@@ -129,7 +157,7 @@ describe("adviseSnack", () => {
     expect(advice?.outsideWindow).toBe(true);
     expect(advice?.verdict).toBe("hati-hati");
     expect(advice?.upcoming).toEqual([]);
-    expect(advice?.reason).toContain("Jendela makan IF kamu (12:00-20:00) sedang tutup");
+    expect(advice?.reason).toContain("sedang tutup");
   });
 
   test("IF window closed and over target stays lewat", () => {
@@ -184,7 +212,7 @@ describe("adviseSnack", () => {
     });
     expect(advice?.upcoming).toEqual([{ label: "berbuka", needKcal: 810 }]);
     expect(advice?.verdict).toBe("hati-hati");
-    expect(advice?.reason).toContain("berbuka biasanya butuh sekitar 810");
+    expect(advice?.summary).toBe("Muat, tapi mengurangi jatah berbuka.");
   });
 
   test("Ramadan before dawn: sahur is still ahead", () => {

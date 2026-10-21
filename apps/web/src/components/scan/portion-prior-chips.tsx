@@ -7,7 +7,7 @@ import { fmtGramsLabel } from "@/lib/format";
 
 const chipClass = (active: boolean) =>
   cn(
-    "inline-flex min-h-9 shrink-0 items-center rounded-full px-3 text-xs font-semibold whitespace-nowrap transition-colors duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
+    "inline-flex min-h-8 shrink-0 items-center rounded-full px-3 text-xs font-semibold whitespace-nowrap transition-colors duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
     active
       ? "pressable bg-primary text-primary-foreground"
       : "bg-muted text-foreground hover:bg-border",
@@ -35,7 +35,7 @@ export function PortionPriorChips({
     <span
       role="group"
       aria-label={t("result.items.priorGroup", { name })}
-      className="mt-1.5 flex flex-wrap gap-1.5"
+      className="flex flex-wrap gap-1.5"
     >
       <button
         type="button"

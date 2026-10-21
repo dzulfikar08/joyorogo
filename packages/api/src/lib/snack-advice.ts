@@ -97,6 +97,9 @@ export type AdviceSuggestion =
 export type SnackAdvice = {
   verdict: AdviceVerdict;
   title: string;
+  /** One short line, no figures: the card's three numbers carry those. */
+  summary: string;
+  /** The "why" behind the summary, shown on demand; explains without repeating the card's numbers. */
   reason: string;
   numbers: {
     kcal: number;
@@ -166,7 +169,7 @@ function upcomingMeals(
     return {
       meals,
       outsideWindow: !inside,
-      window: `${fasting.windowOpen}-${fmtHHMM(window.endMin)}`,
+      window: `${fasting.windowOpen}–${fmtHHMM(window.endMin)}`,
     };
   }
 
@@ -249,65 +252,31 @@ export function adviseSnack(
     meals.map((m) => m.label),
     t,
   );
-  const parts = [
-    t("snackAdvice.reason.head", {
-      name: input.name?.trim() || t(`kind.${input.kind}`),
-      kcal: kcalText(kcal, t),
-    }),
-  ];
-  if (outsideWindow && window) {
-    parts.push(t("snackAdvice.reason.windowClosed", { window }));
-  }
+  const noun = t(`snackAdvice.spareNoun.${input.kind}`);
+  const windowLine = outsideWindow && window ? t("snackAdvice.summary.outsideWindow", { window }) : null;
+  const details: string[] = [];
+  let state: string;
+  if (outsideWindow && window) details.push(t("snackAdvice.reason.windowClosed"));
 
   if (verdict === "lewat") {
-    if (remaining === 0) {
-      parts.push(
-        t("snackAdvice.reason.overNoRoom", {
-          eaten: kcalText(eatenKcal, t),
-          target: kcalText(eatKcal, t),
-          kcal: kcalText(kcal, t),
-        }),
-      );
-    } else {
-      parts.push(
-        t("snackAdvice.reason.overSome", {
-          remaining: kcalText(remaining, t),
-          total: kcalText(eatenKcal + kcal, t),
-          target: kcalText(eatKcal, t),
-          over: kcalText(over, t),
-        }),
-      );
-    }
-    parts.push(
+    state = t(remaining === 0 ? "snackAdvice.summary.overNoRoom" : "snackAdvice.summary.overSome");
+    details.push(
+      t(remaining === 0 ? "snackAdvice.reason.overNoRoom" : "snackAdvice.reason.overSome"),
       input.tdeeKcal && eatenKcal + kcal > input.tdeeKcal
         ? t("snackAdvice.reason.surplus")
         : t("snackAdvice.reason.thinDeficit"),
     );
   } else if (reserve > 0) {
-    const room = Math.max(0, spare);
-    const roomKey = verdict === "aman" ? "safe" : room > 0 ? "some" : "none";
-    parts.push(
-      t(`snackAdvice.reason.reserve.${roomKey}`, {
-        remaining: kcalText(remaining, t),
-        upcoming: upcomingLabel,
-        reserve: Math.round(reserve),
-        room,
-        noun: t(`snackAdvice.spareNoun.${input.kind}`),
-      }),
-    );
-    if (verdict === "hati-hati") {
-      parts.push(
-        t("snackAdvice.reason.careful", { upcoming: upcomingLabel, after: kcalText(after, t) }),
-      );
-    }
+    const roomKey = verdict === "aman" ? "safe" : spare > 0 ? "some" : "none";
+    state = t(`snackAdvice.summary.reserve.${roomKey}`, { upcoming: upcomingLabel });
+    details.push(t(`snackAdvice.reason.reserve.${roomKey}`, { upcoming: upcomingLabel, noun }));
   } else {
-    parts.push(
-      t("snackAdvice.reason.simple", {
-        remaining: kcalText(remaining, t),
-        after: kcalText(after, t),
-      }),
-    );
+    state = t("snackAdvice.summary.simple");
+    details.push(t("snackAdvice.reason.simple"));
   }
+  // The closed window is the headline: the budget verdict only joins it when it is also over target.
+  const summary =
+    windowLine === null ? state : verdict === "lewat" ? `${windowLine} ${state}` : windowLine;
 
   const suggestions: AdviceSuggestion[] = [];
   if (verdict !== "aman") {
@@ -334,7 +303,8 @@ export function adviseSnack(
   return {
     verdict,
     title: t(`snackAdvice.verdict.${verdict}`),
-    reason: parts.join(" "),
+    summary,
+    reason: details.join(" "),
     numbers: {
       kcal,
       eatenKcal: Math.round(eatenKcal),

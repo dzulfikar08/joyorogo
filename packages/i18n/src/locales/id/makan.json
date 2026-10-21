@@ -296,20 +296,29 @@
       "label": "Tukar yang lebih ringan",
       "idea": "Tukar ke {{name}} (sekitar {{kcal}})."
     },
+    "summary": {
+      "outsideWindow": "Di luar jendela makan IF ({{window}}).",
+      "overNoRoom": "Target hari ini sudah terpakai.",
+      "overSome": "Melewati target hari ini.",
+      "reserve": {
+        "safe": "Masih muat sebelum {{upcoming}}.",
+        "some": "Muat, tapi mengurangi jatah {{upcoming}}.",
+        "none": "Memakan jatah {{upcoming}}."
+      },
+      "simple": "Masih muat di target hari ini."
+    },
     "reason": {
-      "head": "{{name}} {{kcal}}.",
-      "windowClosed": "Jendela makan IF kamu ({{window}}) sedang tutup, jadi ini di luar jadwal.",
-      "overNoRoom": "Hari ini sudah {{eaten}} dari target {{target}}, ini menambah {{kcal}}.",
-      "overSome": "Sisa hari ini {{remaining}}, jadi total naik ke {{total}} dari target {{target}} (lewat {{over}}).",
+      "windowClosed": "Jendela makan IF kamu sedang tutup, jadi ini di luar jadwal. Kalorinya tetap dihitung ke hari ini.",
+      "overNoRoom": "Target hari ini sudah terpenuhi, jadi ini menambah di atasnya.",
+      "overSome": "Sisa hari ini tidak cukup untuk ini, jadi totalnya melewati target.",
       "surplus": "Total hari ini melewati kebutuhan harianmu (TDEE), jadi berat belum turun hari ini.",
       "thinDeficit": "Memang lewat dari target, tapi masih di bawah kebutuhan harianmu (TDEE). Kamu tetap boleh simpan.",
       "reserve": {
-        "safe": "Sisa hari ini {{remaining}}, {{upcoming}} biasanya butuh sekitar {{reserve}}, jadi masih ada ruang sekitar {{room}} buat {{noun}}.",
-        "some": "Sisa hari ini {{remaining}}, {{upcoming}} biasanya butuh sekitar {{reserve}}, jadi tinggal {{room}} buat {{noun}}.",
-        "none": "Sisa hari ini {{remaining}}, {{upcoming}} biasanya butuh sekitar {{reserve}}, jadi belum ada ruang buat {{noun}}."
+        "safe": "Sisa hari ini dibagi dulu buat {{upcoming}}, dan masih ada ruang buat {{noun}}.",
+        "some": "Sisa hari ini dibagi dulu buat {{upcoming}}, jadi ruang buat {{noun}} terbatas.",
+        "none": "Sisa hari ini dibagi dulu buat {{upcoming}}, jadi belum ada ruang buat {{noun}}."
       },
-      "careful": "Kalau tetap dimakan, {{upcoming}} tinggal sekitar {{after}}.",
-      "simple": "Sisa hari ini {{remaining}}, setelah ini tinggal {{after}}."
+      "simple": "Tidak ada makan lain yang perlu disisihkan, jadi sisa hari ini langsung dipakai."
     },
     "half": {
       "label": "Setengah porsi"
@@ -322,9 +331,10 @@
       "withTarget": "Total hari itu jadi {{total}} dari target {{target}}."
     },
     "card": {
-      "lighterLine": "{{label}}, sekitar {{kcal}}.",
+      "lighterLine": "{{label}}.",
       "aria": "Saran sebelum disimpan: {{title}}",
-      "ariaFull": "Saran sebelum disimpan: {{title}}. {{reason}}",
+      "ariaFull": "Saran sebelum disimpan: {{title}}. {{summary}} {{figures}}",
+      "why": "Kenapa?",
       "remainingToday": "Sisa hari ini",
       "needLater": "Perlu nanti",
       "mealsAhead": "Makan lagi",

@@ -519,6 +519,7 @@ export function ListRow({
   destructive,
   onPress,
   right,
+  footer,
   wrapTitle,
 }: {
   icon?: IconName;
@@ -534,6 +535,8 @@ export function ListRow({
   destructive?: boolean;
   onPress?: () => void;
   right?: React.ReactNode;
+  /** Full-width block under the row (chip clouds, extras) so the leading tile and `right` stay on the top line. */
+  footer?: React.ReactNode;
 }) {
   const { theme } = useUnistyles();
   const tintColors = iconTint && iconTint !== "muted" ? TINT_COLORS[iconTint] : null;
@@ -581,9 +584,16 @@ export function ListRow({
     </>
   );
   if (!onPress) {
-    return <View style={styles.listRow}>{content}</View>;
+    return footer ? (
+      <View>
+        <View style={styles.listRow}>{content}</View>
+        <View style={styles.rowFooter}>{footer}</View>
+      </View>
+    ) : (
+      <View style={styles.listRow}>{content}</View>
+    );
   }
-  return (
+  const row = (
     <PressableScale
       accessibilityRole="button"
       accessibilityLabel={title}
@@ -594,6 +604,14 @@ export function ListRow({
     >
       {content}
     </PressableScale>
+  );
+  return footer ? (
+    <View>
+      {row}
+      <View style={styles.rowFooter}>{footer}</View>
+    </View>
+  ) : (
+    row
   );
 }
 
@@ -737,11 +755,14 @@ export function Segmented<T extends string>({
   value,
   onChange,
   disabled,
+  compact,
 }: {
   options: Array<{ value: T; label: string }>;
   value: T;
   onChange: (value: T) => void;
   disabled?: boolean;
+  /** 32px segments for controls that sit inside a row. */
+  compact?: boolean;
 }) {
   const reduceMotion = useReducedMotion();
   const [width, setWidth] = useState(0);
@@ -787,7 +808,7 @@ export function Segmented<T extends string>({
             accessibilityState={{ selected }}
             disabled={disabled}
             onPress={() => onChange(option.value)}
-            style={styles.segmentOption}
+            style={[styles.segmentOption, compact && styles.segmentOptionCompact]}
           >
             <Text
               style={[styles.segmentLabel, selected && styles.segmentLabelActive]}
@@ -883,6 +904,7 @@ export function Chip({
   selected,
   disabled,
   leading,
+  compact,
 }: {
   label: string;
   onPress: () => void;
@@ -890,6 +912,8 @@ export function Chip({
   disabled?: boolean;
   /** Sticker thumb shown before the label. */
   leading?: React.ReactNode;
+  /** Dense variant for chip clouds inside a row; the hit area stays padded out. */
+  compact?: boolean;
 }) {
   const { theme } = useUnistyles();
   return (
@@ -900,8 +924,10 @@ export function Chip({
       disabled={disabled}
       onPress={onPress}
       scaleTo={0.96}
+      hitSlop={compact ? 6 : undefined}
       style={[
         styles.chip,
+        compact ? styles.chipCompact : null,
         leading ? styles.chipWithLeading : null,
         { backgroundColor: selected ? theme.colors.foreground : theme.colors.muted },
         disabled && styles.pressedSoft,
@@ -1286,6 +1312,12 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     marginTop: 2,
   },
+  rowFooter: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: 12,
+    marginTop: -4,
+    gap: theme.spacing.sm,
+  },
   rowValue: {
     fontSize: theme.fontSize.base,
     fontWeight: "600",
@@ -1363,6 +1395,9 @@ const styles = StyleSheet.create((theme) => ({
     justifyContent: "center",
     paddingHorizontal: 8,
   },
+  segmentOptionCompact: {
+    minHeight: 32,
+  },
   segmentPill: {
     position: "absolute",
     top: 3,
@@ -1416,6 +1451,10 @@ const styles = StyleSheet.create((theme) => ({
     minHeight: 40,
     justifyContent: "center",
     alignSelf: "flex-start",
+  },
+  chipCompact: {
+    minHeight: 32,
+    paddingHorizontal: 12,
   },
   chipWithLeading: {
     flexDirection: "row",

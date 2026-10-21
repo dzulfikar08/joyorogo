@@ -72,9 +72,15 @@ describe("memory", () => {
   });
 
   test("chips: only when the top answer is not already a learned food", () => {
-    expect(chipsFor(["putih telur"], "es mambo susu")).toEqual(["putih telur"]);
+    expect(chipsFor(["putih telur"], "nasi uduk")).toEqual(["putih telur"]);
     expect(chipsFor(["putih telur"], "putih telur rebus")).toEqual([]);
-    expect(chipsFor([], "es mambo susu")).toEqual([]);
+    expect(chipsFor([], "nasi uduk")).toEqual([]);
+  });
+
+  test("chips: a drink is offered drinks, a dish dishes (no putih telur under es kopi susu)", () => {
+    expect(chipsFor(["putih telur"], "es kopi susu")).toEqual([]);
+    expect(chipsFor(["putih telur", "es teh manis"], "es kopi susu")).toEqual(["es teh manis"]);
+    expect(chipsFor(["putih telur", "es teh manis"], "nasi uduk")).toEqual(["putih telur"]);
   });
 
   test("allowlist", () => {

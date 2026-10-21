@@ -7,6 +7,7 @@ import type { Database } from "@joyorogo/db";
 import { aiUsage, foodLog } from "@joyorogo/db/schema/fitness";
 
 import { jakartaToday, shiftDate } from "./engine";
+import { foodKind } from "./food-kind";
 import { currentAnswer, parseSession, scanDiff } from "./scan-outcome";
 import type { CompactItem } from "./scan-outcome";
 
@@ -140,12 +141,15 @@ export function buildMemory(pairs: readonly NamePair[], foods: readonly string[]
 
 /**
  * Chips for the result screen: the learned foods, unless the model's top answer already is one of them
- * (then the scan used the memory or got it right on its own) or the user has none.
+ * (then the scan used the memory or got it right on its own) or the user has none. A drink is only offered
+ * drinks and a dish only dishes: a pair learned from a milk-like drink scan must not put "putih telur" under
+ * an iced coffee.
  */
 export function chipsFor(learned: readonly string[], topName: string | undefined): string[] {
   if (!topName || learned.length === 0) return [];
   if (learned.some((name) => sameFood(name, topName))) return [];
-  return [...learned];
+  const drink = foodKind(topName) === "minuman";
+  return learned.filter((name) => (foodKind(name) === "minuman") === drink);
 }
 
 /** The user's memory, read from the ledger and the diary; a failed read is no memory, never a failed scan. */

@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -107,6 +108,7 @@ export function SnackAdviceCard({
   const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
   const { advice, impact } = state;
+  const [open, setOpen] = useState(false);
   if (!advice) {
     return impact ? (
       <Text style={styles.impact} accessibilityRole="text">
@@ -123,21 +125,33 @@ export function SnackAdviceCard({
   const half = advice.suggestions.find((s) => s.type === "half");
   const swap = advice.suggestions.find((s) => s.type === "swap");
   const lighter = advice.suggestions.find((s) => s.type === "lighter-next");
-  const lines = [
-    swap?.type === "swap" ? swap.text : null,
-    lighter?.type === "lighter-next"
-      ? t("snackAdvice.card.lighterLine", {
-          label: lighter.label,
-          kcal: fmtKcalLabel(lighter.targetKcal),
-        })
-      : null,
-  ].filter((line): line is string => line !== null);
+  const stats = [
+    { label: t("snackAdvice.card.remainingToday"), value: fmtKcalLabel(numbers.remainingKcal) },
+    advice.upcoming.length > 0
+      ? { label: t("snackAdvice.card.needLater"), value: fmtKcalLabel(numbers.reserveKcal) }
+      : { label: t("snackAdvice.card.mealsAhead"), value: t("snackAdvice.card.none") },
+    {
+      label: t("snackAdvice.card.afterThis"),
+      value:
+        numbers.afterKcal >= 0
+          ? fmtKcalLabel(numbers.afterKcal)
+          : t("snackAdvice.card.over", { kcal: fmtInt(numbers.overKcal) }),
+    },
+  ];
+  // One tip at most; the lighter-next line only restates "Setelah ini", so a swap idea wins.
+  const tip =
+    swap?.type === "swap"
+      ? swap.text
+      : lighter?.type === "lighter-next"
+        ? t("snackAdvice.card.lighterLine", { label: lighter.label })
+        : null;
   return (
     <View
       accessibilityRole="summary"
       accessibilityLabel={t("snackAdvice.card.ariaFull", {
         title: advice.title,
-        reason: advice.reason,
+        summary: advice.summary,
+        figures: stats.map((stat) => `${stat.label} ${stat.value}.`).join(" "),
       })}
       style={[styles.card, { backgroundColor: palette.bg }]}
     >
@@ -147,35 +161,14 @@ export function SnackAdviceCard({
         </View>
         <View style={styles.headText}>
           <Text style={styles.title}>{advice.title}</Text>
-          <Text style={styles.reason}>{advice.reason}</Text>
+          <Text style={styles.summary}>{advice.summary}</Text>
         </View>
       </View>
 
       <View style={styles.stats}>
-        <Stat
-          label={t("snackAdvice.card.remainingToday")}
-          value={fmtKcalLabel(numbers.remainingKcal)}
-        />
-        <Stat
-          label={
-            advice.upcoming.length > 0
-              ? t("snackAdvice.card.needLater")
-              : t("snackAdvice.card.mealsAhead")
-          }
-          value={
-            advice.upcoming.length > 0
-              ? fmtKcalLabel(numbers.reserveKcal)
-              : t("snackAdvice.card.none")
-          }
-        />
-        <Stat
-          label={t("snackAdvice.card.afterThis")}
-          value={
-            numbers.afterKcal >= 0
-              ? fmtKcalLabel(numbers.afterKcal)
-              : t("snackAdvice.card.over", { kcal: fmtInt(numbers.overKcal) })
-          }
-        />
+        {stats.map((stat) => (
+          <Stat key={stat.label} label={stat.label} value={stat.value} />
+        ))}
       </View>
 
       {halfApplied && onUndoHalf ? (
@@ -207,14 +200,33 @@ export function SnackAdviceCard({
         </View>
       ) : null}
 
-      {lines.map((line) => (
-        <View key={line} style={styles.tipRow}>
+      {tip ? (
+        <View style={styles.tipRow}>
           <Ionicons name="bulb-outline" size={16} color={theme.colors.mutedForeground} />
-          <Text style={styles.tipText}>{line}</Text>
+          <Text style={styles.tipText}>{tip}</Text>
         </View>
-      ))}
+      ) : null}
 
-      <Text style={styles.hint}>{t("snackAdvice.card.note")}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        hitSlop={10}
+        onPress={() => setOpen((value) => !value)}
+        style={({ pressed }) => [styles.why, pressed && styles.pressed]}
+      >
+        <Text style={styles.whyLabel}>{t("snackAdvice.card.why")}</Text>
+        <Ionicons
+          name={open ? "chevron-up" : "chevron-down"}
+          size={14}
+          color={theme.colors.mutedForeground}
+        />
+      </Pressable>
+      {open ? (
+        <View style={styles.headText}>
+          <Text style={styles.detail}>{advice.reason}</Text>
+          <Text style={styles.hint}>{t("snackAdvice.card.note")}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -334,10 +346,26 @@ const styles = StyleSheet.create((theme) => ({
     fontFamily: theme.fonts.heavy,
     color: theme.colors.foreground,
   },
-  reason: {
-    fontSize: theme.fontSize.base,
-    lineHeight: 22,
+  summary: {
+    fontSize: theme.fontSize.sm,
+    lineHeight: 20,
     color: theme.colors.foreground,
+  },
+  detail: {
+    fontSize: theme.fontSize.sm,
+    lineHeight: 20,
+    color: theme.colors.foreground,
+  },
+  why: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  whyLabel: {
+    fontSize: theme.fontSize.sm,
+    fontFamily: theme.fonts.bold,
+    color: theme.colors.mutedForeground,
   },
   stats: {
     flexDirection: "row",

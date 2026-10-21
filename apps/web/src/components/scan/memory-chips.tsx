@@ -10,7 +10,7 @@ import { client } from "@/utils/orpc";
 
 const chipClass = (busy: boolean) =>
   cn(
-    "pressable inline-flex min-h-9 shrink-0 items-center rounded-full bg-muted px-3 text-xs font-semibold whitespace-nowrap text-foreground transition-colors duration-150 hover:bg-border focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60",
+    "pressable inline-flex min-h-8 shrink-0 items-center rounded-full bg-muted px-3 text-xs font-semibold whitespace-nowrap text-foreground transition-colors duration-150 hover:bg-border focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60",
     busy && "animate-pulse",
   );
 
@@ -72,9 +72,12 @@ export function MemoryChips({
   };
 
   return (
-    <section aria-label={t("result.memory.group")} className="mt-3">
-      <p className="mb-1.5 text-xs font-semibold text-muted-foreground">{t("result.memory.title")}</p>
-      <div role="group" aria-label={t("result.memory.group")} className="flex flex-wrap gap-1.5">
+    <section
+      aria-label={t("result.memory.group")}
+      className="mt-3 flex flex-wrap items-center gap-1.5"
+    >
+      <p className="text-xs font-semibold text-muted-foreground">{t("result.memory.title")}</p>
+      <div role="group" aria-label={t("result.memory.group")} className="contents">
         {names.map((name) => (
           <button
             key={name}
