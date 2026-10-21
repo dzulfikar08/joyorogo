@@ -55,6 +55,8 @@ const strengthSetSchema = z.looseObject({
 const strengthExerciseSchema = z.looseObject({
   key: id,
   exerciseId,
+  // The measure chosen for this workout (true = seconds, false = reps); absent = the exercise's own `timed`.
+  timed: z.boolean().optional(),
   note,
   restSec,
   supersetGroup,
@@ -82,6 +84,7 @@ const routineSetSchema = z.looseObject({ type: setType, weightKg, reps, seconds 
 
 const routineExerciseSchema = z.looseObject({
   exerciseId,
+  timed: z.boolean().optional(),
   restSec,
   note,
   supersetGroup,
@@ -121,6 +124,8 @@ const exerciseSchema = z.looseObject({
 const prefSchema = z.looseObject({
   id: exerciseId,
   restSec,
+  // The last Repetisi / Waktu choice for the exercise; null or absent = the exercise's default.
+  timed: z.boolean().nullable().optional(),
   updatedAt: ms,
   deletedAt: ms.nullable(),
 });

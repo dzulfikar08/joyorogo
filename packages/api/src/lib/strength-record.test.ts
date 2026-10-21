@@ -86,6 +86,19 @@ describe("validateStrengthRecord", () => {
     expect(validateStrengthRecord(record("workout", workout({ futureField: { a: 1 } })))).toEqual({ ok: true });
   });
 
+  test("takes the per-exercise `timed` measure on workouts, routines and prefs, and only as a boolean", () => {
+    const timedSet = { ...set("s1"), reps: null, seconds: 45 };
+    const timedWorkout = workout({ exercises: [{ key: "k1", exerciseId: "plank", timed: true, note: "", restSec: null, supersetGroup: null, sets: [timedSet] }] });
+    const rec = record("workout", timedWorkout);
+    expect(validateStrengthRecord(rec)).toEqual({ ok: true });
+    expect(JSON.parse(rec.json)).toEqual(timedWorkout);
+    const routine = { id: "r1", name: "A", folderId: null, note: "", exercises: [{ exerciseId: "plank", timed: false, restSec: null, note: "", supersetGroup: null, sets: [] }], sortOrder: 1, createdAt: 1, updatedAt: 2, deletedAt: null };
+    expect(validateStrengthRecord(record("routine", routine))).toEqual({ ok: true });
+    expect(validateStrengthRecord(record("pref", { id: "plank", restSec: null, timed: true, updatedAt: 1, deletedAt: null }))).toEqual({ ok: true });
+    expect(validateStrengthRecord(record("pref", { id: "plank", restSec: 60, timed: null, updatedAt: 1, deletedAt: null }))).toEqual({ ok: true });
+    expect(validateStrengthRecord(record("workout", workout({ exercises: [{ ...timedWorkout.exercises[0], timed: "yes" }] })))).toEqual({ ok: false, reason: "shape" });
+  });
+
   test("rejects a wrong shape, a wrong id, bad JSON and an oversize document", () => {
     expect(validateStrengthRecord(record("workout", workout({ name: 5 })))).toEqual({ ok: false, reason: "shape" });
     expect(validateStrengthRecord(record("workout", workout(), { id: "other" }))).toEqual({ ok: false, reason: "id_mismatch" });
