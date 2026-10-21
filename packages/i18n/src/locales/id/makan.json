@@ -1,12 +1,19 @@
 {
   "diary": {
     "header": {
-      "caption": "Catat piringmu",
       "loading": "Memuat catatan makan"
     },
     "summary": {
+      "unit": "kkal",
       "over": "Lewat {{kcal}}",
       "ofTarget": "dari {{kcal}}"
+    },
+    "quick": {
+      "label": "Catat cepat",
+      "photo": "Foto",
+      "barcode": "Barcode",
+      "story": "Cerita",
+      "recent": "Terakhir dicatat · tap untuk catat ke {{meal}}"
     },
     "macro": {
       "protein": "Protein",
@@ -16,7 +23,6 @@
     },
     "story": {
       "title": "Ceritakan makananmu",
-      "subtitle": "Ketik atau ucapkan, AI yang hitung kalorinya.",
       "sheetDescription": "Bisa beberapa waktu makan sekaligus, bahkan kemarin. Kamu cek dulu sebelum disimpan.",
       "saved_other": "{{count}} makanan dicatat ke {{days}}.",
       "daysJoin": " dan ",
@@ -24,8 +30,6 @@
     },
     "favorites": {
       "title": "Favorit",
-      "hint": "Tap untuk catat ke {{meal}}",
-      "hintOnDate": "Tap untuk catat ke {{meal}}, {{date}}",
       "inlineHint": "Favorit · tap untuk catat ke {{meal}}",
       "inlineHintOnDate": "Favorit · tap untuk catat ke {{meal}}, {{date}}",
       "sheetHint": "Tap untuk langsung masuk ke {{meal}}.",
@@ -33,26 +37,16 @@
     },
     "empty": {
       "titleToday": "Belum ada catatan hari ini",
-      "titleDay": "Belum ada catatan di hari ini",
-      "description": "Ceritakan apa yang kamu makan, atau pindai foto piringmu biar AI yang hitung.",
-      "log": "Catat makan",
-      "scan": "Pindai foto",
-      "nativeTitle": "Belum ada makanan",
-      "nativeDescriptionToday": "Catat makan pertamamu untuk hari ini, atau foto piringmu lewat tombol kamera.",
-      "nativeDescriptionOnDate": "Catat makan pertamamu untuk {{date}}, atau foto piringmu lewat tombol kamera.",
-      "nativeAction": "Tambah makanan"
+      "titleDay": "Belum ada catatan di hari ini"
     },
     "list": {
-      "entries_other": "{{n}} catatan",
       "sectionAria": "{{meal}}, total {{kcal}} kcal",
       "addTo": "Tambah {{meal}}",
       "slotEmpty": "Belum ada catatan. Tekan Tambah di atas, atau pindai fotonya.",
       "slotEmptyIcon": "Belum ada catatan. Tekan tambah di atas, atau pindai fotonya.",
       "slotNoKind": "Tidak ada {{kind}} di waktu makan ini.",
       "dayEmpty": "Belum ada catatan di hari ini.",
-      "dayNoKind": "Tidak ada {{kind}} di hari ini.",
-      "dayAria": "Catatan {{date}}",
-      "openInList": "Buka di Daftar"
+      "dayAria": "Catatan {{date}}"
     },
     "kind": {
       "makanan": "makanan",
@@ -139,18 +133,12 @@
     "view": {
       "daftar": "Daftar",
       "kalender": "Kalender",
-      "stiker": "Stiker",
+      "stiker": "Foto",
       "tempat": "Tempat"
     }
   },
   "kindChips": {
     "label": "Jenis catatan"
-  },
-  "monthScrubber": {
-    "records_other": "{{n}} catatan",
-    "daysLogged_other": "{{n}} hari tercatat",
-    "jump": "Loncat ke tanggal bulan ini",
-    "dayWithEntries": "{{date}}, ada catatan"
   },
   "calendar": {
     "label": "Kalender catatan",
@@ -167,8 +155,31 @@
     },
     "dayWithEntries_other": "{{date}}, {{count}} catatan, {{kcal}}",
     "dayEmpty": "{{date}}, belum ada catatan",
-    "daysLoggedMonth_other": "{{n}} hari tercatat bulan ini",
-    "budget": "Budget ±{{kcal}}",
+    "status": {
+      "within": "sesuai target",
+      "over": "lewat target",
+      "under": "di bawah target"
+    },
+    "budget": "Target {{kcal}} per hari",
+    "stats": {
+      "logged_other": "{{n}} hari tercatat",
+      "within_other": "{{n}} sesuai target",
+      "over_other": "{{n}} lewat target",
+      "under_other": "{{n}} di bawah target",
+      "average": "Rata-rata {{kcal}} per hari"
+    },
+    "legend": {
+      "within": "Sesuai target",
+      "over": "Lewat target",
+      "under": "Di bawah target",
+      "logged": "Tercatat",
+      "none": "Belum dicatat"
+    },
+    "day": {
+      "empty": "Belum ada catatan di hari ini.",
+      "open": "Buka di Daftar",
+      "ofTarget": "{{eaten}} dari {{target}} kkal"
+    },
     "monthLong": {
       "jan": "Januari",
       "feb": "Februari",
@@ -184,26 +195,26 @@
       "dec": "Desember"
     }
   },
-  "stickers": {
+  "photos": {
     "tile": {
-      "label": "{{name}}, {{kcal}}, {{date}}",
-      "meta": "{{kcal}} · {{date}}"
+      "label": "{{name}}, {{kcal}}, {{date}}"
     },
     "range": "{{from}} – {{to}}",
     "span": {
-      "label": "Rentang stiker",
+      "label": "Rentang foto",
       "minggu": "Minggu",
       "bulan": "Bulan"
     },
-    "count_other": "{{n}} stiker",
+    "count_other": "{{n}} makanan berfoto",
+    "average": "Rata-rata {{kcal}} per makanan",
     "prevWeek": "Minggu sebelumnya",
     "nextWeek": "Minggu berikutnya",
     "prevMonth": "Bulan sebelumnya",
     "nextMonth": "Bulan berikutnya",
-    "loading": "Menyusun stikermu...",
+    "loading": "Memuat makanan berfoto...",
     "empty": {
-      "title": "Belum ada stiker",
-      "body": "Foto piringmu lewat Pindai foto, nanti potongan makanannya muncul di sini."
+      "title": "Belum ada makanan berfoto",
+      "body": "Pindai foto piringmu, nanti fotonya muncul di sini bersama kalori dan proteinnya."
     }
   },
   "fitnessCard": {
@@ -331,9 +342,6 @@
     "kindPicker": {
       "label": "Jenis makanan"
     }
-  },
-  "timeline": {
-    "entries_other": "{{n}} catatan"
   },
   "daySwitcher": {
     "label": "Pilih hari",

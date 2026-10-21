@@ -9,8 +9,9 @@ import { protectedProcedure } from "../index";
 import { assertEatenAt, eatenAtSchema } from "../lib/eaten-at";
 import { jakartaToday, suggestMealNow } from "../lib/engine";
 import { serverT } from "../lib/messages";
-import { aggregatePlaces, normalizePlaceKey, visitsOfPlace } from "../lib/places";
-import type { PlaceVisitRow } from "../lib/places";
+import { aggregatePlaces, dishesOfPlace, normalizePlaceKey, visitsOfPlace } from "../lib/places";
+import type { PlaceVisitRow, PlateNutrition } from "../lib/places";
+import type { Context } from "../context";
 import { dateSchema, mealSchema } from "../lib/schemas";
 
 // One user's places stay small; the cap keeps the aggregate a single bounded scan.
@@ -32,50 +33,47 @@ const visitColumns = {
 const withPlace = (userId: string) =>
   and(eq(plate.userId, userId), isNotNull(plate.place), sql`trim(${plate.place}) <> ''`);
 
+/** kcal and protein of every plate that carries a place, summed over its food rows in one grouped scan. */
+async function plateNutrition(db: Context["db"], userId: string): Promise<PlateNutrition[]> {
+  const rows = await db
+    .select({
+      plateId: foodLog.plateId,
+      kcal: sql<number>`sum(${foodLog.kcal})`,
+      protein: sql<number | null>`sum(${foodLog.protein})`,
+    })
+    .from(foodLog)
+    .where(
+      and(
+        eq(foodLog.userId, userId),
+        inArray(foodLog.plateId, db.select({ id: plate.id }).from(plate).where(withPlace(userId))),
+      ),
+    )
+    .groupBy(foodLog.plateId)
+    .limit(MAX_PLATES);
+  return rows.flatMap((row) =>
+    row.plateId
+      ? [{ plateId: row.plateId, kcal: Number(row.kcal), proteinG: row.protein === null ? null : Number(row.protein) }]
+      : [],
+  );
+}
+
 export const placeRouter = {
-  // "Tempat makan": every place the user logged a plate at, aggregated in two
-  // bounded queries (plates with a place, plus their stickers via a subquery
-  // so no id list is ever bound). Coordinates are the owner's own.
+  // "Tempat makan": every place the user logged a plate at with what was eaten
+  // there on average, in two bounded queries (plates with a place, plus their
+  // summed nutrition via a subquery so no id list is ever bound). Coordinates
+  // are the owner's own.
   list: protectedProcedure.handler(async ({ context }) => {
     const userId = context.session.user.id;
-    const [rows, stickers] = await Promise.all([
+    const [rows, nutrition] = await Promise.all([
       context.db
         .select(visitColumns)
         .from(plate)
         .where(withPlace(userId))
         .orderBy(desc(plate.date), desc(plate.createdAt))
         .limit(MAX_PLATES),
-      context.db
-        .select({
-          plateId: foodLog.plateId,
-          scanId: foodLog.scanId,
-          name: foodLog.name,
-          kcal: foodLog.kcal,
-        })
-        .from(foodLog)
-        .where(
-          and(
-            eq(foodLog.userId, userId),
-            isNotNull(foodLog.scanId),
-            inArray(
-              foodLog.plateId,
-              context.db.select({ id: plate.id }).from(plate).where(withPlace(userId)),
-            ),
-          ),
-        )
-        .limit(MAX_PLATES * 4),
+      plateNutrition(context.db, userId),
     ]);
-    return {
-      today: jakartaToday(),
-      places: aggregatePlaces(
-        rows,
-        stickers.flatMap((s) =>
-          s.plateId && s.scanId
-            ? [{ plateId: s.plateId, scanId: s.scanId, name: s.name, kcal: s.kcal }]
-            : [],
-        ),
-      ),
-    };
+    return { today: jakartaToday(), places: aggregatePlaces(rows, nutrition) };
   }),
 
   // Visit history of one place (newest first) with each plate's components.
@@ -92,12 +90,12 @@ export const placeRouter = {
       const matching = visitsOfPlace(rows, normalizePlaceKey(input.key));
       if (matching.length === 0) return null;
       const shown = matching.slice(0, MAX_DETAIL_VISITS);
+      const nutrition = await plateNutrition(context.db, userId);
+      const nutritionByPlate = new Map(nutrition.map((entry) => [entry.plateId, entry]));
       const components = await context.db
         .select({
           plateId: foodLog.plateId,
           name: foodLog.name,
-          kcal: foodLog.kcal,
-          scanId: foodLog.scanId,
         })
         .from(foodLog)
         .where(
@@ -119,17 +117,20 @@ export const placeRouter = {
       }
       return {
         total: matching.length,
+        // Every visit counts here, not just the newest ones listed below.
+        dishes: dishesOfPlace(matching, nutrition),
         visits: shown.map((visit) => {
           const items = byPlate.get(visit.id) ?? [];
+          const eaten = nutritionByPlate.get(visit.id);
           return {
             id: visit.id,
             date: visit.date,
             meal: visit.meal,
             name: visit.name,
             priceIdr: visit.priceIdr,
-            kcal: Math.round(items.reduce((sum, item) => sum + item.kcal, 0)),
+            kcal: Math.round(eaten?.kcal ?? 0),
+            proteinG: eaten?.proteinG != null ? Math.round(eaten.proteinG) : null,
             itemNames: items.map((item) => item.name),
-            stickerScanId: items.find((item) => item.scanId)?.scanId ?? null,
             hasLocation: visit.lat != null && visit.lng != null,
           };
         }),

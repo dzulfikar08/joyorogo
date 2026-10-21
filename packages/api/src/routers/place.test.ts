@@ -74,9 +74,10 @@ describe("place router", () => {
       key: "warung bu tini",
       visits: 2,
       lastDate: "2026-10-14",
-      favoriteDish: "Nasi ayam",
+      avgKcal: 510,
+      avgProteinG: null,
+      proteinPick: null,
       avgPriceIdr: 22000,
-      stickerScanId: "a".repeat(32),
       lat: -7.984,
       lng: 112.63,
     });
@@ -85,7 +86,8 @@ describe("place router", () => {
 
     const detail = await call(placeRouter.detail, { key: "Warung Bu Tini" }, u1);
     expect(detail?.total).toBe(2);
-    expect(detail?.visits[0]).toMatchObject({ date: "2026-10-14", kcal: 520, hasLocation: true });
+    expect(detail?.dishes).toEqual([{ name: "Nasi ayam", count: 2, avgKcal: 510, avgProteinG: null }]);
+    expect(detail?.visits[0]).toMatchObject({ date: "2026-10-14", kcal: 520, proteinG: null, hasLocation: true });
     expect(await call(placeRouter.detail, { key: "Warung Bu Tini" }, u2)).toBeNull();
 
     const relogged = await call(placeRouter.relog, { plateId: detail!.visits[0]!.id, date: "2026-10-15", meal: "sarapan" }, u1);

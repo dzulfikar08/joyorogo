@@ -13,8 +13,8 @@ export type MapPin = {
   name: string;
   lat: number;
   lng: number;
-  /** Absolute sticker URL, or null for the plain food icon. */
-  stickerUrl: string | null;
+  /** Average kcal shown in the pill (already formatted), or null for the food icon. */
+  label: string | null;
   visits: number;
 };
 
@@ -25,6 +25,8 @@ export type MapColors = {
   mutedForeground: string;
   primary: string;
   primaryForeground: string;
+  makanSoft: string;
+  makanText: string;
 };
 
 /** Words rendered inside the page; `cluster` carries a `%N%` placeholder for the pin count. */
@@ -54,9 +56,9 @@ export function buildMapHtml(input: {
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css">
 <style>
   html,body,#map{margin:0;height:100%;width:100%;background:${colors.muted};overflow:hidden;font-family:sans-serif}
-  .pin{position:relative;width:48px;height:48px;border-radius:50%;border:3px solid ${colors.card};background:${colors.muted};
-    box-shadow:0 2px 8px rgba(0,0,0,.28);padding:0;display:grid;place-items:center;color:${colors.mutedForeground};box-sizing:border-box}
-  .pin img{width:100%;height:100%;border-radius:50%;object-fit:contain;padding:4px;box-sizing:border-box;pointer-events:none}
+  .pin{position:relative;min-width:44px;height:32px;border-radius:16px;border:2px solid ${colors.card};background:${colors.makanSoft};
+    box-shadow:0 1px 6px rgba(0,0,0,.22);padding:0 10px;display:flex;align-items:center;justify-content:center;white-space:nowrap;
+    color:${colors.makanText};font:700 13px/1 sans-serif;box-sizing:border-box}
   .pin .count{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;border-radius:10px;padding:0 5px;box-sizing:border-box;
     background:${colors.primary};color:${colors.primaryForeground};border:2px solid ${colors.card};font:700 11px/16px sans-serif;text-align:center}
   .here{width:16px;height:16px;border-radius:50%;background:#2f6fed;border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.35);box-sizing:border-box}
@@ -114,7 +116,7 @@ export function buildMapHtml(input: {
   }
 
   function food(el) {
-    el.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>';
+    el.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>';
   }
 
   function pinEl(c) {
@@ -122,12 +124,10 @@ export function buildMapHtml(input: {
     var el = document.createElement("button");
     el.className = "pin";
     el.setAttribute("aria-label", c.members.length > 1 ? CLUSTER_LABEL.replace("%N%", String(c.members.length)) : top.name);
-    if (top.stickerUrl) {
-      var img = document.createElement("img");
-      img.src = top.stickerUrl;
-      img.alt = "";
-      img.onerror = function () { img.remove(); food(el); if (c.members.length > 1) addCount(el, c); };
-      el.appendChild(img);
+    if (top.label) {
+      var text = document.createElement("span");
+      text.textContent = top.label;
+      el.appendChild(text);
     } else {
       food(el);
     }

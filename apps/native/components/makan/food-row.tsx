@@ -1,6 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { foodKind } from "@joyorogo/api/lib/food-kind";
-import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { fmtClock } from "@joyorogo/i18n";
 import { useTranslation } from "react-i18next";
 import { useRef } from "react";
@@ -17,21 +15,14 @@ import type { DiaryRow } from "@/components/favorit";
 import { MacroLine } from "@/components/macro-line";
 import { FoodSticker } from "@/components/sticker";
 import { EASE_OUT, PressableScale, useEnter } from "@/components/motion";
-import { Text } from "@/components/ui";
-import { fmtInt, fmtKcalLabel } from "@/utils/format";
-import { MacroIcon } from "@/utils/macro-icons";
-
-const KIND_ICON = {
-  makanan: "restaurant",
-  camilan: "fast-food",
-  minuman: "cafe",
-  lainnya: "shapes",
-} as const satisfies Record<FoodKind, React.ComponentProps<typeof Ionicons>["name"]>;
+import { Num, Text } from "@/components/ui";
+import { fmtInt } from "@/utils/format";
 
 /**
- * Sticker-first diary row: large cutout on the left, name (2 lines max), kind
- * chip + time, then kkal / gram / macro metadata. The trash button is the only
- * inline control; the rest of the row opens the editor.
+ * Nutrition diary row: a small thumbnail (plain cutout or food icon), the name,
+ * time and grams, the macro line, and the kcal as the right-aligned number.
+ * The trash button is the only inline control; the rest of the row opens the
+ * editor.
  */
 export function FoodRow({
   item,
@@ -47,7 +38,6 @@ export function FoodRow({
 }) {
   const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
-  const kind = foodKind(item.name);
   const created = new Date(item.createdAt);
   const hasMacros = [item.protein, item.carbs, item.fat, item.fiber].some((g) => (g ?? 0) > 0);
 
@@ -86,50 +76,39 @@ export function FoodRow({
         <FoodSticker
           scanId={item.scanId}
           name={item.name}
-          size={76}
+          size={48}
           onPress={item.scanId ? onViewSticker : undefined}
         />
         <View style={styles.body}>
           <Text style={styles.title} numberOfLines={2}>
             {item.name}
           </Text>
-          <View style={styles.chipLine}>
-            <View style={styles.kindChip}>
-              <Ionicons name={KIND_ICON[kind]} size={13} color={theme.colors.makanText} />
-              <Text style={styles.kindText}>{t(`kind.${kind}`)}</Text>
-            </View>
-            {Number.isNaN(created.getTime()) ? null : (
-              <View style={styles.timeItem}>
-                <Ionicons name="time-outline" size={14} color={theme.colors.mutedForeground} />
-                <Text style={styles.timeText}>{fmtClock(created)}</Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.metaBox}>
+          {Number.isNaN(created.getTime()) && !item.grams ? null : (
             <View style={styles.metaLine}>
-              <View style={styles.metaItem}>
-                <MacroIcon macro="kcal" size={14} />
-                <Text style={[styles.metaText, styles.kcalText]}>{fmtKcalLabel(item.kcal)}</Text>
-              </View>
-              {item.grams ? (
+              {Number.isNaN(created.getTime()) ? null : (
                 <View style={styles.metaItem}>
-                  <MacroIcon macro="grams" size={14} />
-                  <Text style={[styles.metaText, styles.gramText]}>{fmtInt(item.grams)} g</Text>
+                  <Ionicons name="time-outline" size={13} color={theme.colors.mutedForeground} />
+                  <Text style={styles.metaText}>{fmtClock(created)}</Text>
                 </View>
-              ) : null}
+              )}
+              {item.grams ? <Text style={styles.metaText}>{fmtInt(item.grams)} g</Text> : null}
             </View>
-            {hasMacros ? (
-              <MacroLine
-                compact
-                protein={item.protein}
-                carbs={item.carbs}
-                fat={item.fat}
-                fiber={item.fiber}
-              />
-            ) : item.source === "ai" ? (
-              <Text style={styles.aiText}>{t("foodRow.fromAi")}</Text>
-            ) : null}
-          </View>
+          )}
+          {hasMacros ? (
+            <MacroLine
+              compact
+              protein={item.protein}
+              carbs={item.carbs}
+              fat={item.fat}
+              fiber={item.fiber}
+            />
+          ) : item.source === "ai" ? (
+            <Text style={styles.metaText}>{t("foodRow.fromAi")}</Text>
+          ) : null}
+        </View>
+        <View style={styles.kcalBox}>
+          <Num style={styles.kcal}>{fmtInt(item.kcal)}</Num>
+          <Text style={styles.kcalUnit}>{t("diary.summary.unit")}</Text>
         </View>
         <PressableScale
           accessibilityRole="button"
@@ -157,51 +136,13 @@ const styles = StyleSheet.create((theme) => ({
   body: {
     flex: 1,
     minWidth: 0,
-    gap: 6,
+    gap: 3,
   },
   title: {
     fontSize: theme.fontSize.base,
     fontWeight: "600",
     lineHeight: 20,
     color: theme.colors.foreground,
-  },
-  chipLine: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    columnGap: theme.spacing.md,
-    rowGap: 4,
-  },
-  kindChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.makanSoft,
-  },
-  kindText: {
-    fontSize: theme.fontSize.xs,
-    fontWeight: "600",
-    color: theme.colors.makanText,
-  },
-  timeItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  timeText: {
-    fontSize: theme.fontSize.xs,
-    color: theme.colors.mutedForeground,
-    fontVariant: ["tabular-nums"],
-  },
-  metaBox: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    columnGap: theme.spacing.md,
-    rowGap: 2,
   },
   metaLine: {
     flexDirection: "row",
@@ -211,23 +152,24 @@ const styles = StyleSheet.create((theme) => ({
   metaItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
   },
   metaText: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: "700",
-    fontVariant: ["tabular-nums"],
-  },
-  kcalText: {
-    color: theme.colors.kcalText,
-  },
-  gramText: {
-    color: theme.colors.gramText,
-  },
-  aiText: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
     fontVariant: ["tabular-nums"],
+  },
+  kcalBox: {
+    alignItems: "flex-end",
+  },
+  kcal: {
+    fontSize: theme.fontSize.md,
+    fontWeight: "800",
+    color: theme.colors.kcalText,
+  },
+  kcalUnit: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.mutedForeground,
   },
   deleteButton: {
     width: 44,

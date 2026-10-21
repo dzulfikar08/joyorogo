@@ -10,7 +10,6 @@ import { useTranslation } from "react-i18next";
 import {
   MEAL_EDIT_LABELS,
   MEAL_LABELS,
-  eatTone,
   effectiveRamadan,
   jakartaToday,
   macroTargets,
@@ -21,9 +20,8 @@ import {
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/format";
-import { gainEatTone, gainRemaining } from "@joyorogo/api/lib/gain";
 
-import { gainRemainingLabel } from "@/components/gain/gain-today";
+import { MacroLine } from "@/components/macro-line";
 import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { BelanjaSection } from "@/components/plate/belanja";
 import { MealPlanEntry } from "@/components/meal-plan/entry-card";
@@ -40,17 +38,13 @@ import type { StickerViewerTarget } from "@/components/sticker";
 import {
   BootLoader,
   Button,
-  Card,
   Chip,
-  EmptyState,
   ErrorState,
   Field,
   Input,
   ListGroup,
-  MacroBar,
   CountNum,
   PageHeader,
-  Ring,
   Screen,
   Segmented,
   Sheet,
@@ -60,7 +54,7 @@ import {
 import { PopIn, PressableScale, Reveal } from "@/components/motion";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
-import { errorMessage, fmtDateMedium, fmtInt, parseNum } from "@/utils/format";
+import { errorMessage, fmtInt, parseNum } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import type { QueryKey } from "@tanstack/react-query";
@@ -69,11 +63,11 @@ import type { SummaryDelta } from "@joyorogo/api/lib/optimistic";
 import { foodKind, matchesKind } from "@joyorogo/api/lib/food-kind";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 import type { MakanView } from "@joyorogo/api/lib/diary-view";
+import { DaySummary } from "@/components/makan/day-summary";
 import { KalenderView } from "@/components/makan/kalender-view";
 import { KindChips } from "@/components/makan/kind-chips";
-import { MonthScrubber } from "@/components/makan/month-scrubber";
-import { StikerView } from "@/components/makan/stiker-view";
-import { Timeline } from "@/components/makan/timeline";
+import { QuickAdd } from "@/components/makan/quick-add";
+import { FotoView } from "@/components/makan/foto-view";
 import { KindPicker, SnackAdviceSection } from "@/components/makan/snack-advice";
 import type { PickableKind } from "@/components/makan/snack-advice";
 import { MakanViewSwitcher } from "@/components/makan/view-switcher";
@@ -612,228 +606,151 @@ export default function Makan() {
   const renderSlot = (key: Meal) => {
     const slotItems = visibleItems.filter((item) => item.meal === key);
     const slotKcal = slotItems.reduce((sum, item) => sum + item.kcal, 0);
+    const slotMacro = (pick: (item: (typeof slotItems)[number]) => number | null) =>
+      slotItems.reduce((sum, item) => sum + (pick(item) ?? 0), 0);
     return (
-      <View key={key}>
+      <ListGroup key={key}>
         <View style={styles.slotHeader}>
-          <View style={styles.slotDot} />
-          <Text style={styles.slotTitle}>{MEAL_LABELS[key]}</Text>
-          <View style={styles.slotRight}>
-            {slotKcal > 0 ? (
-              <CountNum
-                value={slotKcal}
-                format={(n) => `${fmtInt(n)} kcal`}
-                style={styles.slotKcal}
+          <View style={styles.slotHead}>
+            <Text style={styles.slotTitle}>{MEAL_LABELS[key]}</Text>
+            {slotItems.length === 0 ? (
+              <Text style={styles.slotEmpty}>
+                {kind === "semua"
+                  ? t("diary.list.slotEmptyIcon")
+                  : t("diary.list.slotNoKind", { kind: t(`diary.kind.${kind}`) })}
+              </Text>
+            ) : (
+              <MacroLine
+                compact
+                protein={slotMacro((item) => item.protein)}
+                carbs={slotMacro((item) => item.carbs)}
+                fat={slotMacro((item) => item.fat)}
               />
-            ) : null}
-            <PressableScale
-              accessibilityRole="button"
-              accessibilityLabel={t("diary.list.addTo", { meal: MEAL_LABELS[key] })}
-              onPress={() => {
-                setSheetMeal(key);
-                setFormError(null);
-              }}
-              scaleTo={0.88}
-              style={styles.slotAdd}
-            >
-              <Ionicons name="add" size={20} color={theme.colors.primary} />
-            </PressableScale>
+            )}
           </View>
+          {slotKcal > 0 ? (
+            <CountNum
+              value={slotKcal}
+              format={(n) => `${fmtInt(n)} ${t("diary.summary.unit")}`}
+              style={styles.slotKcal}
+            />
+          ) : null}
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel={t("diary.list.addTo", { meal: MEAL_LABELS[key] })}
+            onPress={() => {
+              setSheetMeal(key);
+              setFormError(null);
+            }}
+            scaleTo={0.88}
+            style={styles.slotAdd}
+          >
+            <Ionicons name="add" size={22} color={theme.colors.makanText} />
+          </PressableScale>
         </View>
-        {slotItems.length === 0 ? (
-          <Text style={styles.slotEmpty}>{t("diary.list.slotEmptyIcon")}</Text>
-        ) : (
-          <ListGroup>
-            {slotItems
-              .reduce<Array<{ plateId: string | null; rows: typeof slotItems }>>(
-                (segments, item) => {
-                  const last = segments[segments.length - 1];
-                  if (item.plateId !== null && last?.plateId === item.plateId) {
-                    last.rows.push(item);
-                  } else {
-                    segments.push({ plateId: item.plateId, rows: [item] });
-                  }
-                  return segments;
-                },
-                [],
-              )
-              .map((segment, segmentIndex) => {
-                const plateRow =
-                  segment.plateId !== null
-                    ? ((plateDayQuery.data ?? []).find((row) => row.id === segment.plateId) ?? null)
-                    : null;
-                const segmentKcal = segment.rows.reduce((sum, item) => sum + item.kcal, 0);
-                const anyMacro = segment.rows.some(
-                  (item) =>
-                    item.protein !== null ||
-                    item.carbs !== null ||
-                    item.fat !== null ||
-                    item.fiber !== null,
-                );
-                const sumMacro = (pick: (item: (typeof segment.rows)[number]) => number | null) =>
-                  anyMacro ? segment.rows.reduce((sum, item) => sum + (pick(item) ?? 0), 0) : null;
-                return (
-                  <View key={segment.plateId ?? `plain-${segmentIndex}`}>
-                    {plateRow ? (
-                      <PlateHeader
-                        name={plateRow.name}
-                        priceIdr={plateRow.priceIdr}
-                        kcal={segmentKcal}
-                        protein={sumMacro((item) => item.protein)}
-                        carbs={sumMacro((item) => item.carbs)}
-                        fat={sumMacro((item) => item.fat)}
-                        fiber={sumMacro((item) => item.fiber)}
-                        onEdit={() => setPlateEditId(plateRow.id)}
-                        disabled={updatePlate.isPending}
-                      />
-                    ) : null}
-                    {segment.rows.map((item) => (
-                      <FoodRow
-                        key={item.id}
-                        item={item}
-                        onEdit={() => setEditRow(item)}
-                        onDelete={() => deleteFood(item)}
-                        onViewSticker={() => viewSticker(item)}
-                      />
-                    ))}
-                  </View>
-                );
-              })}
-          </ListGroup>
-        )}
-      </View>
+        {slotItems
+          .reduce<Array<{ plateId: string | null; rows: typeof slotItems }>>((segments, item) => {
+            const last = segments[segments.length - 1];
+            if (item.plateId !== null && last?.plateId === item.plateId) {
+              last.rows.push(item);
+            } else {
+              segments.push({ plateId: item.plateId, rows: [item] });
+            }
+            return segments;
+          }, [])
+          .map((segment, segmentIndex) => {
+            const plateRow =
+              segment.plateId !== null
+                ? ((plateDayQuery.data ?? []).find((row) => row.id === segment.plateId) ?? null)
+                : null;
+            const segmentKcal = segment.rows.reduce((sum, item) => sum + item.kcal, 0);
+            const anyMacro = segment.rows.some(
+              (item) =>
+                item.protein !== null ||
+                item.carbs !== null ||
+                item.fat !== null ||
+                item.fiber !== null,
+            );
+            const sumMacro = (pick: (item: (typeof segment.rows)[number]) => number | null) =>
+              anyMacro ? segment.rows.reduce((sum, item) => sum + (pick(item) ?? 0), 0) : null;
+            return (
+              <View key={segment.plateId ?? `plain-${segmentIndex}`}>
+                {plateRow ? (
+                  <PlateHeader
+                    name={plateRow.name}
+                    priceIdr={plateRow.priceIdr}
+                    kcal={segmentKcal}
+                    protein={sumMacro((item) => item.protein)}
+                    carbs={sumMacro((item) => item.carbs)}
+                    fat={sumMacro((item) => item.fat)}
+                    fiber={sumMacro((item) => item.fiber)}
+                    onEdit={() => setPlateEditId(plateRow.id)}
+                    disabled={updatePlate.isPending}
+                  />
+                ) : null}
+                {segment.rows.map((item) => (
+                  <FoodRow
+                    key={item.id}
+                    item={item}
+                    onEdit={() => setEditRow(item)}
+                    onDelete={() => deleteFood(item)}
+                    onViewSticker={() => viewSticker(item)}
+                  />
+                ))}
+              </View>
+            );
+          })}
+      </ListGroup>
     );
   };
 
   return (
     <Screen>
-      <PageHeader
-        title={t("common:nav.food")}
-        caption={isToday && view === "daftar" ? t("diary.header.caption") : undefined}
-      />
+      <PageHeader title={t("common:nav.food")} />
 
       <MakanViewSwitcher value={view} onChange={chooseView} />
       {view !== "tempat" ? <KindChips value={kind} onChange={chooseKind} /> : null}
 
       {view === "daftar" ? (
         <>
-          <MonthScrubber date={date} kind={kind} onPick={setDate} />
-
-          {/* Day switcher */}
           <DaySwitcher date={date} onChange={setDate} />
 
-          {/* Summary strip: ring + per-macro progress bars (same budgets as web) */}
-          <Card style={styles.summaryCard}>
-            <Ring
-              size={110}
-              stroke={12}
-              value={eatenKcal}
-              max={
-                targets !== null && targets.eatKcal > 0 ? targets.eatKcal : Math.max(eatenKcal, 1)
-              }
-              color={
-                {
-                  ok: theme.colors.makan,
-                  near: theme.colors.eatNear,
-                  over: theme.colors.destructive,
-                }[
-                  maternal
-                    ? "ok"
-                    : gainPlan
-                      ? gainEatTone(eatenKcal, targets?.eatKcal ?? 0)
-                      : eatTone(eatenKcal, targets?.eatKcal ?? 0)
-                ]
-              }
-              track={theme.colors.makanSoft}
-            >
-              <View style={styles.ringCenter}>
-                <CountNum
-                  value={eatenKcal}
-                  style={styles.ringKcal}
-                  adjustsFontSizeToFit
-                  numberOfLines={1}
-                />
-                <Text style={styles.ringUnit}>kcal</Text>
-                {targets !== null && targets.eatKcal > 0 ? (
-                  <Text
-                    style={[
-                      styles.ringTarget,
-                      !maternal &&
-                        !gainPlan &&
-                        eatenKcal > targets.eatKcal && { color: theme.colors.bakarText },
-                    ]}
-                  >
-                    {!maternal && !gainPlan && eatenKcal > targets.eatKcal
-                      ? t("diary.summary.over", { kcal: fmtInt(eatenKcal - targets.eatKcal) })
-                      : t("diary.summary.ofTarget", { kcal: fmtInt(targets.eatKcal) })}
-                  </Text>
-                ) : null}
-              </View>
-            </Ring>
-            <View style={styles.summaryInfo}>
-              <MacroBar
-                macro="protein"
-                label={t("diary.macro.protein")}
-                eaten={totals.protein}
-                budget={summaryQuery.data?.protein?.targetG ?? null}
-                neutral={gainPlan}
-              />
-              <MacroBar
-                macro="carbs"
-                label={t("diary.macro.carbs")}
-                eaten={totals.carbs}
-                budget={macroBudgets?.carbsG ?? null}
-                neutral={gainPlan}
-              />
-              <MacroBar
-                macro="fat"
-                label={t("diary.macro.fat")}
-                eaten={totals.fat}
-                budget={macroBudgets?.fatG ?? null}
-                neutral={gainPlan}
-              />
-              <MacroBar
-                macro="fiber"
-                label={t("diary.macro.fiber")}
-                eaten={totals.fiber}
-                budget={macroBudgets?.fiberG ?? null}
-                neutral={gainPlan}
-              />
-            </View>
-          </Card>
+          <DaySummary
+            eatenKcal={eatenKcal}
+            targetKcal={targets?.eatKcal ?? null}
+            maternal={maternal}
+            gainPlan={gainPlan}
+            totals={totals}
+            budgets={{
+              proteinG: summaryQuery.data?.protein?.targetG ?? null,
+              carbsG: macroBudgets?.carbsG ?? null,
+              fatG: macroBudgets?.fatG ?? null,
+              fiberG: macroBudgets?.fiberG ?? null,
+            }}
+          />
 
-          {gainPlan && targets !== null ? (
-            <Text style={styles.gainLine}>
-              {gainRemainingLabel(gainRemaining(targets.eatKcal, eatenKcal))}
-            </Text>
-          ) : null}
-          {/* Rencana makan: menu sehari dan seminggu dari target kalori dan protein */}
-          {isToday ? <MealPlanEntry /> : null}
-          {/* Skor JoyoFit untuk hari yang dipilih; kosong kalau JoyoFit belum mengirim */}
-          <FitnessCard date={date} />
-
-          {/* Belanja: angkanya selalu hari ini */}
-          {isToday ? <BelanjaSection /> : null}
-
-          {/* Global story entry: several meals, even another day, in one go */}
-          <PressableScale
-            accessibilityRole="button"
-            accessibilityLabel={t("diary.story.title")}
-            onPress={() => {
+          <QuickAdd
+            date={date}
+            isToday={isToday}
+            meal={suggestMealNow(new Date(), ramadan)}
+            favorites={favorites}
+            recent={recentQuery.data?.items ?? []}
+            recentDisabled={addFood.isPending}
+            onLogRecent={(food) => {
+              quickAddRef.current = true;
+              addFood.mutate({
+                date,
+                meal: suggestMealNow(new Date(), ramadan),
+                name: food.name,
+                kcal: food.kcal,
+              });
+            }}
+            onStory={() => {
               setCeritaFeedback(null);
               setCeritaOpen(true);
             }}
-            scaleTo={0.98}
-            style={styles.ceritaBar}
-          >
-            <View style={styles.ceritaMic}>
-              <Ionicons name="mic" size={20} color={theme.colors.primaryForeground} />
-            </View>
-            <View style={styles.ceritaTexts}>
-              <Text style={styles.ceritaTitle}>{t("diary.story.title")}</Text>
-              <Text style={styles.ceritaSub}>{t("diary.story.subtitle")}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.colors.mutedForeground} />
-          </PressableScale>
+            onManage={() => setManageOpen(true)}
+          />
 
           {ceritaFeedback ? (
             <Reveal style={styles.feedbackBox}>
@@ -853,98 +770,42 @@ export default function Makan() {
             </Reveal>
           ) : null}
 
-          {favorites.items.length > 0 ? (
-            <Card style={styles.favCard}>
-              <Text style={styles.recentLabel}>
-                {isToday
-                  ? t("diary.favorites.inlineHint", {
-                      meal: MEAL_LABELS[suggestMealNow(new Date(), ramadan)],
-                    })
-                  : t("diary.favorites.inlineHintOnDate", {
-                      meal: MEAL_LABELS[suggestMealNow(new Date(), ramadan)],
-                      date: fmtDateMedium(date),
-                    })}
-              </Text>
-              <FavoritChips
-                favorites={favorites}
-                date={date}
-                meal={suggestMealNow(new Date(), ramadan)}
-                onManage={() => setManageOpen(true)}
-              />
-            </Card>
-          ) : null}
+          {items.length === 0 ? <Text style={styles.dayEmpty}>{t("diary.list.dayEmpty")}</Text> : null}
 
-          {items.length === 0 ? (
-            <EmptyState
-              pose="ready"
-              title={t("diary.empty.nativeTitle")}
-              description={
-                isToday
-                  ? t("diary.empty.nativeDescriptionToday")
-                  : t("diary.empty.nativeDescriptionOnDate", { date: fmtDateMedium(date) })
-              }
-              action={
-                <Button
-                  label={t("diary.empty.nativeAction")}
-                  icon="add"
-                  onPress={() => setSheetMeal(suggestMealNow(new Date(), ramadan))}
-                />
-              }
-            />
-          ) : (
-            <Timeline title={relativeDayLabel(date, today)} count={visibleItems.length}>
-              {MEAL_KEYS.map(renderSlot)}
-            </Timeline>
-          )}
+          {MEAL_KEYS.map(renderSlot)}
+
+          {/* Rencana makan: menu sehari dan seminggu dari target kalori dan protein */}
+          {isToday ? <MealPlanEntry /> : null}
+
+          {/* Belanja: angkanya selalu hari ini */}
+          {isToday ? <BelanjaSection /> : null}
+
+          {/* Skor JoyoFit untuk hari yang dipilih; kosong kalau JoyoFit belum mengirim */}
+          <FitnessCard date={date} />
         </>
       ) : null}
 
       {view === "kalender" ? (
-        <KalenderView date={date} kind={kind} onSelect={setDate}>
-          <Timeline
-            title={relativeDayLabel(date, today)}
-            count={visibleItems.length}
-            trailing={
-              <PressableScale
-                accessibilityRole="button"
-                accessibilityLabel={t("diary.list.openInList")}
-                onPress={() => chooseView("daftar")}
-                hitSlop={8}
-                scaleTo={1}
-                dimTo={0.7}
-                style={styles.openDaftar}
-              >
-                <Text style={styles.openDaftarLabel}>{t("diary.list.openInList")}</Text>
-                <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
-              </PressableScale>
-            }
-          >
-            {listQuery.isPending ? (
-              <Skeleton width="100%" height={96} radius={24} />
-            ) : visibleItems.length > 0 ? (
-              <ListGroup>
-                {visibleItems.map((item) => (
-                  <FoodRow
-                    key={item.id}
-                    item={item}
-                    onEdit={() => setEditRow(item)}
-                    onDelete={() => deleteFood(item)}
-                    onViewSticker={() => viewSticker(item)}
-                  />
-                ))}
-              </ListGroup>
-            ) : (
-              <Text style={styles.slotEmpty}>
-                {kind === "semua"
-                  ? t("diary.list.dayEmpty")
-                  : t("diary.list.dayNoKind", { kind: t(`diary.kind.${kind}`) })}
-              </Text>
-            )}
-          </Timeline>
-        </KalenderView>
+        <KalenderView
+          date={date}
+          kind={kind}
+          day={{
+            eatenKcal,
+            targetKcal: targets?.eatKcal ?? null,
+            protein: totals.protein,
+            carbs: totals.carbs,
+            fat: totals.fat,
+            fiber: totals.fiber,
+            count: items.length,
+          }}
+          onSelect={setDate}
+          onOpenDaftar={() => chooseView("daftar")}
+        />
       ) : null}
 
-      {view === "stiker" ? <StikerView date={date} kind={kind} onOpen={setEditRow} /> : null}
+      {view === "stiker" ? (
+        <FotoView date={date} kind={kind} onOpen={setEditRow} onViewSticker={viewSticker} />
+      ) : null}
 
       {view === "tempat" ? <PlacesView onOpenDate={openDaftar} /> : null}
 
@@ -1274,100 +1135,45 @@ export default function Makan() {
 }
 
 const styles = StyleSheet.create((theme) => ({
-  summaryCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.lg,
-  },
-  ringCenter: {
-    alignItems: "center",
-    gap: 1,
-    maxWidth: 76,
-  },
-  ringKcal: {
-    fontSize: theme.fontSize.xl,
-    fontWeight: "800",
-    color: theme.colors.foreground,
-  },
-  ringUnit: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: theme.colors.mutedForeground,
-  },
-  ringTarget: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: theme.colors.mutedForeground,
-  },
-  gainLine: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: "600",
-    color: theme.colors.mutedForeground,
-    textAlign: "center",
-  },
-  summaryInfo: {
-    flex: 1,
-    gap: theme.spacing.md,
-  },
   slotHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: theme.spacing.sm,
+    gap: theme.spacing.md,
+    paddingLeft: theme.spacing.lg,
     paddingRight: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+  },
+  slotHead: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
   slotTitle: {
     fontSize: theme.fontSize.md,
     fontWeight: "700",
     color: theme.colors.foreground,
   },
-  slotRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-  },
   slotKcal: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: "600",
-    color: theme.colors.mutedForeground,
+    fontSize: theme.fontSize.md,
+    fontWeight: "800",
+    color: theme.colors.kcalText,
   },
   slotAdd: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: theme.radius.tile,
     backgroundColor: theme.colors.makanSoft,
     alignItems: "center",
     justifyContent: "center",
   },
-  slotDot: {
-    position: "absolute",
-    left: -21,
-    top: 15,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: theme.colors.primary,
-    opacity: 0.5,
-  },
-  openDaftar: {
-    marginLeft: "auto",
-    minHeight: 44,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-  },
-  openDaftarLabel: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: "700",
-    color: theme.colors.primary,
-  },
   slotEmpty: {
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
-    paddingHorizontal: theme.spacing.xs,
   },
-  favCard: {
-    gap: theme.spacing.sm,
+  dayEmpty: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+    paddingHorizontal: theme.spacing.xs,
   },
   recentBox: {
     gap: theme.spacing.sm,
@@ -1416,30 +1222,9 @@ const styles = StyleSheet.create((theme) => ({
     fontWeight: "700",
     color: theme.colors.foreground,
   },
-  ceritaBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.md,
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.card,
-    padding: theme.spacing.lg,
-  },
-  ceritaMic: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   ceritaTexts: {
     flex: 1,
     gap: 2,
-  },
-  ceritaTitle: {
-    fontSize: theme.fontSize.base,
-    fontWeight: "700",
-    color: theme.colors.foreground,
   },
   ceritaSub: {
     fontSize: theme.fontSize.sm,

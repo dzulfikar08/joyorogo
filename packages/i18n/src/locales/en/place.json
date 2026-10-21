@@ -19,15 +19,16 @@
     "aria": "Sort places",
     "frequent": "Most visited",
     "recent": "Recent",
-    "nearest": "Nearest"
+    "nearest": "Nearest",
+    "lightest": "Lightest"
   },
   "list": {
     "loading": "Loading places",
     "loadError": "Couldn't load your places.",
     "empty": {
       "title": "No places yet",
-      "body": "Fill in the <b>Place</b> field when you log a plate and your favourite eateries will show up here.",
-      "bodyPlain": "Fill in the Place field when you log a plate and your favourite eateries will show up here."
+      "body": "Fill in the <b>Place</b> field when you log a plate and the average calories and protein of each eatery will show up here.",
+      "bodyPlain": "Fill in the Place field when you log a plate and the average calories and protein of each eatery will show up here."
     }
   },
   "map": {
@@ -53,17 +54,33 @@
     "visits_one": "{{count}} visit",
     "visits_other": "{{count}} visits",
     "aria": "{{name}}, {{visits}}",
-    "favorite": "Most often:",
-    "average": "Avg {{price}}"
+    "perPlate": "avg per plate",
+    "protein": "Protein {{g}} g",
+    "pick": "Most protein: {{name}}",
+    "noNutrition": "No calories logged yet",
+    "average": "Avg price {{price}}"
   },
   "detail": {
     "averagePerPlate": "Avg {{price}} per plate",
+    "averages": {
+      "title": "Average per plate",
+      "kcal": "Calories",
+      "protein": "Protein"
+    },
+    "dishes": {
+      "title": "What to order here",
+      "hint": "Most protein per kcal first.",
+      "row": "{{kcal}} kcal · protein {{g}} g",
+      "rowKcal": "{{kcal}} kcal",
+      "times_one": "{{count}}×",
+      "times_other": "{{count}}×"
+    },
     "history": "History",
     "historyAria": "Visit history",
     "historyError": "Couldn't load this place's history.",
     "relog": "Eat again",
     "relogAria": "Eat {{name}} again",
-    "viewInDiary": "See {{name}} in the diary",
+    "viewInLog": "Open {{name}} in your log",
     "showing": "Showing the latest {{shown}} of {{total}} visits.",
     "loggedTo": "{{name}} logged to {{meal}}",
     "location": {

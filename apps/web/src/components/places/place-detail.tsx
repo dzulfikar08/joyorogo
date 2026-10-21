@@ -1,9 +1,8 @@
-import { StickerHero } from "@/components/sticker";
 import { Button } from "@joyorogo/ui/components/button";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fmtKcalLabel, relativeDayLabel } from "@joyorogo/i18n";
-import { Flame, MapPinOff, RotateCcw } from "lucide-react";
+import { relativeDayLabel } from "@joyorogo/i18n";
+import { MapPinOff, RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
@@ -12,8 +11,8 @@ import { formatDistance, visitAgeLabel } from "@joyorogo/api/lib/places";
 import type { PlaceSummary } from "@joyorogo/api/lib/places";
 
 import { ErrorNote } from "@/components/kit/error-note";
-import { PlaceThumb } from "@/components/places/place-thumb";
 import { fmtRupiah } from "@/lib/app-config";
+import { fmtInt } from "@/lib/format";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
@@ -34,7 +33,7 @@ export function PlaceDetailSheet({
   onClose: () => void;
   onOpenDate?: (date: string) => void;
 }) {
-  const { t } = useTranslation("place");
+  const { t } = useTranslation(["place", "makan"]);
   const queryClient = useQueryClient();
   const detail = useQuery(orpc.place.detail.queryOptions({ input: { key: place.key } }));
 
@@ -94,23 +93,61 @@ export function PlaceDetailSheet({
         .join(" · ")}
     >
       <div className="space-y-5">
-        {place.stickerScanId && (
-          <StickerHero scanId={place.stickerScanId} name={place.favoriteDish ?? place.name} />
-        )}
-        {(place.favoriteDish || place.avgPriceIdr != null) && (
-          <div className="min-w-0 rounded-2xl bg-muted/60 p-3 text-sm">
-            {place.favoriteDish && (
-              <p className="font-semibold">
-                <span className="font-normal text-muted-foreground">{t("card.favorite")} </span>
-                {place.favoriteDish}
-              </p>
-            )}
+        {(place.avgKcal != null || place.avgProteinG != null || place.avgPriceIdr != null) && (
+          <section aria-label={t("detail.averages.title")}>
+            <h3 className="mb-2 text-sm font-bold">{t("detail.averages.title")}</h3>
+            <dl className="grid grid-cols-2 gap-2">
+              {place.avgKcal != null && (
+                <div className="rounded-2xl bg-muted/60 p-3">
+                  <dt className="text-xs text-muted-foreground">{t("detail.averages.kcal")}</dt>
+                  <dd className="mt-0.5 text-2xl leading-tight font-extrabold text-kcal tabular-nums">
+                    {fmtInt(place.avgKcal)}
+                    <span className="ml-1 text-xs font-semibold text-muted-foreground">
+                      {t("makan:diary.summary.unit")}
+                    </span>
+                  </dd>
+                </div>
+              )}
+              {place.avgProteinG != null && (
+                <div className="rounded-2xl bg-muted/60 p-3">
+                  <dt className="text-xs text-muted-foreground">{t("detail.averages.protein")}</dt>
+                  <dd className="mt-0.5 text-2xl leading-tight font-extrabold tabular-nums">
+                    {fmtInt(place.avgProteinG)}
+                    <span className="ml-1 text-xs font-semibold text-muted-foreground">g</span>
+                  </dd>
+                </div>
+              )}
+            </dl>
             {place.avgPriceIdr != null && (
-              <p className="mt-0.5 text-muted-foreground">
+              <p className="mt-2 px-1 text-sm text-muted-foreground">
                 {t("detail.averagePerPlate", { price: fmtRupiah(place.avgPriceIdr) })}
               </p>
             )}
-          </div>
+          </section>
+        )}
+
+        {detail.data && detail.data.dishes.length > 0 && (
+          <section aria-label={t("detail.dishes.title")}>
+            <h3 className="text-sm font-bold">{t("detail.dishes.title")}</h3>
+            <p className="mt-0.5 mb-2 text-xs text-muted-foreground">{t("detail.dishes.hint")}</p>
+            <ul className="divide-y divide-border rounded-2xl bg-muted/60 px-3">
+              {detail.data.dishes.map((dish) => (
+                <li key={dish.name} className="flex items-center gap-3 py-2.5">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[0.9375rem] font-semibold">{dish.name}</span>
+                    <span className="block text-[0.8125rem] text-muted-foreground tabular-nums">
+                      {dish.avgProteinG != null
+                        ? t("detail.dishes.row", { kcal: fmtInt(dish.avgKcal), g: fmtInt(dish.avgProteinG) })
+                        : t("detail.dishes.rowKcal", { kcal: fmtInt(dish.avgKcal) })}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-sm font-semibold text-muted-foreground tabular-nums">
+                    {t("detail.dishes.times", { count: dish.count })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         <section aria-label={t("detail.historyAria")}>
@@ -125,45 +162,64 @@ export function PlaceDetailSheet({
             <ErrorNote message={t("detail.historyError")} onRetry={() => void detail.refetch()} />
           ) : (
             <ul className="space-y-2">
-              {detail.data?.visits.map((visit) => (
-                <li key={visit.id} className="space-y-2.5 rounded-2xl bg-muted/60 p-3">
-                  <button
-                    type="button"
-                    disabled={!onOpenDate}
-                    onClick={() => {
-                      onClose();
-                      onOpenDate?.(visit.date);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl text-left focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-default"
-                  >
-                    <PlaceThumb scanId={visit.stickerScanId} className="size-14" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[0.9375rem] font-semibold">{visit.name}</span>
-                      <span className="block truncate text-[0.8125rem] text-muted-foreground">
-                        {relativeDayLabel(visit.date, today)} · {MEAL_LABELS[visit.meal as Meal] ?? visit.meal}
-                      </span>
-                      <span className="mt-0.5 flex items-center gap-3 text-[0.8125rem] whitespace-nowrap text-muted-foreground">
-                        <span className="inline-flex items-center gap-1 tabular-nums">
-                          <Flame className="size-3.5 text-kcal" aria-hidden />
-                          {fmtKcalLabel(visit.kcal)}
+              {detail.data?.visits.map((visit) => {
+                const items = visit.itemNames.join(", ");
+                return (
+                  <li key={visit.id} className="space-y-2 rounded-2xl bg-muted/60 p-3">
+                    <button
+                      type="button"
+                      disabled={!onOpenDate}
+                      aria-label={t("detail.viewInLog", { name: visit.name })}
+                      onClick={() => {
+                        onClose();
+                        onOpenDate?.(visit.date);
+                      }}
+                      className="flex w-full items-start gap-3 rounded-xl text-left focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-default"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {relativeDayLabel(visit.date, today)} · {MEAL_LABELS[visit.meal as Meal] ?? visit.meal}
                         </span>
-                        {visit.priceIdr != null && <span>{fmtRupiah(visit.priceIdr)}</span>}
+                        <span className="block truncate text-[0.9375rem] font-semibold">{visit.name}</span>
+                        {items !== "" && items !== visit.name && (
+                          <span className="block truncate text-[0.8125rem] text-muted-foreground">
+                            {items}
+                          </span>
+                        )}
                       </span>
-                    </span>
-                  </button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="w-full"
-                    disabled={relog.isPending}
-                    aria-label={t("detail.relogAria", { name: visit.name })}
-                    onClick={() => relog.mutate({ plateId: visit.id, name: visit.name })}
-                  >
-                    <RotateCcw className="size-4" aria-hidden />
-                    {t("detail.relog")}
-                  </Button>
-                </li>
-              ))}
+                      <span className="shrink-0 text-right tabular-nums">
+                        <span className="block text-base leading-tight font-extrabold text-kcal">
+                          {fmtInt(visit.kcal)}
+                          <span className="ml-1 text-[0.6875rem] font-semibold text-muted-foreground">
+                            {t("makan:diary.summary.unit")}
+                          </span>
+                        </span>
+                        {visit.proteinG != null && (
+                          <span className="block text-xs text-muted-foreground">
+                            {t("card.protein", { g: fmtInt(visit.proteinG) })}
+                          </span>
+                        )}
+                        {visit.priceIdr != null && (
+                          <span className="block text-xs text-muted-foreground">
+                            {fmtRupiah(visit.priceIdr)}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="w-full"
+                      disabled={relog.isPending}
+                      aria-label={t("detail.relogAria", { name: visit.name })}
+                      onClick={() => relog.mutate({ plateId: visit.id, name: visit.name })}
+                    >
+                      <RotateCcw className="size-4" aria-hidden />
+                      {t("detail.relog")}
+                    </Button>
+                  </li>
+                );
+              })}
             </ul>
           )}
           {detail.data && detail.data.total > detail.data.visits.length && (

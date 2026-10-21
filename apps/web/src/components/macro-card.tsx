@@ -4,8 +4,9 @@ import { useTranslation } from "react-i18next";
 
 import { useGainIntake } from "@/components/gain/gain-today";
 import { useGain } from "@/components/gain/use-gain";
-import { Ring } from "@/components/kit/ring";
+import { CountUp } from "@/components/kit/count-up";
 import { Card } from "@/components/kit/surface";
+import { MacroLine } from "@/components/macro-line";
 import { fmtInt } from "@/lib/format";
 import { MACRO_META, type MacroKey } from "@/lib/macro-icons";
 
@@ -67,11 +68,15 @@ function MacroBar({
   );
 }
 
+const BAR_TONE = { ok: "bg-makan", near: "bg-amber-400", over: "bg-destructive" } as const;
+
 /**
- * Day summary strip for the diary: a compact makan ring (eaten vs budget) and
- * the macro bars. Protein target is the server's `day.summary.protein.targetG`
- * (1,5 g/kg capped at the healthy range); carb/fat floors come from the
- * engine, so the reference stays one place.
+ * Day summary card for the diary: eaten kcal as the big number, the target on
+ * its right, a thin progress bar in the eat tone, then the macro bars. Protein
+ * target is the server's `day.summary.protein.targetG` (1,5 g/kg capped at the
+ * healthy range); carb/fat floors come from the engine, so the reference stays
+ * one place. Without a target there is nothing to measure against: the number
+ * and the macro grams only.
  */
 export function MakanSummaryCard({
   eatKcal,
@@ -80,61 +85,83 @@ export function MakanSummaryCard({
   totals,
   neutral: neutralProp = false,
 }: {
-  eatKcal: number;
+  eatKcal: number | null;
   eatenKcal: number;
-  proteinTargetG: number;
+  proteinTargetG: number | null;
   totals: MacroTotals;
   /** Hamil / Menyusui: progress toward a need, never an over-target tone. */
   neutral?: boolean;
 }) {
-  const { t } = useTranslation("misc");
+  const { t } = useTranslation(["makan", "misc"]);
   const { gain } = useGain();
   const gaining = gain !== null;
   // Under a gain plan nothing is "over": progress toward a need, like Hamil / Menyusui.
   const neutral = neutralProp || gaining;
-  const intake = useGainIntake(eatKcal, eatenKcal);
+  const target = eatKcal ?? 0;
+  const intake = useGainIntake(target, eatenKcal);
+  const over = !neutral && eatKcal !== null && eatenKcal > eatKcal;
+  const tone = gaining ? intake.tone : neutral ? "ok" : eatTone(eatenKcal, target);
+  const pct = target > 0 ? Math.min(100, (eatenKcal / target) * 100) : 0;
   // carb/fat/fiber floors from the engine; protein target comes from the server
-  const budgets = macroTargets(eatKcal, 70);
-  const over = !neutral && eatenKcal > eatKcal;
+  const budgets = eatKcal !== null ? macroTargets(eatKcal, 70) : null;
 
   return (
-    <Card className="p-6" aria-label={t("macro.summaryTitle")}>
-      <div className="flex items-center gap-6">
-        <Ring
-          metric="makan"
-          value={eatenKcal}
-          max={eatKcal}
-          size={124}
-          stroke={12}
-          tone={gaining ? intake.tone : neutral ? "ok" : eatTone(eatenKcal, eatKcal)}
-          label={t("macro.eatenOf", { eaten: fmtInt(eatenKcal), budget: fmtInt(eatKcal) })}
+    <Card className="p-5" aria-label={t("misc:macro.summaryTitle")}>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="flex items-baseline gap-1.5">
+          <span className="text-[2rem] leading-none font-extrabold tracking-tight tabular-nums">
+            <CountUp value={eatenKcal} />
+          </span>
+          <span className="text-sm font-semibold text-muted-foreground">
+            {t("makan:diary.summary.unit")}
+          </span>
+        </p>
+        {eatKcal !== null && (
+          <p
+            className={cn(
+              "text-sm font-semibold tabular-nums",
+              over ? "text-bakar-ink" : "text-muted-foreground",
+            )}
+          >
+            {over
+              ? t("makan:diary.summary.over", { kcal: fmtInt(eatenKcal - eatKcal) })
+              : t("makan:diary.summary.ofTarget", { kcal: fmtInt(eatKcal) })}
+          </p>
+        )}
+      </div>
+      {eatKcal !== null && (
+        <span
+          role="progressbar"
+          aria-label={t("misc:macro.eatenOf", { eaten: fmtInt(eatenKcal), budget: fmtInt(eatKcal) })}
+          aria-valuemin={0}
+          aria-valuemax={Math.round(eatKcal)}
+          aria-valuenow={Math.round(Math.min(eatenKcal, eatKcal))}
+          className="mt-3 block h-2 overflow-hidden rounded-full bg-muted"
         >
-          <div>
-            <p className="text-[1.375rem] leading-none font-extrabold tracking-tight tabular-nums">
-              {fmtInt(eatenKcal)}
-            </p>
-            <p className="mt-1 text-[0.6875rem] font-semibold text-muted-foreground">kcal</p>
-            <p
-              className={cn(
-                "mt-0.5 text-[0.625rem] font-semibold tabular-nums",
-                over ? "text-bakar-ink" : "text-muted-foreground",
-              )}
-            >
-              {over
-                ? t("macro.over", { kcal: fmtInt(eatenKcal - eatKcal) })
-                : t("macro.ofTarget", { kcal: fmtInt(eatKcal) })}
-            </p>
-          </div>
-        </Ring>
-        <div className="min-w-0 flex-1 space-y-3.5">
+          <span
+            className={cn("block h-full rounded-full", BAR_TONE[tone])}
+            style={{ width: `${pct}%` }}
+          />
+        </span>
+      )}
+      {gaining && eatKcal !== null && (
+        <p className="mt-3 text-sm leading-snug font-semibold text-makan-ink">{intake.line}</p>
+      )}
+      {budgets && proteinTargetG !== null ? (
+        <div className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2">
           <MacroBar macro="protein" eaten={totals.protein} budget={proteinTargetG} neutral={neutral} />
           <MacroBar macro="carbs" eaten={totals.carbs} budget={budgets.carbsG} neutral={neutral} />
           <MacroBar macro="fat" eaten={totals.fat} budget={budgets.fatG} neutral={neutral} />
           <MacroBar macro="fiber" eaten={totals.fiber} budget={budgets.fiberG} neutral={neutral} />
         </div>
-      </div>
-      {gaining && (
-        <p className="mt-4 text-sm leading-snug font-semibold text-makan-ink">{intake.line}</p>
+      ) : (
+        <MacroLine
+          className="mt-3 text-sm text-muted-foreground"
+          protein={totals.protein}
+          carbs={totals.carbs}
+          fat={totals.fat}
+          fiber={totals.fiber}
+        />
       )}
     </Card>
   );

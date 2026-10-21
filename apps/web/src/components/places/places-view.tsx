@@ -1,6 +1,6 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Clock, Heart, Layers, Maximize2, MapPin, MapPinOff, X } from "lucide-react";
+import { ChevronRight, Clock, Layers, Maximize2, MapPin, MapPinOff, Utensils, X } from "lucide-react";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -11,11 +11,11 @@ import type { PlaceSort, PlaceSummary } from "@joyorogo/api/lib/places";
 import { ErrorNote } from "@/components/kit/error-note";
 import { Segmented } from "@/components/kit/surface";
 import { PlaceDetailSheet } from "@/components/places/place-detail";
-import { PlaceThumb } from "@/components/places/place-thumb";
 import { SaveLocationToggle } from "@/components/places/location-toggle";
 import { EmptyHint } from "@/components/screen-state";
 import { useTheme } from "@/components/theme-provider";
 import { fmtRupiah } from "@/lib/app-config";
+import { fmtInt, fmtKcalLabel } from "@/lib/format";
 import { usePlaceLocation, useNearbyOrigin } from "@/lib/location";
 import { client, orpc } from "@/utils/orpc";
 
@@ -26,6 +26,7 @@ const TAB_KEYS = [
   { value: "sering", key: "sort.frequent" },
   { value: "terbaru", key: "sort.recent" },
   { value: "terdekat", key: "sort.nearest" },
+  { value: "ringan", key: "sort.lightest" },
 ] as const satisfies ReadonlyArray<{ value: PlaceSort; key: string }>;
 
 const listOptions = orpc.place.list.queryOptions();
@@ -35,8 +36,8 @@ function MapFallback() {
 }
 
 /**
- * "Tempat makan": plates grouped by where they were eaten, with a sticker-pin
- * map, three sort tabs, and a detail sheet per place. Places with no saved
+ * "Tempat makan": plates grouped by where they were eaten, with the average
+ * kcal and protein of each place, a pill-pin map, four sort tabs, and a detail sheet per place. Places with no saved
  * location show in the list only.
  */
 export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void }) {
@@ -63,7 +64,7 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
                 name: place.name,
                 lat: place.lat,
                 lng: place.lng,
-                scanId: place.stickerScanId,
+                label: place.avgKcal != null ? fmtInt(place.avgKcal) : null,
                 visits: place.visits,
               },
             ]
@@ -260,16 +261,40 @@ function PlaceCard({
   distanceM: number | null;
   onOpen: () => void;
 }) {
-  const { t } = useTranslation("place");
+  const { t } = useTranslation(["place", "makan"]);
   return (
     <button
       type="button"
       onClick={onOpen}
       className="pressable flex w-full items-center gap-4 rounded-3xl bg-card p-4 text-left focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
     >
-      <PlaceThumb scanId={place.stickerScanId} />
+      <span
+        className="flex size-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-makan-soft text-makan-ink"
+        aria-hidden
+      >
+        {place.avgKcal != null ? (
+          <>
+            <span className="text-xl leading-none font-extrabold tabular-nums">
+              {fmtInt(place.avgKcal)}
+            </span>
+            <span className="mt-1 text-[0.6875rem] font-semibold">{t("makan:diary.summary.unit")}</span>
+          </>
+        ) : (
+          <Utensils className="size-6" />
+        )}
+      </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-base font-bold tracking-tight">{place.name}</span>
+        <span className="mt-0.5 block text-[0.8125rem] text-muted-foreground tabular-nums">
+          {place.avgKcal != null
+            ? [
+                t("card.perPlate"),
+                place.avgProteinG != null ? t("card.protein", { g: fmtInt(place.avgProteinG) }) : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")
+            : t("card.noNutrition")}
+        </span>
         <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.8125rem] text-muted-foreground">
           <span className="inline-flex items-center gap-1 tabular-nums">
             <Layers className="size-3.5" aria-hidden />
@@ -286,13 +311,11 @@ function PlaceCard({
             </span>
           )}
         </span>
-        {place.favoriteDish && (
-          <span className="mt-1 flex items-center gap-1.5 text-[0.8125rem]">
-            <Heart className="size-3.5 shrink-0 text-bakar" aria-hidden />
-            <span className="truncate">
-              <span className="text-muted-foreground">{t("card.favorite")} </span>
-              <span className="font-semibold">{place.favoriteDish}</span>
-            </span>
+        {place.proteinPick && (
+          <span className="mt-1 block truncate text-[0.8125rem]">
+            {t("card.pick", {
+              name: `${place.proteinPick.name} · ${fmtKcalLabel(place.proteinPick.avgKcal)}`,
+            })}
           </span>
         )}
         {place.avgPriceIdr != null && (

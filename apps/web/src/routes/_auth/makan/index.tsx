@@ -2,7 +2,6 @@ import {
   MEAL_LABELS,
   effectiveRamadan,
   jakartaToday,
-  relativeDayLabel,
   slotsFor,
   suggestMealNow,
 } from "@joyorogo/api/lib/engine";
@@ -14,17 +13,17 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Camera, ChevronRight, Mic, Plus, ScanBarcode } from "lucide-react";
+import { Camera, ChevronRight, Plus, ScanBarcode } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Mascot } from "@/components/mascot";
 import { Cerita } from "@/components/cerita";
 import type { CeritaPhase } from "@/components/cerita";
 import { Chip } from "@/components/chip";
 import { DaySwitcher } from "@/components/day-switcher";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
-import { FieldLabel, ListGroup, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
+import { FieldLabel, Page, PageHeader } from "@/components/kit/surface";
+import { MacroLine } from "@/components/macro-line";
 import { MakanSummaryCard } from "@/components/macro-card";
 import { FoodPortionSheet } from "@/components/food-portion-sheet";
 import { FavoritChips, FavoritManageSheet, useFavorites } from "@/components/favorit";
@@ -35,7 +34,7 @@ import { BelanjaCard } from "@/components/plate/belanja";
 import { PlateDiary } from "@/components/plate/plate-group";
 import { IdrInput } from "@/components/plate/idr-input";
 import { ScreenError } from "@/components/screen-state";
-import { STICKER_FILTER, stickerUrl } from "@/components/sticker";
+import { CutoutTile } from "@/components/sticker";
 import { FoodRow } from "@/components/makan/food-row";
 import { FitnessCard } from "@/components/makan/fitness-card";
 import { MealPlanEntry } from "@/components/meal-plan/entry-card";
@@ -48,8 +47,8 @@ import { client, orpc } from "@/utils/orpc";
 import { CountUp } from "@/components/kit/count-up";
 import { KalenderView } from "@/components/makan/kalender-view";
 import { KindChips } from "@/components/makan/kind-chips";
-import { MonthScrubber } from "@/components/makan/month-scrubber";
-import { StikerView } from "@/components/makan/stiker-view";
+import { FotoView } from "@/components/makan/foto-view";
+import { QuickAddCard } from "@/components/makan/quick-add";
 import { MakanViewSwitcher } from "@/components/makan/view-switcher";
 import { KindPicker, SnackAdviceCard, useSnackAdvice } from "@/components/makan/snack-advice";
 import type { PickableKind } from "@/components/makan/snack-advice";
@@ -329,7 +328,6 @@ function MakanPage() {
 
   const items = list.data?.items ?? [];
   const totals = list.data?.totals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
-  const visibleItems = items.filter((item) => matchesKind(item.name, kind));
 
   return (
     <Page className="md:max-w-3xl">
@@ -347,22 +345,116 @@ function MakanPage() {
 
       {view === "daftar" && (
         <>
-          <div className="mt-5">
-            <MonthScrubber date={date} kind={kind} onPick={showDate} />
-          </div>
-
-          {daySummary.data?.targets && daySummary.data.protein && (
-            <div className="mt-3">
+          {daySummary.data && (
+            <div className="mt-4">
               <MakanSummaryCard
-                eatKcal={daySummary.data.targets.eatKcal}
+                eatKcal={daySummary.data.targets?.eatKcal ?? null}
                 eatenKcal={totals.kcal}
-                proteinTargetG={daySummary.data.protein.targetG}
+                proteinTargetG={daySummary.data.protein?.targetG ?? null}
                 totals={totals}
-                neutral={daySummary.data.targets.maternal !== null}
+                neutral={(daySummary.data.targets?.maternal ?? null) !== null}
               />
             </div>
           )}
 
+          <div className="mt-3">
+            <QuickAddCard
+              date={date}
+              isToday={isToday}
+              meal={quickMeal}
+              favorites={favorites}
+              recent={recent.data?.items ?? []}
+              addPending={add.isPending}
+              onAdd={(input) => add.mutate(input)}
+              onStory={() => setCeritaOpen(true)}
+              onManage={() => setManageOpen(true)}
+            />
+          </div>
+
+          {items.length === 0 && (
+            <p className="mt-4 px-1 text-sm text-muted-foreground">
+              {isToday ? t("diary.empty.titleToday") : t("diary.empty.titleDay")}
+            </p>
+          )}
+
+          <div className="mt-3 space-y-3">
+            {MEALS.map(([meal, label]) => {
+              const sectionItems = presence.rows.filter((item) => item.meal === meal);
+              const staying = sectionItems.filter((item) => presence.presenceOf(item.id) !== "leave");
+              const subtotal = staying.reduce((sum, item) => sum + item.kcal, 0);
+              const protein = staying.reduce((sum, item) => sum + (item.protein ?? 0), 0);
+              const carbs = staying.reduce((sum, item) => sum + (item.carbs ?? 0), 0);
+              const fat = staying.reduce((sum, item) => sum + (item.fat ?? 0), 0);
+              return (
+                <section
+                  key={meal}
+                  className="overflow-hidden rounded-3xl bg-card"
+                  aria-label={t("diary.list.sectionAria", { meal: label, kcal: fmtInt(subtotal) })}
+                >
+                  <div className="flex items-center gap-3 pt-3 pr-3 pb-1 pl-5">
+                    <h2 className="min-w-0 flex-1 truncate text-base font-bold tracking-tight">
+                      {label}
+                    </h2>
+                    {sectionItems.length > 0 && (
+                      <span className="text-base font-extrabold text-kcal tabular-nums">
+                        <CountUp value={subtotal} />
+                        <span className="ml-1 text-xs font-semibold text-muted-foreground">
+                          {t("diary.summary.unit")}
+                        </span>
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setSheetMeal(meal)}
+                      aria-label={t("diary.list.addTo", { meal: label })}
+                      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-colors hover:bg-border focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+                    >
+                      <Plus className="size-5" aria-hidden />
+                    </button>
+                  </div>
+
+                  {sectionItems.length > 0 ? (
+                    <>
+                      {(protein > 0 || carbs > 0 || fat > 0) && (
+                        <p className="px-5 pb-3 text-[0.8125rem] text-muted-foreground">
+                          <MacroLine compact protein={protein} carbs={carbs} fat={fat} />
+                        </p>
+                      )}
+                      <div className="border-t border-border">
+                        <PlateDiary
+                          items={sectionItems}
+                          date={date}
+                          renderRow={(item) => (
+                            <FoodRow
+                              key={item.id}
+                              item={item}
+                              presence={presence.presenceOf(item.id)}
+                              onEdit={() => setEditItem(item)}
+                              onDelete={() => removeFood(item)}
+                            />
+                          )}
+                          plateAction={(plate, rows) => (
+                            <SheetActions
+                              favorite={favorites.isPlateSaved(plate, rows)}
+                              onFavorite={() => favorites.togglePlate(plate, rows)}
+                            />
+                          )}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <p className="-mt-1 px-5 pb-4 text-sm text-muted-foreground">
+                      {kind === "semua"
+                        ? t("diary.list.slotEmptyIcon")
+                        : t("diary.list.slotNoKind", { kind: t(`diary.kind.${kind}`) })}
+                    </p>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+
+          {/* Secondary cards sit after the log: it is the job of this view. */}
           {!daySummary.data?.targets?.maternal && <FitnessCard date={date} />}
 
           <div className="mt-3">
@@ -371,215 +463,14 @@ function MakanPage() {
 
           {/* Belanja: angkanya selalu hari ini */}
           {isToday ? <BelanjaCard /> : null}
-
-          <button
-            type="button"
-            onClick={() => setCeritaOpen(true)}
-            className="mt-3 flex min-h-16 w-full items-center gap-3 rounded-3xl bg-card px-5 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-          >
-            <span
-              aria-hidden
-              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
-            >
-              <Mic className="size-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[0.9375rem] font-bold">{t("diary.story.title")}</span>
-              <span className="block text-sm text-muted-foreground">
-                {t("diary.story.subtitle")}
-              </span>
-            </span>
-            <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-          </button>
-
-          {favorites.items.length > 0 && (
-            <section className="mt-3 rounded-3xl bg-card p-5" aria-label={t("diary.favorites.title")}>
-              <div className="flex items-baseline justify-between gap-3">
-                <h2 className="text-base font-bold tracking-tight">{t("diary.favorites.title")}</h2>
-                <span className="text-xs text-muted-foreground">
-                  {isToday
-                    ? t("diary.favorites.hint", { meal: MEAL_LABELS[quickMeal] })
-                    : t("diary.favorites.hintOnDate", {
-                        meal: MEAL_LABELS[quickMeal],
-                        date: fmtDateLong(date),
-                      })}
-                </span>
-              </div>
-              <div className="mt-3">
-                <FavoritChips
-                  favorites={favorites}
-                  date={date}
-                  meal={quickMeal}
-                  onManage={() => setManageOpen(true)}
-                />
-              </div>
-            </section>
-          )}
-
-          {items.length === 0 && (
-            <div className="mt-3 rounded-3xl bg-card p-6 text-center">
-              <Mascot pose="ready" size="md" className="mb-3" />
-              <p className="text-base font-bold">
-                {isToday ? t("diary.empty.titleToday") : t("diary.empty.titleDay")}
-              </p>
-              <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
-                {t("diary.empty.description")}
-              </p>
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                <Button onClick={() => setSheetMeal(quickMeal)}>
-                  <Plus className="size-4" aria-hidden />
-                  {t("diary.empty.log")}
-                </Button>
-                <Link to="/makan/ai" search={isToday ? {} : { date }}>
-                  <Button variant="secondary">
-                    <Camera className="size-4" aria-hidden />
-                    {t("diary.empty.scan")}
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          )}
-
-          <div className="relative mt-5 pl-6">
-            <span aria-hidden className="absolute top-3 bottom-0 left-1.5 w-px bg-border" />
-            <div className="relative flex min-h-9 items-center gap-2.5">
-              <span
-                aria-hidden
-                className="absolute top-1/2 -left-6 size-3 -translate-y-1/2 rounded-full border-[3px] border-primary bg-background"
-              />
-              <h2 className="min-w-0 truncate text-base font-bold tracking-tight">
-                {relativeDayLabel(date, jakartaToday())}
-              </h2>
-              <span className="shrink-0 rounded-full bg-card px-2.5 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
-                {t("diary.list.entries", { count: visibleItems.length, n: fmtInt(visibleItems.length) })}
-              </span>
-            </div>
-            {MEALS.map(([meal, label]) => {
-              const sectionItems = presence.rows.filter((item) => item.meal === meal);
-              const subtotal = sectionItems.reduce(
-                (sum, item) => sum + (presence.presenceOf(item.id) === "leave" ? 0 : item.kcal),
-                0,
-              );
-              return (
-                <section
-                  key={meal}
-                  className="relative mt-5"
-                  aria-label={t("diary.list.sectionAria", { meal: label, kcal: fmtInt(subtotal) })}
-                >
-                  <span
-                    aria-hidden
-                    className="absolute top-5 -left-[1.3125rem] size-1.5 rounded-full bg-primary/50"
-                  />
-                  <SectionTitle
-                    action={
-                      <button
-                        type="button"
-                        onClick={() => setSheetMeal(meal)}
-                        className="inline-flex min-h-11 items-center gap-1 px-1 text-sm font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-                      >
-                        <Plus className="size-4" aria-hidden />
-                        {t("common:actions.add")}
-                      </button>
-                    }
-                  >
-                    <span className="flex items-baseline gap-2">
-                      {label}
-                      {sectionItems.length > 0 && (
-                        <span className="text-xs font-semibold text-muted-foreground tabular-nums">
-                          <CountUp value={subtotal} /> kcal
-                        </span>
-                      )}
-                    </span>
-                  </SectionTitle>
-
-                  {sectionItems.length > 0 ? (
-                    <PlateDiary
-                      items={sectionItems}
-                      date={date}
-                      renderRow={(item) => (
-                        <FoodRow
-                          key={item.id}
-                          item={item}
-                          presence={presence.presenceOf(item.id)}
-                          onEdit={() => setEditItem(item)}
-                          onDelete={() => removeFood(item)}
-                        />
-                      )}
-                      plateAction={(plate, rows) => (
-                        <SheetActions
-                          favorite={favorites.isPlateSaved(plate, rows)}
-                          onFavorite={() => favorites.togglePlate(plate, rows)}
-                        />
-                      )}
-                    />
-                  ) : (
-                    <div className="rounded-3xl bg-card px-5 py-4 text-sm text-muted-foreground">
-                      {kind === "semua"
-                        ? t("diary.list.slotEmpty")
-                        : t("diary.list.slotNoKind", { kind: t(`diary.kind.${kind}`) })}
-                    </div>
-                  )}
-                </section>
-              );
-            })}
-          </div>
         </>
       )}
 
       {view === "kalender" && (
-        <KalenderView date={date} kind={kind} onSelect={showDate}>
-          <section
-            className="relative mt-6 pl-6"
-            aria-label={t("diary.list.dayAria", { date: fmtDateLong(date) })}
-          >
-            <span
-              aria-hidden
-              className="absolute top-3 left-0 size-3 rounded-full border-[3px] border-primary bg-background"
-            />
-            <div className="flex min-h-9 items-center gap-2.5">
-              <h2 className="min-w-0 truncate text-base font-bold tracking-tight">
-                {relativeDayLabel(date, jakartaToday())}
-              </h2>
-              <span className="shrink-0 rounded-full bg-card px-2.5 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
-                {t("diary.list.entries", { count: visibleItems.length, n: fmtInt(visibleItems.length) })}
-              </span>
-              <button
-                type="button"
-                onClick={() => openDaftar(date)}
-                className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-0.5 px-1 text-sm font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-              >
-                {t("diary.list.openInList")}
-                <ChevronRight className="size-4" aria-hidden />
-              </button>
-            </div>
-            <div className="mt-1 border-t border-border pt-3">
-              {list.isPending ? (
-                <Skeleton className="h-24 w-full rounded-3xl" />
-              ) : presence.rows.length > 0 ? (
-                <ListGroup>
-                  {presence.rows.map((item) => (
-                    <FoodRow
-                      key={item.id}
-                      item={item}
-                      presence={presence.presenceOf(item.id)}
-                      onEdit={() => setEditItem(item)}
-                      onDelete={() => removeFood(item)}
-                    />
-                  ))}
-                </ListGroup>
-              ) : (
-                <div className="rounded-3xl bg-card px-5 py-4 text-sm text-muted-foreground">
-                  {kind === "semua"
-                    ? t("diary.list.dayEmpty")
-                    : t("diary.list.dayNoKind", { kind: t(`diary.kind.${kind}`) })}
-                </div>
-              )}
-            </div>
-          </section>
-        </KalenderView>
+        <KalenderView date={date} kind={kind} onSelect={showDate} onOpenDaftar={openDaftar} />
       )}
 
-      {view === "stiker" && <StikerView date={date} kind={kind} onOpen={setEditItem} />}
+      {view === "stiker" && <FotoView date={date} kind={kind} onOpen={setEditItem} />}
 
       {view === "tempat" && <PlacesView onOpenDate={openDaftar} />}
 
@@ -861,12 +752,10 @@ function AddFoodSheet({
                   onClick={() => void onAdd({ date, meal, name: food.name, kcal: food.kcal })}
                 >
                   {food.scanId ? (
-                    <img
-                      src={stickerUrl(food.scanId)}
-                      alt=""
-                      loading="lazy"
-                      className="size-8 shrink-0 object-contain"
-                      style={STICKER_FILTER}
+                    <CutoutTile
+                      scanId={food.scanId}
+                      className="size-8 rounded-lg"
+                      iconClassName="size-4"
                     />
                   ) : null}
                   <span className="truncate">

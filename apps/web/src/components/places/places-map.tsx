@@ -5,7 +5,6 @@ import { useEffect, useRef } from "react";
 
 import { cn } from "@joyorogo/ui/lib/utils";
 
-import { stickerUrl } from "@/components/sticker";
 import type { Coords } from "@/lib/location";
 
 /** OpenFreeMap: free vector tiles and styles, no key, no usage cap (attribution stays on). */
@@ -14,14 +13,14 @@ const STYLE_DARK = "https://tiles.openfreemap.org/styles/fiord";
 
 /** Pins closer than this many screen pixels merge into one counted pin. */
 const CLUSTER_PX = 60;
-const PIN_PX = 48;
 
 export type MapPlace = {
   key: string;
   name: string;
   lat: number;
   lng: number;
-  scanId: string | null;
+  /** Average kcal as shown on the pin; null shows the food icon. */
+  label: string | null;
   visits: number;
 };
 
@@ -45,12 +44,12 @@ function clusterPlaces(places: MapPlace[], map: maplibregl.Map): Cluster[] {
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-/** Lucide "utensils" outline, for places whose dish has no cutout yet. */
+/** Lucide "utensils" outline, for places with no calorie average yet. */
 function fallbackIcon(): SVGSVGElement {
   const svg = document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("width", "22");
-  svg.setAttribute("height", "22");
+  svg.setAttribute("width", "18");
+  svg.setAttribute("height", "18");
   svg.setAttribute("fill", "none");
   svg.setAttribute("stroke", "currentColor");
   svg.setAttribute("stroke-width", "2");
@@ -79,20 +78,10 @@ function pinElement(cluster: Cluster, onClick: () => void): HTMLButtonElement {
   button.setAttribute("aria-label", label);
   button.title = label;
   button.className =
-    "relative grid place-items-center rounded-full border-[3px] border-card bg-muted text-muted-foreground shadow-float focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none";
-  button.style.width = `${PIN_PX}px`;
-  button.style.height = `${PIN_PX}px`;
+    "relative inline-flex h-10 min-w-10 items-center justify-center rounded-full border-2 border-card bg-makan-soft px-3 text-sm font-bold text-makan-ink tabular-nums shadow-float focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none";
   button.style.cursor = "pointer";
-  if (top.scanId) {
-    const img = document.createElement("img");
-    img.src = stickerUrl(top.scanId);
-    img.alt = "";
-    img.draggable = false;
-    img.className = "size-full rounded-full object-contain p-1";
-    img.addEventListener("error", () => {
-      img.replaceWith(fallbackIcon());
-    });
-    button.append(img);
+  if (top.label) {
+    button.append(top.label);
   } else {
     button.append(fallbackIcon());
   }
@@ -118,8 +107,9 @@ function youAreHere(): HTMLElement {
 }
 
 /**
- * Map of the user's places: circular sticker pins, merged into counted pins
- * when they crowd each other. Loaded lazily (maplibre-gl is the heavy part).
+ * Map of the user's places: compact pills showing the place's average kcal,
+ * merged into counted pins when they crowd each other. Loaded lazily
+ * (maplibre-gl is the heavy part).
  */
 export default function PlacesMap({
   places,

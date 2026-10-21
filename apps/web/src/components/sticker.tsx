@@ -1,3 +1,4 @@
+import { cn } from "@joyorogo/ui/lib/utils";
 import { Utensils, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -6,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { MetaLine } from "@/components/meta-line";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { env } from "@/env.public";
-import { fmtInt, fmtKcalLabel } from "@/lib/format";
+import { fmtKcalLabel } from "@/lib/format";
 import { getServerUrl } from "@/utils/orpc";
 
 export function stickerUrl(scanId: string): string {
@@ -29,12 +30,11 @@ export function commentPhotoUrl(commentId: string): string {
   return `${getServerUrl(env.VITE_SERVER_URL)}/comment-photo/${commentId}`;
 }
 
-/** Die-cut look: thin white outline (four 1px hard shadows) over a soft drop shadow. */
+/** Die-cut look: thin white outline (four 1px hard shadows) over a soft drop shadow. Only the scan reveal and the full-size viewer/share use it; thumbnails stay plain. */
 export const STICKER_FILTER = {
   filter:
     "drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff) drop-shadow(0 3px 4px rgb(0 0 0 / 0.28))",
 } as const;
-const DROP_SHADOW = STICKER_FILTER;
 
 /** Same die-cut look at lightbox size: a ~4px outline (axes + diagonals) and a deeper shadow. */
 const STICKER_FILTER_LARGE = {
@@ -115,7 +115,7 @@ export function Sticker({
         }}
         disabled={!loaded}
         aria-label={t("sticker.view", { name })}
-        className={`relative cursor-zoom-in disabled:cursor-default ${className ?? ""}`}
+        className={`relative cursor-zoom-in overflow-hidden rounded-2xl bg-makan-soft disabled:cursor-default ${className ?? ""}`}
       >
         {!loaded && fallback ? (
           <span className="absolute inset-0 grid place-items-center">{fallback}</span>
@@ -127,8 +127,7 @@ export function Sticker({
           loading="lazy"
           onLoad={() => setLoaded(true)}
           onError={onError}
-          className={`size-full object-contain ${loaded ? "" : "opacity-0"}`}
-          style={DROP_SHADOW}
+          className={`size-full object-contain p-[8%] ${loaded ? "" : "opacity-0"}`}
         />
       </button>
       {open && (
@@ -233,7 +232,45 @@ export function FoodThumb({
 }
 
 /**
- * Large outlined cutout at the top of a detail sheet. Tapping opens the
+ * Plain cutout on a makan-soft tile, no viewer: for places that already sit
+ * inside a button (photo grid, chips). Falls back to the utensils icon.
+ */
+export function CutoutTile({
+  scanId,
+  className = "size-14",
+  iconClassName = "size-5",
+}: {
+  scanId: string;
+  className?: string;
+  iconClassName?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span
+      className={cn(
+        "grid shrink-0 place-items-center overflow-hidden rounded-2xl bg-makan-soft",
+        className,
+      )}
+      aria-hidden
+    >
+      {failed ? (
+        <Utensils className={cn("text-makan-ink", iconClassName)} />
+      ) : (
+        <img
+          src={stickerUrl(scanId)}
+          alt=""
+          loading="lazy"
+          draggable={false}
+          onError={() => setFailed(true)}
+          className="size-full object-contain p-[8%]"
+        />
+      )}
+    </span>
+  );
+}
+
+/**
+ * Large plain cutout on a makan-soft tile at the top of a detail sheet. Tapping opens the
  * lightbox (cutout first; "Lihat foto asli" stays secondary there). Renders
  * nothing without a cutout so sheets without one keep their layout.
  */

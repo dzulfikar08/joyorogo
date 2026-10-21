@@ -31,16 +31,19 @@ export function stickerUrl(scanId: string): string {
 const RETRY_DELAYS_MS = [3000, 6000, 12000];
 
 /**
- * Die-cut sticker: the cutout drawn over white-tinted copies (outline) and a
- * soft dark copy (shadow). Tinting the alpha mask works on iOS and Android,
- * where view shadows ignore the cutout's shape. The outline thickness and the
- * padding that keeps it from being clipped scale with `size`, so a 128 px hero
- * gets the same relative outline as a 56 px diary row.
+ * Cutout of a dish. `plain` (every list, grid and chip) draws it contained on a
+ * soft makan tile with no outline or shadow: a small thumbnail, never the hero.
+ * `diecut` (the full-screen viewer only, where the sticker is the shareable
+ * object) draws it over white-tinted copies (outline) and a soft dark copy
+ * (shadow); tinting the alpha mask works on iOS and Android, where view shadows
+ * ignore the cutout's shape. Outline thickness and the padding that keeps it
+ * from being clipped scale with `size`.
  */
 function StickerImage({
   uri,
   size,
   name,
+  variant = "plain",
   hidden,
   onLoad,
   onError,
@@ -48,11 +51,39 @@ function StickerImage({
   uri: string;
   size: number;
   name: string;
+  variant?: "plain" | "diecut";
   hidden?: boolean;
   onLoad?: () => void;
   onError?: () => void;
 }) {
+  const { theme } = useUnistyles();
   const source = { uri };
+  if (variant === "plain") {
+    const pad = Math.round(size * 0.08);
+    return (
+      <View
+        style={[
+          {
+            width: size,
+            height: size,
+            borderRadius: Math.min(theme.radius.tile, size * 0.3),
+            backgroundColor: theme.colors.makanSoft,
+          },
+          hidden ? styles.hidden : undefined,
+        ]}
+        pointerEvents="none"
+      >
+        <Image
+          source={source}
+          resizeMode="contain"
+          onLoad={onLoad}
+          onError={onError}
+          style={[styles.stickerLayer, { left: pad, top: pad, width: size - pad * 2, height: size - pad * 2 }]}
+          accessibilityLabel={name}
+        />
+      </View>
+    );
+  }
   const ring = Math.max(1.5, size * 0.03);
   const pad = Math.ceil(ring * 1.8);
   const inner = { width: size - pad * 2, height: size - pad * 2 };
@@ -135,7 +166,7 @@ export function StickerMini({
 }
 
 /**
- * Sticker-first leading visual for food rows: the cutout (pressable, with
+ * Leading visual for food rows: the plain cutout thumbnail (pressable, with
  * retry-while-pending) or a soft makan-tinted tile with a food icon when
  * there is no cutout or it never arrives.
  */
@@ -208,7 +239,7 @@ export function FoodSticker({
 }
 
 /**
- * Large outlined cutout at the top of a detail sheet. Renders nothing without
+ * Cutout tile at the top of a detail sheet. Renders nothing without
  * a scan id so sheets without a cutout keep their layout.
  */
 export function StickerHero({
@@ -276,6 +307,7 @@ export function StickerViewer({
               uri={viewer?.uri ?? ""}
               size={Math.min(width - theme.spacing.xl * 2, 360)}
               name={viewer?.name ?? ""}
+              variant="diecut"
             />
           )}
           <View style={styles.viewerCaptionRow}>
@@ -387,7 +419,7 @@ const styles = StyleSheet.create((theme) => ({
     position: "absolute",
   },
   fallback: {
-    borderRadius: 16,
+    borderRadius: theme.radius.tile,
     alignItems: "center",
     justifyContent: "center",
   },

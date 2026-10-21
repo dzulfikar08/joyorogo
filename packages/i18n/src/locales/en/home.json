@@ -80,7 +80,7 @@
     "empty": "Nothing logged"
   },
   "plates": {
-    "title": "Plate diary"
+    "title": "Today's food photos"
   },
   "weight": {
     "title": "Weight",
@@ -288,7 +288,7 @@
     "names": {
       "calorie": "Calories and macros",
       "stats": "Daily numbers (activity, sleep, water, weight)",
-      "meals": "Today's meals and plate diary",
+      "meals": "Today's meals and their photos",
       "mode": "Pregnancy / Breastfeeding / Weight gain guide",
       "notices": "Notes and suggestions",
       "weight": "Weight trend",

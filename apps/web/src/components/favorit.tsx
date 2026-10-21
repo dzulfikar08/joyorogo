@@ -14,7 +14,7 @@ import { toast } from "sonner";
 
 import { Chip } from "@/components/chip";
 import { ListGroup, ListRow } from "@/components/kit/surface";
-import { FoodThumb, STICKER_FILTER, stickerUrl } from "@/components/sticker";
+import { CutoutTile, FoodThumb } from "@/components/sticker";
 import type { FoodItem, SavedFood, SavedFoodRelog } from "@/lib/api-types";
 import { fmtRupiah } from "@/lib/app-config";
 import { fmtKcalLabel } from "@/lib/format";
@@ -249,12 +249,10 @@ export function FavoritChips({
           onClick={() => favorites.relog(saved, date, meal)}
         >
           {saved.items[0]?.scanId ? (
-            <img
-              src={stickerUrl(saved.items[0].scanId)}
-              alt=""
-              loading="lazy"
-              className="size-8 shrink-0 object-contain"
-              style={STICKER_FILTER}
+            <CutoutTile
+              scanId={saved.items[0].scanId}
+              className="size-8 rounded-lg"
+              iconClassName="size-4"
             />
           ) : (
             <Star className="mr-1.5 size-3.5 shrink-0 fill-current text-makan-ink" aria-hidden />

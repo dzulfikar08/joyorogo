@@ -6,35 +6,54 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
-
-import { dayKcalFill, monthWeeks, shiftMonth } from "@joyorogo/api/lib/diary-view";
-import { eatTone, jakartaToday } from "@joyorogo/api/lib/engine";
-import { gainEatTone } from "@joyorogo/api/lib/gain";
+import {
+  dayKcalFill,
+  dayTargetStatus,
+  monthSummary,
+  monthWeeks,
+  shiftMonth,
+} from "@joyorogo/api/lib/diary-view";
+import type { DayMode, DayStatus } from "@joyorogo/api/lib/diary-view";
+import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 import { fmtDate } from "@joyorogo/i18n";
-
-import { StickerMini } from "@/components/sticker";
-import { Card, Ring, Text } from "@/components/ui";
+import { MacroLine } from "@/components/macro-line";
+import { Button, Card, Num, Ring, Text } from "@/components/ui";
 import { fmtInt, fmtKcalLabel } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
+/** What the selected day panel shows: the day's intake against the target. */
+export type KalenderDay = {
+  eatenKcal: number;
+  targetKcal: number | null;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  /** Rows logged that day (after the kind chip). */
+  count: number;
+};
+
 /**
- * Kalender view: month header with totals, a grid whose cells carry the day's
- * cutout sticker (a kcal-vs-budget ring when it has none, +N for more items),
- * a footer count, and `children` (the selected day's section) below the card.
+ * Kalender view: the nutrition calendar. Month header with the month's stats
+ * (days logged, days within / over / under the target, average intake) and a
+ * legend, a grid whose cells carry the day's kcal ring in the colour of its
+ * status, and a panel for the selected day with a way into the Daftar.
  */
 export function KalenderView({
   date,
   kind,
+  day,
   onSelect,
-  children,
+  onOpenDaftar,
 }: {
   date: string;
   kind: FoodKindFilter;
+  day: KalenderDay;
   onSelect: (date: string) => void;
-  children?: React.ReactNode;
+  onOpenDaftar: () => void;
 }) {
   const { t } = useTranslation(["makan", "gain"]);
   const { theme } = useUnistyles();
@@ -47,26 +66,59 @@ export function KalenderView({
   });
   const targetKcal = totals.data?.targetKcal ?? null;
   const maternal = useMaternal().mode !== "none";
-  // Naikin BB: a day above the target is never red; amber only past the reached margin.
+  // Naikin BB: the target is a floor, so a day under it is the one to flag.
   const gainPlan = useGain().gain !== null;
+  const mode: DayMode = maternal ? "neutral" : gainPlan ? "gain" : "lose";
   const days = totals.data?.days ?? [];
-  const records = days.reduce((sum, day) => sum + day.count, 0);
+  const summary = monthSummary(days, targetKcal, mode);
+  const judging = mode !== "neutral" && targetKcal !== null && targetKcal > 0;
   const canNext = month < today.slice(0, 7);
-  const toneColor = {
-    ok: theme.colors.makan,
-    near: theme.colors.eatNear,
-    over: theme.colors.destructive,
+  const statusColor: Record<DayStatus, string> = {
+    within: theme.colors.makan,
+    over: theme.colors.bakar,
+    under: theme.colors.eatNear,
   };
+  const flagged: DayStatus = mode === "gain" ? "under" : "over";
+
+  const stats = [
+    t("calendar.stats.logged", { count: summary.logged, n: fmtInt(summary.logged) }),
+    ...(judging
+      ? [
+          t("calendar.stats.within", { count: summary.within, n: fmtInt(summary.within) }),
+          mode === "gain"
+            ? t("calendar.stats.under", { count: summary.under, n: fmtInt(summary.under) })
+            : t("calendar.stats.over", { count: summary.over, n: fmtInt(summary.over) }),
+        ]
+      : []),
+    ...(summary.avgKcal !== null
+      ? [t("calendar.stats.average", { kcal: fmtKcalLabel(summary.avgKcal) })]
+      : []),
+  ];
+  const legend = [
+    ...(judging
+      ? [
+          { key: "within", color: statusColor.within, label: t("calendar.legend.within") },
+          { key: flagged, color: statusColor[flagged], label: t(`calendar.legend.${flagged}`) },
+        ]
+      : [{ key: "logged", color: theme.colors.makan, label: t("calendar.legend.logged") }]),
+    { key: "none", color: theme.colors.hairline, label: t("calendar.legend.none") },
+  ];
+
+  const dayStatus = dayTargetStatus(day.eatenKcal, day.targetKcal, mode);
 
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.month}>{fmtDate(`${month}-01`, "month")}</Text>
-          <Text style={styles.counts}>
-            {t("monthScrubber.records", { count: records, n: fmtInt(records) })} ·{" "}
-            {t("monthScrubber.daysLogged", { count: days.length, n: fmtInt(days.length) })}
-          </Text>
+          <Text style={styles.counts}>{stats.join(" · ")}</Text>
+          {judging ? (
+            <Text style={styles.counts}>
+              {gainPlan
+                ? t("gain:nativeToday.calendarTarget", { kcal: fmtKcalLabel(targetKcal) })
+                : t("calendar.budget", { kcal: fmtKcalLabel(targetKcal) })}
+            </Text>
+          ) : null}
         </View>
         <View style={styles.nav}>
           <Pressable
@@ -105,28 +157,22 @@ export function KalenderView({
           <View key={`week-${weekIndex}`} style={styles.week}>
             {week.map((cell, index) => {
               if (cell === null) return <View key={`empty-${index}`} style={styles.cellBox} />;
-              const total = days.find((day) => day.date === cell.key);
+              const total = days.find((entry) => entry.date === cell.key);
               const future = cell.key > today;
               const selected = cell.key === date;
-              const tone =
-                total && !maternal
-                  ? gainPlan
-                    ? gainEatTone(total.kcal, targetKcal ?? 0)
-                    : eatTone(total.kcal, targetKcal ?? 0)
-                  : "ok";
+              const status = total ? dayTargetStatus(total.kcal, targetKcal, mode) : null;
+              const label = total
+                ? t("calendar.dayWithEntries", {
+                    count: total.count,
+                    date: fmtDate(cell.key, "weekday"),
+                    kcal: fmtKcalLabel(total.kcal),
+                  })
+                : t("calendar.dayEmpty", { date: fmtDate(cell.key, "weekday") });
               return (
                 <View key={cell.key} style={styles.cellBox}>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={
-                      total
-                        ? t("calendar.dayWithEntries", {
-                            count: total.count,
-                            date: fmtDate(cell.key, "weekday"),
-                            kcal: fmtKcalLabel(total.kcal),
-                          })
-                        : t("calendar.dayEmpty", { date: fmtDate(cell.key, "weekday") })
-                    }
+                    accessibilityLabel={status ? `${label}, ${t(`calendar.status.${status}`)}` : label}
                     accessibilityState={{ selected, disabled: future }}
                     disabled={future}
                     onPress={() => onSelect(cell.key)}
@@ -137,61 +183,73 @@ export function KalenderView({
                       pressed && styles.pressed,
                     ]}
                   >
-                    {total?.scanId ? (
-                      <View style={styles.sticker} pointerEvents="none">
-                        <StickerMini scanId={total.scanId} size={30} />
-                      </View>
-                    ) : total ? (
-                      <View style={styles.ring} pointerEvents="none">
-                        <Ring
-                          size={30}
-                          stroke={3}
-                          value={dayKcalFill(total.kcal, targetKcal)}
-                          max={1}
-                          color={toneColor[tone]}
-                          track={theme.colors.muted}
-                        />
-                      </View>
+                    {total ? (
+                      <Ring
+                        size={36}
+                        stroke={3}
+                        value={dayKcalFill(total.kcal, targetKcal)}
+                        max={1}
+                        color={status === null ? theme.colors.makan : statusColor[status]}
+                        track={theme.colors.muted}
+                      />
                     ) : null}
-                    <Text
-                      style={[
-                        total?.scanId ? styles.dayCorner : styles.dayCenter,
-                        !total && styles.dayEmpty,
-                        cell.key === today && { color: theme.colors.primary },
-                      ]}
-                    >
-                      {cell.day}
-                    </Text>
-                    {total?.scanId ? (
-                      <View style={[styles.toneDot, { backgroundColor: toneColor[tone] }]} />
-                    ) : null}
-                    {total && total.count > 1 ? (
-                      <View style={styles.more}>
-                        <Text style={styles.moreText}>+{total.count - 1}</Text>
-                      </View>
-                    ) : null}
+                    <View style={styles.dayNumber} pointerEvents="none">
+                      <Num
+                        style={[
+                          styles.day,
+                          !total && styles.dayEmpty,
+                          cell.key === today && { color: theme.colors.primary },
+                        ]}
+                      >
+                        {cell.day}
+                      </Num>
+                    </View>
                   </Pressable>
                 </View>
               );
             })}
           </View>
         ))}
-        <View style={styles.footer}>
-          <Ionicons name="calendar-outline" size={16} color={theme.colors.mutedForeground} />
-          <Text style={styles.footerText}>
-            {t("calendar.daysLoggedMonth", { count: days.length, n: fmtInt(days.length) })}
-          </Text>
-          {targetKcal !== null && !maternal ? (
-            <Text style={styles.budget}>
-              {gainPlan
-                ? t("gain:nativeToday.calendarTarget", { kcal: fmtKcalLabel(targetKcal) })
-                : t("calendar.budget", { kcal: fmtKcalLabel(targetKcal) })}
-            </Text>
-          ) : null}
+        <View style={styles.legend}>
+          {legend.map((entry) => (
+            <View key={entry.key} style={styles.legendItem}>
+              <View style={[styles.swatch, { borderColor: entry.color }]} />
+              <Text style={styles.legendText}>{entry.label}</Text>
+            </View>
+          ))}
         </View>
       </Card>
 
-      {children}
+      <Card style={styles.dayCard}>
+        <Text style={styles.dayTitle}>{relativeDayLabel(date, today)}</Text>
+        {day.count === 0 && day.eatenKcal <= 0 ? (
+          <Text style={styles.counts}>{t("calendar.day.empty")}</Text>
+        ) : (
+          <>
+            <Text
+              style={[
+                styles.dayKcal,
+                dayStatus === flagged && judging && { color: theme.colors.bakarText },
+              ]}
+            >
+              {day.targetKcal !== null && day.targetKcal > 0
+                ? t("calendar.day.ofTarget", {
+                    eaten: fmtInt(day.eatenKcal),
+                    target: fmtInt(day.targetKcal),
+                  })
+                : fmtKcalLabel(day.eatenKcal)}
+            </Text>
+            <MacroLine
+              compact
+              protein={day.protein}
+              carbs={day.carbs}
+              fat={day.fat}
+              fiber={day.fiber}
+            />
+          </>
+        )}
+        <Button label={t("calendar.day.open")} onPress={onOpenDaftar} />
+      </Card>
     </View>
   );
 }
@@ -257,26 +315,13 @@ const styles = StyleSheet.create((theme) => ({
   },
   cellSelected: {
     backgroundColor: theme.colors.makanSoft,
-    borderWidth: 1.5,
-    borderColor: theme.colors.primary,
   },
-  sticker: {
+  dayNumber: {
     position: "absolute",
-    right: 2,
-    bottom: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  ring: {
-    position: "absolute",
-  },
-  dayCorner: {
-    position: "absolute",
-    top: 2,
-    left: 5,
-    fontSize: 11,
-    fontWeight: "800",
-    color: theme.colors.foreground,
-  },
-  dayCenter: {
+  day: {
     fontSize: theme.fontSize.sm,
     fontWeight: "700",
     color: theme.colors.foreground,
@@ -285,46 +330,42 @@ const styles = StyleSheet.create((theme) => ({
     fontWeight: "500",
     color: theme.colors.mutedForeground,
   },
-  toneDot: {
-    position: "absolute",
-    top: 5,
-    right: 5,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  more: {
-    position: "absolute",
-    right: 1,
-    bottom: 1,
-    minWidth: 16,
-    height: 16,
-    paddingHorizontal: 3,
-    borderRadius: 8,
-    backgroundColor: theme.colors.card,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  moreText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: theme.colors.primary,
-  },
-  footer: {
+  legend: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
+    flexWrap: "wrap",
+    columnGap: theme.spacing.md,
+    rowGap: theme.spacing.xs,
     paddingHorizontal: theme.spacing.sm,
     paddingTop: theme.spacing.md,
   },
-  footerText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.mutedForeground,
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
-  budget: {
-    marginLeft: "auto",
+  swatch: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2.5,
+  },
+  legendText: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
+  },
+  dayCard: {
+    gap: theme.spacing.sm,
+  },
+  dayTitle: {
+    fontSize: theme.fontSize.md,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  dayKcal: {
+    fontSize: theme.fontSize.base,
+    fontWeight: "700",
+    color: theme.colors.kcalText,
+    fontVariant: ["tabular-nums"],
   },
   dim: {
     opacity: 0.3,

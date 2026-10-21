@@ -1,14 +1,14 @@
 import { MAKAN_VIEWS } from "@joyorogo/api/lib/diary-view";
 import type { MakanView } from "@joyorogo/api/lib/diary-view";
 import { cn } from "@joyorogo/ui/lib/utils";
-import { CalendarDays, List, MapPin, Sticker } from "lucide-react";
+import { CalendarDays, Camera, List, MapPin } from "lucide-react";
 import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 
 const ICONS: Record<MakanView, ComponentType<{ className?: string; "aria-hidden"?: boolean }>> = {
   daftar: List,
   kalender: CalendarDays,
-  stiker: Sticker,
+  stiker: Camera,
   tempat: MapPin,
 };
 

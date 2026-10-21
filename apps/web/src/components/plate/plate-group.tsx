@@ -3,7 +3,7 @@ import { Calendar } from "@joyorogo/ui/components/calendar";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarIcon, Pencil, Utensils } from "lucide-react";
+import { CalendarIcon, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -109,8 +109,8 @@ export function CalendarSheet({
 /**
  * Diary plate grouping: rows sharing a plate render under one "Piring" header
  * that shows the plate's price, with an inline edit for name/place/price.
- * Rows without a plate (old data) render exactly as before, ungrouped.
- * `renderRow` keeps this file free of diary-specific row markup.
+ * Rows without a plate (old data) render exactly as before, ungrouped. Groups sit
+ * flush inside the meal slot card. `renderRow` keeps this file free of diary-specific row markup.
  */
 export function PlateDiary<T extends Item & FoodRowFields>({
   items,
@@ -140,7 +140,7 @@ export function PlateDiary<T extends Item & FoodRowFields>({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="divide-y divide-border">
       {groups.map((group, index) => {
         const plate = group.plateId ? byId.get(group.plateId) : undefined;
         const totalKcal = group.items.reduce((sum, row) => sum + row.kcal, 0);
@@ -151,21 +151,12 @@ export function PlateDiary<T extends Item & FoodRowFields>({
         return (
           <div key={group.plateId ?? `solo-${group.items[0]?.id ?? index}`}>
             {plate && (
-              <div className="rounded-t-3xl bg-muted px-5 py-2 text-sm">
+              <div className="px-5 pt-3 pb-1 text-sm">
                 <div className="flex items-center gap-2">
-                  <Utensils className="size-4 shrink-0 text-makan-ink" aria-hidden />
-                  <span className="inline-flex min-w-0 flex-1 items-center gap-x-1.5 truncate font-semibold">
-                    <span className="truncate">{t("plate.header.title", { name: plate.name })}</span>
+                  <span className="min-w-0 flex-1 truncate font-semibold">
+                    {t("plate.header.title", { name: plate.name })}
                     {plate.place && (
-                      <>
-                        <span
-                          className="size-1 shrink-0 rounded-full bg-muted-foreground/60"
-                          aria-hidden
-                        />
-                        <span className="truncate font-normal text-muted-foreground">
-                          {plate.place}
-                        </span>
-                      </>
+                      <span className="font-normal text-muted-foreground"> · {plate.place}</span>
                     )}
                   </span>
                   <span className="shrink-0 font-bold tabular-nums">
@@ -192,7 +183,7 @@ export function PlateDiary<T extends Item & FoodRowFields>({
                 </p>
               </div>
             )}
-            <ListGroup className={plate ? "rounded-t-none border-t-0" : undefined}>
+            <ListGroup className="rounded-none bg-transparent">
               {group.items.map(renderRow)}
             </ListGroup>
           </div>

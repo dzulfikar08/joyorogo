@@ -1,8 +1,7 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
-import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { StyleSheet } from "react-native-unistyles";
 
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
@@ -10,13 +9,10 @@ import { recentDayLabel } from "@joyorogo/api/lib/format";
 import { formatDistance, visitAgeLabel } from "@joyorogo/api/lib/places";
 import type { PlaceSummary } from "@joyorogo/api/lib/places";
 
-import { fmtIdr } from "@/utils/format";
-import { PlaceThumb } from "@/components/places/place-thumb";
-import { StickerHero } from "@/components/sticker";
+import { fmtGramsLabel, fmtIdr, fmtInt } from "@/utils/format";
 import { Button, ErrorState, Num, Sheet, Skeleton, Text } from "@/components/ui";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
-import { fmtKcalLabel } from "@/utils/format";
 
 type RelogResult = { items: Array<{ id: string }>; meal: string };
 
@@ -37,8 +33,7 @@ export function PlaceDetailSheet({
   onClose: () => void;
   onOpenDate?: (date: string) => void;
 }) {
-  const { theme } = useUnistyles();
-  const { t } = useTranslation("place");
+  const { t } = useTranslation(["place", "makan"]);
   const queryClient = useQueryClient();
   const detail = useQuery(orpc.place.detail.queryOptions({ input: { key: place.key } }));
 
@@ -92,23 +87,62 @@ export function PlaceDetailSheet({
     <Sheet visible onClose={onClose} title={place.name}>
       <Text style={styles.subtitle}>{subtitle}</Text>
 
-      <StickerHero scanId={place.stickerScanId} name={place.favoriteDish ?? place.name} />
-      {place.favoriteDish || place.avgPriceIdr != null ? (
-        <View style={styles.summary}>
-          <View style={styles.summaryText}>
-            {place.favoriteDish ? (
-              <Text style={styles.favorite} numberOfLines={2}>
-                <Text style={styles.favoriteLabel}>{t("card.favorite")} </Text>
-                {place.favoriteDish}
-              </Text>
-            ) : null}
-            {place.avgPriceIdr != null ? (
-              <Text style={styles.muted}>
-                {t("detail.averagePerPlate", { price: fmtIdr(place.avgPriceIdr) })}
-              </Text>
-            ) : null}
-          </View>
+      {place.avgKcal != null || place.avgProteinG != null || place.avgPriceIdr != null ? (
+        <View style={styles.averages}>
+          {place.avgKcal != null || place.avgProteinG != null ? (
+            <>
+              <Text style={styles.heading}>{t("detail.averages.title")}</Text>
+              <View style={styles.averageRow}>
+                {place.avgKcal != null ? (
+                  <View style={styles.averageCell}>
+                    <Text style={styles.averageLabel}>{t("detail.averages.kcal")}</Text>
+                    <Num style={styles.averageValue}>
+                      {fmtInt(place.avgKcal)} {t("makan:diary.summary.unit")}
+                    </Num>
+                  </View>
+                ) : null}
+                {place.avgProteinG != null ? (
+                  <View style={styles.averageCell}>
+                    <Text style={styles.averageLabel}>{t("detail.averages.protein")}</Text>
+                    <Num style={styles.averageValue}>{fmtGramsLabel(place.avgProteinG)}</Num>
+                  </View>
+                ) : null}
+              </View>
+            </>
+          ) : null}
+          {place.avgPriceIdr != null ? (
+            <Text style={styles.muted}>
+              {t("detail.averagePerPlate", { price: fmtIdr(place.avgPriceIdr) })}
+            </Text>
+          ) : null}
         </View>
+      ) : null}
+
+      {detail.data && detail.data.dishes.length > 0 ? (
+        <>
+          <Text style={styles.heading}>{t("detail.dishes.title")}</Text>
+          <Text style={styles.muted}>{t("detail.dishes.hint")}</Text>
+          <View style={styles.list}>
+            {detail.data.dishes.map((dish) => (
+              <View key={dish.name} style={styles.dish}>
+                <Text style={styles.dishName} numberOfLines={2}>
+                  {dish.name}
+                </Text>
+                <View style={styles.dishNumbers}>
+                  <Num style={styles.visitKcal}>
+                    {dish.avgProteinG != null
+                      ? t("detail.dishes.row", {
+                          kcal: fmtInt(dish.avgKcal),
+                          g: fmtInt(dish.avgProteinG),
+                        })
+                      : t("detail.dishes.rowKcal", { kcal: fmtInt(dish.avgKcal) })}
+                  </Num>
+                  <Text style={styles.muted}>{t("detail.dishes.times", { count: dish.count })}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </>
       ) : null}
 
       <Text style={styles.heading}>{t("detail.history")}</Text>
@@ -125,7 +159,7 @@ export function PlaceDetailSheet({
             <View key={visit.id} style={styles.visit}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t("detail.viewInDiary", { name: visit.name })}
+                accessibilityLabel={t("detail.viewInLog", { name: visit.name })}
                 disabled={!onOpenDate}
                 onPress={() => {
                   onClose();
@@ -133,22 +167,26 @@ export function PlaceDetailSheet({
                 }}
                 style={({ pressed }) => [styles.visitMain, pressed && styles.pressed]}
               >
-                <PlaceThumb scanId={visit.stickerScanId} size={56} />
-                <View style={styles.visitText}>
+                <View style={styles.visitTop}>
                   <Text style={styles.visitName} numberOfLines={1}>
                     {visit.name}
                   </Text>
-                  <Text style={styles.muted} numberOfLines={1}>
-                    {recentDayLabel(visit.date, today)} · {MEAL_LABELS[visit.meal as Meal] ?? visit.meal}
-                  </Text>
-                  <View style={styles.visitMeta}>
-                    <Ionicons name="flame" size={13} color={theme.colors.kcalText} />
-                    <Num style={styles.muted}>{fmtKcalLabel(visit.kcal)}</Num>
-                    {visit.priceIdr != null ? (
-                      <Text style={styles.muted}>{fmtIdr(visit.priceIdr)}</Text>
-                    ) : null}
-                  </View>
+                  <Num style={styles.visitKcal}>
+                    {visit.proteinG != null
+                      ? t("detail.dishes.row", { kcal: fmtInt(visit.kcal), g: fmtInt(visit.proteinG) })
+                      : t("detail.dishes.rowKcal", { kcal: fmtInt(visit.kcal) })}
+                  </Num>
                 </View>
+                <Text style={styles.muted} numberOfLines={1}>
+                  {recentDayLabel(visit.date, today)} ·{" "}
+                  {MEAL_LABELS[visit.meal as Meal] ?? visit.meal}
+                  {visit.priceIdr != null ? ` · ${fmtIdr(visit.priceIdr)}` : ""}
+                </Text>
+                {visit.itemNames.length > 0 ? (
+                  <Text style={styles.muted} numberOfLines={1}>
+                    {visit.itemNames.join(", ")}
+                  </Text>
+                ) : null}
               </Pressable>
               <Button
                 variant="secondary"
@@ -157,6 +195,7 @@ export function PlaceDetailSheet({
                 icon="refresh"
                 disabled={relog.isPending}
                 onPress={() => relog.mutate({ plateId: visit.id, name: visit.name })}
+                style={styles.visitRelog}
               />
             </View>
           ))}
@@ -191,27 +230,33 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.base,
     color: theme.colors.mutedForeground,
   },
-  summary: {
+  averages: {
+    gap: theme.spacing.sm,
+  },
+  averageRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.md,
-    backgroundColor: theme.colors.muted,
+    gap: theme.spacing.sm,
+  },
+  averageCell: {
+    flex: 1,
+    gap: 2,
+    backgroundColor: theme.colors.makanSoft,
     borderRadius: theme.radius.tile,
     padding: theme.spacing.md,
   },
-  summaryText: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
+  averageLabel: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.makanText,
+  },
+  averageValue: {
+    fontSize: theme.fontSize.xl,
+    fontWeight: "800",
+    color: theme.colors.kcalText,
   },
   favorite: {
     fontSize: theme.fontSize.base,
     fontWeight: "700",
     color: theme.colors.foreground,
-  },
-  favoriteLabel: {
-    fontWeight: "500",
-    color: theme.colors.mutedForeground,
   },
   muted: {
     fontSize: theme.fontSize.sm,
@@ -226,35 +271,52 @@ const styles = StyleSheet.create((theme) => ({
   list: {
     gap: theme.spacing.sm,
   },
-  visit: {
+  dish: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.radius.tile,
-    padding: theme.spacing.sm,
-  },
-  visitMain: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
+    justifyContent: "space-between",
     gap: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
   },
-  visitText: {
+  dishName: {
     flex: 1,
     minWidth: 0,
-    gap: 1,
-  },
-  visitName: {
     fontSize: theme.fontSize.base,
     fontWeight: "600",
     color: theme.colors.foreground,
   },
-  visitMeta: {
+  dishNumbers: {
+    alignItems: "flex-end",
+  },
+  visit: {
+    gap: theme.spacing.xs,
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.radius.tile,
+    padding: theme.spacing.md,
+  },
+  visitMain: {
+    gap: 2,
+  },
+  visitTop: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: theme.spacing.md,
+  },
+  visitName: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: theme.fontSize.base,
+    fontWeight: "600",
+    color: theme.colors.foreground,
+  },
+  visitKcal: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.kcalText,
+  },
+  visitRelog: {
+    alignSelf: "flex-start",
   },
   location: {
     gap: theme.spacing.sm,

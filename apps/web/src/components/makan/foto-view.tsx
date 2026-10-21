@@ -2,15 +2,15 @@ import { monthRange, shiftMonth, weekRange } from "@joyorogo/api/lib/diary-view"
 import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 import { fmtDate } from "@joyorogo/i18n";
-import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Utensils } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Mascot } from "@/components/mascot";
 import { Segmented } from "@/components/kit/surface";
-import { stickerUrl, STICKER_FILTER } from "@/components/sticker";
+import { MacroLine } from "@/components/macro-line";
+import { CutoutTile } from "@/components/sticker";
 import type { FoodItem } from "@/lib/api-types";
 import { fmtInt, fmtKcalLabel } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
@@ -19,9 +19,6 @@ type Span = "minggu" | "bulan";
 
 const SPANS: ReadonlyArray<Span> = ["minggu", "bulan"];
 
-/** Small fixed tilts so the grid reads like a sticker sheet, not a table. */
-const TILTS = ["-rotate-2", "rotate-1", "rotate-2", "-rotate-1"] as const;
-
 const arrowClass =
   "flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30";
 
@@ -29,64 +26,53 @@ function dayMonth(key: string): string {
   return fmtDate(key, "short");
 }
 
-function StickerTile({
-  item,
-  index,
-  onOpen,
-}: {
-  item: FoodItem;
-  index: number;
-  onOpen: (item: FoodItem) => void;
-}) {
+function FotoTile({ item, onOpen }: { item: FoodItem; onOpen: (item: FoodItem) => void }) {
   const { t } = useTranslation("makan");
-  const [failed, setFailed] = useState(false);
   return (
     <li>
       <button
         type="button"
         onClick={() => onOpen(item)}
-        aria-label={t("stickers.tile.label", {
+        aria-label={t("photos.tile.label", {
           name: item.name,
           kcal: fmtKcalLabel(item.kcal),
           date: fmtDate(item.date, "weekday"),
         })}
-        className="flex w-full flex-col items-center gap-1 rounded-3xl bg-card p-2 pb-3 text-center transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+        className="flex h-full w-full flex-col gap-2.5 rounded-3xl bg-card p-3.5 text-left transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
       >
-        <span className="grid aspect-square w-full place-items-center p-1">
-          {failed ? (
-            <span
-              className="grid size-3/5 place-items-center rounded-2xl bg-makan-soft"
-              aria-hidden
-            >
-              <Utensils className="size-6 text-makan-ink" />
+        <span className="flex items-start gap-3">
+          <CutoutTile scanId={item.scanId as string} className="size-14" iconClassName="size-6" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-xs text-muted-foreground tabular-nums">
+              {fmtDate(item.date, "weekday")}
             </span>
-          ) : (
-            <img
-              src={stickerUrl(item.scanId as string)}
-              alt=""
-              loading="lazy"
-              onError={() => setFailed(true)}
-              className={cn("size-full object-contain", TILTS[index % TILTS.length])}
-              style={STICKER_FILTER}
-            />
-          )}
+            <span className="mt-1 block text-2xl leading-none font-extrabold text-kcal tabular-nums">
+              {fmtInt(item.kcal)}
+            </span>
+            <span className="mt-0.5 block text-[0.6875rem] font-semibold text-muted-foreground">
+              {t("diary.summary.unit")}
+            </span>
+          </span>
         </span>
-        <span className="line-clamp-2 w-full px-1 text-xs leading-tight font-bold">
-          {item.name}
-        </span>
-        <span className="text-[0.6875rem] text-muted-foreground tabular-nums">
-          {t("stickers.tile.meta", { kcal: fmtKcalLabel(item.kcal), date: dayMonth(item.date) })}
-        </span>
+        <span className="line-clamp-2 text-sm leading-snug font-semibold">{item.name}</span>
+        <MacroLine
+          compact
+          className="mt-auto text-xs text-muted-foreground"
+          protein={item.protein}
+          carbs={item.carbs}
+          fat={item.fat}
+        />
       </button>
     </li>
   );
 }
 
 /**
- * Stiker view: the food cutouts of the viewed week or month as a sticker
- * book. Tapping one opens the food sheet through `onOpen`.
+ * Foto view: the foods with a photo in the viewed week or month as a plain
+ * nutrition grid (thumbnail, kcal, macros). Tapping one opens the food sheet
+ * through `onOpen`.
  */
-export function StikerView({
+export function FotoView({
   date,
   kind,
   onOpen,
@@ -106,9 +92,11 @@ export function StikerView({
     placeholderData: (previous) => previous,
   });
   const items = query.data?.items ?? [];
+  const averageKcal =
+    items.length > 0 ? Math.round(items.reduce((sum, item) => sum + item.kcal, 0) / items.length) : null;
   const title =
     span === "minggu"
-      ? t("stickers.range", { from: dayMonth(from), to: dayMonth(to) })
+      ? t("photos.range", { from: dayMonth(from), to: dayMonth(to) })
       : fmtDate(`${anchor.slice(0, 7)}-01`, "month");
   const step = (direction: 1 | -1) =>
     setAnchor(
@@ -120,22 +108,28 @@ export function StikerView({
   return (
     <div className="mt-4">
       <Segmented
-        label={t("stickers.span.label")}
+        label={t("photos.span.label")}
         value={span}
         onChange={setSpan}
-        options={SPANS.map((value) => ({ value, label: t(`stickers.span.${value}`) }))}
+        options={SPANS.map((value) => ({ value, label: t(`photos.span.${value}`) }))}
       />
       <div className="mt-4 flex items-end justify-between gap-3 px-1">
         <div className="min-w-0">
           <h2 className="text-xl font-extrabold tracking-tight">{title}</h2>
-          <p className="text-sm text-muted-foreground">
-            {t("stickers.count", { count: items.length, n: fmtInt(items.length) })}
+          <p className="text-sm text-muted-foreground tabular-nums">
+            {t("photos.count", { count: items.length, n: fmtInt(items.length) })}
+            {averageKcal !== null && (
+              <>
+                {" · "}
+                {t("photos.average", { kcal: fmtKcalLabel(averageKcal) })}
+              </>
+            )}
           </p>
         </div>
         <div className="flex shrink-0 gap-1">
           <button
             type="button"
-            aria-label={t(span === "minggu" ? "stickers.prevWeek" : "stickers.prevMonth")}
+            aria-label={t(span === "minggu" ? "photos.prevWeek" : "photos.prevMonth")}
             onClick={() => step(-1)}
             className={arrowClass}
           >
@@ -143,7 +137,7 @@ export function StikerView({
           </button>
           <button
             type="button"
-            aria-label={t(span === "minggu" ? "stickers.nextWeek" : "stickers.nextMonth")}
+            aria-label={t(span === "minggu" ? "photos.nextWeek" : "photos.nextMonth")}
             disabled={to >= today}
             onClick={() => step(1)}
             className={arrowClass}
@@ -154,20 +148,20 @@ export function StikerView({
       </div>
 
       {items.length > 0 ? (
-        <ul className="mt-3 grid grid-cols-3 gap-2.5">
-          {items.map((item, index) => (
-            <StickerTile key={item.id} item={item} index={index} onOpen={onOpen} />
+        <ul className="mt-3 grid grid-cols-2 gap-2.5">
+          {items.map((item) => (
+            <FotoTile key={item.id} item={item} onOpen={onOpen} />
           ))}
         </ul>
       ) : (
         <div className="mt-3 rounded-3xl bg-card p-6 text-center">
           <Mascot pose="ready" size="md" className="mb-3" />
           <p className="text-base font-bold">
-            {query.isPending ? t("stickers.loading") : t("stickers.empty.title")}
+            {query.isPending ? t("photos.loading") : t("photos.empty.title")}
           </p>
           {!query.isPending && (
             <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
-              {t("stickers.empty.body")}
+              {t("photos.empty.body")}
             </p>
           )}
         </div>

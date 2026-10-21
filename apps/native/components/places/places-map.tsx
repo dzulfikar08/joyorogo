@@ -47,6 +47,8 @@ export function PlacesMap({
           mutedForeground: theme.colors.mutedForeground,
           primary: theme.colors.primary,
           primaryForeground: theme.colors.primaryForeground,
+          makanSoft: theme.colors.makanSoft,
+          makanText: theme.colors.makanText,
         },
       }),
     [pins, origin, dark, interactive, theme, t],

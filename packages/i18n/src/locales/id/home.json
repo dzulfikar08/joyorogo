@@ -78,7 +78,7 @@
     "empty": "Belum ada catatan"
   },
   "plates": {
-    "title": "Diari piring"
+    "title": "Foto makan hari ini"
   },
   "weight": {
     "title": "Berat badan",
@@ -282,7 +282,7 @@
     "names": {
       "calorie": "Kalori dan makro",
       "stats": "Angka harian (aktivitas, tidur, air, berat)",
-      "meals": "Makan hari ini dan diari piring",
+      "meals": "Makan hari ini dan fotonya",
       "mode": "Panduan Hamil / Menyusui / Naikin BB",
       "notices": "Catatan dan saran",
       "weight": "Tren berat",

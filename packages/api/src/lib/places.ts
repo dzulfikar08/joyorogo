@@ -87,8 +87,16 @@ export type PlaceVisitRow = {
   createdAt: number | string | Date | null;
 };
 
-/** A cutout belonging to one component of a plate. */
-export type PlateSticker = { plateId: string; scanId: string; name: string; kcal: number };
+/** What one plate added up to: its food rows' kcal and protein (protein null when none of them recorded it). */
+export type PlateNutrition = { plateId: string; kcal: number; proteinG: number | null };
+
+/** One dish as eaten at a place: how many plates and what they averaged. */
+export type PlaceDish = {
+  name: string;
+  count: number;
+  avgKcal: number;
+  avgProteinG: number | null;
+};
 
 export type PlaceSummary = {
   key: string;
@@ -96,11 +104,12 @@ export type PlaceSummary = {
   name: string;
   visits: number;
   lastDate: string;
-  favoriteDish: string | null;
-  favoriteCount: number;
   avgPriceIdr: number | null;
-  stickerScanId: string | null;
-  stickerName: string | null;
+  /** Mean kcal and protein per plate, over the visits whose plate has food rows. */
+  avgKcal: number | null;
+  avgProteinG: number | null;
+  /** The dish with the most protein for its kcal; null with fewer than two dishes to compare. */
+  proteinPick: PlaceDish | null;
   /** Mean of the stored (already rounded) visit coordinates, rounded again. */
   lat: number | null;
   lng: number | null;
@@ -127,20 +136,68 @@ export function visitsOfPlace(rows: PlaceVisitRow[], key: string): PlaceVisitRow
     .toSorted(byNewestVisit);
 }
 
+const mean = (values: number[]): number | null =>
+  values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+
+const roundOrNull = (value: number | null): number | null =>
+  value === null ? null : Math.round(value);
+
+/** Protein per kcal of a dish, or null when the protein was never recorded. */
+const proteinDensity = (dish: PlaceDish): number | null =>
+  dish.avgProteinG !== null && dish.avgKcal > 0 ? dish.avgProteinG / dish.avgKcal : null;
+
 /**
- * Groups plates by normalized place name. The favorite dish is the most
- * frequent plate name (ties go to the most recent); the sticker comes from
- * the newest visit of that dish that has a cutout, else the newest visit with one.
+ * Dishes with the most protein for their kcal first; dishes whose protein was
+ * never recorded follow, lightest first.
+ */
+export function rankDishes(dishes: PlaceDish[]): PlaceDish[] {
+  return dishes.toSorted((a, b) => {
+    const da = proteinDensity(a);
+    const db = proteinDensity(b);
+    if (da !== null && db !== null) return db - da || a.avgKcal - b.avgKcal;
+    if (da !== null) return -1;
+    if (db !== null) return 1;
+    return a.avgKcal - b.avgKcal;
+  });
+}
+
+/**
+ * What each dish eaten at a place averaged, from the plates that have food rows.
+ * Dishes group by normalized plate name and come back ranked by `rankDishes`.
+ */
+export function dishesOfPlace(visits: PlaceVisitRow[], nutrition: PlateNutrition[]): PlaceDish[] {
+  const byPlate = new Map(nutrition.map((entry) => [entry.plateId, entry]));
+  const groups = new Map<string, { name: string; kcal: number[]; protein: number[] }>();
+  // Newest visit first, so a dish keeps the spelling of its latest plate.
+  for (const visit of visits.toSorted(byNewestVisit)) {
+    const entry = byPlate.get(visit.id);
+    if (!entry) continue;
+    const key = normalizePlaceKey(visit.name);
+    const group = groups.get(key) ?? { name: visit.name, kcal: [], protein: [] };
+    group.kcal.push(entry.kcal);
+    if (entry.proteinG !== null) group.protein.push(entry.proteinG);
+    groups.set(key, group);
+  }
+  return rankDishes(
+    [...groups.values()].map((group) => ({
+      name: group.name,
+      count: group.kcal.length,
+      avgKcal: Math.round(mean(group.kcal) ?? 0),
+      avgProteinG: roundOrNull(mean(group.protein)),
+    })),
+  );
+}
+
+/**
+ * Groups plates by normalized place name and averages what was eaten there. The
+ * protein pick is the dish with the most protein for its kcal, offered only
+ * when the place has at least two dishes to compare.
  */
 export function aggregatePlaces(
   rows: PlaceVisitRow[],
-  stickers: PlateSticker[],
+  nutrition: PlateNutrition[],
 ): PlaceSummary[] {
-  const stickerByPlate = new Map<string, PlateSticker>();
-  for (const sticker of stickers) {
-    const current = stickerByPlate.get(sticker.plateId);
-    if (!current || sticker.kcal > current.kcal) stickerByPlate.set(sticker.plateId, sticker);
-  }
+  const byPlate = new Map(nutrition.map((entry) => [entry.plateId, entry]));
 
   const groups = new Map<string, Array<PlaceVisitRow & { place: string }>>();
   for (const row of rows.toSorted(byNewestVisit)) {
@@ -154,39 +211,22 @@ export function aggregatePlaces(
   const out: PlaceSummary[] = [];
   for (const [key, visits] of groups) {
     const newest = visits[0]!;
-    const dishes = new Map<string, { name: string; count: number }>();
-    for (const visit of visits) {
-      const dishKey = normalizePlaceKey(visit.name);
-      const dish = dishes.get(dishKey);
-      if (dish) dish.count += 1;
-      else dishes.set(dishKey, { name: visit.name, count: 1 });
-    }
-    // Map keeps insertion order = newest first, so a strict > keeps the newest on ties.
-    let favorite: { key: string; name: string; count: number } | null = null;
-    for (const [dishKey, dish] of dishes) {
-      if (!favorite || dish.count > favorite.count) favorite = { key: dishKey, ...dish };
-    }
-
-    const stickerVisit =
-      visits.find(
-        (visit) => normalizePlaceKey(visit.name) === favorite?.key && stickerByPlate.has(visit.id),
-      ) ?? visits.find((visit) => stickerByPlate.has(visit.id));
-    const sticker = stickerVisit ? stickerByPlate.get(stickerVisit.id)! : null;
-
     const prices = visits.map((v) => v.priceIdr).filter((p): p is number => p != null && p > 0);
     const located = visits.filter((v) => v.lat != null && v.lng != null);
+    const eaten = visits.flatMap((visit) => byPlate.get(visit.id) ?? []);
+    const dishes = dishesOfPlace(visits, nutrition);
 
     out.push({
       key,
       name: newest.place,
       visits: visits.length,
       lastDate: newest.date,
-      favoriteDish: favorite?.name ?? null,
-      favoriteCount: favorite?.count ?? 0,
-      avgPriceIdr:
-        prices.length > 0 ? Math.round(prices.reduce((s, p) => s + p, 0) / prices.length) : null,
-      stickerScanId: sticker?.scanId ?? null,
-      stickerName: sticker?.name ?? null,
+      avgPriceIdr: roundOrNull(mean(prices)),
+      avgKcal: roundOrNull(mean(eaten.map((entry) => entry.kcal))),
+      avgProteinG: roundOrNull(
+        mean(eaten.flatMap((entry) => (entry.proteinG === null ? [] : [entry.proteinG]))),
+      ),
+      proteinPick: dishes.length >= 2 ? dishes[0]! : null,
       lat: located.length > 0 ? roundCoord(located.reduce((s, v) => s + v.lat!, 0) / located.length) : null,
       lng: located.length > 0 ? roundCoord(located.reduce((s, v) => s + v.lng!, 0) / located.length) : null,
     });
@@ -194,9 +234,12 @@ export function aggregatePlaces(
   return out;
 }
 
-export type PlaceSort = "sering" | "terbaru" | "terdekat";
+export type PlaceSort = "sering" | "terbaru" | "terdekat" | "ringan";
 
-/** Orders summaries for a tab; "terdekat" needs an origin and drops places with no coordinates. */
+/**
+ * Orders summaries for a tab; "terdekat" needs an origin and drops places with no coordinates,
+ * "ringan" puts the lowest average plate first (places with no nutrition data last).
+ */
 export function sortPlaces(
   places: PlaceSummary[],
   sort: PlaceSort,
@@ -217,6 +260,13 @@ export function sortPlaces(
   if (sort === "terbaru") {
     return withDistance.toSorted(
       (a, b) => b.lastDate.localeCompare(a.lastDate) || b.visits - a.visits,
+    );
+  }
+  if (sort === "ringan") {
+    return withDistance.toSorted(
+      (a, b) =>
+        (a.avgKcal ?? Number.POSITIVE_INFINITY) - (b.avgKcal ?? Number.POSITIVE_INFINITY) ||
+        b.visits - a.visits,
     );
   }
   return withDistance.toSorted(

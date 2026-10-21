@@ -3,6 +3,7 @@ import type { Locale } from "@joyorogo/i18n";
 
 import { shiftDate } from "./engine";
 import { daysInMonth, parseDateKey, weekdayIndex } from "./format";
+import { gainDayHit } from "./gain";
 
 /**
  * Makan view switcher shared by web and native: the view keys, their labels,
@@ -102,4 +103,52 @@ export function monthWeeks(monthKey: string): MonthCell[][] {
   const weeks: MonthCell[][] = [];
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
   return weeks;
+}
+
+/** How a person's target reads on a day: a ceiling to stay under, a floor to reach, or nothing to judge against. */
+export type DayMode = "lose" | "gain" | "neutral";
+
+/** Where a logged day landed against the kcal target: "within" it, "over" it, or "under" a gain target. */
+export type DayStatus = "within" | "over" | "under";
+
+/**
+ * Calendar status of a logged day. A losing plan treats the target as a ceiling,
+ * a gain plan as a floor (same rule as the gain streak), Hamil/Menyusui and a
+ * missing target judge nothing (null).
+ */
+export function dayTargetStatus(
+  kcal: number,
+  targetKcal: number | null,
+  mode: DayMode,
+): DayStatus | null {
+  if (mode === "neutral" || targetKcal === null || targetKcal <= 0 || kcal <= 0) return null;
+  if (mode === "gain") return gainDayHit(kcal, targetKcal) ? "within" : "under";
+  return kcal > targetKcal ? "over" : "within";
+}
+
+export type MonthSummary = {
+  logged: number;
+  within: number;
+  over: number;
+  under: number;
+  /** Mean kcal over the logged days, rounded; null with nothing logged. */
+  avgKcal: number | null;
+};
+
+/** The month header of the nutrition calendar: days logged, days by status, average intake. */
+export function monthSummary(
+  days: ReadonlyArray<{ kcal: number }>,
+  targetKcal: number | null,
+  mode: DayMode,
+): MonthSummary {
+  const summary: MonthSummary = { logged: 0, within: 0, over: 0, under: 0, avgKcal: null };
+  let total = 0;
+  for (const day of days) {
+    summary.logged += 1;
+    total += day.kcal;
+    const status = dayTargetStatus(day.kcal, targetKcal, mode);
+    if (status !== null) summary[status] += 1;
+  }
+  if (summary.logged > 0) summary.avgKcal = Math.round(total / summary.logged);
+  return summary;
 }

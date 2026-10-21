@@ -9,16 +9,14 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { formatDistance, sortPlaces, visitAgeLabel } from "@joyorogo/api/lib/places";
 import type { PlaceSort, PlaceSummary } from "@joyorogo/api/lib/places";
 
-import { fmtIdr } from "@/utils/format";
+import { fmtIdr, fmtInt } from "@/utils/format";
 import { SaveLocationToggle } from "@/components/places/location-toggle";
 import { PlaceDetailSheet } from "@/components/places/place-detail";
-import { PlaceThumb } from "@/components/places/place-thumb";
 import { PlacesMap } from "@/components/places/places-map";
 import type { MapPin } from "@/components/places/places-map-html";
-import { stickerUrl } from "@/components/sticker";
 import { useToast } from "@/components/toast";
 import { Disclosure } from "@/components/disclosure";
-import { Button, EmptyState, ErrorState, Segmented, Skeleton, Text } from "@/components/ui";
+import { Button, EmptyState, ErrorState, Num, Segmented, Skeleton, Text } from "@/components/ui";
 import { usePlaceLocation, useNearbyOrigin } from "@/src/lib/location";
 import { client, orpc } from "@/utils/orpc";
 import { errorMessage } from "@/utils/format";
@@ -27,16 +25,17 @@ const TAB_KEYS = [
   { value: "sering", key: "sort.frequent" },
   { value: "terbaru", key: "sort.recent" },
   { value: "terdekat", key: "sort.nearest" },
+  { value: "ringan", key: "sort.lightest" },
 ] as const satisfies ReadonlyArray<{ value: PlaceSort; key: string }>;
 
 /**
- * "Tempat makan": plates grouped by where they were eaten, with a sticker-pin
- * map, three sort tabs, and a detail sheet per place. Places with no saved
- * location show in the list only.
+ * "Tempat makan": plates grouped by where they were eaten, with their average
+ * kcal and protein, a pill-pin map, four sort tabs, and a detail sheet per
+ * place. Places with no saved location show in the list only.
  */
 export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void }) {
   const { theme } = useUnistyles();
-  const { t } = useTranslation("place");
+  const { t } = useTranslation(["place", "makan"]);
   const insets = useSafeAreaInsets();
   const query = useQuery(orpc.place.list.queryOptions());
   const origin = useNearbyOrigin();
@@ -58,13 +57,16 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
                 name: place.name,
                 lat: place.lat,
                 lng: place.lng,
-                stickerUrl: place.stickerScanId ? stickerUrl(place.stickerScanId) : null,
+                label:
+                  place.avgKcal != null
+                    ? `${fmtInt(place.avgKcal)} ${t("makan:diary.summary.unit")}`
+                    : null,
                 visits: place.visits,
               },
             ]
           : [],
       ),
-    [places],
+    [places, t],
   );
   const canNearby = origin != null && pins.length > 0;
   const activeTab: PlaceSort = tab === "terdekat" && !canNearby ? "sering" : tab;
@@ -245,7 +247,7 @@ function PlaceCard({
   onOpen: () => void;
 }) {
   const { theme } = useUnistyles();
-  const { t } = useTranslation("place");
+  const { t } = useTranslation(["place", "makan"]);
   return (
     <Pressable
       accessibilityRole="button"
@@ -256,20 +258,27 @@ function PlaceCard({
       onPress={onOpen}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      <PlaceThumb scanId={place.stickerScanId} size={76} />
+      <View style={styles.kcalTile}>
+        {place.avgKcal != null ? (
+          <>
+            <Num style={styles.kcalNum}>{fmtInt(place.avgKcal)}</Num>
+            <Text style={styles.kcalUnit}>{t("makan:diary.summary.unit")}</Text>
+            <Text style={styles.kcalCaption} numberOfLines={2}>
+              {t("card.perPlate")}
+            </Text>
+          </>
+        ) : (
+          <Ionicons name="restaurant" size={28} color={theme.colors.makanText} />
+        )}
+      </View>
       <View style={styles.cardBody}>
         <Text style={styles.cardName} numberOfLines={1}>
           {place.name}
         </Text>
         <View style={styles.metaRow}>
-          <View style={styles.metaItem}>
-            <Ionicons name="layers-outline" size={14} color={theme.colors.mutedForeground} />
-            <Text style={styles.muted}>{t("card.visits", { count: place.visits })}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={14} color={theme.colors.mutedForeground} />
-            <Text style={styles.muted}>{visitAgeLabel(place.lastDate, today)}</Text>
-          </View>
+          <Text style={styles.muted}>
+            {t("card.visits", { count: place.visits })} · {visitAgeLabel(place.lastDate, today)}
+          </Text>
           {distanceM != null ? (
             <View style={styles.metaItem}>
               <Ionicons name="location-outline" size={14} color={theme.colors.mutedForeground} />
@@ -277,14 +286,15 @@ function PlaceCard({
             </View>
           ) : null}
         </View>
-        {place.favoriteDish ? (
-          <View style={styles.metaItem}>
-            <Ionicons name="heart" size={14} color={theme.colors.bakar} />
-            <Text style={styles.favorite} numberOfLines={1}>
-              <Text style={styles.muted}>{t("card.favorite")} </Text>
-              {place.favoriteDish}
-            </Text>
-          </View>
+        {place.avgKcal == null ? <Text style={styles.muted}>{t("card.noNutrition")}</Text> : null}
+        {place.avgProteinG != null ? (
+          <Text style={styles.protein}>{t("card.protein", { g: fmtInt(place.avgProteinG) })}</Text>
+        ) : null}
+        {place.proteinPick ? (
+          <Text style={styles.muted} numberOfLines={2}>
+            {t("card.pick", { name: place.proteinPick.name })} · {fmtInt(place.proteinPick.avgKcal)}{" "}
+            {t("makan:diary.summary.unit")}
+          </Text>
         ) : null}
         {place.avgPriceIdr != null ? (
           <Text style={styles.muted}>{t("card.average", { price: fmtIdr(place.avgPriceIdr) })}</Text>
@@ -363,6 +373,31 @@ const styles = StyleSheet.create((theme) => ({
     minWidth: 0,
     gap: 3,
   },
+  kcalTile: {
+    width: 84,
+    height: 84,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 1,
+    borderRadius: theme.radius.tile,
+    backgroundColor: theme.colors.makanSoft,
+  },
+  kcalNum: {
+    fontSize: theme.fontSize.xl,
+    fontWeight: "800",
+    color: theme.colors.kcalText,
+  },
+  kcalUnit: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "600",
+    color: theme.colors.makanText,
+  },
+  kcalCaption: {
+    fontSize: 10,
+    lineHeight: 12,
+    textAlign: "center",
+    color: theme.colors.makanText,
+  },
   cardName: {
     fontSize: theme.fontSize.md,
     fontWeight: "700",
@@ -385,10 +420,10 @@ const styles = StyleSheet.create((theme) => ({
     lineHeight: 18,
     color: theme.colors.mutedForeground,
   },
-  favorite: {
-    flexShrink: 1,
+  protein: {
     fontSize: theme.fontSize.sm,
-    fontWeight: "700",
+    lineHeight: 18,
+    fontWeight: "600",
     color: theme.colors.foreground,
   },
   privacy: {

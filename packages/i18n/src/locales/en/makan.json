@@ -1,12 +1,19 @@
 {
   "diary": {
     "header": {
-      "caption": "Log your plate",
       "loading": "Loading your food log"
     },
     "summary": {
+      "unit": "kcal",
       "over": "Over by {{kcal}}",
       "ofTarget": "of {{kcal}}"
+    },
+    "quick": {
+      "label": "Quick add",
+      "photo": "Photo",
+      "barcode": "Barcode",
+      "story": "Describe",
+      "recent": "Recently logged · tap to add to {{meal}}"
     },
     "macro": {
       "protein": "Protein",
@@ -16,7 +23,6 @@
     },
     "story": {
       "title": "Tell us what you ate",
-      "subtitle": "Type or speak, and AI counts the calories.",
       "sheetDescription": "Add several meals at once, even from yesterday. You can check everything before it's saved.",
       "saved_one": "{{count}} food logged to {{days}}.",
       "saved_other": "{{count}} foods logged to {{days}}.",
@@ -25,8 +31,6 @@
     },
     "favorites": {
       "title": "Favorites",
-      "hint": "Tap to log to {{meal}}",
-      "hintOnDate": "Tap to log to {{meal}}, {{date}}",
       "inlineHint": "Favorites · tap to log to {{meal}}",
       "inlineHintOnDate": "Favorites · tap to log to {{meal}}, {{date}}",
       "sheetHint": "Tap to log straight to {{meal}}.",
@@ -34,27 +38,16 @@
     },
     "empty": {
       "titleToday": "Nothing logged today",
-      "titleDay": "Nothing logged on this day",
-      "description": "Tell us what you ate, or scan a photo of your plate and let AI count it.",
-      "log": "Log a meal",
-      "scan": "Scan a photo",
-      "nativeTitle": "No food yet",
-      "nativeDescriptionToday": "Log your first meal for today, or snap your plate with the camera button.",
-      "nativeDescriptionOnDate": "Log your first meal for {{date}}, or snap your plate with the camera button.",
-      "nativeAction": "Add food"
+      "titleDay": "Nothing logged on this day"
     },
     "list": {
-      "entries_one": "{{n}} entry",
-      "entries_other": "{{n}} entries",
       "sectionAria": "{{meal}}, total {{kcal}} kcal",
       "addTo": "Add {{meal}}",
       "slotEmpty": "Nothing logged yet. Tap Add above, or scan a photo.",
       "slotEmptyIcon": "Nothing logged yet. Tap the add button above, or scan a photo.",
       "slotNoKind": "No {{kind}} in this meal.",
       "dayEmpty": "Nothing logged on this day.",
-      "dayNoKind": "No {{kind}} on this day.",
-      "dayAria": "Log for {{date}}",
-      "openInList": "Open in List"
+      "dayAria": "Log for {{date}}"
     },
     "kind": {
       "makanan": "food",
@@ -141,20 +134,12 @@
     "view": {
       "daftar": "List",
       "kalender": "Calendar",
-      "stiker": "Stickers",
+      "stiker": "Photos",
       "tempat": "Places"
     }
   },
   "kindChips": {
     "label": "Entry type"
-  },
-  "monthScrubber": {
-    "records_other": "{{n}} entries",
-    "records_one": "{{n}} entry",
-    "daysLogged_other": "{{n}} days logged",
-    "daysLogged_one": "{{n}} day logged",
-    "jump": "Jump to a date this month",
-    "dayWithEntries": "{{date}}, has entries"
   },
   "calendar": {
     "label": "Entries calendar",
@@ -172,9 +157,35 @@
     "dayWithEntries_other": "{{date}}, {{count}} entries, {{kcal}}",
     "dayWithEntries_one": "{{date}}, {{count}} entry, {{kcal}}",
     "dayEmpty": "{{date}}, no entries yet",
-    "daysLoggedMonth_other": "{{n}} days logged this month",
-    "daysLoggedMonth_one": "{{n}} day logged this month",
-    "budget": "Budget ±{{kcal}}",
+    "status": {
+      "within": "on target",
+      "over": "over target",
+      "under": "under target"
+    },
+    "budget": "Target {{kcal}} a day",
+    "stats": {
+      "logged_other": "{{n}} days logged",
+      "logged_one": "{{n}} day logged",
+      "within_other": "{{n}} on target",
+      "within_one": "{{n}} on target",
+      "over_other": "{{n}} over target",
+      "over_one": "{{n}} over target",
+      "under_other": "{{n}} under target",
+      "under_one": "{{n}} under target",
+      "average": "Average {{kcal}} a day"
+    },
+    "legend": {
+      "within": "On target",
+      "over": "Over target",
+      "under": "Under target",
+      "logged": "Logged",
+      "none": "Not logged"
+    },
+    "day": {
+      "empty": "Nothing logged on this day.",
+      "open": "Open in List",
+      "ofTarget": "{{eaten}} of {{target}} kcal"
+    },
     "monthLong": {
       "jan": "January",
       "feb": "February",
@@ -190,27 +201,27 @@
       "dec": "December"
     }
   },
-  "stickers": {
+  "photos": {
     "tile": {
-      "label": "{{name}}, {{kcal}}, {{date}}",
-      "meta": "{{kcal}} · {{date}}"
+      "label": "{{name}}, {{kcal}}, {{date}}"
     },
     "range": "{{from}} – {{to}}",
     "span": {
-      "label": "Sticker range",
+      "label": "Photo range",
       "minggu": "Week",
       "bulan": "Month"
     },
-    "count_other": "{{n}} stickers",
-    "count_one": "{{n}} sticker",
+    "count_other": "{{n}} foods with photos",
+    "count_one": "{{n}} food with a photo",
+    "average": "Average {{kcal}} per food",
     "prevWeek": "Previous week",
     "nextWeek": "Next week",
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
-    "loading": "Putting your stickers together...",
+    "loading": "Loading foods with photos...",
     "empty": {
-      "title": "No stickers yet",
-      "body": "Snap your plate with Photo scan and the cutouts of your food will show up here."
+      "title": "No foods with photos yet",
+      "body": "Scan a photo of your plate and the picture will show up here with its calories and protein."
     }
   },
   "fitnessCard": {
@@ -339,10 +350,6 @@
     "kindPicker": {
       "label": "Food type"
     }
-  },
-  "timeline": {
-    "entries_other": "{{n}} entries",
-    "entries_one": "{{n}} entry"
   },
   "daySwitcher": {
     "label": "Choose a day",

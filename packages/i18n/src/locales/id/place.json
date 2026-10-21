@@ -15,15 +15,16 @@
     "aria": "Urutkan tempat",
     "frequent": "Paling sering",
     "recent": "Terbaru",
-    "nearest": "Terdekat"
+    "nearest": "Terdekat",
+    "lightest": "Paling ringan"
   },
   "list": {
     "loading": "Memuat tempat makan",
     "loadError": "Tempat makanmu belum bisa dimuat.",
     "empty": {
       "title": "Belum ada tempat makan",
-      "body": "Isi kolom <b>Tempat</b> saat mencatat piring, nanti semua warung dan restoran langgananmu muncul di sini.",
-      "bodyPlain": "Isi kolom Tempat saat mencatat piring, nanti semua warung dan restoran langgananmu muncul di sini."
+      "body": "Isi kolom <b>Tempat</b> saat mencatat piring, nanti kalori dan protein rata-rata tiap warung atau restoran muncul di sini.",
+      "bodyPlain": "Isi kolom Tempat saat mencatat piring, nanti kalori dan protein rata-rata tiap warung atau restoran muncul di sini."
     }
   },
   "map": {
@@ -48,17 +49,32 @@
   "card": {
     "visits_other": "{{count}} kali",
     "aria": "{{name}}, {{visits}}",
-    "favorite": "Paling sering:",
-    "average": "Rata-rata {{price}}"
+    "perPlate": "rata-rata per piring",
+    "protein": "Protein {{g}} g",
+    "pick": "Paling banyak protein: {{name}}",
+    "noNutrition": "Belum ada kalori tercatat",
+    "average": "Harga rata-rata {{price}}"
   },
   "detail": {
     "averagePerPlate": "Rata-rata {{price}} per piring",
+    "averages": {
+      "title": "Rata-rata per piring",
+      "kcal": "Kalori",
+      "protein": "Protein"
+    },
+    "dishes": {
+      "title": "Pilihan di sini",
+      "hint": "Urut dari yang paling banyak protein per kkal.",
+      "row": "{{kcal}} kkal · protein {{g}} g",
+      "rowKcal": "{{kcal}} kkal",
+      "times_other": "{{count}}×"
+    },
     "history": "Riwayat",
     "historyAria": "Riwayat kunjungan",
     "historyError": "Riwayat tempat ini belum bisa dimuat.",
     "relog": "Makan lagi",
     "relogAria": "Makan lagi {{name}}",
-    "viewInDiary": "Lihat {{name}} di diari",
+    "viewInLog": "Buka catatan {{name}}",
     "showing": "Menampilkan {{shown}} kunjungan terbaru dari {{total}}.",
     "loggedTo": "{{name}} dicatat ke {{meal}}",
     "location": {

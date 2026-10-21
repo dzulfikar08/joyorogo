@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   aggregatePlaces,
+  dishesOfPlace,
   distanceM,
   formatDistance,
   normalizePlaceKey,
@@ -10,7 +11,7 @@ import {
   toStoredCoords,
   visitAgeLabel,
 } from "./places";
-import type { PlaceVisitRow, PlateSticker } from "./places";
+import type { PlaceVisitRow, PlateNutrition } from "./places";
 
 const visit = (over: Partial<PlaceVisitRow> & { id: string }): PlaceVisitRow => ({
   date: "2026-10-10",
@@ -82,31 +83,41 @@ describe("aggregatePlaces", () => {
     visit({ id: "e", date: "2026-10-02", place: null }),
     visit({ id: "f", date: "2026-10-03", place: "   " }),
   ];
-  const stickers: PlateSticker[] = [
-    { plateId: "a", scanId: "s-a", name: "Nasi ayam", kcal: 500 },
-    { plateId: "a", scanId: "s-a2", name: "Lalap", kcal: 20 },
-    { plateId: "b", scanId: "s-b", name: "Es teh", kcal: 80 },
+  const nutrition: PlateNutrition[] = [
+    { plateId: "a", kcal: 600, proteinG: 24 },
+    { plateId: "b", kcal: 80, proteinG: null },
+    { plateId: "c", kcal: 500, proteinG: 30 },
+    { plateId: "d", kcal: 400, proteinG: 20 },
   ];
-  const places = aggregatePlaces(rows, stickers);
+  const places = aggregatePlaces(rows, nutrition);
 
   test("groups by normalized place and skips plates without one", () => {
     expect(places.map((p) => p.key).toSorted()).toEqual(["soto pak kumis", "warung bu tini"]);
   });
 
-  test("summarizes visits, favorite dish, price and spelling of the latest visit", () => {
+  test("summarizes visits, price and spelling of the latest visit", () => {
     const tini = places.find((p) => p.key === "warung bu tini")!;
     expect(tini.visits).toBe(3);
     expect(tini.name).toBe("warung bu tini ");
     expect(tini.lastDate).toBe("2026-10-14");
-    expect(tini.favoriteDish).toBe("nasi ayam");
-    expect(tini.favoriteCount).toBe(2);
     expect(tini.avgPriceIdr).toBe(15000);
   });
 
-  test("sticker comes from the favorite dish's newest visit and the biggest component", () => {
+  test("averages kcal over every plate and protein over the plates that recorded it", () => {
     const tini = places.find((p) => p.key === "warung bu tini")!;
-    expect(tini.stickerScanId).toBe("s-a");
-    expect(places.find((p) => p.key === "soto pak kumis")!.stickerScanId).toBeNull();
+    expect(tini.avgKcal).toBe(393);
+    expect(tini.avgProteinG).toBe(27);
+  });
+
+  test("protein pick is the dish with the most protein per kcal, only when there is a choice", () => {
+    const tini = places.find((p) => p.key === "warung bu tini")!;
+    expect(tini.proteinPick).toEqual({ name: "nasi ayam", count: 2, avgKcal: 550, avgProteinG: 27 });
+    expect(places.find((p) => p.key === "soto pak kumis")!.proteinPick).toBeNull();
+  });
+
+  test("a place whose plates have no food rows has no averages", () => {
+    const bare = aggregatePlaces([visit({ id: "x", place: "Kosong" })], []);
+    expect(bare[0]).toMatchObject({ avgKcal: null, avgProteinG: null, proteinPick: null });
   });
 
   test("coordinates average and stay rounded; absent without opt-in", () => {
@@ -119,6 +130,31 @@ describe("aggregatePlaces", () => {
   });
 });
 
+describe("dishesOfPlace", () => {
+  const visits = [
+    visit({ id: "a", date: "2026-10-12", name: "Nasi goreng" }),
+    visit({ id: "b", date: "2026-10-13", name: "Soto ayam" }),
+    visit({ id: "c", date: "2026-10-14", name: "Es teh" }),
+    visit({ id: "d", date: "2026-10-15", name: "Nasi goreng" }),
+    visit({ id: "e", date: "2026-10-16", name: "Roti bakar" }),
+  ];
+  const nutrition: PlateNutrition[] = [
+    { plateId: "a", kcal: 700, proteinG: 18 },
+    { plateId: "b", kcal: 350, proteinG: 28 },
+    { plateId: "c", kcal: 90, proteinG: null },
+    { plateId: "d", kcal: 650, proteinG: 22 },
+    // "e" has no food rows: the visit is skipped
+  ];
+
+  test("ranks by protein per kcal, dishes without protein after, lightest first", () => {
+    expect(dishesOfPlace(visits, nutrition)).toEqual([
+      { name: "Soto ayam", count: 1, avgKcal: 350, avgProteinG: 28 },
+      { name: "Nasi goreng", count: 2, avgKcal: 675, avgProteinG: 20 },
+      { name: "Es teh", count: 1, avgKcal: 90, avgProteinG: null },
+    ]);
+  });
+});
+
 describe("sortPlaces", () => {
   const rows = [
     visit({ id: "a", place: "Jauh", date: "2026-10-14", lat: -7.9, lng: 112.6 }),
@@ -126,7 +162,11 @@ describe("sortPlaces", () => {
     visit({ id: "c", place: "Dekat", date: "2026-10-02", lat: -7.984, lng: 112.63 }),
     visit({ id: "d", place: "Tanpa lokasi", date: "2026-10-15" }),
   ];
-  const places = aggregatePlaces(rows, []);
+  const places = aggregatePlaces(rows, [
+    { plateId: "a", kcal: 300, proteinG: null },
+    { plateId: "b", kcal: 800, proteinG: null },
+    { plateId: "c", kcal: 700, proteinG: null },
+  ]);
 
   test("tabs", () => {
     expect(sortPlaces(places, "sering").map((p) => p.name)[0]).toBe("Dekat");
@@ -134,5 +174,9 @@ describe("sortPlaces", () => {
     const near = sortPlaces(places, "terdekat", { lat: -7.985, lng: 112.631 });
     expect(near.map((p) => p.name)).toEqual(["Dekat", "Jauh"]);
     expect(sortPlaces(places, "terdekat", null)).toEqual([]);
+  });
+
+  test("ringan puts the lowest average plate first and places without data last", () => {
+    expect(sortPlaces(places, "ringan").map((p) => p.name)).toEqual(["Jauh", "Dekat", "Tanpa lokasi"]);
   });
 });
