@@ -673,7 +673,8 @@ export default function Makan() {
             );
             const sumMacro = (pick: (item: (typeof segment.rows)[number]) => number | null) =>
               anyMacro ? segment.rows.reduce((sum, item) => sum + (pick(item) ?? 0), 0) : null;
-            if (!plateRow) {
+            // A plate of one component stays a normal row; the group treatment is for 2 or more.
+            if (!plateRow || segment.rows.length < 2) {
               return (
                 <View key={segment.plateId ?? `plain-${segmentIndex}`}>
                   {segment.rows.map((item) => (

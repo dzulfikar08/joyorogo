@@ -147,7 +147,8 @@ export function PlateDiary<T extends Item & FoodRowFields>({
       {groups.map((group, index) => {
         const plate = group.plateId ? byId.get(group.plateId) : undefined;
         const key = group.plateId ?? `solo-${group.items[0]?.id ?? index}`;
-        if (!plate) {
+        // A plate of one component stays a normal row; the group treatment is for 2 or more.
+        if (!plate || group.items.length < 2) {
           return (
             <ListGroup key={key} className="rounded-none bg-transparent">
               {group.items.map((item) => renderRow(item, { nested: false }))}
