@@ -12,10 +12,10 @@ import {
   ErrorState,
   PageHeader,
   Screen,
-  Segmented,
   Skeleton,
   Text,
 } from "@/components/ui";
+import { IconTabs } from "@/components/makan/view-switcher";
 import { FeedComposer } from "@/components/feed/composer";
 import { HandlePrompt } from "@/components/feed/handle-prompt";
 import { PostCard, openAuthor } from "@/components/feed/post-card";
@@ -136,11 +136,12 @@ export default function Feed() {
 
       <HandlePrompt />
 
-      <Segmented<Tab>
+      <IconTabs<Tab>
+        label={t("tab.label")}
         options={[
-          { value: "mengikuti", label: t("tab.following") },
-          { value: "jelajah", label: t("tab.explore") },
-          { value: "tips", label: t("tab.tips") },
+          { value: "mengikuti", label: t("tab.following"), icon: "people-outline" },
+          { value: "jelajah", label: t("tab.explore"), icon: "compass-outline" },
+          { value: "tips", label: t("tab.tips"), icon: "bulb-outline" },
         ]}
         value={tab}
         onChange={setTab}

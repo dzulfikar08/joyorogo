@@ -8,12 +8,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   Bell,
   CheckCheck,
+  Compass,
   Hand,
   Heart,
+  Lightbulb,
   MessageSquareText,
   PlusCircle,
   Reply,
   UserPlus,
+  Users,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -24,7 +27,8 @@ import { FeedComposerSheet } from "@/components/feed/composer";
 import { HandlePrompt } from "@/components/feed/handle-prompt";
 import { PostCard } from "@/components/feed/post-card";
 import { EmptyHint, ScreenError } from "@/components/screen-state";
-import { ListRow, Page, PageHeader, Segmented } from "@/components/kit/surface";
+import { ListRow, Page, PageHeader } from "@/components/kit/surface";
+import { IconTabs } from "@/components/makan/view-switcher";
 import { MetaLine } from "@/components/meta-line";
 import { TipCard } from "@/components/tips/tip-card";
 import { useSession } from "@/lib/auth-client";
@@ -40,9 +44,9 @@ type FeedTab = "mengikuti" | "jelajah" | "tips";
 
 function tabOptions(t: TFunction<"feed">) {
   return [
-    { value: "mengikuti" as const, label: t("tab.following") },
-    { value: "jelajah" as const, label: t("tab.explore") },
-    { value: "tips" as const, label: t("tab.tips") },
+    { value: "mengikuti" as const, label: t("tab.following"), icon: Users },
+    { value: "jelajah" as const, label: t("tab.explore"), icon: Compass },
+    { value: "tips" as const, label: t("tab.tips"), icon: Lightbulb },
   ];
 }
 
@@ -268,7 +272,7 @@ function FeedPage() {
 
       <HandlePrompt className="mb-3" />
 
-      <Segmented<FeedTab>
+      <IconTabs<FeedTab>
         label={t("tab.label")}
         value={tab}
         onChange={setTab}

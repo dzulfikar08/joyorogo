@@ -5,42 +5,44 @@ import { CalendarDays, Camera, List, MapPin } from "lucide-react";
 import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 
-const ICONS: Record<MakanView, ComponentType<{ className?: string; "aria-hidden"?: boolean }>> = {
-  daftar: List,
-  kalender: CalendarDays,
-  stiker: Camera,
-  tempat: MapPin,
-};
+type IconType = ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 
 /**
- * Segmented view switcher for Makan. Every segment shows its icon; the chosen
- * one grows to show its label too, so four views fit a 390px phone.
+ * Icon-first segmented tabs. Every segment shows its icon; the chosen one
+ * grows to show its label too, so four views fit a 390px phone. Shared by
+ * Makan and Feed.
  */
-export function MakanViewSwitcher({
+export function IconTabs<T extends string>({
   value,
   onChange,
+  options,
+  label,
+  className,
 }: {
-  value: MakanView;
-  onChange: (view: MakanView) => void;
+  value: T;
+  onChange: (value: T) => void;
+  options: ReadonlyArray<{ value: T; label: string; icon: IconType }>;
+  /** Accessible tablist name. */
+  label: string;
+  className?: string;
 }) {
-  const { t } = useTranslation("makan");
   return (
     <div
       role="tablist"
-      aria-label={t("viewSwitcher.label")}
-      className="flex gap-1 rounded-full bg-muted p-1"
+      aria-label={label}
+      className={cn("flex gap-1 rounded-full bg-muted p-1", className)}
     >
-      {MAKAN_VIEWS.map((view) => {
-        const active = view.value === value;
-        const Icon = ICONS[view.value];
+      {options.map((option) => {
+        const active = option.value === value;
+        const Icon = option.icon;
         return (
           <button
-            key={view.value}
+            key={option.value}
             type="button"
             role="tab"
             aria-selected={active}
-            aria-label={t(`viewSwitcher.view.${view.value}`)}
-            onClick={() => onChange(view.value)}
+            aria-label={option.label}
+            onClick={() => onChange(option.value)}
             className={cn(
               "flex min-h-11 items-center justify-center gap-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition-[flex-grow,background-color,color,box-shadow] duration-200 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none md:min-h-10",
               active
@@ -49,10 +51,42 @@ export function MakanViewSwitcher({
             )}
           >
             <Icon className="size-[1.125rem] shrink-0" aria-hidden />
-            {active && <span>{t(`viewSwitcher.view.${view.value}`)}</span>}
+            {active && <span>{option.label}</span>}
           </button>
         );
       })}
     </div>
+  );
+}
+
+const ICONS: Record<MakanView, IconType> = {
+  daftar: List,
+  kalender: CalendarDays,
+  stiker: Camera,
+  tempat: MapPin,
+};
+
+export function MakanViewSwitcher({
+  value,
+  onChange,
+  className,
+}: {
+  value: MakanView;
+  onChange: (view: MakanView) => void;
+  className?: string;
+}) {
+  const { t } = useTranslation("makan");
+  return (
+    <IconTabs
+      value={value}
+      onChange={onChange}
+      label={t("viewSwitcher.label")}
+      className={className}
+      options={MAKAN_VIEWS.map((view) => ({
+        value: view.value,
+        label: t(`viewSwitcher.view.${view.value}`),
+        icon: ICONS[view.value],
+      }))}
+    />
   );
 }

@@ -65,7 +65,7 @@ import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 import type { MakanView } from "@joyorogo/api/lib/diary-view";
 import { DaySummary } from "@/components/makan/day-summary";
 import { KalenderView } from "@/components/makan/kalender-view";
-import { KindChips } from "@/components/makan/kind-chips";
+import { KindFilter } from "@/components/makan/kind-filter";
 import { QuickAdd } from "@/components/makan/quick-add";
 import { FotoView } from "@/components/makan/foto-view";
 import { KindPicker, SnackAdviceSection } from "@/components/makan/snack-advice";
@@ -708,8 +708,10 @@ export default function Makan() {
     <Screen>
       <PageHeader title={t("common:nav.food")} />
 
-      <MakanViewSwitcher value={view} onChange={chooseView} />
-      {view !== "tempat" ? <KindChips value={kind} onChange={chooseKind} /> : null}
+      <View style={styles.switcherRow}>
+        <MakanViewSwitcher value={view} onChange={chooseView} />
+        {view !== "tempat" ? <KindFilter value={kind} onChange={chooseKind} /> : null}
+      </View>
 
       {view === "daftar" ? (
         <>
@@ -1135,6 +1137,11 @@ export default function Makan() {
 }
 
 const styles = StyleSheet.create((theme) => ({
+  switcherRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
   slotHeader: {
     flexDirection: "row",
     alignItems: "center",

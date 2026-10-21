@@ -1,4 +1,4 @@
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { MAKAN_VIEWS } from "@joyorogo/api/lib/diary-view";
 import type { MakanView } from "@joyorogo/api/lib/diary-view";
 import { useTranslation } from "react-i18next";
@@ -9,49 +9,51 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { EASE_OUT, PressableScale } from "@/components/motion";
 import { Text } from "@/components/ui";
 
-function ViewIcon({ view, color }: { view: MakanView; color: string }) {
-  if (view === "daftar") return <Ionicons name="list" size={20} color={color} />;
-  if (view === "kalender") return <Ionicons name="calendar-outline" size={20} color={color} />;
-  if (view === "stiker")
-    return <MaterialCommunityIcons name="sticker-outline" size={20} color={color} />;
-  return <Ionicons name="location-outline" size={20} color={color} />;
-}
+type IconName = React.ComponentProps<typeof Ionicons>["name"];
+type TabOption<T extends string> = {
+  value: T;
+  label: string;
+  icon: IconName;
+};
 
 /**
- * Segmented view switcher for Makan. Every segment shows its icon; the chosen
- * one grows to show its label as well, so four views fit a 360px phone.
+ * Icon-first segmented tabs. Every segment shows its icon; the chosen one
+ * grows to show its label as well, so four views fit a 360px phone. Shared by
+ * Makan and Feed.
  */
-export function MakanViewSwitcher({
+export function IconTabs<T extends string>({
   value,
   onChange,
+  options,
+  label,
 }: {
-  value: MakanView;
-  onChange: (view: MakanView) => void;
+  value: T;
+  onChange: (value: T) => void;
+  options: ReadonlyArray<TabOption<T>>;
+  /** Accessible tablist name. */
+  label: string;
 }) {
-  const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
   return (
-    <View style={styles.rail} accessibilityRole="tablist" accessibilityLabel={t("viewSwitcher.label")}>
-      {MAKAN_VIEWS.map((view) => {
-        const active = view.value === value;
+    <View style={styles.rail} accessibilityRole="tablist" accessibilityLabel={label}>
+      {options.map((option) => {
+        const active = option.value === value;
+        const color = active ? theme.colors.foreground : theme.colors.mutedForeground;
         return (
           <PressableScale
-            key={view.value}
+            key={option.value}
             accessibilityRole="tab"
-            accessibilityLabel={t(`viewSwitcher.view.${view.value}`)}
+            accessibilityLabel={option.label}
             accessibilityState={{ selected: active }}
-            onPress={() => onChange(view.value)}
+            onPress={() => onChange(option.value)}
             scaleTo={0.94}
             style={[styles.segment, active ? styles.segmentActive : styles.segmentIdle]}
           >
-            <ViewIcon
-              view={view.value}
-              color={active ? theme.colors.foreground : theme.colors.mutedForeground}
-            />
+            <Ionicons name={option.icon} size={20} color={color} />
             {active ? (
               <Animated.View entering={FadeIn.duration(180).easing(EASE_OUT)}>
                 <Text style={styles.label} numberOfLines={1}>
-                  {t(`viewSwitcher.view.${view.value}`)}
+                  {option.label}
                 </Text>
               </Animated.View>
             ) : null}
@@ -62,8 +64,38 @@ export function MakanViewSwitcher({
   );
 }
 
+const MAKAN_ICONS: Record<MakanView, IconName> = {
+  daftar: "list",
+  kalender: "calendar-outline",
+  stiker: "camera-outline",
+  tempat: "location-outline",
+};
+
+export function MakanViewSwitcher({
+  value,
+  onChange,
+}: {
+  value: MakanView;
+  onChange: (view: MakanView) => void;
+}) {
+  const { t } = useTranslation("makan");
+  return (
+    <IconTabs
+      value={value}
+      onChange={onChange}
+      label={t("viewSwitcher.label")}
+      options={MAKAN_VIEWS.map((view) => ({
+        value: view.value,
+        label: t(`viewSwitcher.view.${view.value}`),
+        icon: MAKAN_ICONS[view.value],
+      }))}
+    />
+  );
+}
+
 const styles = StyleSheet.create((theme) => ({
   rail: {
+    flex: 1,
     flexDirection: "row",
     gap: 4,
     padding: 4,

@@ -47,7 +47,7 @@ import { upsertById, removeById } from "@joyorogo/api/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 import { CountUp } from "@/components/kit/count-up";
 import { KalenderView } from "@/components/makan/kalender-view";
-import { KindChips } from "@/components/makan/kind-chips";
+import { KindFilter } from "@/components/makan/kind-filter";
 import { FotoView } from "@/components/makan/foto-view";
 import { QuickAddCard } from "@/components/makan/quick-add";
 import { MakanViewSwitcher } from "@/components/makan/view-switcher";
@@ -337,12 +337,10 @@ function MakanPage() {
         action={view === "daftar" ? <DaySwitcher date={date} onChange={showDate} /> : undefined}
       />
 
-      <MakanViewSwitcher value={view} onChange={chooseView} />
-      {view !== "tempat" && (
-        <div className="mt-3">
-          <KindChips value={kind} onChange={chooseKind} />
-        </div>
-      )}
+      <div className="flex items-center gap-2">
+        <MakanViewSwitcher value={view} onChange={chooseView} className="min-w-0 flex-1" />
+        {view !== "tempat" && <KindFilter value={kind} onChange={chooseKind} />}
+      </div>
 
       {view === "daftar" && (
         <>
