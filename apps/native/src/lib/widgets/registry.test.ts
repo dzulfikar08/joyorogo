@@ -52,7 +52,7 @@ describe("widget registration", () => {
     expect(w?.resizeMode).toBe("none");
     expect(w?.minWidth).toBe("40dp");
     expect(w?.minHeight).toBe("40dp");
-    expect(w?.label).toBe("Foto Makanan");
+    expect(w?.label).toBe("Scan Makanan");
   });
 
   test("FotoMakanan is static: no periodic update, no headless refresh", () => {

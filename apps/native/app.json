@@ -170,8 +170,8 @@
             },
             {
               "name": "FotoMakanan",
-              "label": "Foto Makanan",
-              "description": "Satu ketukan langsung membuka kamera untuk mencatat makanan dari foto.",
+              "label": "Scan Makanan",
+              "description": "Ketuk untuk membuka kamera dan mencatat makanan dari foto.",
               "minWidth": "40dp",
               "minHeight": "40dp",
               "targetCellWidth": 1,

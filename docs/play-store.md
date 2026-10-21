@@ -173,7 +173,7 @@ Capture from the release build with a demo account (not your real data). Order m
 6. Latihan: active workout with the rest timer.
 7. Grup: colek, catatan, VAR.
 8. Profil: Health Connect sync card and "Hapus semua data saya".
-9. (optional) Feed and the four home-screen widgets (the 1x1 "Foto Makanan" tile opens the camera).
+9. (optional) Feed and the four home-screen widgets (the 1x1 "Scan Makanan" tile opens the camera).
 
 Do not show the Pro/pricing screens or any real name or email.
 
