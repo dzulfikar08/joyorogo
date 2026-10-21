@@ -51,6 +51,7 @@ import { sendEmail } from "./email";
 import { createContext, requestLocale } from "./context";
 import { registerBenchRoutes } from "./bench";
 import { registerDatasetExportRoutes } from "./dataset-export";
+import { androidAppHandoff } from "./app-handoff";
 import { registerMcpPublicCors, registerMcpRoutes } from "./mcp";
 import type { McpEnv } from "./mcp";
 import { registerOgRoutes } from "./og";
@@ -678,7 +679,10 @@ app.get("/u/:code", async (c) => {
   );
 });
 
-app.on(["POST", "GET"], "/api/auth/*", async (c) => (await createAuth()).handler(c.req.raw));
+app.on(["POST", "GET"], "/api/auth/*", async (c) => {
+  const response = await (await createAuth()).handler(c.req.raw);
+  return androidAppHandoff(c.req.raw, response) ?? response;
+});
 
 export const apiHandler = new OpenAPIHandler(appRouter, {
   plugins: [
