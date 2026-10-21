@@ -31,9 +31,10 @@ export function installJoyoFit(): Promise<void> {
  * JoyoFit without the strength route just shows its home for the query form.
  * Resolves true when JoyoFit opened, false when it is not installed (the store
  * page was opened instead), so callers can show an install button only then.
+ * `target: "home"` skips the strength link: for screens about scores, not training.
  */
-export async function openJoyoFit(): Promise<boolean> {
-  for (const url of [JOYOFIT_STRENGTH_LINK, JOYOFIT_APP_LINK]) {
+export async function openJoyoFit(target: "strength" | "home" = "strength"): Promise<boolean> {
+  for (const url of target === "home" ? [JOYOFIT_APP_LINK] : [JOYOFIT_STRENGTH_LINK, JOYOFIT_APP_LINK]) {
     try {
       await Linking.openURL(url);
       return true;

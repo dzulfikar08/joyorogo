@@ -207,12 +207,28 @@
     }
   },
   "fitnessCard": {
-    "aria": "Skor kebugaran dari JoyoFit",
-    "title": "Kebugaran dari JoyoFit",
+    "aria": "JoyoFit: {{summary}}. Buka detail",
+    "title": "JoyoFit",
     "metric": {
       "recovery": "Pemulihan",
       "strain": "Strain",
-      "sleep": "Tidur"
+      "readiness": "Kesiapan"
+    },
+    "verdict": {
+      "hardDay": "Hari berat, butuh energi lebih",
+      "lowRecovery": "Pemulihan rendah, istirahat dulu",
+      "shortSleep": "Tidur kurang, istirahat dulu",
+      "strained": "Tubuh terbebani, istirahat dulu"
+    },
+    "sheet": {
+      "title": "Kebugaran dari JoyoFit",
+      "explainTitle": "Cara membaca angkanya",
+      "open": "Buka JoyoFit"
+    },
+    "explain": {
+      "recovery": "Seberapa pulih tubuhmu. Di bawah 34% rendah, 67% ke atas baik.",
+      "strain": "Seberapa berat hari ini untuk tubuhmu, skala 0 sampai 21. Mulai 14 terhitung hari berat.",
+      "readiness": "Kesiapan tubuhmu menurut JoyoFit: Siap tancap, Seimbang, Terbebani, atau Kelelahan."
     },
     "left": {
       "kcal": "Sisa kkal",

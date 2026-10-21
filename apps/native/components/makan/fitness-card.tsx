@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Platform, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -8,74 +9,143 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { jakartaToday } from "@joyorogo/api/lib/engine";
 import {
   FOOD_GUIDANCE_TEASER,
-  READINESS_ID,
+  fitnessFigures,
   fitnessHints,
+  fitnessVerdict,
   hasFitnessData,
 } from "@joyorogo/api/lib/fitness-hint";
+import type { FitnessDay, FitnessFigure } from "@joyorogo/api/lib/fitness-hint";
 import type { FoodPick, ReadinessGuidance } from "@joyorogo/api/lib/readiness-food";
 import type { TFunction } from "@joyorogo/i18n";
 
 import { useAppConfig } from "@/components/billing";
-import { Button, Card, Num, Text } from "@/components/ui";
-import { fmtGramsLabel, fmtInt, fmtKcalLabel } from "@/utils/format";
+import { PressableScale } from "@/components/motion";
+import { Button, Num, Sheet, Text } from "@/components/ui";
+import { openJoyoFit } from "@/lib/workout/joyofit";
+import { fmtGramsLabel, fmtInt, fmtKcalLabel, timeAgo } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 /**
- * Recovery, strain and sleep of the day from JoyoFit (the Huawei watch app).
- * Everyone gets the short qualitative hints; Founder gets personalised food
- * guidance for today (server-checked), free users a locked teaser when
- * Founder can actually be bought on this platform. Renders nothing for a day
- * JoyoFit pushed no scores for, and nothing while loading or when the request
- * fails: it is an extra, not part of the diary.
+ * JoyoFit's recovery, strain and readiness of the day (the Huawei watch app) as one compact card: title row,
+ * at most three figures, one verdict line. Tapping it opens the detail sheet, which holds everything longer: how
+ * to read the numbers, the food hints, Founder's personalised guidance (server-checked) or the locked teaser (only
+ * when Founder can be bought on this platform) and the way into JoyoFit. Renders nothing for a day JoyoFit pushed
+ * no scores for, and nothing while loading or when the request fails: it is an extra, not part of the diary.
  */
 export function FitnessCard({ date }: { date: string }) {
   const { t } = useTranslation("makan");
+  const { theme } = useUnistyles();
+  const [open, setOpen] = useState(false);
   const { data } = useQuery(orpc.fitness.byDate.queryOptions({ input: { date } }));
+  if (!hasFitnessData(data)) return null;
+
+  const figures = fitnessFigures(data);
+  const verdict = fitnessVerdict(data);
+  const summary = [...figures.map((f) => `${f.label} ${f.value}${f.unit ?? ""}`), verdict].filter(Boolean).join(", ");
+
+  return (
+    <>
+      <PressableScale
+        accessibilityRole="button"
+        accessibilityLabel={t("fitnessCard.aria", { summary })}
+        onPress={() => setOpen(true)}
+        scaleTo={0.98}
+        style={styles.card}
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>{t("fitnessCard.title")}</Text>
+          {date === jakartaToday() ? <Text style={styles.age}>{timeAgo(data.updatedAt)}</Text> : null}
+          <Ionicons name="chevron-forward" size={16} color={theme.colors.mutedForeground} />
+        </View>
+        <View style={styles.row}>
+          {figures.map((figure) => (
+            <Figure key={figure.id} figure={figure} />
+          ))}
+        </View>
+        {verdict ? (
+          <Text style={styles.verdict} numberOfLines={1}>
+            {verdict}
+          </Text>
+        ) : null}
+      </PressableScale>
+      {open ? <DetailSheet date={date} day={data} figures={figures} onClose={() => setOpen(false)} /> : null}
+    </>
+  );
+}
+
+function Figure({ figure }: { figure: FitnessFigure }) {
+  return (
+    <View style={styles.figure}>
+      <Num style={styles.value} numberOfLines={1} adjustsFontSizeToFit>
+        {figure.value}
+        {figure.unit ? <Text style={styles.unit}>{figure.unit}</Text> : null}
+      </Num>
+      <Text style={styles.label} numberOfLines={1}>
+        {figure.label}
+      </Text>
+    </View>
+  );
+}
+
+/** Everything that was too long for the card: how to read the numbers, food hints or guidance, the way into JoyoFit. */
+function DetailSheet({
+  date,
+  day,
+  figures,
+  onClose,
+}: {
+  date: string;
+  day: FitnessDay;
+  figures: FitnessFigure[];
+  onClose: () => void;
+}) {
+  const { t } = useTranslation("makan");
   const config = useAppConfig();
-  const hasScores = hasFitnessData(data);
   // Guidance is about what is left to eat today; a past day only has the hints.
   const guidance = useQuery({
     ...orpc.day.readinessGuidance.queryOptions(),
-    enabled: hasScores && date === jakartaToday(),
+    enabled: date === jakartaToday(),
   });
-  if (!hasFitnessData(data)) return null;
-
   const ready = guidance.data?.status === "ready" ? guidance.data.guidance : null;
   // Same rule as the Harga row in Lainnya: the paywall needs a working checkout here.
   const canBuy =
     config.data?.paywall === true &&
     (Platform.OS === "ios" ? config.data.appleBilling : config.data.billing);
   const showTeaser = guidance.data?.status === "locked" && canBuy;
-  const hints = ready ? [] : fitnessHints(data);
+  const hints = ready ? [] : fitnessHints(day);
 
   return (
-    <Card style={styles.card}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t("fitnessCard.title")}</Text>
-        {data.readiness ? <Text style={styles.readiness}>{READINESS_ID[data.readiness]}</Text> : null}
+    <Sheet
+      visible
+      onClose={onClose}
+      title={t("fitnessCard.sheet.title")}
+      footer={<Button label={t("fitnessCard.sheet.open")} onPress={() => void openJoyoFit("home")} />}
+    >
+      <View style={styles.sheetBody}>
+        {hints.map((hint) => (
+          <Text key={hint} style={styles.hint}>
+            {hint}
+          </Text>
+        ))}
+        {ready ? <Guidance guidance={ready} /> : null}
+        {showTeaser ? <Teaser /> : null}
+        <View style={styles.explain}>
+          <Text style={styles.sectionTitle}>{t("fitnessCard.sheet.explainTitle")}</Text>
+          {figures.map((figure) => (
+            <Text key={figure.id} style={styles.label}>
+              <Text style={styles.explainName}>{figure.label}: </Text>
+              {t(`fitnessCard.explain.${figure.id}`)}
+            </Text>
+          ))}
+        </View>
       </View>
-      <View style={styles.row}>
-        <Metric
-          label={t("fitnessCard.metric.recovery")}
-          value={data.recoveryPct === null ? null : `${data.recoveryPct}%`}
-        />
-        <Metric label={t("fitnessCard.metric.strain")} value={data.strain === null ? null : `${data.strain.toFixed(1)} / 21`} />
-        <Metric label={t("fitnessCard.metric.sleep")} value={data.sleepPct === null ? null : `${data.sleepPct}%`} />
-      </View>
-      {hints.map((hint) => (
-        <Text key={hint} style={styles.hint}>
-          {hint}
-        </Text>
-      ))}
-      {ready ? <Guidance guidance={ready} /> : null}
-      {showTeaser ? <Teaser /> : null}
-    </Card>
+    </Sheet>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string | null }) {
   return (
-    <View style={styles.metric}>
+    <View style={styles.figure}>
       <Num style={styles.value} numberOfLines={1} adjustsFontSizeToFit>
         {value ?? "-"}
       </Num>
@@ -172,30 +242,32 @@ function Teaser() {
 
 const styles = StyleSheet.create((theme) => ({
   card: {
-    gap: theme.spacing.md,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.card,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     gap: theme.spacing.sm,
   },
   title: {
-    flexShrink: 1,
+    flex: 1,
     fontSize: theme.fontSize.sm,
     fontWeight: "600",
     color: theme.colors.mutedForeground,
   },
-  readiness: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: "700",
-    color: theme.colors.tidurText,
+  age: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.mutedForeground,
   },
   row: {
     flexDirection: "row",
     gap: theme.spacing.md,
   },
-  metric: {
+  figure: {
     flex: 1,
     gap: 2,
   },
@@ -203,12 +275,31 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.xl,
     fontWeight: "800",
   },
+  unit: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
   label: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
   },
+  verdict: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.foreground,
+  },
+  sheetBody: {
+    gap: theme.spacing.md,
+  },
   hint: {
     fontSize: theme.fontSize.sm,
+    color: theme.colors.foreground,
+  },
+  explain: {
+    gap: theme.spacing.sm,
+  },
+  explainName: {
+    fontWeight: "700",
     color: theme.colors.foreground,
   },
   section: {

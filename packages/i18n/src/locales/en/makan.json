@@ -214,12 +214,28 @@
     }
   },
   "fitnessCard": {
-    "aria": "Fitness scores from JoyoFit",
-    "title": "Fitness from JoyoFit",
+    "aria": "JoyoFit: {{summary}}. Open details",
+    "title": "JoyoFit",
     "metric": {
       "recovery": "Recovery",
       "strain": "Strain",
-      "sleep": "Sleep"
+      "readiness": "Readiness"
+    },
+    "verdict": {
+      "hardDay": "Hard day, you need more energy",
+      "lowRecovery": "Low recovery, take it easy",
+      "shortSleep": "Short on sleep, take it easy",
+      "strained": "Body under strain, take it easy"
+    },
+    "sheet": {
+      "title": "Fitness from JoyoFit",
+      "explainTitle": "How to read the numbers",
+      "open": "Open JoyoFit"
+    },
+    "explain": {
+      "recovery": "How recovered your body is. Below 34% is low, 67% and up is good.",
+      "strain": "How hard today is on your body, on a scale of 0 to 21. From 14 it counts as a hard day.",
+      "readiness": "How ready your body is according to JoyoFit: Primed, Balanced, Strained or Run down."
     },
     "left": {
       "kcal": "Kcal left",

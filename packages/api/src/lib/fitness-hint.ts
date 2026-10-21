@@ -8,7 +8,7 @@
 // puts an hour of steady running at about 11 and two hard hours at about 18,
 // so 14 and up counts as a hard day here.
 
-import { getActiveLocale, getT } from "@joyorogo/i18n";
+import { fmtDecimal, fmtInt, getActiveLocale, getT } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
 import { localizedLabels } from "./engine";
@@ -86,6 +86,48 @@ export function fitnessHints(day: FitnessDay, locale: Locale = getActiveLocale()
   }
 
   return hints;
+}
+
+/** One headline number of the compact JoyoFit card; `unit` is shown small right after the value. */
+export type FitnessFigure = {
+  id: "recovery" | "strain" | "readiness";
+  label: string;
+  value: string;
+  unit: string | null;
+};
+
+/**
+ * The at most three figures the compact card shows: recovery, strain and the readiness word. Sleep is left out on
+ * purpose (the diary's stats list and the Tidur screen already own it). A score JoyoFit did not push is skipped, not
+ * shown as a dash.
+ */
+export function fitnessFigures(day: FitnessDay, locale: Locale = getActiveLocale()): FitnessFigure[] {
+  const t = getT(locale, "makan");
+  const figures: FitnessFigure[] = [];
+  if (day.recoveryPct !== null) {
+    figures.push({ id: "recovery", label: t("fitnessCard.metric.recovery"), value: fmtInt(day.recoveryPct, locale), unit: "%" });
+  }
+  if (day.strain !== null) {
+    figures.push({ id: "strain", label: t("fitnessCard.metric.strain"), value: fmtDecimal(day.strain, 1, locale), unit: "/21" });
+  }
+  if (day.readiness !== null) {
+    figures.push({ id: "readiness", label: t("fitnessCard.metric.readiness"), value: readinessLabel(day.readiness, locale), unit: null });
+  }
+  return figures;
+}
+
+/**
+ * The single short line under the figures, or null when nothing stands out. Rest comes before a hard day: the
+ * longer food hints for both live in the detail sheet (`fitnessHints`).
+ */
+export function fitnessVerdict(day: FitnessDay, locale: Locale = getActiveLocale()): string | null {
+  const t = getT(locale, "makan");
+  const { hardDay, lowRecovery, strained, shortSleep } = readinessFlags(day);
+  if (lowRecovery) return t("fitnessCard.verdict.lowRecovery");
+  if (strained) return t("fitnessCard.verdict.strained");
+  if (shortSleep) return t("fitnessCard.verdict.shortSleep");
+  if (hardDay) return t("fitnessCard.verdict.hardDay");
+  return null;
 }
 
 /** Locked teaser the free tier sees under the hints; the action opens the Founder paywall. Each field follows the active language. */

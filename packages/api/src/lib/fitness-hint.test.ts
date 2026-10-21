@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { fitnessHints, hasFitnessData } from "./fitness-hint";
+import { fitnessFigures, fitnessHints, fitnessVerdict, hasFitnessData } from "./fitness-hint";
 import type { FitnessDay } from "./fitness-hint";
 
 const day = (patch: Partial<FitnessDay>): FitnessDay => ({
@@ -44,5 +44,35 @@ describe("fitnessHints", () => {
   test("nothing stands out on an ordinary day", () => {
     expect(fitnessHints(day({ strain: 9, recoveryPct: 55, sleepPct: 92, readiness: "Balanced" }))).toEqual([]);
     expect(fitnessHints(day({ recoveryPct: 34, sleepPct: 75, strain: 13.9 }))).toEqual([]);
+  });
+});
+
+describe("fitnessFigures", () => {
+  test("recovery, strain and readiness, each with its unit; sleep never shows", () => {
+    const figures = fitnessFigures(day({ recoveryPct: 72, strain: 11.44, sleepPct: 90, readiness: "Balanced" }), "id");
+    expect(figures.map((f) => [f.id, f.value, f.unit])).toEqual([
+      ["recovery", "72", "%"],
+      ["strain", "11,4", "/21"],
+      ["readiness", "Seimbang", null],
+    ]);
+  });
+
+  test("a score JoyoFit did not push is skipped, and the decimal follows the language", () => {
+    const figures = fitnessFigures(day({ strain: 7, sleepPct: 80 }), "en");
+    expect(figures.map((f) => [f.id, f.value])).toEqual([["strain", "7.0"]]);
+    expect(fitnessFigures(day({ sleepPct: 80 }))).toEqual([]);
+  });
+});
+
+describe("fitnessVerdict", () => {
+  test("one line, rest before a hard day", () => {
+    expect(fitnessVerdict(day({ recoveryPct: 20, strain: 16 }), "id")).toBe("Pemulihan rendah, istirahat dulu");
+    expect(fitnessVerdict(day({ readiness: "Run down" }), "id")).toBe("Tubuh terbebani, istirahat dulu");
+    expect(fitnessVerdict(day({ sleepPct: 60 }), "en")).toBe("Short on sleep, take it easy");
+    expect(fitnessVerdict(day({ strain: 15, recoveryPct: 70 }), "id")).toBe("Hari berat, butuh energi lebih");
+  });
+
+  test("null when nothing stands out", () => {
+    expect(fitnessVerdict(day({ strain: 9, recoveryPct: 55, sleepPct: 92, readiness: "Balanced" }), "id")).toBeNull();
   });
 });
