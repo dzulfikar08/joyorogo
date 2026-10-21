@@ -42,6 +42,7 @@ import { fmtInt } from "@/utils/format";
 import { Container } from "@/components/container";
 import { Mascot, type MascotPose } from "@/components/mascot";
 import { EASE_OUT, PressableScale, useCountUp } from "@/components/motion";
+import { useTabContentInset } from "@/components/tab-bar-inset";
 
 const AnimatedCircle = Reanimated.createAnimatedComponent(Circle);
 
@@ -141,11 +142,18 @@ export function Screen({
   scrollEnabled?: boolean;
   footer?: React.ReactNode;
 }) {
+  const tabInset = useTabContentInset();
   const scroll = (
     // Keyboard-aware on both platforms: the focused input always scrolls
     // above the keyboard (Android edge-to-edge never resizes the window).
     <KeyboardAwareScrollView
-      contentContainerStyle={[styles.screenContent, footer ? styles.screenContentWithFooter : null, style]}
+      contentContainerStyle={[
+        styles.screenContent,
+        footer ? styles.screenContentWithFooter : null,
+        // In the tabs the floating bar covers the screen's bottom: end the content above it.
+        tabInset > 0 ? { paddingBottom: tabInset } : null,
+        style,
+      ]}
       style={footer ? styles.screenScroll : undefined}
       keyboardShouldPersistTaps="handled"
       bottomOffset={24}
@@ -163,7 +171,7 @@ export function Screen({
       {footer ? (
         <KeyboardAvoidingView behavior="padding" style={styles.screenScroll}>
           {scroll}
-          <View style={styles.screenFooter}>{footer}</View>
+          <View style={[styles.screenFooter, tabInset > 0 ? { paddingBottom: tabInset } : null]}>{footer}</View>
         </KeyboardAvoidingView>
       ) : (
         scroll
