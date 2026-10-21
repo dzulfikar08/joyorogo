@@ -1,6 +1,7 @@
 import { and, eq, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
+import type { Database } from "@joyorogo/db";
 import { sleepLog } from "@joyorogo/db/schema/fitness";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 
@@ -59,37 +60,62 @@ export const sleepRouter = {
    * The night keyed `date` (the WIB day it started, yesterday by default). It is the sleep_log row; when the person has
    * no manual entry and JoyoFit measured hours for the morning that night ended, those hours come back as a row with
    * source 'joyofit' (see pickNightSleep), so the Tidur screen shows what the watch recorded.
+   *
+   * `alternative` is what the night would show without the manual entry (watch, else import). It is only set on a
+   * manual night, so the screen can offer "use the watch's number" instead of silently hiding it.
    */
   getForDate: protectedProcedure
     .input(z.object({ date: dateSchema.optional() }))
     .handler(async ({ context, input }) => {
       const zone = await userZone(context);
+      const date = input.date ?? wibYesterday(undefined, zone);
+      return resolveNight(context.db, context.session.user.id, date);
+    }),
+
+  /**
+   * Removes the manual entry for the night keyed `date` (only source 'manual'; imports and the watch are untouched)
+   * and returns the night that now shows: the watch or Health reading, or null.
+   */
+  clearManual: protectedProcedure
+    .input(z.object({ date: dateSchema.optional() }))
+    .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const userId = context.session.user.id;
       const date = input.date ?? wibYesterday(undefined, zone);
-      const [logRows, scoreRows] = await context.db.batch([
-        context.db
-          .select()
-          .from(sleepLog)
-          .where(and(eq(sleepLog.userId, userId), eq(sleepLog.date, date)))
-          .limit(1),
-        context.db
-          .select({ sleepHours: fitnessScore.sleepHours, updatedAt: fitnessScore.updatedAt })
-          .from(fitnessScore)
-          .where(and(eq(fitnessScore.userId, userId), eq(fitnessScore.date, shiftDate(date, 1))))
-          .limit(1),
-      ]);
-      const row = logRows[0];
-      const score = scoreRows[0];
-      const night = pickNightSleep(row, score?.sleepHours);
-      if (!night) return null;
-      if (!score || night.source !== WATCH_SLEEP_SOURCE) return row ?? null;
-      return {
-        id: `${WATCH_SLEEP_SOURCE}:${date}`,
-        userId,
-        date,
-        hours: night.hours,
-        source: night.source,
-        createdAt: score.updatedAt,
-      };
+      await context.db
+        .delete(sleepLog)
+        .where(and(eq(sleepLog.userId, userId), eq(sleepLog.date, date), eq(sleepLog.source, "manual")));
+      return resolveNight(context.db, userId, date);
     }),
 };
+
+async function resolveNight(db: Database, userId: string, date: string) {
+  const [logRows, scoreRows] = await db.batch([
+    db
+      .select()
+      .from(sleepLog)
+      .where(and(eq(sleepLog.userId, userId), eq(sleepLog.date, date)))
+      .limit(1),
+    db
+      .select({ sleepHours: fitnessScore.sleepHours, updatedAt: fitnessScore.updatedAt })
+      .from(fitnessScore)
+      .where(and(eq(fitnessScore.userId, userId), eq(fitnessScore.date, shiftDate(date, 1))))
+      .limit(1),
+  ]);
+  const row = logRows[0];
+  const score = scoreRows[0];
+  const night = pickNightSleep(row, score?.sleepHours);
+  if (!night) return null;
+  // One sleep_log row per night, so the only other reading a manual night can hide is the watch's.
+  const alternative = row?.source === "manual" ? pickNightSleep(null, score?.sleepHours) : null;
+  if (!score || night.source !== WATCH_SLEEP_SOURCE) return row ? { ...row, alternative } : null;
+  return {
+    id: `${WATCH_SLEEP_SOURCE}:${date}`,
+    userId,
+    date,
+    hours: night.hours,
+    source: night.source,
+    createdAt: score.updatedAt,
+    alternative: null,
+  };
+}

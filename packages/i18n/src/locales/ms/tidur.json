@@ -51,5 +51,16 @@
     "home": "Jam tidur yang anda catat mengisi angka tidur di Laman Utama.",
     "wib": "Malam dikira mengikut waktu tempatan."
   },
-  "loading": "Memuatkan catatan tidur"
+  "loading": "Memuatkan catatan tidur",
+  "manualEntry": {
+    "note": "Daripada input manual · jam anda merekodkan {{hours}} jam",
+    "useWatch": "Guna data jam",
+    "title": "Padam input manual?",
+    "bodyWatch": "Nombor tidur malam ini kembali kepada data jam: {{hours}} jam.",
+    "bodyNone": "Rekod tidur manual untuk malam ini dipadam.",
+    "confirmWatch": "Guna data jam",
+    "delete": "Padam",
+    "toast": "Input manual dipadam",
+    "watchHint": "Jam anda merekodkan {{hours}} jam. Menyimpan di sini menggantikannya."
+  }
 }

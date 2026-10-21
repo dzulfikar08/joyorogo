@@ -2,10 +2,11 @@ import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -17,6 +18,7 @@ import {
 } from "@joyorogo/api/lib/engine";
 
 import { Ring } from "@/components/kit/ring";
+import { ConfirmSheet } from "@/components/profil/confirm-sheet";
 import { ScreenError } from "@/components/screen-state";
 import { Card, FieldLabel, Page, PageHeader, SectionTitle } from "@/components/kit/surface";
 import { DaySwitcher } from "@/components/day-switcher";
@@ -79,7 +81,7 @@ function TidurScreen({
   nightDate,
   onChange,
 }: {
-  row: { hours: number } | null;
+  row: { hours: number; source?: string; alternative?: { hours: number } | null } | null;
   need: number;
   viewDate: string;
   nightDate: string;
@@ -92,6 +94,23 @@ function TidurScreen({
   const [manual, setManual] = useState("");
   const [error, setError] = useState<string | null>(null);
   const hours = row?.hours ?? null;
+  const isManual = row?.source === "manual";
+  const watchHours = row?.alternative?.hours ?? null;
+  const queryClient = useQueryClient();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const clearManual = useMutation({
+    mutationFn: () => client.sleep.clearManual({ date: nightDate }),
+    onSuccess: () => {
+      setConfirmOpen(false);
+      toast.success(t("manualEntry.toast"));
+    },
+    onError: (e) => toast.error(e.message),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: orpc.sleep.key() }),
+        queryClient.invalidateQueries({ queryKey: orpc.day.key() }),
+      ]),
+  });
 
   // Previous hours for this night, for the undo re-log.
   const previousHours = useRef<number | null>(null);
@@ -186,6 +205,16 @@ function TidurScreen({
                       need,
                     })}
           </p>
+          {isManual && watchHours !== null && (
+            <div className="mt-3 flex max-w-xs flex-col items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                {t("manualEntry.note", { hours: fmtKg(watchHours) })}
+              </p>
+              <Button variant="secondary" size="sm" onClick={() => setConfirmOpen(true)}>
+                {t("manualEntry.useWatch")}
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -250,7 +279,21 @@ function TidurScreen({
             {log.isPending ? t("log.saving") : t("common:actions.save")}
           </Button>
         </form>
+        {watchHours !== null && (
+          <p className="mt-2 px-1 text-sm text-muted-foreground">
+            {t("manualEntry.watchHint", { hours: fmtKg(watchHours) })}
+          </p>
+        )}
         {error && <p className="mt-2 px-1 text-sm text-destructive">{error}</p>}
+        {isManual && watchHours === null && (
+          <Button
+            variant="ghost"
+            className="mt-2 w-full text-destructive"
+            onClick={() => setConfirmOpen(true)}
+          >
+            {t("manualEntry.delete")}
+          </Button>
+        )}
       </section>
 
       <SleepInsightsSection />
@@ -269,6 +312,19 @@ function TidurScreen({
           <p>{t("how.wib")}</p>
         </div>
       </details>
+      <ConfirmSheet
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={t("manualEntry.title")}
+        body={
+          watchHours !== null
+            ? t("manualEntry.bodyWatch", { hours: fmtKg(watchHours) })
+            : t("manualEntry.bodyNone")
+        }
+        confirmLabel={watchHours !== null ? t("manualEntry.confirmWatch") : t("manualEntry.delete")}
+        pending={clearManual.isPending}
+        onConfirm={() => clearManual.mutate()}
+      />
     </Page>
   );
 }

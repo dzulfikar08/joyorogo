@@ -32,7 +32,8 @@ await client.executeMultiple(`
     ('manual', 'manual', 'manual@test.id', 'free'),
     ('import', 'import', 'import@test.id', 'free'),
     ('pct', 'pct', 'pct@test.id', 'free'),
-    ('none', 'none', 'none@test.id', 'free');
+    ('none', 'none', 'none@test.id', 'free'),
+    ('solo', 'solo', 'solo@test.id', 'free');
   INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level)
     SELECT id, 1990, 'male', 170, 80, 70, '2031-01-01', 'mid' FROM "user";
 `);
@@ -130,5 +131,39 @@ describe("sleep hours measured by the JoyoFit watch", () => {
     expect(manual).toMatchObject({ sleepHours: 7.5, sleepSource: "manual" });
     const [imported] = await getRecoveryDays(db, "import", today, today);
     expect(imported).toMatchObject({ sleepHours: 6.4, sleepSource: "joyofit" });
+  });
+});
+
+describe("sleep.clearManual", () => {
+  test("a manual night hides the watch's number but reports it as the alternative", async () => {
+    expect(await call(sleepRouter.getForDate, { date: nightKey }, as("manual"))).toMatchObject({
+      hours: 7.5,
+      source: "manual",
+      alternative: { hours: 6.4, source: "joyofit" },
+    });
+  });
+
+  test("clearing the manual entry shows the watch hours again; other users and sources are untouched", async () => {
+    await logNight("solo", 8, "manual");
+    const importedBefore = await call(sleepRouter.getForDate, { date: nightKey }, as("import"));
+
+    const night = await call(sleepRouter.clearManual, { date: nightKey }, as("manual"));
+    expect(night).toMatchObject({ hours: 6.4, source: "joyofit", alternative: null });
+    expect(await summaryHours("manual")).toBe(6.4);
+
+    // Another user's manual row survives.
+    expect(await call(sleepRouter.getForDate, { date: nightKey }, as("solo"))).toMatchObject({ hours: 8, source: "manual" });
+    expect(await call(sleepRouter.getForDate, { date: nightKey }, as("import"))).toEqual(importedBefore);
+  });
+
+  test("an import row is not a manual entry and is never deleted", async () => {
+    await logNight("pct", 9, "health_connect");
+    await call(sleepRouter.clearManual, { date: nightKey }, as("pct"));
+    expect(await call(sleepRouter.getForDate, { date: nightKey }, as("pct"))).toMatchObject({ hours: 9, source: "health_connect" });
+  });
+
+  test("with no watch reading the night is empty afterwards", async () => {
+    expect(await call(sleepRouter.clearManual, { date: nightKey }, as("solo"))).toBeNull();
+    expect(await summaryHours("solo")).toBeNull();
   });
 });

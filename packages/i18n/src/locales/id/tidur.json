@@ -51,5 +51,16 @@
     "home": "Jam tidur yang kamu catat mengisi angka tidur di Beranda.",
     "wib": "Malam dihitung menurut WIB."
   },
-  "loading": "Memuat catatan tidur"
+  "loading": "Memuat catatan tidur",
+  "manualEntry": {
+    "note": "Dari input manual · jam kamu mencatat {{hours}} jam",
+    "useWatch": "Pakai data jam",
+    "title": "Hapus input manual?",
+    "bodyWatch": "Angka tidur malam ini kembali ke data jam: {{hours}} jam.",
+    "bodyNone": "Catatan tidur manual untuk malam ini dihapus.",
+    "confirmWatch": "Pakai data jam",
+    "delete": "Hapus",
+    "toast": "Input manual dihapus",
+    "watchHint": "Jam kamu mencatat {{hours}} jam. Menyimpan di sini menggantikannya."
+  }
 }

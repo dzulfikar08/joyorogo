@@ -54,5 +54,16 @@
     "home": "The hours you log fill in the sleep number on Home.",
     "wib": "Nights follow Jakarta time (WIB)."
   },
-  "loading": "Loading sleep log"
+  "loading": "Loading sleep log",
+  "manualEntry": {
+    "note": "From manual entry · your watch recorded {{hours}} h",
+    "useWatch": "Use watch data",
+    "title": "Remove manual entry?",
+    "bodyWatch": "Tonight's number goes back to your watch data: {{hours}} h.",
+    "bodyNone": "The manual sleep entry for this night is removed.",
+    "confirmWatch": "Use watch data",
+    "delete": "Delete",
+    "toast": "Manual entry removed",
+    "watchHint": "Your watch recorded {{hours}} h. Saving here replaces it."
+  }
 }

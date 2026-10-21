@@ -1,5 +1,5 @@
 import "@/unistyles";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dimensions, Platform, Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import { DEFAULT_SLEEP_TARGET_HOURS, MIN_RECOMMENDED_SLEEP_HOURS, jakartaToday }
 import { getActiveLocale } from "@joyorogo/i18n";
 
 import { DaySwitcher } from "@/components/day-switcher";
+import { ConfirmSheet } from "@/components/confirm-sheet";
 import { Disclosure } from "@/components/disclosure";
 import { SleepInsightsSection } from "@/components/sleep-insights/section";
 import {
@@ -155,6 +156,23 @@ export default function Tidur() {
     invalidate: () => [orpc.sleep.key(), orpc.day.key()],
   });
 
+  const queryClient = useQueryClient();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const clearManual = useMutation({
+    mutationFn: () => client.sleep.clearManual({ date: sleepDate }),
+    onSuccess: () => {
+      setConfirmOpen(false);
+      setSheetOpen(false);
+      setHours("");
+    },
+    onError: (e) => setFormError(errorMessage(e)),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: orpc.sleep.key() }),
+        queryClient.invalidateQueries({ queryKey: orpc.day.key() }),
+      ]),
+  });
+
   // Prefill the manual field with the existing record when the sheet opens.
   useEffect(() => {
     // Skip while a day-switch fetch is in flight so the field never prefills
@@ -190,6 +208,8 @@ export default function Tidur() {
   }
 
   const logged = sleepQuery.data?.hours ?? null;
+  const isManual = sleepQuery.data?.source === "manual";
+  const watchHours = sleepQuery.data?.alternative?.hours ?? null;
   const nightLabel = isToday ? t("ring.lastNight") : fmtDateShort(sleepDate);
 
   const logPreset = (value: number) => {
@@ -246,6 +266,18 @@ export default function Tidur() {
                         need,
                       })}
             </Text>
+            {isManual && watchHours !== null ? (
+              <>
+                <Text style={styles.ringNote}>
+                  {t("manualEntry.note", { hours: fmtKg(watchHours) })}
+                </Text>
+                <Button
+                  variant="secondary"
+                  label={t("manualEntry.useWatch")}
+                  onPress={() => setConfirmOpen(true)}
+                />
+              </>
+            ) : null}
           </View>
         </Card>
 
@@ -324,8 +356,35 @@ export default function Tidur() {
               autoFocus
             />
           </Field>
+          {watchHours !== null ? (
+            <Text style={styles.note}>{t("manualEntry.watchHint", { hours: fmtKg(watchHours) })}</Text>
+          ) : null}
           {formError ? <Text style={styles.error}>{formError}</Text> : null}
+          {isManual && watchHours === null ? (
+            <Button
+              variant="secondary"
+              label={t("manualEntry.delete")}
+              onPress={() => setConfirmOpen(true)}
+            />
+          ) : null}
         </Sheet>
+
+        <ConfirmSheet
+          visible={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          title={t("manualEntry.title")}
+          message={
+            watchHours !== null
+              ? t("manualEntry.bodyWatch", { hours: fmtKg(watchHours) })
+              : t("manualEntry.bodyNone")
+          }
+          confirmLabel={
+            watchHours !== null ? t("manualEntry.confirmWatch") : t("manualEntry.delete")
+          }
+          cancelLabel={t("common:actions.cancel")}
+          loading={clearManual.isPending}
+          onConfirm={() => clearManual.mutate()}
+        />
       </Screen>
     </>
   );

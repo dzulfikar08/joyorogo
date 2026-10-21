@@ -60,6 +60,7 @@ JoyoFit sends them for today and, since the week-window push, for each of the si
 `pickNightSleep`: a manual `sleep_log` entry wins, else the watch's hours (source `joyofit`), else the Health Connect / Apple Health import. The
 Beranda "Tidur" tile (`day.summary.sleepHoursLastNight`), the Tidur screen (`sleep.getForDate`, which answers a row with source `joyofit` for a
 watch night) and `get_recovery_metrics` all show the same hours.
+`sleep.clearManual` (Tidur screen: "Pakai data jam" / "Hapus") deletes only the user's `manual` row for that night, so the watch's hours (or an import) show again here and in `get_recovery_metrics`; imports and other users' rows are never touched.
 
 ### Pro gate
 
