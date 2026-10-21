@@ -13,8 +13,9 @@ const ICON_COLOR = { makan: "makan", bakar: "bakar", tidur: "tidur" } as const;
 
 /**
  * One line of the daily numbers: icon, label, a single-line secondary text, and the value with its unit inline. The surface
- * is neutral; the accent lives only on the icon and the optional progress bar. Tap goes to the detail screen (chevron), or
- * `right` replaces the chevron with a direct action (the water +1).
+ * is neutral; the accent lives only on the icon and the optional progress bar. Tap goes to the detail screen (chevron);
+ * `right` takes the chevron's place with a quiet direct action of the same size and colour (the water +1), and the row
+ * itself still opens the detail.
  */
 export function StatRow({
   icon,

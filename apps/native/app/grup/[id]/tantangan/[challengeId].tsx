@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
@@ -109,8 +109,6 @@ export default function ChallengeDetailScreen() {
   const foodGoal = c.goal === "protein" || c.goal === "calories";
 
   return (
-    <>
-      <Stack.Screen options={{ title: c.title }} />
       <Screen refreshing={detail.isRefetching} onRefresh={() => void detail.refetch()}>
         <PageHeader
           title={c.title}
@@ -250,7 +248,6 @@ export default function ChallengeDetailScreen() {
           }}
         />
       </Screen>
-    </>
   );
 }
 

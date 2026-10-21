@@ -60,7 +60,7 @@
     "proteinOf": "daripada {{g}} g",
     "proteinNone": "catat makanan dahulu",
     "water": "Air",
-    "weight": "Timbangan",
+    "weight": "Berat",
     "weightNone": "belum ditimbang",
     "waterValue": "{{count}}/{{goal}} gelas",
     "weightToday": "ditimbang hari ini",
@@ -180,7 +180,18 @@
     "removed": "1 gelas dipadam",
     "less": "Kurangkan gelas air",
     "more": "Tambah gelas air",
-    "loadError": "Gagal memuatkan data air. Cuba lagi sebentar nanti."
+    "loadError": "Gagal memuatkan data air. Cuba lagi sebentar nanti.",
+    "trend": {
+      "title": "Gelas sehari",
+      "range7": "7 hari",
+      "range30": "30 hari",
+      "hint": "Ketik bar untuk lihat harinya",
+      "readout_other": "{{date}}: {{count}} daripada {{goal}} gelas",
+      "summary": "Purata {{avg}} gelas pada hari yang dicatat. {{hit}} daripada {{total}} hari capai sasaran.",
+      "a11y": "Gelas air sehari, sasaran {{goal}}. {{days}}",
+      "a11yDay_other": "{{date}} {{count}} gelas",
+      "empty": "Belum ada catatan air dalam julat ini. Ketik + untuk mula."
+    }
   },
   "movement": {
     "label": "Pergerakan hari ini",

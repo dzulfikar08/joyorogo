@@ -423,10 +423,11 @@ function MakanPage() {
                         <PlateDiary
                           items={sectionItems}
                           date={date}
-                          renderRow={(item) => (
+                          renderRow={(item, { nested }) => (
                             <FoodRow
                               key={item.id}
                               item={item}
+                              nested={nested}
                               presence={presence.presenceOf(item.id)}
                               onEdit={() => setEditItem(item)}
                               onDelete={() => removeFood(item)}

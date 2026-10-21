@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Platform, Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
-import { Redirect, Stack } from "expo-router";
+import { Redirect } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
 
@@ -282,9 +282,7 @@ export default function Olahraga() {
   };
 
   return (
-    <>
-      <Stack.Screen options={{ title: t("screen.title") }} />
-      <Screen>
+    <Screen>
       <PageHeader
         title={t("screen.title")}
         right={
@@ -587,7 +585,6 @@ export default function Olahraga() {
         refId={shareTarget?.refId ?? ""}
       />
     </Screen>
-    </>
   );
 }
 

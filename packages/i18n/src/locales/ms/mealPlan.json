@@ -17,6 +17,7 @@
   "loading": "Memuatkan rancangan...",
   "loadError": "Rancangan belum dapat dimuatkan. Cuba lagi sebentar lagi.",
   "retry": "Cuba lagi",
+  "noProfileTitle": "Profil belum lengkap",
   "noProfile": "Lengkapkan profil anda dahulu supaya sasaran kalori dan proteinnya dapat dikira.",
   "empty": {
     "title": "Belum ada rancangan",

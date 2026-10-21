@@ -19,7 +19,11 @@ import { client, orpc, queryClient } from "@/utils/orpc";
 // exchanged server-side; app/+native-intent.tsx keeps the router off this URL.
 export const STRAVA_REDIRECT_URI = "joyorogo://joyorogo.com/strava";
 
-export function StravaCard({ compact = false }: { compact?: boolean }) {
+/**
+ * `headless` drops the mark and name from the card when the screen already shows them in its title row
+ * (the Strava page), leaving the status line.
+ */
+export function StravaCard({ compact = false, headless = false }: { compact?: boolean; headless?: boolean }) {
   const { t } = useTranslation(["settings", "common", "olahraga"]);
   const statusQuery = useQuery(orpc.strava.status.queryOptions());
   const sync = useMutation(
@@ -132,13 +136,17 @@ export function StravaCard({ compact = false }: { compact?: boolean }) {
 
   return (
     <Card>
-      <View style={styles.headRow}>
-        <BrandMark brand="strava" />
-        <View style={styles.headText}>
-          <Text style={styles.title}>Strava</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
+      {headless ? (
+        <Text style={styles.subtitle}>{subtitle}</Text>
+      ) : (
+        <View style={styles.headRow}>
+          <BrandMark brand="strava" />
+          <View style={styles.headText}>
+            <Text style={styles.title}>Strava</Text>
+            <Text style={styles.subtitle}>{subtitle}</Text>
+          </View>
         </View>
-      </View>
+      )}
       {action}
       {statusQuery.data?.configured ? (
         compact ? (

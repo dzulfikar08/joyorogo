@@ -22,7 +22,7 @@
     "trendLabel": "Berat tren",
     "scale": "Timbangan terakhir {{kg}} kg · {{date}}",
     "goalReached": "Target berat sudah tercapai. Jaga ritmenya.",
-    "weighToday": "Timbang hari ini",
+    "weighShort": "Timbang",
     "trendExplain": "Tren = rata-rata bergerak 7 hari. Lebih stabil daripada timbangan harian.",
     "goalLabel": "Target",
     "goalValue": "{{kg}} kg · sisa {{left}} kg",

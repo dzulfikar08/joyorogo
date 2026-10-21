@@ -1,3 +1,4 @@
+import { fmtClock, getActiveDayZone } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Calendar } from "@joyorogo/ui/components/calendar";
 import { Input } from "@joyorogo/ui/components/input";
@@ -20,9 +21,9 @@ import { MacroLine } from "@/components/macro-line";
 import { IdrInput } from "@/components/plate/idr-input";
 import { MealSlotField } from "@/components/plate/meal-slot-field";
 import { RecalcPlateAction } from "@/components/plate/recalc-plate";
-import { StickerHero } from "@/components/sticker";
+import { FoodThumb, StickerHero } from "@/components/sticker";
 import { fmtRupiah } from "@/lib/app-config";
-import { fmtDateLong, fmtInt, fmtKcalLabel } from "@/lib/format";
+import { fmtDateLong, fmtInt } from "@/lib/format";
 import { insertFoodRow, stripFoodRow, useOptimisticMutation } from "@/lib/optimistic";
 import type { FoodListData } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
@@ -39,6 +40,7 @@ type FoodRowFields = {
   fiber: number | null;
   scanId?: string | null;
   photoId?: string | null;
+  createdAt?: Date | string;
 };
 type PlateRow = {
   id: string;
@@ -107,10 +109,11 @@ export function CalendarSheet({
 }
 
 /**
- * Diary plate grouping: rows sharing a plate render under one "Piring" header
- * that shows the plate's price, with an inline edit for name/place/price.
- * Rows without a plate (old data) render exactly as before, ungrouped. Groups sit
- * flush inside the meal slot card. `renderRow` keeps this file free of diary-specific row markup.
+ * Diary plate grouping: rows sharing a plate render as one group. The plate header is a row of its own
+ * (thumbnail, name, time, place and price, total kcal, edit) and its components sit inset beneath it,
+ * quieter, behind a left rule. Rows without a plate (old data, single items) render as ordinary rows.
+ * Groups sit flush inside the meal slot card. `renderRow` keeps this file free of diary-specific row markup;
+ * it learns whether the row is a plate component (`nested`) so it can draw the compact variant.
  */
 export function PlateDiary<T extends Item & FoodRowFields>({
   items,
@@ -120,7 +123,7 @@ export function PlateDiary<T extends Item & FoodRowFields>({
 }: {
   items: T[];
   date: string;
-  renderRow: (item: T) => ReactNode;
+  renderRow: (item: T, context: { nested: boolean }) => ReactNode;
   /** Secondary actions (Favorit) shown inside the plate edit sheet. */
   plateAction?: (plate: PlateRow, rows: T[]) => ReactNode;
 }) {
@@ -143,49 +146,80 @@ export function PlateDiary<T extends Item & FoodRowFields>({
     <div className="divide-y divide-border">
       {groups.map((group, index) => {
         const plate = group.plateId ? byId.get(group.plateId) : undefined;
+        const key = group.plateId ?? `solo-${group.items[0]?.id ?? index}`;
+        if (!plate) {
+          return (
+            <ListGroup key={key} className="rounded-none bg-transparent">
+              {group.items.map((item) => renderRow(item, { nested: false }))}
+            </ListGroup>
+          );
+        }
         const totalKcal = group.items.reduce((sum, row) => sum + row.kcal, 0);
         const totalProtein = group.items.reduce((sum, row) => sum + (row.protein ?? 0), 0);
         const totalCarbs = group.items.reduce((sum, row) => sum + (row.carbs ?? 0), 0);
         const totalFat = group.items.reduce((sum, row) => sum + (row.fat ?? 0), 0);
         const totalFiber = group.items.reduce((sum, row) => sum + (row.fiber ?? 0), 0);
+        const photo = group.items.find((row) => row.scanId || row.photoId);
+        const firstAt = group.items
+          .map((row) => (row.createdAt ? new Date(row.createdAt) : null))
+          .filter((at): at is Date => at !== null && !Number.isNaN(at.getTime()))
+          .sort((a, b) => a.getTime() - b.getTime())[0];
+        const meta = [
+          firstAt ? fmtClock(firstAt, undefined, getActiveDayZone()) : null,
+          plate.place,
+          plate.priceIdr != null ? fmtRupiah(plate.priceIdr) : t("plate.header.noPrice"),
+        ].filter(Boolean);
         return (
-          <div key={group.plateId ?? `solo-${group.items[0]?.id ?? index}`}>
-            {plate && (
-              <div className="px-5 pt-3 pb-1 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="min-w-0 flex-1 truncate font-semibold">
-                    {t("plate.header.title", { name: plate.name })}
-                    {plate.place && (
-                      <span className="font-normal text-muted-foreground"> · {plate.place}</span>
-                    )}
-                  </span>
-                  <span className="shrink-0 font-bold tabular-nums">
-                    {plate.priceIdr != null ? fmtRupiah(plate.priceIdr) : t("plate.header.noPrice")}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={t("plate.header.editPrice", { name: plate.name })}
-                    onClick={() => setEditing(plate.id)}
-                    className="text-muted-foreground"
-                  >
-                    <Pencil />
-                  </Button>
-                </div>
-                <p className="flex flex-wrap items-center gap-x-3 text-xs font-semibold text-muted-foreground">
-                  <span className="tabular-nums">{fmtKcalLabel(totalKcal)}</span>
-                  <MacroLine
-                    protein={totalProtein}
-                    carbs={totalCarbs}
-                    fat={totalFat}
-                    fiber={totalFiber}
-                  />
+          <div key={key} className="pb-3">
+            <div className="flex items-center gap-3 px-4 pt-3 pb-2">
+              <FoodThumb
+                scanId={photo?.scanId}
+                photoId={photo?.photoId}
+                name={plate.name}
+                kcal={totalKcal}
+                protein={totalProtein}
+                carbs={totalCarbs}
+                fat={totalFat}
+                className="size-12"
+                iconClassName="size-5"
+              />
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <p className="line-clamp-2 text-[0.9375rem] leading-snug font-bold break-words">
+                  {t("plate.header.title", { name: plate.name })}
                 </p>
+                <p className="truncate text-xs text-muted-foreground tabular-nums">
+                  {meta.join(" · ")}
+                </p>
+                <MacroLine
+                  compact
+                  className="text-[0.8125rem] text-muted-foreground"
+                  protein={totalProtein}
+                  carbs={totalCarbs}
+                  fat={totalFat}
+                  fiber={totalFiber}
+                />
               </div>
-            )}
-            <ListGroup className="rounded-none bg-transparent">
-              {group.items.map(renderRow)}
-            </ListGroup>
+              <span className="shrink-0 text-right">
+                <span className="block text-lg leading-none font-extrabold text-kcal tabular-nums">
+                  {fmtInt(totalKcal)}
+                </span>
+                <span className="mt-0.5 block text-[0.6875rem] font-semibold text-muted-foreground">
+                  {t("diary.summary.unit")}
+                </span>
+              </span>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("plate.header.editPrice", { name: plate.name })}
+                onClick={() => setEditing(plate.id)}
+                className="shrink-0 text-muted-foreground"
+              >
+                <Pencil />
+              </Button>
+            </div>
+            <ul className="mr-4 ml-10 divide-y divide-border/60 border-l-2 border-border bg-muted/40">
+              {group.items.map((item) => renderRow(item, { nested: true }))}
+            </ul>
           </div>
         );
       })}

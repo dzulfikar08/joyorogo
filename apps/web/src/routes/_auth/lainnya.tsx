@@ -117,7 +117,7 @@ function LainnyaPage() {
               <Bell className="size-5 text-makan-ink" aria-hidden />
             </span>
           }
-          title={t("more.inbox.title")}
+          title={t("nav.title.inbox")}
           subtitle={t("more.inbox.subtitle")}
           value={count > 0 ? <UnreadValue count={count} /> : undefined}
         />

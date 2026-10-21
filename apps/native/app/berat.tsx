@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { useQuery } from "@tanstack/react-query";
 import { Animated, PanResponder, useWindowDimensions, View } from "react-native";
-import { Redirect, Stack } from "expo-router";
+import { Redirect } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
 import {
@@ -31,6 +31,7 @@ import {
   ListGroup,
   ListRow,
   Num,
+  PageHeader,
   Screen,
   Segmented,
   Skeleton,
@@ -770,7 +771,7 @@ export default function Berat() {
   if (historyQuery.isPending) {
     return (
       <Screen>
-        <Stack.Screen options={{ title: t("page.titleShort") }} />
+        <PageHeader title={t("page.titleShort")} />
         <Skeleton width="100%" height={140} radius={24} />
         <Skeleton width="100%" height={220} radius={24} />
         <Skeleton width="100%" height={180} radius={24} />
@@ -780,7 +781,7 @@ export default function Berat() {
   if (historyQuery.isError) {
     return (
       <Screen>
-        <Stack.Screen options={{ title: t("page.titleShort") }} />
+        <PageHeader title={t("page.titleShort")} />
         <ErrorState
           message={errorMessage(historyQuery.error)}
           onRetry={() => historyQuery.refetch()}
@@ -890,27 +891,25 @@ export default function Berat() {
   };
 
   return (
-    <>
-      <Stack.Screen options={{ title: t("page.titleShort") }} />
-      <Screen>
-        {hasData ? (
-          <View style={styles.topBar}>
-            {maternal || summary.latestKg === null ? null : (
-              <ShareStoryButton
-                iconOnly
-                label={t("page.shareSticker")}
-                story={weightStory(summary, entries, dayQuery.data)}
-                kinds={["weight"]}
-              />
-            )}
-            <Button
-              size="sm"
-              icon="scale-outline"
-              label={t("hero.weighToday")}
-              onPress={() => setSheetOpen(true)}
-            />
-          </View>
-        ) : null}
+    <Screen>
+      <PageHeader
+        title={t("page.titleShort")}
+        right={
+          hasData ? (
+            <View style={styles.headerActions}>
+              {maternal || summary.latestKg === null ? null : (
+                <ShareStoryButton
+                  iconOnly
+                  label={t("page.shareSticker")}
+                  story={weightStory(summary, entries, dayQuery.data)}
+                  kinds={["weight"]}
+                />
+              )}
+              <Button size="sm" label={t("hero.weighShort")} onPress={() => setSheetOpen(true)} />
+            </View>
+          ) : undefined
+        }
+      />
 
         {/* Hamil: kenaikan berat per minggu dibanding rentang IOM */}
         {maternal ? <WeightGainCard onWeighIn={() => setSheetOpen(true)} /> : null}
@@ -1311,16 +1310,14 @@ export default function Berat() {
             refId={newestEntries[0].id}
           />
         ) : null}
-      </Screen>
-    </>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
-  topBar: {
+  headerActions: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
     gap: theme.spacing.sm,
   },
   sectionLabel: {

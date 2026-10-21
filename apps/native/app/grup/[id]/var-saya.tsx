@@ -5,7 +5,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { File, Paths } from "expo-file-system";
-import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,7 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Circle, Ellipse, Line, Svg } from "react-native-svg";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { BootLoader, Button, Card, Input, Text } from "@/components/ui";
+import { BootLoader, Button, Card, Input, PageHeader, Text } from "@/components/ui";
 import { Disclosure } from "@/components/disclosure";
 import { fmtNumber, i18n } from "@joyorogo/i18n";
 import { useToast } from "@/components/toast";
@@ -348,9 +348,9 @@ export default function VarSaya() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: t("title") }} />
       <StatusBar style="dark" />
-      <SafeAreaView style={styles.safe} edges={["bottom"]}>
+      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <PageHeader title={t("title")} />
         {view === "capture" ? (
           <>
             {/* --- Viewfinder terpandu --- */}

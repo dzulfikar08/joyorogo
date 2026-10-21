@@ -28,7 +28,7 @@
     "appleHealthUnavailable": "Apple Health isn't available on this device. Importing needs an iPhone with the Health app."
   },
   "screen": {
-    "title": "Exercise",
+    "title": "Activity",
     "manual": "Log manually",
     "loading": "Loading today's activity"
   },

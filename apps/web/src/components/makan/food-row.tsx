@@ -1,5 +1,6 @@
 import { fmtClock, getActiveDayZone } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
+import { cn } from "@joyorogo/ui/lib/utils";
 import { Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -13,16 +14,21 @@ import { fmtInt } from "@/lib/format";
  * Nutrition-first diary row: small thumbnail, name (2 lines max), time and
  * weight, the P/K/L macro line, and the kcal as the bold number on the right.
  * The trash button is the only inline control; the rest of the row opens the editor.
+ *
+ * `nested` is a component of a plate: it sits under the plate header, so it drops the thumbnail and the
+ * macro line (the header carries the plate's) and shrinks to a single quiet line with a small kcal.
  */
 export function FoodRow({
   item,
   presence,
+  nested = false,
   onEdit,
   onDelete,
 }: {
   item: FoodItem;
   /** "enter" / "leave" while the row animates in or out of the list. */
   presence?: Presence;
+  nested?: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -50,23 +56,35 @@ export function FoodRow({
               onEdit();
             }
           }}
-          className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 active:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+          className={cn(
+            "flex w-full cursor-pointer items-center text-left transition-colors hover:bg-muted/60 active:bg-muted focus-visible:bg-muted focus-visible:outline-none",
+            nested ? "gap-2 py-0.5 pr-1 pl-3" : "gap-3 px-4 py-3",
+          )}
         >
-          <span className="shrink-0" onClick={(event) => event.stopPropagation()}>
-            <FoodThumb
-              scanId={item.scanId}
-              photoId={item.photoId}
-              name={item.name}
-              kcal={item.kcal}
-              protein={item.protein}
-              carbs={item.carbs}
-              fat={item.fat}
-              className="size-12"
-              iconClassName="size-5"
-            />
-          </span>
+          {!nested && (
+            <span className="shrink-0" onClick={(event) => event.stopPropagation()}>
+              <FoodThumb
+                scanId={item.scanId}
+                photoId={item.photoId}
+                name={item.name}
+                kcal={item.kcal}
+                protein={item.protein}
+                carbs={item.carbs}
+                fat={item.fat}
+                className="size-12"
+                iconClassName="size-5"
+              />
+            </span>
+          )}
           <span className="min-w-0 flex-1 space-y-0.5">
-            <span className="line-clamp-2 break-words text-[0.9375rem] leading-snug font-semibold">
+            <span
+              className={cn(
+                "break-words",
+                nested
+                  ? "line-clamp-2 text-sm leading-snug font-medium"
+                  : "line-clamp-2 text-[0.9375rem] leading-snug font-semibold",
+              )}
+            >
               {item.name}
             </span>
             {meta.length > 0 && (
@@ -74,7 +92,7 @@ export function FoodRow({
                 {meta.join(" · ")}
               </span>
             )}
-            {hasMacros ? (
+            {nested ? null : hasMacros ? (
               <MacroLine
                 compact
                 className="text-[0.8125rem] text-muted-foreground"
@@ -87,14 +105,21 @@ export function FoodRow({
               <span className="block text-xs text-muted-foreground">{t("foodRow.fromAi")}</span>
             ) : null}
           </span>
-          <span className="shrink-0 text-right">
-            <span className="block text-lg leading-none font-extrabold text-kcal tabular-nums">
+          {nested ? (
+            <span className="shrink-0 text-sm font-semibold text-muted-foreground tabular-nums">
               {fmtInt(item.kcal)}
+              <span className="ml-1 text-xs">{t("diary.summary.unit")}</span>
             </span>
-            <span className="mt-0.5 block text-[0.6875rem] font-semibold text-muted-foreground">
-              {t("diary.summary.unit")}
+          ) : (
+            <span className="shrink-0 text-right">
+              <span className="block text-lg leading-none font-extrabold text-kcal tabular-nums">
+                {fmtInt(item.kcal)}
+              </span>
+              <span className="mt-0.5 block text-[0.6875rem] font-semibold text-muted-foreground">
+                {t("diary.summary.unit")}
+              </span>
             </span>
-          </span>
+          )}
           <Button
             variant="ghost"
             size="icon-sm"

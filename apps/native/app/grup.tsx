@@ -1,6 +1,6 @@
 import "@/unistyles";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Redirect, Stack, router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
@@ -88,8 +88,6 @@ export default function GrupList() {
   const groups = listQuery.data ?? [];
 
   return (
-    <>
-      <Stack.Screen options={{ title: t("list.title") }} />
       <Screen>
       <PageHeader
         title={t("list.title")}
@@ -197,7 +195,6 @@ export default function GrupList() {
         {formError ? <Text style={styles.formError}>{formError}</Text> : null}
       </Sheet>
       </Screen>
-    </>
   );
 }
 

@@ -65,15 +65,12 @@
     "camera": "Scan a meal with AI",
     "photo": "Scan a meal",
     "exercise": "Exercise",
+    "activity": "Activity",
     "weight": "Weight",
     "sleep": "Sleep",
     "primary": "Main navigation",
     "title": {
-      "scan": "Scan a Meal",
-      "barcode": "Scan Barcode",
-      "pro": "Pro",
       "inbox": "Inbox",
-      "tips": "Tips",
       "post": "Post",
       "notifications": "Notifications",
       "profile": "Profile"

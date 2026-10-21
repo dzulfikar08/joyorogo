@@ -7,7 +7,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { Stack } from "expo-router";
-import { Platform, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native-unistyles";
 
@@ -69,7 +69,6 @@ export default function RootLayout() {
     PlusJakartaSans_800ExtraBold,
   });
   const { data: session } = authClient.useSession();
-  const { t } = useTranslation();
 
   // The device's stored language choice replaces the device-language default
   // before the first screen renders, so nothing flashes in the wrong language.
@@ -147,68 +146,14 @@ export default function RootLayout() {
             screenLayout={({ route, children }) =>
               route.name === "(tabs)" ? children : <LocaleKeyed>{children}</LocaleKeyed>
             }
-            screenOptions={{
-              headerStyle: {
-                backgroundColor: theme.colors.background,
-              },
-              headerTitleStyle: {
-                color: theme.colors.foreground,
-                fontFamily: theme.fonts.bold,
-              },
-              headerTintColor: theme.colors.foreground,
-              // iOS otherwise labels the back button with the previous route's
-              // name, which for tab screens is the "(tabs)" group.
-              headerBackButtonDisplayMode: "minimal",
-            }}
+            // No native header anywhere: the tab roots and every pushed screen carry their
+            // own large title (PageHeader), pushed ones with a back chevron in front of it.
+            screenOptions={{ headerShown: false }}
           >
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="onboarding"
-              options={{ headerShown: false, gestureEnabled: false }}
-            />
-            <Stack.Screen
-              name="makan-ai"
-              options={{ title: t("nav.title.scan"), presentation: "modal", headerShown: false }}
-            />
-            <Stack.Screen
-              name="makan-barcode"
-              options={{ title: t("nav.title.barcode"), presentation: "modal", headerShown: false }}
-            />
-            <Stack.Screen
-              name="founder"
-              options={{ title: t("nav.title.pro"), presentation: "modal", headerShown: false }}
-            />
-            <Stack.Screen name="inbox" options={{ title: t("nav.title.inbox") }} />
-            <Stack.Screen name="koneksi" options={{ title: t("title", { ns: "koneksi" }) }} />
-            <Stack.Screen name="profil/index" options={{ title: t("nav.title.profile") }} />
-            <Stack.Screen name="profil/akun" options={{ title: t("hub.rows.account.title", { ns: "settings" }) }} />
-            <Stack.Screen name="profil/langganan" options={{ title: t("hub.rows.subscription.title", { ns: "settings" }) }} />
-            <Stack.Screen name="profil/target" options={{ title: t("hub.rows.body.title", { ns: "settings" }) }} />
-            <Stack.Screen name="profil/makan" options={{ title: t("hub.rows.meals.title", { ns: "settings" }) }} />
-            <Stack.Screen name="profil/strava" options={{ title: t("hub.rows.strava.title", { ns: "settings" }) }} />
-            <Stack.Screen
-              name="profil/kesehatan"
-              options={{
-                title: t(
-                  Platform.OS === "ios"
-                    ? "hub.rows.healthIos.title"
-                    : "hub.rows.healthAndroid.title",
-                  { ns: "settings" },
-                ),
-              }}
-            />
-            <Stack.Screen name="profil/pengingat" options={{ title: t("hub.rows.reminders.title", { ns: "settings" }) }} />
-            <Stack.Screen name="profil/feed" options={{ title: t("hub.rows.feed.title", { ns: "settings" }) }} />
-            <Stack.Screen name="profil/tampilan" options={{ title: t("hub.rows.display.title", { ns: "settings" }) }} />
-            <Stack.Screen name="profil/kartu-beranda" options={{ title: t("cards.title", { ns: "home" }) }} />
-            <Stack.Screen name="profil/privasi" options={{ title: t("hub.rows.privacy.title", { ns: "settings" }) }} />
-            <Stack.Screen name="profil/tentang" options={{ title: t("hub.rows.about.title", { ns: "settings" }) }} />
-            <Stack.Screen name="tips/[slug]" options={{ title: t("nav.title.tips") }} />
-            <Stack.Screen name="feed/[postId]" options={{ title: t("nav.title.post") }} />
-            <Stack.Screen name="feed/notifikasi" options={{ title: t("nav.title.notifications") }} />
-            <Stack.Screen name="u/[handle]" options={{ title: t("nav.title.profile") }} />
-            <Stack.Screen name="gabung/[code]" options={{ headerShown: false }} />
+            <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+            <Stack.Screen name="makan-ai" options={{ presentation: "modal" }} />
+            <Stack.Screen name="makan-barcode" options={{ presentation: "modal" }} />
+            <Stack.Screen name="founder" options={{ presentation: "modal" }} />
           </Stack>
           </ToastProvider>
           </KeyboardProvider>

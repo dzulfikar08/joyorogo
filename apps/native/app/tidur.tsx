@@ -3,7 +3,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/rea
 import { Dimensions, Platform, Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Redirect, Stack } from "expo-router";
+import { Redirect } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { DEFAULT_SLEEP_TARGET_HOURS, MIN_RECOMMENDED_SLEEP_HOURS, jakartaToday } from "@joyorogo/api/lib/engine";
@@ -228,9 +228,7 @@ export default function Tidur() {
   };
 
   return (
-    <>
-      <Stack.Screen options={{ title: t("title") }} />
-      <Screen>
+    <Screen>
         <PageHeader title={t("title")} />
 
         {/* Day switcher */}
@@ -385,8 +383,7 @@ export default function Tidur() {
           loading={clearManual.isPending}
           onConfirm={() => clearManual.mutate()}
         />
-      </Screen>
-    </>
+    </Screen>
   );
 }
 

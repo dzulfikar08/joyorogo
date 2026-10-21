@@ -3,6 +3,7 @@ import { Image, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 
+import { BrandMark } from "@/components/brand-mark";
 import { ProfilPage } from "@/components/profil/page";
 import { StravaCard } from "@/components/strava-card";
 
@@ -14,8 +15,8 @@ import { StravaCard } from "@/components/strava-card";
 export default function StravaScreen() {
   const { t } = useTranslation("settings");
   return (
-    <ProfilPage title={t("hub.rows.strava.title")}>
-      <StravaCard />
+    <ProfilPage title={t("hub.rows.strava.title")} headerRight={<BrandMark brand="strava" />}>
+      <StravaCard headless />
       <View style={styles.powered}>
         <View style={styles.plate}>
           <Image

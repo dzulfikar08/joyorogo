@@ -1,12 +1,11 @@
 import "@/unistyles";
 import { useState } from "react";
-import { Platform, View } from "react-native";
+import { Platform } from "react-native";
 import { useTranslation } from "react-i18next";
-import { StyleSheet } from "react-native-unistyles";
 
 import { BrandMark, HEALTH_BRAND } from "@/components/brand-mark";
 import { ErrorLine, Note, ProfilDataPage, type ProfileData } from "@/components/profil/page";
-import { Button, Card, Text } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import { isHealthSyncSupported, syncHealthData } from "@/src/lib/health-sync";
 import { backfillNutritionToHealth, isNutritionMirrorSupported } from "@/src/lib/health-nutrition";
 import { errorMessage } from "@/utils/format";
@@ -19,6 +18,8 @@ export default function Kesehatan() {
   return (
     <ProfilDataPage
       title={t(ios ? "hub.rows.healthIos.title" : "hub.rows.healthAndroid.title")}
+      // The mark sits on the title row, next to the product name (docs/brand-marks.md).
+      headerRight={<BrandMark brand={HEALTH_BRAND} />}
     >
       {(profile) => <KesehatanContent profile={profile} />}
     </ProfilDataPage>
@@ -78,13 +79,6 @@ function KesehatanContent({ profile }: { profile: ProfileData }) {
 
   return (
     <Card>
-      <View style={styles.head}>
-        {/* The mark always sits next to the product name (docs/brand-marks.md). */}
-        <BrandMark brand={HEALTH_BRAND} />
-        <Text style={styles.title}>
-          {HEALTH_BRAND === "appleHealth" ? "Apple Health" : "Health Connect"}
-        </Text>
-      </View>
       <Note>{Platform.OS === "ios" ? t("health.noteIos") : t("health.noteAndroid")}</Note>
       <Button
         variant="secondary"
@@ -108,16 +102,3 @@ function KesehatanContent({ profile }: { profile: ProfileData }) {
     </Card>
   );
 }
-
-const styles = StyleSheet.create((theme) => ({
-  head: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.md,
-  },
-  title: {
-    fontSize: theme.fontSize.md,
-    fontWeight: "700",
-    color: theme.colors.foreground,
-  },
-}));

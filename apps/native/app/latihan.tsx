@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { Redirect, Stack, router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -69,7 +69,6 @@ export default function Latihan() {
 
   return (
     <>
-      <Stack.Screen options={{ title: t("latihan.title") }} />
       <Screen>
         <PageHeader title={t("latihan.title")} />
 

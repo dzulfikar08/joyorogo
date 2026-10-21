@@ -2,7 +2,7 @@ import "@/unistyles";
 import { useMaternal } from "@/components/maternal/use-maternal";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { Redirect, Stack, useLocalSearchParams } from "expo-router";
+import { Redirect, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
@@ -207,9 +207,7 @@ export default function Rekap() {
   );
 
   return (
-    <>
-      <Stack.Screen options={{ title: t("recap.title") }} />
-      <Screen>
+    <Screen>
         <PageHeader
           title={t("recap.title")}
           caption={
@@ -376,8 +374,7 @@ export default function Rekap() {
             </Disclosure>
           </>
         )}
-      </Screen>
-    </>
+    </Screen>
   );
 }
 

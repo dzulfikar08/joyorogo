@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import Reanimated, {
   cancelAnimation,
   useAnimatedProps,
@@ -42,7 +43,7 @@ import { fmtInt } from "@/utils/format";
 import { Container } from "@/components/container";
 import { Mascot, type MascotPose } from "@/components/mascot";
 import { EASE_OUT, PressableScale, useCountUp } from "@/components/motion";
-import { useTabContentInset } from "@/components/tab-bar-inset";
+import { useInTabs, useTabContentInset } from "@/components/tab-bar-inset";
 
 const AnimatedCircle = Reanimated.createAnimatedComponent(Circle);
 
@@ -180,24 +181,57 @@ export function Screen({
   );
 }
 
-/** Big 28px bold page title with an optional right-hand action. */
+/**
+ * Big 28px bold page title with an optional right-hand action. Every screen outside the tab bar is pushed
+ * on the stack, whose native header is off: the title lives here once, with a back chevron in front of it.
+ * `back` defaults to on outside the tabs; pass false for a modal that closes some other way, or omit
+ * `title` for a screen that only needs the caption and `right` actions under the chevron.
+ */
 export function PageHeader({
   title,
   right,
   caption,
+  back,
 }: {
-  title: string;
+  title?: string;
   right?: React.ReactNode;
   caption?: string;
+  back?: boolean;
 }) {
+  const inTabs = useInTabs();
+  const showBack = back ?? !inTabs;
   return (
     <View style={styles.pageHeader}>
+      {showBack ? <BackButton /> : null}
       <View style={styles.pageHeaderText}>
-        <Text style={styles.pageTitle}>{title}</Text>
+        {title ? (
+          <Text style={styles.pageTitle} accessibilityRole="header">
+            {title}
+          </Text>
+        ) : null}
         {caption ? <Text style={styles.pageCaption}>{caption}</Text> : null}
       </View>
       {right}
     </View>
+  );
+}
+
+/** 40px ghost chevron that pops the stack (or lands on Beranda when the screen was opened cold from a link). */
+export function BackButton() {
+  const { t } = useTranslation("common");
+  const { theme } = useUnistyles();
+  return (
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityLabel={t("actions.back")}
+      onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
+      hitSlop={4}
+      scaleTo={0.92}
+      dimTo={0.6}
+      style={styles.backButton}
+    >
+      <Ionicons name="chevron-back" size={26} color={theme.colors.foreground} />
+    </PressableScale>
   );
 }
 
@@ -1162,6 +1196,15 @@ const styles = StyleSheet.create((theme) => ({
   pageHeaderText: {
     flex: 1,
     gap: 2,
+  },
+  // Ghost chevron, no fill: the glyph sits on the 20px gutter and the 40px box is the tap target.
+  backButton: {
+    width: 40,
+    height: 40,
+    marginLeft: -theme.spacing.sm,
+    marginRight: -theme.spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
   },
   pageTitle: {
     fontSize: theme.fontSize.title,

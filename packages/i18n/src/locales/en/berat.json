@@ -22,7 +22,7 @@
     "trendLabel": "Trend weight",
     "scale": "Latest scale reading {{kg}} kg · {{date}}",
     "goalReached": "You reached your goal weight. Keep it up.",
-    "weighToday": "Weigh in today",
+    "weighShort": "Weigh in",
     "trendExplain": "Trend = 7-day moving average. Steadier than the daily scale reading.",
     "goalLabel": "Goal",
     "goalValue": "{{kg}} kg · {{left}} kg to go",

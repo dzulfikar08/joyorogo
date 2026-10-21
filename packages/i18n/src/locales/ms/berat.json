@@ -22,7 +22,7 @@
     "trendLabel": "Berat trend",
     "scale": "Timbangan terakhir {{kg}} kg · {{date}}",
     "goalReached": "Sasaran berat sudah dicapai. Kekalkan rentak ini.",
-    "weighToday": "Timbang hari ini",
+    "weighShort": "Timbang",
     "trendExplain": "Trend = purata bergerak 7 hari. Lebih stabil berbanding timbangan harian.",
     "goalLabel": "Sasaran",
     "goalValue": "{{kg}} kg · baki {{left}} kg",

@@ -17,6 +17,7 @@
   "loading": "Loading your plan...",
   "loadError": "Could not load the plan. Try again in a moment.",
   "retry": "Try again",
+  "noProfileTitle": "Profile not finished",
   "noProfile": "Finish your profile first so your calorie and protein targets can be worked out.",
   "empty": {
     "title": "No plan yet",

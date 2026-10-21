@@ -1,4 +1,4 @@
-import { Link, Stack } from "expo-router";
+import { Link } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
@@ -10,8 +10,6 @@ import { Text } from "@/components/ui";
 export default function NotFoundScreen() {
   const { t } = useTranslation("misc");
   return (
-    <>
-      <Stack.Screen options={{ title: t("notFound.title") }} />
       <Container>
         <View style={styles.container}>
           <View style={styles.content}>
@@ -24,7 +22,6 @@ export default function NotFoundScreen() {
           </View>
         </View>
       </Container>
-    </>
   );
 }
 

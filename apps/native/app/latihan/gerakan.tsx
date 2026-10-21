@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useLocalSearchParams, Stack } from "expo-router";
-import { ScrollView, View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import { View } from "react-native";
 import { Circle, Polyline, Svg } from "react-native-svg";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -12,7 +12,7 @@ import {
   type SetType,
 } from "@joyorogo/api/lib/workout";
 
-import { Card, Num, SectionTitle, Text } from "@/components/ui";
+import { Card, Num, PageHeader, Screen, SectionTitle, Text } from "@/components/ui";
 import { Disclosure } from "@/components/disclosure";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtDateMedium, fmtKg } from "@/utils/format";
@@ -100,9 +100,8 @@ export default function LatihanGerakan() {
   const exercise = catalog.data?.exercises.find((e) => e.id === exerciseId);
 
   return (
-    <>
-      <Stack.Screen options={{ title: exercise?.name ?? t("latihan.detail.screenTitle") }} />
-      <ScrollView contentContainerStyle={styles.content}>
+    <Screen>
+      <PageHeader title={exercise?.name ?? t("latihan.detail.screenTitle")} />
         <SectionTitle title={t("latihan.detail.bests")} />
         <Card>
           {history.isPending ? (
@@ -165,13 +164,11 @@ export default function LatihanGerakan() {
             ))}
           </Card>
         )}
-      </ScrollView>
-    </>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
-  content: { padding: theme.spacing.lg, gap: theme.spacing.md },
   empty: { color: theme.colors.mutedForeground, fontSize: theme.fontSize.sm },
   emptyTitle: { color: theme.colors.foreground, fontSize: theme.fontSize.base, fontWeight: "700" },
   bestGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md },

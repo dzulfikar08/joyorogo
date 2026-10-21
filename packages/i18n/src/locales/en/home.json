@@ -62,7 +62,7 @@
     "proteinOf": "of {{g}} g",
     "proteinNone": "log food first",
     "water": "Water",
-    "weight": "Scale",
+    "weight": "Weight",
     "weightNone": "not weighed yet",
     "waterValue": "{{count}}/{{goal}} glasses",
     "weightToday": "weighed today",
@@ -184,7 +184,20 @@
     "removed": "1 glass removed",
     "less": "Remove a glass",
     "more": "Add a glass",
-    "loadError": "Couldn't load water data. Try again in a moment."
+    "loadError": "Couldn't load water data. Try again in a moment.",
+    "trend": {
+      "title": "Glasses per day",
+      "range7": "7 days",
+      "range30": "30 days",
+      "hint": "Tap a bar to see that day",
+      "readout_one": "{{date}}: {{count}} of {{goal}} glass",
+      "readout_other": "{{date}}: {{count}} of {{goal}} glasses",
+      "summary": "Average {{avg}} glasses on logged days. {{hit}} of {{total}} days on target.",
+      "a11y": "Water glasses per day, target {{goal}}. {{days}}",
+      "a11yDay_one": "{{date}} {{count}} glass",
+      "a11yDay_other": "{{date}} {{count}} glasses",
+      "empty": "No water logged in this range. Tap + to start."
+    }
   },
   "movement": {
     "label": "Movement today",

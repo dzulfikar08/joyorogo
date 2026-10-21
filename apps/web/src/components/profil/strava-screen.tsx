@@ -20,21 +20,21 @@ export function StravaScreen() {
   const { t } = useTranslation(["settings", "common"]);
   const strava = useStrava();
 
-  let subtitle: string;
+  let status: string;
   let trailing: React.ReactNode = null;
   if (strava.isChecking) {
-    subtitle = t("strava.status.checking");
+    status = t("strava.status.checking");
   } else if (strava.statusError) {
-    subtitle = t("strava.status.error", { error: strava.statusError });
+    status = t("strava.status.error", { error: strava.statusError });
     trailing = (
       <Button variant="secondary" size="xs" onClick={strava.recheck}>
         {t("common:actions.retry")}
       </Button>
     );
   } else if (!strava.configured) {
-    subtitle = t("strava.status.notConfiguredServer");
+    status = t("strava.status.notConfiguredServer");
   } else if (strava.connected) {
-    subtitle = strava.athleteId
+    status = strava.athleteId
       ? t("strava.status.sectionConnectedAthlete", { id: strava.athleteId })
       : t("strava.status.sectionConnected");
     trailing = (
@@ -43,7 +43,7 @@ export function StravaScreen() {
       </Button>
     );
   } else {
-    subtitle = t("strava.status.idle");
+    status = t("strava.status.idle");
   }
 
   const ready = strava.configured && !strava.isChecking && !strava.statusError;
@@ -53,8 +53,8 @@ export function StravaScreen() {
       <ListGroup>
         <ListRow
           icon={<BrandMark brand="strava" />}
-          title="Strava"
-          subtitle={subtitle}
+          title={status}
+          wrapTitle
           trailing={trailing}
         />
       </ListGroup>

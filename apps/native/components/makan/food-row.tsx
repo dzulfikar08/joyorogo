@@ -22,19 +22,22 @@ import { fmtInt } from "@/utils/format";
  * Nutrition diary row: a small thumbnail (plain cutout or food icon), the name,
  * time and grams, the macro line, and the kcal as the right-aligned number.
  * The trash button is the only inline control; the rest of the row opens the
- * editor.
+ * editor. `nested` is a component of a plate: the plate header above it holds
+ * the thumbnail, time and macros, so the row keeps the name, grams and kcal.
  */
 export function FoodRow({
   item,
   onEdit,
   onDelete,
   onViewSticker,
+  nested = false,
 }: {
   item: DiaryRow;
   onEdit: () => void;
   onDelete: () => void;
   /** Opens the full-size sticker viewer; only offered when the row has a cutout. */
   onViewSticker?: () => void;
+  nested?: boolean;
 }) {
   const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
@@ -71,21 +74,23 @@ export function FoodRow({
         onPress={onEdit}
         scaleTo={1}
         dimTo={0.7}
-        style={styles.row}
+        style={[styles.row, nested && styles.rowNested]}
       >
-        <FoodSticker
-          scanId={item.scanId}
-          name={item.name}
-          size={48}
-          onPress={item.scanId ? onViewSticker : undefined}
-        />
+        {nested ? null : (
+          <FoodSticker
+            scanId={item.scanId}
+            name={item.name}
+            size={48}
+            onPress={item.scanId ? onViewSticker : undefined}
+          />
+        )}
         <View style={styles.body}>
-          <Text style={styles.title} numberOfLines={2}>
+          <Text style={[styles.title, nested && styles.titleNested]} numberOfLines={2}>
             {item.name}
           </Text>
-          {Number.isNaN(created.getTime()) && !item.grams ? null : (
+          {(Number.isNaN(created.getTime()) || nested) && !item.grams ? null : (
             <View style={styles.metaLine}>
-              {Number.isNaN(created.getTime()) ? null : (
+              {Number.isNaN(created.getTime()) || nested ? null : (
                 <View style={styles.metaItem}>
                   <Ionicons name="time-outline" size={13} color={theme.colors.mutedForeground} />
                   <Text style={styles.metaText}>{fmtClock(created)}</Text>
@@ -94,7 +99,7 @@ export function FoodRow({
               {item.grams ? <Text style={styles.metaText}>{fmtInt(item.grams)} g</Text> : null}
             </View>
           )}
-          {hasMacros ? (
+          {nested ? null : hasMacros ? (
             <MacroLine
               compact
               protein={item.protein}
@@ -107,8 +112,8 @@ export function FoodRow({
           ) : null}
         </View>
         <View style={styles.kcalBox}>
-          <Num style={styles.kcal}>{fmtInt(item.kcal)}</Num>
-          <Text style={styles.kcalUnit}>{t("diary.summary.unit")}</Text>
+          <Num style={[styles.kcal, nested && styles.kcalNested]}>{fmtInt(item.kcal)}</Num>
+          {nested ? null : <Text style={styles.kcalUnit}>{t("diary.summary.unit")}</Text>}
         </View>
         <PressableScale
           accessibilityRole="button"
@@ -116,9 +121,9 @@ export function FoodRow({
           onPress={handleDelete}
           hitSlop={4}
           scaleTo={0.85}
-          style={styles.deleteButton}
+          style={nested ? styles.deleteButtonNested : styles.deleteButton}
         >
-          <Ionicons name="trash-outline" size={18} color={theme.colors.destructive} />
+          <Ionicons name="trash-outline" size={nested ? 16 : 18} color={theme.colors.destructive} />
         </PressableScale>
       </PressableScale>
     </Animated.View>
@@ -177,5 +182,28 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     justifyContent: "center",
     marginRight: -12,
+  },
+  // A component inside a plate group: no thumbnail, smaller type, tighter rows; the group's rule indents it.
+  rowNested: {
+    gap: theme.spacing.sm,
+    paddingLeft: 0,
+    paddingRight: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+  },
+  titleNested: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "500",
+    lineHeight: 18,
+  },
+  kcalNested: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+  },
+  deleteButtonNested: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: -8,
   },
 }));

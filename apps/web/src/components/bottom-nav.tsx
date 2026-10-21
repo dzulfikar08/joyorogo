@@ -105,7 +105,7 @@ export default function BottomNav() {
 const DESKTOP_LINKS = [
   { to: "/beranda", label: "nav.home" },
   { to: "/makan", label: "nav.food" },
-  { to: "/olahraga", label: "nav.exercise" },
+  { to: "/olahraga", label: "nav.activity" },
   { to: "/berat", label: "nav.weight" },
   { to: "/feed", label: "nav.feed" },
   { to: "/tidur", label: "nav.sleep" },

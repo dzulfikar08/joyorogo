@@ -25,7 +25,7 @@ import { MacroLine } from "@/components/macro-line";
 import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { BelanjaSection } from "@/components/plate/belanja";
 import { MealPlanEntry } from "@/components/meal-plan/entry-card";
-import { PlateHeader } from "@/components/plate/plate-header";
+import { PlateGroup, PlateHeader } from "@/components/plate/plate-header";
 import { PlateEditSheet } from "@/components/plate/plate-edit-sheet";
 import { DaySwitcher } from "@/components/day-switcher";
 import { Cerita } from "@/components/cerita";
@@ -673,9 +673,26 @@ export default function Makan() {
             );
             const sumMacro = (pick: (item: (typeof segment.rows)[number]) => number | null) =>
               anyMacro ? segment.rows.reduce((sum, item) => sum + (pick(item) ?? 0), 0) : null;
+            if (!plateRow) {
+              return (
+                <View key={segment.plateId ?? `plain-${segmentIndex}`}>
+                  {segment.rows.map((item) => (
+                    <FoodRow
+                      key={item.id}
+                      item={item}
+                      onEdit={() => setEditRow(item)}
+                      onDelete={() => deleteFood(item)}
+                      onViewSticker={() => viewSticker(item)}
+                    />
+                  ))}
+                </View>
+              );
+            }
+            const cutout = segment.rows.find((item) => item.scanId) ?? null;
             return (
-              <View key={segment.plateId ?? `plain-${segmentIndex}`}>
-                {plateRow ? (
+              <PlateGroup
+                key={segment.plateId ?? `plain-${segmentIndex}`}
+                header={
                   <PlateHeader
                     name={plateRow.name}
                     priceIdr={plateRow.priceIdr}
@@ -684,20 +701,25 @@ export default function Makan() {
                     carbs={sumMacro((item) => item.carbs)}
                     fat={sumMacro((item) => item.fat)}
                     fiber={sumMacro((item) => item.fiber)}
+                    scanId={cutout?.scanId ?? null}
+                    eatenAt={new Date(segment.rows[0]!.createdAt)}
                     onEdit={() => setPlateEditId(plateRow.id)}
+                    onViewSticker={cutout ? () => viewSticker(cutout) : undefined}
                     disabled={updatePlate.isPending}
                   />
-                ) : null}
+                }
+              >
                 {segment.rows.map((item) => (
                   <FoodRow
                     key={item.id}
                     item={item}
+                    nested
                     onEdit={() => setEditRow(item)}
                     onDelete={() => deleteFood(item)}
                     onViewSticker={() => viewSticker(item)}
                   />
                 ))}
-              </View>
+              </PlateGroup>
             );
           })}
       </ListGroup>

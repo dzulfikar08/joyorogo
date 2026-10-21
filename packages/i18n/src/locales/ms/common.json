@@ -62,15 +62,12 @@
     "camera": "Foto makanan dengan AI",
     "photo": "Foto makanan",
     "exercise": "Senaman",
+    "activity": "Aktiviti",
     "weight": "Berat",
     "sleep": "Tidur",
     "primary": "Navigasi utama",
     "title": {
-      "scan": "Foto Makanan",
-      "barcode": "Imbas Kod Bar",
-      "pro": "Pro",
       "inbox": "Peti Masuk",
-      "tips": "Petua",
       "post": "Hantaran",
       "notifications": "Pemberitahuan",
       "profile": "Profil"

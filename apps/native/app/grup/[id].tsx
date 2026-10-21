@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Share, Switch, View } from "react-native";
@@ -447,8 +447,6 @@ export default function GroupDetail() {
   );
 
   return (
-    <>
-      <Stack.Screen options={{ title: group.name }} />
       <Screen>
         <PageHeader
           title={group.name}
@@ -705,7 +703,6 @@ export default function GroupDetail() {
           </Field>
         </Sheet>
       </Screen>
-    </>
   );
 }
 

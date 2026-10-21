@@ -5,7 +5,7 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Medal, Scale, Share2 } from "lucide-react";
+import { Medal, Newspaper, Scale } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -983,29 +983,36 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   return (
     <Page className="max-w-xl lg:max-w-5xl">
       <PageHeader
-        title={t("page.title")}
+        title={t("page.titleShort")}
         className="pb-3"
         action={
           <span className="flex items-center gap-2">
             {weightSummary.latestKg !== null && !maternal && (
-              <ShareStoryButton
-                label=""
-                ariaLabel={t("page.shareSticker")}
-                variant="secondary"
-                size="icon"
-                kinds={["weight"]}
-                story={weightStory(weightSummary, entries, summary.data)}
-              />
+              <>
+                <ShareStoryButton
+                  label=""
+                  ariaLabel={t("page.shareSticker")}
+                  variant="secondary"
+                  size="icon"
+                  kinds={["weight"]}
+                  story={weightStory(weightSummary, entries, summary.data)}
+                />
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  aria-label={t("page.share")}
+                  title={t("page.share")}
+                  onClick={() => setShareOpen(true)}
+                >
+                  <Newspaper className="size-4" aria-hidden />
+                </Button>
+              </>
             )}
-            {weightSummary.latestKg !== null && !maternal && (
-              <Button variant="secondary" onClick={() => setShareOpen(true)}>
-                <Share2 className="size-4" aria-hidden />
-                <span className="max-sm:sr-only">{t("page.share")}</span>
+            {weightSummary.latestKg !== null && (
+              <Button onClick={openWeigh} disabled={checkIn.isPending}>
+                {t("page.weigh")}
               </Button>
             )}
-            <Button onClick={openWeigh} disabled={checkIn.isPending}>
-              {t("page.weigh")}
-            </Button>
           </span>
         }
       />

@@ -325,6 +325,7 @@ export default function FounderPaywall() {
       <Animated.View entering={heroEnter}>
         <PageHeader
           title={t("paywall.title")}
+          back={false}
           caption={t(`paywall.subhead.${moment}`, { days: Number(days) > 0 ? Number(days) : "" })}
         />
       </Animated.View>

@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { Redirect, Stack } from "expo-router";
+import { Redirect } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
@@ -54,34 +54,27 @@ export default function RencanaMakan() {
   if (gate === "loading") return <BootLoader />;
   if (gate === "anon") return <Redirect href="/login" />;
 
-  const title = <Stack.Screen options={{ title: t("title") }} />;
   const header = <PageHeader title={t("title")} caption={t("subtitle")} />;
 
   if (overview.isPending) {
     return (
-      <>
-        {title}
-        <Screen>
-          {header}
-          <Text style={styles.loading} accessibilityRole="progressbar">
-            {t("loading")}
-          </Text>
-          <Skeleton width="100%" height={52} radius={26} />
-          <Skeleton width="100%" height={260} radius={24} />
-          <Skeleton width="100%" height={220} radius={24} />
-        </Screen>
-      </>
+      <Screen>
+        {header}
+        <Text style={styles.loading} accessibilityRole="progressbar">
+          {t("loading")}
+        </Text>
+        <Skeleton width="100%" height={52} radius={26} />
+        <Skeleton width="100%" height={260} radius={24} />
+        <Skeleton width="100%" height={220} radius={24} />
+      </Screen>
     );
   }
   if (overview.isError) {
     return (
-      <>
-        {title}
-        <Screen>
-          {header}
-          <ErrorState message={t("loadError")} onRetry={() => void overview.refetch()} />
-        </Screen>
-      </>
+      <Screen>
+        {header}
+        <ErrorState message={t("loadError")} onRetry={() => void overview.refetch()} />
+      </Screen>
     );
   }
 
@@ -90,49 +83,40 @@ export default function RencanaMakan() {
 
   if (data.status === "noProfile") {
     return (
-      <>
-        {title}
-        <Screen {...refresh}>
-          {header}
-          <EmptyState icon="person-circle-outline" title={t("title")} description={t("noProfile")} />
-        </Screen>
-      </>
+      <Screen {...refresh}>
+        {header}
+        <EmptyState icon="person-circle-outline" title={t("noProfileTitle")} description={t("noProfile")} />
+      </Screen>
     );
   }
 
   if (data.status === "locked") {
     return (
-      <>
-        {title}
-        <Screen {...refresh}>
-          {header}
-          <LockedView preview={data.preview} />
-        </Screen>
-      </>
+      <Screen {...refresh}>
+        {header}
+        <LockedView preview={data.preview} />
+      </Screen>
     );
   }
 
   const plan = data.plan;
   if (plan === null) {
     return (
-      <>
-        {title}
-        <Screen {...refresh}>
-          {header}
-          <EmptyState
-            pose="ready"
-            title={t("empty.title")}
-            description={t("empty.body")}
-            action={
-              <Button
-                label={generate.isPending ? t("empty.working") : t("empty.cta")}
-                loading={generate.isPending}
-                onPress={() => generate.mutate({ regenerate: false })}
-              />
-            }
-          />
-        </Screen>
-      </>
+      <Screen {...refresh}>
+        {header}
+        <EmptyState
+          pose="ready"
+          title={t("empty.title")}
+          description={t("empty.body")}
+          action={
+            <Button
+              label={generate.isPending ? t("empty.working") : t("empty.cta")}
+              loading={generate.isPending}
+              onPress={() => generate.mutate({ regenerate: false })}
+            />
+          }
+        />
+      </Screen>
     );
   }
 
@@ -175,7 +159,6 @@ export default function RencanaMakan() {
 
   return (
     <>
-      {title}
       <Screen {...refresh}>
         <PageHeader title={t("title")} caption={t("subtitle")} right={actions} />
 

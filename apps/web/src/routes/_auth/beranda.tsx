@@ -14,7 +14,6 @@ import {
   Mic,
   Moon,
   Droplet,
-  Minus,
   Plus,
   Scale,
   Sparkles,
@@ -179,51 +178,45 @@ function StatRow({
   label,
   note,
   value,
-  trailing,
+  action,
 }: {
-  to?: "/olahraga" | "/tidur" | "/berat";
+  to: "/olahraga" | "/tidur" | "/air" | "/berat";
   tone: keyof typeof STAT_TONE;
   icon: ReactNode;
   label: string;
   note?: ReactNode;
   value: ReactNode;
-  trailing?: ReactNode;
+  /** A quiet quick action standing where the chevron would be (a sibling of the link, never inside it). */
+  action?: ReactNode;
 }) {
-  const body = (
-    <>
-      <span aria-hidden className={cn("shrink-0 [&>svg]:size-5", STAT_TONE[tone])}>
-        {icon}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[0.9375rem] font-semibold">{label}</span>
-        {note && (
-          <span className="mt-0.5 block truncate text-xs text-muted-foreground tabular-nums">
-            {note}
-          </span>
-        )}
-      </span>
-      <span className="shrink-0 text-base font-extrabold tabular-nums">{value}</span>
-    </>
-  );
   return (
-    <li>
-      {to ? (
-        <Link
-          to={to}
-          className={cn(
-            STAT_ROW,
-            "transition-colors hover:bg-muted/60 active:bg-muted focus-visible:bg-muted focus-visible:outline-none",
+    <li className="relative">
+      <Link
+        to={to}
+        className={cn(
+          STAT_ROW,
+          "transition-colors hover:bg-muted/60 active:bg-muted focus-visible:bg-muted focus-visible:outline-none",
+        )}
+      >
+        <span aria-hidden className={cn("shrink-0 [&>svg]:size-5", STAT_TONE[tone])}>
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[0.9375rem] font-semibold">{label}</span>
+          {note && (
+            <span className="mt-0.5 block truncate text-xs text-muted-foreground tabular-nums">
+              {note}
+            </span>
           )}
-        >
-          {body}
+        </span>
+        <span className="shrink-0 text-base font-extrabold tabular-nums">{value}</span>
+        {action ? (
+          <span aria-hidden className="-mr-1 size-4 shrink-0" />
+        ) : (
           <ChevronRight className="-mr-1 size-4 shrink-0 text-muted-foreground" aria-hidden />
-        </Link>
-      ) : (
-        <div className={STAT_ROW}>
-          {body}
-          {trailing}
-        </div>
-      )}
+        )}
+      </Link>
+      {action}
     </li>
   );
 }
@@ -232,12 +225,13 @@ function Unit({ children }: { children: ReactNode }) {
   return <span className="ml-1 text-xs font-semibold text-muted-foreground">{children}</span>;
 }
 
-/** Glasses of water: progress under the label, one tap to add (or take one back). The row has no detail page. */
+/** Glasses of water: progress under the label, a quiet + for one more glass; the row itself opens the water page. */
 function WaterRow({ date }: { date?: string }) {
   const { t } = useTranslation("home");
   const water = useWater(date);
   return (
     <StatRow
+      to="/air"
       tone="tidur"
       icon={<Droplet />}
       label={t("tile.water")}
@@ -250,37 +244,25 @@ function WaterRow({ date }: { date?: string }) {
         />
       }
       value={<span aria-live="polite">{t("tile.waterValue", { count: water.glasses, goal: water.goal })}</span>}
-      trailing={
-        <span className="-mr-2 flex shrink-0 items-center">
-          <button
-            type="button"
-            aria-label={t("water.less")}
-            disabled={water.busy || water.glasses <= 0}
-            onClick={water.remove}
-            className="group flex size-11 items-center justify-center rounded-full outline-none disabled:opacity-40"
-          >
-            <span className="flex size-8 items-center justify-center rounded-full bg-muted text-foreground group-focus-visible:ring-[3px] group-focus-visible:ring-ring/40">
-              <Minus className="size-4" aria-hidden />
-            </span>
-          </button>
-          <button
-            type="button"
-            aria-label={t("water.more")}
-            disabled={water.busy}
-            onClick={water.add}
-            className="group flex size-11 items-center justify-center rounded-full outline-none disabled:opacity-40"
-          >
-            <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground group-focus-visible:ring-[3px] group-focus-visible:ring-ring/40">
-              <Plus className="size-4" aria-hidden />
-            </span>
-          </button>
-        </span>
+      action={
+        <button
+          type="button"
+          aria-label={t("water.more")}
+          disabled={water.busy}
+          onClick={(event) => {
+            event.stopPropagation();
+            water.add();
+          }}
+          className="absolute top-1/2 -right-0.5 flex size-11 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground outline-none transition-[color,scale] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 active:scale-[0.96] disabled:opacity-40"
+        >
+          <Plus className="size-4" aria-hidden />
+        </button>
       }
     />
   );
 }
 
-/** Activity, sleep, water and weight in one quiet list; each row opens its own page (water has none). */
+/** Activity, sleep, water and weight in one quiet list; each row opens its own page. */
 function StatsCard({ summary, date, today }: { summary: Summary; date: string; today: string }) {
   const { t } = useTranslation(["home"]);
   const maternal = summary.targets.maternal;

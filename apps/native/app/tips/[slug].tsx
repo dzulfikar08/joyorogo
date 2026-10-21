@@ -9,8 +9,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { TIPS, localizeTip } from "@joyorogo/api/lib/tips";
 
 import { Disclosure } from "@/components/disclosure";
-import { Card, ErrorState, Screen, Text } from "@/components/ui";
-import { TipIconGlyph } from "@/components/tips/tip-icon";
+import { Card, ErrorState, PageHeader, Screen, Text } from "@/components/ui";
 import { tipImageUrl } from "@/src/lib/tips-img";
 
 /**
@@ -33,6 +32,7 @@ export default function TipArticle() {
   if (!tip) {
     return (
       <Screen>
+        <PageHeader />
         <ErrorState
           message={t("article.notFound")}
           onRetry={() => {
@@ -46,6 +46,7 @@ export default function TipArticle() {
 
   return (
     <Screen>
+      <PageHeader title={tip.title} />
       {tip.image && !heroFailed ? (
         <Image
           source={{ uri: tipImageUrl(`${tip.slug}.webp`) }}
@@ -55,12 +56,6 @@ export default function TipArticle() {
           style={[styles.hero, { backgroundColor: theme.colors.makanSoft }]}
         />
       ) : null}
-      <View style={styles.titleRow}>
-        <View style={styles.iconChip}>
-          <TipIconGlyph icon={tip.icon} size={20} color={theme.colors.makanText} />
-        </View>
-        <Text style={styles.title}>{tip.title}</Text>
-      </View>
       <Text style={styles.summary}>{tip.summary}</Text>
 
       <Card style={styles.cobaCard}>
@@ -171,25 +166,6 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.xs,
     lineHeight: 18,
     color: theme.colors.mutedForeground,
-  },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.md,
-  },
-  iconChip: {
-    width: 40,
-    height: 40,
-    backgroundColor: theme.colors.makanSoft,
-    borderRadius: theme.radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    flex: 1,
-    fontSize: theme.fontSize.xl,
-    fontWeight: "800",
-    lineHeight: 28,
   },
   summary: {
     marginTop: theme.spacing.xs,

@@ -16,6 +16,7 @@ export type Area = "app" | "site" | "shared";
 export const APP_SEGMENTS: readonly string[] = [
   "login",
   "onboarding",
+  "air",
   "beranda",
   "beranda-kartu",
   "berat",

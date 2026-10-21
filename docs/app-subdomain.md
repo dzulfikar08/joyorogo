@@ -13,7 +13,7 @@ by the router (`routes/__root.tsx` `beforeLoad`, in-app navigation).
 |---|---|---|
 | `/` | landing | 302 to `/beranda` (the app sends signed-out users on to `/login`) |
 | `/harga`, `/panduan/*`, `/blog/*`, `/privasi`, `/syarat`, `/pengembalian-dana`, `/sitemap.xml`, `/llms.txt` | served | 302 to the same path on `joyorogo.com` |
-| `/login`, `/onboarding`, `/beranda`, `/berat`, `/feed`, `/founder`, `/grup/*`, `/inbox`, `/jam/*`, `/koneksi/*` (incl. MCP consent `/koneksi/izin`), `/lainnya`, `/latihan/*`, `/makan/*`, `/olahraga`, `/pro`, `/profil/*`, `/rekap`, `/rencana-makan`, `/tidur`, `/pembayaran` | 302 to the same path on `app.joyorogo.com` | served |
+| `/login`, `/onboarding`, `/air`, `/beranda`, `/berat`, `/feed`, `/founder`, `/grup/*`, `/inbox`, `/jam/*`, `/koneksi/*` (incl. MCP consent `/koneksi/izin`), `/lainnya`, `/latihan/*`, `/makan/*`, `/olahraga`, `/pro`, `/profil/*`, `/rekap`, `/rencana-makan`, `/tidur`, `/pembayaran` | 302 to the same path on `app.joyorogo.com` | served |
 | `/gabung/*`, `/u/*`, `/p/*` (invite, public profile, public post) | served, link-preview tags | served (same tags, canonical stays `joyorogo.com`) |
 | `/assets/*`, `/icons/*`, `/manifest.webmanifest`, `/sw.js`, `/og.png`, anything unknown | served | served |
 

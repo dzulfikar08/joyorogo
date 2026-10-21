@@ -69,12 +69,77 @@ export function useWater(date?: string) {
   };
 }
 
-// Penghitung gelas air per hari — data sama dengan kartu air di dashboard web.
-export function WaterCard({ date }: { date?: string }) {
+/**
+ * Penghitung gelas air per hari — data sama dengan kartu air di dashboard web. `bare` is for the Air
+ * screen, whose page title already says what this is: just the count, the goal, the bar and − / +.
+ */
+export function WaterCard({ date, bare = false }: { date?: string; bare?: boolean }) {
   const { theme } = useUnistyles();
   const { t } = useTranslation("home");
   const { glasses, goal, busy, loadError, error, add, remove } = useWater(date);
   const ratio = goal > 0 ? Math.min(1, glasses / goal) : 0;
+
+  const controls = (
+    <View style={styles.controls}>
+      <PressableScale
+        onPress={remove}
+        disabled={busy || glasses <= 0}
+        accessibilityLabel={t("water.less")}
+        accessibilityRole="button"
+        hitSlop={4}
+        scaleTo={0.88}
+        style={[
+          styles.roundButton,
+          { backgroundColor: theme.colors.muted },
+          glasses <= 0 && styles.pressedSoft,
+        ]}
+      >
+        <Ionicons name="remove" size={18} color={theme.colors.foreground} />
+      </PressableScale>
+      <PressableScale
+        onPress={add}
+        disabled={busy}
+        accessibilityLabel={t("water.more")}
+        accessibilityRole="button"
+        hitSlop={4}
+        scaleTo={0.88}
+        style={[styles.roundButton, { backgroundColor: theme.colors.primary }]}
+      >
+        <Ionicons name="add" size={18} color={theme.colors.primaryForeground} />
+      </PressableScale>
+    </View>
+  );
+  const fill = (
+    <View
+      style={{
+        width: `${ratio * 100}%`,
+        height: "100%",
+        borderRadius: 999,
+        backgroundColor: theme.colors.tidur,
+      }}
+    />
+  );
+  const status = error ? (
+    <Text style={styles.errorText}>{error}</Text>
+  ) : loadError ? (
+    <Text style={styles.errorText}>{t("water.loadError")}</Text>
+  ) : null;
+
+  if (bare) {
+    return (
+      <Card style={styles.card}>
+        <View style={styles.headRow}>
+          <View style={styles.bareValue}>
+            <CountNum value={glasses} format={String} style={styles.valueBare} />
+            <Text style={styles.unit}>{t("water.ofGoal", { count: goal })}</Text>
+          </View>
+          {controls}
+        </View>
+        <View style={styles.trackBare}>{fill}</View>
+        {status}
+      </Card>
+    );
+  }
 
   return (
     <Card style={styles.card}>
@@ -86,54 +151,14 @@ export function WaterCard({ date }: { date?: string }) {
           <Text style={styles.label}>{t("water.title")}</Text>
           <Text style={styles.hint}>{t("water.hint")}</Text>
         </View>
-        <View style={styles.controls}>
-          <PressableScale
-            onPress={remove}
-            disabled={busy || glasses <= 0}
-            accessibilityLabel={t("water.less")}
-            accessibilityRole="button"
-            hitSlop={4}
-            scaleTo={0.88}
-            style={[
-              styles.roundButton,
-              { backgroundColor: theme.colors.muted },
-              glasses <= 0 && styles.pressedSoft,
-            ]}
-          >
-            <Ionicons name="remove" size={18} color={theme.colors.foreground} />
-          </PressableScale>
-          <PressableScale
-            onPress={add}
-            disabled={busy}
-            accessibilityLabel={t("water.more")}
-            accessibilityRole="button"
-            hitSlop={4}
-            scaleTo={0.88}
-            style={[styles.roundButton, { backgroundColor: theme.colors.primary }]}
-          >
-            <Ionicons name="add" size={18} color={theme.colors.primaryForeground} />
-          </PressableScale>
-        </View>
+        {controls}
       </View>
       <View style={styles.valueRow}>
         <CountNum value={glasses} format={String} style={styles.value} />
         <Text style={styles.unit}>{t("water.ofGoal", { count: goal })}</Text>
-        <View style={styles.track}>
-          <View
-            style={{
-              width: `${ratio * 100}%`,
-              height: "100%",
-              borderRadius: 999,
-              backgroundColor: theme.colors.tidur,
-            }}
-          />
-        </View>
+        <View style={styles.track}>{fill}</View>
       </View>
-      {error ? (
-        <Text style={styles.errorText}>{error}</Text>
-      ) : loadError ? (
-        <Text style={styles.errorText}>{t("water.loadError")}</Text>
-      ) : null}
+      {status}
     </Card>
   );
 }
@@ -195,6 +220,23 @@ const styles = StyleSheet.create((theme) => ({
   },
   track: {
     flex: 1,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: theme.colors.tidurSoft,
+    overflow: "hidden",
+  },
+  bareValue: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: theme.spacing.sm,
+  },
+  valueBare: {
+    fontSize: theme.fontSize.title,
+    fontWeight: "800",
+    color: theme.colors.foreground,
+  },
+  trackBare: {
     height: 8,
     borderRadius: 999,
     backgroundColor: theme.colors.tidurSoft,

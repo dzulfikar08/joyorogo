@@ -24,13 +24,22 @@ export function useProfile() {
  * page header and content. Hooks of the content live in children, so they only run once the gate
  * has let the user through.
  */
-export function ProfilPage({ title, children }: { title: string; children: ReactNode }) {
+export function ProfilPage({
+  title,
+  headerRight,
+  children,
+}: {
+  title: string;
+  /** Trailing node of the title row (a brand mark). */
+  headerRight?: ReactNode;
+  children: ReactNode;
+}) {
   const gate = useSessionGate();
   if (gate === "loading") return <BootLoader />;
   if (gate === "anon") return <Redirect href="/login" />;
   return (
     <Screen>
-      <PageHeader title={title} />
+      <PageHeader title={title} right={headerRight} />
       {children}
     </Screen>
   );
@@ -39,13 +48,15 @@ export function ProfilPage({ title, children }: { title: string; children: React
 /** ProfilPage for screens that read the profile: skeleton while loading, retry on error, then `children(data)`. */
 export function ProfilDataPage({
   title,
+  headerRight,
   children,
 }: {
   title: string;
+  headerRight?: ReactNode;
   children: (data: ProfileData) => ReactNode;
 }) {
   return (
-    <ProfilPage title={title}>
+    <ProfilPage title={title} headerRight={headerRight}>
       <ProfileLoader>{children}</ProfileLoader>
     </ProfilPage>
   );

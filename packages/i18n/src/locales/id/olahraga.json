@@ -28,7 +28,7 @@
     "appleHealthUnavailable": "Apple Health tidak tersedia di perangkat ini. Impor membutuhkan iPhone dengan aplikasi Health."
   },
   "screen": {
-    "title": "Olahraga",
+    "title": "Aktivitas",
     "manual": "Tulis manual",
     "loading": "Memuat aktivitas hari ini"
   },

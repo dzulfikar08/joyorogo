@@ -651,16 +651,20 @@ export default function Dashboard() {
               label={t("tile.water")}
               value={t("tile.waterValue", { count: water.glasses, goal: water.goal })}
               progress={water.goal > 0 ? water.glasses / water.goal : 0}
+              onPress={() =>
+                router.navigate(date === today ? "/air" : { pathname: "/air", params: { date } })
+              }
               right={
                 <PressableScale
                   accessibilityRole="button"
                   accessibilityLabel={t("water.more")}
                   onPress={water.add}
                   disabled={water.busy}
+                  hitSlop={14}
                   scaleTo={0.88}
                   style={styles.addWater}
                 >
-                  <Ionicons name="add" size={18} color={theme.colors.primaryForeground} />
+                  <Ionicons name="add" size={16} color={theme.colors.mutedForeground} />
                 </PressableScale>
               }
             />
@@ -1308,13 +1312,12 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: 2,
     backgroundColor: theme.colors.makan,
   },
+  // Same footprint as the chevron on the other rows; hitSlop makes the touch target 44px.
   addWater: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 16,
+    height: 16,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.primary,
   },
   arrangeLink: {
     flexDirection: "row",
