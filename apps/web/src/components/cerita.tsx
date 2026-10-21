@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import { MEALS, jakartaToday, relativeDayLabel, storySlotLabel } from "@joyorogo/api/lib/engine";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import { copyChipLabel, copyWantedLabel } from "@joyorogo/api/lib/meal-copy-label";
@@ -599,7 +600,7 @@ export function Cerita({
                       }
                       className="h-11 w-20 bg-card px-3 text-right font-bold"
                     />
-                    <span className="text-xs font-semibold text-muted-foreground">kcal</span>
+                    <span className="text-xs font-semibold text-muted-foreground">{kcalUnit()}</span>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -650,7 +651,7 @@ export function Cerita({
           <span className="text-sm font-semibold text-muted-foreground">{t("story.total")}</span>
           <span className="text-lg font-extrabold tabular-nums">
             {fmtInt(total)}{" "}
-            <span className="text-xs font-semibold text-muted-foreground">kcal</span>
+            <span className="text-xs font-semibold text-muted-foreground">{kcalUnit()}</span>
           </span>
         </div>
         <Button className="w-full" size="lg" onClick={() => void saveAll()} disabled={saving}>

@@ -25,7 +25,7 @@ import { BootLoader, Button, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
 import type { VarScan } from "@/src/lib/group";
-import { errorMessage, fmtDateShort, fmtInt } from "@/utils/format";
+import { errorMessage, fmtDateShort, fmtInt, kcalUnit } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
 /** Fixed-length pause so the scanner beat always plays out on screen. */
@@ -130,7 +130,7 @@ function FoodFloat({
         <Text style={styles.foodName} numberOfLines={1}>
           {name}
         </Text>
-        <Text style={styles.foodKcal}>{fmtInt(kcal)} kcal</Text>
+        <Text style={styles.foodKcal}>{fmtInt(kcal)} {kcalUnit()}</Text>
       </View>
     </Animated.View>
   );

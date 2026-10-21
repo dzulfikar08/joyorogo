@@ -223,8 +223,8 @@ const MINOR = `The person is under 18. Give no calorie restriction, dieting or w
 const EARLIER_FLAG = `Earlier in this conversation the person mentioned symptoms, an injury or medical details. Do not coach training around that; repeat gently that a doctor/physio should look at it first.`;
 
 const LANGUAGE: Record<Locale, string> = {
-  id: "Answer in casual Indonesian using \"kamu\".",
-  en: "Answer in plain, friendly English.",
+  id: "Answer in casual Indonesian using \"kamu\". Write the energy unit as \"kkal\", never \"kcal\".",
+  en: "Answer in plain, friendly English. Write the energy unit as \"kcal\".",
 };
 
 function fmt(n: number | null | undefined, unit = ""): string | null {

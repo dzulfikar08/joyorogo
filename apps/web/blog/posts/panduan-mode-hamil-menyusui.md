@@ -12,8 +12,8 @@ JoyoRogo bukan pengganti dokter atau bidan. Angka di mode ini kutipan dari sumbe
 ## Apa yang berubah
 
 - **Tidak ada defisit dan tidak ada target berat turun.** Target makan harian adalah TDEE sebelum hamil, ditambah tambahan energi dari AKG 2019 (Permenkes 28 Tahun 2019).
-- **Tambahan energi hamil:** +180 kcal di trimester 1, +300 kcal di trimester 2 dan 3.
-- **Tambahan energi menyusui:** +330 kcal di 6 bulan pertama, +400 kcal di 6 bulan kedua. Untuk menyusui sebagian (bukan eksklusif), AKG tidak punya angka sendiri, jadi JoyoRogo memakai tambahan AKG penuh sebagai perkiraan dan menandainya begitu. Kebutuhanmu bisa sedikit lebih rendah kalau bayi juga minum susu formula atau makanan pendamping.
+- **Tambahan energi hamil:** +180 kkal di trimester 1, +300 kkal di trimester 2 dan 3.
+- **Tambahan energi menyusui:** +330 kkal di 6 bulan pertama, +400 kkal di 6 bulan kedua. Untuk menyusui sebagian (bukan eksklusif), AKG tidak punya angka sendiri, jadi JoyoRogo memakai tambahan AKG penuh sebagai perkiraan dan menandainya begitu. Kebutuhanmu bisa sedikit lebih rendah kalau bayi juga minum susu formula atau makanan pendamping.
 - **Kebutuhan gizi lain** ditampilkan menurut tahap: protein, serat, air, zat besi, folat, kalsium, yodium, dan vitamin A. DHA 200 mg per hari mengikuti FAO/WHO 2010.
 - **Batas kafein 200 mg per hari** selama hamil. JoyoRogo menandai minuman berkafein yang kamu catat dan menjumlahkan perkiraannya. Perkiraan per sajian kasar, karena kekuatan seduhan berbeda-beda.
 

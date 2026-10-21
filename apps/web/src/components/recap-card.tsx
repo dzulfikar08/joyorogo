@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CalendarCheck, Check, ChevronRight, Target } from "lucide-react";
@@ -54,7 +55,7 @@ export function RecapCard() {
           <dt className="text-xs font-semibold text-muted-foreground">{t("recap.average")}</dt>
           <dd className="mt-0.5 text-xl font-extrabold tracking-tight tabular-nums">
             {fmtInt(data.avgKcal)}
-            <span className="ml-1 text-sm font-semibold text-muted-foreground">kcal</span>
+            <span className="ml-1 text-sm font-semibold text-muted-foreground">{kcalUnit()}</span>
           </dd>
           <dd className="text-xs text-muted-foreground tabular-nums">
             {t("recap.target", { kcal: fmtInt(data.targetKcal) })}

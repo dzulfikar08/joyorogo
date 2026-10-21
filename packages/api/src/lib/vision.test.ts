@@ -567,10 +567,10 @@ describe("prompt additions and the shadow variant", () => {
 
   test("the production prompt carries the sauce reference values and no identity rules", () => {
     const prompt = visionPrompt();
-    expect(prompt).toContain("mayones 1 sdm (15 g) = 100 kcal");
+    expect(prompt).toContain("mayones 1 sdm (15 g) = 100 kkal");
     expect(prompt).toContain("bukan hanya kcal sambal");
     expect(prompt).not.toContain("Kenali hidangan dari ISInya");
-    expect(visionPrompt("en")).toContain("mayones 1 sdm (15 g) = 100 kcal");
+    expect(visionPrompt("en")).toContain("mayones 1 sdm (15 g) = 100 kkal");
   });
 
   test("production requests set no temperature", async () => {

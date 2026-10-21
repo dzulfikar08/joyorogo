@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import {
   type WorkoutAnalysis,
   formatDuration,
@@ -76,7 +77,7 @@ export function SummaryCard({ analysis }: { analysis: WorkoutAnalysis }) {
       ? { label: t("analysis.elevationGain"), value: `+${Math.round(elevation.gainM)}`, unit: "m" }
       : null,
     calories
-      ? { label: t("analysis.calories"), value: String(Math.round(calories.kcal)), unit: "kcal" }
+      ? { label: t("analysis.calories"), value: String(Math.round(calories.kcal)), unit: kcalUnit() }
       : null,
     stats.avgHr !== null
       ? { label: t("analysis.avgHr"), value: String(Math.round(stats.avgHr)), unit: "bpm" }
@@ -139,9 +140,9 @@ export function CaloriesCard({ analysis }: { analysis: WorkoutAnalysis }) {
     <Card className="p-4">
       <SectionTitle>{t("analysis.calories")}</SectionTitle>
       <dl className="grid grid-cols-2 gap-3 px-1 min-[420px]:grid-cols-4">
-        <Stat label={t("analysis.energy")} value={String(Math.round(calories.kcal))} unit="kcal" />
+        <Stat label={t("analysis.energy")} value={String(Math.round(calories.kcal))} unit={kcalUnit()} />
         {perHour !== null && (
-          <Stat label={t("analysis.perHour")} value={String(Math.round(perHour))} unit="kcal/h" />
+          <Stat label={t("analysis.perHour")} value={String(Math.round(perHour))} unit={`${kcalUnit()}/h`} />
         )}
         {calories.fatG !== null && (
           <Stat label={t("analysis.fat")} value={String(Math.round(calories.fatG))} unit="g" />

@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
@@ -612,7 +613,7 @@ function MemberCard({
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span className="font-semibold text-foreground">
             {fmtInt(today.eatenKcal)}
-            {today.eatTargetKcal !== null && ` / ${fmtInt(today.eatTargetKcal)}`} kcal
+            {today.eatTargetKcal !== null && ` / ${fmtInt(today.eatTargetKcal)}`} {kcalUnit()}
           </span>
           <span className="inline-flex items-center gap-1">
             <Flame className="size-3.5" aria-hidden />

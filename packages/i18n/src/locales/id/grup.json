@@ -166,7 +166,7 @@
     "active": "aktif {{time}}",
     "inactive": "belum aktif minggu ini",
     "streak_other": "{{count}} hari beruntun",
-    "eatenLabel": "Makan {{eaten}} dari {{target}} kcal",
+    "eatenLabel": "Makan {{eaten}} dari {{target}} kkal",
     "burned": "{{kcal}} dibakar",
     "meals_other": "{{count}}x catat makan",
     "scanVar": "Scan VAR perut",
@@ -177,7 +177,7 @@
     "you": "kamu",
     "ownerCap": "Pemilik",
     "intake": "Asupan hari ini",
-    "statBurn": "Bakar {{kcal}} kcal",
+    "statBurn": "Bakar {{kcal}} kkal",
     "statMeals_other": "{{count}} makan",
     "statExercise": "{{minutes}} mnt olahraga",
     "statDelta": "({{value}}/7hr)"
@@ -204,19 +204,19 @@
     },
     "listLabel": "Aktivitas 7 hari terakhir",
     "food": {
-      "named": "{{name}} ({{kcal}} kcal)",
-      "plain": "makan ({{kcal}} kcal)"
+      "named": "{{name}} ({{kcal}} kkal)",
+      "plain": "makan ({{kcal}} kkal)"
     },
     "exercise": {
       "fallback": "olahraga",
-      "timed": "{{name}} {{minutes}} menit ({{kcal}} kcal)",
-      "plain": "{{name}} ({{kcal}} kcal)"
+      "timed": "{{name}} {{minutes}} menit ({{kcal}} kkal)",
+      "plain": "{{name}} ({{kcal}} kkal)"
     },
     "weight": "timbangan: {{kg}} kg",
     "someone": "Seseorang",
     "mealFallback": "Makan",
     "hidden": "disembunyikan",
-    "exerciseLine": "{{name}} • {{minutes}} mnt • {{kcal}} kcal",
+    "exerciseLine": "{{name}} • {{minutes}} mnt • {{kcal}} kkal",
     "exerciseFallback": "Olahraga",
     "weightLine": "Timbang • {{kg}} kg",
     "emptyNative": "Belum ada aktivitas. Waktunya logging makan pertama!"

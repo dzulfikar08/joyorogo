@@ -2,18 +2,18 @@
   "fasting": {
     "open": {
       "title": "Jendela makan buka",
-      "body": "Saatnya makan pertama. Sisa {{kcal}} kcal untuk hari ini."
+      "body": "Saatnya makan pertama. Sisa {{kcal}} kkal untuk hari ini."
     },
     "meal": {
       "title": "Waktunya {{meal}}",
-      "body": "{{Meal}} jam {{time}}. Sisa {{kcal}} kcal di jendela ini."
+      "body": "{{Meal}} jam {{time}}. Sisa {{kcal}} kkal di jendela ini."
     },
     "lastMeal": {
-      "body": "30 menit lagi jendela tutup. Sisa {{kcal}} kcal di jendela ini."
+      "body": "30 menit lagi jendela tutup. Sisa {{kcal}} kkal di jendela ini."
     },
     "close30": {
       "title": "30 menit lagi jendela tutup",
-      "body": "Sisa {{kcal}} kcal belum terpakai. Isi sekarang atau simpan untuk besok."
+      "body": "Sisa {{kcal}} kkal belum terpakai. Isi sekarang atau simpan untuk besok."
     },
     "mealKind": {
       "buka": "Buka puasa",
@@ -93,7 +93,7 @@
       },
       "calibration": {
         "title": "Target makanmu disesuaikan",
-        "body": "Sekarang {{toKcal}} kcal per hari, sebelumnya {{fromKcal}} kcal."
+        "body": "Sekarang {{toKcal}} kkal per hari, sebelumnya {{fromKcal}} kkal."
       },
       "plan": {
         "title": "Menu minggu ini sudah siap",

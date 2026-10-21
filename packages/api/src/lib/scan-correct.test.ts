@@ -177,7 +177,7 @@ describe("applyCorrection", () => {
         },
       };
       const run = await correctScanItems(ai, { items: snacks, text: "yang dimakan cuma 2" });
-      expect(prompt).toContain("1. pisang goreng | 5 pcs | 500 kcal");
+      expect(prompt).toContain("1. pisang goreng | 5 pcs | 500 kkal");
       expect(prompt).toContain("yang dimakan cuma 2");
       expect(prompt).toContain('"count"');
       expect(run.patch.items[0]).toMatchObject({ portion: "2 pcs", kcal: 200 });
@@ -290,7 +290,7 @@ describe("correctScanItems", () => {
     expect(run.patch.removed).toEqual(["sambal"]);
     const prompt = seen!.messages[0]!.content;
     expect(typeof prompt).toBe("string");
-    expect(prompt).toContain("4. sambal | 1 sdm | 25 kcal");
+    expect(prompt).toContain("4. sambal | 1 sdm | 25 kkal");
     expect(prompt).not.toContain("20 g");
     expect(prompt).toContain("ga ada sambel");
     expect(seen!.chat_template_kwargs).toEqual({ enable_thinking: false });

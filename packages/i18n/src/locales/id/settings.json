@@ -172,7 +172,7 @@
     "datePace": {
       "title": "Tanggal targetmu belum terkejar dengan ritme aman",
       "lose": {
-        "body_other": "Turun {{kg}} kg butuh sekitar {{count}} hari dengan defisit aman maksimal 1.000 kcal per hari. Dengan ritme itu kamu sampai sekitar {{date}}."
+        "body_other": "Turun {{kg}} kg butuh sekitar {{count}} hari dengan defisit aman maksimal 1.000 kkal per hari. Dengan ritme itu kamu sampai sekitar {{date}}."
       },
       "gain": {
         "body_other": "Naik {{kg}} kg dengan ritme aman butuh sekitar {{count}} hari. Dengan ritme itu kamu sampai sekitar {{date}}."
@@ -182,7 +182,7 @@
       "passed": {
         "title": "Tanggal targetmu sudah lewat",
         "lose": {
-          "body_other": "Masih ada {{kg}} kg lagi untuk turun. Dengan defisit aman maksimal 1.000 kcal per hari butuh sekitar {{count}} hari, jadi kamu sampai sekitar {{date}}."
+          "body_other": "Masih ada {{kg}} kg lagi untuk turun. Dengan defisit aman maksimal 1.000 kkal per hari butuh sekitar {{count}} hari, jadi kamu sampai sekitar {{date}}."
         },
         "gain": {
           "body_other": "Masih ada {{kg}} kg lagi untuk naik. Dengan ritme aman butuh sekitar {{count}} hari, jadi kamu sampai sekitar {{date}}."
@@ -195,8 +195,8 @@
       "hint": "Pilih tanggalnya, target makan harianmu ikut menyesuaikan.",
       "error": "Pilih tanggal besok atau setelahnya.",
       "tooFast": {
-        "title": "Tanggal ini menuntut defisit ~{{deficit}} kcal per hari, di atas batas aman.",
-        "body_other": "JoyoRogo membatasi defisit di sekitar 1.000 kcal per hari. Turun {{kg}} kg dengan ritme itu butuh sekitar {{count}} hari.",
+        "title": "Tanggal ini menuntut defisit ~{{deficit}} kkal per hari, di atas batas aman.",
+        "body_other": "JoyoRogo membatasi defisit di sekitar 1.000 kkal per hari. Turun {{kg}} kg dengan ritme itu butuh sekitar {{count}} hari.",
         "useDate_other": "Pakai tanggal realistis (+{{count}} hari)"
       },
       "pickLabel": "Pilih tanggal target",
@@ -210,12 +210,12 @@
       },
       "daysAway_other": "{{count}} hari lagi",
       "preview": {
-        "changed": "Target makan jadi {{next}} kcal per hari (sekarang {{current}}).",
-        "same": "Target makan tetap {{kcal}} kcal per hari."
+        "changed": "Target makan jadi {{next}} kkal per hari (sekarang {{current}}).",
+        "same": "Target makan tetap {{kcal}} kkal per hari."
       },
       "slow": {
         "title": "Tanggalnya cukup jauh.",
-        "body": "Ritmenya santai, jadi JoyoRogo tetap memakai defisit minimal {{deficit}} kcal per hari. Dengan itu targetmu tercapai sekitar {{date}}.",
+        "body": "Ritmenya santai, jadi JoyoRogo tetap memakai defisit minimal {{deficit}} kkal per hari. Dengan itu targetmu tercapai sekitar {{date}}.",
         "useDate": "Pakai {{date}}"
       },
       "maintenance": "Beratmu sudah di target, jadi tanggal ini belum mengubah angka harianmu. Tanggal baru dipakai kalau berat targetmu lebih rendah dari berat sekarang.",
@@ -238,7 +238,7 @@
       "burn": "Bakar",
       "sleep": "Tidur",
       "unitHours": "jam",
-      "perDay": "kcal/hari",
+      "perDay": "kkal/hari",
       "perNight": "jam/malam"
     },
     "note": {
@@ -270,7 +270,7 @@
       "row": "Kebutuhan harianmu",
       "rowValue": "TDEE {{kcal}}",
       "intro": "Langkah demi langkah, dari tubuhmu sampai target makan hari ini.",
-      "unit": "kcal per hari",
+      "unit": "kkal per hari",
       "bmr": {
         "label": "BMR",
         "name": "Tubuh diam",
@@ -301,7 +301,7 @@
         "name": "Jatah makanmu",
         "body": "Angka yang kamu lihat di Beranda."
       },
-      "burnNote": "Seluruh defisit rencanamu, sekitar {{deficit}} kcal per hari, diambil dari makan. Olahraga yang kamu catat ditambahkan ke sisa makan hari itu."
+      "burnNote": "Seluruh defisit rencanamu, sekitar {{deficit}} kkal per hari, diambil dari makan. Olahraga yang kamu catat ditambahkan ke sisa makan hari itu."
     }
   },
   "exerciseCredit": {

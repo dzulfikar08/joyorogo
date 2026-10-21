@@ -38,7 +38,7 @@ import { ChallengesSection } from "@/components/challenge/challenges-section";
 import { useToast } from "@/components/toast";
 import type { GroupActivityEvent, GroupMember } from "@/src/lib/group";
 import { inviteMessage, timeAgoId } from "@/src/lib/group";
-import { errorMessage, fmtDateShort, fmtInt, fmtKg } from "@/utils/format";
+import { errorMessage, fmtDateShort, fmtInt, fmtKg, kcalUnit } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 
@@ -54,7 +54,7 @@ function activityRow(
     return {
       icon: "restaurant",
       title: who,
-      subtitle: `${meal} • ${fmtInt(event.kcal)} kcal${event.name === null ? ` (${t("activity.hidden")})` : ` • ${event.name}`}`,
+      subtitle: `${meal} • ${fmtInt(event.kcal)} ${kcalUnit()}${event.name === null ? ` (${t("activity.hidden")})` : ` • ${event.name}`}`,
     };
   }
   if (event.type === "exercise") {
@@ -136,7 +136,7 @@ function MemberCard({
         label={t("member.intake")}
         eaten={today.eatenKcal}
         budget={today.eatTargetKcal}
-        unit="kcal"
+        unit={kcalUnit()}
         neutral={today.gaining}
       />
 

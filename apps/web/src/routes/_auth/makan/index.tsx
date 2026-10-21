@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import {
   MEAL_LABELS,
   effectiveRamadan,
@@ -546,7 +547,7 @@ function MakanPage() {
             if (!open) setShareItem(null);
           }}
           title={t("diary.sheet.shareTitle")}
-          preview={<MetaLine items={[shareItem.name, `${fmtInt(shareItem.kcal)} kcal`]} />}
+          preview={<MetaLine items={[shareItem.name, `${fmtInt(shareItem.kcal)} ${kcalUnit()}`]} />}
           share={(input) =>
             client.social.createPost({
               kind: "makan",
@@ -759,7 +760,7 @@ function AddFoodSheet({
                     />
                   ) : null}
                   <span className="truncate">
-                    {food.name} · {fmtInt(food.kcal)} kcal
+                    {food.name} · {fmtInt(food.kcal)} {kcalUnit()}
                   </span>
                 </Chip>
               ))}
@@ -797,7 +798,7 @@ function AddFoodSheet({
                 />
               </div>
               <div className="w-28">
-                <FieldLabel htmlFor={`${meal}-kcal`}>kcal</FieldLabel>
+                <FieldLabel htmlFor={`${meal}-kcal`}>{kcalUnit()}</FieldLabel>
                 <Input
                   id={`${meal}-kcal`}
                   type="number"

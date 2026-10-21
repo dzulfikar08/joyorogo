@@ -36,7 +36,7 @@ import { RecapReflection } from "@/components/recap-reflection";
 import { Disclosure } from "@/components/disclosure";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtInt, fmtKg } from "@/utils/format";
+import { errorMessage, fmtInt, fmtKg, kcalUnit } from "@/utils/format";
 import { MACRO_META } from "@/utils/macro-icons";
 import { orpc } from "@/utils/orpc";
 
@@ -232,7 +232,7 @@ export default function Rekap() {
             <Card style={styles.heroCard}>
               <Text style={styles.heroLabel}>{t("recap.avg.label")}</Text>
               <Num style={styles.heroValue}>
-                {fmtInt(recap.avgKcal)} <Text style={styles.heroUnit}>kcal</Text>
+                {fmtInt(recap.avgKcal)} <Text style={styles.heroUnit}>{kcalUnit()}</Text>
               </Num>
               <View
                 accessibilityRole="progressbar"
@@ -312,7 +312,7 @@ export default function Rekap() {
                 icon="barbell"
                 tint="bakar"
                 label={t("common:nav.exercise")}
-                value={`${fmtInt(recap.exercise.kcal)} kcal`}
+                value={`${fmtInt(recap.exercise.kcal)} ${kcalUnit()}`}
                 sub={
                   recap.exercise.sessions > 0
                     ? t("recap.stat.exercise.sub", {

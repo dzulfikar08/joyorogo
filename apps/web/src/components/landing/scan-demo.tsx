@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import { useMutation } from "@tanstack/react-query";
 import { AppLink } from "@/components/app-link";
 import { Camera, ImageIcon, ScanSearch, ThumbsUp, TriangleAlert } from "lucide-react";
@@ -256,7 +257,7 @@ export function ScanDemo() {
                 <p className="text-[2.75rem] leading-none font-extrabold tracking-tighter tabular-nums">
                   {fmtInt(total)}
                   <span className="ml-1.5 text-base font-semibold tracking-normal text-muted-foreground">
-                    kcal
+                    {kcalUnit()}
                   </span>
                 </p>
               </div>

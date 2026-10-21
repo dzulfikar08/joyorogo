@@ -15,9 +15,9 @@ Buka **Profil**, lalu **Tanggal target**. Kamu bisa memilih lewat kalender atau 
 Begitu tanggal dipilih, JoyoRogo langsung menghitung dan menampilkan:
 
 - **Kabar ritme.** Kalau aman, tampil kalimat seperti "Pas. Turun 5 kg dalam 90 hari, ritme 0,4 kg per minggu, aman." (angka contoh)
-- **Peringatan terlalu cepat.** JoyoRogo membatasi defisit sekitar 1.000 kcal per hari. Kalau tanggalmu menuntut lebih, aplikasi menyebut defisit yang dibutuhkan dan menawarkan tanggal yang realistis dengan satu ketukan.
+- **Peringatan terlalu cepat.** JoyoRogo membatasi defisit sekitar 1.000 kkal per hari. Kalau tanggalmu menuntut lebih, aplikasi menyebut defisit yang dibutuhkan dan menawarkan tanggal yang realistis dengan satu ketukan.
 - **Peringatan terlalu jauh.** Kalau tanggalnya sangat santai, defisit tetap minimal supaya tidak sia-sia, dan aplikasi menampilkan perkiraan tanggal tercapai.
-- **Pratinjau target.** misalnya "Target makan jadi 1.650 kcal per hari (sekarang 1.800)" (angka contoh), dihitung sebelum kamu menyimpan.
+- **Pratinjau target.** misalnya "Target makan jadi 1.650 kkal per hari (sekarang 1.800)" (angka contoh), dihitung sebelum kamu menyimpan.
 
 Kalau beratmu sudah sama dengan target, tanggal belum mengubah angka harian. Tanggal baru dipakai saat berat targetmu lebih rendah dari berat sekarang.
 
@@ -39,7 +39,7 @@ Ketuk tanda tanya di Beranda untuk melihat penjelasannya. Rumusnya satu saja:
 
 **Sisa = target makan dikurangi yang sudah dimakan.**
 
-Contoh: target 1.650, sudah dimakan 1.240, sisa 410 kcal. Kalau sudah lewat, angkanya berubah jadi **Lewat** dengan jumlah kelebihannya.
+Contoh: target 1.650, sudah dimakan 1.240, sisa 410 kkal. Kalau sudah lewat, angkanya berubah jadi **Lewat** dengan jumlah kelebihannya.
 
 Gerak yang diukur jam, HP, atau Health hanya menambah Sisa kalau melebihi gerak yang sudah ada di pengali levelmu (sebagian kecil, bawaannya 75%), dan tidak pernah mengurangi. Angka defisit tidak ditampilkan di Beranda; yang kamu ikuti cukup Sisa.
 

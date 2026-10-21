@@ -159,15 +159,15 @@
     "foodsLabel": "Makanan {{name}} hari ini",
     "verdict": {
       "safe": "AMAN, lanjutkan!",
-      "offside": "OFFSIDE! +{{kcal}} kcal",
+      "offside": "OFFSIDE! +{{kcal}} kkal",
       "noTarget": "Belum ada target pembanding",
       "empty": "Perut kosong… belum makan?"
     },
-    "total": "Total hari ini {{eaten}} dari {{target}} kcal",
-    "totalNoTarget": "Total hari ini {{eaten}} kcal",
+    "total": "Total hari ini {{eaten}} dari {{target}} kkal",
+    "totalNoTarget": "Total hari ini {{eaten}} kkal",
     "intake": {
       "label": "Asupan hari ini",
-      "value": "{{eaten}} / {{target}} kcal"
+      "value": "{{eaten}} / {{target}} kkal"
     },
     "basis": "Berdasarkan catatan makan {{name}} hari ini, bukan foto asli.",
     "chip": "VAR perut {{name}} ({{date}}): {{verdict}}",

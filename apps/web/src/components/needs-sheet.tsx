@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useTranslation } from "react-i18next";
@@ -202,7 +203,7 @@ export function NeedsSheet({
                 </div>
                 <p className="shrink-0 text-right tabular-nums">
                   <span className="text-2xl font-extrabold tracking-tight">{step.value}</span>
-                  <span className="ml-1 text-xs font-semibold text-muted-foreground">kcal</span>
+                  <span className="ml-1 text-xs font-semibold text-muted-foreground">{kcalUnit()}</span>
                 </p>
               </div>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{step.body}</p>

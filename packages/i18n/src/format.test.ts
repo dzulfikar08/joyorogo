@@ -6,6 +6,7 @@ import {
   fmtInt,
   fmtKcalLabel,
   fmtKg,
+  kcalUnit,
   relativeDayLabel,
   setActiveLocale,
   timeAgo,
@@ -20,6 +21,9 @@ describe("numbers", () => {
     expect(fmtIdr(15000, "id")).toBe("Rp15.000");
     expect(fmtIdr(15000, "en")).toBe("Rp15,000");
     expect(fmtKcalLabel(2100, "en")).toBe("2,100 kcal");
+    expect(fmtKcalLabel(2100, "id")).toBe("2.100 kkal");
+    expect(kcalUnit("id")).toBe("kkal");
+    expect(kcalUnit("en")).toBe("kcal");
   });
 });
 

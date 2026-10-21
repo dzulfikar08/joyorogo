@@ -38,7 +38,7 @@ import { DaySwitcher } from "@/components/day-switcher";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { openJoyoFit } from "@/lib/workout/joyofit";
-import { errorMessage, fmtDateMedium, fmtInt, fmtKcalLabel, fmtKg, parseNum } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtInt, fmtKcalLabel, fmtKg, kcalUnit, parseNum } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import type { QueryKey } from "@tanstack/react-query";
@@ -312,7 +312,7 @@ export default function Olahraga() {
           <Num style={styles.burnValue} adjustsFontSizeToFit numberOfLines={1}>
             {fmtInt(burnedKcal)}
           </Num>
-          <Text style={styles.burnUnit}>kcal</Text>
+          <Text style={styles.burnUnit}>{kcalUnit()}</Text>
         </Ring>
         <View style={styles.burnInfo}>
           <Text style={styles.burnLabel}>{t("summary.burned")}</Text>

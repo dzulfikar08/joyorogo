@@ -7,7 +7,7 @@ import type { LiveRow } from "@joyorogo/api/lib/scan-live";
 
 import { useEnter } from "@/components/motion";
 import { Text } from "@/components/ui";
-import { fmtInt } from "@/utils/format";
+import { fmtInt, kcalUnit } from "@/utils/format";
 
 /** Skeleton rows shown before the first name arrives. */
 const SKELETON_ROWS = 2;
@@ -25,7 +25,7 @@ function Row({ row, pulse }: { row: LiveRow; pulse: Animated.Value }) {
         {row.name}
       </Text>
       {row.item ? (
-        <Text style={styles.kcal}>{`${fmtInt(row.item.kcal)} kcal`}</Text>
+        <Text style={styles.kcal}>{`${fmtInt(row.item.kcal)} ${kcalUnit()}`}</Text>
       ) : (
         <SkeletonBar pulse={pulse} width={48} />
       )}

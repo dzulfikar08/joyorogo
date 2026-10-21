@@ -53,7 +53,7 @@ export const DRINK_RULE =
  * docs/ai-accuracy-review-2026-10-17.md: sauce prompt variant).
  */
 export const SAUCE_RULE =
-  "Saus, sambal, mayones, dan bumbu kacang yang banyak dihitung kalorinya: mayones 1 sdm (15 g) = 100 kcal, bumbu kacang 50 g = 150 kcal, sambal berminyak (ijo/balado/terasi) 30 g = 60-100 kcal, kacang tanah goreng 10 g = 60 kcal. Lauk bersambal (ayam sambal ijo, ayam penyet, telur balado) = kcal lauknya DITAMBAH sambalnya, bukan hanya kcal sambal.";
+  "Saus, sambal, mayones, dan bumbu kacang yang banyak dihitung kalorinya: mayones 1 sdm (15 g) = 100 kkal, bumbu kacang 50 g = 150 kkal, sambal berminyak (ijo/balado/terasi) 30 g = 60-100 kkal, kacang tanah goreng 10 g = 60 kkal. Lauk bersambal (ayam sambal ijo, ayam penyet, telur balado) = kcal lauknya DITAMBAH sambalnya, bukan hanya kcal sambal.";
 
 /**
  * Shadow variant (see lib/shadow-scan.ts): the production prompt plus the

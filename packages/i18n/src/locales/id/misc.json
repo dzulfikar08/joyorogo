@@ -25,7 +25,7 @@
     "grams": "Berat",
     "progress": "{{label}}: {{eaten}} dari {{budget}} {{unit}}",
     "summaryTitle": "Ringkasan kalori hari ini",
-    "eatenOf": "Dimakan {{eaten}} dari {{budget}} kcal",
+    "eatenOf": "Dimakan {{eaten}} dari {{budget}} kkal",
     "over": "Lewat {{kcal}}",
     "ofTarget": "dari {{kcal}}"
   },
@@ -111,8 +111,8 @@
     },
     "avg": {
       "label": "Rata-rata per hari",
-      "aria": "Rata-rata {{avg}} dari target {{target}} kcal",
-      "note_other": "Target makanmu {{target}} kcal. Dihitung dari {{count}} hari yang kamu catat."
+      "aria": "Rata-rata {{avg}} dari target {{target}} kkal",
+      "note_other": "Target makanmu {{target}} kkal. Dihitung dari {{count}} hari yang kamu catat."
     },
     "daily": "Harian",
     "unit": {
@@ -142,7 +142,7 @@
       },
       "bestDay": {
         "label": "Hari terbaik",
-        "sub": "{{kcal}} kcal, terdekat target di antara hari sesuai target",
+        "sub": "{{kcal}} kkal, terdekat target di antara hari sesuai target",
         "none": "belum ada hari sesuai target"
       }
     },
@@ -153,8 +153,8 @@
       "ongoing": "Minggu ini dihitung sampai kemarin; hari ini belum ikut dinilai."
     },
     "chart": {
-      "aria": "Asupan harian dibanding target {{target}} kcal",
-      "day": "{{day}}: {{kcal}} kcal, {{status}}",
+      "aria": "Asupan harian dibanding target {{target}} kkal",
+      "day": "{{day}}: {{kcal}} kkal, {{status}}",
       "status": {
         "on_target": "sesuai target",
         "over": "lewat target",

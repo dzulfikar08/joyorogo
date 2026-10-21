@@ -304,7 +304,7 @@ const NUMBERS: Array<{
     value: 1240,
     max: 1650,
     center: "1.650",
-    unit: "kcal",
+    unit: "kkal",
     title: "Boleh makan",
     body: "Kebutuhan harianmu (BMR dikali pengali level aktivitas yang kamu pilih) dikurangi defisit yang pas untuk target berat dan tanggalmu. Data jam atau HP hanya menambah jatah, tidak pernah menguranginya.",
   },
@@ -313,7 +313,7 @@ const NUMBERS: Array<{
     value: 120,
     max: 300,
     center: "300",
-    unit: "kcal",
+    unit: "kkal",
     title: "Harus bakar",
     body: "Dari langkah dan olahraga. Di Android terbaca otomatis dari Health Connect, di iPhone dari Apple Health. Strava juga bisa disambung, tapi slotnya sedang penuh dan ada daftar tunggu. Mau catat manual juga bisa.",
   },
@@ -773,7 +773,7 @@ function Landing() {
         >
           <article className="rounded-[1.75rem] bg-makan-soft p-6 md:p-8">
             <h3 className="text-2xl font-extrabold tracking-tight text-makan-ink">
-              Sisa 430 kcal. Makan apa?
+              Sisa 430 kkal. Makan apa?
             </h3>
             <p className="mt-2 max-w-md text-[0.9375rem] leading-relaxed text-makan-ink/80">
               Beranda menawarkan menu yang masih muat di sisa kalorimu, yang proteinnya paling
@@ -788,7 +788,7 @@ function Landing() {
                 <li key={name} className="rounded-2xl bg-card px-4 py-3.5">
                   <p className="text-sm leading-snug font-semibold">{name}</p>
                   <p className="mt-1.5 text-xs font-semibold text-makan-ink tabular-nums">
-                    {kcal} kcal · {protein} g protein
+                    {kcal} kkal · {protein} g protein
                   </p>
                 </li>
               ))}

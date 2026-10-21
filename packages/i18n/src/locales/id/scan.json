@@ -97,7 +97,7 @@
   },
   "fact": {
     "title": "Tahukah kamu?",
-    "line": "{{text}} = {{kcal}} kcal, setara {{move}}",
+    "line": "{{text}} = {{kcal}} kkal, setara {{move}}",
     "move": {
       "run": "lari {{duration}}",
       "walk": "jalan {{duration}}",

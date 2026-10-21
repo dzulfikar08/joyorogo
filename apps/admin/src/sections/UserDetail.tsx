@@ -313,7 +313,7 @@ export function UserDetail({ userId, onClose }: { userId: string; onClose: () =>
               <>
                 <div className="flex items-start justify-between gap-3">
                   <span className="text-sm font-medium">{f.name}</span>
-                  <span className="text-sm font-semibold tabular-nums">{fmtNum(f.kcal)} kcal</span>
+                  <span className="text-sm font-semibold tabular-nums">{fmtNum(f.kcal)} kkal</span>
                 </div>
                 <CardFacts
                   facts={[

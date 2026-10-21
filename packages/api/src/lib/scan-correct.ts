@@ -154,7 +154,7 @@ export function correctionPrompt(
       const parts = [item.name];
       if (item.portion) parts.push(item.portion);
       // Old grams stay out of the list: shown, the model copies them onto a renamed food.
-      parts.push(`${Math.round(item.kcal)} kcal`);
+      parts.push(`${Math.round(item.kcal)} kkal`);
       return `${i + 1}. ${parts.join(" | ")}`;
     })
     .join("\n");

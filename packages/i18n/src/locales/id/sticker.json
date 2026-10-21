@@ -29,7 +29,8 @@
   },
   "common": {
     "madeWith": "Dicatat dengan JoyoRogo",
-    "kcal": "kcal",
+    "kcal": "kkal",
+    "kcalValue": "{{value}} kkal",
     "kg": "kg",
     "g": "g",
     "protein": "Protein",
@@ -41,16 +42,17 @@
   "day": {
     "eyebrow": "Hari ini",
     "eaten": "Sudah masuk",
-    "ofTarget": "dari {{target}} kcal",
-    "remaining": "Sisa {{kcal}} kcal",
-    "overBy": "Lewat {{kcal}} kcal",
-    "gainLeft": "Kurang {{kcal}} kcal lagi",
+    "ofTarget": "dari {{target}} kkal",
+    "remaining": "Sisa {{kcal}} kkal",
+    "overBy": "Lewat {{kcal}} kkal",
+    "gainLeft": "Kurang {{kcal}} kkal lagi",
     "left": "Sisa",
     "over": "Lewat",
     "gainShort": "Kurang",
     "macros": "Makro",
     "onTrack": "Sesuai target",
-    "kcalEaten": "kcal sudah masuk",
+    "kcalEaten": "kkal sudah masuk",
+    "eatenOfTarget": "{{eaten}} / {{target}} kkal",
     "posterEaten": "Sudah",
     "streak_other": "{{count}} hari beruntun",
     "receipt": {
@@ -68,7 +70,7 @@
     "energy": "Energi",
     "receipt": {
       "title": "Struk makan",
-      "itemKcal": "{{kcal}} kcal",
+      "itemKcal": "{{kcal}} kkal",
       "item": "Item",
       "total": "Total",
       "thanks": "Makasih sudah mencatat"
@@ -112,7 +114,7 @@
     "target": "target",
     "weight": "Berat",
     "weeklyTrend": "tren mingguan",
-    "targetLine": "Target {{kcal}} kcal",
+    "targetLine": "Target {{kcal}} kkal",
     "daysUnit": "hari",
     "bestDayOf": "Terbaik, {{day}}"
   },
@@ -210,9 +212,9 @@
     "streak_other": "Beruntun {{count}} hari",
     "deficit": "Perkiraan defisit",
     "surplus": "Perkiraan surplus",
-    "fat": "Setara sekitar {{kg}} kg lemak (7.700 kcal per kg)",
+    "fat": "Setara sekitar {{kg}} kg lemak (7.700 kkal per kg)",
     "estimateNote_other": "Perkiraan dari {{count}} hari tercatat yang lengkap, bukan pengukuran. Hari tanpa catatan tidak dihitung.",
-    "legend": "Garis putus: target {{kcal}} kcal · Batang pendek: hari tanpa catatan",
+    "legend": "Garis putus: target {{kcal}} kkal · Batang pendek: hari tanpa catatan",
     "legendNoTarget": "Batang pendek: hari tanpa catatan"
   }
 }

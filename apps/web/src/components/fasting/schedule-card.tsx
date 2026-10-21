@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { AlarmClock, Check, ChevronDown, CircleAlert, Utensils } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -154,7 +155,7 @@ export function FastingScheduleCard() {
         <dl className="mt-2 grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-xl bg-card px-3 py-2">
             <dt className="text-xs text-muted-foreground">{t("fasting.remaining")}</dt>
-            <dd className="font-bold tabular-nums">{fmtInt(data.remainingKcal)} kcal</dd>
+            <dd className="font-bold tabular-nums">{fmtInt(data.remainingKcal)} {kcalUnit()}</dd>
           </div>
           <div className="rounded-xl bg-card px-3 py-2">
             <dt className="text-xs text-muted-foreground">{t("fasting.lastMeal")}</dt>

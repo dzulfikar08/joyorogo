@@ -10,7 +10,7 @@ import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
 import { weekRangeLabel, weekStartOf } from "@joyorogo/api/lib/recap";
 
 import { Card, Num, Text } from "@/components/ui";
-import { fmtInt } from "@/utils/format";
+import { fmtInt, kcalUnit } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -58,7 +58,7 @@ export function RecapCard() {
           <View style={styles.cell}>
             <Text style={styles.cellLabel}>{t("recap.average")}</Text>
             <Num style={styles.cellValue}>
-              {fmtInt(data.avgKcal)} <Text style={styles.cellUnit}>kcal</Text>
+              {fmtInt(data.avgKcal)} <Text style={styles.cellUnit}>{kcalUnit()}</Text>
             </Num>
             <Text style={styles.cellSub}>{t("recap.target", { kcal: fmtInt(data.targetKcal) })}</Text>
           </View>

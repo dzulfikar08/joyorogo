@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import { ORPCError } from "@orpc/client";
 import { formatDuration } from "@joyorogo/api/lib/workout-analysis";
 import type { WatchWorkoutListItem } from "@joyorogo/api/lib/watch-workout-store";
@@ -65,7 +66,7 @@ function RowSummary({ item }: { item: WatchWorkoutListItem }) {
     item.avgHr !== null
       ? { label: t("detail.avgHr"), value: `${fmtInt(item.avgHr)} bpm` }
       : null,
-    item.calories > 0 ? { label: t("detail.calories"), value: `${fmtInt(item.calories)} kcal` } : null,
+    item.calories > 0 ? { label: t("detail.calories"), value: `${fmtInt(item.calories)} ${kcalUnit()}` } : null,
     item.steps > 0 ? { label: t("detail.steps"), value: fmtInt(item.steps) } : null,
   ].filter((stat) => stat !== null);
 

@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
@@ -371,7 +372,7 @@ function OlahragaScreen({
               >
                 {fmtInt(burnedKcal)}
               </p>
-              <p className="mt-0.5 text-xs font-semibold text-muted-foreground">kcal</p>
+              <p className="mt-0.5 text-xs font-semibold text-muted-foreground">{kcalUnit()}</p>
             </div>
           </Ring>
           <div className="min-w-0 flex-1">

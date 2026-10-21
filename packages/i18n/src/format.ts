@@ -73,9 +73,14 @@ export function fmtIdr(n: number, locale: Locale = activeLocale): string {
   return `Rp${fmtInt(n, locale)}`;
 }
 
-/** "1.234 kcal". The unit is the same in every language. */
+/** Energy unit shown to people: "kkal" in Indonesian, "kcal" in English. Parsers still accept both. */
+export function kcalUnit(locale: Locale = activeLocale): string {
+  return locale === "id" ? "kkal" : "kcal";
+}
+
+/** "1.234 kkal" (id) / "1,234 kcal" (en). */
 export function fmtKcalLabel(n: number, locale: Locale = activeLocale): string {
-  return `${fmtInt(n, locale)} kcal`;
+  return `${fmtInt(n, locale)} ${kcalUnit(locale)}`;
 }
 
 /** "120 g". */

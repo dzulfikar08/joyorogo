@@ -29,7 +29,7 @@ Tips foto: dekat, tanpa silau, dan seluruh tabel masuk bingkai.
 
 ## Pengamanan angka
 
-JoyoRogo menolak angka yang tidak mungkin, misalnya lebih dari 950 kcal per 100 g. Kalau energinya tidak cocok dengan protein, karbohidrat, dan lemaknya, kamu diberi peringatan. Kalau memang begitu tertulis di label, kamu bisa menyimpannya dengan **Sudah sesuai label, simpan**.
+JoyoRogo menolak angka yang tidak mungkin, misalnya lebih dari 950 kkal per 100 g. Kalau energinya tidak cocok dengan protein, karbohidrat, dan lemaknya, kamu diberi peringatan. Kalau memang begitu tertulis di label, kamu bisa menyimpannya dengan **Sudah sesuai label, simpan**.
 
 Kalau beberapa pengguna memotret produk yang sama, angka yang dipakai adalah kesepakatan mereka. Hasil scan menampilkan berapa orang yang sudah mengonfirmasi.
 

@@ -126,8 +126,8 @@ export function promptStrings(facts: PromptFacts): string[] {
 }
 
 const LANGUAGE: Record<Locale, string> = {
-  id: 'Indonesian, casual, addressing the person as "kamu" (never "Anda")',
-  en: 'English, casual, addressing the person as "you"',
+  id: 'Indonesian, casual, addressing the person as "kamu" (never "Anda"); write the energy unit as "kkal", never "kcal"',
+  en: 'English, casual, addressing the person as "you"; write the energy unit as "kcal"',
 };
 
 const MATERNAL_RULE =

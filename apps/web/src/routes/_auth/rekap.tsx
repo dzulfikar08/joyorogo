@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
@@ -116,7 +117,7 @@ function RekapPage() {
             <p className="mt-1 text-[3rem] leading-none font-extrabold tracking-tighter tabular-nums">
               {fmtInt(recap.avgKcal)}
               <span className="ml-1.5 text-lg font-semibold tracking-normal text-muted-foreground">
-                kcal
+                {kcalUnit()}
               </span>
             </p>
             <ProgressBar
@@ -171,7 +172,7 @@ function RekapPage() {
               icon={<Dumbbell className="size-[1.125rem]" aria-hidden />}
               label={t("common:nav.exercise")}
               value={fmtInt(recap.exercise.kcal)}
-              unit="kcal"
+              unit={kcalUnit()}
               sub={
                 recap.exercise.sessions > 0
                   ? t("recap.stat.exercise.sub", {

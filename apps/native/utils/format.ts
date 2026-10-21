@@ -10,6 +10,7 @@ export {
   fmtIdr,
   fmtInt,
   fmtKcalLabel,
+  kcalUnit,
   fmtKg,
   fmtMegabytes,
   fmtRatio,

@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import {
   Camera,
   Check,
@@ -1155,7 +1156,7 @@ function AiFoodPage() {
           <p className="mt-1 text-[3rem] leading-none font-extrabold tracking-tighter tabular-nums">
             <CountUp value={totalKcal} duration={700} />
             <span className="ml-1.5 text-base font-semibold tracking-normal text-muted-foreground">
-              kcal
+              {kcalUnit()}
             </span>
           </p>
           {reactionText && (
@@ -1403,7 +1404,7 @@ function AiFoodPage() {
                     }}
                     className="h-10 w-20 text-right font-bold tabular-nums"
                   />
-                  <span className="text-xs font-semibold text-muted-foreground">kcal</span>
+                  <span className="text-xs font-semibold text-muted-foreground">{kcalUnit()}</span>
                 </span>
               </li>
             ))}

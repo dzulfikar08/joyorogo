@@ -11,10 +11,10 @@ Aplikasi diet hampir selalu mengandaikan satu hal: kamu ingin lebih ringan. Itu 
 
 Permenkes 28 Tahun 2019 tentang AKG menambahkan energi di atas kebutuhan biasa:
 
-- Hamil trimester 1: +180 kcal per hari
-- Hamil trimester 2 dan 3: +300 kcal per hari
-- Menyusui 6 bulan pertama: +330 kcal per hari
-- Menyusui 6 bulan kedua: +400 kcal per hari
+- Hamil trimester 1: +180 kkal per hari
+- Hamil trimester 2 dan 3: +300 kkal per hari
+- Menyusui 6 bulan pertama: +330 kkal per hari
+- Menyusui 6 bulan kedua: +400 kkal per hari
 
 Protein, zat besi, folat, kalsium, yodium, dan vitamin A juga punya tambahan sendiri yang berbeda tiap tahap. Mode baru JoyoRogo menampilkan semuanya menurut trimester atau usia bayi.
 

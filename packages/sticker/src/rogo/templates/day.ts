@@ -659,15 +659,15 @@ const dayReceiptStory = defineTemplate({
               box: { x: 0, y: 0, w: "auto", h: "auto" },
               layout: { kind: "stack", dir: "column", gap: 24, align: "start" },
               children: [
-                slipRow("r-energy", { t: "sticker:day.receipt.energy" }, "{day.kcal|int} kcal"),
+                slipRow("r-energy", { t: "sticker:day.receipt.energy" }, { t: "sticker:common.kcalValue", args: { value: "{day.kcal|int}" } }),
                 ...MACROS.map(([key]) =>
                   slipRow(`r-${key}`, { t: `sticker:common.${key}` }, `{day.${key}|int} g`, { bind: `day.${key}`, exists: true }),
                 ),
                 { ...receiptRule("rule-target", 0, 0, RECEIPT_W), when: HAS_TARGET },
-                slipRow("r-target", { t: "sticker:day.receipt.target" }, "{day.target|int} kcal", HAS_TARGET),
-                slipRow("r-left", { t: "sticker:day.receipt.left" }, "{day.remaining|int} kcal", IS_LEFT),
-                slipRow("r-gain", { t: "sticker:day.gainShort" }, "{day.remaining|int} kcal", IS_GAIN_LEFT),
-                slipRow("r-over", { t: "sticker:day.over" }, "{day.overBy|int} kcal", IS_OVER),
+                slipRow("r-target", { t: "sticker:day.receipt.target" }, { t: "sticker:common.kcalValue", args: { value: "{day.target|int}" } }, HAS_TARGET),
+                slipRow("r-left", { t: "sticker:day.receipt.left" }, { t: "sticker:common.kcalValue", args: { value: "{day.remaining|int}" } }, IS_LEFT),
+                slipRow("r-gain", { t: "sticker:day.gainShort" }, { t: "sticker:common.kcalValue", args: { value: "{day.remaining|int}" } }, IS_GAIN_LEFT),
+                slipRow("r-over", { t: "sticker:day.over" }, { t: "sticker:common.kcalValue", args: { value: "{day.overBy|int}" } }, IS_OVER),
               ],
             },
             {
@@ -900,7 +900,7 @@ const dayPosterStory = defineTemplate({
               layout: { kind: "stack", dir: "row", gap: 20, align: "end", justify: "between" },
               children: [
                 { id: "foot-energy-label", type: "text", value: { t: "sticker:day.eaten" }, size: 34, weight: 700, case: "upper", letterSpacing: 4, color: "$fgSoft", trim: "cap", box: { x: 0, y: 0, w: "auto" } },
-                { id: "foot-energy-value", type: "text", value: "{day.kcal|int} / {day.target|int} kcal", size: 50, weight: 800, trim: "cap", box: { x: 0, y: 0, w: "auto" } },
+                { id: "foot-energy-value", type: "text", value: { t: "sticker:day.eatenOfTarget", args: { eaten: "{day.kcal|int}", target: "{day.target|int}" } }, size: 50, weight: 800, trim: "cap", box: { x: 0, y: 0, w: "auto" } },
               ],
             },
             {

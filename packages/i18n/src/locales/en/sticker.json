@@ -30,6 +30,7 @@
   "common": {
     "madeWith": "Tracked with JoyoRogo",
     "kcal": "kcal",
+    "kcalValue": "{{value}} kcal",
     "kg": "kg",
     "g": "g",
     "protein": "Protein",
@@ -52,6 +53,7 @@
     "macros": "Macros",
     "onTrack": "On target",
     "kcalEaten": "kcal eaten",
+    "eatenOfTarget": "{{eaten}} / {{target}} kcal",
     "posterEaten": "Eaten",
     "streak_one": "{{count}} day streak",
     "streak_other": "{{count}} day streak",

@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 import {
@@ -98,7 +99,7 @@ export function MealCard({
         <span className="block text-xl leading-tight font-extrabold tracking-tight tabular-nums">
           {fmtInt(nutrition.kcal)}
         </span>
-        <span className="block text-xs font-semibold text-muted-foreground">kcal</span>
+        <span className="block text-xs font-semibold text-muted-foreground">{kcalUnit()}</span>
       </span>
       {opensRecipe && (
         <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground" aria-hidden />

@@ -87,7 +87,7 @@ import type { CorrectInput, CorrectOutcome } from "@/components/scan/correct-box
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { MealStory } from "@/components/story/types";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtGramsLabel, parseNum } from "@/utils/format";
+import { errorMessage, fmtGramsLabel, kcalUnit, parseNum } from "@/utils/format";
 import { client, isPaywallError, orpc, queryClient } from "@/utils/orpc";
 import { LiveRows } from "@/components/scan/live-rows";
 import { analyzeStreaming } from "@joyorogo/api/lib/scan-live";
@@ -356,7 +356,7 @@ function TotalBlock({
           adjustsFontSizeToFit
           numberOfLines={1}
         />
-        <Text style={styles.totalUnit}>kcal</Text>
+        <Text style={styles.totalUnit}>{kcalUnit()}</Text>
       </View>
       {reactionText ? <Text style={styles.totalReaction}>{reactionText}</Text> : null}
       {totalKcal > 0 ? (
@@ -1687,7 +1687,7 @@ export default function MakanAi() {
                         }
                         style={styles.kcalInput}
                       />
-                      <Text style={styles.kcalUnit}>kcal</Text>
+                      <Text style={styles.kcalUnit}>{kcalUnit()}</Text>
                     </View>
                   }
                   onPress={() =>

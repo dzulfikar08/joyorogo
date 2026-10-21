@@ -25,7 +25,7 @@
   "eat": {
     "left": "Sisa",
     "over": "Lewat",
-    "ringLabel": "Sudah dimakan {{eaten}} dari target {{target}} kcal",
+    "ringLabel": "Sudah dimakan {{eaten}} dari target {{target}} kkal",
     "target": "Target makan",
     "eaten": "Sudah dimakan",
     "overNote": "Ringan saja hari ini, besok jalan lagi.",
@@ -127,7 +127,7 @@
     "hide": "Sembunyikan",
     "hint": "Air minum, streak, dan recap mingguan ada di sini.",
     "factLabel": "Fakta kalori hari ini",
-    "fact": "{{text}} = {{kcal}} kcal, setara {{move}}",
+    "fact": "{{text}} = {{kcal}} kkal, setara {{move}}",
     "badges": "Lencana",
     "shareRecap": "Bagikan recap mingguan"
   },
@@ -159,8 +159,8 @@
     "remaining": "Sisa jendela ini",
     "lastMeal": "Makan terakhir",
     "noMeal": "belum makan",
-    "scheduleKcal": "±{{kcal}} kcal",
-    "outside": "{{kcal}} kcal dicatat di luar jendela makan ({{list}})",
+    "scheduleKcal": "±{{kcal}} kkal",
+    "outside": "{{kcal}} kkal dicatat di luar jendela makan ({{list}})",
     "week": "Minggu ini {{kept}} dari {{total}} hari sesuai jadwal puasa.",
     "countdown": {
       "underMinute": "<1 mnt",
@@ -186,7 +186,7 @@
     "label": "Gerak hari ini",
     "done": "Target gerak hari ini lunas. Mantap.",
     "title": "Gerak dikit",
-    "body": "Bakar <b>{{kcal}} kcal</b> lagi = <s>{{steps}} langkah</s> (± <n>{{km}} km</n> / <n>{{minutes}} menit</n> jalan kaki)",
+    "body": "Bakar <b>{{kcal}} kkal</b> lagi = <s>{{steps}} langkah</s> (± <n>{{km}} km</n> / <n>{{minutes}} menit</n> jalan kaki)",
     "hint": "Santai jalan sore aja udah kebayang habisnya."
   },
   "recap": {
@@ -208,19 +208,19 @@
   "explain": {
     "title": "Cara baca angka hari ini",
     "formula": "Sisa = TDEE − defisit + gerak di atas pengali − sudah dimakan",
-    "exampleAdd": "Hari ini: {{target}} + {{exercise}} aktivitas − {{eaten}} = {{left}} kcal sisa",
-    "exampleAddOver": "Hari ini: {{target}} + {{exercise}} aktivitas − {{eaten}} = lewat {{over}} kcal",
+    "exampleAdd": "Hari ini: {{target}} + {{exercise}} aktivitas − {{eaten}} = {{left}} kkal sisa",
+    "exampleAddOver": "Hari ini: {{target}} + {{exercise}} aktivitas − {{eaten}} = lewat {{over}} kkal",
     "added": "+{{kcal}} kkal dari olahraga ({{pct}}%)",
-    "example": "Hari ini: {{target}} − {{eaten}} = {{left}} kcal sisa",
-    "exampleOver": "Hari ini: {{target}} − {{eaten}} = lewat {{over}} kcal",
+    "example": "Hari ini: {{target}} − {{eaten}} = {{left}} kkal sisa",
+    "exampleOver": "Hari ini: {{target}} − {{eaten}} = lewat {{over}} kkal",
     "target": {
       "title": "Target makan",
       "body": "Jatah kalori makanmu sehari: TDEE (BMR dikali pengali level aktivitasmu, sudah termasuk gerak harian dan efek makan) dikurangi defisit untuk target beratmu. Gerak terukur yang melebihi pengalimu ditambahkan terpisah."
     },
     "clamped": {
-      "lose": "Target makan ini dihitung dengan defisit maksimal 1.000 kcal per hari. Tanggal targetmu menuntut lebih dari itu, jadi targetmu baru tercapai sekitar {{date}}.",
+      "lose": "Target makan ini dihitung dengan defisit maksimal 1.000 kkal per hari. Tanggal targetmu menuntut lebih dari itu, jadi targetmu baru tercapai sekitar {{date}}.",
       "gain": "Target makan ini dihitung dengan ritme naik yang aman. Tanggal targetmu menuntut lebih cepat dari itu, jadi targetmu baru tercapai sekitar {{date}}.",
-      "passedLose": "Tanggal targetmu sudah lewat, jadi target makan ini memakai defisit aman maksimal 1.000 kcal per hari. Dengan itu targetmu tercapai sekitar {{date}}.",
+      "passedLose": "Tanggal targetmu sudah lewat, jadi target makan ini memakai defisit aman maksimal 1.000 kkal per hari. Dengan itu targetmu tercapai sekitar {{date}}.",
       "passedGain": "Tanggal targetmu sudah lewat, jadi target makan ini memakai ritme naik yang aman. Dengan itu targetmu tercapai sekitar {{date}}."
     },
     "eaten": {
@@ -262,7 +262,7 @@
     },
     "deficit": {
       "title": "Kok ada kata defisit?",
-      "body": "Defisit itu selisih antara kalori yang tubuhmu butuhkan dan yang kamu makan. Selisih inilah yang menurunkan berat. Kamu tidak perlu menghitungnya, cukup makan sekitar target. Rencanamu sekitar {{kcal}} kcal per hari.",
+      "body": "Defisit itu selisih antara kalori yang tubuhmu butuhkan dan yang kamu makan. Selisih inilah yang menurunkan berat. Kamu tidak perlu menghitungnya, cukup makan sekitar target. Rencanamu sekitar {{kcal}} kkal per hari.",
       "bodyMaintenance": "Rencanamu sekarang menjaga berat, jadi tidak ada defisit. Makan sekitar target saja."
     },
     "needs": "Lihat rincian kebutuhan harianmu"

@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import { Flame, Moon, Utensils } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -43,7 +44,7 @@ export function PlanNumbers({ targets }: { targets: Targets }) {
         icon={<Utensils className="size-[1.125rem]" aria-hidden />}
         label={t("settings:plan.numbers.eat")}
         value={fmtInt(targets.eatKcal)}
-        unit="kcal"
+        unit={kcalUnit()}
         sub={targets.gain ? t("gain:plan.perDay", { kcal: fmtInt(targets.gain.surplusKcal) }) : undefined}
       />
       {!maternal && (
@@ -52,7 +53,7 @@ export function PlanNumbers({ targets }: { targets: Targets }) {
           icon={<Flame className="size-[1.125rem]" aria-hidden />}
           label={t("settings:plan.numbers.burn")}
           value={fmtInt(targets.burnKcal)}
-          unit="kcal"
+          unit={kcalUnit()}
         />
       )}
       <StatTile

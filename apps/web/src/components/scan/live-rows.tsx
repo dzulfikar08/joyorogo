@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useEffect, useState } from "react";
@@ -26,7 +27,7 @@ function Row({ row }: { row: LiveRow }) {
     >
       <span className="min-w-0 truncate font-semibold">{row.name}</span>
       {row.item ? (
-        <span className="shrink-0 font-bold tabular-nums">{fmtInt(row.item.kcal)} kcal</span>
+        <span className="shrink-0 font-bold tabular-nums">{fmtInt(row.item.kcal)} {kcalUnit()}</span>
       ) : (
         <Skeleton className="h-3 w-12 shrink-0" />
       )}

@@ -41,7 +41,7 @@
     "progress_other": "{{count}} aktivitas · target {{target}}",
     "steps": "langkah",
     "km": "km",
-    "activeKcal": "kcal aktif"
+    "activeKcal": "kkal aktif"
   },
   "list": {
     "aria": "Aktivitas",
@@ -98,7 +98,7 @@
     "nameOptional": "Nama (opsional)",
     "namePlaceholder": "Jalan sore",
     "duration": "Durasi (menit)",
-    "kcal": "Kalori (kcal)",
+    "kcal": "Kalori (kkal)",
     "kcalHint": "Estimasi pakai berat terkinimu, {{kg}} kg.",
     "defaultName": "Olahraga",
     "saving": "Menyimpan...",

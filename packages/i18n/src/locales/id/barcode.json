@@ -59,7 +59,7 @@
   "manual": {
     "name": "Nama makanan",
     "namePlaceholder": "Nama produk",
-    "kcal": "Kalori (kcal)",
+    "kcal": "Kalori (kkal)",
     "nameRequired": "Isi dulu nama makanannya.",
     "kcalRequired": "Isi jumlah kalorinya, contoh: 350."
   },

@@ -150,7 +150,7 @@ describe("rendering with fixtures", () => {
     for (const fid of ["progress-empty", "recap-sparse", "workout-bare", "challenge-upcoming", "progress-maternal"] as const) {
       for (const t of availableTemplates(FIXTURES[fid].spec, {})) {
         const nodes = textNodes(render(t, fid));
-        for (const unit of nodes.filter((n) => /^(g|kg|kcal|hari|menit|set|jam)$/.test(n.text))) {
+        for (const unit of nodes.filter((n) => /^(g|kg|kcal|kkal|hari|menit|set|jam)$/.test(n.text))) {
           const partner = nodes.find((n) => n !== unit && Math.abs(n.y - unit.y) < 200 && /\d/.test(n.text));
           expect({ t: t.id, fid, unit: unit.text, hasNumber: partner !== undefined }).toEqual({ t: t.id, fid, unit: unit.text, hasNumber: true });
         }
@@ -465,5 +465,23 @@ describe("period progress (Progres)", () => {
     expect(text).toContain("2,500");
     expect(text).toMatch(/\| 0 \|/);
     expect(text).toContain("Dashed line: target 1,900 kcal");
+  });
+});
+
+describe("calorie unit follows the locale", () => {
+  test("Indonesian cards say kkal and English cards say kcal, never the other way round", () => {
+    let seen = 0;
+    for (const t of templates) {
+      const fixture = fixtureFor(t);
+      const id = textsOf(render(t, fixture, {}, "dark", "id")).join(" ");
+      const en = textsOf(render(t, fixture, {}, "dark", "en")).join(" ");
+      expect(id).not.toMatch(/\bkcal\b/i);
+      expect(en).not.toMatch(/\bkkal\b/i);
+      if (/\bkkal\b/.test(id)) {
+        seen++;
+        expect(en).toMatch(/\bkcal\b/);
+      }
+    }
+    expect(seen).toBeGreaterThan(10);
   });
 });

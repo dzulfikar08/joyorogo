@@ -24,7 +24,7 @@ import { Button, Chip, Input, ListGroup, ListRow, Text } from "@/components/ui";
 import { MetaLine } from "@/components/meta-line";
 import { PlateFields } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
-import { errorMessage, fmtGramsLabel, fmtInt, fmtKcalLabel, parseNum } from "@/utils/format";
+import { errorMessage, fmtGramsLabel, fmtInt, fmtKcalLabel, kcalUnit, parseNum } from "@/utils/format";
 import { client, isPaywallError, orpc, queryClient } from "@/utils/orpc";
 import { useToast } from "@/components/toast";
 import { useOptimisticMutation } from "@/lib/optimistic";
@@ -579,7 +579,7 @@ export function Cerita({
                           accessibilityLabel={t("story.kcalAria", { name: item.name })}
                           style={styles.kcalInput}
                         />
-                        <Text style={styles.kcalUnit}>kcal</Text>
+                        <Text style={styles.kcalUnit}>{kcalUnit()}</Text>
                         <Pressable
                           accessibilityRole="button"
                           accessibilityLabel={t("foodRow.delete", { name: item.name })}
@@ -613,7 +613,7 @@ export function Cerita({
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>{t("story.total")}</Text>
           <Text style={styles.totalValue}>
-            {fmtInt(total)} <Text style={styles.totalUnit}>kcal</Text>
+            {fmtInt(total)} <Text style={styles.totalUnit}>{kcalUnit()}</Text>
           </Text>
         </View>
 

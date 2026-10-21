@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
@@ -57,7 +58,7 @@ import {
 import { useWater } from "@/components/water-card";
 import { JoyoFitCard } from "@/components/workout/joyofit-card";
 import { pickFact } from "@/lib/facts";
-import { fmtDateLong, fmtFactor, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
+import { fmtDateLong, fmtDateMedium, fmtFactor, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
 import { useFirstVisit } from "@/lib/motion";
 import { useWaistCheckIn, useWeightCheckIn } from "@/lib/optimistic";
 import { useAppConfig } from "@/lib/app-config";
@@ -66,7 +67,7 @@ import { DEFAULT_ADD_BACK_SETTINGS } from "@joyorogo/api/lib/exercise-credit";
 import { datePaceExplainKey, jakartaToday, needsBreakdown, relativeDayLabel, remainingKcal } from "@joyorogo/api/lib/engine";
 import { visibleHomeCards } from "@joyorogo/api/lib/home-cards";
 import type { HomeCardId } from "@joyorogo/api/lib/home-cards";
-import { weightSecondary } from "@joyorogo/api/lib/home-stats";
+import { trendChange, weightSecondary } from "@joyorogo/api/lib/home-stats";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { orpc } from "@/utils/orpc";
 
@@ -307,7 +308,7 @@ function StatsCard({ summary, date, today }: { summary: Summary; date: string; t
             value={
               <>
                 <CountUp value={activeKcal} />
-                <Unit>kcal</Unit>
+                <Unit>{kcalUnit()}</Unit>
               </>
             }
             note={
@@ -415,7 +416,7 @@ function IdeasCard({ summary }: { summary: Summary }) {
             <p className="line-clamp-2 text-sm leading-snug font-semibold">{idea.name}</p>
             <p className="mt-1 text-xs font-semibold text-makan-ink tabular-nums">
               <MetaLine
-                items={[`${fmtInt(idea.kcal)} kcal`, t("ideas.protein", { g: fmtInt(idea.proteinG) })]}
+                items={[`${fmtInt(idea.kcal)} ${kcalUnit()}`, t("ideas.protein", { g: fmtInt(idea.proteinG) })]}
               />
             </p>
           </li>
@@ -502,7 +503,7 @@ function Dashboard({
                       />
                       <figcaption className="mt-2 truncate text-xs font-semibold">{item.name}</figcaption>
                       <p className="text-xs text-muted-foreground tabular-nums">
-                        {fmtInt(item.kcal)} kcal
+                        {fmtInt(item.kcal)} {kcalUnit()}
                       </p>
                     </figure>
                   ))}
@@ -708,7 +709,7 @@ function EatHero({ summary }: { summary: Summary }) {
               <p className="text-[2.25rem] leading-none font-extrabold tracking-tighter tabular-nums">
                 <CountUp value={intake.state === "short" ? intake.kcal : summary.eatenKcal} />
               </p>
-              <p className="mt-0.5 text-xs font-semibold text-muted-foreground">kcal</p>
+              <p className="mt-0.5 text-xs font-semibold text-muted-foreground">{kcalUnit()}</p>
             </div>
           ) : (
             <div>
@@ -723,7 +724,7 @@ function EatHero({ summary }: { summary: Summary }) {
               >
                 <CountUp value={fresh ? targets.eatKcal : leftKcal} />
               </p>
-              <p className="mt-0.5 text-xs font-semibold text-muted-foreground">kcal</p>
+              <p className="mt-0.5 text-xs font-semibold text-muted-foreground">{kcalUnit()}</p>
             </div>
           )}
         </Ring>
@@ -1013,7 +1014,7 @@ function TodayMeals({ summary, isToday }: { summary: Summary; isToday: boolean }
                 {kcal > 0 ? (
                   <span className="text-[0.9375rem] font-bold tabular-nums">
                     <CountUp value={kcal} />{" "}
-                    <span className="text-xs font-semibold text-muted-foreground">kcal</span>
+                    <span className="text-xs font-semibold text-muted-foreground">{kcalUnit()}</span>
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 text-sm font-semibold text-primary">
@@ -1063,6 +1064,13 @@ function Sparkline({ values, tone = "makan" }: { values: number[]; tone?: "makan
   );
 }
 
+/** "−0,4" / "+0,3" / "0,0": the sign is always explicit except at zero. */
+function signedKg(kg: number): string {
+  const rounded = Math.round(kg * 10) / 10;
+  if (rounded === 0) return fmtKg(0);
+  return `${rounded < 0 ? "−" : "+"}${fmtKg(Math.abs(rounded))}`;
+}
+
 function WeightCard({
   summary,
   date,
@@ -1076,6 +1084,7 @@ function WeightCard({
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const trend = summary.trend;
+  const change = trend ? trendChange(trend.points) : null;
   const checkIn = useWeightCheckIn();
 
   return (
@@ -1095,7 +1104,31 @@ function WeightCard({
       </SectionTitle>
       <Card className="p-4">
         {trend ? (
-          <Sparkline values={trend.points.map((p) => p.trendKg)} />
+          <>
+            <div className="mb-2 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-muted-foreground">{t("weight.trend")}</p>
+                <p className="text-3xl font-extrabold tracking-tight tabular-nums">
+                  {fmtKg(trend.weightKg)}
+                  <span className="ml-1 text-base font-medium text-muted-foreground">kg</span>
+                </p>
+              </div>
+              {change && (
+                <p className="rounded-xl bg-makan-soft px-3 py-2 text-sm font-bold text-makan-ink tabular-nums">
+                  {t("weight.trendChange", { delta: signedKg(change.deltaKg), days: change.days })}
+                </p>
+              )}
+            </div>
+            <Sparkline values={trend.points.map((p) => p.trendKg)} />
+            {trend.points.length > 1 && (
+              <p className="mt-1 text-center text-xs text-muted-foreground">
+                {t("weight.trendRange", {
+                  from: fmtDateMedium(trend.points[0]!.date),
+                  to: fmtDateMedium(trend.points[trend.points.length - 1]!.date),
+                })}
+              </p>
+            )}
+          </>
         ) : (
           <p className="text-sm text-muted-foreground">{t("weight.startPrompt")}</p>
         )}

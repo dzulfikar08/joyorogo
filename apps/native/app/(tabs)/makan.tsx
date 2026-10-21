@@ -54,7 +54,7 @@ import {
 import { PopIn, PressableScale, Reveal } from "@/components/motion";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
-import { errorMessage, fmtInt, parseNum } from "@/utils/format";
+import { errorMessage, fmtInt, kcalUnit, parseNum } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import type { QueryKey } from "@tanstack/react-query";
@@ -1067,7 +1067,7 @@ export default function Makan() {
               kind: "makan",
               refId: editRow.id,
               title: editRow.name,
-              preview: `${fmtInt(editRow.kcal)} kcal${
+              preview: `${fmtInt(editRow.kcal)} ${kcalUnit()}${
                 editRow.protein !== null
                   ? ` · ${t("diary.sheet.shareProtein", { g: fmtInt(editRow.protein ?? 0) })}`
                   : ""

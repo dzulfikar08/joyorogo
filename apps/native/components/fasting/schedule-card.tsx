@@ -7,7 +7,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import { fastingElapsedFraction, fmtCountdown, MEAL_KIND_LABELS } from "@joyorogo/api/lib/fasting";
-import { fmtInt } from "@joyorogo/i18n";
+import { fmtInt, kcalUnit } from "@joyorogo/i18n";
 
 import { Card, Num, Text } from "@/components/ui";
 import { orpc } from "@/utils/orpc";
@@ -148,7 +148,7 @@ export function FastingScheduleCard() {
           <View style={styles.stats}>
             <View style={styles.statBox}>
               <Text style={styles.statLabel}>{t("fasting.remaining")}</Text>
-              <Num style={styles.statValue}>{fmtInt(data.remainingKcal)} kcal</Num>
+              <Num style={styles.statValue}>{fmtInt(data.remainingKcal)} {kcalUnit()}</Num>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statLabel}>{t("fasting.lastMeal")}</Text>

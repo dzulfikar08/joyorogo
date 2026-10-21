@@ -40,7 +40,7 @@
       "titleDay": "Belum ada catatan di hari ini"
     },
     "list": {
-      "sectionAria": "{{meal}}, total {{kcal}} kcal",
+      "sectionAria": "{{meal}}, total {{kcal}} kkal",
       "addTo": "Tambah {{meal}}",
       "slotEmpty": "Belum ada catatan. Tekan Tambah di atas, atau pindai fotonya.",
       "slotEmptyIcon": "Belum ada catatan. Tekan tambah di atas, atau pindai fotonya.",
@@ -75,7 +75,7 @@
       "field": {
         "name": "Nama makanan",
         "namePlaceholder": "Nasi goreng",
-        "caloriesNative": "Kalori (kcal)",
+        "caloriesNative": "Kalori (kkal)",
         "protein": "Protein (g)",
         "carbs": "Karbo (g)",
         "fat": "Lemak (g)",
@@ -377,7 +377,7 @@
     "title": "Ubah porsi",
     "name": "Nama",
     "weightLabel": "Berat (g)",
-    "kcalLabel": "Kalori (kcal)",
+    "kcalLabel": "Kalori (kkal)",
     "link": {
       "linkedAria": "Berat dan kalori terhubung, ketuk untuk melepas",
       "unlinkedAria": "Berat dan kalori terlepas, ketuk untuk menghubungkan",
@@ -414,7 +414,7 @@
       "copiedFrom": "Disalin dari {{label}}. Cek dulu sebelum disimpan.",
       "empty": "Belum ada catatan {{what}}.",
       "emptyAny": "Belum ada makanan tercatat yang bisa disalin.",
-      "suggest": "Yang terdekat: {{label}}, {{kcal}} kcal.",
+      "suggest": "Yang terdekat: {{label}}, {{kcal}} kkal.",
       "suggestAction": "Salin itu",
       "emptied": "Semua makanannya kamu keluarkan, jadi tidak ada yang disalin.",
       "failed": "Gagal menyalin. Coba lagi."
@@ -516,8 +516,8 @@
       "rank": "Peringkat",
       "participants": "Peserta",
       "avgPerDay": "Rata-rata per hari",
-      "ofKcal": "dari {{n}} kcal",
-      "ofKcalTarget": "dari {{n}} kcal target",
+      "ofKcal": "dari {{n}} kkal",
+      "ofKcalTarget": "dari {{n}} kkal target",
       "newRecords": "Rekor baru",
       "trend": {
         "down": "Turun {{kg}} kg minggu ini",
@@ -526,9 +526,9 @@
       },
       "canvasUnsupported": "Browser tidak mendukung canvas.",
       "share": {
-        "meal": "{{name}}, {{kcal}} kcal. Tahu boleh makan apa hari ini? Cek JoyoRogo.",
+        "meal": "{{name}}, {{kcal}} kkal. Tahu boleh makan apa hari ini? Cek JoyoRogo.",
         "workout": "Baru selesai latihan: {{name}}. Catat latihanmu di JoyoRogo.",
-        "recap": "Rekapku {{name}}: {{on}} dari {{logged}} hari sesuai target, rata-rata {{avg}} kcal per hari. Catat makanmu di JoyoRogo.",
+        "recap": "Rekapku {{name}}: {{on}} dari {{logged}} hari sesuai target, rata-rata {{avg}} kkal per hari. Catat makanmu di JoyoRogo.",
         "lost": "Sudah turun {{kg}} kg. Turun berat pakai 3 angka aja di JoyoRogo.",
         "progress": "Turun berat pakai 3 angka aja: makan, bakar, tidur. JoyoRogo.",
         "period": "Progresku {{days}} hari: makan tercatat {{logged}} dari {{judged}} hari. Catat makanmu di JoyoRogo."
@@ -704,7 +704,7 @@
       "title": "Hitung ulang kalori",
       "description": "Kalori tiap makanan dihitung lagi dari nama dan beratnya. Yang kamu ubah sendiri tidak disentuh.",
       "loading": "Menghitung ulang…",
-      "change": "{{from}} → {{to}} kcal",
+      "change": "{{from}} → {{to}} kkal",
       "total": "Total piring",
       "saving": "Menyimpan…",
       "done": "Kalori piring diperbarui",

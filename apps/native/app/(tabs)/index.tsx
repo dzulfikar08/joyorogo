@@ -79,15 +79,22 @@ import { pushDaySnapshot } from "@/src/lib/widgets/push";
 import { useJakartaClock } from "@/src/lib/use-jakarta-clock";
 import { useHealthAutoSync } from "@/src/lib/use-health-sync";
 import { TargetPaceNotice } from "@/components/target-pace-notice";
-import { errorMessage, fmtDateMedium, fmtInt, fmtKg, weeklyRateLabel } from "@/utils/format";
+import { errorMessage, fmtDateMedium, fmtInt, fmtKg, kcalUnit, weeklyRateLabel } from "@/utils/format";
 import { visibleHomeCards, type HomeCardId } from "@joyorogo/api/lib/home-cards";
-import { weightSecondary } from "@joyorogo/api/lib/home-stats";
+import { trendChange, weightSecondary } from "@joyorogo/api/lib/home-stats";
 import { StatList, StatRow } from "@/components/day-stats";
 import { useHomeCards } from "@/src/lib/home-cards-store";
 import { MACRO_META, MacroIcon, type MacroKey } from "@/utils/macro-icons";
 import { orpc } from "@/utils/orpc";
 
 type SumRow = { key: string; label: string; value: string | null; sub?: string; strong?: boolean };
+
+/** "−0,4" / "+0,3" / "0,0": the sign is always explicit except at zero. */
+function signedKg(kg: number): string {
+  const rounded = Math.round(kg * 10) / 10;
+  if (rounded === 0) return fmtKg(0);
+  return `${rounded < 0 ? "−" : "+"}${fmtKg(Math.abs(rounded))}`;
+}
 
 type TrendPoint = { date: string; weightKg: number; trendKg: number };
 
@@ -453,6 +460,10 @@ export default function Dashboard() {
   const carbsG = data.carbsEatenG ?? sumMacro(foods.data?.items, "carbs");
   const fatG = data.fatEatenG ?? sumMacro(foods.data?.items, "fat");
   const weightKg = data.latestWeightKg ?? data.trend?.weightKg ?? null;
+  const change = trendChange(trendPoints);
+  const changeLabel = change
+    ? t("weight.trendChange", { delta: signedKg(change.deltaKg), days: change.days })
+    : "";
   const weightLine = weightSecondary({
     weightKg,
     latestWeightDate: data.latestWeightDate,
@@ -514,7 +525,7 @@ export default function Dashboard() {
                 adjustsFontSizeToFit
                 numberOfLines={1}
               />
-              <Text style={styles.heroLabel}>kcal</Text>
+              <Text style={styles.heroLabel}>{kcalUnit()}</Text>
             </Ring>
             <View style={styles.heroStats}>
               {showFirstLog ? (
@@ -612,7 +623,7 @@ export default function Dashboard() {
               icon="flame"
               tint="bakar"
               label={t("tile.burn")}
-              value={`${fmtInt(credit?.activeKcal ?? 0)} kcal`}
+              value={`${fmtInt(credit?.activeKcal ?? 0)} ${kcalUnit()}`}
               secondary={
                 credit?.allDaySource
                   ? t(`tile.activeFrom.${credit.allDaySource}`)
@@ -685,7 +696,7 @@ export default function Dashboard() {
                   key={slot}
                   title={MEAL_LABELS[slot]}
                   subtitle={kcal > 0 ? undefined : t("meals.empty")}
-                  value={kcal > 0 ? `${fmtInt(kcal)} kcal` : undefined}
+                  value={kcal > 0 ? `${fmtInt(kcal)} ${kcalUnit()}` : undefined}
                   chevron
                   onPress={() => router.navigate("/makan")}
                 />
@@ -723,7 +734,7 @@ export default function Dashboard() {
                   <Text style={styles.plateName} numberOfLines={1}>
                     {item.name}
                   </Text>
-                  <Text style={styles.plateKcal}>{fmtInt(item.kcal)} kcal</Text>
+                  <Text style={styles.plateKcal}>{fmtInt(item.kcal)} {kcalUnit()}</Text>
                 </Reveal>
               ))}
             </ScrollView>
@@ -766,11 +777,23 @@ export default function Dashboard() {
     // Trend only: the last weight itself lives in the stats list.
     weight: data.trend ? (
       <Card>
-        <View style={styles.trendHead}>
-          <Text style={styles.trendLabel}>{t("weight.trend")}</Text>
-          {data.trend.weeklyRateKg !== null ? (
+        <View
+          style={styles.trendHead}
+          accessible
+          accessibilityLabel={`${t("weight.trendHeader", { kg: fmtKg(data.trend.weightKg) })}${
+            change ? `, ${changeLabel}` : ""
+          }`}
+        >
+          <View>
+            <Text style={styles.trendLabel}>{t("weight.trend")}</Text>
+            <View style={styles.trendValueRow}>
+              <Num style={styles.trendValue}>{fmtKg(data.trend.weightKg)}</Num>
+              <Text style={styles.trendUnit}>kg</Text>
+            </View>
+          </View>
+          {change || data.trend.projectedDate ? (
             <View style={styles.trendRate}>
-              <Text style={styles.trendRateValue}>{weeklyRateLabel(data.trend.weeklyRateKg)}</Text>
+              {change ? <Text style={styles.trendRateValue}>{changeLabel}</Text> : null}
               {data.trend.projectedDate ? (
                 <Text style={styles.trendRateSub}>
                   {t("weight.projectedShort", { date: fmtDateMedium(data.trend.projectedDate) })}
@@ -780,6 +803,14 @@ export default function Dashboard() {
           ) : null}
         </View>
         {trendPoints.length > 1 ? <TrendSpark points={trendPoints} /> : null}
+        {trendPoints.length > 1 ? (
+          <Text style={styles.trendRange}>
+            {t("weight.trendRange", {
+              from: fmtDateMedium(trendPoints[0]!.date),
+              to: fmtDateMedium(trendPoints[trendPoints.length - 1]!.date),
+            })}
+          </Text>
+        ) : null}
         {isToday ? (
           data.weightLoggedToday ? (
             <Text style={styles.trendNote}>{t("weight.doneToday")}</Text>
@@ -825,7 +856,7 @@ export default function Dashboard() {
                   {idea.name}
                 </Text>
                 <MetaLine
-                  items={[`${fmtInt(idea.kcal)} kcal`, t("ideas.protein", { g: fmtInt(idea.proteinG) })]}
+                  items={[`${fmtInt(idea.kcal)} ${kcalUnit()}`, t("ideas.protein", { g: fmtInt(idea.proteinG) })]}
                   itemStyle={styles.ideaChipMeta}
                 />
               </View>
@@ -1551,6 +1582,11 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     fontWeight: "700",
     color: theme.colors.makanText,
+  },
+  trendRange: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.mutedForeground,
+    textAlign: "center",
   },
   trendRateSub: {
     fontSize: theme.fontSize.xs,

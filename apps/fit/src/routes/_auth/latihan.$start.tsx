@@ -1,3 +1,4 @@
+import { kcalUnit } from "@joyorogo/i18n";
 import type { WatchWorkoutListItem } from "@joyorogo/api/lib/watch-workout-store";
 import type { LatLon, SportKind, WorkoutAnalysis } from "@joyorogo/api/lib/workout-analysis";
 import { formatPace } from "@joyorogo/api/lib/workout-analysis";
@@ -157,7 +158,7 @@ function Basic({ item }: { item: WatchWorkoutListItem }) {
         <Stat
           label={t("detail.calories")}
           value={item.calories > 0 ? fmtDecimal(item.calories, 0) : "–"}
-          unit={item.calories > 0 ? "kcal" : undefined}
+          unit={item.calories > 0 ? kcalUnit() : undefined}
         />
       </div>
       <Card>
@@ -248,7 +249,7 @@ function Analysis({ analysis, kind }: { analysis: WorkoutAnalysis; kind: SportKi
         <Stat
           label={t("detail.calories")}
           value={analysis.calories ? fmtDecimal(analysis.calories.kcal, 0) : "–"}
-          unit={analysis.calories ? "kcal" : undefined}
+          unit={analysis.calories ? kcalUnit() : undefined}
         />
         <Stat
           label={t("detail.strain")}
