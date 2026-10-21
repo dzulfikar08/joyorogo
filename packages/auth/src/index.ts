@@ -259,6 +259,39 @@ function nativeRegistration(redirectUris: unknown): boolean {
   });
 }
 
+/**
+ * Google sign-in from the Android apps always shows the account chooser (`prompt=select_account`).
+ *
+ * The apps open Google in a Chrome Custom Tab and get the session back through a redirect to `joyofit://` /
+ * `joyorogo://`. Chrome follows a redirect to another app only when the user touched the page shortly before
+ * ("External navigation blocked due to missing gesture"). A person signed in to one Google account who has agreed to
+ * JoyoRogo once is approved by Google without any screen (the callback carries `prompt=none`), so there is no touch:
+ * our server creates the session, the tab stays on the redirect Chrome blocked, and the app never receives the
+ * cookie. Every later sign-in on that phone fails the same way. The chooser costs one tap, and that tap is the touch.
+ *
+ * Android apps are told apart from browsers and iOS by `expo-origin` (sent by better-auth's expo client) together
+ * with React Native's OkHttp user agent (iOS says CFNetwork); web sign-in is left alone.
+ */
+export function androidAccountChooser(): BetterAuthPlugin {
+  return {
+    id: "android-account-chooser",
+    hooks: {
+      before: [
+        {
+          matcher: (ctx) => ctx.path === "/sign-in/social",
+          handler: createAuthMiddleware(async (ctx) => {
+            const body = ctx.body as { provider?: unknown } | undefined;
+            const headers = ctx.request?.headers ?? ctx.headers;
+            const fromAndroidApp = Boolean(headers?.get("expo-origin")) && /okhttp/i.test(headers?.get("user-agent") ?? "");
+            if (body?.provider !== "google" || !fromAndroidApp) return;
+            return { context: { body: { additionalParams: { prompt: "select_account" } } } };
+          }),
+        },
+      ],
+    },
+  };
+}
+
 export function createAuth(
   env: AuthConfig,
   database: Database,
@@ -354,6 +387,6 @@ export function createAuth(
     },
     // The jwt plugin's own /token (a JWT for a session) is not wanted; the OAuth token endpoint is /oauth2/token.
     disabledPaths: ["/token"],
-    plugins: [expo(), devLogin(Boolean(env.DEV_LOGIN)), ...mcpPlugins(env)],
+    plugins: [expo(), androidAccountChooser(), devLogin(Boolean(env.DEV_LOGIN)), ...mcpPlugins(env)],
   });
 }
