@@ -356,3 +356,114 @@ describe("entry points offer every format", () => {
     expect(selectTemplates(availableTemplates(noGoal, {}), { kind: "weight" }).canvases).toEqual(["story"]);
   });
 });
+
+describe("period progress (Progres)", () => {
+  const period = (fid: FixtureId) => (FIXTURES[fid] as { spec: Extract<StorySpec, { kind: "period" }> }).spec;
+  const story = templates.find((t) => t.id === "period.progress.story")!;
+  const square = templates.find((t) => t.id === "period.progress.square")!;
+  const joined = (fid: FixtureId, template: Template, options: NonNullable<Parameters<typeof renderSticker>[0]["prefs"]>["options"] = {}, locale: "id" | "en" = "id") =>
+    textsOf(render(template, fid, { options }, "dark", locale)).join(" | ");
+
+  test("is offered in story and square for a period, and only for a period", () => {
+    const sel = selectTemplates(availableTemplates(period("period-full"), {}), { kind: "period" });
+    expect(sel.kinds).toEqual(["period"]);
+    expect(sel.canvases).toEqual(["story", "square"]);
+    for (const fid of ["progress-full", "recap", "meal-plain"] as const) {
+      expect(availableTemplates((FIXTURES[fid] as { spec: StorySpec }).spec, {}).some((t) => t.kind === "period")).toBe(false);
+    }
+  });
+
+  test("absolute weight, its percent and the kg axis are hidden by default and only the change shows", () => {
+    for (const t of [story, square]) {
+      const hidden = joined("period-full", t, { hideNumbers: true });
+      expect(hidden).toContain("Turun 2,4 kg");
+      expect(hidden).not.toMatch(/108|105,|2,2%/);
+      expect(hidden).toContain("tanpa angka");
+      const shown = joined("period-full", t, { hideNumbers: false });
+      expect(shown).toContain("108,0");
+      expect(shown).toContain("105,6");
+      expect(shown).toContain("2,2%");
+    }
+    const data = buildStickerData(period("period-full"), { options: { hideNumbers: true } }).data.period as Record<string, unknown>;
+    for (const key of ["startKg", "endKg", "changePct", "kgTop", "kgBottom"]) expect(data[key]).toBeUndefined();
+  });
+
+  test("the deficit, its fat estimate and its note go away together with the switch", () => {
+    for (const t of [story, square]) {
+      const on = joined("period-full", t);
+      expect(on).toContain("Perkiraan defisit");
+      expect(on).toContain("15.600");
+      expect(on).toContain("sekitar 2,0 kg lemak");
+      expect(on).toContain("bukan pengukuran");
+      const off = textsOf(
+        renderSticker({ template: t, spec: { ...period("period-full"), hideDeficit: true }, prefs: {}, locale: "id", mode: "dark", fonts: rogoWebFonts }),
+      ).join(" | ");
+      expect(off).not.toMatch(/defisit|15\.600|lemak|bukan pengukuran/);
+      expect(off).toContain("26");
+    }
+  });
+
+  test("days logged read against the finished days, with the streak only from 2 days", () => {
+    const text = joined("period-full", story);
+    expect(text).toContain("26");
+    expect(text).toContain("dari 30 hari");
+    expect(text).toContain("Beruntun 7 hari");
+    expect(joined("period-weekly", story)).not.toContain("Beruntun");
+  });
+
+  test("a rising trend is worded plainly and kindly, with no fat or deficit claim", () => {
+    const text = joined("period-up", story);
+    expect(text).toContain("Naik 0,7 kg");
+    expect(text).toContain("Naik turun itu wajar");
+    expect(text).not.toMatch(/gagal|turun 0,7|lemak|defisit/i);
+  });
+
+  test("a Naikin BB period says surplus and never fat", () => {
+    const text = joined("period-gain", square);
+    expect(text).toContain("Naik 1,3 kg");
+    expect(text).toContain("Perkiraan surplus");
+    expect(text).toContain("12.400");
+    expect(text).not.toMatch(/lemak|defisit|Beruntun 12 hari.*turun/);
+  });
+
+  test("a deficit without a fat estimate shows the kcal alone", () => {
+    const text = joined("period-weekly", story);
+    expect(text).toContain("Perkiraan defisit");
+    expect(text).not.toContain("lemak");
+  });
+
+  test("without weigh-ins the days logged lead and no weight chart is drawn", () => {
+    const text = joined("period-no-weight", story);
+    expect(text).toContain("9 dari 14 hari tercatat");
+    expect(text).not.toMatch(/Tren berat|Turun|Naik/);
+    expect(text).toContain("Kalori masuk per hari");
+  });
+
+  test("without a deficit the logged days take the whole row", () => {
+    const text = joined("period-up", story);
+    expect(text).toContain("Hari tercatat");
+    expect(text).toContain("dari 30 hari");
+    expect(text).not.toMatch(/defisit|surplus|Perkiraan dari/);
+  });
+
+  test("with neither weight nor a burn estimate the headline carries the days logged and the card stays small", () => {
+    const text = joined("period-sparse", square);
+    expect(text).toContain("2 dari 7 hari tercatat");
+    expect(text).not.toMatch(/defisit|surplus|Perkiraan dari|Hari tercatat/);
+    expect(text).toContain("Batang pendek: hari tanpa catatan");
+    expect(text).not.toContain("Garis putus");
+  });
+
+  test("a period with nothing to show is not offered", () => {
+    const empty: StorySpec = { kind: "period", from: "2026-10-01", to: "2026-10-07", judgedDays: 7, loggedDays: 0, weight: null };
+    expect(availableTemplates(empty, {}).some((t) => t.kind === "period")).toBe(false);
+  });
+
+  test("weekly bars name the week and the intake axis is labelled 0 to the top value", () => {
+    const text = joined("period-weekly", story, {}, "en");
+    expect(text).toContain("Average calories eaten per week");
+    expect(text).toContain("2,500");
+    expect(text).toMatch(/\| 0 \|/);
+    expect(text).toContain("Dashed line: target 1,900 kcal");
+  });
+});

@@ -17,16 +17,10 @@ import {
 } from "react-native-svg";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  daysBetween,
-  emaTrendPoints,
-  jakartaToday,
-  rangeStats,
-  shiftDate,
-  type RangeStats,
-} from "@joyorogo/api/lib/engine";
+import { daysBetween, emaTrendPoints, jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
 import { kcalBars, kcalSummary, type KcalBar } from "@joyorogo/api/lib/kcal-bars";
 import { gainDayHit } from "@joyorogo/api/lib/gain";
+import { periodWeight, type PeriodWeight } from "@joyorogo/api/lib/period-progress";
 
 import {
   BootLoader,
@@ -37,7 +31,6 @@ import {
   ListGroup,
   ListRow,
   Num,
-  PageHeader,
   Screen,
   Segmented,
   Skeleton,
@@ -65,7 +58,6 @@ import {
   fmtInt,
   fmtKcalLabel,
   fmtKg,
-  weeklyRateLabel,
 } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
@@ -106,34 +98,21 @@ function signed(n: number): string {
 }
 
 /** Chart padding leaves room for kg labels (left) and date ticks (bottom). */
-const PAD = { top: 18, right: 38, bottom: 24, left: 38 };
+const PAD = { top: 18, right: 14, bottom: 24, left: 38 };
 
-/** Calorie bars live in the bottom share of the plot, on their own (right) axis. */
-const BAR_ZONE = 0.38;
-/** An untracked day's hatched placeholder, as a share of the bar zone. */
-const GHOST_SHARE = 0.45;
-
-/** 2140 -> "2,1k" for the compact right axis. */
-function kcalAxis(n: number): string {
-  if (n < 1000) return fmtInt(n);
-  return `${fmtNumber(n / 1000, 1)}k`;
-}
-
-/** Trend chart for the selected range: 7-day EMA line over faint daily dots,
-    dashed target line, dotted start line, nice kg gridlines, day-based date
-    ticks, a fade-in on range change, and a pan-scrub crosshair + tooltip. */
+/** Weight chart for the selected range: the 7-day trend line over the daily scale dots, a labelled dashed
+    goal line, nice kg gridlines, day-based date ticks, a fade-in on range change, and a pan-scrub
+    crosshair + tooltip. Calories live in their own chart (KcalChart) below, never on this axis. */
 function WeightChart({
   entries,
   trendPoints,
   targetKg,
-  startKg,
   domainStart,
   domainEnd,
   rangeKey,
   rangeLabel,
   bars,
   weekly,
-  targetKcal,
   gainPlan,
 }: {
   /** raw scale weigh-ins in the range, oldest first */
@@ -141,16 +120,14 @@ function WeightChart({
   /** EMA trend over the same range, oldest first */
   trendPoints: Array<{ date: string; trendKg: number }>;
   targetKg: number | null;
-  startKg: number | null;
   domainStart: string;
   domainEnd: string;
   /** replays the fade-in when the range changes */
   rangeKey: string;
   rangeLabel: string;
-  /** calorie bars over the same time axis (daily, or per week on long ranges) */
+  /** the calorie bars of the same period, only read for the scrub tooltip */
   bars: KcalBar[];
   weekly: boolean;
-  targetKcal: number | null;
   /** Naikin BB plan (upward target line + pace fan); null for every other mode */
   gainPlan: GainPlanLine | null;
 }) {
@@ -177,7 +154,7 @@ function WeightChart({
     PAD.left +
     (Math.min(Math.max(daysBetween(domainStart, date), 0), spanDays) / spanDays) * innerW;
 
-  // Y domain from raw + trend values; the target/start lines join only when
+  // Y domain from raw + trend values; the target line joins only when
   // near the data — a goal 20 kg away would flatten the whole trend line.
   const values = [...entries.map((e) => e.weightKg), ...trendPoints.map((p) => p.trendKg)];
   const rawLo = Math.min(...values);
@@ -223,26 +200,17 @@ function WeightChart({
     ...(planFan ? planFan.map(([, kg]) => kg) : []),
   ];
   const target = !gainPlan && targetKg !== null && near(targetKg) ? targetKg : null;
-  const start =
-    !gainPlan &&
-    startKg !== null &&
-    near(startKg) &&
-    (target === null || Math.abs(startKg - target) > 0.01)
-      ? startKg
-      : null;
   // Step is chosen from the FULL domain (lines included) so the tick count
   // stays ~5 no matter how much the reference lines stretch the view.
   const dataLo = Math.min(
     rawLo,
     ...planKgs,
     ...(target !== null ? [target] : []),
-    ...(start !== null ? [start] : []),
   );
   const dataHi = Math.max(
     rawHi,
     ...planKgs,
     ...(target !== null ? [target] : []),
-    ...(start !== null ? [start] : []),
   );
   const padKg = Math.max((dataHi - dataLo) * 0.08, 0.2);
   const step = niceStep(dataHi - dataLo + 2 * padKg);
@@ -321,22 +289,6 @@ function WeightChart({
 
   const trendPts = trendPoints.map((p) => ({ x: x(p.date), y: y(p.trendKg) }));
   const labelColor = theme.colors.mutedForeground;
-  // Secondary axis: kcal 0..maxK in the bottom BAR_ZONE of the plot.
-  const baseY = PAD.top + innerH;
-  const zoneH = innerH * BAR_ZONE;
-  const maxK = Math.max(
-    500,
-    Math.ceil((Math.max(targetKcal ?? 0, ...bars.map((b) => b.avgKcal ?? 0)) * 1.1) / 500) * 500,
-  );
-  const ky = (kcal: number) => baseY - (kcal / maxK) * zoneH;
-  const pxPerDay = innerW / spanDays;
-  const barGeom = (b: KcalBar) => {
-    if (weekly) {
-      return { left: x(b.from), w: Math.max((daysBetween(b.from, b.to) + 1) * pxPerDay - 2, 2) };
-    }
-    const bw = Math.max(pxPerDay * 0.7, 1.5);
-    return { left: x(b.from) - bw / 2, w: bw };
-  };
   const scrubBar = scrubEntry
     ? bars.find((b) => b.from <= scrubEntry.date && scrubEntry.date <= b.to)
     : undefined;
@@ -356,82 +308,6 @@ function WeightChart({
           height={h}
           accessibilityLabel={t("chart.a11yTouch", { range: rangeLabel })}
         >
-          <Defs>
-            <Pattern
-              id="kcal-hatch"
-              width={4}
-              height={4}
-              patternUnits="userSpaceOnUse"
-              patternTransform="rotate(45)"
-            >
-              <Line
-                x1={0}
-                y1={0}
-                x2={0}
-                y2={4}
-                stroke={theme.colors.mutedForeground}
-                strokeOpacity={0.5}
-                strokeWidth={1.5}
-              />
-            </Pattern>
-          </Defs>
-          {bars.map((b) => {
-            const { left, w: bw } = barGeom(b);
-            const barH = b.avgKcal === null ? 0 : baseY - ky(b.avgKcal);
-            const ghostH = zoneH * GHOST_SHARE * (b.untrackedDays / b.days);
-            // Gain plan: the darker bars are the days that reached the target, never a warning.
-            const over = gainPlan
-              ? targetKcal !== null && b.avgKcal !== null && gainDayHit(b.avgKcal, targetKcal)
-              : targetKcal !== null && b.avgKcal !== null && b.avgKcal > targetKcal;
-            return (
-              <Fragment key={b.from}>
-                {b.avgKcal !== null ? (
-                  <Rect
-                    x={left}
-                    y={baseY - barH}
-                    width={bw}
-                    height={barH}
-                    rx={Math.min(bw / 4, 2)}
-                    fill={theme.colors.bakar}
-                    fillOpacity={over ? 0.8 : 0.35}
-                  />
-                ) : null}
-                {ghostH > 0 ? (
-                  <Rect
-                    x={left}
-                    y={baseY - barH - ghostH}
-                    width={bw}
-                    height={ghostH}
-                    fill="url(#kcal-hatch)"
-                  />
-                ) : null}
-              </Fragment>
-            );
-          })}
-          {targetKcal !== null ? (
-            <Line
-              x1={PAD.left}
-              x2={w - PAD.right}
-              y1={ky(targetKcal)}
-              y2={ky(targetKcal)}
-              stroke={theme.colors.bakarText}
-              strokeOpacity={0.7}
-              strokeWidth={1.25}
-              strokeDasharray="6 4"
-            />
-          ) : null}
-          {[maxK / 2, maxK].map((k) => (
-            <SvgText
-              key={k}
-              x={w - PAD.right + 5}
-              y={ky(k) + 3}
-              fontSize={10}
-              fontWeight="600"
-              fill={theme.colors.bakarText}
-            >
-              {kcalAxis(k)}
-            </SvgText>
-          ))}
           {yTicks.map((t) => (
             <Line
               key={t}
@@ -479,33 +355,6 @@ function WeightChart({
               fill={theme.colors.makanText}
             >
               {t("chart.target", { kg: fmtKg(target) })}
-            </SvgText>
-          ) : null}
-          {start !== null ? (
-            <Line
-              x1={PAD.left}
-              x2={w - PAD.right}
-              y1={y(start)}
-              y2={y(start)}
-              stroke={labelColor}
-              strokeOpacity={0.45}
-              strokeWidth={1.25}
-              strokeDasharray="2 5"
-            />
-          ) : null}
-          {start !== null ? (
-            <SvgText
-              x={PAD.left}
-              y={
-                (target !== null && Math.abs(y(start) - y(target)) < 15) || y(start) < PAD.top + 14
-                  ? y(start) + 15
-                  : y(start) - 6
-              }
-              fontSize={10}
-              fontWeight="600"
-              fill={labelColor}
-            >
-              {t("chart.start", { kg: fmtKg(start) })}
             </SvgText>
           ) : null}
           {gainPlan && planLine ? (
@@ -673,6 +522,169 @@ function WeightChart({
   );
 }
 
+/** An unlogged day's hatched placeholder, as a share of the plot height. */
+const GHOST_SHARE = 0.45;
+
+/** 2140 -> "2,1k" for the compact axis. */
+function kcalAxis(n: number): string {
+  if (n < 1000) return fmtInt(n);
+  return `${fmtNumber(n / 1000, 1)}k`;
+}
+
+/** Calories eaten over the weight chart's period and x axis, on its own labelled axis (kcal, left). Bars are one day
+    each (a week on long periods); a darker bar is above the target (Naikin BB: reached it); the hatched area is days
+    without a log. */
+function KcalChart({
+  bars,
+  weekly,
+  targetKcal,
+  gain,
+  domainStart,
+  domainEnd,
+}: {
+  bars: KcalBar[];
+  weekly: boolean;
+  targetKcal: number | null;
+  gain: boolean;
+  domainStart: string;
+  domainEnd: string;
+}) {
+  const { t } = useTranslation(["berat"]);
+  const { theme } = useUnistyles();
+  const { width: winW } = useWindowDimensions();
+  const w = Math.min(winW - 80, 400);
+  const h = 140;
+  const innerW = w - PAD.left - PAD.right;
+  const innerH = h - PAD.top - PAD.bottom;
+  const spanDays = Math.max(daysBetween(domainStart, domainEnd), 1);
+  const x = (date: string) =>
+    PAD.left +
+    (Math.min(Math.max(daysBetween(domainStart, date), 0), spanDays) / spanDays) * innerW;
+  const pxPerDay = innerW / spanDays;
+  const baseY = PAD.top + innerH;
+  const maxK = Math.max(
+    500,
+    Math.ceil((Math.max(targetKcal ?? 0, ...bars.map((b) => b.avgKcal ?? 0)) * 1.1) / 500) * 500,
+  );
+  const ky = (kcal: number) => baseY - (kcal / maxK) * innerH;
+  const dayStep = niceDayStep(spanDays);
+  const xTickDates: string[] = [];
+  for (let d = 0; d <= spanDays; d += dayStep) xTickDates.push(shiftDate(domainStart, d));
+  if (spanDays - (xTickDates.length - 1) * dayStep >= dayStep * 0.5) xTickDates.push(domainEnd);
+  const labelColor = theme.colors.mutedForeground;
+  return (
+    <Svg width={w} height={h} accessibilityLabel={t("kcal.a11y")}>
+      <Defs>
+        <Pattern
+          id="kcal-hatch"
+          width={4}
+          height={4}
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(45)"
+        >
+          <Line
+            x1={0}
+            y1={0}
+            x2={0}
+            y2={4}
+            stroke={theme.colors.mutedForeground}
+            strokeOpacity={0.5}
+            strokeWidth={1.5}
+          />
+        </Pattern>
+      </Defs>
+      {[0, maxK / 2, maxK].map((k) => (
+        <Fragment key={k}>
+          <Line
+            x1={PAD.left}
+            x2={w - PAD.right}
+            y1={ky(k)}
+            y2={ky(k)}
+            stroke={theme.colors.hairline}
+            strokeWidth={1}
+          />
+          <SvgText
+            x={PAD.left - 8}
+            y={ky(k) + 4}
+            textAnchor="end"
+            fontSize={10}
+            fontWeight="600"
+            fill={labelColor}
+          >
+            {kcalAxis(k)}
+          </SvgText>
+        </Fragment>
+      ))}
+      {bars.map((b) => {
+        const left = weekly ? x(b.from) : x(b.from) - Math.max(pxPerDay * 0.7, 1.5) / 2;
+        const bw = weekly
+          ? Math.max((daysBetween(b.from, b.to) + 1) * pxPerDay - 2, 2)
+          : Math.max(pxPerDay * 0.7, 1.5);
+        const barH = b.avgKcal === null ? 0 : baseY - ky(b.avgKcal);
+        const ghostH = innerH * GHOST_SHARE * (b.untrackedDays / b.days);
+        const strong = gain
+          ? targetKcal !== null && b.avgKcal !== null && gainDayHit(b.avgKcal, targetKcal)
+          : targetKcal !== null && b.avgKcal !== null && b.avgKcal > targetKcal;
+        return (
+          <Fragment key={b.from}>
+            {b.avgKcal !== null ? (
+              <Rect
+                x={left}
+                y={baseY - barH}
+                width={bw}
+                height={barH}
+                rx={Math.min(bw / 4, 2)}
+                fill={theme.colors.bakar}
+                fillOpacity={strong ? 0.8 : 0.35}
+              />
+            ) : null}
+            {ghostH > 0 ? (
+              <Rect x={left} y={baseY - barH - ghostH} width={bw} height={ghostH} fill="url(#kcal-hatch)" />
+            ) : null}
+          </Fragment>
+        );
+      })}
+      {targetKcal !== null ? (
+        <>
+          <Line
+            x1={PAD.left}
+            x2={w - PAD.right}
+            y1={ky(targetKcal)}
+            y2={ky(targetKcal)}
+            stroke={theme.colors.bakarText}
+            strokeOpacity={0.8}
+            strokeWidth={1.25}
+            strokeDasharray="6 4"
+          />
+          <SvgText
+            x={w - PAD.right}
+            y={ky(targetKcal) - 5}
+            textAnchor="end"
+            fontSize={10}
+            fontWeight="600"
+            fill={theme.colors.bakarText}
+          >
+            {t("kcal.target", { kcal: fmtInt(targetKcal) })}
+          </SvgText>
+        </>
+      ) : null}
+      {xTickDates.map((d, i) => (
+        <SvgText
+          key={d}
+          x={x(d)}
+          y={h - 6}
+          textAnchor={i === 0 ? "start" : i === xTickDates.length - 1 ? "end" : "middle"}
+          fontSize={10}
+          fontWeight="500"
+          fill={labelColor}
+        >
+          {fmtDateShort(d)}
+        </SvgText>
+      ))}
+    </Svg>
+  );
+}
+
 type WeightSummary = {
   startKg: number | null;
   latestKg: number | null;
@@ -731,7 +743,20 @@ export default function Berat() {
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   const maternal = useMaternal().mode !== "none";
   const { gain: gainInfo } = useGain();
-  const trend = dayQuery.data?.trend ?? null;
+  const today = jakartaToday();
+  // The share card reads the same period as the tabs: same start, same end, same trend.
+  const periodFrom =
+    range === "all"
+      ? (historyQuery.data?.entries[0]?.date ?? today)
+      : shiftDate(today, -(Number(range) - 1));
+  const periodQuery = useQuery({
+    ...orpc.stats.periodProgress.queryOptions({ input: { from: periodFrom, to: today } }),
+    enabled: historyQuery.data !== undefined && historyQuery.data.summary.latestKg !== null,
+  });
+  const periodStory = useMemo<StorySpec | null>(
+    () => (periodQuery.data ? { kind: "period", ...periodQuery.data, date: new Date() } : null),
+    [periodQuery.data],
+  );
   // Chart line: client-side 7-day EMA over the raw entries, so every range —
   // including "Semua" — gets a full trend (day.summary only ships 30 days).
   const allTrend = useMemo(() => emaTrendPoints(historyQuery.data?.entries ?? []), [historyQuery.data]);
@@ -745,7 +770,7 @@ export default function Berat() {
   if (historyQuery.isPending) {
     return (
       <Screen>
-        <PageHeader title={t("page.titleShort")} />
+        <Stack.Screen options={{ title: t("page.titleShort") }} />
         <Skeleton width="100%" height={140} radius={24} />
         <Skeleton width="100%" height={220} radius={24} />
         <Skeleton width="100%" height={180} radius={24} />
@@ -755,7 +780,7 @@ export default function Berat() {
   if (historyQuery.isError) {
     return (
       <Screen>
-        <PageHeader title={t("page.titleShort")} />
+        <Stack.Screen options={{ title: t("page.titleShort") }} />
         <ErrorState
           message={errorMessage(historyQuery.error)}
           onRetry={() => historyQuery.refetch()}
@@ -769,17 +794,16 @@ export default function Berat() {
   const hasData = summary.latestKg !== null;
   const gain = summary.gain;
 
-  const today = jakartaToday();
   const rangeDays = range === "all" ? null : Number(range);
   const cutoff = rangeDays === null ? null : shiftDate(today, -(rangeDays - 1));
   const rangeEntries = cutoff === null ? entries : entries.filter((e) => e.date >= cutoff);
   const rangeTrend = cutoff === null ? allTrend : allTrend.filter((p) => p.date >= cutoff);
-  const rangeStatsOut = rangeStats(rangeTrend, summary.targetKg);
   const rangeLabel =
     range === "all" ? t("chart.sinceStart") : t("chart.rangeLast", { count: Number(range) });
-  const rangeShort =
-    range === "all" ? t("chart.sinceStart") : t("chart.rangeDays", { count: Number(range) });
   const domainStart = cutoff ?? rangeEntries[0]?.date ?? today;
+  // The period's numbers (start, now, change, pace, projection) come from one function, over the same trend the chart
+  // draws and the same bounds the share card is built from.
+  const period = periodWeight(entries, domainStart, today, summary.targetKg);
   // Naikin BB: the plan line starts where the gain began (the latest earlier weigh-in at the
   // gain's starting weight, else the first weigh-in) and the x axis reaches toward the target date.
   const latestTrend = allTrend.at(-1);
@@ -824,6 +848,14 @@ export default function Berat() {
     if (gain) return delta > 0 ? "makan" : null;
     return (wantDown ? delta < 0 : delta > 0) ? "makan" : "bakar";
   };
+  const toneColor = (delta: number | null) => {
+    const tone = toneFor(delta);
+    return tone === "makan"
+      ? { color: theme.colors.makanText }
+      : tone === "bakar"
+        ? { color: theme.colors.bakarText }
+        : null;
+  };
 
   const heightCm = profileQuery.data?.profile?.heightCm ?? null;
   const bmi =
@@ -831,167 +863,121 @@ export default function Berat() {
   const bmiCategory =
     bmi === null ? null : bmi < 18.5 ? "under" : bmi < 25 ? "ideal" : bmi < 30 ? "over" : "obese";
 
-  const trendKg = trend?.weightKg ?? null;
+  // The headline is the line the chart draws: its last point.
+  const trendKg = latestTrend?.trendKg ?? summary.latestKg;
   const goalReached =
     trendKg !== null &&
     summary.targetKg !== null &&
     (gain ? trendKg >= summary.targetKg : trendKg <= summary.targetKg);
+  const toGoalKg =
+    trendKg !== null && summary.targetKg !== null ? Math.abs(trendKg - summary.targetKg) : null;
   const newestEntries = entries.slice().toReversed();
+  const scaleDate = newestEntries[0]
+    ? newestEntries[0].date === today
+      ? t("common:date.today")
+      : fmtDateShort(newestEntries[0].date)
+    : "";
 
-  /** Friendly sub-caption for the projection stat, per reason it is (not) shown. */
-  const projectionNote = (stats: RangeStats, targetKg: number | null): string => {
+  /** One short line under the projection cell: why there is, or is not, a date. */
+  const projectionNote = (pw: PeriodWeight | null, targetKg: number | null): string => {
     if (targetKg === null) return t("projection.setTarget");
     if (goalReached) return t("projection.reached");
-    if (stats.projectedDate !== null) return t("projection.toward", { kg: fmtKg(targetKg) });
-    if (stats.weeklyRateKg === null || stats.changeKg === null) return t("projection.needMore");
-    if (Math.abs(stats.weeklyRateKg) < 0.05) return t("projection.steady");
-    const toward = (stats.trendKg - targetKg) * stats.weeklyRateKg < 0;
-    return toward ? t("projection.almost") : t("projection.away");
+    if (pw === null || pw.weeklyRateKg === null) return t("projection.needMore");
+    if (pw.projectedDate !== null) return t("projection.toward", { kg: fmtKg(targetKg) });
+    if (pw.direction === "steady") return t("projection.steady");
+    const toward = pw.goalReached || (pw.endKg - targetKg) * pw.weeklyRateKg < 0;
+    return toward ? t("projection.needMore") : t("projection.away");
   };
 
   return (
     <>
       <Stack.Screen options={{ title: t("page.titleShort") }} />
       <Screen>
-        <PageHeader
-          title={t("page.titleShort")}
-          right={
-            hasData ? (
-              <View style={styles.headerActions}>
-                {maternal || summary.latestKg === null ? null : (
-                  <ShareStoryButton
-                    iconOnly
-                    label={t("hero.share")}
-                    story={weightStory(summary, entries, dayQuery.data)}
-                    kinds={["weight"]}
-                  />
-                )}
-                <Button
-                  size="sm"
-                  icon="scale-outline"
-                  label={t("hero.weighToday")}
-                  onPress={() => setSheetOpen(true)}
-                />
-              </View>
-            ) : undefined
-          }
-        />
+        {hasData ? (
+          <View style={styles.topBar}>
+            {maternal || summary.latestKg === null ? null : (
+              <ShareStoryButton
+                iconOnly
+                label={t("page.shareSticker")}
+                story={weightStory(summary, entries, dayQuery.data)}
+                kinds={["weight"]}
+              />
+            )}
+            <Button
+              size="sm"
+              icon="scale-outline"
+              label={t("hero.weighToday")}
+              onPress={() => setSheetOpen(true)}
+            />
+          </View>
+        ) : null}
 
         {/* Hamil: kenaikan berat per minggu dibanding rentang IOM */}
         {maternal ? <WeightGainCard onWeighIn={() => setSheetOpen(true)} /> : null}
 
         {hasData ? (
           <>
-            {/* Big trend number + rate + start/now/change/remaining */}
+            {/* Where you are: the trend, then today's scale as the second line, then what the goal and BMI say */}
             <Card>
-              <View style={styles.trendHead}>
-                <View style={styles.trendBlock}>
-                  <Text style={styles.trendLabel}>{t("hero.trendLabel")}</Text>
-                  <View style={styles.trendRow}>
-                    <Num style={styles.trendValue} adjustsFontSizeToFit numberOfLines={1}>
-                      {trend ? fmtKg(trend.weightKg) : fmtKg(summary.latestKg)}
-                    </Num>
-                    <Text style={styles.trendUnit}>kg</Text>
-                  </View>
-                </View>
-                <View style={styles.badgeCol}>
-                  {!maternal && bmi !== null && bmiCategory !== null ? (
-                    <View
-                      style={[
-                        styles.pill,
-                        bmiCategory === "ideal" ? styles.pillIdeal : styles.pillOff,
-                      ]}
-                    >
-                      <Text
-                        style={bmiCategory === "ideal" ? styles.pillTextIdeal : styles.pillTextOff}
-                      >
-                        {t("bmi.pill", {
-                          value: fmtKg(bmi),
-                          category: t(`bmi.category.${bmiCategory}`),
-                        })}
-                      </Text>
-                    </View>
-                  ) : null}
-                  <View style={styles.pill}>
-                    <Text style={styles.pillMuted}>
-                      {t("hero.scale", {
-                        kg: fmtKg(summary.latestKg),
-                        date: newestEntries[0]
-                          ? newestEntries[0].date === today
-                            ? t("common:date.today")
-                            : fmtDateShort(newestEntries[0].date)
-                          : "",
-                      })}
-                    </Text>
-                  </View>
-                </View>
+              <Text style={styles.trendLabel}>{t("hero.trendLabel")}</Text>
+              <View style={styles.trendRow}>
+                <Num style={styles.trendValue} adjustsFontSizeToFit numberOfLines={1}>
+                  {fmtKg(trendKg ?? summary.latestKg ?? 0)}
+                </Num>
+                <Text style={styles.trendUnit}>kg</Text>
               </View>
-              {maternal ? null : trend?.weeklyRateKg != null ? (
-                <View style={styles.rateBadge}>
-                  <Text style={styles.rateText}>{weeklyRateLabel(trend.weeklyRateKg)}</Text>
-                </View>
-              ) : (
-                <Text style={styles.note}>{t("hero.needMoreDays")}</Text>
-              )}
+              <Text style={styles.heroScale}>
+                {t("hero.scale", { kg: fmtKg(summary.latestKg ?? 0), date: scaleDate })}
+              </Text>
+              <Text style={styles.note}>{t("hero.trendExplain")}</Text>
               {goalReached ? (
                 <View style={styles.goalBanner}>
                   <Mascot pose="mantap" size="sm" />
                   <Text style={styles.goalBannerText}>{t("hero.goalReached")}</Text>
                 </View>
               ) : null}
-              <View style={styles.miniRow}>
-                <View style={styles.miniCell}>
-                  <Text style={styles.chartStatLabel} numberOfLines={1}>
-                    {t("summary.start")}
-                  </Text>
-                  <Num style={styles.chartStatValue} adjustsFontSizeToFit numberOfLines={1}>
-                    {summary.startKg !== null ? fmtKg(summary.startKg) : "-"}
-                  </Num>
+              {!maternal && (summary.targetKg !== null || (bmi !== null && bmiCategory !== null)) ? (
+                <View style={styles.factRows}>
+                  {summary.targetKg !== null ? (
+                    <View style={styles.factRow}>
+                      <Text style={styles.factLabel}>{t("hero.goalLabel")}</Text>
+                      <Num style={styles.factValue}>
+                        {goalReached || toGoalKg === null
+                          ? t("hero.goalValueReached", { kg: fmtKg(summary.targetKg) })
+                          : t("hero.goalValue", {
+                              kg: fmtKg(summary.targetKg),
+                              left: fmtKg(toGoalKg),
+                            })}
+                      </Num>
+                    </View>
+                  ) : null}
+                  {bmi !== null && bmiCategory !== null ? (
+                    <View style={styles.factRow}>
+                      <Text style={styles.factLabel}>{t("bmi.label")}</Text>
+                      <Num
+                        style={[
+                          styles.factValue,
+                          bmiCategory === "ideal"
+                            ? { color: theme.colors.makanText }
+                            : { color: theme.colors.bakarText },
+                        ]}
+                      >
+                        {t("bmi.value", {
+                          value: fmtKg(bmi),
+                          category: t(`bmi.category.${bmiCategory}`),
+                        })}
+                      </Num>
+                    </View>
+                  ) : null}
                 </View>
-                <View style={styles.miniCell}>
-                  <Text style={styles.chartStatLabel} numberOfLines={1}>
-                    {t("summary.now")}
-                  </Text>
-                  <Num style={styles.chartStatValue} adjustsFontSizeToFit numberOfLines={1}>
-                    {fmtKg(summary.latestKg)}
-                  </Num>
-                </View>
-                <View style={styles.miniCell}>
-                  <Text style={styles.chartStatLabel} numberOfLines={1}>
-                    {gain ? t("gain:nativeToday.chart.up") : t("summary.changed")}
-                  </Text>
-                  <Num style={styles.chartStatValue} adjustsFontSizeToFit numberOfLines={1}>
-                    {gain
-                      ? fmtKg(gain.gainedKg)
-                      : summary.deltaKg !== null
-                        ? signed(summary.deltaKg)
-                        : "-"}
-                  </Num>
-                </View>
-                {maternal ? null : (
-                  <View style={styles.miniCell}>
-                    <Text style={styles.chartStatLabel} numberOfLines={1}>
-                      {gain ? t("summary.remainingToGoal") : t("summary.remaining")}
-                    </Text>
-                    <Num style={styles.chartStatValue} adjustsFontSizeToFit numberOfLines={1}>
-                      {gain
-                        ? fmtKg(gain.toGoKg)
-                        : summary.remainingKg !== null
-                          ? fmtKg(summary.remainingKg)
-                          : "-"}
-                    </Num>
-                  </View>
-                )}
-              </View>
-              {!dayQuery.isPending && dayQuery.data?.weightLoggedToday ? (
-                <Text style={styles.note}>{t("hero.loggedToday")}</Text>
               ) : null}
             </Card>
 
             {gainInfo && gainInfo.flags.length > 0 ? <GainNotes gain={gainInfo} /> : null}
 
-            {/* Chart */}
+            {/* The chosen period: the tabs drive every number and the chart below them */}
             <Card>
+              <Text style={styles.sectionLabel}>{t("period.title")}</Text>
               <View style={styles.rangeBox}>
                 <Segmented
                   options={[
@@ -1019,73 +1005,69 @@ export default function Berat() {
                 </View>
               ) : (
                 <>
-                  {maternal ? null : (
-                  <View style={styles.chartStats}>
-                    <View style={styles.chartStatCell}>
-                      <Text style={styles.chartStatLabel} numberOfLines={1}>
-                        {t("stats.change")}
-                      </Text>
-                      <Num
-                        adjustsFontSizeToFit
-                        numberOfLines={1}
-                        style={[
-                          styles.chartStatValue,
-                          toneFor(rangeStatsOut.changeKg) === "makan" && {
-                            color: theme.colors.makanText,
-                          },
-                          toneFor(rangeStatsOut.changeKg) === "bakar" && {
-                            color: theme.colors.bakarText,
-                          },
-                        ]}
-                      >
-                        {rangeStatsOut.changeKg === null
-                          ? "–"
-                          : `${signed(rangeStatsOut.changeKg)} kg`}
-                      </Num>
-                      <Text style={styles.chartStatSub} numberOfLines={1}>
-                        {rangeShort}
-                      </Text>
+                  {maternal ? null : period === null ? (
+                    <Text style={styles.note}>{t("period.needMore")}</Text>
+                  ) : (
+                    <View style={styles.periodGrid}>
+                      <View style={styles.periodCell}>
+                        <Text style={styles.chartStatLabel}>{t("period.start")}</Text>
+                        <Num style={styles.chartStatValue}>{`${fmtKg(period.startKg)} kg`}</Num>
+                        <Text style={styles.chartStatSub}>
+                          {t("period.trendOn", { date: fmtDateShort(period.startDate) })}
+                        </Text>
+                      </View>
+                      <View style={styles.periodCell}>
+                        <Text style={styles.chartStatLabel}>{t("period.now")}</Text>
+                        <Num style={styles.chartStatValue}>{`${fmtKg(period.endKg)} kg`}</Num>
+                        <Text style={styles.chartStatSub}>
+                          {t("period.trendOn", {
+                            date:
+                              period.endDate === today
+                                ? t("common:date.today")
+                                : fmtDateShort(period.endDate),
+                          })}
+                        </Text>
+                      </View>
+                      <View style={styles.periodCell}>
+                        <Text style={styles.chartStatLabel}>{t("stats.change")}</Text>
+                        <Num style={[styles.chartStatValue, toneColor(period.changeKg)]}>
+                          {`${signed(period.changeKg)} kg`}
+                        </Num>
+                        <Text style={styles.chartStatSub}>
+                          {t("period.changePct", { pct: signed(period.changePct) })}
+                        </Text>
+                      </View>
+                      <View style={styles.periodCell}>
+                        <Text style={styles.chartStatLabel}>{t("stats.pace")}</Text>
+                        <Num style={[styles.chartStatValue, toneColor(period.weeklyRateKg)]}>
+                          {period.weeklyRateKg === null ? "-" : `${signed(period.weeklyRateKg)} kg`}
+                        </Num>
+                        <Text style={styles.chartStatSub}>
+                          {period.weeklyRateKg === null ? t("period.paceNeeds") : t("period.perWeek")}
+                        </Text>
+                      </View>
+                      {summary.targetKg !== null && !gain ? (
+                        <View style={styles.periodCellWide}>
+                          <Text style={styles.chartStatLabel}>{t("stats.projection")}</Text>
+                          <Num style={styles.chartStatValue}>
+                            {period.projectedDate !== null
+                              ? t("stats.projectionValue", {
+                                  month: fmtDate(period.projectedDate, "month"),
+                                })
+                              : "-"}
+                          </Num>
+                          <Text style={styles.chartStatSub}>
+                            {projectionNote(period, summary.targetKg)}
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
-                    <View style={styles.chartStatCell}>
-                      <Text style={styles.chartStatLabel} numberOfLines={1}>
-                        {t("stats.pace")}
-                      </Text>
-                      <Num
-                        adjustsFontSizeToFit
-                        numberOfLines={1}
-                        style={[
-                          styles.chartStatValue,
-                          toneFor(rangeStatsOut.weeklyRateKg) === "makan" && {
-                            color: theme.colors.makanText,
-                          },
-                          toneFor(rangeStatsOut.weeklyRateKg) === "bakar" && {
-                            color: theme.colors.bakarText,
-                          },
-                        ]}
-                      >
-                        {rangeStatsOut.weeklyRateKg === null ? "–" : signed(rangeStatsOut.weeklyRateKg)}
-                      </Num>
-                      <Text style={styles.chartStatSub} numberOfLines={1}>
-                        {rangeStatsOut.weeklyRateKg === null ? " " : t("stats.perWeek")}
-                      </Text>
-                    </View>
-                    <View style={styles.chartStatCell}>
-                      <Text style={styles.chartStatLabel} numberOfLines={1}>
-                        {t("stats.projection")}
-                      </Text>
-                      <Num adjustsFontSizeToFit numberOfLines={1} style={styles.chartStatValue}>
-                        {rangeStatsOut.projectedDate !== null
-                          ? t("stats.projectionValue", {
-                              month: fmtDate(rangeStatsOut.projectedDate, "month"),
-                            })
-                          : "–"}
-                      </Num>
-                      <Text style={styles.chartStatSub} numberOfLines={2}>
-                        {projectionNote(rangeStatsOut, summary.targetKg)}
-                      </Text>
-                    </View>
-                  </View>
                   )}
+                  {period !== null && period.startsLateDays > 0 ? (
+                    <Text style={styles.chartHint}>
+                      {t("period.startsLate", { date: fmtDateShort(period.startDate) })}
+                    </Text>
+                  ) : null}
 
                   {rangeEntries.length === 1 ? (
                     <Text style={styles.chartHint}>{t("chart.tomorrow")}</Text>
@@ -1094,17 +1076,19 @@ export default function Berat() {
                     entries={rangeEntries}
                     trendPoints={rangeTrend}
                     targetKg={summary.targetKg}
-                    startKg={summary.startKg}
                     domainStart={domainStart}
                     domainEnd={chartEnd}
                     rangeKey={range}
                     rangeLabel={rangeLabel}
                     bars={kcalBarList}
                     weekly={kcalWeekly}
-                    targetKcal={targetKcal}
                     gainPlan={gainPlan}
                   />
                   <View style={styles.legendRow}>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendLine, { backgroundColor: theme.colors.makan }]} />
+                      <Text style={styles.legendText}>{t("legend.trend")}</Text>
+                    </View>
                     <View style={styles.legendItem}>
                       <View
                         style={[
@@ -1114,99 +1098,130 @@ export default function Berat() {
                       />
                       <Text style={styles.legendText}>{t("legend.weight")}</Text>
                     </View>
-                    <View style={styles.legendItem}>
-                      <View style={[styles.legendLine, { backgroundColor: theme.colors.makan }]} />
-                      <Text style={styles.legendText}>{t("legend.trend")}</Text>
-                    </View>
-                    <View style={styles.legendItem}>
-                      <View style={styles.legendBars}>
-                        <View style={[styles.legendSquare, { opacity: 0.35 }]} />
-                        <View style={[styles.legendSquare, { opacity: 0.8 }]} />
-                      </View>
-                      <Text style={styles.legendText}>{t("legend.kcal")}</Text>
-                    </View>
-                    <View style={styles.legendItem}>
-                      <Svg width={10} height={10}>
-                        <Defs>
-                          <Pattern
-                            id="kcal-hatch-legend"
-                            width={4}
-                            height={4}
-                            patternUnits="userSpaceOnUse"
-                            patternTransform="rotate(45)"
-                          >
-                            <Line
-                              x1={0}
-                              y1={0}
-                              x2={0}
-                              y2={4}
-                              stroke={theme.colors.mutedForeground}
-                              strokeOpacity={0.6}
-                              strokeWidth={1.5}
-                            />
-                          </Pattern>
-                        </Defs>
-                        <Rect width={10} height={10} rx={2} fill="url(#kcal-hatch-legend)" />
-                      </Svg>
-                      <Text style={styles.legendText}>{t("legend.unlogged")}</Text>
-                    </View>
-                    {targetKcal !== null ? (
+                    {!gainPlan && summary.targetKg !== null ? (
                       <View style={styles.legendItem}>
-                        <View style={styles.legendDashKcal} />
-                        <Text style={styles.legendText}>{t("legend.kcalTarget")}</Text>
+                        <View style={styles.legendDash} />
+                        <Text style={styles.legendText}>{t("legend.goal")}</Text>
                       </View>
                     ) : null}
-                  {gainPlan ? (
-                    <>
-                      <View style={styles.legendItem}>
-                        <View
-                          style={[styles.legendLine, { backgroundColor: theme.colors.makan, opacity: 0.6 }]}
-                        />
-                        <Text style={styles.legendText}>
-                          {`${t("gain:chart.target")} ${fmtKg(gainPlan.targetKg)}`}
-                        </Text>
-                      </View>
-                      <View style={styles.legendItem}>
-                        <View
-                          style={[styles.legendSquare, { backgroundColor: theme.colors.makan, opacity: 0.2 }]}
-                        />
-                        <Text style={styles.legendText}>
-                          {`${t("gain:chart.band")}: ${t("gain:chart.bandRange", {
-                            min: fmtKg(gainPlan.paceMinKg),
-                            max: fmtKg(gainPlan.paceMaxKg),
-                          })}`}
-                        </Text>
-                      </View>
-                    </>
-                  ) : null}
+                    {gainPlan ? (
+                      <>
+                        <View style={styles.legendItem}>
+                          <View
+                            style={[
+                              styles.legendLine,
+                              { backgroundColor: theme.colors.makan, opacity: 0.6 },
+                            ]}
+                          />
+                          <Text style={styles.legendText}>
+                            {`${t("gain:chart.target")} ${fmtKg(gainPlan.targetKg)}`}
+                          </Text>
+                        </View>
+                        <View style={styles.legendItem}>
+                          <View
+                            style={[
+                              styles.legendSquare,
+                              { backgroundColor: theme.colors.makan, opacity: 0.2 },
+                            ]}
+                          />
+                          <Text style={styles.legendText}>
+                            {`${t("gain:chart.band")}: ${t("gain:chart.bandRange", {
+                              min: fmtKg(gainPlan.paceMinKg),
+                              max: fmtKg(gainPlan.paceMaxKg),
+                            })}`}
+                          </Text>
+                        </View>
+                      </>
+                    ) : null}
                   </View>
-                  {kcalQuery.data ? (
-                    <Num style={styles.kcalSummary}>
-                      {kcalStats.trackedDays === 0
-                        ? t("kcal.none")
-                        : t("kcal.summary", {
-                            tracked: kcalStats.trackedDays,
-                            count: kcalStats.days,
-                            avg: fmtKcalLabel(kcalStats.avgKcal ?? 0),
-                          })}
-                    </Num>
-                  ) : null}
                 </>
               )}
               <Disclosure plain title={t("detail.title")}>
                 <Text style={styles.chartCaption}>
                   {t("detail.trustTrend")} {gain ? t("gain:nativeToday.chart.detailLegend") : t("detail.legend")}
-                  {kcalWeekly ? ` ${t("detail.weekly")}` : ""}
                   {!maternal && gain
                     ? ` ${t("gain:chart.gained", { kg: fmtKg(gain.gainedKg) })}`
-                    : !maternal && summary.deltaKg !== null
-                      ? ` ${t(summary.deltaKg < 0 ? "detail.totalDown" : "detail.totalUp", {
-                          kg: fmtKg(Math.abs(summary.deltaKg)),
-                        })}`
-                      : ""}
+                    : ""}
                 </Text>
               </Disclosure>
+              {maternal || !periodStory ? null : (
+                <ShareStoryButton
+                  variant="secondary"
+                  label={t("period.share")}
+                  story={periodStory}
+                  kinds={["period"]}
+                />
+              )}
             </Card>
+
+            {/* What was eaten over the same period, on its own axis */}
+            {kcalQuery.data && kcalBarList.length > 0 ? (
+              <Card>
+                <Text style={styles.sectionLabel}>
+                  {kcalWeekly ? t("kcal.titleWeekly") : t("kcal.title")}
+                </Text>
+                <KcalChart
+                  bars={kcalBarList}
+                  weekly={kcalWeekly}
+                  targetKcal={targetKcal}
+                  gain={gain !== null}
+                  domainStart={domainStart}
+                  domainEnd={chartEnd}
+                />
+                <View style={styles.legendRow}>
+                  <View style={styles.legendItem}>
+                    <View style={styles.legendBars}>
+                      <View style={[styles.legendSquare, { opacity: 0.35 }]} />
+                      <View style={[styles.legendSquare, { opacity: 0.8 }]} />
+                    </View>
+                    <Text style={styles.legendText}>
+                      {gain ? t("legend.kcalGain") : t("legend.kcalOver")}
+                    </Text>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <Svg width={10} height={10}>
+                      <Defs>
+                        <Pattern
+                          id="kcal-hatch-legend"
+                          width={4}
+                          height={4}
+                          patternUnits="userSpaceOnUse"
+                          patternTransform="rotate(45)"
+                        >
+                          <Line
+                            x1={0}
+                            y1={0}
+                            x2={0}
+                            y2={4}
+                            stroke={theme.colors.mutedForeground}
+                            strokeOpacity={0.6}
+                            strokeWidth={1.5}
+                          />
+                        </Pattern>
+                      </Defs>
+                      <Rect width={10} height={10} rx={2} fill="url(#kcal-hatch-legend)" />
+                    </Svg>
+                    <Text style={styles.legendText}>{t("legend.unlogged")}</Text>
+                  </View>
+                  {targetKcal !== null ? (
+                    <View style={styles.legendItem}>
+                      <View style={styles.legendDashKcal} />
+                      <Text style={styles.legendText}>{t("legend.kcalTarget")}</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Num style={styles.kcalSummary}>
+                  {kcalStats.trackedDays === 0
+                    ? t("kcal.none")
+                    : t("kcal.summary", {
+                        tracked: kcalStats.trackedDays,
+                        count: kcalStats.days,
+                        avg: fmtKcalLabel(kcalStats.avgKcal ?? 0),
+                      })}
+                </Num>
+                {kcalWeekly ? <Text style={styles.chartCaption}>{t("detail.weekly")}</Text> : null}
+              </Card>
+            ) : null}
           </>
         ) : (
           <EmptyState
@@ -1302,7 +1317,69 @@ export default function Berat() {
 }
 
 const styles = StyleSheet.create((theme) => ({
-  headerActions: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: theme.spacing.sm,
+  },
+  sectionLabel: {
+    fontSize: theme.fontSize.md,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  heroScale: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  factRows: {
+    gap: theme.spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.hairline,
+    paddingTop: theme.spacing.sm,
+  },
+  factRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+  },
+  factLabel: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+  },
+  factValue: {
+    flexShrink: 1,
+    textAlign: "right",
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  // Two columns, each wide enough for "-0,5 kg" and its sub line at 360dp; the projection spans both.
+  periodGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+  },
+  periodCell: {
+    flexBasis: "47%",
+    flexGrow: 1,
+    backgroundColor: theme.colors.muted,
+    borderRadius: theme.radius.tile,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 2,
+  },
+  periodCellWide: {
+    flexBasis: "100%",
+    backgroundColor: theme.colors.muted,
+    borderRadius: theme.radius.tile,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 2,
+  },
   trendLabel: {
     fontSize: theme.fontSize.sm,
     fontWeight: "600",
@@ -1323,63 +1400,10 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.lg,
     color: theme.colors.mutedForeground,
   },
-  rateBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: theme.colors.makanSoft,
-    borderRadius: theme.radius.tile,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 2,
-  },
-  rateText: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: "700",
-    color: theme.colors.makanText,
-  },
   note: {
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
     lineHeight: 20,
-  },
-  trendHead: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: theme.spacing.sm,
-  },
-  trendBlock: {
-    flexShrink: 1,
-  },
-  badgeCol: {
-    alignItems: "flex-end",
-    gap: theme.spacing.xs,
-  },
-  pill: {
-    backgroundColor: theme.colors.muted,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  pillIdeal: {
-    backgroundColor: theme.colors.makanSoft,
-  },
-  pillOff: {
-    backgroundColor: theme.colors.bakarSoft,
-  },
-  pillTextIdeal: {
-    fontSize: theme.fontSize.xs,
-    fontWeight: "700",
-    color: theme.colors.makanText,
-  },
-  pillTextOff: {
-    fontSize: theme.fontSize.xs,
-    fontWeight: "700",
-    color: theme.colors.bakarText,
-  },
-  pillMuted: {
-    fontSize: theme.fontSize.xs,
-    fontWeight: "600",
-    color: theme.colors.mutedForeground,
   },
   goalBanner: {
     backgroundColor: theme.colors.makanSoft,
@@ -1425,22 +1449,6 @@ const styles = StyleSheet.create((theme) => ({
   rangeBox: {
     width: "100%",
     marginTop: theme.spacing.sm,
-  },
-  chartStats: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.sm,
-    marginTop: theme.spacing.md,
-  },
-  chartStatCell: {
-    flexGrow: 1,
-    flexBasis: "30%",
-    flexShrink: 1,
-    backgroundColor: theme.colors.muted,
-    borderRadius: theme.radius.tile,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    gap: 2,
   },
   chartStatLabel: {
     fontSize: theme.fontSize.xs,
@@ -1545,18 +1553,6 @@ const styles = StyleSheet.create((theme) => ({
   legendText: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
-  },
-  miniRow: {
-    flexDirection: "row",
-    gap: theme.spacing.sm,
-  },
-  miniCell: {
-    flex: 1,
-    backgroundColor: theme.colors.muted,
-    borderRadius: theme.radius.tile,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    gap: 2,
   },
   historyCard: {
     gap: theme.spacing.sm,

@@ -10,7 +10,7 @@
     "weigh": "Timbang",
     "weighNow": "Timbang sekarang",
     "shareSticker": "Bagikan stiker berat",
-    "share": "Bagikan progres",
+    "share": "Posting ke feed",
     "loading": "Memuat riwayat berat"
   },
   "empty": {
@@ -19,41 +19,26 @@
     "bodyNative": "Simpan timbangan pertamamu untuk mulai melihat tren dan proyeksi target."
   },
   "hero": {
-    "share": "Bagikan progres berat",
     "trendLabel": "Berat tren",
-    "scale": "Timbangan {{kg}} kg · {{date}}",
-    "steadyWeek": "Stabil minggu ini",
-    "needMoreDays": "Timbang beberapa hari lagi untuk melihat laju per minggu.",
+    "scale": "Timbangan terakhir {{kg}} kg · {{date}}",
     "goalReached": "Target berat sudah tercapai. Jaga ritmenya.",
-    "loggedToday": "Tersimpan untuk hari ini",
-    "weighToday": "Timbang hari ini"
+    "weighToday": "Timbang hari ini",
+    "trendExplain": "Tren = rata-rata bergerak 7 hari. Lebih stabil daripada timbangan harian.",
+    "goalLabel": "Target",
+    "goalValue": "{{kg}} kg · sisa {{left}} kg",
+    "goalValueReached": "{{kg}} kg · tercapai"
   },
   "bmi": {
-    "pill": "BMI {{value}} · {{category}}",
     "category": {
       "under": "Kurang",
       "ideal": "Ideal",
       "over": "Overweight",
       "obese": "Obesitas"
-    }
-  },
-  "summary": {
-    "start": "Mulai",
-    "now": "Sekarang",
-    "down": "Turun",
-    "changed": "Berubah",
-    "remaining": "Sisa",
-    "remainingToGoal": "Sisa ke target",
-    "noData": "belum ada data",
-    "fromStart": "dari berat awal",
-    "upFromStart": "naik dari awal",
-    "same": "masih sama",
-    "target": "Target {{kg}} kg",
-    "setTarget": "atur target di Profil"
+    },
+    "label": "BMI",
+    "value": "{{value}} · {{category}}"
   },
   "chart": {
-    "title": "Grafik tren",
-    "titleNative": "Perjalanan berat",
     "rangeLabel": "Rentang grafik",
     "range": {
       "d7": "7H",
@@ -67,7 +52,6 @@
     "a11yPointer": "Grafik tren berat badan, {{range}}. Geser kursor untuk melihat tiap catatan.",
     "a11yTouch": "Grafik tren berat badan, {{range}}. Geser untuk melihat tiap catatan.",
     "target": "Target {{kg}}",
-    "start": "Awal {{kg}}",
     "emptyTitle": "Belum ada catatan {{range}}.",
     "emptyBody": "Pilih rentang lebih panjang, atau catat beratmu untuk mulai mengisi grafik.",
     "emptyAction": "Catat berat",
@@ -76,37 +60,39 @@
   "stats": {
     "change": "Perubahan",
     "pace": "Laju",
-    "projection": "Proyeksi",
-    "perWeek": "kg/minggu",
+    "projection": "Perkiraan capai target",
     "projectionValue": "±{{month}}"
   },
   "projection": {
     "setTarget": "atur target di Profil",
     "reached": "sudah tercapai, jaga ritmenya",
-    "toward": "menuju {{kg}} kg",
+    "toward": "perkiraan kalau laju ini berlanjut ke {{kg}} kg",
     "needMore": "butuh lebih banyak catatan",
     "steady": "ritme sedang stabil",
-    "almost": "hampir ada, teruskan",
     "away": "ritme terakhir menjauhi target"
   },
   "legend": {
-    "weight": "Berat",
-    "trend": "Tren",
-    "kcal": "Kalori",
+    "weight": "Timbangan harian",
+    "trend": "Tren (rata-rata 7 hari)",
     "unlogged": "Belum dicatat",
-    "kcalTarget": "Target kalori"
+    "kcalTarget": "Target kalori",
+    "goal": "Target berat",
+    "kcalOver": "Kalori (gelap = di atas target)",
+    "kcalGain": "Kalori (gelap = capai target)"
   },
   "kcal": {
     "none": "Belum ada kalori tercatat",
-    "summary_other": "Tercatat {{tracked}} dari {{count}} hari · rata-rata {{avg}}"
+    "summary_other": "Tercatat {{tracked}} dari {{count}} hari · rata-rata {{avg}}",
+    "title": "Kalori masuk per hari",
+    "titleWeekly": "Rata-rata kalori per minggu",
+    "target": "Target {{kcal}}",
+    "a11y": "Grafik kalori masuk, satu batang per hari atau per minggu"
   },
   "detail": {
     "title": "Detail",
     "trustTrend": "Angka tren lebih bisa dipercaya daripada timbangan harian.",
-    "legend": "Garis = tren (rata-rata bergerak 7 hari), titik = timbangan harian. Batang = kalori harian yang dicatat (gelap = di atas target, terang = di bawah); area garis-garis = hari tanpa catatan makan.",
-    "weekly": "Rentang panjang dirata-rata per minggu per hari tercatat.",
-    "totalDown": "Total turun {{kg}} kg sejak berat awal.",
-    "totalUp": "Total naik {{kg}} kg sejak berat awal."
+    "legend": "Garis tebal = tren (rata-rata bergerak 7 hari), titik = timbangan harian, garis putus = target berat. Mulai periode dan Sekarang memakai tren, bukan satu timbangan.",
+    "weekly": "Rentang panjang dirata-rata per minggu per hari tercatat."
   },
   "tip": {
     "scale": "Timbangan",
@@ -195,5 +181,17 @@
       "middle": "tengah-tengahnya",
       "pelvis": "Puncak tulang panggul"
     }
+  },
+  "period": {
+    "title": "Periode",
+    "start": "Mulai periode",
+    "now": "Sekarang",
+    "trendOn": "tren, {{date}}",
+    "changePct": "{{pct}}%",
+    "perWeek": "per minggu",
+    "paceNeeds": "butuh 7 hari data",
+    "needMore": "Butuh minimal 2 timbangan di periode ini untuk menghitung perubahan.",
+    "startsLate": "Timbangan di periode ini baru mulai {{date}}.",
+    "share": "Bagikan progres"
   }
 }

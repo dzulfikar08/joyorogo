@@ -540,7 +540,8 @@
         "workout": "Just finished a workout: {{name}}. Log yours on JoyoRogo.",
         "recap": "My recap {{name}}: {{on}} of {{logged}} days on target, averaging {{avg}} kcal a day. Track your meals on JoyoRogo.",
         "lost": "Down {{kg}} kg already. Lose weight with just 3 numbers on JoyoRogo.",
-        "progress": "Lose weight with just 3 numbers: eat, burn, sleep. JoyoRogo."
+        "progress": "Lose weight with just 3 numbers: eat, burn, sleep. JoyoRogo.",
+        "period": "My {{days}}-day progress: meals logged on {{logged}} of {{judged}} days. Track yours on JoyoRogo."
       }
     },
     "share": {

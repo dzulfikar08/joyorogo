@@ -64,3 +64,33 @@ Pengaturan".
 
 The sheet is a Modal that covers the toast layer, so a successful Copy or Save
 closes it and then shows the toast; failures stay inline with a retry button.
+
+## Kartu Progres (a period of the diet)
+
+Opened from the "Bagikan progres" button under the period tabs on Berat (web and native), so the card covers the tab that is
+selected: 7 days, 30 days, 90 days or since the first weigh-in. Story 9:16 and square 1:1, templates
+`period.progress.story` and `period.progress.square` (`packages/sticker/src/rogo/templates/period.ts`, spec `PeriodStory` in
+`data.ts`, bindings `period.*`).
+
+All numbers come from `packages/api/src/lib/period-progress.ts` (pure, tested in `period-progress.test.ts`), loaded by
+`stats.periodProgress` (`lib/period-store.ts`). The Berat screen calls the same `periodWeight` over the weigh-ins it already
+has, so the summary, the chart and the card never disagree.
+
+- Weight: the change is the **smoothed trend** (`emaTrendPoints`) from the period's start to its end, never one scale
+  reading against another. The start is the trend on the last weigh-in up to 14 days before the period, else the first
+  weigh-in inside it (then `startsLateDays` says so). Weekly pace needs 7 days, a projected date needs 14 days and 3 weigh-ins.
+- Days logged: finished WIB days with food, out of the finished days of the period. Today counts once it has food and is
+  never a missed day.
+- Deficit: the sum over **logged, finished, complete-looking** days of (burn - eaten). Burn is the plan's TDEE (calibrated
+  when calibration is on) plus that day's counted activity (`lib/exercise-credit`), the same numbers Beranda's Sisa uses; TDEE
+  is today's for every past day, which is why the card says "perkiraan". A day under half the target is a partial log and a
+  day without a burn estimate is skipped; both are counted in the result and left out of the sums, as are unlogged days.
+- Fat equivalent (7.700 kcal per kg): shown only when it does not contradict the trend (never when the trend went up, never
+  when it is more than 0.5 kg above the trend's own loss) and never on a Naikin BB plan, which shows a surplus instead.
+- Privacy: the absolute weight, its percent and the kg axis are hidden by default ("Sembunyikan berat badan", the existing
+  `hideNumbers` pref); only the change in kg shows, because change and percent together reveal the starting weight. The
+  deficit has its own switch per share ("Sembunyikan perkiraan defisit", not remembered).
+- Charts: the weight trend (axis ends labelled with kg when shown, dates under it) and calories eaten per day against the
+  target (axis 0 to the top value, per week beyond 45 days, unlogged days as short bars).
+
+Contact sheet and goldens: `bun run stickers:goldens` in `packages/sticker`; fixtures `period-*` in `rogo/fixtures.ts`.

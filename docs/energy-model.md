@@ -284,3 +284,9 @@ accepts and returns the old shapes at the boundary only; each point is marked `C
 - An old client shows the new levels it does not know (`sedentary`, ...) as empty or the raw value in its read-only
   "activity" row; it does not crash (its label lookup returns undefined). Its own "Aktivitas harian (perkiraan)" setting
   becomes inert: the server ignores it.
+
+## Where else the deficit shows
+
+The Kartu Progres on Berat sums (TDEE + counted activity - eaten) over a period's logged, finished, complete days as an
+estimate (`lib/period-progress.ts`, see [story-sharing.md](story-sharing.md)). It uses today's calibrated TDEE for past days and
+the same counted activity as Sisa, and only offers the 7.700 kcal per kg fat equivalent when the weight trend agrees.

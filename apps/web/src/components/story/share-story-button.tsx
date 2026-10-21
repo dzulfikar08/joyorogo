@@ -186,7 +186,13 @@ export function ShareStoryButton({
   const mode = ink ?? (document.documentElement.classList.contains("dark") ? "dark" : "light");
   const watermark = isPro ? prefs.watermark : true;
 
-  const { spec, images: storyImages } = useMemo(() => toRogoSpec(story), [story]);
+  // The period card's own switch: not remembered between shares, the deficit shows unless this share hides it.
+  const [hideDeficit, setHideDeficit] = useState(false);
+  const { spec: baseSpec, images: storyImages } = useMemo(() => toRogoSpec(story), [story]);
+  const spec = useMemo(
+    () => (baseSpec.kind === "period" ? { ...baseSpec, hideDeficit } : baseSpec),
+    [baseSpec, hideDeficit],
+  );
 
   const stickerPrefs: StickerPrefs = useMemo(
     () => ({
@@ -218,6 +224,8 @@ export function ShareStoryButton({
   const showInstagram = canShareFiles && os !== "desktop";
   const showsName = active !== null && templateShowsName(active);
   const hasWeight = story.kind === "progress" && !story.maternal && story.weightGoalProgress != null;
+  const periodHasWeight = story.kind === "period" && story.weight != null;
+  const periodHasEnergy = story.kind === "period" && (story.energy?.countedDays ?? 0) > 0;
 
   const cacheKey = scene && active ? `${active.id}|${mode}|${locale}|${JSON.stringify(stickerPrefs)}` : "";
 
@@ -357,6 +365,7 @@ export function ShareStoryButton({
     setKind(initialKind ?? null);
     setCanvasKind(null);
     setTemplateId(null);
+    setHideDeficit(false);
     setOpen(true);
   };
 
@@ -489,6 +498,24 @@ export function ShareStoryButton({
                       label={t("sticker:sheet.hideNumbers")}
                       checked={prefs.hideNumbers}
                       onCheckedChange={(value) => updatePrefs({ hideNumbers: value })}
+                    />
+                  </OptionRow>
+                )}
+                {periodHasWeight && (
+                  <OptionRow label={t("sticker:sheet.hideWeight")} hint={t("sticker:sheet.hideWeightHint")}>
+                    <Switch
+                      label={t("sticker:sheet.hideWeight")}
+                      checked={prefs.hideNumbers}
+                      onCheckedChange={(value) => updatePrefs({ hideNumbers: value })}
+                    />
+                  </OptionRow>
+                )}
+                {periodHasEnergy && (
+                  <OptionRow label={t("sticker:sheet.hideDeficit")}>
+                    <Switch
+                      label={t("sticker:sheet.hideDeficit")}
+                      checked={hideDeficit}
+                      onCheckedChange={setHideDeficit}
                     />
                   </OptionRow>
                 )}

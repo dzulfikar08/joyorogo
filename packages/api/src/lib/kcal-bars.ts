@@ -23,12 +23,17 @@ export interface KcalBar {
 export const DAILY_BAR_MAX_DAYS = 45;
 
 /**
- * Days of the series that belong in [from, today]. Today with nothing logged is
- * left out: the day is not over, so it is neither tracked nor skipped yet.
+ * Days of the series that belong in [from, to]. `openDay` (default `to`: the chart's today) with nothing logged is
+ * left out: the day is not over, so it is neither tracked nor skipped yet. A finished period passes `null`.
  */
-function daysInRange(series: KcalDay[], from: string, today: string): KcalDay[] {
+function daysInRange(
+  series: KcalDay[],
+  from: string,
+  to: string,
+  openDay: string | null = to,
+): KcalDay[] {
   return series.filter(
-    (d) => d.date >= from && d.date <= today && !(d.date === today && d.kcal === null),
+    (d) => d.date >= from && d.date <= to && !(d.date === openDay && d.kcal === null),
   );
 }
 
@@ -54,8 +59,9 @@ export function kcalBars(
   series: KcalDay[],
   from: string,
   today: string,
+  openDay: string | null = today,
 ): { weekly: boolean; bars: KcalBar[] } {
-  const days = daysInRange(series, from, today);
+  const days = daysInRange(series, from, today, openDay);
   const weekly = daysBetween(from, today) + 1 > DAILY_BAR_MAX_DAYS;
   if (!weekly) {
     return {

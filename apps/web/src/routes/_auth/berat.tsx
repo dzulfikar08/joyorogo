@@ -5,21 +5,17 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Medal, Scale, Share2, TrendingDown, TrendingUp } from "lucide-react";
+import { Medal, Scale, Share2 } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
-import {
-  daysBetween,
-  emaTrendPoints,
-  jakartaToday,
-  rangeStats,
-  shiftDate,
-} from "@joyorogo/api/lib/engine";
-import type { RangeStats } from "@joyorogo/api/lib/engine";
+import { daysBetween, emaTrendPoints, jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
+import { gainDayHit } from "@joyorogo/api/lib/gain";
 import { kcalBars, kcalSummary } from "@joyorogo/api/lib/kcal-bars";
 import type { KcalBar } from "@joyorogo/api/lib/kcal-bars";
+import { periodWeight } from "@joyorogo/api/lib/period-progress";
+import type { PeriodWeight } from "@joyorogo/api/lib/period-progress";
 
 import { Mascot } from "@/components/mascot";
 import { ScreenError } from "@/components/screen-state";
@@ -55,8 +51,8 @@ import { client, orpc } from "@/utils/orpc";
 
 // 365 = the API cap, so the "Semua" range really shows everything.
 const historyOptions = orpc.weight.history.queryOptions({ input: { limit: 365 } });
-// The authoritative trend (28-day smoothed EMA + pace + projection) comes
-// from day.summary; the history only supplies the raw scale dots.
+// day.summary supplies today's targets; the trend, pace and projection on this screen all come from
+// lib/period-progress over the history, the same function the share card uses.
 const summaryOptions = orpc.day.summary.queryOptions({ input: {} });
 const profileOptions = orpc.profile.myProfile.queryOptions();
 
@@ -67,7 +63,7 @@ export const Route = createFileRoute("/_auth/berat")({
 });
 
 
-const PAD = { top: 18, right: 38, bottom: 26, left: 38 };
+const PAD = { top: 18, right: 14, bottom: 26, left: 38 };
 
 /** Naikin BB plan drawn on the chart: upward target line plus the weekly pace fan. */
 type GainPlanLine = {
@@ -81,12 +77,10 @@ type GainPlanLine = {
   base: { date: string; kg: number } | null;
 };
 
-/** Calorie bars live in the bottom share of the plot, on their own (right) axis. */
-const BAR_ZONE = 0.38;
-/** An untracked day's hatched placeholder, as a share of the bar zone. */
+/** An unlogged day's hatched placeholder, as a share of the plot height. */
 const GHOST_SHARE = 0.45;
 
-/** 2140 -> "2,1k" for the compact right axis. */
+/** 2140 -> "2,1k" for the compact axis. */
 function kcalAxis(n: number): string {
   if (n < 1000) return fmtInt(n);
   return `${fmtNumber(n / 1000, 1)}k`;
@@ -133,14 +127,12 @@ function WeightChart({
   entries,
   trendPoints,
   targetKg,
-  startKg,
   domainStart,
   domainEnd,
   rangeKey,
   rangeLabel,
   bars,
   weekly,
-  targetKcal,
   gainPlan,
 }: {
   width: number;
@@ -150,16 +142,14 @@ function WeightChart({
   /** EMA trend over the same range, oldest first */
   trendPoints: Array<{ date: string; trendKg: number }>;
   targetKg: number | null;
-  startKg: number | null;
   domainStart: string;
   domainEnd: string;
   /** replays the draw-in animation when the range changes */
   rangeKey: string;
   rangeLabel: string;
-  /** calorie bars over the same time axis (daily, or per week on long ranges) */
+  /** the calorie bars of the same period, only read for the scrub tooltip */
   bars: KcalBar[];
   weekly: boolean;
-  targetKcal: number | null;
   /** Naikin BB plan (upward target line + pace fan); null for every other mode */
   gainPlan: GainPlanLine | null;
 }) {
@@ -172,7 +162,7 @@ function WeightChart({
     PAD.left +
     (Math.min(Math.max(daysBetween(domainStart, date), 0), spanDays) / spanDays) * innerW;
 
-  // Y domain from raw + trend values; the target/start lines join only when
+  // Y domain from raw + trend values; the target line joins only when
   // near the data — a goal 20 kg away would flatten the whole trend line.
   const values = [...entries.map((e) => e.weightKg), ...trendPoints.map((p) => p.trendKg)];
   const rawLo = Math.min(...values);
@@ -217,26 +207,17 @@ function WeightChart({
     ...(planFan ? planFan.map(([, kg]) => kg) : []),
   ];
   const target = !gainPlan && targetKg !== null && near(targetKg) ? targetKg : null;
-  const start =
-    !gainPlan &&
-    startKg !== null &&
-    near(startKg) &&
-    (target === null || Math.abs(startKg - target) > 0.01)
-      ? startKg
-      : null;
   // Step is chosen from the FULL domain (lines included) so the tick count
   // stays ~5 no matter how much the reference lines stretch the view.
   const dataLo = Math.min(
     rawLo,
     ...planKgs,
     ...(target !== null ? [target] : []),
-    ...(start !== null ? [start] : []),
   );
   const dataHi = Math.max(
     rawHi,
     ...planKgs,
     ...(target !== null ? [target] : []),
-    ...(start !== null ? [start] : []),
   );
   const padKg = Math.max((dataHi - dataLo) * 0.08, 0.2);
   const step = niceStep(dataHi - dataLo + 2 * padKg);
@@ -263,23 +244,6 @@ function WeightChart({
           .join(" ")
       : null;
 
-  // Secondary axis: kcal 0..maxK in the bottom BAR_ZONE of the plot. The
-  // target line joins the domain so it never clips off the top.
-  const baseY = PAD.top + innerH;
-  const zoneH = innerH * BAR_ZONE;
-  const maxK = Math.max(
-    500,
-    Math.ceil((Math.max(targetKcal ?? 0, ...bars.map((b) => b.avgKcal ?? 0)) * 1.1) / 500) * 500,
-  );
-  const ky = (kcal: number) => baseY - (kcal / maxK) * zoneH;
-  const pxPerDay = innerW / spanDays;
-  const barGeom = (b: KcalBar) =>
-    weekly
-      ? { left: x(b.from), w: Math.max((daysBetween(b.from, b.to) + 1) * pxPerDay - 2, 2) }
-      : (() => {
-          const w = Math.max(pxPerDay * 0.7, 1.5);
-          return { left: x(b.from) - w / 2, w };
-        })();
   const scrubBar = (date: string) => bars.find((b) => b.from <= date && date <= b.to);
 
   const scrubIdx = scrubDate ? entries.findIndex((e) => e.date === scrubDate) : -1;
@@ -333,74 +297,6 @@ function WeightChart({
         onPointerLeave={clearScrub}
         onPointerCancel={clearScrub}
       >
-        <defs>
-          <pattern
-            id="kcal-hatch"
-            width={4}
-            height={4}
-            patternUnits="userSpaceOnUse"
-            patternTransform="rotate(45)"
-          >
-            <line
-              x1={0}
-              y1={0}
-              x2={0}
-              y2={4}
-              strokeWidth={1.5}
-              className="stroke-muted-foreground/50"
-            />
-          </pattern>
-        </defs>
-        <g key={`bars-${rangeKey}`} className="chart-fade">
-          {bars.map((b) => {
-            const { left, w } = barGeom(b);
-            const barH = b.avgKcal === null ? 0 : baseY - ky(b.avgKcal);
-            const ghostH = zoneH * GHOST_SHARE * (b.untrackedDays / b.days);
-            const over =
-              !gainPlan && targetKcal !== null && b.avgKcal !== null && b.avgKcal > targetKcal;
-            return (
-              <g key={b.from}>
-                {b.avgKcal !== null && (
-                  <rect
-                    x={left}
-                    y={baseY - barH}
-                    width={w}
-                    height={barH}
-                    rx={Math.min(w / 4, 2)}
-                    className={over ? "fill-bakar/80" : "fill-bakar/35"}
-                  />
-                )}
-                {ghostH > 0 && (
-                  <rect
-                    x={left}
-                    y={baseY - barH - ghostH}
-                    width={w}
-                    height={ghostH}
-                    fill="url(#kcal-hatch)"
-                  />
-                )}
-              </g>
-            );
-          })}
-        </g>
-        {targetKcal !== null && (
-          <line
-            x1={PAD.left}
-            x2={width - PAD.right}
-            y1={ky(targetKcal)}
-            y2={ky(targetKcal)}
-            strokeDasharray="6 4"
-            strokeWidth={1.25}
-            className="stroke-bakar-ink/70"
-          />
-        )}
-        <g fontSize={10} fontWeight={600} className="fill-bakar-ink">
-          {[maxK / 2, maxK].map((k) => (
-            <text key={k} x={width - PAD.right + 5} y={ky(k) + 3}>
-              {kcalAxis(k)}
-            </text>
-          ))}
-        </g>
         <g className="stroke-border/70">
           {yTicks.map((t) => (
             <line
@@ -444,33 +340,6 @@ function WeightChart({
             </text>
           </g>
         )}
-        {start !== null && (
-          <g>
-            <line
-              x1={PAD.left}
-              x2={width - PAD.right}
-              y1={y(start)}
-              y2={y(start)}
-              strokeDasharray="2 5"
-              strokeWidth={1.25}
-              className="stroke-muted-foreground/45"
-            />
-            <text
-              x={PAD.left}
-              y={
-                (target !== null && Math.abs(y(start) - y(target)) < 15) || y(start) < PAD.top + 14
-                  ? y(start) + 15
-                  : y(start) - 6
-              }
-              fontSize={11}
-              fontWeight={600}
-              className="fill-muted-foreground"
-            >
-              {t("chart.start", { kg: fmtKg(start) })}
-            </text>
-          </g>
-        )}
-
         {/* Naikin BB: the plan's upward target line and the pace fan from the latest weigh-in. */}
         {gainPlan && planLine && (
           <g>
@@ -660,29 +529,62 @@ function WeightChart({
   );
 }
 
-/** One-line key: Berat, Tren, Kalori (over/under), Belum dicatat, Target. */
+/** One-line key of the weight chart: trend line, scale dots, goal line (or the Naikin BB plan). */
 function ChartLegend({
-  showTarget,
+  showGoal,
   gainPlan,
 }: {
-  showTarget: boolean;
+  showGoal: boolean;
   gainPlan: GainPlanLine | null;
 }) {
   const { t } = useTranslation(["berat", "gain"]);
   return (
     <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-muted-foreground">
       <li className="flex items-center gap-1">
-        <span className="size-2 rounded-full bg-primary/35" />
-        {t("legend.weight")}
-      </li>
-      <li className="flex items-center gap-1">
         <span className="h-0.5 w-3 rounded-full bg-primary" />
         {t("legend.trend")}
       </li>
       <li className="flex items-center gap-1">
+        <span className="size-2 rounded-full bg-primary/35" />
+        {t("legend.weight")}
+      </li>
+      {showGoal && (
+        <li className="flex items-center gap-1">
+          <span className="w-3 border-t-2 border-dashed border-makan/60" />
+          {t("legend.goal")}
+        </li>
+      )}
+      {gainPlan && (
+        <>
+          <li className="flex items-center gap-1">
+            <span className="w-3 border-t-2 border-dashed border-makan/60" />
+            {t("gain:chart.target", { kg: fmtKg(gainPlan.targetKg) })}
+          </li>
+          <li className="flex items-center gap-1">
+            <span className="size-2 rounded-sm bg-makan/15" />
+            {t("gain:chart.band")}
+            <span className="font-normal">
+              {t("gain:chart.bandRange", {
+                min: fmtKg(gainPlan.paceMinKg),
+                max: fmtKg(gainPlan.paceMaxKg),
+              })}
+            </span>
+          </li>
+        </>
+      )}
+    </ul>
+  );
+}
+
+/** Key of the calorie chart: bar shades, unlogged days, the target line. */
+function KcalLegend({ showTarget, gain }: { showTarget: boolean; gain: boolean }) {
+  const { t } = useTranslation(["berat"]);
+  return (
+    <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-muted-foreground">
+      <li className="flex items-center gap-1">
         <span className="size-2 rounded-sm bg-bakar/35" />
         <span className="-ml-0.5 size-2 rounded-sm bg-bakar/80" />
-        {t("legend.kcal")}
+        {gain ? t("legend.kcalGain") : t("legend.kcalOver")}
       </li>
       <li className="flex items-center gap-1">
         <svg width={10} height={10} aria-hidden>
@@ -714,30 +616,157 @@ function ChartLegend({
           {t("legend.kcalTarget")}
         </li>
       )}
-      {gainPlan && (
-        <>
-          <li className="flex items-center gap-1">
-            <span className="w-3 border-t-2 border-dashed border-makan/60" />
-            {t("gain:chart.target", { kg: fmtKg(gainPlan.targetKg) })}
-          </li>
-          <li className="flex items-center gap-1">
-            <span className="size-2 rounded-sm bg-makan/15" />
-            {t("gain:chart.band")}
-            <span className="font-normal">
-              {t("gain:chart.bandRange", {
-                min: fmtKg(gainPlan.paceMinKg),
-                max: fmtKg(gainPlan.paceMaxKg),
-              })}
-            </span>
-          </li>
-        </>
-      )}
     </ul>
   );
 }
 
+/** Calories eaten over the weight chart's period and x axis, on its own labelled axis (kcal, left). */
+function KcalChart({
+  width,
+  bars,
+  weekly,
+  targetKcal,
+  gain,
+  domainStart,
+  domainEnd,
+  rangeKey,
+}: {
+  width: number;
+  bars: KcalBar[];
+  weekly: boolean;
+  targetKcal: number | null;
+  gain: boolean;
+  domainStart: string;
+  domainEnd: string;
+  rangeKey: string;
+}) {
+  const { t } = useTranslation(["berat"]);
+  const height = width < 480 ? 150 : 180;
+  const innerW = width - PAD.left - PAD.right;
+  const innerH = height - PAD.top - PAD.bottom;
+  const spanDays = Math.max(daysBetween(domainStart, domainEnd), 1);
+  const x = (date: string) =>
+    PAD.left +
+    (Math.min(Math.max(daysBetween(domainStart, date), 0), spanDays) / spanDays) * innerW;
+  const pxPerDay = innerW / spanDays;
+  const baseY = PAD.top + innerH;
+  const maxK = Math.max(
+    500,
+    Math.ceil((Math.max(targetKcal ?? 0, ...bars.map((b) => b.avgKcal ?? 0)) * 1.1) / 500) * 500,
+  );
+  const ky = (kcal: number) => baseY - (kcal / maxK) * innerH;
+  const dayStep = niceDayStep(spanDays);
+  const xTickDates: string[] = [];
+  for (let d = 0; d <= spanDays; d += dayStep) xTickDates.push(shiftDate(domainStart, d));
+  if (spanDays - (xTickDates.length - 1) * dayStep >= dayStep * 0.5) xTickDates.push(domainEnd);
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      width={width}
+      height={height}
+      className="h-auto max-w-full select-none"
+      role="img"
+      aria-label={t("kcal.a11y")}
+    >
+      <defs>
+        <pattern
+          id="kcal-hatch"
+          width={4}
+          height={4}
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(45)"
+        >
+          <line x1={0} y1={0} x2={0} y2={4} strokeWidth={1.5} className="stroke-muted-foreground/50" />
+        </pattern>
+      </defs>
+      <g className="stroke-border/70">
+        {[0, maxK / 2, maxK].map((k) => (
+          <line key={k} x1={PAD.left} x2={width - PAD.right} y1={ky(k)} y2={ky(k)} strokeWidth={1} />
+        ))}
+      </g>
+      <g fontSize={11} fontWeight={600} className="fill-muted-foreground">
+        {[0, maxK / 2, maxK].map((k) => (
+          <text key={k} x={PAD.left - 8} y={ky(k) + 4} textAnchor="end">
+            {kcalAxis(k)}
+          </text>
+        ))}
+      </g>
+      <g key={`bars-${rangeKey}`} className="chart-fade">
+        {bars.map((b) => {
+          const w = weekly
+            ? Math.max((daysBetween(b.from, b.to) + 1) * pxPerDay - 2, 2)
+            : Math.max(pxPerDay * 0.7, 1.5);
+          const left = weekly ? x(b.from) : x(b.from) - w / 2;
+          const barH = b.avgKcal === null ? 0 : baseY - ky(b.avgKcal);
+          const ghostH = innerH * GHOST_SHARE * (b.untrackedDays / b.days);
+          const strong = gain
+            ? targetKcal !== null && b.avgKcal !== null && gainDayHit(b.avgKcal, targetKcal)
+            : targetKcal !== null && b.avgKcal !== null && b.avgKcal > targetKcal;
+          return (
+            <g key={b.from}>
+              {b.avgKcal !== null && (
+                <rect
+                  x={left}
+                  y={baseY - barH}
+                  width={w}
+                  height={barH}
+                  rx={Math.min(w / 4, 2)}
+                  className={strong ? "fill-bakar/80" : "fill-bakar/35"}
+                />
+              )}
+              {ghostH > 0 && (
+                <rect
+                  x={left}
+                  y={baseY - barH - ghostH}
+                  width={w}
+                  height={ghostH}
+                  fill="url(#kcal-hatch)"
+                />
+              )}
+            </g>
+          );
+        })}
+      </g>
+      {targetKcal !== null && (
+        <g>
+          <line
+            x1={PAD.left}
+            x2={width - PAD.right}
+            y1={ky(targetKcal)}
+            y2={ky(targetKcal)}
+            strokeDasharray="6 4"
+            strokeWidth={1.25}
+            className="stroke-bakar-ink/70"
+          />
+          <text
+            x={width - PAD.right}
+            y={ky(targetKcal) - 5}
+            textAnchor="end"
+            fontSize={11}
+            fontWeight={600}
+            className="fill-bakar-ink"
+          >
+            {t("kcal.target", { kcal: fmtInt(targetKcal) })}
+          </text>
+        </g>
+      )}
+      <g fontSize={11} fontWeight={500} className="fill-muted-foreground">
+        {xTickDates.map((d, i) => (
+          <text
+            key={d}
+            x={x(d)}
+            y={height - 8}
+            textAnchor={i === 0 ? "start" : i === xTickDates.length - 1 ? "end" : "middle"}
+          >
+            {fmtDateShort(d)}
+          </text>
+        ))}
+      </g>
+    </svg>
+  );
+}
 
-/** Small stat tile inside the chart card header (trend, range delta, pace, projection). */
+/** Small stat tile of the period summary (start, now, change, pace, projection). */
 function StatCell({
   label,
   value,
@@ -764,7 +793,7 @@ function StatCell({
         {value}
         {unit && <span className="ml-1 text-xs font-semibold text-muted-foreground">{unit}</span>}
       </p>
-      <p className="mt-0.5 truncate text-xs text-muted-foreground">{sub}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>
     </div>
   );
 }
@@ -812,7 +841,6 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const goal = profile.data?.profile?.goal ?? "lose";
   const { entries, summary: weightSummary } = history;
   const gain = weightSummary.gain;
-  const trend = summary.data?.trend ?? null;
   const today = jakartaToday();
 
   const [range, setRange] = useState<"7" | "30" | "90" | "all">("30");
@@ -821,12 +849,24 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const [weighValue, setWeighValue] = useState("");
   // Bagikan ke feed: check-in berat terakhir sebagai post 'berat'.
   const [shareOpen, setShareOpen] = useState(false);
-  const chart = useChartSize();
+  const { ref: chartRef, size: chartSize } = useChartSize();
   // One fetch of the last 400 days (the API cap); ranges filter locally.
   const kcalSeries = useQuery(
     orpc.day.kcalSeries.queryOptions({
       input: { from: jakartaDatePlusDays(-399), to: today },
     }),
+  );
+
+  // The share card reads the same period as the tabs: same start, same end, same trend.
+  const periodFrom =
+    range === "all" ? (entries[0]?.date ?? today) : jakartaDatePlusDays(-(Number(range) - 1));
+  const periodQuery = useQuery({
+    ...orpc.stats.periodProgress.queryOptions({ input: { from: periodFrom, to: today } }),
+    enabled: weightSummary.latestKg !== null && !maternal,
+  });
+  const periodStory = useMemo<StorySpec | null>(
+    () => (periodQuery.data ? { kind: "period", ...periodQuery.data, date: new Date() } : null),
+    [periodQuery.data],
   );
 
   const checkIn = useWeightCheckIn((row) => t("toast.logged", { kg: fmtKg(row.weightKg) }));
@@ -845,9 +885,6 @@ function BeratScreen({ history }: { history: WeightHistory }) {
     setWeighOpen(false);
   };
 
-  const trendKg = trend?.weightKg ?? weightSummary.latestKg;
-  const rate = trend?.weeklyRateKg ?? null;
-  const flat = rate !== null && Math.abs(rate) <= 0.05;
   const heightCm = profile.data?.profile?.heightCm ?? null;
   const bmi =
     !maternal && weightSummary.latestKg !== null && heightCm
@@ -855,27 +892,32 @@ function BeratScreen({ history }: { history: WeightHistory }) {
       : null;
   const bmiCategory =
     bmi === null ? null : bmi < 18.5 ? "under" : bmi < 25 ? "ideal" : bmi < 30 ? "over" : "obese";
+
+  // Chart line: client-side 7-day EMA over the raw entries, so every range —
+  // including "Semua" — gets a full trend. The headline is its last point.
+  const allTrend = useMemo(() => emaTrendPoints(entries), [entries]);
+  const latestTrend = allTrend.at(-1);
+  const trendKg = latestTrend?.trendKg ?? weightSummary.latestKg;
   const goalReached =
     trendKg !== null &&
     weightSummary.targetKg !== null &&
     (goal === "gain" ? trendKg >= weightSummary.targetKg : trendKg <= weightSummary.targetKg);
-
-  // Chart line: client-side 7-day EMA over the raw entries, so every range —
-  // including "Semua" — gets a full trend (day.summary only ships 30 days).
-  const allTrend = useMemo(() => emaTrendPoints(entries), [entries]);
+  const toGoalKg =
+    trendKg !== null && weightSummary.targetKg !== null
+      ? Math.abs(trendKg - weightSummary.targetKg)
+      : null;
   const rangeDays = range === "all" ? null : Number(range);
   const cutoff = rangeDays === null ? null : jakartaDatePlusDays(-(rangeDays - 1));
   const rangeEntries = cutoff === null ? entries : entries.filter((e) => e.date >= cutoff);
   const rangeTrend = cutoff === null ? allTrend : allTrend.filter((p) => p.date >= cutoff);
-  const rangeStatsOut = rangeStats(rangeTrend, weightSummary.targetKg);
   const rangeLabel =
     range === "all" ? t("chart.sinceStart") : t("chart.rangeLast", { count: Number(range) });
-  const rangeShort =
-    range === "all" ? t("chart.sinceStart") : t("chart.rangeDays", { count: Number(range) });
   const domainStart = cutoff ?? rangeEntries[0]?.date ?? today;
+  // The period's numbers (start, now, change, pace, projection) come from one function, over the same trend the chart
+  // draws and the same bounds the share card is built from.
+  const period = periodWeight(entries, domainStart, today, weightSummary.targetKg);
   // Naikin BB: the plan line starts where the gain began (the latest earlier weigh-in at the
   // gain's starting weight, else the first weigh-in) and the x axis reaches toward the target date.
-  const latestTrend = allTrend.at(-1);
   const gainStartDate = gain
     ? ([...entries]
         .reverse()
@@ -927,15 +969,15 @@ function BeratScreen({ history }: { history: WeightHistory }) {
   const dayLabel = (date: string) => (date === today ? t("common:date.today") : fmtDateShort(date));
   const signed = (n: number) => `${n < 0 ? "−" : n > 0 ? "+" : ""}${fmtKg(Math.abs(n))}`;
 
-  /** Friendly sub-caption for the projection stat, per reason it is (not) shown. */
-  const projectionSub = (stats: RangeStats, targetKg: number | null): string => {
+  /** One short line under the projection cell: why there is, or is not, a date. */
+  const projectionSub = (pw: PeriodWeight | null, targetKg: number | null): string => {
     if (targetKg === null) return t("projection.setTarget");
     if (goalReached) return t("projection.reached");
-    if (stats.projectedDate !== null) return t("projection.toward", { kg: fmtKg(targetKg) });
-    if (stats.weeklyRateKg === null || stats.changeKg === null) return t("projection.needMore");
-    if (Math.abs(stats.weeklyRateKg) < 0.05) return t("projection.steady");
-    const toward = (stats.trendKg - targetKg) * stats.weeklyRateKg < 0;
-    return toward ? t("projection.almost") : t("projection.away");
+    if (pw === null || pw.weeklyRateKg === null) return t("projection.needMore");
+    if (pw.projectedDate !== null) return t("projection.toward", { kg: fmtKg(targetKg) });
+    if (pw.direction === "steady") return t("projection.steady");
+    const toward = (pw.endKg - targetKg) * pw.weeklyRateKg < 0;
+    return toward ? t("projection.needMore") : t("projection.away");
   };
 
   return (
@@ -981,68 +1023,21 @@ function BeratScreen({ history }: { history: WeightHistory }) {
         <div className="grid items-start gap-3 lg:grid-cols-[1.15fr_1fr] lg:gap-5">
           <div className="space-y-3 lg:space-y-5">
             <Card className="p-4 sm:p-6">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[0.8125rem] font-semibold text-muted-foreground">
-                    {t("hero.trendLabel")}
-                  </p>
-                  <p className="mt-0.5 text-5xl leading-none font-extrabold tracking-tighter tabular-nums sm:text-[3.25rem]">
-                    {fmtKg(trendKg ?? 0)}
-                    <span className="ml-1.5 text-lg font-bold text-muted-foreground">kg</span>
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  {bmi !== null && bmiCategory !== null && (
-                    <span
-                      className={cn(
-                        "inline-flex min-h-7 items-center rounded-full px-3 text-xs font-bold tabular-nums",
-                        bmiCategory === "ideal"
-                          ? "bg-makan-soft text-makan-ink"
-                          : "bg-bakar-soft text-bakar-ink",
-                      )}
-                    >
-                      {t("bmi.pill", {
-                        value: fmtKg(bmi),
-                        category: t(`bmi.category.${bmiCategory}`),
-                      })}
-                    </span>
-                  )}
-                  <span className="inline-flex min-h-7 items-center gap-1.5 rounded-full bg-muted px-3 text-xs font-semibold text-muted-foreground tabular-nums">
-                    <Scale className="size-3.5" aria-hidden />
-                    {t("hero.scale", {
-                      kg: fmtKg(weightSummary.latestKg),
-                      date: dayLabel(entries.at(-1)!.date),
-                    })}
-                  </span>
-                </div>
-              </div>
-
-              {rate !== null && !maternal && (
-                <p
-                  className={cn(
-                    "mt-2 flex items-center gap-1.5 text-sm font-bold",
-                    flat
-                      ? "text-muted-foreground"
-                      : gain
-                        ? rate > 0
-                          ? "text-makan-ink"
-                          : "text-amber-600 dark:text-amber-400"
-                        : rate < 0
-                          ? "text-makan-ink"
-                          : "text-bakar-ink",
-                  )}
-                >
-                  {!flat &&
-                    (rate < 0 ? (
-                      <TrendingDown className="size-4" aria-hidden />
-                    ) : (
-                      <TrendingUp className="size-4" aria-hidden />
-                    ))}
-                  {flat
-                    ? t("hero.steadyWeek")
-                    : t(rate < 0 ? "trend.down" : "trend.up", { kg: fmtKg(Math.abs(rate)) })}
-                </p>
-              )}
+              <p className="text-[0.8125rem] font-semibold text-muted-foreground">
+                {t("hero.trendLabel")}
+              </p>
+              <p className="mt-0.5 text-5xl leading-none font-extrabold tracking-tighter tabular-nums sm:text-[3.25rem]">
+                {fmtKg(trendKg ?? 0)}
+                <span className="ml-1.5 text-lg font-bold text-muted-foreground">kg</span>
+              </p>
+              <p className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground tabular-nums">
+                <Scale className="size-4 shrink-0" aria-hidden />
+                {t("hero.scale", {
+                  kg: fmtKg(weightSummary.latestKg),
+                  date: dayLabel(entries.at(-1)!.date),
+                })}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">{t("hero.trendExplain")}</p>
 
               {goalReached && (
                 <div className="mt-3 flex items-center gap-3 rounded-2xl bg-makan-soft px-3 py-1.5 text-sm font-bold text-makan-ink">
@@ -1054,72 +1049,39 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                 </div>
               )}
 
-              <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/60 pt-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-muted-foreground">{t("summary.start")}</p>
-                  <p className="mt-0.5 text-lg leading-tight font-extrabold tabular-nums">
-                    {fmtKg(gain ? gain.startKg : (weightSummary.startKg ?? 0))}
-                    <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
-                  </p>
-                </div>
-                {!maternal && (
-                  <>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-muted-foreground">
-                        {gain ? t("gain:webToday.chart.up") : t("summary.down")}
-                      </p>
-                      <p
+              {!maternal && (weightSummary.targetKg !== null || bmi !== null) && (
+                <dl className="mt-3 space-y-1.5 border-t border-border/60 pt-3 text-sm">
+                  {weightSummary.targetKg !== null && (
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-muted-foreground">{t("hero.goalLabel")}</dt>
+                      <dd className="text-right font-bold tabular-nums">
+                        {goalReached || toGoalKg === null
+                          ? t("hero.goalValueReached", { kg: fmtKg(weightSummary.targetKg) })
+                          : t("hero.goalValue", {
+                              kg: fmtKg(weightSummary.targetKg),
+                              left: fmtKg(toGoalKg),
+                            })}
+                      </dd>
+                    </div>
+                  )}
+                  {bmi !== null && bmiCategory !== null && (
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-muted-foreground">{t("bmi.label")}</dt>
+                      <dd
                         className={cn(
-                          "mt-0.5 text-lg leading-tight font-extrabold tabular-nums",
-                          gain
-                            ? gain.gainedKg > 0 && "text-makan-ink"
-                            : (weightSummary.deltaKg ?? 0) < 0
-                              ? "text-makan-ink"
-                              : (weightSummary.deltaKg ?? 0) > 0 && "text-bakar-ink",
+                          "text-right font-bold tabular-nums",
+                          bmiCategory === "ideal" ? "text-makan-ink" : "text-bakar-ink",
                         )}
                       >
-                        {gain
-                          ? fmtKg(gain.gainedKg)
-                          : weightSummary.deltaKg !== null
-                            ? fmtKg(Math.abs(weightSummary.deltaKg))
-                            : "–"}
-                        <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {gain
-                          ? gain.gainedKg > 0
-                            ? t("summary.fromStart")
-                            : t("summary.same")
-                          : weightSummary.deltaKg === null
-                            ? t("summary.noData")
-                            : weightSummary.deltaKg < 0
-                              ? t("summary.fromStart")
-                              : weightSummary.deltaKg > 0
-                                ? t("summary.upFromStart")
-                                : t("summary.same")}
-                      </p>
+                        {t("bmi.value", {
+                          value: fmtKg(bmi),
+                          category: t(`bmi.category.${bmiCategory}`),
+                        })}
+                      </dd>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-muted-foreground">
-                        {gain ? t("summary.remainingToGoal") : t("summary.remaining")}
-                      </p>
-                      <p className="mt-0.5 text-lg leading-tight font-extrabold tabular-nums">
-                        {gain
-                          ? fmtKg(gain.toGoKg)
-                          : weightSummary.remainingKg !== null
-                            ? fmtKg(weightSummary.remainingKg)
-                            : "–"}
-                        <span className="ml-1 text-xs font-semibold text-muted-foreground">kg</span>
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {weightSummary.targetKg !== null
-                          ? t("summary.target", { kg: fmtKg(weightSummary.targetKg) })
-                          : t("summary.setTarget")}
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
+                  )}
+                </dl>
+              )}
             </Card>
 
             {gainInfo && gainInfo.flags.some((flag) => flag !== "TARGET_ABOVE_HEALTHY") && (
@@ -1133,11 +1095,9 @@ function BeratScreen({ history }: { history: WeightHistory }) {
 
             {maternal?.mode === "pregnant" && <WeightGainCard onWeigh={openWeigh} />}
 
-            <Card aria-label={t("chart.title")} className="p-4 sm:p-5">
+            <Card aria-label={t("period.title")} className="p-4 sm:p-5">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="shrink-0 text-base font-bold tracking-tight max-sm:sr-only">
-                  {t("chart.title")}
-                </h2>
+                <h2 className="shrink-0 text-base font-bold tracking-tight">{t("period.title")}</h2>
                 <Segmented
                   className="sm:max-w-xs"
                   label={t("chart.rangeLabel")}
@@ -1165,76 +1125,87 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                 </div>
               ) : (
                 <>
-                  <div className={cn("mt-3 grid gap-2", maternal ? "grid-cols-2" : "grid-cols-3")}>
-                    <StatCell
-                      label={t("stats.change")}
-                      value={
-                        rangeStatsOut.changeKg === null
-                          ? "–"
-                          : `${rangeStatsOut.changeKg < 0 ? "−" : "+"}${fmtKg(
-                              Math.abs(rangeStatsOut.changeKg),
-                            )}`
-                      }
-                      unit={rangeStatsOut.changeKg === null ? undefined : "kg"}
-                      sub={rangeShort}
-                      tone={toneFor(rangeStatsOut.changeKg)}
-                    />
-                    <StatCell
-                      label={t("stats.pace")}
-                      value={rangeStatsOut.weeklyRateKg === null ? "–" : signed(rangeStatsOut.weeklyRateKg)}
-                      sub={rangeStatsOut.weeklyRateKg === null ? undefined : t("stats.perWeek")}
-                      tone={toneFor(rangeStatsOut.weeklyRateKg)}
-                    />
-                    {!maternal && (
-                      <StatCell
-                        label={t("stats.projection")}
-                        value={
-                          rangeStatsOut.projectedDate
-                            ? t("stats.projectionValue", {
-                                month: fmtDate(rangeStatsOut.projectedDate, "month"),
-                              })
-                            : "–"
-                        }
-                        sub={projectionSub(rangeStatsOut, weightSummary.targetKg)}
-                      />
-                    )}
-                  </div>
+                  {!maternal &&
+                    (period === null ? (
+                      <p className="mt-3 text-sm text-muted-foreground">{t("period.needMore")}</p>
+                    ) : (
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <StatCell
+                          label={t("period.start")}
+                          value={fmtKg(period.startKg)}
+                          unit="kg"
+                          sub={t("period.trendOn", { date: fmtDateShort(period.startDate) })}
+                        />
+                        <StatCell
+                          label={t("period.now")}
+                          value={fmtKg(period.endKg)}
+                          unit="kg"
+                          sub={t("period.trendOn", { date: dayLabel(period.endDate) })}
+                        />
+                        <StatCell
+                          label={t("stats.change")}
+                          value={signed(period.changeKg)}
+                          unit="kg"
+                          sub={t("period.changePct", { pct: signed(period.changePct) })}
+                          tone={toneFor(period.changeKg)}
+                        />
+                        <StatCell
+                          label={t("stats.pace")}
+                          value={period.weeklyRateKg === null ? "–" : signed(period.weeklyRateKg)}
+                          unit={period.weeklyRateKg === null ? undefined : "kg"}
+                          sub={
+                            period.weeklyRateKg === null ? t("period.paceNeeds") : t("period.perWeek")
+                          }
+                          tone={toneFor(period.weeklyRateKg)}
+                        />
+                        {weightSummary.targetKg !== null && !gain && (
+                          <div className="col-span-2">
+                            <StatCell
+                              label={t("stats.projection")}
+                              value={
+                                period.projectedDate
+                                  ? t("stats.projectionValue", {
+                                      month: fmtDate(period.projectedDate, "month"),
+                                    })
+                                  : "–"
+                              }
+                              sub={projectionSub(period, weightSummary.targetKg)}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  {period !== null && period.startsLateDays > 0 && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {t("period.startsLate", { date: fmtDateShort(period.startDate) })}
+                    </p>
+                  )}
 
                   {rangeEntries.length === 1 && (
                     <p className="mt-2 text-xs text-muted-foreground">{t("chart.tomorrow")}</p>
                   )}
-                  <div ref={chart.ref} className={cn("relative mt-3", !chart.size && "h-44")}>
-                    {chart.size && (
+                  <div ref={chartRef} className={cn("relative mt-3", !chartSize && "h-44")}>
+                    {chartSize && (
                       <WeightChart
-                        width={chart.size.w}
-                        height={chart.size.h}
+                        width={chartSize.w}
+                        height={chartSize.h}
                         entries={rangeEntries}
                         trendPoints={rangeTrend}
                         targetKg={weightSummary.targetKg}
-                        startKg={weightSummary.startKg}
                         domainStart={domainStart}
                         domainEnd={chartEnd}
                         rangeKey={range}
                         rangeLabel={rangeLabel}
                         bars={kcalBarList}
                         weekly={kcalWeekly}
-                        targetKcal={targetKcal}
                         gainPlan={gainPlan}
                       />
                     )}
                   </div>
-                  <ChartLegend showTarget={targetKcal !== null} gainPlan={gainPlan} />
-                  {kcalSeries.data && (
-                    <p className="mt-1.5 text-xs font-semibold tabular-nums">
-                      {kcalStats.trackedDays === 0
-                        ? t("kcal.none")
-                        : t("kcal.summary", {
-                            tracked: kcalStats.trackedDays,
-                            count: kcalStats.days,
-                            avg: fmtKcalLabel(kcalStats.avgKcal ?? 0),
-                          })}
-                    </p>
-                  )}
+                  <ChartLegend
+                    showGoal={!gainPlan && weightSummary.targetKg !== null}
+                    gainPlan={gainPlan}
+                  />
                 </>
               )}
               <details className="group mt-2 text-xs text-muted-foreground">
@@ -1243,17 +1214,54 @@ function BeratScreen({ history }: { history: WeightHistory }) {
                 </summary>
                 <p className="mt-1.5">
                   {t("detail.trustTrend")} {t("detail.legend")}
-                  {kcalWeekly ? ` ${t("detail.weekly")}` : ""}
-                  {!maternal &&
-                    (gain
-                      ? ` ${t("gain:chart.gained", { kg: fmtKg(gain.gainedKg) })}`
-                      : weightSummary.deltaKg !== null &&
-                        ` ${t(weightSummary.deltaKg < 0 ? "detail.totalDown" : "detail.totalUp", {
-                          kg: fmtKg(Math.abs(weightSummary.deltaKg)),
-                        })}`)}
+                  {!maternal && gain ? ` ${t("gain:chart.gained", { kg: fmtKg(gain.gainedKg) })}` : ""}
                 </p>
               </details>
+              {!maternal && periodStory && rangeEntries.length > 0 && (
+                <ShareStoryButton
+                  className="mt-3 w-full"
+                  variant="secondary"
+                  label={t("period.share")}
+                  kinds={["period"]}
+                  story={periodStory}
+                />
+              )}
             </Card>
+
+            {kcalSeries.data && kcalBarList.length > 0 && (
+              <Card className="p-4 sm:p-5">
+                <h2 className="text-base font-bold tracking-tight">
+                  {kcalWeekly ? t("kcal.titleWeekly") : t("kcal.title")}
+                </h2>
+                <div className="mt-3">
+                  {chartSize && (
+                    <KcalChart
+                      width={chartSize.w}
+                      bars={kcalBarList}
+                      weekly={kcalWeekly}
+                      targetKcal={targetKcal}
+                      gain={gain !== null}
+                      domainStart={domainStart}
+                      domainEnd={chartEnd}
+                      rangeKey={range}
+                    />
+                  )}
+                </div>
+                <KcalLegend showTarget={targetKcal !== null} gain={gain !== null} />
+                <p className="mt-1.5 text-xs font-semibold tabular-nums">
+                  {kcalStats.trackedDays === 0
+                    ? t("kcal.none")
+                    : t("kcal.summary", {
+                        tracked: kcalStats.trackedDays,
+                        count: kcalStats.days,
+                        avg: fmtKcalLabel(kcalStats.avgKcal ?? 0),
+                      })}
+                </p>
+                {kcalWeekly && (
+                  <p className="mt-1 text-xs text-muted-foreground">{t("detail.weekly")}</p>
+                )}
+              </Card>
+            )}
           </div>
 
           <div className="space-y-3 lg:space-y-5">

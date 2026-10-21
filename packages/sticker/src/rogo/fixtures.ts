@@ -9,6 +9,23 @@ export type Fixture = { spec: StorySpec; photo?: "meal.jpg" | "portrait.jpg"; no
 
 const DAY = new Date(2026, 9, 18, 12);
 
+const isoDay = (offset: number) => new Date(Date.UTC(2026, 8, 19 + offset)).toISOString().slice(0, 10);
+
+const weekDay = (week: number) => new Date(Date.UTC(2026, 2, 1 + week * 7)).toISOString().slice(0, 10);
+
+/** 30 daily weigh-ins from 108.0 kg down to 105.6 kg, with a little scale noise baked into the trend. */
+const PERIOD_SERIES = Array.from({ length: 30 }, (_, i) => ({
+  date: isoDay(i),
+  kg: Math.round((108 - (2.4 * i) / 29 + Math.sin(i / 2.2) * 0.12 * Math.min(i, 29 - i, 3) / 3) * 100) / 100,
+}));
+
+/** 30 days of intake against a 1.900 kcal target: logged most days, 4 days with nothing. */
+const PERIOD_BARS = Array.from({ length: 30 }, (_, i) => ({
+  from: isoDay(i),
+  to: isoDay(i),
+  avgKcal: [4, 9, 15, 22].includes(i) ? null : 1650 + ((i * 137) % 600),
+}));
+
 export const FIXTURES = {
   "meal-photo": {
     note: "meal with photo and all macros",
@@ -136,6 +153,124 @@ export const FIXTURES = {
       date: DAY,
     },
   },
+  "period-full": {
+    note: "30 days: weight down, deficit with implied fat, streak, daily bars",
+    spec: {
+      kind: "period",
+      from: isoDay(0),
+      to: isoDay(29),
+      judgedDays: 30,
+      loggedDays: 26,
+      streakDays: 7,
+      weight: { startKg: 108, endKg: 105.6, changeKg: -2.4, changePct: -2.2, direction: "down", weeklyRateKg: -0.56, series: PERIOD_SERIES },
+      energy: { balanceKcal: 15600, countedDays: 24, impliedFatKg: 2 },
+      intake: { bars: PERIOD_BARS, weekly: false, targetKcal: 1900 },
+      date: DAY,
+    },
+  },
+  "period-weekly": {
+    note: "since start: weekly bars, no streak, deficit without implied fat",
+    spec: {
+      kind: "period",
+      from: "2026-03-01",
+      to: "2026-10-18",
+      judgedDays: 232,
+      loggedDays: 171,
+      streakDays: 1,
+      weight: {
+        startKg: 112.4,
+        endKg: 105.6,
+        changeKg: -6.8,
+        changePct: -6,
+        direction: "down",
+        weeklyRateKg: -0.2,
+        series: PERIOD_SERIES.map((_, i) => ({ date: new Date(Date.UTC(2026, 2, 1 + i * 8)).toISOString().slice(0, 10), kg: 112.4 - ((112.4 - 105.6) * i) / 29 })),
+      },
+      energy: { balanceKcal: 61200, countedDays: 150, impliedFatKg: null },
+      intake: {
+        bars: Array.from({ length: 34 }, (_, i) => ({ from: weekDay(i), to: weekDay(i + 1), avgKcal: i % 9 === 4 ? null : 1700 + ((i * 89) % 500) })),
+        weekly: true,
+        targetKcal: 1900,
+      },
+      date: DAY,
+    },
+  },
+  "period-up": {
+    note: "weight went up and a cut plan: kind copy, no fat implied, deficit hidden by the user",
+    spec: {
+      kind: "period",
+      from: isoDay(0),
+      to: isoDay(29),
+      judgedDays: 30,
+      loggedDays: 19,
+      weight: {
+        startKg: 74.2,
+        endKg: 74.9,
+        changeKg: 0.7,
+        changePct: 0.9,
+        direction: "up",
+        weeklyRateKg: 0.16,
+        series: PERIOD_SERIES.map((p, i) => ({ date: p.date, kg: 74.2 + (0.7 * i) / 29 })),
+      },
+      energy: { balanceKcal: 4200, countedDays: 16, impliedFatKg: null },
+      intake: { bars: PERIOD_BARS.slice(0, 19), weekly: false, targetKcal: 1900 },
+      hideDeficit: true,
+      date: DAY,
+    },
+  },
+  "period-gain": {
+    note: "Naikin BB: gained, surplus instead of deficit",
+    spec: {
+      kind: "period",
+      from: isoDay(0),
+      to: isoDay(29),
+      judgedDays: 30,
+      loggedDays: 28,
+      streakDays: 12,
+      gain: true,
+      weight: {
+        startKg: 58.1,
+        endKg: 59.4,
+        changeKg: 1.3,
+        changePct: 2.2,
+        direction: "up",
+        weeklyRateKg: 0.3,
+        series: PERIOD_SERIES.map((p, i) => ({ date: p.date, kg: 58.1 + (1.3 * i) / 29 })),
+      },
+      energy: { balanceKcal: -12400, countedDays: 27 },
+      intake: { bars: PERIOD_BARS.map((b) => ({ ...b, avgKcal: b.avgKcal === null ? null : b.avgKcal + 900 })), weekly: false, targetKcal: 2800 },
+      date: DAY,
+    },
+  },
+  "period-no-weight": {
+    note: "no weigh-ins in the period: days logged lead, no weight chart",
+    spec: {
+      kind: "period",
+      from: isoDay(0),
+      to: isoDay(13),
+      judgedDays: 14,
+      loggedDays: 9,
+      streakDays: 3,
+      weight: null,
+      energy: { balanceKcal: 3800, countedDays: 8, impliedFatKg: 0.5 },
+      intake: { bars: PERIOD_BARS.slice(0, 14), weekly: false, targetKcal: 1900 },
+      date: DAY,
+    },
+  },
+  "period-sparse": {
+    note: "a few logged days, no weigh-ins, no burn estimate",
+    spec: {
+      kind: "period",
+      from: isoDay(0),
+      to: isoDay(6),
+      judgedDays: 7,
+      loggedDays: 2,
+      weight: null,
+      energy: null,
+      intake: { bars: PERIOD_BARS.slice(0, 7), weekly: false, targetKcal: null },
+      date: DAY,
+    },
+  },
   recap: {
     note: "full week",
     photo: "portrait.jpg",
@@ -251,6 +386,7 @@ export const PRIMARY_FIXTURE: Record<string, FixtureId> = {
   streak: "progress-full",
   weight: "progress-full",
   week: "recap",
+  period: "period-full",
   challenge: "challenge",
   workout: "workout",
   milestone: "progress-full",

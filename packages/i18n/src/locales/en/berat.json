@@ -10,7 +10,7 @@
     "weigh": "Weigh in",
     "weighNow": "Weigh in now",
     "shareSticker": "Share weight sticker",
-    "share": "Share progress",
+    "share": "Post to feed",
     "loading": "Loading weight history"
   },
   "empty": {
@@ -19,41 +19,26 @@
     "bodyNative": "Save your first weigh-in to see your trend and goal projection."
   },
   "hero": {
-    "share": "Share weight progress",
     "trendLabel": "Trend weight",
-    "scale": "Scale {{kg}} kg · {{date}}",
-    "steadyWeek": "Steady this week",
-    "needMoreDays": "Weigh in a few more days to see your weekly pace.",
+    "scale": "Latest scale reading {{kg}} kg · {{date}}",
     "goalReached": "You reached your goal weight. Keep it up.",
-    "loggedToday": "Saved for today",
-    "weighToday": "Weigh in today"
+    "weighToday": "Weigh in today",
+    "trendExplain": "Trend = 7-day moving average. Steadier than the daily scale reading.",
+    "goalLabel": "Goal",
+    "goalValue": "{{kg}} kg · {{left}} kg to go",
+    "goalValueReached": "{{kg}} kg · reached"
   },
   "bmi": {
-    "pill": "BMI {{value}} · {{category}}",
     "category": {
       "under": "Under",
       "ideal": "Healthy",
       "over": "Overweight",
       "obese": "Obese"
-    }
-  },
-  "summary": {
-    "start": "Start",
-    "now": "Now",
-    "down": "Lost",
-    "changed": "Change",
-    "remaining": "To go",
-    "remainingToGoal": "To goal",
-    "noData": "no data yet",
-    "fromStart": "from start",
-    "upFromStart": "up from start",
-    "same": "no change",
-    "target": "Goal {{kg}} kg",
-    "setTarget": "set a goal in Profile"
+    },
+    "label": "BMI",
+    "value": "{{value}} · {{category}}"
   },
   "chart": {
-    "title": "Trend chart",
-    "titleNative": "Weight journey",
     "rangeLabel": "Chart range",
     "range": {
       "d7": "7D",
@@ -69,7 +54,6 @@
     "a11yPointer": "Weight trend chart, {{range}}. Move the cursor to see each entry.",
     "a11yTouch": "Weight trend chart, {{range}}. Swipe to see each entry.",
     "target": "Goal {{kg}}",
-    "start": "Start {{kg}}",
     "emptyTitle": "No entries ({{range}}).",
     "emptyBody": "Pick a longer range, or log your weight to start filling the chart.",
     "emptyAction": "Log weight",
@@ -78,38 +62,40 @@
   "stats": {
     "change": "Change",
     "pace": "Pace",
-    "projection": "Forecast",
-    "perWeek": "kg/week",
+    "projection": "Estimated goal date",
     "projectionValue": "~{{month}}"
   },
   "projection": {
     "setTarget": "set a goal in Profile",
     "reached": "reached, keep it steady",
-    "toward": "toward {{kg}} kg",
+    "toward": "estimate if this pace continues toward {{kg}} kg",
     "needMore": "needs more entries",
     "steady": "pace is steady",
-    "almost": "almost there, keep going",
     "away": "recent pace moves away from goal"
   },
   "legend": {
-    "weight": "Weight",
-    "trend": "Trend",
-    "kcal": "Calories",
+    "weight": "Daily scale",
+    "trend": "Trend (7-day average)",
     "unlogged": "Not logged",
-    "kcalTarget": "Calorie goal"
+    "kcalTarget": "Calorie goal",
+    "goal": "Goal weight",
+    "kcalOver": "Calories (dark = above target)",
+    "kcalGain": "Calories (dark = reached target)"
   },
   "kcal": {
     "none": "No calories logged yet",
     "summary_one": "Logged {{tracked}} of {{count}} day · avg {{avg}}",
-    "summary_other": "Logged {{tracked}} of {{count}} days · avg {{avg}}"
+    "summary_other": "Logged {{tracked}} of {{count}} days · avg {{avg}}",
+    "title": "Calories eaten per day",
+    "titleWeekly": "Average calories per week",
+    "target": "Target {{kcal}}",
+    "a11y": "Calories eaten chart, one bar per day or per week"
   },
   "detail": {
     "title": "Details",
     "trustTrend": "The trend number is more reliable than the daily scale reading.",
-    "legend": "Line = trend (7-day moving average), dots = daily scale readings. Bars = logged daily calories (dark = above goal, light = below); hatched area = days without food logs.",
-    "weekly": "Long ranges are averaged per week, per logged day.",
-    "totalDown": "Down {{kg}} kg in total since your start weight.",
-    "totalUp": "Up {{kg}} kg in total since your start weight."
+    "legend": "Thick line = trend (7-day moving average), dots = daily scale readings, dashed line = goal weight. Period start and Now use the trend, not a single reading.",
+    "weekly": "Long ranges are averaged per week, per logged day."
   },
   "tip": {
     "scale": "Scale",
@@ -199,5 +185,17 @@
       "middle": "halfway between",
       "pelvis": "Top of hip bone"
     }
+  },
+  "period": {
+    "title": "Period",
+    "start": "Period start",
+    "now": "Now",
+    "trendOn": "trend, {{date}}",
+    "changePct": "{{pct}}%",
+    "perWeek": "per week",
+    "paceNeeds": "needs 7 days of data",
+    "needMore": "Needs at least 2 weigh-ins in this period to work out a change.",
+    "startsLate": "Weigh-ins in this period only start on {{date}}.",
+    "share": "Share progress"
   }
 }

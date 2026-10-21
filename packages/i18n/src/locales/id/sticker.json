@@ -8,7 +8,8 @@
     "badge": "Lencana",
     "ring": "Cincin",
     "trend": "Tren",
-    "photo": "Foto"
+    "photo": "Foto",
+    "progress": "Progres"
   },
   "kind": {
     "day": "Hari ini",
@@ -18,7 +19,8 @@
     "week": "Rekap minggu",
     "challenge": "Tantangan",
     "workout": "Latihan",
-    "milestone": "Pencapaian"
+    "milestone": "Pencapaian",
+    "period": "Progres"
   },
   "canvas": {
     "story": "Story 9:16",
@@ -182,6 +184,35 @@
     "format": "Format",
     "style": "Gaya",
     "downloadingPhoto": "Mengambil foto asli...",
-    "nameUnavailable": "Gaya ini tidak menampilkan nama"
+    "nameUnavailable": "Gaya ini tidak menampilkan nama",
+    "hideWeight": "Sembunyikan berat badan",
+    "hideWeightHint": "Hanya perubahan yang tampil. Persen ikut disembunyikan karena bisa dipakai menghitung beratmu.",
+    "hideDeficit": "Sembunyikan perkiraan defisit"
+  },
+  "period": {
+    "eyebrow": "Progres",
+    "range": "{{from}} sampai {{to}} · {{days}} hari",
+    "lost": "Turun {{kg}} kg",
+    "gained": "Naik {{kg}} kg",
+    "steady": "Berat stabil",
+    "loggedHero": "{{logged}} dari {{judged}} hari tercatat",
+    "trendLine": "Tren berat {{start}} ke {{end}} kg ({{pct}}%)",
+    "trendLineHidden": "Perubahan tren berat badan",
+    "rate": "Rata-rata turun {{kg}} kg per minggu",
+    "rateUp": "Rata-rata naik {{kg}} kg per minggu",
+    "upNote": "Naik turun itu wajar. Baca arahnya per beberapa minggu.",
+    "weightChart": "Tren berat, kg",
+    "weightChartHidden": "Tren berat, tanpa angka",
+    "intakeDaily": "Kalori masuk per hari",
+    "intakeWeekly": "Rata-rata kalori masuk per minggu",
+    "logged": "Hari tercatat",
+    "ofDays_other": "dari {{count}} hari",
+    "streak_other": "Beruntun {{count}} hari",
+    "deficit": "Perkiraan defisit",
+    "surplus": "Perkiraan surplus",
+    "fat": "Setara sekitar {{kg}} kg lemak (7.700 kcal per kg)",
+    "estimateNote_other": "Perkiraan dari {{count}} hari tercatat yang lengkap, bukan pengukuran. Hari tanpa catatan tidak dihitung.",
+    "legend": "Garis putus: target {{kcal}} kcal · Batang pendek: hari tanpa catatan",
+    "legendNoTarget": "Batang pendek: hari tanpa catatan"
   }
 }

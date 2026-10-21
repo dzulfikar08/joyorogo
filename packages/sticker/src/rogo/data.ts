@@ -3,7 +3,7 @@ import type { ImageRef, StickerData, StickerOptions } from "../core/resolve";
 /**
  * The app-facing contract: screens hand a `StorySpec` to the share sheet, and
  * `buildStickerData` flattens it into the binding namespaces templates read
- * (`day.*`, `meal.*`, `streak.*`, `weight.*`, `week.*`, `challenge.*`, `workout.*`,
+ * (`day.*`, `meal.*`, `streak.*`, `weight.*`, `week.*`, `period.*`, `challenge.*`, `workout.*`,
  * `milestone.*`). Nothing here knows about layout.
  */
 
@@ -100,7 +100,52 @@ export type ChallengeStory = {
   date?: Date;
 };
 
-export type StorySpec = MealStory | WorkoutStory | ProgressStory | RecapStory | ChallengeStory;
+/**
+ * "Progres": how a chosen period went. Numbers come from the API's period progress (packages/api lib/period-progress);
+ * this type is plain data so the engine never depends on the API.
+ */
+export type PeriodStory = {
+  kind: "period";
+  /** The period, inclusive WIB days (`YYYY-MM-DD`). */
+  from: string;
+  to: string;
+  /** Finished days in the period that count for "X of Y days logged". */
+  judgedDays: number;
+  loggedDays: number;
+  streakDays?: number | null;
+  /** Naikin BB: the energy balance reads as a surplus and no fat is implied. */
+  gain?: boolean;
+  /** Smoothed-trend change; null without enough weigh-ins. Absolute kg only reach the card when "hide numbers" is off. */
+  weight?: {
+    startKg: number;
+    endKg: number;
+    changeKg: number;
+    changePct: number;
+    direction: "down" | "up" | "steady";
+    weeklyRateKg?: number | null;
+    /** Trend line, oldest first. */
+    series: Array<{ date: string; kg: number }>;
+  } | null;
+  /** Estimated energy balance over the logged, complete days; null when no day could be counted. */
+  energy?: {
+    /** Burn minus eaten: positive = deficit. */
+    balanceKcal: number;
+    countedDays: number;
+    /** Kg of fat the deficit implies, only when it agrees with the trend (the API decides). */
+    impliedFatKg?: number | null;
+  } | null;
+  /** Calories eaten per bar (a day, or a week on long periods); null = nothing logged. */
+  intake?: {
+    bars: Array<{ from: string; to: string; avgKcal: number | null }>;
+    weekly: boolean;
+    targetKcal?: number | null;
+  } | null;
+  /** Hide the deficit block (its own switch; the absolute weight follows "hide numbers"). */
+  hideDeficit?: boolean;
+  date?: Date;
+};
+
+export type StorySpec = MealStory | WorkoutStory | ProgressStory | RecapStory | PeriodStory | ChallengeStory;
 
 export type StickerPrefs = {
   /** First name, only when the user opted in; otherwise omit. */
@@ -251,6 +296,73 @@ function weekData(spec: RecapStory): Record<string, unknown> {
   };
 }
 
+/** Axis top for the intake bars: the biggest bar or target plus a little air, rounded up to 500 kcal. */
+function niceKcalTop(maxKcal: number): number {
+  return Math.max(500, Math.ceil((maxKcal * 1.1) / 500) * 500);
+}
+
+/** Calendar days from `from` to `to`, both included (WIB day strings; pure UTC math). */
+function daysInclusive(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000) + 1;
+}
+
+function periodData(spec: PeriodStory, hideNumbers: boolean): Record<string, unknown> | undefined {
+  const weight = spec.weight ?? null;
+  if (weight === null && (spec.judgedDays <= 0 || spec.loggedDays <= 0)) return undefined;
+  const series = weight?.series ?? [];
+  const kgs = series.map((p) => p.kg);
+  const lo = kgs.length ? Math.min(...kgs) : 0;
+  const hi = kgs.length ? Math.max(...kgs) : 0;
+  const trend = series.length >= 2 ? kgs.map((kg) => (hi === lo ? 0.5 : (kg - lo) / (hi - lo))) : undefined;
+
+  const energy = spec.energy ?? null;
+  const showEnergy = energy !== null && !spec.hideDeficit && energy.countedDays > 0;
+  const gain = spec.gain === true;
+  const deficit = showEnergy && !gain && energy.balanceKcal > 0 ? energy.balanceKcal : undefined;
+  const surplus = showEnergy && gain && energy.balanceKcal < 0 ? -energy.balanceKcal : undefined;
+
+  const intake = spec.intake ?? null;
+  const barValues = intake?.bars.map((b) => b.avgKcal ?? 0) ?? [];
+  const target = intake?.targetKcal && intake.targetKcal > 0 ? intake.targetKcal : undefined;
+  const top = barValues.some((v) => v > 0) ? niceKcalTop(Math.max(...barValues, target ?? 0)) : undefined;
+  const bars = intake && top !== undefined && barValues.length >= 1 ? intake.bars : undefined;
+
+  return {
+    from: spec.from,
+    to: spec.to,
+    days: daysInclusive(spec.from, spec.to),
+    logged: spec.loggedDays,
+    judged: spec.judgedDays,
+    streak: (spec.streakDays ?? 0) > 1 ? spec.streakDays : undefined,
+    gain,
+    // The change itself always travels (it is the point); the percent and absolute kg only with numbers shown,
+    // because change and percent together give the starting weight away.
+    changeKg: weight ? Math.abs(weight.changeKg) : undefined,
+    direction: weight?.direction,
+    changePct: weight && !hideNumbers ? Math.abs(weight.changePct) : undefined,
+    startKg: weight && !hideNumbers ? weight.startKg : undefined,
+    endKg: weight && !hideNumbers ? weight.endKg : undefined,
+    rateKg: weight?.weeklyRateKg != null ? Math.abs(weight.weeklyRateKg) : undefined,
+    trend,
+    trendFrom: trend ? series[0]!.date : undefined,
+    trendTo: trend ? series[series.length - 1]!.date : undefined,
+    kgTop: trend && !hideNumbers ? hi : undefined,
+    kgBottom: trend && !hideNumbers ? lo : undefined,
+    deficitKcal: deficit,
+    surplusKcal: surplus,
+    avgDeficitKcal: deficit !== undefined && energy ? Math.round(energy.balanceKcal / energy.countedDays) : undefined,
+    countedDays: showEnergy ? energy.countedDays : undefined,
+    fatKg: deficit !== undefined && energy?.impliedFatKg ? energy.impliedFatKg : undefined,
+    bars: bars ? barValues.map((v) => (v > 0 && top ? v / top : 0)) : undefined,
+    barsTop: bars ? top : undefined,
+    barsTarget: bars && target && top ? target / top : undefined,
+    targetKcal: bars ? target : undefined,
+    barsFrom: bars ? bars[0]!.from : undefined,
+    barsTo: bars ? bars[bars.length - 1]!.to : undefined,
+    barsWeekly: bars && intake!.weekly ? true : undefined,
+  };
+}
+
 function milestoneData(spec: StorySpec): Record<string, unknown> | undefined {
   if (spec.kind === "progress") {
     const m = streakMilestone(spec.streakDays ?? 0);
@@ -303,6 +415,9 @@ export function buildStickerData(spec: StorySpec, prefs: StickerPrefs = {}): Sti
       break;
     case "recap":
       data.week = weekData(spec);
+      break;
+    case "period":
+      data.period = periodData(spec, hideNumbers);
       break;
     case "challenge":
       data.challenge = {

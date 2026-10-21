@@ -8,7 +8,8 @@
     "badge": "Badge",
     "ring": "Ring",
     "trend": "Trend",
-    "photo": "Photo"
+    "photo": "Photo",
+    "progress": "Progress"
   },
   "kind": {
     "day": "Today",
@@ -18,7 +19,8 @@
     "week": "Weekly recap",
     "challenge": "Challenge",
     "workout": "Workout",
-    "milestone": "Milestone"
+    "milestone": "Milestone",
+    "period": "Progress"
   },
   "canvas": {
     "story": "Story 9:16",
@@ -196,6 +198,38 @@
     "format": "Format",
     "style": "Style",
     "downloadingPhoto": "Getting the original photo...",
-    "nameUnavailable": "This style does not show a name"
+    "nameUnavailable": "This style does not show a name",
+    "hideWeight": "Hide body weight",
+    "hideWeightHint": "Only the change shows. The percent is hidden too, since it can be used to work out your weight.",
+    "hideDeficit": "Hide estimated deficit"
+  },
+  "period": {
+    "eyebrow": "Progress",
+    "range": "{{from}} to {{to}} · {{days}} days",
+    "lost": "Down {{kg}} kg",
+    "gained": "Up {{kg}} kg",
+    "steady": "Weight steady",
+    "loggedHero": "{{logged}} of {{judged}} days logged",
+    "trendLine": "Trend weight {{start}} to {{end}} kg ({{pct}}%)",
+    "trendLineHidden": "Change in trend weight",
+    "rate": "Averaging down {{kg}} kg per week",
+    "rateUp": "Averaging up {{kg}} kg per week",
+    "upNote": "Weight goes up and down. Read the direction over a few weeks.",
+    "weightChart": "Weight trend, kg",
+    "weightChartHidden": "Weight trend, no numbers",
+    "intakeDaily": "Calories eaten per day",
+    "intakeWeekly": "Average calories eaten per week",
+    "logged": "Days logged",
+    "ofDays_one": "of {{count}} day",
+    "ofDays_other": "of {{count}} days",
+    "streak_one": "{{count}} day streak",
+    "streak_other": "{{count}} day streak",
+    "deficit": "Estimated deficit",
+    "surplus": "Estimated surplus",
+    "fat": "About {{kg}} kg of fat (7,700 kcal per kg)",
+    "estimateNote_one": "Estimated from {{count}} fully logged day, not a measurement. Days without a log are left out.",
+    "estimateNote_other": "Estimated from {{count}} fully logged days, not a measurement. Days without a log are left out.",
+    "legend": "Dashed line: target {{kcal}} kcal · Short bar: day with no log",
+    "legendNoTarget": "Short bar: day with no log"
   }
 }

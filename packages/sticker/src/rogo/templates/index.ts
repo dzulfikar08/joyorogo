@@ -4,6 +4,7 @@ import { CHALLENGE_TEMPLATES } from "./challenge";
 import { DAY_TEMPLATES } from "./day";
 import { MEAL_TEMPLATES } from "./meal";
 import { MILESTONE_TEMPLATES } from "./milestone";
+import { PERIOD_TEMPLATES } from "./period";
 import { STREAK_TEMPLATES } from "./streak";
 import { WEEK_TEMPLATES } from "./week";
 import { WEIGHT_TEMPLATES } from "./weight";
@@ -15,6 +16,7 @@ const AUTHORED: TemplateInput[] = [
   ...STREAK_TEMPLATES,
   ...WEIGHT_TEMPLATES,
   ...WEEK_TEMPLATES,
+  ...PERIOD_TEMPLATES,
   ...CHALLENGE_TEMPLATES,
   ...WORKOUT_TEMPLATES,
   ...MILESTONE_TEMPLATES,

@@ -238,6 +238,8 @@ export function StoryShareSheet({
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [promptBusy, setPromptBusy] = useState(false);
   const [prefs, setPrefs] = useState<StickerPrefsState>(DEFAULT_STICKER_PREFS);
+  // The period card's own switch: not remembered between shares, the deficit shows unless this share hides it.
+  const [hideDeficit, setHideDeficit] = useState(false);
   const [fontsReady, setFontsReady] = useState(false);
   const [fontsFailed, setFontsFailed] = useState(false);
   const [shrinking, setShrinking] = useState(false);
@@ -273,9 +275,13 @@ export function StoryShareSheet({
     [effective.hideNumbers, effective.showName, effective.watermark, firstName, pickedPhoto, original],
   );
 
+  const card = useMemo<StorySpec>(
+    () => (story.kind === "period" ? { ...story, hideDeficit } : story),
+    [story, hideDeficit],
+  );
   const templates = useMemo(
-    () => (open ? availableTemplates(story, stickerPrefs) : []),
-    [open, story, stickerPrefs],
+    () => (open ? availableTemplates(card, stickerPrefs) : []),
+    [open, card, stickerPrefs],
   );
   // Kind first (Hari ini, Beruntun, ...), then the format it comes in, then its styles; see selectTemplates.
   const selection = useMemo(
@@ -290,14 +296,14 @@ export function StoryShareSheet({
       activeTemplate
         ? renderSticker({
             template: activeTemplate,
-            spec: story,
+            spec: card,
             prefs: stickerPrefs,
             locale,
             mode,
             fonts: rogoNativeFonts,
           })
         : null,
-    [activeTemplate, story, stickerPrefs, locale, mode],
+    [activeTemplate, card, stickerPrefs, locale, mode],
   );
 
   const sceneKey = scene && activeTemplate ? `${activeTemplate.id}|${attempt}|${mode}|${scene.needsImages.join(",")}` : "";
@@ -575,10 +581,13 @@ export function StoryShareSheet({
     setActionFailure(null);
     setFontsReady(false);
     setImageStatus({});
+    setHideDeficit(false);
   }, [open, initialKind]);
 
   const showsName = activeTemplate !== null && templateShowsName(activeTemplate);
   const hasWeight = story.kind === "progress" && !story.maternal && story.weightGoalProgress != null;
+  const periodHasWeight = story.kind === "period" && story.weight != null;
+  const periodHasEnergy = story.kind === "period" && (story.energy?.countedDays ?? 0) > 0;
 
   return (
     <>
@@ -740,6 +749,21 @@ export function StoryShareSheet({
                 label={t("sticker:sheet.hideNumbers")}
                 value={prefs.hideNumbers}
                 onChange={(value) => updatePrefs({ hideNumbers: value })}
+              />
+            ) : null}
+            {periodHasWeight ? (
+              <OptionRow
+                label={t("sticker:sheet.hideWeight")}
+                hint={t("sticker:sheet.hideWeightHint")}
+                value={prefs.hideNumbers}
+                onChange={(value) => updatePrefs({ hideNumbers: value })}
+              />
+            ) : null}
+            {periodHasEnergy ? (
+              <OptionRow
+                label={t("sticker:sheet.hideDeficit")}
+                value={hideDeficit}
+                onChange={setHideDeficit}
               />
             ) : null}
             {firstName ? (

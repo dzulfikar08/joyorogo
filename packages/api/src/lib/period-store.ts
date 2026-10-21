@@ -1,6 +1,6 @@
 // Reads the rows a "Progres" period is built from (stats.periodProgress) and hands them to lib/period-progress.
 
-import { and, asc, desc, eq, gte, lte, min, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, min, sql } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
 import { dailyActivity, exerciseLog, foodLog, weightLog } from "@joyorogo/db/schema/fitness";
@@ -54,8 +54,9 @@ export async function loadPeriodProgress(
   const weighIns = historyRows.toReversed();
   const earliest = [weighIns[0]?.date, firstFoodRows[0]?.date].filter((d): d is string => !!d).toSorted()[0] ?? to;
   const floor = shiftDate(to, -(PERIOD_MAX_DAYS - 1));
-  const from = requested.from ?? (earliest > floor ? earliest : floor);
-  if (from > to || from < floor) return null;
+  const wanted = requested.from ?? earliest;
+  const from = wanted > floor ? wanted : floor;
+  if (from > to) return null;
 
   const plan = buildPlan(
     prof,
@@ -98,7 +99,7 @@ export async function loadPeriodProgress(
     db
       .select({ date: foodLog.date, kcal: sql<number>`sum(${foodLog.kcal})` })
       .from(foodLog)
-      .where(and(eq(foodLog.userId, userId), gte(foodLog.date, streakStart), ne(foodLog.date, "")))
+      .where(and(eq(foodLog.userId, userId), gte(foodLog.date, streakStart)))
       .groupBy(foodLog.date),
     db
       .selectDistinct({ date: weightLog.date })
@@ -107,7 +108,8 @@ export async function loadPeriodProgress(
   ]);
 
   const { settings } = readAddBackPrefs(prefRows);
-  const rowsByDate = Map.groupBy(exerciseRows, (row) => row.date);
+  const rowsByDate = new Map<string, typeof exerciseRows>();
+  for (const row of exerciseRows) rowsByDate.set(row.date, [...(rowsByDate.get(row.date) ?? []), row]);
   const activityByDate = new Map(activityRows.map((row) => [row.date, row]));
   const scoreByDate = new Map(scoreRows.map((row) => [row.date, row]));
   // Only days with food enter the deficit, so only those need a burn estimate.

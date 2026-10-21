@@ -8,6 +8,7 @@ import { ENV } from "../../src/env";
 import { shareUrl } from "../../src/lib/share-links";
 import { challengeShareText } from "@joyorogo/api/lib/challenge";
 import type { StorySpec } from "./types";
+import { daysBetween } from "@joyorogo/api/lib/engine";
 import { fmtNumber, i18n } from "@joyorogo/i18n";
 
 /**
@@ -42,7 +43,8 @@ export function isShareCancel(error: unknown): boolean {
  * tracked link back to the site. Mirror of defaultShareText on web.
  */
 export function storyShareText(story: StorySpec): string {
-  return `${storyShareBody(story)}\n${shareUrl("/", story.kind)}`;
+  // The period card is a progress share as far as the tracked link goes.
+  return `${storyShareBody(story)}\n${shareUrl("/", story.kind === "period" ? "progress" : story.kind)}`;
 }
 
 function storyShareBody(story: StorySpec): string {
@@ -65,6 +67,13 @@ function storyShareBody(story: StorySpec): string {
   }
   if (story.kind === "challenge") {
     return challengeShareText(story);
+  }
+  if (story.kind === "period") {
+    return i18n.t("makan:story.card.share.period", {
+      days: daysBetween(story.from, story.to) + 1,
+      logged: story.loggedDays,
+      judged: story.judgedDays,
+    });
   }
   if (story.gain) {
     const gained = story.weightGainedKg ?? 0;

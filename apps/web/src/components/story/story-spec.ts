@@ -1,7 +1,8 @@
 import type { ChallengeShare } from "@joyorogo/api/lib/challenge";
 import { challengeShareText } from "@joyorogo/api/lib/challenge";
 import { fmtNumber, i18n } from "@joyorogo/i18n";
-import type { ProgressStory, RecapStory, StorySpec as RogoStory, WorkoutStory } from "@joyorogo/sticker";
+import { daysBetween } from "@joyorogo/api/lib/engine";
+import type { PeriodStory, ProgressStory, RecapStory, StorySpec as RogoStory, WorkoutStory } from "@joyorogo/sticker";
 
 import { photoUrl, stickerUrl } from "@/components/sticker";
 import { shareUrl } from "@/lib/share-links";
@@ -32,7 +33,7 @@ export type MealStory = {
 /** Group challenge result; numbers come from challenge.detail's `share`. */
 export type ChallengeStory = { kind: "challenge"; share: ChallengeShare; date?: Date };
 
-export type StorySpec = MealStory | WorkoutStory | ProgressStory | RecapStory | ChallengeStory;
+export type StorySpec = MealStory | WorkoutStory | ProgressStory | RecapStory | PeriodStory | ChallengeStory;
 
 export type StoryImages = { photo: string | null; cutout: string | null };
 
@@ -61,7 +62,8 @@ export function toRogoSpec(story: StorySpec): { spec: RogoStory; images: StoryIm
 
 /** Default share copy per card, matching the app's casual voice, ending in a tracked link. */
 export function defaultShareText(story: StorySpec): string {
-  return `${shareBody(story)}\n${shareUrl("/", story.kind)}`;
+  // The period card is a progress share as far as the tracked link goes.
+  return `${shareBody(story)}\n${shareUrl("/", story.kind === "period" ? "progress" : story.kind)}`;
 }
 
 function shareBody(story: StorySpec): string {
@@ -84,6 +86,13 @@ function shareBody(story: StorySpec): string {
   }
   if (story.kind === "challenge") {
     return challengeShareText(story.share);
+  }
+  if (story.kind === "period") {
+    return i18n.t("makan:story.card.share.period", {
+      days: daysBetween(story.from, story.to) + 1,
+      logged: story.loggedDays,
+      judged: story.judgedDays,
+    });
   }
   if (story.gain) {
     const gained = story.weightGainedKg ?? 0;
