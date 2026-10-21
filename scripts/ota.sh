@@ -87,7 +87,13 @@ publish() {
 
   step "2. $p: export (release env, distribution=${JOYOROGO_DISTRIBUTION:-default}, qa=${JOYOROGO_QA:-0})"
   rm -rf "$out"
-  (cd "$NATIVE" && bunx expo export --platform "$p" --output-dir "$out" > /dev/null)
+  # apps/native/.env is the dev-server env (EXPO_PUBLIC_SERVER_URL=http://localhost:3000) and Metro keeps a transform
+  # cache: an OTA exported with either of them in play (not isolated which) put http://localhost:3000 into the auth
+  # client, so "Masuk dengan Google" and every other auth call died with "CLEARTEXT communication to localhost not
+  # permitted" while the bundle still contained the API URL (other modules). Export without the file, from a clean cache.
+  [ ! -f "$NATIVE/.env" ] || mv "$NATIVE/.env" "$NATIVE/.env.ota-hold"
+  (cd "$NATIVE" && bunx expo export --clear --platform "$p" --output-dir "$out" > /dev/null) || { [ ! -f "$NATIVE/.env.ota-hold" ] || mv "$NATIVE/.env.ota-hold" "$NATIVE/.env"; fail "$p: expo export failed"; }
+  [ ! -f "$NATIVE/.env.ota-hold" ] || mv "$NATIVE/.env.ota-hold" "$NATIVE/.env"
   local bundle strings
   bundle=$(find "$out/_expo/static/js/$p" -name '*.hbc' -o -name '*.js' | head -n 1)
   [ -f "$bundle" ] || fail "$p: no JS bundle in $out"
