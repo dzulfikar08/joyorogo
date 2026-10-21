@@ -27,6 +27,7 @@ const campaignShape = {
   body: z.string().trim().min(1).max(20_000),
 };
 const campaignSchema = z.object(campaignShape);
+const cliSendSchema = campaignSchema.extend({ recipients: z.array(z.string().min(1)).min(1).max(500), expected: z.number().int().min(0) });
 const previewSchema = z.object({ subject: campaignShape.subject, body: campaignShape.body });
 const sendSchema = campaignSchema.extend({ expected: z.number().int().min(0) });
 const cliTestSchema = z
@@ -125,6 +126,24 @@ export function registerBroadcastRoutes(app: Hono, deps: Deps) {
     return c.json(await broadcastStatus(broadcast, c.req.query("id") ?? DEFAULT_CAMPAIGN.id));
   });
 
+  // Full send to an explicit list of user ids (frozen with the campaign, so the cron finishes it too).
+  app.post("/ai/broadcast/send", async (c) => {
+    if (!keyed(c)) return c.text("Not Found", 404);
+    const body = await parseJson(c, cliSendSchema);
+    if (isResponse(body)) return body;
+    const broadcast = deps.broadcast();
+    if (!broadcast) return unavailable(c);
+    const { expected, ...campaign } = body;
+    try {
+      return c.json(await sendBroadcast(broadcast, campaign, expected));
+    } catch (error) {
+      if (error instanceof RecipientCountChanged) {
+        return c.json({ error: `Jumlah penerima berubah: sekarang ${error.current}`, current: error.current }, 409);
+      }
+      throw error;
+    }
+  });
+
   // One test mail to an ADMIN_EMAILS inbox (default: the first), never to anyone else.
   app.post("/ai/broadcast/test", async (c) => {
     if (!keyed(c)) return c.text("Not Found", 404);
@@ -136,7 +155,7 @@ export function registerBroadcastRoutes(app: Hono, deps: Deps) {
     if (!broadcast) return unavailable(c);
     const [recipient] = await deps
       .getDb()
-      .select({ id: user.id, name: user.name, email: user.email })
+      .select({ id: user.id, name: user.name, email: user.email, founderUntil: user.founderUntil })
       .from(user)
       .where(eq(sql`lower(${user.email})`, to))
       .limit(1);

@@ -9,7 +9,17 @@
  * - `{nama}` is the recipient's first name ("kamu" when unknown; "there" in an English mail)
  */
 
-export type Campaign = { id: string; subject: string; body: string };
+export type Campaign = {
+  id: string;
+  subject: string;
+  body: string;
+  /** Explicit audience (user ids). Absent = every verified user. */
+  recipients?: string[];
+};
+
+/** A date as the Indonesian WIB calendar day: "18 November 2026". */
+export const formatDateWib = (date: Date) =>
+  new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "long", year: "numeric" }).format(date);
 
 export type RenderedMail = { subject: string; html: string; text: string };
 
@@ -43,8 +53,11 @@ function splitUrl(raw: string): { url: string; rest: string } {
   return { url: raw.slice(0, raw.length - rest.length), rest };
 }
 
+/** `{tanggal}` (the recipient's Pro end date, already formatted) is replaced only when the caller has one. */
+const withDate = (value: string, date: string | undefined) => (date ? value.replaceAll("{tanggal}", date) : value);
+
 /** One source line to HTML. `{nama}` stays literal until the very end, so a name can never become markup. */
-function lineToHtml(line: string, name: string): string {
+function lineToHtml(line: string, name: string, date?: string): string {
   const html = escapeHtml(line).replace(
     INLINE_RE,
     (_match, label?: string, href?: string, bold?: string, bare?: string) => {
@@ -54,16 +67,16 @@ function lineToHtml(line: string, name: string): string {
       return `<a href="${url}" style="${LINK_STYLE}">${url}</a>${rest}`;
     },
   );
-  return html.replaceAll("{nama}", escapeHtml(name));
+  return withDate(html.replaceAll("{nama}", escapeHtml(name)), date && escapeHtml(date));
 }
 
-function lineToText(line: string, name: string): string {
-  return line
+function lineToText(line: string, name: string, date?: string): string {
+  return withDate(line
     .replace(INLINE_RE, (_match, label?: string, href?: string, bold?: string, bare?: string) => {
       if (label !== undefined && href !== undefined) return `${label} (${href})`;
       return bold ?? bare ?? "";
     })
-    .replaceAll("{nama}", name);
+    .replaceAll("{nama}", name), date);
 }
 
 const INK = "#1f2937";
@@ -100,10 +113,12 @@ export type RenderInput = {
   unsubscribeUrl: string;
   /** Mail language: footer wording and the name fallback. Default "id". */
   locale?: "id" | "en";
+  /** Value for `{tanggal}`, e.g. "18 November 2026". */
+  date?: string;
 };
 
 /** Plain readable HTML and the matching text part. The unsubscribe footer is always appended. */
-export function renderBroadcast({ campaign, name, unsubscribeUrl, locale = "id" }: RenderInput): RenderedMail {
+export function renderBroadcast({ campaign, name, unsubscribeUrl, locale = "id", date }: RenderInput): RenderedMail {
   const copy = LOCALE_COPY[locale];
   const who = firstName(name, copy.fallbackName);
   const blocks = parseBlocks(campaign.body);
@@ -111,9 +126,9 @@ export function renderBroadcast({ campaign, name, unsubscribeUrl, locale = "id" 
   const htmlBlocks = blocks.map((block) =>
     block.kind === "list"
       ? `<ul style="margin:0 0 16px;padding-left:22px;">${block.items
-          .map((item) => `<li style="margin:0 0 6px;">${lineToHtml(item, who)}</li>`)
+          .map((item) => `<li style="margin:0 0 6px;">${lineToHtml(item, who, date)}</li>`)
           .join("")}</ul>`
-      : `<p style="${PARAGRAPH_STYLE}">${block.lines.map((line) => lineToHtml(line, who)).join("<br>")}</p>`,
+      : `<p style="${PARAGRAPH_STYLE}">${block.lines.map((line) => lineToHtml(line, who, date)).join("<br>")}</p>`,
   );
   const footerHtml = `${copy.unsubscribe} <a href="${escapeHtml(unsubscribeUrl)}" style="color:${MUTED};">${copy.unsubscribeLink}</a>`;
 
@@ -128,8 +143,8 @@ ${htmlBlocks.join("\n")}
 
   const textBlocks = blocks.map((block) =>
     block.kind === "list"
-      ? block.items.map((item) => `- ${lineToText(item, who)}`).join("\n")
-      : block.lines.map((line) => lineToText(line, who)).join("\n"),
+      ? block.items.map((item) => `- ${lineToText(item, who, date)}`).join("\n")
+      : block.lines.map((line) => lineToText(line, who, date)).join("\n"),
   );
   const text = `${textBlocks.join("\n\n")}\n\n${copy.unsubscribe} ${copy.unsubscribeLink}: ${unsubscribeUrl}\n`;
 

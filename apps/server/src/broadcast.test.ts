@@ -250,6 +250,21 @@ describe("sendBroadcast", () => {
     expect(rows.every((r) => r.ref === r.user_id)).toBe(true);
   });
 
+  test("an explicit recipient list mails only those users, fills {tanggal} with their WIB date, and the cron keeps the list", async () => {
+    await seedUsers(4);
+    // 2026-11-17T20:00Z is already 18 November in WIB.
+    await client.execute(`UPDATE "user" SET founder_until = ${Date.UTC(2026, 10, 17, 20)} WHERE id = 'u01'`);
+    const { deps } = makeDeps();
+    const campaign = { id: "list-campaign", subject: "Halo", body: "Aktif sampai {tanggal}, {nama}.", recipients: ["u01", "u03", "ghost"] };
+    await expect(sendBroadcast(deps, campaign, 3)).rejects.toBeInstanceOf(RecipientCountChanged);
+    const { status } = await sendBroadcast(deps, campaign, 2, 1);
+    expect(status).toMatchObject({ eligible: 2, sent: 1, remaining: 1, state: "sending" });
+    await runBroadcastTick(deps);
+    expect(outbox.map((m) => m.to).sort()).toEqual(["u01@test.id", "u03@test.id"]);
+    expect(outbox.find((m) => m.to === "u01@test.id")!.text).toContain("Aktif sampai 18 November 2026, Orang.");
+    expect((await logRows("broadcast:list-campaign")).map((r) => r.ref)).toEqual(["u01", "u03"]);
+  });
+
   test("a second run, a re-click, and the cron send nothing more", async () => {
     await seedUsers(3);
     const { deps } = makeDeps();

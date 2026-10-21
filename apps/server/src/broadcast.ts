@@ -1,5 +1,5 @@
 import type { SendEmail } from "@cloudflare/workers-types";
-import { and, eq, notInArray } from "drizzle-orm";
+import { and, eq, inArray, notInArray } from "drizzle-orm";
 
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
 import type { Database } from "@joyorogo/db";
@@ -7,7 +7,7 @@ import { user } from "@joyorogo/db/schema/auth";
 import { emailLog } from "@joyorogo/db/schema/billing";
 
 import { BROADCAST_SENDER } from "./broadcast-campaign";
-import { renderBroadcast } from "./broadcast-render";
+import { formatDateWib, renderBroadcast } from "./broadcast-render";
 import type { Campaign, RenderedMail } from "./broadcast-render";
 import { claimEmail } from "./email";
 import { INTERNAL_EMAILS } from "./internal-accounts";
@@ -16,7 +16,7 @@ import { listOptedOut, signUnsubscribeToken } from "./unsubscribe";
 /**
  * One-time announcement mail to every user.
  *
- * - Recipients: users with a verified email, minus opt-outs (R2 `email-optout/`).
+ * - Recipients: users with a verified email (only the ids in `campaign.recipients` when given), minus opt-outs (R2 `email-optout/`).
  *   There is no banned/deleted flag on `user`: a deleted account has no row.
  * - Once per user and campaign: the email_log row (kind `broadcast:<id>`,
  *   ref = user id, UNIQUE(kind, ref)) is claimed BEFORE the send, like every
@@ -52,7 +52,7 @@ export type BroadcastDeps = {
   sender?: typeof BROADCAST_SENDER;
 };
 
-type Recipient = { id: string; name: string; email: string };
+type Recipient = { id: string; name: string; email: string; founderUntil?: Date | null };
 
 type BroadcastState = Campaign & {
   status: "sending" | "done";
@@ -97,11 +97,11 @@ const unsubscribeUrl = async (deps: BroadcastDeps, userId: string) =>
 export async function renderFor(
   deps: BroadcastDeps,
   campaign: Campaign,
-  to: Pick<Recipient, "id" | "name">,
+  to: Pick<Recipient, "id" | "name" | "founderUntil">,
   locale?: "id" | "en",
 ) {
   const url = await unsubscribeUrl(deps, to.id);
-  return { mail: renderBroadcast({ campaign, name: to.name, unsubscribeUrl: url, locale }), unsubscribeUrl: url };
+  return { mail: renderBroadcast({ campaign, name: to.name, unsubscribeUrl: url, locale, date: to.founderUntil ? formatDateWib(to.founderUntil) : undefined }), unsubscribeUrl: url };
 }
 
 /** Sends one mail; never throws. */
@@ -158,14 +158,21 @@ const writeState = (bucket: StickersBucket, state: BroadcastState) =>
   bucket.put(stateKey(state.id), JSON.stringify(state), { httpMetadata: { contentType: "application/json" } });
 
 /** Everyone who could get this campaign, sorted into who is done, opted out, given up on, and still to mail. */
-async function audience(deps: BroadcastDeps, campaignId: string, state: BroadcastState | null) {
+async function audience(deps: BroadcastDeps, campaign: Pick<Campaign, "id" | "recipients">, state: BroadcastState | null) {
+  const campaignId = campaign.id;
   const kind = `broadcast:${campaignId}` as const;
   const [users, optedOut, sentRows] = await Promise.all([
     deps.db
-      .select({ id: user.id, name: user.name, email: user.email })
+      .select({ id: user.id, name: user.name, email: user.email, founderUntil: user.founderUntil })
       .from(user)
       // Our own logins (App Review, QA) never get campaigns, whatever their verified flag says.
-      .where(and(eq(user.emailVerified, true), notInArray(user.email, [...INTERNAL_EMAILS])))
+      .where(
+        and(
+          eq(user.emailVerified, true),
+          notInArray(user.email, [...INTERNAL_EMAILS]),
+          campaign.recipients ? inArray(user.id, campaign.recipients) : undefined,
+        ),
+      )
       .orderBy(user.id),
     listOptedOut(deps.bucket),
     deps.db.select({ ref: emailLog.ref }).from(emailLog).where(eq(emailLog.kind, kind)),
@@ -187,7 +194,7 @@ async function audience(deps: BroadcastDeps, campaignId: string, state: Broadcas
 
 export async function broadcastStatus(deps: BroadcastDeps, campaignId: string): Promise<BroadcastStatus> {
   const state = await readState(deps.bucket, campaignId);
-  const who = await audience(deps, campaignId, state);
+  const who = await audience(deps, state ?? { id: campaignId }, state);
   return {
     id: campaignId,
     state: state ? state.status : "idle",
@@ -198,14 +205,14 @@ export async function broadcastStatus(deps: BroadcastDeps, campaignId: string): 
     remaining: who.pending.length,
     startedAt: state?.startedAt ?? null,
     finishedAt: state?.finishedAt ?? null,
-    campaign: state ? { id: state.id, subject: state.subject, body: state.body } : null,
+    campaign: state ? { id: state.id, subject: state.subject, body: state.body, recipients: state.recipients } : null,
   };
 }
 
 /** Mails up to `limit` of the users still open. Safe to run concurrently with itself: the email_log claim decides. */
 async function runBatch(deps: BroadcastDeps, state: BroadcastState, limit: number): Promise<BatchResult> {
   const kind = `broadcast:${state.id}` as const;
-  const { pending } = await audience(deps, state.id, state);
+  const { pending } = await audience(deps, state, state);
   if (!deps.email) return { sent: 0, failed: 0, stopped: "email off (no EMAIL binding)" };
   const todo = pending.slice(0, limit);
   let next = 0;
@@ -259,7 +266,7 @@ export async function sendBroadcast(
 ): Promise<{ batch: BatchResult; status: BroadcastStatus }> {
   let state = await readState(deps.bucket, campaign.id);
   if (!state) {
-    const who = await audience(deps, campaign.id, null);
+    const who = await audience(deps, campaign, null);
     if (who.pending.length !== expected) throw new RecipientCountChanged(who.pending.length);
     state = { ...campaign, status: "sending", startedAt: Date.now(), failures: {} };
   } else {
