@@ -70,7 +70,7 @@ import { parseFoodStory } from "../packages/api/src/lib/story";
 import { cardOutcome, dishwareInstruction, dishwareLabel, plateRefSchema, referenceInstruction } from "../packages/api/src/lib/dishware";
 import type { PlateRef } from "../packages/api/src/lib/dishware";
 
-import { analyzeFoodPhoto, DEFAULT_VISION_MODEL, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
+import { analyzeFoodPhoto, DEFAULT_VISION_MODEL, PRINTED_TEXT_RULE, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
 import type { AiRunner, CardAnswer } from "../packages/api/src/lib/vision";
 import type { CalibrateOptions } from "../packages/api/src/lib/tkpi";
 import { PRIOR_BIG_PLATE, buildPriors, userSetSamples, withPortionPrior } from "../packages/api/src/lib/portion-prior";
@@ -121,6 +121,10 @@ const SCALE_CUES_RULE =
 
 const VARIANTS: Record<string, Variant> = {
   baseline: { notes: "Production exactly: default model, shipped prompt, TKPI calibration." },
+  "no-printed-text": {
+    promptTransform: (base) => base.replace(`\n${PRINTED_TEXT_RULE}`, ""),
+    notes: "The shipped prompt without the printed-text rule (PRINTED_TEXT_RULE): the paired 'before' for that rule, run the same day as baseline.",
+  },
   "prompt-b": {
     // PLACEHOLDER: shows the mechanism. The wording is illustrative, not a recommendation.
     promptTransform: (base) =>
@@ -735,12 +739,18 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
   const skipped: Case[] = [];
   const summary = join(args.dir, "summary.jsonl");
   if (existsSync(summary)) {
+    const ownerLabels: { cases: Record<string, { label: string; truth: EvalItem[] }> } = await Bun.file(join(ROOT, "scripts", "eval-owner-labels.json")).json();
     const rows: SummaryRow[] = (await Bun.file(summary).text())
       .split("\n")
       .filter(Boolean)
       .map((line) => JSON.parse(line));
     rows.sort((a, b) => a.case_id.localeCompare(b.case_id));
     for (const row of rows) {
+      const hand = row.set === "owner" ? ownerLabels.cases[row.case_id] : undefined;
+      if (hand) {
+        row.truth_items = hand.truth;
+        row.label = hand.label;
+      }
       const photo = join(args.dir, row.set, row.case_id, "photo.jpg");
       if (!existsSync(photo)) continue;
       const c: Case = {

@@ -37,7 +37,8 @@ box = kotak pembatas item itu di foto, skala 0-1000 relatif tinggi dan lebar fot
 Satu hidangan = satu item: kuah, bumbu/saus, sayur, dan lontong/mi/bihun yang sudah bagian dari hidangan itu (mis. gado-gado, bakso, soto) TERMASUK di kcal hidangan, jangan dipisah. Pisahkan hanya yang berdiri sendiri: nasi, lauk terpisah, telur, kerupuk, gorengan, sambal, minuman.
 Aturan: ini bukan percakapan — jangan menjawab dengan tabel markdown. name dalam Bahasa Indonesia tanpa terjemahan. grams = perkiraan berat (1-5000); kcal, protein/carbs/fat (gram), fiber (gram) = estimasi realistis porsi umum; confidence 0-1.${localNameRule(locale)}
 ${DRINK_RULE}
-${SAUCE_RULE}`;
+${SAUCE_RULE}
+${PRINTED_TEXT_RULE}`;
 }
 
 /**
@@ -54,6 +55,14 @@ export const DRINK_RULE =
  */
 export const SAUCE_RULE =
   "Saus, sambal, mayones, dan bumbu kacang yang banyak dihitung kalorinya: mayones 1 sdm (15 g) = 100 kkal, bumbu kacang 50 g = 150 kkal, sambal berminyak (ijo/balado/terasi) 30 g = 60-100 kkal, kacang tanah goreng 10 g = 60 kkal. Lauk bersambal (ayam sambal ijo, ayam penyet, telur balado) = kcal lauknya DITAMBAH sambalnya, bukan hanya kcal sambal.";
+
+/**
+ * Text printed in the photo outranks how the food looks (owner scans 2026-10-21:
+ * a cup labelled "Americano ICE" read as es kopi susu, a "NASI KEBULI" wrapper
+ * as nasi putih, tempe as tahu).
+ */
+export const PRINTED_TEXT_RULE =
+  'Baca dulu semua tulisan yang tercetak di foto (label cup, bungkus, kemasan, menu, struk) dan PERCAYAI tulisan itu di atas penampilan makanan: cup berlabel "Americano ICE" = Americano es hitam tanpa susu (5-15 kkal), bungkus bertulisan "NASI KEBULI" = nasi kebuli, bukan nasi putih. Cup yang cairannya terlihat (cup bening) atau yang labelnya menyebut minumannya BUKAN cup tersembunyi: jangan isi field cup, tulis nama minuman dari label atau warna cairannya. Makanan kemasan memakai porsi dan kkal yang tertulis di label bila terbaca. Kopi es yang gelap dan tembus pandang, tanpa warna susu, = Americano/kopi hitam es (5-15 kkal); pilih es kopi susu hanya jika warna susu atau lapisan krim terlihat atau tulisannya menyebut susu/latte. Tempe vs tahu: tempe goreng = lempeng/potongan persegi panjang cokelat tua, padat, permukaan kasar bergaris dengan butir kedelai atau bercak putih keabuan (sering 2-3 potong tipis di tepi piring); tahu goreng = kuning keemasan, kulit halus dan menggembung/berongga tanpa butir. Ragu = tempe jika tampak butir, tahu jika polos halus.';
 
 /**
  * Shadow variant (see lib/shadow-scan.ts): the production prompt plus the

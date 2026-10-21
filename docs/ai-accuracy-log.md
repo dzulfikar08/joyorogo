@@ -151,6 +151,25 @@ Run: `bun run scripts/eval-scans.ts --only external --only owner --reps 2 --vari
 - **Owner: no effect, by data, not by design.** None of the 19 owner scans has a food with 5 user-set weights, and the owner's real diary (read-only count, last 60 days: 68 rows with grams, 59 unedited AI answers, 4 barcode, 5 copies) holds zero user-set weights, so the flag does nothing for the owner until typed or edited weights accumulate.
 - **Limits.** One contributor, a very regular eater, 5 rice plates, run-to-run noise at reps 2. Not evidence that the prior helps plate kcal; evidence that it fixes the rice grams when the history is clean.
 
+## 2026-10-21: printed text outranks appearance (prompt rule PRINTED_TEXT_RULE)
+
+Owner scans of 2026-10-21 that the model got wrong: a cup labelled "Americano ICE" answered as es kopi susu (193 kcal, the hidden-cup table, because the prompt names Kopi Kenangan cups), a "NASI KEBULI" wrapper answered as nasi putih, fried tempe answered as tahu goreng. `visionPrompt` now ends with a rule: read every printed label, cup print, wrapper, menu or package text first and trust it over how the food looks; a packaged item uses the label serving; dark iced coffee with no visible milk is Americano/kopi hitam (5-15 kcal), not es kopi susu; a cup whose liquid is visible or whose label names the drink is not a hidden cup (no `cup` field); tempe vs tahu by texture.
+
+**Cases.** The photos stay in the git-ignored `.tmp/dataset/owner/` (export with `scripts/dataset-export.ts`). Their labels are committed in `scripts/eval-owner-labels.json` (case id -> truth), which `eval-scans.ts` applies over the diary save, so a re-export keeps them: `0b77da8d16` Americano 08:12 (americano es 350 ml, 10 kcal; the diary save said 35), `cd0ea7f062` kebuli 12:57 (nasi kebuli 200 g 340 kcal, ayam panggang 150 g 315 kcal; never saved), `a54c2cb125` tempe plate 13:00 (nasi putih, ayam goreng, selada, sambal, tempe goreng 40 g; never saved). The two egg-white bag photos (`475baac630` 08:47, `d838091f5f` 12:27) were already in the set with the saved 100 g / 52 kcal.
+
+**Run.** `bun run scripts/eval-scans.ts --only owner --only external --reps 2 --variant baseline --variant no-printed-text` (variant `no-printed-text` = the shipped prompt minus the rule; owner 29 cases, external 8; Workers AI, TKPI calibration). The "before" answers were mostly replayed from the raw cache of the unchanged prompt, so the pairing is not same-minute.
+
+| Set | Variant | Name F1 | Plate kcal signed / MAE | Plate kcal under / over |
+|---|---|---|---|---|
+| owner | before | 68% | 60% / 74 kcal | 11 / 25 |
+| owner | after | 65% | 81% / 66 kcal | 10 / 27 |
+| external | before | 72% | 20% / 84 kcal | 4 / 5 |
+| external | after | 63% | 15% / 74 kcal | 4 / 6 |
+
+Target cases: kebuli names nasi kebuli 2 of 2 reps (before 0 of 2: nasi putih). Americano cup: after 1 of 2 reps (the other rep still answers es kopi susu 193 kcal), before 2 of 2 on the cached answers: the rule did not fix this photo reliably, and the model sampling varies run to run; the clause that a visible or labelled cup is not a hidden cup is what moved it from 0 of 2 to 1 of 2 across iterations. Tempe plate: still tahu goreng in 3 of 4 reps (the model does not read the texture at this size); not fixed.
+
+No regression found elsewhere, and none excluded: the F1 differences on owner and external come from generic vegetable names (tumis sayuran / capcay sayur, kol mentah, ayam suwir vs dada ayam) in photos with no printed text, which also move between two runs of the same prompt; kcal MAE is lower in both sets. At reps 2 and these n a 3 to 9 point F1 swing is inside run-to-run noise. A larger rep count or a photo set with printed labels is needed before claiming more.
+
 ## 2026-10-20: do the portion errors come from the clamp, the prompt or the lack of a personal prior? (eval only, production untouched)
 
 Question: on the weighed external cases the model answers 150 g of rice where the contributor ate about 100 g. Three candidate fixes were run through `scripts/eval-scans.ts`, none shipped: `band-wide` / `band-off` (the library kcal band of the 2026-10-18 change widened by 50% / removed), `scale-cues` (prompt: "porsi umum" becomes "porsi yang TERLIHAT" plus a rule to read grams from plate or bowl diameter, spoon, fork, hand, and not default to typical portions), `user-prior` (one prompt line with the median of the contributor's OTHER weighed meals per dish eaten at least twice, leave-one-out; external cases only, since it needs a weighed history).

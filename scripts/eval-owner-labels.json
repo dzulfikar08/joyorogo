@@ -1,0 +1,26 @@
+{
+  "_doc": "Hand labels for owner scans (case ids are the anonymised hashes of scripts/dataset-export.ts; photos stay in the git-ignored .tmp/dataset). A label here replaces the diary save as truth, so scans the owner never saved (or saved wrong) are scored too. eval-scans.ts reads it on every run, so a dataset-export re-run does not lose it.",
+  "cases": {
+    "0b77da8d16": {
+      "label": "printed cup label: Americano ICE, no milk",
+      "truth": [{ "name": "americano es", "grams": 350, "kcal": 10 }]
+    },
+    "cd0ea7f062": {
+      "label": "wrapper reads NASI KEBULI; roast chicken beside it",
+      "truth": [
+        { "name": "nasi kebuli", "grams": 200, "kcal": 340 },
+        { "name": "ayam panggang", "grams": 150, "kcal": 315 }
+      ]
+    },
+    "a54c2cb125": {
+      "label": "two tempe slices (beans visible), not tahu",
+      "truth": [
+        { "name": "nasi putih", "grams": 150, "kcal": 195 },
+        { "name": "ayam goreng", "grams": 120, "kcal": 260 },
+        { "name": "selada", "grams": 30, "kcal": 5 },
+        { "name": "sambal", "grams": 30, "kcal": 75 },
+        { "name": "tempe goreng", "grams": 40, "kcal": 110 }
+      ]
+    }
+  }
+}
