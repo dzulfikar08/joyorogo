@@ -266,6 +266,18 @@ bun run i18n:check
 bun scripts/roadmap-sync.ts --check   # kalau kamu mengubah docs/roadmap.json
 ```
 
+### Typecheck: tsrs, bukan tsc
+
+Semua `check-types` dan `postinstall` memakai [tsrs](https://github.com/oxc-project/tsrs) (port Rust dari type checker
+TypeScript 7, versi dipin tepat di `package.json` root) sebagai pengganti `tsc`: `tsrs --noEmit` untuk cek saja,
+`tsrs -b` untuk project references yang menulis `.d.ts` ke `dist/` (packages/api, auth, db, i18n). Hasil diagnostik
+sama dengan `tsc` di seluruh workspace; cek penuh turun dari ~114 dtk ke ~8 dtk. Paket `typescript` tetap terpasang
+karena dipakai vite, tsdown, dan editor. `tsrs` tidak mendukung `--init` dan `--showConfig`; untuk itu pakai `bunx tsc`.
+
+Tipe API yang dipakai app lain dibaca dari `packages/api/dist` (hasil `tsrs -b`, di-gitignore). Kalau kamu mengubah
+`packages/api`, `db`, `auth` atau `i18n` dan app lain melaporkan tipe lama, jalankan `bun run dev:types` (watch) atau
+`bunx tsrs -b packages/api` sekali. `bun install` juga membuatnya lewat `postinstall`.
+
 ### Build dan rilis
 
 | Apa | Perintah |

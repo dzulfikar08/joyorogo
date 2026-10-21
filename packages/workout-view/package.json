@@ -9,7 +9,7 @@
     "./route-map": "./src/route-map.tsx"
   },
   "scripts": {
-    "check-types": "tsc --noEmit",
+    "check-types": "tsrs --noEmit",
     "test": "bun test src"
   },
   "dependencies": {

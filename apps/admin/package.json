@@ -7,7 +7,7 @@
     "dev": "vite",
     "dev:bare": "vite dev",
     "build": "vite build",
-    "check-types": "tsc --noEmit",
+    "check-types": "tsrs --noEmit",
     "deploy": "wrangler deploy"
   },
   "dependencies": {

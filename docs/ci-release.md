@@ -4,7 +4,7 @@ Written 2026-10-17. Three workflows in `.github/workflows/`. The repo is public,
 
 | Workflow | Runs on | Needs secrets | Does |
 | --- | --- | --- | --- |
-| `ci.yml` | pull requests, pushes to `main`, manual | none (safe for forks, read-only token) | `Typecheck and build` (`tsc` for `packages/*` and `apps/{server,web,admin,native}`, web and admin `vite build` with a dummy `VITE_SERVER_URL`) and `Tests and i18n check` (`bun test` for api, auth, i18n, server, native; `bun run i18n:check`) |
+| `ci.yml` | pull requests, pushes to `main`, manual | none (safe for forks, read-only token) | `Typecheck and build` (`tsrs` for `packages/*` and `apps/{server,web,admin,native}`, web and admin `vite build` with a dummy `VITE_SERVER_URL`) and `Tests and i18n check` (`bun test` for api, auth, i18n, server, native; `bun run i18n:check`) |
 | `release-android.yml` | **manual only** (`workflow_dispatch`) | yes, environment `release` | ubuntu, JDK 17, Bun, Gradle cache: `scripts/build-release-apk.sh --play` (AAB + manifest permission guard) and/or `scripts/build-release-apk.sh` (site APK + update manifest, signing-key guard); artifacts; optional Play upload and R2 publish |
 | `release-ios.yml` | **manual only** | yes, environment `release` | `scripts/ios/mac-build.sh` on `macos-latest`: expo prebuild, pods, `xcodebuild archive` + export, IPA checks, optional TestFlight upload |
 

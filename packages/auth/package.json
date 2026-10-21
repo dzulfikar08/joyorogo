@@ -12,8 +12,8 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
-    "check-types": "tsc -b",
+    "build": "tsrs -b",
+    "check-types": "tsrs -b",
     "test": "bun test src"
   },
   "dependencies": {

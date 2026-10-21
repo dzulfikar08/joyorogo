@@ -16,7 +16,7 @@
     }
   },
   "scripts": {
-    "check-types": "tsc --noEmit",
+    "check-types": "tsrs --noEmit",
     "test": "bun test src",
     "stickers:sheet": "bun scripts/contact-sheet.ts",
     "stickers:goldens": "bun scripts/contact-sheet.ts --update",

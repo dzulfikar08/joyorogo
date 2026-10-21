@@ -12,10 +12,10 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
-    "check-types": "tsc -b",
+    "build": "tsrs -b",
+    "check-types": "tsrs -b",
     "test": "bun test src/lib",
-    "dev": "tsc -b --watch"
+    "dev": "tsrs -b --watch"
   },
   "dependencies": {
     "@joyorogo/auth": "workspace:*",

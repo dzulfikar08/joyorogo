@@ -151,8 +151,8 @@ A step can go out alone: the web app without the JoyoFit API shows an error card
 
 ```bash
 bun test packages/api/src/routers/fit-web.test.ts apps/fit/src apps/server/src/fit-proxy.test.ts packages/workout-view/src
-cd packages/workout-view && bunx tsc --noEmit
-cd apps/fit && bunx tsc -b ../../packages/api && bunx vite build && bunx tsc --noEmit   # check-types does all three
+cd packages/workout-view && bunx tsrs --noEmit
+cd apps/fit && bunx tsrs -b ../../packages/api && bunx vite build && bunx tsrs --noEmit   # check-types does all three
 cd apps/web && bun run check-types                                                      # still builds with the moved map
 bun run i18n:check
 ```

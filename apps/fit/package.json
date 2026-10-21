@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -b ../../packages/api && vite build",
+    "build": "tsrs -b ../../packages/api && vite build",
     "start": "vite",
     "dev:bare": "vite dev",
     "serve": "vite preview",
-    "check-types": "tsc -b ../../packages/api && vite build && tsc --noEmit",
+    "check-types": "tsrs -b ../../packages/api && vite build && tsrs --noEmit",
     "test": "bun test src",
     "deploy": "bun run build && wrangler deploy"
   },

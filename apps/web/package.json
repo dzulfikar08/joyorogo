@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -b ../../packages/api && vite build --configLoader runner",
+    "build": "tsrs -b ../../packages/api && vite build --configLoader runner",
     "serve": "vite preview --configLoader runner",
     "test": "bun test src worker",
     "start": "vite --configLoader runner",
-    "check-types": "tsc -b ../../packages/api && vite build --configLoader runner && tsc --noEmit && tsc --noEmit -p worker",
+    "check-types": "tsrs -b ../../packages/api && vite build --configLoader runner && tsrs --noEmit && tsrs --noEmit -p worker",
     "dev:bare": "vite dev --configLoader runner",
     "env:generate": "varlock codegen",
     "og": "chromium --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --window-size=1200,630 --screenshot=public/og.png og/og-image.html",

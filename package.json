@@ -36,8 +36,8 @@
     "build": "turbo run build",
     "check-types": "turbo run check-types",
     "test": "turbo run test",
-    "postinstall": "tsc -b packages/api && varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./apps/native/ && varlock codegen --path ./packages/db/",
-    "dev:types": "tsc -b packages/api --watch",
+    "postinstall": "tsrs -b packages/api && varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./apps/native/ && varlock codegen --path ./packages/db/",
+    "dev:types": "tsrs -b packages/api --watch",
     "dev:native": "turbo run dev -F native --",
     "dev:web": "turbo run dev:bare -F web --",
     "dev:fit": "turbo run dev:bare -F fit --",
@@ -61,6 +61,7 @@
     "oxfmt": "^0.66.0",
     "oxlint": "^1.81.0",
     "playwright": "1.58.0",
+    "tsrs": "0.18.0-ts7.1.0-dev.20260929",
     "turbo": "^2.10.12",
     "typescript": "^6.0.3",
     "varlock": "catalog:"

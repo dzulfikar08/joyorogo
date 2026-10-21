@@ -12,8 +12,8 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
-    "check-types": "tsc -b",
+    "build": "tsrs -b",
+    "check-types": "tsrs -b",
     "db:generate": "drizzle-kit generate && cp -f src/migrations/*.sql migrations-deploy/",
     "db:migrate:deploy": "drizzle-kit migrate"
   },
