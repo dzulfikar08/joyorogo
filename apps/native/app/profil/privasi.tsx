@@ -9,6 +9,7 @@ import { PrivacyList, ShareRow } from "@/components/profil/sections";
 import { SleepConsentCard } from "@/components/sleep-insights/consent";
 import { useAccountActions } from "@/components/profil/use-account-actions";
 import { ListRow, Text } from "@/components/ui";
+import { privacyUrl } from "@/src/lib/legal-url";
 
 /** Privasi & data: share progress, keep original photos, privacy policy, wipe all data. */
 export default function Privasi() {
@@ -27,7 +28,7 @@ function PrivasiContent({
   profile: { keepPhotos: boolean } | null;
   maternal: boolean;
 }) {
-  const { t } = useTranslation("settings");
+  const { t, i18n } = useTranslation("settings");
   const account = useAccountActions();
   return (
     <>
@@ -40,7 +41,7 @@ function PrivasiContent({
           iconTint="makan"
           title={t("privacy.policy")}
           chevron
-          onPress={() => void WebBrowser.openBrowserAsync(`${serverUrl()}/privasi`)}
+          onPress={() => void WebBrowser.openBrowserAsync(privacyUrl(serverUrl(), i18n.language))}
         />
       </Group>
       <Group>

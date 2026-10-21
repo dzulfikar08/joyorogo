@@ -122,6 +122,11 @@
     "POLAR_PRODUCT_YEARLY_ID": "52630e7f-e269-4998-8064-f1b375a200a8",
     "POLAR_PRICE_MONTHLY_USD_CENTS": "999",
     "POLAR_PRICE_YEARLY_USD_CENTS": "5999",
+    // MYR and SGD advertised prices = the Play prices (docs/pricing.md). Deploy only after the same prices exist on both Polar products.
+    "POLAR_PRICE_MONTHLY_MYR_SEN": "4399",
+    "POLAR_PRICE_YEARLY_MYR_SEN": "26499",
+    "POLAR_PRICE_MONTHLY_SGD_CENTS": "1398",
+    "POLAR_PRICE_YEARLY_SGD_CENTS": "8398",
     "APPLE_BUNDLE_ID": "com.joyodigitama.joyorogo",
     "APPLE_SANDBOX_EMAILS": "",
     "TESTFLIGHT_PURCHASE_EMAIL": "on",

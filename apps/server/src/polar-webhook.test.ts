@@ -139,6 +139,44 @@ describe("POST /api/billing/polar/webhook", () => {
     expect(outside.headers.get("cache-control")).toBe("private, no-store");
   });
 
+  test("/api/config names the visitor's region and shows the MYR and SGD prices only when both are set", async () => {
+    const config = async (country: string, vars: Record<string, string> = {}, locale?: string) => {
+      const headers: Record<string, string> = { "CF-IPCountry": country };
+      if (locale) headers["x-locale"] = locale;
+      // The Polar config is read when the routes are registered, so each case registers its own app.
+      const local = new Hono();
+      const localEnv = { ...env, ...vars } as BillingEnv;
+      registerBillingRoutes(local, {
+        env: localEnv,
+        getDb: () => db,
+        createAuth: async () => {
+          throw new Error("auth is not used by /api/config");
+        },
+      });
+      const res = await local.request("/api/config", { headers }, localEnv, ctx);
+      return (await res.json()) as { region: string; myr: unknown; sgd: unknown };
+    };
+    const none = await config("SG");
+    expect(none).toMatchObject({ region: "SG", myr: null, sgd: null });
+    const priced = await config(
+      "SG",
+      {
+        POLAR_PRICE_MONTHLY_MYR_SEN: "4399",
+        POLAR_PRICE_YEARLY_MYR_SEN: "26499",
+        POLAR_PRICE_MONTHLY_SGD_CENTS: "1398",
+        POLAR_PRICE_YEARLY_SGD_CENTS: "8398",
+      },
+    );
+    expect(priced.sgd).toEqual({ monthlyCents: 1398, yearlyCents: 8398, country: "SG" });
+    expect(priced.myr).toEqual({ monthlySen: 4399, yearlySen: 26499, country: "SG" });
+    const half = await config("SG", { POLAR_PRICE_MONTHLY_SGD_CENTS: "1398" });
+    expect(half.sgd).toBeNull();
+    expect((await config("MY")).region).toBe("MY");
+    expect((await config("ID")).region).toBe("ID");
+    expect((await config("DE")).region).toBe("ID");
+    expect((await config("SG", {}, "ms")).region).toBe("MY");
+  });
+
   test("/api/config carries the native update gate, off by default", async () => {
     const res = await app.request("/api/config", {}, env, ctx);
     const body = await res.json();

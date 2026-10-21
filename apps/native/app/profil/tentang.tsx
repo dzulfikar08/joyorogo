@@ -7,6 +7,7 @@ import { StyleSheet } from "react-native-unistyles";
 import { serverUrl } from "@/components/billing";
 import { OtaUpdateCard } from "@/components/ota-update-card";
 import { Group, ProfilPage } from "@/components/profil/page";
+import { privacyUrl } from "@/src/lib/legal-url";
 import { Button, Card, ListRow, Text } from "@/components/ui";
 import { downloadAndInstallApk, installedAppVersion, useApkUpdate } from "@/src/lib/apk-update";
 import { errorMessage, fmtMegabytes } from "@/utils/format";
@@ -22,7 +23,7 @@ export default function Tentang() {
 }
 
 function TentangContent() {
-  const { t } = useTranslation("settings");
+  const { t, i18n } = useTranslation("settings");
   // Android only: Profil forces a check on mount so the section reflects the
   // server right now. The app-start check stays silent and throttled.
   const updateState = useApkUpdate(true);
@@ -119,7 +120,7 @@ function TentangContent() {
           iconTint="makan"
           title={t("privacy.policy")}
           chevron
-          onPress={() => void WebBrowser.openBrowserAsync(`${serverUrl()}/privasi`)}
+          onPress={() => void WebBrowser.openBrowserAsync(privacyUrl(serverUrl(), i18n.language))}
         />
       </Group>
 

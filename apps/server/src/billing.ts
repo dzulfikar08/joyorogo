@@ -69,7 +69,7 @@ import { aiUsage } from "@joyorogo/db/schema/fitness";
 import type { Database } from "@joyorogo/db";
 import { appVersionConfig } from "./app-version";
 import type { AppVersionEnv } from "./app-version";
-import { requestLocale } from "./context";
+import { requestLocale, requestRegion } from "./context";
 import { runFounderEmails, sendOrderEmails } from "./email";
 import { INTERNAL_EMAILS } from "./internal-accounts";
 
@@ -320,6 +320,12 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       myr: polar?.priceMyrSen
         ? { monthlySen: polar.priceMyrSen.monthly, yearlySen: polar.priceMyrSen.yearly, country }
         : null,
+      // Singapore dollar prices of the same Polar plans (cents), same rule as `myr`.
+      sgd: polar?.priceSgdCents
+        ? { monthlyCents: polar.priceSgdCents.monthly, yearlyCents: polar.priceSgdCents.yearly, country }
+        : null,
+      // The visitor's market (UI language, then country): clients pick local dish names and the equivalence line from it.
+      region: requestRegion(c),
     });
   });
 

@@ -146,7 +146,12 @@
       "nasiAyam": "1 plate of chicken rice",
       "satay": "1 serving of chicken satay (10 sticks)",
       "kuihLapis": "1 piece of kuih lapis",
-      "nasiLemakAyam": "1 plate of nasi lemak with fried chicken"
+      "nasiLemakAyam": "1 plate of nasi lemak with fried chicken",
+      "rotiPrata": "1 piece of plain prata",
+      "kayaToast": "1 piece of kaya toast",
+      "kopi": "1 cup of kopi",
+      "bubbleTea": "1 cup of bubble tea (500 ml)",
+      "charKwayTeow": "1 plate of char kway teow"
     }
   },
   "reaction": {
@@ -214,7 +219,9 @@
       "pickOne": "Select at least one item"
     },
     "rotiCanai_one": "About {{packs}} piece of roti canai",
-    "rotiCanai_other": "About {{packs}} pieces of roti canai"
+    "rotiCanai_other": "About {{packs}} pieces of roti canai",
+    "chickenRice_one": "Same as {{packs}} plate of chicken rice",
+    "chickenRice_other": "Same as {{packs}} plates of chicken rice"
   },
   "feedback": {
     "title": "Is this accurate?",

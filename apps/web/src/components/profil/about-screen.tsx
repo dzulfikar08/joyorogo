@@ -4,11 +4,12 @@ import { useTranslation } from "react-i18next";
 import { IconChip, ListAnchorRow, ListButtonRow, ListGroup, ListLinkRow, SectionTitle } from "@/components/kit/surface";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/app-config";
 import { openIosInstall } from "@/lib/ios-install";
+import { legalPath } from "@/lib/legal-path";
 import { usePlatform } from "@/lib/platform";
 
 /** Install-app rows (iPhone / Android) and the legal pages. */
 export function AboutScreen() {
-  const { t } = useTranslation("settings");
+  const { t, i18n } = useTranslation("settings");
   const platform = usePlatform();
   return (
     <>
@@ -61,7 +62,7 @@ export function AboutScreen() {
       <SectionTitle className="mt-7">{t("hubWeb.about.legal")}</SectionTitle>
       <ListGroup>
         <ListLinkRow
-          to="/privasi"
+          to={legalPath("privacy", i18n.language)}
           icon={
             <IconChip tone="makan">
               <ShieldCheck />
@@ -70,7 +71,7 @@ export function AboutScreen() {
           title={t("privacy.policy")}
         />
         <ListLinkRow
-          to="/syarat"
+          to={legalPath("terms", i18n.language)}
           icon={
             <IconChip tone="makan">
               <FileText />

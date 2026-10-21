@@ -388,3 +388,26 @@ describe("polarConfig MYR prices", () => {
     expect(() => polarConfig({ ...base, POLAR_PRICE_MONTHLY_MYR_SEN: "12.90", POLAR_PRICE_YEARLY_MYR_SEN: "7990" })).toThrow();
   });
 });
+
+describe("polarConfig SGD prices", () => {
+  const base = {
+    POLAR_ACCESS_TOKEN: "t",
+    POLAR_WEBHOOK_SECRET: "s",
+    POLAR_PRODUCT_MONTHLY_ID: "m",
+    POLAR_PRODUCT_YEARLY_ID: "y",
+  };
+  test("none shown until both Singapore dollar prices are set", () => {
+    expect(polarConfig(base)?.priceSgdCents).toBeNull();
+    expect(polarConfig({ ...base, POLAR_PRICE_MONTHLY_SGD_CENTS: "1398" })?.priceSgdCents).toBeNull();
+    expect(
+      polarConfig({ ...base, POLAR_PRICE_MONTHLY_SGD_CENTS: "1398", POLAR_PRICE_YEARLY_SGD_CENTS: "8398" })?.priceSgdCents,
+    ).toEqual({ monthly: 1398, yearly: 8398 });
+  });
+  test("MYR and SGD are independent", () => {
+    const cfg = polarConfig({ ...base, POLAR_PRICE_MONTHLY_SGD_CENTS: "1398", POLAR_PRICE_YEARLY_SGD_CENTS: "8398" });
+    expect(cfg?.priceMyrSen).toBeNull();
+  });
+  test("a typo throws instead of advertising a wrong price", () => {
+    expect(() => polarConfig({ ...base, POLAR_PRICE_MONTHLY_SGD_CENTS: "13.98", POLAR_PRICE_YEARLY_SGD_CENTS: "8398" })).toThrow();
+  });
+});

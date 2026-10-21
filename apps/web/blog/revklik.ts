@@ -12,7 +12,7 @@
 // profiles, /p/<id> posts). In-app screens (Beranda, Makan, ...) are not
 // tracked. Conversions (`t: "c"`: onboarding_complete, founder_purchase) pass
 // wherever they fire.
-export const TRACKED_PATHS = /^\/(?:$|my(?:\/|$)|harga|login|pembayaran|privasi|syarat|pengembalian-dana|blog|u\/|p\/)/;
+export const TRACKED_PATHS = /^\/(?:$|my(?:\/|$)|sg(?:\/|$)|harga|login|pembayaran|privasi|syarat|pengembalian-dana|blog|u\/|p\/)/;
 
 // /gabung/<kode> is a capability link: whoever holds the code can join the
 // group. /gabung pageviews are dropped by TRACKED_PATHS; this also covers the

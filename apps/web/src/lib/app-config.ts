@@ -1,4 +1,5 @@
-import { fmtIdr, i18n } from "@joyorogo/i18n";
+import { fmtIdr, i18n, isRegion, setActiveRegion } from "@joyorogo/i18n";
+import type { Region } from "@joyorogo/i18n";
 import { useQuery } from "@tanstack/react-query";
 
 import { env } from "@/env.public";
@@ -25,6 +26,10 @@ export type AppConfig = {
    * visitors only see them where the page says so (the /my landing).
    */
   myr?: MyrConfig | null;
+  /** Singapore dollar prices (cents) of the same Polar plans; null/missing = not configured, show no SGD price. */
+  sgd?: SgdConfig | null;
+  /** The visitor's market (ID, MY or SG); picks the equivalence line and the loading-screen facts. Missing on older servers. */
+  region?: Region;
   freeDailyScans: number | null;
   founderDailyCap: number | null;
   founderPriceIdr: number;
@@ -52,6 +57,12 @@ export type UsdConfig = {
 export type MyrConfig = {
   monthlySen: number;
   yearlySen: number;
+  country: string | null;
+};
+
+export type SgdConfig = {
+  monthlyCents: number;
+  yearlyCents: number;
   country: string | null;
 };
 
@@ -100,7 +111,9 @@ export function useAppConfig() {
     queryFn: async (): Promise<AppConfig> => {
       const res = await fetch(apiUrl("/api/config"));
       if (!res.ok) throw new Error(`config ${res.status}`);
-      return (await res.json()) as AppConfig;
+      const config = (await res.json()) as AppConfig;
+      if (isRegion(config.region)) setActiveRegion(config.region);
+      return config;
     },
     // Persisted with the rest of the cache; refresh hourly so a price or
     // paywall change reaches returning visitors the same day.

@@ -143,7 +143,12 @@
       "nasiAyam": "1 porsi nasi ayam",
       "satay": "1 porsi sate ayam (10 tusuk)",
       "kuihLapis": "1 potong kue lapis",
-      "nasiLemakAyam": "1 porsi nasi lemak ayam goreng"
+      "nasiLemakAyam": "1 porsi nasi lemak ayam goreng",
+      "rotiPrata": "1 lembar roti prata polos",
+      "kayaToast": "1 lembar roti panggang selai kaya",
+      "kopi": "1 cangkir kopi",
+      "bubbleTea": "1 gelas bubble tea (500 ml)",
+      "charKwayTeow": "1 porsi char kway teow"
     }
   },
   "reaction": {
@@ -204,7 +209,8 @@
       "items_other": "Simpan {{count}} item",
       "pickOne": "Pilih minimal satu item"
     },
-    "rotiCanai_other": "Setara {{packs}} lembar roti canai"
+    "rotiCanai_other": "Setara {{packs}} lembar roti canai",
+    "chickenRice_other": "Setara {{packs}} porsi nasi ayam Hainan"
   },
   "feedback": {
     "title": "Hasilnya akurat?",

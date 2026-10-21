@@ -8,6 +8,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { Mascot } from "@/components/mascot";
 import { markSignInStart } from "@/lib/analytics";
 import { authClient, sessionQuery } from "@/lib/auth-client";
+import { legalPath } from "@/lib/legal-path";
 import { restoreAccountPrefs } from "@/lib/prefs-sync";
 import { pageHead } from "@/lib/seo";
 import { orpc } from "@/utils/orpc";
@@ -49,7 +50,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function RouteComponent() {
-  const { t } = useTranslation("auth");
+  const { t, i18n } = useTranslation("auth");
   const isPending = false;
   const { redirect: returnTo } = Route.useSearch();
 
@@ -209,7 +210,7 @@ function RouteComponent() {
             components={{
               link: (
                 <Link
-                  to="/privasi"
+                  to={legalPath("privacy", i18n.language)}
                   className="font-semibold text-foreground underline underline-offset-4 hover:text-foreground/80"
                 />
               ),

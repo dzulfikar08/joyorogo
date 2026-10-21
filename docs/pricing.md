@@ -66,6 +66,17 @@ Closed testing track (`alpha`) countries went from Indonesia only to 131 (all Pl
 
 Legacy non-renewing IAPs (removed 2026-10-18): `.founder.1y` was deleted in App Store Connect (it was never submitted). `.founder.1m` could not be deleted (`IAP_DELETE_NOT_ALLOWED`, state READY_TO_SUBMIT); it is cleared for sale in every territory (availability: no territories, not in new territories) and stays at Rp29.000. Neither is referenced by the app or the server. Four zero-revenue sandbox `apple:` payments from earlier tests remain in D1 as history.
 
+## Ringgit and Singapore dollar prices (web follows the stores)
+
+Store prices read back 2026-10-21 (read only: Play `subscriptions` API, App Store Connect `/v1/subscriptions/{id}/prices`; the Apple rows are the current price, the earlier price is only kept for subscribers who had it):
+
+| Store | MYR monthly | MYR yearly | SGD monthly | SGD yearly |
+| --- | --- | --- | --- | --- |
+| Google Play (`pro`, base plans `monthly` / `yearly`) | RM43.99 | RM264.99 | S$13.98 | S$83.98 |
+| App Store (`founder.monthly` / `founder.yearly`, MYS and SGP) | RM49.90 | RM299.90 | S$14.98 | S$89.98 |
+
+The two stores do not agree (Apple's equalised price points are higher than Play's conversion). The web advertises the lower, the Play prices, so a buyer never finds the web dearer than a store: `POLAR_PRICE_MONTHLY_MYR_SEN=4399`, `POLAR_PRICE_YEARLY_MYR_SEN=26499`, `POLAR_PRICE_MONTHLY_SGD_CENTS=1398`, `POLAR_PRICE_YEARLY_SGD_CENTS=8398` (`apps/server/wrangler.jsonc`). Like the USD pair they only drive what `/api/config` shows (`myr`, `sgd`; a pair is shown only when both of it are set). What is charged is the price in that currency on the Polar product, so create the same four prices on the two Polar products (monthly `RM43.99`/`S$13.98`, yearly `RM264.99`/`S$83.98`, tax-inclusive) before deploying the vars; change a store price and these vars and the Polar price together. `/api/config` also carries `region` (`ID`, `MY` or `SG`, from the UI language and `CF-IPCountry`).
+
 ## TestFlight purchases (Sandbox, Rp0)
 
 A purchase in a TestFlight build runs in Apple's Sandbox and charges nothing. The server grants a Sandbox buyer who is not in `APPLE_SANDBOX_EMAILS` 24 h of Pro at Rp0 (`apple:<txn>` payment row, amount 0), so testers may think they paid.

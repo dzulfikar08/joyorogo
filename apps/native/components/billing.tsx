@@ -8,7 +8,8 @@ import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { LOCALE_HEADER, i18n } from "@joyorogo/i18n";
+import { LOCALE_HEADER, i18n, isRegion, setActiveRegion } from "@joyorogo/i18n";
+import type { Region } from "@joyorogo/i18n";
 
 import { appleIap } from "@/modules/apple-iap";
 import { authClient } from "@/lib/auth-client";
@@ -52,6 +53,8 @@ export type AppConfig = {
   anonScans: number;
   /** Native update gate: minimum/latest build per platform (see src/lib/force-update.ts). Missing on older servers. */
   app?: unknown;
+  /** The visitor's market (ID, MY or SG); picks the equivalence line and the loading-screen facts. Missing on older servers. */
+  region?: Region;
 };
 
 /** Buyer-facing payment choice; the server maps each to its gateway. */
@@ -87,6 +90,7 @@ export function appConfigQuery() {
       const res = await fetch(`${serverUrl()}/api/config`);
       if (!res.ok) throw new Error(`config ${res.status}`);
       const config = (await res.json()) as AppConfig;
+      if (isRegion(config.region)) setActiveRegion(config.region);
       return IS_PLAY_BUILD
         ? {
             ...config,

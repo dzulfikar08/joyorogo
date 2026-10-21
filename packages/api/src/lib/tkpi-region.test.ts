@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { MYFCD_DISHES } from "./myfcd-dishes";
 import { calibrateItems, canonicalFood, libraryKcal } from "./tkpi";
 
-const one = (name: string, grams: number, kcal: number, region?: "MY" | "ID") =>
+const one = (name: string, grams: number, kcal: number, region?: "MY" | "ID" | "SG") =>
   calibrateItems([{ name, grams, kcal }], region ? { region } : undefined)[0]!;
 
 describe("region-aware nutrient source", () => {
@@ -39,6 +39,32 @@ describe("region-aware nutrient source", () => {
     expect(libraryKcal("roti canai", 142, "MY")).toBe(493);
     expect(canonicalFood("roti prata")).toBe("roti prata");
     expect(canonicalFood("roti prata", "MY")).toBe("roti canai");
+  });
+});
+
+describe("Singapore reads HPB SG FoodID first", () => {
+  test("the Singapore hawker names resolve to their rows", () => {
+    expect(one("chicken rice", 346, 509, "SG")).toMatchObject({ kcal: 509, matched: true });
+    expect(one("char kway teow", 480, 974, "SG")).toMatchObject({ kcal: 974, matched: true });
+    expect(one("roti prata", 71, 246, "SG")).toMatchObject({ kcal: 246, matched: true });
+    expect(one("kaya toast", 94, 376, "SG")).toMatchObject({ kcal: 376, matched: true });
+    expect(one("bubble tea", 500, 270, "SG")).toMatchObject({ matched: true });
+  });
+
+  test("kopi and teh with Singapore ordering words resolve", () => {
+    expect(libraryKcal("kopi peng", 400, "SG")).toBeDefined();
+    expect(libraryKcal("teh peng", 400, "SG")).toBeDefined();
+    expect(libraryKcal("kopi c", 250, "SG")).toBe(130);
+  });
+
+  test("Singapore uses the same table as Malaysia and Indonesia stays unchanged", () => {
+    expect(one("nasi lemak", 313, 1000, "SG")).toEqual(one("nasi lemak", 313, 1000, "MY"));
+    expect(one("roti prata", 71, 900)).toMatchObject({ matched: false });
+    expect(canonicalFood("roti prata", "SG")).toBe("roti canai");
+  });
+
+  test("Indonesian dishes still resolve for a user in Singapore", () => {
+    expect(one("nasi padang", 300, 2000, "SG")).toMatchObject({ matched: true });
   });
 });
 

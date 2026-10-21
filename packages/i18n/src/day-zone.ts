@@ -1,10 +1,10 @@
 // Calendar days. A day is 'YYYY-MM-DD' in the user's zone, and every stored date in the database was
-// cut with Asia/Jakarta (WIB, UTC+7). Malaysia is UTC+8, so a Malaysian midnight is 23:00 WIB: until the
+// cut with Asia/Jakarta (WIB, UTC+7). Malaysia and Singapore are UTC+8, so a Malaysian midnight is 23:00 WIB: until the
 // whole stack (server routes, cron, clients) takes the zone from one place, the product keeps WIB for
 // everyone. These helpers are that one place; `jakartaToday` and friends in @joyorogo/api/lib/engine call
 // them. Neither zone observes daylight saving, so a fixed offset is exact.
 
-export const DAY_ZONES = ["Asia/Jakarta", "Asia/Kuala_Lumpur"] as const;
+export const DAY_ZONES = ["Asia/Jakarta", "Asia/Kuala_Lumpur", "Asia/Singapore"] as const;
 export type DayZone = (typeof DAY_ZONES)[number];
 
 export const DEFAULT_DAY_ZONE: DayZone = "Asia/Jakarta";
@@ -12,6 +12,7 @@ export const DEFAULT_DAY_ZONE: DayZone = "Asia/Jakarta";
 const OFFSET_HOURS: Record<DayZone, number> = {
   "Asia/Jakarta": 7,
   "Asia/Kuala_Lumpur": 8,
+  "Asia/Singapore": 8,
 };
 
 export function isDayZone(value: unknown): value is DayZone {

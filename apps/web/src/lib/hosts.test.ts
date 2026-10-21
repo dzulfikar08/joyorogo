@@ -19,6 +19,8 @@ describe("areaOf", () => {
   test.each([
     ["/my", "site"],
     ["/my/", "site"],
+    ["/sg", "site"],
+    ["/sg/", "site"],
     ["/", "site"],
     ["/harga", "site"],
     ["/harga/", "site"],
@@ -117,7 +119,7 @@ describe("hostRedirect on the site host", () => {
   });
 
   test("marketing, shared and static paths stay", () => {
-    for (const path of ["/", "/my", "/harga", "/panduan/ai", "/blog/", "/privasi", "/syarat", "/gabung/ABCD2345", "/u/budi", "/sw.js"]) {
+    for (const path of ["/", "/my", "/sg", "/harga", "/panduan/ai", "/blog/", "/privasi", "/syarat", "/gabung/ABCD2345", "/u/budi", "/sw.js"]) {
       expect(hostRedirect(config, site, path)).toBeNull();
     }
   });

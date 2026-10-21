@@ -23,6 +23,15 @@ describe("day boundaries", () => {
     expect(dayIn(KL, new Date("2026-10-20T16:00:00Z"))).toBe("2026-10-21");
   });
 
+  test("Singapore is UTC+8 with the same cut as Kuala Lumpur", () => {
+    const SG = "Asia/Singapore";
+    expect(dayIn(SG, new Date("2026-10-20T15:59:59Z"))).toBe("2026-10-20");
+    expect(dayIn(SG, new Date("2026-10-20T16:00:00Z"))).toBe("2026-10-21");
+    expect(yesterdayIn(SG, new Date("2026-10-20T16:30:00Z"))).toBe("2026-10-20");
+    expect(clockHourIn(SG, new Date("2026-10-20T16:15:00Z"))).toBe(0.25);
+    expect(dayZoneOffsetMs(SG)).toBe(dayZoneOffsetMs(KL));
+  });
+
   test("00:30 in Kuala Lumpur is still yesterday in Jakarta: the hour where the zones disagree", () => {
     const at = new Date("2026-10-20T16:30:00Z");
     expect(dayIn(KL, at)).toBe("2026-10-21");
@@ -57,6 +66,7 @@ describe("matchDayZone", () => {
   test("supported device zones", () => {
     expect(matchDayZone("Asia/Kuala_Lumpur")).toBe(KL);
     expect(matchDayZone("Asia/Kuching")).toBe(KL);
+    expect(matchDayZone("Asia/Singapore")).toBe("Asia/Singapore");
     expect(matchDayZone("Asia/Jakarta")).toBe(JKT);
     expect(matchDayZone("Asia/Makassar")).toBeNull();
     expect(matchDayZone("Europe/Paris")).toBeNull();

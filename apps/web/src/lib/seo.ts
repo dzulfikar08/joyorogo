@@ -20,9 +20,22 @@ export const OG_IMAGE_MY = {
   alt: "JoyoRogo: kira kalori dari nasi lemak sampai teh tarik. Foto pinggan anda, kalori dianggar dalam beberapa saat.",
 } as const;
 
+/** Share card for the Singapore landing (og/og-sg.html, `bun run og:sg`). */
+export const OG_IMAGE_SG = {
+  path: "/og-sg.png",
+  width: 1200,
+  height: 630,
+  alt: "JoyoRogo: count the kcal from chicken rice to kopi. Photo your hawker plate and get the kcal in seconds.",
+} as const;
+
 export type PublicPath =
   | "/"
   | "/my"
+  | "/sg"
+  | "/my/privasi"
+  | "/my/privacy"
+  | "/my/syarat"
+  | "/my/terms"
   | "/harga"
   | "/privasi"
   | "/syarat"
@@ -45,6 +58,8 @@ export type PageMeta = {
   noindex?: boolean;
   /** YYYY-MM-DD, written to the sitemap's lastmod; bump when the page's content changes. */
   lastmod?: string;
+  /** The Malaysian legal pages: page language (html lang, og:locale, hreflang pairing). Absent on the Indonesian pages and /my. */
+  lang?: "ms" | "en" | "en-SG";
 };
 
 export const PAGES: Record<PublicPath, PageMeta> = {
@@ -60,6 +75,42 @@ export const PAGES: Record<PublicPath, PageMeta> = {
     ogTitle: "JoyoRogo: Kira Kalori dari Nasi Lemak sampai Teh Tarik",
     description:
       "Foto pinggan anda, kalori dianggar dalam beberapa saat. Nilai kcal nasi lemak, roti canai, teh tarik dan hidangan kedai mamak lain dirujuk pada pangkalan data HPB Singapura, sumbernya dinyatakan. Percuma, foto tidak disimpan.",
+    lastmod: "2026-10-21",
+  },
+  "/sg": {
+    title: "JoyoRogo: Count Hawker Plate Calories from a Photo",
+    ogTitle: "JoyoRogo: Count the kcal from Chicken Rice to Kopi",
+    lang: "en-SG",
+    description:
+      "Photo your hawker plate and get the kcal in seconds. Values for chicken rice, char kway teow, laksa, nasi lemak, roti prata, kaya toast and kopi come from the Health Promotion Board's SG FoodID database, and the source is shown. Free, photos are not kept.",
+    lastmod: "2026-10-21",
+  },
+  "/my/privasi": {
+    title: "Notis Privasi | JoyoRogo",
+    lang: "ms",
+    description:
+      "Notis privasi JoyoRogo untuk pengguna di Malaysia (PDPA 2010): pengawal data, tujuan, data sensitif dan persetujuan, pemproses, pemindahan merentas sempadan, hak anda dan cara membuat aduan.",
+    lastmod: "2026-10-21",
+  },
+  "/my/privacy": {
+    title: "Privacy Notice (Malaysia, PDPA) | JoyoRogo",
+    lang: "en",
+    description:
+      "JoyoRogo's privacy notice for users in Malaysia (PDPA 2010): data controller, purposes, sensitive data and consent, processors, transfers outside Malaysia, your rights and how to complain.",
+    lastmod: "2026-10-21",
+  },
+  "/my/syarat": {
+    title: "Syarat Perkhidmatan | JoyoRogo",
+    lang: "ms",
+    description:
+      "Syarat menggunakan JoyoRogo: akaun, pelan percuma dan Pro, pembayaran rupiah di web, pembelian App Store dan Google Play, dan pembelian dolar AS melalui Polar.",
+    lastmod: "2026-10-21",
+  },
+  "/my/terms": {
+    title: "Terms of Service (Malaysia) | JoyoRogo",
+    lang: "en",
+    description:
+      "Terms for using JoyoRogo: account, free and Pro plans, rupiah payments on the web, App Store and Google Play purchases, and US dollar purchases through Polar.",
     lastmod: "2026-10-21",
   },
   "/harga": {
@@ -182,3 +233,4 @@ export const FAQ = [
 export function pageHead(path: PublicPath) {
   return { meta: [{ title: PAGES[path].title }] };
 }
+

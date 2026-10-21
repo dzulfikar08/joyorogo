@@ -7,11 +7,13 @@ import { AppDownload } from "@/components/app-download";
 import { AppLink } from "@/components/app-link";
 import { Ring } from "@/components/kit/ring";
 import { FooterMy, HeaderMy } from "@/components/landing/my-chrome";
+import { WhatsAppLink } from "@/components/landing/my-whatsapp";
 import { ContohImbasan, JadualSumber } from "@/components/landing/my-dishes";
 import { PasangMy } from "@/components/landing/my-pasang";
 import { HargaMy, ringgitFaq } from "@/components/landing/my-pricing";
 import { GITHUB_URL, GithubMark } from "@/components/public-header";
 import { useAppConfig } from "@/lib/app-config";
+import { CONTACT_EMAIL } from "@/lib/contact";
 import { CARA_KIRA, CERITA_CONTOH, FAQ_MS, JANJI, TIGA_ANGKA } from "@/lib/landing-ms";
 
 const JANJI_IKON = { foto: CameraOff, iklan: MegaphoneOff, padam: Trash2 } as const;
@@ -257,16 +259,30 @@ export function LandingMy() {
             })}
           </div>
           <p className="mx-auto -mt-2 w-full max-w-6xl px-4 pb-8 text-sm text-muted-foreground md:px-6">
-            Notis privasi dalam Bahasa Melayu sedang disediakan. Sehingga siap, butirannya ada di halaman{" "}
+            Notis privasi mengikut PDPA:{" "}
             <Link
-              to="/privasi"
-              lang="id"
-              hrefLang="id"
+              to="/my/privasi"
+              lang="ms"
               className={TEXT_LINK}
               data-revklik-goal="privacy_click"
               data-revklik-goal-location="my"
             >
-              Privasi (Bahasa Indonesia)
+              Bahasa Melayu
+            </Link>{" "}
+            dan{" "}
+            <Link
+              to="/my/privacy"
+              lang="en"
+              hrefLang="en"
+              className={TEXT_LINK}
+              data-revklik-goal="privacy_click"
+              data-revklik-goal-location="my-en"
+            >
+              English
+            </Link>
+            . Syarat perkhidmatan:{" "}
+            <Link to="/my/syarat" lang="ms" className={TEXT_LINK}>
+              Syarat
             </Link>
             .
           </p>
@@ -317,6 +333,18 @@ export function LandingMy() {
               </details>
             ))}
           </div>
+          <p className="mt-5 text-[0.9375rem] leading-relaxed text-muted-foreground">
+            Soalan lain? Tulis kepada kami di{" "}
+            <WhatsAppLink
+              location="my-soalan"
+              className={`${TEXT_LINK} inline-flex min-h-11 items-center gap-1.5`}
+            />{" "}
+            atau e-mel{" "}
+            <a href={`mailto:${CONTACT_EMAIL}`} className={TEXT_LINK}>
+              {CONTACT_EMAIL}
+            </a>
+            .
+          </p>
         </section>
 
         {/* Open source and who made it. */}

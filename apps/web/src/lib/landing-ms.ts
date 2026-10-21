@@ -3,7 +3,7 @@
 // Facts mirror the Indonesian landing (routes/index.tsx); prices and quotas are never typed here, they come from
 // /api/config (see components/landing/my-pricing.tsx).
 
-export const CONTACT_EMAIL = "dzulfikar@joyorogo.com";
+import { CONTACT_EMAIL, WHATSAPP_DISPLAY, WHATSAPP_MESSAGE_MS, whatsappUrl } from "./contact.ts";
 
 /** Static FAQ: also the FAQPage structured data on /my. Config-dependent answers live in my-pricing.tsx. */
 export const FAQ_MS = [
@@ -29,7 +29,7 @@ export const FAQ_MS = [
   },
   {
     q: "Bagaimana dengan privasi dan PDPA?",
-    a: "Janji privasinya: foto dibuang selepas dianalisis, tiada iklan, dan satu butang memadam semua data anda. Halaman ini tidak mendakwa pematuhan Akta Perlindungan Data Peribadi 2010 (PDPA). Notis privasi dalam Bahasa Melayu yang merujuk PDPA sedang disediakan. Sehingga siap, butirannya ada di halaman Privasi (Bahasa Indonesia).",
+    a: "Janji privasinya: foto dibuang selepas dianalisis, tiada iklan, dan satu butang memadam semua data anda. Notis privasi dalam Bahasa Melayu dan English ada di halaman Privasi (/my/privasi dan /my/privacy). Ia ditulis dengan Akta Perlindungan Data Peribadi 2010 (PDPA) di fikiran: pengawal data, tujuan, data sensitif dan persetujuan, pemproses, pemindahan merentas sempadan, hak anda dan cara membuat aduan. Halaman ini tidak mendakwa pematuhan penuh PDPA dan bukan nasihat undang-undang.",
   },
   {
     q: "Telefon apa yang boleh digunakan?",
@@ -37,7 +37,7 @@ export const FAQ_MS = [
   },
   {
     q: "Adakah aplikasinya dalam Bahasa Melayu?",
-    a: "Ada, tetapi terjemahannya masih draf terjemahan mesin yang belum disemak penutur asli, jadi ada ayat yang mungkin kedengaran janggal. Laman ini ditulis dalam Bahasa Melayu untuk pembaca Malaysia. Halaman Privasi, Syarat dan Blog masih dalam Bahasa Indonesia.",
+    a: "Ada, tetapi terjemahannya masih draf terjemahan mesin yang belum disemak penutur asli, jadi ada ayat yang mungkin kedengaran janggal. Laman ini, Privasi dan Syarat ditulis dalam Bahasa Melayu untuk pembaca Malaysia (Privacy dan Terms ada juga dalam English). Blog masih dalam Bahasa Indonesia.",
   },
   {
     q: "Adakah ini nasihat perubatan?",
@@ -68,8 +68,11 @@ export const FALLBACK_MS = {
   links: [
     { href: "/", label: "Bahasa Indonesia" },
     { href: "/blog/", label: "Blog (Bahasa Indonesia)" },
-    { href: "/privasi", label: "Privasi (Bahasa Indonesia)" },
+    { href: "/my/privasi", label: "Privasi" },
+    { href: "/my/privacy", label: "Privacy notice (English)" },
+    { href: "/my/syarat", label: "Syarat" },
     { href: `mailto:${CONTACT_EMAIL}`, label: "E-mel" },
+    { href: whatsappUrl(WHATSAPP_MESSAGE_MS), label: `WhatsApp ${WHATSAPP_DISPLAY}` },
   ],
 } as const;
 

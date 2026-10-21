@@ -12,7 +12,8 @@
     "dev:bare": "vite dev --configLoader runner",
     "env:generate": "varlock codegen",
     "og": "chromium --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --window-size=1200,630 --screenshot=public/og.png og/og-image.html",
-    "og:my": "chromium --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --window-size=1200,630 --screenshot=public/og-my.png og/og-my.html"
+    "og:my": "chromium --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --window-size=1200,630 --screenshot=public/og-my.png og/og-my.html",
+    "og:sg": "chromium --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --window-size=1200,630 --screenshot=public/og-sg.png og/og-sg.html"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",

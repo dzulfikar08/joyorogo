@@ -1753,7 +1753,7 @@ export const MYFCD_DISHES: MyDish[] = [
   },
   {
     name: "teh ais",
-    aliases: ["iced milk tea", "teh susu ais", "iced teh"],
+    aliases: ["iced milk tea", "teh susu ais", "iced teh", "teh peng"],
     typicalPortionG: 400,
     kcalPer100g: 47,
     fiberPer100g: 0,
@@ -1766,7 +1766,7 @@ export const MYFCD_DISHES: MyDish[] = [
   },
   {
     name: "teh o ais",
-    aliases: ["iced black tea", "teh o ais limau", "iced teh o"],
+    aliases: ["iced black tea", "teh o ais limau", "iced teh o", "teh o peng"],
     typicalPortionG: 400,
     kcalPer100g: 15,
     fiberPer100g: 0,
@@ -1857,7 +1857,7 @@ export const MYFCD_DISHES: MyDish[] = [
   },
   {
     name: "kopi ais",
-    aliases: ["iced coffee with milk", "kopi susu ais", "iced kopi"],
+    aliases: ["iced coffee with milk", "kopi susu ais", "iced kopi", "kopi peng"],
     typicalPortionG: 400,
     kcalPer100g: 60,
     fiberPer100g: 0,
@@ -1870,7 +1870,7 @@ export const MYFCD_DISHES: MyDish[] = [
   },
   {
     name: "kopi o ais",
-    aliases: ["iced black coffee", "iced kopi o"],
+    aliases: ["iced black coffee", "iced kopi o", "kopi o peng"],
     typicalPortionG: 400,
     kcalPer100g: 24,
     fiberPer100g: 0,

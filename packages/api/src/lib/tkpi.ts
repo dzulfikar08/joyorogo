@@ -466,9 +466,12 @@ const INDEX = buildIndex(TKPI_DISHES);
  */
 const MY_INDEX: DishIndex = [...buildIndex(MYFCD_DISHES), ...INDEX];
 
-/** The dish library for a region (docs/marketing/malaysia-plan.md, "Food data"). Default: Indonesia. */
+/**
+ * The dish library for a region (docs/marketing/malaysia-plan.md, "Food data"). Default: Indonesia. Singapore uses the
+ * same table: it is HPB SG FoodID, Singapore's own food database, so SG is its primary source and MY borrows it.
+ */
 function indexFor(region: Region | undefined): DishIndex {
-  return region === "MY" ? MY_INDEX : INDEX;
+  return region === "MY" || region === "SG" ? MY_INDEX : INDEX;
 }
 
 function matchDish(name: string, index: DishIndex = INDEX): TdpiDish | undefined {

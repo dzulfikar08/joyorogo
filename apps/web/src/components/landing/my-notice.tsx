@@ -18,8 +18,9 @@ function dismissed(): boolean {
 
 /**
  * A strip at the top of the Indonesian landing for visitors who read Malay: the browser's languages resolve to `ms`
- * (matchTags, which also maps Malaysian regions such as zh-MY), or the server reports their country as MY. It never
- * redirects, so search engines and shared links land on the URL they name. Closing it is remembered on this device.
+ * (matchTags, which also maps Malaysian regions such as zh-MY), or the server reports their country as MY. Visitors
+ * whose country is SG get the same strip in English, pointing at /sg. It never redirects, so search engines and shared
+ * links land on the URL they name. Closing it is remembered on this device.
  */
 export function MyNotice() {
   const config = useAppConfig();
@@ -32,7 +33,10 @@ export function MyNotice() {
   }, []);
 
   const inMalaysia = config.data?.usd?.country === "MY";
-  if (hidden || !(readsMalay || inMalaysia)) return null;
+  const inSingapore = config.data?.usd?.country === "SG";
+  // Malay wins: someone who reads Malay or is in Malaysia gets the Malay version, even on a Singapore network.
+  const market = readsMalay || inMalaysia ? "my" : inSingapore ? "sg" : null;
+  if (hidden || market === null) return null;
 
   const close = () => {
     try {
@@ -43,29 +47,30 @@ export function MyNotice() {
     setHidden(true);
   };
 
+  const sg = market === "sg";
   return (
     <aside
-      lang="ms"
-      aria-label="Versi Bahasa Melayu"
+      lang={sg ? "en-SG" : "ms"}
+      aria-label={sg ? "Singapore version" : "Versi Bahasa Melayu"}
       className="border-b border-border/70 bg-makan-soft text-makan-ink"
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 md:px-6">
         <p className="py-2 text-sm">
-          Anda di Malaysia?{" "}
+          {sg ? "In Singapore?" : "Anda di Malaysia?"}{" "}
           <Link
-            to="/my"
-            hrefLang="ms"
-            data-revklik-goal="my_notice_click"
+            to={sg ? "/sg" : "/my"}
+            hrefLang={sg ? "en-SG" : "ms"}
+            data-revklik-goal={sg ? "sg_notice_click" : "my_notice_click"}
             data-revklik-goal-location="landing"
             className="rounded-sm font-bold underline underline-offset-4 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
           >
-            Lihat versi Bahasa Melayu
+            {sg ? "See the Singapore version" : "Lihat versi Bahasa Melayu"}
           </Link>
         </p>
         <button
           type="button"
           onClick={close}
-          aria-label="Tutup notis ini"
+          aria-label={sg ? "Close this notice" : "Tutup notis ini"}
           className="-mr-2 inline-flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-makan-ink/10 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
         >
           <X className="size-5" aria-hidden />

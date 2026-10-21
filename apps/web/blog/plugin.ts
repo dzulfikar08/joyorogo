@@ -2,6 +2,7 @@ import type { Plugin } from "vite";
 import { loadEnv } from "vite";
 
 import { HEAD_MARKER, pageFallback, pageHeadTags, PUBLIC_PATHS } from "./pages.ts";
+import { PAGES } from "../src/lib/seo.ts";
 import { analyticsTag, renderBlog, type BlogConfig } from "./render.ts";
 
 const DEFAULT_SITE_URL = "https://joyorogo.com";
@@ -104,7 +105,8 @@ export function blogPlugin(): Plugin {
         for (const path of PUBLIC_PATHS.filter((p) => p !== "/")) {
           const source = html
             .replace(homeHead, pageHeadTags(path, cfg.siteUrl))
-            .replace(FALLBACK_RE, pageFallback(path));
+            .replace(FALLBACK_RE, pageFallback(path))
+            .replace('<html lang="id">', `<html lang="${PAGES[path].lang ?? (path === "/my" ? "ms" : "id")}">`);
           this.emitFile({ type: "asset", fileName: `${path.slice(1)}.html`, source });
         }
       },

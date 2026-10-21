@@ -14,7 +14,7 @@ import { ANDROID_ROBOT_PATH, ANDROID_ROBOT_VIEWBOX } from "../src/lib/android-ro
 import { APPLE_LOGO_PATH, APPLE_LOGO_VIEWBOX } from "../src/lib/apple-logo.ts";
 import { ANDROID_ROBOT_CREDIT } from "../src/lib/credits.ts";
 import { JOYOROGO_TESTFLIGHT_URL } from "../src/lib/testflight.ts";
-import { LANDING_ALTERNATES, ogImageTags, PUBLIC_PATHS, type ShareImage } from "./pages.ts";
+import { alternatesFor, ogImageTags, PUBLIC_PATHS, type ShareImage } from "./pages.ts";
 import {
   CATEGORIES,
   CATEGORY_BLURB,
@@ -661,14 +661,14 @@ ${items}
 `;
 }
 
-/** Whole-site sitemap: public app pages plus every post. The two landings list each other as hreflang alternates. */
+/** Whole-site sitemap: public app pages plus every post. Pages with a Malaysian counterpart list their alternates (hreflang). */
 export function renderSitemap(posts: Post[], cfg: BlogConfig): string {
   const newest = posts.reduce((max, p) => (p.updated > max ? p.updated : max), "");
   const urls = [
     ...PUBLIC_PATHS.filter((p) => !PAGES[p].noindex).map((loc) => ({
       loc: loc as string,
       lastmod: PAGES[loc].lastmod ?? "",
-      alternates: LANDING_ALTERNATES.some((alt) => alt.path === loc) ? LANDING_ALTERNATES : [],
+      alternates: alternatesFor(loc),
     })),
     { loc: "/blog/", lastmod: newest, alternates: [] },
     ...posts.map((p) => ({ loc: `/blog/${p.slug}/`, lastmod: p.updated, alternates: [] })),

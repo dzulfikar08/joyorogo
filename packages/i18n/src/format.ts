@@ -81,6 +81,11 @@ export function fmtMyr(n: number, locale: Locale = activeLocale): string {
   return `RM${Number.isInteger(n) ? fmtInt(n, locale) : fmtDecimal(n, 2, locale)}`;
 }
 
+/** "S$13.98" / "S$14". Singapore dollar symbol is brand-fixed like RM: no space, whole dollars without decimals. */
+export function fmtSgd(n: number, locale: Locale = activeLocale): string {
+  return `S$${Number.isInteger(n) ? fmtInt(n, locale) : fmtDecimal(n, 2, locale)}`;
+}
+
 /** Energy unit shown to people: "kkal" in Indonesian, "kcal" in English and Malay (Malaysian labels print kcal). Parsers still accept both. */
 export function kcalUnit(locale: Locale = activeLocale): string {
   return locale === "id" ? "kkal" : "kcal";

@@ -8,6 +8,7 @@ import {
   fmtKcalLabel,
   fmtKg,
   fmtMyr,
+  fmtSgd,
   kcalUnit,
   relativeDayLabel,
   setActiveLocale,
@@ -70,6 +71,13 @@ describe("Bahasa Melayu (ms-MY)", () => {
     expect(fmtKcalLabel(2100, "ms")).toBe("2,100 kcal");
     expect(fmtMyr(49.9, "ms")).toBe("RM49.90");
     expect(fmtMyr(60, "ms")).toBe("RM60");
+  });
+
+  test("Singapore dollars are S$ with two decimals unless whole", () => {
+    expect(fmtSgd(13.98, "en")).toBe("S$13.98");
+    expect(fmtSgd(83.98, "en")).toBe("S$83.98");
+    expect(fmtSgd(14, "en")).toBe("S$14");
+    expect(fmtSgd(1234.5, "en")).toBe("S$1,234.50");
   });
 
   test("dates are Malay and day names are Malay, not Indonesian", () => {

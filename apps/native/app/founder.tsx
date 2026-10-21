@@ -38,17 +38,15 @@ import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtIdr } from "@/utils/format";
 import { PressableScale, useEnter } from "@/components/motion";
 import { benefitOrder, paywallMoment, type BenefitKey } from "@/src/lib/pro-nudge";
+import { privacyUrl, termsUrl } from "@/src/lib/legal-url";
 import { formatStorePrice, yearlySaving, type StorePrice } from "@/src/lib/pro-plans";
 import { orpc } from "@/utils/orpc";
 
 /** BCP-47 tags for Intl, by the app languages. */
 const INTL_TAG = { id: "id-ID", en: "en-US", ms: "ms-MY" } as const;
 
-const TERMS_URL = {
-  play: "https://joyorogo.com/syarat",
-  apple: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
-} as const;
-const PRIVACY_URL = "https://joyorogo.com/privasi";
+const SITE_URL = "https://joyorogo.com";
+const APPLE_TERMS_URL = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
 
 const idrPrice = (idr: number): StorePrice => ({ micros: idr * 1_000_000, currency: "IDR" });
 
@@ -295,7 +293,7 @@ export default function FounderPaywall() {
     return t(`value.${key}`);
   };
   const chargeLine = `${t(yearly ? "plan.chargeYearly" : "plan.chargeMonthly", { price: priceOf(plan) })} ${renewalNote}`;
-  const legalTerms = ios ? TERMS_URL.apple : PLAY_ACTIVE ? TERMS_URL.play : null;
+  const legalTerms = ios ? APPLE_TERMS_URL : PLAY_ACTIVE ? termsUrl(SITE_URL, i18n.language) : null;
 
   return (
     <Screen
@@ -388,7 +386,7 @@ export default function FounderPaywall() {
             </Text>
           ) : null}
           <Text style={styles.skipHint}>·</Text>
-          <Text style={styles.legalLink} accessibilityRole="link" onPress={() => void Linking.openURL(PRIVACY_URL)}>
+          <Text style={styles.legalLink} accessibilityRole="link" onPress={() => void Linking.openURL(privacyUrl(SITE_URL, i18n.language))}>
             {t("paywall.privacy")}
           </Text>
           {ios ? (

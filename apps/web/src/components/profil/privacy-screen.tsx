@@ -16,12 +16,13 @@ import { SleepConsentSection } from "@/components/sleep-insights/consent";
 import type { ProfilCtx } from "@/components/profil/shared";
 import { env } from "@/env.public";
 import type { MyProfileData } from "@/lib/api-types";
+import { legalPath } from "@/lib/legal-path";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import { client, getServerUrl, orpc } from "@/utils/orpc";
 
 /** Public progress page, original photos, policy link, and wipe-all-data at the bottom. */
 export function PrivacyScreen({ ctx }: { ctx: ProfilCtx }) {
-  const { t } = useTranslation(["settings", "common"]);
+  const { t, i18n } = useTranslation(["settings", "common"]);
   const { row, targets } = ctx;
   const actions = useAccountActions();
   return (
@@ -31,7 +32,7 @@ export function PrivacyScreen({ ctx }: { ctx: ProfilCtx }) {
       <SleepConsentSection />
       <ListGroup className="mt-3">
         <ListLinkRow
-          to="/privasi"
+          to={legalPath("privacy", i18n.language)}
           icon={
             <IconChip tone="makan">
               <ShieldCheck />

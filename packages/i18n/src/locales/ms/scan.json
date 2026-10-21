@@ -143,7 +143,12 @@
       "nasiAyam": "1 pinggan nasi ayam",
       "satay": "1 hidangan satay ayam (10 cucuk)",
       "kuihLapis": "1 keping kuih lapis",
-      "nasiLemakAyam": "1 pinggan nasi lemak ayam goreng"
+      "nasiLemakAyam": "1 pinggan nasi lemak ayam goreng",
+      "rotiPrata": "1 keping roti prata kosong",
+      "kayaToast": "1 keping roti bakar kaya",
+      "kopi": "1 cawan kopi",
+      "bubbleTea": "1 cawan bubble tea (500 ml)",
+      "charKwayTeow": "1 pinggan char kway teow"
     }
   },
   "reaction": {
@@ -204,7 +209,8 @@
       "items_other": "Simpan {{count}} item",
       "pickOne": "Pilih sekurang-kurangnya satu item"
     },
-    "rotiCanai_other": "Bersamaan {{packs}} keping roti canai"
+    "rotiCanai_other": "Bersamaan {{packs}} keping roti canai",
+    "chickenRice_other": "Bersamaan {{packs}} pinggan nasi ayam"
   },
   "feedback": {
     "title": "Hasilnya tepat?",

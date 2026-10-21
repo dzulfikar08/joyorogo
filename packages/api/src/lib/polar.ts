@@ -29,6 +29,9 @@ export type PolarEnv = {
    */
   POLAR_PRICE_MONTHLY_MYR_SEN?: string;
   POLAR_PRICE_YEARLY_MYR_SEN?: string;
+  /** Singapore dollar prices in cents, same rule as MYR: both or neither, only after the SGD prices exist on the two Polar products. */
+  POLAR_PRICE_MONTHLY_SGD_CENTS?: string;
+  POLAR_PRICE_YEARLY_SGD_CENTS?: string;
 };
 
 export type PolarConfig = {
@@ -39,6 +42,8 @@ export type PolarConfig = {
   priceUsdCents: Record<FounderPlan, number>;
   /** Advertised MYR prices in sen; null = none (both env vars must be set). */
   priceMyrSen?: Record<FounderPlan, number> | null;
+  /** Advertised SGD prices in cents; null = none (both env vars must be set). */
+  priceSgdCents?: Record<FounderPlan, number> | null;
 };
 
 function cents(name: string, raw: string | undefined, fallback: number): number {
@@ -46,7 +51,7 @@ function cents(name: string, raw: string | undefined, fallback: number): number 
   if (!value) return fallback;
   if (!/^\d+$/.test(value) || Number(value) <= 0) {
     // Loud on purpose: a typo must not silently advertise the wrong price.
-    throw new Error(`${name} must be a whole number of US cents > 0, got "${raw}"`);
+    throw new Error(`${name} must be a whole number of minor currency units (cents, sen) > 0, got "${raw}"`);
   }
   return Number(value);
 }
@@ -59,6 +64,14 @@ function optionalSen(name: string, raw: string | undefined): number | null {
 function myrPrices(env: PolarEnv): Record<FounderPlan, number> | null {
   const monthly = optionalSen("POLAR_PRICE_MONTHLY_MYR_SEN", env.POLAR_PRICE_MONTHLY_MYR_SEN);
   const yearly = optionalSen("POLAR_PRICE_YEARLY_MYR_SEN", env.POLAR_PRICE_YEARLY_MYR_SEN);
+  if (monthly === null || yearly === null) return null;
+  return { monthly, yearly };
+}
+
+/** Both SGD prices or neither, like `myrPrices`. */
+function sgdPrices(env: PolarEnv): Record<FounderPlan, number> | null {
+  const monthly = optionalSen("POLAR_PRICE_MONTHLY_SGD_CENTS", env.POLAR_PRICE_MONTHLY_SGD_CENTS);
+  const yearly = optionalSen("POLAR_PRICE_YEARLY_SGD_CENTS", env.POLAR_PRICE_YEARLY_SGD_CENTS);
   if (monthly === null || yearly === null) return null;
   return { monthly, yearly };
 }
@@ -80,6 +93,7 @@ export function polarConfig(env: PolarEnv): PolarConfig | null {
       yearly: cents("POLAR_PRICE_YEARLY_USD_CENTS", env.POLAR_PRICE_YEARLY_USD_CENTS, DEFAULT_YEARLY_USD_CENTS),
     },
     priceMyrSen: myrPrices(env),
+    priceSgdCents: sgdPrices(env),
   };
 }
 

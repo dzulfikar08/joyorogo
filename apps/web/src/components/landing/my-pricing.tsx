@@ -4,9 +4,10 @@ import { Check } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { AppLink } from "@/components/app-link";
+import { WhatsAppLink } from "@/components/landing/my-whatsapp";
 import { useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
-import { CONTACT_EMAIL } from "@/lib/landing-ms";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 const MYR_PENDING = "Harga Pro dalam RM diumumkan sebelum pelancaran di Malaysia";
 
@@ -71,6 +72,11 @@ export function HargaMy() {
         >
           {CONTACT_EMAIL}
         </a>
+        , atau tulis di{" "}
+        <WhatsAppLink
+          location="my-harga-ralat"
+          className="inline-flex items-center gap-1.5 font-semibold text-primary underline underline-offset-4"
+        />
         .
       </p>
     );
@@ -140,6 +146,13 @@ export function HargaMy() {
             </>
           )}
         </ul>
+        <p className="mt-5 text-sm leading-relaxed text-makan-ink/90">
+          Soalan tentang harga atau pembayaran?{" "}
+          <WhatsAppLink
+            location="my-harga"
+            className="inline-flex min-h-11 items-center gap-1.5 font-semibold underline underline-offset-4"
+          />
+        </p>
       </div>
     </div>
   );
