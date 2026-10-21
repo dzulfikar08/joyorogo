@@ -17,8 +17,9 @@ import { timeAgoId } from "@/src/lib/group";
 import type { WidgetSnapshot } from "@/src/lib/widgets/snapshot";
 import { fmtInt } from "@/utils/format";
 
-import { CAMERA_WIDGET_URI, WIDGET_NAMES } from "@/src/lib/widgets/names";
+import { CAMERA_WIDGET_URI, INBOX_WIDGET_URI, PROGRESS_WIDGET_URI, WIDGET_NAMES } from "@/src/lib/widgets/names";
 import type { WidgetName } from "@/src/lib/widgets/names";
+import { CARD_PADDING, DEFAULT_WIDGET_HEIGHT, cameraTileLayout, inboxRowCount, progressRows, staleAgo } from "@/src/lib/widgets/layout";
 
 export { WIDGET_NAMES };
 export type { WidgetName };
@@ -29,8 +30,6 @@ const FONT_MEDIUM = "PlusJakartaSans_500Medium";
 const FONT_BOLD = "PlusJakartaSans_700Bold";
 const FONT_HEAVY = "PlusJakartaSans_800ExtraBold";
 
-const CARD_PADDING = 16;
-
 /** Widget colors pinned from the app tokens (light/dark pair). */
 export interface WidgetPalette {
   card: ColorProp;
@@ -40,6 +39,9 @@ export interface WidgetPalette {
   ok: ColorProp;
   near: ColorProp;
   over: ColorProp;
+  /** Readable text shades of near/over (the bar colors fail contrast as text on the light card). */
+  nearText: ColorProp;
+  overText: ColorProp;
   poke: ColorProp;
   note: ColorProp;
   pill: ColorProp;
@@ -55,7 +57,9 @@ function widgetPalette(dark: boolean): WidgetPalette {
     track: t.colors.muted,
     ok: t.colors.makan,
     near: t.colors.eatNear,
-    over: t.colors.destructive,
+    over: t.colors.destructiveText,
+    nearText: t.colors.kcalText,
+    overText: t.colors.destructiveText,
     poke: t.colors.bakarText,
     note: t.colors.tidurText,
     pill: t.colors.makanSoft,
@@ -63,7 +67,9 @@ function widgetPalette(dark: boolean): WidgetPalette {
   };
 }
 
-const CAPTION = { fontSize: 11, fontFamily: FONT_BOLD, letterSpacing: 0.8 } as const;
+const CAPTION = { fontSize: 11, lineHeight: 13, fontFamily: FONT_BOLD, letterSpacing: 0.8 } as const;
+/** One 12 sp muted line; the explicit lineHeight keeps row heights predictable (see layout.ts). */
+const NOTE = { fontSize: 12, lineHeight: 15, fontFamily: FONT_MEDIUM } as const;
 
 /**
  * MaterialCommunityIcons "food-drumstick" path (24x24), the same glyph as
@@ -115,9 +121,22 @@ function Bar({
   );
 }
 
+/** One muted status row: a leading dot (state color) or none, then a single truncated line. */
+function NoteLine({ text, dot, c }: { text: string; dot?: ColorProp; c: WidgetPalette }) {
+  return (
+    <FlexWidget style={{ flexDirection: "row", alignItems: "center", width: "match_parent", marginTop: 4 }}>
+      {dot ? (
+        <FlexWidget style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dot, marginRight: 8 }} />
+      ) : null}
+      <TextWidget text={text} maxLines={1} truncate="END" style={{ ...NOTE, color: c.mutedForeground }} />
+    </FlexWidget>
+  );
+}
+
 /**
  * One IF status line with absolute times only — widgets redraw every 30
- * minutes, so a countdown would sit stale between refreshes.
+ * minutes, so a countdown would sit stale between refreshes. The kcal still
+ * to eat is the big number above, so it is not repeated here.
  */
 function FastingLine({
   fasting,
@@ -126,52 +145,28 @@ function FastingLine({
   fasting: NonNullable<WidgetSnapshot["fasting"]>;
   c: WidgetPalette;
 }) {
-  const text =
-    fasting.state === "jendela_makan"
-      ? i18n.t("misc:widget.fasting.window", {
-          close: fasting.windowClose,
-          kcal: fmtInt(fasting.remainingKcal),
-        })
-      : i18n.t("misc:widget.fasting.next", {
-          open: fasting.windowOpen,
-          kcal: fmtInt(fasting.remainingKcal),
-        });
-  return (
-    <FlexWidget style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
-      <FlexWidget
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: 4,
-          backgroundColor: fasting.state === "jendela_makan" ? c.ok : c.note,
-        }}
-      />
-      <TextWidget
-        text={text}
-        maxLines={1}
-        truncate="END"
-        style={{
-          fontSize: 12,
-          fontFamily: FONT_MEDIUM,
-          color: c.mutedForeground,
-          marginLeft: 8,
-        }}
-      />
-    </FlexWidget>
-  );
+  const window = fasting.state === "jendela_makan";
+  const text = window
+    ? i18n.t("misc:widget.fasting.window", { close: fasting.windowClose })
+    : i18n.t("misc:widget.fasting.next", { open: fasting.windowOpen });
+  return <NoteLine text={text} dot={window ? c.ok : c.note} c={c} />;
 }
 
-/** "Progres hari ini" body: remaining kcal, eat bar, protein bar. */
+/** "Progres hari ini" body: remaining kcal, eat bar, then the rows that still fit the height. */
 function ProgressPanel({
   day,
   fasting,
+  updatedAt,
   c,
   contentWidth,
+  height,
 }: {
   day: NonNullable<WidgetSnapshot["day"]>;
   fasting: WidgetSnapshot["fasting"];
+  updatedAt: number;
   c: WidgetPalette;
   contentWidth: number;
+  height: number;
 }) {
   const maternal = day.maternal === true;
   // Naikin BB: the line says what is still to eat; the ring is never red.
@@ -183,8 +178,27 @@ function ProgressPanel({
       ? gainEatTone(day.eatenKcal, day.eatKcal)
       : eatTone(day.eatenKcal, day.eatKcal);
   const accent = tone === "over" ? c.over : tone === "near" ? c.near : c.ok;
+  const accentText = tone === "over" ? c.overText : tone === "near" ? c.nearText : c.ok;
   const over = !maternal && !gain && day.eatenKcal > day.eatKcal;
   const remaining = gain ? gainRemaining(day.eatKcal, day.eatenKcal) : null;
+  const ago = staleAgo(updatedAt);
+  const rows = progressRows({
+    height,
+    contentWidth,
+    hasFasting: fasting !== null,
+    hasProtein: Boolean(day.proteinTargetG),
+    isStale: ago !== null,
+  });
+  const number = maternal
+    ? fmtInt(day.eatenKcal)
+    : over
+      ? `+${fmtInt(day.eatenKcal - day.eatKcal)}`
+      : fmtInt(day.eatKcal - day.eatenKcal);
+  const unit = maternal
+    ? i18n.t("maternal:target.eaten")
+    : over
+      ? i18n.t("misc:widget.over")
+      : i18n.t("misc:widget.left");
   return (
     <FlexWidget style={{ flexDirection: "column", width: "match_parent" }}>
       <Caption text={i18n.t("misc:widget.progress")} c={c} />
@@ -193,29 +207,29 @@ function ProgressPanel({
           text={i18n.t(`gain:today.${remaining.state}`, { kcal: fmtInt(remaining.kcal) })}
           maxLines={1}
           truncate="END"
-          style={{ fontSize: 20, fontFamily: FONT_HEAVY, color: accent, lineHeight: 28, marginTop: 6, marginBottom: 6 }}
+          style={{ fontSize: 20, fontFamily: FONT_HEAVY, color: accentText, lineHeight: 32, marginTop: 4 }}
         />
       ) : (
-        <FlexWidget style={{ flexDirection: "row", alignItems: "flex-end", marginTop: 6 }}>
+        <FlexWidget
+          style={{
+            flexDirection: rows.stacked ? "column" : "row",
+            alignItems: rows.stacked ? "flex-start" : "flex-end",
+            marginTop: 4,
+          }}
+        >
           <TextWidget
-            text={
-              maternal
-                ? fmtInt(day.eatenKcal)
-                : over
-                  ? `+${fmtInt(day.eatenKcal - day.eatKcal)}`
-                  : fmtInt(day.eatKcal - day.eatenKcal)
-            }
-            style={{ fontSize: 30, fontFamily: FONT_HEAVY, color: accent, lineHeight: 34 }}
+            text={number}
+            style={{ fontSize: 28, fontFamily: FONT_HEAVY, color: accentText, lineHeight: 32 }}
           />
           <TextWidget
-            text={
-              maternal
-                ? i18n.t("maternal:target.eaten")
-                : over
-                  ? i18n.t("misc:widget.over")
-                  : i18n.t("misc:widget.left")
-            }
-            style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginLeft: 6, marginBottom: 5 }}
+            text={unit}
+            maxLines={1}
+            style={{
+              ...NOTE,
+              color: c.mutedForeground,
+              marginLeft: rows.stacked ? 0 : 6,
+              marginBottom: rows.stacked ? 0 : 4,
+            }}
           />
         </FlexWidget>
       )}
@@ -226,22 +240,23 @@ function ProgressPanel({
         height={6}
         c={c}
       />
-      <TextWidget
-        text={i18n.t("misc:widget.eaten", {
-          eaten: fmtInt(day.eatenKcal),
-          target: fmtInt(day.eatKcal),
-        })}
-        style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginTop: 6 }}
-      />
-      {fasting ? <FastingLine fasting={fasting} c={c} /> : null}
-      {day.proteinTargetG ? (
-        <FlexWidget
-          style={{
-            flexDirection: "column",
-            width: "match_parent",
-            marginTop: 14,
-          }}
-        >
+      {rows.eaten ? (
+        <TextWidget
+          text={i18n.t("misc:widget.eaten", {
+            eaten: fmtInt(day.eatenKcal),
+            target: fmtInt(day.eatKcal),
+          })}
+          maxLines={1}
+          truncate="END"
+          style={{ ...NOTE, color: c.mutedForeground, marginTop: 4 }}
+        />
+      ) : null}
+      {rows.stale && ago ? (
+        <NoteLine text={i18n.t("misc:widget.updated", { ago })} c={c} />
+      ) : null}
+      {rows.fasting && fasting ? <FastingLine fasting={fasting} c={c} /> : null}
+      {rows.protein && day.proteinTargetG ? (
+        <FlexWidget style={{ flexDirection: "column", width: "match_parent", marginTop: 8 }}>
           <FlexWidget
             style={{
               flexDirection: "row",
@@ -259,7 +274,7 @@ function ProgressPanel({
             </FlexWidget>
             <TextWidget
               text={`${day.proteinEatenG ?? 0} / ${day.proteinTargetG} g`}
-              style={{ fontSize: 12, fontFamily: FONT_BOLD, color: c.foreground }}
+              style={{ ...NOTE, fontFamily: FONT_BOLD, color: c.foreground }}
             />
           </FlexWidget>
           <Bar
@@ -283,64 +298,54 @@ function InboxRow({
   c: WidgetPalette;
 }) {
   const poke = item.kind === "poke";
+  // Age first: the message is the part that may be cut off at the edge.
+  const detail = poke
+    ? i18n.t("misc:inbox.item.pokeSubtitle")
+    : (item.message ?? i18n.t("misc:inbox.item.noteSubtitle"));
   return (
-    <FlexWidget style={{ flexDirection: "column", width: "match_parent", marginTop: 10 }}>
-      <FlexWidget
-        style={{
-          flexDirection: "row",
-          width: "match_parent",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <FlexWidget style={{ flexDirection: "row", alignItems: "center" }}>
-          <FlexWidget
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: poke ? c.poke : c.note,
-            }}
-          />
-          <TextWidget
-            text={item.senderName}
-            style={{ fontSize: 13, fontFamily: FONT_BOLD, color: c.foreground, marginLeft: 8 }}
-          />
-        </FlexWidget>
+    <FlexWidget style={{ flexDirection: "column", width: "match_parent", marginTop: 8 }}>
+      <FlexWidget style={{ flexDirection: "row", alignItems: "center", width: "match_parent" }}>
+        <FlexWidget
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: poke ? c.poke : c.note,
+            marginRight: 8,
+          }}
+        />
         <TextWidget
-          text={timeAgoId(item.createdAt)}
-          style={{ fontSize: 11, fontFamily: FONT_MEDIUM, color: c.mutedForeground }}
+          text={item.senderName}
+          maxLines={1}
+          truncate="END"
+          style={{ fontSize: 13, lineHeight: 17, fontFamily: FONT_BOLD, color: c.foreground }}
         />
       </FlexWidget>
       <TextWidget
-        text={
-          poke
-            ? i18n.t("misc:inbox.item.pokeSubtitle")
-            : (item.message ?? i18n.t("misc:inbox.item.noteSubtitle"))
-        }
+        text={`${timeAgoId(item.createdAt)} · ${detail}`}
         maxLines={1}
         truncate="END"
-        style={{
-          fontSize: 12,
-          fontFamily: FONT_MEDIUM,
-          color: c.mutedForeground,
-          marginLeft: 16,
-          marginTop: 2,
-        }}
+        style={{ ...NOTE, color: c.mutedForeground, marginLeft: 16 }}
       />
     </FlexWidget>
   );
 }
 
-/** "Kotak masuk grup" body: unread pill + latest nudges. */
+/** "Kotak masuk grup" body: unread pill + as many latest nudges as fit the height. */
 function InboxPanel({
   inbox,
+  updatedAt,
   c,
+  height,
 }: {
   inbox: NonNullable<WidgetSnapshot["inbox"]>;
+  updatedAt: number;
   c: WidgetPalette;
+  height: number;
 }) {
   const unreadItems = inbox.items.filter((item) => item.readAt === null);
+  const ago = staleAgo(updatedAt);
+  const shown = unreadItems.slice(0, inboxRowCount(height, inbox.unread, ago !== null));
   return (
     <FlexWidget style={{ flexDirection: "column", width: "match_parent" }}>
       <FlexWidget
@@ -359,24 +364,24 @@ function InboxPanel({
               borderRadius: 999,
               paddingLeft: 8,
               paddingRight: 8,
-              paddingTop: 2,
-              paddingBottom: 2,
+              paddingTop: 1,
+              paddingBottom: 1,
             }}
           >
             <TextWidget
               text={String(inbox.unread)}
-              style={{ fontSize: 11, fontFamily: FONT_BOLD, color: c.pillText }}
+              style={{ fontSize: 11, lineHeight: 14, fontFamily: FONT_BOLD, color: c.pillText }}
             />
           </FlexWidget>
         ) : null}
       </FlexWidget>
-      {unreadItems.length === 0 ? (
+      {shown.length === 0 ? (
         <FlexWidget
           style={{
             flexDirection: "row",
             alignItems: "center",
             width: "match_parent",
-            marginTop: 10,
+            marginTop: 8,
           }}
         >
           <FlexWidget
@@ -397,27 +402,41 @@ function InboxPanel({
           </FlexWidget>
           <TextWidget
             text={i18n.t("misc:widget.noNews")}
-            style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground }}
+            maxLines={2}
+            truncate="END"
+            style={{ ...NOTE, color: c.mutedForeground }}
           />
         </FlexWidget>
       ) : (
-        unreadItems.map((item) => <InboxRow key={item.id} item={item} c={c} />)
+        shown.map((item) => <InboxRow key={item.id} item={item} c={c} />)
       )}
+      {ago ? <NoteLine text={i18n.t("misc:widget.updated", { ago })} c={c} /> : null}
+    </FlexWidget>
+  );
+}
+
+/** A panel's caption with one muted line under it: the signed-in-but-empty states. */
+function EmptyBody({ caption, text, c }: { caption: string; text: string; c: WidgetPalette }) {
+  return (
+    <FlexWidget style={{ flexDirection: "column", width: "match_parent" }}>
+      <Caption text={caption} c={c} />
+      <TextWidget text={text} style={{ ...NOTE, color: c.mutedForeground, marginTop: 8 }} />
     </FlexWidget>
   );
 }
 
 /** Signed-out state, used by every widget when there is no session cookie. */
-function SignedOutBody({ c }: { c: WidgetPalette }) {
+function SignedOutBody({ caption, c }: { caption?: string; c: WidgetPalette }) {
   return (
     <FlexWidget style={{ flexDirection: "column", width: "match_parent" }}>
+      {caption ? <Caption text={caption} c={c} /> : null}
       <TextWidget
         text={i18n.t("misc:widget.signIn")}
-        style={{ fontSize: 18, fontFamily: FONT_BOLD, color: c.foreground }}
+        style={{ fontSize: 18, lineHeight: 24, fontFamily: FONT_BOLD, color: c.foreground, marginTop: caption ? 8 : 0 }}
       />
       <TextWidget
         text={i18n.t("misc:widget.signInBody")}
-        style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginTop: 6 }}
+        style={{ ...NOTE, color: c.mutedForeground, marginTop: 4 }}
       />
     </FlexWidget>
   );
@@ -452,51 +471,84 @@ function WidgetCard({
   );
 }
 
-function ProgressWidget({ snapshot, c, width }: { snapshot: WidgetSnapshot; c: WidgetPalette; width: number }) {
+interface Size {
+  width: number;
+  height: number;
+}
+
+/** Progress panel for a snapshot, or the empty / signed-out body that explains what is missing. */
+function ProgressSection({ snapshot, c, width, height }: { snapshot: WidgetSnapshot } & Size & { c: WidgetPalette }) {
+  if (!snapshot.signedIn) return <SignedOutBody caption={i18n.t("misc:widget.progress")} c={c} />;
+  if (!snapshot.day) {
+    return <EmptyBody caption={i18n.t("misc:widget.progress")} text={i18n.t("misc:widget.setTarget")} c={c} />;
+  }
   return (
-    <WidgetCard c={c} clickAction="OPEN_APP">
-      {snapshot.signedIn && snapshot.day ? (
-        <ProgressPanel day={snapshot.day} fasting={snapshot.fasting} c={c} contentWidth={width - CARD_PADDING * 2} />
-      ) : snapshot.signedIn ? (
-        <FlexWidget style={{ flexDirection: "column", width: "match_parent" }}>
-          <Caption text={i18n.t("misc:widget.progress")} c={c} />
-          <TextWidget
-            text={i18n.t("misc:widget.setTarget")}
-            style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginTop: 10 }}
-          />
-        </FlexWidget>
-      ) : (
-        <SignedOutBody c={c} />
-      )}
+    <ProgressPanel
+      day={snapshot.day}
+      fasting={snapshot.fasting}
+      updatedAt={snapshot.updatedAt}
+      c={c}
+      contentWidth={width - CARD_PADDING * 2}
+      height={height}
+    />
+  );
+}
+
+function InboxSection({ snapshot, c, height }: { snapshot: WidgetSnapshot; c: WidgetPalette; height: number }) {
+  if (!snapshot.signedIn) return <SignedOutBody caption={i18n.t("misc:widget.inbox")} c={c} />;
+  if (!snapshot.inbox) {
+    return <EmptyBody caption={i18n.t("misc:widget.inbox")} text={i18n.t("misc:widget.joinGroup")} c={c} />;
+  }
+  return <InboxPanel inbox={snapshot.inbox} updatedAt={snapshot.updatedAt} c={c} height={height} />;
+}
+
+/** Signed in: tapping opens today's diary (kcal and protein eaten); otherwise the app opens to sign in or set a target. */
+function ProgressWidget({ snapshot, c, width, height }: { snapshot: WidgetSnapshot; c: WidgetPalette } & Size) {
+  const live = snapshot.signedIn && snapshot.day !== null;
+  return (
+    <WidgetCard
+      c={c}
+      clickAction={live ? "OPEN_URI" : "OPEN_APP"}
+      clickActionData={live ? { uri: PROGRESS_WIDGET_URI } : undefined}
+    >
+      <ProgressSection snapshot={snapshot} c={c} width={width} height={height} />
     </WidgetCard>
   );
 }
 
-function InboxWidget({ snapshot, c }: { snapshot: WidgetSnapshot; c: WidgetPalette }) {
+function InboxWidget({ snapshot, c, height }: { snapshot: WidgetSnapshot; c: WidgetPalette; height: number }) {
+  const live = snapshot.signedIn && snapshot.inbox !== null;
   return (
-    <WidgetCard c={c} clickAction="OPEN_URI" clickActionData={{ uri: "joyorogo://inbox" }}>
-      {snapshot.signedIn && snapshot.inbox ? (
-        <InboxPanel inbox={snapshot.inbox} c={c} />
-      ) : snapshot.signedIn ? (
-        <FlexWidget style={{ flexDirection: "column", width: "match_parent" }}>
-          <Caption text={i18n.t("misc:widget.inbox")} c={c} />
-          <TextWidget
-            text={i18n.t("misc:widget.joinGroup")}
-            style={{ fontSize: 12, fontFamily: FONT_MEDIUM, color: c.mutedForeground, marginTop: 10 }}
-          />
-        </FlexWidget>
-      ) : (
-        <SignedOutBody c={c} />
-      )}
+    <WidgetCard
+      c={c}
+      clickAction={live ? "OPEN_URI" : "OPEN_APP"}
+      clickActionData={live ? { uri: INBOX_WIDGET_URI } : undefined}
+    >
+      <InboxSection snapshot={snapshot} c={c} height={height} />
     </WidgetCard>
   );
 }
 
-/** Combined 4x2 widget: progress left, inbox right, each half taps its screen. */
-function RingkasanWidget({ snapshot, c, width }: { snapshot: WidgetSnapshot; c: WidgetPalette; width: number }) {
+/**
+ * Combined 4x2 widget: progress left, inbox right, each half taps its screen.
+ * Signed out there is nothing to split, so one body covers the card.
+ */
+function RingkasanWidget({ snapshot, c, width, height }: { snapshot: WidgetSnapshot; c: WidgetPalette } & Size) {
+  if (!snapshot.signedIn) {
+    return (
+      <WidgetCard c={c} clickAction="OPEN_APP">
+        <SignedOutBody c={c} />
+      </WidgetCard>
+    );
+  }
   const halfWidth = Math.round((width - 1) / 2);
-  const panelWidth = halfWidth - CARD_PADDING * 2;
-  const light = (
+  const half = {
+    width: halfWidth,
+    height: "match_parent",
+    padding: CARD_PADDING,
+    flexDirection: "column",
+  } as const;
+  return (
     <FlexWidget
       style={{
         width: "match_parent",
@@ -507,51 +559,41 @@ function RingkasanWidget({ snapshot, c, width }: { snapshot: WidgetSnapshot; c: 
       }}
     >
       <FlexWidget
-        clickAction="OPEN_APP"
-        style={{
-          width: halfWidth,
-          height: "match_parent",
-          padding: CARD_PADDING,
-          flexDirection: "column",
-        }}
+        clickAction={snapshot.day ? "OPEN_URI" : "OPEN_APP"}
+        clickActionData={snapshot.day ? { uri: PROGRESS_WIDGET_URI } : undefined}
+        style={half}
       >
-        {snapshot.signedIn && snapshot.day ? (
-          <ProgressPanel day={snapshot.day} fasting={snapshot.fasting} c={c} contentWidth={panelWidth} />
-        ) : (
-          <SignedOutBody c={c} />
-        )}
+        <ProgressSection snapshot={snapshot} c={c} width={halfWidth} height={height} />
       </FlexWidget>
       <FlexWidget
         style={{ width: 1, height: "match_parent", backgroundColor: c.track, marginTop: 12, marginBottom: 12 }}
       />
       <FlexWidget
-        clickAction="OPEN_URI"
-        clickActionData={{ uri: "joyorogo://inbox" }}
-        style={{
-          width: halfWidth,
-          height: "match_parent",
-          padding: CARD_PADDING,
-          flexDirection: "column",
-        }}
+        clickAction={snapshot.inbox ? "OPEN_URI" : "OPEN_APP"}
+        clickActionData={snapshot.inbox ? { uri: INBOX_WIDGET_URI } : undefined}
+        style={half}
       >
-        {snapshot.signedIn && snapshot.inbox ? <InboxPanel inbox={snapshot.inbox} c={c} /> : <SignedOutBody c={c} />}
+        <InboxSection snapshot={snapshot} c={c} height={height} />
       </FlexWidget>
     </FlexWidget>
   );
-  return light;
 }
 
-/** lucide "camera" glyph (24x24): body plus lens, stroked in the primaryForeground tone. */
+/** Camera body (lucide "camera" outline, 24x24); fork and knife in the lens position say what it scans. */
 const CAMERA_BODY_PATH = "M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z";
+const CUTLERY_PATH = "M9 9.8v2a1.5 1.5 0 0 0 3 0v-2M10.5 13.3v4.2M15 17.5v-7.7c1.4.5 2 1.8 2 3.4h-2";
 
 /**
- * 1x1 shortcut: a brand-colored rounded tile with a camera. Static (no
- * snapshot data); a tap opens the scan camera through the deep link, which
- * covers cold and warm start and sends signed-out users through /login.
+ * 1x1 shortcut: a brand-colored rounded tile with a camera-and-bowl glyph and a
+ * short label. Static (no snapshot data); a tap opens the scan camera through
+ * the deep link, which covers cold and warm start and sends signed-out users
+ * through /login. Sizes follow the launcher cell (see cameraTileLayout).
  */
-function CameraWidget({ dark }: { dark: boolean }) {
+function CameraWidget({ dark, width, height }: { dark: boolean } & Size) {
   const t = dark ? darkTheme : lightTheme;
   const stroke = String(t.colors.primaryForeground);
+  const label = i18n.t("misc:widget.photoCta");
+  const layout = cameraTileLayout(label, Math.min(width, height));
   return (
     <FlexWidget
       clickAction="OPEN_URI"
@@ -561,30 +603,44 @@ function CameraWidget({ dark }: { dark: boolean }) {
         width: "match_parent",
         height: "match_parent",
         backgroundColor: t.colors.primary,
-        borderRadius: lightTheme.radius.card,
+        borderRadius: layout.radius,
         alignItems: "center",
         justifyContent: "center",
       }}
     >
       <SvgWidget
-        svg={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${CAMERA_BODY_PATH}"/><circle cx="12" cy="13" r="3"/></svg>`}
-        style={{ width: 32, height: 32 }}
+        svg={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${CAMERA_BODY_PATH}"/><path stroke-width="1.6" d="${CUTLERY_PATH}"/></svg>`}
+        style={{ width: layout.icon, height: layout.icon }}
+      />
+      <TextWidget
+        text={label}
+        maxLines={layout.singleLine ? 1 : 2}
+        style={{
+          adjustsFontSizeToFit: true,
+          width: "match_parent",
+          textAlign: "center",
+          fontFamily: FONT_HEAVY,
+          fontSize: layout.fontSize,
+          lineHeight: layout.lineHeight,
+          color: t.colors.primaryForeground,
+          marginTop: 2,
+        }}
       />
     </FlexWidget>
   );
 }
 
-function buildElement(name: WidgetName, snapshot: WidgetSnapshot, dark: boolean, width: number) {
+function buildElement(name: WidgetName, snapshot: WidgetSnapshot, dark: boolean, size: Size) {
   const c = widgetPalette(dark);
   switch (name) {
     case "ProgresHariIni":
-      return <ProgressWidget snapshot={snapshot} c={c} width={width} />;
+      return <ProgressWidget snapshot={snapshot} c={c} {...size} />;
     case "KotakMasukGrup":
-      return <InboxWidget snapshot={snapshot} c={c} />;
+      return <InboxWidget snapshot={snapshot} c={c} height={size.height} />;
     case "Ringkasan":
-      return <RingkasanWidget snapshot={snapshot} c={c} width={width} />;
+      return <RingkasanWidget snapshot={snapshot} c={c} {...size} />;
     case "FotoMakanan":
-      return <CameraWidget dark={dark} />;
+      return <CameraWidget dark={dark} {...size} />;
   }
 }
 
@@ -592,27 +648,29 @@ function buildElement(name: WidgetName, snapshot: WidgetSnapshot, dark: boolean,
  * Light/dark widget element for one widget name, built from the shared
  * snapshot. The launcher picks the variant matching the system theme.
  * Unknown names (runtime strings from the task handler) return null.
+ * `info` is the launcher-reported size in dp; a missing one falls back to a
+ * mid-size widget (see layout.ts).
  */
 export function buildWidgetElement(
   name: WidgetName,
   snapshot: WidgetSnapshot,
-  info: Pick<WidgetInfo, "width">,
+  info: Pick<WidgetInfo, "width" | "height">,
 ): WidgetRepresentation;
 export function buildWidgetElement(
   name: string,
   snapshot: WidgetSnapshot,
-  info: Pick<WidgetInfo, "width">,
+  info: Pick<WidgetInfo, "width" | "height">,
 ): WidgetRepresentation | null;
 export function buildWidgetElement(
   name: string,
   snapshot: WidgetSnapshot,
-  info: Pick<WidgetInfo, "width">,
+  info: Pick<WidgetInfo, "width" | "height">,
 ): WidgetRepresentation | null {
   if (!(name in WIDGET_NAMES)) return null;
   const widget = name as WidgetName;
-  const width = info.width > 0 ? info.width : 220;
+  const size = { width: info.width > 0 ? info.width : 220, height: info.height > 0 ? info.height : DEFAULT_WIDGET_HEIGHT };
   return {
-    light: buildElement(widget, snapshot, false, width),
-    dark: buildElement(widget, snapshot, true, width),
+    light: buildElement(widget, snapshot, false, size),
+    dark: buildElement(widget, snapshot, true, size),
   };
 }

@@ -225,18 +225,20 @@
     "progress": "PROGRES HARI INI",
     "protein": "PROTEIN",
     "inbox": "KOTAK MASUK",
-    "over": " kkal lebih",
-    "left": " kkal tersisa",
+    "over": "kkal lebih",
+    "left": "kkal tersisa",
     "eaten": "{{eaten}} / {{target}} kkal",
     "photoLabel": "Catat makanan dengan foto",
+    "photoCta": "Scan makan",
+    "updated": "Diperbarui {{ago}}",
     "noNews": "Belum ada kabar baru",
     "signIn": "Masuk dulu",
-    "signInBody": "Buka JoyoRogo untuk melihat progresmu di sini.",
+    "signInBody": "Buka JoyoRogo dan masuk untuk melihat datamu di sini.",
     "setTarget": "Atur targetmu dulu di aplikasi.",
     "joinGroup": "Gabung grup dulu di aplikasi.",
     "fasting": {
-      "window": "Jendela makan sampai {{close}} · sisa {{kcal}} kkal",
-      "next": "Makan lagi {{open}} · sisa {{kcal}} kkal"
+      "window": "Makan sampai {{close}}",
+      "next": "Makan lagi {{open}}"
     }
   }
 }

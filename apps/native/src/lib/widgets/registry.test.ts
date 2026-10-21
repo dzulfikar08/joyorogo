@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { CAMERA_WIDGET_URI, WIDGET_NAMES, isStaticWidget } from "./names";
+import { CAMERA_WIDGET_URI, INBOX_WIDGET_URI, PROGRESS_WIDGET_URI, WIDGET_NAMES, isStaticWidget } from "./names";
 import { mapNativeIntentPath } from "../native-intent-path";
 
 const root = resolve(import.meta.dir, "../../..");
@@ -69,5 +69,17 @@ describe("widget registration", () => {
     expect(CAMERA_WIDGET_URI.startsWith(`${scheme}://`)).toBe(true);
     expect(mapNativeIntentPath(CAMERA_WIDGET_URI)).toBe("/makan-ai");
     expect(existsSync(resolve(root, "app/makan-ai.tsx"))).toBe(true);
+  });
+
+  test("the progress and inbox widget links use the app scheme and resolve to existing screens", () => {
+    const scheme = (app.expo as unknown as { scheme: string }).scheme;
+    for (const [uri, file] of [
+      [PROGRESS_WIDGET_URI, "app/(tabs)/makan.tsx"],
+      [INBOX_WIDGET_URI, "app/inbox.tsx"],
+    ] as const) {
+      expect(uri.startsWith(`${scheme}://`)).toBe(true);
+      expect(mapNativeIntentPath(uri)).toBe(uri);
+      expect(existsSync(resolve(root, file))).toBe(true);
+    }
   });
 });

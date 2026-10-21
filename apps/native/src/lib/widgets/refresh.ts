@@ -81,7 +81,6 @@ export async function refreshSnapshotFromApi(
             state: fast.state,
             windowOpen: fast.windowOpen,
             windowClose: fast.windowClose,
-            remainingKcal: fast.remainingKcal,
           }
         : null;
 

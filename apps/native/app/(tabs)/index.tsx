@@ -258,7 +258,6 @@ export default function Dashboard() {
             state: fastingData.state,
             windowOpen: fastingData.windowOpen,
             windowClose: fastingData.windowClose,
-            remainingKcal: fastingData.remainingKcal,
           }
         : fastingData === undefined
           ? undefined

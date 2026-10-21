@@ -225,18 +225,20 @@
     "progress": "KEMAJUAN HARI INI",
     "protein": "PROTEIN",
     "inbox": "PETI MASUK",
-    "over": " kcal lebih",
-    "left": " kcal berbaki",
+    "over": "kcal lebih",
+    "left": "kcal berbaki",
     "eaten": "{{eaten}} / {{target}} kcal",
     "photoLabel": "Catat makanan dengan foto",
+    "photoCta": "Imbas makanan",
+    "updated": "Dikemas kini {{ago}}",
     "noNews": "Belum ada berita baharu",
     "signIn": "Log masuk dahulu",
-    "signInBody": "Buka JoyoRogo untuk melihat kemajuan anda di sini.",
+    "signInBody": "Buka JoyoRogo dan log masuk untuk melihat data anda di sini.",
     "setTarget": "Tetapkan sasaran anda dahulu dalam aplikasi.",
     "joinGroup": "Sertai kumpulan dahulu dalam aplikasi.",
     "fasting": {
-      "window": "Tetingkap makan sehingga {{close}} · baki {{kcal}} kcal",
-      "next": "Makan lagi {{open}} · baki {{kcal}} kcal"
+      "window": "Makan sehingga {{close}}",
+      "next": "Makan lagi {{open}}"
     }
   }
 }

@@ -229,18 +229,20 @@
     "progress": "TODAY'S PROGRESS",
     "protein": "PROTEIN",
     "inbox": "INBOX",
-    "over": " kcal over",
-    "left": " kcal left",
+    "over": "kcal over",
+    "left": "kcal left",
     "eaten": "{{eaten}} / {{target}} kcal",
     "photoLabel": "Log a meal with a photo",
+    "photoCta": "Scan food",
+    "updated": "Updated {{ago}}",
     "noNews": "No news yet",
     "signIn": "Sign in first",
-    "signInBody": "Open JoyoRogo to see your progress here.",
+    "signInBody": "Open JoyoRogo and sign in to see your data here.",
     "setTarget": "Set your target in the app first.",
     "joinGroup": "Join a group in the app first.",
     "fasting": {
-      "window": "Eating window until {{close}} · {{kcal}} kcal left",
-      "next": "Eat again at {{open}} · {{kcal}} kcal left"
+      "window": "Eating until {{close}}",
+      "next": "Eat again at {{open}}"
     }
   }
 }

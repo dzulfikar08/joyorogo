@@ -23,3 +23,7 @@ export function isStaticWidget(name: string): boolean {
  * camera phase; a signed-out user is sent to /login and returned to it.
  */
 export const CAMERA_WIDGET_URI = "joyorogo://makan-ai";
+
+/** Deep links behind the progress and inbox widgets: today's diary and the group inbox. */
+export const PROGRESS_WIDGET_URI = "joyorogo://makan";
+export const INBOX_WIDGET_URI = "joyorogo://inbox";

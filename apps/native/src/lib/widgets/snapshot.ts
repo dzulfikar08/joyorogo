@@ -31,8 +31,6 @@ export type WidgetFasting = {
   state: "puasa" | "jendela_makan";
   windowOpen: string;
   windowClose: string;
-  /** Day kcal budget still unspent (target − eaten). */
-  remainingKcal: number;
 };
 
 /** Minimal inbox row a widget row needs (poke accent vs note text). */
