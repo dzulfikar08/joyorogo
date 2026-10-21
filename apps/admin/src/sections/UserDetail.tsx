@@ -11,6 +11,7 @@ import {
   fmtDateTime,
   fmtNum,
   get,
+  chargedLabel,
   orderMethod,
   toDate,
   type AdminSession,
@@ -338,7 +339,7 @@ export function UserDetail({ userId, onClose }: { userId: string; onClose: () =>
                 <div className="flex items-start justify-between gap-3">
                   <span className="min-w-0 font-mono text-[0.6875rem] break-all">{o.orderId}</span>
                   <span className="shrink-0 text-sm font-semibold">
-                    <Amount value={o.amountIdr} />
+                    <Amount value={o.amountIdr} charged={chargedLabel(o)} />
                   </span>
                 </div>
                 <div className="mt-1.5 flex items-center gap-2 text-xs">

@@ -51,6 +51,8 @@ import {
   verifyWebhook,
 } from "@joyorogo/api/lib/polar";
 import type { PolarEnv } from "@joyorogo/api/lib/polar";
+import { frankfurterRate } from "@joyorogo/api/lib/fx";
+import type { FxRateSource } from "@joyorogo/api/lib/fx";
 import { processPolarEvent } from "@joyorogo/api/lib/polar-billing";
 import {
   checkoutAmountIdr,
@@ -111,6 +113,8 @@ type Deps = {
   createAuth: () => Promise<JoyoAuth>;
   /** Called (inside waitUntil) after a zero-revenue Sandbox grant: TestFlight buyers get a notice mail. */
   onSandboxGrant?: (userId: string) => Promise<void>;
+  /** IDR rate for MYR/SGD Polar orders; default is the ECB reference rate (Frankfurter), then the in-code table. */
+  fxRate?: FxRateSource;
 };
 
 type Provider = "doku" | "pakasir";
@@ -591,6 +595,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
         db,
         config: polar,
         fallbackPriceIdr: { monthly: config.founderPriceIdr, yearly: config.founderYearlyPriceIdr },
+        fxRate: deps.fxRate ?? frankfurterRate(),
       },
       eventId,
       parsed,

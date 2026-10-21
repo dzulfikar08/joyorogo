@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 import { user } from "./auth";
 
@@ -24,6 +24,16 @@ export const payment = sqliteTable(
     // What a Polar order actually charged, in US cents before tax (null on every other gateway).
     // amount_idr is then the IDR equivalent the ledger counts, priced like a non-IDR Apple transaction.
     amountUsdCents: integer("amount_usd_cents"),
+    // What a Polar order really charged, any currency: ISO code (USD, MYR, SGD), net and tax in that currency's
+    // minor units (sen/cents; tax is on top of net, Polar prices are tax-inclusive so net = price - tax). Null elsewhere.
+    chargedCurrency: text("charged_currency"),
+    chargedAmountMinor: integer("charged_amount_minor"),
+    chargedTaxMinor: integer("charged_tax_minor"),
+    // IDR per 1 major unit of chargedCurrency when amount_idr was converted at a real rate (MYR/SGD orders; null for
+    // USD orders, which are priced like Apple, and for free or proration charges), with where the rate came from
+    // ("frankfurter:<rate date>" = ECB reference rate, "static:<date>" = the in-code fallback table).
+    fxRateIdr: real("fx_rate_idr"),
+    fxSource: text("fx_source"),
     // Founder period end this payment produced (set on the paid flip).
     founderUntil: integer("founder_until", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" })

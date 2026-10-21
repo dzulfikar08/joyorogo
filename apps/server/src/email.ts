@@ -6,6 +6,7 @@ import { user } from "@joyorogo/db/schema/auth";
 import type { Database } from "@joyorogo/db";
 import { DEFAULT_LOCALE, fmtIdr, getT } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
+import { formatMinor } from "@joyorogo/api/lib/fx";
 import { userLocale } from "@joyorogo/api/lib/messages";
 import { dayStartMs } from "@joyorogo/api/lib/accuracy-report";
 import type { AccuracyReport, EmailState, ShadowReport } from "@joyorogo/api/lib/accuracy-report";
@@ -152,16 +153,23 @@ type PaidOrderInfo = {
   email: string;
   months: number;
   amountIdr: number;
-  /** US cents a Polar order charged (before tax); null on IDR gateways and store orders. */
-  amountUsdCents: number | null;
+  /** What a Polar order charged, before tax, in its own currency (ISO code + minor units); null on IDR gateways and store orders. */
+  charged: { currency: string; minor: number } | null;
   founderUntil: Date | null;
 };
 
-/** "Rp29.000", or "US$9.99 (setara Rp29.000 di ledger)" for a Polar order. */
-function amountLabel(info: Pick<PaidOrderInfo, "amountIdr" | "amountUsdCents">): string {
+/** "Rp29.000", or "RM43.99 (setara Rp193.800 di ledger)" for a Polar order in another currency. */
+export function amountLabel(info: Pick<PaidOrderInfo, "amountIdr" | "charged">): string {
   const idr = fmtIdr(info.amountIdr, "id");
-  if (info.amountUsdCents === null) return idr;
-  return `US$${(info.amountUsdCents / 100).toFixed(2)} (setara ${idr} di ledger)`;
+  if (info.charged === null) return idr;
+  return `${formatMinor(info.charged.minor, info.charged.currency)} (setara ${idr} di ledger)`;
+}
+
+/** The charged currency of a ledger row, or null when it was not paid through Polar. */
+function chargedOf(row: { chargedCurrency: string | null; chargedAmountMinor: number | null }): PaidOrderInfo["charged"] {
+  return row.chargedCurrency !== null && row.chargedAmountMinor !== null
+    ? { currency: row.chargedCurrency, minor: row.chargedAmountMinor }
+    : null;
 }
 
 function adminDraft(info: PaidOrderInfo): Draft {
@@ -209,7 +217,8 @@ export async function sendOrderEmails(
       name: user.name,
       email: user.email,
       amountIdr: payment.amountIdr,
-      amountUsdCents: payment.amountUsdCents,
+      chargedCurrency: payment.chargedCurrency,
+      chargedAmountMinor: payment.chargedAmountMinor,
       months: payment.months,
       founderUntil: payment.founderUntil,
     })
@@ -245,7 +254,7 @@ export async function sendOrderEmails(
       email: row.email,
       months: row.months,
       amountIdr: row.amountIdr,
-      amountUsdCents: row.amountUsdCents,
+      charged: chargedOf(row),
       founderUntil: row.founderUntil,
     });
     await sendEmail(env, { ...draft, to: admins });

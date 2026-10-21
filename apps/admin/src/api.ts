@@ -345,6 +345,9 @@ export interface AdminOrder {
   name: string | null;
   email: string;
   amountIdr: number;
+  /** What a Polar order really charged before tax (ISO currency + minor units); null on every other gateway. */
+  chargedCurrency: string | null;
+  chargedAmountMinor: number | null;
   status: string;
   paymentUrl: string | null;
   createdAt: string | number;
@@ -359,14 +362,24 @@ export interface AdminOrder {
  * qris_only=1), anything else with a link is DOKU (the Transfer Bank button;
  * DOKU's page can still offer other methods). No link = checkout never opened.
  */
-export function orderMethod(o: Pick<AdminOrder, "orderId" | "paymentUrl" | "amountIdr">): string {
+export function orderMethod(o: Pick<AdminOrder, "orderId" | "paymentUrl" | "amountIdr" | "chargedCurrency">): string {
   if (o.orderId.startsWith("apple:")) return o.amountIdr === 0 ? "TestFlight (uji)" : "Apple";
-  if (o.orderId.startsWith("polar:")) return "Polar (USD)";
+  if (o.orderId.startsWith("polar:")) return `Polar (${o.chargedCurrency ?? "USD"})`;
   if (!o.paymentUrl) return "—";
   if (o.paymentUrl.includes("app.pakasir.com")) {
     return o.paymentUrl.includes("qris_only=1") ? "QRIS (Pakasir)" : "Pakasir";
   }
   return "Transfer Bank (DOKU)";
+}
+
+const CHARGED_SYMBOLS: Record<string, string> = { USD: "US$", MYR: "RM", SGD: "S$" };
+
+/** "RM43.99" for a Polar order's own currency (2-decimal currencies only: USD, MYR, SGD); null when the order has none. */
+export function chargedLabel(o: Pick<AdminOrder, "chargedCurrency" | "chargedAmountMinor">): string | null {
+  if (!o.chargedCurrency || o.chargedAmountMinor === null) return null;
+  const amount = (o.chargedAmountMinor / 100).toFixed(2);
+  const symbol = CHARGED_SYMBOLS[o.chargedCurrency];
+  return symbol ? `${symbol}${amount}` : `${o.chargedCurrency} ${amount}`;
 }
 
 export interface AdminSession {

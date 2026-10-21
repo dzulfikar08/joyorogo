@@ -8,6 +8,7 @@ import {
   fmtDateTime,
   fmtNum,
   get,
+  chargedLabel,
   orderMethod,
   type AdminOrder,
   type PagedOrders,
@@ -39,7 +40,7 @@ const COLUMNS = (onDone: () => void): Column<AdminOrder>[] => [
       </>
     ),
   },
-  { key: "amount", header: "Amount", numeric: true, cell: (o) => <Amount value={o.amountIdr} />, className: "w-32" },
+  { key: "amount", header: "Amount", numeric: true, cell: (o) => <Amount value={o.amountIdr} charged={chargedLabel(o)} />, className: "w-32" },
   { key: "method", header: "Method", cell: (o) => orderMethod(o), className: "whitespace-nowrap" },
   { key: "status", header: "Status", cell: (o) => <OrderStatus status={o.status} /> },
   { key: "created", header: "Created", nowrap: true, cell: (o) => fmtDateTime(o.createdAt) },
@@ -61,7 +62,7 @@ function OrderCard({ order: o, onDone }: { order: AdminOrder; onDone: () => void
           <div className="truncate text-xs text-muted-foreground">{o.email}</div>
         </div>
         <span className="shrink-0 text-sm font-semibold">
-          <Amount value={o.amountIdr} />
+          <Amount value={o.amountIdr} charged={chargedLabel(o)} />
         </span>
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">

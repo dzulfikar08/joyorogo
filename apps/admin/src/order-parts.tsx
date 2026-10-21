@@ -4,11 +4,15 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { api, errorMessage, fmtIdr } from "./api";
 import { Badge, Button } from "./ui";
 
-/** Rp with dot separators; Rp 0 rows (App Store grants, tests) are dimmed so real money stands out. */
-export function Amount({ value }: { value: number }) {
+/**
+ * Rp with dot separators; Rp 0 rows (App Store grants, tests) are dimmed so real money stands out. A Polar order
+ * in another currency also shows what was charged ("RM43.99"), the Rp being its ledger equivalent.
+ */
+export function Amount({ value, charged }: { value: number; charged?: string | null }) {
   return (
     <span className={cn("tabular-nums whitespace-nowrap", value === 0 && "text-muted-foreground")}>
       {fmtIdr(value)}
+      {charged && <span className="block text-[0.6875rem] font-normal text-muted-foreground">{charged}</span>}
     </span>
   );
 }

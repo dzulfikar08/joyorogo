@@ -5,6 +5,8 @@ import { user } from "@joyorogo/db/schema/auth";
 import { payment, polarEvent, polarSubscription } from "@joyorogo/db/schema/billing";
 import type { Database } from "@joyorogo/db";
 
+import { idrQuote, minorToIdr } from "./fx";
+import type { FxQuote, FxRateSource } from "./fx";
 import { polarLedgerId, polarProductPlan } from "./polar";
 import type { PolarConfig } from "./polar";
 import { addMonths, nextFounderUntil, planMonths } from "./tiers";
@@ -17,6 +19,8 @@ export type PolarBillingDeps = {
   config: Pick<PolarConfig, "productIds" | "priceUsdCents">;
   /** Plan prices in IDR: the ledger's equivalent of a USD order, as for non-IDR Apple transactions. */
   fallbackPriceIdr: Record<FounderPlan, number>;
+  /** IDR rate for a MYR/SGD order (see fx.ts); without it only the in-code fallback table prices those. */
+  fxRate?: FxRateSource;
   now?: () => Date;
 };
 
@@ -42,6 +46,8 @@ const orderSchema = z.object({
   billing_reason: z.string(),
   currency: z.string(),
   net_amount: z.number().int(),
+  tax_amount: z.number().int().default(0),
+  created_at: z.string().nullish(),
   customer_id: z.string(),
   product_id: z.string().nullish(),
   subscription_id: z.string().nullish(),
@@ -155,17 +161,28 @@ async function founderUntilOf(db: Database, userId: string): Promise<{ founderUn
 }
 
 /**
- * IDR the ledger counts for a USD order, priced like a non-IDR Apple
- * transaction: the plan's IDR price, scaled down by what a discount code took
- * off the USD list price. A free (100% off) order is Rp0, so it never takes a
- * ladder seat or sets a grandfathered price.
+ * IDR the ledger counts for an order.
+ * - USD: priced like a non-IDR Apple transaction: the plan's IDR price, scaled down by what a discount code took
+ *   off the USD list price. A free (100% off) order is Rp0, so it never takes a ladder seat or sets a grandfathered
+ *   price.
+ * - Any currency with a rate (MYR, SGD): what was really charged (net of tax) at the recorded rate.
+ * - A currency with no rate at all: the plan's IDR price, as before.
  */
-function ledgerAmountIdr(deps: PolarBillingDeps, order: PolarOrder, plan: FounderPlan): number {
+function ledgerAmountIdr(deps: PolarBillingDeps, order: PolarOrder, plan: FounderPlan, fx: FxQuote | null): number {
   if (order.net_amount <= 0) return 0;
   const fallback = deps.fallbackPriceIdr[plan];
-  if (order.currency.toLowerCase() !== "usd") return fallback;
-  const share = Math.min(1, order.net_amount / deps.config.priceUsdCents[plan]);
-  return Math.max(1, Math.round(fallback * share));
+  if (order.currency.toLowerCase() === "usd") {
+    const share = Math.min(1, order.net_amount / deps.config.priceUsdCents[plan]);
+    return Math.max(1, Math.round(fallback * share));
+  }
+  if (!fx) return fallback;
+  return Math.max(1, minorToIdr(order.net_amount, order.currency, fx.rate));
+}
+
+/** The day an order was placed, for a dated rate: its own timestamp, else the clock (a delivery follows the payment within seconds). */
+function orderDate(deps: PolarBillingDeps, order: PolarOrder): Date {
+  const created = order.created_at ? new Date(order.created_at) : null;
+  return created && !Number.isNaN(created.getTime()) ? created : (deps.now?.() ?? new Date());
 }
 
 async function handleOrderPaid(deps: PolarBillingDeps, order: PolarOrder): Promise<PolarEventResult> {
@@ -208,8 +225,18 @@ async function creditOrder(
   const ledgerId = polarLedgerId(order.id);
   const prorationOnly = order.billing_reason === "subscription_update";
   const months = prorationOnly ? 0 : planMonths(plan);
-  const amountIdr = prorationOnly ? 0 : ledgerAmountIdr(deps, order, plan);
-  const amountUsdCents = order.currency.toLowerCase() === "usd" ? order.net_amount : null;
+  const isUsd = order.currency.toLowerCase() === "usd";
+  const needsRate = !prorationOnly && !isUsd && order.net_amount > 0;
+  const fx = needsRate ? await idrQuote(deps.fxRate, order.currency, orderDate(deps, order)) : null;
+  const amountIdr = prorationOnly ? 0 : ledgerAmountIdr(deps, order, plan, fx);
+  const charged = {
+    amountUsdCents: isUsd ? order.net_amount : null,
+    chargedCurrency: order.currency.toUpperCase(),
+    chargedAmountMinor: order.net_amount,
+    chargedTaxMinor: order.tax_amount,
+    fxRateIdr: fx?.rate ?? null,
+    fxSource: fx?.source ?? null,
+  };
 
   for (let attempt = 0; attempt < CREDIT_ATTEMPTS; attempt++) {
     const [existing] = await db
@@ -227,7 +254,7 @@ async function creditOrder(
     if (months === 0) {
       await db
         .insert(payment)
-        .values({ orderId: ledgerId, userId, amountIdr, months, amountUsdCents, status: "paid", paidAt: now })
+        .values({ orderId: ledgerId, userId, amountIdr, months, ...charged, status: "paid", paidAt: now })
         .onConflictDoNothing();
       return { outcome: "recorded" };
     }
@@ -237,7 +264,7 @@ async function creditOrder(
     const [, flipped] = await db.batch([
       db
         .insert(payment)
-        .values({ orderId: ledgerId, userId, amountIdr, months, amountUsdCents })
+        .values({ orderId: ledgerId, userId, amountIdr, months, ...charged })
         .onConflictDoNothing(),
       db
         .update(payment)

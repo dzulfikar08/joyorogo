@@ -512,6 +512,8 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
           name: user.name,
           email: user.email,
           amountIdr: payment.amountIdr,
+          chargedCurrency: payment.chargedCurrency,
+          chargedAmountMinor: payment.chargedAmountMinor,
           status: payment.status,
           paymentUrl: payment.paymentUrl,
           createdAt: payment.createdAt,

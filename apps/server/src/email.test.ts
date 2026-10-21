@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 
-import { founderEmailsDue } from "./email";
+import { amountLabel, founderEmailsDue } from "./email";
 
 const NOW = Date.UTC(2026, 9, 15, 8, 0, 0);
 const DAY = 24 * 60 * 60 * 1000;
@@ -55,5 +55,14 @@ describe("founderEmailsDue", () => {
       "play-canceled",
       "play-expired",
     ]);
+  });
+});
+
+describe("amountLabel (admin order notice)", () => {
+  test("Rupiah only on an IDR gateway; the charged currency first, with its ledger equivalent, on Polar", () => {
+    expect(amountLabel({ amountIdr: 29_000, charged: null })).toBe("Rp29.000");
+    expect(amountLabel({ amountIdr: 193_556, charged: { currency: "MYR", minor: 4399 } })).toBe("RM43.99 (setara Rp193.556 di ledger)");
+    expect(amountLabel({ amountIdr: 195_720, charged: { currency: "SGD", minor: 1398 } })).toBe("S$13.98 (setara Rp195.720 di ledger)");
+    expect(amountLabel({ amountIdr: 29_000, charged: { currency: "USD", minor: 999 } })).toBe("US$9.99 (setara Rp29.000 di ledger)");
   });
 });

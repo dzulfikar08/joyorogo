@@ -46,13 +46,33 @@ registerBillingRoutes(app, {
     throw new Error("auth is not used by the webhook");
   },
 });
+// The same routes with a fixed rate source: MYR 4400, SGD 14000 IDR.
+const RATES: Record<string, number> = { MYR: 4400, SGD: 14000 };
+const fxApp = new Hono();
+registerBillingRoutes(fxApp, {
+  env,
+  getDb: () => db,
+  createAuth: async () => {
+    throw new Error("auth is not used by the webhook");
+  },
+  fxRate: async (currency) => {
+    const rate = RATES[currency.toUpperCase()];
+    return rate ? { rate, source: "test:2026-10-21" } : null;
+  },
+});
 const ctx = { waitUntil: () => {}, passThroughOnException: () => {} };
 
-async function deliver(id: string, body: string, signedWith = SECRET, timestamp = Math.floor(Date.now() / 1000)) {
+async function deliver(
+  id: string,
+  body: string,
+  signedWith = SECRET,
+  timestamp = Math.floor(Date.now() / 1000),
+  target: Hono = app,
+) {
   const keyBytes = new Uint8Array(Buffer.from(signedWith.slice(6), "base64"));
   const key = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${id}.${timestamp}.${body}`));
-  return app.request(
+  return target.request(
     "/api/billing/polar/webhook",
     {
       method: "POST",
@@ -91,6 +111,109 @@ beforeEach(async () => {
     DELETE FROM polar_event; DELETE FROM polar_subscription; DELETE FROM payment; DELETE FROM "user";
     INSERT INTO "user" (id, name, email) VALUES ('u1', 'U1', 'u1@test.id');
   `);
+});
+
+// Polar prices are tax-inclusive: net = price - tax (MY SST 8%, SG GST 9%).
+const orderIn = (currency: string, productId: string, net: number, tax: number, id = "ord1") =>
+  JSON.stringify({
+    type: "order.paid",
+    data: {
+      ...JSON.parse(paid).data,
+      id,
+      currency,
+      product_id: productId,
+      net_amount: net,
+      tax_amount: tax,
+      total_amount: net + tax,
+    },
+  });
+
+describe("non-USD Polar orders (ledger in the charged currency)", () => {
+  const cases = [
+    { name: "MYR monthly", currency: "myr", product: "prod-monthly", net: 4073, tax: 326, months: 1, idr: 179_212, rate: 4400 },
+    { name: "MYR yearly", currency: "myr", product: "prod-yearly", net: 24536, tax: 1963, months: 12, idr: 1_079_584, rate: 4400 },
+    { name: "SGD monthly", currency: "sgd", product: "prod-monthly", net: 1283, tax: 115, months: 1, idr: 179_620, rate: 14000 },
+    { name: "SGD yearly", currency: "sgd", product: "prod-yearly", net: 7705, tax: 693, months: 12, idr: 1_078_700, rate: 14000 },
+  ];
+  for (const c of cases) {
+    test(`${c.name}: books the charged amount and tax, and the IDR at the recorded rate`, async () => {
+      const res = await deliver("evt_fx", orderIn(c.currency, c.product, c.net, c.tax), SECRET, undefined, fxApp);
+      expect(await res.json()).toEqual({ received: true, outcome: "granted" });
+      const [row] = await db.select().from(payment);
+      expect(row).toMatchObject({
+        orderId: "polar:ord1",
+        months: c.months,
+        status: "paid",
+        amountUsdCents: null,
+        chargedCurrency: c.currency.toUpperCase(),
+        chargedAmountMinor: c.net,
+        chargedTaxMinor: c.tax,
+        fxRateIdr: c.rate,
+        fxSource: "test:2026-10-21",
+        amountIdr: c.idr,
+      });
+      expect(row?.amountIdr).not.toBe(c.months === 12 ? 199_000 : 29_000);
+    });
+  }
+
+  test("a USD order keeps the plan-priced IDR, with its currency and tax recorded and no rate", async () => {
+    await deliver("evt_usd", orderIn("usd", "prod-yearly", 5999, 0), SECRET, undefined, fxApp);
+    const [row] = await db.select().from(payment);
+    expect(row).toMatchObject({
+      amountIdr: 199_000,
+      amountUsdCents: 5999,
+      chargedCurrency: "USD",
+      chargedAmountMinor: 5999,
+      chargedTaxMinor: 0,
+      fxRateIdr: null,
+      fxSource: null,
+    });
+  });
+
+  test("a free MYR order is Rp0 with no rate", async () => {
+    await deliver("evt_free", orderIn("myr", "prod-monthly", 0, 0), SECRET, undefined, fxApp);
+    const [row] = await db.select().from(payment);
+    expect(row).toMatchObject({ amountIdr: 0, chargedCurrency: "MYR", chargedAmountMinor: 0, fxRateIdr: null });
+  });
+
+  test("the live source is the ECB rate of the order's day; when it fails the fallback table is booked", async () => {
+    const realFetch = globalThis.fetch;
+    const urls: string[] = [];
+    try {
+      globalThis.fetch = (async (url: string) => {
+        urls.push(String(url));
+        return Response.json({ amount: 1, base: "MYR", date: "2026-10-20", rates: { IDR: 4405.3 } });
+      }) as unknown as typeof fetch;
+      await deliver("evt_live", orderIn("myr", "prod-monthly", 4073, 326));
+      expect(urls[0]).toMatch(/^https:\/\/api\.frankfurter\.dev\/v1\/\d{4}-\d{2}-\d{2}\?base=MYR&symbols=IDR$/);
+      let [row] = await db.select().from(payment);
+      expect(row).toMatchObject({ fxRateIdr: 4405.3, fxSource: "frankfurter:2026-10-20", amountIdr: 179_428 });
+
+      await client.executeMultiple(`DELETE FROM polar_event; DELETE FROM payment;`);
+      globalThis.fetch = (async () => {
+        throw new Error("network down");
+      }) as unknown as typeof fetch;
+      await deliver("evt_down", orderIn("sgd", "prod-monthly", 1283, 115));
+      [row] = await db.select().from(payment);
+      expect(row).toMatchObject({ fxRateIdr: 14000, fxSource: "static:2026-10-20", amountIdr: 179_620 });
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  test("a full refund takes the months back and keeps what was charged on the failed row", async () => {
+    await deliver("evt_a", orderIn("myr", "prod-yearly", 24536, 1963), SECRET, undefined, fxApp);
+    const refund = JSON.stringify({
+      type: "order.refunded",
+      data: { ...JSON.parse(orderIn("myr", "prod-yearly", 24536, 1963)).data, status: "refunded" },
+    });
+    const res = await deliver("evt_b", refund, SECRET, undefined, fxApp);
+    expect(await res.json()).toEqual({ received: true, outcome: "refunded" });
+    const [row] = await db.select().from(payment);
+    expect(row).toMatchObject({ status: "failed", chargedCurrency: "MYR", chargedAmountMinor: 24536, amountIdr: 1_079_584 });
+    const [owner] = await db.select({ until: user.founderUntil }).from(user).where(eq(user.id, "u1"));
+    expect(owner?.until && owner.until.getTime() <= Date.now() + 1000).toBe(true);
+  });
 });
 
 describe("POST /api/billing/polar/webhook", () => {
