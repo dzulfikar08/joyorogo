@@ -33,7 +33,7 @@ import {
   suggestMealNow,
 } from "@joyorogo/api/lib/engine";
 import { isHeavyDish } from "@joyorogo/api/lib/food-kind";
-import { randomFact } from "@joyorogo/api/lib/facts";
+import { indomieLine, randomFact } from "@joyorogo/api/lib/facts";
 import { scanFailReason } from "@joyorogo/api/lib/scan-errors";
 import type { ScanFailReason } from "@joyorogo/api/lib/scan-errors";
 import { analyzeStreaming } from "@joyorogo/api/lib/scan-live";
@@ -100,8 +100,6 @@ export const Route = createFileRoute("/_auth/makan/ai")({
   },
   component: AiFoodPage,
 });
-
-const GEPREK_KCAL = 600;
 
 /** Optional chips for the negative answers of "Hasilnya akurat?". */
 const FEEDBACK_REASONS = ["porsi", "makanan", "kcal_tinggi", "kcal_rendah"] as const;
@@ -1175,7 +1173,7 @@ function AiFoodPage() {
                   className="mr-1 inline size-4 align-text-bottom"
                   aria-hidden
                 />
-                {t("result.geprek", { count: Math.round(totalKcal / GEPREK_KCAL) })}
+                {indomieLine(totalKcal)}
               </p>
             </>
           )}

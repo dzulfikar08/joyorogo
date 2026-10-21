@@ -15,11 +15,26 @@ type FactSpec = {
   minutes: number;
 };
 
+/** One pack of Indomie Mi Goreng (85 g), the label's 380 kcal: the unit of the scan result's "Setara N bungkus Indomie". */
+export const INDOMIE_PACK_KCAL = 380;
+
+/** How many Indomie packs `kcal` is, to one decimal (0 below 0.05). */
+export function indomiePacks(kcal: number): number {
+  return Math.round((Math.max(0, kcal) / INDOMIE_PACK_KCAL) * 10) / 10;
+}
+
+/** "Setara 1,5 bungkus Indomie" in the requested language; null when it would round to zero. */
+export function indomieLine(kcal: number, locale: Locale = getActiveLocale()): string | null {
+  const packs = indomiePacks(kcal);
+  if (packs <= 0) return null;
+  return getT(locale, "scan")("result.indomie", { count: packs, packs: fmtNumber(packs, 1, locale) });
+}
+
 export const FOOD_FACTS = [
   { id: "gepreK", kcal: 600, kind: "run", minutes: 55 },
   { id: "nasiGoreng", kcal: 640, kind: "walk", minutes: 90 },
   { id: "martabak", kcal: 510, kind: "bike", minutes: 50 },
-  { id: "indomie", kcal: 400, kind: "run", minutes: 35 },
+  { id: "indomie", kcal: INDOMIE_PACK_KCAL, kind: "run", minutes: 35 },
   { id: "sate", kcal: 480, kind: "walk", minutes: 60 },
   { id: "kopiSusu", kcal: 300, kind: "walk", minutes: 45 },
   { id: "bakso", kcal: 550, kind: "run", minutes: 50 },

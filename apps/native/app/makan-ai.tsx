@@ -41,6 +41,7 @@ import {
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
+import { indomieLine } from "@joyorogo/api/lib/facts";
 import { foodKind, isHeavyDish } from "@joyorogo/api/lib/food-kind";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { scalePortion } from "@joyorogo/api/lib/portion";
@@ -143,9 +144,6 @@ let sessionTiming: {
   prevFirstNameMs?: number;
   prevFirstItemMs?: number;
 } = {};
-
-/** Fun portion stat, same as the web confirm card: 600 kcal = one geprek. */
-const GEPREK_KCAL = 600;
 
 /** Opacity of a result row the user left out of the save. */
 const EXCLUDED_OPACITY = 0.55;
@@ -359,11 +357,7 @@ function TotalBlock({
         <Text style={styles.totalUnit}>{kcalUnit()}</Text>
       </View>
       {reactionText ? <Text style={styles.totalReaction}>{reactionText}</Text> : null}
-      {totalKcal > 0 ? (
-        <Text style={styles.totalGeprek}>
-          {t("result.geprek", { count: Math.round(totalKcal / GEPREK_KCAL) })}
-        </Text>
-      ) : null}
+      {indomieLine(totalKcal) ? <Text style={styles.totalGeprek}>{indomieLine(totalKcal)}</Text> : null}
     </Reanimated.View>
   );
 }
