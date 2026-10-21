@@ -39,7 +39,7 @@ What goes into the hash (checked with `expo-updates runtimeversion:resolve`, who
 - the whole resolved Expo config: `app.json` + `app.config.ts` output, **including `version`, `extra`, name, scheme, permissions, plugin list and `updates`**;
 - the source of local config plugins (`plugins/*.js`), icon and splash images;
 - every autolinked native package (directory contents, so a native dependency bump or add);
-- `scripts` in `package.json`, and `.gitignore`;
+- `scripts` in `apps/native/package.json`, and `.gitignore`. `apps/native/fingerprint.config.js` hashes `tsrs` as `tsc` in them, so moving the type-check tool did not move the runtime (the tsrs switch once did, until this hook; any other edit to those scripts still does);
 - `JOYOROGO_DISTRIBUTION` and `JOYOROGO_QA`, through the config.
 
 Not in the hash: JS and TS source, JS-only dependencies, the generated `android/` and `ios/` folders (gitignored, expo-updates ignores them so a prebuild changes nothing), `versionCode` / build numbers set at build time.
