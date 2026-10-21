@@ -52,7 +52,7 @@ describe("memory", () => {
     expect(memory.block).not.toContain("lontong");
     expect(memory.block).toContain("nasi putih, tempe goreng");
     expect(memory.block!.length).toBeLessThanOrEqual(760);
-    expect(memory.learned).toEqual(["putih telur"]);
+    expect(memory.offers[0]).toEqual({ ai: "es mambo susu", saved: "putih telur" });
   });
 
   test("a food kept as the model said it, sharing a word with the target, is the named exception", () => {
@@ -69,19 +69,50 @@ describe("memory", () => {
   test("no repeated pair, no block and no chips", () => {
     const memory = buildMemory(tallyPairs(sessions.slice(1)), ["nasi"]);
     expect(memory.block).toBeUndefined();
-    expect(memory.learned).toEqual([]);
+    expect(memory.offers.map((o) => o.saved)).toEqual(["putih telur", "putih telur"]);
+    expect(memory.pairs).toBe(0);
   });
 
-  test("chips: only when the top answer is not already a learned food", () => {
-    expect(chipsFor(["putih telur"], "nasi uduk")).toEqual(["putih telur"]);
-    expect(chipsFor(["putih telur"], "putih telur rebus")).toEqual([]);
+  const offers = [
+    { ai: "lontong", saved: "putih telur" },
+    { ai: "es krim", saved: "putih telur" },
+    { ai: "susu", saved: "putih telur" },
+  ];
+
+  test("chips: only when the top answer is the label the user corrected before", () => {
+    expect(chipsFor([{ ai: "nasi uduk", saved: "nasi lemak" }], "nasi uduk")).toEqual(["nasi lemak"]);
+    expect(chipsFor([{ ai: "nasi uduk", saved: "nasi lemak" }], "nasi lemak")).toEqual([]);
+    expect(chipsFor([{ ai: "lontong", saved: "putih telur" }], "putih telur rebus")).toEqual([]);
     expect(chipsFor([], "nasi uduk")).toEqual([]);
   });
 
-  test("chips: a drink is offered drinks, a dish dishes (no putih telur under es kopi susu)", () => {
-    expect(chipsFor(["putih telur"], "es kopi susu")).toEqual([]);
-    expect(chipsFor(["putih telur", "es teh manis"], "es kopi susu")).toEqual(["es teh manis"]);
-    expect(chipsFor(["putih telur", "es teh manis"], "nasi uduk")).toEqual(["putih telur"]);
+  test("chips: nasi putih gets no putih telur from lontong/es krim/susu corrections", () => {
+    expect(chipsFor(offers, "nasi putih")).toEqual([]);
+    expect(chipsFor(offers, "nasi goreng")).toEqual([]);
+    expect(chipsFor(offers, "lontong")).toEqual(["putih telur"]);
+  });
+
+  test("chips: a generic shared word is no match, a distinctive one is", () => {
+    expect(chipsFor([{ ai: "ayam goreng", saved: "tahu goreng" }], "nasi goreng")).toEqual([]);
+    expect(chipsFor([{ ai: "nasi lemak", saved: "nasi konjac" }], "nasi lemak ayam")).toEqual(["nasi konjac"]);
+  });
+
+  test("konjac: nasi putih corrected to nasi konjac once is offered on the next nasi putih, and nasi to nasi konjac counts", () => {
+    const pairs = tallyPairs([
+      { ai: [item("nasi putih", 150)], saved: [item("nasi konjac", 150)] },
+      { ai: [item("nasi", 150)], saved: [item("nasi konjac", 150)] },
+    ]);
+    expect(pairs.map((p) => p.ai).sort()).toEqual(["nasi", "nasi putih"]);
+    const memory = buildMemory(pairs, []);
+    expect(chipsFor(memory.offers, "nasi putih")).toEqual(["nasi konjac"]);
+    expect(chipsFor(memory.offers, "nasi")).toEqual(["nasi konjac"]);
+    expect(chipsFor(memory.offers, "nasi konjac")).toEqual([]);
+    expect(chipsFor(memory.offers, "putih telur")).toEqual([]);
+  });
+
+  test("chips: a drink is offered drinks, a dish dishes", () => {
+    expect(chipsFor([{ ai: "es kopi susu", saved: "putih telur" }], "es kopi susu")).toEqual([]);
+    expect(chipsFor([{ ai: "es kopi susu", saved: "es teh manis" }], "es kopi susu")).toEqual(["es teh manis"]);
   });
 
   test("allowlist", () => {
@@ -113,7 +144,7 @@ describe("loadCorrectionMemory", () => {
     await put("u2", [item("tahu", 100)], [item("nasi", 200)]);
     const memory = await loadCorrectionMemory(db, "u1", DEFAULT_DAY_ZONE);
     expect(memory.pairs).toBe(1);
-    expect(memory.learned).toEqual(["putih telur"]);
+    expect(memory.offers[0]).toEqual({ ai: "es mambo susu", saved: "putih telur" });
     expect((await loadCorrectionMemory(db, "u2", DEFAULT_DAY_ZONE)).pairs).toBe(0);
   });
 });

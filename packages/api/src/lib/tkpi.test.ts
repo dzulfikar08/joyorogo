@@ -1,7 +1,22 @@
 import { describe, expect, test } from "bun:test";
 
-import { atwaterAdjust, calibrateItems, edibleFractionOf, TKPI_DISHES } from "./tkpi";
+import { atwaterAdjust, calibrateItems, edibleFractionOf, libraryKcal, TKPI_DISHES } from "./tkpi";
 import { lookupTkpi2019 } from "./tkpi2019";
+
+describe("konjac rice", () => {
+  test("is its own row, not nasi putih, and its low kcal is not clamped up", () => {
+    for (const name of ["nasi konjac", "beras konjac", "nasi beras konjac", "konjac rice", "shirataki rice", "nasi shirataki"]) {
+      for (const region of [undefined, "MY" as const]) {
+        const [item] = calibrateItems([{ name, kcal: 40, grams: 150 }], { region });
+        expect(item?.matched).toBe(true);
+        expect(item?.kcal).toBeLessThan(110);
+      }
+    }
+    expect(libraryKcal("nasi beras konjac", 150)).toBe(105);
+    expect(libraryKcal("konjac rice", 100)).toBe(15);
+    expect(calibrateItems([{ name: "nasi putih", kcal: 40, grams: 150 }])[0]?.kcal).toBe(150);
+  });
+});
 
 describe("calibrateItems", () => {
   test("clamps overrange kcal into the plausible band", () => {

@@ -32,6 +32,31 @@ export const TKPI_DISHES: TdpiDish[] = [
     fiberPer100g: 0.3,
     plausibleKcalRange: [150, 350],
   },
+  // Konjac (shirataki) rice looks like white rice in a photo, so these rows are only reached by a typed
+  // name, a package that says konjac, or a correction ("nasi putih" renamed "nasi konjac").
+  // Pure shirataki rice: 15 kcal/100 g (FatSecret "Shirataki Rice" 15 kcal, 3.4 g carb per 100 g;
+  // NutriNusa "Beras Shirataki" 10 kcal, 3 g fibre per 100 g; SnapCalorie "Konjac rice" 10 kcal).
+  {
+    name: "nasi shirataki",
+    aliases: ["beras shirataki", "shirataki rice", "konjac rice", "konnyaku rice", "nasi konnyaku", "nasi porang", "beras porang"],
+    typicalPortionG: 150,
+    kcalPer100g: 15,
+    fiberPer100g: 3,
+    plausibleKcalRange: [8, 45],
+  },
+  // Konjac mixed with rice flour or rice, the usual "beras konjac" sold in Indonesia and Malaysia: Sensa Beras
+  // Shirataki (48% konjac, 42% rice flour) prints 120 kcal, 26 g carb, 1 g fibre per 100 g cooked (Alodokter,
+  // alodokter.com/sensa-beras-shirataki); pure shirataki is 10-15. A bare "nasi konjac" is not known to be
+  // either, so the default sits between the two cited anchors (~70, what the owner's Malaysian user reported
+  // for her plate) and the band reaches from near-pure to the Sensa label (20-120 kcal/100 g).
+  {
+    name: "nasi konjac",
+    aliases: ["nasi beras konjac", "beras konjac", "konjak rice", "nasi konyaku", "nasi diet konjac"],
+    typicalPortionG: 150,
+    kcalPer100g: 70,
+    fiberPer100g: 2,
+    plausibleKcalRange: [30, 180],
+  },
   {
     name: "nasi goreng",
     aliases: ["nasgor", "fried rice"],
@@ -524,13 +549,12 @@ function isCombination(name: string, index: DishIndex): boolean {
     const start = q.indexOf(entry.key);
     if (start !== -1) hits.push({ start, end: start + entry.key.length, dish: entry.dish });
   }
-  // The Malaysian table names whole plates that contain another row's name ("nasi lemak ayam goreng" holds
-  // "nasi lemak" and "ayam goreng"): a key inside a longer matched key is part of that dish, not a second one.
-  if (index === MY_INDEX) {
-    hits = hits.filter(
-      (a) => !hits.some((b) => b !== a && b.start <= a.start && a.end <= b.end && b.end - b.start > a.end - a.start),
-    );
-  }
+  // Some rows name whole plates that contain another row's name ("nasi lemak ayam goreng" holds "nasi lemak"
+  // and "ayam goreng"; "nasi beras konjac" holds "nasi" and "beras konjac"): a key inside a longer matched
+  // key is part of that dish, not a second one.
+  hits = hits.filter(
+    (a) => !hits.some((b) => b !== a && b.start <= a.start && a.end <= b.end && b.end - b.start > a.end - a.start),
+  );
   return hits.some((a) =>
     hits.some((b) => a.dish !== b.dish && (a.end <= b.start || b.end <= a.start)),
   );

@@ -242,9 +242,9 @@ function memoryLedger(memory: CorrectionMemory | null) {
   return { pairs: memory?.pairs ?? 0, used: memory?.block !== undefined };
 }
 
-/** The learned foods offered as swaps, unless the top answer already is one. */
+/** The user's earlier corrections of this very label, offered as swaps, unless the top answer already is one. */
 function memoryResult(memory: CorrectionMemory | null, topName: string | undefined) {
-  const chips = memory ? chipsFor(memory.learned, topName) : [];
+  const chips = memory ? chipsFor(memory.offers, topName) : [];
   return chips.length > 0 ? { memoryChips: chips } : {};
 }
 

@@ -49,6 +49,13 @@ describe("applyCorrection", () => {
     expect(patch.items[0]?.portion).toBeUndefined();
   });
 
+  test("nasi putih renamed nasi konjac keeps the heap and takes the library's kcal, not the model's rice figure", () => {
+    const patch = applyCorrection(plate, ops({ op: "rename", i: 1, name: "nasi konjac", kcal100: 130 }));
+    expect(patch.items[0]).toMatchObject({ name: "nasi konjac", grams: 150, kcal: 105 });
+    const pure = applyCorrection(plate, ops({ op: "rename", i: 1, name: "shirataki rice" }));
+    expect(pure.items[0]).toMatchObject({ grams: 150, kcal: 23 });
+  });
+
   test("a rename with a stated amount honours it exactly", () => {
     const milk: CorrectionItemInput[] = [{ name: "susu plastik", grams: 250, kcal: 150, kind: "minuman" }];
     const patch = applyCorrection(milk, ops({ op: "rename", i: 1, name: "putih telur rebus", grams: 2 * 33, kcal100: 52 }));

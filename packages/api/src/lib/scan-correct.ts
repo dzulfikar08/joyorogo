@@ -6,7 +6,8 @@ import { localNameRule, localNameShape } from "./ai-locale";
 import { resolveFoodKind } from "./food-kind";
 import type { FoodKind } from "./food-kind";
 import { rescaleForGrams } from "./portion";
-import { calibrateItems, libraryKcal } from "./tkpi";
+import { calibrateItems, canonicalFood, libraryKcal } from "./tkpi";
+
 import type { CalibratedItem } from "./tkpi";
 import {
   DEFAULT_VISION_MODEL,
@@ -182,6 +183,8 @@ function scaled(v: number | undefined, factor: number, max: number): number | un
   return v === undefined ? undefined : bound(v * factor, 0, max);
 }
 
+const KONJAC_RICE = /\b(konjac|konjak|konnyaku|konyaku|shirataki|porang)\b/;
+
 /** One working row while ops are applied; `from` is the index in the sent list. */
 type Row = {
   item: CorrectionItemInput & { localName?: string };
@@ -198,7 +201,10 @@ function applyRename(row: Row, op: Extract<Op, { op: "rename" }>, region?: Regio
   // cup. Without any weight the new dish is priced per 100 g and left weightless.
   const sameCup =
     resolveFoodKind(old.name, old.kind) === "minuman" && resolveFoodKind(op.name, op.kind) === "minuman";
-  const grams = bound(op.grams, 1, 5000) ?? (sameCup ? old.grams : undefined);
+  // Rice swapped for konjac rice is the same heap on the plate (they look alike, which is why it is a
+  // correction at all), so its weight stays too.
+  const sameHeap = sameCup || (canonicalFood(old.name) === "nasi" && KONJAC_RICE.test(op.name.toLowerCase()));
+  const grams = bound(op.grams, 1, 5000) ?? (sameHeap ? old.grams : undefined);
   const at = (grams ?? 100) / 100;
   // Energy of the NEW dish at that weight: the model's per-100 g figure (or a
   // total it volunteered), and what the curated TKPI library says for that
@@ -218,7 +224,11 @@ function applyRename(row: Row, op: Extract<Op, { op: "rename" }>, region?: Regio
   // A drink the model or library puts at 0 (Coke Zero, air putih) is 0, not the old drink's kcal.
   const drink = resolveFoodKind(op.name, op.kind) === "minuman";
   const known = fromModel !== undefined || fromLibrary !== undefined;
-  const estimate = Math.max(fromModel ?? 0, fromLibrary ?? 0);
+  // Konjac rice: the model prices it like the rice it resembles, so the library's low figure wins outright.
+  const estimate =
+    fromLibrary !== undefined && KONJAC_RICE.test(op.name.toLowerCase())
+      ? fromLibrary
+      : Math.max(fromModel ?? 0, fromLibrary ?? 0);
   const kcal = bound(estimate || (known && drink ? 0 : carried), 0, 5000) ?? old.kcal;
   if (kcal <= 0 && !drink) return null;
   return {
