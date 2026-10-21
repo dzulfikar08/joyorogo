@@ -21,6 +21,11 @@ import { queryClient } from "@/utils/orpc";
 // anything else hits the runtime proxy, which throws in release builds.
 import { ENV } from "../src/env";
 
+/** What went wrong, as `Name: message`, short enough for one line under the buttons. */
+function failureReason(e: unknown): string {
+  return (e instanceof Error ? `${e.name}: ${e.message}` : String(e)).slice(0, 120);
+}
+
 export default function Login() {
   const { t } = useTranslation("auth");
   const { data: session, isPending } = authClient.useSession();
@@ -40,6 +45,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailBusy, setEmailBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
   // Every sign-in path (Apple, Google deep link, email, dev) ends with a session here. The account's preferences and
   // language are restored first, bounded, so the app opens in the language and theme the person chose elsewhere.
   const userId = !isPending && session ? session.user.id : null;
@@ -65,13 +71,25 @@ export default function Login() {
     return restoredFor === userId ? <Redirect href={destination} /> : <BootLoader />;
   }
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
+    if (googleBusy) return;
     setSignInError(null);
-    authClient.signIn.social({
-      provider: "google",
-      // expoClient rewrites this to the joyorogo:// deep link after OAuth
-      callbackURL: Linking.createURL("/"),
-    });
+    setGoogleBusy(true);
+    try {
+      const { error } = await authClient.signIn.social({
+        provider: "google",
+        // expoClient rewrites this to the joyorogo:// deep link after OAuth
+        callbackURL: Linking.createURL("/"),
+      });
+      if (error) setSignInError(t("login.error.googleFailed"));
+    } catch (e) {
+      // The request or the browser never started (nothing reached the server): say so, with the reason, instead of
+      // leaving a button that looks dead.
+      console.log("[login] Google sign-in threw", e);
+      setSignInError(`${t("login.error.googleFailed")} (${failureReason(e)})`);
+    } finally {
+      setGoogleBusy(false);
+    }
   };
 
   const handleAppleSignIn = async () => {
@@ -146,8 +164,9 @@ export default function Login() {
         return;
       }
       queryClient.invalidateQueries();
-    } catch {
-      setSignInError(t("login.error.network"));
+    } catch (e) {
+      console.log("[login] email sign-in threw", e);
+      setSignInError(`${t("login.error.network")} (${failureReason(e)})`);
     } finally {
       setEmailBusy(false);
     }
@@ -181,7 +200,12 @@ export default function Login() {
                 onPress={() => void handleAppleSignIn()}
               />
             ) : null}
-            <Button label={t("login.google")} icon="logo-google" onPress={handleGoogleSignIn} />
+            <Button
+              label={t("login.google")}
+              icon="logo-google"
+              loading={googleBusy}
+              onPress={() => void handleGoogleSignIn()}
+            />
             {ENV.EXPO_PUBLIC_DEV_LOGIN === "1" ? (
               <Button
                 variant="secondary"
