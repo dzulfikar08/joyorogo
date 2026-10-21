@@ -64,7 +64,7 @@ describe("fasting reminders", () => {
   test("default is Indonesian", () => {
     expect(dayReminders(input)[0]).toMatchObject({
       title: "Jendela makan buka",
-      body: "Saatnya makan pertama. Sisa 1.450 kcal untuk hari ini.",
+      body: "Saatnya makan pertama. Sisa 1.450 kkal untuk hari ini.",
     });
   });
 

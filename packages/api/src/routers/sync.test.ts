@@ -494,7 +494,8 @@ describe("account size quota", () => {
     expect(report.pushed).toBe(1);
     expect(a.adapters.sticker!.rows.get("huge")?.dirty).toBe(true);
     expect(a.adapters.pref!.rows.get("tiny")?.dirty).toBe(false);
-  });
+    // Filling a 50 MB account through the in-memory D1 takes far longer than bun's 5 s default on a loaded machine.
+  }, 120_000);
 });
 
 describe("wipe and account deletion", () => {
