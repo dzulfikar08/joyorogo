@@ -79,6 +79,10 @@
   "watchfaces": {
     "title": "Pustaka watchface",
     "intro": "Muat naik watchface .hwt ke akaun anda. Di JoyoFit pada telefon anda, buka Watchface kemudian Dari web, dan pasang ke jam dari sana.",
+    "signing": {
+      "note": "Jam Huawei menolak fail .hwt yang tidak ditandatangani Huawei, dan JoyoFit tidak dapat menandatanganinya: watchface buatan sendiri boleh dipadam oleh jam selepas dipasang. Photo face daripada JoyoFit pada telefon anda berfungsi tanpa fail .hwt.",
+      "guide": "Panduan memasang melalui Huawei Health (dalam Bahasa Indonesia)"
+    },
     "drop": {
       "title": "Seret watchface ke sini",
       "active": "Lepas untuk memuat naik",

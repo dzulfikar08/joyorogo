@@ -29,27 +29,58 @@ import {
   YAxis,
 } from "recharts";
 
+import { stepLengthSeries } from "@/lib/stride";
+
 import { HR_ZONE_COLORS } from "./zones";
 
 /** Plot area geometry shared by every panel, so one vertical cursor lines up across all of them. */
 const AXIS_WIDTH = 52;
 const RIGHT_PAD = 12;
 
-const COLOR: Record<ChartMetric, string> = {
+const COLOR: Record<Metric, string> = {
   pace: "var(--primary)",
   hr: "var(--heart)",
   alt: "var(--chart-5)",
   cad: "var(--tidur)",
+  stride: "var(--recovery)",
   power: "var(--bakar)",
 };
 
-type Row = { x: number } & Partial<Record<ChartMetric, number | null>>;
+type Row = { x: number } & Partial<Record<Metric, number | null>>;
 
 interface PanelModel {
-  metric: ChartMetric;
+  metric: Metric;
   rows: Row[];
   domain: [number, number];
   reversed: boolean;
+}
+
+/** A metric of the stacked charts: the shared ones, plus the step length the phone also draws for runs and walks. */
+type Metric = ChartMetric | "stride";
+
+/**
+ * Values of one metric on the series grid. The step length is what the source measured, else speed over steps per second
+ * (the phone's rule, `@/lib/stride`); the other metrics are the shared ones.
+ */
+function metricSeries(series: AnalysisSeries, metric: Metric, kind: SportKind): (number | null)[] {
+  if (metric !== "stride") return metricValues(series, metric, kind);
+  return stepLengthSeries(series, series.n) ?? [];
+}
+
+/** The y range of a metric: the shared rule, except for the step length (a few decimals wide). */
+function domainOf(values: (number | null)[], metric: Metric): [number, number] {
+  if (metric !== "stride") return valueDomain(values, metric);
+  const present = values.filter((v): v is number => v !== null);
+  if (present.length === 0) return [0, 1];
+  let lo = Math.min(...present);
+  let hi = Math.max(...present);
+  if (hi - lo < 0.1) {
+    const mid = (hi + lo) / 2;
+    lo = mid - 0.05;
+    hi = mid + 0.05;
+  }
+  const pad = (hi - lo) * 0.08;
+  return [lo - pad, hi + pad];
 }
 
 function panelModels(
@@ -57,8 +88,11 @@ function panelModels(
   kind: SportKind,
 ): { models: PanelModel[]; xMax: number } {
   const xScale = series.dist ? 1000 : 60;
-  const metrics = availableMetrics(series, kind);
-  const values = new Map(metrics.map((m) => [m, metricValues(series, m, kind)]));
+  const metrics: Metric[] = availableMetrics(series, kind);
+  // Step length sits after cadence, on foot only: a bike's rpm has no step.
+  if (paceMode(kind) === "pace" && stepLengthSeries(series, series.n) !== null)
+    metrics.splice(metrics.includes("cad") ? metrics.indexOf("cad") + 1 : metrics.length, 0, "stride");
+  const values = new Map(metrics.map((m) => [m, metricSeries(series, m, kind)]));
   const rows: Row[] = Array.from({ length: series.n }, (_, i) => {
     const row: Row = { x: axisValue(series, i) / xScale };
     for (const m of metrics) row[m] = values.get(m)?.[i] ?? null;
@@ -69,7 +103,8 @@ function panelModels(
     models: metrics.map((metric) => ({
       metric,
       rows,
-      domain: valueDomain(values.get(metric) ?? [], metric),
+      // A step is under a metre: the shared range spans at least one whole unit and would flatten the line.
+      domain: domainOf(values.get(metric) ?? [], metric),
       // Pace is "seconds per km": a smaller number is faster, so the axis runs downward to keep faster on top.
       reversed: metric === "pace" && paceMode(kind) === "pace",
     })),
@@ -78,14 +113,14 @@ function panelModels(
 
 /** Text of a metric's value for axis ticks and the readout. */
 export function formatMetric(
-  metric: ChartMetric,
+  metric: Metric,
   kind: SportKind,
   value: number | null | undefined,
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return "–";
   if (metric === "pace")
     return paceMode(kind) === "speed" ? fmtDecimal(value, 1) : formatPace(value);
-  return fmtDecimal(value, 0);
+  return fmtDecimal(value, metric === "stride" ? 2 : 0);
 }
 
 const Panel = memo(function Panel({
@@ -109,7 +144,8 @@ const Panel = memo(function Panel({
 }) {
   const { metric, rows, domain, reversed } = model;
   const color = COLOR[metric];
-  const ticks = niceTicks(domain[0], domain[1], 3);
+  // Step length spans a fraction of a metre: three ticks would put one under the panel's label.
+  const ticks = niceTicks(domain[0], domain[1], metric === "stride" ? 2 : 3);
   const height = showAxis ? 128 : 104;
   return (
     <div role="img" aria-label={summary} className="min-w-0" style={{ height }}>
@@ -226,13 +262,13 @@ export function WorkoutCharts({
     onScrub(indexAtAxis(series, frac * xMax * scale));
   };
 
-  const labelOf = (metric: ChartMetric) =>
+  const labelOf = (metric: Metric) =>
     metric === "pace"
       ? paceMode(kind) === "speed"
         ? t("charts.speed")
         : t("charts.pace")
       : t(`charts.${metric}`);
-  const unitOf = (metric: ChartMetric) =>
+  const unitOf = (metric: Metric) =>
     metric === "pace"
       ? paceMode(kind) === "speed"
         ? t("unit.kmh")
@@ -299,14 +335,14 @@ function Readout({
 }: {
   series: AnalysisSeries;
   kind: SportKind;
-  metrics: ChartMetric[];
+  metrics: Metric[];
   scrubIndex: number | null;
-  labelOf: (metric: ChartMetric) => string;
-  unitOf: (metric: ChartMetric) => string;
+  labelOf: (metric: Metric) => string;
+  unitOf: (metric: Metric) => string;
 }) {
   const { t } = useTranslation("fitWebWorkouts");
   const values = useMemo(
-    () => new Map(metrics.map((m) => [m, metricValues(series, m, kind)])),
+    () => new Map(metrics.map((m) => [m, metricSeries(series, m, kind)])),
     [series, kind, metrics],
   );
   if (scrubIndex === null) {

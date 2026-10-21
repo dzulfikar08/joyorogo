@@ -19,6 +19,7 @@ import { decodePoints } from "@joyorogo/api/lib/watch-workout";
 import type { WatchPoint, WatchWorkoutDoc } from "@joyorogo/api/lib/watch-workout";
 import { dayZoneOffsetMs } from "@joyorogo/i18n";
 
+import { plausibleStepLength, stepLengthFromSpeed } from "../stride";
 import { FitWriter, toFitTime, toSemicircles } from "./fit-encoder";
 import type { FitFieldDef, FitFieldType, FitValue } from "./fit-encoder";
 
@@ -165,6 +166,8 @@ interface Sample {
   hr: number | null;
   speed: number | null;
   cadence: number | null;
+  /** Metres per step the watch measured, when it did. */
+  stride: number | null;
   power: number | null;
   /** Cumulative metres, null when the workout has no distance to spread. */
   distance: number | null;
@@ -209,6 +212,7 @@ function collectSamples(points: readonly WatchPoint[]): Sample[] {
         hr: null,
         speed: null,
         cadence: null,
+        stride: null,
         power: null,
         distance: null,
       };
@@ -223,6 +227,8 @@ function collectSamples(points: readonly WatchPoint[]): Sample[] {
     if (finite(p.speed) && p.speed >= 0 && p.speed < 100) sample.speed = p.speed;
     if (finite(p.cadence) && p.cadence >= 0 && p.cadence < 500)
       sample.cadence = Math.round(p.cadence);
+    const stride = plausibleStepLength(p.stride);
+    if (stride !== null) sample.stride = stride;
     if (finite(p.power) && p.power >= 0 && p.power < 4000) sample.power = Math.round(p.power);
   }
   return [...bySecond.values()].sort((a, b) => a.ts - b.ts);
@@ -317,6 +323,16 @@ function channelStats(inRange: readonly Sample[], pick: (s: Sample) => number | 
   return { avg: Math.round(sum / values.length), max };
 }
 
+/** Mean step length (metres) of the samples that have a measured one; null when none does. */
+function meanStride(inRange: readonly Sample[]): number | null {
+  const values = inRange.flatMap((s) => (s.stride === null ? [] : [s.stride]));
+  return values.length === 0 ? null : values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+/** FIT's `step_length` and `avg_step_length` are a uint16 of millimetres x 10. */
+const stepLengthRaw = (metres: number | null): number | null =>
+  metres === null ? null : Math.round(metres * 10_000);
+
 export interface BuiltFit {
   bytes: Uint8Array;
   /** `record` messages written. */
@@ -350,14 +366,27 @@ export function buildFit(doc: WatchWorkoutDoc): BuiltFit {
   const maxSpeed =
     maxSpeedRaw !== null && maxSpeedRaw > 0 ? Math.max(maxSpeedRaw, avgSpeed ?? 0) : null;
   /** FIT counts per leg on foot; JoyoFit keeps steps per minute (rpm on a bike). */
-  const fitCadence = (c: number | null | undefined): number | null =>
-    c === null || c === undefined || !(c > 0) ? null : Math.min(254, Math.round(foot ? c / 2 : c));
+  const fitCadence = (
+    c: number | null | undefined,
+  ): { whole: number | null; fraction: number | null } => {
+    if (c === null || c === undefined || !(c > 0)) return { whole: null, fraction: null };
+    if (!foot) return { whole: Math.min(254, Math.round(c)), fraction: null };
+    // One leg's strides per minute in whole numbers plus 1/128 steps: 171 steps per minute is 85 and 64/128.
+    const legs = Math.round((c / 2) * 128) / 128;
+    const whole = Math.min(254, Math.floor(legs));
+    return { whole, fraction: Math.round((legs - whole) * 128) };
+  };
   const strides = foot && workout.steps > 0 ? Math.round(workout.steps / 2) : null;
-  const avgCadence =
-    strides !== null && timer > 0
-      ? Math.round(strides / (timer / 60))
-      : fitCadence(analysis?.stats.avgCad);
+  const avgCadence = fitCadence(
+    strides !== null && timer > 0 ? workout.steps / (timer / 60) : analysis?.stats.avgCad,
+  );
   const maxCadence = fitCadence(analysis?.stats.maxCad);
+  /** Metres per step over the whole workout: what the watch measured, else the samples', else speed over cadence (an estimate). */
+  const avgStepLength = foot
+    ? (plausibleStepLength(analysis?.stats.avgStrideM) ??
+      meanStride(samples) ??
+      stepLengthFromSpeed(avgSpeed, analysis?.stats.avgCad ?? null))
+    : null;
   const ascent = nonNegative(analysis?.elevation?.gainM);
   const descent = nonNegative(analysis?.elevation?.lossM);
   const calories = positive(workout.calories);
@@ -418,6 +447,7 @@ export function buildFit(doc: WatchWorkoutDoc): BuiltFit {
   const hasAlt = samples.some((s) => s.alt !== null);
   const hasHr = samples.some((s) => s.hr !== null);
   const hasCadence = samples.some((s) => s.cadence !== null);
+  const hasStride = samples.some((s) => s.stride !== null);
   const hasSpeed = samples.some((s) => s.speed !== null);
   const hasPower = samples.some((s) => s.power !== null);
   const recordFields: FitFieldDef[] = [{ num: 253, type: "uint32" }];
@@ -427,6 +457,7 @@ export function buildFit(doc: WatchWorkoutDoc): BuiltFit {
   if (hasHr) recordFields.push({ num: 3, type: "uint8" });
   if (hasCadence) recordFields.push({ num: 4, type: "uint8" });
   if (hasCadence && foot) recordFields.push({ num: 53, type: "uint8" });
+  if (hasStride) recordFields.push({ num: 85, type: "uint16" });
   // Speed is metres per second x 1000 in both the 16-bit and the enhanced 32-bit field.
   if (hasSpeed) recordFields.push({ num: 6, type: "uint16" }, { num: 73, type: "uint32" });
   if (hasPower) recordFields.push({ num: 7, type: "uint16" });
@@ -456,6 +487,7 @@ export function buildFit(doc: WatchWorkoutDoc): BuiltFit {
       );
     // Half a step per minute in 1/128 units: the odd step of a per-leg cadence.
     if (hasCadence && foot) values.push(s.cadence === null ? null : (s.cadence % 2) * 64);
+    if (hasStride) values.push(s.stride === null ? null : Math.round(s.stride * 10_000));
     if (hasSpeed)
       values.push(
         s.speed === null ? null : s.speed * 1000,
@@ -491,6 +523,10 @@ export function buildFit(doc: WatchWorkoutDoc): BuiltFit {
       const lapSpeed = lapDistance > 0 && lapElapsed > 0 ? lapDistance / lapElapsed : null;
       const lapSpeedMax = channelStats(inLap, (s) => s.speed).max;
       const lapPower = channelStats(inLap, (s) => s.power);
+      const lapCadence = fitCadence(lap.avgCad);
+      const lapStepLength = foot
+        ? (meanStride(inLap) ?? stepLengthFromSpeed(lapSpeed, lap.avgCad))
+        : null;
       message(4, MESG.lap, [
         [253, "uint32", toFitTime(lapEnd)],
         [2, "uint32", toFitTime(lapStart)],
@@ -503,7 +539,7 @@ export function buildFit(doc: WatchWorkoutDoc): BuiltFit {
         [14, "uint16", lapSpeedMax === null ? null : Math.max(lapSpeedMax, lapSpeed ?? 0) * 1000],
         [15, "uint8", positive(lap.avgHr)],
         [16, "uint8", positive(lap.maxHr)],
-        [17, "uint8", fitCadence(lap.avgCad)],
+        [17, "uint8", lapCadence.whole],
         [19, "uint16", positive(lapPower.avg)],
         [20, "uint16", positive(lapPower.max)],
         [21, "uint16", nonNegative(lap.gainM)],
@@ -514,6 +550,8 @@ export function buildFit(doc: WatchWorkoutDoc): BuiltFit {
         [25, "enum", sport],
         [39, "enum", subSport],
         [110, "uint32", lapSpeed === null ? null : lapSpeed * 1000],
+        [80, "uint8", lapCadence.fraction],
+        [120, "uint16", stepLengthRaw(lapStepLength)],
         [254, "uint16", index],
       ]);
     });
@@ -532,8 +570,8 @@ export function buildFit(doc: WatchWorkoutDoc): BuiltFit {
       [14, "uint16", maxSpeed === null ? null : maxSpeed * 1000],
       [15, "uint8", avgHr],
       [16, "uint8", maxHr],
-      [17, "uint8", avgCadence],
-      [18, "uint8", maxCadence],
+      [17, "uint8", avgCadence.whole],
+      [18, "uint8", maxCadence.whole],
       [19, "uint16", avgPower],
       [20, "uint16", maxPower],
       [21, "uint16", ascent],
@@ -546,6 +584,9 @@ export function buildFit(doc: WatchWorkoutDoc): BuiltFit {
       [25, "enum", sport],
       [39, "enum", subSport],
       [110, "uint32", avgSpeed === null ? null : avgSpeed * 1000],
+      [80, "uint8", avgCadence.fraction],
+      [81, "uint8", maxCadence.fraction],
+      [120, "uint16", stepLengthRaw(avgStepLength)],
       [111, "uint32", maxSpeed === null ? null : maxSpeed * 1000],
       [254, "uint16", 0],
     ]);
@@ -566,8 +607,8 @@ export function buildFit(doc: WatchWorkoutDoc): BuiltFit {
     [15, "uint16", maxSpeed === null ? null : maxSpeed * 1000],
     [16, "uint8", avgHr],
     [17, "uint8", maxHr],
-    [18, "uint8", avgCadence],
-    [19, "uint8", maxCadence],
+    [18, "uint8", avgCadence.whole],
+    [19, "uint8", maxCadence.whole],
     [20, "uint16", avgPower],
     [21, "uint16", maxPower],
     [22, "uint16", ascent],
@@ -579,6 +620,9 @@ export function buildFit(doc: WatchWorkoutDoc): BuiltFit {
     [0, "enum", FIT.eventSession],
     [1, "enum", FIT.eventTypeStop],
     [124, "uint32", avgSpeed === null ? null : avgSpeed * 1000],
+    [92, "uint8", avgCadence.fraction],
+    [93, "uint8", maxCadence.fraction],
+    [134, "uint16", stepLengthRaw(avgStepLength)],
     [125, "uint32", maxSpeed === null ? null : maxSpeed * 1000],
     [254, "uint16", 0],
   ]);

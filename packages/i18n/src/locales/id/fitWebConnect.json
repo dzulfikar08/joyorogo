@@ -267,7 +267,8 @@
       "unreadable": "Dokumen latihan ini tidak terbaca.",
       "network": "Server tidak terjangkau. Cek koneksimu, lalu coba lagi.",
       "unauthorized": "Sesi loginmu berakhir. Masuk lagi, lalu ulangi.",
-      "failed": "Ekspor gagal. Coba lagi."
+      "failed": "Ekspor gagal. Coba lagi.",
+      "strava": "Upload di strava.com"
     }
   }
 }

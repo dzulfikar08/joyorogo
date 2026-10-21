@@ -21,6 +21,10 @@
     "light": "Terang",
     "dark": "Gelap",
     "system": "Ikut perangkat",
+    "palette": "Warna",
+    "paletteDefault": "Standar",
+    "pinnedLight": "Warna ini selalu terang.",
+    "pinnedDark": "Warna ini selalu gelap.",
     "signOut": "Keluar"
   },
   "login": {
@@ -91,5 +95,9 @@
   "studio": {
     "title": "Studio",
     "description": "Desain watch face untuk Fit 4 / Fit 4 Pro."
+  },
+  "whatsNew": {
+    "title": "Baru di aplikasi",
+    "description": "Fitur baru di ponsel dan jam."
   }
 }

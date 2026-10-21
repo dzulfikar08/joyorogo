@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 
 import { Card, CardHeader } from "@/components/kit";
 import { fmtKm, fmtPaceOrSpeed } from "@/lib/format";
+import { stepLengthFromSpeed } from "@/lib/stride";
 
 function Th({ children, right = true }: { children: React.ReactNode; right?: boolean }) {
   return (
@@ -31,6 +32,10 @@ function signed(v: number | null, sign: "+" | "−"): string {
   return rounded === 0 ? "0" : `${sign}${fmtDecimal(rounded, 0)}`;
 }
 
+/** Metres per step of a split: speed over steps per second; null while the watch gave no cadence. */
+const stepLengthOf = (split: AnalysisSplit): number | null =>
+  split.sec > 0 ? stepLengthFromSpeed(split.distM / split.sec, split.cad) : null;
+
 /** Kilometre splits with a bar per split: the fastest fills the row and the slowest keeps 40 percent. */
 export function SplitsCard({
   splits,
@@ -45,6 +50,8 @@ export function SplitsCard({
   const paces = splits.flatMap((s) => (s.paceSecKm ? [s.paceSecKm] : []));
   const fastest = paces.length ? Math.min(...paces) : 0;
   const slowest = paces.length ? Math.max(...paces) : 0;
+  // The step length of a split is its speed over its steps per second (the phone's rule), on foot only.
+  const steps = mode === "pace" && splits.some((s) => stepLengthOf(s) !== null);
   return (
     <Card>
       <CardHeader title={t("splits.title")} subtitle={t("splits.subtitle")} />
@@ -61,6 +68,7 @@ export function SplitsCard({
               <Th>{t("splits.gain")}</Th>
               <Th>{t("splits.loss")}</Th>
               <Th>{t("splits.cadence")}</Th>
+              {steps && <Th>{t("splits.stride")}</Th>}
             </tr>
           </thead>
           <tbody className="tabular-nums">
@@ -91,6 +99,9 @@ export function SplitsCard({
                   <td className="px-2 py-2 text-right">{signed(split.gainM, "+")}</td>
                   <td className="px-2 py-2 text-right">{signed(split.lossM, "−")}</td>
                   <td className="px-2 py-2 text-right">{num(split.cad)}</td>
+                  {steps && (
+                    <td className="px-2 py-2 text-right">{num(stepLengthOf(split), 2)}</td>
+                  )}
                 </tr>
               );
             })}

@@ -267,7 +267,8 @@
       "unreadable": "Dokumen latihan ini tidak dapat dibaca.",
       "network": "Pelayan tidak dapat dihubungi. Semak sambungan anda, kemudian cuba lagi.",
       "unauthorized": "Sesi log masuk anda tamat. Log masuk semula, kemudian ulang.",
-      "failed": "Eksport gagal. Cuba lagi."
+      "failed": "Eksport gagal. Cuba lagi.",
+      "strava": "Muat naik di strava.com"
     }
   }
 }

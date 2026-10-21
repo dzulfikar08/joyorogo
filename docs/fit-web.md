@@ -12,13 +12,13 @@ Host: `app.fit.joyorogo.com` (Cloudflare zone `joyorogo.com`). It is its own Wor
 | Pro wall | any signed-in route | `fitness.cloudAccess` says `unlocked: false`: the wall (link to `https://joyorogo.com/harga`, "check again", sign out). |
 | Ringkasan | `/` | Tiles (workouts, distance, strain, recovery, HRV, resting HR, VO2max, sleep), training load, recovery and HRV, resting HR and VO2max, sleep, weekly volume by sport, recent workouts. Range 7/30/90/365 days, optional compare with the period before (dashed lines, ghost bars). |
 | Latihan | `/latihan` | Table of cloud workouts: range, sport filter, name search, sortable columns (one card per workout below 1280 px), totals of what is filtered. |
-| Latihan detail | `/latihan/<start>` | Map, one chart per metric on a shared distance axis with one synced cursor (map follows it), HR zones, pace zones, best efforts, effort and load, comparison with similar workouts, km splits, laps. |
+| Latihan detail | `/latihan/<start>` | Map, one chart per metric on a shared distance axis with one synced cursor (map follows it; runs and walks also get a step-length chart, from the measured value or speed over cadence), HR zones, pace zones, best efforts, effort and load, comparison with similar workouts, km splits (with step length on foot), laps. |
 | Tidur & pemulihan | `/tidur` | Average, estimated need, debt, regularity; nightly bars against the need; **sleep stages** (stage chart of one night at a time, minutes per stage, naps, composition of every night, averages); recovery, HRV, resting HR; average by weekday; night table (cards below 1280 px). |
 | Unggah | `/unggah` | **Workouts:** `.fit`, `.gpx`, `.tcx` read in the browser, previewed, checked against what the account already has, uploaded. **Watch faces:** the account's `.hwt` library (upload, download, delete). |
 
 Menus are `@joyorogo/ui` primitives: `Select` / `MultiSelect` (`select.tsx`, a listbox with Up/Down/Home/End, typing to jump, a check on the chosen row, a search field from 9 options) on top of `Overlay` (`overlay.tsx`): an anchored Radix popover from 640 px (flips and shifts at the screen edge, Esc or an outside tap closes, focus returns to the trigger) and the existing bottom `Sheet` (drag handle, safe-area padding, scroll lock) below it. Used for the range on phones, the sport filter, the sort, the night picker and the export format.
 
-Filters and the range live in the URL (`?range=90&sport=["run"]&sort=distance&dir=asc`, defaults left out), so a view can be linked. Nothing is stored in `localStorage` except the language and theme choice: no health data survives a sign-out on a shared computer.
+Filters and the range live in the URL (`?range=90&sport=["run"]&sort=distance&dir=asc`, defaults left out), so a view can be linked. Nothing is stored in `localStorage` except the language, theme and color-palette choices: no health data survives a sign-out on a shared computer.
 
 ### Studio (watch faces)
 
@@ -37,6 +37,12 @@ JoyoFit Studio (`/studio/`, repo `watch-fit` `web/`) can keep its `.project.json
 
 `/ride` is a public route outside the `_auth` guard (no sign-in or Pro needed): it calls `window.location.replace` to `https://fit.joyorogo.com/ride`, the full-screen ride game built in the watch-fit repo. The sidebar has a "Ride" link (icon + short description) to the same URL; below `lg` the tab bar is full, so the link sits at the top of the settings sheet. Target URL: `src/lib/ride.ts`.
 
+### Color palette and "Baru di aplikasi"
+
+Settings (sidebar, or the settings sheet below `lg`) has a **Warna** choice next to Terang/Gelap/Ikut perangkat: JoyoFit's teal (default) or the app's Sogan, Sakura, Lavender, Peach, Rose Gold, Strawberry Milk and Matcha Latte. The colors are the app's own (`src/theme/themes.ts` in the watch-fit repo), written on the shared tokens in `src/palettes.css`; fonts and radii stay the web's. Sogan, Sakura and Lavender follow light/dark; Peach, Strawberry Milk and Matcha Latte are always light and Rose Gold always dark, as in the app, so choosing one sets Terang or Gelap and the row says so (leaving it puts the earlier choice back). Sogan also draws the batik kawung in the top-right of the page (`lib/kawung.ts`, a port of the app's geometry, static, hidden from assistive technology). The choice is kept in this browser (`joyofit-web:palette`), not in the account: the app's own theme choice is a JoyoFit-cloud preference that the web cannot read, so the two do not follow each other. `lib/palette.ts`, `components/palette-decoration.tsx`; `index.html` sets `data-palette` before first paint.
+
+The sidebar (settings sheet below `lg`) also links to `https://fit.joyorogo.com/#baru`, the product site's "Baru di aplikasi" section (`WHATS_NEW_URL` in `lib/ride.ts`), in a new tab.
+
 ### Unggah: workout files
 
 `apps/fit/src/lib/import/` (pure, tested with `bun test`): `fit.ts` (Garmin FIT SDK, a port of the JoyoFit app's `parseFit`: sessions added up, records to points, laps kept from two up), `gpx.ts` / `tcx.ts` (DOMParser, vendor extensions by local name), `analysis.ts`, `doc.ts`, `collision.ts`, `upload.ts`.
@@ -49,6 +55,8 @@ JoyoFit Studio (`/studio/`, repo `watch-fit` `web/`) can keep its `.project.json
 ### Unggah: watch face library
 
 Faces live in **joyofit-api** (the JoyoFit cloud, repo `watch-fit`, `server/`): R2 bucket `IMPORTS` under `watchfaces/<userId>/<id>`, D1 table `web_watchfaces` (migration `0010_web_watchfaces.sql`). That bucket and API already hold the account's other JoyoFit uploads, it enforces the Pro rule the same way the phone's uploads do, and the phone talks to the same API, so the "Dari web" section of the app's Watchfaces screen reads the list from there and installs through its existing path (JS only, OTA). A file is validated as a real watch face on upload (zip, `description.xml`, the face's `watchface.bin` through `packages/hwt`), at most 8 MiB and 40 faces per account; the same file twice is one face. Reads (list, download) are open to any signed-in account, upload is Pro, delete is always allowed, and the account wipe removes the library.
+
+The page says, next to the drop zone, that a Huawei watch rejects (and can remove) `.hwt` files Huawei has not signed, that JoyoFit cannot sign them, and that a photo face made in the JoyoFit phone app needs no `.hwt` file; the link goes to JoyoFit's guide `docs/watchfaces-signing.md`, section 5 (Indonesian), in the `joyofit` repo.
 
 ### Sleep stages
 
@@ -184,6 +192,8 @@ Files are built in the browser from the stored document, `GET {API}/api/watch-wo
 | JSON | `joyofit-workout` v1: the watch's record, the list-row summary, the full `WorkoutAnalysis` and every decoded point (one per line) | The stored document made readable. |
 
 **One workout:** the "Ekspor" buttons (GPX, FIT, JSON) in the header of `/latihan/<start>`. **Many:** the card on `/koneksi`: range (7, 30, 90 or 365 days of `fitWeb.workouts`) and format, at most **100** workouts per archive (newest first, the page says so), fetched one after the other with a progress bar and a cancel (cancel or sign-out downloads nothing), one `joyofit-export-<from>_<to>-<format>.zip` (`lib/export/zip.ts`, a store-only writer, no zip64, names UTF-8, tested against JSZip and `unzip -t`). A workout that fails (deleted, unreadable, no GPS) is skipped and listed with its reason; one file is downloaded as it is.
+
+The FIT file carries what the JoyoFit app's own Strava file carries for foot sports: cadence per leg with `fractional_cadence` on every record and on the lap and session averages (steps per minute over the watch's step count, half-steps in 1/128), and step length ("Panjang langkah") as `step_length` on each record the watch measured one for, plus `avg_step_length` on the session and each lap (the watch's measured average, else the samples' mean, else speed over steps per second, the last an estimate; a value outside 0.2 to 2.5 m is not written). A bike has neither. After a GPX or FIT download the page shows "Upload di strava.com", a link to Strava's own upload page (a manual upload; this is not a Strava integration).
 
 ### Tests
 

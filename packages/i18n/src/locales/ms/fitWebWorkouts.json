@@ -83,12 +83,14 @@
     "hr": "Degupan jantung",
     "alt": "Ketinggian",
     "cad": "Kadens",
+    "stride": "Panjang langkah",
     "power": "Kuasa",
     "aria": "Graf {{metric}} sepanjang latihan",
     "unit": {
       "hr": "bpm",
       "alt": "m",
       "cad": "spm",
+      "stride": "m",
       "power": "W"
     }
   },
@@ -178,7 +180,8 @@
     "bar": "Perbandingan kelajuan",
     "gain": "Naik (m)",
     "loss": "Turun (m)",
-    "cadence": "Kadens"
+    "cadence": "Kadens",
+    "stride": "Panjang langkah (m)"
   },
   "laps": {
     "title": "Pusingan",
