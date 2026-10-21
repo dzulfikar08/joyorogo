@@ -88,7 +88,8 @@ describe("ai.analyzeFood with the kitchen-scale readout", () => {
       scaleRead: { active: "scale", text: "100", unit: "g", grams: 100, count: 1, other: { grams: 150, kcal: 195 } },
     });
     expect(rice!.kcal).toBeLessThan(195);
-    expect(ayam).toMatchObject({ name: "ayam goreng", grams: 80, kcal: 260 });
+    // Unweighed bone-in fried chicken: 9089ed2 prices only the edible share (52 of 80 g), so kcal drops from the model's 260.
+    expect(ayam).toMatchObject({ name: "ayam goreng", grams: 80, edibleGrams: 52, kcal: 183 });
     expect("scaleRead" in ayam!).toBe(false);
   });
 
