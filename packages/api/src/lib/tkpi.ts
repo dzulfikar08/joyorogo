@@ -12,6 +12,12 @@ export type TdpiDish = {
   kcalPer100g: number;
   fiberPer100g: number;
   plausibleKcalRange: [number, number];
+  /**
+   * Share of the weight as seen (on the plate, bone and all) that is eaten, for a dish usually served
+   * on the bone (a whole fish, a chicken piece). typicalPortionG, kcalPer100g and the band then describe
+   * the edible part; the item's grams stay the weight the user sees. Absent = the whole weight is eaten.
+   */
+  edibleFraction?: number;
 };
 
 export const TKPI_DISHES: TdpiDish[] = [
@@ -102,6 +108,7 @@ export const TKPI_DISHES: TdpiDish[] = [
     kcalPer100g: 260,
     fiberPer100g: 0.5,
     plausibleKcalRange: [300, 600],
+    edibleFraction: 0.65,
   },
   {
     name: "ayam bakar",
@@ -110,6 +117,15 @@ export const TKPI_DISHES: TdpiDish[] = [
     kcalPer100g: 180,
     fiberPer100g: 0.5,
     plausibleKcalRange: [280, 500],
+    edibleFraction: 0.65,
+  },
+  {
+    name: "putih telur rebus",
+    aliases: ["putih telur", "telur putih", "egg white", "egg whites"],
+    typicalPortionG: 100,
+    kcalPer100g: 52,
+    fiberPer100g: 0,
+    plausibleKcalRange: [30, 150],
   },
   {
     name: "opor ayam",
@@ -302,6 +318,7 @@ export const TKPI_DISHES: TdpiDish[] = [
     kcalPer100g: 220,
     fiberPer100g: 0,
     plausibleKcalRange: [180, 400],
+    edibleFraction: 0.65,
   },
   {
     name: "pisang goreng",
@@ -548,6 +565,18 @@ export function atwaterAdjust<
 /** Physical ceiling: pure fat is 9 kcal/g, so no item can exceed this per gram of its own weight. */
 const MAX_KCAL_PER_GRAM = 9;
 
+/** Skin, oil and breading make a fried or grilled bone-in piece denser than its plain meat. */
+const BONE_IN_KCAL_SLACK = 1.35;
+
+/** The meat is already off the bone (fillet, shredded, "tanpa tulang"). */
+const BONELESS = /\b(fillet|filet|suwir|tanpa tulang|boneless|tulang lunak|presto)\b/;
+
+/** Edible share of a library dish's weight as seen; 1 for boneless dishes and for a name that says it is boneless. */
+export function edibleFractionOf(dish: TdpiDish, name: string): number {
+  const fraction = dish.edibleFraction ?? 1;
+  return fraction < 1 && !BONELESS.test(normalize(name)) ? fraction : 1;
+}
+
 /**
  * The library band is written for `typicalPortionG`; the item's own grams stretch
  * it proportionally. An unscaled band clamped "martabak telur 50 g" up to the
@@ -579,6 +608,8 @@ export type CalibratedItem = {
   fiber?: number;
   confidence?: number;
   matched?: boolean;
+  /** Eaten part of `grams` for a bone-in dish (ayam goreng, ikan utuh); absent = all of it is eaten. */
+  edibleGrams?: number;
 };
 
 // Fallback band for dishes outside the library — catches truncation garbage
@@ -602,6 +633,11 @@ export type CalibratableItem = {
   confidence?: number;
   /** The caller knows this is a drink (model kind); otherwise the name decides. Zero-calorie drinks stay near 0. */
   drink?: boolean;
+  /**
+   * The grams are an estimate from a photo, bone and all (the scan). Only then does a bone-in dish price its edible
+   * part; grams a person weighed or typed are taken as eaten and priced whole.
+   */
+  asSeen?: boolean;
 };
 
 /**
@@ -660,7 +696,7 @@ function capDensity(item: CalibratedItem): CalibratedItem {
   return item.kcal > cap ? { ...item, kcal: cap } : item;
 }
 
-function calibrateOne({ drink, ...item }: CalibratableItem, options: CalibrateOptions): CalibratedItem {
+function calibrateOne({ drink, asSeen, ...item }: CalibratableItem, options: CalibrateOptions): CalibratedItem {
   const combination = isCombination(item.name);
   const generic = combination || isCondimentedDish(item.name) || isCompoundOfIngredient(item.name);
   const dish = generic ? undefined : matchDish(item.name);
@@ -694,18 +730,29 @@ function calibrateOne({ drink, ...item }: CalibratableItem, options: CalibrateOp
       matched: false,
     });
   }
-  const grams = item.grams && item.grams > 0 ? item.grams : dish.typicalPortionG;
+  const edible = asSeen ? edibleFractionOf(dish, item.name) : 1;
+  // No weight from the model: the typical portion is edible grams, so the plate shows that over the fraction.
+  const grams = item.grams && item.grams > 0 ? item.grams : Math.round(dish.typicalPortionG / edible);
+  const edibleGrams = grams * edible;
   const fiber =
     item.fiber && item.fiber > 0
       ? item.fiber
-      : Math.round(((dish.fiberPer100g * grams) / 100) * 10) / 10;
-  // TKPI kcal range first, then the Atwater guard (macro split can still be
+      : Math.round(((dish.fiberPer100g * edibleGrams) / 100) * 10) / 10;
+  // TKPI kcal range first (for the edible grams), then the Atwater guard (macro split can still be
   // inflated even when total kcal landed in the plausible band).
+  const banded = clamp(item.kcal, ...bandFor(dish, edibleGrams, options.bandSlack));
+  // A bone-in item: the model prices the plate's weight, the eater only gets the meat. No more than the
+  // library's per-100 g of the edible part, with a third of slack for skin, oil and breading.
+  const kcal =
+    edible < 1 && options.bandSlack !== Infinity
+      ? Math.min(banded, Math.round(((dish.kcalPer100g * edibleGrams) / 100) * BONE_IN_KCAL_SLACK))
+      : banded;
   return atwaterAdjust({
     ...item,
     grams,
     fiber,
-    kcal: clamp(item.kcal, ...bandFor(dish, grams, options.bandSlack)),
+    kcal,
     matched: true,
+    ...(edible < 1 ? { edibleGrams: Math.round(edibleGrams) } : {}),
   });
 }

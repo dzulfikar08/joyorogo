@@ -141,6 +141,7 @@
   },
   "result": {
     "title": "Cek hasil AI",
+    "withBone": "dengan tulang",
     "retake": "Foto ulang",
     "total": "Total kalori foto ini",
     "indomie_other": "Setara {{packs}} bungkus Indomie",

@@ -40,11 +40,12 @@ export function itemAtGrams<T extends GramsItem>(item: T, grams: number): T | nu
     },
   ]);
   if (!calibrated) return null;
-  const { portion: _portion, ...rest } = item;
+  const { portion: _portion, edibleGrams: _edible, ...rest } = item;
   return {
     ...rest,
     grams,
     kcal: calibrated.kcal,
+    ...(calibrated.edibleGrams !== undefined ? { edibleGrams: calibrated.edibleGrams } : {}),
     ...(calibrated.protein !== undefined ? { protein: calibrated.protein } : {}),
     ...(calibrated.carbs !== undefined ? { carbs: calibrated.carbs } : {}),
     ...(calibrated.fat !== undefined ? { fat: calibrated.fat } : {}),

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { atwaterAdjust, calibrateItems, TKPI_DISHES } from "./tkpi";
+import { atwaterAdjust, calibrateItems, edibleFractionOf, TKPI_DISHES } from "./tkpi";
 import { lookupTkpi2019 } from "./tkpi2019";
 
 describe("calibrateItems", () => {
@@ -29,6 +29,55 @@ describe("calibrateItems", () => {
     const zero = TKPI_DISHES.find((d) => d.plausibleKcalRange[0] === 0);
     expect(zero).toBeDefined();
     expect(calibrateItems([{ name: zero!.name, kcal: 40, grams: zero!.typicalPortionG }], { bandSlack: Infinity })[0]?.kcal).toBe(40);
+  });
+
+  test("small items keep the grams the model gave: no gram floor, the band scales down with them", () => {
+    const [white] = calibrateItems([{ name: "putih telur rebus", kcal: 52, grams: 100 }]);
+    expect(white).toMatchObject({ matched: true, grams: 100, kcal: 52 });
+    const [small] = calibrateItems([{ name: "putih telur", kcal: 20, grams: 40 }]);
+    expect(small).toMatchObject({ grams: 40, kcal: 20 });
+    // Named as something else (lontong), the weight is still the model's and untouched.
+    expect(calibrateItems([{ name: "lontong", kcal: 195, grams: 100 }])[0]?.grams).toBe(100);
+  });
+
+  test("egg white is priced as egg white: a 200 kcal guess for 100 g is pulled into its band", () => {
+    expect(calibrateItems([{ name: "putih telur rebus", kcal: 200, grams: 100 }])[0]?.kcal).toBe(150);
+  });
+
+  test("a bone-in dish prices the edible part: grams stay as seen, kcal follow edible grams", () => {
+    const [item] = calibrateItems([{ name: "ayam goreng", kcal: 700, grams: 200, asSeen: true }]);
+    // 200 g with bone x 0.65 = 130 g of meat; 260 kcal/100 g x 1.35 slack = 456
+    expect(item).toMatchObject({ grams: 200, edibleGrams: 130, kcal: 456 });
+  });
+
+  test("a plain model estimate under the edible ceiling is left alone", () => {
+    expect(calibrateItems([{ name: "ikan goreng", kcal: 300, grams: 300, asSeen: true }])[0]).toMatchObject({ grams: 300, edibleGrams: 195, kcal: 300 });
+  });
+
+  test("grams a person weighed or typed are eaten grams: no edible fraction without asSeen", () => {
+    const [item] = calibrateItems([{ name: "ayam goreng", kcal: 480, grams: 160 }]);
+    expect(item?.edibleGrams).toBeUndefined();
+    expect(item?.kcal).toBe(480);
+  });
+
+  test("boneless wording and dishes without bone get no edible fraction", () => {
+    const fillet = calibrateItems([{ name: "ayam goreng fillet", kcal: 450, grams: 200, asSeen: true }])[0];
+    expect(fillet?.edibleGrams).toBeUndefined();
+    expect(fillet?.kcal).toBe(450);
+    expect(calibrateItems([{ name: "nasi goreng", kcal: 400, grams: 250 }])[0]?.edibleGrams).toBeUndefined();
+  });
+
+  test("bone-in dish with no weight answered shows the weight with bone (typical portion / fraction)", () => {
+    const [item] = calibrateItems([{ name: "ayam bakar", kcal: 300, asSeen: true }]);
+    expect(item?.grams).toBe(308);
+    expect(item?.edibleGrams).toBe(200);
+  });
+
+  test("edibleFractionOf only applies to library rows that carry one", () => {
+    const fried = TKPI_DISHES.find((d) => d.name === "ayam goreng")!;
+    expect(edibleFractionOf(fried, "ayam goreng paha")).toBe(0.65);
+    expect(edibleFractionOf(fried, "ayam goreng tanpa tulang")).toBe(1);
+    expect(edibleFractionOf(TKPI_DISHES.find((d) => d.name === "bakso")!, "bakso")).toBe(1);
   });
 
   test("fills missing grams from the typical portion", () => {

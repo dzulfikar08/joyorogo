@@ -573,6 +573,14 @@ describe("prompt additions and the shadow variant", () => {
     expect(visionPrompt("en")).toContain("mayones 1 sdm (15 g) = 100 kkal");
   });
 
+  test("the prompt tells the model to read a printed net weight and to give bone-in weight with the bone", () => {
+    for (const locale of ["id", "en"] as const) {
+      const prompt = visionPrompt(locale);
+      expect(prompt).toContain("berat bersih tertulis");
+      expect(prompt).toContain("termasuk tulang");
+    }
+  });
+
   test("production requests set no temperature", async () => {
     expect("temperature" in (await requestSeen(OPTS))).toBe(false);
   });

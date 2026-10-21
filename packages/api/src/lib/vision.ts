@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DEFAULT_LOCALE } from "@joyorogo/i18n";
+import { DEFAULT_LOCALE, getT } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 import { localNameRule, localNameShape } from "./ai-locale";
 import { ChatStreamDecoder } from "./chat-stream";
@@ -36,6 +36,7 @@ kind: "makanan" = makanan berat (nasi, lauk, sayur, mi, sup), "camilan" = goreng
 box = kotak pembatas item itu di foto, skala 0-1000 relatif tinggi dan lebar foto.
 Satu hidangan = satu item: kuah, bumbu/saus, sayur, dan lontong/mi/bihun yang sudah bagian dari hidangan itu (mis. gado-gado, bakso, soto) TERMASUK di kcal hidangan, jangan dipisah. Pisahkan hanya yang berdiri sendiri: nasi, lauk terpisah, telur, kerupuk, gorengan, sambal, minuman.
 Aturan: ini bukan percakapan — jangan menjawab dengan tabel markdown. name dalam Bahasa Indonesia tanpa terjemahan. grams = perkiraan berat (1-5000); kcal, protein/carbs/fat (gram), fiber (gram) = estimasi realistis porsi umum; confidence 0-1.${localNameRule(locale)}
+${PACKAGE_RULE}
 ${DRINK_RULE}
 ${SAUCE_RULE}
 ${PRINTED_TEXT_RULE}`;
@@ -48,6 +49,13 @@ ${PRINTED_TEXT_RULE}`;
  */
 export const DRINK_RULE =
   'Minuman (kaleng, botol, gelas, cup) selalu dicatat sebagai item minuman, bukan "bukan_makanan". Untuk minuman grams = volume dalam ml (kaleng 330, botol kecil 500, gelas 250-350). Minuman tanpa kalori (Coke Zero, Diet Coke, teh tawar, kopi hitam tanpa gula, air putih) kcal 0 atau 1 dan protein/carbs/fat 0: itu jawaban yang benar, jangan dinaikkan. Minuman manis ikut gulanya (Coca-Cola 330 ml = 140 kcal, es teh manis 350 ml = 100 kcal).\nGelas atau cup bermerek bertutup (McDonald\'s, KFC, Starbucks, Chatime, Kopi Kenangan) yang isinya TIDAK terlihat: jangan jawab bukan_makanan. Beri satu item minuman, name = tebakan isi yang paling mungkin (cup McDonald\'s biasanya Coca-Cola) dan tambahkan field "cup":"S" atau "M" atau "L" (ukuran gelas; ragu = "M"). Field "cup" hanya untuk kasus ini.';
+
+/**
+ * Small packaged items: the model answered 50-60 g for a ~100 g bag of boiled egg white (owner photo,
+ * docs/ai-accuracy-log.md). A printed net weight is the truth; without one, a filled bag counts as its contents.
+ */
+export const PACKAGE_RULE =
+  'Makanan dalam kemasan, plastik, atau bungkus: kalau berat bersih tertulis ("Netto 85 g", "100 g") pakai angka itu sebagai grams, jangan ditebak. Tanpa tulisan, grams = isi makanannya (bukan plastiknya) menurut ukuran kemasan yang terlihat; kemasan yang terisi penuh jangan dikecilkan hanya karena kecil di foto. Daging atau ikan bertulang (ayam goreng, ayam bakar, ikan utuh): grams = berat seperti terlihat, termasuk tulang; sistem menghitung bagian yang dimakan.';
 
 /**
  * Reference kcal for the add-ons the model low-balls most (A/B 2026-10-17,
@@ -589,6 +597,13 @@ type CalibratedRaw = CalibratedItem & {
   cup?: CupChoice;
 };
 
+/** The portion text of a bone-in item says the grams include the bone ("2 potong, dengan tulang"). */
+function boneInPortion(item: CalibratedItem, locale: Locale): string {
+  const label = getT(locale, "scan")("result.withBone");
+  const base = item.portion?.trim() || `${Math.round(item.grams ?? 0)} g`;
+  return /tulang|bone/i.test(base) ? base : `${base}, ${label}`;
+}
+
 /**
  * Calibrates against TKPI item by item; boxes, kinds and local names re-attach by index.
  * A hidden cup skips calibration: its numbers are the cup table's, for the pick it stands for.
@@ -603,6 +618,7 @@ function calibrateRaw(
     visible.map(({ box: _box, kind, cup: _cup, ...item }) => ({
       ...item,
       drink: resolveFoodKind(item.name, kind) === "minuman",
+      asSeen: true,
     })),
     options,
   );
@@ -622,6 +638,7 @@ function calibrateRaw(
     const item = calibrated[next++]!;
     return {
       ...item,
+      ...(item.edibleGrams !== undefined ? { portion: boneInPortion(item, locale) } : {}),
       box: entry.box,
       kind: resolveFoodKind(item.name, entry.kind),
       localName: entry.localName,
