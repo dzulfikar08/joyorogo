@@ -28,11 +28,19 @@ function errorKey(
   }
 }
 
+/** Strava's own upload page: the file is chosen from the downloads folder there (an upload by hand, not an integration). */
+const STRAVA_UPLOAD_URL = "https://www.strava.com/upload/select";
+
 /** "Ekspor" on a workout: one button per format, each fetches the stored document and downloads the file it builds. */
 export function ExportWorkout({ start, hasGps }: { start: number; hasGps: boolean }) {
   const { t } = useTranslation("fitWebConnect");
   const [busy, setBusy] = useState<Format | null>(null);
-  const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    tone: "ok" | "error";
+    text: string;
+    /** A .fit or .gpx file was just saved: Strava reads both on its upload page. */
+    upload?: boolean;
+  } | null>(null);
 
   const run = async (format: Format) => {
     setBusy(format);
@@ -41,7 +49,7 @@ export function ExportWorkout({ start, hasGps }: { start: number; hasGps: boolea
       // Dynamic on purpose: code-splitting keeps the encoders and schema validation out of the main bundle (like the lazy route map).
       const { exportWorkout } = await import("@/lib/export/run");
       const name = await exportWorkout(start, format);
-      setMessage({ tone: "ok", text: t("export.detail.done", { name }) });
+      setMessage({ tone: "ok", text: t("export.detail.done", { name }), upload: format !== "json" });
     } catch (error) {
       setMessage({ tone: "error", text: t(`export.detail.${errorKey(error)}`) });
     } finally {
@@ -89,6 +97,19 @@ export function ExportWorkout({ start, hasGps }: { start: number; hasGps: boolea
         {busy
           ? t("export.detail.working", { format: t(`export.formats.${busy}.name`) })
           : (message?.text ?? (hasGps ? "" : t("export.detail.noGps")))}
+        {!busy && message?.upload && (
+          <>
+            {" "}
+            <a
+              href={STRAVA_UPLOAD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-primary underline-offset-2 hover:underline"
+            >
+              {t("export.detail.strava")}
+            </a>
+          </>
+        )}
       </p>
     </div>
   );

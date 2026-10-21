@@ -83,12 +83,14 @@
     "hr": "Heart rate",
     "alt": "Elevation",
     "cad": "Cadence",
+    "stride": "Step length",
     "power": "Power",
     "aria": "Chart of {{metric}} over the workout",
     "unit": {
       "hr": "bpm",
       "alt": "m",
       "cad": "spm",
+      "stride": "m",
       "power": "W"
     }
   },
@@ -179,7 +181,8 @@
     "bar": "Speed comparison",
     "gain": "Up (m)",
     "loss": "Down (m)",
-    "cadence": "Cadence"
+    "cadence": "Cadence",
+    "stride": "Step length (m)"
   },
   "laps": {
     "title": "Laps",

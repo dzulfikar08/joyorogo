@@ -81,6 +81,10 @@
   "watchfaces": {
     "title": "Watch face library",
     "intro": "Upload .hwt watch faces to your account. In JoyoFit on your phone, open Watch faces then From the web, and install to the watch from there.",
+    "signing": {
+      "note": "A Huawei watch rejects .hwt files that Huawei has not signed, and JoyoFit cannot sign them: a watch face you made yourself can be removed by the watch after it is installed. A photo face from JoyoFit on your phone works without any .hwt file.",
+      "guide": "Guide to installing through Huawei Health (in Indonesian)"
+    },
     "drop": {
       "title": "Drop watch faces here",
       "active": "Release to upload",

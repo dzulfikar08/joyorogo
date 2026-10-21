@@ -81,8 +81,8 @@ const LAPS: AnalysisLap[] = [0, 1, 2].map((i) => ({
   gainM: 5,
 }));
 
-/** A 600-sample run: 8 heart-rate-only samples before the first GPS fix, then a track north-east at 3 m/s. */
-export function runDoc(): WatchWorkoutDoc {
+/** A 600-sample run: 8 heart-rate-only samples before the first GPS fix, then a track north-east at 3 m/s; `stride` is the metres per step the watch measured on every sample. */
+export function runDoc(stride: number | null = null): WatchWorkoutDoc {
   const points: WatchPoint[] = Array.from({ length: 600 }, (_, i) => {
     const fix = i >= 8;
     return {
@@ -93,7 +93,7 @@ export function runDoc(): WatchWorkoutDoc {
       hr: 100 + Math.floor(i / 10),
       speed: fix ? 3 : null,
       cadence: 160 + (i % 23),
-      stride: null,
+      stride,
       power: null,
     };
   });

@@ -21,6 +21,10 @@
     "light": "Light",
     "dark": "Dark",
     "system": "Match device",
+    "palette": "Color",
+    "paletteDefault": "Default",
+    "pinnedLight": "This color is always light.",
+    "pinnedDark": "This color is always dark.",
     "signOut": "Sign out"
   },
   "login": {
@@ -93,5 +97,9 @@
   "studio": {
     "title": "Studio",
     "description": "Design watch faces for Fit 4 / Fit 4 Pro."
+  },
+  "whatsNew": {
+    "title": "New in the app",
+    "description": "New on phone and watch (Indonesian)."
   }
 }

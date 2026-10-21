@@ -21,6 +21,10 @@
     "light": "Cerah",
     "dark": "Gelap",
     "system": "Ikut peranti",
+    "palette": "Warna",
+    "paletteDefault": "Piawai",
+    "pinnedLight": "Warna ini sentiasa cerah.",
+    "pinnedDark": "Warna ini sentiasa gelap.",
     "signOut": "Log keluar"
   },
   "login": {
@@ -91,5 +95,9 @@
   "studio": {
     "title": "Studio",
     "description": "Reka bentuk watch face untuk Fit 4 / Fit 4 Pro."
+  },
+  "whatsNew": {
+    "title": "Baharu dalam aplikasi",
+    "description": "Baharu pada telefon dan jam (Bahasa Indonesia)."
   }
 }

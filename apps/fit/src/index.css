@@ -1,5 +1,6 @@
 @import "@fontsource-variable/plus-jakarta-sans/wght.css";
 @import "@joyorogo/ui/globals.css";
+@import "./palettes.css";
 
 /*
  * JoyoFit brand on the shared JoyoRogo tokens (@joyorogo/ui/globals.css): the primary is JoyoFit's ink-teal

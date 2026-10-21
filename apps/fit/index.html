@@ -11,7 +11,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <!-- Theme before first paint; matches packages/ui use-theme (class + colorScheme). -->
+    <!-- Theme and color palette before first paint; matches packages/ui use-theme (class + colorScheme). -->
     <script>
       try {
         var t = localStorage.getItem("vite-ui-theme") || "system";
@@ -19,6 +19,9 @@
           t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
         document.documentElement.classList.toggle("dark", dark);
         document.documentElement.style.colorScheme = dark ? "dark" : "light";
+        // The color palette (lib/palette.ts), before first paint too.
+        var p = localStorage.getItem("joyofit-web:palette");
+        if (p && /^[a-z]+$/.test(p) && p !== "default") document.documentElement.dataset.palette = p;
       } catch (e) {}
     </script>
   </head>

@@ -19,6 +19,7 @@ import {
   Palette,
   Settings,
   Sun,
+  Newspaper,
   Plug,
   Upload,
 } from "lucide-react";
@@ -30,9 +31,12 @@ import { setLocale } from "@/lib/i18n";
 import { type Session, signOut } from "@/lib/auth-client";
 import { orpc } from "@/lib/orpc";
 
-import { RIDE_URL, STUDIO_URL } from "@/lib/ride";
+import { RIDE_URL, STUDIO_URL, WHATS_NEW_URL } from "@/lib/ride";
+
+import { PALETTES, usePalette } from "@/lib/palette";
 
 import { BrandMark } from "./brand-mark";
+import { PaletteDecoration } from "./palette-decoration";
 import { PageLoader } from "./states";
 import { Segmented } from "./kit";
 
@@ -105,15 +109,19 @@ function ExternalLink({
   Icon,
   title,
   description,
+  newTab = false,
 }: {
   href: string;
   Icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   title: string;
   description: string;
+  /** A site of its own, not part of this app: it opens beside it. */
+  newTab?: boolean;
 }) {
   return (
     <a
       href={href}
+      {...(newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
       className="group flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40"
     >
       <Icon className="size-[1.125rem] shrink-0" aria-hidden />
@@ -125,7 +133,7 @@ function ExternalLink({
   );
 }
 
-/** Ride game and watch-face Studio. */
+/** Ride game, watch-face Studio and the product site's "what is new". */
 function ExternalLinks() {
   const { t } = useTranslation("fitWeb");
   return (
@@ -142,6 +150,13 @@ function ExternalLinks() {
         title={t("studio.title")}
         description={t("studio.description")}
       />
+      <ExternalLink
+        href={WHATS_NEW_URL}
+        Icon={Newspaper}
+        title={t("whatsNew.title")}
+        description={t("whatsNew.description")}
+        newTab
+      />
     </>
   );
 }
@@ -150,6 +165,7 @@ function ExternalLinks() {
 function SettingsPanel({ session }: { session: Session }) {
   const { t, i18n } = useTranslation("fitWeb");
   const { theme, setTheme } = useTheme();
+  const palette = usePalette();
   const navigate = useNavigate();
   const saveLocale = useMutation(orpc.profile.setLocale.mutationOptions());
   const current: Locale = isLocale(i18n.language) ? i18n.language : "id";
@@ -181,24 +197,65 @@ function SettingsPanel({ session }: { session: Session }) {
       </div>
       <div className="flex flex-col gap-1.5">
         <p className="text-xs font-semibold text-muted-foreground">{t("menu.theme")}</p>
-        <Segmented<Theme>
-          label={t("menu.theme")}
-          value={theme}
-          onChange={setTheme}
-          options={[
-            {
-              value: "light",
-              label: <Sun className="size-4" aria-hidden />,
-              name: t("menu.light"),
-            },
-            { value: "dark", label: <Moon className="size-4" aria-hidden />, name: t("menu.dark") },
-            {
-              value: "system",
-              label: <Monitor className="size-4" aria-hidden />,
-              name: t("menu.system"),
-            },
-          ]}
-        />
+        {palette.info.pin ? (
+          <p className="text-xs text-muted-foreground">
+            {t(palette.info.pin === "light" ? "menu.pinnedLight" : "menu.pinnedDark")}
+          </p>
+        ) : (
+          <Segmented<Theme>
+            label={t("menu.theme")}
+            value={theme}
+            onChange={setTheme}
+            options={[
+              {
+                value: "light",
+                label: <Sun className="size-4" aria-hidden />,
+                name: t("menu.light"),
+              },
+              {
+                value: "dark",
+                label: <Moon className="size-4" aria-hidden />,
+                name: t("menu.dark"),
+              },
+              {
+                value: "system",
+                label: <Monitor className="size-4" aria-hidden />,
+                name: t("menu.system"),
+              },
+            ]}
+          />
+        )}
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-xs font-semibold text-muted-foreground">
+          {t("menu.palette")}: {palette.info.name ?? t("menu.paletteDefault")}
+        </p>
+        <div role="radiogroup" aria-label={t("menu.palette")} className="flex flex-wrap gap-1.5">
+          {PALETTES.map((option) => {
+            const name = option.name ?? t("menu.paletteDefault");
+            const selected = option.id === palette.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                aria-label={name}
+                title={name}
+                onClick={() => palette.choose(option.id)}
+                style={{
+                  background: `linear-gradient(135deg, ${option.canvas} 50%, ${option.primary} 50%)`,
+                }}
+                className={cn(
+                  "size-9 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
+                  selected
+                    ? "ring-2 ring-foreground ring-offset-2 ring-offset-card"
+                    : "ring-1 ring-foreground/20",
+                )}
+              />
+            );
+          })}
+        </div>
       </div>
       <Button
         variant="outline"
@@ -248,7 +305,7 @@ export function Shell({ session, children }: { session: Session; children: React
   const [settingsOpen, setSettingsOpen] = useState(false);
   return (
     <div className="min-h-svh lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
-      <aside className="sticky top-0 hidden h-svh flex-col gap-6 border-r border-border bg-sidebar px-3 py-5 lg:flex">
+      <aside className="sticky top-0 hidden h-svh flex-col gap-6 overflow-y-auto border-r border-border bg-sidebar px-3 py-5 lg:flex">
         <div className="px-2">
           <Brand />
         </div>
@@ -263,7 +320,8 @@ export function Shell({ session, children }: { session: Session; children: React
         </div>
       </aside>
 
-      <div className="min-w-0">
+      <div className="relative min-w-0">
+        <PaletteDecoration />
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/90 px-4 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
           <Brand />
           <Button
@@ -284,7 +342,7 @@ export function Shell({ session, children }: { session: Session; children: React
 
         <main
           className={cn(
-            "mx-auto w-full max-w-[1500px] px-4 pt-4 pb-28 sm:px-6 sm:pt-6 lg:px-8 lg:pb-12",
+            "relative z-10 mx-auto w-full max-w-[1500px] px-4 pt-4 pb-28 sm:px-6 sm:pt-6 lg:px-8 lg:pb-12",
           )}
         >
           {children}

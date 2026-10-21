@@ -83,12 +83,14 @@
     "hr": "Detak jantung",
     "alt": "Ketinggian",
     "cad": "Kadens",
+    "stride": "Panjang langkah",
     "power": "Daya",
     "aria": "Grafik {{metric}} sepanjang latihan",
     "unit": {
       "hr": "bpm",
       "alt": "m",
       "cad": "spm",
+      "stride": "m",
       "power": "W"
     }
   },
@@ -178,7 +180,8 @@
     "bar": "Perbandingan kecepatan",
     "gain": "Naik (m)",
     "loss": "Turun (m)",
-    "cadence": "Kadens"
+    "cadence": "Kadens",
+    "stride": "Panjang langkah (m)"
   },
   "laps": {
     "title": "Lap",

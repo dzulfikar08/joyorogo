@@ -24,6 +24,10 @@ import {
 
 import { DropZone } from "./drop-zone";
 
+/** JoyoFit's guide to a Huawei-signed face (Indonesian): why an unsigned .hwt is refused and the Huawei Health route. */
+const SIGNING_GUIDE_URL =
+  "https://github.com/dzulfikar08/joyofit/blob/master/docs/watchfaces-signing.md#5-panduan-untuk-pengguna-bahasa-indonesia";
+
 const KEY = ["fit-api", "watchfaces"] as const;
 
 interface Attempt {
@@ -96,6 +100,18 @@ export function WatchfaceLibrary() {
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader title={t("watchfaces.title")} subtitle={t("watchfaces.intro")} />
+        <p className="mb-4 text-sm text-muted-foreground">
+          {t("watchfaces.signing.note")}{" "}
+          <a
+            href={SIGNING_GUIDE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            hrefLang="id"
+            className="font-semibold text-primary underline-offset-2 hover:underline"
+          >
+            {t("watchfaces.signing.guide")}
+          </a>
+        </p>
         <DropZone
           accept=".hwt"
           onFiles={(files) => void upload(files)}

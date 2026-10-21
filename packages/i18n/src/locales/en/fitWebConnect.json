@@ -273,7 +273,8 @@
       "unreadable": "This workout's document could not be read.",
       "network": "The server could not be reached. Check your connection and try again.",
       "unauthorized": "Your login session ended. Sign in again, then repeat.",
-      "failed": "The export failed. Try again."
+      "failed": "The export failed. Try again.",
+      "strava": "Upload on strava.com"
     }
   }
 }

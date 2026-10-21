@@ -37,6 +37,10 @@ interface Msg {
   maxPower: number;
   normalizedPower: number;
   numLaps: number;
+  stepLength?: number;
+  avgStepLength?: number;
+  avgCadence?: number;
+  avgFractionalCadence?: number;
   messageIndex: number;
 }
 
@@ -156,6 +160,40 @@ describe("buildFit: a run with GPS, heart rate, cadence and laps", () => {
   });
 });
 
+describe("buildFit: step length and the cadence fraction", () => {
+  test("without a measured step length: the session and the laps carry speed over cadence, no record has one", () => {
+    const fit = decode(buildFit(runDoc()).bytes);
+    expect(fit.recordMesgs.every((r) => r.stepLength === undefined)).toBe(true);
+    // 1800 m in 599 s over 170 steps per minute is 1.061 m (in mm); a lap of 600 m in 200 s (199 s for the last) is 1.059 to 1.064.
+    expect(fit.sessionMesgs[0]!.avgStepLength).toBeCloseTo(1060.6, 0);
+    for (const lap of fit.lapMesgs) expect(lap.avgStepLength).toBeCloseTo(1060, -1);
+  });
+
+  test("a measured step length is written on every record and averages onto the session", () => {
+    const fit = decode(buildFit(runDoc(0.95)).bytes);
+    expect(fit.recordMesgs.every((r) => Math.abs((r.stepLength as number) - 950) < 0.2)).toBe(true);
+    expect(fit.sessionMesgs[0]!.avgStepLength).toBeCloseTo(950, 0);
+  });
+
+  test("an implausible step length is not written", () => {
+    const fit = decode(buildFit(runDoc(9)).bytes);
+    expect(fit.recordMesgs.every((r) => r.stepLength === undefined)).toBe(true);
+  });
+
+  test("the session's average cadence is per leg with the odd step in the fraction", () => {
+    // 1700 steps in 599 s is 170.28 steps per minute: 85 per leg and 18/128 of one.
+    const [session] = decode(buildFit(runDoc()).bytes).sessionMesgs;
+    expect(session!.avgCadence).toBe(85);
+    expect(session!.avgFractionalCadence).toBeCloseTo(18 / 128, 4);
+  });
+
+  test("a bike has no step length and no fractional cadence", () => {
+    const [session] = decode(buildFit(rideDoc()).bytes).sessionMesgs;
+    expect(session!.avgStepLength).toBeUndefined();
+    expect(session!.avgFractionalCadence).toBeUndefined();
+  });
+});
+
 describe("buildFit: a ride with power", () => {
   const doc = rideDoc();
   const fit = decode(buildFit(doc).bytes);
@@ -236,6 +274,7 @@ describe("helpers", () => {
       hr: 100,
       speed: null,
       cadence: null,
+      stride: null,
       power: null,
       distance: null as number | null,
     }));
