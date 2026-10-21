@@ -2,16 +2,16 @@ import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
-import { chipGrams } from "@joyorogo/api/lib/portion-chip";
+import { chipGrams, priorLabelKey } from "@joyorogo/api/lib/portion-chip";
 import type { PortionPriorChip } from "@joyorogo/api/lib/portion-chip";
 
 import { Chip } from "@/components/ui";
 import { fmtGramsLabel } from "@/utils/format";
 
 /**
- * Under a scan row whose weight started at the user's usual portion
- * (lib/portion-prior.ts): "AI: 150 g" and "Biasanya kamu: 100 g", one tap to
- * switch. The row's numbers follow the pick (swapPortionPrior).
+ * Under a scan row that has a second portion (lib/portion-prior.ts): "AI: 150 g" and either
+ * "Biasanya kamu: 100 g" (the user's own history) or "Biasanya: 100 g" (the typical rice
+ * portion), one tap to switch. The row's numbers follow the pick (swapPortionPrior).
  */
 export function PortionPriorChips({
   name,
@@ -40,7 +40,7 @@ export function PortionPriorChips({
       />
       <Chip
         compact
-        label={t("result.items.priorUsual", { grams: fmtGramsLabel(grams.usual) })}
+        label={t(priorLabelKey(item.portionPrior!), { grams: fmtGramsLabel(grams.usual) })}
         selected={usualActive}
         onPress={usualActive ? () => {} : onSwap}
       />

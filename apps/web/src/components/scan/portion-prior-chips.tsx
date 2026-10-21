@@ -1,4 +1,4 @@
-import { chipGrams } from "@joyorogo/api/lib/portion-chip";
+import { chipGrams, priorLabelKey } from "@joyorogo/api/lib/portion-chip";
 import type { PortionPriorChip } from "@joyorogo/api/lib/portion-chip";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useTranslation } from "react-i18next";
@@ -14,9 +14,9 @@ const chipClass = (active: boolean) =>
   );
 
 /**
- * Under a scan row whose weight started at the user's usual portion
- * (lib/portion-prior.ts): "AI: 150 g" and "Biasanya kamu: 100 g", one click to
- * switch. The row's numbers follow the pick (swapPortionPrior).
+ * Under a scan row that has a second portion (lib/portion-prior.ts): "AI: 150 g" and either
+ * "Biasanya kamu: 100 g" (the user's own history) or "Biasanya: 100 g" (the typical rice
+ * portion), one click to switch. The row's numbers follow the pick (swapPortionPrior).
  */
 export function PortionPriorChips({
   name,
@@ -51,7 +51,7 @@ export function PortionPriorChips({
         onClick={usualActive ? undefined : onSwap}
         className={chipClass(usualActive)}
       >
-        {t("result.items.priorUsual", { grams: fmtGramsLabel(grams.usual) })}
+        {t(priorLabelKey(item.portionPrior!), { grams: fmtGramsLabel(grams.usual) })}
       </button>
     </span>
   );

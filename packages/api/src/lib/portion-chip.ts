@@ -1,6 +1,8 @@
 /**
- * "Porsi kebiasaanmu": the scan answer for an item can carry the user's usual
- * portion as its starting weight, with the model's own number one tap away.
+ * "Porsi kebiasaanmu": the scan answer for an item can carry a second portion with
+ * the model's own number one tap away. The second portion is the user's usual one
+ * (their weighed history; the item then starts at it when the history is solid) or,
+ * for plain rice, the typical eaten portion (a suggestion: the model's number stays).
  * Client-safe (no library imports): both apps swap the two numbers with this.
  */
 
@@ -16,13 +18,22 @@ export type PortionNumbers = {
 };
 
 export type PortionPriorChip = {
-  /** Which number the item currently shows: the user's usual portion or the model's. */
+  /** Which number the item currently shows: the usual / typical portion ("prior") or the model's ("ai"). */
   active: "prior" | "ai";
   /** The numbers the other side of the chip would put on the item. */
   other: PortionNumbers;
-  /** User-set entries behind the usual portion. */
+  /** User-set entries behind the usual portion; 0 for the typical portion. */
   n: number;
+  /**
+   * Whose portion "prior" is: the user's own history ("you"), or what people typically eat ("typical",
+   * plain rice only, n = 0). Missing = "you" (answers from before the typical portion existed).
+   */
+  source?: "you" | "typical";
 };
+
+/** i18n key (scan namespace) for the label of the usual / typical side of the chip. */
+export const priorLabelKey = (chip: Pick<PortionPriorChip, "source">): "result.items.priorUsual" | "result.items.priorTypical" =>
+  chip.source === "typical" ? "result.items.priorTypical" : "result.items.priorUsual";
 
 type Swappable = PortionNumbers & { portionPrior?: PortionPriorChip };
 

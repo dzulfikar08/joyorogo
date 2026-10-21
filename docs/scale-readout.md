@@ -4,7 +4,7 @@ When a food photo shows a kitchen scale's display, a second, tiny vision call re
 
 ## Flag
 
-`SCALE_READOUT_USER_IDS`: comma-separated user ids (a Worker var in `apps/server/wrangler.jsonc`, like `PORTION_PRIOR_USER_IDS`; owner only today). Unset, empty or any other user: no second call is made and `ai.analyzeFood` / `analyzeFoodStream` / `analyzeFoodRetry` return exactly what they returned before (no `scaleRead` key on any item). To switch on for QA add the user id to the var and deploy; to switch off remove it.
+`SCALE_READOUT_USER_IDS`: comma-separated user ids (a Worker var in `apps/server/wrangler.jsonc`, like `DATASET_USER_IDS`; owner only today). Unset, empty or any other user: no second call is made and `ai.analyzeFood` / `analyzeFoodStream` / `analyzeFoodRetry` return exactly what they returned before (no `scaleRead` key on any item). To switch on for QA add the user id to the var and deploy; to switch off remove it.
 
 ## How it works (`packages/api/src/lib/scale-reading.ts`)
 

@@ -29,12 +29,6 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
    */
   DATASET_USER_IDS?: string;
   /**
-   * Comma-separated user ids that get "Porsi kebiasaanmu" on photo scans: items start at
-   * their usual weighed portion, the model's number one tap away (lib/portion-prior.ts).
-   * Unset or empty = nobody, and scans are answered exactly as before.
-   */
-  PORTION_PRIOR_USER_IDS?: string;
-  /**
    * Comma-separated user ids that get "Piring saya": registered plates and bowls whose sizes scale the
    * photo scan's portions (lib/dishware.ts, docs/dishware.md). Unset or empty = nobody, and scans are
    * answered exactly as before.

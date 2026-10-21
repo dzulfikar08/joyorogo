@@ -145,6 +145,41 @@ Reading it:
 - **The snack is a real disagreement.** The model read "Mont Blanc" as a dessert and answered about 190 kcal per 100 g (a 240 ml drink at roughly 450 kcal), about twice what Meta gave for the drink plus nuggets. Neither has a reference. The photo shows a cafe coffee with a cream foam cap; [INFERENCE] the text path has no photo to correct the dish name, so a branded or unusual name drives it. Not acted on.
 - **Limits.** One day, four meals, one contributor; Meta's meal figures are single values ("sekitar 410") or narrow ranges; the reference uses proxy rows. This says our kcal per gram is in the same range as Meta's when grams are known, not that either is right.
 
+## 2026-10-21: "Porsi kebiasaanmu" for everyone, plus a "Biasanya: 100 g" chip for plain rice (global rice default NOT changed)
+
+Question: the prior fixed rice for the one weighed eater but was allowlisted to the owner, whose diary holds no user-set weights. What reaches everyone else, and is 150 g the wrong global answer for rice?
+
+**Production data** (read-only, counts only, last 60 days, 2026-10-21): 796 diary rows with grams from 46 users. 10 users have any user-set weight (typed, or an AI row whose grams were edited); the most for one food is 4 (one user, identical typed weights); plain rice has 5 user-set weights from 5 users. The prototype's 5-entry gate would have switched on for nobody. The model's saved rice rows (64): 150 g 27 times (the median), 100 g 16, 200 g 6, the rest 50-300 g.
+
+**Shipped** (details `docs/portion-prior.md`): no flag, every user, every photo scan. Three tiers: 3 or more consistent user-set weights (CV up to 25%) start the item at the usual grams; 2 only put them on the chip; plain rice with no history gets a chip "AI: 150 g / Biasanya: 100 g" when the model answered 120 g or more, the model's number staying until the tap. A usual portion above the big-plate ratio (1.4) also stays on the chip now instead of vanishing.
+
+**Threshold from data.** The contributor's rice plates (86, 100 x3, 125 x2, 150 g): the median of any k other plates misses a held-out plate by 22.8 g (k 2), 21.3 (k 3), 21.3 (k 4), 23.4 (k 5), against 37.7 g for the model's flat 150. So 3 is as good as 5 and 2 beats the model. In the harness the 3-entry and 5-entry gates give the same numbers in both sets (no case sits at 3 or 4 entries): the choice rests on the contributor's plates alone, one eater.
+
+Run: `bun run scripts/eval-scans.ts --only external --only owner --reps 2 --variant baseline --variant portion-prior-v1 --variant portion-prior --variant portion-prior-min5 --variant portion-prior-tap --variant typical-tap` (74 new Workers AI calls: the shared answers were re-asked because the prompt changed under this run; all variants replay them, so every row is paired). External: 8 photos of one contributor; owner: 30 labelled scans (60 runs, 4 not_food).
+
+| Set | Variant | Rice grams signed / MAE | Plate kcal signed / MAE | Plate under / over |
+|---|---|---|---|---|
+| external | baseline | +45% / 43 g (n 10) | +19% / 104 kcal | 6 / 6 |
+| external | portion-prior-v1 (prototype, 5 entries) | +14% / 13 g | +13% / 120 kcal | 6 / 6 |
+| external | portion-prior (shipped, 3 entries + chips, untapped) | +14% / 13 g | +13% / 120 kcal | 6 / 6 |
+| external | portion-prior-tap (every offered chip tapped) | +7% / 23 g | +10% / 121 kcal | 8 / 4 |
+| external | typical-tap (no history, everyone taps the 100 g chip = a global 100 g default) | -3% / 13 g | +7% / 126 kcal | 8 / 4 |
+| owner | baseline, v1, shipped, min5 (all identical) | 0% / 16 g (n 17) | 72 kcal MAE | 15 / 25 |
+| owner | portion-prior-tap | +15% / 43 g | 67 kcal MAE | 9 / 29 |
+| owner | typical-tap | -34% / 57 g | 79 kcal MAE | 23 / 19 |
+| owner, edited only (24 runs) | baseline, shipped | -6% / 13 g (n 4) | 85 kcal MAE | 5 / 13 |
+| owner, edited only | typical-tap | -42% / 75 g | 90 kcal MAE | 9 / 10 |
+
+(The owner's plate signed % is dominated by hand-labelled outliers such as ice cream against egg white, so for the owner only grams, MAE and under / over are compared.) Chips on the shipped variant: owner 16 of 120 items "yours" (history) and 2 typical, external 12 of 39 "yours" and 0 typical (every external rice already has a history of its own). With nobody having a history the typical chip shows on 17 owner and 12 external items.
+
+Reading it:
+
+- **Do not lower the global rice default.** Putting 100 g on every rice (typical-tap) fixes the external eater (+45% to -3%) and breaks the owner set: rice -34% / 57 g, under-estimated plates 15 to 23 of 60 (the worse error for the owner), edited rice -6% to -42%. The owner's saved rice weights are 150 g (as answered), 162, 200 and 200, the contributor's 100 g; one fixed number is wrong for one of them whatever it is. That is the case for a chip and a personal median, not a new default. Not tried as a prompt change: the same numbers are reachable post-hoc and a prompt edit would move every other food too.
+- **Shipped numbers equal the prototype's in both sets** (untapped chips change no number): external rice +14% / 13 g, owner unchanged. Nothing is worse for the owner until he taps, by design.
+- **What a tap buys** for someone with no history: on the external eater rice +45% to -3%, plate kcal +19% to +7%. On the owner set the same tap on every rice costs -34% rice, which is why the model's number is the one showing and the user decides.
+- **Tapping the personal chips on the owner set** (portion-prior-tap) raises the error too (+15% / 43 g). [INFERENCE] an owner scan saved unedited has the model's answer as truth, so any chip that offers another number is scored as a miss there; not evidence against the chip.
+- **Limits.** One weighed contributor sets the 100 g; 5 user-set rice weights exist in production; leave-one-out on a very regular eater; owner truth is mostly the model's own answer. 100 g is a hypothesis the chip lets people check by tapping, not a population average. Nothing here measures how often people actually tap: the chip's taps are not logged.
+
 ## 2026-10-20: "Porsi kebiasaanmu" prototype (flagged off for users) and its harness numbers
 
 Built the post-hoc default recommended below: `lib/portion-prior.ts` (rules and maths), `portion-prior-store.ts` (flag, diary read), `portion-chip.ts` (the two-number chip both apps use), wired in `ai.analyzeFood` / `analyzeFoodStream`. Details and how to switch it on: `docs/portion-prior.md`. Flag `PORTION_PRIOR_USER_IDS` (allowlist, owner only for now); without it the answer is byte-identical to before. Harness: `--variant portion-prior` now runs the real code on the baseline answers (replacing the simulated prompt line `user-prior`), history = the user's OTHER cases (leave-one-out).

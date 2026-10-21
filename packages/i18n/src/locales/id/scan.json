@@ -163,6 +163,7 @@
       "priorGroup": "Pilih angka porsi {{name}}",
       "priorAi": "AI: {{grams}}",
       "priorUsual": "Biasanya kamu: {{grams}}",
+      "priorTypical": "Biasanya: {{grams}}",
       "scaleGroup": "Pilih angka berat {{name}}",
       "scaleRead": "Terbaca dari timbangan: {{value}}",
       "scaleReadShared_other": "Terbaca dari timbangan: {{value}}, dibagi ke {{count}} item",

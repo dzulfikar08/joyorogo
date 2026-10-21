@@ -21,7 +21,7 @@ for (const file of readdirSync(migrationsDir)
   await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
 }
 await client.executeMultiple(`
-  INSERT INTO "user" (id, name, email) VALUES ('on', 'on', 'on@test.id'), ('off', 'off', 'off@test.id'), ('lone', 'lone', 'lone@test.id');
+  INSERT INTO "user" (id, name, email) VALUES ('on', 'on', 'on@test.id'), ('few', 'few', 'few@test.id'), ('two', 'two', 'two@test.id'), ('none', 'none', 'none@test.id');
 `);
 const db = drizzle(client) as unknown as Database;
 
@@ -33,9 +33,10 @@ async function log(userId: string, name: string, grams: number, source: string, 
     args: [`r${row++}`, userId, shiftDate(today, -daysAgo), name, grams, source, itemsJson],
   });
 }
-// Five typed rice weights around 100 g for both users; "lone" has only four.
-for (const user of ["on", "off"]) for (const g of [95, 100, 100, 105, 100]) await log(user, "nasi putih", g, "manual", null);
-for (const g of [95, 100, 100, 105]) await log("lone", "nasi putih", g, "manual", null);
+// Typed rice weights around 100 g: five for "on", four for "few", two (95 g) for "two"; "none" has none.
+for (const g of [95, 100, 100, 105, 100]) await log("on", "nasi putih", g, "manual", null);
+for (const g of [95, 100, 100, 105]) await log("few", "nasi putih", g, "manual", null);
+for (const g of [95, 95]) await log("two", "nasi putih", g, "manual", null);
 
 const ANSWER = JSON.stringify({
   items: [
@@ -51,10 +52,10 @@ const fakeAi = {
     }),
 };
 const background: Promise<unknown>[] = [];
-const ctx = (userId: string, allow?: string) =>
+const ctx = (userId: string) =>
   ({
     db,
-    env: { AI: fakeAi, ...(allow !== undefined ? { PORTION_PRIOR_USER_IDS: allow } : {}) },
+    env: { AI: fakeAi },
     locale: "id",
     waitUntil: (promise: Promise<unknown>) => background.push(promise),
     session: { user: { id: userId } },
@@ -62,34 +63,43 @@ const ctx = (userId: string, allow?: string) =>
   }) as unknown as Context;
 const INPUT = { imageBase64: "aGVsbG8gd29ybGQgaGVsbG8gd29ybGQgaGVsbG8gd29ybGQgaGVsbG8gd29ybGQ=", mimeType: "image/jpeg" as const };
 
-describe("ai.analyzeFood with Porsi kebiasaanmu", () => {
-  test("flag off: the answer is byte-identical to a build without the feature", async () => {
-    const unset = await call(aiRouter.analyzeFood, INPUT, { context: ctx("off") });
-    const empty = await call(aiRouter.analyzeFood, INPUT, { context: ctx("off", "") });
-    const other = await call(aiRouter.analyzeFood, INPUT, { context: ctx("off", "someone-else") });
-    const strip = (r: typeof unset) => JSON.stringify({ ...r, scanId: null, photoId: null });
-    expect(strip(empty)).toBe(strip(unset));
-    expect(strip(other)).toBe(strip(unset));
-    expect(unset.items.some((item) => "portionPrior" in item)).toBe(false);
-    expect(unset.items[0]).toMatchObject({ name: "nasi putih", grams: 130 });
-  });
-
-  test("flag on with history: rice starts at the usual grams, the model's number rides along", async () => {
-    const result = await call(aiRouter.analyzeFood, INPUT, { context: ctx("on", "x, on") });
+describe("ai.analyzeFood with Porsi kebiasaanmu, for every user", () => {
+  test("no weighed history: the model's numbers stay, plain rice carries the typical portion on a chip", async () => {
+    const result = await call(aiRouter.analyzeFood, INPUT, { context: ctx("none") });
     const [rice, ayam] = result.items;
     expect(rice).toMatchObject({
       name: "nasi putih",
-      grams: 100,
-      kcal: 131,
-      portionPrior: { active: "prior", n: 5, other: { grams: 130, kcal: 170 } },
+      grams: 130,
+      kcal: 170,
+      portionPrior: { active: "ai", n: 0, source: "typical", other: { grams: 100, kcal: 131 } },
     });
     expect(ayam).toMatchObject({ name: "ayam goreng", grams: 80 });
     expect(ayam && "portionPrior" in ayam).toBe(false);
   });
 
-  test("flag on without enough history: unchanged", async () => {
-    const result = await call(aiRouter.analyzeFood, INPUT, { context: ctx("lone", "lone") });
-    expect(result.items[0]).toMatchObject({ grams: 130, kcal: 170 });
-    expect("portionPrior" in result.items[0]!).toBe(false);
+  test("five weights typed: rice starts at the usual grams, the model's number rides along", async () => {
+    const result = await call(aiRouter.analyzeFood, INPUT, { context: ctx("on") });
+    const [rice, ayam] = result.items;
+    expect(rice).toMatchObject({
+      name: "nasi putih",
+      grams: 100,
+      kcal: 131,
+      portionPrior: { active: "prior", n: 5, source: "you", other: { grams: 130, kcal: 170 } },
+    });
+    expect(ayam && "portionPrior" in ayam).toBe(false);
+  });
+
+  test("four weights are enough to start at the usual grams (PRIOR_MIN_ENTRIES is 3)", async () => {
+    const result = await call(aiRouter.analyzeFood, INPUT, { context: ctx("few") });
+    expect(result.items[0]).toMatchObject({ grams: 100, portionPrior: { active: "prior", n: 4, source: "you" } });
+  });
+
+  test("two weights: the model's number stays, the user's own median is one tap away", async () => {
+    const result = await call(aiRouter.analyzeFood, INPUT, { context: ctx("two") });
+    expect(result.items[0]).toMatchObject({
+      grams: 130,
+      kcal: 170,
+      portionPrior: { active: "ai", n: 2, source: "you", other: { grams: 95 } },
+    });
   });
 });

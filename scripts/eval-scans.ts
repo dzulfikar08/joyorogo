@@ -73,8 +73,9 @@ import type { PlateRef } from "../packages/api/src/lib/dishware";
 import { analyzeFoodPhoto, DEFAULT_VISION_MODEL, PRINTED_TEXT_RULE, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
 import type { AiRunner, CardAnswer } from "../packages/api/src/lib/vision";
 import type { CalibrateOptions } from "../packages/api/src/lib/tkpi";
-import { PRIOR_BIG_PLATE, buildPriors, userSetSamples, withPortionPrior } from "../packages/api/src/lib/portion-prior";
+import { PRIOR_BIG_PLATE, PRIOR_MIN_ENTRIES, TYPICAL_MIN_RATIO, TYPICAL_PORTIONS, buildPriors, userSetSamples, withPortionPrior } from "../packages/api/src/lib/portion-prior";
 import type { HistoryRow } from "../packages/api/src/lib/portion-prior";
+import { swapPortionPrior } from "../packages/api/src/lib/portion-chip";
 import { applyScaleReading, parseScaleDigits, readScaleDisplay, scaleReadingGrams, SCALE_PROMPT } from "../packages/api/src/lib/scale-reading";
 import type { ScaleOutcome } from "../packages/api/src/lib/scale-reading";
 import type { ScaleUnit } from "../packages/api/src/lib/scale-chip";
@@ -94,10 +95,14 @@ type Variant = {
   calibration?: CalibrateOptions;
   /**
    * Production's "Porsi kebiasaanmu" (lib/portion-prior.ts) on top of the baseline answers: the same model
-   * call, then the usual-grams default from the user's OTHER cases (leave-one-out). `bigPlate` is the
-   * keep-the-model's-number ratio under test; production's constant when unset.
+   * call, then the usual-grams default from the user's OTHER cases (leave-one-out).
+   * `bigPlate`: keep-the-model's-number ratio under test; `minEntries`: entries from which an item starts at
+   * the usual grams; both production's constants when unset. `legacy`: the gate as first shipped (5 entries
+   * to have a prior at all, no chip for anything else, no typical rice portion). `tap`: the user taps every
+   * chip that only offers a portion (the upper bound of the chip). `noHistory`: nobody has a weighed history
+   * (the population chip alone).
    */
-  portionPrior?: { bigPlate?: number };
+  portionPrior?: { bigPlate?: number; minEntries?: number; legacy?: true; tap?: true; noHistory?: true };
   /** The case's size-reference text as production sends it (analyzeFoodPhoto `dishware`); undefined = none. */
   dishware?: (c: Case) => string | undefined;
   /** The variant asks the plate question: the report counts plate recognition. */
@@ -150,8 +155,12 @@ const VARIANTS: Record<string, Variant> = {
   "portion-prior": {
     portionPrior: {},
     groups: ["external", "owner"],
-    notes: `The shipped Porsi kebiasaanmu (lib/portion-prior.ts) on the baseline answers: for a food with at least 5 user-set weights in the last 60 days and a coefficient of variation up to 25%, the item starts at the user's median grams (kcal recomputed through calibration) unless the model answers more than ${PRIOR_BIG_PLATE} times that. History is the user's OTHER cases only (leave-one-out): the contributor's weighed meals (external), the owner's typed or edited weights (owner scans: added items, and items whose grams differ from the AI answer).`,
+    notes: `The shipped Porsi kebiasaanmu (lib/portion-prior.ts) on the baseline answers: for a food with at least ${PRIOR_MIN_ENTRIES} user-set weights in the last 60 days and a coefficient of variation up to 25%, the item starts at the user's median grams (kcal recomputed through calibration) unless the model answers more than ${PRIOR_BIG_PLATE} times that; thinner history and plain rice the model weighed above the typical portion only get a chip (the model's number stays). History is the user's OTHER cases only (leave-one-out): the contributor's weighed meals (external), the owner's typed or edited weights (owner scans: added items, and items whose grams differ from the AI answer).`,
   },
+  "portion-prior-v1": { portionPrior: { legacy: true }, groups: ["external", "owner"], notes: "The gate as first shipped (flag-off prototype): 5 user-set entries to have a prior at all, no chip for anything else, no typical rice portion." },
+  "portion-prior-min5": { portionPrior: { minEntries: 5 }, groups: ["external", "owner"], notes: "Tuning: shipped portion-prior, items start at the usual grams only from 5 entries (3 to 4 entries offer the chip)." },
+  "portion-prior-tap": { portionPrior: { tap: true }, groups: ["external", "owner"], notes: "Upper bound of the chips: shipped portion-prior, and the user taps every chip that only offers a portion (a thin personal history, the typical rice portion)." },
+  "typical-tap": { portionPrior: { noHistory: true, tap: true }, groups: ["external", "owner"], notes: "Nobody has a weighed history and everyone taps the typical-portion chip: plain rice the model weighed at 120 g or more becomes 100 g. The same numbers as a global default of 100 g for rice." },
   "portion-prior-1.6": { portionPrior: { bigPlate: 1.6 }, groups: ["external", "owner"], notes: "Tuning: portion-prior with the big-plate ratio 1.6." },
   "portion-prior-noguard": { portionPrior: { bigPlate: Infinity }, groups: ["external", "owner"], notes: "Tuning: portion-prior with no big-plate guard." },
   "plate-ref": {
@@ -542,7 +551,7 @@ function restRunner(token: string): AiRunner {
 }
 
 type RunResult =
-  | { ok: true; items: EvalItem[]; ms: number; modelMs: number; tooMany: boolean; cached: boolean; plate?: string | null; card?: CardAnswer; scale?: ScaleOutcome | null; scaleError?: string }
+  | { ok: true; items: EvalItem[]; ms: number; modelMs: number; tooMany: boolean; cached: boolean; plate?: string | null; card?: CardAnswer; scale?: ScaleOutcome | null; scaleError?: string; chips?: { you: number; typical: number; tapped: number; items: number } }
   | { ok: false; reason: string; ms: number; cached: false };
 
 /** Cache key of a variant for one case: model, final prompt (variant diff + the case's own line) and calibration. */
@@ -556,11 +565,15 @@ const fingerprint = (variant: Variant, c?: Case) =>
 
 const promptFor = (variant: Variant) => (base: string) => (variant.promptTransform ?? ((p: string) => p))(base);
 
-/** A prior variant's cache key part: the ratio and this case's own (leave-one-out) priors, so changed history never replays a stale result. */
-const priorSignature = (variant: Variant, c?: Case) =>
-  variant.portionPrior && c
-    ? JSON.stringify([variant.portionPrior.bigPlate ?? PRIOR_BIG_PLATE, [...priorsFor(c)].sort(([a], [b]) => a.localeCompare(b))], (_k, v) => (v === Infinity ? "inf" : v))
-    : "";
+/** A prior variant's cache key part: the options, the code's constants and this case's own (leave-one-out) priors, so changed history or gates never replay a stale result. */
+const priorSignature = (variant: Variant, c?: Case) => {
+  if (!variant.portionPrior || !c) return "";
+  const plan = priorPlan(variant, c);
+  return JSON.stringify(
+    [plan.options, plan.tap, PRIOR_MIN_ENTRIES, TYPICAL_PORTIONS, TYPICAL_MIN_RATIO, [...plan.priors].sort(([a], [b]) => a.localeCompare(b))],
+    (_k, v) => (v === Infinity ? "inf" : v),
+  );
+};
 
 /** Where a job's result lives in the result cache. */
 const cacheFileOf = (hash: string, name: string, c: Case, rep: number) =>
@@ -632,9 +645,19 @@ async function runOne(
     ]);
     const read = call ? applyScaleReading(analysis.items, call.reading) : null;
     const shown: typeof analysis.items = read?.items ?? analysis.items;
-    const priors = variant.portionPrior ? priorsFor(c) : null;
-    const answered = priors
-      ? shown.map((item) => withPortionPrior(item, priors, variant.portionPrior))
+    const plan = variant.portionPrior ? priorPlan(variant, c) : null;
+    const chips = { you: 0, typical: 0, tapped: 0 };
+    const answered = plan
+      ? shown.map((item) => {
+          const chipped = withPortionPrior(item, plan.priors, plan.options);
+          const chip = chipped.portionPrior;
+          if (chip) chips[chip.source === "typical" ? "typical" : "you"]++;
+          if (chip && plan.tap && chip.active === "ai") {
+            chips.tapped++;
+            return swapPortionPrior(chipped);
+          }
+          return chipped;
+        })
       : shown;
     const result: RunResult = {
       ok: true,
@@ -646,6 +669,7 @@ async function runOne(
       cached: false,
       ...(analysis.plate !== undefined ? { plate: analysis.plate } : {}),
       ...(analysis.card !== undefined ? { card: analysis.card } : {}),
+      ...(plan ? { chips: { ...chips, items: answered.length } } : {}),
     };
     await Bun.write(cacheFile, JSON.stringify(result));
     return result;
@@ -664,9 +688,15 @@ async function runOne(
  */
 const HISTORY: Array<{ caseId: string; user: string; row: HistoryRow }> = [];
 
-/** The usual portions the case's person would have in the app, never counting the case itself. */
-function priorsFor(c: Case) {
-  return buildPriors(userSetSamples(HISTORY.filter((h) => h.caseId !== c.id && h.user === c.person).map((h) => h.row)));
+/** The priors and chip options a prior variant runs a case with: the case's person's OTHER weighed cases, never the case itself. */
+function priorPlan(variant: Variant, c: Case) {
+  const o = variant.portionPrior!;
+  const history = o.noHistory ? [] : HISTORY.filter((h) => h.caseId !== c.id && h.user === c.person).map((h) => h.row);
+  return {
+    priors: buildPriors(userSetSamples(history), o.legacy ? 5 : undefined),
+    options: { bigPlate: o.bigPlate, minEntries: o.legacy ? 5 : o.minEntries, typical: !o.legacy },
+    tap: o.tap === true,
+  };
 }
 
 /** An owner scan as the diary rows it became (see HISTORY); nothing for a scan nobody saved. */
@@ -888,6 +918,24 @@ async function downloadWiki(url: string, to: string): Promise<void> {
 }
 
 // ------------------------------------------------------------- aggregation
+/**
+ * "Porsi kebiasaanmu": how often a chip is shown, per group and prior variant: the user's own
+ * (a history the case's person has) or the typical rice portion, how many of those the user
+ * would have to tap to get the numbers (`tap` variants), over how many items scanned.
+ */
+function portionSection(variants: string[], runs: Array<Run & { variant: string }>): string[] {
+  const md = ["## Portion chips", "", "| Set | Variant | Runs | Items | Chip: usual (history) | Chip: typical rice | Chips tapped |", "|---|---|---|---|---|---|---|"];
+  for (const v of variants.filter((name) => VARIANTS[name]!.portionPrior)) {
+    for (const group of ["owner", "external"] as const) {
+      const tallies = runs.flatMap((r) => (r.variant === v && r.c.group === group && r.result.ok && r.result.chips ? [r.result.chips] : []));
+      if (tallies.length === 0) continue;
+      const total = (key: "items" | "you" | "typical" | "tapped") => tallies.reduce((n, t) => n + t[key], 0);
+      md.push(`| ${group} | \`${v}\` | ${tallies.length} | ${total("items")} | ${total("you")} | ${total("typical")} | ${total("tapped")} |`);
+    }
+  }
+  return [...md, ""];
+}
+
 type Run = { c: Case; rep: number; result: RunResult; scored: Scored | null };
 
 /** Grams the answer put on the items a labelled display covers (the whole answer for "plate"). */
@@ -1523,6 +1571,9 @@ async function main() {
   );
   if (cases.some((c) => c.scale || c.group === "scale") || args.variants.some((v) => VARIANTS[v]!.scaleReadout)) {
     md.push(...scaleSection(args.variants, cases, results.map((r, i) => ({ ...r, variant: jobs[i]!.variant }))));
+  }
+  if (args.variants.some((v) => VARIANTS[v]!.portionPrior)) {
+    md.push(...portionSection(args.variants, results.map((r, i) => ({ ...r, variant: jobs[i]!.variant }))));
   }
 
   // The answer production gave at scan time vs the saved items (no model calls).

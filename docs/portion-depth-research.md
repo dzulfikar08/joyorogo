@@ -85,7 +85,7 @@ Fallback must be silent: no depth, low confidence or an ineligible item means th
 
 ## 5. How it would plug into the pipeline
 
-Facts from the code: the server returns per item `grams`, `kcal`, macros, `kind`, `box` (0-1000 grid) and, for flagged users, `portionPrior`. `calibrateItems` rescales kcal to the grams (library band scaled by grams, 9 kcal/g cap). The native client has the original photo and, with a new module, the depth frame of the same instant. `Porsi kebiasaanmu` (`docs/portion-prior.md`) already shows the pattern: a post-hoc default, the model's number one tap away, behind a Worker-var allowlist (`PORTION_PRIOR_USER_IDS`).
+Facts from the code: the server returns per item `grams`, `kcal`, macros, `kind`, `box` (0-1000 grid) and, for items with a usual or typical portion, `portionPrior`. `calibrateItems` rescales kcal to the grams (library band scaled by grams, 9 kcal/g cap). The native client has the original photo and, with a new module, the depth frame of the same instant. `Porsi kebiasaanmu` (`docs/portion-prior.md`) already shows the pattern: a post-hoc default, the model's number one tap away, for every user since 2026-10-21 (the old `PORTION_PRIOR_USER_IDS` allowlist is gone).
 
 **Proposal (not built): post-hoc, on device, grams only.**
 

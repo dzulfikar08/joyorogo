@@ -44,7 +44,6 @@ declare module "cloudflare:workers" {
       FOUNDER_PRICE_LADDER?: string;
       ADMIN_EMAILS?: string;
       DATASET_USER_IDS?: string;
-      PORTION_PRIOR_USER_IDS?: string;
       DISHWARE_USER_IDS?: string;
       CORRECTION_MEMORY_USER_IDS?: string;
       SCALE_READOUT_USER_IDS?: string;

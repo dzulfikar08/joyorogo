@@ -1,8 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
-import { swapPortionPrior } from "./portion-chip";
+import { chipGrams, priorLabelKey, swapPortionPrior } from "./portion-chip";
 import {
   PRIOR_BIG_PLATE,
+  PRIOR_MIN_ENTRIES,
+  PRIOR_SUGGEST_ENTRIES,
+  TYPICAL_MIN_RATIO,
+  TYPICAL_PORTIONS,
   buildPriors,
   priorOf,
   userSetSamples,
@@ -64,14 +68,17 @@ describe("userSetSamples: only grams the user set", () => {
 });
 
 describe("consistency gate", () => {
-  test("needs five entries", () => {
-    expect(priorOf([100, 100, 100, 100])).toBeNull();
-    expect(priorOf([100, 100, 100, 100, 100])).toEqual({ grams: 100, n: 5 });
+  test("two entries are enough for the chip, fewer are no history", () => {
+    expect(priorOf([100])).toBeNull();
+    expect(priorOf([100, 100])).toEqual({ grams: 100, n: PRIOR_SUGGEST_ENTRIES });
+    expect(priorOf([100, 100], 5)).toBeNull();
+    expect(priorOf([100, 100, 100, 100, 100], 5)).toEqual({ grams: 100, n: 5 });
   });
 
   test("median of tight entries; spread over 25% means no prior", () => {
     expect(priorOf([90, 100, 100, 105, 110])).toEqual({ grams: 100, n: 5 });
     expect(priorOf([50, 100, 100, 150, 200])).toBeNull();
+    expect(priorOf([80, 150])).toBeNull();
   });
 
   test("per canonical food", () => {
@@ -81,12 +88,19 @@ describe("consistency gate", () => {
     ]);
     expect([...priors.keys()]).toEqual(["nasi"]);
   });
+
+  test("the entries needed come from the caller (the harness tunes it)", () => {
+    const samples = [100, 100, 100].map((grams) => ({ food: "nasi", grams }));
+    expect(buildPriors(samples).get("nasi")).toEqual({ grams: 100, n: 3 });
+    expect(buildPriors(samples, 5).size).toBe(0);
+  });
 });
 
-const priors = buildPriors([100, 100, 95, 105, 100].map((grams) => ({ food: "nasi", grams })));
+const history = (...grams: number[]) => buildPriors(grams.map((g) => ({ food: "nasi", grams: g })));
+const priors = history(100, 100, 95, 105, 100);
 const rice = { name: "nasi putih", portion: "1 centong", grams: 130, kcal: 170, protein: 3.6, carbs: 36, fat: 0.4, fiber: 0.4, kind: "makanan" as const };
 
-describe("withPortionPrior", () => {
+describe("withPortionPrior: a solid history starts at the usual grams", () => {
   test("starts at the usual grams, kcal through calibration, the model's numbers behind the chip", () => {
     const out = withPortionPrior(rice, priors);
     expect(out.grams).toBe(100);
@@ -96,25 +110,90 @@ describe("withPortionPrior", () => {
     expect(out.portionPrior).toEqual({
       active: "prior",
       n: 5,
+      source: "you",
       other: { portion: "1 centong", grams: 130, kcal: 170, protein: 3.6, carbs: 36, fat: 0.4, fiber: 0.4 },
     });
   });
 
-  test("the big-plate ratio is a parameter (the harness tunes it)", () => {
-    const typical = { ...rice, grams: 150, kcal: 195 };
-    expect(withPortionPrior(typical, priors)).toBe(typical);
-    expect(withPortionPrior(typical, priors, { bigPlate: 1.6 }).grams).toBe(100);
+  test("three entries are enough to start at the usual grams, two only offer it", () => {
+    expect(withPortionPrior(rice, history(100, 100, 100))).toMatchObject({ grams: 100, portionPrior: { active: "prior", n: PRIOR_MIN_ENTRIES } });
+    const two = withPortionPrior(rice, history(100, 100));
+    expect(two).toMatchObject({ grams: 130, kcal: 170, portion: "1 centong", portionPrior: { active: "ai", n: 2, source: "you", other: { grams: 100, kcal: 131 } } });
+    expect(withPortionPrior(rice, history(100, 100, 100), { minEntries: 5 })).toMatchObject({ grams: 130, portionPrior: { active: "ai", n: 3 } });
   });
 
-  test("a clearly bigger plate keeps the model's number", () => {
+  test("a clearly bigger plate keeps the model's number, the usual grams stay on the chip", () => {
     const big = { ...rice, grams: Math.round(100 * PRIOR_BIG_PLATE) + 1, kcal: 300 };
-    expect(withPortionPrior(big, priors)).toBe(big);
+    expect(withPortionPrior(big, priors)).toMatchObject({ grams: big.grams, kcal: 300, portionPrior: { active: "ai", n: 5, other: { grams: 100 } } });
     const edge = { ...rice, grams: Math.round(100 * PRIOR_BIG_PLATE), kcal: 300 };
     expect(withPortionPrior(edge, priors).grams).toBe(100);
   });
 
-  test("no history, other food, no weight, a hidden cup or the same portion: untouched", () => {
-    expect(withPortionPrior(rice, new Map())).toBe(rice);
+  test("the big-plate ratio is a parameter", () => {
+    const plate = { ...rice, grams: 150, kcal: 195 };
+    expect(withPortionPrior(plate, priors).grams).toBe(150);
+    expect(withPortionPrior(plate, priors, { bigPlate: 1.6 }).grams).toBe(100);
+  });
+
+  test("the personal history wins over the typical portion", () => {
+    const mine = history(200, 200, 190);
+    const plate = { ...rice, grams: 150, kcal: 195 };
+    expect(withPortionPrior(plate, mine)).toMatchObject({ grams: 200, portionPrior: { source: "you", n: 3 } });
+  });
+
+  test("a smaller model answer also starts at the usual grams, and the chip swaps both ways", () => {
+    const small = withPortionPrior({ ...rice, grams: 80, kcal: 104 }, priors);
+    expect(small.grams).toBe(100);
+    const swapped = swapPortionPrior(small);
+    expect(swapped).toMatchObject({ grams: 80, kcal: 104, portion: "1 centong", portionPrior: { active: "ai" } });
+    expect(swapPortionPrior(swapped)).toEqual(small);
+  });
+});
+
+describe("withPortionPrior: the typical rice portion for everyone else", () => {
+  test("rice the model weighed heavy gets the typical portion on the chip, the model's number stays", () => {
+    const out = withPortionPrior(rice, new Map());
+    expect(out).toMatchObject({
+      name: "nasi putih",
+      grams: 130,
+      kcal: 170,
+      portion: "1 centong",
+      portionPrior: { active: "ai", n: 0, source: "typical", other: { grams: TYPICAL_PORTIONS.nasi, kcal: 131 } },
+    });
+    expect(chipGrams(out)).toEqual({ ai: 130, usual: 100 });
+  });
+
+  test("one tap puts the typical portion on the row and another puts the model's back", () => {
+    const out = withPortionPrior({ ...rice, grams: 150, kcal: 195 }, new Map());
+    const tapped = swapPortionPrior(out);
+    expect(tapped).toMatchObject({ grams: 100, kcal: 130, portionPrior: { active: "prior", source: "typical", other: { grams: 150, kcal: 195, portion: "1 centong" } } });
+    expect(tapped.portion).toBeUndefined();
+    expect(swapPortionPrior(tapped)).toEqual(out);
+  });
+
+  test("every plain rice spelling, the ratio decides, other foods and kinds stay untouched", () => {
+    for (const name of ["nasi", "Nasi Uduk", "nasi merah", "white rice"]) {
+      expect(withPortionPrior({ ...rice, name }, new Map()).portionPrior?.source).toBe("typical");
+    }
+    const edge = Math.ceil(TYPICAL_PORTIONS.nasi! * TYPICAL_MIN_RATIO);
+    expect(withPortionPrior({ ...rice, grams: edge }, new Map()).portionPrior).toBeDefined();
+    const lighter = { ...rice, grams: edge - 1, kcal: 150 };
+    expect(withPortionPrior(lighter, new Map())).toBe(lighter);
+    const small = { ...rice, grams: 80, kcal: 104 };
+    expect(withPortionPrior(small, new Map())).toBe(small);
+    for (const name of ["nasi goreng", "nasi padang", "tempe goreng", "bubur ayam"]) {
+      const dish = { ...rice, name };
+      expect(withPortionPrior(dish, new Map())).toBe(dish);
+    }
+  });
+
+  test("the typical portion can be turned off (the harness's v1)", () => {
+    expect(withPortionPrior(rice, new Map(), { typical: false })).toBe(rice);
+  });
+});
+
+describe("withPortionPrior: left alone", () => {
+  test("no weight, a hidden cup or the same portion: untouched", () => {
     const tempe = { ...rice, name: "tempe goreng" };
     expect(withPortionPrior(tempe, priors)).toBe(tempe);
     const noGrams = { ...rice, grams: undefined };
@@ -125,15 +204,13 @@ describe("withPortionPrior", () => {
     expect(withPortionPrior(same, priors)).toBe(same);
   });
 
-  test("a smaller model answer also starts at the usual grams, and the chip swaps both ways", () => {
-    const small = withPortionPrior({ ...rice, grams: 80, kcal: 104 }, priors);
-    expect(small.grams).toBe(100);
-    const swapped = swapPortionPrior(small);
-    expect(swapped).toMatchObject({ grams: 80, kcal: 104, portion: "1 centong", portionPrior: { active: "ai" } });
-    expect(swapPortionPrior(swapped)).toEqual(small);
-  });
-
   test("swapping an item without a chip changes nothing", () => {
     expect(swapPortionPrior(rice)).toBe(rice);
+  });
+
+  test("a chip of an older server (no source) is the user's own and keeps its label", () => {
+    expect(priorLabelKey({})).toBe("result.items.priorUsual");
+    expect(priorLabelKey({ source: "you" })).toBe("result.items.priorUsual");
+    expect(priorLabelKey({ source: "typical" })).toBe("result.items.priorTypical");
   });
 });

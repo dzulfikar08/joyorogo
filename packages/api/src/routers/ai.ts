@@ -52,7 +52,7 @@ import { withPortionPrior } from "../lib/portion-prior";
 import type { PortionPrior } from "../lib/portion-prior";
 import { chipsFor, correctionMemoryEnabled, loadCorrectionMemory } from "../lib/correction-memory";
 import type { CorrectionMemory } from "../lib/correction-memory";
-import { loadPortionPriors, portionPriorEnabled } from "../lib/portion-prior-store";
+import { loadPortionPriors } from "../lib/portion-prior-store";
 import type { PortionPriorChip } from "../lib/portion-chip";
 import { applyScaleReading, readScaleDisplay, scaleLedger, scaleReadoutEnabled } from "../lib/scale-reading";
 import type { ScaleReadChip } from "../lib/scale-chip";
@@ -249,7 +249,7 @@ function memoryResult(memory: CorrectionMemory | null, topName: string | undefin
 
 /** What analyzeFood answers, and what the closing `done` event of analyzeFoodStream carries. */
 export type AnalyzeFoodResult = {
-  /** `portionPrior` is present only for allowlisted users with a consistent weighed history (lib/portion-prior.ts). */
+  /** `portionPrior` is present on rice the model weighed heavier than typical and on foods with a weighed history (lib/portion-prior.ts). */
   items: Array<
     VisionAnalysis["items"][number] & { portionPrior?: PortionPriorChip; scaleRead?: ScaleReadChip }
   >;
@@ -330,15 +330,14 @@ async function runAnalyzeFood(
       ),
   ]);
 
-  // "Porsi kebiasaanmu": the user's usual portions, read beside the model call
-  // (allowlist only; everyone else never touches the diary here). A failed read
-  // is no prior, never a failed scan.
-  const priors: Promise<Map<string, PortionPrior> | null> = portionPriorEnabled(context.env, userId)
-    ? loadPortionPriors(context.db, userId).catch((error: unknown) => {
-        console.error("[ai] portion prior failed", error);
-        return null;
-      })
-    : Promise.resolve(null);
+  // "Porsi kebiasaanmu": the user's usual portions, read beside the model call. A
+  // failed read is no history, never a failed scan.
+  const priors: Promise<Map<string, PortionPrior> | null> = loadPortionPriors(context.db, userId).catch(
+    (error: unknown) => {
+      console.error("[ai] portion prior failed", error);
+      return null;
+    },
+  );
 
   // "Ingat koreksimu": allowlist only; a failed read is no memory, never a failed scan.
   const memory: Promise<CorrectionMemory | null> = correctionMemoryEnabled(context.env, userId)
@@ -596,12 +595,11 @@ async function runAnalyzeFood(
     );
   }
   // The ledger and the owner dataset above keep the model's own answer; only what
-  // the user sees starts at their usual portion.
-  const usual = await priors;
+  // the user sees carries the usual / typical portion. A failed history read is the
+  // typical portion alone.
+  const usual = (await priors) ?? new Map<string, PortionPrior>();
   return {
-    items: usual
-      ? items.map((item) => (item.scaleRead ? item : withPortionPrior(item, usual)))
-      : items,
+    items: items.map((item) => (item.scaleRead ? item : withPortionPrior(item, usual))),
     tooMany: analysis.tooMany,
     scanId,
     photoId,

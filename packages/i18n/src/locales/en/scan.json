@@ -168,6 +168,7 @@
       "priorGroup": "Pick the portion for {{name}}",
       "priorAi": "AI: {{grams}}",
       "priorUsual": "Your usual: {{grams}}",
+      "priorTypical": "Typical: {{grams}}",
       "scaleGroup": "Pick the weight for {{name}}",
       "scaleRead": "Read from the scale: {{value}}",
       "scaleReadShared_one": "Read from the scale: {{value}}, split over {{count}} item",
